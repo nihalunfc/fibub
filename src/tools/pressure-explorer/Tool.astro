@@ -1,0 +1,233 @@
+---
+// Pressure explorer (Learn): the same force on a needle and on a flat palm pressing into soft clay; pressure =
+// force ÷ area with the live numbers, a pressure-area graph, and Class 9 thrust from a resting mass.
+// Maths in src/lib/sci/j3-pressure.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { THINGS } from '../../lib/sci/j3-pressure';
+---
+<div class="ax lrn pex">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="pex-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <canvas class="lrn-cv pex-cv" aria-label="Two objects pressing into soft clay with the same force"></canvas>
+    <p class="ax-help" style="margin:6px 0 0">Drag up or down on the picture to press harder or more gently.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Left object <select class="pex-a">
+        {THINGS.map((t) => <option value={t.id} selected={t.id === 'needle'}>{t.name}</option>)}
+        <option value="own">Your own area</option>
+      </select></label>
+      <label>Right object <select class="pex-b">
+        {THINGS.map((t) => <option value={t.id} selected={t.id === 'palm'}>{t.name}</option>)}
+      </select></label>
+    </div>
+    <label class="lrn-sl pex-ownl" hidden style="margin-top:10px">Your own contact area <b class="pex-ownv"></b><input type="range" class="pex-own" min="0" max="800" step="10" value="400" aria-label="Your own contact area, log scale" /></label>
+    <div data-only="11" hidden style="margin-top:10px">
+      <span class="pex-lab">The force comes from</span>
+      <div class="ax-seg pex-src" role="group" aria-label="Where the force comes from">
+        <button type="button" data-s="push" aria-pressed="true">A push</button>
+        <button type="button" data-s="mass" aria-pressed="false">A resting mass</button>
+      </div>
+    </div>
+    <label class="lrn-sl pex-fl" style="margin-top:10px">Force on each object <b class="pex-fv"></b><input type="range" class="pex-f" min="1" max="500" step="1" value="100" aria-label="Force in newtons" /></label>
+    <label class="lrn-sl pex-ml" hidden style="margin-top:10px">Mass resting on each object <b class="pex-mv"></b><input type="range" class="pex-m" min="0.5" max="50" step="0.5" value="2" aria-label="Mass in kilograms" /></label>
+  </div>
+
+  <div class="ax-card">
+    <h2>The pressure</h2>
+    <dl class="ax-facts pex-facts"></dl>
+    <p class="ax-big pex-ratio" style="margin:12px 0 0"></p>
+    <div class="lrn-eq pex-eq"></div>
+    <p class="ax-help pex-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pressure against area</h2>
+    <canvas class="lrn-cv pex-g" aria-label="Graph of pressure against contact area for the chosen force"></canvas>
+    <p class="ax-help">Both axes go up in steps of ten (a log scale), so the curve P = F ÷ A shows as a straight line. Every step of ten to the right is ten times less pressure.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Keep the force at 100 N and compare the needle with the palm. How many times more pressure does the needle make?</li>
+      <li>Find the smallest force that lets the nail tip go into the clay. Then try the knife edge.</li>
+      <li>Put a brick on its end and lying flat. Which one sinks into the clay? Why do buildings stand on wide foundations?</li>
+      <li>Compare a school shoe with a snowshoe. Why do people walk on snow in wide shoes?</li>
+      <li>At Class 11, rest the same mass on different faces: the thrust stays the same, but the pressure changes.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card pex-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { THINGS, pressure, weight, effect, depth, showP, showA, nice, pow10, sliderToArea, questions, CLAY } from '../../lib/sci/j3-pressure';
+  import { mountQuiz, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pex')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => Number(q<HTMLInputElement>(c).value);
+  let level = '8', src: 'push' | 'mass' = 'push';
+  type Obj = { id: string; name: string; area: number; note: string };
+
+  const obj = (sel: string): Obj => {
+    const id = q<HTMLSelectElement>(sel).value;
+    if (id === 'own') { const A = sliderToArea(v_('.pex-own')); return { id, name: 'Your object', area: A, note: showA(A) }; }
+    return THINGS.find((t) => t.id === id)!;
+  };
+  const force = () => (level === '11' && src === 'mass' ? weight(v_('.pex-m')) : v_('.pex-f'));
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+
+  // Look of each object: width at the top, and whether it ends in a point.
+  const LOOK: Record<string, { top: number; h: number }> = {
+    needle: { top: 4, h: 90 }, nail: { top: 16, h: 80 }, knife: { top: 30, h: 70 }, finger: { top: 26, h: 70 },
+    'brick-end': { top: 0, h: 80 }, palm: { top: 0, h: 34 }, 'brick-flat': { top: 0, h: 40 }, shoe: { top: 0, h: 34 }, snowshoe: { top: 0, h: 16 }, own: { top: 0, h: 50 },
+  };
+  /** Width on screen of the contact patch: grows with log of the area, from 1 px (needle) to most of the panel. */
+  const patch = (A: number, pw: number) => Math.max(1.2, Math.min(pw - 16, 1.2 + (pw - 18) * Math.max(0, (Math.log10(A) + 8) / 7) ** 1.6));
+
+  function drawObj(ctx: CanvasRenderingContext2D, pal: Palette, o: Obj, cx: number, pw: number, ground: number, F: number) {
+    const P = pressure(F, o.area), d = depth(P), eff = effect(P), cw = patch(o.area, pw), look = LOOK[o.id] ?? LOOK.own;
+    const sink = eff === 'pierce' ? 26 + d * 20 : d * 26, bot = ground + sink, tw = look.top ? Math.max(look.top, cw) : cw, top = bot - look.h;
+    // clay with a dent
+    ctx.fillStyle = pal.red ? pal.grid : '#c9a27a'; if (!pal.red && document.documentElement.dataset.theme === 'dark') ctx.fillStyle = '#5c4632';
+    ctx.beginPath(); ctx.moveTo(cx - pw / 2, ground);
+    const dw = cw / 2 + 4 + sink * 0.6;
+    ctx.lineTo(cx - dw, ground); ctx.lineTo(cx - cw / 2, bot); ctx.lineTo(cx + cw / 2, bot); ctx.lineTo(cx + dw, ground); ctx.lineTo(cx + pw / 2, ground);
+    ctx.lineTo(cx + pw / 2, ground + 70); ctx.lineTo(cx - pw / 2, ground + 70); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cx - pw / 2, ground); ctx.lineTo(cx - dw, ground); ctx.lineTo(cx - cw / 2, bot); ctx.moveTo(cx + cw / 2, bot); ctx.lineTo(cx + dw, ground); ctx.lineTo(cx + pw / 2, ground); ctx.stroke();
+    if (eff === 'pierce') { ctx.strokeStyle = pal.muted; ctx.beginPath(); for (const s of [-1, 1]) { ctx.moveTo(cx + s * (cw / 2 + 1), bot); ctx.lineTo(cx + s * (cw / 2 + 10), bot + 12); ctx.moveTo(cx, bot + 2); ctx.lineTo(cx + s * 6, bot + 16); } ctx.stroke(); }
+    // the object
+    ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - tw / 2, top); ctx.lineTo(cx + tw / 2, top);
+    if (look.top) { ctx.lineTo(cx + tw / 2, top + look.h * 0.55); ctx.lineTo(cx + cw / 2, bot); ctx.lineTo(cx - cw / 2, bot); ctx.lineTo(cx - tw / 2, top + look.h * 0.55); }
+    else { ctx.lineTo(cx + tw / 2, bot); ctx.lineTo(cx - tw / 2, bot); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // force arrow, same length for both
+    const ay = top - 8, L = 46;
+    ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.accent; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, ay - L); ctx.lineTo(cx, ay - 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, ay); ctx.lineTo(cx - 6, ay - 10); ctx.lineTo(cx + 6, ay - 10); ctx.closePath(); ctx.fill();
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${nice(F)} N`, cx + 8, ay - L + 12);
+    // labels
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.font = '600 13px system-ui, sans-serif';
+    ctx.fillText(o.name, cx, ground + 92);
+    ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = eff === 'pierce' ? pal.bad : eff === 'dent' ? pal.warn : pal.good;
+    ctx.fillText(showP(P), cx, ground + 110);
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif';
+    ctx.fillText(eff === 'pierce' ? 'goes into the clay' : eff === 'dent' ? 'makes a dent' : 'hardly marks it', cx, ground + 126);
+  }
+
+  function drawScene() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.pex-cv'), 300), F = force(), a = obj('.pex-a'), b = obj('.pex-b');
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const pw = W / 2 - 8, ground = 160;
+    drawObj(ctx, pal, a, W / 4, pw, ground, F);
+    drawObj(ctx, pal, b, (3 * W) / 4, pw, ground, F);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(W / 2, 10); ctx.lineTo(W / 2, H - 10); ctx.stroke();
+    q('.pex-cv').setAttribute('aria-label', `${a.name} and ${b.name} pressed with ${nice(F)} N each: ${showP(pressure(F, a.area))} and ${showP(pressure(F, b.area))}`);
+  }
+
+  function drawGraph() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.pex-g'), 240), F = force(), a = obj('.pex-a'), b = obj('.pex-b');
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const x0 = 52, y0 = H - 34, gw = W - x0 - 12, gh = y0 - 10;
+    const ax = (A: number) => x0 + ((Math.log10(A) + 8) / 8) * gw; // 10⁻⁸ to 1 m²
+    const pmin = 0, pmax = 12; // 1 Pa to 10¹² Pa
+    const py = (P: number) => y0 - ((Math.log10(P) - pmin) / (pmax - pmin)) * gh;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif';
+    for (let e = -8; e <= 0; e += 2) { const x = ax(10 ** e); ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, y0); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillText(pow10(e), x, y0 + 14); }
+    for (let e = 0; e <= 12; e += 3) { const y = py(10 ** e); ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + gw, y); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(pow10(e), x0 - 4, y + 4); }
+    ctx.textAlign = 'center'; ctx.fillText('contact area (m²)', x0 + gw / 2, H - 4);
+    ctx.save(); ctx.translate(11, y0 - gh / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('pressure (Pa)', 0, 0); ctx.restore();
+    // clay limits
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.muted;
+    for (const [P, t] of [[CLAY.mark, 'clay dents'], [CLAY.pierce, 'clay gives way']] as [number, string][]) { const y = py(P); ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + gw, y); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(t, x0 + gw - 2, y - 3); }
+    ctx.setLineDash([]);
+    // P = F/A line
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, 10, gw, gh); ctx.clip();
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(ax(1e-8), py(F / 1e-8)); ctx.lineTo(ax(1), py(F)); ctx.stroke(); ctx.restore();
+    for (const o of [a, b]) {
+      const x = ax(o.area), y = py(pressure(F, o.area));
+      ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
+      ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = x > x0 + gw * 0.6 ? 'right' : 'left'; ctx.fillText(o.name, x + (x > x0 + gw * 0.6 ? -8 : 8), y - 6);
+    }
+    ctx.fillStyle = pal.accent; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`P = ${nice(F)} N ÷ A`, x0 + 6, 24);
+  }
+
+  function update() {
+    const F = force(), a = obj('.pex-a'), b = obj('.pex-b'), Pa = pressure(F, a.area), Pb = pressure(F, b.area);
+    const own = q<HTMLSelectElement>('.pex-a').value === 'own';
+    q('.pex-ownl').hidden = !own; q('.pex-ownv').textContent = showA(sliderToArea(v_('.pex-own')));
+    const useMass = level === '11' && src === 'mass';
+    q('.pex-fl').hidden = useMass; q('.pex-ml').hidden = !useMass;
+    q('.pex-fv').textContent = `${v_('.pex-f')} N`; q('.pex-mv').textContent = `${nice(v_('.pex-m'))} kg (weight ${nice(F)} N)`;
+    q('.pex-facts').replaceChildren(
+      fact(a.name, showP(Pa), `area ${showA(a.area)}`),
+      fact(b.name, showP(Pb), `area ${showA(b.area)}`),
+      fact(useMass ? 'Thrust (the weight)' : 'Force on each', `${nice(F)} N`, useMass ? `${nice(v_('.pex-m'))} kg × 9.8 m/s²` : 'the same for both'));
+    const r = Pa / Pb;
+    q('.pex-ratio').textContent = Math.abs(r - 1) < 1e-9 ? 'Same area, same pressure' : r > 1 ? `${a.name}: ${nice(r)} times more pressure` : `${b.name}: ${nice(1 / r)} times more pressure`;
+    const line = (o: Obj, P: number) => {
+      const p = document.createElement('p'); p.style.margin = '4px 0';
+      const sci = level === '11' ? ` = ${nice(P / 10 ** Math.floor(Math.log10(P)))} × ${pow10(Math.floor(Math.log10(P)))} Pa` : '';
+      p.textContent = `${o.name}: P = F ÷ A = ${nice(F)} N ÷ ${nice(o.area, 3)} m² = ${nice(P)} Pa${sci}${P >= 1e4 ? ` (${showP(P)})` : ''}`;
+      return p;
+    };
+    const eqs = [line(a, Pa), line(b, Pb)];
+    if (useMass) { const p = document.createElement('p'); p.style.margin = '4px 0'; p.textContent = `Thrust = mg = ${nice(v_('.pex-m'))} × 9.8 = ${nice(F)} N. Thrust is the force pressing straight onto the surface; pressure is the thrust on each square metre.`; eqs.unshift(p); }
+    q('.pex-eq').replaceChildren(...eqs);
+    q('.pex-note').textContent = `${a.name}: ${a.note}. ${b.name}: ${b.note}. Areas are rounded, made-up teaching values. The clay is pretend soft clay that dents above ${showP(CLAY.mark)} and gives way above ${showP(CLAY.pierce)}. 1 Pa = 1 N/m².`;
+    drawScene(); drawGraph();
+  }
+
+  wireLevel(root, (l) => { level = l; update(); });
+  root.querySelectorAll<HTMLButtonElement>('.pex-src button').forEach((bt) => bt.addEventListener('click', () => {
+    src = bt.dataset.s as 'push' | 'mass';
+    root.querySelectorAll('.pex-src button').forEach((o) => o.setAttribute('aria-pressed', String(o === bt)));
+    update();
+  }));
+  root.querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', update); e.addEventListener('change', update); });
+
+  // Drag up or down on the picture to change the force (or the mass).
+  const cv = q<HTMLCanvasElement>('.pex-cv');
+  let drag: { y: number; v: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { const inp = q<HTMLInputElement>(level === '11' && src === 'mass' ? '.pex-m' : '.pex-f'); drag = { y: e.clientY, v: Number(inp.value) }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const inp = q<HTMLInputElement>(level === '11' && src === 'mass' ? '.pex-m' : '.pex-f'), max = Number(inp.max), min = Number(inp.min), step = Number(inp.step);
+    const v = Math.max(min, Math.min(max, Math.round((drag.v * 1.02 ** (drag.y - e.clientY)) / step) * step));
+    if (String(v) !== inp.value) { inp.value = String(v); update(); }
+  });
+  const end = () => { drag = null; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+
+  const quizBox = document.createElement('div'); q('.pex-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(level));
+  document.addEventListener('fibub:theme', update);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; update(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .pex .pex-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .pex .ax-seg button { min-height: 44px; }
+  .pex canvas.pex-cv { touch-action: none; cursor: ns-resize; }
+  .pex select { min-height: 44px; width: 100%; }
+  .pex .pex-eq p { overflow-wrap: anywhere; }
+  .pex [hidden] { display: none !important; }
+</style>

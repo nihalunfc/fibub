@@ -1,0 +1,50 @@
+// #1240 Kaprekar 6174 and magic square maker
+export const path = '/learn/kaprekar-magic-square/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/kaprekar-magic-square/`); await page.waitForSelector('.km .km-hist rect');
+  const R = '.km ';
+  const txt = (s) => page.textContent(R + s);
+  const vals = (sep) => page.$$eval(R + '.km-grid text.km-v', (t, s) => t.map((x) => x.textContent).join(s), sep);
+  check((await txt('.km-big')) === '3524 reaches 6174 in 3 steps', 'kap: 3524 in 3 steps');
+  check((await page.$$eval(R + '.km-steps li', (l) => l.map((x) => x.textContent))).slice(0, 3).join('|') === '5432 − 2345 = 3087|8730 − 0378 = 8352|8532 − 2358 = 6174', 'kap: steps with kept zeros');
+  check((await page.$$(R + '.km-hist .km-me')).length === 1 && (await txt('.km-hf')).includes('2,400 need 3 steps') && (await txt('.km-hf')).includes('at most 7'), 'kap: chart and counts');
+  await page.fill(R + '.km-x', '2111'); await page.waitForTimeout(100);
+  check((await txt('.km-big')).endsWith('in 5 steps') && (await txt('.km-steps')).includes('9990 − 0999 = 8991'), 'kap: 2111 keeps the zero');
+  await page.fill(R + '.km-x', '7777'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.km-err'), 'kap: repdigit message');
+  await page.click(R + '.km-w button[data-w="3"]'); await page.waitForTimeout(400);
+  check(await page.isHidden(R + '.km-err') && (await txt('.km-big')).includes('495') && (await txt('.km-hf')).includes('at most 6'), 'kap: 3 digits to 495');
+  await page.click(R + '.km-rnd'); await page.waitForTimeout(100);
+  check((await txt('.km-big')).includes('495'), 'kap: random number');
+  await page.click(R + '.km-mode button[data-m="m"]'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.km-grid') && await page.isHidden(R + '.km-hist'), 'magic: mode switch');
+  check((await vals('')) === '816357492' && (await txt('.km-mf2')).includes('add to 15: it is magic'), 'magic: Lo Shu square');
+  await page.fill(R + '.km-k', '4'); await page.waitForTimeout(100);
+  check((await page.$$(R + '.km-grid text.km-v')).length === 4 && (await txt('.km-how')).includes('down one') && (await page.$$(R + '.km-grid .km-new')).length === 1, 'magic: build step 4 goes down');
+  await page.fill(R + '.km-k', '9'); await page.waitForTimeout(100);
+  await page.locator(R + '.km-grid').scrollIntoViewIfNeeded();
+  await page.click(R + '.km-grid rect[data-r="0"][data-c="0"]'); await page.click(R + '.km-grid rect[data-r="0"][data-c="1"]'); await page.waitForTimeout(100);
+  check((await vals('')).startsWith('186') && (await page.$$(R + '.km-grid .km-bad')).length > 0 && (await txt('.km-mf2')).includes('swap broke it'), 'magic: swap breaks it');
+  await page.click(R + '.km-reset'); await page.waitForTimeout(100);
+  check((await page.$$(R + '.km-grid .km-bad')).length === 0, 'magic: reset');
+  await page.fill(R + '.km-a', '5'); await page.fill(R + '.km-d', '3'); await page.waitForTimeout(100);
+  check((await txt('.km-mf1')).endsWith('= 51.') && (await txt('.km-mf2')).includes('add to 51'), 'magic: start 5 step 3 constant 51');
+  await page.fill(R + '.km-a', '1'); await page.fill(R + '.km-d', '1');
+  await page.click(R + '.km-n button[data-n="4"]'); await page.waitForTimeout(100);
+  check((await vals(',')) === '16,2,3,13,5,11,10,8,9,7,6,12,4,14,15,1' && (await txt('.km-mf2')).includes('add to 34'), 'magic: 4 × 4');
+  await page.fill(R + '.km-k', '16'); await page.waitForTimeout(100);
+  check((await page.$$(R + '.km-grid .km-diag')).length === 8, 'magic: 4 × 4 diagonals about to swap');
+  await page.click(R + '.km-n button[data-n="5"]'); await page.waitForTimeout(100);
+  check((await txt('.km-mf2')).includes('add to 65'), 'magic: 5 × 5 constant 65');
+  await page.fill(R + '.km-d', '0'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.km-merr'), 'magic: step 0 message');
+  await page.fill(R + '.km-d', '1'); await page.waitForTimeout(100);
+  check((await page.$$(R + '.sm-q')).length === 5, 'kap: five questions');
+  const res = [/answer is (\d+)\./, /answer is (\d+)\./, /answer is (\d+)\./, /missing number is (\d+)\./, /answer is (\d+)\./];
+  for (let i = 1; i <= 5; i++) {
+    await page.click(`${R}.sm-q:nth-child(${i}) .sm-qshow`);
+    const w = await txt(`.sm-q:nth-child(${i}) .sm-qwork`); const m = res[i - 1].exec(w);
+    await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
+    check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `kap: quiz question ${i} (${w})`);
+  }
+};

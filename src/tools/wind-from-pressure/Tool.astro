@@ -1,0 +1,161 @@
+---
+// Wind from pressure (Learn): land and sea side by side; heat one side and the air above it rises, the pressure
+// at the ground falls and air blows in from the cooler side. Sea and land breezes and the monsoon.
+// Maths in src/lib/sci/j3-wind.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { PRESETS } from '../../lib/sci/j3-wind';
+---
+<div class="ax lrn wfp">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="wfp-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <label>Scene <select class="wfp-pre">{PRESETS.map((p) => <option value={p.id}>{p.name}</option>)}<option value="own">Your own temperatures</option></select></label>
+    <canvas class="lrn-cv wfp-cv" style="margin-top:10px" aria-label="Air moving over land and sea"></canvas>
+    <p class="ax-help" style="margin:6px 0 0">Tap the land or the sea to warm it by 2 °C.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small wfp-play">Pause</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Land temperature <b class="wfp-lv"></b><input type="range" class="wfp-l" min="0" max="45" step="1" value="34" aria-label="Land temperature in degrees Celsius" /></label>
+      <label class="lrn-sl">Sea temperature <b class="wfp-sv"></b><input type="range" class="wfp-s" min="0" max="45" step="1" value="27" aria-label="Sea temperature in degrees Celsius" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What the air does</h2>
+    <p class="ax-big wfp-big" style="margin:0 0 8px"></p>
+    <dl class="ax-facts wfp-facts"></dl>
+    <div class="lrn-eq wfp-eq"></div>
+    <p class="ax-help">The moving air is a cartoon: one loop of air whose speed grows with the temperature difference. Real breezes also depend on the wind already blowing, hills and the time of day. Temperatures in the scenes are rounded, made-up values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Start with the sunny afternoon. Follow one dot: it slides in from the sea, rises over the hot land, drifts back out high up and sinks over the sea.</li>
+      <li>Switch to the clear night. The land has cooled below the sea, and the whole loop turns round: a land breeze.</li>
+      <li>Make the land and sea the same temperature. The loop stops: no pressure difference, no wind.</li>
+      <li>Choose summer over India. The land is far hotter than the ocean, so a strong, steady wind blows in from the sea, bringing moist air and rain clouds: the monsoon.</li>
+      <li>At Class 11, see how much lighter the warm air is, and why the pressure up high pushes air the other way.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card wfp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { PRESETS, parcels, stepParcels, strength, groundWind, density, pressureAloft, wind, questions, P0, R_DRY } from '../../lib/sci/j3-wind';
+  import { mountQuiz, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.wfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let level = '8', seed = 12345;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const ps = parcels(140, rnd);
+  const tL = () => Number(inp('.wfp-l').value), tS = () => Number(inp('.wfp-s').value);
+  const preset = () => PRESETS.find((p) => p.id === q<HTMLSelectElement>('.wfp-pre').value);
+  let geo = { gy: 0, W: 0 };
+
+  function arrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, w = 3) {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - Math.cos(a) * 8, y2 - Math.sin(a) * 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 11 * Math.cos(a) + 6 * Math.sin(a), y2 - 11 * Math.sin(a) - 6 * Math.cos(a)); ctx.lineTo(x2 - 11 * Math.cos(a) - 6 * Math.sin(a), y2 - 11 * Math.sin(a) + 6 * Math.cos(a)); ctx.closePath(); ctx.fill();
+  }
+
+  function draw(dt: number) {
+    const A = strength(tL(), tS());
+    if (dt > 0) stepParcels(ps, A, dt, tL(), tS(), rnd);
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.wfp-cv'), 300);
+    const gy = H - 40, top = 10, bh = gy - top; geo = { gy, W };
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const dark = document.documentElement.dataset.theme === 'dark';
+    // ground: land left, sea right
+    ctx.fillStyle = pal.red ? pal.grid : dark ? '#4a3a26' : '#c8a675'; ctx.fillRect(0, gy, W / 2, H - gy);
+    ctx.fillStyle = pal.red ? pal.twilight : dark ? '#1d3a5c' : '#5b93cf'; ctx.fillRect(W / 2, gy, W / 2, H - gy);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    const p = preset();
+    ctx.fillStyle = pal.red ? pal.ink : '#fff'; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${p ? p.landName : 'Land'} ${tL()} °C`, W / 4, gy + 24); ctx.fillText(`${p ? p.seaName : 'Sea'} ${tS()} °C`, (3 * W) / 4, gy + 24);
+    // cloud where moist sea air rises over the land
+    if (tL() - tS() >= 8) { ctx.fillStyle = pal.red ? pal.muted : dark ? '#9aa0a8' : '#d4d8de'; for (const [dx, dy, r] of [[-26, 4, 16], [0, -6, 22], [26, 4, 16], [10, 10, 14], [-12, 10, 14]]) { ctx.beginPath(); ctx.arc(W * 0.16 + dx, top + 34 + dy, r, 0, 7); ctx.fill(); } if (!pal.red) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; for (let i = 0; i < 5; i++) { const x = W * 0.16 - 20 + i * 10; ctx.beginPath(); ctx.moveTo(x, top + 52); ctx.lineTo(x - 3, top + 64); ctx.stroke(); } } }
+    // parcels: colour from cool (accent) to warm (accent2)
+    for (const a of ps) {
+      const x = a.x * W, y = gy - a.y * bh, [u, v] = wind(a.x, a.y, A);
+      ctx.fillStyle = a.warm > 0.55 ? pal.accent2 : a.warm < 0.45 ? pal.accent : pal.muted;
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
+      if (Math.hypot(u, v) > 0.01) { ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - u * 120, y + v * 120); ctx.stroke(); }
+    }
+    // big arrows and H/L
+    const s = Math.min(1, Math.abs(A) / 0.3);
+    if (Math.abs(A) > 1e-9) {
+      const hotLeft = A > 0, hx = hotLeft ? W * 0.12 : W * 0.88, cx = hotLeft ? W * 0.88 : W * 0.12, len = 40 + 60 * s, w = 2 + 3 * s;
+      const col = pal.red ? pal.ink : pal.ink;
+      arrow(ctx, W / 2 + (hotLeft ? len / 2 : -len / 2), gy - 16, W / 2 - (hotLeft ? len / 2 : -len / 2), gy - 16, col, w);
+      arrow(ctx, hx, gy - bh * 0.3, hx, gy - bh * 0.7, pal.accent2, w);
+      arrow(ctx, W / 2 - (hotLeft ? len / 2 : -len / 2), top + 16, W / 2 + (hotLeft ? len / 2 : -len / 2), top + 16, pal.muted, w);
+      arrow(ctx, cx, gy - bh * 0.7, cx, gy - bh * 0.3, pal.accent, w);
+      ctx.font = '700 20px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+      ctx.fillText('L', hx, gy - 6 - 4); ctx.fillText('H', cx, gy - 6 - 4);
+    }
+    q('.wfp-cv').setAttribute('aria-label', `Land ${tL()} °C, sea ${tS()} °C: ${q('.wfp-big').textContent}`);
+  }
+
+  function readout() {
+    const l = tL(), s = tS(), d = l - s, A = strength(l, s), p = preset(), c11 = level === '11';
+    q('.wfp-lv').textContent = `${l} °C`; q('.wfp-sv').textContent = `${s} °C`;
+    const word = Math.abs(d) < 1 ? 'Calm: no wind' : `${Math.abs(d) < 4 ? 'A light' : Math.abs(d) < 8 ? 'A moderate' : 'A strong'} wind from the ${d > 0 ? 'sea to the land' : 'land to the sea'}`;
+    const name = Math.abs(d) < 1 ? '' : p && Math.sign(p.land - p.sea) === Math.sign(d) ? ` (${p.breeze})` : d > 0 ? ' (a sea breeze)' : ' (a land breeze)';
+    q('.wfp-big').textContent = word + name;
+    const hot = d > 0 ? 'land' : 'sea', cool = d > 0 ? 'sea' : 'land';
+    q('.wfp-facts').replaceChildren(
+      ...[['Warmer side', Math.abs(d) < 1 ? 'neither' : hot, Math.abs(d) < 1 ? 'same temperature' : `${Math.abs(d)} °C warmer`], ['Air there', Math.abs(d) < 1 ? 'stays put' : 'rises', Math.abs(d) < 1 ? '' : 'warm air is lighter'], ['Pressure at the ground', Math.abs(d) < 1 ? 'the same' : `lower over the ${hot}`, Math.abs(d) < 1 ? '' : `higher over the ${cool}`]]
+        .map(([k, v, sm]) => { const e = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; dd.append(x); } e.append(dt, dd); return e; }));
+    const lines: string[] = [];
+    if (Math.abs(d) < 1) lines.push('Both sides are at the same temperature, so the air above them is equally heavy. The pressure is the same everywhere and nothing pushes the air sideways.');
+    else if (!c11) {
+      lines.push(`The ${hot} is warmer, so it heats the air above it. Warm air expands and becomes lighter, so it rises. That leaves less air pressing down on the ${hot}: low pressure (L).`);
+      lines.push(`Over the cooler ${cool} the air is heavier and sinks: high pressure (H). Air always moves from high pressure to low pressure, so it blows along the ground from the ${cool} to the ${hot}. The bigger the temperature difference, the stronger the wind.`);
+      if (p && (p.id === 'summer' || p.id === 'winter') && Math.sign(p.land - p.sea) === Math.sign(d)) lines.push(p.id === 'summer' ? 'In summer this happens over the whole of India for months: the wind from the ocean carries water vapour, which rises, cools and falls as monsoon rain.' : 'In winter the land is colder, so dry air blows out from the land to the sea: little rain falls over most of India.');
+    } else {
+      const rl = density(P0, l), rs = density(P0, s), zl = pressureAloft(l, 1000), zs = pressureAloft(s, 1000);
+      lines.push(`Density at the ground, ρ = P / (R T): over the land ${P0.toLocaleString('en')} / (${R_DRY} × ${(l + 273.15).toFixed(2)}) = ${rl.toFixed(4)} kg/m³; over the sea ${rs.toFixed(4)} kg/m³. The ${hot} air is ${((Math.max(rl, rs) / Math.min(rl, rs) - 1) * 100).toFixed(2)}% lighter.`);
+      lines.push(`Lighter air thins out more slowly with height, so 1 km up the pressure is higher over the warm side: p = p₀ e^(−gz/RT) gives ${Math.round(zl).toLocaleString('en')} Pa over the land and ${Math.round(zs).toLocaleString('en')} Pa over the sea, ${Math.round(Math.abs(zl - zs))} Pa apart.`);
+      lines.push(`Up high, air flows from the warm side to the cool side. That adds air above the ${cool} and takes it away above the ${hot}, so at the ground the pressure becomes higher over the ${cool} and lower over the ${hot}, and the ground wind blows from the ${cool} to the ${hot}. The loop closes.`);
+    }
+    q('.wfp-eq').replaceChildren(...lines.map((x) => { const e = document.createElement('p'); e.style.margin = '6px 0 0'; e.textContent = x; return e; }));
+    void A; anim?.redraw();
+  }
+
+  let anim: ReturnType<typeof loop> | undefined;
+  const setPreset = () => { const p = preset(); if (p) { inp('.wfp-l').value = String(p.land); inp('.wfp-s').value = String(p.sea); } readout(); };
+  q('.wfp-pre').addEventListener('change', setPreset);
+  root.querySelectorAll('.wfp-l, .wfp-s').forEach((e) => e.addEventListener('input', () => { const p = preset(); if (p && (p.land !== tL() || p.sea !== tS())) q<HTMLSelectElement>('.wfp-pre').value = 'own'; readout(); }));
+  wireLevel(root, (l) => { level = l; readout(); });
+  const cv = q<HTMLCanvasElement>('.wfp-cv');
+  cv.addEventListener('pointerdown', (e) => {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, el = inp(x < r.width / 2 ? '.wfp-l' : '.wfp-s');
+    el.value = String(Math.min(45, Number(el.value) + 2)); q<HTMLSelectElement>('.wfp-pre').value = 'own'; readout();
+  });
+  anim = loop(draw, q<HTMLButtonElement>('.wfp-play'));
+  setPreset();
+  const quizBox = document.createElement('div'); q('.wfp-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(level));
+  document.addEventListener('fibub:theme', () => anim?.redraw());
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; anim?.redraw(); } }).observe(cv);
+  void groundWind; void geo;
+</script>
+
+<style is:inline>
+  .wfp .wfp-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .wfp .ax-seg button { min-height: 44px; }
+  .wfp select { min-height: 44px; width: 100%; }
+  .wfp canvas.wfp-cv { cursor: pointer; }
+</style>

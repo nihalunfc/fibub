@@ -1,0 +1,161 @@
+---
+// Barometer and altitude (Learn): climb a mountain and watch the air thin out, the mercury barometer fall and the
+// boiling point of water drop; a pressure cooker puts it back up. Maths in src/lib/sci/j3-baro.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { PLACES } from '../../lib/sci/j3-baro';
+---
+<div class="ax lrn bar">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="bar-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <canvas class="lrn-cv bar-cv" aria-label="A mountain with a climber, a mercury barometer and a pot of boiling water"></canvas>
+    <p class="ax-help" style="margin:6px 0 0">Drag the climber up or down the mountain.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Height above sea level <b class="bar-hv"></b><input type="range" class="bar-h" min="0" max="9000" step="1" value="0" aria-label="Height above sea level in metres" /></label>
+      <label>Go to <select class="bar-place"><option value="">Pick a place…</option>{PLACES.map((p) => <option value={p.id}>{p.name} ({p.h.toLocaleString('en')} m)</option>)}</select></label>
+    </div>
+    <label class="bar-chk"><input type="checkbox" class="bar-cook" /> Cook in a pressure cooker (adds about 100 kPa)</label>
+  </div>
+
+  <div class="ax-card">
+    <h2>Up here</h2>
+    <dl class="ax-facts bar-facts"></dl>
+    <div class="lrn-eq bar-eq"></div>
+    <p class="ax-help">The air follows the International Standard Atmosphere, an agreed average; real pressure changes a little with the weather. Boiling points come from the Clausius–Clapeyron equation and are good to about half a degree. Place heights are rounded. The pressure cooker's 100 kPa is a typical rounded value.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Climb to a hill station. How far has the mercury column fallen? How many fewer degrees does water boil at?</li>
+      <li>Go to the top of Mount Everest. The air pressure is less than a third of sea level, and water boils at about 70 °C: not hot enough to cook rice properly.</li>
+      <li>Tick the pressure cooker. In a high Himalayan town it still gets water to well over 100 °C.</li>
+      <li>Count the air dots: half way up Everest, about half of the air is below you.</li>
+      <li>At Class 11, work out how tall a water barometer would have to be at sea level.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card bar-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { PLACES, pressureAt, tempAt, heightFor, boilAt, column, COOKER, P0, EXP, RHO_W, questions } from '../../lib/sci/j3-baro';
+  import { mountQuiz, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bar')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let level = '8';
+  const HMAX = 9000;
+  const h = () => Number(inp('.bar-h').value);
+  const one = (x: number) => x.toFixed(1).replace('-', '−');
+  let geo = { top: 0, bot: 0, mw: 0 };
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+
+  function draw() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.bar-cv'), 320), hh = h(), P = pressureAt(hh), cook = inp('.bar-cook').checked;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const top = 16, bot = H - 22, mw = Math.max(140, W * 0.55);
+    geo = { top, bot, mw };
+    const Y = (m: number) => bot - (m / HMAX) * (bot - top);
+    // air dots: density follows the pressure (seeded so they stay put)
+    let seed = 17; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    ctx.fillStyle = pal.red ? pal.muted : pal.accent;
+    for (let i = 0; i < 700; i++) { const x = rnd() * mw, m = rnd() * HMAX; if (rnd() < pressureAt(m) / P0) { ctx.globalAlpha = 0.45; ctx.fillRect(x, Y(m), 2, 2); } }
+    ctx.globalAlpha = 1;
+    // mountain
+    ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, bot); ctx.lineTo(mw * 0.12, Y(1500)); ctx.lineTo(mw * 0.25, Y(1200)); ctx.lineTo(mw * 0.45, Y(4500)); ctx.lineTo(mw * 0.52, Y(4200)); ctx.lineTo(mw * 0.7, Y(8849)); ctx.lineTo(mw * 0.85, Y(6000)); ctx.lineTo(mw, Y(3000)); ctx.lineTo(mw, bot); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // height axis
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    for (let m = 0; m <= HMAX; m += 2000) { ctx.fillText(`${m / 1000} km`, 3, Y(m) - 2); }
+    // climber on the line of the slope up to the summit (x along the main ridge)
+    const cx = mw * (0.06 + 0.64 * Math.min(1, hh / 8849)), cy = Y(hh);
+    ctx.strokeStyle = pal.accent2; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.red ? pal.ink : pal.accent2; ctx.beginPath(); ctx.arc(cx, cy - 8, 8, 0, 7); ctx.fill(); ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.stroke();
+    // mercury barometer
+    const bx = mw + (W - mw) * 0.28, tubeTop = top + 4, tubeBot = bot - 14, scale = (tubeBot - tubeTop - 10) / 800, mm = column(P);
+    ctx.fillStyle = pal.grid; ctx.fillRect(bx - 18, tubeBot - 2, 36, 14); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(bx - 18, tubeBot - 2, 36, 14);
+    ctx.fillStyle = pal.red ? pal.muted : '#8f99a3'; ctx.fillRect(bx - 4, tubeBot - mm * scale, 8, mm * scale + 4);
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(bx - 5, tubeBot); ctx.lineTo(bx - 5, tubeTop); ctx.lineTo(bx + 5, tubeTop); ctx.lineTo(bx + 5, tubeBot); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.font = '10px system-ui, sans-serif';
+    for (let m = 0; m <= 800; m += 200) { const y = tubeBot - m * scale; ctx.fillText(String(m), bx - 8, y + 3); }
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText(`${Math.round(mm)} mm`, bx + 8, tubeBot - mm * scale + 4);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText('mercury', bx, H - 4);
+    // pot with thermometer
+    const px = mw + (W - mw) * 0.72, bp = boilAt(P + (cook ? COOKER : 0));
+    const tTop = top + 20, tBot = bot - 50, ts = (tBot - tTop) / 130;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(px - 4, tTop, 8, tBot - tTop);
+    ctx.fillStyle = pal.red ? pal.ink : pal.bad; ctx.fillRect(px - 2, tBot - bp * ts, 4, bp * ts); ctx.beginPath(); ctx.arc(px, tBot + 4, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
+    for (const c of [0, 50, 100]) ctx.fillText(`${c}°`, px - 7, tBot - c * ts + 3);
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${Math.round(bp)} °C`, px + 8, tBot - bp * ts + 4);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px - 22, bot - 36); ctx.lineTo(px - 18, bot - 10); ctx.lineTo(px + 18, bot - 10); ctx.lineTo(px + 22, bot - 36); ctx.stroke();
+    if (cook) { ctx.beginPath(); ctx.moveTo(px - 24, bot - 38); ctx.lineTo(px + 24, bot - 38); ctx.stroke(); }
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(cook ? 'cooker' : 'water boils', px, H - 4);
+    q('.bar-cv').setAttribute('aria-label', `At ${hh.toLocaleString('en')} m the air pressure is ${one(P / 1000)} kPa, the mercury stands ${Math.round(mm)} mm high and water boils at ${one(bp)} °C${cook ? ' in the cooker' : ''}`);
+  }
+
+  function update() {
+    const hh = h(), P = pressureAt(hh), mm = column(P), bp = boilAt(P), bpc = boilAt(P + COOKER), cook = inp('.bar-cook').checked, c11 = level === '11';
+    q('.bar-hv').textContent = `${hh.toLocaleString('en')} m`;
+    const facts = [
+      fact('Air pressure', `${one(P / 1000)} kPa`, `${Math.round((P / P0) * 100)}% of sea level`),
+      fact('Mercury barometer', `${Math.round(mm)} mm`, '760 mm at sea level'),
+      fact('Water boils at', `${one(bp)} °C`, hh ? `${one(100 - bp)} °C below 100 °C` : 'at sea level'),
+    ];
+    if (cook) facts.push(fact('In the pressure cooker', `${one(bpc)} °C`, `${one((P + COOKER) / 1000)} kPa inside`));
+    if (c11) facts.push(fact('Air temperature', `${one(tempAt(hh))} °C`, 'standard atmosphere, falls 6.5 °C per km'), fact('Half the air is below', `${(heightFor(P0 / 2) / 1000).toFixed(1)} km`, 'pressure halves by 5.5 km'));
+    q('.bar-facts').replaceChildren(...facts);
+    const lines: string[] = [];
+    if (!c11) {
+      lines.push(hh === 0 ? 'At sea level the whole height of the air above presses down on you: about 101 kPa, enough to hold up 760 mm of mercury.' : `Up here, ${hh.toLocaleString('en')} m of air is below you, so less air presses down from above: ${one(P / 1000)} kPa instead of 101.3 kPa.`);
+      lines.push(`Water boils when its vapour can push back against the air. With less air pressing down, that happens sooner: at ${one(bp)} °C.${hh > 1500 ? ' Dal and rice cook more slowly in boiling water that is not as hot.' : ''}`);
+      if (cook) lines.push(`The cooker's lid traps the steam, adding about 100 kPa, so the water inside reaches ${one(bpc)} °C before it boils.`);
+    } else {
+      lines.push(`P = P₀ (1 − L h / T₀)^5.256 = 101,325 × (1 − 0.0065 × ${hh} / 288.15)^${EXP.toFixed(3)} = ${Math.round(P).toLocaleString('en')} Pa.`);
+      lines.push(`Barometer: h = P ÷ (ρg) = ${Math.round(P).toLocaleString('en')} ÷ (13,595 × 9.807) = ${(mm / 1000).toFixed(3)} m of mercury. A water barometer would need ${(column(P, RHO_W) / 1000).toFixed(2)} m.`);
+      lines.push(`Boiling (Clausius–Clapeyron): 1/T = 1/373.15 − (R/ΔH) ln(P/P₀) = 1/373.15 − (8.314/41,500) × ln(${(P / P0).toFixed(4)}), so T = ${(bp + 273.15).toFixed(1)} K = ${one(bp)} °C.`);
+      if (cook) lines.push(`Cooker: P = ${one(P / 1000)} + 100 = ${one((P + COOKER) / 1000)} kPa, so T = ${one(bpc)} °C.`);
+    }
+    q('.bar-eq').replaceChildren(...lines.map((x) => { const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = x; return p; }));
+    draw();
+  }
+
+  wireLevel(root, (l) => { level = l; update(); });
+  inp('.bar-h').addEventListener('input', () => { q<HTMLSelectElement>('.bar-place').value = ''; update(); });
+  inp('.bar-cook').addEventListener('change', update);
+  q<HTMLSelectElement>('.bar-place').addEventListener('change', () => { const p = PLACES.find((x) => x.id === q<HTMLSelectElement>('.bar-place').value); if (p) { inp('.bar-h').value = String(p.h); update(); } });
+  const cv = q<HTMLCanvasElement>('.bar-cv'); let dragging = false;
+  const setH = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), y = e.clientY - r.top; inp('.bar-h').value = String(Math.max(0, Math.min(HMAX, Math.round((((geo.bot - y) / (geo.bot - geo.top)) * HMAX) / 100) * 100))); q<HTMLSelectElement>('.bar-place').value = ''; update(); };
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); if (e.clientX - r.left > geo.mw) return; dragging = true; cv.setPointerCapture(e.pointerId); setH(e); });
+  cv.addEventListener('pointermove', (e) => { if (dragging) setH(e); });
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+  const quizBox = document.createElement('div'); q('.bar-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(level));
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .bar .bar-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .bar .ax-seg button { min-height: 44px; }
+  .bar select { min-height: 44px; width: 100%; }
+  .bar .bar-chk { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 8px; font-size: 15px; }
+  .bar .bar-chk input { width: 22px; height: 22px; flex: none; }
+</style>

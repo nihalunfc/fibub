@@ -1,0 +1,203 @@
+---
+// Exponent laws with factor tiles: aᵐ × aⁿ, aᵐ ÷ aⁿ, (aᵐ)ⁿ and aᵐ × bᵐ drawn as rows of "× a" and "÷ a" tiles that
+// join, cancel or repeat; exact values check each law. A ladder shows why a⁰ = 1 and a⁻ⁿ = 1/aⁿ. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm el">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg el-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-l="9" aria-pressed="false">Class 9</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <div class="ax-seg el-law" role="group" aria-label="Law">
+        <button type="button" data-w="product" aria-pressed="true">aᵐ × aⁿ</button>
+        <button type="button" data-w="quotient" aria-pressed="false">aᵐ ÷ aⁿ</button>
+        <button type="button" data-w="power" aria-pressed="false">(aᵐ)ⁿ</button>
+        <button type="button" data-w="bases" aria-pressed="false">aᵐ × bᵐ</button>
+      </div>
+    </div>
+    <p class="ax-big el-big" aria-live="polite" style="margin:12px 0 6px"></p>
+    <svg class="sm-fig el-fig" role="img" aria-label="Factor tiles: each solid tile multiplies by the base, each dashed tile divides by it; crossed pairs cancel"></svg>
+    <p class="ax-help el-key">Solid tile: × a. Dashed tile: ÷ a. A × and a ÷ cancel each other (crossed out).</p>
+    <div class="sm-sl"><b>a</b><input type="range" class="el-ar" min="2" max="10" step="1" value="2" aria-label="Base a slider" /><input type="number" class="el-a" min="2" max="10" step="1" value="2" inputmode="numeric" aria-label="Base a" /></div>
+    <div class="sm-sl el-brow" hidden><b>b</b><input type="range" class="el-br" min="2" max="10" step="1" value="5" aria-label="Base b slider" /><input type="number" class="el-b" min="2" max="10" step="1" value="5" inputmode="numeric" aria-label="Base b" /></div>
+    <div class="sm-sl"><b>m</b><input type="range" class="el-mr" min="0" max="8" step="1" value="3" aria-label="Exponent m slider" /><input type="number" class="el-m" min="-6" max="8" step="1" value="3" inputmode="numeric" aria-label="Exponent m" /></div>
+    <div class="sm-sl el-nrow"><b>n</b><input type="range" class="el-nr" min="0" max="8" step="1" value="4" aria-label="Exponent n slider" /><input type="number" class="el-n" min="-6" max="8" step="1" value="4" inputmode="numeric" aria-label="Exponent n" /></div>
+    <p class="ax-err el-err" hidden></p>
+    <p class="sm-f el-f1"></p>
+    <p class="sm-f el-f2"></p>
+    <p class="sm-f el-f3"></p>
+    <p class="sm-f el-f9" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why a⁰ = 1 and a⁻ⁿ = 1/aⁿ</h2>
+    <svg class="sm-fig el-lad" viewBox="0 0 340 120" role="img" aria-label="Ladder of powers of a: each step to the right divides by a"></svg>
+    <p class="sm-f el-lt"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set m = 0 in aᵐ × aⁿ. The first group has no tiles at all, and the answer is just aⁿ: so a⁰ must be 1.</li>
+      <li>In aᵐ ÷ aⁿ make n bigger than m. Which tiles are left over, and what does a negative exponent mean?</li>
+      <li>In (aᵐ)ⁿ count the tiles row by row. Why is it m × n and not m + n?</li>
+      <li>Try 2⁵ × 5⁵. Why does it come out as a 1 followed by zeros?</li>
+      <li>Switch to Class 9 and use negative m and n. Do the laws still hold?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="el-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .el svg .el-t1 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .el svg .el-t2 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .el svg .el-t3 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .el svg .el-neg { stroke-dasharray: 4 3; fill: var(--surface); }
+  .el svg .el-x { stroke: var(--bad); stroke-width: 2; }
+  .el svg text.el-tl { font-size: 12px; font-weight: 600; }
+  .el svg text.el-lbl { font-size: 12px; fill: var(--muted); }
+  .el .el-law button { min-width: 4.2em; }
+</style>
+
+<script>
+  import { powFrac, lawExponent, tiles, cancel, mulFrac, fracText, type Law } from '../../lib/sci/expo-j4';
+  import { sup, nice } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.el')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const A = q<HTMLInputElement>('.el-a'), B = q<HTMLInputElement>('.el-b'), M = q<HTMLInputElement>('.el-m'), N = q<HTMLInputElement>('.el-n');
+  const setA = pair(q('.el-ar'), A, draw), setB = pair(q('.el-br'), B, draw), setM = pair(q('.el-mr'), M, draw), setN = pair(q('.el-nr'), N, draw);
+  let law: Law = 'product', level = 8;
+  const P = (base: number | string, k: number) => `${base}${sup(k)}`;
+  /** a written out as repeated factors: (2 × 2 × 2), 1 for no factors, 1/(2 × 2) for a negative power. */
+  const expand = (a: number, k: number) => k === 0 ? '1' : k > 0 ? `(${Array(k).fill(a).join(' × ')})` : `1/(${Array(-k).fill(a).join(' × ')})`;
+
+  type Tile = { s: 1 | -1; label: string; cls: string; x?: boolean };
+  const TW = 30, GAP = 3, PER = 10;
+  function row(svg: SVGSVGElement, list: Tile[], y: number, label: string): number {
+    S('text', { x: 2, y: y + 12, class: 'el-lbl' }, svg, label);
+    y += 18;
+    if (!list.length) { S('text', { x: 6, y: y + 18, class: 'el-lbl' }, svg, 'no tiles: the value is 1'); return y + 34; }
+    list.forEach((t, i) => {
+      const x = 4 + (i % PER) * (TW + GAP), yy = y + Math.floor(i / PER) * (TW + GAP);
+      S('rect', { x, y: yy, width: TW, height: TW, rx: 5, class: `${t.cls}${t.s < 0 ? ' el-neg' : ''}` }, svg);
+      S('text', { x: x + TW / 2, y: yy + 19, 'text-anchor': 'middle', class: 'el-tl' }, svg, t.label);
+      if (t.x) { S('line', { x1: x + 3, y1: yy + 3, x2: x + TW - 3, y2: yy + TW - 3, class: 'el-x' }, svg); S('line', { x1: x + TW - 3, y1: yy + 3, x2: x + 3, y2: yy + TW - 3, class: 'el-x' }, svg); }
+    });
+    return y + Math.ceil(list.length / PER) * (TW + GAP) + 8;
+  }
+  const mk = (k: number, a: number | string, cls: string): Tile[] => tiles(k).map((s) => ({ s, label: s > 0 ? `×${a}` : `÷${a}`, cls }));
+
+  function read(i: HTMLInputElement, lo: number, hi: number) { const v = Number(i.value); return i.value.trim() !== '' && Number.isInteger(v) && v >= lo && v <= hi ? v : null; }
+
+  function draw() {
+    const lo = level === 9 ? -6 : 0;
+    const a = read(A, 2, 10), b = read(B, 2, 10), m = read(M, lo, 8), n = read(N, lo, 8), err = q('.el-err');
+    if (a === null || b === null || m === null || (law !== 'bases' && n === null)) {
+      err.textContent = `Bases: whole numbers from 2 to 10. Exponents: whole numbers from ${lo === 0 ? '0' : '−6'} to 8${level === 8 ? ' (negative exponents: switch to Class 9)' : ''}.`; err.hidden = false; return;
+    }
+    err.hidden = true;
+    const nn = n ?? 0, e = lawExponent(law, m, nn);
+    const svg = q<SVGSVGElement>('.el-fig'); svg.replaceChildren();
+    let y = 4;
+    const f1 = q('.el-f1'), f2 = q('.el-f2'), f3 = q('.el-f3');
+    if (law === 'product' || law === 'quotient') {
+      const t1 = mk(m, a, 'el-t1'), t2 = mk(law === 'product' ? nn : -nn, a, 'el-t2');
+      const c = cancel(t1.map((t) => t.s), t2.map((t) => t.s));
+      // Cross out the first `pairs` tiles of each sign.
+      let px = c.pairs, nx = c.pairs;
+      for (const t of [...t1, ...t2]) { if (t.s > 0 && px > 0) { t.x = true; px--; } else if (t.s < 0 && nx > 0) { t.x = true; nx--; } }
+      y = row(svg, t1, y, `${P(a, m)}: ${Math.abs(m)} tile${Math.abs(m) === 1 ? '' : 's'}`);
+      y = row(svg, t2, y, law === 'product' ? `× ${P(a, nn)}` : `÷ ${P(a, nn)}, the same as × ${P(a, -nn)}`);
+      y = row(svg, mk(c.left, a, 'el-t3'), y, `left after cancelling: ${P(a, e)}`);
+      q('.el-big').textContent = law === 'product' ? `${P(a, m)} × ${P(a, nn)} = ${a}${sup(m)}⁺${nn < 0 ? '⁽' + sup(nn) + '⁾' : sup(nn)} = ${P(a, e)}` : `${P(a, m)} ÷ ${P(a, nn)} = ${a}${sup(m)}⁻${nn < 0 ? '⁽' + sup(nn) + '⁾' : sup(nn)} = ${P(a, e)}`;
+      f1.textContent = `${expand(a, m)} ${law === 'product' ? '×' : '÷'} ${expand(a, nn)}: ${c.pairs ? `${c.pairs} pair${c.pairs > 1 ? 's' : ''} cancel, ` : ''}${Math.abs(e)} tile${Math.abs(e) === 1 ? '' : 's'} of ${e >= 0 ? '× ' : '÷ '}${a} left = ${P(a, e)}`;
+      const left = mulFrac(powFrac(a, m), law === 'product' ? powFrac(a, nn) : powFrac(a, -nn));
+      f2.textContent = `Check with values: ${fracText(powFrac(a, m))} ${law === 'product' ? '×' : '÷'} ${fracText(powFrac(a, nn))} = ${fracText(left)}, and ${P(a, e)} = ${fracText(powFrac(a, e))} ${fracText(left) === fracText(powFrac(a, e)) ? '✓' : '✗'}`;
+      f3.textContent = law === 'product' ? 'Multiplying powers of the same base: add the exponents.' : 'Dividing powers of the same base: subtract the exponents.';
+    } else if (law === 'power') {
+      const reps = Math.abs(nn), inner = nn >= 0 ? m : -m;
+      if (!reps) y = row(svg, [], y, `${nn} copies of ${P(a, m)}`);
+      for (let r = 0; r < reps; r++) y = row(svg, mk(inner, a, r % 2 ? 'el-t2' : 'el-t1'), y, r === 0 ? `${reps} cop${reps === 1 ? 'y' : 'ies'} of ${nn >= 0 ? P(a, m) : `1/${P(a, m)} = ${P(a, -m)}`}` : '');
+      q('.el-big').textContent = `(${P(a, m)})${sup(nn)} = ${a}${sup(m)}ˣ${sup(nn).replace('⁻', '⁽⁻') + (nn < 0 ? '⁾' : '')} = ${P(a, e)}`;
+      f1.textContent = `${reps} row${reps === 1 ? '' : 's'} of ${Math.abs(inner)} tile${Math.abs(inner) === 1 ? '' : 's'} = ${Math.abs(e)} tile${Math.abs(e) === 1 ? '' : 's'} of ${e >= 0 ? '× ' : '÷ '}${a}, so (${P(a, m)})${sup(nn)} = ${P(a, e)}`;
+      let v = { num: 1n, den: 1n }; const base = powFrac(a, m);
+      for (let r = 0; r < reps; r++) v = mulFrac(v, nn >= 0 ? base : { num: base.den, den: base.num });
+      f2.textContent = `Check with values: (${fracText(base)})${sup(nn)} = ${fracText(v)}, and ${P(a, e)} = ${fracText(powFrac(a, e))} ${fracText(v) === fracText(powFrac(a, e)) ? '✓' : '✗'}`;
+      f3.textContent = 'A power of a power: multiply the exponents.';
+    } else {
+      const ab = a * b, k = Math.abs(m);
+      const ta: Tile[] = [], tb: Tile[] = [];
+      for (let i = 0; i < k; i++) { ta.push({ s: m >= 0 ? 1 : -1, label: `${m >= 0 ? '×' : '÷'}${a}`, cls: 'el-t1' }); tb.push({ s: m >= 0 ? 1 : -1, label: `${m >= 0 ? '×' : '÷'}${b}`, cls: 'el-t2' }); }
+      y = row(svg, ta, y, P(a, m)); y = row(svg, tb, y, `× ${P(b, m)}: pair each ${a} with a ${b}`);
+      y = row(svg, mk(m, ab, 'el-t3'), y, `pairs: ${P(`(${a} × ${b})`, m)} = ${P(ab, m)}`);
+      q('.el-big').textContent = `${P(a, m)} × ${P(b, m)} = (${a} × ${b})${sup(m)} = ${P(ab, m)}`;
+      f1.textContent = `${k} pair${k === 1 ? '' : 's'} of (${a} × ${b}) = ${k} tile${k === 1 ? '' : 's'} of ${m >= 0 ? '× ' : '÷ '}${ab}`;
+      const left = mulFrac(powFrac(a, m), powFrac(b, m));
+      f2.textContent = `Check with values: ${fracText(powFrac(a, m))} × ${fracText(powFrac(b, m))} = ${fracText(left)}, and ${P(ab, m)} = ${fracText(powFrac(ab, m))} ${fracText(left) === fracText(powFrac(ab, m)) ? '✓' : '✗'}`;
+      f3.textContent = 'Same exponent, different bases: multiply the bases, keep the exponent.';
+    }
+    svg.setAttribute('viewBox', `0 0 340 ${Math.max(60, y)}`);
+    const f9 = q('.el-f9'); f9.hidden = level !== 9;
+    if (law !== 'bases' && nn > 0 && m >= 0) {
+      const v = a ** (m / nn);
+      f9.textContent = `Fractional exponents follow the same laws: ${a}^(${m}/${nn}) is the number whose ${nn === 2 ? 'square' : nn === 3 ? 'cube' : `${nn}th power`} is ${P(a, m)} = ${fracText(powFrac(a, m))}, so ${a}^(${m}/${nn}) = ${nn === 1 ? '' : nn === 2 ? '√' : `${nn}-th root of `}${fracText(powFrac(a, m))} ≈ ${nice(v, 4)}.`;
+    } else f9.textContent = 'Class 9: the same laws hold for negative exponents (try them) and for fractions, like a^(1/2) = √a. Pick n above 0 and m from 0 up for a fractional example.';
+    // Ladder.
+    const lad = q<SVGSVGElement>('.el-lad'); lad.replaceChildren();
+    const ks = [3, 2, 1, 0, -1, -2];
+    ks.forEach((k, i) => {
+      const x = 30 + i * 56;
+      S('rect', { x: x - 24, y: 20, width: 48, height: 34, rx: 6, class: k === 0 ? 'el-t3' : k > 0 ? 'el-t1' : 'el-t2' }, lad);
+      S('text', { x, y: 43, 'text-anchor': 'middle', style: 'font-weight:700' }, lad, P(a, k));
+      S('text', { x, y: 76, 'text-anchor': 'middle' }, lad, fracText(powFrac(a, k)));
+      if (i < ks.length - 1) S('text', { x: x + 28, y: 104, 'text-anchor': 'middle', class: 'el-lbl' }, lad, `÷${a}`);
+    });
+    q('.el-lt').textContent = `Each step right divides by ${a} and takes 1 off the exponent: ${P(a, 1)} ÷ ${a} = ${a} ÷ ${a} = 1 = ${P(a, 0)}, and ${P(a, 0)} ÷ ${a} = 1/${a} = ${P(a, -1)}.`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.el-law button').forEach((btn) => btn.addEventListener('click', () => {
+    law = btn.dataset.w as Law;
+    root.querySelectorAll('.el-law button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    q('.el-brow').hidden = law !== 'bases'; q('.el-nrow').hidden = law === 'bases';
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.el-level button').forEach((btn) => btn.addEventListener('click', () => {
+    level = Number(btn.dataset.l);
+    root.querySelectorAll('.el-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    const lo = level === 9 ? '-6' : '0';
+    for (const r of [q<HTMLInputElement>('.el-mr'), q<HTMLInputElement>('.el-nr')]) r.min = lo;
+    if (level === 8) { if (Number(M.value) < 0) setM(0); if (Number(N.value) < 0) setN(0); }
+    draw();
+  }));
+  setA(2); setB(5); setM(3); setN(4);
+  draw();
+
+  quiz(q('.el-quiz'), () => {
+    const out: Question[] = [];
+    const a1 = randInt(2, 9), m1 = randInt(2, 9), n1 = randInt(2, 9);
+    out.push({ q: `${P(a1, m1)} × ${P(a1, n1)} = ${a1} to the power of what?`, want: [m1 + n1], tol: 1e-9, work: `Same base, multiplying: add the exponents. ${m1} + ${n1} = ${m1 + n1}, so ${P(a1, m1 + n1)}.` });
+    const a2 = randInt(2, 9), n2 = randInt(2, 6), m2 = n2 + randInt(1, 6);
+    out.push({ q: `${P(a2, m2)} ÷ ${P(a2, n2)} = ${a2} to the power of what?`, want: [m2 - n2], tol: 1e-9, work: `Same base, dividing: subtract. ${m2} − ${n2} = ${m2 - n2}, so ${P(a2, m2 - n2)}.` });
+    const a3 = randInt(2, 9), m3 = randInt(2, 5), n3 = randInt(2, 5);
+    out.push({ q: `(${P(a3, m3)})${sup(n3)} = ${a3} to the power of what?`, want: [m3 * n3], tol: 1e-9, work: `A power of a power: multiply. ${m3} × ${n3} = ${m3 * n3}, so ${P(a3, m3 * n3)}.` });
+    const a4 = [2, 4, 5, 10][randInt(0, 3)], k4 = randInt(1, 3), v4 = 1 / a4 ** k4;
+    out.push({ q: `Write ${P(a4, -k4)} as a decimal.`, want: [v4], tol: 1e-9, work: `${P(a4, -k4)} = 1/${P(a4, k4)} = 1/${a4 ** k4} = ${nice(v4, 6)}.` });
+    const k5 = randInt(2, 6);
+    out.push({ q: `Work out ${P(2, k5)} × ${P(5, k5)}.`, want: [10 ** k5], tol: 1e-9, work: `Same exponent: ${P(2, k5)} × ${P(5, k5)} = (2 × 5)${sup(k5)} = ${P(10, k5)} = ${10 ** k5}.` });
+    return out;
+  });
+</script>

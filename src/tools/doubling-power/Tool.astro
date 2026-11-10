@@ -1,0 +1,220 @@
+---
+// Power of doubling: fold a sheet of paper n times (thickness t × 2ⁿ climbs a log ladder to the Moon), or put
+// 1, 2, 4, 8 ... grains on a chessboard (exact BigInt counts). Level switch adds the geometric series and log₂.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm dp">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg dp-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <div class="ax-seg dp-mode" role="group" aria-label="Experiment">
+        <button type="button" data-m="fold" aria-pressed="true">Fold paper</button>
+        <button type="button" data-m="chess" aria-pressed="false">Chessboard grains</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dp-fold">
+    <div class="ax-card">
+      <h2>Fold a sheet in half, again and again</h2>
+      <div class="sm-sl"><b>n</b><input type="range" class="dp-nr" min="0" max="60" step="1" value="10" aria-label="Number of folds slider" /><input type="number" class="dp-n" min="0" max="100" step="1" value="10" inputmode="numeric" aria-label="Number of folds" /></div>
+      <label class="dp-tl">Thickness of one sheet (mm) <input type="number" class="dp-t" min="0.001" max="10" step="0.01" value="0.1" inputmode="decimal" /></label>
+      <p class="ax-err dp-err" hidden></p>
+      <p class="ax-big dp-big" aria-live="polite"></p>
+      <svg class="sm-fig dp-fig" viewBox="0 0 340 380" role="img" aria-label="Left: the layers of the folded paper. Right: a ladder of heights from a sheet of paper to the nearest star, with a marker at the folded thickness."></svg>
+      <p class="ax-help">Each step up the ladder is 10 times taller than the one below. Doubling climbs it steadily: about 3⅓ folds per step.</p>
+      <p class="sm-f dp-f1"></p>
+      <p class="sm-f dp-f2"></p>
+      <p class="sm-f dp-f3"></p>
+      <p class="sm-f dp-l11" hidden></p>
+    </div>
+  </div>
+
+  <div class="dp-chess" hidden>
+    <div class="ax-card">
+      <h2>1 grain, then 2, then 4 ...</h2>
+      <p class="ax-help">Tap a square, or use the slider. Every square gets twice as many grains as the one before.</p>
+      <svg class="sm-fig dp-board" viewBox="0 0 336 336" role="img" aria-label="Chessboard: the squares up to the chosen one are shaded, darker for more grains"></svg>
+      <div class="sm-sl"><b>k</b><input type="range" class="dp-kr" min="1" max="64" step="1" value="10" aria-label="Square slider" /><input type="number" class="dp-k" min="1" max="64" step="1" value="10" inputmode="numeric" aria-label="Square number" /></div>
+      <label class="dp-tl">Mass of one grain (g) <input type="number" class="dp-g" min="0.001" max="10" step="0.005" value="0.02" inputmode="decimal" /></label>
+      <p class="ax-help">0.02 g is a rough round figure for a grain of rice; change it if you weigh your own.</p>
+      <p class="ax-err dp-gerr" hidden></p>
+      <p class="sm-f dp-c1"></p>
+      <p class="sm-f dp-c2"></p>
+      <p class="sm-f dp-c3"></p>
+      <p class="sm-f dp-c11" hidden></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Fold paper: how many folds pass your own height? Everest? The Moon? (Guess first.)</li>
+      <li>Change the sheet to 0.2 mm, twice as thick. How many fewer folds does the Moon need? Only one.</li>
+      <li>On the chessboard, compare square 64 with all of squares 1 to 63 together. Which is bigger, and by how much?</li>
+      <li>Count how many folds make 1,000 layers. Why is 2¹⁰ = 1,024 close to 10³ such a handy fact?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="dp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dp .dp-tl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0; }
+  .dp .dp-tl input { width: 7em; min-height: 40px; }
+  .dp svg .dp-layer { stroke: var(--accent); stroke-width: 1; }
+  .dp svg .dp-block { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .dp svg .dp-mark { fill: var(--warn); }
+  .dp svg .dp-markline { stroke: var(--warn); stroke-width: 2.5; }
+  .dp svg .dp-passed { fill: var(--good); font-weight: 600; }
+  .dp svg .dp-sq { stroke: var(--line); stroke-width: 1; cursor: pointer; }
+  .dp svg .dp-sel { stroke: var(--warn); stroke-width: 3; fill: none; pointer-events: none; }
+  .dp svg text.dp-sqt { font-size: 10px; pointer-events: none; }
+</style>
+
+<script>
+  import { foldThickness, foldsToReach, grainsOn, grainsUpTo, LANDMARKS } from '../../lib/sci/doubling-j4';
+  import { stdForm, group3, sup, nice } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.dp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  let level = 8;
+
+  /** A length in metres, in a friendly unit. */
+  function len(m: number): string {
+    if (m < 0.01) return `${nice(m * 1000, 3)} mm`;
+    if (m < 1) return `${nice(m * 100, 2)} cm`;
+    if (m < 1000) return `${nice(m, 2)} m`;
+    if (m < 1e9) return `${group3(Math.round(m / 1000))} km`;
+    return `${stdForm(m / 1000)} km`;
+  }
+
+  // ----- Folding -----
+  const N = q<HTMLInputElement>('.dp-n'), T = q<HTMLInputElement>('.dp-t');
+  const setN = pair(q('.dp-nr'), N, drawFold);
+  const LO = -4, HI = 17, Y0 = 360, Y1 = 20;
+  const yOf = (m: number) => Y0 - ((Math.log10(m) - LO) / (HI - LO)) * (Y0 - Y1);
+
+  function drawFold() {
+    const n = Number(N.value), tmm = Number(T.value), err = q('.dp-err');
+    if (!Number.isInteger(n) || n < 0 || n > 100 || !(tmm > 0) || tmm > 10) {
+      err.textContent = 'Folds: a whole number from 0 to 100. Sheet: more than 0 and at most 10 mm.'; err.hidden = false; return;
+    }
+    err.hidden = true;
+    const t = tmm / 1000, d = foldThickness(t, n), layers = 2 ** n;
+    q('.dp-big').textContent = `${n} fold${n === 1 ? '' : 's'}: ${n <= 40 ? group3(layers) : `2${sup(n)}`} layers, ${len(d)} thick`;
+    const svg = q<SVGSVGElement>('.dp-fig'); svg.replaceChildren();
+    // Left: the layers.
+    S('text', { x: 60, y: 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'side view');
+    if (layers <= 64) {
+      const h = 300 / 64 * layers, top = Y0 - h;
+      S('rect', { x: 20, y: top, width: 80, height: h, class: 'dp-block' }, svg);
+      for (let i = 1; i < layers; i++) S('line', { x1: 20, x2: 100, y1: top + (h * i) / layers, y2: top + (h * i) / layers, class: 'dp-layer' }, svg);
+      S('text', { x: 60, y: top - 6, 'text-anchor': 'middle' }, svg, `${layers} layer${layers === 1 ? '' : 's'}`);
+    } else {
+      S('rect', { x: 20, y: 40, width: 80, height: 320, class: 'dp-block' }, svg);
+      S('text', { x: 60, y: 190, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, `2${sup(n)}`);
+      S('text', { x: 60, y: 208, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'layers: too');
+      S('text', { x: 60, y: 222, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'many to draw');
+    }
+    // Right: the ladder.
+    S('line', { x1: 140, x2: 140, y1: Y1, y2: Y0, class: 'sm-axis' }, svg);
+    for (let e = LO; e <= HI; e++) S('line', { x1: 136, x2: 144, y1: yOf(10 ** e), y2: yOf(10 ** e), class: 'sm-axis' }, svg);
+    for (const e of [-4, 0, 4, 8, 12, 16]) S('text', { x: 132, y: yOf(10 ** e) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, e === 0 ? '1 m' : `10${sup(e)}`);
+    for (const L of LANDMARKS) {
+      const y = yOf(L.m);
+      S('line', { x1: 140, x2: 152, y1: y, y2: y, class: 'sm-axis' }, svg);
+      S('text', { x: 156, y: y + 4, class: d >= L.m ? 'dp-passed' : '' }, svg, (d >= L.m ? '✓ ' : '') + L.name);
+    }
+    const yc = Math.max(Y1 - 8, Math.min(Y0, yOf(d)));
+    S('line', { x1: 104, x2: 140, y1: yc, y2: yc, class: 'dp-markline' }, svg);
+    S('circle', { cx: 140, cy: yc, r: 6, class: 'dp-mark' }, svg);
+    // Formula lines.
+    q('.dp-f1').textContent = `Thickness = t × 2ⁿ = ${nice(tmm, 4)} mm × 2${sup(n)} = ${nice(tmm, 4)} mm × ${n <= 40 ? group3(layers) : stdForm(layers)} = ${len(d)} = ${stdForm(d)} m`;
+    const passed = LANDMARKS.filter((L) => d >= L.m).at(-1), next = LANDMARKS.find((L) => d < L.m);
+    q('.dp-f2').textContent = passed ? `Taller than: ${passed.name}.` : 'Not yet as thick as one 0.1 mm sheet.';
+    q('.dp-f3').textContent = next ? `To pass ${next.name} you need ${foldsToReach(t, next.m)} folds.` : 'You have passed everything on the ladder.';
+    const moon = 3.844e8, nm = foldsToReach(t, moon);
+    const l11 = q('.dp-l11'); l11.hidden = level !== 11;
+    l11.textContent = `Folds to reach the Moon: t × 2ⁿ ≥ ${stdForm(moon)} m, so n ≥ log₂(${stdForm(moon)} / ${stdForm(t)}) = log₂(${stdForm(moon / t)}) = ${nice(Math.log2(moon / t), 2)}. The smallest whole n is ${nm}.`;
+  }
+  T.addEventListener('input', drawFold);
+
+  // ----- Chessboard -----
+  const K = q<HTMLInputElement>('.dp-k'), G = q<HTMLInputElement>('.dp-g');
+  const setK = pair(q('.dp-kr'), K, drawChess);
+  const board = q<SVGSVGElement>('.dp-board');
+  function mass(g: number): string {
+    if (g < 1000) return `${nice(g, 2)} g`;
+    if (g < 1e6) return `${nice(g / 1000, 2)} kg`;
+    if (g < 1e9) return `${group3(Math.round(g / 1e6))} tonnes`;
+    return `${stdForm(g / 1e6)} tonnes`;
+  }
+  function drawChess() {
+    const k = Number(K.value), gm = Number(G.value), err = q('.dp-gerr');
+    if (!Number.isInteger(k) || k < 1 || k > 64 || !(gm > 0)) { err.textContent = 'Square: a whole number from 1 to 64. Grain mass: more than 0.'; err.hidden = false; return; }
+    err.hidden = true;
+    board.replaceChildren();
+    for (let i = 1; i <= 64; i++) {
+      // Square 1 is bottom-left; rows go left to right, bottom to top.
+      const r = Math.floor((i - 1) / 8), c = (i - 1) % 8, x = c * 42, y = (7 - r) * 42;
+      const on = i <= k, light = (r + c) % 2 === 1;
+      const sh = on ? 0.15 + 0.85 * (i / 64) : 0;
+      const rect = S('rect', { x, y, width: 42, height: 42, class: 'dp-sq', 'data-i': i, fill: on ? `color-mix(in srgb, var(--accent) ${Math.round(sh * 100)}%, var(--surface))` : light ? 'var(--surface)' : 'var(--bg)' }, board);
+      rect.addEventListener('click', () => { setK(i); drawChess(); });
+      const label = i <= 14 ? String(2 ** (i - 1)) : `2${sup(i - 1)}`;
+      S('text', { x: x + 21, y: y + 25, 'text-anchor': 'middle', class: 'dp-sqt', style: on && sh > 0.55 ? 'fill:var(--accent-ink)' : '' }, board, label);
+      if (i === k) S('rect', { x: x + 1.5, y: y + 1.5, width: 39, height: 39, class: 'dp-sel' }, board);
+    }
+    const on = grainsOn(k), up = grainsUpTo(k);
+    q('.dp-c1').textContent = `Grains on square ${k} = 2${sup(k - 1)} = ${group3(on)}`;
+    q('.dp-c2').textContent = `All squares from 1 to ${k} = 1 + 2 + 4 + … + 2${sup(k - 1)} = 2${sup(k)} − 1 = ${group3(up)}`;
+    q('.dp-c3').textContent = `At ${nice(gm, 3)} g a grain, that is about ${mass(Number(up) * gm)} of grain${k === 64 ? ', far more than anyone could ever grow' : ''}.`;
+    const c11 = q('.dp-c11'); c11.hidden = level !== 11;
+    c11.textContent = `Geometric series with a = 1, r = 2: Sₖ = a(rᵏ − 1)/(r − 1) = (2${sup(k)} − 1)/(2 − 1) = ${group3(up)}. Square ${k} alone holds one grain more than all the squares before it: 2${sup(k - 1)} = (2${sup(k - 1)} − 1) + 1.`;
+  }
+  G.addEventListener('input', drawChess);
+
+  root.querySelectorAll<HTMLButtonElement>('.dp-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    root.querySelectorAll('.dp-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    drawFold(); drawChess();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.dp-mode button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.dp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.dp-fold').hidden = b.dataset.m !== 'fold'; q('.dp-chess').hidden = b.dataset.m !== 'chess';
+  }));
+  setN(10); setK(10);
+  drawFold(); drawChess();
+
+  quiz(q('.dp-quiz'), () => {
+    const out: Question[] = [];
+    const t = [0.05, 0.1, 0.2, 0.25][randInt(0, 3)], n = randInt(3, 8);
+    out.push({ q: `A sheet ${t} mm thick is folded in half ${n} times. How thick is the pile, in mm?`, want: [t * 2 ** n], tol: 1e-6,
+      work: `Each fold doubles the layers: 2${sup(n)} = ${2 ** n} layers, so ${t} × ${2 ** n} = ${nice(t * 2 ** n, 4)} mm.` });
+    const k = randInt(4, 16);
+    out.push({ q: `How many grains go on square ${k} of the chessboard (1 on the first, doubling each time)?`, want: [2 ** (k - 1)], tol: 1e-9,
+      work: `Square ${k} has 2 to the power (${k} − 1): 2${sup(k - 1)} = ${group3(2 ** (k - 1))}.` });
+    const k2 = randInt(4, 16);
+    out.push({ q: `How many grains are on squares 1 to ${k2} together?`, want: [2 ** k2 - 1], tol: 1e-9,
+      work: `1 + 2 + 4 + … + 2${sup(k2 - 1)} = 2${sup(k2)} − 1 = ${group3(2 ** k2 - 1)}.` });
+    const [H, name] = ([[1, '1 m'], [10, '10 m'], [100, '100 m'], [1000, '1 km']] as [number, string][])[randInt(0, 3)];
+    const f = foldsToReach(1e-4, H);
+    out.push({ q: `What is the fewest number of folds that makes a 0.1 mm sheet at least ${name} thick?`, want: [f], tol: 1e-9,
+      work: `${name} = ${group3(H * 10000)} sheets of 0.1 mm. 2${sup(f - 1)} = ${group3(2 ** (f - 1))} is too few, 2${sup(f)} = ${group3(2 ** f)} is enough, so ${f} folds.` });
+    return out;
+  });
+</script>

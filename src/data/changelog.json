@@ -1,5 +1,25 @@
 [
  {
+  "sha": "c6c0b547da77",
+  "date": "2026-11-10T05:57:30+00:00",
+  "title": "Add 12 Collecting tools (#1603-#1614): coin check, specific gravity, grade scale, card centering, gold purity, bullion weights and premium, coin counter, coin dates, serial checker, old money, auction fees",
+  "tools": [
+   "auction-costs",
+   "bullion-premium",
+   "bullion-weights",
+   "card-centering",
+   "coin-check",
+   "coin-counter",
+   "coin-dates",
+   "gold-purity",
+   "grade-scale",
+   "pre-decimal",
+   "serial-checker",
+   "specific-gravity"
+  ],
+  "site": false
+ },
+ {
   "sha": "2d4487f16183",
   "date": "2026-11-10T05:49:24+00:00",
   "title": "Add the Collecting shelf: shared engine, live metal prices, Melt value (#1601) and Collection catalogue (#1602)",

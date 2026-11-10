@@ -1,0 +1,273 @@
+---
+// Number systems translator: one whole number shown in Indian place value (lakh, crore, words), Roman numerals,
+// Egyptian hieroglyph signs, Mayan dots and bars (base 20), Babylonian wedges (base 60) and any base from 2 to 16
+// with place value blocks. All pictures are drawn here in SVG (no outside fonts). Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ns">
+  <div class="ax-card">
+    <h2>Type a whole number</h2>
+    <label class="ns-in">Number (0 to 9,999,999) <input type="number" class="ns-n" min="0" max="9999999" step="1" value="2026" inputmode="numeric" /></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ns-pre" data-n="2026">2026</button>
+      <button type="button" class="btn secondary small ns-pre" data-n="1994">1994</button>
+      <button type="button" class="btn secondary small ns-pre" data-n="3661">3661</button>
+      <button type="button" class="btn secondary small ns-pre" data-n="400">400</button>
+      <button type="button" class="btn secondary small ns-pre" data-n="0">0</button>
+      <button type="button" class="btn secondary small ns-pre" data-n="1234567">1234567</button>
+    </div>
+    <p class="ax-err ns-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Indian place value</h2>
+    <p class="ax-big ns-ind"></p>
+    <p class="sm-f ns-iw"></p>
+    <p class="sm-f ns-int"></p>
+    <div class="ax-scroll"><table class="ns-it"></table></div>
+    <p class="ax-help">Ten symbols and the place of each digit are enough for any number. A zero holds an empty place, which is why 205 and 25 are different.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Roman numerals</h2>
+    <p class="ax-big ns-rom"></p>
+    <p class="sm-f ns-rw"></p>
+    <p class="ax-help">I 1, V 5, X 10, L 50, C 100, D 500, M 1000. A smaller sign before a bigger one is taken away (IV = 4, XC = 90). No zero and no place value.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Egyptian hieroglyph numerals</h2>
+    <svg class="sm-fig ns-egy" role="img" aria-label="Egyptian number signs, largest first"></svg>
+    <p class="sm-f ns-ew"></p>
+    <div class="ns-key"><svg class="sm-fig ns-ekey" viewBox="0 0 340 52" role="img" aria-label="Key: stroke 1, heel bone 10, coil of rope 100, lotus 1,000, finger 10,000, tadpole 100,000, kneeling god 1,000,000"></svg></div>
+    <p class="ax-help">A sign for each power of ten, repeated up to 9 times. No place value and no zero: the signs can go in any order. Drawn simply here.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mayan numerals (base 20)</h2>
+    <svg class="sm-fig ns-may" role="img" aria-label="Mayan number: levels of dots and bars, highest place at the top"></svg>
+    <p class="sm-f ns-mw"></p>
+    <p class="ax-help">A dot is 1, a bar is 5, a shell is 0. Each level up is worth 20 times the one below. (Mayan calendars used 18 × 20 = 360 for the third level; this is plain base 20.)</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Babylonian numerals (base 60)</h2>
+    <svg class="sm-fig ns-bab" role="img" aria-label="Babylonian number: groups of wedges, one group per place, highest place on the left"></svg>
+    <p class="sm-f ns-bw"></p>
+    <p class="ax-help">A thin wedge is 1, a corner wedge is 10. Each place is worth 60 times the one to its right. We still count 60 seconds in a minute and 60 minutes in an hour because of them. An empty place was first left as a gap, later marked with a sign; here it is a dashed box.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Any base from 2 to 16</h2>
+    <div class="ax-row">
+      <div class="ax-seg ns-bs" role="group" aria-label="Base">
+        <button type="button" data-b="2" aria-pressed="true">2</button>
+        <button type="button" data-b="5" aria-pressed="false">5</button>
+        <button type="button" data-b="8" aria-pressed="false">8</button>
+        <button type="button" data-b="10" aria-pressed="false">10</button>
+        <button type="button" data-b="12" aria-pressed="false">12</button>
+        <button type="button" data-b="16" aria-pressed="false">16</button>
+      </div>
+      <label>Base <input type="number" class="ns-b" min="2" max="16" step="1" value="2" inputmode="numeric" style="width:4.5em" /></label>
+    </div>
+    <p class="ax-big ns-bt"></p>
+    <svg class="sm-fig ns-blk" role="img" aria-label="Place value blocks: one column per digit, with that many blocks"></svg>
+    <p class="sm-f ns-bsum"></p>
+    <label class="ns-in">Or type a number in this base <input type="text" class="ns-bin" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-err ns-berr" hidden></p>
+    <p class="ax-help">Base b uses the digits 0 to b − 1 (after 9 come A = 10, B = 11 … F = 15). Each place is worth b times the place to its right.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Type 3600, then 3601. What changes in the Babylonian picture? Why do people who only see wedges get confused?</li>
+      <li>Type 400 and look at the Mayan levels. Which number would be "100" in base 20?</li>
+      <li>Which number needs the most Roman letters below 4000? (Try 3888.)</li>
+      <li>In base 2, why do all odd numbers end in 1? Which numbers end in 00?</li>
+      <li>Type 0. Which systems can write it at all?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="ns-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ns .ns-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0; }
+  .ns .ns-in input { flex: 1 1 8em; min-width: 0; min-height: 40px; max-width: 14em; }
+  .ns svg .ns-g { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .ns svg .ns-fill { fill: var(--ink); stroke: none; }
+  .ns svg .ns-bar { fill: var(--accent); }
+  .ns svg .ns-dot { fill: var(--accent); }
+  .ns svg .ns-shell { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .ns svg .ns-empty { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .ns svg .ns-sep { stroke: var(--line); stroke-width: 1; }
+  .ns svg .ns-blk1 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .ns .ax-big { overflow-wrap: anywhere; }
+  .ns table td.r { text-align: right; }
+</style>
+
+<script>
+  import { romanParts, toRoman, fromRoman, toBase, baseText, fromBase, egyptian, mayan, babylonian, INDIAN_PLACES, indianWords, intlWords } from '../../lib/sci/numsys-j4';
+  import { group3, groupIndian, sup } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ns')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NIN = q<HTMLInputElement>('.ns-n'), BIN = q<HTMLInputElement>('.ns-b'), BTX = q<HTMLInputElement>('.ns-bin');
+  let base = 2;
+
+  // ----- Egyptian signs, each in a 20 × 30 cell -----
+  function glyph(svg: SVGSVGElement, k: number, x: number, y: number) {
+    const g = S('g', { transform: `translate(${x} ${y})`, class: 'ns-g' }, svg);
+    const P = (d: string) => S('path', { d }, g);
+    if (k === 0) P('M10 4 V28');
+    else if (k === 1) P('M4 28 V14 A6 6 0 0 1 16 14 V28');
+    else if (k === 2) { let d = ''; for (let t = 0; t <= 12.6; t += 0.3) { const r = 0.6 + 0.6 * t; d += `${d ? 'L' : 'M'}${(10 + r * Math.cos(t)).toFixed(1)} ${(16 + r * Math.sin(t)).toFixed(1)} `; } P(d); }
+    else if (k === 3) { P('M10 28 V11'); P('M4 5 Q10 15 16 5'); P('M10 21 Q16 20 17 14'); }
+    else if (k === 4) { P('M9 28 V9 Q9 3 14 4 L15 9'); }
+    else if (k === 5) { S('ellipse', { cx: 10, cy: 10, rx: 5, ry: 6 }, g); P('M10 16 Q5 22 12 28'); }
+    else { S('circle', { cx: 10, cy: 6, r: 3 }, g); P('M10 9 V20 L5 28 M10 20 L15 26 M10 13 L3 5 M10 13 L17 5'); }
+  }
+  const EGY_NAMES = ['stroke', 'heel bone', 'coil of rope', 'lotus', 'finger', 'tadpole', 'kneeling god'];
+  {
+    const key = q<SVGSVGElement>('.ns-ekey');
+    for (let k = 0; k < 7; k++) { glyph(key, k, 6 + k * 48, 0); S('text', { x: 16 + k * 48, y: 46, 'text-anchor': 'middle', class: 'sm-tick' }, key, k < 4 ? group3(10 ** k) : ['10k', '100k', '1M'][k - 4]); }
+  }
+  function drawEgy(n: number) {
+    const svg = q<SVGSVGElement>('.ns-egy'); svg.replaceChildren();
+    const c = egyptian(n), cells: number[] = [];
+    for (let k = 6; k >= 0; k--) for (let i = 0; i < c[k]; i++) cells.push(k);
+    const per = 15, rows = Math.max(1, Math.ceil(cells.length / per));
+    svg.setAttribute('viewBox', `0 0 340 ${rows * 34 + 12}`);
+    if (!cells.length) S('text', { x: 170, y: 28, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'no signs: there is no Egyptian zero');
+    cells.forEach((k, i) => glyph(svg, k, 8 + (i % per) * 21.6, 6 + Math.floor(i / per) * 34));
+    const parts = [6, 5, 4, 3, 2, 1, 0].filter((k) => c[k]).map((k) => `${c[k]} ${EGY_NAMES[k]}${c[k] > 1 ? 's' : ''} (${c[k]} × ${group3(10 ** k)})`);
+    q('.ns-ew').textContent = cells.length ? `${parts.join(' + ')} = ${group3(n)}. That is ${cells.length} sign${cells.length > 1 ? 's' : ''}.` : 'Nothing to write.';
+  }
+
+  // ----- Mayan -----
+  function drawMay(n: number) {
+    const svg = q<SVGSVGElement>('.ns-may'); svg.replaceChildren();
+    const L = mayan(n), H = 50, top = 10;
+    svg.setAttribute('viewBox', `0 0 340 ${L.length * H + 16}`);
+    L.forEach((l, i) => {
+      const p = L.length - 1 - i, y = top + i * H, cx = 50;
+      if (i) S('line', { x1: 10, x2: 330, y1: y - 6, y2: y - 6, class: 'ns-sep' }, svg);
+      if (l.v === 0) { S('ellipse', { cx, cy: y + 18, rx: 18, ry: 9, class: 'ns-shell' }, svg); S('path', { d: `M${cx - 12} ${y + 18} Q${cx} ${y + 12} ${cx + 12} ${y + 18}`, class: 'ns-shell', fill: 'none' }, svg); }
+      else {
+        const rows = (l.dots ? 1 : 0) + l.bars, h = rows * 10, y0 = y + 20 - h / 2;
+        for (let d = 0; d < l.dots; d++) S('circle', { cx: cx + (d - (l.dots - 1) / 2) * 12, cy: y0 + 4, r: 4, class: 'ns-dot' }, svg);
+        for (let b = 0; b < l.bars; b++) S('rect', { x: cx - 24, y: y0 + (l.dots ? 10 : 0) + b * 10, width: 48, height: 7, rx: 2, class: 'ns-bar' }, svg);
+      }
+      S('text', { x: 100, y: y + 24 }, svg, `${l.v} × 20${sup(p)} = ${l.v} × ${group3(20 ** p)} = ${group3(l.v * 20 ** p)}`);
+    });
+    q('.ns-mw').textContent = `${L.map((l, i) => `${l.v} × 20${sup(L.length - 1 - i)}`).join(' + ')} = ${group3(n)}`;
+  }
+
+  // ----- Babylonian -----
+  function drawBab(n: number) {
+    const svg = q<SVGSVGElement>('.ns-bab'); svg.replaceChildren();
+    const B = babylonian(n);
+    let x = 10;
+    const groups: { x: number; w: number }[] = [];
+    for (const p of B) {
+      const oneCols = Math.min(3, p.ones), w = Math.max(30, p.tens * 11 + (p.tens && oneCols ? 4 : 0) + oneCols * 11);
+      groups.push({ x, w }); x += w + 22;
+    }
+    const W = Math.max(340, x), H = 86;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    B.forEach((p, i) => {
+      const { x: gx, w } = groups[i];
+      if (p.v === 0) S('rect', { x: gx, y: 10, width: w, height: 44, rx: 4, class: 'ns-empty' }, svg);
+      for (let t = 0; t < p.tens; t++) {
+        const cx = gx + t * 11;
+        S('path', { d: `M${cx + 9} ${20} L${cx + 1} ${32} L${cx + 9} ${44}`, class: 'ns-g' }, svg);
+        S('path', { d: `M${cx} ${32} L${cx + 6} ${27} L${cx + 6} ${37} Z`, class: 'ns-fill' }, svg);
+      }
+      const ox = gx + p.tens * 11 + (p.tens ? 4 : 0), rows = Math.ceil(p.ones / 3);
+      for (let o = 0; o < p.ones; o++) {
+        const r = Math.floor(o / 3), c = o % 3, cx = ox + c * 11 + 4, cy = 32 - (rows * 14) / 2 + r * 14;
+        S('path', { d: `M${cx - 4} ${cy} L${cx + 4} ${cy} L${cx} ${cy + 6} Z`, class: 'ns-fill' }, svg);
+        S('line', { x1: cx, x2: cx, y1: cy + 5, y2: cy + 13, class: 'ns-g' }, svg);
+      }
+      S('text', { x: gx + w / 2, y: 74, 'text-anchor': 'middle', class: 'sm-tick' }, svg, `${p.v} × 60${sup(B.length - 1 - i)}`);
+    });
+    q('.ns-bw').textContent = `${B.map((p, i) => `${p.v} × ${group3(60 ** (B.length - 1 - i))}`).join(' + ')} = ${group3(n)}`;
+  }
+
+  // ----- Any base, with blocks -----
+  function drawBase(n: number) {
+    const d = toBase(n, base), svg = q<SVGSVGElement>('.ns-blk'); svg.replaceChildren();
+    q('.ns-bt').textContent = `${group3(n)} = ${baseText(n, base)} in base ${base}`;
+    const per = 8, cw = 42, rows = Math.ceil(d.length / per), rh = 128;
+    svg.setAttribute('viewBox', `0 0 340 ${rows * rh}`);
+    d.forEach((v, i) => {
+      const p = d.length - 1 - i, col = i % per, row = Math.floor(i / per), x = 2 + col * cw, y = row * rh;
+      S('text', { x: x + cw / 2, y: y + 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, `${base}${sup(p)}`);
+      for (let k = 0; k < v; k++) S('rect', { x: x + 6 + (k % 3) * 10, y: y + 98 - Math.floor(k / 3) * 10, width: 9, height: 9, rx: 1.5, class: 'ns-blk1' }, svg);
+      S('text', { x: x + cw / 2, y: y + 122, 'text-anchor': 'middle', style: 'font-weight:700;font-size:15px' }, svg, '0123456789ABCDEF'[v]);
+      S('rect', { x: x + 1, y: y + 20, width: cw - 2, height: 88, rx: 4, class: 'ns-empty' }, svg);
+    });
+    q('.ns-bsum').textContent = `${d.map((v, i) => `${v} × ${base}${sup(d.length - 1 - i)}`).join(' + ')} = ${group3(n)}`;
+    if (document.activeElement !== BTX) BTX.value = baseText(n, base);
+  }
+
+  function draw() {
+    const n = Number(NIN.value), err = q('.ns-err');
+    if (NIN.value.trim() === '' || !Number.isInteger(n) || n < 0 || n > 9999999) { err.textContent = 'Type a whole number from 0 to 9,999,999.'; err.hidden = false; return; }
+    err.hidden = true;
+    // Indian.
+    q('.ns-ind').textContent = groupIndian(n);
+    q('.ns-iw').textContent = `In words (Indian): ${indianWords(n)}.`;
+    q('.ns-int').textContent = `International: ${group3(n)}, ${intlWords(n)}.`;
+    const t = q<HTMLTableElement>('.ns-it'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Place', 'Digit', 'Worth']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    const ds = String(n).split('').map(Number);
+    ds.forEach((v, i) => { const p = ds.length - 1 - i, r = t.insertRow(); r.insertCell().textContent = INDIAN_PLACES[p]; r.insertCell().textContent = String(v); const c = r.insertCell(); c.textContent = `${v} × ${groupIndian(10 ** p)} = ${groupIndian(v * 10 ** p)}`; c.className = 'r'; });
+    // Roman.
+    const R = romanParts(n);
+    q('.ns-rom').textContent = n === 0 ? '(none)' : n > 3999 ? '(too big)' : toRoman(n);
+    q('.ns-rw').textContent = n === 0 ? 'Roman numerals have no zero.' : n > 3999 ? 'The usual Roman signs stop at 3,999 (MMMCMXCIX). Bigger numbers used a bar over a sign to mean 1,000 times.' : `${toRoman(n)} = ${R.map(([v, s]) => `${s} (${v})`).join(' + ')} = ${n}`;
+    drawEgy(n); drawMay(n); drawBab(n); drawBase(n);
+  }
+
+  NIN.addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.ns-pre').forEach((b) => b.addEventListener('click', () => { NIN.value = b.dataset.n!; draw(); }));
+  const setBase = (b: number) => {
+    base = b; BIN.value = String(b);
+    root.querySelectorAll<HTMLButtonElement>('.ns-bs button').forEach((x) => x.setAttribute('aria-pressed', String(Number(x.dataset.b) === b)));
+    q('.ns-berr').hidden = true; BTX.value = ''; draw();
+  };
+  root.querySelectorAll<HTMLButtonElement>('.ns-bs button').forEach((b) => b.addEventListener('click', () => setBase(Number(b.dataset.b))));
+  BIN.addEventListener('input', () => { const b = Number(BIN.value); if (Number.isInteger(b) && b >= 2 && b <= 16) setBase(b); });
+  BTX.addEventListener('input', () => {
+    const v = fromBase(BTX.value, base), err = q('.ns-berr');
+    if (!Number.isFinite(v) || v > 9999999) { err.textContent = Number.isFinite(v) ? 'That is more than 9,999,999.' : `Base ${base} only uses the digits ${'0123456789ABCDEF'.slice(0, base).split('').join(', ')}.`; err.hidden = false; return; }
+    err.hidden = true; NIN.value = String(v); draw();
+  });
+  draw();
+
+  quiz(q('.ns-quiz'), () => {
+    const out: Question[] = [];
+    const r = randInt(40, 3999), rs = toRoman(r);
+    out.push({ q: `What number is the Roman numeral ${rs}?`, want: [fromRoman(rs)], tol: 1e-9, work: `${rs} = ${romanParts(r).map(([v, s]) => `${s} (${v})`).join(' + ')} = ${r}.` });
+    const b = randInt(5, 31);
+    out.push({ q: `Write ${b} in base 2 (type the 0s and 1s).`, want: [Number(baseText(b, 2))], tol: 1e-9, work: `${b} = ${toBase(b, 2).map((v, i, a) => `${v} × 2${sup(a.length - 1 - i)}`).join(' + ')}, so it is ${baseText(b, 2)}.` });
+    const hi = randInt(1, 4), lo = randInt(1, 19), bars = Math.floor(lo / 5), dots = lo % 5;
+    const loText = [bars ? `${bars} bar${bars > 1 ? 's' : ''}` : '', dots ? `${dots} dot${dots > 1 ? 's' : ''}` : ''].filter(Boolean).join(' and ');
+    out.push({ q: `A Mayan number has ${hi} dot${hi > 1 ? 's' : ''} on the upper level and ${loText} on the lower level. What is it?`, want: [hi * 20 + lo], tol: 1e-9,
+      work: `Lower level: ${bars} × 5 + ${dots} = ${lo}. Upper level: ${hi} × 20 = ${hi * 20}. Total ${hi * 20 + lo}.` });
+    const s = randInt(1, 9), o = randInt(0, 59);
+    out.push({ q: `A Babylonian number has ${s} in the sixties place and ${o} in the ones place. What is it?`, want: [s * 60 + o], tol: 1e-9, work: `${s} × 60 + ${o} = ${s * 60 + o}.` });
+    const h = randInt(20, 255), ht = baseText(h, 16);
+    out.push({ q: `What is ${ht} (base 16) as an ordinary number? (A = 10 … F = 15)`, want: [h], tol: 1e-9, work: `${ht} = ${toBase(h, 16).map((v, i, a) => `${v} × 16${sup(a.length - 1 - i)}`).join(' + ')} = ${h}.` });
+    return out;
+  });
+</script>
