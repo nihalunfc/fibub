@@ -47,7 +47,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
     <label class="find">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
       <span class="visually-hidden">Find a tool</span>
-      <input type="search" placeholder={`Search ${live.length.toLocaleString('en')} tools, or an ID like #T3`} autocomplete="off" />
+      <input type="search" placeholder={`Search ${live.length.toLocaleString('en')} tools or #T3`} autocomplete="off" />
     </label>
     <p class="ids-line">Tool IDs: <b>#T</b> Tools, <b>#L</b> Learn. <a href="/tools/#ids">What they mean</a></p>
     <ul class="promise" aria-label="What fibub promises">
@@ -81,7 +81,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
       </header>
       <p class="blurb">Experiments and simulations for school students, chapter by chapter.</p>
       <div class="cur" role="tablist" aria-label="School curriculum">
-        {CURRICULA.map((c, i) => <button type="button" role="tab" id={`cur-${c.id}`} aria-controls={`curp-${c.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{c.country === 'United States' ? 'USA' : c.country === 'United Kingdom' ? 'UK' : c.country}</button>)}
+        {CURRICULA.map((c, i) => <button type="button" role="tab" id={`cur-${c.id}`} aria-controls={`curp-${c.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{c.country === 'United States' ? 'USA' : c.country === 'United Kingdom' ? 'UK' : c.country}{c.status !== 'live' && <small class="soon-tag">Soon</small>}</button>)}
       </div>
       {CURRICULA.map((c, i) => (
         <div class="curp" id={`curp-${c.id}`} role="tabpanel" aria-labelledby={`cur-${c.id}`} hidden={i !== 0}>
@@ -91,7 +91,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
               <ul class="grades">{c.classes.map((k) => <li><a href={`/learn/${k.id}/`}>{k.name}</a></li>)}</ul>
             </>
           ) : (
-            <p class="sub soon">{c.name}, {c.grades}: coming soon. Until then, the experiments and simulations below work for any school.</p>
+            <p class="sub soon"><b>Coming soon</b>: {c.name}, {c.grades}. Nothing is ready for this curriculum yet. Until then, the experiments and simulations below work for any school.</p>
           )}
         </div>
       ))}
@@ -197,6 +197,8 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
   .cur button { flex: 1; min-width: 0; border: 0; border-radius: 7px; padding: 7px 4px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
   .cur button[aria-selected=true] { background: var(--pc); color: var(--accent-ink, #fff); }
   :global(html[data-theme=dark]:not(.red-mode)) .cur button[aria-selected=true] { color: #000; }
+  .soon-tag { display: block; font-size: 10.5px; font-weight: 600; line-height: 1.1; opacity: .8; }
+  .sub.soon b { color: var(--ink); }
   .curp { margin-top: 10px; }
   .sub { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
   .sub.soon { margin-bottom: 0; line-height: 1.5; }
