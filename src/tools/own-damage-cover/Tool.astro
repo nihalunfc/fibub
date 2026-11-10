@@ -1,0 +1,110 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T884 Is collision / own-damage cover still worth it on an older car?
+---
+<div class="tool-ui odc">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your car and policy</h2>
+    <p class="odc-hint">Example numbers: change them to yours.</p>
+    <div class="odc-grid">
+      <label>Currency <select class="odc-cur" data-k="cur"></select></label>
+      <label>Car value today <input data-k="value" inputmode="decimal" /></label>
+      <label>Value drop each year <span class="odc-suf"><input data-k="dep" inputmode="decimal" /><i>%</i></span></label>
+      <label>Own-damage (collision) premium for the year <input data-k="prem" inputmode="decimal" /></label>
+      <label>Premium change each year <span class="odc-suf"><input data-k="pc" inputmode="decimal" /><i>%</i></span><small>Can be negative: premiums often fall as the car ages.</small></label>
+      <label>Deductible (you pay first) <input data-k="ded" inputmode="decimal" /></label>
+      <label>Claims a year (for example 0.1) <input data-k="lambda" inputmode="decimal" /><small class="odc-one"></small></label>
+      <label>Typical claim (the middle one) <input data-k="median" inputmode="decimal" /></label>
+      <label>1 in 10 claims is bigger than <input data-k="p90" inputmode="decimal" /></label>
+      <label>Years to look ahead <input data-k="years" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad odc-err" role="alert" hidden></p>
+  </section>
+  <section class="odc-res" aria-live="polite">
+    <div class="odc-stats">
+      <div><span>Expected payout, year 1</span><b class="odc-s-y1"></b></div>
+      <div><span>Premium, year 1</span><b class="odc-s-p1"></b></div>
+      <div><span>Payout per 1 of premium, year 1</span><b class="odc-s-r1"></b></div>
+      <div><span>First year payout is below premium</span><b class="odc-s-first"></b></div>
+    </div>
+    <p class="odc-line odc-words"></p>
+    <div class="panel"><h2>Year by year</h2>
+      <div class="odc-wrap"><table><thead><tr><th>Year</th><th>Car value</th><th>Premium</th><th>Expected payout</th><th>Payout per 1 of premium</th></tr></thead><tbody class="odc-body"></tbody></table></div>
+    </div>
+    <div class="panel"><h2>Premium against expected payout</h2>
+      <div class="odc-legend"></div>
+      <div class="odc-chart"></div>
+    </div>
+  </section>
+  <p class="note odc-loan">A payout never goes above what the car is worth, so the older the car, the less cover can pay. If you have a car loan or lease, the lender may require this cover whatever the numbers say: check your loan terms.</p>
+  <p class="odc-fine">How it's worked out: claims arrive at the rate you type, and their sizes are spread around the typical claim so that 1 in 10 is bigger than your high figure. Each claim pays the smaller of the claim and the car's value, minus the smaller of the claim and your deductible. Expected payout is the average yearly total of that. It is an average over many years, not a promise for any one year. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .odc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .odc > *, .odc-res > * { min-width: 0; }
+  .odc h2 { margin: 0 0 12px; font-size: 18px; }
+  .odc .panel { padding: 16px; }
+  .odc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .odc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .odc small { font-size: 12px; }
+  .odc input, .odc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .odc input:focus, .odc select:focus { border-color: var(--accent); outline: none; }
+  .odc-suf { position: relative; display: block; }
+  .odc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .odc-suf input { padding-right: 30px; }
+  .odc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .odc-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .odc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .odc-stats span { font-size: 13px; color: var(--muted); }
+  .odc-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .odc-line { margin: 0; font-size: 15px; }
+  .odc-hint, .odc-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .odc-wrap { overflow-x: auto; }
+  .odc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .odc th, .odc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .odc th:first-child, .odc td:first-child { text-align: left; }
+  .odc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .odc-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; margin-bottom: 6px; }
+  .odc-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+  .odc-loan { margin: 0; }
+</style>
+
+<script>
+  import { ownDamage } from '../../lib/money/insurance';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.odc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.odc-cur').innerHTML = currencyOptions(defaultCurrency());
+  const def: Record<string, string> = { value: '8,000', dep: '12', prem: '500', pc: '-5', ded: '300', lambda: '0.1', median: '1,500', p90: '4,000', years: '8' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const $2 = (n: number) => money(n, f('cur').value, 2);
+  function run() {
+    const a = { value: num(f('value').value), dep: num(f('dep').value), premium: num(f('prem').value), premiumChange: num(f('pc').value), deductible: num(f('ded').value), lambda: num(f('lambda').value), median: num(f('median').value), p90: num(f('p90').value), years: Math.round(num(f('years').value)) };
+    q('.odc-one').textContent = a.lambda > 0 ? `About 1 claim every ${Math.round((10 / a.lambda)) / 10} years.` : '';
+    const bad = !(a.value > 0) ? 'Enter the car value (more than 0).' : a.dep < 0 || a.dep >= 100 ? 'Enter a yearly value drop from 0 to 99.' : !(a.premium > 0) ? 'Enter the own-damage premium (more than 0).' : a.premiumChange <= -100 ? 'The premium change must be above -100.' : a.deductible < 0 ? 'The deductible must be 0 or more.' : !(a.lambda > 0) ? 'Enter how many claims a year you expect (for example 0.1 is one every 10 years).' : !(a.median > 0) ? 'Enter a typical claim (more than 0).' : a.p90 < a.median ? 'The "1 in 10 is bigger than" figure must be at least the typical claim.' : !(a.years >= 1 && a.years <= 30) ? 'Enter years from 1 to 30.' : '';
+    q('.odc-err').hidden = !bad; q('.odc-err').textContent = bad; q('.odc-res').hidden = !!bad;
+    if (bad) return;
+    const r = ownDamage(a), y1 = r.rows[0];
+    q('.odc-s-y1').textContent = $2(y1.expected);
+    q('.odc-s-p1').textContent = $2(y1.premium);
+    q('.odc-s-r1').textContent = y1.payBack.toFixed(2);
+    q('.odc-s-first').textContent = r.firstLosing ? `Year ${r.firstLosing}` : 'Not in these years';
+    q('.odc-words').innerHTML = y1.net < 0
+      ? (r.firstLosing === 1 ? `Already in year 1 the cover is expected to pay <b>${$2(y1.expected)}</b> against a premium of <b>${$2(y1.premium)}</b>, so on average it pays back less than it costs.` : '')
+      : `In year 1 the cover is expected to pay <b>${$2(y1.expected)}</b> against a premium of <b>${$2(y1.premium)}</b>, so on average it pays back more than it costs.`;
+    if (r.firstLosing && r.firstLosing > 1) q('.odc-words').innerHTML += ` From <b>year ${r.firstLosing}</b> the expected payout drops below the premium.`;
+    if (!r.firstLosing) q('.odc-words').innerHTML += ' The expected payout stays above the premium for all the years shown.';
+    q('.odc-words').innerHTML += ' Paying small repairs yourself and keeping savings for a total loss is the other choice.';
+    q('.odc-body').innerHTML = r.rows.map((x) => `<tr><td>${x.year}</td><td>${$(x.value)}</td><td>${$2(x.premium)}</td><td>${$2(x.expected)}</td><td>${x.payBack.toFixed(2)}</td></tr>`).join('');
+    const S = [{ label: 'Premium', ys: r.rows.map((x) => x.premium), color: 'var(--accent)' }, { label: 'Expected payout', ys: r.rows.map((x) => x.expected), color: '#d97706', dash: true }];
+    q('.odc-legend').innerHTML = legend(S);
+    q('.odc-chart').innerHTML = lineSvg(S, r.rows.map((x) => x.year), 'Premium and expected payout by year');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

@@ -1,0 +1,141 @@
+---
+// #T881 Health insurance tax saving (India 80D, US HSA)
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui hit">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Where do you pay tax?</h2>
+    <p class="hit-hint">Example numbers: change them to yours.</p>
+    <div class="hit-grid">
+      <label>Region <select data-k="region"><option value="in">India (80D)</option><option value="us">United States (HSA)</option></select></label>
+    </div>
+  </section>
+
+  <section class="panel hit-in">
+    <h2>India: section 80D</h2>
+    <p class="hit-hint">Old tax regime only. The new regime gives no 80D deduction, so if you use it this tool shows what you would save by switching.</p>
+    <h3>Self, spouse and children</h3>
+    <div class="hit-grid">
+      <label>Health premium paid (not in cash) <input data-k="p1" inputmode="decimal" /></label>
+      <label>Preventive check-up cost <input data-k="c1" inputmode="decimal" /></label>
+      <label>Premium paid in cash <input data-k="x1" inputmode="decimal" /></label>
+      <label class="hit-chk"><input type="checkbox" data-k="s1" /> You or your spouse is 60 or older</label>
+      <label>Medical bills, if that senior has no health insurance <input data-k="m1" inputmode="decimal" /></label>
+    </div>
+    <h3>Parents</h3>
+    <div class="hit-grid">
+      <label>Health premium paid (not in cash) <input data-k="p2" inputmode="decimal" /></label>
+      <label>Preventive check-up cost <input data-k="c2" inputmode="decimal" /></label>
+      <label>Premium paid in cash <input data-k="x2" inputmode="decimal" /></label>
+      <label class="hit-chk"><input type="checkbox" data-k="s2" /> A parent is 60 or older</label>
+      <label>Medical bills, if that senior has no health insurance <input data-k="m2" inputmode="decimal" /></label>
+    </div>
+    <div class="hit-grid">
+      <label>Your tax slab <span class="hit-suf"><input data-k="slab" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+    <p class="hit-src">Source: Income-tax Act 1961 section 80D, carried into the Income-tax Act 2025 from April 2026 (same limits: Rs 25,000, or Rs 50,000 if senior, per group; check-up up to Rs 5,000 inside the limit). Cash premiums are not allowed, check-ups may be paid in cash. Checked 2026-11-10, check the official source.</p>
+  </section>
+
+  <section class="panel hit-us" hidden>
+    <h2>United States: HSA</h2>
+    <div class="hit-grid">
+      <label>Coverage <select data-k="cov"><option value="s">Self-only</option><option value="f">Family</option></select></label>
+      <label>Your age at year end <input data-k="age" inputmode="decimal" /></label>
+      <label>Your contribution <input data-k="mine" inputmode="decimal" /></label>
+      <label>Employer contribution (counts toward the limit) <input data-k="emp" inputmode="decimal" /></label>
+      <label>Federal marginal rate <span class="hit-suf"><input data-k="fed" inputmode="decimal" /><i>%</i></span></label>
+      <label>State marginal rate <span class="hit-suf"><input data-k="st" inputmode="decimal" /><i>%</i></span></label>
+      <label>How you contribute <select data-k="pay"><option value="p">Through my paycheque</option><option value="o">On my own</option></select></label>
+    </div>
+    <p class="hit-src">Source: IRS Rev. Proc. 2025-19 (2026 limits: $4,400 self-only, $8,750 family, plus $1,000 if 55 or older). To pay into an HSA you need a high-deductible plan: deductible at least $1,700 (self-only) or $3,400 (family), out-of-pocket maximum at most $8,500 or $17,000. Paycheque contributions also skip 7.65% FICA. A few states (such as California and New Jersey) tax HSA money: enter that state's rate as 0 only if yours does not. Checked 2026-11-10, check the official source.</p>
+  </section>
+
+  <p class="note bad hit-err" role="alert" hidden></p>
+  <section class="hit-res" aria-live="polite">
+    <div class="hit-stats">
+      <div><span class="hit-l1"></span><b class="hit-s1"></b></div>
+      <div><span class="hit-l2"></span><b class="hit-s2"></b></div>
+      <div><span>Tax you save</span><b class="hit-s3"></b></div>
+    </div>
+    <p class="hit-line hit-words"></p>
+    <p class="note warn hit-warn" hidden></p>
+  </section>
+  <p class="hit-fine">How it's worked out: India, each group: allowed = the smaller of the limit and (premium not paid in cash + check-up up to 5,000 + medical bills if senior); tax saved = total allowed × slab × 1.04 (4% cess). US: allowed = limit (+1,000 at 55 or older) − employer amount, tax saved = your allowed contribution × (federal + state + 7.65% if by paycheque). It estimates a saving only and cannot check that you qualify. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .hit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .hit > *, .hit-res > * { min-width: 0; }
+  .hit h2 { margin: 0 0 12px; font-size: 18px; }
+  .hit h3 { margin: 8px 0; font-size: 15px; }
+  .hit .panel { padding: 16px; }
+  .hit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .hit label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hit label.hit-chk { display: flex; gap: 8px; align-items: center; align-self: end; }
+  .hit input, .hit select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .hit input[type=checkbox] { width: auto; }
+  .hit input:focus, .hit select:focus { border-color: var(--accent); outline: none; }
+  .hit-suf { position: relative; display: block; }
+  .hit-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .hit-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hit-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .hit-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .hit-stats span { font-size: 13px; color: var(--muted); }
+  .hit-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .hit-line { margin: 0; font-size: 15px; }
+  .hit-hint, .hit-src, .hit-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.hit')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const def: Record<string, string> = { p1: '30,000', c1: '0', x1: '0', m1: '0', p2: '40,000', c2: '0', x2: '0', m2: '0', slab: '30', age: '40', mine: '4,400', emp: '0', fed: '22', st: '5' };
+  for (const k in def) f(k).value = def[k];
+  f('s2').checked = true;
+  const t = (s: string, v: string) => { q(s).textContent = v; };
+  const group = (i: number) => {
+    const senior = f('s' + i).checked, limit = senior ? 50000 : 25000;
+    const prem = Math.max(0, num(f('p' + i).value) - num(f('x' + i).value)); // cash premiums never count
+    const check = Math.min(Math.max(0, num(f('c' + i).value)), 5000);
+    const bills = senior ? Math.max(0, num(f('m' + i).value)) : 0;
+    const raw = prem + check + bills;
+    return { limit, raw, ok: Math.min(limit, raw) };
+  };
+  function run() {
+    const us = f('region').value === 'us';
+    q('.hit-in').hidden = us; q('.hit-us').hidden = !us;
+    const warn = q('.hit-warn'); warn.hidden = true;
+    const slab = num(f('slab').value), fed = num(f('fed').value), st = num(f('st').value);
+    const bad = us ? (fed < 0 || fed > 60 || st < 0 || st > 30 ? 'Enter tax rates from 0 to 60 (federal) and 0 to 30 (state).' : num(f('age').value) < 18 ? 'Enter your age.' : '') : (slab < 0 || slab > 40 ? 'Enter your tax slab from 0 to 40.' : '');
+    q('.hit-err').hidden = !bad; q('.hit-err').textContent = bad; q('.hit-res').hidden = !!bad;
+    if (bad) return;
+    if (!us) {
+      const $ = (n: number) => money(n, 'INR', 0);
+      const a = group(1), b = group(2), ded = a.ok + b.ok, saved = ded * (slab / 100) * 1.04;
+      t('.hit-l1', 'Deduction (old regime)'); t('.hit-s1', $(ded));
+      t('.hit-l2', 'Slab incl. 4% cess'); t('.hit-s2', (slab * 1.04).toFixed(1) + '%');
+      t('.hit-s3', $(saved));
+      q('.hit-words').innerHTML = `Self, spouse and children: <b>${$(a.ok)}</b> of a ${$(a.limit)} limit. Parents: <b>${$(b.ok)}</b> of a ${$(b.limit)} limit. Total deduction <b>${$(ded)}</b>; at ${slab}% plus 4% cess you save about <b>${$(saved)}</b>, and only if you file under the old regime.`;
+      const over = a.raw > a.limit || b.raw > b.limit;
+      const cash = num(f('x1').value) + num(f('x2').value) > 0;
+      if (over || cash) { warn.hidden = false; warn.textContent = (over ? 'Some of what you entered is above the limit and earns nothing extra. ' : '') + (cash ? 'Premium paid in cash is not allowed and was left out; pay by bank, card or cheque.' : ''); }
+    } else {
+      const $ = (n: number) => money(n, 'USD', 2);
+      const fam = f('cov').value === 'f', age = num(f('age').value);
+      const limit = (fam ? 8750 : 4400) + (age >= 55 ? 1000 : 0);
+      const emp = Math.max(0, num(f('emp').value)), mine = Math.max(0, num(f('mine').value));
+      const room = Math.max(0, limit - emp), ok = Math.min(mine, room);
+      const rate = fed + st + (f('pay').value === 'p' ? 7.65 : 0);
+      t('.hit-l1', 'Most you can add'); t('.hit-s1', $(room));
+      t('.hit-l2', 'Your allowed contribution'); t('.hit-s2', $(ok));
+      t('.hit-s3', $(ok * rate / 100));
+      q('.hit-words').innerHTML = `The 2026 limit is <b>${$(limit)}</b> in all${age >= 55 ? ' (includes the $1,000 catch-up at 55 or older)' : ''}; with ${$(emp)} from your employer you can add <b>${$(room)}</b>. Adding <b>${$(ok)}</b> at ${rate.toFixed(2)}% combined saves about <b>${$(ok * rate / 100)}</b>.`;
+      if (mine > room) { warn.hidden = false; warn.textContent = `Over the limit by ${$(mine - room)}: the extra is taxed and may carry a 6% excise tax a year until removed. Only ${$(ok)} was counted.`; }
+    }
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

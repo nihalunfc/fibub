@@ -1,5 +1,242 @@
 [
  {
+  "sha": "91ab5d82a595",
+  "date": "2026-11-10T18:29:24+00:00",
+  "title": "Insurance batch 2: cross-links to batch 1 and share images",
+  "tools": [
+   "claim-or-pay",
+   "health-cover-needed",
+   "health-plan-comparer",
+   "insurance-deductible",
+   "life-cover-needed",
+   "policy-return",
+   "room-rent-cap",
+   "should-i-insure",
+   "super-top-up",
+   "underinsurance-check",
+   "waiting-periods"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c3f4a58b2968",
+  "date": "2026-11-10T18:26:39+00:00",
+  "title": "Add health-cover-needed tool",
+  "tools": [
+   "health-cover-needed"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c2234137b58a",
+  "date": "2026-11-10T18:26:39+00:00",
+  "title": "Add waiting-periods tool",
+  "tools": [
+   "waiting-periods"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1516b5680e5e",
+  "date": "2026-11-10T18:23:24+00:00",
+  "title": "Add home-inventory (T888)",
+  "tools": [
+   "home-inventory"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a37060ace2da",
+  "date": "2026-11-10T18:23:24+00:00",
+  "title": "Add surrender-or-keep (T887)",
+  "tools": [
+   "surrender-or-keep"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b91b0fbafaf8",
+  "date": "2026-11-10T18:23:24+00:00",
+  "title": "Add creditor-insurance (T886)",
+  "tools": [
+   "creditor-insurance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5e3b63312281",
+  "date": "2026-11-10T18:21:41+00:00",
+  "title": "Add dental-insurance insurance tool",
+  "tools": [
+   "dental-insurance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7b7b81e0d727",
+  "date": "2026-11-10T18:21:41+00:00",
+  "title": "Add eob-explainer insurance tool",
+  "tools": [
+   "eob-explainer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5adc092685b3",
+  "date": "2026-11-10T18:21:41+00:00",
+  "title": "Add health-insurance-tax insurance tool",
+  "tools": [
+   "health-insurance-tax"
+  ],
+  "site": false
+ },
+ {
+  "sha": "114036f0eb60",
+  "date": "2026-11-10T18:17:40+00:00",
+  "title": "Add travel-insurance insurance tool",
+  "tools": [
+   "travel-insurance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4e563a3899c5",
+  "date": "2026-11-10T18:17:40+00:00",
+  "title": "Add liability-limits insurance tool",
+  "tools": [
+   "liability-limits"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bbca3f3400f1",
+  "date": "2026-11-10T18:17:40+00:00",
+  "title": "Add own-damage-cover insurance tool",
+  "tools": [
+   "own-damage-cover"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bfe0b3353162",
+  "date": "2026-11-10T18:15:30+00:00",
+  "title": "Add super-top-up tool (T878)",
+  "tools": [
+   "super-top-up"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8eeb524e757f",
+  "date": "2026-11-10T18:10:02+00:00",
+  "title": "Currency converter (#T849): daily rates through fibub's own /api/prices",
+  "tools": [
+   "currency-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3965a4dd4527",
+  "date": "2026-11-10T17:52:32+00:00",
+  "title": "ATS checker: Fix it for me, one click into the ATS resume builder",
+  "tools": [
+   "ats-resume-checker",
+   "resume-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f2168a5c730",
+  "date": "2026-11-10T17:46:20+00:00",
+  "title": "EI Calculator (#T848): EI eligibility and benefit after a layoff, new Work in Canada category",
+  "tools": [
+   "ei-calculator"
+  ],
+  "site": true
+ },
+ {
+  "sha": "8d6a3a334ec2",
+  "date": "2026-11-10T16:17:37+00:00",
+  "title": "Add 11 health records and medical cost tools (T837-T847)",
+  "tools": [
+   "claim-packet",
+   "glasses-prescription",
+   "health-log",
+   "health-summary-card",
+   "hospital-cd-viewer",
+   "lab-report-reader",
+   "lab-results-tracker",
+   "medical-bill-checker",
+   "medical-expense-tax",
+   "medical-terms",
+   "records-organiser"
+  ],
+  "site": true
+ },
+ {
+  "sha": "e6e417c0aad1",
+  "date": "2026-11-10T16:17:21+00:00",
+  "title": "Keep main's numbering: insurance stays #T824-#T835 (OCR moved to #T836 in #85)",
+  "tools": [
+   "claim-or-pay",
+   "health-plan-comparer",
+   "idv-ncb",
+   "insurance-deductible",
+   "insurance-terms",
+   "life-cover-needed",
+   "policy-fine-print",
+   "policy-return",
+   "room-rent-cap",
+   "should-i-insure",
+   "term-fair-price",
+   "underinsurance-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b405e9a73267",
+  "date": "2026-11-10T16:12:25+00:00",
+  "title": "Fix duplicate code T824: Image to text becomes #T836",
+  "tools": [
+   "ocr"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f0d5f95014d6",
+  "date": "2026-11-10T15:51:41+00:00",
+  "title": "Blog: keep article search titles within 60 characters",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "36346a865a65",
+  "date": "2026-11-10T15:31:49+00:00",
+  "title": "Insurance tools move to #T825-#T836 so #T824 stays with Image to text",
+  "tools": [
+   "claim-or-pay",
+   "health-plan-comparer",
+   "idv-ncb",
+   "insurance-deductible",
+   "insurance-terms",
+   "life-cover-needed",
+   "policy-fine-print",
+   "policy-return",
+   "room-rent-cap",
+   "should-i-insure",
+   "term-fair-price",
+   "underinsurance-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "89345f2112ce",
+  "date": "2026-11-10T14:48:21+00:00",
+  "title": "Rename News to Blog and add the first 30 Blog articles",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "b5ab04ed7775",
   "date": "2026-11-10T14:33:09+00:00",
   "title": "Insurance tools take the next free codes, #T824 to #T835",
@@ -18,6 +255,15 @@
    "underinsurance-check"
   ],
   "site": false
+ },
+ {
+  "sha": "825d8cd59d6a",
+  "date": "2026-11-10T14:31:02+00:00",
+  "title": "Image to text (OCR, #T824): self-hosted tesseract.js, shared src/lib/ocr.ts",
+  "tools": [
+   "ocr"
+  ],
+  "site": true
  },
  {
   "sha": "b96f80f4f2a1",
