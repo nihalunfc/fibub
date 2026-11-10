@@ -1,0 +1,194 @@
+---
+// Gauss's law: drag charges and a closed surface on a board and count each charge's field lines across it (only
+// the charge inside counts), then use a Gaussian surface on a long wire, a flat sheet and a spherical shell.
+import '../../styles/astro.css';
+---
+<div class="ax gsl">
+  <div class="ax-card">
+    <h2>Flux through a closed surface</h2>
+    <div class="ax-row">
+      <span class="ax-seg gsl-shape" role="group" aria-label="Shape of the surface"><button type="button" data-v="circle" aria-pressed="true">Circle</button><button type="button" data-v="square" aria-pressed="false">Square</button></span>
+    </div>
+    <canvas class="ax-fig gsl-fig" aria-label="Charges, their field lines and a closed surface"></canvas>
+    <div class="ax-legend"><span><i class="gsl-kp"></i>positive</span><span><i class="gsl-kn"></i>negative</span><span><i class="gsl-ko"></i>line going out</span><span><i class="gsl-ki"></i>line coming in</span></div>
+    <p class="gsl-hint">Drag a charge, or drag inside the surface to move it. Tap a charge to change it with the slider.</p>
+    <label class="gsl-sl">Size of the surface: <b class="gsl-rv"></b><input type="range" class="gsl-r" min="3.5" max="12.5" step="1" value="7.5" aria-label="Radius or half-width of the surface in cm" /></label>
+    <label class="gsl-sl">Chosen charge <b class="gsl-name">A</b>: <b class="gsl-qv"></b><input type="range" class="gsl-q" min="-5" max="5" step="1" value="2" aria-label="Charge of the chosen charge in microcoulomb" /></label>
+    <p class="ax-big gsl-big" aria-live="polite"></p>
+    <p class="gsl-lines"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Using Gauss's law to find a field</h2>
+    <span class="ax-seg gsl-sym" role="group" aria-label="Charged object"><button type="button" data-v="wire" aria-pressed="true">Long wire</button><button type="button" data-v="sheet" aria-pressed="false">Flat sheet</button><button type="button" data-v="shell" aria-pressed="false">Spherical shell</button></span>
+    <label class="gsl-sl">Charge: <b class="gsl-av"></b><input type="range" class="gsl-a" min="1" max="10" step="1" value="2" aria-label="Amount of charge" /></label>
+    <label class="gsl-sl">Distance r: <b class="gsl-dv"></b><input type="range" class="gsl-d" min="1" max="50" step="1" value="20" aria-label="Distance in cm" /></label>
+    <canvas class="ax-fig gsl-sfig" aria-label="Gaussian surface and the field against distance"></canvas>
+    <p class="ax-big gsl-sbig" aria-live="polite"></p>
+    <p class="gsl-sform"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="gsl-try">
+      <li>Drag the +1 µC charge from outside to inside the surface: the flux jumps by 1/ε₀ and four more lines leave.</li>
+      <li>Leave a charge outside and watch its lines: every line that comes in goes out again, so it adds nothing.</li>
+      <li>Change the size or the shape of the surface without letting a charge cross it: the flux does not change.</li>
+      <li>Put a +2 µC and a −2 µC charge inside together: the flux is zero, even though lines cross the surface.</li>
+      <li>On the shell, slide r inside the radius: the field is zero, because a sphere inside encloses no charge.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="gsl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .gsl .gsl-fig { touch-action: none; cursor: pointer; border: 1px solid var(--line); max-width: 560px; margin: 10px auto 0; }
+  .gsl .gsl-sfig { max-width: 560px; margin: 10px auto 0; }
+  .gsl .gsl-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .gsl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .gsl .gsl-hint { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .gsl .ax-seg button { min-height: 40px; }
+  .gsl-kp { background: var(--bad); }
+  .gsl-kn { background: var(--accent); }
+  .gsl-ko { background: var(--good); }
+  .gsl-ki { background: var(--warn); }
+  .gsl-big, .gsl-sbig { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .gsl-lines, .gsl-sform { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .gsl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .gsl .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .gsl .eq-q p { margin: 0 0 6px; }
+  .gsl .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .gsl .eq-ok { color: var(--good); font-weight: 600; }
+  .gsl .eq-no { color: var(--bad); }
+  .gsl .eq-work { margin-top: 4px; font-size: 14px; }
+  .gsl .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .gsl .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { flux, isInside, rayCrossings, lineCount, LINES_PER_UC, symmetricField, questions, type Charge, type Surface, type Shape } from '../../lib/sci/gauss-law';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sg, sci3, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.gsl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.gsl-fig'), sfig = q<HTMLCanvasElement>('.gsl-sfig');
+  const W = 360, H = 280, PX = 10, NAMES = 'ABC';
+  const cs: Charge[] = [{ q: 2, x: 11, y: 15 }, { q: -1, x: 16, y: 11 }, { q: 1, x: 28, y: 20 }];
+  const surf: Surface = { kind: 'circle', cx: 13, cy: 13, r: 7.5 };
+  let sel = 0, drag: number | 'surf' | null = null, grab = [0, 0];
+  let shape: Shape = 'wire';
+  const cx = (x: number) => x * PX, cy = (y: number) => H - y * PX;
+  const fmtQ = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} µC`;
+  const exp = sci3;
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Each charge's own field lines, as straight rays to the edge of the board.
+    for (const ch of cs) {
+      const n = Math.round(Math.abs(ch.q) * LINES_PER_UC);
+      for (let k = 0; k < n; k++) {
+        const a = ((k + 0.5) / n) * 2 * Math.PI, dx = Math.cos(a), dy = Math.sin(a);
+        c.strokeStyle = ch.q > 0 ? pal.bad : pal.accent; c.globalAlpha = 0.45; c.lineWidth = 1.2;
+        c.beginPath(); c.moveTo(cx(ch.x), cy(ch.y)); c.lineTo(cx(ch.x + dx * 60), cy(ch.y + dy * 60)); c.stroke(); c.globalAlpha = 1;
+        for (const x of rayCrossings(ch.x, ch.y, dx, dy, surf)) {
+          const out = x.sign * Math.sign(ch.q) > 0;
+          c.fillStyle = out ? pal.good : pal.warn; c.beginPath(); c.arc(cx(ch.x + dx * x.t), cy(ch.y + dy * x.t), 3.5, 0, Math.PI * 2); c.fill();
+        }
+      }
+    }
+    c.strokeStyle = pal.ink; c.lineWidth = 2.5; c.setLineDash([7, 5]); c.beginPath();
+    if (surf.kind === 'circle') c.arc(cx(surf.cx), cy(surf.cy), surf.r * PX, 0, Math.PI * 2);
+    else c.rect(cx(surf.cx - surf.r), cy(surf.cy + surf.r), 2 * surf.r * PX, 2 * surf.r * PX);
+    c.stroke(); c.setLineDash([]);
+    cs.forEach((ch, i) => {
+      const X = cx(ch.x), Y = cy(ch.y);
+      c.fillStyle = ch.q > 0 ? pal.bad : ch.q < 0 ? pal.accent : pal.muted; c.beginPath(); c.arc(X, Y, 11, 0, Math.PI * 2); c.fill();
+      if (i === sel) { c.strokeStyle = pal.ink; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, 15, 0, Math.PI * 2); c.stroke(); }
+      c.fillStyle = pal.bg; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(ch.q > 0 ? '+' : ch.q < 0 ? '−' : '0', X, Y + 5);
+      c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.fillText(`${NAMES[i]} ${fmtQ(ch.q)}`, X, Y + (ch.y > 3 ? 27 : -19));
+    });
+  }
+  function texts() {
+    const f = flux(cs, surf), n = lineCount(cs, surf), ch = cs[sel];
+    const inside = cs.map((c, i) => (isInside(c, surf) ? NAMES[i] : '')).filter(Boolean);
+    q('.gsl-rv').textContent = `${surf.r} cm ${surf.kind === 'circle' ? 'radius' : 'half-width'}`;
+    q('.gsl-name').textContent = NAMES[sel]; q('.gsl-qv').textContent = fmtQ(ch.q); q<HTMLInputElement>('.gsl-q').value = String(ch.q);
+    q('.gsl-big').textContent = `q inside = ${fmtQ(f.qin)}, so Φ = q/ε₀ = ${f.qin === 0 ? '0' : exp(f.phi)} N m²/C`;
+    q('.gsl-lines').textContent = `Inside: ${inside.length ? inside.join(', ') : 'no charge'}. Field lines going out: ${n.out}, coming in: ${n.in}, net ${n.net} = ${LINES_PER_UC} lines per µC × ${f.qin} µC. Each charge has ${LINES_PER_UC} lines per µC; lines from a charge outside come in and go out again.`;
+    fig.setAttribute('aria-label', `Closed surface with ${f.qin} microcoulomb inside; net ${n.net} field lines out`);
+  }
+
+  const symUnit = () => (shape === 'wire' ? 'µC/m' : shape === 'sheet' ? 'µC/m²' : 'µC');
+  const R_SHELL = 0.1;
+  function sym() {
+    const a = +q<HTMLInputElement>('.gsl-a').value, r = +q<HTMLInputElement>('.gsl-d').value / 100;
+    const E = symmetricField(shape, r, a * 1e-6, R_SHELL);
+    q('.gsl-av').textContent = `${a} ${symUnit()}`; q('.gsl-dv').textContent = `${Math.round(r * 100)} cm`;
+    q('.gsl-sbig').textContent = `E = ${E === 0 ? '0' : exp(E)} N/C`;
+    q('.gsl-sform').textContent = shape === 'wire'
+      ? `Gaussian surface: a cylinder of radius r round the wire. Only its curved side has flux: E × 2πrL = λL/ε₀, so E = λ/(2πε₀ r) = ${a} × 10⁻⁶ / (2π × 8.85 × 10⁻¹² × ${sci3(r)}) = ${exp(E)} N/C. Double r, half the field.`
+      : shape === 'sheet'
+        ? `Gaussian surface: a short cylinder (pillbox) through the sheet. Flux leaves through both ends: E × 2A = σA/ε₀, so E = σ/(2ε₀) = ${a} × 10⁻⁶ / (2 × 8.85 × 10⁻¹²) = ${exp(E)} N/C, the same at any distance.`
+        : r < R_SHELL
+          ? `Gaussian surface: a sphere of radius ${Math.round(r * 100)} cm, inside the 10 cm shell. It encloses no charge, so E × 4πr² = 0 and E = 0 everywhere inside.`
+          : `Gaussian surface: a sphere of radius r outside the 10 cm shell. It encloses all of Q: E × 4πr² = Q/ε₀, so E = Q/(4πε₀ r²) = 8.99 × 10⁹ × ${a} × 10⁻⁶ / ${sci3(r)}² = ${exp(E)} N/C, as if Q sat at the centre.`;
+    const pal = pagePalette(), c = setup(sfig, 360, 200);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 200);
+    // Left: the object and the Gaussian surface (side view, 1 px = 0.5 cm, capped).
+    const ox = 75, oy = 100, rp = Math.min(62, r * 100 * 1.2);
+    c.strokeStyle = pal.bad; c.fillStyle = pal.bad; c.lineWidth = 4;
+    if (shape === 'wire') { c.beginPath(); c.moveTo(ox, 15); c.lineTo(ox, 185); c.stroke(); c.lineWidth = 2; c.strokeStyle = pal.ink; c.setLineDash([6, 4]); c.beginPath(); c.ellipse(ox, 50, rp, rp * 0.25, 0, 0, Math.PI * 2); c.ellipse(ox, 150, rp, rp * 0.25, 0, 0, Math.PI * 2); c.moveTo(ox - rp, 50); c.lineTo(ox - rp, 150); c.moveTo(ox + rp, 50); c.lineTo(ox + rp, 150); c.stroke(); c.setLineDash([]); }
+    else if (shape === 'sheet') { c.beginPath(); c.moveTo(ox, 15); c.lineTo(ox, 185); c.stroke(); c.lineWidth = 2; c.strokeStyle = pal.ink; c.setLineDash([6, 4]); c.strokeRect(ox - rp, oy - 25, 2 * rp, 50); c.setLineDash([]); }
+    else { const Rp = R_SHELL * 100 * 1.2; c.lineWidth = 3; c.beginPath(); c.arc(ox, oy, Rp, 0, Math.PI * 2); c.stroke(); c.lineWidth = 2; c.strokeStyle = pal.ink; c.setLineDash([6, 4]); c.beginPath(); c.arc(ox, oy, rp, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('Gaussian surface (dashed)', ox, 198);
+    // Right: E against r from 1 to 50 cm.
+    const X0 = 175, X1 = 352, Y0 = 170, Y1 = 14, Emax = Math.max(...Array.from({ length: 50 }, (_, i) => symmetricField(shape, (i + 1) / 100, a * 1e-6, R_SHELL)));
+    const X = (rr: number) => X0 + ((rr - 0.01) / 0.49) * (X1 - X0), Y = (e: number) => Y0 - (e / Emax) * (Y0 - Y1);
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Y1); c.lineTo(X0, Y0); c.lineTo(X1, Y0); c.stroke();
+    c.fillStyle = pal.muted; c.fillText('r (cm)', (X0 + X1) / 2, 196); for (const t of [10, 20, 30, 40, 50]) c.fillText(String(t), X(t / 100), Y0 + 13);
+    c.save(); c.translate(X0 - 8, (Y0 + Y1) / 2); c.rotate(-Math.PI / 2); c.fillText('E', 0, 0); c.restore();
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    for (let k = 0; k <= 200; k++) { const rr = 0.01 + (0.49 * k) / 200, y = Y(symmetricField(shape, rr, a * 1e-6, R_SHELL)); k ? c.lineTo(X(rr), y) : c.moveTo(X(rr), y); }
+    c.stroke();
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(r), Y(E), 5, 0, Math.PI * 2); c.fill();
+  }
+
+  const all = () => { texts(); draw(); };
+  const toBoard = (e: PointerEvent) => { const r = fig.getBoundingClientRect(); return [(((e.clientX - r.left) / r.width) * W) / PX, (H - ((e.clientY - r.top) / r.height) * H) / PX]; };
+  fig.addEventListener('pointerdown', (e) => {
+    const [x, y] = toBoard(e);
+    let best = -1, bd = 2.4;
+    cs.forEach((ch, i) => { const d = Math.hypot(ch.x - x, ch.y - y); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { sel = best; drag = best; }
+    else if (isInside({ x, y }, surf)) { drag = 'surf'; grab = [x - surf.cx, y - surf.cy]; }
+    else return;
+    fig.setPointerCapture(e.pointerId); e.preventDefault(); all();
+  });
+  fig.addEventListener('pointermove', (e) => {
+    if (drag === null) return;
+    const [x, y] = toBoard(e);
+    if (drag === 'surf') { surf.cx = Math.max(0, Math.min(36, Math.round(x - grab[0]))); surf.cy = Math.max(0, Math.min(28, Math.round(y - grab[1]))); }
+    else {
+      const nx = Math.max(1, Math.min(35, Math.round(x))), ny = Math.max(1, Math.min(27, Math.round(y)));
+      if (cs.some((o, i) => i !== drag && o.x === nx && o.y === ny)) return;
+      cs[drag].x = nx; cs[drag].y = ny;
+    }
+    all();
+  });
+  const up = () => { drag = null; };
+  fig.addEventListener('pointerup', up); fig.addEventListener('pointercancel', up);
+  q('.gsl-r').addEventListener('input', () => { surf.r = +q<HTMLInputElement>('.gsl-r').value; all(); });
+  q('.gsl-q').addEventListener('input', () => { cs[sel].q = +q<HTMLInputElement>('.gsl-q').value; all(); });
+  seg(q('.gsl-shape'), (v) => { surf.kind = v as Surface['kind']; all(); });
+  seg(q('.gsl-sym'), (v) => { shape = v as Shape; sym(); });
+  q('.gsl-a').addEventListener('input', sym); q('.gsl-d').addEventListener('input', sym);
+  onTheme(() => { draw(); sym(); });
+  all(); sym();
+  quiz(q('.gsl-quiz'), () => questions());
+</script>
