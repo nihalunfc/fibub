@@ -1,0 +1,146 @@
+---
+// #T923 Audio trimmer: cut, fade and normalise your own sound file and save it as WAV. Nothing is uploaded.
+---
+<div class="tool-ui atr">
+  <section class="panel">
+    <div class="atr-row">
+      <button type="button" class="btn atr-open">Open a sound file</button>
+      <input class="atr-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm" hidden />
+      <span class="atr-name">MP3, WAV, OGG, M4A and other files your browser can play. It stays on this device.</span>
+    </div>
+    <p class="note bad atr-err" hidden></p>
+  </section>
+
+  <section class="panel atr-stage" hidden>
+    <canvas class="atr-wave" height="140" aria-label="Waveform: drag to move the start or end of the part you keep"></canvas>
+    <p class="atr-hint">Drag on the waveform to move the nearest edge, or type the times.</p>
+    <div class="atr-grid">
+      <label>Start (seconds) <input class="atr-s" type="number" min="0" step="0.01" value="0" inputmode="decimal" /></label>
+      <label>End (seconds) <input class="atr-e" type="number" min="0" step="0.01" value="0" inputmode="decimal" /></label>
+      <label>Fade in (seconds) <input class="atr-fi" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>Fade out (seconds) <input class="atr-fo" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+    </div>
+    <label class="atr-check"><input class="atr-norm" type="checkbox" /> Normalise: make the loudest point −1 dB (just under full volume)</label>
+    <p class="atr-info" aria-live="polite"></p>
+    <div class="atr-row">
+      <button type="button" class="btn secondary atr-play">Play the part you keep</button>
+      <button type="button" class="btn atr-save">Download WAV</button>
+    </div>
+    <p class="atr-fine">Saves as WAV (16-bit, uncompressed), which every editor and player opens. MP3 export is not offered.</p>
+  </section>
+  <p class="atr-fine">The sound is decoded by your browser on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .atr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .atr .panel { display: grid; gap: 12px; padding: 16px; }
+  .atr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .atr-name, .atr-fine, .atr-info, .atr-hint { color: var(--muted); font-size: 14px; margin: 0; }
+  .atr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .atr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .atr label.atr-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .atr input[type=number] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .atr-wave { width: 100%; height: 140px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); touch-action: pan-y; cursor: ew-resize; display: block; }
+</style>
+
+<script>
+  import { applyEdit, writeWav, wavRate } from './wav';
+  const root = document.querySelector('.atr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const file = $<HTMLInputElement>('.atr-file'), err = $('.atr-err'), cv = $<HTMLCanvasElement>('.atr-wave');
+  const sIn = $<HTMLInputElement>('.atr-s'), eIn = $<HTMLInputElement>('.atr-e'), fiIn = $<HTMLInputElement>('.atr-fi'), foIn = $<HTMLInputElement>('.atr-fo');
+  const norm = $<HTMLInputElement>('.atr-norm'), info = $('.atr-info'), play = $<HTMLButtonElement>('.atr-play'), save = $<HTMLButtonElement>('.atr-save');
+  let chans: Float32Array[] = [], rate = 48000, dur = 0, baseName = 'sound', peaks: Float32Array | null = null;
+  let ac: AudioContext | null = null, src: AudioBufferSourceNode | null = null;
+
+  const fx = (t: number) => (Math.round(t * 100) / 100).toFixed(2);
+  const mb = (b: number) => (b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
+  const edit = () => ({ start: +sIn.value, end: +eIn.value, fadeIn: +fiIn.value || 0, fadeOut: +foIn.value || 0, normalise: norm.checked });
+  const valid = () => { const e = edit(); return e.start >= 0 && e.end > e.start && e.end <= dur + 0.005; };
+
+  const draw = () => {
+    if (!chans.length) return;
+    const dpr = window.devicePixelRatio || 1, W = Math.max(1, Math.round(cv.clientWidth * dpr)), H = Math.round(140 * dpr);
+    if (cv.width !== W || cv.height !== H || !peaks || peaks.length !== W * 2) {
+      cv.width = W; cv.height = H; peaks = new Float32Array(W * 2);
+      const n = chans[0].length;
+      for (let x = 0; x < W; x++) {
+        let lo = 0, hi = 0; const a = Math.floor((x * n) / W), b = Math.max(a + 1, Math.floor(((x + 1) * n) / W));
+        for (const c of chans) for (let i = a; i < b && i < n; i++) { const v = c[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+        peaks[x * 2] = lo; peaks[x * 2 + 1] = hi;
+      }
+    }
+    const g = cv.getContext('2d')!, cs = getComputedStyle(root), e = edit(), css = { getPropertyValue: (k: string) => cs.getPropertyValue(k).trim() };
+    const xs = (t: number) => (Math.max(0, Math.min(dur, t)) / dur) * W, a = xs(e.start), b = xs(Math.max(e.start, e.end));
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = css.getPropertyValue('--accent-soft') || '#e6eefc'; g.fillRect(a, 0, b - a, H);
+    for (let x = 0; x < W; x++) {
+      g.fillStyle = x >= a && x <= b ? css.getPropertyValue('--accent') || '#1d4ed8' : css.getPropertyValue('--muted') || '#888';
+      const y0 = H / 2 - peaks[x * 2 + 1] * (H / 2 - 2), y1 = H / 2 - peaks[x * 2] * (H / 2 - 2);
+      g.fillRect(x, y0, 1, Math.max(1, y1 - y0));
+    }
+    g.fillStyle = css.getPropertyValue('--ink') || '#000'; g.fillRect(a - dpr, 0, 2 * dpr, H); g.fillRect(b - dpr, 0, 2 * dpr, H);
+  };
+
+  const update = () => {
+    const e = edit();
+    let msg: string;
+    if (!valid()) msg = e.end > dur + 0.005 ? `The sound is only ${fx(dur)} s long.` : 'The end must be after the start.';
+    else {
+      const len = e.end - e.start, bytes = 44 + Math.round(len * rate) * chans.length * 2;
+      msg = `Keeping ${fx(e.start)} s to ${fx(e.end)} s: ${fx(len)} s of ${fx(dur)} s. The WAV will be about ${mb(bytes)} (16-bit, ${chans.length === 1 ? 'mono' : chans.length + ' channels'}, ${rate.toLocaleString('en-US')} Hz).`;
+      if (e.fadeIn + e.fadeOut > len) msg += ' The fades are longer than the part you keep, so they overlap.';
+    }
+    info.textContent = msg; save.disabled = play.disabled = !valid(); draw();
+  };
+
+  const open = async (f: File) => {
+    err.hidden = true; stopPlay();
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'sound';
+    try {
+      const buf = await f.arrayBuffer(), wr = wavRate(buf);
+      rate = wr ? Math.max(3000, Math.min(768000, wr)) : 48000;
+      const dec = await new OfflineAudioContext(1, 1, rate).decodeAudioData(buf);
+      chans = Array.from({ length: dec.numberOfChannels }, (_, c) => dec.getChannelData(c));
+      dur = dec.duration;
+    } catch { err.textContent = 'This browser cannot read that file. Try MP3, WAV or OGG.'; err.hidden = false; $('.atr-stage').hidden = true; return; }
+    peaks = null; sIn.value = '0'; eIn.value = fx(dur); fiIn.value = '0'; foIn.value = '0';
+    $('.atr-name').textContent = `${f.name}: ${fx(dur)} s.`;
+    $('.atr-stage').hidden = false; update();
+  };
+
+  const stopPlay = () => { if (src) { src.onended = null; try { src.stop(); } catch {} src = null; } play.textContent = 'Play the part you keep'; };
+  play.addEventListener('click', async () => {
+    if (src) { stopPlay(); return; }
+    ac ??= new AudioContext(); await ac.resume();
+    const out = applyEdit(chans, rate, edit()), b = ac.createBuffer(out.length, Math.max(1, out[0].length), rate);
+    out.forEach((c, i) => b.copyToChannel(c, i));
+    src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.onended = stopPlay; src.start();
+    play.textContent = 'Stop';
+  });
+  save.addEventListener('click', () => {
+    const e = edit(), bytes = writeWav(applyEdit(chans, rate, e), rate);
+    const a = document.createElement('a'), u = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+    a.href = u; a.download = `${baseName}-${fx(e.start)}-${fx(e.end)}s.wav`; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 30000);
+  });
+
+  // Drag on the waveform: move whichever edge is nearer.
+  let drag: 's' | 'e' | null = null;
+  const tAt = (ev: PointerEvent) => { const r = cv.getBoundingClientRect(); return Math.max(0, Math.min(dur, ((ev.clientX - r.left) / r.width) * dur)); };
+  const setEdge = (ev: PointerEvent) => {
+    const t = tAt(ev), e = edit();
+    if (drag === 's') sIn.value = fx(Math.min(t, e.end - 0.01)); else eIn.value = fx(Math.max(t, e.start + 0.01));
+    update();
+  };
+  cv.addEventListener('pointerdown', (ev) => { if (!dur) return; const t = tAt(ev), e = edit(); drag = Math.abs(t - e.start) <= Math.abs(t - e.end) ? 's' : 'e'; cv.setPointerCapture(ev.pointerId); setEdge(ev); });
+  cv.addEventListener('pointermove', (ev) => { if (drag) setEdge(ev); });
+  const end = () => { drag = null; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+
+  $('.atr-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files?.[0]) open(file.files[0]); });
+  for (const el of [sIn, eIn, fiIn, foIn]) el.addEventListener('input', update);
+  norm.addEventListener('change', update);
+  window.addEventListener('resize', () => { peaks = null; draw(); });
+</script>
