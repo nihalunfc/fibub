@@ -1,0 +1,218 @@
+---
+// Immune response timeline: primary and secondary antibody responses after vaccine doses and infections,
+// with IgM and IgG, a protective level, memory cells and a tappable antibody (Y-shape) diagram.
+// Class 12 Biology, human health and disease (immunity, vaccination). Teaching model only.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax imr">
+  <p class="ax-help">A teaching model with round, made-up numbers in arbitrary units. Real immune responses differ between people and germs. Not medical advice.</p>
+  <div class="ax-card">
+    <h2>Meetings with the same germ</h2>
+    <label>Story <select class="im-st">
+      <option value="one">One infection</option>
+      <option value="again" selected>Infection, then the same germ again</option>
+      <option value="boost">Vaccine, then a booster</option>
+      <option value="vacinf">Vaccine, then the real germ</option>
+      <option value="noboost">No vaccine, germ arrives</option>
+      <option value="own">My own timeline</option>
+    </select></label>
+    <div class="im-rows"></div>
+    <div class="ax-grid im-gap">
+      <label>Protective level: <b class="im-pv"></b><input type="range" class="im-prot" min="0.5" max="5" step="0.1" value="2" aria-label="Protective antibody level" /></label>
+      <label>Memory boost: <b class="im-bv"></b><input type="range" class="im-boost" min="3" max="30" step="1" value="10" aria-label="How much bigger the second IgG peak is" /></label>
+    </div>
+    <div class="ax-row im-gap"><span class="im-lab">Show</span><div class="ax-seg im-lv" role="group" aria-label="Level of detail"><button type="button" data-v="total" aria-pressed="true">Total antibodies</button><button type="button" data-v="split" aria-pressed="false">IgM and IgG</button></div>
+      <label class="ax-check"><input type="checkbox" class="im-log" /> Log scale</label></div>
+    <canvas class="ax-fig im-fig" role="img"></canvas>
+    <div class="ax-legend im-leg"></div>
+    <p class="im-say" aria-live="polite"></p>
+    <dl class="ax-facts im-facts"></dl>
+    <div class="ax-scroll"><table class="im-tab"><thead><tr><th>Day</th><th>What</th><th>Response</th><th class="r">Lag</th><th class="r">Peak</th><th class="r">Peak day</th><th class="r">Memory cells</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>An antibody up close</h2>
+    <p class="ax-help">Tap a part. Each antibody is a Y made of four protein chains: two heavy and two light, held by disulphide bonds.</p>
+    <svg class="im-ab" viewBox="0 0 300 250" role="group" aria-label="Antibody diagram">
+      <g class="im-part" data-p="heavy" tabindex="0" role="button" aria-label="Heavy chains">
+        <path d="M138 240 L138 132 L84 52" /><path d="M162 240 L162 132 L216 52" />
+      </g>
+      <g class="im-part" data-p="light" tabindex="0" role="button" aria-label="Light chains">
+        <path d="M118 126 L66 58" /><path d="M182 126 L234 58" />
+      </g>
+      <g class="im-part" data-p="site" tabindex="0" role="button" aria-label="Antigen binding sites">
+        <circle cx="70" cy="46" r="15" /><circle cx="230" cy="46" r="15" />
+      </g>
+      <g class="im-part" data-p="ss" tabindex="0" role="button" aria-label="Disulphide bonds">
+        <path d="M142 150 L158 150" /><path d="M142 162 L158 162" /><path d="M122 120 L134 126" /><path d="M178 120 L166 126" />
+      </g>
+      <g class="im-part" data-p="stem" tabindex="0" role="button" aria-label="Stem">
+        <rect x="126" y="180" width="48" height="62" rx="6" />
+      </g>
+      <text x="150" y="20" text-anchor="middle" class="im-abt">Tap a part</text>
+    </svg>
+    <p class="im-abinfo" aria-live="polite">Two heavy chains (long) and two light chains (short) make the Y. Written H₂L₂.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="im-try">
+      <li>In <b>Infection, then the same germ again</b>, compare the two humps: the second starts sooner, climbs far higher and lasts longer. That is memory.</li>
+      <li>Pick <b>Vaccine, then the real germ</b>. Is the level already above the protective line when the germ arrives? Then move the germ to day 300.</li>
+      <li>Move the booster earlier and later. Why are boosters spaced out?</li>
+      <li>Switch to <b>IgM and IgG</b>: IgM leads the first response, IgG dominates the second.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="im-quiz" />
+</div>
+
+<script>
+  import { responses, level, peakOf, daysProtected, protectedAt, type Exposure, type Kind } from '../../lib/sci/immune-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, label, px, py, fmt, FONT } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.imr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const END = 360, W = 380, H = 250;
+  type Row = { kind: Kind | 'none'; day: number };
+  const STORIES: Record<string, Row[]> = {
+    one: [{ kind: 'infection', day: 10 }, { kind: 'none', day: 120 }, { kind: 'none', day: 240 }],
+    again: [{ kind: 'infection', day: 10 }, { kind: 'infection', day: 100 }, { kind: 'none', day: 240 }],
+    boost: [{ kind: 'vaccine', day: 10 }, { kind: 'vaccine', day: 70 }, { kind: 'none', day: 240 }],
+    vacinf: [{ kind: 'vaccine', day: 10 }, { kind: 'vaccine', day: 70 }, { kind: 'infection', day: 150 }],
+    noboost: [{ kind: 'infection', day: 150 }, { kind: 'none', day: 200 }, { kind: 'none', day: 240 }],
+  };
+  let rows: Row[] = STORIES.again.map((r) => ({ ...r }));
+  let split = false;
+  const KIND_NAME = { vaccine: 'Vaccine dose', infection: 'Germ (infection)', none: 'Nothing' };
+
+  function buildRows() {
+    q('.im-rows').replaceChildren(...rows.map((r, i) => {
+      const box = document.createElement('div'); box.className = 'im-row';
+      const sel = document.createElement('select'); sel.className = `im-k im-k${i}`; sel.setAttribute('aria-label', `Event ${i + 1}`);
+      (['none', 'vaccine', 'infection'] as const).forEach((k) => { const o = document.createElement('option'); o.value = k; o.textContent = KIND_NAME[k]; if (k === r.kind) o.selected = true; sel.append(o); });
+      const lab = document.createElement('label'); lab.className = 'im-dl';
+      const b = document.createElement('b'); b.className = `im-dv${i}`; b.textContent = `day ${r.day}`;
+      const rg = document.createElement('input'); rg.type = 'range'; rg.className = `im-d im-d${i}`; rg.min = '0'; rg.max = '330'; rg.step = '1'; rg.value = String(r.day); rg.setAttribute('aria-label', `Day of event ${i + 1}`);
+      lab.append(`Event ${i + 1} on `, b, rg);
+      sel.addEventListener('change', () => { r.kind = sel.value as Row['kind']; q<HTMLSelectElement>('.im-st').value = 'own'; run(); });
+      rg.addEventListener('input', () => { r.day = +rg.value; b.textContent = `day ${r.day}`; q<HTMLSelectElement>('.im-st').value = 'own'; run(); });
+      box.append(sel, lab); return box;
+    }));
+  }
+
+  function run() {
+    const prot = +q<HTMLInputElement>('.im-prot').value, boost = +q<HTMLInputElement>('.im-boost').value, log = q<HTMLInputElement>('.im-log').checked;
+    q('.im-pv').textContent = fmt(prot, 1); q('.im-bv').textContent = `× ${boost}`;
+    const exps: Exposure[] = rows.filter((r) => r.kind !== 'none').map((r) => ({ day: r.day, kind: r.kind as Kind }));
+    const rs = responses(exps, boost);
+    let ymax = prot * 1.3;
+    for (let t = 0; t <= END; t += 1) ymax = Math.max(ymax, level(rs, t).total * 1.12);
+    const v = log ? view(0, END, -2, Math.log10(ymax), W, H) : view(0, END, 0, ymax, W, H);
+    const Y = (y: number) => (log ? Math.log10(Math.max(y, 1e-6)) : y);
+    const ill = rs.filter((r) => r.kind === 'infection').map((r) => ({ day: r.day, safe: protectedAt(rs, r.day, prot) }));
+    paint(q<HTMLCanvasElement>('.im-fig'), { w: W, h: H, alt: `Antibody level over ${END} days for ${exps.length} events`, draw: (ctx, w, h, pl: Palette) => {
+      const yt = log ? [-2, -1, 0, 1, 2].filter((k) => k <= v.y1) : undefined;
+      axes(ctx, v, pl, { xName: 'day', yName: 'antibodies', yTicks: yt });
+      if (log) { ctx.fillStyle = pl.bg; ctx.fillRect(0, v.t, v.l - 1, v.H - v.t - v.b + 6); ctx.fillStyle = pl.muted; ctx.font = FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; yt!.forEach((k) => ctx.fillText(String(10 ** k), v.l - 4, py(v, k))); }
+      line(ctx, v, 0, Y(prot), END, Y(prot), pl.good, 1.5, [6, 4]); label(ctx, v, END, Y(prot), 'protective', pl.good, -4, -3, 'right');
+      for (const r of rs) {
+        line(ctx, v, r.day, v.y0, r.day, v.y1, r.kind === 'vaccine' ? pl.accent : pl.bad, 1, [2, 3]);
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = r.kind === 'vaccine' ? pl.accent : pl.bad; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(r.kind === 'vaccine' ? 'V' : 'G', px(v, r.day), v.t + 2);
+      }
+      if (split) {
+        curve(ctx, v, (t) => Y(level(rs, t).igm), pl.accent2, 2, [5, 3]);
+        curve(ctx, v, (t) => Y(level(rs, t).igg), pl.accent, 2.5);
+      } else curve(ctx, v, (t) => Y(level(rs, t).total), pl.accent, 2.5);
+    } });
+    const legI = (c: string, t: string) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, t); return s; };
+    const cs = getComputedStyle(root);
+    q('.im-leg').replaceChildren(...(split ? [legI(cs.getPropertyValue('--accent'), 'IgG'), legI('var(--warn)', 'IgM (dashed)')] : [legI(cs.getPropertyValue('--accent'), 'total antibodies')]), legI('var(--good)', 'protective level'), legI('var(--accent)', 'V = vaccine dose'), legI('var(--bad)', 'G = germ arrives'));
+    const peaks = rs.map((_, i) => peakOf(rs, i, END));
+    const tb = q('.im-tab tbody'); tb.replaceChildren(...rs.map((r, i) => {
+      const tr = document.createElement('tr');
+      [String(r.day), r.kind === 'vaccine' ? 'vaccine dose' : 'germ', r.secondary ? 'secondary' : 'primary', `${r.lag} d`, fmt(peaks[i].value, 2), fmt(peaks[i].day, 1), String(r.memory)].forEach((t, j) => { const td = document.createElement('td'); td.textContent = t; if (j > 2) td.className = 'r'; tr.append(td); });
+      return tr;
+    }));
+    const dp = daysProtected(rs, prot, END);
+    const fact = (k: string, val: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = val; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+    const f = [fact('Days protected', `${dp} of ${END + 1}`, 'level at or above the protective line'), fact('Memory cells', rs.length ? `${rs.length} rounds` : 'none', 'each meeting adds more')];
+    const prim = rs.findIndex((r) => !r.secondary), sec = rs.findIndex((r) => r.secondary);
+    if (prim >= 0 && sec >= 0) f.push(fact('Second peak ÷ first', `× ${fmt(peaks[sec].value / peaks[prim].value, 1)}`, `lag ${rs[sec].lag} d instead of ${rs[prim].lag} d`));
+    q('.im-facts').replaceChildren(...f);
+    let say = rs.length ? '' : 'No events: the body has never met this germ, so there are no antibodies and no memory cells.';
+    for (const g of ill) say += `Germ on day ${g.day}: ${g.safe ? 'antibodies are already above the protective level, so in this model the germ is stopped before it can make the person ill.' : 'antibodies are below the protective level, so in this model the germ has time to multiply and the person may fall ill while the response builds.'} `;
+    if (!ill.length && rs.length) say = rs.some((r) => r.secondary) ? 'The later dose meets memory cells: a faster, bigger, longer secondary response. This is why boosters work.' : 'One meeting: a slow, small primary response, mostly IgM at first. Memory cells are left behind.';
+    q('.im-say').textContent = say.trim();
+  }
+
+  q('.im-st').addEventListener('change', () => { const s = q<HTMLSelectElement>('.im-st').value; if (s !== 'own') { rows = STORIES[s].map((r) => ({ ...r })); buildRows(); } run(); });
+  root.querySelectorAll('.im-prot, .im-boost, .im-log').forEach((e) => e.addEventListener('input', run));
+  root.querySelectorAll<HTMLButtonElement>('.im-lv button').forEach((b) => b.addEventListener('click', () => {
+    split = b.dataset.v === 'split'; root.querySelectorAll('.im-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run();
+  }));
+  document.addEventListener('fibub:theme', run);
+  buildRows(); run();
+
+  const AB: Record<string, string> = {
+    heavy: 'Heavy chains: the two long chains. They run up the stem and along each arm. Their stem part decides the class (IgG, IgM, IgA, IgE, IgD).',
+    light: 'Light chains: the two short chains, one on the outside of each arm.',
+    site: 'Antigen-binding sites: the tips of the arms, where a heavy and a light chain meet. Their shape fits one antigen, like a key in a lock. Each Y has two.',
+    ss: 'Disulphide bonds (S–S): links between the chains that hold the four chains together.',
+    stem: 'Stem: the same in all antibodies of one class. Other immune cells grab it to destroy what the antibody has stuck to.',
+  };
+  root.querySelectorAll<SVGGElement>('.im-part').forEach((g) => {
+    const show = () => { root.querySelectorAll('.im-part').forEach((x) => x.classList.toggle('on', x === g)); q('.im-abinfo').textContent = AB[g.dataset.p!]; q('.im-abt').textContent = g.getAttribute('aria-label')!; };
+    g.addEventListener('click', show); g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+  });
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.im-quiz'), (): Question[] => {
+    const P = rint(2, 9) * 2, h = pick([5, 10, 20, 40]), k = rint(1, 4);
+    const lag1 = rint(5, 8), lag2 = rint(1, 3), d = rint(10, 90);
+    const bank = [
+      mc('Which response is faster and bigger?', 'The secondary response', ['The primary response', 'They are the same', 'Neither makes antibodies'], 'Memory cells left by the first meeting let the body answer the second one sooner and much more strongly.'),
+      mc('Which antibody class leads the first (primary) response?', 'IgM', ['IgG', 'IgE', 'IgA'], 'IgM is made first; IgG takes over and dominates the secondary response.'),
+      mc('A vaccine gives which kind of immunity?', 'Active, artificially acquired', ['Passive, naturally acquired', 'Passive, artificially acquired', 'Innate'], 'Your own body makes the antibodies and memory cells (active); the trigger is given on purpose (artificial).'),
+      mc('Antibodies passed from mother to baby through the placenta give…', 'Passive immunity', ['Active immunity', 'Autoimmunity', 'No immunity'], 'The baby did not make them, so the immunity is passive and fades after some months.'),
+      mc('How many polypeptide chains make one antibody (Y) molecule?', '4 (two heavy, two light)', ['2', '3', '6'], 'An antibody is H₂L₂: two heavy and two light chains joined by disulphide bonds.'),
+      mc('Which cells make antibodies?', 'B cells (plasma cells)', ['T cells', 'Red blood cells', 'Platelets'], 'B lymphocytes turn into plasma cells that pour out antibodies; T cells help and kill infected cells.'),
+    ];
+    return [
+      ...shuffle(bank).slice(0, 3),
+      { text: `In a model, the antibody level peaks at ${P} units and halves every ${h} days. What is it ${k * h} days after the peak?`, answer: P / 2 ** k, tol: 1e-6, worked: `${k * h} days is ${k} half-lives, so ${P} ÷ 2${k > 1 ? `^${k}` : ''} = ${fmt(P / 2 ** k, 4)}.` },
+      { text: `First meeting: lag ${lag1} days. Second meeting: lag ${lag2} days. The germ returns on day ${d}. On which day do new antibodies start rising?`, answer: d + lag2, tol: 0, worked: `The second meeting uses the short secondary lag: ${d} + ${lag2} = ${d + lag2}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .imr .im-gap { margin-top: 10px; }
+  .imr .im-lab { font-size: 14px; color: var(--muted); }
+  .imr .im-rows { display: grid; gap: 8px; margin-top: 10px; }
+  .imr .im-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; align-items: end; }
+  .imr input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .imr .im-fig { margin-top: 10px; }
+  .imr .im-say { font-weight: 600; margin: 10px 0; }
+  .imr .im-tab { margin-top: 12px; }
+  .imr .im-ab { width: 100%; max-width: 360px; display: block; margin: 0 auto; }
+  .imr .im-part { cursor: pointer; }
+  .imr .im-part path { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .imr .im-part[data-p=heavy] path { stroke: var(--accent); }
+  .imr .im-part[data-p=light] path { stroke: var(--warn); }
+  .imr .im-part[data-p=site] circle { fill: var(--good-soft); stroke: var(--good); stroke-width: 3; }
+  .imr .im-part[data-p=ss] path { stroke: var(--ink); stroke-width: 4; }
+  .imr .im-part[data-p=stem] rect { fill: transparent; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 4; }
+  .imr .im-part.on path, .imr .im-part.on circle, .imr .im-part.on rect { stroke: var(--bad); }
+  .imr .im-part:focus { outline: none; }
+  .imr .im-part:focus-visible path, .imr .im-part:focus-visible circle, .imr .im-part:focus-visible rect { stroke: var(--bad); }
+  .imr .im-abt { fill: var(--ink); font-size: 15px; font-weight: 600; }
+  .imr .im-abinfo { font-weight: 600; margin: 8px 0 0; }
+  .imr .im-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  @media (max-width: 420px) { .imr .im-row { grid-template-columns: minmax(0, 1fr); } }
+</style>
