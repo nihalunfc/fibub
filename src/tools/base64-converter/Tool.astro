@@ -1,0 +1,118 @@
+---
+// #T849 Base64 converter
+---
+<div class="tool-ui bc">
+  <section class="panel">
+    <h2 class="bc-h">Text and Base64</h2>
+    <label>Text<textarea class="bc-text" rows="4" spellcheck="false">héllo</textarea></label>
+    <label>Base64<textarea class="bc-b64" rows="4" spellcheck="false"></textarea></label>
+    <label class="bc-row"><input class="bc-safe" type="checkbox" /> URL-safe (uses - and _ instead of + and /, no = at the end)</label>
+    <p class="bc-err" role="alert" hidden></p>
+    <p class="bc-info" aria-live="polite"></p>
+    <div class="bc-btns">
+      <button type="button" class="btn bc-copy">Copy Base64</button>
+      <button type="button" class="btn secondary bc-clear">Clear</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2 class="bc-h">File to Base64</h2>
+    <label>Choose a file<input class="bc-file" type="file" /></label>
+    <label class="bc-row"><input class="bc-data" type="checkbox" /> Add the data: URL start (for HTML or CSS)</label>
+    <textarea class="bc-fout" rows="4" readonly spellcheck="false" aria-label="File as Base64"></textarea>
+    <p class="bc-finfo" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2 class="bc-h">Base64 to file</h2>
+    <p class="bc-note">Turns the Base64 box above (or a data: URL) back into a file you can save.</p>
+    <label>File name<input class="bc-name" type="text" value="decoded.bin" /></label>
+    <div class="bc-btns"><button type="button" class="btn bc-dl">Download file</button></div>
+    <p class="bc-derr" role="alert" hidden></p>
+  </section>
+  <p class="bc-fine">Everything happens on this page. Nothing you type or open is sent anywhere.</p>
+</div>
+
+<style is:inline>
+  .bc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .bc .panel { padding: 16px; display: grid; gap: 10px; }
+  .bc-h { font-size: 17px; margin: 0; }
+  .bc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .bc label.bc-row { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); }
+  .bc textarea, .bc input[type=text], .bc input[type=file] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .bc textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; resize: vertical; overflow-wrap: anywhere; }
+  .bc textarea:focus, .bc input:focus { border-color: var(--accent); outline: none; }
+  .bc-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bc-err, .bc-derr { color: var(--bad, #b00020); margin: 0; font-size: 14px; }
+  .bc-info, .bc-finfo, .bc-note, .bc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.bc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const text = $<HTMLTextAreaElement>('.bc-text'), b64 = $<HTMLTextAreaElement>('.bc-b64');
+  const safe = $<HTMLInputElement>('.bc-safe'), err = $('.bc-err'), info = $('.bc-info');
+  const file = $<HTMLInputElement>('.bc-file'), data = $<HTMLInputElement>('.bc-data'), fout = $<HTMLTextAreaElement>('.bc-fout'), finfo = $('.bc-finfo');
+  const dname = $<HTMLInputElement>('.bc-name'), derr = $('.bc-derr');
+
+  const bytesToB64 = (u: Uint8Array, urlSafe: boolean) => {
+    let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
+    const b = btoa(s);
+    return urlSafe ? b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : b;
+  };
+  // Accepts standard or URL-safe Base64, spaces and line breaks, with or without = padding.
+  const b64ToBytes = (s: string): Uint8Array => {
+    let t = s.replace(/^data:[^,]*;base64,/i, '').replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    if (/[^A-Za-z0-9+/=]/.test(t)) throw new Error('This has characters that are not Base64. Only A-Z, a-z, 0-9, + / (or - _) and = are allowed.');
+    t = t.replace(/=+$/, '');
+    if (/=/.test(t) || t.length % 4 === 1) throw new Error('This is not complete Base64: the length or the = padding is wrong.');
+    t += '='.repeat((4 - (t.length % 4)) % 4);
+    const bin = atob(t); const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  };
+  const showErr = (m: string) => { err.textContent = m; err.hidden = !m; };
+
+  const encode = () => {
+    const u = new TextEncoder().encode(text.value);
+    b64.value = bytesToB64(u, safe.checked); showErr('');
+    info.textContent = `${text.value.length} characters, ${u.length} bytes (UTF-8) → ${b64.value.length} Base64 characters.`;
+  };
+  const decode = () => {
+    if (!b64.value.trim()) { text.value = ''; showErr(''); info.textContent = ''; return; }
+    try {
+      const u = b64ToBytes(b64.value);
+      try { text.value = new TextDecoder('utf-8', { fatal: true }).decode(u); showErr(''); info.textContent = `${u.length} bytes decoded as UTF-8 text.`; }
+      catch { showErr(`This decodes to ${u.length} bytes that are not text (perhaps an image or other file). Use "Download file" below to save it.`); info.textContent = ''; }
+    } catch (e) { showErr((e as Error).message); info.textContent = ''; }
+  };
+  text.addEventListener('input', encode);
+  b64.addEventListener('input', decode);
+  safe.addEventListener('change', () => { if (err.hidden) encode(); });
+  $('.bc-copy').addEventListener('click', () => { navigator.clipboard?.writeText(b64.value).then(() => { info.textContent = 'Copied.'; }, () => {}); });
+  $('.bc-clear').addEventListener('click', () => { text.value = ''; b64.value = ''; showErr(''); info.textContent = ''; fout.value = ''; finfo.textContent = ''; file.value = ''; derr.hidden = true; });
+
+  let fileBytes: Uint8Array | null = null, fileType = '';
+  const showFile = () => {
+    if (!fileBytes) return;
+    const s = bytesToB64(fileBytes, false);
+    fout.value = data.checked ? `data:${fileType || 'application/octet-stream'};base64,${s}` : s;
+    finfo.textContent = `${fileBytes.length.toLocaleString('en-US')} bytes → ${fout.value.length.toLocaleString('en-US')} characters (Base64 is about a third bigger).`;
+  };
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; if (!f) return;
+    fileBytes = new Uint8Array(await f.arrayBuffer()); fileType = f.type; showFile();
+  });
+  data.addEventListener('change', showFile);
+
+  $('.bc-dl').addEventListener('click', () => {
+    try {
+      const m = /^data:([^;,]+)/i.exec(b64.value.trim());
+      const u = b64ToBytes(b64.value);
+      if (!u.length) throw new Error('Put some Base64 in the box above first.');
+      derr.hidden = true;
+      const url = URL.createObjectURL(new Blob([u], { type: m ? m[1] : 'application/octet-stream' }));
+      const a = document.createElement('a'); a.href = url; a.download = dname.value.trim() || 'decoded.bin'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) { derr.textContent = (e as Error).message; derr.hidden = false; }
+  });
+  encode();
+</script>
