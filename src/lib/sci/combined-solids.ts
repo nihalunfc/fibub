@@ -56,7 +56,7 @@ export function solid(id: ShapeId, d: Dims, pi = Math.PI): Solid {
 /** Why a set of sizes cannot make the shape, or null if it can. */
 export function invalid(id: ShapeId, d: Dims): string | null {
   const need = SHAPES.find((s) => s.id === id)!.uses;
-  for (const k of need) if (!(d[k] > 0)) return `${k} must be more than 0.`;
+  for (const k of need) if (k === 'h' ? !(d[k] >= 0) : !(d[k] > 0)) return k === 'h' ? 'h cannot be negative.' : `${k} must be more than 0.`;
   if (id === 'cubedome' && 2 * d.r > d.a) return 'The dome must fit on the top face: its diameter 2r can be at most the side a.';
   return null;
 }
