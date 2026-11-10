@@ -36,3 +36,19 @@ export async function articlesFor(toolId: string) {
   const featured = all.filter((a) => a !== guide && kindOf(a) !== 'guides' && mentions(a).has(toolId));
   return { guide, featured };
 }
+
+// Where an article sits, taken from its main tool (the first in `tools:`): area (shelf), subject and
+// subfield (section). Used by the Blog's filters. Articles without a live main tool get no place.
+export async function articlePlaces() {
+  const { allTools, toolPlace } = await import('./tools');
+  const { shelfById } = await import('../site');
+  const tools = new Map((await allTools()).filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
+  const out = new Map<string, { area?: string; subject?: string; sub?: string }>();
+  for (const a of await allArticles()) {
+    const t = tools.get(a.data.tools[0]);
+    if (!t) { out.set(a.id, {}); continue; }
+    const { section, subject } = toolPlace(t);
+    out.set(a.id, { area: shelfById(t.data.shelf).name, subject: subject?.name, sub: section?.name });
+  }
+  return out;
+}

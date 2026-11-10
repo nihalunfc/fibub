@@ -1,20 +1,9 @@
 ---
-// One kind of Blog article (guides, together, kids, discoveries), newest first.
-import Base from '../../../layouts/Base.astro';
-import ArticleList from '../../../components/ArticleList.astro';
+// One kind of Blog article (guides, howto, together, kids, discoveries): page 1 of its list.
+import KindPage from '../../../components/KindPage.astro';
 import { allArticles, KINDS, kindOf } from '../../../lib/blog';
-import { collectionLd } from '../../../lib/seo';
-import '../../../styles/area.css';
 export async function getStaticPaths() { return KINDS.map((k) => ({ params: { kind: k.id }, props: { kind: k } })); }
 const { kind } = Astro.props;
 const list = (await allArticles()).filter((a) => kindOf(a) === kind.id);
-const url = `/blog/${kind.id}/`;
 ---
-<Base title={`${kind.name} | Blog`} description={kind.blurb} ld={collectionLd(kind.name, kind.blurb, url, [{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: kind.name, url }])}>
-  <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / {kind.name}</div>
-  <div class="ar-head">
-    <h1>{kind.name}</h1>
-    <p class="lead">{kind.blurb}</p>
-  </div>
-  {list.length ? <ArticleList articles={list} /> : <p class="ar-note">The first articles are on their way.</p>}
-</Base>
+<KindPage kind={kind} list={list} page={1} />

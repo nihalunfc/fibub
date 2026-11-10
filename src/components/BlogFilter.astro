@@ -1,0 +1,82 @@
+---
+// Search and filters for Blog lists. The page shows its own paginated list; as soon as someone types or
+// picks a filter, this loads /blog/index.json once and shows the matching articles instead (24 at a
+// time, with "Show more"). Nothing is stored or sent. Without JavaScript the plain list still works.
+import { allArticles, articlePlaces, kindOf, KINDS } from '../lib/blog';
+interface Props { kind?: string }
+const { kind } = Astro.props;
+const places = await articlePlaces();
+const list = (await allArticles()).filter((a) => !kind || kindOf(a) === kind);
+const uniq = (xs: (string | undefined)[]) => [...new Set(xs.filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b));
+const areas = uniq(list.map((a) => places.get(a.id)?.area));
+const subjects = uniq(list.map((a) => places.get(a.id)?.subject));
+const subs = uniq(list.map((a) => places.get(a.id)?.sub));
+---
+<form class="bf" role="search" data-kind={kind ?? ''}>
+  <label class="bf-q"><span>Search articles</span><input type="search" name="q" placeholder="Search titles and summaries" autocomplete="off" /></label>
+  {!kind && (
+    <label><span>Type</span><select name="k"><option value="">All types</option>{KINDS.map((k) => <option value={k.id}>{k.name}</option>)}</select></label>
+  )}
+  {areas.length > 1 && <label><span>Area</span><select name="a"><option value="">All areas</option>{areas.map((x) => <option>{x}</option>)}</select></label>}
+  {subjects.length > 0 && <label><span>Subject</span><select name="j"><option value="">All subjects</option>{subjects.map((x) => <option>{x}</option>)}</select></label>}
+  {subs.length > 0 && <label><span>Topic</span><select name="b"><option value="">All topics</option>{subs.map((x) => <option>{x}</option>)}</select></label>}
+  <button type="reset" class="btn secondary bf-clear" hidden>Clear</button>
+</form>
+<p class="bf-count" role="status" aria-live="polite" hidden></p>
+<ul class="al bf-results" hidden></ul>
+<button type="button" class="btn secondary bf-more" hidden>Show more</button>
+
+<script>
+  type Row = { u: string; t: string; s: string; k: string; o: string; d: string; l?: string; a?: string; j?: string; b?: string };
+  const form = document.querySelector<HTMLFormElement>('.bf');
+  if (form) {
+    const kind = form.dataset.kind || '';
+    const out = document.querySelector<HTMLUListElement>('.bf-results')!;
+    const count = document.querySelector<HTMLParagraphElement>('.bf-count')!;
+    const more = document.querySelector<HTMLButtonElement>('.bf-more')!;
+    const clear = form.querySelector<HTMLButtonElement>('.bf-clear')!;
+    const plain = document.querySelectorAll<HTMLElement>('[data-bf-plain]');
+    let rows: Row[] | null = null, hits: Row[] = [], shown = 0;
+    const PAGE = 24;
+    const esc = (s = '') => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const draw = () => {
+      const next = hits.slice(shown, shown + PAGE);
+      out.insertAdjacentHTML('beforeend', next.map((r) => `<li><a href="${esc(r.u)}">${esc(r.t)}</a><span class="al-meta">${kind ? '' : esc(r.o) + ' · '}${esc(r.d)}${r.j || r.a ? ' · ' + esc(r.j || r.a) : ''}${r.l ? ' · ' + esc(r.l) : ''}</span><p>${esc(r.s)}</p></li>`).join(''));
+      shown += next.length;
+      more.hidden = shown >= hits.length;
+    };
+    const run = async () => {
+      const f = new FormData(form);
+      const q = String(f.get('q') || '').trim().toLowerCase();
+      const want = { k: kind || String(f.get('k') || ''), a: String(f.get('a') || ''), j: String(f.get('j') || ''), b: String(f.get('b') || '') };
+      const active = !!(q || (!kind && want.k) || want.a || want.j || want.b);
+      clear.hidden = !active;
+      plain.forEach((el) => (el.hidden = active));
+      out.hidden = count.hidden = !active;
+      if (!active) { more.hidden = true; return; }
+      if (!rows) {
+        try { rows = await (await fetch('/blog/index.json')).json(); } catch { count.textContent = 'Search could not load. Check your connection and try again.'; return; }
+      }
+      const words = q.split(/\s+/).filter(Boolean);
+      hits = rows!.filter((r) => (!want.k || r.k === want.k) && (!want.a || r.a === want.a) && (!want.j || r.j === want.j) && (!want.b || r.b === want.b)
+        && words.every((w) => (r.t + ' ' + r.s).toLowerCase().includes(w)));
+      count.textContent = hits.length === 1 ? '1 article matches.' : `${hits.length} articles match.`;
+      out.innerHTML = ''; shown = 0; draw();
+    };
+    let timer = 0;
+    form.addEventListener('submit', (e) => { e.preventDefault(); run(); });
+    form.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 150); });
+    form.addEventListener('change', run);
+    form.addEventListener('reset', () => setTimeout(run));
+    more.addEventListener('click', draw);
+  }
+</script>
+<style>
+  .bf { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; margin: 0 0 18px; max-width: 760px; }
+  .bf label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); flex: 1 1 140px; min-width: 0; }
+  .bf .bf-q { flex: 1 1 100%; }
+  .bf input, .bf select { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+  .bf-clear { flex: 0 0 auto; }
+  .bf-count { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+  .bf-more { margin-top: 14px; }
+</style>
