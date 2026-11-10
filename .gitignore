@@ -4,3 +4,4 @@ dist/
 tests/out/
 tests/out-*/
 .wrangler/
+.astro-cache/
