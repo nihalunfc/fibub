@@ -7,7 +7,7 @@ export default async ({ page, check, BASE }) => {
   await page.fill(R + '.hr-f', '20');
   check((await txt('.hr-info')).includes('17.15 m') && (await page.inputValue(R + '.hr-fr')) === '0', 'hearing: 20 Hz wavelength, slider at the end');
   await page.locator(R + '.hr-fr').fill('1000');
-  check((await txt('.hr-big')) === '20000 Hz' && (await txt('.hr-info')).includes('0.0172 m'), 'hearing: slider to 20 kHz');
+  check((await txt('.hr-big')) === '20000 Hz' && (await txt('.hr-info')).includes('0.01715 m'), 'hearing: slider to 20 kHz');
   await page.fill(R + '.hr-f', '1000');
   await page.click(R + '.hr-play');
   check((await txt('.hr-play')) === 'Stop' && (await page.getAttribute(R.trim(), 'data-playing')) === '1' && (await txt('.hr-info')).startsWith('Playing.'), 'hearing: play');

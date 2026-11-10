@@ -43,7 +43,7 @@ It fits the Class 9 science chapter *Sound Waves: Characteristics and Applicatio
 
 ## A worked example
 
-At 1 000 Hz the wavelength in air is 343 ÷ 1 000 = 0.343 m. At 20 Hz it is 17.15 m, longer than a bus; at 20 000 Hz it is only 0.0172 m (1.7 cm). A dog whistle at 30 000 Hz is ultrasound: dogs (up to about 45 kHz) hear it, people don't.
+At 1 000 Hz the wavelength in air is 343 ÷ 1 000 = 0.343 m. At 20 Hz it is 17.15 m, longer than a bus; at 20 000 Hz it is only 0.01715 m (about 1.7 cm). A dog whistle at 30 000 Hz is ultrasound: dogs (up to about 45 kHz) hear it, people don't.
 
 ## Tips
 

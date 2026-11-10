@@ -122,7 +122,7 @@ import '../../styles/learnquiz-d.css';
     q('.hr-big').textContent = `${fmt(f, 0)} Hz`;
     if (osc && ctx && !sweepDir) osc.frequency.setValueAtTime(f, ctx.currentTime);
     if (gain && ctx) gain.gain.setTargetAtTime(Math.pow(vol(), 2) * 0.5, ctx.currentTime, 0.03);
-    q('.hr-info').textContent = `${root.dataset.playing ? 'Playing. ' : ''}A ${fmt(f, 0)} Hz sound vibrates ${fmt(f, 0)} times a second. In air (343 m/s) its wavelength is ${fmt(wavelength(f), wavelength(f) < 0.1 ? 4 : 2)} m. It is ${band(f)}.`;
+    q('.hr-info').textContent = `${root.dataset.playing ? 'Playing. ' : ''}A ${fmt(f, 0)} Hz sound vibrates ${fmt(f, 0)} times a second. In air (343 m/s) its wavelength is ${fmt(wavelength(f), wavelength(f) < 0.1 ? 5 : 3)} m. It is ${band(f)}.`;
     q('.hr-lo').textContent = Number.isFinite(lo) ? `${fmt(lo, 0)} Hz` : '–';
     q('.hr-hi').textContent = Number.isFinite(hi) ? `${fmt(hi, 0)} Hz` : '–';
     chart();
