@@ -275,7 +275,7 @@ export const AREAS: Area[] = [
     tabs: [{ name: 'All', href: '/tools/' }, ...SHELVES.map((s) => ({ name: s.name, href: `/${s.id}/`, match: [`/${s.id}/`] }))],
   },
   {
-    id: 'home', name: 'Home', href: '/', match: [],
+    id: 'home', name: 'Home', href: '/', match: ['/home/'],
     blurb: 'Search, My tools and the shelves.',
     tabs: [{ name: 'Search', href: '/#find' }, ...SHELVES.map((s) => ({ name: s.name, href: `/#${s.id}` }))],
   },

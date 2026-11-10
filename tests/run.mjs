@@ -764,7 +764,9 @@ try {
     await page.goto(BASE + '/');
     check(!!(await page.waitForSelector('.mine:not([hidden])', { timeout: 5000 }).catch(() => null)), 'home: My tools shows the pinned tool');
     // Only my tools: star a second tool, hide the rest, then bring them back.
-    await page.click('.dir .ti[data-id=bill-calendar] .pin');
+    await page.fill('.find input', 'bill calendar');
+    await page.click('.hits-list .ti[data-id=bill-calendar] .pin');
+    await page.fill('.find input', '');
     await page.waitForFunction(() => document.querySelectorAll('.mine-list .ti').length === 2, null, { timeout: 5000 }).catch(() => {});
     check((await page.locator('.mine-list .ti').count()) === 2, 'home: the star adds a tool to My tools');
     await page.click('.focus-btn');
@@ -832,6 +834,13 @@ try {
     const globalCss = (await import('node:fs')).readdirSync('src/tools').filter((id) => existsSync(`src/tools/${id}/Tool.astro`) && /<style is:global/.test(readFileSync(`src/tools/${id}/Tool.astro`, 'utf8')));
     check(!globalCss.length, `tool styles: every Tool.astro uses <style is:inline>, so each page carries only its own CSS${globalCss.length ? '; is:global in ' + globalCss.slice(0, 5).join(', ') : ''}`);
     const home = html('/');
+    // Homepage designs: every saved version has its own preview page, and LIVE matches the live home page.
+    {
+      const vsrc = readFileSync('src/home/versions.ts', 'utf8'), idx = readFileSync('src/pages/index.astro', 'utf8');
+      const live = vsrc.match(/LIVE = '([^']+)'/)[1], ids = [...vsrc.matchAll(/id: '(v[\d.]+)'/g)].map((m) => m[1]);
+      check(idx.includes(`../home/${live}/Home.astro`), `home versions: LIVE (${live}) is the version src/pages/index.astro shows`);
+      check(ids.every((v) => /noindex/.test(html(`/home/${v}/`))), `home versions: ${ids.join(', ')} each have a noindex preview page`);
+    }
     check(/"@type":"WebSite"/.test(home) && /"@type":"Organization"/.test(home), 'structured data: home page names the site and its publisher');
     const nav = readFileSync('dist/nav/index.html', 'utf8');
     check(/name="robots" content="noindex"/.test(nav) && /data-part="at-science"/.test(nav) && !/class="at-item"/.test(html('/money/loan-payoff-planner/')), 'menu lists: kept in /nav/ (noindex), not in every page');

@@ -1,0 +1,342 @@
+---
+// Homepage design v2, "three doors" (nihal chose it on 2026-11-10; see src/home/README.md for every
+// version and how to switch). The page explains fibub in one line, puts search first, then opens three
+// doors that match the bottom bar: Learn, Tools and News. Below them: the most used tools and the site
+// in numbers. It never lists every tool, so it stays short however many tools there are.
+// `preview` is set on /home/v2/, where it is shown with a note and kept out of search engines.
+import Base from '../../layouts/Base.astro';
+import { SITE, SHELVES, SUBJECTS } from '../../site';
+import { ICONS } from '../../lib/icons';
+import { allTools, bySubject, toolUrl } from '../../lib/tools';
+import { siteLd } from '../../lib/seo';
+import { siteTotals } from '../../lib/totals';
+import { CURRICULA } from '../../data/curricula';
+import changelog from '../../data/changelog.json';
+const { preview = false } = Astro.props as { preview?: boolean };
+
+const tools = await allTools();
+const live = tools.filter((t) => t.data.status === 'live');
+const byId = new Map(live.map((t) => [t.id, t]));
+const { stats } = await siteTotals();
+const learnCount = stats.find((s) => s.id === 'activities')?.value ?? live.filter((t) => t.data.shelf === 'learn').length;
+
+// Tools door: every shelf with its count; Science also names its biggest subjects.
+const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live), count: live.filter((t) => t.data.shelf === s.id).length })).filter((s) => s.count);
+// Any shelf that is split into subjects (SUBJECTS in src/site.ts, Science today; Documents or Everyday
+// once they grow) gets a line of its biggest subjects, so nothing here needs changing when that happens.
+const grouped = shelves.filter((s) => SUBJECTS[s.shelf.id]).map((s) => ({ ...s, top: [...s.subjects].sort((a, b) => b.count - a.count).slice(0, 6) }));
+
+// News door: the newest live tools, from the change log (newest first), then the latest site change.
+const seen = new Set<string>();
+const fresh: { id: string; date: string }[] = [];
+for (const c of changelog as { date: string; title: string; tools: string[]; site: boolean }[]) {
+  for (const id of c.tools) if (byId.has(id) && !seen.has(id) && fresh.length < 4) { seen.add(id); fresh.push({ id, date: c.date }); }
+  if (fresh.length >= 4) break;
+}
+const day = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
+const tick = '<path d="m5 12.5 4.5 4.5L19 7.5"/>';
+const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', 'Open source'];
+---
+<Base title={SITE.name} ld={siteLd()} noindex={preview}>
+  <slot name="note" />
+  <section class="v2-hero" id="find">
+    <h1>Free tools for school, work and everyday life</h1>
+    <p class="lead">Simulations for students, and tools for documents, money and science. Everything runs on your own device.</p>
+    <label class="find">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
+      <span class="visually-hidden">Find a tool</span>
+      <input type="search" placeholder={`Search ${live.length.toLocaleString('en')} tools, or type #3`} autocomplete="off" />
+    </label>
+    <ul class="promise" aria-label="What fibub promises">
+      {promises.map((p) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={tick} />{p}</li>)}
+    </ul>
+  </section>
+
+  <section class="hits" hidden aria-live="polite">
+    <p class="hits-n"></p>
+    <ul class="ix hits-list"></ul>
+    <p class="empty" hidden>No tool matches that yet. <a href="/contact/">Suggest it</a>.</p>
+  </section>
+
+  <section class="mine" hidden aria-labelledby="mine-h">
+    <div class="mine-h">
+      <h2 id="mine-h">My tools</h2>
+      <div class="mine-act">
+        <button type="button" class="link focus-btn"></button>
+        <button type="button" class="link mine-clear">Clear</button>
+      </div>
+    </div>
+    <ul class="ix mine-list"></ul>
+    <p class="note">Starred tools are saved only in this browser, never sent anywhere.</p>
+  </section>
+
+  <div class="dir doors">
+    <section class="door" data-door="learn" aria-labelledby="d-learn">
+      <header>
+        <h2 id="d-learn"><a href="/learn/">Learn</a></h2>
+        <span class="cnt">{learnCount.toLocaleString('en')} activities</span>
+      </header>
+      <p class="blurb">Experiments and simulations for school students, chapter by chapter.</p>
+      <div class="cur" role="tablist" aria-label="School curriculum">
+        {CURRICULA.map((c, i) => <button type="button" role="tab" id={`cur-${c.id}`} aria-controls={`curp-${c.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{c.country === 'United States' ? 'USA' : c.country === 'United Kingdom' ? 'UK' : c.country}</button>)}
+      </div>
+      {CURRICULA.map((c, i) => (
+        <div class="curp" id={`curp-${c.id}`} role="tabpanel" aria-labelledby={`cur-${c.id}`} hidden={i !== 0}>
+          {c.status === 'live' ? (
+            <>
+              <p class="sub">{c.name}, {c.grades}</p>
+              <ul class="grades">{c.classes.map((k) => <li><a href={`/learn/${k.id}/`}>{k.name}</a></li>)}</ul>
+            </>
+          ) : (
+            <p class="sub soon">{c.name}, {c.grades}: coming soon. Until then, the experiments and simulations below work for any school.</p>
+          )}
+        </div>
+      ))}
+      <ul class="more">
+        <li><a href="/learn/experiments/">Experiments</a></li>
+        <li><a href="/learn/courses/">Courses</a></li>
+        <li><a href="/learn/languages/">Languages</a></li>
+      </ul>
+      <a class="go" href="/learn/">Open Learn</a>
+    </section>
+
+    <section class="door" data-door="tools" aria-labelledby="d-tools">
+      <header>
+        <h2 id="d-tools"><a href="/tools/">Tools</a></h2>
+        <span class="cnt">{shelves.reduce((n, s) => n + s.count, 0).toLocaleString('en')} tools</span>
+      </header>
+      <p class="blurb">Work with files, money and data without uploading anything.</p>
+      <ul class="shelves">
+        {shelves.map(({ shelf, count }) => <li><a href={`/${shelf.id}/`}><span>{shelf.name}</span><b>{count.toLocaleString('en')}</b></a></li>)}
+      </ul>
+      {grouped.map(({ shelf, top, subjects }) => (
+        <p class="subs"><span>{shelf.name} by subject:</span> {top.map((sj, i) => <>{i > 0 && ', '}<a href={sj.url}>{sj.name}</a></>)}{subjects.length > top.length && <>, <a href={`/${shelf.id}/`}>all {subjects.length}</a></>}.</p>
+      ))}
+      <a class="go" href="/tools/">Browse all tools</a>
+    </section>
+
+    <section class="door" data-door="news" aria-labelledby="d-news">
+      <header>
+        <h2 id="d-news"><a href="/news/">News</a></h2>
+        <span class="cnt">New this week</span>
+      </header>
+      <p class="blurb">The newest tools and every change to the site, in the open.</p>
+      <ul class="fresh">
+        {fresh.map(({ id, date }) => { const t = byId.get(id)!; return <li><a href={toolUrl(t)}>{t.data.name}</a><time datetime={date.slice(0, 10)}>{day(date)}</time></li>; })}
+      </ul>
+      <ul class="more">
+        <li><a href="/changes/">Change log</a></li>
+        <li><a href="/stats/">Usage stats</a></li>
+      </ul>
+      <a class="go" href="/news/">Read the news</a>
+    </section>
+  </div>
+
+  <section class="top" hidden aria-labelledby="top-h">
+    <div class="sec-h">
+      <h2 id="top-h">Most used tools</h2>
+      <a href="/stats/">All stats</a>
+    </div>
+    <ol class="top-list"></ol>
+    <p class="note">Running totals of how often each tool was used and its page opened. Nothing about you is kept.</p>
+  </section>
+
+  <section class="nums" aria-labelledby="nums-h">
+    <h2 id="nums-h" class="visually-hidden">fibub in numbers</h2>
+    <ul>
+      <li class="total"><b>{live.length}</b><span>free tools, each with its own number</span></li>
+      <li class="site-views" data-counter hidden title="Every page opened on fibub, counted as a running total. Nothing about you is kept."><b data-count="site"></b><span>page views so far</span></li>
+      {stats.map((s) => <li>{s.href ? <a href={s.href}><b>{s.value.toLocaleString('en')}</b><span>{s.label}</span></a> : <><b>{s.value.toLocaleString('en')}</b><span>{s.label}</span></>}</li>)}
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .v2-hero { max-width: 760px; margin: 0 auto; padding: 20px 0 4px; text-align: center; }
+  .v2-hero h1 { margin: 0 0 10px; font-size: clamp(28px, 5.4vw, 44px); line-height: 1.12; letter-spacing: -0.02em; }
+  .v2-hero .lead { margin: 0 auto 20px; max-width: 600px; }
+  .v2-hero .find { max-width: 640px; margin: 0 auto; text-align: left; }
+  .v2-hero .find input { font-size: 17px; }
+  .promise { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; font-size: 13.5px; color: var(--muted); }
+  .promise li { display: inline-flex; align-items: center; gap: 5px; }
+  .promise svg { width: 15px; height: 15px; color: var(--good, var(--ink)); }
+
+  .hits, .mine { max-width: 760px; margin-left: auto; margin-right: auto; }
+  .hits { margin-top: 18px; }
+  .hits-n { font-size: 13.5px; color: var(--muted); margin: 0 0 4px; }
+  .mine { margin-top: 26px; padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .mine-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+  .mine-h h2 { margin: 12px 0 4px; font-size: 18px; }
+  .mine-act { display: flex; gap: 14px; }
+  .link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .note { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; padding: 0; }
+  .empty { color: var(--muted); }
+
+  /* The three doors: one per area, in the area's own colour (the same as its bottom-bar tab). */
+  .doors { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); margin-top: 40px; align-items: stretch; }
+  .door { --pc: var(--ink); --pc-soft: var(--accent-soft); display: flex; flex-direction: column; min-width: 0; padding: 18px 18px 16px; border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: 12px; background: var(--surface); }
+  :global(html:not(.red-mode)) .door[data-door=learn] { --pc: var(--c-learn); --pc-soft: var(--c-learn-soft); }
+  :global(html:not(.red-mode)) .door[data-door=tools] { --pc: var(--c-tools); --pc-soft: var(--c-tools-soft); }
+  :global(html:not(.red-mode)) .door[data-door=news] { --pc: var(--c-news); --pc-soft: var(--c-news-soft); }
+  .door header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .door h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+  .door h2 a { color: var(--ink); text-decoration: none; }
+  .door h2 a:hover { color: var(--pc); }
+  .cnt { font-size: 13px; font-weight: 600; color: var(--pc); white-space: nowrap; }
+  .blurb { margin: 6px 0 14px; font-size: 14.5px; color: var(--muted); line-height: 1.5; }
+  .door a { color: var(--pc); }
+  .go { margin-top: auto; padding-top: 14px; font-size: 14.5px; font-weight: 650; text-decoration: none; }
+  .go::after { content: ' \2192'; }
+  .go:hover { text-decoration: underline; }
+
+  .cur { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+  .cur button { flex: 1; min-width: 0; border: 0; border-radius: 7px; padding: 7px 4px; background: none; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .cur button[aria-selected=true] { background: var(--pc); color: var(--accent-ink, #fff); }
+  :global(html[data-theme=dark]:not(.red-mode)) .cur button[aria-selected=true] { color: #000; }
+  .curp { margin-top: 10px; }
+  .sub { margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+  .sub.soon { margin-bottom: 0; line-height: 1.5; }
+  .grades { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+  .grades a { display: block; padding: 8px 2px; border-radius: 8px; background: var(--pc-soft); text-align: center; font-size: 13.5px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+  .grades a:hover { outline: 1.5px solid var(--pc); }
+  .more { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; font-weight: 600; }
+  .more a { text-decoration: none; }
+  .more a:hover { text-decoration: underline; }
+
+  .shelves { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .shelves a { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--pc-soft); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14.5px; }
+  .shelves a:hover { outline: 1.5px solid var(--pc); }
+  .shelves b { font-size: 13px; color: var(--pc); font-variant-numeric: tabular-nums; }
+  .subs { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+  .subs span { color: var(--ink); font-weight: 600; }
+  .subs a { text-decoration: none; }
+  .subs a:hover { text-decoration: underline; }
+
+  .fresh { list-style: none; margin: 0; padding: 0; }
+  .fresh li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .fresh li:first-child { padding-top: 0; }
+  .fresh a { color: var(--ink); font-weight: 600; font-size: 14.5px; text-decoration: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fresh a:hover { text-decoration: underline; }
+  .fresh time { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+
+  /* Most used: a numbered list, two columns on computers. */
+  .top { margin-top: 44px; }
+  .sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .sec-h h2 { margin: 0; font-size: 20px; }
+  .sec-h a { font-size: 14px; font-weight: 600; text-decoration: none; }
+  .top-list { list-style: none; margin: 0; padding: 0; counter-reset: top; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); column-gap: 40px; }
+  @media (min-width: 840px) { .top-list { grid-auto-flow: column; grid-template-rows: repeat(5, auto); grid-template-columns: 1fr 1fr; } }
+  .top-list :global(li) { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); counter-increment: top; }
+  .top-list :global(li)::before { content: counter(top); font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .top-list :global(a) { color: var(--ink); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-list :global(a:hover) { text-decoration: underline; text-underline-offset: 3px; }
+  .top-list :global(.n) { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .top-list :global(.n b) { color: var(--ink); font-weight: 650; }
+
+  /* The site in numbers: a quiet strip, figures over labels. */
+  .nums { margin: 44px 0 8px; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .nums ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 16px 24px; }
+  .nums li, .nums a { display: grid; align-content: start; gap: 2px; }
+  .nums a { color: inherit; text-decoration: none; }
+  .nums a:hover span { text-decoration: underline; }
+  .nums b { font-size: 26px; line-height: 1.1; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .nums span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .nums li[hidden] { display: none; }
+
+  /* Only my tools, or searching: everything else steps aside. */
+  :global(body.focus) .doors, :global(body.focus) .top, :global(body.focus) .nums,
+  :global(body.searching) .doors, :global(body.searching) .top, :global(body.searching) .nums { display: none; }
+</style>
+
+<script>
+  import { myTools, focusOn, setFocus, setMyTools, myEntries } from '../../scripts/site';
+  import { loadIndex, rank, row } from '../../scripts/find';
+  const mine = document.querySelector<HTMLElement>('.mine')!, list = mine.querySelector<HTMLElement>('.mine-list')!;
+  const focusBtn = mine.querySelector<HTMLButtonElement>('.focus-btn')!;
+  const input = document.querySelector<HTMLInputElement>('.find input')!;
+  const hits = document.querySelector<HTMLElement>('.hits')!, hitList = hits.querySelector<HTMLElement>('.hits-list')!;
+  const hitN = hits.querySelector<HTMLElement>('.hits-n')!, empty = hits.querySelector<HTMLElement>('.empty')!;
+  const total = Number(document.querySelector('.nums .total b')!.textContent);
+  const topBox = document.querySelector<HTMLElement>('.top')!, topList = topBox.querySelector<HTMLElement>('.top-list')!;
+  const searching = () => input.value.trim() !== '';
+
+  // The focus flag is known at once, so the page never flashes the doors first.
+  const layout = () => {
+    document.body.classList.toggle('focus', focusOn() && !searching());
+    document.body.classList.toggle('searching', searching());
+  };
+  layout();
+
+  async function show() {
+    layout();
+    const ids = myTools();
+    const entries = ids.length ? await myEntries() : [];
+    list.replaceChildren(...entries.map((e) => row(e, { star: true, pinned: true })));
+    mine.hidden = !entries.length || searching();
+    focusBtn.textContent = focusOn() ? `Show everything (${total} tools)` : 'Show only my tools';
+  }
+  show();
+  document.addEventListener('fibub:mytools', show);
+  document.addEventListener('fibub:focus', show);
+  focusBtn.addEventListener('click', () => setFocus(!focusOn()));
+  mine.querySelector('.mine-clear')!.addEventListener('click', () => { setFocus(false); setMyTools([]); });
+
+  // Search: results from every shelf and subject, best first, even in "only my tools".
+  async function find() {
+    const q = input.value;
+    const found = searching() ? rank(await loadIndex(), q) : [];
+    if (q !== input.value) return;
+    const ids = myTools();
+    hitList.replaceChildren(...found.slice(0, 60).map((e) => row(e, { star: true, pinned: ids.includes(e.id), place: true })));
+    hits.hidden = !searching();
+    empty.hidden = found.length > 0;
+    hitN.hidden = !found.length;
+    hitN.textContent = found.length > 60 ? `Showing 60 of ${found.length} tools. Add a word to narrow it down.` : `${found.length} tool${found.length === 1 ? '' : 's'}`;
+    show();
+  }
+  input.addEventListener('input', find);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = hitList.querySelector<HTMLAnchorElement>('a'); if (a) location.href = a.href; } });
+  document.addEventListener('fibub:mytools', () => { if (searching()) find(); });
+  input.addEventListener('focus', () => loadIndex(), { once: true });
+
+  // Curriculum switch in the Learn door: plain tabs, nothing is remembered.
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('.cur [role=tab]')];
+  const pick = (t: HTMLButtonElement) => {
+    for (const b of tabs) {
+      const on = b === t;
+      b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      document.getElementById(b.getAttribute('aria-controls')!)!.hidden = !on;
+    }
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => pick(t));
+    t.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!d) return;
+      const n = tabs[(i + d + tabs.length) % tabs.length]; pick(n); n.focus();
+    });
+  });
+
+  // Most used tools: the ten with the most uses, with their page views. Hidden until the counter answers.
+  (async () => {
+    try {
+      const [res, index] = await Promise.all([fetch('/api/top'), loadIndex()]);
+      if (!res.ok) return;
+      const { top } = (await res.json()) as { top: { t: string; v: number; u: number }[] };
+      const byId = new Map(index.map((e) => [e.id, e]));
+      const fmt = (n: number) => n.toLocaleString('en');
+      const items = top.filter((r) => byId.has(r.t)).map((r) => {
+        const e = byId.get(r.t)!;
+        const li = document.createElement('li'), a = document.createElement('a');
+        a.href = e.u; a.textContent = e.n;
+        const mk = (n: number, word: string) => { const s = document.createElement('span'), b = document.createElement('b'); s.className = 'n'; b.textContent = fmt(n); s.append(b, ` ${word}`); return s; };
+        li.append(a, mk(r.u, r.u === 1 ? 'use' : 'uses'), mk(r.v, r.v === 1 ? 'view' : 'views'));
+        return li;
+      });
+      if (!items.length) return;
+      topList.replaceChildren(...items);
+      topBox.hidden = false;
+    } catch { /* counter unreachable: the section stays hidden */ }
+  })();
+</script>

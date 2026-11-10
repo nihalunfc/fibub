@@ -1,0 +1,22 @@
+---
+// A preview of every saved homepage design at /home/v1/, /home/v2/, ... with a note on top saying which
+// one is live. Kept out of search engines and the sitemap. To add a version: copy src/home/<latest>/
+// to a new folder, change it, and add it to VERSIONS in src/home/versions.ts.
+import { VERSIONS, LIVE } from '../../home/versions';
+export function getStaticPaths() {
+  return VERSIONS.map((v) => ({ params: { v: v.id }, props: { v } }));
+}
+const { v } = Astro.props as { v: (typeof VERSIONS)[number] };
+const Home = v.component;
+---
+<Home preview>
+  <aside slot="note" class="ver-note">
+    <p><b>Homepage design {v.id}{v.id === LIVE ? ' (live now)' : ''}</b>: {v.about}</p>
+    <p>Saved designs: {VERSIONS.map((x, i) => <>{i > 0 && ' · '}{x.id === v.id ? <b>{x.id}</b> : <a href={`/home/${x.id}/`}>{x.id}</a>}</>)} · <a href="/">the live home page</a></p>
+  </aside>
+</Home>
+<style is:inline>
+  .ver-note { margin: 4px 0 18px; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 10px; font-size: 13.5px; color: var(--muted); }
+  .ver-note p { margin: 2px 0; }
+  .ver-note b { color: var(--ink); }
+</style>
