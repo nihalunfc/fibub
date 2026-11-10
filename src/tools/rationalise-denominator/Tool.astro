@@ -1,0 +1,157 @@
+---
+// Rationalise the denominator (Learn): k/√n, k/(a + b√n) and k/(√m ± √n), step by step with exact whole-number
+// arithmetic. The picture shows why the conjugate works: x² − y² is a big square minus a small one, which
+// rearranges into (x + y)(x − y). Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rd">
+  <div class="ax-card">
+    <h2>Your fraction</h2>
+    <div class="ax-seg rd-kind" role="group" aria-label="Kind of denominator">
+      <button type="button" data-k="root" aria-pressed="false">k / √n</button>
+      <button type="button" data-k="binom" aria-pressed="true">k / (a + b√n)</button>
+      <button type="button" data-k="two" aria-pressed="false">k / (√m ± √n)</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="rd-f rd-fk">k (top) <input type="number" class="rd-k" step="1" value="5" inputmode="numeric" /></label>
+      <label class="rd-f rd-fa">a <input type="number" class="rd-a" step="1" value="3" inputmode="numeric" /></label>
+      <label class="rd-f rd-fb">b <input type="number" class="rd-b" step="1" value="-1" inputmode="numeric" /></label>
+      <label class="rd-f rd-fm">m <input type="number" class="rd-m" min="1" step="1" value="5" inputmode="numeric" /></label>
+      <label class="rd-f rd-fs">sign <select class="rd-s"><option value="1">+</option><option value="-1">−</option></select></label>
+      <label class="rd-f rd-fn">n (under the root) <input type="number" class="rd-n" min="1" step="1" value="2" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-big rd-q" style="margin:12px 0 0"></p>
+    <p class="ax-err rd-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Step by step</h2>
+    <ol class="sm-steps rd-steps"></ol>
+    <p class="ax-big rd-ans" aria-live="polite" style="margin:10px 0 0"></p>
+    <p class="sm-f rd-check"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why the conjugate works</h2>
+    <svg class="sm-fig rd-fig" viewBox="0 0 340 250" role="img" aria-label="A big square with a small square cut from its corner; the L-shape left over rearranges into a rectangle (x + y) by (x − y)"></svg>
+    <p class="ax-help rd-figt"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>1/(2 + √3) comes out as 2 − √3 with no fraction at all. Why? Look at the bottom: 4 − 3 = 1.</li>
+      <li>Try 1/(√5 + √3) and then 1/(√5 − √3). What changes?</li>
+      <li>Try 3/√12. The page first rationalises, then simplifies √12 = 2√3.</li>
+      <li>Find a and b so that a² − b²n = 0. The page explains why there is nothing to rationalise.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type the numbers asked for, in order. Nothing is saved.</p>
+    <div class="rd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rd svg .rd-big { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .rd svg .rd-cut { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .rd svg .rd-move { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .rd svg .rd-lab { font-size: 12px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+</style>
+
+<script>
+  import { rationalise, problemText, problemValue, text, value, type Problem } from '../../lib/sci/rationalise';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rd')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.rd-fig');
+  let kind: Problem['kind'] = 'binom';
+  const int = (c: string, d: number) => { const v = Number(q<HTMLInputElement>(c).value); return Number.isFinite(v) && q<HTMLInputElement>(c).value.trim() !== '' ? Math.round(v) : d; };
+  const show: Record<Problem['kind'], string[]> = { root: ['k', 'n'], binom: ['k', 'a', 'b', 'n'], two: ['k', 'm', 's', 'n'] };
+
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.rd-kind button')) b.addEventListener('click', () => {
+    kind = b.dataset.k as Problem['kind'];
+    for (const o of root.querySelectorAll('.rd-kind button')) o.setAttribute('aria-pressed', String(o === b));
+    draw();
+  });
+  for (const s of ['.rd-k', '.rd-a', '.rd-b', '.rd-m', '.rd-n']) q(s).addEventListener('input', draw);
+  q('.rd-s').addEventListener('change', draw);
+
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+  function problem(): Problem | string {
+    const k = int('.rd-k', 5), n = int('.rd-n', 2);
+    if (Math.abs(k) > 10000 || n > 10000 || n < 1) return 'Keep k between −10,000 and 10,000 and n from 1 to 10,000.';
+    if (kind === 'root') return { kind, k, n };
+    if (kind === 'binom') { const a = int('.rd-a', 3), b = int('.rd-b', -1); if (Math.abs(a) > 1000 || Math.abs(b) > 1000) return 'Keep a and b between −1,000 and 1,000.'; return { kind, k, a, b, n }; }
+    const m = int('.rd-m', 5); if (m < 1 || m > 10000) return 'm must be a whole number from 1 to 10,000.';
+    return { kind, k, m, s: Number(q<HTMLSelectElement>('.rd-s').value) as 1 | -1, n };
+  }
+
+  function draw() {
+    for (const f of root.querySelectorAll<HTMLElement>('.rd-f')) f.hidden = !show[kind].some((x) => f.classList.contains('rd-f' + x));
+    const err = q('.rd-err'), p = problem();
+    const clear = () => { q('.rd-steps').replaceChildren(); q('.rd-ans').textContent = ''; q('.rd-check').textContent = ''; };
+    if (typeof p === 'string') { err.textContent = p; err.hidden = false; clear(); return; }
+    q('.rd-q').textContent = problemText(p);
+    const r = rationalise(p);
+    if ('error' in r) { err.textContent = r.error; err.hidden = false; clear(); picture(p); return; }
+    err.hidden = true;
+    const steps = [
+      `The bottom has a square root. Multiply top and bottom by ${r.multiplier}, which is just 1, so the value does not change.`,
+      `Bottom: ${r.denWork}. The root has gone.`,
+      `Top: ${p.k} × ${r.multiplier.split('/')[0]} = ${text(r.top)}.`,
+      `So ${problemText(p)} = ${text({ ...r.top, den: r.denRaw })}${text({ ...r.top, den: r.denRaw }) !== text(r.answer) ? ` = ${text(r.answer)} after simplifying` : ''}.`,
+    ];
+    q('.rd-steps').replaceChildren(...steps.map(li));
+    q('.rd-ans').textContent = `${problemText(p)} = ${text(r.answer)}`;
+    q('.rd-check').textContent = `Check with decimals: ${problemText(p)} ≈ ${fmt(problemValue(p), 6)} and ${text(r.answer)} ≈ ${fmt(value(r.answer), 6)}.`;
+    picture(p);
+  }
+
+  // x² − y² picture for the bottom: x and y are the two parts of the denominator (or √n and 0 for k/√n).
+  function picture(p: Problem) {
+    fig.replaceChildren();
+    let x: number, y: number, xs: string, ys: string;
+    if (p.kind === 'root') { q('.rd-figt').textContent = `For k/√n the bottom times itself is already whole: √${p.n} × √${p.n} = ${p.n}, the area of a square of side √${p.n}.`; x = Math.sqrt(p.n); y = 0; xs = `√${p.n}`; ys = ''; }
+    else if (p.kind === 'binom') { x = Math.abs(p.a); y = Math.abs(p.b) * Math.sqrt(p.n); xs = String(Math.abs(p.a)); ys = `${Math.abs(p.b) === 1 ? '' : Math.abs(p.b)}√${p.n}`; }
+    else { x = Math.sqrt(p.m); y = Math.sqrt(p.n); xs = `√${p.m}`; ys = `√${p.n}`; }
+    if (x < y) { [x, y] = [y, x]; [xs, ys] = [ys, xs]; }
+    const k = 200 / Math.max(x, 1e-9), X = x * k, Y = y * k, ox = 20, oy = 20;
+    // Left: the big square with the small one cut from the corner.
+    S('rect', { x: ox, y: oy, width: X, height: X, class: 'rd-big' }, fig);
+    if (Y > 0) S('rect', { x: ox + X - Y, y: oy, width: Y, height: Y, class: 'rd-cut' }, fig);
+    S('text', { x: ox + X / 2, y: oy + X + 16, 'text-anchor': 'middle', class: 'rd-lab' }, fig, `x = ${xs}`);
+    if (Y > 6) S('text', { x: ox + X - Y / 2, y: oy + Y / 2 + 4, 'text-anchor': 'middle', class: 'rd-lab' }, fig, `y = ${ys}`);
+    // Right: the strip below the cut moved round to make a rectangle (x + y) by (x − y), drawn small.
+    if (Y > 0 && p.kind !== 'root') {
+      const s = 100 / (x + y), W = (x + y) * s, H = (x - y) * s, rx = 230, ry = 60;
+      S('rect', { x: rx, y: ry, width: x * s, height: H, class: 'rd-big' }, fig);
+      S('rect', { x: rx + x * s, y: ry, width: y * s, height: H, class: 'rd-move' }, fig);
+      S('text', { x: rx + W / 2, y: ry - 6, 'text-anchor': 'middle', class: 'rd-lab' }, fig, 'x + y');
+      S('text', { x: rx + W / 2, y: ry + H + 16, 'text-anchor': 'middle', class: 'rd-lab' }, fig, `area x² − y²`);
+      S('text', { x: rx - 4, y: ry + H / 2 + 4, 'text-anchor': 'end', class: 'rd-lab' }, fig, 'x − y');
+      const xx = p.kind === 'binom' ? p.a * p.a : p.m, yy = p.kind === 'binom' ? p.b * p.b * p.n : p.n;
+      q('.rd-figt').textContent = `The L-shape left after cutting a ${ys} square from a ${xs} square has area x² − y² = ${xx} − ${yy} = ${xx - yy}. Cut it and move the strip, and it makes a rectangle (x + y) by (x − y). So (x + y)(x − y) = x² − y²: multiplying by the conjugate squares both roots away.`;
+    } else if (p.kind !== 'root') q('.rd-figt').textContent = 'One part of the bottom is zero, so there is only one square.';
+  }
+  draw();
+
+  quiz(q('.rd-quiz'), () => {
+    const out: Question[] = [];
+    const n = [2, 3, 5, 6, 7][randInt(0, 4)], c = randInt(2, 6);
+    out.push({ q: `${c * n}/√${n} = a√${n}. Type a.`, want: [c], work: `Multiply by √${n}/√${n}: ${c * n}√${n}/${n} = ${c}√${n}.` });
+    const [a, b] = [[2, 3], [3, 8], [4, 15], [5, 24], [6, 35]][randInt(0, 4)];
+    out.push({ q: `1/(${a} + √${b}) = p + q√${b}. Type p and q.`, want: [a, -1], ordered: true, hint: 'p, q', work: `Multiply by (${a} − √${b}): the bottom is ${a * a} − ${b} = 1, so the answer is ${a} − √${b}: p = ${a}, q = −1.` });
+    const m = randInt(2, 30);
+    out.push({ q: `1/(√${m + 1} + √${m}) = √A − √B. Type A and B.`, want: [m + 1, m], ordered: true, hint: 'A, B', work: `Multiply by (√${m + 1} − √${m}): the bottom is ${m + 1} − ${m} = 1, so the answer is √${m + 1} − √${m}.` });
+    const P: Problem = { kind: 'binom', k: randInt(1, 9), a: randInt(2, 6), b: -1, n: [2, 3, 5][randInt(0, 2)] };
+    const R = rationalise(P);
+    if (!('error' in R)) out.push({ q: `Rationalise ${problemText(P)}, then give its value to 3 decimal places.`, want: [Math.round(problemValue(P) * 1000) / 1000], tol: 0.0005, work: `${problemText(P)} = ${text(R.answer)} ≈ ${fmt(value(R.answer), 3)}.` });
+    return out;
+  });
+</script>
