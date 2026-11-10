@@ -37,7 +37,7 @@ export default async ({ page, check, BASE }) => {
     await page.click(`${R}.sm-q:nth-child(${i}) .sm-qshow`);
     const qt = await txt(`.sm-q:nth-child(${i}) .sm-qt`), wk = await txt(`.sm-q:nth-child(${i}) .sm-qwork`);
     let ans;
-    if (i < 4) { const nm = wk.split(':')[0]; ans = /\((\d)\) ([^(]+)/g; let m; while ((m = ans.exec(qt))) if (m[2].trim() === nm) { ans = m[1]; break; } }
+    if (i < 4) { const nm = wk.split(':')[0]; ans = /\((\d)\) (.+?)(?=\s+\(\d\) |\s*$)/g; let m; while ((m = ans.exec(qt))) if (m[2].trim() === nm) { ans = m[1]; break; } }
     else ans = /\((\d+) steps\)/.exec(wk)[1];
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, String(ans)); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `nitrogen: quiz ${i} (${qt} | ${wk})`);
