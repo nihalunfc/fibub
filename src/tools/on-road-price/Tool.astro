@@ -1,0 +1,114 @@
+---
+// #T890 On-road price
+import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
+---
+<div class="tool-ui or">
+  <section class="panel">
+    <div class="or-grid">
+      <label>Vehicle <select data-k="veh"><option value="car">Car</option><option value="bike">Two-wheeler</option></select></label>
+      <label>Where you buy <select data-k="region"><option value="in">India</option><option value="ca">Canada</option><option value="us">United States</option></select></label>
+    </div>
+    <div class="or-grid" data-r="in">
+      <label>State <select data-k="state">{IN_STATES.map((s) => <option value={s.id} data-car={s.car} data-bike={s.bike}>{s.name}</option>)}</select></label>
+      <label>Ex-showroom price <input data-k="ex" inputmode="decimal" value="800000" /></label>
+      <label>Road tax (% of ex-showroom) <input data-k="rt" inputmode="decimal" value="7" /></label>
+      <label>Registration and smart card <input data-k="reg" inputmode="decimal" value="1000" /></label>
+      <label>FASTag <input data-k="fastag" inputmode="decimal" value="500" /></label>
+      <label>Insurance, first year <input data-k="ins" inputmode="decimal" value="30000" /></label>
+      <label>Accessories <input data-k="acc" inputmode="decimal" value="0" /></label>
+      <label>Extended warranty <input data-k="ew" inputmode="decimal" value="0" /></label>
+      <label>Other charges (handling, etc.) <input data-k="oth" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="or-check" data-r="in"><input type="checkbox" data-k="tcs" checked /> Add 1% TCS when the ex-showroom price is over 10 lakh (you can claim it back in your income tax return)</label>
+    <p class="or-fine" data-r="in">The road tax for each state is a rough starting rate (estimate) for a petrol vehicle. States charge by price slab, fuel and owner type, and some add a cess, so type the rate on your dealer's quote or your state transport website. Insurance: type the quote; a rough figure is 3 to 4% of the price for a car, less for a two-wheeler.</p>
+    <div class="or-grid" data-r="ca" hidden>
+      <label>Province or territory <select data-k="prov">{CA_PROV.map((p) => <option value={p.id} data-gst={p.gst} data-pst={p.pst} data-note={p.note ?? ''}>{p.name}</option>)}</select></label>
+      <label>Vehicle price <input data-k="caprice" inputmode="decimal" value="30000" /></label>
+      <label>Freight and PDI <input data-k="freight" inputmode="decimal" value="2000" /></label>
+      <label>Levies and dealer fees (tire levy, sales council fee, admin) <input data-k="cafees" inputmode="decimal" value="0" /></label>
+      <label>GST/HST (%) <input data-k="gst" inputmode="decimal" value="13" /></label>
+      <label>PST/QST (%) <input data-k="pst" inputmode="decimal" value="0" /></label>
+      <label>Licence plate and registration <input data-k="plates" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="or-fine or-canote" data-r="ca" hidden></p>
+    <div class="or-grid" data-r="us" hidden>
+      <label>Vehicle price <input data-k="usprice" inputmode="decimal" value="30000" /></label>
+      <label>Trade-in value <input data-k="trade" inputmode="decimal" value="0" /></label>
+      <label>Doc fee <input data-k="doc" inputmode="decimal" value="0" /></label>
+      <label>State + local sales tax (%) <input data-k="ustax" inputmode="decimal" value="7" /></label>
+      <label>Title and registration <input data-k="title" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="or-check" data-r="us" hidden><input type="checkbox" data-k="taxdoc" checked /> Charge sales tax on the doc fee too</label>
+    <label class="or-check" data-r="us" hidden><input type="checkbox" data-k="taxnet" checked /> Tax only on price minus trade-in (most states; untick if yours taxes the full price)</label>
+    <p class="or-fine" data-r="us" hidden>US sales tax on vehicles is set by each state, often with county or city tax on top, so type your own combined rate.</p>
+    <div class="or-grid">
+      <label>Down payment <input data-k="down" inputmode="decimal" value="0" /></label>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="or-big"></p>
+    <dl class="or-rows"></dl>
+    <p class="or-loan"></p>
+    <p class="or-warn" role="alert"></p>
+  </section>
+  <p class="or-fine">Not tax advice. Rates checked 2026-11-10; check the official source and the dealer's written quote before you pay. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .or { display: grid; gap: 14px; margin-bottom: 32px; }
+  .or .panel { padding: 16px; }
+  .or-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; margin-bottom: 12px; }
+  .or [hidden] { display: none !important; }
+  .or label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .or input:not([type=checkbox]), .or select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .or input:focus, .or select:focus { border-color: var(--accent); outline: none; }
+  .or label.or-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin: 0 0 12px; }
+  .or input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .or-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .or-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .or-rows dt { color: var(--muted); } .or-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .or-rows .tot { color: var(--ink); font-weight: 700; border-top: 1px solid var(--line); padding-top: 6px; }
+  .or-loan { margin: 12px 0 0; }
+  .or-warn { color: var(--bad); margin: 10px 0 0; } .or-warn:empty, .or-canote:empty { display: none; }
+  .or-fine { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+</style>
+
+<script>
+  import { onRoadIndia, onRoadCanada, onRoadUS } from '../../lib/money/vehicle-india';
+  const root = document.querySelector('.or') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(k: string) => root.querySelector(`[data-k="${k}"]`) as unknown as T;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const region = () => q<HTMLSelectElement>('region').value;
+  const fmt = (v: number) => v.toLocaleString(region() === 'in' ? 'en-IN' : 'en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const setState = () => { const o = q<HTMLSelectElement>('state').selectedOptions[0]; q('rt').value = o.dataset[q<HTMLSelectElement>('veh').value === 'bike' ? 'bike' : 'car']!; };
+  const setProv = () => { const o = q<HTMLSelectElement>('prov').selectedOptions[0]; q('gst').value = o.dataset.gst!; q('pst').value = o.dataset.pst!; $('.or-canote').textContent = o.dataset.note || ''; };
+  const calc = () => {
+    const r = region();
+    root.querySelectorAll<HTMLElement>('[data-r]').forEach((el) => { el.hidden = el.dataset.r !== r; });
+    const down = num('down');
+    const p = r === 'in'
+      ? onRoadIndia({ exShowroom: num('ex'), roadTaxPct: num('rt'), registration: num('reg'), fastag: num('fastag'), insurance: num('ins'), accessories: num('acc'), warranty: num('ew'), other: num('oth'), down, tcs: q('tcs').checked })
+      : r === 'ca'
+      ? onRoadCanada({ price: num('caprice'), freight: num('freight'), fees: num('cafees'), gstPct: num('gst'), pstPct: num('pst'), plates: num('plates'), down })
+      : onRoadUS({ price: num('usprice'), docFee: num('doc'), taxPct: num('ustax'), taxDoc: q('taxdoc').checked, title: num('title'), trade: num('trade'), taxNet: q('taxnet').checked, down });
+    const word = r === 'in' ? 'on-road price' : 'out-the-door price';
+    if (!(p.total > 0)) { $('.or-big').textContent = ''; $('.or-rows').innerHTML = ''; $('.or-loan').textContent = ''; $('.or-warn').textContent = 'Type the price of the vehicle.'; return; }
+    $('.or-warn').textContent = '';
+    $('.or-big').textContent = `${fmt(p.total)} ${word}`;
+    $('.or-rows').innerHTML = p.lines.map((l) => `<dt>${l.label}</dt><dd>${fmt(l.amount)}</dd>`).join('') + `<dt class="tot">Total ${word}</dt><dd class="tot">${fmt(p.total)}</dd>`;
+    const loan = $('.or-loan'); loan.textContent = '';
+    if (down > 0 || p.loan > 0) {
+      loan.append(`After a down payment of ${fmt(down)}, you would borrow ${fmt(p.loan)}. `);
+      const a = document.createElement('a'); a.href = '/money/car-loan/'; a.textContent = 'Work out the monthly payment'; loan.append(a, '.');
+    }
+  };
+  root.addEventListener('change', (e) => {
+    const k = (e.target as HTMLElement).dataset.k;
+    if (k === 'state' || k === 'veh') setState();
+    if (k === 'prov') setProv();
+    calc();
+  });
+  root.addEventListener('input', calc);
+  setState(); setProv(); calc();
+</script>
