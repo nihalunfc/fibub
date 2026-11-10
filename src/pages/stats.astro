@@ -36,10 +36,25 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
     <p>Every page on fibub shows how many times it has been opened, just under its title, and the home page shows the total for the whole site. The full numbers, for every page and tool by day, week, month and year, are published openly every day in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">site's public code repository</a> as CSV files anyone can download. They hold counts only: no IP addresses, visitor IDs or times.</p>
   </section>
 
-  <h2>Files processed</h2>
-  {total === 0 ? (
-    <div class="panel"><p style="margin:0">No usage has been counted yet. Totals appear here the day after the first tools are used.</p></div>
-  ) : (
+  <section class="live" aria-live="polite">
+    <h2>Live counts</h2>
+    <p class="muted live-msg">Loading the counts...</p>
+    <div class="grid kpis live-kpis" hidden>
+      <div class="card"><span class="muted">Page views, whole site</span><b data-k="site"></b></div>
+      <div class="card"><span class="muted">Tool uses</span><b data-k="uses"></b></div>
+      <div class="card"><span class="muted">Tools used at least once</span><b data-k="used"></b></div>
+    </div>
+    <div class="live-tabs" hidden>
+      <h3>Most used tools</h3>
+      <table class="tbl wide"><thead><tr><th>Tool</th><th>Uses</th><th>Page views</th></tr></thead><tbody class="by-uses"></tbody></table>
+      <h3>Most viewed tools</h3>
+      <table class="tbl wide"><thead><tr><th>Tool</th><th>Page views</th><th>Uses</th></tr></thead><tbody class="by-views"></tbody></table>
+    </div>
+    <p class="muted">Running totals since counting began. A use is the first time someone works a tool after opening its page. Nothing about any visitor is kept; the daily files are in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">public repository</a>.</p>
+  </section>
+
+  {total > 0 && <h2>Files processed</h2>}
+  {total > 0 && (
     <>
       <div class="grid kpis">
         <div class="card"><span class="muted">Files processed</span><b>{total.toLocaleString('en')}</b></div>
@@ -71,6 +86,9 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 </Base>
 
 <style>
+  .live h3 { font-size: 16px; margin: 20px 0 6px; }
+  .tbl.wide { max-width: 560px; }
+  .tbl td:not(:first-child), .tbl th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .muted { color: var(--muted); font-size: 14px; }
   .kpis .card { display: grid; gap: 4px; }
   .kpis b { font-size: 28px; }
@@ -85,3 +103,32 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   .row .num { text-align: right; color: var(--muted); }
   .views-note { margin-bottom: 32px; max-width: 720px; }
 </style>
+
+<script>
+  import { loadIndex } from '../scripts/find';
+  const fmt = (n: number) => n.toLocaleString('en');
+  (async () => {
+    const msg = document.querySelector<HTMLElement>('.live-msg')!;
+    try {
+      const [res, index] = await Promise.all([fetch('/api/counts'), loadIndex()]);
+      if (!res.ok) throw new Error();
+      const c = (await res.json()) as { site: number; pages: Record<string, number>; uses: Record<string, number> };
+      const rows = index.map((e) => ({ e, v: c.pages[e.u] ?? 0, u: c.uses[e.id] ?? 0 }));
+      const set = (k: string, n: number) => { document.querySelector(`[data-k="${k}"]`)!.textContent = fmt(n); };
+      set('site', c.site); set('uses', rows.reduce((n, r) => n + r.u, 0)); set('used', rows.filter((r) => r.u > 0).length);
+      const fill = (sel: string, list: typeof rows, a: 'u' | 'v', b: 'u' | 'v') => {
+        document.querySelector(sel)!.replaceChildren(...list.slice(0, 25).map((r) => {
+          const tr = document.createElement('tr'), td = document.createElement('td'), l = document.createElement('a');
+          l.href = r.e.u; l.textContent = r.e.n; td.append(l); tr.append(td);
+          for (const n of [r[a], r[b]]) { const x = document.createElement('td'); x.textContent = fmt(n); tr.append(x); }
+          return tr;
+        }));
+      };
+      fill('.by-uses', rows.filter((r) => r.u > 0).sort((x, y) => y.u - x.u || y.v - x.v), 'u', 'v');
+      fill('.by-views', rows.filter((r) => r.v > 0).sort((x, y) => y.v - x.v || y.u - x.u), 'v', 'u');
+      msg.hidden = true;
+      document.querySelector<HTMLElement>('.live-kpis')!.hidden = false;
+      document.querySelector<HTMLElement>('.live-tabs')!.hidden = false;
+    } catch { msg.textContent = 'The live counts could not be loaded just now. Try again in a moment.'; }
+  })();
+</script>
