@@ -1,0 +1,131 @@
+---
+// Taxonomy ladder: two organisms side by side from kingdom to species; the rungs they share are joined, so the
+// lower they stay together the closer they are related. Plus a rank-order game.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax txl">
+  <div class="ax-card">
+    <h2>Compare two organisms</h2>
+    <div class="ax-grid">
+      <label>Left <select class="tx-a"></select></label>
+      <label>Right <select class="tx-b"></select></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="tx-title"></h2>
+    <svg class="tx-lad" viewBox="0 0 360 380" role="img"></svg>
+    <p class="tx-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Put the ranks in order</h2>
+    <p class="ax-help">Tap the ranks from the biggest group (kingdom) down to the smallest (species).</p>
+    <div class="tx-chips" role="group" aria-label="Ranks to order"></div>
+    <ol class="tx-got"></ol>
+    <p class="tx-gres" aria-live="polite"></p>
+    <button type="button" class="btn small secondary tx-shuffle">Shuffle again</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="tx-try">
+      <li>Compare the <b>tiger</b> and the <b>lion</b>: they share every rank down to the genus Panthera.</li>
+      <li>Compare the <b>house cat</b> and the <b>dog</b>: both are carnivores (order Carnivora), but in different families.</li>
+      <li>Compare <b>mango</b> and <b>neem</b>: two trees in the same order, Sapindales, but different families.</li>
+      <li>Compare a <b>human</b> and <b>mango</b>: they part ways at the very first rung.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="tx-quiz" />
+</div>
+
+<script>
+  import { RANKS, TAXA, taxon, shared } from '../../lib/sci/school-taxonomy';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.txl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  for (const [c, v] of [['.tx-a', 'tiger'], ['.tx-b', 'cat']] as const) { const s = q<HTMLSelectElement>(c); s.replaceChildren(...TAXA.map((t) => new Option(t.common, t.id))); s.value = v; }
+  const CLOSE = ['They are in the same kingdom, and that is all.', 'Same phylum (division): a distant link.', 'Same class: related, but not closely.', 'Same order: fairly close relatives.', 'Same family: close relatives.', 'Same genus: very close relatives.', 'The same species.'];
+
+  function draw() {
+    const A = taxon(q<HTMLSelectElement>('.tx-a').value), B = taxon(q<HTMLSelectElement>('.tx-b').value), k = shared(A, B);
+    q('.tx-title').textContent = k < 0 ? `${A.common} and ${B.common} share no rank` : `${A.common} and ${B.common} share down to the ${RANKS[k].toLowerCase()}: ${A.ranks[k]}`;
+    const svg = root.querySelector<SVGSVGElement>('.tx-lad')!; svg.replaceChildren();
+    svg.setAttribute('aria-label', RANKS.map((r, i) => `${r}: ${A.ranks[i]}${A.ranks[i] === B.ranks[i] && i <= k ? '' : ' / ' + B.ranks[i]}`).join('. '));
+    const top = 30, gap = 50, L = 96, mid = (L + 360) / 2, colA = L + (360 - L) / 4, colB = L + (3 * (360 - L)) / 4;
+    S('text', { x: colA, y: 16, 'text-anchor': 'middle', class: 'tx-h' }, svg, A.common);
+    S('text', { x: colB, y: 16, 'text-anchor': 'middle', class: 'tx-h' }, svg, B.common);
+    // the two rails, joined while the ranks are shared
+    const splitY = k < 0 ? top : top + k * gap + 18;
+    if (k >= 0) S('rect', { x: L + 6, y: top - 4, width: 360 - L - 8, height: splitY - top + 8, rx: 10, class: 'tx-shared' }, svg);
+    RANKS.forEach((r, i) => {
+      const y = top + i * gap + 14, same = i <= k;
+      S('text', { x: 4, y: y + 4, class: 'tx-r' }, svg, r.replace(' / Division', ' /'));
+      if (r.includes('Division')) S('text', { x: 4, y: y + 18, class: 'tx-r' }, svg, 'Division');
+      if (same) S('text', { x: mid, y: y + 4, 'text-anchor': 'middle', class: 'tx-n tx-ns' + (i === 6 ? ' tx-it' : '') }, svg, A.ranks[i]);
+      else {
+        S('text', { x: colA, y: y + 4, 'text-anchor': 'middle', class: 'tx-n' + (i >= 5 ? ' tx-it' : '') }, svg, A.ranks[i]);
+        S('text', { x: colB, y: y + 4, 'text-anchor': 'middle', class: 'tx-n' + (i >= 5 ? ' tx-it' : '') }, svg, B.ranks[i]);
+      }
+      if (i < 6) S('line', { x1: L, y1: y + 18, x2: 356, y2: y + 18, class: 'tx-rung' }, svg);
+    });
+    q('.tx-note').textContent = `${k < 0 ? 'They split at the very top: one is an animal, the other a plant.' : CLOSE[k]} Groups get smaller and members more alike as you go down; the species name is the genus plus one more word, written in italics.`;
+  }
+  q('.tx-a').addEventListener('change', draw); q('.tx-b').addEventListener('change', draw);
+  draw();
+
+  // rank order game
+  let got: string[] = [];
+  function deal() {
+    got = []; q('.tx-got').replaceChildren(); q('.tx-gres').textContent = '';
+    const order = [...RANKS].sort(() => Math.random() - 0.5);
+    q('.tx-chips').replaceChildren(...order.map((r) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = r; b.dataset.r = r; return b; }));
+    q('.tx-chips').querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+      const want = RANKS[got.length], res = q('.tx-gres');
+      if (b.dataset.r === want) { got.push(want); b.disabled = true; const li = document.createElement('li'); li.textContent = want; q('.tx-got').append(li); res.textContent = got.length === 7 ? 'All seven in order: kingdom, phylum, class, order, family, genus, species.' : 'Right, next one?'; res.className = 'tx-gres good'; }
+      else { res.textContent = `Not yet: ${b.dataset.r} is ${RANKS.indexOf(b.dataset.r as typeof RANKS[number]) > got.length ? 'lower down' : 'already placed'}. Which rank comes after ${got.length ? got[got.length - 1] : 'the top'}?`; res.className = 'tx-gres bad'; }
+    }));
+  }
+  q('.tx-shuffle').addEventListener('click', deal);
+  deal();
+
+  quiz(q('.tx-quiz'), (): Question[] => {
+    const pairs: [string, string][] = [['tiger', 'lion'], ['cat', 'dog'], ['mango', 'neem'], ['wheat', 'rice'], ['housefly', 'honeybee'], ['human', 'tiger'], ['tiger', 'cat']];
+    const [a, b] = pick(pairs), k = shared(taxon(a), taxon(b));
+    const t = pick(TAXA);
+    return [
+      { text: `What is the lowest rank that ${taxon(a).common.toLowerCase()} and ${taxon(b).common.toLowerCase()} share?`, choices: ['Class', 'Order', 'Family', 'Genus'], correct: ['Class', 'Order', 'Family', 'Genus'].indexOf(RANKS[k]), worked: `Both are in the ${RANKS[k].toLowerCase()} ${taxon(a).ranks[k]}; below that they differ.` },
+      { text: 'Which rank comes between class and family?', choices: ['Genus', 'Order', 'Phylum'], correct: 1, worked: 'Kingdom, phylum, class, ORDER, family, genus, species.' },
+      { text: `In ${t.ranks[6]}, which word is the genus?`, choices: [t.ranks[5], t.ranks[6].split(' ')[1]], correct: 0, worked: `The first word, ${t.ranks[5]}, is the genus (capital letter); the second is the specific epithet (small letter).` },
+      { text: 'Which group has the most members?', choices: ['A genus', 'An order', 'A kingdom'], correct: 2, worked: 'A kingdom is the biggest group; each step down holds fewer, more alike organisms.' },
+      pick([
+        { text: 'Which is written correctly?', choices: ['Mangifera Indica', 'mangifera indica', 'Mangifera indica'], correct: 2, worked: 'Genus with a capital, species epithet in small letters, both in italics (or underlined when handwritten).' },
+        { text: 'For plants, the rank at the level of phylum is usually called …', choices: ['Division', 'Order', 'Tribe'], correct: 0, worked: 'Botanists traditionally say division where zoologists say phylum.' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .txl label { display: grid; gap: 4px; }
+  .txl select { min-height: 44px; }
+  .txl .tx-lad { width: 100%; max-width: 420px; height: auto; display: block; }
+  .txl .tx-h { font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .txl .tx-r { font-size: 12px; fill: var(--muted); }
+  .txl .tx-n { font-size: 13px; fill: var(--ink); }
+  .txl .tx-ns { font-weight: 700; }
+  .txl .tx-it { font-style: italic; }
+  .txl .tx-rung { stroke: var(--line); stroke-width: 1; }
+  .txl .tx-shared { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .txl .tx-note { margin: 8px 0 0; }
+  .txl .tx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .txl .tx-chips button { min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .txl .tx-chips button:disabled { opacity: 0.35; cursor: default; }
+  .txl .tx-got { padding-left: 22px; margin: 6px 0; }
+  .txl .good { color: var(--good); font-weight: 600; } .txl .bad { color: var(--bad); font-weight: 600; }
+  .txl .tx-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
