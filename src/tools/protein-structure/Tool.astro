@@ -1,0 +1,207 @@
+---
+// Protein structure levels (Learn #1395): primary sequence and peptide bonds, α-helix and β-sheet, a folding
+// animation (water-fearing parts tuck inside; heat unfolds it) and four chains joining into haemoglobin.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn pst">
+  <div class="ax-card">
+    <h2>Four levels of structure</h2>
+    <div class="ax-seg ps-lv" role="group" aria-label="Level of structure">
+      <button type="button" data-v="1" aria-pressed="true">Primary</button><button type="button" data-v="2" aria-pressed="false">Secondary</button><button type="button" data-v="3" aria-pressed="false">Tertiary</button><button type="button" data-v="4" aria-pressed="false">Quaternary</button>
+    </div>
+    <label style="margin-top:10px">Amino-acid sequence (one-letter codes, up to 40)
+      <input class="ps-seq" value="MKLVAEFGSDLIKAWRVLEG" maxlength="60" autocomplete="off" spellcheck="false" />
+    </label>
+    <p class="ax-err ps-err" hidden></p>
+    <canvas class="lrn-cv ps-cv" style="margin-top:10px" aria-label="The protein drawn at the chosen level of structure"></canvas>
+    <div class="ax-legend"><span><i class="ps-kh"></i>water-fearing (hydrophobic)</span><span><i class="ps-kp"></i>water-loving (polar or charged)</span></div>
+    <div class="ps-two" hidden>
+      <div class="ax-seg ps-ss" role="group" aria-label="Secondary structure" style="margin-top:8px"><button type="button" data-v="a" aria-pressed="true">α-helix</button><button type="button" data-v="b" aria-pressed="false">β-pleated sheet</button></div>
+    </div>
+    <div class="ps-three" hidden>
+      <label class="lrn-sl" style="margin-top:8px">Temperature <b class="ps-tv"></b><input type="range" class="ps-t" min="20" max="90" step="5" value="25" aria-label="Temperature in degrees Celsius" /></label>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ps-play">Pause</button><button type="button" class="btn secondary small ps-unfold">Stretch it out again</button></div>
+    </div>
+    <div class="ps-four" hidden>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ps-join">Separate the chains</button></div>
+    </div>
+    <p class="ax-big ps-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <dl class="ax-facts ps-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq ps-eq"></p>
+    <p class="ax-help ps-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Primary: add one letter to the sequence. One more amino acid means one more peptide bond and one more water molecule released.</li>
+      <li>Secondary: count the dots in one turn of the helix: about 3.6. The dashed lines are hydrogen bonds holding it.</li>
+      <li>Tertiary: watch the dark beads (water-fearing) gather in the middle. Then raise the temperature past 60 °C: the fold falls apart. That is denaturing, as when an egg white cooks.</li>
+      <li>Type a sequence of only polar letters (like KDESKDES) and fold it: nothing gathers in the middle.</li>
+      <li>Quaternary: separate and join the four chains of haemoglobin.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ps-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .pst .ps-kh { background: var(--warn); }
+  .pst .ps-kp { background: var(--accent); }
+  .pst .ps-seq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+  .pst .ps-big { font-size: clamp(18px, 4.6vw, 24px); }
+</style>
+
+<script>
+  import { clean, three, primary, helix, strand, extended, foldStep, shape, rng, HYDROPHOBIC, type Bead } from '../../lib/sci/protein-structure';
+  import { mountQuiz, pick, one, r, fitCanvas, loop, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.ps-cv'), inp = q<HTMLInputElement>('.ps-seq');
+  const H = 280;
+  let lv = '1', ss = 'a', seq = '', beads: Bead[] = [], joined = true, join = 1, rand = rng(7), steps = 0;
+  const fmtBig = (x: number) => { const e = Math.floor(Math.log10(x)); return e < 6 ? Math.round(x).toLocaleString('en') : `${(x / 10 ** e).toFixed(2)} × 10^${e}`; };
+  const fact = (a: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; d.querySelector('dd')!.append(x); } return d; };
+  const beadCol = (pal: Palette, c: string) => (HYDROPHOBIC.has(c) ? pal.warn : pal.accent);
+
+  function readSeq() {
+    const raw = inp.value.replace(/\s/g, ''), s = clean(raw).slice(0, 40), bad = raw.length - clean(raw).length;
+    const err = q('.ps-err');
+    err.hidden = !(bad > 0 || clean(raw).length > 40 || s.length < 2);
+    err.textContent = s.length < 2 ? 'Type at least 2 amino-acid letters (A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y).' : bad > 0 ? `${bad} character${bad > 1 ? 's were' : ' was'} left out: only the 20 standard one-letter codes are used.` : 'Only the first 40 amino acids are used.';
+    if (s.length < 2) return false;
+    if (s !== seq) { seq = s; beads = extended(seq); rand = rng(7); steps = 0; }
+    return true;
+  }
+
+  function drawPrimary(c: CanvasRenderingContext2D, W: number, pal: Palette) {
+    const per = Math.max(5, Math.floor((W - 20) / 46)), rows = Math.ceil(seq.length / per), gap = (W - 20) / per;
+    for (let i = 0; i < seq.length; i++) {
+      const row = Math.floor(i / per), col = row % 2 ? per - 1 - (i % per) : i % per, x = 10 + gap * (col + 0.5), y = 30 + row * Math.min(56, (H - 50) / rows);
+      if (i > 0) { const pr = Math.floor((i - 1) / per), pc = pr % 2 ? per - 1 - ((i - 1) % per) : (i - 1) % per; c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(10 + gap * (pc + 0.5), 30 + pr * Math.min(56, (H - 50) / rows)); c.lineTo(x, y); c.stroke(); }
+      c.fillStyle = beadCol(pal, seq[i]); c.beginPath(); c.arc(x, y, Math.min(16, gap / 2 - 2), 0, Math.PI * 2); c.fill();
+      c.fillStyle = pal.bg; c.font = '700 10px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(three(seq[i]), x, y + 3.5);
+    }
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('Starts top left (N-terminus); lines: peptide bonds', 8, H - 8);
+  }
+  function drawSecondary(c: CanvasRenderingContext2D, W: number, pal: Palette) {
+    const n = seq.length;
+    if (ss === 'a') {
+      const L = W - 40, dx = L / Math.max(1, n - 1), cy = H / 2 - 10, amp = 60;
+      const P = (i: number) => ({ x: 20 + i * dx, y: cy + amp * Math.sin((2 * Math.PI * i) / 3.6), front: Math.cos((2 * Math.PI * i) / 3.6) > 0 });
+      c.strokeStyle = pal.bad; c.lineWidth = 1.2; c.setLineDash([3, 3]);
+      for (let i = 0; i + 4 < n; i++) { const a = P(i), b = P(i + 4); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+      c.setLineDash([]);
+      for (const front of [false, true]) {
+        c.strokeStyle = front ? pal.ink : pal.line; c.lineWidth = front ? 3 : 2;
+        for (let i = 1; i < n; i++) { const a = P(i - 1), b = P(i); if (b.front !== front) continue; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+        for (let i = 0; i < n; i++) { const p = P(i); if (p.front !== front) continue; c.fillStyle = beadCol(pal, seq[i]); c.globalAlpha = front ? 1 : 0.5; c.beginPath(); c.arc(p.x, p.y, 7, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
+      }
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left';
+      c.fillText('Side view, stretched out; dashed: H-bonds (residue i to i + 4)', 8, H - 8);
+    } else {
+      const strands = 3, per = Math.ceil(n / strands), L = W - 40, dx = L / Math.max(1, per - 1);
+      const P = (i: number) => { const s = Math.floor(i / per), k = i % per, kk = s % 2 ? per - 1 - k : k; return { x: 20 + kk * dx, y: 60 + s * 70 + (kk % 2 ? 8 : -8) }; };
+      c.strokeStyle = pal.bad; c.lineWidth = 1.2; c.setLineDash([3, 3]);
+      for (let i = 0; i < n; i++) { const a = P(i); for (let j = i + 1; j < n; j++) { const b = P(j); if (Math.abs(a.x - b.x) < 1 && Math.abs(Math.abs(a.y - b.y) - 70) < 20) { c.beginPath(); c.moveTo(a.x, a.y + 8); c.lineTo(b.x, b.y - 8); c.stroke(); } } }
+      c.setLineDash([]);
+      c.strokeStyle = pal.ink; c.lineWidth = 2.5;
+      for (let i = 1; i < n; i++) { const a = P(i - 1), b = P(i); c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+      for (let i = 0; i < n; i++) { const p = P(i); c.fillStyle = beadCol(pal, seq[i]); c.beginPath(); c.arc(p.x, p.y, 7, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('Three antiparallel strands; dashed: H-bonds between strands', 8, H - 8);
+    }
+  }
+  function drawTertiary(c: CanvasRenderingContext2D, W: number, pal: Palette) {
+    const k = Math.min(18, (W - 30) / 22), cx = W / 2, cy = H / 2;
+    const mx = beads.reduce((s, b) => s + b.x, 0) / beads.length, my = beads.reduce((s, b) => s + b.y, 0) / beads.length;
+    const X = (b: Bead) => cx + (b.x - mx) * k, Y = (b: Bead) => cy + (b.y - my) * k;
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); beads.forEach((b, i) => (i ? c.lineTo(X(b), Y(b)) : c.moveTo(X(b), Y(b)))); c.stroke();
+    beads.forEach((b, i) => { c.fillStyle = beadCol(pal, seq[i]); c.beginPath(); c.arc(X(b), Y(b), Math.max(4, k * 0.38), 0, Math.PI * 2); c.fill(); });
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('Water is all around the chain', 8, 16);
+  }
+  function drawQuaternary(c: CanvasRenderingContext2D, W: number, pal: Palette) {
+    const cx = W / 2, cy = H / 2 - 6, d = 38 + (1 - join) * Math.min(80, W / 5);
+    const subs: [number, number, string, string][] = [[-1, -1, 'α1', pal.accent], [1, -1, 'β1', pal.warn], [-1, 1, 'β2', pal.warn], [1, 1, 'α2', pal.accent]];
+    for (const [sx, sy, lab, col] of subs) {
+      const x = cx + sx * d, y = cy + sy * d * 0.85;
+      c.fillStyle = col; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(x, y, 40, 32, sx * sy * 0.4, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+      c.fillStyle = pal.bad; c.beginPath(); c.rect(x - 7 + sx * 8, y - 4, 14, 8); c.fill();
+      c.fillStyle = pal.bg; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(lab, x - sx * 10, y + 18);
+    }
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('Red: haem groups (each carries one O₂)', 8, H - 8);
+  }
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    if (!seq) return;
+    if (lv === '1') drawPrimary(c, W, pal); else if (lv === '2') drawSecondary(c, W, pal); else if (lv === '3') drawTertiary(c, W, pal); else drawQuaternary(c, W, pal);
+  }
+  function texts() {
+    if (!readSeq()) { q('.ps-big').textContent = ''; q('.ps-facts').replaceChildren(); q('.ps-eq').textContent = ''; draw(); return; }
+    const p = primary(seq), n = p.n, T = +q<HTMLInputElement>('.ps-t').value;
+    q<HTMLElement>('.ps-two').hidden = lv !== '2'; q<HTMLElement>('.ps-three').hidden = lv !== '3'; q<HTMLElement>('.ps-four').hidden = lv !== '4';
+    q('.ps-tv').textContent = `${T} °C`;
+    let big = '', facts: HTMLElement[] = [], eq = '', note = '';
+    if (lv === '1') {
+      big = `${n} amino acids joined by ${p.bonds} peptide bonds`;
+      facts = [fact('Peptide bonds', String(p.bonds), 'n − 1'), fact('Water released', `${p.water} H₂O`, 'one per bond'), fact('Mass', `${r(p.mass, 5)} Da`, 'average, from the formulas'), fact('Water-fearing', `${p.hydrophobic} of ${n}`), fact(`Possible sequences of ${n}`, fmtBig(p.sequences), `20 to the power ${n}`)];
+      eq = `Mass = sum of the residue masses + one water (18.02) for the two ends = ${r(p.mass, 5)} Da. Each peptide bond forms by condensation, releasing one H₂O: ${n} amino acids → ${p.bonds} bonds → ${p.water} H₂O.`;
+      note = 'Primary structure is just the order of amino acids, read from the N-terminus to the C-terminus. It decides every other level.';
+    } else if (lv === '2') {
+      const h = helix(n), s = strand(n);
+      big = ss === 'a' ? `As one α-helix: ${r(h.turns, 3)} turns, ${r(h.length, 3)} nm long` : `As β-strands: about ${r(s, 3)} nm of stretched chain`;
+      facts = [fact('Residues per turn', '3.6'), fact('Rise per residue', '0.15 nm'), fact('Pitch (one turn)', `${r(h.pitch, 2)} nm`), fact('Helix length', `${r(h.length, 3)} nm`), fact('Stretched strand length', `${r(s, 3)} nm`, '≈ 0.33 nm per residue')];
+      eq = ss === 'a' ? `Length = ${n} × 0.15 = ${r(h.length, 3)} nm; turns = ${n} ÷ 3.6 = ${r(h.turns, 3)}.` : `Length ≈ ${n} × 0.33 = ${r(s, 3)} nm. A β-strand is stretched out, so it is about twice as long as the same chain wound into a helix.`;
+      note = 'Secondary structure is held by hydrogen bonds between the backbone C=O and N–H groups, not by the side chains. Real proteins mix helices, sheets and loops.';
+    } else if (lv === '3') {
+      const sh = shape(beads), hn = p.hydrophobic;
+      big = T >= 60 ? 'Too hot: the fold breaks apart (denatured)' : sh.rg < 2.2 ? 'Folded: water-fearing beads tucked inside' : 'Folding…';
+      facts = [fact('Temperature', `${T} °C`), fact('Water-fearing beads buried', `${sh.buried} of ${hn}`), fact('Size (radius of gyration)', `${r(sh.rg, 2)} bead units`, `stretched out: ${r(Math.sqrt((n * n - 1) / 12), 3)}`)];
+      eq = 'Water-fearing side chains crowd together away from water; water-loving ones stay on the outside. Hydrogen bonds, ionic bonds and disulphide (S–S) bridges then lock the 3D shape.';
+      note = 'A simple 2D bead model, not real folding: it shows why a chain folds into a compact shape with an oily core.';
+    } else {
+      big = joined ? 'Haemoglobin: 4 chains joined into one protein' : 'Four separate chains';
+      facts = [fact('Chains', '4', '2 α and 2 β'), fact('Amino acids', '574', '141 in each α, 146 in each β'), fact('Haem groups', '4', 'so up to 4 O₂'), fact('Mass', 'about 64,500 Da')];
+      eq = 'Quaternary structure is how two or more folded chains (subunits) fit together. Not every protein has one: myoglobin is a single chain.';
+      note = 'The drawing is a cartoon of the arrangement, not the real shape.';
+    }
+    q('.ps-big').textContent = big; q('.ps-facts').replaceChildren(...facts); q('.ps-eq').textContent = eq; q('.ps-note').textContent = note;
+    draw();
+  }
+
+  const anim = loop((dt) => {
+    if (lv === '3' && seq) { const T = +q<HTMLInputElement>('.ps-t').value; for (let i = 0; i < 6; i++) foldStep(beads, T, 0.02, rand); steps++; if (steps % 6 === 0 || dt === 0) texts(); else draw(); }
+    else if (lv === '4') { const to = joined ? 1 : 0; if (Math.abs(join - to) > 0.01) { join += (to - join) * Math.min(1, dt * 4); draw(); } }
+  }, q<HTMLButtonElement>('.ps-play'));
+  const seg = (sel: string, cb: (v: string) => void) => q(sel).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; q(sel).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); cb(b.dataset.v!); texts(); });
+  seg('.ps-lv', (v) => { lv = v; });
+  seg('.ps-ss', (v) => { ss = v; });
+  inp.addEventListener('input', texts);
+  q('.ps-t').addEventListener('input', texts);
+  q('.ps-unfold').addEventListener('click', () => { beads = extended(seq); steps = 0; texts(); });
+  q('.ps-join').addEventListener('click', () => { joined = !joined; q('.ps-join').textContent = joined ? 'Separate the chains' : 'Join the chains'; texts(); });
+  new ResizeObserver(draw).observe(cv);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  texts(); anim.redraw();
+
+  mountQuiz(q('.ps-quiz'), (): QItem[] => {
+    const n = pick(8, 60), m = pick(3, 6), h = pick(18, 72, 2), avg = 110;
+    return [
+      { q: `A polypeptide has ${n} amino acids in one chain. How many peptide bonds does it have?`, ans: n - 1, unit: 'bonds', abs: 0.01, work: `One fewer bond than amino acids: ${n} − 1 = ${n - 1}. (${n - 1} water molecules are released making them.)` },
+      { q: `How many different sequences of ${m} amino acids can be made from the 20 kinds?`, ans: 20 ** m, unit: 'sequences', work: `20 choices for each position: 20^${m} = ${(20 ** m).toLocaleString('en')}.` },
+      { q: `An α-helix has ${h} amino acids. How long is it, in nm? (0.15 nm per residue)`, ans: h * 0.15, unit: 'nm', work: `${h} × 0.15 = ${r(h * 0.15)} nm (${r(h / 3.6)} turns of 3.6 residues).` },
+      { q: `Using an average residue mass of ${avg} Da, estimate the mass of a protein of ${n * 5} amino acids, in Da.`, ans: n * 5 * avg + 18, unit: 'Da', work: `${n * 5} × ${avg} + 18 (one water for the ends) = ${(n * 5 * avg + 18).toLocaleString('en')} Da.` },
+      one<QItem>([
+        { q: 'Which bonds hold an α-helix together?', ans: 1, choices: ['Peptide bonds', 'Hydrogen bonds in the backbone', 'Disulphide bridges', 'Ionic bonds between side chains'], work: 'Each C=O in the backbone forms a hydrogen bond with the N–H four residues further along.' },
+        { q: 'Which level of structure does haemoglobin have that myoglobin does not?', ans: 3, choices: ['Primary', 'Secondary', 'Tertiary', 'Quaternary'], work: 'Haemoglobin has four chains fitted together (quaternary); myoglobin is one chain.' },
+        { q: 'Boiling an egg white changes which level of protein structure first?', ans: 2, choices: ['Primary', 'Peptide bonds', 'Tertiary (and secondary)', 'None'], work: 'Heat breaks the weak bonds that hold the fold, so the 3D shape (and helices and sheets) is lost; the peptide bonds and sequence stay.' },
+      ]),
+    ];
+  });
+</script>
