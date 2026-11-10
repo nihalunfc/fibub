@@ -1,0 +1,97 @@
+---
+// #1755 Dividend calculator: yield, yield on cost, income and a DRIP projection.
+---
+<div class="tool-ui dv">
+  <section class="panel">
+    <h2>Your shares</h2>
+    <div class="dv-grid">
+      <label>Currency <select class="dv-cur" data-k="cur"></select></label>
+      <label>Shares held <input data-k="shares" inputmode="decimal" /></label>
+      <label>Price now, per share <input data-k="price" inputmode="decimal" /></label>
+      <label>Your average cost, per share <input data-k="cost" inputmode="decimal" /></label>
+      <label>Dividend per share, per year <input data-k="dps" inputmode="decimal" /></label>
+      <label>Dividend growth, a year (%) <input data-k="dg" inputmode="decimal" /></label>
+      <label>Price growth, a year (%) <input data-k="pg" inputmode="decimal" /></label>
+      <label>Years <input data-k="years" inputmode="decimal" /></label>
+    </div>
+    <label class="chk" style="margin-top:12px"><input type="checkbox" data-k="drip" checked /> Reinvest dividends (DRIP) in more shares at the year-end price</label>
+    <p class="note bad dv-err" role="alert" hidden></p>
+  </section>
+  <section class="dv-res" aria-live="polite">
+    <div class="dv-stats">
+      <div><span>Dividend yield</span><b class="dv-s-y"></b></div>
+      <div><span>Yield on cost</span><b class="dv-s-yc"></b></div>
+      <div><span>Income this year</span><b class="dv-s-i"></b></div>
+      <div class="good"><span class="dv-l-last">Income in the last year</span><b class="dv-s-last"></b></div>
+      <div><span>Value at the end</span><b class="dv-s-val"></b></div>
+      <div><span>Total dividends received</span><b class="dv-s-tot"></b></div>
+    </div>
+    <div class="panel dv-wrap"><table>
+      <thead><tr><th>Year</th><th>Dividend per share</th><th>Income</th><th>Shares</th><th>Value</th></tr></thead>
+      <tbody class="dv-body"></tbody>
+    </table></div>
+    <button type="button" class="btn secondary dv-csv">Download the table (CSV)</button>
+  </section>
+  <p class="dv-fine">Yield is the yearly dividend divided by today's price; yield on cost divides it by what you paid. Income each year is the dividend per share times the shares held at the start of that year; reinvested dividends buy shares at that year's end price. Dividends are not guaranteed and may be taxed where you live (see the income tax tools). Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .dv > *, .dv-res > * { min-width: 0; }
+  .dv h2 { margin: 0 0 12px; font-size: 18px; }
+  .dv .panel { padding: 16px; }
+  .dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .dv label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dv input, .dv select, .dv textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .dv textarea { min-height: 150px; font-family: ui-monospace, monospace; font-size: 14px; }
+  .dv input:focus, .dv select:focus, .dv textarea:focus { border-color: var(--accent); outline: none; }
+  .dv .chk { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .dv .chk input { width: auto; }
+  .dv-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .dv-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .dv-stats span { font-size: 13px; color: var(--muted); }
+  .dv-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .dv-stats .good b { color: var(--good); }
+  .dv-wrap { overflow-x: auto; }
+  .dv table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .dv th, .dv td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .dv th:first-child, .dv td:first-child { text-align: left; }
+  .dv th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dv td input { padding: 6px 8px; }
+  .dv-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .dv-err { margin: 10px 0 0; }
+  .dv .btn { justify-self: start; }
+</style>
+
+<script>
+  import { dividends, type DivYear } from '../../lib/money/investing';
+  import { csv } from '../../lib/money/growth';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.dv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.dv-cur').innerHTML = currencyOptions(defaultCurrency());
+  Object.entries({ shares: '100', price: '100', cost: '50', dps: '3', dg: '5', pg: '3', years: '10' }).forEach(([k, v]) => (f(k).value = v));
+  let rows: DivYear[] = [];
+  function run() {
+    const $ = (n: number) => money(n, f('cur').value, 2), p = (v: number) => (Math.round(v * 10000) / 100) + '%';
+    const shares = num(f('shares').value), price = num(f('price').value), cost = num(f('cost').value), dps = num(f('dps').value), years = Math.floor(num(f('years').value)), dg = num(f('dg').value), pg = num(f('pg').value);
+    const bad = !(shares > 0) ? 'Enter how many shares you hold.' : !(price > 0) ? 'Enter the price per share.' : dps < 0 || cost < 0 ? 'Amounts cannot be negative.' : !(years >= 1 && years <= 60) ? 'Enter the years, from 1 to 60.' : dg < -50 || dg > 100 || pg < -50 || pg > 100 ? 'Growth rates should be between -50 and 100.' : '';
+    q('.dv-err').hidden = !bad; q('.dv-err').textContent = bad; q('.dv-res').hidden = !!bad;
+    if (bad) return;
+    rows = dividends({ shares, cost, price, dps, divGrowth: dg, priceGrowth: pg, years, drip: f('drip').checked });
+    const last = rows[rows.length - 1];
+    q('.dv-s-y').textContent = p(dps / price);
+    q('.dv-s-yc').textContent = cost > 0 ? p(dps / cost) : 'n/a';
+    q('.dv-s-i').textContent = $(rows[0].income);
+    q('.dv-l-last').textContent = `Income in year ${years}`;
+    q('.dv-s-last').textContent = $(last.income);
+    q('.dv-s-val').textContent = $(last.value);
+    q('.dv-s-tot').textContent = $(rows.reduce((s, r) => s + r.income, 0));
+    q('.dv-body').innerHTML = rows.map((r) => `<tr><td>${r.year}</td><td>${$(r.dps)}</td><td>${$(r.income)}</td><td>${Math.round(r.shares * 1000) / 1000}</td><td>${$(r.value)}</td></tr>`).join('');
+  }
+  q('.dv-csv').addEventListener('click', () => csv('dividends.csv', ['Year', 'Dividend per share', 'Income', 'Shares at year end', 'Value at year end'], rows.map((r) => [r.year, r.dps, r.income, r.shares, r.value])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
