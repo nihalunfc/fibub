@@ -947,7 +947,7 @@ try {
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
     await page.hover('.dd[data-shelf=science] .dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
     check(await page.isVisible('.dd[data-shelf=science] .dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd[data-shelf=science] .dd-pane.on .dd-all')), 'header: each subject links to all its tools');
-    const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
+    const perSec = await page.$$eval('.dd[data-shelf=science] .dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
     check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
     // Change log: footer link, newest first, 50 to a page; each tool page shows its own changes.
     await page.goto(BASE + '/');
