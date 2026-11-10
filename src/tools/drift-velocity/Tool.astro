@@ -1,0 +1,173 @@
+---
+// Drift velocity: electrons jitter at random and drift slowly against the field; I = n e A v_d with the live numbers.
+// Advanced level adds the field, relaxation time and mobility. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax drv">
+  <div class="ax-card">
+    <h2>Electrons in a wire</h2>
+    <div class="ax-row">
+      <span class="ax-seg drv-level" role="group" aria-label="Level"><button type="button" data-v="1" aria-pressed="true">Basic</button><button type="button" data-v="2" aria-pressed="false">Advanced</button></span>
+      <span class="ax-seg drv-metal" role="group" aria-label="Metal"><button type="button" data-v="copper" aria-pressed="true">Copper</button><button type="button" data-v="aluminium" aria-pressed="false">Aluminium</button><button type="button" data-v="silver" aria-pressed="false">Silver</button></span>
+    </div>
+    <label class="drv-sl">Current: <b class="drv-iv">1.0 A</b><input type="range" class="drv-i" min="0" max="10" step="0.1" value="1" aria-label="Current in amperes" /></label>
+    <label class="drv-sl">Cross-section of the wire: <b class="drv-av">1.00 mm²</b><input type="range" class="drv-a" min="0.25" max="10" step="0.25" value="1" aria-label="Cross-section in square millimetres" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small drv-play">Pause</button>
+      <label class="ax-check"><input type="checkbox" class="drv-trail" checked /> Follow one electron</label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig drv-fig"></canvas>
+    <div class="ax-legend"><span><i class="drv-ke"></i>free electron</span><span><i class="drv-ki"></i>metal ion</span><span><i class="drv-kt"></i>path of one electron</span></div>
+    <p class="ax-help drv-scale"></p>
+    <p class="ax-big drv-big" aria-live="polite"></p>
+    <p class="drv-formula"></p>
+    <dl class="ax-facts drv-facts" style="margin-top:10px"></dl>
+    <div class="drv-adv" hidden>
+      <h3>Why so slow? The field, collisions and mobility</h3>
+      <p class="drv-adv-f"></p>
+      <dl class="ax-facts drv-afacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="drv-try">
+      <li>Set the current to 0: the electrons still dash about, but there is no drift, so no current.</li>
+      <li>Double the current: the drift speed doubles.</li>
+      <li>Double the cross-section at the same current: the drift speed halves.</li>
+      <li>Switch to aluminium: three free electrons per atom, so they drift more slowly for the same current.</li>
+      <li>Look at the time to drift 1 m: hours! The lamp still lights at once because the field is set up along the whole wire almost instantly.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="drv-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .drv .drv-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .drv input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .drv-fig { max-width: 560px; margin-left: auto; margin-right: auto; touch-action: pan-y; }
+  .drv-ke { background: var(--accent); border-radius: 50% !important; }
+  .drv-ki { background: var(--line); border-radius: 50% !important; }
+  .drv-kt { background: var(--warn); }
+  .drv-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .drv-formula, .drv-adv-f { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .drv-adv h3 { font-size: 16px; margin: 14px 0 4px; }
+  .drv-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .drv .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .drv .eq-q p { margin: 0 0 6px; }
+  .drv .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .drv .eq-ok { color: var(--good); font-weight: 600; }
+  .drv .eq-no { color: var(--bad); }
+  .drv .eq-work { margin-top: 4px; font-size: 14px; }
+  .drv .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .drv .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { wire, METALS, questions, type Metal } from '../../lib/sci/drift-velocity';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme, arrow, still } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.drv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.drv-fig');
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  let level = 1, metal: Metal = 'copper', running = !still();
+  const W = 360, H = 200, TOP = 46, BOT = 166, LEFT = 14, RIGHT = 346;
+
+  const now = () => wire(metal, val('.drv-i'), val('.drv-a') * 1e-6, 1);
+  const hours = (s: number) => !Number.isFinite(s) ? 'never (no drift)' : s < 120 ? `${sig(s, 3)} s` : s < 7200 ? `${sig(s / 60, 3)} min` : `${sig(s / 3600, 3)} hours`;
+
+  // Animation: electrons move at a fixed (drawing) random speed, change direction at each collision, and are pushed
+  // a little towards + between collisions. The push is scaled from the real drift speed so the drift is visible.
+  type E = { x: number; y: number; vx: number; vy: number };
+  const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+  const kick = (e: E) => { const a = rnd(0, Math.PI * 2); e.vx = 55 * Math.cos(a); e.vy = 55 * Math.sin(a); };
+  const els: E[] = Array.from({ length: 34 }, () => { const e = { x: rnd(LEFT, RIGHT), y: rnd(TOP + 6, BOT - 6), vx: 0, vy: 0 }; kick(e); return e; });
+  const trail: [number, number][] = [];
+  let net = 0, last = 0;
+  const pushNow = () => { const s = now(); return -Math.min(260, s.vd / 7.35e-5 * 26); }; // drawing px/s² towards the left (+ end)
+  function step(dt: number) {
+    const a = pushNow(), mid = (LEFT + RIGHT) / 2;
+    els.forEach((e, i) => {
+      const x0 = e.x;
+      e.vx += a * dt; e.x += e.vx * dt; e.y += e.vy * dt;
+      if (Math.random() < dt / 0.35) kick(e); // a collision with an ion
+      if (e.y < TOP + 4) { e.y = TOP + 4; e.vy = Math.abs(e.vy); }
+      if (e.y > BOT - 4) { e.y = BOT - 4; e.vy = -Math.abs(e.vy); }
+      if (x0 >= mid && e.x < mid) net++; else if (x0 < mid && e.x >= mid) net--;
+      const span = RIGHT - LEFT;
+      if (e.x < LEFT) { e.x += span; if (i === 0) trail.length = 0; }
+      if (e.x > RIGHT) { e.x -= span; if (i === 0) trail.length = 0; }
+      if (i === 0) { trail.push([e.x, e.y]); if (trail.length > 400) trail.shift(); }
+    });
+  }
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = now();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.strokeRect(LEFT - 4, TOP - 4, RIGHT - LEFT + 8, BOT - TOP + 8);
+    c.fillStyle = pal.line;
+    for (let x = LEFT + 14; x < RIGHT; x += 28) for (let y = TOP + 14; y < BOT; y += 28) { c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fill(); }
+    c.setLineDash([4, 4]); c.strokeStyle = pal.muted; c.lineWidth = 1; c.beginPath(); c.moveTo((LEFT + RIGHT) / 2, TOP - 4); c.lineTo((LEFT + RIGHT) / 2, BOT + 4); c.stroke(); c.setLineDash([]);
+    if (q<HTMLInputElement>('.drv-trail').checked && trail.length > 1) {
+      c.strokeStyle = pal.warn; c.lineWidth = 1.2; c.beginPath();
+      trail.forEach(([x, y], i) => { if (i && Math.abs(x - trail[i - 1][0]) > 60) c.moveTo(x, y); else if (i) c.lineTo(x, y); else c.moveTo(x, y); }); c.stroke();
+    }
+    els.forEach((e, i) => { c.fillStyle = i === 0 && q<HTMLInputElement>('.drv-trail').checked ? pal.warn : pal.accent; c.beginPath(); c.arc(e.x, e.y, 3.4, 0, Math.PI * 2); c.fill(); });
+    c.font = '700 15px system-ui, sans-serif'; c.textAlign = 'center'; c.fillStyle = pal.bad; c.fillText('+', LEFT + 4, 26); c.fillStyle = pal.accent; c.fillText('−', RIGHT - 4, 26);
+    c.font = '12px system-ui, sans-serif'; c.fillStyle = pal.ink; c.strokeStyle = pal.ink; c.lineWidth = 1.5;
+    if (s.vd > 0) {
+      arrow(c, 120, 24, 240, 24); c.fillText('current I and field E', 180, 14);
+      c.strokeStyle = pal.accent; c.fillStyle = pal.accent; arrow(c, 240, 186, 120, 186); c.fillText('electrons drift', 180, 200 - 2);
+    } else { c.fillStyle = pal.muted; c.fillText('no current: random motion only, no drift', 180, 24); }
+    fig.setAttribute('aria-label', `Electrons moving at random in a ${METALS[metal].name.toLowerCase()} wire${s.vd > 0 ? ', drifting slowly towards the + end' : ', with no drift'}`);
+  }
+  function loop(t: number) {
+    const dt = Math.min(0.05, (t - (last || t)) / 1000); last = t;
+    if (running) { step(dt); draw(); requestAnimationFrame(loop); } else last = 0;
+  }
+  function texts() {
+    const s = now(), I = val('.drv-i'), A = val('.drv-a');
+    q('.drv-iv').textContent = `${I.toFixed(1)} A`; q('.drv-av').textContent = `${A.toFixed(2)} mm²`;
+    const mm = s.vd * 1000;
+    q('.drv-big').textContent = s.vd > 0 ? `Drift speed v_d = ${sig(mm, 3)} mm/s` : 'No current, so no drift: v_d = 0';
+    q('.drv-formula').textContent = `v_d = I / (n e A) = ${sig(I, 3)} / (${sig(s.n, 3)} × 1.60 × 10⁻¹⁹ × ${sig(A * 1e-6, 3)}) = ${sig(s.vd, 3)} m/s`;
+    q('.drv-facts').replaceChildren(
+      fact('Free electrons n', `${sig(s.n, 3)} per m³`, `${METALS[metal].z} per atom`),
+      fact('Current density J = I/A', `${sig(s.J / 1e6, 3)} A/mm²`),
+      fact('Time to drift 1 m', hours(s.crossTime)),
+      fact('Random (thermal) speed', `about ${sig(s.vth / 1000, 2)} km/s`, s.vd > 0 ? `${sig(s.vth / s.vd, 2)} times the drift` : 'at room temperature'),
+    );
+    q('.drv-scale').textContent = 'The picture slows the random motion down enormously and blows the drift up so you can see it; the numbers below are the real ones.';
+    const adv = q('.drv-adv'); adv.hidden = level !== 2;
+    if (level === 2) {
+      q('.drv-adv-f').textContent = `E = ρ J = ${sig(s.rho, 3)} × ${sig(s.J, 3)} = ${sig(s.E, 3)} V/m. Between collisions an electron speeds up by e E / m; on average it has had τ = m / (n e² ρ) to do so, so v_d = e E τ / m = ${sig(s.vdCheck, 3)} m/s, the same as I / (n e A).`;
+      q('.drv-afacts').replaceChildren(
+        fact('Resistivity ρ', `${sig(s.rho, 3)} Ω m`, 'rounded value at 20 °C'),
+        fact('Field in the wire E', `${sig(s.E * 1000, 3)} mV/m`),
+        fact('Relaxation time τ', `${sig(s.tau * 1e15, 3)} fs`, 'average time between collisions'),
+        fact('Mobility μ = v_d / E', `${sig(s.mobility, 3)} m²/(V s)`, 'μ = e τ / m'),
+      );
+    }
+  }
+  const all = () => { texts(); if (!running) draw(); };
+  for (const c of ['.drv-i', '.drv-a']) q(c).addEventListener('input', all);
+  q('.drv-trail').addEventListener('change', () => { trail.length = 0; all(); });
+  seg(q('.drv-level'), (v) => { level = +v; all(); });
+  seg(q('.drv-metal'), (v) => { metal = v as Metal; all(); });
+  const playText = () => { q('.drv-play').textContent = running ? 'Pause' : 'Play'; };
+  q('.drv-play').addEventListener('click', () => { running = !running; playText(); if (running) requestAnimationFrame(loop); });
+  onTheme(() => draw());
+  for (let i = 0; i < 40; i++) step(0.03);
+  texts(); draw(); playText(); if (running) requestAnimationFrame(loop);
+  quiz(q('.drv-quiz'), () => questions());
+</script>
