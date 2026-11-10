@@ -1,0 +1,121 @@
+---
+// Meselson-Stahl: grow ¹⁵N-labelled DNA in ¹⁴N for 0–4 generations and compare the density-gradient bands predicted
+// by the semi-conservative, conservative and dispersive models with the real result; see every molecule's strands.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax ms">
+  <div class="ax-card">
+    <div class="ax-seg ms-m" role="group" aria-label="Model of copying"><button type="button" data-m="semi" aria-pressed="true">Semi-conservative</button><button type="button" data-m="conservative" aria-pressed="false">Conservative</button><button type="button" data-m="dispersive" aria-pressed="false">Dispersive</button></div>
+    <label class="ms-rl"><span>Gen.</span><input type="range" class="ms-g" min="0" max="4" step="1" value="1" aria-label="Generations in light nitrogen" /><output class="ms-og"></output></label>
+    <div class="ax-row" style="margin-top:8px"><label class="ax-check"><input type="checkbox" class="ms-real" /> Show what Meselson and Stahl saw</label><label class="ax-check"><input type="checkbox" class="ms-heat" /> Heat to separate the strands</label></div>
+    <p class="ax-big ms-big" style="margin:12px 0 2px"></p>
+    <p class="ms-sub" style="margin:0 0 6px"></p>
+    <svg class="ms-tubes" viewBox="0 0 320 210" role="img" aria-label="Centrifuge tubes"></svg>
+    <h3 style="margin:10px 0 4px;font-size:16px">Every DNA molecule</h3>
+    <svg class="ms-mols" viewBox="0 0 320 120" role="img" aria-label="DNA molecules"></svg>
+    <p class="ax-help">Dark strands are made with heavy nitrogen (¹⁵N), pale strands with light nitrogen (¹⁴N). Heavier DNA sinks lower in the caesium chloride gradient. Starting from one molecule; the shares are the same for a whole culture.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Generation 1: which model gives one band, and which gives two? Which one did the real experiment rule out?</li>
+      <li>Generation 2: semi-conservative and dispersive both gave one band at generation 1. What tells them apart now?</li>
+      <li>Semi-conservative: does the hybrid band ever disappear? What share is hybrid after 3 generations?</li>
+      <li>Tick "heat to separate the strands" at generation 1. Why do semi-conservative and conservative look the same now?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .ms-rl { display: grid !important; grid-template-columns: 38px 1fr 110px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .ms-rl input { height: 36px; accent-color: var(--accent); }
+  .ms-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .ms .ax-row { gap: 14px; flex-wrap: wrap; }
+  .ms-tubes, .ms-mols { display: block; width: 100%; max-width: 460px; margin: 6px auto; }
+  .ms .tube { fill: var(--surface); stroke: var(--ink); stroke-width: 1.8; }
+  .ms .band { fill: var(--ink); }
+  .ms .band.real { fill: var(--accent); }
+  .ms .guide { stroke: var(--line); stroke-dasharray: 3 3; }
+  .ms .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .ms .tb { fill: var(--ink); font: 600 12px system-ui, sans-serif; }
+  .ms .st { stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+  .ms .rung { stroke: var(--muted); stroke-width: 1; }
+</style>
+
+<script>
+  import { bands, molecules, strands, type Model } from '../../lib/sci/meselson';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ms')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const NAMES: Record<Model, string> = { semi: 'Semi-conservative', conservative: 'Conservative', dispersive: 'Dispersive' };
+  const pct = (x: number) => `${Number((x * 100).toPrecision(3))} %`;
+  let model: Model = 'semi';
+
+  function tube(svg: SVGSVGElement, x: number, title: string, bs: { heavy: number; share: number }[], real: boolean) {
+    const top = 26, bot = 190, yOf = (h: number) => 70 + h * 90; // light high, heavy low
+    svg.append(sv('path', { d: `M${x - 26} ${top} V${bot - 18} Q${x - 26} ${bot} ${x} ${bot} Q${x + 26} ${bot} ${x + 26} ${bot - 18} V${top}`, class: 'tube' }));
+    svg.append(sv('text', { x, y: 14, class: 'tb', 'text-anchor': 'middle' }, title));
+    for (const b of bs) svg.append(sv('rect', { x: x - 22, y: yOf(b.heavy) - 2 - 4 * b.share, width: 44, height: 4 + 8 * b.share, rx: 2, class: `band${real ? ' real' : ''}`, 'fill-opacity': (0.35 + 0.65 * b.share).toFixed(2), 'data-heavy': b.heavy, 'data-share': b.share }));
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.ms-m button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === model)));
+    const g = Number(q<HTMLInputElement>('.ms-g').value), real = q<HTMLInputElement>('.ms-real').checked, heat = q<HTMLInputElement>('.ms-heat').checked;
+    q('.ms-og').textContent = g === 0 ? 'start (all ¹⁵N)' : `${g} in ¹⁴N`;
+    const get = (m: Model) => (heat ? strands(m, g) : bands(m, g));
+    const bs = get(model);
+    q('.ms-big').textContent = bs.map((b) => `${pct(b.share)} ${b.name}`).join(', ');
+    const sameAsReal = JSON.stringify(bs) === JSON.stringify(get('semi'));
+    q('.ms-sub').textContent = g === 0 ? 'Bacteria grown for many generations in heavy nitrogen: all their DNA is heavy.'
+      : `${NAMES[model]} prediction${heat ? ' for single strands' : ''}. ${real ? (sameAsReal ? 'It matches the real result.' : 'It does not match the real result, so this model is ruled out.') : 'Tick the box to compare with the real result.'}`;
+    const svg = q<SVGSVGElement>('.ms-tubes'); svg.replaceChildren();
+    for (const [h, lab] of [[0, 'light'], [0.5, 'hybrid'], [1, 'heavy']] as const) { const y = 70 + h * 90; svg.append(sv('line', { x1: 4, y1: y, x2: 316, y2: y, class: 'guide' }), sv('text', { x: 4, y: y - 4, class: 'tx' }, lab)); }
+    tube(svg, real ? 110 : 160, 'Predicted', bs, false);
+    if (real) tube(svg, 230, 'Observed', get('semi'), true);
+    svg.setAttribute('aria-label', `Predicted bands: ${q('.ms-big').textContent}`);
+    // molecules
+    const ms = q<SVGSVGElement>('.ms-mols'); ms.replaceChildren();
+    const mols = molecules(model, g), n = mols.length, cols = Math.min(8, n), rows = Math.ceil(n / cols), W = 300 / cols;
+    mols.forEach(([a, b], i) => {
+      const cx = 10 + (i % cols) * W + W / 2, y0 = 10 + Math.floor(i / cols) * 55, h = 40;
+      const strand = (x: number, f: number) => ms.append(sv('line', { x1: x, y1: y0, x2: x, y2: y0 + h, class: 'st', 'stroke-opacity': (0.15 + 0.85 * f).toFixed(2), 'data-f': f }));
+      strand(cx - 6, a); strand(cx + 6, b);
+      for (let k = 1; k < 5; k++) ms.append(sv('line', { x1: cx - 3, y1: y0 + k * 8, x2: cx + 3, y2: y0 + k * 8, class: 'rung' }));
+    });
+    ms.setAttribute('viewBox', `0 0 320 ${20 + rows * 55}`);
+    ms.setAttribute('aria-label', `${n} DNA molecule${n > 1 ? 's' : ''}`);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ms-m button').forEach((b) => b.addEventListener('click', () => { model = b.dataset.m as Model; update(); }));
+  q('.ms-g').addEventListener('input', update); q('.ms-real').addEventListener('change', update); q('.ms-heat').addEventListener('change', update);
+  update();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const g1 = rint(1, 5), h1 = 2 / 2 ** g1;
+    const g2 = rint(2, 5), l2 = 1 - 2 / 2 ** g2;
+    const g3 = rint(1, 4), c3 = 1 / 2 ** g3;
+    const g4 = rint(1, 5), n4 = 2 ** g4;
+    const [qq, a5, w5] = pickOne([
+      ['After one generation in ¹⁴N the real experiment showed a single hybrid band. Which model did that rule out: conservative or dispersive?', 'conservative', 'Conservative copying would give one heavy and one light band, not one hybrid band.'],
+      ['After two generations the real experiment showed a hybrid band and a light band. Which model did that rule out: conservative or dispersive?', 'dispersive', 'Dispersive copying would give a single band at 25 % ¹⁵N.'],
+    ] as const);
+    return [
+      { q: `Semi-conservative copying: what fraction of the DNA is hybrid (¹⁵N/¹⁴N) after ${g1} generation${g1 > 1 ? 's' : ''} in ¹⁴N? (a decimal)`, hint: 'a decimal', answer: String(h1), ok: near(h1, 0.001), worked: `Only the 2 original heavy strands remain, one in each of 2 hybrid molecules out of 2^${g1} = ${2 ** g1}: 2/${2 ** g1} = ${h1}.` },
+      { q: `Semi-conservative: what fraction is light (¹⁴N/¹⁴N) after ${g2} generations? (a decimal)`, hint: 'a decimal', answer: String(l2), ok: near(l2, 0.001), worked: `1 − 2/2^${g2} = 1 − ${2 / 2 ** g2} = ${l2}.` },
+      { q: `If copying were conservative, what fraction would still be fully heavy after ${g3} generation${g3 > 1 ? 's' : ''}? (a decimal)`, hint: 'a decimal', answer: String(c3), ok: near(c3, 0.001), worked: `The one original molecule stays whole among 2^${g3} = ${2 ** g3}: 1/${2 ** g3} = ${c3}.` },
+      { q: `Starting from one heavy DNA molecule, how many molecules are there after ${g4} generations?`, hint: 'a whole number', answer: String(n4), ok: same(String(n4)), worked: `Each generation doubles the number: 2^${g4} = ${n4}.` },
+      { q: qq, hint: 'conservative or dispersive', answer: a5, ok: same(a5), worked: w5 },
+    ];
+  });
+</script>
