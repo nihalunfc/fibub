@@ -1,0 +1,185 @@
+---
+// Chlor-alkali process: an animated membrane cell for the electrolysis of brine (what forms at each electrode
+// and what the products are used for), and at Class 12 level the amounts made by a current, from Faraday's laws.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax sm ca">
+  <div class="ax-card">
+    <div class="ax-seg ca-lvl" role="group" aria-label="Level"><button type="button" data-l="10" aria-pressed="true">Class 10: what forms where</button><button type="button" data-l="12" aria-pressed="false">Class 12: how much</button></div>
+    <svg class="sm-fig ca-fig" viewBox="0 0 340 250" role="img" aria-label="Membrane cell: brine in, chlorine at the positive electrode, hydrogen and sodium hydroxide at the negative electrode" style="margin-top:10px"></svg>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small ca-play">Pause</button>
+      <label class="ax-check"><input type="checkbox" class="ca-lab" checked /> Show ion labels</label>
+    </div>
+    <ul class="sm-steps ca-eq"></ul>
+  </div>
+
+  <div class="ax-card ca-calc" hidden>
+    <h2>How much is made</h2>
+    <div class="sm-sl"><b>I</b><input type="range" class="ca-ir" min="1" max="100" step="1" value="10" aria-label="Current slider" /><input type="number" class="ca-i" min="0" step="any" value="10" inputmode="decimal" aria-label="Current in amperes" /></div>
+    <div class="sm-sl"><b>t</b><input type="range" class="ca-tr" min="1" max="600" step="1" value="60" aria-label="Time slider" /><input type="number" class="ca-t" min="0" step="any" value="60" inputmode="decimal" aria-label="Time in minutes" /></div>
+    <div class="ax-grid">
+      <label>Current efficiency (%) <input type="number" class="ca-e" min="1" max="100" step="any" value="100" inputmode="decimal" /></label>
+      <label>Gas volume per mole <select class="ca-v"><option value="24">24 L (room temperature and pressure)</option><option value="22.4">22.4 L (0 °C, 1 atm)</option></select></label>
+    </div>
+    <p class="ax-help">I is the current in amperes and t the time in minutes. Current efficiency is the share of the charge that really makes products.</p>
+    <ul class="sm-steps ca-out"></ul>
+    <p class="ax-err ca-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What the products are used for</h2>
+    <ul class="sm-steps">
+      <li><b>Chlorine</b>: killing germs in drinking water and swimming pools, making PVC plastic, bleaching powder, disinfectants and many other chemicals.</li>
+      <li><b>Hydrogen</b>: a fuel, making ammonia for fertilisers, and hardening vegetable oils.</li>
+      <li><b>Sodium hydroxide</b>: making soap and detergents, paper, and artificial fibres, and removing grease.</li>
+      <li><b>Bleaching powder</b> is made by passing chlorine over dry slaked lime, Ca(OH)₂.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Follow one Na⁺ ion. It never reaches an electrode; it crosses the membrane and stays in the solution with OH⁻.</li>
+      <li>Why is it called "chlor-alkali"? Look at the two products that come out as solutions or gases on each side.</li>
+      <li>At Class 12 level, double the current. What happens to every amount?</li>
+      <li>How long does it take 10 A to make 40 g of sodium hydroxide?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Use F = 96 485 C/mol, Cl₂ = 71, H₂ = 2, NaOH = 40 g/mol. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .ca select { font-size: 16px; }
+  .ca svg .ca-tank { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 2; }
+  .ca svg .ca-mem { stroke: var(--ink); stroke-width: 3; stroke-dasharray: 6 4; }
+  .ca svg .ca-elec { fill: var(--muted); }
+  .ca svg .ca-plus { font: 700 18px system-ui, sans-serif; fill: var(--bad); }
+  .ca svg .ca-minus { font: 700 18px system-ui, sans-serif; fill: var(--accent); }
+  .ca svg .ca-na { fill: var(--warn); }
+  .ca svg .ca-cl { fill: var(--good); }
+  .ca svg .ca-oh { fill: var(--accent); }
+  .ca svg .ca-bub { fill: none; stroke-width: 1.6; }
+  .ca svg .ca-bub.cl { stroke: var(--good); }
+  .ca svg .ca-bub.h { stroke: var(--accent); }
+  .ca svg .ca-ion { font: 700 9px system-ui, sans-serif; fill: var(--ink); }
+  .ca svg .ca-t { font: 600 12px system-ui, sans-serif; fill: var(--ink); }
+</style>
+
+<script>
+  import { products, timeForNaOH, F } from '../../lib/sci/chloralkali-school';
+  import { fmt } from '../../lib/sci/smath';
+  import { S, pair, val } from '../../lib/smath-ui';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ca')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ca-fig');
+  const I = q<HTMLInputElement>('.ca-i'), Tm = q<HTMLInputElement>('.ca-t');
+  pair(q('.ca-ir'), I, calc); pair(q('.ca-tr'), Tm, calc);
+  q('.ca-e').addEventListener('input', calc); q('.ca-v').addEventListener('change', calc);
+  let level = 10, t = 0, raf = 0, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Particles: each has a kind, a start and a path it repeats on (positions as functions of a phase 0..1).
+  type P = { k: 'na' | 'cl' | 'oh' | 'bcl' | 'bh'; seed: number };
+  const parts: P[] = [];
+  for (let i = 0; i < 6; i++) parts.push({ k: 'na', seed: i / 6 });
+  for (let i = 0; i < 6; i++) parts.push({ k: 'cl', seed: i / 6 });
+  for (let i = 0; i < 4; i++) parts.push({ k: 'oh', seed: i / 4 });
+  for (let i = 0; i < 5; i++) parts.push({ k: 'bcl', seed: i / 5 });
+  for (let i = 0; i < 5; i++) parts.push({ k: 'bh', seed: i / 5 });
+  const frac = (x: number) => x - Math.floor(x);
+
+  function scene() {
+    fig.replaceChildren();
+    const lab = q<HTMLInputElement>('.ca-lab').checked;
+    S('rect', { x: 20, y: 60, width: 300, height: 160, rx: 6, class: 'ca-tank' }, fig);
+    S('line', { x1: 170, y1: 60, x2: 170, y2: 220, class: 'ca-mem' }, fig);
+    S('rect', { x: 34, y: 50, width: 12, height: 150, class: 'ca-elec' }, fig);
+    S('rect', { x: 294, y: 50, width: 12, height: 150, class: 'ca-elec' }, fig);
+    S('text', { x: 40, y: 44, 'text-anchor': 'middle', class: 'ca-plus' }, fig, '+');
+    S('text', { x: 300, y: 44, 'text-anchor': 'middle', class: 'ca-minus' }, fig, '−');
+    S('text', { x: 95, y: 22, 'text-anchor': 'middle', class: 'ca-t' }, fig, 'Cl₂ gas out ↑');
+    S('text', { x: 245, y: 22, 'text-anchor': 'middle', class: 'ca-t' }, fig, 'H₂ gas out ↑');
+    S('text', { x: 95, y: 240, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'brine (NaCl) in');
+    S('text', { x: 245, y: 240, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'NaOH solution out');
+    S('text', { x: 170, y: 54, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'membrane');
+    S('text', { x: 40, y: 214, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'anode');
+    S('text', { x: 300, y: 214, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'cathode');
+    for (const p of parts) {
+      const f = frac(t * 0.12 + p.seed), y0 = 80 + p.seed * 120;
+      let x = 0, y = 0, cls = '', label = '';
+      if (p.k === 'na') { x = 70 + f * 200; y = y0 + 6 * Math.sin(f * 9 + p.seed * 7); cls = 'ca-na'; label = 'Na⁺'; }
+      else if (p.k === 'cl') { x = 150 - f * 98; y = y0 + 5 * Math.sin(f * 8 + p.seed * 5); cls = 'ca-cl'; label = 'Cl⁻'; }
+      else if (p.k === 'oh') { x = 288 - f * 90; y = y0 + 5 * Math.sin(f * 7 + p.seed * 3); cls = 'ca-oh'; label = 'OH⁻'; }
+      else { const ff = frac(t * 0.3 + p.seed); x = (p.k === 'bcl' ? 54 : 286) + 4 * Math.sin(ff * 12 + p.seed * 9); y = 190 - ff * 150; S('circle', { cx: x, cy: y, r: 3 + ff * 3, class: `ca-bub ${p.k === 'bcl' ? 'cl' : 'h'}` }, fig); continue; }
+      S('circle', { cx: x, cy: y, r: 5.5, class: cls }, fig);
+      if (lab) S('text', { x, y: y - 8, 'text-anchor': 'middle', class: 'ca-ion' }, fig, label);
+    }
+  }
+  const loop = (now: number) => { t = now / 1000; scene(); if (playing) raf = requestAnimationFrame(loop); };
+  q('.ca-play').textContent = playing ? 'Pause' : 'Play';
+  q('.ca-play').addEventListener('click', () => { playing = !playing; q('.ca-play').textContent = playing ? 'Pause' : 'Play'; if (playing) raf = requestAnimationFrame(loop); else cancelAnimationFrame(raf); });
+  q('.ca-lab').addEventListener('change', scene);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelAnimationFrame(raf); else if (playing) raf = requestAnimationFrame(loop); });
+
+  function equations() {
+    const lines = level === 10 ? [
+      'Brine is a strong solution of common salt, NaCl, in water. A direct current is passed through it.',
+      'At the positive electrode (anode), chloride ions give up electrons and chlorine gas bubbles off.',
+      'At the negative electrode (cathode), water gains electrons: hydrogen gas bubbles off and hydroxide ions (OH⁻) are left in the solution.',
+      'Sodium ions cross the membrane and stay with the hydroxide ions as sodium hydroxide solution: the "alkali".',
+      'Overall: 2NaCl(aq) + 2H₂O(l) → 2NaOH(aq) + Cl₂(g) + H₂(g).',
+    ] : [
+      'Anode (oxidation): 2Cl⁻(aq) → Cl₂(g) + 2e⁻.',
+      'Cathode (reduction): 2H₂O(l) + 2e⁻ → H₂(g) + 2OH⁻(aq). Water is reduced instead of Na⁺, which would need a far more negative potential.',
+      'Overall: 2NaCl + 2H₂O → 2NaOH + Cl₂ + H₂. Two electrons make one Cl₂, one H₂ and two NaOH.',
+      `Faraday's laws: moles of electrons = charge ÷ F = I × t ÷ ${fmt(F, 2)} C/mol.`,
+    ];
+    q('.ca-eq').replaceChildren(...lines.map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+  }
+  function calc() {
+    const amps = val(I, 10, 0, 1e6), mins = val(Tm, 60, 0, 1e7), effRaw = Number(q<HTMLInputElement>('.ca-e').value), err = q('.ca-err');
+    const bad = !(effRaw > 0 && effRaw <= 100) || Number(I.value) < 0 || Number(Tm.value) < 0;
+    err.hidden = !bad; if (bad) err.textContent = 'Current and time must be 0 or more, and the efficiency from 1 to 100 %. Using 100 % efficiency.';
+    const eff = bad ? 1 : effRaw / 100, mv = Number(q<HTMLSelectElement>('.ca-v').value), p = products(amps, mins * 60, eff, mv);
+    const lines = [
+      `Charge Q = I × t = ${fmt(amps, 3)} A × ${fmt(mins * 60, 1)} s = ${fmt(p.charge, 1)} C.`,
+      `Moles of electrons = ${fmt(p.charge, 1)} ÷ ${fmt(F, 2)}${eff < 1 ? ` × ${fmt(eff, 3)}` : ''} = ${fmt(p.ne, 5)} mol.`,
+      `Chlorine: ${fmt(p.ne, 5)} ÷ 2 = ${fmt(p.nCl2, 5)} mol = ${fmt(p.mCl2, 3)} g = ${fmt(p.vCl2, 3)} L of gas.`,
+      `Hydrogen: ${fmt(p.nH2, 5)} mol = ${fmt(p.mH2, 4)} g = ${fmt(p.vH2, 3)} L of gas (the same volume as the chlorine).`,
+      `Sodium hydroxide: ${fmt(p.nNaOH, 5)} mol = ${fmt(p.mNaOH, 3)} g, using up ${fmt(p.mNaCl, 3)} g of salt.`,
+      amps > 0 ? `To make 40 g (1 mol) of NaOH at ${fmt(amps, 3)} A would take ${fmt(timeForNaOH(40, amps, eff) / 3600, 3)} hours.` : 'With no current, nothing is made.',
+    ];
+    q('.ca-out').replaceChildren(...lines.map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ca-lvl button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l); root.querySelectorAll('.ca-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ca-calc').hidden = level !== 12; equations(); calc();
+  }));
+  equations(); calc(); scene(); if (playing) raf = requestAnimationFrame(loop);
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const a = rint(2, 20), m = pickOne([10, 15, 20, 30, 45, 60, 90, 120]), p = products(a, m * 60, 1);
+    const which = pickOne([
+      { q: 'Which gas is given off at the positive electrode (anode)?', a: 'chlorine', ok: same('chlorine', 'cl2', 'cl₂', 'chlorine gas'), w: 'Chloride ions lose electrons there: 2Cl⁻ → Cl₂ + 2e⁻.' },
+      { q: 'Which gas is given off at the negative electrode (cathode)?', a: 'hydrogen', ok: same('hydrogen', 'h2', 'h₂', 'hydrogen gas'), w: 'Water gains electrons there: 2H₂O + 2e⁻ → H₂ + 2OH⁻.' },
+      { q: 'What is the alkali made in the process? (name)', a: 'sodium hydroxide', ok: same('sodium hydroxide', 'naoh', 'caustic soda'), w: 'Na⁺ and OH⁻ stay together in the solution near the cathode.' },
+    ]);
+    return [
+      { q: which.q, hint: 'a name', answer: which.a, ok: which.ok, worked: which.w },
+      { q: `A current of ${a} A flows for ${m} minutes. How many moles of electrons is that?`, hint: 'mol', answer: fmt(p.ne, 4), ok: near(p.ne, 0.01), worked: `${a} × ${m * 60} = ${a * m * 60} C; ÷ 96 485 = ${fmt(p.ne, 5)} mol.` },
+      { q: `How many grams of chlorine do ${a} A make in ${m} minutes?`, hint: 'grams', answer: fmt(p.mCl2, 3), ok: near(p.mCl2, 0.01), worked: `${fmt(p.ne, 5)} mol e⁻ ÷ 2 = ${fmt(p.nCl2, 5)} mol Cl₂; × 71 = ${fmt(p.mCl2, 4)} g.` },
+      { q: `How many grams of sodium hydroxide do ${a} A make in ${m} minutes?`, hint: 'grams', answer: fmt(p.mNaOH, 3), ok: near(p.mNaOH, 0.01), worked: `One NaOH per electron: ${fmt(p.ne, 5)} mol × 40 = ${fmt(p.mNaOH, 4)} g.` },
+    ];
+  });
+</script>
