@@ -7,11 +7,13 @@ import { SITE, SHELVES, SUBJECTS } from '../site';
 import { ICONS } from '../lib/icons';
 import { allTools, bySubject, toolUrl } from '../lib/tools';
 import { siteLd } from '../lib/seo';
+import { siteTotals } from '../lib/totals';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
 const soon = tools.filter((t) => t.data.status === 'soon');
 const shelves = SHELVES.map((s) => ({ shelf: s, subjects: bySubject(s.id, live), hasSubjects: !!SUBJECTS[s.id], count: live.filter((t) => t.data.shelf === s.id).length })).filter((s) => s.count);
 const newest = [...live].sort((a, b) => (b.data.num ?? 0) - (a.data.num ?? 0)).slice(0, 5);
+const { stats } = await siteTotals();
 const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>';
 ---
 <Base title={SITE.name} ld={siteLd()}>
@@ -22,10 +24,13 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
         <p class="lead">Tools for documents, money, everyday tasks and science. They all run in your browser: nothing is uploaded, nothing about you is saved, and there is no sign-up.</p>
       </div>
       <div class="totals">
-        <p class="total"><b>{live.length}</b><span>free tools, each with its own number</span></p>
+        <p class="total"><b>{live.length.toLocaleString("en")}</b><span>free tools, each with its own number</span></p>
         <p class="total site-views" data-counter hidden title="Every page opened on fibub, counted as a running total. Nothing about you is kept."><b data-count="site"></b><span>page views so far</span></p>
       </div>
     </div>
+    <ul class="stats" aria-label="The site in numbers">
+      {stats.map((s) => <li>{s.href ? <a href={s.href}><b>{s.value.toLocaleString('en')}</b> {s.label}</a> : <><b>{s.value.toLocaleString('en')}</b> {s.label}</>}</li>)}
+    </ul>
     <label class="find">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
       <span class="visually-hidden">Find a tool</span>
@@ -49,6 +54,12 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
     </div>
     <ul class="ix mine-list"></ul>
     <p class="note">Starred tools are saved only in this browser, never sent anywhere.</p>
+  </section>
+
+  <section class="top" hidden aria-labelledby="top-h">
+    <h2 id="top-h">Most used tools</h2>
+    <ol class="top-list"></ol>
+    <p class="note">Counted as running totals: how many times each tool's page was opened and how many times the tool was used. Nothing about you is kept.</p>
   </section>
 
   <div class="dir">
@@ -88,6 +99,19 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   .total { margin: 0 0 20px; display: grid; justify-items: start; }
   .total b { font-size: clamp(44px, 8vw, 64px); line-height: 1; font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
   .total span { font-size: 13.5px; color: var(--muted); }
+  .stats { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: 14px; color: var(--muted); }
+  .stats b { color: var(--ink); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stats a { color: inherit; text-decoration: none; }
+  .stats a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .top { margin-top: 26px; max-width: 720px; }
+  .top h2 { margin: 0 0 4px; font-size: 18px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .top-list { list-style: none; margin: 0; padding: 0; counter-reset: top; }
+  .top-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); counter-increment: top; }
+  .top-list li::before { content: counter(top); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .top-list a { color: var(--ink); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-list a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .top-list .n { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .top-list .n b { color: var(--ink); font-weight: 650; }
   .hero .lead { max-width: 620px; }
 
   .hits { margin-top: 18px; max-width: 720px; }
@@ -117,7 +141,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   .next { margin-top: 10px; }
   .empty { color: var(--muted); }
   /* Only my tools, or searching: the full index is out of the way. */
-  :global(body.focus) .dir, :global(body.focus) .hint, :global(body.focus) .next, :global(body.focus) .new,
+  :global(body.focus) .top, :global(body.searching) .top, :global(body.focus) .dir, :global(body.focus) .hint, :global(body.focus) .next, :global(body.focus) .new,
   :global(body.searching) .dir, :global(body.searching) .hint, :global(body.searching) .next, :global(body.searching) .new { display: none; }
 </style>
 
@@ -130,6 +154,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   const hits = document.querySelector<HTMLElement>('.hits')!, hitList = hits.querySelector<HTMLElement>('.hits-list')!;
   const hitN = hits.querySelector<HTMLElement>('.hits-n')!, empty = hits.querySelector<HTMLElement>('.empty')!;
   const total = document.querySelectorAll('.dir .ti').length + [...document.querySelectorAll<HTMLElement>('.dir .subj .num')].reduce((n, e) => n + Number(e.textContent), 0);
+  const topBox = document.querySelector<HTMLElement>('.top')!, topList = topBox.querySelector<HTMLElement>('.top-list')!;
   const searching = () => input.value.trim() !== '';
 
   // The focus flag is known at once, so the page never flashes the full index first.
@@ -170,4 +195,26 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = hitList.querySelector<HTMLAnchorElement>('a'); if (a) location.href = a.href; } });
   document.addEventListener('fibub:mytools', () => { if (searching()) find(); });
   input.addEventListener('focus', () => loadIndex(), { once: true });
+
+  // Most used tools: the ten with the most uses, with their page views. Hidden until the counter answers.
+  (async () => {
+    try {
+      const [res, index] = await Promise.all([fetch('/api/top'), loadIndex()]);
+      if (!res.ok) return;
+      const { top } = (await res.json()) as { top: { t: string; v: number; u: number }[] };
+      const byId = new Map(index.map((e) => [e.id, e]));
+      const fmt = (n: number) => n.toLocaleString('en');
+      const items = top.filter((r) => byId.has(r.t)).map((r) => {
+        const e = byId.get(r.t)!;
+        const li = document.createElement('li'), a = document.createElement('a');
+        a.href = e.u; a.textContent = e.n;
+        const mk = (n: number, word: string) => { const s = document.createElement('span'), b = document.createElement('b'); s.className = 'n'; b.textContent = fmt(n); s.append(b, ` ${word}`); return s; };
+        li.append(a, mk(r.u, r.u === 1 ? 'use' : 'uses'), mk(r.v, r.v === 1 ? 'view' : 'views'));
+        return li;
+      });
+      if (!items.length) return;
+      topList.replaceChildren(...items);
+      topBox.hidden = false;
+    } catch { /* counter unreachable: the section stays hidden */ }
+  })();
 </script>

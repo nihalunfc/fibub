@@ -11,6 +11,7 @@
 // Routes (the only ones that reach this script, see run_worker_first in wrangler.jsonc):
 //   POST /api/hit   {"p": "<page address>", "t": "<tool id>"?}  one page view; returns the counts to show
 //   POST /api/use   {"t": "<tool id>"}                          one use of a tool
+//   GET  /api/top                                               the 10 most used tools with their views and uses
 //   GET  /api/counts                                            all-time totals for every page and tool
 //   GET  /api/days?from=YYYY-MM-DD&to=YYYY-MM-DD                daily totals (up to 62 days per call);
 //        a GitHub Action copies these into the public repo every day (data/views/)
@@ -113,6 +114,13 @@ export class Counter extends DurableObject<Env> {
     for (const { k, n } of this.sql.exec<{ k: string; n: number }>('SELECT k, n FROM counts ORDER BY k')) Counter.put(out, k, n);
     return out;
   }
+  // The most used tools: ranked by uses, then by page views. Counts only, from the running totals.
+  async top(toolPaths: Map<string, string>, n: number): Promise<{ t: string; v: number; u: number }[]> {
+    const { pages, uses } = await this.totals();
+    const rows: { t: string; v: number; u: number }[] = [];
+    for (const [t, path] of toolPaths) rows.push({ t, v: pages[path] ?? 0, u: uses[t] ?? 0 });
+    return rows.filter((r) => r.u > 0 || r.v > 0).sort((a, b) => b.u - a.u || b.v - a.v || a.t.localeCompare(b.t)).slice(0, n);
+  }
   async days(from: string, to: string): Promise<DayRows> {
     this.flush();
     const out: DayRows = {};
@@ -177,6 +185,10 @@ export default {
     }
     if (url.pathname === '/api/counts' && req.method === 'GET') {
       return json(await counter.totals(), 200, 'public, max-age=60');
+    }
+    if (url.pathname === '/api/top' && req.method === 'GET') {
+      const k = await site(env, url, counter);
+      return json({ top: await counter.top(k.tools, 10) }, 200, 'public, max-age=300');
     }
     if (url.pathname === '/api/days' && req.method === 'GET') {
       const from = url.searchParams.get('from'), to = url.searchParams.get('to');

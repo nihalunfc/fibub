@@ -137,6 +137,7 @@ try {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/hit') { fakeCounts.site++; fakeCounts.v++; return route.fulfill({ json: { site: fakeCounts.site, v: fakeCounts.v } }); }
     if (path === '/api/use') { fakeCounts.u++; return route.fulfill({ json: { u: fakeCounts.u } }); }
+    if (path === '/api/top') return route.fulfill({ json: { top: [{ t: 'loan-payoff-planner', v: 120, u: 30 }, { t: 'not-a-tool', v: 9, u: 9 }, { t: 'budget-calculator', v: 50, u: 12 }] } });
     return route.fulfill({ status: 404, json: {} });
   });
   await ctx.route(BASE + '/**', async (route) => {
@@ -3470,6 +3471,11 @@ try {
     await page.waitForSelector('.site-views:not([hidden])');
     check(/^[\d,]+ ?page views so far$/.test((await page.innerText('.site-views')).replace(/\s+/g, ' ').trim()), `counters: home page shows site page views (${(await page.innerText('.site-views')).trim()})`);
     check(!(await page.$('.page-views')) && JSON.parse(counterNotes.at(-1).body).p === '/', 'counters: home page counts itself but shows only the site total');
+    await page.waitForSelector('.top:not([hidden]) .top-list li');
+    const topRows = await page.$$eval('.top-list li', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
+    check(topRows.length === 2 && /Loan.*30 uses.*120 views/.test(topRows[0]) && /12 uses.*50 views/.test(topRows[1]), `home: most used tools list, unknown ids dropped (${topRows.join(' | ')})`);
+    const statTxt = await page.innerText('.stats');
+    check(/activities and simulations for students/.test(statTxt) && /school curriculum covered/.test(statTxt) && !/free courses?\b/.test(statTxt), `home: site totals from the files, zero totals left out (${statTxt.replace(/\s+/g, ' ')})`);
     await page.goto(BASE + '/money/loan-payoff-planner/');
     await page.waitForSelector('.tool-counts:not([hidden])');
     const before = (await page.innerText('.tool-counts')).replace(/\s+/g, ' ').trim();
