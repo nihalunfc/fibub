@@ -1,0 +1,179 @@
+---
+// Projectile launcher: speed, angle and height; range, highest point and time of flight; the complementary
+// angle's path; air drag at the second level. Maths in src/lib/sci/projectile-launcher.ts.
+import '../../styles/astro.css';
+---
+<div class="ax pl">
+  <div class="ax-card">
+    <div class="ax-row pl-top">
+      <span class="pl-lab">Level</span>
+      <div class="ax-seg pl-level" role="group" aria-label="Level">
+        <button type="button" data-v="11" aria-pressed="true">Class 11: no air</button>
+        <button type="button" data-v="air" aria-pressed="false">With air</button>
+      </div>
+    </div>
+    <canvas class="pl-c" aria-label="The path of the ball"></canvas>
+    <p class="pl-state"><span class="ax-pill pl-pill"></span></p>
+    <div class="ax-row"><button type="button" class="btn small pl-go">Launch</button><span class="ax-help pl-key"></span></div>
+    <div class="pl-ctl">
+      <label>Launch speed v: <b class="pl-vv"></b><input class="pl-v" type="range" min="5" max="40" step="1" value="20" /></label>
+      <label>Launch angle θ: <b class="pl-av"></b><input class="pl-a" type="range" min="0" max="90" step="1" value="30" /></label>
+      <label>Launch height h: <b class="pl-hv"></b><input class="pl-h" type="range" min="0" max="30" step="1" value="0" /></label>
+      <label class="pl-ballrow" hidden>Ball <select class="pl-ball">
+        <option value="cricket" selected>Cricket ball (160 g, 7.2 cm)</option>
+        <option value="foot">Football (430 g, 22 cm)</option>
+        <option value="tt">Table tennis ball (2.7 g, 4 cm)</option>
+        <option value="shot">Shot put (4 kg, 11 cm)</option>
+      </select></label>
+      <p class="ax-help pl-help"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The flight</h2>
+    <dl class="ax-facts pl-facts"></dl>
+    <div class="pl-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="pl-try">
+      <li>Keep the speed and try 30° and then 60°. The dashed path is the other angle: both land at the same spot.</li>
+      <li>Find the angle that throws furthest from the ground. Then raise the launch height: the best angle drops below 45°.</li>
+      <li>Set the angle to 0° and raise the height. The ball still falls as fast as one simply dropped: the sideways speed does not slow the fall.</li>
+      <li>Switch to With air and pick the table tennis ball. The path is no longer symmetric: it comes down more steeply than it went up.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="pl-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { vacuum, withDrag, dragK, bestAngle, questions, type Flight } from '../../lib/sci/projectile-launcher';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, text, f, fact, para, seg, keepDrawn } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.pl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  // Made-up, rounded values: mass kg, diameter m, drag coefficient.
+  const BALLS: Record<string, [number, number, number, string]> = { cricket: [0.16, 0.072, 0.5, 'cricket ball'], foot: [0.43, 0.22, 0.25, 'football'], tt: [0.0027, 0.04, 0.5, 'table tennis ball'], shot: [4, 0.11, 0.5, 'shot put'] };
+  const H = 280;
+  let level = '11', anim = -1, raf = 0;
+
+  const params = () => ({ v: val('.pl-v'), a: val('.pl-a'), h: val('.pl-h') });
+  const kNow = () => { const b = BALLS[q<HTMLSelectElement>('.pl-ball').value]; return level === 'air' ? dragK(b[0], b[1], b[2]) : 0; };
+
+  function scene(main: Flight, other: Flight | null, t: number) {
+    const c = q<HTMLCanvasElement>('.pl-c'), { ctx, w, pal } = setupCanvas(c, H), p = params();
+    const all = [main, ...(other ? [other] : [])];
+    const X = Math.max(10, ...all.map((fl) => fl.range)) * 1.08, Y = Math.max(5, ...all.map((fl) => fl.hmax)) * 1.12;
+    const left = 34, bot = H - 26, s = Math.min((w - left - 10) / X, (bot - 14) / Y);
+    const P = (x: number, y: number) => [left + x * s, bot - y * s] as const;
+    // grid with metre labels
+    const step = [1, 2, 5, 10, 20, 50, 100][[1, 2, 5, 10, 20, 50, 100].findIndex((d) => d * s >= 40)] ?? 200;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let x = 0; left + x * s <= w; x += step) { ctx.beginPath(); ctx.moveTo(left + x * s, 0); ctx.lineTo(left + x * s, bot); ctx.stroke(); text(ctx, `${x}`, left + x * s, bot + 14, pal.muted, 'center', 11); }
+    for (let y = step; bot - y * s >= 0; y += step) { ctx.beginPath(); ctx.moveTo(left, bot - y * s); ctx.lineTo(w, bot - y * s); ctx.stroke(); text(ctx, `${y}`, left - 4, bot - y * s + 4, pal.muted, 'right', 11); }
+    text(ctx, 'm', w - 4, bot + 14, pal.muted, 'right', 11);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, bot); ctx.lineTo(w, bot); ctx.stroke();
+    if (p.h > 0) { ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.fillRect(left - 16, bot - p.h * s, 16, p.h * s); ctx.strokeRect(left - 16, bot - p.h * s, 16, p.h * s); }
+    const path = (fl: Flight, col: string, dash: boolean, upto = Infinity) => {
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = dash ? 1.8 : 2.5; if (dash) ctx.setLineDash([6, 5]);
+      ctx.beginPath(); fl.pts.forEach(([x, y], i) => { if (i > upto) return; const [a, b] = P(x, y); if (i) ctx.lineTo(a, b); else ctx.moveTo(a, b); }); ctx.stroke(); ctx.restore();
+    };
+    if (other) path(other, pal.muted, true);
+    path(main, pal.accent, false, t >= 0 ? t : Infinity);
+    // top and landing marks
+    const top = main.pts.reduce((m, pt) => (pt[1] > m[1] ? pt : m), main.pts[0]);
+    if (t < 0) {
+      const [tx, ty] = P(top[0], top[1]); ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(tx, ty, 4, 0, Math.PI * 2); ctx.fill();
+      text(ctx, `${f(main.hmax, 1)} m high`, tx, ty - 8, pal.accent2, 'center');
+      const [lx, ly] = P(main.range, 0); text(ctx, `${f(main.range, 1)} m`, Math.min(lx, w - 30), ly - 8, pal.accent, 'center', 12, 600);
+    }
+    const i = t >= 0 ? Math.min(t, main.pts.length - 1) : main.pts.length - 1, [bx, by] = P(main.pts[i][0], main.pts[i][1]);
+    ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI * 2); ctx.fill();
+    c.setAttribute('aria-label', `Ball launched at ${p.v} m/s and ${p.a}° from ${p.h} m: lands ${f(main.range, 1)} m away after ${f(main.tFlight, 2)} s, highest point ${f(main.hmax, 1)} m`);
+  }
+
+  function draw() {
+    const p = params(), k = kNow(), main = withDrag(p.v, p.a, p.h, k);
+    const comp = level === '11' ? (p.h === 0 && p.a !== 45 && p.a > 0 && p.a < 90 ? vacuum(p.v, 90 - p.a, 0) : null) : vacuum(p.v, p.a, p.h);
+    q('.pl-ballrow').hidden = level !== 'air';
+    q('.pl-vv').textContent = `${p.v} m/s`; q('.pl-av').textContent = `${p.a}°`; q('.pl-hv').textContent = `${p.h} m`;
+    q('.pl-key').textContent = level === '11' ? (comp ? `Dashed: the path at ${90 - p.a}°, which lands at the same place.` : '') : 'Dashed: the same throw with no air.';
+    const b = BALLS[q<HTMLSelectElement>('.pl-ball').value];
+    q('.pl-help').textContent = level === '11' ? 'No air: only gravity acts, g = 9.8 m/s² straight down.' : `Air pushes back on the ${b[3]} with a force that grows as speed squared. Mass, size and drag coefficient (${b[2]}) are rounded teaching values; air density 1.2 kg/m³.`;
+    scene(main, comp, anim);
+    const vx = p.v * Math.cos((p.a * Math.PI) / 180), vy = p.v * Math.sin((p.a * Math.PI) / 180);
+    const best = bestAngle(p.v, p.h, k);
+    q('.pl-pill').textContent = `Lands ${f(main.range, 1)} m away after ${f(main.tFlight, 2)} s`;
+    q('.pl-pill').className = 'ax-pill good pl-pill';
+    const facts = [
+      fact('Range', `${f(main.range, 2)} m`, 'how far it lands'),
+      fact('Highest point', `${f(main.hmax, 2)} m`, 'above the ground'),
+      fact('Time of flight', `${f(main.tFlight, 2)} s`),
+      fact('Time to the top', `${f(main.tTop, 2)} s`),
+      fact('Landing speed', `${f(main.vLand, 1)} m/s`, `${f(main.landAngle, 1)}° below the horizontal`),
+      fact('Best angle for distance', `${f(best.angle, 1)}°`, `range ${f(best.range, 1)} m`),
+    ];
+    if (level === 'air') { const vac = vacuum(p.v, p.a, p.h); facts.push(fact('Range with no air', `${f(vac.range, 2)} m`, `air costs ${f(vac.range - main.range, 2)} m`)); }
+    q('.pl-facts').replaceChildren(...facts);
+    const eq: HTMLElement[] = [para([['Split the launch: '], `horizontal ux = v cos θ = ${p.v} × cos ${p.a}° = ${f(vx, 2)} m/s; vertical uy = v sin θ = ${f(vy, 2)} m/s.`])];
+    if (level === '11') {
+      if (p.h === 0) {
+        eq.push(para([['Time of flight: '], `T = 2uy ÷ g = 2 × ${f(vy, 2)} ÷ 9.8 = ${f(main.tFlight, 2)} s.`]));
+        eq.push(para([['Range: '], `R = v² sin 2θ ÷ g = ${p.v}² × sin ${2 * p.a}° ÷ 9.8 = ${f(main.range, 2)} m. sin 2θ is the same for θ and 90° − θ, so ${p.a}° and ${90 - p.a}° land together.`]));
+      } else {
+        eq.push(para([['Time of flight: '], `it lands when ${p.h} + ${f(vy, 2)}t − 4.9t² = 0, so t = (uy + √(uy² + 2gh)) ÷ g = ${f(main.tFlight, 2)} s.`]));
+        eq.push(para([['Range: '], `R = ux × t = ${f(vx, 2)} × ${f(main.tFlight, 2)} = ${f(main.range, 2)} m.`]));
+      }
+      eq.push(para([['Highest point: '], `H = h + uy² ÷ 2g = ${p.h} + ${f(vy, 2)}² ÷ 19.6 = ${f(main.hmax, 2)} m.`]));
+    } else {
+      eq.push(para([['With air: '], `the drag force is k m v², here k = ${f(k, 4)} per metre. It slows both the sideways and the upward motion, so there is no neat formula; the page works the path out in tiny time steps.`]));
+    }
+    q('.pl-eq').replaceChildren(...eq);
+  }
+
+  q('.pl-go').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const p = params(), fl = withDrag(p.v, p.a, p.h, kNow()), n = fl.pts.length, dur = Math.max(0.6, Math.min(4, fl.tFlight)) * 1000, t0 = performance.now();
+    const tick = (now: number) => { const fr = Math.min(1, (now - t0) / dur); anim = Math.round(fr * (n - 1)); if (fr >= 1) { anim = -1; draw(); return; } draw(); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+  });
+  seg(q('.pl-level'), (v) => { level = v; draw(); });
+  root.querySelectorAll('.pl-ctl input, .pl-ctl select').forEach((i) => { i.addEventListener('input', () => { cancelAnimationFrame(raf); anim = -1; draw(); }); });
+  mountQuiz(q('.pl-quiz'), () => questions());
+  draw();
+  keepDrawn(q('.pl-c'), draw);
+</script>
+
+<style is:inline>
+  .pl .pl-top { margin-bottom: 10px; }
+  .pl .pl-lab { font-size: 14px; color: var(--muted); }
+  .pl .ax-seg button { min-height: 44px; }
+  .pl canvas { display: block; width: 100%; }
+  .pl .pl-state { margin: 8px 0; }
+  .pl .pl-pill { font-size: 14px; white-space: normal; }
+  .pl .pl-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .pl .pl-ballrow[hidden] { display: none; }
+  .pl select { min-height: 44px; max-width: 100%; }
+  .pl input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .pl label b { color: var(--ink); }
+  .pl .btn.small { min-height: 44px; }
+  .pl .pl-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .pl .pl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
