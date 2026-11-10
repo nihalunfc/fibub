@@ -945,9 +945,9 @@ try {
     await page.goto(BASE + '/science/sky-tonight/');
     check((await page.getAttribute('.crumbs a[href="/science/astronomy/"]', 'href')) === '/science/astronomy/', 'tool page: breadcrumb links to its subject page');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
-    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
-    check(await page.isVisible('.dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd-pane.on .dd-all')), 'header: each subject links to all its tools');
-    const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
+    await page.hover('.dd[data-shelf=science] .dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
+    check(await page.isVisible('.dd[data-shelf=science] .dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd[data-shelf=science] .dd-pane.on .dd-all')), 'header: each subject links to all its tools');
+    const perSec = await page.$$eval('.dd[data-shelf=science] .dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
     check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
     // Change log: footer link, newest first, 50 to a page; each tool page shows its own changes.
     await page.goto(BASE + '/');
@@ -3520,7 +3520,7 @@ try {
   check(await phone.isVisible('.tab-menu') && (await phone.getAttribute('.tab-menu', 'aria-expanded')) === 'true', 'phone menu: the Menu tab stays in view and shows it is open');
   check((await phone.locator('#all-tools .at-area').count()) === 4 && (await phone.locator('#all-tools .at-area[open]').count()) === 1 && await phone.isVisible('#all-tools .at-area[data-area=tools][open]'), 'phone menu: Learn, Tools, News and About sections, with the current one (Tools) open');
   check((await phone.locator('#all-tools .at-shelf').count()) === 5 && (await phone.locator('#all-tools .at-shelf[open], #all-tools .at-sj[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
-  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-sj > summary');
+  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-shelf[data-shelf=science] .at-sj > summary');
   check(await phone.isVisible('#all-tools .at-sj[open] .at-item'), 'phone menu: opening a subject lists its tools with their numbers');
   await phone.fill('.at-search', 'loan');
   await phone.waitForSelector('.at-results .ti');
