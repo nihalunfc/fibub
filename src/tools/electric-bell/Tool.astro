@@ -1,0 +1,107 @@
+---
+// #1482 Electric bell (Learn, Class 8 Science, Electricity). An animated electromagnet, armature and contact screw.
+// A teaching model: the ring rate is set to 5 rings per second for every ampere, a rounded made-up value.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn eb">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <h2>How an electric bell rings</h2>
+    <canvas class="lrn-cv eb-cv" aria-label="An electric bell: a battery, an electromagnet, an iron armature with a hammer, a contact screw and a gong"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Current <b class="eb-iv"></b><input class="eb-i" type="range" min="0" max="2" step="0.1" value="1" aria-label="Current in amperes" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small eb-play">Pause</button></div>
+    <p class="ax-big eb-out" aria-live="polite"></p>
+    <p class="ax-help eb-state"></p>
+    <p class="ax-help" data-only="9" hidden>Class 9 and up: the pull of the electromagnet grows with the current and the number of turns of the coil. In this model the ring rate is 5 rings per second for every ampere, so the time for one ring is 1 ÷ (5 × I) seconds.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Watch one full ring. The current flows, the electromagnet pulls the armature, the armature leaves the contact screw, and the circuit breaks.</li>
+      <li>With the circuit broken the electromagnet switches off, the spring pulls the armature back, the circuit closes again and the cycle repeats.</li>
+      <li>Slide the current up and down and see how the ring rate changes.</li>
+      <li>Set the current to 0 and the bell goes silent: no current means no electromagnet.</li>
+    </ul>
+    <p class="ax-help">A teaching model: the bell is simplified and the ring rate is a rounded, made-up value. A real bell rings faster and has a more complicated spring.</p>
+  </div>
+  <div class="ax-card eb-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .eb .eb-cv { width: 100%; margin-top: 10px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  const PER_AMP = 5; // rings per second for each ampere (rounded, made up)
+  const root = document.querySelector('.eb') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.eb-cv');
+  /** Armature position over one ring (0 = resting on the contact screw, 1 = pulled to the magnet). The circuit is closed only at 0. */
+  const pull = (p: number) => p < 0.4 ? 0 : p < 0.6 ? (p - 0.4) / 0.2 : 1 - (p - 0.6) / 0.4;
+  let level = '8', phase = 0, rings = 0;
+  const rate = () => PER_AMP * +q('.eb-i').value;
+  function draw() {
+    const pal = pagePalette(), I = +q('.eb-i').value, d = I > 0 ? pull(phase) : 0, closed = d === 0, on = closed && I > 0;
+    root.dataset.closed = String(closed); root.dataset.ringing = String(I > 0); root.dataset.rings = String(rings);
+    q('.eb-iv').textContent = `${I.toFixed(1)} A`;
+    const { ctx: c, W, H } = fitCanvas(cv, 260), s = Math.min(W / 400, 1.4), ox = (W - 400 * s) / 2;
+    const X = (x: number) => ox + x * s, Y = (y: number) => y * s * 0.95 + 8;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const wire = on ? (pal.red ? pal.ink : pal.accent2) : pal.line;
+    c.lineWidth = 2.5; c.lineCap = 'round'; c.strokeStyle = wire;
+    // wires: battery -> coil -> armature support (spring at the bottom) ; contact screw -> battery
+    c.beginPath(); c.moveTo(X(40), Y(230)); c.lineTo(X(40), Y(250)); c.lineTo(X(200), Y(250)); c.lineTo(X(200), Y(215)); c.stroke(); // battery - to armature foot
+    c.beginPath(); c.moveTo(X(40), Y(170)); c.lineTo(X(40), Y(150)); c.lineTo(X(70), Y(150)); c.stroke(); // battery + to coil
+    c.beginPath(); c.moveTo(X(130), Y(150)); c.lineTo(X(150), Y(150)); c.lineTo(X(150), Y(20)); c.lineTo(X(300), Y(20)); c.lineTo(X(300), Y(95)); c.stroke(); // coil to contact screw
+    // battery
+    c.fillStyle = pal.ink; c.fillRect(X(28), Y(170), 24 * s, 3 * s); c.fillRect(X(32), Y(180), 16 * s, 5 * s); c.fillRect(X(28), Y(190), 24 * s, 3 * s); c.fillRect(X(32), Y(200), 16 * s, 5 * s);
+    c.fillStyle = pal.muted; c.font = `${Math.round(11 * s + 1)}px system-ui, sans-serif`; c.textAlign = 'center'; c.fillText('battery', X(40), Y(222) + 14 * s);
+    // electromagnet: iron core and coil
+    c.fillStyle = on ? (pal.red ? pal.ink : pal.accent) : pal.muted; c.fillRect(X(70), Y(140), 90 * s, 20 * s);
+    c.strokeStyle = pal.ink; c.lineWidth = 2;
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.ellipse(X(78 + i * 11), Y(150), 4 * s, 18 * s, 0, 0, 7); c.stroke(); }
+    c.fillStyle = pal.muted; c.fillText('electromagnet', X(110), Y(190) + 12 * s);
+    // contact screw
+    c.fillStyle = pal.ink; c.fillRect(X(296), Y(95), 8 * s, 40 * s); c.fillRect(X(292), Y(90), 16 * s, 6 * s);
+    c.fillStyle = pal.muted; c.fillText('contact screw', X(318), Y(90) - 6 * s);
+    // armature: iron strip hinged at the foot, leans toward the magnet by d
+    const dx = d * 22 * s, bx = X(200), by = Y(215), tx = X(200) - dx, ty = Y(95);
+    c.strokeStyle = pal.ink; c.lineWidth = 6 * s; c.beginPath(); c.moveTo(bx, by); c.lineTo(tx, ty); c.stroke();
+    c.fillStyle = pal.muted; c.fillRect(bx - 8 * s, by, 16 * s, 8 * s);
+    c.fillText('armature', X(210), Y(240) + 14 * s);
+    // contact: touching when closed, a gap otherwise
+    c.strokeStyle = closed ? wire : pal.line; c.lineWidth = 2.5; c.beginPath(); c.moveTo(X(203), Y(112)); c.lineTo(X(296), Y(112)); c.stroke();
+    // hammer arm up and over to the gong on the left
+    c.strokeStyle = pal.ink; c.lineWidth = 3 * s; c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx, Y(60)); c.lineTo(tx - 40 * s, Y(60)); c.stroke();
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(tx - 44 * s, Y(60), 7 * s, 0, 7); c.fill();
+    c.strokeStyle = pal.muted; c.lineWidth = 3 * s;
+    c.beginPath(); c.arc(X(78), Y(80), 32 * s, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
+    c.fillStyle = pal.muted; c.fillText('gong', X(70), Y(28));
+    if (d > 0.95) { c.strokeStyle = pal.red ? pal.ink : pal.accent2; c.lineWidth = 2; for (const a of [-0.5, 0, 0.5]) { c.beginPath(); c.moveTo(tx - 58 * s, Y(60) + a * 20 * s); c.lineTo(tx - 72 * s, Y(60) + a * 34 * s); c.stroke(); } }
+    q('.eb-out').textContent = I > 0 ? `${r(rate(), 3)} rings per second` : 'The bell is silent';
+    q('.eb-state').textContent = I === 0 ? 'No current: the electromagnet is off, so the armature never moves.'
+      : closed ? 'Circuit closed: current flows through the coil, so the electromagnet is on and starts to pull the armature.'
+      : 'Circuit open: the armature has moved away from the contact screw, so the current stops and the electromagnet switches off.';
+    if (level === '9') q('.eb-state').textContent += ` One ring takes ${r(1 / rate(), 3)} s.`;
+  }
+  const anim = loop((dt) => { const f = rate(); if (f > 0) { const p0 = phase; phase = (phase + dt * f) % 1; if (phase < p0) rings++; } draw(); }, q<HTMLButtonElement>('.eb-play'));
+  q('.eb-i').addEventListener('input', () => anim.redraw());
+  addEventListener('resize', () => anim.redraw());
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.eb-quiz'), () => {
+    const I = pick(1, 8) / 2;
+    return [
+      { q: `In this model a bell rings ${PER_AMP} times a second for every ampere. How many rings per second at ${I} A?`, ans: PER_AMP * I, unit: 'rings per second', work: `${PER_AMP} × ${I} = ${r(PER_AMP * I)} rings per second` },
+      { q: 'What makes the armature move toward the electromagnet?', ans: 1, choices: ['A spring', 'The magnetic pull of the coil carrying current', 'The gong'], work: 'Current in the coil makes the iron core a magnet, and it pulls the iron armature.' },
+      { q: 'What happens to the circuit when the armature moves away from the contact screw?', ans: 0, choices: ['It breaks, so the current stops', 'It gets stronger', 'Nothing changes'], work: 'The gap means no path for the current, so the electromagnet switches off and the spring pulls the armature back.' },
+      { q: one(['The battery is flat and the current is 0 A.', 'The switch of a bell is left open.']) + ' Does the bell ring?', ans: 1, choices: ['Yes, quietly', 'No'], work: 'With no current the electromagnet stays off, so the armature never moves and the hammer never hits the gong.' },
+    ];
+  });
+</script>

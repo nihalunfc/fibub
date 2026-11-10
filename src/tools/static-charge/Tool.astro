@@ -1,0 +1,120 @@
+---
+// #1483 Static charge (Learn, Class 8 Science, Forces). Rubbing moves electrons from one thing to the other; like
+// charges repel and unlike charges attract. A teaching model: charge is counted in whole made-up units.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn sc">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <h2>Rub a balloon on wool</h2>
+    <canvas class="lrn-cv sc-cv1" aria-label="A balloon rubbed on a woollen cloth: electrons move from the wool to the balloon, and paper bits jump up to it"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Rubs of balloon A <b class="sc-av"></b><input class="sc-a" type="range" min="0" max="10" step="1" value="5" aria-label="Number of rubs of balloon A" /></label>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;min-height:44px"><input class="sc-paper" type="checkbox" checked /> Scatter small bits of paper</label>
+    <p class="ax-big sc-out" aria-live="polite"></p>
+    <dl class="ax-facts sc-facts" style="margin-top:10px"></dl>
+  </div>
+  <div class="ax-card">
+    <h2>Two balloons</h2>
+    <canvas class="lrn-cv sc-cv2" aria-label="Two charged balloons hanging on strings, pushing apart or pulling together"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Balloon B
+        <select class="sc-bt" style="min-height:44px;font-size:16px;width:100%"><option value="neg">Negative: rubbed on wool</option><option value="pos">Positive: electrons rubbed off</option><option value="none">Not rubbed at all</option></select></label>
+      <label class="lrn-sl">Rubs of balloon B <b class="sc-bv"></b><input class="sc-b" type="range" min="0" max="10" step="1" value="5" aria-label="Number of rubs of balloon B" /></label>
+    </div>
+    <p class="ax-big sc-force" aria-live="polite"></p>
+    <p class="ax-help" data-only="9" hidden>Class 9 and up: the force between two charges follows Coulomb's law, F ∝ q₁q₂ ÷ d². In this model the distance is fixed, so the push or pull is proportional to the product of the two charges. Same signs give a positive product (repel), opposite signs a negative one (attract).</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Rub balloon A more and more. Watch the balloon gain minus signs while the wool gains the same number of plus signs.</li>
+      <li>Check that the total charge stays zero. Rubbing only moves charge, it never makes any.</li>
+      <li>Set balloon B to Negative: the two balloons push apart. Set it to Positive: they pull together.</li>
+      <li>Set balloon B to Not rubbed at all. Does balloon A push or pull it? In this model there is no force.</li>
+    </ul>
+    <p class="ax-help">A teaching model: charge is counted in whole units and the swing of the balloons is exaggerated. Real balloons carry billions of electrons, and a neutral object is also pulled a little towards a charged one.</p>
+  </div>
+  <div class="ax-card sc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .sc .sc-cv1, .sc .sc-cv2 { width: 100%; margin-top: 10px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.sc') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const sgn = (n: number) => (n > 0 ? '+' : '') + String(n).replace('-', '−');
+  let level = '8';
+  /** Charges after rubbing: balloon A takes electrons from wool; B either takes them from wool or gives them to its own cloth. */
+  const charges = (a: number, b: number, bt: string) => {
+    const qa = -a, qb = bt === 'neg' ? -b : bt === 'pos' ? b : 0;
+    return { qa, qb, wool: a + (bt === 'neg' ? b : 0), cloth: bt === 'pos' ? -b : 0 };
+  };
+  /** Force between A and B: positive = repel, negative = attract (proportional to the product of the charges). */
+  const force = (qa: number, qb: number) => qa * qb;
+  const sym = (c: CanvasRenderingContext2D, ch: string, x: number, y: number, col: string) => { c.fillStyle = col; c.font = 'bold 15px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(ch, x, y); };
+  function draw() {
+    const pal = pagePalette(), a = +q('.sc-a').value, b = +q('.sc-b').value, bt = q<HTMLSelectElement>('.sc-bt').value;
+    const { qa, qb, wool, cloth } = charges(a, b, bt), f = force(qa, qb);
+    q('.sc-av').textContent = String(a); q('.sc-bv').textContent = bt === 'none' ? '0 (not used)' : String(b);
+    root.dataset.qa = String(qa); root.dataset.qb = String(qb); root.dataset.wool = String(wool); root.dataset.net = String(qa + qb + wool + cloth);
+    root.dataset.force = f > 0 ? 'repel' : f < 0 ? 'attract' : 'none';
+    const neg = pal.red ? pal.ink : pal.accent, pos = pal.red ? pal.ink : pal.bad;
+    // Picture 1: wool on the left, balloon A on the right, paper bits below.
+    { const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.sc-cv1'), 240);
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+      c.fillStyle = pal.grid; c.strokeStyle = pal.line; c.lineWidth = 2; c.fillRect(10, 40, W * 0.38, 150); c.strokeRect(10, 40, W * 0.38, 150);
+      c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('wool', 10 + W * 0.19, 208);
+      for (let i = 0; i < wool; i++) sym(c, '+', 24 + (i % 4) * 26 + (W > 360 ? 8 : 0), 66 + Math.floor(i / 4) * 32, pos);
+      const bx = W * 0.72, by = 100;
+      c.fillStyle = pal.grid; c.beginPath(); c.ellipse(bx, by, 52, 62, 0, 0, 7); c.fill(); c.strokeStyle = pal.ink; c.stroke();
+      c.beginPath(); c.moveTo(bx, by + 62); c.lineTo(bx - 5, by + 74); c.lineTo(bx + 5, by + 74); c.closePath(); c.stroke();
+      c.fillStyle = pal.muted; c.fillText('balloon A', bx, 28);
+      for (let i = 0; i < a; i++) sym(c, '−', bx - 30 + (i % 4) * 20, by - 28 + Math.floor(i / 4) * 24, neg);
+      // electrons moving from wool to balloon
+      if (a > 0) { c.strokeStyle = pal.muted; c.lineWidth = 2; c.beginPath(); c.moveTo(W * 0.4 + 14, 120); c.lineTo(bx - 56, 120); c.stroke(); c.beginPath(); c.moveTo(bx - 56, 120); c.lineTo(bx - 66, 114); c.moveTo(bx - 56, 120); c.lineTo(bx - 66, 126); c.stroke(); c.fillStyle = pal.muted; c.fillText('electrons', (W * 0.4 + bx - 56) / 2 + 6, 112); }
+      if (q('.sc-paper').checked) { for (let i = 0; i < 8; i++) { const x = 20 + i * (W - 40) / 7, lift = a > 0 ? Math.min(a, 5) / 5 * 40 * (0.6 + 0.4 * ((i * 37) % 10) / 10) * (Math.abs(x - bx) < 90 ? 1 : 0.3) : 0; c.fillStyle = pal.ink; c.fillRect(x - 5, H - 14 - lift, 10, 6); } }
+    }
+    // Picture 2: two hanging balloons; swing angle follows the force.
+    { const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.sc-cv2'), 220), m = W / 2, top = 14, L = 150, base = 0.12;
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+      const sw = Math.max(-0.5, Math.min(0.5, f * 0.02)), angA = base + sw, angB = base + sw; // positive = apart
+      c.strokeStyle = pal.muted; c.lineWidth = 2; c.beginPath(); c.moveTo(m - 6, top); c.lineTo(m + 6, top); c.stroke();
+      for (const [dir, ch, col, nm] of [[-1, qa, neg, 'A'], [1, qb, qb > 0 ? pos : neg, 'B']] as const) {
+        const ang = Math.max(0.0, angA), x = m + dir * (Math.sin(ang) * L + 0), y = top + Math.cos(ang) * L;
+        c.strokeStyle = pal.muted; c.beginPath(); c.moveTo(m, top); c.lineTo(x, y - 36); c.stroke();
+        c.fillStyle = pal.grid; c.strokeStyle = pal.ink; c.beginPath(); c.ellipse(x, y, 26, 34, 0, 0, 7); c.fill(); c.stroke();
+        c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(nm, x, y + 52);
+        if (ch !== 0) sym(c, ch > 0 ? '+' : '−', x, y + 5, col);
+      }
+      void angB;
+    }
+    q('.sc-out').textContent = a === 0 ? 'Nothing rubbed yet: the balloon is neutral' : `Balloon A has ${a} units of negative charge`;
+    q('.sc-force').textContent = f > 0 ? 'Like charges: the balloons repel (push apart)' : f < 0 ? 'Opposite charges: the balloons attract (pull together)' : 'One balloon has no charge: no force in this model';
+    const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+    const facts = [fact('Balloon A', sgn(qa)), fact('Wool', sgn(wool)), fact('Total charge', sgn(qa + wool))];
+    if (level === '9') facts.push(fact('Force on B (arbitrary units)', String(f)), fact('Total of everything', sgn(qa + qb + wool + cloth)));
+    q('.sc-facts').replaceChildren(...facts);
+  }
+  for (const s of ['.sc-a', '.sc-b', '.sc-bt', '.sc-paper']) q(s).addEventListener('input', draw);
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.sc-quiz'), () => {
+    const a = pick(2, 9), b = pick(2, 9);
+    return [
+      { q: `A balloon is rubbed on wool and gains ${a} units of negative charge. How many units of positive charge does the wool have?`, ans: a, unit: 'units', work: `Rubbing only moves electrons, so the wool loses what the balloon gains: +${a}. The total is still ${a} − ${a} = 0.` },
+      { q: `Balloon A has charge −${a} and balloon B has −${b}. What is the total charge of the two?`, ans: -(a + b), unit: 'units', work: `−${a} + (−${b}) = −${a + b}` },
+      { q: 'Two balloons are both rubbed on wool and hung side by side. What do they do?', ans: 0, choices: ['Push apart (repel)', 'Pull together (attract)', 'Nothing'], work: 'Both are negative. Like charges repel.' },
+      { q: one(['A negative balloon and a positive rod are brought close.', 'A positive and a negative object are brought close.']) + ' What happens?', ans: 1, choices: ['They repel', 'They attract', 'No force'], work: 'Unlike charges attract.' },
+      { q: 'What moves from the wool to the balloon when you rub?', ans: 2, choices: ['Protons', 'Neutrons', 'Electrons'], work: 'Electrons are the light particles that can move between materials; protons stay in the nuclei.' },
+    ];
+  });
+</script>
