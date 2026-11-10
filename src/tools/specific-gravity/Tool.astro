@@ -1,0 +1,82 @@
+---
+// #1604 Specific gravity. Engine: src/lib/collect/maths.ts (specificGravity, ALLOYS, alloyDensity, shareFromDensity).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax sg">
+  <div class="ax-card">
+    <h2>1. Your two weighings</h2>
+    <div class="ax-grid">
+      <label>Weight in air (g) <input class="sg-air" type="number" min="0" step="any" inputmode="decimal" value="31.10" /></label>
+      <label>Weight hanging in water (g) <input class="sg-wat" type="number" min="0" step="any" inputmode="decimal" value="29.49" /></label>
+      <label>Water temperature (°C) <input class="sg-t" type="number" min="0" max="40" step="any" inputmode="decimal" value="20" /></label>
+      <label>What it is meant to be <select class="sg-alloy"></select></label>
+    </div>
+    <p class="ax-help">The temperature matters a little: water is slightly lighter when warm. Pick the metal it is meant to be to see how close you are.</p>
+    <details style="margin-top:10px"><summary>How to weigh in water</summary>
+      <ol>
+        <li>Put a cup of water on the scale and set it to zero (tare). Use clean, room-temperature water.</li>
+        <li>Weigh the coin in air on the scale first and write it down.</li>
+        <li>Tie the coin to a thin thread and hang it from a stand so it dips fully into the water without touching the cup. No air bubbles on it.</li>
+        <li>If you zeroed the scale with the cup, it now shows the weight of the water the coin pushes aside. The weight "in water" is the weight in air minus that number. Type it in above.</li>
+      </ol>
+    </details>
+  </div>
+  <div class="ax-card">
+    <h2>2. Result</h2>
+    <p class="ax-big sg-out" aria-live="polite">…</p>
+    <dl class="ax-facts sg-facts"></dl>
+    <p class="cl-flag sg-note">A density is a clue, not a verdict. Plating, hollow centres and bubbles can all move it. If it is far off, ask an expert or a dealer to check the piece.</p>
+  </div>
+  <div class="ax-card">
+    <h2>3. Closest metals</h2>
+    <div class="ax-scroll"><table class="sg-tab"><thead><tr><th>Metal or alloy</th><th class="r">Density (g/cm³)</th><th class="r">Difference</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sg label { display: grid; gap: 4px; font-size: 14px; }
+  .sg input, .sg select { width: 100%; box-sizing: border-box; }
+  .sg .sg-tab tr.sg-hit td { font-weight: 700; }
+  .sg details ol { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
+</style>
+
+<script>
+  import { specificGravity, ALLOYS, alloyDensity, shareFromDensity } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.sg') as HTMLElement;
+  const $ = (c: string) => root.querySelector(c) as HTMLInputElement;
+  const alloySel = $('.sg-alloy') as unknown as HTMLSelectElement;
+  alloySel.innerHTML = '<option value="">Not sure</option>' + Object.entries(ALLOYS).map(([k, a]) => `<option value="${k}">${a.name}</option>`).join('');
+  const list = Object.entries(ALLOYS).map(([k, a]) => ({ k, name: a.name, d: alloyDensity(a.parts) }));
+  const sgn = (n: number, dp: number) => (n > 0 ? '+' : '') + n.toFixed(dp);
+
+  const calc = () => {
+    const air = parseFloat($('.sg-air').value), wat = parseFloat($('.sg-wat').value), t = parseFloat($('.sg-t').value);
+    const out = $('.sg-out'), facts = root.querySelector('.sg-facts') as HTMLElement, tb = root.querySelector('.sg-tab tbody') as HTMLElement;
+    if (!(air > 0) || !(wat >= 0) || wat >= air) {
+      out.textContent = 'Type a weight in air, and a smaller weight in water.'; facts.innerHTML = ''; tb.innerHTML = ''; return;
+    }
+    const r = specificGravity(air, wat, Number.isFinite(t) ? t : 20);
+    const sorted = list.map((m) => ({ ...m, pct: ((r.density - m.d) / m.d) * 100 })).sort((a, b) => Math.abs(a.pct) - Math.abs(b.pct));
+    out.textContent = `Specific gravity ${r.sg.toFixed(2)} · closest: ${sorted[0].name}`;
+    const f: string[] = [
+      `<div><dt>Specific gravity</dt><dd class="sg-sg">${r.sg.toFixed(2)}<small>weight in air ÷ weight lost in water</small></dd></div>`,
+      `<div><dt>Density</dt><dd class="sg-den">${r.density.toFixed(2)} g/cm³<small>volume ${r.volume.toFixed(2)} cm³</small></dd></div>`,
+    ];
+    const st = list.find((m) => m.k === alloySel.value);
+    if (st) {
+      const p = ((r.density - st.d) / st.d) * 100, ok = Math.abs(p) <= 1.5;
+      f.push(`<div><dt>Against ${st.name}</dt><dd class="sg-vs">${sgn(p, 1)}%<small>expected ${st.d.toFixed(2)} g/cm³</small><span class="ax-pill ${ok ? 'good' : 'warn'}">${ok ? 'Close' : 'Not close'}</span></dd></div>`);
+    }
+    for (const [b, label] of [['copper', 'copper'], ['silver', 'silver']]) {
+      const w = shareFromDensity(r.density, 'gold', b);
+      if (w > 0.3 && w <= 1.02) f.push(`<div><dt>If gold and ${label} only</dt><dd class="sg-gold-${b}">${(Math.min(w, 1) * 100).toFixed(1)}% gold<small>about ${(Math.min(w, 1) * 24).toFixed(1)} karat</small></dd></div>`);
+    }
+    facts.innerHTML = f.join('');
+    tb.innerHTML = sorted.slice(0, 6).map((m, i) => `<tr class="${i === 0 ? 'sg-hit' : ''}"><td>${m.name}</td><td class="r">${m.d.toFixed(2)}</td><td class="r">${sgn(m.pct, 1)}%</td></tr>`).join('');
+  };
+  root.addEventListener('input', calc);
+  alloySel.addEventListener('change', calc);
+  calc();
+</script>

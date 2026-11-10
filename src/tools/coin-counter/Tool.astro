@@ -1,0 +1,155 @@
+---
+// #1610 Coin counter. Engine: src/lib/collect/maths.ts (coinsFromWeight). Works offline.
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax cc">
+  <div class="ax-card">
+    <h2>1. Currency and mode</h2>
+    <div class="ax-grid">
+      <label>Currency symbol <input class="cc-sym" value="$" maxlength="4" aria-describedby="cc-h1" /></label>
+      <label>Fill in coins for <select class="cc-preset"><option value="">Choose…</option></select></label>
+    </div>
+    <p class="ax-help" id="cc-h1">The symbol is only shown next to your totals. Choosing a currency replaces the rows below with its coins (face value and weight of one coin), as published by the mints. Check the weight against your own coins.</p>
+    <div class="ax-row" role="group" aria-label="Mode">
+      <button type="button" class="btn small cc-m" data-mode="weigh" aria-pressed="true">Count by weight</button>
+      <button type="button" class="btn small cc-m" data-mode="hand" aria-pressed="false">Count by hand</button>
+    </div>
+  </div>
+  <div class="ax-card cc-weigh">
+    <h2>2. Weigh your coins</h2>
+    <p class="ax-help">Put one kind of coin on the scale (in a jar or bag), type the total weight and the weight of the empty container. The tool divides what is left by the weight of one coin.</p>
+    <div class="ax-scroll">
+      <table class="cc-tab">
+        <thead><tr><th>Coin</th><th>Face value</th><th>One coin (g)</th><th>Total weighed (g)</th><th>Container (g)</th><th class="r">Coins</th><th class="r">Value</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn small cc-add" data-for="weigh" style="margin-top:10px">Add a coin</button>
+  </div>
+  <div class="ax-card cc-hand" hidden>
+    <h2>2. Count by hand</h2>
+    <div class="ax-scroll">
+      <table class="cc-tab">
+        <thead><tr><th>Coin</th><th>Face value</th><th>How many</th><th class="r">Value</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn small cc-add" data-for="hand" style="margin-top:10px">Add a coin</button>
+  </div>
+  <div class="ax-card">
+    <h2>3. Total</h2>
+    <p class="ax-big cc-out" aria-live="polite">…</p>
+    <dl class="ax-facts cc-facts"></dl>
+    <p class="cl-flag cc-warn" hidden></p>
+    <p class="ax-help">Weighing is a good estimate, not a guarantee. Worn coins, mixed coins and different years can weigh a little differently, so a count that is not close to a whole number is a hint to check your weights.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cc [hidden] { display: none; }
+  .cc .cc-tab input { min-width: 78px; width: 100%; }
+  .cc .cc-tab td:first-child input { min-width: 110px; }
+  .cc .cc-tab td.r { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cc .cc-del { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 9px; cursor: pointer; font: inherit; }
+  .cc .cc-m[aria-pressed=true] { font-weight: 700; outline: 2px solid var(--accent); }
+</style>
+
+<script>
+  import { coinsFromWeight } from '../../lib/collect/maths';
+
+  type WRow = { name: string; face: number; each: number; total: number; tare: number };
+  type HRow = { name: string; face: number; qty: number };
+  // Face values and weights as published by each mint (general facts); rows can be edited.
+  const SETS: Record<string, { label: string; sym: string; coins: [string, number, number][] }> = {
+    us: { label: 'US coins', sym: '$', coins: [['Cent', 0.01, 2.5], ['Nickel', 0.05, 5.0], ['Dime', 0.1, 2.268], ['Quarter', 0.25, 5.67]] },
+    ca: { label: 'Canadian coins', sym: '$', coins: [['5 cents', 0.05, 3.95], ['10 cents', 0.1, 1.75], ['25 cents', 0.25, 4.4], ['Loonie $1', 1, 6.27], ['Toonie $2', 2, 6.92]] },
+    uk: { label: 'UK coins', sym: '£', coins: [['1p', 0.01, 3.56], ['2p', 0.02, 7.12], ['5p', 0.05, 3.25], ['10p', 0.1, 6.5], ['20p', 0.2, 5.0], ['50p', 0.5, 8.0], ['£1', 1, 8.75], ['£2', 2, 12.0]] },
+  };
+  const root = document.querySelector('.cc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const sym = q<HTMLInputElement>('.cc-sym'), preset = q<HTMLSelectElement>('.cc-preset');
+  const wBody = q('.cc-weigh tbody'), hBody = q('.cc-hand tbody'), out = q('.cc-out'), facts = q('.cc-facts'), warn = q('.cc-warn');
+  preset.innerHTML += Object.entries(SETS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
+  let mode: 'weigh' | 'hand' = 'weigh';
+  let wRows: WRow[] = [{ name: 'My coin', face: 0.25, each: 5, total: 1250, tare: 50 }];
+  let hRows: HRow[] = [{ name: 'My coin', face: 0.25, qty: 0 }];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const num = (v: number) => (Number.isFinite(v) ? v : 0);
+  const money = (v: number) => `${sym.value}${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const inp = (k: string, v: number | string, label: string, extra = 'type="number" min="0" step="any" inputmode="decimal"') => `<input data-k="${k}" ${extra} value="${typeof v === 'string' ? esc(v) : Number.isFinite(v) ? v : ''}" aria-label="${label}" />`;
+
+  const draw = () => {
+    wBody.innerHTML = wRows.map((r, i) => `<tr data-i="${i}"><td>${inp('name', r.name, 'Coin name', 'type="text"')}</td><td>${inp('face', r.face, 'Face value of one coin')}</td>
+      <td>${inp('each', r.each, 'Weight of one coin in grams')}</td><td>${inp('total', r.total, 'Total weight in grams')}</td><td>${inp('tare', r.tare, 'Weight of the empty container in grams')}</td>
+      <td class="r cc-n"></td><td class="r cc-v"></td><td><button type="button" class="cc-del" aria-label="Remove">✕</button></td></tr>`).join('');
+    hBody.innerHTML = hRows.map((r, i) => `<tr data-i="${i}"><td>${inp('name', r.name, 'Coin name', 'type="text"')}</td><td>${inp('face', r.face, 'Face value of one coin')}</td>
+      <td>${inp('qty', r.qty, 'How many', 'type="number" min="0" step="1" inputmode="numeric"')}</td>
+      <td class="r cc-v"></td><td><button type="button" class="cc-del" aria-label="Remove">✕</button></td></tr>`).join('');
+    calc();
+  };
+
+  const calc = () => {
+    const flags: string[] = [];
+    let total = 0, coins = 0;
+    const parts: string[] = [];
+    if (mode === 'weigh') {
+      wBody.querySelectorAll<HTMLElement>('tr').forEach((tr) => {
+        const r = wRows[+tr.dataset.i!];
+        const raw = coinsFromWeight(num(r.total), r.each, num(r.tare));
+        const ok = Number.isFinite(raw) && r.each > 0;
+        const n = ok ? Math.max(0, Math.round(raw)) : 0, v = n * num(r.face);
+        tr.querySelector('.cc-n')!.innerHTML = ok ? `${n}<small> (${(+raw.toFixed(2)).toString()} by weight)</small>` : '–';
+        tr.querySelector('.cc-v')!.textContent = ok ? money(v) : '–';
+        if (ok) { total += v; coins += n; if (raw < 0) flags.push(`${r.name || 'A row'}: the container weighs more than the total.`); else if (Math.abs(raw - Math.round(raw)) > 0.3) flags.push(`${r.name || 'A row'}: ${+raw.toFixed(2)} is not close to a whole number. Check the weights, or whether the coins are mixed.`); }
+        if (ok && n > 0) parts.push(`<div><dt>${esc(r.name || 'Coins')}</dt><dd>${n}<small>${money(v)}</small></dd></div>`);
+      });
+    } else {
+      hBody.querySelectorAll<HTMLElement>('tr').forEach((tr) => {
+        const r = hRows[+tr.dataset.i!], n = Math.max(0, Math.round(num(r.qty))), v = n * num(r.face);
+        tr.querySelector('.cc-v')!.textContent = money(v);
+        total += v; coins += n;
+        if (n > 0) parts.push(`<div><dt>${esc(r.name || 'Coins')}</dt><dd>${n}<small>${money(v)}</small></dd></div>`);
+      });
+    }
+    out.textContent = money(total);
+    facts.innerHTML = `<div><dt>Coins counted</dt><dd>${coins}</dd></div>` + parts.join('');
+    warn.hidden = !flags.length; warn.innerHTML = flags.map(esc).join('<br>');
+  };
+
+  // Single delegated listeners that always look at the current arrays.
+  const handler = (get: () => any[]) => (e: Event) => {
+    const el = e.target as HTMLInputElement; if (!el.dataset.k) return;
+    const tr = el.closest('tr') as HTMLElement, k = el.dataset.k;
+    get()[+tr.dataset.i!][k] = k === 'name' ? el.value : parseFloat(el.value);
+    calc();
+  };
+  const del = (get: () => any[]) => (e: Event) => {
+    const b = (e.target as HTMLElement).closest('.cc-del'); if (!b) return;
+    get().splice(+(b.closest('tr') as HTMLElement).dataset.i!, 1); draw();
+  };
+  const wGet = () => wRows, hGet = () => hRows;
+  wBody.addEventListener('input', handler(wGet)); hBody.addEventListener('input', handler(hGet));
+  wBody.addEventListener('click', del(wGet)); hBody.addEventListener('click', del(hGet));
+
+  root.querySelectorAll<HTMLElement>('.cc-add').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.for === 'weigh') wRows.push({ name: 'My coin', face: 1, each: 1, total: NaN, tare: 0 });
+    else hRows.push({ name: 'My coin', face: 1, qty: 0 });
+    draw();
+  }));
+  preset.addEventListener('change', () => {
+    const s = SETS[preset.value]; if (!s) return;
+    sym.value = s.sym;
+    wRows = s.coins.map(([name, face, each]) => ({ name, face, each, total: NaN, tare: 0 }));
+    hRows = s.coins.map(([name, face]) => ({ name, face, qty: 0 }));
+    preset.value = ''; draw();
+  });
+  sym.addEventListener('input', calc);
+  root.querySelectorAll<HTMLElement>('.cc-m').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.mode as 'weigh' | 'hand';
+    root.querySelectorAll('.cc-m').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.cc-weigh').hidden = mode !== 'weigh'; q('.cc-hand').hidden = mode !== 'hand';
+    calc();
+  }));
+  draw();
+</script>

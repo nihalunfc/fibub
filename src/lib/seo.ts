@@ -66,7 +66,7 @@ export const collectionLd = (name: string, description: string, url: string, cru
   breadcrumbs(crumbs),
 ];
 
-const CATEGORY: Record<string, string> = { money: 'FinanceApplication', documents: 'UtilitiesApplication', everyday: 'UtilitiesApplication', science: 'UtilitiesApplication' };
+const CATEGORY: Record<string, string> = { money: 'FinanceApplication', documents: 'UtilitiesApplication', everyday: 'UtilitiesApplication', science: 'UtilitiesApplication', collecting: 'UtilitiesApplication' };
 
 /** The tool's breadcrumb trail: Home › Shelf › Subject › Tool. */
 export function toolCrumbs(t: Tool): Crumb[] {

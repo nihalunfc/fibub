@@ -1,23 +1,32 @@
 [
  {
-  "sha": "8d43a3171a42",
-  "date": "2026-11-10T05:49:36+00:00",
-  "title": "Usage page: show live view and use counts",
-  "tools": [],
-  "site": true
+  "sha": "c6c0b547da77",
+  "date": "2026-11-10T05:57:30+00:00",
+  "title": "Add 12 Collecting tools (#1603-#1614): coin check, specific gravity, grade scale, card centering, gold purity, bullion weights and premium, coin counter, coin dates, serial checker, old money, auction fees",
+  "tools": [
+   "auction-costs",
+   "bullion-premium",
+   "bullion-weights",
+   "card-centering",
+   "coin-check",
+   "coin-counter",
+   "coin-dates",
+   "gold-purity",
+   "grade-scale",
+   "pre-decimal",
+   "serial-checker",
+   "specific-gravity"
+  ],
+  "site": false
  },
  {
-  "sha": "0bffa08f8edc",
-  "date": "2026-11-10T05:32:48+00:00",
-  "title": "Home: style the script-built most-used rows with :global()",
-  "tools": [],
-  "site": true
- },
- {
-  "sha": "e8f187eacc48",
-  "date": "2026-11-10T05:17:37+00:00",
-  "title": "Home page: 10 most used tools and data-driven site totals",
-  "tools": [],
+  "sha": "2d4487f16183",
+  "date": "2026-11-10T05:49:24+00:00",
+  "title": "Add the Collecting shelf: shared engine, live metal prices, Melt value (#1601) and Collection catalogue (#1602)",
+  "tools": [
+   "collection-catalogue",
+   "melt-value"
+  ],
   "site": true
  },
  {
@@ -127,134 +136,6 @@
    "free-fall",
    "inertia-demos",
    "power-bill"
-  ],
-  "site": false
- },
- {
-  "sha": "36b20941b4ca",
-  "date": "2026-11-10T03:50:25+00:00",
-  "title": "List #1219-#1240 on the Class 8 chapters, add their share images",
-  "tools": [
-   "wind-from-pressure"
-  ],
-  "site": false
- },
- {
-  "sha": "596b1d5a5c6e",
-  "date": "2026-11-10T03:44:31+00:00",
-  "title": "Add #1240 Kaprekar magic squares",
-  "tools": [
-   "kaprekar-magic-square"
-  ],
-  "site": false
- },
- {
-  "sha": "030168770743",
-  "date": "2026-11-10T03:44:31+00:00",
-  "title": "Add #1239 Divisibility tests",
-  "tools": [
-   "divisibility-tests"
-  ],
-  "site": false
- },
- {
-  "sha": "d55ac281de18",
-  "date": "2026-11-10T03:44:31+00:00",
-  "title": "Add #1238 Polygon angles",
-  "tools": [
-   "divisibility-tests",
-   "kaprekar-magic-square",
-   "polygon-angle-sum"
-  ],
-  "site": false
- },
- {
-  "sha": "0b7e3e3923c9",
-  "date": "2026-11-10T03:41:36+00:00",
-  "title": "Add #1224 Barometer altitude",
-  "tools": [
-   "barometer-altitude"
-  ],
-  "site": false
- },
- {
-  "sha": "2889c56948d9",
-  "date": "2026-11-10T03:41:36+00:00",
-  "title": "Add #1221 Liquid pressure",
-  "tools": [
-   "liquid-pressure"
-  ],
-  "site": false
- },
- {
-  "sha": "1c82a78579cd",
-  "date": "2026-11-10T03:41:35+00:00",
-  "title": "Add #1219 Pressure explorer",
-  "tools": [
-   "pressure-explorer"
-  ],
-  "site": false
- },
- {
-  "sha": "d396c8960410",
-  "date": "2026-11-10T03:41:18+00:00",
-  "title": "Add #1223 Cyclone builder",
-  "tools": [
-   "cyclone-builder"
-  ],
-  "site": false
- },
- {
-  "sha": "dbf89d03d9f6",
-  "date": "2026-11-10T03:41:18+00:00",
-  "title": "Add #1222 Wind from pressure",
-  "tools": [
-   "wind-from-pressure"
-  ],
-  "site": false
- },
- {
-  "sha": "aba33b88e034",
-  "date": "2026-11-10T03:41:18+00:00",
-  "title": "Add #1220 Matter sorter",
-  "tools": [
-   "matter-sorter"
-  ],
-  "site": false
- },
- {
-  "sha": "0459b89aaf44",
-  "date": "2026-11-10T03:40:52+00:00",
-  "title": "Add #1237 Standard form",
-  "tools": [
-   "standard-form-ladder"
-  ],
-  "site": false
- },
- {
-  "sha": "522db77c33f4",
-  "date": "2026-11-10T03:40:52+00:00",
-  "title": "Add #1236 Exponent laws",
-  "tools": [
-   "exponent-laws"
-  ],
-  "site": false
- },
- {
-  "sha": "348573a7e5fc",
-  "date": "2026-11-10T03:40:52+00:00",
-  "title": "Add #1235 Number systems",
-  "tools": [
-   "number-systems"
-  ],
-  "site": false
- },
- {
-  "sha": "d2b31c36357e",
-  "date": "2026-11-10T03:40:52+00:00",
-  "title": "Add #1234 Doubling power",
-  "tools": [
-   "doubling-power"
   ],
   "site": false
  },

@@ -1,0 +1,85 @@
+---
+// #1605 Grade scale. Engine: src/lib/collect/maths.ts (GRADES, gradeFor, SHELDON).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax gs">
+  <div class="ax-card">
+    <h2>1. Pick a number</h2>
+    <label>Number on the 1 to 70 scale <select class="gs-num"></select></label>
+    <input class="gs-range" type="range" min="0" step="1" aria-label="Move along the scale" />
+    <p class="ax-help">Coins are often graded on a 1 to 70 scale: 1 is barely recognisable, 70 is perfect. Not every number is used.</p>
+  </div>
+  <div class="ax-card">
+    <h2>2. What it means</h2>
+    <p class="ax-big gs-out" aria-live="polite">…</p>
+    <dl class="ax-facts gs-facts"></dl>
+    <p class="gs-desc"></p>
+    <p class="ax-help">Words differ a little between countries and grading firms, so the matches are close, not exact. Ask a dealer or a collectors' club if a grade matters for a sale.</p>
+  </div>
+  <div class="ax-card">
+    <h2>3. All coin bands</h2>
+    <div class="ax-scroll"><table class="gs-tab"><thead><tr><th>Numbers</th><th>US</th><th>UK</th><th>French</th><th>German</th><th>In plain words</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="ax-card">
+    <h2>4. Banknote terms</h2>
+    <div class="ax-scroll"><table class="gs-notes"><thead><tr><th>Term</th><th>Name</th><th>What it usually means</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<style is:inline>
+  .gs label { display: grid; gap: 4px; font-size: 14px; }
+  .gs select { width: 100%; box-sizing: border-box; }
+  .gs .gs-range { width: 100%; margin-top: 10px; }
+  .gs tr.gs-on td { font-weight: 700; }
+  .gs td, .gs th { vertical-align: top; }
+</style>
+
+<script>
+  import { GRADES, gradeFor, SHELDON } from '../../lib/collect/maths';
+
+  // fibub's own one-line descriptions, by the abbreviation used in GRADES.
+  const DESC: Record<string, string> = {
+    P: 'Very heavy wear. The coin is identifiable only by its type or size.',
+    FR: 'Very heavy wear. Parts of the design are flat and the rim may be worn into the lettering.',
+    AG: 'Very heavy wear. Outline of the design visible, most detail gone, date may be partly readable.',
+    G: 'Heavy wear. Design outlined, main features flat, date and larger letters readable.',
+    VG: 'Well worn. Main features clear but flat, some detail in the deepest parts.',
+    F: 'Moderate to heavy even wear. All major details visible, though flattened.',
+    VF: 'Light to moderate wear. Fine details are mostly sharp, high points show wear.',
+    'EF / XF': 'Light wear on the highest points only. Most fine detail is sharp.',
+    AU: 'Trace of wear on the very highest points, with much of the original shine left.',
+    'MS / UNC': 'Never used in circulation. No wear; the number reflects shine, marks and strike quality.',
+  };
+  const NOTES: [string, string, string][] = [
+    ['UNC', 'Uncirculated', 'Crisp, never folded, with no signs of handling. Corners sharp.'],
+    ['AU', 'About uncirculated', 'Looks new but has a light fold or small counting mark.'],
+    ['EF / XF', 'Extremely fine', 'Very light handling: two or three light folds, still crisp.'],
+    ['VF', 'Very fine', 'Some folds and signs of use, still fairly crisp with no major damage.'],
+    ['F', 'Fine', 'Many folds and creases, softer paper, but still solid and complete.'],
+    ['VG', 'Very good', 'Heavily used, soft and limp, possibly small edge tears or dirt.'],
+    ['G', 'Good', 'Very worn, with rounded corners and perhaps small holes or splits.'],
+    ['Poor', 'Poor', 'Badly worn or damaged: tears, stains, missing pieces. Kept as a space-filler.'],
+  ];
+  const root = document.querySelector('.gs') as HTMLElement;
+  const sel = root.querySelector('.gs-num') as HTMLSelectElement, range = root.querySelector('.gs-range') as HTMLInputElement;
+  sel.innerHTML = SHELDON.map((n) => `<option value="${n}">${n}</option>`).join('');
+  range.max = String(SHELDON.length - 1);
+  const rangeText = (g: { lo: number; hi: number }) => (g.lo === g.hi ? `${g.lo}` : `${g.lo} to ${g.hi}`);
+  root.querySelector('.gs-tab tbody')!.innerHTML = GRADES.map((g) =>
+    `<tr data-lo="${g.lo}"><td>${rangeText(g)}</td><td>${g.us} (${g.abbr})</td><td>${g.uk}</td><td>${g.fr}</td><td>${g.de}</td><td>${DESC[g.abbr] ?? ''}</td></tr>`).join('');
+  root.querySelector('.gs-notes tbody')!.innerHTML = NOTES.map((n) => `<tr><td>${n[0]}</td><td>${n[1]}</td><td>${n[2]}</td></tr>`).join('');
+
+  const show = () => {
+    const n = +sel.value, g = gradeFor(n);
+    range.value = String(SHELDON.indexOf(n));
+    (root.querySelector('.gs-out') as HTMLElement).textContent = `${n}: ${g.us} (${g.abbr})`;
+    (root.querySelector('.gs-facts') as HTMLElement).innerHTML = [['US', `${g.us}, ${g.abbr}`], ['UK', g.uk], ['French', g.fr], ['German', g.de]]
+      .map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+    (root.querySelector('.gs-desc') as HTMLElement).textContent = DESC[g.abbr] ?? '';
+    root.querySelectorAll<HTMLElement>('.gs-tab tbody tr').forEach((tr) => tr.classList.toggle('gs-on', +tr.dataset.lo! === g.lo));
+  };
+  sel.addEventListener('change', show);
+  range.addEventListener('input', () => { sel.value = String(SHELDON[+range.value]); show(); });
+  sel.value = '45'; show();
+</script>

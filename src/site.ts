@@ -15,6 +15,7 @@ export const SHELVES = [
   { id: 'documents', name: 'Documents', blurb: 'PDFs and images, processed on your device.' },
   { id: 'everyday', name: 'Everyday', blurb: 'Dates, units, time zones and more.' },
   { id: 'science', name: 'Science', blurb: 'Astronomy and more science tools, worked out in your browser.' },
+  { id: 'collecting', name: 'Collecting', blurb: 'Check, value and record coins, banknotes, bullion and any collection.' },
 ] as const;
 
 // Science is big, so its tools sit in subjects (Physics, Chemistry, ...) and each subject in sections
@@ -223,6 +224,13 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'ethics-and-planning', subject: 'research-kit', name: 'Ethics and planning' },
     { id: 'teaching-and-outreach', subject: 'research-kit', name: 'Teaching and outreach' },
     { id: 'citizen-science', subject: 'research-kit', name: 'Citizen science' },
+  ],
+  // Collecting: sections only, no subjects.
+  collecting: [
+    { id: 'vetting', name: 'Check and vet', blurb: 'Weigh, measure and grade a piece, and see where it differs from the official figures.' },
+    { id: 'metals', name: 'Metals and bullion', blurb: 'Melt value at today\u2019s prices, purity and bullion weights.' },
+    { id: 'coins-notes', name: 'Coins and banknotes', blurb: 'Dates in other calendars, serial numbers and old money.' },
+    { id: 'any-collection', name: 'Any collection', blurb: 'Catalogue and value what you own, kept on your device.' },
   ],
   // The Learn shelf (see LEARN_SHELF below): one section per school subject.
   learn: [

@@ -1,0 +1,105 @@
+---
+// #1611 Coin dates. Engine: src/lib/collect/maths.ts (eraToCe, ahToCe, ahStart, ceToAh, ERAS, JAPAN).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax cd">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Direction">
+      <button type="button" class="cd-m" data-m="era" aria-pressed="true">Date on the coin to our year</button>
+      <button type="button" class="cd-m" data-m="ce" aria-pressed="false">Our year to every calendar</button>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>1. The date</h2>
+    <div class="ax-grid">
+      <label class="cd-eraBox">Calendar on the coin <select class="cd-era"></select></label>
+      <label><span class="cd-yl">Year on the coin</span> <input class="cd-year" type="number" step="1" min="1" inputmode="numeric" value="1300" /></label>
+    </div>
+    <p class="ax-help cd-help">Pick the calendar the date is written in. Many calendars start part way through our year, so one coin year often covers two of ours.</p>
+  </div>
+  <div class="ax-card">
+    <h2>2. Result</h2>
+    <p class="ax-big cd-out" aria-live="polite">…</p>
+    <div class="cd-more"></div>
+    <p class="ax-help">Years are shown as the common era (CE, the year count most of the world uses). Always check the date against a catalogue for your coin.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Digits on coins</h2>
+    <p class="ax-help" style="margin-top:0">Many coins write the date in local digits. Match each digit to read the year.</p>
+    <div class="ax-scroll">
+      <table class="cd-dig">
+        <thead><tr><th>Digit</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Western</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
+          <tr><th scope="row">Arabic-Indic</th><td>٠</td><td>١</td><td>٢</td><td>٣</td><td>٤</td><td>٥</td><td>٦</td><td>٧</td><td>٨</td><td>٩</td></tr>
+          <tr><th scope="row">Devanagari</th><td>०</td><td>१</td><td>२</td><td>३</td><td>४</td><td>५</td><td>६</td><td>७</td><td>८</td><td>९</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ax-help">Arabic-Indic digits are written left to right inside a right-to-left line, so ١٣٠٠ reads one-three-zero-zero.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cd .cd-dig td, .cd .cd-dig th { text-align: center; font-size: 18px; padding: 6px 8px; }
+  .cd .cd-dig th[scope] { text-align: left; font-size: 14px; }
+  .cd .cd-more p { margin: 6px 0; font-size: 15px; }
+  .cd .cd-more ul { margin: 6px 0; padding-left: 18px; }
+</style>
+
+<script>
+  import { ERAS, JAPAN, eraToCe, ahStart, ahToCe, ceToAh } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.cd') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const era = q<HTMLSelectElement>('.cd-era'), year = q<HTMLInputElement>('.cd-year');
+  const out = q('.cd-out'), more = q('.cd-more');
+  let mode: 'era' | 'ce' = 'era';
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  era.innerHTML = '<option value="ah">Islamic Hijri (AH)</option>' +
+    Object.entries(ERAS).map(([k, e]) => `<option value="${k}">${e.name}</option>`).join('') +
+    JAPAN.map((j) => `<option value="jp:${j.name}">Japanese: ${j.name}</option>`).join('');
+  const span = (a: number, b: number) => (a === b ? `${a}` : `${a}/${String(b).slice(-2).padStart(2, '0')}`);
+
+  const calc = () => {
+    const y = Math.floor(parseFloat(year.value));
+    if (!(y >= 1)) { out.textContent = 'Type a year.'; more.innerHTML = ''; return; }
+    if (mode === 'era') {
+      const k = era.value, isJp = k.startsWith('jp:'), key = isJp ? k.slice(3) : k;
+      const [a, b] = eraToCe(key, y);
+      const label = k === 'ah' ? 'AH' : isJp ? key : k.toUpperCase();
+      out.textContent = `${label} ${y} = ${span(a, b)} CE`;
+      let h = '';
+      if (k === 'ah') {
+        const s = ahStart(y);
+        h += `<p>This Hijri year starts on about <strong>${s.day} ${MONTHS[s.month - 1]} ${s.year}</strong>. It uses the tabular calendar; real moon-sighting calendars can differ by a day or two.</p>`;
+      }
+      const note = isJp ? 'Japanese era years count from 1 in the first year of each emperor. The first year starts part way through ours (the changeover date differs).' : k === 'ah' ? 'The Islamic year is about 11 days shorter than ours, so it covers two CE years.' : ERAS[k].note;
+      h += `<p>${note}</p>`;
+      more.innerHTML = h;
+    } else {
+      out.textContent = `${y} CE in other calendars`;
+      const items: string[] = [];
+      if (y >= 622) { const [a, b] = ceToAh(y); items.push(`<li><strong>Islamic Hijri (AH):</strong> ${a === b ? a : a + ' and ' + b}</li>`); }
+      for (const [k, e] of Object.entries(ERAS)) {
+        const lo = y - e.add - e.span, hi = y - e.add;
+        if (hi < 1) continue;
+        items.push(`<li><strong>${e.name}:</strong> ${Math.max(lo, 1) === hi ? hi : Math.max(lo, 1) + ' or ' + hi}</li>`);
+      }
+      JAPAN.forEach((j, i) => { const nx = JAPAN[i + 1]; if (y >= j.start && (!nx || y <= nx.start)) items.push(`<li><strong>Japanese ${j.name}:</strong> year ${y - j.start + 1}${nx && y === nx.start ? ' (and year 1 of ' + nx.name + ' from the changeover)' : ''}</li>`); });
+      more.innerHTML = `<ul>${items.join('')}</ul><p>Where two years are shown, the calendar's new year falls inside our year.</p>`;
+    }
+  };
+  root.querySelectorAll<HTMLButtonElement>('.cd-m').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as 'era' | 'ce';
+    root.querySelectorAll('.cd-m').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    (q('.cd-eraBox') as HTMLElement).hidden = mode === 'ce';
+    q('.cd-yl').textContent = mode === 'ce' ? 'Year (CE)' : 'Year on the coin';
+    year.value = mode === 'ce' ? '1882' : '1300'; era.value = 'ah';
+    calc();
+  }));
+  era.addEventListener('change', calc);
+  year.addEventListener('input', calc);
+  calc();
+</script>

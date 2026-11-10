@@ -1,0 +1,114 @@
+---
+// #1601 Melt value. Engine: src/lib/collect/ (prices.ts for today's spot and the visitor's own prices, maths.ts for the sums).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax mv">
+  <div class="ax-card">
+    <h2>1. Prices</h2>
+    <div class="mv-prices"></div>
+  </div>
+  <div class="ax-card">
+    <h2>2. Your coins, bars and jewellery</h2>
+    <div class="ax-scroll">
+      <table class="mv-tab">
+        <thead><tr><th>Item</th><th>Metal</th><th>Weight</th><th>Fineness</th><th>How many</th><th class="r">Melt value</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label>Add a common piece <select class="mv-preset"><option value="">Choose…</option></select></label>
+      <button type="button" class="btn small mv-add">Add your own</button>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="mv-remember" /> Remember my list on this device</label>
+  </div>
+  <div class="ax-card">
+    <h2>3. Metal value</h2>
+    <p class="ax-big mv-total" aria-live="polite">…</p>
+    <dl class="ax-facts mv-facts"></dl>
+    <p class="ax-help">Melt value is what the pure metal is worth at the spot price. A dealer buying it will usually pay less, and many coins sell for more than melt because collectors want them.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .mv .mv-tab input, .mv .mv-tab select { min-width: 70px; width: 100%; }
+  .mv .mv-tab td:first-child input { min-width: 120px; }
+  .mv .mv-w { display: flex; gap: 4px; }
+  .mv .mv-w input { min-width: 64px; }
+  .mv .mv-del { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 9px; cursor: pointer; font: inherit; }
+</style>
+
+<script>
+  import { mountPrices, money, type Metal, type PriceState } from '../../lib/collect/prices';
+  import { melt, toGrams, UNITS } from '../../lib/collect/maths';
+  import { keepOnDevice } from '../../lib/collect/store';
+
+  type Row = { name: string; metal: Metal; w: number; unit: string; fin: number; qty: number };
+  // Weights and fineness as published by each mint (general facts). Pick one, then change anything.
+  const PRESETS: Row[] = [
+    { name: 'US silver dollar (Morgan or Peace)', metal: 'silver', w: 26.73, unit: 'g', fin: 900, qty: 1 },
+    { name: 'US 90% silver dime (to 1964)', metal: 'silver', w: 2.5, unit: 'g', fin: 900, qty: 10 },
+    { name: 'US 90% silver quarter (to 1964)', metal: 'silver', w: 6.25, unit: 'g', fin: 900, qty: 4 },
+    { name: 'US 90% silver half dollar (to 1964)', metal: 'silver', w: 12.5, unit: 'g', fin: 900, qty: 2 },
+    { name: '1 oz silver bullion coin (999)', metal: 'silver', w: 1, unit: 'ozt', fin: 999, qty: 1 },
+    { name: 'Canada silver dollar (to 1966)', metal: 'silver', w: 23.33, unit: 'g', fin: 800, qty: 1 },
+    { name: 'India silver rupee (1862 to 1939)', metal: 'silver', w: 11.66, unit: 'g', fin: 917, qty: 1 },
+    { name: 'UK silver shilling (to 1919)', metal: 'silver', w: 5.655, unit: 'g', fin: 925, qty: 1 },
+    { name: 'UK gold sovereign', metal: 'gold', w: 7.988, unit: 'g', fin: 916.7, qty: 1 },
+    { name: '1 oz gold coin, 22 karat (Krugerrand, Eagle)', metal: 'gold', w: 33.93, unit: 'g', fin: 916.7, qty: 1 },
+    { name: '1 oz gold coin or bar (999.9)', metal: 'gold', w: 1, unit: 'ozt', fin: 999.9, qty: 1 },
+    { name: '1 tola gold bar (999)', metal: 'gold', w: 1, unit: 'tola', fin: 999, qty: 1 },
+    { name: '1 pavan (sovereign) of 22 karat jewellery', metal: 'gold', w: 8, unit: 'g', fin: 916, qty: 1 },
+    { name: '10 g gold bar (999.9)', metal: 'gold', w: 10, unit: 'g', fin: 999.9, qty: 1 },
+    { name: '1 oz platinum coin (999.5)', metal: 'platinum', w: 1, unit: 'ozt', fin: 999.5, qty: 1 },
+  ];
+  const root = document.querySelector('.mv') as HTMLElement;
+  const body = root.querySelector('.mv-tab tbody') as HTMLElement;
+  const preset = root.querySelector('.mv-preset') as HTMLSelectElement;
+  preset.innerHTML += PRESETS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+  let rows: Row[] = [{ ...PRESETS[0] }];
+  let ps: PriceState | null = null;
+  const units = ['g', 'ozt', 'gr', 'dwt', 'tola', 'kg'];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const draw = () => {
+    body.innerHTML = rows.map((r, i) => `<tr data-i="${i}">
+      <td><input data-k="name" value="${esc(r.name)}" aria-label="Item name" /></td>
+      <td><select data-k="metal" aria-label="Metal">${['gold', 'silver', 'platinum', 'palladium'].map((m) => `<option ${m === r.metal ? 'selected' : ''}>${m}</option>`).join('')}</select></td>
+      <td><span class="mv-w"><input data-k="w" type="number" min="0" step="any" inputmode="decimal" value="${r.w}" aria-label="Weight" /><select data-k="unit" aria-label="Weight unit">${units.map((u) => `<option value="${u}" ${u === r.unit ? 'selected' : ''}>${u === 'ozt' ? 'oz t' : u}</option>`).join('')}</select></span></td>
+      <td><input data-k="fin" type="number" min="1" max="1000" step="any" inputmode="decimal" value="${r.fin}" aria-label="Fineness, parts per thousand" /></td>
+      <td><input data-k="qty" type="number" min="1" step="1" inputmode="numeric" value="${r.qty}" aria-label="How many" /></td>
+      <td class="r mv-v"></td>
+      <td><button type="button" class="mv-del" aria-label="Remove">✕</button></td></tr>`).join('');
+    calc();
+  };
+  const calc = () => {
+    if (!ps) return;
+    const totals: Record<string, { g: number; v: number }> = {};
+    let total = 0;
+    body.querySelectorAll<HTMLTableRowElement>('tr').forEach((tr) => {
+      const r = rows[+tr.dataset.i!];
+      const m = melt(toGrams(r.w, r.unit), r.fin, ps!.perOzt(r.metal), r.qty || 0);
+      (tr.querySelector('.mv-v') as HTMLElement).textContent = Number.isFinite(m.value) ? money(m.value, ps!.cur) : '–';
+      if (Number.isFinite(m.value)) { total += m.value; const t = (totals[r.metal] ??= { g: 0, v: 0 }); t.g += m.pureG; t.v += m.value; }
+    });
+    (root.querySelector('.mv-total') as HTMLElement).textContent = money(total, ps.cur);
+    (root.querySelector('.mv-facts') as HTMLElement).innerHTML = Object.entries(totals).map(([m, t]) =>
+      `<div><dt>Pure ${m}</dt><dd>${t.g.toFixed(t.g < 10 ? 3 : 2)} g<small>${(t.g / UNITS.ozt.g).toFixed(4)} troy oz · ${money(t.v, ps!.cur)}${ps!.isOwn(m as Metal) ? ' · your price' : ''}</small></dd></div>`).join('');
+    save();
+  };
+  const save = keepOnDevice(root.querySelector('.mv-remember') as HTMLInputElement, 'fibub-melt-list-v1', () => rows, (d) => { if (Array.isArray(d) && d.length) rows = d; });
+  body.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement, tr = el.closest('tr') as HTMLElement, r = rows[+tr.dataset.i!] as any, k = el.dataset.k!;
+    r[k] = k === 'name' || k === 'metal' || k === 'unit' ? el.value : parseFloat(el.value);
+    calc();
+  });
+  body.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.mv-del'); if (!b) return;
+    rows.splice(+(b.closest('tr') as HTMLElement).dataset.i!, 1); draw(); save();
+  });
+  preset.addEventListener('change', () => { if (preset.value) { rows.push({ ...PRESETS[+preset.value] }); preset.value = ''; draw(); } });
+  root.querySelector('.mv-add')!.addEventListener('click', () => { rows.push({ name: 'My piece', metal: 'silver', w: 10, unit: 'g', fin: 925, qty: 1 }); draw(); });
+  draw();
+  mountPrices(root.querySelector('.mv-prices') as HTMLElement, (s) => { ps = s; calc(); });
+</script>
