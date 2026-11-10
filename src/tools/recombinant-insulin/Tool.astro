@@ -1,0 +1,181 @@
+---
+// Recombinant insulin: a stepper from insulin's two chains to genes, cutting with a restriction enzyme,
+// joining with ligase, putting the plasmid into E. coli, picking recombinant colonies on antibiotic plates,
+// growing them and joining the chains. Class 12 Biology, biotechnology principles and applications.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax rin">
+  <div class="ax-card">
+    <h2>Making human insulin in bacteria</h2>
+    <ol class="ri-dots" aria-label="Steps"></ol>
+    <canvas class="ax-fig ri-fig" role="img"></canvas>
+    <div class="ax-row ri-nav">
+      <button type="button" class="btn secondary small ri-prev">◀ Back</button>
+      <span class="ri-step" aria-live="polite"></span>
+      <button type="button" class="btn small ri-next">Next ▶</button>
+    </div>
+    <h3 class="ri-name"></h3>
+    <p class="ri-text"></p>
+    <div class="ri-cut" hidden>
+      <div class="ax-grid">
+        <label>Cut the plasmid with <select class="ri-ep"></select></label>
+        <label>Cut the insulin gene with <select class="ri-eg"></select></label>
+      </div>
+      <p class="ri-ends"></p>
+    </div>
+    <div class="ri-sel" hidden>
+      <label class="ax-check"><input type="checkbox" class="ri-reveal" /> Show which cells are which (in real life you cannot see this)</label>
+      <p class="ri-selsay"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ri-try">
+      <li>At the cutting step, cut the plasmid with EcoRI and the gene with BamHI. Can ligase join them? Why not?</li>
+      <li>At the plates step, find the colonies that grow on ampicillin but not on tetracycline. Why are those the ones we want?</li>
+      <li>Work out how many base pairs code for the A chain (21 amino acids) with a start and a stop codon.</li>
+      <li>Why were the two chains made in separate bacteria and joined afterwards?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ri-quiz" />
+</div>
+
+<script>
+  import { ENZYMES, overhang, compatible, revcomp, codingBp, grows, CHAIN, type Cell } from '../../lib/sci/insulin-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { FONT } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rin')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 240;
+  const STEPS = [
+    { name: 'Insulin has two chains', text: `Human insulin is a small protein made of two chains: chain A (${CHAIN.A} amino acids) and chain B (${CHAIN.B} amino acids), held together by disulphide (S–S) bridges. In the pancreas it is first made as proinsulin, with an extra C-peptide that is cut out.` },
+    { name: 'Genes for chain A and chain B', text: `DNA sequences that code for chain A and chain B are prepared separately. Each needs 3 base pairs per amino acid, plus a start and a stop codon: ${codingBp(CHAIN.A)} bp for A and ${codingBp(CHAIN.B)} bp for B.` },
+    { name: 'Cut with a restriction enzyme', text: 'The plasmid (a small ring of DNA that bacteria copy) and the gene are cut with the same restriction enzyme. It cuts at one exact sequence and leaves short single-stranded sticky ends. Choose the enzymes below.' },
+    { name: 'Join with DNA ligase', text: 'The sticky ends of the gene pair up with the matching ends of the opened plasmid, and DNA ligase seals the sugar-phosphate backbone. The result is recombinant DNA: a plasmid carrying a human gene.' },
+    { name: 'Into E. coli and pick the right cells', text: 'Bacteria are made competent (for example with calcium ions and a heat shock) so a few take up the plasmid. The insert sits inside the tetracycline resistance gene, so recombinant cells grow on ampicillin but no longer on tetracycline.' },
+    { name: 'Grow in a bioreactor', text: 'The chosen bacteria are grown in large stirred tanks with food, oxygen, the right temperature and pH. Each bacterium copies the plasmid and reads the gene, making chain A (or chain B in a second batch).' },
+    { name: 'Purify and join the chains', text: 'Downstream processing: the chains are extracted and purified, then joined by forming the disulphide bridges, giving human insulin. Eli Lilly made it this way in 1983. It is tested and formulated before use.' },
+  ];
+  let at = 0;
+  const dots = q('.ri-dots');
+  STEPS.forEach((s, i) => { const li = document.createElement('li'); const b = document.createElement('button'); b.type = 'button'; b.textContent = String(i + 1); b.setAttribute('aria-label', `Step ${i + 1}: ${s.name}`); b.addEventListener('click', () => { at = i; show(); }); li.append(b); dots.append(li); });
+  const ep = q<HTMLSelectElement>('.ri-ep'), eg = q<HTMLSelectElement>('.ri-eg');
+  Object.keys(ENZYMES).forEach((e) => { for (const s of [ep, eg]) { const o = document.createElement('option'); o.value = e; o.textContent = `${e} (${ENZYMES[e].replace('^', '↓')})`; s.append(o); } });
+
+  // made-up mix of 36 colonies: 0 no plasmid, 1 plain plasmid, 2 recombinant
+  const COLS: { x: number; y: number; c: Cell }[] = []; { let s = 11; const r = () => ((s = (s * 16807) % 2147483647) / 2147483647); for (let i = 0; i < 36; i++) { const a = r() * 2 * Math.PI, d = 0.85 * Math.sqrt(r()); COLS.push({ x: d * Math.cos(a), y: d * Math.sin(a), c: i % 6 === 0 ? 'recombinant' : i % 6 === 1 || i % 6 === 3 ? 'plasmid' : 'none' }); } }
+
+  const beads = (ctx: CanvasRenderingContext2D, x: number, y: number, n: number, color: string, r = 4.2) => { for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(x + i * (2 * r + 0.8), y, r, 0, 2 * Math.PI); ctx.fillStyle = color; ctx.fill(); } };
+  const ring = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, pl: Palette, insert: boolean, gap = false) => {
+    ctx.lineWidth = 7; ctx.strokeStyle = pl.line; ctx.beginPath(); ctx.arc(x, y, r, gap ? 0.25 : 0, gap ? 2 * Math.PI - 0.25 : 2 * Math.PI); ctx.stroke();
+    ctx.strokeStyle = pl.good; ctx.beginPath(); ctx.arc(x, y, r, Math.PI * 0.65, Math.PI * 0.95); ctx.stroke(); // ampR
+    ctx.strokeStyle = pl.accent2; ctx.beginPath(); ctx.arc(x, y, r, Math.PI * 1.75, Math.PI * 1.98); ctx.stroke(); // tetR (first half)
+    
+    if (insert) { ctx.strokeStyle = pl.bad; ctx.beginPath(); ctx.arc(x, y, r, -0.25, 0.25); ctx.stroke(); }
+    ctx.font = FONT; ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = pl.good; ctx.fillText('ampR', x - r * 0.95 - 4, y + r * 0.6 + 10); ctx.fillStyle = pl.accent2; ctx.fillText('tetR', x + r + 22, y - 18);
+    if (insert) { ctx.fillStyle = pl.bad; ctx.fillText('insulin gene', x + r + 30, y + 6); }
+  };
+  const bact = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, pl: Palette) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fillStyle = pl.bg; ctx.fill(); ctx.strokeStyle = pl.ink; ctx.lineWidth = 1.5; ctx.stroke(); };
+
+  function draw() {
+    const reveal = q<HTMLInputElement>('.ri-reveal').checked;
+    paint(q<HTMLCanvasElement>('.ri-fig'), { w: W, h: H, alt: `Step ${at + 1}: ${STEPS[at].name}`, draw: (ctx, w, h, pl: Palette) => {
+      ctx.font = FONT; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      if (at === 0 || at === 6) {
+        const y1 = 90, y2 = 150, x0 = 40;
+        ctx.fillStyle = pl.ink; ctx.fillText(`A chain (${CHAIN.A})`, x0, y1 - 22); ctx.fillText(`B chain (${CHAIN.B})`, x0, y2 + 24);
+        beads(ctx, x0 + 40, y1, CHAIN.A, pl.accent); beads(ctx, x0, y2, CHAIN.B, pl.accent2);
+        ctx.strokeStyle = pl.bad; ctx.lineWidth = 2.5; ctx.setLineDash([]);
+        for (const [a, b] of [[7, 7], [20, 19]]) { const xa = x0 + 40 + (a - 1) * 9.2, xb = x0 + (b - 1) * 9.2; ctx.beginPath(); ctx.moveTo(xa, y1 + 5); ctx.lineTo(xb, y2 - 5); ctx.stroke(); }
+        ctx.fillStyle = pl.bad; ctx.fillText('S–S bridges', w - 110, 120);
+        if (at === 6) { ctx.fillStyle = pl.good; ctx.font = '700 15px system-ui, sans-serif'; ctx.fillText('Human insulin: 51 amino acids', x0, 30); }
+      } else if (at === 1) {
+        const bar = (y: number, n: number, c: string, t: string) => { const len = n * 0.95; ctx.fillStyle = c; ctx.fillRect(30, y, len, 14); ctx.fillStyle = pl.line; ctx.fillRect(30, y + 18, len, 14); ctx.fillStyle = pl.ink; ctx.fillText(`${t}: ${n} bp`, 30, y - 12); };
+        bar(70, codingBp(CHAIN.A), pl.accent, 'gene for chain A'); bar(160, codingBp(CHAIN.B), pl.accent2, 'gene for chain B');
+        ctx.fillStyle = pl.muted; ctx.fillText('two strands, 3 bp per amino acid + start + stop', 30, 225);
+      } else if (at === 2) {
+        const a = ep.value, b = eg.value, oa = overhang(a), ob = overhang(b);
+        ring(ctx, 100, 120, 60, pl, false, true);
+        ctx.fillStyle = pl.ink; ctx.fillText(`plasmid cut with ${a}`, 30, 18);
+        const end = (x: number, y: number, o: ReturnType<typeof overhang>, top: boolean, c: string) => { ctx.fillStyle = c; ctx.font = '700 13px ui-monospace, monospace'; ctx.fillText(o.kind === 'blunt' ? 'blunt' : `${top ? '5′-' : '3′-'}${top ? o.seq : revcomp(o.seq)}`, x, y); ctx.font = FONT; };
+        end(165, 102, oa, true, pl.ink);
+        ctx.fillStyle = pl.bad; ctx.fillRect(230, 150, 110, 12); ctx.fillStyle = pl.ink; ctx.fillText(`gene cut with ${b}`, 230, 130);
+        end(230, 178, ob, true, pl.bad); end(300, 198, ob, false, pl.bad);
+        ctx.fillStyle = compatible(a, b) ? pl.good : pl.bad; ctx.font = '700 14px system-ui, sans-serif';
+        ctx.fillText(compatible(a, b) ? 'Ends match: ligase can join them' : 'Ends do not match', 30, 225);
+      } else if (at === 3) {
+        ring(ctx, 130, 125, 70, pl, true);
+        ctx.fillStyle = pl.ink; ctx.fillText('recombinant plasmid', 30, 22); ctx.fillStyle = pl.muted; ctx.fillText('ligase seals both joins', 30, 225);
+      } else if (at === 4) {
+        const plates: ['plain' | 'amp' | 'tet', string][] = [['plain', 'no antibiotic'], ['amp', 'ampicillin'], ['tet', 'tetracycline']];
+        plates.forEach(([p, t], i) => {
+          const cx = 66 + i * 124, cy = 125, R = 54;
+          ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.strokeStyle = pl.muted; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.fillText(t, cx, cy - R - 12);
+          for (const c of COLS) if (grows(c.c, p)) { ctx.beginPath(); ctx.arc(cx + c.x * R, cy + c.y * R, 4.5, 0, 2 * Math.PI); ctx.fillStyle = reveal ? (c.c === 'recombinant' ? pl.bad : c.c === 'plasmid' ? pl.accent : pl.muted) : pl.accent2; ctx.fill(); }
+          const n = COLS.filter((c) => grows(c.c, p)).length; ctx.fillStyle = pl.muted; ctx.fillText(`${n} colonies`, cx, cy + R + 14);
+        });
+        ctx.textAlign = 'left';
+      } else if (at === 5) {
+        ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(60, 40); ctx.lineTo(60, 210); ctx.quadraticCurveTo(60, 225, 80, 225); ctx.lineTo(220, 225); ctx.quadraticCurveTo(240, 225, 240, 210); ctx.lineTo(240, 40); ctx.stroke();
+        ctx.fillStyle = pl.grid; ctx.fillRect(62, 70, 176, 153);
+        ctx.strokeStyle = pl.muted; ctx.beginPath(); ctx.moveTo(150, 20); ctx.lineTo(150, 170); ctx.stroke(); ctx.fillStyle = pl.muted; ctx.fillRect(126, 165, 48, 6);
+        for (let i = 0; i < 9; i++) bact(ctx, 74 + (i % 3) * 55, 90 + Math.floor(i / 3) * 40, 34, 14, pl);
+        beads(ctx, 255, 100, 6, pl.accent, 4); beads(ctx, 255, 130, 8, pl.accent, 4);
+        ctx.fillStyle = pl.ink; ctx.fillText('stirred tank', 255, 60); ctx.fillStyle = pl.muted; ctx.fillText('chains made', 255, 160);
+      }
+    } });
+  }
+
+  function show() {
+    const s = STEPS[at];
+    q('.ri-step').textContent = `Step ${at + 1} of ${STEPS.length}`;
+    q('.ri-name').textContent = s.name; q('.ri-text').textContent = s.text;
+    dots.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-current', String(i === at)));
+    q('.ri-cut').hidden = at !== 2; q('.ri-sel').hidden = at !== 4;
+    const a = ep.value, b = eg.value, oa = overhang(a), ob = overhang(b);
+    const d = (e: string, o: typeof oa) => (o.kind === 'blunt' ? `${e} cuts straight across (blunt ends)` : `${e} leaves ${o.kind} sticky ends ${o.seq}`);
+    q('.ri-ends').textContent = `${d(a, oa)}; ${d(b, ob)}. ${compatible(a, b) ? (oa.kind === 'blunt' ? 'Blunt ends can be joined, but less easily.' : 'They pair up base by base, so ligase can join them.') : 'They cannot pair up, so the gene will not go in. Use the same enzyme for both.'}`;
+    const n = (p: 'amp' | 'tet') => COLS.filter((c) => grows(c.c, p)).length;
+    q('.ri-selsay').textContent = `Grow on ampicillin: ${n('amp')} colonies (all have a plasmid). Grow on tetracycline: ${n('tet')} (plasmid without the gene). So ${n('amp') - n('tet')} colonies grow on ampicillin but not tetracycline: those carry the insulin gene. This is insertional inactivation.`;
+    draw();
+  }
+  q('.ri-next').addEventListener('click', () => { at = Math.min(STEPS.length - 1, at + 1); show(); });
+  q('.ri-prev').addEventListener('click', () => { at = Math.max(0, at - 1); show(); });
+  root.querySelectorAll('.ri-ep, .ri-eg, .ri-reveal').forEach((e) => e.addEventListener('change', show));
+  document.addEventListener('fibub:theme', draw);
+  show();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.ri-quiz'), (): Question[] => {
+    const n = rint(10, 60), e = pick(['EcoRI', 'BamHI', 'HindIII']), o = overhang(e);
+    const other = pick(Object.keys(ENZYMES).filter((x) => x !== e && x !== 'SmaI'));
+    return [
+      { text: `How many base pairs code for a chain of ${n} amino acids, with a start codon and one stop codon?`, answer: codingBp(n), tol: 0, worked: `3 × ${n} = ${3 * n} bp for the amino acids, + 3 for the start codon + 3 for the stop codon = ${codingBp(n)} bp.` },
+      mc(`${e} cuts ${ENZYMES[e].replace('^', '↓')}. What sticky end does it leave?`, o.seq, shuffle(['AATT', 'GATC', 'AGCT', 'GGCC'].filter((x) => x !== o.seq)).slice(0, 3), `It cuts after the first base on each strand, leaving the middle four bases ${o.seq} single-stranded.`),
+      mc(`Plasmid cut with ${e}, gene cut with ${other}. Can ligase join them?`, 'No: the sticky ends do not pair', ['Yes, ligase joins any ends', 'Yes, if heated', 'Only in bacteria'], `${e} leaves ${o.seq}, ${other} leaves ${overhang(other).seq}: the bases do not pair, so the ends do not stick.`),
+      mc('The insert sits inside the tetracycline resistance gene. Recombinant cells grow on…', 'ampicillin, but not tetracycline', ['tetracycline, but not ampicillin', 'both', 'neither'], 'The insert breaks tetR (insertional inactivation) but leaves ampR working.'),
+      mc('Which enzyme joins DNA pieces together?', 'DNA ligase', ['Restriction enzyme', 'DNA polymerase', 'Lysozyme'], 'Ligase seals the sugar-phosphate backbone between the ends.'),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rin .ri-dots { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 10px; }
+  .rin .ri-dots button { min-width: 40px; min-height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+  .rin .ri-dots button[aria-current=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .rin .ri-nav { justify-content: space-between; margin-top: 10px; }
+  .rin .ri-nav .btn { min-height: 44px; }
+  .rin .ri-step { font-weight: 600; }
+  .rin .ri-name { margin: 12px 0 4px; font-size: 18px; }
+  .rin .ri-text { margin: 0 0 10px; }
+  .rin .ri-ends, .rin .ri-selsay { font-weight: 600; margin: 10px 0 0; }
+  .rin .ri-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

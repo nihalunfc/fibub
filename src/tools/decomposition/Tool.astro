@@ -1,0 +1,132 @@
+---
+// Decomposition: a litter-bag teaching model of how fast dead leaves and wood break down with temperature,
+// moisture and toughness, with the five steps of decomposition. Class 12 Biology, ecosystem (decomposition).
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax dcm">
+  <p class="ax-help">A teaching model with round, made-up numbers. Real decomposition also depends on the soil animals, fungi and bacteria present, sunlight and the soil itself.</p>
+  <div class="ax-card">
+    <h2>A bag of dead leaves on the forest floor</h2>
+    <div class="ax-grid">
+      <label>Place <select class="dc-pl">
+        <option value="rain">Tropical rainforest</option><option value="temperate" selected>Temperate forest</option><option value="grass">Grassland</option><option value="desert">Desert</option><option value="tundra">Tundra</option><option value="bog">Waterlogged bog</option><option value="own">My own conditions</option>
+      </select></label>
+      <label>What is in the bag <select class="dc-li"><option value="soft" selected>Soft leaves</option><option value="tough">Tough leaves</option><option value="wood">Wood</option></select></label>
+      <label>Temperature: <b class="dc-tv"></b><input type="range" class="dc-t" min="-10" max="40" step="1" value="12" aria-label="Temperature in degrees Celsius" /></label>
+      <label>Moisture: <b class="dc-wv"></b><input type="range" class="dc-w" min="0" max="1" step="0.01" value="0.6" aria-label="Moisture from dry to waterlogged" /></label>
+      <label>Years: <b class="dc-yv"></b><input type="range" class="dc-y" min="0" max="10" step="0.1" value="1" aria-label="Years" /></label>
+    </div>
+    <div class="dc-row">
+      <canvas class="dc-bag" role="img"></canvas>
+      <dl class="ax-facts dc-facts"></dl>
+    </div>
+    <p class="dc-formula"></p>
+    <canvas class="ax-fig dc-fig" role="img"></canvas>
+    <div class="ax-legend"><span><i class="dc-k1"></i>your bag</span><span><i class="dc-k2"></i>same bag in other places (grey)</span></div>
+    <p class="dc-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The five steps</h2>
+    <ol class="dc-steps">
+      <li><b>Fragmentation:</b> detritivores such as earthworms, millipedes and woodlice chew dead matter into small pieces.</li>
+      <li><b>Leaching:</b> water carries soluble nutrients down into the soil, where some form salts.</li>
+      <li><b>Catabolism:</b> enzymes from bacteria and fungi break the pieces into simpler substances.</li>
+      <li><b>Humification:</b> a dark, spongy substance, humus, builds up. It resists breakdown and decays very slowly.</li>
+      <li><b>Mineralisation:</b> humus is slowly broken down by microbes, releasing inorganic nutrients plants can take up.</li>
+    </ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dc-try">
+      <li>Compare a tropical rainforest with tundra. How many times faster do leaves disappear?</li>
+      <li>Raise the temperature by 10 °C. What happens to the half-life?</li>
+      <li>Slide the moisture from dry to waterlogged. Why is a bog as slow as a desert? (Hint: oxygen.)</li>
+      <li>Put wood in the bag. Why do fallen logs last for years?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="dc-quiz" />
+</div>
+
+<script>
+  import { rate, left, halfLife, t95, fTemp, fMoist, LITTER, PLACES, K_REF, type Litter } from '../../lib/sci/decomp-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, dot, fmt } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.dcm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const n = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const yrs = (x: number) => (!Number.isFinite(x) ? 'never (frozen)' : x >= 100 ? `${String(Math.round(x))} years` : x >= 1 ? `${fmt(x, 1)} years` : `${fmt(x * 12, 1)} months`);
+  const moistWord = (w: number) => (w < 0.25 ? 'dry' : w < 0.45 ? 'fairly dry' : w <= 0.8 ? 'damp' : w < 0.92 ? 'wet' : 'waterlogged');
+
+  function run() {
+    const T = n('.dc-t'), w = n('.dc-w'), y = n('.dc-y'), li = q<HTMLSelectElement>('.dc-li').value as Litter;
+    q('.dc-tv').textContent = `${T} °C`; q('.dc-wv').textContent = `${fmt(w, 2)} (${moistWord(w)})`; q('.dc-yv').textContent = fmt(y, 1);
+    const k = rate(T, w, li), m = left(k, y);
+    q('.dc-facts').replaceChildren(
+      fact('Mass left', `${fmt(100 * m, 1)} %`, `after ${fmt(y, 1)} years`),
+      fact('Rate k', `${fmt(k, 3)} per year`),
+      fact('Half-life', yrs(halfLife(k)), 'time to lose half'),
+      fact('95 % gone', yrs(t95(k))),
+    );
+    q('.dc-formula').textContent = `k = ${K_REF} × 2^((${T} − 25)/10) × moisture factor ${fmt(fMoist(w), 3)} × toughness ${LITTER[li].f} = ${fmt(k, 4)} per year;  mass left = e^(−kt) = e^(−${fmt(k, 4)} × ${fmt(y, 1)}) = ${fmt(100 * m, 1)} %.`;
+    paint(q<HTMLCanvasElement>('.dc-bag'), { w: 120, h: 120, alt: `${String(Math.round(100 * m))} % of the litter left`, draw: (ctx, w2, h2, pl: Palette) => {
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.strokeRect(10, 10, 100, 100); ctx.setLineDash([]);
+      const leaves = Math.round(30 * m);
+      let s = 3; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 30; i++) { const x = 20 + rnd() * 80, yy = 20 + rnd() * 80, a = rnd() * Math.PI; if (i >= leaves) continue; ctx.save(); ctx.translate(x, yy); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, 0, li === 'wood' ? 12 : 9, li === 'wood' ? 3.5 : 5, 0, 0, 2 * Math.PI); ctx.fillStyle = li === 'wood' ? pl.warn : pl.good; ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = pl.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${String(Math.round(100 * m))} % left`, 60, 118);
+    } });
+    const tmax = Math.min(60, Math.max(5, Math.ceil(Math.max(y, Number.isFinite(t95(k)) ? t95(k) : 10) * 1.1)));
+    const v = view(0, tmax, 0, 100, 380, 220, { l: 40, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.dc-fig'), { w: 380, h: 220, alt: `Mass left over ${tmax} years`, draw: (ctx, w2, h2, pl: Palette) => {
+      axes(ctx, v, pl, { xName: 'years', yName: '% left' });
+      for (const p of Object.values(PLACES)) { const kk = rate(p.T, p.w, li); curve(ctx, v, (t) => 100 * left(kk, t), pl.line, 1.5); }
+      line(ctx, v, 0, 50, tmax, 50, pl.muted, 1, [4, 4]);
+      curve(ctx, v, (t) => 100 * left(k, t), pl.accent, 2.6);
+      dot(ctx, v, Math.min(y, tmax), 100 * left(k, Math.min(y, tmax)), pl.accent, 5);
+    } });
+    const ft = fTemp(T), fm = fMoist(w);
+    q('.dc-say').textContent = T <= -5 ? 'Frozen: the microbes and soil animals are inactive, so nothing breaks down until it thaws.'
+      : fm < 0.3 && w > 0.6 ? 'Waterlogged: the soil is short of oxygen, so most decomposers cannot work. Peat builds up in bogs this way.'
+      : fm < 0.3 ? 'Too dry: decomposers need water, so dead matter lies about for years.'
+      : ft >= 1 && fm > 0.8 ? 'Warm and damp: ideal for decomposers, so dead matter disappears fast and nutrients cycle quickly.'
+      : 'Decomposers are working, but cool or less-than-ideal moisture slows them down.';
+  }
+
+  q('.dc-pl').addEventListener('change', () => { const p = PLACES[q<HTMLSelectElement>('.dc-pl').value]; if (p) { q<HTMLInputElement>('.dc-t').value = String(p.T); q<HTMLInputElement>('.dc-w').value = String(p.w); } run(); });
+  root.querySelectorAll('.dc-t, .dc-w').forEach((e) => e.addEventListener('input', () => { q<HTMLSelectElement>('.dc-pl').value = 'own'; run(); }));
+  q('.dc-y').addEventListener('input', run); q('.dc-li').addEventListener('change', run);
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.dc-quiz'), (): Question[] => {
+    const k = pick([0.1, 0.2, 0.25, 0.5, 0.7]), r0 = pick([0.2, 0.3, 0.4, 0.6]), dT = pick([10, 20, -10]), t = rint(1, 4), m0 = pick([100, 200, 500]);
+    const steps = ['Fragmentation', 'Leaching', 'Catabolism', 'Humification', 'Mineralisation'], si = rint(0, 4);
+    const desc = ['Earthworms break dead leaves into small pieces.', 'Water carries soluble nutrients down into the soil.', 'Bacterial and fungal enzymes break pieces into simpler substances.', 'Dark, spongy humus builds up.', 'Humus is broken down, releasing inorganic nutrients.'][si];
+    return [
+      { text: `Leaf litter decays with k = ${k} per year. What is its half-life in years? (2 decimal places)`, answer: Math.LN2 / k, tol: 0.006, worked: `Half-life = ln 2 / k = 0.6931 / ${k} = ${fmt(Math.LN2 / k, 3)} years.` },
+      { text: `With Q10 = 2, a rate of ${r0} per year at 20 °C becomes what at ${20 + dT} °C?`, answer: r0 * 2 ** (dT / 10), tol: 1e-6, worked: `Rate × 2^(${dT}/10) = ${r0} × ${fmt(2 ** (dT / 10), 3)} = ${fmt(r0 * 2 ** (dT / 10), 3)} per year.` },
+      { text: `${m0} g of litter, k = ${k} per year. How many grams are left after ${t} years? (1 decimal place)`, answer: m0 * Math.exp(-k * t), tol: 0.06, worked: `M = ${m0} × e^(−${k} × ${t}) = ${fmt(m0 * Math.exp(-k * t), 2)} g.` },
+      mc(`"${desc}" Which step of decomposition is this?`, steps[si], shuffle(steps.filter((_, i) => i !== si)).slice(0, 3), `${steps[si]}: ${desc}`),
+      mc('Where does dead matter decompose fastest?', 'A warm, damp tropical forest', ['A cold tundra', 'A dry desert', 'A waterlogged bog'], 'Decomposers work fastest when it is warm and moist, with plenty of oxygen.'),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .dcm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dcm .dc-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 12px; }
+  .dcm .dc-bag { width: 120px; height: 120px; }
+  .dcm .dc-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 110px), 1fr)); }
+  .dcm .dc-formula, .dcm .dc-say { font-weight: 600; margin: 10px 0; }
+  .dcm .dc-k1 { background: var(--accent); } .dcm .dc-k2 { background: var(--line); }
+  .dcm .dc-steps, .dcm .dc-try { padding-left: 22px; display: grid; gap: 6px; margin: 0; }
+</style>
