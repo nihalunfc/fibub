@@ -12,7 +12,7 @@ order: 2002
 icon: link
 works: offline
 updated: 2026-11-10
-related: [base64-converter, link-cleaner]
+related: [base64-converter, link-cleaner, slug-maker]
 sources:
   - "RFC 3986, Uniform Resource Identifier: Generic Syntax (IETF), section 2 on percent-encoding; the WHATWG URL Standard for query strings and + as a space in forms."
 flow:

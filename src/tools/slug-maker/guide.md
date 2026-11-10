@@ -2,7 +2,7 @@
 name: Slug maker
 num: 2029
 shelf: everyday
-code: T877
+code: T950
 section: dev-text
 title: "Slug maker: turn a title into a clean URL slug or safe file name"
 summary: "Turn titles into URL slugs and safe file names: lower case, accents removed, hyphens or underscores, an optional length limit and many lines at once."
@@ -12,7 +12,7 @@ order: 2029
 icon: link
 works: offline
 updated: 2026-11-10
-related: [link-cleaner, text-cleaner]
+related: [url-encoder, sort-lines, link-cleaner, text-cleaner]
 sources:
   - "Unicode NFKD normalisation (Unicode Standard Annex #15) to split accents from letters; the rest is fibub's own working."
 flow:

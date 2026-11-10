@@ -1,4 +1,4 @@
-// #T877 Slug maker
+// #T950 Slug maker
 export const path = '/everyday/slug-maker/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/everyday/slug-maker/`); await page.waitForTimeout(300);

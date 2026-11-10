@@ -12,7 +12,7 @@ order: 2025
 icon: ruler
 works: offline
 updated: 2026-11-10
-related: [deck-calculator, roof-calculator]
+related: [deck-calculator, roof-calculator, drywall-calculator]
 sources:
   - "International Code Council, 2021 International Residential Code, section R311.7 Stairways: riser at most 7¾ in, tread at least 10 in, headroom at least 6 ft 8 in."
   - "The 2R + T comfort rule (two risers plus one tread about 24 to 25 in, 600 to 640 mm) is a long-standing design rule of thumb. Everything else is fibub's own working."

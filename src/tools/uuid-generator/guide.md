@@ -12,7 +12,7 @@ order: 2006
 icon: copy
 works: offline
 updated: 2026-11-10
-related: [timestamp-converter, regex-tester]
+related: [timestamp-converter, regex-tester, hash-checker]
 sources:
   - "UUID layout, versions and variant: IETF RFC 9562 (2024), which replaced RFC 4122. fibub's own working."
 flow:

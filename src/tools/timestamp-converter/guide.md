@@ -12,7 +12,7 @@ order: 2007
 icon: clock
 works: offline
 updated: 2026-11-10
-related: [time-zone-planner, uuid-generator]
+related: [time-zone-planner, uuid-generator, jwt-decoder]
 sources:
   - "Unix time as in POSIX (IEEE Std 1003.1); date formats from ISO 8601 and IETF RFC 2822; time zone rules from the IANA tz database built into your browser. fibub's own working."
 flow:

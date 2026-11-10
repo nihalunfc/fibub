@@ -2,7 +2,7 @@
 name: Base64 converter
 num: 2001
 shelf: everyday
-code: T849
+code: T877
 section: encode-decode
 title: "Base64 converter: encode and decode text and files, URL-safe option"
 summary: "Turn text into Base64 and back (UTF-8 safe, so accents and emoji work), switch to URL-safe Base64, turn a file into Base64 or a data: URL, and save Base64 back as a file."

@@ -13,7 +13,7 @@ order: 2004
 icon: check
 works: offline
 updated: 2026-11-10
-related: [base64-converter, jwt-decoder]
+related: [base64-converter, jwt-decoder, uuid-generator]
 sources:
   - "FIPS 180-4, Secure Hash Standard (NIST) for SHA-1 and SHA-2, run by the browser's Web Crypto; RFC 1321 (IETF) for MD5, fibub's own small implementation."
 flow:

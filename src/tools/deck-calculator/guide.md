@@ -12,7 +12,7 @@ order: 2024
 icon: ruler
 works: offline
 updated: 2026-11-10
-related: [concrete-calculator, stair-calculator]
+related: [concrete-calculator, stair-calculator, paint-calculator]
 sources:
   - "Board, joist and fastener counts are fibub's own working from the sizes you type."
   - "Two screws per board at each joist and a 5 mm (3/16 in) gap are common rules of thumb; board makers give their own fixing and gap instructions. Span tables and permits are set by your local building code."

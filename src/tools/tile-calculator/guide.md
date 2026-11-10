@@ -12,7 +12,7 @@ order: 2020
 icon: table
 works: offline
 updated: 2026-11-10
-related: [paint-calculator, wallpaper-calculator, drywall-calculator]
+related: [paint-calculator, concrete-calculator, wallpaper-calculator]
 sources:
   - "Area, tile count and grout joint volume: fibub's own working. Waste allowances (10% straight, 15% diagonal or herringbone) and grout at 1.6 kg per litre of joint are rules of thumb; check the box and the bag."
 flow:

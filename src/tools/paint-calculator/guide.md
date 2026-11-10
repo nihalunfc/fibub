@@ -12,7 +12,7 @@ order: 2019
 icon: pencil
 works: offline
 updated: 2026-11-10
-related: [wallpaper-calculator, drywall-calculator, tile-calculator]
+related: [wallpaper-calculator, drywall-calculator, tile-calculator, ac-size-calculator]
 sources:
   - "Area and coverage arithmetic: fibub's own working. Default coverage (10 m² per litre, 400 sq ft per US gallon) and door and window sizes are typical figures, not a standard; check the tin."
 flow:

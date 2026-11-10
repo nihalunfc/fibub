@@ -12,7 +12,7 @@ order: 2003
 icon: lock
 works: offline
 updated: 2026-11-10
-related: [base64-converter, hash-checker]
+related: [base64-converter, hash-checker, timestamp-converter]
 sources:
   - "RFC 7519, JSON Web Token (IETF), section 4.1 for the iat, nbf and exp claims; RFC 7515 (JWS) for the three-part layout."
 flow:
