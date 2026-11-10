@@ -1,0 +1,83 @@
+---
+// #1707 Metadata cleaner
+---
+<div class="tool-ui mc">
+  <label class="mc-drop">Add PDF, Word, Excel, PowerPoint, JPG or PNG files <input class="mc-file" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" multiple /></label>
+  <p class="mc-msg" role="status" aria-live="polite"></p>
+  <div class="mc-list"></div>
+  <div class="mc-row" hidden>
+    <button class="btn mc-clean" type="button">Clean and download</button>
+    <button class="btn secondary mc-clear" type="button">Remove all files</button>
+  </div>
+</div>
+
+<style is:inline>
+  .mc { display: grid; gap: .75rem; }
+  .mc-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .mc-msg { margin: 0; min-height: 1.3em; } .mc-msg.err { color: var(--warn); }
+  .mc-card { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; background: var(--surface); }
+  .mc-card h3 { margin: 0 0 .3rem; font-size: 1rem; overflow-wrap: anywhere; }
+  .mc-card dl { margin: 0; display: grid; grid-template-columns: minmax(7rem, auto) 1fr; gap: .15rem .8rem; font-size: 14px; }
+  .mc-card dd { margin: 0; overflow-wrap: anywhere; }
+  .mc-card .risk { font-weight: 700; color: var(--warn); }
+  .mc-card .none { margin: 0; font-size: 14px; }
+  .mc-row { display: flex; flex-wrap: wrap; gap: .5rem; } .mc-row[hidden] { display: none; }
+</style>
+
+<script>
+  import { zipSync } from 'fflate';
+  import { detectKind, readMetadata, cleanFile, KIND_NAMES, type Kind, type MetaItem } from '../../lib/docs/officecheck';
+  import { download, baseName } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.mc') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.mc-msg'), list = $<HTMLElement>('.mc-list'), row = $<HTMLElement>('.mc-row');
+  interface Entry { name: string; kind: Kind; bytes: Uint8Array; meta: MetaItem[] }
+  const entries: Entry[] = [];
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+
+  function draw() {
+    list.textContent = '';
+    for (const e of entries) {
+      const card = document.createElement('div'); card.className = 'mc-card';
+      const h = document.createElement('h3'); h.textContent = `${e.name} (${KIND_NAMES[e.kind]})`; card.appendChild(h);
+      if (!e.meta.length) { const p = document.createElement('p'); p.className = 'none'; p.textContent = 'No hidden details found.'; card.appendChild(p); }
+      else {
+        const dl = document.createElement('dl');
+        for (const m of e.meta) {
+          const dt = document.createElement('dt'), dd = document.createElement('dd');
+          dt.textContent = m.label; dd.textContent = m.value; if (m.risk) dd.className = 'risk';
+          dl.append(dt, dd);
+        }
+        card.appendChild(dl);
+      }
+      list.appendChild(card);
+    }
+    row.hidden = !entries.length;
+  }
+  $<HTMLInputElement>('.mc-file').addEventListener('change', async (ev) => {
+    const input = ev.target as HTMLInputElement, files = [...(input.files || [])]; input.value = '';
+    for (const f of files) {
+      try {
+        const bytes = new Uint8Array(await f.arrayBuffer()), kind = detectKind(bytes);
+        if (!kind) { say(`${f.name} is not a type this tool can clean. Use PDF, Word, Excel, PowerPoint, JPG or PNG.`, true); continue; }
+        entries.push({ name: f.name, kind, bytes, meta: await readMetadata(kind, bytes) });
+        say(`${entries.length} file${entries.length === 1 ? '' : 's'} read. Nothing has left your device.`);
+      } catch { say(`${f.name} could not be read. It may be damaged or locked with a password.`, true); }
+    }
+    draw();
+  });
+  $('.mc-clear').addEventListener('click', () => { entries.length = 0; say(''); draw(); });
+  $('.mc-clean').addEventListener('click', async () => {
+    try {
+      const out: { name: string; bytes: Uint8Array }[] = [];
+      for (const e of entries) out.push({ name: `${baseName(e.name)}-clean${e.name.slice(baseName(e.name).length)}`, bytes: await cleanFile(e.kind, e.bytes) });
+      if (out.length === 1) download(out[0].bytes, out[0].name, 'application/octet-stream');
+      else {
+        const files: Record<string, Uint8Array> = {}, seen = new Set<string>();
+        for (const o of out) { let n = o.name, i = 2; while (seen.has(n)) n = `${i++}-${o.name}`; seen.add(n); files[n] = o.bytes; }
+        download(zipSync(files, { level: 0 }), 'clean-files.zip', 'application/zip');
+      }
+      say(`Cleaned ${out.length} file${out.length === 1 ? '' : 's'}.`);
+    } catch (err: any) { say(err.message || 'Something went wrong.', true); }
+  });
+</script>
