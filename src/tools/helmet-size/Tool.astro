@@ -1,0 +1,77 @@
+---
+// #T912 Helmet size
+---
+<div class="tool-ui hs">
+  <section class="panel hs-in">
+    <label>Head circumference <input class="hs-v" inputmode="decimal" value="57" /></label>
+    <label>Unit <select class="hs-u"><option value="cm">cm</option><option value="in">inches</option></select></label>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="hs-big"></p>
+    <p class="hs-note"></p>
+    <table class="hs-tab"><thead><tr><th>Size</th><th>cm</th><th>inches</th></tr></thead><tbody></tbody></table>
+    <p class="hs-fine">A common table. Makers differ by a size, so check the maker's own chart and try the helmet on.</p>
+  </section>
+  <section class="panel">
+    <h2 class="hs-h">How to measure</h2>
+    <svg viewBox="0 0 220 150" role="img" aria-label="Side view of a head with a tape measure around the forehead, about 2 centimetres above the eyebrows" class="hs-svg">
+      <ellipse cx="100" cy="78" rx="52" ry="62" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M150 80 q14 6 6 18 q-6 6 -14 4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="128" cy="76" r="3" fill="currentColor"/>
+      <path d="M48 56 Q100 40 152 56" fill="none" stroke="var(--accent)" stroke-width="6"/>
+      <path d="M48 56 Q100 72 152 56" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 4"/>
+      <line x1="170" y1="56" x2="170" y2="76" stroke="currentColor" stroke-width="1.5"/>
+      <text x="176" y="70" font-size="11" fill="currentColor">2 cm</text>
+      <text x="8" y="144" font-size="11" fill="currentColor">Tape above the eyebrows, over the widest part</text>
+    </svg>
+    <h2 class="hs-h">Fit checks</h2>
+    <ul class="hs-list">
+      <li>Snug on the cheeks, with no gap at the forehead and no pressure points.</li>
+      <li>With the strap fastened, shake your head: the helmet must not slide on your head.</li>
+      <li>You cannot push it forward over your eyes or roll it off backwards.</li>
+      <li>Wear it for 10 minutes: a hot spot or headache means the wrong size or shape.</li>
+      <li>Two fingers fit between the strap and your chin.</li>
+    </ul>
+    <h2 class="hs-h">Marks to look for</h2>
+    <ul class="hs-list">
+      <li><b>India:</b> ISI mark, BIS standard IS 4151.</li>
+      <li><b>USA:</b> DOT, FMVSS 218. <b>Canada:</b> check your province; DOT or ECE labels are commonly accepted.</li>
+      <li><b>Europe and many other countries:</b> ECE 22.06 label.</li>
+    </ul>
+    <p class="hs-fine">Check the official source (BIS, NHTSA, your transport authority) for what is legal where you ride. Checked 2026-11-10.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .hs { display: grid; gap: 14px; margin-bottom: 32px; }
+  .hs .panel { padding: 16px; }
+  .hs-in { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); }
+  .hs label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hs input, .hs select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .hs-big { font-size: 28px; font-weight: 700; margin: 0 0 6px; }
+  .hs-note { margin: 0 0 10px; color: var(--muted); } .hs-note:empty { display: none; }
+  .hs-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .hs-tab th, .hs-tab td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+  .hs-tab tr.on td { font-weight: 700; color: var(--accent); }
+  .hs-h { font-size: 16px; margin: 12px 0 6px; }
+  .hs-svg { width: 100%; max-width: 320px; height: auto; color: var(--ink); }
+  .hs-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .hs-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { BANDS, toCm, helmetSize } from '../../lib/money/helmet';
+  const root = document.querySelector('.hs') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const v = $('.hs-v') as HTMLInputElement, u = $('.hs-u') as HTMLSelectElement;
+  const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
+  const calc = () => {
+    const cm = toCm(parseFloat(v.value.replace(',', '.')) || 0, u.value as 'cm' | 'in');
+    const r = helmetSize(cm);
+    $('.hs-big').textContent = r.size ? `Size ${r.size}` : 'No size';
+    $('.hs-note').textContent = r.note;
+    $('.hs-tab tbody').innerHTML = BANDS.map((b) => `<tr class="${b.size === r.size ? 'on' : ''}"><td>${b.size}</td><td>${f1(b.min)} to ${f1(b.max)}</td><td>${f1(b.min / 2.54)} to ${f1(b.max / 2.54)}</td></tr>`).join('');
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

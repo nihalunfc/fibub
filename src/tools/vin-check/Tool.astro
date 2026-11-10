@@ -1,0 +1,47 @@
+---
+// #T910 VIN check
+---
+<div class="tool-ui vc">
+  <label>VIN (17 characters) <input class="vc-in" value="1M8GDM9AXKP042788" maxlength="30" autocomplete="off" spellcheck="false" autocapitalize="characters" /></label>
+  <p class="vc-count" aria-live="polite"></p>
+  <dl class="vc-rows"></dl>
+  <p class="vc-fine">Worked out on this page only: nothing is looked up or sent. A valid check digit does not prove a vehicle is genuine. Check the papers and official records.</p>
+</div>
+
+<style is:inline>
+  .vc { display: grid; gap: 12px; margin-bottom: 32px; }
+  .vc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vc-in { font: 600 18px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .vc-in:focus { border-color: var(--accent); outline: none; }
+  .vc-count { margin: 0; font-weight: 600; }
+  .vc-rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+  .vc-rows dt { color: var(--muted); } .vc-rows dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  .vc .good { color: var(--good); } .vc .bad { color: var(--bad); }
+  .vc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { analyse } from '../../lib/money/vin';
+  const root = document.querySelector('.vc') as HTMLElement;
+  const input = root.querySelector('.vc-in') as HTMLInputElement;
+  const cnt = root.querySelector('.vc-count') as HTMLElement;
+  const rows = root.querySelector('.vc-rows') as HTMLElement;
+  const row = (a: string, b: string, cls = '') => `<dt>${a}</dt><dd class="${cls}">${b}</dd>`;
+  const update = () => {
+    const r = analyse(input.value);
+    cnt.textContent = `${r.length} of 17 characters`;
+    let h = '';
+    if (!r.length) { rows.innerHTML = ''; cnt.textContent = ''; return; }
+    h += row('Length', r.okLength ? '17, good' : `${r.length}, a VIN has exactly 17`, r.okLength ? 'good' : 'bad');
+    h += row('Characters', r.bad.length ? `Not allowed: ${r.bad.join(' ')} (I, O and Q are never used)` : 'All allowed', r.bad.length ? 'bad' : 'good');
+    if (r.okLength && !r.bad.length) {
+      h += row('Check digit', r.valid ? `Valid (${r.actual})` : `Invalid: position 9 is ${r.actual}, the sum gives ${r.expected}` + (r.checkRequired ? '' : ' (not required outside North America)'), r.valid ? 'good' : 'bad');
+      h += row('Maker region', r.region);
+      h += row('Model year', r.years ? `${r.years[0]} or ${r.years[1]}` : 'Code not used (U, Z and 0 are not model year codes)');
+      h += row('Plant code', r.plant);
+    }
+    rows.innerHTML = h;
+  };
+  input.addEventListener('input', update);
+  update();
+</script>

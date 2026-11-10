@@ -1,0 +1,112 @@
+---
+// #T911 Used car checklist
+---
+<div class="tool-ui uc">
+  <section class="panel uc-top">
+    <label>Vehicle
+      <select class="uc-veh"><option value="car">Car</option><option value="bike">Two-wheeler</option><option value="truck">Truck</option></select>
+    </label>
+    <label>Notes about the vehicle (make, plate, seller) <input class="uc-title" maxlength="80" /></label>
+  </section>
+  <div class="uc-list"></div>
+  <section class="panel" aria-live="polite">
+    <p class="uc-big"></p>
+    <ul class="uc-flags"></ul>
+    <p class="uc-act">
+      <button type="button" class="uc-btn uc-print">Print</button>
+      <button type="button" class="uc-btn uc-pdf">Download PDF</button>
+      <button type="button" class="uc-btn uc-reset">Clear all</button>
+    </p>
+  </section>
+  <p class="uc-fine">Nothing you mark or type leaves this page, and nothing is saved. This is a general guide, not a mechanic's inspection: if you are unsure, pay a mechanic to look. A red flag means think hard before buying.</p>
+</div>
+
+<style is:inline>
+  .uc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .uc .panel { padding: 16px; }
+  .uc-top { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .uc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .uc input:not([type=radio]), .uc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .uc-g { margin: 0 0 8px; font-size: 16px; }
+  .uc-item { padding: 10px 0; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+  .uc-t { margin: 0; }
+  .uc-rf { display: inline-block; font-size: 11px; font-weight: 700; color: var(--bad); border: 1px solid var(--bad); border-radius: 6px; padding: 0 5px; margin-left: 6px; vertical-align: middle; }
+  .uc-opts { display: flex; gap: 14px; flex-wrap: wrap; }
+  .uc .uc-opts label { display: inline-flex; flex-direction: row; align-items: center; gap: 5px; color: var(--ink); }
+  .uc input[type=radio] { accent-color: var(--accent); width: 18px; height: 18px; }
+  .uc-note { font-size: 14px; }
+  .uc-big { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .uc-flags { margin: 0 0 8px; padding-left: 20px; color: var(--bad); } .uc-flags:empty { display: none; }
+  .uc-act { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; }
+  .uc-btn { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  .uc-reset { background: var(--bg); color: var(--ink); border-color: var(--line); }
+  .uc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  @media print {
+    body * { visibility: hidden !important; }
+    .uc, .uc * { visibility: visible !important; }
+    .uc { position: absolute; left: 0; top: 0; width: 100%; }
+    .uc-act, .uc-fine, .uc-opts input { display: none !important; }
+  }
+</style>
+
+<script>
+  import { SETS, score, type Mark } from '../../lib/money/used-car';
+  const root = document.querySelector('.uc') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const veh = $('.uc-veh') as HTMLSelectElement;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+  const flat = () => SETS[veh.value].flatMap((g) => g.items.map((it) => ({ ...it, g: g.g })));
+  const build = () => {
+    let n = 0;
+    $('.uc-list').innerHTML = SETS[veh.value].map((g) => `<section class="panel"><h2 class="uc-g">${esc(g.g)}</h2>` + g.items.map((it) => {
+      const i = n++;
+      return `<div class="uc-item" data-i="${i}"><p class="uc-t">${esc(it.t)}${it.rf ? '<span class="uc-rf">RED FLAG</span>' : ''}</p>` +
+        `<div class="uc-opts"><label><input type="radio" name="m${i}" value="ok" /> OK</label><label><input type="radio" name="m${i}" value="problem" /> Problem</label><label><input type="radio" name="m${i}" value="" checked /> Not checked</label></div>` +
+        `<input class="uc-note" data-n="${i}" placeholder="Notes" maxlength="200" aria-label="Notes" /></div>`;
+    }).join('') + '</section>').join('');
+    calc();
+  };
+  const marks = (): Mark[] => flat().map((_, i) => ((root.querySelector(`input[name="m${i}"]:checked`) as HTMLInputElement)?.value || '') as Mark);
+  const flags = (m: Mark[]) => [...new Set(flat().filter((it, i) => it.rf && m[i] === 'problem').map((it) => it.rf as string))];
+  const calc = () => {
+    const m = marks(), s = score(m), f = flags(m);
+    $('.uc-big').textContent = s.checked ? `Score ${s.pct}% OK: ${s.ok} OK, ${s.problems} problem${s.problems === 1 ? '' : 's'}, ${s.skipped} not checked` : `Nothing checked yet (${m.length} items)`;
+    $('.uc-flags').innerHTML = f.map((x) => `<li>Red flag: ${esc(x)}</li>`).join('');
+  };
+  async function pdf() {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const latin = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7e]/g, '?');
+    let page = doc.addPage([595, 842]), y = 800;
+    const line = (t: string, b = false, size = 10, color = rgb(0, 0, 0)) => {
+      const words = latin(t).split(' '); let cur = '';
+      const out: string[] = [];
+      for (const w of words) { if (font.widthOfTextAtSize(cur + ' ' + w, size) > 480 && cur) { out.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; }
+      out.push(cur);
+      for (const l of out) { if (y < 50) { page = doc.addPage([595, 842]); y = 800; } page.drawText(l, { x: 50, y, size, font: b ? bold : font, color }); y -= size + 4; }
+    };
+    const m = marks(), s = score(m), f = flags(m);
+    const label = { ok: 'OK', problem: 'PROBLEM', '': '-' } as Record<string, string>;
+    line('Used vehicle checklist (' + veh.selectedOptions[0].text + ')', true, 16); y -= 4;
+    const title = ($('.uc-title') as HTMLInputElement).value; if (title) line(title, false, 11);
+    line(s.checked ? `Score ${s.pct}% OK: ${s.ok} OK, ${s.problems} problems, ${s.skipped} not checked` : 'Nothing checked yet', true, 11);
+    f.forEach((x) => line('RED FLAG: ' + x, true, 11, rgb(0.7, 0, 0))); y -= 6;
+    let g = '';
+    flat().forEach((it, i) => {
+      if (it.g !== g) { g = it.g; y -= 6; line(g, true, 12); }
+      const note = (root.querySelector(`[data-n="${i}"]`) as HTMLInputElement).value;
+      line(`[${label[m[i]]}] ${it.t}${it.rf ? ' (red flag item)' : ''}${note ? ' - Note: ' + note : ''}`);
+    });
+    y -= 8; line('General guide only, not a mechanic\'s inspection. fibub.com', false, 8);
+    const bytes = await doc.save();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' })); a.download = 'used-vehicle-checklist.pdf'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  veh.addEventListener('change', build);
+  root.addEventListener('change', calc);
+  $('.uc-print').addEventListener('click', () => window.print());
+  $('.uc-pdf').addEventListener('click', pdf);
+  $('.uc-reset').addEventListener('click', () => { ($('.uc-title') as HTMLInputElement).value = ''; build(); });
+  build();
+</script>
