@@ -1,0 +1,72 @@
+---
+// #T907 Load profit
+---
+<div class="tool-ui lp">
+  <section class="panel">
+    <div class="lp-grid">
+      <label>The rate is <select data-k="mode"><option value="flat">A flat amount for the load</option><option value="mile">Per loaded mile</option></select></label>
+      <label>Rate offered <input data-k="rate" inputmode="decimal" value="2000" /></label>
+      <label>Loaded distance (<span class="u-d">miles</span>) <input data-k="loaded" inputmode="decimal" value="800" /></label>
+      <label>Empty distance to get there or back (<span class="u-d">miles</span>) <input data-k="dead" inputmode="decimal" value="200" /></label>
+      <label>Your cost for every <span class="u-d1">mile</span> <input data-k="cost" inputmode="decimal" value="1.5" /></label>
+      <label>Tolls and fees for this load <input data-k="tolls" inputmode="decimal" value="0" /></label>
+      <label>Detention or extra pay <input data-k="det" inputmode="decimal" value="0" /></label>
+      <label>Days the load takes <input data-k="days" inputmode="decimal" value="2" /></label>
+      <label>Units <select data-k="unit"><option value="mi">Miles</option><option value="km">Kilometres</option></select></label>
+    </div>
+    <h2 class="lp-h">Your minimums (leave 0 to skip)</h2>
+    <div class="lp-grid">
+      <label>Profit a day <input data-k="minday" inputmode="decimal" value="0" /></label>
+      <label>Rate for every total <span class="u-d1">mile</span> <input data-k="minmile" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="lp-fine">Not sure of your cost for every mile? Work it out with <a href="/money/cost-per-mile/">Cost per mile</a>, including fuel, driver and fixed costs.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="lp-big lp-out"></p>
+    <dl class="lp-rows"></dl>
+    <p class="lp-warn" role="alert"></p>
+  </section>
+  <p class="lp-fine">Total distance means loaded plus empty. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .lp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lp .panel { padding: 16px; }
+  .lp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .lp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lp input, .lp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lp input:focus, .lp select:focus { border-color: var(--accent); outline: none; }
+  .lp-h { font-size: 15px; margin: 16px 0 8px; }
+  .lp-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .lp-big.ok { color: var(--good); } .lp-big.no { color: var(--bad); }
+  .lp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .lp-rows dt { color: var(--muted); } .lp-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .lp-warn { color: var(--bad); margin: 10px 0 0; } .lp-warn:empty { display: none; }
+  .lp-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { loadProfit } from '../../lib/money/trucking';
+  const root = document.querySelector('.lp') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const calc = () => {
+    const km = q('unit').value === 'km', d = km ? 'km' : 'mile';
+    root.querySelectorAll('.u-d').forEach((e) => (e.textContent = km ? 'km' : 'miles'));
+    (q('mode') as unknown as HTMLSelectElement).options[1].textContent = `Per loaded ${d}`;
+    root.querySelectorAll('.u-d1').forEach((e) => (e.textContent = d));
+    const r = loadProfit({ rate: num('rate'), perMile: q('mode').value === 'mile', loaded: num('loaded'), deadhead: num('dead'), costPerDist: num('cost'), tolls: num('tolls'), detention: num('det'), days: num('days'), minPerDay: num('minday'), minPerMile: num('minmile') });
+    const out = $('.lp-out');
+    if (!r) { out.textContent = ''; out.className = 'lp-big lp-out'; $('.lp-rows').innerHTML = ''; $('.lp-warn').textContent = 'Type a loaded distance above 0 and at least 1 day. Empty distance cannot be negative.'; return; }
+    out.textContent = `${r.ok ? 'Accept' : 'Decline'}: profit ${m2(r.profit)}`;
+    out.className = 'lp-big lp-out ' + (r.ok ? 'ok' : 'no');
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.lp-rows').innerHTML = line('Money in (rate plus extras)', m2(r.revenue)) + line('Cost (all distance plus tolls)', m2(r.cost)) + line('Profit', m2(r.profit)) +
+      line(`Total distance (${km ? 'km' : 'miles'})`, r.totalDist.toLocaleString('en-US', { maximumFractionDigits: 1 })) + line(`Rate for every total ${d}`, m2(r.ratePerTotal)) + line('Profit a day', m2(r.profitPerDay));
+    $('.lp-warn').textContent = r.ok ? '' : 'Decline because ' + r.reasons.join(' and ') + '.';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

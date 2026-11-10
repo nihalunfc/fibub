@@ -1,0 +1,94 @@
+---
+// #T906 Cost per mile
+---
+<div class="tool-ui cp">
+  <section class="panel">
+    <div class="cp-grid">
+      <label>Units <select data-k="unit"><option value="mi">Miles and US gallons</option><option value="km">Kilometres and litres</option></select></label>
+      <label>Distance driven a month (<span class="u-d">miles</span>) <input data-k="dist" inputmode="decimal" value="10000" /></label>
+    </div>
+    <h2 class="cp-h">Fixed costs a month</h2>
+    <div class="cp-grid">
+      <label>Truck payment or lease <input data-k="pay" inputmode="decimal" value="2200" /></label>
+      <label>Insurance <input data-k="ins" inputmode="decimal" value="1000" /></label>
+      <label>Permits and licences <input data-k="perm" inputmode="decimal" value="300" /></label>
+      <label>Parking and other fixed <input data-k="park" inputmode="decimal" value="500" /></label>
+    </div>
+    <h2 class="cp-h">Costs for every <span class="u-d1">mile</span></h2>
+    <div class="cp-grid">
+      <label>Fuel price (per <span class="u-v">gallon</span>) <input data-k="fuel" inputmode="decimal" value="4" /></label>
+      <label>Fuel economy (<span class="u-e">mpg</span>) <input data-k="eco" inputmode="decimal" value="6.5" /></label>
+      <label>Maintenance and repairs <input data-k="maint" inputmode="decimal" value="0.15" /></label>
+      <label>Tyres <input data-k="tyres" inputmode="decimal" value="0" /></label>
+      <label>Tolls <input data-k="tolls" inputmode="decimal" value="0" /></label>
+    </div>
+    <h2 class="cp-h">Driver pay</h2>
+    <div class="cp-grid">
+      <label>Paid by <select data-k="paid"><option value="dist">Distance</option><option value="hour">The hour</option></select></label>
+      <label class="by-dist">Pay for every <span class="u-d1">mile</span> <input data-k="dpd" inputmode="decimal" value="0.6" /></label>
+      <label class="by-hour" hidden>Hours worked a month <input data-k="hrs" inputmode="decimal" value="200" /></label>
+      <label class="by-hour" hidden>Pay an hour <input data-k="dph" inputmode="decimal" value="25" /></label>
+    </div>
+    <h2 class="cp-h">What you want to earn</h2>
+    <div class="cp-grid">
+      <label>Target margin (% of the rate) <input data-k="margin" inputmode="decimal" value="10" /></label>
+      <label>Typical load (tonnes, optional) <input data-k="tonnes" inputmode="decimal" value="" placeholder="for a per tonne figure" /></label>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="cp-big"></p>
+    <dl class="cp-rows"></dl>
+    <p class="cp-warn" role="alert"></p>
+  </section>
+  <p class="cp-fine">Costs are in whatever money you use. Enter every figure from your own books; nothing here is a tax or legal rule. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cp .panel { padding: 16px; }
+  .cp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .cp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cp label[hidden] { display: none; }
+  .cp input, .cp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cp input:focus, .cp select:focus { border-color: var(--accent); outline: none; }
+  .cp-h { font-size: 15px; margin: 16px 0 8px; }
+  .cp-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .cp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .cp-rows dt { color: var(--muted); } .cp-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cp-rows .tot { border-top: 1px solid var(--line); padding-top: 6px; color: var(--ink); }
+  .cp-warn { color: var(--bad); margin: 10px 0 0; } .cp-warn:empty { display: none; }
+  .cp-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { costPerMile } from '../../lib/money/trucking';
+  const root = document.querySelector('.cp') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const calc = () => {
+    const km = q('unit').value === 'km', hour = q('paid').value === 'hour';
+    root.querySelectorAll('.u-d').forEach((e) => (e.textContent = km ? 'km' : 'miles'));
+    root.querySelectorAll('.u-d1').forEach((e) => (e.textContent = km ? 'km' : 'mile'));
+    $('.u-v').textContent = km ? 'litre' : 'gallon'; $('.u-e').textContent = km ? 'km per litre' : 'mpg';
+    root.querySelectorAll<HTMLElement>('.by-dist').forEach((e) => (e.hidden = hour));
+    root.querySelectorAll<HTMLElement>('.by-hour').forEach((e) => (e.hidden = !hour));
+    const d = km ? 'km' : 'mile';
+    const r = costPerMile({
+      fixedMonth: num('pay') + num('ins') + num('perm') + num('park'), distMonth: num('dist'), fuelPrice: num('fuel'), economy: num('eco'),
+      maint: num('maint'), tyres: num('tyres'), tolls: num('tolls'), driverPerDist: hour ? 0 : num('dpd'), driverHours: hour ? num('hrs') : 0,
+      driverPerHour: num('dph'), marginPct: num('margin'), payload: num('tonnes'),
+    });
+    if (!r) { $('.cp-big').textContent = ''; $('.cp-rows').innerHTML = ''; $('.cp-warn').textContent = `Type the distance you drive a month, your fuel economy, and a margin from 0 to under 100.`; return; }
+    $('.cp-big').textContent = `${m2(r.total)} a ${d}`;
+    const line = (a: string, b: string, c = '') => `<dt class="${c}">${a}</dt><dd class="${c}">${b}</dd>`;
+    $('.cp-rows').innerHTML = line('Fixed costs', m2(r.fixed)) + line('Fuel', m2(r.fuel)) + line('Maintenance', m2(r.maint)) + line('Tyres', m2(r.tyres)) + line('Tolls', m2(r.tolls)) + line('Driver', m2(r.driver)) +
+      line(`Cost for every ${d}`, m2(r.total), 'tot') + line('Cost for the month', m2(r.monthCost)) +
+      line(`Break-even rate (per ${d})`, m2(r.breakEven)) + line(`Rate for a ${num('margin')}% margin (per ${d})`, m2(r.targetRate)) +
+      (r.perTonne > 0 ? line(`Cost per tonne-${d}`, m2(r.perTonne)) + line(`Rate for the margin, per tonne-${d}`, m2(r.targetRate / num('tonnes'))) : '');
+    $('.cp-warn').textContent = r.fixed > r.total / 2 ? 'Fixed costs are a big share. Driving more distance a month spreads them thinner.' : '';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
