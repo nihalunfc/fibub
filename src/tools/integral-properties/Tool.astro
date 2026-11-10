@@ -1,0 +1,201 @@
+---
+// Properties of definite integrals, drawn: swap the limits, split at c, the f(a + b − x) mirror, ∫₀²ᵏ, even and
+// odd functions, and the area function A(x) whose slope is f. Class 12 maths, integrals.
+// Maths in src/lib/sci/integral-props.ts.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { PRESETS } from '../../lib/sci/integral-props';
+---
+<div class="ax ipr">
+  <div class="ax-card">
+    <h2>Pick a property and a function</h2>
+    <div class="ax-grid">
+      <label>Property <select class="ip-prop">
+        <option value="swap">Swap the limits</option>
+        <option value="split">Split at a point c</option>
+        <option value="king">f(a + b − x): the mirror trick</option>
+        <option value="double">From 0 to 2k</option>
+        <option value="sym" selected>Even and odd functions on [−k, k]</option>
+        <option value="ftc">Area function A(x) and its slope</option>
+      </select></label>
+      <label>f(x) <select class="ip-fn">{PRESETS.map((p) => <option value={p.id} selected={p.id === 'x3x'}>{p.label}</option>)}<option value="own">My own…</option></select></label>
+      <label class="ip-ownl" hidden>Type f(x) <input class="ip-own" type="text" value="x^2 cos(x)" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err ip-err" hidden></p>
+    <p class="ip-rule"></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig ip-fig" role="img"></canvas>
+    <p class="ax-help ip-key"></p>
+    <canvas class="ax-fig ip-fig2" role="img" hidden></canvas>
+    <div class="ip-sl">
+      <label class="ip-s-a">a = <b class="ip-av"></b><input class="ip-a" type="range" min="-3" max="3" step="0.05" value="-0.5" /></label>
+      <label class="ip-s-b">b = <b class="ip-bv"></b><input class="ip-b" type="range" min="-3" max="3" step="0.05" value="2" /></label>
+      <label class="ip-s-c">c = <b class="ip-cv"></b><input class="ip-c" type="range" min="-3" max="3" step="0.05" value="0.75" /></label>
+      <label class="ip-s-k">k = <b class="ip-kv"></b><input class="ip-k" type="range" min="0.25" max="3" step="0.05" value="1.5" /></label>
+      <label class="ip-s-x">x = <b class="ip-xv"></b><input class="ip-x" type="range" min="-3" max="3" step="0.05" value="1.5" /></label>
+    </div>
+    <ul class="ip-lines"></ul>
+    <p class="ip-verdict"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ip-try">
+      <li>Even and odd: pick <b>x³ − x</b>. The blue and orange pieces are mirror images with opposite signs, so ∫ from −k to k is 0 for every k.</li>
+      <li>Now pick <b>cos x</b>: an even function. The two halves are equal, so the whole is twice the right half.</li>
+      <li>Split at c: move c outside [a, b]. The rule still works, with one piece counted backwards.</li>
+      <li>Mirror trick: the second picture is the first one flipped left to right, so the area cannot change.</li>
+      <li>Area function: slide x and watch the slope of A(x) match the height f(x). Where f is negative, A goes down.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ip-quiz" />
+</div>
+
+<script>
+  import { PRESETS, properties, parity, areaFn, areaSlope, type Fn } from '../../lib/sci/integral-props';
+  import { readFn } from '../../lib/sci/school-calculus';
+  import { paint, pagePalette, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, dot, px, py, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.ipr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 380, H = 240;
+  let f: Fn = PRESETS[1].f, name = 'x³ − x';
+  const RULES: Record<string, string> = {
+    swap: '∫ from b to a of f(x) dx = −∫ from a to b of f(x) dx: going backwards flips the sign.',
+    split: '∫ from a to b = ∫ from a to c + ∫ from c to b, for any point c.',
+    king: '∫ₐᵇ f(x) dx = ∫ₐᵇ f(a + b − x) dx: f(a + b − x) is f flipped left to right inside [a, b].',
+    double: '∫₀²ᵏ f(x) dx = ∫₀ᵏ f(x) dx + ∫₀ᵏ f(2k − x) dx.',
+    sym: '∫₋ₖᵏ f(x) dx = 2∫₀ᵏ f(x) dx if f is even, and 0 if f is odd.',
+    ftc: 'If A(x) = ∫ₐˣ f(t) dt, then A′(x) = f(x): the area grows at the rate of the height (first fundamental theorem).',
+  };
+
+  function setFn() {
+    const id = q<HTMLSelectElement>('.ip-fn').value, err = q('.ip-err');
+    q('.ip-ownl').hidden = id !== 'own'; err.hidden = true;
+    if (id === 'own') {
+      try { f = readFn(q<HTMLInputElement>('.ip-own').value); name = q<HTMLInputElement>('.ip-own').value.trim(); }
+      catch (e) { err.textContent = (e as Error).message; err.hidden = false; return false; }
+    } else { const p = PRESETS.find((z) => z.id === id)!; f = p.f; name = p.label; }
+    return true;
+  }
+
+  function range(fs: Fn[], x0: number, x1: number): [number, number] {
+    let lo = 0, hi = 0;
+    for (const g of fs) for (let i = 0; i <= 120; i++) { const y = g(x0 + ((x1 - x0) * i) / 120); if (Number.isFinite(y)) { lo = Math.min(lo, y); hi = Math.max(hi, y); } }
+    lo = Math.max(lo, -40); hi = Math.min(hi, 40); const pad = Math.max(0.3, (hi - lo) * 0.12);
+    return [lo - pad, hi + pad];
+  }
+  /** Shade between g and the x-axis from x0 to x1, in pos/neg colours (or one colour). */
+  function shade(ctx: CanvasRenderingContext2D, v: View, g: Fn, x0: number, x1: number, pos: string, neg = pos, alpha = 0.32) {
+    const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
+    ctx.save(); ctx.beginPath(); ctx.rect(v.l, v.t, v.W - v.l - v.r, v.H - v.t - v.b); ctx.clip(); ctx.globalAlpha = alpha;
+    const n = 160, dx = (hi - lo) / n;
+    for (let i = 0; i < n; i++) {
+      const xa = lo + i * dx, xb = xa + dx, y = g((xa + xb) / 2);
+      if (!Number.isFinite(y)) continue;
+      ctx.fillStyle = y >= 0 ? pos : neg;
+      const X0 = px(v, xa), X1 = px(v, xb), Y0 = py(v, 0), Y = py(v, Math.max(v.y0, Math.min(v.y1, y)));
+      ctx.fillRect(X0, Math.min(Y0, Y), X1 - X0 + 0.6, Math.abs(Y - Y0));
+    }
+    ctx.restore();
+  }
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  const n4 = (x: number) => fmt(x, 4);
+
+  function draw() {
+    const prop = q<HTMLSelectElement>('.ip-prop').value, pal = pagePalette();
+    const a = num('.ip-a'), b = num('.ip-b'), c = num('.ip-c'), k = num('.ip-k'), x = num('.ip-x');
+    for (const s of ['a', 'b', 'c', 'k', 'x']) q(`.ip-${s}v`).textContent = fmt(num(`.ip-${s}`), 2);
+    const show: Record<string, string[]> = { swap: ['a', 'b'], split: ['a', 'b', 'c'], king: ['a', 'b'], double: ['k'], sym: ['k'], ftc: ['a', 'x'] };
+    for (const s of ['a', 'b', 'c', 'k', 'x']) q(`.ip-s-${s}`).hidden = !show[prop].includes(s);
+    q('.ip-rule').textContent = RULES[prop];
+    const r = properties(f, a, b, c, k), fig2 = q<HTMLCanvasElement>('.ip-fig2');
+    fig2.hidden = !['king', 'double', 'ftc'].includes(prop);
+    let lines: string[] = [], verdict = '', key = '', draw1: (ctx: CanvasRenderingContext2D, v: View, pl: Palette) => void = () => {}, alt = '';
+    let x0 = -3, x1 = 3;
+    if (prop === 'sym' || prop === 'double') { x0 = prop === 'sym' ? -Math.max(3, k + 0.3) : -0.3; x1 = prop === 'sym' ? -x0 : Math.max(3, 2 * k + 0.3); }
+    const v = view(x0, x1, ...range([f], x0, x1), W, H);
+    const ok = (l: number, rr: number) => Math.abs(l - rr) <= 1e-6 * Math.max(1, Math.abs(l));
+    if (prop === 'swap') {
+      key = 'Blue: area above the axis (counts +). Orange: area below (counts −). Going from b back to a flips every sign.';
+      draw1 = (ctx, vv, pl) => { shade(ctx, vv, f, a, b, pl.accent, pl.accent2); line(ctx, vv, a, vv.y0, a, vv.y1, pl.muted, 1, [3, 3]); line(ctx, vv, b, vv.y0, b, vv.y1, pl.muted, 1, [3, 3]); };
+      lines = [`∫ from ${fmt(a, 2)} to ${fmt(b, 2)} of f(x) dx = ${n4(r.swap.ab)}`, `∫ from ${fmt(b, 2)} to ${fmt(a, 2)} of f(x) dx = ${n4(r.swap.ba)}`];
+      verdict = ok(r.swap.ba, -r.swap.ab) ? 'Same size, opposite sign.' : '';
+    } else if (prop === 'split') {
+      key = 'Blue: from a to c. Orange: from c to b. Their signed areas add up to the whole.';
+      draw1 = (ctx, vv, pl) => { shade(ctx, vv, f, a, c, pl.accent); shade(ctx, vv, f, c, b, pl.accent2); line(ctx, vv, c, vv.y0, c, vv.y1, pl.ink, 1.4, [5, 3]); };
+      lines = [`∫ from a to c = ∫ from ${fmt(a, 2)} to ${fmt(c, 2)} = ${n4(r.split.ac)}`, `∫ from c to b = ∫ from ${fmt(c, 2)} to ${fmt(b, 2)} = ${n4(r.split.cb)}`, `Sum: ${n4(r.split.ac)} + ${n4(r.split.cb)} = ${n4(r.split.ac + r.split.cb)}`, `∫ from a to b = ${n4(r.split.ab)}`];
+      verdict = ok(r.split.ac + r.split.cb, r.split.ab) ? `They match${c < Math.min(a, b) || c > Math.max(a, b) ? ', even with c outside [a, b]' : ''}.` : '';
+    } else if (prop === 'king') {
+      key = 'Top: f(x) from a to b. Bottom: f(a + b − x), the same shape flipped left to right inside [a, b].';
+      draw1 = (ctx, vv, pl) => shade(ctx, vv, f, a, b, pl.accent, pl.accent2);
+      const g = (t: number) => f(a + b - t), v2 = view(-3, 3, ...range([f, g], -3, 3), W, H);
+      paint(fig2, { w: W, h: H, alt: `f(a + b − x) from ${fmt(a, 2)} to ${fmt(b, 2)}`, draw: (ctx, w, h, pl) => { axes(ctx, v2, pl, { xName: 'x' }); shade(ctx, v2, g, a, b, pl.accent, pl.accent2); curve(ctx, v2, f, pl.line, 1.2, [3, 3]); curve(ctx, v2, g, pl.ink, 2.2); } }, pal);
+      lines = [`∫ from ${fmt(a, 2)} to ${fmt(b, 2)} of f(x) dx = ${n4(r.king.f)}`, `∫ from ${fmt(a, 2)} to ${fmt(b, 2)} of f(${fmt(a + b, 2)} − x) dx = ${n4(r.king.g)}`];
+      verdict = ok(r.king.f, r.king.g) ? 'Equal: flipping the picture does not change its area.' : '';
+    } else if (prop === 'double') {
+      key = 'Top: f from 0 to 2k, blue for the first half and orange for the second. Bottom: the second half flipped onto [0, k] as f(2k − x).';
+      draw1 = (ctx, vv, pl) => { shade(ctx, vv, f, 0, k, pl.accent); shade(ctx, vv, f, k, 2 * k, pl.accent2); line(ctx, vv, k, vv.y0, k, vv.y1, pl.ink, 1.2, [5, 3]); };
+      const g = (t: number) => f(2 * k - t), v2 = view(x0, x1, ...range([f, g], x0, x1), W, H);
+      paint(fig2, { w: W, h: H, alt: `f(x) and f(2k − x) on [0, ${fmt(k, 2)}]`, draw: (ctx, w, h, pl) => { axes(ctx, v2, pl, { xName: 'x' }); shade(ctx, v2, f, 0, k, pl.accent, pl.accent, 0.25); shade(ctx, v2, g, 0, k, pl.accent2, pl.accent2, 0.25); curve(ctx, v2, f, pl.ink, 2); curve(ctx, v2, g, pl.accent2, 2, [], 0, k); } }, pal);
+      lines = [`∫₀ᵏ f(x) dx = ${n4(r.double.first)}`, `∫₀ᵏ f(2k − x) dx = ${n4(r.double.second)} (the second half, flipped)`, `Sum = ${n4(r.double.first + r.double.second)}; ∫₀²ᵏ f(x) dx = ${n4(r.double.whole)}`];
+      const p2 = Math.abs(r.double.second - r.double.first) < 1e-6 ? 'f(2k − x) = f(x) here, so the whole is twice the first half.' : Math.abs(r.double.second + r.double.first) < 1e-6 ? 'f(2k − x) = −f(x) here, so the whole is 0.' : '';
+      verdict = ok(r.double.first + r.double.second, r.double.whole) ? `They match. ${p2}` : '';
+    } else if (prop === 'sym') {
+      const par = parity(f);
+      key = 'Blue: the right half, 0 to k. Orange: the left half, −k to 0. Even: mirror images. Odd: mirror images upside down.';
+      draw1 = (ctx, vv, pl) => { shade(ctx, vv, f, 0, k, pl.accent); shade(ctx, vv, f, -k, 0, pl.accent2); };
+      lines = [`f is ${par === 'even' ? 'even: f(−x) = f(x)' : par === 'odd' ? 'odd: f(−x) = −f(x)' : 'neither even nor odd'}`, `Left half ∫₋ₖ⁰ = ${n4(r.sym.left)}, right half ∫₀ᵏ = ${n4(r.sym.right)}`, `Whole ∫₋ₖᵏ f(x) dx = ${n4(r.sym.whole)}`];
+      verdict = par === 'even' ? `Even: whole = 2 × ${n4(r.sym.right)} = ${n4(2 * r.sym.right)}.` : par === 'odd' ? 'Odd: the halves cancel, so the whole is 0 for every k.' : 'Neither: no shortcut; work the whole integral out.';
+    } else {
+      key = 'Shaded: the signed area from a to x. Bottom: the area function A(x) with its tangent at x; its slope is f(x).';
+      draw1 = (ctx, vv, pl) => { shade(ctx, vv, f, a, x, pl.accent, pl.accent2); line(ctx, vv, x, vv.y0, x, vv.y1, pl.ink, 1.2, [5, 3]); dot(ctx, vv, x, f(x), pl.ink, 5); };
+      const A = (t: number) => areaFn(f, a, t), Ax = A(x), s = areaSlope(f, a, x), v2 = view(-3, 3, ...range([A], -3, 3), W, H);
+      paint(fig2, { w: W, h: H, alt: `Area function A(x) from ${fmt(a, 2)}; at x = ${fmt(x, 2)}, A = ${fmt(Ax)} and slope ${fmt(s)}`, draw: (ctx, w, h, pl) => { axes(ctx, v2, pl, { xName: 'x', yName: 'A(x)' }); curve(ctx, v2, A, pl.accent, 2.2); line(ctx, v2, -3, Ax + s * (-3 - x), 3, Ax + s * (3 - x), pl.accent2, 1.5, [6, 4]); dot(ctx, v2, x, Ax, pl.accent, 5.5); } }, pal);
+      lines = [`A(${fmt(x, 2)}) = ∫ from ${fmt(a, 2)} to ${fmt(x, 2)} of f(t) dt = ${n4(Ax)}`, `Slope of A at x (measured) = ${n4(s)}`, `Height f(${fmt(x, 2)}) = ${n4(f(x))}`];
+      verdict = Math.abs(s - f(x)) < 1e-4 * Math.max(1, Math.abs(f(x))) ? 'Slope of A = height of f, as the fundamental theorem says.' : '';
+    }
+    alt = `${name}: ${lines.join('; ')}`;
+    paint(q<HTMLCanvasElement>('.ip-fig'), { w: W, h: H, alt, draw: (ctx, w, h, pl) => { axes(ctx, v, pl, { xName: 'x' }); draw1(ctx, v, pl); curve(ctx, v, f, pl.ink, 2.2); } }, pal);
+    q('.ip-key').textContent = key;
+    q('.ip-lines').replaceChildren(...lines.map(li));
+    q('.ip-verdict').textContent = verdict;
+  }
+
+  const update = () => { if (setFn()) draw(); };
+  q('.ip-fn').addEventListener('change', update);
+  q('.ip-own').addEventListener('input', update);
+  q('.ip-prop').addEventListener('change', draw);
+  root.querySelectorAll('.ip-sl input').forEach((i) => i.addEventListener('input', draw));
+  document.addEventListener('fibub:theme', draw);
+  update();
+
+  quiz(q('.ip-quiz'), (): Question[] => {
+    const k = rint(1, 4), s = rint(2, 9), u = rint(-6, 6, true), w = rint(1, 8), x0 = rint(2, 5), n = pick([3, 5]);
+    return [
+      { text: `What is ∫ from −${k} to ${k} of x${n === 3 ? '³' : '⁵'} dx?`, answer: 0, worked: `x${n === 3 ? '³' : '⁵'} is odd (f(−x) = −f(x)), so the two halves cancel: the answer is 0.` },
+      { text: `What is ∫ from −${k} to ${k} of x² dx? (a fraction is fine)`, answer: (2 * k ** 3) / 3, worked: `x² is even, so it is 2∫₀^${k} x² dx = 2 × ${k}³/3 = ${2 * k ** 3}/3${(2 * k ** 3) % 3 ? '' : ` = ${(2 * k ** 3) / 3}`}.` },
+      { text: `If ∫ from 1 to 4 of f(x) dx = ${s}, what is ∫ from 4 to 1 of f(x) dx?`, answer: -s, worked: `Swapping the limits flips the sign: −${s}.` },
+      { text: `∫ from 0 to 2 of f(x) dx = ${u} and ∫ from 2 to 5 of f(x) dx = ${w}. What is ∫ from 0 to 5 of f(x) dx?`, answer: u + w, worked: `Split at c = 2: ${u} + ${w} = ${u + w}.` },
+      { text: `If A(x) = ∫ from 0 to x of t² dt, what is A′(${x0})?`, answer: x0 * x0, worked: `By the fundamental theorem, A′(x) = x², so A′(${x0}) = ${x0 * x0}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .ipr .ip-rule { font-weight: 600; margin: 10px 0 0; overflow-wrap: anywhere; }
+  .ipr .ip-sl { display: grid; gap: 8px; margin: 10px 0; }
+  .ipr .ip-sl label { display: block; color: var(--ink); font-size: 15px; }
+  .ipr .ip-sl label[hidden] { display: none; }
+  .ipr input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ipr .ip-fig2 { margin-top: 10px; }
+  .ipr .ip-lines { padding-left: 20px; display: grid; gap: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .ipr .ip-verdict { font-weight: 700; color: var(--good); margin: 6px 0 0; }
+  .ipr .ip-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
