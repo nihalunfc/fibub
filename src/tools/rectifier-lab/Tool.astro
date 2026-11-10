@@ -1,0 +1,171 @@
+---
+// Rectifier lab: half-wave, centre-tap full-wave and bridge rectifiers. Which diodes conduct in each half cycle,
+// the input and output waves, and a smoothing capacitor that shrinks the ripple.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax rl">
+  <div class="ax-card">
+    <div class="ax-seg rl-m" role="group" aria-label="Rectifier"><button type="button" data-m="half" aria-pressed="false">Half-wave</button><button type="button" data-m="full" aria-pressed="false">Full-wave</button><button type="button" data-m="bridge" aria-pressed="true">Bridge</button></div>
+    <div class="ax-seg rl-h" role="group" aria-label="Half cycle shown" style="margin-top:10px"><button type="button" data-h="pos" aria-pressed="true">Positive half</button><button type="button" data-h="neg" aria-pressed="false">Negative half</button></div>
+    <svg class="rl-sch" viewBox="0 0 300 180" role="img" aria-label="Circuit"></svg>
+    <p class="rl-cond" style="margin:0 0 8px"></p>
+    <label class="rl-rl"><span>Vp</span><input type="range" class="rl-vp" min="3" max="20" step="0.5" value="12" aria-label="Peak input voltage" /><output class="rl-ovp"></output></label>
+    <label class="rl-rl"><span>RL</span><input type="range" class="rl-r" min="100" max="5000" step="50" value="1000" aria-label="Load resistance" /><output class="rl-or"></output></label>
+    <p style="margin:12px 0 4px;font-weight:650">Smoothing capacitor</p>
+    <div class="ax-seg rl-c" role="group" aria-label="Smoothing capacitor"><button type="button" data-c="0" aria-pressed="true">None</button><button type="button" data-c="100" aria-pressed="false">100 µF</button><button type="button" data-c="470" aria-pressed="false">470 µF</button><button type="button" data-c="1000" aria-pressed="false">1000 µF</button><button type="button" data-c="2200" aria-pressed="false">2200 µF</button></div>
+    <p class="ax-big rl-big" style="margin:12px 0 2px"></p>
+    <p class="rl-sub" style="margin:0 0 6px"></p>
+    <svg class="rl-w" viewBox="0 0 320 200" role="img" aria-label="Waves"></svg>
+    <p class="ax-help" style="margin-top:0">Dashed: the input (50 Hz mains through a transformer). Solid: the voltage across the load, over three cycles (60 ms).</p>
+    <dl class="ax-facts rl-facts"></dl>
+    <p class="lx-eq rl-eq"></p>
+    <p class="ax-help">Diodes are ideal with a 0.7 V drop each; the capacitor charges instantly and discharges through the load. The numbers come from a step-by-step simulation; the formulas show the textbook estimates beside them.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Half-wave: what happens in the negative half cycle? How often does the output pulse?</li>
+      <li>Switch to full-wave and bridge. Which diodes work in each half? Why does the bridge lose 1.4 V instead of 0.7 V?</li>
+      <li>Add 100 µF, then 2200 µF. How does the ripple change? Is the ripple frequency 50 Hz or 100 Hz?</li>
+      <li>With a capacitor, lower RL (a heavier load). Why does the ripple grow?</li>
+      <li>Compare the simulated ripple with the estimate Vm / (f R C). When does the estimate stop being good?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .rl-rl { display: grid !important; grid-template-columns: 30px 1fr 84px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .rl-rl input { height: 36px; accent-color: var(--accent); }
+  .rl-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .rl-sch, .rl-w { display: block; width: 100%; max-width: 440px; margin: 8px auto; }
+  .rl .wire { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+  .rl .dio path { fill: var(--surface); stroke: var(--muted); stroke-width: 1.6; }
+  .rl .dio line { stroke: var(--muted); stroke-width: 1.6; }
+  .rl .dio.on path { fill: var(--accent); stroke: var(--accent); }
+  .rl .dio.on line { stroke: var(--accent); stroke-width: 2.6; }
+  .rl .res { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+  .rl .src { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+  .rl .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .rl .tb { fill: var(--ink); font: 600 12px system-ui, sans-serif; }
+  .rl .axl { fill: none; stroke: var(--muted); stroke-width: 1; }
+  .rl .vin { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .rl .vout { fill: none; stroke: var(--accent); stroke-width: 2.6; }
+</style>
+
+<script>
+  import { estimate, measure, peak, rippleFreq, simulate, type Mode, type Setup } from '../../lib/sci/rectifier';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.rl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  let mode: Mode = 'bridge', half: 'pos' | 'neg' = 'pos', cuF = 0;
+
+  /** Diode from (x1,y1) anode to (x2,y2) cathode, the triangle pointing the way current flows. */
+  function dio(svg: SVGSVGElement, x1: number, y1: number, x2: number, y2: number, name: string, on: boolean, lx: number, ly: number) {
+    const L = Math.hypot(x2 - x1, y2 - y1), a = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI, m = L / 2;
+    const g = sv('g', { class: `dio${on ? ' on' : ''}`, transform: `translate(${x1} ${y1}) rotate(${a})`, 'data-name': name });
+    g.append(sv('line', { x1: 0, y1: 0, x2: m - 8, y2: 0 }), sv('line', { x1: m + 8, y1: 0, x2: L, y2: 0 }), sv('path', { d: `M${m - 8} -8 L${m - 8} 8 L${m + 8} 0 Z` }), sv('line', { x1: m + 8, y1: -8, x2: m + 8, y2: 8 }));
+    svg.append(g, sv('text', { x: lx, y: ly, class: 'tb' }, name));
+  }
+  const src = (svg: SVGSVGElement, x: number, y: number) => { svg.append(sv('circle', { cx: x, cy: y, r: 14, class: 'src' }), sv('path', { d: `M${x - 8} ${y} q4 -8 8 0 t8 0`, class: 'wire' })); };
+  const res = (svg: SVGSVGElement, x: number, y: number, w: number, h: number) => svg.append(sv('rect', { x, y, width: w, height: h, class: 'res' }));
+
+  function schematic() {
+    const svg = q<SVGSVGElement>('.rl-sch'); svg.replaceChildren();
+    const pos = half === 'pos';
+    let on: string[] = [];
+    if (mode === 'half') {
+      src(svg, 50, 90);
+      svg.append(sv('path', { d: 'M50 76 V30 H110 M170 30 H250 V65 M250 115 V150 H50 V104', class: 'wire' }));
+      dio(svg, 110, 30, 170, 30, 'D', pos, 134, 18); res(svg, 240, 65, 20, 50);
+      svg.append(sv('text', { x: 266, y: 95, class: 'tb' }, 'RL'), sv('text', { x: 20, y: 94, class: 'tx' }, 'AC'));
+      on = pos ? ['D'] : [];
+    } else if (mode === 'full') {
+      // transformer: primary bumps at x 40, secondary at x 62 with a centre tap
+      svg.append(sv('path', { d: 'M40 30 ' + Array.from({ length: 5 }, () => 'q-10 10 0 20').join(' '), class: 'wire' }), sv('path', { d: 'M62 30 ' + Array.from({ length: 5 }, () => 'q10 10 0 20').join(' '), class: 'wire' }));
+      svg.append(sv('path', { d: 'M40 30 H14 M40 130 H14', class: 'wire' }), sv('text', { x: 4, y: 86, class: 'tx' }, 'AC'));
+      svg.append(sv('path', { d: 'M62 30 H100 M150 30 H200 V65 M62 130 H100 M150 130 H200 V95 M62 80 H110 M150 80 H200', class: 'wire' }));
+      svg.append(sv('path', { d: 'M200 65 V95', class: 'wire' }));
+      dio(svg, 100, 30, 150, 30, 'D1', pos, 116, 18); dio(svg, 100, 130, 150, 130, 'D2', !pos, 116, 152);
+      res(svg, 110, 72, 40, 16); svg.append(sv('text', { x: 120, y: 104, class: 'tb' }, 'RL'), sv('text', { x: 66, y: 76, class: 'tx' }, 'tap'), sv('circle', { cx: 200, cy: 80, r: 3, fill: 'currentColor' }));
+      on = pos ? ['D1'] : ['D2'];
+    } else {
+      // bridge as a diamond: AC between top and bottom, load between left (−) and right (+) around the outside
+      const T = [150, 25], B = [150, 135], Lf = [100, 80], Rt = [200, 80];
+      // positive half: top is +. Current T→R (D1), load R→L, L→B (D3). Negative: B→R (D2), load, L→T (D4).
+      dio(svg, T[0], T[1], Rt[0], Rt[1], 'D1', pos, 182, 44); dio(svg, B[0], B[1], Rt[0], Rt[1], 'D2', !pos, 182, 126);
+      dio(svg, Lf[0], Lf[1], B[0], B[1], 'D3', pos, 102, 126); dio(svg, Lf[0], Lf[1], T[0], T[1], 'D4', !pos, 102, 44);
+      svg.append(sv('path', { d: 'M150 25 V66 M150 94 V135', class: 'wire' })); src(svg, 150, 80);
+      svg.append(sv('path', { d: 'M100 80 H70 V165 H130 M170 165 H230 V80 H200', class: 'wire' }));
+      res(svg, 130, 157, 40, 16); svg.append(sv('text', { x: 140, y: 152, class: 'tb' }, 'RL'), sv('text', { x: 236, y: 84, class: 'tb' }, '+'), sv('text', { x: 58, y: 84, class: 'tb' }, '−'));
+      on = pos ? ['D1', 'D3'] : ['D2', 'D4'];
+    }
+    svg.setAttribute('aria-label', `${mode} rectifier, conducting: ${on.join(' and ') || 'none'}`);
+    q('.rl-cond').textContent = on.length ? `${pos ? 'Positive' : 'Negative'} half: ${on.join(' and ')} conduct${on.length === 1 ? 's' : ''} (coloured); the others are reverse biased.` : 'Negative half: the diode is reverse biased, so no current flows and the load gets nothing.';
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.rl-m button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    root.querySelectorAll<HTMLButtonElement>('.rl-h button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.h === half)));
+    root.querySelectorAll<HTMLButtonElement>('.rl-c button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.c) === cuF)));
+    schematic();
+    const vp = Number(q<HTMLInputElement>('.rl-vp').value), RL = Number(q<HTMLInputElement>('.rl-r').value);
+    q('.rl-ovp').textContent = `${vp} V`; q('.rl-or').textContent = RL >= 1000 ? `${RL / 1000} kΩ` : `${RL} Ω`;
+    const s: Setup = { mode, vp, RL, C: cuF * 1e-6 };
+    const m = measure(s), e = estimate(s), vm = peak(s), fr = rippleFreq(s);
+    q('.rl-big').textContent = `DC output ${m.dc.toFixed(2)} V`;
+    q('.rl-sub').textContent = `Ripple ${m.ripple.toFixed(2)} V peak to peak at ${fr} Hz${cuF ? '' : ' (no capacitor: the output falls to zero every pulse)'}.`;
+    // waves
+    const svg = q<SVGSVGElement>('.rl-w'); svg.replaceChildren();
+    const sim = simulate(s, 5, 300), from = 2 * 300, X0 = 26, X1 = 314, Y0 = 100, A = 80 / 20;
+    const xs = (k: number) => X0 + ((k - from) / (3 * 300)) * (X1 - X0), ys = (v: number) => Y0 - v * A;
+    svg.append(sv('path', { d: `M${X0} ${Y0} H${X1} M${X0} 12 V188`, class: 'axl' }));
+    for (const v of [-20, -10, 10, 20]) svg.append(sv('text', { x: 2, y: ys(v) + 4, class: 'tx' }, String(v)));
+    svg.append(sv('text', { x: X1, y: Y0 + 14, class: 'tx', 'text-anchor': 'end' }, 't (60 ms)'), sv('text', { x: X0 + 4, y: 12, class: 'tx' }, 'volts'));
+    const pts = (arr: number[]) => arr.slice(from).map((v, i) => `${xs(i + from).toFixed(1)},${ys(v).toFixed(1)}`).join(' ');
+    svg.append(sv('polyline', { points: pts(sim.vin), class: 'vin' }), sv('polyline', { points: pts(sim.vout), class: 'vout' }));
+    svg.setAttribute('aria-label', `Input sine of peak ${vp} V and output with ${m.ripple.toFixed(2)} V ripple`);
+    const f = q('.rl-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, sm = '') => { const dv = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; dd.append(x); } dv.append(dt, dd); f.append(dv); };
+    fact('Peak output Vm', `${vm.toFixed(2)} V`, mode === 'bridge' ? 'Vp − 2 × 0.7 V' : 'Vp − 0.7 V');
+    fact('Ripple frequency', `${fr} Hz`, mode === 'half' ? 'one pulse per cycle' : 'two pulses per cycle');
+    fact('Lowest output', `${m.min.toFixed(2)} V`);
+    fact('Ripple factor', Number.isFinite(m.factor) ? m.factor.toFixed(3) : '–', 'AC part ÷ DC part');
+    const eq = q('.rl-eq'); eq.replaceChildren();
+    const ls = cuF
+      ? [`Estimate: Vr ≈ Vm / (f_r × RL × C) = ${vm.toFixed(2)} / (${fr} × ${RL} × ${cuF} × 10⁻⁶) = ${e.ripple.toFixed(2)} V`, `Vdc ≈ Vm − Vr/2 = ${e.dc.toFixed(2)} V (simulated ${m.dc.toFixed(2)} V)`]
+      : [`Vdc ≈ ${mode === 'half' ? 'Vm / π' : '2Vm / π'} = ${mode === 'half' ? '' : '2 × '}${vm.toFixed(2)} / π = ${e.dc.toFixed(2)} V (simulated ${m.dc.toFixed(2)} V)`, 'The small difference comes from the diode drop: the output starts a little after the input rises.'];
+    ls.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.rl-m button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as Mode; update(); }));
+  root.querySelectorAll<HTMLButtonElement>('.rl-h button').forEach((b) => b.addEventListener('click', () => { half = b.dataset.h as typeof half; update(); }));
+  root.querySelectorAll<HTMLButtonElement>('.rl-c button').forEach((b) => b.addEventListener('click', () => { cuF = Number(b.dataset.c); update(); }));
+  ['.rl-vp', '.rl-r'].forEach((s) => q(s).addEventListener('input', update));
+  update();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const f1 = pickOne([50, 60]), m1 = pickOne(['half-wave', 'full-wave', 'bridge']), a1 = m1 === 'half-wave' ? f1 : 2 * f1;
+    const vp2 = rint(8, 20), m2 = pickOne(['half-wave', 'bridge']), a2 = vp2 - (m2 === 'bridge' ? 1.4 : 0.7);
+    const vm3 = rint(10, 30), m3 = pickOne(['half-wave', 'full-wave']), a3 = (m3 === 'half-wave' ? 1 : 2) * vm3 / Math.PI;
+    const vm4 = rint(10, 15), R4 = pickOne([500, 1000, 2000]), C4 = pickOne([470, 1000, 2200]), a4 = vm4 / (100 * R4 * C4 * 1e-6);
+    const m5 = pickOne(['half-wave', 'centre-tap full-wave', 'bridge']), a5 = m5 === 'half-wave' ? 1 : m5 === 'bridge' ? 4 : 2;
+    return [
+      { q: `The mains frequency is ${f1} Hz. What is the frequency of the output pulses of a ${m1} rectifier, in Hz?`, hint: 'a number', answer: String(a1), ok: near(a1, 0.001), worked: `A ${m1} rectifier gives ${m1 === 'half-wave' ? 'one pulse per cycle, so ' + f1 : 'two pulses per cycle, so 2 × ' + f1 + ' = ' + 2 * f1} Hz.` },
+      { q: `A ${m2} rectifier with silicon diodes (0.7 V each) is fed ${vp2} V peak. What is the peak output, in volts?`, hint: 'a number', answer: a2.toFixed(1), ok: near(a2, 0.005), worked: `The current passes through ${m2 === 'bridge' ? 'two diodes' : 'one diode'}: ${vp2} − ${m2 === 'bridge' ? '1.4' : '0.7'} = ${a2.toFixed(1)} V.` },
+      { q: `With ideal diodes and no capacitor, what is the average (DC) output of a ${m3} rectifier with peak ${vm3} V? (2 decimal places)`, hint: 'a number', answer: a3.toFixed(2), ok: near(a3, 0.005), worked: `Vdc = ${m3 === 'half-wave' ? 'Vm / π' : '2Vm / π'} = ${m3 === 'half-wave' ? '' : '2 × '}${vm3} / π = ${a3.toFixed(2)} V.` },
+      { q: `A bridge rectifier on 50 Hz mains gives Vm = ${vm4} V into ${R4} Ω with a ${C4} µF capacitor. Estimate the ripple Vm / (f_r R C), in volts. (2 decimal places)`, hint: 'a number', answer: a4.toFixed(2), ok: near(a4, 0.02), worked: `The ripple frequency is 100 Hz, so Vr ≈ ${vm4} / (100 × ${R4} × ${C4} × 10⁻⁶) = ${a4.toFixed(2)} V.` },
+      { q: `How many diodes does a ${m5} rectifier use?`, hint: 'a whole number', answer: String(a5), ok: same(String(a5)), worked: `A ${m5} rectifier uses ${a5} diode${a5 > 1 ? 's' : ''}.` },
+    ];
+  });
+</script>
