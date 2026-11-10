@@ -1,0 +1,142 @@
+---
+// Equipartition of energy (Learn): count the ways a molecule can move (translation, rotation, vibration), give each ½kT,
+// and get U, Cv, Cp and γ for monatomic, diatomic and polyatomic gases; mix two gases.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn eqp">
+  <div class="ax-card">
+    <h2>Count the ways a molecule can move</h2>
+    <div class="ax-seg eq-shape" role="group" aria-label="Molecule"><button type="button" data-s="mono" aria-pressed="true">One atom (He)</button><button type="button" data-s="di" aria-pressed="false">Two atoms (N₂)</button><button type="button" data-s="lin3" aria-pressed="false">In a line (CO₂)</button><button type="button" data-s="nonlin" aria-pressed="false">Bent (H₂O)</button></div>
+    <canvas class="lrn-cv eq-cv" style="margin-top:10px" aria-label="The molecule moving, turning and, if switched on, vibrating, with arrows for each way it can move"></canvas>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small eq-play">Pause</button>
+      <label class="ax-check"><input type="checkbox" class="eq-vib" /> Hot gas: count vibrations too</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Temperature T <b class="eq-Tv"></b><input type="range" class="eq-T" min="50" max="1500" step="10" value="300" aria-label="Temperature in kelvin" /></label>
+      <label class="lrn-sl">Amount of gas n <b class="eq-nv"></b><input type="range" class="eq-n" min="0.5" max="5" step="0.5" value="1" aria-label="Amount in moles" /></label>
+    </div>
+    <p class="lrn-eq eq-count"></p>
+    <p class="lrn-eq eq-eq"></p>
+    <dl class="ax-facts eq-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>All four side by side</h2>
+    <div class="ax-scroll"><table class="eq-tab"><thead><tr><th>Molecule</th><th class="r">f</th><th class="r">Cv (×R)</th><th class="r">Cp (×R)</th><th class="r">γ</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">The more ways a molecule can store energy, the more heat it takes to warm it, and the closer γ gets to 1. Values are for ideal gases; follow the tick box above for vibrations.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mix two gases</h2>
+    <div class="ax-grid">
+      <label>Moles of one-atom gas<input type="text" inputmode="decimal" class="eq-m1" value="1" aria-label="Moles of monatomic gas" /></label>
+      <label>Moles of two-atom gas<input type="text" inputmode="decimal" class="eq-m2" value="1" aria-label="Moles of diatomic gas" /></label>
+    </div>
+    <p class="ax-err eq-merr" hidden></p>
+    <p class="lrn-eq eq-meq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Start with one atom: 3 ways to move, so γ = 5/3. Now pick two atoms: 2 more ways (it can tumble end over end two ways), γ = 7/5.</li>
+      <li>Why only 2 turns for N₂ and CO₂? Spinning about the line through the atoms stores almost no energy.</li>
+      <li>Tick “Hot gas”: each vibration adds 2 (moving and stretching), so γ drops further.</li>
+      <li>Double the temperature: U doubles, but Cv and γ do not change.</li>
+      <li>Mix 1 mol of helium with 1 mol of nitrogen: γ = 3/2 lies between 5/3 and 7/5.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card eq-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { freedoms, heatCaps, internalEnergy, mix, R, type Shape } from '../../lib/sci/n2-kinetic';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.eqp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const num = (s: string) => { const t = s.trim(); return t === '' ? NaN : Number(t); };
+  const NAMES: Record<Shape, string> = { mono: 'One atom (He, Ne, Ar)', di: 'Two atoms (N₂, O₂)', lin3: 'Three in a line (CO₂)', nonlin: 'Bent (H₂O)' };
+  // Show a ratio such as 1.6667 also as a fraction when it is a simple one.
+  const frac = (x: number) => { for (let d = 1; d <= 30; d++) { const n = Math.round(x * d); if (Math.abs(n / d - x) < 1e-9) return d === 1 ? String(n) : `${n}/${d}`; } return sig(x, 4); };
+  let shape: Shape = 'mono', t = 0;
+  const vib = () => q<HTMLInputElement>('.eq-vib').checked;
+
+  function draw(dt: number) {
+    t += dt;
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.eq-cv'), 210), pal = pagePalette(), fr = freedoms(shape, vib());
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const cx = W / 2 + Math.sin(t * 0.9) * W * 0.12, cy = H / 2 + Math.cos(t * 0.7) * 18, rot = fr.rot ? t * 1.2 : 0;
+    const s = vib() ? 1 + 0.18 * Math.sin(t * 9) : 1, bond = 34 * s;
+    let atoms: [number, number, number][] = [];
+    if (shape === 'mono') atoms = [[0, 0, 15]];
+    else if (shape === 'di') atoms = [[-bond / 2, 0, 13], [bond / 2, 0, 13]];
+    else if (shape === 'lin3') atoms = [[-bond, 0, 12], [0, 0, 14], [bond, 0, 12]];
+    else { const a = (52 * Math.PI) / 180; atoms = [[0, -8, 15], [-bond * Math.sin(a), -8 + bond * Math.cos(a), 10], [bond * Math.sin(a), -8 + bond * Math.cos(a), 10]]; }
+    const P = atoms.map(([x, y, rr]) => [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot), rr] as [number, number, number]);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3;
+    if (shape === 'nonlin') { [1, 2].forEach((i) => { ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]); ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); }); }
+    else for (let i = 1; i < P.length; i++) { ctx.beginPath(); ctx.moveTo(P[i - 1][0], P[i - 1][1]); ctx.lineTo(P[i][0], P[i][1]); ctx.stroke(); }
+    P.forEach(([x, y, rr], i) => { ctx.fillStyle = (shape === 'lin3' || shape === 'nonlin') && i === 0 ? (pal.red ? pal.ink : pal.bad) : (pal.red ? pal.muted : pal.accent); ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fill(); });
+    // Legend of the ways to move
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+    ctx.fillText(`moves along x, y, z: ${fr.trans}`, 8, 18);
+    ctx.fillStyle = fr.rot ? pal.ink : pal.muted; ctx.fillText(`turns: ${fr.rot}`, 8, 36);
+    ctx.fillStyle = fr.vib ? pal.ink : pal.muted; ctx.fillText(`vibrates: ${vib() ? `${fr.modes} × 2 = ${fr.vib}` : `0 (${fr.modes} frozen)`}`, 8, 54);
+    ctx.textAlign = 'right'; ctx.fillStyle = pal.muted; ctx.fillText(`f = ${fr.f}`, W - 8, 18);
+  }
+
+  function update() {
+    const fr = freedoms(shape, vib()), hc = heatCaps(fr.f), T = v_('.eq-T'), n = v_('.eq-n'), U = internalEnergy(n, fr.f, T);
+    q('.eq-Tv').textContent = `${T} K`; q('.eq-nv').textContent = `${n} mol`;
+    q('.eq-count').textContent = `f = ${fr.trans} (moving) + ${fr.rot} (turning) + ${fr.vib} (vibrating) = ${fr.f}. Each gets ½kT per molecule, ½RT per mole.`;
+    q('.eq-eq').textContent = `Cv = (f/2) R = ${fr.f}/2 × 8.314 = ${sig(hc.Cv, 4)} J/(mol K).  Cp = Cv + R = ${sig(hc.Cp, 4)} J/(mol K).  γ = Cp/Cv = 1 + 2/f = ${frac(hc.gamma)} = ${sig(hc.gamma, 4)}.  U = (f/2) n R T = ${fr.f}/2 × ${n} × 8.314 × ${T} = ${sig(U, 4)} J.`;
+    q('.eq-facts').replaceChildren(fact('Degrees of freedom f', String(fr.f)), fact('Cv', `${frac(fr.f / 2)} R`, `${sig(hc.Cv, 4)} J/(mol K)`), fact('Cp', `${frac(fr.f / 2 + 1)} R`, `${sig(hc.Cp, 4)} J/(mol K)`), fact('γ = Cp/Cv', sig(hc.gamma, 4), frac(hc.gamma)), fact('Internal energy U', `${sig(U / 1000, 4)} kJ`, `${n} mol at ${T} K`));
+    const tb = q('.eq-tab tbody'); tb.replaceChildren();
+    (['mono', 'di', 'lin3', 'nonlin'] as Shape[]).forEach((s) => {
+      const f2 = freedoms(s, vib()).f, h = heatCaps(f2), tr = document.createElement('tr');
+      if (s !== shape) tr.className = 'dim';
+      [NAMES[s], String(f2), frac(f2 / 2), frac(f2 / 2 + 1), `${frac(h.gamma)} = ${sig(h.gamma, 4)}`].forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.className = 'r'; tr.append(td); });
+      tb.append(tr);
+    });
+    mixUpdate(); anim.redraw();
+  }
+
+  function mixUpdate() {
+    const n1 = num(q<HTMLInputElement>('.eq-m1').value), n2 = num(q<HTMLInputElement>('.eq-m2').value), err = q('.eq-merr');
+    if (!(n1 >= 0) || !(n2 >= 0) || n1 + n2 <= 0) { err.hidden = false; err.textContent = 'Type amounts of 0 or more, not both 0.'; q('.eq-meq').textContent = ''; return; }
+    err.hidden = true;
+    const m = mix(n1, 3, n2, 5);
+    q('.eq-meq').textContent = `Cv(mix) = (n₁ × 3/2 R + n₂ × 5/2 R) / (n₁ + n₂) = (${n1} × 1.5 + ${n2} × 2.5) R / ${n1 + n2} = ${sig(m.Cv / R, 4)} R.  γ(mix) = (Cv + R) / Cv = ${sig(m.gamma, 4)}${frac(m.gamma).includes('/') ? ` = ${frac(m.gamma)}` : ''}. (Rigid molecules: no vibrations.)`;
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.eq-play'));
+  root.querySelectorAll<HTMLButtonElement>('.eq-shape button').forEach((b) => b.addEventListener('click', () => {
+    shape = b.dataset.s as Shape; root.querySelectorAll('.eq-shape button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update();
+  }));
+  root.querySelectorAll('.eq-T, .eq-n, .eq-vib').forEach((e) => e.addEventListener('input', update));
+  q('.eq-m1').addEventListener('input', mixUpdate); q('.eq-m2').addEventListener('input', mixUpdate);
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  mountQuiz(q('.eq-quiz'), () => {
+    const s = one(['mono', 'di', 'nonlin'] as ('mono' | 'di' | 'nonlin')[]), f = freedoms(s, false).f, n = pick(1, 6), T = pick(25, 80, 5) * 10, n1 = pick(1, 4), n2 = pick(1, 4);
+    const nm = { mono: 'a monatomic gas', di: 'a diatomic gas (rigid molecules)', nonlin: 'a non-linear triatomic gas such as water vapour (rigid)' }[s];
+    return [
+      { q: `What is γ = Cp/Cv for ${nm}?`, ans: heatCaps(f).gamma, unit: '', tol: 0.005, work: `f = ${f}, so γ = 1 + 2/f = 1 + 2/${f} = ${r(heatCaps(f).gamma, 4)}` },
+      { q: `What is the molar heat capacity Cv of ${nm}, in J/(mol K)? (R = 8.314)`, ans: heatCaps(f).Cv, unit: 'J/(mol K)', work: `Cv = (f/2) R = ${f}/2 × 8.314 = ${r(heatCaps(f).Cv, 4)} J/(mol K)` },
+      { q: `How much internal energy do ${n} mol of a diatomic gas (rigid) have at ${T} K, in kJ?`, ans: internalEnergy(n, 5, T) / 1000, unit: 'kJ', work: `U = (5/2) n R T = 2.5 × ${n} × 8.314 × ${T} = ${r(internalEnergy(n, 5, T))} J = ${r(internalEnergy(n, 5, T) / 1000)} kJ` },
+      { q: `${n1} mol of helium is mixed with ${n2} mol of oxygen. What is γ of the mixture?`, ans: mix(n1, 3, n2, 5).gamma, unit: '', tol: 0.005, work: `Cv = (${n1} × 1.5 + ${n2} × 2.5) R / ${n1 + n2} = ${r(mix(n1, 3, n2, 5).Cv / R, 4)} R; γ = (Cv + R)/Cv = ${r(mix(n1, 3, n2, 5).gamma, 4)}` },
+      { q: 'Which gas has the largest γ?', ans: 0, choices: ['Argon (one atom)', 'Nitrogen (two atoms)', 'Methane (five atoms)'], work: 'γ = 1 + 2/f, largest when f is smallest. Argon has only the 3 ways of moving, so γ = 5/3.' },
+    ];
+  });
+</script>
