@@ -1,0 +1,166 @@
+---
+// #T905 Axle weights
+---
+<div class="tool-ui ax">
+  <section class="panel">
+    <div class="ax-grid">
+      <label>Rules and units
+        <select data-k="reg">
+          <option value="us">US federal (lb, feet)</option>
+          <option value="ca">Canada, Ontario estimate (kg, metres)</option>
+          <option value="in">India estimate (kg, metres)</option>
+        </select>
+      </label>
+      <label>Drive axles <select data-k="nd"><option>1</option><option selected>2</option><option>3</option></select></label>
+      <label>Trailer axles <select data-k="nt"><option>1</option><option selected>2</option><option>3</option></select></label>
+      <label><span>Axle spacing in a group (<b class="u-l">ft</b>)</span> <input data-k="spread" inputmode="decimal" value="4.25" /></label>
+      <label><span>Steer axle to drive group centre (<b class="u-l">ft</b>)</span> <input data-k="wb" inputmode="decimal" value="20" /></label>
+      <label><span>Steer axle to fifth wheel (<b class="u-l">ft</b>)</span> <input data-k="fifth" inputmode="decimal" value="19" /></label>
+      <label><span>Kingpin to trailer group centre (<b class="u-l">ft</b>)</span> <input data-k="kt" inputmode="decimal" value="40" /></label>
+    </div>
+    <h3 class="ax-h">Empty weights and load</h3>
+    <div class="ax-grid">
+      <label><span>Empty on steer (<b class="u-w">lb</b>)</span> <input data-k="es" inputmode="decimal" value="10500" /></label>
+      <label><span>Empty on drive group (<b class="u-w">lb</b>)</span> <input data-k="ed" inputmode="decimal" value="12500" /></label>
+      <label><span>Empty on trailer group (<b class="u-w">lb</b>)</span> <input data-k="et" inputmode="decimal" value="7000" /></label>
+      <label><span>Load weight (<b class="u-w">lb</b>)</span> <input data-k="load" inputmode="decimal" value="40000" /></label>
+      <label><span>Kingpin to centre of the load (<b class="u-l">ft</b>)</span> <input data-k="at" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-fine">Weigh the empty rig on a scale to get the empty weights (the trailer's nose weight shows on the tractor axles). The load's centre is where its weight balances.</p>
+    <h3 class="ax-h">Limits (edit to your state, province or permit)</h3>
+    <div class="ax-grid">
+      <label><span>Steer axle (<b class="u-w">lb</b>)</span> <input data-k="ls" inputmode="decimal" /></label>
+      <label><span>Drive group (<b class="u-w">lb</b>)</span> <input data-k="ld" inputmode="decimal" /></label>
+      <label><span>Trailer group (<b class="u-w">lb</b>)</span> <input data-k="lt" inputmode="decimal" /></label>
+      <label><span>Gross (<b class="u-w">lb</b>)</span> <input data-k="lg" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-fine ax-src"></p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ax-big"></p>
+    <svg class="ax-fig" viewBox="0 0 480 170" role="img" aria-label="Side view of the truck with the weight on each axle group"></svg>
+    <dl class="ax-out"></dl>
+    <p class="ax-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h3 class="ax-h">Bridge formula for any axle group (US)</h3>
+    <div class="ax-grid">
+      <label>Axles in the group (N) <input data-k="bn" inputmode="numeric" value="5" /></label>
+      <label>Feet between the outer axles (L) <input data-k="bl" inputmode="decimal" value="51" /></label>
+    </div>
+    <p class="ax-bres"></p>
+  </section>
+  <p class="ax-fine">A planning aid, not a scale ticket. US federal limits on the Interstate (FHWA, checked 2026-11-10): 20,000 lb single axle, 34,000 lb tandem, 80,000 lb gross, and the bridge formula W = 500 (LN/(N−1) + 12N + 36), rounded to the nearest 500 lb. Many states hold steer axles to 12,000 lb or the tyre rating. The Ontario and India figures are estimates. Check the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ax { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ax .panel { padding: 16px; }
+  .ax-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ax label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ax b { font-weight: inherit; }
+  .ax input, .ax select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ax input:focus, .ax select:focus { border-color: var(--accent); outline: none; }
+  .ax-h { font-size: 16px; margin: 16px 0 8px; }
+  .ax .panel > .ax-h:first-child { margin-top: 0; }
+  .ax-big { font-size: 24px; font-weight: 700; margin: 0 0 8px; }
+  .ax-big.bad { color: var(--bad); } .ax-big.ok { color: var(--good); }
+  .ax-fig { width: 100%; height: auto; }
+  .ax-fig text { font-size: 12px; fill: var(--ink); }
+  .ax-out { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 10px 0 0; }
+  .ax-out dt { color: var(--muted); } .ax-out dd { margin: 0; text-align: right; font-weight: 600; }
+  .ax-out .over { color: var(--bad); }
+  .ax-warn { color: var(--warn); margin: 10px 0 0; } .ax-warn:empty { display: none; }
+  .ax-bres { font-weight: 700; margin: 10px 0 0; }
+  .ax-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+</style>
+
+<script>
+  import { axleLoads, bridge } from '../../lib/money/trucking';
+  const root = document.querySelector('.ax') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const w0 = (v: number) => Math.round(v).toLocaleString('en-US');
+  // Group limits by axle count. US from FHWA; Ontario and India are estimates (not confirmed on the official page).
+  const LIM: Record<string, { steer: number; g: number[]; gross: (s: number[]) => number; src: string }> = {
+    us: { steer: 20000, g: [20000, 34000, 0], gross: () => 80000, src: 'US federal: 20,000 single, 34,000 tandem, 80,000 gross; a tridem is set by the bridge formula. Checked 2026-11-10 on ops.fhwa.dot.gov.' },
+    ca: { steer: 9000, g: [10000, 19100, 24000], gross: () => 63500, src: 'Estimate for Ontario (steer 9,000, single 10,000, tandem 19,100, tridem 24,000, gross 63,500 kg), not confirmed on the official page. Check the Ontario Ministry of Transportation weight rules or your permit.' },
+    in: { steer: 7000, g: [11500, 21000, 24000], gross: (s) => s.reduce((a, b) => a + b, 0), src: 'Estimate for India (safe axle weights as reported from the 2018 MoRTH notification S.O. 3467(E): single tyre 7,000, dual tyre 11,500, tandem 21,000, tridem 24,000 kg; gross = sum), not confirmed on the official page. Check morth.gov.in and the vehicle’s registered GVW.' },
+  };
+  const DEF: Record<string, Record<string, number>> = {
+    us: { spread: 4.25, wb: 20, fifth: 19, kt: 40, es: 10500, ed: 12500, et: 7000, load: 40000, at: 20 },
+    ca: { spread: 1.3, wb: 6, fifth: 5.7, kt: 12, es: 4800, ed: 5700, et: 3200, load: 18000, at: 6 },
+    in: { spread: 1.3, wb: 5.5, fifth: 5.2, kt: 10, es: 5000, ed: 6000, et: 4000, load: 25000, at: 5 },
+  };
+  const triUS = () => bridge(2 * num('spread'), 3);
+  const setLimits = () => {
+    const L = LIM[q('reg').value], nd = +q('nd').value, nt = +q('nt').value;
+    const g = (n: number) => (q('reg').value === 'us' && n === 3 ? triUS() : L.g[n - 1]);
+    const s = [L.steer, g(nd), g(nt)];
+    q('ls').value = String(s[0]); q('ld').value = String(s[1]); q('lt').value = String(s[2]); q('lg').value = String(L.gross(s));
+    $('.ax-src').textContent = L.src;
+  };
+  const setRegion = () => {
+    const r = q('reg').value, d = DEF[r];
+    for (const k in d) q(k).value = String(d[k]);
+    root.querySelectorAll('.u-l').forEach((e) => (e.textContent = r === 'us' ? 'ft' : 'm'));
+    root.querySelectorAll('.u-w').forEach((e) => (e.textContent = r === 'us' ? 'lb' : 'kg'));
+    setLimits();
+  };
+  const calc = () => {
+    const us = q('reg').value === 'us', lu = us ? 'ft' : 'm', wu = us ? 'lb' : 'kg';
+    const nd = +q('nd').value, nt = +q('nt').value, sp = num('spread');
+    const rig = { wb: num('wb'), fifth: num('fifth'), kpToTrailer: num('kt'), loadAt: num('at'), load: num('load'), emptySteer: num('es'), emptyDrive: num('ed'), emptyTrailer: num('et') };
+    const bn = Math.round(num('bn')), bl = num('bl'), bw = bridge(bl, bn);
+    $('.ax-bres').textContent = Number.isFinite(bw) ? `Most allowed on ${bn} axles over ${bl} ft: ${w0(bw)} lb` : 'Type 2 or more axles and a length.';
+    if (!(rig.wb > 0) || !(rig.kpToTrailer > 0) || rig.fifth < 0 || rig.fifth > rig.wb + 3) {
+      $('.ax-big').textContent = ''; $('.ax-out').innerHTML = ''; $('.ax-fig').innerHTML = ''; $('.ax-warn').textContent = 'Type the wheelbase, fifth-wheel position and trailer length (all more than 0).'; return;
+    }
+    const r = axleLoads(rig);
+    const lim = { steer: num('ls'), drive: num('ld'), trailer: num('lt'), gross: num('lg') };
+    const rows: [string, number, number][] = [['Steer axle', r.steer, lim.steer], [`Drive group (${nd})`, r.drive, lim.drive], [`Trailer group (${nt})`, r.trailer, lim.trailer], ['Gross', r.gross, lim.gross]];
+    // Bridge formula checks on the whole rig and on drive + trailer groups (US only).
+    const lastT = rig.fifth + rig.kpToTrailer + (sp * (nt - 1)) / 2, firstD = rig.wb - (sp * (nd - 1)) / 2;
+    const extra: [string, number, number][] = [];
+    if (us) {
+      const all = bridge(lastT, 1 + nd + nt);
+      extra.push([`Bridge formula, all ${1 + nd + nt} axles over ${lastT.toFixed(1)} ft`, r.gross, all]);
+      if (nd + nt >= 2) {
+        const len = lastT - firstD;
+        let inner = bridge(len, nd + nt);
+        const tandemRule = nd === 2 && nt === 2 && len >= 36;
+        if (tandemRule) inner = Math.max(inner, 68000);
+        extra.push([`Bridge formula, drive + trailer axles over ${len.toFixed(1)} ft${tandemRule ? ' (two tandems 36 ft or more apart: 34,000 each)' : ''}`, r.drive + r.trailer, inner]);
+      }
+    }
+    const all = [...rows, ...extra], over = all.filter(([, v, l]) => l > 0 && v > l);
+    $('.ax-big').textContent = over.length ? `Over the limit on ${over.length === 1 ? over[0][0].toLowerCase() : over.length + ' checks'}` : 'Within the limits you set';
+    $('.ax-big').className = 'ax-big ' + (over.length ? 'bad' : 'ok');
+    $('.ax-out').innerHTML = all.map(([n, v, l]) => `<dt>${n}</dt><dd class="${l > 0 && v > l ? 'over' : ''}">${w0(v)} / ${l > 0 ? w0(l) : '-'} ${wu}</dd>`).join('') +
+      `<dt>Load on the kingpin</dt><dd>${w0(r.kingpin)} ${wu}</dd>`;
+    $('.ax-warn').textContent = r.outside ? `The load's centre is outside the kingpin to trailer-axle span (0 to ${rig.kpToTrailer} ${lu}); it has been kept at the nearer end.` : '';
+    // Side view
+    const span = lastT + rig.wb * 0.35 + 2, sx = 440 / span, X = (p: number) => 20 + (p + rig.wb * 0.25) * sx, gy = 120;
+    const wheel = (p: number) => `<circle cx="${X(p).toFixed(1)}" cy="${gy}" r="10" fill="var(--bg)" stroke="var(--ink)" stroke-width="3"/>`;
+    const grp = (c: number, n: number) => Array.from({ length: n }, (_, i) => c + (i - (n - 1) / 2) * sp);
+    const tag = (c: number, v: number, l: number) => `<text x="${X(c).toFixed(1)}" y="${gy + 32}" text-anchor="middle" fill="${l > 0 && v > l ? 'var(--bad)' : 'var(--ink)'}" style="fill:${l > 0 && v > l ? 'var(--bad)' : 'var(--ink)'};font-weight:700">${w0(v)}</text>`;
+    const tStart = rig.fifth - 1, tEnd = lastT + 3;
+    const loadLen = Math.min(rig.kpToTrailer * 0.5, tEnd - tStart), lc = rig.fifth + Math.min(Math.max(rig.loadAt, 0), rig.kpToTrailer);
+    $('.ax-fig').innerHTML =
+      `<rect x="${X(-rig.wb * 0.2).toFixed(1)}" y="62" width="${(rig.wb * 0.38 * sx).toFixed(1)}" height="48" rx="6" fill="none" stroke="var(--ink)" stroke-width="2"/>` +
+      `<line x1="${X(-rig.wb * 0.2)}" y1="108" x2="${X(rig.wb + sp)}" y2="108" stroke="var(--ink)" stroke-width="3"/>` +
+      `<rect x="${X(tStart).toFixed(1)}" y="40" width="${((tEnd - tStart) * sx).toFixed(1)}" height="52" fill="none" stroke="var(--ink)" stroke-width="2"/>` +
+      `<rect x="${X(lc - loadLen / 2).toFixed(1)}" y="50" width="${(loadLen * sx).toFixed(1)}" height="36" fill="var(--accent)" opacity="0.35"/>` +
+      `<text x="${X(lc).toFixed(1)}" y="34" text-anchor="middle">Load ${w0(rig.load)} ${wu}</text>` +
+      `<path d="M${X(lc).toFixed(1)} 38 v10" stroke="var(--ink)" stroke-width="2"/>` +
+      `<path d="M${X(rig.fifth).toFixed(1)} 92 v14" stroke="var(--ink)" stroke-width="3"/>` +
+      [0, ...grp(rig.wb, nd), ...grp(rig.fifth + rig.kpToTrailer, nt)].map(wheel).join('') +
+      `<line x1="0" y1="${gy + 10}" x2="480" y2="${gy + 10}" stroke="var(--line)"/>` +
+      tag(0, r.steer, lim.steer) + tag(rig.wb, r.drive, lim.drive) + tag(rig.fifth + rig.kpToTrailer, r.trailer, lim.trailer);
+  };
+  q('reg').addEventListener('change', setRegion);
+  q('nd').addEventListener('change', setLimits); q('nt').addEventListener('change', setLimits);
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  setRegion(); calc();
+</script>
