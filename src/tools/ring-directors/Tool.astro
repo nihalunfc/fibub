@@ -1,0 +1,151 @@
+---
+// Ortho/para/meta director: put a group on benzene, pick nitration, bromination or chlorination, and see where
+// the new group goes, whether the ring reacts faster or slower than benzene, the resonance structures behind it,
+// and the IUPAC names of the products. Class 11 chemistry, hydrocarbons (aromatic); Class 12 links.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { SUBS, ELECTROPHILES } from '../../lib/sci/ring-directors';
+---
+<div class="ax rdx">
+  <div class="ax-card">
+    <p class="rd-lab">Group already on the ring</p>
+    <div class="rd-subs" role="group" aria-label="Group on the ring">{SUBS.map((s, i) => <button type="button" data-s={s.id} aria-pressed={i === 3 ? 'true' : 'false'}>{s.label}</button>)}</div>
+    <label class="rd-el">Reaction <select class="rd-e">{ELECTROPHILES.map((e) => <option value={e.id}>{e.name} ({e.reagent})</option>)}</select></label>
+    <p class="ax-big rd-big" aria-live="polite"></p>
+    <canvas class="ax-fig rd-fig" role="img"></canvas>
+    <p class="rd-why"></p>
+    <dl class="ax-facts rd-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="rd-rh"></h2>
+    <canvas class="ax-fig rd-res" role="img"></canvas>
+    <p class="ax-help rd-rcap"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rd-try">
+      <li>Go through –OH, –CH₃, –Cl and –NO₂. Two things change: where the new group goes and how fast the ring reacts. Which group splits them up?</li>
+      <li>Compare –OH and –CHO. Both start with O near the ring, but one pushes electrons in and the other pulls them out.</li>
+      <li>Nitrate nitrobenzene: the second nitro group goes meta, and the reaction needs harsher conditions than for benzene.</li>
+      <li>To make 1-bromo-3-nitrobenzene from benzene, which do you do first: nitrate or brominate?</li>
+    </ul>
+    <p class="ax-help">Real reactions give mixtures: ortho/para groups give both products (para is often the larger share because ortho is crowded). Phenol and aniline react so fast with bromine water that all three positions fill (2,4,6-tribromo); nitrating aniline in strong acid also gives some meta product, because –NH₃⁺ forms.</p>
+  </div>
+
+  <SmQuiz cls="rd-quiz" />
+</div>
+
+<script>
+  import { SUBS, ELECTROPHILES, positions, posName, productName, type Sub } from '../../lib/sci/ring-directors';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rdx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 270;
+  let sid = 'CH3';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  // Ring vertex k (1..6) of a hexagon centred (cx, cy), radius r, vertex 1 at the top, numbered clockwise.
+  const vx = (cx: number, cy: number, r: number, k: number) => { const a = -Math.PI / 2 + ((k - 1) * Math.PI) / 3; return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const; };
+
+  function ring(ctx: CanvasRenderingContext2D, pl: Palette, cx: number, cy: number, r: number, dbl: number[] = [1, 3, 5], circle = true) {
+    ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.beginPath();
+    for (let k = 1; k <= 7; k++) { const [x, y] = vx(cx, cy, r, ((k - 1) % 6) + 1); k === 1 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.stroke();
+    if (circle) { ctx.beginPath(); ctx.arc(cx, cy, r * 0.58, 0, 2 * Math.PI); ctx.stroke(); }
+    else for (const k of dbl) { const [x1, y1] = vx(cx, cy, r * 0.78, k), [x2, y2] = vx(cx, cy, r * 0.78, (k % 6) + 1); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+  }
+  const text = (ctx: CanvasRenderingContext2D, t: string, x: number, y: number, col: string, size = 13, weight = '') => { ctx.fillStyle = col; ctx.font = `${weight} ${size}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y); };
+
+  function run() {
+    const s = SUBS.find((x) => x.id === sid)!, e = ELECTROPHILES.find((x) => x.id === q<HTMLSelectElement>('.rd-e').value)!, ps = positions(s);
+    const names = ps.map((k) => productName(s, e, k));
+    q('.rd-big').textContent = s.dir === 'op' ? `${s.label} sends the new group ortho and para` : `${s.label} sends the new group meta`;
+    q('.rd-why').textContent = s.effect;
+    const rate = s.activates ? (s.strength === 'weak' ? 'a little faster than benzene' : s.strength === 'moderate' ? 'faster than benzene' : 'much faster than benzene') : s.strength === 'weak' ? 'a little slower than benzene' : s.strength === 'moderate' ? 'slower than benzene' : 'much slower than benzene';
+    q('.rd-facts').replaceChildren(
+      fact('Directs to', s.dir === 'op' ? 'ortho and para (2 and 4)' : 'meta (3)'),
+      fact('Ring reacts', rate, s.activates ? 'activating group' : 'deactivating group'),
+      fact(`${e.name} of ${s.compound.split(' (')[0].toLowerCase()} gives`, names.join(' and '), `the electrophile is ${e.ion}, made from ${e.reagent}`),
+    );
+    const fig: Figure = { w: W, h: H, alt: `Benzene ring with ${s.label} at position 1; the ${e.formula} goes to ${ps.map(posName).join(' and ')} (${ps.join(', ')}).`, draw: (ctx, w, h, pl) => {
+      const cx = 120, cy = 150, r = 62;
+      ring(ctx, pl, cx, cy, r);
+      const [x1, y1] = vx(cx, cy, r, 1); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1, y1 - 24); ctx.stroke();
+      text(ctx, s.formula, x1, y1 - 36, pl.ink, 16, '700');
+      const tag: Record<number, string> = { 2: 'o', 3: 'm', 4: 'p', 5: 'm', 6: 'o' };
+      for (let k = 2; k <= 6; k++) {
+        const hit = ps.includes(k) || (k === 6 && ps.includes(2)) || (k === 5 && ps.includes(3));
+        const [x, y] = vx(cx, cy, r + 24, k);
+        ctx.beginPath(); ctx.arc(x, y, 14, 0, 2 * Math.PI); ctx.fillStyle = hit ? pl.good : pl.bg; ctx.fill(); ctx.strokeStyle = hit ? pl.good : pl.line; ctx.lineWidth = 1.5; ctx.stroke();
+        text(ctx, `${tag[k]}`, x, y, hit ? pl.bg : pl.muted, 13, '700');
+        const [nx, ny] = vx(cx, cy, r - 14, k); text(ctx, String(k), nx, ny, pl.muted, 11);
+      }
+      // Products on the right: one small ring per product.
+      ps.forEach((k, i) => {
+        const px = 300, py = ps.length > 1 ? 70 + i * 120 : 130, rr = 32;
+        ring(ctx, pl, px, py, rr);
+        const [a1, b1] = vx(px, py, rr, 1); ctx.beginPath(); ctx.moveTo(a1, b1); ctx.lineTo(a1, b1 - 12); ctx.stroke(); text(ctx, s.formula, a1, b1 - 20, pl.ink, 12, '700');
+        const [ak, bk] = vx(px, py, rr, k), [ok, okk] = vx(px, py, rr + 12, k); ctx.strokeStyle = pl.good; ctx.beginPath(); ctx.moveTo(ak, bk); ctx.lineTo(ok, okk); ctx.stroke();
+        const [tx, ty] = vx(px, py, rr + 26, k); text(ctx, e.formula, tx, ty, pl.good, 12, '700');
+        text(ctx, posName(k), px, py + (k === 4 ? 60 : 46), pl.muted, 12);
+      });
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(200, 150); ctx.lineTo(240, 150); ctx.lineTo(232, 144); ctx.moveTo(240, 150); ctx.lineTo(232, 156); ctx.stroke();
+      text(ctx, `+ ${e.ion}`, 220, 134, pl.muted, 12);
+    } };
+    paint(q<HTMLCanvasElement>('.rd-fig'), fig);
+    resonance(s);
+  }
+
+  function resonance(s: Sub) {
+    q('.rd-rh').textContent = s.resonance === '+R' ? 'Why: the lone pair pushes electrons to ortho and para' : s.resonance === '−R' ? 'Why: the group pulls electrons from ortho and para' : 'Why: the methyl group helps the ortho and para attack most';
+    const n = s.resonance === 'none' ? 0 : 3;
+    const fig: Figure = { w: W, h: 150, alt: n ? `Resonance structures of the ring with ${s.label}: ${s.resonance === '+R' ? 'negative' : 'positive'} charge at the two ortho positions and the para position.` : 'No resonance structures for a methyl group.', draw: (ctx, w, h, pl) => {
+      if (!n) { text(ctx, 'CH₃ has no lone pair or π bond to share.', w / 2, 50, pl.ink); text(ctx, 'It pushes electron density by +I and hyperconjugation,', w / 2, 80, pl.muted, 12); text(ctx, 'which steadies the ion formed by ortho or para attack.', w / 2, 100, pl.muted, 12); return; }
+      // Charged carbons 2, 4, 6 in turn; double bonds placed so the charged carbon has none.
+      const spots = [2, 4, 6], dbl: Record<number, number[]> = { 2: [3, 5], 4: [2, 5], 6: [2, 4] };
+      spots.forEach((k, i) => {
+        const cx = 66 + i * 124, cy = 88, r = 34;
+        ring(ctx, pl, cx, cy, r, dbl[k], false);
+        const [x1, y1] = vx(cx, cy, r, 1);
+        ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1, y1 - 16); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1 + 4, y1); ctx.lineTo(x1 + 4, y1 - 16); ctx.stroke();
+        text(ctx, s.resonance === '+R' ? `${s.formula}⁺` : s.id === 'NO2' ? 'N⁺(O⁻)₂' : s.id === 'CN' ? 'C=N⁻' : s.id === 'CHO' ? 'CH–O⁻' : 'C(OH)–O⁻', x1, y1 - 26, pl.ink, 12, '700');
+        const [cxk, cyk] = vx(cx, cy, r + 13, k);
+        text(ctx, s.resonance === '+R' ? '−' : '+', cxk, cyk, s.resonance === '+R' ? pl.accent : pl.bad, 20, '700');
+        if (i < 2) text(ctx, '↔', cx + 62, cy, pl.muted, 18);
+      });
+      text(ctx, s.resonance === '+R' ? 'extra electrons at ortho and para: the electrophile (+) goes there' : 'ortho and para lose electrons: meta is the least bad place', w / 2, 140, pl.muted, 12);
+    } };
+    paint(q<HTMLCanvasElement>('.rd-res'), fig);
+    q('.rd-rcap').textContent = n ? (s.resonance === '+R' ? 'The double bond to the ring puts a negative charge on carbons 2, 4 and 6 in turn. An electrophile is positive, so it is drawn there.' : 'The group takes a pair of electrons from the ring, leaving a positive charge on carbons 2, 4 and 6 in turn. The positive electrophile avoids them and goes to 3 (or 5).') : '';
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.rd-subs button').forEach((b) => b.addEventListener('click', () => { sid = b.dataset.s!; root.querySelectorAll('.rd-subs button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  q('.rd-e').addEventListener('change', run);
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.rd-quiz'), (): Question[] => {
+    const s1 = pick(SUBS), s2 = pick(SUBS.filter((s) => s.id !== 'CH3')), e = pick(ELECTROPHILES), m = pick(SUBS.filter((s) => s.dir === 'm'));
+    const right = productName(m, e, 3), w1 = productName(m, e, 2), w2 = productName(m, e, 4), ch = [right, w1, w2].sort();
+    return [
+      { text: `Where does ${s1.label} send a new group on a benzene ring?`, choices: ['Ortho and para', 'Meta'], correct: s1.dir === 'op' ? 0 : 1, worked: s1.effect + (s1.dir === 'op' ? ' So: ortho and para.' : ' So: meta.') },
+      { text: `Does ${s2.label} make the ring react faster or slower than benzene?`, choices: ['Faster (activating)', 'Slower (deactivating)'], correct: s2.activates ? 0 : 1, worked: s2.effect + (s2.id === 'Cl' || s2.id === 'Br' ? ' Halogens are the odd ones out: ortho/para directing but deactivating.' : '') },
+      { text: `What is the main product of the ${e.name.toLowerCase()} of ${m.compound.toLowerCase()}?`, choices: ch, correct: ch.indexOf(right), worked: `${m.label} is a meta director, so ${e.formula} goes to carbon 3: ${right}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rdx .rd-lab { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+  .rdx .rd-subs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rdx .rd-subs button { min-height: 44px; min-width: 64px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-size: 16px; cursor: pointer; }
+  .rdx .rd-subs button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .rdx .rd-el { margin-top: 12px; }
+  .rdx .rd-big { margin: 12px 0 4px; }
+  .rdx .rd-why { margin: 8px 0; }
+  .rdx .rd-try { padding-left: 20px; display: grid; gap: 6px; margin: 0 0 10px; }
+</style>
