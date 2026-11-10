@@ -2,7 +2,7 @@
 name: Asexual reproduction explorer
 num: 1267
 shelf: learn
-code: L135
+code: L148
 section: school-biology
 title: "Asexual reproduction explorer: fission, budding, fragmentation, regeneration and spores"
 summary: "Step through binary and multiple fission, budding, fragmentation, regeneration and spore formation as simple moving drawings, then see how fast one cell becomes millions when it keeps splitting in two."

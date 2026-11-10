@@ -2,7 +2,7 @@
 name: Hand washing
 num: 1481
 shelf: learn
-code: L299
+code: L312
 section: school-biology
 title: "Hand washing: how many germs are left after 5, 10 or 20 seconds, with and without soap"
 summary: "Slide the washing time and tick soap on or off to see how fast germs are removed from your hands. A teaching model that shows why 20 seconds matters, with made-up rates."

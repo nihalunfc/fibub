@@ -2,7 +2,7 @@
 name: Glucose ring flipper
 num: 1437
 shelf: learn
-code: L273
+code: L286
 section: school-chemistry
 title: "Glucose ring flipper: Fischer projection to Haworth ring, α and β glucose, D and L sugars, and mutarotation"
 summary: "See the open-chain Fischer projection of glucose, galactose, mannose or L-glucose beside its Haworth ring, tap a carbon to see where its –OH goes, flip between α and β, and watch mutarotation bring the rotation to +52.7° over a few hours."

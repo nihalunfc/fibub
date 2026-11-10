@@ -2,7 +2,7 @@
 name: How soap cleans
 num: 1297
 shelf: learn
-code: L165
+code: L178
 section: school-chemistry
 title: "How soap cleans: micelles, oily dirt and scum in hard water (soap vs detergent)"
 summary: "Add soap to water and watch the molecules line up at the surface, then gather into micelles that hold drops of oil. Make the water hard and see soap lost as scum, then switch to a detergent. A simple counting model shows how much soap is needed."

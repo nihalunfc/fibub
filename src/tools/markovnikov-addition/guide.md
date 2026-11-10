@@ -2,7 +2,7 @@
 name: Markovnikov addition predictor
 num: 1365
 shelf: learn
-code: L212
+code: L225
 section: school-chemistry
 title: "Markovnikov's rule predictor: HBr, HCl, HI and water adding to alkenes, with and without peroxide"
 seoTitle: "Markovnikov's rule and peroxide effect predictor"

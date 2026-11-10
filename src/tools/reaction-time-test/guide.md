@@ -2,7 +2,7 @@
 name: Reaction time
 num: 1303
 shelf: learn
-code: L170
+code: L183
 section: school-biology
 title: "Reaction time"
 summary: "Time your own reactions by tapping when the box turns green, then compare your time with how long a nerve signal takes to travel. Watch a pulse run round a reflex arc and turn a falling-ruler catch into a reaction time. For Class 10 and 11."

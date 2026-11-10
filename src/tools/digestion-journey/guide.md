@@ -2,7 +2,7 @@
 name: Digestion journey
 num: 1301
 shelf: learn
-code: L168
+code: L181
 section: school-biology
 title: "Digestion journey: follow a meal through the gut, with the enzymes at each stop"
 summary: "Follow a meal from mouth to anus, stop by stop. See which juices and enzymes act in the mouth, stomach, duodenum and small intestine, and watch the starch, protein, fat and fibre break down and get absorbed. For Class 10 and 11 biology."

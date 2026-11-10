@@ -2,7 +2,7 @@
 name: Floating and buoyancy
 num: 1345
 shelf: learn
-code: L194
+code: L207
 section: school-physics
 title: "Buoyancy and Archimedes' principle simulator: why things float or sink, upthrust, how much floats under water, apparent weight and relative density"
 summary: "Drop a cube of cork, wood, wax, ice, aluminium or iron into water, sea water, kerosene, glycerine or mercury. See whether it floats and how much of it sits under the surface, push it down to feel the extra upthrust, or hang a sinking block on a spring balance and read its apparent weight and relative density."

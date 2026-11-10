@@ -2,7 +2,7 @@
 name: Spread explorer
 num: 1384
 shelf: learn
-code: L226
+code: L239
 section: school-maths
 title: "Measures of dispersion: drag data points and watch range, mean deviation, variance, standard deviation and CV change"
 seoTitle: "Variance, standard deviation and mean deviation explorer"

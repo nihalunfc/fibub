@@ -2,7 +2,7 @@
 name: Earth's energy budget
 num: 1278
 shelf: learn
-code: L146
+code: L159
 section: school-earth
 title: "Earth's energy budget: albedo, the greenhouse effect and the planet's temperature, with two sliders"
 summary: "See sunlight arrive, some bounce back off clouds and ice, and the rest warm the ground, which glows heat back up for greenhouse gases to catch and return. Slide the albedo and the greenhouse strength and watch the arrows and the surface temperature change. A Class 11 level adds the W/m² and the Stefan–Boltzmann law."

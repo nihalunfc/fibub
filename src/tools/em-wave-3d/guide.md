@@ -2,7 +2,7 @@
 name: EM wave 3D
 num: 1418
 shelf: learn
-code: L259
+code: L272
 section: school-physics
 title: "EM wave 3D"
 summary: "Watch an electromagnetic wave travel: the electric field waves up and down, the magnetic field side to side, both at right angles to the direction of travel and in step. Change the wavelength from gamma rays to radio and the field strength, turn the view, and get the frequency, B₀ = E₀/c, the intensity and c = 1/√(µ₀ε₀)."

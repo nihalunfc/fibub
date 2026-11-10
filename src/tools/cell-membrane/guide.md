@@ -2,7 +2,7 @@
 name: Fluid mosaic membrane
 num: 1391
 shelf: learn
-code: L233
+code: L246
 section: school-biology
 title: "Fluid mosaic membrane: simple diffusion, facilitated diffusion and active transport animated"
 summary: "Watch a moving cell membrane: lipids drift, proteins float in them, and oxygen, water, glucose or sodium ions cross by simple diffusion, through carriers and channels, or uphill through the sodium-potassium pump using ATP. Class 9 and Class 11 levels, with a saturation graph and quick questions."

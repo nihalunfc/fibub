@@ -2,7 +2,7 @@
 name: Stress-strain
 num: 1340
 shelf: learn
-code: L189
+code: L202
 section: school-physics
 title: "Stress-strain"
 summary: "Hang loads on a wire of steel, copper, aluminium or rubber and follow its stress-strain curve: Hooke's law, the elastic limit, plastic stretch, the permanent set and the breaking point. Then do Searle's experiment with micrometer readings and work out Young's modulus from the slope, even for a mystery wire."

@@ -2,7 +2,7 @@
 name: Kaprekar magic squares
 num: 1240
 shelf: learn
-code: L323
+code: L125
 section: school-maths
 title: "Kaprekar's constant 6174 and a magic square maker: number play you can watch"
 summary: "Run Kaprekar's routine on any 4-digit number and watch it land on 6174 (or 495 for 3 digits), with a chart of how many steps every start needs. Then build 3 × 3, 4 × 4 and 5 × 5 magic squares one number at a time."

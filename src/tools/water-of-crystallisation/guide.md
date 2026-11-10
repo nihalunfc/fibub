@@ -2,7 +2,7 @@
 name: Crystallisation water
 num: 1295
 shelf: learn
-code: L163
+code: L176
 section: school-chemistry
 title: "Crystallisation water"
 summary: "Heat blue copper sulfate, washing soda, Epsom salt, gypsum and other hydrated crystals in a virtual crucible, weigh after each heating until the mass stops changing, and work out x in Salt·xH₂O from the water lost. Also finds x from your own three weighings."

@@ -2,7 +2,7 @@
 name: Nitrogen cycle game
 num: 1275
 shelf: learn
-code: L143
+code: L156
 section: school-biology
 title: "Nitrogen cycle game: follow a nitrogen atom through air, bacteria, plants, animals and decay"
 summary: "Move one nitrogen atom round the nitrogen cycle by picking the right process at each step: fixation, nitrification, uptake by plants, feeding, death, decay and denitrification. Reach the goal in the fewest steps, or name the lit-up arrow. A Class 11 level adds the bacteria, enzymes and chemical forms."

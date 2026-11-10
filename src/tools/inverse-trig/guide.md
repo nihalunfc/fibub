@@ -2,7 +2,7 @@
 name: Inverse trig
 num: 1460
 shelf: learn
-code: L289
+code: L302
 section: school-maths
 title: "Inverse trig"
 summary: "Reflect the graph of sin, cos, tan, cot, sec or cosec in the line y = x and see why only the principal branch gives a function. Type a value such as 1/2 or −sqrt(3)/2 to get the principal value in radians (as a fraction of π where it is a standard angle) and degrees, every other angle with the same ratio, and the sin⁻¹(sin θ) trap."

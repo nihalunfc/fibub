@@ -2,7 +2,7 @@
 name: Gibbs explorer
 num: 1361
 shelf: learn
-code: L208
+code: L221
 section: school-chemistry
 title: "Gibbs explorer"
 summary: "Slide ΔH, ΔS and the temperature and watch ΔG = ΔH − TΔS change as a straight line against temperature, with the spontaneous region shaded, the turn-over temperature T = ΔH/ΔS marked and the four sign cases sorted. A Class 12 level adds K = e^(−ΔG°/RT) and E° = −ΔG°/nF."

@@ -2,7 +2,7 @@
 name: Constant proportions
 num: 1264
 shelf: learn
-code: L132
+code: L145
 section: school-chemistry
 title: "Constant proportions"
 summary: "Analyse samples of water, carbon dioxide, magnesium oxide and more from different sources and sizes on a virtual balance, and see the mass ratio of the elements stay the same. Class 11 adds the law of multiple proportions."

@@ -2,7 +2,7 @@
 name: Integration technique coach
 num: 1471
 shelf: learn
-code: L295
+code: L308
 section: school-maths
 title: "Integration technique coach: which method (substitution, parts, partial fractions) and why, with steps"
 summary: "Type a school integral and the coach says which method fits and why: power rule, standard form, substitution, integration by parts with ILATE, partial fractions, or parts twice for eˣ sin x. Then it writes the steps, checks the answer by differentiating it back, and draws f with its antiderivative."

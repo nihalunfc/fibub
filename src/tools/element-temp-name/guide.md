@@ -2,7 +2,7 @@
 name: New element names
 num: 1357
 shelf: learn
-code: L206
+code: L219
 section: school-chemistry
 title: "New element names"
 summary: "Type an atomic number above 100 and watch its IUPAC temporary name and three-letter symbol build up digit by digit from the roots nil, un, bi, tri, quad, pent, hex, sept, oct and enn, with the spelling rules shown. Or type a name like Unbiunium or a symbol like Uue and get the atomic number back."

@@ -2,7 +2,7 @@
 name: Temperature scales
 num: 1346
 shelf: learn
-code: L195
+code: L208
 section: school-physics
 title: "Temperature scales"
 summary: "Drag one thermometer and read Celsius, Fahrenheit and kelvin side by side, with the conversion worked out. See a gas thermometer's straight lines all reach zero pressure at −273.15 °C, and at Class 11 add Rankine and make a scale of your own."

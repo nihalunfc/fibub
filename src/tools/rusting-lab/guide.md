@@ -2,7 +2,7 @@
 name: Rusting lab
 num: 1292
 shelf: learn
-code: L160
+code: L173
 section: school-chemistry
 title: "Rusting experiment: iron nails in dry air, boiled water, tap water and salt water, and how paint and zinc protect"
 summary: "Watch six iron nails over three weeks: in dry air, in boiled water under oil, in tap water, in salt water, painted and galvanised. Only nails with both air and water rust, salt speeds it up, and a scratch shows why zinc protects better than paint. Work out the mass of rust from the mass of iron. A teaching model with fresh practice questions."

@@ -2,7 +2,7 @@
 name: Vector adder
 num: 1331
 shelf: learn
-code: L180
+code: L193
 section: school-physics
 title: "Vector addition: triangle and parallelogram law, components and resultant, with Lami's theorem for three forces"
 summary: "Drag two arrows and watch their resultant drawn by the triangle law, the parallelogram law or by components, with its size and direction worked out. Then hang a weight from two strings and see Lami's theorem give each tension."

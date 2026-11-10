@@ -2,7 +2,7 @@
 name: Immune response timeline
 num: 1451
 shelf: learn
-code: L280
+code: L293
 section: school-biology
 title: "Primary and secondary immune response: antibody curves, vaccines, boosters and memory cells"
 summary: "Put vaccine doses and infections on a timeline and watch the antibody level rise and fall: a slow, small primary response the first time, a fast, big secondary response after that. See IgM and IgG, a protective level, memory cells, and a tappable antibody with its heavy and light chains. A teaching model."

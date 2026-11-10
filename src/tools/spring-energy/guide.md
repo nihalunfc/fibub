@@ -2,7 +2,7 @@
 name: Spring energy
 num: 1490
 shelf: learn
-code: L308
+code: L321
 section: school-physics
 title: "Spring energy: launch a block with a compressed spring"
 summary: "Compress a spring, release a block and see the stored energy ½kx² turn into motion. Find the launch speed, and how far the block slides when the floor has friction."

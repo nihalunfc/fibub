@@ -2,7 +2,7 @@
 name: Displacement current
 num: 1420
 shelf: learn
-code: L261
+code: L274
 section: school-physics
 title: "Displacement current"
 summary: "Charge a round parallel-plate capacitor through a resistor and watch the current fall while the field between the plates grows. See why Maxwell added the displacement current I_d = ε₀ dΦ_E/dt, and why the magnetic field on a loop comes out the same whichever surface you pick."

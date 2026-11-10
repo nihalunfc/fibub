@@ -2,7 +2,7 @@
 name: Respiration pathways
 num: 1304
 shelf: learn
-code: L171
+code: L184
 section: school-biology
 title: "Respiration pathways"
 summary: "Slide the oxygen supply and watch glucose go the aerobic way (carbon dioxide, water and about 38 ATP) or the anaerobic way (ethanol and carbon dioxide in yeast, lactic acid in muscle, just 2 ATP). Products in moles and grams. For Class 10 and 11."

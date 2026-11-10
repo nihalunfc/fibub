@@ -2,7 +2,7 @@
 name: Linear word problems
 num: 1319
 shelf: learn
-code: L179
+code: L192
 section: school-maths
 title: "Linear word problems"
 summary: "Pick a story (ages, tickets, a boat in a stream, a rectangle or banknotes) with fresh numbers, then reveal step by step how to name the unknowns, write the two equations, solve them by elimination or substitution and check the answer, with both lines drawn crossing at it."

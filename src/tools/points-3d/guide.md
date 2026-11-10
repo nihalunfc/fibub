@@ -2,7 +2,7 @@
 name: 3D point plotter
 num: 1379
 shelf: learn
-code: L224
+code: L237
 section: school-maths
 title: "3D coordinates: plot points in space, find the octant and use the distance formula in 3D"
 summary: "Turn a set of x, y and z axes round with your finger, place two points and see the dashed box that shows each coordinate. The octant of each point and the 3D distance formula are worked with your numbers, and the section formula puts a third point between them."

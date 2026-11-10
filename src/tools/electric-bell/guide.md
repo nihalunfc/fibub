@@ -2,7 +2,7 @@
 name: Electric bell
 num: 1482
 shelf: learn
-code: L300
+code: L313
 section: school-physics
 title: "Electric bell: how an electromagnet, armature and contact screw make a bell ring"
 summary: "Watch an electric bell ring in slow motion: the electromagnet pulls the armature, the contact screw breaks the circuit and the spring snaps it back. Slide the current to change the ring rate. A teaching model."

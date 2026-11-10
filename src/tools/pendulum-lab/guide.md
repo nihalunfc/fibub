@@ -2,7 +2,7 @@
 name: Pendulum lab
 num: 1351
 shelf: learn
-code: L200
+code: L213
 section: school-physics
 title: "Pendulum lab: period T = 2π√(L/g), large-swing error, time it with a stopwatch and find g from a T² against L graph"
 summary: "Swing a pendulum of any length on Earth, the Moon, Mars or Jupiter and see its period worked out. At Class 11 see how much longer big swings take, then time a pendulum with the stopwatch and fit a straight line of T² against L to measure g."

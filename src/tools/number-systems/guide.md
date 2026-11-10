@@ -2,7 +2,7 @@
 name: Number systems
 num: 1235
 shelf: learn
-code: L318
+code: L120
 section: school-maths
 title: "Number systems translator: Roman, Egyptian, Mayan, Babylonian, binary and Indian place value"
 summary: "Type a whole number and see it written six ways: Indian place value with lakh and crore, Roman numerals, Egyptian signs, Mayan dots and bars, Babylonian wedges, and any base from 2 to 16 with place value blocks."

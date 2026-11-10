@@ -2,7 +2,7 @@
 name: Gauss's law
 num: 1400
 shelf: learn
-code: L242
+code: L255
 section: school-physics
 title: "Gauss's law: electric flux through a closed surface, and the field of a wire, a sheet and a shell"
 summary: "Drag charges and a closed surface around a board and count field lines across it: only the charge inside changes the flux, Φ = q/ε₀. Then use a Gaussian surface to find the field of a long charged wire, a large flat sheet and a thin spherical shell, with your numbers and a graph of E against distance."

@@ -2,7 +2,7 @@
 name: Linear function explorer
 num: 1273
 shelf: learn
-code: L141
+code: L154
 section: school-maths
 title: "Linear function explorer: y = mx + c with sliders, slope as rise over run, and the zero of the line"
 summary: "Slide m and c, or drag the line itself, and see y = mx + c drawn with its slope triangle (rise over run), the point where it cuts the y-axis and the zero where it meets the x-axis, all worked with your numbers. A Class 11 level adds the angle of the line and its other forms."

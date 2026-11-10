@@ -2,7 +2,7 @@
 name: Drift velocity
 num: 1406
 shelf: learn
-code: L247
+code: L260
 section: school-physics
 title: "Drift velocity"
 summary: "Watch free electrons dash about at random inside a copper, aluminium or silver wire and drift slowly against the field when a current flows. Change the current and the wire's thickness and get the drift speed from I = neAv_d, the time to drift a metre, and (advanced) the field, relaxation time and mobility."

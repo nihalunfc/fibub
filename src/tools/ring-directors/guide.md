@@ -2,7 +2,7 @@
 name: Ring directors
 num: 1366
 shelf: learn
-code: L213
+code: L226
 section: school-chemistry
 title: "Ring directors"
 summary: "Put –OH, –NH₂, –OCH₃, –CH₃, –Cl, –Br, –NO₂, –CN, –CHO or –COOH on a benzene ring, then nitrate, brominate or chlorinate it. See where the new group goes, whether the ring reacts faster or slower than benzene, the resonance structures that explain it, and the IUPAC names of the products."

@@ -2,7 +2,7 @@
 name: Sliding filament
 num: 1394
 shelf: learn
-code: L236
+code: L249
 section: school-biology
 title: "Sliding filament theory: sarcomere bands, cross-bridge cycle, calcium and ATP"
 summary: "Shorten and stretch a sarcomere drawn to scale and watch actin slide over myosin: the A band stays the same while the I band and H zone shrink. Step through the cross-bridge cycle with calcium and ATP, and see what happens with no ATP. Class 11, with quick questions."

@@ -2,7 +2,7 @@
 name: Carnot engine
 num: 1348
 shelf: learn
-code: L197
+code: L210
 section: school-physics
 title: "Carnot engine"
 summary: "Set the hot and cold temperatures and see the best possible engine's efficiency, with heat and work arrows drawn to scale. Run it backwards as a refrigerator or heat pump for the COP, watch the cycle go round on a p–V diagram, and test an inventor's claim against the second law."

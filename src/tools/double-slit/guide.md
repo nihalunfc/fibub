@@ -2,7 +2,7 @@
 name: Double slit
 num: 1422
 shelf: learn
-code: L263
+code: L276
 section: school-physics
 title: "Double slit"
 summary: "See the bright and dark fringes of Young's double slit on a screen and as a graph. Change the wavelength, slit gap and screen distance and watch β = λD/d, check the path difference at any point, switch to white light, and compare with a single slit's wide central maximum."

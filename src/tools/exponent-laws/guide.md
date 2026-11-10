@@ -2,7 +2,7 @@
 name: Exponent laws
 num: 1236
 shelf: learn
-code: L319
+code: L121
 section: school-maths
 title: "Laws of exponents: see aᵐ × aⁿ, aᵐ ÷ aⁿ, (aᵐ)ⁿ and aᵐ × bᵐ with factor tiles"
 summary: "Slide the base and the exponents and watch rows of multiply and divide tiles join, cancel and repeat, so each law of exponents explains itself. Exact values check every answer; a ladder shows why a⁰ = 1 and a⁻ⁿ = 1/aⁿ."

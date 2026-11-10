@@ -2,7 +2,7 @@
 name: LPP graphical solver
 num: 1475
 shelf: learn
-code: L297
+code: L310
 section: school-maths
 title: "Linear programming graphical method: feasible region, corner points and the objective line (LPP solver)"
 summary: "Type Z = px + qy and up to five constraints (or pick a production, diet or farming story) and see the feasible region shaded, every corner point with its value of Z, and the objective line sliding to the best corner. Unbounded regions, problems with no maximum, ties along an edge and impossible constraints are all spotted and explained."

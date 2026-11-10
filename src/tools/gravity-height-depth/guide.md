@@ -2,7 +2,7 @@
 name: Gravity variation
 num: 1339
 shelf: learn
-code: L188
+code: L201
 section: school-physics
 title: "Gravity variation"
 summary: "Slide a point from the centre of the Earth, Mars or the Moon out into space and watch g change: in a straight line inside, as 1/r² outside. Read your weight there, the speed and period of a satellite at that height, the escape speed and the height of the geostationary orbit."

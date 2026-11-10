@@ -2,7 +2,7 @@
 name: Hormone feedback
 num: 1308
 shelf: learn
-code: L175
+code: L188
 section: school-biology
 title: "Hormone feedback"
 summary: "Tap the hormone glands on a body map to see what each makes, then run a day of blood sugar control: meals push glucose up, insulin brings it down, glucagon lifts it after a run. Compare a healthy body with weak or missing insulin. For Class 10 and 11."

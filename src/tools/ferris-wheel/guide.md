@@ -2,7 +2,7 @@
 name: Ferris wheel height
 num: 1279
 shelf: learn
-code: L147
+code: L160
 section: school-maths
 title: "Ferris wheel height: turns, angles past 360° and the height wave that leads to sine"
 summary: "Drag a seat round a Ferris wheel or press Play and watch its height above the ground drawn as a wave against the angle turned. Count full turns past 360°, find when the seat is above a height, and see the wave become h = H − r cos θ."

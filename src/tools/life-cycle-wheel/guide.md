@@ -2,7 +2,7 @@
 name: Life cycle wheel
 num: 1390
 shelf: learn
-code: L232
+code: L245
 section: school-biology
 title: "Alternation of generations wheel: life cycles of algae, mosses, ferns, gymnosperms and flowering plants"
 seoTitle: "Alternation of generations: plant life cycle wheel"

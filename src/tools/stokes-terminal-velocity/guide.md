@@ -2,7 +2,7 @@
 name: Stokes' law
 num: 1343
 shelf: learn
-code: L192
+code: L205
 section: school-physics
 title: "Stokes' law"
 summary: "Drop a steel, glass, aluminium or nylon ball through a tall jar of glycerine, castor oil, honey or water. Watch it speed up and settle at its terminal velocity, read the forces, time it between two marks like the school practical and work out the liquid's viscosity, with the Reynolds number to say when Stokes' law holds."

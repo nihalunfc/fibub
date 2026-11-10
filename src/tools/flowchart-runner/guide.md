@@ -2,7 +2,7 @@
 name: Flowchart runner
 num: 1293
 shelf: learn
-code: L161
+code: L174
 section: school-maths
 title: "Flowchart runner: follow six classic flowcharts box by box with a trace table"
 summary: "Pick a flowchart (even or odd, largest of three, add 1 to n, Euclid's HCF, leap year, steps to 1), type the inputs and follow it one box at a time. The current box lights up, the arrow taken is marked, and a trace table records every variable. Ends with predict-the-output questions."

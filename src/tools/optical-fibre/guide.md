@@ -2,7 +2,7 @@
 name: Optical fibre
 num: 1421
 shelf: learn
-code: L262
+code: L275
 section: school-physics
 title: "Optical fibre"
 summary: "Send a ray of light into a glass fibre and watch it bounce along the core by total internal reflection. Bend the fibre tighter, change the core and cladding, and see when light leaks out, with the critical angle, numerical aperture and acceptance angle worked out."

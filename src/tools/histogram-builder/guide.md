@@ -2,7 +2,7 @@
 name: Histogram builder
 num: 1286
 shelf: learn
-code: L154
+code: L167
 section: school-maths
 title: "Histogram builder"
 summary: "Type a list of numbers and drag the class width and starting point to watch the frequency table, the histogram and the frequency polygon change. See the mean, median, mode and modal class, how far the mean from the table drifts from the true mean, and the combined mean of two groups."

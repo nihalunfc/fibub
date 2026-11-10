@@ -2,7 +2,7 @@
 name: Square root finder
 num: 1232
 shelf: learn
-code: L111
+code: L117
 section: school-maths
 title: "Square root finder: prime factors, odd-number subtraction, estimation and long division, step by step"
 summary: "Type a number and find its square root four ways with every step shown: pair up prime factors (with the simplest surd form), subtract odd numbers, estimate between two squares and improve the guess, or use the long division method for decimals."

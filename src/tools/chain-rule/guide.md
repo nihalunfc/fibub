@@ -2,7 +2,7 @@
 name: Chain rule gears
 num: 1466
 shelf: learn
-code: L290
+code: L303
 section: school-maths
 title: "Chain rule gears: see why dy/dx = dy/du × du/dx with linked gears (interactive, Class 11 and 12)"
 summary: "Build a function out of two or three links, such as sin(3x) or (sin 2x)², and turn the x gear. Each gear turns by its own rate, and dy/dx is the product of the rates, with the formula, live numbers, a small-nudge check, the graph with its tangent and fresh practice questions."

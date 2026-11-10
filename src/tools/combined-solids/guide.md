@@ -2,7 +2,7 @@
 name: Combined solids
 num: 1316
 shelf: learn
-code: L176
+code: L189
 section: school-maths
 title: "Surface area and volume of combined solids: cone on a hemisphere, capsule, cylinder with a cone or dome"
 summary: "Pick a solid made of simple shapes (an ice-cream cone, a capsule, a toy rocket, a dome on a cylinder or a cube), slide its sizes and see the surface area with the hidden joins left out and the volume added up part by part."

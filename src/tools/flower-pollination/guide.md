@@ -2,7 +2,7 @@
 name: Flower pollination
 num: 1268
 shelf: learn
-code: L136
+code: L149
 section: school-biology
 title: "Flower pollination"
 summary: "Tap the parts of a flower cut down the middle (sepal, petal, anther, filament, stigma, style, ovary, ovule) to learn each job, play find-the-part, and step from self- or cross-pollination to fertilisation, seed and fruit. Class 12 adds double fertilisation."

@@ -2,7 +2,7 @@
 name: Dipole torque
 num: 1401
 shelf: learn
-code: L243
+code: L256
 section: school-physics
 title: "Dipole torque"
 summary: "Turn an electric dipole in a uniform field and see the two equal and opposite forces, the torque τ = pE sin θ and the potential energy U = −pE cos θ, with your numbers and a graph of both against angle. Let it go and watch it swing about the field direction."

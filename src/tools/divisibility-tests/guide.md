@@ -2,7 +2,7 @@
 name: Divisibility tests
 num: 1239
 shelf: learn
-code: L322
+code: L124
 section: school-maths
 title: "Divisibility rules 2 to 11, and why they work: digit sums, digital roots and casting out nines"
 summary: "Type any whole number and see the divisibility rules for 2 to 11 worked on its digits, with the true remainder alongside. A place value picture shows why the rules for 3, 9 and 11 work, plus digital roots and casting out nines."

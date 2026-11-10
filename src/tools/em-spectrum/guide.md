@@ -2,7 +2,7 @@
 name: Electromagnetic spectrum explorer
 num: 1419
 shelf: learn
-code: L260
+code: L273
 section: school-physics
 title: "Electromagnetic spectrum: wavelength, frequency and photon energy from gamma rays to radio waves, with uses"
 summary: "Drag along the electromagnetic spectrum from gamma rays to radio waves and see the band, what it is used for, the frequency f = c/λ and the energy of one photon in joules and electronvolts. Jump to everyday examples such as a TV remote, Wi-Fi, a microwave oven or FM radio."
