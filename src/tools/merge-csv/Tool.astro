@@ -1,0 +1,109 @@
+---
+// #1766 Merge CSV. Logic in src/lib/docs/csvmerge.ts (the Excel reader is the file converter's).
+---
+<div class="tool-ui mc">
+  <label class="mc-drop">
+    <input class="mc-file visually-hidden" type="file" multiple accept=".csv,.tsv,.txt,.xlsx" />
+    <strong>Choose your files</strong>
+    <span>Several CSV or Excel (.xlsx) files at once. They are never uploaded.</span>
+  </label>
+  <p class="note bad mc-err" role="alert" hidden></p>
+  <div class="mc-main" hidden>
+    <ul class="mc-list"></ul>
+    <fieldset class="mc-card">
+      <legend>How to join them</legend>
+      <label class="mc-opt"><input type="radio" name="mc-mode" value="match" checked /> <span><b>Same columns</b> Every file must have the same column names (any order). Stops if one differs.</span></label>
+      <label class="mc-opt"><input type="radio" name="mc-mode" value="union" /> <span><b>All columns</b> Keep every column from every file; missing cells stay empty.</span></label>
+      <label class="mc-opt"><input type="checkbox" class="mc-src" checked /> <span>Add a column with the name of the file each row came from</span></label>
+      <label class="mc-nm">Name of that column <input type="text" class="mc-srcname" value="source_file" /></label>
+    </fieldset>
+    <p class="mc-sum" aria-live="polite"></p>
+    <p class="note bad mc-prob" role="alert" hidden></p>
+    <div class="mc-row">
+      <button type="button" class="btn mc-csv">Download merged CSV</button>
+      <button type="button" class="btn secondary mc-xlsx">Download merged Excel</button>
+      <button type="button" class="btn secondary mc-clear">Start again</button>
+    </div>
+    <fieldset class="mc-card">
+      <legend>Or split the result into many files</legend>
+      <p class="mc-hint">Makes one CSV for each different value in a column, for example one file per country. You get a ZIP.</p>
+      <div class="mc-row">
+        <label>Split by column <select class="mc-col"></select></label>
+        <button type="button" class="btn secondary mc-split">Download ZIP</button>
+      </div>
+      <p class="mc-hint mc-splitnote" aria-live="polite"></p>
+    </fieldset>
+  </div>
+</div>
+
+<style is:inline>
+  .mc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mc-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .mc-drop strong { font-size: 19px; color: var(--accent); }
+  .mc-drop span { color: var(--muted); font-size: 14px; }
+  .mc-drop.over, .mc-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .mc-main { display: grid; gap: 12px; min-width: 0; }
+  .mc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+  .mc-list li { word-break: break-all; }
+  .mc-list small { color: var(--muted); }
+  .mc-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: grid; gap: 10px; margin: 0; min-width: 0; background: var(--surface); }
+  .mc-card legend { font-weight: 700; padding: 0 6px; }
+  .mc-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+  .mc-opt input { width: 18px; height: 18px; accent-color: var(--accent); margin-top: 2px; }
+  .mc-opt b { display: block; }
+  .mc-nm, .mc-row label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mc input[type=text], .mc select { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); max-width: 100%; box-sizing: border-box; }
+  .mc-sum { margin: 0; font-weight: 600; }
+  .mc-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .mc-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .mc [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { readInput, mergeTables, splitBy, toCsv, type Input, type Merged } from '../../lib/docs/csvmerge';
+  import { download } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.mc') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = q<HTMLInputElement>('.mc-file'), drop = q('.mc-drop'), err = q('.mc-err'), prob = q('.mc-prob');
+  let inputs: Input[] = [], merged: Merged = { table: [], rows: 0, problems: [] };
+  const mode = () => (root.querySelector('input[name=mc-mode]:checked') as HTMLInputElement).value as 'match' | 'union';
+
+  function recompute() {
+    merged = mergeTables(inputs, { mode: mode(), source: q<HTMLInputElement>('.mc-src').checked, sourceName: q<HTMLInputElement>('.mc-srcname').value });
+    prob.hidden = !merged.problems.length; prob.textContent = merged.problems.join(' ');
+    const ok = !merged.problems.length;
+    q('.mc-sum').textContent = ok ? `${inputs.length} files, ${merged.rows.toLocaleString('en')} rows and ${merged.table[0].length} columns in the result.` : '';
+    ['.mc-csv', '.mc-xlsx', '.mc-split'].forEach((s) => (q<HTMLButtonElement>(s).disabled = !ok));
+    const sel = q<HTMLSelectElement>('.mc-col'), old = sel.value;
+    sel.replaceChildren(...(ok ? merged.table[0] : []).map((h, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = h || `Column ${i + 1}`; return o; }));
+    if (old) sel.value = old;
+  }
+  async function pick(list: File[]) {
+    if (!list.length) return;
+    err.hidden = true;
+    try {
+      const got: Input[] = [];
+      for (const f of list) got.push(await readInput(f));
+      inputs = [...inputs, ...got];
+    } catch (e: any) { err.textContent = e.message; err.hidden = false; return; }
+    q('.mc-list').replaceChildren(...inputs.map((i) => { const li = document.createElement('li'); li.innerHTML = '<b></b> <small></small>'; li.querySelector('b')!.textContent = i.name; li.querySelector('small')!.textContent = `${i.table.length - 1} rows, ${i.table[0].length} columns${i.note ? ', ' + i.note : ''}`; return li; }));
+    q('.mc-main').hidden = false; recompute();
+  }
+  input.addEventListener('change', () => { pick([...(input.files ?? [])]); input.value = ''; });
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick([...((e as DragEvent).dataTransfer?.files ?? [])]); });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.matches('input[name=mc-mode], .mc-src')) recompute(); });
+  q('.mc-srcname').addEventListener('input', recompute);
+  q('.mc-clear').addEventListener('click', () => { inputs = []; q('.mc-main').hidden = true; err.hidden = true; q('.mc-splitnote').textContent = ''; });
+  q('.mc-csv').addEventListener('click', () => download(new Blob(['﻿' + toCsv(merged.table)], { type: 'text/csv' }), 'merged.csv', 'text/csv'));
+  q('.mc-xlsx').addEventListener('click', async () => {
+    const { tableToXlsx } = await import('../../lib/convert/table');
+    download(tableToXlsx(merged.table, 'Merged'), 'merged.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  });
+  q('.mc-split').addEventListener('click', () => {
+    const r = splitBy(merged.table, +q<HTMLSelectElement>('.mc-col').value);
+    q('.mc-splitnote').textContent = `${r.names.length} file${r.names.length === 1 ? '' : 's'} in the ZIP.`;
+    download(r.zip, 'split-files.zip', 'application/zip');
+  });
+</script>

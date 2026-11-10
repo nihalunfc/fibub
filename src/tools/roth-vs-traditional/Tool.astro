@@ -1,0 +1,112 @@
+---
+// #1786 Roth or traditional: after-tax value of a traditional vs Roth 401(k) or IRA, with 2026 limits.
+---
+<div class="tool-ui rvt">
+  <section class="panel">
+    <h2>Your contributions</h2>
+    <div class="rvt-grid">
+      <label>Account <select class="rvt-plan"><option value="401k" selected>401(k), 403(b) or 457</option><option value="ira">IRA</option></select></label>
+      <label>Your age now <input class="rvt-age" inputmode="numeric" value="35" /></label>
+      <label>Put in each year (before tax) <span class="rvt-suf"><input class="rvt-amt" inputmode="decimal" value="6,000" /><i>$</i></span></label>
+      <label>Years until you retire <input class="rvt-yrs" inputmode="numeric" value="30" /></label>
+      <label>Yearly return <span class="rvt-suf"><input class="rvt-ret" inputmode="decimal" value="6" /><i>%</i></span></label>
+      <label>Tax rate now (federal + state) <span class="rvt-suf"><input class="rvt-now" inputmode="decimal" value="22" /><i>%</i></span></label>
+      <label>Tax rate in retirement <span class="rvt-suf"><input class="rvt-later" inputmode="decimal" value="12" /><i>%</i></span></label>
+      <label>Compare by <select class="rvt-basis">
+        <option value="cost" selected>Same cost to my take-home pay</option>
+        <option value="same">Same dollars into the account (at the limit)</option>
+      </select></label>
+      <label class="rvt-side-l" hidden>Tax on returns of the invested tax saving <span class="rvt-suf"><input class="rvt-side" inputmode="decimal" value="15" /><i>%</i></span></label>
+    </div>
+    <p class="rvt-lim"></p>
+  </section>
+
+  <section class="rvt-res" aria-live="polite">
+    <div class="rvt-stats">
+      <div><span>Traditional, after tax</span><b class="rvt-t"></b></div>
+      <div><span>Roth, after tax</span><b class="rvt-r"></b></div>
+      <div class="good"><span>Comes out ahead</span><b class="rvt-win"></b></div>
+      <div><span>Break-even tax rate later</span><b class="rvt-be"></b></div>
+    </div>
+    <p class="rvt-line"></p>
+    <div class="panel rvt-tw">
+      <h2>If your tax rate in retirement is...</h2>
+      <table>
+        <thead><tr><th>Rate later</th><th>Traditional</th><th>Roth</th><th>Difference</th></tr></thead>
+        <tbody class="rvt-body"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="rvt-fine">Spending money in today's dollars only if you enter a real (after-inflation) return. Ignores required minimum distributions, employer matches (always pre-tax), state moves, Social Security taxation and the five-year Roth rule. 2026 limits from the IRS (checked 10 November 2026): 401(k) $24,500, catch-up $8,000 from 50 and $11,250 at 60 to 63; IRA $7,500, catch-up $1,100. Not financial or tax advice: check the official source (irs.gov). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rvt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rvt > *, .rvt-res > * { min-width: 0; }
+  .rvt h2 { margin: 0 0 12px; font-size: 18px; }
+  .rvt .panel { padding: 16px; }
+  .rvt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .rvt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .rvt label[hidden] { display: none; }
+  .rvt input, .rvt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rvt input:focus, .rvt select:focus { border-color: var(--accent); outline: none; }
+  .rvt-suf { position: relative; display: block; }
+  .rvt-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .rvt-suf input { padding-right: 30px; }
+  .rvt-lim { margin: 12px 0 0; font-size: 14px; }
+  .rvt-res { display: grid; gap: 12px; }
+  .rvt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rvt-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rvt-stats span { font-size: 13px; color: var(--muted); }
+  .rvt-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .rvt-stats .good b { color: var(--good); }
+  .rvt-line { margin: 0; font-size: 15px; }
+  .rvt-tw { overflow-x: auto; }
+  .rvt table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rvt th, .rvt td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rvt th:first-child, .rvt td:first-child { text-align: left; }
+  .rvt th { font-size: 12px; color: var(--muted); }
+  .rvt tr.on td { font-weight: 700; background: var(--surface); }
+  .rvt-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  @media (max-width: 640px) { .rvt-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { compare, limitFor, LIMITS_2026 } from '../../lib/money/roth-vs-traditional.ts';
+  import { num } from '../../lib/money';
+  const root = document.querySelector('.rvt') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => num(q<HTMLInputElement>(s).value);
+  const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
+  const p = (x: number) => `${Math.round(x * 1000) / 10}%`;
+
+  const update = () => {
+    const plan = q<HTMLSelectElement>('.rvt-plan').value as '401k' | 'ira';
+    const basis = q<HTMLSelectElement>('.rvt-basis').value as 'cost' | 'same';
+    q('.rvt-side-l').hidden = basis !== 'same';
+    const age = v('.rvt-age'), amount = v('.rvt-amt');
+    const base = { amount, years: v('.rvt-yrs'), ret: v('.rvt-ret') / 100, taxNow: v('.rvt-now') / 100, taxLater: v('.rvt-later') / 100, basis, sideTax: v('.rvt-side') / 100 };
+    const r = compare(base);
+    const lim = limitFor(plan, age);
+    const ph = LIMITS_2026.rothIraPhaseOut;
+    q('.rvt-lim').textContent = `2026 limit for you: ${$(lim)} a year${amount > lim ? ' (you are over it)' : ''}. ` + (plan === 'ira'
+      ? `Roth IRA contributions phase out between ${$(ph.single[0])} and ${$(ph.single[1])} of income if single, ${$(ph.mfj[0])} to ${$(ph.mfj[1])} if married filing jointly.`
+      : 'The 401(k) limit is shared between Roth and traditional; your employer match does not count toward it.');
+    q('.rvt-t').textContent = $(r.trad);
+    q('.rvt-r').textContent = $(r.roth);
+    q('.rvt-win').textContent = r.better === 'equal' ? 'A tie' : r.better === 'roth' ? 'Roth' : 'Traditional';
+    q('.rvt-be').textContent = r.breakEven === null ? '-' : p(r.breakEven);
+    q('.rvt-line').textContent = r.breakEven === null ? '' : (basis === 'cost'
+      ? `With the same cost to you, Roth puts ${$(r.rothIn)} a year in, after ${p(base.taxNow)} tax. Traditional wins if your tax rate in retirement is below ${p(r.breakEven)}, Roth if it is above.`
+      : `With ${$(amount)} a year in both, traditional also saves ${$(amount * base.taxNow)} of tax a year, invested on the side (worth ${$(r.side)} after tax). Roth wins unless your retirement tax rate is below ${p(r.breakEven)}.`)
+      + ` Difference: ${$(Math.abs(r.diff))}.`;
+    const rates = [...new Set([0, 10, 12, 22, 24, 32, 35, 37, Math.round(base.taxLater * 1000) / 10])].sort((a, b) => a - b);
+    q('.rvt-body').innerHTML = rates.map((t) => {
+      const x = compare({ ...base, taxLater: t / 100 });
+      return `<tr${Math.abs(t / 100 - base.taxLater) < 1e-9 ? ' class="on"' : ''}><td>${t}%</td><td>${$(x.trad)}</td><td>${$(x.roth)}</td><td>${x.better === 'equal' ? 'tie' : (x.better === 'roth' ? 'Roth +' : 'Trad. +') + $(Math.abs(x.diff))}</td></tr>`;
+    }).join('');
+  };
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

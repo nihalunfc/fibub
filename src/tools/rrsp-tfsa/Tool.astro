@@ -1,0 +1,120 @@
+---
+// #1736 RRSP or TFSA: same after-tax money in each account, plus a room helper.
+---
+<div class="tool-ui rt">
+  <section class="panel">
+    <h2>Compare the two accounts</h2>
+    <div class="rt-grid">
+      <label>Money you have to save (after tax) <span class="rt-suf"><input data-k="amt" inputmode="decimal" value="5,000" /><i>$</i></span></label>
+      <label>How often <select data-k="often"><option value="year">every year</option><option value="once">once</option></select></label>
+      <label>Years until you take it out <input data-k="years" inputmode="decimal" value="25" /></label>
+      <label>Yearly return <span class="rt-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Your tax rate now (marginal) <span class="rt-suf"><input data-k="now" inputmode="decimal" value="30" /><i>%</i></span></label>
+      <label>Tax rate when you take it out <span class="rt-suf"><input data-k="later" inputmode="decimal" value="20" /><i>%</i></span></label>
+      <label class="rt-wide">The RRSP tax refund is
+        <select data-k="refund">
+          <option value="grossup">added to the RRSP (fair comparison)</option>
+          <option value="tfsa">put into a TFSA</option>
+          <option value="spend">spent</option>
+        </select>
+      </label>
+    </div>
+    <p class="note bad rt-err" role="alert" hidden></p>
+  </section>
+  <section class="rt-res" aria-live="polite">
+    <div class="rt-stats">
+      <div><span>TFSA, after tax</span><b class="rt-s-tfsa"></b></div>
+      <div><span>RRSP, after tax</span><b class="rt-s-rrsp"></b></div>
+      <div><span>You put in (after tax)</span><b class="rt-s-put"></b></div>
+    </div>
+    <p class="rt-verdict"></p>
+    <div class="rt-wrap"><table>
+      <tbody class="rt-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>How much room do I have?</h2>
+    <div class="rt-grid">
+      <label>Year you were born <input data-k="born" inputmode="numeric" value="1995" /></label>
+      <label>Year you became a Canadian resident (blank if always) <input data-k="res" inputmode="numeric" value="" /></label>
+      <label>Total TFSA contributions so far <span class="rt-suf"><input data-k="tin" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>TFSA withdrawals before 2026 <span class="rt-suf"><input data-k="tout" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>Earned income in 2025 <span class="rt-suf"><input data-k="earn" inputmode="decimal" value="70,000" /><i>$</i></span></label>
+      <label>Pension adjustment (from your T4, box 52) <span class="rt-suf"><input data-k="pa" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>Unused RRSP room from earlier years <span class="rt-suf"><input data-k="unused" inputmode="decimal" value="0" /><i>$</i></span></label>
+    </div>
+    <ul class="rt-room"></ul>
+  </section>
+  <p class="rt-fine">An estimate: one fixed return, one tax rate now and one later, no fees. 2026 limits from canada.ca, checked 10 November 2026: TFSA $7,000, RRSP $33,810. Your exact room is on your CRA My Account or Notice of Assessment; check the official source. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rt > *, .rt-res > * { min-width: 0; }
+  .rt h2 { margin: 0 0 12px; font-size: 18px; }
+  .rt .panel { padding: 16px; }
+  .rt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .rt-wide { grid-column: 1 / -1; }
+  .rt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .rt input, .rt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rt input:focus, .rt select:focus { border-color: var(--accent); outline: none; }
+  .rt-suf { position: relative; display: block; }
+  .rt-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .rt-suf input { padding-right: 32px; }
+  .rt-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rt-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .rt-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rt-stats span { font-size: 13px; color: var(--muted); }
+  .rt-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .rt-stats .win { border-color: var(--good); }
+  .rt-stats .win b { color: var(--good); }
+  .rt-verdict { margin: 0; font-size: 15px; font-weight: 600; }
+  .rt-wrap { overflow-x: auto; }
+  .rt table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rt td { padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .rt td:last-child { text-align: right; white-space: nowrap; }
+  .rt-room { margin: 14px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .rt-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .rt-err { margin: 10px 0 0; }
+  @media (max-width: 600px) { .rt-stats { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { compare, tfsaRoom, rrspRoom, YEAR, type Refund } from '../../lib/money/rrsp-tfsa';
+  import { num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.rt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-CA');
+  const row = (a: string, b: string) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+  function run() {
+    const years = num(f('years').value), rate = num(f('rate').value), now = num(f('now').value), later = num(f('later').value), amt = num(f('amt').value);
+    const bad = !(years >= 1 && years <= 60) ? 'Enter the years, from 1 to 60.' : rate < -10 || rate > 30 ? 'Enter a yearly return between -10 and 30.' : now < 0 || now >= 100 || later < 0 || later >= 100 ? 'Tax rates go from 0 to 99%.' : amt <= 0 ? 'Enter the money you have to save.' : '';
+    q('.rt-err').hidden = !bad; q('.rt-err').textContent = bad; q('.rt-res').hidden = !!bad;
+    if (!bad) {
+      const refund = f('refund').value as Refund;
+      const r = compare({ amount: amt, yearly: f('often').value === 'year', years, rate, taxNow: now, taxLater: later, refund });
+      q('.rt-s-tfsa').textContent = $(r.tfsa);
+      q('.rt-s-rrsp').textContent = $(r.rrspAfterTax);
+      q('.rt-s-put').textContent = $(r.put);
+      const d = r.rrspAfterTax - r.tfsa;
+      q('.rt-s-tfsa').parentElement!.classList.toggle('win', d < -0.5);
+      q('.rt-s-rrsp').parentElement!.classList.toggle('win', d > 0.5);
+      q('.rt-verdict').textContent = Math.abs(d) < 0.5 ? 'Same result: when your tax rate now and later are equal, both accounts end with the same after-tax money.' : d > 0 ? `The RRSP ends ${$(d)} ahead, because you save tax at ${now}% and pay it back at ${later}%.` : `The TFSA ends ${$(-d)} ahead${refund === 'spend' ? ', partly because the RRSP refund is spent' : later > now ? `, because the RRSP money is taxed at ${later}% later but only saved ${now}% now` : ''}.`;
+      q('.rt-body').innerHTML = row('Put into the RRSP each time (with the refund added if chosen)', $(r.rrspIn)) + row('RRSP before tax at the end', $(r.rrspGross)) + row(`Tax on taking it all out at ${later}%`, $(r.rrspGross * later / 100)) + (r.refundValue ? row('Refunds grown in a TFSA', $(r.refundValue)) : '') + row('RRSP after tax', $(r.rrspAfterTax)) + row('TFSA (no tax on growth or withdrawals)', $(r.tfsa));
+    }
+    const born = num(f('born').value), res = num(f('res').value);
+    const items: string[] = [];
+    if (born > 1900 && born <= YEAR - 18) {
+      const t = tfsaRoom(born, res);
+      const left = t.total - num(f('tin').value) + num(f('tout').value);
+      items.push(`TFSA room built up from ${t.start} to ${YEAR}: <b>${$(t.total)}</b>. Room left now: <b>${$(left)}</b>${left < 0 ? ' (over the limit: tax of 1% a month applies to the excess)' : ''}.`);
+    } else items.push(born > YEAR - 18 ? 'TFSA: you get room from the year you turn 18.' : 'Enter the year you were born to see your TFSA room.');
+    const rr = rrspRoom(num(f('earn').value), num(f('pa').value), num(f('unused').value));
+    items.push(`New RRSP room for ${YEAR}: <b>${$(rr.new)}</b>${rr.capped ? ' (capped at the $33,810 limit)' : ' (18% of 2025 earned income)'}; with unused room: <b>${$(rr.total)}</b>.`);
+    q('.rt-room').innerHTML = items.map((s) => `<li>${s}</li>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

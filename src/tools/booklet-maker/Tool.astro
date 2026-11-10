@@ -1,0 +1,127 @@
+---
+// #1767 Booklet maker. Imposition code in src/lib/docs/booklet.ts.
+---
+<div class="tool-ui bkl">
+  <label class="bkl-drop">Choose a PDF <input class="bkl-file" type="file" accept="application/pdf,.pdf" /></label>
+  <p class="bkl-msg" role="status" aria-live="polite"></p>
+  <div class="bkl-main" hidden>
+    <fieldset class="bkl-card">
+      <legend>What do you want to print?</legend>
+      <label class="bkl-opt"><input type="radio" name="bkl-mode" value="booklet" checked /> <span><b>Booklet</b> Two pages per side, in the right order to fold and staple in the middle.</span></label>
+      <label class="bkl-opt"><input type="radio" name="bkl-mode" value="nup" /> <span><b>Several pages per sheet</b> 2 or 4 pages on each sheet, in reading order, to save paper.</span></label>
+      <label class="bkl-opt"><input type="radio" name="bkl-mode" value="poster" /> <span><b>Poster</b> One page enlarged over several sheets that you tape together.</span></label>
+    </fieldset>
+    <fieldset class="bkl-card">
+      <legend>Settings</legend>
+      <div class="bkl-grid">
+        <label>Paper <select class="bkl-paper"><option value="a4">A4</option><option value="letter">US Letter</option></select></label>
+        <label data-for="booklet">Double-sided printing flips on
+          <select class="bkl-flip"><option value="long">Long edge (most printers)</option><option value="short">Short edge</option></select>
+        </label>
+        <label data-for="nup">Pages per sheet <select class="bkl-per"><option value="2">2</option><option value="4">4</option></select></label>
+        <label data-for="nup" class="bkl-chk"><input type="checkbox" class="bkl-border" checked /> Thin border round each page</label>
+        <label data-for="poster">Page to enlarge <input type="number" class="bkl-pg" min="1" value="1" /></label>
+        <label data-for="poster">Sheets across <input type="number" class="bkl-cols" min="1" max="8" value="2" /></label>
+        <label data-for="poster">Sheets down <input type="number" class="bkl-rows" min="1" max="8" value="2" /></label>
+        <label data-for="poster">Overlap (mm) <input type="number" class="bkl-ov" min="0" max="40" value="10" /></label>
+        <label data-for="poster" class="bkl-chk"><input type="checkbox" class="bkl-marks" checked /> Cut marks</label>
+        <label data-for="poster" class="bkl-chk"><input type="checkbox" class="bkl-land" /> Landscape sheets</label>
+      </div>
+    </fieldset>
+    <p class="bkl-sum" aria-live="polite"></p>
+    <div class="bkl-row">
+      <button type="button" class="btn bkl-go">Make PDF</button>
+      <button type="button" class="btn secondary bkl-other">Choose another PDF</button>
+    </div>
+    <p class="bkl-how"></p>
+  </div>
+</div>
+
+<style is:inline>
+  .bkl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .bkl-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .bkl-msg { margin: 0; min-height: 1.3em; }
+  .bkl-msg.err { color: var(--warn); }
+  .bkl-main { display: grid; gap: 12px; min-width: 0; }
+  .bkl-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: grid; gap: 10px; margin: 0; min-width: 0; background: var(--surface); }
+  .bkl-card legend { font-weight: 700; padding: 0 6px; }
+  .bkl-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+  .bkl-opt input { width: 18px; height: 18px; accent-color: var(--accent); margin-top: 2px; }
+  .bkl-opt b { display: block; }
+  .bkl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bkl-grid label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .bkl-grid .bkl-chk { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .bkl-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .bkl select, .bkl input[type=number] { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .bkl-sum { margin: 0; font-weight: 600; }
+  .bkl-how { margin: 0; font-size: 14px; color: var(--muted); }
+  .bkl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bkl [hidden] { display: none !important; }
+  @media (max-width: 480px) { .bkl-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { download, baseName, pageCount } from '../../lib/docs/pdfpages';
+  import { padded } from '../../lib/docs/booklet';
+  const root = document.querySelector('.bkl') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const msg = q('.bkl-msg');
+  let bytes: Uint8Array | null = null, n = 0, fname = '';
+  const mode = () => (root.querySelector('input[name=bkl-mode]:checked') as HTMLInputElement).value as 'booklet' | 'nup' | 'poster';
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+  const paper = () => q<HTMLSelectElement>('.bkl-paper').value as 'a4' | 'letter';
+
+  function refresh() {
+    const m = mode();
+    root.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => (el.hidden = el.dataset.for !== m));
+    const s = q('.bkl-sum'), how = q('.bkl-how');
+    if (m === 'booklet') {
+      const N = padded(n);
+      s.textContent = `${n} pages become ${N / 4} sheet${N / 4 === 1 ? '' : 's'} (${N / 2} sides)` + (N > n ? `, with ${N - n} blank page${N - n === 1 ? '' : 's'} added at the end.` : '.');
+      how.textContent = 'Print double-sided at 100% (not "fit to page"), stack the sheets in order, fold them in half and staple along the fold.';
+    } else if (m === 'nup') {
+      const per = val('.bkl-per');
+      s.textContent = `${n} pages become ${Math.ceil(n / per)} sheet${Math.ceil(n / per) === 1 ? '' : 's'}, ${per} pages on each.`;
+      how.textContent = 'Print at 100%. For both sides of the paper, use your printer\'s double-sided setting.';
+    } else {
+      const t = val('.bkl-cols') * val('.bkl-rows');
+      s.textContent = `Page ${val('.bkl-pg')} will be spread over ${t} sheet${t === 1 ? '' : 's'}.`;
+      how.textContent = 'Print at 100%. Trim along the cut marks and tape the sheets together where they overlap.';
+    }
+  }
+  async function pick(f?: File) {
+    if (!f) return;
+    msg.className = 'bkl-msg'; msg.textContent = '';
+    try {
+      bytes = new Uint8Array(await f.arrayBuffer()); n = await pageCount(bytes); fname = f.name;
+    } catch { bytes = null; msg.className = 'bkl-msg err'; msg.textContent = 'This PDF could not be opened. It may be damaged or password-protected.'; q('.bkl-main').hidden = true; return; }
+    q<HTMLInputElement>('.bkl-pg').max = String(n);
+    msg.textContent = `${f.name}: ${n} page${n === 1 ? '' : 's'}.`;
+    q('.bkl-main').hidden = false; refresh();
+  }
+  q<HTMLInputElement>('.bkl-file').addEventListener('change', (e) => pick((e.target as HTMLInputElement).files?.[0]));
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('.bkl-main')) refresh(); });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.bkl-main')) refresh(); });
+  q('.bkl-other').addEventListener('click', () => { q<HTMLInputElement>('.bkl-file').value = ''; q('.bkl-main').hidden = true; msg.textContent = ''; bytes = null; });
+  q('.bkl-go').addEventListener('click', async () => {
+    if (!bytes) return;
+    msg.className = 'bkl-msg'; msg.textContent = 'Working on your device...';
+    try {
+      const lib = await import('../../lib/docs/booklet');
+      const m = mode(), base = baseName(fname);
+      if (m === 'booklet') {
+        const r = await lib.makeBooklet(bytes, { paper: paper(), flip: q<HTMLSelectElement>('.bkl-flip').value as 'long' });
+        download(r.bytes, `${base}-booklet.pdf`);
+      } else if (m === 'nup') {
+        const r = await lib.makeNup(bytes, { per: val('.bkl-per') as 2, paper: paper(), border: q<HTMLInputElement>('.bkl-border').checked });
+        download(r.bytes, `${base}-${val('.bkl-per')}up.pdf`);
+      } else {
+        const r = await lib.makePoster(bytes, { page: val('.bkl-pg'), cols: val('.bkl-cols') || 1, rows: val('.bkl-rows') || 1, paper: paper(), overlapMm: val('.bkl-ov'), marks: q<HTMLInputElement>('.bkl-marks').checked, landscape: q<HTMLInputElement>('.bkl-land').checked });
+        msg.textContent = `Poster size about ${r.sizeMm[0]} x ${r.sizeMm[1]} mm.`;
+        download(r.bytes, `${base}-poster.pdf`);
+        return;
+      }
+      msg.textContent = 'Done. Your PDF was saved.';
+    } catch (e: any) { msg.className = 'bkl-msg err'; msg.textContent = e?.message || 'Sorry, this PDF could not be rearranged.'; }
+  });
+</script>

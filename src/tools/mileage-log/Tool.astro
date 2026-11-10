@@ -1,0 +1,116 @@
+---
+// #1784 Mileage log
+---
+<div class="tool-ui ml">
+  <section class="panel">
+    <h2>Rate</h2>
+    <div class="ml-grid">
+      <label>Country or rule <select data-k="region">
+        <option value="ca">Canada (CRA allowance, per km)</option><option value="us">United States (IRS business, per mile)</option>
+        <option value="uk">United Kingdom (HMRC, per mile)</option><option value="in">India or other (your own rate)</option></select></label>
+      <label>Rate for the first <span class="ml-lim"></span> <input data-k="r1" inputmode="decimal" /></label>
+      <label>Rate after that <input data-k="r2" inputmode="decimal" /></label>
+      <label>First-band size (0 = no second rate) <input data-k="lim" inputmode="decimal" /></label>
+    </div>
+    <p class="ml-fine ml-src"></p>
+  </section>
+  <section class="panel">
+    <h2>Add a trip</h2>
+    <div class="ml-grid">
+      <label>Date <input data-k="date" type="date" /></label>
+      <label>From <input data-k="from" /></label>
+      <label>To <input data-k="to" /></label>
+      <label>Purpose <input data-k="purpose" /></label>
+      <label>Distance (<span class="ml-u">km</span>) <input data-k="dist" inputmode="decimal" /></label>
+      <label>Type <select data-k="type"><option value="b">Business</option><option value="p">Personal</option></select></label>
+    </div>
+    <p><button type="button" class="ml-main" data-k="add">Add trip</button></p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ml-big"></p>
+    <dl class="ml-rows"></dl>
+    <div class="ml-scroll"><table class="ml-tab"><thead><tr><th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Distance</th><th>Type</th><th></th></tr></thead><tbody class="ml-body"></tbody></table></div>
+    <p><button type="button" data-k="csv">Download CSV</button> <button type="button" data-k="clear">Clear all trips</button></p>
+    <label class="ml-check"><input type="checkbox" data-k="keep" /> Keep my trips in this browser so they are here next time</label>
+    <p class="ml-fine">Off by default. When ticked, your trips are saved on this device only, never sent anywhere. Untick it, or press Clear all trips, to delete them. Keep your own records safe: tax offices expect a log with date, destination, purpose and distance.</p>
+  </section>
+  <p class="ml-fine">Not tax advice. Rates change and apply in different ways (CRA allowance rates are the highest an employer may pay tax-free; self-employed people in Canada usually claim actual vehicle costs by business share instead; the IRS rate is for business use; HMRC rates are for employees using their own vehicle). Check the official source for your own case.</p>
+</div>
+
+<style is:inline>
+  .ml { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ml .panel { padding: 16px; }
+  .ml h2 { margin: 0 0 12px; font-size: 18px; }
+  .ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ml label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ml input:not([type=checkbox]), .ml select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ml input:focus, .ml select:focus { border-color: var(--accent); outline: none; }
+  .ml label.ml-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .ml input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ml-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ml-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ml-rows dt { color: var(--muted); } .ml-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ml-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .ml-scroll { overflow-x: auto; }
+  .ml-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ml-tab th, .ml-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ml-tab th:first-child, .ml-tab td:first-child { text-align: left; }
+  .ml-tab td input, .ml-tab td select { padding: 6px 8px; min-width: 70px; }
+  .ml button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ml button.ml-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ml-body td:nth-child(2), .ml-body td:nth-child(3), .ml-body td:nth-child(4) { text-align: left; white-space: normal; }
+  .ml-check { grid-template-columns: auto 1fr; } .ml-check input { width: 18px; height: 18px; }
+</style>
+
+<script>
+  import { RATES, mileage, tripsCsv, type MRegion, type Trip } from '../../lib/money/household';
+  import { fmt, num, val, on, rowsHtml, esc } from '../../lib/money/ui';
+  const root = document.querySelector('.ml') as HTMLElement;
+  const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const big = root.querySelector('.ml-big') as HTMLElement, rows = root.querySelector('.ml-rows') as HTMLElement, body = root.querySelector('.ml-body') as HTMLElement;
+  const KEY = 'fibub-mileage-v1';
+  const SRC: Record<MRegion, string> = {
+    ca: 'Canada: 73 cents per km for the first 5,000 km and 67 cents after, the 2026 maximum tax-free allowance rates announced by the Department of Finance (canada.ca, January 2026). Territories add 4 cents. Checked 2026-11-10; check the official source.',
+    us: 'United States: 72.5 cents per business mile for 2026 (IRS Notice 2026-10, irs.gov). Medical and moving are 20.5 cents, charity 14 cents: type those as your own rate. Checked 2026-11-10; check the official source.',
+    uk: 'United Kingdom: HMRC approved rate for cars and vans is 55p per mile for the first 10,000 miles and 25p after for 2026 to 2027 (it was 45p up to 2025 to 2026), from gov.uk, checked 2026-11-10. Motorbike 24p, bicycle 20p: type those as your own rate. Check the official source.',
+    in: 'Type the rate your employer or tax rules allow per kilometre. No official rate is built in.',
+  };
+  let trips: Trip[] = [];
+  const save = () => { try { if (on(root, 'keep')) localStorage.setItem(KEY, JSON.stringify(trips)); } catch {} };
+  const setRate = () => {
+    const r = RATES[val(root, 'region') as MRegion];
+    el('r1').value = String(r.first); el('r2').value = String(r.after); el('lim').value = r.limit === Infinity ? '0' : String(r.limit);
+    root.querySelector('.ml-src')!.textContent = SRC[val(root, 'region') as MRegion];
+    root.querySelector('.ml-u')!.textContent = r.unit;
+    render();
+  };
+  const render = () => {
+    const rg = RATES[val(root, 'region') as MRegion];
+    const limit = num(root, 'lim') > 0 ? num(root, 'lim') : Infinity;
+    root.querySelector('.ml-lim')!.textContent = limit === Infinity ? 'all ' + rg.unit : fmt(limit, 0) + ' ' + rg.unit;
+    const m = mileage(trips, { first: num(root, 'r1'), after: num(root, 'r2'), limit });
+    big.textContent = `${fmt(m.allowance)} allowance on ${fmt(m.business, 1)} business ${rg.unit}`;
+    rows.innerHTML = rowsHtml([['Trips', String(trips.length)], ['Business distance', fmt(m.business, 1) + ' ' + rg.unit], ['Personal distance', fmt(m.personal, 1) + ' ' + rg.unit], ['Total distance', fmt(m.total, 1) + ' ' + rg.unit], ['Business share', fmt(m.pctBusiness, 1) + '%'], ['Allowance at your rate', fmt(m.allowance)]]);
+    body.innerHTML = trips.map((t, i) => `<tr><td>${esc(t.date)}</td><td>${esc(t.from)}</td><td>${esc(t.to)}</td><td>${esc(t.purpose)}</td><td>${fmt(t.dist, 1)}</td><td>${t.business ? 'Business' : 'Personal'}</td><td><button type="button" data-del="${i}" aria-label="Delete trip">x</button></td></tr>`).join('');
+  };
+  root.addEventListener('input', render);
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('[data-k="region"]')) setRate(); if ((e.target as HTMLElement).matches('[data-k="keep"]')) { if (on(root, 'keep')) save(); else { try { localStorage.removeItem(KEY); } catch {} } } });
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    const del = t.getAttribute('data-del');
+    if (del !== null) { trips.splice(+del, 1); save(); render(); return; }
+    const k = t.getAttribute('data-k');
+    if (k === 'add') {
+      const d = num(root, 'dist'); if (!(d > 0)) return;
+      trips.push({ date: val(root, 'date'), from: val(root, 'from'), to: val(root, 'to'), purpose: val(root, 'purpose'), dist: d, business: val(root, 'type') === 'b' });
+      el('dist').value = ''; save(); render();
+    }
+    if (k === 'clear') { trips = []; try { localStorage.removeItem(KEY); } catch {} el('keep').checked = false; render(); }
+    if (k === 'csv') {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([tripsCsv(trips, RATES[val(root, 'region') as MRegion].unit)], { type: 'text/csv' })); a.download = 'mileage-log.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  });
+  try { const s = localStorage.getItem(KEY); if (s) { trips = JSON.parse(s); el('keep').checked = true; } } catch {}
+  el('date').value = new Date().toISOString().slice(0, 10);
+  setRate();
+</script>

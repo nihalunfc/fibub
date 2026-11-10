@@ -1,0 +1,132 @@
+---
+// #1741 EPF calculator: employee and employer shares, the EPS split, yearly raises and interest to retirement.
+---
+<div class="tool-ui ec">
+  <section class="panel">
+    <h2>Your pay and PF</h2>
+    <div class="ec-grid">
+      <label>Basic + DA a month (₹) <input data-k="basic" inputmode="decimal" value="30,000" /></label>
+      <label>Pay rise each year <span class="ec-suf"><input data-k="raise" inputmode="decimal" value="5" /><i>% a year</i></span></label>
+      <label>Your age now <input data-k="age" inputmode="decimal" value="30" /></label>
+      <label>Retirement age <input data-k="retire" inputmode="decimal" value="58" /></label>
+      <label>EPF balance today (₹) <input data-k="open" inputmode="decimal" value="0" /></label>
+      <label>EPF interest rate <span class="ec-suf"><input data-k="rate" inputmode="decimal" value="8.25" /><i>% a year</i></span></label>
+    </div>
+    <details class="ec-more">
+      <summary>Contribution rules</summary>
+      <div class="ec-grid">
+        <label>Your share <span class="ec-suf"><input data-k="emp" inputmode="decimal" value="12" /><i>% of wages</i></span></label>
+        <label>Employer's share <span class="ec-suf"><input data-k="boss" inputmode="decimal" value="12" /><i>% of wages</i></span></label>
+        <label>EPS wage ceiling a month (₹) <input data-k="ceil" inputmode="decimal" value="25,000" /></label>
+        <label>PF is worked out on
+          <select data-k="cap">
+            <option value="0" selected>My full Basic + DA</option>
+            <option value="1">Wages up to the ceiling only</option>
+          </select>
+        </label>
+      </div>
+      <label class="ec-check"><input type="checkbox" data-k="eps" checked /> I am in the pension scheme (EPS): 8.33% of wages up to the ceiling goes to pension</label>
+    </details>
+    <p class="ec-src">8.25% is the EPF rate for 2025-26 (EPFO Central Board of Trustees, 2 March 2026). The wage ceiling went from ₹15,000 to ₹25,000 a month on 17 September 2026. Check the official source and change them if needed.</p>
+    <p class="note bad ec-err" role="alert" hidden></p>
+  </section>
+  <section class="ec-res" aria-live="polite">
+    <div class="ec-stats">
+      <div><span>EPF at retirement</span><b class="ec-s-fv"></b></div>
+      <div><span>Paid in (you + employer)</span><b class="ec-s-put"></b></div>
+      <div class="good"><span>Interest earned</span><b class="ec-s-int"></b></div>
+      <div><span>Sent to pension (EPS)</span><b class="ec-s-eps"></b></div>
+    </div>
+    <p class="ec-line ec-words"></p>
+    <figure class="ec-chart panel">
+      <figcaption>EPF balance by year <span><i class="k-a"></i>Balance</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
+      <svg class="ec-svg" viewBox="0 0 640 220" role="img" aria-label="EPF balance and money paid in, year by year"></svg>
+    </figure>
+    <details class="ec-years panel">
+      <summary>Year by year</summary>
+      <div class="ec-wrap"><table>
+        <thead><tr><th>Age</th><th>Basic + DA</th><th>You</th><th>Employer</th><th>Interest</th><th>Balance</th></tr></thead>
+        <tbody class="ec-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary ec-csv">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="ec-fine">How it is worked out: each month your share and the employer's EPF share are added, interest is worked out on the running balance at the yearly rate / 12 and added at the end of each year, and pay rises once a year. The EPS money builds your pension, not this balance, so it is shown on its own without growth. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ec > *, .ec-res > * { min-width: 0; }
+  .ec h2 { margin: 0 0 12px; font-size: 18px; }
+  .ec .panel { padding: 16px; }
+  .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ec label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ec label.ec-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; color: var(--ink); }
+  .ec input, .ec select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ec input[type=checkbox] { width: auto; margin-top: 3px; }
+  .ec input:focus, .ec select:focus { border-color: var(--accent); outline: none; }
+  .ec-suf { position: relative; display: block; }
+  .ec-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ec-suf input { padding-right: 90px; }
+  .ec-more { margin-top: 12px; }
+  .ec-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .ec-src { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .ec-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ec-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ec-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ec-stats span { font-size: 13px; color: var(--muted); }
+  .ec-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .ec-stats .good b { color: var(--good); }
+  .ec-line { margin: 0; font-size: 15px; }
+  .ec-line:empty { display: none; }
+  .ec-chart { margin: 0; }
+  .ec-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .ec-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .ec-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .ec .k-a { background: var(--accent); }
+  .ec .k-b { background: var(--muted); opacity: .7; }
+  .ec-svg { width: 100%; height: auto; display: block; }
+  .ec-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .ec-wrap { overflow-x: auto; }
+  .ec table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ec th, .ec td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ec th:first-child, .ec td:first-child { text-align: left; }
+  .ec th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ec-years summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .ec-years .btn { margin-top: 12px; }
+  .ec-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .ec-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .ec-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { epf, epfMonth, type EpfRow } from '../../lib/money/epf-calculator';
+  import { chartSvg, csv } from '../../lib/money/growth';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ec')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  const short = (v: number) => new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+  let rows: EpfRow[] = [], age = 0;
+  function run() {
+    const basic = num(f('basic').value), rate = num(f('rate').value), retire = num(f('retire').value);
+    age = num(f('age').value);
+    const a = { basic, employee: num(f('emp').value), employer: num(f('boss').value), ceiling: num(f('ceil').value), inEps: f('eps').checked, capWages: f('cap').value === '1', raise: num(f('raise').value), rate, ageNow: age, retireAge: retire, opening: num(f('open').value) };
+    const bad = !(basic > 0) ? 'Enter your monthly Basic + DA.' : !(age >= 14 && age < 75) ? 'Enter your age now.' : !(retire > age && retire <= 75) ? 'Retirement age must be after your age now.' : !(rate >= 0 && rate <= 20) ? 'Enter the EPF rate, for example 8.25.' : !(a.ceiling > 0) ? 'Enter the EPS wage ceiling, for example 25,000.' : a.raise < 0 || a.raise > 50 ? 'Enter a pay rise between 0 and 50%.' : a.employee < 0 || a.employee > 100 || a.employer < 0 || a.employer > 100 ? 'Shares are a percent of wages, 0 to 100.' : '';
+    q('.ec-err').hidden = !bad; q('.ec-err').textContent = bad; q('.ec-res').hidden = !!bad;
+    if (bad) return;
+    rows = epf(a);
+    const last = rows[rows.length - 1], m = epfMonth(basic, a);
+    q('.ec-s-fv').textContent = $(last.balance);
+    q('.ec-s-put').textContent = $(last.deposits);
+    q('.ec-s-int').textContent = $(last.interest);
+    q('.ec-s-eps').textContent = $(last.eps);
+    q('.ec-words').innerHTML = `This month: you pay <b>${$(m.you)}</b> and your employer pays <b>${$(m.boss + m.eps)}</b>, of which <b>${$(m.eps)}</b> goes to pension (EPS) and <b>${$(m.boss)}</b> to your EPF. So <b>${$(m.you + m.boss)}</b> a month goes into EPF.`;
+    q('.ec-svg').innerHTML = chartSvg(rows, short);
+    q('.ec-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${age + r.year}</td><td>${$(r.basic)}</td><td>${$(r.you)}</td><td>${$(r.boss)}</td><td>${$(r.earned)}</td><td>${$(r.balance)}</td></tr>`).join('');
+  }
+  q('.ec-csv').addEventListener('click', () => csv('epf.csv', ['Age', 'Basic+DA a month', 'You (year)', 'Employer to EPF (year)', 'Interest', 'Balance'], rows.slice(1).map((r) => [age + r.year, r.basic, r.you, r.boss, r.earned, r.balance])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

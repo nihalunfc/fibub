@@ -1,0 +1,99 @@
+---
+// #1756 Capital gains: gains per sale by average cost (Canada ACB) or FIFO.
+---
+<div class="tool-ui cg">
+  <section class="panel">
+    <h2>Your buys and sells</h2>
+    <label>One line per trade: date, name, buy or sell, quantity, price, fee (fee is optional). Dates as year-month-day.
+      <textarea data-k="tx" spellcheck="false"></textarea></label>
+    <div class="cg-grid" style="margin-top:12px">
+      <label>Currency <select class="cg-cur" data-k="cur"></select></label>
+      <label>Cost method <select data-k="method"><option value="average">Average cost (Canada ACB)</option><option value="fifo">First in, first out (FIFO)</option></select></label>
+      <label>Taxable share of a gain (%) <input data-k="incl" inputmode="decimal" /></label>
+    </div>
+    <p class="cg-fine">The taxable share is the part of a gain that counts as income. Canada's capital gains inclusion rate is 50% (see <a href="https://www.canada.ca/en/revenue-agency/services/tax/individuals/topics/about-your-tax-return/tax-return/completing-a-tax-return/personal-income/line-12700-capital-gains.html" rel="noopener">canada.ca, capital gains</a>); rules change, so check the official source and edit the number if needed. Set it to 100 to see the plain gain.</p>
+    <p class="note bad cg-err" role="alert" hidden></p>
+  </section>
+  <section class="cg-res" aria-live="polite">
+    <div class="cg-stats">
+      <div><span>Total proceeds</span><b class="cg-s-p"></b></div>
+      <div><span>Total cost</span><b class="cg-s-c"></b></div>
+      <div class="good"><span>Net gain or loss</span><b class="cg-s-g"></b></div>
+      <div><span>Taxable part</span><b class="cg-s-t"></b></div>
+    </div>
+    <div class="panel cg-wrap"><h2>Each sale</h2><table>
+      <thead><tr><th>Date</th><th>Name</th><th>Quantity</th><th>Proceeds</th><th>Cost</th><th>Gain or loss</th></tr></thead>
+      <tbody class="cg-body"></tbody>
+    </table></div>
+    <div class="panel cg-wrap"><h2>By year</h2><table>
+      <thead><tr><th>Year</th><th>Proceeds</th><th>Cost</th><th>Gain or loss</th><th>Taxable part</th></tr></thead>
+      <tbody class="cg-years"></tbody>
+    </table></div>
+    <button type="button" class="btn secondary cg-csv">Download the sales (CSV)</button>
+  </section>
+  <p class="cg-fine">Buying fees are added to the cost; selling fees are taken off the proceeds. It does not apply superficial-loss, wash-sale or 30-day rules, foreign exchange, or splits. This is arithmetic from the trades you type, not a tax return. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cg { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .cg > *, .cg-res > * { min-width: 0; }
+  .cg h2 { margin: 0 0 12px; font-size: 18px; }
+  .cg .panel { padding: 16px; }
+  .cg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .cg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cg input, .cg select, .cg textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .cg textarea { min-height: 150px; font-family: ui-monospace, monospace; font-size: 14px; }
+  .cg input:focus, .cg select:focus, .cg textarea:focus { border-color: var(--accent); outline: none; }
+  .cg .chk { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .cg .chk input { width: auto; }
+  .cg-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cg-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .cg-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .cg-stats span { font-size: 13px; color: var(--muted); }
+  .cg-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .cg-stats .good b { color: var(--good); }
+  .cg-wrap { overflow-x: auto; }
+  .cg table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cg th, .cg td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cg th:first-child, .cg td:first-child { text-align: left; }
+  .cg th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .cg td input { padding: 6px 8px; }
+  .cg-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .cg-err { margin: 10px 0 0; }
+  .cg .btn { justify-self: start; }
+</style>
+
+<script>
+  import { parseTx, gains, type Sale } from '../../lib/money/investing';
+  import { csv } from '../../lib/money/growth';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.cg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.cg-cur').innerHTML = currencyOptions(defaultCurrency());
+  f('incl').value = '50';
+  f('tx').value = '2022-01-10, ABC, buy, 100, 10, 0\n2023-03-05, ABC, buy, 100, 20, 0\n2024-06-20, ABC, sell, 100, 25, 0';
+  let sales: Sale[] = [];
+  function run() {
+    const $ = (n: number) => money(n, f('cur').value, 2), incl = num(f('incl').value);
+    const p = parseTx(f('tx').value);
+    let bad = p.error;
+    if (!bad && !p.tx.length) bad = 'Type or paste your trades.';
+    if (!bad && !(incl >= 0 && incl <= 100)) bad = 'The taxable share should be between 0 and 100.';
+    let g = { sales: [] as Sale[], error: '' };
+    if (!bad) { g = gains(p.tx, f('method').value as 'average' | 'fifo'); bad = g.error; }
+    if (!bad && !g.sales.length) bad = 'No sales yet: add a line with sell to see a gain.';
+    q('.cg-err').hidden = !bad; q('.cg-err').textContent = bad; q('.cg-res').hidden = !!bad;
+    if (bad) return;
+    sales = g.sales;
+    const sum = (a: Sale[], k: 'proceeds' | 'cost' | 'gain') => a.reduce((s, x) => s + x[k], 0);
+    q('.cg-s-p').textContent = $(sum(sales, 'proceeds')); q('.cg-s-c').textContent = $(sum(sales, 'cost'));
+    q('.cg-s-g').textContent = $(sum(sales, 'gain')); q('.cg-s-t').textContent = $((sum(sales, 'gain') * incl) / 100);
+    q('.cg-body').innerHTML = sales.map((s) => `<tr><td>${s.date}</td><td>${s.symbol.replace(/[<&]/g, '')}</td><td>${Math.round(s.qty * 1e6) / 1e6}</td><td>${$(s.proceeds)}</td><td>${$(s.cost)}</td><td>${$(s.gain)}</td></tr>`).join('');
+    const years = [...new Set(sales.map((s) => s.date.slice(0, 4)))];
+    q('.cg-years').innerHTML = years.map((y) => { const a = sales.filter((s) => s.date.startsWith(y)); return `<tr><td>${y}</td><td>${$(sum(a, 'proceeds'))}</td><td>${$(sum(a, 'cost'))}</td><td>${$(sum(a, 'gain'))}</td><td>${$((sum(a, 'gain') * incl) / 100)}</td></tr>`; }).join('');
+  }
+  q('.cg-csv').addEventListener('click', () => csv('capital-gains.csv', ['Date', 'Name', 'Quantity', 'Proceeds', 'Cost', 'Gain'], sales.map((s) => [s.date, s.symbol, s.qty, s.proceeds, s.cost, s.gain])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

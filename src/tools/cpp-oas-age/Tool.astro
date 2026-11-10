@@ -1,0 +1,104 @@
+---
+// #1739 CPP start age: CPP from 60 to 70, OAS from 65 to 70, break-even ages and the OAS clawback.
+---
+<div class="tool-ui co">
+  <section class="panel">
+    <h2>Your pensions</h2>
+    <div class="co-grid">
+      <label>CPP at 65, a month (from My Service Canada) <span class="co-suf"><input data-k="cpp" inputmode="decimal" value="1,000" /><i>$</i></span></label>
+      <label>Start CPP at <select data-k="cage"></select></label>
+      <label>Years in Canada after age 18 (for OAS) <input data-k="res" inputmode="decimal" value="40" /></label>
+      <label>Start OAS at <select data-k="oage"></select></label>
+      <label>Plan to age <input data-k="life" inputmode="decimal" value="90" /></label>
+      <label>Net income a year in retirement <span class="co-suf"><input data-k="inc" inputmode="decimal" value="60,000" /><i>$</i></span></label>
+    </div>
+    <p class="note bad co-err" role="alert" hidden></p>
+  </section>
+  <section class="co-res" aria-live="polite">
+    <div class="co-stats">
+      <div><span>CPP a month</span><b class="co-s-cpp"></b></div>
+      <div><span>OAS a month</span><b class="co-s-oas"></b></div>
+      <div><span>Both, a year</span><b class="co-s-yr"></b></div>
+      <div><span>OAS clawback a year</span><b class="co-s-claw"></b></div>
+    </div>
+    <p class="co-line"></p>
+    <div class="panel">
+      <h2>CPP by start age</h2>
+      <div class="co-wrap"><table>
+        <thead><tr><th>Start</th><th>A month</th><th>Of age 65</th><th>Break-even with 65</th><th class="co-tot-h">Total by 90</th></tr></thead>
+        <tbody class="co-cpp"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <h2>OAS by start age</h2>
+      <div class="co-wrap"><table>
+        <thead><tr><th>Start</th><th>A month</th><th>Of age 65</th><th>Break-even with 65</th><th class="co-tot-h">Total by 90</th></tr></thead>
+        <tbody class="co-oas"></tbody>
+      </table></div>
+    </div>
+  </section>
+  <p class="co-fine">Rules from canada.ca, checked 10 November 2026: CPP falls 0.6% for each month before 65 (36% less at 60) and rises 0.7% for each month after 65 (42% more at 70). OAS rises 0.6% for each month after 65 (36% more at 70) and 10% at 75. OAS for October to December 2026 is up to $762.50 a month at 65 to 74; full OAS needs 40 years in Canada after 18. 2026 OAS recovery tax: 15% of net income above $95,323. Totals are in today's dollars (both pensions rise with inflation). Check the official source. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .co { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .co > *, .co-res > * { min-width: 0; }
+  .co h2 { margin: 0 0 12px; font-size: 18px; }
+  .co .panel { padding: 16px; }
+  .co-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .co label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .co input, .co select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .co input:focus, .co select:focus { border-color: var(--accent); outline: none; }
+  .co-suf { position: relative; display: block; }
+  .co-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .co-suf input { padding-right: 32px; }
+  .co-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .co-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .co-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .co-stats span { font-size: 13px; color: var(--muted); }
+  .co-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .co-line { margin: 0; font-size: 15px; }
+  .co-wrap { overflow-x: auto; }
+  .co table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .co th, .co td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .co th:first-child, .co td:first-child { text-align: left; }
+  .co th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: normal; }
+  .co tr.on td { font-weight: 700; background: var(--surface); }
+  .co-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .co-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .co-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { cppFactor, oasFactor, breakEven, breakEvenOas, totalTo, clawback, OAS_MAX_65 } from '../../lib/money/cpp-oas-age';
+  import { num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.co')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number, d = 0) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const ages = (a: number) => Array.from({ length: 71 - a }, (_, i) => a + i);
+  q('[data-k="cage"]').innerHTML = ages(60).map((a) => `<option${a === 65 ? ' selected' : ''}>${a}</option>`).join('');
+  q('[data-k="oage"]').innerHTML = ages(65).map((a) => `<option${a === 65 ? ' selected' : ''}>${a}</option>`).join('');
+  const be = (a: number, fa: number, b: number, fb: number, oas = false) => { const x = oas ? breakEvenOas(a, fa, b, fb) : breakEven(a, fa, b, fb); return x === null ? '-' : `age ${x.toFixed(1)}`; };
+  function run() {
+    const cpp = num(f('cpp').value), res = num(f('res').value), life = num(f('life').value), inc = num(f('inc').value);
+    const cage = +f('cage').value, oage = +f('oage').value;
+    const bad = !(cpp > 0 && cpp < 5000) ? 'Enter your CPP at 65 as a monthly amount, for example 1,000.' : !(res >= 10 && res <= 60) ? 'OAS needs at least 10 years in Canada after 18; enter 10 to 40 or more.' : !(life > 65 && life <= 110) ? 'Enter an age to plan to, from 66 to 110.' : inc < 0 ? 'Income cannot be negative.' : '';
+    q('.co-err').hidden = !bad; q('.co-err').textContent = bad; q('.co-res').hidden = !!bad;
+    if (bad) return;
+    const oas65 = OAS_MAX_65 * Math.min(40, Math.floor(res)) / 40;
+    const cppM = cpp * cppFactor(cage), oasM = oas65 * oasFactor(oage);
+    const claw = clawback(inc, oasM * 12);
+    q('.co-s-cpp').textContent = $(cppM, 2);
+    q('.co-s-oas').textContent = $(oasM, 2);
+    q('.co-s-yr').textContent = $((cppM + oasM) * 12);
+    q('.co-s-claw').textContent = claw > 0 ? $(claw) : 'None';
+    const tot = `Total by ${Math.round(life * 10) / 10}`;
+    root.querySelectorAll('.co-tot-h').forEach((h) => (h.textContent = tot));
+    q('.co-line').textContent = (claw > 0 ? `With ${$(inc)} of net income, ${$(claw)} of your OAS is paid back each year (15% of income above $95,323). ` : '') + (cage > 65 ? `Waiting until ${cage} pays more in total than starting at 65 if you live past ${be(65, 1, cage, cppFactor(cage)).replace('age ', '')}.` : cage < 65 ? `Starting at ${cage} pays more in total than waiting until 65 unless you live past ${be(cage, cppFactor(cage), 65, 1).replace('age ', '')}.` : 'Change the start ages to compare.');
+    q('.co-cpp').innerHTML = ages(60).map((a) => { const k = cppFactor(a); return `<tr${a === cage ? ' class="on"' : ''}><td>${a}</td><td>${$(cpp * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : a > 65 ? be(65, 1, a, k) : be(a, k, 65, 1)}</td><td>${$(totalTo(cpp * k, a, life))}</td></tr>`; }).join('');
+    q('.co-oas').innerHTML = ages(65).map((a) => { const k = oasFactor(a); return `<tr${a === oage ? ' class="on"' : ''}><td>${a}</td><td>${$(oas65 * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : be(65, 1, a, k, true)}</td><td>${$(totalTo(oas65 * k, a, life, true))}</td></tr>`; }).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

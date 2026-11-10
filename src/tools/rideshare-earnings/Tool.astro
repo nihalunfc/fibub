@@ -1,0 +1,67 @@
+---
+// #1783 Driver earnings
+---
+<div class="tool-ui re">
+  <section class="panel">
+    <h2>One week (or any period) of driving</h2>
+    <div class="re-grid">
+      <label>Fares <input data-k="fares" inputmode="decimal" value="900" /></label>
+      <label>Tips <input data-k="tips" inputmode="decimal" value="80" /></label>
+      <label>Hours worked (logged in, including waiting) <input data-k="hours" inputmode="decimal" value="35" /></label>
+      <label>Kilometres driven (including empty driving) <input data-k="km" inputmode="decimal" value="900" /></label>
+      <label>Platform fee (% of fares) <input data-k="fee" inputmode="decimal" value="25" /></label>
+      <label>Litres per 100 km <input data-k="l100" inputmode="decimal" value="8" /></label>
+      <label>Fuel price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label>Maintenance and tyres per km <input data-k="maint" inputmode="decimal" value="0.08" /></label>
+      <label>Insurance for the period <input data-k="ins" inputmode="decimal" value="45" /></label>
+      <label>Phone and data for the period <input data-k="phone" inputmode="decimal" value="10" /></label>
+      <label>Set aside for tax (% of profit) <input data-k="tax" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="re-fine">Use the same period for everything (a week, a month). Check your platform's statement for the real fee: some take a flat share, some a booking fee on top. Include the kilometres you drive between rides, because you pay for them too.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="re-big"></p>
+    <dl class="re-rows"></dl>
+  </section>
+  <p class="re-fine">Not financial or tax advice. The tax set-aside is a rough guess; self-employed drivers usually owe income tax and social contributions or CPP, and may need to register for sales tax. Check the official source for your country. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .re { display: grid; gap: 14px; margin-bottom: 32px; }
+  .re .panel { padding: 16px; }
+  .re h2 { margin: 0 0 12px; font-size: 18px; }
+  .re-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .re label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .re input:not([type=checkbox]), .re select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .re input:focus, .re select:focus { border-color: var(--accent); outline: none; }
+  .re label.re-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .re input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .re-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .re-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .re-rows dt { color: var(--muted); } .re-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .re-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .re-scroll { overflow-x: auto; }
+  .re-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .re-tab th, .re-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .re-tab th:first-child, .re-tab td:first-child { text-align: left; }
+  .re-tab td input, .re-tab td select { padding: 6px 8px; min-width: 70px; }
+  .re button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .re button.re-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+
+<script>
+  import { driver } from '../../lib/money/household';
+  import { fmt, num, rowsHtml } from '../../lib/money/ui';
+  const root = document.querySelector('.re') as HTMLElement;
+  const big = root.querySelector('.re-big') as HTMLElement, rows = root.querySelector('.re-rows') as HTMLElement;
+  const calc = () => {
+    const r = driver({ fares: num(root, 'fares'), tips: num(root, 'tips'), hours: num(root, 'hours'), km: num(root, 'km'), feePct: num(root, 'fee'), l100: num(root, 'l100'), fuelPrice: num(root, 'fuel'),
+      maintPerKm: num(root, 'maint'), insurance: num(root, 'ins'), phone: num(root, 'phone'), setAside: num(root, 'tax') });
+    big.textContent = `${fmt(r.perHour)} an hour after costs`;
+    rows.innerHTML = rowsHtml([['Fares plus tips', fmt(r.gross)], ['Platform fee', '-' + fmt(r.fee)], ['Fuel', '-' + fmt(r.fuel)], ['Maintenance and tyres', '-' + fmt(r.maint)],
+      ['Insurance and phone', '-' + fmt(num(root, 'ins') + num(root, 'phone'))], ['Net before tax', fmt(r.net)], ['Net per hour', fmt(r.perHour)], ['Net per km', fmt(r.perKm, 3)],
+      ['Before costs, per hour', fmt(r.grossPerHour)], ['Tax to set aside', fmt(r.setAside)], ['What you keep after the set-aside', fmt(r.keep)]]);
+  };
+  root.addEventListener('input', calc);
+  calc();
+</script>

@@ -1,0 +1,133 @@
+---
+// #1749 Trip splitter
+---
+<div class="tool-ui ts">
+  <section class="panel">
+    <h2>Who is on the trip</h2>
+    <div class="ts-people"></div>
+    <button type="button" class="ts-btn ts-addp">Add a person</button>
+    <label class="ts-cur">Currency label (just for display) <input class="ts-c" value="" placeholder="e.g. USD, CAD, INR" maxlength="6" /></label>
+  </section>
+  <section class="panel">
+    <h2>Expenses</h2>
+    <div class="ts-exps"></div>
+    <button type="button" class="ts-btn ts-adde">Add an expense</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <h2>Balances</h2>
+    <p class="ts-help">Positive means the person is owed money. Negative means they owe.</p>
+    <table class="ts-table"><thead><tr><th>Person</th><th>Paid</th><th>Balance</th></tr></thead><tbody class="ts-bal"></tbody></table>
+    <h2>Settle up</h2>
+    <ul class="ts-pay"></ul>
+    <button type="button" class="ts-btn ts-csv">Download CSV</button>
+  </section>
+  <section class="panel ts-keep">
+    <label><input type="checkbox" class="ts-remember" /> Remember this trip on this device</label>
+    <p class="ts-fine">Off by default. If you tick it, the names and expenses are kept in this browser only and never sent anywhere. <button type="button" class="ts-link ts-clear">Clear saved data</button></p>
+  </section>
+  <p class="ts-fine">Everything is worked out in your browser. Costs are split to the cent so balances always add up to zero.</p>
+</div>
+
+<style is:inline>
+  .ts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ts .panel { padding: 16px; }
+  .ts h2 { font-size: 17px; margin: 0 0 8px; }
+  .ts h2:not(:first-child) { margin-top: 18px; }
+  .ts-help, .ts-fine { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  .ts-p { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 6px; margin-bottom: 6px; }
+  .ts-e { border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; display: grid; gap: 8px; }
+  .ts-erow { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 34px; gap: 6px; }
+  .ts-e select { min-width: 0; }
+  .ts-for { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+  .ts-for label, .ts-keep label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .ts-cur { display: grid; gap: 4px; font-size: 14px; color: var(--muted); margin-top: 12px; max-width: 260px; }
+  .ts input:not([type=checkbox]), .ts select { font: inherit; color: var(--ink); padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ts input:focus, .ts select:focus { border-color: var(--accent); outline: none; }
+  .ts input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ts-btn { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; margin-top: 6px; }
+  .ts-x { font: inherit; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .ts-link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+  .ts-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ts-table th, .ts-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  .ts-table th:first-child, .ts-table td:first-child { text-align: left; }
+  .ts-pay { padding-left: 20px; margin: 0 0 8px; display: grid; gap: 4px; }
+</style>
+
+<script>
+  import { tripBalances, settle, toCents } from '../../lib/money/splitting';
+  import { downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.ts') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-trip-splitter-v1';
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const f = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const peopleEl = q('.ts-people'), expsEl = q('.ts-exps');
+  const names = () => [...peopleEl.children].map((r, i) => (r.querySelector('input') as HTMLInputElement).value.trim() || `Person ${i + 1}`);
+  const addP = (name = '') => {
+    const d = document.createElement('div'); d.className = 'ts-p';
+    d.innerHTML = `<input aria-label="Name" value="${esc(name)}" /><button type="button" class="ts-x" aria-label="Remove person">×</button>`;
+    peopleEl.append(d);
+  };
+  // Expense rows hold payer index and for-flags; rebuilt when people change.
+  interface Ex { what: string; payer: number; amount: string; forWho: boolean[] }
+  const readEx = (): Ex[] => [...expsEl.children].map((r) => ({
+    what: (r.querySelector('[data-f="what"]') as HTMLInputElement).value,
+    payer: +(r.querySelector('[data-f="payer"]') as HTMLSelectElement).value,
+    amount: (r.querySelector('[data-f="amount"]') as HTMLInputElement).value,
+    forWho: [...r.querySelectorAll('.ts-for input')].map((c) => (c as HTMLInputElement).checked),
+  }));
+  const drawEx = (list: Ex[]) => {
+    const n = names();
+    expsEl.innerHTML = '';
+    list.forEach((e) => {
+      const d = document.createElement('div'); d.className = 'ts-e';
+      d.innerHTML = `<div class="ts-erow"><input data-f="what" aria-label="What was it" placeholder="What was it" value="${esc(e.what)}" /><input data-f="amount" inputmode="decimal" aria-label="Amount" placeholder="Amount" value="${esc(e.amount)}" /><button type="button" class="ts-x" aria-label="Remove expense">×</button></div>
+        <select data-f="payer" aria-label="Paid by">${n.map((nm, i) => `<option value="${i}"${i === e.payer ? ' selected' : ''}>Paid by ${esc(nm)}</option>`).join('')}</select>
+        <div class="ts-for" role="group" aria-label="Shared by">${n.map((nm, i) => `<label><input type="checkbox" data-i="${i}"${e.forWho[i] !== false ? ' checked' : ''} /> ${esc(nm)}</label>`).join('')}</div>`;
+      expsEl.append(d);
+    });
+  };
+  let last: any = null;
+  const run = () => {
+    const n = names(), ex = readEx();
+    const list = ex.map((e) => ({ what: e.what, payer: e.payer, amount: parseFloat(e.amount.replace(/[^\d.-]/g, '')) || 0, forWho: e.forWho.map((on, i) => (on ? i : -1)).filter((i) => i >= 0) }));
+    const { bal, spent } = tripBalances(n.length, list);
+    q('.ts-bal').innerHTML = n.map((nm, i) => `<tr><td>${esc(nm)}</td><td>${f(spent[i])}</td><td data-b="${i}">${bal[i] > 0 ? '+' : ''}${f(bal[i])}</td></tr>`).join('');
+    const pays = settle(bal);
+    const cur = q<HTMLInputElement>('.ts-c').value.trim();
+    q('.ts-pay').innerHTML = pays.length ? pays.map((p) => `<li><b>${esc(n[p.from])}</b> pays <b>${esc(n[p.to])}</b> ${f(p.cents)} ${esc(cur)}</li>`).join('') : '<li style="list-style:none;margin-left:-20px">Nobody owes anything yet.</li>';
+    last = { n, bal, spent, pays, list };
+    try { if (q<HTMLInputElement>('.ts-remember').checked) localStorage.setItem(KEY, JSON.stringify({ n, cur, ex })); } catch {}
+  };
+  const rebuild = () => { const ex = readEx(); const n = names().length; ex.forEach((e) => { while (e.forWho.length < n) e.forWho.push(true); if (e.payer >= n) e.payer = 0; }); drawEx(ex); };
+  let saved: any = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved?.n?.length) { q<HTMLInputElement>('.ts-remember').checked = true; saved.n.forEach(addP); q<HTMLInputElement>('.ts-c').value = saved.cur || ''; drawEx(saved.ex || []); }
+  else { ['Ana', 'Ben', 'Cy'].forEach(addP); drawEx([{ what: 'Hotel', payer: 0, amount: '90', forWho: [true, true, true] }, { what: 'Taxi', payer: 1, amount: '30', forWho: [true, true, true] }]); }
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ts-people')) { rebuildKeep(); } run(); });
+  // Keep expense choices when a name is edited: just relabel instead of redrawing while typing.
+  function rebuildKeep() { const n = names(); expsEl.querySelectorAll('select[data-f="payer"] option').forEach((o, k) => { (o as HTMLOptionElement).textContent = 'Paid by ' + n[k % n.length]; }); expsEl.querySelectorAll('.ts-for label').forEach((l, k) => { const t = l.lastChild as Text; t.textContent = ' ' + n[k % n.length]; }); }
+  root.addEventListener('change', run);
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (!t.classList.contains('ts-x')) return;
+    if (t.closest('.ts-p')) { if (peopleEl.children.length > 2) { const idx = [...peopleEl.children].indexOf(t.parentElement!); const ex = readEx(); ex.forEach((x) => { x.forWho.splice(idx, 1); if (x.payer === idx) x.payer = 0; else if (x.payer > idx) x.payer--; }); t.parentElement!.remove(); drawEx(ex); } }
+    else t.closest('.ts-e')!.remove();
+    run();
+  });
+  q('.ts-addp').addEventListener('click', () => { const ex = readEx(); addP(); ex.forEach((x) => x.forWho.push(true)); drawEx(ex); run(); });
+  q('.ts-adde').addEventListener('click', () => { const ex = readEx(); ex.push({ what: '', payer: 0, amount: '', forWho: names().map(() => true) }); drawEx(ex); run(); });
+  q('.ts-csv').addEventListener('click', () => {
+    if (!last) return;
+    const rows: (string | number)[][] = [['Expense', 'Paid by', 'Amount', 'Shared by']];
+    last.list.forEach((e: any) => rows.push([e.what, last.n[e.payer] ?? '', toCents(e.amount) / 100, e.forWho.map((i: number) => last.n[i]).join(' / ')]));
+    rows.push([], ['Person', 'Paid', 'Balance']);
+    last.n.forEach((nm: string, i: number) => rows.push([nm, last.spent[i] / 100, last.bal[i] / 100]));
+    rows.push([], ['From', 'To', 'Amount']);
+    last.pays.forEach((p: any) => rows.push([last.n[p.from], last.n[p.to], p.cents / 100]));
+    downloadCsv('trip-split.csv', rows);
+  });
+  q('.ts-remember').addEventListener('change', () => { if (!q<HTMLInputElement>('.ts-remember').checked) { try { localStorage.removeItem(KEY); } catch {} } run(); });
+  q('.ts-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.ts-remember').checked = false; });
+  run();
+</script>
