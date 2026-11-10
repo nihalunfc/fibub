@@ -1,0 +1,325 @@
+---
+// #1711 Invoice maker. Sums and wording in src/lib/docs/invoice.ts, PDF in src/lib/docs/invoicepdf.ts.
+import { CURRENCY_LIST } from '../../lib/docs/invoice';
+---
+<div class="tool-ui im">
+  <div class="im-seg" role="group" aria-label="What to make">
+    <button type="button" data-m="invoice" aria-pressed="true">Invoice</button>
+    <button type="button" data-m="quote" aria-pressed="false">Quote</button>
+    <button type="button" data-m="receipt" aria-pressed="false">Receipt</button>
+    <button type="button" data-m="rent" aria-pressed="false">Rent receipt</button>
+  </div>
+
+  <div class="im-cols">
+    <form class="im-form" autocomplete="off" onsubmit="return false">
+      <fieldset class="im-card">
+        <legend class="im-seller-t">From (you)</legend>
+        <label>Name or business <input type="text" data-k="seller.name" /></label>
+        <label>Address <textarea rows="2" data-k="seller.addr"></textarea></label>
+        <label class="im-sid">Tax number <input type="text" data-k="seller.taxId" /></label>
+        <label>Email or phone <input type="text" data-k="seller.contact" /></label>
+        <label data-for="invoice quote receipt">Logo (optional) <input class="im-logo" type="file" accept="image/png,image/jpeg" /></label>
+        <button type="button" class="im-link im-logo-x" hidden>Remove the logo</button>
+      </fieldset>
+
+      <fieldset class="im-card">
+        <legend class="im-buyer-t">To (customer)</legend>
+        <label>Name <input type="text" data-k="buyer.name" /></label>
+        <label data-for="invoice quote receipt">Address <textarea rows="2" data-k="buyer.addr"></textarea></label>
+        <label class="im-bid" data-for="invoice quote receipt">Tax number <input type="text" data-k="buyer.taxId" /></label>
+      </fieldset>
+
+      <fieldset class="im-card">
+        <legend>Details</legend>
+        <div class="im-grid">
+          <label><span class="im-num-l">Number</span> <input type="text" data-k="number" /></label>
+          <label>Date <input type="date" data-k="date" /></label>
+          <label data-for="invoice quote"><span class="im-due-l">Due date</span> <input type="date" data-k="due" /></label>
+          <label data-for="invoice quote">PO or reference <input type="text" data-k="po" /></label>
+          <label data-for="receipt rent">Paid by <input type="text" data-k="pay" placeholder="Cash, UPI, bank transfer" /></label>
+          <label>Currency
+            <select data-k="cur">{CURRENCY_LIST.map((c) => <option value={c.code}>{c.name}</option>)}</select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="im-card" data-for="rent">
+        <legend>Rent</legend>
+        <label>Property address <textarea rows="2" data-k="property"></textarea></label>
+        <div class="im-grid">
+          <label>Rent per month <input type="text" inputmode="decimal" data-k="monthly" /></label>
+          <span></span>
+          <label>From month <input type="month" data-k="from" /></label>
+          <label>To month <input type="month" data-k="to" /></label>
+        </div>
+        <p class="im-hint">One receipt is made for each month, three to a page. Employers usually ask for the landlord's PAN when a year's rent is above Rs. 1,00,000; leave it blank if it does not apply. Check the official source (incometax.gov.in) and your employer's rules.</p>
+      </fieldset>
+
+      <fieldset class="im-card" data-for="invoice quote receipt">
+        <legend>Items</legend>
+        <div class="im-items"></div>
+        <button type="button" class="btn secondary im-add">Add an item</button>
+      </fieldset>
+
+      <fieldset class="im-card" data-for="invoice quote receipt">
+        <legend>Tax and discount</legend>
+        <div class="im-grid">
+          <label>Tax
+            <select data-k="taxMode">
+              <option value="none">No tax</option>
+              <option value="one">One tax (GST, HST, VAT, sales tax)</option>
+              <option value="india">India GST (CGST + SGST, or IGST)</option>
+            </select>
+          </label>
+          <label data-tax="one">Tax name <input type="text" data-k="taxName" placeholder="VAT" /></label>
+          <label data-tax="one india">Usual rate % <input type="text" inputmode="decimal" data-k="taxRate" placeholder="18" /></label>
+          <label class="im-chk" data-tax="india"><input type="checkbox" data-k="igst" /> Customer is in another state (IGST)</label>
+          <label>Discount
+            <select data-k="discKind"><option value="pct">Percent (%)</option><option value="amt">Amount</option></select>
+          </label>
+          <label>Discount value <input type="text" inputmode="decimal" data-k="disc" /></label>
+          <label class="im-chk"><input type="checkbox" data-k="roundOff" /> Round the total to a whole number</label>
+        </div>
+        <p class="im-hint">Each item can have its own tax rate; leave it empty to use the usual rate. Check the rate with your tax office.</p>
+      </fieldset>
+
+      <fieldset class="im-card" data-for="invoice quote receipt">
+        <legend>Notes</legend>
+        <label>Payment details <textarea rows="2" data-k="bank" placeholder="Bank, account, UPI id"></textarea></label>
+        <label>Notes or terms <textarea rows="2" data-k="notes" placeholder="Payment due within 14 days"></textarea></label>
+      </fieldset>
+    </form>
+
+    <aside class="im-side">
+      <div class="im-dl">
+        <button type="button" class="btn im-pdf">Download PDF</button>
+        <button type="button" class="btn secondary im-print">Print</button>
+      </div>
+      <p class="im-lost" hidden></p>
+      <div class="im-paper" aria-label="Preview"><div class="im-doc"></div></div>
+    </aside>
+  </div>
+
+  <div class="im-keep">
+    <label class="im-chk"><input type="checkbox" class="im-remember" /> Remember my details on this device</label>
+    <button type="button" class="im-link im-clear">Clear what is remembered</button>
+  </div>
+  <p class="im-hint">Made in your browser; nothing is uploaded. Ticking the box keeps your details (name, address, tax number, logo, currency, tax settings and payment details, not your customers or items) on this device only. Untick it, or press Clear, to remove them.</p>
+</div>
+
+<style is:inline>
+  .im { display: grid; gap: 14px; margin-bottom: 32px; }
+  .im-seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--bg); width: fit-content; max-width: 100%; }
+  .im-seg button { font: inherit; font-weight: 600; font-size: 14px; border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 9px; cursor: pointer; }
+  .im-seg button[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+  .im-cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .im-form { display: grid; gap: 10px; min-width: 0; }
+  .im-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .im-card legend { font-weight: 700; padding: 0 6px; }
+  .im label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .im input[type=text], .im input[type=date], .im input[type=month], .im textarea, .im select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .im textarea { resize: vertical; line-height: 1.4; }
+  .im input:focus, .im textarea:focus, .im select:focus { border-color: var(--accent); outline: none; }
+  .im-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .im-chk { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; }
+  .im-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .im-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .im-link { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: start; }
+  .im-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 8px; background: var(--bg); }
+  .im-item input { background: var(--surface) !important; }
+  .im-item-g { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .im-item-h { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; }
+  .im-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .im-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .im-lost { margin: 0; font-size: 14px; color: var(--warn); }
+  .im-keep { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  .im-paper { container-type: inline-size; background: #fff; color: #121826; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); overflow: hidden; }
+  .im-doc { padding: 7cqw; font: 2.2cqw/1.4 Helvetica, Arial, sans-serif; min-height: 70cqw; }
+  .im-doc .t { font-size: 4.6cqw; font-weight: 700; text-align: right; text-transform: uppercase; }
+  .im-doc .hd { display: flex; justify-content: space-between; gap: 3cqw; }
+  .im-doc img { max-width: 24cqw; max-height: 11cqw; display: block; margin-bottom: 1.5cqw; }
+  .im-doc .m { color: #4d5466; white-space: pre-line; overflow-wrap: anywhere; }
+  .im-doc .b { font-weight: 700; }
+  .im-doc .s { font-size: 1.8cqw; font-weight: 700; color: #4d5466; letter-spacing: .05em; margin-top: 3cqw; }
+  .im-doc table { width: 100%; border-collapse: collapse; margin-top: 3cqw; }
+  .im-doc th { background: #f0f2f6; text-align: right; padding: 1cqw; font-size: 1.9cqw; }
+  .im-doc td { border-bottom: 1px solid #ccd0d9; padding: 1cqw; text-align: right; vertical-align: top; overflow-wrap: anywhere; }
+  .im-doc th:first-child, .im-doc td:first-child { text-align: left; }
+  .im-doc .tot { margin-left: auto; margin-top: 2cqw; width: 55%; }
+  .im-doc .tot div { display: flex; justify-content: space-between; gap: 2cqw; padding: .4cqw 0; color: #4d5466; }
+  .im-doc .tot .g { color: #121826; font-weight: 700; font-size: 2.6cqw; border-top: 1px solid #121826; margin-top: 1cqw; padding-top: 1cqw; }
+  .im-doc .rr { border-bottom: 1px dashed #aab; padding-bottom: 3cqw; margin-bottom: 3cqw; }
+  .im-doc .rr:last-child { border: 0; }
+  .im [hidden] { display: none !important; }
+  @media (max-width: 860px) { .im-cols { grid-template-columns: minmax(0, 1fr); } .im-side { position: static; } }
+  @media (max-width: 480px) { .im-grid, .im-item-g { grid-template-columns: minmax(0, 1fr); } }
+  @media print {
+    body * { visibility: hidden !important; }
+    .im-paper, .im-paper * { visibility: visible !important; }
+    .im-paper { display: block !important; position: absolute; left: 0; top: 0; width: 100%; border: 0; box-shadow: none; container-type: inline-size; }
+  }
+</style>
+
+<script>
+  import { calc, docTitle, emptyInv, emptyItem, fmt, rentReceipts, type Inv } from '../../lib/docs/invoice';
+  import { fmtDate } from '../../lib/docs/invoicepdf';
+  const root = document.querySelector('.im') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-invoice-v1';
+  let V: Inv = emptyInv();
+  let remembered = false;
+  const REMEMBER = ['seller', 'cur', 'taxMode', 'taxName', 'taxRate', 'bank', 'logo'] as const;
+  try {
+    const s = localStorage.getItem(KEY);
+    if (s) { const o = JSON.parse(s); for (const k of REMEMBER) if (o[k] !== undefined) (V as any)[k] = o[k]; remembered = true; }
+  } catch {}
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const get = (path: string): any => path.split('.').reduce((o: any, k) => o[k], V);
+  const set = (path: string, v: any) => { const p = path.split('.'); const last = p.pop()!; p.reduce((o: any, k) => o[k], V)[last] = v; };
+
+  const bind = () => root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => {
+    const v = get(el.dataset.k!);
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+  });
+  const renderItems = () => {
+    q('.im-items').innerHTML = V.items.map((it, i) => `<div class="im-item" data-i="${i}">
+      <div class="im-item-h"><span>Item ${i + 1}</span>${V.items.length > 1 ? `<button type="button" class="im-link" data-del="${i}">Remove</button>` : ''}</div>
+      <label>Description <input type="text" data-f="desc" value="${esc(it.desc)}" /></label>
+      <div class="im-item-g">
+        <label>Quantity <input type="text" inputmode="decimal" data-f="qty" value="${esc(it.qty)}" /></label>
+        <label>Price each <input type="text" inputmode="decimal" data-f="rate" value="${esc(it.rate)}" /></label>
+        <label ${V.taxMode === 'none' ? 'hidden' : ''}>Tax % <input type="text" inputmode="decimal" data-f="tax" value="${esc(it.tax)}" placeholder="${esc(V.taxRate || '0')}" /></label>
+        <label ${V.taxMode === 'india' ? '' : 'hidden'}>HSN or SAC <input type="text" data-f="hsn" value="${esc(it.hsn)}" /></label>
+      </div></div>`).join('');
+  };
+
+  const showFor = () => {
+    root.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => {
+      const f = el.dataset.for!.split(' ');
+      el.hidden = !f.includes(V.mode);
+    });
+    root.querySelectorAll<HTMLElement>('[data-tax]').forEach((el) => { el.hidden = !el.dataset.tax!.split(' ').includes(V.taxMode); });
+    const rent = V.mode === 'rent';
+    q('.im-seller-t').textContent = rent ? 'Landlord' : 'From (you)';
+    q('.im-buyer-t').textContent = rent ? 'Tenant' : V.mode === 'quote' ? 'Prepared for' : V.mode === 'receipt' ? 'Received from' : 'To (customer)';
+    const idLabel = rent ? 'Landlord PAN (optional)' : V.taxMode === 'india' ? 'GSTIN (optional)' : 'Tax number (optional)';
+    q('.im-sid').firstChild!.textContent = idLabel + ' ';
+    q('.im-bid').firstChild!.textContent = (V.taxMode === 'india' ? 'GSTIN' : 'Tax number') + ' (optional) ';
+    q('.im-due-l').textContent = V.mode === 'quote' ? 'Valid until' : 'Due date';
+    q('.im-num-l').textContent = V.mode === 'quote' ? 'Quote number' : V.mode === 'receipt' ? 'Receipt number' : rent ? 'Receipt number (starts at -01)' : 'Invoice number';
+    root.querySelectorAll('.im-seg button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.m === V.mode)));
+    q('.im-logo-x').hidden = !V.logo;
+  };
+
+  const party = (p: { name: string; addr: string; taxId: string; contact: string }, idLabel: string) =>
+    `${p.name ? `<div class="b">${esc(p.name)}</div>` : ''}<div class="m">${esc(p.addr)}${p.taxId ? `\n${idLabel}: ${esc(p.taxId)}` : ''}${p.contact ? `\n${esc(p.contact)}` : ''}</div>`;
+
+  const preview = () => {
+    const doc = q('.im-doc');
+    if (V.mode === 'rent') {
+      const rs = rentReceipts(V);
+      doc.innerHTML = rs.length ? rs.map((r, i) => `<div class="rr"><div class="hd"><div class="b">RENT RECEIPT</div><div class="b">${esc(r.month)}</div></div>
+        <div class="m">Date ${esc(fmtDate(V.date))} · No. ${esc(V.number)}-${String(i + 1).padStart(2, '0')}</div>
+        <p>${esc(r.sentence)}</p>
+        <div class="m">Landlord: ${esc(V.seller.name || '__________')}${V.seller.taxId ? `\nPAN: ${esc(V.seller.taxId.toUpperCase())}` : ''}</div>
+        <div class="m" style="text-align:right">Signature of landlord</div></div>`).join('') : '<p class="m">Enter the monthly rent to see the receipts.</p>';
+      return;
+    }
+    const c = calc(V), idl = V.taxMode === 'india' ? 'GSTIN' : 'Tax no.';
+    const hsn = V.taxMode === 'india' && c.hasHsn, tx = V.taxMode !== 'none';
+    const numL = V.mode === 'quote' ? 'Quote no.' : V.mode === 'receipt' ? 'Receipt no.' : 'Invoice no.';
+    const meta = [[numL, V.number], ['Date', fmtDate(V.date)]];
+    if (V.due && V.mode !== 'receipt') meta.push([V.mode === 'quote' ? 'Valid until' : 'Due date', fmtDate(V.due)]);
+    if (V.po && V.mode !== 'receipt') meta.push(['PO / reference', V.po]);
+    if (V.pay && V.mode === 'receipt') meta.push(['Paid by', V.pay]);
+    doc.innerHTML = `<div class="hd"><div>${V.logo ? `<img src="${V.logo}" alt="">` : ''}${party(V.seller, idl)}</div>
+      <div><div class="t">${esc(docTitle(V))}</div>${meta.map(([k, v]) => `<div class="m" style="text-align:right">${esc(k)}: <span class="b" style="color:#121826">${esc(v)}</span></div>`).join('')}</div></div>
+      ${V.buyer.name || V.buyer.addr ? `<div class="s">${V.mode === 'quote' ? 'PREPARED FOR' : V.mode === 'receipt' ? 'RECEIVED FROM' : 'BILL TO'}</div>${party(V.buyer, idl)}` : ''}
+      <table><thead><tr><th>Description</th>${hsn ? '<th>HSN/SAC</th>' : ''}${tx ? '<th>Tax %</th>' : ''}<th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
+      ${c.lines.map((l) => `<tr><td>${esc(l.desc || '-')}</td>${hsn ? `<td>${esc(l.hsn)}</td>` : ''}${tx ? `<td>${+l.taxRate.toFixed(3)}</td>` : ''}<td>${+l.qty.toFixed(4)}</td><td>${fmt(Math.round(l.rate * 100), V.cur)}</td><td>${fmt(l.amount, V.cur)}</td></tr>`).join('')}</tbody></table>
+      <div class="tot"><div><span>Subtotal</span><span>${fmt(c.subtotal, V.cur)}</span></div>
+      ${c.discount ? `<div><span>Discount</span><span>-${fmt(c.discount, V.cur)}</span></div>` : ''}
+      ${c.taxes.map((t) => `<div><span>${esc(t.label)}</span><span>${fmt(t.cents, V.cur)}</span></div>`).join('')}
+      ${c.round ? `<div><span>Round off</span><span>${fmt(c.round, V.cur)}</span></div>` : ''}
+      <div class="g"><span>${V.mode === 'receipt' ? 'Total paid' : 'Total'}</span><span class="im-total">${fmt(c.total, V.cur)}</span></div></div>
+      ${c.words ? `<p class="b im-words">Amount in words: ${esc(c.words)}</p>` : ''}
+      ${V.bank.trim() ? `<div class="s">PAYMENT DETAILS</div><div class="m">${esc(V.bank)}</div>` : ''}
+      ${V.notes.trim() ? `<div class="s">NOTES</div><div class="m">${esc(V.notes)}</div>` : ''}`;
+  };
+
+  const save = () => {
+    if (!remembered) return;
+    try { const o: any = {}; for (const k of REMEMBER) o[k] = (V as any)[k]; localStorage.setItem(KEY, JSON.stringify(o)); } catch {}
+  };
+  const refresh = (items = false) => { showFor(); if (items) renderItems(); preview(); save(); };
+
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.k) {
+      set(el.dataset.k, el.type === 'checkbox' ? el.checked : el.value);
+      refresh(['taxMode', 'taxRate'].includes(el.dataset.k) && el.dataset.k === 'taxMode');
+      if (el.dataset.k === 'taxRate') root.querySelectorAll<HTMLInputElement>('[data-f=tax]').forEach((t) => (t.placeholder = V.taxRate || '0'));
+    } else if (el.dataset.f) {
+      const i = +(el.closest('[data-i]') as HTMLElement).dataset.i!;
+      (V.items[i] as any)[el.dataset.f] = el.value;
+      preview();
+    }
+  });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.k === 'cur' || el.dataset.k === 'taxMode') refresh(true);
+  });
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('button');
+    if (!b) return;
+    if (b.dataset.m) { V.mode = b.dataset.m as any; refresh(); return; }
+    if (b.dataset.del) { V.items.splice(+b.dataset.del, 1); refresh(true); }
+  });
+  q('.im-add').addEventListener('click', () => { V.items.push(emptyItem()); renderItems(); preview(); (root.querySelector('.im-item:last-child [data-f=desc]') as HTMLInputElement)?.focus(); });
+
+  // Logo: shrink it so it stays small, keep it as a PNG.
+  q<HTMLInputElement>('.im-logo').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    try {
+      const bmp = await createImageBitmap(f);
+      const s = Math.min(1, 360 / bmp.width, 160 / bmp.height);
+      const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(bmp.width * s)); cv.height = Math.max(1, Math.round(bmp.height * s));
+      cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height);
+      V.logo = cv.toDataURL('image/png');
+    } catch { alert('That picture could not be read. Use a PNG or JPG.'); }
+    (e.target as HTMLInputElement).value = '';
+    refresh();
+  });
+  q('.im-logo-x').addEventListener('click', () => { V.logo = ''; refresh(); });
+
+  // Downloads and print
+  const download = (blob: Blob, name: string) => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  q('.im-pdf').addEventListener('click', async () => {
+    const { invoicePdf } = await import('../../lib/docs/invoicepdf');
+    const { bytes, lost } = await invoicePdf(V);
+    const w = q('.im-lost'); w.hidden = !lost.length;
+    w.textContent = lost.length ? `These characters can't be shown in the PDF and were left out: ${lost.slice(0, 12).join(' ')}.` : '';
+    const base = (V.mode === 'rent' ? 'rent-receipts' : `${V.mode}-${V.number || 'draft'}`).replace(/[^\w.-]+/g, '-');
+    download(new Blob([bytes as BlobPart], { type: 'application/pdf' }), `${base}.pdf`);
+  });
+  q('.im-print').addEventListener('click', () => { preview(); window.print(); });
+  ((window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500)))(() => { import('../../lib/docs/invoicepdf').catch(() => {}); });
+
+  // Remembering
+  const rem = q<HTMLInputElement>('.im-remember');
+  rem.checked = remembered;
+  rem.addEventListener('change', () => { remembered = rem.checked; if (remembered) save(); else try { localStorage.removeItem(KEY); } catch {} });
+  q('.im-clear').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY); } catch {}
+    remembered = false; rem.checked = false;
+    const keep = V; const fresh = emptyInv(); for (const k of REMEMBER) (V as any)[k] = (fresh as any)[k]; void keep;
+    bind(); refresh(true);
+  });
+
+  bind(); renderItems(); showFor(); preview();
+</script>

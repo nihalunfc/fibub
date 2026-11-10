@@ -1,0 +1,35 @@
+// #1711 Invoice maker
+export const path = '/documents/invoice-maker/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/documents/invoice-maker/`); await page.waitForTimeout(500);
+  const T = '.im';
+  await page.selectOption(`${T} [data-k=cur]`, 'INR');
+  await page.selectOption(`${T} [data-k=taxMode]`, 'india');
+  await page.fill(`${T} [data-k=taxRate]`, '18');
+  await page.fill(`${T} [data-i="0"] [data-f=desc]`, 'Design');
+  await page.fill(`${T} [data-i="0"] [data-f=qty]`, '2');
+  await page.fill(`${T} [data-i="0"] [data-f=rate]`, '1500');
+  await page.click(`${T} .im-add`);
+  await page.fill(`${T} [data-i="1"] [data-f=rate]`, '499.99');
+  await page.fill(`${T} [data-i="1"] [data-f=tax]`, '5');
+  await page.fill(`${T} [data-k=disc]`, '10'); await page.waitForTimeout(150);
+  const doc = await page.textContent(`${T} .im-doc`);
+  check(doc.includes('CGST 9%') && doc.includes('SGST 2.5%') && doc.includes('Rs. 243.00'), 'invoice: CGST and SGST lines');
+  check((await page.textContent(`${T} .im-total`)) === 'Rs. 3,658.49', `invoice: total (${await page.textContent(`${T} .im-total`)})`);
+  check((await page.textContent(`${T} .im-words`)).includes('Rupees Three Thousand Six Hundred Fifty-Eight and Forty-Nine Paise Only'), 'invoice: amount in words');
+  await page.check(`${T} [data-k=igst]`); await page.waitForTimeout(100);
+  check((await page.textContent(`${T} .im-doc`)).includes('IGST 18%') && !(await page.textContent(`${T} .im-doc`)).includes('CGST'), 'invoice: IGST for another state');
+  await page.click(`${T} [data-m=rent]`);
+  await page.fill(`${T} [data-k=monthly]`, '15000'); await page.fill(`${T} [data-k=from]`, '2025-04'); await page.fill(`${T} [data-k=to]`, '2025-06'); await page.fill(`${T} [data-k="buyer.name"]`, 'Asha'); await page.waitForTimeout(150);
+  check((await page.locator(`${T} .im-doc .rr`).count()) === 3 && (await page.textContent(`${T} .im-doc`)).includes('Rupees Fifteen Thousand Only'), 'invoice: three rent receipts with words');
+  await page.click(`${T} [data-m=invoice]`);
+  const dl = page.waitForEvent('download');
+  await page.click(`${T} .im-pdf`);
+  const d = await dl; const p = await d.path(); const fs = await import('node:fs');
+  check(fs.readFileSync(p).subarray(0, 4).toString() === '%PDF', 'invoice: PDF downloads');
+  check(!(await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))), 'invoice: nothing kept unless ticked');
+  await page.check(`${T} .im-remember`); await page.fill(`${T} [data-k="seller.name"]`, 'Acme'); await page.waitForTimeout(100);
+  check((await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))).includes('Acme') && !(await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))).includes('Asha'), 'invoice: remembers only own details when ticked');
+  await page.click(`${T} .im-clear`);
+  check(!(await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))), 'invoice: clear removes it');
+};
