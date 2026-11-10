@@ -1,0 +1,97 @@
+---
+// #1779 Electricity cost
+import { PRESETS } from '../../lib/money/household';
+---
+<div class="tool-ui ec">
+  <section class="panel">
+    <h2>Your appliances</h2>
+    <div class="ec-add">
+      <label>Add an appliance
+        <select data-k="preset">{PRESETS.map(([n], i) => <option value={i}>{n}</option>)}<option value="-1">My own (type the watts)</option></select>
+      </label>
+      <button type="button" class="ec-main" data-k="add">Add</button>
+    </div>
+    <div class="ec-scroll"><table class="ec-tab">
+      <thead><tr><th>Appliance</th><th>Watts</th><th>Hours a day</th><th>Days a month</th><th>Standby W</th><th>kWh a month</th><th>Cost a month</th><th></th></tr></thead>
+      <tbody class="ec-body"></tbody>
+    </table></div>
+    <p class="ec-fine">Watts are typical figures, not yours. Check the label on the appliance or a plug-in power meter and change them. Standby watts run for the hours the appliance is not in use. Know the kWh instead? Use 1000 watts for 1 hour = 1 kWh.</p>
+  </section>
+  <section class="panel">
+    <h2>Your tariff</h2>
+    <div class="ec-grid">
+      <label>Price type <select data-k="mode"><option value="flat">One flat price</option><option value="tou">Time-of-use (on, mid, off-peak)</option></select></label>
+      <label class="ec-flat">Price per kWh <input data-k="flat" inputmode="decimal" value="0.15" /></label>
+      <label class="ec-tou">On-peak price per kWh <input data-k="on" inputmode="decimal" value="0.20" /></label>
+      <label class="ec-tou">Mid-peak price per kWh <input data-k="mid" inputmode="decimal" value="0.15" /></label>
+      <label class="ec-tou">Off-peak price per kWh <input data-k="off" inputmode="decimal" value="0.09" /></label>
+      <label class="ec-tou">Share of your use on-peak (%) <input data-k="onShare" inputmode="decimal" value="20" /></label>
+      <label class="ec-tou">Share of your use mid-peak (%) <input data-k="midShare" inputmode="decimal" value="20" /></label>
+      <label>Fixed monthly charge <input data-k="fixed" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ec-fine">Time-of-use: the rest of your use counts as off-peak. Enter your own utility's prices and hours; they change, so take them from your bill or the utility's website.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ec-big"></p>
+    <dl class="ec-rows"></dl>
+  </section>
+  <p class="ec-fine">Estimates only. Not financial advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ec { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ec .panel { padding: 16px; }
+  .ec h2 { margin: 0 0 12px; font-size: 18px; }
+  .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ec label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ec input:not([type=checkbox]), .ec select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ec input:focus, .ec select:focus { border-color: var(--accent); outline: none; }
+  .ec label.ec-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .ec input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ec-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ec-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ec-rows dt { color: var(--muted); } .ec-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ec-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .ec-scroll { overflow-x: auto; }
+  .ec-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ec-tab th, .ec-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ec-tab th:first-child, .ec-tab td:first-child { text-align: left; }
+  .ec-tab td input, .ec-tab td select { padding: 6px 8px; min-width: 70px; }
+  .ec button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ec button.ec-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ec-add { display: flex; gap: 10px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; } .ec-add label { flex: 1; min-width: 200px; }
+  .ec-tab td:first-child { white-space: normal; min-width: 130px; }
+</style>
+
+<script>
+  import { PRESETS, electricity, type Appliance } from '../../lib/money/household';
+  import { fmt, num, val, rowsHtml, esc } from '../../lib/money/ui';
+  const root = document.querySelector('.ec') as HTMLElement;
+  const body = root.querySelector('.ec-body') as HTMLElement;
+  const big = root.querySelector('.ec-big') as HTMLElement, rows = root.querySelector('.ec-rows') as HTMLElement;
+  const addRow = (n: string, w: number, h: number, s: number) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input class="n" value="${esc(n)}" aria-label="Appliance name" /></td><td><input class="w" inputmode="decimal" value="${w}" aria-label="Watts" /></td><td><input class="h" inputmode="decimal" value="${h}" aria-label="Hours a day" /></td><td><input class="d" inputmode="decimal" value="30" aria-label="Days a month" /></td><td><input class="s" inputmode="decimal" value="${s}" aria-label="Standby watts" /></td><td class="k">0</td><td class="c">0</td><td><button type="button" class="x" aria-label="Remove">x</button></td>`;
+    body.appendChild(tr);
+  };
+  const n = (tr: Element, c: string) => { const v = parseFloat((tr.querySelector('.' + c) as HTMLInputElement).value); return isFinite(v) ? v : 0; };
+  const calc = () => {
+    const mode = val(root, 'mode') as 'flat' | 'tou';
+    root.querySelectorAll('.ec-flat').forEach((e) => ((e as HTMLElement).hidden = mode !== 'flat'));
+    root.querySelectorAll('.ec-tou').forEach((e) => ((e as HTMLElement).hidden = mode !== 'tou'));
+    const trs = [...body.querySelectorAll('tr')];
+    const list: Appliance[] = trs.map((tr) => ({ name: (tr.querySelector('.n') as HTMLInputElement).value, watts: n(tr, 'w'), hoursPerDay: Math.min(24, n(tr, 'h')), daysPerMonth: Math.min(31, n(tr, 'd')), standbyWatts: n(tr, 's') }));
+    const r = electricity(list, { mode, flat: num(root, 'flat'), on: num(root, 'on'), mid: num(root, 'mid'), off: num(root, 'off'), onShare: num(root, 'onShare'), midShare: num(root, 'midShare'), fixed: num(root, 'fixed') });
+    trs.forEach((tr, i) => { (tr.querySelector('.k') as HTMLElement).textContent = fmt(r.rows[i].kwh, 1); (tr.querySelector('.c') as HTMLElement).textContent = fmt(r.rows[i].cost); });
+    big.textContent = list.length ? `${fmt(r.month)} a month` : 'Add an appliance to start';
+    rows.innerHTML = list.length ? rowsHtml([['Per day', fmt(r.day)], ['Per month', fmt(r.month)], ['Per year', fmt(r.year)], ['Energy a month', fmt(r.kwh, 1) + ' kWh'], ['Price used per kWh', fmt(r.rate, 4)]]) : '';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.matches('.x')) { t.closest('tr')?.remove(); calc(); }
+    if (t.matches('[data-k="add"]')) { const i = +val(root, 'preset'); if (i >= 0) addRow(PRESETS[i][0], PRESETS[i][1], PRESETS[i][2], PRESETS[i][3]); else addRow('My appliance', 100, 1, 0); calc(); }
+  });
+  [1, 3].forEach((i) => addRow(PRESETS[i][0], PRESETS[i][1], PRESETS[i][2], PRESETS[i][3]));
+  calc();
+</script>

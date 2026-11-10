@@ -1,0 +1,98 @@
+---
+// #1738 RESP and CESG: contributions, basic and additional CESG, Canada Learning Bond, growth.
+---
+<div class="tool-ui re">
+  <section class="panel">
+    <h2>Your child's RESP</h2>
+    <div class="re-grid">
+      <label>Child's age this year <input data-k="age" inputmode="numeric" value="0" /></label>
+      <label>Grow until the child turns <select data-k="until"><option value="17">17</option><option value="18" selected>18</option></select></label>
+      <label>Put in each year <span class="re-suf"><input data-k="per" inputmode="decimal" value="2,500" /><i>$</i></span></label>
+      <label>One-time amount now (optional) <span class="re-suf"><input data-k="lump" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>Yearly return <span class="re-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Family net income (2026) <select data-k="band"><option value="low">$58,523 or less</option><option value="mid">$58,524 to $117,045</option><option value="high" selected>more than $117,045</option></select></label>
+      <label>CESG already received <span class="re-suf"><input data-k="got" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label class="re-check"><input type="checkbox" data-k="clb" /> Eligible for the Canada Learning Bond (lower-income family, child born 2004 or later)</label>
+    </div>
+    <p class="note bad re-err" role="alert" hidden></p>
+  </section>
+  <section class="re-res" aria-live="polite">
+    <div class="re-stats">
+      <div class="good"><span>RESP at the end</span><b class="re-s-bal"></b></div>
+      <div><span>You put in</span><b class="re-s-put"></b></div>
+      <div><span>Government grants (CESG)</span><b class="re-s-grant"></b></div>
+      <div><span>Learning Bond</span><b class="re-s-clb"></b></div>
+    </div>
+    <p class="re-line"></p>
+    <p class="note warn re-note" hidden></p>
+    <details class="panel" open>
+      <summary>Year by year</summary>
+      <div class="re-wrap"><table>
+        <thead><tr><th>Age</th><th>Put in</th><th>CESG</th><th>Extra CESG</th><th>Bond</th><th>Balance</th></tr></thead>
+        <tbody class="re-body"></tbody>
+      </table></div>
+    </details>
+  </section>
+  <p class="re-fine">Rules from canada.ca, checked 10 November 2026: CESG is 20% of the first $2,500 a year ($500), up to $1,000 a year with unused room, $7,200 for life, until the end of the year the child turns 17. Additional CESG on the first $500: 20% or 10% by family income. Learning Bond: $500, then $100 a year to age 15, up to $2,000. RESP lifetime contribution limit $50,000. An estimate with one fixed return; check the official source. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .re { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .re > *, .re-res > * { min-width: 0; }
+  .re h2 { margin: 0 0 12px; font-size: 18px; }
+  .re .panel { padding: 16px; }
+  .re-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .re label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .re .re-check { grid-column: 1 / -1; display: flex; gap: 8px; align-items: flex-start; color: var(--ink); }
+  .re .re-check input { width: auto; margin-top: 3px; }
+  .re input, .re select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .re input:focus, .re select:focus { border-color: var(--accent); outline: none; }
+  .re-suf { position: relative; display: block; }
+  .re-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .re-suf input { padding-right: 32px; }
+  .re-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .re-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .re-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .re-stats span { font-size: 13px; color: var(--muted); }
+  .re-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .re-stats .good b { color: var(--good); }
+  .re-line, .re-note { margin: 0; font-size: 15px; }
+  .re-wrap { overflow-x: auto; }
+  .re table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .re th, .re td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .re th:first-child, .re td:first-child { text-align: left; }
+  .re th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .re details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .re-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .re-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .re-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { resp } from '../../lib/money/resp-calculator';
+  import { num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.re')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-CA');
+  function run() {
+    const age = num(f('age').value), until = +f('until').value, rate = num(f('rate').value), got = num(f('got').value);
+    const bad = !(age >= 0 && age < until && Number.isInteger(age)) ? `Enter the child's age as a whole number below ${until}.` : rate < -10 || rate > 30 ? 'Enter a yearly return between -10 and 30.' : num(f('per').value) < 0 || num(f('lump').value) < 0 || got < 0 ? 'Amounts cannot be negative.' : got > 7200 ? 'The CESG lifetime limit is $7,200.' : '';
+    q('.re-err').hidden = !bad; q('.re-err').textContent = bad; q('.re-res').hidden = !!bad;
+    if (bad) return;
+    const r = resp({ age, until, perYear: num(f('per').value), lump: num(f('lump').value), rate, band: f('band').value as 'low' | 'mid' | 'high', clb: f('clb').checked, received: got });
+    q('.re-s-bal').textContent = $(r.balance);
+    q('.re-s-put').textContent = $(r.put);
+    q('.re-s-grant').textContent = $(r.cesg + r.acesg);
+    q('.re-s-clb').textContent = f('clb').checked ? $(r.clb) : 'Not eligible';
+    const total = got + r.cesg + r.acesg;
+    q('.re-line').textContent = r.capYear !== null ? `The $7,200 lifetime grant is reached in the year the child turns ${r.capYear}.` : `Grants come to ${$(total)} of the $7,200 lifetime limit${got ? ', counting what you already received' : ''}. ${total < 7200 - 0.5 ? 'Put in more, or start earlier, to get the rest.' : ''}`;
+    const notes: string[] = [];
+    if (r.noGrant) notes.push('At 16 and 17, a child gets CESG only if at least $2,000 went in before the end of the year they turned 15, or at least $100 a year in any 4 earlier years. Enter any CESG already received if this applies.');
+    if (r.capped) notes.push('Contributions stop at the $50,000 lifetime limit for one child.');
+    q('.re-note').hidden = !notes.length; q('.re-note').textContent = notes.join(' ');
+    q('.re-body').innerHTML = r.rows.map((y) => `<tr><td>${y.age}</td><td>${$(y.put)}</td><td>${$(y.cesg)}</td><td>${$(y.acesg)}</td><td>${$(y.clb)}</td><td>${$(y.balance)}</td></tr>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

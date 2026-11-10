@@ -1,0 +1,153 @@
+---
+// #1774 GPA converter. Tables and maths in src/lib/docs/gpa.ts.
+import { US_TABLE, OMSAS_TABLE, UK_TABLE } from '../../lib/docs/gpa';
+---
+<div class="tool-ui gc">
+  <div class="gc-card">
+    <h2>1. Convert one result</h2>
+    <div class="gc-row">
+      <label>I have a
+        <select class="gc-kind">
+          <option value="cgpa">CGPA out of 10 (India)</option>
+          <option value="percentage">Percentage</option>
+          <option value="us">GPA out of 4.0 (US)</option>
+        </select>
+      </label>
+      <label>Value <input class="gc-val" type="number" step="any" min="0" value="8.4" inputmode="decimal" /></label>
+    </div>
+    <label class="gc-topper-l">Highest CGPA in your batch (optional, for the topper method)
+      <input class="gc-topper" type="number" step="any" min="0" max="10" inputmode="decimal" placeholder="for example 9.5" />
+    </label>
+    <p class="gc-err" hidden></p>
+    <dl class="gc-res"></dl>
+    <p class="gc-hint gc-warn">These are rough guides. Each university, country and evaluation service converts in its own way, so always check what the place you are applying to asks for.</p>
+  </div>
+
+  <div class="gc-card">
+    <h2>2. Weighted GPA from your courses</h2>
+    <label>Grades are written as
+      <select class="gc-scale">
+        <option value="us">US letters (A, B+, ...) or points up to 4.3</option>
+        <option value="omsas">OMSAS-style letters (A+ = 4.0, A = 3.9, ...)</option>
+        <option value="ten">Points out of 10 (India)</option>
+      </select>
+    </label>
+    <p class="gc-hint">One course per row. A course with more credits counts for more.</p>
+    <div class="gc-courses"></div>
+    <div class="gc-btns"><button type="button" class="btn gc-addrow">Add a course</button><button type="button" class="btn gc-example">Fill an example</button><button type="button" class="btn gc-clear">Clear</button></div>
+    <p class="gc-wres" aria-live="polite"></p>
+  </div>
+
+  <div class="gc-card">
+    <h2>The tables used</h2>
+    <details><summary>Percentage to US letter and points (common college scale)</summary>
+      <table class="gc-tbl"><thead><tr><th>Percent</th><th>Letter</th><th>Points</th></tr></thead><tbody>
+        {US_TABLE.map((b) => <tr><td>{b.min}+</td><td>{b.letter}</td><td>{b.gpa.toFixed(1)}</td></tr>)}
+      </tbody></table>
+    </details>
+    <details><summary>OMSAS-style table (Ontario)</summary>
+      <table class="gc-tbl"><thead><tr><th>Percent</th><th>Letter</th><th>Points</th></tr></thead><tbody>
+        {OMSAS_TABLE.map((b) => <tr><td>{b.min}+</td><td>{b.letter}</td><td>{b.gpa.toFixed(1)}</td></tr>)}
+      </tbody></table>
+    </details>
+    <details><summary>UK degree classes</summary>
+      <table class="gc-tbl"><thead><tr><th>Mark</th><th>Class</th><th>US GPA, roughly</th></tr></thead><tbody>
+        {UK_TABLE.map((u) => <tr><td>{u.min}+</td><td>{u.name}</td><td>{u.usApprox}</td></tr>)}
+      </tbody></table>
+    </details>
+  </div>
+</div>
+
+<style is:inline>
+  .gc { display: grid; gap: 14px; margin-bottom: 28px; }
+  .gc-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .gc-card h2 { margin: 0; font-size: 18px; }
+  .gc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .gc input, .gc select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .gc-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .gc-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .gc-err { margin: 0; color: var(--bad); }
+  .gc-res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; margin: 0; }
+  .gc-res dt { color: var(--muted); }
+  .gc-res dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .gc-res .gc-sep { grid-column: 1 / -1; font-size: 13px; color: var(--muted); font-weight: 400; text-align: left; margin-top: 4px; }
+  .gc-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gc-course { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .gc-wres { margin: 0; font-size: 18px; font-weight: 600; }
+  .gc-tbl { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 6px; }
+  .gc-tbl th, .gc-tbl td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  .gc details summary { cursor: pointer; }
+  .gc [hidden] { display: none !important; }
+  @media (max-width: 480px) { .gc-row { grid-template-columns: minmax(0, 1fr); } .gc-course { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .gc-course .gc-cname { grid-column: 1 / -1; } }
+</style>
+
+<script>
+  import { convert, cgpaToUsTopper, weightedGpa, cgpaToPct, type Source, type Scale } from '../../lib/docs/gpa';
+  const root = document.querySelector('.gc') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const kind = q<HTMLSelectElement>('.gc-kind'), val = q<HTMLInputElement>('.gc-val'), topper = q<HTMLInputElement>('.gc-topper');
+  const f1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
+  const f2 = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+  const row = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+  const update = () => {
+    const k = kind.value as Source;
+    q('.gc-topper-l').hidden = k === 'us';
+    const err = q('.gc-err'), res = q('.gc-res');
+    const c = val.value.trim() === '' ? null : convert(k, +val.value);
+    err.hidden = c !== null || val.value.trim() === '';
+    err.textContent = k === 'cgpa' ? 'Type a CGPA from 0 to 10.' : k === 'percentage' ? 'Type a percentage from 0 to 100.' : 'Type a GPA from 0 to 4.3.';
+    if (!c) { res.innerHTML = ''; return; }
+    let h = '';
+    if (k === 'us') {
+      h += `<dt class="gc-sep">A US GPA is turned into the middle of the matching percentage band, then converted. This is only a rough guide.</dt>`;
+      h += row('US letter grade', c.us.letter) + row('Percentage (about)', f1(c.pct) + '%') + row('CGPA out of 10 (about)', f2(c.cgpa));
+    } else {
+      h += row('Percentage', f1(c.pct) + '%' + (k === 'cgpa' ? ' (CGPA x 9.5)' : ''));
+      h += row('CGPA out of 10 (percentage / 9.5)', f2(c.cgpa));
+      h += `<dt class="gc-sep">Out of 4.0 (US). Indian marks usually run lower than US marks, so the methods differ a lot.</dt>`;
+      h += row('Simple scale (CGPA / 10 x 4)', f2(c.usSimple));
+      const t = +topper.value;
+      if (k === 'cgpa' && t > 0 && t <= 10) h += row('Topper method (CGPA / batch best x 4)', f2(Math.min(4, cgpaToUsTopper(+val.value, t))));
+      h += row('US college percentage scale', `${c.us.letter}, ${c.us.gpa.toFixed(1)}`);
+    }
+    h += `<dt class="gc-sep">Other countries</dt>`;
+    h += row('Canada (OMSAS-style table)', `${c.omsas.letter}, ${c.omsas.gpa.toFixed(1)}`);
+    h += row('UK degree class', `${c.uk.name}`);
+    h += row('UK class in US terms', c.uk.usApprox);
+    res.innerHTML = h;
+  };
+  [kind, val, topper].forEach((e) => e.addEventListener('input', update));
+
+  // ---- weighted GPA ----
+  const box = q('.gc-courses'), scale = q<HTMLSelectElement>('.gc-scale');
+  const addRow = (n = '', g = '', c = '') => {
+    const d = document.createElement('div'); d.className = 'gc-course';
+    d.innerHTML = `<input class="gc-cname" type="text" placeholder="Course (optional)" aria-label="Course name" autocomplete="off"><input class="gc-cg" type="text" placeholder="Grade" aria-label="Grade" autocomplete="off"><input class="gc-cc" type="number" min="0" step="any" placeholder="Credits" aria-label="Credits" inputmode="decimal"><button type="button" class="btn gc-rm" aria-label="Remove this course">x</button>`;
+    (d.querySelector('.gc-cname') as HTMLInputElement).value = n; (d.querySelector('.gc-cg') as HTMLInputElement).value = g; (d.querySelector('.gc-cc') as HTMLInputElement).value = c;
+    box.appendChild(d);
+  };
+  const wupdate = () => {
+    const courses = [...box.querySelectorAll('.gc-course')].map((r) => ({
+      name: (r.querySelector('.gc-cname') as HTMLInputElement).value, grade: (r.querySelector('.gc-cg') as HTMLInputElement).value, credits: (r.querySelector('.gc-cc') as HTMLInputElement).value,
+    }));
+    const out = q('.gc-wres'), s = scale.value as Scale;
+    const r = weightedGpa(courses, s);
+    if (!r) { out.textContent = 'Add a grade and the credits for at least one course.'; return; }
+    out.textContent = s === 'ten'
+      ? `CGPA ${f2(r.gpa)} out of 10 (about ${f1(cgpaToPct(r.gpa))}%) from ${r.credits} credits`
+      : `GPA ${f2(r.gpa)} out of 4.0 from ${r.credits} credits`;
+    if (r.skipped) out.textContent += `. ${r.skipped} row${r.skipped > 1 ? 's' : ''} skipped (grade not understood or no credits).`;
+  };
+  box.addEventListener('input', wupdate);
+  box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.gc-rm'); if (b) { b.parentElement?.remove(); wupdate(); } });
+  scale.addEventListener('change', wupdate);
+  q('.gc-addrow').addEventListener('click', () => { addRow(); wupdate(); });
+  q('.gc-clear').addEventListener('click', () => { box.innerHTML = ''; addRow(); addRow(); addRow(); wupdate(); });
+  q('.gc-example').addEventListener('click', () => {
+    box.innerHTML = ''; scale.value = 'us';
+    addRow('Calculus', 'A', '4'); addRow('Biology', 'B+', '3'); addRow('English', 'A-', '3'); addRow('Lab', 'B', '1');
+    wupdate();
+  });
+  addRow(); addRow(); addRow();
+  update(); wupdate();
+</script>

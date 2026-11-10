@@ -1,0 +1,135 @@
+---
+// #1775 Timesheet: a week of shifts, unpaid breaks and overnight work, with overtime and pay.
+---
+<div class="tool-ui ts">
+  <section class="panel">
+    <h2>Your week</h2>
+    <div class="ts-grid">
+      <label>First day of the week <input type="date" data-k="start" /></label>
+      <label>Hourly pay <input data-k="rate" inputmode="decimal" /></label>
+      <label>Currency <select class="ts-cur" data-k="cur"></select></label>
+      <label>Round each day to <select data-k="round"><option value="0">No rounding</option><option value="5">5 minutes</option><option value="6">6 minutes (tenth of an hour)</option><option value="15">15 minutes</option></select></label>
+    </div>
+    <div class="ts-wrap"><table class="ts-days">
+      <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Unpaid break (min)</th><th>Hours</th></tr></thead>
+      <tbody class="ts-body"></tbody>
+    </table></div>
+    <p class="ts-help">An end time earlier than the start time means the shift ends after midnight. The hours belong to the day the shift started.</p>
+  </section>
+  <section class="panel">
+    <h2>Overtime rule</h2>
+    <div class="ts-grid">
+      <label>Rule <select class="ts-rule" data-k="rule"></select></label>
+      <label>Overtime after, per day <span class="ts-suf"><input data-k="daily" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Overtime after, per week <span class="ts-suf"><input data-k="weekly" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Overtime pays <span class="ts-suf"><input data-k="mult" inputmode="decimal" /><i>times</i></span></label>
+      <label>Double time after, per day <span class="ts-suf"><input data-k="dd" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Double time pays <span class="ts-suf"><input data-k="mult2" inputmode="decimal" /><i>times</i></span></label>
+    </div>
+    <p class="ts-help ts-note"></p>
+    <p class="ts-help ts-src"></p>
+  </section>
+  <section class="ts-res" aria-live="polite">
+    <div class="ts-stats">
+      <div><span>Total hours</span><b class="ts-s-total"></b></div>
+      <div><span>Decimal hours</span><b class="ts-s-dec"></b></div>
+      <div><span>Overtime hours</span><b class="ts-s-ot"></b></div>
+      <div class="good"><span>Pay before tax</span><b class="ts-s-pay"></b></div>
+    </div>
+    <p class="ts-line"></p>
+    <div class="ts-actions"><button type="button" class="btn ts-csv">Download CSV</button> <button type="button" class="btn secondary ts-print">Print</button></div>
+  </section>
+  <p class="ts-fine">Pay is before tax and deductions. Overtime rules differ by place, job and contract; the rules listed here are summaries, so check the official source and your contract. Not legal, payroll or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ts > *, .ts-res > * { min-width: 0; }
+  .ts h2 { margin: 0 0 12px; font-size: 18px; }
+  .ts .panel { padding: 16px; }
+  .ts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 12px; }
+  .ts label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ts input, .ts select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ts input:focus, .ts select:focus { border-color: var(--accent); outline: none; }
+  .ts-suf { position: relative; display: block; }
+  .ts-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ts-suf input { padding-right: 62px; }
+  .ts-wrap { overflow-x: auto; }
+  .ts table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ts th, .ts td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  .ts th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .ts td input { padding: 7px 8px; min-width: 88px; }
+  .ts td.ts-h { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ts-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ts-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ts-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ts-stats span { font-size: 13px; color: var(--muted); }
+  .ts-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .ts-stats .good b { color: var(--good); }
+  .ts-line { margin: 0; font-size: 15px; }
+  .ts-help { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+  .ts-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .ts-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 720px) { .ts-stats { grid-template-columns: 1fr 1fr; } }
+  @media print { .ts-actions, .ts-grid label:has(select), .ts-fine { display: none; } .ts input, .ts select { border: none; padding: 0; background: none; } }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { OT_RULES, ruleById, splitHours, payFor, hm } from '../../lib/money/overtime';
+  import { csv } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+  const root = document.querySelector<HTMLElement>('.ts')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  q('.ts-cur').innerHTML = currencyOptions(defaultCurrency());
+  q('.ts-rule').innerHTML = OT_RULES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
+  q('.ts-body').innerHTML = NAMES.map((n, i) => `<tr data-i="${i}"><td class="ts-n">${n}</td><td><input type="time" data-d="s" /></td><td><input type="time" data-d="e" /></td><td><input data-d="b" inputmode="numeric" value="0" /></td><td class="ts-h"></td></tr>`).join('');
+  f('rate').value = '20';
+  function fillRule() {
+    const r = ruleById(f('rule').value);
+    f('daily').value = String(r.daily); f('weekly').value = String(r.weekly); f('mult').value = String(r.mult); f('dd').value = String(r.dailyDouble); f('mult2').value = String(r.mult2);
+    q('.ts-note').textContent = r.note; q('.ts-src').textContent = 'Source: ' + r.src + (r.confirmed ? '' : '. Not confirmed on an official page: check the official source.');
+  }
+  fillRule();
+  const toMin = (t: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(t); return m ? +m[1] * 60 + +m[2] : -1; };
+  const dayName = (i: number) => {
+    const s = f('start').value; if (!s) return NAMES[i];
+    const d = new Date(s + 'T00:00:00Z'); if (isNaN(+d)) return NAMES[i];
+    d.setUTCDate(d.getUTCDate() + i); return d.toISOString().slice(0, 10);
+  };
+  function run() {
+    const rnd = +f('round').value, rate = num(f('rate').value);
+    const daily = num(f('daily').value), weekly = num(f('weekly').value), dd = num(f('dd').value), m1 = Math.max(1, num(f('mult').value)), m2 = Math.max(1, num(f('mult2').value));
+    const hours: number[] = [];
+    root.querySelectorAll<HTMLElement>('.ts-body tr').forEach((tr, i) => {
+      const s = toMin((tr.querySelector('[data-d="s"]') as HTMLInputElement).value), e = toMin((tr.querySelector('[data-d="e"]') as HTMLInputElement).value), b = Math.max(0, num((tr.querySelector('[data-d="b"]') as HTMLInputElement).value));
+      let mins = 0;
+      if (s >= 0 && e >= 0) { mins = (e <= s ? e + 1440 : e) - s - b; if (mins < 0) mins = 0; if (rnd) mins = Math.round(mins / rnd) * rnd; }
+      hours.push(mins / 60);
+      (tr.querySelector('.ts-n') as HTMLElement).textContent = (f('start').value ? NAMES[i].slice(0, 3) + ' ' : '') + dayName(i);
+      (tr.querySelector('.ts-h') as HTMLElement).textContent = mins ? `${hm(hours[i])} (${hours[i].toFixed(2)})` : '-';
+    });
+    const rule = ruleById(f('rule').value);
+    const sp = splitHours(hours, { daily, weekly, dailyDouble: dd, mode: rule.mode });
+    const pay = payFor(sp, rate, m1, m2), cur = f('cur').value;
+    q('.ts-s-total').textContent = hm(sp.total);
+    q('.ts-s-dec').textContent = sp.total.toFixed(2);
+    q('.ts-s-ot').textContent = (sp.ot1 + sp.ot2).toFixed(2);
+    q('.ts-s-pay').textContent = money(pay, cur, 2);
+    q('.ts-line').textContent = sp.total ? `${sp.regular.toFixed(2)} regular hours at ${money(rate, cur, 2)}` + (sp.ot1 ? `, ${sp.ot1.toFixed(2)} overtime hours at ${m1} times` : '') + (sp.ot2 ? `, ${sp.ot2.toFixed(2)} double-time hours at ${m2} times` : '') + '.' : 'Enter start and end times to see your hours.';
+    (root as any)._csv = () => {
+      const rows: (string | number)[][] = [['Day', 'Start', 'End', 'Break (min)', 'Hours']];
+      root.querySelectorAll<HTMLElement>('.ts-body tr').forEach((tr, i) => rows.push([dayName(i), (tr.querySelector('[data-d="s"]') as HTMLInputElement).value, (tr.querySelector('[data-d="e"]') as HTMLInputElement).value, (tr.querySelector('[data-d="b"]') as HTMLInputElement).value, hours[i].toFixed(2)]));
+      rows.push([], ['Total hours', '', '', '', sp.total.toFixed(2)], ['Regular hours', '', '', '', sp.regular.toFixed(2)], ['Overtime hours', '', '', '', sp.ot1.toFixed(2)], ['Double-time hours', '', '', '', sp.ot2.toFixed(2)], ['Hourly pay', '', '', '', rate.toFixed(2)], ['Pay before tax (' + cur + ')', '', '', '', pay.toFixed(2)]);
+      return csv(rows);
+    };
+  }
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement) === f('rule')) return; run(); });
+  f('rule').addEventListener('change', () => { fillRule(); run(); });
+  root.addEventListener('change', run);
+  q('.ts-csv').addEventListener('click', () => save(new TextEncoder().encode((root as any)._csv()), 'timesheet.csv', 'text/csv'));
+  q('.ts-print').addEventListener('click', () => window.print());
+  run();
+</script>

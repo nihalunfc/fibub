@@ -1,0 +1,66 @@
+---
+// #1772 Lorem ipsum. Maths in src/lib/docs/textutil.ts.
+---
+<div class="tool-ui lrm">
+  <div class="lrm-card">
+    <div class="lrm-grid">
+      <label>How many
+        <input class="lrm-n" type="number" min="1" max="5000" value="3" inputmode="numeric" />
+      </label>
+      <label>Of
+        <select class="lrm-unit"><option value="paragraphs">paragraphs</option><option value="sentences">sentences</option><option value="words">words</option></select>
+      </label>
+      <label>Kind of filler
+        <select class="lrm-style"><option value="classic">Classic Latin (lorem ipsum)</option><option value="plain">Plain English</option></select>
+      </label>
+    </div>
+    <label class="lrm-chk"><input type="checkbox" class="lrm-start" checked /> <span>Start with "Lorem ipsum dolor sit amet"<small>Only for the classic kind.</small></span></label>
+    <label class="lrm-chk"><input type="checkbox" class="lrm-html" /> <span>Wrap in HTML &lt;p&gt; tags<small>Handy when you paste into a web page.</small></span></label>
+    <div class="lrm-row"><button type="button" class="btn lrm-again">Make different text</button></div>
+  </div>
+  <div class="lrm-card">
+    <h2>Your filler text</h2>
+    <pre class="lrm-pre lrm-out" aria-live="polite"></pre>
+    <p class="lrm-hint lrm-stat"></p>
+    <div class="lrm-row"><button type="button" class="btn lrm-copy">Copy the text</button></div>
+  </div>
+</div>
+<style is:inline>
+  .lrm { display: grid; gap: 14px; margin-bottom: 28px; }
+  .lrm-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .lrm-card h2 { margin: 0; font-size: 18px; }
+  .lrm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .lrm textarea, .lrm input[type=text], .lrm input[type=number], .lrm select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .lrm textarea { min-height: 180px; resize: vertical; }
+  .lrm .lrm-chk { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .lrm .lrm-chk input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+  .lrm .lrm-chk small { display: block; color: var(--muted); font-size: 13px; }
+  .lrm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .lrm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .lrm-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .lrm .btn { justify-self: start; }
+  .lrm mark { background: color-mix(in srgb, var(--bad) 25%, transparent); color: inherit; border-radius: 3px; }
+  .lrm-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-height: 320px; overflow: auto; }
+  @media (max-width: 480px) { .lrm-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { lorem, countText } from '../../lib/docs/textutil';
+  const root = document.querySelector('.lrm') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const n = q<HTMLInputElement>('.lrm-n'), unit = q<HTMLSelectElement>('.lrm-unit'), style = q<HTMLSelectElement>('.lrm-style'),
+    start = q<HTMLInputElement>('.lrm-start'), html = q<HTMLInputElement>('.lrm-html'), out = q('.lrm-out');
+  let seed = 7;
+  const update = () => {
+    q('.lrm-start').closest('label')!.hidden = style.value !== 'classic';
+    const t = lorem({ unit: unit.value as 'words', count: Number(n.value), style: style.value as 'classic', startClassic: start.checked, html: html.checked, seed });
+    out.textContent = t;
+    const plain = html.checked ? t.replace(/<[^>]+>/g, ' ') : t, c = countText(plain);
+    q('.lrm-stat').textContent = `${c.words} words, ${c.chars} characters.`;
+  };
+  [n, unit, style, start, html].forEach((e) => { e.addEventListener('input', update); e.addEventListener('change', update); });
+  q('.lrm-again').addEventListener('click', () => { seed = Math.floor(Math.random() * 1e9) + 1; update(); });
+  const copy = q<HTMLButtonElement>('.lrm-copy');
+  copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(out.textContent || ''); copy.textContent = 'Copied'; } catch { copy.textContent = 'Press Ctrl+C to copy'; } setTimeout(() => (copy.textContent = 'Copy the text'), 1800); });
+  update();
+</script>

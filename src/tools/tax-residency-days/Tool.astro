@@ -1,0 +1,121 @@
+---
+// #1778 Residency days: days in each country from a list of trips, with 183-day markers and the US substantial presence test.
+---
+<div class="tool-ui rd">
+  <section class="panel">
+    <h2>Your trips</h2>
+    <p class="rd-help">Add every stay, including time at home. Dates are inclusive: from the day you arrived to the day you left.</p>
+    <div class="rd-grid rd-add">
+      <label>Country <input data-k="country" list="rd-countries" autocomplete="off" /></label>
+      <label>Arrived <input type="date" data-k="from" /></label>
+      <label>Left <input type="date" data-k="to" /></label>
+      <button type="button" class="btn rd-addbtn">Add trip</button>
+    </div>
+    <datalist id="rd-countries"><option>Canada</option><option>United States</option><option>United Kingdom</option><option>India</option><option>United Arab Emirates</option><option>Saudi Arabia</option><option>Qatar</option><option>Kuwait</option><option>Oman</option><option>Bahrain</option></datalist>
+    <p class="note bad rd-err" role="alert" hidden></p>
+    <div class="rd-wrap"><table class="rd-trips"><thead><tr><th>Country</th><th>Arrived</th><th>Left</th><th></th></tr></thead><tbody class="rd-tbody"></tbody></table></div>
+    <p class="rd-empty">No trips yet.</p>
+    <div class="rd-actions"><button type="button" class="btn secondary rd-clear">Clear all trips</button></div>
+    <label class="rd-keep"><input type="checkbox" data-k="keep" /> Keep my trips on this device (in this browser only, never sent anywhere)</label>
+  </section>
+  <section class="panel">
+    <h2>Which year?</h2>
+    <div class="rd-grid">
+      <label>Year type <select data-k="region"><option value="calendar">Calendar year (Canada, US, most countries)</option><option value="uk">UK tax year (6 April to 5 April)</option><option value="india">Indian financial year (1 April to 31 March)</option></select></label>
+      <label>Starting in <input data-k="year" inputmode="numeric" /></label>
+      <label>Day counting <select data-k="counting"><option value="both">Arrival and departure days both count</option><option value="midnight">Count days present at midnight (UK style)</option></select></label>
+    </div>
+    <p class="rd-help rd-period"></p>
+  </section>
+  <section class="rd-res" aria-live="polite">
+    <div class="panel rd-wrap"><table>
+      <thead><tr><th>Country</th><th>Days</th><th>Markers</th></tr></thead>
+      <tbody class="rd-body"></tbody>
+    </table></div>
+    <div class="panel rd-spt">
+      <h2>United States substantial presence test</h2>
+      <p class="rd-help">Uses calendar years: days this year + one third of last year + one sixth of the year before, and at least 31 days this year. Count of US days comes from your trips.</p>
+      <div class="rd-wrap"><table><thead><tr><th>Year</th><th>US days</th><th>Counted as</th><th>Weighted</th></tr></thead><tbody class="rd-spt-body"></tbody></table></div>
+      <p class="rd-line rd-spt-out"></p>
+    </div>
+  </section>
+  <p class="rd-fine">This counts days only. It is not tax advice: residency has more tests than days (homes, family, work, treaties, exempt days such as some students or crew, and the "closer connection" exceptions). Rules shown are summaries; check the official source for your country and year. Your trips stay on this page unless you tick the box to keep them in this browser.</p>
+</div>
+
+<style is:inline>
+  .rd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rd > *, .rd-res > * { min-width: 0; }
+  .rd h2 { margin: 0 0 10px; font-size: 18px; }
+  .rd .panel { padding: 16px; }
+  .rd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
+  .rd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rd input:not([type=checkbox]), .rd select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rd input:focus, .rd select:focus { border-color: var(--accent); outline: none; }
+  .rd-keep { display: flex !important; grid-template-columns: none; align-items: center; gap: 8px; margin-top: 12px; }
+  .rd-help { margin: 6px 0 12px; font-size: 13px; color: var(--muted); }
+  .rd-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rd-wrap { overflow-x: auto; margin-top: 10px; }
+  .rd-res .rd-wrap { margin-top: 0; }
+  .rd table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rd th, .rd td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .rd th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .rd td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .rd-body td:last-child { font-size: 13px; color: var(--muted); }
+  .rd-actions { margin-top: 10px; }
+  .rd-empty { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .rd-empty[hidden] { display: none; }
+  .rd-line { margin: 10px 0 0; font-size: 15px; }
+  .rd-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .rd-err { margin: 10px 0 0; }
+  .rd .rm { padding: 4px 10px; }
+</style>
+
+<script>
+  import { dayNum, period, daysByCountry, usDays, substantialPresence, markers, isoOf, type Trip, type Region, type Counting } from '../../lib/money/residency';
+  const root = document.querySelector<HTMLElement>('.rd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const KEY = 'fibub-residency-v1';
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  let trips: Trip[] = [];
+  f('year').value = String(new Date().getFullYear());
+  try { const raw = localStorage.getItem(KEY); if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) { trips = v.filter((t) => t && typeof t.country === 'string' && typeof t.from === 'string' && typeof t.to === 'string'); f('keep').checked = true; } } } catch { /* storage unavailable */ }
+  const persist = () => { try { if (f('keep').checked) localStorage.setItem(KEY, JSON.stringify(trips)); else localStorage.removeItem(KEY); } catch { /* ignore */ } };
+  const fmt = (n: number) => n.toLocaleString('en', { maximumFractionDigits: 2 });
+  function render() {
+    const region = f('region').value as Region, year = Math.round(+f('year').value), counting = f('counting').value as Counting;
+    q('.rd-tbody').innerHTML = trips.map((t, i) => `<tr><td>${esc(t.country)}</td><td>${t.from}</td><td>${t.to}</td><td><button type="button" class="btn secondary small rm" data-rm="${i}" aria-label="Remove trip to ${esc(t.country)}">Remove</button></td></tr>`).join('');
+    q('.rd-empty').hidden = trips.length > 0;
+    q<HTMLElement>('.rd-trips').hidden = !trips.length;
+    if (!(year >= 1900 && year <= 2200)) { q('.rd-period').textContent = 'Enter a year such as 2026.'; q('.rd-body').innerHTML = ''; q('.rd-spt-body').innerHTML = ''; q('.rd-spt-out').textContent = ''; return; }
+    const p = period(region, year);
+    q('.rd-period').textContent = `Counting ${p.label}.`;
+    const by = [...daysByCountry(trips, p.from, p.to, counting).values()].sort((a, b) => b.days - a.days);
+    q('.rd-body').innerHTML = by.length ? by.map((c) => {
+      const mk = markers(region, c.name).map((m) => c.days >= m.at ? `Reached ${m.text}` : `${m.at - c.days} more days to ${m.at}: ${m.text}`).join('<br>');
+      return `<tr><td>${esc(c.name)}</td><td class="n"><b>${c.days}</b></td><td>${mk}</td></tr>`;
+    }).join('') : '<tr><td colspan="3">Add trips to see your days.</td></tr>';
+    const d = [usDays(trips, year, counting), usDays(trips, year - 1, counting), usDays(trips, year - 2, counting)];
+    const sp = substantialPresence(d[0], d[1], d[2]);
+    q('.rd-spt-body').innerHTML = [[year, d[0], '1', d[0]], [year - 1, d[1], '1/3', d[1] / 3], [year - 2, d[2], '1/6', d[2] / 6]].map((r) => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td>${r[2]}</td><td class="n">${fmt(r[3] as number)}</td></tr>`).join('') + `<tr><td><b>Total</b></td><td></td><td></td><td class="n"><b>${fmt(sp.weighted)}</b></td></tr>`;
+    q('.rd-spt-out').textContent = sp.resident ? `Weighted total ${fmt(sp.weighted)} is 183 or more and you have ${d[0]} days this year (31 needed): you meet the substantial presence test. Exceptions, the closer connection rule and tax treaties may still apply.` : `You do not meet the substantial presence test on these trips: ${d[0]} days this year (31 needed) and a weighted total of ${fmt(sp.weighted)} (183 needed). Include trips for the two years before so the weighting is right.`;
+  }
+  const setCounting = () => { f('counting').value = f('region').value === 'uk' ? 'midnight' : 'both'; };
+  q('.rd-addbtn').addEventListener('click', () => {
+    const country = f('country').value.trim(), from = f('from').value, to = f('to').value || from;
+    const err = q('.rd-err');
+    const bad = !country ? 'Enter a country.' : !(dayNum(from) >= 0) ? 'Choose the day you arrived.' : dayNum(to) < dayNum(from) ? 'The day you left cannot be before the day you arrived.' : '';
+    err.hidden = !bad; err.textContent = bad;
+    if (bad) return;
+    trips.push({ country, from, to }); trips.sort((a, b) => a.from.localeCompare(b.from));
+    f('country').value = ''; f('from').value = ''; f('to').value = '';
+    persist(); render();
+  });
+  q('.rd-tbody').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-rm]') as HTMLElement | null; if (b) { trips.splice(+b.dataset.rm!, 1); persist(); render(); } });
+  q('.rd-clear').addEventListener('click', () => { trips = []; persist(); render(); });
+  f('keep').addEventListener('change', persist);
+  f('region').addEventListener('change', () => { setCounting(); render(); });
+  for (const k of ['year', 'counting']) { f(k).addEventListener('input', render); f(k).addEventListener('change', render); }
+  void isoOf;
+  render();
+</script>
