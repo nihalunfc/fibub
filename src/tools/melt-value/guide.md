@@ -2,6 +2,7 @@
 name: Melt value
 num: 1601
 shelf: collecting
+code: T721
 section: metals
 title: "Melt value calculator: silver and gold coins at today's price"
 seoTitle: "Coin melt value calculator: silver and gold today"

@@ -256,7 +256,7 @@ export const sectionLabel = (s: { name: string; subject?: string }, shelf = 'sci
  * Old plain numbers (#3, #1211) stay as search aliases. scripts/renumber.mjs and new-tool.mjs follow this.
  */
 export const CODES = [
-  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'everyday'], text: 'Everything on the Tools tab: Science, Documents, Money and Everyday.' },
+  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'everyday', 'collecting'], text: 'Everything on the Tools tab: Science, Documents, Money, Everyday and Collecting.' },
   { prefix: 'L', name: 'Learn', shelves: ['learn'], text: 'School science and maths activities, Class 8 to 12.' },
 ] as const;
 export const codePrefix = (shelf: string) => CODES.find((c) => (c.shelves as readonly string[]).includes(shelf))?.prefix ?? 'T';

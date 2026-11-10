@@ -2,6 +2,7 @@
 name: Grade scale
 num: 1605
 shelf: collecting
+code: T725
 section: vetting
 title: "Coin grade scale: 1 to 70 numbers and what the words mean"
 summary: "Pick a number from 1 to 70 and see the US word, abbreviation, UK, French and German equivalents with a plain description. Includes a table of all bands and common banknote terms."

@@ -2,6 +2,7 @@
 name: Coin dates
 num: 1611
 shelf: collecting
+code: T731
 section: coins-notes
 title: "Coin dates: convert AH, Vikram Samvat and other coin years"
 seoTitle: "Coin date converter: AH, VS, Saka, Kollam to CE"

@@ -46,6 +46,9 @@ for (const block of raw.split('\x1e').slice(1)) {
   }
   // Changes that only touch notes or tests are not news for visitors.
   if (!touched.size && !site) continue;
+  // A sweep over most tools at once (a rename pass, new ID codes) is one site-wide change: listing
+  // every tool would bloat /changes/ past the page-size limit and fill each tool's own list.
+  if (touched.size > 50) { touched.clear(); site = true; }
   entries.push({ sha: sha.slice(0, 12), date, title: title.trim(), tools: [...touched].sort(), site });
 }
 const json = JSON.stringify(entries, null, 1) + '\n';
