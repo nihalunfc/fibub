@@ -1,0 +1,210 @@
+---
+// Coordinate treasure hunt (Learn): four games on the Cartesian plane. Plot a point, read a point, hunt hidden
+// treasure with distance clues, and a single-player ships game. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ch">
+  <div class="ax-card">
+    <h2>Pick a game</h2>
+    <div class="ax-seg ch-mode" role="group" aria-label="Game">
+      <button type="button" data-m="plot" aria-pressed="true">Plot it</button>
+      <button type="button" data-m="read" aria-pressed="false">Read it</button>
+      <button type="button" data-m="hunt" aria-pressed="false">Treasure hunt</button>
+      <button type="button" data-m="ships" aria-pressed="false">Ships</button>
+    </div>
+    <p class="sm-f ch-ask" aria-live="polite" style="margin-top:10px"></p>
+    <svg class="sm-fig ch-fig" viewBox="0 0 340 340" role="img" aria-label="A coordinate grid; tap a point on it"></svg>
+    <div class="ax-row ch-typed" style="margin-top:10px">
+      <input type="text" class="ch-in" inputmode="text" autocomplete="off" placeholder="(x, y)" aria-label="Type a point as (x, y)" style="flex:1 1 8em;min-width:0;max-width:12em" />
+      <button type="button" class="btn small ch-go">Go</button>
+      <button type="button" class="btn secondary small ch-next">New round</button>
+      <button type="button" class="btn secondary small ch-give">Show me</button>
+    </div>
+    <p class="sm-f ch-out" aria-live="polite"></p>
+    <p class="ax-help ch-score"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How the plane works</h2>
+    <ul class="sm-try">
+      <li>A point (x, y): go x across (right is +, left is −), then y up (up is +, down is −). Always across first.</li>
+      <li>The axes split the plane into four quadrants, numbered anticlockwise from the top right: I (+, +), II (−, +), III (−, −), IV (+, −).</li>
+      <li>A point on an axis is in no quadrant: (4, 0) is on the x-axis, (0, −3) on the y-axis.</li>
+      <li>The distance from (x₁, y₁) to (x₂, y₂) is √[(x₂ − x₁)² + (y₂ − y₁)²]: Pythagoras on the grid.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>In the treasure hunt, use the distance clue: all the points √5 away from your guess lie on a circle.</li>
+      <li>Find the treasure in 3 guesses or fewer. It is always possible with good guesses.</li>
+      <li>In Ships, after a hit, try the four neighbours: one up, down, left and right. What are their coordinates?</li>
+      <li>In Read it, say the quadrant from the signs before you type the point.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type a point as two numbers, x first, like 3, −2. Nothing is saved.</p>
+    <div class="ch-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ch svg .ch-ok { fill: var(--good); }
+  .ch svg .ch-no { fill: var(--bad); }
+  .ch svg .ch-miss { fill: var(--muted); }
+  .ch svg .ch-ship { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .ch svg .ch-ring { fill: none; stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .ch svg .ch-q { fill: var(--muted); font-size: 15px; font-weight: 700; opacity: .55; }
+  .ch svg .ch-lab { font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .ch .ch-out .good { color: var(--good); font-weight: 700; }
+  .ch .ch-out .bad { color: var(--bad); font-weight: 700; }
+</style>
+
+<script>
+  import { quadrant, signs, dist, surd, placeShips, hitShip, readPoint, type Pt } from '../../lib/sci/coordinate-hunt';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, svgPoint, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ch')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ch-fig'), inp = q<HTMLInputElement>('.ch-in'), out = q('.ch-out'), ask = q('.ch-ask'), score = q('.ch-score');
+  type Mode = 'plot' | 'read' | 'hunt' | 'ships';
+  let mode: Mode = 'plot', N = 6;
+  let target: Pt = [0, 0], marks: { p: Pt; cls: string; lab?: string; ring?: number }[] = [], done = false, shown = false;
+  let tally = { right: 0, tries: 0 }, guesses = 0, ships: Pt[][] = [], shots = new Map<string, boolean>();
+  const LENGTHS = [4, 3, 2];
+  const X = (x: number) => 20 + ((x + N) / (2 * N)) * 300, Y = (y: number) => 320 - ((y + N) / (2 * N)) * 300;
+  const name = (p: Pt) => `(${fmt(p[0])}, ${fmt(p[1])})`;
+  const say = (cls: string, strong: string, rest: string) => { const b = document.createElement('span'); b.className = cls; b.textContent = strong; out.replaceChildren(b, rest ? ' ' + rest : ''); };
+
+  function grid() {
+    fig.replaceChildren();
+    for (let i = -N; i <= N; i++) {
+      S('line', { x1: X(i), x2: X(i), y1: Y(-N), y2: Y(N), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      S('line', { x1: X(-N), x2: X(N), y1: Y(i), y2: Y(i), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      if (i !== 0 && (N <= 6 || i % 2 === 0)) { S('text', { x: X(i), y: Y(0) + 13, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(i)); S('text', { x: X(0) - 4, y: Y(i) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(i)); }
+    }
+    S('text', { x: X(0) - 4, y: Y(0) + 13, 'text-anchor': 'end', class: 'sm-tick' }, fig, '0');
+    S('text', { x: X(N) - 2, y: Y(0) - 5, 'text-anchor': 'end', style: 'font-style:italic;font-weight:700' }, fig, 'x');
+    S('text', { x: X(0) + 6, y: Y(N) + 12, style: 'font-style:italic;font-weight:700' }, fig, 'y');
+    if (mode !== 'ships') for (const [qx, qy, t] of [[N / 2, N / 2, 'I'], [-N / 2, N / 2, 'II'], [-N / 2, -N / 2, 'III'], [N / 2, -N / 2, 'IV']] as const) S('text', { x: X(qx), y: Y(qy), 'text-anchor': 'middle', class: 'ch-q' }, fig, t);
+  }
+
+  function draw() {
+    grid();
+    if (mode === 'ships' && (done || shown)) for (const s of ships) {
+      const xs = s.map((c) => c[0]), ys = s.map((c) => c[1]), w = 300 / (2 * N);
+      S('rect', { x: X(Math.min(...xs)) - w * 0.4, y: Y(Math.max(...ys)) - w * 0.4, width: (Math.max(...xs) - Math.min(...xs)) * w + w * 0.8, height: (Math.max(...ys) - Math.min(...ys)) * w + w * 0.8, rx: 8, class: 'ch-ship' }, fig);
+    }
+    for (const m of marks) {
+      if (m.ring) S('circle', { cx: X(m.p[0]), cy: Y(m.p[1]), r: (m.ring * 300) / (2 * N), class: 'ch-ring' }, fig);
+      S('circle', { cx: X(m.p[0]), cy: Y(m.p[1]), r: m.cls === 'ch-miss' ? 4 : 7, class: m.cls }, fig);
+      if (m.lab) S('text', { x: X(m.p[0]) + 9, y: Y(m.p[1]) - 8, class: 'ch-lab' }, fig, m.lab);
+    }
+    if (mode === 'read') { S('circle', { cx: X(target[0]), cy: Y(target[1]), r: 8, class: 'sm-handle' }, fig); S('text', { x: X(target[0]) + 10, y: Y(target[1]) - 10, class: 'ch-lab' }, fig, 'P'); }
+    if (mode === 'hunt' && (done || shown)) S('text', { x: X(target[0]), y: Y(target[1]) + 6, 'text-anchor': 'middle', style: 'font-size:20px' }, fig, '💎');
+  }
+
+  const rndPt = (n: number): Pt => [randInt(-n, n), randInt(-n, n)];
+  function round() {
+    marks = []; done = false; shown = false; guesses = 0; out.textContent = ''; inp.value = '';
+    N = mode === 'ships' ? 5 : 6;
+    if (mode === 'plot') {
+      // Mostly quadrant points, sometimes on an axis.
+      target = Math.random() < 0.2 ? (Math.random() < 0.5 ? [randInt(-6, 6, true), 0] : [0, randInt(-6, 6, true)]) : [randInt(-6, 6, true), randInt(-6, 6, true)];
+      ask.textContent = `Tap the point ${name(target)}.`;
+    } else if (mode === 'read') {
+      target = rndPt(6);
+      ask.textContent = 'Type the coordinates of P, x first, then press Go.';
+    } else if (mode === 'hunt') {
+      target = rndPt(6);
+      ask.textContent = 'Treasure is buried at a grid point. Tap (or type) a guess; each clue tells you how far away it is.';
+    } else {
+      ships = placeShips(LENGTHS, 5); shots = new Map();
+      ask.textContent = 'Three ships (4, 3 and 2 squares long) hide on grid points from −5 to 5. Tap or type a point to fire.';
+    }
+    q<HTMLInputElement>('.ch-in').closest('.ax-row')!.querySelector<HTMLElement>('.ch-give')!.textContent = mode === 'plot' ? 'Show me' : mode === 'read' ? 'Show me' : 'Give up';
+    showScore(); draw();
+  }
+  function showScore() {
+    score.textContent = mode === 'plot' || mode === 'read' ? (tally.tries ? `${tally.right} of ${tally.tries} right this visit.` : '') : mode === 'hunt' ? `Guesses: ${guesses}` : `Shots: ${shots.size}. Hits: ${[...shots.values()].filter(Boolean).length} of ${LENGTHS.reduce((a, b) => a + b, 0)}.`;
+  }
+
+  function play(p: Pt) {
+    if (done) return;
+    if (mode === 'plot') {
+      tally.tries++;
+      if (p[0] === target[0] && p[1] === target[1]) { tally.right++; marks.push({ p, cls: 'ch-ok', lab: name(p) }); say('good', 'Right!', `${name(p)} is ${quadrant(p[0], p[1]) === 'the x-axis' || quadrant(p[0], p[1]) === 'the y-axis' ? 'on ' : 'in '}${quadrant(p[0], p[1])}.`); }
+      else { marks.push({ p, cls: 'ch-no', lab: name(p) }, { p: target, cls: 'ch-ok', lab: name(target) }); say('bad', 'Not quite.', `You tapped ${name(p)}. ${name(target)} means ${fmt(Math.abs(target[0]))} ${target[0] < 0 ? 'left' : 'right'}, then ${fmt(Math.abs(target[1]))} ${target[1] < 0 ? 'down' : 'up'}.`); }
+      done = true;
+    } else if (mode === 'read') {
+      tally.tries++;
+      const where = `${quadrant(target[0], target[1]).startsWith('Q') ? 'in' : 'on'} ${quadrant(target[0], target[1])}`;
+      if (p[0] === target[0] && p[1] === target[1]) { tally.right++; say('good', 'Right!', `P = ${name(target)}, ${where}, signs ${signs(target[0], target[1])}.`); }
+      else say('bad', 'Not quite.', p[0] === target[1] && p[1] === target[0] ? `You swapped them: x (across) comes first. P = ${name(target)}.` : `P = ${name(target)}, ${where}.`);
+      marks.push({ p: target, cls: 'ch-ok', lab: name(target) }); done = true;
+    } else if (mode === 'hunt') {
+      guesses++;
+      const D = dist(p, target);
+      if (D.sq === 0) { done = true; marks.push({ p, cls: 'ch-ok', lab: name(p) }); say('good', `Found it in ${guesses} ${guesses === 1 ? 'guess' : 'guesses'}!`, `The treasure was at ${name(target)}.`); }
+      else {
+        marks.push({ p, cls: 'ch-no', lab: name(p), ring: D.d });
+        say('bad', `${name(p)}: ${surd(D.sq) === fmt(D.d) ? `√${D.sq} = ${fmt(D.d)}` : surd(D.sq) === `√${D.sq}` ? `√${D.sq} ≈ ${fmt(D.d, 2)}` : `√${D.sq} = ${surd(D.sq)} ≈ ${fmt(D.d, 2)}`} units away.`, `The treasure is on the dashed circle. Is it in the same quadrant? ${quadrant(target[0], target[1]) === quadrant(p[0], p[1]) ? 'Yes.' : 'No.'}`);
+      }
+    } else {
+      const k = `${p[0]},${p[1]}`;
+      if (Math.abs(p[0]) > 5 || Math.abs(p[1]) > 5) { say('bad', 'Off the grid.', 'Ships are between −5 and 5.'); return; }
+      if (shots.has(k)) { say('bad', 'Already fired there.', ''); return; }
+      const i = hitShip(ships, p[0], p[1]); shots.set(k, i >= 0);
+      marks.push({ p, cls: i >= 0 ? 'ch-no' : 'ch-miss', lab: i >= 0 ? name(p) : undefined });
+      const sunk = i >= 0 && ships[i].every((c) => shots.get(`${c[0]},${c[1]}`));
+      const all = ships.every((s) => s.every((c) => shots.get(`${c[0]},${c[1]}`)));
+      if (all) { done = true; say('good', `All ships sunk in ${shots.size} shots!`, ''); }
+      else say(i >= 0 ? 'good' : '', i >= 0 ? (sunk ? `Hit at ${name(p)}: ship sunk!` : `Hit at ${name(p)}!`) : `Miss at ${name(p)}.`, `${name(p)} is ${quadrant(p[0], p[1]).startsWith('Q') ? 'in' : 'on'} ${quadrant(p[0], p[1])}.`);
+    }
+    showScore(); draw();
+  }
+
+  fig.addEventListener('pointerdown', (e) => {
+    if (mode === 'read') return;
+    const s = svgPoint(fig, e.clientX, e.clientY);
+    const x = Math.round(((s.x - 20) / 300) * 2 * N - N), y = Math.round(((320 - s.y) / 300) * 2 * N - N);
+    if (Math.abs(x) <= N && Math.abs(y) <= N) play([x, y]);
+  });
+  const typed = () => { const p = readPoint(inp.value); if (!p) { say('bad', 'Type a point like (3, −2).', ''); return; } inp.value = ''; play(p); };
+  q('.ch-go').addEventListener('click', typed);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') typed(); });
+  q('.ch-next').addEventListener('click', round);
+  q('.ch-give').addEventListener('click', () => {
+    if (done) return;
+    shown = true;
+    if (mode === 'plot' || mode === 'read') { marks.push({ p: target, cls: 'ch-ok', lab: name(target) }); say('', `It is ${name(target)}.`, ''); done = true; }
+    else if (mode === 'hunt') say('', `The treasure was at ${name(target)}.`, '');
+    else say('', 'Here are the ships.', '');
+    done = true; draw();
+  });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.ch-mode button')) b.addEventListener('click', () => {
+    mode = b.dataset.m as Mode; tally = { right: 0, tries: 0 };
+    for (const o of root.querySelectorAll('.ch-mode button')) o.setAttribute('aria-pressed', String(o === b));
+    round();
+  });
+  round();
+
+  quiz(q('.ch-quiz'), () => {
+    const outq: Question[] = [];
+    const x = randInt(-9, 9, true), y = randInt(-9, 9, true), Qn = x > 0 ? (y > 0 ? 1 : 4) : y > 0 ? 2 : 3;
+    outq.push({ q: `Which quadrant is (${fmt(x)}, ${fmt(y)}) in? Type 1, 2, 3 or 4.`, want: [Qn], work: `Signs ${signs(x, y)}: ${quadrant(x, y)}.` });
+    const a: Pt = [randInt(-5, 5), randInt(-5, 5)], [dx, dy] = [[3, 4], [5, 12], [6, 8], [8, 6], [4, 3]][randInt(0, 4)], b: Pt = [a[0] + dx * (Math.random() < 0.5 ? 1 : -1), a[1] + dy * (Math.random() < 0.5 ? 1 : -1)];
+    const D = dist(a, b);
+    outq.push({ q: `How far is ${name(a)} from ${name(b)}?`, want: [D.d], hint: 'units', work: `√[(${fmt(b[0])} − ${fmt(a[0])})² + (${fmt(b[1])} − ${fmt(a[1])})²] = √(${D.dx * D.dx} + ${D.dy * D.dy}) = √${D.sq} = ${fmt(D.d)}.` });
+    const l = randInt(1, 8), d = randInt(1, 8);
+    outq.push({ q: `A point is ${l} units to the left of the y-axis and ${d} units below the x-axis. What are its coordinates?`, want: [-l, -d], ordered: true, hint: 'x, y', work: `Left means x is negative and below means y is negative: (−${l}, −${d}), in Quadrant III.` });
+    const px = randInt(-8, 8, true), pyy = randInt(-8, 8, true);
+    outq.push({ q: `Reflect (${fmt(px)}, ${fmt(pyy)}) in the x-axis. What are the new coordinates?`, want: [px, -pyy], ordered: true, hint: 'x, y', work: `A mirror on the x-axis keeps x and flips the sign of y: (${fmt(px)}, ${fmt(-pyy)}).` });
+    return outq;
+  });
+</script>
