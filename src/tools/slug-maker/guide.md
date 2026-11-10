@@ -2,7 +2,7 @@
 name: Slug maker
 num: 2029
 shelf: everyday
-code: T950
+code: T912
 section: dev-text
 title: "Slug maker: turn a title into a clean URL slug or safe file name"
 summary: "Turn titles into URL slugs and safe file names: lower case, accents removed, hyphens or underscores, an optional length limit and many lines at once."
