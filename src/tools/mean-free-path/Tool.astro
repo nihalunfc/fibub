@@ -1,0 +1,155 @@
+---
+// Mean free path (Learn): a flat box of bouncing molecules where one leaves a zig-zag trail and the average distance
+// between collisions is measured, plus the real numbers for a gas: λ = kT / (√2 π d² p), collisions per second.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn mfp">
+  <div class="ax-card">
+    <h2>Watch a crowd of molecules</h2>
+    <canvas class="lrn-cv mf-cv" style="margin-top:4px" aria-label="Molecules bouncing in a box; one is marked and leaves a zig-zag trail between collisions"></canvas>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small mf-play">Pause</button>
+      <button type="button" class="btn secondary small mf-reset">Start again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">How crowded (number of molecules) <b class="mf-Nv"></b><input type="range" class="mf-N" min="10" max="160" step="10" value="60" aria-label="Number of molecules" /></label>
+      <label class="lrn-sl">Molecule size <b class="mf-dv"></b><input type="range" class="mf-d" min="1" max="4" step="0.5" value="2" aria-label="Molecule diameter, as a percentage of the box width" /></label>
+    </div>
+    <p class="lrn-eq mf-sim" aria-live="off"></p>
+    <p class="ax-help">A flat (2-D) box, so the formula here is the flat one, λ = 1 / (2√2 n d), with n the molecules per unit area. More molecules or bigger molecules mean shorter flights.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The real numbers for a gas</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mf-pre" data-p="101325">Sea level</button>
+      <button type="button" class="btn secondary small mf-pre" data-p="33000">Top of Everest</button>
+      <button type="button" class="btn secondary small mf-pre" data-p="1">Vacuum pump</button>
+      <button type="button" class="btn secondary small mf-pre" data-p="0.000001">Very high vacuum</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Pressure p <b class="mf-pv"></b><input type="range" class="mf-p" min="-7" max="7" step="0.1" value="5" aria-label="Pressure, log scale" /></label>
+      <label class="lrn-sl">Temperature T <b class="mf-Tv"></b><input type="range" class="mf-T" min="100" max="1500" step="10" value="300" aria-label="Temperature in kelvin" /></label>
+      <label>Gas<select class="mf-gas">
+        <option value="n2" selected>Nitrogen N₂</option><option value="o2">Oxygen O₂</option><option value="he">Helium He</option><option value="ar">Argon Ar</option><option value="co2">Carbon dioxide CO₂</option>
+      </select></label>
+    </div>
+    <p class="lrn-eq mf-eq"></p>
+    <dl class="ax-facts mf-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">Molecule sizes are rounded typical values (a molecule has no sharp edge). The pressure slider jumps by powers of ten: each step of 1 is ten times the pressure.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Double the number of molecules in the box: the measured flight length roughly halves.</li>
+      <li>Make the molecules twice as wide: the flights get about twice as short in the flat box (four times in real 3-D gas, where λ goes as 1/d²).</li>
+      <li>At sea level, a nitrogen molecule travels only about 70 nm between hits, but has billions of collisions every second.</li>
+      <li>Press Vacuum pump, then Very high vacuum: λ grows to centimetres, then kilometres, longer than the container.</li>
+      <li>Warm the gas at fixed pressure: λ grows in proportion to T, because the gas spreads out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card mf-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { meanFreePath, numberDensity, meanSpeed, collisionRate, meanFreePath2D, AMU } from '../../lib/sci/n2-kinetic';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  // Rounded typical molecular diameters (nm) and molar masses (g/mol).
+  const GAS: Record<string, { name: string; d: number; M: number }> = {
+    n2: { name: 'nitrogen', d: 0.37, M: 28 }, o2: { name: 'oxygen', d: 0.36, M: 32 }, he: { name: 'helium', d: 0.22, M: 4 }, ar: { name: 'argon', d: 0.36, M: 40 }, co2: { name: 'carbon dioxide', d: 0.46, M: 44 },
+  };
+  const root = document.querySelector<HTMLElement>('.mfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const len = (m: number) => m >= 1000 ? `${sig(m / 1000, 3)} km` : m >= 1 ? `${sig(m, 3)} m` : m >= 1e-2 ? `${sig(m * 100, 3)} cm` : m >= 1e-3 ? `${sig(m * 1000, 3)} mm` : m >= 1e-6 ? `${sig(m * 1e6, 3)} µm` : `${sig(m * 1e9, 3)} nm`;
+  const pres = (p: number) => p >= 1000 ? `${sig(p / 1000, 4)} kPa` : `${sig(p, 3)} Pa`;
+  let P = 101325;
+
+  // ---- 2-D hard-disk box (box width 1, height 0.6) ----
+  const BH = 0.6;
+  type M = { x: number; y: number; vx: number; vy: number };
+  let mols: M[] = [], dist = 0, hits = 0, trail: [number, number][] = [], diam = 0.02;
+  function reset() {
+    const N = v_('.mf-N'); diam = v_('.mf-d') / 100; mols = []; dist = 0; hits = 0; trail = [];
+    for (let i = 0; i < N; i++) {
+      let x = 0, y = 0, ok = false;
+      for (let k = 0; k < 200 && !ok; k++) { x = diam + Math.random() * (1 - 2 * diam); y = diam + Math.random() * (BH - 2 * diam); ok = mols.every((m) => (m.x - x) ** 2 + (m.y - y) ** 2 > diam * diam * 1.2); }
+      const a = Math.random() * 2 * Math.PI; mols.push({ x, y, vx: 0.25 * Math.cos(a), vy: 0.25 * Math.sin(a) });
+    }
+    trail = [[mols[0].x, mols[0].y]];
+  }
+  function physics(dt: number) {
+    const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n, r0 = diam / 2;
+    for (let s = 0; s < n; s++) {
+      for (const m of mols) {
+        m.x += m.vx * h; m.y += m.vy * h; dist += Math.hypot(m.vx, m.vy) * h;
+        if (m.x < r0 && m.vx < 0) m.vx = -m.vx; if (m.x > 1 - r0 && m.vx > 0) m.vx = -m.vx;
+        if (m.y < r0 && m.vy < 0) m.vy = -m.vy; if (m.y > BH - r0 && m.vy > 0) m.vy = -m.vy;
+      }
+      for (let i = 0; i < mols.length; i++) for (let j = i + 1; j < mols.length; j++) {
+        const a = mols[i], b = mols[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
+        if (d2 < diam * diam && d2 > 0) {
+          const dvx = b.vx - a.vx, dvy = b.vy - a.vy, dot = dvx * dx + dvy * dy;
+          if (dot < 0) { const k = dot / d2; a.vx += k * dx; a.vy += k * dy; b.vx -= k * dx; b.vy -= k * dy; hits += 2; if (i === 0 || j === 0) trail.push([mols[0].x, mols[0].y]); }
+        }
+      }
+    }
+    if (trail.length > 40) trail = trail.slice(-40);
+  }
+  function draw(dt: number) {
+    physics(dt);
+    const cv = q<HTMLCanvasElement>('.mf-cv'), H0 = Math.round(Math.max(200, cv.clientWidth || 340) * BH);
+    const c = fitCanvas(cv, H0), pal = pagePalette(), S = c.W, g = c.ctx;
+    g.fillStyle = pal.bg; g.fillRect(0, 0, c.W, c.H);
+    g.strokeStyle = pal.red ? pal.ink : pal.bad; g.lineWidth = 1.5; g.beginPath();
+    trail.forEach(([x, y], i) => (i ? g.lineTo(x * S, y * S) : g.moveTo(x * S, y * S))); g.lineTo(mols[0].x * S, mols[0].y * S); g.stroke();
+    mols.forEach((m, i) => { g.fillStyle = i === 0 ? (pal.red ? pal.ink : pal.bad) : (pal.red ? pal.muted : pal.accent); g.beginPath(); g.arc(m.x * S, m.y * S, Math.max(2, (diam / 2) * S), 0, 7); g.fill(); });
+    const theory = meanFreePath2D(mols.length / BH, diam), meas = hits ? dist / hits : NaN;
+    q('.mf-sim').textContent = `Measured so far: ${hits / 2} collisions, average flight ${Number.isFinite(meas) ? sig(meas, 3) : '–'} box widths.  Formula: λ = 1 / (2√2 × ${sig(mols.length / BH, 3)} × ${sig(diam, 2)}) = ${sig(theory, 3)} box widths.`;
+  }
+
+  function update() {
+    const gas = GAS[q<HTMLSelectElement>('.mf-gas').value], T = v_('.mf-T'), d = gas.d * 1e-9, m = gas.M * AMU;
+    const lam = meanFreePath(P, T, d), n = numberDensity(P, T), vbar = meanSpeed(T, m), z = collisionRate(P, T, d, m);
+    q('.mf-pv').textContent = pres(P); q('.mf-Tv').textContent = `${T} K`;
+    q('.mf-Nv').textContent = String(v_('.mf-N')); q('.mf-dv').textContent = `${v_('.mf-d')} % of the box`;
+    q('.mf-eq').textContent = `λ = kT / (√2 π d² p) = 1.381×10⁻²³ × ${T} / (1.414 × π × (${gas.d}×10⁻⁹)² × ${sig(P, 4)}) = ${len(lam)}.`;
+    q('.mf-facts').replaceChildren(
+      fact('Mean free path λ', len(lam), `${sig(lam / d, 3)} times the molecule’s size`),
+      fact('Molecules per m³', sig(n, 3), `n = p / kT; spacing about ${len(Math.cbrt(1 / n))}`),
+      fact('Mean speed', `${sig(vbar, 3)} m/s`, '√(8kT / πm)'),
+      fact('Collisions per second', sig(z, 3), `one every ${sig(1 / z, 3)} s`));
+  }
+
+  reset();
+  const anim = loop(draw, q<HTMLButtonElement>('.mf-play'));
+  q('.mf-reset').addEventListener('click', () => { reset(); anim.redraw(); });
+  q('.mf-N').addEventListener('input', () => { reset(); update(); anim.redraw(); });
+  q('.mf-d').addEventListener('input', () => { reset(); update(); anim.redraw(); });
+  q('.mf-p').addEventListener('input', () => { P = 10 ** v_('.mf-p'); update(); });
+  root.querySelectorAll<HTMLButtonElement>('.mf-pre').forEach((b) => b.addEventListener('click', () => { P = +b.dataset.p!; q<HTMLInputElement>('.mf-p').value = String(Math.log10(P)); update(); }));
+  root.querySelectorAll('.mf-T, .mf-gas').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', () => anim.redraw());
+  q<HTMLInputElement>('.mf-p').value = String(Math.log10(P)); update(); anim.redraw();
+
+  mountQuiz(q('.mf-quiz'), () => {
+    const T = pick(25, 60) * 10, p = pick(5, 20) * 10000, d = pick(20, 45) / 100, k = one([2, 3, 4]), f = one([2, 3]);
+    const lam = meanFreePath(p, T, d * 1e-9);
+    return [
+      { q: `Find the mean free path, in nm, of molecules ${d} nm across at ${p / 1000} kPa and ${T} K. (k = 1.38×10⁻²³ J/K)`, ans: lam * 1e9, unit: 'nm', work: `λ = kT / (√2 π d² p) = 1.38×10⁻²³ × ${T} / (1.414 × 3.142 × (${d}×10⁻⁹)² × ${p}) = ${r(lam * 1e9)} nm` },
+      { q: `How many molecules are there per m³ in a gas at ${p / 1000} kPa and ${T} K?`, ans: numberDensity(p, T), unit: 'per m³', work: `n = p / kT = ${p} / (1.38×10⁻²³ × ${T}) = ${sig(numberDensity(p, T), 3)} per m³` },
+      { q: `The pressure is made ${k} times bigger at the same temperature. The mean free path becomes …`, ans: 1, choices: [`${k} times longer`, `${k} times shorter`, 'the same'], work: `λ = kT / (√2 π d² p): λ goes as 1/p, so ${k} times the pressure gives 1/${k} of the path.` },
+      { q: `Molecules ${f} times wider (same gas pressure and temperature) have a mean free path …`, ans: 2, choices: [`${f} times shorter`, `${f} times longer`, `${f * f} times shorter`], work: `λ goes as 1/d², so ${f} times the diameter gives 1/${f * f} of the path.` },
+      { q: `Nitrogen molecules at ${T} K have a mean speed of ${r(meanSpeed(T, 28 * AMU))} m/s and a mean free path of ${r(meanFreePath(101325, T, 0.37e-9) * 1e9)} nm. About how many collisions does one make each second?`, ans: meanSpeed(T, 28 * AMU) / meanFreePath(101325, T, 0.37e-9), unit: 'per s', tol: 0.03, work: `collisions per second = speed / λ = ${r(meanSpeed(T, 28 * AMU))} / ${r(meanFreePath(101325, T, 0.37e-9) * 1e9)}×10⁻⁹ = ${sig(meanSpeed(T, 28 * AMU) / meanFreePath(101325, T, 0.37e-9), 3)} per second` },
+    ];
+  });
+</script>
