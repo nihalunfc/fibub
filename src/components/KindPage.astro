@@ -23,7 +23,7 @@ const title = page > 1 ? `${kind.name}, page ${page} | Blog` : `${kind.name} | B
   {list.length ? <>
     <BlogFilter kind={kind.id} />
     <div data-bf-plain>
-      <p class="bf-count">{list.length} articles{pages > 1 && `, ${PER_PAGE} per page`}.</p>
+      <p class="ar-count">{list.length} articles{pages > 1 && `, ${PER_PAGE} per page`}.</p>
       <ArticleList articles={items} showKind={false} />
       {pages > 1 && (
         <nav class="pager" aria-label="Pages">
@@ -36,6 +36,7 @@ const title = page > 1 ? `${kind.name}, page ${page} | Blog` : `${kind.name} | B
   </> : <p class="ar-note">The first articles are on their way.</p>}
 </Base>
 <style>
+  .ar-count { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
   .ar-page { font-size: 16px; font-weight: 400; color: var(--muted); }
   .pager { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 8px; max-width: 760px; }
   .pager a, .pager span { min-width: 38px; text-align: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; text-decoration: none; color: var(--ink); background: var(--surface); }
