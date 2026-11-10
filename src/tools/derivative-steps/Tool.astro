@@ -1,0 +1,145 @@
+---
+// Derivative calculator with steps (school functions): the rule at each part, inside out, the answer
+// simplified, and f with f′ on one graph. Class 11 and 12 maths. Maths in src/lib/sci/derivative-steps.ts.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { EXAMPLES } from '../../lib/sci/derivative-steps';
+---
+<div class="ax dst">
+  <div class="ax-card">
+    <h2>Type a function</h2>
+    <div class="ax-row dt-lv"><span class="ax-help">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="11" aria-pressed="false">Class 11</button><button type="button" data-lv="12" aria-pressed="true">Class 12</button></div>
+    </div>
+    <label class="dt-inl">f(x) = <input class="dt-in" type="text" value="x^2 sin(x)" autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
+    <p class="ax-help">Use ^ for powers, brackets after sin, cos, tan, ln, sqrt, asin, acos, atan, and e^(…) for eˣ. 2x and x sin(x) mean multiply.</p>
+    <div class="dt-ex">
+      {EXAMPLES.map((e) => <button type="button" class="dt-chip" data-cls={e.cls} data-src={e.src}>{e.label}</button>)}
+    </div>
+    <p class="ax-err dt-err" hidden></p>
+  </div>
+
+  <div class="ax-card dt-out">
+    <h2>The answer</h2>
+    <p class="dt-f"></p>
+    <p class="dt-d"></p>
+    <h3>Step by step (inside out)</h3>
+    <ol class="dt-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>See f and f′ together</h2>
+    <canvas class="ax-fig dt-fig" role="img"></canvas>
+    <p class="ax-help">Black: f(x). Orange: f′(x). Dashed blue: the tangent at x = a. Where f′ crosses 0, f has a flat tangent.</p>
+    <label class="dt-al">a = <b class="dt-av"></b><input class="dt-a" type="range" min="-4" max="4" step="0.05" value="1" /></label>
+    <dl class="ax-facts dt-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dt-try">
+      <li>Tap <b>x² sin x</b>: the product rule needs the derivative of each factor first, and the steps show both.</li>
+      <li>Tap <b>(x + 1)/(x − 1)</b>: the quotient rule. Notice the answer is never 0, so the graph never has a flat tangent.</li>
+      <li>Tap <b>sin(x²)</b> and then type <b>sin(x)^2</b>. Same pieces, different order, different derivative.</li>
+      <li>Tap <b>xˣ</b>: neither the power rule nor the eˣ rule fits, so the page takes logs first.</li>
+      <li>Slide a to where the orange curve crosses 0 and look at the dashed tangent on the black curve.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="dt-quiz" />
+</div>
+
+<script>
+  import { differentiate, at, type Result } from '../../lib/sci/derivative-steps';
+  import { paint, pagePalette } from '../../lib/report';
+  import { view, axes, curve, line, dot, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.dst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 260;
+  const inp = q<HTMLInputElement>('.dt-in'), aIn = q<HTMLInputElement>('.dt-a');
+  let res: Result | null = null, level = '12';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+
+  function run() {
+    const err = q('.dt-err');
+    try { res = differentiate(inp.value); err.hidden = true; q('.dt-out').hidden = false; }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.dt-out').hidden = true; res = null; return; }
+    q('.dt-f').textContent = `f(x) = ${res.text}`;
+    q('.dt-d').textContent = `f′(x) = ${res.dText}`;
+    q('.dt-steps').replaceChildren(...res.steps.map((s) => {
+      const li = document.createElement('li'), b = document.createElement('b'), p = document.createElement('span');
+      b.textContent = s.rule; p.textContent = s.text; li.append(b, document.createElement('br'), p); return li;
+    }));
+    graph();
+  }
+
+  function graph() {
+    if (!res) return;
+    const r = res, a = +aIn.value, f = (x: number) => at(r.f, x), d = (x: number) => at(r.d, x);
+    q('.dt-av').textContent = fmt(a, 2);
+    const ys: number[] = [];
+    for (let i = 0; i <= 160; i++) { const x = -4 + i / 20; for (const y of [f(x), d(x)]) if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((u, w) => u - w);
+    const lo = ys.length ? ys[Math.floor(ys.length * 0.05)] : -3, hi = ys.length ? ys[Math.ceil(ys.length * 0.95) - 1] : 3, pad = Math.max(0.5, (hi - lo) * 0.12);
+    const v = view(-4, 4, Math.max(-50, Math.min(lo, 0) - pad), Math.min(50, Math.max(hi, 0) + pad), W, H);
+    const fa = f(a), m = d(a);
+    paint(q<HTMLCanvasElement>('.dt-fig'), { w: W, h: H, alt: `Graph of f(x) = ${r.text} and f′(x) = ${r.dText}; at x = ${fmt(a, 2)} the slope is ${fmt(m)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x' });
+      curve(ctx, v, f, pl.ink, 2.2); curve(ctx, v, d, pl.accent2, 2);
+      if (Number.isFinite(fa) && Number.isFinite(m)) { line(ctx, v, -4, fa + m * (-4 - a), 4, fa + m * (4 - a), pl.accent, 1.6, [6, 4]); dot(ctx, v, a, fa, pl.accent, 5); dot(ctx, v, a, m, pl.accent2, 4.5, true, pl.bg); }
+    } }, pagePalette());
+    const c = fa - m * a;
+    q('.dt-facts').replaceChildren(
+      fact('f(a)', fmt(fa, 4)), fact('f′(a), the slope', fmt(m, 4), m > 1e-9 ? 'f is rising here' : m < -1e-9 ? 'f is falling here' : 'a flat tangent'),
+      fact('Tangent at a', Number.isFinite(m) && Number.isFinite(fa) ? `y = ${fmt(m, 3)}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c), 3)}` : 'none', 'y − f(a) = f′(a)(x − a)'),
+    );
+  }
+
+  function setLevel(lv: string) {
+    level = lv;
+    root.querySelectorAll('.dt-lv button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.lv === lv)));
+    root.querySelectorAll<HTMLElement>('.dt-chip').forEach((c) => { c.hidden = lv === '11' && c.dataset.cls === '12'; });
+  }
+  root.querySelectorAll<HTMLButtonElement>('.dt-lv button').forEach((b) => b.addEventListener('click', () => setLevel(b.dataset.lv!)));
+  root.querySelectorAll<HTMLButtonElement>('.dt-chip').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.src!; run(); }));
+  inp.addEventListener('input', run);
+  aIn.addEventListener('input', graph);
+  document.addEventListener('fibub:theme', graph);
+  setLevel(level); run();
+
+  const sup = (n: number) => String(n).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+  quiz(q('.dt-quiz'), (): Question[] => {
+    const a = rint(2, 5), n = rint(3, 5), b = rint(-6, 6, true), x0 = rint(1, 2);
+    const k = rint(2, 4), m = rint(2, 5), c = rint(1, 4), p = rint(1, 3);
+    const v1 = a * n * x0 ** (n - 1) + b;
+    return [
+      { text: `f(x) = ${a}x${sup(n)} ${b < 0 ? '−' : '+'} ${Math.abs(b)}x. What is f′(${x0})?`, answer: v1, worked: `Power rule and constant multiple: f′(x) = ${a * n}x${sup(n - 1)} ${b < 0 ? '−' : '+'} ${Math.abs(b)}. At x = ${x0}: ${a * n} × ${x0 ** (n - 1)} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${v1}.` },
+      { text: `f(x) = x² e^x. What is f′(0)?`, answer: 0, worked: 'Product rule: f′(x) = 2x eˣ + x² eˣ. At x = 0 both terms are 0, so f′(0) = 0.' },
+      { text: `f(x) = x / (x + ${c}). What is f′(0)?`, answer: 1 / c, worked: `Quotient rule: f′(x) = [(x + ${c})·1 − x·1]/(x + ${c})² = ${c}/(x + ${c})². At x = 0 that is ${c}/${c * c} = 1/${c}.` },
+      { text: `f(x) = (${k}x + 1)${sup(m)}. What is f′(0)?`, answer: m * k, worked: `Chain rule: f′(x) = ${m}(${k}x + 1)${sup(m - 1)} × ${k}. At x = 0: ${m} × 1 × ${k} = ${m * k}.` },
+      pick([
+        { text: 'Which rule do you use first for sin(x)·cos(x)?', choices: ['Chain rule', 'Product rule', 'Quotient rule', 'Power rule'], correct: 1, worked: 'Two functions of x multiplied together: product rule. f′ = cos x · cos x + sin x · (−sin x) = cos² x − sin² x.' },
+        { text: 'Which rule do you use first for ln(x² + 1)?', choices: ['Chain rule', 'Product rule', 'Quotient rule', 'Sum rule'], correct: 0, worked: 'ln of an inside function: chain rule. f′ = 1/(x² + 1) × 2x.' },
+        { text: `What is the derivative of ln(${p}x) at x = 1?`, answer: 1, worked: `Chain rule: 1/(${p}x) × ${p} = 1/x, so at x = 1 it is 1. (ln(${p}x) = ln ${p} + ln x, and the constant ln ${p} has slope 0.)` },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .dst .dt-inl { display: grid; gap: 4px; margin: 10px 0 4px; color: var(--ink); }
+  .dst .dt-in { min-height: 44px; font-size: 18px; width: 100%; box-sizing: border-box; }
+  .dst .dt-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .dst .dt-chip { min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .dst .dt-chip[hidden] { display: none; }
+  .dst .dt-f { margin: 4px 0; overflow-wrap: anywhere; }
+  .dst .dt-d { font-size: 20px; font-weight: 700; margin: 4px 0 12px; overflow-wrap: anywhere; }
+  .dst .dt-steps { padding-left: 22px; display: grid; gap: 10px; overflow-wrap: anywhere; }
+  .dst .dt-steps b { color: var(--accent); }
+  .dst .dt-al { display: block; margin: 10px 0; color: var(--ink); }
+  .dst .dt-al input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dst .dt-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .dst .ax-seg button { min-height: 40px; }
+</style>
