@@ -1,0 +1,182 @@
+---
+// Solutions on a line: set a, b, c in ax + by = c; whole-number solutions show as dots on its line; tap any grid
+// point (or type one) to test whether it is a solution; a table of solutions; lines parallel to the axes. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm tv">
+  <div class="ax-card">
+    <h2>Your equation</h2>
+    <p class="sm-f tv-eq ax-big" style="margin:0 0 6px"></p>
+    <div class="sm-sl"><b>a</b><input type="range" class="tv-ar" min="-10" max="10" step="1" value="2" aria-label="a" /><input type="number" class="tv-a" step="1" value="2" aria-label="a" /></div>
+    <div class="sm-sl"><b>b</b><input type="range" class="tv-br" min="-10" max="10" step="1" value="3" aria-label="b" /><input type="number" class="tv-b" step="1" value="3" aria-label="b" /></div>
+    <div class="sm-sl"><b>c</b><input type="range" class="tv-cr" min="-20" max="20" step="1" value="12" aria-label="c" /><input type="number" class="tv-c" step="1" value="12" aria-label="c" /></div>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small tv-pre" data-p="1,1,10">x + y = 10</button>
+      <button type="button" class="btn secondary small tv-pre" data-p="2,3,12">2x + 3y = 12</button>
+      <button type="button" class="btn secondary small tv-pre" data-p="2,-1,0">y = 2x</button>
+      <button type="button" class="btn secondary small tv-pre" data-p="1,0,4">x = 4</button>
+      <button type="button" class="btn secondary small tv-pre" data-p="0,1,-3">y = −3</button>
+    </div>
+    <p class="ax-help">Whole numbers from −50 to 50 in the boxes. The sliders cover the common range.</p>
+    <p class="ax-err tv-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Every solution is a point on the line</h2>
+    <svg class="sm-fig tv-fig" viewBox="0 0 340 340" role="img" aria-label="Graph of the equation with its solutions and the points you tested"></svg>
+    <p class="ax-help">Tap any grid point to test it: green if it solves the equation, red if it does not.</p>
+    <p class="sm-f tv-last" aria-live="polite"></p>
+    <div class="ax-row">
+      <label style="flex:1 1 90px">x <input type="number" class="tv-px" step="any" value="1.5" /></label>
+      <label style="flex:1 1 90px">y <input type="number" class="tv-py" step="any" value="3" /></label>
+      <button type="button" class="btn small tv-test" style="align-self:end">Test this point</button>
+      <button type="button" class="btn secondary small tv-clear" style="align-self:end">Clear dots</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Table of solutions</h2>
+    <div class="ax-scroll"><table class="tv-table"></table></div>
+    <p class="sm-f tv-int"></p>
+    <p class="sm-f tv-form"></p>
+    <p class="sm-f tv-whole"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Start with x + y = 10 and tap (3, 7), (−2, 12) and (4, 5). Which are solutions? How many more can you find?</li>
+      <li>Type the point x = 1.5, y = 3 for 2x + 3y = 12. Solutions do not have to be whole numbers: every point on the line is one.</li>
+      <li>Set a = 0. The line goes flat (parallel to the x-axis): y has to be one number, and x can be anything.</li>
+      <li>Set b = 0. The line stands up (parallel to the y-axis).</li>
+      <li>Double a, b and c together (2x + 3y = 12 to 4x + 6y = 24). Does the line move?</li>
+      <li>Set c = 0. The line always passes through the origin.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="tv-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .tv svg .tv-line { stroke: var(--accent); stroke-width: 3; }
+  .tv svg .tv-sol { fill: var(--accent); }
+  .tv svg .tv-ok { fill: var(--good); stroke: var(--surface); stroke-width: 2; }
+  .tv svg .tv-no { fill: var(--bad); stroke: var(--surface); stroke-width: 2; }
+  .tv svg .tv-tap { fill: transparent; }
+  .tv .tv-eq { font-family: Georgia, serif; font-style: italic; }
+</style>
+
+<script>
+  import { kind, test, wholeSolutions, eqText, clip, type Eq } from '../../lib/sci/line2v-l2';
+  import { randInt, fracText } from '../../lib/sci/smath';
+  import { S, pair, svgPoint, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.tv')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.tv-fig');
+  const R = 10, U = 16, O = 170;
+  const X = (x: number) => O + x * U, Y = (y: number) => O - y * U;
+  const n = (v: number) => String(+v.toFixed(4)).replace('-', '−');
+  let tested: { x: number; y: number }[] = [];
+
+  const box = (c: string) => q<HTMLInputElement>(c);
+  const setA = pair(box('.tv-ar'), box('.tv-a'), () => { tested = []; draw(); });
+  const setB = pair(box('.tv-br'), box('.tv-b'), () => { tested = []; draw(); });
+  const setC = pair(box('.tv-cr'), box('.tv-c'), () => { tested = []; draw(); });
+
+  function read(): Eq | null {
+    const v = ['.tv-a', '.tv-b', '.tv-c'].map((c) => Number(box(c).value)), err = q('.tv-err');
+    if (v.some((x, i) => !Number.isInteger(x) || Math.abs(x) > 50 || box(['.tv-a', '.tv-b', '.tv-c'][i]).value.trim() === '')) { err.textContent = 'a, b and c must be whole numbers from −50 to 50.'; err.hidden = false; return null; }
+    err.hidden = true; return { a: v[0], b: v[1], c: v[2] };
+  }
+
+  function draw() {
+    const e = read(); if (!e) return;
+    fig.replaceChildren();
+    for (let i = -R; i <= R; i++) {
+      S('line', { x1: X(i), y1: Y(-R), x2: X(i), y2: Y(R), class: 'sm-grid' }, fig);
+      S('line', { x1: X(-R), y1: Y(i), x2: X(R), y2: Y(i), class: 'sm-grid' }, fig);
+    }
+    S('line', { x1: X(-R), y1: O, x2: X(R), y2: O, class: 'sm-axis' }, fig);
+    S('line', { x1: O, y1: Y(-R), x2: O, y2: Y(R), class: 'sm-axis' }, fig);
+    for (const t of [-10, -5, 5, 10]) { S('text', { x: X(t), y: O + 13, 'text-anchor': 'middle', class: 'sm-tick' }, fig, n(t)); S('text', { x: O - 4, y: Y(t) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, n(t)); }
+    S('text', { x: X(R) - 4, y: O - 6, 'text-anchor': 'end', class: 'sm-tick' }, fig, 'x');
+    S('text', { x: O + 6, y: Y(R) + 12, class: 'sm-tick' }, fig, 'y');
+    const k = kind(e), seg = clip(e, R);
+    if (seg) S('line', { x1: X(seg[0][0]), y1: Y(seg[0][1]), x2: X(seg[1][0]), y2: Y(seg[1][1]), class: 'tv-line' }, fig);
+    if (k === 'everything') S('rect', { x: X(-R), y: Y(R), width: 2 * R * U, height: 2 * R * U, style: 'fill:var(--accent-soft);opacity:.5' }, fig);
+    const whole = k === 'everything' || k === 'nothing' ? [] : wholeSolutions(e, R);
+    for (const [x, y] of whole) S('circle', { cx: X(x), cy: Y(y), r: 3.5, class: 'tv-sol' }, fig);
+    for (const p of tested) { const ok = test(e, p.x, p.y).ok; S('circle', { cx: X(p.x), cy: Y(p.y), r: 7, class: ok ? 'tv-ok' : 'tv-no' }, fig); }
+    S('rect', { x: 0, y: 0, width: 340, height: 340, class: 'tv-tap' }, fig);
+
+    q('.tv-eq').textContent = eqText(e);
+    // Table.
+    const t = q<HTMLTableElement>('.tv-table'); t.replaceChildren();
+    const xs = [-2, -1, 0, 1, 2, 3];
+    const r1 = t.insertRow(), r2 = t.insertRow();
+    const th = (r: HTMLTableRowElement, s: string) => { const c = document.createElement('th'); c.textContent = s; r.append(c); };
+    th(r1, 'x'); th(r2, 'y');
+    if (k === 'line' || k === 'horizontal') for (const x of xs) { r1.insertCell().textContent = n(x); r2.insertCell().textContent = fracText(e.c - e.a * x, e.b); }
+    else if (k === 'vertical') for (const y of xs) { r1.insertCell().textContent = fracText(e.c, e.a); r2.insertCell().textContent = n(y); }
+    else { r1.insertCell().textContent = '—'; r2.insertCell().textContent = '—'; }
+    const say = (c: string, s: string) => { q(c).textContent = s; };
+    if (k === 'line') {
+      say('.tv-int', `Crosses the x-axis at (${fracText(e.c, e.a)}, 0) and the y-axis at (0, ${fracText(e.c, e.b)}).`);
+      say('.tv-form', `Rearranged: y = (${n(e.c)} − ${n(e.a)}x) ÷ ${n(e.b)}, so y = ${fracText(-e.a, e.b)}x ${e.c * e.b >= 0 ? '+' : '−'} ${fracText(Math.abs(e.c), Math.abs(e.b))}. Pick any x and you get a y: infinitely many solutions.`);
+    } else if (k === 'horizontal') {
+      say('.tv-int', `y = ${fracText(e.c, e.b)} for every x: a line parallel to the x-axis${e.c === 0 ? ' (the x-axis itself)' : ''}.`);
+      say('.tv-form', `0 × x + ${n(e.b)}y = ${n(e.c)} still counts as an equation in two variables: x can be anything.`);
+    } else if (k === 'vertical') {
+      say('.tv-int', `x = ${fracText(e.c, e.a)} for every y: a line parallel to the y-axis${e.c === 0 ? ' (the y-axis itself)' : ''}.`);
+      say('.tv-form', `${n(e.a)}x + 0 × y = ${n(e.c)}: y can be anything.`);
+    } else if (k === 'everything') {
+      say('.tv-int', 'With a = b = c = 0 the equation says 0 = 0: every point is a solution. That is not a line.');
+      say('.tv-form', 'Make a or b non-zero to get a linear equation.');
+    } else {
+      say('.tv-int', `With a = b = 0 the equation says 0 = ${n(e.c)}: no point is a solution.`);
+      say('.tv-form', 'Make a or b non-zero to get a linear equation.');
+    }
+    say('.tv-whole', k === 'everything' || k === 'nothing' ? '' : whole.length ? `Whole-number solutions on this grid (dots): ${whole.length > 8 ? whole.slice(0, 8).map(([x, y]) => `(${n(x)}, ${n(y)})`).join(', ') + ` and ${whole.length - 8} more` : whole.map(([x, y]) => `(${n(x)}, ${n(y)})`).join(', ')}.` : 'No whole-number solutions on this grid, but the line is still full of solutions with fractions.');
+  }
+
+  function tryPoint(x: number, y: number) {
+    const e = read(); if (!e) return;
+    tested.push({ x, y }); if (tested.length > 15) tested.shift();
+    const r = test(e, x, y);
+    q('.tv-last').textContent = `(${n(x)}, ${n(y)}): ${n(e.a)} × ${n(x)} + ${n(e.b)} × ${n(y)} = ${n(r.lhs)} ${r.ok ? '=' : '≠'} ${n(e.c)}, so it ${r.ok ? 'is' : 'is not'} a solution${r.ok ? ' and sits on the line' : ''}.`;
+    draw();
+  }
+
+  fig.addEventListener('click', (ev) => {
+    const p = svgPoint(fig, ev.clientX, ev.clientY);
+    const x = Math.round((p.x - O) / U), y = Math.round((O - p.y) / U);
+    if (Math.abs(x) <= R && Math.abs(y) <= R) tryPoint(x, y);
+  });
+  q('.tv-test').addEventListener('click', () => {
+    const x = Number(box('.tv-px').value), y = Number(box('.tv-py').value);
+    if (box('.tv-px').value.trim() === '' || box('.tv-py').value.trim() === '' || !Number.isFinite(x) || !Number.isFinite(y)) { q('.tv-last').textContent = 'Type a number for both x and y.'; return; }
+    if (Math.abs(x) > R || Math.abs(y) > R) { q('.tv-last').textContent = 'Keep x and y between −10 and 10 so the point fits on the grid.'; return; }
+    tryPoint(x, y);
+  });
+  q('.tv-clear').addEventListener('click', () => { tested = []; q('.tv-last').textContent = ''; draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.tv-pre').forEach((b) => b.addEventListener('click', () => { const [a, bb, c] = b.dataset.p!.split(',').map(Number); setA(a); setB(bb); setC(c); tested = []; q('.tv-last').textContent = ''; draw(); }));
+  draw();
+
+  quiz(q('.tv-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(1, 6), b = randInt(1, 6), x0 = randInt(-3, 5), y0 = randInt(-3, 5), c = a * x0 + b * y0;
+    out.push({ q: `${eqText({ a, b, c })}. If x = ${x0}, what is y?`, want: [y0], work: `${a} × ${x0} + ${b}y = ${c}, so ${b}y = ${c - a * x0} and y = ${y0}.` });
+    const a2 = randInt(1, 5), b2 = randInt(1, 5), k2 = randInt(1, 6), c2 = a2 * b2 * k2;
+    out.push({ q: `Where does ${eqText({ a: a2, b: b2, c: c2 })} cross the x-axis? Give the x value.`, want: [c2 / a2], work: `On the x-axis y = 0, so ${a2}x = ${c2} and x = ${c2 / a2}.` });
+    out.push({ q: `Where does ${eqText({ a: a2, b: b2, c: c2 })} cross the y-axis? Give the y value.`, want: [c2 / b2], work: `On the y-axis x = 0, so ${b2}y = ${c2} and y = ${c2 / b2}.` });
+    const px = randInt(1, 4), py = randInt(-4, 6), k = randInt(-4, 5, true), c4 = k * px + 3 * py;
+    out.push({ q: `For which value of k is (${px}, ${py}) a solution of kx + 3y = ${c4}?`, want: [k], work: `Put x = ${px}, y = ${py}: ${px}k + ${3 * py} = ${c4}, so ${px}k = ${c4 - 3 * py} and k = ${k}.` });
+    return out;
+  });
+</script>
