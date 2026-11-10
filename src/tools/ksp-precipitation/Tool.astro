@@ -1,0 +1,197 @@
+---
+// Ksp precipitation predictor: mix a solution of the cation with a solution of the anion, compare the ionic
+// product Q with Ksp, see whether a solid forms and how much; then the molar solubility in water and with a
+// common ion. Class 11 chemistry, equilibrium (ionic equilibrium).
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { SALTS } from '../../lib/sci/ksp-precipitation';
+---
+<div class="ax kpx">
+  <div class="ax-card">
+    <div class="ax-seg kp-mode" role="group" aria-label="What to do">
+      <button type="button" data-m="mix" aria-pressed="true">Mix solutions</button><button type="button" data-m="sol" aria-pressed="false">Solubility</button>
+    </div>
+    <div class="kp-top">
+      <label>Salt <select class="kp-salt">{SALTS.map((s) => <option value={s.id}>{s.formula} ({s.cation} + {s.anion})</option>)}</select></label>
+      <label>Ksp at 25 °C <input class="kp-ksp" type="text" inputmode="decimal" aria-label="Solubility product" /></label>
+    </div>
+    <p class="ax-help kp-kspnote">Rounded typical values; books differ a little, so type your own if you like (for example 1.8e-10).</p>
+    <p class="ax-err kp-err" hidden></p>
+
+    <div class="kp-mix">
+      <div class="kp-pair">
+        <label class="kp-sl"><span class="kp-c1l"></span><input class="kp-c1" type="range" min="-70" max="0" step="1" value="-40" /></label>
+        <label class="kp-sl"><span class="kp-v1l"></span><input class="kp-v1" type="range" min="1" max="100" step="1" value="10" /></label>
+      </div>
+      <div class="kp-pair">
+        <label class="kp-sl"><span class="kp-c2l"></span><input class="kp-c2" type="range" min="-70" max="0" step="1" value="-40" /></label>
+        <label class="kp-sl"><span class="kp-v2l"></span><input class="kp-v2" type="range" min="1" max="100" step="1" value="10" /></label>
+      </div>
+    </div>
+
+    <div class="kp-sol" hidden>
+      <label>Common ion already in the water
+        <select class="kp-ci"><option value="none">None (pure water)</option><option value="M">Extra cation</option><option value="X" selected>Extra anion</option></select>
+      </label>
+      <label class="kp-sl kp-ccl"><span class="kp-ccv"></span><input class="kp-cc" type="range" min="-60" max="0" step="1" value="-10" /></label>
+    </div>
+
+    <p class="ax-big kp-big" aria-live="polite"></p>
+    <canvas class="ax-fig kp-fig" role="img"></canvas>
+    <p class="kp-eq"></p>
+    <dl class="ax-facts kp-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="kp-try">
+      <li>AgCl: start at 10⁻⁴ mol/L of each. A cloud forms. Now dilute one side to 10⁻⁶. Does it still form?</li>
+      <li>Change the volumes: mixing dilutes both solutions, so Q is always smaller than you might guess from the bottles.</li>
+      <li>PbI₂: Q is [Pb²⁺][I⁻]², so doubling the iodide counts four times. Watch the yellow pile grow.</li>
+      <li>Solubility: add 0.1 mol/L of extra iodide. PbI₂ becomes about ten thousand times less soluble: that is the common ion effect.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="kp-quiz" />
+</div>
+
+<script>
+  import { SALTS, mix, ionicProduct, precipitate, solubility, type Salt } from '../../lib/sci/ksp-precipitation';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.kpx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 300;
+  let mode = 'mix';
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const SUP: Record<string, string> = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  /** 3 significant figures in a × 10ⁿ form. */
+  const sci = (x: number) => {
+    if (x === 0) return '0';
+    let e = Math.floor(Math.log10(Math.abs(x))), m = x / 10 ** e;
+    if (+m.toFixed(2) >= 10) { m /= 10; e += 1; }
+    if (e >= -2 && e <= 2) return fmt(x, Math.max(0, 2 - e) + 1);
+    return `${fmt(m, 2)} × 10${String(e).split('').map((c) => SUP[c]).join('')}`;
+  };
+  const conc = (c: string) => 10 ** (val(c) / 10);
+  const salt = (): Salt => SALTS.find((s) => s.id === q<HTMLSelectElement>('.kp-salt').value)!;
+  const pw = (ion: string, n: number) => (n > 1 ? `[${ion}]${'⁰¹²³'[n]}` : `[${ion}]`);
+  const readKsp = () => { const s = q<HTMLInputElement>('.kp-ksp').value.trim().replace(/×\s*10\^?/, 'e').replace('−', '-'); const k = Number(s); return s && k > 0 && k < 1 ? k : NaN; };
+
+  /** Log scale from 10⁻²⁰ to 1 with Ksp and Q (or two solubilities) marked. */
+  function logBar(ctx: CanvasRenderingContext2D, pl: Palette, y: number, marks: { v: number; t: string; col: string; up: boolean }[]) {
+    const x = (v: number) => 24 + ((Math.log10(v) + 20) / 20) * (W - 48);
+    ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(W - 24, y); ctx.stroke();
+    ctx.fillStyle = pl.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let e = -20; e <= 0; e += 4) { ctx.beginPath(); ctx.moveTo(x(10 ** e), y - 4); ctx.lineTo(x(10 ** e), y + 4); ctx.stroke(); ctx.fillText(e ? `10${String(e).split('').map((c) => SUP[c]).join('')}` : '1', x(10 ** e), y + 6); }
+    for (const m of marks) {
+      if (!(m.v > 0)) continue;
+      const X = Math.max(24, Math.min(W - 24, x(m.v)));
+      ctx.fillStyle = m.col; ctx.beginPath(); ctx.arc(X, y, 6, 0, 2 * Math.PI); ctx.fill();
+      ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = m.up ? 'bottom' : 'top'; ctx.textAlign = X < 70 ? 'left' : X > W - 70 ? 'right' : 'center';
+      ctx.fillText(m.t, X, m.up ? y - 9 : y + 20);
+    }
+  }
+
+  function solidColour(s: Salt, pl: Palette) { return pl.red ? pl.accent2 : s.colour === 'yellow' ? '#e0b400' : s.colour === 'red-brown' ? '#9a3412' : pl.bg === '#ffffff' ? '#d9d9d9' : '#e8e8e8'; }
+
+  function run() {
+    const s = salt(), K = readKsp();
+    q('.kp-mix').hidden = mode !== 'mix'; q('.kp-sol').hidden = mode !== 'sol';
+    q('.kp-err').hidden = Number.isFinite(K); q('.kp-err').textContent = Number.isFinite(K) ? '' : 'Type Ksp as a number between 0 and 1, for example 1.8e-10.';
+    if (!Number.isFinite(K)) return;
+    const expr = `Ksp = ${pw(s.cation, s.a)}${pw(s.anion, s.b)}`;
+    if (mode === 'mix') {
+      const c1 = conc('.kp-c1'), c2 = conc('.kp-c2'), v1 = val('.kp-v1'), v2 = val('.kp-v2');
+      q('.kp-c1l').textContent = `${s.mFrom} (gives ${s.cation}): ${sci(c1)} mol/L`; q('.kp-v1l').textContent = `Volume of ${s.mFrom}: ${v1} mL`;
+      q('.kp-c2l').textContent = `${s.xFrom} (gives ${s.anion}): ${sci(c2)} mol/L`; q('.kp-v2l').textContent = `Volume of ${s.xFrom}: ${v2} mL`;
+      const m = mix(c1, v1, c2, v2), Q = ionicProduct(m.M, m.X, s.a, s.b), p = precipitate(m.M, m.X, s.a, s.b, K), yes = p.x > 0;
+      const frac = yes ? Math.min(1, (s.a * p.x) / m.M, (s.b * p.x) / m.X) : 0;
+      q('.kp-big').textContent = yes ? `Q > Ksp: a ${s.colour} solid of ${s.formula} forms` : Q === K ? 'Q = Ksp: just saturated, no solid' : `Q < Ksp: no solid, the solution stays clear`;
+      q('.kp-big').style.color = yes ? 'var(--warn)' : 'var(--good)';
+      q('.kp-eq').textContent = `After mixing (${v1} + ${v2} = ${m.V} mL): [${s.cation}] = ${sci(c1)} × ${v1}/${m.V} = ${sci(m.M)}, [${s.anion}] = ${sci(c2)} × ${v2}/${m.V} = ${sci(m.X)}. Q = ${sci(m.M)}${s.a > 1 ? '²' : ''} × ${sci(m.X)}${s.b > 1 ? '²' : ''} = ${sci(Q)}, Ksp = ${sci(K)}.`;
+      const fig: Figure = { w: W, h: H, alt: `Beaker after mixing: ${yes ? `a ${s.colour} solid of ${s.formula} settles` : 'clear solution'}. Q = ${sci(Q)}, Ksp = ${sci(K)}.`, draw: (ctx, w, h, pl) => {
+        const bx = 110, bw = 160, by = 20, bh = 170, lv = by + 30;
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.08; ctx.fillRect(bx, lv, bw, by + bh - lv); ctx.globalAlpha = 1;
+        // Ions as dots: more dots for higher concentration (log scale), drawn in a fixed scatter.
+        let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+        const nOf = (c: number) => Math.max(0, Math.min(40, Math.round((Math.log10(c) + 8) * 5)));
+        const drawIons = (n: number, col: string, r: number) => { ctx.fillStyle = col; for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(bx + 10 + rnd() * (bw - 20), lv + 8 + rnd() * (by + bh - lv - 30), r, 0, 2 * Math.PI); ctx.fill(); } };
+        drawIons(nOf(p.M), pl.accent, 3.2); drawIons(nOf(p.X), pl.accent2, 2.6);
+        if (yes) {
+          const ph = 6 + 34 * Math.sqrt(frac);
+          ctx.fillStyle = solidColour(s, pl); ctx.strokeStyle = pl.ink; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(bx + 2, by + bh - 1); for (let i = 0; i <= 20; i++) ctx.lineTo(bx + 2 + ((bw - 4) * i) / 20, by + bh - ph - 4 * Math.sin(i * 1.3) - 2); ctx.lineTo(bx + bw - 2, by + bh - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        ctx.strokeStyle = pl.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by); ctx.stroke();
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillStyle = pl.accent; ctx.fillText(`● ${s.cation}`, 8, 70); ctx.fillStyle = pl.accent2; ctx.fillText(`● ${s.anion}`, 8, 92);
+        if (yes) { ctx.fillStyle = pl.ink; ctx.fillText(`${s.formula}(s)`, bx + bw + 8, by + bh - 14); }
+        logBar(ctx, pl, 240, [{ v: K, t: 'Ksp', col: pl.ink, up: true }, { v: Q, t: 'Q', col: yes ? pl.warn : pl.good, up: false }]);
+      } };
+      paint(q<HTMLCanvasElement>('.kp-fig'), fig);
+      q('.kp-facts').replaceChildren(
+        fact('Ionic product Q', sci(Q), `${pw(s.cation, s.a)}${pw(s.anion, s.b)} just after mixing`),
+        fact('Ksp', sci(K), expr),
+        fact('Solid formed', yes ? `${sci(p.x)} mol/L` : 'none', yes ? `${sci((p.x * m.V) / 1000)} mol in ${m.V} mL; ${fmt(frac * 100, 1)}% of the ${(s.a * p.x) / m.M >= (s.b * p.x) / m.X - 1e-15 ? s.cation : s.anion} comes out` : 'Q must be bigger than Ksp'),
+        fact(`Left in solution`, `${pw(s.cation, 1)} ${sci(p.M)}, ${pw(s.anion, 1)} ${sci(p.X)}`, yes ? 'these now give Q = Ksp exactly' : 'unchanged'),
+      );
+    } else {
+      const ci = q<HTMLSelectElement>('.kp-ci').value, cc = ci === 'none' ? 0 : conc('.kp-cc');
+      q('.kp-ccl').hidden = ci === 'none';
+      q('.kp-ccv').textContent = `Extra ${ci === 'M' ? s.cation : s.anion}: ${sci(cc)} mol/L`;
+      const s0 = solubility(s.a, s.b, K), s1 = solubility(s.a, s.b, K, ci === 'M' ? cc : 0, ci === 'X' ? cc : 0);
+      const ab = s.a ** s.a * s.b ** s.b;
+      q('.kp-big').textContent = ci === 'none' ? `Solubility s = ${sci(s0)} mol/L` : `s drops from ${sci(s0)} to ${sci(s1)} mol/L`;
+      q('.kp-big').style.color = '';
+      q('.kp-eq').textContent = ci === 'none'
+        ? `${s.formula} ⇌ ${s.a > 1 ? s.a : ''}${s.cation} + ${s.b > 1 ? s.b : ''}${s.anion}. Ksp = (${s.a > 1 ? s.a : ''}s)${s.a > 1 ? '²' : ''}(${s.b > 1 ? s.b : ''}s)${s.b > 1 ? '²' : ''} = ${ab}s${'¹²³⁴'[s.a + s.b - 1]}, so s = (${sci(K)} ÷ ${ab})^(1/${s.a + s.b}) = ${sci(s0)} mol/L.`
+        : `With ${sci(cc)} mol/L of extra ${ci === 'M' ? s.cation : s.anion}: Ksp = ${ci === 'M' ? `(${sci(cc)} + ${s.a > 1 ? s.a : ''}s)${s.a > 1 ? '²' : ''}(${s.b > 1 ? s.b : ''}s)${s.b > 1 ? '²' : ''}` : `(${s.a > 1 ? s.a : ''}s)${s.a > 1 ? '²' : ''}(${sci(cc)} + ${s.b > 1 ? s.b : ''}s)${s.b > 1 ? '²' : ''}`}. Solving gives s = ${sci(s1)} mol/L.`;
+      const fig: Figure = { w: W, h: 150, alt: `Molar solubility of ${s.formula}: ${sci(s0)} mol/L in pure water${ci === 'none' ? '' : `, ${sci(s1)} mol/L with the common ion`}.`, draw: (ctx, w, h, pl) => {
+        ctx.fillStyle = pl.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Molar solubility, mol/L (log scale)', 24, 6);
+        logBar(ctx, pl, 80, [{ v: s0, t: 'pure water', col: pl.accent, up: true }, ...(ci === 'none' ? [] : [{ v: s1, t: 'common ion', col: pl.warn, up: false }])]);
+      } };
+      paint(q<HTMLCanvasElement>('.kp-fig'), fig);
+      q('.kp-facts').replaceChildren(
+        fact('In pure water', `${sci(s0)} mol/L`, `s = (Ksp ÷ ${ab})^(1/${s.a + s.b})`),
+        ...(ci === 'none' ? [] : [fact('With the common ion', `${sci(s1)} mol/L`, `${s0 / s1 >= 10 ? `about ${sci(s0 / s1)} times less` : `${fmt(s0 / s1, 2)} times less`}`)]),
+        fact('Ksp', sci(K), expr),
+      );
+    }
+  }
+
+  const loadSalt = () => { q<HTMLInputElement>('.kp-ksp').value = String(salt().ksp); run(); };
+  q('.kp-salt').addEventListener('change', loadSalt);
+  root.querySelectorAll('input, .kp-ci').forEach((e) => e.addEventListener('input', run));
+  q('.kp-ci').addEventListener('change', run);
+  root.querySelectorAll<HTMLButtonElement>('.kp-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.kp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  document.addEventListener('fibub:theme', run);
+  loadSalt();
+
+  quiz(q('.kp-quiz'), (): Question[] => {
+    const e1 = rint(-5, -3), k1 = pick([1.8e-10, 1.1e-10, 3.3e-9]);
+    const c = 10 ** e1, Q = (c / 2) * (c / 2);
+    const k2 = pick([1.6e-9, 2.5e-11, 4.9e-13, 3.6e-7]), s2 = Math.sqrt(k2);
+    const m3 = pick([2, 3, 5]), e3 = rint(-11, -9), k3 = m3 * 10 ** e3, x3 = pick([0.1, 0.01]);
+    return [
+      { text: `Equal volumes of ${sci(c)} mol/L solutions of the two ions of a salt AB are mixed. Ksp = ${sci(k1)}. Does a solid form?`, choices: ['Yes', 'No'], correct: Q > k1 ? 0 : 1, worked: `Mixing equal volumes halves each concentration to ${sci(c / 2)} mol/L. Q = (${sci(c / 2)})² = ${sci(Q)}. Q ${Q > k1 ? '>' : '<'} Ksp, so ${Q > k1 ? 'a solid forms' : 'no solid forms'}.` },
+      { text: `A salt AB has Ksp = ${sci(k2)}. What is its molar solubility in pure water, in mol/L? (Type it like 4e-5.)`, answer: s2, tol: s2 * 0.01, worked: `Ksp = s × s = s², so s = √(${sci(k2)}) = ${sci(s2)} mol/L.` },
+      { text: `A salt AB has Ksp = ${sci(k3)}. About what is its solubility (mol/L) in a solution that already has ${x3} mol/L of B⁻? (Type it like 2e-9.)`, answer: k3 / x3, tol: (k3 / x3) * 0.01, worked: `s(${x3} + s) = Ksp. s is tiny next to ${x3}, so s ≈ Ksp ÷ ${x3} = ${sci(k3 / x3)} mol/L. Much less than √Ksp = ${sci(Math.sqrt(k3))} in pure water: the common ion effect.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .kpx .ax-seg button { min-height: 44px; }
+  .kpx .kp-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 10px; margin-top: 12px; }
+  .kpx .kp-pair { display: grid; gap: 4px; border-left: 3px solid var(--line); padding-left: 10px; margin-top: 10px; }
+  .kpx .kp-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 6px; }
+  .kpx .kp-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .kpx .kp-sol { display: grid; gap: 6px; margin-top: 10px; }
+  .kpx .kp-big { margin: 12px 0 4px; }
+  .kpx .kp-eq { margin: 8px 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .kpx .kp-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
