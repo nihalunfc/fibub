@@ -1,0 +1,147 @@
+---
+// Animal classification key: answer one question at a time (organisation, symmetry, germ layers, body cavity,
+// notochord, legs, segments) and follow the branching tree to an animal phylum, or pick an animal and watch the
+// key walk it through.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax akey">
+  <div class="ax-card">
+    <h2>Pick an animal, or answer the questions yourself</h2>
+    <label>Animal <select class="ak-an"><option value="">My own answers…</option></select></label>
+    <div class="ak-ask">
+      <p class="ak-qn"></p>
+      <p class="ak-q"></p>
+      <p class="ax-help ak-help"></p>
+      <div class="ak-opts" role="group" aria-label="Answers"></div>
+    </div>
+    <div class="ax-row"><button type="button" class="btn small secondary ak-back">Back one step</button><button type="button" class="btn small secondary ak-reset">Start again</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="ak-title"></h2>
+    <svg class="ak-tree" role="img"></svg>
+    <ol class="ak-path"></ol>
+    <p class="ak-leaf"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ak-try">
+      <li>Pick the <b>starfish</b>: the adult is radial like a jellyfish, but its three germ layers send it to the echinoderms.</li>
+      <li>Compare the <b>earthworm</b> and the <b>roundworm</b>: both look like worms, but the body cavity splits them.</li>
+      <li>Pick the <b>acorn worm</b>: it has only a stomochord, not a notochord, so it is not a chordate.</li>
+      <li>Answer the questions for an animal you know that is not in the list, such as a crab or a sea anemone.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ak-quiz" />
+</div>
+
+<script>
+  import { NODES, ROOT, ANIMALS, PHYLA, isLeaf, walk } from '../../lib/sci/school-animalkey';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.akey')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let answers: Record<string, number> = {};
+  const sel = q<HTMLSelectElement>('.ak-an');
+  sel.append(...ANIMALS.map((a) => new Option(a.name, a.id)));
+  const QNUM: Record<string, number> = {}; Object.values(NODES).filter((n) => !isLeaf(n)).forEach((n, i) => { QNUM[n.id] = i + 1; });
+  const short = (s: string) => s.replace(/ \(.*\)$/, '');
+
+  // Layout: leaves in rows on the right, each question node at its depth, halfway between its children.
+  const pos: Record<string, { x: number; y: number }> = {}, ROWH = 26, TOP = 16;
+  let row = 0, maxDepth = 0;
+  (function place(id: string, d: number): number {
+    const n = NODES[id]; maxDepth = Math.max(maxDepth, d);
+    if (isLeaf(n)) { const y = TOP + row++ * ROWH; pos[id] = { x: d, y }; return y; }
+    const ys = n.opts.map((o) => place(o.to, d + 1));
+    pos[id] = { x: d, y: (Math.min(...ys) + Math.max(...ys)) / 2 }; return pos[id].y;
+  })(ROOT, 0);
+  const Wd = 380, LABEL = 118, STEP = (Wd - LABEL - 20) / maxDepth, Hh = TOP + row * ROWH;
+  const X = (d: number) => 12 + d * STEP;
+
+  function draw() {
+    const { path, leaf } = walk(answers);
+    const cur = path[path.length - 1], n = NODES[cur];
+    // question card
+    const ask = q('.ak-ask');
+    if (isLeaf(n)) { ask.hidden = true; }
+    else {
+      ask.hidden = false;
+      q('.ak-qn').textContent = `Question ${path.length} of this path (Q${QNUM[cur]} in the tree)`;
+      q('.ak-q').textContent = n.q; q('.ak-help').textContent = n.help;
+      q('.ak-opts').replaceChildren(...n.opts.map((o, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = o.label; b.addEventListener('click', () => { answers[cur] = i; sel.value = ''; draw(); }); return b; }));
+    }
+    q('.ak-title').textContent = leaf ? `Phylum ${NODES[leaf] && isLeaf(NODES[leaf]) ? NODES[leaf].phylum : ''}` : 'Follow the branches';
+    // tree
+    const svg = root.querySelector<SVGSVGElement>('.ak-tree')!;
+    svg.setAttribute('viewBox', `0 0 ${Wd} ${Hh}`); svg.replaceChildren();
+    svg.setAttribute('aria-label', `Branching key from Q1 to ${PHYLA.length} phyla. ${leaf ? 'Path ends at ' + short((NODES[leaf] as { phylum: string }).phylum) : 'Current question: Q' + QNUM[cur]}.`);
+    const onPath = new Set(path);
+    for (const [id, nd] of Object.entries(NODES)) if (!isLeaf(nd)) for (const o of nd.opts) {
+      const a = pos[id], b = pos[o.to], hot = onPath.has(id) && onPath.has(o.to);
+      S('path', { d: `M${X(a.x)} ${a.y} H${X(a.x) + STEP * 0.4} V${b.y} H${X(b.x)}`, class: hot ? 'ak-e ak-hot' : 'ak-e' }, svg);
+    }
+    for (const [id, nd] of Object.entries(NODES)) {
+      const p = pos[id];
+      if (isLeaf(nd)) {
+        S('circle', { cx: X(p.x), cy: p.y, r: 4, class: id === leaf ? 'ak-n ak-hot' : 'ak-n' }, svg);
+        S('text', { x: X(p.x) + 8, y: p.y + 4, class: id === leaf ? 'ak-t ak-tb' : 'ak-t' }, svg, short(nd.phylum));
+      } else {
+        S('circle', { cx: X(p.x), cy: p.y, r: 10, class: id === cur ? 'ak-n ak-cur' : onPath.has(id) ? 'ak-n ak-hot' : 'ak-n ak-q' }, svg);
+        S('text', { x: X(p.x), y: p.y + 4, 'text-anchor': 'middle', class: 'ak-qt' + (onPath.has(id) ? ' ak-qth' : '') }, svg, String(QNUM[id]));
+      }
+    }
+    // path in words
+    q('.ak-path').replaceChildren(...path.filter((id) => !isLeaf(NODES[id]) && answers[id] !== undefined).map((id) => { const nd = NODES[id] as { q: string; opts: { label: string }[] }; const li = document.createElement('li'); li.textContent = `${nd.q} ${nd.opts[answers[id]].label}.`; return li; }));
+    q('.ak-leaf').textContent = leaf && isLeaf(NODES[leaf]) ? (NODES[leaf] as { traits: string }).traits + (sel.value ? ` ${sel.selectedOptions[0].text} belongs here.` : '') : '';
+  }
+  sel.addEventListener('change', () => { answers = sel.value ? { ...ANIMALS.find((a) => a.id === sel.value)!.answers } : {}; draw(); });
+  q('.ak-back').addEventListener('click', () => { const { path } = walk(answers); const last = [...path].reverse().find((id) => answers[id] !== undefined); if (last) delete answers[last]; sel.value = ''; draw(); });
+  q('.ak-reset').addEventListener('click', () => { answers = {}; sel.value = ''; draw(); });
+  draw();
+
+  quiz(q('.ak-quiz'), (): Question[] => {
+    const a = pick(ANIMALS), names = PHYLA.map((p) => short((NODES[p] as { phylum: string }).phylum));
+    const wrong = names.filter((x) => x !== short((NODES[a.phylum] as { phylum: string }).phylum)).sort(() => Math.random() - 0.5).slice(0, 2);
+    const ch = [short((NODES[a.phylum] as { phylum: string }).phylum), ...wrong].sort(() => Math.random() - 0.5);
+    return [
+      { text: `Which phylum does the ${a.name.toLowerCase()} belong to?`, choices: ch, correct: ch.indexOf(short((NODES[a.phylum] as { phylum: string }).phylum)), worked: (NODES[a.phylum] as { traits: string }).traits },
+      { text: 'Which phylum has the cellular level of organisation, with no true tissues?', choices: ['Porifera', 'Cnidaria', 'Platyhelminthes'], correct: 0, worked: 'Sponges (Porifera): their cells work together loosely, without forming tissues.' },
+      { text: 'Roundworms have a body cavity that is not fully lined by mesoderm. What is it called?', choices: ['Coelom', 'Pseudocoelom', 'No cavity'], correct: 1, worked: 'A pseudocoelom ("false coelom"): the mesoderm lines only part of it.' },
+      { text: 'Which group is diploblastic?', choices: ['Annelida', 'Cnidaria', 'Chordata'], correct: 1, worked: 'Cnidarians (and ctenophores) have only two germ layers, ectoderm and endoderm.' },
+      pick([
+        { text: 'Starfish adults are radial. Why are they not with the jellyfish?', choices: ['They have three germ layers and a coelom', 'They have stinging cells', 'They have a notochord'], correct: 0, worked: 'Echinoderms are triploblastic coelomates with bilateral larvae; their radial shape comes later.' },
+        { text: 'What do all arthropods have?', choices: ['A shell and a mantle', 'Jointed legs and an exoskeleton', 'Comb plates'], correct: 1, worked: 'Arthropod means "jointed foot": jointed appendages and a chitin exoskeleton.' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .akey label { display: grid; gap: 4px; }
+  .akey select { min-height: 44px; }
+  .akey .ak-qn { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .akey .ak-q { margin: 2px 0 4px; font-weight: 700; font-size: 17px; color: var(--ink); }
+  .akey .ak-help { margin: 0 0 8px; }
+  .akey .ak-opts { display: grid; gap: 6px; }
+  .akey .ak-opts button { min-height: 44px; padding: 8px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .akey .ak-opts button:hover { border-color: var(--accent); }
+  .akey .ax-row { margin-top: 10px; flex-wrap: wrap; gap: 8px; }
+  .akey .ak-tree { width: 100%; height: auto; display: block; }
+  .akey .ak-e { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .akey .ak-e.ak-hot { stroke: var(--accent); stroke-width: 3.5; }
+  .akey .ak-n { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+  .akey .ak-n.ak-hot { fill: var(--accent); stroke: var(--accent); }
+  .akey .ak-n.ak-cur { fill: var(--warn); stroke: var(--warn); }
+  .akey .ak-qt { font-size: 11px; fill: var(--muted); font-weight: 700; }
+  .akey .ak-qth { fill: var(--bg); }
+  .akey .ak-t { font-size: 12px; fill: var(--muted); }
+  .akey .ak-tb { fill: var(--ink); font-weight: 700; }
+  .akey .ak-path { padding-left: 22px; display: grid; gap: 4px; margin: 10px 0; }
+  .akey .ak-leaf { font-weight: 600; }
+  .akey .ak-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
