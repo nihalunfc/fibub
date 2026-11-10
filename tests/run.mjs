@@ -3533,7 +3533,7 @@ try {
     subOn: [...document.querySelectorAll('.tb-sub a.on')].map((e) => e.textContent.trim()),
     area: document.documentElement.dataset.area,
   }));
-  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 5], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 5], ['/science/', 'tools', 'Tools', 'Science', 5], ['/science/astronomy/', 'tools', 'Tools', 'Science', 5], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/news/', 'news', 'News', 'Latest', 3], ['/changes/', 'news', 'News', 'Change log', 3], ['/stats/', 'news', 'News', 'Usage stats', 3], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
+  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 6], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 6], ['/science/', 'tools', 'Tools', 'Science', 6], ['/science/astronomy/', 'tools', 'Tools', 'Science', 6], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/news/', 'news', 'News', 'Latest', 3], ['/changes/', 'news', 'News', 'Change log', 3], ['/stats/', 'news', 'News', 'Usage stats', 3], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
     await phone.goto(BASE + path);
     const t = await tabState();
     check(t.tabs.join() === 'Learn,Tools,Home,News,Menu' && t.on.join() === on && t.area === area && t.sub.length === n && t.subOn.join() === subOn, `bottom bar on ${path}: ${t.on} lit, ${t.sub.length} sections${subOn ? `, ${subOn} lit` : ''} (${JSON.stringify(t)})`);
