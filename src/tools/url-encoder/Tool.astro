@@ -1,0 +1,101 @@
+---
+// #T850 URL encoder
+---
+<div class="tool-ui ue">
+  <section class="panel">
+    <h2 class="ue-h">Encode and decode</h2>
+    <label>What it is for
+      <select class="ue-mode">
+        <option value="comp">A part of an address (encodeURIComponent)</option>
+        <option value="uri">A whole address (encodeURI)</option>
+      </select>
+    </label>
+    <label class="ue-row"><input class="ue-plus" type="checkbox" /> Spaces as + (form style)</label>
+    <label>Plain text<textarea class="ue-plain" rows="3" spellcheck="false">a b&amp;c=d</textarea></label>
+    <label>Encoded<textarea class="ue-enc" rows="3" spellcheck="false"></textarea></label>
+    <p class="ue-err" role="alert" hidden></p>
+    <div class="ue-btns">
+      <button type="button" class="btn ue-copy">Copy encoded</button>
+      <button type="button" class="btn secondary ue-clear">Clear</button>
+    </div>
+    <p class="ue-info" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2 class="ue-h">Read a query string</h2>
+    <label>Web address<input class="ue-url" type="text" value="https://x.com/?q=fibub&amp;n=2" spellcheck="false" /></label>
+    <p class="ue-uerr" role="alert" hidden></p>
+    <div class="ue-wrap"><table class="ue-tab"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody></tbody></table></div>
+    <p class="ue-uinfo" aria-live="polite"></p>
+  </section>
+  <p class="ue-fine">Everything happens on this page. Nothing you type is sent anywhere.</p>
+</div>
+
+<style is:inline>
+  .ue { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ue .panel { padding: 16px; display: grid; gap: 10px; }
+  .ue-h { font-size: 17px; margin: 0; }
+  .ue label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ue label.ue-row { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .ue textarea, .ue input[type=text], .ue select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ue textarea, .ue input[type=text] { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; }
+  .ue textarea { resize: vertical; }
+  .ue textarea:focus, .ue input:focus, .ue select:focus { border-color: var(--accent); outline: none; }
+  .ue-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ue-err, .ue-uerr { color: var(--bad); margin: 0; font-size: 14px; }
+  .ue-info, .ue-uinfo, .ue-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .ue-wrap { overflow-x: auto; }
+  .ue-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ue-tab th, .ue-tab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; vertical-align: top; }
+  .ue-tab td { font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  const root = document.querySelector('.ue') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const mode = $<HTMLSelectElement>('.ue-mode'), plus = $<HTMLInputElement>('.ue-plus');
+  const plain = $<HTMLTextAreaElement>('.ue-plain'), enc = $<HTMLTextAreaElement>('.ue-enc');
+  const err = $('.ue-err'), info = $('.ue-info');
+  const url = $<HTMLInputElement>('.ue-url'), uerr = $('.ue-uerr'), body = $('.ue-tab tbody'), uinfo = $('.ue-uinfo');
+  const showErr = (m: string) => { err.textContent = m; err.hidden = !m; };
+
+  const encode = () => {
+    try {
+      let s = mode.value === 'comp' ? encodeURIComponent(plain.value) : encodeURI(plain.value);
+      if (plus.checked) s = s.replace(/%20/g, '+');
+      enc.value = s; showErr('');
+      info.textContent = `${plain.value.length} characters → ${s.length} encoded.`;
+    } catch { showErr('This text has a broken character (a lone half of an emoji pair) that cannot be encoded.'); }
+  };
+  const decode = () => {
+    try {
+      const s = plus.checked ? enc.value.replace(/\+/g, ' ') : enc.value;
+      plain.value = mode.value === 'comp' ? decodeURIComponent(s) : decodeURI(s);
+      showErr(''); info.textContent = `${enc.value.length} encoded → ${plain.value.length} characters.`;
+    } catch { showErr('This cannot be decoded: a % must be followed by two hex digits (0-9, A-F) that make valid UTF-8, such as %20 or %C3%A9.'); info.textContent = ''; }
+  };
+  plain.addEventListener('input', encode);
+  enc.addEventListener('input', decode);
+  mode.addEventListener('change', encode);
+  plus.addEventListener('change', encode);
+  $('.ue-copy').addEventListener('click', () => { navigator.clipboard?.writeText(enc.value).then(() => { info.textContent = 'Copied.'; }, () => {}); });
+
+  const table = () => {
+    body.innerHTML = ''; uerr.hidden = true; uinfo.textContent = '';
+    const v = url.value.trim(); if (!v) return;
+    let q = '', where = '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(v)) {
+      try { const u = new URL(v); q = u.search; where = ` Address: ${u.origin}${u.pathname}${u.hash ? ', fragment ' + u.hash : ''}`; }
+      catch { uerr.textContent = 'That does not look like a complete web address.'; uerr.hidden = false; return; }
+    } else q = (v.includes('?') ? v.slice(v.indexOf('?')) : v).split('#')[0];
+    let rows = 0;
+    for (const [k, val] of new URLSearchParams(q)) {
+      const tr = document.createElement('tr');
+      for (const c of [k, val]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      body.append(tr); rows++;
+    }
+    uinfo.textContent = `${rows} parameter${rows === 1 ? '' : 's'}.${where}`;
+  };
+  url.addEventListener('input', table);
+  $('.ue-clear').addEventListener('click', () => { plain.value = ''; enc.value = ''; url.value = ''; showErr(''); info.textContent = ''; table(); });
+  encode(); table();
+</script>
