@@ -1,0 +1,154 @@
+---
+// #T879 Health insurance waiting period timeline
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui wtp">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your policy</h2>
+    <p class="wtp-hint">Example numbers: change them to yours.</p>
+    <div class="wtp-grid">
+      <label>Kind of cover <select data-k="mode"><option value="in">India health insurance</option><option value="dental">Dental plan (US, Canada)</option></select></label>
+      <label>Policy start date <input type="date" data-k="start" /></label>
+      <label class="wtp-chk"><span><input type="checkbox" data-k="port" /> Ported from an older policy</span></label>
+      <label class="wtp-portm" hidden>Months already served <input data-k="served" inputmode="decimal" value="12" /></label>
+    </div>
+    <p class="wtp-hint wtp-portnote" hidden>Under IRDAI portability, months already served count towards each waiting period, up to the sum insured of the old policy. Cover above that starts its waits again.</p>
+    <h2 class="wtp-h2">Waiting periods</h2>
+    <div class="wtp-rows"></div>
+    <button type="button" class="wtp-add">Add a row</button>
+    <p class="note bad wtp-err" role="alert" hidden></p>
+  </section>
+  <section class="wtp-res" aria-live="polite">
+    <div class="panel"><h2>Timeline</h2><div class="wtp-svg"></div></div>
+    <div class="panel"><h2>When each one ends</h2><ul class="wtp-list"></ul></div>
+    <p class="wtp-src"></p>
+  </section>
+  <p class="wtp-fine">How it is worked out: each waiting period ends at the start date plus its months or days. If you ported, the months already served are taken off first and a period never ends before the start date. Months count on the calendar, and the last day of a short month is used when needed. Today's date comes from your device. Check your policy wording for the exact date. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .wtp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .wtp > *, .wtp-res > * { min-width: 0; }
+  .wtp h2 { margin: 0 0 12px; font-size: 18px; }
+  .wtp .wtp-h2 { margin-top: 16px; }
+  .wtp .panel { padding: 16px; }
+  .wtp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .wtp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .wtp label.wtp-chk span { display: flex; gap: 8px; align-items: center; color: var(--ink); padding-top: 20px; }
+  .wtp input, .wtp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .wtp input[type="checkbox"] { width: auto; }
+  .wtp input:focus, .wtp select:focus { border-color: var(--accent); outline: none; }
+  .wtp-rows { display: grid; gap: 10px; margin-bottom: 10px; }
+  .wtp-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 8px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .wtp-row .wtp-lab { grid-column: 1 / -1; }
+  .wtp-row button, .wtp-add { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .wtp-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .wtp-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 15px; }
+  .wtp-list b.ok { color: var(--good); }
+  .wtp-list b.wait { color: var(--warn); }
+  .wtp-hint, .wtp-fine, .wtp-src { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  import { num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.wtp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  type Row = { label: string; n: string; unit: 'days' | 'months'; kind?: 'moratorium' };
+  const PRESETS: Record<string, Row[]> = {
+    in: [
+      { label: 'Initial wait (not for accidents)', n: '30', unit: 'days' },
+      { label: 'Pre-existing diseases', n: '36', unit: 'months' },
+      { label: 'Specific diseases', n: '24', unit: 'months' },
+      { label: 'Maternity (your insurer\'s figure)', n: '24', unit: 'months' },
+      { label: 'Moratorium (claims cannot be contested except for fraud)', n: '60', unit: 'months', kind: 'moratorium' },
+    ],
+    dental: [
+      { label: 'Preventive (cleanings, check-ups)', n: '0', unit: 'months' },
+      { label: 'Basic (fillings)', n: '6', unit: 'months' },
+      { label: 'Major (crowns, bridges)', n: '12', unit: 'months' },
+    ],
+  };
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const fromIso = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null; };
+  function addMonths(d: Date, m: number) {
+    const y = d.getUTCFullYear(), mo = d.getUTCMonth() + m, day = d.getUTCDate();
+    const last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(y, mo, Math.min(day, last)));
+  }
+  const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86400000);
+  const dayDiff = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / 86400000);
+  const nice = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const box = q('.wtp-rows');
+  function addRow(r: Row) {
+    const d = document.createElement('div'); d.className = 'wtp-row';
+    if (r.kind) d.dataset.kind = r.kind;
+    d.innerHTML = `<label class="wtp-lab">Name <input class="wtp-l" aria-label="Name" /></label><label>Wait <input class="wtp-n" inputmode="decimal" aria-label="Waiting time" /></label><label>In <select class="wtp-u" aria-label="Days or months"><option value="days">days</option><option value="months">months</option></select></label><button type="button" class="wtp-del" aria-label="Remove this row">Remove</button>`;
+    d.querySelector<HTMLInputElement>('.wtp-l')!.value = r.label;
+    d.querySelector<HTMLInputElement>('.wtp-n')!.value = r.n;
+    d.querySelector<HTMLSelectElement>('.wtp-u')!.value = r.unit;
+    box.appendChild(d);
+  }
+  function load(mode: string) { box.innerHTML = ''; PRESETS[mode].forEach(addRow); }
+  f('start').value = iso(new Date(Date.UTC(new Date().getFullYear(), 0, 1)));
+  load('in');
+  q('.wtp-add').addEventListener('click', () => { addRow({ label: 'Another wait', n: '12', unit: 'months' }); run(); });
+  box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.wtp-del'); if (b) { b.parentElement!.remove(); run(); } });
+  f('mode').addEventListener('change', () => { load(f('mode').value); });
+  const todayOverride = new URLSearchParams(location.search).get('today');
+  function run() {
+    const mode = f('mode').value;
+    const port = f('port').checked;
+    q('.wtp-portm').hidden = !port; q('.wtp-portnote').hidden = !port || mode !== 'in';
+    const start = fromIso(f('start').value);
+    const served = port ? Math.round(num(f('served').value)) : 0;
+    const rows = [...box.children].map((el) => ({
+      el: el as HTMLElement,
+      label: (el.querySelector('.wtp-l') as HTMLInputElement).value.trim() || 'Waiting period',
+      n: num((el.querySelector('.wtp-n') as HTMLInputElement).value),
+      unit: (el.querySelector('.wtp-u') as HTMLSelectElement).value,
+      kind: (el as HTMLElement).dataset.kind,
+    }));
+    const bad = !start ? 'Enter the policy start date.' : rows.length === 0 ? 'Add at least one waiting period.' : rows.some((r) => !(r.n >= 0 && r.n <= 600)) ? 'Each waiting time must be 0 or more (up to 600).' : served < 0 || served > 600 ? 'Months already served must be 0 or more.' : '';
+    q('.wtp-err').hidden = !bad; q('.wtp-err').textContent = bad; q('.wtp-res').hidden = !!bad;
+    if (bad || !start) return;
+    const now = (todayOverride && fromIso(todayOverride)) || fromIso(iso(new Date()))!;
+    const servedDays = dayDiff(start, addMonths(start, served));
+    const out = rows.map((r) => {
+      const end = r.unit === 'months' ? addMonths(start, Math.max(0, Math.round(r.n) - served)) : addDays(start, Math.max(0, Math.round(r.n) - servedDays));
+      return { ...r, end };
+    });
+    const last = out.reduce((a, r) => (r.end > a ? r.end : a), now > start ? now : start);
+    const span = Math.max(30, dayDiff(start, last)) * 1.04;
+    const W = 640, L = 12, R = 14, rowH = 38, top = 8, H = top + out.length * rowH + 34;
+    const x = (d: Date) => L + Math.max(0, Math.min(1, dayDiff(start, d) / span)) * (W - L - R);
+    let g = '';
+    out.forEach((r, k) => {
+      const y = top + k * rowH;
+      const x2 = x(r.end), x1 = x(start);
+      g += `<text x="${L}" y="${y + 12}" font-size="12" fill="var(--ink)">${esc(r.label)}</text>`;
+      g += `<rect x="${x1}" y="${y + 18}" width="${Math.max(2, x2 - x1)}" height="12" rx="3" fill="var(--warn)" opacity="0.55"/>`;
+      g += `<rect x="${x2}" y="${y + 18}" width="${Math.max(0, W - R - x2)}" height="12" rx="3" fill="var(--good)" opacity="0.45"/>`;
+    });
+    const axisY = top + out.length * rowH + 4;
+    const years = Math.ceil(span / 365);
+    for (let yr = 0; yr <= years; yr++) {
+      const d = addMonths(start, yr * 12);
+      if (dayDiff(start, d) > span) break;
+      g += `<line x1="${x(d)}" x2="${x(d)}" y1="${top}" y2="${axisY}" stroke="var(--line)"/><text x="${Math.min(x(d), W - 30)}" y="${axisY + 16}" font-size="11" text-anchor="${yr === 0 ? 'start' : 'middle'}" fill="var(--muted)">${d.getUTCFullYear()}</text>`;
+    }
+    if (now >= start) g += `<line x1="${x(now)}" x2="${x(now)}" y1="${top}" y2="${axisY}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/><text x="${Math.min(x(now), W - 24)}" y="${axisY + 28}" font-size="11" text-anchor="middle" fill="var(--ink)">Today</text>`;
+    q('.wtp-svg').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Timeline of waiting periods from the policy start date; amber is the wait, green is after it ends" style="width:100%;height:auto;display:block">${g}</svg><p class="wtp-hint">Amber: waiting. Green: after the wait. Dashed line: today.</p>`;
+    q('.wtp-list').innerHTML = out.map((r) => {
+      const days = dayDiff(now, r.end);
+      const mor = r.kind === 'moratorium';
+      const state = days <= 0 ? (mor ? 'Claims can no longer be contested except for fraud' : 'Covered now') : (mor ? `Claims cannot be contested except for fraud from ${nice(r.end)}` : `Covered from ${nice(r.end)}`) + `, in ${days} day${days === 1 ? '' : 's'}`;
+      return `<li data-date="${iso(r.end)}"><b class="${days <= 0 ? 'ok' : 'wait'}">${esc(r.label)}</b>: ${state}. <span class="wtp-hint">Ends ${iso(r.end)}</span></li>`;
+    }).join('');
+    q('.wtp-src').textContent = mode === 'in' ? 'Source: IRDAI health insurance master circular 2024, checked 2026-11-10, check the official source. Maternity waits are each insurer\'s own.' : 'Dental waiting periods are set by each plan: use the months in your plan booklet.';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

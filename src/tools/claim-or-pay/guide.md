@@ -12,7 +12,7 @@ order: 1957
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [insurance-deductible, idv-ncb, budget-calculator, should-i-insure]
+related: [insurance-deductible, idv-ncb, budget-calculator, should-i-insure, liability-limits]
 sources:
   - "India: no-claim bonus ladder 0, 20, 25, 35, 45, 50% after 0 to 5 claim-free years, a claim resets it to 0 (India Motor Tariff GR.27, still used by insurers after detariffing). Checked 2026-11-10, check the official source."
   - "Canada, the US and the UK: insurers publish their own discount tables, so use 'My insurer's table' and copy yours."

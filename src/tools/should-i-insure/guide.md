@@ -12,7 +12,7 @@ order: 1951
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [insurance-deductible, insurance-terms, budget-calculator]
+related: [insurance-deductible, insurance-terms, budget-calculator, travel-insurance]
 sources:
   - "Expected-loss arithmetic and constant relative risk aversion (CRRA) utility, a standard textbook model: u(w) = (w^(1-g) - 1) / (1 - g), with u(w) = ln(w) when g = 1. Checked 2026-11-10 against a hand-worked example. The presets are examples, not quotes."
 flow:

@@ -397,6 +397,7 @@ export const AREAS: Area[] = [
     tabs: [
       { name: 'Latest', href: '/blog/' },
       { name: 'Guides', href: '/blog/guides/', match: ['/blog/guides/'] },
+      { name: 'How to', href: '/blog/howto/', match: ['/blog/howto/'] },
       { name: 'Together', href: '/blog/together/', match: ['/blog/together/'] },
       { name: 'For students', href: '/blog/kids/', match: ['/blog/kids/'] },
       { name: 'Discoveries', href: '/blog/discoveries/', match: ['/blog/discoveries/'] },

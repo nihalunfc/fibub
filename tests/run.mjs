@@ -3556,7 +3556,7 @@ try {
     subOn: [...document.querySelectorAll('.tb-sub a.on')].map((e) => e.textContent.trim()),
     area: document.documentElement.dataset.area,
   }));
-  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 6], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 6], ['/science/', 'tools', 'Tools', 'Science', 6], ['/science/astronomy/', 'tools', 'Tools', 'Science', 6], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/blog/', 'blog', 'Blog', 'Latest', 7], ['/blog/guides/', 'blog', 'Blog', 'Guides', 7], ['/changes/', 'blog', 'Blog', 'Change log', 7], ['/stats/', 'blog', 'Blog', 'Usage stats', 7], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
+  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 6], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 6], ['/science/', 'tools', 'Tools', 'Science', 6], ['/science/astronomy/', 'tools', 'Tools', 'Science', 6], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/blog/', 'blog', 'Blog', 'Latest', 8], ['/blog/guides/', 'blog', 'Blog', 'Guides', 8], ['/changes/', 'blog', 'Blog', 'Change log', 8], ['/stats/', 'blog', 'Blog', 'Usage stats', 8], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
     await phone.goto(BASE + path);
     const t = await tabState();
     check(t.tabs.join() === 'Learn,Tools,Home,Blog,Menu' && t.on.join() === on && t.area === area && t.sub.length === n && t.subOn.join() === subOn, `bottom bar on ${path}: ${t.on} lit, ${t.sub.length} sections${subOn ? `, ${subOn} lit` : ''} (${JSON.stringify(t)})`);
@@ -3608,7 +3608,7 @@ try {
   await phone.goto(BASE + '/learn/');
   check((await phone.locator('.ar-card').count()) === 4 && (await phone.locator('.tc').count()) >= 4, 'Learn: four areas, plus tools students can use today');
   await phone.goto(BASE + '/blog/');
-  check((await phone.locator('.tc').count()) === 6 && (await phone.locator('.ar-card').count()) === 6, 'Blog: a card per kind of article, site news, and the 6 newest tools');
+  check((await phone.locator('.tc').count()) === 6 && (await phone.locator('.ar-card').count()) === 7, 'Blog: a card per kind of article, site news, and the 6 newest tools');
   await phone.goto(BASE + '/tools/');
   check((await phone.locator('.ar-card').count()) === 5, 'Tools: a card per shelf');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.

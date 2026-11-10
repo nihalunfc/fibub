@@ -1,0 +1,136 @@
+---
+// #T882 Explanation of benefits (EOB) checker
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui eob">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your plan terms</h2>
+    <p class="eob-hint">Example numbers: change them to yours. Find them on your plan summary.</p>
+    <div class="eob-grid">
+      <label>Currency <select class="eob-cur"></select></label>
+      <label>Deductible for the year <input data-k="ded" inputmode="decimal" /></label>
+      <label>Deductible met so far this year <input data-k="met" inputmode="decimal" /></label>
+      <label>Your coinsurance (your share after the deductible) <span class="eob-suf"><input data-k="coins" inputmode="decimal" /><i>%</i></span></label>
+      <label>Copay for this visit (0 if none) <input data-k="copay" inputmode="decimal" /></label>
+      <label>Out-of-pocket maximum (0 if none) <input data-k="oop" inputmode="decimal" /></label>
+      <label>Out-of-pocket spent so far this year <input data-k="oops" inputmode="decimal" /></label>
+    </div>
+    <p class="eob-hint">A copay, if you enter one, is taken as the whole amount you owe on the first line.</p>
+  </section>
+  <section class="panel">
+    <h2>Lines from your EOB</h2>
+    <p class="eob-hint">Copy each line from the statement: service, billed (what the provider charged), allowed (what your plan agreed counts), plan paid and you owe.</p>
+    <div class="eob-wrap"><table><thead><tr><th>Service</th><th>Billed</th><th>Allowed</th><th>Plan paid</th><th>You owe</th><th></th></tr></thead><tbody class="eob-rows"></tbody></table></div>
+    <button type="button" class="eob-add">Add a line</button>
+    <p class="note bad eob-err" role="alert" hidden></p>
+  </section>
+  <section class="eob-res" aria-live="polite">
+    <div class="eob-stats">
+      <div><span>You should owe</span><b class="eob-s-owe"></b></div>
+      <div><span>EOB says you owe</span><b class="eob-s-eob"></b></div>
+      <div><span>Lines that differ</span><b class="eob-s-bad"></b></div>
+    </div>
+    <p class="eob-line eob-words"></p>
+    <div class="panel"><h2>Line by line</h2>
+      <div class="eob-wrap"><table><thead><tr><th>Service</th><th>Network discount</th><th>Should owe</th><th>EOB owe</th><th>Plan should pay</th><th>Check</th></tr></thead><tbody class="eob-body"></tbody></table></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>What the columns mean</h2>
+    <ul class="eob-cols">
+      <li><b>Billed</b>: the provider's full price. You do not owe it in network.</li>
+      <li><b>Allowed</b>: the price your plan agreed with the provider. The gap (billed minus allowed) is a network discount, written off: you should not pay it.</li>
+      <li><b>Plan paid</b>: what the plan sent the provider.</li>
+      <li><b>You owe</b>: deductible, then your coinsurance share, or a copay, up to your out-of-pocket maximum.</li>
+    </ul>
+    <p class="eob-hint">This checks arithmetic only. Out-of-network care, balance billing and denied claims work differently: call the insurer about any difference. Canadian claim statements follow the same pattern. Medical bills and receipts belong to another tool, not this one.</p>
+  </section>
+  <p class="eob-fine">How it's worked out: for each line in order, you owe the unmet deductible (up to the allowed amount) plus your coinsurance share of the rest, or the copay on the first line if you entered one; the total is cut off at your out-of-pocket maximum; the plan should pay the rest of the allowed amount. A line is flagged when the EOB's "you owe" differs from this by more than 1, or when plan paid plus you owe does not equal allowed. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .eob { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .eob > *, .eob-res > * { min-width: 0; }
+  .eob h2 { margin: 0 0 12px; font-size: 18px; }
+  .eob .panel { padding: 16px; }
+  .eob-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .eob label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .eob input, .eob select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .eob input:focus, .eob select:focus { border-color: var(--accent); outline: none; }
+  .eob-suf { position: relative; display: block; }
+  .eob-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .eob-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .eob-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .eob-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .eob-stats span { font-size: 13px; color: var(--muted); }
+  .eob-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .eob-line { margin: 0; font-size: 15px; }
+  .eob-hint, .eob-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .eob-wrap { overflow-x: auto; }
+  .eob table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .eob th, .eob td { text-align: right; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  .eob th:first-child, .eob td:first-child { text-align: left; }
+  .eob td input { min-width: 80px; padding: 6px 8px; }
+  .eob-body td { white-space: nowrap; }
+  .eob-add { margin-top: 10px; }
+  .eob-bad { color: var(--bad, #b00020); font-weight: 600; }
+  .eob-cols { margin: 0 0 8px; padding-left: 18px; font-size: 14px; }
+</style>
+
+<script>
+  import { planCost } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.eob')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.eob-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { ded: '500', met: '0', coins: '20', copay: '0', oop: '3,000', oops: '0' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, (q('.eob-cur') as HTMLSelectElement).value, 2);
+  const rows = q('.eob-rows');
+  function addRow(v: string[]) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input class="eob-r" data-c="0" aria-label="Service" /></td>` + [1, 2, 3, 4].map((c) => `<td><input class="eob-r" data-c="${c}" inputmode="decimal" aria-label="${['', 'Billed', 'Allowed', 'Plan paid', 'You owe'][c]}" /></td>`).join('') + `<td><button type="button" class="eob-del" aria-label="Remove this line">Remove</button></td>`;
+    tr.querySelectorAll<HTMLInputElement>('.eob-r').forEach((i, k) => { i.value = v[k] || ''; });
+    rows.appendChild(tr);
+  }
+  addRow(['Office visit', '1,500', '1,000', '400', '600']);
+  q('.eob-add').addEventListener('click', () => { addRow(['', '', '', '', '']); run(); });
+  rows.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.eob-del'); if (b && rows.children.length > 1) { b.closest('tr')!.remove(); run(); } });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  function run() {
+    const ded = num(f('ded').value), met = num(f('met').value), coins = num(f('coins').value), copay = num(f('copay').value), oop = num(f('oop').value), oops = num(f('oops').value);
+    const lines = [...rows.children].map((tr) => { const i = [...tr.querySelectorAll<HTMLInputElement>('.eob-r')].map((x) => x.value); return { name: i[0] || 'Line', billed: num(i[1]), allowed: num(i[2]), paid: num(i[3]), owe: num(i[4]) }; });
+    const bad = ded < 0 || met < 0 || oops < 0 || copay < 0 || oop < 0 ? 'Plan amounts must be 0 or more.' : coins < 0 || coins > 100 ? 'Coinsurance must be from 0 to 100.' : lines.some((l) => l.allowed <= 0) ? 'Enter an allowed amount above 0 on every line.' : '';
+    q('.eob-err').hidden = !bad; q('.eob-err').textContent = bad; q('.eob-res').hidden = !!bad;
+    if (bad) return;
+    let dedLeft = Math.max(0, ded - met), oopLeft = oop > 0 ? Math.max(0, oop - oops) : Infinity;
+    let shouldTotal = 0, eobTotal = 0, diffs = 0, html = '';
+    lines.forEach((l, k) => {
+      let owe: number;
+      if (k === 0 && copay > 0) owe = Math.min(l.allowed, copay, oopLeft);
+      else {
+        const r = planCost({ premium: 0, deductible: dedLeft, coins: coins / 100, oopMax: Number.isFinite(oopLeft) ? Math.max(oopLeft, 1e-9) : 0, cap: 0 }, l.allowed);
+        owe = r.youPay; dedLeft = Math.max(0, dedLeft - l.allowed);
+      }
+      if (Number.isFinite(oopLeft)) oopLeft = Math.max(0, oopLeft - owe);
+      const plan = l.allowed - owe, disc = l.billed - l.allowed;
+      const why: string[] = [];
+      if (Math.abs(l.owe - owe) > 1) why.push(l.owe > owe ? `EOB charges ${$(l.owe - owe)} more` : `EOB charges ${$(owe - l.owe)} less`);
+      if (Math.abs(l.paid + l.owe - l.allowed) > 1) why.push('plan paid + you owe is not the allowed amount');
+      if (disc < 0) why.push('allowed is above billed');
+      if (why.length) diffs++;
+      shouldTotal += owe; eobTotal += l.owe;
+      html += `<tr><td>${esc(l.name)}</td><td>${$(Math.max(0, disc))}</td><td>${$(owe)}</td><td>${$(l.owe)}</td><td>${$(plan)}</td><td class="${why.length ? 'eob-bad' : ''}">${why.length ? 'Differs: ' + why.join('; ') : 'Matches'}</td></tr>`;
+    });
+    q('.eob-body').innerHTML = html;
+    q('.eob-s-owe').textContent = $(shouldTotal);
+    q('.eob-s-eob').textContent = $(eobTotal);
+    q('.eob-s-bad').textContent = String(diffs);
+    q('.eob-words').innerHTML = diffs ? `<b>${diffs}</b> line${diffs > 1 ? 's' : ''} differ from your plan terms. Ask your insurer to explain: you may be asked for ${$(eobTotal)} when the plan terms give ${$(shouldTotal)}. This only checks arithmetic.` : `Every line matches your plan terms: you should owe <b>${$(shouldTotal)}</b>. In network you do not owe the gap between billed and allowed.`;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
