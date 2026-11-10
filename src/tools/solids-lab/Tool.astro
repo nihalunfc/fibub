@@ -1,0 +1,270 @@
+---
+// Solids lab: cube, cuboid, cylinder, cone, sphere, hemisphere. Turn it in 3D, unfold its net, or pour it into a
+// cylinder to see the volume rules (cone 1/3, sphere 2/3 of its cylinder). Formulas update live. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sl">
+  <div class="ax-card">
+    <h2>Pick a solid</h2>
+    <div class="ax-seg sl-solid" role="group" aria-label="Solid">
+      <button type="button" data-s="cube" aria-pressed="false">Cube</button>
+      <button type="button" data-s="cuboid" aria-pressed="false">Cuboid</button>
+      <button type="button" data-s="cylinder" aria-pressed="true">Cylinder</button>
+      <button type="button" data-s="cone" aria-pressed="false">Cone</button>
+      <button type="button" data-s="sphere" aria-pressed="false">Sphere</button>
+      <button type="button" data-s="hemisphere" aria-pressed="false">Hemisphere</button>
+    </div>
+    <div class="sl-dims" style="margin-top:10px">
+      <div class="sm-sl" data-d="a"><b>a</b><input type="range" class="sl-r-a" min="1" max="20" step="0.5" value="6" aria-label="Edge a" /><input type="number" class="sl-n-a" min="0.1" max="100" step="any" value="6" aria-label="Edge a" /></div>
+      <div class="sm-sl" data-d="l"><b>l</b><input type="range" class="sl-r-l" min="1" max="20" step="0.5" value="10" aria-label="Length l" /><input type="number" class="sl-n-l" min="0.1" max="100" step="any" value="10" aria-label="Length l" /></div>
+      <div class="sm-sl" data-d="b"><b>b</b><input type="range" class="sl-r-b" min="1" max="20" step="0.5" value="6" aria-label="Breadth b" /><input type="number" class="sl-n-b" min="0.1" max="100" step="any" value="6" aria-label="Breadth b" /></div>
+      <div class="sm-sl" data-d="r"><b>r</b><input type="range" class="sl-r-r" min="1" max="20" step="0.5" value="7" aria-label="Radius r" /><input type="number" class="sl-n-r" min="0.1" max="100" step="any" value="7" aria-label="Radius r" /></div>
+      <div class="sm-sl" data-d="h"><b>h</b><input type="range" class="sl-r-h" min="1" max="20" step="0.5" value="10" aria-label="Height h" /><input type="number" class="sl-n-h" min="0.1" max="100" step="any" value="10" aria-label="Height h" /></div>
+    </div>
+    <p class="ax-help sl-dhelp"></p>
+    <p class="ax-err sl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-seg sl-view" role="group" aria-label="View">
+      <button type="button" data-v="3d" aria-pressed="true">Turn it</button>
+      <button type="button" data-v="net" aria-pressed="false">Unfold</button>
+      <button type="button" data-v="fill" aria-pressed="false">Fill it</button>
+    </div>
+    <svg class="sm-fig sl-fig" viewBox="0 0 340 280" role="img" aria-label="The solid" style="margin-top:10px"></svg>
+    <p class="ax-help sl-vhelp"></p>
+    <div class="ax-row sl-fillctl" hidden>
+      <button type="button" class="btn small sl-pour">Pour one in</button>
+      <button type="button" class="btn secondary small sl-empty">Empty</button>
+    </div>
+    <p class="sm-f sl-fillsay" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Formulas with your numbers</h2>
+    <p class="sm-f sl-f1"></p>
+    <p class="sm-f sl-f2"></p>
+    <p class="sm-f sl-f3"></p>
+    <p class="sm-f sl-f4"></p>
+    <p class="ax-help">π is used to full accuracy. With π = 22/7 or 3.14 your book's answer may differ in the last digit or two.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Pick the cone and press Pour three times. Three cones fill the cylinder with the same base and height, so a cone is ⅓ πr²h.</li>
+      <li>Pick the sphere and fill its cylinder (height 2r). It takes 1½ spheres: the sphere is ⅔ of the cylinder, as Archimedes found.</li>
+      <li>Double the radius of the cylinder. The curved surface doubles, but the volume goes up 4 times. Why?</li>
+      <li>Unfold the cone and make it tall and thin, then short and wide. The sector angle is 360° × r ÷ l.</li>
+      <li>Make a cuboid with l = b = h. It is a cube: check that the formulas agree.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Answers within 1% count, so π or 22/7 both work. Nothing is saved.</p>
+    <div class="sl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sl svg .sl-t0 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .sl svg .sl-t1 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1; }
+  .sl svg .sl-t2 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+  .sl svg .sl-t3 { fill: var(--surface); stroke: var(--muted); stroke-width: 0.6; }
+  .sl svg .sl-net { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .sl svg .sl-net2 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .sl svg .sl-water { fill: var(--accent); fill-opacity: 0.35; }
+  .sl svg .sl-glass { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .sl svg .sl-dim { font-size: 12px; font-weight: 600; }
+  .sl .sl-solid button { padding: 7px 10px; }
+</style>
+
+<script>
+  import { measure, faces, project, coneSectorAngle, loadsToFillCylinder, type Solid, type Dims } from '../../lib/sci/solids-l2';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.sl-fig');
+  let solid: Solid = 'cylinder', view = '3d', yaw = 0.6, pitch = 0.45, poured = 0;
+  const NEED: Record<Solid, string[]> = { cube: ['a'], cuboid: ['l', 'b', 'h'], cylinder: ['r', 'h'], cone: ['r', 'h'], sphere: ['r'], hemisphere: ['r'] };
+  const n = (x: number, dp = 2) => (Math.round(x * 10 ** dp) / 10 ** dp).toLocaleString('en', { maximumFractionDigits: dp });
+  const piT = (k: number) => `${n(k, 3)}π`;
+
+  for (const d of ['a', 'l', 'b', 'r', 'h']) pair(q(`.sl-r-${d}`), q(`.sl-n-${d}`), () => { poured = 0; draw(); });
+
+  function dims(): Dims | null {
+    const out: Dims = {}, err = q('.sl-err');
+    for (const d of NEED[solid]) {
+      const v = Number(q<HTMLInputElement>(`.sl-n-${d}`).value);
+      if (!(v > 0 && v <= 100) || q<HTMLInputElement>(`.sl-n-${d}`).value.trim() === '') { err.textContent = 'Each measurement must be a number above 0 and up to 100 cm.'; err.hidden = false; return null; }
+      (out as Record<string, number>)[d] = v;
+    }
+    err.hidden = true; return out;
+  }
+
+  function draw3d(d: Dims) {
+    const F = faces(solid, d), max = Math.max(...F.flatMap((f) => f.pts.flatMap((p) => p.map(Math.abs))));
+    const k = 105 / max;
+    const pr = F.map((f) => { const P = f.pts.map((p) => project(p, yaw, pitch)); return { P, depth: P.reduce((s, p) => s + p[2], 0) / P.length, tone: f.tone }; });
+    pr.sort((A, B) => A.depth - B.depth);
+    for (const f of pr) S('polygon', { points: f.P.map(([x, y]) => `${170 + x * k},${140 + y * k}`).join(' '), class: `sl-t${f.tone}` }, fig);
+    q('.sl-vhelp').textContent = 'Drag the picture to turn the solid.';
+  }
+
+  function drawNet(d: Dims) {
+    const help = q('.sl-vhelp'), t = (x: number, y: number, s: string) => S('text', { x, y, 'text-anchor': 'middle', class: 'sl-dim' }, fig, s);
+    if (solid === 'cube' || solid === 'cuboid') {
+      const L = solid === 'cube' ? d.a! : d.l!, B = solid === 'cube' ? d.a! : d.b!, H = solid === 'cube' ? d.a! : d.h!;
+      // Cross net: row of four side faces (B, L, B, L wide, H tall), top and bottom (L × B) above and below the second.
+      const W = 2 * (L + B), Ht = H + 2 * B, k = Math.min(320 / W, 260 / Ht), x0 = (340 - W * k) / 2, y0 = (280 - Ht * k) / 2;
+      const R = (x: number, y: number, w: number, h: number, cls = 'sl-net') => S('rect', { x: x0 + x * k, y: y0 + y * k, width: w * k, height: h * k, class: cls }, fig);
+      R(0, B, B, H); R(B, B, L, H); R(B + L, B, B, H); R(2 * B + L, B, L, H);
+      R(B, 0, L, B, 'sl-net2'); R(B, B + H, L, B, 'sl-net2');
+      t(x0 + (B + L / 2) * k, y0 + (B + H / 2) * k + 4, `${n(L)} × ${n(H)}`);
+      help.textContent = `Six rectangles: four round the sides (total ${n(2 * H * (L + B))} cm²) plus top and bottom (${n(2 * L * B)} cm²).`;
+    } else if (solid === 'cylinder') {
+      const r = d.r!, h = d.h!, W = 2 * Math.PI * r, Ht = h + 4 * r, k = Math.min(320 / W, 260 / Ht), x0 = (340 - W * k) / 2, y0 = (280 - Ht * k) / 2;
+      S('rect', { x: x0, y: y0 + 2 * r * k, width: W * k, height: h * k, class: 'sl-net' }, fig);
+      S('circle', { cx: 170, cy: y0 + r * k, r: r * k, class: 'sl-net2' }, fig);
+      S('circle', { cx: 170, cy: y0 + (3 * r + h) * k, r: r * k, class: 'sl-net2' }, fig);
+      t(170, y0 + (2 * r + h / 2) * k + 4, `2πr = ${n(W)} by h = ${n(h)}`);
+      help.textContent = 'The curved surface unrolls into a rectangle: its length is the distance round the circle, 2πr, so its area is 2πrh.';
+    } else if (solid === 'cone') {
+      const r = d.r!, h = d.h!, l = Math.hypot(r, h), ang = coneSectorAngle(r, h), k = Math.min(156 / (l + r), 130 / l);
+      const cx = 10 + l * k, cy = 140, a0 = -90 - ang / 2, a1 = -90 + ang / 2, rad = (x: number) => (x * Math.PI) / 180;
+      const p0 = [cx + l * k * Math.cos(rad(a0)), cy + l * k * Math.sin(rad(a0))], p1 = [cx + l * k * Math.cos(rad(a1)), cy + l * k * Math.sin(rad(a1))];
+      S('path', { d: `M${cx},${cy} L${p0[0]},${p0[1]} A${l * k},${l * k} 0 ${ang > 180 ? 1 : 0} 1 ${p1[0]},${p1[1]} Z`, class: 'sl-net sl-sector' }, fig);
+      S('circle', { cx: cx + (l + r) * k + 6, cy, r: r * k, class: 'sl-net2' }, fig);
+      t(cx, cy + 16, `${n(ang, 1)}°`);
+      help.textContent = `The curved surface unrolls into a sector of radius l = ${n(l)} cm with angle 360° × r ÷ l = ${n(ang, 1)}°. Its area is πrl.`;
+    } else {
+      const r = d.r!, k = Math.min(70 / r, 30);
+      const cnt = solid === 'sphere' ? 4 : 2;
+      for (let i = 0; i < cnt; i++) S('circle', { cx: 170 + (i - (cnt - 1) / 2) * (2 * r * k + 8), cy: 140, r: r * k, class: 'sl-net' }, fig);
+      if (solid === 'hemisphere') S('circle', { cx: 170, cy: 140 + 2 * r * k + 8 > 270 ? 140 : 140 + 2 * r * k + 8, r: r * k, class: 'sl-net2' }, fig);
+      help.textContent = solid === 'sphere'
+        ? 'A sphere has no flat net, but its surface has the same area as 4 circles of the same radius: 4πr² (peel an orange and see!).'
+        : 'The curved part has the area of 2 circles (2πr²); add the flat circle on top for the total, 3πr².';
+    }
+  }
+
+  function drawFill(d: Dims) {
+    const help = q('.sl-vhelp'), say = q('.sl-fillsay');
+    const round = solid !== 'cube' && solid !== 'cuboid';
+    let W: number, H: number, load: number, cap: number, what: string;
+    if (round) {
+      const r = d.r!, h = solid === 'sphere' ? 2 * r : solid === 'hemisphere' ? r : d.h!;
+      W = 2 * r; H = h; cap = Math.PI * r * r * h;
+      const pourer = solid === 'cylinder' ? 'cone' : solid;
+      load = cap / loadsToFillCylinder(pourer, r, h); what = pourer === 'cone' ? 'cone' : pourer;
+      help.textContent = solid === 'cylinder'
+        ? `Fill the cylinder with cones of the same base and height (each ${n(load)} cm³).`
+        : `Pour ${solid === 'cone' ? 'cones' : solid + 's'} of water into a cylinder of radius ${n(r)} cm and height ${n(h)} cm${solid === 'cone' ? '' : ' (it just holds the ' + solid + ')'}.`;
+    } else {
+      const L = solid === 'cube' ? d.a! : d.l!, B = solid === 'cube' ? d.a! : d.b!, Hh = solid === 'cube' ? d.a! : d.h!;
+      W = L; H = Hh; cap = L * B * Hh; load = L * B; what = '1 cm layer';
+      help.textContent = `Each pour adds a layer 1 cm deep: ${n(L)} × ${n(B)} = ${n(L * B)} cm³. The volume is base area × height.`;
+    }
+    const k = Math.min(240 / W, 220 / H), x0 = 170 - (W * k) / 2, yb = 250;
+    const level = Math.min(1, (poured * load) / cap);
+    S('rect', { x: x0, y: yb - H * k * level, width: W * k, height: H * k * level, class: 'sl-water' }, fig);
+    S('path', { d: `M${x0},${yb - H * k - 6} L${x0},${yb} L${x0 + W * k},${yb} L${x0 + W * k},${yb - H * k - 6}`, class: 'sl-glass' }, fig);
+    S('line', { x1: x0 - 6, y1: yb - H * k, x2: x0 + W * k + 6, y2: yb - H * k, class: 'sm-dash' }, fig);
+    S('text', { x: 170, y: 20, 'text-anchor': 'middle', class: 'sl-dim' }, fig, `${n(Math.min(poured * load, cap))} of ${n(cap)} cm³`);
+    const need = cap / load;
+    say.textContent = poured === 0 ? `It takes ${n(need, 3)} ${what === '1 cm layer' ? 'layers' : what + 's'} to fill it.`
+      : level >= 1 ? `Full after ${n(need, 3)} pours${poured * load > cap + 1e-9 ? ' (the last one overflowed)' : ''}. So one ${what} = ${round ? (solid === 'cylinder' || solid === 'cone' ? '⅓' : '⅔') + ' of the cylinder' : 'base area × 1 cm'}.`
+      : `${poured} poured: ${n(level * 100, 1)}% full.`;
+  }
+
+  function draw() {
+    const d = dims(); fig.replaceChildren();
+    root.querySelectorAll<HTMLElement>('.sl-dims .sm-sl').forEach((e) => { e.hidden = !NEED[solid].includes(e.dataset.d!); });
+    q('.sl-dhelp').textContent = solid === 'cube' ? 'a is the edge.' : solid === 'cuboid' ? 'l is the length, b the breadth and h the height.' : solid === 'cylinder' || solid === 'cone' ? 'r is the radius of the base and h the height.' : 'r is the radius.';
+    q('.sl-fillctl').hidden = view !== 'fill';
+    if (view !== 'fill') q('.sl-fillsay').textContent = '';
+    if (!d) { ['.sl-f1', '.sl-f2', '.sl-f3', '.sl-f4'].forEach((c) => { q(c).textContent = ''; }); return; }
+    if (view === '3d') draw3d(d); else if (view === 'net') drawNet(d); else drawFill(d);
+    formulas(d);
+  }
+
+  function formulas(d: Dims) {
+    const m = measure(solid, d), f = (c: string, s: string) => { q(c).textContent = s; };
+    const { a = 0, l = 0, b = 0, h = 0, r = 0 } = d;
+    f('.sl-f4', '');
+    if (solid === 'cube') {
+      f('.sl-f1', `Lateral surface = 4a² = 4 × ${n(a)}² = ${n(m.side)} cm²`);
+      f('.sl-f2', `Total surface = 6a² = 6 × ${n(a)}² = ${n(m.total)} cm²`);
+      f('.sl-f3', `Volume = a³ = ${n(a)}³ = ${n(m.volume)} cm³`);
+    } else if (solid === 'cuboid') {
+      f('.sl-f1', `Lateral surface = 2h(l + b) = 2 × ${n(h)} × (${n(l)} + ${n(b)}) = ${n(m.side)} cm²`);
+      f('.sl-f2', `Total surface = 2(lb + bh + hl) = 2 × (${n(l * b)} + ${n(b * h)} + ${n(h * l)}) = ${n(m.total)} cm²`);
+      f('.sl-f3', `Volume = l × b × h = ${n(l)} × ${n(b)} × ${n(h)} = ${n(m.volume)} cm³`);
+    } else if (solid === 'cylinder') {
+      f('.sl-f1', `Curved surface = 2πrh = 2 × π × ${n(r)} × ${n(h)} = ${piT(m.sidePi!)} ≈ ${n(m.side)} cm²`);
+      f('.sl-f2', `Total surface = 2πr(r + h) = 2 × π × ${n(r)} × ${n(r + h)} = ${piT(m.totalPi!)} ≈ ${n(m.total)} cm²`);
+      f('.sl-f3', `Volume = πr²h = π × ${n(r)}² × ${n(h)} = ${piT(m.volumePi!)} ≈ ${n(m.volume)} cm³`);
+    } else if (solid === 'cone') {
+      f('.sl-f4', `Slant height l = √(r² + h²) = √(${n(r * r)} + ${n(h * h)}) = ${n(m.slant!)} cm`);
+      f('.sl-f1', `Curved surface = πrl = π × ${n(r)} × ${n(m.slant!)} = ${piT(m.sidePi!)} ≈ ${n(m.side)} cm²`);
+      f('.sl-f2', `Total surface = πr(l + r) = π × ${n(r)} × ${n(m.slant! + r)} = ${piT(m.totalPi!)} ≈ ${n(m.total)} cm²`);
+      f('.sl-f3', `Volume = ⅓πr²h = ⅓ × π × ${n(r)}² × ${n(h)} = ${piT(m.volumePi!)} ≈ ${n(m.volume)} cm³`);
+    } else if (solid === 'sphere') {
+      f('.sl-f1', `Surface = 4πr² = 4 × π × ${n(r)}² = ${piT(m.sidePi!)} ≈ ${n(m.side)} cm²`);
+      f('.sl-f2', '');
+      f('.sl-f3', `Volume = ⁴⁄₃πr³ = ⁴⁄₃ × π × ${n(r)}³ = ${piT(m.volumePi!)} ≈ ${n(m.volume)} cm³`);
+    } else {
+      f('.sl-f1', `Curved surface = 2πr² = 2 × π × ${n(r)}² = ${piT(m.sidePi!)} ≈ ${n(m.side)} cm²`);
+      f('.sl-f2', `Total surface = 3πr² = 3 × π × ${n(r)}² = ${piT(m.totalPi!)} ≈ ${n(m.total)} cm²`);
+      f('.sl-f3', `Volume = ⅔πr³ = ⅔ × π × ${n(r)}³ = ${piT(m.volumePi!)} ≈ ${n(m.volume)} cm³`);
+    }
+  }
+
+  // Drag to turn.
+  let drag: { x: number; y: number } | null = null;
+  fig.style.touchAction = 'none';
+  fig.addEventListener('pointerdown', (e) => { if (view !== '3d') return; drag = { x: e.clientX, y: e.clientY }; fig.setPointerCapture(e.pointerId); });
+  fig.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    yaw += (e.clientX - drag.x) * 0.012; pitch = Math.max(-1.45, Math.min(1.45, pitch + (e.clientY - drag.y) * 0.012));
+    drag = { x: e.clientX, y: e.clientY }; draw();
+  });
+  const up = () => { drag = null; };
+  fig.addEventListener('pointerup', up); fig.addEventListener('pointercancel', up);
+
+  const seg = (sel: string, attr: string, set: (v: string) => void) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    set(b.dataset[attr]!); poured = 0; draw();
+  }));
+  seg('.sl-solid', 's', (v) => { solid = v as Solid; });
+  seg('.sl-view', 'v', (v) => { view = v; });
+  q('.sl-pour').addEventListener('click', () => {
+    const d = dims(); if (!d) return;
+    const m = measure(solid, d), round = solid !== 'cube' && solid !== 'cuboid';
+    const cap = round ? Math.PI * d.r! ** 2 * (solid === 'sphere' ? 2 * d.r! : solid === 'hemisphere' ? d.r! : d.h!) : m.volume;
+    const load = round ? cap / loadsToFillCylinder(solid === 'cylinder' ? 'cone' : solid as 'cone', d.r!, d.h ?? 0) : (solid === 'cube' ? d.a! ** 2 : d.l! * d.b!);
+    if (poured * load < cap - 1e-9) poured++;
+    draw();
+  });
+  q('.sl-empty').addEventListener('click', () => { poured = 0; draw(); });
+  draw();
+
+  quiz(q('.sl-quiz'), () => {
+    const out: Question[] = [];
+    const l = randInt(3, 12), b = randInt(2, 10), h = randInt(2, 9);
+    out.push({ q: `A cuboid is ${l} cm long, ${b} cm wide and ${h} cm high. What is its total surface area in cm²?`, want: [2 * (l * b + b * h + h * l)], work: `2(lb + bh + hl) = 2 × (${l * b} + ${b * h} + ${h * l}) = ${2 * (l * b + b * h + h * l)} cm².` });
+    const r = 7 * randInt(1, 3), hc = randInt(2, 12);
+    out.push({ q: `A cylinder has radius ${r} cm and height ${hc} cm. What is its volume in cm³?`, want: [(22 / 7) * r * r * hc], work: `πr²h = 22/7 × ${r} × ${r} × ${hc} = ${n((22 / 7) * r * r * hc)} cm³ (with π = 22/7; ${n(Math.PI * r * r * hc)} with full π).` });
+    const t = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [6, 8, 10]][randInt(0, 3)], s = randInt(1, 2);
+    out.push({ q: `A cone has base radius ${t[0] * s} cm and height ${t[1] * s} cm. What is its slant height?`, want: [t[2] * s], work: `l = √(r² + h²) = √(${(t[0] * s) ** 2} + ${(t[1] * s) ** 2}) = √${(t[2] * s) ** 2} = ${t[2] * s} cm.` });
+    const rs = randInt(2, 9);
+    out.push({ q: `What is the volume of a sphere of radius ${rs} cm, in cm³ (to 1 decimal place)?`, want: [Math.round((4 / 3) * Math.PI * rs ** 3 * 10) / 10], work: `⁴⁄₃πr³ = ⁴⁄₃ × π × ${rs ** 3} = ${n((4 / 3) * rs ** 3, 3)}π ≈ ${n((4 / 3) * Math.PI * rs ** 3, 1)} cm³.` });
+    const vc = randInt(3, 30) * 3;
+    out.push({ q: `A cylinder holds ${vc} cm³. How much does a cone with the same base and height hold?`, want: [vc / 3], work: `A cone is ⅓ of its cylinder: ${vc} ÷ 3 = ${vc / 3} cm³.` });
+    return out;
+  });
+</script>

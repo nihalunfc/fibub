@@ -1,0 +1,209 @@
+---
+// Reaction type sorter: a reaction plays as a particle picture (atoms move from reactants to products); the student
+// sorts it into combination, decomposition, displacement or double displacement; redox reactions show what is
+// oxidised and reduced (Class 10: oxygen and hydrogen; Class 11: oxidation numbers). Nothing is stored.
+import '../../styles/astro.css';
+import { REACTIONS, TYPE_NAME, equation } from '../../lib/sci/rxsort-l2';
+---
+<div class="ax rs">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <div class="ax-seg rs-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+      <span class="ax-pill rs-score" aria-live="polite">0 of 0 right</span>
+    </div>
+    <label style="margin-top:10px">Reaction <select class="rs-pick">{REACTIONS.map((r) => <option value={r.id}>{equation(r, false)}</option>)}</select></label>
+    <p class="rs-eq" aria-live="polite"></p>
+    <svg class="rs-fig" viewBox="0 0 340 200" role="img" aria-label="Particle picture: atoms of the reactants rearranging into the products"></svg>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small rs-play">Play</button>
+      <input type="range" class="rs-t" min="0" max="100" step="1" value="0" aria-label="Reaction progress" style="flex:1 1 140px" />
+    </div>
+    <p class="ax-help">Each ball is one atom. Slide or press Play: the atoms are never made or destroyed, they only change partners.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What type is it?</h2>
+    <div class="rs-btns">
+      {(['combination', 'decomposition', 'displacement', 'double'] as const).map((t) => <button type="button" class="btn secondary rs-ans" data-t={t}>{TYPE_NAME[t]}</button>)}
+    </div>
+    <p class="rs-fb" aria-live="polite"></p>
+    <div class="rs-more" hidden>
+      <p class="rs-rule"></p>
+      <p class="rs-seen"></p>
+      <div class="rs-redox"></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn rs-next">Next reaction</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The four types</h2>
+    <dl class="rs-types">
+      <div><dt>Combination</dt><dd>A + B → AB. Two or more substances make one.</dd></div>
+      <div><dt>Decomposition</dt><dd>AB → A + B. One substance breaks up, using heat, electricity or light.</dd></div>
+      <div><dt>Displacement</dt><dd>A + BC → AC + B. A more reactive element takes another's place.</dd></div>
+      <div><dt>Double displacement</dt><dd>AB + CD → AD + CB. Two compounds swap partners; often a precipitate or water forms.</dd></div>
+    </dl>
+    <p class="ax-help">Oxidation and reduction (redox) is not a fifth box: it happens alongside. Many combination, decomposition and displacement reactions are also redox.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rs-try">
+      <li>Count the balls before and after for any reaction. The numbers of each kind always match: that is why equations must be balanced.</li>
+      <li>Compare limestone breaking down with magnesium burning. One reaction is the other "backwards" in shape (AB → A + B against A + B → AB).</li>
+      <li>Iron in copper sulfate and zinc in copper sulfate: which metal is pushed out each time? Try the reactivity series lab to see why.</li>
+      <li>Switch to Class 11 and look at a redox reaction: the element whose oxidation number goes up is the one oxidised.</li>
+    </ul>
+  </div>
+</div>
+
+<style is:inline>
+  .rs .rs-fig { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
+  .rs .rs-eq { font-size: 17px; font-weight: 650; margin: 10px 0 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .rs .rs-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rs .rs-btns .btn { min-height: 46px; }
+  .rs .rs-ans.right { background: var(--good-soft); border-color: var(--good); color: var(--good); }
+  .rs .rs-ans.wrong { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .rs .rs-fb { font-weight: 650; margin: 10px 0 0; min-height: 1.2em; }
+  .rs .rs-fb.good { color: var(--good); } .rs .rs-fb.bad { color: var(--bad); }
+  .rs .rs-more p { margin: 6px 0; }
+  .rs .rs-redox { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .rs .rs-redox:empty { display: none; }
+  .rs .rs-types { display: grid; gap: 8px; margin: 0; }
+  .rs .rs-types dt { font-weight: 700; }
+  .rs .rs-types dd { margin: 0; color: var(--muted); }
+  .rs .rs-try { margin: 6px 0 0; padding-left: 1.3em; line-height: 1.6; }
+  .rs svg text { font: 600 10px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; fill: var(--ink); pointer-events: none; }
+  .rs svg .rs-a { stroke: var(--ink); stroke-width: 1; }
+  .rs svg .e-O { fill: var(--bad-soft); stroke: var(--bad); }
+  .rs svg .e-H { fill: var(--surface); }
+  .rs svg .e-C { fill: var(--ink); } .rs svg text.e-C { fill: var(--surface); }
+  .rs svg .e-Cl, .rs svg .e-I { fill: var(--good-soft); stroke: var(--good); }
+  .rs svg .e-S { fill: var(--warn-soft); stroke: var(--warn); }
+  .rs svg .e-N { fill: var(--accent-soft); stroke: var(--accent); }
+  .rs svg .e-metal { fill: var(--line); }
+  .rs svg .rs-lab { font-size: 12px; fill: var(--muted); }
+</style>
+
+<script>
+  import { REACTIONS, TYPE_NAME, TYPE_RULE, atoms, equation, isRedox, type Reaction, type Species } from '../../lib/sci/rxsort-l2';
+
+  const root = document.querySelector<HTMLElement>('.rs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.rs-fig'), T = q<HTMLInputElement>('.rs-t'), pick = q<HTMLSelectElement>('.rs-pick');
+  const NS = 'http://www.w3.org/2000/svg';
+  let level = '10', cur: Reaction = REACTIONS[0], answered = false, right = 0, tries = 0, raf = 0;
+  const NONMETAL = new Set(['O', 'H', 'C', 'Cl', 'I', 'S', 'N']);
+
+  type Spot = { el: string; x: number; y: number };
+  /** Lay out every atom of one side: molecules spread across the box, atoms of a molecule packed together. */
+  function layout(side: Species[]): Spot[] {
+    const mols: string[][] = [];
+    for (const sp of side) for (let k = 0; k < sp.n; k++) mols.push(atoms(sp.f));
+    const out: Spot[] = [], cols = Math.min(mols.length, 4), rows = Math.ceil(mols.length / cols);
+    mols.forEach((m, i) => {
+      const c = i % cols, r = Math.floor(i / cols), n = Math.min(cols, mols.length - r * cols);
+      const cx = 170 + (c - (n - 1) / 2) * (300 / cols), cy = 40 + ((r + 0.5) * 140) / rows;
+      const per = m.length <= 3 ? m.length : Math.ceil(m.length / 2);
+      m.forEach((el, j) => { const rr = Math.floor(j / per), cc = j % per, nn = Math.min(per, m.length - rr * per); out.push({ el, x: cx + (cc - (nn - 1) / 2) * 17, y: cy + (rr - (m.length > per ? 0.5 : 0)) * 17 }); });
+    });
+    return out;
+  }
+
+  let from: Spot[] = [], to: Spot[] = [];
+  function prepare() {
+    from = layout(cur.left);
+    const right = layout(cur.right);
+    // Match each reactant atom to a product atom of the same element, in order.
+    const used = new Set<number>();
+    to = from.map((a) => { const i = right.findIndex((b, k) => !used.has(k) && b.el === a.el); used.add(i); return right[i]; });
+    fig.replaceChildren();
+    const lab = document.createElementNS(NS, 'text'); lab.setAttribute('x', '170'); lab.setAttribute('y', '190'); lab.setAttribute('class', 'rs-lab'); fig.append(lab);
+    for (const a of from) {
+      const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'rs-atom');
+      const cls = NONMETAL.has(a.el) ? `e-${a.el}` : 'e-metal';
+      const c = document.createElementNS(NS, 'circle'); c.setAttribute('r', a.el === 'H' ? '7' : '9'); c.setAttribute('class', `rs-a ${cls}`);
+      const t = document.createElementNS(NS, 'text'); t.setAttribute('class', cls); t.textContent = a.el;
+      g.append(c, t); fig.append(g);
+    }
+    place();
+  }
+
+  function place() {
+    const t = Number(T.value) / 100, e = t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+    fig.querySelectorAll('.rs-atom').forEach((g, i) => {
+      const a = from[i], b = to[i];
+      g.setAttribute('transform', `translate(${a.x + (b.x - a.x) * e},${a.y + (b.y - a.y) * e})`);
+    });
+    const lab = fig.querySelector('.rs-lab')!;
+    lab.textContent = t === 0 ? 'Reactants' : t === 1 ? 'Products' : 'Atoms changing partners…';
+    q('.rs-eq').textContent = t < 0.5 ? equation({ ...cur, right: [] }).replace(/ → $/, ' → ?') : equation(cur);
+  }
+
+  function show(r: Reaction) {
+    cancelAnimationFrame(raf); q('.rs-play').textContent = 'Play';
+    cur = r; pick.value = r.id; answered = false; T.value = '0';
+    root.querySelectorAll<HTMLButtonElement>('.rs-ans').forEach((b) => { b.classList.remove('right', 'wrong'); b.disabled = false; });
+    q('.rs-fb').textContent = ''; q('.rs-fb').className = 'rs-fb'; q('.rs-more').hidden = true;
+    prepare();
+  }
+
+  function redoxText() {
+    const box = q('.rs-redox'); box.replaceChildren();
+    const p = (s: string, bold = '') => { const e = document.createElement('p'); if (bold) { const b = document.createElement('b'); b.textContent = bold; e.append(b, ' '); } e.append(s); box.append(e); };
+    if (!isRedox(cur)) { p(level === '10' ? 'No substance gains or loses oxygen or hydrogen here.' : 'No oxidation number changes: this is not a redox reaction.', 'Not redox.'); return; }
+    p(`Oxidised: ${cur.ox}. Reduced: ${cur.red}.`, 'Redox too.');
+    p(level === '10' ? `${cur.why10} Oxidation is gaining oxygen or losing hydrogen; reduction is the opposite.` : `${cur.why11} Oxidation is losing electrons (oxidation number goes up); reduction is gaining them (goes down).`);
+  }
+
+  function answer(t: string, btn: HTMLButtonElement) {
+    if (answered) return;
+    const ok = t === cur.type;
+    tries++; if (ok) right++;
+    answered = true;
+    root.querySelectorAll<HTMLButtonElement>('.rs-ans').forEach((b) => { b.disabled = true; if (b.dataset.t === cur.type) b.classList.add('right'); });
+    if (!ok) btn.classList.add('wrong');
+    q('.rs-fb').textContent = ok ? 'Right!' : `Not quite: it is ${TYPE_NAME[cur.type].toLowerCase()}.`;
+    q('.rs-fb').className = `rs-fb ${ok ? 'good' : 'bad'}`;
+    q('.rs-rule').textContent = TYPE_RULE[cur.type] + (cur.by ? ` Here the energy comes from ${cur.by}.` : '');
+    q('.rs-seen').textContent = `What you would see: ${cur.seen}`;
+    redoxText();
+    q('.rs-more').hidden = false;
+    q('.rs-score').textContent = `${right} of ${tries} right`;
+    T.value = '100'; place();
+  }
+
+  // A shuffled deck so every reaction comes up before any repeats.
+  let deck: Reaction[] = [];
+  const next = () => {
+    if (!deck.length) deck = [...REACTIONS].sort(() => Math.random() - 0.5).filter((r) => r !== cur);
+    show(deck.pop()!);
+  };
+
+  root.querySelectorAll<HTMLButtonElement>('.rs-ans').forEach((b) => b.addEventListener('click', () => answer(b.dataset.t!, b)));
+  q('.rs-next').addEventListener('click', next);
+  pick.addEventListener('change', () => show(REACTIONS.find((r) => r.id === pick.value)!));
+  T.addEventListener('input', place);
+  q('.rs-play').addEventListener('click', () => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; q('.rs-play').textContent = 'Play'; return; }
+    if (T.value === '100') T.value = '0';
+    const start = performance.now() - Number(T.value) * 15;
+    q('.rs-play').textContent = 'Pause';
+    const step = (now: number) => {
+      const v = Math.min(100, (now - start) / 15); T.value = String(v); place();
+      if (v < 100) raf = requestAnimationFrame(step); else { raf = 0; q('.rs-play').textContent = 'Play again'; }
+    };
+    raf = requestAnimationFrame(step);
+  });
+  root.querySelectorAll<HTMLButtonElement>('.rs-level button').forEach((b) => b.addEventListener('click', () => {
+    level = b.dataset.l!;
+    root.querySelectorAll<HTMLButtonElement>('.rs-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (answered) redoxText();
+  }));
+  show(REACTIONS[0]);
+</script>
