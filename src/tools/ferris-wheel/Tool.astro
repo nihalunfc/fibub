@@ -1,0 +1,187 @@
+---
+// Ferris wheel height: a seat goes round a wheel; its height against time draws a wave. Sliders for radius, hub
+// height and time for one turn; drag the seat or play. Class 9 view (angles, table) and Class 11 view (radians,
+// h = H − R cos ωt). Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm fw">
+  <div class="ax-card">
+    <h2>The wheel</h2>
+    <div class="ax-row" style="margin-bottom:8px"><span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg fw-lvl" role="group" aria-label="Level"><button type="button" data-l="9" aria-pressed="true">Class 9</button><button type="button" data-l="11" aria-pressed="false">Class 10 to 11</button></div>
+    </div>
+    <svg class="sm-fig fw-fig" viewBox="0 0 340 250" role="img" aria-label="A Ferris wheel with one seat marked"></svg>
+    <p class="ax-help">Drag the orange seat round the wheel, or press Play.</p>
+    <div class="sm-sl"><b>R</b><input type="range" class="fw-rr" min="2" max="40" step="1" value="20" aria-label="Radius slider" /><input type="number" class="fw-r" min="0.5" step="1" value="20" inputmode="decimal" aria-label="Radius R in metres" /></div>
+    <div class="sm-sl"><b>H</b><input type="range" class="fw-hr" min="2" max="60" step="1" value="22" aria-label="Hub height slider" /><input type="number" class="fw-h" min="0.5" step="1" value="22" inputmode="decimal" aria-label="Hub height H in metres" /></div>
+    <div class="sm-sl"><b>T</b><input type="range" class="fw-tr" min="1" max="30" step="1" value="8" aria-label="Time for one turn slider" /><input type="number" class="fw-t" min="0.1" step="1" value="8" inputmode="decimal" aria-label="Time for one turn T in minutes" /></div>
+    <div class="sm-sl"><b>t</b><input type="range" class="fw-nr" min="0" max="16" step="0.1" value="0" aria-label="Time slider" /><input type="number" class="fw-n" min="0" step="0.5" value="0" inputmode="decimal" aria-label="Time t in minutes since the start" /></div>
+    <p class="ax-help">R is the radius and H the height of the centre (hub), both in metres; T is the time for one full turn and t the time since the seat left the bottom, both in minutes.</p>
+    <div class="ax-row"><button type="button" class="btn fw-play">Play</button><button type="button" class="btn secondary small fw-zero">Back to the bottom</button></div>
+    <p class="ax-err fw-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Height of the seat</h2>
+    <p class="ax-big fw-big" aria-live="polite"></p>
+    <ol class="sm-steps fw-steps"></ol>
+    <svg class="sm-fig fw-graph" viewBox="0 0 340 200" role="img" aria-label="Height of the seat against time, for two turns"></svg>
+    <div class="sm-sl"><b>h</b><input type="range" class="fw-gr" min="0" max="100" step="0.5" value="32" aria-label="Height line slider" /><input type="number" class="fw-g" min="0" step="1" value="32" inputmode="decimal" aria-label="Height line h in metres" /></div>
+    <p class="sm-f fw-above"></p>
+    <div class="fw-tab"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Double T. The wave keeps its height but gets wider. Double R: the wave gets taller.</li>
+      <li>Raise H. The whole wave moves up, but its shape does not change.</li>
+      <li>Set the height line to H. Why is the seat above it for exactly half of every turn?</li>
+      <li>Where on the wheel does the height change fastest: at the top, at the bottom or level with the hub?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Give answers to 2 decimal places where needed. Nothing is saved.</p>
+    <div class="fw-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fw svg .fw-wheel { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .fw svg .fw-spoke { stroke: var(--muted); stroke-width: 1; }
+  .fw svg .fw-seat { fill: var(--warn); stroke: var(--surface); stroke-width: 2; cursor: grab; }
+  .fw svg .fw-ground { stroke: var(--good); stroke-width: 3; }
+  .fw svg .fw-hline { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .fw svg .fw-above { fill: var(--accent-soft); stroke: none; }
+  .fw svg .fw-hgt { stroke: var(--warn); stroke-width: 2.5; }
+  .fw .fw-tab table { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { heightAt, angleAt, wrap, valid, range, timesAtHeight, fractionAbove, table, type Wheel } from '../../lib/sci/ferris-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, svgPoint, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.fw')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.fw-fig'), graph = q<SVGSVGElement>('.fw-graph');
+  const Rb = q<HTMLInputElement>('.fw-r'), Hb = q<HTMLInputElement>('.fw-h'), Tb = q<HTMLInputElement>('.fw-t'), Nb = q<HTMLInputElement>('.fw-n'), Gb = q<HTMLInputElement>('.fw-g');
+  const nr = q<HTMLInputElement>('.fw-nr'), gr = q<HTMLInputElement>('.fw-gr');
+  pair(q('.fw-rr'), Rb, draw); pair(q('.fw-hr'), Hb, draw); pair(q('.fw-tr'), Tb, draw);
+  const setN = pair(nr, Nb, draw), setG = pair(gr, Gb, draw);
+  let level = '9', timer = 0;
+  root.querySelectorAll<HTMLButtonElement>('.fw-lvl button').forEach((b) => b.addEventListener('click', () => {
+    level = b.dataset.l!; root.querySelectorAll('.fw-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+
+  const wheel = (): Wheel => ({ R: val(Rb, 20, 0), H: val(Hb, 22, 0), T: val(Tb, 8, 0) });
+  const f2 = (x: number) => fmt(x, 2);
+  let geo = { cx: 0, cy: 0, k: 1 };
+
+  function draw() {
+    const w = wheel(), err = q('.fw-err');
+    nr.max = String(2 * w.T || 16); gr.max = String(Math.ceil(w.H + w.R + 5));
+    if (!valid(w)) {
+      err.hidden = false;
+      err.textContent = w.R <= 0 || w.T <= 0 ? 'The radius and the time for one turn must be more than 0.' : `The hub must be at least as high as the radius (${f2(w.R)} m), or the seats would hit the ground.`;
+      fig.replaceChildren(); graph.replaceChildren(); q('.fw-big').textContent = ''; q('.fw-steps').replaceChildren(); q('.fw-above').textContent = ''; q('.fw-tab').replaceChildren();
+      return;
+    }
+    err.hidden = true;
+    const t = val(Nb, 0, 0), th = angleAt(w, t), thw = wrap(th), h = heightAt(w, t), r = Math.PI / 180;
+    // Wheel picture: ground at y = 235, scale so the top fits.
+    const k = Math.min(200 / (w.H + w.R), 110 / w.R), cx = 170, gy = 235, cy = gy - w.H * k;
+    geo = { cx, cy, k };
+    fig.replaceChildren();
+    S('line', { x1: 10, y1: gy, x2: 330, y2: gy, class: 'fw-ground' }, fig);
+    S('line', { x1: cx - 0.45 * w.R * k - 8, y1: gy, x2: cx, y2: cy, class: 'sm-line' }, fig);
+    S('line', { x1: cx + 0.45 * w.R * k + 8, y1: gy, x2: cx, y2: cy, class: 'sm-line' }, fig);
+    for (let i = 0; i < 8; i++) S('line', { x1: cx, y1: cy, x2: cx + w.R * k * Math.sin(i * 45 * r), y2: cy + w.R * k * Math.cos(i * 45 * r), class: 'fw-spoke' }, fig);
+    S('circle', { cx, cy, r: w.R * k, class: 'fw-wheel' }, fig);
+    S('circle', { cx, cy, r: 4, style: 'fill:var(--ink)' }, fig);
+    // Seat: angle measured anticlockwise from the bottom.
+    const sx = cx + w.R * k * Math.sin(thw * r), sy = cy + w.R * k * Math.cos(thw * r);
+    S('line', { x1: cx, y1: cy, x2: sx, y2: sy, class: 'sm-curve2' }, fig);
+    S('line', { x1: cx, y1: cy, x2: cx, y2: cy + w.R * k, class: 'sm-dash' }, fig);
+    S('line', { x1: sx, y1: sy, x2: cx, y2: sy, class: 'sm-dash' }, fig);
+    S('line', { x1: 24, y1: gy, x2: 24, y2: sy, class: 'fw-hgt' }, fig);
+    S('line', { x1: 24, y1: sy, x2: sx, y2: sy, class: 'sm-dash' }, fig);
+    S('text', { x: 30, y: Math.min(gy - 6, (gy + sy) / 2), style: 'font-weight:700' }, fig, `h = ${fmt(h, 1)} m`);
+    S('text', { x: cx + 8, y: cy - 8 }, fig, level === '9' ? `${fmt(thw, 0)}°` : `${fmt(thw * r, 2)} rad`);
+    S('circle', { cx: sx, cy: sy, r: 22, class: 'sm-hit' }, fig);
+    S('circle', { cx: sx, cy: sy, r: 10, class: 'fw-seat' }, fig);
+
+    // Steps.
+    const cos = Math.cos(th * r), turns = Math.floor(th / 360 + 1e-9);
+    q('.fw-big').textContent = `Height ${fmt(h, 2)} m after ${fmt(t, 2)} min`;
+    const steps = level === '9' ? [
+      `In ${f2(t)} min the wheel turns ${f2(t)} ÷ ${f2(w.T)} of a full turn = ${fmt((360 * t) / w.T, 1)}°${turns ? ` (${turns} full turn${turns > 1 ? 's' : ''} and ${fmt(thw, 1)}° more)` : ''}.`,
+      `The seat is ${f2(w.R)} × cos ${fmt(thw, 1)}° = ${f2(w.R * cos)} m ${cos >= 0 ? 'below' : 'above'} the hub (the dashed right triangle).`,
+      `Height = H − R cos θ = ${f2(w.H)} − ${f2(w.R * cos)} = ${f2(h)} m.`,
+      `Lowest ${f2(range(w).low)} m, highest ${f2(range(w).high)} m. The pattern repeats every ${f2(w.T)} min.`,
+    ] : [
+      `Angular speed ω = 2π ÷ T = 2π ÷ ${f2(w.T)} = ${fmt((2 * Math.PI) / w.T, 4)} rad per min.`,
+      `θ = ωt = ${fmt((2 * Math.PI) / w.T, 4)} × ${f2(t)} = ${fmt(th * r, 3)} rad.`,
+      `h(t) = H − R cos(ωt) = ${f2(w.H)} − ${f2(w.R)} cos(${fmt(th * r, 3)}) = ${f2(h)} m.`,
+      `The same wave as a sine: h(t) = ${f2(w.H)} + ${f2(w.R)} sin(ωt − π/2). Amplitude ${f2(w.R)} m, centre line ${f2(w.H)} m, period ${f2(w.T)} min.`,
+    ];
+    q('.fw-steps').replaceChildren(...steps.map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+
+    // Graph of h against t for two turns.
+    const g = val(Gb, 32, 0), L = 40, Rt = 330, Tp = 10, B = 175, top = w.H + w.R, X = (x: number) => L + ((Rt - L) * x) / (2 * w.T), Y = (y: number) => B - ((B - Tp) * y) / (top * 1.05);
+    graph.replaceChildren();
+    const frac = fractionAbove(w, g), times = timesAtHeight(w, g);
+    if (frac > 0 && frac < 1 && times.length === 2) for (let n = 0; n < 2; n++) S('rect', { x: X(times[0] + n * w.T), y: Tp, width: X(times[1]) - X(times[0]), height: B - Tp, class: 'fw-above' }, graph);
+    else if (frac === 1) S('rect', { x: L, y: Tp, width: Rt - L, height: B - Tp, class: 'fw-above' }, graph);
+    for (let i = 0; i <= 4; i++) { const y = (top * i) / 4; S('line', { x1: L, y1: Y(y), x2: Rt, y2: Y(y), class: 'sm-grid' }, graph); S('text', { x: L - 4, y: Y(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, graph, fmt(y, 0)); }
+    for (let i = 0; i <= 4; i++) S('text', { x: X((w.T * i) / 2), y: B + 15, 'text-anchor': 'middle', class: 'sm-tick' }, graph, fmt((w.T * i) / 2, 1));
+    S('line', { x1: L, y1: B, x2: Rt, y2: B, class: 'sm-axis' }, graph); S('line', { x1: L, y1: Tp, x2: L, y2: B, class: 'sm-axis' }, graph);
+    S('text', { x: Rt, y: B + 15 + 12, 'text-anchor': 'end', class: 'sm-tick' }, graph, 't (min)');
+    const pts: string[] = []; for (let i = 0; i <= 160; i++) { const x = (2 * w.T * i) / 160; pts.push(`${X(x).toFixed(1)},${Y(heightAt(w, x)).toFixed(1)}`); }
+    S('polyline', { points: pts.join(' '), class: 'sm-curve' }, graph);
+    if (g <= top * 1.05) S('line', { x1: L, y1: Y(g), x2: Rt, y2: Y(g), class: 'fw-hline' }, graph);
+    if (t <= 2 * w.T) S('circle', { cx: X(t), cy: Y(h), r: 6, class: 'fw-seat' }, graph);
+    q('.fw-above').textContent = frac <= 0 ? `The seat never gets above ${f2(g)} m.` : frac >= 1 ? `The seat is always above ${f2(g)} m.`
+      : `Above ${f2(g)} m (shaded) for ${fmt(frac * 100, 1)}% of each turn = ${f2(frac * w.T)} min, from ${f2(times[0])} to ${f2(times[1])} min in the first turn.`;
+
+    // Height table every 30° (Class 9) or every π/6 (Class 11).
+    const rows = table(w, 30);
+    const tbl = document.createElement('table');
+    tbl.innerHTML = `<thead><tr><th>Angle</th><th class="r">Time (min)</th><th class="r">Height (m)</th></tr></thead>`;
+    const tb = document.createElement('tbody');
+    const piLab = ['0', 'π/6', 'π/3', 'π/2', '2π/3', '5π/6', 'π', '7π/6', '4π/3', '3π/2', '5π/3', '11π/6', '2π'];
+    rows.forEach((rw, i) => { const tr = document.createElement('tr'); [level === '9' ? `${rw.angle}°` : piLab[i], fmt((rw.angle / 360) * w.T, 2), fmt(rw.h, 2)].forEach((v, j) => { const td = document.createElement('td'); td.textContent = v; if (j) td.className = 'r'; tr.append(td); }); tb.append(tr); });
+    tbl.append(tb);
+    const sc = document.createElement('div'); sc.className = 'ax-scroll'; sc.append(tbl);
+    q('.fw-tab').replaceChildren(sc);
+  }
+
+  dragOn(fig, (x, y) => { const s = fig.querySelector('.fw-seat'); return s && Math.hypot(x - Number(s.getAttribute('cx')), y - Number(s.getAttribute('cy'))) < 30 ? 'seat' : null; },
+    (_id, x, y) => {
+      const w = wheel(); const a = wrap((Math.atan2(x - geo.cx, y - geo.cy) * 180) / Math.PI);
+      setN(Math.round(((a / 360) * w.T) * 100) / 100); draw();
+    });
+  q('.fw-play').addEventListener('click', () => {
+    const b = q('.fw-play');
+    if (timer) { clearInterval(timer); timer = 0; b.textContent = 'Play'; return; }
+    b.textContent = 'Pause';
+    timer = window.setInterval(() => { const w = wheel(); let t = val(Nb, 0, 0) + w.T / 120; if (t > 2 * w.T) t = 0; setN(Math.round(t * 1000) / 1000); draw(); }, 50);
+  });
+  q('.fw-zero').addEventListener('click', () => { setN(0); draw(); });
+  void svgPoint; void setG;
+  draw();
+
+  quiz(q('.fw-quiz'), () => {
+    const R = randInt(5, 30), H = R + randInt(1, 6), T = randInt(2, 12) * 2, out: Question[] = [];
+    out.push({ q: `A wheel has radius ${R} m and its hub is ${H} m above the ground. How high is the top of the wheel?`, want: [H + R], hint: 'metres', work: `Top = H + R = ${H} + ${R} = ${H + R} m. The bottom is H − R = ${H - R} m.` });
+    const f = randInt(1, 3);
+    out.push({ q: `The same wheel turns once every ${T} min. A seat starts at the bottom. How high is it after ${fmt((f * T) / 4, 2)} min?`, want: [H - R * Math.round(Math.cos((f * Math.PI) / 2))], hint: 'metres', work: `${fmt((f * T) / 4, 2)} min is ${f} quarter turn${f > 1 ? 's' : ''} = ${90 * f}°. h = ${H} − ${R} × cos ${90 * f}° = ${H} − ${R} × (${fmt(Math.cos((f * Math.PI) / 2), 0)}) = ${fmt(H - R * Math.cos((f * Math.PI) / 2), 2)} m.` });
+    const a = [60, 120, 240, 300][randInt(0, 3)], tt = (a / 360) * T, hh = H - R * Math.cos((a * Math.PI) / 180);
+    out.push({ q: `Still with T = ${T} min: how high is the seat after ${fmt(tt, 2)} min?`, want: [Math.round(hh * 100) / 100], tol: 0.002, hint: 'metres', work: `${fmt(tt, 2)} ÷ ${T} of a turn = ${a}°. h = ${H} − ${R} cos ${a}° = ${H} − ${fmt(R * Math.cos((a * Math.PI) / 180), 2)} = ${fmt(hh, 2)} m.` });
+    out.push({ q: `For how many minutes of each ${T}-minute turn is the seat higher than the hub (${H} m)?`, want: [T / 2], hint: 'minutes', work: `The seat is above the hub on the top half of the wheel, from 90° to 270°: half a turn, ${T / 2} min.` });
+    return out;
+  });
+</script>
