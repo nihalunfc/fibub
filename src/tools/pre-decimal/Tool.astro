@@ -1,0 +1,107 @@
+---
+// #1613 Old money. Engine: src/lib/collect/maths.ts (lsdToPence, penceToLsd, oldToNewPence, rapToPies, piesToRupees).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax pd">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Currency">
+      <button type="button" class="pd-m" data-m="gb" aria-pressed="true">British pounds, shillings, pence</button>
+      <button type="button" class="pd-m" data-m="in" aria-pressed="false">Indian rupees, annas, pice</button>
+    </div>
+  </div>
+
+  <div class="pd-gb">
+    <div class="ax-card">
+      <h2>1. Old British money</h2>
+      <div class="ax-grid">
+        <label>Pounds (£) <input class="pd-l" type="number" min="0" step="1" inputmode="numeric" value="2" /></label>
+        <label>Shillings (s) <input class="pd-s" type="number" min="0" step="1" inputmode="numeric" value="2" /></label>
+        <label>Pence (d) <input class="pd-d" type="number" min="0" step="1" inputmode="numeric" value="6" /></label>
+        <label>Farthings (¼d each) <select class="pd-f"><option value="0">0</option><option value="1">1 (¼d)</option><option value="2">2 (½d)</option><option value="3">3 (¾d)</option></select></label>
+      </div>
+      <p class="ax-help">There were 12 pence to a shilling and 20 shillings to a pound, so 240 old pence to the pound, until decimal day on 15 February 1971.</p>
+    </div>
+    <div class="ax-card">
+      <h2>2. Result</h2>
+      <p class="ax-big pd-gb-out" aria-live="polite">…</p>
+      <dl class="ax-facts pd-gb-facts"></dl>
+      <div class="ax-row" style="margin-top:10px">
+        <label>Or start from old pence <input class="pd-back" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 510" /></label>
+      </div>
+      <p class="ax-help pd-back-out"></p>
+    </div>
+    <div class="ax-card">
+      <h2>Coins in old pence</h2>
+      <div class="ax-scroll"><table><thead><tr><th>Coin</th><th class="r">Old pence</th><th class="r">New pence</th></tr></thead><tbody class="pd-coins"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pd-in" hidden>
+    <div class="ax-card">
+      <h2>1. Old Indian money</h2>
+      <div class="ax-grid">
+        <label>Rupees <input class="pd-r" type="number" min="0" step="1" inputmode="numeric" value="1" /></label>
+        <label>Annas <input class="pd-a" type="number" min="0" step="1" inputmode="numeric" value="8" /></label>
+        <label>Pice <input class="pd-p" type="number" min="0" step="1" inputmode="numeric" value="0" /></label>
+        <label>Pies <input class="pd-pie" type="number" min="0" step="1" inputmode="numeric" value="0" /></label>
+      </div>
+      <p class="ax-help">A rupee had 16 annas, an anna 4 pice, and a pice 3 pies (192 pies to the rupee). On 1 April 1957 India went decimal: 1 rupee = 100 naye paise.</p>
+    </div>
+    <div class="ax-card">
+      <h2>2. Result</h2>
+      <p class="ax-big pd-in-out" aria-live="polite">…</p>
+      <dl class="ax-facts pd-in-facts"></dl>
+      <div class="ax-row" style="margin-top:10px">
+        <label>Or start from rupees (decimal) <input class="pd-back2" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 1.75" /></label>
+      </div>
+      <p class="ax-help pd-back2-out"></p>
+    </div>
+  </div>
+  <p class="ax-help">What the money would buy today needs an inflation figure for that year and place. This tool converts units only.</p>
+</div>
+
+<style is:inline>
+  .pd .pd-back, .pd .pd-back2 { max-width: 200px; }
+</style>
+
+<script>
+  import { lsdToPence, penceToLsd, oldToNewPence, rapToPies, piesToRupees } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.pd') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const v = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(v) ? v : 0; };
+  const dd = (a: string, b: string) => `<div><dt>${a}</dt><dd>${b}</dd></div>`;
+  const trim = (n: number, dp = 4) => String(+n.toFixed(dp));
+  const lsd = (p: number) => { const x = penceToLsd(p); return `£${x.l} ${x.s}s ${trim(x.d, 2)}d`; };
+
+  const COINS: [string, number][] = [['Farthing (¼d)', 0.25], ['Halfpenny (½d)', 0.5], ['Penny (1d)', 1], ['Threepence (3d)', 3], ['Sixpence (6d)', 6], ['Shilling (1s)', 12], ['Florin (2s)', 24], ['Half crown (2s 6d)', 30], ['Crown (5s)', 60], ['Guinea (21s)', 252]];
+  q('.pd-coins').innerHTML = COINS.map(([n, d]) => `<tr><td>${n}</td><td class="r">${d}d</td><td class="r">${trim(oldToNewPence(d))}p</td></tr>`).join('');
+
+  const gb = () => {
+    const old = lsdToPence(num('.pd-l'), num('.pd-s'), num('.pd-d') + parseInt(q<HTMLSelectElement>('.pd-f').value) / 4);
+    const pounds = old / 240;
+    q('.pd-gb-out').textContent = `${trim(old)} old pence = ${trim(oldToNewPence(old))} new pence`;
+    q('.pd-gb-facts').innerHTML = dd('Old pence', trim(old) + 'd') + dd('Decimal pounds', '£' + trim(pounds)) + dd('New pence', trim(oldToNewPence(old)) + 'p') + dd('In £ s d', lsd(old));
+    const b = parseFloat(q<HTMLInputElement>('.pd-back').value);
+    q('.pd-back-out').textContent = Number.isFinite(b) && b >= 0 ? `${trim(b)} old pence = ${lsd(b)} = ${trim(oldToNewPence(b))} new pence.` : '';
+  };
+  const ind = () => {
+    const pies = rapToPies(num('.pd-r'), num('.pd-a'), num('.pd-p'), num('.pd-pie'));
+    const r = piesToRupees(pies);
+    q('.pd-in-out').textContent = `${trim(r)} rupees = ${trim(r * 100, 2)} naye paise`;
+    q('.pd-in-facts').innerHTML = dd('Total pies', trim(pies)) + dd('Total pice', trim(pies / 3)) + dd('Total annas', trim(pies / 12)) + dd('Decimal rupees', trim(r));
+    const b = parseFloat(q<HTMLInputElement>('.pd-back2').value);
+    if (Number.isFinite(b) && b >= 0) {
+      const p = Math.round(b * 192), rs = Math.floor(p / 192), an = Math.floor((p % 192) / 12), pc = Math.floor((p % 12) / 3), pi = p % 3;
+      q('.pd-back2-out').textContent = `${trim(b)} rupees = ${rs} rupee${rs === 1 ? '' : 's'}, ${an} anna${an === 1 ? '' : 's'}, ${pc} pice and ${pi} pie${pi === 1 ? '' : 's'} (rounded to the nearest pie).`;
+    } else q('.pd-back2-out').textContent = '';
+  };
+  root.querySelectorAll<HTMLButtonElement>('.pd-m').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.pd-m').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.pd-gb').hidden = b.dataset.m !== 'gb'; q('.pd-in').hidden = b.dataset.m !== 'in';
+  }));
+  root.addEventListener('input', () => { gb(); ind(); });
+  root.addEventListener('change', () => { gb(); ind(); });
+  gb(); ind();
+</script>

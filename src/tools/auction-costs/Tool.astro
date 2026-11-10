@@ -1,0 +1,91 @@
+---
+// #1614 Auction fees. Engine: src/lib/collect/maths.ts (buyerTotal, maxBid, sellerNet).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax ac">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Buying or selling">
+      <button type="button" class="ac-m" data-m="buy" aria-pressed="true">I am buying</button>
+      <button type="button" class="ac-m" data-m="sell" aria-pressed="false">I am selling</button>
+    </div>
+  </div>
+
+  <div class="ac-buy">
+    <div class="ax-card">
+      <h2>1. What you will pay</h2>
+      <div class="ax-grid">
+        <label>Hammer price (winning bid) <input class="ac-h" type="number" min="0" step="any" inputmode="decimal" value="1000" /></label>
+        <label>Buyer's premium % <input class="ac-bp" type="number" min="0" step="any" inputmode="decimal" value="20" /></label>
+        <label>Tax % (VAT, GST, sales tax) <input class="ac-tax" type="number" min="0" step="any" inputmode="decimal" value="13" /></label>
+        <label>Shipping and insurance <input class="ac-ship" type="number" min="0" step="any" inputmode="decimal" value="15" /></label>
+        <label>Tax is charged on <select class="ac-on"><option value="prem">The premium only</option><option value="all">Hammer plus premium</option></select></label>
+      </div>
+      <p class="ax-help">The premium is the fee added to the winning bid. Rates differ by auction house and country, so read their terms.</p>
+    </div>
+    <div class="ax-card">
+      <h2>2. Total</h2>
+      <p class="ax-big ac-total" aria-live="polite">…</p>
+      <dl class="ax-facts ac-facts"></dl>
+    </div>
+    <div class="ax-card">
+      <h2>3. Most you can bid</h2>
+      <label>My budget (all costs included) <input class="ac-budget" type="number" min="0" step="any" inputmode="decimal" value="1241" /></label>
+      <p class="ax-big ac-max" aria-live="polite">…</p>
+      <p class="ax-help">Uses the premium, tax and shipping above. Bid up to this and the total stays within your budget.</p>
+    </div>
+  </div>
+
+  <div class="ac-sell" hidden>
+    <div class="ax-card">
+      <h2>1. What you will receive</h2>
+      <div class="ax-grid">
+        <label>Hammer price <input class="ac-sh" type="number" min="0" step="any" inputmode="decimal" value="1000" /></label>
+        <label>Seller's commission % <input class="ac-sc" type="number" min="0" step="any" inputmode="decimal" value="15" /></label>
+        <label>Tax on the commission % <input class="ac-st" type="number" min="0" step="any" inputmode="decimal" value="0" /></label>
+        <label>Fixed fees (listing, photos, insurance) <input class="ac-sf" type="number" min="0" step="any" inputmode="decimal" value="10" /></label>
+      </div>
+      <p class="ax-help">Commission and fees differ by auction house and country. Read their terms, and note that you may owe income or capital gains tax on a sale.</p>
+    </div>
+    <div class="ax-card">
+      <h2>2. You receive</h2>
+      <p class="ax-big ac-net" aria-live="polite">…</p>
+      <dl class="ax-facts ac-sfacts"></dl>
+    </div>
+  </div>
+  <p class="ax-help">Amounts are in whatever currency you use. Nothing is saved.</p>
+</div>
+
+<style is:inline>
+  .ac .ac-budget { max-width: 220px; }
+</style>
+
+<script>
+  import { buyerTotal, maxBid, sellerNet } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.ac') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const v = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(v) ? v : 0; };
+  const f = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dd = (a: string, b: string) => `<div><dt>${a}</dt><dd>${b}</dd></div>`;
+
+  const calc = () => {
+    const all = q<HTMLSelectElement>('.ac-on').value === 'all';
+    const bp = num('.ac-bp') / 100, tax = num('.ac-tax') / 100, ship = num('.ac-ship');
+    const b = buyerTotal(num('.ac-h'), bp, tax, ship, all);
+    q('.ac-total').textContent = f(b.total);
+    q('.ac-facts').innerHTML = dd('Hammer price', f(num('.ac-h'))) + dd("Buyer's premium", f(b.premium)) + dd('Tax', f(b.tax)) + dd('Shipping', f(ship));
+    const m = maxBid(num('.ac-budget'), bp, tax, ship, all);
+    q('.ac-max').textContent = m > 0 ? f(m) : 'Budget does not cover the costs';
+    const s = sellerNet(num('.ac-sh'), num('.ac-sc') / 100, num('.ac-sf'), num('.ac-st') / 100);
+    q('.ac-net').textContent = f(s.net);
+    q('.ac-sfacts').innerHTML = dd('Hammer price', f(num('.ac-sh'))) + dd('Commission', '-' + f(s.commission)) + dd('Tax on commission', '-' + f(s.tax)) + dd('Fixed fees', '-' + f(num('.ac-sf')));
+  };
+  root.querySelectorAll<HTMLButtonElement>('.ac-m').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.ac-m').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ac-buy').hidden = b.dataset.m !== 'buy'; q('.ac-sell').hidden = b.dataset.m !== 'sell';
+  }));
+  root.addEventListener('input', calc);
+  root.addEventListener('change', calc);
+  calc();
+</script>

@@ -1,0 +1,77 @@
+---
+// #1606 Card centering. Engine: src/lib/collect/maths.ts (centring).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax cd">
+  <div class="ax-card">
+    <h2>1. Border widths</h2>
+    <label class="cd-unit">Units <select class="cd-u"><option>mm</option><option>px</option></select></label>
+    <p class="ax-help">Measure the space between the card's edge and the printed picture on each side. Use mm with a ruler, or px on a straight, square-on photo or scan. Any unit works as long as you use the same one everywhere.</p>
+    <h3>Front</h3>
+    <div class="ax-grid">
+      <label>Left <input class="cd-fl" type="number" min="0" step="any" inputmode="decimal" value="3" /></label>
+      <label>Right <input class="cd-fr" type="number" min="0" step="any" inputmode="decimal" value="2" /></label>
+      <label>Top <input class="cd-ft" type="number" min="0" step="any" inputmode="decimal" value="2.5" /></label>
+      <label>Bottom <input class="cd-fb" type="number" min="0" step="any" inputmode="decimal" value="2.5" /></label>
+    </div>
+    <h3>Back (optional)</h3>
+    <div class="ax-grid">
+      <label>Left <input class="cd-bl" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Right <input class="cd-br" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Top <input class="cd-bt" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Bottom <input class="cd-bb" type="number" min="0" step="any" inputmode="decimal" /></label>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>2. Centring</h2>
+    <p class="ax-big cd-out" aria-live="polite">…</p>
+    <dl class="ax-facts cd-facts"></dl>
+    <div class="cd-figs"></div>
+    <p class="cl-flag">Each grading company publishes its own centring limits, and centring is only part of a grade. This tool shows the split and does not say what grade a card would get.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cd label { display: grid; gap: 4px; font-size: 14px; }
+  .cd input, .cd select { width: 100%; box-sizing: border-box; }
+  .cd h3 { font-size: 15px; margin: 12px 0 6px; }
+  .cd .cd-unit { max-width: 160px; }
+  .cd .cd-figs { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+  .cd .cd-figs figure { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+  .cd .cd-figs svg { width: 150px; max-width: 42vw; height: auto; display: block; }
+</style>
+
+<script>
+  import { centring } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.cd') as HTMLElement;
+  const v = (c: string) => { const e = root.querySelector(c) as HTMLInputElement; return e.value.trim() === '' ? NaN : parseFloat(e.value); };
+  // The drawing keeps the true left/right and top/bottom proportions but shows the borders larger than life.
+  const svg = (l: number, r: number, t: number, b: number) => {
+    const W = 200, H = 280, hx = W * 0.2, hy = H * 0.14;
+    const x = (l / (l + r)) * hx, y = (t / (t + b)) * hy, w = W - hx, h = H - hy;
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Card with its picture off-centre by the borders you typed"><rect x="1" y="1" width="${W - 2}" height="${H - 2}" rx="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="currentColor" opacity=".18" stroke="currentColor" stroke-width="1.5"/></svg>`;
+  };
+  const pair = (a: number, b: number): [number, number] => { a = a > 0 ? a : 0; b = b > 0 ? b : 0; return a + b > 0 ? [a, b] : [1, 1]; };
+  const side = (p: string, name: string) => {
+    const l = v(`.cd-${p}l`), r = v(`.cd-${p}r`), t = v(`.cd-${p}t`), b = v(`.cd-${p}b`);
+    const lr = centring(l, r), tb = centring(t, b);
+    if (!lr.label && !tb.label) return null;
+    return { name, p, lr, tb, l, r, t, b };
+  };
+  const calc = () => {
+    const out = root.querySelector('.cd-out') as HTMLElement, facts = root.querySelector('.cd-facts') as HTMLElement, figs = root.querySelector('.cd-figs') as HTMLElement;
+    const u = (root.querySelector('.cd-u') as HTMLSelectElement).value;
+    const sides = [side('f', 'Front'), side('b', 'Back')].filter(Boolean) as NonNullable<ReturnType<typeof side>>[];
+    if (!sides.length) { out.textContent = 'Type the border widths.'; facts.innerHTML = ''; figs.innerHTML = ''; return; }
+    out.textContent = sides.map((s) => `${s.name} ${s.lr.label || '–'} left/right, ${s.tb.label || '–'} top/bottom`).join(' · ');
+    facts.innerHTML = sides.flatMap((s) => [
+      `<div><dt>${s.name}, left / right</dt><dd class="cd-${s.p}-lr">${s.lr.label || '–'}<small>${Number.isFinite(s.l) ? s.l : '?'} ${u} and ${Number.isFinite(s.r) ? s.r : '?'} ${u}</small></dd></div>`,
+      `<div><dt>${s.name}, top / bottom</dt><dd class="cd-${s.p}-tb">${s.tb.label || '–'}<small>${Number.isFinite(s.t) ? s.t : '?'} ${u} and ${Number.isFinite(s.b) ? s.b : '?'} ${u}</small></dd></div>`,
+    ]).join('');
+    figs.innerHTML = sides.map((s) => `<figure>${svg(...pair(s.l, s.r), ...pair(s.t, s.b))}<figcaption>${s.name}. Larger side shown first in the split; borders drawn bigger than life.</figcaption></figure>`).join('');
+  };
+  root.addEventListener('input', calc);
+  calc();
+</script>

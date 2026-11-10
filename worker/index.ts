@@ -15,6 +15,9 @@
 //   GET  /api/counts                                            all-time totals for every page and tool
 //   GET  /api/days?from=YYYY-MM-DD&to=YYYY-MM-DD                daily totals (up to 62 days per call);
 //        a GitHub Action copies these into the public repo every day (data/views/)
+//   GET  /api/prices                                            today's gold, silver, platinum and palladium spot
+//        prices and currency rates for the Collecting tools. The Worker fetches a public, CC0-licensed daily
+//        rate file (github.com/fawazahmed0/exchange-api); nothing about the visitor is sent or kept.
 //
 // The counts live in one Durable Object with its own small SQLite database. Cloudflare creates it on
 // the first deploy from the migration in wrangler.jsonc, so there is nothing to set up by hand.
@@ -161,6 +164,31 @@ async function readBody(req: Request): Promise<{ p?: unknown; t?: unknown }> {
   try { return ((await req.json()) as { p?: unknown; t?: unknown }) ?? {}; } catch { return {}; }
 }
 
+// Metal spot prices and currency rates for the Collecting shelf. Cloudflare's cache keeps the fetched file for
+// 6 hours, so the outside feed is asked a few times a day at most, never once per visitor.
+const PRICE_FEEDS = [
+  'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json',
+  'https://latest.currency-api.pages.dev/v1/currencies/usd.min.json',
+];
+const FX = ['inr', 'cad', 'gbp', 'eur', 'aed', 'sar', 'qar', 'kwd', 'omr', 'bhd', 'aud', 'nzd', 'sgd', 'jpy', 'chf', 'pkr', 'lkr', 'bdt', 'npr', 'myr', 'zar'];
+async function prices(): Promise<Response> {
+  for (const feed of PRICE_FEEDS) {
+    try {
+      const res = await fetch(feed, { cf: { cacheTtl: 21600, cacheEverything: true } } as RequestInit);
+      if (!res.ok) continue;
+      const d = (await res.json()) as { date?: string; usd?: Record<string, number> };
+      const r = d.usd ?? {};
+      const oz = (k: string) => (r[k] > 0 ? Math.round((1 / r[k]) * 100) / 100 : null);
+      const metals = { gold: oz('xau'), silver: oz('xag'), platinum: oz('xpt'), palladium: oz('xpd') };
+      if (!metals.gold || !metals.silver || !isDay(d.date ?? null)) continue;
+      const fx: Record<string, number> = { usd: 1 };
+      for (const c of FX) if (r[c] > 0) fx[c] = r[c];
+      return json({ date: d.date, metals, fx, source: 'github.com/fawazahmed0/exchange-api (CC0)' }, 200, 'public, max-age=3600');
+    } catch { /* try the next feed */ }
+  }
+  return json({ error: 'price feed unavailable' }, 503, 'public, max-age=300');
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -168,6 +196,7 @@ export default {
     // Counts come only from fibub's own pages, never from other sites.
     const origin = req.headers.get('Origin');
     if (req.method === 'POST' && origin && origin !== url.origin) return json({ error: 'forbidden' }, 403);
+    if (url.pathname === '/api/prices' && req.method === 'GET') return prices();
     const counter = env.COUNTER.get(env.COUNTER.idFromName('fibub'));
 
     if (url.pathname === '/api/hit' && req.method === 'POST') {
