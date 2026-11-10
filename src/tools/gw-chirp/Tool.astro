@@ -99,6 +99,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Gravitational-wave chirp', subtitle: `${q<HTMLInputElement>('.gw-m1').value} + ${q<HTMLInputElement>('.gw-m2').value} solar masses`, file: 'gw-chirp', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gwc input { max-width: 100%; }
 </style>

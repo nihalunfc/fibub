@@ -185,7 +185,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Lens ray trace', subtitle: q('.lr-big').textContent ?? '', file: 'ray-trace', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lrt code { font-size: 13px; }
   .lrt .lr-spot { max-width: 360px; margin: 10px auto 0; }
 </style>

@@ -153,6 +153,6 @@ const demo = 'shut-in time (h)\tpws (psia)\n' + exampleBuildup().map((r) => `${r
   wireDownloads(q('.dl'), () => ({ title: 'Pressure buildup analysis', subtitle: q('.wt-big').textContent ?? '', file: 'well-test', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wta textarea { width: 100%; }
 </style>

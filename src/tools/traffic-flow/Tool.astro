@@ -172,7 +172,7 @@ const demo = 'density (veh/km/lane)\tspeed (km/h)\n' + [[8, 95.0], [15, 84.2], [
   wireDownloads(q('.dl'), () => ({ title: 'Traffic flow fundamentals', subtitle: q('.tq-big').textContent ?? '', file: 'traffic-flow', sections: [...sec, ...osec] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .tqf select, .tqf input[type=text] { max-width: 100%; }
   .tqf textarea { width: 100%; }
   .tqf .tq-losg { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }

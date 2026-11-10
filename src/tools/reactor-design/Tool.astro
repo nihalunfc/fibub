@@ -176,6 +176,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Reactor design', subtitle: q('.rd-big').textContent ?? '', file: 'reactor-design', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .rds select, .rds input { max-width: 100%; }
 </style>

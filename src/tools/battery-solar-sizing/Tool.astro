@@ -145,7 +145,7 @@ const demo = 'appliance\twatts\thours per day\tquantity\nLED lights\t10\t5\t4\nF
   wireDownloads(q('.dl'), () => ({ title: 'Battery runtime and solar sizing', subtitle: [S.br?.title, S.so?.title].filter(Boolean).join('; '), file: 'battery-solar-sizing', sections: [S.br, S.so].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bss select, .bss input[type=text] { max-width: 100%; }
   .bss textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
   .bss .br-out, .bss .so-out { margin-top: 12px; }

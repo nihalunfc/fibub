@@ -207,6 +207,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Band structure', subtitle: q<HTMLSelectElement>('.bs-kind').selectedOptions[0].textContent ?? '', file: `band-structure-${kind}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bst select, .bst input { max-width: 100%; }
 </style>

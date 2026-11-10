@@ -125,7 +125,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Modulation and BER', subtitle: q('.cb-big').textContent ?? '', file: 'modulation-ber', sections: [cSec, sSec].filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cbr select, .cbr input { max-width: 100%; }
   .cbr .sw-out { margin-top: 12px; }
   .cbr .sw-tab td, .cbr .sw-tab th { white-space: nowrap; }

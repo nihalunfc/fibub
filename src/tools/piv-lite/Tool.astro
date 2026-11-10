@@ -152,6 +152,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'PIV vector field', subtitle: q('.pv-big').textContent ?? '', file: 'piv', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pvl canvas.ax-fig { margin-top: 10px; background: #000; }
 </style>

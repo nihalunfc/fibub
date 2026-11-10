@@ -162,7 +162,7 @@ const pointData = 'point\tdistance (m)\nP1\t9.1\nP1\t14.5\nP2\t22.9\nP2\t35.6\nP
   wireDownloads(q('.dl'), () => ({ title: 'Distance sampling density estimate', subtitle: q('.ds-big').textContent ?? '', file: 'distance-sampling', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dsm select { max-width: 100%; }
   .dsm .ds-out h3 { margin: 18px 0 8px; }
   .dsm .ds-tab td { white-space: nowrap; }

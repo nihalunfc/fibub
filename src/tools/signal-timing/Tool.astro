@@ -144,7 +144,7 @@ const demo = 'approach\tphase\tflow (veh/h)\tsaturation flow (veh/h)\nNorth\t1\t
   wireDownloads(q('.dl'), () => ({ title: "Signal timing (Webster's method)", subtitle: q('.wb-big').textContent ?? '', file: 'signal-timing', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wbs select, .wbs input[type=text] { max-width: 100%; }
   .wbs textarea { width: 100%; }
   .wbs .wb-h { margin-top: 14px; }

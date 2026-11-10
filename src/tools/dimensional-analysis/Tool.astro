@@ -107,7 +107,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Dimensional analysis', subtitle: q<HTMLInputElement>('.da-eq').value, file: 'dimensional-analysis', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dac .da-good { color: var(--good); }
   .dac .da-bad { color: var(--bad); }
   .dac .da-probs { margin: 4px 0 10px; padding-left: 20px; font-size: 14px; }

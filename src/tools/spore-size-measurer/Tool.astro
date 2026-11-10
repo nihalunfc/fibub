@@ -220,7 +220,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Spore size', subtitle: q('.sp-big').textContent ?? '', file: `${fileSafe(name)}-spore-size`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .spm .sp-photo { display: block; width: 100%; height: auto; margin-top: 8px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
   .spm .sp-big { font-size: 17px; font-weight: 650; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .spm .sp-step { color: var(--ink); font-weight: 600; }

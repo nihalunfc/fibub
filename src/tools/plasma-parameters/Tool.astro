@@ -175,7 +175,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Plasma parameters', subtitle: q('.pp-big').textContent ?? '', file: 'plasma-parameters', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ppc h3 { margin: 16px 0 6px; font-size: 15px; }
   .ppc .pp-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
   .ppc canvas.ax-fig { margin-top: 12px; }

@@ -828,6 +828,8 @@ try {
     check(toolPages > 100 && !noLd.length, `structured data: ${toolPages} tool pages are a free WebApplication with breadcrumbs${noLd.length ? '; missing on ' + noLd.slice(0, 5).join(', ') : ''}`);
     check(linked === toolPages, `guides: ${linked} of ${toolPages} tool guides link to another tool in their text`);
     check(!big.length, `page weight: every page under 120 KB of HTML${big.length ? ': ' + big.slice(0, 5).join(', ') : ''}`);
+    const globalCss = (await import('node:fs')).readdirSync('src/tools').filter((id) => existsSync(`src/tools/${id}/Tool.astro`) && /<style is:global/.test(readFileSync(`src/tools/${id}/Tool.astro`, 'utf8')));
+    check(!globalCss.length, `tool styles: every Tool.astro uses <style is:inline>, so each page carries only its own CSS${globalCss.length ? '; is:global in ' + globalCss.slice(0, 5).join(', ') : ''}`);
     const home = html('/');
     check(/"@type":"WebSite"/.test(home) && /"@type":"Organization"/.test(home), 'structured data: home page names the site and its publisher');
     const nav = readFileSync('dist/nav/index.html', 'utf8');

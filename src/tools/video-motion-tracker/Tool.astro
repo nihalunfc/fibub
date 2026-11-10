@@ -219,7 +219,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Video motion tracking', subtitle: q('.vm-big').textContent || '', file: 'motion', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .vmt select, .vmt input[type=text], .vmt textarea { max-width: 100%; }
   .vmt textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
   .vmt .vm-wrap { position: relative; margin-top: 10px; line-height: 0; max-width: 100%; display: inline-block; }

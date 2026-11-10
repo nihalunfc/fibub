@@ -174,7 +174,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Path planning', subtitle: q('.pp-big').textContent ?? '', file: 'path-planning', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ppv select, .ppv input[type=text] { max-width: 100%; }
   .ppv .pp-map { cursor: crosshair; }
 </style>

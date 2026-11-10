@@ -276,7 +276,7 @@ const demo = 'distance (m)\televation (m)\tdrainage area (m²)\n' + xs.map((x, i
   wireDownloads(q('.sp-out > .dl:last-child'), () => ({ title: 'Stream profile', subtitle: q('.sp-big').textContent ?? '', file: 'stream-profile', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .spf textarea { width: 100%; }
   .spf .sp-h { margin: 16px 0 6px; font-size: 16px; }
   .spf .sp-mapwrap { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }

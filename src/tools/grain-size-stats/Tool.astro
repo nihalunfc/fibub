@@ -215,7 +215,7 @@ const demo = [
   wireDownloads(q('.gs-out > .dl:last-child'), () => ({ title: 'Grain-size statistics', subtitle: q('.gs-big').textContent ?? '', file: 'grain-size-statistics', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .grs .gs-sum td:first-child { min-width: 130px; }
   .grs .gs-sum td.r, .grs .gs-sum th.r { white-space: pre-line; min-width: 104px; }
   .grs .gs-went td:first-child { white-space: nowrap; }

@@ -210,7 +210,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Antenna calculator', subtitle: q('.an-big').textContent ?? '', file: `antenna-${kind}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .anc select, .anc input { max-width: 100%; }
   .anc .an-form { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
   .anc .an-form li { overflow-wrap: anywhere; }

@@ -121,7 +121,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Sampling and aliasing', subtitle: q('.al-big').textContent ?? '', file: 'aliasing', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ald select, .ald input { max-width: 100%; }
   .ald input[type=range] { width: 100%; accent-color: var(--accent); }
 </style>

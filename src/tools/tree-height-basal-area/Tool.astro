@@ -314,7 +314,7 @@ const points = 'point,in trees\nP1,7\nP2,9.5\nP3,6\nP4,11\nP5,8';
   wireDownloads(q('.dl'), () => ({ title: 'Tree height and basal area', subtitle: [hSec?.title, bSec?.title].filter(Boolean).join('; '), file: 'tree-height-basal-area', sections: [hSec, bSec].filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .thb select { max-width: 100%; }
   .thb .th-sd { margin-top: 14px; }
   .thb .th-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }

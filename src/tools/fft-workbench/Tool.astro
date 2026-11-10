@@ -166,7 +166,7 @@ const demo = 'time (s)\tvoltage (V)\n' + Array.from({ length: 1000 }, (_, i) => 
   wireDownloads(q('.dl'), () => ({ title: 'FFT spectrum', subtitle: q('.fw-big').textContent ?? '', file: 'fft-spectrum', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ffw select, .ffw input { max-width: 100%; }
   .ffw textarea { width: 100%; }
 </style>

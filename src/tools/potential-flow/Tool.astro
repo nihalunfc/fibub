@@ -161,7 +161,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Potential flow', subtitle: pre.selectedOptions[0].text, file: 'potential-flow', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pfb .pf-list { display: grid; gap: 8px; margin-top: 12px; }
   .pfb .pf-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
   .pfb .pf-name { flex: 1 0 100%; font-weight: 600; font-size: 14px; }

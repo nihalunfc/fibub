@@ -143,7 +143,7 @@ const lens = 'taxon\tlength\nCalanoid copepods\t820\nCalanoid copepods\t760\nCal
   wireDownloads(q('.dl'), () => ({ title: 'Zooplankton density and biomass', subtitle: q('.zp-big').textContent ?? '', file: 'zooplankton-biomass', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .zpb select { max-width: 100%; }
   .zpb textarea { width: 100%; }
   .zpb td { white-space: nowrap; }

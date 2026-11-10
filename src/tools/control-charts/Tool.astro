@@ -238,7 +238,7 @@ const demo = 'x1\tx2\tx3\tx4\tx5\n' + exampleVariables().map((r) => r.map((v) =>
   wireDownloads(q('.dl'), () => ({ title: 'Control chart', subtitle: q('.cc-big').textContent ?? '', file: 'control-chart', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ccs textarea { width: 100%; }
   .ccs .cc-h { font-size: 15px; margin: 16px 0 8px; }
   .ccs [hidden] { display: none !important; }

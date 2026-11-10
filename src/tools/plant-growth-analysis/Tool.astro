@@ -116,7 +116,7 @@ const example = 'day\ttotal dry mass (g)\tleaf area (cm2)\tleaf dry mass (g)\n14
   wireDownloads(q('.dl'), () => ({ title: 'Plant growth analysis', subtitle: q('.pg-big').textContent ?? '', file: 'plant-growth-analysis', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pga select { max-width: 100%; }
   .pga textarea { width: 100%; }
   .pga td { white-space: nowrap; }

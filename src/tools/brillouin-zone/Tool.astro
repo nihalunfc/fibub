@@ -227,7 +227,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Brillouin zone', subtitle: q<HTMLSelectElement>('.bz-kind').selectedOptions[0].textContent ?? '', file: `brillouin-zone-${sel('.bz-kind')}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bzv select, .bzv input { max-width: 100%; }
   .bzv input[type=range] { width: 100%; }
 </style>

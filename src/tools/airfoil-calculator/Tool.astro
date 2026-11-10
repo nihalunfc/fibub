@@ -119,6 +119,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Airfoil calculator', subtitle: q('.af-big').textContent ?? '', file: 'airfoil', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .afc canvas.ax-fig { margin-top: 12px; }
 </style>

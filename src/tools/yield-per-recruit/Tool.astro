@@ -203,7 +203,7 @@ const series = 'year,catch (t),CPUE (t/day)\n2005,200,5.095\n2006,300,4.65\n2007
   wireDownloads(q('.dl'), () => ({ title: 'Yield per recruit and MSY', subtitle: [q('.yp-big').textContent, q('.yp-pbig').textContent].filter(Boolean).join('; '), file: 'yield-per-recruit-msy', sections: [...ySec, ...pSec] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ypr select { max-width: 100%; }
   .ypr textarea { width: 100%; }
 </style>

@@ -189,7 +189,7 @@ const on = ['H2O', 'NH3', 'CO2', 'HCOOH'];
   wireDownloads(q('.dl'), () => ({ title: 'Adducts and neutral losses', subtitle: q('.ad-big').textContent ?? '', file: 'adducts', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .adc select { max-width: 100%; }
   .adc [hidden] { display: none !important; }
   .adc .ad-losses { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 6px 12px; }

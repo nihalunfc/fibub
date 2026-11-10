@@ -151,7 +151,7 @@ const demo = 'time (s)\tmeasurement\n0\t10.2\n1\t11.9\n2\t11.1\n3\t13.4\n4\t14.0
   wireDownloads(q('.dl'), () => ({ title: 'Kalman filter', subtitle: q('.kf-big').textContent ?? '', file: 'kalman-filter', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .kfp select, .kfp input[type=text] { max-width: 100%; }
   .kfp textarea { width: 100%; white-space: pre; overflow-wrap: normal; overflow-x: auto; tab-size: 6; }
   .kfp h3 { font-size: 15px; margin: 16px 0 6px; }

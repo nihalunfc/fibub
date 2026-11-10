@@ -164,7 +164,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Leaf disease severity', subtitle: q('.ld-big').textContent ?? '', file: `${fileSafe(name)}-severity`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lds .ld-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); }
   .lds .ld-kh { background: #009e73; }
   .lds .ld-kl { background: #d55e00; }

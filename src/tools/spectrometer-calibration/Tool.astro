@@ -200,7 +200,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Spectrometer calibration', subtitle: q('.sc-big').textContent ?? '', file: 'spectrometer-calibration', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .spc .sc-photo { margin-top: 8px; image-rendering: auto; background: #000; }
   .spc .sc-pick { min-width: 8.5em; padding: 4px 6px; }
 </style>

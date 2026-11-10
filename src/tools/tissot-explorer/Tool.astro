@@ -240,7 +240,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Map projection distortion', subtitle: q('.ts-big').textContent ?? '', file: `tissot-${def.id}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .tsx select, .tsx input[type=text] { max-width: 100%; }
   .tsx .ts-fig { cursor: crosshair; }
   .tsx tr.ts-cur td { font-weight: 700; }

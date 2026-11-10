@@ -337,7 +337,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Band combination', subtitle: q('.bc-big').textContent ?? '', file: 'band-combination', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .bcx select, .bcx input[type=text] { max-width: 100%; }
   .bcx .bc-note:empty, .bcx .bc-pnote:empty { display: none; }
   .bcx .bc-fig { cursor: crosshair; }

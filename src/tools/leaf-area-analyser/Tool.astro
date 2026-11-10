@@ -220,7 +220,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: mode === 'leaf' ? 'Leaf area' : 'Canopy cover', subtitle: q('.la-big').textContent ?? '', file: `${fileSafe(name)}-${mode === 'leaf' ? 'leaf-area' : 'canopy-cover'}`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .laa .la-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
   .laa .la-open-row { margin-top: 12px; }
   .laa .la-show { margin-top: 8px; }

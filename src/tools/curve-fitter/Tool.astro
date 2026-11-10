@@ -169,7 +169,7 @@ const example = ['time_s\tcounts\tsigma', ...EX].join('\n');
   wireDownloads(q('.dl'), () => ({ title: 'Curve fit', subtitle: q('.cf-big').textContent ?? '', file: 'curve-fit', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cfc h3 { margin: 18px 0 8px; font-size: 15px; }
   .cfc .cf-out a { color: var(--accent); }
   .cfc .cf-tab td { white-space: nowrap; }

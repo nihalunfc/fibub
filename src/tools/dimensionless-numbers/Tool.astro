@@ -123,7 +123,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Dimensionless numbers', subtitle: q('.dn-big').textContent ?? '', file: 'dimensionless-numbers', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dnc .dn-props summary { cursor: pointer; font-weight: 600; }
   .dnc canvas.ax-fig { margin-top: 12px; }
 </style>

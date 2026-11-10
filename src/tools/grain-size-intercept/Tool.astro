@@ -213,7 +213,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Grain size (line intercept)', subtitle: q('.gs-big').textContent ?? '', file: `${fileSafe(M.name)}-grain-size`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gsi .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
   .gsi .mg-cal { margin-top: 14px; }
   .gsi .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }

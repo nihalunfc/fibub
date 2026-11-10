@@ -1,0 +1,36 @@
+# After a deploy that adds or changes tools, tell IndexNow search engines (Bing and others) which
+# fibub pages changed, so they are crawled in hours. Sends only fibub's own page addresses.
+name: IndexNow
+on:
+  push:
+    branches: [main]
+    paths: ['src/tools/**']
+  workflow_dispatch: # run by hand to send every live tool and hub page
+permissions:
+  contents: read
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Cloudflare builds and deploys main on the same push; give it time so the pages are live first.
+      - name: Wait for the Cloudflare deploy
+        if: github.event_name == 'push'
+        run: sleep 420
+      - name: Send changed pages
+        run: |
+          before="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            node scripts/indexnow.mjs --all
+          else
+            node scripts/indexnow.mjs "$before" "${{ github.sha }}"
+          fi

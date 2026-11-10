@@ -147,7 +147,7 @@ const demo2 = 'day\tmass remaining (%)\n' + [[0, 100], [1, 97.8], [2, 93.4], [4,
   wireDownloads(q('.dl'), () => ({ title: 'Drug release curve fits', subtitle: q('.kx-big').textContent ?? '', file: 'release-fits', sections: [...sec1, ...sec2] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .krel select, .krel input[type=text] { max-width: 100%; }
   .krel textarea { width: 100%; }
   .krel .kx-best td { font-weight: 650; }

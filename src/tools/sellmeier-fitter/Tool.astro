@@ -129,6 +129,6 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Dispersion fit', subtitle: q('.sf-big').textContent ?? '', file: 'sellmeier-fit', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .slf h3 { margin: 18px 0 8px; font-size: 15px; }
 </style>

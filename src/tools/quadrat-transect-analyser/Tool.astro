@@ -138,7 +138,7 @@ const line = 'transect\tspecies\tintercept (m)\twidth (m)\nT1\tSagebrush\t1.2\t0
   wireDownloads(q('.dl'), () => ({ title: mode === 'quad' ? 'Quadrat survey analysis' : 'Line-intercept transect analysis', subtitle: q('.qt-big').textContent ?? '', file: 'quadrat-transect', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .qta .qt-tab td:first-child { white-space: nowrap; }
   .qta .qt-out h3 { margin: 18px 0 8px; }
 </style>

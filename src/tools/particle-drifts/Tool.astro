@@ -155,7 +155,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Particle drift', subtitle: q<HTMLSelectElement>('.pd-sc').selectedOptions[0].text, file: 'particle-drift', sections: report.map((s) => ({ ...s, figure: run ? figure(pts.length - 1) : s.figure })) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pdr .pd-spd { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }
   .pdr .pd-spd select { width: auto; }
   .pdr canvas.ax-fig { margin-top: 10px; }

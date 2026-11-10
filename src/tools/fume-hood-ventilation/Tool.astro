@@ -335,7 +335,7 @@ const demo = '0.52 0.55 0.57 0.54 0.50\n0.49 0.53 0.56 0.52 0.47\n0.44 0.50 0.53
   wireDownloads(q('.dl'), () => ({ title: 'Fume hood and room ventilation', subtitle: 'For study and planning; hood certification needs a qualified tester and the relevant standard.', file: 'fume-hood-ventilation', sections: [1, 2, 3, 4, 5, 6].map((i) => report[i]).filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fhv select, .fhv input { max-width: 100%; }
   .fhv textarea { width: 100%; }
   .fhv .fh-note { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 10px; background: var(--surface); font-size: 14px; }

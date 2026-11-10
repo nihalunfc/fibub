@@ -31,6 +31,8 @@ fibub.com (Free In-Browser Utility Bubble; free, open-source tools that fill the
 - Search titles and descriptions come from `src/lib/seo.ts`: the part of `title` before the colon plus "free online tool", and the summary cut to 160 characters. If either reads badly, set `seoTitle` (60 max) or `seoDescription` (160 max) in guide.md.
 - Structured data (JSON-LD) is automatic: WebApplication and breadcrumbs on tool pages, CollectionPage on shelves and subjects, WebSite and Organization on home. Never add fake ratings or reviews.
 - Search Console and Bing Webmaster Tools are verified by DNS, with no code on the site. Never add Google Analytics, Tag Manager or any tracking script.
+- IndexNow: after each merge that touches `src/tools/`, `.github/workflows/indexnow.yml` waits for the deploy and sends the changed tool pages (plus home and their shelves) to IndexNow (Bing and others) with `scripts/indexnow.mjs`; run the workflow by hand to send every page. The key file is `public/b544da555d964ccdfafaadfab66a850b.txt`; never rename it. It sends only fibub's own addresses.
+- Every `Tool.astro` uses `<style is:inline>`, never `is:global` (`npm test` checks).
 
 ## Site rules
 - **No tool lives on both sites** (nihal, 2026-11-07). Everyday public tools go on fibub; ambitious career prototypes go on nihalsulaiman.com. Link between them only where useful. nihal's name appears only on the About page; the footer says "Developer" and links to the portfolio.
