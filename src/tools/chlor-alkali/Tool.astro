@@ -1,0 +1,136 @@
+---
+// Chlor-alkali process: a membrane cell for brine. Switch the current on and watch chlorine bubble at the anode,
+// hydrogen at the cathode and sodium ions cross the membrane to make sodium hydroxide; set the current and time and
+// get the amounts by Faraday's laws. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax ca">
+  <div class="ax-card">
+    <h2>The cell</h2>
+    <svg class="ca-fig" viewBox="0 0 340 240" role="img" aria-label="Membrane cell: anode on the left, cathode on the right"></svg>
+    <div class="ax-row"><button type="button" class="btn ca-run">Switch on</button></div>
+    <ul class="lx-try ca-say">
+      <li><b>Anode (+), left:</b> 2Cl⁻ → Cl₂ + 2e⁻. Chlorine gas bubbles off.</li>
+      <li><b>Cathode (−), right:</b> 2H₂O + 2e⁻ → H₂ + 2OH⁻. Hydrogen gas bubbles off.</li>
+      <li><b>Membrane:</b> lets Na⁺ ions through to the right, where they meet OH⁻ to give sodium hydroxide solution. It keeps the chlorine away from the hydroxide.</li>
+    </ul>
+    <p class="lx-eq">2NaCl(aq) + 2H₂O(l) → 2NaOH(aq) + Cl₂(g) + H₂(g)</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How much is made?</h2>
+    <div class="ax-grid">
+      <label>Current (A) <input type="number" class="ca-i" min="0" step="0.1" value="2" inputmode="decimal" /></label>
+      <label>Time <input type="number" class="ca-t" min="0" step="1" value="60" inputmode="decimal" /></label>
+      <label>Time unit <select class="ca-u"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option></select></label>
+    </div>
+    <ol class="lx-try ca-steps" style="margin-top:10px"></ol>
+    <div class="ax-scroll"><table class="ca-tab"><thead><tr><th>Product</th><th class="r">Moles</th><th class="r">Mass (g)</th><th class="r">Gas at 25 °C (L)</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-err ca-err" hidden></p>
+    <p class="ax-help">Assumes every electron does its job (100% current efficiency). Real cells lose a little. Gas volumes use the ideal gas law at 25 °C and 1 bar (24.79 L per mole).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What the products are used for</h2>
+    <dl class="ax-facts">
+      <div><dt>Chlorine (Cl₂)</dt><dd>Making water safe to drink, PVC, disinfectants, pesticides, and bleaching powder: Ca(OH)₂ + Cl₂ → CaOCl₂ + H₂O.</dd></div>
+      <div><dt>Hydrogen (H₂)</dt><dd>Fuel, making ammonia for fertilisers, and turning vegetable oils into solid fats (margarine).</dd></div>
+      <div><dt>Sodium hydroxide (NaOH)</dt><dd>Soaps and detergents, paper, artificial fibres, and removing grease from metals.</dd></div>
+      <div><dt>Tests</dt><dd>Chlorine turns damp blue litmus red and then bleaches it white. Hydrogen burns with a squeaky pop near a lit splint.</dd></div>
+    </dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Double the current, then double the time instead. What happens to the products each time?</li>
+      <li>Compare the volumes of chlorine and hydrogen. Why are they the same?</li>
+      <li>How long would 10 A take to make 40 g (1 mol) of sodium hydroxide?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cq"><ol class="cq-list"></ol><button type="button" class="btn secondary small cq-new">New questions</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ca .ca-fig { display: block; width: 100%; height: auto; margin: 4px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .ca .ca-fig text { font: 12px system-ui, sans-serif; fill: var(--ink); }
+  .ca .ca-fig .ca-tank { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 2; }
+  .ca .ca-fig .ca-el { fill: var(--muted); }
+  .ca .ca-fig .ca-mem { stroke: var(--warn); stroke-width: 3; stroke-dasharray: 6 4; }
+  .ca .ca-fig .ca-b1 { fill: var(--good-soft); stroke: var(--good); }
+  .ca .ca-fig .ca-b2 { fill: var(--bg); stroke: var(--ink); }
+  .ca .ca-fig .ca-na { fill: var(--accent); }
+  .ca .ca-fig .ca-wire { stroke: var(--ink); stroke-width: 2; fill: none; }
+</style>
+
+<script>
+  import { F, VM, M, products, timeForNaOH } from '../../lib/sci/chloralkali-school';
+  import { mountQuiz, near, rint, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ca')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NS = 'http://www.w3.org/2000/svg', fig = q<SVGSVGElement>('.ca-fig');
+  const I = q<HTMLInputElement>('.ca-i'), T = q<HTMLInputElement>('.ca-t'), U = q<HTMLSelectElement>('.ca-u');
+  const mk = (tag: string, a: Record<string, string | number>, parent: Element = fig, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; parent.append(e); return e; };
+  const sig = (x: number, d = 4) => (x === 0 ? '0' : Math.abs(x) >= 1e5 || Math.abs(x) < 1e-3 ? x.toExponential(d - 1).replace('e', ' × 10^').replace('+', '') : String(Number(x.toPrecision(d))));
+  let running = false, raf = 0, t0 = 0;
+
+  function cell(time: number) {
+    fig.replaceChildren();
+    mk('rect', { x: 30, y: 60, width: 280, height: 160, class: 'ca-tank' });
+    mk('line', { x1: 170, y1: 60, x2: 170, y2: 220, class: 'ca-mem' });
+    mk('rect', { x: 70, y: 40, width: 14, height: 160, class: 'ca-el' }); mk('rect', { x: 256, y: 40, width: 14, height: 160, class: 'ca-el' });
+    mk('path', { d: 'M77,40 L77,18 L120,18', class: 'ca-wire' }); mk('path', { d: 'M263,40 L263,18 L220,18', class: 'ca-wire' });
+    mk('rect', { x: 120, y: 8, width: 100, height: 20, rx: 4, style: 'fill:var(--bg);stroke:var(--ink)' }); mk('text', { x: 170, y: 22, 'text-anchor': 'middle' }, fig, running ? 'DC supply: on' : 'DC supply: off');
+    mk('text', { x: 60, y: 36, 'text-anchor': 'end', style: 'font-weight:700' }, fig, '+ anode'); mk('text', { x: 280, y: 36, style: 'font-weight:700' }, fig, 'cathode −');
+    mk('text', { x: 100, y: 236, 'text-anchor': 'middle' }, fig, 'brine in, Cl₂ out'); mk('text', { x: 240, y: 236, 'text-anchor': 'middle' }, fig, 'H₂ and NaOH(aq) out');
+    if (!running) return;
+    for (let i = 0; i < 8; i++) {
+      const ph = ((time / 1400 + i / 8) % 1), y = 200 - ph * 150;
+      mk('circle', { cx: 92 + (i % 3) * 6, cy: y, r: 3 + (i % 2), class: 'ca-b1' });
+      mk('circle', { cx: 248 - (i % 3) * 6, cy: y, r: 3 + (i % 2), class: 'ca-b2' });
+    }
+    mk('text', { x: 106, y: 76 }, fig, 'Cl₂'); mk('text', { x: 222, y: 76 }, fig, 'H₂');
+    for (let i = 0; i < 3; i++) { const ph = (time / 2200 + i / 3) % 1, x = 130 + ph * 80; mk('circle', { cx: x, cy: 150 + i * 18, r: 7, class: 'ca-na' }); mk('text', { x: x + 9, y: 146 + i * 18 }, fig, 'Na⁺'); }
+  }
+  const loop = (now: number) => { cell(now - t0); if (running) raf = requestAnimationFrame(loop); };
+  q('.ca-run').addEventListener('click', () => {
+    running = !running; q('.ca-run').textContent = running ? 'Switch off' : 'Switch on';
+    if (running) { t0 = performance.now(); raf = requestAnimationFrame(loop); } else { cancelAnimationFrame(raf); cell(0); }
+  });
+  cell(0);
+
+  function calc() {
+    const i = Number(I.value), tt = Number(T.value) * Number(U.value), err = q('.ca-err'), tb = q('.ca-tab tbody');
+    if (!(i > 0) || !(tt > 0)) { err.hidden = false; err.textContent = 'Type a current and a time above 0.'; tb.replaceChildren(); q('.ca-steps').replaceChildren(); return; }
+    err.hidden = true;
+    const p = products(i, tt), li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+    q('.ca-steps').replaceChildren(
+      li(`Charge Q = I × t = ${sig(i)} A × ${sig(tt, 6)} s = ${sig(p.Q, 6)} C.`),
+      li(`Moles of electrons = Q ÷ F = ${sig(p.Q, 6)} ÷ ${F.toFixed(0)} = ${sig(p.ne)} mol.`),
+      li(`2 electrons make 1 Cl₂ (and 1 H₂): ${sig(p.ne)} ÷ 2 = ${sig(p.cl2.mol)} mol of each gas. 1 electron goes with 1 NaOH: ${sig(p.naoh.mol)} mol.`),
+    );
+    const rows: [string, number, number, number | null][] = [['Chlorine, Cl₂', p.cl2.mol, p.cl2.g, p.cl2.L], ['Hydrogen, H₂', p.h2.mol, p.h2.g, p.h2.L], ['Sodium hydroxide, NaOH', p.naoh.mol, p.naoh.g, null], ['Salt used, NaCl', p.nacl.mol, p.nacl.g, null]];
+    tb.replaceChildren(...rows.map(([n, mol, g, L]) => { const tr = document.createElement('tr'); [n, sig(mol), sig(g), L === null ? '—' : sig(L)].forEach((v, j) => { const td = document.createElement('td'); td.textContent = v; if (j) td.className = 'r'; tr.append(td); }); return tr; }));
+  }
+  [I, T].forEach((b) => b.addEventListener('input', calc)); U.addEventListener('change', calc);
+  calc();
+  void VM; void timeForNaOH;
+
+  mountQuiz(q('.cq'), () => {
+    const i = pickOne([1, 2, 4, 5, 10]), mins = pickOne([10, 30, 60, 90, 120]), p = products(i, mins * 60);
+    const j = pickOne([2, 5, 10]), h = rint(1, 5), p2 = products(j, h * 3600);
+    const out: Question[] = [
+      { q: `A current of ${i} A flows for ${mins} minutes. How many moles of electrons pass? (Use F = 96 485 C/mol; 4 significant figures.)`, answer: sig(p.ne), ok: near(p.ne, 0.002), worked: `Q = ${i} × ${mins * 60} = ${i * mins * 60} C; ${i * mins * 60} ÷ 96 485.`, hint: 'mol' },
+      { q: `Same cell. What mass of sodium hydroxide (40.00 g/mol) is made? (3 significant figures)`, answer: sig(p.naoh.g, 3), ok: near(p.naoh.g, 0.005), worked: `1 mol NaOH per mole of electrons: ${sig(p.ne)} × 40.00.`, hint: 'grams' },
+      { q: `A cell runs at ${j} A for ${h} hour${h > 1 ? 's' : ''}. What volume of chlorine is made at 25 °C (24.79 L/mol)? (3 significant figures)`, answer: sig(p2.cl2.L, 3), ok: near(p2.cl2.L, 0.005), worked: `Electrons = ${j} × ${h * 3600} ÷ 96 485 = ${sig(p2.ne)} mol; Cl₂ = half of that = ${sig(p2.cl2.mol)} mol; × 24.79 L.`, hint: 'litres' },
+    ];
+    return out;
+  });
+  void M;
+</script>
