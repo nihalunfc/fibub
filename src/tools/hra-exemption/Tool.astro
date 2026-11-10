@@ -1,0 +1,103 @@
+---
+// #1743 HRA exemption: the least-of-three rule, exempt and taxable HRA (old regime only).
+---
+<div class="tool-ui he">
+  <section class="panel">
+    <h2>Your salary and rent (per month)</h2>
+    <div class="he-grid">
+      <label>Basic + DA (₹) <input data-k="sal" inputmode="decimal" value="50,000" /></label>
+      <label>HRA received (₹) <input data-k="hra" inputmode="decimal" value="20,000" /></label>
+      <label>Rent you pay (₹) <input data-k="rent" inputmode="decimal" value="25,000" /></label>
+      <label>City you rent in
+        <select data-k="city">
+          <option value="mumbai">Mumbai</option>
+          <option value="delhi" selected>Delhi</option>
+          <option value="kolkata">Kolkata</option>
+          <option value="chennai">Chennai</option>
+          <option value="bengaluru">Bengaluru</option>
+          <option value="hyderabad">Hyderabad</option>
+          <option value="pune">Pune</option>
+          <option value="ahmedabad">Ahmedabad</option>
+          <option value="other">Any other city or town</option>
+        </select>
+      </label>
+      <label>Tax year
+        <select data-k="fy">
+          <option value="new" selected>FY 2026-27 onwards</option>
+          <option value="old">FY 2025-26 or earlier</option>
+        </select>
+      </label>
+      <label>Months you paid rent this year <input data-k="months" inputmode="numeric" value="12" /></label>
+    </div>
+    <p class="he-src">From FY 2026-27, Bengaluru, Hyderabad, Pune and Ahmedabad join Mumbai, Delhi, Kolkata and Chennai at 50% (Income-tax Rules, 2026). Check the official source.</p>
+    <p class="note bad he-err" role="alert" hidden></p>
+  </section>
+  <section class="he-res" aria-live="polite">
+    <div class="he-stats">
+      <div class="good"><span>Tax-free HRA a month</span><b class="he-s-ex"></b></div>
+      <div><span>Taxable HRA a month</span><b class="he-s-tx"></b></div>
+      <div class="good"><span>Tax-free for the year</span><b class="he-s-exy"></b></div>
+      <div><span>Taxable for the year</span><b class="he-s-txy"></b></div>
+    </div>
+    <div class="panel">
+      <h2>The least of three</h2>
+      <ol class="he-limits"></ol>
+      <p class="he-tip"></p>
+    </div>
+    <p class="note he-regime">HRA is exempt only in the <b>old tax regime</b>. In the new regime (the default) all HRA is taxed, so compare both with the India income tax calculator.</p>
+  </section>
+  <p class="he-fine">How it is worked out: the tax-free HRA is the smallest of the HRA you get, the rent you pay minus 10% of salary, and 50% (listed cities) or 40% (elsewhere) of salary, where salary is Basic + DA (and any commission set as a % of turnover). Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .he { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .he > *, .he-res > * { min-width: 0; }
+  .he h2 { margin: 0 0 12px; font-size: 18px; }
+  .he .panel { padding: 16px; }
+  .he-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .he label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .he input, .he select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .he input:focus, .he select:focus { border-color: var(--accent); outline: none; }
+  .he-src { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .he-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .he-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .he-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .he-stats span { font-size: 13px; color: var(--muted); }
+  .he-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .he-stats .good b { color: var(--good); }
+  .he-limits { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  .he-limits li { overflow-wrap: anywhere; }
+  .he-limits li.he-min { font-weight: 700; }
+  .he-limits li.he-min::after { content: '  lowest, so this is tax-free'; font-weight: 500; color: var(--good); font-size: 13px; }
+  .he-tip { margin: 12px 0 0; font-size: 14px; }
+  .he-tip:empty { display: none; }
+  .he-regime { margin: 0; }
+  .he-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .he-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .he-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { hraExempt } from '../../lib/money/hra-exemption';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.he')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  function run() {
+    const salary = num(f('sal').value), hra = num(f('hra').value), rent = num(f('rent').value), months = num(f('months').value);
+    const bad = !(salary > 0) ? 'Enter your monthly Basic + DA.' : !(hra > 0) ? 'Enter the HRA you receive each month.' : rent < 0 ? 'Rent cannot be negative.' : !(months >= 1 && months <= 12 && Number.isInteger(months)) ? 'Enter the months you paid rent, 1 to 12.' : '';
+    q('.he-err').hidden = !bad; q('.he-err').textContent = bad; q('.he-res').hidden = !!bad;
+    if (bad) return;
+    const o = hraExempt({ salary, hra, rent, city: f('city').value, fy2026: f('fy').value === 'new' });
+    q('.he-s-ex').textContent = $(o.exempt);
+    q('.he-s-tx').textContent = $(o.taxable);
+    q('.he-s-exy').textContent = $(o.exempt * months);
+    q('.he-s-txy').textContent = $(o.taxable * months + hra * (12 - months));
+    const names = ['HRA you receive', 'Rent minus 10% of salary', `${o.pct}% of salary (${o.pct === 50 ? 'listed city' : 'other city'})`];
+    q('.he-limits').innerHTML = o.limits.map((v, i) => `<li${i === o.which ? ' class="he-min"' : ''}>${names[i]}: ${$(v)}</li>`).join('');
+    q('.he-tip').innerHTML = o.taxable <= 0 ? 'All your HRA is tax-free.' : o.which === 1 ? `Rent limits your claim. Rent of <b>${$(o.fullRent)}</b> a month or more would make all your HRA tax-free (if the ${o.pct}% limit allows).` : o.which === 2 ? `The ${o.pct}% of salary limit caps your claim, so paying more rent will not raise it.` : '';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
