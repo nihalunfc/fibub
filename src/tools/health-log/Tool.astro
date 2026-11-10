@@ -1,0 +1,314 @@
+---
+// #T842 Health log: blood pressure, glucose, weight, sleep, symptoms, period or your own measure, with charts and exports.
+import Downloads from '../../components/Downloads.astro';
+import { PRESETS } from '../../lib/docs/healthlog';
+---
+<div class="tool-ui hl">
+  <p class="note hl-note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results.</p>
+
+  <div class="hl-tabs" role="tablist" aria-label="Which log">
+    {PRESETS.map((p) => <button type="button" role="tab" class="hl-tab" data-p={p.id} aria-selected="false">{p.name}</button>)}
+  </div>
+
+  <div class="panel hl-setup" hidden>
+    <label class="hl-unitbox" hidden>Unit <select class="hl-unit"></select></label>
+    <label class="hl-custom" hidden>Name of what you measure <input class="hl-cname" maxlength="40" placeholder="e.g. Peak flow" autocomplete="off" /></label>
+    <label class="hl-custom" hidden>Unit (optional) <input class="hl-cunit" maxlength="12" placeholder="e.g. L/min" autocomplete="off" /></label>
+  </div>
+
+  <form class="panel hl-form" autocomplete="off">
+    <h2>Add an entry</h2>
+    <div class="hl-fields">
+      <label>Date and time <input class="hl-when" type="datetime-local" required /></label>
+      <div class="hl-dyn"></div>
+    </div>
+    <div class="hl-btns"><button type="submit" class="btn hl-add">Add entry</button><span class="hl-msg" role="status"></span></div>
+  </form>
+
+  <div class="panel hl-rangebox">
+    <div class="hl-range">
+      <label>From <input class="hl-from" type="date" /></label>
+      <label>To <input class="hl-to" type="date" /></label>
+      <button type="button" class="btn secondary hl-allr">Show all dates</button>
+    </div>
+    <p class="hl-hint">The table, charts, averages, CSV and summary below all use this date range.</p>
+  </div>
+
+  <div class="hl-out" hidden>
+    <div class="panel"><h2>Numbers</h2><div class="hl-scroll"><table class="hl-stats"></table></div></div>
+    <div class="hl-charts"></div>
+    <div class="panel hl-weekbox"><h2>Weekly averages</h2><p class="hl-hint">Weeks start on Monday.</p><div class="hl-scroll"><table class="hl-weeks"></table></div></div>
+    <div class="panel"><h2>Entries</h2><div class="hl-scroll"><table class="hl-table"></table></div></div>
+    <div class="panel hl-dl">
+      <h2>Take it with you</h2>
+      <Downloads label="Summary for a doctor visit" />
+      <div class="hl-btns"><button type="button" class="btn secondary hl-csv">Download CSV</button></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Bring your own CSV</h2>
+    <p class="hl-hint">Import a CSV in the same layout as the one you can download here (Date, Time, then the boxes for this log).</p>
+    <label class="hl-btns"><input type="file" class="hl-import" accept=".csv,text/csv" /></label>
+    <p class="hl-hint hl-imsg" role="status"></p>
+  </div>
+
+  <div class="panel hl-keep">
+    <label class="hl-check"><input type="checkbox" class="hl-remember" /> Keep my logs on this device</label>
+    <p class="hl-hint">Off by default. If you tick it, all your logs (every entry, target and unit) are kept in this browser only, so they are there next time. They never leave the device. Untick it, or press Clear, to delete them.</p>
+    <div class="hl-btns"><button type="button" class="btn secondary hl-clear">Clear all my logs</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .hl > *, .hl-out > * { min-width: 0; }
+  .hl-out { display: grid; gap: 14px; }
+  .hl h2 { font-size: 17px; margin: 0 0 10px; }
+  .hl .panel { padding: 16px; }
+  .hl-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hl-tab { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  .hl-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .hl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hl input, .hl select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .hl input:focus, .hl select:focus { border-color: var(--accent); outline: none; }
+  .hl-setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .hl-setup[hidden], .hl-setup label[hidden] { display: none; }
+  .hl-fields, .hl-dyn { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .hl-fields { grid-template-columns: minmax(0, 1fr); }
+  .hl-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .hl-msg { font-size: 14px; color: var(--muted); }
+  .hl-range { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .hl-range label { flex: 1 1 150px; }
+  .hl-hint { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+  .hl-scroll { overflow-x: auto; }
+  .hl table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .hl th, .hl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .hl td.r, .hl th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .hl-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+  .hl-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .hl-card canvas { width: 100%; height: auto; display: block; border-radius: 8px; background: var(--bg); }
+  .hl-card .hl-tg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: var(--muted); }
+  .hl-card .hl-tg input { width: 110px; }
+  .hl-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 12px; }
+  .hl-del { font: inherit; font-size: 13px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .hl-check { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; font-size: 15px !important; cursor: pointer; }
+  .hl-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { PRESETS, preset, newLog, fieldInfo, toUnit, fromUnit, places, fmt, nowLocal, dayOf, stats, series, weekly, checkEntry, makeEntry, show, toCsv, fromCsv, type Log, type Preset, type Field, type Entry } from '../../lib/docs/healthlog';
+  import { wireDownloads, paint, save, type Figure, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-healthlog-v1';
+  const root = document.querySelector<HTMLElement>('.hl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const remember = () => q<HTMLInputElement>('.hl-remember').checked;
+
+  let state: { cur: string; logs: Record<string, Log> } = { cur: 'bp', logs: {} };
+  const P = (): Preset => preset(state.cur);
+  const L = (): Log => (state.logs[state.cur] ??= newLog(P()));
+  function persist() { if (remember()) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} } }
+
+  // ---------- the entry form ----------
+  function buildFields(keep: Record<string, string> = {}) {
+    const p = P(), log = L(), box = q('.hl-dyn');
+    box.replaceChildren();
+    for (const f of p.fields) {
+      if (f.derived) continue;
+      const info = fieldInfo(p, f, log), lab = document.createElement('label');
+      const name = `${info.label}${info.unit ? ` (${info.unit})` : ''}`;
+      lab.append(name);
+      let el: HTMLInputElement | HTMLSelectElement;
+      if (f.kind === 'select') {
+        el = document.createElement('select');
+        for (const o of f.opts ?? []) el.add(new Option(o || 'Not said', o));
+      } else {
+        el = document.createElement('input');
+        el.type = f.kind === 'date' ? 'date' : 'text';
+        if (f.kind === 'num') { el.inputMode = 'decimal'; el.placeholder = f.min !== undefined && f.max !== undefined && f.max < 100 ? `${f.min} to ${f.max}` : ''; }
+        el.autocomplete = 'off'; el.maxLength = 80;
+      }
+      el.dataset.k = f.k; el.className = 'hl-f'; el.value = keep[f.k] ?? '';
+      lab.append(el); box.append(lab);
+    }
+  }
+  const rawValues = () => Object.fromEntries([...root.querySelectorAll<HTMLInputElement>('.hl-f')].map((i) => [i.dataset.k!, i.value]));
+
+  q('.hl-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = P(), log = L(), t = q<HTMLInputElement>('.hl-when').value, raw = rawValues();
+    const msg = checkEntry(p, log, t, raw);
+    q('.hl-msg').textContent = msg;
+    if (msg) return;
+    log.entries.push(makeEntry(p, log, t, raw));
+    q('.hl-msg').textContent = 'Added.';
+    buildFields();
+    (root.querySelector('.hl-f') as HTMLElement | null)?.focus();
+    render();
+  });
+
+  // ---------- tabs and set-up ----------
+  function setup() {
+    const p = P(), log = L();
+    root.querySelectorAll('.hl-tab').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.p === state.cur)));
+    const unitBox = q('.hl-unitbox'), custom = [...root.querySelectorAll<HTMLElement>('.hl-custom')];
+    unitBox.hidden = !p.units; custom.forEach((c) => (c.hidden = p.id !== 'custom'));
+    q('.hl-setup').hidden = !p.units && p.id !== 'custom';
+    if (p.units) { const s = q<HTMLSelectElement>('.hl-unit'); s.replaceChildren(...p.units.map((u) => new Option(u, u))); s.value = log.unit; }
+    q<HTMLInputElement>('.hl-cname').value = log.name; q<HTMLInputElement>('.hl-cunit').value = log.cunit;
+    q('.hl-msg').textContent = '';
+    buildFields();
+  }
+  root.querySelectorAll('.hl-tab').forEach((b) => b.addEventListener('click', () => { state.cur = (b as HTMLElement).dataset.p!; chartsFor = ''; setup(); render(); }));
+  q('.hl-unit').addEventListener('change', (e) => { L().unit = (e.target as HTMLSelectElement).value; chartsFor = ''; buildFields(rawValues()); render(); });
+  const custom = () => { const l = L(); l.name = q<HTMLInputElement>('.hl-cname').value; l.cunit = q<HTMLInputElement>('.hl-cunit').value; buildFields(rawValues()); render(); };
+  q('.hl-cname').addEventListener('input', custom); q('.hl-cunit').addEventListener('input', custom);
+
+  // ---------- range ----------
+  const inRange = (e: Entry) => { const d = dayOf(e.t), a = q<HTMLInputElement>('.hl-from').value, b = q<HTMLInputElement>('.hl-to').value; return (!a || d >= a) && (!b || d <= b); };
+  q('.hl-from').addEventListener('input', () => render()); q('.hl-to').addEventListener('input', () => render());
+  q('.hl-allr').addEventListener('click', () => { q<HTMLInputElement>('.hl-from').value = ''; q<HTMLInputElement>('.hl-to').value = ''; render(); });
+
+  // ---------- chart ----------
+  const dm = (t: string) => new Date(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13) || 0, +t.slice(14, 16) || 0).getTime();
+  const dayLabel = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  function chartFig(label: string, unit: string, pts: { t: string; y: number }[], target: number | undefined, dp: number): Figure {
+    return {
+      w: 640, h: 260, alt: `Chart of ${label}${unit ? ' in ' + unit : ''} over time, ${pts.length} entries.`,
+      draw(ctx, w, h, pal) {
+        const l = 56, r = 16, t = 16, b = 34, pw = w - l - r, ph = h - t - b;
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        if (!pts.length) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText('No entries in this date range', w / 2, h / 2); return; }
+        let x0 = dm(pts[0].t), x1 = dm(pts[pts.length - 1].t);
+        if (x0 === x1) { x0 -= 43200000; x1 += 43200000; }
+        const ys = pts.map((p) => p.y).concat(target !== undefined ? [target] : []);
+        let y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const padY = (y1 - y0) * 0.1 || Math.max(1, Math.abs(y1) * 0.1); y0 -= padY; y1 += padY;
+        const X = (ms: number) => l + ((ms - x0) / (x1 - x0)) * pw, Y = (v: number) => t + ph - ((v - y0) / (y1 - y0)) * ph;
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+        for (let i = 0; i <= 4; i++) { const v = y0 + ((y1 - y0) * i) / 4, y = Y(v); ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(w - r, y); ctx.stroke(); ctx.fillText(fmt(v, Math.max(0, dp - (y1 - y0 > 20 ? 99 : 0))) , l - 6, y); }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (const f of [0, 0.5, 1]) { ctx.fillText(dayLabel(x0 + (x1 - x0) * f), l + pw * f, h - b + 8); }
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+        pts.forEach((p, i) => (i ? ctx.lineTo(X(dm(p.t)), Y(p.y)) : ctx.moveTo(X(dm(p.t)), Y(p.y)))); ctx.stroke();
+        ctx.fillStyle = pal.accent; for (const p of pts) { ctx.beginPath(); ctx.arc(X(dm(p.t)), Y(p.y), 3.5, 0, 6.2832); ctx.fill(); }
+        if (target !== undefined) {
+          ctx.strokeStyle = pal.ink; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(l, Y(target)); ctx.lineTo(w - r, Y(target)); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(`Your target: ${fmt(target, dp)}`, w - r - 2, Y(target) - 3);
+        }
+      },
+    };
+  }
+
+  // ---------- drawing the page ----------
+  let chartsFor = '';
+  let report: { title: string; sections: Section[]; file: string } = { title: '', sections: [], file: 'health-log' };
+  const chartFields = () => P().fields.filter((f) => f.chart);
+
+  function render() {
+    const p = P(), log = L();
+    const all = [...log.entries].sort((a, b) => a.t.localeCompare(b.t)), list = all.filter(inRange);
+    q('.hl-out').hidden = !log.entries.length;
+    persist();
+    if (!log.entries.length) { chartsFor = ''; q('.hl-charts').replaceChildren(); return; }
+    const title = p.id === 'custom' ? `${log.name.trim() || 'Custom'} log` : p.title;
+
+    // numbers
+    const infoOf = (f: Field) => fieldInfo(p, f, log);
+    const nums = chartFields().map((f) => ({ f, info: infoOf(f), dp: places(f, log.unit), pts: series(p, f, log, list) }));
+    q('.hl-stats').innerHTML = `<thead><tr><th>Measure</th><th class="r">Entries</th><th class="r">Average</th><th class="r">Lowest</th><th class="r">Highest</th></tr></thead><tbody>${nums.map(({ f, info, dp, pts }) => {
+      const s = stats(pts.map((x) => x.y));
+      return `<tr><td>${esc(info.label)}${info.unit ? ` (${esc(info.unit)})` : ''}</td>${s ? `<td class="r">${s.n}</td><td class="r">${fmt(s.avg, dp === 0 ? 1 : dp)}</td><td class="r">${fmt(s.min, dp)}</td><td class="r">${fmt(s.max, dp)}</td>` : '<td class="r" colspan="4">No entries in this range</td>'}</tr>`;
+    }).join('')}</tbody>`;
+
+    // weekly
+    const wk = nums.map((n) => ({ ...n, weeks: weekly(n.pts) }));
+    const weeks = [...new Set(wk.flatMap((n) => n.weeks.map((w) => w.week)))].sort();
+    q('.hl-weekbox').hidden = !weeks.length;
+    q('.hl-weeks').innerHTML = `<thead><tr><th>Week of</th>${wk.map((n) => `<th class="r">${esc(n.info.label)}</th>`).join('')}</tr></thead><tbody>${weeks.map((w) => `<tr><td>${w}</td>${wk.map((n) => { const x = n.weeks.find((y) => y.week === w); return `<td class="r">${x ? fmt(x.avg, n.dp === 0 ? 1 : n.dp) : ''}</td>`; }).join('')}</tr>`).join('')}</tbody>`;
+
+    // entries
+    const shown = p.fields;
+    q('.hl-table').innerHTML = `<thead><tr><th>Date</th><th>Time</th>${shown.map((f) => { const i = infoOf(f); return `<th${f.kind === 'num' ? ' class="r"' : ''}>${esc(i.label)}${i.unit ? ` (${esc(i.unit)})` : ''}</th>`; }).join('')}<th></th></tr></thead><tbody>${[...list].reverse().map((e) => `<tr><td>${e.t.slice(0, 10)}</td><td>${e.t.slice(11)}</td>${shown.map((f) => `<td${f.kind === 'num' ? ' class="r"' : ''}>${esc(show(p, f, log, e))}</td>`).join('')}<td><button type="button" class="hl-del" data-id="${e.id}" aria-label="Delete the entry from ${e.t.slice(0, 10)} ${e.t.slice(11)}">Delete</button></td></tr>`).join('')}</tbody>`;
+
+    // charts (cards are kept while typing a target)
+    const sig = `${state.cur}|${log.unit}`;
+    const box = q('.hl-charts');
+    if (chartsFor !== sig) {
+      chartsFor = sig; box.replaceChildren();
+      for (const n of nums) {
+        const card = document.createElement('div'); card.className = 'hl-card'; card.dataset.k = n.f.k;
+        card.innerHTML = `<h3></h3><canvas role="img"></canvas><label class="hl-tg">Your own target line (optional, from your doctor)<input class="hl-target" inputmode="decimal" placeholder="none" /></label>`;
+        const t = log.targets[n.f.k];
+        (card.querySelector('.hl-target') as HTMLInputElement).value = t === undefined ? '' : fmt(toUnit(n.f, t, log.unit), n.dp + 1);
+        box.append(card);
+      }
+    }
+    const figs: Figure[] = [];
+    for (const n of nums) {
+      const card = box.querySelector<HTMLElement>(`[data-k="${n.f.k}"]`)!;
+      (card.querySelector('h3') as HTMLElement).textContent = `${n.info.label}${n.info.unit ? ` (${n.info.unit})` : ''}`;
+      const t = log.targets[n.f.k], tShown = t === undefined ? undefined : toUnit(n.f, t, log.unit);
+      const fig = chartFig(n.info.label, n.info.unit, n.pts, tShown, n.dp);
+      paint(card.querySelector('canvas') as HTMLCanvasElement, fig);
+      figs.push(fig);
+    }
+
+    // summary for a doctor visit
+    const first = list[0]?.t.slice(0, 10), last = list[list.length - 1]?.t.slice(0, 10);
+    const sections: Section[] = [
+      { title: 'About this log', facts: [['Dates', first ? (first === last ? first : `${first} to ${last}`) : 'none'], ['Entries', String(list.length)]], text: ['Numbers typed in by the person who made this page. Averages and lowest and highest are plain arithmetic on those numbers.'] },
+      { title: 'Numbers', table: { head: ['Measure', 'Entries', 'Average', 'Lowest', 'Highest'], align: ['l', 'r', 'r', 'r', 'r'], rows: nums.map((n) => { const s = stats(n.pts.map((x) => x.y)); return [n.info.label + (n.info.unit ? ` (${n.info.unit})` : ''), String(s?.n ?? 0), s ? fmt(s.avg, n.dp === 0 ? 1 : n.dp) : '', s ? fmt(s.min, n.dp) : '', s ? fmt(s.max, n.dp) : '']; }) } },
+      ...nums.map((n, i): Section => ({ title: `${n.info.label} over time`, figure: figs[i], note: log.targets[n.f.k] !== undefined ? 'The dashed line is the target typed in by the person, not a standard.' : undefined })),
+      ...(weeks.length ? [{ title: 'Weekly averages', table: { head: ['Week of', ...wk.map((n) => n.info.label)], rows: weeks.map((w) => [w, ...wk.map((n) => { const x = n.weeks.find((y) => y.week === w); return x ? fmt(x.avg, n.dp === 0 ? 1 : n.dp) : ''; })] ) } }] : []),
+      { title: 'Entries', table: { head: ['Date', 'Time', ...shown.map((f) => { const i = infoOf(f); return i.label + (i.unit ? ` (${i.unit})` : ''); })], rows: list.map((e) => [e.t.slice(0, 10), e.t.slice(11), ...shown.map((f) => show(p, f, log, e))]) } },
+      { title: 'Please note', text: ['Organised from the person\'s own entries on fibub.com. It does not say what any number means. Ask your doctor or pharmacist about your results.'] },
+    ];
+    report = { title, sections, file: `health-log-${p.id}` };
+  }
+
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.classList.contains('hl-target')) {
+      const p = P(), log = L(), k = el.closest<HTMLElement>('[data-k]')!.dataset.k!, f = p.fields.find((x) => x.k === k)!;
+      const x = Number(el.value.replace(',', '.'));
+      if (el.value.trim() === '') delete log.targets[k]; else if (Number.isFinite(x)) log.targets[k] = fromUnit(f, x, log.unit);
+      render();
+    }
+  });
+  root.addEventListener('click', (e) => {
+    const del = (e.target as HTMLElement).closest<HTMLElement>('.hl-del');
+    if (del) { const log = L(); log.entries = log.entries.filter((x) => x.id !== del.dataset.id); render(); }
+  });
+
+  // ---------- files ----------
+  q('.hl-csv').addEventListener('click', () => { const p = P(), log = L(); save(new Blob([toCsv(p, log, [...log.entries].filter(inRange))], { type: 'text/csv' }), `health-log-${p.id}.csv`, 'text/csv'); });
+  q('.hl-import').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; if (!f) return;
+    const p = P(), log = L(), msg = q('.hl-imsg');
+    if (f.size > 5e6) { msg.textContent = 'That file is over 5 MB; this tool reads smaller CSV files.'; inp.value = ''; return; }
+    const r = fromCsv(p, log, await f.text());
+    if (!r.entries.length) msg.textContent = `No entries were read.${r.skipped ? ` ${r.skipped} row${r.skipped === 1 ? ' was' : 's were'} skipped.` : ' The file needs a header row with Date, Time and this log\'s boxes.'}`;
+    else {
+      if (r.unit) log.unit = r.unit;
+      log.entries.push(...r.entries);
+      msg.textContent = `Added ${r.entries.length} entr${r.entries.length === 1 ? 'y' : 'ies'}${r.skipped ? `; ${r.skipped} row${r.skipped === 1 ? ' was' : 's were'} skipped` : ''}.`;
+      chartsFor = ''; setup(); render();
+    }
+    inp.value = '';
+  });
+  wireDownloads(q('.hl-dl'), () => ({ title: report.title, subtitle: `Made ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} at fibub.com`, sections: report.sections, file: report.file }));
+
+  // ---------- keeping (only if asked) ----------
+  q('.hl-remember').addEventListener('change', () => { if (remember()) persist(); else { try { localStorage.removeItem(KEY); } catch {} } });
+  q('.hl-clear').addEventListener('click', () => { state = { cur: state.cur, logs: {} }; q<HTMLInputElement>('.hl-remember').checked = false; try { localStorage.removeItem(KEY); } catch {} chartsFor = ''; setup(); render(); q('.hl-imsg').textContent = ''; });
+
+  // ---------- start ----------
+  let kept: typeof state | null = null;
+  try { kept = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (kept?.logs && PRESETS.some((p) => p.id === kept!.cur)) { state = kept; q<HTMLInputElement>('.hl-remember').checked = true; }
+  q<HTMLInputElement>('.hl-when').value = nowLocal();
+  setup(); render();
+</script>

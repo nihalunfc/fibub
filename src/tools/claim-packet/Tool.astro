@@ -1,0 +1,114 @@
+---
+// #T847 Claim packet builder
+---
+<div class="tool-ui cp">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not tax, billing or legal advice.</p>
+  <div class="cp-box">
+    <h2>1. Add receipts</h2>
+    <label>Receipts (PDF, JPG or PNG) <input class="cp-file" type="file" accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" multiple /></label>
+    <div class="cp-row">
+      <label>Dates are written <select class="cp-dord"><option value="dmy">day / month / year</option><option value="mdy">month / day / year</option></select></label>
+      <label class="cp-ocrl"><input class="cp-ocr" type="checkbox" /> Read dates from photos and scans (loads a 4 MB word reader once, on your device)</label>
+      <label>Currency <select class="cp-cur"><option>CAD</option><option>USD</option><option>INR</option><option>GBP</option><option>AED</option></select></label>
+    </div>
+    <p class="cp-msg" role="status" aria-live="polite"></p>
+  </div>
+  <div class="cp-box cp-out" hidden>
+    <h2>2. Fill in the amounts</h2>
+    <p class="cp-help">For PDFs the date is guessed from the text. Check every row.</p>
+    <div class="cp-scroll"><table class="cp-rows"><thead><tr><th>File</th><th>Date</th><th>Provider</th><th>Patient</th><th>Service</th><th>Paid</th><th>Already claimed</th><th></th></tr></thead><tbody></tbody></table></div>
+    <h2>3. Check the total</h2>
+    <div class="cp-scroll"><table class="cp-sum"></table></div>
+    <h2>4. Cover sheet</h2>
+    <div class="cp-row"><label>Plan member <input class="cp-mem" /></label><label>Plan or policy number <input class="cp-pol" /></label><label>Insurer <input class="cp-ins" /></label></div>
+    <p class="cp-help">Typed here only for the cover page. Nothing is kept or sent.</p>
+    <div class="cp-row"><button type="button" class="btn cp-pdf">Download packet (PDF)</button><button type="button" class="btn secondary cp-csv">Download CSV</button><button type="button" class="btn secondary cp-clear">Clear all</button></div>
+    <p class="cp-help">Upload the PDF to your insurer's own site or app.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cp { display: grid; gap: .9rem; }
+  .cp-box { display: grid; gap: .6rem; border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem; }
+  .cp-box h2 { margin: 0; font-size: 1.1rem; }
+  .cp label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .cp-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
+  .cp input, .cp select { font: inherit; padding: .45rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .cp-scroll { overflow-x: auto; }
+  .cp-rows, .cp-sum { border-collapse: collapse; font-size: 14px; }
+  .cp-rows th, .cp-sum th, .cp-sum td { text-align: left; padding: 4px 8px; }
+  .cp-sum .n { text-align: right; }
+  .cp-rows td { padding: 2px; } .cp-rows td input { width: 100%; min-width: 6em; } .cp-rows td.f { max-width: 10em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-help, .cp-msg { margin: 0; font-size: 14px; }
+  .cp-msg.err { color: var(--warn); }
+  .cp [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { claimTotals, findDate, toIso, toNum, moneyFmt, type Receipt, type DateOrder } from '../../lib/money/medical';
+  import { save } from '../../lib/report';
+  const root = document.querySelector('.cp') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const val = (s: string) => $<HTMLInputElement>(s).value;
+  type Item = Receipt & { name: string; kind: 'pdf' | 'png' | 'jpg'; bytes: Uint8Array };
+  let items: Item[] = [];
+  const say = (t: string, err = false) => { const m = $<HTMLElement>('.cp-msg'); m.textContent = t; m.classList.toggle('err', err); };
+  const money = () => moneyFmt(val('.cp-cur'));
+  const esc = (s: string | number) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  function drawRows() {
+    $('.cp-rows tbody').innerHTML = items.map((r, i) => `<tr data-i="${i}"><td class="f" title="${esc(r.name)}">${esc(r.name)}</td>${['date', 'provider', 'patient', 'service', 'paid', 'claimed'].map((k) => `<td><input data-f="${k}" value="${esc((r as any)[k] === 0 && (k === 'paid' || k === 'claimed') ? '' : (r as any)[k])}" ${k === 'paid' || k === 'claimed' ? 'inputmode="decimal"' : ''}></td>`).join('')}<td><button type="button" class="btn secondary small" data-del aria-label="Remove receipt">&times;</button></td></tr>`).join('');
+  }
+  function sum() {
+    $<HTMLElement>('.cp-out').hidden = !items.length;
+    const m = money(), t = claimTotals(items);
+    $('.cp-sum').innerHTML = '<tr><th>Patient</th><th>Service</th><th class="n">Receipts</th><th class="n">Paid</th><th class="n">Claimed</th></tr>' +
+      t.groups.map((g) => `<tr><td>${esc(g.patient)}</td><td>${esc(g.service)}</td><td class="n">${g.n}</td><td class="n">${m(g.paid)}</td><td class="n">${m(g.claimed)}</td></tr>`).join('') +
+      `<tr><th colspan="2">Total${t.from ? ` (${t.from} to ${t.to})` : ''}</th><th class="n">${items.length}</th><th class="n cp-tp">${m(t.paid)}</th><th class="n">${m(t.claimed)}</th></tr><tr><td colspan="4">Amount to claim</td><td class="n cp-tc">${m(t.toClaim)}</td></tr>`;
+  }
+  $<HTMLInputElement>('.cp-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, files = [...(inp.files || [])]; inp.value = '';
+    for (const f of files) {
+      try {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf', isPng = /\.png$/i.test(f.name) || f.type === 'image/png';
+        let date = '';
+        if (isPdf) {
+          const { pdfText } = await import('../../lib/docs/doctext');
+          try { date = findDate(await pdfText(bytes.slice()), val('.cp-dord') as DateOrder); } catch { /* no text layer */ }
+        }
+        if (!date && $<HTMLInputElement>('.cp-ocr').checked) {
+          try { const { ocrText } = await import('../../lib/docs/ocrfile'); date = findDate(await ocrText(bytes, isPdf, (m) => say(`${f.name}: ${m}`), 1), val('.cp-dord') as DateOrder); } catch { /* type the date */ }
+        }
+        items.push({ name: f.name, kind: isPdf ? 'pdf' : isPng ? 'png' : 'jpg', bytes, date, provider: '', patient: '', service: '', paid: 0, claimed: 0 });
+      } catch { say(`${f.name} could not be read.`, true); }
+    }
+    if (files.length) say(`${items.length} receipt${items.length === 1 ? '' : 's'} added.`);
+    drawRows(); sum();
+  });
+  const rowsEl = $('.cp-rows tbody');
+  rowsEl.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement, i = +(t.closest('tr') as HTMLElement).dataset.i!, k = t.dataset.f as string, it = items[i] as any;
+    if (k === 'paid' || k === 'claimed') { const n = toNum(t.value); it[k] = isNaN(n) ? 0 : n; }
+    else if (k === 'date') it.date = toIso(t.value, val('.cp-dord') as DateOrder) || t.value;
+    else it[k] = t.value;
+    sum();
+  });
+  rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-del]'); if (b) { items.splice(+(b.closest('tr') as HTMLElement).dataset.i!, 1); drawRows(); sum(); } });
+  $('.cp-cur').addEventListener('input', sum);
+  $('.cp-clear').addEventListener('click', () => { items = []; ['.cp-mem', '.cp-pol', '.cp-ins'].forEach((s) => ($<HTMLInputElement>(s).value = '')); say(''); drawRows(); sum(); });
+  $('.cp-pdf').addEventListener('click', async () => {
+    try {
+      say('Building the PDF...');
+      const { buildPacket } = await import('../../lib/money/claimpdf');
+      const r = await buildPacket(items, items, { member: val('.cp-mem'), policy: val('.cp-pol'), insurer: val('.cp-ins'), currency: money() });
+      save(r.bytes, 'claim-packet.pdf', 'application/pdf');
+      say(`Saved claim-packet.pdf: ${r.pages} pages (${r.front} cover and summary, ${r.pages - r.front} receipt).`);
+    } catch (err: any) { say(err?.message ? `The PDF could not be made: ${err.message}` : 'The PDF could not be made.', true); }
+  });
+  $('.cp-csv').addEventListener('click', () => {
+    const q = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
+    const out = ['date,provider,patient,service,paid,already_claimed', ...items.map((r) => [r.date, q(r.provider), q(r.patient), q(r.service), r.paid, r.claimed].join(','))].join('\n');
+    save(new Blob([out], { type: 'text/csv' }), 'claim-receipts.csv', 'text/csv');
+  });
+</script>
