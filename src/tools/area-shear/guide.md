@@ -26,7 +26,7 @@ flow:
 
 Take a rectangle and push its top sideways, keeping the top the same height. You get a parallelogram. Did the area change? This page lets you try it on a grid of unit squares:
 
-- **Parallelogram**: drag the orange corner (or the **s** slider) to slide the top. The area stays **base × height**, even though the slanted sides get longer.
+- **Parallelogram**: drag the round handle (or the **s** slider) to slide the top. The area stays **base × height**, even though the slanted sides get longer.
 - **Cut and slide**: cut the triangle off one end and slide it to the other. The parallelogram turns into a rectangle with the same base and height.
 - **Triangle**: slide the top corner along a line parallel to the base. The area stays **½ × base × height**. Add a turned copy and two triangles make a parallelogram.
 - **Trapezium**: two parallel sides a and b. A turned copy makes a parallelogram with base a + b, so the trapezium's area is **½ × (a + b) × h**.
@@ -39,7 +39,7 @@ It follows the Class 8 maths chapter *Area*. Counting area with dots on a grid i
 
 1. Choose **Parallelogram**, **Triangle** or **Trapezium**.
 2. Set the base **b**, the height **h** and, for a trapezium, the top side **a**.
-3. Drag the orange corner sideways, or set **s** (how far along the top starts). The red dashed line is the height.
+3. Drag the round handle sideways, or set **s** (how far along the top starts). The red dashed line is the height.
 4. For a parallelogram, move **Cut and slide** to the right. For a triangle or trapezium, tick **Add a turned copy**.
 5. Read the area, the formula with your numbers, and the perimeter, which does change.
 

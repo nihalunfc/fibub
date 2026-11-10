@@ -70,6 +70,7 @@ import '../../styles/smath.css';
     fig.replaceChildren();
     const a = (2 * Math.PI) / n, c = chord(n, PX), wpx = (n / 2) * c + c / 2;
     const cx = 170, cy = 90, rx = (340 - wpx) / 2, ry = 280;
+    if (t > 0) S('circle', { cx, cy, r: PX, class: 'sm-dash' }, fig);
     for (let i = 0; i < n; i++) {
       const p = pose(i, n, PX, t, cx, cy, rx, ry), d1 = p.dir - a / 2, d2 = p.dir + a / 2;
       const x1 = p.x + PX * Math.cos(d1), y1 = p.y + PX * Math.sin(d1), x2 = p.x + PX * Math.cos(d2), y2 = p.y + PX * Math.sin(d2);
