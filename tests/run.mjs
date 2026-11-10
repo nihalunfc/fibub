@@ -3520,7 +3520,7 @@ try {
   check(await phone.isVisible('.tab-menu') && (await phone.getAttribute('.tab-menu', 'aria-expanded')) === 'true', 'phone menu: the Menu tab stays in view and shows it is open');
   check((await phone.locator('#all-tools .at-area').count()) === 4 && (await phone.locator('#all-tools .at-area[open]').count()) === 1 && await phone.isVisible('#all-tools .at-area[data-area=tools][open]'), 'phone menu: Learn, Tools, News and About sections, with the current one (Tools) open');
   check((await phone.locator('#all-tools .at-shelf').count()) === 5 && (await phone.locator('#all-tools .at-shelf[open], #all-tools .at-sj[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
-  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-sj > summary');
+  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-shelf[data-shelf=science] .at-sj > summary');
   check(await phone.isVisible('#all-tools .at-sj[open] .at-item'), 'phone menu: opening a subject lists its tools with their numbers');
   await phone.fill('.at-search', 'loan');
   await phone.waitForSelector('.at-results .ti');
