@@ -1,0 +1,183 @@
+---
+// An electric dipole in a uniform field: turn it, see the two equal and opposite forces, the torque and the
+// potential energy, and let it go to watch it swing about the field direction. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax dpt">
+  <div class="ax-card">
+    <h2>Dipole in a uniform field</h2>
+    <canvas class="ax-fig dpt-fig" aria-label="A dipole in a uniform electric field"></canvas>
+    <p class="dpt-hint">Drag the dipole round, or use the angle slider.</p>
+    <label class="dpt-sl">Angle θ between p and E: <b class="dpt-tv"></b><input type="range" class="dpt-t" min="0" max="180" step="1" value="30" aria-label="Angle in degrees" /></label>
+    <label class="dpt-sl">Charges ±q: <b class="dpt-qv"></b><input type="range" class="dpt-q" min="1" max="10" step="1" value="2" aria-label="Charge in microcoulomb" /></label>
+    <label class="dpt-sl">Separation d: <b class="dpt-dv"></b><input type="range" class="dpt-d" min="1" max="5" step="1" value="2" aria-label="Separation in cm" /></label>
+    <label class="dpt-sl">Field E: <b class="dpt-ev"></b><input type="range" class="dpt-e" min="1" max="10" step="1" value="5" aria-label="Field in units of 10 000 newton per coulomb" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small dpt-go">Let it go</button>
+      <button type="button" class="btn secondary small dpt-stop">Stop</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <p class="ax-big dpt-big" aria-live="polite"></p>
+    <p class="dpt-formula"></p>
+    <dl class="ax-facts dpt-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Torque and energy against angle</h2>
+    <canvas class="ax-fig dpt-graph" aria-label="Torque and potential energy against angle"></canvas>
+    <div class="ax-legend"><span><i class="dpt-kt"></i>torque τ = pE sin θ</span><span><i class="dpt-ku"></i>energy U = −pE cos θ</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dpt-try">
+      <li>Turn the dipole to 90°: the torque is largest, and the energy is zero.</li>
+      <li>At 0° there is no torque and the energy is lowest: a stable balance. Let it go from 30° and it swings about 0°.</li>
+      <li>At 180° there is no torque either, but the smallest nudge tips it over: an unstable balance.</li>
+      <li>Watch the two force arrows: always equal and opposite, so the dipole turns but does not move along.</li>
+      <li>Double q or d: p doubles, and so do the torque and the energy at every angle.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="dpt-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dpt .dpt-fig { touch-action: none; cursor: grab; border: 1px solid var(--line); max-width: 520px; margin: 0 auto; }
+  .dpt .dpt-graph { max-width: 520px; margin: 0 auto; }
+  .dpt .dpt-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .dpt input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dpt .dpt-hint { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .dpt-kt { background: var(--accent); }
+  .dpt-ku { background: var(--warn); }
+  .dpt-big { font-size: clamp(18px, 4.6vw, 24px); margin: 0; }
+  .dpt-formula { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .dpt-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .dpt .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .dpt .eq-q p { margin: 0 0 6px; }
+  .dpt .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .dpt .eq-ok { color: var(--good); font-weight: 600; }
+  .dpt .eq-no { color: var(--bad); }
+  .dpt .eq-work { margin-top: 4px; font-size: 14px; }
+  .dpt .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .dpt .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { dipole, swingStep, questions } from '../../lib/sci/dipole-torque';
+  import { pagePalette } from '../../lib/report';
+  import { setup, arrow, sci3, fact, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.dpt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.dpt-fig'), graph = q<HTMLCanvasElement>('.dpt-graph'), tIn = q<HTMLInputElement>('.dpt-t');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let theta = 30, w = 0, swinging = false, last = 0, drag = false;
+  const vals = () => {
+    const qc = +q<HTMLInputElement>('.dpt-q').value, d = +q<HTMLInputElement>('.dpt-d').value, E = +q<HTMLInputElement>('.dpt-e').value * 1e4;
+    const s = dipole(qc * 1e-6, d / 100, E, theta), z = (v: number) => (Math.abs(v) < 1e-9 * s.tmax ? 0 : v);
+    return { qc, d, E, s: { ...s, torque: z(s.torque), U: z(s.U) } };
+  };
+  const W = 360, H = 230, CX = 180, CY = 115;
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), { d, s } = vals();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Uniform field: evenly spaced lines left to right.
+    c.globalAlpha = 0.6;
+    for (let y = 20; y < H; y += 32) { arrow(c, 8, y, W - 8, y, pal.muted, 1.2); }
+    c.globalAlpha = 1;
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('E →', W - 12, 14);
+    const L = 40 + d * 16, th = (theta * Math.PI) / 180, ux = Math.cos(th), uy = -Math.sin(th);
+    const px = CX + (L / 2) * ux, py = CY + (L / 2) * uy, nx = CX - (L / 2) * ux, ny = CY - (L / 2) * uy;
+    // Angle arc from E (to the right) round to p.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.2; c.beginPath(); c.arc(CX, CY, 26, 0, -th, true); c.stroke();
+    c.fillStyle = pal.ink; c.textAlign = 'left'; c.fillText('θ', CX + 30 * Math.cos(th / 2), CY - 30 * Math.sin(th / 2) + 4);
+    c.strokeStyle = pal.ink; c.lineWidth = 4; c.beginPath(); c.moveTo(nx, ny); c.lineTo(px, py); c.stroke();
+    // Forces: +qE to the right on the + end, −qE to the left on the − end (lengths to scale with each other).
+    const fl = 14 + 44 * Math.min(1, s.F);
+    arrow(c, px, py, px + fl, py, pal.bad, 3, 'qE');
+    arrow(c, nx, ny, nx - fl, ny, pal.accent, 3, 'qE');
+    for (const [x, y, sign, col] of [[px, py, '+', pal.bad], [nx, ny, '−', pal.accent]] as const) {
+      c.fillStyle = col; c.beginPath(); c.arc(x, y, 12, 0, Math.PI * 2); c.fill();
+      c.fillStyle = pal.bg; c.font = '700 15px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(sign, x, y + 5);
+    }
+    // Torque: curved arrow turning p towards E.
+    if (Math.abs(s.torque) > 1e-12) {
+      const rr = L / 2 + 22, a1 = -th + 0.7, tx = CX + rr * Math.cos(a1), ty = CY + rr * Math.sin(a1);
+      c.strokeStyle = pal.good; c.lineWidth = 2.5; c.beginPath(); c.arc(CX, CY, rr, -th + 0.1, a1 - 0.08); c.stroke();
+      arrow(c, tx + 10 * Math.sin(a1), ty - 10 * Math.cos(a1), tx, ty, pal.good, 2.5);
+      c.fillStyle = pal.good;
+      c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('τ', CX + (L / 2 + 36) * Math.cos(-th + 0.45), CY + (L / 2 + 36) * Math.sin(-th + 0.45) + 4);
+    }
+    fig.setAttribute('aria-label', `Dipole at ${Math.round(theta)} degrees to the field`);
+  }
+
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, 360, 190), { s } = vals();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 190);
+    const X0 = 40, X1 = 350, YM = 90, A = 70, X = (t: number) => X0 + (t / 180) * (X1 - X0);
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, YM - A - 6); c.lineTo(X0, YM + A + 6); c.moveTo(X0, YM); c.lineTo(X1, YM); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (const t of [0, 45, 90, 135, 180]) c.fillText(`${t}°`, X(t), YM + A + 20);
+    c.textAlign = 'right'; c.fillText('+pE', X0 - 4, YM - A + 4); c.fillText('−pE', X0 - 4, YM + A + 4); c.fillText('0', X0 - 4, YM + 4);
+    for (const [f, col] of [[(t: number) => Math.sin((t * Math.PI) / 180), pal.accent], [(t: number) => -Math.cos((t * Math.PI) / 180), pal.warn]] as const) {
+      c.strokeStyle = col; c.lineWidth = 2; c.beginPath();
+      for (let t = 0; t <= 180; t += 2) { const y = YM - A * f(t); t ? c.lineTo(X(t), y) : c.moveTo(X(t), y); }
+      c.stroke();
+      c.fillStyle = col; c.beginPath(); c.arc(X(Math.max(0, Math.min(180, theta))), YM - A * f(theta), 5, 0, Math.PI * 2); c.fill();
+    }
+    graph.setAttribute('aria-label', `Torque ${sci3(s.torque)} newton metre and energy ${sci3(s.U)} joule at ${Math.round(theta)} degrees`);
+  }
+
+  function texts() {
+    const { qc, d, E, s } = vals(), t = Math.round(theta);
+    q('.dpt-tv').textContent = `${t}°`; q('.dpt-qv').textContent = `${qc} µC`; q('.dpt-dv').textContent = `${d} cm`; q('.dpt-ev').textContent = `${sci3(E)} N/C`;
+    q('.dpt-big').textContent = `τ = ${sci3(s.torque)} N m, U = ${sci3(s.U)} J`;
+    q('.dpt-formula').textContent = `p = q d = ${qc} × 10⁻⁶ × ${d / 100} = ${sci3(s.p)} C m. τ = p E sin θ = ${sci3(s.p)} × ${sci3(E)} × sin ${t}° = ${sci3(s.torque)} N m. U = −p E cos θ = ${sci3(s.U)} J.`;
+    q('.dpt-facts').replaceChildren(
+      fact('Dipole moment p', `${sci3(s.p)} C m`, 'points from − to +'),
+      fact('Force on each charge', `${sci3(s.F)} N`, 'equal and opposite: net force 0'),
+      fact('Largest torque', `${sci3(s.tmax)} N m`, 'at 90°'),
+      fact('Work to turn from 0°', `${sci3(s.W0)} J`, 'W = pE (1 − cos θ)'),
+      fact('Balance', t === 0 ? 'stable' : t === 180 ? 'unstable' : 'none', t === 0 || t === 180 ? 'no torque here' : 'the torque turns p towards E'),
+    );
+  }
+  const all = () => { texts(); draw(); drawGraph(); };
+  const setTheta = (t: number) => { theta = Math.max(0, Math.min(180, t)); tIn.value = String(Math.round(theta)); all(); };
+
+  function tick(now: number) {
+    const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
+    if (swinging) {
+      // Slowed down so the swing is easy to follow: one small swing takes about two seconds.
+      const [th, nw] = swingStep((theta * Math.PI) / 180, w, 10, 0.35, dt);
+      w = nw; let deg = (th * 180) / Math.PI;
+      if (deg < 0) { deg = -deg; w = -w; } // show the mirror image: θ is measured either side of E
+      theta = Math.min(180, deg); tIn.value = String(Math.round(theta)); all();
+      if (Math.abs(w) < 0.01 && theta < 0.5) { swinging = false; theta = 0; all(); }
+    }
+    requestAnimationFrame(tick);
+  }
+  tIn.addEventListener('input', () => { swinging = false; setTheta(+tIn.value); });
+  for (const s of ['.dpt-q', '.dpt-d', '.dpt-e']) q(s).addEventListener('input', all);
+  q('.dpt-go').addEventListener('click', () => {
+    if (reduce) { setTheta(0); return; }
+    if (theta >= 179.5) theta = 179; // nudge it off the unstable balance
+    w = 0; swinging = true;
+  });
+  q('.dpt-stop').addEventListener('click', () => { swinging = false; w = 0; all(); });
+  const angleAt = (e: PointerEvent) => { const r = fig.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * W - CX, y = CY - ((e.clientY - r.top) / r.height) * H; return Math.abs((Math.atan2(y, x) * 180) / Math.PI); };
+  fig.addEventListener('pointerdown', (e) => { drag = true; swinging = false; fig.setPointerCapture(e.pointerId); setTheta(angleAt(e)); e.preventDefault(); });
+  fig.addEventListener('pointermove', (e) => { if (drag) setTheta(angleAt(e)); });
+  const up = () => { drag = false; };
+  fig.addEventListener('pointerup', up); fig.addEventListener('pointercancel', up);
+  onTheme(all);
+  all();
+  quiz(q('.dpt-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>

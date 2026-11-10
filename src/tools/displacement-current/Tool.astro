@@ -1,0 +1,154 @@
+---
+// Charging capacitor and displacement current: a capacitor charges through a resistor; between its plates the
+// growing electric field acts as a current (Maxwell's displacement current) equal to the current in the wires.
+import '../../styles/astro.css';
+---
+<div class="ax dsc">
+  <div class="ax-card">
+    <h2>Charging a capacitor</h2>
+    <canvas class="ax-fig dsc-fig" aria-label="A capacitor charging through a resistor, with a loop for Ampère's law"></canvas>
+    <div class="ax-legend"><span><i class="dsc-ki"></i>current in the wire</span><span><i class="dsc-ke"></i>electric field between the plates</span><span><i class="dsc-kl"></i>loop and its surface</span></div>
+    <span class="ax-seg dsc-surf" role="group" aria-label="Surface bounded by the loop"><button type="button" data-v="flat" aria-pressed="true">Flat surface (cut by the wire)</button><button type="button" data-v="bag" aria-pressed="false">Bag surface (through the gap)</button></span>
+    <label class="dsc-sl">Time since the switch closed: <b class="dsc-tv"></b><input type="range" class="dsc-t" min="0" max="500" step="1" value="100" aria-label="Time in hundredths of the time constant" /></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dsc-play">Play</button></div>
+    <p class="ax-big dsc-big" aria-live="polite"></p>
+    <p class="dsc-text"></p>
+    <dl class="ax-facts dsc-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Set up the circuit</h2>
+    <label class="dsc-sl">Battery V: <b class="dsc-vv"></b><input type="range" class="dsc-v" min="1" max="24" step="1" value="12" aria-label="Battery voltage" /></label>
+    <label class="dsc-sl">Resistance R: <b class="dsc-rv"></b><input type="range" class="dsc-r" min="1" max="100" step="1" value="10" aria-label="Resistance in megohm" /></label>
+    <label class="dsc-sl">Plate radius a: <b class="dsc-av"></b><input type="range" class="dsc-a" min="5" max="20" step="1" value="10" aria-label="Plate radius in cm" /></label>
+    <label class="dsc-sl">Gap d: <b class="dsc-dv"></b><input type="range" class="dsc-d" min="1" max="5" step="1" value="1" aria-label="Gap in mm" /></label>
+    <label class="dsc-sl">Loop radius r: <b class="dsc-lv"></b><input type="range" class="dsc-l" min="1" max="30" step="1" value="5" aria-label="Loop radius in cm" /></label>
+    <canvas class="ax-fig dsc-graph" aria-label="Current and displacement current against time"></canvas>
+    <div class="ax-legend"><span><i class="dsc-ki"></i>conduction current I</span><span><i class="dsc-kd"></i>displacement current I_d (dashed)</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dsc-try">
+      <li>Switch between the flat surface and the bag: the current through each is different in kind but the same in size, so Ampère's law gives one answer.</li>
+      <li>Slide the time on: the current dies away as the capacitor fills, and so does the displacement current. When the field stops changing, I_d = 0.</li>
+      <li>Make the loop bigger than the plates: B falls as 1/r, just like round a wire.</li>
+      <li>Look at the size of B: about 10⁻¹² T. No wonder nobody measured it before Maxwell predicted it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="dsc-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dsc .dsc-fig, .dsc .dsc-graph { max-width: 560px; margin: 0 auto 4px; }
+  .dsc .dsc-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .dsc input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dsc .ax-seg { margin-top: 10px; }
+  .dsc .ax-seg button { min-height: 40px; }
+  .dsc-ki { background: var(--good); }
+  .dsc-ke { background: var(--accent); }
+  .dsc-kl { background: var(--warn); }
+  .dsc-kd { background: var(--bad); }
+  .dsc-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .dsc-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .dsc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .dsc .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .dsc .eq-q p { margin: 0 0 6px; }
+  .dsc .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .dsc .eq-ok { color: var(--good); font-weight: 600; }
+  .dsc .eq-no { color: var(--bad); }
+  .dsc .eq-work { margin-top: 4px; font-size: 14px; }
+  .dsc .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .dsc .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { at, bField, circuit, questions } from '../../lib/sci/displacement-current';
+  import { pagePalette } from '../../lib/report';
+  import { setup, arrow, sci3, si, fact, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.dsc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.dsc-fig'), graph = q<HTMLCanvasElement>('.dsc-graph'), tIn = q<HTMLInputElement>('.dsc-t');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let surf: 'flat' | 'bag' = 'flat', playing = false, last = 0;
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+  const p = () => ({ V: val('.dsc-v'), R: val('.dsc-r') * 1e6, a: val('.dsc-a') / 100, d: val('.dsc-d') / 1000, r: val('.dsc-l') / 100, k: val('.dsc-t') / 100 });
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 220), s = p(), cc = circuit(s.V, s.R, s.a, s.d), st = at(s.V, s.R, s.a, s.d, s.k * cc.tau);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 220);
+    const frac = st.q / cc.Q, cur = st.I / cc.I0, px1 = 214, px2 = 236, mid = 100, ph = 90;
+    // Wires: battery (left), resistor (top), plates (right).
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath();
+    c.moveTo(40, mid); c.lineTo(40, 30); c.lineTo(120, 30); c.moveTo(170, 30); c.lineTo(px1 - 30, 30); c.lineTo(px1 - 30, mid); c.lineTo(px1, mid);
+    c.moveTo(px2, mid); c.lineTo(px2 + 70, mid); c.lineTo(px2 + 70, 190); c.lineTo(40, 190); c.lineTo(40, mid + 14); c.stroke();
+    c.lineWidth = 3; c.beginPath(); c.moveTo(28, mid); c.lineTo(52, mid); c.stroke(); c.lineWidth = 5; c.beginPath(); c.moveTo(34, mid + 12); c.lineTo(46, mid + 12); c.stroke();
+    c.lineWidth = 2; c.strokeRect(120, 22, 50, 16);
+    c.fillStyle = pal.ink; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`R = ${si(s.R, 'Ω')}`, 145, 54); c.fillText(`${s.V} V`, 40, mid + 34);
+    // Plates, their charges, and the field between them.
+    c.lineWidth = 5; c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(px1, mid - ph / 2); c.lineTo(px1, mid + ph / 2); c.moveTo(px2, mid - ph / 2); c.lineTo(px2, mid + ph / 2); c.stroke();
+    const n = Math.round(frac * 7);
+    c.font = '700 11px system-ui, sans-serif';
+    for (let i = 0; i < n; i++) { const y = mid - ph / 2 + 8 + (i * (ph - 16)) / 6; c.fillStyle = pal.bad; c.fillText('+', px1 - 9, y + 4); c.fillStyle = pal.accent; c.fillText('−', px2 + 9, y + 4); }
+    c.globalAlpha = 0.3 + 0.7 * frac;
+    for (let i = 0; i < 4; i++) { const y = mid - ph / 2 + 14 + (i * (ph - 28)) / 3; arrow(c, px1 + 3, y, px2 - 3, y, pal.accent, 1.5); }
+    c.globalAlpha = 1;
+    // Current arrows in the wire, fading as the current dies away.
+    if (cur > 0.01) { c.globalAlpha = Math.max(0.25, cur); arrow(c, 70, 30, 105, 30, pal.good, 3, 'I'); arrow(c, px1 - 30, 60, px1 - 30, 85, pal.good, 3); arrow(c, px2 + 70, 120, px2 + 70, 150, pal.good, 3); c.globalAlpha = 1; }
+    // The Ampère loop (seen edge-on as an ellipse) round the wire into the left plate, and its surface.
+    const lx = px1 - 30, lr = Math.min(40, 10 + s.r * 120);
+    c.strokeStyle = pal.warn; c.lineWidth = 2.5; c.beginPath(); c.ellipse(lx, mid, 8, lr, 0, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = pal.warn; c.globalAlpha = 0.18;
+    if (surf === 'flat') { c.beginPath(); c.ellipse(lx, mid, 8, lr, 0, 0, Math.PI * 2); c.fill(); }
+    else { c.beginPath(); c.moveTo(lx, mid - lr); c.bezierCurveTo(px1 + 30, mid - lr - 10, px1 + 30, mid + lr + 10, lx, mid + lr); c.closePath(); c.fill(); c.globalAlpha = 0.8; c.strokeStyle = pal.warn; c.setLineDash([4, 3]); c.lineWidth = 1.5; c.beginPath(); c.moveTo(lx, mid - lr); c.bezierCurveTo(px1 + 30, mid - lr - 10, px1 + 30, mid + lr + 10, lx, mid + lr); c.stroke(); c.setLineDash([]); }
+    c.globalAlpha = 1;
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(surf === 'flat' ? 'the wire crosses this surface' : 'no wire crosses this surface', 180, 214);
+  }
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, 360, 160), s = p();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 160);
+    const X0 = 40, X1 = 350, Y0 = 130, Y1 = 12, X = (k: number) => X0 + (k / 5) * (X1 - X0), Y = (f: number) => Y0 - f * (Y0 - Y1);
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Y1); c.lineTo(X0, Y0); c.lineTo(X1, Y0); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let k = 0; k <= 5; k++) c.fillText(`${k}τ`, X(k), Y0 + 14); c.fillText('time', (X0 + X1) / 2, 158);
+    c.textAlign = 'right'; c.fillText(si(s.V / s.R, 'A'), X0 - 3, Y1 + 8);
+    for (const [col, dash, w] of [[pal.good, [], 3], [pal.bad, [6, 5], 2]] as const) { c.strokeStyle = col; c.lineWidth = w; c.setLineDash([...dash]); c.beginPath(); for (let i = 0; i <= 200; i++) { const k = (5 * i) / 200; i ? c.lineTo(X(k), Y(Math.exp(-k))) : c.moveTo(X(k), Y(Math.exp(-k))); } c.stroke(); }
+    c.setLineDash([]); c.fillStyle = pal.ink; c.beginPath(); c.arc(X(s.k), Y(Math.exp(-s.k)), 5, 0, Math.PI * 2); c.fill();
+  }
+  function texts() {
+    const s = p(), cc = circuit(s.V, s.R, s.a, s.d), st = at(s.V, s.R, s.a, s.d, s.k * cc.tau), B = bField(st.I, s.r, s.a, true);
+    q('.dsc-vv').textContent = `${s.V} V`; q('.dsc-rv').textContent = si(s.R, 'Ω'); q('.dsc-av').textContent = `${Math.round(s.a * 100)} cm`; q('.dsc-dv').textContent = `${Math.round(s.d * 1000)} mm`; q('.dsc-lv').textContent = `${Math.round(s.r * 100)} cm`;
+    q('.dsc-tv').textContent = `${sci3(s.k)} τ = ${si(s.k * cc.tau, 's')}`;
+    q('.dsc-big').textContent = `I = ${si(st.I, 'A')} in the wire, I_d = ${si(st.Id, 'A')} in the gap`;
+    q('.dsc-text').textContent = (surf === 'flat'
+      ? `The wire crosses the flat surface, carrying a conduction current I = ${si(st.I, 'A')}. Ampère's law gives B × 2πr = µ₀I.`
+      : `No charge crosses the bag surface: it passes between the plates. But the field there is growing at ${sci3(st.dEdt)} V/m per second, so ε₀ A dE/dt = ${si(st.Id, 'A')} flows through it as displacement current. The Ampère–Maxwell law gives B × 2πr = µ₀I_d, the same answer.`)
+      + ` On a loop of radius ${Math.round(s.r * 100)} cm${s.r < s.a ? ' (inside the plate edge, so between the plates only the part of I_d inside the loop, I_d r²/a², would count)' : ''}, the field round the wire is B = ${sci3(bField(st.I, s.r, s.a, false))} T.`;
+    q('.dsc-facts').replaceChildren(
+      fact('Capacitance C = ε₀πa²/d', si(cc.C, 'F')), fact('Time constant τ = RC', si(cc.tau, 's')), fact('Charge on the plates', si(st.q, 'C'), `${sci3((100 * st.q) / cc.Q)}% full`),
+      fact('Field between the plates', `${sci3(st.E)} V/m`), fact('B between the plates at r', `${sci3(B)} T`, s.r < s.a ? 'µ₀ I_d r / (2πa²)' : 'µ₀ I_d / (2πr)'),
+    );
+  }
+  const all = () => { texts(); draw(); drawGraph(); };
+  function tick(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (playing) { let k = val('.dsc-t') + dt * 80; if (k >= 500) { k = 500; playing = false; q('.dsc-play').textContent = 'Play'; } tIn.value = String(Math.round(k)); all(); }
+    requestAnimationFrame(tick);
+  }
+  for (const s of ['.dsc-t', '.dsc-v', '.dsc-r', '.dsc-a', '.dsc-d', '.dsc-l']) q(s).addEventListener('input', all);
+  seg(q('.dsc-surf'), (v) => { surf = v as 'flat' | 'bag'; all(); });
+  q('.dsc-play').addEventListener('click', () => {
+    if (reduce) { tIn.value = '500'; all(); return; }
+    if (!playing && val('.dsc-t') >= 500) tIn.value = '0';
+    playing = !playing; q('.dsc-play').textContent = playing ? 'Pause' : 'Play';
+  });
+  onTheme(all);
+  all();
+  quiz(q('.dsc-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>

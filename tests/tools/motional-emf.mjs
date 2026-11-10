@@ -1,0 +1,30 @@
+// #1414 Rod on rails (motional emf)
+export const path = '/learn/motional-emf/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/motional-emf/`); await page.waitForTimeout(700);
+  const R = '.mem ', txt = (s) => page.textContent(R + s);
+  const set = (s, v) => page.$eval(R + s, (e, v) => { e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+  check((await txt('.mem-big')) === 'ε = Bℓv = 0.5 × 0.5 × 4 = 1 V', `motional: example emf (${await txt('.mem-big')})`);
+  check((await txt('.mem-text')).includes('I = ε/R = 0.5 A') && (await txt('.mem-text')).includes('F = BIℓ = 0.125 N'), `motional: current and force (${await txt('.mem-text')})`);
+  check((await txt('.mem-facts')).includes('Power to keep it moving0.5 W') && (await txt('.mem-facts')).includes('Heat in R0.5 W'), 'motional: power');
+  const inked = (s) => page.$eval(R + s, (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60 || Math.abs(d[i + 2] - d[2]) > 60) n++; return n; });
+  check((await inked('.mem-fig')) > 1500 && (await inked('.mem-graph')) > 300, 'motional: drawings');
+  await set('.mem-v', 8); await page.waitForTimeout(80);
+  check((await txt('.mem-big')) === 'ε = Bℓv = 0.5 × 0.5 × 8 = 2 V' && (await txt('.mem-facts')).includes('Power to keep it moving2 W'), 'motional: double speed, four times the power');
+  await set('.mem-v', 4);
+  await page.click(R + '.mem-mode button[data-v=coast]'); await page.waitForTimeout(80);
+  check((await txt('.mem-gtext')).includes('τ = mR/(B²ℓ²) = 6.4 s') && (await txt('.mem-gtext')).includes('½mv₀² = 1.6 J') && !(await page.$eval(R + '.mem-mwrap', (e) => e.hidden)), `motional: coast (${await txt('.mem-gtext')})`);
+  await page.click(R + '.mem-go'); await page.waitForTimeout(1200); await page.click(R + '.mem-go');
+  const v = parseFloat((await txt('.mem-facts')).match(/Speed now([\d.]+)/)[1]);
+  check(v < 4 && v > 3, `motional: the rod slows down (${v} m/s)`);
+  await page.click(R + '.mem-reset');
+  check((await txt('.mem-facts')).includes('Speed now4 m/s'), 'motional: reset');
+  await page.click(R + '.mem-mode button[data-v=pull]'); await page.waitForTimeout(80);
+  check((await txt('.mem-gtext')).includes('= 16 m/s') && (await page.$eval(R + '.mem-vwrap', (e) => e.hidden)), `motional: pull top speed (${await txt('.mem-gtext')})`);
+  await set('.mem-r', 4); await page.waitForTimeout(80);
+  check((await txt('.mem-gtext')).includes('= 32 m/s') && (await txt('.mem-rv')) === '4 Ω', `motional: bigger R, higher top speed (${await txt('.mem-gtext')})`);
+  check((await page.$$(R + '.eq-q')).length === 4, 'motional: four practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [l, v1, B] = q1.match(/A ([\d.]+) m rod moves at ([\d.]+) m\/s across a ([\d.]+) T/).slice(1).map(Number);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(B * l * v1)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'motional: right answer accepted');
+};

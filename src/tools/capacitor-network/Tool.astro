@@ -1,0 +1,182 @@
+---
+// Capacitor network reducer: pick a network, set each capacitor and the battery, then reduce series and parallel
+// groups one step at a time to a single capacitor and share the charge back out. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax cnw">
+  <div class="ax-card">
+    <h2>Capacitor network</h2>
+    <div class="ax-row">
+      <label>Network <select class="cnw-preset" style="width:auto">
+        <option value="s2">Two in series</option>
+        <option value="p2">Two in parallel</option>
+        <option value="s3">Three in series</option>
+        <option value="sp" selected>One in series with a parallel pair</option>
+        <option value="pp">Two parallel pairs in series</option>
+        <option value="lad">A small ladder</option>
+      </select></label>
+    </div>
+    <canvas class="ax-fig cnw-fig" aria-label="Circuit diagram of the capacitor network"></canvas>
+    <div class="cnw-caps"></div>
+    <label class="cnw-sl">Battery: <b class="cnw-vv"></b><input type="range" class="cnw-v" min="1" max="24" step="1" value="12" aria-label="Battery voltage" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cnw-prev">Back</button>
+      <button type="button" class="btn small cnw-next">Next step</button>
+      <button type="button" class="btn secondary small cnw-allb">Show all steps</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Step by step</h2>
+    <ol class="cnw-steps"></ol>
+    <p class="ax-big cnw-big" aria-live="polite"></p>
+    <p class="cnw-qtext"></p>
+    <div class="cnw-tablewrap"><table class="cnw-table"><thead><tr><th>Capacitor</th><th>C (µF)</th><th>Charge (µC)</th><th>Voltage (V)</th><th>Energy (µJ)</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cnw-try">
+      <li>Two in series: the total is smaller than either capacitor. Two in parallel: it is the sum.</li>
+      <li>In series every capacitor carries the same charge; the smallest one takes the biggest voltage.</li>
+      <li>In parallel every capacitor has the same voltage; the biggest one holds the most charge.</li>
+      <li>Add up the energies in the table: they equal ½ C V² for the whole network.</li>
+      <li>In the ladder, step through and watch the innermost group go first, just as you would on paper.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cnw-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cnw .cnw-fig { max-width: 520px; margin: 10px auto 0; }
+  .cnw .cnw-caps { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; }
+  .cnw .cnw-caps label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; }
+  .cnw .cnw-caps select { width: auto; min-height: 40px; }
+  .cnw .cnw-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .cnw input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cnw-steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; overflow-wrap: anywhere; }
+  .cnw-steps li.cnw-now { font-weight: 700; }
+  .cnw-steps li.cnw-later { color: var(--muted); }
+  .cnw-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .cnw-qtext { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .cnw-tablewrap { overflow-x: auto; margin-top: 10px; }
+  .cnw-table { border-collapse: collapse; font-size: 14px; width: 100%; font-variant-numeric: tabular-nums; }
+  .cnw-table th, .cnw-table td { border-bottom: 1px solid var(--line); padding: 6px 6px; text-align: right; }
+  .cnw-table th:first-child, .cnw-table td:first-child { text-align: left; }
+  .cnw-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .cnw .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .cnw .eq-q p { margin: 0 0 6px; }
+  .cnw .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .cnw .eq-ok { color: var(--good); font-weight: 600; }
+  .cnw .eq-no { color: var(--bad); }
+  .cnw .eq-work { margin-top: 4px; font-size: 14px; }
+  .cnw .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .cnw .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { ceq, steps, share, leaves, questions, type Net } from '../../lib/sci/capacitor-network';
+  import { n3 } from '../../lib/sci/em-p34';
+  import { pagePalette } from '../../lib/report';
+  import { setup, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.cnw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.cnw-fig');
+  const C = (id: number, c: number): Net => ({ kind: 'C', id, c });
+  const S = (...kids: Net[]): Net => ({ kind: 'S', kids }), P = (...kids: Net[]): Net => ({ kind: 'P', kids });
+  const PRESETS: Record<string, () => Net> = {
+    s2: () => S(C(1, 2), C(2, 3)),
+    p2: () => P(C(1, 2), C(2, 3)),
+    s3: () => S(C(1, 2), C(2, 3), C(3, 6)),
+    sp: () => S(C(1, 4), P(C(2, 2), C(3, 6))),
+    pp: () => S(P(C(1, 1), C(2, 3)), P(C(3, 2), C(4, 2))),
+    lad: () => S(P(S(C(1, 6), C(2, 3)), C(3, 2)), C(4, 4)),
+  };
+  const VALUES = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+  let net: Net = PRESETS.sp(), at = 0; // at = how many reduction steps are shown
+  const caps = (n: Net): Extract<Net, { kind: 'C' }>[] => (n.kind === 'C' ? [n] : n.kids.flatMap(caps));
+  const groups = (n: Net): Extract<Net, { kind: 'S' | 'P' }>[] => (n.kind === 'C' ? [] : [...n.kids.flatMap(groups), n]);
+  const fmt = (x: number) => n3(x);
+
+  // Layout: each part is a box with a wire entering at the middle of its left side and leaving on the right.
+  type Box = { w: number; h: number };
+  const size = (n: Net): Box => {
+    if (n.kind === 'C') return { w: 60, h: 56 };
+    const b = n.kids.map(size);
+    return n.kind === 'S' ? { w: b.reduce((s, x) => s + x.w, 0), h: Math.max(...b.map((x) => x.h)) } : { w: Math.max(...b.map((x) => x.w)) + 28, h: b.reduce((s, x) => s + x.h, 0) };
+  };
+  function drawNet(c: CanvasRenderingContext2D, n: Net, x: number, y: number, hi: Set<number>, pal: ReturnType<typeof pagePalette>) {
+    const b = size(n), my = y + b.h / 2;
+    if (n.kind === 'C') {
+      const cx = x + b.w / 2, on = hi.has(n.id);
+      c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(x, my); c.lineTo(cx - 5, my); c.moveTo(cx + 5, my); c.lineTo(x + b.w, my); c.stroke();
+      c.strokeStyle = on ? pal.accent : pal.ink; c.lineWidth = on ? 4 : 3; c.beginPath(); c.moveTo(cx - 5, my - 12); c.lineTo(cx - 5, my + 12); c.moveTo(cx + 5, my - 12); c.lineTo(cx + 5, my + 12); c.stroke();
+      c.fillStyle = on ? pal.accent : pal.ink; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`C${'₀₁₂₃₄₅₆₇₈₉'[n.id]}`, cx, my - 17);
+      c.font = '11px system-ui, sans-serif'; c.fillStyle = pal.muted; c.fillText(`${n.c} µF`, cx, my + 25);
+      return;
+    }
+    if (n.kind === 'S') { let xx = x; for (const k of n.kids) { const kb = size(k); drawNet(c, k, xx, my - kb.h / 2, hi, pal); xx += kb.w; } return; }
+    const inner = b.w - 28; let yy = y; const mids: number[] = [];
+    for (const k of n.kids) {
+      const kb = size(k), kx = x + 14 + (inner - kb.w) / 2, km = yy + kb.h / 2; mids.push(km);
+      c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 6, km); c.lineTo(kx, km); c.moveTo(kx + kb.w, km); c.lineTo(x + b.w - 6, km); c.stroke();
+      drawNet(c, k, kx, yy, hi, pal); yy += kb.h;
+    }
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath();
+    c.moveTo(x + 6, mids[0]); c.lineTo(x + 6, mids[mids.length - 1]); c.moveTo(x + b.w - 6, mids[0]); c.lineTo(x + b.w - 6, mids[mids.length - 1]);
+    c.moveTo(x, my); c.lineTo(x + 6, my); c.moveTo(x + b.w - 6, my); c.lineTo(x + b.w, my); c.stroke();
+  }
+  function draw() {
+    const pal = pagePalette(), b = size(net), W = 360, k = Math.min(1, 300 / b.w), H = Math.round(b.h * k + 90), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const st = steps(net), g = groups(net), now = at > 0 ? g.find((x) => x.gid === at - 1) : undefined;
+    const hi = new Set(now ? leaves(now) : []);
+    const x0 = (W - b.w * k) / 2, y0 = 14;
+    c.save(); c.translate(x0, y0); c.scale(k, k); drawNet(c, net, 0, 0, hi, pal); c.restore();
+    // The battery loop underneath.
+    const my = y0 + (b.h * k) / 2, by = H - 30, xl = x0 - 14, xr = x0 + b.w * k + 14;
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath();
+    c.moveTo(x0, my); c.lineTo(xl, my); c.lineTo(xl, by); c.lineTo(W / 2 - 8, by); c.moveTo(W / 2 + 8, by); c.lineTo(xr, by); c.lineTo(xr, my); c.lineTo(x0 + b.w * k, my); c.stroke();
+    c.lineWidth = 3; c.beginPath(); c.moveTo(W / 2 - 8, by - 14); c.lineTo(W / 2 - 8, by + 14); c.stroke();
+    c.lineWidth = 5; c.beginPath(); c.moveTo(W / 2 + 8, by - 8); c.lineTo(W / 2 + 8, by + 8); c.stroke();
+    c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`${q<HTMLInputElement>('.cnw-v').value} V`, W / 2, by + 26);
+    fig.setAttribute('aria-label', `Capacitor network; step ${at} of ${st.length}`);
+  }
+  function texts() {
+    const st = steps(net), V = +q<HTMLInputElement>('.cnw-v').value, Ce = ceq(net), sh = share(net, V);
+    q('.cnw-vv').textContent = `${V} V`;
+    q('.cnw-steps').replaceChildren(...st.map((s, i) => { const li = document.createElement('li'); li.textContent = s.text; li.className = i === at - 1 ? 'cnw-now' : i >= at ? 'cnw-later' : ''; li.hidden = i >= at; return li; }));
+    const done = at >= st.length;
+    q('.cnw-big').textContent = done ? `Equivalent capacitance ${fmt(Ce)} µF` : `Step ${at} of ${st.length}`;
+    q('.cnw-qtext').textContent = done
+      ? `The battery sees one ${fmt(Ce)} µF capacitor, so it supplies Q = C V = ${fmt(Ce)} × ${V} = ${fmt(Ce * V)} µC and stores U = ½ C V² = ${fmt(0.5 * Ce * V * V)} µJ. Working back out, each capacitor gets:`
+      : 'Press Next step to reduce the next group. The group being reduced is drawn in colour.';
+    const body = q('.cnw-table tbody');
+    body.replaceChildren(...caps(net).map((cp) => { const r = sh[cp.id], tr = document.createElement('tr'); for (const v of [`C${'₀₁₂₃₄₅₆₇₈₉'[cp.id]}`, fmt(r.c), fmt(r.Q), fmt(r.V), fmt(r.U)]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } return tr; }));
+    q('.cnw-table').hidden = !done;
+    q<HTMLButtonElement>('.cnw-prev').disabled = at === 0; q<HTMLButtonElement>('.cnw-next').disabled = done; q<HTMLButtonElement>('.cnw-allb').disabled = done;
+  }
+  function capsUi() {
+    q('.cnw-caps').replaceChildren(...caps(net).map((cp) => {
+      const l = document.createElement('label'); l.textContent = `C${'₀₁₂₃₄₅₆₇₈₉'[cp.id]}`;
+      const s = document.createElement('select'); s.className = `cnw-c${cp.id}`; s.setAttribute('aria-label', `Capacitor ${cp.id} in microfarad`);
+      for (const v of VALUES) { const o = document.createElement('option'); o.value = String(v); o.textContent = `${v} µF`; o.selected = v === cp.c; s.append(o); }
+      s.addEventListener('change', () => { cp.c = +s.value; all(); });
+      l.append(s); return l;
+    }));
+  }
+  const all = () => { texts(); draw(); };
+  q('.cnw-preset').addEventListener('change', () => { net = PRESETS[q<HTMLSelectElement>('.cnw-preset').value](); at = 0; capsUi(); all(); });
+  q('.cnw-v').addEventListener('input', all);
+  q('.cnw-next').addEventListener('click', () => { at = Math.min(steps(net).length, at + 1); all(); });
+  q('.cnw-prev').addEventListener('click', () => { at = Math.max(0, at - 1); all(); });
+  q('.cnw-allb').addEventListener('click', () => { at = steps(net).length; all(); });
+  onTheme(draw);
+  at = steps(net).length; capsUi(); all();
+  quiz(q('.cnw-quiz'), () => questions());
+</script>

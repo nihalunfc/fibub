@@ -1,0 +1,31 @@
+// #1402 Equipotentials and potential hills
+export const path = '/learn/potential-map/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/potential-map/`); await page.waitForTimeout(800);
+  const R = '.pmp ', txt = (s) => page.textContent(R + s);
+  check((await txt('.pmp-big')) === 'Probe at (18, 20) cm: V = 0 V', `potential: example probe (${await txt('.pmp-big')})`);
+  check((await txt('.pmp-text')).includes('212 V from A + −212 V from B') && (await txt('.pmp-text')).includes('3530 V/m, pointing 0°'), `potential: working (${await txt('.pmp-text')})`);
+  const inked = (s) => page.$eval(R + s, (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60 || Math.abs(d[i + 2] - d[2]) > 60) n++; return n; });
+  check((await inked('.pmp-fig')) > 3000 && (await inked('.pmp-3d')) > 1500, 'potential: map and 3D view drawn');
+  await page.selectOption(R + '.pmp-preset', 'like'); await page.waitForTimeout(150);
+  check((await txt('.pmp-big')) === 'Probe at (18, 20) cm: V = 424 V' && (await txt('.pmp-text')).includes('pointing 90°'), `potential: like charges (${await txt('.pmp-big')})`);
+  await page.selectOption(R + '.pmp-preset', 'dipole'); await page.waitForTimeout(150);
+  const fig = await page.$(R + '.pmp-fig'); await fig.scrollIntoViewIfNeeded();
+  let box = await fig.boundingBox(); const at = (x, y) => [box.x + ((x * 10) / 360) * box.width, box.y + ((280 - y * 10) / 280) * box.height];
+  await page.mouse.click(...at(8, 14)); await page.waitForTimeout(150);
+  check((await txt('.pmp-big')).startsWith('Probe at (8, 14) cm: V = 337 V'), `potential: tap moves the probe (${await txt('.pmp-big')})`);
+  await page.click(R + '.pmp-roll'); await page.waitForTimeout(2500);
+  check(+(await page.getAttribute(R + '.pmp-roll', 'data-steps')) > 10, 'potential: the test charge rolls');
+  await fig.scrollIntoViewIfNeeded(); box = await fig.boundingBox(); await page.mouse.click(...at(24, 14)); await page.waitForTimeout(150);
+  check((await txt('.pmp-name')) === 'B' && (await txt('.pmp-qv')) === '−2 nC', 'potential: tap chooses a charge');
+  await page.$eval(R + '.pmp-q', (e) => { e.value = '0'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(150);
+  check((await txt('.pmp-big')).startsWith('Probe at (8, 14) cm: V = 449 V'), `potential: charge to zero leaves only A (${await txt('.pmp-big')})`);
+  await fig.scrollIntoViewIfNeeded(); box = await fig.boundingBox(); await page.mouse.move(...at(12, 14)); await page.mouse.down(); await page.mouse.move(...at(14, 10), { steps: 4 }); await page.mouse.move(...at(16, 6), { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(150);
+  check((await txt('.pmp-name')) === 'A' && (await txt('.pmp-text')).includes('from A'), 'potential: drag a charge');
+  await page.$eval(R + '.pmp-a', (e) => { e.value = '-45'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await txt('.pmp-av')) === '-45°' || (await txt('.pmp-av')) === '−45°', 'potential: turn the 3D view');
+  check((await page.$$(R + '.eq-q')).length === 4, 'potential: four practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [r, qn] = q1.match(/potential (\d+) cm from a \+(\d+) nC/).slice(1).map(Number);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((8.98755e9 * qn * 1e-9) / (r / 100))); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'potential: right answer accepted');
+};

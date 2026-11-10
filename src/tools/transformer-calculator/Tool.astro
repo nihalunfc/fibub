@@ -1,0 +1,125 @@
+---
+// Transformer: turns ratio, voltages and currents with a load and an efficiency; then why power is sent over long
+// lines at high voltage: the I²R loss for the same power at 230 V, 11 kV, 33 kV, 132 kV, 220 kV and 400 kV.
+import '../../styles/astro.css';
+---
+<div class="ax tfm">
+  <div class="ax-card">
+    <h2>Transformer</h2>
+    <canvas class="ax-fig tfm-fig" aria-label="A transformer: two coils on an iron core"></canvas>
+    <label class="tfm-sl">Primary turns N_p: <b class="tfm-npv"></b><input type="range" class="tfm-np" min="50" max="2000" step="50" value="1000" aria-label="Primary turns" /></label>
+    <label class="tfm-sl">Secondary turns N_s: <b class="tfm-nsv"></b><input type="range" class="tfm-ns" min="50" max="2000" step="50" value="50" aria-label="Secondary turns" /></label>
+    <label class="tfm-sl">Primary voltage V_p: <b class="tfm-vpv"></b><input type="range" class="tfm-vp" min="10" max="400" step="10" value="230" aria-label="Primary voltage, rms" /></label>
+    <label class="tfm-sl">Load resistance: <b class="tfm-rv"></b><input type="range" class="tfm-r" min="1" max="100" step="1" value="10" aria-label="Load resistance in ohm" /></label>
+    <label class="tfm-sl">Efficiency: <b class="tfm-ev"></b><input type="range" class="tfm-e" min="50" max="100" step="1" value="90" aria-label="Efficiency in percent" /></label>
+    <p class="ax-big tfm-big" aria-live="polite"></p>
+    <p class="tfm-text"></p>
+    <dl class="ax-facts tfm-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why power lines use high voltage</h2>
+    <label class="tfm-sl">Power to send: <b class="tfm-pv"></b><input type="range" class="tfm-p" min="1" max="100" step="1" value="10" aria-label="Power in megawatt" /></label>
+    <label class="tfm-sl">Resistance of the line (both wires): <b class="tfm-lrv"></b><input type="range" class="tfm-lr" min="1" max="20" step="1" value="5" aria-label="Line resistance in ohm" /></label>
+    <canvas class="ax-fig tfm-bars" aria-label="Share of power lost at each transmission voltage"></canvas>
+    <div class="tfm-tablewrap"><table class="tfm-table"><thead><tr><th>Sent at</th><th>Current</th><th>Lost as heat</th><th>Share lost</th></tr></thead><tbody></tbody></table></div>
+    <p class="tfm-ltext"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="tfm-try">
+      <li>Make N_s bigger than N_p: a step-up transformer. The voltage goes up, the current goes down.</li>
+      <li>At 100% efficiency, V_p I_p = V_s I_s: a transformer cannot make power, only trade volts for amps.</li>
+      <li>In the second card, compare 11 kV and 220 kV: 20 times the voltage means 1/20 of the current and 1/400 of the loss.</li>
+      <li>Try sending 10 MW at 230 V: the current would be enormous and the "loss" more than the power sent. It cannot be done.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="tfm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .tfm .tfm-fig, .tfm .tfm-bars { max-width: 520px; margin: 0 auto 4px; }
+  .tfm .tfm-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .tfm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .tfm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .tfm-text, .tfm-ltext { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .tfm-tablewrap { overflow-x: auto; margin-top: 10px; }
+  .tfm-table { border-collapse: collapse; font-size: 14px; width: 100%; font-variant-numeric: tabular-nums; }
+  .tfm-table th, .tfm-table td { border-bottom: 1px solid var(--line); padding: 6px; text-align: right; }
+  .tfm-table th:first-child, .tfm-table td:first-child { text-align: left; }
+  .tfm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .tfm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .tfm .eq-q p { margin: 0 0 6px; }
+  .tfm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .tfm .eq-ok { color: var(--good); font-weight: 600; }
+  .tfm .eq-no { color: var(--bad); }
+  .tfm .eq-work { margin-top: 4px; font-size: 14px; }
+  .tfm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .tfm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { transformer, line, questions } from '../../lib/sci/transformer-calculator';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sci3, si, fact, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.tfm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.tfm-fig'), bars = q<HTMLCanvasElement>('.tfm-bars');
+  const VOLTS = [230, 11e3, 33e3, 132e3, 220e3, 400e3];
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+  const pct = (x: number) => (x >= 1 ? 'more than all of it' : `${sci3(x * 100)}%`);
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 170), Np = val('.tfm-np'), Ns = val('.tfm-ns');
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 170);
+    c.strokeStyle = pal.muted; c.lineWidth = 14; c.strokeRect(110, 30, 140, 110);
+    const coil = (x: number, n: number, col: string) => { const k = Math.max(2, Math.min(24, Math.round(n / 80))); c.strokeStyle = col; c.lineWidth = 2.5; for (let i = 0; i < k; i++) { const y = 40 + ((i + 0.5) / k) * 90; c.beginPath(); c.ellipse(x, y, 14, 3, 0, 0, Math.PI * 2); c.stroke(); } };
+    coil(110, Np, pal.accent); coil(250, Ns, pal.warn);
+    c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center';
+    c.fillText(`${Np} turns`, 110, 160); c.fillText(`${Ns} turns`, 250, 160);
+    c.font = '12px system-ui, sans-serif'; c.fillText('primary', 50, 85); c.fillText('secondary', 310, 85); c.fillText('iron core', 180, 90);
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(96, 50); c.lineTo(20, 50); c.moveTo(96, 120); c.lineTo(20, 120); c.moveTo(264, 50); c.lineTo(340, 50); c.moveTo(264, 120); c.lineTo(340, 120); c.stroke();
+  }
+  function drawBars() {
+    const pal = pagePalette(), c = setup(bars, 360, 190), P = val('.tfm-p') * 1e6, R = val('.tfm-lr');
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 190);
+    const X0 = 70, X1 = 350, h = 24;
+    c.font = '12px system-ui, sans-serif';
+    VOLTS.forEach((V, i) => {
+      const L = line(P, V, R), y = 14 + i * 28, share = Math.min(1, L.share);
+      // Log scale from 0.0001% to 100% so tiny losses still show.
+      const f = Math.max(0, (Math.log10(Math.max(share, 1e-6)) + 6) / 6);
+      c.fillStyle = pal.ink; c.textAlign = 'right'; c.fillText(V >= 1000 ? `${V / 1000} kV` : `${V} V`, X0 - 6, y + h / 2 + 4);
+      c.fillStyle = share >= 0.1 ? pal.bad : share >= 0.01 ? pal.warn : pal.good; c.fillRect(X0, y, Math.max(2, f * (X1 - X0)), h);
+      c.fillStyle = pal.ink; c.textAlign = 'left'; const lab = pct(L.share), tx = X0 + Math.max(2, f * (X1 - X0)) + 4;
+      if (tx < X1 - 60) c.fillText(lab, tx, y + h / 2 + 4); else { c.fillStyle = pal.bg; c.textAlign = 'right'; c.fillText(lab, X1 - 4, y + h / 2 + 4); }
+    });
+    c.fillStyle = pal.muted; c.textAlign = 'center'; c.fillText('share of the power lost (log scale)', (X0 + X1) / 2, 186);
+  }
+  function texts() {
+    const Np = val('.tfm-np'), Ns = val('.tfm-ns'), Vp = val('.tfm-vp'), Rl = val('.tfm-r'), e = val('.tfm-e') / 100, t = transformer(Np, Ns, Vp, Rl, e);
+    q('.tfm-npv').textContent = String(Np); q('.tfm-nsv').textContent = String(Ns); q('.tfm-vpv').textContent = `${Vp} V`; q('.tfm-rv').textContent = `${Rl} Ω`; q('.tfm-ev').textContent = `${Math.round(e * 100)}%`;
+    q('.tfm-big').textContent = `V_s = ${si(t.Vs, 'V')} (${t.kind})`;
+    q('.tfm-text').textContent = `V_s = V_p × N_s / N_p = ${Vp} × ${Ns} / ${Np} = ${si(t.Vs, 'V')}. The load takes I_s = V_s / R = ${si(t.Is, 'A')}, so P_out = ${si(t.Ps, 'W')}. At ${Math.round(e * 100)}% efficiency the primary takes P_in = ${si(t.Pp, 'W')}, so I_p = P_in / V_p = ${si(t.Ip, 'A')}.`;
+    q('.tfm-facts').replaceChildren(
+      fact('Turns ratio N_s/N_p', sci3(t.ratio)), fact('Secondary current', si(t.Is, 'A')), fact('Primary current', si(t.Ip, 'A')),
+      fact('Power out', si(t.Ps, 'W')), fact('Lost in the transformer', si(t.loss, 'W'), 'heat in coils and core'),
+    );
+    const P = val('.tfm-p') * 1e6, R = val('.tfm-lr');
+    q('.tfm-pv').textContent = `${val('.tfm-p')} MW`; q('.tfm-lrv').textContent = `${R} Ω`;
+    q('.tfm-table tbody').replaceChildren(...VOLTS.map((V) => { const L = line(P, V, R), tr = document.createElement('tr'); for (const v of [V >= 1000 ? `${V / 1000} kV` : `${V} V`, si(L.I, 'A'), L.share >= 1 ? 'impossible' : si(L.loss, 'W'), pct(L.share)]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } return tr; }));
+    const a = line(P, 11e3, R), b = line(P, 220e3, R);
+    q('.tfm-ltext').textContent = `Same power, P = V I: raise V and I falls. The heat in the wires is I²R, so it falls with the square: sending ${val('.tfm-p')} MW at 220 kV instead of 11 kV cuts the current from ${si(a.I, 'A')} to ${si(b.I, 'A')} and the loss from ${si(a.loss, 'W')} to ${si(b.loss, 'W')}. Step-up transformers raise the voltage at the power station; step-down ones bring it back to 230 V near homes.`;
+  }
+  const all = () => { texts(); draw(); drawBars(); };
+  for (const s of ['.tfm-np', '.tfm-ns', '.tfm-vp', '.tfm-r', '.tfm-e', '.tfm-p', '.tfm-lr']) q(s).addEventListener('input', all);
+  onTheme(all);
+  all();
+  quiz(q('.tfm-quiz'), () => questions());
+</script>

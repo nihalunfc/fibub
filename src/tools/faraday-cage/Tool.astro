@@ -1,0 +1,144 @@
+---
+// Faraday cage (electrostatic shielding): a metal tube seen end-on, in a uniform field or with a charge inside.
+// Field lines, induced surface charges and a probe show that the field inside the metal box is zero.
+import '../../styles/astro.css';
+---
+<div class="ax fcg">
+  <div class="ax-card">
+    <h2>Shielding with a metal tube</h2>
+    <span class="ax-seg fcg-mode" role="group" aria-label="What to show"><button type="button" data-v="out" aria-pressed="true">Field from outside</button><button type="button" data-v="in" aria-pressed="false">Charge inside</button></span>
+    <canvas class="ax-fig fcg-fig" aria-label="Field lines round a metal tube seen end-on"></canvas>
+    <div class="ax-legend"><span><i class="fcg-km"></i>metal</span><span><i class="fcg-kp"></i>+ induced charge</span><span><i class="fcg-kn"></i>− induced charge</span><span><i class="fcg-kf"></i>field line</span></div>
+    <p class="fcg-hint">Tap anywhere to move the probe (the ring) and read the field there.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="fcg-chk"><input type="checkbox" class="fcg-tube" checked /> Metal tube in place</label>
+      <label class="fcg-chk fcg-earthwrap"><input type="checkbox" class="fcg-earth" /> Earth the tube</label>
+    </div>
+    <label class="fcg-sl fcg-ewrap">Outside field E₀: <b class="fcg-ev"></b><input type="range" class="fcg-e" min="1" max="10" step="1" value="5" aria-label="Outside field in kilovolt per metre" /></label>
+    <label class="fcg-sl fcg-awrap">Field direction: <b class="fcg-av"></b><input type="range" class="fcg-a" min="0" max="90" step="5" value="0" aria-label="Field direction in degrees" /></label>
+    <label class="fcg-sl fcg-lwrap" hidden>Charge inside λ: <b class="fcg-lv"></b><input type="range" class="fcg-l" min="1" max="10" step="1" value="2" aria-label="Line charge in nanocoulomb per metre" /></label>
+    <p class="ax-big fcg-big" aria-live="polite"></p>
+    <p class="fcg-text"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fcg-try">
+      <li>Put the probe inside the tube: the field is exactly zero, however strong the outside field.</li>
+      <li>Take the tube away: the field inside is back. The metal's free electrons are what cancel it.</li>
+      <li>Turn the outside field: the induced charges move round so that the inside stays at zero.</li>
+      <li>Choose Charge inside: the field gets out, because the outer surface gets an equal charge. Earth the tube and the outside goes quiet.</li>
+      <li>Look where the lines meet the metal: always at right angles to its surface.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="fcg-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fcg .fcg-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); max-width: 560px; margin: 10px auto 0; }
+  .fcg .fcg-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .fcg .fcg-sl[hidden], .fcg .fcg-chk[hidden] { display: none; }
+  .fcg input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .fcg .fcg-chk { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; min-height: 40px; }
+  .fcg .ax-seg button { min-height: 40px; }
+  .fcg .fcg-hint { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .fcg-km { background: var(--muted); }
+  .fcg-kp { background: var(--bad); }
+  .fcg-kn { background: var(--accent); }
+  .fcg-kf { background: var(--good); }
+  .fcg-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .fcg-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .fcg-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .fcg .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .fcg .eq-q p { margin: 0 0 6px; }
+  .fcg .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .fcg .eq-ok { color: var(--good); font-weight: 600; }
+  .fcg .eq-no { color: var(--bad); }
+  .fcg .eq-work { margin-top: 4px; font-size: 14px; }
+  .fcg .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .fcg .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { CX, CY, outsideField, insideField, sigmaAt, trace, questions } from '../../lib/sci/faraday-cage';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sg, sci3, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.fcg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.fcg-fig');
+  const W = 360, H = 280, PX = 10, BW = 36, BH = 28, A1 = 6, A2 = 7.5;
+  let mode: 'out' | 'in' = 'out', probe: [number, number] = [18, 14];
+  const sx = (x: number) => x * PX, sy = (y: number) => H - y * PX;
+  const st = () => ({
+    tube: q<HTMLInputElement>('.fcg-tube').checked, earth: q<HTMLInputElement>('.fcg-earth').checked,
+    E0: +q<HTMLInputElement>('.fcg-e').value * 1000, al: +q<HTMLInputElement>('.fcg-a').value, lam: +q<HTMLInputElement>('.fcg-l').value * 1e-9,
+  });
+  const fieldFn = () => { const s = st(); return mode === 'out' ? (x: number, y: number) => outsideField(s.E0, s.al, A2, x, y, s.tube) : (x: number, y: number) => insideField(s.lam, A1, A2, s.earth, x, y, s.tube); };
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = st(), f = fieldFn();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const lines: [number, number][][] = [];
+    if (mode === 'out') {
+      const al = (s.al * Math.PI) / 180, ux = Math.cos(al), uy = Math.sin(al), nx = -uy, ny = ux;
+      for (let k = -24; k <= 24; k += 2.4) {
+        const bx = CX + k * nx, by = CY + k * ny;
+        lines.push(trace(f, bx - 30 * ux, by - 30 * uy, 1, BW, BH), trace(f, bx + 30 * ux, by + 30 * uy, -1, BW, BH));
+      }
+    } else {
+      const n = Math.round(4 * +q<HTMLInputElement>('.fcg-l').value);
+      for (let k = 0; k < n; k++) { const a = ((k + 0.5) / n) * 2 * Math.PI; lines.push(trace(f, CX + 0.6 * Math.cos(a), CY + 0.6 * Math.sin(a), 1, BW, BH)); if (s.tube && !s.earth) lines.push(trace(f, CX + (A2 + 0.05) * Math.cos(a), CY + (A2 + 0.05) * Math.sin(a), 1, BW, BH)); }
+    }
+    c.strokeStyle = pal.good; c.lineWidth = 1.4;
+    for (const L of lines) { if (L.length < 2) continue; c.beginPath(); L.forEach(([x, y], i) => (i ? c.lineTo(sx(x), sy(y)) : c.moveTo(sx(x), sy(y)))); c.stroke(); }
+    if (s.tube) {
+      c.fillStyle = pal.line; c.beginPath(); c.arc(sx(CX), sy(CY), A2 * PX, 0, Math.PI * 2); c.arc(sx(CX), sy(CY), A1 * PX, 0, Math.PI * 2, true); c.fill('evenodd');
+      c.strokeStyle = pal.muted; c.lineWidth = 1.5; c.beginPath(); c.arc(sx(CX), sy(CY), A2 * PX, 0, Math.PI * 2); c.stroke(); c.beginPath(); c.arc(sx(CX), sy(CY), A1 * PX, 0, Math.PI * 2); c.stroke();
+      c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center';
+      const mark = (r: number, a: number, sign: number) => { if (!sign) return; c.fillStyle = sign > 0 ? pal.bad : pal.accent; c.fillText(sign > 0 ? '+' : '−', sx(CX + r * Math.cos(a)), sy(CY + r * Math.sin(a)) + 4); };
+      for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * 2 * Math.PI;
+        if (mode === 'out') { const sgm = sigmaAt(1, s.al, (a * 180) / Math.PI) / (2 * 8.854e-12); if (Math.abs(sgm) > 0.25) mark(A2 + 0.9, a, Math.sign(sgm)); }
+        else { if (k % 2 === 0) mark(A1 - 0.9, a, -1); if (!s.earth && k % 2 === 0) mark(A2 + 0.9, a, 1); }
+      }
+    }
+    if (mode === 'in') { c.fillStyle = pal.bad; c.beginPath(); c.arc(sx(CX), sy(CY), 8, 0, Math.PI * 2); c.fill(); c.fillStyle = pal.bg; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('+', sx(CX), sy(CY) + 5); }
+    c.strokeStyle = pal.ink; c.lineWidth = 2.2; c.beginPath(); c.arc(sx(probe[0]), sy(probe[1]), 6, 0, Math.PI * 2); c.stroke();
+    if (s.earth && mode === 'in' && s.tube) { c.strokeStyle = pal.ink; c.lineWidth = 2; const bx = sx(CX), by = sy(CY - A2); c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by + 22); c.moveTo(bx - 12, by + 22); c.lineTo(bx + 12, by + 22); c.moveTo(bx - 8, by + 26); c.lineTo(bx + 8, by + 26); c.moveTo(bx - 4, by + 30); c.lineTo(bx + 4, by + 30); c.stroke(); }
+  }
+  function texts() {
+    const s = st(), [px, py] = probe, [ex, ey] = fieldFn()(px, py), E = Math.hypot(ex, ey), r = Math.hypot(px - CX, py - CY);
+    const where = !s.tube ? (r < A1 ? 'where the hollow would be' : 'in open space') : r < A1 ? 'inside the hollow' : r < A2 ? 'in the metal' : 'outside the tube';
+    q('.fcg-ev').textContent = `${s.E0 / 1000} kV/m`; q('.fcg-av').textContent = `${s.al}°`; q('.fcg-lv').textContent = `${q<HTMLInputElement>('.fcg-l').value} nC/m`;
+    q('.fcg-big').textContent = `Probe ${where}: E = ${E < 1e-9 ? '0' : sci3(E)} V/m`;
+    let t: string;
+    if (mode === 'out') t = s.tube
+      ? `Free electrons in the metal drift against the field until the charges they leave behind (σ = 2ε₀E₀ cos θ, up to ${sci3(2 * 8.8541878188e-12 * s.E0 * 1e6)} µC/m² here) cancel the field everywhere inside. The hollow is shielded: E = 0 there whatever E₀ is. Just outside, the field meets the metal at right angles and is up to twice E₀.`
+      : `With no tube, the field is ${sci3(s.E0)} V/m everywhere, inside the dashed space too.`;
+    else t = !s.tube
+      ? `With no tube, the line charge's field E = λ/(2πε₀r) reaches everywhere.`
+      : s.earth
+        ? `The inner surface takes an equal and opposite charge, so the field stops at the metal. Earthing lets the outer surface's charge flow away, so outside E = 0 too: the tube now hides the charge from the world.`
+        : `Inside, E = λ/(2πε₀r). The inner surface takes −λ, so the metal has E = 0, but the outer surface takes +λ, so outside the field is just as if the tube were not there. A cage keeps outside fields out; to keep an inside charge's field in, it must be earthed.`;
+    q('.fcg-text').textContent = t;
+    fig.setAttribute('aria-label', `Probe ${where}: field ${E < 1e-9 ? 0 : sg(E)} volt per metre`);
+  }
+  const all = () => { texts(); draw(); };
+  seg(q('.fcg-mode'), (v) => {
+    mode = v as 'out' | 'in';
+    q('.fcg-ewrap').hidden = q('.fcg-awrap').hidden = mode === 'in'; q('.fcg-lwrap').hidden = mode === 'out'; q('.fcg-earthwrap').hidden = mode === 'out';
+    probe = mode === 'out' ? [18, 14] : [18, 24]; all();
+  });
+  q('.fcg-earthwrap').hidden = true;
+  for (const s of ['.fcg-tube', '.fcg-earth']) q(s).addEventListener('change', all);
+  for (const s of ['.fcg-e', '.fcg-a', '.fcg-l']) q(s).addEventListener('input', all);
+  fig.addEventListener('pointerdown', (e) => { const r = fig.getBoundingClientRect(); probe = [Math.round(((((e.clientX - r.left) / r.width) * W) / PX) * 2) / 2, Math.round(((H - ((e.clientY - r.top) / r.height) * H) / PX) * 2) / 2]; e.preventDefault(); all(); });
+  onTheme(draw);
+  all();
+  quiz(q('.fcg-quiz'), () => questions());
+</script>
