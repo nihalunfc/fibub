@@ -1,0 +1,209 @@
+---
+// Double fertilisation stepper (Learn): megaspore mother cell → embryo sac (7 cells, 8 nuclei) → pollen tube →
+// syngamy and triple fusion, with a ploidy counter and chromosome numbers for a chosen plant.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn dbf">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Inside the ovule</h2>
+      <label class="dbf-lab">Plant <select class="dbf-plant" aria-label="Plant, for chromosome numbers"></select></label>
+    </div>
+    <label class="dbf-lab" style="margin-top:8px">Step <select class="dbf-step" aria-label="Step"></select></label>
+    <canvas class="lrn-cv dbf-cv" style="margin-top:8px" aria-label="An ovule drawn straight, micropyle at the top, with the cells of the current step"></canvas>
+    <p class="dbf-key"><span class="dbf-k1">● n</span> <span class="dbf-k2">● 2n</span> <span class="dbf-k3">● 3n</span> <span class="dbf-kg">● breaking down</span></p>
+    <div class="ax-row dbf-nav">
+      <button type="button" class="btn secondary small dbf-back">← Back</button>
+      <button type="button" class="btn small dbf-next">Next →</button>
+      <button type="button" class="btn secondary small dbf-replay">Replay</button>
+    </div>
+    <h3 class="dbf-title" aria-live="polite"></h3>
+    <p class="dbf-text"></p>
+    <dl class="ax-facts dbf-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Ploidy counter</h2>
+    <p class="ax-help dbf-sub"></p>
+    <div class="ax-scroll"><table class="dbf-tab"></table></div>
+    <p class="lrn-eq dbf-eq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Count the divisions from the megaspore mother cell to the mature embryo sac: how many are meiosis, how many mitosis?</li>
+      <li>Why does the embryo sac have 8 nuclei but only 7 cells?</li>
+      <li>Pick maize (2n = 20). How many chromosomes are in the egg, the zygote and the endosperm?</li>
+      <li>Which fusion gives a 3n cell, and why is that cell’s tissue a good food store for the seedling?</li>
+      <li>How many meiotic divisions make 100 seeds? (Think about the ovules and the pollen.)</li>
+    </ul>
+  </div>
+
+  <div class="ax-card dbf-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { STAGES, PLANTS, chromosomes, meiosesForSeeds, type Stage } from '../../lib/sci/dblfert';
+  import { mountQuiz, pick, one, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dbf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let si = 0, p = 1, twoN = 20;
+  PLANTS.forEach((pl) => q<HTMLSelectElement>('.dbf-plant').append(new Option(`${pl.name} (2n = ${pl.twoN})`, String(pl.twoN))));
+  q<HTMLSelectElement>('.dbf-plant').value = '20';
+  STAGES.forEach((s, i) => q<HTMLSelectElement>('.dbf-step').append(new Option(`${i + 1}. ${s.title}`, String(i))));
+  const PL = ['', 'n', '2n', '3n'];
+  const ease = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x));
+
+  function draw() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.dbf-cv'), 340), s = STAGES[si], id = s.id, e = ease(p);
+    const cx = W / 2, oy = 220, C: Record<number, string> = { 1: pal.accent, 2: pal.red ? pal.ink : pal.good, 3: pal.red ? pal.muted : pal.accent2 };
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ([1, 2, 3] as const).forEach((k) => { q(`.dbf-k${k}`).style.color = C[k]; });
+    const lab = (t: string, x: number, y: number, tx: number) => {
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx + (tx < cx ? 4 : -4), y); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '11.5px system-ui, sans-serif'; ctx.textAlign = tx < cx ? 'right' : 'left'; ctx.fillText(t, tx, y + 4);
+    };
+    const dot = (x: number, y: number, r: number, pl: number, faded = false) => {
+      ctx.globalAlpha = faded ? 0.3 : 1; ctx.fillStyle = C[pl]; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    };
+    const cell = (x: number, y: number, rx: number, ry: number, faded = false) => {
+      ctx.globalAlpha = faded ? 0.35 : 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1;
+    };
+    // stigma, style
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2;
+    ctx.beginPath(); for (let k = -3; k <= 3; k++) ctx.arc(cx + k * 9, 16, 5, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 12, 20); ctx.lineTo(cx - 12, 96); ctx.moveTo(cx + 12, 20); ctx.lineTo(cx + 12, 96); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('stigma', cx + 36, 18); ctx.fillText('style', cx + 18, 60);
+    // ovule: integuments with a micropyle gap at the top, nucellus
+    const gap = 0.16;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    for (const [rx, ry] of [[74, 112], [64, 100]]) { ctx.beginPath(); ctx.ellipse(cx, oy, rx, ry, 0, -Math.PI / 2 + gap, -Math.PI / 2 - gap + Math.PI * 2); ctx.stroke(); }
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.ellipse(cx, oy + 4, 54, 90, 0, 0, 7); ctx.fill();
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, oy + 112); ctx.lineTo(cx, H); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('micropyle', cx - 16, 112); ctx.textAlign = 'left'; ctx.fillText('chalaza', cx + 8, H - 6);
+    const TL = cx - 82, TR = cx + 82;
+    // ---- stages ----
+    const sacTop = oy - 72, sacBot = oy + 72;
+    const sac = (grow = 1) => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.3; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.ellipse(cx, oy + 4 + (1 - grow) * 50, 20 + 22 * grow, 22 + 52 * grow, 0, 0, 7); ctx.fill(); ctx.stroke(); };
+    const tops = [[cx, oy - 58], [cx, oy + 62]];
+    const four = [[cx - 12, oy - 58], [cx + 12, oy - 58], [cx - 12, oy + 62], [cx + 12, oy + 62]];
+    const eight = [[cx - 13, oy - 64], [cx + 13, oy - 64], [cx - 13, oy - 44], [cx + 13, oy - 44], [cx - 13, oy + 54], [cx + 13, oy + 54], [cx - 13, oy + 72], [cx + 13, oy + 72]];
+    const mid = (a: number[], b: number[]) => [a[0] + (b[0] - a[0]) * e, a[1] + (b[1] - a[1]) * e];
+    const SYN = [[cx - 13, oy - 56], [cx + 13, oy - 56]], EGG = [cx, oy - 30], POL = [[cx - 7, oy], [cx + 7, oy]], ANT = [[cx - 15, oy + 60], [cx + 15, oy + 60], [cx, oy + 74]];
+    const matureSac = (opts: { egg?: 'egg' | 'zyg'; pol?: 'pol' | 'pen'; fadeSA?: boolean } = {}) => {
+      sac();
+      SYN.forEach(([x, y]) => { cell(x, y, 10, 15, opts.fadeSA); ctx.globalAlpha = opts.fadeSA ? 0.35 : 1; ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x - 3, y - 15); ctx.lineTo(x - 3, y - 21); ctx.moveTo(x + 3, y - 15); ctx.lineTo(x + 3, y - 21); ctx.stroke(); ctx.globalAlpha = 1; dot(x, y + 3, 4, 1, opts.fadeSA); });
+      if (opts.egg === 'zyg') { cell(EGG[0], EGG[1], 13, 14); dot(EGG[0], EGG[1] + 2, 6.5, 2); } else { cell(EGG[0], EGG[1], 12, 14); dot(EGG[0], EGG[1] + 2, 5, 1); }
+      if (opts.pol === 'pen') dot(cx, oy, 7.5, 3); else POL.forEach(([x, y]) => dot(x, y, 4.5, 1));
+      ANT.forEach(([x, y]) => { cell(x, y, 10, 9, opts.fadeSA); dot(x, y, 3.5, 1, opts.fadeSA); });
+    };
+    if (id === 'mmc') {
+      cell(cx, oy - 50, 16, 18); dot(cx, oy - 50, 7, 2); lab('MMC (2n)', cx - 18, oy - 50, TL); lab('nucellus', cx + 40, oy + 30, TR);
+    } else if (id === 'meiosis' || id === 'functional') {
+      for (let k = 0; k < 4; k++) {
+        const y = oy - 62 + k * 22 * (id === 'meiosis' ? e : 1), faded = id === 'functional' && k < 3;
+        ctx.globalAlpha = id === 'meiosis' ? 0.3 + 0.7 * e : 1; cell(cx, y, 15, 10, faded); ctx.globalAlpha = 1;
+        dot(cx, y, 4, 1, faded); if (id === 'functional' && k < 3) { ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(cx - 9, y - 6); ctx.lineTo(cx + 9, y + 6); ctx.stroke(); }
+      }
+      if (id === 'meiosis') lab('4 megaspores (n)', cx - 16, oy - 29, TL);
+      else { lab('3 break down', cx - 16, oy - 40, TL); lab('functional megaspore (n)', cx + 16, oy + 4, TR); }
+    } else if (id === 'two') {
+      sac(e); const start = [cx, oy + 30]; tops.forEach((t) => dot(...(mid(start, t) as [number, number]), 5, 1)); lab('2 free nuclei', cx + 44, oy, TR);
+    } else if (id === 'four') {
+      sac(); four.forEach((t, i) => dot(...(mid(tops[i >> 1], t) as [number, number]), 5, 1)); lab('4 free nuclei', cx + 44, oy, TR);
+    } else if (id === 'eight') {
+      sac(); eight.forEach((t, i) => dot(...(mid(four[i >> 1], t) as [number, number]), 4.5, 1)); lab('4 at each end', cx + 44, oy, TR); lab('8 nuclei', cx - 44, oy, TL);
+    } else if (id === 'sac') {
+      ctx.globalAlpha = e; matureSac(); ctx.globalAlpha = 1;
+      lab('2 synergids', cx - 22, oy - 56, TL); lab('egg', cx + 12, oy - 30, TR); lab('2 polar nuclei', cx - 12, oy, TL); lab('central cell', cx + 30, oy + 22, TR); lab('3 antipodals', cx + 24, oy + 64, TR);
+    } else if (id === 'tube' || id === 'release') {
+      matureSac();
+      // tube path: pollen → down the style → micropyle → into a synergid
+      const path = [[cx, 12], [cx, 100], [cx + 4, 118], [cx + 13, 150]], f = id === 'tube' ? e : 1;
+      const segs = path.slice(1).map((pt, i) => Math.hypot(pt[0] - path[i][0], pt[1] - path[i][1])), tot = segs.reduce((a, b) => a + b, 0);
+      ctx.strokeStyle = C[1]; ctx.lineWidth = 4; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(path[0][0], path[0][1]);
+      let left = f * tot, tip = path[0];
+      for (let i = 0; i < segs.length && left > 0; i++) { const g = Math.min(1, left / segs[i]); tip = [path[i][0] + (path[i + 1][0] - path[i][0]) * g, path[i][1] + (path[i + 1][1] - path[i][1]) * g]; ctx.lineTo(tip[0], tip[1]); left -= segs[i]; }
+      ctx.stroke(); ctx.globalAlpha = 1; ctx.lineWidth = 1;
+      ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.arc(cx, 12, 8, 0, 7); ctx.fill(); ctx.stroke();
+      if (id === 'tube') { dot(tip[0] - 3, tip[1] - 6, 3, 1); dot(tip[0] + 2, tip[1] - 10, 3, 1); ctx.strokeStyle = C[1]; ctx.beginPath(); ctx.arc(tip[0], Math.max(16, tip[1] - 22), 3.5, 0, 7); ctx.stroke(); lab('pollen grain', cx - 9, 12, TL); lab('2 gametes', tip[0] - 4, tip[1] - 8, TL); }
+      else {
+        const s0 = [cx + 13, oy - 52];
+        dot(...(mid(s0, [EGG[0] + 8, EGG[1] - 6]) as [number, number]), 3, 1); dot(...(mid(s0, [cx + 10, oy - 8]) as [number, number]), 3, 1);
+        lab('tube bursts into a synergid', cx + 22, oy - 60, TR); lab('male gametes', cx + 12, oy - 22, TR); lab('egg', cx - 12, oy - 30, TL); lab('polar nuclei', cx - 12, oy, TL);
+      }
+    } else if (id === 'fusion') {
+      ctx.globalAlpha = 1; matureSac({ egg: 'zyg', pol: 'pen', fadeSA: true });
+      ctx.globalAlpha = 1 - e; dot(EGG[0] + 8, EGG[1] - 6, 3, 1); dot(cx + 10, oy - 8, 3, 1); ctx.globalAlpha = 1;
+      lab('zygote 2n', cx - 14, oy - 30, TL); lab('primary endosperm', cx + 10, oy, TR); lab('nucleus, 3n', cx + 10, oy + 14, TR); lab('triple fusion', cx - 10, oy + 6, TL);
+    } else {
+      sac();
+      const n = Math.round(10 + 50 * e);
+      for (let k = 0; k < n; k++) { const a = k * 2.399, rr = 6 + ((k * 37) % 30); dot(cx + Math.cos(a) * rr, oy + 18 + Math.sin(a) * rr * 1.6, 2.5, 3); }
+      const em = Math.round(1 + 7 * e);
+      for (let k = 0; k < em; k++) dot(cx - 6 + (k % 3) * 6, oy - 52 + Math.floor(k / 3) * 6, 3.2, 2);
+      ctx.strokeStyle = C[2]; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(cx, oy, 74, 112, 0, -Math.PI / 2 + gap, -Math.PI / 2 - gap + Math.PI * 2); ctx.stroke(); ctx.lineWidth = 1;
+      lab('embryo (2n)', cx - 10, oy - 48, TL); lab('endosperm (3n)', cx + 26, oy + 24, TR); lab('seed coat (2n)', cx - 72, oy + 70, TL);
+    }
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`Step ${si + 1} of ${STAGES.length}`, 6, H - 6);
+  }
+
+  function report() {
+    const s: Stage = STAGES[si];
+    q('.dbf-title').textContent = `${si + 1}. ${s.title}`;
+    q('.dbf-text').textContent = s.text;
+    q<HTMLSelectElement>('.dbf-step').value = String(si);
+    q<HTMLButtonElement>('.dbf-back').disabled = si === 0; q<HTMLButtonElement>('.dbf-next').disabled = si === STAGES.length - 1;
+    const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+    q('.dbf-facts').replaceChildren(...(s.cells ? [fact(s.part === 'sac' && si < 6 ? 'Cells (megaspore line)' : 'Cells in the embryo sac', String(s.cells)), fact('Nuclei', String(s.nuclei))] : [fact('Cells', 'many: the seed is growing')]));
+    q('.dbf-sub').textContent = `Chromosome numbers for a plant whose body cells have 2n = ${twoN}, so n = ${twoN / 2}.`;
+    const tb = q<HTMLTableElement>('.dbf-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['Cell or nucleus', 'How many', 'Ploidy', 'Chromosomes'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    s.items.forEach((it) => { const tr = b.insertRow(); if (it.gone) tr.className = 'gone'; [it.name + (it.gone ? ' (breaking down)' : ''), String(it.count), PL[it.ploidy], String(chromosomes(twoN, it.ploidy))].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+    const n = twoN / 2;
+    q('.dbf-eq').textContent = s.id === 'fusion' || s.id === 'seed'
+      ? `Syngamy: egg (n = ${n}) + male gamete (n = ${n}) → zygote 2n = ${2 * n}.  Triple fusion: 2 polar nuclei (${n} + ${n}) + male gamete (${n}) → endosperm 3n = ${3 * n}.`
+      : s.id === 'meiosis' ? `Meiosis halves the number: 2n = ${twoN} → n = ${n} in each megaspore.` : `Mitosis keeps the number: every nucleus here has n = ${n}.`;
+  }
+  const anim = loop((dt) => { if (p < 1) p = Math.min(1, p + dt / 1.4); draw(); });
+  const go = (i: number) => { si = Math.max(0, Math.min(STAGES.length - 1, i)); p = anim.playing ? 0 : 1; report(); anim.redraw(); };
+  q('.dbf-next').addEventListener('click', () => go(si + 1));
+  q('.dbf-back').addEventListener('click', () => go(si - 1));
+  q('.dbf-replay').addEventListener('click', () => go(si));
+  q('.dbf-step').addEventListener('change', (ev) => go(Number((ev.target as HTMLSelectElement).value)));
+  q('.dbf-plant').addEventListener('change', (ev) => { twoN = Number((ev.target as HTMLSelectElement).value); report(); });
+  addEventListener('resize', () => anim.redraw());
+  document.addEventListener('fibub:theme', () => anim.redraw());
+  report();
+
+  mountQuiz(q('.dbf-quiz'), () => {
+    const tn = pick(6, 24) * 2, cellQ = one([['an egg cell', 1], ['a synergid', 1], ['an antipodal cell', 1], ['a zygote', 2], ['an endosperm cell', 3], ['a seed-coat cell', 2], ['a male gamete', 1]] as [string, 1 | 2 | 3][]);
+    const tn2 = pick(5, 20) * 2, seeds = pick(2, 30) * 4, which = one(['cells', 'nuclei']);
+    return [
+      { q: `A plant’s leaf cells have 2n = ${tn} chromosomes. How many chromosomes are in its endosperm cells?`, ans: 1.5 * tn, abs: 0.01, work: `n = ${tn / 2}. Endosperm is 3n (two polar nuclei + one male gamete): 3 × ${tn / 2} = ${1.5 * tn}.` },
+      { q: `A plant has 2n = ${tn2}. How many chromosomes are in ${cellQ[0]}?`, ans: chromosomes(tn2, cellQ[1]), abs: 0.01, work: `${cellQ[0][0].toUpperCase() + cellQ[0].slice(1)} is ${PL[cellQ[1]]}; n = ${tn2 / 2}, so ${cellQ[1]} × ${tn2 / 2} = ${chromosomes(tn2, cellQ[1])}.` },
+      { q: `How many meiotic divisions are needed to make ${seeds} seeds?`, ans: meiosesForSeeds(seeds), abs: 0.01, work: `Each seed needs one ovule (one meiosis gives one working megaspore): ${seeds}. Each seed also needs one pollen grain, and one meiosis gives four: ${seeds} ÷ 4 = ${seeds / 4}. Total ${seeds} + ${seeds / 4} = ${meiosesForSeeds(seeds)}.` },
+      { q: `How many ${which} does a mature embryo sac (the usual kind) have?`, ans: which === 'cells' ? 0 : 1, choices: ['7', '8', '4', '3'], work: '7 cells (2 synergids, 1 egg, 1 central cell, 3 antipodals) and 8 nuclei, because the central cell has two polar nuclei.' },
+      { q: 'Which fusion gives the primary endosperm nucleus?', ans: 1, choices: ['Syngamy', 'Triple fusion', 'Meiosis', 'Pollination'], work: 'A male gamete fuses with the two polar nuclei: three nuclei, triple fusion, 3n. Syngamy (gamete + egg) gives the zygote.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .dbf .dbf-lab { display: grid; gap: 2px; font-size: 14px; color: var(--muted); }
+  .dbf .dbf-lab select { min-height: 44px; font-size: 15px; max-width: 100%; }
+  .dbf .dbf-key { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; margin: 6px 0 0; }
+  .dbf .dbf-kg { color: var(--muted); opacity: 0.6; }
+  .dbf .dbf-nav { margin-top: 8px; }
+  .dbf .dbf-title { font-size: 17px; margin: 14px 0 4px; }
+  .dbf .dbf-text { margin: 0; }
+  .dbf .dbf-facts { margin-top: 10px; }
+  .dbf .dbf-tab tr.gone td { color: var(--muted); }
+</style>
