@@ -1,0 +1,96 @@
+---
+// #T904 IFTA
+---
+<div class="tool-ui ift">
+  <section class="panel">
+    <div class="ift-grid">
+      <label>Quarter <input data-k="qtr" value="4Q2026" /></label>
+      <label>Units
+        <select data-k="unit"><option value="us">Miles and US gallons</option><option value="si">Kilometres and litres</option></select>
+      </label>
+      <label><span>Total fleet <b class="u-d">miles</b> (all jurisdictions)</span> <input data-k="dist" inputmode="decimal" value="10000" /></label>
+      <label><span>Total fuel <b class="u-f">gallons</b> used</span> <input data-k="fuel" inputmode="decimal" value="1600" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h3 class="ift-h">Each jurisdiction</h3>
+    <p class="ift-fine">Distance driven there, tax-paid fuel bought there, and its rate per <b class="u-f1">gallon</b> for the quarter from the <a href="https://www.iftach.org/taxmatrix4/Taxmatrix.php" rel="noopener">IFTA tax rate matrix</a> (include any surcharge in the rate, or add it as its own row with no fuel).</p>
+    <div class="ift-rows"></div>
+    <button type="button" class="btn ift-add">Add a jurisdiction</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ift-big"></p>
+    <div class="ift-scroll"><table class="ift-tab"></table></div>
+    <p class="ift-net"></p>
+    <p class="ift-warn" role="alert"></p>
+  </section>
+  <p class="ift-fine">Not tax advice. Method: average fleet fuel use to two decimals (as the IFTA Procedures Manual asks), taxable fuel = distance in the jurisdiction ÷ average, net = taxable − tax-paid fuel bought there, tax = net × rate. Your base jurisdiction's return may round, add interest or count non-taxable distance differently; check the official source and file through your base jurisdiction. Checked 2026-11-10. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ift { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ift .panel { padding: 16px; }
+  .ift-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ift label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ift b { font-weight: inherit; }
+  .ift input, .ift select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ift input:focus, .ift select:focus { border-color: var(--accent); outline: none; }
+  .ift .btn { margin-top: 12px; }
+  .ift-h { font-size: 16px; margin: 0 0 6px; }
+  .ift-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 40px; gap: 8px; margin-top: 10px; align-items: end; }
+  .ift-row label { font-size: 12px; }
+  .ift-row button { font: inherit; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  @media (max-width: 560px) { .ift-row { grid-template-columns: 1fr 1fr; padding-bottom: 10px; border-bottom: 1px solid var(--line); } }
+  .ift-big { font-size: 26px; font-weight: 700; margin: 0 0 10px; }
+  .ift-scroll { overflow-x: auto; }
+  .ift-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ift-tab th, .ift-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ift-tab th:first-child, .ift-tab td:first-child { text-align: left; white-space: normal; }
+  .ift-owe { color: var(--bad); } .ift-cr { color: var(--good); }
+  .ift-net { font-weight: 700; margin: 10px 0 0; }
+  .ift-warn { color: var(--warn); margin: 10px 0 0; } .ift-warn:empty { display: none; }
+  .ift-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+</style>
+
+<script>
+  import { ifta } from '../../lib/money/trucking';
+  const root = document.querySelector('.ift') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const n = (v: string) => parseFloat(v.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const w = (v: number) => Math.round(v).toLocaleString('en-US');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const addRow = (name: string, d: string, f: string, r: string) => {
+    const div = document.createElement('div'); div.className = 'ift-row';
+    div.innerHTML = `<label>Jurisdiction <input data-j="name" value="${esc(name)}" /></label><label>Distance <input data-j="d" inputmode="decimal" value="${d}" /></label>` +
+      `<label>Fuel bought <input data-j="f" inputmode="decimal" value="${f}" /></label><label>Rate <input data-j="r" inputmode="decimal" value="${r}" /></label><button type="button" aria-label="Remove this jurisdiction">×</button>`;
+    (div.querySelector('button') as HTMLButtonElement).onclick = () => { div.remove(); calc(); };
+    $('.ift-rows').append(div);
+  };
+  const calc = () => {
+    const si = q('unit').value === 'si', du = si ? 'km' : 'miles', fu = si ? 'litres' : 'gallons', eco = si ? 'km/L' : 'mpg';
+    root.querySelectorAll('.u-d').forEach((e) => (e.textContent = du));
+    root.querySelectorAll('.u-f').forEach((e) => (e.textContent = fu));
+    root.querySelectorAll('.u-f1').forEach((e) => (e.textContent = si ? 'litre' : 'gallon'));
+    const rows = [...root.querySelectorAll('.ift-row')].map((r) => {
+      const g = (k: string) => (r.querySelector(`[data-j="${k}"]`) as HTMLInputElement).value;
+      return { name: g('name').trim() || 'Unnamed', distance: n(g('d')), fuel: n(g('f')), rate: n(g('r')) };
+    });
+    const D = n(q('dist').value), F = n(q('fuel').value);
+    if (!(D > 0) || !(F > 0)) { $('.ift-big').textContent = ''; $('.ift-tab').innerHTML = ''; $('.ift-net').textContent = ''; $('.ift-warn').textContent = 'Type the fleet total distance and fuel used.'; return; }
+    const r = ifta(D, F, rows);
+    $('.ift-big').textContent = `Fleet average: ${r.avg.toFixed(2)} ${eco}`;
+    $('.ift-tab').innerHTML = `<thead><tr><th>Jurisdiction</th><th>Taxable ${fu}</th><th>Net ${fu}</th><th>Tax</th></tr></thead><tbody>` +
+      r.lines.map((l) => `<tr><td>${esc(l.name)}</td><td>${w(l.taxable)}</td><td>${w(l.net)}</td><td class="${l.tax > 0 ? 'ift-owe' : l.tax < 0 ? 'ift-cr' : ''}">${l.tax < 0 ? 'credit ' + m2(-l.tax) : 'owe ' + m2(l.tax)}</td></tr>`).join('') + '</tbody>';
+    $('.ift-net').textContent = `${q('qtr').value.trim() || 'This quarter'}: ${r.net >= 0 ? 'net tax owed ' + m2(r.net) : 'net credit ' + m2(-r.net)}`;
+    const warn: string[] = [];
+    if (Math.abs(r.distanceListed - D) > 0.5) warn.push(`The jurisdictions add up to ${w(r.distanceListed)} ${du}, not the fleet total of ${w(D)}. List every jurisdiction you drove in.`);
+    if (r.fuelListed > F * 1.5) warn.push('Fuel bought is much more than fuel used; check the numbers.');
+    $('.ift-warn').textContent = warn.join(' ');
+  };
+  addRow('State A', '4000', '500', '0.30'); addRow('State B', '6000', '1100', '0.25');
+  $('.ift-add').onclick = () => { addRow('', '0', '0', '0'); calc(); };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
