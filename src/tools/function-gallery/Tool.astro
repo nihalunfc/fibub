@@ -1,0 +1,183 @@
+---
+// Function gallery: the standard real functions of Class 11 maths with their domain shaded on the x-axis and
+// range on the y-axis, a point you slide along the graph, and f + g, f − g, f × g and f ÷ g of two simple
+// functions with the domain of the result.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax fgl">
+  <div class="ax-card">
+    <div class="ax-row"><span class="ax-help">Mode</span>
+      <div class="ax-seg fg-mode" role="group" aria-label="Mode"><button type="button" data-m="gallery" aria-pressed="true">Gallery</button><button type="button" data-m="combine" aria-pressed="false">Combine f and g</button></div>
+    </div>
+    <div class="fg-gal">
+      <div class="fg-picks" role="group" aria-label="Function"></div>
+    </div>
+    <div class="fg-comb" hidden>
+      <div class="ax-grid fg-parts">
+        <fieldset><legend>f(x)</legend>
+          <label>Type <select class="fg-fk"><option value="lin">a x + b</option><option value="sq" selected>a x² + b</option><option value="sqrt">a √x + b</option><option value="rec">a / x + b</option><option value="abs">a |x| + b</option></select></label>
+          <label>a <input class="fg-fa" type="text" inputmode="decimal" value="1" /></label>
+          <label>b <input class="fg-fb" type="text" inputmode="decimal" value="0" /></label>
+        </fieldset>
+        <fieldset><legend>g(x)</legend>
+          <label>Type <select class="fg-gk"><option value="lin" selected>a x + b</option><option value="sq">a x² + b</option><option value="sqrt">a √x + b</option><option value="rec">a / x + b</option><option value="abs">a |x| + b</option></select></label>
+          <label>a <input class="fg-ga" type="text" inputmode="decimal" value="1" /></label>
+          <label>b <input class="fg-gb" type="text" inputmode="decimal" value="-1" /></label>
+        </fieldset>
+      </div>
+      <div class="ax-row"><span class="ax-help">Make</span>
+        <div class="ax-seg fg-op" role="group" aria-label="Operation"><button type="button" data-op="+" aria-pressed="true">f + g</button><button type="button" data-op="-" aria-pressed="false">f − g</button><button type="button" data-op="*" aria-pressed="false">f × g</button><button type="button" data-op="/" aria-pressed="false">f ÷ g</button></div>
+      </div>
+      <p class="ax-err fg-err" hidden></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="fg-title"></h2>
+    <canvas class="ax-fig fg-fig" role="img"></canvas>
+    <p class="ax-legend fg-leg"></p>
+    <label class="fg-sl"><span>Slide x = <b class="fg-xv"></b></span><input class="fg-x" type="range" min="-5" max="5" step="0.05" value="1.5" /></label>
+    <dl class="ax-facts fg-facts"></dl>
+    <p class="fg-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fg-try">
+      <li>Pick <b>Greatest integer</b> and slide x from 2.9 to 3: the output jumps from 2 to 3. Now try x = −2.3: the answer is −3, not −2.</li>
+      <li>Pick <b>Reciprocal</b>: the green band on the x-axis has a gap at 0, because 1/0 means nothing.</li>
+      <li>Compare <b>Square</b> and <b>Modulus</b>: same range [0, ∞), different shapes.</li>
+      <li>In <b>Combine</b>, take f = x² and g = x − 1 and press <b>f ÷ g</b>: the domain loses x = 1, where g is zero.</li>
+      <li>Make f = √x and g = 1/x: f + g only lives where both do, for x &gt; 0.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="fg-quiz" />
+</div>
+
+<script>
+  import { GALLERY, gfn, at, gif, sgn, partFn, partText, partDomain, combine, combinedDomain, zeros, type Part, type Op } from '../../lib/sci/school-fgallery';
+  import { paint, type Figure } from '../../lib/report';
+  import { view, axes, curve, dot, label, px, py, fmt } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.fgl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 300;
+  let mode = 'gallery', id = 'square', op: Op = '+';
+  q('.fg-picks').replaceChildren(...GALLERY.map((g) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.id = g.id; b.textContent = g.label; b.setAttribute('aria-pressed', String(g.id === id)); return b; }));
+  const fact = (k: string, v: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; return el; };
+  const seg = (sel: string, on: (b: HTMLButtonElement) => void) => root.querySelectorAll<HTMLButtonElement>(sel + ' button').forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b); draw(); }));
+  seg('.fg-mode', (b) => { mode = b.dataset.m!; });
+  seg('.fg-picks', (b) => { id = b.dataset.id!; });
+  seg('.fg-op', (b) => { op = b.dataset.op as Op; });
+  const part = (k: string, a: string, b: string): Part | null => { const A = num(q<HTMLInputElement>(a).value), B = num(q<HTMLInputElement>(b).value); if (!Number.isFinite(A) || !Number.isFinite(B) || Math.abs(A) > 100 || Math.abs(B) > 100) return null; return { kind: q<HTMLSelectElement>(k).value as Part['kind'], a: A, b: B }; };
+  // A band along an axis: [from, to] pairs, open ends drawn as hollow dots.
+  function band(ctx: CanvasRenderingContext2D, v: ReturnType<typeof view>, segs: [number, number][], axis: 'x' | 'y', color: string, bg: string, openAt: number[] = []) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 7; ctx.globalAlpha = 0.55; ctx.lineCap = 'butt';
+    const lim = axis === 'x' ? [v.x0, v.x1] : [v.y0, v.y1];
+    for (const [a0, b0] of segs) {
+      const a = Math.max(a0, lim[0]), b = Math.min(b0, lim[1]);
+      if (a > b) continue;
+      ctx.beginPath();
+      if (axis === 'x') { const Y = py(v, 0); if (a === b) ctx.arc(px(v, a), Y, 4, 0, 7); else { ctx.moveTo(px(v, a), Y); ctx.lineTo(px(v, b), Y); } }
+      else { const X = px(v, 0); if (a === b) ctx.arc(X, py(v, a), 4, 0, 7); else { ctx.moveTo(X, py(v, a)); ctx.lineTo(X, py(v, b)); } }
+      if (a === b) { ctx.fillStyle = color; ctx.fill(); } else ctx.stroke();
+    }
+    ctx.restore();
+    for (const o of openAt) { const X = axis === 'x' ? px(v, o) : px(v, 0), Y = axis === 'x' ? py(v, 0) : py(v, o); ctx.beginPath(); ctx.arc(X, Y, 5, 0, 7); ctx.fillStyle = bg; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.stroke(); }
+  }
+
+  function draw() {
+    q('.fg-gal').hidden = mode !== 'gallery'; q('.fg-comb').hidden = mode !== 'combine';
+    const x = +q<HTMLInputElement>('.fg-x').value; q('.fg-xv').textContent = fmt(x, 2);
+    const v = view(-5, 5, -4, 6, W, H, { l: 26, r: 10, t: 10, b: 22 });
+    const facts: HTMLElement[] = [];
+    let fig: Figure;
+    if (mode === 'gallery') {
+      const g = gfn(id), y = at(g, x);
+      q('.fg-title').textContent = `${g.label}: ${g.rule}`;
+      const openX = g.id === 'reciprocal' || g.id === 'log' ? [0] : [];
+      const openY = g.id === 'reciprocal' || g.id === 'exp' ? [0] : [];
+      fig = { w: W, h: H, alt: `${g.rule}. Domain ${g.domain}, range ${g.range}.`, draw: (ctx, w, h, pl) => {
+        axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+        band(ctx, v, g.domainBand, 'x', pl.good, pl.bg, openX);
+        if (g.id === 'gif') band(ctx, v, [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6].map((k) => [k, k] as [number, number]), 'y', pl.accent2, pl.bg);
+        else band(ctx, v, g.rangeBand, 'y', pl.accent2, pl.bg, openY);
+        if (g.jumps) {
+          // Draw each flat step separately, with a filled dot where it starts and an open dot where it ends.
+          const steps: [number, number, number][] = g.id === 'gif' ? Array.from({ length: 10 }, (_, k) => [k - 5, k - 4, k - 5]) : [[-5, 0, -1], [0, 5, 1]];
+          for (const [a, b, c] of steps) { curve(ctx, v, () => c, pl.accent, 2.6, [], a, b - 1e-9); if (g.id === 'gif') { dot(ctx, v, a, c, pl.accent, 4); dot(ctx, v, b, c, pl.accent, 4, true, pl.bg); } }
+          if (g.id === 'signum') { dot(ctx, v, 0, -1, pl.accent, 4, true, pl.bg); dot(ctx, v, 0, 1, pl.accent, 4, true, pl.bg); dot(ctx, v, 0, 0, pl.accent, 4); }
+        } else curve(ctx, v, (t) => at(g, t), pl.accent, 2.6);
+        if (Number.isFinite(y)) { dot(ctx, v, x, y, pl.ink, 5); label(ctx, v, x, y, `(${fmt(x, 2)}, ${fmt(y, 3)})`, pl.ink, 8, -6, x > 2 ? 'right' : 'left'); }
+      } };
+      q('.fg-leg').innerHTML = '<span><i class="fg-kg"></i>domain (on the x-axis)</span><span><i class="fg-ko"></i>range (on the y-axis)</span>';
+      facts.push(fact('Domain', g.domain), fact('Range', g.range), fact(`f(${fmt(x, 2)})`, Number.isFinite(y) ? fmt(y, 4) : 'not defined here'));
+      q('.fg-note').textContent = g.note;
+    } else {
+      const P = part('.fg-fk', '.fg-fa', '.fg-fb'), G = part('.fg-gk', '.fg-ga', '.fg-gb'), err = q('.fg-err');
+      if (!P || !G) { err.textContent = 'Type a and b as numbers between −100 and 100.'; err.hidden = false; return; }
+      err.hidden = true;
+      const f = partFn(P), g = partFn(G), h = combine(op, f, g), sym = { '+': '+', '-': '−', '*': '×', '/': '÷' }[op];
+      const name = `(f ${sym} g)(x)`, ft = partText(P), gt = partText(G);
+      const expr = op === '/' ? `(${ft}) / (${gt})` : op === '*' ? `(${ft})(${gt})` : `${ft} ${sym} (${gt})`;
+      q('.fg-title').textContent = `${name} = ${expr}`;
+      const dom = combinedDomain(op, P, G), y = h(x);
+      const gz = op === '/' ? zeros(g, -5, 5).filter(partDomain(G)) : [];
+      fig = { w: W, h: H, alt: `f(x) = ${ft}, g(x) = ${gt} and ${name}. Domain ${dom}.`, draw: (ctx, w, hh, pl) => {
+        axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+        curve(ctx, v, f, pl.muted, 1.6, [6, 4]);
+        curve(ctx, v, g, pl.accent2, 1.6, [2, 3]);
+        curve(ctx, v, h, pl.accent, 2.8);
+        for (const z of gz) { ctx.save(); ctx.strokeStyle = pl.bad; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(px(v, z), v.t); ctx.lineTo(px(v, z), v.H - v.b); ctx.stroke(); ctx.restore(); }
+        if (Number.isFinite(y)) { dot(ctx, v, x, y, pl.ink, 5); label(ctx, v, x, y, `(${fmt(x, 2)}, ${fmt(y, 3)})`, pl.ink, 8, -6, x > 2 ? 'right' : 'left'); }
+      } };
+      q('.fg-leg').innerHTML = '<span><i class="fg-kf"></i>f (dashed)</span><span><i class="fg-kgg"></i>g (dotted)</span><span><i class="fg-kh"></i>result</span>' + (gz.length ? '<span><i class="fg-kz"></i>g = 0</span>' : '');
+      const fx = f(x), gx = g(x);
+      facts.push(fact('Domain of the result', dom), fact(`f(${fmt(x, 2)})`, Number.isFinite(fx) ? fmt(fx, 4) : 'not defined'), fact(`g(${fmt(x, 2)})`, Number.isFinite(gx) ? fmt(gx, 4) : 'not defined'),
+        fact(`${name.replace('(x)', '')}(${fmt(x, 2)})`, Number.isFinite(y) ? `${fmt(fx, 4)} ${sym} ${Number.isFinite(gx) && gx < 0 ? `(${fmt(gx, 4)})` : fmt(gx, 4)} = ${fmt(y, 4)}` : 'not defined here'));
+      q('.fg-note').textContent = op === '/' ? 'f ÷ g is defined where both f and g are, except where g(x) = 0 (red dashed lines).' : 'The result is defined where both f and g are defined.';
+    }
+    paint(q<HTMLCanvasElement>('.fg-fig'), fig);
+    q('.fg-facts').replaceChildren(...facts);
+  }
+  root.querySelectorAll('.fg-comb input, .fg-comb select, .fg-x').forEach((e) => e.addEventListener('input', draw));
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  quiz(q('.fg-quiz'), (): Question[] => {
+    const d = rint(1, 9) / 10, k = rint(-6, 6), a = rint(1, 5) * (Math.random() < 0.5 ? -1 : 1), s = rint(-9, 9, true), m = rint(2, 5), p = rint(1, 4), r = rint(-4, 4);
+    const fs = (m * p * p) + r, gs = p - 1;
+    return [
+      { text: `What is [${fmt(k + d, 1)}], the greatest integer not more than ${fmt(k + d, 1)}?`, answer: gif(k + d), worked: `${fmt(k + d, 1)} lies between ${gif(k + d)} and ${gif(k + d) + 1}, so the greatest integer not more than it is ${gif(k + d)}.${k + d < 0 ? ' For negatives this is further from zero.' : ''}` },
+      { text: `What is the signum of ${s}?`, answer: sgn(s), worked: `signum(x) = |x|/x for x ≠ 0: |${s}|/${s} = ${sgn(s)}.` },
+      { text: `f(x) = 1/(x − ${a}) is defined for all real x except one value. Which?`, answer: a, worked: `The bottom x − ${a} must not be 0, so x ≠ ${a}. Domain: R − {${a}}.` },
+      { text: `f(x) = ${m}x² + ${r < 0 ? `(${r})` : r} and g(x) = x − 1. Find (f + g)(${p}).`, answer: fs + gs, worked: `f(${p}) = ${m} × ${p * p} + ${r < 0 ? `(${r})` : r} = ${fs} and g(${p}) = ${gs}, so (f + g)(${p}) = ${fs} + ${gs} = ${fs + gs}.` },
+      pick([
+        { text: 'What is the range of f(x) = |x|?', choices: ['All real numbers', '[0, ∞)', '(0, ∞)'], correct: 1, worked: '|x| is never negative and reaches 0 at x = 0, so the range is [0, ∞).' },
+        { text: 'What is the range of the signum function?', choices: ['{−1, 1}', '{−1, 0, 1}', '[−1, 1]'], correct: 1, worked: 'It gives −1 for negatives, 0 at zero and 1 for positives: {−1, 0, 1}.' },
+        { text: 'What is the domain of f(x) = √x?', choices: ['[0, ∞)', '(0, ∞)', 'All real numbers'], correct: 0, worked: 'The square root of a negative number is not real, and √0 = 0, so x ≥ 0: [0, ∞).' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .fgl .fg-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .fgl .fg-picks button { min-height: 40px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+  .fgl .fg-picks button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .fgl .ax-seg button { min-height: 40px; }
+  .fgl fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; min-width: 0; }
+  .fgl fieldset input { max-width: 100%; }
+  .fgl .fg-parts { margin-top: 10px; }
+  .fgl .ax-row { margin-top: 8px; flex-wrap: wrap; }
+  .fgl .fg-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .fgl .fg-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .fgl i.fg-kg { background: var(--good); } .fgl i.fg-ko, .fgl i.fg-kgg { background: var(--warn); }
+  .fgl i.fg-kf { background: var(--muted); } .fgl i.fg-kh { background: var(--accent); } .fgl i.fg-kz { background: var(--bad); }
+  .fgl .fg-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .fgl .fg-note { margin: 8px 0 0; }
+</style>

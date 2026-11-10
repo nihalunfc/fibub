@@ -1,0 +1,205 @@
+---
+// Inequality shader: solve a x + b < c (and ≤, >, ≥) on a number line with interval notation, a double
+// inequality, and up to three inequalities in x and y shaded as half-planes whose overlap is the solution.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+const opts = [['<', '<'], ['<=', '≤'], ['>', '>'], ['>=', '≥']];
+---
+<div class="ax ins">
+  <div class="ax-card">
+    <div class="ax-row"><span class="ax-help">Mode</span>
+      <div class="ax-seg in-mode" role="group" aria-label="Mode"><button type="button" data-m="one" aria-pressed="true">One variable</button><button type="button" data-m="dbl" aria-pressed="false">Double</button><button type="button" data-m="two" aria-pressed="false">x and y</button></div>
+    </div>
+    <div class="in-one">
+      <div class="in-eq">
+        <input class="in-c1" type="text" inputmode="decimal" value="-3" aria-label="Left number" hidden />
+        <select class="in-op1" aria-label="Left sign" hidden>{opts.map(([v, t]) => <option value={v} selected={v === '<='}>{t}</option>)}</select>
+        <input class="in-a" type="text" inputmode="decimal" value="-2" aria-label="a" /><span>x +</span>
+        <input class="in-b" type="text" inputmode="decimal" value="5" aria-label="b" />
+        <select class="in-op" aria-label="Sign">{opts.map(([v, t]) => <option value={v} selected={v === '>='}>{t}</option>)}</select>
+        <input class="in-c" type="text" inputmode="decimal" value="1" aria-label="c" />
+      </div>
+      <p class="ax-help">Type a, b and c (negative numbers and decimals are fine) and choose the sign.</p>
+    </div>
+    <div class="in-two" hidden>
+      {[0, 1, 2].map((i) => (
+        <div class="in-row" data-i={i}>
+          <label class="in-use"><input type="checkbox" class="in-on" checked={i < 2} /> <span class="in-sw" data-i={i}></span></label>
+          <input class="in-ta" type="text" inputmode="decimal" value={['1', '2', '1'][i]} aria-label={`a in row ${i + 1}`} /><span>x +</span>
+          <input class="in-tb" type="text" inputmode="decimal" value={['1', '-1', '0'][i]} aria-label={`b in row ${i + 1}`} /><span>y</span>
+          <select class="in-top" aria-label={`Sign in row ${i + 1}`}>{opts.map(([v, t]) => <option value={v} selected={v === ['<=', '>', '>='][i]}>{t}</option>)}</select>
+          <input class="in-tc" type="text" inputmode="decimal" value={['6', '0', '0'][i]} aria-label={`c in row ${i + 1}`} />
+        </div>
+      ))}
+      <p class="ax-help">Tap the graph to test a point.</p>
+    </div>
+    <p class="ax-err in-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="in-title"></h2>
+    <canvas class="ax-fig in-fig" role="img"></canvas>
+    <p class="ax-legend in-leg"></p>
+    <ol class="in-steps"></ol>
+    <dl class="ax-facts in-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="in-try">
+      <li>Start with −2x + 5 ≥ 1. Dividing by −2 turns the sign round: x ≤ 2, which is (−∞, 2].</li>
+      <li>Change ≥ to &gt;: the dot at 2 opens and the square bracket becomes a round one.</li>
+      <li>Set a = 0: either every x works or none does.</li>
+      <li>In <b>x and y</b>, tick the third row (x ≥ 0) and add y ≥ 0 by typing 0, 1, ≥, 0 in it: a closed triangle appears, with its corners listed.</li>
+      <li>Make two lines parallel with opposite shading, such as x + y ≤ 2 and x + y ≥ 5: nothing overlaps, so there is no solution.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="in-quiz" />
+</div>
+
+<script>
+  import { solve1, solve2, interval, inWords, integers, contains, nice, halfText, inHalf, feasible, corners, SYM, type Op, type Half, type Sol } from '../../lib/sci/school-ineq';
+  import { paint, type Figure } from '../../lib/report';
+  import { view, axes, line, dot, px, py, wx, wy, fmt, FONT } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.ins')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380;
+  let mode = 'one', test: { x: number; y: number } | null = null;
+  const fact = (k: string, v: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; return el; };
+  let dblSet = false;
+  const setv = (c: string, v: string) => { q<HTMLInputElement>(c).value = v; };
+  root.querySelectorAll<HTMLButtonElement>('.in-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!;
+    if (mode === 'dbl' && !dblSet) { dblSet = true; setv('.in-c1', '-3'); setv('.in-op1', '<='); setv('.in-a', '2'); setv('.in-b', '1'); setv('.in-op', '<'); setv('.in-c', '7'); } root.querySelectorAll('.in-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  const N = (c: string) => num(q<HTMLInputElement>(c).value);
+  const ok = (...xs: number[]) => xs.every((x) => Number.isFinite(x) && Math.abs(x) <= 1000);
+  const v2 = view(-10, 10, -10, 10, W, W, { l: 26, r: 10, t: 10, b: 22 });
+  const COLS = (pl: { accent: string; accent2: string; good: string }) => [pl.accent, pl.accent2, pl.good];
+
+  function numberLine(s: Sol) {
+    const ends = s.kind === 'interval' ? [s.lo, s.hi].filter(Number.isFinite) : [];
+    let x0 = -10, x1 = 10;
+    for (const e of ends) { x0 = Math.min(x0, Math.floor(e) - 3); x1 = Math.max(x1, Math.ceil(e) + 3); }
+    const H = 90, v = view(x0, x1, -1, 1, W, H, { l: 14, r: 14, t: 10, b: 26 });
+    const fig: Figure = { w: W, h: H, alt: `Number line: ${inWords(s)}, ${interval(s)}`, draw: (ctx, w, h, pl) => {
+      const Y = py(v, 0);
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(v.l - 8, Y); ctx.lineTo(w - v.r + 8, Y); ctx.stroke();
+      const step = x1 - x0 > 30 ? 5 : x1 - x0 > 16 ? 2 : 1;
+      ctx.font = FONT; ctx.fillStyle = pl.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let k = Math.ceil(x0 / step) * step; k <= x1; k += step) { const X = px(v, k); ctx.beginPath(); ctx.moveTo(X, Y - 5); ctx.lineTo(X, Y + 5); ctx.stroke(); ctx.fillText(fmt(k), X, Y + 9); }
+      if (s.kind === 'none') return;
+      const a = s.kind === 'all' ? x0 : Math.max(s.lo, x0), b = s.kind === 'all' ? x1 : Math.min(s.hi, x1);
+      ctx.strokeStyle = pl.accent; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(px(v, a), Y); ctx.lineTo(px(v, b), Y); ctx.stroke(); ctx.lineCap = 'butt';
+      const arrow = (X: number, dir: number) => { ctx.fillStyle = pl.accent; ctx.beginPath(); ctx.moveTo(X + dir * 12, Y); ctx.lineTo(X, Y - 8); ctx.lineTo(X, Y + 8); ctx.closePath(); ctx.fill(); };
+      if (s.kind === 'all' || s.lo === -Infinity) arrow(px(v, x0) - 6, -1);
+      if (s.kind === 'all' || s.hi === Infinity) arrow(px(v, x1) + 6, 1);
+      if (s.kind === 'interval') for (const [e, inc] of [[s.lo, s.loIn], [s.hi, s.hiIn]] as [number, boolean][]) if (Number.isFinite(e)) {
+        ctx.beginPath(); ctx.arc(px(v, e), Y, 7, 0, 7); ctx.fillStyle = inc ? pl.accent : pl.bg; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = pl.accent; ctx.stroke();
+        ctx.fillStyle = pl.ink; ctx.textBaseline = 'bottom'; ctx.fillText(nice(e), px(v, e), Y - 10);
+      }
+    } };
+    return fig;
+  }
+
+  function draw() {
+    const err = q('.in-err'); err.hidden = true;
+    q('.in-one').hidden = mode === 'two'; q('.in-two').hidden = mode !== 'two';
+    root.querySelectorAll<HTMLElement>('.in-c1, .in-op1').forEach((e) => { e.hidden = mode !== 'dbl'; });
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+    if (mode !== 'two') {
+      const a = N('.in-a'), b = N('.in-b'), c = N('.in-c'), c1 = N('.in-c1');
+      if (!ok(a, b, c) || (mode === 'dbl' && !ok(c1))) return fail('Type each box as a number between −1000 and 1000.');
+      const op = q<HTMLSelectElement>('.in-op').value as Op, op1 = q<HTMLSelectElement>('.in-op1').value as Op;
+      if (mode === 'dbl' && op1[0] !== op[0]) return fail('In a double inequality both signs point the same way, such as −3 ≤ … < 7.');
+      const r = mode === 'dbl' ? solve2(c1, op1, a, b, op, c) : solve1(a, b, op, c);
+      q('.in-title').textContent = `Solution: ${inWords(r.sol)}`;
+      paint(q<HTMLCanvasElement>('.in-fig'), numberLine(r.sol));
+      q('.in-leg').textContent = 'Filled dot: that number is included (≤ or ≥, square bracket). Open dot: it is not (< or >, round bracket).';
+      q('.in-steps').replaceChildren(...r.steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+      const ints = integers(r.sol, -10, 10).map((k) => fmt(k));
+      q('.in-facts').replaceChildren(fact('Interval notation', interval(r.sol)), fact('In words', inWords(r.sol)), fact('Whole numbers from −10 to 10 that work', ints.length ? (ints.length > 12 ? `${ints.slice(0, 6).join(', ')}, …, ${ints.slice(-2).join(', ')} (${ints.length} of them)` : ints.join(', ')) : 'none'));
+      return;
+    }
+    const hs: Half[] = [], idx: number[] = [];
+    for (const row of root.querySelectorAll<HTMLElement>('.in-row')) {
+      if (!row.querySelector<HTMLInputElement>('.in-on')!.checked) continue;
+      const g = (c: string) => num(row.querySelector<HTMLInputElement>(c)!.value);
+      const h = { a: g('.in-ta'), b: g('.in-tb'), op: row.querySelector<HTMLSelectElement>('.in-top')!.value as Op, c: g('.in-tc') };
+      if (!ok(h.a, h.b, h.c)) return fail(`Row ${+row.dataset.i! + 1}: type a, b and c as numbers between −1000 and 1000.`);
+      if (h.a === 0 && h.b === 0) return fail(`Row ${+row.dataset.i! + 1}: a and b cannot both be 0.`);
+      hs.push(h); idx.push(+row.dataset.i!);
+    }
+    root.querySelectorAll<HTMLElement>('.in-row').forEach((row) => { row.querySelector<HTMLElement>('.in-sw')!.textContent = String(+row.dataset.i! + 1); });
+    const poly = feasible(hs, -10, 10, -10, 10), cs = corners(hs, -10, 10, -10, 10);
+    q('.in-title').textContent = !hs.length ? 'Tick at least one inequality' : poly.length >= 3 ? 'The darker region satisfies every ticked inequality' : 'No point in view satisfies them all';
+    const fig: Figure = { w: W, h: W, alt: `Half-planes ${hs.map(halfText).join('; ')}. ${poly.length >= 3 ? 'They overlap in the darker region.' : 'They do not overlap in view.'}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v2, pl, { xName: 'x', yName: 'y' });
+      const col = COLS(pl);
+      ctx.save(); ctx.beginPath(); ctx.rect(v2.l, v2.t, w - v2.l - v2.r, h - v2.t - v2.b); ctx.clip();
+      hs.forEach((hh, k) => { const p = feasible([hh], -10, 10, -10, 10); ctx.globalAlpha = 0.12; ctx.fillStyle = col[idx[k]]; ctx.beginPath(); p.forEach((P, i) => (i ? ctx.lineTo(px(v2, P.x), py(v2, P.y)) : ctx.moveTo(px(v2, P.x), py(v2, P.y)))); ctx.closePath(); ctx.fill(); });
+      if (poly.length >= 3) { ctx.globalAlpha = 0.35; ctx.fillStyle = pl.ink; ctx.beginPath(); poly.forEach((P, i) => (i ? ctx.lineTo(px(v2, P.x), py(v2, P.y)) : ctx.moveTo(px(v2, P.x), py(v2, P.y)))); ctx.closePath(); ctx.fill(); }
+      ctx.restore(); ctx.globalAlpha = 1;
+      hs.forEach((hh, k) => {
+        const strict = hh.op === '<' || hh.op === '>', dash = strict ? [7, 5] : [];
+        if (hh.b !== 0) line(ctx, v2, -10, (hh.c + 10 * hh.a) / hh.b, 10, (hh.c - 10 * hh.a) / hh.b, col[idx[k]], 2.4, dash);
+        else line(ctx, v2, hh.c / hh.a, -10, hh.c / hh.a, 10, col[idx[k]], 2.4, dash);
+      });
+      for (const c of cs) dot(ctx, v2, c.x, c.y, pl.ink, 4);
+      if (test) { dot(ctx, v2, test.x, test.y, pl.bad, 6); }
+    } };
+    paint(q<HTMLCanvasElement>('.in-fig'), fig);
+    q('.in-leg').textContent = 'Each colour shades where its inequality holds. Solid line: the line itself is included (≤, ≥). Dashed: it is not (<, >).';
+    const steps = hs.map((h) => `${halfText(h)}: test (0, 0): ${fmt(0)} ${SYM[h.op]} ${fmt(h.c)} is ${inHalf(h, 0, 0) ? 'true, so shade the side with the origin' : 'false, so shade the side away from the origin'}${h.c === 0 && (h.op === '<' || h.op === '>') ? ' (the origin is on the line here, so test another point such as (1, 1))' : ''}.`);
+    q('.in-steps').replaceChildren(...steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    const facts = [fact('Corner points', cs.length ? cs.map((c) => `(${nice(c.x)}, ${nice(c.y)})`).join(', ') : 'none in view')];
+    if (test) { const all = hs.every((h) => inHalf(h, test!.x, test!.y)); facts.push(fact(`Point (${fmt(test.x, 1)}, ${fmt(test.y, 1)})`, `${all ? 'satisfies every one' : 'fails ' + hs.map((h, k) => (inHalf(h, test!.x, test!.y) ? '' : `row ${idx[k] + 1}`)).filter(Boolean).join(' and ')}`)); }
+    q('.in-facts').replaceChildren(...facts);
+  }
+
+  const cv = q<HTMLCanvasElement>('.in-fig');
+  cv.addEventListener('click', (e) => {
+    if (mode !== 'two') return;
+    const r = cv.getBoundingClientRect(), X = ((e.clientX - r.left) / r.width) * W, Y = ((e.clientY - r.top) / r.height) * W;
+    const x = Math.round(wx(v2, X) * 2) / 2, y = Math.round(wy(v2, Y) * 2) / 2;
+    if (Math.abs(x) > 10 || Math.abs(y) > 10) return;
+    test = { x, y }; draw();
+  });
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', draw));
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  quiz(q('.in-quiz'), (): Question[] => {
+    const a = rint(2, 6), k = rint(-5, 8), b = rint(-9, 9, true), c = a * k + b;
+    const n = rint(2, 5), m = rint(-4, 6), d = rint(-9, 9), e = -n * m + d;
+    const lo = rint(-5, 0), hi = lo + rint(3, 7);
+    return [
+      { text: `Solve ${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)} < ${c}. The answer is x < ?`, answer: k, worked: `Take ${b} from both sides: ${a}x < ${c - b}. Divide by ${a} (positive, so the sign stays): x < ${k}.` },
+      { text: `Solve −${n}x ${d < 0 ? '−' : '+'} ${Math.abs(d)} ≤ ${e}. The answer is x ≥ ?`, answer: m, worked: `Take ${d} from both sides: −${n}x ≤ ${e - d}. Divide by −${n}, a negative number, so ≤ turns into ≥: x ≥ ${m}.` },
+      { text: `How many whole numbers x satisfy ${lo} ≤ x < ${hi}?`, answer: hi - lo, worked: `They are ${lo}, ${lo + 1}, …, ${hi - 1}: from ${lo} up to but not including ${hi}, that is ${hi} − (${lo}) = ${hi - lo} numbers.` },
+      pick([
+        { text: 'Which interval is x ≥ 3?', choices: ['(3, ∞)', '[3, ∞)', '(−∞, 3]'], correct: 1, worked: 'x ≥ 3 includes 3 (square bracket) and goes on for ever (∞ always takes a round bracket): [3, ∞).' },
+        { text: 'Which interval is −2 < x ≤ 5?', choices: ['(−2, 5]', '[−2, 5)', '(−2, 5)'], correct: 0, worked: '−2 is not included (round bracket), 5 is (square bracket): (−2, 5].' },
+        { text: 'You divide both sides of an inequality by −4. What happens to the sign?', choices: ['Nothing', 'It turns round', 'It becomes ='], correct: 1, worked: 'Multiplying or dividing by a negative number reverses the order, so < becomes > and ≤ becomes ≥.' },
+      ] as Question[]),
+      { text: 'Is the point (0, 0) in the region x + y ≥ 4?', choices: ['Yes', 'No'], correct: 1, worked: '0 + 0 = 0, and 0 ≥ 4 is false, so (0, 0) is not in the region. Shade the side of x + y = 4 away from the origin.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .ins .ax-seg button { min-height: 40px; }
+  .ins .ax-row { flex-wrap: wrap; }
+  .ins .in-eq, .ins .in-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+  .ax.ins .in-eq input:not([type=checkbox]):not([type=radio]), .ax.ins .in-row input:not([type=checkbox]):not([type=radio]) { width: 64px; min-height: 44px; text-align: center; }
+  .ax.ins .in-eq select, .ax.ins .in-row select { min-height: 44px; width: 58px; font-size: 18px; }
+  .ins .in-use { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+  .ins .in-use input { width: 22px; height: 22px; }
+  .ins .in-sw { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: #fff; font-weight: 700; font-size: 13px; }
+  .ins .in-sw[data-i="0"] { background: var(--accent); } .ins .in-sw[data-i="1"] { background: var(--warn); } .ins .in-sw[data-i="2"] { background: var(--good); }
+  .ins .in-steps { padding-left: 22px; display: grid; gap: 4px; margin: 8px 0; }
+  .ins .in-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .ins .in-fig { cursor: crosshair; }
+</style>

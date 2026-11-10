@@ -1,0 +1,181 @@
+---
+// Spread explorer: drag the points of two data sets along a number line and watch the range, mean deviation,
+// variance, standard deviation and coefficient of variation change; deviations from the mean are drawn as bars.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax spx">
+  <div class="ax-card">
+    <h2>Pick or type the data</h2>
+    <label>Example <select class="sp-pre"></select></label>
+    <div class="ax-grid sp-data">
+      <label><span class="sp-na"></span> <textarea class="sp-ta" rows="2" spellcheck="false"></textarea></label>
+      <label><span class="sp-nb"></span> <textarea class="sp-tb" rows="2" spellcheck="false"></textarea></label>
+    </div>
+    <p class="ax-err sp-err" hidden></p>
+    <div class="ax-row"><span class="ax-help">Show</span>
+      <div class="ax-seg sp-show" role="group" aria-label="What to show"><button type="button" data-s="md" aria-pressed="true">Deviations |x − x̄|</button><button type="button" data-s="sq" aria-pressed="false">Squares (x − x̄)²</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="sp-title"></h2>
+    <svg class="sp-fig" role="img"></svg>
+    <p class="ax-help">Drag any dot sideways. The dashed line is the mean; the bars show how far each point is from it.</p>
+    <div class="ax-scroll"><table class="sp-tab"><thead><tr><th></th><th class="r sp-ha"></th><th class="r sp-hb"></th></tr></thead><tbody></tbody></table></div>
+    <p class="sp-verdict"></p>
+    <details class="sp-work"><summary>Show the working for <span class="sp-wn"></span></summary><div class="ax-scroll"><table class="sp-wt"><thead><tr><th class="r">x</th><th class="r">x − x̄</th><th class="r">|x − x̄|</th><th class="r">(x − x̄)²</th></tr></thead><tbody></tbody></table></div><p class="sp-wsum"></p></details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sp-try">
+      <li>In <b>Same mean, different spread</b>, drag class B's outer dots towards 50: its SD falls towards class A's.</li>
+      <li>Drag one dot far out: the range and SD jump, but the median hardly moves.</li>
+      <li>Add 10 to every number in a box: the mean goes up by 10, but the range, mean deviation and SD do not change.</li>
+      <li>Open <b>Heights vs weights</b>: SDs in cm and kg cannot be compared, but the CV (a percentage) can.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="sp-quiz" />
+</div>
+
+<script>
+  import { stats, readData, PRESETS, type Stats } from '../../lib/sci/school-spread';
+  import { S, dragOn } from '../../lib/smath-ui';
+  import { fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.spx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const svg = root.querySelector<SVGSVGElement>('.sp-fig')!;
+  const Wd = 380, BAND = 120, PADL = 16, PADR = 16;
+  let data: [number[], number[]] = [[], []], names: [string, string] = ['A', 'B'], lo = 0, hi = 100, show = 'md';
+  const sel = q<HTMLSelectElement>('.sp-pre');
+  sel.replaceChildren(...PRESETS.map((p) => new Option(p.label, p.id)));
+  const X = (v: number) => PADL + ((v - lo) / (hi - lo)) * (Wd - PADL - PADR);
+  const V = (x: number) => lo + ((x - PADL) / (Wd - PADL - PADR)) * (hi - lo);
+  const f2 = (x: number) => fmt(x, 2);
+
+  function load() {
+    const p = PRESETS.find((k) => k.id === sel.value)!;
+    data = [[...p.a], [...p.b]]; names = p.names; lo = p.lo; hi = p.hi;
+    q('.sp-na').textContent = names[0]; q('.sp-nb').textContent = names[1];
+    q('.sp-ha').textContent = names[0]; q('.sp-hb').textContent = names[1];
+    q('.sp-title').dataset.note = p.note; q('.sp-err').hidden = true;
+    q<HTMLTextAreaElement>('.sp-ta').value = data[0].join(', '); q<HTMLTextAreaElement>('.sp-tb').value = data[1].join(', ');
+    draw();
+  }
+  function fromText() {
+    const a = readData(q<HTMLTextAreaElement>('.sp-ta').value), b = readData(q<HTMLTextAreaElement>('.sp-tb').value), err = q('.sp-err');
+    const bad = [...a.bad, ...b.bad];
+    if (bad.length || a.xs.length < 2 || b.xs.length < 2 || a.xs.length > 30 || b.xs.length > 30) { err.textContent = bad.length ? `Not a number: ${bad.slice(0, 3).join(', ')}` : 'Type 2 to 30 numbers in each box.'; err.hidden = false; return; }
+    err.hidden = true; data = [a.xs, b.xs];
+    const all = [...a.xs, ...b.xs], mn = Math.min(...all), mx = Math.max(...all), pad = Math.max(1, (mx - mn) * 0.1);
+    if (mn < lo || mx > hi) { lo = Math.floor(mn - pad); hi = Math.ceil(mx + pad); }
+    q('.sp-title').dataset.note = '';
+    draw();
+  }
+
+  function draw() {
+    const st: [Stats, Stats] = [stats(data[0]), stats(data[1])];
+    q('.sp-title').textContent = q('.sp-title').dataset.note || `${names[0]}: SD ${f2(st[0].sd)}; ${names[1]}: SD ${f2(st[1].sd)}`;
+    const Hh = BAND * 2 + 30;
+    svg.setAttribute('viewBox', `0 0 ${Wd} ${Hh}`); svg.replaceChildren();
+    svg.setAttribute('aria-label', `${names[0]}: mean ${f2(st[0].mean)}, SD ${f2(st[0].sd)}. ${names[1]}: mean ${f2(st[1].mean)}, SD ${f2(st[1].sd)}.`);
+    // axis with ticks
+    const ay = Hh - 22; S('line', { x1: PADL, y1: ay, x2: Wd - PADR, y2: ay, class: 'sp-ax' }, svg);
+    const step = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500].find((s) => (hi - lo) / s <= 8) ?? 1000;
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) { S('line', { x1: X(v), y1: ay, x2: X(v), y2: ay + 5, class: 'sp-ax' }, svg); S('text', { x: X(v), y: ay + 17, 'text-anchor': 'middle', class: 'sp-tx' }, svg, String(v)); }
+    [0, 1].forEach((k) => {
+      const top = k * BAND + 6, xs = data[k], m = st[k].mean, g = S('g', { class: `sp-set sp-s${k}` }, svg);
+      S('text', { x: PADL, y: top + 12, class: 'sp-nm' }, g, `${names[k]}  (x̄ = ${f2(m)}, SD = ${f2(st[k].sd)})`);
+      S('line', { x1: X(m), y1: top + 18, x2: X(m), y2: top + BAND - 8, class: 'sp-mean' }, g);
+      // stack dots with the same value; bars from the mean
+      const seen = new Map<number, number>();
+      const order = xs.map((x, i) => [x, i] as [number, number]).sort((p, r) => p[0] - r[0]);
+      const maxDev = Math.max(1e-9, ...xs.map((x) => Math.abs(x - m)));
+      order.forEach(([x, i], j) => {
+        const level = seen.get(x) ?? 0; seen.set(x, level + 1);
+        const y = top + BAND - 18 - level * 12;
+        const by = top + 22 + (j * (BAND - 52)) / Math.max(1, xs.length - 1);
+        if (show === 'md') S('line', { x1: X(m), y1: by, x2: X(x), y2: by, class: 'sp-bar' }, g);
+        else { const s = (Math.abs(x - m) / maxDev) * 14; S('rect', { x: Math.min(X(m), X(x)), y: by - s / 2, width: Math.abs(X(x) - X(m)), height: Math.max(1, s), class: 'sp-sq' }, g); }
+        S('circle', { cx: X(x), cy: y, r: 7, class: 'sp-dot', 'data-k': k, 'data-i': i }, g);
+      });
+    });
+    const rows: [string, (s: Stats) => string][] = [
+      ['Number of values n', (s) => String(s.n)], ['Mean x̄', (s) => f2(s.mean)], ['Median', (s) => f2(s.median)], ['Range', (s) => `${f2(s.max)} − ${f2(s.min)} = ${f2(s.range)}`],
+      ['Mean deviation about the mean', (s) => f2(s.mdMean)], ['Mean deviation about the median', (s) => f2(s.mdMedian)],
+      ['Variance σ²', (s) => f2(s.variance)], ['Standard deviation σ', (s) => f2(s.sd)], ['Coefficient of variation σ/x̄ × 100', (s) => (Number.isFinite(s.cv) ? `${f2(s.cv)} %` : 'mean is 0')],
+    ];
+    q('.sp-tab tbody').replaceChildren(...rows.map(([n, f]) => { const tr = document.createElement('tr'); [n, f(st[0]), f(st[1])].forEach((t, i) => { const td = document.createElement(i ? 'td' : 'th'); td.textContent = t; if (i) td.className = 'r'; tr.append(td); }); return tr; }));
+    const c0 = st[0].cv, c1 = st[1].cv;
+    q('.sp-verdict').textContent = Number.isFinite(c0) && Number.isFinite(c1) ? (Math.abs(c0 - c1) < 0.005 ? 'Both sets vary by the same amount compared with their means.' : `${c0 > c1 ? names[0] : names[1]} is more variable (bigger CV), so ${c0 > c1 ? names[1] : names[0]} is more consistent.`) : 'The CV needs a mean that is not 0.';
+    // worked table for the first set
+    const s0 = st[0];
+    q('.sp-wn').textContent = names[0];
+    q('.sp-wt tbody').replaceChildren(...data[0].map((x) => { const tr = document.createElement('tr'); [f2(x), f2(x - s0.mean), f2(Math.abs(x - s0.mean)), f2((x - s0.mean) ** 2)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
+    q('.sp-wsum').textContent = `x̄ = ${f2(s0.mean * s0.n)} ÷ ${s0.n} = ${f2(s0.mean)}. Mean deviation = Σ|x − x̄| ÷ n = ${f2(s0.mdMean * s0.n)} ÷ ${s0.n} = ${f2(s0.mdMean)}. Variance = Σ(x − x̄)² ÷ n = ${f2(s0.variance * s0.n)} ÷ ${s0.n} = ${f2(s0.variance)}, so σ = √${f2(s0.variance)} = ${f2(s0.sd)}.`;
+  }
+
+  let drag: [number, number] | null = null;
+  dragOn(svg, (x, y) => {
+    let best: [number, number] | null = null, bd = 18;
+    svg.querySelectorAll<SVGCircleElement>('.sp-dot').forEach((c) => { const d = Math.hypot(+c.getAttribute('cx')! - x, +c.getAttribute('cy')! - y); if (d < bd) { bd = d; best = [+c.dataset.k!, +c.dataset.i!]; } });
+    drag = best; return best ? 'dot' : null;
+  }, (_id, x) => {
+    if (!drag) return;
+    const v = Math.round(Math.min(hi, Math.max(lo, V(x))));
+    data[drag[0]][drag[1]] = v;
+    q<HTMLTextAreaElement>(drag[0] ? '.sp-tb' : '.sp-ta').value = data[drag[0]].join(', ');
+    q('.sp-title').dataset.note = '';
+    draw();
+  });
+  sel.addEventListener('change', load);
+  q('.sp-ta').addEventListener('input', fromText); q('.sp-tb').addEventListener('input', fromText);
+  root.querySelectorAll<HTMLButtonElement>('.sp-show button').forEach((b) => b.addEventListener('click', () => { show = b.dataset.s!; root.querySelectorAll('.sp-show button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  load();
+
+  quiz(q('.sp-quiz'), (): Question[] => {
+    const base = rint(2, 9), d = [0, 2, 4, 6, 8].map((k) => base + k * rint(1, 2));
+    const s = stats(d), c = rint(5, 30), t = [c - 3, c - 1, c + 1, c + 3], st = stats(t);
+    const m1 = rint(40, 60), sd1 = rint(4, 10), m2 = rint(40, 60), sd2 = rint(4, 10);
+    const cv1 = (100 * sd1) / m1, cv2 = (100 * sd2) / m2, vv = rint(10, 90);
+    return [
+      { text: `Find the mean deviation about the mean of ${d.join(', ')}.`, answer: s.mdMean, tol: 0.01, worked: `Mean = ${d.reduce((a, b) => a + b, 0)} ÷ 5 = ${f2(s.mean)}. Deviations |x − x̄|: ${d.map((x) => f2(Math.abs(x - s.mean))).join(', ')}, total ${f2(s.mdMean * 5)}. Divide by 5: ${f2(s.mdMean)}.` },
+      { text: `Find the variance of ${t.join(', ')}.`, answer: st.variance, tol: 0.01, worked: `Mean = ${c}. Squared deviations: 9, 1, 1, 9, total 20. Variance = 20 ÷ 4 = 5.` },
+      { text: `The variance of a set is ${vv}. What is its standard deviation? (Round to 2 decimals.)`, answer: Math.sqrt(vv), tol: 0.006, worked: `σ = √${vv} = ${f2(Math.sqrt(vv))}.` },
+      { text: `Set P has mean ${m1} and SD ${sd1}; set Q has mean ${m2} and SD ${sd2}. Which is more consistent?`, choices: ['P', 'Q', 'Equally'], correct: Math.abs(cv1 - cv2) < 1e-9 ? 2 : cv1 < cv2 ? 0 : 1, worked: `CV of P = ${sd1}/${m1} × 100 = ${f2(cv1)} %, CV of Q = ${sd2}/${m2} × 100 = ${f2(cv2)} %. The smaller CV is the more consistent.` },
+      pick([
+        { text: 'You add 7 to every value. What happens to the standard deviation?', choices: ['It goes up by 7', 'It stays the same', 'It is multiplied by 7'], correct: 1, worked: 'Every value and the mean move by 7, so each deviation x − x̄ stays the same, and so does σ.' },
+        { text: 'You multiply every value by 3. What happens to the variance?', choices: ['× 3', '× 9', 'No change'], correct: 1, worked: 'Each deviation is multiplied by 3, so each squared deviation by 9: the variance is multiplied by 9 (and σ by 3).' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .spx label { display: grid; gap: 4px; }
+  .spx select, .spx textarea { min-height: 44px; width: 100%; box-sizing: border-box; }
+  .spx .sp-data { margin-top: 10px; }
+  .spx .ax-row { margin-top: 10px; flex-wrap: wrap; }
+  .spx .ax-seg button { min-height: 40px; }
+  .spx .sp-fig { width: 100%; height: auto; display: block; touch-action: none; }
+  .spx .sp-ax { stroke: var(--muted); stroke-width: 1.2; }
+  .spx .sp-tx { font-size: 11px; fill: var(--muted); }
+  .spx .sp-nm { font-size: 12px; fill: var(--ink); font-weight: 600; }
+  .spx .sp-mean { stroke: var(--ink); stroke-dasharray: 5 4; stroke-width: 1.4; }
+  .spx .sp-s0 .sp-dot { fill: var(--accent); }
+  .spx .sp-s1 .sp-dot { fill: var(--warn); }
+  .spx .sp-dot { stroke: var(--bg); stroke-width: 2; cursor: grab; }
+  .spx .sp-s0 .sp-bar { stroke: var(--accent); } .spx .sp-s1 .sp-bar { stroke: var(--warn); }
+  .spx .sp-bar { stroke-width: 3; opacity: 0.6; }
+  .spx .sp-s0 .sp-sq { fill: var(--accent); } .spx .sp-s1 .sp-sq { fill: var(--warn); }
+  .spx .sp-sq { opacity: 0.45; }
+  .spx .sp-tab th { text-align: left; font-weight: 400; font-size: 14px; }
+  .spx .sp-verdict { font-weight: 600; margin: 8px 0; }
+  .spx .sp-work summary { cursor: pointer; min-height: 32px; }
+  .spx .sp-wsum { font-size: 14px; }
+  .spx .sp-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

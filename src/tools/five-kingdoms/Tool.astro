@@ -1,0 +1,192 @@
+---
+// Five-kingdom sorter: sort drawn organisms into Monera, Protista, Fungi, Plantae and Animalia, or set the
+// features (cell type, number of cells, cell wall, nutrition) and see which kingdom they lead to and why.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax fkg">
+  <div class="ax-card">
+    <div class="ax-row"><span class="ax-help">Mode</span>
+      <div class="ax-seg fk-mode" role="group" aria-label="Mode"><button type="button" data-m="sort" aria-pressed="true">Sort organisms</button><button type="button" data-m="build" aria-pressed="false">Build from features</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card fk-sort">
+    <h2>Which kingdom?</h2>
+    <div class="fk-card">
+      <svg class="fk-pic" viewBox="0 0 120 90" role="img"></svg>
+      <div><p class="fk-name"></p><p class="ax-help fk-feat"></p></div>
+    </div>
+    <div class="fk-kbtn" role="group" aria-label="Kingdoms"></div>
+    <p class="fk-res" aria-live="polite"></p>
+    <div class="ax-row"><button type="button" class="btn small secondary fk-next">Next organism</button><span class="ax-help fk-score"></span></div>
+    <details class="fk-all"><summary>See all <span class="fk-n"></span> organisms</summary><div class="fk-gal"></div></details>
+  </div>
+
+  <div class="ax-card fk-build" hidden>
+    <h2>Set the features</h2>
+    <div class="fk-q" data-f="cell"><p>Does the cell have a true nucleus?</p><div class="ax-seg" role="group"><button type="button" data-v="pro" aria-pressed="false">No: prokaryotic</button><button type="button" data-v="eu" aria-pressed="true">Yes: eukaryotic</button></div></div>
+    <div class="fk-q" data-f="org"><p>How many cells?</p><div class="ax-seg" role="group"><button type="button" data-v="uni" aria-pressed="false">One</button><button type="button" data-v="multi" aria-pressed="true">Many</button></div></div>
+    <div class="fk-q" data-f="wall"><p>Cell wall?</p><div class="ax-seg" role="group"><button type="button" data-v="none" aria-pressed="false">None</button><button type="button" data-v="cellulose" aria-pressed="true">Cellulose</button><button type="button" data-v="chitin" aria-pressed="false">Chitin</button><button type="button" data-v="other" aria-pressed="false">Other</button></div></div>
+    <div class="fk-q" data-f="food"><p>How does it get food?</p><div class="ax-seg" role="group"><button type="button" data-v="auto" aria-pressed="true">Makes it</button><button type="button" data-v="hetero" aria-pressed="false">Takes it in</button><button type="button" data-v="both" aria-pressed="false">Both</button></div></div>
+    <p class="fk-out"></p>
+    <p class="ax-help fk-match"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The five kingdoms side by side</h2>
+    <div class="ax-scroll"><table class="fk-tab"><thead><tr><th></th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">A teaching summary of Whittaker's five-kingdom scheme (1969). Viruses, viroids and lichens are left out of it; modern classification uses DNA and splits life into more groups.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fk-try">
+      <li>Sort yeast. It is a single cell, but its chitin wall puts it with the fungi, not the protists.</li>
+      <li>In <b>Build from features</b>, choose many cells, cellulose wall and "takes it in": that is a plant that does not make its own food, like dodder.</li>
+      <li>Try a prokaryote with a cellulose wall: whatever else you pick, no nucleus means Monera.</li>
+      <li>Choose many cells, no wall and "makes it": no kingdom fits. Can you think why?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="fk-quiz" />
+</div>
+
+<script>
+  import { EXAMPLES, KINGDOMS, TRAITS, classify, FEATURE_TEXT, type Example, type Features, type Kingdom } from '../../lib/sci/school-kingdoms';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.fkg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let order = shuffle(EXAMPLES.map((_, i) => i)), at = 0, right = 0, tried = 0, answered = false;
+  const feats: Features = { cell: 'eu', org: 'multi', wall: 'cellulose', food: 'auto' };
+  function shuffle<T>(a: T[]) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const describe = (e: Features) => `${FEATURE_TEXT.cell[e.cell]}, ${FEATURE_TEXT.org[e.org]}, ${FEATURE_TEXT.wall[e.wall]}, ${e.food === 'both' ? 'makes food and takes it in' : FEATURE_TEXT.food[e.food]}`;
+
+  // Simple line drawings, one per kind of organism, in a 120 × 90 box.
+  function draw(svg: SVGSVGElement, kind: string) {
+    svg.replaceChildren();
+    const g = S('g', { class: 'fk-d' }, svg);
+    const P = (d: string, fill = false) => S('path', { d, class: fill ? 'fk-f' : '' }, g);
+    const C = (cx: number, cy: number, r: number, fill = false) => S('circle', { cx, cy, r, class: fill ? 'fk-f' : '' }, g);
+    const E = (cx: number, cy: number, rx: number, ry: number, fill = false, rot = 0) => S('ellipse', { cx, cy, rx, ry, class: fill ? 'fk-f' : '', transform: rot ? `rotate(${rot} ${cx} ${cy})` : undefined }, g);
+    switch (kind) {
+      case 'rod': S('rect', { x: 30, y: 35, width: 60, height: 22, rx: 11, class: 'fk-f' }, g); P('M90 46 q10 -8 18 0 q6 8 10 0'); P('M45 46 h30'); break;
+      case 'chain': for (let i = 0; i < 6; i++) C(18 + i * 17, 45 + (i % 2 ? 3 : -3), 8, true); C(18 + 6 * 17, 45, 10); break;
+      case 'blob': P('M30 50 q-8 -20 12 -24 q6 -14 22 -4 q18 -6 22 10 q16 8 4 20 q-2 16 -22 10 q-14 12 -26 0 q-18 0 -12 -12 z', true); C(58, 46, 6); break;
+      case 'slipper': E(60, 45, 40, 16, true, -8); for (let i = 0; i < 16; i++) { const a = (i / 16) * 2 * Math.PI, x = 60 + 41 * Math.cos(a), y = 45 + 17 * Math.sin(a); P(`M${x} ${y} l${4 * Math.cos(a)} ${4 * Math.sin(a)}`); } C(55, 45, 5); break;
+      case 'flagellate': E(55, 48, 30, 13, true, 0); P('M25 46 q-10 -14 -20 -6 q-6 8 -2 -12'); C(66, 48, 5); C(40, 44, 3); break;
+      case 'box': S('rect', { x: 25, y: 28, width: 70, height: 34, rx: 6, class: 'fk-f' }, g); P('M25 45 h70'); for (let i = 0; i < 7; i++) P(`M${32 + i * 9} 31 v10 M${32 + i * 9} 49 v10`); break;
+      case 'budding': C(52, 48, 18, true); C(76, 34, 10, true); C(52, 48, 5); break;
+      case 'mushroom': P('M28 46 q32 -40 64 0 z', true); P('M52 46 v34 h16 v-34'); P('M30 46 h60'); break;
+      case 'mould': P('M10 80 h100'); for (const x of [30, 60, 90]) { P(`M${x} 80 v-38`); C(x, 34, 9, true); } P('M30 80 q15 -6 30 0 q15 6 30 0'); break;
+      case 'filament': S('rect', { x: 8, y: 32, width: 104, height: 26, rx: 13 }, g); for (let i = 1; i < 4; i++) P(`M${8 + i * 26} 32 v26`); P('M10 45 q6 -12 13 0 t13 0 t13 0 t13 0 t13 0 t13 0 t13 0 t13 0', false); break;
+      case 'moss': P('M10 82 h100'); for (const x of [30, 50, 70, 90]) { P(`M${x} 82 v-40`); for (let k = 0; k < 4; k++) P(`M${x} ${74 - k * 9} l-7 -5 M${x} ${74 - k * 9} l7 -5`); } P('M50 42 v-22'); E(50, 16, 3, 6, true); break;
+      case 'fern': P('M60 84 q-6 -40 10 -74'); for (let k = 0; k < 8; k++) { const y = 74 - k * 8, x = 60 - k * 0.6 + (k > 5 ? 4 : 0); P(`M${x} ${y} q-16 -2 -24 -10 M${x} ${y} q16 -2 24 -10`); } break;
+      case 'tree': P('M54 86 v-34 h12 v34', true); C(60, 34, 26, true); C(40, 44, 14, true); C(80, 44, 14, true); E(48, 30, 4, 6); E(74, 26, 4, 6); break;
+      case 'vine': P('M10 84 q20 -60 50 -40 q30 20 50 -30'); P('M40 84 v-60', false); for (let k = 0; k < 6; k++) P(`M${15 + k * 16} ${70 - k * 8} q6 -4 3 -10`); for (let k = 0; k < 4; k++) C(40, 70 - k * 12, 3, true); break;
+      case 'sponge': P('M38 84 q-14 -40 6 -74 h32 q20 34 6 74 z', true); for (const [x, y] of [[52, 30], [66, 40], [50, 52], [64, 62], [56, 74]]) C(x, y, 4); E(60, 12, 14, 4); break;
+      case 'worm': P('M10 56 q20 -30 40 -6 t40 -6 t28 6', false); for (let k = 0; k < 9; k++) P(`M${14 + k * 11} ${48 - (k % 3) * 4} v12`); break;
+      case 'insect': E(60, 50, 10, 16, true); C(60, 30, 7, true); E(42, 38, 18, 7, false, -25); E(78, 38, 18, 7, false, 25); for (const s of [-1, 1]) for (const y of [44, 52, 60]) P(`M${60 + s * 9} ${y} l${s * 14} ${y - 52} l${s * 4} 8`); break;
+      case 'fish': P('M20 45 q30 -28 64 0 q-34 28 -64 0 z', true); P('M84 45 l18 -14 v28 z'); C(32, 42, 3); P('M50 34 q6 11 0 22'); break;
+    }
+  }
+
+  function show() {
+    const e = EXAMPLES[order[at]]; answered = false;
+    draw(root.querySelector<SVGSVGElement>('.fk-pic')!, e.draw);
+    root.querySelector<SVGSVGElement>('.fk-pic')!.setAttribute('aria-label', `Drawing of ${e.name}`);
+    q('.fk-name').textContent = e.name;
+    q('.fk-feat').textContent = `Clues: ${describe(e)}. ${e.note}`;
+    q('.fk-res').textContent = ''; q('.fk-res').className = 'fk-res';
+    root.querySelectorAll<HTMLButtonElement>('.fk-kbtn button').forEach((b) => { b.disabled = false; b.className = ''; });
+  }
+  q('.fk-kbtn').replaceChildren(...KINGDOMS.map((k) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k; b.textContent = k; return b; }));
+  root.querySelectorAll<HTMLButtonElement>('.fk-kbtn button').forEach((b) => b.addEventListener('click', () => {
+    const e = EXAMPLES[order[at]], ok = b.dataset.k === e.kingdom;
+    if (!answered) { tried++; if (ok) right++; answered = true; }
+    b.className = ok ? 'fk-ok' : 'fk-no';
+    const r = q('.fk-res');
+    r.textContent = ok ? `Right: ${e.kingdom}. ${classify(e).why}` : `Not ${b.dataset.k}. Look at the clues again: ${describe(e)}.`;
+    r.className = 'fk-res ' + (ok ? 'good' : 'bad');
+    q('.fk-score').textContent = `${right} of ${tried} right first time`;
+  }));
+  q('.fk-next').addEventListener('click', () => { at = (at + 1) % order.length; if (at === 0) order = shuffle(order); show(); });
+
+  // gallery of every example
+  q('.fk-n').textContent = String(EXAMPLES.length);
+  q('.fk-gal').replaceChildren(...EXAMPLES.map((e) => {
+    const d = document.createElement('div'); d.className = 'fk-gi';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 120 90'); svg.setAttribute('aria-hidden', 'true'); draw(svg, e.draw);
+    const p = document.createElement('p'); p.textContent = `${e.name}: ${e.kingdom}`;
+    d.append(svg, p); return d;
+  }));
+
+  // the kingdoms table
+  const rows: [string, keyof typeof TRAITS.Monera][] = [['Cell type', 'cell'], ['Cell wall', 'wall'], ['Body', 'body'], ['Nutrition', 'food'], ['Examples', 'examples']];
+  q('.fk-tab thead tr').append(...KINGDOMS.map((k) => { const th = document.createElement('th'); th.textContent = k; th.dataset.k = k; return th; }));
+  q('.fk-tab tbody').replaceChildren(...rows.map(([n, key]) => { const tr = document.createElement('tr'); const th = document.createElement('th'); th.textContent = n; tr.append(th, ...KINGDOMS.map((k) => { const td = document.createElement('td'); td.textContent = TRAITS[k][key]; td.dataset.k = k; return td; })); return tr; }));
+
+  function build() {
+    const r = classify(feats);
+    const out = q('.fk-out');
+    out.textContent = r.kingdom ? `${r.kingdom}. ${r.why}` : `No kingdom fits. ${r.why}`;
+    out.className = 'fk-out ' + (r.kingdom ? 'good' : 'bad');
+    root.querySelectorAll<HTMLElement>('.fk-tab [data-k]').forEach((c) => c.classList.toggle('fk-hl', !q('.fk-build').hidden && c.dataset.k === r.kingdom));
+    const m = EXAMPLES.filter((e) => e.cell === feats.cell && e.org === feats.org && e.wall === feats.wall && e.food === feats.food).map((e) => e.name);
+    q('.fk-match').textContent = m.length ? `Examples with exactly these features: ${m.join(', ')}.` : 'None of the example organisms has exactly these features.';
+  }
+  root.querySelectorAll<HTMLElement>('.fk-q').forEach((box) => box.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+    (feats as Record<string, string>)[box.dataset.f!] = b.dataset.v!;
+    box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    build();
+  })));
+  root.querySelectorAll<HTMLButtonElement>('.fk-mode button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.fk-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.fk-sort').hidden = b.dataset.m !== 'sort'; q('.fk-build').hidden = b.dataset.m !== 'build'; build();
+  }));
+  show(); build();
+
+  quiz(q('.fk-quiz'), (): Question[] => {
+    const e = pick(EXAMPLES), w = pick(['Monera', 'Fungi', 'Plantae'] as Kingdom[]);
+    const wallQ = { Monera: 1, Fungi: 2, Plantae: 0 }[w];
+    return [
+      { text: `${e.name}: ${describe(e)}. Which kingdom?`, choices: [...KINGDOMS], correct: KINGDOMS.indexOf(e.kingdom), worked: classify(e).why },
+      { text: `In the five-kingdom scheme, what are the cell walls of ${w} made of?`, choices: ['Cellulose', 'Peptidoglycan (not cellulose)', 'Chitin'], correct: wallQ, worked: `${w}: ${TRAITS[w].wall}.` },
+      { text: 'Which kingdom has prokaryotic cells?', choices: [...KINGDOMS], correct: 0, worked: 'Only Monera (bacteria and cyanobacteria) lack a true nucleus.' },
+      { text: 'Who proposed the five-kingdom classification?', choices: ['Linnaeus', 'R. H. Whittaker', 'Charles Darwin'], correct: 1, worked: 'R. H. Whittaker, in 1969. Linnaeus used two kingdoms, plants and animals.' },
+      pick([
+        { text: 'Yeast is a single cell. Why is it not in Protista?', choices: ['It has no nucleus', 'Its wall is chitin, like other fungi', 'It makes its own food'], correct: 1, worked: 'Yeast has a chitin wall and absorbs its food, like moulds and mushrooms, so it is a fungus.' },
+        { text: 'How do fungi get their food?', choices: ['Photosynthesis', 'They absorb it from what they grow on', 'They swallow it'], correct: 1, worked: 'Fungi release enzymes and absorb the dissolved food (saprophytes), or feed on hosts (parasites).' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .fkg .ax-row { flex-wrap: wrap; gap: 8px; }
+  .fkg .ax-seg { flex-wrap: wrap; }
+  .fkg .ax-seg button { min-height: 40px; }
+  .fkg .fk-card { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; margin: 8px 0; }
+  .fkg .fk-pic { width: 120px; height: 90px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .fkg .fk-d * { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .fkg .fk-d .fk-f { fill: var(--good-soft); }
+  .fkg .fk-name { font-weight: 700; margin: 0 0 4px; font-size: 17px; }
+  .fkg .fk-feat { margin: 0; }
+  .fkg .fk-kbtn { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .fkg .fk-kbtn button { min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .fkg .fk-kbtn button.fk-ok { background: var(--good); color: var(--bg); border-color: var(--good); }
+  .fkg .fk-kbtn button.fk-no { border-color: var(--bad); color: var(--bad); }
+  .fkg .fk-res, .fkg .fk-out { font-weight: 600; margin: 10px 0; }
+  .fkg .good { color: var(--good); } .fkg .bad { color: var(--bad); }
+  .fkg .fk-q p { margin: 10px 0 4px; color: var(--ink); }
+  .fkg .fk-all summary { cursor: pointer; min-height: 32px; margin-top: 10px; }
+  .fkg .fk-gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 8px; }
+  .fkg .fk-gi svg { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .fkg .fk-gi p { margin: 2px 0 0; font-size: 13px; }
+  .fkg .fk-tab { font-size: 13px; }
+  .fkg .fk-tab th { text-align: left; }
+  .fkg .fk-tab .fk-hl { background: var(--accent-soft); }
+  .fkg .fk-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
