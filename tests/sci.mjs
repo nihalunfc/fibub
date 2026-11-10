@@ -3551,5 +3551,32 @@ ORIGIN
   near('collect: 1250 g of 5 g coins in a 50 g jar = 240', C.coinsFromWeight(1250, 5, 50), 240, 1e-9);
   near('collect: disc 38.1 x 2.4 mm = 2.736 cm3', C.discVolume(38.1, 2.4), 2.7363, 1e-3);
 }
+
+// Insurance maths (src/lib/money/insurance.ts): hand-worked examples.
+{
+  const I = await import('../src/lib/money/insurance.ts');
+  const A = { premium: 3000, deductible: 1500, coins: 0.2, oopMax: 5000, cap: 0 };
+  near('ins: 10,000 of care = 1,500 + 20% of 8,500 = 3,200 + 3,000 premium', I.planCost(A, 10000).total, 6200, 1e-9);
+  near('ins: out-of-pocket max caps the share at 5,000', I.planCost(A, 30000).youPay, 5000, 1e-9);
+  near('ins: India sum insured 5 lakh, 10% co-pay, 7 lakh bill: you pay 2 lakh', I.planCost({ premium: 0, deductible: 0, coins: 0.1, oopMax: 0, cap: 500000 }, 700000).youPay, 200000, 1e-6);
+  const be = I.breakEvens({ premium: 5000, deductible: 1000, coins: 0.1, oopMax: 3000, cap: 0 }, { premium: 2000, deductible: 4000, coins: 0.3, oopMax: 8000, cap: 0 }, 40000);
+  check('ins: low and high deductible plans cross at 5,500 of care', be.length === 1 && Math.abs(be[0] - 5500) < 0.01);
+  const rr = I.roomRent([{ label: 'Room', amount: 24000, linked: true }, { label: 'Doctor', amount: 40000, linked: true }, { label: 'Medicines', amount: 30000, linked: false }], 5000, 8000);
+  near('ins: room cap 5,000 vs 8,000 room cuts linked bills to 62.5%', rr.paid, 70000, 1e-9);
+  near('ins: 80% coinsurance clause, 60% insured, 2 lakh loss: 1,49,000', I.averageClause(200000, 600000, 1000000, 0.8, 1000).payout, 149000, 1e-9);
+  near('ins: Poisson P(0 claims) at 0.1 a year = e^-0.1', I.poisson(0, 0.1), Math.exp(-0.1), 1e-12);
+  near('ins: lognormal limited mean with no limit = mean', I.limitedMean(1e12, Math.log(1000), 0.5), 1000 * Math.exp(0.125), 1e-6);
+  const dc = I.deductibleChoice({ lambda: 0.1, median: 100000, p90: 200000, premLow: 1200, premHigh: 1000, dLow: 500, dHigh: 2500, years: 5, runs: 4000 });
+  near('ins: 200 saved vs 2,000 more per claim at 0.1 claims a year breaks even', dc.expectedYear, 0, 0.5);
+  check('ins: 10 years of savings to cover one claim', Math.abs(dc.yearsToRecover - 10) < 1e-9 && Math.abs(dc.breakEvenRate - 0.1) < 1e-3);
+  near('ins: risk-neutral buyer pays at most the expected payout', I.shouldInsure({ wealth: 100000, loss: 50000, p: 0.01, premium: 600, deductible: 0, gamma: 0 }).maxPremium, 500, 0.01);
+  near('ins: log-utility buyer pays up to W(1 - 0.5^0.01)', I.shouldInsure({ wealth: 100000, loss: 50000, p: 0.01, premium: 600, deductible: 0, gamma: 1 }).maxPremium, 100000 * (1 - Math.pow(0.5, 0.01)), 0.01);
+  near('ins: a claim at 50% NCB costs 10,500 more over 3 years', I.claimCost({ base: 10000, ladder: I.NCB_IN, level: 5, drop: 5, lambda: 0, years: 3, rate: 0 }).total, 10500, 1e-9);
+  check('ins: IDV of a 30-month car is 70% of ex-showroom', I.idv(800000, 0, 30) === 560000 && I.idvDep(61) === null && I.partDep('metal', 30) === 15);
+  near('ins: IRR of -100, -100, +231 is 10%', I.irr(I.policyFlows({ premium: 100, payYears: 2, benefits: [{ year: 2, amount: 231 }] })), 0.1, 1e-9);
+  near('ins: 1,000 a year for 2 years at 10% = 2,310', I.investDifference(1000, 0, 2, 10, 2), 2310, 1e-9);
+  near('ins: fair level premium for q = 0.1, 0.1 is 100 per 1,000', I.fairTerm([0.1, 0.1], 1000, 0).premium, 100, 1e-9);
+  near('ins: no growth, no discount: PV of 5 x 100 = 500', I.pvGrowing(100, 0, 0, 5), 500, 1e-9);
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
