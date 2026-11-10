@@ -1,0 +1,136 @@
+---
+// #T936 Password generator
+---
+<div class="tool-ui pg">
+  <section class="panel">
+    <div class="pg-fields">
+      <label>Length (8 to 128)<input data-k="len" type="number" inputmode="numeric" min="8" max="128" step="1" value="20" /></label>
+      <label>How many<input data-k="count" type="number" inputmode="numeric" min="1" max="100" step="1" value="5" /></label>
+    </div>
+    <fieldset class="pg-sets">
+      <legend>Use these characters</legend>
+      <label class="pg-check"><input type="checkbox" data-set="lower" checked /> Lower case a–z</label>
+      <label class="pg-check"><input type="checkbox" data-set="upper" checked /> Upper case A–Z</label>
+      <label class="pg-check"><input type="checkbox" data-set="digit" checked /> Digits 0–9</label>
+      <label class="pg-check"><input type="checkbox" data-set="symbol" checked /> Symbols <code>!@#$%^&amp;*()-_=+[]&#123;&#125;;:,.&lt;&gt;/?~</code></label>
+    </fieldset>
+    <label class="pg-check"><input type="checkbox" data-k="similar" /> Leave out look-alikes (0 O o 1 l I)</label>
+    <label class="pg-check"><input type="checkbox" data-k="each" checked /> At least one from each ticked set</label>
+    <p class="pg-err" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <p class="pg-bits" aria-live="polite"></p>
+    <ol class="pg-list"></ol>
+    <p class="pg-btns">
+      <button type="button" class="btn pg-new">Make new ones</button>
+      <button type="button" class="btn secondary small pg-copyall">Copy all</button>
+      <span class="pg-copied" aria-live="polite"></span>
+    </p>
+  </section>
+  <p class="pg-fine">Made on your device with the browser's secure random numbers (crypto.getRandomValues). Nothing is sent or saved; the passwords are gone when you close the page.</p>
+</div>
+
+<style is:inline>
+  .pg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pg .panel { padding: 16px; }
+  .pg-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 12px; }
+  .pg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pg label.pg-check { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); margin-top: 8px; font-size: 15px; }
+  .pg-check code { overflow-wrap: anywhere; font-size: 13px; }
+  .pg input[type="number"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pg input:focus { border-color: var(--accent); outline: none; }
+  .pg-sets { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+  .pg-sets legend { font-size: 14px; color: var(--muted); padding: 0; }
+  .pg-err { color: var(--bad); font-size: 14px; margin: 8px 0 0; }
+  .pg-err:empty { display: none; }
+  .pg-bits { margin: 0 0 10px; font-size: 15px; }
+  .pg-list { margin: 0; padding-left: 28px; display: grid; gap: 6px; }
+  .pg-list li { padding-left: 2px; }
+  .pg-row { display: flex; gap: 8px; align-items: center; }
+  .pg-pw { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 15px; overflow-wrap: anywhere; word-break: break-all; flex: 1; min-width: 0; }
+  .pg-btns { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pg-copied { color: var(--good); font-size: 14px; }
+  .pg-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.pg') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const list = q('.pg-list'), bitsEl = q('.pg-bits'), err = q('.pg-err'), copied = q('.pg-copied');
+  const SETS: Record<string, string> = {
+    lower: 'abcdefghijklmnopqrstuvwxyz',
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    digit: '0123456789',
+    symbol: '!@#$%^&*()-_=+[]{};:,.<>/?~',
+  };
+  const SIMILAR = '0Oo1lI';
+  let made: string[] = [];
+
+  // Uniform whole number in [0, n): reject values from the uneven top end of the 32-bit range.
+  const buf = new Uint32Array(64); let bi = 64;
+  const rand32 = () => { if (bi >= buf.length) { crypto.getRandomValues(buf); bi = 0; } return buf[bi++]; };
+  const randInt = (n: number) => { const lim = Math.floor(0x100000000 / n) * n; let x: number; do x = rand32(); while (x >= lim); return x % n; };
+
+  // log2 of a big whole number, accurate to many decimals.
+  const log2Big = (b: bigint) => { const s = b.toString(2); const k = Math.min(53, s.length); return s.length - k + Math.log2(parseInt(s.slice(0, k), 2)); };
+  // How many passwords of length L are possible; with "each", count only those that use every set (inclusion-exclusion).
+  const bitsFor = (sizes: number[], L: number, each: boolean) => {
+    const P = sizes.reduce((a, b) => a + b, 0);
+    if (!each) return L * Math.log2(P);
+    let total = 0n;
+    for (let m = 0; m < 1 << sizes.length; m++) {
+      let left = P, odd = false;
+      sizes.forEach((s, i) => { if (m & (1 << i)) { left -= s; odd = !odd; } });
+      const t = BigInt(left) ** BigInt(L); total += odd ? -t : t;
+    }
+    return log2Big(total);
+  };
+
+  const rate = (b: number) => (b >= 100 ? 'very strong' : b >= 80 ? 'strong' : b >= 60 ? 'fair' : 'weak');
+
+  const make = () => {
+    const len = Number((q<HTMLInputElement>('[data-k="len"]')).value);
+    const count = Number((q<HTMLInputElement>('[data-k="count"]')).value);
+    const similar = (q<HTMLInputElement>('[data-k="similar"]')).checked;
+    const each = (q<HTMLInputElement>('[data-k="each"]')).checked;
+    const sets = [...root.querySelectorAll<HTMLInputElement>('[data-set]')].filter((c) => c.checked)
+      .map((c) => [...SETS[c.dataset.set!]].filter((ch) => !similar || !SIMILAR.includes(ch)).join(''));
+    const bad = !Number.isInteger(len) || len < 8 || len > 128 ? 'Pick a length from 8 to 128.'
+      : !Number.isInteger(count) || count < 1 || count > 100 ? 'Make from 1 to 100 at a time.'
+      : !sets.length ? 'Tick at least one set of characters.' : '';
+    err.textContent = bad;
+    if (bad) { list.innerHTML = ''; bitsEl.textContent = ''; made = []; return; }
+    const pool = sets.join('');
+    made = [];
+    for (let n = 0; n < count; n++) {
+      let pw: string;
+      // Draw the whole password again until it has every ticked set, so every allowed password is equally likely.
+      do { pw = ''; for (let i = 0; i < len; i++) pw += pool[randInt(pool.length)]; }
+      while (each && !sets.every((s) => [...pw].some((ch) => s.includes(ch))));
+      made.push(pw);
+    }
+    const bits = bitsFor(sets.map((s) => s.length), len, each);
+    bitsEl.innerHTML = '';
+    const b = document.createElement('strong'); b.className = 'pg-bitsn'; b.textContent = `${bits.toFixed(1)} bits`;
+    bitsEl.append('Each password: ', b, ` of randomness (${rate(bits)}), from ${pool.length} possible characters.`);
+    list.innerHTML = '';
+    for (const pw of made) {
+      const li = document.createElement('li'); const row = document.createElement('div'); row.className = 'pg-row';
+      const code = document.createElement('code'); code.className = 'pg-pw'; code.textContent = pw;
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small'; btn.textContent = 'Copy';
+      btn.addEventListener('click', () => copy(pw, 'Copied.'));
+      row.append(code, btn); li.append(row); list.append(li);
+    }
+    copied.textContent = '';
+  };
+
+  const copy = async (text: string, note: string) => {
+    try { await navigator.clipboard.writeText(text); copied.textContent = note; }
+    catch { copied.textContent = 'Copy did not work here: select the text and copy it by hand.'; }
+  };
+
+  q('.pg-new').addEventListener('click', make);
+  q('.pg-copyall').addEventListener('click', () => made.length && copy(made.join('\n'), `Copied ${made.length}.`));
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', make));
+  make();
+</script>
