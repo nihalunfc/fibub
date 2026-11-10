@@ -1,9 +1,9 @@
 ---
-name: Derivative calculator with steps
+name: Derivative steps
 num: 1467
 shelf: learn
 section: school-maths
-title: "Derivative calculator with steps: sum, product, quotient and chain rule worked out for school functions"
+title: "Derivative steps"
 summary: "Type a function such as x² sin x, (x + 1)/(x − 1), sin(x²) or xˣ and see its derivative with every step: which rule is used at each part (power, product, quotient, chain, eˣ, ln, trig, inverse trig, logarithmic differentiation), worked from the inside out, then f and f′ drawn together with the tangent at any point."
 status: live
 ads: false

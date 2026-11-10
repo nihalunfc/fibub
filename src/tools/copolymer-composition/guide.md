@@ -1,9 +1,9 @@
 ---
-name: Copolymer composition and reactivity ratio calculator
+name: Copolymer composition
 num: 101
 shelf: science
 section: polymer-chemistry
-title: "Copolymer composition calculator: Mayo–Lewis equation, composition drift and reactivity ratio fitting"
+title: "Copolymer composition"
 summary: "Copolymer composition from the feed and reactivity ratios (Mayo–Lewis), the azeotropic feed, and how feed and copolymer composition drift with conversion in a batch. Fit r₁ and r₂ to your own data by Fineman–Ross, Kelen–Tüdős and non-linear least squares; paste or open CSV or Excel."
 status: live
 ads: true

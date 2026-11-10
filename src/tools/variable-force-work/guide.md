@@ -1,9 +1,9 @@
 ---
-name: Work as area under a force graph
+name: Variable force work
 num: 1334
 shelf: learn
 section: school-physics
-title: "Work done by a variable force: area under the force-displacement graph, spring work ½kx² and the work-energy theorem"
+title: "Variable force work"
 summary: "Shape a force-displacement graph with your finger, or start from a steady force, a spring or a fading push, pick where the motion starts and stops, and see the work as the shaded area, with the parts above and below the axis, the formula with your numbers, and the speed it gives a cart."
 status: live
 ads: false

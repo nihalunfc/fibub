@@ -1,9 +1,9 @@
 ---
-name: Unit root and cointegration tests
+name: Unit root tests
 num: 746
 shelf: science
 section: econometrics
-title: "ADF, KPSS and Engle-Granger cointegration test calculator (free)"
+title: "Unit root tests"
 summary: "Test a time series for a unit root with the augmented Dickey-Fuller test (lags by AIC or BIC) and KPSS, or test several series for cointegration with Engle-Granger. Critical values and p-values come from a seeded simulation in your browser."
 status: live
 ads: true

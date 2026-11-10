@@ -1,9 +1,9 @@
 ---
-name: Grain size by line intercept
+name: Grain size intercept
 num: 853
 shelf: science
 section: microscopy-and-image-analysis
-title: "Grain size from a micrograph: line-intercept method, mean intercept and ASTM grain size number G"
+title: "Grain size intercept"
 summary: "Open an etched micrograph, calibrate the scale bar and lay test lines or circles over it. The page counts the grain boundaries along every line, lets you add or remove marks by tapping, and gives the mean lineal intercept, the ASTM grain size number G and a confidence interval. The image stays in your browser."
 status: live
 ads: false

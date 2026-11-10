@@ -1,9 +1,9 @@
 ---
-name: Lattice FFT and d-spacing
+name: Lattice FFT
 num: 857
 shelf: science
 section: microscopy-and-image-analysis
-title: "Lattice FFT: power spectrum, d-spacings and angles from HRTEM or AFM images, with a Bragg filter"
+title: "Lattice FFT"
 summary: "Open an HRTEM, STEM or AFM image of a lattice, set the scale and pick a square region. The page shows its power spectrum, finds the strongest spots and turns each into a d-spacing and angle (tap any spot to measure it), and makes a filtered image from the spots you choose. The image stays in your browser."
 status: live
 ads: false

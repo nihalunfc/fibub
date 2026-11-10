@@ -1,9 +1,9 @@
 ---
-name: Dissolved oxygen and plankton density calculator
+name: Dissolved oxygen
 num: 841
 shelf: science
 section: chemical-and-biological-oceanography
-title: "Dissolved oxygen solubility, % saturation and AOU in fresh and sea water (mg/L, µmol/kg, mL/L), plus plankton counts to cells per litre"
+title: "Dissolved oxygen"
 summary: "Work out oxygen solubility from temperature, salinity and air pressure, then the percent saturation and apparent oxygen utilisation (AOU) of your samples, in mg/L, µmol/kg, µmol/L or mL/L. Paste a whole profile, and turn plankton counts into cells per litre or individuals per cubic metre with a 95 % range."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Cryo-EM sampling and resolution calculator
+name: Cryo-EM calculator
 num: 188
 shelf: science
 section: structural-biology
-title: "Cryo-EM calculator: pixel size, Nyquist, dose per frame, CTF zeros, box size and particles needed"
+title: "Cryo-EM calculator"
 summary: "Work out the pixel size from your camera and magnification (with super-resolution and binning), the Nyquist limit, the dose per Å² and per frame, the electron wavelength and CTF zeros with a CTF plot, a box size for your particle, and a rough particles-to-resolution guide. Everything runs in your browser."
 status: live
 ads: false

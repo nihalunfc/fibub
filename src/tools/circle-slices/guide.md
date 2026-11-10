@@ -1,9 +1,9 @@
 ---
-name: Area of a circle by slicing
+name: Circle area
 num: 1253
 shelf: learn
 section: school-maths
-title: "Area of a circle by slicing: why it is πr², shown by cutting a circle into a rectangle"
+title: "Circle area"
 summary: "Cut a circle into 4 to 200 equal slices and watch them unroll into a row that looks more and more like a rectangle πr wide and r tall. Live numbers show width × height closing in on πr²."
 status: live
 ads: false

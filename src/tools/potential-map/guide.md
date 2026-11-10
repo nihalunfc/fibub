@@ -1,9 +1,9 @@
 ---
-name: Equipotentials and potential hills
+name: Potential map
 num: 1402
 shelf: learn
 section: school-physics
-title: "Electric potential map: equipotential lines, potential hills in 3D and the field as the downhill slope"
+title: "Potential map"
 summary: "Drag charges around a board and see their electric potential as a coloured map with equipotential lines and as hills and wells in 3D. Probe any point for V = Σ kq/r and the field, and let a positive test charge roll downhill along the field, crossing every equipotential at right angles."
 status: live
 ads: false

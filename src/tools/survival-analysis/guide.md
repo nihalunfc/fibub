@@ -1,9 +1,9 @@
 ---
-name: Survival analysis (Kaplan-Meier, log-rank, Cox)
+name: Survival analysis
 num: 467
 shelf: science
 section: biostatistics
-title: "Kaplan-Meier survival curve, log-rank test and Cox regression calculator (free, in browser)"
+title: "Survival analysis"
 summary: "Paste time, event and group to draw Kaplan-Meier curves with Greenwood intervals, median survival with its interval, a number-at-risk table, the log-rank test for two or more groups and a Cox proportional hazards model with hazard ratios. Matches lifelines and statsmodels."
 status: live
 ads: false

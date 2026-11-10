@@ -1,9 +1,9 @@
 ---
-name: Meta-analysis (forest and funnel plots)
+name: Meta-analysis
 num: 469
 shelf: science
 section: biostatistics
-title: "Meta-analysis calculator: forest plot, funnel plot, I², random effects and Egger's test (free)"
+title: "Meta-analysis"
 summary: "Pool studies from 2×2 counts (odds ratio, risk ratio, risk difference), means and SDs (mean difference, Hedges' g) or an estimate with its SE or CI. Fixed effect and random effects (DerSimonian-Laird, REML, Paule-Mandel), Q, I², tau², prediction interval, Egger's test, forest and funnel plots. Matches statsmodels."
 status: live
 ads: false

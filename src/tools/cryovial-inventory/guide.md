@@ -1,9 +1,9 @@
 ---
-name: Cryovial inventory and freezing helper
+name: Cryovial inventory
 num: 193
 shelf: science
 section: cell-biology-and-cell-culture
-title: "Cryovial inventory and box map: track frozen cell stocks, thaw log and freezing medium calculator"
+title: "Cryovial inventory"
 summary: "Keep track of frozen cell vials in your freezers, racks and 9 × 9 or 10 × 10 boxes: line, passage, date frozen, cells per vial, medium and who froze them. Search and filter, mark vials thawed with a thaw log, print a box map, save and open CSV or JSON files, and work out the cells and freezing medium (DMSO % editable) for a new batch. Nothing leaves your device."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Flower parts and pollination
+name: Flower pollination
 num: 1268
 shelf: learn
 section: school-biology
-title: "Flower parts and pollination: tap the parts of a flower, then follow pollen to seed and fruit"
+title: "Flower pollination"
 summary: "Tap the parts of a flower cut down the middle (sepal, petal, anther, filament, stigma, style, ovary, ovule) to learn each job, play find-the-part, and step from self- or cross-pollination to fertilisation, seed and fruit. Class 12 adds double fertilisation."
 status: live
 ads: false

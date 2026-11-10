@@ -1,9 +1,9 @@
 ---
-name: Orbital elements and state vector converter
+name: Orbit elements
 num: 831
 shelf: science
 section: spaceflight-and-astrodynamics
-title: "Orbital elements converter: Keplerian elements to state vectors and back, anomalies, TLE reader and propagation"
+title: "Orbit elements"
 summary: "Turn classical orbital elements into position and velocity vectors and back for any central body, with the true, mean, eccentric and hyperbolic anomalies, period, apsides and energy. Read every field of a two-line element set with its checksums, propagate the orbit by Kepler's equation and see it in a 3D view you can turn, or flat on the reference planes."
 status: live
 ads: true

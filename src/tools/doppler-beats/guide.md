@@ -1,9 +1,9 @@
 ---
-name: Doppler and beats calculator
+name: Doppler and beats
 num: 943
 shelf: science
 section: acoustics-and-wave-physics
-title: "Doppler effect calculator: moving source and listener, echoes, light redshift, the speed from a shift, and beat frequency"
+title: "Doppler and beats"
 summary: "Work out the pitch you hear from a moving siren or a moving listener (with wind), the curve of a horn driving past, the echo from a moving object for sonar, bats and radar speed guns, the redshift of light from a moving star, the speed from a measured shift, and the beats between two close tones."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Gel band size estimator
+name: Gel band sizer
 num: 169
 shelf: science
 section: molecular-biology
-title: "Gel band size estimator: size DNA bands from a ladder (log-linear, cubic or point-to-point fit)"
+title: "Gel band sizer"
 summary: "Type your ladder sizes and how far each band ran, or tap them on a gel photo that stays in your browser, then read the size of every unknown band with a fit line, R², a typical error and a warning when a band sits outside the ladder."
 status: live
 ads: true

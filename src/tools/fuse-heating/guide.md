@@ -1,9 +1,9 @@
 ---
-name: Heating effect and fuse
+name: Fuse heating
 num: 1216
 shelf: learn
 section: school-physics
-title: "Heating effect of current and the fuse: watch a wire glow and melt, and see why fuses protect homes"
+title: "Fuse heating"
 summary: "Turn up the current through fuse wire, a nichrome heater coil or copper and watch it warm, glow and melt. Then switch on appliances at home until the fuse blows. Class 10 adds H = I²Rt and I = P/V."
 status: live
 ads: false

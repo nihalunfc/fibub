@@ -1,9 +1,9 @@
 ---
-name: Body condition and growth curve tracker
+name: Growth tracker
 num: 399
 shelf: science
 section: animal-science
-title: "Growth curve tracker: average daily gain, Gompertz, logistic and von Bertalanffy curves and body condition trend from weigh records"
+title: "Growth tracker"
 summary: "Paste or open your weigh records (animal, date, weight and optional body condition score) to get the average daily gain between weighings, fit Gompertz, logistic and von Bertalanffy growth curves with mature weight and growth rate, and see the body condition trend. Nothing is uploaded."
 status: live
 ads: false

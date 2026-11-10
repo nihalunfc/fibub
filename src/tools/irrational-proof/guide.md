@@ -1,9 +1,9 @@
 ---
-name: Why √2 is irrational
+name: Irrational √2
 num: 1318
 shelf: learn
 section: school-maths
-title: "Why √2 is irrational: proof by contradiction step by step, with a fraction hunt"
+title: "Irrational √2"
 summary: "Hunt for a fraction a/b equal to √2 and watch a² and 2b² come close but never meet. See 40 exact digits of √n, then step through the proof by contradiction that √p is irrational, and that r + s√p is irrational too."
 status: live
 ads: false

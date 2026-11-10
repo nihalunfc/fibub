@@ -1,9 +1,9 @@
 ---
-name: Equation converter (LaTeX and MathML)
+name: Equation converter
 num: 803
 shelf: science
 section: writing-and-publishing
-title: "LaTeX to MathML converter for Word and LibreOffice, and MathML back to LaTeX (with live preview)"
+title: "Equation converter"
 summary: "Type or paste LaTeX maths and get MathML you can paste into Word, LibreOffice or a web page, with a live preview drawn from that MathML. Or paste MathML and get LaTeX back. Fractions, roots, sums, integrals, matrices, accents and Greek letters. Errors say what is wrong and where."
 status: live
 ads: true

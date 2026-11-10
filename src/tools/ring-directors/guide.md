@@ -1,10 +1,9 @@
 ---
-name: Ortho, para and meta directors
+name: Ring directors
 num: 1366
 shelf: learn
 section: school-chemistry
-title: "Ortho, para and meta directing groups: where the next group goes on a benzene ring"
-seoTitle: "Ortho, para and meta directors on benzene"
+title: "Ring directors"
 summary: "Put –OH, –NH₂, –OCH₃, –CH₃, –Cl, –Br, –NO₂, –CN, –CHO or –COOH on a benzene ring, then nitrate, brominate or chlorinate it. See where the new group goes, whether the ring reacts faster or slower than benzene, the resonance structures that explain it, and the IUPAC names of the products."
 status: live
 ads: false

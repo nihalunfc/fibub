@@ -1,9 +1,9 @@
 ---
-name: Atterberg limits and compaction curve
+name: Atterberg limits
 num: 659
 shelf: science
 section: geotechnical-engineering
-title: "Atterberg limits and Proctor compaction curve: liquid limit flow curve, plasticity index, maximum dry density and optimum water content"
+title: "Atterberg limits"
 summary: "Liquid limit from a Casagrande flow curve or the one-point method, plastic limit, plasticity, liquidity and consistency indices and activity; and the Proctor compaction curve: dry density, a fitted curve with maximum dry density and optimum water content, zero-air-voids and air-voids lines and relative compaction."
 status: live
 ads: true

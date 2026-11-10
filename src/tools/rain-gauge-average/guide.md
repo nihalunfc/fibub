@@ -1,9 +1,9 @@
 ---
-name: Rain gauge network average
+name: Rain gauge average
 num: 150
 shelf: science
 section: hydrology-and-water-resources
-title: "Rain gauge network average: catchment rainfall by Thiessen polygons, with weights, map and missing readings"
+title: "Rain gauge average"
 summary: "Turn point rain gauge readings into one rainfall figure for a whole catchment. Each gauge stands for the part of the catchment closest to it (its Thiessen polygon). Paste or open the boundary and the gauges, with any number of storms or days as columns. Get the areal rainfall, each gauge's area and weight, a map, and a comparison with the plain average. Missing readings redraw the polygons."
 status: live
 ads: true

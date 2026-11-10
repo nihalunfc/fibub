@@ -1,9 +1,9 @@
 ---
-name: Heritage climate and mould risk checker
+name: Heritage climate
 num: 420
 shelf: science
 section: heritage-conservation
-title: "Museum climate data checker: RH and temperature logger analysis, dew point, mould risk spells and preservation index"
+title: "Heritage climate"
 summary: "Open a data-logger file (time, temperature, RH) and see the dew point, hours outside your RH and temperature limits, daily RH swings, the longest spell at mould-risk humidity, and a time-weighted preservation index from an Arrhenius rate with your own activation energy, with charts. Nothing is uploaded."
 status: live
 ads: false

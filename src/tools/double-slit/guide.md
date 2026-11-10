@@ -1,9 +1,9 @@
 ---
-name: Young's double slit and single slit
+name: Double slit
 num: 1422
 shelf: learn
 section: school-physics
-title: "Young's double slit experiment: fringe width β = λD/d, single-slit diffraction and white-light fringes"
+title: "Double slit"
 summary: "See the bright and dark fringes of Young's double slit on a screen and as a graph. Change the wavelength, slit gap and screen distance and watch β = λD/d, check the path difference at any point, switch to white light, and compare with a single slit's wide central maximum."
 status: live
 ads: false

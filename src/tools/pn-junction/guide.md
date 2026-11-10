@@ -1,9 +1,9 @@
 ---
-name: p-n junction and diode curve
+name: PN junction
 num: 1430
 shelf: learn
 section: school-physics
-title: "p-n junction diode: depletion layer, forward and reverse bias, V-I curve and Zener regulator"
+title: "PN junction"
 summary: "Join p-type and n-type silicon and watch the depletion layer thin in forward bias and widen in reverse bias. See the V-I curve of a silicon, germanium or Zener diode with your working point, the knee voltage, dynamic resistance, Zener breakdown and a Zener voltage regulator."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: One-group diffusion and criticality
+name: Neutron diffusion
 num: 678
 shelf: science
 section: nuclear-engineering
-title: "Neutron diffusion and criticality calculator: buckling, k_eff, critical size and flux shape of a bare reactor"
+title: "Neutron diffusion"
 summary: "Work out the geometric buckling, k_eff and critical size of a bare slab, sphere, cylinder or box from one-group (or two-group) diffusion data, see the flux shape, and check the formula with a numeric finite-volume solve. For study. Nothing is uploaded."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Histogram and frequency polygon builder
+name: Histogram builder
 num: 1286
 shelf: learn
 section: school-maths
-title: "Histogram builder: group data into classes, draw a histogram and frequency polygon, and find the mean"
+title: "Histogram builder"
 summary: "Type a list of numbers and drag the class width and starting point to watch the frequency table, the histogram and the frequency polygon change. See the mean, median, mode and modal class, how far the mean from the table drifts from the true mean, and the combined mean of two groups."
 status: live
 ads: false

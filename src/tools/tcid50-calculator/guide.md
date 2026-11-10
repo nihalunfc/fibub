@@ -1,9 +1,9 @@
 ---
-name: TCID50 and plaque assay calculator
+name: TCID50 calculator
 num: 198
 shelf: science
 section: virology-and-immunology
-title: "TCID50 calculator (Reed–Muench and Spearman–Kärber) and plaque assay titre: TCID50/mL, PFU/mL and confidence intervals"
+title: "TCID50 calculator"
 summary: "Type the infected wells at each dilution and get the 50 % endpoint by Reed–Muench and Spearman–Kärber (with its standard error and interval), the TCID50/mL for your inoculum and a rough PFU/mL. Type plaque counts and get the PFU/mL pooled over the countable plates, with an exact Poisson interval, plots, a CSV and a report."
 status: live
 ads: true

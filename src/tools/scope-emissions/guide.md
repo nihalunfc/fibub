@@ -1,9 +1,9 @@
 ---
-name: Scope 1, 2 and 3 emissions calculator
+name: Scope emissions
 num: 506
 shelf: science
 section: carbon-and-energy-accounting
-title: "Scope 1, 2 and 3 emissions calculator for small businesses: GHG Protocol structure, market- and location-based Scope 2, intensity and year on year"
+title: "Scope emissions"
 summary: "Build a small organisation's greenhouse gas inventory from activity rows (fuel, refrigerant leaks with your GWP, electricity, travel, commuting, purchased goods) times your own emission factors. Totals by scope and category, Scope 2 both location- and market-based, tonnes per employee and per million of revenue, year-on-year change, CSV in and out and a PDF or Word report."
 status: live
 ads: true

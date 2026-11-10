@@ -1,9 +1,9 @@
 ---
-name: Magnitude and flux converter
+name: Magnitude converter
 num: 44
 shelf: science
 section: stellar-astrophysics
-title: "Magnitude to flux converter: Vega and AB magnitudes, Jansky, erg/s/cm²/Å"
+title: "Magnitude converter"
 summary: "Convert between Vega and AB magnitudes, Jansky, f_ν, f_λ and photon flux in UBVRI, 2MASS, WISE and SDSS bands or at any wavelength, with the zero points and their sources shown."
 status: live
 ads: true

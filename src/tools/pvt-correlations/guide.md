@@ -1,9 +1,9 @@
 ---
-name: Oil and gas PVT correlations
+name: PVT correlations
 num: 687
 shelf: science
 section: petroleum-engineering
-title: "PVT correlations calculator: bubble point, Rs, Bo, oil viscosity, gas Z-factor, Bg and gas viscosity"
+title: "PVT correlations"
 summary: "Estimate black-oil and natural gas properties from API gravity, gas gravity, GOR, temperature and pressure: Standing and Vasquez-Beggs bubble point, Rs and Bo, Beggs-Robinson viscosity, Z-factor by Dranchuk-Abou-Kassem or Hall-Yarborough with Sutton pseudo-criticals, Bg, gas density and Lee-Gonzalez-Eakin viscosity, with curves against pressure."
 status: live
 ads: true

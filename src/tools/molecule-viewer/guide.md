@@ -1,9 +1,9 @@
 ---
-name: Molecule viewer (XYZ, MOL, SDF)
+name: Molecule viewer
 num: 838
 shelf: science
 section: computational-chemistry
-title: "Molecule viewer: see XYZ, MOL and SDF files in 3D and measure bonds, angles and dihedrals"
+title: "Molecule viewer"
 summary: "Open an XYZ, MOL or SDF file and turn the molecule in 3D with your finger or mouse: ball and stick, sticks or space-filling, with or without hydrogens and labels. Bonds come from the file or are guessed from distances. Tap atoms for distances, angles and dihedrals; get the formula, molar mass and centre of mass, every bond length as a CSV, a PNG picture and the coordinates as XYZ. Nothing is uploaded."
 status: live
 ads: false

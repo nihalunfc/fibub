@@ -1,9 +1,9 @@
 ---
-name: Effect size and learning gain
+name: Learning gain
 num: 765
 shelf: science
 section: education-research
-title: "Effect size calculator: Cohen's d, Hedges' g with confidence intervals, paired d and Hake gain (free)"
+title: "Learning gain"
 summary: "Work out Cohen's d, Hedges' g and Glass's delta with exact confidence intervals, paired effect sizes dz and dav for before-and-after studies, and Hake's normalised learning gain, from summary numbers or raw scores."
 status: live
 ads: true

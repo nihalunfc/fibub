@@ -1,9 +1,9 @@
 ---
-name: Zeros of a polynomial
+name: Polynomial zeros
 num: 1156
 shelf: learn
 section: school-maths
-title: "Zeros of polynomials on a graph: linear, quadratic and cubic, with sum and product of zeros"
+title: "Polynomial zeros"
 summary: "Slide the coefficients of a linear, quadratic or cubic polynomial and see its zeros where the graph meets the x axis. Drag a zero and the polynomial rebuilds itself. The sum and product of zeros are checked against the coefficients live."
 status: live
 ads: false

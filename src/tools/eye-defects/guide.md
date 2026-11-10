@@ -1,9 +1,9 @@
 ---
-name: Eye defects and glasses
+name: Eye defects
 num: 1005
 shelf: learn
 section: school-physics
-title: "The human eye and its defects: accommodation, myopia, hypermetropia, presbyopia and the correcting lens"
+title: "Eye defects"
 summary: "See how the eye lens changes its power to focus near and far, what goes wrong in short sight, long sight and presbyopia, and which lens fixes each one, with the power in dioptres worked out."
 status: live
 ads: false

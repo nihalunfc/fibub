@@ -1,9 +1,9 @@
 ---
-name: Epidemic model simulator (SIR, SEIR, SEIRS)
+name: Epidemic model
 num: 462
 shelf: science
 section: epidemiology
-title: "SIR and SEIR epidemic model simulator with R0, vaccination and interventions"
+title: "Epidemic model"
 summary: "Simulate an outbreak with the SIR, SEIR or SEIRS model: set R0, the latent and infectious periods, the population, vaccination and contact cuts, and see the curve, the peak day, the peak size and the final size. A teaching model, not a forecast."
 status: live
 ads: false

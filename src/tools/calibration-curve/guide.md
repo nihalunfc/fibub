@@ -1,9 +1,9 @@
 ---
-name: Calibration curve with LOD and LOQ
+name: Calibration curve
 num: 28
 shelf: science
 section: analytical-chemistry
-title: "Calibration curve calculator: LOD, LOQ and unknown concentrations with confidence intervals"
+title: "Calibration curve"
 summary: "Paste your standards and get the calibration line, R², limits of detection and quantitation (ICH Q2), and the concentration of each unknown with a 95 % interval."
 status: live
 ads: true

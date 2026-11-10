@@ -1,0 +1,86 @@
+---
+// #1481 Hand washing (Learn, Class 8 Science, Health). Germs fall by a fixed fraction every second: N = N0 e^(-kt).
+// A teaching model with rounded, made-up rates, not measured data for any real soap or germ.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn hw">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <h2>Germs left on your hands</h2>
+    <div class="ax-row hw-pre" style="margin-top:8px;flex-wrap:wrap">
+      <button type="button" class="btn secondary small" data-soap="0" data-s="20">Water only, 20 s</button>
+      <button type="button" class="btn secondary small" data-soap="1" data-s="5">Soap, 5 s</button>
+      <button type="button" class="btn secondary small" data-soap="1" data-s="20">Soap, 20 s</button>
+    </div>
+    <canvas class="lrn-cv hw-cv" aria-label="Graph of germs left on the hands against washing time, with and without soap"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Washing time <b class="hw-sv"></b><input class="hw-s" type="range" min="0" max="40" step="1" value="20" aria-label="Washing time in seconds" /></label>
+      <label class="lrn-sl">Germs at the start <b class="hw-nv"></b><input class="hw-n" type="range" min="100" max="10000" step="100" value="1000" aria-label="Germs at the start, in thousands" /></label>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;min-height:44px"><input class="hw-soap" type="checkbox" checked /> Use soap</label>
+    <p class="ax-big hw-out" aria-live="polite"></p>
+    <p class="ax-help hw-eq"></p>
+    <p class="ax-help" data-only="9" hidden>Class 9 and up: each second a fixed fraction of the germs is removed, so N = N₀ e^(−kt). The half-life is ln 2 ÷ k, the time that halves the count.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Press Water only, then Soap with the same 20 s. Soap leaves far fewer germs.</li>
+      <li>Press Soap, 5 s and see how many germs a quick splash leaves behind.</li>
+      <li>Slide the time from 0 s to 40 s. After about 20 s the count has fallen by more than 90 per cent, which is why people say to wash for 20 seconds.</li>
+    </ul>
+    <p class="ax-help">A teaching model: the removal rates are rounded, made-up values, not measurements of any real soap or germ. Real hand washing also needs rubbing between fingers, under nails and drying with a clean cloth.</p>
+  </div>
+  <div class="ax-card hw-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .hw .hw-cv { width: 100%; margin-top: 10px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const K_WATER = 0.04, K_SOAP = 0.15; // per second, rounded and made up
+  const root = document.querySelector('.hw') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.hw-cv');
+  const left = (n0: number, k: number, t: number) => n0 * Math.exp(-k * t);
+  const big = (n: number) => n >= 1e6 ? `${r(n / 1e6, 3)} million` : Math.round(n).toLocaleString('en');
+  let level = '8';
+  function draw() {
+    const pal = pagePalette(), s = +q('.hw-s').value, n0 = +q('.hw-n').value * 1000, soap = q('.hw-soap').checked, k = soap ? K_SOAP : K_WATER;
+    q('.hw-sv').textContent = `${s} s`; q('.hw-nv').textContent = big(n0);
+    const { ctx: c, W, H } = fitCanvas(cv, 220), gx = 46, gy = 10, gw = W - 56, gh = H - 40;
+    const X = (t: number) => gx + (t / 40) * gw, Y = (v: number) => gy + gh - (v / n0) * gh;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H); c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(gx, gy, gw, gh);
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right';
+    for (const f of [0, 0.5, 1]) { c.fillText(`${f * 100}%`, gx - 4, Y(f * n0) + 4); c.strokeStyle = pal.grid; c.beginPath(); c.moveTo(gx, Y(f * n0)); c.lineTo(gx + gw, Y(f * n0)); c.stroke(); }
+    c.textAlign = 'center'; for (let t = 0; t <= 40; t += 10) c.fillText(`${t} s`, X(t), gy + gh + 14);
+    for (const [kk, col, lab] of [[K_WATER, pal.muted, 'water only'], [K_SOAP, pal.red ? pal.ink : pal.accent, 'soap']] as const) {
+      c.strokeStyle = col; c.lineWidth = kk === k ? 3 : 1.5; c.beginPath();
+      for (let t = 0; t <= 40; t += 0.5) { if (t) c.lineTo(X(t), Y(left(n0, kk, t))); else c.moveTo(X(t), Y(n0)); }
+      c.stroke(); c.fillStyle = col; c.textAlign = 'left'; c.fillText(lab, X(40) - 62, Y(left(n0, kk, 40)) - 6);
+    }
+    c.fillStyle = pal.red ? pal.ink : pal.accent2; c.beginPath(); c.arc(X(s), Y(left(n0, k, s)), 5, 0, 7); c.fill();
+    const n = left(n0, k, s);
+    q('.hw-out').textContent = `${big(n)} germs left after ${s} s (${r(100 * n / n0, 3)} % of ${big(n0)})`;
+    q('.hw-eq').textContent = level === '9' ? `N = ${big(n0)} × e^(−${k} × ${s}) = ${big(n)}. Half-life = ln 2 ÷ ${k} = ${r(Math.LN2 / k, 3)} s.` : (soap ? 'With soap about 14 in every 100 germs are removed each second.' : 'With water only about 4 in every 100 germs are removed each second.') + ' At 0 s nothing has been removed yet.';
+  }
+  for (const s of ['.hw-s', '.hw-n', '.hw-soap']) q(s).addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.hw-pre button').forEach((b) => b.addEventListener('click', () => { q('.hw-soap').checked = b.dataset.soap === '1'; q('.hw-s').value = b.dataset.s!; draw(); }));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.hw-quiz'), () => {
+    const n0 = one([1000, 2000, 5000]), t = one([10, 20, 30]);
+    return [
+      { q: `Hands start with ${n0.toLocaleString('en')} thousand germs. How many are left after 0 seconds of washing?`, ans: n0, unit: 'thousand', work: `No washing has happened yet, so all ${n0.toLocaleString('en')} thousand are still there.` },
+      { q: `In this model, soap removes germs at k = 0.15 per second. Starting with ${n0} thousand germs, how many thousand are left after ${t} s? (N = N₀ × e^(−kt))`, ans: n0 * Math.exp(-K_SOAP * t), unit: 'thousand', work: `N = ${n0} × e^(−0.15 × ${t}) = ${r(n0 * Math.exp(-K_SOAP * t))} thousand` },
+      { q: `Why is washing with soap for ${t} s better than a ${pick(1, 3)} s splash?`, ans: 1, choices: ['The germs go away by themselves', 'Germs are removed a little every second, so more time removes more', 'Water makes germs grow'], work: 'The count keeps falling the longer you wash, and soap lifts the germs off the skin so water can rinse them away.' },
+      { q: 'Which gets rid of more germs in the same time?', ans: 0, choices: ['Soap and water', 'Water only'], work: 'Soap breaks up the oily film that holds germs on the skin, so more are washed off.' },
+    ];
+  });
+</script>

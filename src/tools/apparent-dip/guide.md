@@ -1,9 +1,9 @@
 ---
-name: Apparent dip and true thickness calculator
+name: Apparent dip
 num: 867
 shelf: science
 section: structural-geology
-title: "Apparent dip calculator: true dip, true thickness on slopes, borehole depth and three-point problem (free)"
+title: "Apparent dip"
 summary: "Work out the apparent dip of a bed in any section, the true dip from two apparent dips, true and vertical thickness from outcrop width on sloping ground, the depth to a bed in a borehole, and strike and dip from three points."
 status: live
 ads: true

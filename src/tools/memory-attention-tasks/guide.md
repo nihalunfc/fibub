@@ -1,9 +1,9 @@
 ---
-name: Memory and attention tasks
+name: Memory tasks
 num: 727
 shelf: science
 section: cognitive-science
-title: "Digit span, Corsi block, visual search and reaction time tests online: classroom cognitive demo (free)"
+title: "Memory tasks"
 summary: "Run a digit span or Corsi block test (forward or backward), a visual search task with search slopes, and simple or choice reaction time, in the browser. Get scores, a results table for the session and a CSV of every trial."
 status: live
 ads: true

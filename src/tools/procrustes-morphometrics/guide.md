@@ -1,9 +1,9 @@
 ---
-name: Landmark digitiser and Procrustes analysis
+name: Procrustes
 num: 408
 shelf: science
 section: paleontology
-title: "Procrustes analysis online: digitise landmarks on photos, GPA, centroid size and shape PCA in your browser"
+title: "Procrustes"
 summary: "Tap landmarks on your own photos or paste TPS or a table of coordinates, then run a generalised Procrustes analysis: centroid sizes, aligned shapes, Procrustes distances and a PCA of shape with a scores plot and CSV export. Nothing is uploaded."
 status: live
 ads: false

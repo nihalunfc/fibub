@@ -1,9 +1,9 @@
 ---
-name: Lexical diversity and readability
+name: Readability
 num: 736
 shelf: science
 section: linguistics-and-phonetics
-title: "Lexical diversity and readability calculator: TTR, MATTR, MTLD, HD-D, Yule's K, Flesch, Flesch-Kincaid, fog, SMOG"
+title: "Readability"
 summary: "Paste a text to get type-token ratio, root TTR, MATTR, MTLD, HD-D and Yule's K, plus Flesch reading ease, Flesch-Kincaid grade, Gunning fog, SMOG, Coleman-Liau and ARI, with a moving-window chart. Free, in your browser."
 status: live
 ads: false

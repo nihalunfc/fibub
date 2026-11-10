@@ -1,9 +1,9 @@
 ---
-name: Resistivity sounding (VES) inversion
+name: VES inversion
 num: 883
 shelf: science
 section: geophysics-and-seismology
-title: "VES inversion: Schlumberger and Wenner apparent resistivity, layered-earth forward model and damped least-squares inversion"
+title: "VES inversion"
 summary: "Paste Schlumberger or Wenner sounding readings (AB/2, MN/2, ΔV and I, or apparent resistivity). Get apparent resistivities, a layered-earth model of 2 to 6 layers by damped least-squares inversion, the log-log sounding curve, a resistivity-depth plot, error factors and a CSV."
 status: live
 ads: true

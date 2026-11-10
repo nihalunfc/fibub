@@ -1,0 +1,147 @@
+---
+// #1490 Spring energy. Engine: src/lib/learn/ (quiz.ts, sim.ts). A teaching model: one block, one spring, a floor with
+// friction. Stored energy ½kx², launch speed from energy, and the sliding distance with friction.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn se">
+  <div class="ax-card">
+    <h2>Compress, release, launch</h2>
+    <canvas class="lrn-cv se-cv" aria-label="A block pushed against a compressed spring on a floor"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Spring stiffness k: <b class="se-kv"></b><input class="se-k" type="range" min="20" max="400" step="10" value="100" /></label>
+      <label class="lrn-sl">Compression x: <b class="se-xv"></b><input class="se-x" type="range" min="1" max="20" step="1" value="10" /></label>
+      <label class="lrn-sl">Mass of block m: <b class="se-mv"></b><input class="se-m" type="range" min="0.1" max="2" step="0.1" value="0.5" /></label>
+      <label class="lrn-sl">Friction μ: <b class="se-uv"></b><input class="se-u" type="range" min="0" max="0.5" step="0.05" value="0" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn se-go">Release</button><button type="button" class="btn secondary se-reset">Reset</button></div>
+    <p class="ax-help">A teaching model: the block is only pushed, not fixed to the spring, and g = 9.8 m/s².</p>
+  </div>
+  <div class="ax-card">
+    <h2>Energy and speed</h2>
+    <dl class="ax-facts se-facts"></dl>
+    <p class="lrn-eq se-eq"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Double the compression. The stored energy goes up four times, because it depends on x².</li>
+      <li>Double the mass. The speed falls by a factor of √2, not 2.</li>
+      <li>Switch friction on. The block leaves slower and stops after a sliding distance you can predict.</li>
+      <li>Make friction large and the compression small: the spring cannot even start the block.</li>
+    </ul>
+  </div>
+  <div class="ax-card se-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .se .se-cv { width: 100%; }
+  .se .se-eq { margin: 8px 0 0; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, pagePalette } from '../../lib/learn/sim';
+  const G = 9.8;
+  const root = document.querySelector('.se') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const f = (x: number) => String(+x.toPrecision(3));
+  const fx = (x: number, d = 2) => x.toFixed(d);
+
+  // Pure maths for the numbers shown (SI units)
+  function calc(k: number, xc: number, m: number, mu: number) {
+    const E = 0.5 * k * xc * xc, vFree = xc * Math.sqrt(k / m);
+    const Fs = k * xc, Ff = mu * m * G, starts = Fs > Ff;
+    const v2 = starts ? (k * xc * xc - 2 * Ff * xc) / m : 0, v = Math.sqrt(Math.max(0, v2));
+    const d = mu > 0 ? v2 / (2 * mu * G) : Infinity;
+    return { E, vFree, starts, v, d, Ff, lost: Ff * xc };
+  }
+
+  // Animation: block position x (m from the natural length, negative = compressed) and speed
+  let bx = 0, bv = 0, state: 'ready' | 'push' | 'slide' | 'stop' = 'ready', raf = 0, last = 0;
+  const P = () => ({ k: val('.se-k'), xc: val('.se-x') / 100, m: val('.se-m'), mu: val('.se-u') });
+  const reset = () => { cancelAnimationFrame(raf); raf = 0; last = 0; const p = P(); bx = -p.xc; bv = 0; state = 'ready'; draw(); };
+  function step(dt: number) {
+    const p = P(); const n = Math.max(1, Math.ceil(dt / 0.001));
+    for (let i = 0; i < n; i++) {
+      const h = dt / n;
+      if (state === 'push') {
+        const a = (-p.k * bx) / p.m - p.mu * G;
+        bv += a * h; bx += bv * h;
+        if (bv <= 0) { state = 'stop'; bv = 0; }
+        else if (bx >= 0) state = 'slide';
+      } else if (state === 'slide') {
+        bv = Math.max(0, bv - p.mu * G * h); bx += bv * h;
+        if (bv === 0) state = 'stop';
+      }
+    }
+  }
+  const view = () => { const p = P(), c = calc(p.k, p.xc, p.m, p.mu); return Math.max(0.35, p.xc + 0.1, Number.isFinite(c.d) ? Math.min(c.d, 3) + 0.1 : 0.6); };
+  function draw() {
+    const p = P(), pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.se-cv'), 170);
+    ctx.clearRect(0, 0, W, H);
+    const wallX = 14, floorY = 130, bw = 44, bh = 34, span = view() + 0.25, s = (W - wallX - bw - 10) / span;
+    const wallToNat = 0.25 * s; // natural length of the spring drawn as 0.25 m
+    const natX = wallX + wallToNat, blockLeft = natX + bx * s;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(W, floorY); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.fillRect(wallX - 8, floorY - 60, 8, 60);
+    // spring
+    const coils = 10, y0 = floorY - bh / 2, sx0 = wallX, sx1 = Math.max(sx0 + 8, blockLeft);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx0, y0);
+    if (bx < 0 || state === 'ready') {
+      for (let i = 0; i <= coils * 2; i++) ctx.lineTo(sx0 + ((sx1 - sx0) * (i + 0.5)) / (coils * 2 + 1), y0 + (i % 2 ? 9 : -9) * (i === 0 || i === coils * 2 ? 0 : 1));
+      ctx.lineTo(sx1, y0);
+    } else { ctx.lineTo(sx1 > natX ? natX : sx1, y0); }
+    ctx.stroke();
+    // natural length mark and block
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(natX, floorY + 4); ctx.lineTo(natX, floorY - 70); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('natural length', natX, floorY - 74);
+    ctx.fillStyle = pal.accent; ctx.fillRect(blockLeft, floorY - bh, bw, bh);
+    ctx.fillStyle = pal.bg; ctx.textAlign = 'center'; ctx.fillText(`${fx(p.m, 1)} kg`, blockLeft + bw / 2, floorY - bh / 2 + 4);
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left';
+    ctx.fillText(state === 'ready' ? `compressed ${fx(p.xc * 100, 0)} cm` : `speed ${fx(bv, 2)} m/s`, 10, 20);
+    ctx.fillText(p.mu > 0 ? `floor friction μ = ${fx(p.mu, 2)}` : 'smooth floor', 10, floorY + 22);
+  }
+  function frame(now: number) {
+    const dt = last ? Math.min(0.03, (now - last) / 1000) : 0; last = now;
+    step(dt * 0.6); draw(); info();
+    if (state === 'stop' || (state === 'slide' && bx > view() - 0.05)) { raf = 0; return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function info() {
+    const p = P(), c = calc(p.k, p.xc, p.m, p.mu);
+    q('.se-kv').textContent = `${p.k} N/m`; q('.se-xv').textContent = `${fx(p.xc * 100, 0)} cm`; q('.se-mv').textContent = `${fx(p.m, 1)} kg`; q('.se-uv').textContent = fx(p.mu, 2);
+    const mk = (k: string, v: string, sm = '') => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); return d; };
+    const rows = [mk('Energy stored', `${f(c.E)} J`, '½ k x²')];
+    if (p.mu === 0) rows.push(mk('Launch speed', `${f(c.vFree)} m/s`, 'x √(k/m)'), mk('Slides', 'for ever', 'no friction to stop it'));
+    else if (!c.starts) rows.push(mk('Launch speed', '0 m/s', 'the spring force is too small'), mk('Slides', 'does not move', 'k x ≤ μ m g'));
+    else rows.push(mk('Speed at the natural length', `${f(c.v)} m/s`, `without friction: ${f(c.vFree)} m/s`), mk('Slides', `${f(c.d)} m`, 'v² ÷ (2 μ g)'), mk('Lost to friction while pushing', `${f(c.lost)} J`, 'μ m g x'));
+    q('.se-facts').replaceChildren(...rows);
+    q('.se-eq').textContent = p.mu === 0
+      ? `½ m v² = ½ k x², so v = x √(k/m) = ${fx(p.xc, 2)} × √(${p.k} ÷ ${fx(p.m, 1)}) = ${f(c.vFree)} m/s.`
+      : `½ k x² − μ m g x = ½ m v², so v² = ${f(c.starts ? c.v * c.v : 0)} m²/s². Then friction stops it: d = v² ÷ (2 μ g) = ${Number.isFinite(c.d) ? f(c.d) : '0'} m.`;
+  }
+  q('.se-go').addEventListener('click', () => {
+    const p = P(), c = calc(p.k, p.xc, p.m, p.mu);
+    reset(); if (!c.starts) { info(); return; }
+    state = 'push'; raf = requestAnimationFrame(frame);
+  });
+  q('.se-reset').addEventListener('click', () => { reset(); info(); });
+  root.querySelectorAll('.lrn-sl input').forEach((i) => i.addEventListener('input', () => { reset(); info(); }));
+  addEventListener('resize', draw);
+  mountQuiz(q('.se-quiz'), () => {
+    const k = pick(50, 400, 50), x = pick(2, 20, 2), m = pick(1, 10) / 5, x_ = x / 100, v = x_ * Math.sqrt(k / m);
+    const E = 0.5 * k * x_ * x_, mu = pick(1, 3) / 10, m2 = pick(2, 6) / 4, k2 = pick(200, 400, 100), x2 = pick(10, 20, 5) / 100;
+    const v2 = (k2 * x2 * x2 - 2 * mu * m2 * G * x2) / m2;
+    return [
+      { q: `A spring with k = ${k} N/m is compressed ${x} cm. How much energy is stored?`, ans: E, unit: 'J', work: `E = ½ k x² = ½ × ${k} × ${x_}² = ${r(E)} J` },
+      { q: `That spring (k = ${k} N/m, compressed ${x} cm) launches a ${m} kg block on a smooth floor. What speed does it leave with?`, ans: v, unit: 'm/s', work: `½ m v² = ½ k x², so v = x √(k/m) = ${x_} × √(${k} ÷ ${m}) = ${r(v)} m/s` },
+      { q: `If you compress a spring twice as far, the energy stored becomes...`, choices: ['the same', '2 times', '4 times', '8 times'], ans: 2, work: 'E = ½ k x², so doubling x multiplies E by 2² = 4.' },
+      { q: `k = ${k2} N/m, compressed ${x2 * 100} cm, block ${m2} kg, friction μ = ${mu}. Speed on leaving the spring? (g = 9.8)`, ans: Math.sqrt(v2), tol: 0.03, unit: 'm/s', work: `v² = (k x² − 2 μ m g x) ÷ m = (${r(k2 * x2 * x2)} − ${r(2 * mu * m2 * G * x2)}) ÷ ${m2} = ${r(v2)}, so v = ${r(Math.sqrt(v2))} m/s` },
+    ];
+  });
+  reset(); info();
+</script>

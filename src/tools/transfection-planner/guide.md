@@ -1,9 +1,9 @@
 ---
-name: Transfection and plate layout planner
+name: Transfection planner
 num: 190
 shelf: science
 section: cell-biology-and-cell-culture
-title: "Transfection planner: plate layout (6 to 384 wells), DNA, reagent and master mix volumes"
+title: "Transfection planner"
 summary: "Lay out your constructs, controls and replicates on a 6 to 384-well plate, automatically or by tapping wells. Get the DNA, reagent, diluent and medium for every tube and well from your amounts per well, with a spare margin, a printable colour plate map and a pipetting table."
 status: live
 ads: true

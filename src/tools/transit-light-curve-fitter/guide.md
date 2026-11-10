@@ -1,9 +1,9 @@
 ---
-name: Transit light curve fitter
+name: Transit fitter
 num: 71
 shelf: science
 section: exoplanets
-title: "Transit light curve fitter: exoplanet radius, depth, duration and impact parameter"
+title: "Transit fitter"
 summary: "Paste an exoplanet transit light curve and fit a limb-darkened model: the planet's size relative to its star, depth, duration, impact parameter, inclination and the star's density."
 status: live
 ads: true

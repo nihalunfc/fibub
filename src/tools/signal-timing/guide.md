@@ -1,9 +1,9 @@
 ---
-name: Signal timing (Webster's method)
+name: Signal timing
 num: 684
 shelf: science
 section: transportation-engineering
-title: "Traffic signal timing calculator: Webster's optimum cycle, green splits, degree of saturation and delay"
+title: "Signal timing"
 summary: "Enter each approach's phase, flow and saturation flow to get the critical flow ratios, total lost time, Webster's optimum cycle C0 = (1.5L + 5)/(1 − Y), effective and displayed greens, capacity, degree of saturation and Webster delay for every approach, with a timing diagram and a delay-against-cycle curve. For study and planning."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Inverse kinematics for 2 and 3 link arms
+name: Inverse kinematics
 num: 637
 shelf: science
 section: control-and-robotics
-title: "Inverse kinematics calculator for 2-link and 3-link planar robot arms: elbow up and down, reach and joint limits"
+title: "Inverse kinematics"
 summary: "Find the joint angles that put a planar 2-link arm's tip, or a 3-link arm's tool at a given angle, on a target point. Both elbow-up and elbow-down solutions, a reach check that says why a point is out of reach, optional joint limits, a drawing of the arm and its workspace, and a batch of targets to CSV."
 status: live
 ads: true

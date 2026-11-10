@@ -1,10 +1,9 @@
 ---
-name: Hydrogen bonding in water and ice
+name: Hydrogen bonding
 num: 1368
 shelf: learn
 section: school-chemistry
-title: "Hydrogen bonding in water and ice: a moving model, and which molecules can hydrogen bond"
-seoTitle: "Hydrogen bonding in water and ice, animated"
+title: "Hydrogen bonding"
 summary: "Watch water molecules jostle as hydrogen bonds break and re-form, cool them below 0 °C to lock them into an open ice lattice with four bonds each, and see why ice floats. Then sort molecules such as NH₃, HF, CH₄, H₂S and methoxymethane into those that hydrogen bond and those that do not, with the reason."
 status: live
 ads: false

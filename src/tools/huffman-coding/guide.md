@@ -1,9 +1,9 @@
 ---
-name: Huffman and arithmetic coding visualiser
+name: Huffman coding
 num: 579
 shelf: science
 section: information-theory-and-cryptography
-title: "Huffman coding and arithmetic coding visualiser: tree, code table, encode and decode, step-by-step intervals"
+title: "Huffman coding"
 summary: "Build a Huffman code from a message or from symbol probabilities: see the tree, the code table, the average length against the entropy, and encode or decode bits. Then watch the same message arithmetic coded, interval by interval, with exact fractions."
 status: live
 ads: true

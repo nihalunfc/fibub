@@ -1,9 +1,9 @@
 ---
-name: Punnett square and pedigree probability
+name: Punnett square
 num: 202
 shelf: science
 section: genetics
-title: "Punnett square calculator: genotype and phenotype ratios, the branch method, family chances and carrier risk"
+title: "Punnett square"
 summary: "Draw a Punnett square for 1 to 4 genes (complete, incomplete and codominant dominance, ABO blood groups, X-linked traits) and get the genotype and phenotype ratios as exact fractions. Use the branch method for up to 6 genes, the binomial rule for several children, and a Bayes table for carrier risk in a family. For learning, not genetic counselling."
 status: live
 ads: false

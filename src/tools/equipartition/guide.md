@@ -1,9 +1,9 @@
 ---
-name: Equipartition of energy and γ
+name: Equipartition
 num: 1349
 shelf: learn
 section: school-physics
-title: "Equipartition of energy: degrees of freedom, Cv, Cp and γ for monatomic, diatomic and polyatomic gases"
+title: "Equipartition"
 summary: "Watch a helium atom, a nitrogen molecule, a CO₂ molecule and a water molecule move, turn and vibrate. Count their degrees of freedom, give each ½kT, and get the internal energy, Cv, Cp and γ with the numbers filled in; then mix two gases."
 status: live
 ads: false

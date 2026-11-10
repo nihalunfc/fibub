@@ -1,9 +1,9 @@
 ---
-name: Quantum dot size (Brus equation)
+name: Quantum dot size
 num: 860
 shelf: science
 section: nanoscience
-title: "Quantum dot size calculator: Brus equation from absorption peak or band gap to diameter, and back"
+title: "Quantum dot size"
 summary: "Turn a quantum dot's first absorption peak or band gap into its size with the Brus equation, or a size into its gap and peak wavelength, using your own bulk gap, effective masses and dielectric constant. Shows the confinement and Coulomb terms, the exciton Bohr radius, a plot of gap against diameter, and an optional sizing curve of your own."
 status: live
 ads: true

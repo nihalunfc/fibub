@@ -1,9 +1,9 @@
 ---
-name: Cardiac cycle and ECG
+name: Cardiac cycle
 num: 1127
 shelf: learn
 section: school-biology
-title: "Cardiac cycle and ECG: heart chambers and valves in time with the P, QRS and T waves"
+title: "Cardiac cycle"
 summary: "Watch a four-chamber heart beat in slow motion: atria and ventricles contract, valves open and shut, and an ECG-like trace and the ventricle volume move with them. Change the heart rate and the filling to see stroke volume and cardiac output. Teaching model, not medical."
 status: live
 ads: false

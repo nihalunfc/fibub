@@ -1,9 +1,9 @@
 ---
-name: How an infection spreads
+name: Infection spread
 num: 1214
 shelf: learn
 section: school-biology
-title: "How an infection spreads: a town simulation of R0, vaccination and herd immunity"
+title: "Infection spread"
 summary: "A town of 400 dots: ill people meet others and pass a made-up illness on. Change how many people they meet, the chance of passing it on, days ill and the share vaccinated, and watch R0 and herd immunity at work. A study tool only."
 status: live
 ads: false

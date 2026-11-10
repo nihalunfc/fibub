@@ -1,9 +1,9 @@
 ---
-name: Yield per recruit and MSY calculator
+name: Yield per recruit
 num: 341
 shelf: science
 section: fisheries-science
-title: "Yield per recruit and MSY calculator: Beverton-Holt F0.1 and Fmax, Schaefer and Fox surplus production models fitted to catch and CPUE"
+title: "Yield per recruit"
 summary: "Work out Beverton-Holt yield per recruit against fishing mortality and age at first capture, with the reference points F0.1 and Fmax. Then get MSY, BMSY and FMSY from the Schaefer or Fox surplus production model, from your own r and K or fitted to a series of catches and CPUE."
 status: live
 ads: true

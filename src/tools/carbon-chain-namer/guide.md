@@ -1,9 +1,9 @@
 ---
-name: Carbon chain builder and IUPAC namer
+name: IUPAC namer
 num: 1104
 shelf: learn
 section: school-chemistry
-title: "IUPAC name maker for carbon chains: build alkanes, alkenes, alcohols, aldehydes, ketones and acids and see the name with steps"
+title: "IUPAC namer"
 summary: "Build a carbon chain of up to 10 carbons, tap carbons to add methyl and ethyl branches, add a double or triple bond and one functional group (–OH, –CHO, C=O, –COOH, –Cl, –Br). Get the IUPAC name with each step explained, the molecular formula and the homologous series, and test yourself on new structures."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Earthquake locator and magnitude calculator
+name: Earthquake locator
 num: 878
 shelf: science
 section: geophysics-and-seismology
-title: "Earthquake locator: S−P distance, least-squares epicentre and origin time, local magnitude ML and moment magnitude Mw"
+title: "Earthquake locator"
 summary: "Paste P and S arrival times from three or more seismic stations. Get each station's S−P distance, the epicentre and origin time by least squares (Geiger's method, on a flat map or the globe), optional depth, error estimates, a map with distance circles, local magnitude ML from amplitudes, and Mw from seismic moment or fault size."
 status: live
 ads: true

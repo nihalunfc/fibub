@@ -1,9 +1,9 @@
 ---
-name: "Project scheduling: CPM, PERT and Gantt"
+name: Project scheduler
 num: 585
 shelf: science
 section: operations-research
-title: "Project scheduler: critical path (CPM), float, PERT chance of finishing on time and a Gantt chart"
+title: "Project scheduler"
 summary: "List your tasks, durations and predecessors (finish-to-start, start-to-start, finish-to-finish, with lags) and get the critical path, earliest and latest dates, float, a Gantt chart, and with three-point estimates the PERT chance of finishing by a date, checked by simulation. Runs in your browser."
 status: live
 ads: true

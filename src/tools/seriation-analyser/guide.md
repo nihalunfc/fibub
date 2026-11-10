@@ -1,9 +1,9 @@
 ---
-name: Seriation and correspondence analysis
+name: Seriation
 num: 405
 shelf: science
 section: archaeology
-title: "Seriation and correspondence analysis of assemblages: battleship plot and Brainerd-Robinson (free, in your browser)"
+title: "Seriation"
 summary: "Paste or open a table of type counts per site, and get a correspondence analysis (inertia per axis, site and type scores, map), the sites and types ordered along the first axis, a battleship (frequency seriation) plot and the Brainerd-Robinson similarity matrix. Nothing is uploaded."
 status: live
 ads: false

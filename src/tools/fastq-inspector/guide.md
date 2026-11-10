@@ -1,9 +1,9 @@
 ---
-name: FASTQ and FASTA quality inspector
+name: FASTQ inspector
 num: 171
 shelf: science
 section: genomics-and-bioinformatics
-title: "FASTQ quality and GC inspector: read quality by position, GC per read and duplicates, in your browser"
+title: "FASTQ inspector"
 summary: "Open a FASTQ or FASTA file of any size (.gz too) and see read counts, lengths and N50, GC content per read, quality by position as boxes, reads by mean quality, base composition along the read and the most repeated sequences. The file is read on your device and never uploaded."
 status: live
 ads: false

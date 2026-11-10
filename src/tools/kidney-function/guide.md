@@ -1,9 +1,9 @@
 ---
-name: Kidney function calculator (eGFR and creatinine clearance)
+name: eGFR calculator
 num: 479
 shelf: science
 section: clinical-calculators
-title: "eGFR calculator: CKD-EPI 2021 (creatinine and cystatin C), Cockcroft-Gault creatinine clearance, MDRD and KDIGO G stage"
+title: "eGFR calculator"
 summary: "Estimate kidney function from serum creatinine (mg/dL or µmol/L) and optional cystatin C: race-free CKD-EPI 2021 eGFR, CKD-EPI 2012 cystatin C, MDRD for comparison, Cockcroft-Gault creatinine clearance with actual, ideal and adjusted weight, and the KDIGO G stage."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Vapour pressure and VLE calculator
+name: Vapour pressure
 num: 120
 shelf: science
 section: chemical-engineering
-title: "Vapour pressure calculator (Antoine equation) with bubble point, dew point and Txy diagram"
+title: "Vapour pressure"
 summary: "Work out vapour pressure and boiling point from Antoine constants, then the bubble and dew points, flash split, relative volatility and Txy and xy diagrams of an ideal two-component mixture (Raoult's law)."
 status: live
 ads: true

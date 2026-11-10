@@ -1,9 +1,9 @@
 ---
-name: Drug release curve fitter
+name: Drug release
 num: 682
 shelf: science
 section: biomedical-engineering
-title: "Drug release kinetics fitter: zero order, first order, Higuchi, Korsmeyer-Peppas, Hixson-Crowell and Weibull with R² and AIC"
+title: "Drug release"
 summary: "Paste cumulative drug release against time and fit the six classic release models at once, with parameters and their errors, R², adjusted R², AIC, the best model and what the Korsmeyer-Peppas exponent n says about the mechanism. Also fits first-order mass loss of a degrading biomaterial, with its half-life. Release kinetics only, no doses."
 status: live
 ads: true

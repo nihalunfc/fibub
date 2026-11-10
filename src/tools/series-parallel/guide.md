@@ -1,9 +1,9 @@
 ---
-name: Series and parallel circuit builder
+name: Series and parallel
 num: 1042
 shelf: learn
 section: school-physics
-title: "Series and parallel resistors: drag resistors into a circuit, see the total resistance worked out step by step"
+title: "Series and parallel"
 summary: "Drag four resistors into series, into a parallel box or out of the circuit. The page works out the equivalent resistance step by step, shows the current splitting with moving dots, and gives the voltage, current and power for each resistor, plus the energy used in kWh and its cost."
 status: live
 ads: false

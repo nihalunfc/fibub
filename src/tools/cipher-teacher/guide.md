@@ -1,9 +1,9 @@
 ---
-name: Classical cipher and hash teaching tool
+name: Cipher lab
 num: 581
 shelf: science
 section: information-theory-and-cryptography
-title: "Cipher and hash teaching tool: Caesar, Vigenère, affine, Atbash, rail fence, and SHA-256 step by step"
+title: "Cipher lab"
 summary: "Encrypt and decrypt with the classical ciphers (Caesar, Vigenère, affine, Atbash, rail fence) and see the working and the letter frequencies of your text. Then follow SHA-256 through padding, the message schedule and all 64 rounds, and watch one flipped bit change about half the hash."
 status: live
 ads: true

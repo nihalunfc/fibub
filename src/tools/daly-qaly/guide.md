@@ -1,9 +1,9 @@
 ---
-name: DALY and QALY calculator with ICER
+name: DALY and QALY
 num: 492
 shelf: science
 section: public-health
-title: "DALY and QALY calculator: YLL, YLD, discounting and cost per QALY (ICER)"
+title: "DALY and QALY"
 summary: "Work out disability-adjusted life years (DALY = YLL + YLD) with optional discounting, QALYs from utilities you enter, and the incremental cost-effectiveness ratio per QALY gained and per DALY averted."
 status: live
 ads: false

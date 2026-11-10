@@ -1,9 +1,9 @@
 ---
-name: Growth curve and doubling time (OD600)
+name: OD600 growth curve
 num: 194
 shelf: science
 section: microbiology
-title: "OD600 growth curve calculator: growth rate, doubling time, lag time and Gompertz or logistic fit"
+title: "OD600 growth curve"
 summary: "Paste time and OD600 readings for one or many cultures, take away a blank, and get the growth rate, doubling time and lag time from the exponential phase (found for you or chosen by hand), the highest OD, an optional Gompertz or logistic fit, plots on a linear or log scale, cells/mL from your own factor, and CSV and report downloads."
 status: live
 ads: false

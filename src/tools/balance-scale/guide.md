@@ -1,9 +1,9 @@
 ---
-name: Balance scale equation solver
+name: Balance equations
 num: 1250
 shelf: learn
 section: school-maths
-title: "Balance scale equation solver: solve linear equations by doing the same to both sides"
+title: "Balance equations"
 summary: "Put x boxes and 1-weights on a two-pan balance, then solve the equation one move at a time: take the same from both pans or share both into equal groups until x is alone. Slide a guess to see the beam tip."
 status: live
 ads: false

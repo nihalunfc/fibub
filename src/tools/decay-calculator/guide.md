@@ -1,9 +1,9 @@
 ---
-name: Radioactive decay and specific activity calculator
+name: Decay calculator
 num: 99
 shelf: science
 section: nuclear-and-radiochemistry
-title: "Radioactive decay calculator: decay correction, decay table and specific activity"
+title: "Decay calculator"
 summary: "Activity of F-18, Tc-99m, I-131, C-14, P-32 and 28 more nuclides (or any half-life) at any date and time, a printable decay table, when it falls to a given activity, carrier-free specific and molar activity, and the labelled fraction of your sample. Bq, MBq, GBq, µCi, mCi and Ci."
 status: live
 ads: true

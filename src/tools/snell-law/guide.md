@@ -1,9 +1,9 @@
 ---
-name: Refraction and Snell's law
+name: Snell's law
 num: 1003
 shelf: learn
 section: school-physics
-title: "Refraction and Snell's law: bending of light, glass slab shift, critical angle and apparent depth"
+title: "Snell's law"
 summary: "Aim a ray of light at the boundary between air, water, glass or diamond and see it bend by Snell's law, find the critical angle and total internal reflection, the sideways shift through a glass slab, and why a pool looks shallower than it is."
 status: live
 ads: false

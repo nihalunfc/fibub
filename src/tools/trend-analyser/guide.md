@@ -1,9 +1,9 @@
 ---
-name: Trend and anomaly analyser
+name: Trend analyser
 num: 138
 shelf: science
 section: climatology
-title: "Mann-Kendall trend test and Sen's slope calculator with change point and anomalies"
+title: "Trend analyser"
 summary: "Paste or open a time series (yearly, monthly or any steps) and test for a trend with Mann-Kendall, the Hamed-Rao autocorrelation correction or the seasonal test, get Sen's slope with its confidence interval, a Pettitt change point and anomalies from a baseline period."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Faraday cage and shielding
+name: Faraday cage
 num: 1404
 shelf: learn
 section: school-physics
-title: "Faraday cage: why the electric field inside a conductor is zero (electrostatic shielding)"
+title: "Faraday cage"
 summary: "Put a metal tube in an electric field and watch the free charges move to its surface so that the field inside is exactly zero. Probe the field anywhere, turn the outside field, take the tube away, or put a charge inside and see why a cage must be earthed to hide it."
 status: live
 ads: false

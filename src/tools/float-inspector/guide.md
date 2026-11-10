@@ -1,9 +1,9 @@
 ---
-name: Floating point inspector (IEEE 754)
+name: Float inspector
 num: 575
 shelf: science
 section: computer-science
-title: "Floating point inspector: IEEE 754 half, single and double bits, exact value, ULP and rounding error of any number"
+title: "Float inspector"
 summary: "See how a computer really stores 0.1 or any other number: the sign, exponent and mantissa bits in half, single and double precision, the exact stored value to the last digit, the rounding error, the next float up and down, and the ULP. Flip bits to see what any pattern means."
 status: live
 ads: true

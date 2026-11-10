@@ -1,9 +1,9 @@
 ---
-name: Projectile and drag simulator
+name: Projectile drag
 num: 901
 shelf: science
 section: classical-mechanics
-title: "Projectile motion calculator with air resistance and wind: trajectory, range, max height and time of flight"
+title: "Projectile drag"
 summary: "Launch a ball at any speed, angle and height and see its real path through the air: quadratic drag from its size, mass and drag coefficient, a head- or tailwind, the range, highest point, time of flight, landing speed, the best angle for distance and how much the air costs compared with a vacuum."
 status: live
 ads: true

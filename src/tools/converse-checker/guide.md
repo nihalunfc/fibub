@@ -1,9 +1,9 @@
 ---
-name: Statement and converse checker
+name: Converse checker
 num: 1281
 shelf: learn
 section: school-maths
-title: "Statement and converse checker: test if-then statements on random figures and hunt for counterexamples"
+title: "Converse checker"
 summary: "Pick an if-then statement from geometry or numbers, swap it round into its converse, and test either one on random quadrilaterals, triangles, angles or numbers. Hunt through a thousand cases for a counterexample and see why a converse can be false."
 status: live
 ads: false

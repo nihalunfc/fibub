@@ -1,0 +1,92 @@
+---
+// #1489 Sex determination. XX mother x XY father: the cross, then thousands of simulated births and families.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn sd">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <h2>The cross: XX mother, XY father</h2>
+    <p class="ax-help">Every egg carries an X. A father's sperm carry an X or a Y, half each. Whichever sperm wins decides the child.</p>
+    <table class="sd-sq" aria-label="Punnett square of the cross"><thead><tr><th></th><th>X (father)</th><th>Y (father)</th></tr></thead>
+      <tbody><tr><th>X (mother)</th><td class="sd-c">XX</td><td class="sd-c">XY</td></tr><tr><th>X (mother)</th><td class="sd-c">XX</td><td class="sd-c">XY</td></tr></tbody></table>
+    <p class="lrn-eq sd-cross"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Simulate many births</h2>
+    <div class="ax-grid">
+      <label class="lrn-sl">Births <b class="sd-nv"></b><input class="sd-n" type="range" min="10" max="10000" step="10" value="10000" aria-label="Number of births" /></label>
+      <label class="lrn-sl">Children per family <b class="sd-fv"></b><input class="sd-f" type="range" min="1" max="6" step="1" value="3" aria-label="Children per family" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small sd-go">Simulate births</button></div>
+    <canvas class="lrn-cv sd-cv" aria-label="Bar chart of families by number of girls" style="width:100%;margin-top:10px"></canvas>
+    <p class="ax-big sd-out" aria-live="polite"></p>
+    <p class="ax-help sd-why"></p>
+    <p class="ax-help" data-only="11" hidden>Class 11: the chance of k girls in a family of n is C(n, k) / 2^n. The coin has no memory, so after three girls the next child is still 50 : 50. The Y chromosome carries the SRY gene that starts the development of a boy.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Simulate only 10 births, several times. The share of girls jumps about. Then try 10 000: it settles near half.</li>
+      <li>Set 3 children per family. Families with three girls still happen about 1 in 8 times, yet the fourth child is again 50 : 50.</li>
+      <li>Who decides the child's sex, the mother or the father? Look at the Punnett square.</li>
+    </ul>
+  </div>
+  <div class="ax-card sd-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .sd .sd-sq { border-collapse: collapse; margin: 8px 0; }
+  .sd .sd-sq th, .sd .sd-sq td { border: 1px solid var(--line); padding: 8px 12px; text-align: center; }
+  .sd .sd-c { font-weight: 700; font-size: 18px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { crossXY, births, familySplit, binom } from '../../lib/sci/learnbc-bio';
+  import { rng } from '../../lib/sci/learnj-micro';
+  const root = document.querySelector('.sd') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let level = '10', runs = 0, last: boolean[] = [];
+  const cr = crossXY(), xx = cr.filter((c) => c === 'XX').length;
+  q('.sd-cross').textContent = `Four equally likely children: ${xx} XX (girls) : ${cr.length - xx} XY (boys). Each child has a ${r(xx / cr.length * 100)} % chance of being a girl.`;
+  const draw = () => {
+    const fam = +q<HTMLInputElement>('.sd-f').value, n = +q<HTMLInputElement>('.sd-n').value;
+    q('.sd-nv').textContent = n.toLocaleString('en'); q('.sd-fv').textContent = String(fam);
+    const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.sd-cv'), 200), pal = pagePalette();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    if (!last.length) { q('.sd-out').textContent = 'Press Simulate births.'; q('.sd-why').textContent = ''; c.fillStyle = pal.muted; c.font = '14px system-ui, sans-serif'; c.fillText('Press Simulate births to see the families.', 12, 40); return; }
+    const girls = last.filter(Boolean).length, sh = girls / last.length, sp = familySplit(last, fam);
+    const gx = 34, gy = 10, gw = W - 44, gh = H - 44, bw = gw / (fam + 1);
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(gx, gy, gw, gh);
+    const ymax = Math.max(0.5, ...sp, ...(level === '11' ? sp.map((_, k) => binom(fam, k)) : [0])) * 1.05;
+    c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    sp.forEach((v, k) => {
+      const h = (v / ymax) * gh, x = gx + k * bw + bw * 0.15;
+      c.fillStyle = pal.red ? pal.ink : pal.accent; c.fillRect(x, gy + gh - h, bw * 0.7, h);
+      c.fillStyle = pal.ink; c.fillText(`${r(v * 100, 3)}%`, x + bw * 0.35, gy + gh - h - 3);
+      c.fillStyle = pal.muted; c.fillText(`${k} girl${k === 1 ? '' : 's'}`, x + bw * 0.35, gy + gh + 14);
+      if (level === '11') { const e = binom(fam, k), y = gy + gh - (e / ymax) * gh; c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(x - 2, y); c.lineTo(x + bw * 0.7 + 2, y); c.stroke(); c.lineWidth = 1; }
+    });
+    q('.sd-out').textContent = `${last.length.toLocaleString('en')} births: ${girls.toLocaleString('en')} girls (${r(sh * 100, 3)} %) and ${(last.length - girls).toLocaleString('en')} boys.`;
+    q('.sd-out').dataset.share = String(sh); q('.sd-out').dataset.births = String(last.length);
+    q('.sd-why').textContent = `Each birth is a fresh 50 : 50 draw, so about half are girls overall. In families of ${fam} the mix varies a lot${level === '11' ? ' (the black lines show the exact chances)' : ''}, yet every child is still 50 : 50.`;
+  };
+  q('.sd-go').addEventListener('click', () => { const n = +q<HTMLInputElement>('.sd-n').value; last = births(n, runs === 0 ? rng(1109) : Math.random); runs++; draw(); });
+  q('.sd-n').addEventListener('input', draw); q('.sd-f').addEventListener('input', draw);
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.sd-quiz'), () => {
+    const n = one([2, 3, 4, 5]), k = pick(1, n - 1);
+    return [
+      { q: 'A mother has XX and a father has XY. What chance does each child have of being a boy?', ans: 50, unit: '%', work: 'Half the sperm carry Y, and every egg carries X, so XY (boy) is 1 in 2 = 50 %.' },
+      { q: 'A couple already has three girls. What is the chance the next child is a boy?', ans: 50, unit: '%', work: 'Each birth is independent: the sperm that wins is a fresh 50 : 50 draw, whatever happened before.' },
+      { q: 'Who decides whether a child is a girl or a boy?', ans: 1, choices: ['The mother, by the egg she gives', 'The father, by giving an X or a Y sperm', 'Neither: it is the same for every child'], work: 'Every egg carries X, so the sperm decides: X gives a girl, Y gives a boy.' },
+      { q: 'In 1000 births, about how many girls would you expect?', ans: 500, unit: 'girls', tol: 0.05, work: 'Half of 1000 = 500. The real number will be close but rarely exactly 500.' },
+      { q: `In a family of ${n} children, the chance of exactly ${k} girls is C(${n}, ${k}) / 2^${n}. Give it as a percentage.`, ans: binom(n, k) * 100, unit: '%', work: `C(${n}, ${k}) = ${r(binom(n, k) * 2 ** n)}; ${r(binom(n, k) * 2 ** n)} / ${2 ** n} = ${r(binom(n, k) * 100)} %` },
+    ].sort(() => Math.random() - 0.5).slice(0, 4);
+  });
+</script>

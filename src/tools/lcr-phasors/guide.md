@@ -1,9 +1,9 @@
 ---
-name: Phasor diagram and LCR circuit
+name: LCR phasors
 num: 1046
 shelf: learn
 section: school-physics
-title: "Series LCR circuit: rotating phasors, impedance triangle, resonance curve, Q factor and power factor"
+title: "LCR phasors"
 summary: "Slide R, L, C and the frequency of a series LCR circuit and watch the phasors turn: V_R in step with the current, V_L ahead by 90°, V_C behind by 90°. See the impedance triangle, the phase angle, the power factor and the rms current, and find resonance on the current-against-frequency curve with its Q factor and bandwidth."
 status: live
 ads: false

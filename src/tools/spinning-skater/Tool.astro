@@ -1,0 +1,117 @@
+---
+// #1491 Spinning skater. Engine: src/lib/learn/ (quiz.ts, sim.ts). A teaching model: a body of fixed moment of
+// inertia holding two weights; pulling them in keeps L = Iω constant while ω and the kinetic energy rise.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ss">
+  <div class="ax-card">
+    <h2>Pull the arms in</h2>
+    <canvas class="lrn-cv ss-cv" aria-label="A skater seen from above, spinning with a weight in each hand"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Hands from the axis r: <b class="ss-rv"></b><input class="ss-r" type="range" min="0.2" max="1" step="0.05" value="1" /></label>
+      <label class="lrn-sl">Spin with arms out ω₀: <b class="ss-wv"></b><input class="ss-w" type="range" min="0.5" max="5" step="0.5" value="2" /></label>
+      <label class="lrn-sl">Weight in each hand: <b class="ss-mv"></b><input class="ss-m" type="range" min="0" max="4" step="0.5" value="2" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn ss-in">Pull arms in</button><button type="button" class="btn secondary ss-out">Arms out</button><button type="button" class="btn secondary ss-pause">Pause</button></div>
+    <p class="ax-help">A teaching model: the body has I = 1 kg m² and no friction. With arms out, the hands are 1 m from the axis.</p>
+  </div>
+  <div class="ax-card">
+    <h2>What stays and what changes</h2>
+    <dl class="ax-facts ss-facts"></dl>
+    <p class="lrn-eq ss-eq"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Pull the arms in. I falls, so ω must rise. Look at L: it does not change.</li>
+      <li>If I halves, ω doubles and the kinetic energy doubles too. Who supplied that energy? The skater's muscles, pulling the weights inwards.</li>
+      <li>Set the weights to 0. Now the arms do not matter and nothing changes.</li>
+      <li>Try heavier weights for a bigger effect.</li>
+    </ul>
+  </div>
+  <div class="ax-card ss-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ss .ss-cv { width: 100%; }
+  .ss .ss-eq { margin: 8px 0 0; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, loop, pagePalette } from '../../lib/learn/sim';
+  const I0 = 1, ROUT = 1; // kg m², m
+  const root = document.querySelector('.ss') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number) => String(+x.toPrecision(3));
+
+  const Iof = (m: number, rr: number) => I0 + 2 * m * rr * rr;
+  const nums = () => {
+    const w0 = val('.ss-w'), m = val('.ss-m'), rr = rNow, Iout = Iof(m, ROUT), I = Iof(m, rr), L = Iout * w0, w = L / I;
+    return { w0, m, rr, Iout, I, L, w, KE0: 0.5 * Iout * w0 * w0, KE: 0.5 * I * w * w };
+  };
+  let ang = 0, target = -1, rNow = 1;
+  const mk = (k: string, v: string, sm = '') => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); return d; };
+
+  function info() {
+    const n = nums();
+    q('.ss-rv').textContent = `${f(n.rr)} m`; q('.ss-wv').textContent = `${f(n.w0)} rad/s`; q('.ss-mv').textContent = `${f(n.m)} kg`;
+    q('.ss-facts').replaceChildren(
+      mk('Moment of inertia I', `${f(n.I)} kg m²`, `arms out: ${f(n.Iout)}`),
+      mk('Spin now ω', `${f(n.w)} rad/s`, `arms out: ${f(n.w0)}`),
+      mk('Angular momentum L', `${f(n.L)} kg m²/s`, 'I × ω, the same all the time'),
+      mk('Kinetic energy', `${f(n.KE)} J`, `arms out: ${f(n.KE0)} J`),
+    );
+    q('.ss-eq').textContent = `L = I ω = ${f(n.I)} × ${f(n.w)} = ${f(n.I * n.w)}. Kinetic energy = ½ I ω² = ${f(n.KE)} J, which is ${f(n.KE / n.KE0)} times what it was with arms out.`;
+  }
+  function step(dt: number) {
+    if (target >= 0) {
+      const d = target - rNow, mv = 0.5 * dt;
+      rNow = Math.abs(d) <= mv ? target : rNow + Math.sign(d) * mv; inp('.ss-r').value = String(rNow);
+      if (Math.abs(d) <= mv) target = -1;
+    }
+    const n = nums(); ang += n.w * dt * 0.5;
+    info(); draw(n);
+  }
+  function draw(n = nums()) {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.ss-cv'), 220);
+    ctx.clearRect(0, 0, W, H);
+    const cx = Math.min(W / 2, 110), cy = H / 2, s = 85; // 1 m = 85 px
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, ROUT * s, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3;
+    for (const sgn of [0, Math.PI]) {
+      const a = ang + sgn, x = cx + Math.cos(a) * n.rr * s, y = cy + Math.sin(a) * n.rr * s;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, 4 + n.m * 2.5, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, 7); ctx.fill();
+    // bars: L stays, KE changes
+    const bx = Math.max(cx + ROUT * s + 40, W - 150), maxKE = Math.max(n.KE0, n.KE, 0.001) * 1.1, bh = 150, base = cy + bh / 2;
+    const bar = (x: number, v: number, vmax: number, col: string, lab: string) => {
+      ctx.fillStyle = col; ctx.fillRect(x, base - (bh * v) / vmax, 34, (bh * v) / vmax);
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(lab, x + 17, base + 14);
+    };
+    bar(bx, n.L, Math.max(n.L, 0.001) * 1.1, pal.good, 'L'); bar(bx + 50, n.KE, maxKE, pal.accent2, 'KE');
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('seen from above', 8, 16);
+  }
+  const lp = loop(step, q<HTMLButtonElement>('.ss-pause'));
+  root.querySelectorAll('.lrn-sl input').forEach((i) => i.addEventListener('input', () => { target = -1; rNow = val('.ss-r'); lp.redraw(); }));
+  q('.ss-in').addEventListener('click', () => { target = 0.2; if (!lp.playing) { rNow = 0.2; inp('.ss-r').value = '0.2'; target = -1; } lp.redraw(); });
+  q('.ss-out').addEventListener('click', () => { target = 1; if (!lp.playing) { rNow = 1; inp('.ss-r').value = '1'; target = -1; } lp.redraw(); });
+  addEventListener('resize', () => lp.redraw());
+  mountQuiz(q('.ss-quiz'), () => {
+    const I1 = pick(2, 8, 2), w1 = pick(1, 5), L = I1 * w1;
+    const Iw = pick(4, 12, 2), ww = pick(1, 5);
+    return [
+      { q: `A skater has I = ${I1} kg m² and spins at ${w1} rad/s. Angular momentum?`, ans: L, unit: 'kg m²/s', work: `L = I ω = ${I1} × ${w1} = ${r(L)} kg m²/s` },
+      { q: `She pulls her arms in and I falls to ${I1 / 2} kg m² (from ${I1}). Her new spin, from ${w1} rad/s?`, ans: w1 * 2, unit: 'rad/s', work: `L stays the same: ${I1} × ${w1} = ${I1 / 2} × ω, so ω = ${r(w1 * 2)} rad/s` },
+      { q: `When she pulls her arms in, her kinetic energy...`, choices: ['stays the same', 'falls', 'rises'], ans: 2, work: 'KE = L²/(2I). L is fixed and I falls, so KE rises. The extra energy is work done by her muscles.' },
+      { q: `I falls from ${Iw} to ${Iw / 2} kg m², starting at ${ww} rad/s. By what factor does the kinetic energy change?`, ans: 2, unit: 'times', work: `ω doubles, KE = ½ I ω² = ½ × (I/2) × (2ω)² = 2 × the old value.` },
+    ];
+  });
+</script>

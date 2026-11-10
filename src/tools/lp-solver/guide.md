@@ -1,9 +1,9 @@
 ---
-name: Linear and integer programming solver
+name: LP solver
 num: 582
 shelf: science
 section: operations-research
-title: "Linear and integer programming solver: simplex, branch and bound, shadow prices and a graph of the feasible region"
+title: "LP solver"
 summary: "Type a linear or integer program as plain text (maximize or minimize, constraints, bounds, whole-number and yes/no variables) and get the optimal solution, shadow prices, reduced costs, the simplex tableaux step by step, and a picture for two variables. Runs in your browser."
 status: live
 ads: true

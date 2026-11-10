@@ -1,9 +1,9 @@
 ---
-name: Lattice Boltzmann wind tunnel
+name: Wind tunnel
 num: 957
 shelf: science
 section: fluid-dynamics
-title: "Lattice Boltzmann wind tunnel: 2D flow past a cylinder, airfoil or your own drawing, with vortex shedding live"
+title: "Wind tunnel"
 summary: "A live 2D wind tunnel in the browser: pick a cylinder, square, plate or airfoil, or draw your own shape, set the Reynolds number and watch the wake form and shed a Kármán vortex street, with drag, lift and Strouhal number measured as it runs."
 status: live
 ads: true

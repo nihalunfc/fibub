@@ -1,9 +1,9 @@
 ---
-name: Galaxy rotation curve fitter
+name: Rotation curve
 num: 69
 shelf: science
 section: galactic-and-extragalactic-astronomy
-title: "Galaxy rotation curve fitter: bulge, disc and dark matter halo (NFW or isothermal)"
+title: "Rotation curve"
 summary: "Paste a galaxy's rotation curve and fit a bulge, an exponential disc and a dark halo: masses with uncertainties, how much of the galaxy is dark matter, and the halo's total mass."
 status: live
 ads: true
