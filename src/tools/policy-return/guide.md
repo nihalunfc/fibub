@@ -12,7 +12,7 @@ order: 1959
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [npv-irr-calculator, term-fair-price, life-cover-needed]
+related: [npv-irr-calculator, term-fair-price, life-cover-needed, should-i-insure]
 sources:
   - "Internal rate of return: the rate r that makes the sum of each cash flow divided by (1+r)^t equal zero. Checked: paying 100 at the start of years 0 and 1 and receiving 231 at year 2 gives exactly 10.00%. Payouts come from the benefit illustration your seller gives you, checked 2026-11-10; check the official source for tax rules."
 flow:

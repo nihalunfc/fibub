@@ -12,7 +12,7 @@ order: 1953
 icon: scale
 works: offline
 updated: 2026-11-10
-related: [room-rent-cap, budget-calculator]
+related: [room-rent-cap, budget-calculator, should-i-insure]
 sources:
   - "US: healthcare.gov glossary definitions of deductible, coinsurance and out-of-pocket maximum. Checked 2026-11-10, check the official source."
   - "Canada: provincial health plans cover hospital and doctor care; supplementary plans have their own yearly maximums, set by each plan. Checked 2026-11-10, check the official source."

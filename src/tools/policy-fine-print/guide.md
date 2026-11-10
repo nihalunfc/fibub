@@ -25,7 +25,7 @@ flow:
 
 Insurance wording is long, and the costly surprises sit in a few phrases: waiting periods, caps, co-payments, exclusions. This tool scans text you paste (or a .txt or text PDF you open), highlights those clauses in colour, and lists the numbers inside them, such as 36 months or 1%.
 
-Your text stays on this page: it is never uploaded or stored. The tool finds words only and cannot tell you what a clause means for you. Look up unfamiliar words in [[insurance-terms]], test whether a price is fair with [[should-i-insure]].
+Your text stays on this page: it is never uploaded or stored. The tool finds words only and cannot tell you what a clause means for you. Look up unfamiliar words in [[insurance-terms]], test whether a price is fair with [[should-i-insure]], and work out an Indian room-rent limit with [[room-rent-cap]].
 
 ## How to use it
 

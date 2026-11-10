@@ -26,7 +26,7 @@ flow:
 
 Insurance costs more, on average, than it pays back, because the insurer has costs. It can still be worth it when a loss would hurt you badly. This tool compares the price with the expected loss, then asks how much a cautious person with your savings would pay to avoid the risk.
 
-It gives a neutral verdict, not a recommendation. To look up a word see [[insurance-terms]], and to check the price fits your month use the [[budget-calculator]].
+It gives a neutral verdict, not a recommendation. To choose between two deductibles use the [[insurance-deductible|deductible chooser]], to look up a word see [[insurance-terms]], and to check the price fits your month use the [[budget-calculator]].
 
 ## How to use it
 

@@ -12,7 +12,7 @@ order: 1961
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [life-table, life-cover-needed, policy-return]
+related: [life-table, life-cover-needed, policy-return, should-i-insure]
 sources:
   - "Equivalence principle: premium = expected present value of the death benefit divided by the expected present value of premiums. Death chances from the official life tables (US SSA period life table, Statistics Canada life tables, India SRS abridged life tables), checked 2026-11-10; check the official source. Gompertz law: adult death rates roughly double every 8 years. Checked: q 0.1 and 0.1 on 1,000 at 0% gives 100.00."
 flow:

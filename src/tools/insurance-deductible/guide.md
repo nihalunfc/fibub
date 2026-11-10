@@ -12,7 +12,7 @@ order: 1956
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [claim-or-pay, idv-ncb, budget-calculator]
+related: [claim-or-pay, idv-ncb, budget-calculator, should-i-insure]
 sources:
   - "Standard actuarial model: Poisson claim counts and lognormal claim sizes; expected cost per claim is the mean of the claim capped at the deductible (limited expected value). The numbers on the page are examples, not quotes."
 flow:
