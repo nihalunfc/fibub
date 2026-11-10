@@ -1,0 +1,154 @@
+---
+// Antibiotic zones of inhibition: a teaching model of the disc diffusion test on a Petri dish, with zone
+// diameters from diffusion and the MIC, a concentration profile, and a sensitive or resistant strain.
+// Class 12 Biology, microbes in human welfare (antibiotics). Teaching model.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax azn">
+  <p class="ax-help">A teaching model with made-up antibiotics, germs and numbers. Real tests use standard methods and official cut-offs. Not medical advice; never take antibiotics without a doctor.</p>
+  <div class="ax-card">
+    <h2>The plate</h2>
+    <div class="ax-grid">
+      <label>Germ on the plate <select class="az-germ"><option value="0" selected>Strain 1 (an ordinary germ)</option><option value="1">Strain 2 (has become resistant)</option></select></label>
+      <label>Look closely at <select class="az-sel"></select></label>
+      <label>Antibiotic in each disc: <b class="az-mv"></b><input type="range" class="az-m" min="2" max="60" step="1" value="10" aria-label="Micrograms of antibiotic in each disc" /></label>
+      <label>Agar depth: <b class="az-hv"></b><input type="range" class="az-h" min="2" max="6" step="0.5" value="4" aria-label="Depth of agar in millimetres" /></label>
+    </div>
+    <canvas class="ax-fig az-fig" role="img"></canvas>
+    <p class="ax-help">Cloudy cream = bacteria growing. Clear rings = zones of inhibition, where enough antibiotic reached to stop growth. Tap a disc to look at it closely.</p>
+    <div class="ax-scroll"><table class="az-tab"><thead><tr><th>Disc</th><th class="r">Zone (mm)</th><th>Teaching verdict</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>How far does the antibiotic reach?</h2>
+    <canvas class="ax-fig az-prof" role="img"></canvas>
+    <p class="az-say"></p>
+    <p class="az-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="az-try">
+      <li>Switch to Strain 2. Which antibiotics still work? This is what antibiotic resistance looks like on a plate.</li>
+      <li>Double the antibiotic in each disc. Do the zones double? (No: the edge moves only with the logarithm of the amount.)</li>
+      <li>Pour the agar thinner. Why do the zones get bigger?</li>
+      <li>Compare disc Q with disc P: Q works at a lower concentration, but its big molecules spread slowly.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="az-quiz" />
+</div>
+
+<script>
+  import { conc, zoneDiameter, verdict, DISC_MM } from '../../lib/sci/zones-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, label, fmt, pointer, py, FONT } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.azn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const TC = 10; // hours, critical time
+  // Made-up antibiotics: diffusion coefficient (mm²/h) and MIC (µg/mL) for strain 1 and strain 2.
+  const DISCS = [
+    { k: 'P', D: 0.5, mic: [0.5, 32], at: [-22, -22] },
+    { k: 'Q', D: 0.3, mic: [0.1, 0.2], at: [22, -22] },
+    { k: 'R', D: 0.6, mic: [8, 8], at: [-22, 22] },
+    { k: 'S', D: 0.5, mic: [0.25, 16], at: [22, 22] },
+    { k: 'C', D: 0.5, mic: [Infinity, Infinity], at: [0, 0] },
+  ];
+  const NAME = (k: string) => (k === 'C' ? 'Control (plain paper)' : `Antibiotic ${k}`);
+  const sel = q<HTMLSelectElement>('.az-sel');
+  DISCS.forEach((d, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = NAME(d.k); sel.append(o); });
+  const W = 340, R = 45; // dish radius in mm
+  const dots: [number, number][] = []; { let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647); for (let i = 0; i < 2600; i++) { const a = rnd() * 2 * Math.PI, r = R * Math.sqrt(rnd()); dots.push([r * Math.cos(a), r * Math.sin(a)]); } }
+
+  function zones() {
+    const g = +q<HTMLSelectElement>('.az-germ').value, M = +q<HTMLInputElement>('.az-m').value, h = +q<HTMLInputElement>('.az-h').value;
+    return DISCS.map((d) => ({ ...d, mic: d.mic[g], z: d.k === 'C' ? DISC_MM : zoneDiameter(M, d.D, TC, h, d.mic[g]) }));
+  }
+
+  function run() {
+    const M = +q<HTMLInputElement>('.az-m').value, h = +q<HTMLInputElement>('.az-h').value, si = +sel.value;
+    q('.az-mv').textContent = `${M} µg`; q('.az-hv').textContent = `${fmt(h, 1)} mm`;
+    const zs = zones();
+    const S = W / (2 * R + 6);
+    paint(q<HTMLCanvasElement>('.az-fig'), { w: W, h: W, alt: `Petri dish: ${zs.map((z) => `${z.k} ${fmt(z.z, 1)} mm`).join(', ')}`, draw: (ctx, w, hh, pl: Palette) => {
+      const cx = w / 2, cy = hh / 2, X = (x: number) => cx + x * S, Y = (y: number) => cy + y * S;
+      ctx.beginPath(); ctx.arc(cx, cy, R * S + 2, 0, 2 * Math.PI); ctx.fillStyle = pl.bg; ctx.fill(); ctx.strokeStyle = pl.muted; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = pl.accent2; ctx.globalAlpha = 0.55;
+      for (const [x, y] of dots) { if (zs.some((z) => Math.hypot(x - z.at[0], y - z.at[1]) < z.z / 2)) continue; ctx.fillRect(X(x) - 1.5, Y(y) - 1.5, 3, 3); }
+      ctx.globalAlpha = 1;
+      zs.forEach((z, i) => {
+        if (z.z > DISC_MM) { ctx.beginPath(); ctx.arc(X(z.at[0]), Y(z.at[1]), (z.z / 2) * S, 0, 2 * Math.PI); ctx.strokeStyle = i === si ? pl.bad : pl.line; ctx.lineWidth = i === si ? 2 : 1; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]); }
+        ctx.beginPath(); ctx.arc(X(z.at[0]), Y(z.at[1]), (DISC_MM / 2) * S, 0, 2 * Math.PI); ctx.fillStyle = pl.bg; ctx.fill(); ctx.strokeStyle = i === si ? pl.bad : pl.ink; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = pl.ink; ctx.font = '700 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(z.k, X(z.at[0]), Y(z.at[1]) + 0.5);
+        if (i === si && z.z > DISC_MM) {
+          const y0 = Y(z.at[1]) + (z.z / 2) * S + 10; ctx.strokeStyle = pl.bad; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(z.at[0] - z.z / 2), y0); ctx.lineTo(X(z.at[0] + z.z / 2), y0); ctx.stroke();
+          ctx.fillStyle = pl.bad; ctx.font = FONT; ctx.textBaseline = 'top'; ctx.fillText(`${fmt(z.z, 1)} mm`, X(z.at[0]), y0 + 2);
+        }
+      });
+    } });
+    q('.az-tab tbody').replaceChildren(...zs.map((z, i) => {
+      const tr = document.createElement('tr'); if (i === si) tr.className = 'az-on';
+      const v = z.k === 'C' ? 'no antibiotic: no zone' : verdict(z.z);
+      [NAME(z.k), z.z > DISC_MM ? fmt(z.z, 1) : `${DISC_MM} (none)`, v].forEach((t, j) => { const td = document.createElement('td'); td.textContent = t; if (j === 1) td.className = 'r'; if (j === 2) td.className = `az-${v.split(' ')[0]}`; tr.append(td); });
+      tr.addEventListener('click', () => { sel.value = String(i); run(); });
+      return tr;
+    }));
+    // concentration profile for the selected disc
+    const z = zs[si], v = view(0, 20, -1, 3, 380, 220, { l: 44, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.az-prof'), { w: 380, h: 220, alt: `Concentration against distance for ${NAME(z.k)}`, draw: (ctx, w, hh, pl: Palette) => {
+      axes(ctx, v, pl, { xName: 'distance from disc centre (mm)', yName: 'µg/mL', yTicks: [-1, 0, 1, 2, 3] });
+      ctx.fillStyle = pl.bg; ctx.fillRect(0, 0, v.l - 1, hh - v.b + 2); ctx.fillStyle = pl.muted; ctx.font = FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      [-1, 0, 1, 2, 3].forEach((k) => ctx.fillText(String(10 ** k), v.l - 4, py(v, k)));
+      if (z.k !== 'C') {
+        curve(ctx, v, (x) => Math.log10(conc(x, M, z.D, TC, h)), pl.accent, 2.5);
+        if (Number.isFinite(z.mic)) { line(ctx, v, 0, Math.log10(z.mic), 20, Math.log10(z.mic), pl.bad, 1.5, [6, 4]); label(ctx, v, 20, Math.log10(z.mic), 'MIC', pl.bad, -4, -3, 'right'); }
+        if (z.z > DISC_MM) line(ctx, v, z.z / 2, -1, z.z / 2, 3, pl.good, 1.5, [3, 3]);
+      }
+    } });
+    const c0 = conc(0, M, z.D, TC, h);
+    q('.az-say').textContent = z.k === 'C' ? 'The control disc has no antibiotic, so the germs grow right up to it. It shows the plain paper does not stop growth.'
+      : z.z > DISC_MM ? `${NAME(z.k)}: the antibiotic stops this germ where it is above ${fmt(z.mic, 2)} µg/mL (its MIC). That level is reached ${fmt(z.z / 2, 1)} mm from the centre, so the clear zone is ${fmt(z.z, 1)} mm across: ${verdict(z.z)} (teaching cut-offs).`
+      : `${NAME(z.k)}: even next to the disc the antibiotic (${fmt(c0, 1)} µg/mL) is below this germ's MIC of ${fmt(z.mic, 2)} µg/mL, so there is no clear zone: resistant.`;
+    q('.az-formula').textContent = z.k === 'C' ? '' : `Zone radius² = 4·D·Tc·ln(c₀ / MIC) = 4 × ${z.D} × ${TC} × ln(${fmt(c0, 1)} / ${fmt(z.mic, 2)})${z.z > DISC_MM ? ` = ${fmt((z.z / 2) ** 2, 1)} mm²` : ' (no zone)'}; c₀ = M / (4π·D·Tc·h).`;
+  }
+
+  q<HTMLCanvasElement>('.az-fig').addEventListener('click', (e) => {
+    const c = q<HTMLCanvasElement>('.az-fig'), p = pointer(c, e as PointerEvent, W, W), S = W / (2 * R + 6);
+    const x = (p.X - W / 2) / S, y = (p.Y - W / 2) / S;
+    let best = -1, bd = 12; DISCS.forEach((d, i) => { const dd = Math.hypot(x - d.at[0], y - d.at[1]); if (dd < bd) { bd = dd; best = i; } });
+    if (best >= 0) { sel.value = String(best); run(); }
+  });
+  root.querySelectorAll('.az-germ, .az-sel').forEach((e) => e.addEventListener('change', run));
+  root.querySelectorAll('.az-m, .az-h').forEach((e) => e.addEventListener('input', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.az-quiz'), (): Question[] => {
+    const r = rint(6, 15), z1 = rint(8, 14), z2 = z1 + rint(4, 10);
+    const D = pick([0.3, 0.5]), c0 = pick([20, 40, 80]), mic = pick([1, 2, 4]);
+    const x2 = 4 * D * TC * Math.log(c0 / mic);
+    return [
+      { text: `A clear zone has a radius of ${r} mm measured from the disc centre. What is its diameter in mm?`, answer: 2 * r, tol: 0, worked: `Diameter = 2 × radius = ${2 * r} mm.` },
+      mc(`Disc X has a ${z1} mm zone and disc Y a ${z2} mm zone on the same germ (same method). Which antibiotic is the germ more sensitive to?`, 'Y', ['X', 'Both the same', 'Cannot have zones'], 'A bigger clear zone means the antibiotic stops the germ even where it is weaker, so the germ is more sensitive to it.'),
+      { text: `Model: D = ${D} mm²/h, Tc = ${TC} h, c₀ = ${c0} µg/mL, MIC = ${mic} µg/mL. Zone radius² = 4·D·Tc·ln(c₀/MIC). What is the radius in mm? (1 decimal place)`, answer: Math.sqrt(x2), tol: 0.06, worked: `r² = 4 × ${D} × ${TC} × ln(${c0}/${mic}) = ${fmt(x2, 2)}, so r = ${fmt(Math.sqrt(x2), 2)} mm.` },
+      mc('Who discovered penicillin after noticing a mould stopping bacteria on a plate?', 'Alexander Fleming', ['Louis Pasteur', 'Robert Koch', 'Edward Jenner'], 'Fleming saw that a Penicillium mould kept Staphylococcus from growing around it (1928). Chain and Florey later made it into a medicine.'),
+      mc('A germ grows right up to an antibiotic disc. It is…', 'resistant to that antibiotic', ['very sensitive', 'killed by the paper', 'not alive'], 'No clear zone means the antibiotic does not stop it even at the highest concentration, next to the disc.'),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .azn input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .azn .az-fig { max-width: 420px; margin: 10px auto 0; cursor: pointer; }
+  .azn .az-tab { margin-top: 10px; }
+  .azn .az-tab tr { cursor: pointer; }
+  .azn .az-tab tr.az-on td { font-weight: 700; }
+  .azn .az-sensitive { color: var(--good); } .azn .az-intermediate { color: var(--warn); } .azn .az-resistant { color: var(--bad); }
+  .azn .az-say, .azn .az-formula { font-weight: 600; margin: 10px 0 0; }
+  .azn .az-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
