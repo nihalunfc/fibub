@@ -2,6 +2,7 @@
 name: ATS resume checker
 num: 7
 shelf: documents
+section: jobs
 title: "Free ATS resume checker: score your resume out of 100 (no upload)"
 summary: "See your resume the way hiring software reads it, get a score out of 100 with plain fixes, and match it to a job ad. PDF or Word."
 status: live

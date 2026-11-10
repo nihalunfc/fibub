@@ -1,6 +1,7 @@
 ---
 name: Currency converter
 shelf: money
+section: shopping
 title: Currency converter
 summary: Convert between INR, AED, SAR, CAD, USD, GBP and more at daily rates.
 status: soon
