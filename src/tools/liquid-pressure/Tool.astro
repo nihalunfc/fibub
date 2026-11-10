@@ -1,0 +1,174 @@
+---
+// Liquid pressure with depth (Learn): a bottle with three holes on a stand; the jets, the pressure at each hole,
+// and (Class 11) Torricelli's speed and where each jet lands. Maths in src/lib/sci/j3-liquid.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { LIQUIDS } from '../../lib/sci/j3-liquid';
+---
+<div class="ax lrn lqp">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="lqp-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <canvas class="lrn-cv lqp-cv" aria-label="A bottle of water with three holes, squirting jets onto the floor"></canvas>
+    <p class="ax-help" style="margin:6px 0 0">Drag the water surface up or down in the bottle.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small lqp-play">Pause</button>
+      <label class="lqp-chk"><input type="checkbox" class="lqp-top" checked /> Keep it topped up</label>
+      <button type="button" class="btn secondary small lqp-fill">Fill to the top</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Water level in the bottle <b class="lqp-lv"></b><input type="range" class="lqp-l" min="0" max="30" step="0.5" value="30" aria-label="Water level in centimetres" /></label>
+      <label class="lrn-sl">Height of the stand <b class="lqp-sv"></b><input type="range" class="lqp-s" min="0" max="100" step="5" value="0" aria-label="Height of the stand in centimetres" /></label>
+      <label>Liquid <select class="lqp-liq">{LIQUIDS.map((l) => <option value={l.id}>{l.name}</option>)}</select></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>At each hole</h2>
+    <p class="ax-big lqp-big" style="margin:0 0 8px"></p>
+    <div class="ax-scroll"><table class="lqp-tab"></table></div>
+    <div class="lrn-eq lqp-eq"></div>
+    <p class="ax-help">Holes are 5, 15 and 25 cm above the bottom of a 30 cm bottle. Pressures are the liquid's own (gauge) pressure; the air adds about 101 kPa everywhere. The jets ignore friction in the hole and air resistance, so real jets fall a little short. g = 9.8 m/s²; densities are rounded general values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Watch the three jets: the lowest hole squirts hardest, because more water is pressing down above it.</li>
+      <li>Untick "Keep it topped up". As the level falls, every jet gets weaker, and the top hole stops first.</li>
+      <li>Put the bottle on a tall stand (60 cm or more): the lowest jet now lands furthest away.</li>
+      <li>Now set the stand to 0 with the bottle full. Surprise: the middle jet lands furthest. The bottom jet is fastest but has no height to fall through. Switch to Class 11 to see why.</li>
+      <li>Change the liquid to mercury. The pressure is 13.6 times bigger, yet the jets look the same. At Class 11, see why the speed does not depend on density.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card lqp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { LIQUIDS, HOLES, BOTTLE, jets, furthest, drain, gauge, bestHoleHeight, questions, G } from '../../lib/sci/j3-liquid';
+  import { mountQuiz, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lqp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let level = '8', L = BOTTLE, phase = 0;
+  const liq = () => LIQUIDS.find((l) => l.id === q<HTMLSelectElement>('.lqp-liq').value)!;
+  const stand = () => Number(inp('.lqp-s').value) / 100;
+  const f = (x: number, d = 1) => x.toFixed(d).replace(/\.0+$/, '').replace('-', '−');
+  const kPa = (P: number) => (P < 1000 ? `${Math.round(P).toLocaleString('en')} Pa` : `${(P / 1000).toFixed(2)} kPa`);
+  const NAMES = ['Bottom hole', 'Middle hole', 'Top hole'];
+  let geo = { k: 1, bx: 0, bw: 0, floor: 0 };
+
+  function draw(dt: number) {
+    if (dt > 0) {
+      phase = (phase + dt * 2) % 1;
+      if (!inp('.lqp-top').checked && L > 0.0001) { L = drain(L, dt * 3); inp('.lqp-l').value = String(Math.round(L * 200) / 2); readout(); }
+    }
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.lqp-cv'), 340), s = stand(), js = jets(liq().rho, L, s);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const maxX = Math.max(0.3, ...js.map((j) => j.x)), bwM = 0.1;
+    const k = Math.min((H - 50) / (s + BOTTLE + 0.04), (W - 40) / (maxX + bwM + 0.08)), floor = H - 26, bx = 14, bw = bwM * k;
+    geo = { k, bx, bw, floor };
+    const Y = (m: number) => floor - m * k;
+    // floor and scale
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, floor); ctx.lineTo(W, floor); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    const step = maxX > 0.8 ? 0.2 : 0.1;
+    for (let m = 0; bx + bw + m * k < W - 10; m += step) { const x = bx + bw + m * k; ctx.beginPath(); ctx.moveTo(x, floor); ctx.lineTo(x, floor + 5); ctx.stroke(); ctx.fillText(`${Math.round(m * 100)}`, x, floor + 17); }
+    ctx.textAlign = 'right'; ctx.fillText('cm from the bottle', W - 4, floor - 4);
+    // stand
+    if (s > 0) { ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.fillRect(bx - 4, Y(s), bw + 8, s * k); ctx.strokeRect(bx - 4, Y(s), bw + 8, s * k); }
+    // water
+    const water = pal.red ? pal.muted : liq().id === 'mercury' ? '#9aa3ad' : liq().id === 'oil' ? '#d9b44a' : '#4f8fd6';
+    ctx.fillStyle = water; ctx.globalAlpha = 0.55; ctx.fillRect(bx, Y(s + L), bw, L * k); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, Y(s + BOTTLE + 0.03)); ctx.lineTo(bx, Y(s)); ctx.lineTo(bx + bw, Y(s)); ctx.lineTo(bx + bw, Y(s + BOTTLE + 0.03)); ctx.stroke();
+    // surface handle
+    if (L > 0) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(bx, Y(s + L)); ctx.lineTo(bx + bw, Y(s + L)); ctx.stroke(); }
+    // holes and jets
+    const best = furthest(js);
+    js.forEach((j, i) => {
+      const hx = bx + bw, hy = Y(s + HOLES[i]);
+      ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, 7); ctx.fill();
+      if (!j.flowing) return;
+      const T = Math.sqrt((2 * j.y) / G);
+      ctx.strokeStyle = water; ctx.lineWidth = Math.max(2, Math.min(5, j.v * 2.5)); ctx.beginPath();
+      for (let n = 0; n <= 40; n++) { const t = (T * n) / 40, x = hx + j.v * t * k, y = hy + 0.5 * G * t * t * k; if (n) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+      // moving drops
+      ctx.fillStyle = pal.red ? pal.ink : pal.accent;
+      for (let m = 0; m < 4; m++) { const t = T * ((phase + m / 4) % 1); ctx.beginPath(); ctx.arc(hx + j.v * t * k, hy + 0.5 * G * t * t * k, 2.5, 0, 7); ctx.fill(); }
+      const lx = hx + j.x * k;
+      ctx.strokeStyle = i === best ? pal.good : pal.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lx, floor - 6); ctx.lineTo(lx, floor + 6); ctx.stroke();
+    });
+    // depth labels
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+    if (L > 0) ctx.fillText(`level ${f(L * 100)} cm`, bx + bw + 6, Y(s + L) - 4);
+    q('.lqp-cv').setAttribute('aria-label', `Bottle on a ${Math.round(s * 100)} cm stand with water ${f(L * 100)} cm deep; ` + js.map((j, i) => `${NAMES[i].toLowerCase()} ${j.flowing ? `lands ${f(j.x * 100)} cm away` : 'dry'}`).join(', '));
+  }
+
+  function readout() {
+    const s = stand(), rho = liq().rho, js = jets(rho, L, s), best = furthest(js), c11 = level === '11';
+    inp('.lqp-l').value = String(Math.round(L * 200) / 2);
+    q('.lqp-lv').textContent = `${f(L * 100)} cm`; q('.lqp-sv').textContent = s ? `${Math.round(s * 100)} cm` : 'none, on the floor';
+    q('.lqp-big').textContent = best < 0 ? 'No jets: the water is below every hole' : `${NAMES[best]} lands furthest: ${f(js[best].x * 100)} cm`;
+    const head = ['Hole', 'Depth', 'Pressure', ...(c11 ? ['Speed'] : []), 'Lands at'];
+    const rows = js.map((j, i) => [NAMES[i], j.flowing ? `${f(j.depth * 100)} cm` : 'above water', j.flowing ? kPa(j.P) : '0', ...(c11 ? [j.flowing ? `${j.v.toFixed(2)} m/s` : '–'] : []), j.flowing ? `${f(j.x * 100)} cm` : 'no jet']).reverse();
+    const t = q('.lqp-tab'), th = document.createElement('thead'), tb = document.createElement('tbody'), hr = document.createElement('tr');
+    head.forEach((h) => { const c = document.createElement('th'); c.textContent = h; hr.append(c); }); th.append(hr);
+    rows.forEach((r) => { const tr = document.createElement('tr'); r.forEach((x) => { const c = document.createElement('td'); c.textContent = x; tr.append(c); }); tb.append(tr); });
+    t.replaceChildren(th, tb);
+    const lines: string[] = [];
+    const b = js[0];
+    if (!c11) {
+      lines.push(b.flowing ? `The bottom hole is ${f(b.depth * 100)} cm under the surface, so it has the most liquid above it pushing down: ${kPa(b.P)}. ${js[2].flowing ? `The top hole is only ${f(js[2].depth * 100)} cm down: ${kPa(js[2].P)}.` : 'The top hole is above the water, so nothing comes out.'}` : 'Add water above the holes to make the jets squirt.');
+      lines.push('A liquid presses in every direction, and the deeper you go, the harder it presses. That is why dams are thicker at the bottom.');
+      if (best >= 0 && best !== 0) lines.push(`Here the ${NAMES[best].toLowerCase()} lands furthest even though the bottom jet is fastest: the bottom jet starts close to the floor, so it has little time to travel before it lands. Raise the stand to see the bottom jet win.`);
+    } else if (b.flowing) {
+      lines.push(`Pressure at the bottom hole: P = ρgh = ${rho.toLocaleString('en')} × 9.8 × ${(b.depth).toFixed(3)} = ${Math.round(b.P).toLocaleString('en')} Pa (plus the air's 101,325 Pa on top: ${Math.round(b.P + 101325).toLocaleString('en')} Pa in all).`);
+      lines.push(`Speed (Torricelli, from ρgh = ½ρv², so ρ cancels): v = √(2gh) = √(2 × 9.8 × ${(b.depth).toFixed(3)}) = ${b.v.toFixed(2)} m/s.`);
+      lines.push(`It falls ${f(b.y * 100)} cm in t = √(2y/g) = ${Math.sqrt((2 * b.y) / G).toFixed(3)} s, so it lands v t = 2√(hy) = ${f(b.x * 100)} cm away.`);
+      const top = s + L; lines.push(`With the surface ${f(top * 100)} cm above the floor, a hole at half that height, ${f(bestHoleHeight(top) * 100)} cm above the floor, would throw furthest: 2√(hy) is biggest when h = y.`);
+    } else lines.push('Add water above the holes to make the jets squirt.');
+    q('.lqp-eq').replaceChildren(...lines.map((x) => { const p = document.createElement('p'); p.style.margin = '6px 0 0'; p.textContent = x; return p; }));
+    anim?.redraw();
+  }
+
+  let anim: ReturnType<typeof loop> | undefined;
+  wireLevel(root, (l) => { level = l; readout(); });
+  inp('.lqp-l').addEventListener('input', () => { L = Number(inp('.lqp-l').value) / 100; readout(); });
+  root.querySelectorAll('.lqp-s, .lqp-liq, .lqp-top').forEach((e) => { e.addEventListener('input', readout); e.addEventListener('change', readout); });
+  q('.lqp-fill').addEventListener('click', () => { L = BOTTLE; readout(); });
+  const cv = q<HTMLCanvasElement>('.lqp-cv');
+  let dragging = false;
+  const setL = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), y = e.clientY - r.top; L = Math.max(0, Math.min(BOTTLE, Math.round(((geo.floor - y) / geo.k - stand()) * 200) / 200)); readout(); };
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left; if (x > geo.bx + geo.bw + 30) return; dragging = true; cv.setPointerCapture(e.pointerId); setL(e); });
+  cv.addEventListener('pointermove', (e) => { if (dragging) setL(e); });
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+  anim = loop(draw, q<HTMLButtonElement>('.lqp-play'));
+  readout();
+  const quizBox = document.createElement('div'); q('.lqp-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(level));
+  document.addEventListener('fibub:theme', () => anim?.redraw());
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; anim?.redraw(); } }).observe(cv);
+  void gauge;
+</script>
+
+<style is:inline>
+  .lqp .lqp-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .lqp .ax-seg button { min-height: 44px; }
+  .lqp .lqp-chk { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 15px; }
+  .lqp .lqp-chk input { width: 22px; height: 22px; }
+  .lqp select { min-height: 44px; width: 100%; }
+  .lqp .lqp-tab { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .lqp .lqp-tab th, .lqp .lqp-tab td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+  .lqp [hidden] { display: none !important; }
+</style>
