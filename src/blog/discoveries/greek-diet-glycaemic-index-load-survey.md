@@ -4,7 +4,7 @@ summary: "A 2025 study worked out the daily glycaemic index and load of nearly 4
 tools: [glycaemic-load, survey-weighting, nutrient-planner]
 updated: 2026-11-10
 sources:
-  - "Vourli G, Augustin L, La Vecchia C, Peppa E, Trichopoulou A (2025), Estimates of the Dietary Glycemic Index and Load in a Representative Sample of the Greek Population, Nutrients 17: 3596. Open access under CC BY 4.0, as stated in the publisher's article, checked 2026-11-10."
+  - "Vourli G, Augustin L, La Vecchia C, Peppa E, Trichopoulou A (2025), Estimates of the Dietary Glycemic Index and Load in a Representative Sample of the Greek Population, Nutrients 17: 3596. Open access under a Creative Commons Attribution (CC BY) licence, as stated on the publisher's article page, checked 2026-11-10."
   - "Wolever TMS and Jenkins DJA (1986), American Journal of Clinical Nutrition 43: 167-172 (the GI of a mixed meal as a carbohydrate-weighted mean)."
   - "Salmerón J et al. (1997), JAMA 277: 472-477 (glycaemic load as GI times carbohydrate)."
 paper:
@@ -14,11 +14,11 @@ paper:
   year: 2025
   doi: "10.3390/nu17223596"
   url: "https://www.mdpi.com/2072-6643/17/22/3596"
-  licence: "CC BY 4.0"
+  licence: "CC BY"
   reviewed: true
 ---
 
-How fast does a whole country's food raise blood sugar? A 2025 paper in *Nutrients* estimated the average dietary glycaemic index and glycaemic load of adults in Greece, using a national survey of what people ate. Men had a higher load than women, and older and more educated people had lower values. The paper is open access under CC BY 4.0. The arithmetic behind each person's daily score is exactly what the [[glycaemic-load]] calculator does, food by food, in your browser.
+How fast does a whole country's food raise blood sugar? A 2025 paper in *Nutrients* estimated the average dietary glycaemic index and glycaemic load of adults in Greece, using a national survey of what people ate. Men had a higher load than women, and older and more educated people had lower values. The paper is open access under a CC BY licence. The arithmetic behind each person's daily score is exactly what the [[glycaemic-load]] calculator does, food by food, in your browser.
 
 ## What they found
 

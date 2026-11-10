@@ -22,7 +22,7 @@ Near Zhaoqing, in southern China, a round hollow about 900 metres across sits on
 
 ## What they found
 
-The team measured the crater rim to rim at about 900 metres in one direction and 820 metres in the other, so it is slightly oval. From the crest of the rim down to the floor it is around 90 metres deep.
+The team measured the crater rim to rim at about 900 metres in one direction and 820 metres in the other, so it is slightly oval. The authors give an apparent depth of about 90 metres.
 
 The key evidence is in the quartz. In thin slices of rock from the site, the authors found many quartz grains crossed by sets of very fine, straight, parallel planes. These "planar deformation features" form only when a shock wave squeezes the crystal to pressures tens of thousands of times greater than the air around us. Ordinary geology on Earth's surface does not reach such pressures; a hypervelocity impact does.
 

@@ -22,7 +22,7 @@ When no ready-made liquid medicine suits a small child, hospital pharmacists oft
 
 ## What they found
 
-One isocratic run on a C18 column, with dilute acetic acid and acetonitrile (60:40) and UV detection at 272 nm, separated all four compounds in under 15 minutes. Every calibration line had R² above 0.999. The authors report a quantitation limit of about 0.36 µg/mL for the breakdown product, furosemide-related compound B. They also report repeatability RSDs of 0.1 to 1.5 %, intermediate precision RSDs of 0.5 to 2.0 % and recoveries of about 98 to 101 %.
+One isocratic run on a C18 column, with dilute acetic acid and acetonitrile (60:40) and UV detection at 272 nm, separated all four compounds in under 15 minutes. Every calibration line had R² above 0.995. The authors report a quantitation limit of about 0.36 µg/mL for the breakdown product, furosemide-related compound B. They also report repeatability RSDs of 0.1 to 1.5 %, intermediate precision RSDs of 0.5 to 2.0 % and recoveries of about 98 to 101 %.
 
 Forced stress showed the method is stability-indicating: acid and peroxide broke furosemide down, and the product peaks did not overlap the drug. In storage, solutions kept at 2 to 8 °C showed no detectable degradant over 90 days. At 40 °C the degradant reached several per cent by day 90, above the 1.5 % limit the authors cite, and methylparaben lost about half its content.
 

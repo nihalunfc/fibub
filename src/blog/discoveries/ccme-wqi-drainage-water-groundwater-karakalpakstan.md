@@ -23,7 +23,7 @@ In the dry south of the Aral Sea basin, farmers reuse the salty water that drain
 
 The study covers the Amudarya district of Karakalpakstan, in north-west Uzbekistan. The authors report an index of 9.6 in 2021 and 6.2 in 2023 for the collector-drainage water, judged against irrigation guidelines for salt-sensitive crops. Against looser guidelines for salt-tolerant crops the scores were higher, about 31 and 28, but still in the Poor band. Almost every test of salinity, chloride, sodium and the sodium adsorption ratio (SAR, a measure of how much sodium can damage soil structure) broke its limit, and the authors name sodium as the biggest risk.
 
-The groundwater, from 12 observation wells 10 to 25 m deep, scored 77.7 in 2021 and 75.0 in 2023 against the national drinking water standard: Fair. Hardness, dissolved solids and chloride failed, and the first two were rising.
+The groundwater, from wells 10 to 25 m deep, scored 77.7 in 2021 and 75.0 in 2023 against the national drinking water standard: Fair. Hardness, dissolved solids and chloride failed.
 
 ## Why it matters
 
@@ -31,8 +31,8 @@ Decades of cotton irrigation have left salt building up in Karakalpakstan's soil
 
 ## How they did it
 
-1. The drainage water was sampled monthly from a collecting pond, and the 12 wells in the same years.
-2. Six variables went into the drainage index: electrical conductivity (EC, a quick measure of salt), bicarbonate, chloride, sodium, SAR and an EC-adjusted SAR. Eight went into the groundwater index, including pH, nitrate, fluoride, iron, copper and dissolved solids.
+1. The drainage water was sampled monthly from a collecting pond, and the wells in the same years.
+2. The drainage index leaned on salinity measures such as electrical conductivity (EC, a quick measure of salt), chloride, sodium and SAR. The groundwater index used a different set, including hardness, dissolved solids and chloride. The paper lists about nine indicators for each water type.
 3. Drainage results were compared with irrigation guidelines of the Food and Agriculture Organization (FAO); groundwater results with Uzbekistan's drinking water standard, with World Health Organization values alongside.
 4. The three CCME factors were worked out in a spreadsheet. 2022 was left out as almost the same as 2021.
 

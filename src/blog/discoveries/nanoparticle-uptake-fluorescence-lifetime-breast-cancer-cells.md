@@ -4,7 +4,7 @@ summary: "Hybrid nanoparticles taken up by H8N8 cells shortened their fluorescen
 tools: [fluorescence-image-analyser, hemocytometer, gel-densitometry]
 updated: 2026-11-10
 sources:
-  - "Eckstein S, Herbsleb L, Groger H, Feldmann C, Alves F, Walter A, Schneckenburger H (2026), International Journal of Molecular Sciences 27(3): 1339, CC BY 4.0, the paper described here."
+  - "Eckstein S, Herbsleb L, Groger H, Feldmann C, Alves F, Walter A, Schneckenburger H (2026), International Journal of Molecular Sciences 27(3): 1339, CC BY, the paper described here."
   - "Otsu, N. (1979) for the automatic threshold and Zack, Rogers and Latt (1977) for the triangle threshold: methods only."
   - "The counts, areas and intensities in the worked example are made up by us and worked through by hand; the tool's own example image is described in its guide."
 paper:
@@ -14,11 +14,11 @@ paper:
   year: 2026
   doi: "10.3390/ijms27031339"
   url: "https://www.mdpi.com/1422-0067/27/3/1339"
-  licence: "CC BY 4.0"
+  licence: "CC BY"
   reviewed: true
 ---
 
-A fluorescent dye does not only emit a colour; it emits for a certain length of time, and that length changes with what surrounds the molecule. A German group used that to follow dye-loaded hybrid nanoparticles into murine breast cancer cells, arguing that where the particles end up can be read off the nanosecond decay even when the particles are too small to resolve. The work appeared in the *International Journal of Molecular Sciences* in January 2026 under a CC BY 4.0 licence. The paper judged brightness by eye; for per-cell numbers from such images, use the [[fluorescence-image-analyser|fluorescence image analyser]].
+A fluorescent dye does not only emit a colour; it emits for a certain length of time, and that length changes with what surrounds the molecule. A German group used that to follow dye-loaded hybrid nanoparticles into murine breast cancer cells, arguing that where the particles end up can be read off the nanosecond decay even when the particles are too small to resolve. The work appeared in the *International Journal of Molecular Sciences* in January 2026 under a CC BY licence. The paper judged brightness by eye; for per-cell numbers from such images, use the [[fluorescence-image-analyser|fluorescence image analyser]].
 
 ## What they found
 

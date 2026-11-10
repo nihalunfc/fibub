@@ -24,7 +24,7 @@ When a machined part keeps failing inspection, there are two suspects: the machi
 
 Before the changes, the thread's pitch diameter was behind 100 of 175 scrapped parts (57 %) in one month. The process was out of control, so its capability figures are only a rough guide, but within-subgroup Cpk was about 0.18 (Cpk compares the distance from the mean to the nearer specification limit with three standard deviations; 1.33 is a common target). After the changes, Cp was about 1.81 and Cpk about 1.40, and the charts showed no out-of-control points. The insert's life rose from about 572 to 1,276 parts per edge, and scrap per shift fell by about half.
 
-The gauge was the weaker link. Before, the R&R used up roughly 65 to 89 % of the tolerance, with operators disagreeing more than the instrument repeated itself. Afterwards the operator-by-part effect disappeared, and the share fell to about 46 % of the tolerance, still too high, with fewer than 2 distinct categories.
+The gauge was the weaker link. Before, the R&R used up about 89 % of the tolerance, with operators disagreeing more than the instrument repeated itself. Afterwards the operator-by-part effect disappeared, and the share fell to about 46 % of the tolerance, still too high, with fewer than 2 distinct categories.
 
 ## Why it matters
 
@@ -38,11 +38,31 @@ The characteristic was the pitch diameter of a 5/8-18 UNF-2A external thread on 
 
 We use **made-up numbers** in millimetres on a thread like the paper's: 5 parts, operators A, B and C, 2 trials each, and a tolerance of 0.018 mm.
 
-1. **Before: a biased operator.** Paste rows of part, operator, trial 1, trial 2 into the gauge R&R calculator. Ours have true sizes from 14.836 to 14.848 mm, small trial-to-trial noise, and operator C reading 0.002 to 0.006 mm high. Part 1, for example: A 14.837 and 14.835, B 14.836 and 14.838, C 14.838 and 14.841. Set **Tolerance** to 0.018 and keep 6 standard deviations.
-2. **Read it.** The interaction p is 0.152, so it is pooled. %GRR is **49.5 % of study variation and 90.2 % of the tolerance**, ndc is 2, and reproducibility (40.8 %) is larger than repeatability (28.1 %). The average and range method gives a similar 47.1 %. The verdict is "needs improvement", and the cause points at people, not the instrument.
-3. **After: train the operator.** Take operator C's offset away and rerun. Reproducibility drops to zero, %GRR falls to **24.6 % of study variation**, ndc rises to 5, but %tolerance is still **41.4 %**, because the micrometer's own repeatability is too coarse for an 18 µm band. That is the same pattern the paper reports: fixing method helps, but the gauge itself must change too.
-4. **Chart the process.** In the control charts tool pick **X̄ and R**, each row a subgroup, and paste 6 made-up subgroups of 3, such as 14.839, 14.840, 14.838 for the first. Our set has a grand mean of 14.8398 mm, a within-subgroup σ of 0.00138 mm and no rule breaks.
-5. **Capability.** With LSL 14.834 and USL 14.852 mm, Cp is **2.18** but Cpk only **1.41**, because the mean sits low in the band. The 95 % interval for Cpk runs from **0.83 to 2.00**: 18 values cannot prove 1.33. The paper makes the same caution about its post-change Cpk.
+1. **Before: a biased operator.** In the gauge R&R calculator, paste these 15 rows (part, operator, trial 1, trial 2). Operator C reads a little high:
+
+   ```
+   1 A 14.837 14.835
+   1 B 14.836 14.838
+   1 C 14.838 14.841
+   2 A 14.840 14.838
+   2 B 14.839 14.841
+   2 C 14.843 14.842
+   3 A 14.843 14.841
+   3 B 14.842 14.844
+   3 C 14.845 14.847
+   4 A 14.846 14.844
+   4 B 14.845 14.847
+   4 C 14.849 14.848
+   5 A 14.849 14.847
+   5 B 14.848 14.850
+   5 C 14.852 14.851
+   ```
+
+   Set **Tolerance** to 0.018 and keep 6 standard deviations.
+2. **Read it.** The part-by-operator interaction is not significant (p is about 1), so it is pooled. %GRR is **41.2 % of study variation and 71.2 % of the tolerance**, ndc is 3, and reproducibility (35.2 %) is larger than repeatability (21.4 %). The average and range method gives a similar 45.2 %. The verdict is "needs improvement", and the cause points at people, not the instrument.
+3. **After: train the operator.** Subtract 0.003 from every one of operator C's readings and rerun. Reproducibility drops to 7.4 %, %GRR falls to **24.0 % of study variation**, ndc rises to 5, but %tolerance is still **38.9 %**, above the usual 30 % limit, because the micrometer's own repeatability is coarse for an 18 µm band. That is the same pattern the paper reports: fixing method helps, but the gauge itself must change too.
+4. **Chart the process.** In the control charts tool pick **X̄ and R**, each row a subgroup, and paste these 6 made-up subgroups of 3, one per line: 14.839 14.840 14.838; 14.841 14.839 14.842; 14.838 14.840 14.841; 14.840 14.838 14.839; 14.841 14.840 14.838; 14.839 14.841 14.840. The mean is 14.8397 mm, the within-subgroup σ is 0.00148 mm and there are no rule breaks.
+5. **Capability.** With LSL 14.834 and USL 14.852 mm, Cp is **2.03** but Cpk only **1.28**, because the mean sits low in the band. The 95 % interval for Cpk runs from **0.74 to 1.81**: 18 values cannot prove 1.33. The paper makes the same caution about its post-change Cpk.
 6. **Share the band.** If the thread mates with a nut, the tolerance stack-up calculator shows how much of the band each part can take.
 
 ## The fine print

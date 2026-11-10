@@ -87,7 +87,7 @@ Paste this into the [[curve-fitter]] and choose **Quadratic** (a + b·x + c·x²
 
 Ṗ/P = 2 × 1.48 × 10⁻⁷ ÷ (1,000,000 × 0.1²) × 365.25 ≈ **1.1 × 10⁻⁸ per year**.
 
-We built the data with 1.0 × 10⁻⁸, so the fit gets close despite our added scatter. Over 80 years, that change shifts the last maximum by about 18 minutes, even though the period itself changes by less than a hundredth of a second per century. To log your own timings, the [[variable-star-log]] keeps your estimates in one place, and the [[uncertainty-calculator]] helps carry the fitted error of c into Ṗ/P.
+We built the data with 1.0 × 10⁻⁸, so the fit gets close despite our added scatter. Over 80 years, that change shifts the last maximum by about 19 minutes, even though the period itself changes by less than a hundredth of a second per century. To log your own timings, the [[variable-star-log]] keeps your estimates in one place, and the [[uncertainty-calculator]] helps carry the fitted error of c into Ṗ/P.
 
 ## The fine print
 

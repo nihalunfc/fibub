@@ -45,7 +45,7 @@ Every number below is made up by us to show the method; none of it is from the p
 
 **Step 2: titrate the untreated stock.** On the TCID50 page, open *Make a dilution series*, set the strongest dilution to 10^-1, the step to 10, seven dilutions and 8 wells each, press *Make the rows* and type the infected wells: 8, 8, 8, 6, 3, 1, 0. Leave the inoculum at 0.1 mL per well.
 
-Spearman-Kärber puts the endpoint at the 10⁻⁴·⁷⁵ dilution, which is **5.62 × 10⁵ TCID50/mL**, with a standard error of 0.275 log₁₀ and a 95 % interval of 1.62 × 10⁵ to 1.95 × 10⁶ per mL. Reed-Muench crosses 50 % between the 10⁻⁵ row (83.3 % cumulative) and the 10⁻⁶ row (36.4 %) and gives 5.12 × 10⁵ per mL, 0.04 log₁₀ away. The plaque-equivalent line reads 3.90 × 10⁵ PFU/mL, because a dose that infects half the wells carries ln 2 ≈ 0.69 particles on average.
+Spearman-Kärber puts the endpoint at the 10⁻⁴·⁷⁵ dilution, which is **5.62 × 10⁵ TCID50/mL**, with a standard error of 0.275 log₁₀ and a 95 % interval of 1.62 × 10⁵ to 1.95 × 10⁶ per mL. Reed-Muench crosses 50 % between the 10⁻⁴ row (83.3 % cumulative) and the 10⁻⁵ row (36.4 %) and gives 5.12 × 10⁵ per mL, 0.04 log₁₀ away. The plaque-equivalent line reads 3.90 × 10⁵ PFU/mL, because a dose that infects half the wells carries ln 2 ≈ 0.69 particles on average.
 
 **Step 3: titrate the heated sample.** Press *Start empty* and type a shorter series, 10⁻¹ to 10⁻⁵ with 8 wells each: 8, 6, 2, 0, 0. The endpoint is 10⁻²·⁵, so the titre is **3.16 × 10³ TCID50/mL** (standard error 0.231 log₁₀, 95 % interval 1.11 × 10³ to 8.99 × 10³).
 

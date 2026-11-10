@@ -21,9 +21,9 @@ The brown-marbled grouper is a big, blotchy reef fish prized in the live-fish tr
 
 ## What they found
 
-Females in the samples reached maturity at a smaller size than previously assumed: half were mature at about 49 cm total length, against about 58 cm in older work. Growth fitted to ear-stone (otolith) ages was slow, with a growth coefficient K of about 0.12 per year and an asymptotic length near 86 cm.
+Half of the sampled fish were mature at about 49 cm total length (both sexes together). Growth fitted to ear-stone (otolith) ages was slow, with a growth coefficient K of about 0.12 per year and an asymptotic length near 86 cm.
 
-The key result is the spawning potential ratio, or SPR. This compares the eggs a fished population produces over its life with what it would produce if nobody fished it. The study puts SPR at about 0.21 to 0.22 on average, ranging from 0.13 to 0.28 between years. That is below the local target of 0.30. Fishing mortality was roughly twice natural mortality. Earlier estimates had put SPR much lower, at 0.05 to 0.07, mostly because they used the larger maturity size.
+The key result is the spawning potential ratio, or SPR. This compares the eggs a fished population produces over its life with what it would produce if nobody fished it. The study puts SPR between 0.13 and 0.28 depending on the year. That is below the local target of 0.30. Fishing mortality was roughly twice natural mortality. Earlier estimates had put SPR much lower, at 0.05 to 0.07, mostly because they used the larger maturity size.
 
 ## Why it matters
 
@@ -46,8 +46,8 @@ The SPR model used in the paper is not on fibub. Yield per recruit asks a relate
 1. Type those values into the yield per recruit boxes, and set the current fishing mortality F to 0.5, twice M.
 2. Read the headline: **F0.1 = 0.271 per year and Fmax = 1.99 per year.** F0.1 is the point where extra fishing starts adding very little catch. It is a cautious target.
 3. Read the current F line: 668 g per recruit, at 1.85 × F0.1. At F0.1 the yield is 590 g per recruit. Fishing 85 % harder than F0.1 buys only about 13 % more catch.
-4. Look at the best age at first capture at the current F. It is about 4.6 years, very close to the age 5 already in use, so in pure yield terms catch size looks fine.
-5. Now set the age at first capture to 7 (about 54 cm in our made-up fish, above the size at maturity). F0.1 rises to 0.330 and there is no Fmax at all up to F = 5. At F = 0.5, yield drops to 591 g per recruit, but every fish caught has had a chance to spawn.
+4. Look at the best age at first capture at the current F. It is about 4.55 years, very close to the age 5 already in use, so in pure yield terms catch size looks fine.
+5. Now set the age at first capture to 7 (about 55 cm in our made-up fish, taking an asymptotic length of 86 cm, above the size at maturity). F0.1 rises to 0.330 and there is no Fmax at all up to F = 5. At F = 0.5, yield drops to 591 g per recruit, but every fish caught has had a chance to spawn.
 
 Step 5 shows what yield per recruit leaves out. It counts kilograms, not eggs, so it can favour catching fish before they breed. That gap is exactly why the paper used SPR. Use yield per recruit to see the cost in catch of a size limit, and an SPR model to see the gain in spawning.
 

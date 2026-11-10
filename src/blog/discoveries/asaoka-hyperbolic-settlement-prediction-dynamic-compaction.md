@@ -22,7 +22,7 @@ Once a soft site has been improved and built on, the owner wants to know one num
 
 ## What they found
 
-At the end of 360 days the ground had settled 108.84 mm. Each method was fitted to readings up to day 180, 240 or 300, then asked to predict the rest. Asaoka's predictions for day 360 were 108.82 to 108.86 mm, with a mean error of about 0.02 mm on the held-back readings. The exponential gave 108.38 to 108.79 mm (about 0.19 mm), and the hyperbolic 109.23 to 110.05 mm (about 0.59 mm), drifting high. A COMSOL computer model of the site matched the measurements to within a few hundredths of a millimetre.
+At the end of 360 days the ground had settled 108.84 mm. Each method was fitted to readings up to day 180, 240 or 300, then asked to predict the rest. Asaoka's predictions for day 360 were 108.82 to 108.86 mm, with a mean error of about 0.02 mm on the held-back readings. The exponential gave 108.38 to 108.79 mm (about 0.19 mm), and the hyperbolic 109.23 to 110.05 mm (about 0.59 mm), drifting high. The team also built a COMSOL computer model of the site for the water and stress side.
 
 The authors are careful: the survey itself is only good to about ±1 mm, so the gap between Asaoka and the exponential is smaller than the measurement can resolve. They do not claim one is truly better.
 

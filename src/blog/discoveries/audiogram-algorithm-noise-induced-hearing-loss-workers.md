@@ -9,7 +9,7 @@ sources:
   - "Cohen J (1960), Educational and Psychological Measurement 20: 37-46 (Cohen's kappa)."
 paper:
   title: "Development and validation of the AUDEXCEL algorithm as a diagnostic tool for occupational noise-related hearing disorder"
-  authors: "Yew, Raja Pathmanathan"
+  authors: "Yew and Raja Pathmanathan (names as in the paper's copyright line)"
   journal: "PeerJ"
   year: 2025
   doi: "10.7717/peerj.20149"
@@ -28,7 +28,7 @@ On the held-back testing data the authors report:
 
 - **Normal hearing, hearing loss, and two kinds of threshold shift**: complete agreement, with sensitivity, specificity and Cohen's kappa all at their maximum.
 - **Hearing impairment**: sensitivity 100%, specificity 99.5% and kappa 0.994.
-- **Noise-induced hearing loss (NIHL)**: sensitivity 89.5%, specificity 100% and kappa 0.922. In other words, the rules missed about one in ten of the cases the doctors called NIHL, but never labelled a non-NIHL chart as NIHL.
+- **Noise-induced hearing loss (NIHL)**: sensitivity 90.3%, specificity 98.0% and kappa 0.922. In other words, the rules missed about one in ten of the cases the doctors called NIHL, and wrongly flagged a small share of the rest.
 
 ## Why it matters
 
@@ -38,7 +38,7 @@ In many countries, employers must test the hearing of workers exposed to loud no
 
 An audiogram records the quietest tone a person can hear at each frequency, in decibels hearing level (dB HL); bigger numbers mean worse hearing. Noise damage typically shows as a dip, or "notch", around 3 to 6 kHz, with better hearing again at 8 kHz.
 
-AUDEXCEL holds six rule-based checks. They compare each worker's thresholds with fixed limits and with the worker's earlier baseline test, and apply published notch criteria for NIHL. The team checked the rules with five-fold cross-validation, measured sensitivity, specificity and predictive values, and used Cohen's kappa for agreement beyond chance.
+AUDEXCEL holds six rule-based checks. They compare each worker's thresholds with fixed limits and with the worker's earlier baseline test, and apply published notch criteria for NIHL. The team checked the rules with five-fold cross-validation (the 320 charts split into five groups of 64, each taking a turn as the test set), measured sensitivity, specificity and predictive values, and used Cohen's kappa for agreement beyond chance.
 
 ## Check it yourself with fibub
 

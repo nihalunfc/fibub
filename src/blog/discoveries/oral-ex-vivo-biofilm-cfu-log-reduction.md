@@ -49,21 +49,21 @@ Every number below is invented by us as a demonstration. The paper's own reducti
 
 **Step 3: count the colonies.** On the CFU counter, open a photo of each plate taken from straight above with even light, tap *Set the plate edge*, and let the page find the colonies. Tap to add a missed one or tap a ring to remove a false one, and tick *Split touching colonies* for merged neighbours.
 
-**Step 4: pool the plates into a titre.** Type one line per plate as dilution, volume plated, colonies. For a control biofilm:
+**Step 4: pool the plates into a titre.** Type one line per plate as dilution, volume plated in mL, colonies (commas between them). For a control biofilm:
 
 ```
-1e-3  0.1 mL  TNTC
-1e-4  0.1 mL  TNTC
-1e-5  0.1 mL  186
-1e-6  0.1 mL  21
+1e-3, 0.1, TNTC
+1e-4, 0.1, TNTC
+1e-5, 0.1, 186
+1e-6, 0.1, 21
 ```
 
 With the countable range at its default 30 to 300, only the 10⁻⁵ plate qualifies: 186 ÷ (0.1 mL × 10⁻⁵) = **1.86 × 10⁸ CFU/mL**, 95 % interval 1.60 × 10⁸ to 2.15 × 10⁸ from the exact Poisson interval on 186 colonies. The 21-colony plate is listed but not used, and the table says why. For the treated biofilm:
 
 ```
-1e-2  0.1 mL  TNTC
-1e-3  0.1 mL  132
-1e-4  0.1 mL  14
+1e-2, 0.1, TNTC
+1e-3, 0.1, 132
+1e-4, 0.1, 14
 ```
 
 That gives **1.32 × 10⁶ CFU/mL** (1.10 × 10⁶ to 1.57 × 10⁶).
