@@ -1,0 +1,158 @@
+---
+// #T845 Medical bill checker
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui mb">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not tax, billing or legal advice.</p>
+  <div class="mb-box">
+    <h2>1. Open or paste your itemised bill</h2>
+    <label>Open a file (PDF with text, CSV or Excel) <input class="mb-file" type="file" accept=".pdf,.csv,.tsv,.txt,.xlsx,application/pdf" /></label>
+    <label>Or paste the lines <textarea class="mb-text" rows="5" placeholder="2026-03-01  99213  Room and board  3  400.00  1200.00"></textarea></label>
+    <div class="mb-row">
+      <label>Dates are written <select class="mb-dord"><option value="dmy">day / month / year</option><option value="mdy">month / day / year</option></select></label>
+      <button type="button" class="btn small mb-read">Read the lines</button>
+      <button type="button" class="btn secondary small mb-ex">Use an example</button>
+    </div>
+    <p class="mb-msg" role="status" aria-live="polite"></p>
+  </div>
+  <div class="mb-box">
+    <h2>2. About the bill</h2>
+    <div class="mb-row">
+      <label>Currency <select class="mb-cur"><option>CAD</option><option>USD</option><option>INR</option><option>GBP</option><option>AED</option></select></label>
+      <label>Admission date <input class="mb-adm" type="date" /></label>
+      <label>Discharge date <input class="mb-dis" type="date" /></label>
+      <label>Total printed on the bill <input class="mb-total" inputmode="decimal" placeholder="optional" /></label>
+    </div>
+  </div>
+  <div class="mb-box">
+    <h2>3. Lines</h2>
+    <p class="mb-help">Fix anything that was read wrongly. Tick "Not sure" for a line you do not think you received.</p>
+    <div class="mb-scroll"><table class="mb-rows"><thead><tr><th>Date</th><th>Code</th><th>Description</th><th>Qty</th><th>Unit price</th><th>Amount</th><th>Not sure</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="mb-row"><button type="button" class="btn secondary small mb-add">Add a line</button><button type="button" class="btn secondary small mb-clear">Clear everything</button></div>
+    <p class="mb-sum"></p>
+  </div>
+  <div class="mb-box mb-out" hidden>
+    <h2>4. Questions to ask the billing office</h2>
+    <p class="mb-help">These are questions, not findings. Bills can have good reasons for any of them.</p>
+    <ol class="mb-flags"></ol>
+    <p class="mb-none" hidden>No questions came up from these checks. Check the lines match what you remember.</p>
+    <h2>5. Letter</h2>
+    <div class="mb-row"><label>Your name <input class="mb-name" /></label><label>Provider <input class="mb-prov" /></label><label>Bill reference <input class="mb-ref" /></label></div>
+    <label>Letter (you can edit it) <textarea class="mb-letter" rows="14"></textarea></label>
+    <Downloads label="Download letter and questions" />
+    <p class="mb-help">Want to spread a payment out? Try the <a href="/money/debt-snowball/">debt snowball</a> planner.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .mb { display: grid; gap: .9rem; }
+  .mb-box { display: grid; gap: .6rem; border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem; }
+  .mb-box h2 { margin: 0; font-size: 1.1rem; }
+  .mb label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .mb-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
+  .mb input, .mb select, .mb textarea { font: inherit; padding: .45rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .mb-scroll { overflow-x: auto; }
+  .mb-rows { border-collapse: collapse; font-size: 14px; }
+  .mb-rows th { text-align: left; padding: 4px; white-space: nowrap; }
+  .mb-rows td { padding: 2px; }
+  .mb-rows td input { width: 100%; min-width: 4.5em; }
+  .mb-rows td input.d { min-width: 9.5em; } .mb-rows td input.s { min-width: 12em; }
+  .mb-rows tr.fl td { background: var(--warn-soft); }
+  .mb-help, .mb-msg, .mb-sum { margin: 0; font-size: 14px; }
+  .mb-msg.err { color: var(--warn); }
+  .mb-flags li { margin-bottom: .4rem; }
+  .mb-letter { width: 100%; box-sizing: border-box; }
+  .mb [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { parseBill, checkBill, billLetter, toIso, toNum, round2, moneyFmt, type BillLine, type DateOrder } from '../../lib/money/medical';
+  import { wireDownloads, type Section } from '../../lib/report';
+  const root = document.querySelector('.mb') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const tb = $<HTMLElement>('.mb-rows tbody'), msg = $<HTMLElement>('.mb-msg');
+  let lines: BillLine[] = [];
+  let letterEdited = false;
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  const val = (s: string) => $<HTMLInputElement>(s).value;
+  const order = () => val('.mb-dord') as DateOrder;
+  const EX = `Date\tCode\tDescription\tQty\tUnit\tAmount
+2026-03-01\tR1001\tRoom and board\t3\t400.00\t1200.00
+2026-03-01\tR1001\tRoom and board\t3\t400.00\t1200.00
+2026-03-02\tL2040\tBlood panel\t2\t45.00\t80.00
+2026-03-02\tX3310\tChest X-ray\t1\t120.00\t120.00
+2026-03-09\tP4002\tDressing pack\t1\t33.25\t33.25`;
+
+  const cell = (v: string | number, cls: string, f: string, ro = false) => `<td><input class="${cls}" data-f="${f}" value="${String(v).replace(/"/g, '&quot;')}"></td>`;
+  function drawRows(flagged: Set<number>) {
+    tb.innerHTML = lines.map((l, i) => `<tr data-i="${i}" class="${flagged.has(i) ? 'fl' : ''}">${cell(l.date, 'd', 'date')}${cell(l.code, '', 'code')}${cell(l.desc, 's', 'desc')}${cell(l.qty ?? '', '', 'qty')}${cell(l.unit ?? '', '', 'unit')}${cell(l.amount, '', 'amount')}<td><input type="checkbox" data-f="notRecv" aria-label="Not sure about this line" ${l.notRecv ? 'checked' : ''}></td><td><button type="button" class="btn secondary small" data-del aria-label="Remove line">&times;</button></td></tr>`).join('');
+  }
+  let flags: ReturnType<typeof checkBill> = [];
+  function run(redraw = false) {
+    const money = moneyFmt(val('.mb-cur'));
+    const pt = toNum(val('.mb-total'));
+    flags = checkBill(lines, { admit: val('.mb-adm'), discharge: val('.mb-dis'), printedTotal: isNaN(pt) ? null : pt, money });
+    if (redraw) drawRows(new Set(flags.flatMap((f) => f.rows)));
+    else tb.querySelectorAll('tr').forEach((tr, i) => tr.classList.toggle('fl', flags.some((f) => f.rows.includes(i))));
+    const sum = round2(lines.reduce((s, l) => s + l.amount, 0));
+    $('.mb-sum').textContent = lines.length ? `${lines.length} lines add up to ${money(sum)}.` : '';
+    $<HTMLElement>('.mb-out').hidden = !lines.length;
+    const ol = $<HTMLElement>('.mb-flags'); ol.textContent = '';
+    flags.forEach((f) => { const li = document.createElement('li'); li.textContent = f.text; ol.appendChild(li); });
+    $<HTMLElement>('.mb-none').hidden = flags.length > 0;
+    if (!letterEdited) $<HTMLTextAreaElement>('.mb-letter').value = billLetter(flags, { name: val('.mb-name'), ref: val('.mb-ref'), provider: val('.mb-prov'), today: new Date().toISOString().slice(0, 10) });
+  }
+  const load = (text: string) => {
+    lines = parseBill(text, order());
+    if (!lines.length) say('No lines with an amount were found. Check the text, or add lines by hand below.', true);
+    else say(`Read ${lines.length} lines. Check they match your bill.`);
+    letterEdited = false; run(true);
+  };
+  $('.mb-read').addEventListener('click', () => load(val('.mb-text')));
+  $('.mb-ex').addEventListener('click', () => { $<HTMLTextAreaElement>('.mb-text').value = EX; $<HTMLInputElement>('.mb-adm').value = '2026-03-01'; $<HTMLInputElement>('.mb-dis').value = '2026-03-05'; $<HTMLInputElement>('.mb-total').value = '2633.25'; load(EX); });
+  $('.mb-add').addEventListener('click', () => { lines.push({ date: '', code: '', desc: '', qty: null, unit: null, amount: 0 }); run(true); });
+  $('.mb-clear').addEventListener('click', () => { lines = []; $<HTMLTextAreaElement>('.mb-text').value = ''; letterEdited = false; say(''); run(true); });
+  tb.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement, i = +(t.closest('tr') as HTMLElement).dataset.i!, f = t.dataset.f as string, l = lines[i] as any;
+    if (f === 'notRecv') l.notRecv = t.checked;
+    else if (f === 'date') l.date = toIso(t.value, order()) || t.value;
+    else if (f === 'qty' || f === 'unit') { const n = toNum(t.value); l[f] = t.value.trim() === '' || isNaN(n) ? null : n; }
+    else if (f === 'amount') { const n = toNum(t.value); l.amount = isNaN(n) ? 0 : n; }
+    else l[f] = t.value;
+    run();
+  });
+  tb.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-del]'); if (!b) return; lines.splice(+(b.closest('tr') as HTMLElement).dataset.i!, 1); run(true); });
+  ['.mb-cur', '.mb-adm', '.mb-dis', '.mb-total', '.mb-name', '.mb-prov', '.mb-ref'].forEach((s) => $(s).addEventListener('input', () => run()));
+  $('.mb-letter').addEventListener('input', () => { letterEdited = true; });
+
+  $<HTMLInputElement>('.mb-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    try {
+      say(`Reading ${f.name}...`);
+      let text = '';
+      if (/\.pdf$/i.test(f.name) || f.type === 'application/pdf') {
+        const { pdfText } = await import('../../lib/docs/doctext');
+        text = await pdfText(new Uint8Array(await f.arrayBuffer()));
+        if (text.trim().length < 20) { const { ocrText } = await import('../../lib/docs/ocrfile'); text = await ocrText(f, true, (m) => say(m)); }
+      } else if (/\.(png|jpe?g|webp)$/i.test(f.name)) {
+        const { ocrText } = await import('../../lib/docs/ocrfile'); text = await ocrText(f, false, (m) => say(m));
+      } else if (/\.(heic|heif)$/i.test(f.name)) {
+        say('iPhone HEIC photos need converting to JPG first (try the file converter).', true); return;
+      } else {
+        const { readDataFile } = await import('../../lib/datafile');
+        text = (await readDataFile(f, { maxBytes: 5e6, maxCols: 30, maxRows: 5000 })).text;
+      }
+      $<HTMLTextAreaElement>('.mb-text').value = text; load(text);
+    } catch (err: any) { say(err?.message || `${f.name} could not be read. Paste the lines instead.`, true); }
+  });
+
+  wireDownloads($('.mb-out'), () => {
+    const money = moneyFmt(val('.mb-cur'));
+    const sections: Section[] = [
+      { title: 'Bill lines', table: { head: ['Date', 'Description', 'Qty', 'Unit', 'Amount'], align: ['l', 'l', 'r', 'r', 'r'], rows: lines.map((l) => [l.date, l.desc || l.code, l.qty == null ? '' : String(l.qty), l.unit == null ? '' : money(l.unit), money(l.amount)]) } },
+      { title: 'Questions to ask', text: flags.length ? flags.map((f, i) => `${i + 1}. ${f.text}`) : ['No questions came up from these checks.'], note: 'These are questions, not findings. Not tax, billing or legal advice.' },
+      { title: 'Letter', text: $<HTMLTextAreaElement>('.mb-letter').value.split('\n').filter((x, i, a) => x || a[i - 1]) },
+    ];
+    return { title: 'Medical bill questions', file: 'medical-bill-questions', sections };
+  });
+</script>

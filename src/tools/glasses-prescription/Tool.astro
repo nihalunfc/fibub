@@ -1,0 +1,194 @@
+---
+// #T843 Glasses prescription reader: type the boxes from an eyeglass prescription, read what each one means, convert.
+import Downloads from '../../components/Downloads.astro';
+const eyes = [['od', 'OD', 'right eye'], ['os', 'OS', 'left eye']];
+const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AXIS', 'axis'], ['add', 'ADD', 'near add'], ['prism', 'PRISM', 'prism']];
+---
+<div class="tool-ui gp">
+  <p class="note gp-note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results. Nothing you type here is kept or sent.</p>
+
+  <div class="panel gp-form">
+    <h2>Type the boxes from your prescription</h2>
+    <p class="gp-hint">Copy each number as it is written, with its + or − sign. Leave a box empty if it is blank on your paper. "plano" or "DS" means 0.</p>
+    <div class="gp-scroll">
+      <table class="gp-grid">
+        <thead><tr><th scope="col"><span class="gp-sr">Eye</span></th>{cols.map(([, l, n]) => <th scope="col" title={n}>{l}</th>)}<th scope="col" title="prism base direction">BASE</th></tr></thead>
+        <tbody>
+          {eyes.map(([k, l, n]) => (
+            <tr>
+              <th scope="row">{l}<small>{n}</small></th>
+              {cols.map(([c, cl, cn]) => <td><input class={`gp-in gp-${k}-${c}`} data-eye={k} data-k={c} inputmode="decimal" autocomplete="off" aria-label={`${l} ${cn} (${cl})`} placeholder={c === 'axis' ? '1–180' : '0.00'} /></td>)}
+              <td><select class={`gp-in gp-${k}-base`} data-eye={k} data-k="base" aria-label={`${l} prism base`}><option value="">–</option><option value="BU">BU (up)</option><option value="BD">BD (down)</option><option value="BI">BI (in)</option><option value="BO">BO (out)</option></select></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <div class="gp-pd">
+      <label>PD (single number, mm) <input class="gp-in gp-pd1" inputmode="decimal" autocomplete="off" placeholder="e.g. 63" /></label>
+      <span class="gp-or">or two numbers</span>
+      <label>Right PD <input class="gp-in gp-pdr" inputmode="decimal" autocomplete="off" placeholder="e.g. 32" /></label>
+      <label>Left PD <input class="gp-in gp-pdl" inputmode="decimal" autocomplete="off" placeholder="e.g. 31" /></label>
+    </div>
+    <div class="gp-btns"><button type="button" class="btn secondary gp-ex">Fill in an example</button><button type="button" class="btn secondary gp-clear">Clear the boxes</button></div>
+  </div>
+
+  <div class="note warn gp-err" role="alert" hidden></div>
+
+  <div class="gp-out" hidden>
+    <div class="gp-result" id="gp-print">
+      <h2>Your prescription, explained</h2>
+      <div class="gp-eyes"></div>
+      <p class="gp-pdline"></p>
+      <p class="gp-ctl note">This page explains glasses prescriptions. A contact lens prescription is different (it also has a base curve and diameter, and the power can differ), and it needs a fitting by an eye-care professional, so there is no conversion to or from it here.</p>
+    </div>
+    <div class="gp-btns"><button type="button" class="btn secondary gp-print">Print</button></div>
+    <Downloads label="Download the explained prescription" />
+  </div>
+
+  <div class="panel gp-legend">
+    <h2>What each box means</h2>
+    <dl>
+      <dt>OD and OS</dt><dd>OD (oculus dexter) is the right eye and OS (oculus sinister) is the left eye. OU means both. Some papers write R and L instead.</dd>
+      <dt>SPH (sphere)</dt><dd>The main lens power in dioptres (D). A minus number is the kind of power used for short-sightedness; a plus number is the kind used for long-sightedness.</dd>
+      <dt>CYL (cylinder)</dt><dd>Extra power in one direction, written when the eye is not evenly round (astigmatism). Empty or 0 means none.</dd>
+      <dt>AXIS</dt><dd>The direction of the cylinder in degrees, 1 to 180 (90 is up and down, 180 is sideways). It only goes with a CYL.</dd>
+      <dt>ADD (near add)</dt><dd>Extra plus power added at the bottom of bifocal or varifocal lenses, or used for reading glasses. Usually the same number for both eyes.</dd>
+      <dt>PRISM and BASE</dt><dd>A small power that shifts the picture, with the direction of its thick edge: BU up, BD down, BI in (towards the nose), BO out.</dd>
+      <dt>PD (pupillary distance)</dt><dd>The distance between the centres of your pupils in millimetres. One number is the total; two numbers are each eye to the middle of the nose.</dd>
+    </dl>
+  </div>
+</div>
+
+<style is:inline>
+  .gp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .gp > * { min-width: 0; }
+  .gp h2 { font-size: 17px; margin: 0 0 8px; }
+  .gp .panel { padding: 16px; }
+  .gp-hint { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .gp-scroll { overflow-x: auto; }
+  .gp-grid { border-collapse: collapse; width: 100%; min-width: 440px; }
+  .gp-grid th, .gp-grid td { padding: 4px; text-align: center; font-size: 14px; }
+  .gp-grid thead th { color: var(--muted); font-weight: 600; }
+  .gp-grid tbody th { text-align: left; white-space: nowrap; }
+  .gp-grid tbody th small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .gp-sr { position: absolute; left: -9999px; }
+  .gp input, .gp select { font: inherit; color: var(--ink); padding: 8px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .gp input:focus, .gp select:focus { border-color: var(--accent); outline: none; }
+  .gp-grid input { text-align: center; }
+  .gp-pd { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 12px; }
+  .gp-pd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); flex: 1 1 120px; }
+  .gp-or { font-size: 14px; color: var(--muted); padding-bottom: 10px; }
+  .gp-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .gp-err ul { margin: 0; padding-left: 18px; }
+  .gp-eyes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-bottom: 10px; }
+  .gp-eye { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); }
+  .gp-eye h3 { font-size: 16px; margin: 0 0 6px; }
+  .gp-eye dl { margin: 0; display: grid; gap: 6px; }
+  .gp-eye dt { font-size: 13px; color: var(--muted); }
+  .gp-eye dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+  .gp-eye dd b { font-variant-numeric: tabular-nums; }
+  .gp-eye dd small { display: block; color: var(--muted); font-size: 13px; }
+  .gp-legend dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 14px; }
+  .gp-legend dt { font-weight: 700; }
+  .gp-legend dd { margin: 0; }
+  @media (max-width: 560px) { .gp-legend dl { grid-template-columns: 1fr; gap: 0; } .gp-legend dd { margin-bottom: 8px; } }
+  @media print {
+    body * { visibility: hidden !important; }
+    #gp-print, #gp-print * { visibility: visible !important; }
+    #gp-print { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
+
+<script>
+  import { readNum, checkEye, checkPd, transpose, sphericalEquivalent, fmt, fmtD, round2, describeSph, type Eye } from '../../lib/docs/glasses';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const KEYS = ['sph', 'cyl', 'axis', 'add', 'prism'] as const;
+  const LABEL: Record<string, string> = { od: 'OD (right eye)', os: 'OS (left eye)' };
+  const SHORT: Record<string, string> = { od: 'OD', os: 'OS' };
+  const BASES: Record<string, string> = { BU: 'base up', BD: 'base down', BI: 'base in (towards the nose)', BO: 'base out' };
+
+  const raw = (eye: string) => Object.fromEntries([...KEYS, 'base'].map((k) => [k, (q<HTMLInputElement>(`.gp-${eye}-${k}`).value || '').trim()])) as Record<string, string>;
+  const val = (s: string) => { const n = readNum(s); return n === null || Number.isNaN(n) ? null : n; };
+  const eyeOf = (r: Record<string, string>): Eye => ({ sph: val(r.sph), cyl: val(r.cyl), axis: val(r.axis), add: val(r.add), prism: val(r.prism), base: r.base });
+  const cylText = (s: number, c: number, a: number | null) => `${fmtD(s)} ${fmt(c, true) === '0.00' ? '' : fmt(c)} ${a ? '× ' + a : ''}`.replace(/\s+/g, ' ').trim();
+
+  type Rows = { title: string; lines: [string, string, string][] };
+  let report: { sections: Section[]; file: string } = { sections: [], file: 'glasses-prescription' };
+
+  function eyeRows(eye: string, r: Record<string, string>, e: Eye, bad: boolean): Rows | null {
+    if (![e.sph, e.cyl, e.axis, e.add, e.prism].some((x) => x !== null) && !r.base) return null;
+    const lines: [string, string, string][] = [];
+    const sph = e.sph, cyl = e.cyl ?? 0, hasCyl = round2(cyl) !== 0;
+    if (sph !== null) lines.push(['Sphere (SPH)', fmtD(sph), describeSph(sph)]);
+    else if (hasCyl) lines.push(['Sphere (SPH)', 'not given', 'Sphere is empty, so only the cylinder is read here.']);
+    if (hasCyl) {
+      lines.push(['Cylinder (CYL) and axis', `${fmt(cyl)}${e.axis ? ' × ' + e.axis : ''}`, `${cyl < 0 ? 'Written in minus-cylinder form' : 'Written in plus-cylinder form'}. A cylinder on the paper means a power in one direction as well as the sphere${e.axis ? `, along ${e.axis} degrees` : ''}.`]);
+    }
+    if (!bad && sph !== null && hasCyl && e.axis && Number.isInteger(e.axis) && e.axis >= 1 && e.axis <= 180) {
+      const t = transpose(sph, cyl, e.axis);
+      lines.push([cyl < 0 ? 'Written the plus-cylinder way' : 'Written the minus-cylinder way', cylText(t.sph, t.cyl, t.axis), 'The same lens power, written the other way: SPH + CYL, the CYL sign flipped, AXIS ± 90.']);
+    }
+    if (sph !== null) {
+      const se = sphericalEquivalent(sph, cyl);
+      lines.push(['Spherical equivalent', fmtD(se), `SPH + CYL ÷ 2 = ${sph} ${cyl < 0 ? '−' : '+'} ${Math.abs(cyl)} ÷ 2. Rounded to 2 decimals, halves away from zero.`]);
+    }
+    if (e.add !== null && e.add !== 0) {
+      lines.push(['Near add (ADD)', fmt(e.add), 'Extra plus power for near work, added to the SPH.']);
+      if (sph !== null) lines.push(['Near prescription (SPH + ADD)', hasCyl && e.axis ? cylText(sph + e.add, cyl, e.axis) : fmtD(sph + e.add), 'Arithmetic only: the sphere with the add included, as used for single-vision reading glasses. An optician makes and checks reading glasses.']);
+    }
+    if (e.prism) lines.push(['Prism', `${e.prism.toFixed(2)} ${r.base || ''}`.trim(), r.base ? `Prism power in prism dioptres, ${BASES[r.base] ?? r.base}.` : 'Prism power in prism dioptres.']);
+    return { title: LABEL[eye], lines };
+  }
+
+  function run() {
+    const errs: string[] = [], blocks: { eye: string; rows: Rows }[] = [];
+    for (const eye of ['od', 'os']) {
+      const r = raw(eye), e = eyeOf(r), problems = checkEye(SHORT[eye], e, r);
+      errs.push(...problems);
+      const rows = eyeRows(eye, r, e, problems.length > 0);
+      if (rows) blocks.push({ eye, rows });
+    }
+    const pd1 = q<HTMLInputElement>('.gp-pd1').value, pdr = q<HTMLInputElement>('.gp-pdr').value, pdl = q<HTMLInputElement>('.gp-pdl').value;
+    errs.push(...checkPd(pd1, pdr, pdl));
+    const err = q('.gp-err');
+    err.hidden = !errs.length;
+    err.innerHTML = errs.length ? `<b>Check the paper for these:</b><ul>${errs.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>` : '';
+    const pdText = (() => {
+      const a = val(pd1), r = val(pdr), l = val(pdl);
+      if (r !== null && l !== null) return `PD: right ${r} mm, left ${l} mm (total ${+(r + l).toFixed(1)} mm).`;
+      if (a !== null) return `PD: ${a} mm (one number for both eyes).`;
+      return '';
+    })();
+    q('.gp-out').hidden = !blocks.length && !pdText;
+    q('.gp-eyes').innerHTML = blocks.map((b) => `<section class="gp-eye" data-eye="${b.eye}"><h3>${b.rows.title}</h3><dl>${b.rows.lines.map(([t, v, d]) => `<div><dt>${esc(t)}</dt><dd><b>${esc(v)}</b><small>${esc(d)}</small></dd></div>`).join('')}</dl></section>`).join('');
+    q('.gp-pdline').textContent = pdText;
+    q('.gp-pdline').hidden = !pdText;
+    const when = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    report = {
+      file: 'glasses-prescription',
+      sections: [
+        ...blocks.map((b) => ({ title: b.rows.title, facts: b.rows.lines.map(([t, v]) => [t, v] as [string, string]), text: b.rows.lines.map(([t, , d]) => `${t}: ${d}`) })),
+        ...(pdText ? [{ title: 'Pupillary distance', text: [pdText] }] : []),
+        { title: 'Please note', text: ['Explained from the numbers typed in; it is not a prescription and not advice. Contact lens prescriptions are different and need a fitting. Check everything against your own paper and ask your optician or eye doctor.', `Made on ${when} at fibub.com. Nothing was sent anywhere.`] },
+      ],
+    };
+  }
+
+  root.addEventListener('input', run);
+  root.addEventListener('change', run);
+  q('.gp-ex').addEventListener('click', () => {
+    const ex: Record<string, string> = { 'od-sph': '-2.00', 'od-cyl': '-0.75', 'od-axis': '180', 'od-add': '', 'os-sph': '-1.50', 'os-cyl': '-0.50', 'os-axis': '10', 'os-add': '', 'pd1': '63' };
+    q('.gp-clear').click();
+    for (const [k, v] of Object.entries(ex)) q<HTMLInputElement>(`.gp-${k}`).value = v;
+    run();
+  });
+  q('.gp-clear').addEventListener('click', () => { root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('.gp-in').forEach((i) => (i.value = '')); run(); });
+  q('.gp-print').addEventListener('click', () => window.print());
+  wireDownloads(q('.gp-out'), () => ({ title: 'My glasses prescription, explained', subtitle: 'Typed in at fibub.com', sections: report.sections, file: report.file }));
+  run();
+</script>

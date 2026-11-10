@@ -52,6 +52,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'tax', name: 'Tax and pay', blurb: 'Income tax, take-home pay and what your work earns.' },
     { id: 'insurance', name: 'Insurance', blurb: 'What a policy really costs and pays, worked out with plain maths. Educational, not advice.' },
     { id: 'business', name: 'Business', blurb: 'Pricing, break-even and the numbers behind a small business.' },
+    { id: 'medical-costs', name: 'Medical costs', blurb: 'Check medical bills, claim back costs and plan what you owe.' },
   ],
   documents: [
     { id: 'pdf', name: 'PDF tools', blurb: 'Organise, number, stamp, sign and fill PDFs on your device.' },
@@ -59,6 +60,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'privacy', name: 'Privacy and checks', blurb: 'Redact, remove hidden data and compare versions before you send.' },
     { id: 'writing', name: 'Writing and templates', blurb: 'Invoices, letters, mail merge and text helpers.' },
     { id: 'career', name: 'Jobs and study', blurb: 'Resumes, cover letters and applications.' },
+    { id: 'health-records', name: 'Health records', blurb: 'Organise and read your own reports, scans and health logs, on your device.' },
   ],
 };
 
@@ -259,6 +261,8 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'home-insurance', subject: 'insurance', name: 'Home and contents' },
     { id: 'small-business', subject: 'business', name: 'Small business' },
     { id: 'accounting', subject: 'business', name: 'Accounting' },
+    { id: 'medical-bills', subject: 'medical-costs', name: 'Bills and claims' },
+    { id: 'medical-tax', subject: 'medical-costs', name: 'Tax and payment plans' },
   ],
   documents: [
     { id: 'pdf-pages', subject: 'pdf', name: 'Organise pages' },
@@ -271,6 +275,9 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'templates', subject: 'writing', name: 'Invoices, letters and templates' },
     { id: 'text-tools', subject: 'writing', name: 'Text helpers' },
     { id: 'jobs', subject: 'career', name: 'Jobs and applications' },
+    { id: 'lab-results', subject: 'health-records', name: 'Lab results' },
+    { id: 'records-files', subject: 'health-records', name: 'Records, scans and summaries' },
+    { id: 'health-logs', subject: 'health-records', name: 'Logs and prescriptions' },
   ],
   // Collecting: sections only, no subjects.
   collecting: [

@@ -1,0 +1,202 @@
+---
+// #T840 Medical records organiser
+---
+<div class="tool-ui ro">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results. Dates and types are guesses, so please check them.</p>
+  <label class="ro-drop">Add PDFs and photos (JPG or PNG) <input class="ro-file" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg,.heic,.heif" multiple /></label>
+  <label class="ro-ocrl"><input class="ro-ocr" type="checkbox" /> Read the words in photos and scans to find dates (loads a 4 MB word reader once, on your device)</label>
+  <p class="ro-msg" role="status" aria-live="polite"></p>
+  <div class="ro-opts" hidden>
+    <label>Dates like 03/04/2026 mean
+      <select class="ro-df"><option value="d">day first (3 April)</option><option value="m">month first (March 4)</option></select>
+    </label>
+    <label>Sort by date
+      <select class="ro-order"><option value="asc">oldest first</option><option value="desc">newest first</option></select>
+    </label>
+    <label class="ro-chk"><input class="ro-group" type="checkbox" /> Group by type first</label>
+  </div>
+  <div class="ro-wrap" hidden>
+    <table class="ro-tbl">
+      <thead><tr><th>File</th><th>Date</th><th>Type</th><th>Title in contents</th><th></th></tr></thead>
+      <tbody class="ro-body"></tbody>
+    </table>
+  </div>
+  <div class="ro-out" hidden>
+    <h3>Save</h3>
+    <div class="ro-row">
+      <button class="btn ro-pdf" type="button">One PDF with contents page</button>
+      <button class="btn secondary ro-zip" type="button">ZIP of renamed files</button>
+      <button class="btn secondary ro-csv" type="button">Index CSV</button>
+      <button class="btn secondary ro-clear" type="button">Remove all files</button>
+    </div>
+    <p class="ro-help">Names look like "2026-03-14 Lab - report.pdf". Nothing is stored; close the page and the list is gone.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .ro { display: grid; gap: .8rem; }
+  .ro-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .ro-msg { margin: 0; min-height: 1.3em; } .ro-msg.err { color: var(--warn); }
+  .ro-opts { display: flex; flex-wrap: wrap; gap: .8rem; align-items: end; }
+  .ro-opts[hidden], .ro-wrap[hidden], .ro-out[hidden] { display: none; }
+  .ro label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .ro label.ro-chk { display: flex; align-items: center; gap: .4rem; }
+  .ro input, .ro select { font: inherit; box-sizing: border-box; max-width: 100%; }
+  .ro-wrap { overflow-x: auto; }
+  .ro-tbl { border-collapse: collapse; width: 100%; min-width: 620px; }
+  .ro-tbl th, .ro-tbl td { border-bottom: 1px solid var(--line); padding: 5px 4px; text-align: left; font-size: 14.5px; vertical-align: top; }
+  .ro-tbl td:nth-child(1) { overflow-wrap: anywhere; max-width: 180px; }
+  .ro-tbl input[type=text] { width: 100%; }
+  .ro-from { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .ro-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .ro-help { font-size: 14px; color: var(--muted); margin: 0; }
+  .ro-x { min-height: 34px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; font: inherit; }
+</style>
+
+<script>
+  import { findDate, parseDate } from '../../lib/docs/labparse';
+  import { loadPdfJs, baseName, download, pageCount } from '../../lib/docs/pdfpages';
+  import { toCsv } from '../../lib/convert/table';
+  import { zipSync } from 'fflate';
+  const root = document.querySelector('.ro') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.ro-msg'), body = $<HTMLElement>('.ro-body');
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  const TYPES = ['Lab', 'Imaging', 'Bill', 'Prescription', 'Letter', 'Other'] as const;
+  type T = (typeof TYPES)[number];
+  const KEYWORDS: Record<Exclude<T, 'Other'>, RegExp> = {
+    Lab: /\b(lab|blood|haemoglobin|hemoglobin|cbc|glucose|cholesterol|specimen|reference range|urinalysis|pathology|hba1c|thyroid)\b/gi,
+    Imaging: /\b(x-?ray|mri|ct scan|ultrasound|radiolog\w*|sonograph\w*|mammogra\w*|imaging|scan|dicom)\b/gi,
+    Bill: /\b(invoice|bill|receipt|amount due|total due|payment|statement|charges?|balance)\b/gi,
+    Prescription: /\b(prescription|rx|tablets?|capsules?|dispense|dosage|refill|pharmacy|take \d)\b/gi,
+    Letter: /\b(dear|sincerely|referral|discharge|letter|regards|summary)\b/gi,
+  };
+  const guess = (s: string): T => {
+    let best: T = 'Other', n = 0;
+    for (const k of Object.keys(KEYWORDS) as Exclude<T, 'Other'>[]) { const c = (s.match(KEYWORDS[k]) || []).length; if (c > n) { n = c; best = k; } }
+    return best;
+  };
+  interface Item { name: string; ext: string; bytes: Uint8Array; kind: 'pdf' | 'png' | 'jpg'; pages: number; text: string; iso: string; raw: string; from: string; edited: boolean; type: T; title: string; modified: number }
+  const items: Item[] = [];
+
+  const detect = (it: Item) => {
+    const df = $<HTMLSelectElement>('.ro-df').value === 'd';
+    const a = findDate(it.text, df); if (a) { it.iso = a.iso; it.raw = a.raw; it.from = 'found in the file'; return; }
+    const b = findDate(it.name, df); if (b) { it.iso = b.iso; it.raw = b.raw; it.from = 'from the file name'; return; }
+    it.iso = new Date(it.modified).toISOString().slice(0, 10); it.raw = ''; it.from = 'file date (check it)';
+  };
+  async function readText(bytes: Uint8Array): Promise<string> {
+    const pdfjs = await loadPdfJs();
+    const doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
+    let s = '';
+    for (let i = 1; i <= Math.min(2, doc.numPages); i++) {
+      const tc = await (await doc.getPage(i)).getTextContent();
+      s += (tc.items as any[]).map((x) => x.str).join(' ') + '\n';
+    }
+    return s;
+  }
+  const sorted = () => {
+    const dir = $<HTMLSelectElement>('.ro-order').value === 'asc' ? 1 : -1, grp = $<HTMLInputElement>('.ro-group').checked;
+    return [...items].sort((a, b) => (grp ? TYPES.indexOf(a.type) - TYPES.indexOf(b.type) : 0) || dir * a.iso.localeCompare(b.iso) || a.name.localeCompare(b.name));
+  };
+  const safe = (s: string) => s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const newName = (it: Item) => `${it.iso} ${it.type} - ${safe(it.title || baseName(it.name))}.${it.ext}`;
+
+  function draw() {
+    body.textContent = '';
+    for (const it of sorted()) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td class="ro-n"></td><td><input class="ro-d" type="text" maxlength="10" aria-label="Date" size="10"><span class="ro-from"></span></td><td><select class="ro-t" aria-label="Type"></select></td><td><input class="ro-ti" type="text" aria-label="Title" maxlength="80"></td><td><button class="ro-x" type="button" aria-label="Remove file">&times;</button></td>';
+      (tr.querySelector('.ro-n') as HTMLElement).textContent = `${it.name} (${it.pages} page${it.pages === 1 ? '' : 's'})`;
+      const d = tr.querySelector('.ro-d') as HTMLInputElement, t = tr.querySelector('.ro-t') as HTMLSelectElement, ti = tr.querySelector('.ro-ti') as HTMLInputElement;
+      d.value = it.iso; (tr.querySelector('.ro-from') as HTMLElement).textContent = it.from;
+      for (const x of TYPES) t.append(new Option(x, x)); t.value = it.type; ti.value = it.title;
+      d.addEventListener('change', () => { const v = parseDate(d.value, $<HTMLSelectElement>('.ro-df').value === 'd'); if (v) { it.iso = v; it.edited = true; it.from = 'typed by you'; draw(); } else { d.value = it.iso; say('Type the date like 2026-03-14 or 14 Mar 2026.', true); } });
+      t.addEventListener('change', () => { it.type = t.value as T; draw(); });
+      ti.addEventListener('input', () => (it.title = ti.value));
+      (tr.querySelector('.ro-x') as HTMLElement).onclick = () => { items.splice(items.indexOf(it), 1); draw(); };
+      body.append(tr);
+    }
+    const has = items.length > 0;
+    for (const s of ['.ro-opts', '.ro-wrap', '.ro-out']) ($(s) as HTMLElement).hidden = !has;
+    if (has) say(`${items.length} file${items.length === 1 ? '' : 's'}. Check the dates and types, then save.`);
+  }
+
+  $<HTMLInputElement>('.ro-file').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement, files = [...(input.files || [])]; input.value = '';
+    const skipped: string[] = [];
+    for (const f of files) {
+      const low = f.name.toLowerCase();
+      if (/\.(heic|heif)$/.test(low)) { skipped.push(f.name); continue; }
+      try {
+        say(`Reading ${f.name}...`);
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        const isPdf = bytes[0] === 0x25 && bytes[1] === 0x50, isPng = bytes[0] === 0x89 && bytes[1] === 0x50, isJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
+        if (!isPdf && !isPng && !isJpg) { skipped.push(f.name); continue; }
+        let text = '', pages = 1;
+        if (isPdf) { pages = await pageCount(bytes); text = await readText(bytes).catch(() => ''); }
+        if (!text.trim() && $<HTMLInputElement>('.ro-ocr').checked) {
+          try { const { ocrText } = await import('../../lib/docs/ocrfile'); text = await ocrText(bytes, isPdf, (m) => say(`${f.name}: ${m}`), 1); } catch { /* fall back to the file name */ }
+        }
+        const base = baseName(f.name);
+        const it: Item = { name: f.name, ext: isPdf ? 'pdf' : isPng ? 'png' : 'jpg', bytes, kind: isPdf ? 'pdf' : isPng ? 'png' : 'jpg', pages, text, iso: '', raw: '', from: '', edited: false, type: guess(text + ' ' + base), title: base, modified: f.lastModified || Date.now() };
+        detect(it); items.push(it);
+      } catch { skipped.push(f.name); }
+    }
+    draw();
+    if (skipped.length) {
+      const heic = skipped.some((n) => /\.(heic|heif)$/i.test(n));
+      say(`Skipped ${skipped.join(', ')}. ${heic ? 'HEIC photos: convert them with the File converter first. ' : ''}Only PDF, JPG and PNG files that open normally can be added.`, true);
+      if (heic) { const a = document.createElement('a'); a.href = '/documents/file-converter/'; a.textContent = ' Open the File converter.'; msg.append(a); }
+    }
+  });
+  $('.ro-df').addEventListener('change', () => { items.forEach((it) => { if (!it.edited) detect(it); }); draw(); });
+  $('.ro-order').addEventListener('change', draw); $('.ro-group').addEventListener('change', draw);
+  $('.ro-clear').addEventListener('click', () => { items.length = 0; say(''); draw(); });
+
+  const latin = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^\x20-\x7e -ÿ]/g, '?');
+  async function mergedPdf(): Promise<Uint8Array> {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const list = sorted(), out = await PDFDocument.create();
+    const font = await out.embedFont(StandardFonts.Helvetica), bold = await out.embedFont(StandardFonts.HelveticaBold);
+    const PER = 38, tocPages = Math.max(1, Math.ceil(list.length / PER));
+    const tocs = Array.from({ length: tocPages }, () => out.addPage([595, 842]));
+    const start: number[] = []; let next = tocPages + 1;
+    for (const it of list) {
+      start.push(next);
+      if (it.kind === 'pdf') {
+        const src = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
+        const cps = await out.copyPages(src, src.getPageIndices()); cps.forEach((p) => out.addPage(p)); next += cps.length;
+      } else {
+        const img = it.kind === 'png' ? await out.embedPng(it.bytes) : await out.embedJpg(it.bytes);
+        const page = out.addPage([595, 842]), s = Math.min(515 / img.width, 762 / img.height, 1 * 4);
+        const w = img.width * s, h = img.height * s;
+        page.drawImage(img, { x: (595 - w) / 2, y: (842 - h) / 2, width: w, height: h }); next += 1;
+      }
+    }
+    tocs.forEach((pg, k) => {
+      pg.drawText(k ? 'Contents (continued)' : 'Contents', { x: 40, y: 800, size: 20, font: bold });
+      if (!k) pg.drawText('Organised on this device with fibub.com. Dates and types were checked by the owner of the records.', { x: 40, y: 782, size: 8.5, font, color: rgb(0.35, 0.35, 0.35) });
+      pg.drawText('Date', { x: 40, y: 760, size: 10, font: bold }); pg.drawText('Type', { x: 120, y: 760, size: 10, font: bold });
+      pg.drawText('Title', { x: 215, y: 760, size: 10, font: bold }); pg.drawText('Page', { x: 520, y: 760, size: 10, font: bold });
+      list.slice(k * PER, (k + 1) * PER).forEach((it, j) => {
+        const y = 742 - j * 18, ti = latin(it.title || baseName(it.name));
+        pg.drawText(it.iso, { x: 40, y, size: 10, font }); pg.drawText(it.type, { x: 120, y, size: 10, font });
+        let line = ti; while (font.widthOfTextAtSize(line, 10) > 290 && line.length > 4) line = line.slice(0, -2);
+        pg.drawText(line === ti ? ti : line + '...', { x: 215, y, size: 10, font }); pg.drawText(String(start[k * PER + j]), { x: 520, y, size: 10, font });
+      });
+    });
+    return out.save();
+  }
+  const guard = (fn: () => Promise<void>) => async () => { try { await fn(); } catch (e: any) { say(e?.message || 'Something went wrong.', true); } };
+  $('.ro-pdf').addEventListener('click', guard(async () => { say('Making the PDF...'); download(await mergedPdf(), 'medical-records.pdf'); say(`Saved one PDF with a contents page and ${items.length} file${items.length === 1 ? '' : 's'}.`); }));
+  $('.ro-zip').addEventListener('click', guard(async () => {
+    const files: Record<string, Uint8Array> = {}, used = new Set<string>();
+    for (const it of sorted()) { let n = newName(it), k = 2; while (used.has(n)) n = newName(it).replace(/(\.\w+)$/, ` (${k++})$1`); used.add(n); files[n] = it.bytes; }
+    download(zipSync(files, { level: 0 }), 'medical-records.zip', 'application/zip'); say(`Saved a ZIP of ${items.length} renamed file${items.length === 1 ? '' : 's'}.`);
+  }));
+  $('.ro-csv').addEventListener('click', guard(async () => {
+    const rows = sorted().map((it) => [it.iso, it.type, it.title, it.name, newName(it), String(it.pages)]);
+    download(new Blob([toCsv([['date', 'type', 'title', 'original file', 'new file name', 'pages'], ...rows])], { type: 'text/csv' }), 'records-index.csv', 'text/csv'); say('Saved the index.');
+  }));
+</script>
