@@ -1,0 +1,172 @@
+---
+// Square root finder: type a number and find its square root four ways, step by step: pairing prime factors (and the
+// simplest surd form), subtracting odd numbers, estimating between two squares then improving the guess (Heron's
+// method), and the long division method. A square of that area shows the answer as its side. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sr">
+  <div class="ax-card">
+    <label>Number <input type="text" class="sr-n" value="7056" inputmode="decimal" aria-label="Number to find the square root of" /></label>
+    <div class="ax-row sr-gap">
+      <button type="button" class="btn secondary small sr-pre" data-n="7056">7056</button>
+      <button type="button" class="btn secondary small sr-pre" data-n="40">40</button>
+      <button type="button" class="btn secondary small sr-pre" data-n="72">72</button>
+      <button type="button" class="btn secondary small sr-pre" data-n="2">2</button>
+      <button type="button" class="btn secondary small sr-pre" data-n="12.25">12.25</button>
+    </div>
+    <p class="ax-err sr-err" hidden></p>
+    <svg class="sm-fig sr-fig" viewBox="0 0 340 190" role="img" aria-label="A square with this area, its side is the square root, and a number line between the nearest square numbers"></svg>
+    <p class="ax-big sr-big"></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-seg sr-m" role="group" aria-label="Method"><button type="button" data-v="pf" aria-pressed="true">Prime factors</button><button type="button" data-v="odd" aria-pressed="false">Odd numbers</button><button type="button" data-v="est" aria-pressed="false">Estimate</button><button type="button" data-v="ld" aria-pressed="false">Long division</button></div>
+    <div class="sr-pf">
+      <p class="ax-help">Split the number into primes and pair equal ones. One from each pair multiplies to the root. Whole numbers only.</p>
+      <p class="sm-f sr-pf1"></p><p class="sm-f sr-pf2"></p><p class="sm-f sr-pf3"></p>
+    </div>
+    <div class="sr-odd" hidden>
+      <p class="ax-help">Take away 1, 3, 5, 7, ... in turn. If you land exactly on 0, the number of steps is the root. Whole numbers up to 10,000.</p>
+      <ol class="sm-steps sr-oddl"></ol>
+      <p class="sm-f sr-odd1"></p>
+    </div>
+    <div class="sr-est" hidden>
+      <p class="ax-help">Find the squares on each side, share out the gap for a first guess, then improve it: new guess = (guess + number ÷ guess) ÷ 2.</p>
+      <p class="sm-f sr-e1"></p><p class="sm-f sr-e2"></p>
+      <ol class="sm-steps sr-el"></ol>
+    </div>
+    <div class="sr-ld" hidden>
+      <p class="ax-help">Mark the digits in pairs from the decimal point. For each pair, find the biggest digit d with (20 × root so far + d) × d no more than what you have.</p>
+      <div class="ax-scroll"><table class="sr-ldt"></table></div>
+      <p class="sm-f sr-ld1"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Try 7056 with every method. Do they all agree?</li>
+      <li>72 is not a perfect square. Prime factors give 6√2. Check it: 6 × 1.414 = ?</li>
+      <li>Estimate √40 between 6 and 7. How many improving steps does the guess need before it stops changing?</li>
+      <li>Use long division on 2. Can you see why √2 never ends?</li>
+      <li>Why can odd-number subtraction never work for 50? (Look at where it stops.)</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="sr-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sr input.sr-n { width: 12em; max-width: 100%; min-height: 40px; margin-left: 6px; }
+  .sr .sr-gap { margin-top: 8px; }
+  .sr .ax-seg { flex-wrap: wrap; }
+  .sr svg .sr-sq { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .sr svg .sr-mark { fill: var(--bad); }
+  .sr table td, .sr table th { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { pairUp, oddSubtract, between, heron, longDivision } from '../../lib/sci/sqrt-j2';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.sr')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NB = q<HTMLInputElement>('.sr-n');
+  const fmt = (x: number, d = 4) => (+x.toFixed(d)).toLocaleString('en', { maximumFractionDigits: d });
+  const sup = (e: number) => String(e).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+  const trimRoot = (r: string) => (r.includes('.') ? r.replace(/0+$/, '').replace(/\.$/, '') : r);
+
+  function picture(n: number) {
+    const svg = q<SVGSVGElement>('.sr-fig'); svg.replaceChildren();
+    const s = Math.sqrt(n), side = 130, x0 = 20, y0 = 20;
+    S('rect', { x: x0, y: y0, width: side, height: side, class: 'sr-sq' }, svg);
+    S('text', { x: x0 + side / 2, y: y0 + side / 2 + 5, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, `area ${fmt(n)}`);
+    S('text', { x: x0 + side / 2, y: y0 + side + 18, 'text-anchor': 'middle' }, svg, `side √${fmt(n)} ≈ ${fmt(s)}`);
+    const b = between(n), L = 180, W = 140, X = (v: number) => L + ((v - b.lo) / Math.max(1e-9, b.hi - b.lo)) * W;
+    S('line', { x1: L, y1: 90, x2: L + W, y2: 90, class: 'sm-axis' }, svg);
+    for (const [v, lab] of [[b.lo, `${b.k}² = ${fmt(b.lo)}`], [b.hi, `${b.k + 1}² = ${fmt(b.hi)}`]] as const) {
+      S('line', { x1: X(v), y1: 84, x2: X(v), y2: 96, class: 'sm-axis' }, svg);
+      S('text', { x: X(v), y: 114, 'text-anchor': 'middle', class: 'sm-tick' }, svg, lab);
+    }
+    S('circle', { cx: X(n), cy: 90, r: 6, class: 'sr-mark' }, svg);
+    S('text', { x: X(n), y: 74, 'text-anchor': 'middle', style: 'font-weight:600' }, svg, fmt(n));
+    S('text', { x: L + W / 2, y: 140, 'text-anchor': 'middle', class: 'sm-tick' }, svg, `so √ is between ${b.k} and ${b.k + 1}`);
+  }
+
+  function draw() {
+    const raw = NB.value.trim(), n = Number(raw), err = q('.sr-err');
+    if (!/^\d+(\.\d+)?$/.test(raw) || !(n > 0) || n > 1e12) { err.textContent = 'Type a positive number up to 1,000,000,000,000, like 7056 or 12.25.'; err.hidden = false; return; }
+    err.hidden = true;
+    picture(n);
+    const whole = Number.isInteger(n);
+    // Long division gives the exact digits, so it decides "perfect square".
+    let ld = longDivision(raw, 0)!;
+    if (!ld.exact) ld = longDivision(raw, 4)!;
+    q('.sr-big').textContent = ld.exact ? `√${fmt(n)} = ${trimRoot(ld.root)}` : `√${fmt(n)} ≈ ${fmt(Math.sqrt(n), 4)} (not a perfect square)`;
+    // Prime factors.
+    if (!whole || n > 1e10) { q('.sr-pf1').textContent = 'Prime factor pairing works on whole numbers (up to 10,000,000,000). For decimals use long division.'; q('.sr-pf2').textContent = ''; q('.sr-pf3').textContent = ''; }
+    else if (n === 1) { q('.sr-pf1').textContent = '1 has no prime factors: √1 = 1.'; q('.sr-pf2').textContent = ''; q('.sr-pf3').textContent = ''; }
+    else {
+      const P = pairUp(n);
+      q('.sr-pf1').textContent = `${n.toLocaleString('en')} = ${[...P.pairs.map((p) => `(${p} × ${p})`), ...P.single.map(String)].join(' × ')}`;
+      q('.sr-pf2').textContent = P.perfect ? `Every prime is in a pair, so √${n.toLocaleString('en')} = ${P.pairs.join(' × ')} = ${P.root.toLocaleString('en')}.` : `${P.single.join(' × ')} ${P.single.length > 1 ? 'have' : 'has'} no partner, so ${n.toLocaleString('en')} is not a perfect square.`;
+      q('.sr-pf3').textContent = P.perfect ? '' : `Simplest surd form: √${n.toLocaleString('en')} = ${P.root > 1 ? `${P.root}√${P.rest}` : `√${P.rest}`} ≈ ${P.root > 1 ? `${P.root} × ${fmt(Math.sqrt(P.rest))} = ` : ''}${fmt(Math.sqrt(n))}. Multiply by ${P.rest} to make a perfect square: ${(n * P.rest).toLocaleString('en')} = ${(P.root * P.rest).toLocaleString('en')}².`;
+    }
+    // Odd numbers.
+    const ol = q('.sr-oddl'); ol.replaceChildren();
+    if (!whole || n > 10000) q('.sr-odd1').textContent = 'This method suits whole numbers up to 10,000 (it needs one step for every unit of the root).';
+    else {
+      const O = oddSubtract(n), shown = O.steps.length > 14 ? [...O.steps.slice(0, 6), null, ...O.steps.slice(-4)] : O.steps;
+      for (const s of shown) { const li = document.createElement('li'); if (!s) { li.textContent = '...'; li.style.listStyle = 'none'; } else { li.value = O.steps.indexOf(s) + 1; li.textContent = `${(s.left + s.odd).toLocaleString('en')} − ${s.odd} = ${s.left.toLocaleString('en')}`; } ol.append(li); }
+      q('.sr-odd1').textContent = O.perfect ? `Reached 0 after ${O.count} subtractions, so √${n.toLocaleString('en')} = ${O.count}.` : `After ${O.count} subtractions ${O.steps.length ? O.steps.at(-1)!.left : n} is left, smaller than the next odd number ${2 * O.count + 1}: no exact landing on 0, so ${n.toLocaleString('en')} is not a perfect square (its root is between ${O.count} and ${O.count + 1}).`;
+    }
+    // Estimate and improve.
+    const b = between(n), H = heron(n, b.first, 4);
+    q('.sr-e1').textContent = `${fmt(b.lo)} = ${b.k}² ≤ ${fmt(n)} < ${b.k + 1}² = ${fmt(b.hi)}, so √${fmt(n)} is between ${b.k} and ${b.k + 1}.`;
+    q('.sr-e2').textContent = `First guess: ${b.k} + (${fmt(n)} − ${fmt(b.lo)}) ÷ (${fmt(b.hi)} − ${fmt(b.lo)}) = ${fmt(b.first)}.`;
+    const el = q('.sr-el'); el.replaceChildren();
+    for (let i = 1; i < H.length; i++) { const li = document.createElement('li'); li.textContent = `(${fmt(H[i - 1], 6)} + ${fmt(n)} ÷ ${fmt(H[i - 1], 6)}) ÷ 2 = ${fmt(H[i], 6)}`; el.append(li); }
+    // Long division.
+    const t = q<HTMLTableElement>('.sr-ldt'); t.replaceChildren();
+    const h = t.insertRow(); ['Pair', 'You have', 'Divisor × digit', 'Take away', 'Left'].forEach((x) => { const e = document.createElement('th'); e.textContent = x; h.append(e); });
+    for (const s of ld.steps) {
+      const r = t.insertRow();
+      r.insertCell().textContent = (s.afterPoint ? '.' : '') + s.bring;
+      r.insertCell().textContent = s.current.toLocaleString('en');
+      r.insertCell().textContent = `${s.trial.toLocaleString('en')} × ${s.digit}`;
+      r.insertCell().textContent = s.take.toLocaleString('en');
+      r.insertCell().textContent = s.rem.toLocaleString('en');
+    }
+    q('.sr-ld1').textContent = ld.exact ? `Nothing left over: √${raw} = ${trimRoot(ld.root)} exactly.` : `Digits so far: √${raw} = ${ld.root}... (it never comes out exact; keep bringing down 00 for more digits).`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.sr-m button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.sr-m button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    for (const m of ['pf', 'odd', 'est', 'ld']) q(`.sr-${m}`).hidden = m !== b.dataset.v;
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.sr-pre').forEach((b) => b.addEventListener('click', () => { NB.value = b.dataset.n!; draw(); }));
+  NB.addEventListener('input', draw);
+  draw();
+
+  quiz(q('.sr-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(12, 99);
+    out.push({ q: `Find √${(a * a).toLocaleString('en')}.`, want: [a], work: `${a} × ${a} = ${a * a}, so √${a * a} = ${a}.` });
+    const k = randInt(3, 12);
+    out.push({ q: `Subtracting odd numbers 1, 3, 5, ... from ${k * k}: how many subtractions until you reach 0?`, want: [k], work: `The first ${k} odd numbers add to ${k}² = ${k * k}, so it takes ${k} subtractions.` });
+    const sq = [2, 3, 5, 6, 7][randInt(0, 4)], c = randInt(2, 9);
+    out.push({ q: `Write √${c * c * sq} as a√b in simplest form. Type a, then b.`, want: [c, sq], ordered: true, hint: 'a, b', work: `${c * c * sq} = ${c}² × ${sq}, so √${c * c * sq} = ${c}√${sq}.` });
+    const n = randInt(20, 150), kk = Math.floor(Math.sqrt(n));
+    const nn = kk * kk === n ? n + 1 : n;
+    out.push({ q: `√${nn} lies between which two whole numbers? Type the smaller, then the larger.`, want: [Math.floor(Math.sqrt(nn)), Math.floor(Math.sqrt(nn)) + 1], ordered: true, hint: 'smaller, larger', work: `${Math.floor(Math.sqrt(nn)) ** 2} < ${nn} < ${(Math.floor(Math.sqrt(nn)) + 1) ** 2}, so √${nn} is between ${Math.floor(Math.sqrt(nn))} and ${Math.floor(Math.sqrt(nn)) + 1}.` });
+    const d = randInt(11, 39) / 10;
+    out.push({ q: `Find √${+(d * d).toFixed(2)}.`, want: [d], work: `${d} × ${d} = ${+(d * d).toFixed(2)}, so √${+(d * d).toFixed(2)} = ${d}.` });
+    return out;
+  });
+</script>
