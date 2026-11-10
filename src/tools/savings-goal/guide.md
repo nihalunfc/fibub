@@ -11,7 +11,7 @@ order: 1732
 icon: piggy
 works: offline
 updated: 2026-11-10
-related: [compound-interest, budget-calculator, fd-calculator]
+related: [compound-interest, budget-calculator, fd-calculator, net-worth]
 sources:
   - "Standard future value of an annuity formula, FV = S(1+i)^n + P((1+i)^n - 1)/i with i the monthly rate. At 0% interest it is simply (target - saved) / months. The 3 to 6 months of essential costs for an emergency fund is a common rule of thumb, not a rule."
 flow:

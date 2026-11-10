@@ -11,7 +11,7 @@ order: 1734
 icon: chart
 works: offline
 updated: 2026-11-10
-related: [fire-calculator, inflation-calculator, compound-interest]
+related: [fire-calculator, inflation-calculator, compound-interest, rrsp-tfsa, cpp-oas-age, epf-calculator, nps-calculator]
 sources:
   - "Standard growth and annuity formulas run month by month. Returns are turned into real returns as (1 + return) / (1 + inflation) - 1, so every figure is in today's money. Needed pot = monthly shortfall x (1 - (1 + i)^-n) / i."
 flow:

@@ -11,7 +11,7 @@ order: 1733
 icon: target
 works: offline
 updated: 2026-11-10
-related: [compound-interest, savings-goal, retirement-planner]
+related: [compound-interest, savings-goal, retirement-planner, return-calculator]
 sources:
   - "FIRE number = yearly spending / withdrawal rate. The 4% rule of thumb comes from the 1998 Trinity study of US stocks and bonds over 30-year periods; it is a guide, not a guarantee. Years to target use the standard growth formula with yearly steps."
 flow:

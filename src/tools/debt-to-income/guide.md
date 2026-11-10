@@ -11,7 +11,7 @@ order: 1747
 icon: percent
 works: offline
 updated: 2026-11-10
-related: [mortgage-calculator, loan-payoff-planner, budget-calculator]
+related: [mortgage-calculator, loan-payoff-planner, budget-calculator, loan-comparison]
 sources:
   - "Canada: Gross Debt Service (about 39%) and Total Debt Service (about 44%) ratios: Canada Mortgage and Housing Corporation, cmhc-schl.gc.ca, and the Financial Consumer Agency of Canada, canada.ca/en/financial-consumer-agency. Reviewed 2026-11-10. Typical lender limits; check with your lender."
   - "United States: the 28/36 rule of thumb and the debt-to-income ratio: Consumer Financial Protection Bureau, consumerfinance.gov. Reviewed 2026-11-10. Many lenders allow more; check with your lender."

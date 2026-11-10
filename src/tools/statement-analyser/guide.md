@@ -11,7 +11,7 @@ order: 1751
 icon: chart
 works: offline
 updated: 2026-11-10
-related: [budget-calculator, bill-calendar, debt-snowball, statement-to-csv]
+related: [budget-calculator, bill-calendar, debt-snowball, statement-to-csv, bill-splitter]
 sources:
   - "Categories come from an editable list of keywords. They are a starting point, not advice from your bank."
 flow:

@@ -11,7 +11,7 @@ order: 1752
 icon: table
 works: offline
 updated: 2026-11-10
-related: [file-converter, redact-pdf, statement-analyser]
+related: [file-converter, redact-pdf, statement-analyser, excel-viewer]
 sources:
   - "Reads the text and positions already inside the PDF with pdf.js (Apache 2.0). It does not read pictures, so scanned statements need a CSV export from your bank instead."
 flow:

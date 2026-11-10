@@ -11,7 +11,7 @@ order: 1735
 icon: bank
 works: offline
 updated: 2026-11-10
-related: [compound-interest, savings-goal]
+related: [compound-interest, savings-goal, ppf-calculator]
 sources:
   - "Compound interest formula A = P(1 + r/m)^(m t). Indian recurring deposit (RD) formula with quarterly compounding: M = R[(1+i)^n - 1] / (1 - (1+i)^(-1/3)), i = rate/4, n = quarters. Banks may differ by a few rupees through rounding; check your bank's own figure."
 flow:

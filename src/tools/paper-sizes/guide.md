@@ -11,7 +11,7 @@ order: 1763
 icon: ruler
 works: offline
 updated: 2026-11-10
-related: [printable-paper, image-resizer, organise-pdf]
+related: [printable-paper, image-resizer, organise-pdf, booklet-maker, passport-photo]
 sources:
   - "ISO 216 (A and B series) and ISO 269 (C series) sizes, rounded to whole millimetres. US sizes are in inches (ANSI/ASME Y14.1). Photo and passport sizes follow common practice; they change, so check the official source for your country."
 flow:

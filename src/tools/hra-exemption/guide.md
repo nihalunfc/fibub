@@ -12,7 +12,7 @@ order: 1743
 icon: calculator
 works: offline
 updated: 2026-11-10
-related: [india-income-tax, gratuity-calculator]
+related: [india-income-tax, gratuity-calculator, rent-vs-buy]
 sources:
   - "Least of three rule (actual HRA, rent paid minus 10% of salary, 50% of salary in metro cities or 40% elsewhere; salary = Basic + DA forming part of retirement benefits + commission as a % of turnover): Income-tax Act, 1961 section 10(13A) with Rule 2A, carried into the Income-tax Act, 2025 and Income-tax Rules, 2026. Estimate, check the official source: https://www.incometax.gov.in"
   - "From FY 2026-27 the 50% limit covers Mumbai, Delhi, Kolkata, Chennai, Bengaluru, Hyderabad, Pune and Ahmedabad; HRA exemption is not available in the new regime: Income-tax Rules, 2026, as reported by Moneylife, 20 March 2026, https://www.moneylife.in/article/new-income-tax-rules-from-1st-april-hra-exemption-extended-to-8-cities-fewer-forms-but-landlord-disclosure-now-mandatory/79998.html and Mondaq, 26 March 2026, https://www.mondaq.com/india/corporate-tax/1764640/income-tax-rules-2026-notified-hra-allowance-and-form-changes-that-salary-earners-and-corporates-must-prepare-for (checked 2026-11-10). Check the official source: https://www.incometax.gov.in"

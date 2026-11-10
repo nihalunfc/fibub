@@ -11,7 +11,7 @@ order: 1750
 icon: chart
 works: offline
 updated: 2026-11-10
-related: [budget-calculator, bill-calendar, percentage-calculator]
+related: [budget-calculator, bill-calendar, percentage-calculator, statement-analyser]
 sources:
   - "Net worth is assets minus debts. Values are whatever you type; nothing is looked up."
 flow:
