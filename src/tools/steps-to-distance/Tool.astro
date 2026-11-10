@@ -1,0 +1,124 @@
+---
+// #T915 Steps to distance
+---
+<div class="tool-ui sd">
+  <section class="panel">
+    <div class="sd-fields">
+      <label>Convert
+        <select data-k="dir"><option value="s2d">Steps to distance</option><option value="d2s">Distance to steps</option></select>
+      </label>
+      <label>Units
+        <select data-k="sys"><option value="m">Metric (cm, km, kg)</option><option value="i">Imperial (in, miles, lb)</option></select>
+      </label>
+      <label data-f="s2d">Steps
+        <input data-k="steps" inputmode="numeric" value="10000" />
+      </label>
+      <label data-f="d2s">Distance (<span class="sd-du">km</span>)
+        <input data-k="dist" inputmode="decimal" value="5" />
+      </label>
+      <label>Walking or running
+        <select data-k="act"><option value="walk">Walking</option><option value="run">Running</option></select>
+      </label>
+      <label>Stride from
+        <select data-k="src"><option value="h">My height (rule of thumb)</option><option value="m">A stride I measured</option></select>
+      </label>
+      <label data-s="h">Height (<span class="sd-hu">cm</span>)
+        <input data-k="h" inputmode="decimal" value="170" />
+      </label>
+      <label data-s="h">Stride ÷ height factor
+        <input data-k="fac" inputmode="decimal" value="0.414" />
+      </label>
+      <label data-s="m">Measured stride (<span class="sd-hu">cm</span>)
+        <input data-k="stride" inputmode="decimal" value="75" />
+      </label>
+    </div>
+    <p class="sd-big" aria-live="polite"></p>
+    <p class="sd-say" aria-live="polite"></p>
+  </section>
+
+  <section class="panel">
+    <h3>Calories (estimate)</h3>
+    <div class="sd-fields">
+      <label>Body weight (<span class="sd-wu">kg</span>)
+        <input data-k="wt" inputmode="decimal" value="70" />
+      </label>
+      <label>Time taken (minutes)
+        <input data-k="min" inputmode="decimal" value="100" />
+      </label>
+      <label>MET value
+        <input data-k="met" inputmode="decimal" value="3.5" />
+      </label>
+    </div>
+    <p class="sd-kcal" aria-live="polite"></p>
+    <p class="sd-fine">kcal = MET × weight in kg × hours. This counts all the energy used in that time, including what your body burns at rest.</p>
+  </section>
+  <button type="button" class="sd-reset">Reset</button>
+  <p class="sd-fine">Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sd { display: grid; gap: 14px; margin-bottom: 32px; justify-items: start; }
+  .sd > .panel { justify-self: stretch; }
+  .sd .panel { padding: 16px; min-width: 0; }
+  .sd h3 { margin: 0 0 10px; font-size: 17px; }
+  .sd-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .sd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sd label[hidden] { display: none; }
+  .sd input, .sd select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sd input:focus, .sd select:focus { border-color: var(--accent); outline: none; }
+  .sd-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .sd-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .sd-kcal { font-size: 20px; font-weight: 700; margin: 12px 0 4px; }
+  .sd button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .sd-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.sd') as HTMLElement;
+  const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const q = (c: string) => root.querySelector(c) as HTMLElement;
+  const IN = 2.54, MI = 1.609344, LB = 0.45359237;
+  const DEF: Record<string, string> = { dir: 's2d', sys: 'm', steps: '10000', dist: '5', act: 'walk', src: 'h', h: '170', fac: '0.414', stride: '75', wt: '70', min: '100', met: '3.5' };
+  const FAC: Record<string, string> = { walk: '0.414', run: '0.65' };
+  const MET: Record<string, string> = { walk: '3.5', run: '8.3' };
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  let sys = 'm';
+  const calc = () => {
+    const dir = el('dir').value, src = el('src').value, imp = el('sys').value === 'i';
+    root.querySelectorAll('[data-f]').forEach((l) => ((l as HTMLElement).hidden = (l as HTMLElement).dataset.f !== dir));
+    root.querySelectorAll('[data-s]').forEach((l) => ((l as HTMLElement).hidden = (l as HTMLElement).dataset.s !== src));
+    root.querySelectorAll('.sd-du').forEach((s) => (s.textContent = imp ? 'miles' : 'km'));
+    root.querySelectorAll('.sd-hu').forEach((s) => (s.textContent = imp ? 'in' : 'cm'));
+    root.querySelectorAll('.sd-wu').forEach((s) => (s.textContent = imp ? 'lb' : 'kg'));
+    const len = imp ? IN : 1; // cm per input unit
+    const strideCm = src === 'h' ? parseFloat(el('h').value) * len * parseFloat(el('fac').value) : parseFloat(el('stride').value) * len;
+    const big = q('.sd-big'), say = q('.sd-say');
+    if (!(strideCm > 0)) { big.textContent = ''; say.textContent = src === 'h' ? 'Type your height and a factor.' : 'Type your measured stride.'; }
+    else {
+      const sShow = imp ? `${n(strideCm / IN, 1)} in` : `${n(strideCm, 1)} cm`;
+      if (dir === 's2d') {
+        const steps = parseFloat(el('steps').value);
+        if (!(steps >= 0)) { big.textContent = ''; say.textContent = 'Type a number of steps.'; }
+        else { const km = (steps * strideCm) / 100000; big.textContent = imp ? `${n(km / MI)} miles` : `${n(km)} km`; say.textContent = `${n(steps, 0)} steps × ${sShow} stride = ${n(km)} km (${n(km / MI)} miles).`; }
+      } else {
+        const d = parseFloat(el('dist').value);
+        if (!(d >= 0)) { big.textContent = ''; say.textContent = 'Type a distance.'; }
+        else { const km = d * (imp ? MI : 1); const steps = (km * 100000) / strideCm; big.textContent = `${n(Math.round(steps), 0)} steps`; say.textContent = `${n(km)} km ÷ ${sShow} stride = about ${n(Math.round(steps), 0)} steps.`; }
+      }
+    }
+    const kg = parseFloat(el('wt').value) * (imp ? LB : 1), h = parseFloat(el('min').value) / 60, met = parseFloat(el('met').value);
+    q('.sd-kcal').textContent = kg > 0 && h > 0 && met > 0 ? `About ${n(Math.round(met * kg * h), 0)} kcal` : 'Type weight, time and MET.';
+  };
+  el('act').addEventListener('change', () => { const a = el('act').value; el('fac').value = FAC[a]; el('met').value = MET[a]; calc(); });
+  el('sys').addEventListener('change', () => {
+    const s = el('sys').value; if (s === sys) return;
+    const toI = s === 'i';
+    for (const k of ['h', 'stride']) { const v = parseFloat(el(k).value); if (v > 0) el(k).value = String(+(toI ? v / IN : v * IN).toFixed(1)); }
+    const d = parseFloat(el('dist').value); if (d > 0) el('dist').value = String(+(toI ? d / MI : d * MI).toFixed(2));
+    const w = parseFloat(el('wt').value); if (w > 0) el('wt').value = String(+(toI ? w / LB : w * LB).toFixed(1));
+    sys = s; calc();
+  });
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));
+  q('.sd-reset').addEventListener('click', () => { for (const k in DEF) el(k).value = DEF[k]; sys = 'm'; calc(); });
+  calc();
+</script>
