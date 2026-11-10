@@ -1,0 +1,62 @@
+---
+// #T896 Car affordability
+---
+<div class="tool-ui ca">
+  <section class="panel">
+    <div class="ca-grid">
+      <label>Gross income (before tax) <input data-k="inc" inputmode="decimal" value="6000" /></label>
+      <label>Income is per
+        <select data-k="per"><option value="12">Month</option><option value="1">Year</option></select>
+      </label>
+      <label>Down payment (% of price) <input data-k="down" inputmode="decimal" value="20" /></label>
+      <label>Loan length (months) <input data-k="months" inputmode="decimal" value="48" /></label>
+      <label>Total car costs (% of gross income) <input data-k="pct" inputmode="decimal" value="10" /></label>
+      <label>Interest rate a year (%) <input data-k="rate" inputmode="decimal" value="7" /></label>
+      <label>Running costs a month (fuel, insurance, upkeep) <input data-k="run" inputmode="decimal" value="150" /></label>
+    </div>
+    <p class="ca-fine">The 20/4/10 rule of thumb: put down 20%, borrow for no more than 4 years, and keep all your car costs (loan payment plus running costs) under 10% of your gross income. It is a guide, not a law: change any number.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ca-big"></p>
+    <dl class="ca-rows"></dl>
+    <p class="ca-warn" role="alert"></p>
+  </section>
+  <p class="ca-fine">Not financial advice. Prices do not include sales tax, fees or the trade-in, so use <a href="/money/car-loan/">Car loan</a> to check a real offer. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ca { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ca .panel { padding: 16px; }
+  .ca-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ca label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ca input, .ca select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ca input:focus, .ca select:focus { border-color: var(--accent); outline: none; }
+  .ca-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ca-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ca-rows dt { color: var(--muted); } .ca-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ca-warn { color: var(--bad); margin: 10px 0 0; } .ca-warn:empty { display: none; }
+  .ca-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { afford } from '../../lib/money/vehicles';
+  const root = document.querySelector('.ca') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const calc = () => {
+    const inc = num('inc'), months = Math.round(num('months'));
+    if (!(inc > 0) || !(months >= 1 && months <= 120) || num('rate') < 0 || !(num('pct') > 0) || num('down') < 0 || num('down') >= 100 || num('run') < 0) {
+      $('.ca-big').textContent = ''; $('.ca-rows').innerHTML = ''; $('.ca-warn').textContent = 'Type an income, 1 to 120 months, a rate, a share of income above 0 and a down payment under 100%.'; return;
+    }
+    const r = afford({ grossMonthly: num('per') === 12 ? inc : inc / 12, totalPct: num('pct'), running: num('run'), ratePct: num('rate'), months, downPct: num('down') });
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.ca-big').textContent = r.payment > 0 ? `Up to ${m2(r.price)} for the car` : 'No room for a payment';
+    $('.ca-rows').innerHTML = line('Total car budget a month', m2(r.budget)) + line('Minus running costs', m2(num('run'))) + line('Loan payment a month', m2(r.payment)) +
+      line('Loan you can carry', m2(r.loan)) + line('Down payment', m2(r.downAmount)) + line('Interest over the loan', m2(r.interest));
+    $('.ca-warn').textContent = r.payment <= 0 ? 'Your running costs already use the whole budget. Raise the share of income, or lower the running costs.' : months > 60 ? 'Loans over 5 years cost a lot of interest and can leave you owing more than the car is worth.' : '';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
