@@ -3484,5 +3484,72 @@ ORIGIN
   check('densitometry: findBands of a flat profile finds none', DN.findBands([[0, 0, 0, 0]]).length === 0 && DN.findBands([]).length === 0);
   check('densitometry: two touching peaks get separate rows', (() => { const p = Array.from({ length: 100 }, (_, i) => Math.exp(-(((i - 40) / 4) ** 2)) + 0.6 * Math.exp(-(((i - 55) / 4) ** 2))); const b = DN.findBands([p]); return b.length === 2 && b[0].bottom < b[1].top; })());
 }
+
+// Collecting shelf maths (src/lib/collect/maths.ts)
+{
+  const C = await import('../src/lib/collect/maths.ts');
+  near('collect: 1 tola = 11.6638 g', C.toGrams(1, 'tola'), 11.6638038, 1e-6);
+  near('collect: 1 troy ounce = 480 grains', C.convertWeight(1, 'ozt', 'gr'), 480, 1e-6);
+  near('collect: 1 troy ounce = 20 pennyweight', C.convertWeight(1, 'ozt', 'dwt'), 20, 1e-6);
+  near('collect: 1 sovereign (pavan) = 8 g', C.toGrams(1, 'sovereign'), 8, 1e-9);
+  near('collect: 22 karat = 916.67 fineness', C.karatToFineness(22), 916.6667, 1e-3);
+  near('collect: 750 fineness = 18 karat', C.finenessToKarat(750), 18, 1e-9);
+  // A 26.73 g coin of 900 silver holds 0.7734 troy oz (24.057 g) of pure silver.
+  const m = C.melt(26.73, 900, 30);
+  near('collect: melt pure silver grams', m.pureG, 24.057, 1e-3);
+  near('collect: melt pure troy ounces', m.pureOzt, 0.77345, 1e-4);
+  near('collect: melt value at 30 per oz', m.value, 23.2035, 1e-3);
+  near('collect: premium 25%', C.premium(125, 100), 0.25, 1e-12);
+  near('collect: sterling silver density ~10.36', C.alloyDensity(C.ALLOYS['silver-925'].parts), 10.36, 0.02);
+  near('collect: 22k gold (copper) density ~17.6 by the mixing rule', C.alloyDensity(C.ALLOYS['gold-917'].parts), 17.62, 0.05);
+  near('collect: water at 4 C is 1.0000 g/cm3', C.waterDensity(4), 1, 1e-4);
+  near('collect: water at 20 C is 0.9982 g/cm3', C.waterDensity(20), 0.99821, 1e-4);
+  const sg = C.specificGravity(31.1, 29.49, 20);
+  near('collect: SG of 31.1 g that weighs 29.49 g in water ~19.32', sg.sg, 19.317, 1e-2);
+  near('collect: gold share from 22k density round-trips', C.shareFromDensity(C.alloyDensity({ gold: 0.9167, copper: 0.0833 }), 'gold', 'copper'), 0.9167, 1e-9);
+  const t = C.tolerance(8.1, 8, 2);
+  check('collect: 8.1 g vs 8 g is +1.25 %, inside 2 %', Math.abs(t.pct - 1.25) < 1e-9 && t.within && !C.tolerance(8.3, 8, 2).within);
+  const s = C.stats([1, 2, 3, 4]);
+  check('collect: stats of 1..4', s.mean === 2.5 && s.median === 2.5 && Math.abs(s.sd - 1.29099) < 1e-4);
+  const ci = C.circular([350, 10]);
+  check('collect: circular mean of 350 and 10 is 0', Math.abs(((ci.mean + 180) % 360) - 180) < 1e-9 && Math.abs(ci.r - Math.cos(Math.PI / 18)) < 1e-9);
+  check('collect: 6 o clock = 180 deg and back', C.clockToDeg(6) === 180 && C.clockToDeg(12) === 0 && C.degToClock(0) === 12 && C.degToClock(95) === 3);
+  check('collect: grade 45 is Extremely Fine, 63 is Mint State', C.gradeFor(45).abbr.startsWith('EF') && C.gradeFor(63).us.startsWith('Mint'));
+  check('collect: centring 3 mm and 2 mm is 60/40', C.centring(3, 2).label === '60/40' && C.centring(1, 1).label === '50/50');
+  const ids = (x) => C.serialPatterns(x).map((h) => h.id).join(',');
+  check('collect: serial 77777777 is solid and radar', ids('77777777').includes('solid') && ids('77777777').includes('radar'));
+  check('collect: serial 12345678 is a ladder', ids('12345678').includes('ladder'));
+  check('collect: serial 12344321 is a radar', ids('12344321') === 'radar');
+  check('collect: serial 45454545 is a repeater', ids('45454545').includes('repeater'));
+  check('collect: serial 10011010 is binary', ids('10011010').includes('binary'));
+  check('collect: serial 00000042 is low', ids('A 00000042').includes('low'));
+  check('collect: serial 38291746 has nothing', ids('38291746') === '');
+  check('collect: serial 50000000 is round', ids('50000000').includes('round'));
+  check('collect: serial 27777772 is a super radar', ids('27777772').includes('super-radar'));
+  check('collect: 2 pounds 2 shillings 6 pence = 510 pence', C.lsdToPence(2, 2, 6) === 510);
+  near('collect: half a crown (30 d) = 12.5 new pence', C.oldToNewPence(30), 12.5, 1e-12);
+  check('collect: 750 pence back to 3 pounds 2 shillings 6 pence', JSON.stringify(C.penceToLsd(750)) === '{"l":3,"s":2,"d":6}');
+  check('collect: 1 rupee 8 annas = 288 pies = 1.5 rupees', C.rapToPies(1, 8, 0) === 288 && C.piesToRupees(288) === 1.5);
+  // AH 1300 began on 12 Nov 1882 (tabular calendar) and ended in 1883.
+  const a = C.ahStart(1300);
+  check('collect: AH 1300 starts 12 Nov 1882', a.year === 1882 && a.month === 11 && a.day === 12);
+  check('collect: AH 1300 = 1882/1883 CE', C.ahToCe(1300).join() === '1882,1883');
+  check('collect: AH 1 starts 16 July 622 (Julian)', (() => { const b = C.ahStart(1); return b.year === 622 && b.month === 7 && b.day === 16; })());
+  check('collect: AH 1446 = 2024/2025 CE', C.ahToCe(1446).join() === '2024,2025');
+  check('collect: 2025 CE holds AH 1446 to 1447', C.ceToAh(2025).join() === '1446,1447');
+  check('collect: VS 2081 = 2024/2025', C.eraToCe('vs', 2081).join() === '2024,2025');
+  check('collect: Saka 1946 = 2024/2025', C.eraToCe('saka', 1946).join() === '2024,2025');
+  check('collect: Kollam 1200 = 2024/2025', C.eraToCe('kollam', 1200).join() === '2024,2025');
+  check('collect: Thai BE 2568 = 2025', C.eraToCe('thai', 2568).join() === '2025,2025');
+  check('collect: Showa 64 = 1989, Reiwa 7 = 2025', C.eraToCe('Shōwa', 64)[0] === 1989 && C.eraToCe('Reiwa', 7)[0] === 2025);
+  check('collect: roman MDCCCLXXXVIII = 1888 and back', C.fromRoman('MDCCCLXXXVIII') === 1888 && C.toRoman(1888) === 'MDCCCLXXXVIII' && C.toRoman(2026) === 'MMXXVI');
+  const bt = C.buyerTotal(1000, 0.2, 0.13, 15);
+  near('collect: buyer pays 1000 + 200 + 26 tax on premium + 15', bt.total, 1241, 1e-9);
+  near('collect: buyer pays with tax on all', C.buyerTotal(1000, 0.2, 0.13, 0, true).total, 1356, 1e-9);
+  near('collect: max bid for 1241 budget is 1000', C.maxBid(1241, 0.2, 0.13, 15), 1000, 1e-9);
+  near('collect: seller nets 1000 - 150 - 10', C.sellerNet(1000, 0.15, 10).net, 840, 1e-9);
+  near('collect: 1250 g of 5 g coins in a 50 g jar = 240', C.coinsFromWeight(1250, 5, 50), 240, 1e-9);
+  near('collect: disc 38.1 x 2.4 mm = 2.736 cm3', C.discVolume(38.1, 2.4), 2.7363, 1e-3);
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

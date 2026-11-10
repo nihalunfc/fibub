@@ -1,0 +1,12 @@
+/* Collecting shelf: the shared price box (src/lib/collect/prices.ts). Tools also use astro.css (.ax). */
+.cp { display: grid; gap: 10px; }
+.cp-head { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+.cp-head label { flex: 1 1 140px; }
+.cp-tab input { width: 100%; min-width: 0; }
+.cp-tab td, .cp-tab th { vertical-align: middle; }
+.cp-tab th[scope], .cp-tab tbody th { color: var(--ink); font-size: 14px; }
+.cp-src { font-size: 13px; color: var(--muted); margin: 0; }
+.cp .cp-keep { display: inline-flex; flex-direction: row; gap: 8px; align-items: center; color: var(--ink); font-size: 14px; }
+.cp-clear { justify-self: start; font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.cl-note { font-size: 13px; color: var(--muted); }
+.cl-flag { border-left: 3px solid var(--warn); padding: 8px 12px; background: var(--warn-soft); border-radius: 6px; font-size: 14px; }

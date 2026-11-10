@@ -1,0 +1,173 @@
+---
+// #1602 Collection catalogue. Engine: src/lib/collect/ (store.ts keeps the list on this device if ticked; prices.ts for melt value).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax cc">
+  <div class="ax-card">
+    <h2>Your collection</h2>
+    <p class="cl-note">Your list stays in this browser. Nothing is uploaded. Tick the box to keep it here for next time, and use <b>Export</b> to save a copy you control.</p>
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="cc-remember" /> Keep my collection on this device</label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small cc-export">Export (.json)</button>
+      <label class="btn small cc-importlab">Import<input type="file" accept=".json,application/json" class="cc-import" hidden /></label>
+      <button type="button" class="btn small cc-csv">Download CSV</button>
+      <button type="button" class="btn small cc-print">Print list</button>
+      <button type="button" class="btn small cc-example">Fill in an example</button>
+      <button type="button" class="btn small cc-clear">Clear all</button>
+    </div>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <form class="ax-card cc-form">
+    <h2 class="cc-ftitle">Add an item</h2>
+    <div class="ax-grid">
+      <label>Type <select name="kind"><option value="coin">Coin</option><option value="note">Banknote</option><option value="bullion">Bullion bar or round</option><option value="medal">Medal or token</option><option value="stamp">Stamp</option><option value="card">Card</option><option value="other">Other</option></select></label>
+      <label>Name <input name="name" required placeholder="e.g. 1 rupee" /></label>
+      <label>Country <input name="country" /></label>
+      <label>Year as written <input name="year" placeholder="e.g. 1919 or AH 1300" /></label>
+      <label>Metal <select name="metal" class="cc-metal"></select></label>
+      <label>Weight (g) <input name="weight" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Diameter (mm) <input name="diameter" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Grade <input name="grade" placeholder="e.g. VF 30" /></label>
+      <label>Your reference no. <input name="ref" /></label>
+      <label>Serial number <input name="serial" /></label>
+      <label>How many <input name="qty" type="number" min="1" step="1" value="1" /></label>
+      <label>What you paid <input name="cost" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Your value <input name="value" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Kept where <input name="place" placeholder="e.g. Album 2, page 4" /></label>
+    </div>
+    <label style="margin-top:10px">Notes <textarea name="notes" rows="2"></textarea></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="submit" class="btn small cc-save">Add to collection</button>
+      <button type="button" class="btn small cc-cancel" hidden>Cancel edit</button>
+    </div>
+  </form>
+
+  <div class="ax-card">
+    <h2>Totals</h2>
+    <dl class="ax-facts cc-totals"></dl>
+    <details class="cc-pdet" style="margin-top:12px"><summary>Currency and metal prices used for melt value</summary><div class="cc-prices" style="margin-top:10px"></div></details>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between"><h2 style="margin:0">Items</h2>
+      <label class="cc-searchlab"><span class="visually-hidden">Search your items</span><input type="search" class="cc-search" placeholder="Search name, country, year…" /></label></div>
+    <div class="ax-scroll" style="margin-top:10px">
+      <table class="cc-tab">
+        <thead><tr><th><button type="button" data-sort="name">Name</button></th><th><button type="button" data-sort="country">Country</button></th><th><button type="button" data-sort="year">Year</button></th><th>Grade</th><th class="r">Qty</th><th class="r"><button type="button" data-sort="cost">Paid</button></th><th class="r"><button type="button" data-sort="value">Value</button></th><th class="r">Melt</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="cl-note cc-empty">No items yet. Add one above, or <b>Fill in an example</b> to see how it works.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cc .cc-tab th button { border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; text-decoration: underline dotted; }
+  .cc .cc-tab td button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 3px 8px; cursor: pointer; font: inherit; font-size: 13px; }
+  .cc .cc-importlab { cursor: pointer; }
+  .cc .cc-search { min-width: 0; width: 100%; max-width: 260px; }
+  @media print {
+    header.site, footer.site, nav, .tabbar, .cc-form, .cc .ax-card:first-child, .cc-pdet, .cc-searchlab, .cc .cc-tab td:last-child, .cc .cc-tab th:last-child, .tool-guide, .tool-top, .rel { display: none !important; }
+  }
+</style>
+
+<script>
+  import { ALLOYS, melt } from '../../lib/collect/maths';
+  import { mountPrices, money, type Metal, type PriceState } from '../../lib/collect/prices';
+  import { loadCollection, saveCollection, downloadJson, downloadCsv, readCollectionFile, newId, empty, type Collection, type Item } from '../../lib/collect/store';
+
+  const root = document.querySelector('.cc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const form = q<HTMLFormElement>('.cc-form'), body = q<HTMLElement>('.cc-tab tbody'), keep = q<HTMLInputElement>('.cc-remember');
+  q<HTMLSelectElement>('.cc-metal').innerHTML = '<option value="">Not metal / not known</option>' + Object.entries(ALLOYS).map(([k, a]) => `<option value="${k}">${a.name}</option>`).join('');
+  const saved = loadCollection();
+  let col: Collection = saved ?? empty();
+  keep.checked = !!saved;
+  let ps: PriceState | null = null, editing: string | null = null, sortKey = '', sortDir = 1;
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const cur = () => ps?.cur ?? col.cur ?? 'usd';
+  const fm = (v: number | undefined) => (v == null || !Number.isFinite(v) ? '' : money(v, cur()));
+
+  /** Precious metal and fineness of an alloy key such as silver-925 (none for base metals). */
+  const precious = (k?: string): { metal: Metal; fin: number } | null => {
+    const m = k?.match(/^(gold|silver|platinum|palladium)-(\d+)$/); if (!m) return null;
+    const n = +m[2]; return { metal: m[1] as Metal, fin: n > 1000 ? n / 10 : n === 917 ? 916.7 : n };
+  };
+  const meltOf = (it: Item) => { const p = precious(it.metal); return p && it.weight && ps ? melt(it.weight, p.fin, ps.perOzt(p.metal), it.qty || 1).value : NaN; };
+
+  const store = () => { col.cur = cur(); if (keep.checked) saveCollection(col); };
+  const render = () => {
+    const term = q<HTMLInputElement>('.cc-search').value.trim().toLowerCase();
+    let items = col.items.filter((i) => !term || [i.name, i.country, i.year, i.grade, i.ref, i.notes, i.place].join(' ').toLowerCase().includes(term));
+    if (sortKey) items = [...items].sort((a: any, b: any) => (typeof a[sortKey] === 'number' || typeof b[sortKey] === 'number' ? ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) : String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true })) * sortDir);
+    body.innerHTML = items.map((i) => `<tr data-id="${i.id}"><td>${esc(i.name)}${i.ref ? `<br><small>${esc(i.ref)}</small>` : ''}</td><td>${esc(i.country)}</td><td>${esc(i.year)}</td><td>${esc(i.grade)}</td><td class="r">${i.qty ?? 1}</td><td class="r">${fm(i.cost)}</td><td class="r">${fm(i.value)}</td><td class="r">${fm(meltOf(i))}</td><td><button type="button" data-act="edit">Edit</button> <button type="button" data-act="del" aria-label="Delete ${esc(i.name)}">✕</button></td></tr>`).join('');
+    q('.cc-empty').hidden = col.items.length > 0;
+    const sum = (f: (i: Item) => number) => col.items.reduce((s, i) => s + (Number.isFinite(f(i)) ? f(i) : 0), 0);
+    const cost = sum((i) => i.cost ?? NaN), value = sum((i) => i.value ?? NaN), mel = sum(meltOf), count = sum((i) => i.qty ?? 1);
+    q('.cc-totals').innerHTML = `<div><dt>Items</dt><dd class="cc-count">${count}<small>${col.items.length} entries</small></dd></div>
+      <div><dt>You paid</dt><dd class="cc-cost">${fm(cost)}</dd></div>
+      <div><dt>Your value</dt><dd class="cc-value">${fm(value)}<small>${value && cost ? `${value >= cost ? 'up' : 'down'} ${fm(Math.abs(value - cost))}` : ''}</small></dd></div>
+      <div><dt>Metal (melt) value today</dt><dd class="cc-melt">${fm(mel)}<small>for items with a precious metal and a weight</small></dd></div>`;
+  };
+  const changed = () => { store(); render(); };
+
+  const readForm = (): Item => {
+    const f = new FormData(form), s = (k: string) => String(f.get(k) ?? '').trim() || undefined, n = (k: string) => { const v = parseFloat(String(f.get(k) ?? '')); return Number.isFinite(v) ? v : undefined; };
+    return { id: editing ?? newId(), kind: (s('kind') as Item['kind']) ?? 'coin', name: s('name') ?? 'Item', country: s('country'), year: s('year'), metal: s('metal'), weight: n('weight'), diameter: n('diameter'), grade: s('grade'), ref: s('ref'), serial: s('serial'), qty: n('qty') ?? 1, cost: n('cost'), value: n('value'), place: s('place'), notes: s('notes') };
+  };
+  const fillForm = (it?: Item) => {
+    form.reset();
+    if (it) for (const [k, v] of Object.entries(it)) { const el = form.elements.namedItem(k) as HTMLInputElement | null; if (el && v != null) el.value = String(v); }
+    q('.cc-ftitle').textContent = it ? 'Edit item' : 'Add an item';
+    q('.cc-save').textContent = it ? 'Save changes' : 'Add to collection';
+    q('.cc-cancel').hidden = !it;
+  };
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const it = readForm();
+    if (editing) col.items = col.items.map((x) => (x.id === editing ? it : x)); else col.items.push(it);
+    editing = null; fillForm(); changed();
+  });
+  q('.cc-cancel').addEventListener('click', () => { editing = null; fillForm(); });
+  body.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    const id = (b.closest('tr') as HTMLElement).dataset.id!;
+    if (b.dataset.act === 'del') { col.items = col.items.filter((i) => i.id !== id); changed(); }
+    else { editing = id; fillForm(col.items.find((i) => i.id === id)); form.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+  q('.cc-tab thead').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    sortDir = sortKey === b.dataset.sort ? -sortDir : 1; sortKey = b.dataset.sort!; render();
+  });
+  q('.cc-search').addEventListener('input', render);
+  keep.addEventListener('change', () => { if (keep.checked) store(); else saveCollection(null); });
+  q('.cc-export').addEventListener('click', () => downloadJson('my-collection.json', col));
+  q('.cc-csv').addEventListener('click', () => downloadCsv('my-collection.csv', [
+    ['Type', 'Name', 'Country', 'Year', 'Metal', 'Weight g', 'Diameter mm', 'Grade', 'Reference', 'Serial', 'Qty', 'Paid', 'Value', 'Melt today', 'Kept where', 'Notes'],
+    ...col.items.map((i) => [i.kind, i.name, i.country, i.year, i.metal ? ALLOYS[i.metal]?.name ?? i.metal : '', i.weight, i.diameter, i.grade, i.ref, i.serial, i.qty, i.cost, i.value, Number.isFinite(meltOf(i)) ? meltOf(i).toFixed(2) : '', i.place, i.notes]),
+  ]));
+  q('.cc-print').addEventListener('click', () => print());
+  q<HTMLInputElement>('.cc-import').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    const err = q('.cc-err');
+    try { const got = await readCollectionFile(f); col.items.push(...got.items.filter((g) => !col.items.some((x) => x.id === g.id))); err.hidden = true; changed(); }
+    catch (x) { err.textContent = `Could not read that file: ${(x as Error).message}`; err.hidden = false; }
+    (e.target as HTMLInputElement).value = '';
+  });
+  q('.cc-example').addEventListener('click', () => {
+    col.items.push(
+      { id: newId(), kind: 'coin', name: 'Morgan dollar', country: 'USA', year: '1921', metal: 'silver-900', weight: 26.73, diameter: 38.1, grade: 'VF 30', qty: 1, cost: 40, value: 45 },
+      { id: newId(), kind: 'coin', name: '1 rupee', country: 'India', year: '1919', metal: 'silver-917', weight: 11.66, diameter: 30.5, grade: 'F 12', qty: 3, cost: 30, value: 36, place: 'Album 1, page 2' },
+      { id: newId(), kind: 'coin', name: 'Sovereign', country: 'UK', year: '1911', metal: 'gold-917', weight: 7.988, diameter: 22.05, grade: 'EF 40', qty: 1, cost: 600, value: 650 },
+      { id: newId(), kind: 'note', name: '10 rupees', country: 'India', year: '2018', serial: '0AB 777777', grade: 'UNC', qty: 1, cost: 5, value: 15 },
+    );
+    changed();
+  });
+  q('.cc-clear').addEventListener('click', () => { if (!col.items.length || confirm('Delete every item in this list? Export first if you want a copy.')) { col = empty(cur()); saveCollection(null); keep.checked = false; render(); } });
+  render();
+  mountPrices(q('.cc-prices'), (s) => { ps = s; changed(); });
+</script>
