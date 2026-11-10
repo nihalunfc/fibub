@@ -1,0 +1,130 @@
+---
+// Esterification: pick a carboxylic acid and an alcohol, press React and watch the –OH of the acid and the H of
+// the alcohol leave as water while the rest joins into an ester; name, formula, smell, molar masses, and the
+// theoretical and equilibrium amounts from the masses you use. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { ACIDS, ALCOHOLS } from '../../lib/sci/ester-school';
+---
+<div class="ax es">
+  <div class="ax-card">
+    <h2>Acid + alcohol</h2>
+    <div class="ax-grid">
+      <label>Carboxylic acid <select class="es-a">{ACIDS.map((a) => <option value={a.c} selected={a.c === 2}>{a.name} ({a.formula})</option>)}</select></label>
+      <label>Alcohol <select class="es-b">{ALCOHOLS.map((b) => <option value={b.c} selected={b.c === 2}>{b.name} ({b.formula})</option>)}</select></label>
+    </div>
+    <svg class="es-fig" viewBox="0 0 340 170" role="img" aria-label="The acid and the alcohol joining into an ester and water"></svg>
+    <div class="ax-row"><button type="button" class="btn es-go">React</button><button type="button" class="btn secondary small es-back">Back to the start</button></div>
+    <p class="ax-big es-big" aria-live="polite"></p>
+    <p class="lx-eq es-eq"></p>
+    <dl class="ax-facts es-facts"></dl>
+    <p class="ax-help">In the lab: warm the acid and alcohol with a few drops of concentrated sulfuric acid in a water bath, then pour into water and smell gently by wafting. Concentrated acid burns; this is a teacher demonstration.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How much ester?</h2>
+    <div class="ax-grid">
+      <label>Acid used (g) <input type="number" class="es-ga" min="0" step="0.1" value="6" inputmode="decimal" /></label>
+      <label>Alcohol used (g) <input type="number" class="es-gb" min="0" step="0.1" value="4.6" inputmode="decimal" /></label>
+    </div>
+    <ol class="lx-try es-steps" style="margin-top:10px"></ol>
+    <p class="ax-err es-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Keep ethanoic acid and change the alcohol. How does the ester's name change?</li>
+      <li>Which pair gives the banana smell? Which gives orange?</li>
+      <li>Use three times as much alcohol. What happens to the share of acid that becomes ester?</li>
+      <li>Boil an ester with sodium hydroxide and you get back the alcohol and the sodium salt of the acid: that is how soap is made from oils.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cq"><ol class="cq-list"></ol><button type="button" class="btn secondary small cq-new">New questions</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .es .es-fig { display: block; width: 100%; height: auto; margin: 12px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .es .es-fig text { font: 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--ink); }
+  .es .es-fig .es-lab { font: 12px system-ui, sans-serif; fill: var(--muted); }
+  .es .es-fig .es-w { fill: var(--accent); font-weight: 750; }
+  .es .es-fig .es-g { transition: transform 0.8s ease, opacity 0.8s ease; }
+  .es .es-fig .es-box { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+</style>
+
+<script>
+  import { ACIDS, ALCOHOLS, molarAcid, molarAlcohol, molarEster, esterName, esterFormula, molecularFormula, smell, yieldOf, WATER, type Acid, type Alcohol } from '../../lib/sci/ester-school';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.es')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NS = 'http://www.w3.org/2000/svg', fig = q<SVGSVGElement>('.es-fig');
+  const As = q<HTMLSelectElement>('.es-a'), Bs = q<HTMLSelectElement>('.es-b'), GA = q<HTMLInputElement>('.es-ga'), GB = q<HTMLInputElement>('.es-gb');
+  let acid: Acid = ACIDS[1], alc: Alcohol = ALCOHOLS[1], done = false;
+  const mk = (tag: string, a: Record<string, string | number>, parent: Element, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; parent.append(e); return e; };
+  const g = (cls = '') => mk('g', { class: `es-g ${cls}` }, fig) as SVGGElement;
+  const f = (x: number, dp = 2) => (Math.round(x * 10 ** dp) / 10 ** dp).toFixed(dp);
+
+  function picture() {
+    fig.replaceChildren();
+    const R = acid.c === 1 ? 'H' : acid.formula.replace('COOH', ''), Rp = alc.formula.replace('OH', '');
+    // Acid R–CO–OH (left) and alcohol H–O–R' (right); the OH and the H light up and leave as water.
+    const left = g(), right = g(), water = g();
+    mk('text', { x: 10, y: 70 }, left, `${R}–C`); mk('text', { x: 10, y: 92, class: 'es-lab' }, left, acid.name);
+    const cx = 10 + (R.length + 2) * 9;
+    mk('text', { x: cx - 4, y: 46 }, left, 'O'); mk('text', { x: cx - 2, y: 58 }, left, '‖');
+    const oh = mk('text', { x: cx + 6, y: 70, class: 'es-w' }, water, '–OH');
+    const hx = 220;
+    const h = mk('text', { x: hx - 18, y: 70, class: 'es-w' }, water, 'H');
+    mk('text', { x: hx, y: 70 }, right, `–O–${Rp}`); mk('text', { x: hx, y: 92, class: 'es-lab' }, right, alc.name);
+    mk('text', { x: 172, y: 70, class: 'es-lab' }, fig, done ? '' : '+');
+    if (done) {
+      right.style.transform = `translate(${cx + 6 - hx}px, 0px)`;
+      oh.setAttribute('x', '150'); oh.setAttribute('y', '140'); h.setAttribute('x', '128'); h.setAttribute('y', '140');
+      mk('text', { x: 186, y: 140, class: 'es-lab' }, fig, '= H₂O (water) leaves');
+      mk('text', { x: 10, y: 120, class: 'es-lab' }, fig, `${esterName(acid, alc)}: the –COO– link joins the two parts`);
+    }
+  }
+  function show() {
+    acid = ACIDS.find((a) => a.c === Number(As.value))!; alc = ALCOHOLS.find((b) => b.c === Number(Bs.value))!;
+    picture();
+    q('.es-big').textContent = done ? `${esterName(acid, alc)}: smells ${smell(acid, alc)}` : 'Press React.';
+    q('.es-eq').textContent = `${acid.formula} + ${alc.formula} ⇌ ${esterFormula(acid, alc)} + H₂O   (conc. H₂SO₄, warm)`;
+    const facts = q('.es-facts'); facts.replaceChildren();
+    for (const [k, v] of [['Ester', esterName(acid, alc)], ['Formula', `${esterFormula(acid, alc)} (${molecularFormula(acid, alc)})`], ['Molar mass', `${f(molarEster(acid, alc))} g/mol`], ['Smell (as commonly described)', smell(acid, alc)], ['Name rule', `alcohol part first (${alc.name.replace(/an(-1-)?ol$/, '')}yl), then the acid part with -oate (${acid.name.replace(' acid', '').replace(/oic$/, 'oate')})`]]) {
+      const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); facts.append(d);
+    }
+    amounts();
+  }
+  function amounts() {
+    const ga = Number(GA.value), gb = Number(GB.value), err = q('.es-err'), st = q('.es-steps');
+    if (!(ga > 0) || !(gb > 0)) { err.hidden = false; err.textContent = 'Type a mass above 0 g for both.'; st.replaceChildren(); return; }
+    err.hidden = true;
+    const y = yieldOf(acid, alc, ga, gb), li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+    st.replaceChildren(
+      li(`Moles of ${acid.name} = ${ga} ÷ ${f(molarAcid(acid))} = ${f(y.nA, 4)} mol; moles of ${alc.name} = ${gb} ÷ ${f(molarAlcohol(alc))} = ${f(y.nB, 4)} mol.`),
+      li(`They react 1 : 1, so ${y.limiting === 'neither' ? 'neither is in excess' : `the ${y.limiting} runs out first (limiting reagent)`}: at most ${f(y.nMax, 4)} mol of ester.`),
+      li(`Theoretical mass = ${f(y.nMax, 4)} × ${f(molarEster(acid, alc))} = ${f(y.gMax)} g of ${esterName(acid, alc)}, with ${f(y.nMax * WATER)} g of water.`),
+      li(`But the reaction is reversible and stops at equilibrium. With K ≈ 4 you get about ${f(y.nEq, 4)} mol = ${f(y.gEq)} g, ${f(y.pctEq, 0)}% of the theoretical amount.`),
+    );
+  }
+  As.addEventListener('change', () => { done = false; GA.value = f(molarAcid(ACIDS.find((a) => a.c === Number(As.value))!) / 10, 1); show(); });
+  Bs.addEventListener('change', () => { done = false; GB.value = f(molarAlcohol(ALCOHOLS.find((b) => b.c === Number(Bs.value))!) / 10, 1); show(); });
+  [GA, GB].forEach((b) => b.addEventListener('input', amounts));
+  q('.es-go').addEventListener('click', () => { done = true; show(); });
+  q('.es-back').addEventListener('click', () => { done = false; show(); });
+  show();
+
+  mountQuiz(q('.cq'), () => {
+    const a = pickOne(ACIDS), b = pickOne(ALCOHOLS.slice(0, 5)), c = pickOne(ACIDS.slice(1)), d = pickOne(ALCOHOLS.slice(0, 4)), n = rint(1, 5) / 10;
+    return [
+      { q: `Name the ester made from ${a.name} and ${b.name}.`, answer: esterName(a, b), ok: same(esterName(a, b)), worked: `Alcohol part first (${b.name} → ${esterName(a, b).split(' ')[0]}), then the acid part with -oate.`, hint: 'two words' },
+      { q: `What is the molar mass of ${esterName(c, d)} (${molecularFormula(c, d)})? Use C = 12.01, H = 1.008, O = 16.00. (1 decimal place)`, answer: f(molarEster(c, d), 1), ok: near(molarEster(c, d), 0.002), worked: `${c.c + d.c} × 12.01 + ${2 * (c.c + d.c)} × 1.008 + 2 × 16.00.`, hint: 'g/mol' },
+      { q: `${n} mol of ethanoic acid reacts completely with excess ethanol. What mass of ethyl ethanoate (88.1 g/mol) could form at most? (1 decimal place)`, answer: f(n * 88.1, 1), ok: near(n * 88.1, 0.005), worked: `1 mol acid gives 1 mol ester: ${n} × 88.1.`, hint: 'grams' },
+    ] as Question[];
+  });
+</script>
