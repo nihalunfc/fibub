@@ -2,6 +2,7 @@
 name: Cyclic voltammetry analyser
 num: 90
 shelf: science
+code: T90
 section: electrochemistry-and-battery-science
 title: "Cyclic voltammetry analyser: peak potentials, ΔEp, E½ and the Randles–Sevcik equation"
 summary: "Paste or open a cyclic voltammogram for peak potentials and currents with a baseline, ΔEp, E½, Ep − Ep/2 and Nicholson's peak ratio; solve the Randles–Sevcik equation for D, concentration or area; and fit a scan-rate study."

@@ -2,6 +2,7 @@
 name: Area multiplication
 num: 1245
 shelf: learn
+code: L130
 section: school-maths
 title: "Area multiplication"
 summary: "See a product as the area of a rectangle. Split it by place value into easy pieces, or build it from a round number with strips added and taken away, so 103 × 97 becomes 100² − 3² = 9991. Every step is written out, and fresh questions let you practise in your head."

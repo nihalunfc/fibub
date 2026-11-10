@@ -2,6 +2,7 @@
 name: Glycaemic load calculator
 num: 486
 shelf: science
+code: T337
 section: nutrition-and-dietetics
 title: "Glycaemic load calculator for foods and whole meals (meal GI and GL)"
 summary: "Work out the glycaemic load of each food and of a whole meal, and the meal's GI as a carbohydrate-weighted average, from GI values and label carbohydrate you enter. Subtract fibre for US-style labels. CSV and report downloads."

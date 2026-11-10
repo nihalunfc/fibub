@@ -2,6 +2,7 @@
 name: Boundary layer
 num: 960
 shelf: science
+code: T695
 section: fluid-dynamics
 title: "Boundary layer"
 summary: "For flow along a smooth flat plate, get the Reynolds number, where the boundary layer turns turbulent, its thickness, displacement and momentum thickness, the local skin friction and wall shear stress, and the plate's drag, with the exact Blasius profile for laminar flow and the 1/7 power law for turbulent flow."

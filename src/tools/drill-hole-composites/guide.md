@@ -2,6 +2,7 @@
 name: Drill hole composites
 num: 131
 shelf: science
+code: T131
 section: mining-and-economic-geology
 title: "Drill hole assay compositing and significant intercept calculator with strip logs"
 summary: "Paste or open drill hole assay intervals. Check them for gaps and overlaps, make length-weighted composites to a fixed length or by lithology, find significant intercepts written as \"x m @ y g/t from z m\" with \"including\" high-grade parts, and draw a strip log of each hole."

@@ -2,6 +2,7 @@
 name: Rating curve fitter
 num: 144
 shelf: science
+code: T144
 section: hydrology-and-water-resources
 title: "Rating curve fitter: stage-discharge curve Q = a(h − h0)^b from river gaugings"
 summary: "Fit a stage-discharge rating curve to your river gaugings, Q = a (h − h0)^b, with the zero-flow stage fitted or typed and an optional second segment above a break stage. See the scatter, gaugings that sit off the curve, a 95 % range, the discharge for any stage, the stage for any discharge and a rating table to download. Paste or open a file."

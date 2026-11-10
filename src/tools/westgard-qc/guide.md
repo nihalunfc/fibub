@@ -2,6 +2,7 @@
 name: Westgard QC
 num: 503
 shelf: science
+code: T354
 section: nursing-and-lab-medicine
 title: "Westgard QC"
 summary: "Paste quality control results for one or more control levels and check them run by run against the Westgard multirules (1-2s, 1-3s, 2-2s, R-4s, 4-1s, 10x and more), with Levey-Jennings charts, flagged runs, CV, bias and the sigma metric."

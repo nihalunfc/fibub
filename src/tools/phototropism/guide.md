@@ -2,6 +2,7 @@
 name: Phototropism plant
 num: 1307
 shelf: learn
+code: L187
 section: school-biology
 title: "Phototropism: move the lamp and watch a seedling bend towards the light (auxin model)"
 summary: "Grow a seedling hour by hour and drag a lamp around it (or use its slider): the shoot bends towards the light because auxin gathers on the shaded side. Cover or cut the tip like the classic experiments, switch the light off, or lay the pot on its side to see geotropism. For Class 10 and 11."

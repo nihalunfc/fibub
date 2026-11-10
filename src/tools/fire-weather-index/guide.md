@@ -2,6 +2,7 @@
 name: Fire Weather Index
 num: 337
 shelf: science
+code: T252
 section: forestry
 title: "Fire Weather Index"
 summary: "Run the Canadian Forest Fire Weather Index System over your own daily noon weather (temperature, humidity, wind, rain) from start-up codes. Get the Fine Fuel Moisture Code, Duff Moisture Code, Drought Code, Initial Spread Index, Buildup Index, Fire Weather Index and Daily Severity Rating for every day, with charts. For study and teaching."

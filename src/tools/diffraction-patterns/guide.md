@@ -2,6 +2,7 @@
 name: Diffraction pattern generator
 num: 933
 shelf: science
+code: T668
 section: optics-and-photonics
 title: "Diffraction pattern generator: single slit, double slit, grating and circular hole, Fraunhofer and Fresnel"
 summary: "See and measure the light pattern from a single slit, a double slit, a grating or a round hole on a screen at any distance: the picture, the irradiance profile, fringe spacing, the Airy disc, grating orders and resolving power, in the far field (Fraunhofer) or near field (Fresnel)."

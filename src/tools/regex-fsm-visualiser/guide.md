@@ -2,6 +2,7 @@
 name: Regex visualiser
 num: 559
 shelf: science
+code: T387
 section: computer-science
 title: "Regex visualiser"
 summary: "Turn a regular expression into a Thompson NFA, a DFA (subset construction) and the minimal DFA, drawn as state diagrams with transition tables. Step through a test string state by state, or type your own DFA and minimise it."

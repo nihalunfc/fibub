@@ -2,6 +2,7 @@
 name: Agent-based model playground
 num: 587
 shelf: science
+code: T415
 section: complex-systems-and-network-science
 title: "Agent-based model playground: boids flocking, Schelling segregation and an SIR epidemic, in your browser"
 summary: "Watch simple local rules make large patterns: boids that flock, Schelling's model of segregation and an epidemic spreading on a grid. Change the parameters, set a seed to repeat a run exactly, step or run, and chart what happens over time."

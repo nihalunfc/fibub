@@ -26,7 +26,7 @@ export default async ({ page, check, BASE }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   for (let i = 1; i <= 4; i++) {
     const w = await page.textContent(`${R}.sm-q:nth-child(${i}) .sm-qwork`);
-    const m = i === 2 ? /B = 2 × \(\d+ \+ \d+\) = (\d+)/.exec(w) : i === 4 ? /^½ × \d+ × \d+ = ([\d.]+)/.exec(w) : /= (-?[\d.]+)\.$/.exec(w);
+    const m = i === 2 ? /B = 2 × \(\d+ \+ \d+\) = (\d+)/.exec(w) : i === 4 ? /^½ × \d+ × \d+ = (\d+(?:\.\d+)?)/.exec(w) : /= (-?[\d.]+)\.$/.exec(w);
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await page.textContent(`${R}.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `pick: quiz ${i} (${w})`);
   }

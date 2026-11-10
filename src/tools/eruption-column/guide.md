@@ -2,6 +2,7 @@
 name: Eruption column
 num: 886
 shelf: science
+code: T621
 section: volcanology
 title: "Eruption column"
 summary: "Turn a volcanic column height into a mass eruption rate, or the other way round, with an editable power law (Mastin et al. 2009 by default) and with Morton-Taylor-Turner buoyant plume theory. Get the erupted mass over a duration and its dense-rock-equivalent volume."

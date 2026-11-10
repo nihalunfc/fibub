@@ -2,6 +2,7 @@
 name: Seeding rate calculator
 num: 384
 shelf: science
+code: T272
 section: agronomy-and-soil-science
 title: "Seeding rate calculator: kg/ha or lb/acre and seeds per metre of row for a target plant population, and plants from stand counts"
 summary: "Turn a target plant population into seeds and kg (or lb) to sow from germination, purity, field emergence and seed weight, with seeds per metre or foot of row and the gap between seeds. Then count plants in a length of row or a frame to see the stand you got and your real establishment."

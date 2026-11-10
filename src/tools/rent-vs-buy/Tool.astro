@@ -1,0 +1,93 @@
+---
+// #1721 Rent or buy
+---
+<div class="tool-ui rb">
+  <section class="panel">
+    <h2 class="rb-h">Renting</h2>
+    <div class="rb-grid">
+      <label>Rent a month today <input data-k="rent" inputmode="decimal" value="2000" /></label>
+      <label>Rent goes up each year <span class="rb-suf"><input data-k="rg" inputmode="decimal" value="3" /><i>%</i></span></label>
+      <label>Investment return a year <span class="rb-suf"><input data-k="inv" inputmode="decimal" value="5" /><i>%</i></span></label>
+    </div>
+    <h2 class="rb-h">Buying</h2>
+    <div class="rb-grid">
+      <label>Home price <input data-k="price" inputmode="decimal" value="500000" /></label>
+      <label>Down payment <span class="rb-suf"><input data-k="down" inputmode="decimal" value="20" /><i>%</i></span></label>
+      <label>Mortgage rate <span class="rb-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Mortgage length (years) <input data-k="my" inputmode="decimal" value="25" /></label>
+      <label>Property tax a year <span class="rb-suf"><input data-k="tax" inputmode="decimal" value="1" /><i>%</i></span></label>
+      <label>Maintenance a year <span class="rb-suf"><input data-k="maint" inputmode="decimal" value="1" /><i>%</i></span></label>
+      <label>Home insurance a year <input data-k="ins" inputmode="decimal" value="1200" /></label>
+      <label>Home price grows each year <span class="rb-suf"><input data-k="hg" inputmode="decimal" value="3" /><i>%</i></span></label>
+      <label>Cost of buying <span class="rb-suf"><input data-k="bc" inputmode="decimal" value="3" /><i>%</i></span></label>
+      <label>Cost of selling <span class="rb-suf"><input data-k="sc" inputmode="decimal" value="5" /><i>%</i></span></label>
+    </div>
+    <label class="rb-check"><input type="checkbox" data-k="canada" /> Canadian mortgage (rate compounds twice a year)</label>
+    <label class="rb-years">Look this many years ahead <input data-k="yrs" inputmode="numeric" value="30" /></label>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="rb-big"></p>
+    <p class="rb-sub"></p>
+    <div class="rb-chart"></div>
+    <p class="rb-leg"></p>
+    <details><summary>Year by year</summary>
+      <div class="rb-scroll"><table class="rb-tab"><thead><tr><th>Year</th><th>Buying: net worth</th><th>Renting: net worth</th><th>Home value</th><th>Mortgage left</th></tr></thead><tbody></tbody></table></div>
+    </details>
+    <button type="button" class="btn secondary rb-csv">Download the table (CSV)</button>
+  </section>
+  <p class="rb-fine">Not financial or tax advice. Net worth means what you would have after selling the home (minus selling costs) and paying off the mortgage, or the investments you built by renting. Whoever pays less each month invests the difference at the return you set, and the renter also invests the down payment and buying costs. Returns, prices and rents are guesses, so try a few. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rb { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rb .panel { padding: 16px; }
+  .rb-h { font-size: 16px; margin: 0 0 8px; } .rb-h:not(:first-child) { margin-top: 16px; }
+  .rb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .rb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rb input:not([type=checkbox]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rb input:focus { border-color: var(--accent); outline: none; }
+  .rb-suf { position: relative; display: block; }
+  .rb-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
+  .rb label.rb-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 14px; }
+  .rb input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .rb-years { max-width: 220px; margin-top: 12px; }
+  .rb-big { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
+  .rb-sub { color: var(--muted); margin: 0 0 12px; }
+  .rb-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .rb-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .rb-scroll { overflow-x: auto; }
+  .rb-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rb-tab th, .rb-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rb-tab th:first-child, .rb-tab td:first-child { text-align: left; }
+  .rb details { margin: 10px 0; } .rb summary { cursor: pointer; }
+</style>
+
+<script>
+  import { rentVsBuy } from '../../lib/money/homes';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.rb') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const n = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const m0 = (v: number) => Math.round(v).toLocaleString('en-US');
+  let last: ReturnType<typeof rentVsBuy> | null = null;
+  const calc = () => {
+    const v = { rent: n('rent'), rentGrowth: n('rg'), price: n('price'), downPct: n('down'), ratePct: n('rate'), mortYears: n('my'), years: Math.round(n('yrs')), taxPct: n('tax'), maintPct: n('maint'), insurance: n('ins'), homeGrowth: n('hg'), investReturn: n('inv'), buyCostPct: n('bc'), sellCostPct: n('sc'), canada: q('canada').checked };
+    const bad = Object.entries(v).some(([k, x]) => k !== 'canada' && !(Number.isFinite(x as number) && (x as number) >= 0)) || !(v.price > 0) || !(v.mortYears >= 1 && v.mortYears <= 40) || !(v.years >= 1 && v.years <= 60) || v.downPct >= 100 || !(v.rent > 0);
+    if (bad) { $('.rb-big').textContent = 'Fill in every box with a number (price and rent above zero, down payment under 100%, 1 to 60 years).'; $('.rb-sub').textContent = ''; $('.rb-chart').innerHTML = ''; $('.rb-leg').innerHTML = ''; $('.rb-tab tbody').innerHTML = ''; last = null; return; }
+    const r = rentVsBuy(v); last = r;
+    const be = r.breakEven, end = r.rows[r.rows.length - 1];
+    $('.rb-big').textContent = be === null ? `Renting stays ahead for all ${v.years} years` : be === 1 ? 'Buying is ahead from year 1' : `Buying pulls ahead in year ${be}`;
+    $('.rb-sub').textContent = `After ${v.years} years: buying ${m0(end.buy)}, renting ${m0(end.rent)}. Monthly mortgage payment ${m0(r.payment)}; down payment and buying costs ${m0(r.down + (v.price * v.buyCostPct) / 100)}.`;
+    const s = [{ label: 'Buying', ys: r.rows.map((x) => x.buy), color: 'var(--accent)' }, { label: 'Renting', ys: r.rows.map((x) => x.rent), color: 'var(--warn)', dash: true }];
+    $('.rb-chart').innerHTML = lineSvg(s, r.rows.map((x) => x.year), 'Net worth buying and renting by year');
+    $('.rb-leg').innerHTML = legend(s) + '<span class="lg">Horizontal axis: years</span>';
+    $('.rb-tab tbody').innerHTML = r.rows.map((x) => `<tr><td>${x.year}</td><td>${m0(x.buy)}</td><td>${m0(x.rent)}</td><td>${m0(x.homeValue)}</td><td>${m0(x.owed)}</td></tr>`).join('');
+  };
+  $('.rb-csv').addEventListener('click', () => {
+    if (!last) return;
+    downloadCsv('rent-or-buy.csv', [['Year', 'Net worth buying', 'Net worth renting', 'Home value', 'Mortgage left'], ...last.rows.map((x) => [x.year, x.buy.toFixed(0), x.rent.toFixed(0), x.homeValue.toFixed(0), x.owed.toFixed(0)])]);
+  });
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

@@ -2,6 +2,7 @@
 name: VES inversion
 num: 883
 shelf: science
+code: T618
 section: geophysics-and-seismology
 title: "VES inversion"
 summary: "Paste Schlumberger or Wenner sounding readings (AB/2, MN/2, ΔV and I, or apparent resistivity). Get apparent resistivities, a layered-earth model of 2 to 6 layers by damped least-squares inversion, the log-log sounding curve, a resistivity-depth plot, error factors and a CSV."

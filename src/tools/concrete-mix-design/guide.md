@@ -2,6 +2,7 @@
 name: Concrete mix calculator
 num: 649
 shelf: science
+code: T446
 section: civil-and-structural-engineering
 title: "Concrete mix design calculator: absolute volume method, batch weights, moisture correction and target strength"
 summary: "Work out cement, water, sand and stone per cubic metre and per batch by the absolute volume method, from your own w/c ratio, water, air, coarse aggregate fraction, specific gravities and stockpile moisture. Corrects the batch for wet or dry aggregate and gives the target mean strength f'c + k·s."

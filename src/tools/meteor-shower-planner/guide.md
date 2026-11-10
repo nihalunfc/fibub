@@ -2,6 +2,7 @@
 name: Meteor shower planner
 num: 50
 shelf: science
+code: T50
 section: observing
 title: "Meteor shower planner: how many meteors an hour you'll see, and when"
 summary: "Pick a shower such as the Perseids or Geminids and see how many meteors an hour to expect from your place and sky, hour by hour, where the Moon will be, and how much moonless dark time each night around the peak has."

@@ -2,6 +2,7 @@
 name: Langmuir probe analyser
 num: 954
 shelf: science
+code: T689
 section: plasma-physics
 title: "Langmuir probe I-V analyser: electron temperature, plasma potential and density from a probe trace"
 summary: "Paste or open a Langmuir probe current-voltage trace and get the electron temperature from the exponential region, the floating and plasma potentials, the ion and electron saturation currents and the plasma density worked out two ways, with the fits drawn on the curve."

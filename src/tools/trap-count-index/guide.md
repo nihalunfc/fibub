@@ -2,6 +2,7 @@
 name: Trap count index
 num: 320
 shelf: science
+code: T235
 section: entomology
 title: "Insect trap count calculator: catch per trap per day, flight peaks and thresholds (free)"
 summary: "Paste insect trap checks (date, site, traps, count) and get catch per trap per day, a moving average, flight peaks, site and week comparisons and flags at a threshold you set. Runs in your browser."

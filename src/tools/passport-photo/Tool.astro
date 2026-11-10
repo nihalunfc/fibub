@@ -1,0 +1,99 @@
+---
+// #1709 Passport photo
+---
+<div class="tool-ui pp">
+  <label class="pp-drop">Choose a photo of your face <input class="pp-file" type="file" accept="image/*" /></label>
+  <p class="pp-msg" role="status" aria-live="polite">Use a plain, light wall and an even light. Nothing is uploaded.</p>
+  <div class="pp-work" hidden>
+    <div class="pp-row">
+      <label>Photo size <select class="pp-country"></select></label>
+      <label>Print sheet <select class="pp-sheet"><option value="4x6">4 x 6 in</option><option value="10x15">10 x 15 cm</option></select></label>
+    </div>
+    <p class="pp-rule"></p>
+    <div class="pp-frame"><canvas class="pp-cv" aria-label="Crop preview with head guide lines"></canvas></div>
+    <p class="pp-hint">Drag the photo to move it. Put the top of your head on the top line and your chin between the two lower lines.</p>
+    <label>Zoom <input class="pp-zoom" type="range" min="1" max="4" step="0.01" value="1" /></label>
+    <label class="pp-check"><input class="pp-white" type="checkbox" /> Make the background white (works best on a plain light wall)</label>
+    <div class="pp-row">
+      <button class="btn pp-one" type="button">Download photo (JPG)</button>
+      <button class="btn secondary pp-print" type="button">Download print sheet (JPG)</button>
+    </div>
+    <p class="pp-count"></p>
+  </div>
+</div>
+
+<style is:inline>
+  .pp { display: grid; gap: .75rem; }
+  .pp-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .pp-work { display: grid; gap: .75rem; } .pp-work[hidden] { display: none; }
+  .pp-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+  .pp-msg, .pp-rule, .pp-hint, .pp-count { margin: 0; } .pp-msg.err { color: var(--warn); } .pp-hint, .pp-count { font-size: 14px; }
+  .pp-frame { display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
+  .pp-cv { max-width: 100%; touch-action: none; cursor: grab; background: #fff; }
+  .pp-check { display: flex; gap: .5rem; align-items: center; }
+</style>
+
+<script>
+  import { SPECS, SHEETS, mmToPx, layout, whitenBackground } from '../../lib/docs/passport';
+  import { download } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.pp') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.pp-cv'), msg = $<HTMLElement>('.pp-msg'), sel = $<HTMLSelectElement>('.pp-country'), sheetSel = $<HTMLSelectElement>('.pp-sheet');
+  const zoom = $<HTMLInputElement>('.pp-zoom'), white = $<HTMLInputElement>('.pp-white');
+  SPECS.forEach((s) => sel.add(new Option(s.name, s.id)));
+  let bmp: ImageBitmap | null = null, ox = 0, oy = 0, cover = 1;
+  const spec = () => SPECS.find((s) => s.id === sel.value)!;
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+
+  /** Draw the photo into W x H pixels. Image offset ox,oy and size are in units of the frame width. */
+  function paint(c: HTMLCanvasElement, W: number, H: number, guides: boolean) {
+    c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true })!; x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    if (!bmp) return;
+    const iw = Number(zoom.value) * cover * W, ih = iw * bmp.height / bmp.width;
+    x.drawImage(bmp, W / 2 + ox * W - iw / 2, H / 2 + oy * W - ih / 2, iw, ih);
+    if (white.checked) { const d = x.getImageData(0, 0, W, H); whitenBackground(d); x.putImageData(d, 0, 0); }
+    if (!guides) return;
+    const s = spec(), pm = H / s.hmm, top = H * 0.08, lw = Math.max(1, W / 200);
+    x.lineWidth = lw; x.font = `${Math.max(10, W / 28)}px sans-serif`;
+    const line = (y: number, col: string, t: string) => { x.strokeStyle = col; x.fillStyle = col; x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); x.fillText(t, 4, y - 3); };
+    line(top, '#0a7cff', 'Top of head');
+    line(top + s.headMin * pm, '#d11', 'Chin: not above');
+    line(top + s.headMax * pm, '#d11', 'Chin: not below');
+    x.strokeStyle = 'rgba(10,124,255,.5)'; x.beginPath(); x.moveTo(W / 2, 0); x.lineTo(W / 2, H); x.stroke();
+  }
+  function show() {
+    const s = spec(), W = Math.min(340, Math.round(340 * (s.wmm >= s.hmm ? 1 : s.wmm / s.hmm * 1.2))), H = Math.round(W * s.hmm / s.wmm);
+    paint(cv, W, H, true); cv.dataset.size = `${W}x${H}`;
+    $('.pp-rule').textContent = `${s.wmm} x ${s.hmm} mm. ${s.note} Check the official page before you print.`;
+    const [pw, ph] = [mmToPx(s.wmm), mmToPx(s.hmm)], sh = SHEETS[sheetSel.value], L = layout(sh.w, sh.h, pw, ph);
+    $('.pp-count').textContent = `${L.count} photo${L.count === 1 ? '' : 's'} fit on a ${sh.name} sheet (${pw} x ${ph} pixels each, 300 dpi).`;
+  }
+  function reset() {
+    if (!bmp) return; const s = spec(), a = s.wmm / s.hmm; cover = Math.max(1, (bmp.height / bmp.width) ? (1 / a) / (bmp.height / bmp.width) : 1); ox = oy = 0;
+    zoom.min = '1'; zoom.value = '1'; show();
+  }
+  $<HTMLInputElement>('.pp-file').addEventListener('change', async (e) => {
+    const i = e.target as HTMLInputElement, f = i.files?.[0]; i.value = ''; if (!f) return;
+    try { bmp = await createImageBitmap(f); } catch { say('That file could not be read as a picture.', true); return; }
+    ($('.pp-work') as HTMLElement).hidden = false; say('Line up your head with the guide lines.'); reset();
+  });
+  sel.addEventListener('change', reset); sheetSel.addEventListener('change', show); zoom.addEventListener('input', show); white.addEventListener('change', show);
+  let last: { x: number; y: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { last = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (!last) return; const r = cv.getBoundingClientRect(); ox += (e.clientX - last.x) / r.width; oy += (e.clientY - last.y) / r.width; last = { x: e.clientX, y: e.clientY }; show(); });
+  const up = () => { last = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  const photo = () => { const s = spec(), c = document.createElement('canvas'); paint(c, mmToPx(s.wmm), mmToPx(s.hmm), false); return c; };
+  const blob = (c: HTMLCanvasElement): Promise<Blob> => new Promise((r) => c.toBlob((b) => r(b!), 'image/jpeg', 0.92));
+  $('.pp-one').addEventListener('click', async () => { if (!bmp) return; download(await blob(photo()), `passport-photo-${spec().id}.jpg`, 'image/jpeg'); say('Saved your photo.'); });
+  $('.pp-print').addEventListener('click', async () => {
+    if (!bmp) return; const p = photo(), sh = SHEETS[sheetSel.value], L = layout(sh.w, sh.h, p.width, p.height);
+    const c = document.createElement('canvas'); c.width = L.W; c.height = L.H; const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, L.W, L.H);
+    const mx = Math.floor((L.W - L.cols * p.width) / 2), my = Math.floor((L.H - L.rows * p.height) / 2);
+    for (let r = 0; r < L.rows; r++) for (let q = 0; q < L.cols; q++) x.drawImage(p, mx + q * p.width, my + r * p.height);
+    x.strokeStyle = '#bbb'; x.lineWidth = 1;
+    if (my >= 12) for (let q = 0; q <= L.cols; q++) { x.beginPath(); x.moveTo(mx + q * p.width, 0); x.lineTo(mx + q * p.width, 12); x.moveTo(mx + q * p.width, L.H - 12); x.lineTo(mx + q * p.width, L.H); x.stroke(); }
+    if (mx >= 12) for (let r = 0; r <= L.rows; r++) { x.beginPath(); x.moveTo(0, my + r * p.height); x.lineTo(12, my + r * p.height); x.moveTo(L.W - 12, my + r * p.height); x.lineTo(L.W, my + r * p.height); x.stroke(); }
+    download(await blob(c), `passport-sheet-${spec().id}-${sheetSel.value}.jpg`, 'image/jpeg'); say(`Saved a sheet with ${L.count} photos. Print it at 100% size, no fit-to-page.`);
+  });
+</script>

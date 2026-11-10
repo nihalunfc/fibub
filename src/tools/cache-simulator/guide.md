@@ -2,6 +2,7 @@
 name: Cache simulator
 num: 576
 shelf: science
+code: T404
 section: computer-science
 title: "Cache simulator"
 summary: "Run an address trace (pasted, from a file, or generated: array walks, matrix multiply loop orders, random) through one or two cache levels. See every hit and miss with its tag, set and offset, compulsory, capacity and conflict misses, the cache contents at any step, and the average memory access time."

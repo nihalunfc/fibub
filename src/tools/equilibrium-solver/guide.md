@@ -2,6 +2,7 @@
 name: Equilibrium solver
 num: 89
 shelf: science
+code: T89
 section: physical-chemistry
 title: "Equilibrium solver: ICE table, Kc and Kp, reaction quotient Q and Le Chatelier's principle"
 summary: "Type any reaction and K: the exact ICE table, Q and which way it goes, conversion, Kp ↔ Kc and pH for acids and bases; then add or remove a species, squeeze the volume or change the temperature and watch the equilibrium shift."

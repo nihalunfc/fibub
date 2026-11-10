@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { SECTIONS, SUBJECTS, sectionLabel, LEARN_PAGES } from '../site';
+import { SECTIONS, SUBJECTS, sectionLabel, LEARN_PAGES, codePrefix } from '../site';
 
 export type Tool = CollectionEntry<'tools'>;
 
@@ -11,13 +11,18 @@ export async function allTools() {
   const tools = await getCollection('tools');
   const ids = new Set(tools.map((t) => t.id));
   const nums = new Map<number, string>();
+  const codes = new Map<string, string>();
   for (const t of tools) {
-    const n = t.data.num;
-    if (t.data.status === 'live' && !n) throw new Error(`Tool "${t.id}" is live but has no num (its #number). Give it the next free number: ${Math.max(0, ...tools.map((x) => x.data.num ?? 0)) + 1}`);
-    if (n && nums.has(n)) throw new Error(`Tools "${nums.get(n)}" and "${t.id}" both have num ${n}. Numbers are permanent: give the newer tool the next free one`);
+    const n = t.data.num, c = t.data.code;
+    if (t.data.status === 'live' && !c) throw new Error(`Tool "${t.id}" is live but has no code (its #ID, like T12 or L3). Run: node scripts/renumber.mjs`);
+    if (c && c.replace(/\d+$/, '') !== codePrefix(t.data.shelf)) throw new Error(`Tool "${t.id}" has code ${c} but tools on the ${t.data.shelf} shelf use ${codePrefix(t.data.shelf)} (CODES in src/site.ts)`);
+    if (c && codes.has(c)) throw new Error(`Tools "${codes.get(c)}" and "${t.id}" both have code ${c}. Codes are permanent: give the newer tool the next free one`);
+    if (c) codes.set(c, t.id);
+    if (n && nums.has(n)) throw new Error(`Tools "${nums.get(n)}" and "${t.id}" both have num ${n}. Old numbers are permanent: give the newer tool the next free one`);
     if (n) nums.set(n, t.id);
     if (t.data.status === 'live' && !toolComponent(t.id)) throw new Error(`Tool "${t.id}" is live but has no Tool.astro`);
     if (t.data.status === 'live' && !t.data.flow) throw new Error(`Tool "${t.id}" is live but has no flow (the picture of its steps) in guide.md`);
+    if (process.env.FIBUB_ONLY) t.data.related = t.data.related.filter((r) => ids.has(r));
     for (const r of t.data.related) if (!ids.has(r)) throw new Error(`Tool "${t.id}" lists unknown related tool "${r}"`);
     if (t.data.section && !SECTIONS[t.data.shelf]?.some((s) => s.id === t.data.section)) throw new Error(`Tool "${t.id}" has unknown section "${t.data.section}" for shelf "${t.data.shelf}"`);
     if (SUBJECTS[t.data.shelf]?.some((s) => s.id === t.id)) throw new Error(`Tool id "${t.id}" is also a subject id: both would live at /${t.data.shelf}/${t.id}/`);

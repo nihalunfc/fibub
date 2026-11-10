@@ -2,6 +2,7 @@
 name: Calvin and C4
 num: 1397
 shelf: learn
+code: L252
 section: school-biology
 title: "Calvin and C4"
 summary: "Count what the Calvin cycle uses and makes for any number of CO₂ fixed: 3-PGA, G3P, ATP, NADPH and glucose. Then compare C3 and C4 plants as the leaf warms or CO₂ changes, with photorespiration, and find where C4 becomes the cheaper way to fix carbon. Class 11, with quick questions."

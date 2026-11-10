@@ -1,0 +1,131 @@
+---
+// #1765 Excel viewer. Reading and exports in src/lib/docs/xlview.ts (the xlsx reader is the file converter's).
+---
+<div class="tool-ui xv" data-state="empty">
+  <label class="xv-drop">
+    <input class="xv-file visually-hidden" type="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt" />
+    <strong>Choose a spreadsheet</strong>
+    <span>Excel (.xlsx) or CSV. It opens on your device and is never uploaded.</span>
+  </label>
+  <p class="note bad xv-err" role="alert" hidden></p>
+  <div class="xv-main" hidden>
+    <p class="xv-name"></p>
+    <div class="xv-tabs" role="tablist" aria-label="Sheets"></div>
+    <div class="xv-bar">
+      <label class="xv-chk"><input type="checkbox" class="xv-hid" checked /> Show hidden rows and columns (marked in grey)</label>
+      <label class="xv-chk"><input type="checkbox" class="xv-head" checked /> First row is a header</label>
+    </div>
+    <p class="xv-info" aria-live="polite"></p>
+    <div class="xv-wrap" tabindex="0"><table class="xv-grid"></table></div>
+    <button type="button" class="btn secondary xv-more" hidden>Show 500 more rows</button>
+    <fieldset class="xv-out">
+      <legend>Save this sheet</legend>
+      <label class="xv-chk"><input type="checkbox" class="xv-skip" /> Leave out hidden rows and columns</label>
+      <div class="xv-row">
+        <label>Paper <select class="xv-paper"><option value="a4">A4</option><option value="letter">US Letter</option></select></label>
+        <button type="button" class="btn xv-csv">Save as CSV</button>
+        <button type="button" class="btn secondary xv-pdf">Save as PDF</button>
+        <button type="button" class="btn secondary xv-other">Open another file</button>
+      </div>
+      <p class="xv-note" aria-live="polite"></p>
+    </fieldset>
+  </div>
+</div>
+
+<style is:inline>
+  .xv { display: grid; gap: 14px; margin-bottom: 32px; }
+  .xv-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .xv-drop strong { font-size: 19px; color: var(--accent); }
+  .xv-drop span { color: var(--muted); font-size: 14px; }
+  .xv-drop.over, .xv-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .xv:not([data-state="empty"]) .xv-drop { display: none; }
+  .xv-main { display: grid; gap: 12px; min-width: 0; }
+  .xv-name { margin: 0; font-weight: 600; word-break: break-all; }
+  .xv-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .xv-tabs button { font: inherit; font-size: 14px; padding: 7px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; cursor: pointer; }
+  .xv-tabs button[aria-selected=true] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .xv-tabs button.is-hidden { font-style: italic; color: var(--muted); }
+  .xv-bar { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .xv-chk { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .xv-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .xv-info { margin: 0; font-size: 14px; color: var(--muted); }
+  .xv-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .xv-grid { border-collapse: collapse; font-size: 13px; }
+  .xv-grid th, .xv-grid td { border: 1px solid var(--line); padding: 4px 8px; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .xv-grid thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .xv-grid .rn { background: var(--surface); color: var(--muted); text-align: right; position: sticky; left: 0; }
+  .xv-grid .is-head td { font-weight: 700; background: var(--surface); }
+  .xv-grid .hid { color: var(--muted); background: var(--surface); font-style: italic; }
+  .xv-out { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: grid; gap: 10px; margin: 0; min-width: 0; }
+  .xv-out legend { font-weight: 700; padding: 0 6px; }
+  .xv-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .xv-row label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .xv-row select { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  .xv-note { margin: 0; font-size: 14px; color: var(--muted); }
+  .xv-note:empty { display: none; }
+  .xv [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { readFile, colLetters, sheetCsv, sheetPdf, type Sheet } from '../../lib/docs/xlview';
+  import { download, baseName } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.xv') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = q<HTMLInputElement>('.xv-file'), drop = q('.xv-drop'), err = q('.xv-err'), grid = q<HTMLTableElement>('.xv-grid');
+  let sheets: Sheet[] = [], cur = 0, shown = 500, fileName = '';
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  function render() {
+    const s = sheets[cur];
+    const showHid = q<HTMLInputElement>('.xv-hid').checked, head = q<HTMLInputElement>('.xv-head').checked;
+    const ncol = s.table[0]?.length ?? 0;
+    const cols = Array.from({ length: ncol }, (_, i) => i).filter((i) => showHid || !s.hiddenCols.has(i));
+    const rows = s.table.map((_, i) => i).filter((i) => showHid || !s.hiddenRows.has(i));
+    const part = rows.slice(0, shown);
+    let h = `<thead><tr><th class="rn"></th>${cols.map((c) => `<th${s.hiddenCols.has(c) ? ' class="hid" title="Hidden column"' : ''}>${colLetters(c)}${s.hiddenCols.has(c) ? ' (hidden)' : ''}</th>`).join('')}</tr></thead><tbody>`;
+    for (const r of part) {
+      const hr = s.hiddenRows.has(r);
+      h += `<tr${head && r === 0 ? ' class="is-head"' : ''}><th class="rn${hr ? ' hid' : ''}">${r + 1}${hr ? ' (hidden)' : ''}</th>${cols.map((c) => `<td${hr || s.hiddenCols.has(c) ? ' class="hid"' : ''}>${esc(s.table[r][c] ?? '')}</td>`).join('')}</tr>`;
+    }
+    grid.innerHTML = h + '</tbody>';
+    const hv = s.hiddenRows.size, hc = s.hiddenCols.size;
+    q('.xv-info').textContent = `${s.table.length.toLocaleString('en')} rows, ${ncol} columns.` + (hv || hc ? ` Hidden in the file: ${hv} row${hv === 1 ? '' : 's'}, ${hc} column${hc === 1 ? '' : 's'}.` : '') + (s.hidden ? ' This whole sheet is hidden in Excel.' : '');
+    q('.xv-more').hidden = rows.length <= shown;
+    q('.xv-more').textContent = `Show 500 more rows (${(rows.length - shown).toLocaleString('en')} not shown yet)`;
+  }
+  function tabs() {
+    const box = q('.xv-tabs'); box.replaceChildren();
+    sheets.forEach((s, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
+      b.textContent = s.name + (s.hidden ? ' (hidden)' : ''); b.className = s.hidden ? 'is-hidden' : '';
+      b.setAttribute('aria-selected', String(i === cur));
+      b.addEventListener('click', () => { cur = i; shown = 500; q('.xv-note').textContent = ''; tabs(); render(); });
+      box.append(b);
+    });
+  }
+  async function pick(f?: File) {
+    if (!f) return;
+    err.hidden = true;
+    try {
+      sheets = await readFile(f);
+      if (!sheets.length) throw new Error(`${f.name} has no sheets.`);
+    } catch (e: any) { err.textContent = e.message; err.hidden = false; return; }
+    fileName = f.name; cur = Math.max(0, sheets.findIndex((s) => !s.hidden)); shown = 500;
+    q('.xv-name').textContent = `${f.name} · ${sheets.length} sheet${sheets.length === 1 ? '' : 's'}`;
+    root.dataset.state = 'open'; q('.xv-main').hidden = false; tabs(); render();
+  }
+  input.addEventListener('change', () => pick(input.files?.[0]));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick((e as DragEvent).dataTransfer?.files?.[0]); });
+  q('.xv-hid').addEventListener('change', render); q('.xv-head').addEventListener('change', render);
+  q('.xv-more').addEventListener('click', () => { shown += 500; render(); });
+  q('.xv-other').addEventListener('click', () => { input.value = ''; sheets = []; root.dataset.state = 'empty'; q('.xv-main').hidden = true; });
+  const name = (ext: string) => `${baseName(fileName)}-${sheets[cur].name}`.replace(/[^\w.-]+/g, '-') + ext;
+  q('.xv-csv').addEventListener('click', () => download(new Blob(['﻿' + sheetCsv(sheets[cur], q<HTMLInputElement>('.xv-skip').checked)], { type: 'text/csv' }), name('.csv'), 'text/csv'));
+  q('.xv-pdf').addEventListener('click', async () => {
+    const r = await sheetPdf(sheets[cur], q<HTMLInputElement>('.xv-skip').checked, q<HTMLSelectElement>('.xv-paper').value as 'a4', q<HTMLInputElement>('.xv-head').checked);
+    q('.xv-note').textContent = `${r.pages} page${r.pages === 1 ? '' : 's'}, scaled to ${Math.round(r.scale * 100)}% to fit the width.` + (r.lost.length ? ` Characters the PDF font cannot draw were left out: ${r.lost.slice(0, 10).join(' ')}.` : '');
+    download(r.bytes, name('.pdf'));
+  });
+</script>

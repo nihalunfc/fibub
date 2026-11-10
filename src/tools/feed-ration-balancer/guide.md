@@ -2,6 +2,7 @@
 name: Feed ration balancer
 num: 397
 shelf: science
+code: T285
 section: animal-science
 title: "Feed ration balancer: least-cost ration and Pearson square from your own feed analyses"
 summary: "Enter your feeds (dry matter, protein, energy, calcium, phosphorus and price) and your animal's daily requirements, and get the cheapest mix of feeds that meets every limit, found by linear programming, plus a Pearson square for two feeds. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Coral cover
 num: 332
 shelf: science
+code: T247
 section: marine-and-freshwater-biology
 title: "Coral cover"
 summary: "Place random, stratified random or grid points on reef quadrat photos, label each point with a category from your own list, and get percent cover per category pooled over all photos, with binomial confidence intervals, a per-photo table and CSV. Photos stay in your browser."

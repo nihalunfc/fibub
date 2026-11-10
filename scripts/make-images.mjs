@@ -16,7 +16,7 @@ const tools = readdirSync('src/tools').map((id) => {
   return { id, name: get('name'), status: get('status'), icon: get('icon'), shelf: get('shelf'), works: get('works') };
 }).filter((t) => t.status === 'live');
 
-const SHELF = { money: ['#d97706', '#fff4e2'], documents: ['#4f5bd5', '#eceefe'], everyday: ['#e0457b', '#fdebf2'], science: ['#0b7fa6', '#e1f3fa'], learn: ['#0f766e', '#ddf3f0'] };
+const SHELF = { money: ['#d97706', '#fff4e2'], documents: ['#4f5bd5', '#eceefe'], everyday: ['#e0457b', '#fdebf2'], science: ['#0b7fa6', '#e1f3fa'], learn: ['#0f766e', '#ddf3f0'], collecting: ['#8a6d1d', '#f6efdc'] };
 const chip = (t) => `<span class="chip">${t}</span>`;
 const page = (body) => `<!doctype html><html><head><style>
   * { box-sizing: border-box; margin: 0; }
@@ -62,7 +62,10 @@ const shot = async (html, w, h, path, transparent = false) => {
   await p.close();
 };
 mkdirSync('public/og', { recursive: true });
-for (const t of tools) await shot(toolCard(t), 1200, 630, `public/og/${t.id}.png`);
+// `npm run images -- id1 id2` makes only those tools' share images (and nothing else); no ids makes everything.
+const only = process.argv.slice(2);
+for (const t of tools) if (!only.length || only.includes(t.id)) await shot(toolCard(t), 1200, 630, `public/og/${t.id}.png`);
+if (only.length) { await browser.close(); console.log(`Made ${only.length} share images.`); process.exit(0); }
 await shot(homeCard, 1200, 630, 'public/og/home.png');
 const icon = (size, radius = 0.22) => `<body style="margin:0;width:${size}px;height:${size}px;background:transparent"><div style="width:${size}px;height:${size}px;border-radius:${size * radius}px;background:#fff;display:grid;place-items:center">${mark().replace('<svg ', `<svg width="${Math.round(size * 0.78)}" height="${Math.round(size * 0.78)}" `)}</div></body>`;
 await shot(icon(32), 32, 32, 'public/favicon-32.png', true);

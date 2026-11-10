@@ -2,6 +2,7 @@
 name: Electron diffraction indexer
 num: 845
 shelf: science
+code: T581
 section: crystallography
 title: "Electron diffraction indexer: camera constant, ring ratios, d-spacings and zone axis for TEM patterns"
 summary: "Index TEM and SAED patterns in the browser: the relativistic electron wavelength and camera constant λL, calibration with rings of a known standard, d-spacings from ring radii or spot distances, ring-ratio indexing of cubic lattices with the lattice parameter, and the zone axis of a two-spot pattern."

@@ -2,6 +2,7 @@
 name: Effective population size
 num: 313
 shelf: science
+code: T228
 section: population-genetics
 title: "Effective population size"
 summary: "Estimate the effective population size Ne four ways: from the numbers of breeding males and females, from a population whose size changes over generations (harmonic mean), from the variance in family size, or from how much allele frequencies changed between two samples (Nei and Tajima's Fc with Waples's correction and confidence interval)."

@@ -2,6 +2,7 @@
 name: Readability
 num: 736
 shelf: science
+code: T504
 section: linguistics-and-phonetics
 title: "Readability"
 summary: "Paste a text to get type-token ratio, root TTR, MATTR, MTLD, HD-D and Yule's K, plus Flesch reading ease, Flesch-Kincaid grade, Gunning fog, SMOG, Coleman-Liau and ARI, with a moving-window chart. Free, in your browser."

@@ -2,6 +2,7 @@
 name: Spinning skater
 num: 1491
 shelf: learn
+code: L322
 section: school-physics
 title: "Spinning skater: angular momentum and pulling arms in"
 summary: "Pull a skater's arms in and watch the spin speed up while the angular momentum L = Iω stays the same and the kinetic energy rises."

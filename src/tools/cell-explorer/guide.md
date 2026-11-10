@@ -2,6 +2,7 @@
 name: Cell explorer
 num: 1123
 shelf: learn
+code: L57
 section: school-biology
 title: "Cell explorer: plant cell, animal cell and bacterium, tap each part to see its job"
 summary: "Tap the parts of a plant cell, an animal cell and a bacterium to see what each one does, zoom in, compare the three cells in a table and work out how much the drawing is magnified. Class 9 and Class 11 levels, with quick questions."

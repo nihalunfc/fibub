@@ -2,6 +2,7 @@
 name: Simple circuit lab
 num: 1215
 shelf: learn
+code: L101
 section: school-physics
 title: "Simple circuit lab: test materials as conductors or insulators with a bulb or an LED tester"
 summary: "Build a circuit of cells, a switch and a torch bulb or LED, then put copper, pencil lead, salt water, plastic and more in the gap. See which conduct and why an LED shows weak conductors a bulb misses; Class 10 adds R = ρL/A."

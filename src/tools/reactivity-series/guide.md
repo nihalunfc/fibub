@@ -2,6 +2,7 @@
 name: Reactivity series lab
 num: 1086
 shelf: learn
+code: L41
 section: school-chemistry
 title: "Reactivity series lab: displacement reactions, metals in acid and how metals are extracted"
 summary: "Drop a metal strip into a salt solution or dilute acid and see whether it displaces the other metal, with the balanced equation and what you would see. Your results fill a grid and build the series; tap any metal for its reactions with water and acid and how it is taken out of its ore. Ends with fresh practice questions."

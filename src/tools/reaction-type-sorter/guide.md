@@ -2,6 +2,7 @@
 name: Reaction type sorter
 num: 1291
 shelf: learn
+code: L172
 section: school-chemistry
 title: "Types of chemical reactions: sort combination, decomposition, displacement and double displacement, and spot redox"
 summary: "Watch 20 well-known reactions play out as particle pictures, with atoms changing partners but never appearing or vanishing. Sort each one into combination, decomposition, displacement or double displacement, then see what you would observe and, for redox reactions, what is oxidised and what is reduced (Class 10 oxygen and hydrogen view or Class 11 oxidation numbers)."

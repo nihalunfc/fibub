@@ -1,0 +1,73 @@
+---
+// #1717 Tip calculator
+---
+<div class="tool-ui tc">
+  <section class="panel">
+    <div class="tc-grid">
+      <label>Bill (before tax) <input data-k="bill" inputmode="decimal" value="100" /></label>
+      <label>Tax rate on the bill <span class="tc-suf"><input data-k="tax" inputmode="decimal" value="0" /><i>%</i></span></label>
+      <label>People splitting <input data-k="n" inputmode="numeric" value="4" /></label>
+    </div>
+    <div class="tc-tips" role="group" aria-label="Tip percent">
+      <button type="button" data-t="10">10%</button><button type="button" data-t="15" class="on">15%</button><button type="button" data-t="18">18%</button><button type="button" data-t="20">20%</button>
+      <label class="tc-custom">Custom <span class="tc-suf"><input data-k="tip" inputmode="decimal" value="15" /><i>%</i></span></label>
+    </div>
+    <fieldset class="tc-basis"><legend>Work the tip out on</legend>
+      <label><input type="radio" name="tc-basis" value="pre" checked /> The bill before tax</label>
+      <label><input type="radio" name="tc-basis" value="post" /> The bill with tax</label>
+    </fieldset>
+    <label class="tc-check"><input type="checkbox" data-k="inc" /> A service charge is already included in the bill (no tip is added)</label>
+    <label class="tc-check"><input type="checkbox" data-k="up" /> Round up what each person pays to a whole number</label>
+  </section>
+  <section class="panel tc-res" aria-live="polite">
+    <p class="tc-each"></p>
+    <dl class="tc-rows"></dl>
+    <p class="tc-note"></p>
+  </section>
+  <p class="tc-fine">Use any currency: the numbers are the same. Tipping customs differ by country, so check what is usual where you are. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .tc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tc .panel { padding: 16px; }
+  .tc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .tc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .tc input[type=text], .tc input:not([type]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .tc input:focus { border-color: var(--accent); outline: none; }
+  .tc-suf { position: relative; display: block; }
+  .tc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
+  .tc-tips { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 14px; }
+  .tc-tips button { font: inherit; padding: 9px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .tc-tips button.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .tc-custom { width: 130px; }
+  .tc-basis { border: 0; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; }
+  .tc-basis legend { font-size: 14px; color: var(--muted); padding-bottom: 4px; }
+  .tc label.tc-check, .tc-basis label { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 8px; }
+  .tc input[type=checkbox], .tc input[type=radio] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .tc-each { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .tc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .tc-rows dt { color: var(--muted); } .tc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .tc-note, .tc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { tip, type TipBasis } from '../../lib/money/shopping';
+  const root = document.querySelector('.tc') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const f = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const each = root.querySelector('.tc-each') as HTMLElement, rows = root.querySelector('.tc-rows') as HTMLElement, note = root.querySelector('.tc-note') as HTMLElement;
+  const calc = () => {
+    const bill = +q('bill').value, n = +q('n').value;
+    const tp = +q('tip').value;
+    root.querySelectorAll('.tc-tips button').forEach((b) => b.classList.toggle('on', +(b as HTMLElement).dataset.t! === tp));
+    if (!(bill >= 0) || q('bill').value.trim() === '' || !(tp >= 0) || !(n >= 1)) { each.textContent = ''; rows.innerHTML = ''; note.textContent = 'Type the bill, the tip and how many people.'; return; }
+    const r = tip({ bill, taxPct: +q('tax').value || 0, tipPct: tp, basis: (root.querySelector('input[name="tc-basis"]:checked') as HTMLInputElement).value as TipBasis, included: q('inc').checked, people: n, roundUp: q('up').checked });
+    each.textContent = r.n > 1 ? `${f(r.each)} each` : `${f(r.each)} to pay`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    rows.innerHTML = line('Bill', f(bill)) + line('Tax', f(r.tax)) + line('Tip', f(r.tipAmt)) + line('Total', f(r.total)) + (r.n > 1 ? line('People', String(r.n)) : '') + (r.extra > 0.005 ? line('Extra from rounding up (goes to the tip)', f(r.extra)) : '');
+    note.textContent = q('inc').checked ? 'A service charge is already in the bill, so no tip is added. Untick the box if you want to tip on top.' : '';
+  };
+  root.querySelectorAll('.tc-tips button').forEach((b) => b.addEventListener('click', () => { q('tip').value = (b as HTMLElement).dataset.t!; calc(); }));
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

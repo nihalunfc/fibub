@@ -751,9 +751,9 @@ try {
     check(await page.evaluate(() => document.documentElement.classList.contains('red-mode')), 'theme: red light switch beside it on astronomy pages');
     await page.click('.red-btn'); await page.click('.theme-btn');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
-    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
-    check(await page.isVisible('.dd-mega .dd-subj[aria-expanded=true]') && await page.isVisible('.dd-mega .dd-pane.on >> text=Sky tonight'), 'header: Science shows subjects, then the chosen subject\'s sections and tools');
-    const over = await page.$$eval('.dd-mega .dd-item', (els) => els.some((e) => { const r = e.getBoundingClientRect(), p = e.closest('.dd-group').getBoundingClientRect(); return r.right > p.right + 1; }));
+    await page.hover('.dd[data-shelf=science] .dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
+    check(await page.isVisible('.dd[data-shelf=science] .dd-mega .dd-subj[aria-expanded=true]') && await page.isVisible('.dd[data-shelf=science] .dd-mega .dd-pane.on >> text=Sky tonight'), 'header: Science shows subjects, then the chosen subject\'s sections and tools');
+    const over = await page.$$eval('.dd[data-shelf=science] .dd-mega .dd-item', (els) => els.some((e) => { const r = e.getBoundingClientRect(), p = e.closest('.dd-group').getBoundingClientRect(); return r.right > p.right + 1; }));
     check(!over, 'header: no tool name runs into the next column');
     await page.click('.bm-btn');
     check(await page.isVisible('.bm-dlg'), 'bookmark: button opens the bookmark dialog');
@@ -764,8 +764,8 @@ try {
     await page.goto(BASE + '/');
     check(!!(await page.waitForSelector('.mine:not([hidden])', { timeout: 5000 }).catch(() => null)), 'home: My tools shows the pinned tool');
     // Only my tools: star a second tool, hide the rest, then bring them back.
-    await page.fill('.find input', 'bill calendar');
-    await page.click('.hits-list .ti[data-id=bill-calendar] .pin');
+    await page.fill('.find input', 'weekly planner');
+    await page.click('.hits-list .ti[data-id=planner] .pin');
     await page.fill('.find input', '');
     await page.waitForFunction(() => document.querySelectorAll('.mine-list .ti').length === 2, null, { timeout: 5000 }).catch(() => {});
     check((await page.locator('.mine-list .ti').count()) === 2, 'home: the star adds a tool to My tools');
@@ -782,8 +782,16 @@ try {
     await page.waitForSelector('.hits:not([hidden]) .hits-list .ti');
     const byNum = await page.$$eval('.hits-list .ti .nm', (els) => els.map((e) => e.textContent));
     check(byNum.length === 1 && byNum[0] === 'ZIP checker', `tool numbers: home search "#3" -> ${byNum.join(', ')}`);
+    await page.fill('.find input', '#T3');
+    await page.waitForFunction(() => document.querySelectorAll('.hits-list .ti').length === 1);
+    check((await page.textContent('.hits-list .ti .nm')) === 'ZIP checker', 'tool IDs: home search "#T3" finds ZIP checker');
+    await page.fill('.find input', '#L1');
+    await page.waitForFunction(() => document.querySelectorAll('.hits-list .ti').length === 1);
+    check((await page.textContent('.hits-list .ti .num')) === '#L1', 'tool IDs: home search "#L1" finds Learn tool L1');
     await page.goto(`${BASE}/documents/zip-checker/`);
-    check((await page.textContent('.tool-num')) === 'Tool #3', 'tool numbers: the tool page shows Tool #3');
+    check((await page.textContent('.tool-num')) === 'Tool #T3', 'tool IDs: the tool page shows Tool #T3');
+    await page.goto(`${BASE}/tools/`);
+    check(await page.$$eval('#ids .tm-legend tbody tr', (r) => r.length) >= 2 && await page.$$eval('#ids .tm-chart li', (r) => r.length) > 10, 'tool IDs: /tools/ has the ID legend and the tools-per-subject chart');
   }
 
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
@@ -942,8 +950,8 @@ try {
   // Science is grouped by subject: the shelf page lists subjects, each subject has its own page.
   {
     const idx = JSON.parse(await (await fetch(BASE + '/tools.json')).text());
-    const nums = idx.map((e) => e.k);
-    check(idx.length >= 24 && new Set(nums).size === nums.length && nums.every((n) => n > 0), `search index: ${idx.length} live tools, each with its own #number`);
+    const codes = idx.map((e) => e.k);
+    check(idx.length >= 24 && new Set(codes).size === codes.length && codes.every((c) => /^[A-Z]+[1-9]\d*$/.test(c)), `search index: ${idx.length} live tools, each with its own ID code`);
     await page.goto(BASE + '/science/');
     check(await page.isVisible('.sj-grid a[href="/science/astronomy/"]'), 'science shelf: lists its subjects');
     await page.goto(BASE + '/science/astronomy/');
@@ -954,9 +962,9 @@ try {
     await page.goto(BASE + '/science/sky-tonight/');
     check((await page.getAttribute('.crumbs a[href="/science/astronomy/"]', 'href')) === '/science/astronomy/', 'tool page: breadcrumb links to its subject page');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
-    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
-    check(await page.isVisible('.dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd-pane.on .dd-all')), 'header: each subject links to all its tools');
-    const perSec = await page.$$eval('.dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
+    await page.hover('.dd[data-shelf=science] .dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
+    check(await page.isVisible('.dd[data-shelf=science] .dd-pane.on .dd-all') && /All \d+ astronomy/.test(await page.textContent('.dd[data-shelf=science] .dd-pane.on .dd-all')), 'header: each subject links to all its tools');
+    const perSec = await page.$$eval('.dd[data-shelf=science] .dd-pane.on .dd-group', (gs) => Math.max(...gs.map((g) => g.querySelectorAll('.dd-item').length)));
     check(perSec <= 3, `header: at most 3 tools per section in the menu (${perSec}), so it stays one screen tall`);
     // Change log: footer link, newest first, 50 to a page; each tool page shows its own changes.
     await page.goto(BASE + '/');
@@ -970,7 +978,7 @@ try {
     await page.goto(BASE + '/science/sky-tonight/');
     check((await page.locator('#changes .cl li').count()) === Math.min(10, log.filter((c) => c.tools.includes('sky-tonight')).length), 'change log: a tool page lists its own changes');
     await page.goto(BASE + '/');
-    check(Number((await page.textContent('.total b')).trim()) === JSON.parse(await (await fetch(BASE + '/tools.json')).text()).length, 'home: the number of tools is shown as a figure');
+    check(Number((await page.textContent('.total b')).replace(/[^0-9]/g, '')) === JSON.parse(await (await fetch(BASE + '/tools.json')).text()).length, 'home: the number of tools is shown as a figure');
     await page.goto(BASE + '/science/sky-tonight/');
     await page.click('.find-btn');
     await page.keyboard.type('#13');
@@ -3528,8 +3536,8 @@ try {
   check(box && box.width < vw.width * 0.75 && Math.abs(box.y + box.height - barTop) <= 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, down to the bottom bar (${box && Math.round(box.y + box.height)} vs ${Math.round(barTop)})`);
   check(await phone.isVisible('.tab-menu') && (await phone.getAttribute('.tab-menu', 'aria-expanded')) === 'true', 'phone menu: the Menu tab stays in view and shows it is open');
   check((await phone.locator('#all-tools .at-area').count()) === 4 && (await phone.locator('#all-tools .at-area[open]').count()) === 1 && await phone.isVisible('#all-tools .at-area[data-area=tools][open]'), 'phone menu: Learn, Tools, News and About sections, with the current one (Tools) open');
-  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && (await phone.locator('#all-tools .at-shelf[open], #all-tools .at-sj[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
-  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-sj > summary');
+  check((await phone.locator('#all-tools .at-shelf').count()) === 5 && (await phone.locator('#all-tools .at-shelf[open], #all-tools .at-sj[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
+  await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-shelf[data-shelf=science] .at-sj > summary');
   check(await phone.isVisible('#all-tools .at-sj[open] .at-item'), 'phone menu: opening a subject lists its tools with their numbers');
   await phone.fill('.at-search', 'loan');
   await phone.waitForSelector('.at-results .ti');
@@ -3548,7 +3556,7 @@ try {
     subOn: [...document.querySelectorAll('.tb-sub a.on')].map((e) => e.textContent.trim()),
     area: document.documentElement.dataset.area,
   }));
-  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 5], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 5], ['/science/', 'tools', 'Tools', 'Science', 5], ['/science/astronomy/', 'tools', 'Tools', 'Science', 5], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/news/', 'news', 'News', 'Latest', 3], ['/changes/', 'news', 'News', 'Change log', 3], ['/stats/', 'news', 'News', 'Usage stats', 3], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
+  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 6], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 6], ['/science/', 'tools', 'Tools', 'Science', 6], ['/science/astronomy/', 'tools', 'Tools', 'Science', 6], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/news/', 'news', 'News', 'Latest', 3], ['/changes/', 'news', 'News', 'Change log', 3], ['/stats/', 'news', 'News', 'Usage stats', 3], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
     await phone.goto(BASE + path);
     const t = await tabState();
     check(t.tabs.join() === 'Learn,Tools,Home,News,Menu' && t.on.join() === on && t.area === area && t.sub.length === n && t.subOn.join() === subOn, `bottom bar on ${path}: ${t.on} lit, ${t.sub.length} sections${subOn ? `, ${subOn} lit` : ''} (${JSON.stringify(t)})`);
@@ -3602,7 +3610,7 @@ try {
   await phone.goto(BASE + '/news/');
   check((await phone.locator('.tc').count()) === 12, 'News: the 12 newest tools');
   await phone.goto(BASE + '/tools/');
-  check((await phone.locator('.ar-card').count()) === 4, 'Tools: a card per shelf');
+  check((await phone.locator('.ar-card').count()) === 5, 'Tools: a card per shelf');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
   for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/restriction-digest/', '/science/gel-band-sizer/', '/science/plasmid-map/', '/science/fastq-inspector/', '/science/sequence-alignment/', '/science/vcf-viewer/', '/everyday/shift-scheduler/', '/science/interval-tools/', '/science/kmer-counter/', '/science/tree-viewer/', '/science/protein-calculator/', '/science/peptide-mass-calculator/']) {

@@ -2,6 +2,7 @@
 name: Embryo development timer
 num: 351
 shelf: science
+code: T266
 section: developmental-biology
 title: "Embryo development timer: zebrafish hpf at any temperature (Kimmel formula) and degree-hours for any species (free)"
 summary: "Convert embryo development time between incubation temperatures: zebrafish with the Kimmel et al. (1995) formula, or any species with a degree-hours model and your own base temperature. Plan when each stage in your own editable list should be reached, and add up a temperature history. Runs in your browser."

@@ -1,0 +1,31 @@
+// #1773 Citation generator
+export const path = '/documents/citation-generator/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/documents/citation-generator/`); await page.waitForTimeout(300);
+  await page.selectOption('.cg .cg-type', 'article');
+  await page.fill('.cg .cg-authors', 'Rao, Meera\nIvanov, Pavel');
+  await page.fill('.cg .cg-year', '2021');
+  await page.fill('.cg .cg-title', 'Soil moisture and crop yield in semi-arid farms');
+  await page.fill('.cg .cg-container', 'Journal of Dryland Studies');
+  await page.fill('.cg .cg-volume', '14'); await page.fill('.cg .cg-issue', '3'); await page.fill('.cg .cg-pages', '201-219');
+  await page.fill('.cg .cg-doi', 'https://doi.org/10.1234/jds.2021.014');
+  const out = () => page.textContent('.cg .cg-out');
+  const apa = 'Rao, M., & Ivanov, P. (2021). Soil moisture and crop yield in semi-arid farms. Journal of Dryland Studies, 14(3), 201–219. https://doi.org/10.1234/jds.2021.014';
+  check((await out()) === apa, `citation: APA article (${await out()})`);
+  check((await page.textContent('.cg .cg-out i')) === 'Journal of Dryland Studies', 'citation: journal is italic');
+  await page.selectOption('.cg .cg-style', 'ieee');
+  check((await out()).startsWith('M. Rao and P. Ivanov, “') || (await out()).startsWith('M. Rao and P. Ivanov, "'), 'citation: IEEE initials first');
+  check((await out()).includes('vol. 14, no. 3, pp. 201–219, 2021, doi: 10.1234/jds.2021.014'), 'citation: IEEE volume and pages');
+  await page.selectOption('.cg .cg-style', 'mla');
+  check((await out()).startsWith('Rao, Meera, and Pavel Ivanov. "Soil') && (await out()).includes('vol. 14, no. 3, 2021, pp. 201-219'), 'citation: MLA');
+  await page.selectOption('.cg .cg-style', 'chicago-note');
+  check((await page.locator('.cg .cg-out').count()) === 2 && (await page.locator('.cg .cg-out').first().textContent()).startsWith('Meera Rao and Pavel Ivanov, "'), 'citation: Chicago note and bibliography');
+  await page.selectOption('.cg .cg-style', 'apa');
+  await page.click('.cg .cg-add');
+  await page.selectOption('.cg .cg-type', 'book'); await page.fill('.cg .cg-authors', 'Abbas, Zara'); await page.fill('.cg .cg-title', 'Learning to cite'); await page.fill('.cg .cg-publisher', 'Orchid Press');
+  check((await out()).startsWith('Abbas, Z. (2021). Learning to cite. Orchid Press.'), 'citation: APA book');
+  await page.click('.cg .cg-add');
+  check((await page.textContent('.cg .cg-count')) === '2' && (await page.locator('.cg .cg-list li').first().textContent()).startsWith('Abbas'), 'citation: list sorted by author');
+  await page.click('.cg .cg-list li:first-child .cg-rm');
+  check((await page.textContent('.cg .cg-count')) === '1', 'citation: remove from list');
+};

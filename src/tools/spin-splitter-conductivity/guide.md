@@ -2,6 +2,7 @@
 name: Spin splitter conductivity
 num: 147
 shelf: science
+code: T147
 section: condensed-matter-physics
 title: "Spin splitter conductivity: transverse spin current and spin polarisation of an altermagnet (Boltzmann model)"
 summary: "Work out how much spin current an altermagnet sends sideways when you push a charge current through it, for any field direction. It uses the same toy tight-binding models as the band explorer and the Boltzmann equation with one scattering time. It shows the charge and spin conductivity tensors, the spin splitter ratio against field angle, and the Fermi lines with the current directions."

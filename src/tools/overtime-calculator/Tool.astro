@@ -1,0 +1,119 @@
+---
+// #1776 Overtime: regular, overtime and double-time pay under a chosen rule.
+---
+<div class="tool-ui oc">
+  <section class="panel">
+    <h2>Your pay and hours</h2>
+    <div class="oc-grid">
+      <label>Hourly pay <input data-k="rate" inputmode="decimal" /></label>
+      <label>Currency <select class="oc-cur" data-k="cur"></select></label>
+      <label>I know my hours <select data-k="how"><option value="week">for the whole week</option><option value="days">day by day</option></select></label>
+      <label class="oc-wk">Hours this week <span class="oc-suf"><input data-k="wk" inputmode="decimal" /><i>hours</i></span></label>
+    </div>
+    <div class="oc-days" hidden></div>
+  </section>
+  <section class="panel">
+    <h2>Overtime rule</h2>
+    <div class="oc-grid">
+      <label>Place <select class="oc-rule" data-k="rule"></select></label>
+      <label>Overtime after, per day <span class="oc-suf"><input data-k="daily" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Overtime after, per week <span class="oc-suf"><input data-k="weekly" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Overtime pays <span class="oc-suf"><input data-k="mult" inputmode="decimal" /><i>times</i></span></label>
+      <label>Double time after, per day <span class="oc-suf"><input data-k="dd" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Double time pays <span class="oc-suf"><input data-k="mult2" inputmode="decimal" /><i>times</i></span></label>
+    </div>
+    <p class="oc-help oc-note"></p>
+    <p class="oc-help oc-src"></p>
+  </section>
+  <section class="oc-res" aria-live="polite">
+    <p class="note oc-help oc-warn" hidden></p>
+    <div class="oc-stats">
+      <div><span>Regular hours</span><b class="oc-s-reg"></b></div>
+      <div><span>Overtime hours</span><b class="oc-s-ot"></b></div>
+      <div><span>Overtime pay</span><b class="oc-s-otpay"></b></div>
+      <div class="good"><span>Total pay</span><b class="oc-s-pay"></b></div>
+    </div>
+    <div class="panel oc-wrap"><table>
+      <thead><tr><th>Part</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead>
+      <tbody class="oc-body"></tbody>
+    </table></div>
+    <p class="oc-line"></p>
+  </section>
+  <p class="oc-fine">Pay is before tax. Rules change and many jobs are exempt (managers, some salaried staff, some industries); these are short summaries, so check the official source and your contract. Not legal, payroll or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .oc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .oc > *, .oc-res > * { min-width: 0; }
+  .oc h2 { margin: 0 0 12px; font-size: 18px; }
+  .oc .panel { padding: 16px; }
+  .oc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .oc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .oc input, .oc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .oc input:focus, .oc select:focus { border-color: var(--accent); outline: none; }
+  .oc-suf { position: relative; display: block; }
+  .oc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .oc-suf input { padding-right: 62px; }
+  .oc-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 110px), 1fr)); gap: 10px; margin-top: 12px; }
+  .oc-days[hidden], .oc-wk[hidden] { display: none; }
+  .oc-help { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .oc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .oc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .oc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .oc-stats span { font-size: 13px; color: var(--muted); }
+  .oc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .oc-stats .good b { color: var(--good); }
+  .oc-line { margin: 0; font-size: 15px; }
+  .oc-line:empty { display: none; }
+  .oc-wrap { overflow-x: auto; }
+  .oc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .oc th, .oc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .oc th:first-child, .oc td:first-child { text-align: left; }
+  .oc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .oc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) { .oc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { OT_RULES, ruleById, splitHours, payFor } from '../../lib/money/overtime';
+  const root = document.querySelector<HTMLElement>('.oc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  q('.oc-cur').innerHTML = currencyOptions(defaultCurrency());
+  q('.oc-rule').innerHTML = OT_RULES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
+  q('.oc-days').innerHTML = NAMES.map((n, i) => `<label>${n} <input data-day="${i}" inputmode="decimal" value="${i < 5 ? 8 : 0}" /></label>`).join('');
+  f('rate').value = '20'; f('wk').value = '48';
+  function fillRule() {
+    const r = ruleById(f('rule').value);
+    f('daily').value = String(r.daily); f('weekly').value = String(r.weekly); f('mult').value = String(r.mult); f('dd').value = String(r.dailyDouble); f('mult2').value = String(r.mult2);
+    q('.oc-note').textContent = r.note; q('.oc-src').textContent = 'Source: ' + r.src + (r.confirmed ? '' : '. Not confirmed on an official page: check the official source.');
+  }
+  fillRule();
+  function run() {
+    const rate = num(f('rate').value), cur = f('cur').value, byDay = f('how').value === 'days';
+    q('.oc-days').hidden = !byDay; q('.oc-wk').hidden = byDay;
+    const rule = ruleById(f('rule').value);
+    const daily = num(f('daily').value), weekly = num(f('weekly').value), dd = num(f('dd').value), m1 = Math.max(1, num(f('mult').value)), m2 = Math.max(1, num(f('mult2').value));
+    const hours = byDay ? Array.from(root.querySelectorAll<HTMLInputElement>('[data-day]')).map((i) => num(i.value)) : [num(f('wk').value)];
+    const warn = q('.oc-warn');
+    const useDaily = byDay ? daily : 0;
+    warn.hidden = !(!byDay && daily > 0);
+    warn.textContent = !byDay && daily > 0 ? 'This rule also has a daily limit. Switch to "day by day" to include it; for now only the weekly limit is used.' : '';
+    const sp = splitHours(hours, { daily: useDaily, weekly, dailyDouble: byDay ? dd : 0, mode: rule.mode });
+    const pay = payFor(sp, rate, m1, m2);
+    const $ = (n: number) => money(n, cur, 2);
+    q('.oc-s-reg').textContent = sp.regular.toFixed(2);
+    q('.oc-s-ot').textContent = (sp.ot1 + sp.ot2).toFixed(2);
+    q('.oc-s-otpay').textContent = $(sp.ot1 * rate * m1 + sp.ot2 * rate * m2);
+    q('.oc-s-pay').textContent = $(pay);
+    const row = (n: string, h: number, m: number) => h > 0 ? `<tr><td>${n}</td><td>${h.toFixed(2)}</td><td>${$(rate * m)}</td><td>${$(h * rate * m)}</td></tr>` : '';
+    q('.oc-body').innerHTML = row('Regular', sp.regular, 1) + row(`Overtime (${m1} times)`, sp.ot1, m1) + row(`Double time (${m2} times)`, sp.ot2, m2) + `<tr><td><b>Total</b></td><td><b>${sp.total.toFixed(2)}</b></td><td></td><td><b>${$(pay)}</b></td></tr>`;
+    q('.oc-line').textContent = sp.total > 0 && rate > 0 ? `Overtime adds ${$(pay - sp.total * rate)} compared with paying every hour at the normal rate. Average pay per hour: ${$(pay / sp.total)}.` : '';
+  }
+  f('rule').addEventListener('change', () => { fillRule(); run(); });
+  root.addEventListener('input', (e) => { if (e.target !== f('rule')) run(); });
+  root.addEventListener('change', run);
+  run();
+</script>

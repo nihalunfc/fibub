@@ -2,6 +2,7 @@
 name: Internal resistance
 num: 1411
 shelf: learn
+code: L265
 section: school-physics
 title: "Internal resistance"
 summary: "A virtual cell with an emf and an internal resistance drives a rheostat, with an ammeter and a voltmeter. See why the terminal voltage drops as the current grows, plot V against I, find the load that takes the most power, and record readings to work out E and r from a straight-line fit."

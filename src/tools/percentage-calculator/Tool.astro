@@ -1,0 +1,86 @@
+---
+// #1716 Percentage calculator
+---
+<div class="tool-ui pc">
+  <div class="pc-tabs" role="tablist" aria-label="What do you want to work out?">
+    <button type="button" role="tab" data-m="of" aria-selected="true">X% of Y</button>
+    <button type="button" role="tab" data-m="what" aria-selected="false">X is what % of Y</button>
+    <button type="button" role="tab" data-m="chg" aria-selected="false">% change</button>
+    <button type="button" role="tab" data-m="add" aria-selected="false">Add or remove %</button>
+    <button type="button" role="tab" data-m="stack" aria-selected="false">Stacked discounts</button>
+    <button type="button" role="tab" data-m="mm" aria-selected="false">Markup and margin</button>
+  </div>
+  <section class="panel">
+    <div class="pc-fields"></div>
+    <p class="pc-big" aria-live="polite"></p>
+    <p class="pc-say" aria-live="polite"></p>
+  </section>
+  <p class="pc-fine">Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pc-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pc-tabs button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .pc-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .pc .panel { padding: 16px; }
+  .pc-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .pc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pc input, .pc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pc input:focus, .pc select:focus { border-color: var(--accent); outline: none; }
+  .pc-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .pc-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .pc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { pct, whatPercent, pctChange, addPct, removeIncluded, stackedDiscount, markupMargin } from '../../lib/money/shopping';
+  const root = document.querySelector('.pc') as HTMLElement;
+  const fields = root.querySelector('.pc-fields') as HTMLElement;
+  const big = root.querySelector('.pc-big') as HTMLElement;
+  const say = root.querySelector('.pc-say') as HTMLElement;
+  const n = (v: number, d = 2) => (Number.isFinite(v) ? v.toLocaleString('en-US', { maximumFractionDigits: d }) : '');
+  type F = { k: string; l: string; v?: string; sel?: string[][] };
+  const M: Record<string, { f: F[]; go: (v: Record<string, string>) => [string, string] | null }> = {
+    of: { f: [{ k: 'x', l: 'Percent (X)', v: '15' }, { k: 'y', l: 'Of this amount (Y)', v: '80' }],
+      go: (v) => { const r = pct(+v.x, +v.y); return [n(r), `${n(+v.x)}% of ${n(+v.y)} is ${n(r)}.`]; } },
+    what: { f: [{ k: 'x', l: 'This amount (X)', v: '12' }, { k: 'y', l: 'Out of (Y)', v: '80' }],
+      go: (v) => { if (+v.y === 0) return null; const r = whatPercent(+v.x, +v.y); return [n(r) + '%', `${n(+v.x)} is ${n(r)}% of ${n(+v.y)}.`]; } },
+    chg: { f: [{ k: 'a', l: 'From (old value)', v: '50' }, { k: 'b', l: 'To (new value)', v: '65' }],
+      go: (v) => { if (+v.a === 0) return null; const r = pctChange(+v.a, +v.b); return [(r > 0 ? '+' : '') + n(r) + '%', `From ${n(+v.a)} to ${n(+v.b)} is ${r >= 0 ? 'an increase' : 'a decrease'} of ${n(Math.abs(r))}%.`]; } },
+    add: { f: [{ k: 'amt', l: 'Amount', v: '100' }, { k: 'p', l: 'Percent', v: '13' }, { k: 'how', l: 'What to do', sel: [['add', 'Add the percent'], ['sub', 'Take the percent off'], ['inc', 'Amount already includes it: find the original']] }],
+      go: (v) => { const a = +v.amt, p = +v.p; const r = v.how === 'add' ? addPct(a, p) : v.how === 'sub' ? addPct(a, -p) : removeIncluded(a, p); return [n(r), v.how === 'inc' ? `Before the ${n(p)}% was added it was ${n(r)} (the ${n(p)}% part is ${n(a - r)}).` : `${n(a)} ${v.how === 'add' ? 'plus' : 'minus'} ${n(p)}% is ${n(r)} (a change of ${n(Math.abs(r - a))}).`]; } },
+    stack: { f: [{ k: 'd1', l: 'First discount %', v: '30' }, { k: 'd2', l: 'Then %', v: '10' }, { k: 'd3', l: 'Then % (optional)', v: '' }, { k: 'price', l: 'Original price (optional)', v: '' }],
+      go: (v) => { const ds = [v.d1, v.d2, v.d3].filter((s) => s.trim() !== '').map(Number); const t = stackedDiscount(ds); let s = `Discounts ${ds.map((d) => n(d) + '%').join(' then ')} are not added up: each one applies to what is left.`; if (v.price.trim() !== '') { const p = +v.price; s += ` ${n(p)} becomes ${n(p * (1 - t / 100))}, you save ${n((p * t) / 100)}.`; } return [n(t) + ' % off in total', s]; } },
+    mm: { f: [{ k: 'c', l: 'Cost to you', v: '80' }, { k: 'p', l: 'Selling price', v: '100' }],
+      go: (v) => { if (+v.c === 0 || +v.p === 0) return null; const r = markupMargin(+v.c, +v.p); return [`Markup ${n(r.markup)}%  ·  Margin ${n(r.margin)}%`, `Markup is profit as a share of cost; margin is profit as a share of the selling price. Profit here is ${n(+v.p - +v.c)}.`]; } },
+  };
+  let mode = 'of';
+  const vals: Record<string, Record<string, string>> = {};
+  const input = (k: string) => fields.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const calc = () => {
+    const v: Record<string, string> = {};
+    for (const f of M[mode].f) v[f.k] = input(f.k).value; vals[mode] = v;
+    const need = M[mode].f.filter((f) => !f.sel && !/optional/.test(f.l));
+    if (need.some((f) => v[f.k].trim() === '' || !Number.isFinite(+v[f.k]))) { big.textContent = ''; say.textContent = 'Type the numbers above.'; return; }
+    const r = M[mode].go(v);
+    if (!r) { big.textContent = ''; say.textContent = 'That one cannot be divided by zero.'; return; }
+    big.textContent = r[0]; say.textContent = r[1];
+  };
+  const show = (m: string) => {
+    mode = m;
+    root.querySelectorAll('.pc-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
+    fields.innerHTML = '';
+    for (const f of M[m].f) {
+      const lab = document.createElement('label'); lab.append(f.l);
+      let el: HTMLElement;
+      if (f.sel) { el = document.createElement('select'); for (const [v, t] of f.sel) { const o = document.createElement('option'); o.value = v; o.textContent = t; (el as HTMLSelectElement).append(o); } }
+      else { el = document.createElement('input'); (el as HTMLInputElement).inputMode = 'decimal'; }
+      el.dataset.k = f.k; const sv = vals[m]?.[f.k] ?? f.v; if (sv !== undefined) (el as HTMLInputElement).value = sv; el.addEventListener('input', calc);
+      lab.append(el); fields.append(lab);
+    }
+    calc();
+  };
+  root.querySelectorAll('.pc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
+  show('of');
+</script>

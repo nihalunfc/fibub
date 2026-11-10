@@ -2,6 +2,7 @@
 name: Data management plan
 num: 820
 shelf: science
+code: T556
 section: ethics-and-planning
 title: "Data management plan"
 summary: "Write a data management plan section by section, with plain questions to answer for data, documentation, storage, ethics, sharing, preservation, roles and costs. Word counts and optional word limits per section, and downloads as Markdown, Word, PDF or an image. Your draft stays in your browser."

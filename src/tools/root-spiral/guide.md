@@ -2,6 +2,7 @@
 name: Square root spiral
 num: 1276
 shelf: learn
+code: L157
 section: school-maths
 title: "Square root spiral (Theodorus) and √x on the number line, built step by step"
 summary: "Build the square root spiral one right triangle at a time and watch √2, √3, √4 … appear as its spokes, with Pythagoras showing why each is √(n + 1). Then mark √x on the number line for any x with the semicircle construction, worked with your numbers."

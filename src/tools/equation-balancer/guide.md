@@ -2,6 +2,7 @@
 name: Equation balancer
 num: 79
 shelf: science
+code: T79
 section: general-and-lab-chemistry
 title: "Chemical equation balancer with stoichiometry, limiting reagent and percent yield"
 summary: "Balance any chemical equation, including ionic and redox ones, check the atoms on both sides, then find the limiting reagent, the theoretical yield, what is left over and your percent yield."

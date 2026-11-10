@@ -2,6 +2,7 @@
 name: Sprayer calibration calculator
 num: 387
 shelf: science
+code: T275
 section: agronomy-and-soil-science
 title: "Sprayer calibration calculator: boom spray volume (L/ha or gal/acre) from nozzle flow, speed and spacing, catch test and product per tank"
 summary: "Work out a boom sprayer's spray volume from nozzle flow, travel speed and nozzle spacing, or the nozzle flow and pressure a volume needs. Check every nozzle with a catch test, use the 1/128-acre method, and see how far a tank goes and how much product goes in each tank for the label rate you type."

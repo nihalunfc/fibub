@@ -2,6 +2,7 @@
 name: Polygenic traits
 num: 1445
 shelf: learn
+code: L289
 section: school-biology
 title: "Polygenic inheritance: how more genes turn a few classes into a bell curve"
 summary: "Choose 1 to 6 genes with additive alleles and cross two all-heterozygous parents. See the 2n + 1 height classes and their ratio (1 : 2 : 1, 1 : 4 : 6 : 4 : 1 …) grow into a bell curve, add environmental spread to smooth it, and grow 1000 random children to compare."

@@ -2,6 +2,7 @@
 name: Thin-film coating simulator
 num: 931
 shelf: science
+code: T666
 section: optics-and-photonics
 title: "Thin-film interference and anti-reflection coating calculator: reflectance against wavelength and angle"
 summary: "Stack thin layers on glass and see how much light they reflect and transmit at every wavelength and angle, for s, p or unpolarised light, by the transfer-matrix method: anti-reflection coatings, Bragg mirrors, soap films and thin absorbing layers."

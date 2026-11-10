@@ -2,6 +2,7 @@
 name: Spore size measurer
 num: 329
 shelf: science
+code: T244
 section: mycology-and-plant-pathology
 title: "Spore size measurer: length, width and Q from a microscope photo"
 summary: "Calibrate with a scale bar, measure fungal spores by tapping the ends of their length and width (or fit ellipses automatically), and get mean, SD, range and Q = L/W in the usual mycological form, with a CSV of every spore. The photo stays in your browser."

@@ -2,6 +2,7 @@
 name: Fertility rates
 num: 757
 shelf: science
+code: T525
 section: demography
 title: "Fertility rate calculator: ASFR, TFR, GRR, NRR, mean age at childbearing, CBR and GFR (free)"
 summary: "From births by mother's age and the number of women in each age group, work out age-specific fertility rates, the total fertility rate, gross and net reproduction rates, mean age at childbearing, the general fertility rate and the crude birth rate."

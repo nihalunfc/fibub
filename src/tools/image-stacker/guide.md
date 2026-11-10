@@ -2,6 +2,7 @@
 name: Image stacker
 num: 76
 shelf: science
+code: T76
 section: astrophotography
 title: "Astrophoto calibration and stacking: darks, flats, bias, star alignment and sigma clipping in your browser"
 summary: "Calibrate your light frames with darks, flats and bias, align them on their stars and stack them with a kappa-sigma clipped average that removes satellite trails. Download the result as 32-bit FITS."

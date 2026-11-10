@@ -2,6 +2,7 @@
 name: TLC Rf calculator
 num: 91
 shelf: science
+code: T91
 section: organic-chemistry
 title: "TLC Rf calculator: tap spots on a plate photo for Rf values and flash column volumes"
 summary: "Open a photo of a TLC plate, tap the baseline, solvent front and spots, and get each spot's Rf, its lane, the column volumes it needs on a flash column and how well neighbouring spots separate. Or type measured distances."

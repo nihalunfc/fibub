@@ -2,6 +2,7 @@
 name: Corpus concordancer
 num: 733
 shelf: science
+code: T501
 section: linguistics-and-phonetics
 title: "Corpus concordancer: KWIC lines, word frequency list, n-grams and collocations (MI, t-score, log-likelihood)"
 summary: "Paste text or open your own .txt files to see every use of a word in context (KWIC), sorted by the words around it, plus a word frequency list, repeated n-grams and collocates ranked by MI, t-score or log-likelihood G². Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Crystallisation screen designer
 num: 187
 shelf: science
+code: T187
 section: structural-biology
 title: "Crystallisation screen designer: grid screens for 24- and 96-well plates with stock volumes per well"
 summary: "Design a protein crystallisation grid screen: run precipitant, pH or salt across the columns, down the rows or the same in every well, and get the microlitres of each stock and water for every well (C1V1, with buffer pH mixed from two stocks), the total of each stock to make with spare, a coloured plate map, a pipetting table, CSV and a printable report. Nothing is uploaded."

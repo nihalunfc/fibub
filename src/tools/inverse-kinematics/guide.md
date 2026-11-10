@@ -2,6 +2,7 @@
 name: Inverse kinematics
 num: 637
 shelf: science
+code: T434
 section: control-and-robotics
 title: "Inverse kinematics"
 summary: "Find the joint angles that put a planar 2-link arm's tip, or a 3-link arm's tool at a given angle, on a target point. Both elbow-up and elbow-down solutions, a reach check that says why a point is out of reach, optional joint limits, a drawing of the arm and its workspace, and a batch of targets to CSV."

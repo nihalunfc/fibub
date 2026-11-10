@@ -1,0 +1,105 @@
+---
+// #1762 Printable paper. Drawing and PDF in src/lib/docs/paper.ts.
+import { TYPES } from '../../lib/docs/paper';
+---
+<div class="tool-ui pp">
+  <div class="pp-cols">
+    <form class="pp-form" onsubmit="return false" autocomplete="off">
+      <fieldset class="pp-card">
+        <legend>1. Which paper? (one page for each ticked kind)</legend>
+        {TYPES.map((t, i) => (
+          <div class="pp-row" data-t={t.id}>
+            <label class="pp-chk"><input type="checkbox" class="pp-on" checked={i === 0} /> {t.name}</label>
+            <label class="pp-sp">Spacing <input type="number" class="pp-spacing" step="any" min="0.5" value={t.spacing} aria-label={t.name + ' spacing'} /></label>
+            <span class="pp-hint">{t.hint}</span>
+          </div>
+        ))}
+        <div class="pp-grid">
+          <label>Spacing is in <select class="pp-unit"><option value="mm">millimetres</option><option value="in">inches</option></select></label>
+          <label>Pages of each <input class="pp-pages" type="number" min="1" max="50" step="1" value="1" /></label>
+          <label>Graph: darker line every <input class="pp-major" type="number" min="1" max="20" step="1" value="5" /></label>
+        </div>
+      </fieldset>
+      <fieldset class="pp-card">
+        <legend>2. Page</legend>
+        <div class="pp-grid">
+          <label>Paper <select class="pp-size"><option value="a4">A4</option><option value="letter">Letter</option><option value="a5">A5</option></select></label>
+          <label>Direction <select class="pp-orient"><option value="p">Portrait</option><option value="l">Landscape</option></select></label>
+          <label>Colour <select class="pp-tone"><option value="grey">Light grey</option><option value="blue">Light blue</option><option value="black">Black</option></select></label>
+          <label>Margin (mm) <input class="pp-margin" type="number" min="0" max="50" step="1" value="10" /></label>
+        </div>
+        <p class="pp-hint">Spacing is the gap between lines. Print at 100% (actual size) so the grid measures what you set.</p>
+      </fieldset>
+    </form>
+    <aside class="pp-side">
+      <button type="button" class="btn pp-pdf">Download PDF</button>
+      <p class="pp-status" aria-live="polite"></p>
+      <div class="pp-prev"><canvas class="pp-canvas" aria-label="Preview of the first page"></canvas></div>
+    </aside>
+  </div>
+  <p class="pp-note">Made in your browser; nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .pp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pp-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .pp-form { display: grid; gap: 10px; min-width: 0; }
+  .pp-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .pp-card legend { font-weight: 700; padding: 0 6px; }
+  .pp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .pp input[type=number], .pp select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pp-row { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 4px 10px; align-items: end; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .pp-hint { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
+  .pp label.pp-chk { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 16px; font-weight: 600; }
+  .pp-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .pp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pp-note { margin: 0; font-size: 13px; color: var(--muted); }
+  .pp-status { margin: 0; font-size: 14px; color: var(--muted); }
+  .pp-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .pp-prev { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .pp-canvas { display: block; width: 100%; height: auto; background: #fff; }
+  @media (max-width: 760px) { .pp-cols { grid-template-columns: minmax(0, 1fr); } .pp-side { position: static; } }
+</style>
+
+<script>
+  import { TYPES, SIZES, drawPaper, toMm, toneCss, type PaperType, type PaperOpts, type Tone } from '../../lib/docs/paper';
+  const root = document.querySelector('.pp') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const val = (s: string, d: number) => { const n = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(n) ? n : d; };
+  const unit = () => q<HTMLSelectElement>('.pp-unit').value as 'mm' | 'in';
+  const chosen = () => TYPES.filter((t) => root.querySelector<HTMLInputElement>(`[data-t="${t.id}"] .pp-on`)!.checked).map((t) => t.id as PaperType);
+  const spacing = (t: PaperType) => toMm(parseFloat(root.querySelector<HTMLInputElement>(`[data-t="${t}"] .pp-spacing`)!.value) || 5, unit());
+  const base = (): PaperOpts => {
+    let [w, h] = SIZES[q<HTMLSelectElement>('.pp-size').value as keyof typeof SIZES];
+    if (q<HTMLSelectElement>('.pp-orient').value === 'l') [w, h] = [h, w];
+    return { w, h, margin: Math.max(0, val('.pp-margin', 10)), spacing: 5, major: val('.pp-major', 5), weight: 0.25 };
+  };
+  const tone = () => q<HTMLSelectElement>('.pp-tone').value as Tone;
+  let lastUnit: 'mm' | 'in' = 'mm';
+  q('.pp-unit').addEventListener('change', () => {
+    const f = unit() === 'in' ? 1 / 25.4 : 25.4;
+    root.querySelectorAll<HTMLInputElement>('.pp-spacing').forEach((i) => { i.value = String(Math.round(parseFloat(i.value) * f * 1000) / 1000); });
+    lastUnit = unit();
+  });
+  function preview() {
+    const c = q<HTMLCanvasElement>('.pp-canvas'), o = base(), list = chosen(), k = 3;
+    c.width = Math.round(o.w * k); c.height = Math.round(o.h * k);
+    const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    q('.pp-status').textContent = list.length ? `${list.length * Math.max(1, Math.floor(val('.pp-pages', 1)))} page${list.length * Math.max(1, Math.floor(val('.pp-pages', 1))) === 1 ? '' : 's'} in the PDF. Preview shows the first.` : 'Tick at least one kind of paper.';
+    if (!list.length) return;
+    drawPaper(list[0], { ...o, spacing: spacing(list[0]) }, {
+      line: (a, b, x, y, w, dark) => { g.strokeStyle = toneCss(tone(), !!dark); g.lineWidth = Math.max(0.6, w * k); g.beginPath(); g.moveTo(a * k, b * k); g.lineTo(x * k, y * k); g.stroke(); },
+      dot: (x, y, r) => { g.fillStyle = toneCss(tone(), true); g.beginPath(); g.arc(x * k, y * k, Math.max(0.8, r * k), 0, 7); g.fill(); },
+    });
+  }
+  root.addEventListener('input', preview); root.addEventListener('change', preview);
+  const download = (blob: Blob, name: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  q('.pp-pdf').addEventListener('click', async () => {
+    const list = chosen(); if (!list.length) { preview(); return; }
+    const { paperPdf } = await import('../../lib/docs/paper');
+    const sp: Partial<Record<PaperType, number>> = {}; for (const t of list) sp[t] = spacing(t);
+    const r = await paperPdf(list, Math.max(1, Math.floor(val('.pp-pages', 1))), base(), tone(), sp);
+    download(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), 'printable-paper.pdf');
+  });
+  void lastUnit; preview();
+</script>

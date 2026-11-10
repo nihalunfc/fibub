@@ -2,6 +2,7 @@
 name: Cardiac cycle
 num: 1127
 shelf: learn
+code: L61
 section: school-biology
 title: "Cardiac cycle"
 summary: "Watch a four-chamber heart beat in slow motion: atria and ventricles contract, valves open and shut, and an ECG-like trace and the ventricle volume move with them. Change the heart rate and the filling to see stroke volume and cardiac output. Teaching model, not medical."

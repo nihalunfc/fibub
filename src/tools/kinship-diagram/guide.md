@@ -2,6 +2,7 @@
 name: Kinship diagram
 num: 761
 shelf: science
+code: T529
 section: anthropology
 title: "Kinship diagram maker with kin type notation (FBD, MZS) — free"
 summary: "Draw a kinship chart with the standard anthropology symbols, choose Ego, and get every relative's kin type (FBD, MZS, WB…) worked out from the family links. Download SVG or PNG, save and reopen as a file. Nothing is stored."

@@ -2,6 +2,7 @@
 name: Reaction equivalents table
 num: 85
 shelf: science
+code: T85
 section: organic-chemistry
 title: "Reaction equivalents table: reagent amounts in mmol, mg and mL for a synthesis"
 summary: "The reagent table of a lab notebook: molar masses from formulas, equivalents, density, purity and solution molarity, giving the mass to weigh or volume to measure for every reagent, and the theoretical and percent yield."

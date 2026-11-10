@@ -2,6 +2,7 @@
 name: Ohm's law lab
 num: 1041
 shelf: learn
+code: L16
 section: school-physics
 title: "Ohm's law lab: slide the voltage, read the ammeter and voltmeter, plot the V-I graph"
 summary: "A virtual circuit for Ohm's law. Slide the battery voltage, read the ammeter and voltmeter, record readings and plot V against I. The slope is the resistance. Compare a resistor with a filament bulb, and work out a wire's resistance from its length, thickness and metal."

@@ -36,10 +36,37 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
     <p>Every page on fibub shows how many times it has been opened, just under its title, and the home page shows the total for the whole site. The full numbers, for every page and tool by day, week, month and year, are published openly every day in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">site's public code repository</a> as CSV files anyone can download. They hold counts only: no IP addresses, visitor IDs or times.</p>
   </section>
 
-  <h2>Files processed</h2>
-  {total === 0 ? (
-    <div class="panel"><p style="margin:0">No usage has been counted yet. Totals appear here the day after the first tools are used.</p></div>
-  ) : (
+  <section class="live" aria-live="polite">
+    <h2>Live counts</h2>
+    <p class="muted live-msg">Loading the counts...</p>
+    <div class="live-body" hidden>
+      <div class="grid kpis">
+        <div class="card"><span class="muted">Page views, whole site</span><b data-k="site"></b></div>
+        <div class="card"><span class="muted">Tool uses</span><b data-k="uses"></b></div>
+        <div class="card"><span class="muted">Tools used at least once</span><b data-k="used"></b></div>
+        <div class="card"><span class="muted">Uses per 100 tool views</span><b data-k="rate"></b></div>
+      </div>
+
+      <h3>Last 30 days</h3>
+      <figure class="fig"><div class="chart-days"></div><figcaption class="muted">Page views (line) and tool uses (dashed) per day, UTC. Days before counting began show as zero.</figcaption></figure>
+
+      <h3>Top 10 tools</h3>
+      <figure class="fig"><div class="chart-top"></div><figcaption class="muted">Ranked by uses, then page views. Dark bar: uses. Light bar: page views.</figcaption></figure>
+
+      <h3>Where the use goes</h3>
+      <figure class="fig"><div class="chart-cats"></div><figcaption class="muted">Share of all tool uses (dark) and tool page views (light) by area.</figcaption></figure>
+
+      <h3>Top tools in each area</h3>
+      <p class="muted">Five at a time. Press "Show 5 more" to go further down a list.</p>
+      <div class="cat-grid"></div>
+      <h3 class="sci-h" hidden>Top tools in each science subject</h3>
+      <div class="cat-grid sci-grid"></div>
+    </div>
+    <p class="muted">Running totals since counting began. A use is the first time someone works a tool after opening its page. Nothing about any visitor is kept; the daily files are in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">public repository</a>.</p>
+  </section>
+
+  {total > 0 && <h2>Files processed</h2>}
+  {total > 0 && (
     <>
       <div class="grid kpis">
         <div class="card"><span class="muted">Files processed</span><b>{total.toLocaleString('en')}</b></div>
@@ -71,6 +98,28 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 </Base>
 
 <style>
+  .live h3 { font-size: 17px; margin: 28px 0 8px; }
+  .fig { margin: 0; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .fig figcaption { margin-top: 8px; }
+  :global(.fig svg) { display: block; width: 100%; height: auto; overflow: visible; }
+  :global(.fig text) { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  :global(.fig .lab) { fill: var(--ink); }
+  :global(.fig .grid) { stroke: var(--line); stroke-width: 1; }
+  :global(.fig .b1) { fill: var(--accent); }
+  :global(.fig .b2) { fill: var(--accent); opacity: 0.28; }
+  :global(.fig .l1) { stroke: var(--accent); fill: none; stroke-width: 2; stroke-linejoin: round; }
+  :global(.fig .l2) { stroke: var(--ink); fill: none; stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+  .cat-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+  :global(.cat) { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  :global(.cat h4) { margin: 0 0 6px; font-size: 15px; }
+  :global(.cat ol) { margin: 0; padding: 0; list-style: none; counter-reset: c; }
+  :global(.cat li) { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); counter-increment: c; font-size: 14px; }
+  :global(.cat li)::before { content: counter(c); color: var(--muted); font-size: 12px; }
+  :global(.cat li a) { color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.cat li a:hover) { text-decoration: underline; }
+  :global(.cat .n) { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  :global(.cat button) { margin-top: 8px; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  :global(.cat .none) { color: var(--muted); font-size: 14px; margin: 0; }
   .muted { color: var(--muted); font-size: 14px; }
   .kpis .card { display: grid; gap: 4px; }
   .kpis b { font-size: 28px; }
@@ -85,3 +134,7 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   .row .num { text-align: right; color: var(--muted); }
   .views-note { margin-bottom: 32px; max-width: 720px; }
 </style>
+
+<script>
+  import '../scripts/stats-live';
+</script>

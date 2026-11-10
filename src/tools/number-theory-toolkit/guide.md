@@ -2,6 +2,7 @@
 name: Number theory toolkit
 num: 544
 shelf: science
+code: T372
 section: pure-mathematics
 title: "Number theory calculator: prime test, factorisation, gcd, modular inverse, Chinese remainder and continued fractions"
 summary: "Test whether a huge number is prime, factorise it, find gcd and lcm with the extended Euclid table, work out modular powers and inverses, solve Chinese remainder systems, and expand continued fractions with their convergents. Exact whole-number arithmetic, in your browser."

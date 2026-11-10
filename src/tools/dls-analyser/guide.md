@@ -2,6 +2,7 @@
 name: DLS analyser
 num: 859
 shelf: science
+code: T595
 section: nanoscience
 title: "DLS analyser: z-average, PDI and size distribution from a dynamic light scattering correlation function"
 summary: "Paste or open a DLS intensity autocorrelation g2(τ). Get the z-average diameter and polydispersity index by 2nd- or 3rd-order cumulants, and a regularised non-negative (CONTIN-like) size distribution by intensity, volume and number, from your wavelength, angle, refractive index, temperature and viscosity."

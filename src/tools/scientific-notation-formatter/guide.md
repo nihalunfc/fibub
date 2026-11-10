@@ -2,6 +2,7 @@
 name: Scientific notation formatter
 num: 810
 shelf: science
+code: T546
 section: figures-and-data-presentation
 title: "Scientific notation and value ± uncertainty formatter: significant figures, SI prefixes, LaTeX and siunitx"
 summary: "Turn numbers into scientific, engineering or SI-prefix notation with the significant figures you want, and round a value with its uncertainty the standard way (1 or 2 figures on the uncertainty). Copy as Unicode, plain text, LaTeX or siunitx, for one number or a whole column."

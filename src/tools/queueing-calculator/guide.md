@@ -2,6 +2,7 @@
 name: Queueing calculator
 num: 584
 shelf: science
+code: T412
 section: operations-research
 title: "Queueing calculator: M/M/1, M/M/c (Erlang C), Erlang B, M/M/c/K, M/G/1, staffing and simulation"
 summary: "Average waits, queue lengths, utilisation and the chance of waiting for the standard queue models, how many servers or agents you need for a target wait, and a discrete-event simulation that checks the formulas. Runs in your browser."

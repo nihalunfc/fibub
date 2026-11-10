@@ -2,6 +2,7 @@
 name: Poster layout
 num: 809
 shelf: science
+code: T545
 section: figures-and-data-presentation
 title: "Scientific poster layout: A0, A1 and 36 × 48 in templates with columns and text sizes"
 summary: "Pick a poster size and orientation, set the columns, margins, gutters and title band, and see the layout to scale next to an A4 sheet. Get the font sizes that stay readable from where people stand, and download a full-size SVG or PDF template with guides and dimensions."

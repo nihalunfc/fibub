@@ -2,6 +2,7 @@
 name: Lens ray diagram
 num: 1002
 shelf: learn
+code: L2
 section: school-physics
 title: "Lens ray diagram: convex and concave lenses, the lens formula and power in dioptres"
 summary: "Drag an object in front of a convex or concave lens and watch the principal rays find the image: where it forms, how big it is, real or virtual, with the lens formula, magnification and power worked out with signs."

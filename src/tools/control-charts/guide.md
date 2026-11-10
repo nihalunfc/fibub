@@ -2,6 +2,7 @@
 name: Control charts
 num: 690
 shelf: science
+code: T486
 section: metrology-and-quality
 title: "Control charts"
 summary: "Paste or open process data and draw X̄-R, X̄-S, I-MR, p, np, c or u control charts with limits from your data, Western Electric or Nelson rule flags, and process capability (Cp, Cpk, Pp, Ppk with confidence intervals, expected ppm) with a histogram and normal fit."

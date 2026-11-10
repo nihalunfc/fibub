@@ -2,6 +2,7 @@
 name: Balanced forces
 num: 1217
 shelf: learn
+code: L103
 section: school-physics
 title: "Balanced forces"
 summary: "Add children and adults to each side of a tug-of-war. Their pulls add as arrows, the net force is worked out, and the rope moves only when the forces do not balance. Class 9 adds a = F/m and the time to win."

@@ -2,6 +2,7 @@
 name: Double star calculator
 num: 68
 shelf: science
+code: T68
 section: stellar-astrophysics
 title: "Double star calculator: separation and position angle from an orbit or your own image"
 summary: "Predict where the companion of a binary star will be, with separation and position angle from its orbital elements, or measure a double star on your own image by tapping the two stars."

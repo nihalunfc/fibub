@@ -2,6 +2,7 @@
 name: Big-O plotter
 num: 574
 shelf: science
+code: T402
 section: computer-science
 title: "Big-O plotter"
 summary: "Draw how each complexity class grows, add your own formulas in n, and see how long each takes at any input size. Paste measured run times (or open a file, or time built-in algorithms in your browser) and a least-squares fit picks the best Big-O class."

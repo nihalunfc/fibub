@@ -1,0 +1,98 @@
+---
+// #1747 Debt-to-income
+---
+<div class="tool-ui di">
+  <section class="panel">
+    <div class="di-grid">
+      <label>Gross income each month (before tax) <input data-k="income" inputmode="decimal" value="6000" /></label>
+      <label>Debt payments each month <input data-k="debts" inputmode="decimal" value="1500" /></label>
+      <label>New or current housing payment (optional) <input data-k="housing" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="di-fine">Debts: loan, car and student payments, and the minimum on each credit card. Leave out rent you are about to replace, food, bills and insurance.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="di-big"></p>
+    <dl class="di-rows"></dl>
+    <p class="di-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h2 class="di-h">How much home payment could you get approved for?</h2>
+    <div class="di-grid">
+      <label>Where <select data-k="region"><option value="ca">Canada (GDS 39% / TDS 44%)</option><option value="us">United States (28% / 36%)</option><option value="uk">United Kingdom (4.5 times income)</option></select></label>
+      <label>Mortgage rate a year (%) <input data-k="rate" inputmode="decimal" value="5" /></label>
+      <label>Years to repay <input data-k="years" inputmode="decimal" value="25" /></label>
+      <label class="di-oh">Property tax, heating and insurance each month <input data-k="other" inputmode="decimal" value="400" /></label>
+    </div>
+    <p class="di-big di-max" aria-live="polite"></p>
+    <dl class="di-rows di-rows2"></dl>
+    <p class="di-fine di-note"></p>
+    <p class="di-fine"><strong>These are typical lender limits, not rules you must meet.</strong> Each lender sets its own, and many also test whether you could cope at a higher rate. Check with your lender.</p>
+  </section>
+  <p class="di-fine">Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .di { display: grid; gap: 14px; margin-bottom: 32px; }
+  .di .panel { padding: 16px; }
+  .di-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .di label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .di input:not([type=checkbox]), .di select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .di input:focus, .di select:focus { border-color: var(--accent); outline: none; }
+  .di label.di-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .di input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .di-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .di-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .di-rows dt { color: var(--muted); } .di-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .di-warn { color: var(--bad); margin: 10px 0 0; } .di-warn:empty { display: none; }
+  .di-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .di-h { font-size: 16px; margin: 0 0 8px; }
+  .di-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .di-scroll { overflow-x: auto; }
+  .di-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .di-tab th, .di-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .di-tab th:first-child, .di-tab td:first-child { text-align: left; }
+  .di-best { color: var(--good); }
+</style>
+
+<script>
+  import { dti, affordability, payment } from '../../lib/money/borrowing';
+  const root = document.querySelector('.di') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m0 = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+  const NOTES: Record<string, string> = {
+    ca: 'Canada: lenders look at the Gross Debt Service ratio (housing costs, at most about 39% of gross income) and the Total Debt Service ratio (housing plus all debts, at most about 44%). Source: Canada Mortgage and Housing Corporation (cmhc-schl.gc.ca) and the Financial Consumer Agency of Canada (canada.ca/en/financial-consumer-agency), reviewed 2026-11-10. Check the official source.',
+    us: 'United States: the 28/36 rule of thumb means housing at most 28% and all debts at most 36% of gross income. Many lenders approve more (often up to 43% or higher, depending on the loan). Source: Consumer Financial Protection Bureau (consumerfinance.gov, "What is a debt-to-income ratio?"), reviewed 2026-11-10. Check the official source.',
+    uk: 'United Kingdom: most lenders lend up to about 4.5 times your yearly income. The Bank of England (bankofengland.co.uk) limits how many loans a lender may make at 4.5 times income or more, and the FCA (fca.org.uk) requires affordability checks on your spending. Reviewed 2026-11-10. Check the official source.',
+  };
+  const calc = () => {
+    const income = num('income'), debts = num('debts'), housing = num('housing');
+    const big = $('.di-big'), rows = $('.di-rows'), warn = $('.di-warn');
+    if (!(income > 0) || debts < 0 || housing < 0) { big.textContent = ''; rows.innerHTML = ''; $('.di-max').textContent = ''; $('.di-rows2').innerHTML = ''; warn.textContent = 'Type your monthly income and debts.'; return; }
+    const d = dti({ income, debts, housing });
+    big.textContent = `Debt-to-income: ${d.debtPct.toFixed(1)}%`;
+    rows.innerHTML = line('Debts as a share of income', d.debtPct.toFixed(1) + '%') + (housing > 0 ? line('Debts plus housing payment', d.totalPct.toFixed(1) + '%') : '') + line('Left each month after debts and housing', m0(income - debts - housing));
+    const t = housing > 0 ? d.totalPct : d.debtPct;
+    warn.textContent = '';
+    const msg = t <= 36 ? 'Most lenders see 36% or less as comfortable.' : t <= 43 ? 'Between 36% and 43%: many lenders still lend, but with less room.' : 'Above 43%: harder to get approved. Paying down debt or raising income will help.';
+    warn.style.color = t <= 36 ? 'var(--ink)' : ''; warn.textContent = msg;
+    const region = (q('region') as unknown as HTMLSelectElement).value, rate = num('rate'), years = num('years'), other = num('other');
+    ($('.di-oh') as HTMLElement).hidden = region === 'uk';
+    $('.di-note').textContent = NOTES[region];
+    const mx = $('.di-max'), r2 = $('.di-rows2');
+    if (!(rate >= 0) || !(years > 0 && years <= 40)) { mx.textContent = ''; r2.innerHTML = ''; return; }
+    if (region === 'uk') {
+      const loan = income * 12 * 4.5, i = rate / 1200;
+      mx.textContent = `Up to about ${m0(loan)} borrowed`;
+      r2.innerHTML = line('Yearly income', m0(income * 12)) + line('Times 4.5', m0(loan)) + line('Monthly payment on that loan', m0(payment(loan, i, Math.round(years * 12)))) + line('Debts as a share of income at that payment', (((debts + payment(loan, i, Math.round(years * 12))) / income) * 100).toFixed(0) + '%');
+    } else {
+      const a = affordability(region as 'ca' | 'us', income, debts, other, rate, years);
+      mx.textContent = `Up to about ${m0(a.maxPay)} a month, a loan of ${m0(a.loan)}`;
+      r2.innerHTML = line('Most you could pay on the mortgage each month', m0(a.maxPay)) + line('Biggest loan at ' + rate + '% over ' + years + ' years', m0(a.loan)) + line('Held back by', a.maxPay > 0 ? a.limitedBy : 'your debts and housing costs are already over the limits');
+    }
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

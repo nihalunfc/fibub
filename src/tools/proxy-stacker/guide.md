@@ -2,6 +2,7 @@
 name: Proxy record stacker
 num: 508
 shelf: science
+code: T359
 section: paleoclimatology
 title: "Palaeoclimate proxy stacker: common age grid, z-scores, stack with envelope, correlations and lag scan"
 summary: "Open several proxy records (age and value, CSV or Excel), put them on one age grid, turn them into z-scores over a window you choose, flip the ones that run the other way, and stack them (mean or median with a ±1 SD or bootstrap envelope). Compare records with correlations corrected for autocorrelation and a lag scan."

@@ -2,6 +2,7 @@
 name: Isotope pattern calculator
 num: 80
 shelf: science
+code: T80
 section: analytical-chemistry
 title: "MS isotope pattern and adduct calculator: exact m/z, isotope peaks and ppm error"
 summary: "Exact m/z of [M+H]+, [M+Na]+, [M−H]− and other ions, the full isotope pattern at your instrument's resolving power, and a check of your measured peaks with the ppm error."

@@ -2,6 +2,7 @@
 name: CFU counter
 num: 195
 shelf: science
+code: T195
 section: microbiology
 title: "CFU counter"
 summary: "Count bacterial or yeast colonies on a photo of an agar plate (found automatically, touching colonies split, then fixed by tapping) and turn the counts from your dilution plates into CFU per mL or per g, with an exact Poisson confidence interval and a check that the plates agree. The photo stays in your browser."

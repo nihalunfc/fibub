@@ -2,6 +2,7 @@
 name: Leaf disease severity
 num: 328
 shelf: science
+code: T243
 section: mycology-and-plant-pathology
 title: "Leaf disease severity: lesion area % from a leaf photo, with severity classes"
 summary: "Measure the share of a leaf covered by lesions, spots or yellowing from a photo, with colour rules you can tune, count the spots, and place the leaf on your own severity class scale. Several leaves averaged, CSV download. The photo stays in your browser."

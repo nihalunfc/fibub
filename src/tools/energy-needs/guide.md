@@ -2,6 +2,7 @@
 name: Energy needs calculator
 num: 484
 shelf: science
+code: T335
 section: nutrition-and-dietetics
 title: "Energy needs calculator: Mifflin-St Jeor, Harris-Benedict and Katch-McArdle (BMR and TDEE)"
 summary: "Estimate resting energy with Mifflin-St Jeor, the original 1919 Harris-Benedict, the 1984 Roza-Shizgal revision and Katch-McArdle, side by side, times an activity factor you can edit. In kcal or kJ, with a careful note on weight change."

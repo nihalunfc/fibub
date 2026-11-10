@@ -2,6 +2,7 @@
 name: IRT item analysis
 num: 726
 shelf: science
+code: T494
 section: psychology-and-psychometrics
 title: "IRT calculator online: Rasch (1PL) and 2PL item parameters, curves and ability scores (free)"
 summary: "Fit 1PL (Rasch) and 2PL item response models to right/wrong test answers in your browser, by marginal maximum likelihood. Item difficulty and discrimination with standard errors, item characteristic and information curves, and an EAP ability score for every person."

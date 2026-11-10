@@ -2,6 +2,7 @@
 name: Light pollution calculator
 num: 51
 shelf: science
+code: T51
 section: observing
 title: "Light pollution calculator: SQM reading to Bortle class, limiting magnitude and mcd/m²"
 summary: "Turn a sky quality meter reading, the faintest star you can see, a Bortle class or a luminance into all the others, see how much artificial light adds to your sky, and how much longer your images need than at a dark site."

@@ -2,6 +2,7 @@
 name: Collision calculator
 num: 905
 shelf: science
+code: T640
 section: classical-mechanics
 title: "Collision calculator: elastic and inelastic collisions in 1D and 2D, coefficient of restitution, momentum diagram"
 summary: "Work out the velocities after two bodies collide, in a line or at a glancing angle, for any coefficient of restitution from perfectly elastic to sticking together. See the momentum and energy before and after, the impulse, a before-and-after momentum diagram, or find e from your own air-track measurements."

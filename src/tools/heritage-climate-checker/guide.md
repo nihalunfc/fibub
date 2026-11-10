@@ -2,6 +2,7 @@
 name: Heritage climate
 num: 420
 shelf: science
+code: T308
 section: heritage-conservation
 title: "Heritage climate"
 summary: "Open a data-logger file (time, temperature, RH) and see the dew point, hours outside your RH and temperature limits, daily RH swings, the longest spell at mould-risk humidity, and a time-weighted preservation index from an Arrhenius rate with your own activation energy, with charts. Nothing is uploaded."

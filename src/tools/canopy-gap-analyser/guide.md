@@ -2,6 +2,7 @@
 name: Canopy gaps
 num: 338
 shelf: science
+code: T253
 section: forestry
 title: "Canopy gaps"
 summary: "Analyse a fisheye photo taken up through a forest canopy: circular mask, sky versus canopy from the blue channel with Otsu's threshold, gap fraction in zenith rings, canopy openness and effective leaf area index by Miller's formula. The photo stays in your browser."

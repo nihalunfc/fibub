@@ -2,6 +2,7 @@
 name: Relation checker
 num: 1193
 shelf: learn
+code: L96
 section: school-maths
 title: "Relation checker: reflexive, symmetric, transitive, equivalence classes and functions"
 summary: "Tap a table or type pairs to build a relation on {1, ..., n}, see it as an arrow diagram, and check reflexive, symmetric, transitive and antisymmetric with a counterexample for every no. Find equivalence classes, closures, and whether the relation is a one-one, onto function."

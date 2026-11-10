@@ -1,0 +1,207 @@
+---
+// #1710 Mail merge. Reading, filling and zipping in src/lib/docs/mailmerge.ts.
+---
+<div class="tool-ui mm">
+  <div class="mm-seg" role="group" aria-label="What to fill in">
+    <button type="button" data-m="docx" aria-pressed="true">Word letter (.docx)</button>
+    <button type="button" data-m="text" aria-pressed="false">Text or email</button>
+  </div>
+
+  <section class="mm-card">
+    <h2>1. Your list</h2>
+    <p class="mm-hint">A CSV file with one row per person and a heading for each column (Name, Address, ...). In Excel or Sheets, use Save as CSV.</p>
+    <input class="mm-csv" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" aria-label="Choose your CSV file" />
+    <details class="mm-paste">
+      <summary>Or paste the rows here</summary>
+      <textarea class="mm-csv-t" rows="5" placeholder="Name,City&#10;Asha,Pune"></textarea>
+    </details>
+    <p class="mm-status mm-csv-s" aria-live="polite"></p>
+  </section>
+
+  <section class="mm-card">
+    <h2>2. Your template</h2>
+    <div class="mm-docx-box">
+      <p class="mm-hint">A Word file with placeholders such as {'{{Name}}'} where each value goes. Headers and footers work too.</p>
+      <input class="mm-tpl" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-label="Choose your Word template" />
+      <button type="button" class="mm-link mm-sample">Download a sample template</button>
+    </div>
+    <div class="mm-text-box" hidden>
+      <label>Subject (optional) <input class="mm-subj" type="text" placeholder="Your order {{Order}}" /></label>
+      <label>Message <textarea class="mm-body" rows="7" placeholder="Dear {{Name}},"></textarea></label>
+    </div>
+    <p class="mm-chips" aria-live="polite"></p>
+    <p class="mm-status mm-tpl-s" aria-live="polite"></p>
+  </section>
+
+  <section class="mm-card mm-out" hidden>
+    <h2>3. Check and download</h2>
+    <div class="mm-grid">
+      <label>Name each file after
+        <select class="mm-namecol"></select>
+      </label>
+      <label class="mm-mail-l" hidden>Email address column
+        <select class="mm-mailcol"></select>
+      </label>
+    </div>
+    <div class="mm-nav">
+      <button type="button" class="btn secondary mm-prev" aria-label="Previous row">&lt;</button>
+      <span class="mm-pos" aria-live="polite"></span>
+      <button type="button" class="btn secondary mm-next" aria-label="Next row">&gt;</button>
+    </div>
+    <pre class="mm-prev-box" tabindex="0"></pre>
+    <p class="mm-status mm-warn" aria-live="polite"></p>
+    <div class="mm-btns">
+      <button type="button" class="btn mm-zip">Download all (ZIP)</button>
+      <button type="button" class="btn secondary mm-one">Download this one</button>
+      <button type="button" class="btn secondary mm-all-txt" hidden>One combined text file</button>
+      <button type="button" class="btn secondary mm-copy" hidden>Copy this message</button>
+      <button type="button" class="btn secondary mm-mailto" hidden>Open in my email app</button>
+    </div>
+  </section>
+  <p class="mm-hint">Everything happens in your browser. Your list and letters are never uploaded or kept. Up to 1,000 rows at a time.</p>
+</div>
+
+<style is:inline>
+  .mm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mm-seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--bg); width: fit-content; max-width: 100%; }
+  .mm-seg button { font: inherit; font-weight: 600; font-size: 14px; border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 9px; cursor: pointer; }
+  .mm-seg button[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+  .mm-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .mm-card h2 { margin: 0; font-size: 18px; }
+  .mm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .mm input[type=text], .mm textarea, .mm select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .mm input[type=file] { font: inherit; max-width: 100%; }
+  .mm textarea { resize: vertical; line-height: 1.4; }
+  .mm-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .mm-status { margin: 0; font-size: 14px; }
+  .mm-status.bad { color: var(--bad); }
+  .mm-status.warn { color: var(--warn); }
+  .mm-link { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; justify-self: start; }
+  .mm-chips { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .mm-chips span { font-size: 13px; padding: 2px 10px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
+  .mm-chips span.miss { background: var(--bad-soft); color: var(--bad); }
+  .mm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mm-nav { display: flex; align-items: center; gap: 10px; }
+  .mm-nav .btn { min-width: 44px; }
+  .mm-prev-box { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; color: #121826; border: 1px solid var(--line); border-radius: 8px; padding: 14px; font: 14px/1.5 Helvetica, Arial, sans-serif; max-height: 360px; overflow: auto; }
+  .mm-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mm [hidden] { display: none !important; }
+  @media (max-width: 480px) { .mm-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { parseCsv, fieldsIn, fillText, openTemplate, mergeDocx, docxText, fileName, zipFiles, sampleTemplate, type Table, type Template } from '../../lib/docs/mailmerge';
+  import { strToU8 } from 'fflate';
+  const root = document.querySelector('.mm') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const LIMIT = 1000;
+  let mode: 'docx' | 'text' = 'docx';
+  let table: Table = { headers: [], rows: [], delimiter: ',' };
+  let tpl: Template | null = null;
+  let row = 0;
+  const namecol = q<HTMLSelectElement>('.mm-namecol'), mailcol = q<HTMLSelectElement>('.mm-mailcol');
+
+  const say = (el: HTMLElement, text: string, cls = '') => { el.textContent = text; el.classList.remove('bad', 'warn'); if (cls) el.classList.add(cls); };
+  const textTemplate = () => ({ subject: q<HTMLInputElement>('.mm-subj').value, body: q<HTMLTextAreaElement>('.mm-body').value });
+  const usedFields = (): string[] => mode === 'docx' ? (tpl?.fields ?? []) : fieldsIn(textTemplate().subject + '\n' + textTemplate().body);
+
+  const options = () => {
+    const keep = [namecol.value, mailcol.value];
+    namecol.innerHTML = '<option value="">Numbers (merged-001, ...)</option>' + table.headers.map((h) => `<option>${h.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
+    mailcol.innerHTML = table.headers.map((h) => `<option>${h.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
+    if (table.headers.includes(keep[0])) namecol.value = keep[0];
+    const em = table.headers.find((h) => /e-?mail/i.test(h));
+    mailcol.value = table.headers.includes(keep[1]) ? keep[1] : em ?? table.headers[0] ?? '';
+  };
+
+  const rowOf = (i: number) => table.rows[i];
+  const textFor = (r: Record<string, string>) => { const t = textTemplate(); return { subject: fillText(t.subject, r), body: fillText(t.body, r) }; };
+
+  const refresh = () => {
+    const fields = usedFields();
+    const have = (f: string) => table.headers.some((h) => h.toLowerCase() === f.toLowerCase());
+    q('.mm-chips').innerHTML = fields.map((f) => `<span class="${have(f) || !table.headers.length ? '' : 'miss'}">${f.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`).join('');
+    const missing = table.headers.length ? fields.filter((f) => !have(f)) : [];
+    const ready = table.rows.length > 0 && (mode === 'docx' ? !!tpl : !!textTemplate().body.trim());
+    q('.mm-out').hidden = !ready;
+    if (mode === 'docx' && tpl && !fields.length) say(q('.mm-tpl-s'), 'No {{placeholders}} found in this file. Type {{Name}} (the column heading in double curly brackets) where each value goes.', 'warn');
+    else if (mode === 'docx' && tpl) say(q('.mm-tpl-s'), `${fields.length} placeholder${fields.length === 1 ? '' : 's'} found.`);
+    if (!ready) return;
+    row = Math.min(row, table.rows.length - 1);
+    q('.mm-pos').textContent = `Row ${row + 1} of ${table.rows.length}`;
+    const r = rowOf(row);
+    let preview = '';
+    if (mode === 'docx') preview = docxText(mergeDocx(tpl!, r).bytes);
+    else { const t = textFor(r); preview = (t.subject ? `Subject: ${t.subject}\n\n` : '') + t.body; }
+    q('.mm-prev-box').textContent = preview || '(empty)';
+    say(q('.mm-warn'), missing.length ? `No column named ${missing.map((m) => `"${m}"`).join(', ')} in your list, so ${missing.length === 1 ? 'it is' : 'they are'} left as written. Check the spelling of the headings.` : '', 'warn');
+    q('.mm-mail-l').hidden = mode !== 'text';
+    for (const s of ['.mm-all-txt', '.mm-copy', '.mm-mailto']) q(s).hidden = mode !== 'text';
+  };
+
+  const loadCsv = (text: string) => {
+    table = parseCsv(text);
+    row = 0;
+    const s = q('.mm-csv-s');
+    if (!table.headers.length || !table.rows.length) { say(s, 'No rows found. The first line must be the column headings, then one row per person.', 'bad'); table = { headers: [], rows: [], delimiter: ',' }; }
+    else {
+      const over = table.rows.length > LIMIT;
+      if (over) table.rows = table.rows.slice(0, LIMIT);
+      say(s, `${table.rows.length} row${table.rows.length === 1 ? '' : 's'}, columns: ${table.headers.join(', ')}.${over ? ` Only the first ${LIMIT} rows are used.` : ''}`, over ? 'warn' : '');
+    }
+    options(); refresh();
+  };
+
+  q<HTMLInputElement>('.mm-csv').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (f) loadCsv(await f.text());
+  });
+  q<HTMLTextAreaElement>('.mm-csv-t').addEventListener('input', (e) => loadCsv((e.target as HTMLTextAreaElement).value));
+  q<HTMLInputElement>('.mm-tpl').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    try { tpl = openTemplate(new Uint8Array(await f.arrayBuffer())); } catch (err) { tpl = null; say(q('.mm-tpl-s'), (err as Error).message + ' Save it from Word as .docx (not the old .doc).', 'bad'); }
+    refresh();
+  });
+  for (const s of ['.mm-subj', '.mm-body']) q(s).addEventListener('input', refresh);
+  namecol.addEventListener('change', refresh);
+
+  root.querySelectorAll<HTMLButtonElement>('.mm-seg button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as any;
+    root.querySelectorAll('.mm-seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.mm-docx-box').hidden = mode !== 'docx'; q('.mm-text-box').hidden = mode !== 'text';
+    refresh();
+  }));
+  q('.mm-prev').addEventListener('click', () => { row = (row + table.rows.length - 1) % table.rows.length; refresh(); });
+  q('.mm-next').addEventListener('click', () => { row = (row + 1) % table.rows.length; refresh(); });
+
+  const download = (data: Uint8Array | string, name: string, type: string) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data as BlobPart], { type })); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  const names = () => { const used = new Set<string>(); return table.rows.map((r, i) => fileName(namecol.value ? r[namecol.value] ?? '' : '', i, used, mode === 'docx' ? 'docx' : 'txt')); };
+  const oneText = (r: Record<string, string>) => { const t = textFor(r); return (t.subject ? `Subject: ${t.subject}\n\n` : '') + t.body; };
+
+  q('.mm-zip').addEventListener('click', () => {
+    const nm = names(), files: Record<string, Uint8Array> = {};
+    table.rows.forEach((r, i) => { files[nm[i]] = mode === 'docx' ? mergeDocx(tpl!, r).bytes : strToU8(oneText(r)); });
+    download(zipFiles(files), 'merged.zip', 'application/zip');
+  });
+  q('.mm-one').addEventListener('click', () => {
+    const nm = names()[row], r = rowOf(row);
+    if (mode === 'docx') download(mergeDocx(tpl!, r).bytes, nm, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    else download(oneText(r), nm, 'text/plain');
+  });
+  q('.mm-all-txt').addEventListener('click', () => download(table.rows.map(oneText).join('\n\n' + '='.repeat(40) + '\n\n'), 'merged.txt', 'text/plain'));
+  q('.mm-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(textFor(rowOf(row)).body); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C on the text above'; }
+    setTimeout(() => (b.textContent = 'Copy this message'), 1800);
+  });
+  q('.mm-mailto').addEventListener('click', () => {
+    const r = rowOf(row), t = textFor(r);
+    location.href = `mailto:${encodeURIComponent(r[mailcol.value] ?? '')}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`;
+  });
+  q('.mm-sample').addEventListener('click', () => download(sampleTemplate(), 'sample-letter.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+</script>

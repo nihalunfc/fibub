@@ -2,6 +2,7 @@
 name: Range chart
 num: 409
 shelf: science
+code: T297
 section: paleontology
 title: "Range chart"
 summary: "Paste taxa with their first and last appearances (ages in Ma or numbered bins) and get a range chart, diversity per time bin, range-through and boundary-crosser counts, originations, extinctions and Foote's per-capita rates, with CSV export. Nothing is uploaded."

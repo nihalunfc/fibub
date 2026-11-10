@@ -13,7 +13,8 @@ export const GET: APIRoute = async () => {
       id: t.id,
       n: t.data.name,
       s: t.data.summary,
-      k: t.data.num,
+      k: t.data.code,
+      a: t.data.num,
       u: toolUrl(t),
       p: [shelfById(t.data.shelf).name, subject?.name, section?.name].filter(Boolean).join(' › '),
     };

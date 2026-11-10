@@ -2,6 +2,7 @@
 name: Circuit simulator
 num: 621
 shelf: science
+code: T418
 section: electrical-and-electronics
 title: "Circuit simulator online: SPICE-style DC, AC (Bode plot) and transient analysis of RLC circuits in your browser"
 summary: "Type or paste a SPICE-style netlist of resistors, capacitors, inductors and voltage or current sources, then get the DC operating point, an AC sweep with the Bode magnitude and phase at any node, or the voltage against time with pulse, sine or piecewise sources. Nothing is uploaded."

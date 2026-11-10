@@ -2,6 +2,7 @@
 name: Interlinear gloss formatter
 num: 737
 shelf: science
+code: T505
 section: linguistics-and-phonetics
 title: "Interlinear gloss formatter and checker (Leipzig Glossing Rules): aligned glosses, small caps, LaTeX gb4e and expex"
 summary: "Type an example as original, morpheme, gloss and translation lines. The tool checks that every word and morpheme has a gloss, lines them up with category labels in small capitals, lists the abbreviations, and exports plain text, HTML or LaTeX for gb4e or expex."

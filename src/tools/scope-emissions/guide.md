@@ -2,6 +2,7 @@
 name: Scope emissions
 num: 506
 shelf: science
+code: T357
 section: carbon-and-energy-accounting
 title: "Scope emissions"
 summary: "Build a small organisation's greenhouse gas inventory from activity rows (fuel, refrigerant leaks with your GWP, electricity, travel, commuting, purchased goods) times your own emission factors. Totals by scope and category, Scope 2 both location- and market-based, tonnes per employee and per million of revenue, year-on-year change, CSV in and out and a PDF or Word report."

@@ -2,6 +2,7 @@
 name: Eclipse finder
 num: 65
 shelf: science
+code: T65
 section: observing
 title: "Eclipse finder: solar and lunar eclipses visible from your location, with local times"
 summary: "List every solar and lunar eclipse you can see from your place for up to 50 years, with local start, peak and end times, how much is covered, the Sun or Moon's height, and a picture you can scrub through."

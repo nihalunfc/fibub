@@ -2,6 +2,7 @@
 name: Radio telescope calculator
 num: 60
 shelf: science
+code: T60
 section: radio-astronomy
 title: "Radio telescope calculator: beam width, K/Jy gain, SEFD and the radiometer equation"
 summary: "Find what a radio dish or array can detect: beam width, collecting area, gain in K/Jy, system equivalent flux density, noise after any integration, a source's signal-to-noise and how long you need to detect it."

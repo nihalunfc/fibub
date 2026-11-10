@@ -2,6 +2,7 @@
 name: Lotka-Volterra simulator
 num: 304
 shelf: science
+code: T219
 section: ecology
 title: "Lotka-Volterra simulator: predator-prey and competition models with phase plane and equilibria"
 summary: "Simulate the Lotka-Volterra predator-prey model (with an optional prey carrying capacity) or two-species competition. See both populations over time, the phase plane with nullclines, every equilibrium with its eigenvalues and stability, and the predicted outcome."

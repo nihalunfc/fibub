@@ -1,0 +1,117 @@
+---
+// #1703 Watermark PDF
+---
+<div class="tool-ui wm">
+  <label class="wm-drop">Choose a PDF, JPG or PNG <input class="wm-file" type="file" accept="application/pdf,.pdf,image/jpeg,image/png" /></label>
+  <div class="wm-form">
+    <label>Kind
+      <select class="wm-kind"><option value="text">Text across the page</option><option value="stamp">Stamp with date in a corner</option></select></label>
+    <label class="wm-t">Words
+      <input class="wm-text" type="text" value="DRAFT" maxlength="60" list="wm-presets" />
+      <datalist id="wm-presets"><option value="DRAFT"></option><option value="CONFIDENTIAL"></option><option value="COPY"></option><option value="SAMPLE"></option></datalist></label>
+    <label class="wm-s" hidden>Stamp
+      <select class="wm-stamp"><option>Received</option><option>Approved</option><option>Paid</option></select></label>
+    <label class="wm-s" hidden>Corner
+      <select class="wm-corner"><option value="tr">Top right</option><option value="tl">Top left</option><option value="br">Bottom right</option><option value="bl">Bottom left</option></select></label>
+    <label class="wm-t">Size <input class="wm-size" type="number" min="8" max="300" value="90" /></label>
+    <label class="wm-t">Angle (degrees) <input class="wm-angle" type="number" min="-90" max="90" value="45" /></label>
+    <label>Opacity (%) <input class="wm-op" type="number" min="5" max="100" value="25" /></label>
+    <label>Colour <input class="wm-col" type="color" value="#cc0000" /></label>
+    <label class="wm-p">Pages (blank = all) <input class="wm-pages" type="text" placeholder="1-3,5" /></label>
+  </div>
+  <p class="wm-hint">For a copy of an ID, try "Copy for [who] only, [date]" with a size around 40. Nothing is kept or sent.</p>
+  <canvas class="wm-canvas" hidden></canvas>
+  <button class="btn wm-go" type="button" disabled>Add watermark and download</button>
+  <p class="wm-msg" role="status" aria-live="polite"></p>
+</div>
+
+<style is:inline>
+  .wm { display: grid; gap: .75rem; }
+  .wm-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .wm-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; }
+  .wm-form label { display: grid; gap: .25rem; font-weight: 600; }
+  .wm-form [hidden] { display: none; }
+  .wm-hint, .wm-msg { margin: 0; font-size: 15px; }
+  .wm-msg.err { color: var(--warn); }
+  .wm-canvas { max-width: 100%; height: auto; border: 1px solid var(--line); }
+  .wm-canvas[hidden] { display: none; }
+</style>
+
+<script>
+  import { watermarkPdf, parseRanges, latinOnly, download, baseName, pageCount, type MarkOpts } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.wm') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => $<HTMLInputElement>(s).value;
+  const msg = $<HTMLElement>('.wm-msg'), go = $<HTMLButtonElement>('.wm-go'), canvas = $<HTMLCanvasElement>('.wm-canvas');
+  let file: File | null = null, bytes: Uint8Array | null = null, img: HTMLImageElement | null = null, total = 0;
+  const isPdf = () => !!file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name));
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  function layout() {
+    const stamp = v('.wm-kind') === 'stamp';
+    root.querySelectorAll<HTMLElement>('.wm-t').forEach((e) => (e.hidden = stamp));
+    root.querySelectorAll<HTMLElement>('.wm-s').forEach((e) => (e.hidden = !stamp));
+    $<HTMLElement>('.wm-p').hidden = !!file && !isPdf();
+  }
+  root.addEventListener('input', () => { layout(); if (img) paintImage(); });
+
+  // Pictures: draw the words over the image on a canvas and save it as a new picture.
+  function paintImage() {
+    if (!img) return;
+    const w = img.naturalWidth, h = img.naturalHeight, ctx = canvas.getContext('2d')!;
+    canvas.width = w; canvas.height = h; ctx.drawImage(img, 0, 0);
+    ctx.globalAlpha = Math.min(1, Math.max(0.05, Number(v('.wm-op')) / 100)); ctx.fillStyle = v('.wm-col');
+    const k = w / 800; // sizes are for an 800 px wide page
+    if (v('.wm-kind') === 'stamp') {
+      const t = `${v('.wm-stamp').toUpperCase()}  ${today()}`, s = 22 * k;
+      ctx.font = `bold ${s}px sans-serif`; const tw = ctx.measureText(t).width, pad = 10 * k, c = v('.wm-corner');
+      const x = c[1] === 'l' ? 24 * k : w - 24 * k - tw - pad * 2, y = c[0] === 'b' ? h - 24 * k - s - pad * 2 : 24 * k;
+      ctx.strokeStyle = v('.wm-col'); ctx.lineWidth = 3 * k; ctx.strokeRect(x, y, tw + pad * 2, s + pad * 2);
+      ctx.textBaseline = 'top'; ctx.fillText(t, x + pad, y + pad);
+    } else {
+      const size = Math.max(8, Number(v('.wm-size')) || 90) * k, a = ((Number(v('.wm-angle')) || 0) * Math.PI) / 180;
+      ctx.font = `bold ${size}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.translate(w / 2, h / 2); ctx.rotate(-a); ctx.fillText(v('.wm-text'), 0, 0);
+    }
+    ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0);
+    canvas.hidden = false;
+  }
+
+  $<HTMLInputElement>('.wm-file').addEventListener('change', async (e) => {
+    file = (e.target as HTMLInputElement).files?.[0] || null; img = null; bytes = null; canvas.hidden = true; go.disabled = true;
+    if (!file) return;
+    try {
+      if (isPdf()) { bytes = new Uint8Array(await file.arrayBuffer()); total = await pageCount(bytes); say(`${file.name}: ${total} page${total === 1 ? '' : 's'}.`); }
+      else {
+        const url = URL.createObjectURL(file); img = new Image(); img.src = url; await img.decode(); URL.revokeObjectURL(url); paintImage(); say(`${file.name} is ready.`);
+      }
+      go.disabled = false;
+    } catch { say('That file could not be opened. A PDF may be damaged or locked with a password.', true); }
+    layout();
+  });
+
+  go.addEventListener('click', async () => {
+    if (!file) return;
+    try {
+      const stamp = v('.wm-kind') === 'stamp';
+      if (!isPdf()) {
+        paintImage();
+        const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Could not save the picture.'))), type, 0.92));
+        download(blob, `${baseName(file.name)}-marked.${type === 'image/png' ? 'png' : 'jpg'}`, type);
+      } else if (bytes) {
+        const o: MarkOpts = {
+          kind: stamp ? 'stamp' : 'text', text: v('.wm-text'), opacity: Math.min(1, Math.max(0.05, Number(v('.wm-op')) / 100)),
+          angle: Number(v('.wm-angle')) || 0, size: Math.max(8, Number(v('.wm-size')) || 90), color: v('.wm-col'),
+          stamp: v('.wm-stamp'), stampCorner: v('.wm-corner') as MarkOpts['stampCorner'], date: today(),
+          pages: v('.wm-pages').trim() ? [...new Set(parseRanges(v('.wm-pages'), total).flat())] : null,
+        };
+        if (!stamp) { if (!o.text.trim()) throw new Error('Type the words for the watermark.'); latinOnly(o.text); }
+        download(await watermarkPdf(bytes, o), `${baseName(file.name)}-marked.pdf`);
+      }
+      say('Done. Your marked copy has downloaded; the original is untouched.');
+    } catch (e: any) { say(e.message || 'Something went wrong.', true); }
+  });
+  layout();
+</script>

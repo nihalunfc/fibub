@@ -2,6 +2,7 @@
 name: Regression workbench
 num: 561
 shelf: science
+code: T389
 section: statistics
 title: "Regression calculator: multiple, polynomial and logistic regression with p-values, VIF, Cook's distance and residual plots"
 summary: "Paste a table or open a CSV or Excel file and fit a multiple linear, polynomial or logistic regression. Get coefficients with standard errors, t or z tests, p-values and confidence intervals, R², adjusted R², AIC and BIC, odds ratios, predictions with intervals, and the diagnostic plots: residuals, Q-Q, leverage and Cook's distance, with VIF. Matches statsmodels."

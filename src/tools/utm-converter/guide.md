@@ -2,6 +2,7 @@
 name: UTM converter
 num: 892
 shelf: science
+code: T627
 section: geodesy-and-surveying
 title: "UTM converter"
 summary: "Convert a position between latitude and longitude (decimal degrees, degrees and minutes, or degrees minutes seconds), UTM with zone and band, and MGRS at any precision, on WGS 84, GRS 1980, International 1924 or Clarke 1866. Force a zone, convert a whole list from a file, and get the geodesic distance and bearings between two points. Nothing leaves your device."

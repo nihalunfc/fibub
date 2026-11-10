@@ -2,6 +2,7 @@
 name: LC50 probit analysis
 num: 151
 shelf: science
+code: T151
 section: ecotoxicology
 title: "LC50 / EC50 calculator: probit and logit analysis of toxicity tests, with Abbott's correction and fiducial limits"
 summary: "Find the LC50 or EC50 from a toxicity test where a number of organisms die or respond at each concentration. Fit a probit or logit line by maximum likelihood, correct for deaths in the control, and get LC10, LC50, LC90 or any other level with 95 % fiducial limits, the slope, a goodness-of-fit test and plots."

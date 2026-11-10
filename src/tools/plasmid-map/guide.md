@@ -2,6 +2,7 @@
 name: Plasmid map
 num: 170
 shelf: science
+code: T170
 section: molecular-biology
 title: "Plasmid map"
 summary: "Open or paste a GenBank or FASTA file and get a clean circular or linear plasmid map with feature arrows, single-cutter sites and a size ruler. Rename, recolour, move or add features, move the origin, and download the map as SVG, PNG or PDF and the plasmid as GenBank."

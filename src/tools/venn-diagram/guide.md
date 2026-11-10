@@ -2,6 +2,7 @@
 name: Venn diagram calculator
 num: 1186
 shelf: learn
+code: L89
 section: school-maths
 title: "Venn diagram calculator: type (A ∪ B)′ ∩ C and see it shaded, check De Morgan's laws, count n(A ∪ B)"
 summary: "Type any set expression with union, intersection, complement and difference for 2 or 3 sets and see the region shaded on a Venn diagram. Compare two expressions to check De Morgan's laws, put in real lists of elements, and count with n(A ∪ B) = n(A) + n(B) − n(A ∩ B)."

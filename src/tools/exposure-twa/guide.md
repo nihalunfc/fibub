@@ -2,6 +2,7 @@
 name: Exposure TWA
 num: 477
 shelf: science
+code: T328
 section: toxicology
 title: "Exposure TWA"
 summary: "Work out a worker's 8-hour time-weighted average from sampled periods (unsampled time as zero or at the sampled average), the highest 15-minute average for a STEL, an excursion check, and a reduced limit for long shifts by Brief and Scala or the OSHA model, against limits you type in."

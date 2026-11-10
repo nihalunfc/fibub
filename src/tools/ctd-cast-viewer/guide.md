@@ -2,6 +2,7 @@
 name: CTD cast viewer
 num: 208
 shelf: science
+code: T208
 section: physical-oceanography
 title: "CTD cast viewer: temperature and salinity profiles, T-S diagram, mixed layer depth and N²"
 summary: "Paste or open a CTD cast as CSV and see temperature, salinity, density, oxygen and fluorescence against depth, a T-S diagram with lines of equal density, the mixed layer depth by a temperature or density threshold, the buoyancy frequency N² and the thermocline. Splits the downcast from the upcast and bins to 1 m. Your file stays in your browser."

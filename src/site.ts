@@ -15,13 +15,14 @@ export const SHELVES = [
   { id: 'documents', name: 'Documents', blurb: 'PDFs and images, processed on your device.' },
   { id: 'everyday', name: 'Everyday', blurb: 'Dates, units, time zones and more.' },
   { id: 'science', name: 'Science', blurb: 'Astronomy and more science tools, worked out in your browser.' },
+  { id: 'collecting', name: 'Collecting', blurb: 'Check, value and record coins, banknotes, bullion and any collection.' },
 ] as const;
 
 // Science is big, so its tools sit in subjects (Physics, Chemistry, ...) and each subject in sections
 // (Physics > Optics and photonics). A tool joins a section with `section:` in its guide.md; the section
 // names its subject. Menus go shelf > subject > section > tool, and each subject has its own page at
 // /<shelf>/<subject>/. A subject or section shows up on the site once it has a live tool.
-// Other shelves have no subjects or sections: their tools are listed together.
+// Money and Documents work the same way. Everyday has no subjects or sections: its tools are listed together.
 export type Subject = { id: string; name: string; blurb: string };
 export type Section = { id: string; name: string; blurb?: string; subject?: string };
 export const SUBJECTS: Record<string, Subject[]> = {
@@ -42,6 +43,21 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'social', name: 'Social sciences', blurb: 'Psychology, language, economics, surveys and populations.' },
     { id: 'humanities', name: 'Humanities and archaeology', blurb: 'Dating, archaeology, texts, heritage and music.' },
     { id: 'research-kit', name: 'Research toolkit', blurb: 'Figures, writing, lab planning and data for any field.' },
+  ],
+  // Money and Documents (nihal, 2026-11-10): categories and subcategories the same way as Science.
+  money: [
+    { id: 'everyday-money', name: 'Everyday money', blurb: 'Budgets, bills, shopping maths and prices.' },
+    { id: 'borrowing', name: 'Loans and debt', blurb: 'Loans, mortgages, credit cards and paying off debt.' },
+    { id: 'saving', name: 'Saving and investing', blurb: 'Interest, investing and retirement, worked out plainly.' },
+    { id: 'tax', name: 'Tax and pay', blurb: 'Income tax, take-home pay and what your work earns.' },
+    { id: 'business', name: 'Business', blurb: 'Pricing, break-even and the numbers behind a small business.' },
+  ],
+  documents: [
+    { id: 'pdf', name: 'PDF tools', blurb: 'Organise, number, stamp, sign and fill PDFs on your device.' },
+    { id: 'convert', name: 'Convert and compress', blurb: 'Change formats, shrink files and size photos.' },
+    { id: 'privacy', name: 'Privacy and checks', blurb: 'Redact, remove hidden data and compare versions before you send.' },
+    { id: 'writing', name: 'Writing and templates', blurb: 'Invoices, letters, mail merge and text helpers.' },
+    { id: 'career', name: 'Jobs and study', blurb: 'Resumes, cover letters and applications.' },
   ],
 };
 
@@ -224,6 +240,39 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'teaching-and-outreach', subject: 'research-kit', name: 'Teaching and outreach' },
     { id: 'citizen-science', subject: 'research-kit', name: 'Citizen science' },
   ],
+  money: [
+    { id: 'budgeting', subject: 'everyday-money', name: 'Budgets and bills' },
+    { id: 'shopping', subject: 'everyday-money', name: 'Shopping and prices' },
+    { id: 'loans', subject: 'borrowing', name: 'Loans' },
+    { id: 'mortgages', subject: 'borrowing', name: 'Mortgages and homes' },
+    { id: 'debt', subject: 'borrowing', name: 'Credit cards and debt' },
+    { id: 'interest', subject: 'saving', name: 'Savings and interest' },
+    { id: 'investing', subject: 'saving', name: 'Investing' },
+    { id: 'retirement', subject: 'saving', name: 'Retirement' },
+    { id: 'income-tax', subject: 'tax', name: 'Income tax' },
+    { id: 'pay', subject: 'tax', name: 'Pay and salary' },
+    { id: 'small-business', subject: 'business', name: 'Small business' },
+    { id: 'accounting', subject: 'business', name: 'Accounting' },
+  ],
+  documents: [
+    { id: 'pdf-pages', subject: 'pdf', name: 'Organise pages' },
+    { id: 'pdf-edit', subject: 'pdf', name: 'Number, stamp and watermark' },
+    { id: 'pdf-sign', subject: 'pdf', name: 'Sign and fill' },
+    { id: 'convert-files', subject: 'convert', name: 'Convert and compress files' },
+    { id: 'images-scans', subject: 'convert', name: 'Photos and scans' },
+    { id: 'privacy-clean', subject: 'privacy', name: 'Redact and clean' },
+    { id: 'doc-checks', subject: 'privacy', name: 'Compare and check' },
+    { id: 'templates', subject: 'writing', name: 'Invoices, letters and templates' },
+    { id: 'text-tools', subject: 'writing', name: 'Text helpers' },
+    { id: 'jobs', subject: 'career', name: 'Jobs and applications' },
+  ],
+  // Collecting: sections only, no subjects.
+  collecting: [
+    { id: 'vetting', name: 'Check and vet', blurb: 'Weigh, measure and grade a piece, and see where it differs from the official figures.' },
+    { id: 'metals', name: 'Metals and bullion', blurb: 'Melt value at today\u2019s prices, purity and bullion weights.' },
+    { id: 'coins-notes', name: 'Coins and banknotes', blurb: 'Dates in other calendars, serial numbers and old money.' },
+    { id: 'any-collection', name: 'Any collection', blurb: 'Catalogue and value what you own, kept on your device.' },
+  ],
   // The Learn shelf (see LEARN_SHELF below): one section per school subject.
   learn: [
     { id: 'school-physics', name: 'Physics' },
@@ -240,6 +289,19 @@ export const sectionLabel = (s: { name: string; subject?: string }, shelf = 'sci
   const sj = subjectById(shelf, s.subject);
   return sj ? `${sj.name}: ${s.name.toLowerCase()}` : s.name;
 };
+
+/**
+ * Tool ID codes (nihal, 2026-11-10): one capital letter per area, counted without gaps (#T1, #T2 ...,
+ * #L1, #L2 ...). A new area gets a free letter that cannot be mixed up with another (never I or O);
+ * when its letter is taken, it gets a short code of a few letters instead (Teaching would be TCH).
+ * Old plain numbers (#3, #1211) stay as search aliases. scripts/renumber.mjs and new-tool.mjs follow this.
+ */
+export const CODES = [
+  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'everyday', 'collecting'], text: 'Everything on the Tools tab: Science, Documents, Money, Everyday and Collecting.' },
+  { prefix: 'L', name: 'Learn', shelves: ['learn'], text: 'School science and maths activities, Class 8 to 12.' },
+] as const;
+export const codePrefix = (shelf: string) => CODES.find((c) => (c.shelves as readonly string[]).includes(shelf))?.prefix ?? 'T';
+
 
 // Learn tools (school science and maths, following the NCERT topics for Class 8 to 12) are a shelf of
 // their own so they live at /learn/<id>/ and fill the Learn area, but they are kept out of SHELVES so the

@@ -2,6 +2,7 @@
 name: Shift-share
 num: 758
 shelf: science
+code: T526
 section: human-geography-and-urban-studies
 title: "Shift-share"
 summary: "Paste jobs by industry for a region and a reference area. Get location quotients, a shift-share split into national share, industry mix and regional shift, basic and non-basic jobs, the economic base multiplier and the coefficient of specialisation."

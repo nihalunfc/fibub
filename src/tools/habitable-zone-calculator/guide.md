@@ -2,6 +2,7 @@
 name: Habitable zone calculator
 num: 52
 shelf: science
+code: T52
 section: exoplanets
 title: "Habitable zone calculator: Kopparapu limits, equilibrium temperature and starlight for any star"
 summary: "Find the habitable zone of any star from its temperature and luminosity, and see whether a planet sits inside it, how much starlight it gets, its equilibrium temperature and its orbital period."

@@ -1,0 +1,32 @@
+// #1713 Compare documents
+import { makePdf, text, saved } from '../lib/pdfkit.mjs';
+import { makeDocx, upload } from '../lib/officekit.mjs';
+export const path = '/documents/compare-documents/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  await page.fill('.cd-ta', 'The cat sat on the mat'); await page.fill('.cd-tb', 'The dog sat on the red mat');
+  await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === '2 changes', 'compare-documents: worked example gives 2 changes');
+  check((await page.textContent('.cd-detail')).includes('2 words added, 1 word removed'), 'compare-documents: 2 added, 1 removed');
+  check((await page.$$eval('.cd-pane ins', (l) => l.map((e) => e.textContent.trim()))).join() === 'dog,red', 'compare-documents: inserted words are in <ins>');
+  check((await page.$$eval('.cd-pane del', (l) => l.map((e) => e.textContent.trim()))).join() === 'cat', 'compare-documents: removed word is in <del>');
+  await page.selectOption('.cd-view', 'side');
+  check((await page.$$('.cd-pane')).length === 2 && (await page.$$eval('.cd-pane:nth-child(1) ins', (l) => l.length)) === 0, 'compare-documents: side by side has two panes, no insertions on the left');
+  await page.fill('.cd-tb', 'the CAT sat on the mat'); await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === '1 change', 'compare-documents: capitals count by default');
+  await page.check('.cd-case'); await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === 'No differences', 'compare-documents: ignore case gives no differences');
+  await page.setInputFiles('.cd-fa', upload('a.docx', makeDocx('<w:p><w:r><w:t>Pay is </w:t></w:r><w:r><w:t>100 dollars</w:t></w:r></w:p><w:p><w:r><w:t>Second line</w:t></w:r></w:p>')));
+  await page.waitForFunction(() => document.querySelector('.cd-ta').value.includes('Second line'));
+  check((await page.inputValue('.cd-ta')) === 'Pay is 100 dollars\nSecond line', `compare-documents: docx text read (${JSON.stringify(await page.inputValue('.cd-ta'))})`);
+  await page.setInputFiles('.cd-fb', upload('b.pdf', await makePdf(1, 'Pay')));
+  await page.waitForFunction(() => document.querySelector('.cd-tb').value.includes('Pay body 1'));
+  check(true, 'compare-documents: pdf text read');
+  await page.fill('.cd-tb', 'Pay is 120 dollars\nSecond line'); await page.uncheck('.cd-case'); await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === '1 change', 'compare-documents: 100 to 120 is one change');
+  const p = await saved(page, () => page.click('.cd-pdf'));
+  const t = (await text(p.buf)).join(' ');
+  check(p.name === 'comparison.pdf' && t.includes('1 change') && t.includes('100') && t.includes('120'), 'compare-documents: redline PDF has both numbers and the count');
+  await page.fill('.cd-ta', ''); await page.fill('.cd-tb', ''); await page.click('.cd-go');
+  check((await page.textContent('.cd-msg')).includes('both versions'), 'compare-documents: empty input explained');
+};

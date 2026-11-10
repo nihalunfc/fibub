@@ -1,0 +1,76 @@
+---
+// #1763 Paper sizes. Data and maths in src/lib/docs/papersizes.ts.
+import { SIZES } from '../../lib/docs/papersizes';
+const groups = [...new Set(SIZES.map((s) => s.group))];
+---
+<div class="tool-ui ps">
+  <fieldset class="ps-card">
+    <legend>Compare two sizes</legend>
+    <div class="ps-grid">
+      <label>Size one
+        <select class="ps-a">{groups.map((g) => <optgroup label={g}>{SIZES.filter((s) => s.group === g).map((s) => <option value={s.id} selected={s.id === 'A4'}>{s.name}</option>)}</optgroup>)}</select>
+      </label>
+      <label>Size two
+        <select class="ps-b">{groups.map((g) => <optgroup label={g}>{SIZES.filter((s) => s.group === g).map((s) => <option value={s.id} selected={s.id === 'letter'}>{s.name}</option>)}</optgroup>)}</select>
+      </label>
+    </div>
+    <div class="ps-grid">
+      <label>Show in <select class="ps-unit"><option value="mm">millimetres</option><option value="cm">centimetres</option><option value="in">inches</option></select></label>
+      <label>Pixels at (dpi) <input class="ps-dpi" type="number" min="1" max="1200" step="1" value="300" /></label>
+    </div>
+    <div class="ps-vis" aria-label="Both sizes drawn to the same scale"></div>
+    <p class="ps-scale" aria-live="polite"></p>
+    <p class="ps-hint">"Fit" is the scale that shrinks or grows a page of size one so all of it fits on size two. Print dialogs call this "fit to page".</p>
+  </fieldset>
+  <fieldset class="ps-card">
+    <legend>All sizes</legend>
+    <div class="ps-tabs" role="group" aria-label="Group">
+      <button type="button" class="ps-tab" data-g="" aria-pressed="true">All</button>
+      {groups.map((g) => <button type="button" class="ps-tab" data-g={g} aria-pressed="false">{g}</button>)}
+    </div>
+    <div class="ps-wrap"><table class="ps-table"><thead><tr><th>Size</th><th class="ps-uh">Width x height</th><th class="ps-ph">Pixels</th></tr></thead><tbody></tbody></table></div>
+    <p class="ps-hint">Sizes are shown upright (width x height). ISO sizes are the rounded standard values. Passport and visa photo sizes change; check the official source for the country and date you apply.</p>
+  </fieldset>
+</div>
+
+<style is:inline>
+  .ps { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ps-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 12px; min-width: 0; }
+  .ps-card legend { font-weight: 700; padding: 0 6px; }
+  .ps label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .ps select, .ps input { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ps-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ps-vis { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .ps-vis svg { display: block; width: 100%; height: auto; max-height: 360px; }
+  .ps-scale { margin: 0; font-size: 15px; line-height: 1.6; }
+  .ps-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .ps-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ps-tab { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  .ps-tab[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+  .ps-wrap { overflow-x: auto; }
+  .ps-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ps-table th, .ps-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+</style>
+
+<script>
+  import { SIZES, byId, inUnit, px, scaleBetween, type Unit } from '../../lib/docs/papersizes';
+  const root = document.querySelector('.ps') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const unit = () => q<HTMLSelectElement>('.ps-unit').value as Unit;
+  const dpi = () => Math.max(1, parseFloat(q<HTMLInputElement>('.ps-dpi').value) || 300);
+  const fmt = (mm: number) => { const v = inUnit(mm, unit()); return (Math.round(v * 100) / 100).toString(); };
+  let group = '';
+  const dims = (s: { w: number; h: number }) => `${fmt(s.w)} x ${fmt(s.h)} ${unit()}`;
+  function refresh() {
+    const a = byId(q<HTMLSelectElement>('.ps-a').value), b = byId(q<HTMLSelectElement>('.ps-b').value), s = scaleBetween(a, b);
+    const W = Math.max(a.w, b.w), H = Math.max(a.h, b.h), pad = W * 0.02;
+    q('.ps-vis').innerHTML = `<svg viewBox="${-pad} ${-pad} ${W + 2 * pad} ${H + 2 * pad}" role="img" aria-label="${a.name} and ${b.name} drawn to the same scale"><rect width="${b.w}" height="${b.h}" fill="rgba(120,120,120,.12)" stroke="#888" stroke-width="${W / 300}" stroke-dasharray="${W / 60}"/><rect width="${a.w}" height="${a.h}" fill="rgba(60,100,200,.18)" stroke="#2f5fc4" stroke-width="${W / 200}"/><text x="${a.w / 2}" y="${a.h / 2}" font-size="${W / 14}" text-anchor="middle" fill="currentColor" font-family="sans-serif">${a.name.split(' ')[0]}</text></svg>`;
+    q('.ps-scale').innerHTML = `<strong>${a.name}</strong>: ${dims(a)} (${px(a.w, dpi())} x ${px(a.h, dpi())} px at ${dpi()} dpi)<br><strong>${b.name}</strong>: ${dims(b)} (${px(b.w, dpi())} x ${px(b.h, dpi())} px)<br>Fit one onto two: <strong class="ps-fit">${s.fit.toFixed(1)}%</strong> (whole page visible). Fill two: ${s.fill.toFixed(1)}%. Width only: ${s.width.toFixed(1)}%. Height only: ${s.height.toFixed(1)}%.`;
+    q('.ps-uh').textContent = `Width x height (${unit()})`;
+    q('.ps-table tbody').innerHTML = SIZES.filter((x) => !group || x.group === group).map((x) => `<tr><td>${x.name}</td><td>${fmt(x.w)} x ${fmt(x.h)}</td><td>${px(x.w, dpi())} x ${px(x.h, dpi())}</td></tr>`).join('');
+    q('.ps-ph').textContent = `Pixels at ${dpi()} dpi`;
+  }
+  root.addEventListener('input', refresh); root.addEventListener('change', refresh);
+  root.querySelectorAll<HTMLButtonElement>('.ps-tab').forEach((t) => t.addEventListener('click', () => { group = t.dataset.g ?? ''; root.querySelectorAll('.ps-tab').forEach((x) => x.setAttribute('aria-pressed', String(x === t))); refresh(); }));
+  refresh();
+</script>

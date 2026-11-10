@@ -2,6 +2,7 @@
 name: Hemocytometer cell counter
 num: 36
 shelf: science
+code: T36
 section: cell-biology-and-cell-culture
 title: "Hemocytometer cell counter: cells per mL, viability and seeding calculator"
 summary: "Tally live and dead cells square by square with on-screen buttons or the keyboard. Get cells per mL, viability, the counting error, and exactly how much suspension and medium to mix to seed your plates."

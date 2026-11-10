@@ -2,6 +2,7 @@
 name: Map scale
 num: 1246
 shelf: learn
+code: L131
 section: school-maths
 title: "Map scale"
 summary: "Drag two pins on a made-up town map drawn on a 1 cm grid and see the real distance at 1 : 10 000, 1 : 25 000, 1 : 50 000 or 1 : 100 000, with every step from centimetres to kilometres. Go back from a real distance to the map, and scale a recipe up or down."

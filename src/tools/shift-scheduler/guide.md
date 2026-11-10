@@ -2,6 +2,7 @@
 name: Shift scheduler
 num: 174
 shelf: everyday
+code: T174
 title: "Free shift scheduler for small and large teams: weekly or monthly rota as Excel, Word, PDF or image"
 summary: "Make a weekly or monthly staff rota for a team of 5 or 500. List your staff, set your shifts, press Fill and adjust by tapping. Download it as an editable Excel or Word file, a PDF or an image with the columns you choose. No sign-up, nothing uploaded."
 status: live

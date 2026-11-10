@@ -2,6 +2,7 @@
 name: Matrix calculator
 num: 543
 shelf: science
+code: T371
 section: pure-mathematics
 title: "Matrix calculator with steps: determinant, inverse, RREF, eigenvalues and eigenvectors, LU, QR, Cholesky, SVD"
 summary: "Determinant, inverse, rank and row reduction with every step in exact fractions, solving A x = B, products and powers, eigenvalues and eigenvectors (complex ones too), and LU, QR, Cholesky and SVD decompositions. Checked against numpy and sympy."

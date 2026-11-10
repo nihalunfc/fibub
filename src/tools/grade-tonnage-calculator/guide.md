@@ -2,6 +2,7 @@
 name: Grade-tonnage calculator
 num: 130
 shelf: science
+code: T130
 section: mining-and-economic-geology
 title: "Grade-tonnage curve and cut-off grade calculator: breakeven and marginal cut-offs, tonnes, grade and contained metal"
 summary: "Paste or open block model or composite data (tonnes and grade, or volume and density). Get the grade-tonnage curve, breakeven and marginal cut-off grades from metal price, recovery, royalty and costs, contained and recovered metal and the operating margin at any cut-off."

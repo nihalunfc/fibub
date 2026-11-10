@@ -2,6 +2,7 @@
 name: Traffic flow fundamentals
 num: 683
 shelf: science
+code: T480
 section: transportation-engineering
 title: "Traffic flow calculator: Greenshields, Greenberg and Underwood models, capacity and fundamental diagrams"
 summary: "Paste speed and density (or flow) observations and fit the Greenshields, Greenberg and Underwood models: free-flow speed, jam density, capacity, the speed-density, flow-density and speed-flow diagrams, and an operating point with level of service from density limits you enter. For study and planning."

@@ -2,6 +2,7 @@
 name: Ionic bond builder
 num: 1294
 shelf: learn
+code: L175
 section: school-chemistry
 title: "Ionic bond builder: move electrons from metal to non-metal with dot and cross diagrams"
 summary: "Pick a metal and a non-metal and move their outer electrons one at a time, drawn as crosses and dots, until every ion has a full outer shell. See the charges, the shells of each ion, why MgCl₂ needs two chlorines, and the formula and name of the compound."

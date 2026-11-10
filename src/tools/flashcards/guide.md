@@ -2,6 +2,7 @@
 name: Flashcards
 num: 824
 shelf: science
+code: T560
 section: teaching-and-outreach
 title: "Flashcards"
 summary: "Make decks of flashcards or import them from a CSV, a spreadsheet or an Anki plain-text export, then study them with the SM-2 spaced-repetition schedule. See what is due, how well you remember, and export back to Anki. Everything stays in your browser."

@@ -1,0 +1,65 @@
+---
+// The ID legend (#T, #L ...) and a bar chart of live tools per area, shelf, subject and school subject.
+// Plain HTML and CSS, so it costs a few KB and no image download. Counts come from the build.
+import { CODES, SHELVES, SECTIONS, LEARN_SHELF } from '../site';
+import { bySubject, type Tool } from '../lib/tools';
+interface Props { tools: Tool[] }
+const live = Astro.props.tools.filter((t) => t.data.status === 'live');
+const inShelf = (id: string) => live.filter((t) => t.data.shelf === id);
+const lastCode = (p: string) => Math.max(0, ...live.map((t) => t.data.code ?? '').filter((c) => c.replace(/\d+$/, '') === p).map((c) => +c.slice(p.length)));
+const areas = CODES.map((c) => ({ ...c, count: live.filter((t) => (c.shelves as readonly string[]).includes(t.data.shelf)).length, last: lastCode(c.prefix) }));
+type Bar = { name: string; count: number; url: string; p: string };
+const tBars: Bar[] = SHELVES.map((s) => ({ name: s.name, count: inShelf(s.id).length, url: `/${s.id}/`, p: 'T' })).filter((b) => b.count).sort((a, b) => b.count - a.count);
+const sBars: Bar[] = bySubject('science', live).map((s) => ({ name: s.name, count: s.count, url: s.url, p: 'T' })).sort((a, b) => b.count - a.count);
+const lBars: Bar[] = (SECTIONS[LEARN_SHELF.id] ?? []).map((s) => ({ name: s.name, count: live.filter((t) => t.data.shelf === 'learn' && t.data.section === s.id).length, url: '/learn/school/', p: 'L' })).filter((b) => b.count).sort((a, b) => b.count - a.count);
+const groups = [
+  { title: 'By area', bars: areas.map((a) => ({ name: `${a.name} (#${a.prefix})`, count: a.count, url: a.prefix === 'L' ? '/learn/' : '/tools/', p: a.prefix })) },
+  { title: 'Tools (#T) by shelf', bars: tBars },
+  { title: 'Science by subject', bars: sBars },
+  { title: 'Learn (#L) by school subject', bars: lBars },
+];
+---
+<section class="tm" id="ids" aria-labelledby="ids-h">
+  <h2 id="ids-h">Tool IDs and what we have</h2>
+  <p>Every tool has a short ID, shown next to its name. Use it when you tell us about a tool, or type it in search to jump to it. The letter says which area it belongs to, and the number counts up with no gaps.</p>
+  <table class="tm-legend">
+    <thead><tr><th scope="col">ID</th><th scope="col">Area</th><th scope="col">What it covers</th><th scope="col">So far</th></tr></thead>
+    <tbody>
+      {areas.map((a) => <tr><td><b data-p={a.prefix}>#{a.prefix}</b></td><td>{a.name}</td><td>{a.text}</td><td>#{a.prefix}1 to #{a.prefix}{a.last}</td></tr>)}
+    </tbody>
+  </table>
+  <p class="note">New areas get a free capital letter that can't be mixed up with another (never I or O). When the letter is already taken, the area gets a short code of a few letters instead, for example #TCH for teaching. Tools made before 10 November 2026 kept their old number too, so "#3" or "#1211" still finds them in search.</p>
+  {groups.map((g) => {
+    const max = Math.max(1, ...g.bars.map((b) => b.count));
+    return (
+      <figure class="tm-chart">
+        <figcaption>{g.title}</figcaption>
+        <ul>
+          {g.bars.map((b) => (
+            <li><a href={b.url}>{b.name}</a><span class="tm-track" aria-hidden="true"><span data-p={b.p} style={`width:${((b.count / max) * 100).toFixed(1)}%`}></span></span><span class="tm-n">{b.count}</span></li>
+          ))}
+        </ul>
+      </figure>
+    );
+  })}
+</section>
+<style>
+  .tm { margin-top: 28px; }
+  .tm-legend { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+  .tm-legend th, .tm-legend td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tm-legend th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .tm-legend td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tm-legend b { font-variant-numeric: tabular-nums; }
+  .tm-chart { margin: 18px 0 0; }
+  .tm-chart figcaption { font-weight: 700; margin-bottom: 6px; }
+  .tm-chart ul { list-style: none; padding: 0 !important; margin: 0; }
+  .tm-chart li { display: grid; grid-template-columns: minmax(0, 13em) 1fr 3.2em; gap: 10px; align-items: center; padding: 3px 0; font-size: 14px; }
+  .tm-chart li a { color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tm-chart li a:hover { color: var(--accent); text-decoration: underline; }
+  .tm-track { display: block; height: 10px; background: var(--accent-soft); border-radius: 3px; }
+  .tm-track span { display: block; height: 100%; min-width: 2px; border-radius: 3px; background: var(--ink); }
+  html:not(.red-mode) .tm-track [data-p=T] { background: var(--c-tools, var(--ink)); }
+  html:not(.red-mode) .tm-track [data-p=L] { background: var(--c-learn, var(--ink)); }
+  .tm-n { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  @media (max-width: 480px) { .tm-chart li { grid-template-columns: minmax(0, 9em) 1fr 2.8em; font-size: 13px; } .tm-legend td:nth-child(3), .tm-legend th:nth-child(3) { display: none; } }
+</style>

@@ -2,6 +2,7 @@
 name: Field note organiser
 num: 763
 shelf: science
+code: T531
 section: anthropology
 title: "Field note organiser for ethnography: dated notes with place, pseudonyms and tags, search, tag counts, Markdown/CSV/JSON export"
 summary: "Write fieldwork notes with a date, place, the people involved (as pseudonyms) and tags. Search and filter them, see how often each tag and person comes up, and export to Markdown, CSV or JSON. Kept only in your browser if you choose."

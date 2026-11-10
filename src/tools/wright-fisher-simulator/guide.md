@@ -2,6 +2,7 @@
 name: Wright-Fisher simulator
 num: 310
 shelf: science
+code: T225
 section: evolutionary-biology-and-phylogenetics
 title: "Wright-Fisher simulator: genetic drift and natural selection with dominance, fixation probability against Kimura's formula"
 summary: "Simulate genetic drift and selection at one gene in a population of N individuals, in up to 10,000 replicate lines at once. Set the selection coefficient s and dominance h, watch the allele frequency wander, and compare the share of lines where the allele fixed with Kimura's fixation probability. Seeded random numbers, so every run can be repeated."

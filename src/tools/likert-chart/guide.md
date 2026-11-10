@@ -2,6 +2,7 @@
 name: Likert chart
 num: 748
 shelf: science
+code: T516
 section: sociology-and-survey-research
 title: "Likert scale chart maker: diverging stacked bar chart from survey answers (free)"
 summary: "Turn agree/disagree survey answers into a diverging stacked bar chart centred on the neutral answer, sorted by agreement, with % agree, medians and means per statement. Paste raw answers or counts; download PNG, SVG and CSV."

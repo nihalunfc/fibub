@@ -2,6 +2,7 @@
 name: Slug test analyser
 num: 127
 shelf: science
+code: T127
 section: hydrogeology
 title: "Slug test analysis: hydraulic conductivity K by Hvorslev and Bouwer-Rice from rising or falling head data"
 summary: "Paste or open water level readings from a slug or bail test. Choose the fit window, get the basic time lag T0 and hydraulic conductivity K by Hvorslev, or Bouwer-Rice with your own ln(Re/R), with a filter pack correction, warnings and a semi-log plot."

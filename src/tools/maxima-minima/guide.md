@@ -2,6 +2,7 @@
 name: Maxima and minima
 num: 1184
 shelf: learn
+code: L87
 section: school-maths
 title: "Maxima and minima"
 summary: "See a function, its slope f′ and its bending f″ stacked one above the other, with every turning point found and tested by the first and second derivative tests, the absolute maximum and minimum on an interval, and three optimisation stories (open box, fence by a river, closed can) with the working."

@@ -2,6 +2,7 @@
 name: Function gallery
 num: 1369
 shelf: learn
+code: L229
 section: school-maths
 title: "Function gallery: modulus, signum, greatest integer, reciprocal and more, with domain and range shaded, plus f + g, f − g, fg and f/g"
 seoTitle: "Function gallery: domain and range of real functions"

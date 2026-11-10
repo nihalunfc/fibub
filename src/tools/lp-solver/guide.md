@@ -2,6 +2,7 @@
 name: LP solver
 num: 582
 shelf: science
+code: T410
 section: operations-research
 title: "LP solver"
 summary: "Type a linear or integer program as plain text (maximize or minimize, constraints, bounds, whole-number and yes/no variables) and get the optimal solution, shadow prices, reduced costs, the simplex tableaux step by step, and a picture for two variables. Runs in your browser."

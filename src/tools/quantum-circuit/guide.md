@@ -2,6 +2,7 @@
 name: Quantum circuit simulator
 num: 927
 shelf: science
+code: T662
 section: quantum-mechanics
 title: "Quantum circuit simulator: state vector up to 20 qubits, OpenQASM 2.0 import and export"
 summary: "Write or open an OpenQASM 2.0 program, or build a circuit gate by gate, and simulate it exactly in your browser for up to 20 qubits: circuit diagram, outcome probabilities and simulated shot counts, each qubit's Bloch vector, the full state vector, and the circuit saved back as OpenQASM 2.0."

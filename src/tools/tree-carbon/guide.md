@@ -2,6 +2,7 @@
 name: Tree carbon calculator
 num: 161
 shelf: science
+code: T161
 section: carbon-and-energy-accounting
 title: "Tree carbon sequestration calculator: CO₂ stored in trees from trunk diameter (DBH) and height with your allometric equation"
 summary: "Estimate the carbon and CO₂ stored in trees, and how much they take up each year. Enter each tree's trunk diameter (DBH) and height, an allometric equation for your species, a root-to-shoot ratio and a carbon fraction. See biomass, carbon, CO₂e for every tree and in total, and yearly uptake from two measurements or a growth rate."

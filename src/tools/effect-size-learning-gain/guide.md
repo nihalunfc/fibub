@@ -2,6 +2,7 @@
 name: Learning gain
 num: 765
 shelf: science
+code: T533
 section: education-research
 title: "Learning gain"
 summary: "Work out Cohen's d, Hedges' g and Glass's delta with exact confidence intervals, paired effect sizes dz and dav for before-and-after studies, and Hake's normalised learning gain, from summary numbers or raw scores."

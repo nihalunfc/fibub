@@ -2,6 +2,7 @@
 name: Publication plot maker
 num: 27
 shelf: science
+code: T27
 section: figures-and-data-presentation
 title: "Publication plot maker: journal-ready graphs as SVG, PDF or 300 dpi PNG (free)"
 summary: "Paste columns or open a CSV or Excel file and get a clean scientific figure with error bars, sized for a journal column. Download vector SVG or PDF, or PNG at 300 or 600 dpi. Your data stays in your browser."

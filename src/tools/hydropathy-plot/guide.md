@@ -2,6 +2,7 @@
 name: Hydropathy plot
 num: 182
 shelf: science
+code: T182
 section: proteomics-and-protein-science
 title: "Hydropathy plot"
 summary: "Paste a protein and see how water-repelling each stretch is: a sliding-window hydropathy plot, the grand average (GRAVY) and likely membrane-crossing helices from 19-residue windows above a threshold. Every scale value can be changed, or paste your own scale. Nothing is uploaded."

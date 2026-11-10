@@ -2,6 +2,7 @@
 name: Quadrilateral explorer
 num: 1166
 shelf: learn
+code: L83
 section: school-maths
 title: "Quadrilateral explorer: drag the corners, see the angles, diagonals and family"
 summary: "Drag four corners on a grid and see the sides, the angles adding to 360°, the diagonals and the area, and whether the shape is a square, rectangle, rhombus, parallelogram, kite or trapezium (and which of those it also is)."

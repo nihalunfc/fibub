@@ -2,6 +2,7 @@
 name: Colour vision simulator
 num: 497
 shelf: science
+code: T348
 section: audiology-and-vision-science
 title: "Colour blindness simulator: see an image with protanopia, deuteranopia, tritanopia or achromatopsia"
 summary: "Open an image and see roughly how it looks with red, green or blue colour vision deficiency at any severity, or with no colour vision at all. Side by side, all four at once, pixel colours before and after, PNG download. Nothing is uploaded."

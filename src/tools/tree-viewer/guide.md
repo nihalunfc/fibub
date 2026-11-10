@@ -2,6 +2,7 @@
 name: Phylogenetic tree viewer
 num: 177
 shelf: science
+code: T177
 section: evolutionary-biology-and-phylogenetics
 title: "Phylogenetic tree viewer: open Newick or NEXUS trees, reroot, colour and download as SVG, in your browser"
 summary: "Open a Newick or NEXUS tree file and draw it as a rectangular or circular tree, with branch lengths and support values. Reroot it at the midpoint or on any branch, ladderize, swap branches and colour groups. Download SVG, Newick, tip distances (CSV) or a report. Nothing is uploaded."

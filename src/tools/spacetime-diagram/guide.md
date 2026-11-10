@@ -2,6 +2,7 @@
 name: Spacetime diagram
 num: 967
 shelf: science
+code: T702
 section: relativity-and-gravitation
 title: "Spacetime diagram: Lorentz transformation, relativity of simultaneity, intervals and the twin paradox on a Minkowski diagram"
 summary: "Type events and a frame speed to see them on a Minkowski diagram in two frames, with the moving frame's tilted axes and lines of simultaneity, the transformed coordinates, and every pair's interval, type (timelike, spacelike or lightlike), proper time and whether its order changes. A twin paradox mode shows both twins' ages, the jump in simultaneity at the turnaround and the signals each receives."

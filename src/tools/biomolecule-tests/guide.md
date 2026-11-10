@@ -2,6 +2,7 @@
 name: Biomolecule test lab
 num: 1396
 shelf: learn
+code: L251
 section: school-biology
 title: "Food tests lab: iodine for starch, Benedict's for sugar, biuret for protein, Sudan III for fat"
 summary: "A virtual food-test bench. Pick a sample, add iodine, Benedict's (and heat it), biuret or Sudan III, and watch the colour change. Fill a results table, see Benedict's colours from blue to brick red, split sucrose with acid, and identify a mystery sample. Class 8 to 11, with quick questions."

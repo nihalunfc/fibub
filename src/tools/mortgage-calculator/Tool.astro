@@ -1,0 +1,116 @@
+---
+// #1720 Mortgage calculator
+---
+<div class="tool-ui mc">
+  <section class="panel">
+    <div class="mc-grid">
+      <label>Home price <input data-k="price" inputmode="decimal" value="500000" /></label>
+      <label>Down payment
+        <span class="mc-row"><input data-k="down" inputmode="decimal" value="20" />
+        <select data-k="dmode" aria-label="Down payment as"><option value="pct">%</option><option value="amt">amount</option></select></span>
+      </label>
+      <label>Interest rate a year <span class="mc-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Amortisation (years) <input data-k="years" inputmode="decimal" value="25" /></label>
+      <label>How often you pay <select data-k="freq"></select></label>
+      <label>Extra with every payment <input data-k="extra" inputmode="decimal" value="0" /></label>
+      <label>Extra once a year <input data-k="extray" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="mc-check"><input type="checkbox" data-k="canada" /> Canada mode (rate compounds twice a year, CMHC insurance)</label>
+    <div class="mc-ca" hidden>
+      <label class="mc-check"><input type="checkbox" data-k="addprem" checked /> Add the insurance premium to the mortgage (the usual way)</label>
+      <p class="mc-fine">CMHC premium: 4.00% of the loan with 5% to 9.99% down, 3.10% with 10% to 14.99%, 2.80% with 15% to 19.99%, none with 20% or more. Smallest down payment: 5% of the first $500,000 plus 10% of the rest up to $1.5 million; 20% above that. Source: cmhc-schl.gc.ca, checked 2026-11-10. Rules change, so check the official source.</p>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="mc-big"></p>
+    <dl class="mc-rows"></dl>
+    <p class="mc-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h2 class="mc-h">What you still owe</h2>
+    <div class="mc-chart"></div>
+    <p class="mc-leg"></p>
+    <details><summary>Year by year</summary>
+      <div class="mc-scroll"><table class="mc-tab"><thead><tr><th>Year</th><th>Principal paid</th><th>Interest paid</th><th>Still owed</th></tr></thead><tbody></tbody></table></div>
+    </details>
+    <button type="button" class="btn secondary mc-csv">Download the year-by-year table (CSV)</button>
+  </section>
+  <p class="mc-fine">Not financial or tax advice. Lenders round and time payments their own way, so your bank's figure can differ by a few dollars. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .mc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mc .panel { padding: 16px; }
+  .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .mc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mc input:not([type=checkbox]), .mc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .mc input:focus, .mc select:focus { border-color: var(--accent); outline: none; }
+  .mc-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .mc-row select { width: auto; }
+  .mc-suf { position: relative; display: block; }
+  .mc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
+  .mc label.mc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .mc input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .mc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .mc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .mc-rows dt { color: var(--muted); } .mc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .mc-warn { color: var(--bad); margin: 10px 0 0; } .mc-warn:empty { display: none; }
+  .mc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .mc-h { font-size: 16px; margin: 0 0 8px; }
+  .mc-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .mc-scroll { overflow-x: auto; }
+  .mc-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .mc-tab th, .mc-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .mc-tab th:first-child, .mc-tab td:first-child { text-align: left; }
+  .mc details { margin: 10px 0; } .mc summary { cursor: pointer; }
+</style>
+
+<script>
+  import { mortgage, FREQS, cmhcRate, type Freq } from '../../lib/money/homes';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.mc') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const fr = q('freq') as unknown as HTMLSelectElement;
+  fr.innerHTML = FREQS.map((f) => `<option value="${f.id}">${f.name}</option>`).join('');
+  const m0 = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  let last: ReturnType<typeof mortgage> | null = null;
+  const calc = () => {
+    const canada = q('canada').checked;
+    ($('.mc-ca') as HTMLElement).hidden = !canada;
+    const price = num('price'), rate = num('rate'), years = num('years');
+    const dv = num('down'), down = (q('dmode') as unknown as HTMLSelectElement).value === 'pct' ? (price * dv) / 100 : dv;
+    const out = $('.mc-big'), rows = $('.mc-rows'), warn = $('.mc-warn');
+    if (!(price > 0) || !(down >= 0) || down >= price || !(rate >= 0) || !(years > 0 && years <= 40)) {
+      out.textContent = ''; rows.innerHTML = ''; warn.textContent = 'Type a price, a down payment smaller than the price, a rate and 1 to 40 years.'; last = null; return;
+    }
+    const r = mortgage({ price, down, ratePct: rate, years, freq: fr.value as Freq, canada, extraPerPayment: num('extra') || 0, extraYearly: num('extray') || 0, addPremium: q('addprem').checked });
+    last = r;
+    const f = FREQS.find((x) => x.id === fr.value)!;
+    out.textContent = `${m2(r.payment)} ${f.id === 'monthly' ? 'a month' : f.id.includes('weekly') && !f.id.includes('bi') ? 'a week' : f.id === 'semimonthly' ? 'twice a month' : 'every 2 weeks'}`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    let h = line('Amount borrowed', m0(r.loan));
+    if (canada && r.premium > 0) h += line(`CMHC premium (${r.premiumPct.toFixed(2)}%)`, m0(r.premium));
+    h += line('Down payment', `${m0(down)} (${r.downPct.toFixed(1)}%)`);
+    h += line('Total interest', m0(r.totalInterest)) + line('Total you pay back', m0(r.totalPaid)) + line('Mortgage-free after', `${r.years.toFixed(1)} years`);
+    if (r.interestSaved > 1) h += line('Interest saved by your extra payments', m0(r.interestSaved)) + line('Years saved', (r.basePayments / r.ppy - r.years).toFixed(1));
+    rows.innerHTML = h;
+    let w = '';
+    if (canada && !r.downOk) w = `In Canada the smallest down payment on this price is ${m0(r.minDown)}. Lenders will not give an insured mortgage with less.`;
+    else if (canada && isNaN(cmhcRate(r.downPct))) w = 'With less than 5% down there is no Canadian mortgage.';
+    else if (canada && r.downPct < 20 && years > 25) w = 'Insured mortgages are usually limited to 25 years (30 for first-time buyers and new builds). Ask your lender.';
+    warn.textContent = w;
+    const s = [{ label: 'Still owed', ys: r.balances, color: 'var(--accent)' }];
+    $('.mc-chart').innerHTML = lineSvg(s, r.balances.map((_, k) => k), 'Balance owed by year');
+    $('.mc-leg').innerHTML = legend(s) + '<span class="lg">Horizontal axis: years</span>';
+    $('.mc-tab tbody').innerHTML = r.rows.map((y) => `<tr><td>${y.year}</td><td>${m0(y.principal)}</td><td>${m0(y.interest)}</td><td>${m0(y.balance)}</td></tr>`).join('');
+  };
+  $('.mc-csv').addEventListener('click', () => {
+    if (!last) return;
+    downloadCsv('mortgage-by-year.csv', [['Year', 'Principal paid', 'Interest paid', 'Still owed'], ...last.rows.map((y) => [y.year, y.principal.toFixed(2), y.interest.toFixed(2), y.balance.toFixed(2)])]);
+  });
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

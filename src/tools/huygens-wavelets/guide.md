@@ -2,6 +2,7 @@
 name: Huygens wavelets
 num: 1423
 shelf: learn
+code: L277
 section: school-physics
 title: "Huygens' principle: wavelets, wavefronts and Snell's law from refraction and reflection"
 summary: "Watch a plane wavefront reach a boundary: every point it touches sends out a little wavelet, and the line that touches them all is the new wavefront. Change the angle and the two media and see Snell's law, the law of reflection and total internal reflection come out of the drawing."

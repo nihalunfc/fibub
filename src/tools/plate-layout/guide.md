@@ -2,6 +2,7 @@
 name: Plate layout designer
 num: 35
 shelf: science
+code: T35
 section: lab-management
 title: "Plate layout designer for 96, 384 and 1536-well plates (printable map and CSV)"
 summary: "Lay out standards, samples, controls and blanks with replicates on any plate from 6 to 1536 wells. Keep the edge wells empty, then print the map or export a well list for your plate reader or liquid handler."

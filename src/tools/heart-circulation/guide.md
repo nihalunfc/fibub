@@ -2,6 +2,7 @@
 name: Double circulation
 num: 1302
 shelf: learn
+code: L182
 section: school-biology
 title: "Double circulation: follow blood through the heart, lungs and body (human, frog and fish)"
 summary: "Watch blood cells flow round the heart, lungs and body, coloured by how much oxygen they carry. Compare a human's four-chambered heart with a frog's three chambers and a fish's single circulation, and see how heart rate sets the time for one lap. For Class 10 and 11."

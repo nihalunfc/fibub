@@ -2,6 +2,7 @@
 name: Algorithm visualiser
 num: 573
 shelf: science
+code: T401
 section: computer-science
 title: "Algorithm visualiser: sorting, binary search and dynamic programming step by step, with comparison and swap counts"
 summary: "Watch bubble, insertion, selection, merge, quick, heap, counting and radix sort work on your own list, one step at a time, with exact comparison, swap and write counts. Also linear and binary search, and the tables for longest common subsequence, edit distance and the 0/1 knapsack."

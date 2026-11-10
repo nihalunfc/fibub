@@ -2,6 +2,7 @@
 name: Transpiration lab
 num: 1133
 shelf: learn
+code: L67
 section: school-biology
 title: "Transpiration lab: a bubble potometer with light, temperature, humidity, wind and stomata"
 summary: "Watch a leafy shoot pull water through a bubble potometer. Change light, temperature, humidity and wind, block the stomata with petroleum jelly, take 5-minute readings and see rate graphs. For Class 10 and 11 biology."

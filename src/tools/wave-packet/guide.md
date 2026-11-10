@@ -2,6 +2,7 @@
 name: Wave packet tunnelling
 num: 924
 shelf: science
+code: T659
 section: quantum-mechanics
 title: "Wave packet animator: tunnelling, reflection and transmission through barriers"
 summary: "Send a Gaussian wave packet at a rectangular barrier, double barrier, step, well or smooth barrier and watch it split into reflected and transmitted parts. The time evolution runs in your browser by the split-step Fourier method, and the reflection and transmission it finds are compared with the exact stationary transmission averaged over the packet's energies."

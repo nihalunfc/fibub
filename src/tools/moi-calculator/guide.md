@@ -2,6 +2,7 @@
 name: MOI calculator
 num: 199
 shelf: science
+code: T199
 section: virology-and-immunology
 title: "MOI calculator: multiplicity of infection, virus volume to add and Poisson infection odds"
 summary: "Work out the MOI from your cell number and virus titre (PFU, TCID₅₀ or transducing units), or the volume of virus to add for a target MOI. See how many cells get 0, 1, 2 or more particles, the MOI needed for a target % infected, and a plate plan with predilutions for several MOIs. Everything stays in your browser."

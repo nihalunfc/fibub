@@ -2,6 +2,7 @@
 name: Infinite slope
 num: 891
 shelf: science
+code: T626
 section: geomorphology
 title: "Infinite slope"
 summary: "Work out the infinite slope factor of safety for a shallow landslide, dry, partly saturated or saturated with seepage parallel to the slope, with cohesion and root cohesion. Get the critical slope angle, water table and depth, and see FS plotted against slope and water. For study, not a slope stability assessment."

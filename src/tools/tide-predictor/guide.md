@@ -2,6 +2,7 @@
 name: Tide predictor
 num: 832
 shelf: science
+code: T568
 section: physical-oceanography
 title: "Tide predictor"
 summary: "Type or paste tidal constituents (amplitude and phase) and get the predicted water level, the times and heights of high and low water and the windows when the water is deep enough, with nodal corrections for the 18.6-year lunar cycle. Paste a water-level record to get its constituents back by least squares. Not for navigation."

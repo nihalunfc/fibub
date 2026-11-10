@@ -2,6 +2,7 @@
 name: Magnetic circuit solver
 num: 914
 shelf: science
+code: T649
 section: electromagnetism
 title: "Magnetic circuit calculator: reluctance, flux, air gap field, inductance and force for cores and gaps"
 summary: "Describe a core as segments of iron or ferrite and air gaps, in one loop or as a three-leg core, and get the reluctance of each part, the flux and flux density everywhere, the inductance, the stored energy, the pull across a gap and the current needed for a target gap field."

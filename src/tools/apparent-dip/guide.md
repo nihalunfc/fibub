@@ -2,6 +2,7 @@
 name: Apparent dip
 num: 867
 shelf: science
+code: T603
 section: structural-geology
 title: "Apparent dip"
 summary: "Work out the apparent dip of a bed in any section, the true dip from two apparent dips, true and vertical thickness from outcrop width on sloping ground, the depth to a bed in a borehole, and strike and dip from three points."

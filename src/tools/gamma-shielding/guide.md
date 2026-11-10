@@ -2,6 +2,7 @@
 name: Gamma shielding calculator
 num: 946
 shelf: science
+code: T681
 section: nuclear-and-particle-physics
 title: "Gamma shielding calculator: half-value layer, tenth-value layer, attenuation and buildup"
 summary: "How much a lead, tungsten, steel, aluminium, concrete or water shield cuts a gamma beam from 0.1 to 2 MeV: linear attenuation coefficient, half- and tenth-value layers, narrow-beam transmission, optional buildup, and the thickness for a wanted transmission, with every material compared. The built-in μ/ρ is worked out from formulas, not a table, so it is only an estimate: type the NIST XCOM value for real work."

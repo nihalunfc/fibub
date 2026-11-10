@@ -2,6 +2,7 @@
 name: Cohort-component projection
 num: 756
 shelf: science
+code: T524
 section: demography
 title: "Cohort-component population projection calculator with survival, fertility and migration (free)"
 summary: "Project a population by age and sex in 5-year steps from survival ratios (or life-table nLx), age-specific fertility rates, the sex ratio at birth and net migration by age, with projected pyramids, totals, median age and CSV."

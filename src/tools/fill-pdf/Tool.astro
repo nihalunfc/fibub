@@ -1,0 +1,255 @@
+---
+// #1705 Fill PDF: fill a PDF's form fields, or type anywhere on a PDF that has none.
+---
+<div class="tool-ui fp" data-state="empty">
+  <label class="fp-drop">
+    <input class="fp-file visually-hidden" type="file" accept=".pdf,application/pdf" />
+    <strong>Choose a PDF to fill in</strong>
+    <span>or drop it here. It stays on your device.</span>
+  </label>
+  <p class="note bad fp-err" role="alert" hidden></p>
+
+  <div class="fp-work" hidden>
+    <p class="fp-found note" role="status"></p>
+
+    <section class="panel fp-form" aria-label="Form fields" hidden>
+      <h2>Form fields</h2>
+      <div class="fp-fields"></div>
+    </section>
+
+    <section class="panel fp-any" aria-label="Type anywhere on the page">
+      <h2>Type anywhere</h2>
+      <p class="fp-help">For lines and boxes that are not form fields: pick what to add, then tap the page where it goes. Drag to move; pull the square corner to resize.</p>
+      <div class="fp-row">
+        <label>Text <input class="fp-text" type="text" placeholder="e.g. Asha Rao" /></label>
+        <label>Date text <input class="fp-date" type="text" /></label>
+      </div>
+      <div class="fp-btns">
+        <button type="button" class="btn fp-add" data-k="text">Add text</button>
+        <button type="button" class="btn secondary fp-add" data-k="tick">Add tick mark</button>
+        <button type="button" class="btn secondary fp-add" data-k="date">Add date</button>
+      </div>
+      <p class="fp-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <div class="pv-pages fp-pages"></div>
+
+    <div class="panel fp-done">
+      <label class="fp-check fp-flat-box"><input class="fp-flat" type="checkbox" /> Flatten the form (turn the fields into plain page text so they cannot be changed)</label>
+      <div class="fp-btns">
+        <button type="button" class="btn fp-save">Download filled PDF</button>
+        <button type="button" class="btn secondary fp-other">Choose another PDF</button>
+      </div>
+      <p class="fp-saved note good" hidden></p>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .fp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .fp-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .fp-drop strong { font-size: 19px; color: var(--accent); }
+  .fp-drop span { color: var(--muted); font-size: 14px; }
+  .fp-drop.over, .fp-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .fp:not([data-state="empty"]) .fp-drop { display: none; }
+  .fp-work, .fp-form, .fp-any, .fp-done { display: grid; gap: 12px; }
+  .fp h2 { font-size: 18px; margin: 0; }
+  .fp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; }
+  .fp-field { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; align-content: start; }
+  .fp-field > span { word-break: break-word; }
+  .fp-field input[type=text], .fp-field select, .fp-field textarea, .fp-row input { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; }
+  .fp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .fp-row label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .fp-opts { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--ink); }
+  .fp-opts label, .fp-check { display: flex; gap: 6px; align-items: center; color: var(--ink); }
+  .fp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fp-help { margin: 0; font-size: 14.5px; }
+  .fp-status { margin: 0; color: var(--muted); font-size: 14px; }
+  .fp-status:empty { display: none; }
+  .fp.placing .pv-layer { cursor: crosshair; outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .fp-add[aria-pressed="true"] { outline: 3px solid var(--accent); }
+  .fp-txt { position: absolute; left: 0; top: 0; white-space: nowrap; line-height: 1; color: #000; font-family: Helvetica, Arial, sans-serif; pointer-events: none; }
+  .fp-tick { width: 100%; height: 100%; pointer-events: none; display: block; }
+  .pv-pages { display: grid; gap: 14px; justify-items: center; }
+  .pv-page { position: relative; background: #fff; box-shadow: 0 0 0 1px var(--line); max-width: 100%; margin-top: 18px; }
+  .pv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pv-layer { position: absolute; inset: 0; }
+  .pv-num { position: absolute; left: 6px; top: -1px; transform: translateY(-100%); font-size: 12px; color: var(--muted); }
+  .pv-item { position: absolute; cursor: move; outline: 1.5px dashed var(--accent); touch-action: none; user-select: none; }
+  .pv-item:focus-visible { outline-style: solid; outline-width: 2px; }
+  .pv-x { position: absolute; top: -12px; right: -12px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 16px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }
+  .pv-grip { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); border: 2px solid var(--surface); cursor: nwse-resize; touch-action: none; }
+</style>
+
+<script>
+  import { openPdfJs, showPages, mountItem, downloadBytes, readFile, outName, type Item, type PageView } from '../../lib/docs/pdfview';
+
+  const root = document.querySelector<HTMLElement>('.fp')!;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => import('../../lib/compress/pdf').then((m) => m.warmUp()).catch(() => {}));
+
+  type FieldInfo = { name: string; type: 'text' | 'check' | 'drop' | 'list' | 'radio'; options: string[]; value: string | boolean | string[]; multiline?: boolean };
+  let bytes: Uint8Array | null = null, fileName = 'form.pdf', views: PageView[] = [], items: Item[] = [], nextId = 1, fields: FieldInfo[] = [];
+  let pending: string | null = null;
+  const err = (m = '') => { const e = $('.fp-err'); e.textContent = m; e.hidden = !m; };
+  const status = (m = '') => { $('.fp-status').textContent = m; };
+
+  /* ---------- read the form fields (pdf-lib, loaded when a file is opened) ---------- */
+  async function readFields(b: Uint8Array): Promise<FieldInfo[]> {
+    const { loadForEdit } = await import('../../lib/docs/stamp');
+    const lib = await import('pdf-lib');
+    const doc = await loadForEdit(b), out: FieldInfo[] = [];
+    let list: any[] = [];
+    try { list = doc.getForm().getFields(); } catch { return []; }
+    for (const f of list) {
+      const name = f.getName();
+      if (f instanceof lib.PDFTextField) out.push({ name, type: 'text', options: [], value: f.getText() ?? '', multiline: f.isMultiline() });
+      else if (f instanceof lib.PDFCheckBox) out.push({ name, type: 'check', options: [], value: f.isChecked() });
+      else if (f instanceof lib.PDFDropdown) out.push({ name, type: 'drop', options: f.getOptions(), value: f.getSelected()[0] ?? '' });
+      else if (f instanceof lib.PDFOptionList) out.push({ name, type: 'list', options: f.getOptions(), value: f.getSelected() });
+      else if (f instanceof lib.PDFRadioGroup) out.push({ name, type: 'radio', options: f.getOptions(), value: f.getSelected() ?? '' });
+    }
+    return out;
+  }
+
+  function buildForm() {
+    const box = $('.fp-fields'); box.textContent = '';
+    fields.forEach((f, i) => {
+      const wrap = document.createElement('div'); wrap.className = 'fp-field'; wrap.dataset.i = String(i);
+      const lab = document.createElement('span'); lab.textContent = f.name;
+      let ctl: HTMLElement;
+      if (f.type === 'text') {
+        const t = f.multiline ? document.createElement('textarea') : Object.assign(document.createElement('input'), { type: 'text' });
+        (t as any).value = f.value as string; if (f.multiline) (t as HTMLTextAreaElement).rows = 3; t.className = 'fp-val'; ctl = t;
+      } else if (f.type === 'check') {
+        const l = document.createElement('label'); l.className = 'fp-check';
+        const c = Object.assign(document.createElement('input'), { type: 'checkbox', checked: !!f.value }); c.className = 'fp-val';
+        l.append(c, document.createTextNode(' Ticked')); ctl = l;
+      } else if (f.type === 'drop' || f.type === 'list') {
+        const s = document.createElement('select'); s.className = 'fp-val';
+        if (f.type === 'list') { s.multiple = true; s.size = Math.min(5, f.options.length); }
+        else s.append(new Option('(none)', ''));
+        for (const o of f.options) { const op = new Option(o, o); op.selected = Array.isArray(f.value) ? f.value.includes(o) : f.value === o; s.append(op); }
+        ctl = s;
+      } else {
+        const g = document.createElement('div'); g.className = 'fp-opts';
+        for (const o of f.options) {
+          const l = document.createElement('label'); const r = Object.assign(document.createElement('input'), { type: 'radio', name: 'fp-r' + i, value: o, checked: f.value === o }); r.className = 'fp-val';
+          l.append(r, document.createTextNode(' ' + o)); g.append(l);
+        }
+        ctl = g;
+      }
+      wrap.append(lab, ctl); box.append(wrap);
+    });
+  }
+  function readValues(): Record<string, string | boolean | string[]> {
+    const v: Record<string, any> = {};
+    root.querySelectorAll<HTMLElement>('.fp-field').forEach((w) => {
+      const f = fields[+w.dataset.i!];
+      if (f.type === 'text') v[f.name] = (w.querySelector('.fp-val') as HTMLInputElement).value;
+      else if (f.type === 'check') v[f.name] = (w.querySelector('.fp-val') as HTMLInputElement).checked;
+      else if (f.type === 'drop') v[f.name] = (w.querySelector('.fp-val') as HTMLSelectElement).value;
+      else if (f.type === 'list') v[f.name] = Array.from((w.querySelector('.fp-val') as HTMLSelectElement).selectedOptions).map((o) => o.value);
+      else v[f.name] = (w.querySelector('input:checked') as HTMLInputElement | null)?.value ?? '';
+    });
+    return v;
+  }
+
+  /* ---------- type anywhere ---------- */
+  function addItemEl(v: PageView, it: Item) {
+    let body: HTMLElement, fixed = false;
+    if (it.kind === 'tick') {
+      fixed = true;
+      const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 1 1'); svg.setAttribute('class', 'fp-tick'); svg.setAttribute('preserveAspectRatio', 'none');
+      const pl = document.createElementNS(ns, 'polyline'); pl.setAttribute('points', '0.15,0.55 0.4,0.82 0.88,0.18'); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', '#000'); pl.setAttribute('stroke-width', '0.11'); pl.setAttribute('stroke-linecap', 'butt');
+      svg.append(pl); body = svg as unknown as HTMLElement;
+    } else {
+      const s = document.createElement('span'); s.className = 'fp-txt'; s.textContent = it.text || ''; body = s;
+      (s as any)._fit = () => { s.style.fontSize = `calc(var(--ph, 800px) * ${it.fh} * 0.8)`; };
+    }
+    mountItem(v, it, body, { fixedRatio: fixed, label: it.kind, onChange: () => (body as any)._fit?.(), onRemove: (x) => { items = items.filter((y) => y !== x); } });
+    (body as any)._fit?.();
+  }
+  root.addEventListener('click', (e) => {
+    if (!pending) return;
+    const t = e.target as HTMLElement, layer = t.closest<HTMLElement>('.pv-layer'); if (!layer || t.closest('.pv-item')) return;
+    const v = views.find((x) => x.layer === layer)!, r = layer.getBoundingClientRect();
+    const cx = (e.clientX - r.left) / r.width, cy = (e.clientY - r.top) / r.height;
+    let it: Item;
+    if (pending === 'tick') { const fh = 0.03, fw = (fh * r.height) / r.width; it = { id: nextId++, page: v.index, kind: 'tick', fx: 0, fy: 0, fw, fh }; }
+    else {
+      const text = pending === 'date' ? $<HTMLInputElement>('.fp-date').value : $<HTMLInputElement>('.fp-text').value;
+      if (!text.trim()) { status('Type the text first.'); return; }
+      it = { id: nextId++, page: v.index, kind: pending, fx: 0, fy: 0, fw: 0.2, fh: 0.022, text };
+    }
+    it.fx = Math.min(Math.max(0, cx - it.fw / 2), 1 - it.fw); it.fy = Math.min(Math.max(0, cy - it.fh / 2), 1 - it.fh);
+    items.push(it); addItemEl(v, it); stop();
+    status(`Added on page ${v.index + 1}.`);
+  });
+  function start(k: string) {
+    if (k === 'text' && !$<HTMLInputElement>('.fp-text').value.trim()) { status('Type the text first.'); return; }
+    if (k === 'date' && !$<HTMLInputElement>('.fp-date').value.trim()) { status('Type the date text first.'); return; }
+    pending = k; root.classList.add('placing');
+    root.querySelectorAll<HTMLElement>('.fp-add').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    status('Now tap the page where it should go.');
+  }
+  function stop() { pending = null; root.classList.remove('placing'); root.querySelectorAll('.fp-add').forEach((b) => b.setAttribute('aria-pressed', 'false')); }
+  root.querySelectorAll<HTMLElement>('.fp-add').forEach((b) => b.addEventListener('click', () => start(b.dataset.k!)));
+  $<HTMLInputElement>('.fp-date').value = new Date().toLocaleDateString('en-CA');
+
+  /* ---------- open and save ---------- */
+  async function open(f: File) {
+    err();
+    try {
+      const b = await readFile(f);
+      const doc = await openPdfJs(b);
+      fields = await readFields(b);
+      bytes = b; fileName = f.name; items = []; stop(); status(); $('.fp-saved').hidden = true;
+      root.dataset.state = 'ready'; $('.fp-work').hidden = false;
+      $('.fp-form').hidden = !fields.length; buildForm();
+      $('.fp-flat-box').hidden = !fields.length;
+      $('.fp-found').textContent = fields.length ? `Found ${fields.length} form field${fields.length === 1 ? '' : 's'}. Fill them in below. You can also type anywhere on the page.` : 'This PDF has no form fields, so type anywhere: pick what to add, then tap the page.';
+      root.scrollIntoView({ block: 'start' }); views = await showPages(doc, $('.fp-pages'));
+    } catch (e: any) {
+      root.dataset.state = 'empty'; $('.fp-work').hidden = true;
+      err(/password|encrypt/i.test(String(e?.message || e?.name)) ? 'This PDF is locked with a password. Unlock it first, then come back.' : 'That file could not be opened as a PDF.');
+    }
+  }
+  $<HTMLInputElement>('.fp-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); });
+  const drop = $('.fp-drop');
+  ['dragenter', 'dragover'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
+  $('.fp-other').addEventListener('click', () => { root.scrollIntoView({ block: 'start' }); root.dataset.state = 'empty'; $('.fp-work').hidden = true; $<HTMLInputElement>('.fp-file').value = ''; bytes = null; $('.fp-pages').textContent = ''; items = []; fields = []; });
+
+  $('.fp-save').addEventListener('click', async () => {
+    if (!bytes) return;
+    const { loadForEdit, drawItems, EncryptedError } = await import('../../lib/docs/stamp');
+    try {
+      const doc = await loadForEdit(bytes);
+      let nFilled = 0;
+      if (fields.length) {
+        const form = doc.getForm(), vals = readValues();
+        for (const f of fields) {
+          const v = vals[f.name]; if (v === undefined) continue;
+          try {
+            if (f.type === 'text') { const t = form.getTextField(f.name); if (t.getText() !== v) { t.setText(String(v)); nFilled++; } }
+            else if (f.type === 'check') { const c = form.getCheckBox(f.name); if (c.isChecked() !== v) { v ? c.check() : c.uncheck(); nFilled++; } }
+            else if (f.type === 'drop') { const d = form.getDropdown(f.name); if (v) { if (d.getSelected()[0] !== v) { d.select(String(v)); nFilled++; } } else d.clear(); }
+            else if (f.type === 'list') { const l = form.getOptionList(f.name); if ((v as string[]).length) l.select(v as string[]); else l.clear(); }
+            else if (v) { const r = form.getRadioGroup(f.name); if (r.getSelected() !== v) { r.select(String(v)); nFilled++; } }
+          } catch { /* a field this tool cannot set is left as it was */ }
+        }
+        form.updateFieldAppearances();
+        if ($<HTMLInputElement>('.fp-flat').checked) form.flatten();
+      }
+      await drawItems(doc, items);
+      downloadBytes(await doc.save(), outName(fileName, '-filled'));
+      const s = $('.fp-saved'); s.hidden = false;
+      s.textContent = `Saved. ${nFilled} form field${nFilled === 1 ? '' : 's'} changed and ${items.length} mark${items.length === 1 ? '' : 's'} added${fields.length && $<HTMLInputElement>('.fp-flat').checked ? '; the form is flattened' : ''}. Open the file to check it before you send it.`;
+    } catch (e: any) {
+      err(e instanceof EncryptedError ? 'This PDF is locked with a password. Unlock it first.' : 'Could not save this PDF: ' + (e?.message || e));
+    }
+  });
+</script>

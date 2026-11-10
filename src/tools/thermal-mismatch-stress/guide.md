@@ -2,6 +2,7 @@
 name: Thermal mismatch
 num: 852
 shelf: science
+code: T588
 section: phase-and-thermal-behaviour
 title: "Thermal mismatch"
 summary: "Work out the stress from different thermal expansion: the biaxial stress in a thin film on a substrate, film stress from wafer bow or curvature with Stoney's equation, the curvature and layer stresses of a bonded bimetal strip (Timoshenko), and the stress in a bar held between walls. The CTE can change linearly with temperature."

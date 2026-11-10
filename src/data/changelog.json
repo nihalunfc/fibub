@@ -1,5 +1,324 @@
 [
  {
+  "sha": "5c380682f57a",
+  "date": "2026-11-10T08:04:32+00:00",
+  "title": "Cross-link batch 1 tools both ways and add their share images",
+  "tools": [
+   "break-even",
+   "canada-income-tax",
+   "compound-interest",
+   "cover-letter",
+   "gratuity-calculator",
+   "hourly-salary",
+   "metadata-cleaner",
+   "mortgage-calculator",
+   "percentage-calculator",
+   "redact-pdf",
+   "sales-tax-calculator",
+   "scan-to-pdf",
+   "sign-pdf",
+   "sip-calculator",
+   "watermark-pdf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bfd5acbd21d0",
+  "date": "2026-11-10T08:03:56+00:00",
+  "title": "Add cover-letter (#1714)",
+  "tools": [
+   "cover-letter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "373a0452d639",
+  "date": "2026-11-10T08:01:13+00:00",
+  "title": "Add mail-merge (#1710)",
+  "tools": [
+   "mail-merge"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6633803c5b0c",
+  "date": "2026-11-10T07:56:51+00:00",
+  "title": "Add number-to-words (#1712) and invoice-maker (#1711)",
+  "tools": [
+   "invoice-maker",
+   "number-to-words"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e05edfe5e50f",
+  "date": "2026-11-10T07:53:21+00:00",
+  "title": "Add compare documents (#1713)",
+  "tools": [
+   "compare-documents"
+  ],
+  "site": false
+ },
+ {
+  "sha": "13e0cbb53646",
+  "date": "2026-11-10T07:52:14+00:00",
+  "title": "#1731 Sales tax: live; Canada GST/HST/PST/QST, US state + local, UK VAT, India GST split, Gulf VAT",
+  "tools": [
+   "sales-tax-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8c9727b6a6ea",
+  "date": "2026-11-10T07:51:54+00:00",
+  "title": "Add Passport photo (#1709)",
+  "tools": [
+   "passport-photo"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0fd8b69a0ea2",
+  "date": "2026-11-10T07:51:07+00:00",
+  "title": "Add break-even (1730)",
+  "tools": [
+   "break-even"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eaee7afc6150",
+  "date": "2026-11-10T07:50:48+00:00",
+  "title": "Add pre-send check (#1715)",
+  "tools": [
+   "send-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8cc43cd691e2",
+  "date": "2026-11-10T07:49:56+00:00",
+  "title": "#1729 Gratuity: India (Gratuity Act, tax-free limit), UAE and Saudi end-of-service pay",
+  "tools": [
+   "gratuity-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a75d6046e9af",
+  "date": "2026-11-10T07:49:33+00:00",
+  "title": "Add Scan to PDF (#1708)",
+  "tools": [
+   "scan-to-pdf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "508aaa5681d8",
+  "date": "2026-11-10T07:48:28+00:00",
+  "title": "Add metadata cleaner (#1707)",
+  "tools": [
+   "metadata-cleaner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7d5e166f3e08",
+  "date": "2026-11-10T07:47:58+00:00",
+  "title": "Add hourly-salary (1728)",
+  "tools": [
+   "hourly-salary"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b3c067930e03",
+  "date": "2026-11-10T07:47:06+00:00",
+  "title": "#1726 India tax: FY 2026-27 new vs old regime, rebate, surcharge, cess",
+  "tools": [
+   "india-income-tax"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1243e86ec279",
+  "date": "2026-11-10T07:46:17+00:00",
+  "title": "Add sip-calculator (1724)",
+  "tools": [
+   "sip-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6c0f77e4b234",
+  "date": "2026-11-10T07:45:18+00:00",
+  "title": "Add Fill PDF (#1705) and Redact PDF (#1706)",
+  "tools": [
+   "fill-pdf",
+   "redact-pdf",
+   "sign-pdf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4454b4603400",
+  "date": "2026-11-10T07:44:12+00:00",
+  "title": "Add compound-interest (1723)",
+  "tools": [
+   "compound-interest"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ac5dfb32d80a",
+  "date": "2026-11-10T07:42:17+00:00",
+  "title": "Add debt payoff, snowball vs avalanche (#1722)",
+  "tools": [
+   "debt-snowball"
+  ],
+  "site": false
+ },
+ {
+  "sha": "261a227b7990",
+  "date": "2026-11-10T07:40:54+00:00",
+  "title": "Add rent or buy (#1721)",
+  "tools": [
+   "rent-vs-buy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "41d794f407d4",
+  "date": "2026-11-10T07:39:55+00:00",
+  "title": "#1727 UK tax: 2026/27 income tax, NI, student loans, pension, take-home",
+  "tools": [
+   "uk-income-tax"
+  ],
+  "site": false
+ },
+ {
+  "sha": "93e171f1ff10",
+  "date": "2026-11-10T07:38:41+00:00",
+  "title": "Add mortgage calculator (#1720)",
+  "tools": [
+   "mortgage-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "59e4423815f9",
+  "date": "2026-11-10T07:38:38+00:00",
+  "title": "Add organise-pdf (1701), page-numbers (1702), watermark-pdf (1703)",
+  "tools": [
+   "organise-pdf",
+   "page-numbers",
+   "watermark-pdf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6330387ca069",
+  "date": "2026-11-10T07:37:44+00:00",
+  "title": "#1725 Canada tax: 2026 federal + provincial income tax, CPP/EI, take-home",
+  "tools": [
+   "canada-income-tax"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e7a70e989e87",
+  "date": "2026-11-10T07:37:00+00:00",
+  "title": "Add Sign PDF (#1704)",
+  "tools": [
+   "sign-pdf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d7d149dbb639",
+  "date": "2026-11-10T07:35:04+00:00",
+  "title": "Add percentage, tip, fuel cost and unit price calculators (#1716-#1719)",
+  "tools": [
+   "fuel-cost",
+   "percentage-calculator",
+   "tip-calculator",
+   "unit-price"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dbab64e8d9df",
+  "date": "2026-11-10T07:26:11+00:00",
+  "title": "Money and Documents get categories and subcategories like Science; FIBUB_ONLY quick build",
+  "tools": [
+   "ats-resume-checker",
+   "bill-calendar",
+   "budget-calculator",
+   "compress-file",
+   "currency-converter",
+   "data-cleaner",
+   "file-converter",
+   "image-resizer",
+   "loan-payoff-planner",
+   "prompt-pruner",
+   "resume-builder",
+   "sales-tax-calculator",
+   "zip-checker"
+  ],
+  "site": true
+ },
+ {
+  "sha": "c003243606ab",
+  "date": "2026-11-10T05:59:44+00:00",
+  "title": "Usage page: charts, top 10, top 5 per area with show more",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "c6c0b547da77",
+  "date": "2026-11-10T05:57:30+00:00",
+  "title": "Add 12 Collecting tools (#1603-#1614): coin check, specific gravity, grade scale, card centering, gold purity, bullion weights and premium, coin counter, coin dates, serial checker, old money, auction fees",
+  "tools": [
+   "auction-costs",
+   "bullion-premium",
+   "bullion-weights",
+   "card-centering",
+   "coin-check",
+   "coin-counter",
+   "coin-dates",
+   "gold-purity",
+   "grade-scale",
+   "pre-decimal",
+   "serial-checker",
+   "specific-gravity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8d43a3171a42",
+  "date": "2026-11-10T05:49:36+00:00",
+  "title": "Usage page: show live view and use counts",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "2d4487f16183",
+  "date": "2026-11-10T05:49:24+00:00",
+  "title": "Add the Collecting shelf: shared engine, live metal prices, Melt value (#1601) and Collection catalogue (#1602)",
+  "tools": [
+   "collection-catalogue",
+   "melt-value"
+  ],
+  "site": true
+ },
+ {
+  "sha": "0bffa08f8edc",
+  "date": "2026-11-10T05:32:48+00:00",
+  "title": "Home: style the script-built most-used rows with :global()",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "e8f187eacc48",
   "date": "2026-11-10T05:17:37+00:00",
   "title": "Home page: 10 most used tools and data-driven site totals",
@@ -113,6 +432,134 @@
    "free-fall",
    "inertia-demos",
    "power-bill"
+  ],
+  "site": false
+ },
+ {
+  "sha": "36b20941b4ca",
+  "date": "2026-11-10T03:50:25+00:00",
+  "title": "List #1219-#1240 on the Class 8 chapters, add their share images",
+  "tools": [
+   "wind-from-pressure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "596b1d5a5c6e",
+  "date": "2026-11-10T03:44:31+00:00",
+  "title": "Add #1240 Kaprekar magic squares",
+  "tools": [
+   "kaprekar-magic-square"
+  ],
+  "site": false
+ },
+ {
+  "sha": "030168770743",
+  "date": "2026-11-10T03:44:31+00:00",
+  "title": "Add #1239 Divisibility tests",
+  "tools": [
+   "divisibility-tests"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d55ac281de18",
+  "date": "2026-11-10T03:44:31+00:00",
+  "title": "Add #1238 Polygon angles",
+  "tools": [
+   "divisibility-tests",
+   "kaprekar-magic-square",
+   "polygon-angle-sum"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0b7e3e3923c9",
+  "date": "2026-11-10T03:41:36+00:00",
+  "title": "Add #1224 Barometer altitude",
+  "tools": [
+   "barometer-altitude"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2889c56948d9",
+  "date": "2026-11-10T03:41:36+00:00",
+  "title": "Add #1221 Liquid pressure",
+  "tools": [
+   "liquid-pressure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1c82a78579cd",
+  "date": "2026-11-10T03:41:35+00:00",
+  "title": "Add #1219 Pressure explorer",
+  "tools": [
+   "pressure-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d396c8960410",
+  "date": "2026-11-10T03:41:18+00:00",
+  "title": "Add #1223 Cyclone builder",
+  "tools": [
+   "cyclone-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dbf89d03d9f6",
+  "date": "2026-11-10T03:41:18+00:00",
+  "title": "Add #1222 Wind from pressure",
+  "tools": [
+   "wind-from-pressure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aba33b88e034",
+  "date": "2026-11-10T03:41:18+00:00",
+  "title": "Add #1220 Matter sorter",
+  "tools": [
+   "matter-sorter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0459b89aaf44",
+  "date": "2026-11-10T03:40:52+00:00",
+  "title": "Add #1237 Standard form",
+  "tools": [
+   "standard-form-ladder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "522db77c33f4",
+  "date": "2026-11-10T03:40:52+00:00",
+  "title": "Add #1236 Exponent laws",
+  "tools": [
+   "exponent-laws"
+  ],
+  "site": false
+ },
+ {
+  "sha": "348573a7e5fc",
+  "date": "2026-11-10T03:40:52+00:00",
+  "title": "Add #1235 Number systems",
+  "tools": [
+   "number-systems"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d2b31c36357e",
+  "date": "2026-11-10T03:40:52+00:00",
+  "title": "Add #1234 Doubling power",
+  "tools": [
+   "doubling-power"
   ],
   "site": false
  },
@@ -11088,6 +11535,7 @@
    "file-converter",
    "image-resizer",
    "link-cleaner",
+   "passport-photo",
    "planner",
    "zip-checker"
   ],
@@ -11109,6 +11557,7 @@
   "tools": [
    "budget-calculator",
    "currency-converter",
+   "passport-photo",
    "qr-code-generator",
    "sales-tax-calculator",
    "time-zone-planner"

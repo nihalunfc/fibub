@@ -2,6 +2,7 @@
 name: Equipment booking planner
 num: 812
 shelf: science
+code: T548
 section: lab-management
 title: "Equipment booking planner: your instrument bookings in a week view, with clash check and .ics export"
 summary: "Plan your own bookings on shared lab instruments in a week calendar. Repeat a booking every day, weekday, week, fortnight or month, see clashes at once, and export to your calendar app (.ics) or a spreadsheet (CSV). Your bookings stay in your browser."

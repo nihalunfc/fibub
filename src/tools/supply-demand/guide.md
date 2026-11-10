@@ -2,6 +2,7 @@
 name: Supply and demand
 num: 738
 shelf: science
+code: T506
 section: economics
 title: "Supply and demand calculator: equilibrium, elasticity, consumer and producer surplus, tax incidence, price ceilings and floors"
 summary: "Enter a demand and a supply curve (straight lines or constant elasticity) and see the market price and quantity, price elasticities, consumer and producer surplus, and what a per-unit tax, subsidy, price ceiling or price floor does: who pays, the shortage or surplus and the deadweight loss, with a chart."

@@ -2,6 +2,7 @@
 name: Figure checker
 num: 805
 shelf: science
+code: T541
 section: figures-and-data-presentation
 title: "Figure checker: DPI, print size and colour-blind check for journal figures"
 summary: "Open a figure and see its pixel size, the DPI stored in the file and how big it can print. Check it against column widths and a minimum DPI, fix a wrong stored DPI without touching the pixels, and see it as people with colour blindness and a greyscale printer would. Nothing is uploaded."

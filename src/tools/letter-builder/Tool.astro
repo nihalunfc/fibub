@@ -1,0 +1,132 @@
+---
+// #1764 Letter builder. Templates and files in src/lib/docs/letters.ts (layout code shared with the cover letter).
+import { TEMPLATES } from '../../lib/docs/letters';
+---
+<div class="tool-ui lb">
+  <fieldset class="lb-card lb-kinds">
+    <legend>1. Pick a letter</legend>
+    <div class="lb-chips">
+      {TEMPLATES.map((t, i) => <label><input type="radio" name="lb-kind" value={t.id} checked={i === 0} /> <span><b>{t.name}</b><small>{t.blurb}</small></span></label>)}
+    </div>
+  </fieldset>
+  <div class="lb-cols">
+    <form class="lb-form" onsubmit="return false">
+      <fieldset class="lb-card">
+        <legend>2. Your details</legend>
+        <label>Your name <input type="text" data-k="name" autocomplete="name" /></label>
+        <label>Your address (one line per row) <textarea rows="2" data-k="address" autocomplete="street-address"></textarea></label>
+        <div class="lb-grid">
+          <label>Email <input type="text" inputmode="email" data-k="email" autocomplete="email" /></label>
+          <label>Phone <input type="text" inputmode="tel" data-k="phone" autocomplete="tel" /></label>
+        </div>
+        <label>Date <input type="date" data-k="date" /></label>
+      </fieldset>
+      <fieldset class="lb-card">
+        <legend>3. Who it is for</legend>
+        <div class="lb-grid">
+          <label>Name <input type="text" data-k="toName" placeholder="Ms Jones" /></label>
+          <label>Company or school <input type="text" data-k="toOrg" /></label>
+        </div>
+        <label>Their address (one line per row) <textarea rows="2" data-k="toAddress"></textarea></label>
+      </fieldset>
+      <fieldset class="lb-card">
+        <legend>4. The letter</legend>
+        <label>Subject line <input type="text" data-k="subject" /></label>
+        <label>Greeting <input type="text" data-k="salutation" /></label>
+        <label>Body <textarea rows="12" data-k="body"></textarea></label>
+        <p class="lb-hint">Replace everything in [square brackets] with your own facts. A blank line starts a new paragraph.</p>
+        <div class="lb-grid">
+          <label>Sign-off
+            <select data-k="closing"><option>Sincerely</option><option>Yours sincerely</option><option>Yours faithfully</option><option>Kind regards</option><option>Best regards</option><option>Respectfully</option></select>
+          </label>
+          <label>Paper
+            <select data-k="paper"><option value="letter">US Letter</option><option value="a4">A4</option></select>
+          </label>
+        </div>
+        <label>Font
+          <select data-k="serif"><option value="">Sans-serif (Calibri, Helvetica)</option><option value="1">Serif (Times)</option></select>
+        </label>
+      </fieldset>
+    </form>
+    <aside class="lb-side">
+      <p class="lb-count" aria-live="polite"></p>
+      <div class="lb-dl">
+        <button type="button" class="btn lb-pdf">Download PDF</button>
+        <button type="button" class="btn secondary lb-docx">Download Word</button>
+        <button type="button" class="btn secondary lb-txt">Download text</button>
+        <button type="button" class="btn secondary lb-copy">Copy text</button>
+      </div>
+      <p class="lb-lost" hidden></p>
+      <pre class="lb-prev" aria-label="Preview"></pre>
+    </aside>
+  </div>
+  <p class="lb-hint">Your letter is made in your browser and never uploaded or kept. It is gone when you close the page, so download it first. Want to send the same letter to many people? Use the mail merge tool.</p>
+</div>
+
+<style is:inline>
+  .lb { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lb-cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .lb-form { display: grid; gap: 10px; min-width: 0; }
+  .lb-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .lb-card legend { font-weight: 700; padding: 0 6px; }
+  .lb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .lb input[type=text], .lb input[type=date], .lb textarea, .lb select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; box-sizing: border-box; }
+  .lb textarea { resize: vertical; line-height: 1.45; }
+  .lb input:focus, .lb textarea:focus, .lb select:focus { border-color: var(--accent); outline: none; }
+  .lb-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .lb-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .lb-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .lb-chips label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--bg); color: var(--ink); }
+  .lb-chips label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .lb-chips input { accent-color: var(--accent); margin-top: 3px; }
+  .lb-chips small { display: block; color: var(--muted); font-size: 12px; }
+  .lb-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .lb-count { margin: 0; font-size: 14px; color: var(--muted); }
+  .lb-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .lb-lost { margin: 0; font-size: 14px; color: var(--warn); }
+  .lb-prev { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; color: #121826; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); padding: 18px; font: 14px/1.5 Helvetica, Arial, sans-serif; }
+  .lb-prev.serif { font-family: 'Times New Roman', Times, serif; font-size: 15px; }
+  .lb [hidden] { display: none !important; }
+  @media (max-width: 860px) { .lb-cols { grid-template-columns: minmax(0, 1fr); } .lb-side { position: static; } .lb-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .lb-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { emptyForm, switchKind, text, docx, leftovers, words, type LetterForm, type Kind } from '../../lib/docs/letters';
+  import { download } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.lb') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  let F: LetterForm = emptyForm();
+  const bind = () => root.querySelectorAll<HTMLInputElement>('[data-k]').forEach((el) => { const v = (F as any)[el.dataset.k!]; el.value = el.dataset.k === 'serif' ? (v ? '1' : '') : v; });
+  const show = () => {
+    const prev = q('.lb-prev');
+    prev.textContent = text(F); prev.classList.toggle('serif', F.serif);
+    const left = leftovers(F);
+    q('.lb-count').textContent = `${words(F)} words in the body.` + (left ? ` ${left} [bracketed] spot${left === 1 ? '' : 's'} still to fill in.` : ' Nothing left in brackets.');
+  };
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (!el.dataset.k) return;
+    (F as any)[el.dataset.k] = el.dataset.k === 'serif' ? el.value === '1' : el.value;
+    show();
+  });
+  root.querySelectorAll<HTMLInputElement>('input[name=lb-kind]').forEach((r) => r.addEventListener('change', () => { F = switchKind(F, r.value as Kind); bind(); show(); }));
+  const base = () => (F.name.trim() ? `${F.name.trim()}-` : '').replace(/[^\w.-]+/g, '-') + F.kind + '-letter';
+  q('.lb-pdf').addEventListener('click', async () => {
+    const { pdf } = await import('../../lib/docs/letters');
+    const { bytes, lost, pages } = await pdf(F);
+    const msgs: string[] = [];
+    if (lost.length) msgs.push(`These characters can't be shown in the PDF and were left out: ${lost.slice(0, 12).join(' ')}. The Word file keeps them.`);
+    if (pages > 1) msgs.push(`The letter runs to ${pages} pages. One page reads best.`);
+    const w = q('.lb-lost'); w.hidden = !msgs.length; w.textContent = msgs.join(' ');
+    download(bytes, `${base()}.pdf`);
+  });
+  q('.lb-docx').addEventListener('click', () => download(docx(F), `${base()}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'));
+  q('.lb-txt').addEventListener('click', () => download(new Blob([text(F)], { type: 'text/plain' }), `${base()}.txt`, 'text/plain'));
+  q('.lb-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(text(F)); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C on the preview'; }
+    setTimeout(() => (b.textContent = 'Copy text'), 1800);
+  });
+  bind(); show();
+</script>

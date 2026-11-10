@@ -2,6 +2,7 @@
 name: Signal detection calculator
 num: 721
 shelf: science
+code: T489
 section: psychology-and-psychometrics
 title: "d′ calculator: signal detection theory d prime, criterion c, beta and ROC curve (free)"
 summary: "Work out d′, criterion c, β, A′ and B″ from hits, misses, false alarms and correct rejections, for one table or a whole study, with log-linear or 1/2N corrections. Fit an ROC curve to confidence ratings and get Az and the z-ROC slope."

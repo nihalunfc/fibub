@@ -2,6 +2,7 @@
 name: Tessellation studio
 num: 1244
 shelf: learn
+code: L129
 section: school-maths
 title: "Tessellation studio"
 summary: "Put triangles, squares, pentagons, hexagons and more around one point and see whether their corners close up to 360°, leave a gap or overlap. See a patch of the three shapes that tile alone, then draw a rangoli-style pattern that repeats round the centre with rotational and mirror symmetry."

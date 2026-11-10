@@ -2,6 +2,7 @@
 name: Greenhouse heating
 num: 390
 shelf: science
+code: T278
 section: horticulture-and-plant-breeding
 title: "Greenhouse heating"
 summary: "Work out a greenhouse's heat loss through the cover and air leaks, the heater size you need, the fuel it will burn over a season, and the ventilation needed to keep it cool in full sun: air flow, air changes per minute and number of fans. Nothing is uploaded."

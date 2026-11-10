@@ -2,6 +2,7 @@
 name: Kepler orbits
 num: 1027
 shelf: learn
+code: L14
 section: school-physics
 title: "Kepler orbits"
 summary: "Set a planet's launch speed and watch its orbit become a circle, an ellipse or an escape; see equal areas swept in equal times, check T² = a³ against the planets, and find how g changes above and below the Earth's surface."

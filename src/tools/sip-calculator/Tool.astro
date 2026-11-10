@@ -1,0 +1,110 @@
+---
+// #1724 SIP calculator: monthly investing with an optional yearly step-up and lumpsum.
+---
+<div class="tool-ui sp">
+  <section class="panel">
+    <h2>Your plan</h2>
+    <div class="sp-grid">
+      <label>Currency <select class="sp-cur" data-k="cur"></select></label>
+      <label>Monthly SIP <input data-k="sip" inputmode="decimal" /></label>
+      <label>Expected return <span class="sp-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Years <span class="sp-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span></label>
+      <label>Raise the SIP every year by (optional) <span class="sp-suf"><input data-k="step" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Lumpsum at the start (optional) <input data-k="lump" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad sp-err" role="alert" hidden></p>
+  </section>
+  <section class="sp-res" aria-live="polite">
+    <div class="sp-stats">
+      <div><span>Future value</span><b class="sp-s-fv"></b></div>
+      <div><span>You invested</span><b class="sp-s-put"></b></div>
+      <div class="good"><span>Estimated gains</span><b class="sp-s-gain"></b></div>
+      <div><span>Gains as a share</span><b class="sp-s-share"></b></div>
+    </div>
+    <p class="sp-line sp-words"></p>
+    <figure class="sp-chart panel">
+      <figcaption>Growth over time <span><i class="k-a"></i>Value</span> <span><i class="k-b"></i>Money invested</span></figcaption>
+      <svg class="sp-svg" viewBox="0 0 640 220" role="img" aria-label="Value and money invested, year by year"></svg>
+    </figure>
+    <details class="sp-years panel" open>
+      <summary>Year by year</summary>
+      <div class="sp-wrap"><table>
+        <thead><tr><th>Year</th><th>Invested so far</th><th>Gains so far</th><th>Value</th></tr></thead>
+        <tbody class="sp-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary sp-csv">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="sp-fine">How it is worked out: each instalment is paid at the start of the month (annuity due) and earns a monthly rate of the yearly return divided by 12. With a step-up, the instalment rises once a year. Real mutual fund returns vary and are not guaranteed; tax and fund charges are not included. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .sp > *, .sp-res > * { min-width: 0; }
+  .sp h2 { margin: 0 0 12px; font-size: 18px; }
+  .sp .panel { padding: 16px; }
+  .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .sp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sp input, .sp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sp input:focus, .sp select:focus { border-color: var(--accent); outline: none; }
+  .sp-suf { position: relative; display: block; }
+  .sp-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .sp-suf input { padding-right: 84px; }
+  .sp-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .sp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sp-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .sp-stats span { font-size: 13px; color: var(--muted); }
+  .sp-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .sp-stats .good b { color: var(--good); }
+  .sp-line { margin: 0; font-size: 15px; }
+  .sp-line:empty { display: none; }
+  .sp-chart { margin: 0; }
+  .sp-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .sp-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .sp-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .k-a { background: var(--accent); }
+  .k-b { background: var(--muted); opacity: .7; }
+  .sp-svg { width: 100%; height: auto; display: block; }
+  .sp-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .sp-wrap { overflow-x: auto; }
+  .sp table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sp th, .sp td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .sp th:first-child, .sp td:first-child { text-align: left; }
+  .sp th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .sp details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .sp details .btn { margin-top: 12px; }
+  .sp-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .sp-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .sp-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { sip, chartSvg, csv, type Year } from '../../lib/money/growth';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.sp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.sp-cur').innerHTML = currencyOptions(cur);
+  f('sip').value = cur === 'INR' ? '10,000' : '500'; f('rate').value = '12'; f('years').value = '10'; f('step').value = '0'; f('lump').value = '0';
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  let rows: Year[] = [];
+  function run() {
+    const years = num(f('years').value), rate = num(f('rate').value), step = num(f('step').value);
+    const bad = num(f('sip').value) < 0 || num(f('lump').value) < 0 || num(f('sip').value) + num(f('lump').value) <= 0 ? 'Enter a monthly SIP or a lumpsum.' : !(years > 0 && years <= 60) ? 'Enter the number of years, from 1 to 60.' : rate < 0 || rate > 60 ? 'Enter the expected yearly return, for example 12.' : step < 0 || step > 100 ? 'Enter a yearly raise between 0 and 100.' : '';
+    q('.sp-err').hidden = !bad; q('.sp-err').textContent = bad; q('.sp-res').hidden = !!bad;
+    if (bad) return;
+    rows = sip({ sip: num(f('sip').value), rate, years, stepUp: step, lump: num(f('lump').value) });
+    const last = rows[rows.length - 1];
+    q('.sp-s-fv').textContent = $(last.balance);
+    q('.sp-s-put').textContent = $(last.deposits);
+    q('.sp-s-gain').textContent = $(last.interest);
+    q('.sp-s-share').textContent = `${Math.round((last.interest / last.balance) * 100)}%`;
+    q('.sp-words').innerHTML = `Investing <b>${$(last.deposits)}</b> over ${years} years could grow to about <b>${$(last.balance)}</b> at ${rate}% a year, if the return were steady.`;
+    q('.sp-svg').innerHTML = chartSvg(rows, (v) => new Intl.NumberFormat(f('cur').value === 'INR' ? 'en-IN' : undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v));
+    q('.sp-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${Math.round(r.year * 100) / 100}</td><td>${$(r.deposits)}</td><td>${$(r.interest)}</td><td>${$(r.balance)}</td></tr>`).join('');
+  }
+  q('.sp-csv').addEventListener('click', () => csv('sip-growth.csv', ['Year', 'Invested', 'Gains', 'Value'], rows.map((r) => [r.year, r.deposits, r.interest, r.balance])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

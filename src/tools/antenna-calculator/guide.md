@@ -2,6 +2,7 @@
 name: Antenna calculator
 num: 632
 shelf: science
+code: T429
 section: rf-and-communications
 title: "Antenna length calculator: dipole, quarter-wave monopole, microstrip patch and Yagi"
 summary: "Work out antenna sizes from the frequency: half-wave dipole and quarter-wave monopole lengths, a rectangular microstrip patch (width, effective permittivity, fringing length, edge resistance and inset feed) and a starting Yagi-Uda layout, with every formula shown."

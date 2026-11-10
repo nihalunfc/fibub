@@ -2,6 +2,7 @@
 name: DICOM anonymiser
 num: 483
 shelf: science
+code: T334
 section: medical-imaging
 title: "DICOM anonymiser: remove patient names, IDs and dates from DICOM files in your browser"
 summary: "De-identify DICOM files on your own device before you share them: replace the name and ID, shift or remove dates, give new consistent UIDs, remove private tags and staff names, and see every change. Download one file or a ZIP. Nothing is uploaded."

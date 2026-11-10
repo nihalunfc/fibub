@@ -2,6 +2,7 @@
 name: Hall effect
 num: 965
 shelf: science
+code: T700
 section: condensed-matter-physics
 title: "Hall effect"
 summary: "Turn van der Pauw and Hall readings into results: sheet resistance with the exact van der Pauw correction, carrier type, sheet and bulk carrier density, Hall mobility, resistivity and Hall coefficient. Use one field with +B and −B to cancel the offset, or fit a whole field sweep. Checks the readings for consistency and downloads the results."

@@ -2,6 +2,7 @@
 name: Radiometric age calculator
 num: 121
 shelf: science
+code: T121
 section: geochemistry-and-geochronology
 title: "Radiometric age calculator: isochron (York fit, MSWD), K-Ar, Ar-Ar and U-Pb concordia ages"
 summary: "Work out rock and mineral ages from isotope ratios: daughter/parent ages for Rb-Sr, Sm-Nd, Lu-Hf, Re-Os, U-Pb and Th-Pb, K-Ar and ⁴⁰Ar/³⁹Ar ages, isochrons fitted with errors in both axes (York regression, MSWD), and U-Pb ages with concordance on a concordia plot."

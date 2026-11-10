@@ -2,6 +2,7 @@
 name: Op-amp circuit calculator
 num: 625
 shelf: science
+code: T422
 section: electrical-and-electronics
 title: "Op-amp calculator: inverting, non-inverting, difference, summing, integrator and differentiator gain, bandwidth and clipping"
 summary: "Work out the gain of the classic op-amp circuits from their resistors and capacitors, the real bandwidth from the op-amp's gain-bandwidth product, the output swing and clipping on your supply, slew-rate limits, and the common-mode rejection of a difference amplifier, with a Bode plot and the input and output waveforms."

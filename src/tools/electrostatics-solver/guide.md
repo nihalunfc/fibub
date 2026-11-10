@@ -2,6 +2,7 @@
 name: 2D electrostatics solver
 num: 915
 shelf: science
+code: T650
 section: electromagnetism
 title: "2D electrostatics solver: draw electrodes, solve Laplace's equation, see potential, field and capacitance"
 summary: "Type or draw electrodes at any voltages inside a box, and the page solves Laplace's equation on a grid by over-relaxation. See the potential map, equipotentials and field arrows, probe any point, and get the charge on each electrode and the capacitance per metre."

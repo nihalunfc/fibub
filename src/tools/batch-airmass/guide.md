@@ -2,6 +2,7 @@
 name: Batch airmass planner
 num: 833
 shelf: science
+code: T569
 section: research
 title: "Batch airmass calculator: altitude, airmass, transit and Moon distance for a whole target list"
 summary: "Paste or open a list of targets (name, RA, Dec), pick your site and night, and get each target's transit, best time, lowest airmass, hours below an airmass limit and distance from the Moon, in a sortable table with one altitude chart and CSV downloads. Choose the airmass formula: sec z, Hardie, Kasten and Young, or Pickering."

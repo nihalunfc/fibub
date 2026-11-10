@@ -1,0 +1,102 @@
+---
+// #1609 Bullion premium. Engine: src/lib/collect/ (prices.ts for spot, maths.ts for melt, premium and price per pure gram).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax bp">
+  <div class="ax-card">
+    <h2>1. Spot price</h2>
+    <div class="bp-prices"></div>
+  </div>
+  <div class="ax-card">
+    <h2>2. Products you are comparing</h2>
+    <p class="ax-help">Add each coin or bar with the price you were quoted (in the currency chosen above).</p>
+    <div class="ax-scroll">
+      <table class="bp-tab">
+        <thead><tr><th>Product</th><th>Metal</th><th>Weight</th><th>Fineness</th><th>Price asked</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small bp-add">Add a product</button>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>3. Cheapest first</h2>
+    <p class="ax-big bp-out" aria-live="polite">…</p>
+    <div class="ax-scroll">
+      <table class="bp-res">
+        <thead><tr><th>Product</th><th class="r">Per pure gram</th><th class="r">Per pure troy oz</th><th class="r">Metal value</th><th class="r">Premium over spot</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="ax-help">Premium is how much more you pay than the metal is worth at the spot price. Lower is cheaper for the same metal. Compare products of the same metal only: the price per pure gram of gold and silver can't be compared with each other. Dealers' buy-back prices are lower than their selling prices, so a low premium on the way in doesn't mean you can sell at spot.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .bp .bp-tab input, .bp .bp-tab select { min-width: 70px; width: 100%; }
+  .bp .bp-tab td:first-child input { min-width: 130px; }
+  .bp .bp-w { display: flex; gap: 4px; }
+  .bp .bp-w input { min-width: 64px; }
+  .bp .bp-del { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 4px 9px; cursor: pointer; font: inherit; }
+  .bp .bp-res td, .bp .bp-res th { white-space: nowrap; }
+</style>
+
+<script>
+  import { mountPrices, money, type Metal, type PriceState } from '../../lib/collect/prices';
+  import { melt, premium, perPureGram, toGrams, UNITS } from '../../lib/collect/maths';
+
+  type Row = { name: string; metal: Metal; w: number; unit: string; fin: number; price: number };
+  const root = document.querySelector('.bp') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const body = q('.bp-tab tbody'), res = q('.bp-res tbody'), out = q('.bp-out');
+  const units = ['g', 'ozt', 'gr', 'dwt', 'tola', 'kg'];
+  const metals = ['gold', 'silver', 'platinum', 'palladium'];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  let rows: Row[] = [{ name: '1 oz gold coin', metal: 'gold', w: 1, unit: 'ozt', fin: 999.9, price: 4200 }];
+  let ps: PriceState | null = null;
+
+  const draw = () => {
+    body.innerHTML = rows.map((r, i) => `<tr data-i="${i}">
+      <td><input data-k="name" value="${esc(r.name)}" aria-label="Product name" /></td>
+      <td><select data-k="metal" aria-label="Metal">${metals.map((m) => `<option ${m === r.metal ? 'selected' : ''}>${m}</option>`).join('')}</select></td>
+      <td><span class="bp-w"><input data-k="w" type="number" min="0" step="any" inputmode="decimal" value="${r.w}" aria-label="Weight" /><select data-k="unit" aria-label="Weight unit">${units.map((u) => `<option value="${u}" ${u === r.unit ? 'selected' : ''}>${u === 'ozt' ? 'oz t' : u}</option>`).join('')}</select></span></td>
+      <td><input data-k="fin" type="number" min="1" max="1000" step="any" inputmode="decimal" value="${r.fin}" aria-label="Fineness, parts per thousand" /></td>
+      <td><input data-k="price" type="number" min="0" step="any" inputmode="decimal" value="${r.price}" aria-label="Price asked" /></td>
+      <td><button type="button" class="bp-del" aria-label="Remove">✕</button></td></tr>`).join('');
+    calc();
+  };
+
+  const calc = () => {
+    if (!ps) return;
+    const cur = ps.cur;
+    const list = rows.map((r) => {
+      const g = toGrams(r.w, r.unit);
+      const m = melt(g, r.fin, ps!.perOzt(r.metal));
+      const pg = perPureGram(r.price, g, r.fin);
+      return { r, pg, pozt: pg * UNITS.ozt.g, mv: m.value, prem: premium(r.price, m.value), ok: Number.isFinite(pg) && Number.isFinite(m.value) && r.price > 0 };
+    });
+    const good = list.filter((x) => x.ok).sort((a, b) => a.prem - b.prem);
+    const bad = list.filter((x) => !x.ok);
+    const best = good[0];
+    const pct = (v: number) => (v * 100).toFixed(1) + '%';
+    res.innerHTML = [...good, ...bad].map((x) => x.ok
+      ? `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">${money(x.pg, cur)}</td><td class="r">${money(x.pozt, cur)}</td><td class="r">${money(x.mv, cur)}</td><td class="r bp-prem">${pct(x.prem)}</td><td>${x === best && good.length > 1 ? '<span class="ax-pill good">Lowest premium</span>' : ''}</td></tr>`
+      : `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">–</td><td class="r">–</td><td class="r">–</td><td class="r bp-prem">–</td><td><span class="ax-pill warn">Needs weight, fineness and price</span></td></tr>`).join('');
+    out.textContent = best ? `${best.r.name}: ${pct(best.prem)} over spot` : 'Add a product with a weight, fineness and price.';
+  };
+
+  body.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement, tr = el.closest('tr') as HTMLElement, r = rows[+tr.dataset.i!] as any, k = el.dataset.k!;
+    r[k] = k === 'name' || k === 'metal' || k === 'unit' ? el.value : parseFloat(el.value);
+    calc();
+  });
+  body.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.bp-del'); if (!b) return;
+    rows.splice(+(b.closest('tr') as HTMLElement).dataset.i!, 1); draw();
+  });
+  q('.bp-add').addEventListener('click', () => { rows.push({ name: 'Product ' + (rows.length + 1), metal: rows[rows.length - 1]?.metal ?? 'silver', w: 1, unit: 'ozt', fin: 999, price: 0 }); draw(); });
+  draw();
+  mountPrices(q('.bp-prices'), (s) => { ps = s; calc(); });
+</script>

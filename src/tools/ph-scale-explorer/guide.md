@@ -2,6 +2,7 @@
 name: pH scale explorer
 num: 1083
 shelf: learn
+code: L38
 section: school-chemistry
 title: "pH scale explorer: household substances, indicator colours, pH = −log[H⁺] and dilution"
 summary: "Drag along the pH scale or tap a household substance and see whether it is acidic or basic, its H⁺ concentration and the colour of litmus, phenolphthalein, methyl orange, turmeric and universal indicator. Add water and watch the pH move towards 7. Ends with fresh practice questions."

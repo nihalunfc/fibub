@@ -2,6 +2,7 @@
 name: Airfoil calculator
 num: 958
 shelf: science
+code: T693
 section: fluid-dynamics
 title: "Airfoil calculator: lift, pitching moment and drag of NACA 4-digit airfoils by thin airfoil theory and a vortex panel method"
 summary: "Type a NACA 4-digit code and an angle of attack to get the lift coefficient from thin airfoil theory and from a vortex panel method, the zero-lift angle, quarter-chord moment, pressure distribution, lift per metre of span, a rough drag estimate and, for a wing of given aspect ratio, induced drag."

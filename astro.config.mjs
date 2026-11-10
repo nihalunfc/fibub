@@ -20,6 +20,8 @@ function lastChanged() {
 const changed = lastChanged();
 
 export default defineConfig({
+  // FIBUB_CACHE=<dir> gives a quick FIBUB_ONLY build its own cache, so builds side by side don't share one.
+  cacheDir: process.env.FIBUB_CACHE || undefined,
   // Fetch the next page when the visitor points at (or touches) a link, so it opens at once.
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   site: 'https://fibub.com',

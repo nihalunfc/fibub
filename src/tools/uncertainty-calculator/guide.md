@@ -2,6 +2,7 @@
 name: Uncertainty propagation calculator
 num: 25
 shelf: science
+code: T25
 section: general-physics-lab-helpers
 title: "Uncertainty propagation calculator (GUM method, with a Monte Carlo check)"
 summary: "Type your formula and your measurements with their uncertainties, or paste repeated readings. Get the result with its uncertainty, which input matters most, and a Monte Carlo check."

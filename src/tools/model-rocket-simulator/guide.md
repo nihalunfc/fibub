@@ -2,6 +2,7 @@
 name: Model rocket
 num: 670
 shelf: science
+code: T467
 section: aerospace-engineering
 title: "Model rocket"
 summary: "Paste or open a motor thrust curve (or pick a made-up shape), give the rocket's mass, diameter and drag coefficient, and get a straight-up flight: apogee, top speed and Mach number, speed off the rod, burnout, the best ejection delay, and plots of altitude, velocity and thrust."

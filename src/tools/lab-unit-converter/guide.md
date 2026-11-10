@@ -2,6 +2,7 @@
 name: Lab unit converter
 num: 501
 shelf: science
+code: T352
 section: nursing-and-lab-medicine
 title: "Lab unit converter: mg/dL to mmol/L and µmol/L (glucose, cholesterol, creatinine, HbA1c)"
 summary: "Convert lab results between conventional and SI units for glucose, cholesterol, triglycerides, creatinine, urea and BUN, uric acid, calcium, magnesium, phosphate, bilirubin and HbA1c, with the molar mass and factor shown. Paste a column to convert many at once."

@@ -2,6 +2,7 @@
 name: Cell division
 num: 1132
 shelf: learn
+code: L66
 section: school-biology
 title: "Cell division: mitosis and meiosis stage by stage, chromosome numbers and the onion root tip"
 summary: "Step through mitosis and meiosis with a few coloured chromosomes, see the chromosome number and DNA amount at every stage, shuffle the meiosis line-up, and count dividing cells in a virtual onion root tip to find the mitotic index."

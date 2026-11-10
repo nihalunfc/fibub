@@ -2,6 +2,7 @@
 name: Notch filter
 num: 346
 shelf: science
+code: T261
 section: neuroscience
 title: "Notch filter"
 summary: "Paste or open an EEG, LFP or patch-clamp trace (CSV, text, Excel or WAV) and remove 50 or 60 Hz mains hum and its harmonics with IIR notch filters run forwards and backwards. See the Welch power spectrum before and after, band powers (delta to gamma or your own bands), and download the filtered trace as CSV."

@@ -1,0 +1,84 @@
+---
+// #1607 Gold purity. Engine: src/lib/collect/ (maths.ts for karat and fineness, prices.ts for today's gold price).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax gp">
+  <div class="ax-card">
+    <h2>1. Convert a purity</h2>
+    <p class="ax-help">Type into any one box. The other two follow.</p>
+    <div class="ax-grid">
+      <label>Karat (out of 24) <input class="gp-k" type="number" min="0" max="24" step="any" inputmode="decimal" value="22" /></label>
+      <label>Fineness (parts per 1,000) <input class="gp-f" type="number" min="0" max="1000" step="any" inputmode="decimal" /></label>
+      <label>Per cent pure gold <input class="gp-p" type="number" min="0" max="100" step="any" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-big gp-out" aria-live="polite"></p>
+    <p class="cl-flag gp-warn" hidden>Karat must be between 0 and 24, and fineness between 0 and 1,000.</p>
+  </div>
+  <div class="ax-card">
+    <h2>2. Gold price</h2>
+    <div class="gp-prices"></div>
+  </div>
+  <div class="ax-card">
+    <h2>3. Common karats and what their gold is worth</h2>
+    <div class="ax-scroll">
+      <table class="gp-tab">
+        <thead><tr><th>Karat</th><th class="r">Fineness</th><th class="r">Per cent</th><th class="r">Per gram</th><th class="r">Per 10 g</th><th class="r">Per tola</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="ax-help">These are the values of the pure gold in the piece at the gold price above, not what a jeweller will pay. Jewellers and dealers deduct their own charges. A tola is 11.6638 g.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .gp .gp-tab th, .gp .gp-tab td { white-space: nowrap; }
+  .gp .gp-tab tr.gp-hit { font-weight: 600; }
+</style>
+
+<script>
+  import { mountPrices, money, type PriceState } from '../../lib/collect/prices';
+  import { karatToFineness, finenessToKarat, KARATS, UNITS } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.gp') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const kIn = q<HTMLInputElement>('.gp-k'), fIn = q<HTMLInputElement>('.gp-f'), pIn = q<HTMLInputElement>('.gp-p');
+  const out = q('.gp-out'), warn = q('.gp-warn'), body = q('.gp-tab tbody');
+  const trim = (v: number, d: number) => String(+v.toFixed(d));
+  let ps: PriceState | null = null;
+
+  const show = (fin: number) => {
+    const ok = Number.isFinite(fin) && fin >= 0 && fin <= 1000;
+    warn.hidden = ok || !Number.isFinite(fin);
+    out.textContent = ok ? `${trim(finenessToKarat(fin), 2)} karat = ${trim(fin, 1)} fineness = ${trim(fin / 10, 2)}%` : '–';
+  };
+  const from = (src: 'k' | 'f' | 'p') => {
+    const v = parseFloat((src === 'k' ? kIn : src === 'f' ? fIn : pIn).value);
+    const fin = src === 'k' ? karatToFineness(v) : src === 'f' ? v : v * 10;
+    if (src !== 'k') kIn.value = Number.isFinite(fin) ? trim(finenessToKarat(fin), 2) : '';
+    if (src !== 'f') fIn.value = Number.isFinite(fin) ? trim(fin, 1) : '';
+    if (src !== 'p') pIn.value = Number.isFinite(fin) ? trim(fin / 10, 2) : '';
+    show(fin);
+    mark(fin);
+  };
+  // Highlight the table row for the typed purity, if it is one of the common karats.
+  const mark = (fin: number) => body.querySelectorAll<HTMLElement>('tr').forEach((tr) => tr.classList.toggle('gp-hit', Math.abs(karatToFineness(+tr.dataset.k!) - fin) < 0.5));
+
+  const drawTable = () => {
+    body.innerHTML = KARATS.map((k) => {
+      const fin = karatToFineness(k);
+      const g = ps ? ps.perGram('gold') * fin / 1000 : NaN;
+      const m = (v: number) => (Number.isFinite(v) ? money(v, ps!.cur) : '…');
+      return `<tr data-k="${k}"><th>${k}k</th><td class="r">${trim(fin, 1)}</td><td class="r">${trim(fin / 10, 2)}%</td>
+        <td class="r gp-g">${m(g)}</td><td class="r gp-10">${m(g * 10)}</td><td class="r gp-t">${m(g * UNITS.tola.g)}</td></tr>`;
+    }).join('');
+    mark(parseFloat(fIn.value));
+  };
+
+  kIn.addEventListener('input', () => from('k'));
+  fIn.addEventListener('input', () => from('f'));
+  pIn.addEventListener('input', () => from('p'));
+  from('k');
+  drawTable();
+  mountPrices(q('.gp-prices'), (s) => { ps = s; drawTable(); }, ['gold']);
+</script>

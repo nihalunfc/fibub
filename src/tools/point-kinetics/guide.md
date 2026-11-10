@@ -2,6 +2,7 @@
 name: Point kinetics
 num: 677
 shelf: science
+code: T474
 section: nuclear-engineering
 title: "Point kinetics"
 summary: "Simulate how a reactor's power responds to a step or ramp of reactivity with the six-group point kinetics equations, solved with a stiff implicit method. See the prompt jump, the stable period from the inhour equation, and scrams. For study. Nothing is uploaded."

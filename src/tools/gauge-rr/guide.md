@@ -2,6 +2,7 @@
 name: Gauge R&R study
 num: 689
 shelf: science
+code: T485
 section: metrology-and-quality
 title: "Gauge R&R calculator: crossed study by ANOVA and average and range method, %GRR, % contribution and ndc"
 summary: "Paste or open a crossed gauge study (parts × operators × trials) and get repeatability, reproducibility, %GRR of study variation and tolerance, % contribution and the number of distinct categories by the ANOVA method and the average and range method, with the ANOVA table and R, X-bar and interaction charts."

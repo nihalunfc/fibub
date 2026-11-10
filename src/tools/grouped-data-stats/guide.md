@@ -2,6 +2,7 @@
 name: Grouped data
 num: 1163
 shelf: learn
+code: L80
 section: school-maths
 title: "Grouped data"
 summary: "Type class intervals and frequencies and get the mean by the direct, assumed-mean and step-deviation methods, the median and the mode with the formulas filled in, and a histogram with less-than and more-than ogives."

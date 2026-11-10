@@ -43,6 +43,8 @@ export const ICONS = {
   curve: '<path d="M3 20h18M3 4v16"/><path d="M5 17c4 0 5-1 7-5s3-6 7-6"/>',
   ruler: '<path d="m3 17 14-14 4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/>',
   pointer: '<path d="M4 4l7 16 2-7 7-2z"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><path d="M12 9v6"/>',
+  scale: '<path d="M12 4v16M7 20h10M5 7h14"/><path d="m5 7-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
 } as const;
 export type IconName = keyof typeof ICONS;

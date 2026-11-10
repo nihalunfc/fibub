@@ -2,6 +2,7 @@
 name: Potentiometer virtual practical
 num: 1412
 shelf: learn
+code: L266
 section: school-physics
 title: "Potentiometer practical: compare the emfs of two cells and find a cell's internal resistance"
 summary: "A virtual 4 m potentiometer wire with a driver cell, rheostat, jockey and galvanometer. Slide the jockey until the galvanometer reads zero, record the balance length, and work out an unknown cell's emf or a cell's internal resistance. The cells are a mystery until you ask to see the true values."

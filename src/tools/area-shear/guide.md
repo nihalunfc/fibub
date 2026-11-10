@@ -2,6 +2,7 @@
 name: Shear and area
 num: 1251
 shelf: learn
+code: L136
 section: school-maths
 title: "Shear and area: why a parallelogram's area is base × height and a triangle's is half"
 summary: "Slide the top of a parallelogram, triangle or trapezium along a square grid and watch the area stay the same. Cut and slide a parallelogram into a rectangle, or add a turned copy to see why a triangle is half and a trapezium is ½(a + b)h."

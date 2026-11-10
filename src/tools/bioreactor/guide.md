@@ -2,6 +2,7 @@
 name: Bioreactor
 num: 1457
 shelf: learn
+code: L299
 section: school-biology
 title: "Bioreactor simulator: a stirred tank with temperature, pH and oxygen control loops"
 summary: "Grow bacteria on sugar in a stirred-tank bioreactor for 24 hours. Switch the temperature, pH and oxygen control loops on and off, change their set points, and watch the heat, acid and oxygen demand of growing cells push the tank off course. A teaching model."

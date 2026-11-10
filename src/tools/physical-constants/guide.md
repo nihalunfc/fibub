@@ -2,6 +2,7 @@
 name: Physical constants
 num: 977
 shelf: science
+code: T712
 section: general-physics-lab-helpers
 title: "Physical constants: CODATA 2022 and 2018 values with uncertainties, units and copy buttons"
 summary: "Look up the fundamental physical constants (speed of light, Planck, Boltzmann, Avogadro, electron and proton masses, fine-structure constant and 60 more) as recommended by CODATA in 2022 and 2018, with their units, standard uncertainties and one-tap copy, all working offline."

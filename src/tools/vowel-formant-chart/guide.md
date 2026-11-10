@@ -2,6 +2,7 @@
 name: Vowel formant chart
 num: 730
 shelf: science
+code: T498
 section: linguistics-and-phonetics
 title: "Vowel formant chart: measure F1, F2, F3 from a recording and plot an F2-F1 vowel chart (free)"
 summary: "Open a WAV recording, pick a vowel and measure its formants F1, F2 and F3 by linear prediction (LPC), then plot vowels on an F2-F1 chart in Hz or Lobanov z-scores. Paste formant tables from Praat too. Nothing is uploaded."

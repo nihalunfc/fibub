@@ -2,6 +2,7 @@
 name: Gene network viewer
 num: 987
 shelf: science
+code: T719
 section: systems-biology
 title: "Gene regulatory network viewer: open SIF or GraphML, see activation and repression, degrees and feed-forward loops"
 summary: "Open or paste a gene regulatory network as SIF or GraphML and see it drawn with a force-directed layout, activating edges as arrows and repressing edges as bars, with in- and out-degree for every gene, connected parts, autoregulation, two-gene feedback loops and feed-forward loops sorted into coherent and incoherent. Your file stays on your device."

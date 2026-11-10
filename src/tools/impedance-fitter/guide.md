@@ -2,6 +2,7 @@
 name: EIS fitter
 num: 111
 shelf: science
+code: T111
 section: electrochemistry-and-battery-science
 title: "EIS fitter"
 summary: "Paste or open an electrochemical impedance spectrum and fit an equivalent circuit (R(RC), R(RQ), Randles with Warburg diffusion, two-arc R(RQ)(RQ) or a blocking CPE) by complex non-linear least squares. Get each element with its error, the effective capacitance, time constants, exchange current density and a comparison of all circuits."

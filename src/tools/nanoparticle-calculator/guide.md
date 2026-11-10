@@ -2,6 +2,7 @@
 name: Nanoparticle calculator
 num: 858
 shelf: science
+code: T594
 section: nanoscience
 title: "Nanoparticle calculator: specific surface area, atoms per particle, surface atoms, magic-number clusters and particle concentration"
 summary: "From a particle's diameter, density and molar mass, get the surface-to-volume ratio, specific surface area in m²/g, atoms per particle and the share of atoms on the surface. Count atoms and corner, edge and face sites in magic-number cuboctahedral and icosahedral clusters, convert a mass concentration to particles per mL and nanomolar, and find the BET-equivalent diameter."

@@ -1,0 +1,129 @@
+---
+// #1731 Sales tax: add or remove GST/HST/PST/QST, US sales tax, UK VAT, India GST, Gulf VAT.
+---
+<div class="tool-ui stc">
+  <section class="panel">
+    <div class="stc-tabs" role="tablist" aria-label="Where">
+      <button type="button" role="tab" data-r="ca" aria-selected="true">Canada</button>
+      <button type="button" role="tab" data-r="us" aria-selected="false">US</button>
+      <button type="button" role="tab" data-r="uk" aria-selected="false">UK</button>
+      <button type="button" role="tab" data-r="in" aria-selected="false">India</button>
+      <button type="button" role="tab" data-r="gulf" aria-selected="false">Gulf</button>
+      <button type="button" role="tab" data-r="any" aria-selected="false">Any rate</button>
+    </div>
+    <div class="stc-grid">
+      <label>Amount <input class="stc-amt" inputmode="decimal" value="100" /></label>
+      <fieldset class="stc-mode"><legend>This amount is</legend>
+        <label><input type="radio" name="stc-mode" value="add" checked /> before tax (add tax)</label>
+        <label><input type="radio" name="stc-mode" value="remove" /> with tax (take it out)</label>
+      </fieldset>
+      <label data-for="ca">Province or territory <select class="stc-prov"></select></label>
+      <label data-for="us" hidden>State <select class="stc-state"></select></label>
+      <label data-for="us" hidden>Local (city + county) rate % <input class="stc-local" inputmode="decimal" value="0" /></label>
+      <label data-for="uk" hidden>VAT rate <select class="stc-uk"></select></label>
+      <label data-for="in" hidden>GST rate <select class="stc-gst"></select></label>
+      <label data-for="in" hidden class="stc-chk"><input type="checkbox" class="stc-inter" /> Seller and buyer in different states (IGST)</label>
+      <label data-for="gulf" hidden>Country <select class="stc-gulf"></select></label>
+      <label data-for="any" hidden>Tax rate % <input class="stc-rate" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="stc-hint"></p>
+  </section>
+
+  <section class="stc-res" aria-live="polite">
+    <div class="stc-stats">
+      <div><span>Before tax</span><b class="stc-net"></b></div>
+      <div><span class="stc-taxl">Tax</span><b class="stc-tax"></b></div>
+      <div class="good"><span>Total with tax</span><b class="stc-gross"></b></div>
+    </div>
+    <div class="panel stc-tw"><table><tbody class="stc-body"></tbody></table></div>
+  </section>
+  <p class="stc-fine">Rates checked 10 Nov 2026. Some goods and services are taxed at other rates or not at all. Not financial or tax advice: check the official source (canada.ca, your state's revenue department, gov.uk, gst.gov.in, your Gulf tax authority). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .stc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .stc .panel { padding: 16px; }
+  .stc-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stc-tabs button { font: inherit; padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .stc-tabs button[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .stc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .stc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .stc label[hidden] { display: none; }
+  .stc .stc-chk, .stc-mode label { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .stc-mode { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 14px; }
+  .stc-mode legend { color: var(--muted); padding: 0; margin-bottom: 4px; }
+  .stc input:not([type=checkbox]):not([type=radio]), .stc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .stc-hint, .stc-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .stc-res { display: grid; gap: 12px; min-width: 0; }
+  .stc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); min-width: 0; }
+  .stc-stats span { font-size: 13px; color: var(--muted); }
+  .stc-stats b { font-size: 20px; overflow-wrap: anywhere; }
+  .stc-stats .good b { color: var(--good); }
+  .stc-tw { overflow-x: auto; }
+  .stc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .stc td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  .stc td:first-child { text-align: left; color: var(--muted); }
+  .stc tr.tot td { font-weight: 700; color: var(--ink); }
+  @media (max-width: 520px) { .stc-stats { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { split, CANADA, US_STATES, UK_VAT, INDIA_GST, GULF_VAT, indiaParts, type Part } from '../../lib/money/sales-tax-calculator.ts';
+  const root = document.querySelector('.stc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+  const fill = (s: string, opts: [string, string][], sel: string) => { q<HTMLSelectElement>(s).innerHTML = opts.map(([v, l]) => `<option value="${v}"${v === sel ? ' selected' : ''}>${l}</option>`).join(''); };
+  const p = (r: number) => `${+r.toFixed(3)}%`;
+  fill('.stc-prov', Object.entries(CANADA).sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([k, v]) => [k, `${v.name} (${v.parts.map((x) => `${x.name} ${p(x.rate)}`).join(' + ')})`]), 'ON');
+  fill('.stc-state', US_STATES.map(([k, n, r]) => [k, `${n} (${p(r)})`]), 'CA');
+  fill('.stc-uk', UK_VAT.map((v) => [String(v.rate), v.label]), '20');
+  fill('.stc-gst', INDIA_GST.map((r) => [String(r), `${p(r)}${r === 3 ? ' (gold, silver)' : r === 0.25 ? ' (rough diamonds)' : r === 40 ? ' (luxury and sin goods)' : ''}`]), '18');
+  fill('.stc-gulf', GULF_VAT.map((g, i) => [String(i), `${g.name} (${g.rate}%)`]), '0');
+
+  const HINT: Record<string, string> = {
+    ca: 'GST, HST and PST from canada.ca and the provinces. Quebec QST is charged on the price before GST.',
+    us: 'The list shows each state\'s own rate (Tax Foundation, July 2026). Add your city and county rate: find it on your receipt or your state revenue site.',
+    uk: '20% for most things, 5% for things like home energy and child car seats, 0% for most food and children\'s clothes (gov.uk).',
+    in: 'GST rates since 22 September 2025: 5% and 18% for most goods and services, 40% for luxury and sin goods (PIB). Within one state, half is CGST and half SGST.',
+    gulf: 'Qatar and Kuwait have no VAT yet.',
+    any: 'Type any rate, for example a combined US city rate.',
+  };
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let reg = 'ca';
+
+  const parts = (): Part[] => {
+    if (reg === 'ca') return CANADA[q<HTMLSelectElement>('.stc-prov').value].parts;
+    if (reg === 'us') {
+      const st = US_STATES.find((s) => s[0] === q<HTMLSelectElement>('.stc-state').value)!;
+      const local = num('.stc-local');
+      return [{ name: `${st[1]} state`, rate: st[2] }, ...(local ? [{ name: 'Local', rate: local }] : [])];
+    }
+    if (reg === 'uk') return [{ name: 'VAT', rate: +q<HTMLSelectElement>('.stc-uk').value }];
+    if (reg === 'in') return indiaParts(+q<HTMLSelectElement>('.stc-gst').value, q<HTMLInputElement>('.stc-inter').checked);
+    if (reg === 'gulf') return [{ name: 'VAT', rate: GULF_VAT[+q<HTMLSelectElement>('.stc-gulf').value].rate }];
+    return [{ name: 'Tax', rate: num('.stc-rate') }];
+  };
+
+  const update = () => {
+    const mode = (root.querySelector('input[name=stc-mode]:checked') as HTMLInputElement).value as 'add' | 'remove';
+    const r = split(num('.stc-amt'), parts(), mode);
+    q('.stc-net').textContent = fmt(r.net);
+    q('.stc-tax').textContent = fmt(r.tax);
+    q('.stc-taxl').textContent = `Tax (${p(r.rate)})`;
+    q('.stc-gross').textContent = fmt(r.gross);
+    q('.stc-body').innerHTML = `<tr><td>Price before tax</td><td>${fmt(r.net)}</td></tr>`
+      + r.lines.map((l) => `<tr><td>${l.name} ${p(l.rate)}</td><td>${fmt(l.tax)}</td></tr>`).join('')
+      + `<tr class="tot"><td>Total</td><td>${fmt(r.gross)}</td></tr>`;
+    q('.stc-hint').textContent = HINT[reg];
+  };
+  root.querySelectorAll<HTMLButtonElement>('.stc-tabs button').forEach((b) => b.addEventListener('click', () => {
+    reg = b.dataset.r!;
+    root.querySelectorAll('.stc-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== reg; });
+    update();
+  }));
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

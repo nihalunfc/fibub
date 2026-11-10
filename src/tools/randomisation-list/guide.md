@@ -2,6 +2,7 @@
 name: Randomisation list generator
 num: 470
 shelf: science
+code: T321
 section: biostatistics
 title: "Randomisation list generator: permuted blocks, stratified randomisation and sealed envelopes"
 summary: "Make a reproducible allocation list for a trial: simple or permuted-block randomisation with fixed or random block sizes, strata, ratios such as 2:1, a seed anyone can reuse, CSV and printable sealed-envelope labels."

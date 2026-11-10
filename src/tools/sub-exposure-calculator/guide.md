@@ -2,6 +2,7 @@
 name: Sub-exposure calculator
 num: 42
 shelf: science
+code: T42
 section: astrophotography
 title: "Sub-exposure calculator for astrophotography: how long should each sub be?"
 summary: "Find the shortest sub length that buries your camera's read noise under sky noise, from a test frame or from your sky brightness. Works for one-shot colour, LRGB and narrowband, with a chart of what each length costs."

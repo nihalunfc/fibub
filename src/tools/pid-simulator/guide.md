@@ -2,6 +2,7 @@
 name: PID tuning simulator
 num: 636
 shelf: science
+code: T433
 section: control-and-robotics
 title: "PID tuning simulator: step response, Bode plot, gain and phase margins and Ziegler-Nichols gains"
 summary: "Pick a plant (first or second order, or any transfer function) with dead time, set the PID gains with sliders and see the closed-loop step response with rise time, overshoot, settling time and steady-state error, the controller output, the Bode plot with gain and phase margins, and Ziegler-Nichols starting values. Nothing is uploaded."

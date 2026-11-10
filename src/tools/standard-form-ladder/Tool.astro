@@ -1,0 +1,237 @@
+---
+// Standard form and the powers-of-ten ladder: type any number and see the decimal point hop to give a × 10ⁿ
+// (exact, from the typed digits), go back the other way, place it on a ladder of sizes from a proton to the
+// observable universe, and compare two sizes with the exponent laws. Class 11 adds significant figures and order
+// of magnitude. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sf">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg sf-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <h2 style="margin-top:12px">Write a number in standard form</h2>
+    <label class="sf-in">Number <input type="text" class="sf-x" value="384400000" autocomplete="off" spellcheck="false" inputmode="decimal" /></label>
+    <p class="ax-help">Ordinary numbers like 0.00072, or forms like 6.02e23 and 6.02 × 10^23.</p>
+    <p class="ax-err sf-err" hidden></p>
+    <p class="ax-big sf-big" aria-live="polite"></p>
+    <svg class="sm-fig sf-hop" role="img" aria-label="The digits of the number with arrows showing the decimal point moving"></svg>
+    <p class="sm-f sf-f1"></p>
+    <p class="sm-f sf-f2"></p>
+    <p class="sm-f sf-f11" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>And back again</h2>
+    <div class="ax-row sf-back">
+      <input type="text" class="sf-a" value="2.5" inputmode="decimal" aria-label="a, between 1 and 10" autocomplete="off" />
+      <span>× 10^</span>
+      <input type="number" class="sf-n" value="-6" step="1" min="-30" max="30" inputmode="numeric" aria-label="Exponent n" />
+    </div>
+    <p class="ax-err sf-berr" hidden></p>
+    <p class="sm-f sf-bf"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The powers-of-ten ladder</h2>
+    <p class="ax-help">Sizes of things in metres. Every tick is 10 times the one below. Tap a thing to put its size in the box above; the orange line is your number, read as metres.</p>
+    <svg class="sm-fig sf-lad" viewBox="0 0 340 470" role="img" aria-label="Ladder of sizes from a proton (10 to the minus 15 metres) to the observable universe (10 to the 26 metres)"></svg>
+    <p class="sm-f sf-where"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How many times bigger?</h2>
+    <div class="ax-grid">
+      <label>Bigger thing <select class="sf-c1"></select></label>
+      <label>Smaller thing <select class="sf-c2"></select></label>
+    </div>
+    <p class="sm-f sf-cf"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Type 0.00072. Which way does the point move, and why does that make the exponent negative?</li>
+      <li>Tap "atom" then "person" on the ladder. How many powers of ten apart are they?</li>
+      <li>Compare the observable universe with a proton. Can you even say the number out loud?</li>
+      <li>Class 11: type 12000 and 12000.0. Why do they have different numbers of significant figures?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type numbers without commas. Nothing is saved.</p>
+    <div class="sf-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sf .sf-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; }
+  .sf .sf-in input { flex: 1 1 10em; min-width: 0; min-height: 40px; }
+  .sf .sf-back input { width: 6em; min-height: 40px; }
+  .sf .sf-back span { font-size: 18px; }
+  .sf svg .sf-box { fill: var(--surface); stroke: var(--line); }
+  .sf svg .sf-sig { fill: var(--accent-soft); stroke: var(--accent); }
+  .sf svg .sf-arc { fill: none; stroke: var(--warn); stroke-width: 1.6; }
+  .sf svg .sf-pt { fill: var(--bad); }
+  .sf svg .sf-pt2 { fill: var(--good); }
+  .sf svg text.sf-d { font-size: 15px; font-weight: 600; }
+  .sf svg .sf-me { stroke: var(--warn); stroke-width: 3; }
+  .sf svg text.sf-tn { font-size: 11.5px; cursor: pointer; }
+  .sf svg .sf-hitr { fill: transparent; cursor: pointer; }
+  .sf svg .sf-on text.sf-tn { font-weight: 700; fill: var(--accent); }
+  .sf select { min-height: 40px; max-width: 100%; }
+</style>
+
+<script>
+  import { parseStd, plain, orderOfMagnitude, THINGS, type Std } from '../../lib/sci/stdform-j4';
+  import { stdForm, stdParts, sup, group3, nice } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const X = q<HTMLInputElement>('.sf-x');
+  let level = 8;
+  const stdText = (r: Std) => `${r.neg ? '−' : ''}${r.mant}${r.exp === 0 ? '' : ` × 10${sup(r.exp)}`}`;
+  /** Group the whole-number part of a plain decimal string in threes. */
+  const groupPlain = (s: string) => { const neg = s.startsWith('−'), t = neg ? s.slice(1) : s, [i, f] = t.split('.'); return (neg ? '−' : '') + group3(i) + (f !== undefined ? '.' + f : ''); };
+
+  function drawHop(r: Std) {
+    const svg = q<SVGSVGElement>('.sf-hop'); svg.replaceChildren();
+    // The digits as written in ordinary form, without the point; the point sits after `from` digits and moves to after 1.
+    const p = plain(r.digits, r.exp).replace('−', '');
+    const digits = p.replace('.', ''), from = p.includes('.') ? p.indexOf('.') : p.length;
+    // For a whole number with no point, the point is at the end.
+    const firstSig = digits.search(/[1-9]/), to = firstSig + 1;
+    const n = digits.length, bw = Math.min(26, 320 / Math.max(n, 1)), x0 = 170 - (n * bw) / 2;
+    svg.setAttribute('viewBox', '0 0 340 92');
+    for (let i = 0; i < n; i++) {
+      const sig = i >= firstSig && i < firstSig + r.digits.length;
+      S('rect', { x: x0 + i * bw + 1, y: 44, width: bw - 2, height: 30, rx: 4, class: sig ? 'sf-sig' : 'sf-box' }, svg);
+      S('text', { x: x0 + i * bw + bw / 2, y: 65, 'text-anchor': 'middle', class: 'sf-d', style: bw < 16 ? 'font-size:11px' : '' }, svg, digits[i]);
+    }
+    const px = (k: number) => x0 + k * bw;
+    const steps = Math.abs(from - to), dir = Math.sign(to - from);
+    if (steps && steps <= 40) for (let k = 0; k < steps; k++) {
+      const a = px(from + k * dir), b = px(from + (k + 1) * dir);
+      S('path', { d: `M${a} 40 Q${(a + b) / 2} ${22} ${b} 40`, class: 'sf-arc' }, svg);
+    }
+    S('circle', { cx: px(from), cy: 80, r: 3.5, class: 'sf-pt' }, svg);
+    S('circle', { cx: px(to), cy: 80, r: 3.5, class: 'sf-pt2' }, svg);
+    S('text', { x: 4, y: 14, class: 'sm-tick' }, svg, steps ? `red: the point now · green: after ${steps} hop${steps > 1 ? 's' : ''} ${dir < 0 ? 'left' : 'right'}` : 'the point is already after the first digit');
+  }
+
+  const LO = -16, HI = 28, Y0 = 455, Y1 = 15;
+  const yOf = (v: number) => Y0 - ((Math.log10(v) - LO) / (HI - LO)) * (Y0 - Y1);
+  let mine: number | null = null, picked = -1;
+  function drawLadder() {
+    const svg = q<SVGSVGElement>('.sf-lad'); svg.replaceChildren();
+    S('line', { x1: 170, x2: 170, y1: Y1, y2: Y0, class: 'sm-axis' }, svg);
+    for (let e = LO; e <= HI; e++) {
+      const y = yOf(10 ** e);
+      S('line', { x1: e % 4 === 0 ? 162 : 166, x2: e % 4 === 0 ? 178 : 174, y1: y, y2: y, class: 'sm-axis' }, svg);
+      if (e % 4 === 0) S('text', { x: 158, y: y + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, e === 0 ? '1 m' : `10${sup(e)}`);
+    }
+    THINGS.forEach((t, i) => {
+      const y = yOf(t.m), left = i % 2 === 0;
+      const g = S('g', { class: i === picked ? 'sf-on' : '', 'data-i': i }, svg);
+      S('line', { x1: 170, x2: left ? 130 : 210, y1: y, y2: y, class: 'sm-dash' }, g);
+      S('text', { x: left ? 126 : 214, y: y + 4, 'text-anchor': left ? 'end' : 'start', class: 'sf-tn' }, g, t.name);
+      S('rect', { x: left ? 0 : 205, y: y - 9, width: 135, height: 18, class: 'sf-hitr', 'data-i': i }, g);
+      g.addEventListener('click', () => { picked = i; X.value = String(t.m); draw(); });
+    });
+    if (mine !== null && mine > 0) {
+      const y = Math.max(Y1, Math.min(Y0, yOf(mine)));
+      S('line', { x1: 140, x2: 200, y1: y, y2: y, class: 'sf-me' }, svg);
+    }
+  }
+
+  function draw() {
+    const r = parseStd(X.value), err = q('.sf-err');
+    if (!r) { err.textContent = 'That is not a number I can read. Try 384400000, 0.00072 or 6.02e23.'; err.hidden = false; return; }
+    err.hidden = true;
+    if (r.zero) {
+      q('.sf-big').textContent = '0'; q('.sf-hop').replaceChildren();
+      q('.sf-f1').textContent = 'Zero has no standard form: no power of ten times a number from 1 to 10 makes 0.'; q('.sf-f2').textContent = ''; mine = null; drawLadder(); q('.sf-where').textContent = ''; return;
+    }
+    q('.sf-big').textContent = stdText(r);
+    drawHop(r);
+    const p = plain(r.digits, r.exp, r.neg);
+    const moved = Math.abs(r.exp);
+    q('.sf-f1').textContent = r.exp === 0 ? `${groupPlain(p)} is already between 1 and 10, so n = 0 and 10⁰ = 1.`
+      : `${groupPlain(p)}: move the decimal point ${moved} place${moved > 1 ? 's' : ''} ${r.exp > 0 ? 'left' : 'right'} to get ${r.mant}, a number from 1 up to (not including) 10. ${r.exp > 0 ? `The number was big, so n is positive: ${r.exp}` : `The number was small, so n is negative: −${-r.exp}`}.`;
+    const v = Number(`${r.neg ? '-' : ''}${r.mant}e${r.exp}`);
+    q('.sf-f2').textContent = `Check: ${r.mant} × 10${sup(r.exp)} = ${r.mant} × ${r.exp >= 0 ? group3(plain('1', r.exp)) : plain('1', r.exp)} = ${groupPlain(p)}`;
+    const f11 = q('.sf-f11'); f11.hidden = level !== 11;
+    const om = orderOfMagnitude(v);
+    f11.textContent = `Significant figures: ${r.sig} (${r.digits.split('').join(' ')}). Order of magnitude: 10${sup(om)}, because ${r.mant} is ${Math.abs(Number(r.mant)) >= Math.sqrt(10) ? 'at least' : 'less than'} √10 ≈ 3.162, so it rounds ${Math.abs(Number(r.mant)) >= Math.sqrt(10) ? 'up' : 'down'} on a log scale.`;
+    mine = r.neg ? null : v; drawLadder();
+    if (r.neg) q('.sf-where').textContent = 'Negative numbers have no place on a ladder of sizes.';
+    else {
+      const below = THINGS.filter((t) => t.m < v).at(-1), above = THINGS.find((t) => t.m > v), same = THINGS.find((t) => Math.abs(t.m - v) <= t.m * 1e-9);
+      q('.sf-where').textContent = `As a length, ${stdText(r)} m is ${below ? `bigger than ${below.say} (${stdForm(below.m, 4)} m)` : 'smaller than everything on the ladder'}${above ? `${below ? ' and ' : ''}smaller than ${above.say} (${stdForm(above.m, 4)} m)` : ''}.${same ? ` That is the size of ${same.say}.` : ''}`;
+    }
+  }
+  X.addEventListener('input', () => { picked = -1; draw(); });
+
+  // Back again.
+  const BA = q<HTMLInputElement>('.sf-a'), BN = q<HTMLInputElement>('.sf-n');
+  function back() {
+    const a = parseStd(BA.value), n = Number(BN.value), err = q('.sf-berr');
+    const av = a && !a.zero ? Number(a.mant) * 10 ** a.exp : NaN;
+    if (!a || a.zero || a.neg || !(av >= 1 && av < 10) || !Number.isInteger(n) || Math.abs(n) > 30 || BN.value.trim() === '') {
+      err.textContent = 'a must be from 1 up to (not including) 10, and n a whole number from −30 to 30.'; err.hidden = false; return;
+    }
+    err.hidden = true;
+    const p = plain(a.digits, a.exp + n);
+    q('.sf-bf').textContent = `${a.mant} × 10${sup(n)}: move the point ${Math.abs(n)} place${Math.abs(n) === 1 ? '' : 's'} ${n >= 0 ? 'right' : 'left'} = ${groupPlain(p)}`;
+  }
+  BA.addEventListener('input', back); BN.addEventListener('input', back);
+
+  // Compare.
+  const C1 = q<HTMLSelectElement>('.sf-c1'), C2 = q<HTMLSelectElement>('.sf-c2');
+  THINGS.forEach((t, i) => { for (const s of [C1, C2]) { const o = document.createElement('option'); o.value = String(i); o.textContent = `${t.name} (${stdForm(t.m, 4)} m)`; s.append(o); } });
+  C1.value = String(THINGS.findIndex((t) => t.name === 'Earth to Sun')); C2.value = String(THINGS.findIndex((t) => t.name === 'Earth to Moon'));
+  function compare() {
+    const A = THINGS[Number(C1.value)], B = THINGS[Number(C2.value)];
+    const pa = stdParts(A.m, 4), pb = stdParts(B.m, 4), ratio = A.m / B.m;
+    const raw = pa.m / pb.m;
+    q('.sf-cf').textContent = `${stdForm(A.m, 4)} ÷ ${stdForm(B.m, 4)} = (${pa.m} ÷ ${pb.m}) × 10${sup(pa.e)}⁻${pb.e < 0 ? '⁽' + sup(pb.e) + '⁾' : sup(pb.e)} = ${nice(raw, 4)} × 10${sup(pa.e - pb.e)} ≈ ${stdForm(ratio, 3)}. ${ratio >= 1 ? `${A.say[0].toUpperCase() + A.say.slice(1)} is about ${ratio < 1000 ? nice(ratio, ratio < 10 ? 2 : 0) : stdForm(ratio, 2)} times ${B.say}.` : `That is less than 1: the first thing is the smaller one.`}`;
+  }
+  C1.addEventListener('change', compare); C2.addEventListener('change', compare);
+
+  root.querySelectorAll<HTMLButtonElement>('.sf-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    root.querySelectorAll('.sf-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    draw();
+  }));
+  draw(); back(); compare();
+
+  quiz(q('.sf-quiz'), () => {
+    const out: Question[] = [];
+    const dig = () => `${randInt(1, 9)}${randInt(0, 9)}${randInt(1, 9)}`;
+    const d1 = dig(), e1 = randInt(4, 9), r1 = parseStd(plain(d1, e1))!;
+    out.push({ q: `Write ${group3(plain(d1, e1))} in standard form a × 10ⁿ. Type a and n.`, want: [Number(r1.mant), e1], ordered: true, tol: 1e-9, hint: 'a, n',
+      work: `Move the point ${e1} places left: ${r1.mant} × 10${sup(e1)}. So a = ${r1.mant} and n = ${e1}.` });
+    const d2 = `${randInt(1, 9)}${randInt(1, 9)}`, e2 = -randInt(3, 6), r2 = parseStd(plain(d2, e2))!;
+    out.push({ q: `Write ${plain(d2, e2)} in standard form a × 10ⁿ. Type a and n.`, want: [Number(r2.mant), e2], ordered: true, tol: 1e-9, hint: 'a, n',
+      work: `Move the point ${-e2} places right: ${r2.mant} × 10${sup(e2)}. So a = ${r2.mant} and n = ${e2}.` });
+    const d3 = `${randInt(1, 9)}${randInt(1, 9)}`, e3 = randInt(2, 6), r3 = parseStd(plain(d3, e3))!;
+    out.push({ q: `Write ${r3.mant} × 10${sup(e3)} as an ordinary number.`, want: [Number(plain(d3, e3))], tol: 1e-9,
+      work: `Move the point ${e3} places right: ${r3.mant} → ${plain(d3, e3)}. The answer is ${plain(d3, e3)}.` });
+    let p4 = randInt(1, 4), q4 = randInt(1, 9); while (p4 * q4 >= 10) q4 = randInt(1, 9);
+    const x4 = randInt(2, 9), y4 = randInt(-5, 9);
+    out.push({ q: `Work out (${p4} × 10${sup(x4)}) × (${q4} × 10${sup(y4)}) in standard form. Type a and n.`, want: [p4 * q4, x4 + y4], ordered: true, tol: 1e-9, hint: 'a, n',
+      work: `Multiply the fronts: ${p4} × ${q4} = ${p4 * q4}. Add the powers: ${x4} + ${y4 < 0 ? `(${y4})` : y4} = ${x4 + y4}. So a = ${p4 * q4} and n = ${x4 + y4}.` });
+    const a5 = randInt(3, 9), b5 = a5 - randInt(1, 3);
+    out.push({ q: `How many times bigger is 10${sup(a5)} m than 10${sup(b5)} m?`, want: [10 ** (a5 - b5)], tol: 1e-9,
+      work: `10${sup(a5)} ÷ 10${sup(b5)} = 10${sup(a5 - b5)} = ${10 ** (a5 - b5)}. The answer is ${10 ** (a5 - b5)}.` });
+    return out;
+  });
+</script>

@@ -2,6 +2,7 @@
 name: Lens ray tracer
 num: 932
 shelf: science
+code: T667
 section: optics-and-photonics
 title: "Lens ray tracer: trace rays through spherical lenses, spot diagram, focal length and aberrations"
 summary: "Type a lens system as a list of spherical surfaces and trace exact rays through it: focal length, f-number, image position, a spot diagram against the Airy disc, spherical aberration, ray fans, best focus, distortion and Petzval field curvature, drawn as a lens layout."

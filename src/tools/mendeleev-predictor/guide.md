@@ -2,6 +2,7 @@
 name: Mendeleev's predictions
 num: 1358
 shelf: learn
+code: L220
 section: school-chemistry
 title: "Mendeleev's periodic table predictions: hide an element and predict its atomic mass and density from its neighbours, like eka-silicon (germanium)"
 summary: "Do what Mendeleev did: hide germanium, gallium, arsenic, selenium, tin or antimony, predict its atomic mass or density as the average of the four elements around it in the table, then reveal how close you got. With his famous predictions for eka-aluminium, eka-boron and eka-silicon."

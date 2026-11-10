@@ -2,6 +2,7 @@
 name: Travelling wave
 num: 1063
 shelf: learn
+code: L27
 section: school-physics
 title: "Travelling wave: y = A sin(kx − ωt), wave speed v = ω/k, one particle tracked, superposition, standing waves and beats"
 summary: "Watch a wave move along a string while one particle just goes up and down. Change the amplitude, wavelength, period and direction; add a second wave to see superposition and standing waves; and hear beats between two close tones."

@@ -1,0 +1,72 @@
+---
+// #1745 Car loan
+---
+<div class="tool-ui cr">
+  <section class="panel">
+    <div class="cr-grid">
+      <label>Vehicle price <input data-k="price" inputmode="decimal" value="30000" /></label>
+      <label>Trade-in value <input data-k="trade" inputmode="decimal" value="5000" /></label>
+      <label>Cash down payment <input data-k="down" inputmode="decimal" value="2000" /></label>
+      <label>Sales tax (%) <input data-k="tax" inputmode="decimal" value="8" /></label>
+      <label>Fees (registration, dealer) <input data-k="fees" inputmode="decimal" value="500" /></label>
+      <label>Interest rate a year (%) <input data-k="rate" inputmode="decimal" value="6" /></label>
+      <label>Length (months) <input data-k="months" inputmode="decimal" value="60" /></label>
+      <label>Balloon at the end (% of price) <input data-k="balloon" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="cr-check"><input type="checkbox" data-k="net" checked /> Tax only on price minus trade-in (allowed in many US states and some provinces; untick if you are taxed on the full price)</label>
+    <label class="cr-check"><input type="checkbox" data-k="finfees" checked /> Add the fees to the loan</label>
+    <p class="cr-fine">Works for a car, bike, scooter or truck: just use that vehicle's price. A balloon is a lump sum you still owe at the end of the term (common in leases and "balloon" finance); it lowers the payment but you must pay it, refinance it or hand the vehicle back.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="cr-big"></p>
+    <dl class="cr-rows"></dl>
+    <p class="cr-warn" role="alert"></p>
+  </section>
+  <p class="cr-fine">Not financial or tax advice. Sales tax rules differ by state, province and country, so check your own tax office. Lenders may round differently; use their quote for the final figure. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cr .panel { padding: 16px; }
+  .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .cr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cr input:not([type=checkbox]), .cr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cr input:focus, .cr select:focus { border-color: var(--accent); outline: none; }
+  .cr label.cr-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .cr input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .cr-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .cr-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .cr-rows dt { color: var(--muted); } .cr-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cr-warn { color: var(--bad); margin: 10px 0 0; } .cr-warn:empty { display: none; }
+  .cr-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .cr-h { font-size: 16px; margin: 0 0 8px; }
+  .cr-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .cr-scroll { overflow-x: auto; }
+  .cr-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cr-tab th, .cr-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cr-tab th:first-child, .cr-tab td:first-child { text-align: left; }
+  .cr-best { color: var(--good); }
+</style>
+
+<script>
+  import { car } from '../../lib/money/borrowing';
+  const root = document.querySelector('.cr') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const calc = () => {
+    const price = num('price'), months = Math.round(num('months'));
+    if (!(price > 0) || !(months >= 1 && months <= 120) || num('rate') < 0 || num('balloon') < 0 || num('balloon') > 80) {
+      $('.cr-big').textContent = ''; $('.cr-rows').innerHTML = ''; $('.cr-warn').textContent = 'Type a price, 1 to 120 months, a rate, and a balloon of 0 to 80%.'; return;
+    }
+    const r = car({ price, trade: num('trade'), down: num('down'), taxPct: num('tax'), taxOnNet: q('net').checked, fees: num('fees'), financeFees: q('finfees').checked, ratePct: num('rate'), months, balloonPct: num('balloon') });
+    $('.cr-big').textContent = `${m2(r.payment)} a month`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.cr-rows').innerHTML = line('Sales tax', m2(r.tax)) + line('Amount borrowed', m2(r.loan)) + (r.balloon > 0 ? line('Balloon due at the end', m2(r.balloon)) : '') +
+      line('Total interest', m2(r.interest)) + line('Total of the loan payments', m2(r.totalPaid)) + line('Cash you pay at the start', m2(r.cashNow)) + line('Total cost (loan + cash, not counting the trade-in)', m2(r.totalCost));
+    $('.cr-warn').textContent = r.loan <= 0 ? 'Your trade-in and down payment cover everything, so there is nothing to borrow.' : months > 84 ? 'Loans over 7 years often leave you owing more than the vehicle is worth for a long time.' : '';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

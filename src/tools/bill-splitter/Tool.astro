@@ -1,0 +1,111 @@
+---
+// #1748 Bill splitter
+---
+<div class="tool-ui bs">
+  <section class="panel">
+    <h2>Who shares the bills</h2>
+    <p class="bs-help">Fill in only the columns you use. <b>Share %</b> is for a split you agreed, <b>room size</b> (any unit) for rent by room, <b>income</b> (per month) for a split by what each person earns.</p>
+    <div class="bs-head bs-prow"><span>Name</span><span>Share %</span><span>Room size</span><span>Income</span><span></span></div>
+    <div class="bs-people"></div>
+    <button type="button" class="bs-btn bs-addp">Add a person</button>
+  </section>
+  <section class="panel">
+    <h2>The bills</h2>
+    <div class="bs-head bs-brow"><span>Bill</span><span>Amount</span><span>Split</span><span></span></div>
+    <div class="bs-bills"></div>
+    <button type="button" class="bs-btn bs-addb">Add a bill</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <h2>Who pays what</h2>
+    <div class="bs-scroll"><table class="bs-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+    <p class="bs-note"></p>
+    <button type="button" class="bs-btn bs-csv">Download CSV</button>
+  </section>
+  <section class="panel bs-keep">
+    <label><input type="checkbox" class="bs-remember" /> Remember these names and numbers on this device</label>
+    <p class="bs-fine">Off by default. If you tick it, they are kept in this browser only and never sent anywhere. <button type="button" class="bs-link bs-clear">Clear saved data</button></p>
+  </section>
+  <p class="bs-fine">Everything is worked out in your browser. Shares are rounded to the cent and always add up to the exact bill. Use any currency.</p>
+</div>
+
+<style is:inline>
+  .bs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .bs .panel { padding: 16px; }
+  .bs h2 { font-size: 17px; margin: 0 0 8px; }
+  .bs-help, .bs-fine, .bs-note { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  .bs-head, .bs-row { display: grid; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .bs-prow { grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)) 34px; }
+  .bs-brow { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) 34px; }
+  .bs-head { font-size: 12px; color: var(--muted); }
+  .bs input:not([type=checkbox]), .bs select { font: inherit; color: var(--ink); padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .bs input:focus, .bs select:focus { border-color: var(--accent); outline: none; }
+  .bs-btn { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; margin-top: 6px; }
+  .bs-x { font: inherit; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .bs-link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+  .bs-scroll { overflow-x: auto; }
+  .bs-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .bs-table th, .bs-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  .bs-table th:first-child, .bs-table td:first-child { text-align: left; }
+  .bs-table tfoot td { font-weight: 700; }
+  .bs-keep label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .bs input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { splitBills, type SplitBy } from '../../lib/money/splitting';
+  import { downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.bs') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-bill-splitter-v1';
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const f = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const BY: [SplitBy, string][] = [['equal', 'Equally'], ['share', 'By share %'], ['room', 'By room size'], ['income', 'By income']];
+  const ppl = q('.bs-people'), bills = q('.bs-bills');
+  const addP = (name = '', share = '', room = '', income = '') => {
+    const d = document.createElement('div'); d.className = 'bs-row bs-prow bs-p';
+    d.innerHTML = `<input data-f="name" aria-label="Name" value="${esc(name)}" /><input data-f="share" inputmode="decimal" aria-label="Share percent" value="${share}" /><input data-f="room" inputmode="decimal" aria-label="Room size" value="${room}" /><input data-f="income" inputmode="decimal" aria-label="Monthly income" value="${income}" /><button type="button" class="bs-x" aria-label="Remove person">×</button>`;
+    ppl.append(d);
+  };
+  const addB = (name = '', amount = '', by: SplitBy = 'equal') => {
+    const d = document.createElement('div'); d.className = 'bs-row bs-brow bs-b';
+    d.innerHTML = `<input data-f="name" aria-label="Bill name" value="${esc(name)}" /><input data-f="amount" inputmode="decimal" aria-label="Amount" value="${amount}" /><select data-f="by" aria-label="Split">${BY.map(([v, l]) => `<option value="${v}"${v === by ? ' selected' : ''}>${l}</option>`).join('')}</select><button type="button" class="bs-x" aria-label="Remove bill">×</button>`;
+    bills.append(d);
+  };
+  const val = (r: Element, f: string) => (r.querySelector(`[data-f="${f}"]`) as HTMLInputElement).value;
+  const numv = (s: string) => { const v = parseFloat(s.replace(/[^\d.-]/g, '')); return Number.isFinite(v) ? v : 0; };
+  const read = () => ({
+    people: [...ppl.children].map((r, i) => ({ name: val(r, 'name').trim() || `Person ${i + 1}`, share: numv(val(r, 'share')), room: numv(val(r, 'room')), income: numv(val(r, 'income')), raw: ['share', 'room', 'income'].map((k) => val(r, k)) })),
+    bills: [...bills.children].map((r, i) => ({ name: val(r, 'name').trim() || `Bill ${i + 1}`, amount: numv(val(r, 'amount')), by: val(r, 'by') as SplitBy })),
+  });
+  let last: { head: string[]; body: string[][]; foot: string[] } | null = null;
+  const run = () => {
+    const { people, bills: bl } = read();
+    const r = splitBills(people, bl);
+    const head = ['Bill', 'Amount', ...people.map((p) => p.name)];
+    const body = bl.map((b, i) => [b.name, f(Math.round(b.amount * 100)), ...r.rows[i].map(f)]);
+    const foot = ['Total', f(r.grand), ...r.totals.map(f)];
+    last = { head, body, foot };
+    q('.bs-table thead').innerHTML = '<tr>' + head.map((h) => `<th>${esc(h)}</th>`).join('') + '</tr>';
+    q('.bs-table tbody').innerHTML = body.map((row) => '<tr>' + row.map((c, k) => `<td>${k === 0 ? esc(c) : c}</td>`).join('') + '</tr>').join('');
+    q('.bs-table tfoot').innerHTML = '<tr>' + foot.map((c, k) => `<td>${k === 0 ? 'Total' : c}</td>`).join('') + '</tr>';
+    const miss = bl.filter((b) => b.by !== 'equal' && !people.some((p) => (b.by === 'share' ? p.share : b.by === 'room' ? p.room : p.income) > 0)).map((b) => b.name);
+    q('.bs-note').textContent = miss.length ? `Nothing is shared yet for ${miss.join(', ')}: fill in that column for at least one person.` : '';
+    store();
+  };
+  const store = () => { try { if (q<HTMLInputElement>('.bs-remember').checked) { const { people, bills: bl } = read(); localStorage.setItem(KEY, JSON.stringify({ p: people.map((p) => [p.name, ...p.raw]), b: bl.map((b) => [b.name, b.amount || '', b.by]) })); } } catch {} };
+  let saved: any = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved?.p?.length) { q<HTMLInputElement>('.bs-remember').checked = true; saved.p.forEach((p: any[]) => addP(p[0], p[1], p[2], p[3])); (saved.b || []).forEach((b: any[]) => addB(b[0], String(b[1]), b[2])); }
+  else { addP('Sam', '', '12'); addP('Alex', '', '8'); addB('Rent', '2000', 'room'); addB('Internet', '60', 'equal'); }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.classList.contains('bs-x')) { const r = t.parentElement!; if (r.parentElement!.children.length > 1 || r.classList.contains('bs-b')) r.remove(); run(); }
+  });
+  q('.bs-addp').addEventListener('click', () => { addP(); run(); });
+  q('.bs-addb').addEventListener('click', () => { addB(); run(); });
+  q('.bs-csv').addEventListener('click', () => { if (last) downloadCsv('bill-split.csv', [last.head, ...last.body, last.foot]); });
+  q('.bs-remember').addEventListener('change', () => { if (!q<HTMLInputElement>('.bs-remember').checked) { try { localStorage.removeItem(KEY); } catch {} } store(); });
+  q('.bs-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.bs-remember').checked = false; });
+  run();
+</script>

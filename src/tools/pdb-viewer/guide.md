@@ -2,6 +2,7 @@
 name: PDB structure viewer
 num: 185
 shelf: science
+code: T185
 section: structural-biology
 title: "PDB viewer: see a protein structure in 3D, with secondary structure, distances and contacts, in your browser"
 summary: "Open a PDB or mmCIF file and turn the structure in 3D: cartoon, backbone trace or every atom, coloured by chain, helix and strand, B-factor or position. List chains, residues and ligands, tap two atoms for a distance, and get every residue contact within a cutoff as a CSV. Nothing is uploaded."

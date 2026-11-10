@@ -2,6 +2,7 @@
 name: "Correspondence network visualiser"
 num: 417
 shelf: science
+code: T305
 section: digital-humanities
 title: "Correspondence network visualiser: who wrote to whom, go-betweens and circles of letter writers"
 summary: "Paste or open a list of letters (sender, recipient, date, place) and see the network of correspondents: a force-directed picture, letters per person, degree, strength, betweenness, communities by modularity, and a date filter. CSV and report downloads; nothing is uploaded."
