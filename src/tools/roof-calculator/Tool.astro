@@ -1,0 +1,139 @@
+---
+// #T874 Roof calculator
+---
+<div class="tool-ui rf">
+  <section class="panel">
+    <h3 class="rf-h">Pitch</h3>
+    <p class="rf-small">Type the pitch in any one box; the other two follow.</p>
+    <div class="rf-fields">
+      <label>Rise per 12 (x:12) <input data-p="x" inputmode="decimal" /></label>
+      <label>Degrees <input data-p="deg" inputmode="decimal" /></label>
+      <label>Percent (rise ÷ run × 100) <input data-p="pct" inputmode="decimal" /></label>
+    </div>
+    <p class="rf-factor"></p>
+  </section>
+  <div class="rf-seg rf-units" role="group" aria-label="Units">
+    <button type="button" data-u="i" aria-pressed="true">Imperial (ft)</button>
+    <button type="button" data-u="m" aria-pressed="false">Metric (m)</button>
+  </div>
+  <section class="panel">
+    <h3 class="rf-h">Roof area and shingles</h3>
+    <div class="rf-fields">
+      <label><span data-l="l">Building length (ft)</span> <input data-k="l" inputmode="decimal" /></label>
+      <label><span data-l="w">Building width (ft)</span> <input data-k="w" inputmode="decimal" /></label>
+      <label><span data-l="o">Overhang on each side (ft)</span> <input data-k="o" inputmode="decimal" /></label>
+      <label>Roof shape
+        <select data-k="shape"><option value="gable">Gable (two slopes)</option><option value="hip">Hip (four slopes)</option></select>
+      </label>
+      <label>Extra for waste (%) <input data-k="waste" inputmode="decimal" value="10" /></label>
+      <label>Bundles per square <input data-k="bps" inputmode="decimal" value="3" /></label>
+    </div>
+    <div class="rf-btns"><button type="button" class="rf-reset">Reset example</button><button type="button" class="rf-clear">Clear</button></div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="rf-big"></p>
+    <dl class="rf-dl">
+      <dt>Footprint with overhang</dt><dd class="rf-plan"></dd>
+      <dt>Roof area</dt><dd class="rf-area"></dd>
+      <dt>Squares</dt><dd class="rf-sq"></dd>
+      <dt>With waste</dt><dd class="rf-sqw"></dd>
+      <dt>Bundles</dt><dd class="rf-bundles"></dd>
+    </dl>
+    <p class="rf-note"></p>
+  </section>
+  <p class="rf-fine">One square is 100 sq ft (9.29 m²) of roof. Check the bundle count on the shingle wrapper. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rf { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rf .panel { padding: 16px; }
+  .rf-h { margin: 0 0 6px; font-size: 17px; }
+  .rf-small { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .rf-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rf-seg button, .rf-btns button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .rf-seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .rf-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .rf label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .rf input, .rf select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rf input:focus, .rf select:focus { border-color: var(--accent); outline: none; }
+  .rf-factor { margin: 12px 0 0; font-size: 15px; }
+  .rf-btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .rf-big { font-size: 26px; font-weight: 700; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .rf-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 15px; }
+  .rf-dl dt { color: var(--muted); }
+  .rf-dl dd { margin: 0; overflow-wrap: anywhere; }
+  .rf-note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+  .rf-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const EX = { i: { l: '40', w: '30', o: '1' }, m: { l: '12', w: '9', o: '0.3' } };
+  const SQFT = 0.09290304; // m² per sq ft
+  const root = document.querySelector('.rf') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (s: string) => root.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
+  const p = (s: string) => root.querySelector(`[data-p="${s}"]`) as HTMLInputElement;
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  let units: 'i' | 'm' = 'i';
+  let slope = 0.5; // rise ÷ run
+
+  // Typing in one pitch box sets the slope and rewrites the other two.
+  const fromBox = (which: string) => {
+    const t = p(which).value.trim(), v = +t;
+    if (t === '' || !Number.isFinite(v) || v < 0 || (which === 'deg' && v >= 90)) { slope = NaN; }
+    else slope = which === 'x' ? v / 12 : which === 'pct' ? v / 100 : Math.tan((v * Math.PI) / 180);
+    if (Number.isFinite(slope)) {
+      if (which !== 'x') p('x').value = String(+(slope * 12).toFixed(2));
+      if (which !== 'deg') p('deg').value = String(+((Math.atan(slope) * 180) / Math.PI).toFixed(2));
+      if (which !== 'pct') p('pct').value = String(+(slope * 100).toFixed(2));
+    }
+    calc();
+  };
+  const clearOut = (msg: string) => { q('.rf-big').textContent = ''; for (const c of ['plan', 'area', 'sq', 'sqw', 'bundles']) q('.rf-' + c).textContent = '–'; q('.rf-note').textContent = msg; };
+  const calc = () => {
+    const ok = Number.isFinite(slope);
+    const factor = ok ? Math.sqrt(1 + slope * slope) : NaN;
+    q('.rf-factor').textContent = ok
+      ? `${n(slope * 12)}:12 = ${n((Math.atan(slope) * 180) / Math.PI)}° = ${n(slope * 100)}%. Pitch factor (roof area ÷ flat area): ${factor.toFixed(3)}`
+      : 'Type a pitch (degrees below 90).';
+    if (!ok) return clearOut('Type a pitch above.');
+    const v: Record<string, number> = {};
+    for (const s of ['l', 'w', 'o', 'waste', 'bps']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] < 0) return clearOut('Type the building size above.'); }
+    const L = v.l + 2 * v.o, W = v.w + 2 * v.o, plan = L * W;
+    const area = plan * factor; // hip or gable: every slope has the same pitch, so the factor is the same
+    const sqft = units === 'i' ? area : area / SQFT;
+    const sq = sqft / 100, sqw = sq * (1 + v.waste / 100), bundles = Math.ceil(sqw * v.bps - 1e-9);
+    const A = units === 'i' ? 'sq ft' : 'm²', U = units === 'i' ? 'ft' : 'm';
+    q('.rf-plan').textContent = `${n(L)} × ${n(W)} ${U} = ${n(plan)} ${A}`;
+    q('.rf-area').textContent = `${n(plan)} × ${factor.toFixed(3)} = ${n(area, 1)} ${A}` + (units === 'm' ? ` (${n(sqft, 1)} sq ft)` : ` (${n(area * SQFT, 1)} m²)`);
+    q('.rf-sq').textContent = `${n(sq)} squares`;
+    q('.rf-sqw').textContent = `${n(sqw)} squares (+${n(v.waste, 1)}%)`;
+    q('.rf-bundles').textContent = `${bundles} bundles (${n(sqw)} × ${n(v.bps)} = ${n(sqw * v.bps)}, rounded up)`;
+    q('.rf-big').textContent = `${n(area, 1)} ${A} · ${bundles} bundles`;
+    q('.rf-note').textContent = (k('shape').value === 'hip' ? 'A hip roof has the same area as a gable roof of the same pitch over the same footprint; it needs more hip and ridge caps and more cutting, so allow more waste. ' : '')
+      + 'Ridge caps, starter strips and underlay are not counted.';
+  };
+  const fill = () => {
+    for (const [s, t] of Object.entries(EX[units])) k(s).value = t;
+    k('waste').value = '10'; k('bps').value = '3';
+    p('x').value = '6'; fromBox('x');
+  };
+  const labels = () => {
+    const U = units === 'i' ? 'ft' : 'm';
+    q('[data-l="l"]').textContent = `Building length (${U})`; q('[data-l="w"]').textContent = `Building width (${U})`; q('[data-l="o"]').textContent = `Overhang on each side (${U})`;
+  };
+  root.querySelectorAll('.rf-units button').forEach((b) => b.addEventListener('click', () => {
+    const u = (b as HTMLElement).dataset.u as 'i' | 'm';
+    if (u === units) return;
+    for (const s of ['l', 'w', 'o']) { const t = k(s).value.trim(); if (t === '' || !Number.isFinite(+t)) continue; k(s).value = String(+(u === 'm' ? +t * 0.3048 : +t / 0.3048).toFixed(2)); }
+    units = u;
+    root.querySelectorAll('.rf-units button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    labels(); calc();
+  }));
+  for (const s of ['x', 'deg', 'pct']) p(s).addEventListener('input', () => fromBox(s));
+  for (const s of ['l', 'w', 'o', 'waste', 'bps']) k(s).addEventListener('input', calc);
+  k('shape').addEventListener('change', calc);
+  q('.rf-reset').addEventListener('click', fill);
+  q('.rf-clear').addEventListener('click', () => { for (const s of ['l', 'w', 'o']) k(s).value = ''; calc(); });
+  labels(); fill();
+</script>

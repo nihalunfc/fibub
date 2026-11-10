@@ -1,0 +1,132 @@
+---
+// #T873 Stair calculator
+---
+<div class="tool-ui st">
+  <div class="st-seg st-units" role="group" aria-label="Units">
+    <button type="button" data-u="i" aria-pressed="true">Imperial (in)</button>
+    <button type="button" data-u="m" aria-pressed="false">Metric (mm)</button>
+  </div>
+  <section class="panel">
+    <div class="st-fields">
+      <label><span data-l="rise">Total rise, floor to floor</span> <input data-k="rise" inputmode="decimal" /></label>
+      <label><span data-l="target">Target riser height</span> <input data-k="target" inputmode="decimal" /></label>
+      <label><span data-l="tread">Tread depth</span> <input data-k="tread" inputmode="decimal" /></label>
+      <label><span data-l="run">Total run (optional)</span> <input data-k="run" inputmode="decimal" placeholder="Leave blank to use the tread" /></label>
+      <label><span data-l="head">Headroom you have (optional)</span> <input data-k="head" inputmode="decimal" /></label>
+    </div>
+    <details class="st-lim">
+      <summary>Limits to check against (editable)</summary>
+      <div class="st-fields">
+        <label><span data-l="maxr">Highest riser</span> <input data-k="maxr" inputmode="decimal" /></label>
+        <label><span data-l="mint">Shallowest tread</span> <input data-k="mint" inputmode="decimal" /></label>
+        <label><span data-l="minh">Least headroom</span> <input data-k="minh" inputmode="decimal" /></label>
+        <label><span data-l="clo">Comfort 2R + T from</span> <input data-k="clo" inputmode="decimal" /></label>
+        <label><span data-l="chi">Comfort 2R + T to</span> <input data-k="chi" inputmode="decimal" /></label>
+      </div>
+      <p class="st-small">Defaults: 2021 International Residential Code R311.7 (riser at most 7¾ in, tread at least 10 in, headroom at least 6 ft 8 in) and the 2R + T comfort rule. Codes differ by place: check yours.</p>
+    </details>
+    <div class="st-btns"><button type="button" class="st-reset">Reset example</button><button type="button" class="st-clear">Clear</button></div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="st-big"></p>
+    <dl class="st-dl">
+      <dt>Risers</dt><dd class="st-risers"></dd>
+      <dt>Treads</dt><dd class="st-treads"></dd>
+      <dt>Total run</dt><dd class="st-run"></dd>
+      <dt>Stringer</dt><dd class="st-str"></dd>
+      <dt>Angle</dt><dd class="st-ang"></dd>
+    </dl>
+    <ul class="st-checks"></ul>
+  </section>
+  <p class="st-fine">Codes differ by place: check yours before you build. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .st { display: grid; gap: 14px; margin-bottom: 32px; }
+  .st-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st-seg button, .st-btns button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .st-seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .st .panel { padding: 16px; }
+  .st-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .st label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .st input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .st input:focus { border-color: var(--accent); outline: none; }
+  .st-lim { margin-top: 14px; }
+  .st-lim summary { cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+  .st-small { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .st-btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .st-big { font-size: 26px; font-weight: 700; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .st-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 15px; }
+  .st-dl dt { color: var(--muted); }
+  .st-dl dd { margin: 0; overflow-wrap: anywhere; }
+  .st-checks { margin: 12px 0 0; padding-left: 20px; font-size: 15px; display: grid; gap: 4px; }
+  .st-checks .bad { color: var(--bad); font-weight: 600; }
+  .st-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const EX = { i: { rise: '108', target: '7.5', tread: '10', run: '', head: '' }, m: { rise: '2700', target: '180', tread: '260', run: '', head: '' } };
+  const LIM = { i: { maxr: '7.75', mint: '10', minh: '80', clo: '24', chi: '25' }, m: { maxr: '196', mint: '254', minh: '2032', clo: '600', chi: '640' } };
+  const BASE: Record<string, string> = { rise: 'Total rise, floor to floor', target: 'Target riser height', tread: 'Tread depth', run: 'Total run (optional)', head: 'Headroom you have (optional)', maxr: 'Highest riser', mint: 'Shallowest tread', minh: 'Least headroom', clo: 'Comfort 2R + T from', chi: 'Comfort 2R + T to' };
+  const root = document.querySelector('.st') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (s: string) => root.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
+  let units: 'i' | 'm' = 'i';
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  // Inches also as the nearest 1/16, the way a tape measure reads.
+  const frac = (v: number) => {
+    let w = Math.floor(v), s = Math.round((v - w) * 16);
+    if (s === 16) { w++; s = 0; }
+    if (!s) return `${w}`;
+    let d = 16; while (s % 2 === 0) { s /= 2; d /= 2; }
+    return `${w ? w + ' ' : ''}${s}/${d}`;
+  };
+  const len = (v: number) => (units === 'i' ? `${n(v)} in (${frac(v)}″)` : `${n(v, 0)} mm`);
+  const clearOut = (msg: string) => { q('.st-big').textContent = ''; for (const c of ['risers', 'treads', 'run', 'str', 'ang']) q('.st-' + c).textContent = '–'; q('.st-checks').innerHTML = ''; const li = document.createElement('li'); li.textContent = msg; q('.st-checks').append(li); };
+
+  const calc = () => {
+    const v: Record<string, number> = {};
+    for (const s of ['rise', 'target', 'tread', 'maxr', 'mint', 'minh', 'clo', 'chi']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] <= 0) return clearOut('Type the rise, target riser and tread (more than 0).'); }
+    const runT = k('run').value.trim(), headT = k('head').value.trim();
+    // Round up so no riser is taller than the target.
+    const risers = Math.max(1, Math.ceil(v.rise / v.target - 1e-9));
+    const R = v.rise / risers, treads = risers - 1;
+    const T = runT !== '' && +runT > 0 && treads > 0 ? +runT / treads : v.tread;
+    const run = treads * T;
+    const str = Math.hypot(v.rise, run);
+    const ang = (Math.atan2(R, T) * 180) / Math.PI;
+    q('.st-big').textContent = `${risers} risers of ${units === 'i' ? n(R) + ' in' : n(R, 1) + ' mm'}`;
+    q('.st-risers').textContent = `${risers} of ${len(R)}`;
+    q('.st-treads').textContent = `${treads} of ${len(T)}${runT !== '' && +runT > 0 ? ' (run ÷ treads)' : ''}`;
+    q('.st-run').textContent = len(run);
+    q('.st-str').textContent = `${len(str)}: the diagonal from the floor to the top (√(rise² + run²)); buy longer stock`;
+    q('.st-ang').textContent = `${n(ang, 1)}° (riser ÷ tread)`;
+    const U = units === 'i' ? ' in' : ' mm';
+    const two = 2 * R + T;
+    const rows: [boolean, string][] = [
+      [R <= v.maxr + 1e-9, `Riser ${n(R)}${U}: ${R <= v.maxr + 1e-9 ? 'within' : 'over'} the ${n(v.maxr)}${U} limit`],
+      [T >= v.mint - 1e-9, `Tread ${n(T)}${U}: ${T >= v.mint - 1e-9 ? 'meets' : 'under'} the ${n(v.mint)}${U} minimum`],
+      [two >= v.clo - 1e-9 && two <= v.chi + 1e-9, `2R + T = ${n(two)}${U}: ${two < v.clo - 1e-9 ? 'below' : two > v.chi + 1e-9 ? 'above' : 'inside'} the ${n(v.clo)} to ${n(v.chi)}${U} comfort range`],
+    ];
+    if (headT !== '' && Number.isFinite(+headT)) rows.push([+headT >= v.minh - 1e-9, `Headroom ${n(+headT)}${U}: ${+headT >= v.minh - 1e-9 ? 'meets' : 'under'} the ${n(v.minh)}${U} minimum`]);
+    else rows.push([true, `Headroom: keep at least ${n(v.minh)}${U} clear above the tread nosings`]);
+    const ul = q('.st-checks'); ul.innerHTML = '';
+    for (const [ok, t] of rows) { const li = document.createElement('li'); li.className = ok ? 'ok' : 'bad'; li.textContent = (ok ? 'OK: ' : 'Check: ') + t; ul.append(li); }
+  };
+  const labels = () => { for (const [s, t] of Object.entries(BASE)) q(`[data-l="${s}"]`).textContent = `${t} (${units === 'i' ? 'in' : 'mm'})`; };
+  const fill = () => { for (const [s, t] of Object.entries({ ...EX[units], ...LIM[units] })) k(s).value = t; labels(); calc(); };
+  root.querySelectorAll('.st-units button').forEach((b) => b.addEventListener('click', () => {
+    const u = (b as HTMLElement).dataset.u as 'i' | 'm';
+    if (u === units) return;
+    // Convert what was typed; the limits switch to that system's own defaults.
+    for (const s of Object.keys(EX.i)) { const t = k(s).value.trim(); if (t === '' || !Number.isFinite(+t)) continue; k(s).value = String(u === 'm' ? Math.round(+t * 25.4) : +(+t / 25.4).toFixed(2)); }
+    units = u;
+    for (const [s, t] of Object.entries(LIM[u])) k(s).value = t;
+    root.querySelectorAll('.st-units button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    labels(); calc();
+  }));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  q('.st-reset').addEventListener('click', fill);
+  q('.st-clear').addEventListener('click', () => { for (const s of Object.keys(EX.i)) k(s).value = ''; calc(); });
+  fill();
+</script>
