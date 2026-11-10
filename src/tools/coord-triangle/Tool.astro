@@ -1,0 +1,209 @@
+---
+// Triangle type from coordinates: drag three points on a grid (or type them) and see whether they are collinear,
+// the side lengths, the area, and the type by sides and by angles. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ct">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg ct-lvl" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11 (slopes)</button>
+      </div>
+    </div>
+    <svg class="sm-fig ct-fig" viewBox="0 0 340 340" role="img" aria-label="A grid with three points A, B and C and the triangle they make; drag the points"></svg>
+    <p class="ax-help">Drag A, B or C. They snap to whole numbers; type in the boxes for any other value (√3 works too).</p>
+    <div class="ct-pts">
+      <label>A <input class="ct-in" data-i="0" value="1, 1" inputmode="text" aria-label="Point A as x, y" /></label>
+      <label>B <input class="ct-in" data-i="1" value="5, 1" inputmode="text" aria-label="Point B as x, y" /></label>
+      <label>C <input class="ct-in" data-i="2" value="1, 4" inputmode="text" aria-label="Point C as x, y" /></label>
+    </div>
+    <p class="ax-err ct-err" hidden></p>
+    <p class="ct-verdict" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The working</h2>
+    <ul class="sm-steps ct-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Put A, B and C on one straight line. The area becomes 0, and the two short sides add up to the long one.</li>
+      <li>Find an isosceles triangle that is also right-angled.</li>
+      <li>Type A = 0, 0, B = 2, 0 and C = 1, √3 for an equilateral triangle. Now try to make one by dragging whole-number points. You never can!</li>
+      <li>Move C until the triangle is obtuse. Which side's square is now bigger than the other two added?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="ct-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ct .ct-pts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 96px), 1fr)); gap: 8px; }
+  .ct .ct-pts label { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+  .ct .ct-pts input { flex: 1; min-width: 0; min-height: 40px; }
+  .ct .ct-verdict { font-size: 17px; font-weight: 700; margin: 10px 0 0; }
+  .ct svg .ct-tri { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .ct svg .ct-col { stroke: var(--bad); stroke-width: 2.5; }
+  .ct svg .ct-eq { stroke: var(--good); stroke-width: 2.5; }
+  .ct svg .ct-mark { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+</style>
+
+<script>
+  import { classify, angles, d2, slope, surd, type Pt } from '../../lib/sci/coord-triangle';
+  import { fmt, randInt, readNum } from '../../lib/sci/smath';
+  import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ct')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ct-fig');
+  const ins = [...root.querySelectorAll<HTMLInputElement>('.ct-in')];
+  const pts: Pt[] = [[1, 1], [5, 1], [1, 4]];
+  const N = ['A', 'B', 'C'];
+  let level = '10';
+  const U = 25, O = 170;                      // 25 px per unit, origin in the middle; grid −6 to 6
+  const X = (x: number) => O + x * U, Y = (y: number) => O - y * U;
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+  const ptText = (P: Pt) => `(${fmt(P[0], 3)}, ${fmt(P[1], 3)})`;
+  const len = (s2: number) => { const r = surd(s2); return r === null ? fmt(Math.sqrt(s2), 3) : r === fmt(Math.sqrt(s2), 0) ? r : `${r} ≈ ${fmt(Math.sqrt(s2), 3)}`; };
+  const slopeText = (m: number) => (Number.isFinite(m) ? fmt(m, 3) : 'undefined (vertical)');
+
+  function readPt(s: string): Pt | null {
+    const parts = s.replace(/[()]/g, '').split(/[,;]|\s+(?=[-−+√\d])/).map((x) => x.trim()).filter(Boolean);
+    if (parts.length !== 2) return null;
+    const v = parts.map(readNum);
+    return v.every(Number.isFinite) ? [v[0], v[1]] : null;
+  }
+
+  function draw() {
+    fig.replaceChildren();
+    for (let i = -6; i <= 6; i++) {
+      S('line', { x1: X(i), y1: Y(-6.6), x2: X(i), y2: Y(6.6), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      S('line', { x1: X(-6.6), y1: Y(i), x2: X(6.6), y2: Y(i), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      if (i && i % 2 === 0) { S('text', { x: X(i), y: Y(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(i, 0)); S('text', { x: X(0) - 6, y: Y(i) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(i, 0)); }
+    }
+    const k = classify(pts[0], pts[1], pts[2]);
+    const [A, B, C] = pts;
+    const P = pts.map((p) => [X(p[0]), Y(p[1])] as Pt);
+    if (k.collinear) {
+      for (const [i, j] of [[0, 1], [1, 2], [2, 0]]) S('line', { x1: P[i][0], y1: P[i][1], x2: P[j][0], y2: P[j][1], class: 'ct-col' }, fig);
+    } else {
+      S('polygon', { points: P.map((p) => p.join(',')).join(' '), class: 'ct-tri' }, fig);
+      // Green sides are the equal ones; a tick mark on each.
+      const names = ['AB', 'BC', 'CA'];
+      for (const [n, [i, j]] of [[0, [0, 1]], [1, [1, 2]], [2, [2, 0]]] as [number, number[]][]) {
+        const eq = k.equalPairs.includes(names[n] as 'AB');
+        const mx = (P[i][0] + P[j][0]) / 2, my = (P[i][1] + P[j][1]) / 2;
+        if (eq) {
+          S('line', { x1: P[i][0], y1: P[i][1], x2: P[j][0], y2: P[j][1], class: 'ct-eq' }, fig);
+          const dx = P[j][0] - P[i][0], dy = P[j][1] - P[i][1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * 6, ny = dx / L * 6;
+          S('line', { x1: mx - nx, y1: my - ny, x2: mx + nx, y2: my + ny, class: 'ct-mark', style: 'stroke-width:2' }, fig);
+        }
+      }
+      if (k.byAngles === 'right' && k.at) {
+        const v = N.indexOf(k.at), Vp = P[v], a = P[(v + 1) % 3], b = P[(v + 2) % 3];
+        const u = (T: Pt) => { const dx = T[0] - Vp[0], dy = T[1] - Vp[1], L = Math.hypot(dx, dy) || 1; return [dx / L * 12, dy / L * 12]; };
+        const [ux, uy] = u(a), [wx, wy] = u(b);
+        S('polyline', { points: `${Vp[0] + ux},${Vp[1] + uy} ${Vp[0] + ux + wx},${Vp[1] + uy + wy} ${Vp[0] + wx},${Vp[1] + wy}`, class: 'ct-mark' }, fig);
+      }
+    }
+    const cx = (P[0][0] + P[1][0] + P[2][0]) / 3, cy = (P[0][1] + P[1][1] + P[2][1]) / 3;
+    P.forEach((p, i) => {
+      S('circle', { cx: p[0], cy: p[1], r: 20, class: 'sm-hit' }, fig);
+      S('circle', { cx: p[0], cy: p[1], r: 8, class: `sm-handle ct-h${i}` }, fig);
+      const dx = p[0] - cx, dy = p[1] - cy, L = Math.hypot(dx, dy) || 1;
+      S('text', { x: p[0] + dx / L * 18, y: p[1] + dy / L * 18 + 5, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, N[i]);
+    });
+
+    // Verdict and working.
+    const [ab, bc, ca] = k.sides, f = (x: number) => fmt(x, 3);
+    let verdict: string;
+    if (k.same) verdict = 'Two or more points are the same point: no triangle.';
+    else if (k.collinear) verdict = `Collinear: A, B and C lie on one straight line (${k.middle} is between the other two). No triangle.`;
+    else verdict = `${k.bySides![0].toUpperCase()}${k.bySides!.slice(1)} and ${k.byAngles}-angled triangle${k.at ? ` (${k.byAngles} angle at ${k.at})` : ''}.`;
+    q('.ct-verdict').textContent = verdict;
+    const sq = (P1: Pt, P2: Pt) => `(${f(P2[0])} − ${f(P1[0])})² + (${f(P2[1])} − ${f(P1[1])})²`.replace(/− −/g, '+ ');
+    const rows = [
+      `AB² = ${sq(A, B)} = ${f(ab)}, so AB = ${len(ab)}`,
+      `BC² = ${sq(B, C)} = ${f(bc)}, so BC = ${len(bc)}`,
+      `CA² = ${sq(C, A)} = ${f(ca)}, so CA = ${len(ca)}`,
+      `Area = ½ |x₁(y₂ − y₃) + x₂(y₃ − y₁) + x₃(y₁ − y₂)| = ½ |${f(A[0])}(${f(B[1])} − ${f(C[1])}) + ${f(B[0])}(${f(C[1])} − ${f(A[1])}) + ${f(C[0])}(${f(A[1])} − ${f(B[1])})| = ${f(k.area)} square units`,
+    ];
+    if (k.collinear && !k.same) {
+      const s = [Math.sqrt(ab), Math.sqrt(bc), Math.sqrt(ca)].sort((x, y) => x - y);
+      rows.push(`The area is 0, so the points are collinear. Check: the two shorter lengths add to the longest, ${f(s[0])} + ${f(s[1])} = ${f(s[2])}.`);
+    } else if (!k.same) {
+      const names = ['AB²', 'BC²', 'CA²'], i = k.sides.indexOf(Math.max(...k.sides)), o = [0, 1, 2].filter((j) => j !== i);
+      rows.push(`By sides: ${k.bySides === 'scalene' ? 'no two sides are equal, so it is scalene' : k.bySides === 'equilateral' ? 'all three sides are equal, so it is equilateral' : `${k.equalPairs.join(' = ')}, so it is isosceles`}.`);
+      rows.push(`By angles: the longest side squared is ${names[i]} = ${f(k.sides[i])}; the other two add to ${names[o[0]]} + ${names[o[1]]} = ${f(k.sides[o[0]] + k.sides[o[1]])}. ${k.byAngles === 'right' ? 'They are equal, so by the converse of Pythagoras the angle opposite is 90°.' : k.byAngles === 'obtuse' ? 'It is bigger, so the angle opposite is more than 90° (obtuse).' : 'It is smaller, so every angle is less than 90° (acute).'}`);
+      const an = angles(A, B, C);
+      rows.push(`Angles: A = ${fmt(an[0], 1)}°, B = ${fmt(an[1], 1)}°, C = ${fmt(an[2], 1)}° (they add to 180°).`);
+    }
+    if (level === '11' && !k.same) {
+      const m = [slope(A, B), slope(B, C), slope(C, A)];
+      rows.push(`Slopes: AB = ${slopeText(m[0])}, BC = ${slopeText(m[1])}, CA = ${slopeText(m[2])}.`);
+      if (k.collinear) rows.push('Collinear points: all three slopes are the same (or all vertical).');
+      else if (k.byAngles === 'right') {
+        const pr = k.at === 'A' ? [m[2], m[0]] : k.at === 'B' ? [m[0], m[1]] : [m[1], m[2]];
+        rows.push(Number.isFinite(pr[0]) && Number.isFinite(pr[1]) && pr[0] !== 0 && pr[1] !== 0
+          ? `The two sides at ${k.at} are perpendicular: ${fmt(pr[0], 3)} × ${fmt(pr[1], 3)} = ${fmt(pr[0] * pr[1], 3)}.`
+          : `The two sides at ${k.at} are perpendicular: one is horizontal and the other vertical.`);
+      }
+    }
+    q('.ct-out').replaceChildren(...rows.map(li));
+  }
+
+  function fromPts() { ins.forEach((b, i) => { b.value = `${fmt(pts[i][0], 3)}, ${fmt(pts[i][1], 3)}`; }); }
+  ins.forEach((b) => b.addEventListener('input', () => {
+    const p = readPt(b.value), err = q('.ct-err');
+    if (!p) { err.textContent = `Type ${N[Number(b.dataset.i)]} as two numbers, x and y, such as 2, −3.`; err.hidden = false; return; }
+    if (Math.abs(p[0]) > 50 || Math.abs(p[1]) > 50) { err.textContent = 'Keep coordinates between −50 and 50.'; err.hidden = false; return; }
+    err.hidden = true; pts[Number(b.dataset.i)] = p; draw();
+  }));
+  dragOn(fig, (x, y) => {
+    let best = -1, bd = 30;
+    pts.forEach((p, i) => { const d = Math.hypot(x - X(p[0]), y - Y(p[1])); if (d < bd) { bd = d; best = i; } });
+    return best < 0 ? null : String(best);
+  }, (id, x, y) => {
+    const c = (v: number) => Math.max(-6, Math.min(6, Math.round(v)));
+    pts[Number(id)] = [c((x - O) / U), c((O - y) / U)]; q('.ct-err').hidden = true; fromPts(); draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.ct-lvl button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.l!; root.querySelectorAll('.ct-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  draw();
+
+  const P2 = (p: Pt) => `(${fmt(p[0], 0)}, ${fmt(p[1], 0)})`;
+  quiz(q('.ct-quiz'), () => {
+    const out: Question[] = [];
+    { // Collinear or not: the area.
+      const A: Pt = [randInt(-5, 0), randInt(-5, 0)], dx = randInt(1, 3), dy = randInt(-3, 3), t = randInt(2, 3);
+      const C: Pt = Math.random() < 0.5 ? [A[0] + t * dx, A[1] + t * dy] : [A[0] + t * dx, A[1] + t * dy + randInt(1, 2)];
+      const B: Pt = [A[0] + dx, A[1] + dy], ar = Math.abs(A[0] * (B[1] - C[1]) + B[0] * (C[1] - A[1]) + C[0] * (A[1] - B[1])) / 2;
+      out.push({ q: `Find the area of the triangle with vertices ${P2(A)}, ${P2(B)} and ${P2(C)}. If the points are collinear, type 0.`, want: [ar], hint: 'square units', work: `½ |${A[0]}(${B[1]} − ${C[1]}) + ${B[0]}(${C[1]} − ${A[1]}) + ${C[0]}(${A[1]} − ${B[1]})| = ${fmt(ar, 2)}${ar === 0 ? ', so the points are collinear' : ' square units'}.`.replace(/-(\d)/g, '−$1').replace(/− −/g, '+ ') });
+    }
+    { // Find k for collinearity.
+      const A: Pt = [randInt(-4, 0), randInt(-4, 2)], m = randInt(-2, 3, true), B: Pt = [A[0] + 1, A[1] + m], x = A[0] + randInt(2, 4), k = A[1] + m * (x - A[0]);
+      out.push({ q: `For what value of k are the points ${P2(A)}, ${P2(B)} and (${fmt(x, 0)}, k) collinear?`, want: [k], hint: 'k', work: `The slope from A to B is ${m}, so k = ${A[1]} + (${m}) × (${x} − ${A[0]}) = ${k}. (Or set the area to 0 and solve.)`.replace(/-(\d)/g, '−$1').replace(/− −/g, '+ ') });
+    }
+    { // Right triangle area.
+      const A: Pt = [randInt(-3, 1), randInt(-3, 1)], a = randInt(1, 3), b = randInt(-2, 2, true), s = randInt(1, 2);
+      const B: Pt = [A[0] + a, A[1] + b], C: Pt = [A[0] - s * b, A[1] + s * a], ar = (s * (a * a + b * b)) / 2;
+      out.push({ q: `The triangle ${P2(A)}, ${P2(B)}, ${P2(C)} has a right angle. Find its area.`, want: [ar], hint: 'square units', work: `AB² = ${a * a + b * b} and AC² = ${s * s * (a * a + b * b)}; BC² = ${d2(B, C)} = AB² + AC², so the right angle is at A. Area = ½ × AB × AC = ½ × √${a * a + b * b} × √${s * s * (a * a + b * b)} = ${fmt(ar, 2)}.` });
+    }
+    { // Equidistant point on the x-axis.
+      const pairs: Pt[] = [[3, 4], [4, 3], [5, 0], [0, 5], [-3, 4], [-4, 3], [3, -4], [4, -3]];
+      const x = randInt(-3, 3); let u: Pt, v: Pt;
+      do { u = pairs[randInt(0, 7)]; v = pairs[randInt(0, 7)]; } while (u[0] === -v[0] ? true : false);
+      const A: Pt = [x - u[0], u[1]], B: Pt = [x + v[0], v[1]];
+      out.push({ q: `Find the point (x, 0) on the x-axis that is the same distance from ${P2(A)} and ${P2(B)}. Type x.`, want: [x], hint: 'x', work: `Set (x − ${A[0]})² + ${A[1]}² = (x − ${B[0]})² + ${B[1]}². The x² cancel and x = ${x}; both distances are 5.`.replace(/-(\d)/g, '−$1').replace(/− −/g, '+ ') });
+    }
+    return out;
+  });
+</script>
