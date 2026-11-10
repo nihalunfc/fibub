@@ -20,7 +20,7 @@ import '../../styles/learnquiz-d.css';
 
   <div class="ax-card">
     <h2>Population from fission</h2>
-    <div class="sm-sl"><b>N₀</b><input type="range" class="rp-nr" min="1" max="100" step="1" value="1" aria-label="Starting cells slider" /><input type="number" class="rp-n" min="1" step="1" value="1" inputmode="numeric" aria-label="Starting number of cells" /></div>
+    <div class="sm-sl"><b>N₀</b><input type="range" class="rp-n0r" min="1" max="100" step="1" value="1" aria-label="Starting cells slider" /><input type="number" class="rp-n0" min="1" step="1" value="1" inputmode="numeric" aria-label="Starting number of cells" /></div>
     <div class="sm-sl"><b>T</b><input type="range" class="rp-dr" min="10" max="120" step="1" value="20" aria-label="Doubling time slider" /><input type="number" class="rp-d" min="1" step="1" value="20" inputmode="numeric" aria-label="Doubling time in minutes" /></div>
     <div class="sm-sl"><b>t</b><input type="range" class="rp-hr" min="0" max="720" step="5" value="180" aria-label="Time slider" /><input type="number" class="rp-h" min="0" step="5" value="180" inputmode="numeric" aria-label="Time in minutes" /></div>
     <label class="ax-check"><input type="checkbox" class="rp-log" /> Log scale (each grid line is ×10)</label>
@@ -161,8 +161,8 @@ import '../../styles/learnquiz-d.css';
   });
   draw();
 
-  const N0 = q<HTMLInputElement>('.rp-n'), DT = q<HTMLInputElement>('.rp-d'), HT = q<HTMLInputElement>('.rp-h');
-  pair(q('.rp-nr'), N0, pop); pair(q('.rp-dr'), DT, pop); pair(q('.rp-hr'), HT, pop); q('.rp-log').addEventListener('change', pop);
+  const N0 = q<HTMLInputElement>('.rp-n0'), DT = q<HTMLInputElement>('.rp-d'), HT = q<HTMLInputElement>('.rp-h');
+  pair(q('.rp-n0r'), N0, pop); pair(q('.rp-dr'), DT, pop); pair(q('.rp-hr'), HT, pop); q('.rp-log').addEventListener('change', pop);
   function pop() {
     const n0 = Math.round(val(N0, 1, 1)), Td = val(DT, 20, 1), t = val(HT, 180, 0), log = q<HTMLInputElement>('.rp-log').checked, N = cells(n0, t, Td);
     const g = q<SVGSVGElement>('.rp-graph'); g.replaceChildren();
