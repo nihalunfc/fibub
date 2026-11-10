@@ -1,0 +1,104 @@
+---
+// #T924 Screen recorder: record a screen, window or tab with the browser's own screen sharing and save it as WebM. Nothing is uploaded.
+---
+<div class="tool-ui scr">
+  <p class="note warn scr-none" hidden>This browser cannot record the screen. Most phones and tablets do not allow it; use Chrome, Edge or Firefox on a computer.</p>
+  <section class="panel scr-set">
+    <div class="scr-grid">
+      <label>Countdown before recording
+        <select class="scr-count"><option value="0">None</option><option value="3" selected>3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select>
+      </label>
+      <label class="scr-check"><input class="scr-audio" type="checkbox" checked /> Record sound from the tab or screen, if your browser offers it</label>
+    </div>
+    <p class="scr-help">Your browser asks what to share: a whole screen, one window or one tab. The microphone is never used.</p>
+    <div class="scr-row">
+      <button type="button" class="btn scr-start">Choose what to record</button>
+      <button type="button" class="btn secondary scr-pause" hidden>Pause</button>
+      <button type="button" class="btn secondary scr-stop" hidden>Stop</button>
+    </div>
+    <p class="scr-status" aria-live="polite"></p>
+    <p class="scr-timer" hidden>00:00</p>
+  </section>
+
+  <section class="panel scr-out" hidden>
+    <video class="scr-result" controls playsinline></video>
+    <p class="scr-res" aria-live="polite"></p>
+    <div class="scr-row"><a class="btn scr-dl" download="screen-recording.webm" href="#">Download the recording (WebM)</a></div>
+  </section>
+  <p class="scr-fine">The recording is made and kept by your browser on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .scr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .scr .panel { display: grid; gap: 12px; padding: 16px; }
+  .scr .note { margin: 0; }
+  .scr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .scr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; align-items: end; }
+  .scr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .scr label.scr-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .scr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .scr-help, .scr-fine, .scr-status { color: var(--muted); font-size: 14px; margin: 0; }
+  .scr-timer { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 0; }
+  .scr-result { width: 100%; max-height: 360px; background: #000; border-radius: 10px; }
+  .scr-res { margin: 0; font-weight: 600; }
+</style>
+
+<script>
+  const root = document.querySelector('.scr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const start = $<HTMLButtonElement>('.scr-start'), pause = $<HTMLButtonElement>('.scr-pause'), stop = $<HTMLButtonElement>('.scr-stop');
+  const count = $<HTMLSelectElement>('.scr-count'), audio = $<HTMLInputElement>('.scr-audio'), status = $('.scr-status'), timer = $('.scr-timer');
+  const out = $('.scr-out'), result = $<HTMLVideoElement>('.scr-result'), res = $('.scr-res'), dl = $<HTMLAnchorElement>('.scr-dl');
+  let stream: MediaStream | null = null, rec: MediaRecorder | null = null, chunks: Blob[] = [], url = '';
+  let ran = 0, since = 0, tick = 0, cancelCount = false;
+
+  const supported = () => typeof navigator.mediaDevices?.getDisplayMedia === 'function' && typeof MediaRecorder !== 'undefined';
+  if (!supported()) { $('.scr-none').hidden = false; start.disabled = true; audio.disabled = true; count.disabled = true; }
+
+  const mmss = (ms: number) => { const s = Math.floor(ms / 1000); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+  const elapsed = () => ran + (rec?.state === 'recording' ? performance.now() - since : 0);
+  const mb = (b: number) => (b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
+  const pickType = (a: boolean) => (a ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus'] : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8']).concat('video/webm').find((t) => MediaRecorder.isTypeSupported(t)) || '';
+  const idle = () => { start.hidden = false; start.disabled = !supported(); pause.hidden = true; stop.hidden = true; count.disabled = audio.disabled = false; };
+  const release = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; clearInterval(tick); };
+
+  const finish = () => {
+    if (!rec) { release(); idle(); return; }
+    if (rec.state !== 'inactive') { ran = elapsed(); rec.stop(); }
+  };
+
+  start.addEventListener('click', async () => {
+    out.hidden = true; status.textContent = '';
+    try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: audio.checked }); }
+    catch { status.textContent = 'Nothing is being recorded: sharing was cancelled or not allowed.'; return; }
+    const hasAudio = stream.getAudioTracks().length > 0;
+    stream.getVideoTracks()[0]?.addEventListener('ended', finish);
+    start.hidden = true; stop.hidden = false; count.disabled = audio.disabled = true; cancelCount = false;
+    for (let n = +count.value; n > 0 && !cancelCount; n--) { status.textContent = `Recording starts in ${n}…`; await new Promise((r) => setTimeout(r, 1000)); }
+    if (cancelCount || !stream) { release(); idle(); status.textContent = 'Stopped before recording began.'; return; }
+    chunks = []; ran = 0; since = performance.now();
+    const type = pickType(hasAudio);
+    rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+    rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      release(); idle(); timer.textContent = mmss(ran);
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(blob); result.src = url; dl.href = url;
+      dl.download = `screen-recording-${new Date().toISOString().slice(0, 10)}.webm`;
+      res.textContent = `Recording ready: ${mmss(ran)}, ${mb(blob.size)}, WebM${hasAudio ? ' with sound' : ', no sound'}.`;
+      status.textContent = ''; out.hidden = false; rec = null;
+    };
+    rec.start(1000);
+    pause.hidden = false; pause.textContent = 'Pause'; timer.hidden = false; timer.textContent = '00:00';
+    status.textContent = hasAudio ? 'Recording, with sound.' : 'Recording, no sound.';
+    tick = window.setInterval(() => { timer.textContent = mmss(elapsed()); }, 250);
+  });
+
+  pause.addEventListener('click', () => {
+    if (!rec) return;
+    if (rec.state === 'recording') { ran = elapsed(); rec.pause(); pause.textContent = 'Resume'; status.textContent = 'Paused. The pause is left out of the recording.'; }
+    else if (rec.state === 'paused') { since = performance.now(); rec.resume(); pause.textContent = 'Pause'; status.textContent = 'Recording again.'; }
+  });
+  stop.addEventListener('click', () => { if (!rec) { cancelCount = true; return; } finish(); });
+</script>
