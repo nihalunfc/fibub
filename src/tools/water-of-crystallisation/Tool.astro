@@ -1,0 +1,159 @@
+---
+// Water of crystallisation: heat hydrated crystals in a crucible, weigh after each heating until the mass stops
+// changing, and find x in Salt·xH₂O from the mass of water lost. Also works out x from your own three weighings.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+import { HYDRATES } from '../../lib/sci/hydrate-school';
+---
+<div class="ax sm wc">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Crystals <select class="wc-h">{HYDRATES.map((h) => <option value={h.id}>{h.name}: {h.salt}·{h.x}H₂O</option>)}</select></label>
+      <label>Mass of crystals (g) <input type="number" class="wc-m" min="0.1" max="50" step="any" value="2.495" inputmode="decimal" /></label>
+    </div>
+    <svg class="sm-fig wc-fig" viewBox="0 0 340 220" role="img" aria-label="Crucible of crystals over a burner, with the balance reading" style="margin-top:10px"></svg>
+    <p class="ax-big wc-big" aria-live="polite" style="margin:8px 0 2px"></p>
+    <p class="wc-sub" style="margin:0 0 8px"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small wc-heat">Heat 1 minute and weigh</button>
+      <button type="button" class="btn secondary small wc-const">Heat to constant mass</button>
+      <button type="button" class="btn secondary small wc-wet">Add water back</button>
+    </div>
+    <p class="ax-err wc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Weighings</h2>
+    <div class="ax-scroll"><table class="wc-tab"></table></div>
+    <ul class="sm-steps wc-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Work out x from your own results</h2>
+    <p class="ax-help">Type your three weighings in grams. The salt is the one chosen above.</p>
+    <div class="ax-grid">
+      <label>Empty crucible <input type="number" class="wc-e" step="any" value="20.000" inputmode="decimal" /></label>
+      <label>Crucible + crystals <input type="number" class="wc-w1" step="any" value="22.495" inputmode="decimal" /></label>
+      <label>After heating to constant mass <input type="number" class="wc-w2" step="any" value="21.595" inputmode="decimal" /></label>
+    </div>
+    <ul class="sm-steps wc-own"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Heat copper sulfate one minute at a time. Why do you have to keep weighing until two readings agree?</li>
+      <li>Stop after only two minutes and look at x. Not heating long enough makes x too small.</li>
+      <li>Press "Add water back" on white copper sulfate: it turns blue and warms up. This is a test for water.</li>
+      <li>Washing soda has 10 water molecules for each Na₂CO₃. What share of its mass is water?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Use H = 1, C = 12, O = 16, Na = 23, Mg = 24, S = 32, Cl = 35.5, Ca = 40, Fe = 56, Co = 59, Cu = 63.5. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .wc select { font-size: 16px; }
+  .wc svg .wc-cru { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .wc svg .wc-stand { stroke: var(--muted); stroke-width: 3; }
+  .wc svg .wc-flame { fill: var(--warn); opacity: .85; }
+  .wc svg .wc-bal { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+  .wc svg .wc-read { font: 700 18px ui-monospace, Menlo, Consolas, monospace; fill: var(--ink); }
+  .wc svg .wc-drop { fill: var(--accent); opacity: .7; }
+  .wc .wc-tab { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .wc .wc-tab th, .wc .wc-tab td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  .wc .wc-tab th:first-child, .wc .wc-tab td:first-child { text-align: left; }
+</style>
+
+<script>
+  import { HYDRATES, molarMass, split, xFromMasses, WATER, type Hydrate } from '../../lib/sci/hydrate-school';
+  import { fmt } from '../../lib/sci/smath';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, near, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.wc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.wc-fig');
+  const CRUCIBLE = 20; // g, empty crucible in the simulation
+  let mins = 0, readings: number[] = [], wetNote = false;
+  const H = (): Hydrate => HYDRATES.find((h) => h.id === q<HTMLSelectElement>('.wc-h').value) ?? HYDRATES[0];
+  const mass = () => { const v = Number(q<HTMLInputElement>('.wc-m').value); return Number.isFinite(v) && v >= 0.1 && v <= 50 ? v : NaN; };
+  // Model: the share of the water still in the crystals after t minutes of heating is e^(−t/1.5).
+  const left = (t: number) => Math.exp(-t / 1.5);
+  const round3 = (x: number) => Math.round(x * 1000) / 1000;
+  const reading = (t: number) => { const s = split(H(), mass()); return round3(CRUCIBLE + s.salt + s.water * left(t)); };
+  const mix = (a: string, b: string, k: number) => { const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; };
+
+  function draw(flame = false) {
+    const h = H(), m = mass(), err = q('.wc-err');
+    err.hidden = Number.isFinite(m); if (!Number.isFinite(m)) { err.textContent = 'Type a mass of crystals from 0.1 g to 50 g.'; return; }
+    const w = reading(mins), k = 1 - left(mins);
+    fig.replaceChildren();
+    // Tripod, burner, crucible with crystals; balance with the last reading.
+    S('line', { x1: 40, y1: 200, x2: 70, y2: 120, class: 'wc-stand' }, fig); S('line', { x1: 160, y1: 200, x2: 130, y2: 120, class: 'wc-stand' }, fig); S('line', { x1: 60, y1: 120, x2: 140, y2: 120, class: 'wc-stand' }, fig);
+    if (flame) S('path', { d: 'M 100 190 C 85 165, 95 150, 100 128 C 105 150, 115 165, 100 190 Z', class: 'wc-flame' }, fig);
+    S('path', { d: 'M 65 70 L 135 70 L 125 118 L 75 118 Z', class: 'wc-cru' }, fig);
+    const heap = S('path', { d: 'M 72 104 Q 100 78 128 104 L 126 114 L 74 114 Z' }, fig); heap.style.fill = mix(h.colours[0], h.colours[1], k); heap.style.stroke = 'var(--muted)';
+    if (k < 0.97 && mins > 0) for (let i = 0; i < 3; i++) S('circle', { cx: 88 + i * 12, cy: 55 - i * 8, r: 3, class: 'wc-drop' }, fig);
+    S('rect', { x: 200, y: 140, width: 120, height: 50, rx: 6, class: 'wc-bal' }, fig);
+    S('text', { x: 260, y: 172, 'text-anchor': 'middle', class: 'wc-read' }, fig, `${w.toFixed(3)} g`);
+    S('text', { x: 260, y: 132, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'balance: crucible + contents');
+    S('text', { x: 200, y: 40, class: 'sm-tick' }, fig, `heated ${mins} min`);
+    S('text', { x: 200, y: 58, class: 'sm-tick' }, fig, `water driven off ${fmt(k * 100, 0)} %`);
+    const constant = readings.length >= 2 && Math.abs(readings.at(-1)! - readings.at(-2)!) < 0.0015;
+    q('.wc-big').textContent = `${h.salt}·${h.x}H₂O: ${fmt(m, 3)} g of crystals`;
+    q('.wc-sub').textContent = wetNote ? `Water added back: the crystals are hydrated again and the powder warms up (hydrating gives out heat). ${h.note}` : constant ? `Constant mass reached: the last two weighings agree. ${h.note}` : mins ? 'Keep heating and weighing until two weighings in a row agree.' : 'Heat gently, let it cool, and weigh. Repeat.';
+    const rows = [`<tr><th>Weighing</th><th>Mass (g)</th><th>Change (g)</th></tr>`, `<tr><td>Empty crucible</td><td>${CRUCIBLE.toFixed(3)}</td><td></td></tr>`, `<tr><td>With crystals</td><td>${reading(0).toFixed(3)}</td><td></td></tr>`];
+    readings.forEach((r, i) => rows.push(`<tr><td>After heating ${i + 1}</td><td>${r.toFixed(3)}</td><td>${(r - (i ? readings[i - 1] : reading(0))).toFixed(3)}</td></tr>`));
+    q('.wc-tab').innerHTML = rows.join('');
+    const lines: string[] = [];
+    if (readings.length) {
+      const r = xFromMasses(h, CRUCIBLE, reading(0), readings.at(-1)!);
+      const Ms = molarMass(h.parts);
+      lines.push(`Mass of crystals = ${reading(0).toFixed(3)} − ${CRUCIBLE.toFixed(3)} = ${r.mh.toFixed(3)} g. Mass left after heating = ${readings.at(-1)!.toFixed(3)} − ${CRUCIBLE.toFixed(3)} = ${r.ms.toFixed(3)} g. Water lost = ${r.mw.toFixed(3)} g (${fmt(r.pct, 1)} % of the crystals).`);
+      lines.push(`Moles of ${h.salt} = ${r.ms.toFixed(3)} ÷ ${fmt(Ms, 1)} = ${fmt(r.nSalt, 5)} mol. Moles of water = ${r.mw.toFixed(3)} ÷ ${WATER} = ${fmt(r.nWater, 5)} mol.`);
+      lines.push(`x = moles of water ÷ moles of salt = ${fmt(r.x, 2)}${constant ? `, which rounds to ${Math.round(r.x)}: ${h.salt}·${Math.round(r.x)}H₂O.` : '. Not at constant mass yet, so this is too small: some water is still in the crystals.'}`);
+    } else lines.push(`Heat and weigh to start. In theory ${fmt(m, 3)} g of ${h.salt}·${h.x}H₂O (${fmt(split(h, m).Mh, 1)} g/mol) holds ${fmt(split(h, m).water, 3)} g of water.`);
+    q('.wc-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q<HTMLButtonElement>('.wc-heat').disabled = constant; q<HTMLButtonElement>('.wc-const').disabled = constant;
+    own();
+  }
+  function own() {
+    const h = H(), e = Number(q<HTMLInputElement>('.wc-e').value), a = Number(q<HTMLInputElement>('.wc-w1').value), b = Number(q<HTMLInputElement>('.wc-w2').value);
+    let lines: string[];
+    if (![e, a, b].every(Number.isFinite) || !(a > b && b > e)) lines = ['The weighings must go: crucible + crystals > after heating > empty crucible.'];
+    else {
+      const r = xFromMasses(h, e, a, b);
+      lines = [`Water lost ${fmt(r.mw, 4)} g = ${fmt(r.nWater, 5)} mol; ${h.salt} left ${fmt(r.ms, 4)} g = ${fmt(r.nSalt, 5)} mol.`, `x = ${fmt(r.nWater, 5)} ÷ ${fmt(r.nSalt, 5)} = ${fmt(r.x, 2)}, so the formula is about ${h.salt}·${Math.max(0, Math.round(r.x))}H₂O.${Math.abs(r.x - h.x) > 0.3 ? ` (The usual value is ${h.x}: a big gap can mean not heated to constant mass, spitting, or the salt itself breaking down.)` : ''}`];
+    }
+    q('.wc-own').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+  const restart = () => { mins = 0; readings = []; wetNote = false; draw(); };
+  q('.wc-h').addEventListener('change', restart); q('.wc-m').addEventListener('input', restart);
+  ['.wc-e', '.wc-w1', '.wc-w2'].forEach((c) => q(c).addEventListener('input', own));
+  const heat = () => { mins++; wetNote = false; readings.push(reading(mins)); };
+  q('.wc-heat').addEventListener('click', () => { if (!Number.isFinite(mass())) return; heat(); draw(true); });
+  q('.wc-const').addEventListener('click', () => { if (!Number.isFinite(mass())) return; let g = 0; do heat(); while (g++ < 60 && !(readings.length >= 2 && Math.abs(readings.at(-1)! - readings.at(-2)!) < 0.0015)); draw(true); });
+  q('.wc-wet').addEventListener('click', () => { mins = 0; readings = []; draw(); wetNote = true; draw(); });
+  draw();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const h = pickOne(HYDRATES), Ms = molarMass(h.parts), Mh = Ms + 18 * h.x;
+    const h2 = pickOne(HYDRATES), m2 = Math.round((1 + Math.random() * 4) * 100) / 100, s2 = split(h2, m2);
+    const h3 = pickOne(HYDRATES), n = Math.round((0.5 + Math.random() * 2) * 100) / 100, ms3 = Math.round(n * 0.01 * molarMass(h3.parts) * 1000) / 1000, mw3 = Math.round(n * 0.01 * 18 * h3.x * 1000) / 1000;
+    const x3 = (mw3 / 18) / (ms3 / molarMass(h3.parts));
+    return [
+      { q: `What is the molar mass of ${h.salt}·${h.x}H₂O in g/mol?`, hint: 'a number', answer: fmt(Mh, 1), ok: near(Mh, 0.002), worked: `${h.salt} = ${fmt(Ms, 1)}; ${h.x} × H₂O = ${h.x} × 18 = ${18 * h.x}; total ${fmt(Mh, 1)}.` },
+      { q: `What percentage of the mass of ${h.salt}·${h.x}H₂O is water?`, hint: 'a percentage', answer: fmt((100 * 18 * h.x) / Mh, 1), ok: near((100 * 18 * h.x) / Mh, 0.01), worked: `${18 * h.x} ÷ ${fmt(Mh, 1)} × 100.` },
+      { q: `How many grams of water are in ${m2} g of ${h2.salt}·${h2.x}H₂O?`, hint: 'grams', answer: fmt(s2.water, 3), ok: near(s2.water, 0.01), worked: `${m2} × ${18 * h2.x} ÷ ${fmt(s2.Mh, 1)}.` },
+      { q: `Heating some ${h3.salt} crystals left ${ms3} g of anhydrous ${h3.salt} and drove off ${mw3} g of water. What is x in ${h3.salt}·xH₂O?`, hint: 'a whole number', answer: String(Math.round(x3)), ok: near(Math.round(x3), 0.04), worked: `Water: ${mw3} ÷ 18 = ${fmt(mw3 / 18, 5)} mol. Salt: ${ms3} ÷ ${fmt(molarMass(h3.parts), 1)} = ${fmt(ms3 / molarMass(h3.parts), 5)} mol. Ratio ${fmt(x3, 2)}.` },
+    ];
+  });
+</script>
