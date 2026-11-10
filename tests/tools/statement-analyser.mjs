@@ -1,0 +1,32 @@
+// #1751 Statement analyser
+import { saved } from '../lib/pdfkit.mjs';
+export const path = '/money/statement-analyser/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/money/statement-analyser/`); await page.waitForTimeout(300);
+  check(await page.isHidden('.sa .sa-out'), 'statement-analyser: no results before a file');
+  await page.click('.sa .sa-ex'); await page.waitForTimeout(200);
+  const cats = await page.$$eval('.sa .sa-cats tr', (t) => t.map((r) => [...r.children].map((c) => c.textContent)));
+  const get = (n) => cats.find((r) => r[0] === n);
+  check(get('Housing')?.[1] === '3,300.00' && get('Groceries')?.[1] === '256.75' && get('Subscriptions')?.[1] === '47.97' && get('Transport')?.[1] === '45.00', `statement-analyser: category totals (${JSON.stringify(cats.slice(1, 5))})`);
+  const facts = await page.textContent('.sa .sa-facts');
+  check(facts.includes('9,000.00') && facts.includes('3,662.22'), 'statement-analyser: money in and spending');
+  const rep = await page.$$eval('.sa .sa-rep tr', (t) => t.map((r) => [...r.children].map((c) => c.textContent)));
+  check(rep.length === 2 && rep[1][0] === 'netflix' && rep[1][1] === '15.99' && rep[1][2] === 'monthly' && rep[1][4] === '191.88', `statement-analyser: monthly 15.99 found (${JSON.stringify(rep)})`);
+  check((await page.$$('.sa .sa-months tr')).length === 4, 'statement-analyser: three months');
+  await page.click('.sa summary');
+  const r = await page.inputValue('.sa .sa-rules-t');
+  await page.fill('.sa .sa-rules-t', 'Fun: netflix\n' + r); await page.waitForTimeout(200);
+  check((await page.$$eval('.sa .sa-cats tr', (t) => t.map((x) => x.firstChild.textContent))).includes('Fun'), 'statement-analyser: editable rules');
+  check(!(await page.evaluate(() => localStorage.getItem('fibub-statement-rules-v1'))), 'statement-analyser: nothing stored unless ticked');
+  await page.fill('.sa .sa-text', 'Date;Details;Paid out;Paid in\n25/01/2026;TESCO STORES;1.234,50;\n26/01/2026;WAGES;;2.000,00\n');
+  await page.click('.sa .sa-go'); await page.waitForTimeout(200);
+  const f2 = await page.textContent('.sa .sa-facts');
+  check(f2.includes('2,000.00') && f2.includes('1,234.50') && f2.includes('2026-01-25 to 2026-01-26'), `statement-analyser: debit and credit columns (${f2})`);
+  await page.fill('.sa .sa-text', '<OFX><STMTTRN><DTPOSTED>20260105<TRNAMT>-20.00<NAME>PIZZA PLACE</STMTTRN><STMTTRN><DTPOSTED>20260106<TRNAMT>100.00<NAME>SALARY</STMTTRN></OFX>');
+  await page.click('.sa .sa-go'); await page.waitForTimeout(200);
+  check((await page.textContent('.sa .sa-cats')).includes('Eating out'), 'statement-analyser: OFX read');
+  const dl = await saved(page, () => page.click('.sa .sa-dl'));
+  check(dl.buf.toString().includes('2026-01-05,PIZZA PLACE,-20.00,Eating out'), 'statement-analyser: categorised CSV download');
+  await page.fill('.sa .sa-text', 'hello'); await page.click('.sa .sa-go'); await page.waitForTimeout(100);
+  check((await page.textContent('.sa .sa-msg')).includes('does not look'), 'statement-analyser: bad input message');
+};

@@ -1,0 +1,100 @@
+---
+// #1737 FHSA: contributions within the limits, tax refunds, growth, and the RRSP Home Buyers' Plan side by side.
+---
+<div class="tool-ui fh">
+  <section class="panel">
+    <h2>Your FHSA plan</h2>
+    <div class="fh-grid">
+      <label>Put in each year <span class="fh-suf"><input data-k="per" inputmode="decimal" value="8,000" /><i>$</i></span></label>
+      <label>Years until you buy (1 to 15) <input data-k="years" inputmode="decimal" value="5" /></label>
+      <label>Yearly return <span class="fh-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Your tax rate (marginal) <span class="fh-suf"><input data-k="tax" inputmode="decimal" value="30" /><i>%</i></span></label>
+      <label>Already in your FHSA <span class="fh-suf"><input data-k="bal" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>Contributed so far (lifetime) <span class="fh-suf"><input data-k="done" inputmode="decimal" value="0" /><i>$</i></span></label>
+      <label>Unused room carried into this year <span class="fh-suf"><input data-k="carry" inputmode="decimal" value="0" /><i>$</i></span></label>
+    </div>
+    <p class="note bad fh-err" role="alert" hidden></p>
+  </section>
+  <section class="fh-res" aria-live="polite">
+    <div class="fh-stats">
+      <div class="good"><span>FHSA when you buy (tax-free)</span><b class="fh-s-bal"></b></div>
+      <div><span>You put in</span><b class="fh-s-put"></b></div>
+      <div><span>Tax refunds</span><b class="fh-s-ref"></b></div>
+      <div><span>Growth</span><b class="fh-s-gro"></b></div>
+    </div>
+    <p class="note warn fh-cap" hidden></p>
+    <details class="panel" open>
+      <summary>Year by year</summary>
+      <div class="fh-wrap"><table>
+        <thead><tr><th>Year</th><th>Room</th><th>Put in</th><th>Refund</th><th>Balance</th></tr></thead>
+        <tbody class="fh-body"></tbody>
+      </table></div>
+    </details>
+    <div class="panel">
+      <h2>Same money in an RRSP, with the Home Buyers' Plan</h2>
+      <div class="fh-wrap"><table><tbody class="fh-hbp"></tbody></table></div>
+      <p class="fh-small">You can use both: an FHSA withdrawal and an HBP withdrawal for the same home.</p>
+    </div>
+  </section>
+  <p class="fh-fine">Rules from canada.ca, checked 10 November 2026: $8,000 a year, $40,000 for life, up to $8,000 of unused room carries forward (from the year after you open an account), and the account closes by the end of the 15th year after you open it (or the year you turn 71). HBP: up to $60,000, repaid over 15 years. An estimate with one fixed return; check the official source. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .fh { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .fh > *, .fh-res > * { min-width: 0; }
+  .fh h2 { margin: 0 0 12px; font-size: 18px; }
+  .fh .panel { padding: 16px; }
+  .fh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .fh label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .fh input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fh input:focus { border-color: var(--accent); outline: none; }
+  .fh-suf { position: relative; display: block; }
+  .fh-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .fh-suf input { padding-right: 32px; }
+  .fh-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .fh-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .fh-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .fh-stats span { font-size: 13px; color: var(--muted); }
+  .fh-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .fh-stats .good b { color: var(--good); }
+  .fh-cap { margin: 0; }
+  .fh-wrap { overflow-x: auto; }
+  .fh table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .fh th, .fh td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .fh th:first-child, .fh td:first-child { text-align: left; }
+  .fh-hbp td:first-child { white-space: normal; }
+  .fh th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .fh details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .fh-small { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+  .fh-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .fh-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .fh-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { fhsa, hbp, FHSA_LIFE } from '../../lib/money/fhsa-calculator';
+  import { num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.fh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-CA');
+  const row = (a: string, b: string) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+  function run() {
+    const years = num(f('years').value), rate = num(f('rate').value), tax = num(f('tax').value), done = num(f('done').value);
+    const bad = !(years >= 1) ? 'Enter the years until you buy, from 1.' : years > 15 ? 'An FHSA can stay open for at most 15 years after you open it, so enter 15 or fewer.' : rate < -10 || rate > 30 ? 'Enter a yearly return between -10 and 30.' : tax < 0 || tax >= 100 ? 'Enter a tax rate from 0 to 99.' : done > FHSA_LIFE ? 'Lifetime contributions cannot be above $40,000.' : num(f('per').value) < 0 ? 'Amounts cannot be negative.' : '';
+    q('.fh-err').hidden = !bad; q('.fh-err').textContent = bad; q('.fh-res').hidden = !!bad;
+    if (bad) return;
+    const r = fhsa({ perYear: num(f('per').value), years, rate, taxRate: tax, balance: num(f('bal').value), contributed: done, carry: num(f('carry').value) });
+    q('.fh-s-bal').textContent = $(r.balance);
+    q('.fh-s-put').textContent = $(r.put);
+    q('.fh-s-ref').textContent = $(r.refunds);
+    q('.fh-s-gro').textContent = $(r.balance - r.put - num(f('bal').value));
+    q('.fh-cap').hidden = !r.capped;
+    q('.fh-cap').textContent = r.capped ? `Some years are held to the limit: at most $8,000 a year plus up to $8,000 carried forward, and $40,000 in total. You put in ${$(r.put)} instead of ${$(num(f('per').value) * Math.round(years))}.` : '';
+    q('.fh-body').innerHTML = r.rows.map((y) => `<tr><td>${y.year}</td><td>${$(y.room)}</td><td>${$(y.put)}</td><td>${$(y.refund)}</td><td>${$(y.balance)}</td></tr>`).join('');
+    const h = hbp(r.balance, tax);
+    q('.fh-hbp').innerHTML = row('Same refunds and growth in an RRSP', $(r.balance)) + row('Taken out tax-free under the HBP (up to $60,000)', $(h.free)) + (h.taxed ? row(`Above $60,000, taxed at ${tax}%`, '-' + $(h.tax)) : '') + row('Cash for the home', $(h.cash)) + row('Must be paid back into the RRSP each year, for 15 years', $(h.repayYear)) + row('FHSA: cash for the home, nothing to pay back', $(r.balance));
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

@@ -1,0 +1,100 @@
+---
+// #1744 Loan comparison
+---
+<div class="tool-ui lc">
+  <section class="panel">
+    <label class="lc-n">How many offers? <select class="lc-count"><option>2</option><option>3</option><option>4</option></select></label>
+    <div class="lc-offers"></div>
+    <p class="lc-fine">Upfront fees are paid at the start (arrangement, processing, valuation). A monthly fee is added to every payment.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <h2 class="lc-h">Side by side</h2>
+    <div class="lc-scroll"><table class="lc-tab"><thead></thead><tbody></tbody></table></div>
+    <p class="lc-warn" role="alert"></p>
+    <p class="lc-fine">APR is the yearly rate that includes the fees, so it is the fair way to compare. It is above the stated rate whenever there are fees.</p>
+  </section>
+  <section class="panel">
+    <h2 class="lc-h">Flat rate to reducing rate</h2>
+    <p class="lc-fine" style="margin-top:0">Some lenders in India and the Gulf quote a flat rate: interest on the full amount for every year. Here is what that really costs on a normal reducing balance.</p>
+    <div class="lc-grid">
+      <label>Flat rate a year <input class="lc-flat" inputmode="decimal" value="10" /></label>
+      <label>Years <input class="lc-fy" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="lc-big lc-conv" aria-live="polite"></p>
+    <p class="lc-fine lc-conv2"></p>
+  </section>
+  <p class="lc-fine">Not financial or tax advice. Lenders may round or time payments their own way, so use the lender's own figures for the final decision. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .lc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lc .panel { padding: 16px; }
+  .lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .lc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lc input:not([type=checkbox]), .lc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lc input:focus, .lc select:focus { border-color: var(--accent); outline: none; }
+  .lc label.lc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .lc input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .lc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .lc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .lc-rows dt { color: var(--muted); } .lc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .lc-warn { color: var(--bad); margin: 10px 0 0; } .lc-warn:empty { display: none; }
+  .lc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .lc-h { font-size: 16px; margin: 0 0 8px; }
+  .lc-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .lc-scroll { overflow-x: auto; }
+  .lc-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .lc-tab th, .lc-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .lc-tab th:first-child, .lc-tab td:first-child { text-align: left; }
+  .lc-best { color: var(--good); }
+  .lc-offers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; margin-top: 12px; }
+  .lc-offer { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+  .lc-offer h3 { margin: 0; font-size: 15px; }
+  .lc-n { max-width: 220px; }
+  .lc-tab th, .lc-tab td { white-space: normal; }
+  .lc-tab th:first-child, .lc-tab td:first-child { color: var(--muted); font-weight: 400; }
+</style>
+
+<script>
+  import { evalOffer, flatToReducing, type Offer } from '../../lib/money/borrowing';
+  const root = document.querySelector('.lc') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const defaults = [
+    { amount: 10000, rate: 6, years: 3, upfront: 0, fee: 0 },
+    { amount: 10000, rate: 4.5, years: 3, upfront: 250, fee: 0 },
+    { amount: 10000, rate: 5.2, years: 3, upfront: 0, fee: 3 },
+    { amount: 10000, rate: 7, years: 3, upfront: 0, fee: 0 },
+  ];
+  const f = [['amount', 'Amount borrowed'], ['rate', 'Interest rate a year (%)'], ['years', 'Years'], ['upfront', 'Upfront fees'], ['fee', 'Monthly fee']];
+  $('.lc-offers').innerHTML = defaults.map((d, n) => `<div class="lc-offer" data-n="${n}"><h3>Offer ${String.fromCharCode(65 + n)}</h3>${f.map(([k, t]) => `<label>${t} <input data-k="${k}" inputmode="decimal" value="${(d as any)[k]}" /></label>`).join('')}</div>`).join('');
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const val = (n: number, k: string) => parseFloat((root.querySelector(`.lc-offer[data-n="${n}"] [data-k="${k}"]`) as HTMLInputElement).value.replace(/,/g, ''));
+  const calc = () => {
+    const cnt = parseInt(($('.lc-count') as HTMLSelectElement).value);
+    root.querySelectorAll('.lc-offer').forEach((e, n) => ((e as HTMLElement).hidden = n >= cnt));
+    const res: (ReturnType<typeof evalOffer> | null)[] = [];
+    for (let n = 0; n < cnt; n++) {
+      const o: Offer = { amount: val(n, 'amount'), ratePct: val(n, 'rate'), years: val(n, 'years'), upfront: val(n, 'upfront') || 0, monthlyFee: val(n, 'fee') || 0 };
+      res.push(o.amount > 0 && o.ratePct >= 0 && o.years > 0 && o.years <= 40 && o.upfront < o.amount ? evalOffer(o) : null);
+    }
+    const ok = res.filter(Boolean) as ReturnType<typeof evalOffer>[];
+    const best = ok.length ? Math.min(...ok.map((r) => r.totalCost)) : 0;
+    const head = '<tr><th></th>' + res.map((_, n) => `<th>Offer ${String.fromCharCode(65 + n)}</th>`).join('') + '</tr>';
+    const row = (name: string, g: (r: ReturnType<typeof evalOffer>) => string) => `<tr><td>${name}</td>${res.map((r) => `<td>${r ? g(r) : '-'}</td>`).join('')}</tr>`;
+    $('.lc-tab thead').innerHTML = head;
+    $('.lc-tab tbody').innerHTML =
+      row('Payment each month (with monthly fee)', (r) => m2(r.monthly)) + row('Total you pay back', (r) => m2(r.totalPaid)) +
+      row('Total cost of borrowing (interest + fees)', (r) => m2(r.totalCost)) + row('APR (rate including fees)', (r) => r.aprPct.toFixed(2) + '%') +
+      row('Verdict', (r) => (ok.length > 1 && Math.abs(r.totalCost - best) < 0.005 ? '<strong class="lc-best">Lowest cost</strong>' : ok.length > 1 ? '+' + m2(r.totalCost - best) : ''));
+    $('.lc-warn').textContent = res.some((r) => !r) ? 'Fill in every box on each offer (fees must be smaller than the amount, years 1 to 40).' : '';
+  };
+  const conv = () => {
+    const fl = parseFloat((($('.lc-flat') as HTMLInputElement).value).replace(/,/g, '')), y = parseFloat((($('.lc-fy') as HTMLInputElement).value).replace(/,/g, ''));
+    if (!(fl >= 0 && y > 0 && y <= 40)) { $('.lc-conv').textContent = ''; $('.lc-conv2').textContent = ''; return; }
+    const c = flatToReducing(fl, y);
+    $('.lc-conv').textContent = `${c.reducingPct.toFixed(2)}% on a reducing balance`;
+    $('.lc-conv2').textContent = `Every 1,000 borrowed costs ${m2(c.monthly * 1000)} a month. That is ${(c.reducingPct / fl).toFixed(2)} times the flat rate.`;
+  };
+  root.addEventListener('input', () => { calc(); conv(); }); root.addEventListener('change', () => { calc(); conv(); });
+  calc(); conv();
+</script>

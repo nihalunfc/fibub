@@ -1,0 +1,100 @@
+---
+// #1753 Return calculator: CAGR and XIRR.
+---
+<div class="tool-ui rc">
+  <section class="panel">
+    <h2>Your investment</h2>
+    <label>What do you know? <select data-k="mode"><option value="cagr">Start value, end value and years</option><option value="xirr">Dated deposits and withdrawals</option></select></label>
+    <div class="rc-grid rc-m-cagr" style="margin-top:12px">
+      <label>Currency <select class="rc-cur" data-k="cur"></select></label>
+      <label>Start value <input data-k="start" inputmode="decimal" /></label>
+      <label>End value <input data-k="end" inputmode="decimal" /></label>
+      <label>Years held <input data-k="years" inputmode="decimal" /></label>
+    </div>
+    <div class="rc-m-xirr" hidden style="margin-top:12px">
+      <label>One line per cash flow: date, amount. Money you put in is negative; money you take out, and the value today, is positive.
+        <textarea data-k="flows" spellcheck="false"></textarea></label>
+    </div>
+    <p class="note bad rc-err" role="alert" hidden></p>
+  </section>
+  <section class="rc-res" aria-live="polite">
+    <div class="rc-stats">
+      <div class="good"><span>Yearly return (annualised)</span><b class="rc-s-a"></b></div>
+      <div><span>Total return</span><b class="rc-s-t"></b></div>
+      <div><span class="rc-l-simple">Simple yearly average</span><b class="rc-s-s"></b></div>
+      <div><span>Gain or loss</span><b class="rc-s-g"></b></div>
+    </div>
+    <p class="rc-fine rc-note"></p>
+  </section>
+  <p class="rc-fine">Annualised means the steady yearly rate that would give the same result with compounding. Simple divides the total return by the years, which ignores compounding. Past results do not predict future ones. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rc > *, .rc-res > * { min-width: 0; }
+  .rc h2 { margin: 0 0 12px; font-size: 18px; }
+  .rc .panel { padding: 16px; }
+  .rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .rc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rc input, .rc select, .rc textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .rc textarea { min-height: 150px; font-family: ui-monospace, monospace; font-size: 14px; }
+  .rc input:focus, .rc select:focus, .rc textarea:focus { border-color: var(--accent); outline: none; }
+  .rc .chk { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .rc .chk input { width: auto; }
+  .rc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .rc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rc-stats span { font-size: 13px; color: var(--muted); }
+  .rc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .rc-stats .good b { color: var(--good); }
+  .rc-wrap { overflow-x: auto; }
+  .rc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rc th, .rc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rc th:first-child, .rc td:first-child { text-align: left; }
+  .rc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .rc td input { padding: 6px 8px; }
+  .rc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .rc-err { margin: 10px 0 0; }
+  .rc .btn { justify-self: start; }
+</style>
+
+<script>
+  import { cagr, xirr, parseFlows } from '../../lib/money/investing';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.rc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.rc-cur').innerHTML = currencyOptions(defaultCurrency());
+  f('start').value = '1,000'; f('end').value = '2,000'; f('years').value = '10';
+  f('flows').value = '2021-01-01, -1000\n2022-01-01, -500\n2024-01-01, 1900';
+  const pct = (v: number) => (Number.isFinite(v) ? (Math.round(v * 10000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '%' : 'n/a');
+  function run() {
+    const mode = f('mode').value, $ = (n: number) => money(n, f('cur').value, Math.abs(n) < 10000 ? 2 : 0);
+    q('.rc-m-cagr').hidden = mode !== 'cagr'; q('.rc-m-xirr').hidden = mode !== 'xirr';
+    let bad = '', ann = NaN, total = NaN, years = 0, gain = NaN, note = '';
+    if (mode === 'cagr') {
+      const s = num(f('start').value), e = num(f('end').value); years = num(f('years').value);
+      if (!(s > 0)) bad = 'Enter a start value above 0.'; else if (!(e > 0)) bad = 'Enter an end value above 0.'; else if (!(years > 0)) bad = 'Enter the years held, for example 10.';
+      ann = cagr(s, e, years); total = e / s - 1; gain = e - s;
+    } else {
+      const p = parseFlows(f('flows').value); bad = p.error;
+      if (!bad) {
+        ann = xirr(p.flows);
+        if (!Number.isFinite(ann)) bad = 'Add at least one negative amount (money in) and one positive amount (money out or value today), on different dates.';
+        else {
+          const ds = p.flows.map((x) => x.date); years = (Math.max(...ds) - Math.min(...ds)) / 86400000 / 365;
+          const out = p.flows.filter((x) => x.amount > 0).reduce((s, x) => s + x.amount, 0), inn = -p.flows.filter((x) => x.amount < 0).reduce((s, x) => s + x.amount, 0);
+          total = out / inn - 1; gain = out - inn; note = 'XIRR counts each cash flow on its own date (365-day years). Total return here is money out divided by money in, minus 1.';
+        }
+      }
+    }
+    q('.rc-err').hidden = !bad; q('.rc-err').textContent = bad; q('.rc-res').hidden = !!bad;
+    if (bad) return;
+    q('.rc-s-a').textContent = pct(ann); q('.rc-s-t').textContent = pct(total);
+    q('.rc-s-s').textContent = years > 0 ? pct(total / years) : 'n/a';
+    q('.rc-s-g').textContent = mode === 'cagr' ? $(gain) : money(gain, f('cur').value, 2);
+    q('.rc-note').textContent = note;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

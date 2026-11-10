@@ -1,0 +1,136 @@
+---
+// #1750 Net worth
+---
+<div class="tool-ui nw">
+  <section class="panel nw-sum" aria-live="polite">
+    <p class="nw-big"></p>
+    <dl class="nw-rows"><dt>Assets (what you own)</dt><dd class="nw-a"></dd><dt>Debts (what you owe)</dt><dd class="nw-d"></dd></dl>
+  </section>
+  <section class="panel">
+    <h2>Assets</h2>
+    <div class="nw-list" data-kind="asset"></div>
+    <button type="button" class="nw-btn nw-add" data-kind="asset">Add an asset</button>
+  </section>
+  <section class="panel">
+    <h2>Debts</h2>
+    <div class="nw-list" data-kind="debt"></div>
+    <button type="button" class="nw-btn nw-add" data-kind="debt">Add a debt</button>
+  </section>
+  <section class="panel">
+    <h2>Where it sits</h2>
+    <div class="nw-bars"></div>
+  </section>
+  <section class="panel">
+    <h2>Snapshots over time</h2>
+    <p class="nw-help">A snapshot saves today's totals so you can watch your net worth change. Snapshots are only kept if you tick the box below.</p>
+    <label class="nw-check"><input type="checkbox" class="nw-remember" /> Remember my list and snapshots on this device</label>
+    <p class="nw-help">Off by default. If you tick it, everything is kept in this browser only and never sent anywhere.</p>
+    <div class="nw-actions">
+      <button type="button" class="nw-btn nw-snap">Save a snapshot for today</button>
+      <button type="button" class="nw-btn nw-export">Export JSON</button>
+      <label class="nw-btn nw-import">Import JSON<input type="file" accept=".json,application/json" hidden /></label>
+      <button type="button" class="nw-btn nw-clear">Clear saved data</button>
+    </div>
+    <p class="nw-msg" aria-live="polite"></p>
+    <div class="nw-chart"></div>
+    <table class="nw-table" hidden><thead><tr><th>Date</th><th>Assets</th><th>Debts</th><th>Net worth</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+  <p class="nw-help">Everything is worked out in your browser. Use any currency. Value things at what you could sell them for. Not financial advice.</p>
+</div>
+
+<style is:inline>
+  .nw { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .nw .panel { padding: 16px; }
+  .nw h2 { font-size: 17px; margin: 0 0 8px; }
+  .nw-big { font-size: 30px; font-weight: 700; margin: 0 0 10px; }
+  .nw-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .nw-rows dt { color: var(--muted); } .nw-rows dd { margin: 0; font-weight: 600; text-align: right; }
+  .nw-help, .nw-msg { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  .nw-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1fr) 34px; gap: 6px; margin-bottom: 6px; }
+  .nw input:not([type=checkbox]):not([type=file]), .nw select { font: inherit; color: var(--ink); padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .nw input:focus, .nw select:focus { border-color: var(--accent); outline: none; }
+  .nw input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .nw-check { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .nw-btn { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; display: inline-block; }
+  .nw-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .nw-x { font: inherit; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .nw-bar { display: grid; grid-template-columns: minmax(0, 8em) 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 14px; }
+  .nw-bar i { display: block; height: 14px; border-radius: 4px; min-width: 2px; }
+  .nw-bar i.a { background: var(--accent); } .nw-bar i.d { background: var(--bad, #b3261e); }
+  .nw-table { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 10px; }
+  .nw-table th, .nw-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  .nw-table th:first-child, .nw-table td:first-child { text-align: left; }
+  .nw-chart { margin-top: 10px; }
+</style>
+
+<script>
+  import { netWorth, type NwItem } from '../../lib/money/splitting';
+  import { lineSvg } from '../../lib/money/chart';
+  const root = document.querySelector('.nw') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-net-worth-v1';
+  const CATS = { asset: ['Cash and bank', 'Savings and investments', 'Retirement accounts', 'Property', 'Vehicle', 'Other'], debt: ['Mortgage', 'Loans', 'Credit cards', 'Other'] };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const f = (v: number) => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const numv = (s: string) => { const v = parseFloat(s.replace(/[^\d.-]/g, '')); return Number.isFinite(v) ? v : 0; };
+  interface Snap { date: string; assets: number; debts: number }
+  let snaps: Snap[] = [];
+  const add = (kind: 'asset' | 'debt', name = '', cat = '', amount = '') => {
+    const d = document.createElement('div'); d.className = 'nw-row';
+    const cats = CATS[kind];
+    d.innerHTML = `<input data-f="name" aria-label="Name" value="${esc(name)}" placeholder="Name" /><select data-f="cat" aria-label="Category">${cats.map((c) => `<option${c === cat ? ' selected' : ''}>${c}</option>`).join('')}</select><input data-f="amount" inputmode="decimal" aria-label="Amount" value="${esc(amount)}" placeholder="Amount" /><button type="button" class="nw-x" aria-label="Remove">×</button>`;
+    q(`.nw-list[data-kind="${kind}"]`).append(d);
+  };
+  const items = (): NwItem[] => (['asset', 'debt'] as const).flatMap((kind) => [...q(`.nw-list[data-kind="${kind}"]`).children].map((r) => ({
+    kind, name: (r.querySelector('[data-f="name"]') as HTMLInputElement).value, cat: (r.querySelector('[data-f="cat"]') as HTMLSelectElement).value, amount: numv((r.querySelector('[data-f="amount"]') as HTMLInputElement).value),
+  })));
+  const today = () => new Date().toISOString().slice(0, 10);
+  const draw = () => {
+    const it = items(), r = netWorth(it);
+    q('.nw-big').textContent = `Net worth ${f(r.net)}`;
+    q('.nw-a').textContent = f(r.assets); q('.nw-d').textContent = f(r.debts);
+    const max = Math.max(1, ...r.byCat.values());
+    q('.nw-bars').innerHTML = [...r.byCat.entries()].filter(([, v]) => v > 0).map(([k, v]) => { const [kind, c] = k.split(':'); return `<div class="nw-bar"><span>${esc(c)}${kind === 'debt' ? ' (debt)' : ''}</span><i class="${kind === 'debt' ? 'd' : 'a'}" style="width:${(v / max) * 100}%"></i><b>${f(v)}</b></div>`; }).join('') || '<p class="nw-help">Add amounts to see the chart.</p>';
+    const tb = q('.nw-table'); tb.hidden = !snaps.length;
+    tb.querySelector('tbody')!.innerHTML = snaps.map((s, i) => `<tr><td>${s.date}</td><td>${f(s.assets)}</td><td>${f(s.debts)}</td><td>${f(s.assets - s.debts)}</td><td><button type="button" class="nw-x" data-del="${i}" aria-label="Delete snapshot">×</button></td></tr>`).join('');
+    q('.nw-chart').innerHTML = snaps.length > 1 ? lineSvg([{ label: 'Net worth', ys: snaps.map((s) => s.assets - s.debts), color: 'var(--accent)' }], snaps.map((s) => s.date.slice(2)), 'Net worth over time') : '';
+    store();
+  };
+  const store = () => { try { if (q<HTMLInputElement>('.nw-remember').checked) localStorage.setItem(KEY, JSON.stringify({ items: items(), snaps })); } catch {} };
+  const load = (d: any) => {
+    q('.nw-list[data-kind="asset"]').innerHTML = ''; q('.nw-list[data-kind="debt"]').innerHTML = '';
+    (d.items || []).forEach((i: NwItem) => add(i.kind === 'debt' ? 'debt' : 'asset', String(i.name ?? ''), String(i.cat ?? ''), i.amount ? String(i.amount) : ''));
+    snaps = (d.snaps || []).filter((s: any) => s && typeof s.date === 'string').map((s: any) => ({ date: s.date.slice(0, 10), assets: +s.assets || 0, debts: +s.debts || 0 }));
+  };
+  let saved: any = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved) { q<HTMLInputElement>('.nw-remember').checked = true; load(saved); }
+  else { [['Current account', 'Cash and bank', '5000'], ['Savings', 'Savings and investments', '20000']].forEach((a) => add('asset', ...(a as [string, string, string]))); add('debt', 'Credit card', 'Credit cards', '1500'); }
+  const msg = (t: string) => (q('.nw-msg').textContent = t);
+  root.addEventListener('input', draw); root.addEventListener('change', (e) => { if (!(e.target as HTMLElement).matches('input[type=file]')) draw(); });
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.dataset.del) { snaps.splice(+t.dataset.del, 1); draw(); }
+    else if (t.classList.contains('nw-x')) { t.parentElement!.remove(); draw(); }
+  });
+  root.querySelectorAll('.nw-add').forEach((b) => b.addEventListener('click', () => { add((b as HTMLElement).dataset.kind as 'asset' | 'debt'); draw(); }));
+  q('.nw-snap').addEventListener('click', () => {
+    if (!q<HTMLInputElement>('.nw-remember').checked) { msg('Tick "Remember my list and snapshots on this device" first, or snapshots are not kept.'); return; }
+    const r = netWorth(items()), d = today();
+    snaps = snaps.filter((s) => s.date !== d); snaps.push({ date: d, assets: r.assets, debts: r.debts }); snaps.sort((a, b) => a.date.localeCompare(b.date));
+    msg('Snapshot saved for ' + d + '.'); draw();
+  });
+  q('.nw-export').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'fibub-net-worth', items: items(), snaps }, null, 1)], { type: 'application/json' }));
+    a.download = 'net-worth.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  q<HTMLInputElement>('.nw-import input').addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]; if (!file) return;
+    try { const d = JSON.parse(await file.text()); if (!Array.isArray(d.items)) throw 0; load(d); msg('Imported.'); draw(); } catch { msg('That file is not a net worth export.'); }
+    (e.target as HTMLInputElement).value = '';
+  });
+  q('.nw-remember').addEventListener('change', () => { if (!q<HTMLInputElement>('.nw-remember').checked) { try { localStorage.removeItem(KEY); } catch {} } draw(); });
+  q('.nw-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.nw-remember').checked = false; snaps = []; msg('Saved data cleared from this device.'); draw(); });
+  draw();
+</script>

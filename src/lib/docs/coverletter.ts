@@ -6,6 +6,10 @@ export type Letter = {
   name: string; address: string; email: string; phone: string; date: string;
   manager: string; company: string; companyAddress: string; role: string; source: string;
   p1: string; p2: string; p3: string; closing: string; paper: 'letter' | 'a4'; serif: boolean;
+  /** Optional: replaces "Dear <manager>," (used by the letter builder). */
+  salutation?: string;
+  /** Optional: file title for Word and PDF (default "Cover letter"). */
+  docTitle?: string;
 };
 export const emptyLetter = (): Letter => ({
   name: '', address: '', email: '', phone: '', date: new Date().toISOString().slice(0, 10),
@@ -33,7 +37,7 @@ export function blocks(l: Letter): Block[] {
   const to = [l.manager.trim(), l.company.trim(), ...lines(l.companyAddress)].filter(Boolean);
   if (to.length) { for (const x of to) b.push({ t: 'line', text: x }); b.push({ t: 'gap' }); }
   if (l.role.trim()) { b.push({ t: 'line', text: `Re: ${l.role.trim()}`, bold: true }); b.push({ t: 'gap' }); }
-  b.push({ t: 'line', text: `Dear ${l.manager.trim() || 'Hiring Manager'},` });
+  b.push({ t: 'line', text: l.salutation?.trim() || `Dear ${l.manager.trim() || 'Hiring Manager'},` });
   b.push({ t: 'gap' });
   for (const p of [l.p1, l.p2, l.p3]) for (const para of p.split(/\n\s*\n/).map((x) => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)) { b.push({ t: 'para', text: para }); b.push({ t: 'gap' }); }
   b.push({ t: 'line', text: `${l.closing.trim() || 'Sincerely'},` });
@@ -90,7 +94,8 @@ export function letterDocx(l: Letter): Uint8Array {
     if (x.t === 'gap') return '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>';
     return `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r>${x.bold ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${esc(x.text)}</w:t></w:r></w:p>`;
   }).join('');
-  const title = l.name.trim() ? `${l.name.trim()} - Cover letter` : 'Cover letter';
+  const kind = l.docTitle || 'Cover letter';
+  const title = l.name.trim() ? `${l.name.trim()} - ${kind}` : kind;
   return zipSync({
     '[Content_Types].xml': strToU8(`${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`),
     '_rels/.rels': strToU8(`${XML}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`),
@@ -130,6 +135,6 @@ export async function letterPdf(l: Letter): Promise<{ bytes: Uint8Array; lost: s
       y -= lh;
     }
   }
-  doc.setTitle(l.name.trim() ? `${l.name.trim()} - Cover letter` : 'Cover letter');
+  doc.setTitle(l.name.trim() ? `${l.name.trim()} - ${l.docTitle || 'Cover letter'}` : l.docTitle || 'Cover letter');
   return { bytes: await doc.save(), lost: [...lost], pages: doc.getPageCount() };
 }

@@ -1,0 +1,113 @@
+---
+// #1787 Social Security age: benefit at 62 to 70 from your PIA, full retirement age by birth year, break-even ages.
+---
+<div class="tool-ui ssa">
+  <section class="panel">
+    <h2>From your Social Security statement</h2>
+    <div class="ssa-grid">
+      <label>Benefit at full retirement age (PIA), a month <span class="ssa-suf"><input class="ssa-pia" inputmode="decimal" value="2,000" /><i>$</i></span></label>
+      <label>Year you were born <input class="ssa-yr" inputmode="numeric" value="1964" /></label>
+      <label>Start benefits at <select class="ssa-start"></select></label>
+      <label>Plan to age <input class="ssa-life" inputmode="decimal" value="85" /></label>
+    </div>
+    <label class="ssa-chk"><input type="checkbox" class="ssa-jan1" /> I was born on 1 January (SSA then uses the year before)</label>
+    <p class="note bad ssa-err" role="alert" hidden></p>
+  </section>
+
+  <section class="ssa-res" aria-live="polite">
+    <div class="ssa-stats">
+      <div><span>Your full retirement age</span><b class="ssa-fra"></b></div>
+      <div class="good"><span>A month at your start age</span><b class="ssa-m"></b></div>
+      <div><span>Share of your PIA</span><b class="ssa-pct"></b></div>
+      <div><span>Total by your plan-to age</span><b class="ssa-tot"></b></div>
+    </div>
+    <p class="ssa-line"></p>
+    <div class="panel ssa-tw">
+      <h2>Benefit by start age</h2>
+      <table>
+        <thead><tr><th>Start</th><th>A month</th><th>Of PIA</th><th>Break-even with 62</th><th>Break-even with full age</th><th class="ssa-tot-h">Total</th></tr></thead>
+        <tbody class="ssa-body"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="ssa-fine">Rules from ssa.gov, checked 10 November 2026: full retirement age 66 for births 1943 to 1954, rising by 2 months a year to 67 for 1960 and later. Starting early cuts the benefit by 5/9 of 1% a month for the first 36 months and 5/12 of 1% for each month after; waiting past full retirement age adds 2/3 of 1% a month (8% a year) up to 70. Payments are rounded down to the dollar. Amounts are in today's dollars (benefits rise each year with the cost-of-living adjustment). If you claim before full retirement age and still work, $1 is held back for every $2 you earn over $24,480 (2026). Spouse and survivor benefits are not included. Not financial advice: check the official source (ssa.gov, my Social Security). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ssa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ssa > *, .ssa-res > * { min-width: 0; }
+  .ssa h2 { margin: 0 0 12px; font-size: 18px; }
+  .ssa .panel { padding: 16px; }
+  .ssa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ssa label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .ssa input:not([type=checkbox]), .ssa select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ssa input:focus, .ssa select:focus { border-color: var(--accent); outline: none; }
+  .ssa .ssa-chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--ink); }
+  .ssa-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .ssa-suf { position: relative; display: block; }
+  .ssa-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ssa-suf input { padding-right: 30px; }
+  .ssa-err { margin: 10px 0 0; }
+  .ssa-res { display: grid; gap: 12px; }
+  .ssa-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ssa-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ssa-stats span { font-size: 13px; color: var(--muted); }
+  .ssa-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ssa-stats .good b { color: var(--good); }
+  .ssa-line { margin: 0; font-size: 15px; }
+  .ssa-tw { overflow-x: auto; }
+  .ssa table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ssa th, .ssa td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ssa th:first-child, .ssa td:first-child { text-align: left; }
+  .ssa th { font-size: 12px; color: var(--muted); white-space: normal; }
+  .ssa tr.on td { font-weight: 700; background: var(--surface); }
+  .ssa-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  @media (max-width: 640px) { .ssa-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { fraMonths, fraLabel, factor, benefit, breakEven, totalTo } from '../../lib/money/social-security-age.ts';
+  import { num } from '../../lib/money';
+  const root = document.querySelector('.ssa') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => num(q<HTMLInputElement>(s).value);
+  const $ = (n: number) => '$' + Math.round(n).toLocaleString('en-US');
+  const sel = q<HTMLSelectElement>('.ssa-start');
+  let lastFra = 0;
+  const ageText = (m: number) => fraLabel(m);
+  const fill = (fra: number) => {
+    const opts = new Set([62, 63, 64, 65, 66, 67, 68, 69, 70].map((a) => a * 12)); opts.add(fra);
+    const was = lastFra && +sel.value !== lastFra ? +sel.value : fra;
+    const keep = opts.has(was) ? was : fra;
+    sel.innerHTML = [...opts].sort((a, b) => a - b).map((m) => `<option value="${m}"${m === keep ? ' selected' : ''}>${ageText(m)}${m === fra ? ' (full age)' : ''}</option>`).join('');
+    lastFra = fra;
+  };
+
+  const update = () => {
+    const pia = v('.ssa-pia'), yr = Math.round(v('.ssa-yr')), life = v('.ssa-life');
+    const bad = !(pia > 0 && pia < 10000) ? 'Enter your monthly benefit at full retirement age (PIA) from your statement, for example 2,000.'
+      : !(yr >= 1943 && yr <= 2010) ? 'Enter a birth year from 1943 to 2010.'
+      : !(life >= 62 && life <= 110) ? 'Enter an age to plan to, from 62 to 110.' : '';
+    q('.ssa-err').hidden = !bad; q('.ssa-err').textContent = bad; q('.ssa-res').hidden = !!bad;
+    if (bad) return;
+    const fra = fraMonths(yr, q<HTMLInputElement>('.ssa-jan1').checked);
+    if (fra !== lastFra) fill(fra);
+    const start = +sel.value;
+    q('.ssa-fra').textContent = fraLabel(fra);
+    q('.ssa-m').textContent = $(benefit(pia, start, fra));
+    q('.ssa-pct').textContent = `${(factor(start, fra) * 100).toFixed(1)}%`;
+    q('.ssa-tot').textContent = $(totalTo(pia, start, life, fra));
+    q('.ssa-tot-h').textContent = `Total by ${life}`;
+    const be = (a: number, b: number) => { const x = breakEven(pia, a, b, fra); return x === null ? '-' : `age ${x.toFixed(1)}`; };
+    q('.ssa-line').textContent = start === fra ? 'Pick another start age to see when waiting pays off.'
+      : start < fra ? `Starting at ${ageText(start)} pays ${$(benefit(pia, start, fra))} a month instead of ${$(benefit(pia, fra, fra))}. It pays more in total than waiting for your full age unless you live past ${be(start, fra).replace('age ', '')}.`
+      : `Waiting until ${ageText(start)} pays ${$(benefit(pia, start, fra))} a month instead of ${$(benefit(pia, fra, fra))}. It pays more in total than starting at your full age if you live past ${be(fra, start).replace('age ', '')}.`;
+    q('.ssa-body').innerHTML = [...sel.options].map((o) => {
+      const m = +o.value;
+      return `<tr${m === start ? ' class="on"' : ''}><td>${ageText(m)}</td><td>${$(benefit(pia, m, fra))}</td><td>${(factor(m, fra) * 100).toFixed(1)}%</td><td>${m === 744 ? '-' : be(744, m)}</td><td>${m === fra ? '-' : m < fra ? be(m, fra) : be(fra, m)}</td><td>${$(totalTo(pia, m, life, fra))}</td></tr>`;
+    }).join('');
+  };
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

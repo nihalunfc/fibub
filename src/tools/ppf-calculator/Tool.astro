@@ -1,0 +1,132 @@
+---
+// #1740 PPF calculator: yearly deposits, 15 years plus 5-year extensions, interest credited once a year.
+---
+<div class="tool-ui pc">
+  <section class="panel">
+    <h2>Your PPF</h2>
+    <div class="pc-grid">
+      <label>Deposit each year (₹) <input data-k="dep" inputmode="decimal" value="1,50,000" /></label>
+      <label>Interest rate <span class="pc-suf"><input data-k="rate" inputmode="decimal" value="7.1" /><i>% a year</i></span></label>
+      <label>When you pay in
+        <select data-k="when">
+          <option value="start" selected>Once, by 5 April</option>
+          <option value="monthly">Monthly, by the 5th</option>
+          <option value="end">Once, at the year end (March)</option>
+        </select>
+      </label>
+      <label>Already in the account (₹, optional) <input data-k="open" inputmode="decimal" value="0" /></label>
+      <label>Extend after 15 years
+        <select data-k="ext">
+          <option value="0" selected>No, close at 15 years</option>
+          <option value="1">5 more years (20 in all)</option>
+          <option value="2">10 more years (25 in all)</option>
+          <option value="3">15 more years (30 in all)</option>
+          <option value="4">20 more years (35 in all)</option>
+        </select>
+      </label>
+      <label>During extensions
+        <select data-k="extdep">
+          <option value="1" selected>Keep paying in</option>
+          <option value="0">No new deposits</option>
+        </select>
+      </label>
+    </div>
+    <p class="pc-src">7.1% is the rate for October to December 2026 (Ministry of Finance, 30 September 2026). The rate is reset every quarter, so check the official source and change it if needed.</p>
+    <p class="note bad pc-err" role="alert" hidden></p>
+  </section>
+  <section class="pc-res" aria-live="polite">
+    <div class="pc-stats">
+      <div><span>Maturity value</span><b class="pc-s-fv"></b></div>
+      <div><span>You paid in</span><b class="pc-s-put"></b></div>
+      <div class="good"><span>Interest earned</span><b class="pc-s-int"></b></div>
+      <div><span>Matures after</span><b class="pc-s-yrs"></b></div>
+    </div>
+    <p class="pc-line pc-words"></p>
+    <figure class="pc-chart panel">
+      <figcaption>Growth over time <span><i class="k-a"></i>Balance</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
+      <svg class="pc-svg" viewBox="0 0 640 220" role="img" aria-label="PPF balance and money paid in, year by year"></svg>
+    </figure>
+    <details class="pc-years panel" open>
+      <summary>Year by year</summary>
+      <div class="pc-wrap"><table>
+        <thead><tr><th>Year</th><th>Deposit</th><th>Interest</th><th>Balance</th></tr></thead>
+        <tbody class="pc-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary pc-csv">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="pc-fine">How it is worked out: each month earns the yearly rate / 12 on the lowest balance between the 5th and the month end, and the interest is added at the end of March (PPF Scheme, 2019). One rate is used for every year; the real rate can change each quarter. PPF deposits can count under the old regime's 80C limit and the interest and maturity amount are tax-free. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .pc > *, .pc-res > * { min-width: 0; }
+  .pc h2 { margin: 0 0 12px; font-size: 18px; }
+  .pc .panel { padding: 16px; }
+  .pc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .pc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pc input, .pc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pc input:focus, .pc select:focus { border-color: var(--accent); outline: none; }
+  .pc-suf { position: relative; display: block; }
+  .pc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .pc-suf input { padding-right: 84px; }
+  .pc-src { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .pc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .pc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .pc-stats span { font-size: 13px; color: var(--muted); }
+  .pc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .pc-stats .good b { color: var(--good); }
+  .pc-line { margin: 0; font-size: 15px; }
+  .pc-line:empty { display: none; }
+  .pc-chart { margin: 0; }
+  .pc-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .pc-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .pc-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .pc .k-a { background: var(--accent); }
+  .pc .k-b { background: var(--muted); opacity: .7; }
+  .pc-svg { width: 100%; height: auto; display: block; }
+  .pc-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .pc-wrap { overflow-x: auto; }
+  .pc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .pc th, .pc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .pc th:first-child, .pc td:first-child { text-align: left; }
+  .pc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .pc tr.pc-ext td:first-child::after { content: ' ext'; font-size: 11px; color: var(--muted); }
+  .pc details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .pc details .btn { margin-top: 12px; }
+  .pc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .pc-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .pc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { ppf, PPF_MIN, PPF_MAX, PPF_YEARS, type PpfRow, type PpfTiming } from '../../lib/money/ppf-calculator';
+  import { chartSvg, csv } from '../../lib/money/growth';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.pc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  const short = (v: number) => new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+  let rows: PpfRow[] = [];
+  function run() {
+    const dep = num(f('dep').value), rate = num(f('rate').value), open = num(f('open').value);
+    const bad = !(dep >= PPF_MIN && dep <= PPF_MAX) ? 'Enter a yearly deposit from Rs 500 to Rs 1,50,000 (the PPF limits).' : !(rate > 0 && rate <= 20) ? 'Enter the interest rate, for example 7.1.' : open < 0 ? 'The opening balance cannot be negative.' : '';
+    q('.pc-err').hidden = !bad; q('.pc-err').textContent = bad; q('.pc-res').hidden = !!bad;
+    if (bad) return;
+    rows = ppf({ deposit: dep, rate, timing: f('when').value as PpfTiming, extensions: num(f('ext').value), extendDeposits: f('extdep').value === '1', opening: open });
+    const last = rows[rows.length - 1];
+    q('.pc-s-fv').textContent = $(last.balance);
+    q('.pc-s-put').textContent = $(last.deposits);
+    q('.pc-s-int').textContent = $(last.interest);
+    q('.pc-s-yrs').textContent = `${last.year} years`;
+    const at15 = rows[PPF_YEARS];
+    q('.pc-words').innerHTML = `Paying <b>${$(dep)}</b> a year at ${rate}% grows to <b>${$(at15.balance)}</b> after 15 years` + (last.year > PPF_YEARS ? `, and to <b>${$(last.balance)}</b> after ${last.year} years.` : '.');
+    q('.pc-svg').innerHTML = chartSvg(rows, short);
+    q('.pc-body').innerHTML = rows.slice(1).map((r) => `<tr${r.year > PPF_YEARS ? ' class="pc-ext"' : ''}><td>${r.year}</td><td>${$(r.paid)}</td><td>${$(r.earned)}</td><td>${$(r.balance)}</td></tr>`).join('');
+  }
+  q('.pc-csv').addEventListener('click', () => csv('ppf.csv', ['Year', 'Deposit', 'Interest', 'Balance'], rows.slice(1).map((r) => [r.year, r.paid, r.earned, r.balance])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

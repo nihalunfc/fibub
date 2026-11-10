@@ -1,0 +1,74 @@
+---
+// #1770 Text cleaner. Maths in src/lib/docs/textutil.ts.
+const OPTS: [string, string, string, boolean][] = [
+  ['joinLines', 'Join broken lines into paragraphs', 'PDFs break every line. This joins them back; blank lines stay as paragraph breaks.', true],
+  ['hyphenation', 'Remove hyphenation at line ends', 'Turns "docu-" at the end of a line and "ment" on the next into "document".', true],
+  ['spaces', 'Remove extra spaces', 'Changes runs of spaces and tabs into one space and removes spaces before commas and full stops.', true],
+  ['blankLines', 'Remove extra blank lines', 'Keeps at most one blank line between paragraphs.', true],
+  ['bullets', 'Strip bullets', 'Removes bullet signs such as • and - from the start of lines.', false],
+  ['numbering', 'Strip list numbers', 'Removes 1. 2) (a) and i. from the start of lines.', false],
+  ['straightQuotes', 'Make quotes straight', 'Changes curly quotes into plain " and \' marks.', false],
+  ['smartQuotes', 'Make quotes curly', 'Changes plain quotes into curly ones. Ignored if straight quotes is on.', false],
+  ['emojis', 'Remove emojis', 'Deletes emoji pictures.', false],
+  ['invisible', 'Remove hidden characters', 'Deletes zero-width and control characters and turns non-breaking spaces into normal ones.', true],
+  ['trim', 'Trim the ends', 'Removes spaces and blank lines at the very start and end.', true],
+];
+---
+<div class="tool-ui tcl">
+  <div class="tcl-card">
+    <label>Paste your text
+      <textarea class="tcl-in" placeholder="Paste text copied from a PDF, a web page or an email"></textarea>
+    </label>
+    <p class="tcl-hint">Your text stays on this device. It is never sent anywhere.</p>
+  </div>
+  <div class="tcl-card">
+    <h2>What to fix</h2>
+    {OPTS.map(([k, n, h, on]) => <label class="tcl-chk"><input type="checkbox" data-o={k} checked={on} /> <span>{n}<small>{h}</small></span></label>)}
+  </div>
+  <div class="tcl-card">
+    <h2>Clean text</h2>
+    <pre class="tcl-pre tcl-out" aria-live="polite"></pre>
+    <p class="tcl-hint tcl-stat"></p>
+    <div class="tcl-row"><button type="button" class="btn tcl-copy">Copy the clean text</button><button type="button" class="btn tcl-use">Use as my text</button></div>
+  </div>
+</div>
+<style is:inline>
+  .tcl { display: grid; gap: 14px; margin-bottom: 28px; }
+  .tcl-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .tcl-card h2 { margin: 0; font-size: 18px; }
+  .tcl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .tcl textarea, .tcl input[type=text], .tcl input[type=number], .tcl select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .tcl textarea { min-height: 180px; resize: vertical; }
+  .tcl .tcl-chk { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .tcl .tcl-chk input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+  .tcl .tcl-chk small { display: block; color: var(--muted); font-size: 13px; }
+  .tcl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tcl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tcl-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .tcl .btn { justify-self: start; }
+  .tcl mark { background: color-mix(in srgb, var(--bad) 25%, transparent); color: inherit; border-radius: 3px; }
+  .tcl-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-height: 320px; overflow: auto; }
+  @media (max-width: 480px) { .tcl-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { cleanText, countText, type CleanOpts } from '../../lib/docs/textutil';
+  const root = document.querySelector('.tcl') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLTextAreaElement>('.tcl-in'), out = q('.tcl-out');
+  const boxes = [...root.querySelectorAll<HTMLInputElement>('input[data-o]')];
+  const update = () => {
+    const o: Record<string, boolean> = {};
+    boxes.forEach((b) => (o[b.dataset.o!] = b.checked));
+    const r = cleanText(inp.value, o as CleanOpts);
+    out.textContent = r;
+    const a = countText(inp.value), b = countText(r);
+    q('.tcl-stat').textContent = inp.value ? `${a.words} words and ${a.chars} characters before, ${b.words} words and ${b.chars} characters after.` : 'Paste some text above.';
+  };
+  inp.addEventListener('input', update);
+  boxes.forEach((b) => b.addEventListener('change', update));
+  const copy = q<HTMLButtonElement>('.tcl-copy');
+  copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(out.textContent || ''); copy.textContent = 'Copied'; } catch { copy.textContent = 'Press Ctrl+C to copy'; } setTimeout(() => (copy.textContent = 'Copy the clean text'), 1800); });
+  q('.tcl-use').addEventListener('click', () => { inp.value = out.textContent || ''; update(); });
+  update();
+</script>

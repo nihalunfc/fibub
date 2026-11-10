@@ -1,0 +1,211 @@
+---
+// #1773 Citation generator. Formatting rules in src/lib/docs/citation.ts.
+import { STYLES, TYPES } from '../../lib/docs/citation';
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+---
+<div class="tool-ui cg">
+  <div class="cg-card">
+    <h2>1. About the source</h2>
+    <div class="cg-row">
+      <label>What is it?
+        <select class="cg-type">{TYPES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
+      </label>
+      <label>Style
+        <select class="cg-style">{STYLES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
+      </label>
+    </div>
+    <label>Authors, one per line
+      <textarea class="cg-authors" rows="3" placeholder="Family name, Given names"></textarea>
+    </label>
+    <p class="cg-hint">Write each person as <b>Family, Given</b>. A company or group goes on one line with no comma.</p>
+    <label data-t="chapter">Editors of the book, one per line
+      <textarea class="cg-editors" rows="2" placeholder="Family name, Given names"></textarea>
+    </label>
+    <label>Title <span class="cg-lab" data-for="title">of the book</span>
+      <input class="cg-title" type="text" autocomplete="off" />
+    </label>
+    <label data-t="article chapter website"><span class="cg-lab" data-for="container">Journal name</span>
+      <input class="cg-container" type="text" autocomplete="off" />
+    </label>
+    <div class="cg-row3">
+      <label>Year <input class="cg-year" type="text" inputmode="numeric" maxlength="9" autocomplete="off" /></label>
+      <label data-t="article website">Month
+        <select class="cg-month"><option value="0">-</option>{months.map((m, i) => <option value={i + 1}>{m}</option>)}</select>
+      </label>
+      <label data-t="website">Day <input class="cg-day" type="number" min="1" max="31" /></label>
+    </div>
+    <div class="cg-row3" data-t="article">
+      <label>Volume <input class="cg-volume" type="text" autocomplete="off" /></label>
+      <label>Issue <input class="cg-issue" type="text" autocomplete="off" /></label>
+      <label>Pages <input class="cg-pages" type="text" placeholder="201-219" autocomplete="off" /></label>
+    </div>
+    <label data-t="chapter">Pages of the chapter <input class="cg-pages2" type="text" placeholder="45-67" autocomplete="off" /></label>
+    <div class="cg-row" data-t="book chapter report">
+      <label>Publisher <input class="cg-publisher" type="text" autocomplete="off" /></label>
+      <label>Place (city) <input class="cg-place" type="text" autocomplete="off" /></label>
+    </div>
+    <label data-t="website">Publisher or organisation (if different from the site name) <input class="cg-publisher2" type="text" autocomplete="off" /></label>
+    <label data-t="book chapter">Edition (for example 2) <input class="cg-edition" type="text" autocomplete="off" /></label>
+    <label data-t="report">Report number <input class="cg-reportno" type="text" autocomplete="off" /></label>
+    <label>DOI (optional) <input class="cg-doi" type="text" placeholder="10.xxxx/xxxxx" autocomplete="off" /></label>
+    <label>Web address (optional) <input class="cg-url" type="text" inputmode="url" autocomplete="off" /></label>
+    <label data-t="website">Date you looked at it <input class="cg-accessed" type="date" /></label>
+    <label data-t="book chapter report article" class="cg-note-l">Page you cite (used in Chicago notes) <input class="cg-pagecited" type="text" autocomplete="off" /></label>
+    <div class="cg-btns"><button type="button" class="btn cg-example">Fill an example</button><button type="button" class="btn cg-clear">Clear the form</button></div>
+  </div>
+
+  <div class="cg-card">
+    <h2>2. Your citation</h2>
+    <ul class="cg-probs" aria-live="polite"></ul>
+    <div class="cg-outs"></div>
+    <div class="cg-btns"><button type="button" class="btn cg-copy">Copy</button><button type="button" class="btn cg-add">Add to my list</button></div>
+    <p class="cg-hint">Each style has its own capital-letter rule for titles (APA uses sentence case for articles and books, for example). Type the title the way your style needs it; the tool does not change it.</p>
+  </div>
+
+  <div class="cg-card">
+    <h2>3. My list (<span class="cg-count">0</span>)</h2>
+    <p class="cg-hint">The list is kept only while this page is open. Download it before you leave.</p>
+    <ol class="cg-list"></ol>
+    <p class="cg-empty">Nothing here yet. Fill in a source and press "Add to my list".</p>
+    <div class="cg-btns cg-listbtns">
+      <button type="button" class="btn cg-copyall">Copy list</button>
+      <button type="button" class="btn cg-bib">Download .bib</button>
+      <button type="button" class="btn cg-ris">Download .ris</button>
+      <button type="button" class="btn cg-txt">Download .txt</button>
+      <button type="button" class="btn cg-reset">Empty list</button>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .cg { display: grid; gap: 14px; margin-bottom: 28px; }
+  .cg-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .cg-card h2 { margin: 0; font-size: 18px; }
+  .cg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .cg input[type=text], .cg input[type=number], .cg input[type=date], .cg select, .cg textarea { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .cg-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cg-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .cg-row[hidden], .cg-row3[hidden], .cg label[hidden] { display: none; }
+  .cg-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .cg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cg-probs { margin: 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+  .cg-probs:empty { display: none; }
+  .cg-outs { display: grid; gap: 8px; }
+  .cg-out { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); line-height: 1.5; overflow-wrap: anywhere; }
+  .cg-outlab { font-size: 12px; color: var(--muted); margin: 0; }
+  .cg-list { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 8px; }
+  .cg-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+  .cg-empty { margin: 0; font-size: 14px; color: var(--muted); }
+  .cg-empty[hidden] { display: none; }
+  @media (max-width: 480px) { .cg-row { grid-template-columns: minmax(0, 1fr); } .cg-row3 { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { emptySrc, cite, sortKey, problems, toBibtex, toRis, toHtml, toPlain, type Src, type SrcType, type StyleId } from '../../lib/docs/citation';
+  const root = document.querySelector('.cg') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => q<HTMLInputElement>(s).value;
+  const lines = (s: string) => v(s).split('\n').map((x) => x.trim()).filter(Boolean);
+  const typeSel = q<HTMLSelectElement>('.cg-type'), styleSel = q<HTMLSelectElement>('.cg-style');
+  const LABELS: Record<SrcType, { title: string; container: string }> = {
+    book: { title: 'of the book', container: '' }, article: { title: 'of the article', container: 'Journal name' },
+    chapter: { title: 'of the chapter', container: 'Title of the book' }, website: { title: 'of the page', container: 'Website name' },
+    report: { title: 'of the report', container: '' },
+  };
+  const read = (): Src => {
+    const t = typeSel.value as SrcType;
+    const s = emptySrc(t);
+    s.authors = lines('.cg-authors'); s.editors = lines('.cg-editors');
+    s.year = v('.cg-year').trim(); s.month = +v('.cg-month') || 0; s.day = +v('.cg-day') || 0;
+    s.title = v('.cg-title').trim(); s.container = v('.cg-container').trim();
+    s.volume = v('.cg-volume').trim(); s.issue = v('.cg-issue').trim();
+    s.pages = (t === 'chapter' ? v('.cg-pages2') : v('.cg-pages')).trim();
+    s.publisher = (t === 'website' ? v('.cg-publisher2') : v('.cg-publisher')).trim(); s.place = v('.cg-place').trim();
+    s.edition = v('.cg-edition').trim(); s.reportNo = v('.cg-reportno').trim();
+    s.doi = v('.cg-doi').trim(); s.url = v('.cg-url').trim(); s.accessed = v('.cg-accessed'); s.pageCited = v('.cg-pagecited').trim();
+    return s;
+  };
+  const list: Src[] = [];
+  const showFields = () => {
+    const t = typeSel.value as SrcType;
+    root.querySelectorAll<HTMLElement>('[data-t]').forEach((e) => { e.hidden = !(e.dataset.t || '').split(' ').includes(t); });
+    q('[data-for=title]').textContent = LABELS[t].title;
+    q('[data-for=container]').textContent = LABELS[t].container;
+  };
+  const render = () => {
+    const s = read(), st = styleSel.value as StyleId;
+    const out = cite(s, st);
+    const labs = st === 'chicago-note' ? ['Footnote', 'Bibliography'] : ['', ''];
+    q('.cg-outs').innerHTML = out.map((o, i) => (labs[i] ? `<p class="cg-outlab">${labs[i]}</p>` : '') + `<p class="cg-out">${toHtml(o)}</p>`).join('');
+    const pr = problems(s);
+    q('.cg-probs').innerHTML = pr.map((p) => `<li>${p}</li>`).join('');
+    // list
+    const sorted = st === 'ieee' ? list.slice() : list.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    q('.cg-count').textContent = String(list.length);
+    q('.cg-empty').hidden = list.length > 0;
+    q('.cg-list').innerHTML = sorted.map((x, i) => `<li><span>${st === 'ieee' ? `[${i + 1}] ` : ''}${toHtml(cite(x, st === 'chicago-note' ? 'chicago-note' : st).slice(-1)[0])}</span><button type="button" class="btn cg-rm" data-i="${list.indexOf(x)}" aria-label="Remove this source">Remove</button></li>`).join('');
+  };
+  const listText = () => {
+    const st = styleSel.value as StyleId;
+    const sorted = st === 'ieee' ? list.slice() : list.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+    return sorted.map((x, i) => (st === 'ieee' ? `[${i + 1}] ` : '') + cite(x, st).slice(-1)[0]).join('\n\n');
+  };
+  const copy = async (b: HTMLButtonElement, plain: string, html: string, label: string) => {
+    try {
+      if ((window as any).ClipboardItem) {
+        await navigator.clipboard.write([new (window as any).ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+      } else await navigator.clipboard.writeText(plain);
+      b.textContent = 'Copied';
+    } catch { try { await navigator.clipboard.writeText(plain); b.textContent = 'Copied'; } catch { b.textContent = 'Select the text and press Ctrl+C'; } }
+    setTimeout(() => (b.textContent = label), 1800);
+  };
+  const save = (name: string, text: string, mime: string) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: mime + ';charset=utf-8' }));
+    a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const set = (sel: string, val: string) => { (q(sel) as HTMLInputElement).value = val; };
+  const clearForm = () => {
+    root.querySelectorAll<HTMLInputElement>('.cg-card:first-child input, .cg-card:first-child textarea').forEach((e) => (e.value = ''));
+    set('.cg-month', '0'); render();
+  };
+  q('.cg-clear').addEventListener('click', clearForm);
+  q('.cg-example').addEventListener('click', () => {
+    const t = typeSel.value as SrcType;
+    clearForm();
+    set('.cg-authors', 'Rao, Meera\nIvanov, Pavel');
+    set('.cg-year', '2021');
+    set('.cg-title', t === 'article' ? 'Soil moisture and crop yield in semi-arid farms' : t === 'website' ? 'How farmers read the rain' : 'Dryland farming in practice');
+    if (t === 'article') { set('.cg-container', 'Journal of Dryland Studies'); set('.cg-volume', '14'); set('.cg-issue', '3'); set('.cg-pages', '201-219'); set('.cg-doi', '10.1234/jds.2021.014'); }
+    if (t === 'chapter') { set('.cg-container', 'Handbook of Rural Studies'); set('.cg-editors', 'Khan, Aisha'); set('.cg-pages2', '45-67'); }
+    if (t === 'website') { set('.cg-container', 'Farm Notes'); set('.cg-month', '3'); set('.cg-day', '5'); set('.cg-url', 'https://example.org/rain'); }
+    if (t === 'book' || t === 'chapter' || t === 'report') { set('.cg-publisher', 'Orchid Press'); set('.cg-place', 'Pune'); }
+    if (t === 'report') set('.cg-reportno', '12');
+    render();
+  });
+  q('.cg-copy').addEventListener('click', (e) => {
+    const out = cite(read(), styleSel.value as StyleId);
+    copy(e.currentTarget as HTMLButtonElement, out.map(toPlain).join('\n'), out.map((o) => `<p>${toHtml(o)}</p>`).join(''), 'Copy');
+  });
+  q('.cg-add').addEventListener('click', () => {
+    const s = read();
+    if (!s.title) { q('.cg-probs').innerHTML = '<li>Add the title first.</li>'; return; }
+    list.push(s); render();
+  });
+  q('.cg-list').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.cg-rm') as HTMLElement | null;
+    if (b) { list.splice(+(b.dataset.i || 0), 1); render(); }
+  });
+  q('.cg-reset').addEventListener('click', () => { list.length = 0; render(); });
+  q('.cg-copyall').addEventListener('click', (e) => {
+    const t = listText();
+    copy(e.currentTarget as HTMLButtonElement, toPlain(t), t.split('\n\n').map((x) => `<p>${toHtml(x)}</p>`).join(''), 'Copy list');
+  });
+  q('.cg-bib').addEventListener('click', () => list.length && save('references.bib', toBibtex(list), 'text/plain'));
+  q('.cg-ris').addEventListener('click', () => list.length && save('references.ris', toRis(list), 'application/x-research-info-systems'));
+  q('.cg-txt').addEventListener('click', () => list.length && save('references.txt', toPlain(listText()), 'text/plain'));
+  typeSel.addEventListener('change', () => { showFields(); render(); });
+  root.addEventListener('input', render);
+  root.addEventListener('change', render);
+  showFields(); render();
+</script>
