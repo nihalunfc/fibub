@@ -1,0 +1,197 @@
+---
+// Inverse trig by reflection: reflect a trig graph in y = x, see why only the principal branch gives a function,
+// work out principal values (exact where they are standard angles), list every angle with the same ratio, and
+// the sin⁻¹(sin θ) trap. Class 12 maths, inverse trigonometric functions.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax itg">
+  <div class="ax-card">
+    <h2>Pick a ratio</h2>
+    <div class="ax-row"><div class="ax-seg it-fn" role="group" aria-label="Which function">
+      <button type="button" data-f="sin" aria-pressed="true">sin</button><button type="button" data-f="cos" aria-pressed="false">cos</button><button type="button" data-f="tan" aria-pressed="false">tan</button><button type="button" data-f="cot" aria-pressed="false">cot</button><button type="button" data-f="sec" aria-pressed="false">sec</button><button type="button" data-f="cosec" aria-pressed="false">cosec</button>
+    </div></div>
+    <dl class="ax-facts it-dr"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Reflect it in y = x</h2>
+    <canvas class="ax-fig it-fig" role="img"></canvas>
+    <label class="it-sl">Reflect: <b class="it-tv"></b><input class="it-t" type="range" min="0" max="1" step="0.01" value="1" /></label>
+    <div class="ax-row"><button type="button" class="btn small it-play">Play the reflection</button>
+      <label class="ax-check"><input type="checkbox" class="it-whole" /> Reflect the whole graph</label></div>
+    <p class="ax-help it-fnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Principal value</h2>
+    <div class="ax-grid">
+      <label><span class="it-lab">sin⁻¹</span> of x = <input class="it-x" type="text" value="1/2" inputmode="decimal" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-help">Type a number, a fraction like −1/2, or something like sqrt(3)/2.</p>
+    <p class="ax-err it-err" hidden></p>
+    <p class="ax-big it-pv"></p>
+    <dl class="ax-facts it-facts"></dl>
+    <p class="it-all"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The trap: <span class="it-trapt">sin⁻¹(sin θ)</span></h2>
+    <canvas class="ax-fig it-trap" role="img"></canvas>
+    <label class="it-sl">θ = <b class="it-thv"></b><input class="it-th" type="range" min="-360" max="360" step="5" value="150" /></label>
+    <p class="it-trapsay"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="it-try">
+      <li>Tick "Reflect the whole graph": the mirror image of the whole sine wave is a sideways wave that a vertical line meets many times, so it is not a function. Only the bold piece from −π/2 to π/2, which takes each value once, reflects into a function.</li>
+      <li>sin⁻¹(1/2) = π/6, but sin(5π/6) and sin(−7π/6) are also 1/2. The list under the principal value shows them all.</li>
+      <li>Set θ = 150° (5π/6) in the trap: sin⁻¹(sin θ) = π/6, not 5π/6.</li>
+      <li>Try cos⁻¹(−1/2) = 2π/3 and compare with π − cos⁻¹(1/2).</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="it-quiz" />
+</div>
+
+<script>
+  import { ratio, principal, allAngles, undo, angleText, degrees, DOMAIN, RANGE, BRANCH, type Trig } from '../../lib/sci/school-r-invtrig';
+  import { parse, compile } from '../../lib/sci/expr';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, px, py, axes, curve, line, dot, label, fmt } from '../../lib/sm-graph';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.itg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, PI = Math.PI;
+  const SUP = '⁻¹';
+  let f: Trig = 'sin';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const readX = (s: string) => { const t = s.trim().replace(/−/g, '-').replace(/√/g, 'sqrt'); if (!t) return NaN; try { return compile(parse(t), [])([]); } catch { return NaN; } };
+  const V = view(-4.6, 4.6, -4.6, 4.6, W, W);
+
+  function drawMain() {
+    const t = +q<HTMLInputElement>('.it-t').value, whole = q<HTMLInputElement>('.it-whole').checked;
+    q('.it-tv').textContent = t === 0 ? 'not yet' : t === 1 ? 'done' : `${Math.round(t * 100)} %`;
+    const b = BRANCH[f], x = readX(q<HTMLInputElement>('.it-x').value), pv = principal(f, x);
+    const onB = (u: number) => u >= b.lo - 1e-12 && u <= b.hi + 1e-12 && !b.skip.some((s) => Math.abs(u - s) < 1e-9);
+    paint(q<HTMLCanvasElement>('.it-fig'), { w: W, h: W, alt: `y = ${f} x with its principal branch, reflected in y = x to give y = ${f}${SUP} x`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, V, pl, { xTicks: [-3, -2, -1, 0, 1, 2, 3, 4], yTicks: [-4, -3, -2, -1, 0, 1, 2, 3, 4] });
+      line(ctx, V, -4.6, -4.6, 4.6, 4.6, pl.muted, 1, [5, 4]); label(ctx, V, 3.2, 3.2, 'y = x', pl.muted, 8, 12);
+      for (const u of [PI / 2, -PI / 2, PI]) { line(ctx, V, u, -0.12, u, 0.12, pl.muted, 1); }
+      curve(ctx, V, (u) => ratio(f, u), pl.line, 1.6);
+      curve(ctx, V, (u) => (onB(u) ? ratio(f, u) : NaN), pl.accent, 3);
+      // moving copy of a branch: points (u, f(u)) → (f(u), u)
+      const path = (keep: (u: number) => boolean, color: string, width: number, dash: number[] = []) => {
+        ctx.save(); ctx.beginPath(); ctx.rect(V.l, V.t, w - V.l - V.r, h - V.t - V.b); ctx.clip();
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath();
+        let pen = false, prev = NaN; const n = 2400;
+        for (let i = 0; i <= n; i++) {
+          const u = -4.6 + (9.2 * i) / n, y = ratio(f, u);
+          if (!keep(u) || !Number.isFinite(y) || Math.abs(y) > 30 || (pen && Math.abs(y - prev) > 5)) { pen = false; prev = NaN; continue; }
+          const X = px(V, (1 - t) * u + t * y), Y = py(V, (1 - t) * y + t * u);
+          if (pen) ctx.lineTo(X, Y); else { ctx.moveTo(X, Y); pen = true; } prev = y;
+        }
+        ctx.stroke(); ctx.restore();
+      };
+      if (whole) path(() => true, pl.bad, 1.6, [4, 3]);
+      path(onB, pl.good, 3);
+      if (t === 1 && Number.isFinite(pv)) { dot(ctx, V, x, pv, pl.accent2, 5); label(ctx, V, x, pv, `(${fmt(x, 3)}, ${angleText(pv)})`, pl.ink, 8, -6); }
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pl.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('π/2 ≈ 1.571, π ≈ 3.142', V.l + 4, V.t + 4);
+    } });
+    q('.it-fnote').textContent = `Grey: y = ${f} x. Blue: its principal branch, angles ${RANGE[f]}, where it takes each value once. Green: that branch mirrored in y = x, which is y = ${f}${SUP} x.${whole ? ' Red dashed: the mirror image of the whole graph; a vertical line meets it again and again, so it is not a function.' : ''}`;
+  }
+
+  function calc() {
+    q('.it-lab').textContent = `${f}${SUP}`;
+    q('.it-dr').replaceChildren(fact(`Domain of ${f}${SUP}`, DOMAIN[f]), fact('Principal values', RANGE[f], 'the range of the inverse'));
+    const s = q<HTMLInputElement>('.it-x').value, x = readX(s), err = q('.it-err');
+    err.hidden = true;
+    const facts = q('.it-facts'), all = q('.it-all');
+    if (!Number.isFinite(x)) { err.textContent = 'Type a number, a fraction like −1/2, or something like sqrt(3)/2.'; err.hidden = false; q('.it-pv').textContent = ''; facts.replaceChildren(); all.textContent = ''; drawMain(); return; }
+    const pv = principal(f, x);
+    if (Number.isNaN(pv)) {
+      q('.it-pv').textContent = `${f}${SUP}(${fmt(x, 4)}) is not defined`;
+      facts.replaceChildren(); all.textContent = `${f} never equals ${fmt(x, 4)}: the domain of ${f}${SUP} is ${DOMAIN[f]}.`; drawMain(); return;
+    }
+    q('.it-pv').textContent = `${f}${SUP}(${fmt(x, 4)}) = ${angleText(pv)}`;
+    const neg = principal(f, -x);
+    const rel: Record<Trig, string> = { sin: `${f}${SUP}(−x) = −${f}${SUP}x`, cosec: `${f}${SUP}(−x) = −${f}${SUP}x`, tan: `${f}${SUP}(−x) = −${f}${SUP}x`, cos: `${f}${SUP}(−x) = π − ${f}${SUP}x`, sec: `${f}${SUP}(−x) = π − ${f}${SUP}x`, cot: `${f}${SUP}(−x) = π − ${f}${SUP}x` };
+    const partner: Record<Trig, Trig> = { sin: 'cos', cos: 'sin', tan: 'cot', cot: 'tan', sec: 'cosec', cosec: 'sec' };
+    const p2 = principal(partner[f], x), rec: Record<Trig, Trig> = { sin: 'cosec', cosec: 'sin', cos: 'sec', sec: 'cos', tan: 'cot', cot: 'tan' };
+    const recV = x !== 0 ? principal(rec[f], 1 / x) : NaN;
+    facts.replaceChildren(
+      fact('In radians', fmt(pv, 6)),
+      fact('In degrees', `${fmt(degrees(pv), 4)}°`),
+      fact(`Check: ${f}(${angleText(pv)})`, fmt(ratio(f, pv), 6)),
+      fact(`${f}${SUP}(${fmt(-x, 4)})`, angleText(neg), rel[f]),
+      ...(Number.isFinite(p2) ? [fact(`${f}${SUP}x + ${partner[f]}${SUP}x`, angleText(pv + p2), 'always π/2')] : []),
+      ...(Number.isFinite(recV) && !((f === 'tan' || f === 'cot') && x < 0) ? [fact(`${rec[f]}${SUP}(1/x)`, angleText(recV), `same as ${f}${SUP}x`)] : []),
+    );
+    const angs = allAngles(f, x);
+    all.textContent = `Every angle from −2π to 2π with ${f} θ = ${fmt(x, 4)}: ${angs.map(angleText).join(', ')}. Only ${angleText(pv)} is in ${RANGE[f]}, so it is the principal value.`;
+    drawMain();
+  }
+
+  function trap() {
+    const deg = +q<HTMLInputElement>('.it-th').value, th = (deg * PI) / 180, u = undo(f, th);
+    q('.it-thv').textContent = `${angleText(th)} (${deg}°)`;
+    q('.it-trapt').textContent = `${f}${SUP}(${f} θ)`;
+    const TV = view(-2 * PI - 0.2, 2 * PI + 0.2, -3.6, 3.6, W, 260);
+    paint(q<HTMLCanvasElement>('.it-trap'), { w: W, h: 260, alt: `Graph of ${f}⁻¹(${f} θ) against θ, with θ = ${angleText(th)}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, TV, pl, { xTicks: [-2 * PI, -PI, 0, PI, 2 * PI], xLabels: ['−2π', '−π', '0', 'π', '2π'], yTicks: [-3, -2, -1, 0, 1, 2, 3] });
+      curve(ctx, TV, (t) => t, pl.line, 1.2, [5, 4]);
+      curve(ctx, TV, (t) => undo(f, t), pl.accent, 2.4);
+      if (Number.isFinite(u)) { dot(ctx, TV, th, u, pl.bad, 5); line(ctx, TV, th, 0, th, u, pl.bad, 1, [3, 3]); }
+      dot(ctx, TV, th, th, pl.muted, 3);
+    } });
+    q('.it-trapsay').textContent = Number.isNaN(u) ? `${f} θ is not defined at θ = ${angleText(th)}.` : Math.abs(u - th) < 1e-9
+      ? `${f}${SUP}(${f} ${angleText(th)}) = ${angleText(u)} = θ, because θ is on the principal branch ${RANGE[f]}.`
+      : `${f}${SUP}(${f} ${angleText(th)}) = ${angleText(u)}, not θ: θ is outside ${RANGE[f]}, so the inverse brings back the angle on the principal branch with the same ${f}. Dashed line: y = θ, where the two would agree.`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.it-fn button').forEach((b) => b.addEventListener('click', () => {
+    f = b.dataset.f as Trig; root.querySelectorAll('.it-fn button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const ex: Record<Trig, string> = { sin: '1/2', cos: '-1/2', tan: '-1', cot: 'sqrt(3)', sec: '2', cosec: '-sqrt(2)' };
+    q<HTMLInputElement>('.it-x').value = ex[f]; calc(); trap();
+  }));
+  q('.it-x').addEventListener('input', calc);
+  q('.it-t').addEventListener('input', drawMain);
+  q('.it-whole').addEventListener('change', drawMain);
+  q('.it-th').addEventListener('input', trap);
+  let anim = 0;
+  q('.it-play').addEventListener('click', () => {
+    cancelAnimationFrame(anim); const t0 = performance.now(), inp = q<HTMLInputElement>('.it-t');
+    const step = (now: number) => { const k = Math.min(1, (now - t0) / 2000); inp.value = String(Math.round(k * 100) / 100); drawMain(); if (k < 1) anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  });
+  document.addEventListener('fibub:theme', () => { drawMain(); trap(); });
+  calc(); trap();
+
+  quiz(q('.it-quiz'), (): Question[] => {
+    const std: [Trig, string, number][] = [['sin', '1/2', 1 / 2], ['sin', '−√3/2', -Math.sqrt(3) / 2], ['sin', '−1', -1], ['cos', '−1/2', -1 / 2], ['cos', '√3/2', Math.sqrt(3) / 2], ['cos', '−1/√2', -1 / Math.SQRT2], ['tan', '−1', -1], ['tan', '√3', Math.sqrt(3)], ['tan', '−1/√3', -1 / Math.sqrt(3)]];
+    const [f1, s1, x1] = pick(std.filter((s) => s[0] === 'sin')), [f2, s2, x2] = pick(std.filter((s) => s[0] === 'cos')), [f3, s3, x3] = pick(std.filter((s) => s[0] === 'tan'));
+    const th = pick([2 * PI / 3, 3 * PI / 4, 5 * PI / 6, 7 * PI / 6, 5 * PI / 4]);
+    const xs = pick([0.2, 0.3, 0.6, 0.8, -0.4]);
+    const pv = (f: Trig, x: number) => principal(f, x);
+    return [
+      { text: `What is the principal value of ${f1}⁻¹(${s1})? (type something like pi/6)`, answer: pv(f1, x1), tol: 1e-4, worked: `It is the angle in [−π/2, π/2] whose sine is ${s1}: ${angleText(pv(f1, x1))}.` },
+      { text: `What is the principal value of ${f2}⁻¹(${s2})?`, answer: pv(f2, x2), tol: 1e-4, worked: `It is the angle in [0, π] whose cosine is ${s2}: ${angleText(pv(f2, x2))}.${x2 < 0 ? ` (cos⁻¹(−x) = π − cos⁻¹x.)` : ''}` },
+      { text: `What is the principal value of ${f3}⁻¹(${s3})?`, answer: pv(f3, x3), tol: 1e-4, worked: `It is the angle in (−π/2, π/2) whose tangent is ${s3}: ${angleText(pv(f3, x3))}.` },
+      { text: `What is sin⁻¹(sin(${angleText(th)}))?`, answer: undo('sin', th), tol: 1e-4, worked: `${angleText(th)} is outside [−π/2, π/2]. The angle in that range with the same sine is ${angleText(undo('sin', th))}.` },
+      { text: `What is sin⁻¹(${xs}) + cos⁻¹(${xs})? (to 3 decimal places, or as a fraction of pi)`, answer: PI / 2, tol: 1e-3, worked: `For every x in [−1, 1], sin⁻¹x + cos⁻¹x = π/2 ≈ 1.571.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .itg .it-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .itg .it-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .itg .ax-seg button { min-height: 44px; min-width: 52px; }
+  .itg .it-x { max-width: 180px; }
+  .itg .it-pv { margin: 10px 0; overflow-wrap: anywhere; }
+  .itg .it-all, .itg .it-trapsay { margin: 10px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+  .itg .it-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .itg .btn { min-height: 44px; }
+</style>

@@ -1,0 +1,194 @@
+---
+// Random variable builder: a probability distribution table (typed or from an experiment), its mean, variance
+// and standard deviation with the working, the binomial distribution with sliders, and a simulation that shows
+// long-run averages settling on the theory. Class 12 maths, probability.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax rvb">
+  <div class="ax-card">
+    <h2>Pick a random variable</h2>
+    <div class="ax-grid">
+      <label>X is <select class="rv-src">
+        <option value="coins" selected>the number of heads in 3 coin tosses</option><option value="dice">the sum of two dice</option><option value="six">the number of sixes in 4 throws of a die</option>
+        <option value="bulbs">faulty bulbs in 3 drawn from 10 (2 faulty)</option><option value="bin">binomial: successes in n trials</option><option value="own">my own table</option>
+      </select></label>
+    </div>
+    <div class="rv-binl" hidden>
+      <label class="rv-sl">Trials n = <b class="rv-nv"></b><input class="rv-n" type="range" min="1" max="20" step="1" value="6" /></label>
+      <label class="rv-sl">Chance of success p = <b class="rv-pv"></b><input class="rv-p" type="range" min="0" max="1" step="0.01" value="0.3" /></label>
+    </div>
+    <p class="ax-help rv-note"></p>
+    <div class="ax-scroll"><table class="rv-tab"><thead><tr><th>x</th><th>P(X = x)</th><th class="rv-xc"></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row rv-ownb" hidden><button type="button" class="btn small secondary rv-add">Add a row</button><span class="ax-help">Probabilities may be fractions, like 1/8.</span></div>
+    <div class="ax-row"><button type="button" class="btn small secondary rv-copy">Edit this as my own table</button></div>
+    <p class="ax-err rv-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The distribution</h2>
+    <canvas class="ax-fig rv-fig" role="img"></canvas>
+    <p class="ax-help">Bars: P(X = x). Solid line: the mean μ. Shaded: from μ − σ to μ + σ. Outlines: what the last simulation gave.</p>
+    <dl class="ax-facts rv-facts"></dl>
+    <ol class="rv-work"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try it many times</h2>
+    <div class="ax-row rv-runs">
+      <button type="button" class="btn small" data-n="10">10 times</button><button type="button" class="btn small" data-n="100">100</button><button type="button" class="btn small" data-n="1000">1000</button><button type="button" class="btn small" data-n="10000">10 000</button>
+    </div>
+    <dl class="ax-facts rv-sim"></dl>
+    <p class="ax-help rv-simnote">Press a button to run the experiment that many times (in your browser; nothing is sent). The more runs, the closer the average gets to the mean.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rv-try">
+      <li>Heads in 3 tosses: the mean is 1.5, even though you can never get 1.5 heads. The mean is a long-run average.</li>
+      <li>Two dice: 7 is the most likely sum, and the picture is symmetric round it, so the mean is 7.</li>
+      <li>Binomial: raise n with p fixed and the mean np moves right; set p = 0.5 and the bars become symmetric.</li>
+      <li>Simulate 10 times, then 10 000 times, and compare the averages with μ.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="rv-quiz" />
+</div>
+
+<script>
+  import { problems, moments, binomial, hypergeometric, twoDice, simulate, choose, type Dist } from '../../lib/sci/school-r-rv';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, px, py, axes, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, readAnswer, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rvb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 260;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  // fractions shown for the exact experiments
+  const FR: Record<string, string[]> = { coins: ['1/8', '3/8', '3/8', '1/8'], dice: ['1/36', '2/36', '3/36', '4/36', '5/36', '6/36', '5/36', '4/36', '3/36', '2/36', '1/36'], six: ['625/1296', '500/1296', '150/1296', '20/1296', '1/1296'], bulbs: ['56/120', '56/120', '8/120'] };
+  let own: { x: string; p: string }[] = [{ x: '0', p: '1/4' }, { x: '1', p: '1/2' }, { x: '2', p: '1/4' }];
+  let D: Dist | null = null, sim: { counts: number[]; n: number } | null = null, seed = 1;
+
+  function current(): { d: Dist; labels: string[]; note: string } {
+    const src = q<HTMLSelectElement>('.rv-src').value;
+    const n = +q<HTMLInputElement>('.rv-n').value, p = +q<HTMLInputElement>('.rv-p').value;
+    q('.rv-nv').textContent = String(n); q('.rv-pv').textContent = fmt(p, 2);
+    if (src === 'coins') { const d = binomial(3, 0.5); return { d, labels: FR.coins, note: 'Toss a fair coin 3 times. X can be 0, 1, 2 or 3; out of 8 equally likely outcomes, 3 give exactly one head.' }; }
+    if (src === 'dice') return { d: twoDice(), labels: FR.dice, note: 'Throw two fair dice and add them. Of the 36 equally likely pairs, 6 add to 7.' };
+    if (src === 'six') { const d = binomial(4, 1 / 6); return { d, labels: FR.six, note: 'Throw a fair die 4 times: a binomial with n = 4 and p = 1/6.' }; }
+    if (src === 'bulbs') { const d = hypergeometric(10, 2, 3); return { d, labels: FR.bulbs, note: 'A box of 10 bulbs has 2 faulty ones. Take 3 at random, without putting any back. There are C(10, 3) = 120 equally likely handfuls (made-up numbers).' }; }
+    if (src === 'bin') { const d = binomial(n, p); return { d, labels: d.p.map((v) => fmt(v, 4)), note: `P(X = r) = C(${n}, r) × ${fmt(p, 2)}ʳ × ${fmt(1 - p, 2)}^(${n} − r), for r = 0 to ${n}.` }; }
+    const d = { x: own.map((r) => readAnswer(r.x)), p: own.map((r) => readAnswer(r.p)) };
+    return { d, labels: own.map((r) => r.p), note: 'Type each value of X and its probability.' };
+  }
+
+  function table() {
+    const src = q<HTMLSelectElement>('.rv-src').value, isOwn = src === 'own';
+    q('.rv-binl').hidden = src !== 'bin'; q('.rv-ownb').hidden = !isOwn; q('.rv-copy').hidden = isOwn;
+    q('.rv-xc').textContent = isOwn ? '' : 'as a decimal';
+    const { d, labels, note } = current();
+    q('.rv-note').textContent = note;
+    const tb = q('.rv-tab tbody');
+    if (isOwn) {
+      tb.replaceChildren(...own.map((r, i) => {
+        const tr = document.createElement('tr');
+        const mk = (v: string, lab: string, on: (s: string) => void) => { const td = document.createElement('td'); const e = document.createElement('input'); e.type = 'text'; e.inputMode = 'decimal'; e.value = v; e.setAttribute('aria-label', lab); e.addEventListener('input', () => { on(e.value); sim = null; run(); }); td.append(e); return td; };
+        const del = document.createElement('td'); const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small secondary rv-del'; b.textContent = '✕'; b.setAttribute('aria-label', `Remove row ${i + 1}`);
+        b.addEventListener('click', () => { own.splice(i, 1); sim = null; table(); }); del.append(b);
+        tr.append(mk(r.x, `Value ${i + 1}`, (s) => { own[i].x = s; }), mk(r.p, `Probability ${i + 1}`, (s) => { own[i].p = s; }), del);
+        return tr;
+      }));
+    } else {
+      tb.replaceChildren(...d.x.map((x, i) => { const tr = document.createElement('tr'); [fmt(x, 3), labels[i], fmt(d.p[i], 4)].forEach((t) => { const td = document.createElement('td'); td.textContent = t; tr.append(td); }); return tr; }));
+    }
+    q<HTMLButtonElement>('.rv-add').disabled = own.length >= 12;
+    run();
+  }
+
+  function run() {
+    const { d } = current(), err = q('.rv-err'), bad = problems(d);
+    if (bad.length) { err.textContent = bad.join(' '); err.hidden = false; D = null; q('.rv-facts').replaceChildren(); q('.rv-work').replaceChildren(); paint(q<HTMLCanvasElement>('.rv-fig'), { w: W, h: H, alt: 'No valid table yet', draw: () => {} }); return; }
+    err.hidden = true;
+    // sort by x for the picture
+    const order = d.x.map((_, i) => i).sort((a, b) => d.x[a] - d.x[b]);
+    D = { x: order.map((i) => d.x[i]), p: order.map((i) => d.p[i]) };
+    const m = moments(D), dd = D;
+    const xs = dd.x, x0 = Math.min(...xs), x1 = Math.max(...xs), step = xs.length > 1 ? Math.min(...xs.slice(1).map((v, i) => v - xs[i])) : 1;
+    const pmax = Math.max(...dd.p, sim ? Math.max(...sim.counts.map((c) => c / sim!.n)) : 0);
+    const V = view(x0 - step * 0.7, x1 + step * 0.7, 0, Math.max(0.05, pmax * 1.15), W, H, { l: 44, r: 10, t: 12, b: 24 });
+    paint(q<HTMLCanvasElement>('.rv-fig'), { w: W, h: H, alt: `Distribution of X: mean ${fmt(m.mean, 4)}, standard deviation ${fmt(m.sd, 4)}`, draw: (ctx, w, h, pl: Palette) => {
+      const a = px(V, m.mean - m.sd), b = px(V, m.mean + m.sd);
+      ctx.fillStyle = pl.accent2; ctx.globalAlpha = 0.13; ctx.fillRect(Math.max(V.l, a), V.t, Math.min(w - V.r, b) - Math.max(V.l, a), h - V.t - V.b); ctx.globalAlpha = 1;
+      axes(ctx, V, pl, xs.length <= 13 ? { xTicks: xs } : {});
+      const bw = Math.max(2, (px(V, x0 + step) - px(V, x0)) * 0.6);
+      dd.x.forEach((x, i) => { const X = px(V, x), Y = py(V, dd.p[i]); ctx.fillStyle = pl.accent; ctx.fillRect(X - bw / 2, Y, bw, py(V, 0) - Y); });
+      if (sim) { ctx.strokeStyle = pl.bad; ctx.lineWidth = 2; dd.x.forEach((x, i) => { const X = px(V, x), Y = py(V, sim!.counts[i] / sim!.n); ctx.strokeRect(X - bw / 2 - 2, Y, bw + 4, py(V, 0) - Y); }); }
+      ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px(V, m.mean), V.t); ctx.lineTo(px(V, m.mean), h - V.b); ctx.stroke();
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pl.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`μ = ${fmt(m.mean, 3)}`, Math.min(px(V, m.mean) + 4, w - 70), V.t + 2);
+    } });
+    const src = q<HTMLSelectElement>('.rv-src').value, isBin = ['bin', 'coins', 'six'].includes(src);
+    const n = src === 'coins' ? 3 : src === 'six' ? 4 : +q<HTMLInputElement>('.rv-n').value, p = src === 'coins' ? 0.5 : src === 'six' ? 1 / 6 : +q<HTMLInputElement>('.rv-p').value;
+    q('.rv-facts').replaceChildren(
+      fact('Mean E(X) = μ', fmt(m.mean, 4), 'Σ x P(x)'),
+      fact('E(X²)', fmt(m.ex2, 4), 'Σ x² P(x)'),
+      fact('Variance', fmt(m.variance, 4), 'E(X²) − μ²'),
+      fact('Standard deviation σ', fmt(m.sd, 4), '√variance'),
+      ...(isBin ? [fact('Binomial check', `np = ${fmt(n * p, 4)}, npq = ${fmt(n * p * (1 - p), 4)}`, `n = ${n}, p = ${fmt(p, 4)}`)] : []),
+    );
+    const terms = (f: (x: number) => string) => (dd.x.length <= 7 ? dd.x.map((x, i) => `${f(x)} × ${fmt(dd.p[i], 4)}`).join(' + ') : `${dd.x.slice(0, 3).map((x, i) => `${f(x)} × ${fmt(dd.p[i], 4)}`).join(' + ')} + … (${dd.x.length} terms)`);
+    q('.rv-work').replaceChildren(...[
+      `μ = ${terms((x) => fmt(x, 3))} = ${fmt(m.mean, 4)}`,
+      `E(X²) = ${terms((x) => `${fmt(x, 3)}²`)} = ${fmt(m.ex2, 4)}`,
+      `Var(X) = ${fmt(m.ex2, 4)} − ${fmt(m.mean, 4)}² = ${fmt(m.variance, 4)}, so σ = √${fmt(m.variance, 4)} = ${fmt(m.sd, 4)}`,
+    ].map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    if (sim) {
+      const s = simulate(dd, sim.n, seed);
+      q('.rv-sim').replaceChildren(fact('Runs', sim.n.toLocaleString('en')), fact('Average of X', fmt(s.mean, 4), `theory μ = ${fmt(m.mean, 4)}`), fact('Spread (variance)', fmt(s.variance, 4), `theory ${fmt(m.variance, 4)}`));
+    } else q('.rv-sim').replaceChildren();
+  }
+
+  q('.rv-src').addEventListener('change', () => { sim = null; table(); });
+  ['.rv-n', '.rv-p'].forEach((s) => q(s).addEventListener('input', () => { sim = null; table(); }));
+  q('.rv-add').addEventListener('click', () => { const last = own[own.length - 1]; own.push({ x: String((last ? readAnswer(last.x) : -1) + 1 || 0), p: '0' }); sim = null; table(); });
+  q('.rv-copy').addEventListener('click', () => {
+    const { d, labels } = current(), src = q<HTMLSelectElement>('.rv-src').value;
+    own = d.x.map((x, i) => ({ x: String(x), p: src === 'bin' ? String(+d.p[i].toFixed(6)) : labels[i] }));
+    if (src === 'bin') { const s = own.reduce((a, r) => a + Number(r.p), 0); own[own.length - 1].p = String(+(Number(own[own.length - 1].p) + 1 - s).toFixed(6)); }
+    q<HTMLSelectElement>('.rv-src').value = 'own'; sim = null; table();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.rv-runs button').forEach((b) => b.addEventListener('click', () => {
+    if (!D) return;
+    seed += 1; const n = +b.dataset.n!; const s = simulate(D, n, seed); sim = { counts: s.counts, n }; run();
+  }));
+  document.addEventListener('fibub:theme', run);
+  table();
+
+  quiz(q('.rv-quiz'), (): Question[] => {
+    const a = rint(1, 4), b = rint(1, 4), c = 8 - a - b > 0 ? 8 - a - b : 1, tot = a + b + c;
+    const xs = [rint(0, 2), rint(3, 4), rint(5, 7)];
+    const mean = (xs[0] * a + xs[1] * b + xs[2] * c) / tot;
+    const n = rint(3, 6), r = rint(1, n - 1), p = pick([0.2, 0.25, 0.4, 0.5]);
+    const nb = rint(10, 40), pb = pick([0.1, 0.2, 0.25, 0.5]);
+    const k1 = rint(1, 3), k2 = rint(1, 3);
+    return [
+      { text: `X takes ${xs.join(', ')} with probabilities ${a}/${tot}, ${b}/${tot}, ${c}/${tot}. What is E(X)?`, answer: mean, tol: 1e-3, worked: `E(X) = (${xs[0]} × ${a} + ${xs[1]} × ${b} + ${xs[2]} × ${c}) / ${tot} = ${xs[0] * a + xs[1] * b + xs[2] * c}/${tot} = ${fmt(mean, 4)}.` },
+      { text: `X is binomial with n = ${n} and p = ${p}. What is P(X = ${r})? (4 decimal places)`, answer: choose(n, r) * p ** r * (1 - p) ** (n - r), tol: 6e-5, worked: `C(${n}, ${r}) × ${p}^${r} × ${1 - p}^${n - r} = ${choose(n, r)} × ${fmt(p ** r, 6)} × ${fmt((1 - p) ** (n - r), 6)} = ${fmt(choose(n, r) * p ** r * (1 - p) ** (n - r), 5)}.` },
+      { text: `A binomial X has n = ${nb} and p = ${pb}. What is its variance?`, answer: nb * pb * (1 - pb), worked: `Var(X) = npq = ${nb} × ${pb} × ${1 - pb} = ${fmt(nb * pb * (1 - pb), 4)}.` },
+      { text: `P(X = 0) = ${k1}k, P(X = 1) = ${k2}k, P(X = 2) = 2k, and nothing else. What is k?`, answer: 1 / (k1 + k2 + 2), worked: `The probabilities add to 1: ${k1}k + ${k2}k + 2k = ${k1 + k2 + 2}k = 1, so k = 1/${k1 + k2 + 2}.` },
+      { text: 'What is the variance of the number of heads in 2 tosses of a fair coin?', answer: 0.5, worked: 'X = 0, 1, 2 with 1/4, 1/2, 1/4. μ = 1, E(X²) = 0 + 1/2 + 4/4 = 1.5, so Var = 1.5 − 1 = 0.5 (and npq = 2 × ½ × ½ = 0.5).' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rvb .rv-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .rvb .rv-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rvb .rv-tab { border-collapse: collapse; margin: 8px 0; font-variant-numeric: tabular-nums; }
+  .rvb .rv-tab th, .rvb .rv-tab td { padding: 5px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  .rvb.ax .rv-tab input:not([type=range]) { width: 96px; min-height: 40px; }
+  .rvb .rv-del { min-height: 40px; min-width: 40px; padding: 4px 8px; }
+  .rvb .rv-work { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .rvb .rv-runs .btn, .rvb .btn { min-height: 44px; }
+  .rvb .rv-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

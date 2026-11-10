@@ -1,0 +1,37 @@
+// #1475 LPP graphical solver (maths checked against scipy linprog in tests/sci-tools/lpp-solver.mjs)
+export const path = '/learn/lpp-solver/';
+export default async ({ page, check, BASE }) => {
+  const R = '.lpp ';
+  const t = (s) => page.textContent(R + s);
+  await page.goto(`${BASE}/learn/lpp-solver/`); await page.waitForTimeout(500);
+  check((await t('.lp-ans')) === 'Maximum Z = 520' && (await t('.lp-say')).includes('x = 8 tables, y = 4 chairs'), `lpp: furniture (${await t('.lp-ans')} ${await t('.lp-say')})`);
+  check((await page.$$eval(R + '.lp-tab tbody tr', (r) => r.length)) === 4 && (await t('.lp-best')).includes('520'), 'lpp: four corners, best row');
+  const px = await page.evaluate(() => { const c = document.querySelector('.lp-fig'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 230 || d[i + 2] < 230) n++; return n; });
+  check(px > 5000, `lpp: region drawn (${px} px)`);
+  await page.click(R + '.lp-go'); await page.waitForTimeout(1800);
+  check(Math.abs(Number(await page.$eval(R + '.lp-k', (e) => e.value)) - 520) < 1, `lpp: objective line slides to the best (${await page.$eval(R + '.lp-k', (e) => e.value)})`);
+  await page.selectOption(R + '.lp-st', 'diet'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'Minimum Z = 24' && (await t('.lp-say')).includes('unbounded'), `lpp: diet (${await t('.lp-say')})`);
+  await page.click(R + '.lp-goal button[data-g=max]'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'No maximum', 'lpp: diet has no maximum');
+  await page.selectOption(R + '.lp-st', 'tie'); await page.waitForTimeout(60);
+  check((await t('.lp-say')).includes('every point on the edge') && (await page.$$eval(R + '.lp-best', (r) => r.length)) === 2, 'lpp: tie');
+  await page.selectOption(R + '.lp-st', 'none'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'No feasible point', 'lpp: infeasible');
+  await page.selectOption(R + '.lp-st', 'farm'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'Maximum Z = 120', `lpp: farm (${await t('.lp-ans')})`);
+  await page.selectOption(R + '.lp-st', 'own'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'Maximum Z = 21', `lpp: own default (${await t('.lp-ans')})`);
+  await page.click(R + '.lp-add'); await page.waitForTimeout(60);
+  check((await page.$$eval(R + '.lp-con', (r) => r.length)) === 3, 'lpp: add constraint');
+  const inputs = await page.$$(R + '.lp-con:nth-child(3) input');
+  await inputs[0].fill('1'); await inputs[1].fill('0'); await inputs[2].fill('2'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'Maximum Z = 19.333', `lpp: x ≤ 2 changes the answer (${await t('.lp-ans')})`);
+  await inputs[0].fill('0'); await page.waitForTimeout(60);
+  check(!(await page.$eval(R + '.lp-err', (e) => e.hidden)), 'lpp: 0x + 0y message');
+  await page.click(R + '.lp-con:nth-child(3) .lp-del'); await page.waitForTimeout(60);
+  check((await t('.lp-ans')) === 'Maximum Z = 21' && (await page.$eval(R + '.lp-err', (e) => e.hidden)), 'lpp: remove constraint');
+  check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'lpp: five quiz questions');
+  await page.click(R + '.smq-q:nth-child(5) .smq-choices button:nth-child(1)'); await page.click(R + '.smq-q:nth-child(5) .smq-check');
+  check((await t('.smq-q:nth-child(5) .smq-out')) === 'Right!', 'lpp: quiz answer');
+};
