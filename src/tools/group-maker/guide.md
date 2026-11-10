@@ -12,7 +12,7 @@ order: 2045
 icon: table
 works: offline
 updated: 2026-11-10
-related: [planner, rubric-grade-calculator]
+related: [planner, rubric-grade-calculator, study-timer, classroom-timer]
 sources:
   - "Fisher–Yates shuffle using the browser's crypto.getRandomValues; balanced group sizes. fibub's own working."
 flow:
