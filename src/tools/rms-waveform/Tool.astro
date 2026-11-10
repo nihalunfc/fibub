@@ -1,0 +1,111 @@
+---
+// RMS from a waveform: pick a waveform and its peak, see v and v² over a cycle, the mean of v², and the rms value
+// that heats a resistor like a steady voltage. Why 230 V mains has a 325 V peak.
+import '../../styles/astro.css';
+---
+<div class="ax rms">
+  <div class="ax-card">
+    <h2>Waveform</h2>
+    <span class="ax-seg rms-wave" role="group" aria-label="Waveform">
+      <button type="button" data-v="sine" aria-pressed="true">Sine</button><button type="button" data-v="square" aria-pressed="false">Square</button><button type="button" data-v="triangle" aria-pressed="false">Triangle</button><button type="button" data-v="saw" aria-pressed="false">Sawtooth</button><button type="button" data-v="half" aria-pressed="false">Half-wave</button><button type="button" data-v="full" aria-pressed="false">Full-wave</button>
+    </span>
+    <label class="rms-sl">Peak voltage V₀: <b class="rms-pv"></b><input type="range" class="rms-p" min="1" max="400" step="1" value="325" aria-label="Peak voltage" /></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rms-mains">Indian mains: 230 V rms, 50 Hz</button></div>
+    <canvas class="ax-fig rms-fig" aria-label="The waveform and its square over two cycles"></canvas>
+    <div class="ax-legend"><span><i class="rms-kv"></i>v</span><span><i class="rms-k2"></i>v² (scaled)</span><span><i class="rms-km"></i>mean of v²</span><span><i class="rms-kr"></i>rms level</span></div>
+    <p class="ax-big rms-big" aria-live="polite"></p>
+    <p class="rms-text"></p>
+    <dl class="ax-facts rms-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rms-try">
+      <li>Press Indian mains: the peak is 325 V, but the supply heats a kettle like a steady 230 V.</li>
+      <li>Switch to Square: the rms equals the peak, because v² is the same all the time.</li>
+      <li>Triangle and Sawtooth have the same rms (V₀/√3) although they look different: only the spread of values matters.</li>
+      <li>Half-wave keeps only the top halves: half the heating, so the rms is V₀/√(2 × 2) = V₀/2.</li>
+      <li>The mean of a sine wave over a cycle is zero, but the mean of v² is not. That is why we use rms.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="rms-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rms .rms-fig { max-width: 560px; margin: 12px auto 0; }
+  .rms .rms-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .rms input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rms .ax-seg button { min-height: 40px; }
+  .rms-kv { background: var(--accent); }
+  .rms-k2 { background: var(--warn); }
+  .rms-km { background: var(--muted); }
+  .rms-kr { background: var(--good); }
+  .rms-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .rms-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .rms-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .rms .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .rms .eq-q p { margin: 0 0 6px; }
+  .rms .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .rms .eq-ok { color: var(--good); font-weight: 600; }
+  .rms .eq-no { color: var(--bad); }
+  .rms .eq-work { margin-top: 4px; font-size: 14px; }
+  .rms .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .rms .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { shape, measure, EXACT, questions, type Wave } from '../../lib/sci/rms-waveform';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sci3, fact, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.rms')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.rms-fig'), pIn = q<HTMLInputElement>('.rms-p');
+  const NAMES: Record<Wave, string> = { sine: 'sine wave', square: 'square wave', triangle: 'triangle wave', saw: 'sawtooth', half: 'half-wave rectified sine', full: 'full-wave rectified sine' };
+  const FACTOR: Record<Wave, string> = { sine: 'V₀/√2', square: 'V₀', triangle: 'V₀/√3', saw: 'V₀/√3', half: 'V₀/2', full: 'V₀/√2' };
+  let w: Wave = 'sine';
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 230), V0 = +pIn.value, m = measure(w, V0);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 230);
+    const X0 = 40, X1 = 352, Ym = 115, A = 95, X = (u: number) => X0 + (u / 2) * (X1 - X0), Y = (v: number) => Ym - (v / V0) * A;
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Ym); c.lineTo(X1, Ym); c.moveTo(X0, Ym - A - 6); c.lineTo(X0, Ym + A + 6); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right';
+    c.fillText(`${V0}`, X0 - 4, Y(V0) + 4); c.fillText(`−${V0}`, X0 - 4, Y(-V0) + 4); c.fillText('0', X0 - 4, Ym + 4);
+    c.textAlign = 'center'; c.fillText('one cycle (20 ms at 50 Hz)', (X0 + X(1)) / 2, 226);
+    const line = (f: (u: number) => number, col: string, wd: number, dash: number[] = []) => { c.strokeStyle = col; c.lineWidth = wd; c.setLineDash(dash); c.beginPath(); for (let k = 0; k <= 600; k++) { const u = (k / 600) * 2 * 0.99999, y = f(u); k ? c.lineTo(X(u), y) : c.moveTo(X(u), y); } c.stroke(); c.setLineDash([]); };
+    // v² scaled so that V0² reaches the top: the mean of v² then sits at (rms/V0)² of the height.
+    c.fillStyle = pal.warn; c.globalAlpha = 0.18; c.beginPath(); c.moveTo(X(0), Ym);
+    for (let k = 0; k <= 600; k++) { const u = (k / 600) * 2 * 0.99999; c.lineTo(X(u), Ym - shape(w, u) ** 2 * A); }
+    c.lineTo(X(2), Ym); c.closePath(); c.fill(); c.globalAlpha = 1;
+    line((u) => Ym - shape(w, u) ** 2 * A, pal.warn, 1.5);
+    line((u) => Y(V0 * shape(w, u)), pal.accent, 2.5);
+    const ms = Ym - (m.meanSq / (V0 * V0)) * A;
+    c.strokeStyle = pal.muted; c.lineWidth = 1.5; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(X0, ms); c.lineTo(X1, ms); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = pal.good; c.lineWidth = 2; c.beginPath(); c.moveTo(X0, Y(m.rms)); c.lineTo(X1, Y(m.rms)); c.stroke();
+    c.fillStyle = pal.good; c.textAlign = 'right'; c.font = '700 11px system-ui, sans-serif'; c.fillText(`rms ${sci3(m.rms)} V`, X1, Y(m.rms) - 4);
+    fig.setAttribute('aria-label', `${NAMES[w]} with peak ${V0} volts; rms ${sci3(m.rms)} volts`);
+  }
+  function texts() {
+    const V0 = +pIn.value, m = measure(w, V0), e = EXACT[w];
+    q('.rms-pv').textContent = `${V0} V`;
+    q('.rms-big').textContent = `V_rms = ${FACTOR[w]} = ${sci3(V0 * e.rms)} V`;
+    q('.rms-text').textContent = `Square every value over a cycle, take the mean, then the square root. Mean of v² = ${sci3(m.meanSq)} V² (the dashed line), so V_rms = √${sci3(m.meanSq)} = ${sci3(m.rms)} V. Exact: ${FACTOR[w]} = ${sci3(V0 * e.rms)} V. A resistor gets as hot as on a steady ${sci3(m.rms)} V.`;
+    q('.rms-facts').replaceChildren(
+      fact('Peak V₀', `${V0} V`), fact('rms ÷ peak', sci3(e.rms), FACTOR[w].replace('V₀', '1')),
+      fact('Mean over a cycle', `${sci3(Math.abs(m.mean) < 1e-9 ? 0 : m.mean)} V`, e.mean === 0 ? 'ups and downs cancel' : 'what a DC meter reads'),
+      fact('Mean of the size |v|', `${sci3(m.absMean)} V`), fact('Power in 100 Ω', `${sci3((m.rms * m.rms) / 100)} W`, 'P = V_rms² / R'),
+    );
+  }
+  const all = () => { texts(); draw(); };
+  seg(q('.rms-wave'), (v) => { w = v as Wave; all(); });
+  pIn.addEventListener('input', all);
+  q('.rms-mains').addEventListener('click', () => { pIn.value = '325'; w = 'sine'; for (const b of q('.rms-wave').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.v === 'sine')); all(); });
+  onTheme(draw);
+  all();
+  quiz(q('.rms-quiz'), () => questions());
+</script>
