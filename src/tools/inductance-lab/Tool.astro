@@ -1,0 +1,139 @@
+---
+// Self and mutual inductance: an inner solenoid inside an outer coil. Ramp the current in the inner coil up and
+// down and see the self-induced emf in it and the emf it induces in the outer coil, with L, M and the energy.
+import '../../styles/astro.css';
+---
+<div class="ax ind">
+  <div class="ax-card">
+    <h2>Two coils on one axis</h2>
+    <canvas class="ax-fig ind-fig" aria-label="An inner solenoid inside an outer coil"></canvas>
+    <label class="ind-sl">Inner coil turns N₁: <b class="ind-n1v"></b><input type="range" class="ind-n1" min="100" max="1000" step="50" value="500" aria-label="Turns of the inner coil" /></label>
+    <label class="ind-sl">Outer coil turns N₂: <b class="ind-n2v"></b><input type="range" class="ind-n2" min="50" max="1000" step="50" value="200" aria-label="Turns of the outer coil" /></label>
+    <label class="ind-sl">Length ℓ: <b class="ind-lv"></b><input type="range" class="ind-l" min="10" max="50" step="5" value="25" aria-label="Length in cm" /></label>
+    <label class="ind-sl">Inner radius r₁: <b class="ind-r1v"></b><input type="range" class="ind-r1" min="1" max="3" step="0.5" value="2" aria-label="Inner radius in cm" /></label>
+    <label class="ind-sl">Outer radius r₂: <b class="ind-r2v"></b><input type="range" class="ind-r2" min="1" max="5" step="0.5" value="3" aria-label="Outer radius in cm" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <span class="ax-seg ind-core" role="group" aria-label="Core"><button type="button" data-v="1" aria-pressed="true">Air core</button><button type="button" data-v="1000" aria-pressed="false">Iron core</button></span>
+    </div>
+    <p class="ax-big ind-big" aria-live="polite"></p>
+    <p class="ind-text"></p>
+    <dl class="ax-facts ind-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Ramp the current in the inner coil</h2>
+    <label class="ind-sl">Top current I₀: <b class="ind-iv"></b><input type="range" class="ind-i" min="0.5" max="5" step="0.5" value="2" aria-label="Top current in ampere" /></label>
+    <label class="ind-sl">Time to ramp up: <b class="ind-tv"></b><input type="range" class="ind-t" min="0.1" max="2" step="0.1" value="0.5" aria-label="Ramp time in seconds" /></label>
+    <canvas class="ax-fig ind-graph" aria-label="Current and induced emfs against time"></canvas>
+    <div class="ax-legend"><span><i class="ind-ki"></i>current I₁</span><span><i class="ind-k1"></i>self emf in coil 1</span><span><i class="ind-k2"></i>emf in coil 2</span></div>
+    <p class="ind-gtext"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ind-try">
+      <li>Double N₁: L₁ goes up four times (N²), but M only doubles (N₁N₂).</li>
+      <li>Make the ramp faster: the emfs grow, because they depend on how fast the current changes, not on how big it is.</li>
+      <li>Watch the graph: while the current rises the emfs push against it; while it falls they push the other way (Lenz's law).</li>
+      <li>Make r₂ bigger with r₁ fixed: M stays the same (only the inner coil's area has its field), but the coupling k falls.</li>
+      <li>Put in the iron core: L and M jump about a thousand times. This is why transformers have iron cores.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ind-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ind .ind-fig, .ind .ind-graph { max-width: 560px; margin: 10px auto 0; }
+  .ind .ind-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .ind input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ind .ax-seg button { min-height: 40px; }
+  .ind-ki { background: var(--ink); }
+  .ind-k1 { background: var(--accent); }
+  .ind-k2 { background: var(--warn); }
+  .ind-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .ind-text, .ind-gtext { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .ind-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .ind .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .ind .eq-q p { margin: 0 0 6px; }
+  .ind .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .ind .eq-ok { color: var(--good); font-weight: 600; }
+  .ind .eq-no { color: var(--bad); }
+  .ind .eq-work { margin-top: 4px; font-size: 14px; }
+  .ind .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .ind .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { coils, current, rate, questions } from '../../lib/sci/inductance-lab';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sci3, si, fact, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.ind')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.ind-fig'), graph = q<HTMLCanvasElement>('.ind-graph');
+  let mur = 1;
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+  const p = () => {
+    const r1 = val('.ind-r1'), r2 = Math.max(r1, val('.ind-r2'));
+    return { N1: val('.ind-n1'), N2: val('.ind-n2'), l: val('.ind-l') / 100, r1: r1 / 100, r2: r2 / 100, I0: val('.ind-i'), tr: val('.ind-t') };
+  };
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 170), s = p();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 170);
+    const len = 120 + s.l * 400, x0 = 180 - len / 2, h1 = s.r1 * 1600, h2 = s.r2 * 1600, cy = 85;
+    if (mur > 1) { c.fillStyle = pal.line; c.fillRect(x0 - 10, cy - h1 + 4, len + 20, 2 * h1 - 8); }
+    const loops = (h: number, n: number, col: string, w: number) => {
+      const k = Math.max(4, Math.min(40, Math.round(n / 25)));
+      c.strokeStyle = col; c.lineWidth = w;
+      for (let i = 0; i < k; i++) { const x = x0 + ((i + 0.5) / k) * len; c.beginPath(); c.ellipse(x, cy, 4, h, 0, 0, Math.PI * 2); c.stroke(); }
+    };
+    loops(h2, s.N2, pal.warn, 1.5); loops(h1, s.N1, pal.accent, 1.5);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText(`coil 1: ${s.N1} turns, r₁ = ${sci3(s.r1 * 100)} cm`, 8, 14); c.fillText(`coil 2: ${s.N2} turns, r₂ = ${sci3(s.r2 * 100)} cm`, 8, 164);
+    c.textAlign = 'right'; c.fillText(mur > 1 ? 'iron core' : 'air core', 352, 14);
+  }
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, 360, 200), s = p(), g = coils(s.N1, s.N2, s.l, s.r1, s.r2, mur);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 200);
+    const tEnd = 4 * s.tr, X0 = 30, X1 = 350, X = (t: number) => X0 + (t / tEnd) * (X1 - X0);
+    const bands: [number, number][] = [[10, 70], [85, 135], [145, 195]];
+    c.strokeStyle = pal.line; c.lineWidth = 1;
+    for (const [a, b] of bands) { c.beginPath(); c.moveTo(X0, (a + b) / 2); c.lineTo(X1, (a + b) / 2); c.stroke(); }
+    const plot = (f: (t: number) => number, max: number, [a, b]: [number, number], col: string) => {
+      const mid = (a + b) / 2, half = (b - a) / 2;
+      c.strokeStyle = col; c.lineWidth = 2; c.beginPath();
+      for (let k = 0; k <= 400; k++) { const t = (k / 400) * tEnd * 0.9999, y = mid - (f(t) / max) * half; k ? c.lineTo(X(t), y) : c.moveTo(X(t), y); }
+      c.stroke();
+    };
+    const e1 = g.L1 * (s.I0 / s.tr), e2 = g.M * (s.I0 / s.tr);
+    c.save(); c.translate(0, 30); plot((t) => current(s.I0, s.tr, t) - s.I0 / 2, s.I0 / 2, [-20, 40], pal.ink); c.restore();
+    plot((t) => -g.L1 * rate(s.I0, s.tr, t), e1, bands[1], pal.accent);
+    plot((t) => -g.M * rate(s.I0, s.tr, t), e2, bands[2], pal.warn);
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText(`I₁: 0 to ${s.I0} A`, X0 + 4, 12); c.fillText(`ε₁: ±${si(e1, 'V')}`, X0 + 4, 86); c.fillText(`ε₂: ±${si(e2, 'V')}`, X0 + 4, 146);
+  }
+  function texts() {
+    const s = p(), g = coils(s.N1, s.N2, s.l, s.r1, s.r2, mur), dIdt = s.I0 / s.tr;
+    if (val('.ind-r2') < val('.ind-r1')) q<HTMLInputElement>('.ind-r2').value = String(val('.ind-r1'));
+    q('.ind-n1v').textContent = String(s.N1); q('.ind-n2v').textContent = String(s.N2); q('.ind-lv').textContent = `${Math.round(s.l * 100)} cm`;
+    q('.ind-r1v').textContent = `${sci3(s.r1 * 100)} cm`; q('.ind-r2v').textContent = `${sci3(s.r2 * 100)} cm`; q('.ind-iv').textContent = `${s.I0} A`; q('.ind-tv').textContent = `${s.tr} s`;
+    q('.ind-big').textContent = `L₁ = ${si(g.L1, 'H')}, M = ${si(g.M, 'H')}`;
+    q('.ind-text').textContent = `L₁ = µ₀${mur > 1 ? 'µr' : ''} N₁² πr₁² / ℓ = ${mur > 1 ? `${mur} × ` : ''}1.26 × 10⁻⁶ × ${s.N1}² × π × ${sci3(s.r1)}² / ${sci3(s.l)} = ${si(g.L1, 'H')}. M = µ₀${mur > 1 ? 'µr' : ''} N₁ N₂ πr₁² / ℓ = ${si(g.M, 'H')}: coil 2 links only the flux inside coil 1.`;
+    q('.ind-facts').replaceChildren(
+      fact('Outer coil L₂', si(g.L2, 'H')), fact('Coupling k = M/√(L₁L₂)', sci3(g.k), 'how much flux the coils share'),
+      fact('Field inside coil 1 at I₀', si(g.B1(s.I0), 'T'), 'B = µ₀ n I'), fact('Energy at I₀', si(0.5 * g.L1 * s.I0 * s.I0, 'J'), 'U = ½ L₁ I₀²'),
+    );
+    q('.ind-gtext').textContent = `The current changes at ${sci3(dIdt)} A/s, so coil 1 feels a self-induced emf of L₁ dI/dt = ${si(g.L1 * dIdt, 'V')} and coil 2 an emf of M dI/dt = ${si(g.M * dIdt, 'V')}. Both flip sign when the current turns from rising to falling.`;
+  }
+  const all = () => { texts(); draw(); drawGraph(); };
+  for (const s of ['.ind-n1', '.ind-n2', '.ind-l', '.ind-r1', '.ind-r2', '.ind-i', '.ind-t']) q(s).addEventListener('input', all);
+  seg(q('.ind-core'), (v) => { mur = +v; all(); });
+  onTheme(all);
+  all();
+  quiz(q('.ind-quiz'), () => questions());
+</script>
