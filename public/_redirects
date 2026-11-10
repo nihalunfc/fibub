@@ -5,3 +5,6 @@
 /documents/compress-image /documents/compress-file/ 301
 /documents/compress-office/ /documents/compress-file/ 301
 /documents/compress-office /documents/compress-file/ 301
+# The News tab became the Blog (2026-11-10).
+/news/ /blog/ 301
+/news /blog/ 301

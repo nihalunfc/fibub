@@ -27,7 +27,7 @@ const imageUrl = new URL(image, SITE.url).href;
 const canonical = new URL(Astro.url.pathname, SITE.url).href;
 const path = Astro.url.pathname;
 const area = areaOf(path);
-const learn = AREAS.find((a) => a.id === 'learn')!, news = AREAS.find((a) => a.id === 'news')!;
+const learn = AREAS.find((a) => a.id === 'learn')!, blog = AREAS.find((a) => a.id === 'blog')!;
 const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagline}` : `${title} | ${SITE.name}`);
 ---
 <!doctype html>
@@ -112,10 +112,10 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
               <a class="at-link" href="/tools/">All tools, shelf by shelf</a>
             </div>
           </details>
-          <details class="at-area" data-area="news" open={area.id === 'news'}>
-            <summary><i class="at-dot" aria-hidden="true"></i><span class="at-nm">News</span></summary>
+          <details class="at-area" data-area="blog" open={area.id === 'blog'}>
+            <summary><i class="at-dot" aria-hidden="true"></i><span class="at-nm">Blog</span></summary>
             <div class="at-in">
-              {news.tabs.map((t) => <a class="at-link" href={t.href}>{t.name}</a>)}
+              {blog.tabs.map((t) => <a class="at-link" href={t.href}>{t.name}</a>)}
             </div>
           </details>
           <details class="at-area" data-area="menu" open={area.id === 'menu'}>

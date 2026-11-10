@@ -1,7 +1,7 @@
 ---
 // Homepage design v2, "three doors" (nihal chose it on 2026-11-10; see src/home/README.md for every
 // version and how to switch). The page explains fibub in one line, puts search first, then opens three
-// doors that match the bottom bar: Learn, Tools and News. Below them: the most used tools and the site
+// doors that match the bottom bar: Learn, Tools and Blog. Below them: the most used tools and the site
 // in numbers. It never lists every tool, so it stays short however many tools there are.
 // `preview` is set on /home/v2/, where it is shown with a note and kept out of search engines.
 import Base from '../../layouts/Base.astro';
@@ -118,9 +118,9 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
       <a class="go" href="/tools/">Browse all tools</a>
     </section>
 
-    <section class="door" data-door="news" aria-labelledby="d-news">
+    <section class="door" data-door="blog" aria-labelledby="d-blog">
       <header>
-        <h2 id="d-news"><a href="/news/">News</a></h2>
+        <h2 id="d-blog"><a href="/blog/">Blog</a></h2>
         <span class="cnt">New this week</span>
       </header>
       <p class="blurb">The newest tools and every change to the site, in the open.</p>
@@ -131,7 +131,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
         <li><a href="/changes/">Change log</a></li>
         <li><a href="/stats/">Usage stats</a></li>
       </ul>
-      <a class="go" href="/news/">Read the news</a>
+      <a class="go" href="/blog/">Read the blog</a>
     </section>
   </div>
 
@@ -181,7 +181,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
   .door { --pc: var(--ink); --pc-soft: var(--accent-soft); display: flex; flex-direction: column; min-width: 0; padding: 18px 18px 16px; border: 1px solid var(--line); border-top: 4px solid var(--pc); border-radius: 12px; background: var(--surface); }
   :global(html:not(.red-mode)) .door[data-door=learn] { --pc: var(--c-learn); --pc-soft: var(--c-learn-soft); }
   :global(html:not(.red-mode)) .door[data-door=tools] { --pc: var(--c-tools); --pc-soft: var(--c-tools-soft); }
-  :global(html:not(.red-mode)) .door[data-door=news] { --pc: var(--c-news); --pc-soft: var(--c-news-soft); }
+  :global(html:not(.red-mode)) .door[data-door=blog] { --pc: var(--c-blog); --pc-soft: var(--c-blog-soft); }
   .door header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .door h2 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
   .door h2 a { color: var(--ink); text-decoration: none; }
