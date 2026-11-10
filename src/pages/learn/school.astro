@@ -1,9 +1,8 @@
 ---
 import LearnPage from '../../components/LearnPage.astro';
-import ToolCard from '../../components/ToolCard.astro';
 import { CLASSES } from '../../data/ncert';
 import { SECTIONS } from '../../site';
-import { allTools } from '../../lib/tools';
+import { allTools, toolUrl } from '../../lib/tools';
 const all = await allTools();
 const live = new Set(all.filter((t) => t.data.status === 'live').map((t) => t.id));
 const cards = CLASSES.map((k) => {
@@ -11,7 +10,8 @@ const cards = CLASSES.map((k) => {
   const chapters = k.subjects.reduce((a, s) => a + s.chapters.length, 0);
   return { name: k.name, href: `/learn/${k.id}/`, live: true, text: `${k.blurb} ${chapters} chapters, ${n} tools so far.`, items: k.subjects.map((s) => `${s.name}${s.book ? ` (${s.book})` : ''}: ${s.chapters.length} chapters`) };
 });
-// The Learn shelf's own tools, by school subject.
+// The Learn shelf's own tools, by school subject, as a short list of names (hundreds are planned, and full cards
+// would push this page past the 120 KB limit; the class pages show each chapter's tools).
 const groups = (SECTIONS.learn ?? []).map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
 ---
 <LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, chapter by chapter, following the NCERT topics. Free, in your browser."
@@ -20,7 +20,13 @@ const groups = (SECTIONS.learn ?? []).map((sec) => ({ ...sec, tools: all.filter(
   {groups.map((g) => (
     <section id={g.id}>
       <h2 class="ar-h">{g.name}</h2>
-      <div class="grid">{g.tools.map((t) => <ToolCard tool={t} />)}</div>
+      <ul class="ls-list">{g.tools.map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a> <small>#{t.data.num}</small></li>)}</ul>
     </section>
   ))}
 </LearnPage>
+
+<style is:inline>
+  .ls-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 18px; }
+  .ls-list li { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .ls-list small { color: var(--muted); }
+</style>
