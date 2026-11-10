@@ -1,0 +1,140 @@
+---
+// Alloy mixer: set the percentage of each metal (or pick a known alloy), see whether the mix is a known alloy and
+// what it is used for, grams of each metal in a piece, carats for gold, and a lattice picture showing why alloys
+// are harder than pure metals. Teaching values only. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { METALS, ALLOYS } from '../../lib/sci/alloy-school';
+---
+<div class="ax al">
+  <div class="ax-card">
+    <h2>Mix the metals</h2>
+    <label>Start from <select class="al-pre"><option value="">My own mix</option>{ALLOYS.map((a) => <option value={a.id} selected={a.id === 'brass'}>{a.name}</option>)}</select></label>
+    <div class="al-rows">
+      {METALS.map((m) => (
+        <label class="al-row"><span><b>{m.sym}</b> {m.name}</span><input type="number" class="al-p" data-el={m.sym} min="0" max="100" step="0.1" value="0" inputmode="decimal" aria-label={`${m.name} percent`} /><span class="al-pc">%</span></label>
+      ))}
+    </div>
+    <p class="al-tot ax-help" aria-live="polite"></p>
+    <div class="ax-row"><button type="button" class="btn secondary small al-clear">Clear all</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What have you made?</h2>
+    <p class="ax-big al-big" aria-live="polite"></p>
+    <dl class="ax-facts al-facts"></dl>
+    <label style="margin-top:10px">Mass of the piece (g) <input type="number" class="al-g" min="0" step="1" value="100" inputmode="decimal" /></label>
+    <p class="lx-eq al-mass"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why alloys are harder</h2>
+    <svg class="al-fig" viewBox="0 0 320 170" role="img" aria-label="Rows of metal atoms; pushing the top rows"></svg>
+    <div class="ax-seg al-lat" role="group" aria-label="Lattice"><button type="button" data-l="pure" aria-pressed="true">Pure metal</button><button type="button" data-l="alloy" aria-pressed="false">Alloy</button></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn al-push">Push the top rows</button></div>
+    <p class="ax-help al-why"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Turn brass into bronze: which metal do you swap for which?</li>
+      <li>Iron with 0.3% carbon is steel. Raise the carbon to 3%. What do you get, and why are pans made of it?</li>
+      <li>Iron with 5% chromium is not stainless. How much chromium does it need?</li>
+      <li>Set gold to 75% and the rest copper and silver. How many carats is it?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cq"><ol class="cq-list"></ol><button type="button" class="btn secondary small cq-new">New questions</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .al .al-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 12px; margin-top: 10px; }
+  .al .al-row { display: grid; grid-template-columns: 1fr 5em 1em; gap: 6px; align-items: center; font-size: 14px; }
+  .al .al-row input { min-height: 40px; text-align: right; }
+  .al .al-tot.bad { color: var(--bad); font-weight: 650; }
+  .al .al-fig { display: block; width: 100%; height: auto; margin: 10px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .al .al-fig circle { stroke: var(--surface); stroke-width: 1; }
+  .al .al-fig .al-a { fill: var(--muted); }
+  .al .al-fig .al-b { fill: var(--accent); }
+  .al .al-fig .al-top { transition: transform 0.6s ease; }
+</style>
+
+<script>
+  import { METALS, ALLOYS, match, total, masses, carats, goldPercent } from '../../lib/sci/alloy-school';
+  import { mountQuiz, near, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.al')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const boxes = [...root.querySelectorAll<HTMLInputElement>('.al-p')], pre = q<HTMLSelectElement>('.al-pre'), G = q<HTMLInputElement>('.al-g');
+  const NS = 'http://www.w3.org/2000/svg', fig = q<SVGSVGElement>('.al-fig');
+  const nameOf = (s: string) => METALS.find((m) => m.sym === s)!.name;
+  const f = (x: number, dp = 2) => String(Math.round(x * 10 ** dp) / 10 ** dp);
+
+  const mix = () => Object.fromEntries(boxes.map((b) => [b.dataset.el!, Math.max(0, Number(b.value) || 0)]).filter(([, v]) => (v as number) > 0)) as Record<string, number>;
+  function load(id: string) { const a = ALLOYS.find((x) => x.id === id); boxes.forEach((b) => { b.value = a ? String(a.mix[b.dataset.el!] ?? 0) : '0'; }); show(); }
+  pre.addEventListener('change', () => load(pre.value));
+  boxes.forEach((b) => b.addEventListener('input', () => { pre.value = ''; show(); }));
+  q('.al-clear').addEventListener('click', () => { pre.value = ''; load(''); });
+  G.addEventListener('input', show);
+
+  function show() {
+    const m = mix(), t = total(m), tot = q('.al-tot'), els = Object.keys(m);
+    tot.textContent = `Total ${f(t)}%${Math.abs(t - 100) > 0.5 ? ' — the percentages must add up to 100.' : '.'}`;
+    tot.className = `al-tot ax-help${Math.abs(t - 100) > 0.5 && t > 0 ? ' bad' : ''}`;
+    const found = match(m), facts = q('.al-facts'); facts.replaceChildren();
+    const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); facts.append(d); };
+    if (!els.length) q('.al-big').textContent = 'Add some metals.';
+    else if (Math.abs(t - 100) > 0.5) q('.al-big').textContent = 'Make the total 100%.';
+    else if (els.length === 1) { q('.al-big').textContent = `Pure ${nameOf(els[0])}: not an alloy`; const mp = METALS.find((x) => x.sym === els[0])!.mp; if (Number.isFinite(mp)) fact('Melting point', `about ${mp} °C`); }
+    else if (found.length) {
+      const a = found[0]; q('.al-big').textContent = a.name;
+      fact('Made of', Object.entries(a.ranges).map(([el, [lo, hi]]) => `${nameOf(el)} ${lo === 0 ? 'up to ' : `${lo}–`}${hi}%`).join(', '));
+      fact('Why it is used', a.why); fact('Used for', a.uses);
+      const main = els.reduce((x, y) => (m[x] > m[y] ? x : y)), mp = METALS.find((x) => x.sym === main)!.mp;
+      if (Number.isFinite(mp)) fact(`Pure ${nameOf(main)} melts at`, `about ${mp} °C; alloys usually melt over a range, often lower than their main metal`);
+    } else q('.al-big').textContent = 'A mixture, but not one of the alloys this page knows';
+    if (m.Au) fact('Gold purity', `${f(m.Au, 1)}% gold = ${f(carats(m.Au), 1)} carat`);
+    const g = Number(G.value);
+    q('.al-mass').textContent = els.length && g > 0 && Math.abs(t - 100) <= 0.5 ? `In ${f(g)} g: ` + Object.entries(masses(m, g)).map(([el, v]) => `${el} ${f(v)} g`).join(', ') : '';
+  }
+
+  // Lattice: 4 rows of 9 atoms; the top 2 rows slide when pushed. In the alloy some atoms are bigger.
+  let lat = 'pure', pushed = false;
+  function lattice() {
+    fig.replaceChildren();
+    const top = document.createElementNS(NS, 'g'); top.setAttribute('class', 'al-top');
+    const big = new Set([12, 16, 22, 30]);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 9; c++) {
+      const i = r * 9 + c, b = lat === 'alloy' && big.has(i), e = document.createElementNS(NS, 'circle');
+      e.setAttribute('cx', String(40 + c * 30)); e.setAttribute('cy', String(30 + r * 30)); e.setAttribute('r', String(b ? 19 : 14)); e.setAttribute('class', b ? 'al-b' : 'al-a');
+      (r < 2 ? top : fig).append(e);
+    }
+    fig.append(top);
+    const shift = !pushed ? 0 : lat === 'pure' ? 60 : 6;
+    requestAnimationFrame(() => top.setAttribute('transform', `translate(${shift} 0)`));
+    q('.al-why').textContent = !pushed ? 'Press the button to push the top two rows sideways.' : lat === 'pure'
+      ? 'In a pure metal all the atoms are the same size, so the rows slide over each other easily: the metal is soft and bends.'
+      : 'In an alloy the atoms of the other element are a different size. They break up the neat rows, so the layers jam and cannot slide: the alloy is harder and stronger.';
+  }
+  root.querySelectorAll<HTMLButtonElement>('.al-lat button').forEach((b) => b.addEventListener('click', () => { lat = b.dataset.l!; pushed = false; root.querySelectorAll('.al-lat button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); lattice(); }));
+  q('.al-push').addEventListener('click', () => { pushed = !pushed; lattice(); });
+
+  load('brass'); lattice();
+
+  mountQuiz(q('.cq'), () => {
+    const out: Question[] = [];
+    const g = rint(4, 30) * 10, zn = rint(25, 40);
+    out.push({ q: `How many grams of zinc are in ${g} g of brass that is ${zn}% zinc?`, answer: f((g * zn) / 100), ok: near((g * zn) / 100, 0.001), worked: `${zn}% of ${g} g = ${zn}/100 × ${g}.`, hint: 'grams' });
+    const c = pickOne([9, 14, 18, 22]);
+    out.push({ q: `What percentage of a ${c}-carat gold ring is gold? (1 decimal place)`, answer: f(goldPercent(c), 1), ok: near(goldPercent(c), 0.002), worked: `Pure gold is 24 carat, so ${c} carat is ${c}/24 × 100.`, hint: 'percent' });
+    const p = rint(50, 95);
+    out.push({ q: `A gold alloy is ${p}% gold. How many carats is it? (1 decimal place)`, answer: f(carats(p), 1), ok: near(carats(p), 0.005), worked: `Carats = 24 × ${p}/100.`, hint: 'carats' });
+    const a = pickOne(ALLOYS.slice(0, 9)), main = Object.entries(a.mix).sort((x, y) => y[1] - x[1])[0][0];
+    out.push({ q: `${a.name} is used for ${a.uses}. What is its main metal? Type its symbol.`, answer: main, ok: (t: string) => t.trim().toLowerCase() === main.toLowerCase() || t.trim().toLowerCase() === nameOf(main), worked: `${a.name}: ${Object.entries(a.mix).map(([el, v]) => `${el} ${v}%`).join(', ')}.`, hint: 'like Cu' });
+    return out;
+  });
+</script>
