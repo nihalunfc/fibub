@@ -1,0 +1,195 @@
+---
+// Moon phase simulator: drag the Moon round the Earth (seen from above, Sun to the left) and see its face from
+// Earth, the phase name, how much is lit, its age, the tithi and paksha, and roughly when it rises and sets; or pick
+// a date for the mean phase. Nothing is stored; "Today" reads only this device's clock.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm mp">
+  <div class="ax-card">
+    <div class="ax-row"><span class="mp-lab">Level</span>
+      <div class="ax-seg mp-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 8</button><button type="button" data-v="9" aria-pressed="false">Class 9 to 12</button></div></div>
+    <div class="ax-row mp-gap"><span class="mp-lab">Seen from</span>
+      <div class="ax-seg mp-hemi" role="group" aria-label="Seen from"><button type="button" data-v="n" aria-pressed="true">North (India)</button><button type="button" data-v="s" aria-pressed="false">South</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>From above the North Pole</h2>
+    <svg class="sm-fig mp-top" viewBox="0 0 340 290" role="img" aria-label="Sunlight from the left, the Earth in the middle and the Moon on its orbit; drag the Moon round"></svg>
+    <p class="ax-help">Drag the Moon round its orbit (it goes anticlockwise), or use the slider. The half facing the Sun is always lit.</p>
+    <div class="sm-sl"><b>day</b><input type="range" class="mp-ar" min="0" max="29.5" step="0.1" value="4" aria-label="Moon's age in days" /><input type="number" class="mp-a" min="0" max="29.5" step="0.1" value="4" aria-label="Moon's age in days since new moon" /></div>
+    <p class="ax-help">The Moon's age: days since the last new moon (0 to 29.5).</p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mp-go" data-t="0">New</button>
+      <button type="button" class="btn secondary small mp-go" data-t="90">First quarter</button>
+      <button type="button" class="btn secondary small mp-go" data-t="180">Full</button>
+      <button type="button" class="btn secondary small mp-go" data-t="270">Last quarter</button>
+      <button type="button" class="btn small mp-next">+1 day</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>From the Earth</h2>
+    <svg class="sm-fig mp-sky" viewBox="0 0 340 210" role="img" aria-label="The Moon as it looks from the Earth tonight, and the month's phases in a row"></svg>
+    <p class="ax-big mp-name"></p>
+    <p class="sm-f mp-age"></p>
+    <p class="sm-f mp-lit"></p>
+    <p class="sm-f mp-tithi"></p>
+    <p class="sm-f mp-rise"></p>
+    <p class="sm-f mp-k" data-only="9"></p>
+    <p class="sm-f mp-sid" data-only="9"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Phase on a date</h2>
+    <div class="ax-row"><label>Date <input type="date" class="mp-date" value="2026-11-09" /></label>
+      <button type="button" class="btn small mp-use">Show this date</button>
+      <button type="button" class="btn secondary small mp-today">Today</button></div>
+    <p class="sm-f mp-dout"></p>
+    <p class="ax-err mp-err" hidden></p>
+    <p class="ax-help">Uses the Moon's average motion from a known new moon (6 January 2000), at noon Indian time, so the real phase can be up to about half a day earlier or later. Check a panchang or almanac for exact times.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag the Moon from new to full. Which side of its face fills up first, seen from India? Now switch to <b>South</b>.</li>
+      <li>At first quarter the Moon is only a quarter of the way round, yet half its face is lit. Why is it called a "quarter"?</li>
+      <li>Press <b>+1 day</b> a few times and watch the rise time: about 49 minutes later every day.</li>
+      <li>When is the Moon up in the daytime? Look for a rise time in the morning.</li>
+      <li>Count the tithis from Amavasya to Purnima. Why are there 30 tithis in a lunar month, not 29.5 days?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="mp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mp .mp-lab { min-width: 5.5em; font-weight: 600; }
+  .mp .mp-gap { margin-top: 8px; }
+  .mp input.mp-date { min-height: 40px; margin-left: 6px; }
+  .mp svg .mp-sun { fill: var(--warn); }
+  .mp svg .mp-ray { stroke: var(--warn); stroke-width: 1.5; }
+  .mp svg .mp-dark { fill: var(--ink); fill-opacity: 0.85; }
+  .mp svg .mp-litc { fill: var(--surface); }
+  .mp svg .mp-moonlit { fill: #f2efe2; }
+  .mp svg .mp-moondark { fill: #2b2b33; }
+  .mp svg .mp-rim { fill: none; stroke: var(--ink); stroke-width: 1.2; }
+  .mp svg .mp-earth { fill: var(--accent); }
+  .mp svg .mp-orbit { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+  .mp svg .mp-sel { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .mp svg .mp-night { fill: #11131c; }
+</style>
+
+<script>
+  import { ageOf, thetaOfAge, litFraction, phaseName, tithi, riseSet, clock, meanAge, litPath, waxing, SYNODIC, SIDEREAL } from '../../lib/sci/moonphase-j2';
+  import { S, pair, val, dragOn, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.mp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toLocaleString('en');
+  const A = q<HTMLInputElement>('.mp-a');
+  let level = '8', south = false;
+  const setAge = pair(q('.mp-ar'), A, draw);
+
+  const seg = (sel: string, on: (v: string) => void) => {
+    const bs = [...root.querySelectorAll<HTMLButtonElement>(`${sel} button`)];
+    bs.forEach((b) => b.addEventListener('click', () => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); }));
+  };
+
+  const CX = 170, CY = 150, OR = 105;
+  const moonXY = (t: number) => { const a = (t * Math.PI) / 180; return { x: CX - OR * Math.cos(a), y: CY + OR * Math.sin(a) }; };
+
+  function disc(parent: Element, cx: number, cy: number, r: number, t: number) {
+    const g = S('g', { transform: `translate(${cx} ${cy})${south ? ' scale(-1 1)' : ''}` }, parent);
+    S('circle', { cx: 0, cy: 0, r, class: 'mp-moondark' }, g);
+    const d = litPath(t, r); if (d) S('path', { d, class: 'mp-moonlit' }, g);
+    if (Math.abs(((t % 360) + 360) % 360 - 180) < 0.01) S('circle', { cx: 0, cy: 0, r, class: 'mp-moonlit' }, g);
+    S('circle', { cx: 0, cy: 0, r, class: 'mp-rim' }, g);
+  }
+
+  function draw() {
+    const age = val(A, 4, 0, 29.53), t = thetaOfAge(age);
+    // Top view.
+    const top = q<SVGSVGElement>('.mp-top'); top.replaceChildren();
+    S('circle', { cx: -10, cy: CY, r: 34, class: 'mp-sun' }, top);
+    S('text', { x: 6, y: 20, class: 'sm-tick' }, top, 'sunlight →');
+    for (let y = 40; y <= 270; y += 23) S('line', { x1: 30, y1: y, x2: 52, y2: y, class: 'mp-ray' }, top);
+    S('circle', { cx: CX, cy: CY, r: OR, class: 'mp-orbit' }, top);
+    S('circle', { cx: CX, cy: CY, r: 22, class: 'mp-earth' }, top);
+    S('path', { d: `M${CX} ${CY - 22}A22 22 0 0 1 ${CX} ${CY + 22}Z`, class: 'mp-dark' }, top);
+    S('text', { x: CX, y: CY + 38, 'text-anchor': 'middle', class: 'sm-tick' }, top, 'Earth');
+    const m = moonXY(t);
+    S('circle', { cx: m.x, cy: m.y, r: 13, class: 'mp-moonlit' }, top);
+    S('path', { d: `M${m.x} ${m.y - 13}A13 13 0 0 1 ${m.x} ${m.y + 13}Z`, class: 'mp-moondark' }, top);
+    S('circle', { cx: m.x, cy: m.y, r: 13, class: 'mp-rim' }, top);
+    S('line', { x1: CX, y1: CY, x2: m.x, y2: m.y, class: 'sm-dash' }, top);
+    S('circle', { cx: m.x, cy: m.y, r: 24, class: 'sm-hit mp-handle' }, top);
+    S('text', { x: m.x, y: m.y + (m.y > CY ? 30 : -19), 'text-anchor': 'middle', style: 'font-weight:600' }, top, 'Moon');
+    // Sky view: tonight's Moon, then 8 phases in a row.
+    const sky = q<SVGSVGElement>('.mp-sky'); sky.replaceChildren();
+    S('rect', { x: 0, y: 0, width: 340, height: 140, class: 'mp-night' }, sky);
+    disc(sky, 170, 70, 55, t);
+    for (let i = 0; i < 8; i++) {
+      const cx = 22 + i * 42, tt = i * 45;
+      disc(sky, cx, 172, 14, tt);
+      const d = Math.min(Math.abs(t - tt), 360 - Math.abs(t - tt));
+      if (d < 22.5) S('circle', { cx, cy: 172, r: 18, class: 'mp-sel' }, sky);
+    }
+    S('text', { x: 4, y: 205, class: 'sm-tick' }, sky, 'new');
+    S('text', { x: 190, y: 205, 'text-anchor': 'middle', class: 'sm-tick' }, sky, 'full');
+    // Text.
+    const k = litFraction(t), ti = tithi(t), rs = riseSet(t);
+    q('.mp-name').textContent = phaseName(t);
+    q('.mp-age').textContent = `Age ${f1(age)} days since new moon (${Math.round(t)}° round from the Sun); ${waxing(t) ? 'waxing: growing' : t === 0 ? 'starting a new month' : 'waning: shrinking'}. Next new moon in ${f1(SYNODIC - age)} days.`;
+    q('.mp-lit').textContent = `Lit part of the face we see: ${Math.round(100 * k)}%.`;
+    q('.mp-tithi').textContent = `Tithi ${ti.n} of 30: ${ti.paksha} paksha ${ti.name}${ti.n === 15 || ti.n === 30 ? '' : ` (${ti.inPaksha} of 15)`}. One tithi = the Moon gaining 12° on the Sun.`;
+    q('.mp-rise').textContent = `Roughly rises at ${clock(rs.rise)} and sets at ${clock(rs.set)} local solar time, about ${Math.round(rs.lagMin)} minutes later each day.`;
+    q('.mp-k').textContent = `Lit fraction k = (1 − cos θ) ÷ 2 = (1 − cos ${Math.round(t)}°) ÷ 2 = ${k.toFixed(3)}.`;
+    q('.mp-sid').textContent = `The Moon goes once round against the stars in ${SIDEREAL.toFixed(2)} days (sidereal month), but the Earth has moved about 1/13 of its way round the Sun meanwhile, so it takes ${SYNODIC.toFixed(2)} days to get back to the same phase (synodic month).`;
+  }
+
+  dragOn(q('.mp-top'), (x, y) => { const m = moonXY(thetaOfAge(val(A, 4, 0, 29.53))); return Math.hypot(x - m.x, y - m.y) < 34 ? 'm' : null; }, (_id, x, y) => {
+    const t = ((Math.atan2(y - CY, -(x - CX)) * 180) / Math.PI + 360) % 360;
+    setAge(Math.round(ageOf(t) * 10) / 10); draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.mp-go').forEach((b) => b.addEventListener('click', () => { setAge(Math.floor(ageOf(Number(b.dataset.t)) * 100) / 100); draw(); }));
+  q('.mp-next').addEventListener('click', () => { const a = val(A, 4, 0, 29.53) + 1; setAge(Math.round((a >= SYNODIC ? a - SYNODIC : a) * 100) / 100); draw(); });
+  seg('.mp-level', (v) => { level = v; root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; }); });
+  seg('.mp-hemi', (v) => { south = v === 's'; draw(); });
+
+  const D = q<HTMLInputElement>('.mp-date');
+  const useDate = () => {
+    const err = q('.mp-err'), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(D.value);
+    if (!m) { err.textContent = 'Pick a date first.'; err.hidden = false; return; }
+    err.hidden = true;
+    const ms = Date.UTC(+m[1], +m[2] - 1, +m[3], 6, 30);   // noon in India (UTC+5:30)
+    const age = meanAge(ms);
+    setAge(Math.round(age * 100) / 100); draw();
+    q('.mp-dout').textContent = `${D.value}: mean age ${f1(age)} days, ${phaseName(thetaOfAge(age)).toLowerCase()}, ${Math.round(100 * litFraction(thetaOfAge(age)))}% lit.`;
+  };
+  q('.mp-use').addEventListener('click', useDate);
+  q('.mp-today').addEventListener('click', () => { const n = new Date(); D.value = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; useDate(); });
+  root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; });
+  draw();
+
+  quiz(q('.mp-quiz'), () => {
+    const out: Question[] = [];
+    const t1 = [30, 45, 60, 120, 135, 150, 210, 240, 300][randInt(0, 8)];
+    out.push({ q: `The Moon is ${t1}° round its orbit from the Sun (0° is new moon). How old is it, in days? (one month = 29.53 days)`, want: [ageOf(t1)], tol: 0.02, work: `${t1} ÷ 360 × 29.53 = ${f1(ageOf(t1))} days.` });
+    const t2 = [60, 90, 120, 180, 240, 270, 300][randInt(0, 6)];
+    out.push({ q: `What percent of the Moon's face is lit when it is ${t2}° from the Sun? Use (1 − cos θ) ÷ 2.`, want: [100 * litFraction(t2)], tol: 0.02, work: `(1 − cos ${t2}°) ÷ 2 = ${litFraction(t2).toFixed(2)}, so ${Math.round(100 * litFraction(t2))}% is lit.` });
+    const t3 = randInt(1, 359);
+    out.push({ q: `The Moon has gained ${t3}° on the Sun since new moon. Which tithi (1 to 30) is it? (each tithi is 12°)`, want: [tithi(t3).n], work: `${t3} ÷ 12 = ${(t3 / 12).toFixed(2)}; round down and add 1: tithi ${tithi(t3).n} (${tithi(t3).paksha} paksha).` });
+    const n = randInt(2, 7);
+    out.push({ q: `Tonight the Moon rises at 18:00. Roughly how many minutes later will it rise in ${n} days? (it falls behind by 24 h ÷ 29.53 each day)`, want: [(n * 1440) / SYNODIC], tol: 0.03, work: `24 × 60 ÷ 29.53 = 48.8 minutes a day, so ${n} × 48.8 = ${Math.round((n * 1440) / SYNODIC)} minutes later.` });
+    const a = randInt(1, 28);
+    out.push({ q: `The Moon is ${a} days old. How many days until the next new moon? (one month = 29.53 days)`, want: [SYNODIC - a], tol: 0.01, work: `29.53 − ${a} = ${(SYNODIC - a).toFixed(2)} days.` });
+    return out;
+  });
+</script>

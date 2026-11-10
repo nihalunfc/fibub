@@ -1,0 +1,171 @@
+---
+// Square and cube builder: grow an n × n square out of odd-numbered L-shapes (1 + 3 + 5 + ... = n²) and an n × n × n
+// cube out of shells (3n² − 3n + 1 new cubes each time), test any number for being a perfect square or cube, find the
+// smallest multiplier that makes one, and hunt numbers that are a sum of two cubes in two ways. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sq">
+  <div class="ax-card">
+    <div class="ax-row"><span class="sq-lab">Build</span>
+      <div class="ax-seg sq-mode" role="group" aria-label="Build"><button type="button" data-v="2" aria-pressed="true">Square</button><button type="button" data-v="3" aria-pressed="false">Cube</button></div></div>
+    <div class="sm-sl"><b>n</b><input type="range" class="sq-nr" min="1" max="12" step="1" value="5" aria-label="Side n" /><input type="number" class="sq-n" min="1" max="12" step="1" value="5" aria-label="Side length n, 1 to 12" /></div>
+    <div class="ax-row"><button type="button" class="btn secondary small sq-st" data-d="-1" aria-label="Make it smaller">− 1</button><button type="button" class="btn small sq-st" data-d="1" aria-label="Make it bigger">+ 1</button></div>
+    <svg class="sm-fig sq-fig" viewBox="0 0 300 300" role="img" aria-label="The square or cube built from unit squares or unit cubes"></svg>
+    <p class="ax-big sq-big"></p>
+    <p class="sm-f sq-f1"></p>
+    <p class="sm-f sq-f2"></p>
+    <div class="ax-scroll"><table class="sq-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Is it a perfect square or cube?</h2>
+    <label>Any whole number <input type="number" class="sq-x" min="1" max="1000000000" step="1" value="1008" inputmode="numeric" /></label>
+    <p class="ax-err sq-err" hidden></p>
+    <p class="sm-f sq-x1"></p>
+    <p class="sm-f sq-x2"></p>
+    <p class="sm-f sq-x3"></p>
+    <p class="sm-f sq-x4"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Taxicab numbers</h2>
+    <p class="ax-help">1729 is the smallest number that is a sum of two cubes in two different ways. Find more, or test your own number.</p>
+    <div class="ax-row"><button type="button" class="btn small sq-next">Next taxicab number</button><button type="button" class="btn secondary small sq-first">Back to 1729</button></div>
+    <p class="sm-f sq-tx"></p>
+    <label>Test a number <input type="number" class="sq-ty" min="2" max="10000000" step="1" value="1729" inputmode="numeric" /></label>
+    <p class="sm-f sq-ty1"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Build a square and count the coloured L-shapes. Each one is an odd number: 1, 3, 5, ... Why does adding them always give a square?</li>
+      <li>Look at the last column of the table: squares only end in 0, 1, 4, 5, 6 or 9. So can 2,023 be a square?</li>
+      <li>Switch to <b>Cube</b> and press + 1. How many new cubes wrap round the old one? Check 3n² − 3n + 1.</li>
+      <li>Type 1008 above. What is the smallest number you must multiply it by to get a perfect square? And a perfect cube?</li>
+      <li>Press <b>Next taxicab number</b> a few times. Are they all even? All odd?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="sq-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sq .sq-lab { min-width: 4em; font-weight: 600; }
+  .sq input.sq-x, .sq input.sq-ty { width: 11em; min-height: 40px; margin-left: 6px; max-width: 100%; }
+  .sq svg .sq-c0 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .sq svg .sq-c1 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1; }
+  .sq svg .sq-top { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .sq svg .sq-left { fill: var(--good-soft); stroke: var(--good); stroke-width: 1; }
+  .sq svg .sq-right { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; }
+  .sq svg text.sq-odd { font-size: 11px; font-weight: 700; }
+  .sq table td.r, .sq table th { text-align: right; }
+</style>
+
+<script>
+  import { odds, exactRoot, shell, factorise, smallestMultiplier, smallestDivisor, cubeWays, taxicabs, SQUARE_ENDINGS } from '../../lib/sci/squarecube-j2';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.sq')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const N = q<HTMLInputElement>('.sq-n');
+  const fmt = (x: number) => x.toLocaleString('en');
+  const sup = (e: number) => String(e).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+  const fac = (x: number) => factorise(x).map(([p, e]) => (e > 1 ? `${p}${sup(e)}` : String(p))).join(' × ') || '1';
+  let k = 2;
+  const setN = pair(q('.sq-nr'), N, draw);
+  const TAXI = taxicabs(1e7);
+  let ti = 0;
+
+  function square(svg: SVGSVGElement, n: number) {
+    const c = 280 / n, o = 10;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const g = Math.max(i, j);
+      S('rect', { x: o + j * c, y: o + (n - 1 - i) * c, width: c, height: c, class: `sq-c${g % 2} sq-cell` }, svg);
+    }
+    if (n <= 10) for (let g = 0; g < n; g++) S('text', { x: o + g * c + c / 2, y: o + (n - 1 - g) * c + c / 2 + 4, 'text-anchor': 'middle', class: 'sq-odd' }, svg, String(2 * g + 1));
+  }
+
+  function cube(svg: SVGSVGElement, n: number) {
+    const u = 125 / n, X = (x: number, y: number, z: number) => 150 + (x - y) * u * 0.866, Y = (x: number, y: number, z: number) => 160 + (x + y) * u * 0.5 - z * u;
+    const P = (x: number, y: number, z: number) => `${X(x, y, z).toFixed(1)} ${Y(x, y, z).toFixed(1)}`;
+    const face = (a: number[], b: number[], c: number[], d: number[], cls: string) => S('path', { d: `M${P(a[0], a[1], a[2])}L${P(b[0], b[1], b[2])}L${P(c[0], c[1], c[2])}L${P(d[0], d[1], d[2])}Z`, class: cls }, svg);
+    // Top, front-left (y = n) and front-right (x = n) faces, each cut into unit squares.
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      face([i, j, n], [i + 1, j, n], [i + 1, j + 1, n], [i, j + 1, n], 'sq-top sq-face');
+      face([i, n, j], [i + 1, n, j], [i + 1, n, j + 1], [i, n, j + 1], 'sq-left sq-face');
+      face([n, i, j], [n, i + 1, j], [n, i + 1, j + 1], [n, i, j + 1], 'sq-right sq-face');
+    }
+  }
+
+  function draw() {
+    const n = Math.round(val(N, 5, 1, 12)), svg = q<SVGSVGElement>('.sq-fig'); svg.replaceChildren();
+    if (k === 2) {
+      square(svg, n);
+      q('.sq-big').textContent = `${n} × ${n} = ${n * n} unit squares`;
+      q('.sq-f1').textContent = `${odds(n).join(' + ')} = ${n * n} = ${n}²`;
+      q('.sq-f2').textContent = n > 1 ? `Going from ${n - 1}² to ${n}² adds one L-shape of ${2 * n - 1} squares: ${(n - 1) ** 2} + ${2 * n - 1} = ${n * n}.` : 'One square: 1 = 1².';
+    } else {
+      cube(svg, n);
+      q('.sq-big').textContent = `${n} × ${n} × ${n} = ${n ** 3} unit cubes`;
+      q('.sq-f1').textContent = `n³ = n × n² = ${n} layers of ${n * n} = ${n ** 3}`;
+      q('.sq-f2').textContent = n > 1 ? `Growing from ${n - 1}³ to ${n}³ wraps a shell of 3n² − 3n + 1 = 3 × ${n * n} − 3 × ${n} + 1 = ${shell(n)} cubes: ${(n - 1) ** 3} + ${shell(n)} = ${n ** 3}.` : 'One cube: 1 = 1³.';
+    }
+    const t = q<HTMLTableElement>('.sq-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['n', 'n²', 'n³', 'n² ends in']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    for (let i = Math.max(1, n - 3); i <= n + 2; i++) { const r = t.insertRow(); for (const v of [i, i * i, i ** 3, (i * i) % 10]) { const c = r.insertCell(); c.textContent = fmt(v); c.className = 'r'; } if (i === n) r.style.fontWeight = '700'; }
+  }
+
+  function test() {
+    const X = q<HTMLInputElement>('.sq-x'), x = Number(X.value), err = q('.sq-err');
+    if (!Number.isInteger(x) || x < 1 || x > 1e9) { err.textContent = 'Type a whole number from 1 to 1,000,000,000.'; err.hidden = false; return; }
+    err.hidden = true;
+    const r2 = exactRoot(x, 2), r3 = exactRoot(x, 3), m2 = smallestMultiplier(x, 2), m3 = smallestMultiplier(x, 3);
+    q('.sq-x1').textContent = `${fmt(x)} = ${fac(x)}`;
+    q('.sq-x2').textContent = r2 !== null ? `Perfect square: every prime comes in pairs, so √${fmt(x)} = ${fmt(r2)}.` : `Not a perfect square${SQUARE_ENDINGS.includes(x % 10) ? '' : ` (no square ends in ${x % 10})`}: it lies between ${fmt(Math.floor(Math.sqrt(x)) ** 2)} = ${fmt(Math.floor(Math.sqrt(x)))}² and ${fmt((Math.floor(Math.sqrt(x)) + 1) ** 2)} = ${fmt(Math.floor(Math.sqrt(x)) + 1)}².`;
+    q('.sq-x3').textContent = r3 !== null ? `Perfect cube: every prime comes in threes, so ∛${fmt(x)} = ${fmt(r3)}.` : `Not a perfect cube: it lies between ${fmt(Math.floor(Math.cbrt(x) + 1e-9) ** 3)} and ${fmt((Math.floor(Math.cbrt(x) + 1e-9) + 1) ** 3)}.`;
+    q('.sq-x4').textContent = `Smallest multiplier for a perfect square: ${fmt(m2)} (${fmt(x)} × ${fmt(m2)} = ${fmt(x * m2)} = ${fmt(exactRoot(x * m2, 2)!)}²); divide by ${fmt(smallestDivisor(x, 2))} instead to get ${fmt(x / smallestDivisor(x, 2))}. For a perfect cube multiply by ${fmt(m3)} (= ${fmt(exactRoot(x * m3, 3)!)}³).`;
+  }
+
+  function taxi() {
+    const t = TAXI[ti];
+    q('.sq-tx').textContent = `Taxicab number ${ti + 1}: ${fmt(t.n)} = ${t.ways.map(([a, b]) => `${a}³ + ${b}³`).join(' = ')}`;
+  }
+  function tryTaxi() {
+    const Y = q<HTMLInputElement>('.sq-ty'), y = Number(Y.value);
+    if (!Number.isInteger(y) || y < 2 || y > 1e7) { q('.sq-ty1').textContent = 'Type a whole number from 2 to 10,000,000.'; return; }
+    const w = cubeWays(y);
+    q('.sq-ty1').textContent = w.length === 0 ? `${fmt(y)} is not a sum of two positive cubes.` : `${fmt(y)} = ${w.map(([a, b]) => `${a}³ + ${b}³`).join(' = ')}: ${w.length === 1 ? 'one way' : `${w.length} ways, a taxicab number!`}`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.sq-mode button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.sq-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); k = Number(b.dataset.v); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.sq-st').forEach((b) => b.addEventListener('click', () => { setN(Math.min(12, Math.max(1, Math.round(val(N, 5, 1, 12)) + Number(b.dataset.d)))); draw(); }));
+  q('.sq-x').addEventListener('input', test);
+  q('.sq-ty').addEventListener('input', tryTaxi);
+  q('.sq-next').addEventListener('click', () => { ti = (ti + 1) % TAXI.length; q<HTMLInputElement>('.sq-ty').value = String(TAXI[ti].n); taxi(); tryTaxi(); });
+  q('.sq-first').addEventListener('click', () => { ti = 0; q<HTMLInputElement>('.sq-ty').value = '1729'; taxi(); tryTaxi(); });
+  draw(); test(); taxi(); tryTaxi();
+
+  quiz(q('.sq-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(11, 35);
+    out.push({ q: `What is ${a}²?`, want: [a * a], work: `${a} × ${a} = ${a * a}.` });
+    const b = randInt(4, 15);
+    out.push({ q: `What is ${b}³?`, want: [b ** 3], work: `${b} × ${b} × ${b} = ${b * b} × ${b} = ${b ** 3}.` });
+    const c = randInt(5, 30);
+    out.push({ q: `Add the first ${c} odd numbers: 1 + 3 + 5 + ... What do you get?`, want: [c * c], work: `The first ${c} odd numbers make a ${c} × ${c} square, so the sum is ${c}² = ${c * c}.` });
+    const d = randInt(2, 12);
+    out.push({ q: `What is the cube root of ${d ** 3}?`, want: [d], work: `${d} × ${d} × ${d} = ${d ** 3}, so ∛${d ** 3} = ${d}.` });
+    const base = [[2, 3], [3, 5], [2, 7], [5, 3], [2, 5]][randInt(0, 4)], e1 = randInt(1, 4), e2 = randInt(1, 3), x = base[0] ** e1 * base[1] ** e2;
+    out.push({ q: `${x} = ${fac(x)}. What is the smallest whole number you must multiply it by to get a perfect square?`, want: [smallestMultiplier(x, 2)], work: `Pair up the primes: the unpaired ones multiply to ${smallestMultiplier(x, 2)}, so ${x} × ${smallestMultiplier(x, 2)} = ${x * smallestMultiplier(x, 2)} = ${exactRoot(x * smallestMultiplier(x, 2), 2)}².` });
+    return out;
+  });
+</script>
