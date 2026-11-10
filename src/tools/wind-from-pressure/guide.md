@@ -11,7 +11,7 @@ order: 1222
 icon: compass
 works: offline
 updated: 2026-11-10
-related: [standard-atmosphere, cyclone-builder, states-of-matter, kinetic-theory]
+related: [barometer-altitude, standard-atmosphere, cyclone-builder, states-of-matter, kinetic-theory]
 sources:
   - "Wind blows from high to low pressure; warm air expands, becomes less dense and rises; land heats and cools faster than water; sea and land breezes and the monsoon as large-scale versions of them: standard school science found in any textbook."
   - "Ideal-gas density of dry air ρ = P/(R T) with R = 287.05 J/(kg K) and the isothermal pressure p = p₀ e^(−gz/RT), g = 9.81 m/s²: standard physics."
