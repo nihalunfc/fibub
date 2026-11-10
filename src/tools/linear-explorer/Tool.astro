@@ -1,0 +1,145 @@
+---
+// Linear function explorer (Learn): y = mx + c with sliders or by dragging two handles; the slope drawn as rise
+// over run, the y-intercept, and the zero where the line meets the x-axis. Level switch adds the angle of
+// inclination and the other forms of a line (Class 11). Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm le">
+  <div class="ax-card">
+    <h2>The line</h2>
+    <div class="ax-seg le-lvl" role="group" aria-label="Level">
+      <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+      <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+    </div>
+    <p class="sm-f le-eq" style="font-size:20px;margin-top:8px"></p>
+    <svg class="sm-fig le-fig" viewBox="0 0 340 340" role="img" aria-label="Graph of the straight line with its slope triangle, y-intercept and zero"></svg>
+    <p class="ax-help">Drag the round handles: the one on the y-axis moves c, the other turns the line (changes m).</p>
+    <div class="sm-sl"><b>m</b><input type="range" class="le-mr" min="-5" max="5" step="0.25" value="2" aria-label="m slider" /><input type="number" class="le-m" step="0.25" value="2" inputmode="decimal" aria-label="Slope m" /></div>
+    <div class="sm-sl"><b>c</b><input type="range" class="le-cr" min="-6" max="6" step="0.5" value="-3" aria-label="c slider" /><input type="number" class="le-c" step="0.5" value="-3" inputmode="decimal" aria-label="Intercept c" /></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>With your numbers</h2>
+    <ol class="sm-steps le-steps"></ol>
+    <div class="ax-scroll" style="margin-top:10px"><table class="le-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Keep c and change m. Every line passes through the same point (0, c). Which way does it tip when m is negative?</li>
+      <li>Set m = 0. The line is flat, and (unless c = 0) it never meets the x-axis: there is no zero.</li>
+      <li>Look at the table: each time x goes up by 1, y goes up by m. That is what slope means.</li>
+      <li>Find m and c so that the line passes through (2, 1) and (4, 5).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like 3/2 are fine. Nothing is saved.</p>
+    <div class="le-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .le svg .le-run { stroke: var(--good); stroke-width: 3; }
+  .le svg .le-rise { stroke: var(--warn); stroke-width: 3; }
+  .le svg .le-zero { fill: var(--bad); }
+  .le svg .le-lab { font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+</style>
+
+<script>
+  import { zero, angleDeg, slopeText } from '../../lib/sci/linear-explorer';
+  import { fmt, sgn, fracText, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.le')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.le-fig'), M = q<HTMLInputElement>('.le-m'), C = q<HTMLInputElement>('.le-c');
+  const setM = pair(q('.le-mr'), M, draw), setC = pair(q('.le-cr'), C, draw);
+  let level = 9;
+  const N = 8, X = (x: number) => 20 + ((x + N) / (2 * N)) * 300, Y = (y: number) => 320 - ((y + N) / (2 * N)) * 300;
+  const wx = (px: number) => ((px - 20) / 300) * 2 * N - N, wy = (py: number) => ((320 - py) / 300) * 2 * N - N;
+  const RUN = 2;
+  const runX = (m: number, c: number) => (Math.abs(m * RUN + c) <= N - 0.5 ? RUN : -RUN);
+
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.le-lvl button')) b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    for (const o of root.querySelectorAll('.le-lvl button')) o.setAttribute('aria-pressed', String(o === b));
+    draw();
+  });
+
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+  function draw() {
+    const m = val(M, 2, -50, 50), c = val(C, -3, -50, 50), z = zero(m, c), r = runX(m, c);
+    fig.replaceChildren();
+    for (let i = -N; i <= N; i++) {
+      S('line', { x1: X(i), x2: X(i), y1: Y(-N), y2: Y(N), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      S('line', { x1: X(-N), x2: X(N), y1: Y(i), y2: Y(i), class: i === 0 ? 'sm-axis' : 'sm-grid' }, fig);
+      if (i !== 0 && i % 2 === 0) { S('text', { x: X(i), y: Y(0) + 13, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(i)); S('text', { x: X(0) - 4, y: Y(i) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(i)); }
+    }
+    // The line, clipped to the square by drawing far beyond and letting the viewBox crop via a clip path.
+    const clip = S('clipPath', { id: 'le-clip' }, fig); S('rect', { x: 20, y: 20, width: 300, height: 300 }, clip);
+    S('line', { x1: X(-N - 1), y1: Y(m * (-N - 1) + c), x2: X(N + 1), y2: Y(m * (N + 1) + c), class: 'sm-curve2', 'clip-path': 'url(#le-clip)' }, fig);
+    // Slope triangle from (0, c): run then rise.
+    const inView = Math.abs(c) <= N && Math.abs(m * r + c) <= N;
+    if (inView && m !== 0) {
+      S('line', { x1: X(0), y1: Y(c), x2: X(r), y2: Y(c), class: 'le-run' }, fig);
+      S('line', { x1: X(r), y1: Y(c), x2: X(r), y2: Y(m * r + c), class: 'le-rise' }, fig);
+      S('text', { x: X(r / 2), y: Y(c) + (m > 0 ? 16 : -8), 'text-anchor': 'middle', class: 'le-lab', style: 'fill:var(--good)' }, fig, `run ${fmt(r)}`);
+      S('text', { x: X(r) + (r > 0 ? 6 : -6), y: Y(c + (m * r) / 2) + 4, 'text-anchor': r > 0 ? 'start' : 'end', class: 'le-lab', style: 'fill:var(--warn)' }, fig, `rise ${fmt(m * r)}`);
+    }
+    if (Number.isFinite(z) && Math.abs(z) <= N) { S('circle', { cx: X(z), cy: Y(0), r: 6, class: 'le-zero' }, fig); S('text', { x: X(z) + 6, y: Y(0) + (m > 0 ? 18 : -8), class: 'le-lab' }, fig, `zero x = ${fmt(z, 2)}`); }
+    if (Math.abs(c) <= N) {
+      S('circle', { cx: X(0), cy: Y(c), r: 22, class: 'sm-hit' }, fig); S('circle', { cx: X(0), cy: Y(c), r: 9, class: 'sm-handle le-hc' }, fig);
+      S('text', { x: X(0) - 12, y: Y(c) - 10, 'text-anchor': 'end', class: 'le-lab' }, fig, `(0, ${fmt(c)})`);
+    }
+    if (inView) { S('circle', { cx: X(r), cy: Y(m * r + c), r: 22, class: 'sm-hit' }, fig); S('circle', { cx: X(r), cy: Y(m * r + c), r: 9, class: 'sm-handle le-hm' }, fig); }
+
+    const eq = q('.le-eq'), mt = fmt(m, 2), ct = fmt(Math.abs(c), 2);
+    eq.textContent = level === 9
+      ? `p(x) = ${m === 0 ? '' : `${m === 1 ? '' : m === -1 ? '−' : mt}x `}${m === 0 ? fmt(c, 2) : c === 0 ? '' : `${c < 0 ? '−' : '+'} ${ct}`}`.trim()
+      : `y = ${m === 0 ? '' : `${m === 1 ? '' : m === -1 ? '−' : mt}x `}${m === 0 ? fmt(c, 2) : c === 0 ? '' : `${c < 0 ? '−' : '+'} ${ct}`}`.trim();
+    const steps = [
+      `Slope m = rise ÷ run = ${fmt(m * r, 2)} ÷ ${fmt(r)} = ${mt}. For every 1 step right, the line goes ${m > 0 ? 'up' : m < 0 ? 'down' : 'neither up nor down'}${m !== 0 ? ` ${fmt(Math.abs(m), 2)}` : ''}.`,
+      `It cuts the y-axis at (0, ${fmt(c, 2)}): put x = 0 and only c is left.`,
+      m === 0 ? (c === 0 ? 'm = 0 and c = 0: the line is the x-axis itself, so every x is a zero.' : `m = 0: the line is flat at y = ${fmt(c, 2)} and never meets the x-axis, so there is no zero.`)
+        : `Zero: ${mt}x ${sgn(c, 2)} = 0, so x = ${fmt(-c, 2)} ÷ ${mt} = ${fmt(z, 3)}${!Number.isInteger(z) && Number.isInteger(m * 4) && Number.isInteger(c * 4) ? ` (${fracText(-c * 4, m * 4)})` : ''}. The line meets the x-axis at (${fmt(z, 3)}, 0).`,
+    ];
+    if (level === 11) {
+      steps.push(`Angle with the x-axis: θ = tan⁻¹(${mt}) = ${fmt(angleDeg(m), 2)}°.`);
+      steps.push(`Point-slope form through (${fmt(r)}, ${fmt(m * r + c, 2)}): y − ${fmt(m * r + c, 2)} = ${mt}(x − ${fmt(r)}).`);
+      if (m !== 0 && c !== 0) steps.push(`Intercept form: x/${fmt(z, 3)} + y/${fmt(c, 2)} = 1 (x-intercept ${fmt(z, 3)}, y-intercept ${fmt(c, 2)}).`);
+      steps.push(`General form: ${mt}x − y ${sgn(c, 2)} = 0.`);
+    }
+    q('.le-steps').replaceChildren(...steps.map(li));
+    const xs = [-2, -1, 0, 1, 2, 3];
+    const tr = (h: string, vals: string[]) => { const row = document.createElement('tr'); const th = document.createElement('th'); th.textContent = h; row.append(th, ...vals.map((v) => Object.assign(document.createElement('td'), { textContent: v, className: 'r' }))); return row; };
+    q('.le-tab').replaceChildren(tr('x', xs.map((x) => fmt(x))), tr(level === 9 ? 'p(x)' : 'y', xs.map((x) => fmt(m * x + c, 2))));
+  }
+
+  dragOn(fig, (x, y) => {
+    for (const k of ['le-hc', 'le-hm']) { const h = fig.querySelector('.' + k); if (h && Math.hypot(x - Number(h.getAttribute('cx')), y - Number(h.getAttribute('cy'))) < 26) return k; }
+    return null;
+  }, (id, x, y) => {
+    const m = val(M, 2), c = val(C, -3);
+    if (id === 'le-hc') { setC(Math.max(-N, Math.min(N, Math.round(wy(y) * 2) / 2))); }
+    else { const rx = runX(m, c), d = wx(x); const mm = Math.round(((wy(y) - c) / (Math.abs(d) < 0.3 ? rx : d)) * 4) / 4; setM(Math.max(-10, Math.min(10, mm))); }
+    draw();
+  });
+  draw();
+
+  quiz(q('.le-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(-6, 6, true), z0 = randInt(-5, 5), b = -a * z0;
+    out.push({ q: `Find the zero of p(x) = ${fmt(a)}x ${sgn(b)}.`, want: [z0], hint: 'x =', work: `${fmt(a)}x ${sgn(b)} = 0, so x = ${fmt(-b)} ÷ ${fmt(a)} = ${z0}.` });
+    const x1 = randInt(-4, 2), y1 = randInt(-4, 4), run = randInt(1, 4), rise = randInt(-6, 6, true);
+    out.push({ q: `What is the slope of the line through (${fmt(x1)}, ${fmt(y1)}) and (${fmt(x1 + run)}, ${fmt(y1 + rise)})?`, want: [rise / run], hint: 'a number or fraction', work: `Slope = rise ÷ run = (${fmt(y1 + rise)} − ${fmt(y1)}) ÷ (${fmt(x1 + run)} − ${fmt(x1)}) = ${fmt(rise)} ÷ ${run} = ${slopeText(rise, run)}.` });
+    const m = randInt(-4, 4, true), c = randInt(-6, 6), x = randInt(-3, 5);
+    out.push({ q: `For y = ${fmt(m)}x ${sgn(c)}, what is y when x = ${fmt(x)}?`, want: [m * x + c], work: `y = ${fmt(m)} × ${fmt(x)} ${sgn(c)} = ${fmt(m * x + c)}.` });
+    const A = randInt(1, 5), B = randInt(1, 5), K = A * B * randInt(1, 3);
+    out.push({ q: `Where does ${A}x + ${B}y = ${K} cut the y-axis? Give the y-value.`, want: [K / B], work: `On the y-axis x = 0, so ${B}y = ${K} and y = ${fmt(K / B, 3)}.` });
+    return out;
+  });
+</script>
