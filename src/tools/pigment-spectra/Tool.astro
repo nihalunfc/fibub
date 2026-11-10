@@ -1,0 +1,175 @@
+---
+// Absorption and action spectrum (Learn #1392): slide a colour of light across the spectrum, see how much chlorophyll
+// a, chlorophyll b and the carotenoids absorb and how fast photosynthesis goes, and replay Engelmann's experiment.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn pgs">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Which colours do leaves use?</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="false">Class 10</button><button type="button" data-level="11" aria-pressed="true">Class 11</button></div>
+    </div>
+    <canvas class="lrn-cv pg-cv" style="margin-top:10px" aria-label="Absorption spectra of leaf pigments and the action spectrum of photosynthesis"></canvas>
+    <div class="ax-row pg-show" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" data-p="a" checked /> <i class="pg-k pg-ka"></i>Chlorophyll a</label>
+      <label class="ax-check"><input type="checkbox" data-p="b" checked /> <i class="pg-k pg-kb"></i>Chlorophyll b</label>
+      <label class="ax-check"><input type="checkbox" data-p="car" checked /> <i class="pg-k pg-kc"></i>Carotenoids</label>
+      <label class="ax-check"><input type="checkbox" data-p="act" checked /> <i class="pg-k pg-kr"></i>Photosynthesis rate</label>
+    </div>
+    <label class="lrn-sl" style="margin-top:10px">Colour of light <b class="pg-nmv"></b><input type="range" class="pg-nm" min="400" max="700" step="1" value="450" aria-label="Wavelength of light in nanometres" /></label>
+    <p class="ax-help">Drag across the graph or use the slider.</p>
+    <p class="ax-big pg-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <dl class="ax-facts pg-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq pg-eq" data-only="11"></p>
+    <p class="ax-help">Teaching model: each curve is built from smooth bell shapes placed at the usual peak positions, with rounded heights. They are not measured spectra. Absorption is in relative units (the tallest peak of chlorophyll b = 100); the rate is the % of the rate in the best colour.</p>
+  </div>
+
+  <div class="ax-card" data-only="11">
+    <h2>Engelmann's experiment</h2>
+    <canvas class="lrn-cv pg-eng" aria-label="A strand of green alga lit by a spectrum, with oxygen-loving bacteria gathering where it gives off most oxygen"></canvas>
+    <p class="pg-engt" style="margin:8px 0 0"></p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pg-play">Pause</button><button type="button" class="btn secondary small pg-again">Scatter the bacteria</button></div>
+    <p class="ax-help">In 1882 Theodor Engelmann shone a spectrum along a strand of green alga in water with bacteria that move towards oxygen. They crowded into the blue and red parts, where photosynthesis made the most oxygen: the first action spectrum.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Slide to 550 nm (green). Almost nothing is absorbed, so green light bounces back to your eye: that is why leaves look green.</li>
+      <li>Compare the red peaks: chlorophyll a peaks near 662 nm and chlorophyll b near 642 nm.</li>
+      <li>Untick the chlorophylls: carotenoids only absorb blue and violet, which is why they look yellow-orange.</li>
+      <li>The rate curve follows the absorption curves. That is the evidence that these pigments drive photosynthesis.</li>
+      <li>Class 11: compare a blue and a red photon. Blue light carries more energy per photon, but both are used.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card pg-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .pgs .pg-k { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .pgs .pg-ka { background: var(--accent); }
+  .pgs .pg-kb { background: var(--good); }
+  .pgs .pg-kc { background: var(--warn); }
+  .pgs .pg-kr { background: var(--ink); }
+  .pgs .pg-big { font-size: clamp(18px, 4.6vw, 24px); }
+</style>
+
+<script>
+  import { PIGMENTS, absorb, action, photon, colourName, peakIn } from '../../lib/sci/pigment-spectra';
+  import { nmToRgb } from '../../lib/sci/learnphoto';
+  import { mountQuiz, pick, one, r, fitCanvas, loop, wireLevel, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pgs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.pg-cv'), eng = q<HTMLCanvasElement>('.pg-eng'), sl = q<HTMLInputElement>('.pg-nm');
+  const H = 250, ML = 34, MR = 8, MT = 10, MB = 46;
+  let level = '11';
+  const shown = (k: string) => q<HTMLInputElement>(`.pg-show input[data-p="${k}"]`).checked;
+  const pig = (id: string) => PIGMENTS.find((p) => p.id === id)!;
+  const pct = (x: number) => Math.round(x * 100);
+  const col = (pal: Palette, nm: number, a = 1) => {
+    const rgb = nmToRgb(nm)!; if (pal.red) { const v = Math.round((rgb[0] + rgb[1] + rgb[2]) / 3); return `rgba(${Math.max(60, v)},0,0,${a})`; }
+    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+  };
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, H), pw = W - ML - MR, ph = H - MT - MB, nm = +sl.value;
+    const X = (l: number) => ML + ((l - 400) / 300) * pw, Y = (v: number) => MT + ph - (v / 1.05) * ph;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    for (let l = 400; l <= 700; l++) { c.fillStyle = col(pal, l); c.fillRect(X(l), MT + ph + 4, pw / 300 + 1, 12); }
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(ML, MT); c.lineTo(ML, MT + ph); c.lineTo(ML + pw, MT + ph); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let l = 400; l <= 700; l += 50) c.fillText(String(l), X(l), MT + ph + 30);
+    c.fillText('wavelength (nm)', ML + pw / 2, H - 2);
+    c.save(); c.translate(11, MT + ph / 2); c.rotate(-Math.PI / 2); c.fillText('absorption / rate', 0, 0); c.restore();
+    const curve = (f: (l: number) => number, stroke: string, w = 2.5, dash: number[] = []) => {
+      c.strokeStyle = stroke; c.lineWidth = w; c.setLineDash(dash); c.beginPath();
+      for (let l = 400; l <= 700; l += 1) { const y = Y(f(l)); l === 400 ? c.moveTo(X(l), y) : c.lineTo(X(l), y); }
+      c.stroke(); c.setLineDash([]);
+    };
+    if (shown('a')) curve((l) => absorb(pig('a'), l), pal.accent);
+    if (shown('b')) curve((l) => absorb(pig('b'), l), pal.good);
+    if (shown('car')) curve((l) => absorb(pig('car'), l), pal.warn);
+    if (shown('act')) curve(action, pal.ink, 2.5, [6, 4]);
+    c.strokeStyle = pal.bad; c.lineWidth = 1.5; c.beginPath(); c.moveTo(X(nm), MT); c.lineTo(X(nm), MT + ph + 16); c.stroke();
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(nm), MT + ph + 10, 5, 0, Math.PI * 2); c.fill();
+  }
+
+  function texts() {
+    const nm = +sl.value, A = absorb(pig('a'), nm), B = absorb(pig('b'), nm), Cr = absorb(pig('car'), nm), act = action(nm), ph = photon(nm);
+    q('.pg-nmv').textContent = `${nm} nm (${colourName(nm)})`;
+    const tot = A + B + Cr;
+    q('.pg-big').textContent = `${nm} nm ${colourName(nm)} light: ` + (tot > 0.5 ? 'strongly absorbed' : tot > 0.15 ? 'partly absorbed' : 'hardly absorbed, mostly reflected') + `; photosynthesis at ${pct(act)} % of its best`;
+    const f = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; d.querySelector('dd')!.append(s); } return d; };
+    q('.pg-facts').replaceChildren(
+      f('Chlorophyll a absorbs', String(pct(A)), 'peaks near 430 and 662 nm'),
+      f('Chlorophyll b absorbs', String(pct(B)), 'peaks near 453 and 642 nm'),
+      f('Carotenoids absorb', String(pct(Cr)), 'blue and violet only'),
+      f('Photosynthesis rate', `${pct(act)} %`, 'of the rate in the best colour'),
+    );
+    const e19 = ph.J / 1e-19;
+    q('.pg-eq').textContent = `Energy of one photon: E = hc/λ = (6.626 × 10⁻³⁴ × 2.998 × 10⁸) / (${nm} × 10⁻⁹) = ${r(e19)} × 10⁻¹⁹ J = ${r(ph.eV)} eV.`;
+  }
+
+  // Engelmann: bacteria drift towards places where the alga makes more oxygen.
+  type B = { x: number; y: number };
+  let bugs: B[] = [], EW = 340;
+  const EH = 150, FY = 60;
+  function scatter() { EW = Math.max(200, eng.clientWidth || 340); bugs = Array.from({ length: 160 }, () => ({ x: 10 + Math.random() * (EW - 20), y: 20 + Math.random() * 110 })); }
+  const nmAt = (x: number) => 400 + ((x - 10) / (EW - 20)) * 300;
+  function engStep(dt: number) {
+    for (const b of bugs) {
+      const here = action(Math.min(700, Math.max(400, nmAt(b.x))));
+      // Random swimming; slower and steadier where there is more oxygen, so they pile up there.
+      const s = 90 * (1.15 - here);
+      b.x += (Math.random() - 0.5) * s * dt * 2; b.y += (Math.random() - 0.5) * s * dt * 2 + (FY + 10 - b.y) * here * dt * 1.2;
+      b.x = Math.min(EW - 10, Math.max(10, b.x)); b.y = Math.min(EH - 18, Math.max(16, b.y));
+    }
+    drawEng();
+  }
+  function drawEng() {
+    if (level !== '11') return;
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(eng, EH);
+    if (Math.abs(W - EW) > 1) { const k = W / EW; for (const b of bugs) b.x *= k; EW = W; }
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, EH);
+    for (let x = 10; x <= W - 10; x++) { c.fillStyle = col(pal, nmAt(x), 0.18); c.fillRect(x, 10, 1, EH - 34); c.fillStyle = col(pal, nmAt(x)); c.fillRect(x, EH - 18, 1, 10); }
+    c.fillStyle = pal.good; c.fillRect(10, FY, W - 20, 12);
+    c.strokeStyle = pal.bg; c.lineWidth = 1; for (let x = 10; x < W - 10; x += 24) { c.beginPath(); c.moveTo(x, FY); c.lineTo(x, FY + 12); c.stroke(); }
+    c.fillStyle = pal.ink; for (const b of bugs) { c.beginPath(); c.ellipse(b.x, b.y, 2.6, 1.6, 0, 0, Math.PI * 2); c.fill(); }
+    const blue = bugs.filter((b) => nmAt(b.x) < 495).length, green = bugs.filter((b) => { const l = nmAt(b.x); return l >= 495 && l < 590; }).length, red = bugs.filter((b) => nmAt(b.x) >= 620).length;
+    q('.pg-engt').textContent = `Bacteria near the violet and blue part: ${blue}, green and yellow: ${green}, red: ${red}.`;
+  }
+
+  sl.addEventListener('input', () => { texts(); draw(); });
+  q('.pg-show').addEventListener('change', draw);
+  const fromX = (e: PointerEvent) => { const b = cv.getBoundingClientRect(), W = b.width, pw = W - ML - MR; sl.value = String(Math.round(Math.min(700, Math.max(400, 400 + ((e.clientX - b.left - ML) / pw) * 300)))); texts(); draw(); };
+  let dragging = false;
+  cv.addEventListener('pointerdown', (e) => { dragging = true; cv.setPointerCapture(e.pointerId); fromX(e); });
+  cv.addEventListener('pointermove', (e) => { if (dragging) fromX(e); });
+  cv.addEventListener('pointerup', () => { dragging = false; });
+  q('.pg-again').addEventListener('click', () => { scatter(); drawEng(); });
+  wireLevel(root, (l) => { level = l; texts(); draw(); drawEng(); });
+  scatter(); texts(); draw();
+  loop(engStep, q<HTMLButtonElement>('.pg-play'));
+  new MutationObserver(() => { draw(); drawEng(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  mountQuiz(q('.pg-quiz'), (): QItem[] => {
+    const nm = pick(400, 700, 10), b = pick(420, 480, 10), rd = pick(640, 690, 10), e = photon(nm).eV;
+    const list: QItem[] = [
+      { q: 'Which colour of light is used least for photosynthesis by a green leaf?', ans: 2, choices: ['Blue', 'Red', 'Green', 'Violet'], work: 'Chlorophylls absorb blue and red strongly and hardly any green, so green light is mostly reflected (that is why leaves look green) and drives the least photosynthesis.' },
+      one<QItem>([
+        { q: 'Which pigment has its red peak near 642 nm?', ans: 1, choices: ['Chlorophyll a', 'Chlorophyll b', 'Carotenoids'], work: 'Chlorophyll b peaks near 453 nm and 642 nm; chlorophyll a peaks near 430 nm and 662 nm. Carotenoids absorb no red.' },
+        { q: 'Which pigments absorb only blue and violet light, and pass energy on to chlorophyll?', ans: 2, choices: ['Chlorophyll a', 'Chlorophyll b', 'Carotenoids'], work: 'Carotenoids absorb from about 400 to 500 nm only. They are accessory pigments: they hand energy on and protect chlorophyll from too much light.' },
+        { q: 'A graph of the rate of photosynthesis against the colour of light is called the…', ans: 0, choices: ['Action spectrum', 'Absorption spectrum', 'Emission spectrum'], work: 'An absorption spectrum shows how much light a pigment takes in; an action spectrum shows how well each colour drives the process.' },
+      ]),
+      { q: `What is the energy of one photon of ${nm} nm light, in electronvolts? (E = 1240 / λ in nm, roughly)`, ans: e, unit: 'eV', work: `E = hc/λ ≈ 1240 / ${nm} = ${r(e)} eV.` },
+    ];
+    if (level === '11') list.push({ q: `How many times more energy does a ${b} nm (blue) photon carry than a ${rd} nm (red) photon?`, ans: rd / b, unit: 'times', work: `E = hc/λ, so the ratio is the wavelengths the other way round: ${rd} / ${b} = ${r(rd / b)}.` });
+    return list;
+  });
+</script>

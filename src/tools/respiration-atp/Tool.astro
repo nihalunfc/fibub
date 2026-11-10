@@ -1,0 +1,177 @@
+---
+// Respiration ATP ledger and RQ (Learn #1398): step one glucose through glycolysis, the link reaction, the Krebs cycle
+// and the electron transport system, tallying ATP, NADH, FADH₂, CO₂ and O₂; compare fermentation; and work out the
+// respiratory quotient for any CₓHᵧO_z food.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn rat">
+  <div class="ax-card">
+    <h2>Follow one glucose</h2>
+    <div class="ax-row">
+      <div class="ax-seg ra-count" role="group" aria-label="ATP count per NADH and FADH2"><button type="button" data-c="old" aria-pressed="true">Textbook count (3 and 2)</button><button type="button" data-c="new" aria-pressed="false">Newer count (2.5 and 1.5)</button></div>
+      <label class="ax-check"><input type="checkbox" class="ra-anaer" /> No oxygen</label>
+      <select class="ra-ferm" style="width:auto" hidden aria-label="Kind of fermentation"><option value="alc">Yeast: alcohol</option><option value="lac">Muscle: lactic acid</option></select>
+    </div>
+    <canvas class="lrn-cv ra-cv" style="margin-top:10px" aria-label="The stages of respiration with the ATP made at each"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ra-back">Back</button>
+      <button type="button" class="btn small ra-next">Next stage</button>
+    </div>
+    <p class="ax-big ra-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <p class="ra-text" style="margin:4px 0 0"></p>
+    <label class="lrn-sl" style="margin-top:10px">Glucose molecules <b class="ra-gv"></b><input type="range" class="ra-g" min="1" max="10" step="1" value="1" aria-label="Number of glucose molecules" /></label>
+    <dl class="ax-facts ra-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq ra-eq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Respiratory quotient (RQ)</h2>
+    <div class="ax-grid">
+      <label>Food (substrate) <select class="ra-sub"></select></label>
+      <label>Or type a formula (C, H and O only) <input class="ra-f" value="" placeholder="e.g. C6H12O6" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err ra-err" hidden></p>
+    <p class="ax-big ra-rq" style="margin:8px 0 0" aria-live="polite"></p>
+    <p class="lrn-eq ra-rqeq"></p>
+    <p class="ax-help">RQ = volume of CO₂ given out ÷ volume of O₂ taken in, for complete burning of the food. About 1 for carbohydrates, about 0.7 for fats, about 0.9 for proteins, more than 1 for organic acids.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Step through the four stages. Only 4 ATP are made directly; the rest come from NADH and FADH₂ in the last stage.</li>
+      <li>Tick No oxygen: the electron transport system stops, and one glucose gives only 2 ATP.</li>
+      <li>Switch to the newer count. The total drops from 38 to 32, because each NADH and FADH₂ gives a little less ATP.</li>
+      <li>Pick tripalmitin in the RQ box: fats need far more O₂ for each CO₂, so their RQ is about 0.7.</li>
+      <li>Type C2H2O4 (oxalic acid): RQ 4, because it already has lots of oxygen.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ra-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .rat .ra-big, .rat .ra-rq { font-size: clamp(18px, 4.6vw, 24px); }
+  .rat .ra-text { min-height: 3em; }
+  .rat .ra-f { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  import { STAGES, RATE, ledger, parseCHO, rq, SUBSTRATES, type Count } from '../../lib/sci/respiration-atp';
+  import { mountQuiz, pick, one, r, fitCanvas, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rat')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.ra-cv');
+  let count: Count = 'old', k = 0;
+  const anaer = () => q<HTMLInputElement>('.ra-anaer').checked;
+  const nStages = () => (anaer() ? 2 : 4);
+  const fact = (a: string, b: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (sm) { const x = document.createElement('small'); x.textContent = sm; d.querySelector('dd')!.append(x); } return d; };
+  const TEXT: Record<string, string> = {
+    gly: 'In the cytoplasm, glucose (6 carbons) is split into 2 pyruvate (3 carbons each). 2 ATP are used to start it and 4 made, so 2 ATP net, plus 2 NADH. No oxygen is needed.',
+    link: 'Each pyruvate enters a mitochondrion and loses one carbon as CO₂, becoming acetyl CoA (2 carbons). Each also gives one NADH.',
+    krebs: 'Each acetyl CoA joins oxaloacetate to make citric acid, which is taken apart again round the cycle. Per turn: 2 CO₂, 3 NADH, 1 FADH₂ and 1 ATP (as GTP). Glucose gives two turns.',
+    ets: 'NADH and FADH₂ hand their electrons down a chain of carriers in the inner membrane. The energy pumps H⁺, and H⁺ flowing back through ATP synthase makes most of the ATP. Oxygen takes the electrons at the end and becomes water.',
+  };
+  const FERM = {
+    alc: 'With no oxygen, yeast turns each pyruvate into ethanol and CO₂, using up the NADH so glycolysis can go on. Total: 2 ATP per glucose.',
+    lac: 'With no oxygen, muscle turns each pyruvate into lactic acid, using up the NADH so glycolysis can go on. Total: 2 ATP per glucose, no CO₂.',
+  };
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, 270), L = ledger(3, count);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, 270);
+    const n = nStages(), bw = (W - 20) / 4 - 8;
+    const names = anaer() ? ['Glycolysis', q<HTMLSelectElement>('.ra-ferm').value === 'alc' ? 'Alcoholic fermentation' : 'Lactic acid fermentation'] : ['Glycolysis', 'Link reaction', 'Krebs cycle', 'Electron transport'];
+    const mol = anaer() ? ['glucose → 2 pyruvate', q<HTMLSelectElement>('.ra-ferm').value === 'alc' ? '→ 2 ethanol + 2 CO₂' : '→ 2 lactic acid'] : ['glucose → 2 pyruvate', '→ 2 acetyl CoA', '4 CO₂ out', 'O₂ → H₂O'];
+    // Mitochondrion outline behind the last three stages
+    if (!anaer()) { c.strokeStyle = pal.good; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.roundRect(10 + (bw + 8) - 4, 6, 3 * (bw + 8), 92, 30); c.stroke(); c.setLineDash([]); c.fillStyle = pal.good; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('mitochondrion', W - 14, 112); c.textAlign = 'left'; c.fillText('cytoplasm', 12, 112); }
+    for (let i = 0; i < n; i++) {
+      const x = 10 + i * (bw + 8) + (anaer() ? i * (bw + 8) * 0.6 : 0), on = i === k, done = i < k;
+      c.fillStyle = on ? pal.accent : done ? pal.grid : pal.bg; c.strokeStyle = on ? pal.accent : pal.line; c.lineWidth = 2;
+      c.beginPath(); c.roundRect(x, 20, bw * (anaer() ? 1.5 : 1), 50, 8); c.fill(); c.stroke();
+      c.fillStyle = on ? pal.bg : pal.ink; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'center';
+      const words = names[i].split(' '), cxb = x + (bw * (anaer() ? 1.5 : 1)) / 2;
+      if (words.length > 1) { c.fillText(words[0], cxb, 42); c.fillText(words.slice(1).join(' '), cxb, 56); } else c.fillText(names[i], cxb, 49);
+      c.fillStyle = pal.muted; c.font = '10px system-ui, sans-serif'; c.fillText(mol[i], cxb, 86);
+    }
+    // ATP bars: where the ATP comes from
+    const parts = anaer() ? [['Glycolysis', 2, pal.warn]] as [string, number, string][] : [['Glycolysis', 2, pal.warn], ['Krebs', 2, pal.warn], ['NADH', L.nadh * RATE[count].nadh, pal.accent], ['FADH₂', L.fadh * RATE[count].fadh, pal.good]] as [string, number, string][];
+    const total = parts.reduce((s, p) => s + p[1], 0), x0 = 10, w = W - 20, y = 150;
+    c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(`ATP from one glucose: ${total}`, x0, y - 10);
+    let x = x0; const scale = w / 38;
+    for (const [lab, v, col] of parts) {
+      c.fillStyle = col; c.fillRect(x, y, v * scale - 2, 28);
+      c.fillStyle = pal.bg; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'center'; if (v * scale > 24) c.fillText(String(v), x + (v * scale) / 2, y + 18);
+      c.fillStyle = pal.muted; c.font = '10px system-ui, sans-serif'; if (v * scale > 30) c.fillText(lab, x + (v * scale) / 2, y + 42);
+      x += v * scale;
+    }
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(x0, y, w, 28);
+    c.fillStyle = pal.muted; c.textAlign = 'left'; c.font = '10px system-ui, sans-serif'; c.fillText('orange: made directly; blue: from NADH; green: from FADH₂', x0, 252);
+  }
+  function texts() {
+    const g = +q<HTMLInputElement>('.ra-g').value;
+    q('.ra-gv').textContent = String(g);
+    q<HTMLElement>('.ra-ferm').hidden = !anaer();
+    if (k >= nStages()) k = nStages() - 1;
+    q<HTMLButtonElement>('.ra-back').disabled = k === 0;
+    q('.ra-next').textContent = k === nStages() - 1 ? 'Start again' : 'Next stage';
+    if (anaer()) {
+      const ferm = q<HTMLSelectElement>('.ra-ferm').value as 'alc' | 'lac';
+      q('.ra-big').textContent = k === 0 ? `Stage 1 of 2: Glycolysis (cytoplasm)` : `Stage 2 of 2: ${ferm === 'alc' ? 'Alcoholic' : 'Lactic acid'} fermentation (cytoplasm)`;
+      q('.ra-text').textContent = k === 0 ? TEXT.gly : FERM[ferm];
+      q('.ra-facts').replaceChildren(fact('ATP made', String(2 * g), 'all from glycolysis'), fact('NADH', k === 0 ? String(2 * g) : '0', k === 0 ? 'made' : 'used up again'), fact('CO₂ given off', ferm === 'alc' && k === 1 ? String(2 * g) : '0'), fact('O₂ used', '0'));
+      q('.ra-eq').textContent = `Without oxygen: ${g} glucose × 2 = ${2 * g} ATP. With oxygen the same glucose gives ${ledger(3, count, g).total} ATP, ${ledger(3, count).total / 2} times as much.`;
+    } else {
+      const s = STAGES[k], L = ledger(k, count, g);
+      q('.ra-big').textContent = `Stage ${k + 1} of 4: ${s.name} (${s.where})`;
+      q('.ra-text').textContent = TEXT[s.id];
+      q('.ra-facts').replaceChildren(fact('ATP made directly', String(L.substrateAtp), 'so far'), fact('NADH', String(L.nadh), k === 3 ? 'all used in the ETS' : 'so far'), fact('FADH₂', String(L.fadh)), fact('CO₂ given off', String(L.co2)), fact('O₂ used', String(L.o2)), fact('Total ATP so far', String(L.total), k === 3 ? `${r(L.etsAtp)} from the ETS` : 'the big gain is still to come'));
+      const R = RATE[count];
+      q('.ra-eq').textContent = k < 3 ? 'NADH and FADH₂ are stores of energy: the ATP they are worth is only made in the last stage.' : `Total = ${4 * g} (made directly) + ${10 * g} NADH × ${R.nadh} + ${2 * g} FADH₂ × ${R.fadh} = ${4 * g} + ${r(10 * g * R.nadh)} + ${r(2 * g * R.fadh)} = ${r(L.total)} ATP.`;
+    }
+    draw();
+  }
+  function rqText() {
+    const typed = q<HTMLInputElement>('.ra-f').value.trim(), err = q('.ra-err');
+    const f = typed ? parseCHO(typed) : parseCHO(SUBSTRATES.find((s) => s.id === q<HTMLSelectElement>('.ra-sub').value)!.f);
+    err.hidden = !!f; err.textContent = 'Type a formula with C, H and O only, such as C6H12O6 or C18H34O2.';
+    if (!f) { q('.ra-rq').textContent = ''; q('.ra-rqeq').textContent = ''; return; }
+    const x = rq(f), name = `C${f.C}H${f.H}O${f.O}`.replace(/([CHO])1(?!\d)/g, '$1').replace(/O0$/, '').replace(/H0/, '');
+    if (x.o2 <= 0) { q('.ra-rq').textContent = 'RQ cannot be worked out: this formula needs no oxygen to burn'; q('.ra-rqeq').textContent = ''; return; }
+    q('.ra-rq').textContent = `RQ = ${r(x.rq)}` + (Math.abs(x.rq - 1) < 0.005 ? ' (carbohydrate-like)' : x.rq < 0.8 ? ' (fat-like)' : x.rq > 1.05 ? ' (more than 1: an oxygen-rich food)' : '');
+    q('.ra-rqeq').textContent = `${name} + ${r(x.o2)} O₂ → ${x.co2} CO₂ + ${r(x.h2o)} H₂O.  O₂ = C + H/4 − O/2 = ${f.C} + ${f.H}/4 − ${f.O}/2 = ${r(x.o2)}.  RQ = CO₂ ÷ O₂ = ${x.co2} ÷ ${r(x.o2)} = ${r(x.rq)}.`;
+  }
+  const sel = q<HTMLSelectElement>('.ra-sub');
+  for (const s of SUBSTRATES) sel.add(new Option(`${s.name}, ${s.f}`, s.id));
+  sel.addEventListener('change', () => { q<HTMLInputElement>('.ra-f').value = ''; rqText(); });
+  q('.ra-f').addEventListener('input', rqText);
+  q('.ra-next').addEventListener('click', () => { k = (k + 1) % nStages(); texts(); });
+  q('.ra-back').addEventListener('click', () => { if (k > 0) k--; texts(); });
+  q('.ra-anaer').addEventListener('change', () => { k = 0; texts(); });
+  q('.ra-ferm').addEventListener('change', texts);
+  q('.ra-g').addEventListener('input', texts);
+  q('.ra-count').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; count = b.dataset.c as Count; q('.ra-count').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); texts(); });
+  new ResizeObserver(draw).observe(cv);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  texts(); rqText();
+
+  mountQuiz(q('.ra-quiz'), (): QItem[] => {
+    const g = pick(2, 12), c = pick(2, 8), h = 2 * c, sub = one([['C6H12O6', 1], ['C4H6O5', 4 / 3], ['C2H2O4', 4], ['C18H34O2', 18 / 25.5], ['C3H6O3', 1]] as [string, number][]);
+    return [
+      { q: `Using the textbook count (38 ATP per glucose), how many ATP can ${g} glucose molecules give in aerobic respiration?`, ans: 38 * g, unit: 'ATP', work: `${g} × 38 = ${38 * g} ATP.` },
+      { q: `How many NADH are made from ${g} glucose molecules (glycolysis, link reaction and Krebs cycle together)?`, ans: 10 * g, unit: 'NADH', work: `2 (glycolysis) + 2 (link) + 6 (Krebs) = 10 per glucose; × ${g} = ${10 * g}.` },
+      { q: `What is the RQ of ${sub[0]} burned completely? (O₂ = C + H/4 − O/2)`, ans: sub[1], unit: '', work: (() => { const f = parseCHO(sub[0])!, x = rq(f); return `O₂ = ${f.C} + ${f.H}/4 − ${f.O}/2 = ${r(x.o2)}; CO₂ = ${f.C}; RQ = ${f.C} ÷ ${r(x.o2)} = ${r(x.rq)}.`; })() },
+      { q: `How many O₂ molecules does it take to burn one molecule of C${c}H${h}O${c} completely?`, ans: c, unit: 'O₂', work: `O₂ = ${c} + ${h}/4 − ${c}/2 = ${c}. (Like glucose, any CₙH₂ₙOₙ sugar needs n O₂, so its RQ is 1.)` },
+      one<QItem>([
+        { q: 'Where does glycolysis happen?', ans: 0, choices: ['Cytoplasm', 'Mitochondrial matrix', 'Inner mitochondrial membrane', 'Chloroplast'], work: 'Glycolysis happens in the cytoplasm of every cell and needs no oxygen.' },
+        { q: 'What is the last acceptor of electrons in the electron transport system?', ans: 2, choices: ['NAD⁺', 'Pyruvate', 'Oxygen', 'Carbon dioxide'], work: 'Oxygen takes the electrons (and H⁺) at the end of the chain and becomes water. Without it, the chain stops.' },
+        { q: 'How many ATP does fermentation give per glucose?', ans: 1, choices: ['0', '2', '36', '38'], work: 'Only the 2 net ATP of glycolysis; fermentation just regenerates NAD⁺ so glycolysis can continue.' },
+      ]),
+    ];
+  });
+</script>

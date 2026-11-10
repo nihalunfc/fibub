@@ -1,0 +1,259 @@
+---
+// Fluid mosaic membrane (Learn #1391): a moving model of the cell membrane. Lipids drift, proteins float in them, and
+// particles of oxygen, water, glucose or sodium cross by simple diffusion, facilitated diffusion or the pump.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn cmb">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Watch what crosses</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="false">Class 9</button><button type="button" data-level="11" aria-pressed="true">Class 11</button></div>
+    </div>
+    <div class="ax-seg cm-sub" role="group" aria-label="Substance" style="margin-top:10px">
+      <button type="button" data-s="o2" aria-pressed="true">Oxygen</button><button type="button" data-s="water" aria-pressed="false">Water</button><button type="button" data-s="glucose" aria-pressed="false">Glucose</button><button type="button" data-s="na" aria-pressed="false">Sodium Na⁺</button>
+    </div>
+    <canvas class="lrn-cv cm-cv" style="margin-top:10px" aria-label="A cell membrane with particles crossing it"></canvas>
+    <p class="ax-help">Tap above the membrane to add a particle outside the cell, or below it to add one inside.</p>
+    <p class="ax-big cm-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <p class="cm-count" style="margin:4px 0 0"></p>
+    <p class="cm-route" style="margin:4px 0 0"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Start outside <b class="cm-ov"></b><input type="range" class="cm-o" min="0" max="40" step="1" value="30" aria-label="Particles outside the cell at the start" /></label>
+      <label class="lrn-sl">Start inside <b class="cm-iv"></b><input type="range" class="cm-i" min="0" max="40" step="1" value="6" aria-label="Particles inside the cell at the start" /></label>
+    </div>
+    <div class="ax-row cm-naopts" style="margin-top:8px" hidden>
+      <label class="ax-check"><input type="checkbox" class="cm-pump" checked /> Pump on (uses ATP)</label>
+      <label class="ax-check"><input type="checkbox" class="cm-chan" /> Ion channels open</label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cm-play">Pause</button>
+      <button type="button" class="btn secondary small cm-reset">Start again</button>
+    </div>
+    <p class="lrn-eq cm-eq"></p>
+    <p class="ax-help">A teaching model with made-up round numbers: P = 0.5 per second for oxygen, carriers with Vmax = 10 per second and K = 8 particles. Real membranes are about 7 to 8 nm thick and hold far more molecules.</p>
+  </div>
+
+  <div class="ax-card" data-only="11">
+    <h2>Why carriers level off</h2>
+    <canvas class="lrn-cv cm-gr" aria-label="Graph of crossing rate against outside concentration for simple and facilitated diffusion"></canvas>
+    <div class="ax-legend"><span><i class="cm-ks"></i>simple diffusion (lipids)</span><span><i class="cm-kf"></i>facilitated (carriers)</span></div>
+    <p class="lrn-eq cm-geq"></p>
+    <p class="ax-help">With nothing inside the cell. Simple diffusion keeps rising in a straight line; carriers can only work so fast, so facilitated diffusion flattens out when they are all busy (saturation).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Oxygen: set the same number on both sides. Particles still cross, but as many go in as come out, so the net movement is zero.</li>
+      <li>Glucose: watch the carriers flip. Glucose only crosses at a carrier, never through the lipids.</li>
+      <li>Sodium: switch the pump on and the channels off. Na⁺ ends up crowded outside, against the gradient, and ATP is used.</li>
+      <li>Open the channels with the pump off: Na⁺ leaks back until both sides are equal. A real cell keeps paying ATP to undo this leak.</li>
+      <li>Class 11 graph: double the outside amount from 30 to 60. Simple diffusion doubles; facilitated hardly grows.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cmb .cm-ks { background: var(--accent); }
+  .cmb .cm-kf { background: var(--warn); }
+  .cmb .cm-big { font-size: clamp(18px, 4.6vw, 24px); }
+</style>
+
+<script>
+  import { SUBSTANCES, simpleRate, carrierFlux, facilitatedRate, pump, direction, type Substance } from '../../lib/sci/cell-membrane';
+  import { mountQuiz, pick, one, r, fitCanvas, loop, wireLevel, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cmb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.cm-cv'), gr = q<HTMLCanvasElement>('.cm-gr');
+  const H = 300, TOP = 128, BOT = 172;
+  type P = { x: number; y: number; vx: number; vy: number };
+  let sub: Substance = SUBSTANCES[0], level = '11', parts: P[] = [], t = 0, pumped = 0, W = 340;
+  const busy: Record<string, number> = { c1: 0, c2: 0, pump: 0 };
+  let flash: Record<string, number> = { c1: 0, c2: 0, pump: 0 };
+  const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+  const proteinX = (k: number, f: number) => f * W + 6 * Math.sin(t * 0.35 + k * 1.7);
+  const PROT = { chan: 0.16, c1: 0.40, c2: 0.60, pump: 0.84 };
+  const HALF = 13;
+
+  function spawn(inside: boolean): P {
+    const sp = 45;
+    return { x: rnd(8, W - 8), y: inside ? rnd(BOT + 8, H - 8) : rnd(8, TOP - 8), vx: rnd(-sp, sp), vy: rnd(-sp, sp) };
+  }
+  function reset() {
+    W = Math.max(200, cv.clientWidth || 340);
+    const o = +q<HTMLInputElement>('.cm-o').value, i = +q<HTMLInputElement>('.cm-i').value;
+    parts = [...Array.from({ length: o }, () => spawn(false)), ...Array.from({ length: i }, () => spawn(true))];
+    pumped = 0; busy.c1 = busy.c2 = busy.pump = 0;
+  }
+  const counts = () => { let o = 0; for (const p of parts) if (p.y < (TOP + BOT) / 2) o++; return { o, i: parts.length - o }; };
+  const near = (x: number, cx: number) => Math.abs(x - cx) < HALF;
+
+  // Decide whether a particle reaching the membrane goes through, and where it comes out.
+  function cross(p: P, fromOut: boolean): boolean {
+    const id = sub.id, chan = q<HTMLInputElement>('.cm-chan').checked;
+    const through = () => { p.y = fromOut ? BOT + 3 : TOP - 3; return true; };
+    if (id === 'o2') return Math.random() < 0.5 ? through() : false;
+    if (id === 'water') return near(p.x, proteinX(0, PROT.chan)) || Math.random() < 0.06 ? through() : false;
+    if (id === 'glucose') {
+      for (const [k, key] of [[1, 'c1'], [2, 'c2']] as const) {
+        const cx = proteinX(k, PROT[key]);
+        if (near(p.x, cx) && busy[key] <= 0) { busy[key] = 0.45; flash[key] = 0.45; p.x = cx; return through(); }
+      }
+      return false;
+    }
+    if (chan && near(p.x, proteinX(0, PROT.chan))) return through();
+    return false;
+  }
+  function step(dt: number) {
+    t += dt;
+    for (const k of Object.keys(busy)) { busy[k] -= dt; flash[k] = Math.max(0, flash[k] - dt); }
+    // The pump grabs a Na⁺ from near its inner face (within about 70 px) and moves it out, about 3 per second.
+    if (sub.id === 'na' && q<HTMLInputElement>('.cm-pump').checked && busy.pump <= 0 && dt > 0) {
+      const px = proteinX(3, PROT.pump);
+      let best: P | null = null, bd = 70;
+      for (const p of parts) { if (p.y < (TOP + BOT) / 2) continue; const d = Math.hypot(p.x - px, p.y - BOT); if (d < bd) { bd = d; best = p; } }
+      if (best) { busy.pump = 0.3; flash.pump = 0.3; pumped++; best.x = px; best.y = TOP - 4; best.vy = -Math.abs(best.vy) - 20; }
+    }
+    for (const p of parts) {
+      p.vx += rnd(-120, 120) * dt; p.vy += rnd(-120, 120) * dt;
+      const s = Math.hypot(p.vx, p.vy), max = 70; if (s > max) { p.vx *= max / s; p.vy *= max / s; }
+      let nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      if (nx < 6 || nx > W - 6) { p.vx = -p.vx; nx = Math.min(W - 6, Math.max(6, nx)); }
+      const out = p.y < (TOP + BOT) / 2;
+      if (out && ny < 6) { p.vy = Math.abs(p.vy); ny = 6; }
+      if (!out && ny > H - 6) { p.vy = -Math.abs(p.vy); ny = H - 6; }
+      if (out && ny > TOP - 3) { p.x = nx; if (!cross(p, true)) { p.vy = -Math.abs(p.vy); p.y = TOP - 4; } else p.vy = Math.abs(p.vy); continue; }
+      if (!out && ny < BOT + 3) { p.x = nx; if (!cross(p, false)) { p.vy = Math.abs(p.vy); p.y = BOT + 4; } else p.vy = -Math.abs(p.vy); continue; }
+      p.x = nx; p.y = ny;
+    }
+    draw(); texts();
+  }
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W: w } = fitCanvas(cv, H);
+    if (Math.abs(w - W) > 1) { const k = w / W; for (const p of parts) p.x *= k; W = w; }
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.fillStyle = pal.grid; c.fillRect(0, BOT, W, H - BOT);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText('OUTSIDE the cell', 6, 14); c.fillText('INSIDE (cytoplasm)', 6, H - 6);
+    // Lipid bilayer: heads drift sideways (the fluid part), two tails each.
+    const sp = 11, n = Math.ceil(W / sp) + 2;
+    for (const [leaf, y0, dir] of [[0, TOP + 4, 1], [1, BOT - 4, -1]] as const) {
+      for (let k = 0; k < n; k++) {
+        const x = ((k * sp + dir * t * 6 + 3 * Math.sin(t * 1.3 + k * 2.1 + leaf)) % (n * sp) + n * sp) % (n * sp) - sp;
+        c.strokeStyle = pal.muted; c.lineWidth = 1.2; c.beginPath();
+        c.moveTo(x - 2, y0); c.lineTo(x - 2, y0 + dir * 15); c.moveTo(x + 2, y0); c.lineTo(x + 2, y0 + dir * 15); c.stroke();
+        c.fillStyle = pal.accent; c.beginPath(); c.arc(x, y0, 4, 0, Math.PI * 2); c.fill();
+      }
+    }
+    // Proteins: the mosaic floating in the lipids.
+    const prot = (x: number, col: string, label: string, gap: boolean, f = 0) => {
+      c.fillStyle = col; c.globalAlpha = 0.9;
+      const wv = HALF + 4 + (f > 0 ? 3 * Math.sin(f * 20) : 0);
+      if (gap) { c.fillRect(x - wv, TOP - 6, wv - 5, BOT - TOP + 12); c.fillRect(x + 5, TOP - 6, wv - 5, BOT - TOP + 12); }
+      else { c.beginPath(); c.roundRect(x - wv, TOP - 6, 2 * wv, BOT - TOP + 12, 8); c.fill(); }
+      c.globalAlpha = 1;
+      if (label) { c.fillStyle = pal.ink; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(label, x, TOP - 12); }
+    };
+    const lab = level === '11';
+    const chanOpen = sub.id === 'water' || q<HTMLInputElement>('.cm-chan').checked;
+    prot(proteinX(0, PROT.chan), pal.good, lab ? (sub.id === 'water' ? 'aquaporin' : 'channel') : '', chanOpen);
+    prot(proteinX(1, PROT.c1), pal.warn, lab ? 'carrier' : '', false, flash.c1);
+    prot(proteinX(2, PROT.c2), pal.warn, lab ? 'carrier' : '', false, flash.c2);
+    prot(proteinX(3, PROT.pump), pal.bad, lab ? 'Na⁺/K⁺ pump' : '', false, flash.pump);
+    // Sugar chains (glycoproteins) on the outer face.
+    c.strokeStyle = pal.good; c.lineWidth = 1.5;
+    for (const k of [1, 2]) { const x = proteinX(k, k === 1 ? PROT.c1 : PROT.c2); c.beginPath(); c.moveTo(x, TOP - 6); c.lineTo(x - 5, TOP - 12); c.moveTo(x, TOP - 6); c.lineTo(x + 6, TOP - 14); c.stroke(); }
+    if (flash.pump > 0) { c.fillStyle = pal.bad; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('ATP', proteinX(3, PROT.pump), BOT + 22); }
+    // Particles
+    const col = sub.id === 'o2' ? pal.accent : sub.id === 'water' ? pal.accent2 : sub.id === 'glucose' ? pal.warn : pal.bad;
+    c.fillStyle = col;
+    for (const p of parts) { c.beginPath(); if (sub.id === 'glucose') { c.rect(p.x - 3.5, p.y - 3.5, 7, 7); } else c.arc(p.x, p.y, 3.5, 0, Math.PI * 2); c.fill(); }
+  }
+
+  function texts() {
+    const { o, i } = counts(), pumpOn = q<HTMLInputElement>('.cm-pump').checked;
+    q('.cm-big').textContent = 'Net movement: ' + direction(o, i, sub.mode, sub.id === 'na' && pumpOn && i > 0);
+    q('.cm-count').textContent = `Outside: ${o}   Inside: ${i}` + (sub.id === 'na' ? `   Na⁺ pumped out: ${pumped}, ATP used: ${r(pumped / 3)}, K⁺ brought in: ${r(pump(pumped).kIn)}` : '');
+  }
+  function staticTexts() {
+    const o = +q<HTMLInputElement>('.cm-o').value, i = +q<HTMLInputElement>('.cm-i').value;
+    q('.cm-ov').textContent = String(o); q('.cm-iv').textContent = String(i);
+    const kind = sub.mode === 'simple' ? 'Simple diffusion' : sub.mode === 'facilitated' ? 'Facilitated diffusion' : 'Channels (downhill) and active transport (uphill)';
+    q('.cm-route').textContent = `${kind}: ${sub.name.toLowerCase()} goes ${sub.route}. ${sub.note}`;
+    q<HTMLElement>('.cm-naopts').hidden = sub.id !== 'na';
+    let eq = '';
+    if (sub.id === 'o2') { const v = simpleRate(o, i); eq = `At the start, rate = P × (C_out − C_in) = 0.5 × (${o} − ${i}) = ${r(v)} particles per second ${v > 0 ? 'inward' : v < 0 ? 'outward' : '(no net flow)'}.`; }
+    else if (sub.id === 'water') eq = 'Water moves towards the side with fewer water particles per volume (more dissolved solute). Here only water is drawn, so it spreads until both sides match.';
+    else if (sub.id === 'glucose') { const a = carrierFlux(o), b = carrierFlux(i), v = a - b; eq = `At the start, rate = Vmax·C_out/(K + C_out) − Vmax·C_in/(K + C_in) = 10 × ${o}/(8 + ${o}) − 10 × ${i}/(8 + ${i}) = ${r(a)} − ${r(b)} = ${r(v)} per second ${v > 0 ? 'inward' : v < 0 ? 'outward' : '(no net flow)'}.`; }
+    else eq = 'The pump splits one ATP for every 3 Na⁺ it moves out and 2 K⁺ it brings in, so the inside of the cell stays low in Na⁺ and high in K⁺.';
+    q('.cm-eq').textContent = eq;
+    drawGraph(o);
+  }
+  function drawGraph(cOut: number) {
+    if (level !== '11') return;
+    const pal = pagePalette(), { ctx: c, W: w } = fitCanvas(gr, 200);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, w, 200);
+    const ML = 40, MB = 30, MT = 10, pw = w - ML - 10, ph = 200 - MT - MB, CM = 60, RM = 30;
+    const X = (x: number) => ML + (x / CM) * pw, Y = (y: number) => MT + ph - (y / RM) * ph;
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(ML, MT); c.lineTo(ML, MT + ph); c.lineTo(ML + pw, MT + ph); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let x = 0; x <= CM; x += 10) c.fillText(String(x), X(x), MT + ph + 14);
+    c.fillText('particles outside (none inside)', ML + pw / 2, 198);
+    c.textAlign = 'right'; for (let y = 0; y <= RM; y += 10) c.fillText(String(y), ML - 4, Y(y) + 4);
+    c.save(); c.translate(11, MT + ph / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.fillText('rate per second', 0, 0); c.restore();
+    const line = (f: (x: number) => number, col: string) => { c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath(); for (let k = 0; k <= 120; k++) { const x = (k / 120) * CM, y = Math.min(RM, f(x)); k ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y)); } c.stroke(); };
+    line((x) => simpleRate(x, 0), pal.accent); line((x) => facilitatedRate(x, 0), pal.warn);
+    c.strokeStyle = pal.muted; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X(10), Y(10)); c.lineTo(X(CM), Y(10)); c.stroke(); c.setLineDash([]);
+    c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText('Vmax = 10', X(42), Y(10) - 5);
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(X(cOut), Y(Math.min(RM, simpleRate(cOut, 0))), 4.5, 0, Math.PI * 2); c.arc(X(cOut), Y(facilitatedRate(cOut, 0)), 4.5, 0, Math.PI * 2); c.fill();
+    q('.cm-geq').textContent = `With ${cOut} outside: simple 0.5 × ${cOut} = ${r(simpleRate(cOut, 0))} per second; facilitated 10 × ${cOut}/(8 + ${cOut}) = ${r(carrierFlux(cOut))} per second.`;
+  }
+
+  q('.cm-sub').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    sub = SUBSTANCES.find((s) => s.id === b.dataset.s)!;
+    q('.cm-sub').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    reset(); staticTexts(); anim.redraw();
+  });
+  for (const s of ['.cm-o', '.cm-i']) q(s).addEventListener('input', () => { reset(); staticTexts(); anim.redraw(); });
+  for (const s of ['.cm-pump', '.cm-chan']) q(s).addEventListener('change', () => anim.redraw());
+  q('.cm-reset').addEventListener('click', () => { reset(); anim.redraw(); });
+  cv.addEventListener('pointerdown', (e) => {
+    const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = ((e.clientY - b.top) / b.height) * H;
+    if (y > TOP - 2 && y < BOT + 2 || parts.length >= 120) return;
+    parts.push({ x, y, vx: rnd(-40, 40), vy: rnd(-40, 40) }); anim.redraw();
+  });
+  wireLevel(root, (l) => { level = l; staticTexts(); });
+  reset(); staticTexts();
+  const anim = loop(step, q<HTMLButtonElement>('.cm-play'));
+  new MutationObserver(() => { anim.redraw(); staticTexts(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  const CASES: [string, number][] = [
+    ['Carbon dioxide leaves a cell straight through the lipid bilayer, from high to low concentration.', 0],
+    ['Oxygen moves from the air in the lungs into a blood cell through the lipids.', 0],
+    ['Glucose enters a red blood cell through a carrier protein, from high to low concentration, with no ATP used.', 1],
+    ['Potassium ions flow out of a nerve cell through an open ion channel, down their gradient.', 1],
+    ['Root hair cells take in mineral ions from soil water that has fewer of them than the cell, using ATP.', 2],
+    ['Sodium ions are moved out of a cell where they are already more concentrated outside.', 2],
+  ];
+  const MODES = ['Simple diffusion', 'Facilitated diffusion', 'Active transport'];
+  mountQuiz(q('.cm-quiz'), (): QItem[] => {
+    const [txt, a] = one(CASES), na = 3 * pick(4, 40), P = pick(2, 9) / 10, co = pick(20, 60, 2), ci = pick(0, 18, 2), Vm = pick(5, 20), K = pick(2, 10), C = pick(5, 40);
+    const list: QItem[] = [
+      { q: `${txt} Which kind of transport is this?`, ans: a, choices: MODES, work: a === 0 ? 'Small uncharged molecules pass straight through the lipids, down their gradient: simple diffusion.' : a === 1 ? 'It goes down its gradient with no ATP, but it needs a protein (carrier or channel): facilitated diffusion.' : 'It goes against its gradient (from low to high), which needs energy from ATP: active transport.' },
+      { q: `The Na⁺/K⁺ pump moves ${na} sodium ions out of a cell. How many ATP molecules does it use?`, ans: na / 3, unit: 'ATP', work: `One ATP moves 3 Na⁺ out. ${na} ÷ 3 = ${na / 3} ATP.` },
+      { q: `While moving those ${na} Na⁺ out, how many K⁺ ions does the pump bring in?`, ans: (2 * na) / 3, unit: 'K⁺', work: `2 K⁺ come in for every 3 Na⁺ out: ${na} × 2 ÷ 3 = ${(2 * na) / 3}.` },
+      { q: `A gas crosses a membrane by simple diffusion with P = ${P} per second. There are ${co} particles outside and ${ci} inside. What is the net rate, in particles per second?`, ans: simpleRate(co, ci, P), unit: 'per s', work: `rate = P × (C_out − C_in) = ${P} × (${co} − ${ci}) = ${r(simpleRate(co, ci, P))} per second, inward.` },
+    ];
+    if (level === '11') list.push({ q: `Carriers have Vmax = ${Vm} per second and K = ${K}. With ${C} glucose particles outside and none inside, what is the rate of facilitated diffusion?`, ans: carrierFlux(C, Vm, K), unit: 'per s', work: `rate = Vmax × C / (K + C) = ${Vm} × ${C} / (${K} + ${C}) = ${r(carrierFlux(C, Vm, K))} per second.` });
+    return list;
+  });
+</script>

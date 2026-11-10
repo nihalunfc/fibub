@@ -1,0 +1,155 @@
+---
+// Z-scheme stepper (Learn #1393): follow an electron from water through photosystem II, the carriers and
+// photosystem I to NADPH, step by step on the Z-shaped energy diagram, with the cyclic path and a running tally.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn zsc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Follow the electron</h2>
+      <div class="ax-seg zs-path" role="group" aria-label="Path"><button type="button" data-p="non" aria-pressed="true">Non-cyclic</button><button type="button" data-p="cyc" aria-pressed="false">Cyclic</button></div>
+    </div>
+    <canvas class="lrn-cv zs-cv" style="margin-top:10px" aria-label="The Z-scheme: energy of the electron at each carrier of the light reactions"></canvas>
+    <p class="ax-big zs-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <p class="zs-text" style="margin:4px 0 0"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small zs-back">Back</button>
+      <button type="button" class="btn small zs-next">Next step</button>
+      <button type="button" class="btn secondary small zs-play">Play</button>
+    </div>
+    <p class="ax-help">Up the page means higher energy (a more negative redox potential). The potentials on the left are rounded textbook values in volts, to show the shape of the Z.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Where the ATP and NADPH come from</h2>
+    <label class="lrn-sl">Electrons sent through <b class="zs-nv"></b><input type="range" class="zs-n" min="4" max="48" step="4" value="12" aria-label="Number of electrons sent through the chain" /></label>
+    <dl class="ax-facts zs-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq zs-eq"></p>
+    <p class="ax-help">Counts: 2 photons per electron in the non-cyclic path, 4 electrons per O₂, 2 per NADPH; 1 H⁺ into the lumen per electron from water and 2 from cytochrome b6f; about 14 H⁺ through ATP synthase for 3 ATP (a rounded, commonly used figure).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Step through the non-cyclic path. The electron is lifted twice by light and runs downhill between the lifts: that is the Z.</li>
+      <li>Watch where water is split: right after P680 loses its electron. The oxygen you breathe comes from here.</li>
+      <li>Switch to Cyclic. Only photosystem I is used, the electron comes back, and no NADPH or O₂ is made, only ATP.</li>
+      <li>In the tally, set 4 electrons: one O₂, two NADPH, eight photons.</li>
+      <li>The Calvin cycle needs 3 ATP for every 2 NADPH. Non-cyclic flow gives a little less ATP than that, so cells add some cyclic flow.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card zs-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .zsc .zs-big { font-size: clamp(18px, 4.6vw, 24px); }
+  .zsc .zs-text { min-height: 3em; }
+</style>
+
+<script>
+  import { CARRIERS, carrier, NONCYCLIC, CYCLIC, ledger, type Step } from '../../lib/sci/z-scheme';
+  import { mountQuiz, pick, one, r, fitCanvas, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.zsc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.zs-cv');
+  const H = 330, EMIN = -1.4, EMAX = 1.3, ML = 34, MT = 16, MB = 14;
+  let cyclic = false, k = 0, timer = 0;
+  const steps = (): Step[] => (cyclic ? CYCLIC : NONCYCLIC);
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, H), pw = W - ML - 8, ph = H - MT - MB;
+    const X = (f: number) => ML + 6 + f * (pw - 12), Y = (E: number) => MT + ((E - EMIN) / (EMAX - EMIN)) * ph;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.fillStyle = pal.muted; c.font = '10px system-ui, sans-serif'; c.textAlign = 'right';
+    c.strokeStyle = pal.grid; c.lineWidth = 1;
+    for (let E = -1.2; E <= 1.21; E += 0.4) { const y = Y(E); c.beginPath(); c.moveTo(ML, y); c.lineTo(W - 4, y); c.stroke(); c.fillText(`${E > 0 ? '+' : ''}${E.toFixed(1)}`, ML - 4, y + 3); }
+    c.save(); c.translate(9, MT + ph / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.fillText('energy ↑   (redox potential, V)', 0, 0); c.restore();
+    // Photosystem boxes
+    for (const [a, b, lab] of [['p680', 'p680x', 'PS II'], ['p700', 'p700x', 'PS I']] as const) {
+      const x = X(carrier(a).x), y1 = Y(carrier(b).E) - 10, y2 = Y(carrier(a).E) + 10;
+      c.fillStyle = pal.grid; c.fillRect(x - 22, y1, 44, y2 - y1);
+      c.fillStyle = pal.good; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(lab, x, (y1 + y2) / 2 + 4);
+    }
+    // The path lines
+    const path = cyclic ? ['p700', 'p700x', 'fd', 'pq', 'b6f', 'pc', 'p700'] : ['h2o', 'p680', 'p680x', 'pheo', 'pq', 'b6f', 'pc', 'p700', 'p700x', 'fd', 'nadp'];
+    c.lineWidth = 2;
+    for (let i = 1; i < path.length; i++) {
+      const a = carrier(path[i - 1]), b = carrier(path[i]), up = b.E < a.E && a.x === b.x;
+      c.strokeStyle = up ? pal.warn : pal.line; c.setLineDash(up ? [5, 4] : []);
+      c.beginPath(); c.moveTo(X(a.x), Y(a.E)); c.lineTo(X(b.x), Y(b.E)); c.stroke(); c.setLineDash([]);
+      if (up) { c.fillStyle = pal.warn; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('light', X(a.x) - 24, (Y(a.E) + Y(b.E)) / 2); }
+    }
+    // Carriers
+    const used = new Set(path);
+    for (const cr of CARRIERS) {
+      const x = X(cr.x), y = Y(cr.E), on = used.has(cr.id);
+      c.fillStyle = on ? pal.accent : pal.line; c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = on ? pal.ink : pal.muted; c.font = '11px system-ui, sans-serif';
+      const right = cr.id === 'p680x' || cr.id === 'p700x' || cr.id === 'nadp';
+      c.textAlign = cr.id === 'nadp' ? 'right' : right ? 'left' : 'center';
+      c.fillText(cr.short, x + (cr.id === 'nadp' ? 6 : right ? 8 : 0), right ? y + 4 : cr.id === 'h2o' || cr.id === 'p680' || cr.id === 'p700' || cr.id === 'pc' || cr.id === 'b6f' ? y + 17 : y - 9);
+    }
+    // The electron
+    const s = steps()[k], e = carrier(s.at);
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(e.x), Y(e.E), 8, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.bg; c.font = '700 10px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('e⁻', X(e.x), Y(e.E) + 3.5);
+  }
+  function texts() {
+    const s = steps()[k], cr = carrier(s.at);
+    q('.zs-big').textContent = `Step ${k + 1} of ${steps().length}: ${cr.name}`;
+    q('.zs-text').textContent = s.text;
+    q<HTMLButtonElement>('.zs-back').disabled = k === 0;
+    q('.zs-next').textContent = k === steps().length - 1 ? 'Start again' : 'Next step';
+    const n = +q<HTMLInputElement>('.zs-n').value, L = ledger(n, cyclic);
+    q('.zs-nv').textContent = String(n);
+    const f = (a: string, b: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (sm) { const x = document.createElement('small'); x.textContent = sm; d.querySelector('dd')!.append(x); } return d; };
+    q('.zs-facts').replaceChildren(
+      f('Photons absorbed', String(L.photons), cyclic ? 'all at PS I' : `${n} at PS II, ${n} at PS I`),
+      f('Water split', `${r(L.water)} H₂O`), f('Oxygen given off', `${r(L.o2)} O₂`),
+      f('NADPH made', String(r(L.nadph))), f('H⁺ into the lumen', String(L.hLumen)), f('ATP made (about)', r(L.atp, 2)),
+    );
+    q('.zs-eq').textContent = cyclic
+      ? `Cyclic: ${n} electrons × 2 H⁺ (cytochrome b6f) = ${L.hLumen} H⁺; ATP ≈ ${L.hLumen} × 3 / 14 = ${r(L.atp, 3)}. No water split, no NADPH.`
+      : `2 H₂O → 4 H⁺ + O₂ + 4 e⁻, so ${n} electrons split ${r(L.water)} H₂O and give ${r(L.o2)} O₂. NADP⁺ + 2 e⁻ + H⁺ → NADPH, so ${r(L.nadph)} NADPH. H⁺ = ${n} (water) + ${2 * n} (b6f) = ${L.hLumen}; ATP ≈ ${L.hLumen} × 3 / 14 = ${r(L.atp, 3)}.`;
+  }
+  const all = () => { texts(); draw(); };
+  const stop = () => { if (timer) { clearInterval(timer); timer = 0; } q('.zs-play').textContent = 'Play'; };
+  q('.zs-next').addEventListener('click', () => { k = (k + 1) % steps().length; all(); });
+  q('.zs-back').addEventListener('click', () => { if (k > 0) k--; all(); });
+  q('.zs-play').addEventListener('click', () => {
+    if (timer) return stop();
+    q('.zs-play').textContent = 'Pause';
+    timer = window.setInterval(() => { k = (k + 1) % steps().length; all(); }, 1800);
+  });
+  q('.zs-path').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    cyclic = b.dataset.p === 'cyc'; k = 0;
+    q('.zs-path').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    all();
+  });
+  q('.zs-n').addEventListener('input', texts);
+  new ResizeObserver(draw).observe(cv);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  all();
+
+  mountQuiz(q('.zs-quiz'), (): QItem[] => {
+    const o2 = pick(2, 12), e = 4 * o2;
+    return [
+      { q: `A chloroplast gives off ${o2} molecules of O₂ by non-cyclic flow. How many electrons went through the chain?`, ans: e, unit: 'e⁻', work: `2 H₂O → 4 H⁺ + O₂ + 4 e⁻: 4 electrons per O₂, so ${o2} × 4 = ${e}.` },
+      { q: `How many NADPH do those ${e} electrons make?`, ans: e / 2, unit: 'NADPH', work: `Each NADPH needs 2 electrons: ${e} ÷ 2 = ${e / 2}.` },
+      { q: `How many photons were absorbed to move those ${e} electrons (non-cyclic)?`, ans: 2 * e, unit: 'photons', work: `Each electron is lifted twice, once at PS II and once at PS I: ${e} × 2 = ${2 * e}.` },
+      one<QItem>([
+        { q: 'Where do the electrons in non-cyclic flow come from in the end?', ans: 1, choices: ['Carbon dioxide', 'Water', 'Glucose', 'NADPH'], work: 'Water is split at photosystem II (photolysis) to refill P680: 2 H₂O → 4 H⁺ + O₂ + 4 e⁻.' },
+        { q: 'What does cyclic photophosphorylation make?', ans: 0, choices: ['ATP only', 'NADPH only', 'ATP, NADPH and O₂', 'O₂ only'], work: 'In the cyclic path the electron returns to P700, so no NADP⁺ is reduced and no water is split; the H⁺ pumped on the way still make ATP.' },
+        { q: 'The reaction centre of photosystem I is…', ans: 1, choices: ['P680', 'P700', 'Ferredoxin', 'Plastoquinone'], work: 'PS I has P700 (best at about 700 nm); PS II has P680.' },
+        { q: 'Which step uses the H⁺ build-up in the lumen?', ans: 2, choices: ['Splitting water', 'Exciting P700', 'ATP synthase making ATP', 'Ferredoxin taking an electron'], work: 'H⁺ flowing back to the stroma through ATP synthase turns it, joining ADP and phosphate into ATP (chemiosmosis).' },
+      ]),
+    ];
+  });
+</script>
