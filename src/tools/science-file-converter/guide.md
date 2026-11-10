@@ -2,6 +2,7 @@
 name: Science file converter
 num: 815
 shelf: science
+code: T551
 section: data-management
 title: "NetCDF and FITS to CSV converter: open .nc and .fits files, list variables and export to CSV or JSON"
 summary: "Open a NetCDF classic or 64-bit offset file, a FITS image or table, or a CSV or Excel sheet, see every dimension, variable and attribute, and export one variable or table to CSV or JSON. Scale factors and fill values are handled. The file stays in your browser."

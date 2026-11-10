@@ -2,6 +2,7 @@
 name: Carbon footprint calculator
 num: 505
 shelf: science
+code: T356
 section: carbon-and-energy-accounting
 title: "Carbon footprint calculator: household and personal CO₂e from energy, travel, flights, food and goods, with your own factors"
 summary: "Add up a household's yearly carbon footprint from electricity, heating fuel, car and transit, flights (great-circle distance from coordinates), food and goods. Every emission factor is yours to set; the defaults are rounded examples to replace with your country's official factors. See the breakdown, compare scenarios, and download CSV, PDF or Word."

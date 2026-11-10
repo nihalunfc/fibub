@@ -2,6 +2,7 @@
 name: Log scale calculator
 num: 335
 shelf: science
+code: T250
 section: forestry
 title: "Log scale calculator: board feet by Doyle, International 1/4-inch and Scribner rules, and cubic volume by Smalian, Huber and Newton"
 summary: "Scale a list of logs in board feet by the Doyle rule, the International 1/4-inch rule and the Scribner formula rule, side by side, and in cubic feet or cubic metres by Smalian's, Huber's and Newton's formulas. Every rule is worked out from its formula, with no volume tables."

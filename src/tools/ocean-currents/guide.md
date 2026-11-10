@@ -2,6 +2,7 @@
 name: Ocean currents calculator
 num: 507
 shelf: science
+code: T358
 section: physical-oceanography
 title: "Ocean currents calculator: Ekman transport and spiral, coastal upwelling, geostrophic current, thermal wind and Rossby radius"
 summary: "Work out wind-driven and geostrophic ocean currents: wind stress from the bulk formula, Ekman transport, depth, surface current and spiral; coastal upwelling and Ekman pumping from wind stress curl; geostrophic current from a sea-level slope; thermal-wind current profile across two stations from density or dynamic height; Coriolis parameter and Rossby radii."

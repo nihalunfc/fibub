@@ -2,6 +2,7 @@
 name: Ethogram logger
 num: 315
 shelf: science
+code: T230
 section: zoology-and-animal-behaviour
 title: "Ethogram logger: animal behaviour timer with time budgets and bouts (free)"
 summary: "Define behaviours with one-key shortcuts, as states or point events, log a timed observation session by keyboard or tap, and get time budgets, bout counts and bout durations, event rates and a timeline. Download the log as CSV. Runs in your browser."

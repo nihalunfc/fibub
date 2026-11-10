@@ -2,6 +2,7 @@
 name: Observing log
 num: 17
 shelf: science
+code: T17
 section: observing
 title: "Astronomy observing log: record observations and build your own database (CSV)"
 summary: "Log what you see at the eyepiece or camera: object, equipment, seeing, transparency and notes. Each time you save, choose a new log file or add to an existing one, so your files grow into a database of every observation."

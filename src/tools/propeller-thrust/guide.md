@@ -2,6 +2,7 @@
 name: Propeller thrust
 num: 669
 shelf: science
+code: T466
 section: aerospace-engineering
 title: "Propeller thrust"
 summary: "Work out a rotor's static thrust from its shaft power (or the power for a thrust) with actuator-disc momentum theory and a figure of merit, the induced velocity, disc and power loading, a figure of merit from a test, and a blade element momentum model of your own propeller with thrust, torque, efficiency and CT and CP against advance ratio."

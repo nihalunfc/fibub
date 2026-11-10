@@ -2,6 +2,7 @@
 name: Hydrogen spectrum
 num: 1068
 shelf: learn
+code: L32
 section: school-physics
 title: "Hydrogen spectrum"
 summary: "Tap two energy levels of the hydrogen atom to make the electron jump. See the photon's energy, wavelength and colour, which series it belongs to, and where it sits in the spectrum, with the Rydberg formula filled in."

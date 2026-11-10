@@ -2,6 +2,7 @@
 name: Insect degree-days
 num: 319
 shelf: science
+code: T234
 section: entomology
 title: "Degree-day calculator for insects: single sine and average, with upper cutoff (free)"
 summary: "Paste daily minimum and maximum temperatures and get degree-days by the single sine or simple average method, with lower and upper thresholds, a running total from your biofix, and the date a degree-day target is reached. Runs in your browser."

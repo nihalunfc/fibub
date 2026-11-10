@@ -2,6 +2,7 @@
 name: dN/dS calculator
 num: 311
 shelf: science
+code: T226
 section: evolutionary-biology-and-phylogenetics
 title: "dN/dS calculator (Ka/Ks): Nei-Gojobori method with Jukes-Cantor correction for two coding sequences"
 summary: "Paste two aligned protein-coding DNA sequences and get dN, dS and dN/dS (Ka/Ks) by the Nei-Gojobori method with the Jukes-Cantor correction: synonymous and nonsynonymous sites and differences, standard errors, a Z test for selection and a codon-by-codon table. Runs in your browser."

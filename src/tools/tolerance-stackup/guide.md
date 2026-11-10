@@ -2,6 +2,7 @@
 name: Tolerance stack-up
 num: 646
 shelf: science
+code: T443
 section: mechanical-engineering
 title: "Tolerance stack-up calculator: worst case, RSS and Monte Carlo with fallout, Cp and Cpk"
 summary: "Add up a chain of dimensions with plus and minus tolerances and directions to find the gap: worst case, root sum of squares (RSS) and a seeded Monte Carlo simulation with normal, uniform or triangular parts. Get the share of variance from each part, the fraction of assemblies outside the gap limits, and Cp and Cpk, with a histogram. Paste the chain or open a CSV or Excel file."

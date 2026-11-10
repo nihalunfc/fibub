@@ -2,6 +2,7 @@
 name: Stereotaxic coordinate helper
 num: 349
 shelf: science
+code: T264
 section: neuroscience
 title: "Stereotaxic coordinate calculator: bregma-lambda scaling, angled approach and skull-flat check"
 summary: "Scale atlas coordinates to your animal by its measured bregma-lambda distance, work out the skull entry point and the distance to lower for an angled arm, and check the skull is flat from DV readings at bregma, lambda, left and right. For study and teaching, not for clinical use."

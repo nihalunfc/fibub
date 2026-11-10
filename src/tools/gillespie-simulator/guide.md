@@ -2,6 +2,7 @@
 name: Gillespie stochastic simulator
 num: 988
 shelf: science
+code: T720
 section: systems-biology
 title: "Gillespie stochastic simulation (SSA) for small reaction networks: many runs, mean and spread vs the ODE, noise and Fano factor"
 summary: "Simulate small reaction networks one molecule at a time with Gillespie's exact stochastic algorithm. Run many times to see the mean, the spread and single runs against the deterministic ODE, and the distribution of counts at the end against a Poisson distribution, with the Fano factor."

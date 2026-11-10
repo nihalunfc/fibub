@@ -2,6 +2,7 @@
 name: Carbon cycle sandbox
 num: 1271
 shelf: learn
+code: L152
 section: school-earth
 title: "Carbon cycle sandbox: burn fuel, clear or plant forests and watch CO₂ in the air respond"
 summary: "Five carbon stores, the air, plants and soil, the surface ocean, the deep ocean and fossil fuels, joined by flows you can see. Choose how much fuel to burn and forest to clear or plant, run the years to 2100 and watch the CO₂ in the air rise or fall, and where each year's carbon goes."

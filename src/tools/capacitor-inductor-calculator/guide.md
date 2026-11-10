@@ -2,6 +2,7 @@
 name: Capacitor inductor calculator
 num: 911
 shelf: science
+code: T646
 section: electromagnetism
 title: "Capacitor inductor calculator"
 summary: "Work out the capacitance or inductance of parallel plates (with one or two dielectric layers), coaxial cable, spheres, twin wires, a wire over a ground plane, solenoids and toroids. Get the charge, stored energy, fields, characteristic impedance and signal speed too."

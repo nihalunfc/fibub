@@ -2,6 +2,7 @@
 name: Diagnostic test calculator
 num: 461
 shelf: science
+code: T312
 section: epidemiology
 title: "Sensitivity, specificity, PPV, NPV and likelihood ratio calculator with Fagan nomogram"
 summary: "Sensitivity, specificity, predictive values, likelihood ratios and accuracy from a 2 × 2 table, with exact or Wilson 95 % intervals. Turn a pre-test probability into a post-test probability and see it on a Fagan nomogram."

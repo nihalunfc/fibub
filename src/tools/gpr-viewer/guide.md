@@ -2,6 +2,7 @@
 name: GPR radargram viewer
 num: 513
 shelf: science
+code: T364
 section: geophysics-and-seismology
 title: "GPR viewer online: open SEG-Y and GSSI DZT ground-penetrating radar files, gain, dewow, background removal, velocity from hyperbolas"
 summary: "Open ground-penetrating radar profiles in SEG-Y (rev 0 or 1, IBM or IEEE floats, integers, either byte order) or GSSI DZT format in your browser. Set time zero, dewow, remove the background, add linear, exponential or AGC gain, show depth from a wave speed, fit a hyperbola for the speed, view single traces and save the radargram as PNG."

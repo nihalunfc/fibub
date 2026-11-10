@@ -2,6 +2,7 @@
 name: Counting machine
 num: 1376
 shelf: learn
+code: L234
 section: school-maths
 title: "Permutations and combinations: arrange, choose and count every case, with nPr and nCr side by side"
 summary: "Seat people in a row, pick a team or shuffle the letters of a word and see every arrangement listed for small cases. nPr and nCr are worked side by side with your numbers, and repeated letters (BANANA, MISSISSIPPI) are handled with n!/(p! q!)."

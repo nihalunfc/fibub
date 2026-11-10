@@ -2,6 +2,7 @@
 name: Old money
 num: 1613
 shelf: collecting
+code: T733
 section: coins-notes
 title: "Old money: pre-decimal £sd and Indian anna converter"
 seoTitle: "Old money converter: pounds shillings pence, annas"

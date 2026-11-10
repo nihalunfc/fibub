@@ -2,6 +2,7 @@
 name: Five-kingdom sorter
 num: 1386
 shelf: learn
+code: L241
 section: school-biology
 title: "Five-kingdom classification game: sort organisms into Monera, Protista, Fungi, Plantae and Animalia"
 seoTitle: "Five kingdom classification: sorting game and features"

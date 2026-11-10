@@ -2,6 +2,7 @@
 name: Herbarium label maker
 num: 326
 shelf: science
+code: T241
 section: botany-and-plant-science
 title: "Herbarium label maker: printable plant specimen labels from Darwin Core fields or a CSV, as PDF"
 summary: "Make herbarium specimen labels in your browser. Fill in a Darwin Core form or paste a CSV of many specimens, choose the heading, date and coordinate style, and print several labels per page or download a PDF and a clean Darwin Core CSV."

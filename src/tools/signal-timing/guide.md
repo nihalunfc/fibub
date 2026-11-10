@@ -2,6 +2,7 @@
 name: Signal timing
 num: 684
 shelf: science
+code: T481
 section: transportation-engineering
 title: "Signal timing"
 summary: "Enter each approach's phase, flow and saturation flow to get the critical flow ratios, total lost time, Webster's optimum cycle C0 = (1.5L + 5)/(1 − Y), effective and displayed greens, capacity, degree of saturation and Webster delay for every approach, with a timing diagram and a delay-against-cycle curve. For study and planning."

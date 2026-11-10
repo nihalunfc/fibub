@@ -2,6 +2,7 @@
 name: Classification tree
 num: 1270
 shelf: learn
+code: L151
 section: school-biology
 title: "Classification tree: walk from kingdom to species, compare two living things, check binomial names"
 summary: "Walk the tree of life from the five kingdoms down to a species, compare two living things rank by rank to see how closely they are related, and check how a scientific (binomial) name should be written."

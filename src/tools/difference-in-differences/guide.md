@@ -2,6 +2,7 @@
 name: Difference-in-differences
 num: 745
 shelf: science
+code: T513
 section: econometrics
 title: "Difference-in-differences calculator with event study and parallel-trends plot (free)"
 summary: "Estimate a policy effect by difference-in-differences: the 2 × 2 from group means, or a two-way fixed effects regression on panel data with unit-clustered errors, event-study coefficients with intervals and a pre-trend test. Matches statsmodels."

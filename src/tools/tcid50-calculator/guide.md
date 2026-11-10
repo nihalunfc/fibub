@@ -2,6 +2,7 @@
 name: TCID50 calculator
 num: 198
 shelf: science
+code: T198
 section: virology-and-immunology
 title: "TCID50 calculator"
 summary: "Type the infected wells at each dilution and get the 50 % endpoint by Reed–Muench and Spearman–Kärber (with its standard error and interval), the TCID50/mL for your inoculum and a rough PFU/mL. Type plaque counts and get the PFU/mL pooled over the countable plates, with an exact Poisson interval, plots, a CSV and a report."

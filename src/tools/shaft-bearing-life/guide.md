@@ -2,6 +2,7 @@
 name: Bearing life
 num: 645
 shelf: science
+code: T442
 section: mechanical-engineering
 title: "Bearing life"
 summary: "Work out a rolling bearing's L10 life in revolutions and hours from its rating C and the equivalent load P = X Fr + Y Fa (your catalogue values), adjusted for reliability and aISO, or the C you need for a target life. Size a solid round shaft for combined bending and torsion in fatigue (DE-Goodman with your endurance limit) and statically (von Mises and maximum shear), or check the safety factors of a given diameter."

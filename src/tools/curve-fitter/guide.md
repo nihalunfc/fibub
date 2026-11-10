@@ -2,6 +2,7 @@
 name: Curve fitter
 num: 976
 shelf: science
+code: T711
 section: general-physics-lab-helpers
 title: "Curve fitter: linear and nonlinear least squares with residuals, chi-square and parameter uncertainties"
 summary: "Fit a straight line, polynomial, exponential, power law, Gaussian, sine wave or your own formula to x, y data, weighted by the y uncertainties if you have them, and get each parameter with its uncertainty and 95 % interval, chi-square, reduced chi-square and p-value, residuals and correlations."

@@ -2,6 +2,7 @@
 name: Glass transition
 num: 102
 shelf: science
+code: T102
 section: polymer-chemistry
 title: "Glass transition"
 summary: "Estimate the Tg of a random copolymer or miscible blend by the Fox equation and find the monomer ratio for a target Tg. Gordon–Taylor (with Simha–Boyer or your own k, and Kwei q) for a polymer with water or a plasticiser, and Flory–Fox for short chains."

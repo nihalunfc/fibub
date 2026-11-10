@@ -2,6 +2,7 @@
 name: Gaussian plume calculator
 num: 118
 shelf: science
+code: T118
 section: atmospheric-chemistry-and-air-quality
 title: "Gaussian plume calculator: smoke stack dispersion, ground-level concentration and plume rise"
 summary: "Estimate how a chimney plume spreads downwind: Pasquill stability class from the wind and sky, Briggs dispersion curves for open country or a city, buoyant plume rise, the highest ground-level concentration and where it lands, and a plan-view map."

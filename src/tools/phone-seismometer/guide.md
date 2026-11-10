@@ -2,6 +2,7 @@
 name: Phone seismometer
 num: 885
 shelf: science
+code: T620
 section: geophysics-and-seismology
 title: "Phone seismometer: record vibrations with your phone's accelerometer, PGA, spectrum and dominant frequency"
 summary: "Lay your phone on a table and record its accelerometer: a live trace of the three components, gravity removed by a highpass filter, peak ground acceleration (PGA), the amplitude spectrum and dominant frequency. Save recordings in this browser, download CSV or SAC. A toy for learning, not an earthquake detector."

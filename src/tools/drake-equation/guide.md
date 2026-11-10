@@ -2,6 +2,7 @@
 name: Drake equation calculator
 num: 353
 shelf: science
+code: T268
 section: astrobiology
 title: "Drake equation calculator: ranges for every factor and a Monte Carlo distribution of N"
 summary: "Play with the Drake equation, N = R* × fp × ne × fl × fi × fc × L. Give a low and a high value for each factor and see the whole spread of N from up to a million random draws: the median, the 90 % range, the chance N is below 1, and which factor drives the uncertainty. Starting ranges are made-up illustrations, not published estimates."

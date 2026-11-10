@@ -2,6 +2,7 @@
 name: Diffusion calculator
 num: 851
 shelf: science
+code: T587
 section: phase-and-thermal-behaviour
 title: "Diffusion calculator: Fick's second law, erf profiles, Arrhenius D, carburising case depth and time"
 summary: "Work out diffusion in solids with Fick's second law: the erfc profile under a constant surface concentration, a thin-film Gaussian source, or a diffusion couple. Get D from D₀ and Q at any temperature, the case depth for a target concentration, the time to reach a depth, the concentration profile plot, and an optional finite-difference check."

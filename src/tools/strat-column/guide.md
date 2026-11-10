@@ -2,6 +2,7 @@
 name: Stratigraphic column maker
 num: 876
 shelf: science
+code: T612
 section: sedimentology-and-stratigraphy
 title: "Stratigraphic column maker: draw a graphic log from a bed table, with lithology patterns and grain-size profile (free, SVG/PDF)"
 summary: "Type or open a bed table (thickness, lithology, grain size, contact, notes) and get a scaled stratigraphic column with fill patterns, a grain-size profile, contacts, notes, a scale bar and a legend, as SVG, PNG, PDF or CSV."

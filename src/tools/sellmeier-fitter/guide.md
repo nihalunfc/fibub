@@ -2,6 +2,7 @@
 name: Sellmeier fitter
 num: 935
 shelf: science
+code: T670
 section: optics-and-photonics
 title: "Sellmeier and Cauchy equation fitter: fit refractive index against wavelength, Abbe number and dispersion"
 summary: "Paste or open measured refractive index against wavelength and fit a Sellmeier (1 to 3 terms) or Cauchy equation: coefficients with standard errors, residuals, the index at any wavelength, Abbe number, group index and group-velocity dispersion, with every model compared."

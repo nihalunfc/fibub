@@ -2,6 +2,7 @@
 name: Allele frequency calculator
 num: 312
 shelf: science
+code: T227
 section: population-genetics
 title: "Allele frequency and Hardy-Weinberg calculator: genotype counts, chi-square and exact test, FIS, FST and FIT"
 summary: "Type or paste genotype counts (AA, AB, BB) for one or more populations. Get allele and genotype frequencies, expected Hardy-Weinberg counts, the chi-square test and the exact test, observed and expected heterozygosity, and F-statistics (FIS, FST, FIT) by Weir and Cockerham or Nei."

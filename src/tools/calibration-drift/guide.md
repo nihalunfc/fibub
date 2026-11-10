@@ -2,6 +2,7 @@
 name: Calibration drift
 num: 691
 shelf: science
+code: T487
 section: metrology-and-quality
 title: "Calibration drift"
 summary: "Paste or open an instrument's calibration history (date, as-found error, uncertainty) and get the drift rate by regression with its confidence interval, a prediction band, the date the error is expected to reach the tolerance limit, and a calibration interval that meets your reliability target, with optional guard banding."

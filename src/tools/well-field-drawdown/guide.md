@@ -2,6 +2,7 @@
 name: Well field drawdown
 num: 129
 shelf: science
+code: T129
 section: hydrogeology
 title: "Well field drawdown calculator: Theis superposition for several wells, boundaries by image wells, and capture zones"
 summary: "Add up the drawdown from several pumping or injection wells that start at different times, with an optional river or no-flow boundary. Draw a contour map at any day, follow one point over time, and find the capture zone of a well in regional flow."

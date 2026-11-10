@@ -2,6 +2,7 @@
 name: Irrigation scheduler
 num: 383
 shelf: science
+code: T271
 section: agronomy-and-soil-science
 title: "Irrigation scheduler: when and how much to irrigate from daily ET0, rain and soil water (FAO-56 water balance)"
 summary: "Paste or open daily reference evapotranspiration (ET0) and rain, describe the soil and crop, and follow the root-zone water balance day by day: when the crop reaches its readily available water, how much to put back, deep drainage after big rain, stress days, and the water to pump."

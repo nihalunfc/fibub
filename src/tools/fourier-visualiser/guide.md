@@ -2,6 +2,7 @@
 name: Fourier visualiser
 num: 549
 shelf: science
+code: T377
 section: applied-mathematics
 title: "Fourier visualiser"
 summary: "See how sines and cosines build a square, sawtooth or any typed wave, watch the Gibbs overshoot, draw shapes with epicycles, and take the FFT of a formula or your own data with Hann, Hamming, Blackman or flat-top windows. All in your browser."

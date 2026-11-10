@@ -2,6 +2,7 @@
 name: Gravitational wave chirp
 num: 969
 shelf: science
+code: T704
 section: relativity-and-gravitation
 title: "Gravitational wave chirp"
 summary: "Type two masses and a distance to see how a binary's gravitational waves chirp: the chirp mass, the time and number of cycles from any start frequency to the innermost stable orbit, the chirp rate, the orbit size, the face-on strain and characteristic strain, the frequency sweep and a sample waveform, with redshift and CSV downloads."

@@ -2,6 +2,7 @@
 name: Vector map viewer
 num: 893
 shelf: science
+code: T628
 section: remote-sensing-and-gis
 title: "Shapefile, GeoJSON and KML viewer: map, attribute table, geodesic area and perimeter, convert to GeoJSON, KML or CSV (WKT)"
 summary: "Open a zipped shapefile, GeoJSON, KML or KMZ, or a CSV with WKT, and see it on a map you can pan and zoom. Read the attribute table, get each feature's area, perimeter and length on the WGS 84 ellipsoid, and save the layer as GeoJSON, KML or CSV with WKT. Projected shapefiles (UTM, Lambert, Albers, Web Mercator) are converted to latitude and longitude. Files never leave your device."

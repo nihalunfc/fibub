@@ -2,6 +2,7 @@
 name: Recombinant insulin
 num: 1456
 shelf: learn
+code: L298
 section: school-biology
 title: "How recombinant human insulin is made: restriction enzymes, sticky ends, ligase, E. coli and selection"
 summary: "Step through making human insulin in bacteria: the A and B chains, their genes, cutting a plasmid with a restriction enzyme, matching sticky ends, DNA ligase, putting the plasmid into E. coli, picking recombinant colonies on ampicillin and tetracycline plates, growing them and joining the chains."

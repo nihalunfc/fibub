@@ -2,6 +2,7 @@
 name: Logic simplifier
 num: 558
 shelf: science
+code: T386
 section: discrete-maths-and-graph-theory
 title: "Logic simplifier"
 summary: "Type a Boolean expression or a list of minterms (with don't-cares) and get the truth table, the minimal sum of products and product of sums by Quine-McCluskey (up to 6 variables), a Karnaugh map with the groups circled (2 to 4 variables), the prime implicant chart and a logic gate diagram. Checked against sympy."

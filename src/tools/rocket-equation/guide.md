@@ -2,6 +2,7 @@
 name: Rocket equation
 num: 46
 shelf: science
+code: T46
 section: spaceflight-and-astrodynamics
 title: "Rocket equation"
 summary: "Enter each stage's dry mass, propellant and Isp and get the delta-v of every stage and the whole rocket, the payload fraction, and how it compares with the delta-v needed for orbit, the Moon or Mars."

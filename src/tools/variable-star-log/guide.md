@@ -2,6 +2,7 @@
 name: Variable star log
 num: 77
 shelf: science
+code: T77
 section: stellar-astrophysics
 title: "Variable star observation log: AAVSO visual and extended file maker with light curves"
 summary: "Log your variable star estimates or camera magnitudes, see each star's light curve, work out estimates by the step method, and export AAVSO Visual or Extended files ready to upload to WebObs."

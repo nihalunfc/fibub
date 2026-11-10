@@ -2,6 +2,7 @@
 name: Turing pattern simulator
 num: 352
 shelf: science
+code: T267
 section: developmental-biology
 title: "Turing pattern simulator: reaction-diffusion (Gray-Scott, Gierer-Meinhardt) spots and stripes, and a morphogen gradient French flag (free)"
 summary: "Watch spots and stripes form from noise with the Gray-Scott and Gierer-Meinhardt reaction-diffusion models, with presets, editable parameters, a seed, a Turing stability check and a PNG download. Plus a morphogen gradient from a source with diffusion and decay, and where French-flag thresholds fall. Runs in your browser."

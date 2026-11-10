@@ -2,6 +2,7 @@
 name: Magnitude converter
 num: 44
 shelf: science
+code: T44
 section: stellar-astrophysics
 title: "Magnitude converter"
 summary: "Convert between Vega and AB magnitudes, Jansky, f_ν, f_λ and photon flux in UBVRI, 2MASS, WISE and SDSS bands or at any wavelength, with the zero points and their sources shown."

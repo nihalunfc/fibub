@@ -2,6 +2,7 @@
 name: Hypothesis tests
 num: 560
 shelf: science
+code: T388
 section: statistics
 title: "Hypothesis tests"
 summary: "Answer three questions and the right test is picked for you, then run it on your pasted data: t tests (one-sample, Welch, Student, paired), ANOVA with Tukey HSD, chi-square, Fisher's exact, Mann-Whitney, Wilcoxon, Kruskal-Wallis and Shapiro-Wilk. Plain-English results, effect sizes and assumption checks. Matches scipy."

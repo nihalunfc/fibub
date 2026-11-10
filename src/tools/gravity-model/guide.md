@@ -2,6 +2,7 @@
 name: Gravity model
 num: 759
 shelf: science
+code: T527
 section: human-geography-and-urban-studies
 title: "Gravity model calculator: fit trade or migration flows by OLS and PPML (free)"
 summary: "Predict flows between places from their size and distance, or fit the gravity model to your own flows by log-linear least squares and Poisson pseudo-maximum likelihood (PPML). Distances from coordinates or your own."

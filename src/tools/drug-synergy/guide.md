@@ -2,6 +2,7 @@
 name: Drug synergy
 num: 472
 shelf: science
+code: T323
 section: pharmacology
 title: "Drug synergy"
 summary: "Paste a checkerboard dose matrix of % inhibition for two drugs. Get the excess over Bliss independence, the highest single agent and Loewe additivity as heatmaps, single-drug Hill fits, the Chou-Talalay combination index for every well and summary synergy scores."

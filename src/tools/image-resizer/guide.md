@@ -2,6 +2,7 @@
 name: Image resizer
 num: 2
 shelf: documents
+code: T2
 title: "Image resizer: crop, resize, convert and compress photos, free"
 summary: Crop, rotate and resize any photo or screenshot, convert between JPG, PNG and WebP, and shrink it under a size limit. Nothing is uploaded.
 status: live

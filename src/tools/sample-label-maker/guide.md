@@ -2,6 +2,7 @@
 name: Sample label maker
 num: 814
 shelf: science
+code: T550
 section: lab-management
 title: "Sample and tube label maker with QR codes and Code 128 barcodes (printable PDF)"
 summary: "Paste a sample list or open a CSV or Excel file and print tube and sample labels with a QR code, a Code 128 barcode or both, plus up to four text lines. Describe your label sheet (or use an example layout), skip labels already used, and download a vector PDF to print at actual size."

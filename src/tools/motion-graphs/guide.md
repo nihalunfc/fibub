@@ -2,6 +2,7 @@
 name: Motion graphs live
 num: 1021
 shelf: learn
+code: L8
 section: school-physics
 title: "Motion graphs: distance-time, velocity-time and acceleration-time graphs drawn live as a car moves"
 summary: "Drive a car along a road with a slider or pick a ready-made motion, and watch its x-t, v-t and a-t graphs draw themselves; read the slope (velocity, acceleration) and the shaded area (displacement), then try to match a target graph."

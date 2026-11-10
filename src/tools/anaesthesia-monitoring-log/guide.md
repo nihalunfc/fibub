@@ -2,6 +2,7 @@
 name: Anaesthesia monitoring log
 num: 400
 shelf: science
+code: T288
 section: veterinary-science
 title: "Anaesthesia monitoring log: a fillable and printable veterinary record sheet with vitals chart, for teaching"
 summary: "A record sheet for practising anaesthesia monitoring: heart rate, breathing rate, SpO₂, EtCO₂, temperature, blood pressure and depth notes every few minutes, with your own alert ranges, a chart of the vitals over time, and CSV or PDF downloads, including a blank sheet to print. No dose calculations. Nothing is uploaded or stored."

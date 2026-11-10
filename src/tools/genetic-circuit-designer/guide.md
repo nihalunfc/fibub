@@ -2,6 +2,7 @@
 name: Genetic circuit designer
 num: 980
 shelf: science
+code: T715
 section: synthetic-biology
 title: "Genetic circuit designer: draw SBOL Visual style diagrams of promoters, RBS, genes and terminators"
 summary: "Type a genetic design as a list of parts and regulatory interactions and get a clean SBOL Visual style diagram with repression and activation arcs, its transcription units, and checks for missing RBSs, promoters and terminators. Download as SVG or PNG."

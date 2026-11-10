@@ -2,6 +2,7 @@
 name: Crime rate calculator
 num: 767
 shelf: science
+code: T535
 section: criminology-and-legal-studies
 title: "Crime rate calculator per 1,000 or 100,000 with exact Poisson confidence intervals, rate ratios and age standardisation (free)"
 summary: "Work out crime rates per 1,000, 10,000 or 100,000 people with exact Poisson or Byar confidence intervals. Compare areas or years with rate ratios, an exact test and percent change, and age-standardise rates by the direct method with the Fay–Feuer interval. Runs in your browser."

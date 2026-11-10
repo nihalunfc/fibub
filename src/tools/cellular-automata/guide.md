@@ -2,6 +2,7 @@
 name: Cellular automata explorer
 num: 589
 shelf: science
+code: T417
 section: complex-systems-and-network-science
 title: "Cellular automata explorer: elementary rules 0 to 255, Conway's Game of Life and Life-like rules, with RLE import and export"
 summary: "Explore Wolfram's 256 elementary cellular automata as space-time pictures, and run Conway's Game of Life or any Life-like B/S rule on a grid you can draw on, with famous patterns, step and run, wrap or dead edges, cycle detection and RLE import and export."

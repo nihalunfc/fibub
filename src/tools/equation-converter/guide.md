@@ -2,6 +2,7 @@
 name: Equation converter
 num: 803
 shelf: science
+code: T539
 section: writing-and-publishing
 title: "Equation converter"
 summary: "Type or paste LaTeX maths and get MathML you can paste into Word, LibreOffice or a web page, with a live preview drawn from that MathML. Or paste MathML and get LaTeX back. Fractions, roots, sums, integrals, matrices, accents and Greek letters. Errors say what is wrong and where."

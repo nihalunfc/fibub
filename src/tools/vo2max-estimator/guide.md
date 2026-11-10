@@ -2,6 +2,7 @@
 name: VO2max estimator
 num: 487
 shelf: science
+code: T338
 section: exercise-and-sport-science
 title: "VO2max estimator"
 summary: "Estimate VO2max (aerobic fitness) from six field tests: Cooper 12-minute run, 1.5-mile run, Rockport 1-mile walk, 20 m shuttle run (beep test), Queens College step test, and the Uth heart rate ratio. Each formula cited, all tests compared side by side, with CSV."

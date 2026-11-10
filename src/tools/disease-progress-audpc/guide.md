@@ -2,6 +2,7 @@
 name: Disease progress (AUDPC)
 num: 330
 shelf: science
+code: T245
 section: mycology-and-plant-pathology
 title: "AUDPC calculator: area under the disease progress curve, AUDPS and apparent infection rate (logistic, Gompertz)"
 summary: "Paste disease severity over time for one or many plots or cultivars. Get the area under the disease progress curve (AUDPC), the area under the disease progress stairs (AUDPS), their relative values, and the apparent infection rate from monomolecular, logistic and Gompertz models, with plots and CSV."

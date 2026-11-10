@@ -2,6 +2,7 @@
 name: Kalman filter playground
 num: 639
 shelf: science
+code: T436
 section: control-and-robotics
 title: "Kalman filter playground: tune Q and R on a noisy sensor and see the estimate, innovations and covariance"
 summary: "Try a Kalman filter in your browser. Simulate a noisy sensor with a repeatable seed or paste your own measurements, pick a constant-level or constant-velocity model, move the Q and R sliders, and watch the estimate against the truth, the innovations, the uncertainty and the gain. Download every step as CSV."

@@ -2,6 +2,7 @@
 name: Arithmetic progression staircase
 num: 1162
 shelf: learn
+code: L79
 section: school-maths
 title: "Arithmetic progressions: nth term and sum of n terms with a staircase picture and Gauss's trick"
 summary: "Slide the first term a and the common difference d and watch the terms grow as a staircase of bars. The nth term and the sum of n terms are worked with your numbers, and Gauss's pairing trick is drawn as the staircase plus its upside-down copy."

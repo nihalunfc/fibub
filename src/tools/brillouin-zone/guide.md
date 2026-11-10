@@ -2,6 +2,7 @@
 name: Brillouin zone viewer
 num: 963
 shelf: science
+code: T698
 section: condensed-matter-physics
 title: "Brillouin zone viewer: reciprocal lattice, first Brillouin zone and high-symmetry points for 2D and 3D lattices"
 summary: "Pick a 2D or 3D lattice (square, hexagonal, fcc, bcc, hexagonal, tetragonal, orthorhombic or any triclinic cell) and see its reciprocal lattice vectors, the first Brillouin zone drawn and turnable in 3D, its faces, corners and volume, and the coordinates of the standard high-symmetry points such as Γ, X, L, K and W. Download the zone corners and points as CSV."

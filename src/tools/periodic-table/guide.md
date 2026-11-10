@@ -2,6 +2,7 @@
 name: Interactive periodic table
 num: 835
 shelf: science
+code: T571
 section: general-and-lab-chemistry
 title: "Periodic table: electron configurations, oxidation states, electronegativity and trends for all 118 elements"
 summary: "Tap any of the 118 elements for its atomic weight, group, period and block, its ground-state electron configuration in full and noble-gas notation (with the exceptions to the Aufbau rule), the configuration of any ion, common oxidation states, Pauling electronegativity and first ionisation energy. Colour the whole table by a property and chart the trend against atomic number. Download an element card or every element as a CSV."

@@ -2,6 +2,7 @@
 name: Field trial designer
 num: 385
 shelf: science
+code: T273
 section: agronomy-and-soil-science
 title: "Field trial designer: randomised complete block, Latin square and completely randomised layouts with a plot map"
 summary: "Lay out a field or glasshouse trial as a randomised complete block, Latin square or completely randomised design. Random but repeatable from a seed, checked, drawn as a plot map, and saved as a CSV field book. Nothing is uploaded."

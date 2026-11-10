@@ -2,6 +2,7 @@
 name: Inhibition zones
 num: 1455
 shelf: learn
+code: L297
 section: school-biology
 title: "Inhibition zones"
 summary: "Put antibiotic discs on a Petri dish of bacteria and see clear zones where growth is stopped. Change the amount in each disc and the agar depth, swap to a resistant strain, and see why the zone edge sits where the antibiotic falls to the germ's MIC. A teaching model."

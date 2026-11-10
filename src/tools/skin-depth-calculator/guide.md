@@ -2,6 +2,7 @@
 name: Skin depth calculator
 num: 912
 shelf: science
+code: T647
 section: electromagnetism
 title: "Skin depth calculator: AC resistance of wires, sheets and coax across frequency and material"
 summary: "Find how deep alternating current gets into a conductor at any frequency, and what that does to the resistance of a round wire (exact Bessel-function solution), a sheet or shield, and the conductor loss of a coax line. Rounded resistivities for common metals, all editable."

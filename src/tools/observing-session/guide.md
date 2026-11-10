@@ -2,6 +2,7 @@
 name: Observing session planner
 num: 18
 shelf: science
+code: T18
 section: observing
 title: "Observing session planner: tonight's sky, targets, alignment and log sheet on one page"
 summary: "Pick the astronomy tools you need for a night (sky tonight, target heights, polar alignment, your telescope, the month's events and a log sheet), see them together on one page, and download them as one image, PDF or Word file, or each on its own."

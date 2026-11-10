@@ -2,6 +2,7 @@
 name: Rubric grade calculator
 num: 766
 shelf: science
+code: T534
 section: education-research
 title: "Rubric grade calculator: weighted rubric scores, grade bands and class summary (free)"
 summary: "Build a marking rubric with your own criteria, levels and weights, mark each student by picking a level, and get weighted percentages, grades from your own cut-offs and a class summary. Download as CSV, PDF or Word, or print."

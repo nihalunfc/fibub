@@ -2,6 +2,7 @@
 name: FCS viewer
 num: 192
 shelf: science
+code: T192
 section: cell-biology-and-cell-culture
 title: "FCS viewer"
 summary: "Open an FCS 2.0, 3.0 or 3.1 file from any flow cytometer, compensate it with its own spillover matrix, plot any two channels on linear, log or arcsinh axes, and tap the plot to draw rectangle, polygon, quadrant and range gates inside each other. Counts and percentages update at once; download gate stats and gated events as CSV. The file stays in your browser."

@@ -2,6 +2,7 @@
 name: Taxonomy ladder
 num: 1389
 shelf: learn
+code: L244
 section: school-biology
 title: "Taxonomic hierarchy ladder: kingdom, phylum, class, order, family, genus and species, compared for two organisms"
 seoTitle: "Taxonomic hierarchy: kingdom to species ladder"

@@ -2,6 +2,7 @@
 name: Landfill gas estimator
 num: 154
 shelf: science
+code: T154
 section: environmental-engineering
 title: "Landfill gas generation estimator: methane and LFG flow by first-order decay, with collection, oxidation and CO2e"
 summary: "Estimate the methane and landfill gas a site makes each year from the tonnes of waste placed. Uses the first-order decay model with your decay rate k and methane potential L0. Shows the peak, the gas flow in m³/h, how much a collection system captures, the power it could make, and the methane and CO2-equivalent emitted."

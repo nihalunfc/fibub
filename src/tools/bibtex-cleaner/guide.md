@@ -2,6 +2,7 @@
 name: BibTeX cleaner
 num: 802
 shelf: science
+code: T538
 section: writing-and-publishing
 title: "BibTeX cleaner"
 summary: "Paste or open a .bib file and get it back clean: duplicates merged by DOI or title, journal macros such as \\apj and \\mnras written out, acronyms protected, page dashes, months and DOIs tidied, fields you don't want removed and entries sorted. Export the clean .bib, an APA-like, numbered or AAS-like reference list, RIS or CSL-JSON."

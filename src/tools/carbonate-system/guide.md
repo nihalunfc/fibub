@@ -2,6 +2,7 @@
 name: Carbonate system
 num: 868
 shelf: science
+code: T604
 section: chemical-and-biological-oceanography
 title: "Carbonate system"
 summary: "Give any two of total alkalinity, dissolved inorganic carbon, pH and pCO2 with salinity, temperature and pressure, and get the rest of the seawater carbonate system: every pH scale, pCO2, fCO2 and xCO2, carbonate ion, calcite and aragonite saturation, the Revelle factor and the alkalinity part by part, at the input conditions and any others, for one sample or a whole table."

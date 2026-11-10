@@ -2,6 +2,7 @@
 name: Breeding calendar
 num: 398
 shelf: science
+code: T286
 section: animal-science
 title: "Breeding calendar: due date, pregnancy check and next heat dates for cows, ewes, goats, sows, mares, dogs, cats and rabbits"
 summary: "Type a mating date and get the expected due date with its window, the day for a pregnancy check and the dates to watch for heat if she does not hold. Paste a list of matings for a whole herd or flock and download it as a table (CSV) or calendar events (.ics). Nothing is uploaded."

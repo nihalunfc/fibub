@@ -2,6 +2,7 @@
 name: Stomatal density counter
 num: 327
 shelf: science
+code: T242
 section: botany-and-plant-science
 title: "Stomatal density and stomatal index counter from a microscope photo"
 summary: "Tap the stomata (and epidermal cells) on a microscope photo of a leaf peel or nail-varnish impression, or let the page suggest them, and get stomata per mm² and the stomatal index. Field of view from a scale line, the field number or typed. The photo stays in your browser."

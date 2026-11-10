@@ -2,6 +2,7 @@
 name: Training load
 num: 488
 shelf: science
+code: T339
 section: exercise-and-sport-science
 title: "Training load"
 summary: "Log training sessions and get session RPE load, Banister and Edwards TRIMP, the acute:chronic workload ratio (rolling 7/28 days and EWMA), and weekly monotony and strain, with charts. Import and export CSV; kept only in your browser if you choose."

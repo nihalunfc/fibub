@@ -2,6 +2,7 @@
 name: Coin counter
 num: 1610
 shelf: collecting
+code: T730
 section: coins-notes
 title: "Coin counter: count coins by weight or by hand and add up the value"
 seoTitle: "Count coins by weight calculator"

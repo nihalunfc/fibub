@@ -2,6 +2,7 @@
 name: Eye defects
 num: 1005
 shelf: learn
+code: L5
 section: school-physics
 title: "Eye defects"
 summary: "See how the eye lens changes its power to focus near and far, what goes wrong in short sight, long sight and presbyopia, and which lens fixes each one, with the power in dioptres worked out."

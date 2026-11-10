@@ -2,6 +2,7 @@
 name: Le Chatelier sandbox
 num: 1087
 shelf: learn
+code: L42
 section: school-chemistry
 title: "Le Chatelier's principle simulator: add, remove, squeeze or heat an equilibrium, Q vs K and ICE table"
 summary: "A box of gas molecules at equilibrium: add or remove a gas, squeeze or expand the box, heat or cool it, or add a catalyst, and watch the molecules shift. Q against K shows which way it has to go, and an ICE table gives the numbers. Ends with fresh practice questions."

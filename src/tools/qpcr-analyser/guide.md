@@ -2,6 +2,7 @@
 name: qPCR analyser
 num: 165
 shelf: science
+code: T165
 section: molecular-biology
 title: "qPCR analyser: ΔΔCq fold change, efficiency-corrected (Pfaffl) expression with several reference genes, and standard curves"
 summary: "Paste sample, gene and Cq for every well. Get fold changes against a control sample with 2^−ΔΔCq or efficiency correction, normalised to one or more reference genes, with replicate checks and a bar chart. Fit standard curves for slope, efficiency and R², and read unknown quantities off them."

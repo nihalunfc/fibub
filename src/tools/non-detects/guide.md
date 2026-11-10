@@ -2,6 +2,7 @@
 name: Non-detect statistics
 num: 153
 shelf: science
+code: T153
 section: environmental-monitoring
 title: "Non-detect statistics: mean, median and percentiles of lab results with \"<DL\" values (Kaplan–Meier, ROS, MLE)"
 summary: "Work out the mean, median, upper percentiles and an upper confidence limit for lab results that include non-detects (\"<1\", \"ND\"), even with several detection limits. Uses Kaplan–Meier, robust ROS and maximum likelihood instead of substituting half the limit, compares every method side by side, and counts results above a guideline."

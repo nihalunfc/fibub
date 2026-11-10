@@ -2,6 +2,7 @@
 name: Photoelectric effect lab
 num: 1067
 shelf: learn
+code: L31
 section: school-physics
 title: "Photoelectric effect lab: frequency, brightness and voltage, current against voltage, stopping potential, find h and the work function"
 summary: "Shine light on caesium, sodium, zinc and other metals. Change the frequency, brightness and collector voltage, watch the current, and record the stopping potential at several frequencies to measure Planck's constant and the work function from a straight line."

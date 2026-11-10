@@ -2,6 +2,7 @@
 name: Mid-point theorem
 num: 1288
 shelf: learn
+code: L169
 section: school-maths
 title: "Mid-point theorem: drag a triangle and see the line joining two mid-points stay parallel and half as long"
 summary: "Drag the corners of any triangle on a centimetre grid: the segment joining the mid-points of two sides stays parallel to the third side and exactly half its length. See the converse, the proof step by step, and Varignon's parallelogram inside any quadrilateral. Ends with fresh practice questions."

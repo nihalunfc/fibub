@@ -2,6 +2,7 @@
 name: Circle sectors
 num: 1161
 shelf: learn
+code: L78
 section: school-maths
 title: "Circle sectors"
 summary: "Drag the edge of a sector to change its angle and get the sector area, arc length, perimeter and segment area with π = 22/7, 3.14 or exact. Drag a point outside a circle to see its two equal tangents meet the radii at right angles."

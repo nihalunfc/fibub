@@ -2,6 +2,7 @@
 name: Pond oxygen
 num: 402
 shelf: science
+code: T290
 section: aquaculture
 title: "Pond oxygen"
 summary: "Work out dissolved oxygen saturation from temperature, salinity and altitude, then follow a fish pond's oxygen from dusk to dawn with your own fish, plankton and sediment rates and surface reaeration, and see how much aeration keeps the DO above your chosen minimum. Nothing is uploaded."

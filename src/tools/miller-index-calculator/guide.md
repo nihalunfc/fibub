@@ -2,6 +2,7 @@
 name: Miller index calculator
 num: 844
 shelf: science
+code: T580
 section: crystallography
 title: "Miller index calculator: d-spacing in any crystal system, angle between planes, zone axis and hkil conversion"
 summary: "Work out the spacing of any (hkl) plane in cubic, tetragonal, orthorhombic, hexagonal, trigonal, monoclinic or triclinic cells, the angle between two planes, their zone axis and the 2θ of each, convert to and from four-index Miller-Bravais notation, list reflections, and see the planes drawn in the unit cell."

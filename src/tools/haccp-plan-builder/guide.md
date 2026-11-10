@@ -2,6 +2,7 @@
 name: HACCP plan builder
 num: 396
 shelf: science
+code: T284
 section: food-science
 title: "HACCP plan builder: free printable template with hazard analysis, CCP decision questions, critical limits and records"
 summary: "Fill in a HACCP plan step by step: product description, process flow, biological, chemical and physical hazards at each step, the CCP decision questions, then critical limits, monitoring, corrective actions, verification and records for each CCP. Download it as PDF, Word or CSV. Nothing is uploaded."

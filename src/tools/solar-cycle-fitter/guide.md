@@ -2,6 +2,7 @@
 name: Solar cycle fitter
 num: 215
 shelf: science
+code: T214
 section: solar-physics
 title: "Solar cycle fitter: 13-month smoothing, cycle minima and maxima, shape fits and a forecast from your own sunspot numbers"
 summary: "Paste or open monthly sunspot numbers and get the 13-month running mean, every cycle's minimum and maximum, its length, rise time and size, a shape function fitted to each cycle by least squares, and the current cycle carried on with an uncertainty band. CSV and report downloads; your numbers stay in your browser."

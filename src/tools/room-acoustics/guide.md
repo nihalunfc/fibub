@@ -2,6 +2,7 @@
 name: Room acoustics calculator
 num: 938
 shelf: science
+code: T673
 section: acoustics-and-wave-physics
 title: "Room acoustics calculator: room modes (axial, tangential, oblique) and reverberation time RT60 by Sabine and Eyring"
 summary: "Give a rectangular room's size and what its floor, ceiling and walls are made of, and get every room mode up to the frequency you choose (axial, tangential and oblique, with the boomy clusters flagged), plus the reverberation time in six octave bands by Sabine's and Eyring's formulas, with air absorption, the Schroeder frequency and the critical distance."

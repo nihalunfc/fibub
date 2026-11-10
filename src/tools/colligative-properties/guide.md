@@ -2,6 +2,7 @@
 name: Colligative properties calculator
 num: 88
 shelf: science
+code: T88
 section: physical-chemistry
 title: "Colligative properties calculator: freezing point depression, boiling point elevation, osmotic pressure and molar mass"
 summary: "Freezing point, boiling point, vapour pressure and osmotic pressure of a solution in water or 10 other solvents, with the van 't Hoff factor, and the molar mass of an unknown from a measured freezing point drop, boiling point rise or osmotic pressure."

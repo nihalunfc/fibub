@@ -2,6 +2,7 @@
 name: Link budget calculator
 num: 59
 shelf: science
+code: T59
 section: spaceflight-and-astrodynamics
 title: "Link budget calculator: CubeSat and radio link margin, EIRP, path loss, C/N0 and Eb/N0"
 summary: "Work out whether a radio link will close: a CubeSat downlink, a ground station or a point-to-point link. Gives EIRP, free-space loss, G/T, C/N0, Eb/N0, the margin, the fastest data rate and the margin through a satellite pass."

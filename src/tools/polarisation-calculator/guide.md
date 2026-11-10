@@ -2,6 +2,7 @@
 name: Polarisation calculator
 num: 936
 shelf: science
+code: T671
 section: optics-and-photonics
 title: "Polarisation calculator: Jones and Mueller calculus, waveplates, polarisers and the Poincaré sphere"
 summary: "Send polarised, partly polarised or unpolarised light through polarisers, quarter- and half-wave plates, any retarder, rotators, partial polarisers and depolarisers, and see the output intensity, Stokes vector, Jones vector, ellipse and the path on the Poincaré sphere."

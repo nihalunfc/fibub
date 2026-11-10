@@ -2,6 +2,7 @@
 name: 18-electron rule
 num: 107
 shelf: science
+code: T107
 section: inorganic-and-coordination-chemistry
 title: "18-electron rule"
 summary: "Pick the metal, the charge and the ligands (CO, phosphines, halides, Cp, arenes, allyl, hydride, oxo and more) to get the valence electron count, the metal's oxidation state, its dⁿ count and the L/X bond classification, with both the covalent and ionic counts and 15 textbook examples."

@@ -2,6 +2,7 @@
 name: Orbit transfer calculator
 num: 47
 shelf: science
+code: T47
 section: spaceflight-and-astrodynamics
 title: "Hohmann transfer calculator: delta-v, transfer time and launch windows"
 summary: "Delta-v, burn by burn, and transfer time between two circular orbits around Earth, the Moon, Mars, Jupiter or the Sun, with the target's lead angle, how often launch windows come round, and a bi-elliptic comparison."

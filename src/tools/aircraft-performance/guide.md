@@ -2,6 +2,7 @@
 name: Aircraft performance calculator
 num: 668
 shelf: science
+code: T465
 section: aerospace-engineering
 title: "Aircraft performance calculator: drag polar, best L/D, stall speed, Breguet range and endurance, take-off roll"
 summary: "From the mass, wing, drag polar (CD0 and Oswald e) and engine, get the best lift-to-drag ratio, stall speed, the speeds for least drag and least power, Breguet range and endurance for jets and propeller aircraft, and a take-off ground roll, with drag and power curves."

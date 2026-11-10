@@ -2,6 +2,7 @@
 name: XRD peak calculator
 num: 842
 shelf: science
+code: T578
 section: crystallography
 title: "XRD calculator: Bragg's law, Scherrer crystallite size, Williamson-Hall plot and cubic peak indexing"
 summary: "Turn powder X-ray diffraction peaks into d-spacings, crystallite sizes (Scherrer, with the instrument's width taken away), size and microstrain from a Williamson-Hall plot, and a cubic lattice (simple, body-centred, face-centred or diamond) with its lattice parameter. Type peaks or open a 2θ scan and let the page find and fit them."

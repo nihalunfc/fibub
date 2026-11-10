@@ -2,6 +2,7 @@
 name: Dose-response fitter
 num: 29
 shelf: science
+code: T29
 section: pharmacology
 title: "Dose-response fitter"
 summary: "Fit a four-parameter logistic curve to dose-response or ELISA data. Get the EC50 or IC50 with its 95 % interval and the Hill slope, and read unknown samples off the curve."

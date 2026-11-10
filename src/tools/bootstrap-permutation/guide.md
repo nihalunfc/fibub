@@ -2,6 +2,7 @@
 name: Bootstrap test
 num: 562
 shelf: science
+code: T390
 section: statistics
 title: "Bootstrap test"
 summary: "Bootstrap confidence intervals (percentile and BCa) for a mean, median, standard deviation, correlation or difference, and permutation tests for two groups, paired data and correlations. Seeded so results repeat, with histograms. Matches scipy."

@@ -2,6 +2,7 @@
 name: Calibration frames
 num: 829
 shelf: science
+code: T565
 section: astrophotography
 title: "Calibration frames"
 summary: "Open bias, dark, flat and light frames (FITS, PNG or JPEG) or load a made-up demo set, combine each kind into a master by mean, median or sigma-clipped mean, and calibrate the lights as (L − D) / normalised (F − B). See the images, histograms and statistics before and after, and download the masters and calibrated lights as FITS."

@@ -2,6 +2,7 @@
 name: FASTQ inspector
 num: 171
 shelf: science
+code: T171
 section: genomics-and-bioinformatics
 title: "FASTQ inspector"
 summary: "Open a FASTQ or FASTA file of any size (.gz too) and see read counts, lengths and N50, GC content per read, quality by position as boxes, reads by mean quality, base composition along the read and the most repeated sequences. The file is read on your device and never uploaded."

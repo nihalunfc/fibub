@@ -2,6 +2,7 @@
 name: Static charge
 num: 1483
 shelf: learn
+code: L314
 section: school-physics
 title: "Static charge: rub a balloon on wool and see electrons move, charges attract and repel"
 summary: "Rub a balloon on wool to see electrons move and charge build up. Hang two balloons to see like charges repel and unlike charges attract, and watch bits of paper jump up. A teaching model with whole-number charges."

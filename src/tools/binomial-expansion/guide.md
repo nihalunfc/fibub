@@ -2,6 +2,7 @@
 name: Binomial expansion
 num: 1192
 shelf: learn
+code: L95
 section: school-maths
 title: "Binomial expansion"
 summary: "Expand (ax + b)ⁿ with exact coefficients, read them off Pascal's triangle, find the general term T(r+1) and the middle term(s), and drop balls through a Galton board to watch the same numbers turn into chances."

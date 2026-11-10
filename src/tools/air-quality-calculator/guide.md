@@ -2,6 +2,7 @@
 name: Air quality calculator
 num: 116
 shelf: science
+code: T116
 section: atmospheric-chemistry-and-air-quality
 title: "Air quality calculator: ppm to µg/m³ converter, US AQI, India AQI and Canada AQHI"
 summary: "Convert gas concentrations between ppm, ppb, µg/m³ and mg/m³ at any temperature and pressure, and work out the US Air Quality Index (with the 2024 PM2.5 breakpoints), India's National AQI and Canada's Air Quality Health Index from your own readings."

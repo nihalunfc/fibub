@@ -2,6 +2,7 @@
 name: IPA keyboard
 num: 732
 shelf: science
+code: T500
 section: linguistics-and-phonetics
 title: "IPA keyboard online: type phonetic symbols by clicking the IPA chart or with X-SAMPA (free)"
 summary: "Click consonants, vowels, diacritics, stress marks and tones laid out like the IPA chart, or type X-SAMPA and get IPA. Copy the transcription and see the name and Unicode code point of every symbol in it."

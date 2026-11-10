@@ -2,6 +2,7 @@
 name: Dark-sky calendar
 num: 45
 shelf: science
+code: T45
 section: observing
 title: "Dark-sky calendar: Moon-free dark hours for every night of the year"
 summary: "See a whole year of nights at once: twilight, true darkness and moonlight for your place, the Moon-free dark hours in each month, and the best nights for deep-sky observing and imaging."

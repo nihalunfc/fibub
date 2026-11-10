@@ -2,6 +2,7 @@
 name: Unit circle
 num: 1183
 shelf: learn
+code: L86
 section: school-maths
 title: "Unit circle"
 summary: "Drag a point round the unit circle and watch sin, cos and tan drawn as waves. Angles in degrees and radians, exact values at 30°, 45° and 60°, the ASTC quadrant signs, sliders for y = a sin(bx + c) + d, and the inverse trig functions as the mirror image of the principal branch."

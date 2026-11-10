@@ -2,6 +2,7 @@
 name: "Manuscript image annotator"
 num: 416
 shelf: science
+code: T304
 section: digital-humanities
 title: "Manuscript image annotator: draw regions, transcribe and export W3C Web Annotations (IIIF-ready)"
 summary: "Open photos or scans of a manuscript from your device, draw rectangles and polygons on lines, words or damage, type a transcription and a note for each, and export them as W3C Web Annotation JSON or CSV. Reads a local IIIF manifest. Nothing is uploaded."

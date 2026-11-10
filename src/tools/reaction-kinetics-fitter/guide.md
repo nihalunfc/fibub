@@ -2,6 +2,7 @@
 name: Reaction kinetics fitter
 num: 81
 shelf: science
+code: T81
 section: physical-chemistry
 title: "Reaction kinetics fitter: rate order, rate constant, half-life and Arrhenius activation energy"
 summary: "Paste concentration against time to find the reaction order, the rate constant with its uncertainty and the half-life; paste k at several temperatures for the activation energy, A, ΔH‡ and ΔS‡."

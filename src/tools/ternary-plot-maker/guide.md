@@ -2,6 +2,7 @@
 name: Ternary plot
 num: 124
 shelf: science
+code: T124
 section: mineralogy-and-petrology
 title: "Ternary plot"
 summary: "Plot any three-part composition (QFL sandstones, soil texture, mineral end-members, alloys) on a ternary diagram with groups, grid lines and labels, and draw normalised multi-element spider diagrams with Eu/Eu* and (La/Yb)N. Download as PNG, PDF or Word."

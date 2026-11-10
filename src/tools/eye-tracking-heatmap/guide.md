@@ -2,6 +2,7 @@
 name: Eye-tracking heat map
 num: 728
 shelf: science
+code: T496
 section: cognitive-science
 title: "Eye-tracking heat map and fixation finder: I-VT, I-DT, scanpath and areas of interest (free, in your browser)"
 summary: "Open a gaze export (time, x, y), find fixations with the velocity (I-VT) or dispersion (I-DT) method, and see a heat map and scanpath over your own stimulus picture. Draw areas of interest to get dwell time, time to first fixation, fixation counts and visits. Download CSV and PNG. Nothing is uploaded."

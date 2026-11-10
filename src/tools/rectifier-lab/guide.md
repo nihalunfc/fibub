@@ -2,6 +2,7 @@
 name: Rectifier lab
 num: 1431
 shelf: learn
+code: L280
 section: school-physics
 title: "Rectifier lab: half-wave, full-wave and bridge rectifiers with a smoothing capacitor and ripple"
 summary: "Turn AC into DC with diodes. See which diodes conduct in each half cycle of a half-wave, centre-tap full-wave or bridge rectifier, watch the output wave, then add a smoothing capacitor and see the ripple shrink, with the DC output, ripple frequency and ripple factor."

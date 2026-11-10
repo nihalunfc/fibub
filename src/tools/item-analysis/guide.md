@@ -2,6 +2,7 @@
 name: Item analysis
 num: 764
 shelf: science
+code: T532
 section: education-research
 title: "Test item analysis calculator: difficulty, discrimination index, point-biserial, KR-20, distractors (free)"
 summary: "Analyse a multiple-choice or right/wrong test in your browser: item difficulty, the upper-lower discrimination index, point-biserial and corrected item-total correlations, KR-20 reliability and a distractor table for every question."

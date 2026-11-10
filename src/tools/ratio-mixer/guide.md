@@ -2,6 +2,7 @@
 name: Ratio mixer
 num: 1241
 shelf: learn
+code: L126
 section: school-maths
 title: "Ratio mixer: mix paint or lemonade to see equal ratios, simplest form, comparing ratios and sharing in a ratio"
 summary: "Add parts of blue and yellow paint (or syrup and water) to two jars and watch the colours. Equal ratios give exactly the same colour; cross-multiplying tells you which mix is bluer or stronger. Scale a mix up to any batch size and practise with fresh questions."

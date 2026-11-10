@@ -2,6 +2,7 @@
 name: Percentage bar
 num: 1242
 shelf: learn
+code: L127
 section: school-maths
 title: "Percentage bar: drag to find any percent of a number, and see why up 20% then down 20% is not the same"
 summary: "A bar stands for the whole, split into ten 10% blocks. Drag along it to see 35% of 240 (or any percent of any number) with every step. Then chain two percentage changes and see why going up and down by the same percent never gets you back to the start."

@@ -2,6 +2,7 @@
 name: Tanabe–Sugano diagram calculator
 num: 837
 shelf: science
+code: T573
 section: inorganic-and-coordination-chemistry
 title: "Tanabe–Sugano diagram calculator: d² to d⁸ octahedral energy levels, spin crossover and Δ and B from a spectrum"
 summary: "Draws the Tanabe–Sugano diagram for any d² to d⁸ octahedral ion at the C/B ratio you choose, worked out from the electron repulsion and ligand field rather than read off a printed chart. Tap to read every state's energy, see where high spin turns to low spin, list the free-ion terms, and get Δ and the Racah B from two absorption bands of a d³ or d⁸ complex."

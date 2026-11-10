@@ -2,6 +2,7 @@
 name: Spectrometer calibration
 num: 937
 shelf: science
+code: T672
 section: optics-and-photonics
 title: "Spectrometer wavelength calibration: turn a phone photo of a spectrum into wavelengths with known lines"
 summary: "Open a photo from a phone or webcam spectrometer, take a brightness profile across the spectrum, find the bright lines, match them to well-known mercury, neon, hydrogen or sodium lines, and fit a pixel-to-wavelength polynomial to get a calibrated spectrum."

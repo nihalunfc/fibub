@@ -2,6 +2,7 @@
 name: McCabe-Thiele calculator
 num: 119
 shelf: science
+code: T119
 section: chemical-engineering
 title: "McCabe-Thiele calculator: distillation stages, minimum reflux, q-line and feed stage"
 summary: "Step off the theoretical stages of a binary distillation column on a McCabe-Thiele diagram, from a relative volatility or your own x-y data. Gives minimum reflux (including tangent pinches), Fenske minimum stages, the best feed stage, real trays and column flows."

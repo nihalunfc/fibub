@@ -2,6 +2,7 @@
 name: Band combiner
 num: 895
 shelf: science
+code: T630
 section: remote-sensing-and-gis
 title: "Band combiner: true and false colour composites from satellite bands, with contrast stretch, in the browser"
 summary: "Open a multiband GeoTIFF or one file per band, put any three bands on red, green and blue (true colour, colour infrared, SWIR and more), stretch each band (min-max, percentile clip, standard deviation, histogram equalisation or your own limits, plus gamma), read any pixel's values and save the composite as a full-size PNG. Files never leave your device."

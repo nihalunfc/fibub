@@ -2,6 +2,7 @@
 name: Sample space builder
 num: 1165
 shelf: learn
+code: L82
 section: school-maths
 title: "Sample space builder: probability with dice, coins and cards"
 summary: "See every outcome of two dice, a few coins or a deck of cards, shade an event and get its probability as a fraction. Then run the experiment thousands of times and watch the share of hits settle near it."

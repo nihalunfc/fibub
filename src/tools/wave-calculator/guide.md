@@ -2,6 +2,7 @@
 name: Water wave calculator
 num: 139
 shelf: science
+code: T139
 section: physical-oceanography
 title: "Wave calculator: wavelength from period and depth, wave speed, power, shoaling, refraction and breaking depth"
 summary: "From a wave's period, height and the water depth, get the wavelength (solving the dispersion relation exactly), phase and group speed, energy and power, orbital velocity at the bed, then follow the wave into shallow water with shoaling and refraction to find where and how high it breaks, and the breaker type."

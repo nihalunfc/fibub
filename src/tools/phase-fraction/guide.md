@@ -2,6 +2,7 @@
 name: Phase fraction
 num: 855
 shelf: science
+code: T591
 section: microscopy-and-image-analysis
 title: "Phase fraction"
 summary: "Open a micrograph, split it into up to 4 phases by grey level (automatic Otsu or your own thresholds) or by colours you pick, and get each phase's area fraction and area, porosity, a point-count standard error and a field-to-field confidence interval, with a coloured overlay to check the split. The image stays in your browser."

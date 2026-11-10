@@ -2,6 +2,7 @@
 name: Hückel MO calculator
 num: 92
 shelf: science
+code: T92
 section: computational-chemistry
 title: "Hückel MO calculator: π orbital energies, coefficients, delocalisation energy and bond orders"
 summary: "Hückel molecular orbitals for any conjugated π system, from 17 presets (butadiene, benzene, naphthalene, pyridine and more) or your own atoms, bonds, heteroatoms and charge: energy diagram, coefficients, π energy, delocalisation energy, charges, bond orders and free valence."

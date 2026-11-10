@@ -2,6 +2,7 @@
 name: Sky colour
 num: 1007
 shelf: learn
+code: L7
 section: school-physics
 title: "Sky colour"
 summary: "Move the sun from overhead to the horizon and see why the sky is blue, why the sun turns red at sunset, why clouds are white and why the Moon's sky is black, with the scattering law worked out."

@@ -2,6 +2,7 @@
 name: Yield trial ANOVA
 num: 386
 shelf: science
+code: T274
 section: agronomy-and-soil-science
 title: "Yield trial ANOVA"
 summary: "Paste or open your plot yields and get the analysis of variance for a randomised complete block, completely randomised or Latin square trial: F tests with p-values, CV %, standard errors, the LSD at 5 % or 1 % and letters that group the means. Nothing is uploaded."

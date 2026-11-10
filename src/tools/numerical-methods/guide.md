@@ -2,6 +2,7 @@
 name: Numerical methods teacher
 num: 550
 shelf: science
+code: T378
 section: applied-mathematics
 title: "Numerical methods calculator: bisection, Newton, secant, Simpson, Gauss, Romberg, Lagrange and spline interpolation, with tables"
 summary: "See numerical methods work step by step: root finding by bisection, false position, Newton and secant with iteration tables; integration by the trapezoid, Simpson, Gauss-Legendre and Romberg rules with error plots; and Lagrange, Newton divided-difference and cubic spline interpolation. Checked against scipy."

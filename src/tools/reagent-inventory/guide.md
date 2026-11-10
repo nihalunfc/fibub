@@ -2,6 +2,7 @@
 name: Reagent inventory
 num: 811
 shelf: science
+code: T547
 section: lab-management
 title: "Reagent inventory for the lab: expiry dates, low stock, lots and locations (CSV import and printable list)"
 summary: "Keep a list of your lab's reagents with location, amount, lot, opened date and expiry. See what has expired, what expires soon and what is running low, search and filter, import or export a spreadsheet, and print the list. The list stays in your browser."

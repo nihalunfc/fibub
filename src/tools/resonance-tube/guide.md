@@ -2,6 +2,7 @@
 name: Resonance tube practical
 num: 1355
 shelf: learn
+code: L217
 section: school-physics
 title: "Resonance tube virtual practical: find the speed of sound in air and the end correction with a tuning fork and a water column"
 summary: "Hold a tuning fork over a tube and move the water level until the air column booms. Record the first and second resonance lengths and the tool works out the wavelength, the speed of sound and the end correction, as in the school practical, with the loudness you can see and hear."

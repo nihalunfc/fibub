@@ -2,6 +2,7 @@
 name: Galvanic cell builder
 num: 1089
 shelf: learn
+code: L44
 section: school-chemistry
 title: "Galvanic cell simulator: Daniell cell, E°cell, electron and ion flow, ΔG = −nFE and the Nernst equation"
 summary: "Pick two half-cells and see the cell work: which electrode is the anode, electrons moving through the wire, ions moving in the salt bridge and the voltmeter reading. E°cell, the cell reaction and notation, ΔG° = −nFE° and K, and sliders for the Nernst equation. Ends with fresh practice questions."

@@ -2,6 +2,7 @@
 name: Light exposure
 num: 419
 shelf: science
+code: T307
 section: heritage-conservation
 title: "Light exposure"
 summary: "Work out the lux-hours an object gets from lux × hours a day × days, how much of the yearly budget your institution sets that uses, how long or how brightly it can be shown, the UV it receives from the light's µW/lm, and a plan of display periods with the budget left. Nothing is uploaded."

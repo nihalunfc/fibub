@@ -2,6 +2,7 @@
 name: Wavelet transform viewer
 num: 631
 shelf: science
+code: T428
 section: signal-processing
 title: "Wavelet transform online: Morlet scalogram (CWT) and Haar or Daubechies decomposition (DWT)"
 summary: "Paste or open a signal and see which frequencies are present at each moment with a continuous Morlet wavelet scalogram, and split it into detail and approximation levels with a Haar or Daubechies discrete wavelet transform. Matches PyWavelets; CSV downloads; nothing is uploaded."

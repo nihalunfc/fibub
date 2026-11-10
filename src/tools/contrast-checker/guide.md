@@ -2,6 +2,7 @@
 name: Contrast checker
 num: 498
 shelf: science
+code: T349
 section: audiology-and-vision-science
 title: "Contrast checker"
 summary: "Check the WCAG 2.x contrast ratio of a text and background colour, see AA and AAA results for normal and large text and for buttons and icons, get the nearest colours that pass, preview them with colour vision deficiencies, and score the readability of your text."

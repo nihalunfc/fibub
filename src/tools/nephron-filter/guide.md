@@ -2,6 +2,7 @@
 name: Kidney nephron filter
 num: 1305
 shelf: learn
+code: L185
 section: school-biology
 title: "Kidney nephron filter: filtration, reabsorption and what ends up in urine"
 summary: "Tap the parts of a nephron to see how the kidney filters blood and takes back what the body needs. Change how much you drink and your blood glucose, and see a day's balance of water, glucose, urea and salt: filtered, taken back, and left in the urine. For Class 10 and 11."

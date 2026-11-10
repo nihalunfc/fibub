@@ -2,6 +2,7 @@
 name: Decay heat estimator
 num: 679
 shelf: science
+code: T476
 section: nuclear-engineering
 title: "Decay heat calculator: reactor heat after shutdown with the Way-Wigner formula, energy released and time to cool"
 summary: "Estimate the heat a reactor core still makes after shutdown with the Way-Wigner approximation: a table from seconds to a year, energy released over any interval, and when the heat falls below a level. An approximation, for study. Nothing is uploaded."

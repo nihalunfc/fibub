@@ -2,6 +2,7 @@
 name: Equations of motion
 num: 1022
 shelf: learn
+code: L9
 section: school-physics
 title: "Equations of motion"
 summary: "Drag a velocity-time graph and watch the rectangle and triangle under it add up to the displacement; see v = u + at, s = ut + ½at² and v² = u² + 2as with your numbers; solve any problem from three known values; and find a car's stopping distance."

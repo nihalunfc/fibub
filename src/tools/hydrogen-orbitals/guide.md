@@ -2,6 +2,7 @@
 name: Hydrogen orbital viewer
 num: 925
 shelf: science
+code: T660
 section: quantum-mechanics
 title: "Hydrogen orbital viewer: probability clouds, slices and radial plots for any n, l, m"
 summary: "See any hydrogen-like orbital up to n = 7, real (pₓ, d_z², f_xyz ...) or complex: a slice of ψ coloured by sign, a turnable cloud of dots drawn from |ψ|², and the radial function and radial probability, with the energy, mean and most probable radius, nodes and the radius holding 90 % of the electron."

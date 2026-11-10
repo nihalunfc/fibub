@@ -2,6 +2,7 @@
 name: Dimensional analysis checker
 num: 978
 shelf: science
+code: T713
 section: general-physics-lab-helpers
 title: "Dimensional analysis checker: does your equation balance in SI units?"
 summary: "Type an equation and the unit of each symbol, and see whether both sides have the same SI dimensions, which added term or function argument breaks it, and what any unit is in SI base units (kg, m, s, A, K, mol, cd)."

@@ -2,6 +2,7 @@
 name: Camera-trap tagger
 num: 856
 shelf: science
+code: T592
 section: conservation-science
 title: "Camera trap photo tagger: species, counts and behaviour by hotkey, independent detections, RAI and activity by hour"
 summary: "Open a folder of camera-trap photos (never uploaded). The page reads each photo's EXIF time, groups bursts into events, and lets you tag species, count and behaviour with one key. It works out independent detections, detections per 100 trap-nights (RAI), naive occupancy and activity by hour, and exports CSV. Tags can be kept in this browser."

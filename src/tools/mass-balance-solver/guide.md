@@ -2,6 +2,7 @@
 name: Mass balance
 num: 664
 shelf: science
+code: T461
 section: chemical-engineering
 title: "Mass balance"
 summary: "Describe a process flowsheet in a few lines (mixers, splitters, separators with split fractions, reactors with a conversion) and its feeds, and get every stream's component flows, a degrees-of-freedom check, a stream table and, with heat capacities, the temperatures and heat duties. Recycle loops are solved directly as one linear system."

@@ -2,6 +2,7 @@
 name: Field form builder
 num: 827
 shelf: science
+code: T563
 section: citizen-science
 title: "Field form builder"
 summary: "Design a field data form with text, numbers with an allowed range, choices, dates and times, photo notes and a GPS location. Fill in records outdoors, even with no signal once the page is open; records stay on your device, kept in this browser only if you tick the box. Export them as CSV or GeoJSON, and share the form as a small file."

@@ -2,6 +2,7 @@
 name: Balance equations
 num: 1250
 shelf: learn
+code: L135
 section: school-maths
 title: "Balance equations"
 summary: "Put x boxes and 1-weights on a two-pan balance, then solve the equation one move at a time: take the same from both pans or share both into equal groups until x is alone. Slide a guess to see the beam tip."

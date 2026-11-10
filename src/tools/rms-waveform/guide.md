@@ -2,6 +2,7 @@
 name: RMS waveform
 num: 1416
 shelf: learn
+code: L270
 section: school-physics
 title: "RMS waveform"
 summary: "Pick a waveform and its peak and see v and v² over a cycle, the mean of v² and the root-mean-square value, worked out slice by slice and compared with the exact formula. Learn why India's 230 V mains actually swings up to 325 V, and why the mean of AC is zero but its heating is not."

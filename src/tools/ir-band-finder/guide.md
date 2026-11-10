@@ -2,6 +2,7 @@
 name: IR band finder
 num: 109
 shelf: science
+code: T109
 section: organic-chemistry
 title: "IR band finder"
 summary: "Type the peaks of an infrared spectrum, or open the spectrum itself, and see which bonds and functional groups each band could belong to: carbonyls, O–H, N–H, nitriles, aromatics and more, with groups that need several bands checked together and a searchable band table."

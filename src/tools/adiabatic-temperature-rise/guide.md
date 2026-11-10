@@ -2,6 +2,7 @@
 name: Adiabatic temperature rise
 num: 666
 shelf: science
+code: T463
 section: chemical-engineering
 title: "Adiabatic temperature rise"
 summary: "Type the species of a reaction with their heats of formation and heat capacities, the feed and the conversion, and get the heat of reaction at any temperature (Kirchhoff), the adiabatic outlet or flame temperature (with excess reactants and diluents), a quick ΔT estimate, the energy released per kg, and charts against conversion and temperature."

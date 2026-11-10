@@ -2,6 +2,7 @@
 name: Hardy-Weinberg tester
 num: 206
 shelf: science
+code: T206
 section: genetics
 title: "Hardy-Weinberg equilibrium test: chi-square, exact test, inbreeding coefficient F and de Finetti diagram"
 summary: "Test whether one sample's genotype counts fit Hardy-Weinberg proportions. Gives allele frequencies, observed and expected heterozygosity, the inbreeding coefficient F, chi-square with optional continuity correction, and the exact test (two-sided and one-sided), with a de Finetti diagram. Also handles three or more alleles by chi-square."

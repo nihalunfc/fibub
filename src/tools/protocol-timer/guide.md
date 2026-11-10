@@ -2,6 +2,7 @@
 name: Protocol timer
 num: 813
 shelf: science
+code: T549
 section: lab-management
 title: "Lab protocol timer: multi-step timers with alarms that keep time in a background tab"
 summary: "Type a protocol as named steps with times (block 1 h, wash 5 min × 3 …) and run it as a timer. Run several protocols at once, hear an alarm at the end of each step, get a notification if you allow it, and save your protocols in your browser."

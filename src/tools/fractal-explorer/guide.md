@@ -2,6 +2,7 @@
 name: Fractal explorer
 num: 547
 shelf: science
+code: T375
 section: pure-mathematics
 title: "Fractal explorer: zoom into the Mandelbrot set, Julia sets and the Barnsley fern (free, in your browser)"
 summary: "Zoom deep into the Mandelbrot set and Julia sets, drawn in a background worker with smooth colours, or grow the Barnsley fern, Sierpinski triangle, carpet and Heighway dragon by the chaos game, with their fractal dimensions. Download a 2400 × 1800 PNG."

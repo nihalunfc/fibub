@@ -2,6 +2,7 @@
 name: Retaining wall stability
 num: 653
 shelf: science
+code: T450
 section: civil-and-structural-engineering
 title: "Retaining wall stability calculator: sliding, overturning and bearing with Rankine or Coulomb earth pressure"
 summary: "Check a cantilever or gravity retaining wall for sliding, overturning and bearing: Rankine or Coulomb active pressure, sloping backfill, surcharge, water and uplift, optional passive resistance, eccentricity and toe and heel pressures, with a drawing of the wall, the earth pressure and the bearing pressure."

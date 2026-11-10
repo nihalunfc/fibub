@@ -2,6 +2,7 @@
 name: Crystal field
 num: 93
 shelf: science
+code: T93
 section: inorganic-and-coordination-chemistry
 title: "Crystal field"
 summary: "Pick a d-block metal ion and a geometry (octahedral, tetrahedral, square planar, square pyramidal), give Δ and the pairing energy or an absorption band, and get the d-orbital diagram, high or low spin, CFSE, unpaired electrons, spin-only moment and the Jahn–Teller tendency."

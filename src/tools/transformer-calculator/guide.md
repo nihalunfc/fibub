@@ -2,6 +2,7 @@
 name: Transformer calculator
 num: 1417
 shelf: learn
+code: L271
 section: school-physics
 title: "Transformer calculator: turns ratio, step-up and step-down voltages, currents, efficiency and line losses"
 summary: "Set the turns on the primary and secondary coils, the supply voltage, the load and the efficiency, and get the secondary voltage, both currents and the power, with the working. Then see why electricity is sent at high voltage: the same power at 230 V, 11 kV, 33 kV, 132 kV, 220 kV and 400 kV, and the heat lost in the wires."

@@ -2,6 +2,7 @@
 name: QC output reader
 num: 839
 shelf: science
+code: T575
 section: computational-chemistry
 title: "QC output reader"
 summary: "Open a Gaussian .log or ORCA .out file and get the final energy, a plot of the energy at every optimisation step with the convergence criteria, thermochemistry (zero-point energy, enthalpy, Gibbs energy), dipole moment, HOMO, LUMO and all orbital energies, vibrational frequencies with IR intensities, a warning for imaginary frequencies, a broadened IR spectrum with your own scaling factor and band width, and the final geometry as XYZ. Everything stays on your device."

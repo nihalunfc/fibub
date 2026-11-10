@@ -2,6 +2,7 @@
 name: Exoplanet mass calculator
 num: 57
 shelf: science
+code: T57
 section: exoplanets
 title: "Exoplanet mass calculator: planet mass from radial velocity K, and density from the transit"
 summary: "Turn a star's radial velocity wobble into the planet's minimum mass (m sin i), or a planet mass into the wobble it causes; add a transit depth for the radius, density and gravity, with the velocity curve drawn."

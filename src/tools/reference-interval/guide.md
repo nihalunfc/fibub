@@ -2,6 +2,7 @@
 name: Reference interval calculator
 num: 502
 shelf: science
+code: T353
 section: nursing-and-lab-medicine
 title: "Reference interval calculator: CLSI EP28 nonparametric and Box-Cox parametric limits with confidence intervals"
 summary: "Paste results from healthy reference people and get the central 95 % reference interval by the CLSI rank method with 90 % confidence intervals, a parametric interval on the raw, log or Box-Cox scale, Tukey or Dixon outlier screens, a Harris-Boyd check for subgroups and a histogram."

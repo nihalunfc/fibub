@@ -2,6 +2,7 @@
 name: Potential flow builder
 num: 959
 shelf: science
+code: T694
 section: fluid-dynamics
 title: "Potential flow builder: combine uniform flow, sources, sinks, vortices and doublets and see the streamlines"
 summary: "Build an ideal 2D flow from a uniform stream, sources, sinks, vortices and doublets, tap to add them, and see the streamlines, stagnation points, the speed everywhere, the velocity and pressure at any point, and the lift and drag from Blasius's theorem."

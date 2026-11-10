@@ -2,6 +2,7 @@
 name: AFM roughness analyser
 num: 861
 shelf: science
+code: T597
 section: microscopy-and-image-analysis
 title: "AFM roughness analyser: Sa, Sq, Ra, Rq, Rz, skewness, kurtosis, line profiles and step height from a height map"
 summary: "Open AFM or profilometer height data as a text matrix, an x y z list or a 16-bit greyscale PNG or TIFF. Level it with a plane or polynomial (fitted to the whole image or a reference region) and line-by-line flattening, then get areal Sa, Sq, Ssk, Sku, Sz, profile Ra, Rq, Rsk, Rku, Rz, a dragged line profile, the step height between two regions, a height histogram and a colour map."

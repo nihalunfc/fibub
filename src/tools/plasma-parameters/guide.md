@@ -2,6 +2,7 @@
 name: Plasma parameter calculator
 num: 952
 shelf: science
+code: T687
 section: plasma-physics
 title: "Plasma parameter calculator: Debye length, plasma frequency, gyroradius, collision frequency and beta"
 summary: "From density, electron and ion temperatures, magnetic field and the ion, get the Debye length, plasma and cyclotron frequencies, gyroradii, thermal, sound and Alfvén speeds, Coulomb logarithm, collision times and mean free paths, plasma beta and a plain verdict on what kind of plasma it is."

@@ -2,6 +2,7 @@
 name: Separation lab
 num: 1256
 shelf: learn
+code: L141
 section: school-chemistry
 title: "Separating mixtures simulator: filtration, evaporation, distillation, fractional distillation, chromatography, sublimation, magnet and more"
 summary: "Pick a mixture such as sand and salt, oil and water or green ink, choose a lab method and see whether it separates them. Chain steps into a plan, watch the thermometer during distillation and fractional distillation, and see which property each method uses."

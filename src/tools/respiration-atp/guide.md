@@ -2,6 +2,7 @@
 name: Respiration ATP ledger
 num: 1398
 shelf: learn
+code: L253
 section: school-biology
 title: "Respiration ATP ledger: glycolysis, Krebs cycle, electron transport, fermentation and RQ"
 summary: "Step one glucose through glycolysis, the link reaction, the Krebs cycle and the electron transport system and watch the ATP, NADH, FADH₂, CO₂ and O₂ add up to 38 (or 32 with the newer count). Compare fermentation, and work out the respiratory quotient of any food from its formula. Class 10 and 11."

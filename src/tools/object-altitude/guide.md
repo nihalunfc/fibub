@@ -2,6 +2,7 @@
 name: Target altitude planner
 num: 14
 shelf: science
+code: T14
 section: observing
 title: "Object altitude and airmass chart for tonight, with your own horizon"
 summary: "Plot how high your targets climb through the night, against your own trees and roofs. Get meridian (pier flip) times, the hours above a useful height, airmass and parallactic angle for one target or a whole list."

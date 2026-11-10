@@ -2,6 +2,7 @@
 name: Error-correcting codes playground
 num: 580
 shelf: science
+code: T408
 section: information-theory-and-cryptography
 title: "Error-correcting codes playground: parity, Hamming (7,4) and SECDED, CRC and Reed-Solomon, step by step"
 summary: "Encode a message, damage it by tapping bits or bytes, and watch the decoder find and fix the errors: parity bits, Hamming (7,4) and (15,11) with SECDED, CRC-8, CRC-16 and CRC-32 with the long division shown, and Reed-Solomon over GF(2⁸) with Berlekamp-Massey and Forney."

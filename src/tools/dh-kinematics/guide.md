@@ -2,6 +2,7 @@
 name: D-H forward kinematics
 num: 635
 shelf: science
+code: T432
 section: control-and-robotics
 title: "D-H forward kinematics calculator: Denavit-Hartenberg table to end-effector pose, with a 3D arm view"
 summary: "Type a robot arm's Denavit-Hartenberg table (standard or modified convention), move the joints with sliders and get every link transform, the end-effector position and orientation (roll, pitch, yaw, quaternion), the Jacobian and a 3D picture you can turn. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Beam deflection calculator
 num: 641
 shelf: science
+code: T438
 section: mechanical-engineering
 title: "Beam calculator: reactions, shear force and bending moment diagrams, deflection and bending stress"
 summary: "Solve a simply supported, cantilever, fixed-fixed, propped, overhanging or continuous beam under any mix of point loads, uniform or sloping distributed loads and applied moments. Get the support reactions, shear force and bending moment diagrams, the deflected shape and largest deflection, and the bending and shear stress for a rectangle, round bar or tube, I-beam built from plates, or your own I and c."

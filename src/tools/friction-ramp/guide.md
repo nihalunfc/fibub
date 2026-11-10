@@ -2,6 +2,7 @@
 name: Friction ramp
 num: 1024
 shelf: learn
+code: L11
 section: school-physics
 title: "Friction ramp"
 summary: "Tilt a ramp, pick the surfaces, set the mass and push, and see at once whether the block stays, slides down or moves up, with the gravity, support, friction and push arrows drawn on it and the numbers worked out."

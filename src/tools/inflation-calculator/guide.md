@@ -2,6 +2,7 @@
 name: Inflation calculator
 num: 739
 shelf: science
+code: T507
 section: economics
 title: "Inflation calculator: real vs nominal value from CPI, average inflation rate, rebase a price index, Fisher real interest rate"
 summary: "Turn money from one date into money of another with the price index (CPI) numbers you enter, or with a steady yearly rate. Paste a whole index series to rebase it, see inflation each period and year on year, and convert wages or sales into real values. Includes the Fisher equation for real interest rates, exact and approximate."

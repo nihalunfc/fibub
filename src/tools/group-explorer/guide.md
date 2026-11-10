@@ -2,6 +2,7 @@
 name: Group theory explorer
 num: 545
 shelf: science
+code: T373
 section: pure-mathematics
 title: "Group theory explorer: Cayley tables, element orders, subgroups, normal subgroups, centre and cosets of small groups"
 summary: "Pick a small group (cyclic, dihedral, S3, S4, A4, A5, Klein four, quaternion or the units mod n) and see its Cayley table, the order and inverse of every element, conjugacy classes, centre, every subgroup with its lattice, which subgroups are normal, cosets and quotient groups."

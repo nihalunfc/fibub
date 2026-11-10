@@ -2,6 +2,7 @@
 name: Parallel-plate capacitor lab
 num: 1047
 shelf: learn
+code: L22
 section: school-physics
 title: "Parallel-plate capacitor lab: plate area, gap, dielectric slab, battery connected or disconnected"
 summary: "Change the plate area and the gap of a parallel-plate capacitor, slide a dielectric slab in and out, and connect or disconnect the battery. Watch the capacitance, charge, voltage, stored energy and field change, and see two capacitors combined in series and in parallel."

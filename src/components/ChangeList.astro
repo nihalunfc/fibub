@@ -13,7 +13,7 @@ const byId = new Map(tools.map((t) => [t.id, t]));
       <span class="cl-t">{c.title}</span>
       {showTools && (c.tools.length > 0 || c.site) && (
         <span class="cl-tags">
-          {c.tools.map((id) => byId.get(id)).filter((t) => t && t.data.status === 'live').map((t) => <a href={toolUrl(t!)}>#{t!.data.num} {t!.data.name}</a>)}
+          {c.tools.map((id) => byId.get(id)).filter((t) => t && t.data.status === 'live').map((t) => <a href={toolUrl(t!)}>#{t!.data.code} {t!.data.name}</a>)}
           {c.site && <span>Whole site</span>}
         </span>
       )}

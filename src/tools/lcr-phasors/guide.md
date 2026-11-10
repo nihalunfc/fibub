@@ -2,6 +2,7 @@
 name: LCR phasors
 num: 1046
 shelf: learn
+code: L21
 section: school-physics
 title: "LCR phasors"
 summary: "Slide R, L, C and the frequency of a series LCR circuit and watch the phasors turn: V_R in step with the current, V_L ahead by 90°, V_C behind by 90°. See the impedance triangle, the phase angle, the power factor and the rms current, and find resonance on the current-against-frequency curve with its Q factor and bandwidth."

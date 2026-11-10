@@ -2,6 +2,7 @@
 name: Protein structure levels
 num: 1395
 shelf: learn
+code: L250
 section: school-biology
 title: "Protein structure: primary, secondary (α-helix, β-sheet), tertiary and quaternary, with folding"
 summary: "Type a sequence of amino acids and see its four levels of structure: peptide bonds and mass, an α-helix or β-sheet with its hydrogen bonds, a folding animation where water-fearing parts tuck inside (heat it to denature it), and haemoglobin's four chains. Class 11, with quick questions."

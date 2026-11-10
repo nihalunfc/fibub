@@ -2,6 +2,7 @@
 name: SHM circle
 num: 1062
 shelf: learn
+code: L26
 section: school-physics
 title: "SHM circle"
 summary: "A point goes round a circle at a steady speed; its shadow moves in simple harmonic motion. Change the amplitude, period and phase, watch the x, v and a graphs and the energy bars, and turn the same motion into a mass on a spring or a pendulum."

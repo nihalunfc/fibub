@@ -2,6 +2,7 @@
 name: Primer checker
 num: 167
 shelf: science
+code: T167
 section: molecular-biology
 title: "PCR primer checker: Tm, GC content, GC clamp, hairpins, primer-dimers and product size on a template"
 summary: "Check a PCR primer pair before you order it. Get the length, GC %, melting temperature by three simple formulas, the G/C clamp, runs and repeats, the longest hairpin, self- and cross-dimers with a picture of the worst one, and, with a template, every binding site and the product size."

@@ -2,6 +2,7 @@
 name: DICOM viewer
 num: 482
 shelf: science
+code: T333
 section: medical-imaging
 title: "DICOM viewer online: open CT and MRI DICOM files in your browser, window, measure and reslice"
 summary: "Open DICOM files (CT, MR, X-ray) on your own device: window and level with approximate CT presets, zoom and pan, measure distances, angles and ROI mean and SD in HU, search every header tag, scroll a whole series and reslice it. Nothing is uploaded."

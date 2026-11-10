@@ -2,6 +2,7 @@
 name: Pairwise sequence alignment
 num: 172
 shelf: science
+code: T172
 section: genomics-and-bioinformatics
 title: "Pairwise sequence alignment: Needleman-Wunsch and Smith-Waterman for DNA or protein, with a dot plot"
 summary: "Align two DNA or protein sequences end to end (global), with free end gaps (semi-global) or by their best-matching stretch (local), with affine gap scores you can set. See the score, identity, similarity and gaps, the alignment in blocks, and a dot plot. Runs in your browser."
