@@ -1,0 +1,85 @@
+---
+// #1757 Freelance rate: the hourly and day rate that gives a target take-home.
+---
+<div class="tool-ui fr">
+  <section class="panel">
+    <h2>Your numbers (per year)</h2>
+    <div class="fr-grid">
+      <label>Currency <select class="fr-cur" data-k="cur"></select></label>
+      <label>Take-home pay you want <input data-k="take" inputmode="decimal" /></label>
+      <label>Business costs (software, insurance, equipment) <input data-k="exp" inputmode="decimal" /></label>
+      <label>Tax and savings set aside <span class="fr-suf"><input data-k="tax" inputmode="decimal" /><i>%</i></span></label>
+      <label>Weeks off (holidays, sick, quiet) <input data-k="off" inputmode="decimal" /></label>
+      <label>Billable hours per week <input data-k="hrs" inputmode="decimal" /></label>
+      <label>Days you work per week <input data-k="days" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad fr-err" role="alert" hidden></p>
+  </section>
+  <section class="fr-res" aria-live="polite">
+    <div class="fr-stats">
+      <div class="good"><span>Hourly rate</span><b class="fr-s-hour"></b></div>
+      <div><span>Day rate</span><b class="fr-s-day"></b></div>
+      <div><span>Billing needed a year</span><b class="fr-s-gross"></b></div>
+      <div><span>Billable hours a year</span><b class="fr-s-hours"></b></div>
+    </div>
+    <p class="fr-line fr-words"></p>
+    <div class="fr-what panel"><h2>How your rate changes</h2>
+      <div class="fr-wrap"><table><thead><tr><th>Billable hours a week</th><th>Hourly rate</th><th>Day rate</th></tr></thead><tbody class="fr-rows"></tbody></table></div>
+    </div>
+  </section>
+  <p class="fr-fine">Billing needed = take-home / (1 minus tax rate) + business costs. Hourly rate = billing needed / (weeks worked x billable hours). Billable hours are the hours you can invoice, not all the hours you work; admin and finding clients take the rest. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .fr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .fr > *, .fr-res > * { min-width: 0; }
+  .fr h2 { margin: 0 0 12px; font-size: 18px; }
+  .fr .panel { padding: 16px; }
+  .fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .fr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .fr input, .fr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fr input:focus, .fr select:focus { border-color: var(--accent); outline: none; }
+  .fr-suf { position: relative; display: block; }
+  .fr-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .fr-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .fr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .fr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .fr-stats span { font-size: 13px; color: var(--muted); }
+  .fr-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .fr-stats .good b { color: var(--good); }
+  .fr-line { margin: 0; font-size: 15px; }
+  .fr-wrap { overflow-x: auto; }
+  .fr table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .fr th, .fr td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .fr th:first-child, .fr td:first-child { text-align: left; }
+  .fr th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .fr-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .fr-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .fr-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { freelanceRate } from '../../lib/money/business';
+  const root = document.querySelector<HTMLElement>('.fr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.fr-cur').innerHTML = currencyOptions(defaultCurrency());
+  f('take').value = '60,000'; f('exp').value = '6,000'; f('tax').value = '20'; f('off').value = '4'; f('hrs').value = '30'; f('days').value = '5';
+  const $ = (n: number, d = 2) => money(n, f('cur').value, d);
+  const inp = () => ({ take: num(f('take').value), exp: num(f('exp').value), tax: num(f('tax').value), off: num(f('off').value), hrs: num(f('hrs').value), days: num(f('days').value) });
+  function run() {
+    const a = inp();
+    const bad = a.take < 0 || a.exp < 0 ? 'Pay and costs cannot be negative.' : a.tax < 0 || a.tax >= 100 ? 'Tax must be from 0 to under 100%.' : a.off < 0 || a.off >= 52 ? 'Weeks off must be from 0 to 51.' : !(a.hrs > 0) || a.hrs > 100 ? 'Enter your billable hours per week (up to 100).' : !(a.days > 0) || a.days > 7 ? 'Days per week must be from 1 to 7.' : '';
+    q('.fr-err').hidden = !bad; q('.fr-err').textContent = bad; q('.fr-res').hidden = !!bad;
+    if (bad) return;
+    const r = freelanceRate(a);
+    q('.fr-s-hour').textContent = $(r.hourly); q('.fr-s-day').textContent = $(r.day);
+    q('.fr-s-gross').textContent = $(r.gross, 0); q('.fr-s-hours').textContent = Math.round(r.hours).toLocaleString();
+    q('.fr-words').innerHTML = `To take home <b>${$(a.take, 0)}</b> after ${a.tax}% tax and ${$(a.exp, 0)} of costs you need to bill <b>${$(r.gross, 0)}</b> over <b>${r.weeks}</b> working weeks. At ${a.hrs} billable hours a week that is <b>${$(r.hourly)}</b> an hour, or <b>${$(r.day)}</b> for a ${Math.round((a.hrs / a.days) * 10) / 10}-hour billable day.`;
+    const set = [a.hrs - 10, a.hrs - 5, a.hrs, a.hrs + 5, a.hrs + 10].filter((h) => h > 0 && h <= 100);
+    q('.fr-rows').innerHTML = set.map((h) => { const x = freelanceRate({ ...a, hrs: h }); return `<tr><td>${h}${h === a.hrs ? ' (yours)' : ''}</td><td>${$(x.hourly)}</td><td>${$(x.day)}</td></tr>`; }).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
