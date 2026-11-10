@@ -1,0 +1,188 @@
+---
+// Predator-prey: Lotka-Volterra cycles of prey and predators over time and in the phase plane, with the
+// equilibrium, the period, and an optional prey limit K that damps the cycles. Class 12 Biology,
+// organisms and populations (predation). Teaching model.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax ppr">
+  <div class="ax-card">
+    <h2>Hares and lynx</h2>
+    <p class="ax-help">A teaching model with made-up numbers. Prey (hares) breed; predators (lynx) eat them and starve without them.</p>
+    <div class="ax-row"><span class="pp-lab">Model</span><div class="ax-seg pp-lv" role="group" aria-label="Model"><button type="button" data-v="plain" aria-pressed="true">Plain cycles</button><button type="button" data-v="k" aria-pressed="false">Prey has a limit K</button></div></div>
+    <div class="ax-grid pp-gap">
+      <label>Prey birth rate a: <b class="pp-av"></b><input type="range" class="pp-a" min="0.2" max="2" step="0.05" value="1" aria-label="Prey birth rate" /></label>
+      <label>Catch rate b: <b class="pp-bv"></b><input type="range" class="pp-b" min="0.005" max="0.05" step="0.001" value="0.02" aria-label="Catch rate" /></label>
+      <label>Predator gain c: <b class="pp-cv"></b><input type="range" class="pp-c" min="0.002" max="0.03" step="0.001" value="0.01" aria-label="Predator births per prey eaten" /></label>
+      <label>Predator death rate d: <b class="pp-dv"></b><input type="range" class="pp-d" min="0.2" max="2" step="0.05" value="0.8" aria-label="Predator death rate" /></label>
+      <label>Start prey: <b class="pp-h0v"></b><input type="range" class="pp-h0" min="5" max="300" step="5" value="40" aria-label="Starting prey" /></label>
+      <label>Start predators: <b class="pp-p0v"></b><input type="range" class="pp-p0" min="1" max="150" step="1" value="10" aria-label="Starting predators" /></label>
+      <label class="pp-kl" hidden>Prey limit K: <b class="pp-kv"></b><input type="range" class="pp-k" min="100" max="1000" step="10" value="300" aria-label="Prey carrying capacity" /></label>
+    </div>
+    <canvas class="ax-fig pp-fig" role="img"></canvas>
+    <div class="ax-legend"><span><i class="pp-kh"></i>prey (hares)</span><span><i class="pp-kp"></i>predators (lynx)</span></div>
+    <label class="pp-gap">Time: <b class="pp-tv"></b><input type="range" class="pp-t" min="0" max="50" step="0.1" value="0" aria-label="Time" /></label>
+    <div class="ax-row"><button type="button" class="btn small pp-play">Play</button><span class="pp-now" aria-live="polite"></span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Phase plot: predators against prey</h2>
+    <canvas class="ax-fig pp-ph" role="img"></canvas>
+    <p class="ax-help">Each point is one moment: prey across, predators up. The plain model goes round the same loop for ever (anticlockwise); with a prey limit it spirals in to the still point.</p>
+    <dl class="ax-facts pp-facts"></dl>
+    <p class="pp-say"></p>
+    <p class="pp-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>All the ways two species interact</h2>
+    <p class="ax-help">Pick how the meeting affects each species: + gains, − loses, 0 no effect.</p>
+    <div class="ax-grid">
+      <label>Species A <select class="pp-ia"><option value="+">+ gains</option><option value="-" selected>− loses</option><option value="0">0 no effect</option></select></label>
+      <label>Species B <select class="pp-ib"><option value="+" selected>+ gains</option><option value="-">− loses</option><option value="0">0 no effect</option></select></label>
+    </div>
+    <p class="pp-iname" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="pp-itab"><thead><tr><th>Interaction</th><th>A</th><th>B</th><th>Example</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="pp-try">
+      <li>Press Play and watch: the prey peak comes first, then the predators peak a little later. Why?</li>
+      <li>Set the start numbers exactly to the still point (prey 80, predators 50). Nothing changes.</li>
+      <li>Raise the predator death rate d. The still point moves to more prey: predators need more food to survive.</li>
+      <li>Switch to <b>Prey has a limit K</b>: the swings die away. Lower K below d/c and the predators die out.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="pp-quiz" />
+</div>
+
+<script>
+  import { simulate, equilibrium, peaks, period, smallPeriod, type LV, type Run } from '../../lib/sci/predprey-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, line, dot, label, px, py, fmt } from '../../lib/sm-graph';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.ppr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const n = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 380, T = 50, DT = 0.01;
+  let lim = false, run: Run = { t: [], H: [], P: [] }, p: LV = { a: 1, b: 0.02, c: 0.01, d: 0.8 }, timer = 0;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const path = (ctx: CanvasRenderingContext2D, v: ReturnType<typeof view>, xs: number[], ys: number[], color: string, w = 2.2) => {
+    ctx.save(); ctx.beginPath(); ctx.rect(v.l, v.t, v.W - v.l - v.r, v.H - v.t - v.b); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.beginPath();
+    for (let i = 0; i < xs.length; i += 5) { const X = px(v, xs[i]), Y = py(v, ys[i]); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }
+    ctx.stroke(); ctx.restore();
+  };
+
+  function compute() {
+    p = { a: n('.pp-a'), b: n('.pp-b'), c: n('.pp-c'), d: n('.pp-d'), ...(lim ? { K: n('.pp-k') } : {}) };
+    q('.pp-av').textContent = fmt(p.a, 2); q('.pp-bv').textContent = fmt(p.b, 3); q('.pp-cv').textContent = fmt(p.c, 3); q('.pp-dv').textContent = fmt(p.d, 2);
+    q('.pp-h0v').textContent = String(n('.pp-h0')); q('.pp-p0v').textContent = String(n('.pp-p0')); q('.pp-kv').textContent = String(n('.pp-k'));
+    q<HTMLElement>('.pp-kl').hidden = !lim;
+    run = simulate(p, n('.pp-h0'), n('.pp-p0'), T, DT);
+    const eq = equilibrium(p), hp = peaks(run.t, run.H), pp = peaks(run.t, run.P), per = period(hp);
+    const maxH = Math.max(...run.H), maxP = Math.max(...run.P), endH = run.H[run.H.length - 1], endP = run.P[run.P.length - 1];
+    const f = [
+      fact('Still point', eq ? `${fmt(eq.H, 1)} prey, ${fmt(eq.P, 1)} predators` : 'none with predators', lim ? 'H* = d/c, P* = a(1 − H*/K)/b' : 'H* = d/c, P* = a/b'),
+      fact('Cycle length', Number.isFinite(per) ? fmt(per, 2) : '—', lim ? 'time between prey peaks' : `time between prey peaks (small cycles: 2π/√(ad) = ${fmt(smallPeriod(p), 2)})`),
+      fact('Most prey', fmt(maxH, 1)), fact('Most predators', fmt(maxP, 1)),
+    ];
+    if (hp.length && pp.length) { const lag = pp.find((x) => x > hp[0]); if (lag !== undefined) f.push(fact('Predators peak after prey by', fmt(lag - hp[0], 2), 'time units')); }
+    if (lim) f.push(fact('At time 50', `${fmt(endH, 1)} prey, ${fmt(endP, 1)} predators`));
+    q('.pp-facts').replaceChildren(...f);
+    q('.pp-say').textContent = !eq ? `The prey limit K = ${p.K} is below d/c = ${fmt(p.d / p.c, 1)}: there is never enough prey to feed the predators, so they die out and the prey settle at K.`
+      : lim ? 'With a prey limit, each swing is smaller than the last: the populations spiral in to the still point.'
+      : 'The plain model repeats the same cycle for ever: lots of prey → predators thrive → prey crash → predators starve → prey recover.';
+    q('.pp-formula').textContent = `dH/dt = ${fmt(p.a, 2)}H${lim ? `(1 − H/${p.K})` : ''} − ${fmt(p.b, 3)}HP;  dP/dt = ${fmt(p.c, 3)}HP − ${fmt(p.d, 2)}P`;
+    draw();
+  }
+
+  function draw() {
+    const ti = Math.min(run.t.length - 1, Math.round(n('.pp-t') / DT)), eq = equilibrium(p);
+    q('.pp-tv').textContent = fmt(run.t[ti], 1);
+    q('.pp-now').textContent = `Now: ${fmt(run.H[ti], 1)} prey, ${fmt(run.P[ti], 1)} predators`;
+    const ym = Math.max(...run.H, ...run.P) * 1.08 || 1;
+    const v = view(0, T, 0, ym, W, 230, { l: 40, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.pp-fig'), { w: W, h: 230, alt: `Prey and predators over time; now ${String(Math.round(run.H[ti]))} prey and ${String(Math.round(run.P[ti]))} predators`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, v, pl, { xName: 'time', yName: 'number' });
+      path(ctx, v, run.t, run.H, pl.accent); path(ctx, v, run.t, run.P, pl.bad);
+      line(ctx, v, run.t[ti], 0, run.t[ti], ym, pl.muted, 1, [2, 3]);
+      dot(ctx, v, run.t[ti], run.H[ti], pl.accent, 5); dot(ctx, v, run.t[ti], run.P[ti], pl.bad, 5);
+    } });
+    const xm = Math.max(...run.H) * 1.08 || 1, pm = Math.max(...run.P) * 1.1 || 1;
+    const v2 = view(0, xm, 0, pm, W, 260, { l: 40, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.pp-ph'), { w: W, h: 260, alt: 'Phase plot of predators against prey', draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, v2, pl, { xName: 'prey', yName: 'predators' });
+      path(ctx, v2, run.H, run.P, pl.accent, 2);
+      if (eq) { line(ctx, v2, eq.H, 0, eq.H, pm, pl.muted, 1, [4, 4]); line(ctx, v2, 0, eq.P, xm, eq.P, pl.muted, 1, [4, 4]); dot(ctx, v2, eq.H, eq.P, pl.good, 5); label(ctx, v2, eq.H, eq.P, 'still point', pl.good); }
+      dot(ctx, v2, run.H[0], run.P[0], pl.muted, 4, true, pl.bg);
+      dot(ctx, v2, run.H[ti], run.P[ti], pl.bad, 6);
+    } });
+  }
+
+  const stop = () => { cancelAnimationFrame(timer); timer = 0; q('.pp-play').textContent = 'Play'; };
+  q('.pp-play').addEventListener('click', () => {
+    if (timer) return stop();
+    const s = q<HTMLInputElement>('.pp-t'); if (+s.value >= T) s.value = '0';
+    q('.pp-play').textContent = 'Pause';
+    let last = performance.now();
+    const step = (now: number) => { s.value = String(Math.min(T, +s.value + ((now - last) / 1000) * 4)); last = now; draw(); if (+s.value >= T) stop(); else timer = requestAnimationFrame(step); };
+    timer = requestAnimationFrame(step);
+  });
+  root.querySelectorAll('.pp-a, .pp-b, .pp-c, .pp-d, .pp-h0, .pp-p0, .pp-k').forEach((e) => e.addEventListener('input', compute));
+  q('.pp-t').addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.pp-lv button').forEach((b) => b.addEventListener('click', () => { lim = b.dataset.v === 'k'; root.querySelectorAll('.pp-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); compute(); }));
+  document.addEventListener('fibub:theme', draw);
+  const INTER: [string, string, string, string, string][] = [
+    ['Mutualism', '+', '+', 'bees and flowers; fungi and algae in a lichen', 'Both gain.'],
+    ['Competition', '-', '-', 'two kinds of barnacle on the same rock', 'Both lose: they need the same limited thing.'],
+    ['Predation', '+', '-', 'a lynx eating a hare; a deer grazing grass', 'A gains, B loses (B is eaten).'],
+    ['Parasitism', '+', '-', 'a tapeworm in a cow; cuscuta on a plant', 'A (the parasite) gains, B (the host) is harmed but usually not killed at once.'],
+    ['Commensalism', '+', '0', 'an orchid growing on a mango branch; cattle egrets and cattle', 'A gains, B is not affected.'],
+    ['Amensalism', '-', '0', 'bacteria (A) stopped by a Penicillium mould (B) nearby', 'A is harmed, B is not affected.'],
+  ];
+  const sym = (x: string) => (x === '-' ? '−' : x);
+  q('.pp-itab tbody').replaceChildren(...INTER.map(([nm, a, b, ex]) => { const tr = document.createElement('tr'); tr.dataset.n = nm; [nm, sym(a), sym(b), ex].forEach((t) => { const td = document.createElement('td'); td.textContent = t; tr.append(td); }); return tr; }));
+  function inter() {
+    let a = q<HTMLSelectElement>('.pp-ia').value, b = q<HTMLSelectElement>('.pp-ib').value, swap = false;
+    if ((a === '0' && b !== '0') || (a === '-' && b === '+')) { [a, b] = [b, a]; swap = true; }
+    const hits = INTER.filter((r) => r[1] === a && r[2] === b);
+    root.querySelectorAll<HTMLTableRowElement>('.pp-itab tbody tr').forEach((tr) => tr.classList.toggle('pp-hit', hits.some((h) => h[0] === tr.dataset.n)));
+    q('.pp-iname').textContent = !hits.length ? 'Neither species affects the other (0, 0): neutralism. They simply share a place.'
+      : `${hits.map((h) => h[0]).join(' or ')} (${sym(a)}, ${sym(b)}): ${hits.map((h) => h[4]).join(' ')}${swap ? ' Here the roles of A and B are swapped.' : ''}`;
+  }
+  root.querySelectorAll('.pp-ia, .pp-ib').forEach((e) => e.addEventListener('change', inter));
+  inter();
+  compute();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.pp-quiz'), (): Question[] => {
+    const a = pick([0.5, 0.8, 1, 1.2]), b = pick([0.01, 0.02, 0.04, 0.05]), c = pick([0.005, 0.01, 0.02]), d = pick([0.4, 0.6, 0.8, 1]);
+    const H = pick([50, 100, 200]), P = pick([5, 10, 20]);
+    return [
+      { text: `Plain model: c = ${c}, d = ${d}. How many prey are there at the still point?`, answer: d / c, tol: 1e-6, worked: `Predators stop changing when cH = d, so H* = d/c = ${d}/${c} = ${fmt(d / c, 2)}.` },
+      { text: `Plain model: a = ${a}, b = ${b}. How many predators are there at the still point?`, answer: a / b, tol: 1e-6, worked: `Prey stop changing when bP = a, so P* = a/b = ${a}/${b} = ${fmt(a / b, 2)}.` },
+      { text: `a = ${a}, b = ${b}, H = ${H}, P = ${P}. What is dH/dt?`, answer: a * H - b * H * P, tol: 1e-6, worked: `dH/dt = aH − bHP = ${a}×${H} − ${b}×${H}×${P} = ${fmt(a * H - b * H * P, 3)}.` },
+      (() => { const r = pick(INTER); return mc(`Species A ${r[1] === '+' ? 'gains' : 'loses'} and species B ${r[2] === '+' ? 'gains' : r[2] === '-' ? 'loses' : 'is not affected'}. Which interaction${r[1] === '+' && r[2] === '-' ? ' (one of two)' : ''} is this?`, r[0], shuffle(INTER.filter((x) => x[1] !== r[1] || x[2] !== r[2]).map((x) => x[0])).slice(0, 3), `${r[0]}: ${r[4]} Example: ${r[3]}.`); })(),
+      mc('What happens to the swings when the prey have a carrying capacity K (above d/c)?', 'They get smaller and settle at a still point', ['They grow until both die out', 'They stay exactly the same', 'Predators always die out'], 'The prey limit damps the cycles: the path spirals in to the still point.'),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .ppr .pp-gap { margin-top: 10px; }
+  .ppr .pp-lab { font-size: 14px; color: var(--muted); }
+  .ppr input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ppr .pp-fig { margin-top: 10px; }
+  .ppr .pp-kh { background: var(--accent); } .ppr .pp-kp { background: var(--bad); }
+  .ppr .pp-play { min-width: 88px; min-height: 44px; }
+  .ppr .pp-now { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ppr .pp-say, .ppr .pp-formula { font-weight: 600; margin: 10px 0 0; }
+  .ppr .pp-iname { font-weight: 600; margin: 10px 0; }
+  .ppr .pp-itab tr.pp-hit td { font-weight: 700; background: var(--good-soft); }
+  .ppr .pp-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
