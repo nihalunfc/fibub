@@ -1,0 +1,97 @@
+---
+// #T902 Sprocket ratio
+---
+<div class="tool-ui sr">
+  <section class="panel">
+    <div class="sr-grid">
+      <label>Front sprocket (teeth) <input data-k="front" inputmode="numeric" value="14" /></label>
+      <label>Rear sprocket (teeth) <input data-k="rear" inputmode="numeric" value="42" /></label>
+      <label>Primary ratio <input data-k="prim" inputmode="decimal" value="3.0" /></label>
+      <label>Gear ratios, 1st to top (commas) <input data-k="gears" value="2.5, 1.7, 1.3, 1.1, 1.0" /></label>
+      <label>Engine speed (rpm) <input data-k="rpm" inputmode="decimal" value="6000" /></label>
+      <label>Wheel size from <select data-k="mode"><option value="circ">Rolling circumference</option><option value="size">Tyre size</option></select></label>
+      <label class="sr-circ">Rolling circumference (mm) <input data-k="circ" inputmode="decimal" value="2000" /></label>
+      <label class="sr-size" hidden>Tyre width (mm) <input data-k="tw" inputmode="decimal" value="120" /></label>
+      <label class="sr-size" hidden>Aspect ratio (%) <input data-k="ta" inputmode="decimal" value="70" /></label>
+      <label class="sr-size" hidden>Rim (inches) <input data-k="tr" inputmode="decimal" value="17" /></label>
+    </div>
+    <p class="sr-fine">Primary ratio is the first reduction inside the engine (crank to gearbox). Gear ratios are on the spec sheet. Rolling circumference is the distance the wheel covers in one turn, best measured by rolling the loaded bike; a tyre size such as 120/70-17 gives a close figure.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="sr-big"></p>
+    <div class="sr-scroll"><table class="sr-tab"><thead><tr><th>Gear</th><th>Overall ratio</th><th>km/h at rpm</th><th>New km/h</th><th>Change</th></tr></thead><tbody></tbody></table></div>
+    <p class="sr-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h2 class="sr-h">Try different sprockets</h2>
+    <div class="sr-grid">
+      <label>New front (teeth) <input data-k="f2" inputmode="numeric" value="14" /></label>
+      <label>New rear (teeth) <input data-k="r2" inputmode="numeric" value="45" /></label>
+    </div>
+    <p class="sr-fine">A bigger rear sprocket (or smaller front) gives quicker pull and a lower top speed at the same rpm. The change is the same percent in every gear.</p>
+    <h2 class="sr-h">Chain length</h2>
+    <div class="sr-grid">
+      <label>Chain pitch <select data-k="pitch"><option value="15.875">5/8 in (520, 525, 530)</option><option value="12.7">1/2 in (415, 420, 428)</option></select></label>
+      <label>Centre distance between sprockets (mm) <input data-k="cd" inputmode="decimal" value="400" /></label>
+    </div>
+    <p class="sr-line"></p>
+    <p class="sr-fine">Chains come in an even number of links. After changing sprockets, check how much the rear axle can move to take up the slack and whether the new chain size is long enough. This is a rough guide: follow your bike maker's manual.</p>
+  </section>
+  <p class="sr-fine">Speed here is theoretical at the rpm you type, with no clutch or tyre slip. A rear sprocket change also shifts the speedometer if it reads from the wheel. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sr .panel { padding: 16px; }
+  .sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .sr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sr label[hidden] { display: none; }
+  .sr input, .sr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sr input:focus, .sr select:focus { border-color: var(--accent); outline: none; }
+  .sr-big { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+  .sr-h { font-size: 16px; margin: 0 0 8px; } .sr-h + .sr-grid { margin-bottom: 4px; } .sr-fine + .sr-h { margin-top: 16px; }
+  .sr-scroll { overflow-x: auto; }
+  .sr-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sr-tab th, .sr-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .sr-tab th:first-child, .sr-tab td:first-child { text-align: left; }
+  .sr-line { font-weight: 600; margin: 10px 0 0; }
+  .sr-warn { color: var(--bad); margin: 10px 0 0; } .sr-warn:empty { display: none; }
+  .sr-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { sprocketSpeed, circFromTyre } from '../../lib/money/vehicle-physics';
+  const root = document.querySelector('.sr') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f = (v: number, d = 1) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const ord = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10 > 3 ? 0 : n % 10]}`;
+  const calc = () => {
+    const size = q('mode').value === 'size';
+    root.querySelectorAll('.sr-size').forEach((e) => ((e as HTMLElement).hidden = !size));
+    root.querySelectorAll('.sr-circ').forEach((e) => ((e as HTMLElement).hidden = size));
+    const front = num('front'), rear = num('rear'), prim = num('prim'), rpm = num('rpm');
+    const gears = q('gears').value.split(/[,\s]+/).map(parseFloat).filter((g) => g > 0);
+    const circ = size ? circFromTyre(num('tw'), num('ta'), num('tr')) : num('circ');
+    const tb = root.querySelector('tbody') as HTMLElement;
+    if (!(front > 0) || !(rear > 0) || !(prim > 0) || !(rpm > 0) || !(circ > 0) || !gears.length) { tb.innerHTML = ''; $('.sr-big').textContent = ''; $('.sr-line').textContent = ''; $('.sr-warn').textContent = 'Type the teeth, a primary ratio, gear ratios, rpm and a wheel size.'; return; }
+    $('.sr-warn').textContent = '';
+    const f2 = num('f2'), r2 = num('r2'), has2 = f2 > 0 && r2 > 0;
+    $('.sr-big').textContent = `Final drive ${f(rear / front, 2)} : 1 (${rear}/${front}), wheel ${f(circ, 0)} mm round`;
+    tb.innerHTML = gears.map((g, i) => {
+      const a = sprocketSpeed({ front, rear, primary: prim, gear: g, circMm: circ, rpm });
+      let nb = '<td>-</td><td>-</td>';
+      if (has2) { const b = sprocketSpeed({ front: f2, rear: r2, primary: prim, gear: g, circMm: circ, rpm }); nb = `<td>${f(b.kmh)}</td><td>${b.kmh >= a.kmh ? '+' : ''}${f((b.kmh / a.kmh - 1) * 100)}%</td>`; }
+      return `<tr><td>${ord(i + 1)}</td><td>${f(a.total, 2)}</td><td>${f(a.kmh)}</td>${nb}</tr>`;
+    }).join('');
+    const p = num('pitch'), c = num('cd'), line = $('.sr-line');
+    if (c > 0) {
+      const links = (n: number, m: number) => { const raw = (2 * c) / p + (n + m) / 2 + (Math.pow(m - n, 2) / (4 * Math.PI * Math.PI)) * (p / c); return { raw, even: Math.ceil(raw / 2) * 2 }; };
+      const a = links(front, rear), b = has2 ? links(f2, r2) : null;
+      line.textContent = `Chain: about ${f(a.raw)} links, so ${a.even} links` + (b ? `; with the new sprockets about ${f(b.raw)}, so ${b.even} links` : '') + '.';
+    } else line.textContent = '';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
