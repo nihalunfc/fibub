@@ -7,7 +7,7 @@
   --c-learn: #0f766e; --c-learn-soft: #e3f3f0;
   --c-tools: #1d4ed8; --c-tools-soft: #e7edfd;
   --c-home: #6d28d9; --c-home-soft: #efe8fc;
-  --c-news: #b45309; --c-news-soft: #fbefdf;
+  --c-blog: #b45309; --c-blog-soft: #fbefdf;
   --c-menu: #334155; --c-menu-soft: #eaeef3;
   --bar-bg: #f7f8fa; --bar-line: #dfe3e8;
   --tb-h: 64px; --sub-h: 0px;
@@ -16,18 +16,18 @@ html[data-theme=dark] {
   --c-learn: #2dd4bf; --c-learn-soft: #0c2926;
   --c-tools: #7aa2ff; --c-tools-soft: #121d3b;
   --c-home: #b79cff; --c-home-soft: #21173a;
-  --c-news: #fbbf24; --c-news-soft: #2a1d07;
+  --c-blog: #fbbf24; --c-blog-soft: #2a1d07;
   --c-menu: #cbd5e1; --c-menu-soft: #1b2028;
   --bar-bg: #0b0c0e; --bar-line: #262a30;
 }
 html:not(.red-mode)[data-area=learn] { --accent: var(--c-learn); --accent-2: var(--c-learn); --accent-soft: var(--c-learn-soft); }
 html:not(.red-mode)[data-area=tools] { --accent: var(--c-tools); --accent-2: var(--c-tools); --accent-soft: var(--c-tools-soft); }
 html:not(.red-mode)[data-area=home] { --accent: var(--c-home); --accent-2: var(--c-home); --accent-soft: var(--c-home-soft); }
-html:not(.red-mode)[data-area=news] { --accent: var(--c-news); --accent-2: var(--c-news); --accent-soft: var(--c-news-soft); }
+html:not(.red-mode)[data-area=blog] { --accent: var(--c-blog); --accent-2: var(--c-blog); --accent-soft: var(--c-blog-soft); }
 html:not(.red-mode)[data-area=menu] { --accent: var(--c-menu); --accent-2: var(--c-menu); --accent-soft: var(--c-menu-soft); }
 html.red-mode {
-  --c-learn: #a30000; --c-tools: #a30000; --c-home: #a30000; --c-news: #a30000; --c-menu: #a30000;
-  --c-learn-soft: #140000; --c-tools-soft: #140000; --c-home-soft: #140000; --c-news-soft: #140000; --c-menu-soft: #140000;
+  --c-learn: #a30000; --c-tools: #a30000; --c-home: #a30000; --c-blog: #a30000; --c-menu: #a30000;
+  --c-learn-soft: #140000; --c-tools-soft: #140000; --c-home-soft: #140000; --c-blog-soft: #140000; --c-menu-soft: #140000;
   --bar-bg: #000; --bar-line: #2b0000;
 }
 /* A thin line in the area's colour under the header says where you are. */
@@ -41,7 +41,7 @@ body.has-sub { --sub-h: 44px; }
 [data-area=learn] { --tc: var(--c-learn); --tc-soft: var(--c-learn-soft); }
 [data-area=tools] { --tc: var(--c-tools); --tc-soft: var(--c-tools-soft); }
 [data-area=home] { --tc: var(--c-home); --tc-soft: var(--c-home-soft); }
-[data-area=news] { --tc: var(--c-news); --tc-soft: var(--c-news-soft); }
+[data-area=blog] { --tc: var(--c-blog); --tc-soft: var(--c-blog-soft); }
 [data-area=menu] { --tc: var(--c-menu); --tc-soft: var(--c-menu-soft); }
 
 /* Main bar: on phones five equal tabs, icon over label; on computers a taskbar along the bottom

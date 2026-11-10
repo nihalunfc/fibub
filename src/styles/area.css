@@ -1,4 +1,4 @@
-/* Area pages (Tools, Learn, News): cards for the sections of an area. */
+/* Area pages (Tools, Learn, Blog): cards for the sections of an area. */
 .ar-head { border-left: 4px solid var(--accent); padding-left: 14px; margin: 4px 0 22px; }
 .ar-head h1 { margin-bottom: 6px; }
 .ar-head .lead { margin: 0; }

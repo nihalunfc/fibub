@@ -1,0 +1,38 @@
+---
+// The Blog tab (formerly News): guides to every tool, how tools work together, guides for students,
+// discoveries from new research, plus the newest tools, the change log and usage stats.
+import Base from '../../layouts/Base.astro';
+import ToolCard from '../../components/ToolCard.astro';
+import ArticleList from '../../components/ArticleList.astro';
+import { allTools } from '../../lib/tools';
+import { allArticles, KINDS, kindOf } from '../../lib/blog';
+import '../../styles/area.css';
+const tools = await allTools();
+const live = tools.filter((t) => t.data.status === 'live');
+const newest = [...live].sort((a, b) => (b.data.num ?? 0) - (a.data.num ?? 0)).slice(0, 6);
+const articles = await allArticles();
+const count = (k: string) => articles.filter((a) => kindOf(a) === k).length;
+---
+<Base title="Blog" description="The fibub blog: a guide to every free tool, how tools work together, guides for students, new science in plain words, and every change to the site.">
+  <div class="crumbs"><a href="/">Home</a> / Blog</div>
+  <div class="ar-head">
+    <h1>Blog</h1>
+    <p class="lead">Guides to every tool, real jobs that take several tools, help for students and new science in plain words.</p>
+  </div>
+  <div class="ar-cards">
+    {KINDS.map((k) => (
+      <a class="ar-card" href={`/blog/${k.id}/`}><h2>{k.name} <span class="ar-tag">{count(k.id)}</span></h2><p>{k.blurb}</p><span class="ar-go">Open →</span></a>
+    ))}
+  </div>
+  {articles.length > 0 && <>
+    <h2 class="ar-h">Latest articles</h2>
+    <ArticleList articles={articles.slice(0, 12)} />
+  </>}
+  <h2 class="ar-h">Site news</h2>
+  <div class="ar-cards">
+    <a class="ar-card" href="/changes/"><h2>Change log</h2><p>Every change to the tools and pages, newest first, with the time it went live.</p><span class="ar-go">Open →</span></a>
+    <a class="ar-card" href="/stats/"><h2>Usage stats</h2><p>How much each tool is used, as anonymous totals. Nothing about you is counted.</p><span class="ar-go">Open →</span></a>
+  </div>
+  <h2 class="ar-h">Newest tools</h2>
+  <div class="grid">{newest.map((t) => <ToolCard tool={t} />)}</div>
+</Base>
