@@ -1,0 +1,239 @@
+---
+// #T838 Lab results tracker
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui lrt">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results.</p>
+
+  <h3>1. Add results</h3>
+  <form class="lrt-form">
+    <label>Date <input name="date" type="date" required /></label>
+    <label>Test <input name="test" type="text" required maxlength="60" placeholder="Haemoglobin" list="lrt-tests" /></label>
+    <label>Result <input name="value" type="number" step="any" required /></label>
+    <label>Unit <input name="unit" type="text" maxlength="20" placeholder="g/dL" /></label>
+    <label>Printed low <input name="low" type="number" step="any" /></label>
+    <label>Printed high <input name="high" type="number" step="any" /></label>
+    <label>Lab name <input name="lab" type="text" maxlength="60" /></label>
+    <button class="btn" type="submit">Add</button>
+  </form>
+  <datalist id="lrt-tests"></datalist>
+  <div class="lrt-imp">
+    <label class="lrt-drop">Open a CSV or Excel file (including the Lab report reader's CSV) <input class="lrt-file" type="file" accept=".csv,.tsv,.txt,.xlsx" /></label>
+    <label>Or paste rows (columns: date, test, value, unit, low, high, lab)
+      <textarea class="lrt-paste" rows="4" placeholder="date,test,value,unit,low,high,lab"></textarea>
+    </label>
+    <div class="lrt-row"><button class="btn secondary lrt-addpaste" type="button">Add pasted rows</button></div>
+    <label class="lrt-inline">Dates like 03/04/2026 mean
+      <select class="lrt-df"><option value="d">day first (3 April)</option><option value="m">month first (March 4)</option></select>
+    </label>
+  </div>
+  <p class="lrt-msg" role="status" aria-live="polite"></p>
+
+  <div class="lrt-res" hidden>
+    <h3>2. Pick a test</h3>
+    <div class="lrt-row">
+      <label>Test <select class="lrt-pick"></select></label>
+      <label class="lrt-unitwrap">Unit <select class="lrt-unit"></select></label>
+    </div>
+    <p class="lrt-help lrt-other"></p>
+    <h3>3. See the trend</h3>
+    <canvas class="lrt-chart" width="640" height="320" role="img" aria-label="Chart of results over time"></canvas>
+    <p class="lrt-help">The line joins your results in date order. The light bar at each point is the range printed on that report, so different labs can differ. Nothing is added by fibub.</p>
+    <div class="lrt-wrap"><table class="lrt-tbl"><thead><tr><th>Date</th><th>Result</th><th>Unit</th><th>Range printed</th><th>Lab</th><th></th></tr></thead><tbody class="lrt-body"></tbody></table></div>
+
+    <h3>4. Download</h3>
+    <div class="lrt-row">
+      <button class="btn lrt-csv" type="button">Download CSV (all results)</button>
+    </div>
+    <Downloads label="For your doctor" class="lrt-dl" />
+  </div>
+
+  <div class="lrt-keep">
+    <label class="lrt-inline"><input class="lrt-save" type="checkbox" /> Keep my results in this browser</label>
+    <button class="btn secondary lrt-clear" type="button">Clear everything</button>
+    <p class="lrt-help">Unticked by default, so nothing is stored. If you tick it, the rows you added (date, test, result, unit, printed range, lab) are kept in this browser on this device only and never sent anywhere. Clear removes them and unticks the box.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .lrt { display: grid; gap: .8rem; }
+  .lrt label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .lrt input, .lrt select, .lrt textarea { font: inherit; box-sizing: border-box; max-width: 100%; }
+  .lrt textarea { width: 100%; }
+  .lrt-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .5rem; align-items: end; }
+  .lrt-imp { display: grid; gap: .6rem; }
+  .lrt-drop { padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); }
+  .lrt-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
+  .lrt label.lrt-inline { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .lrt-msg { margin: 0; min-height: 1.3em; } .lrt-msg.err { color: var(--warn); }
+  .lrt-help { font-size: 14px; color: var(--muted); margin: 0; }
+  .lrt-res[hidden] { display: none; } .lrt-res { display: grid; gap: .7rem; }
+  .lrt-chart { width: 100%; max-width: 720px; height: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  .lrt-wrap { overflow-x: auto; }
+  .lrt-tbl { border-collapse: collapse; width: 100%; min-width: 480px; }
+  .lrt-tbl th, .lrt-tbl td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; font-size: 15px; }
+  .lrt-x { min-height: 34px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; font: inherit; }
+  .lrt-keep { display: grid; gap: .5rem; justify-items: start; border-top: 1px solid var(--line); padding-top: .8rem; }
+</style>
+
+<script>
+  import { parseDate, TRACKER_HEAD } from '../../lib/docs/labparse';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Palette } from '../../lib/report';
+  import { parseCsv, toCsv } from '../../lib/convert/table';
+  import { readDataFile } from '../../lib/datafile';
+  interface R { date: string; test: string; value: number; unit: string; low: number | null; high: number | null; lab: string }
+  const KEY = 'fibub-labresults-v1';
+  const root = document.querySelector('.lrt') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.lrt-msg'), res = $<HTMLElement>('.lrt-res');
+  const pick = $<HTMLSelectElement>('.lrt-pick'), unitSel = $<HTMLSelectElement>('.lrt-unit'), saveBox = $<HTMLInputElement>('.lrt-save');
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  let rows: R[] = [];
+  const store = {
+    get() { try { return localStorage.getItem(KEY); } catch { return null; } },
+    set(v: string) { try { localStorage.setItem(KEY, v); } catch { /* storage blocked */ } },
+    del() { try { localStorage.removeItem(KEY); } catch { /* storage blocked */ } },
+  };
+  const persist = () => { if (saveBox.checked) store.set(JSON.stringify(rows)); };
+  const dayFirst = () => $<HTMLSelectElement>('.lrt-df').value === 'd';
+  const num = (s: string) => { const v = parseFloat(String(s).replace(/,/g, '')); return Number.isFinite(v) ? v : null; };
+  const rangeStr = (r: R) => (r.low !== null && r.high !== null ? `${r.low} - ${r.high}` : r.high !== null ? `up to ${r.high}` : r.low !== null ? `from ${r.low}` : '');
+
+  const SYN: Record<string, string[]> = {
+    date: ['date', 'collected', 'sample date', 'report date'], test: ['test', 'name', 'analyte', 'test name'],
+    value: ['value', 'result', 'results'], unit: ['unit', 'units'],
+    low: ['low', 'range low', 'ref low', 'reference low', 'min'], high: ['high', 'range high', 'ref high', 'reference high', 'max'], lab: ['lab', 'lab name', 'laboratory'],
+  };
+  function fromTable(t: string[][]): { added: R[]; skipped: number } {
+    if (!t.length) return { added: [], skipped: 0 };
+    const head = t[0].map((h) => h.trim().toLowerCase()), idx: Record<string, number> = {};
+    for (const k of Object.keys(SYN)) idx[k] = head.findIndex((h) => SYN[k].includes(h));
+    let body = t.slice(1);
+    if (idx.date < 0 || idx.test < 0 || idx.value < 0) { TRACKER_HEAD.forEach((k, i) => (idx[k] = i)); body = t; }
+    const added: R[] = []; let skipped = 0;
+    for (const r of body) {
+      const get = (k: string) => (idx[k] >= 0 ? (r[idx[k]] ?? '').trim() : '');
+      const date = parseDate(get('date'), dayFirst()), value = num(get('value')), test = get('test');
+      if (!date || value === null || !test) { skipped++; continue; }
+      added.push({ date, test, value, unit: get('unit'), low: num(get('low')), high: num(get('high')), lab: get('lab') });
+    }
+    return { added, skipped };
+  }
+  function addAll(t: string[][], notes: string[] = []) {
+    const { added, skipped } = fromTable(t);
+    rows.push(...added);
+    say(`Added ${added.length} result${added.length === 1 ? '' : 's'}.${skipped ? ` ${skipped} row${skipped === 1 ? ' was' : 's were'} skipped (needs a date, a test and a number).` : ''} ${notes.join(' ')}`.trim(), !added.length);
+    update();
+  }
+
+  const tests = () => [...new Set(rows.map((r) => r.test))].sort((a, b) => a.localeCompare(b));
+  const current = () => rows.filter((r) => r.test === pick.value && r.unit === unitSel.value).sort((a, b) => a.date.localeCompare(b.date));
+
+  function update(keepPick = true) {
+    persist();
+    res.hidden = !rows.length;
+    const prev = pick.value, list = tests();
+    pick.textContent = '';
+    for (const t of list) pick.append(new Option(t, t));
+    if (keepPick && list.includes(prev)) pick.value = prev;
+    $('#lrt-tests').replaceChildren(...list.map((t) => new Option(t)));
+    units();
+  }
+  function units() {
+    const prev = unitSel.value, us = [...new Set(rows.filter((r) => r.test === pick.value).map((r) => r.unit))];
+    unitSel.textContent = '';
+    for (const u of us) unitSel.append(new Option(u || '(no unit)', u));
+    if (us.includes(prev)) unitSel.value = prev;
+    ($('.lrt-unitwrap') as HTMLElement).hidden = us.length < 2;
+    const others = rows.filter((r) => r.test === pick.value && r.unit !== unitSel.value).length;
+    $('.lrt-other').textContent = others ? `${others} result${others === 1 ? '' : 's'} for this test use another unit and are not drawn or mixed in. Pick the unit above to see them, or convert with the Lab unit converter.` : '';
+    draw(); table();
+  }
+
+  function figure(test: string, unit: string, pts: R[]): Figure {
+    return {
+      w: 640, h: 320, alt: `${test} results over time${unit ? ' in ' + unit : ''}`,
+      draw(ctx, w, h, p: Palette) {
+        const L = 56, Rr = 16, T = 28, B = 46;
+        ctx.fillStyle = p.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.fillText(`${test}${unit ? ' (' + unit + ')' : ''}`, L, 18);
+        if (!pts.length) { ctx.fillStyle = p.muted; ctx.font = '14px system-ui, sans-serif'; ctx.fillText('No results to draw.', L, h / 2); return; }
+        const vals = pts.flatMap((r) => [r.value, ...(r.low !== null ? [r.low] : []), ...(r.high !== null ? [r.high] : [])]);
+        let lo = Math.min(...vals), hi = Math.max(...vals); if (lo === hi) { lo -= 1; hi += 1; }
+        const pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
+        const t0 = Date.parse(pts[0].date), t1 = Date.parse(pts[pts.length - 1].date);
+        const X = (d: string) => (t1 === t0 ? (L + w - Rr) / 2 : L + ((Date.parse(d) - t0) / (t1 - t0)) * (w - L - Rr));
+        const Y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (h - T - B);
+        ctx.strokeStyle = p.grid; ctx.fillStyle = p.muted; ctx.font = '12px system-ui, sans-serif'; ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) { const v = lo + ((hi - lo) * i) / 4, y = Y(v); ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(w - Rr, y); ctx.stroke(); ctx.fillText(String(+v.toPrecision(3)), 6, y + 4); }
+        // each point's own printed range as a light bar with caps
+        for (const r of pts) {
+          if (r.low === null && r.high === null) continue;
+          const x = X(r.date), yl = r.low !== null ? Y(r.low) : T, yh = r.high !== null ? Y(r.high) : h - B;
+          ctx.fillStyle = p.accent; ctx.globalAlpha = 0.16; ctx.fillRect(x - 11, Math.min(yl, yh), 22, Math.abs(yl - yh)); ctx.globalAlpha = 1;
+          ctx.strokeStyle = p.accent; ctx.lineWidth = 1.5; ctx.beginPath();
+          if (r.high !== null) { ctx.moveTo(x - 11, Y(r.high)); ctx.lineTo(x + 11, Y(r.high)); }
+          if (r.low !== null) { ctx.moveTo(x - 11, Y(r.low)); ctx.lineTo(x + 11, Y(r.low)); }
+          ctx.stroke();
+        }
+        ctx.strokeStyle = p.ink; ctx.lineWidth = 2; ctx.beginPath();
+        pts.forEach((r, i) => (i ? ctx.lineTo(X(r.date), Y(r.value)) : ctx.moveTo(X(r.date), Y(r.value)))); ctx.stroke();
+        ctx.fillStyle = p.ink; for (const r of pts) { ctx.beginPath(); ctx.arc(X(r.date), Y(r.value), 4, 0, 6.3); ctx.fill(); }
+        ctx.fillStyle = p.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+        const seen = new Set<string>();
+        pts.forEach((r, i) => { if (seen.has(r.date) || (pts.length > 6 && i % Math.ceil(pts.length / 6))) return; seen.add(r.date); ctx.fillText(r.date, Math.min(Math.max(X(r.date), L + 28), w - Rr - 28), h - B + 18); });
+        ctx.textAlign = 'left';
+      },
+    };
+  }
+  function draw() { paint($<HTMLCanvasElement>('.lrt-chart'), figure(pick.value, unitSel.value, current())); }
+  function table() {
+    const b = $<HTMLElement>('.lrt-body'); b.textContent = '';
+    for (const r of current()) {
+      const tr = document.createElement('tr');
+      for (const v of [r.date, String(r.value), r.unit, rangeStr(r) || 'none printed', r.lab]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); }
+      const td = document.createElement('td'), x = document.createElement('button'); x.type = 'button'; x.className = 'lrt-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Delete this result');
+      x.onclick = () => { rows.splice(rows.indexOf(r), 1); update(); }; td.append(x); tr.append(td); b.append(tr);
+    }
+  }
+  pick.addEventListener('change', units); unitSel.addEventListener('change', () => { draw(); table(); });
+  window.addEventListener('resize', () => { if (!res.hidden) draw(); });
+
+  $('.lrt-form').addEventListener('submit', (e) => {
+    e.preventDefault(); const f = new FormData(e.target as HTMLFormElement), g = (k: string) => String(f.get(k) ?? '').trim();
+    const value = num(g('value')), date = parseDate(g('date'));
+    if (value === null || !date || !g('test')) { say('Add a date, a test name and a number.', true); return; }
+    rows.push({ date, test: g('test'), value, unit: g('unit'), low: num(g('low')), high: num(g('high')), lab: g('lab') });
+    say('Added.'); update(); pick.value = g('test'); units();
+  });
+  $<HTMLInputElement>('.lrt-file').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement, f = input.files?.[0]; input.value = ''; if (!f) return;
+    try {
+      const r = await readDataFile(f, { maxBytes: 5e6, maxCols: 20, maxRows: 5000 });
+      addAll(r.text.split('\n').map((l) => l.split('\t')), r.notes);
+    } catch (err: any) { say(err?.message || 'That file could not be read.', true); }
+  });
+  $('.lrt-addpaste').addEventListener('click', () => {
+    const t = $<HTMLTextAreaElement>('.lrt-paste').value.trim(); if (!t) return;
+    addAll(t.includes('\t') ? t.split(/\r?\n/).map((l) => l.split('\t')) : parseCsv(t)); $<HTMLTextAreaElement>('.lrt-paste').value = '';
+  });
+  $('.lrt-csv').addEventListener('click', () => {
+    const body = [...rows].sort((a, b) => a.test.localeCompare(b.test) || a.date.localeCompare(b.date)).map((r) => [r.date, r.test, String(r.value), r.unit, r.low === null ? '' : String(r.low), r.high === null ? '' : String(r.high), r.lab]);
+    save(new Blob([toCsv([TRACKER_HEAD, ...body])], { type: 'text/csv' }), 'lab-results.csv', 'text/csv');
+  });
+  wireDownloads($('.lrt-dl'), () => {
+    const sections = tests().map((t) => ({
+      title: t,
+      table: { head: ['Date', 'Result', 'Unit', 'Range printed on report', 'Lab'], rows: rows.filter((r) => r.test === t).sort((a, b) => a.date.localeCompare(b.date)).map((r) => [r.date, String(r.value), r.unit, rangeStr(r), r.lab]) },
+    }));
+    const pts = current();
+    if (pts.length) sections.unshift({ title: `Chart: ${pick.value}`, figure: figure(pick.value, unitSel.value, pts) } as any);
+    sections.push({ title: 'About this page', text: ['Results are copied from the reports you entered. Ranges are the ones printed on each report and can differ between labs. This page is not medical advice. Ask your doctor or pharmacist about your results.'] } as any);
+    return { title: 'Lab results for my doctor', subtitle: 'Made with fibub.com on this device', sections, file: fileSafe('lab-results') };
+  });
+
+  saveBox.addEventListener('change', () => { if (saveBox.checked) { store.set(JSON.stringify(rows)); say('Your results are now kept in this browser.'); } else { store.del(); say('Stopped keeping results. Stored copy removed.'); } });
+  $('.lrt-clear').addEventListener('click', () => { rows = []; store.del(); saveBox.checked = false; say('Everything cleared, including any copy kept in this browser.'); update(false); });
+  // Restore only if the visitor opted in earlier.
+  const kept = store.get();
+  if (kept) { try { const a = JSON.parse(kept); if (Array.isArray(a)) { rows = a; saveBox.checked = true; update(); } } catch { /* ignore bad data */ } }
+</script>

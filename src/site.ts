@@ -53,6 +53,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'canada-work', name: 'Work in Canada', blurb: 'EI, pay and benefits for anyone working in Canada: students, work-permit holders, permanent residents and citizens.' },
     { id: 'insurance', name: 'Insurance', blurb: 'What a policy really costs and pays, worked out with plain maths. Educational, not advice.' },
     { id: 'business', name: 'Business', blurb: 'Pricing, break-even and the numbers behind a small business.' },
+    { id: 'medical-costs', name: 'Medical costs', blurb: 'Check medical bills, claim back costs and plan what you owe.' },
   ],
   documents: [
     { id: 'pdf', name: 'PDF tools', blurb: 'Organise, number, stamp, sign and fill PDFs on your device.' },
@@ -60,6 +61,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'privacy', name: 'Privacy and checks', blurb: 'Redact, remove hidden data and compare versions before you send.' },
     { id: 'writing', name: 'Writing and templates', blurb: 'Invoices, letters, mail merge and text helpers.' },
     { id: 'career', name: 'Jobs and study', blurb: 'Resumes, cover letters and applications.' },
+    { id: 'health-records', name: 'Health records', blurb: 'Organise and read your own reports, scans and health logs, on your device.' },
   ],
   // Everyday (nihal, 2026-11-10): categories and subcategories the same way as Science.
   everyday: [
@@ -274,6 +276,8 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'home-insurance', subject: 'insurance', name: 'Home and contents' },
     { id: 'small-business', subject: 'business', name: 'Small business' },
     { id: 'accounting', subject: 'business', name: 'Accounting' },
+    { id: 'medical-bills', subject: 'medical-costs', name: 'Bills and claims' },
+    { id: 'medical-tax', subject: 'medical-costs', name: 'Tax and payment plans' },
   ],
   documents: [
     { id: 'pdf-pages', subject: 'pdf', name: 'Organise pages' },
@@ -286,6 +290,9 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'templates', subject: 'writing', name: 'Invoices, letters and templates' },
     { id: 'text-tools', subject: 'writing', name: 'Text helpers' },
     { id: 'jobs', subject: 'career', name: 'Jobs and applications' },
+    { id: 'lab-results', subject: 'health-records', name: 'Lab results' },
+    { id: 'records-files', subject: 'health-records', name: 'Records, scans and summaries' },
+    { id: 'health-logs', subject: 'health-records', name: 'Logs and prescriptions' },
   ],
   everyday: [
     { id: 'encode-decode', subject: 'developer', name: 'Encode and decode' },
@@ -363,7 +370,7 @@ export const shelfById = (id: string) => (id === LEARN_SHELF.id ? LEARN_SHELF : 
 // of that area's sections above it. `match` lists the path starts that belong to an area; Menu is
 // everything else (About, Contact, Privacy, ...), and its tab opens the full menu panel.
 export type AreaTab = { name: string; href: string; match?: string[] };
-export type Area = { id: 'learn' | 'tools' | 'home' | 'news' | 'menu'; name: string; href: string; blurb: string; match: string[]; tabs: AreaTab[] };
+export type Area = { id: 'learn' | 'tools' | 'home' | 'blog' | 'menu'; name: string; href: string; blurb: string; match: string[]; tabs: AreaTab[] };
 export const AREAS: Area[] = [
   {
     id: 'learn', name: 'Learn', href: '/learn/', match: ['/learn/'],
@@ -387,10 +394,14 @@ export const AREAS: Area[] = [
     tabs: [{ name: 'Search', href: '/#find' }, ...SHELVES.map((s) => ({ name: s.name, href: `/#${s.id}` }))],
   },
   {
-    id: 'news', name: 'News', href: '/news/', match: ['/news/', '/changes/', '/stats/'],
-    blurb: 'New tools, every change to the site, and how much the tools are used.',
+    id: 'blog', name: 'Blog', href: '/blog/', match: ['/blog/', '/changes/', '/stats/'],
+    blurb: 'Guides to every tool, how tools work together, guides for students, science news, the change log and usage stats.',
     tabs: [
-      { name: 'Latest', href: '/news/' },
+      { name: 'Latest', href: '/blog/' },
+      { name: 'Guides', href: '/blog/guides/', match: ['/blog/guides/'] },
+      { name: 'Together', href: '/blog/together/', match: ['/blog/together/'] },
+      { name: 'For students', href: '/blog/kids/', match: ['/blog/kids/'] },
+      { name: 'Discoveries', href: '/blog/discoveries/', match: ['/blog/discoveries/'] },
       { name: 'Change log', href: '/changes/', match: ['/changes/'] },
       { name: 'Usage stats', href: '/stats/' },
     ],

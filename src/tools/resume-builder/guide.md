@@ -11,7 +11,7 @@ ads: false
 order: 24
 icon: resume
 works: offline
-updated: 2026-11-07
+updated: 2026-11-10
 related: [ats-resume-checker, linkedin-post-formatter, file-converter, readability-checker]
 flow:
   - { icon: pencil, label: "Fill it in" }
@@ -26,7 +26,7 @@ Most employers send applications through an applicant tracking system (ATS) befo
 
 This builder makes the kind of resume ATS software reads best. It uses one column, standard section headings (Summary, Skills, Experience, Projects, Education, Certifications), contact details in the main text rather than the page header, real bullet points, consistent dates, and fonts every system has. It still looks clean and professional to the person who reads it next.
 
-Already have a resume? Score it with the [[ats-resume-checker]]; to share your news, the [[linkedin-post-formatter]].
+Already have a resume? Score it with the [[ats-resume-checker]] and press **Fix it for me** to bring it straight into this builder; to share your news, the [[linkedin-post-formatter]].
 
 ## How to use it
 
@@ -40,6 +40,10 @@ Already have a resume? Score it with the [[ats-resume-checker]]; to share your n
 As you type, the preview shows the finished page and the **ATS score** updates, with the top things to improve. Open **Match it to a job ad** and paste a job description to see which of its key terms your resume already has and which are missing. The score uses the same checks as our [ATS resume checker](/documents/ats-resume-checker/).
 
 When you're happy, press **Download PDF** or **Download Word**. The PDF has real, selectable text (not a picture), and the Word file uses Word's own headings and bullet lists, so you can keep editing it in Word or Google Docs.
+
+## Fixing a resume you already have
+
+You don't have to type it all again. Open the [ATS resume checker](/documents/ats-resume-checker/), choose your PDF or Word file, and press **Fix it for me**. This builder opens with your own words already sorted into its boxes, with the old score next to the new one and a list of what was fixed (columns, tables, headings, dates, icons). Nothing is added or reworded. Check every section, copy in any line the reader couldn't place, and download. Dates that were only a year in your file stay a year; type a month if you want one.
 
 ## Keeping your work
 

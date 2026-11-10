@@ -30,16 +30,27 @@ export const CURRENCIES: [string, string][] = [
   ['pkr', 'Pakistani rupee'], ['lkr', 'Sri Lankan rupee'], ['bdt', 'Bangladeshi taka'], ['npr', 'Nepalese rupee'], ['myr', 'Malaysian ringgit'], ['zar', 'South African rand'],
 ];
 
+/** Keep only known currencies whose rate is a plain number within 4x of the rough value (catches a broken feed). */
+export function saneFx(fx: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!fx || typeof fx !== 'object') return out;
+  for (const [c, ref] of Object.entries(FALLBACK.fx)) {
+    const v = (fx as Record<string, unknown>)[c];
+    if (typeof v === 'number' && Number.isFinite(v) && v > ref / 4 && v < ref * 4) out[c] = v;
+  }
+  return out;
+}
+
 let cached: Promise<Prices> | null = null;
 /** Today's rates from /api/prices, or the fallback. Checked for sane numbers before use. */
 export function loadPrices(): Promise<Prices> {
-  cached ??= fetch('/api/prices', { headers: { accept: 'application/json' } })
+  cached ??= fetch('/api/prices', { headers: { accept: 'application/json' }, credentials: 'omit', signal: typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(8000) : undefined })
     .then((r) => (r.ok ? r.json() : null))
     .then((d: any) => {
       const m = d?.metals;
       const ok = m && m.gold > 300 && m.gold < 100000 && m.silver > 3 && m.silver < 2000 && typeof d.date === 'string' && d.fx && d.fx.inr > 0;
       if (!ok) return FALLBACK;
-      return { date: d.date, live: true, source: 'Daily rates from the free exchange-api by Fawaz Ahmed (CC0, public domain)', metals: { ...FALLBACK.metals, ...m }, fx: { ...FALLBACK.fx, ...d.fx, usd: 1 } } as Prices;
+      return { date: d.date, live: true, source: 'Daily rates from the free exchange-api by Fawaz Ahmed (CC0, public domain)', metals: { ...FALLBACK.metals, ...m }, fx: { ...FALLBACK.fx, ...saneFx(d.fx), usd: 1 } } as Prices;
     })
     .catch(() => FALLBACK);
   return cached;

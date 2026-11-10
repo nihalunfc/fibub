@@ -102,3 +102,33 @@ export const toolLd = (t: Tool) => [
   },
   breadcrumbs(toolCrumbs(t)),
 ];
+
+/** A Blog article: an Article (a TechArticle for tool guides) and its place in the Blog. */
+export const articleLd = (a: { title: string; summary: string; url: string; updated: Date; kindName: string; kindUrl: string; tech: boolean; about?: string[] }) => [
+  {
+    '@type': a.tech ? 'TechArticle' : 'Article',
+    headline: a.title.slice(0, 110),
+    description: a.summary,
+    url: abs(a.url),
+    dateModified: a.updated.toISOString().slice(0, 10),
+    inLanguage: 'en',
+    isAccessibleForFree: true,
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    isPartOf: { '@id': `${SITE.url}/#site` },
+    ...(a.about?.length ? { about: a.about.map((u) => ({ '@id': `${abs(u)}#app` })) } : {}),
+  },
+  breadcrumbs([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: a.kindName, url: a.kindUrl }, { name: a.title, url: a.url }]),
+];
+
+/** A Blog article's title in search results: its own title with "| fibub" when that fits, else the part
+ *  before the colon, else cut at a word. Set `seoTitle` in the article to choose. */
+export function articleSeoTitle(title: string, seoTitle?: string) {
+  if (seoTitle) return seoTitle;
+  const tail = ` | ${SITE.name}`;
+  const head = title.split(/:\s/)[0].trim();
+  const pick = [`${title}${tail}`, `${head}${tail}`, title, head].find(fits);
+  if (pick) return pick;
+  const cut = head.slice(0, TITLE_MAX - tail.length + 1);
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:(–-]+$/, '')}${tail}`;
+}
