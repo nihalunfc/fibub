@@ -1,0 +1,154 @@
+---
+// "Research papers checked": every Discoveries article retells one open-access paper and checks its
+// numbers with fibub tools. Counted at build time from src/blog/discoveries/, grouped by the field
+// (subject) of the main tool used. Small inline SVG charts, no chart library, plus tables.
+import { allArticles, kindOf, mentions } from '../lib/blog';
+import { allTools, toolPlace } from '../lib/tools';
+import { SHELVES, LEARN_SHELF } from '../site';
+const tools = new Map((await allTools()).map((t) => [t.id, t]));
+const papers = (await allArticles()).filter((a) => kindOf(a) === 'discoveries' && a.data.paper);
+const fieldOf = (id?: string) => {
+  const t = id ? tools.get(id) : undefined;
+  if (!t) return 'Other';
+  return toolPlace(t).subject?.name ?? (t.data.shelf === 'learn' ? LEARN_SHELF.name : SHELVES.find((s) => s.id === t.data.shelf)?.name ?? 'Other');
+};
+const count = <T,>(list: T[], key: (x: T) => string) => {
+  const m = new Map<string, number>();
+  for (const x of list) m.set(key(x), (m.get(key(x)) ?? 0) + 1);
+  return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+};
+const total = papers.length;
+const fields = count(papers, (a) => fieldOf(a.data.tools[0]));
+const years = count(papers, (a) => String(a.data.paper!.year)).sort((a, b) => a[0].localeCompare(b[0]));
+const journals = count(papers, (a) => a.data.paper!.journal);
+const reviewed = papers.filter((a) => a.data.paper!.reviewed).length;
+const toolsUsed = new Set(papers.flatMap((a) => [...mentions(a)].filter((id) => tools.has(id))));
+const fieldTools = new Map<string, Set<string>>();
+for (const a of papers) { const f = fieldOf(a.data.tools[0]); const s = fieldTools.get(f) ?? new Set(); for (const id of mentions(a)) if (tools.has(id)) s.add(id); fieldTools.set(f, s); }
+
+// Donut: the top 7 fields and "Other fields".
+const top = fields.slice(0, 7);
+const rest = fields.slice(7).reduce((s, f) => s + f[1], 0);
+const slices = rest ? [...top, ['Other fields', rest] as [string, number]] : top;
+const R = 60, r0 = 36, C = 70;
+let acc = 0;
+const arcs = slices.map(([name, n], i) => {
+  const a0 = (acc / total) * 2 * Math.PI - Math.PI / 2; acc += n;
+  const a1 = (acc / total) * 2 * Math.PI - Math.PI / 2;
+  const big = a1 - a0 > Math.PI ? 1 : 0;
+  const p = (rr: number, a: number) => `${(C + rr * Math.cos(a)).toFixed(2)} ${(C + rr * Math.sin(a)).toFixed(2)}`;
+  const d = slices.length === 1 ? `M${C} ${C - R}A${R} ${R} 0 1 1 ${C - 0.01} ${C - R}L${C - 0.01} ${C - r0}A${r0} ${r0} 0 1 0 ${C} ${C - r0}Z`
+    : `M${p(R, a0)}A${R} ${R} 0 ${big} 1 ${p(R, a1)}L${p(r0, a1)}A${r0} ${r0} 0 ${big} 0 ${p(r0, a0)}Z`;
+  return { name, n, d, cls: `fc${i}` };
+});
+// Waterfall: each field adds its papers, building up to the total.
+const wf = fields.slice(0, 10);
+const wfRest = fields.slice(10).reduce((s, f) => s + f[1], 0);
+const wfItems = wfRest ? [...wf, ['Other fields', wfRest] as [string, number]] : wf;
+const WW = 370, WH = 190, wl = 44, wb = 62, wt = 12;
+const bw = (WW - wl - 8) / (wfItems.length + 1);
+const yS = (n: number) => wt + (WH - wt - wb) * (1 - n / Math.max(1, total));
+let run = 0;
+const bars = wfItems.map(([name, n], i) => { const y0 = run; run += n; return { name, n, x: wl + i * bw + 3, y: yS(run), h: yS(y0) - yS(run) }; });
+const pct = (n: number) => Math.round((n / Math.max(1, total)) * 100);
+---
+{total > 0 && (
+<section class="papers" id="papers" aria-labelledby="papers-h">
+  <h2 id="papers-h">Research papers checked</h2>
+  <p class="muted">Every <a href="/blog/discoveries/">Discoveries</a> article retells one open-access research paper in plain words and checks its key numbers with fibub tools. Fields come from the main tool used for the check.</p>
+  <div class="grid kpis">
+    <div class="card"><span class="muted">Research papers checked</span><b>{total.toLocaleString('en')}</b></div>
+    <div class="card"><span class="muted">Fields</span><b>{fields.length}</b></div>
+    <div class="card"><span class="muted">fibub tools used to check them</span><b>{toolsUsed.size}</b></div>
+    <div class="card"><span class="muted">Peer-reviewed</span><b>{pct(reviewed)}%</b></div>
+  </div>
+
+  <div class="p-grid">
+    <figure class="pfig">
+      <figcaption>Share by field</figcaption>
+      <div class="donut">
+        <svg viewBox="0 0 140 140" role="img" aria-label={`Research papers by field: ${slices.map(([n, v]) => `${n} ${v}`).join(', ')}`}>
+          {arcs.map((a) => <path class={a.cls} d={a.d}><title>{`${a.name}: ${a.n}`}</title></path>)}
+          <text x="70" y="68" text-anchor="middle" class="big">{total}</text>
+          <text x="70" y="84" text-anchor="middle">papers</text>
+        </svg>
+        <ul class="key">{arcs.map((a) => <li><i class={a.cls}></i><span>{a.name}</span><b>{a.n}</b></li>)}</ul>
+      </div>
+    </figure>
+
+    <figure class="pfig">
+      <figcaption>How the fields add up (waterfall)</figcaption>
+      <svg viewBox={`0 0 ${WW} ${WH}`} role="img" aria-label="Waterfall chart: papers per field adding up to the total">
+        {[0, 0.5, 1].map((g) => <><line class="gl" x1={wl} x2={WW - 4} y1={yS(total * g)} y2={yS(total * g)} /><text x={wl - 4} y={yS(total * g) + 4} text-anchor="end">{Math.round(total * g)}</text></>)}
+        {bars.map((b, i) => (
+          <>
+            <rect class={`fc${Math.min(i, 7)}`} x={b.x.toFixed(1)} y={b.y.toFixed(1)} width={(bw - 6).toFixed(1)} height={Math.max(1, b.h).toFixed(1)} rx="2"><title>{`${b.name}: +${b.n}`}</title></rect>
+            <text x={(b.x + (bw - 6) / 2).toFixed(1)} y={(b.y - 3).toFixed(1)} text-anchor="middle">+{b.n}</text>
+            <text transform={`translate(${(b.x + (bw - 6) / 2).toFixed(1)} ${WH - wb + 10}) rotate(-35)`} text-anchor="end">{b.name.length > 13 ? b.name.slice(0, 12) + '…' : b.name}</text>
+          </>
+        ))}
+        <rect class="tot" x={(wl + wfItems.length * bw + 3).toFixed(1)} y={yS(total)} width={(bw - 6).toFixed(1)} height={(yS(0) - yS(total)).toFixed(1)} rx="2" />
+        <text transform={`translate(${(wl + wfItems.length * bw + 3 + (bw - 6) / 2).toFixed(1)} ${WH - wb + 10}) rotate(-35)`} text-anchor="end" class="lab">Total</text>
+      </svg>
+    </figure>
+  </div>
+
+  <div class="p-grid">
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <caption>Papers by field</caption>
+        <thead><tr><th scope="col">Field</th><th scope="col" class="r">Papers</th><th scope="col">Share</th><th scope="col" class="r">Tools used</th></tr></thead>
+        <tbody>{fields.map(([f, n]) => <tr><td>{f}</td><td class="r">{n}</td><td><span class="mini"><span style={`width:${pct(n)}%`}></span></span> {pct(n)}%</td><td class="r">{fieldTools.get(f)?.size ?? 0}</td></tr>)}</tbody>
+      </table>
+    </div>
+    <div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <caption>Most used journals</caption>
+          <thead><tr><th scope="col">Journal</th><th scope="col" class="r">Papers</th></tr></thead>
+          <tbody>{journals.slice(0, 8).map(([j, n]) => <tr><td>{j}</td><td class="r">{n}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <caption>By year published</caption>
+          <thead><tr><th scope="col">Year</th><th scope="col" class="r">Papers</th><th scope="col">Share</th></tr></thead>
+          <tbody>{years.map(([y, n]) => <tr><td>{y}</td><td class="r">{n}</td><td><span class="mini"><span style={`width:${pct(n)}%`}></span></span> {pct(n)}%</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="muted">{reviewed} peer-reviewed, {total - reviewed} preprints (preprints are flagged on their page). All open access under a Creative Commons licence.</p>
+    </div>
+  </div>
+</section>
+)}
+
+<style>
+  .papers { margin: 8px 0 32px; }
+  .p-grid { display: grid; gap: 14px; margin-top: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+  .pfig { margin: 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .pfig figcaption { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .pfig svg { display: block; width: 100%; height: auto; max-height: 260px; }
+  .pfig text { fill: var(--muted); font-size: 10px; font-family: inherit; }
+  .pfig .big { fill: var(--ink); font-size: 22px; font-weight: 700; }
+  .pfig .lab { fill: var(--ink); }
+  .pfig .gl { stroke: var(--line); }
+  .pfig .tot { fill: var(--ink); }
+  .donut { display: grid; grid-template-columns: minmax(110px, 150px) 1fr; gap: 12px; align-items: center; }
+  .donut svg { max-width: 150px; }
+  .key { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+  .key li { display: grid; grid-template-columns: 12px 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
+  .key i { width: 10px; height: 10px; border-radius: 2px; }
+  .key b { font-variant-numeric: tabular-nums; }
+  .fc0 { fill: #2f6fdb; background: #2f6fdb; } .fc1 { fill: #1a9e77; background: #1a9e77; } .fc2 { fill: #d95f02; background: #d95f02; } .fc3 { fill: #7570b3; background: #7570b3; }
+  .fc4 { fill: #d6337f; background: #d6337f; } .fc5 { fill: #5f9a1e; background: #5f9a1e; } .fc6 { fill: #b8860b; background: #b8860b; } .fc7 { fill: #8a8f98; background: #8a8f98; }
+  :global(html.red-mode) .papers :is(.fc0, .fc1, .fc2, .fc3, .fc4, .fc5, .fc6, .fc7) { fill: var(--ink); background: var(--ink); }
+  :global(html.red-mode) .papers :is(.fc1, .fc3, .fc5, .fc7) { opacity: 0.5; }
+  .tbl-wrap { overflow-x: auto; margin-bottom: 12px; }
+  .tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tbl caption { text-align: left; font-weight: 700; padding-bottom: 6px; }
+  .tbl th, .tbl td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  .tbl th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .mini { display: inline-block; width: 60px; height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; vertical-align: middle; }
+  .mini span { display: block; height: 100%; background: var(--accent); }
+</style>

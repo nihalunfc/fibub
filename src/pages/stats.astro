@@ -1,6 +1,7 @@
 ---
 // Public usage statistics, built from the daily anonymous totals in data/stats/.
 import Base from '../layouts/Base.astro';
+import PaperStats from '../components/PaperStats.astro';
 
 type Row = { tool: string; type: string; size: string; device: string; os: string; browser: string; country: string; outcome: string; saved?: number; count: number };
 const files = import.meta.glob<{ date: string; rows: Row[] }>('../../data/stats/*.json', { eager: true, import: 'default' });
@@ -31,12 +32,14 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   <h1>Usage statistics</h1>
   <p class="lead">Anonymous totals of how fibub's tools are used. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
 
-  <section class="views-note">
+  <nav class="jump" aria-label="On this page"><a href="#live">Live counts</a><a href="#papers">Research papers checked</a>{total > 0 && <a href="#files">Files processed</a>}<a href="#views">Page view files</a></nav>
+
+  <section class="views-note" id="views">
     <h2>Page views</h2>
     <p>Every page on fibub shows how many times it has been opened, just under its title, and the home page shows the total for the whole site. The full numbers, for every page and tool by day, week, month and year, are published openly every day in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">site's public code repository</a> as CSV files anyone can download. They hold counts only: no IP addresses, visitor IDs or times.</p>
   </section>
 
-  <section class="live" aria-live="polite">
+  <section class="live" id="live" aria-live="polite">
     <h2>Live counts</h2>
     <p class="muted live-msg">Loading the counts...</p>
     <div class="live-body" hidden>
@@ -48,13 +51,14 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
       </div>
 
       <h3>Last 30 days</h3>
-      <figure class="fig"><div class="chart-days"></div><figcaption class="muted">Page views (line) and tool uses (dashed) per day, UTC. Days before counting began show as zero.</figcaption></figure>
+      <figure class="fig"><div class="chart-days"></div><figcaption class="muted">Page views (line) and tool uses (dashed) per day, UTC. Days before counting began show as zero.</figcaption>
+        <details class="as-table"><summary>Show the 30 days as a table</summary><div class="table-days tbl-scroll"></div></details></figure>
 
       <h3>Top 10 tools</h3>
-      <figure class="fig"><div class="chart-top"></div><figcaption class="muted">Ranked by uses, then page views. Dark bar: uses. Light bar: page views.</figcaption></figure>
+      <div class="chart-top tbl-scroll"></div><p class="muted cap">Ranked by uses, then page views.</p>
 
       <h3>Where the use goes</h3>
-      <figure class="fig"><div class="chart-cats"></div><figcaption class="muted">Share of all tool uses (dark) and tool page views (light) by area.</figcaption></figure>
+      <div class="chart-cats tbl-scroll"></div><p class="muted cap">Tool uses and tool page views by area.</p>
 
       <h3>Top tools in each area</h3>
       <p class="muted">Five at a time. Press "Show 5 more" to go further down a list.</p>
@@ -65,7 +69,9 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
     <p class="muted">Running totals since counting began. A use is the first time someone works a tool after opening its page. Nothing about any visitor is kept; the daily files are in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">public repository</a>.</p>
   </section>
 
-  {total > 0 && <h2>Files processed</h2>}
+  <PaperStats />
+
+  {total > 0 && <h2 id="files">Files processed</h2>}
   {total > 0 && (
     <>
       <div class="grid kpis">
@@ -74,19 +80,19 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
         {avgSaved !== null && <div class="card"><span class="muted">Average size saved</span><b>{avgSaved}%</b></div>}
       </div>
 
-      <h2>Last 30 days</h2>
+      <h3>Last 30 days</h3>
       <div class="bars daily">
         {last30.map(([d, n]) => <div title={`${d}: ${n}`} style={`height:${Math.max(2, (n / Math.max(...last30.map((x) => x[1]))) * 100)}%`}></div>)}
       </div>
 
-      <h2>By month</h2>
+      <h3>By month</h3>
       <table class="tbl"><thead><tr><th>Month</th><th>Files processed</th></tr></thead>
         <tbody>{byMonth.slice().reverse().map(([m, n]) => <tr><td>{m}</td><td>{n.toLocaleString('en')}</td></tr>)}</tbody></table>
 
       <div class="split">
         {sections.map(([title, list]) => (
           <section>
-            <h2>{title}</h2>
+            <h3>{title}</h3>
             {list.map(([k, n]) => (
               <div class="row"><span>{k}</span><span class="track"><span style={`width:${pct(n)}%`}></span></span><span class="num">{pct(n)}%</span></div>
             ))}
@@ -99,7 +105,9 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 
 <style>
   .live h3 { font-size: 17px; margin: 28px 0 8px; }
-  .fig { margin: 0; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .jump { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 20px; font-size: 14px; }
+  .jump a { font-weight: 600; }
+  .fig { max-width: 640px; margin: 0; padding: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
   .fig figcaption { margin-top: 8px; }
   :global(.fig svg) { display: block; width: 100%; height: auto; overflow: visible; }
   :global(.fig text) { fill: var(--muted); font-size: 11px; font-family: inherit; }
@@ -121,18 +129,37 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   :global(.cat button) { margin-top: 8px; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
   :global(.cat .none) { color: var(--muted); font-size: 14px; margin: 0; }
   .muted { color: var(--muted); font-size: 14px; }
-  .kpis .card { display: grid; gap: 4px; }
-  .kpis b { font-size: 28px; }
-  .bars.daily { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .cap { margin: 6px 0 0; }
+  .as-table { margin-top: 8px; font-size: 14px; }
+  .as-table summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .tbl-scroll { overflow-x: auto; max-width: 640px; }
+  :global(.st-tbl) { border-collapse: collapse; width: 100%; font-size: 14px; }
+  :global(.st-tbl th), :global(.st-tbl td) { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  :global(.st-tbl th) { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  :global(.st-tbl .r) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  :global(.st-tbl td:first-child) { color: var(--muted); width: 1%; }
+  :global(.st-tbl .nm) { max-width: 0; width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.st-tbl a) { color: var(--ink); }
+  :global(.st-tbl .mbw) { display: inline-block; width: 48px; height: 6px; margin-right: 6px; background: var(--line); border-radius: 99px; overflow: hidden; vertical-align: middle; }
+  :global(.st-tbl .mb) { display: block; height: 100%; background: var(--accent); }
+  :global(.st-tbl .m2) { opacity: 0.4; }
+  .grid.kpis { grid-template-columns: repeat(auto-fill, minmax(min(45%, 170px), 1fr)); gap: 10px; }
+  :global(.papers .grid.kpis) { grid-template-columns: repeat(auto-fill, minmax(min(45%, 170px), 1fr)); gap: 10px; }
+  .kpis .card { display: grid; gap: 4px; padding: 12px; }
+  :global(.papers .kpis .card) { display: grid; gap: 4px; padding: 12px; }
+  .kpis b, :global(.papers .kpis b) { font-size: clamp(20px, 5vw, 26px); }
+  .bars.daily { display: flex; align-items: flex-end; gap: 3px; height: 64px; max-width: 640px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
   .bars.daily div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; }
-  .tbl { border-collapse: collapse; width: 100%; max-width: 420px; }
+  .tbl { border-collapse: collapse; width: 100%; max-width: 420px; font-size: 14px; }
   .tbl th, .tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-  .split { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 32px; }
-  .row { display: grid; grid-template-columns: 1fr 2fr 44px; align-items: center; gap: 8px; font-size: 15px; padding: 3px 0; }
+  .split { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0 32px; }
+  .split h3 { font-size: 16px; margin: 20px 0 6px; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 40px; align-items: center; gap: 8px; font-size: 14px; padding: 3px 0; }
   .row .track { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
   .row .track span { display: block; height: 100%; background: var(--accent); }
   .row .num { text-align: right; color: var(--muted); }
-  .views-note { margin-bottom: 32px; max-width: 720px; }
+  .views-note { margin-bottom: 24px; max-width: 720px; }
+  @media (max-width: 520px) { .live h3 { margin-top: 22px; } .cat-grid { gap: 10px; } }
 </style>
 
 <script>

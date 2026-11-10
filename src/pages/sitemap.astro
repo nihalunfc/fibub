@@ -1,0 +1,148 @@
+---
+// The site map (/sitemap/): a network chart of how fibub's parts link to each other, every section
+// as a list of links, and the tool ID chart and table. All worked out at build time from the tool and
+// article files (src/lib/sitegraph.ts), so new tools, subjects and articles join by themselves.
+import Base from '../layouts/Base.astro';
+import ToolMap from '../components/ToolMap.astro';
+import { allTools } from '../lib/tools';
+import { allArticles, KINDS, kindOf } from '../lib/blog';
+import { siteGraph } from '../lib/sitegraph';
+const tools = await allTools();
+const articles = await allArticles();
+const { nodes, links, size } = siteGraph(tools, articles, 760);
+const byId = new Map(nodes.map((n) => [n.id, n]));
+const branch = (id: string): string => { let n = byId.get(id)!; while (n.parent && n.parent !== 'home') n = byId.get(n.parent)!; return n.id; };
+const c = size / 2;
+const shown = links.slice(0, 140);
+const w = (n: number) => (0.6 + Math.log2(n + 1) * 0.7).toFixed(2);
+const curve = (a: string, b: string) => {
+  const p = byId.get(a)!, q = byId.get(b)!;
+  const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+  return `M${p.x.toFixed(1)} ${p.y.toFixed(1)} Q${(c + (mx - c) * 0.25).toFixed(1)} ${(c + (my - c) * 0.25).toFixed(1)} ${q.x.toFixed(1)} ${q.y.toFixed(1)}`;
+};
+const leaf = (id: string) => !nodes.some((n) => n.parent === id);
+const r = (n: (typeof nodes)[number]) => (n.id === 'home' ? 9 : Math.min(8, 3 + Math.sqrt(n.count) / 3)).toFixed(1);
+// Links per node, for the table.
+const deg = new Map<string, { rel: number; art: number }>();
+for (const l of links) for (const id of [l.a, l.b]) { const d = deg.get(id) ?? { rel: 0, art: 0 }; d[l.kind === 'related' ? 'rel' : 'art'] += l.n; deg.set(id, d); }
+const parts = nodes.filter((n) => n.depth >= 2 && (deg.get(n.id)?.rel || deg.get(n.id)?.art)).sort((a, b) => ((deg.get(b.id)!.rel + deg.get(b.id)!.art) - (deg.get(a.id)!.rel + deg.get(a.id)!.art)));
+const totalRel = links.filter((l) => l.kind === 'related').reduce((s, l) => s + l.n, 0);
+const totalArt = links.filter((l) => l.kind === 'article').reduce((s, l) => s + l.n, 0);
+const live = tools.filter((t) => t.data.status === 'live');
+// The lists of links: every area, shelf, subject and blog kind (single tools are on their shelf pages).
+const under = (id: string) => nodes.filter((n) => n.parent === id);
+const groups = [
+  { title: 'Main pages', links: [['/', 'Home'], ['/tools/', 'All tools'], ['/learn/', 'Learn'], ['/blog/', 'Blog'], ['/stats/', 'Usage stats'], ['/changes/', 'Change log']] },
+  { title: 'Learn', links: [['/learn/', 'Learn overview'], ...under('learn').map((n) => [n.url, n.name])] },
+  ...under('tools').map((s) => ({ title: `${s.name} (${s.count} tools)`, links: [[s.url, `All ${s.name.toLowerCase()} tools`], ...under(s.id).map((n) => [n.url, `${n.name} (${n.count})`])] })),
+  { title: 'Blog', links: [['/blog/', 'Latest'], ...KINDS.map((k) => [`/blog/${k.id}/`, `${k.name} (${articles.filter((a) => kindOf(a) === k.id).length})`]), ['/changes/', 'Change log']] },
+  { title: 'About the site', links: [['/about/', 'About'], ['/privacy/', 'Privacy'], ['/terms/', 'Terms'], ['/contact/', 'Contact'], ['/sitemap-index.xml', 'XML sitemap (for search engines)']] },
+] as { title: string; links: [string, string][] }[];
+---
+<Base title="Site map" description={`Every part of fibub and how it links together: ${live.length} free tools, ${articles.length} blog articles, shelves, subjects and Learn, as a network chart and lists.`}>
+  <div class="crumbs"><a href="/">Home</a> / Site map</div>
+  <h1>Site map</h1>
+  <p class="lead">Every part of fibub in one place, and how the parts link to each other.</p>
+
+  <section aria-labelledby="net-h">
+    <h2 id="net-h">How the pages connect</h2>
+    <p class="muted">Each dot is a part of the site: Home in the middle, then the areas, then shelves and blog kinds, then subjects. Grey lines are the menus. Coloured curves are cross-links: <b class="k-rel">tools listed as related</b> across two parts ({totalRel.toLocaleString('en')} links), and <b class="k-art">blog articles that link to tools</b> ({totalArt.toLocaleString('en')} links). Thicker means more links.</p>
+    <figure class="net">
+      <div class="net-scroll">
+        <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Network chart of how fibub's areas, shelves, subjects and blog kinds link to each other">
+          <g class="cross">
+            {shown.map((l) => <path class={l.kind === 'related' ? 'rel' : 'art'} d={curve(l.a, l.b)} stroke-width={w(l.n)}><title>{`${byId.get(l.a)!.name} ↔ ${byId.get(l.b)!.name}: ${l.n} ${l.kind === 'related' ? 'related-tool links' : 'article links'}`}</title></path>)}
+          </g>
+          <g class="tree">
+            {nodes.filter((n) => n.parent).map((n) => { const p = byId.get(n.parent!)!; return <line x1={p.x.toFixed(1)} y1={p.y.toFixed(1)} x2={n.x.toFixed(1)} y2={n.y.toFixed(1)} />; })}
+          </g>
+          <g class="nodes">
+            {nodes.map((n) => {
+              const deg2 = (n.angle * 180) / Math.PI, flip = Math.cos(n.angle) < 0;
+              return (
+                <a href={n.url}>
+                  <circle class={`n-${branch(n.id)}`} cx={n.x.toFixed(1)} cy={n.y.toFixed(1)} r={r(n)}><title>{n.count ? `${n.name}: ${n.count}` : n.name}</title></circle>
+                  {leaf(n.id) ? (
+                    <text class="lab" transform={`translate(${n.x.toFixed(1)} ${n.y.toFixed(1)}) rotate(${(flip ? deg2 + 180 : deg2).toFixed(1)})`} x={flip ? -10 : 10} y="4" text-anchor={flip ? 'end' : 'start'}>{n.name.length > 24 ? n.name.slice(0, 23) + '…' : n.name}</text>
+                  ) : (
+                    <text class="lab hub" x={n.x.toFixed(1)} y={(n.y - 11).toFixed(1)} text-anchor="middle">{n.name}</text>
+                  )}
+                </a>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+      <figcaption class="muted">The {shown.length} busiest cross-links are drawn. Tap a dot to open that part of the site; the tables below give every number.</figcaption>
+    </figure>
+
+    <div class="two">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <caption>Strongest connections</caption>
+          <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Through</th><th scope="col" class="r">Links</th></tr></thead>
+          <tbody>{links.slice(0, 15).map((l) => <tr><td><a href={byId.get(l.a)!.url}>{byId.get(l.a)!.name}</a></td><td><a href={byId.get(l.b)!.url}>{byId.get(l.b)!.name}</a></td><td>{l.kind === 'related' ? 'Related' : 'Articles'}</td><td class="r">{l.n}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <caption>Most connected parts</caption>
+          <thead><tr><th scope="col">Part</th><th scope="col" class="r">Items</th><th scope="col" class="r">Related</th><th scope="col" class="r">Articles</th></tr></thead>
+          <tbody>{parts.slice(0, 15).map((n) => <tr><td><a href={n.url}>{n.name}</a></td><td class="r">{n.count || '-'}</td><td class="r">{deg.get(n.id)!.rel}</td><td class="r">{deg.get(n.id)!.art}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="all-h">
+    <h2 id="all-h">Every section</h2>
+    <p class="muted">Single tools are listed on their shelf and subject pages, and every tool can be found with search.</p>
+    <div class="smap">
+      {groups.map((g) => (
+        <section>
+          <h3>{g.title}</h3>
+          <ul>{g.links.map(([href, label]) => <li><a href={href}>{label}</a></li>)}</ul>
+        </section>
+      ))}
+    </div>
+  </section>
+
+  <ToolMap tools={tools} />
+</Base>
+
+<style>
+  h2 { margin-top: 28px; }
+  .muted { color: var(--muted); font-size: 14px; max-width: 760px; }
+  .k-rel { color: var(--accent); }
+  .k-art { color: var(--warn); }
+  .net { margin: 12px 0 0; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .net-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .net svg { display: block; width: 100%; min-width: 560px; max-width: 800px; height: auto; margin: 0 auto; }
+  .net figcaption { margin-top: 6px; }
+  .net .tree line { stroke: var(--line); stroke-width: 1.2; }
+  .net .cross path { fill: none; stroke-linecap: round; opacity: 0.45; }
+  .net .cross .rel { stroke: var(--accent); }
+  .net .cross .art { stroke: var(--warn); }
+  .net .cross path:hover { opacity: 1; }
+  .net circle { stroke: var(--bg); stroke-width: 1.5; }
+  .net .n-home { fill: var(--ink); }
+  .net .n-tools { fill: var(--accent); }
+  .net .n-learn { fill: var(--good); }
+  .net .n-blog { fill: var(--warn); }
+  .net .n-site { fill: var(--muted); }
+  .net text { font-size: 11px; font-family: inherit; fill: var(--ink); }
+  .net .hub { font-weight: 700; font-size: 12px; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .net a:hover text { text-decoration: underline; }
+  .two { display: grid; gap: 16px; margin-top: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+  .tbl-wrap { overflow-x: auto; }
+  .tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tbl caption { text-align: left; font-weight: 700; padding-bottom: 6px; }
+  .tbl th, .tbl td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .tbl a { color: var(--ink); }
+  .smap { display: grid; gap: 4px 28px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+  .smap h3 { font-size: 15px; margin: 14px 0 6px; }
+  .smap ul { margin: 0; padding: 0; list-style: none; }
+  .smap li { padding: 3px 0; font-size: 14.5px; }
+</style>
