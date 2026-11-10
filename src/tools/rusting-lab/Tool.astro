@@ -1,0 +1,175 @@
+---
+// Rusting lab: six iron nails in test tubes (dry air, no air, air and water, salt water, painted, galvanised) watched
+// over days with a teaching model; a scratch switch; a results table; the rust equation and mass. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { TUBES } from '../../lib/sci/rust-l2';
+---
+<div class="ax rl">
+  <div class="ax-card">
+    <h2>Six nails, six test tubes</h2>
+    <svg class="rl-fig" viewBox="0 0 340 250" role="img" aria-label="Six test tubes, each with an iron nail"></svg>
+    <div class="rl-day">
+      <label for="rl-d">Day <b class="rl-dn">0</b></label>
+      <input type="range" id="rl-d" class="rl-d" min="0" max="21" step="1" value="0" />
+    </div>
+    <div class="ax-row">
+      <button type="button" class="btn small rl-play">Watch 3 weeks</button>
+      <button type="button" class="btn secondary small rl-reset">Back to day 0</button>
+      <label class="ax-check"><input type="checkbox" class="rl-scr" /> Scratch the coated nails</label>
+    </div>
+    <p class="ax-help">A teaching model: the speeds are made up, but the pattern is what you would see in a school lab over one to three weeks.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results</h2>
+    <div class="ax-scroll"><table class="rl-table"></table></div>
+    <p class="rl-say" aria-live="polite"></p>
+    <ul class="rl-notes">{TUBES.map((t, i) => <li><b>{'ABCDEF'[i]}. {t.label}:</b> {t.note}</li>)}</ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>What rust is</h2>
+    <p class="lx-eq">4Fe(s) + 3O₂(g) + 2xH₂O(l) → 2Fe₂O₃·xH₂O(s)</p>
+    <p>Rust is hydrated iron(III) oxide. Iron is oxidised: it gains oxygen (Class 10 view) or goes from oxidation number 0 to +3 (Class 11 view). Because the oxygen comes from the air, a rusted nail weighs <b>more</b> than the clean one.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Mass of iron that rusts (g) <input type="number" class="rl-fe" min="0.01" max="10000" step="any" value="5.6" /></label>
+    </div>
+    <p class="rl-mass sm-f"></p>
+    <p class="ax-err rl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Slide to day 21. Which two tubes have no rust at all? What is missing in each?</li>
+      <li>Compare C and D. Why do cars rust faster where roads are salted, and ships faster than bridges?</li>
+      <li>Tick "Scratch the coated nails". The painted nail starts to rust at the scratch, but the galvanised one does not. Why?</li>
+      <li>Work out the mass of rust from 5.6 g of iron. Where did the extra mass come from?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .rl .rl-fig { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .rl .rl-fig text { font: 600 11px system-ui, sans-serif; text-anchor: middle; fill: var(--ink); }
+  .rl .rl-fig .rl-glass { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .rl .rl-fig .rl-water { fill: var(--accent-soft); }
+  .rl .rl-fig .rl-oil { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 0.8; }
+  .rl .rl-fig .rl-salt { fill: var(--surface); stroke: var(--accent); stroke-width: 0.6; }
+  .rl .rl-fig .rl-dry { fill: var(--surface); stroke: var(--muted); stroke-width: 0.8; }
+  .rl .rl-fig .rl-cork { fill: var(--muted); }
+  .rl .rl-fig .rl-nail { fill: var(--muted); }
+  .rl .rl-fig .rl-paint { fill: var(--accent); }
+  .rl .rl-fig .rl-zinc { fill: var(--line); stroke: var(--muted); stroke-width: 0.8; }
+  .rl .rl-fig .rl-rust { fill: var(--warn); }
+  .rl .rl-fig .rl-scratch { stroke: var(--surface); stroke-width: 2; }
+  .rl .rl-fig .rl-sub { font-weight: 400; font-size: 10px; fill: var(--muted); }
+  .rl .rl-day { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; margin: 10px 0; font-size: 15px; }
+  .rl .rl-day input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rl .rl-notes { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rl .rl-notes b { color: var(--ink); }
+  .rl .rl-say { font-weight: 650; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { TUBES, rusted, describe, rustMass, oxygenTaken, ironPercent, AW, M_FE2O3 } from '../../lib/sci/rust-l2';
+  import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.rl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.rl-fig'), D = q<HTMLInputElement>('.rl-d'), SCR = q<HTMLInputElement>('.rl-scr');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag: string, a: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; fig.append(e); return e; };
+  // Fixed spots along the nail where rust appears, in order (so more rust = more spots, never jumping around).
+  const SPOTS = Array.from({ length: 26 }, (_, i) => ({ y: 8 + ((i * 37) % 120), x: ((i * 13) % 7) - 3, r: 2 + ((i * 7) % 3) }));
+  let timer = 0;
+
+  function draw() {
+    const day = Number(D.value), scr = SCR.checked;
+    q('.rl-dn').textContent = String(day);
+    fig.replaceChildren();
+    TUBES.forEach((t, i) => {
+      const cx = 30 + i * 56, top = 34, bot = 200, w = 40;
+      // Contents.
+      if (t.water) el('rect', { x: cx - w / 2 + 1, y: 80, width: w - 2, height: bot - 80, class: 'rl-water' });
+      if (t.salt) for (let k = 0; k < 10; k++) el('circle', { cx: cx - 14 + ((k * 11) % 28), cy: 95 + ((k * 29) % 95), r: 1.6, class: 'rl-salt' });
+      if (t.id === 'boiled') el('rect', { x: cx - w / 2 + 1, y: 72, width: w - 2, height: 9, class: 'rl-oil' });
+      if (t.id === 'dry') for (let k = 0; k < 12; k++) el('circle', { cx: cx - 15 + ((k * 9) % 30), cy: 192 - ((k * 5) % 12), r: 3, class: 'rl-dry' });
+      // Nail.
+      const nx = cx - 3, ny = 50, nh = 130;
+      el('rect', { x: cx - 9, y: ny - 5, width: 18, height: 5, rx: 1, class: t.coat === 'paint' ? 'rl-paint' : t.coat === 'zinc' ? 'rl-zinc' : 'rl-nail' });
+      el('path', { d: `M${nx},${ny} h6 v${nh} l-3,8 l-3,-8 Z`, class: t.coat === 'paint' ? 'rl-paint' : t.coat === 'zinc' ? 'rl-zinc' : 'rl-nail' });
+      if (scr && t.coat !== 'none') el('line', { x1: cx - 3, y1: 130, x2: cx + 3, y2: 122, class: 'rl-scratch' });
+      const share = rusted(t, day, scr), shown = Math.round(share * SPOTS.length);
+      if (t.coat === 'paint') for (let k = 0; k < Math.round(share * 4 * 6); k++) el('circle', { cx: cx + ((k % 3) - 1) * 2.5, cy: 120 + k * 1.6, r: 2.2, class: 'rl-rust' });
+      else for (let k = 0; k < shown; k++) el('circle', { cx: cx + SPOTS[k].x, cy: ny + SPOTS[k].y, r: SPOTS[k].r, class: 'rl-rust' });
+      // Glass and cork.
+      el('path', { d: `M${cx - w / 2},${top} V${bot - 10} a${w / 2},14 0 0 0 ${w},0 V${top}`, class: 'rl-glass' });
+      if (t.id === 'dry' || t.id === 'boiled') el('rect', { x: cx - w / 2 - 2, y: top - 12, width: w + 4, height: 14, rx: 3, class: 'rl-cork' });
+      el('text', { x: cx, y: 18 }, 'ABCDEF'[i]);
+      el('text', { x: cx, y: 228, class: 'rl-sub' }, t.label.split(' ')[0]);
+      el('text', { x: cx, y: 241, class: 'rl-sub' }, t.label.split(' ').slice(1).join(' '));
+    });
+    table(day, scr);
+  }
+
+  function table(day: number, scr: boolean) {
+    const tb = q<HTMLTableElement>('.rl-table'); tb.replaceChildren();
+    const h = tb.insertRow(); for (const x of ['Tube', 'Air?', 'Water?', `Day ${day}`]) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    TUBES.forEach((t, i) => {
+      const r = tb.insertRow(), s = rusted(t, day, scr);
+      r.insertCell().textContent = `${'ABCDEF'[i]}. ${t.label}`;
+      r.insertCell().textContent = t.air ? 'yes' : 'no';
+      r.insertCell().textContent = t.water ? (t.salt ? 'yes, salty' : 'yes') : 'no';
+      const c = r.insertCell(); c.textContent = describe(s) + (s > 0 ? ` (${Math.round(s * 100)}%)` : ''); c.className = 'rl-res';
+    });
+    q('.rl-say').textContent = day === 0 ? 'Day 0: six shiny nails. Slide the day or press Watch.'
+      : `Only nails with both air and water rust${scr ? ', plus the painted nail where it is scratched' : ''}. Salt water is fastest. Paint${scr ? ' (until scratched)' : ''} and zinc protect the iron.`;
+  }
+
+  function mass() {
+    const v = Number(q<HTMLInputElement>('.rl-fe').value), err = q('.rl-err'), out = q('.rl-mass');
+    if (!(v > 0 && v <= 10000)) { err.textContent = 'Type a mass above 0 and up to 10 000 g.'; err.hidden = false; out.textContent = ''; return; }
+    err.hidden = true;
+    const r = rustMass(v), mol = v / AW.Fe;
+    out.textContent = `${v} g ÷ ${AW.Fe} g/mol = ${mol.toPrecision(4)} mol of iron → ${(mol / 2).toPrecision(4)} mol of Fe₂O₃ × ${M_FE2O3.toFixed(3)} g/mol = ${r.toPrecision(4)} g of iron(III) oxide (not counting its water). It took ${oxygenTaken(v).toPrecision(4)} g of oxygen from the air. Iron is ${ironPercent().toFixed(2)}% of Fe₂O₃ by mass.`;
+  }
+
+  const stop = () => { if (timer) { clearInterval(timer); timer = 0; } q('.rl-play').textContent = 'Watch 3 weeks'; };
+  q('.rl-play').addEventListener('click', () => {
+    if (timer) { stop(); return; }
+    if (D.value === D.max) D.value = '0';
+    q('.rl-play').textContent = 'Pause';
+    timer = window.setInterval(() => { D.value = String(Number(D.value) + 1); draw(); if (D.value === D.max) stop(); }, 250);
+  });
+  q('.rl-reset').addEventListener('click', () => { stop(); D.value = '0'; draw(); });
+  D.addEventListener('input', () => { stop(); draw(); });
+  SCR.addEventListener('change', draw);
+  q('.rl-fe').addEventListener('input', mass);
+  draw(); mass();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const out: Question[] = [];
+    const pairs: [string, string, string][] = [
+      ['A (dry air)', 'C (air and water)', 'C'], ['B (boiled water under oil)', 'C (air and water)', 'C'],
+      ['C (tap water)', 'D (salt water)', 'D'], ['E (painted, not scratched)', 'C (bare nail in water)', 'C'],
+      ['F (galvanised)', 'D (salt water)', 'D'],
+    ];
+    const [a, b, ans] = pickOne(pairs);
+    out.push({ q: `Which nail rusts first: ${a} or ${b}? Type the letter.`, answer: ans, ok: same(ans, ans.toLowerCase()), hint: 'a letter', worked: ans === 'D' ? 'Both have air and water, but salt helps the reaction go faster.' : 'Rusting needs both air (oxygen) and water; the other tube is missing one of them, or the iron is coated.' });
+    const fe = rint(2, 40) * 0.56;
+    out.push({ q: `${fe.toFixed(2)} g of iron rusts completely to Fe₂O₃. What mass of Fe₂O₃ forms? (Fe = 56, O = 16)`, answer: `${((fe / 56) * 80).toFixed(2)} g`, ok: near((fe / 56) * 80, 0.01), hint: 'grams',
+      worked: `${fe.toFixed(2)} ÷ 56 = ${(fe / 56).toFixed(3)} mol Fe. 4Fe → 2Fe₂O₃, so ${(fe / 112).toFixed(3)} mol Fe₂O₃ × 160 g/mol = ${((fe / 56) * 80).toFixed(2)} g.` });
+    out.push({ q: 'In rusting, iron goes from oxidation number 0 to what?', answer: '+3', ok: same('+3', '3'), hint: 'a number like +2', worked: 'In Fe₂O₃ each O is −2, so 2 × Fe + 3 × (−2) = 0 and Fe = +3. Iron is oxidised.' });
+    const m = rint(10, 90);
+    out.push({ q: `A clean nail weighs ${m}.00 g. After rusting, does it weigh more or less? Type "more" or "less".`, answer: 'more', ok: same('more'), hint: 'more or less', worked: 'Rust contains oxygen (and water) taken from the air, added to the iron that was already there.' });
+    return out;
+  });
+</script>
