@@ -1,0 +1,116 @@
+---
+// #T862 Pan size converter
+const pans = [
+  { k: 'a', title: "The recipe's pan", shape: 'round', d1: '8', d2: '', vol: '10' },
+  { k: 'b', title: 'Your pan', shape: 'round', d1: '9', d2: '', vol: '10' },
+];
+---
+<div class="tool-ui pan">
+  <div class="pan-units" role="radiogroup" aria-label="Units">
+    <label><input type="radio" name="pan-u" value="in" checked /> Inches</label>
+    <label><input type="radio" name="pan-u" value="cm" /> Centimetres</label>
+  </div>
+  <div class="pan-two">
+    {pans.map((p) => (
+      <section class="panel pan-p" data-p={p.k}>
+        <h3>{p.title}</h3>
+        <label>Shape
+          <select data-f="shape">
+            <option value="round" selected={p.shape === 'round'}>Round</option>
+            <option value="square">Square</option>
+            <option value="rect">Rectangle</option>
+            <option value="loaf">Loaf tin</option>
+            <option value="vol">Bundt or other (by volume)</option>
+          </select>
+        </label>
+        <label data-show="dim"><span data-l="d1">Diameter</span> <input data-f="d1" inputmode="decimal" value={p.d1} /></label>
+        <label data-show="two"><span>Width</span> <input data-f="d2" inputmode="decimal" value={p.d2} /></label>
+        <label data-show="vol"><span>Volume it holds (<span data-l="vu">cups</span>)</span> <input data-f="vol" inputmode="decimal" value={p.vol} /></label>
+        <label data-show="depth"><span>Depth (optional, for a volume pan)</span> <input data-f="depth" inputmode="decimal" value="2" /></label>
+        <p class="pan-area" aria-live="polite"></p>
+      </section>
+    ))}
+  </div>
+  <section class="panel">
+    <p class="pan-big" aria-live="polite"></p>
+    <p class="pan-say" aria-live="polite"></p>
+    <p class="pan-note" aria-live="polite"></p>
+    <button type="button" class="btn secondary pan-reset">Reset</button>
+  </section>
+  <p class="pan-fine">Pan sizes are measured across the top, inside the rim. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pan { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pan .panel { padding: 16px; }
+  .pan-units { display: flex; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+  .pan-units label { display: inline-flex; gap: 6px; align-items: center; }
+  .pan-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+  .pan-p { display: grid; gap: 10px; align-content: start; }
+  .pan-p h3 { margin: 0; font-size: 16px; }
+  .pan-p label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pan-p input, .pan-p select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pan-p input:focus, .pan-p select:focus { border-color: var(--accent); outline: none; }
+  .pan-p [hidden] { display: none; }
+  .pan-area { margin: 0; font-size: 14px; }
+  .pan-big { font-size: 26px; font-weight: 700; margin: 0 0 4px; }
+  .pan-say, .pan-note { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
+  .pan-reset { padding: 8px 14px; }
+  .pan-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.pan') as HTMLElement;
+  const big = root.querySelector('.pan-big') as HTMLElement, say = root.querySelector('.pan-say') as HTMLElement, note = root.querySelector('.pan-note') as HTMLElement;
+  const IN3_PER_CUP = 14.4375; // one US cup in cubic inches; 1 cm³ = 1 ml
+  const units = () => (root.querySelector('[name="pan-u"]:checked') as HTMLInputElement).value;
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const num = (s: string) => (s.trim() === '' ? NaN : +s.replace(',', '.'));
+  type Pan = { shape: string; area: number; vol: number; label: string };
+  const read = (sec: HTMLElement): Pan | null => {
+    const f = (k: string) => sec.querySelector(`[data-f="${k}"]`) as HTMLInputElement;
+    const shape = f('shape').value, u = units(), sq = u === 'in' ? 'sq in' : 'cm²';
+    const show = (k: string, on: boolean) => ((sec.querySelector(`[data-show="${k}"]`) as HTMLElement).hidden = !on);
+    show('dim', shape !== 'vol'); show('two', shape === 'rect' || shape === 'loaf'); show('vol', shape === 'vol'); show('depth', shape !== 'vol');
+    (sec.querySelector('[data-l="d1"]') as HTMLElement).textContent = shape === 'round' ? `Diameter (${u})` : shape === 'square' ? `Side (${u})` : `Length (${u})`;
+    (sec.querySelector('[data-show="two"] span') as HTMLElement).textContent = `Width (${u})`;
+    (sec.querySelector('[data-show="depth"] span') as HTMLElement).textContent = `Depth (${u}, used only with a volume pan)`;
+    (sec.querySelector('[data-l="vu"]') as HTMLElement).textContent = u === 'in' ? 'US cups' : 'litres';
+    const out = sec.querySelector('.pan-area') as HTMLElement;
+    const d1 = num(f('d1').value), d2 = num(f('d2').value), depth = num(f('depth').value);
+    let area = NaN, vol = NaN, label = '';
+    if (shape === 'vol') {
+      const v = num(f('vol').value);
+      vol = u === 'in' ? v * IN3_PER_CUP : v * 1000; label = `${n(v)} ${u === 'in' ? 'cup' : 'litre'} pan`;
+    } else {
+      area = shape === 'round' ? (Math.PI * d1 * d1) / 4 : shape === 'square' ? d1 * d1 : d1 * d2;
+      vol = area * depth;
+      label = shape === 'round' ? `${n(d1)} ${u} round` : shape === 'square' ? `${n(d1)} ${u} square` : `${n(d1)} × ${n(d2)} ${u} ${shape === 'loaf' ? 'loaf tin' : 'rectangle'}`;
+    }
+    if (shape === 'vol' ? !(vol > 0) : !(area > 0)) { out.textContent = 'Type the size above.'; return null; }
+    out.textContent = shape === 'vol' ? `Holds ${n(vol, 0)} ${u === 'in' ? 'cu in' : 'ml'}` : `Area ${n(area, 1)} ${sq}` + (vol > 0 ? ` · holds about ${u === 'in' ? n(vol / IN3_PER_CUP, 1) + ' cups' : n(vol / 1000, 1) + ' litres'} when full` : '');
+    return { shape, area, vol, label };
+  };
+  const calc = () => {
+    const [a, b] = [...root.querySelectorAll('.pan-p')].map((s) => read(s as HTMLElement));
+    if (!a || !b) { big.textContent = ''; say.textContent = 'Fill in both pans.'; note.textContent = ''; return; }
+    const byVol = a.shape === 'vol' || b.shape === 'vol';
+    if (byVol && !(a.vol > 0 && b.vol > 0)) { big.textContent = ''; say.textContent = 'With a volume pan, give the other pan a depth too.'; note.textContent = ''; return; }
+    const k = byVol ? b.vol / a.vol : b.area / a.area;
+    big.textContent = `× ${n(k)}`;
+    say.textContent = `Going from the ${a.label} to the ${b.label}, multiply every ingredient by ${n(k)} (compared by ${byVol ? 'volume' : 'area'}).`;
+    note.textContent = Math.abs(k - 1) < 0.05
+      ? 'The pans are about the same size: keep the recipe and the baking time.'
+      : byVol
+        ? 'Scaled to fill the pan the same way, the bake is often a little longer in a bigger pan; check early and often.'
+        : `Scaled like this the batter is just as deep, so the baking time stays about the same. If you do not scale it, the batter is ${k > 1 ? 'shallower: check 5 to 10 minutes early' : 'deeper: bake a little longer, perhaps 10 to 15 °C (25 °F) lower so the middle cooks'}.`;
+  };
+  root.addEventListener('input', calc);
+  root.querySelector('.pan-reset')!.addEventListener('click', () => {
+    (root.querySelector('[name="pan-u"][value="in"]') as HTMLInputElement).checked = true;
+    const set = (p: string, v: Record<string, string>) => { for (const [k, x] of Object.entries(v)) (root.querySelector(`[data-p="${p}"] [data-f="${k}"]`) as HTMLInputElement).value = x; };
+    set('a', { shape: 'round', d1: '8', d2: '', vol: '10', depth: '2' }); set('b', { shape: 'round', d1: '9', d2: '', vol: '10', depth: '2' });
+    calc();
+  });
+  calc();
+</script>
