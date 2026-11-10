@@ -1,0 +1,171 @@
+---
+// eˣ and ln x: why e is special. Slope ÷ height of aˣ is the same at every x and equals ln a; it is 1 only for
+// a = e. e from compound interest and from Σ 1/k!; ln x as the mirror of eˣ with slope 1/x. Class 11 and 12.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax eln">
+  <div class="ax-card">
+    <div class="ax-row el-lv"><span class="ax-help">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="11" aria-pressed="false">Class 11</button><button type="button" data-lv="12" aria-pressed="true">Class 12</button></div>
+    </div>
+    <h2>Slope = height?</h2>
+    <canvas class="ax-fig el-fig" role="img"></canvas>
+    <p class="ax-help">Black: y = aˣ. Grey bar: the height at P. Dashed: the tangent at P, with its rise over 1 step drawn in blue. Drag along the curve to move P.</p>
+    <div class="el-sl">
+      <label>Base a = <b class="el-av"></b><input class="el-a" type="range" min="1.2" max="4" step="0.001" value="2" /></label>
+      <label>Point P at x = <b class="el-xv"></b><input class="el-x" type="range" min="-2" max="2" step="0.01" value="1" /></label>
+    </div>
+    <div class="ax-row"><button type="button" class="btn small el-find">Find the base where slope = height</button></div>
+    <p class="el-formula"></p>
+    <dl class="ax-facts el-facts"></dl>
+    <p class="el-flag" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The same e from interest</h2>
+    <p class="ax-help">Put 1 rupee in a bank at 100 % a year, with the interest added n times a year. After one year you have (1 + 1/n)ⁿ.</p>
+    <label class="el-nl">Interest added n = <b class="el-nv"></b> times a year<input class="el-n" type="range" min="0" max="600" step="1" value="120" /></label>
+    <p class="el-big"></p>
+    <div class="ax-scroll"><table class="el-tab"><thead><tr><th class="r">n</th><th class="r">(1 + 1/n)ⁿ</th><th class="r">gap to e</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help el-series"></p>
+  </div>
+
+  <div class="ax-card el-c12">
+    <h2>ln x: the mirror image of eˣ</h2>
+    <canvas class="ax-fig el-mfig" role="img"></canvas>
+    <p class="ax-help">Black: y = eˣ. Blue: y = ln x, its reflection in the dashed line y = x. A tangent on one curve reflects to a tangent on the other, and slopes of reflected lines are reciprocals.</p>
+    <label class="el-tl">Point on ln x at x = <b class="el-tv"></b><input class="el-t" type="range" min="0.2" max="6" step="0.01" value="2" /></label>
+    <dl class="ax-facts el-mfacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="el-try">
+      <li>With a = 2, move P anywhere. Slope ÷ height stays at 0.693: for every exponential the slope is a fixed multiple of the height.</li>
+      <li>Try a = 3: the multiple is 1.099. Somewhere between 2 and 3 it must be exactly 1. Press the button to find it.</li>
+      <li>Slide n in the interest box up to a million. The money creeps up towards 2.71828… and never passes it.</li>
+      <li>In the mirror picture, put the point at x = 2. The slope of ln x is 1/2 there, and the matching point on eˣ has slope 2.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="el-quiz" />
+</div>
+
+<script>
+  import { ratio, ratioAt, slopeExp, compound, seriesE, slopeLn } from '../../lib/sci/e-and-ln';
+  import { paint, pagePalette } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, pointer, wx, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.eln')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 270;
+  const aIn = q<HTMLInputElement>('.el-a'), xIn = q<HTMLInputElement>('.el-x'), nIn = q<HTMLInputElement>('.el-n'), tIn = q<HTMLInputElement>('.el-t');
+  let level = '12', anim = 0, v1: View = view(-2.2, 2.4, -0.5, 8, W, H);
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const nOf = (v: number) => Math.max(1, Math.round(Math.pow(10, v / 100)));
+
+  function drawExp() {
+    const a = +aIn.value, x = +xIn.value, y = Math.pow(a, x), m = slopeExp(a, x), r = ratio(a), pal = pagePalette();
+    q('.el-av').textContent = fmt(a, 3); q('.el-xv').textContent = fmt(x, 2);
+    v1 = view(-2.2, 2.4, -0.5, 8, W, H);
+    paint(q<HTMLCanvasElement>('.el-fig'), { w: W, h: H, alt: `y = ${fmt(a, 3)}^x; at x = ${fmt(x, 2)} height ${fmt(y)} and slope ${fmt(m)}; slope ÷ height = ${fmt(r)}`, draw: (ctx, w, h, pl) => {
+      const v = v1; axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      if (level === '12') curve(ctx, v, Math.exp, pl.line, 1.2, [3, 3]);
+      curve(ctx, v, (t) => Math.pow(a, t), pl.ink, 2.4);
+      ctx.save(); ctx.globalAlpha = 0.35; line(ctx, v, x, 0, x, y, pl.muted, 6); ctx.restore();
+      line(ctx, v, -2.2, y + m * (-2.2 - x), 2.4, y + m * (2.4 - x), pl.accent2, 1.6, [6, 4]);
+      line(ctx, v, x, y, x + 1, y, pl.accent, 1.6); line(ctx, v, x + 1, y, x + 1, y + m, pl.accent, 2.4);
+      label(ctx, v, x + 1, y + m / 2, `rise ${fmt(m, 2)}`, pl.accent, 6, 0);
+      dot(ctx, v, x, y, pl.ink, 5.5, false, pl.bg); label(ctx, v, x, y, 'P', pl.ink, -14, -6);
+    } }, pal);
+    q('.el-formula').textContent = level === '12'
+      ? `d/dx aˣ = aˣ · ln a. At x = ${fmt(x, 2)}: ${fmt(y, 4)} × ${fmt(r, 4)} = ${fmt(m, 4)}`
+      : `Slope at P ≈ [a^(x + h) − aˣ]/h = aˣ × (aʰ − 1)/h. With h = 0.001: ${fmt(y, 4)} × ${fmt(ratioAt(a, 0.001), 4)} = ${fmt(y * ratioAt(a, 0.001), 4)}`;
+    q('.el-facts').replaceChildren(
+      fact('Height aˣ at P', fmt(y, 4)), fact('Slope at P', fmt(m, 4)),
+      fact('Slope ÷ height', fmt(r, 4), level === '12' ? `= ln ${fmt(a, 3)}, the same at every x` : 'the same at every x'),
+    );
+    const isE = Math.abs(r - 1) < 0.0015, flag = q('.el-flag');
+    flag.hidden = !isE; flag.textContent = isE ? `Slope = height: a ≈ ${fmt(a, 3)}. This number is e = 2.71828…, and y = eˣ is its own slope.` : '';
+  }
+
+  function drawN() {
+    const n = nOf(+nIn.value), v = compound(n);
+    q('.el-nv').textContent = n.toLocaleString('en-IN');
+    q('.el-big').textContent = `(1 + 1/${n.toLocaleString('en-IN')})^${n.toLocaleString('en-IN')} = ${v.toFixed(6)}`;
+    q('.el-tab tbody').replaceChildren(...[1, 2, 4, 12, 365, 10000, 1000000].map((k) => { const tr = document.createElement('tr'); [k.toLocaleString('en-IN'), compound(k).toFixed(6), (Math.E - compound(k)).toPrecision(3)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
+    const s = seriesE(10);
+    q('.el-series').textContent = `Another road to the same number: 1 + 1 + 1/2! + 1/3! + … = ${s[2]} → ${s[3].toFixed(4)} → ${s[5].toFixed(5)} → ${s[10].toFixed(7)} after 11 terms. e = ${Math.E.toFixed(9)}…`;
+  }
+
+  function drawMirror() {
+    if (level !== '12') return;
+    const t = +tIn.value, y = Math.log(t), s = slopeLn(t), pal = pagePalette();
+    q('.el-tv').textContent = fmt(t, 2);
+    const v = view(-3, 6, -3, 6, W, W);
+    paint(q<HTMLCanvasElement>('.el-mfig'), { w: W, h: W, alt: `ln x at x = ${fmt(t, 2)} with slope ${fmt(s)}; the mirror point on eˣ has slope ${fmt(t)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      line(ctx, v, -3, -3, 6, 6, pl.muted, 1.2, [4, 4]);
+      curve(ctx, v, Math.exp, pl.ink, 2.2); curve(ctx, v, (z) => (z > 0 ? Math.log(z) : NaN), pl.accent, 2.4, [], 0.001, 6);
+      line(ctx, v, -3, y + s * (-3 - t), 6, y + s * (6 - t), pl.accent, 1.3, [6, 4]);
+      line(ctx, v, -3, t + t * (-3 - y), 6, t + t * (6 - y), pl.ink, 1.3, [6, 4]);
+      line(ctx, v, t, y, y, t, pl.muted, 1, [2, 3]);
+      dot(ctx, v, t, y, pl.accent, 5.5); dot(ctx, v, y, t, pl.ink, 5.5);
+    } }, pal);
+    q('.el-mfacts').replaceChildren(
+      fact('Point on ln x', `(${fmt(t, 2)}, ${fmt(y, 3)})`), fact('Slope of ln x there', fmt(s, 4), `= 1/${fmt(t, 2)}`),
+      fact('Mirror point on eˣ', `(${fmt(y, 3)}, ${fmt(t, 2)})`), fact('Slope of eˣ there', fmt(t, 4), 'slope = height, the e property'),
+    );
+  }
+
+  function setLevel(lv: string) {
+    level = lv;
+    root.querySelectorAll('.el-lv button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.lv === lv)));
+    q('.el-c12').hidden = lv !== '12';
+    drawExp(); drawMirror();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.el-lv button').forEach((b) => b.addEventListener('click', () => setLevel(b.dataset.lv!)));
+  aIn.addEventListener('input', () => { cancelAnimationFrame(anim); drawExp(); });
+  xIn.addEventListener('input', drawExp);
+  nIn.addEventListener('input', drawN);
+  tIn.addEventListener('input', drawMirror);
+  q('.el-find').addEventListener('click', () => {
+    cancelAnimationFrame(anim);
+    const a0 = +aIn.value, t0 = performance.now();
+    const step = (tm: number) => { const k = Math.min(1, (tm - t0) / 1600), e = 1 - (1 - k) ** 3; aIn.value = String(k < 1 ? a0 + (Math.E - a0) * e : Math.E); drawExp(); if (k < 1) anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  });
+  const cv = q<HTMLCanvasElement>('.el-fig');
+  let drag = false;
+  const mv = (e: PointerEvent) => { if (!drag) return; const { X } = pointer(cv, e, W, H); xIn.value = String(Math.min(2, Math.max(-2, wx(v1, X)))); drawExp(); };
+  cv.addEventListener('pointerdown', (e) => { drag = true; cv.setPointerCapture(e.pointerId); mv(e); });
+  cv.addEventListener('pointermove', mv);
+  cv.addEventListener('pointerup', () => { drag = false; }); cv.addEventListener('pointercancel', () => { drag = false; });
+  document.addEventListener('fibub:theme', () => { drawExp(); drawMirror(); });
+  setLevel(level); drawN();
+
+  quiz(q('.el-quiz'), (): Question[] => {
+    const k = rint(2, 6), x0 = rint(2, 8), c = rint(2, 5), b = pick([2, 3, 10]);
+    return [
+      { text: `y = e^(${k}x). What is dy/dx at x = 0?`, answer: k, worked: `dy/dx = ${k}e^(${k}x) (chain rule). At x = 0, e⁰ = 1, so the slope is ${k}.` },
+      { text: `What is the slope of y = ln x at x = ${x0}? (a fraction is fine)`, answer: 1 / x0, worked: `d/dx ln x = 1/x, so the slope is 1/${x0}${x0 === 2 ? ' = 0.5' : ` ≈ ${fmt(1 / x0, 4)}`}.` },
+      { text: `What is the slope of y = ${b}ˣ at x = 0? (2 decimals)`, answer: Math.log(b), tol: 0.006, worked: `d/dx ${b}ˣ = ${b}ˣ ln ${b}. At x = 0 that is ln ${b} ≈ ${fmt(Math.log(b), 4)}.` },
+      { text: `y = ${c}eˣ. At the point where y = ${c * 2}, what is the slope?`, answer: c * 2, worked: `d/dx (${c}eˣ) = ${c}eˣ, which is y itself. So where y = ${c * 2}, the slope is ${c * 2}.` },
+      { text: 'Which base a makes the slope of aˣ equal to its height at every point?', choices: ['2', 'e ≈ 2.718', '3', '10'], correct: 1, worked: 'Slope ÷ height of aˣ is ln a, which equals 1 only when a = e.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .eln .el-sl { display: grid; gap: 10px; margin: 10px 0; }
+  .eln .el-sl label, .eln .el-nl, .eln .el-tl { display: block; color: var(--ink); font-size: 15px; }
+  .eln input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .eln canvas.el-fig { touch-action: pan-y; cursor: grab; }
+  .eln .el-formula, .eln .el-big { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 10px 0; }
+  .eln .el-big { font-size: 20px; font-weight: 700; }
+  .eln .el-flag { font-weight: 700; color: var(--good); margin: 8px 0 0; }
+  .eln .el-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .eln .ax-seg button { min-height: 40px; }
+</style>
