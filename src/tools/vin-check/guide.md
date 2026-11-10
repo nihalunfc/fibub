@@ -12,7 +12,7 @@ order: 1820
 icon: search
 works: offline
 updated: 2026-11-10
-related: [used-car-checklist, car-loan, depreciation]
+related: [used-car-checklist, car-loan, car-depreciation]
 sources:
   - "VIN layout and check digit: the 17-character standard (ISO 3779) and the North American rule in US federal regulation 49 CFR Part 565 (weights 8 7 6 5 4 3 2 10 0 9 8 7 6 5 4 3 2, letters turned into numbers, remainder of 11, 10 shown as X). Checked 2026-11-10; check the official source."
   - "Model year code in position 10 repeats every 30 years (the letters I, O, Q, U and Z and the digit 0 are not used). Drawings are fibub's own."

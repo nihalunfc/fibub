@@ -12,7 +12,7 @@ order: 1821
 icon: check
 works: offline
 updated: 2026-11-10
-related: [vin-check, car-loan, depreciation]
+related: [vin-check, car-loan, car-depreciation]
 sources:
   - "General inspection points commonly given by consumer-advice and motoring bodies; written by fibub, not copied. It is not a mechanic's inspection and not legal advice. Check the official source for the papers, tax and roadworthiness rules where you live (checked 2026-11-10)."
 flow:
