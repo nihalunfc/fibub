@@ -39,16 +39,28 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   <section class="live" aria-live="polite">
     <h2>Live counts</h2>
     <p class="muted live-msg">Loading the counts...</p>
-    <div class="grid kpis live-kpis" hidden>
-      <div class="card"><span class="muted">Page views, whole site</span><b data-k="site"></b></div>
-      <div class="card"><span class="muted">Tool uses</span><b data-k="uses"></b></div>
-      <div class="card"><span class="muted">Tools used at least once</span><b data-k="used"></b></div>
-    </div>
-    <div class="live-tabs" hidden>
-      <h3>Most used tools</h3>
-      <table class="tbl wide"><thead><tr><th>Tool</th><th>Uses</th><th>Page views</th></tr></thead><tbody class="by-uses"></tbody></table>
-      <h3>Most viewed tools</h3>
-      <table class="tbl wide"><thead><tr><th>Tool</th><th>Page views</th><th>Uses</th></tr></thead><tbody class="by-views"></tbody></table>
+    <div class="live-body" hidden>
+      <div class="grid kpis">
+        <div class="card"><span class="muted">Page views, whole site</span><b data-k="site"></b></div>
+        <div class="card"><span class="muted">Tool uses</span><b data-k="uses"></b></div>
+        <div class="card"><span class="muted">Tools used at least once</span><b data-k="used"></b></div>
+        <div class="card"><span class="muted">Uses per 100 tool views</span><b data-k="rate"></b></div>
+      </div>
+
+      <h3>Last 30 days</h3>
+      <figure class="fig"><div class="chart-days"></div><figcaption class="muted">Page views (line) and tool uses (dashed) per day, UTC. Days before counting began show as zero.</figcaption></figure>
+
+      <h3>Top 10 tools</h3>
+      <figure class="fig"><div class="chart-top"></div><figcaption class="muted">Ranked by uses, then page views. Dark bar: uses. Light bar: page views.</figcaption></figure>
+
+      <h3>Where the use goes</h3>
+      <figure class="fig"><div class="chart-cats"></div><figcaption class="muted">Share of all tool uses (dark) and tool page views (light) by area.</figcaption></figure>
+
+      <h3>Top tools in each area</h3>
+      <p class="muted">Five at a time. Press "Show 5 more" to go further down a list.</p>
+      <div class="cat-grid"></div>
+      <h3 class="sci-h" hidden>Top tools in each science subject</h3>
+      <div class="cat-grid sci-grid"></div>
     </div>
     <p class="muted">Running totals since counting began. A use is the first time someone works a tool after opening its page. Nothing about any visitor is kept; the daily files are in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">public repository</a>.</p>
   </section>
@@ -86,9 +98,28 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 </Base>
 
 <style>
-  .live h3 { font-size: 16px; margin: 20px 0 6px; }
-  .tbl.wide { max-width: 560px; }
-  .tbl td:not(:first-child), .tbl th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .live h3 { font-size: 17px; margin: 28px 0 8px; }
+  .fig { margin: 0; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .fig figcaption { margin-top: 8px; }
+  :global(.fig svg) { display: block; width: 100%; height: auto; overflow: visible; }
+  :global(.fig text) { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  :global(.fig .lab) { fill: var(--ink); }
+  :global(.fig .grid) { stroke: var(--line); stroke-width: 1; }
+  :global(.fig .b1) { fill: var(--accent); }
+  :global(.fig .b2) { fill: var(--accent); opacity: 0.28; }
+  :global(.fig .l1) { stroke: var(--accent); fill: none; stroke-width: 2; stroke-linejoin: round; }
+  :global(.fig .l2) { stroke: var(--ink); fill: none; stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+  .cat-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+  :global(.cat) { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  :global(.cat h4) { margin: 0 0 6px; font-size: 15px; }
+  :global(.cat ol) { margin: 0; padding: 0; list-style: none; counter-reset: c; }
+  :global(.cat li) { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); counter-increment: c; font-size: 14px; }
+  :global(.cat li)::before { content: counter(c); color: var(--muted); font-size: 12px; }
+  :global(.cat li a) { color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.cat li a:hover) { text-decoration: underline; }
+  :global(.cat .n) { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  :global(.cat button) { margin-top: 8px; border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  :global(.cat .none) { color: var(--muted); font-size: 14px; margin: 0; }
   .muted { color: var(--muted); font-size: 14px; }
   .kpis .card { display: grid; gap: 4px; }
   .kpis b { font-size: 28px; }
@@ -105,30 +136,5 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 </style>
 
 <script>
-  import { loadIndex } from '../scripts/find';
-  const fmt = (n: number) => n.toLocaleString('en');
-  (async () => {
-    const msg = document.querySelector<HTMLElement>('.live-msg')!;
-    try {
-      const [res, index] = await Promise.all([fetch('/api/counts'), loadIndex()]);
-      if (!res.ok) throw new Error();
-      const c = (await res.json()) as { site: number; pages: Record<string, number>; uses: Record<string, number> };
-      const rows = index.map((e) => ({ e, v: c.pages[e.u] ?? 0, u: c.uses[e.id] ?? 0 }));
-      const set = (k: string, n: number) => { document.querySelector(`[data-k="${k}"]`)!.textContent = fmt(n); };
-      set('site', c.site); set('uses', rows.reduce((n, r) => n + r.u, 0)); set('used', rows.filter((r) => r.u > 0).length);
-      const fill = (sel: string, list: typeof rows, a: 'u' | 'v', b: 'u' | 'v') => {
-        document.querySelector(sel)!.replaceChildren(...list.slice(0, 25).map((r) => {
-          const tr = document.createElement('tr'), td = document.createElement('td'), l = document.createElement('a');
-          l.href = r.e.u; l.textContent = r.e.n; td.append(l); tr.append(td);
-          for (const n of [r[a], r[b]]) { const x = document.createElement('td'); x.textContent = fmt(n); tr.append(x); }
-          return tr;
-        }));
-      };
-      fill('.by-uses', rows.filter((r) => r.u > 0).sort((x, y) => y.u - x.u || y.v - x.v), 'u', 'v');
-      fill('.by-views', rows.filter((r) => r.v > 0).sort((x, y) => y.v - x.v || y.u - x.u), 'v', 'u');
-      msg.hidden = true;
-      document.querySelector<HTMLElement>('.live-kpis')!.hidden = false;
-      document.querySelector<HTMLElement>('.live-tabs')!.hidden = false;
-    } catch { msg.textContent = 'The live counts could not be loaded just now. Try again in a moment.'; }
-  })();
+  import '../scripts/stats-live';
 </script>

@@ -1,5 +1,12 @@
 [
  {
+  "sha": "8d43a3171a42",
+  "date": "2026-11-10T05:49:36+00:00",
+  "title": "Usage page: show live view and use counts",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "0bffa08f8edc",
   "date": "2026-11-10T05:32:48+00:00",
   "title": "Home: style the script-built most-used rows with :global()",
