@@ -1,0 +1,273 @@
+---
+// Stress-strain tester: hang loads on a wire of steel, copper, aluminium or rubber and follow its stress-strain
+// curve to fracture; or do Searle's experiment and find Young's modulus from load-extension readings.
+// Maths in src/lib/sci/wiretest.ts.
+import '../../styles/astro.css';
+---
+<div class="ax sst">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg sst-mode" role="group" aria-label="What to do">
+        <button type="button" data-v="pull" aria-pressed="true">Pull a wire</button>
+        <button type="button" data-v="searle" aria-pressed="false">Searle's experiment</button>
+      </div>
+    </div>
+    <div class="ax-row sst-mat-row">
+      <span>Wire</span>
+      <div class="ax-seg sst-mat" role="group" aria-label="Wire material">
+        <button type="button" data-v="steel" aria-pressed="true">Steel</button>
+        <button type="button" data-v="copper" aria-pressed="false">Copper</button>
+        <button type="button" data-v="aluminium" aria-pressed="false">Aluminium</button>
+        <button type="button" data-v="rubber" aria-pressed="false" class="sst-rubber">Rubber</button>
+        <button type="button" data-v="mystery" aria-pressed="false" class="sst-myst" hidden>Mystery</button>
+      </div>
+    </div>
+    <div class="ax-row sst-dims">
+      <label>Length <select class="sst-L">
+        <option value="1">1 m</option><option value="2" selected>2 m</option><option value="3">3 m</option>
+      </select></label>
+      <label>Thickness <select class="sst-d">
+        <option value="0.5">0.5 mm</option><option value="1" selected>1 mm</option><option value="2">2 mm</option><option value="5">5 mm</option>
+      </select></label>
+    </div>
+    <canvas class="sst-c" aria-label="Wire and its stress-strain curve"></canvas>
+    <p class="sst-state"><span class="ax-pill sst-pill"></span></p>
+
+    <div class="sst-pull">
+      <label>Load hanging on the wire: <b class="sst-mv"></b><input class="sst-m" type="range" min="0" max="40" step="0.1" value="10" /></label>
+      <div class="ax-row">
+        <span>Graph</span>
+        <div class="ax-seg sst-zoom" role="group" aria-label="Graph range">
+          <button type="button" data-v="all" aria-pressed="true">Whole curve</button>
+          <button type="button" data-v="start" aria-pressed="false">Zoom on the start</button>
+        </div>
+        <button type="button" class="btn secondary small sst-new">New wire</button>
+      </div>
+    </div>
+
+    <div class="sst-searle" hidden>
+      <div class="ax-row">
+        <button type="button" class="btn small sst-add">Add 0.5 kg</button>
+        <button type="button" class="btn secondary small sst-off">Take 0.5 kg off</button>
+        <button type="button" class="btn secondary small sst-clear">Start again</button>
+        <button type="button" class="btn secondary small sst-reveal" hidden>Reveal the answer</button>
+      </div>
+      <div class="ax-scroll"><table class="sst-table"><thead><tr><th>Load (kg)</th><th>Micrometer reading of the stretch (mm)</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <p class="ax-help">The curves use made-up, rounded values that behave like the named material, not data for any real grade. g = 9.8 m/s². The stretch in the picture is drawn much bigger than it is.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="sst-h"></h2>
+    <dl class="ax-facts sst-facts"></dl>
+    <div class="sst-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sst-try">
+      <li>Pull steel with "Zoom on the start" on. The straight part is Hooke's law; its slope is Young's modulus.</li>
+      <li>Go just past the elastic limit, then lower the load to 0. The wire stays a little longer for good: a permanent set.</li>
+      <li>Compare copper with steel: copper gives way at a much lower stress, but stretches further before it breaks (it is more ductile).</li>
+      <li>Try rubber: it stretches to several times its length, never follows a straight line, and still springs back.</li>
+      <li>In Searle's experiment, pick the mystery wire, take readings and work out its Young's modulus before you reveal it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="sst-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { G, material, mystery, stressAt, wireStrain, permanentSet, yieldStrain, area, breakingLoad, slopeThroughOrigin, youngFromSlope, questions, type Material } from '../../lib/sci/wiretest';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.sst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const load = q<HTMLInputElement>('.sst-m');
+  const H = 300;
+  let mode = 'pull', matId = 'steel', zoom = 'all';
+  let eMax = 0, broken = false;
+  let mystE = 150e9, revealed = false;
+  let readings: { M: number; ext: number }[] = [], sLoad = 0, sMax = 0;
+
+  const L = () => Number(q<HTMLSelectElement>('.sst-L').value), d = () => Number(q<HTMLSelectElement>('.sst-d').value);
+  const mat = (): Material => (matId === 'mystery' ? mystery(mystE) : material(matId));
+  const newMystery = () => { mystE = Math.round(90 + Math.random() * 120) * 1e9; revealed = false; };
+
+  function resetWire() {
+    eMax = 0; broken = false;
+    const m = mat(), maxKg = Math.max(1, Math.ceil(breakingLoad(m, d()) * 1.15));
+    load.max = String(maxKg); load.step = maxKg > 30 ? '0.5' : '0.1';
+    if (Number(load.value) > maxKg) load.value = String(Math.round(maxKg * 3) / 10);
+  }
+
+  // The wire's state under the current load in "pull" mode.
+  function pullState() {
+    const m = mat(), s = (Number(load.value) * G) / area(d());
+    if (broken) return { m, s, e: NaN, broke: true };
+    const r = wireStrain(m, s, eMax);
+    if (!r) { broken = true; return { m, s, e: NaN, broke: true }; }
+    eMax = r.eMax; return { m, s, e: r.e, broke: false };
+  }
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.sst-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const m = mat(), A = area(d());
+    const st = mode === 'pull' ? pullState() : (() => { const r = wireStrain(m, (sLoad * G) / A, sMax); return { m, s: (sLoad * G) / A, e: r ? r.e : NaN, broke: !r }; })();
+    // ---- the wire, hanging from a beam
+    const wx = 40, top = 18, baseLen = H - 110, stretch = st.broke ? 0 : Math.min(60, m.kind === 'rubber' ? st.e * 12 : st.e * 2400 + (st.e > 0 ? 4 : 0));
+    ctx.fillStyle = pal.muted; ctx.fillRect(10, top - 8, 60, 8);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = m.kind === 'rubber' ? 4 : 2;
+    const len = baseLen * (L() / 3) * 0.8 + 40;
+    if (st.broke) {
+      ctx.beginPath(); ctx.moveTo(wx, top); ctx.lineTo(wx, top + len * 0.55); ctx.stroke();
+      ctx.strokeStyle = pal.bad; ctx.beginPath(); ctx.moveTo(wx - 6, top + len * 0.55 + 4); ctx.lineTo(wx + 6, top + len * 0.55 - 4); ctx.stroke();
+      ctx.fillStyle = pal.bad; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('snap!', wx + 8, top + len * 0.55 + 4);
+      ctx.fillStyle = pal.muted; ctx.fillRect(wx - 16, H - 34, 32, 22);
+    } else {
+      ctx.beginPath(); ctx.moveTo(wx, top); ctx.lineTo(wx, top + len + stretch); ctx.stroke();
+      const kg = mode === 'pull' ? Number(load.value) : sLoad, bh = Math.min(40, 10 + Math.sqrt(kg) * 4);
+      ctx.fillStyle = pal.ink; ctx.fillRect(wx - 16, top + len + stretch, 32, bh);
+      ctx.fillStyle = pal.bg; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; if (bh >= 16) ctx.fillText(`${fmt(kg, 1)}`, wx, top + len + stretch + bh / 2 + 4);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('kg', wx + 20, top + len + stretch + 12);
+    }
+    // ---- the stress-strain curve
+    const gx0 = 126, gx1 = w - 14, gy0 = 16, gy1 = H - 36;
+    const eTop = zoom === 'start' && mode === 'pull' && m.kind === 'metal' ? yieldStrain(m) * 3 : mode === 'searle' ? Math.max(yieldStrain(m) * 1.6, 1e-4) : m.ef * 1.05;
+    const sTop = mode === 'searle' || zoom === 'start' ? Math.min(m.su, stressAt(m, eTop) || m.su) * 1.15 : m.su * 1.12;
+    const X = (e: number) => gx0 + (e / eTop) * (gx1 - gx0), Y = (s: number) => gy1 - (s / sTop) * (gy1 - gy0);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, gy0); ctx.lineTo(gx0, gy1); ctx.lineTo(gx1, gy1); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('strain (stretch ÷ length)', (gx0 + gx1) / 2, gy1 + 28);
+    ctx.fillText(eTop < 0.01 ? `${sig(eTop, 2)}` : fmt(eTop, 2), gx1 - 10, gy1 + 14); ctx.fillText('0', gx0, gy1 + 14);
+    ctx.textAlign = 'right'; ctx.fillText(`${fmt(sTop / 1e6, 0)}`, gx0 - 4, gy0 + 8); ctx.fillText('MPa', gx0 - 4, gy0 + 20);
+    ctx.save(); ctx.translate(gx0 - 12, (gy0 + gy1) / 2 + 40); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('stress', 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(gx0, gy0 - 4, gx1 - gx0 + 4, gy1 - gy0 + 4); ctx.clip();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath();
+    const eEnd = Math.min(eTop, m.ef);
+    for (let i = 0; i <= 500; i++) { const e = (i / 500) * eEnd, s = stressAt(m, e); i ? ctx.lineTo(X(e), Y(s)) : ctx.moveTo(X(e), Y(s)); }
+    ctx.stroke();
+    // permanent set: the unloading line from the greatest strain reached
+    const em = mode === 'pull' ? eMax : sMax;
+    if (m.kind === 'metal' && em > yieldStrain(m)) { const ps = permanentSet(m, em); ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(em), Y(stressAt(m, em))); ctx.lineTo(X(ps), Y(0)); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+    const mark = (e: number, s: number, label: string) => { if (e > eTop) return; ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.arc(X(e), Y(s), 3.5, 0, 7); ctx.fill(); ctx.font = '11px system-ui, sans-serif'; const right = X(e) > gx1 - 70; ctx.textAlign = right ? 'right' : 'left'; ctx.fillText(label, X(e) + (right ? -5 : 5), Y(s) - 5); };
+    if (m.kind === 'metal') { mark(yieldStrain(m), m.sy, 'elastic limit'); if (zoom === 'all' && mode === 'pull') { mark(m.eu, m.su, 'greatest stress'); mark(m.ef, m.sf, 'breaks'); } }
+    else if (zoom === 'all') mark(m.ef, m.sf, 'breaks');
+    if (!st.broke && Number.isFinite(st.e)) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(Math.min(st.e, eTop)), Y(Math.min(st.s, sTop)), 6, 0, 7); ctx.fill(); }
+    if (mode === 'searle') for (const r of readings) { const e = r.ext / 1000 / L(), s = (r.M * G) / A; ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(e), Y(s), 4, 0, 7); ctx.stroke(); }
+    c.setAttribute('aria-label', `${m.name} wire: stress ${fmt(st.s / 1e6, 1)} MPa, ${st.broke ? 'broken' : `strain ${sig(st.e, 3)}`}`);
+    readout(m, st);
+  }
+
+  function readout(m: Material, st: { s: number; e: number; broke: boolean }) {
+    const pill = q('.sst-pill'), ey = yieldStrain(m), A = area(d());
+    q('.sst-mv').textContent = `${fmt(Number(load.value), 1)} kg (${fmt(Number(load.value) * G, 1)} N)`;
+    let txt = '', cls = 'good';
+    if (st.broke) { txt = 'The wire has broken. Tap "New wire".'; cls = 'bad'; }
+    else if (m.kind === 'rubber') { txt = st.e < 0.05 ? 'Nearly Hooke: small stretches are close to a straight line' : 'Elastic but not a straight line: rubber springs back'; }
+    else {
+      const em = mode === 'searle' ? sMax : eMax;
+      if (em <= ey + 1e-15) txt = 'Elastic: obeys Hooke\'s law, springs back';
+      else if (st.s < stressAt(m, em) - 1) { txt = 'Unloaded after yielding: it keeps a permanent stretch'; cls = 'warn'; }
+      else { txt = 'Plastic: past the elastic limit, it will not spring right back'; cls = 'warn'; }
+    }
+    pill.textContent = txt; pill.className = `ax-pill ${cls} sst-pill`;
+    const facts = [
+      fact('Stress', `${fmt(st.s / 1e6, 2)} MPa`, `force ÷ area = ${fmt(st.s * A, 1)} N ÷ ${sig(A, 3)} m²`),
+    ];
+    if (!st.broke) facts.push(
+      fact('Strain', sig(st.e, 3), `stretch ÷ length; ${fmt(st.e * 100, 3)} %`),
+      fact('Stretch', `${fmt(st.e * L() * 1000, st.e * L() * 1000 < 10 ? 3 : 1)} mm`, `of ${L()} m`),
+    );
+    facts.push(fact(m.kind === 'rubber' ? 'Modulus at the start' : 'Young\'s modulus (slope at the start)', matId === 'mystery' && !revealed ? '? (find it)' : `${fmt(m.E / 1e9, m.kind === 'rubber' ? 3 : 0)} GPa`, m.kind === 'rubber' ? 'rubber has no single Young\'s modulus' : `elastic limit ${fmt(m.sy / 1e6, 0)} MPa`));
+    facts.push(fact('Breaking load', `${fmt(breakingLoad(m, d()), 1)} kg`, `greatest stress ${fmt(m.su / 1e6, 0)} MPa`));
+    const eq: [string, string][] = [];
+    if (mode === 'pull') {
+      q('.sst-h').textContent = 'Stress, strain and the curve';
+      const em = eMax;
+      if (m.kind === 'metal' && em > ey) facts.push(fact('If you take the load off', `${fmt(permanentSet(m, em) * L() * 1000, 2)} mm longer for good`, 'permanent set (dashed line)'));
+      else if (!st.broke) facts.push(fact('If you take the load off', 'back to its old length', 'elastic'));
+      eq.push(['Hooke\'s law: ', `below the elastic limit, stress = Y × strain. For ${m.name.toLowerCase()}, Y = ${fmt(m.E / 1e9, m.kind === 'rubber' ? 3 : 0)} GPa, so the straight part ends at a strain of ${sig(ey, 3)}.`]);
+      if (!st.broke) eq.push(['Here: ', `stress = ${fmt(st.s * A, 1)} N ÷ ${sig(A, 3)} m² = ${fmt(st.s / 1e6, 2)} MPa; strain = ${sig(st.e, 3)}; stretch = strain × L = ${fmt(st.e * L() * 1000, 3)} mm.`]);
+    } else {
+      q('.sst-h').textContent = 'Your readings and Young\'s modulus';
+      const pts = readings.filter((r) => r.M > 0);
+      if (pts.length >= 2) {
+        const k = slopeThroughOrigin(pts.map((r) => r.M), pts.map((r) => r.ext / 1000)), Y = youngFromSlope(k, L(), d());
+        facts.push(fact('Slope of stretch against load', `${fmt(k * 1e6, 2)} µm per kg`, `best straight line through 0, from ${pts.length} readings`));
+        facts.push(fact('Your Young\'s modulus', `${fmt(Y / 1e9, 1)} GPa`, matId === 'mystery' && !revealed ? 'reveal to compare' : `set value ${fmt(m.E / 1e9, 0)} GPa (${fmt(((Y - m.E) / m.E) * 100, 1)} %)`));
+        eq.push(['Y = g L ÷ (A × slope): ', `9.8 × ${L()} ÷ (${sig(A, 3)} × ${sig(k, 3)}) = ${fmt(Y / 1e9, 1)} GPa.`]);
+      } else eq.push(['Take readings: ', 'add loads 0.5 kg at a time. Each reading is what the micrometer shows, to 0.01 mm, so it wobbles a little like a real one.']);
+      if (sMax > ey + 1e-12 && m.kind === 'metal') eq.push(['Careful: ', 'you went past the elastic limit, so the later readings no longer lie on a straight line. Start again with smaller loads or a thicker wire.']);
+    }
+    q('.sst-facts').replaceChildren(...facts);
+    q('.sst-eq').replaceChildren(...lines(eq));
+  }
+
+  // Searle's readings: the micrometer reads to 0.01 mm, with a small wobble like a real one.
+  function takeReading() {
+    const m = mat(), r = wireStrain(m, (sLoad * G) / area(d()), sMax);
+    if (!r) { readings.push({ M: sLoad, ext: NaN }); renderTable(); return; }
+    sMax = r.eMax;
+    const wob = (Math.random() - 0.5) * 0.012;
+    readings.push({ M: sLoad, ext: Math.max(0, Math.round((r.e * L() * 1000 + (sLoad ? wob : 0)) * 100) / 100) });
+    renderTable();
+  }
+  function renderTable() {
+    q('.sst-table tbody').replaceChildren(...readings.map((r) => { const tr = document.createElement('tr'), a = document.createElement('td'), b = document.createElement('td'); a.textContent = fmt(r.M, 1); b.textContent = Number.isNaN(r.ext) ? 'broke' : r.ext.toFixed(2); tr.append(a, b); return tr; }));
+  }
+  function startSearle() { readings = []; sLoad = 0; sMax = 0; if (matId === 'mystery') newMystery(); takeReading(); draw(); }
+
+  const setMat = segmented(q('.sst-mat'), (v) => { matId = v; resetWire(); if (mode === 'searle') startSearle(); else draw(); q('.sst-reveal').hidden = matId !== 'mystery'; });
+  segmented(q('.sst-mode'), (v) => {
+    mode = v; q('.sst-pull').hidden = v !== 'pull'; q('.sst-searle').hidden = v !== 'searle';
+    q('.sst-rubber').hidden = v === 'searle'; q('.sst-myst').hidden = v !== 'searle';
+    if (v === 'searle' && matId === 'rubber') setMat('steel');
+    else if (v === 'pull' && matId === 'mystery') setMat('steel');
+    else if (v === 'searle') startSearle(); else draw();
+  });
+  segmented(q('.sst-zoom'), (v) => { zoom = v; draw(); });
+  load.addEventListener('input', draw);
+  root.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => { resetWire(); if (mode === 'searle') startSearle(); else draw(); }));
+  q('.sst-new').addEventListener('click', () => { resetWire(); draw(); });
+  q('.sst-add').addEventListener('click', () => { if (readings.some((r) => Number.isNaN(r.ext))) return; sLoad = Math.round((sLoad + 0.5) * 10) / 10; takeReading(); draw(); });
+  q('.sst-off').addEventListener('click', () => { if (sLoad <= 0 || readings.some((r) => Number.isNaN(r.ext))) return; sLoad = Math.round((sLoad - 0.5) * 10) / 10; takeReading(); draw(); });
+  q('.sst-clear').addEventListener('click', startSearle);
+  q('.sst-reveal').addEventListener('click', () => { revealed = true; draw(); });
+  mountQuiz(q('.sst-quiz'), () => questions());
+  resetWire(); draw();
+  keepDrawn(q<HTMLCanvasElement>('.sst-c'), draw);
+</script>
+
+<style is:inline>
+  .sst canvas { display: block; width: 100%; margin-top: 10px; }
+  .sst .sst-pull > label { display: grid; margin-top: 10px; }
+  .sst input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .sst label b { color: var(--ink); }
+  .sst .ax-row { margin-top: 10px; }
+  .sst .sst-dims label { display: grid; gap: 4px; font-size: 14px; }
+  .sst select { min-height: 44px; }
+  .sst .ax-seg button, .sst .btn { min-height: 44px; }
+  .sst .sst-state { margin: 8px 0 0; }
+  .sst .sst-pill { font-size: 14px; white-space: normal; }
+  .sst .sst-table { margin-top: 10px; }
+  .sst .sst-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .sst .sst-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
