@@ -3,7 +3,7 @@ name: Car loan
 num: 1745
 shelf: money
 code: T779
-section: loans
+section: vehicle-buying
 title: "Car loan calculator: monthly payment with trade-in, sales tax and balloon"
 summary: "Work out a car, bike or truck loan payment with trade-in, down payment, sales tax, fees and an optional balloon payment, plus total interest and total cost."
 status: live
