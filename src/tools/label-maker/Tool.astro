@@ -1,0 +1,124 @@
+---
+// #1760 Label maker. Layouts and PDF in src/lib/docs/labels.ts.
+import { SHEETS } from '../../lib/docs/labels';
+---
+<div class="tool-ui lm">
+  <div class="lm-cols">
+    <form class="lm-form" onsubmit="return false" autocomplete="off">
+      <fieldset class="lm-card">
+        <legend>1. Your labels</legend>
+        <label>How are they written?
+          <select class="lm-mode">
+            <option value="line">One label per line (a comma starts a new line on the label)</option>
+            <option value="block">Labels separated by a blank line</option>
+          </select>
+        </label>
+        <textarea class="lm-text" rows="8" aria-label="Label text" placeholder="Asha Rao, 12 Park Road, Pune 411001&#10;Ben Lee, 4 Hill St, Leeds LS1 4AB"></textarea>
+        <label>Or open a CSV or text file <input class="lm-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" /></label>
+        <label class="lm-chk"><input type="checkbox" class="lm-head" /> First line of the file is a heading row (skip it)</label>
+        <p class="lm-hint lm-count" aria-live="polite"></p>
+      </fieldset>
+      <fieldset class="lm-card">
+        <legend>2. The label sheet</legend>
+        <label>Sheet <select class="lm-sheet">{SHEETS.map((s) => <option value={s.id}>{s.name}</option>)}</select></label>
+        <div class="lm-grid lm-custom" hidden>
+          <label>Page width (mm) <input data-c="pageW" type="number" step="any" /></label>
+          <label>Page height (mm) <input data-c="pageH" type="number" step="any" /></label>
+          <label>Columns <input data-c="cols" type="number" min="1" step="1" /></label>
+          <label>Rows <input data-c="rows" type="number" min="1" step="1" /></label>
+          <label>Label width (mm) <input data-c="w" type="number" step="any" /></label>
+          <label>Label height (mm) <input data-c="h" type="number" step="any" /></label>
+          <label>Left margin (mm) <input data-c="left" type="number" step="any" /></label>
+          <label>Top margin (mm) <input data-c="top" type="number" step="any" /></label>
+          <label>Gap across (mm) <input data-c="gapX" type="number" step="any" /></label>
+          <label>Gap down (mm) <input data-c="gapY" type="number" step="any" /></label>
+        </div>
+        <p class="lm-hint">Print at 100% (actual size), not "fit to page", so the text lands on the labels.</p>
+      </fieldset>
+      <fieldset class="lm-card">
+        <legend>3. Look</legend>
+        <div class="lm-grid">
+          <label>Text size (pt) <input class="lm-size" type="number" min="5" max="40" step="0.5" value="10" /></label>
+          <label>Copies of each <input class="lm-copies" type="number" min="1" max="100" step="1" value="1" /></label>
+          <label>Skip used labels <input class="lm-skip" type="number" min="0" step="1" value="0" /></label>
+          <label>Align <select class="lm-align"><option value="left">Left</option><option value="center">Centre</option></select></label>
+        </div>
+        <label class="lm-chk"><input type="checkbox" class="lm-bold" /> First line in bold (the name)</label>
+        <label class="lm-chk"><input type="checkbox" class="lm-border" /> Draw light label outlines (for a test print on plain paper)</label>
+        <p class="lm-hint">Text that is too long for a label is made smaller until it fits. "Skip used labels" starts printing part-way down a sheet you have already used.</p>
+      </fieldset>
+    </form>
+    <aside class="lm-side">
+      <button type="button" class="btn lm-pdf">Download PDF</button>
+      <p class="lm-status" aria-live="polite"></p>
+      <div class="lm-prev" aria-label="Preview of the first sheet"></div>
+    </aside>
+  </div>
+  <p class="lm-hint">Made in your browser. Your list is never uploaded or kept. Sheet sizes are for matching generic label stock; "5160 size" only describes the layout.</p>
+</div>
+
+<style is:inline>
+  .lm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lm-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .lm-form { display: grid; gap: 10px; min-width: 0; }
+  .lm-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .lm-card legend { font-weight: 700; padding: 0 6px; }
+  .lm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .lm input[type=number], .lm select, .lm textarea, .lm input[type=file] { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lm textarea { resize: vertical; line-height: 1.4; }
+  .lm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .lm-chk { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; }
+  .lm-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .lm-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .lm-status { margin: 0; font-size: 14px; color: var(--muted); }
+  .lm-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .lm-prev { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; overflow: hidden; }
+  .lm-prev svg { display: block; width: 100%; height: auto; }
+  @media (max-width: 760px) { .lm-cols { grid-template-columns: minmax(0, 1fr); } .lm-side { position: static; } }
+</style>
+
+<script>
+  import { SHEETS, splitLabels, pageCount, perPage, type Sheet } from '../../lib/docs/labels';
+  const root = document.querySelector('.lm') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const custom: Sheet = { ...SHEETS.find((s) => s.id === 'custom')! };
+  const sheet = (): Sheet => (q<HTMLSelectElement>('.lm-sheet').value === 'custom' ? custom : SHEETS.find((s) => s.id === q<HTMLSelectElement>('.lm-sheet').value)!);
+  const labels = () => splitLabels(q<HTMLTextAreaElement>('.lm-text').value, q<HTMLSelectElement>('.lm-mode').value as 'line' | 'block', q<HTMLInputElement>('.lm-head').checked);
+  const num = (s: string, d: number) => { const v = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(v) ? v : d; };
+  const opts = () => ({ size: num('.lm-size', 10), copies: Math.max(1, Math.floor(num('.lm-copies', 1))), skip: Math.max(0, Math.floor(num('.lm-skip', 0))), align: q<HTMLSelectElement>('.lm-align').value as 'left' | 'center', borders: q<HTMLInputElement>('.lm-border').checked, boldFirst: q<HTMLInputElement>('.lm-bold').checked });
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+
+  function refresh() {
+    const s = sheet(), L = labels(), o = opts(), n = L.length * o.copies;
+    q('.lm-custom').hidden = q<HTMLSelectElement>('.lm-sheet').value !== 'custom';
+    const pages = pageCount(s, n, o.skip);
+    q('.lm-count').textContent = `${L.length} label${L.length === 1 ? '' : 's'}${o.copies > 1 ? ` x ${o.copies} copies` : ''} on ${s.cols * s.rows} per sheet = ${pages} page${pages === 1 ? '' : 's'}.`;
+    const all: (string[] | null)[] = [...Array(o.skip).fill(null)]; for (const l of L) for (let c = 0; c < o.copies; c++) all.push(l);
+    let g = '';
+    for (let k = 0; k < perPage(s); k++) {
+      const x = s.left + (k % s.cols) * (s.w + s.gapX), y = s.top + Math.floor(k / s.cols) * (s.h + s.gapY), lab = all[k];
+      g += `<rect x="${x}" y="${y}" width="${s.w}" height="${s.h}" rx="1.5" fill="${lab ? '#eef2f7' : 'none'}" stroke="#c9ced6" stroke-width=".3"/>`;
+      if (lab) g += `<text x="${x + 2}" y="${y + Math.min(s.h / 2, 5)}" font-size="${Math.min(3, s.h / 4)}" fill="#222" font-family="Helvetica,Arial,sans-serif">${esc(lab[0])}</text>`;
+    }
+    q('.lm-prev').innerHTML = `<svg viewBox="0 0 ${s.pageW} ${s.pageH}" role="img" aria-label="Sheet preview"><rect width="${s.pageW}" height="${s.pageH}" fill="#fff"/>${g}</svg>`;
+  }
+  const sel = q<HTMLSelectElement>('.lm-sheet');
+  const syncCustom = () => root.querySelectorAll<HTMLInputElement>('[data-c]').forEach((i) => { i.value = String((custom as any)[i.dataset.c!]); });
+  syncCustom();
+  root.querySelectorAll<HTMLInputElement>('[data-c]').forEach((i) => i.addEventListener('input', () => { const v = parseFloat(i.value); if (v > 0 || (v === 0 && /gap|left|top/.test(i.dataset.c!))) { (custom as any)[i.dataset.c!] = ['cols', 'rows'].includes(i.dataset.c!) ? Math.floor(v) : v; refresh(); } }));
+  root.addEventListener('input', refresh); sel.addEventListener('change', refresh);
+  q<HTMLInputElement>('.lm-file').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    q<HTMLTextAreaElement>('.lm-text').value = await f.text(); q<HTMLSelectElement>('.lm-mode').value = 'line'; refresh();
+  });
+  const download = (blob: Blob, name: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  q('.lm-pdf').addEventListener('click', async () => {
+    const L = labels(); const st = q('.lm-status');
+    if (!L.length) { st.textContent = 'Type or open some labels first.'; return; }
+    const { labelsPdf } = await import('../../lib/docs/labels');
+    const r = await labelsPdf(sheet(), L, opts());
+    st.textContent = `Made ${r.pages} page${r.pages === 1 ? '' : 's'}.` + (r.lost.length ? ` These characters can't be shown in the PDF and were replaced: ${r.lost.slice(0, 10).join(' ')}.` : '');
+    download(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), 'labels.pdf');
+  });
+  refresh();
+</script>
