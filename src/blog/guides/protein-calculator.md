@@ -1,5 +1,6 @@
 ---
 title: "How to work out a protein's mass, pI and extinction coefficient"
+seoTitle: "Protein mass, pI and extinction coefficient | fibub"
 summary: "What molecular weight, isoelectric point, net charge and the 280 nm extinction coefficient mean, and how to get them from a sequence in your browser."
 tools: [protein-calculator, peptide-mass-calculator, beer-lambert-calculator, buffer-recipe-calculator]
 updated: 2026-11-10

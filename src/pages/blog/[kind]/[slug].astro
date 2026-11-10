@@ -7,7 +7,7 @@ import ArticleList from '../../../components/ArticleList.astro';
 import { render } from 'astro:content';
 import { allArticles, KINDS, kindOf, slugOf, articleUrl, mentions } from '../../../lib/blog';
 import { allTools, toolUrl } from '../../../lib/tools';
-import { articleLd, metaDescription } from '../../../lib/seo';
+import { articleLd, articleSeoTitle, metaDescription } from '../../../lib/seo';
 export async function getStaticPaths() {
   const all = await allArticles();
   const tools = await allTools();
@@ -31,7 +31,7 @@ const shared = all.filter((b: any) => b !== a && [...mentions(b)].some((id) => m
 const more = [...shared, ...all.filter((b: any) => b !== a && kindOf(b) === kind.id && !shared.includes(b))].slice(0, 5);
 const p = a.data.paper;
 ---
-<Base title={a.data.title} docTitle={a.data.seoTitle ? `${a.data.seoTitle}` : undefined} description={a.data.seoDescription ?? metaDescription(a.data.summary)} ld={articleLd({ title: a.data.title, summary: a.data.summary, url, updated: a.data.updated, kindName: kind.name, kindUrl: `/blog/${kind.id}/`, tech: kind.id === 'guides', about: covered.map((t: any) => toolUrl(t)) })} image={main ? `/og/${main.id}.png` : undefined}>
+<Base title={a.data.title} docTitle={articleSeoTitle(a.data.title, a.data.seoTitle)} description={a.data.seoDescription ?? metaDescription(a.data.summary)} ld={articleLd({ title: a.data.title, summary: a.data.summary, url, updated: a.data.updated, kindName: kind.name, kindUrl: `/blog/${kind.id}/`, tech: kind.id === 'guides', about: covered.map((t: any) => toolUrl(t)) })} image={main ? `/og/${main.id}.png` : undefined}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / <a href={`/blog/${kind.id}/`}>{kind.name}</a></div>
   <article class="prose post">
     <h1>{a.data.title}</h1>

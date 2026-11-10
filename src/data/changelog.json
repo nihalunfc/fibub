@@ -1,5 +1,12 @@
 [
  {
+  "sha": "89345f2112ce",
+  "date": "2026-11-10T14:48:21+00:00",
+  "title": "Rename News to Blog and add the first 30 Blog articles",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "9909207f948d",
   "date": "2026-11-10T11:09:26+00:00",
   "title": "Codes, cross-links and share images for batches 2 and 3",

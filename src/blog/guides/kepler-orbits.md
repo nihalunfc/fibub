@@ -1,5 +1,6 @@
 ---
 title: "Kepler's laws of planetary motion, with a launch you can change"
+seoTitle: "Kepler's laws of planetary motion explained | fibub"
 summary: "Why orbits are ellipses, why planets sweep equal areas, why T² = a³, and how g changes above and below the Earth, with a fresh worked example."
 tools: [kepler-orbits, two-body-orbit, orbit-elements, energy-track]
 updated: 2026-11-10
