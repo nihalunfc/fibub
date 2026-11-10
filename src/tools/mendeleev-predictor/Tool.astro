@@ -1,0 +1,125 @@
+---
+// Mendeleev's predictions: hide an element, predict its atomic mass or density from its four neighbours in the
+// table, then reveal the real value; and Mendeleev's own eka-aluminium, eka-boron and eka-silicon.
+// Maths in src/lib/sci/mendeleev.ts.
+import '../../styles/astro.css';
+---
+<div class="ax md">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span>Hide</span>
+      <div class="ax-seg md-hide" role="group" aria-label="Element to hide">
+        <button type="button" data-v="31" aria-pressed="false">Ga</button>
+        <button type="button" data-v="32" aria-pressed="true">Ge</button>
+        <button type="button" data-v="33" aria-pressed="false">As</button>
+        <button type="button" data-v="34" aria-pressed="false">Se</button>
+        <button type="button" data-v="50" aria-pressed="false">Sn</button>
+        <button type="button" data-v="51" aria-pressed="false">Sb</button>
+      </div>
+    </div>
+    <div class="ax-row">
+      <span>Predict</span>
+      <div class="ax-seg md-prop" role="group" aria-label="Property">
+        <button type="button" data-v="mass" aria-pressed="true">Atomic mass</button>
+        <button type="button" data-v="density" aria-pressed="false">Density</button>
+      </div>
+    </div>
+    <div class="md-cross" aria-live="polite"></div>
+    <div class="ax-row">
+      <button type="button" class="btn small md-reveal">Reveal the real element</button>
+    </div>
+    <dl class="ax-facts md-facts"></dl>
+    <p class="ax-help">Atomic masses: IUPAC standard values. Densities: rounded reference values near room temperature (white phosphorus, white tin, grey selenium).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mendeleev's three famous predictions (1871)</h2>
+    <div class="ax-scroll"><table class="md-eka"><thead><tr><th>He called it</th><th>Found as</th><th>Atomic mass: predicted / real</th><th>Density g/cm³: predicted / real</th><th>Oxide: predicted / real</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">"Eka" is Sanskrit for "one": eka-silicon is the element one place below silicon. He left gaps in his table for them, and each was found within 15 years.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="md-try">
+      <li>Hide germanium and predict its mass. The average of its four neighbours is within 0.3 % of the real value, just as Mendeleev found.</li>
+      <li>Hide tin. The prediction is about 9 % too high: lead, below it, is much heavier, because a whole row of f-block elements comes in between.</li>
+      <li>Switch to density and try arsenic. Density depends on how the atoms pack, so averages work less well.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="md-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { el, predict, ECKA, DENSITY, questions, type Prop } from '../../lib/sci/mendeleev';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { fmt, fact, segmented } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.md')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let z = 32, prop: Prop = 'mass', shown = false;
+  const fmtV = (v: number) => (prop === 'mass' ? fmt(v, 3) : fmt(v, 2));
+  const unit = () => (prop === 'mass' ? 'u' : 'g/cm³');
+
+  q('.md-eka tbody').replaceChildren(...ECKA.map((x) => {
+    const tr = document.createElement('tr'), e = el(x.z);
+    for (const t of [x.eka, `${x.found[0].toUpperCase() + x.found.slice(1)} (${e.symbol}), ${x.year}`, `${x.predMass} / ${e.weight}`, `${Number.isFinite(x.predDensity) ? x.predDensity : '—'} / ${x.realDensity}`, `${x.predOxide} / ${x.oxide}`]) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
+    return tr;
+  }));
+
+  function cell(cls: string, sym: string, small: string, val: string) {
+    const d = document.createElement('div'), a = document.createElement('b'), b = document.createElement('small'), c = document.createElement('span');
+    d.className = `md-cell ${cls}`; a.textContent = sym; b.textContent = small; c.textContent = val; d.append(a, b, c); return d;
+  }
+  function render() {
+    const p = predict(z, prop), e = el(z), pos: [keyof typeof p.nb, string][] = [['up', 'md-up'], ['left', 'md-left'], ['right', 'md-right'], ['down', 'md-down']];
+    const cells = pos.map(([k, cls]) => { const nz = p.nb[k]!, ne = el(nz); return cell(cls, ne.symbol, ne.name, `${fmtV(prop === 'mass' ? ne.weight : DENSITY[nz])} ${unit()}`); });
+    cells.push(shown ? cell('md-mid md-shown', e.symbol, e.name, `${fmtV(p.real)} ${unit()}`) : cell('md-mid', '?', 'hidden', `≈ ${fmtV(p.guess)} ${unit()}`));
+    q('.md-cross').replaceChildren(...cells);
+    q('.md-reveal').textContent = shown ? 'Hide it again' : 'Reveal the real element';
+    const facts = [
+      fact('Neighbours', p.zs.map((x) => el(x).symbol).join(', '), 'above, below, left, right'),
+      fact('Prediction (their average)', `${fmtV(p.guess)} ${unit()}`, `(${p.vals.map(fmtV).join(' + ')}) ÷ 4`),
+    ];
+    if (shown) {
+      facts.push(fact('The real element', `${e.name} (${e.symbol}): ${fmtV(p.real)} ${unit()}`, `Z = ${e.z}`));
+      facts.push(fact('How close', `${p.errPct >= 0 ? '+' : '−'}${fmt(Math.abs(p.errPct), 2)} %`, Math.abs(p.errPct) < 2 ? 'very close' : Math.abs(p.errPct) < 6 ? 'fairly close' : 'not so close'));
+    }
+    q('.md-facts').replaceChildren(...facts);
+  }
+
+  segmented(q('.md-hide'), (v) => { z = Number(v); shown = false; render(); });
+  segmented(q('.md-prop'), (v) => { prop = v as Prop; render(); });
+  q('.md-reveal').addEventListener('click', () => { shown = !shown; render(); });
+  mountQuiz(q('.md-quiz'), () => questions());
+  render();
+</script>
+
+<style is:inline>
+  .md .ax-row { margin-top: 10px; }
+  .md .ax-seg button, .md .btn { min-height: 44px; }
+  .md .md-cross { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: ". up ." "left mid right" ". down ."; gap: 8px; max-width: 420px; margin: 14px auto 0; }
+  .md .md-cell { display: grid; justify-items: center; align-content: center; gap: 2px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: center; min-height: 92px; }
+  .md .md-cell b { font-size: 24px; }
+  .md .md-cell small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  .md .md-cell span { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .md .md-up { grid-area: up; } .md .md-left { grid-area: left; } .md .md-right { grid-area: right; } .md .md-down { grid-area: down; }
+  .md .md-mid { grid-area: mid; border: 2px dashed var(--accent); }
+  .md .md-mid.md-shown { border-style: solid; }
+  .md .md-mid span { color: var(--accent); font-weight: 650; }
+  .md .md-eka td, .md .md-eka th { padding: 4px 12px 4px 0; vertical-align: top; }
+  .md .md-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
