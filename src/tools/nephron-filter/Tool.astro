@@ -1,0 +1,198 @@
+---
+// Kidney nephron filter: a nephron drawn from glomerulus to collecting duct. Tap a part to see what it does. Sliders
+// for water drunk and blood glucose set a day's balance: how much of each substance is filtered, taken back into the
+// blood, and left in the urine. Teaching model with round values, not medical.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm nph">
+  <p class="ax-help">A teaching model with round values for an adult's two kidneys. It is not a medical tool.</p>
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg nph-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <label class="nph-gap">Water you drink in a day: <b class="nph-dv"></b>
+      <input type="range" class="nph-drink" min="0.5" max="5" step="0.25" value="2" aria-label="Water drunk in a day, litres" /></label>
+    <label class="nph-gap">Blood glucose: <b class="nph-gv"></b>
+      <input type="range" class="nph-glu" min="60" max="400" step="10" value="90" aria-label="Blood glucose, mg per dL" /></label>
+    <p class="ax-help">A healthy fasting blood glucose is about 70 to 100 mg/dL. In untreated diabetes it can be much higher.</p>
+  </div>
+
+  <div class="ax-card">
+    <svg class="sm-fig nph-fig" viewBox="0 0 340 330" role="img" aria-label="A nephron: glomerulus and Bowman's capsule, tubule, loop of Henle and collecting duct"></svg>
+    <p class="ax-help">Tap a part of the nephron to see what it does.</p>
+    <h2 class="nph-pn" aria-live="polite"></h2>
+    <p class="nph-pt"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>A day in both kidneys</h2>
+    <p class="ax-big nph-big" aria-live="polite"></p>
+    <div class="nph-rows"></div>
+    <div class="ax-legend"><span><i class="nph-k1"></i>Taken back into the blood</span><span><i class="nph-k2"></i>Left in the urine</span></div>
+    <p class="sm-f nph-f1"></p>
+    <p class="sm-f nph-f2"></p>
+    <p class="nph-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drink only 0.5 L a day. What happens to the amount of urine and how concentrated the urea is?</li>
+      <li>Raise blood glucose past 180 mg/dL. Why does sugar suddenly appear in the urine?</li>
+      <li>About how many times a day is all your blood plasma (about 3 L) filtered?</li>
+      <li>Why should there never be protein or blood cells in urine?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. For the choices, type the number of your answer. Nothing is saved.</p>
+    <div class="nph-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .nph .nph-gap { margin-top: 10px; display: block; }
+  .nph label input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .nph svg .nph-tube { fill: none; stroke: var(--warn); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
+  .nph svg .nph-tube.on { opacity: 1; stroke-width: 12; }
+  .nph svg .nph-hit { fill: none; stroke: transparent; stroke-width: 30; stroke-linecap: round; cursor: pointer; }
+  .nph svg .nph-blood { fill: none; stroke: var(--bad); stroke-width: 4; stroke-linecap: round; opacity: .7; }
+  .nph svg .nph-cap { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .nph svg .nph-cap.on { stroke-width: 4; }
+  .nph svg .nph-glom { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 2; }
+  .nph svg .nph-zone { stroke: var(--muted); stroke-dasharray: 5 4; }
+  .nph svg text.nph-s { font-size: 11px; fill: var(--muted); }
+  .nph svg text.nph-l { font-size: 11px; font-weight: 600; }
+  .nph svg .nph-out { stroke: var(--good); stroke-width: 2; marker-end: url(#nph-ar); }
+  .nph svg #nph-ar path { fill: var(--good); }
+  .nph .nph-row { display: grid; grid-template-columns: 7.5em 1fr; gap: 4px 8px; align-items: center; margin: 8px 0; font-size: 14px; }
+  .nph .nph-track { display: flex; height: 22px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--bg); }
+  .nph .nph-track span { display: block; height: 100%; }
+  .nph .nph-k1, .nph .nph-track .b { background: var(--good); }
+  .nph .nph-k2, .nph .nph-track .u { background: var(--warn); }
+  .nph .nph-small { grid-column: 2; font-size: 13px; color: var(--muted); margin-top: -2px; }
+</style>
+
+<script>
+  import { day, backShare, urineL, glucose, waterSteps, FILTRATE_L_DAY, GFR_ML_MIN, GLUCOSE_THRESHOLD } from '../../lib/sci/nephron';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.nph')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.nph-fig'), DR = q<HTMLInputElement>('.nph-drink'), GL = q<HTMLInputElement>('.nph-glu');
+  let level = 10, part = 'glom';
+
+  const PARTS: Record<string, { name: string; t10: string; t11: string; pts: [number, number][] }> = {
+    glom: { name: "Glomerulus and Bowman's capsule: filtration", pts: [],
+      t10: 'Blood arrives under pressure in a knot of tiny capillaries (the glomerulus). Water and small molecules (glucose, amino acids, salts, urea) are pushed out into the cup around it. Big things, proteins and blood cells, stay in the blood.',
+      t11: 'The pressure filters about 125 mL of plasma a minute in both kidneys together (the glomerular filtration rate), which is about 180 L a day.' },
+    pct: { name: 'Proximal tubule: most is taken back', pts: [[112, 64], [132, 50], [150, 66], [132, 82], [150, 98], [176, 90], [190, 110]],
+      t10: 'All the glucose and amino acids, most of the salt and much of the water are taken back into the blood here.',
+      t11: 'About 65 % of the water and salt, all the glucose and amino acids, and about half the urea are reabsorbed here; some hydrogen ions are secreted into the tubule.' },
+    loop: { name: 'Loop of Henle: saving water', pts: [[190, 110], [190, 270], [205, 290], [220, 270], [220, 110]],
+      t10: 'The loop dips deep into the kidney. Water leaves its downward side and salt leaves its upward side, which makes the inner kidney very salty so water can be saved later.',
+      t11: 'The descending limb lets water out but not salt; the ascending limb pumps salt out but holds water. This counter-current makes the medulla salty (about 15 % more of the water is reabsorbed).' },
+    dct: { name: 'Distal tubule: fine tuning', pts: [[220, 110], [236, 92], [252, 106], [268, 86], [298, 76]],
+      t10: 'More salt is taken back if the body needs it.',
+      t11: 'Sodium is reabsorbed under the control of the hormone aldosterone; potassium and hydrogen ions are secreted to keep the blood\'s salts and pH right.' },
+    duct: { name: 'Collecting duct: how much water to keep', pts: [[298, 40], [298, 310]],
+      t10: 'The duct passes through the salty inner kidney. A hormone from the pituitary (ADH) decides how much water it lets back out into the blood: little water drunk, more kept, so the urine is small and dark.',
+      t11: 'ADH (vasopressin) adds water channels to the duct wall. Several nephrons share one duct, which carries urine to the pelvis of the kidney and the ureter.' },
+  };
+
+  function drawFig() {
+    fig.replaceChildren();
+    const defs = S('defs', {}, fig), mk = S('marker', { id: 'nph-ar', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }, defs); S('path', { d: 'M0 0 L10 5 L0 10 z' }, mk);
+    S('line', { x1: 10, y1: 130, x2: 330, y2: 130, class: 'nph-zone' }, fig);
+    S('text', { x: 10, y: 124, class: 'nph-s' }, fig, 'cortex (outer)');
+    S('text', { x: 10, y: 146, class: 'nph-s' }, fig, 'medulla (inner, salty)');
+    // blood vessels
+    S('path', { d: 'M10 40 Q40 46 60 60', class: 'nph-blood' }, fig); S('text', { x: 8, y: 32, class: 'nph-s' }, fig, 'blood in');
+    S('path', { d: 'M60 82 Q40 100 14 100', class: 'nph-blood' }, fig); S('text', { x: 8, y: 114, class: 'nph-s' }, fig, 'blood out');
+    // capsule and glomerulus
+    const g = S('g', { 'data-part': 'glom', role: 'button', tabindex: 0, 'aria-label': PARTS.glom.name, style: 'cursor:pointer' }, fig);
+    S('path', { d: 'M96 44 A32 32 0 1 0 96 96 L112 70 Z', class: 'nph-cap' + (part === 'glom' ? ' on' : '') }, g);
+    S('circle', { cx: 70, cy: 70, r: 18, class: 'nph-glom' }, g);
+    S('text', { x: 52, y: 24, class: 'nph-l' }, fig, 'glomerulus');
+    for (const id of ['pct', 'loop', 'dct', 'duct']) {
+      const p = PARTS[id], pts = p.pts.map((x) => x.join(',')).join(' ');
+      const gg = S('g', { 'data-part': id, role: 'button', tabindex: 0, 'aria-label': p.name }, fig);
+      S('polyline', { points: pts, class: 'nph-tube' + (part === id ? ' on' : '') }, gg);
+      S('polyline', { points: pts, class: 'nph-hit' }, gg);
+    }
+    S('text', { x: 124, y: 44, class: 'nph-l' }, fig, 'proximal');
+    S('text', { x: 136, y: 220, class: 'nph-l', 'text-anchor': 'end' }, fig, 'loop of');
+    S('text', { x: 136, y: 234, class: 'nph-l', 'text-anchor': 'end' }, fig, 'Henle');
+    S('text', { x: 236, y: 132 - 10, class: 'nph-l' }, fig, 'distal');
+    S('text', { x: 292, y: 32, class: 'nph-l', 'text-anchor': 'end' }, fig, 'collecting duct');
+    S('text', { x: 292, y: 326, class: 'nph-s', 'text-anchor': 'end' }, fig, 'urine to the ureter ↓');
+    // reabsorption arrows (green, out of the tubule)
+    const arr = (x1: number, y1: number, x2: number, y2: number) => S('line', { x1, y1, x2, y2, class: 'nph-out' }, fig);
+    arr(140, 100, 120, 118); arr(184, 180, 164, 180); arr(226, 200, 246, 200); arr(260, 112, 262, 128); arr(292, 250, 272, 250);
+    const u = urineL(Number(DR.value));
+    S('text', { x: 254, y: 270, class: 'nph-s', 'text-anchor': 'end' }, fig, u < 1 ? 'much water back' : u > 2.5 ? 'little water back' : 'water back');
+    S('text', { x: 160, y: 196, class: 'nph-s', 'text-anchor': 'end' }, fig, 'water');
+    S('text', { x: 250, y: 216, class: 'nph-s' }, fig, 'salt');
+    S('text', { x: 116, y: 132, class: 'nph-s', 'text-anchor': 'end' }, fig, 'glucose, salt, water');
+    const P = PARTS[part];
+    q('.nph-pn').textContent = P.name;
+    q('.nph-pt').textContent = P.t10 + (level === 11 ? ' ' + P.t11 : '');
+  }
+
+  function update() {
+    const drink = Number(DR.value), mg = Number(GL.value), rows = day(drink, mg), u = urineL(drink), gl = glucose(mg);
+    q('.nph-dv').textContent = `${fmt(drink, 2)} L`;
+    q('.nph-gv').textContent = `${fmt(mg, 0)} mg/dL`;
+    q('.nph-big').textContent = `${fmt(FILTRATE_L_DAY, 0)} L filtered, ${fmt(u, 2)} L of urine`;
+    q('.nph-rows').replaceChildren(...rows.map((r) => {
+      const row = document.createElement('div'); row.className = 'nph-row'; row.dataset.k = r.id;
+      row.append(Object.assign(document.createElement('span'), { textContent: r.name }));
+      const tr = document.createElement('div'); tr.className = 'nph-track';
+      const b = backShare(r), ur = r.filtered ? r.urine / r.filtered : 0;
+      const sb = document.createElement('span'); sb.className = 'b'; sb.style.width = `${100 * b}%`;
+      const su = document.createElement('span'); su.className = 'u'; su.style.width = `${Math.max(ur > 0 ? 1 : 0, 100 * ur)}%`;
+      tr.append(sb, su); row.append(tr);
+      const dp = r.unit === 'L' ? 2 : 1;
+      row.append(Object.assign(document.createElement('span'), { className: 'nph-small', textContent: r.filtered ? `${fmt(r.filtered, dp)} ${r.unit} filtered, ${fmt(100 * b, 1)} % back, ${fmt(r.urine, dp)} ${r.unit} in urine` : 'Too big to be filtered: none in healthy urine' }));
+      return row;
+    }));
+    q('.nph-f1').textContent = `Water: ${fmt(u, 2)} L of urine ÷ ${fmt(FILTRATE_L_DAY, 0)} L filtered = ${fmt((100 * u) / FILTRATE_L_DAY, 2)} %, so ${fmt(100 - (100 * u) / FILTRATE_L_DAY, 2)} % is taken back.`;
+    const urea = rows.find((r) => r.id === 'urea')!.urine;
+    q('.nph-f2').textContent = level === 11
+      ? `Filtration: ${GFR_ML_MIN} mL a minute × 1440 minutes = ${fmt(FILTRATE_L_DAY, 0)} L a day. Water taken back: proximal ${fmt(waterSteps(u).pct, 0)} L, loop ${fmt(waterSteps(u).loop, 0)} L, distal and duct ${fmt(waterSteps(u).late, 1)} L. Urea in urine: ${fmt(urea, 1)} g ÷ ${fmt(u, 2)} L = ${fmt(urea / u, 1)} g/L.`
+      : `Urea in urine: ${fmt(urea, 1)} g ÷ ${fmt(u, 2)} L = ${fmt(urea / u, 1)} g per litre.`;
+    q('.nph-say').textContent = gl.urine > 0
+      ? `Blood glucose is above ${GLUCOSE_THRESHOLD} mg/dL in this model, so more glucose is filtered than the tubules can take back: ${fmt(gl.urine, 1)} g a day spills into the urine. Sugar in urine is one sign of diabetes.`
+      : 'All the filtered glucose is taken back, so there is none in the urine.';
+    drawFig();
+  }
+
+  const pickPart = (e: Event) => { const g = (e.target as Element).closest('[data-part]'); if (g) { part = g.getAttribute('data-part')!; drawFig(); } };
+  fig.addEventListener('click', pickPart);
+  fig.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickPart(e); } });
+  DR.addEventListener('input', update); GL.addEventListener('input', update);
+  q('.nph-level').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; level = Number(b.dataset.v); q('.nph-level').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update(); });
+  update();
+
+  const CHOICE: { q: string; opts: string[]; right: number; why: string }[] = [
+    { q: 'Which of these is NOT filtered out of the blood in a healthy kidney?', opts: ['Proteins', 'Glucose', 'Urea'], right: 0, why: 'Proteins and blood cells are too big to pass the filter.' },
+    { q: 'Where is all the glucose taken back into the blood?', opts: ['Collecting duct', 'Proximal tubule', 'Ureter'], right: 1, why: 'The proximal tubule takes back all the glucose and amino acids.' },
+    { q: 'Which hormone controls how much water the collecting duct takes back?', opts: ['Insulin', 'Adrenaline', 'ADH'], right: 2, why: 'ADH (vasopressin) from the pituitary makes the duct take back more water.' },
+    { q: 'What is the main waste the kidneys remove?', opts: ['Urea', 'Glucose', 'Oxygen'], right: 0, why: 'Urea is made in the liver from extra amino acids and leaves in urine.' },
+    { q: 'What is the filtering unit of the kidney called?', opts: ['Alveolus', 'Nephron', 'Neuron'], right: 1, why: 'Each kidney has about a million nephrons.' },
+  ];
+  quiz(q('.nph-quiz'), () => {
+    const out: Question[] = [];
+    for (const c of [...CHOICE].sort(() => Math.random() - 0.5).slice(0, 2)) {
+      const order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(c.right) + 1;
+      out.push({ q: `${c.q} ${order.map((k, i) => `${i + 1} ${c.opts[k]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: ${c.opts[c.right]}. ${c.why}` });
+    }
+    const f = 180, u = randInt(4, 12) * 0.25;
+    out.push({ q: `The kidneys filter ${f} L a day and make ${fmt(u, 2)} L of urine. What percentage of the filtered water is taken back (2 decimal places)?`, want: [Math.round((100 - (100 * u) / f) * 100) / 100], tol: 0.0001, hint: '%', work: `${fmt(u, 2)} ÷ ${f} = ${fmt((100 * u) / f, 3)} % is left as urine, so 100 − ${fmt((100 * u) / f, 3)} = ${fmt(100 - (100 * u) / f, 2)} % is taken back.` });
+    const g = randInt(8, 40), uu = randInt(2, 8) * 0.5;
+    out.push({ q: `${g} g of urea leaves in ${fmt(uu, 1)} L of urine. What is the urea concentration in g per litre (1 decimal place)?`, want: [Math.round((g / uu) * 10) / 10], tol: 0.005, hint: 'g/L', work: `${g} ÷ ${fmt(uu, 1)} = ${fmt(g / uu, 1)} g/L.` });
+    return out;
+  });
+</script>
