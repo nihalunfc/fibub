@@ -1,0 +1,138 @@
+---
+// Galvanometer to ammeter or voltmeter: shunt or series resistance worked out with the live numbers, the meter
+// face relabelled for the new range, and the current split shown as you test it. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax gvm">
+  <div class="ax-card">
+    <h2>Your galvanometer</h2>
+    <span class="ax-seg gvm-mode" role="group" aria-label="Make"><button type="button" data-v="A" aria-pressed="true">Make an ammeter</button><button type="button" data-v="V" aria-pressed="false">Make a voltmeter</button></span>
+    <label class="gvm-sl">Coil resistance G: <b class="gvm-gv"></b><input type="range" class="gvm-g" min="5" max="200" step="1" value="50" aria-label="Coil resistance in ohms" /></label>
+    <label class="gvm-sl">Current for full-scale deflection Ig: <b class="gvm-iv"></b><input type="range" class="gvm-i" min="0.1" max="10" step="0.1" value="1" aria-label="Full-scale current in milliamperes" /></label>
+    <label class="gvm-only" data-m="A" style="margin-top:10px">New range (ammeter) <select class="gvm-ra"><option value="0.01">0 to 10 mA</option><option value="0.1">0 to 100 mA</option><option value="0.5">0 to 0.5 A</option><option value="1">0 to 1 A</option><option value="2" selected>0 to 2 A</option><option value="5">0 to 5 A</option><option value="10">0 to 10 A</option></select></label>
+    <label class="gvm-only" data-m="V" style="margin-top:10px">New range (voltmeter) <select class="gvm-rv"><option value="1">0 to 1 V</option><option value="3">0 to 3 V</option><option value="5">0 to 5 V</option><option value="10" selected>0 to 10 V</option><option value="15">0 to 15 V</option><option value="50">0 to 50 V</option><option value="300">0 to 300 V</option></select></label>
+    <label class="gvm-sl">Test it: put in <b class="gvm-tv"></b><input type="range" class="gvm-t" min="0" max="120" step="1" value="50" aria-label="Test value as a percent of the range" /></label>
+    <p class="ax-err gvm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig gvm-fig"></canvas>
+    <p class="ax-big gvm-big" aria-live="polite"></p>
+    <p class="gvm-formula"></p>
+    <dl class="ax-facts gvm-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="gvm-try">
+      <li>Ammeter: raise the range. The shunt gets smaller, because more of the current must go round the coil.</li>
+      <li>Look at the ammeter's resistance: a fraction of an ohm, so putting it in a circuit hardly changes the current.</li>
+      <li>Voltmeter: raise the range. The series resistance grows, and the meter's resistance becomes thousands of ohms, so it draws hardly any current.</li>
+      <li>Push the test slider past 100%: the needle hits the stop and the coil could burn out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="gvm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .gvm .gvm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .gvm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .gvm-fig { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .gvm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .gvm-formula { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .gvm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .gvm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .gvm .eq-q p { margin: 0 0 6px; }
+  .gvm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .gvm .eq-ok { color: var(--good); font-weight: 600; }
+  .gvm .eq-no { color: var(--bad); }
+  .gvm .eq-work { margin-top: 4px; font-size: 14px; }
+  .gvm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .gvm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { shunt, seriesR, ammeterR, voltmeterR, ammeterReading, voltmeterReading, questions } from '../../lib/sci/galvanometer';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme, arrow } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.gvm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.gvm-fig');
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 360, H = 250;
+  let mode = 'A';
+  const s3 = (x: number) => sig(x, 3);
+  const ohm = (x: number) => (x >= 1e6 ? `${s3(x / 1e6)} MΩ` : x >= 1e3 ? `${s3(x / 1e3)} kΩ` : x >= 1 ? `${s3(x)} Ω` : `${s3(x * 1000)} mΩ`);
+  const amp = (x: number) => (Math.abs(x) >= 1 ? `${s3(x)} A` : Math.abs(x) >= 1e-3 ? `${s3(x * 1000)} mA` : `${s3(x * 1e6)} µA`);
+  const now = () => {
+    const G = val('.gvm-g'), Ig = val('.gvm-i') / 1000, range = +q<HTMLSelectElement>(mode === 'A' ? '.gvm-ra' : '.gvm-rv').value, t = (val('.gvm-t') / 100) * range;
+    if (mode === 'A') { const ok = range > Ig, S = ok ? shunt(G, Ig, range) : NaN; return { G, Ig, range, t, ok, X: S, Rm: ammeterR(G, S), ...(ok ? ammeterReading(G, Ig, S, t) : { ig: 0, is: 0, frac: 0 }) }; }
+    const ok = range > Ig * G, R = ok ? seriesR(G, Ig, range) : NaN;
+    return { G, Ig, range, t, ok, X: R, Rm: voltmeterR(G, R), is: 0, ...(ok ? voltmeterReading(G, Ig, R, t) : { ig: 0, frac: 0 }) };
+  };
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = now();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Meter face: arc from −50° to +50°, scale relabelled for the new range.
+    const cx = 180, cy = 130, R = 100, a0 = -Math.PI / 2 - 0.87, a1 = -Math.PI / 2 + 0.87;
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.arc(cx, cy, R, a0, a1); c.stroke();
+    c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillStyle = pal.muted;
+    for (let k = 0; k <= 10; k++) {
+      const a = a0 + ((a1 - a0) * k) / 10, long = k % 5 === 0;
+      c.beginPath(); c.moveTo(cx + R * Math.cos(a), cy + R * Math.sin(a)); c.lineTo(cx + (R - (long ? 12 : 6)) * Math.cos(a), cy + (R - (long ? 12 : 6)) * Math.sin(a)); c.stroke();
+      if (long) { c.fillStyle = pal.ink; c.fillText(s3((s.range * k) / 10), cx + (R + 12) * Math.cos(a), cy + (R + 12) * Math.sin(a) + 3); c.fillStyle = pal.muted; c.fillText(`${s3((s.Ig * 1000 * k) / 10)} mA`, cx + (R - 26) * Math.cos(a), cy + (R - 26) * Math.sin(a) + 3); }
+    }
+    c.fillStyle = pal.ink; c.font = '700 13px system-ui, sans-serif'; c.fillText(mode === 'A' ? 'A' : 'V', cx, cy - 40);
+    c.font = '11px system-ui, sans-serif'; c.fillStyle = pal.muted; c.fillText('new scale outside, coil current inside', cx, cy - 22);
+    const f = Math.max(0, Math.min(1.04, s.frac)), an = a0 + (a1 - a0) * f;
+    c.strokeStyle = s.frac > 1 ? pal.bad : pal.accent; c.lineWidth = 2.5; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + (R - 4) * Math.cos(an), cy + (R - 4) * Math.sin(an)); c.stroke();
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(cx, cy, 4, 0, Math.PI * 2); c.fill();
+    // Circuit underneath: G with the shunt across it, or with R in series.
+    const y = 200; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif';
+    const box = (x: number, yy: number, w: number, label: string) => { c.fillStyle = pal.bg; c.fillRect(x, yy - 9, w, 18); c.strokeRect(x, yy - 9, w, 18); c.fillStyle = pal.ink; c.textAlign = 'center'; c.fillText(label, x + w / 2, yy + 4); };
+    if (mode === 'A') {
+      c.beginPath(); c.moveTo(30, y + 12); c.lineTo(100, y + 12); c.moveTo(100, y); c.lineTo(100, y + 24); c.moveTo(100, y); c.lineTo(150, y); c.moveTo(210, y); c.lineTo(260, y); c.moveTo(100, y + 24); c.lineTo(150, y + 24); c.moveTo(210, y + 24); c.lineTo(260, y + 24); c.moveTo(260, y); c.lineTo(260, y + 24); c.moveTo(260, y + 12); c.lineTo(330, y + 12); c.stroke();
+      box(150, y, 60, `G ${s3(s.G)} Ω`); box(150, y + 24, 60, `S ${s.ok ? ohm(s.X) : '?'}`);
+      c.textAlign = 'left'; c.fillStyle = pal.accent; c.fillText(`I = ${amp(s.t)}`, 30, y + 6); c.fillText(amp(s.ig), 218, y - 12); c.fillStyle = pal.muted; c.fillText(amp(s.is), 218, y + 44);
+      c.strokeStyle = pal.accent; c.fillStyle = pal.accent; arrow(c, 40, y + 12, 70, y + 12, 5);
+    } else {
+      c.beginPath(); c.moveTo(30, y + 12); c.lineTo(80, y + 12); c.moveTo(140, y + 12); c.lineTo(190, y + 12); c.moveTo(270, y + 12); c.lineTo(330, y + 12); c.stroke();
+      box(80, y + 12, 60, `G ${s3(s.G)} Ω`); box(190, y + 12, 80, `R ${s.ok ? ohm(s.X) : '?'}`);
+      c.textAlign = 'left'; c.fillStyle = pal.accent; c.fillText(`across ${s3(s.t)} V: ${amp(s.ig)} flows`, 30, y + 40);
+    }
+    fig.setAttribute('aria-label', `${mode === 'A' ? 'Ammeter' : 'Voltmeter'} made from a galvanometer; needle at ${Math.round(s.frac * 100)}% of full scale`);
+  }
+  function texts() {
+    const s = now();
+    q('.gvm-gv').textContent = `${s.G} Ω`; q('.gvm-iv').textContent = `${val('.gvm-i').toFixed(1)} mA`;
+    q('.gvm-tv').textContent = mode === 'A' ? `${amp(s.t)} (${val('.gvm-t')}% of the range)` : `${s3(s.t)} V (${val('.gvm-t')}% of the range)`;
+    for (const el of root.querySelectorAll<HTMLElement>('.gvm-only')) el.hidden = el.dataset.m !== mode;
+    const e = q('.gvm-err'); e.hidden = s.ok;
+    e.textContent = s.ok ? '' : mode === 'A' ? 'The range must be bigger than the galvanometer\'s own full-scale current. Pick a bigger range.' : `The galvanometer alone already reads up to Ig × G = ${s3(s.Ig * s.G)} V. Pick a bigger range.`;
+    if (!s.ok) { q('.gvm-big').textContent = ''; q('.gvm-formula').textContent = ''; q('.gvm-facts').replaceChildren(); return; }
+    if (mode === 'A') {
+      q('.gvm-big').textContent = `Shunt S = ${ohm(s.X)} in parallel`;
+      q('.gvm-formula').textContent = `S = Ig G / (I₀ − Ig) = ${s3(s.Ig)} × ${s3(s.G)} / (${s3(s.range)} − ${s3(s.Ig)}) = ${ohm(s.X)}`;
+      q('.gvm-facts').replaceChildren(fact('Ammeter resistance', ohm(s.Rm), 'G and S in parallel: tiny'), fact('Through the coil', amp(s.ig), `${s3(s.frac * 100)}% of full scale`), fact('Through the shunt', amp(s.is)), fact('Reading', s.frac > 1 ? 'off the scale!' : amp(s.t)));
+    } else {
+      q('.gvm-big').textContent = `Series resistance R = ${ohm(s.X)}`;
+      q('.gvm-formula').textContent = `R = V₀ / Ig − G = ${s3(s.range)} / ${s3(s.Ig)} − ${s3(s.G)} = ${ohm(s.X)}`;
+      q('.gvm-facts').replaceChildren(fact('Voltmeter resistance', ohm(s.Rm), 'G + R: large'), fact('Through the coil', amp(s.ig), `${s3(s.frac * 100)}% of full scale`), fact('Ohms per volt', ohm(1 / s.Ig), '1 / Ig, the same for every range'), fact('Reading', s.frac > 1 ? 'off the scale!' : `${s3(s.t)} V`));
+    }
+  }
+  const all = () => { texts(); draw(); };
+  for (const c of ['.gvm-g', '.gvm-i', '.gvm-t']) q(c).addEventListener('input', all);
+  for (const c of ['.gvm-ra', '.gvm-rv']) q(c).addEventListener('change', all);
+  seg(q('.gvm-mode'), (v) => { mode = v; all(); });
+  onTheme(draw);
+  all();
+  quiz(q('.gvm-quiz'), () => questions());
+</script>
