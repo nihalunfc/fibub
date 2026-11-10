@@ -1,0 +1,195 @@
+---
+// Asexual reproduction: step through binary and multiple fission, budding, fragmentation, regeneration and spore
+// formation as simple drawings, and see how fast a population grows by fission. Teaching drawings, not to scale.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm rp">
+  <div class="ax-card">
+    <h2>Ways to make offspring from one parent</h2>
+    <div class="ax-seg rp-mode" role="group" aria-label="Mode">
+      <button type="button" data-m="binary" aria-pressed="true">Binary fission</button><button type="button" data-m="multiple" aria-pressed="false">Multiple fission</button><button type="button" data-m="budding" aria-pressed="false">Budding</button><button type="button" data-m="fragment" aria-pressed="false">Fragmentation</button><button type="button" data-m="regen" aria-pressed="false">Regeneration</button><button type="button" data-m="spores" aria-pressed="false">Spores</button>
+    </div>
+    <svg class="sm-fig rp-fig" viewBox="0 0 340 200" role="img" aria-label="Drawing of the stage"></svg>
+    <label class="rp-tl">Stage <input type="range" class="rp-t" min="0" max="1" step="0.01" value="0" aria-label="Stage" /></label>
+    <div class="ax-row"><button type="button" class="btn small rp-play">Play</button><span class="ax-help rp-who" style="margin:0"></span></div>
+    <p class="sm-f rp-cap" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Population from fission</h2>
+    <div class="sm-sl"><b>N₀</b><input type="range" class="rp-nr" min="1" max="100" step="1" value="1" aria-label="Starting cells slider" /><input type="number" class="rp-n" min="1" step="1" value="1" inputmode="numeric" aria-label="Starting number of cells" /></div>
+    <div class="sm-sl"><b>T</b><input type="range" class="rp-dr" min="10" max="120" step="1" value="20" aria-label="Doubling time slider" /><input type="number" class="rp-d" min="1" step="1" value="20" inputmode="numeric" aria-label="Doubling time in minutes" /></div>
+    <div class="sm-sl"><b>t</b><input type="range" class="rp-hr" min="0" max="720" step="5" value="180" aria-label="Time slider" /><input type="number" class="rp-h" min="0" step="5" value="180" inputmode="numeric" aria-label="Time in minutes" /></div>
+    <label class="ax-check"><input type="checkbox" class="rp-log" /> Log scale (each grid line is ×10)</label>
+    <svg class="sm-fig rp-graph" viewBox="0 0 340 200" role="img" aria-label="Number of cells against time"></svg>
+    <p class="ax-big rp-big" aria-live="polite"></p>
+    <p class="sm-f rp-f"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Play binary fission. Which divides first, the nucleus or the cytoplasm?</li>
+      <li>Compare binary and multiple fission: how many daughter cells does each give at once?</li>
+      <li>With a doubling time of 20 minutes, how long does one bacterium take to make a million? Tick log scale.</li>
+      <li>All the offspring here are copies of the parent. Why can that be a problem if the surroundings change?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card rp-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .rp .rp-mode { margin-bottom: 10px; }
+  .rp .rp-tl { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; color: var(--ink); font-size: 15px; margin: 8px 0; }
+  .rp .rp-tl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rp svg .rp-o { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .rp svg .rp-c { fill: var(--accent-soft); }
+  .rp svg .rp-g { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .rp svg .rp-n { fill: var(--accent); }
+  .rp svg .rp-w { fill: none; stroke: var(--warn); stroke-width: 4; stroke-dasharray: 10 4; }
+  .rp svg .rp-l { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+  .rp svg .rp-ch { fill: none; stroke: var(--good); stroke-width: 1.5; }
+  .rp svg .rp-sp { fill: var(--ink); }
+  .rp svg .rp-new { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; stroke-dasharray: 4 3; }
+  .rp svg .rp-ln { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+</style>
+
+<script>
+  import { MODES, mode, caption, cells, timeTo, type Mode } from '../../lib/sci/reproduction';
+  import { fmt } from '../../lib/sci/smath';
+  import { S, pair, val } from '../../lib/smath-ui';
+  import { mountQuiz, one, pick, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.rp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.rp-fig'), T = q<HTMLInputElement>('.rp-t');
+  let m: Mode = 'binary', raf = 0;
+  const cl = (x: number) => Math.max(0, Math.min(1, x));
+
+  /** Blobs that merge: outlines first, then fills on top hide the inner lines. */
+  function blobs(list: [number, number, number, number][]) {
+    for (const [cx, cy, rx, ry] of list) S('ellipse', { cx, cy, rx, ry, class: 'rp-o' }, fig);
+    for (const [cx, cy, rx, ry] of list) S('ellipse', { cx, cy, rx: rx - 1.4, ry: ry - 1.4, class: 'rp-c' }, fig);
+  }
+
+  const DRAW: Record<Mode, (t: number) => void> = {
+    binary: (t) => {
+      const s = cl((t - 0.45) / 0.5), d = 8 + 62 * s;
+      blobs([[170 - d, 100, 52 - 8 * s, 44 - 6 * s], [170 + d, 100, 52 - 8 * s, 44 - 6 * s]]);
+      if (t < 0.3) S('circle', { cx: 170, cy: 100, r: 14, class: 'rp-n' }, fig);
+      else if (t < 0.45) { const e = (t - 0.3) / 0.15; S('ellipse', { cx: 170, cy: 100, rx: 14 + 22 * e, ry: 14 - 4 * e, class: 'rp-n' }, fig); }
+      else for (const k of [-1, 1]) S('circle', { cx: 170 + k * Math.max(26, d), cy: 100, r: 11, class: 'rp-n' }, fig);
+    },
+    multiple: (t) => {
+      const burst = cl((t - 0.85) / 0.15), n = t < 0.3 ? 1 : t < 0.6 ? 2 ** (1 + Math.floor(((t - 0.3) / 0.3) * 4)) : 16;
+      if (burst === 0) S('circle', { cx: 170, cy: 100, r: 78, class: 'rp-w' }, fig);
+      else for (const [a, b] of [[200, 330], [20, 150]]) { const r = 78 + 20 * burst, p = (x: number) => [170 + r * Math.cos((x * Math.PI) / 180), 100 + r * Math.sin((x * Math.PI) / 180)]; const [x1, y1] = p(a), [x2, y2] = p(b); S('path', { d: `M${x1},${y1} A${r},${r} 0 0 1 ${x2},${y2}`, class: 'rp-w' }, fig); }
+      if (t < 0.6) { blobs([[170, 100, 68, 68]]); for (let i = 0; i < n; i++) { const a = (2 * Math.PI * i) / n, r = n === 1 ? 0 : 36; S('circle', { cx: 170 + r * Math.cos(a), cy: 100 + r * Math.sin(a), r: n === 1 ? 14 : 7, class: 'rp-n' }, fig); } }
+      else for (let i = 0; i < 16; i++) { const a = (2 * Math.PI * i) / 16 + (i % 2) * 0.2, r = (i % 2 ? 28 : 54) * (1 + 1.2 * burst); blobs([[170 + r * Math.cos(a), 100 + r * Math.sin(a), 12, 12]]); S('circle', { cx: 170 + r * Math.cos(a), cy: 100 + r * Math.sin(a), r: 4.5, class: 'rp-n' }, fig); }
+    },
+    budding: (t) => {
+      const hydra = (x: number, y: number, k: number) => {
+        for (const dx of [-14, -5, 5, 14]) S('path', { d: `M${x + dx * k},${y - 60 * k} q${dx * 1.6 * k},${-30 * k} ${dx * 2.6 * k},${-46 * k}`, class: 'rp-l' }, fig);
+        blobs([[x, y, 18 * k, 62 * k]]);
+      };
+      hydra(130, 118, 1);
+      const g = cl(t / 0.5), off = cl((t - 0.85) / 0.15);
+      if (g > 0) {
+        const bx = 150 + 28 * g + off * 90, by = 112 - off * 10, k = 0.15 + 0.4 * g;
+        if (t >= 0.55) hydra(bx, by, k); else blobs([[bx, by, 18 * k + 4, 30 * k + 4]]);
+      }
+    },
+    fragment: (t) => {
+      const brk = cl((t - 0.3) / 0.2), grow = cl((t - 0.6) / 0.3);
+      for (let p = 0; p < 3; p++) {
+        const start0 = 20 + p * 100 + (p - 1) * 14 * brk, x0 = start0 + (40 - start0) * grow, y = 100 + (p - 1) * 52 * grow, extra = Math.round(grow * 6);
+        for (let i = 0; i < 5 + extra; i++) {
+          const x = x0 + i * 20;
+          S('rect', { x, y: y - 9, width: 19, height: 18, class: i >= 5 ? 'rp-new' : 'rp-g' }, fig);
+          S('path', { d: `M${x + 2},${y - 6} l5,12 l5,-12 l5,12`, class: 'rp-ch' }, fig);
+        }
+      }
+    },
+    regen: (t) => {
+      const cut = cl((t - 0.3) / 0.15), g = cl((t - 0.6) / 0.3);
+      const worm = (x: number, y: number, from: number, to: number) => {
+        // A flatworm from x to x + 240; draw only the part between `from` and `to` (0..1 along the body).
+        const L = 240, x1 = x + from * L, x2 = x + to * L;
+        S('rect', { x: x1, y: y - 16, width: x2 - x1, height: 32, rx: 16, class: 'rp-g' }, fig);
+        if (from < 0.08) { S('circle', { cx: x + 16, cy: y - 6, r: 3, class: 'rp-sp' }, fig); S('circle', { cx: x + 16, cy: y + 6, r: 3, class: 'rp-sp' }, fig); }
+      };
+      if (cut === 0) { worm(50, 100, 0, 1); return; }
+      const parts: [number, number][] = [[0, 0.33], [0.33, 0.66], [0.66, 1]];
+      parts.forEach(([a, b], i) => {
+        const y = 100 + (i - 1) * 60 * cut, x = 50 + (i - 1) * 10 * cut - a * 240 * g;
+        worm(x, y, a, b);
+        if (g > 0) { const missL = a * g, missR = (1 - b) * g; if (missL > 0) S('rect', { x: x + (a - missL) * 240, y: y - 14, width: missL * 240 + 6, height: 28, rx: 14, class: 'rp-new' }, fig); if (missR > 0) S('rect', { x: x + b * 240 - 6, y: y - 14, width: missR * 240 + 6, height: 28, rx: 14, class: 'rp-new' }, fig); if (a > 0 && g > 0.9) { S('circle', { cx: x + 16, cy: y - 6, r: 3, class: 'rp-sp' }, fig); S('circle', { cx: x + 16, cy: y + 6, r: 3, class: 'rp-sp' }, fig); } }
+      });
+    },
+    spores: (t) => {
+      S('path', { d: 'M10,185 C80,170 120,195 200,182 S300,175 330,188', class: 'rp-l' }, fig);
+      S('path', { d: 'M120,183 L120,70', class: 'rp-l' }, fig);
+      const fill = cl((t - 0.25) / 0.25), burst = cl((t - 0.55) / 0.25), grow = cl((t - 0.8) / 0.2);
+      if (burst === 0) { S('circle', { cx: 120, cy: 52, r: 24, class: 'rp-o' }, fig); S('circle', { cx: 120, cy: 52, r: 22.5, class: 'rp-c' }, fig); }
+      const n = Math.round(30 * fill);
+      for (let i = 0; i < n; i++) { const a = i * 2.4, r = 4 + (i % 6) * 3, sx = 120 + r * Math.cos(a), sy = 52 + r * Math.sin(a), k = burst * (1.5 + (i % 5)) * 18; S('circle', { cx: sx + Math.cos(a) * k + burst * 40, cy: sy + Math.sin(a) * k * 0.6, r: 2.2, class: 'rp-sp' }, fig); }
+      if (grow > 0) { S('circle', { cx: 270, cy: 180, r: 3, class: 'rp-sp' }, fig); S('path', { d: `M270,180 l${-20 * grow},-${40 * grow} M270,180 l${25 * grow},-${30 * grow}`, class: 'rp-l' }, fig); }
+    },
+  };
+
+  function draw() {
+    const t = Number(T.value);
+    fig.replaceChildren(); DRAW[m](t);
+    q('.rp-cap').textContent = caption(m, t);
+    q('.rp-who').textContent = `Seen in: ${mode(m).who}`;
+  }
+  T.addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.rp-mode button').forEach((b) => b.addEventListener('click', () => {
+    m = b.dataset.m as Mode; root.querySelectorAll('.rp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    cancelAnimationFrame(raf); T.value = '0'; draw();
+  }));
+  q('.rp-play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { T.value = '1'; draw(); return; }
+    const t0 = performance.now();
+    const step = (now: number) => { const k = Math.min(1, (now - t0) / 5000); T.value = String(k); draw(); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  });
+  draw();
+
+  const N0 = q<HTMLInputElement>('.rp-n'), DT = q<HTMLInputElement>('.rp-d'), HT = q<HTMLInputElement>('.rp-h');
+  pair(q('.rp-nr'), N0, pop); pair(q('.rp-dr'), DT, pop); pair(q('.rp-hr'), HT, pop); q('.rp-log').addEventListener('change', pop);
+  function pop() {
+    const n0 = Math.round(val(N0, 1, 1)), Td = val(DT, 20, 1), t = val(HT, 180, 0), log = q<HTMLInputElement>('.rp-log').checked, N = cells(n0, t, Td);
+    const g = q<SVGSVGElement>('.rp-graph'); g.replaceChildren();
+    const X = (x: number) => 40 + (290 * x) / Math.max(t, 1), top = Math.max(N, n0 * 2);
+    const Y = log ? (y: number) => 180 - (170 * Math.log10(y)) / Math.max(1, Math.ceil(Math.log10(top))) : (y: number) => 180 - (170 * y) / top;
+    if (log) for (let e = 0; e <= Math.ceil(Math.log10(top)); e++) { S('line', { x1: 40, y1: Y(10 ** e), x2: 330, y2: Y(10 ** e), class: 'sm-grid' }, g); S('text', { x: 36, y: Y(10 ** e) + 4, 'text-anchor': 'end', class: 'sm-tick' }, g, e < 4 ? String(10 ** e) : `10^${e}`); }
+    else { S('text', { x: 36, y: 14, 'text-anchor': 'end', class: 'sm-tick' }, g, fmt(top, 0).length > 6 ? top.toExponential(1) : fmt(top, 0)); S('text', { x: 36, y: 184, 'text-anchor': 'end', class: 'sm-tick' }, g, '0'); }
+    S('line', { x1: 40, y1: 180, x2: 330, y2: 180, class: 'sm-axis' }, g); S('line', { x1: 40, y1: 8, x2: 40, y2: 180, class: 'sm-axis' }, g);
+    let d = ''; for (let i = 0; i <= 120; i++) { const x = (t * i) / 120; d += `${i ? 'L' : 'M'}${X(x).toFixed(1)},${Y(cells(n0, x, Td)).toFixed(1)}`; } S('path', { d, class: 'rp-ln' }, g);
+    S('text', { x: 330, y: 196, 'text-anchor': 'end', class: 'sm-tick' }, g, `${fmt(t, 0)} min`);
+    const k = t / Td, whole = Math.floor(k + 1e-9);
+    q('.rp-big').textContent = `After ${fmt(t, 0)} min: ${N < 1e7 ? Math.round(N).toLocaleString('en') : N.toExponential(2).replace('e+', ' × 10^')} cells`;
+    q('.rp-f').textContent = `N = N₀ × 2^(t/T) = ${n0} × 2^(${fmt(t, 0)}/${fmt(Td, 0)}) = ${n0} × 2^${fmt(k, 2)}. That is ${whole} full doubling${whole === 1 ? '' : 's'}${Math.abs(k - whole) > 1e-9 ? ' and part of the next' : ''}. One cell reaches a million after ${fmt(timeTo(1e6, 1, Td), 0)} min (about 20 doublings, since 2^20 ≈ 1 048 576), if food and space last.`;
+  }
+  pop();
+
+  mountQuiz(q('.rp-quiz'), () => {
+    const out: QItem[] = [];
+    const Td = one([15, 20, 30, 60]), k = pick(3, 10);
+    out.push({ q: `A bacterium divides by binary fission every ${Td} minutes. Starting with one, how many are there after ${Td * k} minutes?`, ans: 2 ** k, work: `${Td * k} ÷ ${Td} = ${k} doublings, so 2^${k} = ${2 ** k}.` });
+    const n0 = pick(2, 10), k2 = pick(2, 6);
+    out.push({ q: `${n0} Amoebae each split in two every day. How many after ${k2} days?`, ans: n0 * 2 ** k2, work: `${n0} × 2^${k2} = ${n0 * 2 ** k2}.` });
+    const N = one([64, 128, 256, 1024]);
+    out.push({ q: `How many doublings does it take for one cell to become ${N} cells?`, ans: Math.log2(N), abs: 0.01, work: `2^${Math.log2(N)} = ${N}, so ${Math.log2(N)} doublings.` });
+    const md = one(MODES.filter((x) => x.id !== 'regen'));
+    const opts = ['Binary fission', 'Multiple fission', 'Budding', 'Fragmentation', 'Spore formation'];
+    out.push({ q: `Which way of reproducing is seen in ${md.who.split(',')[0]}?`, ans: opts.indexOf(md.name), choices: opts, work: `${md.who.split(',')[0]}: ${md.name.toLowerCase()}.` });
+    return out;
+  });
+</script>
