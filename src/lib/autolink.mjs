@@ -12,8 +12,16 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, basename, dirname } from 'node:path';
 
-const MAX_AUTO = 8;
+const MAX_AUTO = 8, MAX_AUTO_BLOG = 14;
 const ROOT = new URL('../tools/', import.meta.url).pathname;
+const BLOG = new URL('../blog/', import.meta.url).pathname;
+
+/** Every Blog article id (<kind>/<slug>), for [[blog:<kind>/<slug>]] links. */
+export function blogIds() {
+  if (!existsSync(BLOG)) return new Set();
+  return new Set(readdirSync(BLOG).flatMap((k) => existsSync(join(BLOG, k)) && !k.includes('.') ? readdirSync(join(BLOG, k)).filter((f) => f.endsWith('.md')).map((f) => `${k}/${f.slice(0, -3)}`) : []));
+}
+const titleOf = (id) => field(readFileSync(join(BLOG, `${id}.md`), 'utf8').split(/^---\s*$/m)[1] ?? '', 'title');
 
 const field = (src, key) => {
   const m = src.match(new RegExp(`^${key}:[ \\t]*(.*)$`, 'm'));
@@ -59,12 +67,16 @@ export default function autolinkTools() {
   const phrases = tools.flatMap((t) => t.terms.map((p) => ({ p, t }))).sort((a, b) => b.p.length - a.p.length);
   const anyPhrase = phrases.length ? new RegExp(`(?<![\\w-])(${phrases.map((x) => esc(x.p)).join('|')})(?![\\w-])`, 'gi') : null;
   const lookup = new Map(phrases.map((x) => [x.p.toLowerCase(), x.t]));
+  const blogs = blogIds();
 
   return (tree, file) => {
     const path = file?.path || file?.history?.[0] || '';
-    if (!/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
-    const self = basename(dirname(path));
+    const isBlog = /[\\/]blog[\\/][^\\/]+[\\/][^\\/]+\.md$/.test(path);
+    if (!isBlog && !/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
+    // A tool guide never links to itself; a Blog article may link to every tool, its own included.
+    const self = isBlog ? '' : basename(dirname(path));
     const done = new Set([self]);
+    const max = isBlog ? MAX_AUTO_BLOG : MAX_AUTO;
     let auto = 0;
 
     // Hand-made [[id]] links first, so they count as this guide's link to that tool.
@@ -73,7 +85,15 @@ export default function autolinkTools() {
       node.children = node.children.flatMap((c) => {
         if (c.type === 'text' && c.value.includes('[[')) {
           const parts = []; let last = 0;
-          for (const m of c.value.matchAll(/\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]/g)) {
+          for (const m of c.value.matchAll(/\[\[(blog:[a-z0-9-]+\/[a-z0-9-]+|[a-z0-9-]+)(?:\|([^\]]+))?\]\]/g)) {
+            if (m[1].startsWith('blog:')) {
+              const id = m[1].slice(5);
+              if (!blogs.has(id)) throw new Error(`${path}: [[${m[1]}]] is not a Blog article (src/blog/${id}.md)`);
+              if (m.index > last) parts.push({ type: 'text', value: c.value.slice(last, m.index) });
+              parts.push({ type: 'element', tagName: 'a', properties: { href: `/blog/${id}/`, className: ['bl'] }, children: [{ type: 'text', value: m[2] ?? titleOf(id) }] });
+              last = m.index + m[0].length;
+              continue;
+            }
             const t = byId.get(m[1]);
             if (!t) throw new Error(`${path}: [[${m[1]}]] is not a live tool id`);
             if (m.index > last) parts.push({ type: 'text', value: c.value.slice(last, m.index) });
@@ -88,7 +108,7 @@ export default function autolinkTools() {
       });
     };
     manual(tree);
-    const handMade = done.size > 1;
+    const handMade = done.size > 1 || isBlog;
     // Tools the guide already links to with an ordinary Markdown link count as linked too.
     const seen = (node) => { if (node.type === 'element' && node.tagName === 'a') { const h = String(node.properties?.href ?? ''); for (const t of tools) if (h === t.url) done.add(t.id); } (node.children ?? []).forEach(seen); };
     seen(tree);
@@ -112,15 +132,15 @@ export default function autolinkTools() {
 
     if (!anyPhrase) return;
     const walk = (node) => {
-      if (!node.children || auto >= MAX_AUTO) return;
+      if (!node.children || auto >= max) return;
       node.children = node.children.flatMap((c) => {
-        if (auto >= MAX_AUTO) return [c];
+        if (auto >= max) return [c];
         if (c.type === 'element') { if (!SKIP.has(c.tagName)) walk(c); return [c]; }
         if (c.type !== 'text') return [c];
         const parts = []; let last = 0;
         for (const m of c.value.matchAll(anyPhrase)) {
           const t = lookup.get(m[1].toLowerCase());
-          if (!t || done.has(t.id) || auto >= MAX_AUTO) continue;
+          if (!t || done.has(t.id) || auto >= max) continue;
           if (m.index > last) parts.push({ type: 'text', value: c.value.slice(last, m.index) });
           parts.push(link(t, m[1]));
           done.add(t.id); auto++; last = m.index + m[0].length;

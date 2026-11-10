@@ -12,6 +12,7 @@ import { ICONS } from '../../lib/icons';
 import { toolSeoTitle, toolDescription, toolLd } from '../../lib/seo';
 import { SHELVES, SUBJECTS } from '../../site';
 import { chaptersFor } from '../../data/ncert';
+import { articlesFor, articleUrl } from '../../lib/blog';
 // Two kinds of page share this address pattern: a tool (/science/sky-tonight/) and, on shelves with
 // subjects, a subject (/science/physics/). The build fails if a tool id is also a subject id.
 export async function getStaticPaths() {
@@ -33,6 +34,8 @@ const changes = tool ? changesFor(tool.id) : [];
 const syllabus = tool ? chaptersFor(tool.id) : [];
 const secHref = (sh: string, sj: any, sec: any) => sh === 'learn' ? `/learn/school/#${sec.id}` : sj ? `/${sh}/${sj.id}/#${sec.id}` : `/${sh}/#${sec.id}`;
 const everyTool = tool ? await allTools() : [];
+// The tool's guide on the Blog, and other articles that mention it.
+const reading = tool ? await articlesFor(tool.id) : { guide: undefined, featured: [] };
 // Hub tools (the plot maker, sample size) relate to dozens of others. Every one stays linked, but past
 // the first CARDS as plain links, so the page stays light.
 const CARDS = 12;
@@ -43,6 +46,7 @@ const CARDS = 12;
   <h1>{tool.data.title}</h1>
   <p class="page-views tool-counts" data-counter hidden title="How many times this tool's page has been opened, counted as a running total. Nothing about you is kept."><b data-count="v"></b>{' '}<span data-one="view" data-many="views">views</span></p>
   <p class="lead">{tool.data.summary}</p>
+  {reading.guide && <p class="guide-link"><a href={articleUrl(reading.guide)}>Read the full guide: {reading.guide.data.title}</a></p>}
   <div class="bm" data-id={tool.id}>
     <button type="button" class="bm-btn" aria-haspopup="dialog"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z" /></svg><span>Bookmark this tool</span></button>
     <span class="bm-tip" role="status" aria-live="polite">Keep it one tap away for everyday use.</span>
@@ -80,6 +84,15 @@ const CARDS = 12;
         <p>Standard scientific values, such as constants, atomic weights and melting points, are facts found in every textbook; we name where ours were checked. If you are an author or publisher and want a value, a credit or a table changed or removed, <a href={`/contact/?about=rights-${tool.id}#rights`}>tell us</a> and we will act quickly.</p>
       </section>
     )}
+    {(reading.guide || reading.featured.length > 0) && (
+      <section class="reading" id="guide">
+        <h2>Read more on the Blog</h2>
+        <ul>
+          {reading.guide && <li><a href={articleUrl(reading.guide)}>{reading.guide.data.title}</a> <span>(the full guide)</span></li>}
+          {reading.featured.slice(0, 8).map((a: any) => <li><a href={articleUrl(a)}>{a.data.title}</a></li>)}
+        </ul>
+      </section>
+    )}
     <p style="color:var(--muted);font-size:14px">Last updated {updated}.</p>
   </article>
   {changes.length > 0 && (
@@ -108,6 +121,8 @@ const CARDS = 12;
 
 <style>
   .tool-ui { display: contents; }
+  .guide-link { margin: -8px 0 14px; font-size: 15px; font-weight: 600; }
+  .reading span { color: var(--muted); font-size: 14px; }
   .more-log { font-size: 14px; color: var(--muted); }
   .more-rel { margin-top: 16px; font-size: 15px; color: var(--muted); }
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }

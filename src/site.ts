@@ -339,7 +339,7 @@ export const shelfById = (id: string) => (id === LEARN_SHELF.id ? LEARN_SHELF : 
 // of that area's sections above it. `match` lists the path starts that belong to an area; Menu is
 // everything else (About, Contact, Privacy, ...), and its tab opens the full menu panel.
 export type AreaTab = { name: string; href: string; match?: string[] };
-export type Area = { id: 'learn' | 'tools' | 'home' | 'news' | 'menu'; name: string; href: string; blurb: string; match: string[]; tabs: AreaTab[] };
+export type Area = { id: 'learn' | 'tools' | 'home' | 'blog' | 'menu'; name: string; href: string; blurb: string; match: string[]; tabs: AreaTab[] };
 export const AREAS: Area[] = [
   {
     id: 'learn', name: 'Learn', href: '/learn/', match: ['/learn/'],
@@ -363,10 +363,14 @@ export const AREAS: Area[] = [
     tabs: [{ name: 'Search', href: '/#find' }, ...SHELVES.map((s) => ({ name: s.name, href: `/#${s.id}` }))],
   },
   {
-    id: 'news', name: 'News', href: '/news/', match: ['/news/', '/changes/', '/stats/'],
-    blurb: 'New tools, every change to the site, and how much the tools are used.',
+    id: 'blog', name: 'Blog', href: '/blog/', match: ['/blog/', '/changes/', '/stats/'],
+    blurb: 'Guides to every tool, how tools work together, guides for students, science news, the change log and usage stats.',
     tabs: [
-      { name: 'Latest', href: '/news/' },
+      { name: 'Latest', href: '/blog/' },
+      { name: 'Guides', href: '/blog/guides/', match: ['/blog/guides/'] },
+      { name: 'Together', href: '/blog/together/', match: ['/blog/together/'] },
+      { name: 'For students', href: '/blog/kids/', match: ['/blog/kids/'] },
+      { name: 'Discoveries', href: '/blog/discoveries/', match: ['/blog/discoveries/'] },
       { name: 'Change log', href: '/changes/', match: ['/changes/'] },
       { name: 'Usage stats', href: '/stats/' },
     ],

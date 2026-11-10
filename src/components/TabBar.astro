@@ -1,5 +1,5 @@
 ---
-// The bottom bar on every page, phones and computers: Learn, Tools, Home, News and Menu, each with its
+// The bottom bar on every page, phones and computers: Learn, Tools, Home, Blog and Menu, each with its
 // own colour. Above it, a smaller bar lists the current area's sections (left out on tool pages, where
 // the screen is needed for the tool). Menu opens the full menu panel (#all-tools). Plain links and
 // one button, so it works before any script loads; the script only opens the panel and scrolls the
@@ -13,7 +13,7 @@ const ICON: Record<string, string> = {
   learn: '<path d="M2 8.5 12 4l10 4.5-10 4.5z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/><path d="M22 8.5V14"/>',
   tools: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
-  news: '<path d="M5 4h11v15a1.5 1.5 0 0 0 1.5 1.5H6.5A1.5 1.5 0 0 1 5 19z"/><path d="M16 8h3v11a1.5 1.5 0 0 1-1.5 1.5"/><path d="M8 8h5M8 12h5M8 16h3"/>',
+  blog: '<path d="M5 4h11v15a1.5 1.5 0 0 0 1.5 1.5H6.5A1.5 1.5 0 0 1 5 19z"/><path d="M16 8h3v11a1.5 1.5 0 0 1-1.5 1.5"/><path d="M8 8h5M8 12h5M8 16h3"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 };
 const svg = (id: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg>`;

@@ -43,4 +43,34 @@ const tools = defineCollection({
   }),
 });
 
-export const collections = { tools };
+// The Blog (/blog/): one Markdown file per article in src/blog/<kind>/<slug>.md, shown at
+// /blog/<kind>/<slug>/. Kinds: guides (one per tool: what it is, how to use it, real uses, worked
+// example), together (several tools in one job), kids (for school students, per chapter or subject)
+// and discoveries (new research, in our own words, and how to check it with fibub tools).
+// Links: tool names link themselves on first mention, [[tool-id]] links a tool, and
+// [[blog:<kind>/<slug>]] (or [[blog:<kind>/<slug>|words]]) links another article (src/lib/autolink.mjs).
+export const BLOG_KINDS = ['guides', 'together', 'kids', 'discoveries'] as const;
+const blog = defineCollection({
+  loader: glob({ pattern: '*/*.md', base: './src/blog' }),
+  schema: z.object({
+    title: z.string(),
+    summary: z.string(),          // one or two sentences for cards and the meta description
+    seoTitle: z.string().max(60).optional(),
+    seoDescription: z.string().max(160).optional(),
+    // The tools the article is about, main one first. A guide's first tool is the tool it explains:
+    // that tool's page links to it as "Read the full guide".
+    tools: z.array(z.string()).default([]),
+    updated: z.coerce.date(),
+    // For students: the class or level it is written for, e.g. "Class 8" or "Age 12 and up".
+    level: z.string().optional(),
+    // Discoveries: the paper, credited in full. Our own words only: no copied tables or figures.
+    paper: z.object({
+      title: z.string(), authors: z.string(), journal: z.string(), year: z.number().int(),
+      doi: z.string().optional(), url: z.string().url(), licence: z.string(),
+      reviewed: z.boolean(),      // false for preprints: the page says "not yet peer-reviewed"
+    }).optional(),
+    sources: z.array(z.string()).default([]),
+  }),
+});
+
+export const collections = { tools, blog };
