@@ -1,0 +1,92 @@
+---
+// #1487 Copying errors. A teaching model: a short DNA string copied again and again, with a chance of a wrong base each time.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ce">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <h2>Copy a DNA string</h2>
+    <p class="ax-help">A teaching model: 60 bases are copied again and again. Each copy has a small chance of a wrong base. Changed bases are marked in colour.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Error chance per base <b class="ce-pv"></b><input class="ce-p" type="range" min="0" max="5" step="0.1" value="1" aria-label="Error chance per base, percent" /></label>
+      <label class="lrn-sl">Generations <b class="ce-gv"></b><input class="ce-g" type="range" min="1" max="20" step="1" value="6" aria-label="Number of generations" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small ce-again">Copy again</button></div>
+    <canvas class="lrn-cv ce-cv" aria-label="Rows of DNA bases, one row per generation; bases that differ from the original are coloured"></canvas>
+    <p class="ax-big ce-out" aria-live="polite"></p>
+    <p class="ax-help ce-note"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Average over many runs</h2>
+    <p class="ax-help">Press the button to repeat the whole experiment 500 times with new random strings and average the number of changed bases.</p>
+    <button type="button" class="btn secondary small ce-many">Run 500 times</button>
+    <p class="lrn-eq ce-mean" aria-live="polite"></p>
+    <p class="ax-help" data-only="11" hidden>Class 11: a base hit twice can change back (or into a third base), so the exact average is 60 × ¾ × (1 − (1 − 4p/3)^g), slightly below length × rate × generations.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Set the error chance to 0: every generation is identical. No errors, no variation.</li>
+      <li>Raise it to 2 % and add generations. The coloured bases pile up: this is how variation arises.</li>
+      <li>Press Copy again several times at the same settings. Each family changes differently, but the average stays close to length × rate × generations.</li>
+    </ul>
+  </div>
+  <div class="ax-card ce-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ce .ce-cv { width: 100%; margin-top: 10px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { BASES, lineage, diffCount, roughDiff, exactDiff, meanDiff } from '../../lib/sci/learnbc-bio';
+  const root = document.querySelector('.ce') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const LEN = 60;
+  let level = '10';
+  let start = Array.from({ length: LEN }, () => BASES[Math.floor(Math.random() * 4)] as string);
+  let lin: string[][] = [];
+  const rate = () => +q<HTMLInputElement>('.ce-p').value / 100;
+  const gens = () => +q<HTMLInputElement>('.ce-g').value;
+  const run = () => { start = Array.from({ length: LEN }, () => BASES[Math.floor(Math.random() * 4)] as string); lin = lineage(start, rate(), gens(), Math.random); draw(); };
+  const draw = () => {
+    const p = rate(), g = gens();
+    if (lin.length !== g + 1) lin = lineage(start, p, g, Math.random);
+    q('.ce-pv').textContent = `${r(p * 100, 2)} %`; q('.ce-gv').textContent = String(g);
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.ce-cv'), Math.min(300, 16 + 12 * (g + 1)));
+    const pal = pagePalette(), cw = (W - 8) / LEN, ch = 12;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); ctx.font = `${Math.max(7, Math.min(11, cw - 1))}px monospace`; ctx.textAlign = 'center';
+    lin.forEach((row, y) => row.forEach((b, x) => {
+      const changed = b !== start[x];
+      if (changed) { ctx.fillStyle = pal.red ? pal.line : pal.accent2; ctx.fillRect(4 + x * cw, 8 + y * ch, cw, ch - 1); }
+      ctx.fillStyle = changed && !pal.red ? '#000' : pal.ink; ctx.fillText(b, 4 + x * cw + cw / 2, 8 + y * ch + 9);
+    }));
+    const d = diffCount(start, lin[g]);
+    q('.ce-out').textContent = `After ${g} generation${g === 1 ? '' : 's'}: ${d} of ${LEN} bases differ from the original.`;
+    q('.ce-note').textContent = p === 0 ? 'No copying errors, so every copy is identical to the original.' : `Rule of thumb: ${LEN} × ${r(p, 2)} × ${g} = ${r(roughDiff(LEN, p, g), 3)} changes expected on average.`;
+  };
+  q('.ce-p').addEventListener('input', () => { lin = []; draw(); });
+  q('.ce-g').addEventListener('input', draw);
+  q('.ce-again').addEventListener('click', run);
+  q('.ce-many').addEventListener('click', () => {
+    const p = rate(), g = gens(), m = meanDiff(LEN, p, g, 500, Math.random);
+    q('.ce-mean').textContent = `Average over 500 runs: ${r(m, 3)} changed bases. Rule of thumb ${LEN} × ${r(p, 2)} × ${g} = ${r(roughDiff(LEN, p, g), 3)}` + (level === '11' ? `; exact formula ${r(exactDiff(LEN, p, g), 3)}.` : '.');
+    q('.ce-mean').dataset.mean = String(m);
+  });
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.ce-quiz'), () => {
+    const L = one([50, 100, 200]), p = one([0.5, 1, 2]), g = pick(2, 10);
+    return [
+      { q: `A string of ${L} bases is copied with an error chance of ${p} % per base. About how many errors in one copy?`, ans: L * p / 100, unit: 'errors', work: `${L} × ${p} / 100 = ${r(L * p / 100)}` },
+      { q: `Using length × rate × generations: ${L} bases, ${p} % error, ${g} generations. About how many changes in all?`, ans: L * p / 100 * g, unit: 'changes', work: `${L} × ${p / 100} × ${g} = ${r(L * p / 100 * g)}` },
+      { q: `A copying system never makes any error. What would happen to variation over many generations?`, ans: 0, choices: ['No new variation arises from copying', 'Variation keeps growing', 'The DNA slowly disappears'], work: 'Without errors every copy is identical, so copying alone gives no new variation (sexual reproduction mixes existing variation).' },
+      { q: 'Most copying errors are harmless and a few are helpful. Why do the helpful ones matter?', ans: 1, choices: ['They stop evolution', 'Helpful changes can be passed on and spread through natural selection', 'They make all offspring identical'], work: 'A helpful change gives its owner a better chance to survive and breed, so it can spread over generations.' },
+    ];
+  });
+</script>
