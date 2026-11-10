@@ -1,0 +1,127 @@
+---
+// #1758 Cash runway: how many months the cash lasts.
+---
+<div class="tool-ui cr">
+  <section class="panel">
+    <h2>Your numbers</h2>
+    <div class="cr-grid">
+      <label>Currency <select class="cr-cur" data-k="cur"></select></label>
+      <label>Cash you have now <input data-k="cash" inputmode="decimal" /></label>
+      <label>Start date <input data-k="start" type="date" /></label>
+      <label>What do you know? <select data-k="mode"><option value="burn">My monthly burn</option><option value="rc">Revenue and costs</option></select></label>
+      <label class="cr-m-burn">Monthly burn (money out minus money in) <input data-k="burn" inputmode="decimal" /></label>
+      <label class="cr-m-burn">Burn changes by <span class="cr-suf"><input data-k="bg" inputmode="decimal" /><i>% a month</i></span></label>
+      <label class="cr-m-rc">Monthly revenue <input data-k="rev" inputmode="decimal" /></label>
+      <label class="cr-m-rc">Monthly costs <input data-k="cost" inputmode="decimal" /></label>
+      <label class="cr-m-rc">Revenue grows by <span class="cr-suf"><input data-k="rg" inputmode="decimal" /><i>% a month</i></span></label>
+      <label class="cr-m-rc">Costs grow by <span class="cr-suf"><input data-k="cg" inputmode="decimal" /><i>% a month</i></span></label>
+    </div>
+    <p class="note bad cr-err" role="alert" hidden></p>
+  </section>
+  <section class="cr-res" aria-live="polite">
+    <div class="cr-stats">
+      <div class="good"><span>Months left</span><b class="cr-s-months"></b></div>
+      <div><span>Cash runs out</span><b class="cr-s-date"></b></div>
+      <div><span>Burn in month 1</span><b class="cr-s-burn"></b></div>
+    </div>
+    <p class="cr-line cr-words"></p>
+    <figure class="cr-chart panel">
+      <figcaption>Cash left each month</figcaption>
+      <svg class="cr-svg" viewBox="0 0 640 220" role="img" aria-label="Cash left each month falling towards zero"></svg>
+    </figure>
+    <details class="panel"><summary>Month by month</summary>
+      <div class="cr-wrap"><table><thead><tr><th>Month</th><th>Revenue</th><th>Costs</th><th>Net</th><th>Cash left</th></tr></thead><tbody class="cr-rows"></tbody></table></div>
+      <button type="button" class="btn cr-csv">Download CSV</button>
+    </details>
+  </section>
+  <p class="cr-fine">Runway = cash divided by net monthly burn, worked out month by month when revenue or costs change. The date adds the months at 30.44 days each. Looks up to 10 years ahead. Not financial advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .cr > *, .cr-res > * { min-width: 0; }
+  .cr h2 { margin: 0 0 12px; font-size: 18px; }
+  .cr .panel { padding: 16px; }
+  .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .cr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cr input, .cr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cr input:focus, .cr select:focus { border-color: var(--accent); outline: none; }
+  .cr-suf { position: relative; display: block; }
+  .cr-suf input { padding-right: 88px; }
+  .cr-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .cr-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .cr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .cr-stats span { font-size: 13px; color: var(--muted); }
+  .cr-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .cr-stats .good b { color: var(--good); }
+  .cr-line { margin: 0; font-size: 15px; }
+  .cr-wrap { overflow-x: auto; }
+  .cr table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cr th, .cr td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cr th:first-child, .cr td:first-child { text-align: left; }
+  .cr th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .cr-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .cr-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .cr-stats { grid-template-columns: 1fr 1fr; } }
+  .cr details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .cr details .btn { margin-top: 12px; }
+  .cr-chart { margin: 0; }
+  .cr-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .cr-svg { width: 100%; height: auto; display: block; }
+  .cr-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .cr [hidden] { display: none !important; }
+</style>
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { runway } from '../../lib/money/business';
+  import { csv } from '../../lib/money/growth';
+  const root = document.querySelector<HTMLElement>('.cr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.cr-cur').innerHTML = currencyOptions(defaultCurrency());
+  f('cash').value = '120,000'; f('burn').value = '10,000'; f('bg').value = '0'; f('rev').value = '4,000'; f('cost').value = '14,000'; f('rg').value = '0'; f('cg').value = '0';
+  f('start').value = new Date().toISOString().slice(0, 10);
+  const $ = (n: number, d = 0) => money(n, f('cur').value, d);
+  let last: ReturnType<typeof runway>['rows'] = [];
+  function run() {
+    const rc = f('mode').value === 'rc';
+    root.querySelectorAll<HTMLElement>('.cr-m-burn').forEach((e) => (e.hidden = rc));
+    root.querySelectorAll<HTMLElement>('.cr-m-rc').forEach((e) => (e.hidden = !rc));
+    const cash = num(f('cash').value);
+    const a = rc
+      ? { cash, revenue: num(f('rev').value), costs: num(f('cost').value), revGrowth: num(f('rg').value), costGrowth: num(f('cg').value) }
+      : { cash, revenue: 0, costs: num(f('burn').value), revGrowth: 0, costGrowth: num(f('bg').value) };
+    const bad = cash < 0 || a.revenue < 0 || a.costs < 0 ? 'Cash, revenue and costs cannot be negative.' : [a.revGrowth, a.costGrowth].some((g) => g <= -100 || g > 100) ? 'Growth must be between -99 and 100% a month.' : '';
+    q('.cr-err').hidden = !bad; q('.cr-err').textContent = bad; q('.cr-res').hidden = !!bad;
+    if (bad) return;
+    const r = runway(a);
+    last = r.rows;
+    const net1 = a.costs - a.revenue;
+    q('.cr-s-burn').textContent = net1 > 0 ? $(net1) : 'None';
+    const start = new Date((f('start').value || new Date().toISOString().slice(0, 10)) + 'T12:00:00');
+    if (r.months === null) {
+      q('.cr-s-months').textContent = 'Not running out'; q('.cr-s-date').textContent = 'Not within 10 years';
+      q('.cr-words').textContent = 'Your money in is at or above your money out, so within the next 10 years the cash does not run out on these numbers.';
+    } else {
+      const m = Math.round(r.months * 10) / 10;
+      q('.cr-s-months').textContent = m.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      const d = new Date(start.getTime() + r.months * 30.44 * 86400000);
+      q('.cr-s-date').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+      q('.cr-words').innerHTML = `With <b>${$(cash)}</b> in the bank and a first-month burn of <b>${$(net1)}</b>, your cash lasts <b>${m.toFixed(1)} months</b>, until about <b>${q('.cr-s-date').textContent}</b>.`;
+    }
+    const W = 640, H = 220, L = 56, R = 10, T = 10, B = 26;
+    const pts = [{ month: 0, cash }, ...r.rows.map((x) => ({ month: x.month, cash: x.cash }))];
+    const mx = Math.max(1, pts[pts.length - 1].month), top = Math.max(cash, 1);
+    const x = (m: number) => L + (m / mx) * (W - L - R), y = (v: number) => T + (1 - v / top) * (H - T - B);
+    const short = (v: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+    let t = '';
+    for (const k of [0, 0.5, 1]) t += `<line x1="${L}" x2="${W - R}" y1="${y(top * k)}" y2="${y(top * k)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(top * k) + 4}" text-anchor="end">${short(top * k)}</text><text x="${x(mx * k)}" y="${H - 8}" text-anchor="middle">${Math.round(mx * k)} mo</text>`;
+    t += `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + x(p.month).toFixed(1) + ' ' + y(p.cash).toFixed(1)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+    q('.cr-svg').innerHTML = t;
+    q('.cr-rows').innerHTML = r.rows.slice(0, 120).map((x) => `<tr><td>${x.month}</td><td>${$(x.revenue)}</td><td>${$(x.costs)}</td><td>${$(x.net)}</td><td>${$(x.cash)}</td></tr>`).join('');
+  }
+  q('.cr-csv').addEventListener('click', () => csv('cash-runway.csv', ['Month', 'Revenue', 'Costs', 'Net', 'Cash left'], last.map((x) => [x.month, x.revenue, x.costs, x.net, x.cash])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
