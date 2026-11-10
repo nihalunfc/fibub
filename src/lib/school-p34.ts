@@ -61,10 +61,10 @@ export const onTheme = (fn: () => void) => new MutationObserver(fn).observe(docu
 /** Engineering style: a number with an SI prefix, e.g. 0.0021 → "2.1 m". */
 export function si(x: number, unit: string, n = 3) {
   if (x === 0 || !Number.isFinite(x)) return `${x === 0 ? 0 : '—'} ${unit}`;
-  const P: [number, string][] = [[1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p']];
+  const P: [number, string][] = [[1e18, 'E'], [1e15, 'P'], [1e12, 'T'], [1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'], [1e-6, 'µ'], [1e-9, 'n'], [1e-12, 'p'], [1e-15, 'f'], [1e-18, 'a']];
   const a = Math.abs(x);
-  for (const [f, p] of P) if (a >= f * 0.9995) return `${sg(x / f, n)} ${p}${unit}`;
-  return `${sg(x / 1e-12, n)} p${unit}`;
+  for (const [f, p] of P) if (a >= f * 0.9995) return `${n === 3 ? sci3(x / f) : sg(x / f, n)} ${p}${unit}`;
+  return `${sci3(x / 1e-18)} a${unit}`;
 }
 
 
