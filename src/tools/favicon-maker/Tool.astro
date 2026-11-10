@@ -1,0 +1,197 @@
+---
+// #T858 Favicon maker
+---
+<div class="tool-ui fm">
+  <div class="fm-tabs" role="tablist" aria-label="Make the icon from">
+    <button type="button" role="tab" data-m="letter" aria-selected="true">Letter</button>
+    <button type="button" role="tab" data-m="image" aria-selected="false">Image</button>
+  </div>
+  <section class="panel fm-set">
+    <div class="fm-fields" data-for="letter">
+      <label>Letters (1 or 2)<input data-k="text" type="text" maxlength="2" value="F" autocomplete="off" /></label>
+      <label>Letter colour<input data-k="fg" type="color" value="#ffffff" /></label>
+      <label>Weight<select data-k="weight"><option value="700">Bold</option><option value="400">Regular</option></select></label>
+    </div>
+    <div class="fm-fields" data-for="image" hidden>
+      <label class="fm-file">Choose an image (PNG, JPG, SVG, WebP)<input data-k="file" type="file" accept="image/*" /></label>
+      <label>Fit<select data-k="fit"><option value="contain">Whole image (contain)</option><option value="cover">Fill and crop (cover)</option></select></label>
+      <label>Padding<select data-k="pad"><option value="0">None</option><option value="0.08">Small</option><option value="0.16">Large</option></select></label>
+      <label class="fm-check"><input data-k="transparent" type="checkbox" checked /> Transparent background</label>
+    </div>
+    <div class="fm-fields">
+      <label>Background<input data-k="bg" type="color" value="#1d4ed8" /></label>
+      <label>Shape<select data-k="shape"><option value="rounded">Rounded square</option><option value="square">Square</option><option value="circle">Circle</option></select></label>
+    </div>
+    <p class="fm-msg" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <div class="fm-prev"></div>
+    <div class="fm-acts">
+      <button type="button" class="fm-zip fm-main">Download all (.zip)</button>
+      <button type="button" class="fm-ico">favicon.ico</button>
+      <button type="button" class="fm-reset">Reset</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h3 class="fm-h">HTML for your page's &lt;head&gt;</h3>
+    <textarea class="fm-code" rows="6" readonly></textarea>
+    <button type="button" class="fm-copy">Copy HTML</button>
+  </section>
+  <p class="fm-fine">Your image is drawn on this page and never uploaded.</p>
+</div>
+
+<style is:inline>
+  .fm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .fm .panel { padding: 16px; }
+  .fm-tabs { display: flex; gap: 6px; }
+  .fm button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .fm-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .fm .fm-main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .fm-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; margin-bottom: 12px; }
+  .fm-fields[hidden] { display: none; }
+  .fm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .fm .fm-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .fm .fm-file { grid-column: 1 / -1; }
+  .fm input[type="text"], .fm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fm input[type="color"] { width: 100%; height: 42px; padding: 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .fm input[type="file"] { font: inherit; font-size: 14px; max-width: 100%; }
+  .fm-msg { margin: 0; color: var(--muted); font-size: 14px; }
+  .fm-prev { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+  .fm-prev figure { margin: 0; display: grid; gap: 4px; justify-items: center; font-size: 12px; color: var(--muted); }
+  .fm-prev canvas { display: block; max-width: 96px; max-height: 96px; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 12px 12px; }
+  .fm-prev a { color: var(--accent); }
+  .fm-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fm-h { margin: 0 0 8px; font-size: 16px; }
+  .fm-code { width: 100%; font: 13px ui-monospace, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); margin-bottom: 8px; resize: vertical; }
+  .fm-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const SIZES = [16, 32, 48, 180, 192, 512];
+  const ICO_SIZES = [16, 32, 48];
+  const FILE = (s: number) => (s === 180 ? 'apple-touch-icon.png' : `favicon-${s}x${s}.png`);
+  const root = document.querySelector('.fm') as HTMLElement;
+  const q = <T extends HTMLElement>(k: string) => root.querySelector(`[data-k="${k}"]`) as T;
+  const prev = root.querySelector('.fm-prev') as HTMLElement;
+  const msg = root.querySelector('.fm-msg') as HTMLElement;
+  const code = root.querySelector('.fm-code') as HTMLTextAreaElement;
+  let mode = 'letter';
+  let img: ImageBitmap | HTMLImageElement | null = null;
+  const canv: Record<number, HTMLCanvasElement> = {};
+  for (const s of SIZES) {
+    const fig = document.createElement('figure');
+    const c = document.createElement('canvas'); c.width = c.height = s; c.dataset.size = String(s);
+    c.style.width = c.style.height = Math.min(s, 96) + 'px';
+    const cap = document.createElement('figcaption');
+    const a = document.createElement('a'); a.href = '#'; a.textContent = `${s} px`; a.title = 'Download ' + FILE(s);
+    a.addEventListener('click', async (e) => { e.preventDefault(); save(await png(s), FILE(s)); });
+    cap.append(a); fig.append(c, cap); prev.append(fig); canv[s] = c;
+  }
+  const shapePath = (x: CanvasRenderingContext2D, s: number) => {
+    const sh = q<HTMLSelectElement>('shape').value;
+    x.beginPath();
+    if (sh === 'circle') x.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
+    else if (sh === 'rounded') { const r = s * 0.18; x.moveTo(r, 0); x.arcTo(s, 0, s, s, r); x.arcTo(s, s, 0, s, r); x.arcTo(0, s, 0, 0, r); x.arcTo(0, 0, s, 0, r); x.closePath(); }
+    else x.rect(0, 0, s, s);
+  };
+  const draw = (c: HTMLCanvasElement) => {
+    const s = c.width, x = c.getContext('2d')!;
+    x.clearRect(0, 0, s, s); x.save();
+    shapePath(x, s);
+    const fillBg = mode === 'letter' || !q<HTMLInputElement>('transparent').checked;
+    if (fillBg) { x.fillStyle = q<HTMLInputElement>('bg').value; x.fill(); }
+    x.clip();
+    if (mode === 'letter') {
+      const t = q<HTMLInputElement>('text').value.trim() || ' ';
+      const fs = s * (t.length > 1 ? 0.5 : 0.66);
+      x.font = `${q<HTMLSelectElement>('weight').value} ${fs}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+      x.fillStyle = q<HTMLInputElement>('fg').value; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+      const m = x.measureText(t);
+      const asc = m.actualBoundingBoxAscent || fs * 0.7, desc = m.actualBoundingBoxDescent || 0;
+      x.fillText(t, s / 2, s / 2 + (asc - desc) / 2);
+    } else if (img) {
+      const pad = s * +q<HTMLSelectElement>('pad').value, box = s - pad * 2;
+      const w = img.width, h = img.height;
+      const k = q<HTMLSelectElement>('fit').value === 'cover' ? Math.max(box / w, box / h) : Math.min(box / w, box / h);
+      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      x.drawImage(img, (s - w * k) / 2, (s - h * k) / 2, w * k, h * k);
+    }
+    x.restore();
+  };
+  const png = (s: number) => new Promise<Uint8Array>((res) => canv[s].toBlob(async (b) => res(new Uint8Array(await b!.arrayBuffer())), 'image/png'));
+  // ICO container holding PNG images (allowed since Windows Vista; all current browsers read it).
+  const ico = (pngs: [number, Uint8Array][]) => {
+    const head = 6 + 16 * pngs.length;
+    const total = head + pngs.reduce((a, [, d]) => a + d.length, 0);
+    const out = new Uint8Array(total), v = new DataView(out.buffer);
+    v.setUint16(0, 0, true); v.setUint16(2, 1, true); v.setUint16(4, pngs.length, true);
+    let off = head;
+    pngs.forEach(([s, d], i) => {
+      const e = 6 + 16 * i;
+      out[e] = s >= 256 ? 0 : s; out[e + 1] = s >= 256 ? 0 : s; out[e + 2] = 0; out[e + 3] = 0;
+      v.setUint16(e + 4, 1, true); v.setUint16(e + 6, 32, true);
+      v.setUint32(e + 8, d.length, true); v.setUint32(e + 12, off, true);
+      out.set(d, off); off += d.length;
+    });
+    return out;
+  };
+  const save = (data: Uint8Array, name: string) => {
+    const types: Record<string, string> = { png: 'image/png', ico: 'image/x-icon', zip: 'application/zip' };
+    const url = URL.createObjectURL(new Blob([data as BlobPart], { type: types[name.split('.').pop()!] || 'application/octet-stream' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const HTML = `<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">`;
+  const manifest = () => JSON.stringify({ icons: [192, 512].map((s) => ({ src: `/favicon-${s}x${s}.png`, sizes: `${s}x${s}`, type: 'image/png' })), theme_color: q<HTMLInputElement>('bg').value, background_color: q<HTMLInputElement>('bg').value, display: 'standalone' }, null, 2);
+  const render = () => {
+    for (const s of SIZES) draw(canv[s]);
+    code.value = HTML;
+    msg.textContent = mode === 'image' && !img ? 'Choose an image to start. Square images work best.' : `${SIZES.length} sizes ready: 16, 32 and 48 px go into favicon.ico; 180 px is for iPhones and iPads; 192 and 512 px are for Android and installed web apps.`;
+  };
+  const icoBytes = async () => ico(await Promise.all(ICO_SIZES.map(async (s) => [s, await png(s)] as [number, Uint8Array])));
+  root.querySelector('.fm-ico')!.addEventListener('click', async () => save(await icoBytes(), 'favicon.ico'));
+  root.querySelector('.fm-zip')!.addEventListener('click', async () => {
+    const { zipSync, strToU8 } = await import('fflate');
+    const files: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = { 'favicon.ico': [await icoBytes(), { level: 0 }] };
+    for (const s of SIZES) files[FILE(s)] = [await png(s), { level: 0 }];
+    files['site.webmanifest'] = strToU8(manifest());
+    files['favicon-html.txt'] = strToU8(HTML + '\n');
+    save(zipSync(files as any), 'favicons.zip');
+  });
+  root.querySelector('.fm-copy')!.addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(code.value); b.textContent = 'Copied'; } catch { code.select(); b.textContent = 'Press Ctrl+C'; }
+    setTimeout(() => (b.textContent = 'Copy HTML'), 1500);
+  });
+  q<HTMLInputElement>('file').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    try {
+      if (/svg/.test(f.type)) {
+        const url = URL.createObjectURL(f); const im = new Image();
+        await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
+        if (!im.width) { im.width = 512; im.height = 512; }
+        img = im;
+      } else img = await createImageBitmap(f);
+      render();
+    } catch { img = null; msg.textContent = 'That file could not be opened as an image. Try a PNG or JPG.'; }
+  });
+  root.querySelectorAll('.fm-set input:not([type=file]), .fm-set select').forEach((el) => el.addEventListener('input', render));
+  const show = (m: string) => {
+    mode = m;
+    root.querySelectorAll('.fm-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.fm-fields[data-for]').forEach((d) => (d.hidden = d.dataset.for !== m));
+    render();
+  };
+  root.querySelectorAll('.fm-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
+  root.querySelector('.fm-reset')!.addEventListener('click', () => {
+    q<HTMLInputElement>('text').value = 'F'; q<HTMLInputElement>('fg').value = '#ffffff'; q<HTMLInputElement>('bg').value = '#1d4ed8';
+    q<HTMLSelectElement>('weight').value = '700'; q<HTMLSelectElement>('shape').value = 'rounded';
+    q<HTMLSelectElement>('fit').value = 'contain'; q<HTMLSelectElement>('pad').value = '0'; q<HTMLInputElement>('transparent').checked = true;
+    q<HTMLInputElement>('file').value = ''; img = null; show('letter');
+  });
+  show('letter');
+</script>
