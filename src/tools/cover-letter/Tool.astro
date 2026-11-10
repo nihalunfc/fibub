@@ -1,0 +1,182 @@
+---
+// #1714 Cover letter. Text, Word and PDF in src/lib/docs/coverletter.ts.
+import { HELPERS } from '../../lib/docs/coverletter';
+---
+<div class="tool-ui cl">
+  <div class="cl-cols">
+    <form class="cl-form" autocomplete="on" onsubmit="return false">
+      <div class="cl-tools">
+        <button type="button" class="cl-link cl-example">Fill in an example</button>
+        <button type="button" class="cl-link cl-reset">Start over</button>
+      </div>
+      <fieldset class="cl-card">
+        <legend>About you</legend>
+        <label>Your name <input type="text" data-k="name" autocomplete="name" /></label>
+        <label>Address (optional) <textarea rows="2" data-k="address" autocomplete="street-address"></textarea></label>
+        <div class="cl-grid">
+          <label>Email <input type="text" inputmode="email" data-k="email" autocomplete="email" /></label>
+          <label>Phone <input type="text" inputmode="tel" data-k="phone" autocomplete="tel" /></label>
+        </div>
+      </fieldset>
+      <fieldset class="cl-card">
+        <legend>The job</legend>
+        <div class="cl-grid">
+          <label>Job title <input type="text" data-k="role" /></label>
+          <label>Company <input type="text" data-k="company" /></label>
+          <label>Hiring manager (optional) <input type="text" data-k="manager" placeholder="Alex Chen" /></label>
+          <label>Where you saw it <input type="text" data-k="source" placeholder="LinkedIn, your careers page" /></label>
+        </div>
+        <label>Company address (optional) <textarea rows="2" data-k="companyAddress"></textarea></label>
+        <label>Date <input type="date" data-k="date" /></label>
+      </fieldset>
+      {HELPERS.map((h) => (
+        <fieldset class="cl-card" data-p={h.key}>
+          <legend>{h.title}</legend>
+          <p class="cl-hint">{h.hint}</p>
+          <textarea rows="5" data-k={h.key} aria-label={h.title}></textarea>
+          <details class="cl-ex">
+            <summary>Example phrasing</summary>
+            <p class="cl-hint">Press one to add it, then replace the [brackets] with your own details.</p>
+            <div class="cl-chips">{h.options.map((o, i) => <button type="button" data-h={`${h.key}:${i}`}>{o.slice(0, 70)}...</button>)}</div>
+          </details>
+        </fieldset>
+      ))}
+      <fieldset class="cl-card">
+        <legend>Layout</legend>
+        <div class="cl-grid">
+          <label>Closing
+            <select data-k="closing"><option>Sincerely</option><option>Best regards</option><option>Kind regards</option><option>Yours faithfully</option><option>Respectfully</option></select>
+          </label>
+          <label>Paper
+            <select data-k="paper"><option value="letter">US Letter</option><option value="a4">A4</option></select>
+          </label>
+          <label>Font
+            <select data-k="serif"><option value="">Sans-serif (Calibri, Helvetica)</option><option value="1">Serif (Times)</option></select>
+          </label>
+        </div>
+      </fieldset>
+    </form>
+
+    <aside class="cl-side">
+      <p class="cl-count" aria-live="polite"></p>
+      <div class="cl-dl">
+        <button type="button" class="btn cl-pdf">Download PDF</button>
+        <button type="button" class="btn secondary cl-docx">Download Word</button>
+        <button type="button" class="btn secondary cl-txt">Download text</button>
+        <button type="button" class="btn secondary cl-copy">Copy text</button>
+      </div>
+      <p class="cl-lost" hidden></p>
+      <pre class="cl-prev" aria-label="Preview"></pre>
+    </aside>
+  </div>
+  <div class="cl-keep">
+    <label class="cl-chk"><input type="checkbox" class="cl-remember" /> Remember my draft on this device</label>
+    <button type="button" class="cl-link cl-clear">Clear what is remembered</button>
+  </div>
+  <p class="cl-hint">Your letter is made in your browser and never uploaded. It is gone when you close the page unless you tick the box, which keeps the draft on this device only; untick it or press Clear to remove it. The layout is one plain column with standard fonts, which applicant tracking systems read well.</p>
+</div>
+
+<style is:inline>
+  .cl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cl-cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .cl-form { display: grid; gap: 10px; min-width: 0; }
+  .cl-tools { display: flex; gap: 14px; }
+  .cl-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .cl-card legend { font-weight: 700; padding: 0 6px; }
+  .cl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .cl input[type=text], .cl input[type=date], .cl textarea, .cl select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cl textarea { resize: vertical; line-height: 1.45; }
+  .cl input:focus, .cl textarea:focus, .cl select:focus { border-color: var(--accent); outline: none; }
+  .cl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cl-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .cl-link { font: inherit; font-size: 14px; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .cl-ex summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
+  .cl-chips { display: grid; gap: 6px; margin-top: 8px; }
+  .cl-chips button { font: inherit; font-size: 13px; text-align: left; border: 1px dashed var(--line); background: none; color: var(--ink); border-radius: 10px; padding: 6px 10px; cursor: pointer; }
+  .cl-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .cl-count { margin: 0; font-size: 14px; color: var(--muted); }
+  .cl-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cl-lost { margin: 0; font-size: 14px; color: var(--warn); }
+  .cl-prev { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: #fff; color: #121826; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); padding: 18px; font: 14px/1.5 Helvetica, Arial, sans-serif; min-height: 260px; }
+  .cl-prev.serif { font-family: 'Times New Roman', Times, serif; font-size: 15px; }
+  .cl-keep { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  .cl-chk { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; }
+  .cl-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .cl [hidden] { display: none !important; }
+  @media (max-width: 860px) { .cl-cols { grid-template-columns: minmax(0, 1fr); } .cl-side { position: static; } }
+  @media (max-width: 480px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { emptyLetter, plainText, wordCount, letterDocx, HELPERS, fillHelper, EXAMPLE, type Letter } from '../../lib/docs/coverletter';
+  const root = document.querySelector('.cl') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-coverletter-v1';
+  let L: Letter = emptyLetter();
+  let remembered = false;
+  try { const s = localStorage.getItem(KEY); if (s) { L = { ...emptyLetter(), ...JSON.parse(s) }; remembered = true; } } catch {}
+
+  const fields = () => root.querySelectorAll<HTMLInputElement>('[data-k]');
+  const bind = () => fields().forEach((el) => { const v = (L as any)[el.dataset.k!]; el.value = el.dataset.k === 'serif' ? (v ? '1' : '') : v; });
+  const save = () => { if (!remembered) return; try { localStorage.setItem(KEY, JSON.stringify(L)); } catch {} };
+  const show = () => {
+    const prev = q('.cl-prev');
+    prev.textContent = plainText(L);
+    prev.classList.toggle('serif', L.serif);
+    const n = wordCount(L);
+    q('.cl-count').textContent = n ? `${n} words in your paragraphs. ${n < 180 ? 'A little short: most letters run 250 to 400 words.' : n > 420 ? 'Long: try to fit on one page, about 250 to 400 words.' : 'A good length for one page.'}` : 'Fill in the form and your letter appears here.';
+    save();
+  };
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (!el.dataset.k) return;
+    (L as any)[el.dataset.k] = el.dataset.k === 'serif' ? el.value === '1' : el.value;
+    show();
+  });
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-h]');
+    if (!b) return;
+    const [key, i] = b.dataset.h!.split(':');
+    const h = HELPERS.find((x) => x.key === key)!;
+    const add = fillHelper(h.options[+i], L);
+    (L as any)[key] = ((L as any)[key] ? (L as any)[key].trimEnd() + ' ' : '') + add;
+    bind(); show();
+  });
+  q('.cl-example').addEventListener('click', () => {
+    if ((L.p1 || L.p2 || L.p3) && !confirm('Replace what you have typed with the example?')) return;
+    L = { ...emptyLetter(), ...EXAMPLE, paper: L.paper, closing: L.closing, serif: L.serif }; bind(); show();
+  });
+  q('.cl-reset').addEventListener('click', () => { if (!confirm('Clear the whole letter and start again?')) return; L = emptyLetter(); bind(); show(); });
+
+  const download = (data: BlobPart, name: string, type: string) => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+  const base = () => (L.name.trim() ? `${L.name.trim()}-cover-letter` : 'cover-letter').replace(/[^\w.-]+/g, '-');
+  const ready = () => { if (!L.p1.trim() && !L.p2.trim() && !L.p3.trim()) { alert('Write at least one paragraph first.'); return false; } return true; };
+  q('.cl-pdf').addEventListener('click', async () => {
+    if (!ready()) return;
+    const { letterPdf } = await import('../../lib/docs/coverletter');
+    const { bytes, lost, pages } = await letterPdf(L);
+    const w = q('.cl-lost'); const msgs: string[] = [];
+    if (lost.length) msgs.push(`These characters can't be shown in the PDF and were left out: ${lost.slice(0, 12).join(' ')}. The Word file keeps them.`);
+    if (pages > 1) msgs.push(`The letter runs to ${pages} pages. One page reads best.`);
+    w.hidden = !msgs.length; w.textContent = msgs.join(' ');
+    download(bytes as BlobPart, `${base()}.pdf`, 'application/pdf');
+  });
+  q('.cl-docx').addEventListener('click', () => { if (ready()) download(letterDocx(L) as BlobPart, `${base()}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'); });
+  q('.cl-txt').addEventListener('click', () => { if (ready()) download(plainText(L), `${base()}.txt`, 'text/plain'); });
+  q('.cl-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(plainText(L)); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C on the preview'; }
+    setTimeout(() => (b.textContent = 'Copy text'), 1800);
+  });
+  ((window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500)))(() => { import('../../lib/docs/coverletter').catch(() => {}); });
+
+  const rem = q<HTMLInputElement>('.cl-remember');
+  rem.checked = remembered;
+  rem.addEventListener('change', () => { remembered = rem.checked; if (remembered) save(); else try { localStorage.removeItem(KEY); } catch {} });
+  q('.cl-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} remembered = false; rem.checked = false; });
+
+  bind(); show();
+</script>
