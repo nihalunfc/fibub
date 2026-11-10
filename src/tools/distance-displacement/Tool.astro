@@ -1,0 +1,268 @@
+---
+// Distance and displacement: tap a walk on a map, or run round a circular track at a steady speed.
+// Maths in src/lib/sci/distance-displacement.ts.
+import '../../styles/astro.css';
+---
+<div class="ax dsp">
+  <div class="ax-card">
+    <div class="ax-row dsp-top">
+      <span class="dsp-lab">Level</span>
+      <div class="ax-seg dsp-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg dsp-mode" role="group" aria-label="Experiment">
+      <button type="button" data-m="walk" aria-pressed="true">Walk on a map</button>
+      <button type="button" data-m="lap" aria-pressed="false">Round a track</button>
+    </div>
+
+    <canvas class="dsp-scene" aria-label="The map"></canvas>
+
+    <div class="dsp-p dsp-p-walk">
+      <p class="ax-help">Tap the map to walk to a corner of the grid. Each square is 100 m. You start at Home.</p>
+      <div class="ax-row"><button type="button" class="btn secondary small dsp-undo">Undo</button><button type="button" class="btn secondary small dsp-clear">Clear</button></div>
+      <label>Ready-made walk <select class="dsp-pre">
+        <option value="">Choose…</option>
+        <option value="L" selected>300 m east, then 400 m north</option>
+        <option value="back">400 m east and back again</option>
+        <option value="square">Round a square block and home</option>
+        <option value="zig">A zig-zag to the north-west</option>
+      </select></label>
+      <label>Time taken: <b class="dsp-tv"></b><input class="dsp-t" type="range" min="1" max="60" step="1" value="10" /></label>
+    </div>
+
+    <div class="dsp-p dsp-p-lap" hidden>
+      <div class="ax-row"><button type="button" class="btn small dsp-play">Run</button>
+        <div class="ax-seg dsp-jump" role="group" aria-label="Jump to">
+          <button type="button" data-f="0.25">¼ lap</button><button type="button" data-f="0.5">½ lap</button><button type="button" data-f="0.75">¾ lap</button><button type="button" data-f="1">1 lap</button>
+        </div></div>
+      <label>Radius of the track: <b class="dsp-rv"></b><input class="dsp-r" type="range" min="10" max="100" step="1" value="50" /></label>
+      <label>Speed: <b class="dsp-vv"></b><input class="dsp-v" type="range" min="1" max="10" step="0.5" value="5" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What the numbers say</h2>
+    <p class="dsp-state"><span class="ax-pill dsp-pill"></span></p>
+    <dl class="ax-facts dsp-facts"></dl>
+    <div class="dsp-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dsp-try">
+      <li><b>Back home:</b> walk round the block and finish at Home. You walked 400 m, but your displacement is zero.</li>
+      <li><b>Never shorter:</b> try any walk. The displacement is never more than the distance. When are they equal?</li>
+      <li><b>Half a lap:</b> on the track, stop at ½ lap. The displacement is the diameter, the biggest it can be.</li>
+      <li><b>Steady speed, changing velocity:</b> run round the track and watch the velocity arrow. Its length stays the same; its direction keeps turning.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="dsp-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { walk, lap, direction, questions, type Pt } from '../../lib/sci/distance-displacement';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+  const CELLS = 10, STEP = 100; // the grid: 10 × 10 squares of 100 m, Home in the middle
+  const PRESETS: Record<string, [number, number][]> = {
+    L: [[0, 0], [3, 0], [3, 4]], back: [[0, 0], [4, 0], [0, 0]], square: [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], zig: [[0, 0], [-1, 1], [-2, 1], [-3, 2], [-4, 2], [-4, 4]],
+  };
+
+  let level: 9 | 11 = 9, mode: 'walk' | 'lap' = 'walk', pts: Pt[] = [], lt = 0, playing = false, raf = 0;
+
+  function setup(c: HTMLCanvasElement) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), h = Math.min(w, 400), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, col: string, wd = 3) {
+    const len = Math.hypot(x1 - x0, y1 - y0); if (len < 3) return;
+    const ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * 8, y1 - uy * 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - ux * 11 - uy * 6, y1 - uy * 11 + ux * 6); ctx.lineTo(x1 - ux * 11 + uy * 6, y1 - uy * 11 - ux * 6); ctx.closePath(); ctx.fill();
+  }
+
+  // ---- walk -----------------------------------------------------------------------------------------------------
+  function grid(w: number, h: number) { const s = Math.min(w, h) - 24, cell = s / CELLS, ox = (w - s) / 2, oy = (h - s) / 2; return { cell, X: (x: number) => ox + (x / STEP + CELLS / 2) * cell, Y: (y: number) => oy + (CELLS / 2 - y / STEP) * cell, ox, oy, s }; }
+  function drawWalk(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.dsp-scene'), { ctx, w, h } = setup(c), g = grid(w, h);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = 0; i <= CELLS; i++) { ctx.beginPath(); ctx.moveTo(g.ox + i * g.cell, g.oy); ctx.lineTo(g.ox + i * g.cell, g.oy + g.s); ctx.stroke(); ctx.beginPath(); ctx.moveTo(g.ox, g.oy + i * g.cell); ctx.lineTo(g.ox + g.s, g.oy + i * g.cell); ctx.stroke(); }
+    ctx.fillStyle = pal.muted; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('N ↑', w - 22, 18);
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('1 square = 100 m', g.ox + 2, h - 3);
+    const W = walk(pts);
+    // the path
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(g.X(p.x), g.Y(p.y)) : ctx.moveTo(g.X(p.x), g.Y(p.y)))); ctx.stroke();
+    pts.forEach((p, i) => { if (i) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(g.X(p.x), g.Y(p.y), 4, 0, 7); ctx.fill(); } });
+    // displacement
+    if (pts.length > 1 && W.disp > 0) { ctx.setLineDash([]); arrow(ctx, g.X(0), g.Y(0), g.X(W.dx), g.Y(W.dy), pal.accent2, 3.5); }
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(g.X(0), g.Y(0), 6, 0, 7); ctx.fill();
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('Home', g.X(0) + 8, g.Y(0) + 16);
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.fillStyle = pal.accent; ctx.textAlign = 'left'; ctx.fillText('— path (distance)', g.ox + 2, 14);
+    ctx.fillStyle = pal.accent2; ctx.fillText('→ displacement', g.ox + 120, 14);
+    c.setAttribute('aria-label', `Walk of ${pts.length - 1} legs: distance ${f(W.dist)} m, displacement ${f(W.disp)} m ${W.dir}`);
+  }
+  function walkReadouts() {
+    const W = walk(pts), t = val('.dsp-t') * 60;
+    q('.dsp-tv').textContent = `${val('.dsp-t')} min`;
+    const pill = q('.dsp-pill');
+    if (W.legs === 0) { pill.textContent = 'Tap the map to start walking'; pill.className = 'ax-pill dsp-pill'; }
+    else if (W.disp < 1e-9) { pill.textContent = 'Back where you started: displacement is zero'; pill.className = 'ax-pill good dsp-pill'; }
+    else if (Math.abs(W.disp - W.dist) < 1e-9) { pill.textContent = 'A straight line one way: distance = displacement'; pill.className = 'ax-pill good dsp-pill'; }
+    else { pill.textContent = `Distance is ${f(W.dist - W.disp)} m more than the displacement`; pill.className = 'ax-pill dsp-pill'; }
+    const facts: [string, string, string][] = [
+      ['Distance walked', `${f(W.dist)} m`, `${W.legs} leg${W.legs === 1 ? '' : 's'}, a scalar`],
+      ['Displacement', `${f(W.disp)} m`, W.dir === 'none' ? 'no direction' : W.dir],
+      ['Average speed', `${f(W.dist / t)} m/s`, `distance ÷ ${val('.dsp-t') * 60} s`],
+      ['Average velocity', `${f(W.disp / t)} m/s`, W.dir === 'none' ? 'zero' : W.dir],
+    ];
+    if (level === 11) facts.push(['East component', `${f(W.dx)} m`, 'Δx'], ['North component', `${f(W.dy)} m`, 'Δy'], ['Bearing', W.disp ? `${f(W.bearing, 1)}°` : '—', 'clockwise from north']);
+    q('.dsp-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const eq: HTMLElement[] = [];
+    if (W.legs) {
+      eq.push(para([['Distance '], `adds every leg: ${pts.slice(1).map((p, i) => f(Math.hypot(p.x - pts[i].x, p.y - pts[i].y))).join(' + ')} = ${f(W.dist)} m.`]));
+      eq.push(para([['Displacement '], `is the straight line from Home to the end: √(${f(W.dx)}² + ${f(W.dy)}²) = ${f(W.disp)} m${W.dir === 'none' ? '' : `, ${W.dir}`}.`]));
+      if (level === 11 && W.disp) eq.push(para([['As a vector: '], `s = ${f(W.dx)} î + ${f(W.dy)} ĵ m${W.dx && W.dy ? `, at θ = tan⁻¹(|Δy| ÷ |Δx|) = tan⁻¹(${f(Math.abs(W.dy))} ÷ ${f(Math.abs(W.dx))}) = ${W.dir.split('°')[0]}° from the ${W.dx > 0 ? 'east' : 'west'}` : ''}.`]));
+    }
+    q('.dsp-eq').replaceChildren(...eq);
+  }
+  q('.dsp-scene').addEventListener('click', (e) => {
+    if (mode !== 'walk') return;
+    const c = q<HTMLCanvasElement>('.dsp-scene'), r = c.getBoundingClientRect(), g = grid(r.width, r.height);
+    const gx = Math.round(((e.clientX - r.left - g.ox) / g.cell - CELLS / 2)), gy = Math.round(CELLS / 2 - (e.clientY - r.top - g.oy) / g.cell);
+    if (Math.abs(gx) > CELLS / 2 || Math.abs(gy) > CELLS / 2) return;
+    const p = { x: gx * STEP, y: gy * STEP }, l = pts[pts.length - 1];
+    if (l && l.x === p.x && l.y === p.y) return;
+    if (!pts.length) pts.push({ x: 0, y: 0 });
+    pts.push(p); q<HTMLSelectElement>('.dsp-pre').value = ''; draw();
+  });
+  q('.dsp-undo').addEventListener('click', () => { if (pts.length > 1) pts.pop(); if (pts.length === 1) pts = [{ x: 0, y: 0 }]; draw(); });
+  q('.dsp-clear').addEventListener('click', () => { pts = [{ x: 0, y: 0 }]; q<HTMLSelectElement>('.dsp-pre').value = ''; draw(); });
+  const loadPre = () => { const k = q<HTMLSelectElement>('.dsp-pre').value; if (k) pts = PRESETS[k].map(([x, y]) => ({ x: x * STEP, y: y * STEP })); draw(); };
+  q('.dsp-pre').addEventListener('change', loadPre);
+
+  // ---- lap ------------------------------------------------------------------------------------------------------
+  function drawLap(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.dsp-scene'), { ctx, w, h } = setup(c), R = val('.dsp-r'), v = val('.dsp-v'), L = lap(R, v, lt);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+    const rp = Math.min(w, h) / 2 - 46, cx = w / 2, cy = h / 2, s = rp / R;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 12; ctx.beginPath(); ctx.arc(cx, cy, rp, 0, 7); ctx.stroke();
+    // distance run so far
+    const ang = Math.min(L.angle, 2 * Math.PI * 50);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.beginPath(); if (L.laps >= 1) ctx.arc(cx, cy, rp, 0, 7); else ctx.arc(cx, cy, rp, 0, -ang, true); ctx.stroke();
+    const px = cx + L.x * s, py = cy - L.y * s;
+    arrow(ctx, cx + rp, cy, px, py, pal.accent2, 3); // displacement chord
+    arrow(ctx, px, py, px + (L.vx / v) * 46, py - (L.vy / v) * 46, pal.ink, 2.5); // velocity
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx + rp, cy, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(px, py, 8, 0, 7); ctx.fill();
+    if (level === 11) { const ax = cx - px, ay = cy - py, al = Math.hypot(ax, ay) || 1; arrow(ctx, px, py, px + (ax / al) * 30, py + (ay / al) * 30, pal.bad, 2); }
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+    ctx.fillText(`t = ${f(lt, 1)} s`, 8, 16); ctx.fillText('start', cx + rp + 8, cy + 4 > h ? h - 4 : cy + 16);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.accent; ctx.fillText('— distance', 8, h - 22); ctx.fillStyle = pal.accent2; ctx.fillText('→ displacement', 8, h - 8);
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText('→ velocity', w - 8, h - 22);
+    if (level === 11) { ctx.fillStyle = pal.bad; ctx.fillText('→ acceleration', w - 8, h - 8); }
+    c.setAttribute('aria-label', `Runner after ${f(lt, 1)} s: distance ${f(L.arc)} m, displacement ${f(L.disp)} m`);
+  }
+  function lapReadouts() {
+    const R = val('.dsp-r'), v = val('.dsp-v'), L = lap(R, v, lt);
+    q('.dsp-rv').textContent = `${R} m`; q('.dsp-vv').textContent = `${f(v)} m/s`;
+    const pill = q('.dsp-pill'); pill.className = 'ax-pill dsp-pill';
+    const frac = L.laps - Math.floor(L.laps + 1e-9);
+    pill.textContent = lt === 0 ? 'Press Run, or jump to a point on the lap' : frac < 1e-6 ? `Back at the start after ${f(L.laps)} lap${Math.abs(L.laps - 1) < 1e-9 ? '' : 's'}: displacement zero` : 'Same speed, but the velocity keeps turning';
+    const facts: [string, string, string][] = [
+      ['Distance run', `${f(L.arc)} m`, `${f(L.laps)} of a lap`], ['Displacement', `${f(L.disp)} m`, L.disp < 1e-6 ? 'back at the start' : direction(L.dx, L.dy, 0)],
+      ['Speed', `${f(v)} m/s`, 'never changes'], ['Velocity direction', L.vdir, 'keeps changing'],
+      ['Time for one lap', `${f(L.T)} s`, `2πr ÷ v = 2π × ${R} ÷ ${f(v)}`],
+    ];
+    if (level === 11) facts.push(['Angular speed ω', `${f(L.omega, 3)} rad/s`, 'v ÷ r'], ['Centripetal acceleration', `${f(L.ac, 3)} m/s²`, 'v² ÷ r, towards the centre']);
+    q('.dsp-facts').replaceChildren(...facts.map(([k, vv, s]) => fact(k, vv, s)));
+    const eq = [para([['Uniform circular motion: '], 'the speed is constant, but the direction of motion changes at every moment, so the velocity changes. The motion is accelerated even at a steady speed.']),
+      para([['Half a lap: '], `distance πr = ${f(Math.PI * R)} m, displacement 2r = ${f(2 * R)} m (the diameter).`])];
+    if (level === 11) eq.push(para([['Centripetal acceleration: '], `a = v² ÷ r = ${f(v)}² ÷ ${R} = ${f(L.ac, 3)} m/s², always pointing to the centre. A force of m × a is needed to keep anything on the circle.`]));
+    q('.dsp-eq').replaceChildren(...eq);
+  }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); raf = 0; q('.dsp-play').textContent = 'Run'; }
+  q('.dsp-play').addEventListener('click', () => {
+    if (playing) { stopPlay(); return; }
+    playing = true; q('.dsp-play').textContent = 'Pause'; let last = performance.now();
+    const T = lap(val('.dsp-r'), val('.dsp-v'), 0).T;
+    if (lt >= T - 1e-9) lt = 0;
+    const tick = (now: number) => { lt = Math.min(T, lt + ((now - last) / 1000) * (T / 6)); last = now; draw(); if (lt < T && playing) raf = requestAnimationFrame(tick); else stopPlay(); };
+    raf = requestAnimationFrame(tick);
+  });
+  root.querySelectorAll<HTMLButtonElement>('.dsp-jump button').forEach((b) => b.addEventListener('click', () => { stopPlay(); lt = Number(b.dataset.f) * lap(val('.dsp-r'), val('.dsp-v'), 0).T; draw(); }));
+
+  // ---- shared ------------------------------------------------------------------------------------------------
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+  function draw() { const pal = pagePalette(); if (mode === 'walk') { drawWalk(pal); walkReadouts(); } else { drawLap(pal); lapReadouts(); } }
+
+  root.querySelectorAll<HTMLButtonElement>('.dsp-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 9 | 11;
+    root.querySelectorAll('.dsp-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.dsp-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as typeof mode; stopPlay();
+    root.querySelectorAll('.dsp-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['walk', 'lap']) q(`.dsp-p-${m}`).hidden = m !== mode;
+    q('.dsp-scene').setAttribute('aria-label', mode === 'walk' ? 'The map' : 'The track');
+    draw();
+  }));
+  inp('.dsp-t').addEventListener('input', draw);
+  for (const c of ['.dsp-r', '.dsp-v']) inp(c).addEventListener('input', () => { stopPlay(); lt = 0; draw(); });
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.dsp-quiz'), () => questions(level));
+  loadPre();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = q('.dsp-scene').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.dsp-scene'));
+</script>
+
+<style is:inline>
+  .dsp .dsp-top { margin-bottom: 10px; }
+  .dsp .dsp-lab { font-size: 14px; color: var(--muted); }
+  .dsp .dsp-mode { margin-bottom: 12px; }
+  .dsp .ax-seg button { min-height: 44px; }
+  .dsp .dsp-p { display: grid; gap: 10px; margin-top: 12px; }
+  .dsp .dsp-p[hidden] { display: none; }
+  .dsp input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .dsp label b { color: var(--ink); }
+  .dsp canvas { display: block; width: 100%; touch-action: manipulation; cursor: crosshair; }
+  .dsp .btn.small { min-height: 44px; }
+  .dsp .dsp-state { margin: 0 0 12px; }
+  .dsp .dsp-pill { font-size: 14px; white-space: normal; }
+  .dsp .dsp-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .dsp .dsp-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

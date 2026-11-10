@@ -1,0 +1,219 @@
+---
+// Solution, colloid or suspension: shine a torch through a mixture (the Tyndall effect), leave it to stand, filter it.
+// Maths in src/lib/sci/tyndall-effect.ts.
+import '../../styles/astro.css';
+---
+<div class="ax ty">
+  <div class="ax-card">
+    <div class="ax-row ty-top">
+      <span class="ty-lab">Level</span>
+      <div class="ax-seg ty-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="false">Class 8</button>
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+      </div>
+    </div>
+    <label>Mixture <select class="ty-sample"></select></label>
+    <canvas class="ty-scene" aria-label="Torch beam through a beaker"></canvas>
+    <label>Particle size: <b class="ty-nmv"></b><input class="ty-nm" type="range" min="-1" max="5" step="0.05" value="2.6" aria-label="Particle size (logarithmic)" /></label>
+    <div class="ax-row ty-ctl">
+      <button type="button" class="btn small ty-torch" aria-pressed="true">Torch off</button>
+      <button type="button" class="btn secondary small ty-stand">Leave to stand</button>
+      <button type="button" class="btn secondary small ty-filter">Filter it</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What you see</h2>
+    <p class="ty-state"><span class="ax-pill ty-pill"></span></p>
+    <p class="ty-msg"></p>
+    <dl class="ax-facts ty-facts"></dl>
+    <div class="ty-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Make a solution</h2>
+    <label>Solute (salt or sugar): <b class="ty-sv"></b><input class="ty-s" type="range" min="1" max="100" step="1" value="20" /></label>
+    <label>Water: <b class="ty-wv"></b><input class="ty-w" type="range" min="10" max="500" step="10" value="180" /></label>
+    <p class="ty-conc"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ty-try">
+      <li><b>Beam or no beam:</b> compare salt water with milk. Both look fine to the eye, but only the milk shows the torch's path.</li>
+      <li><b>Wait:</b> leave muddy water to stand, then milk. Only the mud settles.</li>
+      <li><b>Filter:</b> filter starch solution. It passes straight through the paper, like a true solution.</li>
+      <li><b>Slide the size:</b> drag the particle size from left to right and watch where the beam appears and where the liquid turns cloudy.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ty-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { SAMPLES, properties, beamGlow, classify, massPercent, questions, COLLOID_MIN, COLLOID_MAX } from '../../lib/sci/tyndall-effect';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ty')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = q<HTMLSelectElement>('.ty-sample');
+  for (const s of SAMPLES) sel.append(new Option(s.name, s.id));
+  sel.append(new Option('Your own particle size', 'custom'));
+  sel.value = 'milk';
+
+  let level: 8 | 9 = 9, torch = true, settle = 0, filtered = false, raf = 0;
+  const nm = () => 10 ** Number(inp('.ty-nm').value);
+  const sample = () => SAMPLES.find((s) => s.id === sel.value);
+  const fmtNm = (x: number) => (x >= 1000 ? `${+(x / 1000).toPrecision(2)} µm (${Math.round(x).toLocaleString('en')} nm)` : x >= 1 ? `${+x.toPrecision(2)} nm` : `${+x.toPrecision(1)} nm`);
+  const f = (x: number, d = 2) => String(Math.round(x * 10 ** d) / 10 ** d);
+  function rnd(seed: number) { let s = seed; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
+
+  const H = 290;
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.ty-scene');
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(H * dpr); c.style.height = `${H}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const size = nm(), k = classify(size), glow = beamGlow(size), s = sample();
+    const bx = Math.round(w * 0.3), bw = Math.round(w * 0.42), by = 30, bh = 140, beamY = by + 70;
+    // liquid
+    const tint = pal.red ? pal.line : s?.id === 'cuso4' ? '#7fb7e8' : k === 'solution' ? '#cfe3f5' : k === 'colloid' ? (s?.id === 'fog' ? '#e6e6e6' : '#f1efe6') : '#a8855e';
+    const fogAir = s?.medium === 'gas';
+    ctx.globalAlpha = k === 'suspension' ? 0.25 + 0.55 * (1 - settle) : pal.red ? 0.5 : 0.7; ctx.fillStyle = tint; ctx.fillRect(bx, by + 20, bw, bh - 20); ctx.globalAlpha = 1;
+    // beam: torch, then its path inside the beaker
+    ctx.fillStyle = pal.ink; ctx.fillRect(8, beamY - 12, 34, 24); ctx.fillRect(42, beamY - 16, 8, 32);
+    if (torch) {
+      const inside = glow * (k === 'suspension' ? 1 - 0.6 * settle : 1), yel = pal.red ? pal.ink : '#ffd23f';
+      ctx.fillStyle = yel; ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(50, beamY - 12); ctx.lineTo(bx, beamY - 16); ctx.lineTo(bx, beamY + 16); ctx.lineTo(50, beamY + 12); ctx.fill();
+      if (inside > 0) {
+        const len = k === 'suspension' && settle < 0.5 ? bw * 0.45 : bw;
+        const g = ctx.createLinearGradient(bx, 0, bx + len, 0); g.addColorStop(0, yel); g.addColorStop(1, k === 'suspension' && settle < 0.5 ? 'rgba(255,210,63,0)' : yel);
+        ctx.globalAlpha = 0.25 + 0.6 * inside; ctx.fillStyle = pal.red ? yel : g;
+        ctx.beginPath(); ctx.moveTo(bx, beamY - 16); ctx.lineTo(bx + len, beamY - 22); ctx.lineTo(bx + len, beamY + 22); ctx.lineTo(bx, beamY + 16); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // the spot on the screen at the right: dimmer when more light is scattered
+      const through = k === 'solution' ? 1 : k === 'colloid' ? 0.75 : 0.15 + 0.7 * settle;
+      ctx.fillStyle = yel; ctx.globalAlpha = 0.1 * through; ctx.beginPath(); ctx.moveTo(bx + bw, beamY - 18); ctx.lineTo(w - 22, beamY - 24); ctx.lineTo(w - 22, beamY + 24); ctx.lineTo(bx + bw, beamY + 18); ctx.fill();
+      ctx.globalAlpha = through; ctx.beginPath(); ctx.ellipse(w - 18, beamY, 4, 22, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(w - 12, beamY - 40); ctx.lineTo(w - 12, beamY + 40); ctx.stroke();
+    // particles, drawn much bigger than life
+    const r = rnd(17);
+    if (k !== 'solution') {
+      const count = k === 'colloid' ? 160 : 70, rad = k === 'colloid' ? 0.9 + Math.log10(size) * 0.3 : 2 + Math.min(2, Math.log10(size / 1000));
+      ctx.fillStyle = pal.red ? pal.muted : k === 'colloid' ? pal.muted : '#6b4d2e';
+      for (let i = 0; i < count; i++) {
+        const x = bx + 4 + r() * (bw - 8), y0 = by + 24 + r() * (bh - 30), y = k === 'suspension' ? y0 + (by + bh - 4 - y0) * Math.min(1, settle * (0.8 + r() * 0.4)) : y0;
+        ctx.beginPath(); ctx.arc(x, Math.min(by + bh - 3, y), rad, 0, 7); ctx.fill();
+      }
+    }
+    // beaker
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx - 4, by); ctx.lineTo(bx, by); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw + 4, by); ctx.stroke();
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+    ctx.fillText(fogAir ? 'fog in a jar (air)' : (s?.name ?? 'your mixture'), bx + bw / 2, by + bh + 16);
+    ctx.textAlign = 'left'; ctx.fillText(torch ? 'torch on' : 'torch off', 8, 16); ctx.textAlign = 'right'; ctx.fillText('screen', w - 4, 16);
+    // size scale: 0.1 nm to 100 µm, logarithmic
+    const L = 14, R = w - 14, Y = 236, X = (lg: number) => L + ((lg + 1) / 6) * (R - L);
+    const bands: [number, number, string, string][] = [[-1, 0, 'solution', pal.accent], [0, 3, 'colloid', pal.accent2], [3, 5, 'suspension', pal.muted]];
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (const [a, b, name, col] of bands) { ctx.fillStyle = col; ctx.globalAlpha = pal.red ? 0.6 : 0.3; ctx.fillRect(X(a), Y - 10, X(b) - X(a), 14); ctx.globalAlpha = 1; ctx.fillStyle = pal.ink; ctx.fillText(name, (X(a) + X(b)) / 2, Y - 14); }
+    ctx.fillStyle = pal.muted;
+    for (const [lg, lab] of [[-1, '0.1 nm'], [0, '1 nm'], [3, '1 µm'], [5, '100 µm']] as [number, string][]) { ctx.fillRect(X(lg) - 0.5, Y + 4, 1, 5); ctx.textAlign = lg === -1 ? 'left' : lg === 5 ? 'right' : 'center'; ctx.fillText(lab, X(lg), Y + 20); }
+    const mx = X(Math.log10(size)); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(mx, Y + 4); ctx.lineTo(mx - 6, Y + 14 + 14); ctx.lineTo(mx + 6, Y + 14 + 14); ctx.closePath(); ctx.fill();
+    c.setAttribute('aria-label', `${s?.name ?? 'Mixture'} with particles of ${fmtNm(size)}: a ${k}${torch ? (glow ? ', the beam shows' : ', no beam seen') : ''}`);
+  }
+
+  function readouts() {
+    const size = nm(), P = properties(size), s = sample();
+    q('.ty-nmv').textContent = `${fmtNm(size)}${s ? ' (typical, rounded)' : ''}`;
+    const t = q<HTMLButtonElement>('.ty-torch'); t.textContent = torch ? 'Torch off' : 'Torch on'; t.setAttribute('aria-pressed', String(torch));
+    const pill = q('.ty-pill');
+    pill.textContent = P.kind === 'solution' ? 'A true solution' : P.kind === 'colloid' ? 'A colloid' : 'A suspension';
+    pill.className = `ax-pill ty-pill ${P.kind === 'solution' ? 'good' : P.kind === 'colloid' ? 'warn' : 'bad'}`;
+    const msgs: string[] = [];
+    if (torch) msgs.push(P.beam ? 'You can see the path of the beam through the liquid: the particles scatter light sideways into your eyes. This is the Tyndall effect.' : P.kind === 'solution' ? 'The beam goes straight through and its path cannot be seen: the particles are far too small to scatter light.' : 'The liquid is cloudy: the big particles block and scatter most of the light, so little reaches the screen.');
+    if (settle >= 1) msgs.push(P.settles ? 'After standing, the particles have settled at the bottom and the liquid above is clearer.' : 'After standing, nothing has changed: the particles stay spread out for ever.');
+    if (filtered) msgs.push(P.filters ? 'Filtering: the particles stay on the filter paper (residue) and the liquid runs through clearer.' : 'Filtering: everything passes through the filter paper. Nothing is left behind.');
+    q('.ty-msg').textContent = msgs.join(' ');
+    const yes = (b: boolean) => (b ? 'yes' : 'no');
+    const facts: [string, string, string][] = [
+      ['Particle size', fmtNm(size), level === 9 ? `colloids are ${COLLOID_MIN} to ${COLLOID_MAX} nm` : ''],
+      ['Looks', P.clear, ''], ['Same all through?', P.homogeneous ? 'yes (homogeneous)' : 'no (heterogeneous)', P.kind === 'colloid' ? 'looks the same, but is not' : ''],
+      ['Tyndall effect', yes(P.beam || P.kind === 'suspension'), P.kind === 'suspension' ? 'yes, but the cloudiness hides most of it' : ''],
+      ['Settles on standing', yes(P.settles), ''], ['Left on filter paper', yes(P.filters), ''],
+      ['Particles seen by eye', yes(P.seen), ''],
+    ];
+    if (level === 9 && s && s.type !== 'solution' && s.type !== 'suspension') facts.push(['Dispersed phase', s.phase, 'what is spread out'], ['Dispersion medium', s.medium, 'what it is spread in'], ['Type of colloid', s.type, '']);
+    q('.ty-facts').replaceChildren(...facts.map(([k, v, sm]) => fact(k, v, sm)));
+    const eq: HTMLElement[] = [];
+    if (level === 9) eq.push(para('Colloid types: ', 'a solid in a liquid is a sol (paint, starch), a liquid in a liquid an emulsion (milk), a liquid in a gas an aerosol (fog, clouds), a gas in a liquid a foam (shaving cream) and a liquid in a solid a gel (jelly).'));
+    eq.push(para('Seen in daily life: ', 'sunbeams through a dusty room or a misty forest, and car headlights in fog, are the Tyndall effect.'));
+    q('.ty-eq').replaceChildren(...eq);
+    const sv = Number(inp('.ty-s').value), wv = Number(inp('.ty-w').value);
+    q('.ty-sv').textContent = `${sv} g`; q('.ty-wv').textContent = `${wv} g`;
+    q('.ty-conc').textContent = `Mass of solution = ${sv} + ${wv} = ${sv + wv} g. Mass by mass percentage = ${sv} ÷ ${sv + wv} × 100 = ${f(massPercent(sv, wv))} %.`;
+    draw();
+  }
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(b: string, s: string) { const p = document.createElement('p'), e = document.createElement('b'); e.textContent = b; p.append(e, s); return p; }
+
+  const reset = () => { cancelAnimationFrame(raf); settle = 0; filtered = false; };
+  sel.addEventListener('change', () => { const s = sample(); if (s) inp('.ty-nm').value = String(Math.log10(s.nm)); reset(); readouts(); });
+  inp('.ty-nm').addEventListener('input', () => { sel.value = 'custom'; reset(); readouts(); });
+  for (const c of ['.ty-s', '.ty-w']) inp(c).addEventListener('input', readouts);
+  q('.ty-torch').addEventListener('click', () => { torch = !torch; readouts(); });
+  q('.ty-filter').addEventListener('click', () => { filtered = true; readouts(); });
+  q('.ty-stand').addEventListener('click', () => {
+    cancelAnimationFrame(raf); settle = 0; const t0 = performance.now();
+    const tick = (now: number) => { settle = Math.min(1, (now - t0) / 1800); if (settle < 1) { draw(); raf = requestAnimationFrame(tick); } else readouts(); };
+    raf = requestAnimationFrame(tick);
+  });
+  root.querySelectorAll<HTMLButtonElement>('.ty-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 8 | 9;
+    root.querySelectorAll('.ty-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    readouts();
+  }));
+  mountQuiz(q('.ty-quiz'), () => questions());
+  sel.dispatchEvent(new Event('change'));
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = q('.ty-scene').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.ty-scene'));
+</script>
+
+<style is:inline>
+  .ty .ty-top { margin-bottom: 10px; }
+  .ty .ty-lab { font-size: 14px; color: var(--muted); }
+  .ty .ax-seg button { min-height: 44px; }
+  .ty canvas { display: block; width: 100%; margin: 10px 0; }
+  .ty input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .ty label b { color: var(--ink); }
+  .ty .ty-ctl { margin-top: 10px; }
+  .ty .btn.small { min-height: 44px; }
+  .ty .ty-state { margin: 0 0 8px; }
+  .ty .ty-pill { font-size: 14px; }
+  .ty .ty-msg { margin: 0 0 12px; }
+  .ty .ty-eq p { margin: 10px 0 0; font-size: 15px; }
+  .ty .ty-conc { margin: 10px 0 0; font-size: 15px; }
+  .ty .ty-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
