@@ -1,0 +1,275 @@
+---
+// Biot–Savart field builder: a straight wire, a circular loop and a solenoid, with the field at a point built up
+// from small current elements and graphed along the axis; plus Ampère's law round a loop among long wires.
+// Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax bsv">
+  <div class="ax-card">
+    <h2>Choose a current</h2>
+    <span class="ax-seg bsv-mode" role="group" aria-label="Shape"><button type="button" data-v="wire" aria-pressed="true">Straight wire</button><button type="button" data-v="loop" aria-pressed="false">Circular loop</button><button type="button" data-v="sol" aria-pressed="false">Solenoid</button><button type="button" data-v="amp" aria-pressed="false">Ampère's law</button></span>
+    <label class="bsv-sl bsv-only" data-m="wire loop sol">Current I: <b class="bsv-iv"></b><input type="range" class="bsv-i" min="0.5" max="20" step="0.5" value="5" aria-label="Current in amperes" /></label>
+    <label class="bsv-sl bsv-only" data-m="wire">Length of the wire: <b class="bsv-lv"></b><input type="range" class="bsv-l" min="5" max="100" step="1" value="20" aria-label="Wire length in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="wire">Distance of P from the wire: <b class="bsv-dv"></b><input type="range" class="bsv-d" min="1" max="20" step="0.5" value="5" aria-label="Distance in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="wire">Height of P (0 = level with the middle): <b class="bsv-yv"></b><input type="range" class="bsv-y" min="-30" max="30" step="1" value="0" aria-label="Height of P in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="loop sol">Radius of the coil: <b class="bsv-rv"></b><input type="range" class="bsv-r" min="1" max="20" step="0.5" value="10" aria-label="Radius in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="loop sol">Number of turns N: <b class="bsv-nv"></b><input type="range" class="bsv-n" min="1" max="500" step="1" value="1" aria-label="Number of turns" /></label>
+    <label class="bsv-sl bsv-only" data-m="sol">Length of the solenoid: <b class="bsv-slv"></b><input type="range" class="bsv-sl2" min="5" max="50" step="1" value="20" aria-label="Solenoid length in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="loop sol">Point P on the axis, from the centre: <b class="bsv-xv"></b><input type="range" class="bsv-x" min="-40" max="40" step="0.5" value="0" aria-label="Distance of P along the axis in centimetres" /></label>
+    <label class="bsv-sl bsv-only" data-m="wire loop">Pieces of wire added: <b class="bsv-kv"></b><input type="range" class="bsv-k" min="0" max="24" step="1" value="24" aria-label="Pieces of wire added" /></label>
+    <div class="ax-row bsv-only" data-m="wire loop" style="margin-top:8px"><button type="button" class="btn small bsv-build">Add the pieces one by one</button></div>
+    <div class="bsv-only" data-m="amp">
+      <label class="bsv-sl">Wire A current (+ out of the page): <b class="bsv-av"></b><input type="range" class="bsv-a" min="-10" max="10" step="1" value="5" aria-label="Wire A current in amperes" /></label>
+      <label class="bsv-sl">Wire B current: <b class="bsv-bv"></b><input type="range" class="bsv-b" min="-10" max="10" step="1" value="-3" aria-label="Wire B current in amperes" /></label>
+      <label class="bsv-sl">Wire C current: <b class="bsv-cv"></b><input type="range" class="bsv-c" min="-10" max="10" step="1" value="2" aria-label="Wire C current in amperes" /></label>
+      <label class="bsv-sl">Loop radius: <b class="bsv-lrv"></b><input type="range" class="bsv-lr" min="0.5" max="7.5" step="0.25" value="2" aria-label="Loop radius in centimetres" /></label>
+      <div class="ax-grid">
+        <label>Loop centre x (cm) <input type="range" class="bsv-lx" min="-6" max="6" step="0.25" value="-3" aria-label="Loop centre x in centimetres" /></label>
+        <label>Loop centre y (cm) <input type="range" class="bsv-ly" min="-6" max="6" step="0.25" value="1" aria-label="Loop centre y in centimetres" /></label>
+      </div>
+      <p class="ax-help">Or drag the loop on the picture.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig bsv-fig"></canvas>
+    <canvas class="ax-fig bsv-graph bsv-only" data-m="wire loop sol"></canvas>
+    <p class="ax-help bsv-cap"></p>
+    <p class="ax-big bsv-big" aria-live="polite"></p>
+    <p class="bsv-formula"></p>
+    <dl class="ax-facts bsv-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bsv-try">
+      <li>Straight wire: add the pieces one by one. The pieces nearest P give the most; far pieces add very little.</li>
+      <li>Make the wire 100 cm long with P 2 cm away: the answer is almost μ₀I/(2πd), the long-wire formula.</li>
+      <li>Loop: watch the sideways parts of each piece's field cancel in pairs, leaving only the part along the axis.</li>
+      <li>Solenoid: make it long and thin. Inside, the field is flat at μ₀nI; at each end it falls to about half.</li>
+      <li>Ampère's law: move the loop around wire A. The total stays at μ₀ × 5 A wherever the loop is, as long as A is inside.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="bsv-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .bsv .bsv-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .bsv input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .bsv-fig, .bsv-graph { max-width: 540px; margin-left: auto; margin-right: auto; }
+  .bsv-fig { touch-action: pan-y; }
+  .bsv-graph { margin-top: 8px; }
+  .bsv-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .bsv-formula { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .bsv-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .bsv .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .bsv .eq-q p { margin: 0 0 6px; }
+  .bsv .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .bsv .eq-ok { color: var(--good); font-weight: 600; }
+  .bsv .eq-no { color: var(--bad); }
+  .bsv .eq-work { margin-top: 4px; font-size: 14px; }
+  .bsv .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .bsv .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { wirePieces, loopPieces, sumPieces, element, wireExact, longWire, loopAxis, solenoidAxis, solenoidIdeal, fieldOfWires, ampereLoop, norm, questions, type V3, type Wire } from '../../lib/sci/biot-savart';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme, arrow, pointer, still } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.bsv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.bsv-fig'), graph = q<HTMLCanvasElement>('.bsv-graph');
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 360, H = 240, GH = 170, NP = 24;
+  let mode = 'wire', timer = 0;
+  type Pal = ReturnType<typeof pagePalette>;
+  const tesla = (b: number) => { const a = Math.abs(b); return a >= 1e-3 ? `${sig(b * 1e3, 3)} mT` : a >= 1e-6 ? `${sig(b * 1e6, 3)} µT` : `${sig(b * 1e9, 3)} nT`; };
+  const cm = (m: number) => `${sig(m * 100, 3)} cm`;
+  const P = () => ({ I: val('.bsv-i'), L: val('.bsv-l') / 100, d: val('.bsv-d') / 100, y: val('.bsv-y') / 100, R: val('.bsv-r') / 100, N: val('.bsv-n'), len: val('.bsv-sl2') / 100, x: val('.bsv-x') / 100, k: val('.bsv-k') });
+  const wires = (): Wire[] => [{ x: -0.03, y: 0.01, I: val('.bsv-a') }, { x: 0.02, y: 0.02, I: val('.bsv-b') }, { x: 0.01, y: -0.03, I: val('.bsv-c') }];
+
+  function axes(c: CanvasRenderingContext2D, pal: Pal, x0: number, x1: number, y0: number, y1: number, xl: string, yl: string) {
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0, y1); c.lineTo(x1, y1); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(xl, (x0 + x1) / 2, y1 + 24); c.textAlign = 'left'; c.fillText(yl, x0 + 4, y0 + 2);
+  }
+
+  function drawWire(c: CanvasRenderingContext2D, pal: Pal) {
+    const p = P(), s = Math.min(200 / p.L, 220 / (p.d + 0.01)), X = 50, cy = 120, Px = X + p.d * s, Py = Math.max(14, Math.min(226, cy - p.y * s));
+    const pcs = wirePieces(p.L, NP), PP: V3 = [p.d, p.y, 0];
+    c.strokeStyle = pal.line; c.lineWidth = 1;
+    for (let i = 0; i < p.k; i++) { const sy = cy - pcs[i].s[1] * s; c.beginPath(); c.moveTo(X, sy); c.lineTo(Px, Py); c.stroke(); }
+    for (let i = 0; i < NP; i++) {
+      const y0 = cy + (p.L / 2 - (i * p.L) / NP) * s, y1 = cy + (p.L / 2 - ((i + 1) * p.L) / NP) * s;
+      c.strokeStyle = i < p.k ? pal.accent : pal.ink; c.lineWidth = i < p.k ? 4 : 2; c.beginPath(); c.moveTo(X, y0 - 0.6); c.lineTo(X, y1 + 0.6); c.stroke();
+    }
+    c.fillStyle = pal.ink; c.strokeStyle = pal.ink; c.lineWidth = 1.5; arrow(c, X - 16, cy + 20, X - 16, cy - 20, 6);
+    c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('I', X - 22, cy + 4);
+    // P with the field into the page (⊗), circle size growing with the sum so far.
+    const Bk = norm(sumPieces(p.I, pcs, PP, p.k)), Ball = wireExact(p.I, p.L, p.d, p.y), rr = 5 + 13 * Math.min(1, Bk / Ball);
+    c.strokeStyle = pal.bad; c.lineWidth = 2; c.beginPath(); c.arc(Px, Py, rr, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.moveTo(Px - rr * 0.6, Py - rr * 0.6); c.lineTo(Px + rr * 0.6, Py + rr * 0.6); c.moveTo(Px + rr * 0.6, Py - rr * 0.6); c.lineTo(Px - rr * 0.6, Py + rr * 0.6); c.stroke();
+    c.fillStyle = pal.ink; c.textAlign = 'left'; c.fillText('P', Px + rr + 4, Py - 4); c.fillStyle = pal.muted; c.fillText('B into the page', Math.min(Px + rr + 4, 262), Py + 12);
+    fig.setAttribute('aria-label', `Straight wire with ${p.k} of ${NP} pieces added; point P ${cm(p.d)} away`);
+  }
+  // Oblique view for the loop and solenoid: x along the axis to the right, y up, z slanting.
+  const view = (cx: number, cy: number, s: number) => (v: V3) => [cx + (v[0] + 0.35 * v[2]) * s, cy - v[1] * s] as const;
+  function drawLoop(c: CanvasRenderingContext2D, pal: Pal) {
+    const p = P(), s = 95 / Math.max(p.R, 0.02), pr = view(110, 120, s), pcs = loopPieces(p.R, NP), PP: V3 = [p.x, 0, 0];
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(10, 120); c.lineTo(350, 120); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('axis', 350, 112);
+    for (let i = 0; i < NP; i++) {
+      const a0 = (i * 2 * Math.PI) / NP, a1 = ((i + 1) * 2 * Math.PI) / NP, [x0, y0] = pr([0, p.R * Math.cos(a0), p.R * Math.sin(a0)]), [x1, y1] = pr([0, p.R * Math.cos(a1), p.R * Math.sin(a1)]);
+      c.strokeStyle = i < p.k ? pal.accent : pal.ink; c.lineWidth = i < p.k ? 4 : 1.8; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    }
+    // P (clamped to the picture) and each added piece's dB at P, scaled so the full field is 70 px.
+    const Pv = pr(PP), Px = Math.max(16, Math.min(340, Pv[0])), Py = Pv[1];
+    const full = norm(sumPieces(p.I, pcs, PP)), k = 70 / full;
+    c.strokeStyle = pal.warn; c.fillStyle = pal.warn; c.lineWidth = 1.2;
+    for (let i = 0; i < p.k; i++) { const d = element(p.I, pcs[i].s, pcs[i].dl, PP); arrow(c, Px, Py, Px + (d[0] + 0.35 * d[2]) * k * 6, Py - d[1] * k * 6, 4); }
+    const Bk = sumPieces(p.I, pcs, PP, p.k);
+    if (norm(Bk) > 0) { c.strokeStyle = pal.bad; c.fillStyle = pal.bad; c.lineWidth = 3; arrow(c, Px, Py, Px + (Bk[0] + 0.35 * Bk[2]) * k, Py - Bk[1] * k, 8); }
+    c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('P', Px - 4, Py + 18);
+    c.fillStyle = pal.muted; c.fillText('orange: each piece × 6   red: total so far', 10, 232);
+    fig.setAttribute('aria-label', `Circular loop with ${p.k} of ${NP} pieces added; P ${cm(p.x)} along the axis`);
+  }
+  function drawSol(c: CanvasRenderingContext2D, pal: Pal) {
+    const p = P(), span = Math.max(p.len * 1.6, 0.8), s = 340 / span, pr = view(180, 120, s);
+    const shown = Math.min(p.N, 40);
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(10, 120); c.lineTo(350, 120); c.stroke();
+    const Rd = Math.min(p.R, 0.9 * 90 / s);
+    c.strokeStyle = pal.accent; c.lineWidth = 1.5;
+    for (let t = 0; t < shown; t++) {
+      const x = -p.len / 2 + (shown === 1 ? p.len / 2 : (t * p.len) / (shown - 1));
+      c.beginPath();
+      for (let i = 0; i <= 36; i++) { const a = (i * 2 * Math.PI) / 36, [X, Y] = pr([x, Rd * Math.cos(a), Rd * Math.sin(a)]); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }
+      c.stroke();
+    }
+    const [Px, Py] = pr([p.x, 0, 0]), X = Math.max(10, Math.min(350, Px));
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X, Py, 5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('P', X, Py + 20);
+    c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText(p.N > shown ? `${p.N} turns (${shown} drawn), coil radius ${cm(p.R)}` : `${p.N} turns, coil radius ${cm(p.R)}`, 10, 18);
+    fig.setAttribute('aria-label', `Solenoid of ${p.N} turns, ${cm(p.len)} long; P ${cm(p.x)} from the middle`);
+  }
+  function drawAmp(c: CanvasRenderingContext2D, pal: Pal) {
+    const ws = wires(), s = 1500, cx = 180, cy = 120, toS = (x: number, y: number) => [cx + x * s, cy - y * s] as const;
+    // Field arrows on a grid.
+    c.strokeStyle = pal.muted; c.fillStyle = pal.muted; c.lineWidth = 1;
+    for (let gx = -0.11; gx <= 0.111; gx += 0.01) for (let gy = -0.07; gy <= 0.071; gy += 0.01) {
+      if (ws.some((w) => Math.hypot(w.x - gx, w.y - gy) < 0.006)) continue;
+      const [bx, by] = fieldOfWires(ws, gx, gy), b = Math.hypot(bx, by); if (!b) continue;
+      const [X, Y] = toS(gx, gy), l = 4 + 4 * Math.min(1, b / 1e-4);
+      c.globalAlpha = 0.35 + 0.5 * Math.min(1, b / 1e-4); arrow(c, X - (bx / b) * l, Y + (by / b) * l, X + (bx / b) * l, Y - (by / b) * l, 3.5);
+    }
+    c.globalAlpha = 1;
+    const L = { x: val('.bsv-lx') / 100, y: val('.bsv-ly') / 100, r: val('.bsv-lr') / 100 }, res = ampereLoop(ws, L.x, L.y, L.r);
+    const [lx, ly] = toS(L.x, L.y);
+    c.strokeStyle = pal.warn; c.fillStyle = pal.warn; c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath(); c.arc(lx, ly, L.r * s, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    for (const a of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) { const X = lx + L.r * s * Math.cos(a), Y = ly - L.r * s * Math.sin(a); arrow(c, X + 5 * Math.sin(a), Y + 5 * Math.cos(a), X - 5 * Math.sin(a), Y - 5 * Math.cos(a), 6); }
+    ws.forEach((w, i) => {
+      const [X, Y] = toS(w.x, w.y);
+      c.fillStyle = pal.bg; c.strokeStyle = w.I ? pal.ink : pal.line; c.lineWidth = 2; c.beginPath(); c.arc(X, Y, 9, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = pal.ink;
+      if (w.I > 0) { c.beginPath(); c.arc(X, Y, 2.5, 0, Math.PI * 2); c.fill(); }
+      else if (w.I < 0) { c.beginPath(); c.moveTo(X - 5, Y - 5); c.lineTo(X + 5, Y + 5); c.moveTo(X + 5, Y - 5); c.lineTo(X - 5, Y + 5); c.stroke(); }
+      c.font = '600 12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(`${'ABC'[i]} ${w.I} A`, X + 12, Y - 8);
+    });
+    fig.setAttribute('aria-label', `Three long wires and a loop enclosing ${res.inside.length} of them`);
+  }
+
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, W, GH), p = P();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, GH);
+    const X0 = 44, X1 = 350, Y0 = 16, Y1 = 132;
+    if (mode === 'wire') {
+      const pcs = wirePieces(p.L, NP), PP: V3 = [p.d, p.y, 0], vals = pcs.map((pc) => norm(element(p.I, pc.s, pc.dl, PP))), mx = Math.max(...vals);
+      axes(c, pal, X0, X1, Y0, Y1, 'piece of wire (bottom → top)', 'field from each piece');
+      const bw = (X1 - X0) / NP;
+      vals.forEach((v, i) => { c.fillStyle = i < p.k ? pal.accent : pal.line; const h = (v / mx) * (Y1 - Y0 - 8); c.fillRect(X0 + i * bw + 1, Y1 - h, bw - 2, h); });
+      graph.setAttribute('aria-label', 'Bar chart of the field from each piece of the wire; the pieces nearest P give the most');
+      return;
+    }
+    const xmax = mode === 'loop' ? Math.max(0.4, Math.abs(p.x)) : Math.max(p.len, Math.abs(p.x) * 1.1, 0.1), f = (x: number) => (mode === 'loop' ? loopAxis(p.I, p.R, x, p.N) : solenoidAxis(p.I, p.N, p.len, p.R, x));
+    const ideal = mode === 'sol' ? solenoidIdeal(p.I, p.N, p.len) : 0, top = Math.max(f(0), ideal) * 1.1;
+    axes(c, pal, X0, X1, Y0, Y1, 'position along the axis', 'B');
+    const tx = (x: number) => X0 + ((x + xmax) / (2 * xmax)) * (X1 - X0), ty = (b: number) => Y1 - (b / top) * (Y1 - Y0);
+    if (mode === 'sol') { c.strokeStyle = pal.muted; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X0, ty(ideal)); c.lineTo(X1, ty(ideal)); c.stroke(); c.setLineDash([]); c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('μ₀nI', X1, ty(ideal) - 4);
+      c.fillStyle = pal.grid; c.globalAlpha = 0.6; c.fillRect(tx(-p.len / 2), Y0, tx(p.len / 2) - tx(-p.len / 2), Y1 - Y0); c.globalAlpha = 1; }
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    for (let i = 0; i <= 200; i++) { const x = -xmax + (i * 2 * xmax) / 200, X = tx(x), Y = ty(f(x)); i ? c.lineTo(X, Y) : c.moveTo(X, Y); }
+    c.stroke();
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(tx(p.x), ty(f(p.x)), 5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (const x of [-xmax, 0, xmax]) c.fillText(cm(x), tx(x), Y1 + 12);
+    graph.setAttribute('aria-label', `Graph of the field along the ${mode === 'loop' ? 'loop' : 'solenoid'} axis, highest at the centre`);
+  }
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    if (mode === 'wire') drawWire(c, pal); else if (mode === 'loop') drawLoop(c, pal); else if (mode === 'sol') drawSol(c, pal); else drawAmp(c, pal);
+    if (mode !== 'amp') drawGraph();
+  }
+  function texts() {
+    const p = P();
+    for (const el of root.querySelectorAll<HTMLElement>('.bsv-only')) el.hidden = !el.dataset.m!.split(' ').includes(mode);
+    q('.bsv-iv').textContent = `${p.I} A`; q('.bsv-lv').textContent = cm(p.L); q('.bsv-dv').textContent = cm(p.d); q('.bsv-yv').textContent = cm(p.y);
+    q('.bsv-rv').textContent = cm(p.R); q('.bsv-nv').textContent = String(p.N); q('.bsv-slv').textContent = cm(p.len); q('.bsv-xv').textContent = cm(p.x); q('.bsv-kv').textContent = `${p.k} of ${NP}`;
+    q('.bsv-av').textContent = `${val('.bsv-a')} A`; q('.bsv-bv').textContent = `${val('.bsv-b')} A`; q('.bsv-cv').textContent = `${val('.bsv-c')} A`; q('.bsv-lrv').textContent = cm(val('.bsv-lr') / 100);
+    if (mode === 'wire') {
+      const ex = wireExact(p.I, p.L, p.d, p.y), sum = norm(sumPieces(p.I, wirePieces(p.L, NP), [p.d, p.y, 0], p.k));
+      const s1 = (p.L / 2 - p.y) / Math.hypot(p.d, p.L / 2 - p.y), s2 = (p.L / 2 + p.y) / Math.hypot(p.d, p.L / 2 + p.y);
+      q('.bsv-cap').textContent = 'Each piece I dl gives dB = (μ₀/4π) I dl sin θ / r². For a straight wire every piece pushes the same way, so they simply add.';
+      q('.bsv-big').textContent = `B at P = ${tesla(ex)} (pieces so far: ${tesla(sum)})`;
+      q('.bsv-formula').textContent = `B = μ₀ I / (4π d) × (sin α₁ + sin α₂) = 10⁻⁷ × ${p.I} / ${sig(p.d, 3)} × (${sig(s1, 3)} + ${sig(s2, 3)}) = ${tesla(ex)}`;
+      q('.bsv-facts').replaceChildren(fact(`Sum of ${p.k} pieces`, tesla(sum), p.k === NP ? `within ${sig(Math.abs(sum / ex - 1) * 100, 2)}% of the exact answer` : 'add more pieces'), fact('Exact answer', tesla(ex)), fact('Very long wire μ₀I/(2πd)', tesla(longWire(p.I, p.d)), `this wire gives ${sig((ex / longWire(p.I, p.d)) * 100, 3)}% of it`), fact('Direction at P', 'into the page', 'right-hand rule'));
+    } else if (mode === 'loop') {
+      const ex = loopAxis(p.I, p.R, p.x, p.N), pcs = loopPieces(p.R, NP), Bk = sumPieces(p.I, pcs, [p.x, 0, 0], p.k), side = Math.hypot(Bk[1], Bk[2]);
+      q('.bsv-cap').textContent = 'Each piece\'s field at P is tilted; pieces on opposite sides cancel each other\'s sideways parts.';
+      q('.bsv-big').textContent = `B at P = ${tesla(ex)} along the axis`;
+      q('.bsv-formula').textContent = `B = μ₀ N I R² / (2 (R² + x²)^3/2) = 4π × 10⁻⁷ × ${p.N} × ${p.I} × ${sig(p.R, 3)}² / (2 × (${sig(p.R, 3)}² + ${sig(p.x, 3)}²)^1.5) = ${tesla(ex)}`;
+      q('.bsv-facts').replaceChildren(fact('At the centre μ₀NI/(2R)', tesla(loopAxis(p.I, p.R, 0, p.N))), fact(`Along the axis, ${p.k} pieces`, tesla(Bk[0] * p.N), p.N > 1 ? `× ${p.N} turns` : ''), fact('Sideways part left over', tesla(side * p.N), p.k === NP ? 'cancels to zero' : 'cancels once the loop is complete'), fact('Direction', 'along the axis', 'curl right-hand fingers with the current'));
+    } else if (mode === 'sol') {
+      const ex = solenoidAxis(p.I, p.N, p.len, p.R, p.x), id = solenoidIdeal(p.I, p.N, p.len);
+      q('.bsv-cap').textContent = 'A solenoid is many loops side by side; adding their axis fields gives the curve below. The shaded band is inside the coil.';
+      q('.bsv-big').textContent = `B at P = ${tesla(ex)} (${sig((ex / id) * 100, 3)}% of μ₀nI)`;
+      q('.bsv-formula').textContent = `μ₀ n I = 4π × 10⁻⁷ × ${sig(p.N / p.len, 4)} × ${p.I} = ${tesla(id)}, with n = N / length = ${sig(p.N / p.len, 4)} turns per metre`;
+      q('.bsv-facts').replaceChildren(fact('Long-solenoid value μ₀nI', tesla(id)), fact('At the middle', tesla(solenoidAxis(p.I, p.N, p.len, p.R, 0))), fact('At one end', tesla(solenoidAxis(p.I, p.N, p.len, p.R, p.len / 2)), 'about half'), fact('Length ÷ radius', sig(p.len / p.R, 3), p.len / p.R >= 10 ? 'long and thin: μ₀nI is good inside' : 'short: μ₀nI is only rough'));
+    } else {
+      const ws = wires(), L = { x: val('.bsv-lx') / 100, y: val('.bsv-ly') / 100, r: val('.bsv-lr') / 100 }, res = ampereLoop(ws, L.x, L.y, L.r);
+      const names = res.inside.map((w) => `${'ABC'[ws.indexOf(w)]} (${String(w.I).replace('-', '−')} A)`);
+      q('.bsv-cap').textContent = '⊙ current out of the page, ⊗ into it. The grey arrows show B. The loop is followed anticlockwise.';
+      q('.bsv-big').textContent = res.onLine ? 'A wire sits on the loop: move the loop so each wire is clearly inside or outside.' : `∮B·dl = ${sig(res.integral * 1e6, 3)} µT m = μ₀ × ${sig(res.Ienc, 3)} A`;
+      q('.bsv-formula').textContent = `Ampère's law: ∮B·dl = μ₀ I_enclosed = 4π × 10⁻⁷ × ${res.Ienc} A = ${sig(res.expected * 1e6, 3)} µT m. Wires outside the loop add nothing to the total, even though they change B along it.`;
+      q('.bsv-facts').replaceChildren(fact('Wires inside', names.length ? names.join(', ') : 'none'), fact('Current enclosed', `${res.Ienc} A`, 'out of the page counts +'), fact('Added up round the loop', `${sig(res.integral * 1e6, 4)} µT m`, '720 small steps'), fact('μ₀ I_enclosed', `${sig(res.expected * 1e6, 4)} µT m`));
+    }
+  }
+  const all = () => { texts(); draw(); };
+  for (const el of root.querySelectorAll<HTMLInputElement>('input[type=range]')) el.addEventListener('input', all);
+  seg(q('.bsv-mode'), (m) => {
+    mode = m; clearInterval(timer);
+    const set = (c: string, v: number) => { q<HTMLInputElement>(c).value = String(v); };
+    if (m === 'loop') { set('.bsv-r', 10); set('.bsv-n', 1); set('.bsv-x', 0); }
+    if (m === 'sol') { set('.bsv-r', 2); set('.bsv-n', 200); set('.bsv-x', 0); set('.bsv-sl2', 20); }
+    all();
+  });
+  q('.bsv-build').addEventListener('click', () => {
+    clearInterval(timer); const k = q<HTMLInputElement>('.bsv-k');
+    if (still()) { k.value = String(NP); all(); return; }
+    k.value = '0'; all();
+    timer = window.setInterval(() => { k.value = String(+k.value + 1); all(); if (+k.value >= NP) clearInterval(timer); }, 220);
+  });
+  let drag = false;
+  const moveLoop = (e: PointerEvent) => { const [x, y] = pointer(fig, e, W); q<HTMLInputElement>('.bsv-lx').value = String(Math.max(-6, Math.min(6, Math.round(((x - 180) / 15) * 4) / 4))); q<HTMLInputElement>('.bsv-ly').value = String(Math.max(-6, Math.min(6, Math.round(((120 - y) / 15) * 4) / 4))); all(); };
+  fig.addEventListener('pointerdown', (e) => { if (mode !== 'amp') return; drag = true; fig.setPointerCapture(e.pointerId); moveLoop(e); });
+  fig.addEventListener('pointermove', (e) => { if (drag) moveLoop(e); });
+  fig.addEventListener('pointerup', () => { drag = false; });
+  onTheme(draw);
+  all();
+  quiz(q('.bsv-quiz'), () => questions());
+</script>

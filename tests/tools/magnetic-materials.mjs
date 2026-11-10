@@ -1,0 +1,34 @@
+// #1410 Dia, para and ferro magnetism
+export const path = '/learn/magnetic-materials/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/magnetic-materials/`); await page.waitForTimeout(600);
+  const R = '.mgm ', txt = (s) => page.textContent(R + s);
+  const setR = (s, v) => page.$eval(R + s, (e, v) => { e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+  check((await txt('.mgm-big')) === 'M = 0% of saturation', `magnet: demagnetised start (${await txt('.mgm-big')})`);
+  const f = await txt('.mgm-facts');
+  check(f.includes('1043 K') && f.includes('88.5%') && f.includes('77.9% of Ms') && f.includes('0.456 mT'), `magnet: soft iron facts (${f})`);
+  const inked = (s) => page.$eval(R + s, (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60) n++; return n; });
+  check((await inked('.mgm-fig')) > 400 && (await inked('.mgm-graph')) > 100, 'magnet: picture and graph drawn');
+  await setR('.mgm-b', 100); check((await txt('.mgm-big')) === 'M = 88.5% of saturation' && (await txt('.mgm-bv')) === '2.50 mT', `magnet: saturated (${await txt('.mgm-big')})`);
+  await setR('.mgm-b', 0); check((await txt('.mgm-big')) === 'M = 77.9% of saturation', `magnet: remanence (${await txt('.mgm-big')})`);
+  await setR('.mgm-b', -20); check((await txt('.mgm-big')) === 'M = −9.10% of saturation', `magnet: past the coercivity (${await txt('.mgm-big')})`);
+  check((await inked('.mgm-graph')) > 300, 'magnet: loop traced');
+  await page.click(R + '.mgm-reset'); check((await txt('.mgm-big')) === 'M = 0% of saturation' && (await txt('.mgm-bv')) === '0 mT', 'magnet: demagnetise');
+  await page.click(R + '.mgm-cycle'); await page.waitForTimeout(6000);
+  check((await txt('.mgm-big')) === 'M = 88.5% of saturation', `magnet: full loop ends saturated (${await txt('.mgm-big')})`);
+  await page.click(R + '.mgm-kind button[data-v=hard]'); await page.waitForTimeout(100);
+  check((await txt('.mgm-facts')).includes('9.12 mT') && (await txt('.mgm-facts')).includes('permanent magnets'), `magnet: hard steel (${await txt('.mgm-facts')})`);
+  await page.click(R + '.mgm-kind button[data-v=soft]'); await setR('.mgm-t', 1100);
+  check((await txt('.mgm-big')) === 'Above 1043 K: no longer ferromagnetic (χ = 0.018)' && (await txt('.mgm-tv')) === '1100 K', `magnet: above the Curie temperature (${await txt('.mgm-big')})`);
+  await setR('.mgm-t', 300);
+  await page.click(R + '.mgm-kind button[data-v=dia]'); await setR('.mgm-b', 50);
+  check((await txt('.mgm-big')) === 'χ = −1.7 × 10⁻⁴, μᵣ = 1 − 1.7 × 10⁻⁴' && (await txt('.mgm-formula')).includes('−135 A/m') && (await txt('.mgm-formula')).includes('0.99983'), `magnet: diamagnet (${await txt('.mgm-big')} ${await txt('.mgm-formula')})`);
+  check((await txt('.mgm-facts')).includes('weak-field'), 'magnet: diamagnet pushed out');
+  await page.click(R + '.mgm-kind button[data-v=para]'); await setR('.mgm-b', 50);
+  check((await txt('.mgm-big')) === 'χ = 3 × 10⁻⁴, μᵣ = 1 + 3 × 10⁻⁴', `magnet: paramagnet at 300 K (${await txt('.mgm-big')})`);
+  await setR('.mgm-t', 150); check((await txt('.mgm-big')) === 'χ = 6 × 10⁻⁴, μᵣ = 1 + 6 × 10⁻⁴', `magnet: Curie law (${await txt('.mgm-big')})`);
+  check((await page.$$(R + '.eq-q')).length === 4, 'magnet: four practice questions');
+  const q4 = await page.textContent(R + '.eq-q:nth-child(4) p'), [n, I, mr] = [Number(q4.match(/with (\d+) turns/)[1]), Number(q4.match(/carries ([\d.]+) A/)[1]), Number(q4.match(/permeability (\d+)/)[1])];
+  await page.fill(R + '.eq-q:nth-child(4) .eq-in', String(4 * Math.PI * 1e-7 * n * I * mr)); await page.click(R + '.eq-q:nth-child(4) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(4) .eq-res')).startsWith('Right'), 'magnet: right answer accepted');
+};

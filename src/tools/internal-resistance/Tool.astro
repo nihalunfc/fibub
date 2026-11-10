@@ -1,0 +1,190 @@
+---
+// Internal resistance and terminal voltage: a cell with emf E and internal resistance r driving a rheostat, with
+// ammeter and voltmeter; V against I graph, power against R (maximum power transfer), and a reading table that
+// finds E and r by a straight-line fit. Everything runs in the browser; nothing is stored.
+import '../../styles/astro.css';
+---
+<div class="ax irs">
+  <div class="ax-card">
+    <h2>The cell and the load</h2>
+    <label class="irs-sl">Emf of the cell E: <b class="irs-ev"></b><input type="range" class="irs-e" min="1" max="12" step="0.5" value="1.5" aria-label="Emf in volts" /></label>
+    <label class="irs-sl">Internal resistance r: <b class="irs-rv"></b><input type="range" class="irs-r" min="0.1" max="5" step="0.1" value="0.5" aria-label="Internal resistance in ohms" /></label>
+    <label class="irs-sl">Load resistance R (rheostat): <b class="irs-lv"></b><input type="range" class="irs-l" min="0" max="20" step="0.1" value="2.5" aria-label="Load resistance in ohms" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small irs-open">Open the switch</button>
+      <button type="button" class="btn secondary small irs-short">Short circuit (R = 0)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig irs-fig"></canvas>
+    <p class="ax-big irs-big" aria-live="polite"></p>
+    <p class="irs-formula"></p>
+    <dl class="ax-facts irs-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Graph</h2>
+    <span class="ax-seg irs-gmode" role="group" aria-label="Graph"><button type="button" data-v="vi" aria-pressed="true">V against I</button><button type="button" data-v="pr" aria-pressed="false">Power against R</button></span>
+    <canvas class="ax-fig irs-graph" style="margin-top:10px"></canvas>
+    <p class="ax-help irs-gnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find E and r from readings</h2>
+    <p class="ax-help" style="margin-top:0">Set a few different loads and record the meters each time. A straight line through V against I meets the V axis at E; its slope is −r.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small irs-rec">Record this reading</button><button type="button" class="btn secondary small irs-clear">Clear readings</button></div>
+    <p class="ax-err irs-rerr" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="irs-tab"></table></div>
+    <p class="irs-fit"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="irs-try">
+      <li>Open the switch: no current, so the voltmeter reads the full emf.</li>
+      <li>Lower R: more current, more volts "lost" inside the cell, and a lower terminal voltage.</li>
+      <li>Short circuit: V drops to 0 and the current is E / r, the most the cell can give.</li>
+      <li>On the power graph, find the peak: it is at R = r, and then the cell wastes as much as it delivers (50% efficient).</li>
+      <li>Record three or four readings and compare the fitted E and r with the sliders.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="irs-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .irs .irs-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .irs input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .irs-fig, .irs-graph { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .irs-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .irs-formula, .irs-fit { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .irs-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .irs .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .irs .eq-q p { margin: 0 0 6px; }
+  .irs .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .irs .eq-ok { color: var(--good); font-weight: 600; }
+  .irs .eq-no { color: var(--bad); }
+  .irs .eq-work { margin-top: 4px; font-size: 14px; }
+  .irs .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .irs .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { circuit, maxPower, fitLine, questions } from '../../lib/sci/internal-resistance';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.irs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.irs-fig'), graph = q<HTMLCanvasElement>('.irs-graph');
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 360, H = 220, GH = 210;
+  let open = false, gmode = 'vi';
+  const readings: { R: number; I: number; V: number }[] = [];
+  const s3 = (x: number) => sig(x, 3);
+  const now = () => { const E = val('.irs-e'), r = val('.irs-r'), R = open ? Infinity : val('.irs-l'); return { E, r, R, ...circuit(E, r, R) }; };
+
+  function meter(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>, x: number, y: number, letter: string, reading: string) {
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 15, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = pal.ink; c.font = '700 14px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(letter, x, y + 5);
+    c.font = '600 12px system-ui, sans-serif'; c.fillStyle = pal.accent; c.fillText(reading, x, y + 32);
+  }
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = now();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.strokeStyle = pal.ink; c.lineWidth = 2;
+    // Main loop: cell on the left (x 40..150, y 150), wire round the top to the load on the right.
+    c.beginPath(); c.moveTo(40, 150); c.lineTo(20, 150); c.lineTo(20, 40); c.lineTo(120, 40); c.moveTo(200, 40); c.lineTo(330, 40); c.lineTo(330, 80); c.moveTo(330, 130); c.lineTo(330, 150); c.lineTo(160, 150); c.stroke();
+    // Switch at the top.
+    c.beginPath(); c.arc(120, 40, 3, 0, Math.PI * 2); c.arc(150, 40, 3, 0, Math.PI * 2); c.fill(); c.moveTo(120, 40); open ? c.lineTo(146, 24) : c.lineTo(150, 40); c.moveTo(150, 40); c.lineTo(170, 40); c.stroke();
+    meter(c, pal, 185, 40, 'A', `${s3(s.I)} A`);
+    // Load (rheostat) on the right.
+    c.beginPath(); c.moveTo(330, 80);
+    for (let i = 1; i <= 6; i++) c.lineTo(330 + (i % 2 ? 8 : -8), 80 + (i * 50) / 6 - (i === 6 ? 0 : 0));
+    c.lineTo(330, 130); c.stroke();
+    c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText(`R = ${open ? '∞' : s3(s.R) + ' Ω'}`, 318, 110);
+    // The cell: dashed box with the ideal emf and its internal resistance.
+    c.setLineDash([5, 4]); c.strokeStyle = pal.muted; c.lineWidth = 1; c.strokeRect(36, 122, 128, 56); c.setLineDash([]);
+    c.strokeStyle = pal.ink; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(40, 150); c.lineTo(58, 150); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(58, 136); c.lineTo(58, 164); c.stroke(); c.lineWidth = 4; c.beginPath(); c.moveTo(66, 142); c.lineTo(66, 158); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(66, 150); c.lineTo(88, 150);
+    for (let i = 1; i <= 6; i++) c.lineTo(88 + i * 8, 150 + (i === 6 ? 0 : i % 2 ? -7 : 7));
+    c.lineTo(160, 150); c.stroke();
+    c.fillStyle = pal.muted; c.textAlign = 'center'; c.fillText(`E = ${s3(s.E)} V`, 62, 196); c.fillText(`r = ${s3(s.r)} Ω`, 112, 196); c.fillText('the cell', 100, 116);
+    // Voltmeter across the cell's terminals.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(36, 150); c.lineTo(36, 206); c.lineTo(85, 206); c.moveTo(115, 206); c.lineTo(164, 206); c.lineTo(164, 150); c.stroke();
+    meter(c, pal, 100, 206, 'V', '');
+    c.fillStyle = pal.accent; c.font = '600 12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(`${s3(s.V)} V`, 172, 210);
+    fig.setAttribute('aria-label', `Cell of emf ${s3(s.E)} volts and internal resistance ${s3(s.r)} ohms; ammeter ${s3(s.I)} amperes, voltmeter ${s3(s.V)} volts`);
+  }
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, W, GH), s = now();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, GH);
+    const X0 = 46, X1 = 348, Y0 = 14, Y1 = 176;
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Y0); c.lineTo(X0, Y1); c.lineTo(X1, Y1); c.stroke();
+    c.font = '11px system-ui, sans-serif'; c.fillStyle = pal.muted;
+    if (gmode === 'vi') {
+      const Imax = s.E / s.r, tx = (I: number) => X0 + (I / Imax) * (X1 - X0), ty = (V: number) => Y1 - (V / s.E) * (Y1 - Y0 - 8);
+      c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath(); c.moveTo(tx(0), ty(s.E)); c.lineTo(tx(Imax), ty(0)); c.stroke();
+      c.fillStyle = pal.muted; c.textAlign = 'center'; c.fillText('current I (A)', (X0 + X1) / 2, Y1 + 28); c.textAlign = 'right'; c.fillText(`${s3(s.E)} V`, X0 - 4, ty(s.E) + 4); c.fillText('0', X0 - 4, Y1 + 4);
+      c.textAlign = 'center'; c.fillText(`${s3(Imax)} A`, X1 - 14, Y1 + 14); c.textAlign = 'left'; c.fillText('V', X0 + 4, Y0 + 4);
+      for (const r of readings) { c.strokeStyle = pal.ink; c.lineWidth = 1.5; const X = tx(r.I), Y = ty(r.V); c.beginPath(); c.moveTo(X - 4, Y - 4); c.lineTo(X + 4, Y + 4); c.moveTo(X + 4, Y - 4); c.lineTo(X - 4, Y + 4); c.stroke(); }
+      c.fillStyle = pal.bad; c.beginPath(); c.arc(tx(s.I), ty(s.V), 5, 0, Math.PI * 2); c.fill();
+      q('.irs-gnote').textContent = `Slope −r = −${s3(s.r)} Ω; it meets the V axis at E and the I axis at the short-circuit current E / r = ${s3(Imax)} A.`;
+      graph.setAttribute('aria-label', 'Terminal voltage against current: a straight line falling from E');
+    } else {
+      const Rmax = 20, Pm = maxPower(s.E, s.r), tx = (R: number) => X0 + (R / Rmax) * (X1 - X0), ty = (P: number) => Y1 - (P / Pm) * (Y1 - Y0 - 8);
+      c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+      for (let i = 0; i <= 200; i++) { const R = (i * Rmax) / 200, P = circuit(s.E, s.r, R).Pload; i ? c.lineTo(tx(R), ty(P)) : c.moveTo(tx(R), ty(P)); }
+      c.stroke();
+      c.setLineDash([4, 4]); c.strokeStyle = pal.muted; c.beginPath(); c.moveTo(tx(s.r), Y1); c.lineTo(tx(s.r), ty(Pm)); c.stroke(); c.setLineDash([]);
+      c.fillStyle = pal.muted; c.textAlign = 'center'; c.fillText('load resistance R (Ω), 0 to 20', (X0 + X1) / 2, Y1 + 28); c.fillText('R = r', tx(s.r), Y1 + 14);
+      c.textAlign = 'right'; c.fillText(`${s3(Pm)} W`, X0 - 4, ty(Pm) + 4); c.textAlign = 'left'; c.fillText('power in R', X0 + 4, Y0 + 4);
+      if (!open && s.R <= Rmax) { c.fillStyle = pal.bad; c.beginPath(); c.arc(tx(s.R), ty(s.Pload), 5, 0, Math.PI * 2); c.fill(); }
+      q('.irs-gnote').textContent = `The load gets the most power, E² / 4r = ${s3(Pm)} W, when R = r = ${s3(s.r)} Ω.`;
+      graph.setAttribute('aria-label', 'Power in the load against its resistance, peaking where R equals r');
+    }
+  }
+  function texts() {
+    const s = now();
+    q('.irs-ev').textContent = `${s.E.toFixed(1)} V`; q('.irs-rv').textContent = `${s.r.toFixed(1)} Ω`; q('.irs-lv').textContent = open ? 'switch open' : `${val('.irs-l').toFixed(1)} Ω`;
+    q('.irs-open').textContent = open ? 'Close the switch' : 'Open the switch';
+    q('.irs-big').textContent = open ? `Open circuit: V = E = ${s3(s.E)} V, I = 0` : `I = ${s3(s.I)} A, terminal voltage V = ${s3(s.V)} V`;
+    q('.irs-formula').textContent = open ? 'With no current there is no drop inside the cell, so a voltmeter reads the emf.' : `I = E / (R + r) = ${s3(s.E)} / (${s3(s.R)} + ${s3(s.r)}) = ${s3(s.I)} A; V = E − I r = ${s3(s.E)} − ${s3(s.I)} × ${s3(s.r)} = ${s3(s.V)} V`;
+    q('.irs-facts').replaceChildren(
+      fact('Volts lost inside the cell', `${s3(s.lost)} V`, 'I r'),
+      fact('Power in the load', `${s3(s.Pload)} W`, `max ${s3(maxPower(s.E, s.r))} W at R = r`),
+      fact('Power wasted in the cell', `${s3(s.Pr)} W`, 'warms the cell'),
+      fact('Efficiency V / E', open ? '–' : `${s3(s.eff * 100)}%`),
+    );
+  }
+  function table() {
+    const head = document.createElement('tr'); head.innerHTML = '<th>#</th><th class="r">R (Ω)</th><th class="r">I (A)</th><th class="r">V (V)</th>';
+    q('.irs-tab').replaceChildren(...(readings.length ? [head] : []), ...readings.map((r, i) => { const tr = document.createElement('tr'); for (const [v, cls] of [[String(i + 1), ''], [r.R === Infinity ? '∞' : s3(r.R), 'r'], [s3(r.I), 'r'], [s3(r.V), 'r']]) { const td = document.createElement('td'); td.textContent = v; if (cls) td.className = cls; tr.append(td); } return tr; }));
+    const fit = fitLine(readings);
+    q('.irs-fit').textContent = !readings.length ? 'No readings yet.' : !fit ? 'Record at least two readings with different currents.' : `Best straight line: E ≈ ${s3(fit.E)} V, r ≈ ${s3(fit.r)} Ω (from ${readings.length} readings).`;
+  }
+  const all = () => { texts(); draw(); drawGraph(); };
+  for (const c of ['.irs-e', '.irs-r']) q(c).addEventListener('input', () => { if (readings.length) { readings.length = 0; table(); } all(); });
+  q('.irs-l').addEventListener('input', () => { open = false; all(); });
+  q('.irs-open').addEventListener('click', () => { open = !open; all(); });
+  q('.irs-short').addEventListener('click', () => { open = false; q<HTMLInputElement>('.irs-l').value = '0'; all(); });
+  seg(q('.irs-gmode'), (v) => { gmode = v; drawGraph(); });
+  q('.irs-rec').addEventListener('click', () => {
+    const s = now(), e = q('.irs-rerr');
+    const dup = readings.some((r) => Math.abs(r.I - s.I) < 1e-12);
+    e.hidden = !dup; e.textContent = dup ? 'You already have a reading at this current. Change R first.' : '';
+    if (!dup) { readings.push({ R: s.R, I: s.I, V: s.V }); table(); drawGraph(); }
+  });
+  q('.irs-clear').addEventListener('click', () => { readings.length = 0; q('.irs-rerr').hidden = true; table(); drawGraph(); });
+  onTheme(() => { draw(); drawGraph(); });
+  all(); table();
+  quiz(q('.irs-quiz'), () => questions());
+</script>
