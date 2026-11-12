@@ -3591,5 +3591,84 @@ ORIGIN
   near('ins: keeping a policy worth 1,000 now that pays 1,100 next year returns 10%', I.keepReturn(1000, 0, 0, [{ year: 1, amount: 1100 }]).irr, 0.1, 1e-9);
   near('ins: surrender 1,000 invested at 10% for a year = 1,100', I.surrenderInvest(1000, 0, 0, 10, 1), 1100, 1e-9);
 }
+// Trip Tracker (src/lib/trip.ts): filters, distance, speed changes, gaps, legs, writers.
+{
+  const T = await import('../src/lib/trip.ts');
+  const t0 = Date.UTC(2026, 0, 15, 9, 0, 0), M = 111195; // metres per degree of latitude on a sphere of radius 6371 km (about)
+  const line = (n, v, f = (i) => ({})) => Array.from({ length: n + 1 }, (_, i) => ({ t: t0 + i * 1000, lat: (v * i) / 110574.3, lon: 0, acc: 5, speed: v, ...f(i) }));
+  // 2.4 km at a constant 12 m/s north: marks at 1 km and 2 km, three legs.
+  const steady = T.buildTrip(line(200, 12), 'car'), a = T.analyse(steady);
+  near('trip: 200 s at 12 m/s on a meridian is about 2.4 km', a.metres, 2400, 12);
+  check('trip: a steady drive has two automatic marks', steady.marks.length === 2 && steady.marks.every((m) => m.auto));
+  check('trip: 2.4 km gives legs of about 1 km, 1 km and 0.4 km', a.legs.length === 3 && Math.abs(a.legs[0].metres - 1000) < 15 && Math.abs(a.legs[1].metres - 1000) < 15 && Math.abs(a.legs[2].metres - 400) < 30);
+  near('trip: leg average speed is 12 m/s', a.legs[1].avg, 12, 0.05);
+  check('trip: a steady drive has no speed changes and no gaps', a.events.length === 0 && a.gaps.length === 0);
+  near('trip: elapsed time is 200 s', a.elapsed, 200, 1e-9);
+  near('trip: moving time is 200 s', a.moving, 200, 1e-9);
+  // A mile unit gives one mark in 2.4 km.
+  check('trip: with miles, 2.4 km has one automatic mark', T.buildTrip(line(200, 12), 'car', [], 1609.344).marks.length === 1);
+  // Accuracy filter: 200 m is dropped (65 m limit for a car, 50 m for a walk).
+  const bad = line(10, 10); bad[5].acc = 200; bad[6].acc = 60;
+  const tb = T.buildTrip(bad, 'car'); check('trip: a fix with 200 m accuracy is dropped, 60 m kept for a car', tb.samples.length === 10 && tb.dropped.acc === 1);
+  check('trip: 60 m accuracy is dropped for a walk', T.buildTrip(line(10, 1).map((f, i) => (i === 3 ? { ...f, acc: 60 } : f)), 'walk').dropped.acc === 1);
+  // Jump filter: a point 5 km away in one second is dropped, the next good point is kept.
+  const jmp = line(10, 10); jmp[5].lat += 0.05;
+  const tj = T.buildTrip(jmp, 'car'); check('trip: a 5 km jump in a second is dropped', tj.dropped.jump === 1 && tj.samples.length === 10);
+  near('trip: the jump adds no distance', T.analyse(tj).metres, 100, 1);
+  // Speed limit by mode: 10 m/s is too fast for a walker.
+  check('trip: 10 m/s is dropped as a jump for a walk, adding no distance', T.buildTrip(line(10, 10), 'walk').dropped.jump >= 4 && T.analyse(T.buildTrip(line(10, 10), 'walk')).metres === 0);
+  // Duplicate time stamps.
+  check('trip: a repeated time stamp is dropped', T.buildTrip([...line(3, 5), { ...line(3, 5)[3] }], 'car').dropped.dup === 1);
+  // One speed-up: 5 m/s, then 4 m/s² for 4 s up to 21 m/s, then steady.
+  let v = 5, lat = 0; const acc = [];
+  for (let i = 0; i <= 30; i++) { if (i > 0) { v = i > 8 && i <= 12 ? v + 4 : v; lat += v / 110574.3; } acc.push({ t: t0 + i * 1000, lat, lon: 0, acc: 5, speed: v }); }
+  const tu = T.analyse(T.buildTrip(acc, 'car'));
+  check('trip: a hard acceleration gives exactly one speed-up and no slow-down', tu.events.length === 1 && tu.events[0].kind === 'up');
+  check('trip: the speed-up starts near 5 m/s and ends near 21 m/s', tu.events[0].from < 9 && tu.events[0].to > 17 && Math.abs(tu.events[0].into - 8) <= 1.5);
+  // Hard braking: one slow-down.
+  const brake = []; v = 20; lat = 0;
+  for (let i = 0; i <= 30; i++) { if (i > 0) { v = i > 8 && i <= 13 ? Math.max(0, v - 4) : v; lat += v / 110574.3; } brake.push({ t: t0 + i * 1000, lat, lon: 0, acc: 5, speed: v }); }
+  const tbk = T.analyse(T.buildTrip(brake, 'car')); check('trip: hard braking gives one slow-down', tbk.events.length === 1 && tbk.events[0].kind === 'down');
+  // A single noisy fix does not make a speed change (needs two steps in a row).
+  const blip = line(30, 10, (i) => (i === 15 ? { speed: 16 } : {})); check('trip: one noisy speed reading is not a speed change', T.analyse(T.buildTrip(blip, 'car')).events.length === 0);
+  // Gap: 25 s with no fixes while moving at 10 m/s: one gap of 25 s and about 250 m, never invented points.
+  const g = [...line(10, 10)]; const after = Array.from({ length: 10 }, (_, k) => { const i = 35 + k; return { t: t0 + i * 1000, lat: (10 * i) / 110574.3, lon: 0, acc: 5, speed: 10 }; });
+  const tg = T.buildTrip([...g, ...after], 'car'), ag = T.analyse(tg);
+  check('trip: a 25 s silence while moving is one gap', ag.gaps.length === 1 && Math.abs(ag.gaps[0].seconds - 25) < 1e-9);
+  near('trip: the gap distance is the straight line, 250 m', ag.gaps[0].metres, 250, 2);
+  near('trip: tracked distance leaves the gap out (100 m + 90 m)', ag.metres, 190, 2);
+  check('trip: no points were made up across the gap', tg.samples.length === 21);
+  check('trip: the gap is not counted as moving time', ag.moving < ag.elapsed - 24);
+  check('trip: a short 10 s wait is not a gap', T.analyse(T.buildTrip([...g, ...Array.from({ length: 5 }, (_, k) => { const i = 20 + k; return { t: t0 + i * 1000, lat: (10 * i) / 110574.3, lon: 0, acc: 5, speed: 10 }; })], 'car')).gaps.length === 0);
+  // Standing still for 40 s with no new fix is not a gap.
+  const still = [{ t: t0, lat: 0, lon: 0, acc: 5, speed: 0 }, { t: t0 + 40000, lat: 0.00001, lon: 0, acc: 5, speed: 0 }];
+  check('trip: 40 s standing still is not a gap', T.analyse(T.buildTrip(still, 'walk')).gaps.length === 0);
+  // Pause: no distance across it and not counted in elapsed time.
+  const tp = T.newTrip('walk', t0); line(5, 1).forEach((f) => T.addFix(tp, f)); T.pauseTrip(tp);
+  Array.from({ length: 6 }, (_, k) => ({ t: t0 + (100 + k) * 1000, lat: (1 * (100 + k)) / 110574.3, lon: 0, acc: 5, speed: 1 })).forEach((f) => T.addFix(tp, f));
+  const ap = T.analyse(tp); near('trip: a pause adds no distance (5 m + 5 m)', ap.metres, 10, 0.2); near('trip: a pause is not elapsed time (10 s)', ap.elapsed, 10, 1e-9);
+  // Manual marks.
+  const tm = T.buildTrip(line(60, 10), 'car', [{ afterIndex: 30, label: 'Bus stop' }]); const am = T.analyse(tm);
+  check('trip: a labelled mark splits a leg and keeps its name', am.legs.length === 2 && am.legs[0].to === 'Bus stop' && am.legs[1].from === 'Bus stop');
+  near('trip: legs add up to the whole trip', am.legs[0].metres + am.legs[1].metres, am.metres, 1e-6);
+  // Writers.
+  const gpx = T.toGpx(tg);
+  check('trip: GPX has 21 points with times, a second segment after the gap', (gpx.match(/<trkpt /g) || []).length === 21 && (gpx.match(/<trkseg>/g) || []).length === 2 && /<time>2026-01-15T09:00:00Z<\/time>/.test(gpx) && gpx.includes('version="1.1"'));
+  check('trip: GPX writes marks as waypoints and escapes names', T.toGpx({ ...tm, marks: [{ i: 3, label: 'A & <B>', auto: false }] }).includes('<name>A &amp; &lt;B&gt;</name>'));
+  const csv = T.toCsv(tm).split('\n');
+  check('trip: CSV has a header and one row per point, with the mark', csv[0] === 'time,lat,lon,accuracy_m,speed_mps,mark,gap,pause' && csv.length === tm.samples.length + 2 && csv.some((r) => r.includes(',Bus stop,')));
+  check('trip: CSV flags the first point after a gap', T.toCsv(tg).split('\n').filter((r) => /,1,0$/.test(r)).length === 1);
+  // Saving round trip.
+  const round = T.unpack(JSON.parse(JSON.stringify(T.pack(tg))));
+  check('trip: a saved trip comes back the same', round && round.samples.length === tg.samples.length && T.analyse(round).gaps.length === 1 && Math.abs(T.analyse(round).metres - ag.metres) < 0.1);
+  check('trip: junk is not accepted as a saved trip', T.unpack({ id: 'x' }) === null && T.unpack(null) === null);
+  // Sample trip.
+  const st = T.sampleTrip(), as = T.analyse(st);
+  check('trip: the sample trip has one gap, a speed-up, a slow-down and a mark', as.gaps.length === 1 && as.events.some((e) => e.kind === 'up') && as.events.some((e) => e.kind === 'down') && st.marks.some((m) => m.label === 'Corner shop'));
+  check('trip: the sample trip is a few km and the same every time', as.metres > 2000 && as.metres < 5000 && JSON.stringify(T.pack(st)) === JSON.stringify(T.pack(T.sampleTrip())));
+  // Formatting.
+  check('trip: formats', T.fmtDur(3725) === '1:02:05' && T.fmtDist(2400, 'km') === '2.40 km' && T.fmtSpeed(10, 'km') === '36.0 km/h' && T.fmtPace(2.5, 'km') === '6:40 /km' && T.fmtPos(1.2345678, -0.5) === '1.23457, -0.50000');
+}
+
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
