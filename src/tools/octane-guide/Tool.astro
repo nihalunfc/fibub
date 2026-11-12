@@ -1,0 +1,116 @@
+---
+// #T946 Octane guide
+---
+<div class="tool-ui og">
+  <section class="panel">
+    <label>Country
+      <select data-k="c">
+        <option value="india">India</option><option value="canada">Canada</option><option value="usa">USA</option><option value="uk">UK</option><option value="gulf">UAE and Saudi Arabia</option>
+      </select>
+    </label>
+  </section>
+  <section class="panel">
+    <h2 class="og-h">Convert</h2>
+    <div class="og-grid">
+      <label>RON <input data-k="ron" inputmode="decimal" value="95" /></label>
+      <label>AKI <input data-k="aki" inputmode="decimal" value="91" /></label>
+    </div>
+    <p class="og-big" data-o="conv" aria-live="polite"></p>
+    <details><summary>Change the gap</summary>
+      <label>RON minus AKI (about 4 for ordinary petrol) <input data-k="gap" inputmode="decimal" value="4" /></label>
+    </details>
+  </section>
+  <section class="panel">
+    <h2 class="og-h" data-o="ctitle"></h2>
+    <p class="og-fine" data-o="cnote"></p>
+    <div class="og-cards" data-o="cards"></div>
+  </section>
+  <section class="panel">
+    <h2 class="og-h">Which one do I buy?</h2>
+    <div class="og-grid">
+      <label>My manual says <input data-k="man" inputmode="decimal" value="91" /></label>
+      <label>That number is <select data-k="mu"><option value="ron">RON</option><option value="aki">AKI</option></select></label>
+    </div>
+    <p class="og-big" data-o="buy" aria-live="polite"></p>
+    <p class="og-fine" data-o="why"></p>
+  </section>
+  <p class="og-fine">Higher octane than the manual asks for gives no gain in most cars; lower than it asks can make the engine knock. Grades are typical, as checked November 2026; check the official source and the label on your fuel pump. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .og { display: grid; gap: 14px; margin-bottom: 32px; }
+  .og .panel { padding: 16px; }
+  .og-h { font-size: 16px; margin: 0 0 8px; }
+  .og-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .og label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .og input, .og select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .og input:focus, .og select:focus { border-color: var(--accent); outline: none; }
+  .og-big { font-size: 22px; font-weight: 700; margin: 12px 0 0; }
+  .og-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .og-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 10px; }
+  .og-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 4px; justify-items: start; }
+  .og-card svg { width: 34px; height: 34px; }
+  .og-card b { font-size: 15px; } .og-card span { font-size: 13px; color: var(--muted); }
+  .og summary { cursor: pointer; margin-top: 10px; color: var(--muted); font-size: 14px; }
+</style>
+
+<script>
+  import { presetCountry } from '../../lib/vehicles/country';
+  import { ronToAki, akiToRon } from '../../lib/vehicles/fuel';
+  type G = { name: string; ron: [number, number]; aki?: [number, number] };
+  const NA: G[] = [{ name: 'Regular', ron: [91, 91], aki: [87, 87] }, { name: 'Mid-grade', ron: [93, 93], aki: [89, 89] }, { name: 'Premium', ron: [95, 98], aki: [91, 94] }];
+  const DATA: Record<string, { title: string; scale: 'RON' | 'AKI'; note: string; grades: G[] }> = {
+    india: { title: 'Petrol grades in India', scale: 'RON', note: 'Pumps show RON. Much regular petrol is now blended with 20% ethanol (E20).', grades: [{ name: 'Regular', ron: [91, 91] }, { name: 'Premium', ron: [95, 100] }] },
+    usa: { title: 'Petrol grades in the USA', scale: 'AKI', note: 'Pumps show AKI, which is about 4 lower than RON.', grades: NA },
+    canada: { title: 'Petrol grades in Canada', scale: 'AKI', note: 'Pumps show AKI, which is about 4 lower than RON.', grades: NA },
+    uk: { title: 'Petrol grades in the UK', scale: 'RON', note: 'Pumps show RON. Standard 95 is E10; super grades are usually E5.', grades: [{ name: 'Standard (E10)', ron: [95, 95] }, { name: 'Super (E5)', ron: [97, 99] }] },
+    gulf: { title: 'Petrol grades in the UAE and Saudi Arabia', scale: 'RON', note: 'Pumps show RON. The UAE sells 91, 95 and 98; Saudi Arabia sells 91 and 95.', grades: [{ name: 'Grade 91', ron: [91, 91] }, { name: 'Grade 95', ron: [95, 95] }, { name: 'Grade 98 (UAE)', ron: [98, 98] }] },
+  };
+  const root = document.querySelector('.og') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const gapv = () => (isFinite(num('gap')) ? num('gap') : 4);
+  const r1 = (v: number) => String(Math.round(v * 10) / 10);
+  const rng = (a: [number, number]) => (a[0] === a[1] ? `${a[0]}` : `${a[0]} to ${a[1]}`);
+  const drop = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/></svg>';
+  let last: 'ron' | 'aki' = 'ron';
+  const conv = () => {
+    if (last === 'ron') { const v = num('ron'); if (isFinite(v)) q('aki').value = r1(ronToAki(v, gapv())); }
+    else { const v = num('aki'); if (isFinite(v)) q('ron').value = r1(akiToRon(v, gapv())); }
+    const ron = num('ron'), aki = num('aki');
+    o('conv').textContent = isFinite(ron) && isFinite(aki) ? `${r1(ron)} RON is about ${r1(aki)} AKI` : '';
+  };
+  const cards = () => {
+    const d = DATA[q('c').value];
+    o('ctitle').textContent = d.title;
+    o('cnote').textContent = d.note;
+    o('cards').innerHTML = d.grades.map((g) => {
+      const aki = g.aki ?? ([g.ron[0] - gapv(), g.ron[1] - gapv()] as [number, number]);
+      const main = d.scale === 'AKI' ? `${rng(aki)} AKI` : `${rng(g.ron)} RON`;
+      const other = d.scale === 'AKI' ? `about ${rng(g.ron)} RON` : `about ${rng(aki)} AKI`;
+      return `<div class="og-card">${drop}<b>${g.name}</b><span>${main}</span><span>${other}</span></div>`;
+    }).join('');
+  };
+  const buy = () => {
+    const m = num('man'), gap = gapv(), d = DATA[q('c').value];
+    if (!isFinite(m)) { o('buy').textContent = ''; o('why').textContent = ''; return; }
+    const ron = q('mu').value === 'ron' ? m : akiToRon(m, gap);
+    const g = d.grades.find((x) => x.ron[1] >= ron - 0.01) ?? d.grades[d.grades.length - 1];
+    const label = d.scale === 'AKI' && g.aki ? `${g.aki[0]} AKI` : `${g.ron[0]} RON`;
+    o('buy').textContent = `Buy ${g.name} (${label})`;
+    const top = d.grades[d.grades.length - 1];
+    o('why').textContent = ron > top.ron[1] + 0.01
+      ? `Your car asks for ${r1(ron)} RON, higher than the usual grades here. Check the manual.`
+      : `Your manual's number is about ${r1(ron)} RON (${r1(ronToAki(ron, gap))} AKI). This is the lowest grade here that meets it; a higher one gives no gain in most cars.`;
+  };
+  root.addEventListener('input', (e) => {
+    const t = (e.target as HTMLElement).getAttribute('data-k');
+    if (t === 'ron') last = 'ron'; else if (t === 'aki') last = 'aki';
+    if (t === 'ron' || t === 'aki' || t === 'gap') { conv(); cards(); }
+    buy();
+  });
+  q('c').addEventListener('change', () => { cards(); buy(); });
+  presetCountry(q('c') as unknown as HTMLSelectElement);
+  conv(); cards(); buy();
+</script>

@@ -1,0 +1,85 @@
+---
+// #T949 2-stroke mix
+---
+<div class="tool-ui ts">
+  <section class="panel">
+    <div class="ts-grid">
+      <label>Ratio (petrol : oil)
+        <select data-k="r"><option value="50" selected>50:1</option><option value="40">40:1</option><option value="32">32:1</option><option value="25">25:1</option><option value="custom">Custom</option></select>
+      </label>
+      <label hidden data-w="rc">Custom: petrol parts per 1 oil <input data-k="rc" inputmode="decimal" value="30" /></label>
+      <label>Petrol unit
+        <select data-k="u"><option value="l">Litres</option><option value="usgal">US gallons</option><option value="ukgal">UK gallons</option></select>
+      </label>
+      <label>I know the <select data-k="mode"><option value="petrol">amount of petrol</option><option value="oil">amount of oil (ml)</option></select></label>
+      <label><span data-o="inl">Petrol</span> <input data-k="v" inputmode="decimal" value="5" /></label>
+      <label>Cap size in ml (optional) <input data-k="cap" inputmode="decimal" placeholder="e.g. 20" /></label>
+    </div>
+  </section>
+  <section class="panel ts-res">
+    <svg class="ts-can" viewBox="0 0 80 100" role="img" aria-label="Fuel can with a thin layer of oil on the bottom">
+      <path d="M20 22h40a6 6 0 0 1 6 6v62a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V28a6 6 0 0 1 6-6z" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M30 22v-8h18l6 8" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="15" y="34" width="50" height="58" fill="currentColor" opacity=".18"/>
+      <rect data-o="oilrect" x="15" y="80" width="50" height="12" fill="var(--warn)"/>
+    </svg>
+    <div>
+      <p class="ts-big" data-o="oil" aria-live="polite"></p>
+      <p class="ts-line" data-o="oz"></p>
+      <p class="ts-line" data-o="caps"></p>
+      <p class="ts-line" data-o="pet"></p>
+      <p class="ts-warn" data-o="warn"></p>
+    </div>
+  </section>
+  <p class="ts-fine">Use the ratio in your engine's own manual. Mix in a clean approved fuel can, outdoors, away from flames and sparks. For chainsaws, trimmers, mowers, outboards and older scooters and mopeds. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ts { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ts .panel { padding: 16px; }
+  .ts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .ts label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ts label[hidden] { display: none; }
+  .ts input, .ts select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ts input:focus, .ts select:focus { border-color: var(--accent); outline: none; }
+  .ts-res { display: flex; gap: 16px; align-items: center; }
+  .ts-can { width: 80px; flex: none; color: var(--ink); }
+  .ts-big { font-size: 24px; font-weight: 700; margin: 0; }
+  .ts-line { margin: 8px 0 0; font-weight: 600; }
+  .ts-warn { color: var(--bad); margin: 8px 0 0; } .ts-warn:empty { display: none; }
+  .ts-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { presetCountry } from '../../lib/vehicles/country';
+  import { toLitres, fromLitres, oilMl, petrolLFromOil, mlToFlOz, type VolUnit } from '../../lib/vehicles/fuel';
+  const root = document.querySelector('.ts') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const UN: Record<string, string> = { l: 'litres', usgal: 'US gallons', ukgal: 'UK gallons' };
+  const f1 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const g3 = (v: number) => String(Math.round(v * 100) / 100);
+  const calc = () => {
+    (root.querySelector('[data-w="rc"]') as HTMLElement).hidden = q('r').value !== 'custom';
+    const u = q('u').value as VolUnit, ratio = q('r').value === 'custom' ? num('rc') : parseFloat(q('r').value), v = num('v'), rev = q('mode').value === 'oil';
+    o('inl').textContent = rev ? 'Oil you have (ml)' : `Petrol (${UN[u]})`;
+    const ok = isFinite(ratio) && ratio > 0 && isFinite(v) && v >= 0;
+    o('warn').textContent = ok ? '' : 'Type a ratio and an amount.';
+    if (!ok) return;
+    const ml = rev ? v : oilMl(toLitres(v, u), ratio);
+    const petrolL = rev ? petrolLFromOil(v, ratio) : toLitres(v, u);
+    o('oil').textContent = `${f1(ml)} ml of oil`;
+    o('oz').textContent = `${f1(mlToFlOz(ml))} US fl oz`;
+    const cap = num('cap');
+    o('caps').textContent = isFinite(cap) && cap > 0 ? `About ${f1(ml / cap)} capfuls` : '';
+    o('pet').textContent = rev ? `Goes with ${g3(fromLitres(petrolL, u))} ${UN[u]} of petrol (${g3(petrolL)} L)` : `For ${g3(v)} ${UN[u]} of petrol at ${ratio}:1`;
+    // Oil layer: share of the fill is 1 / (ratio + 1), drawn at least 3 px so it shows.
+    const h = Math.max(3, 58 / (ratio + 1) * 4);
+    o('oilrect').setAttribute('height', String(Math.min(58, h)));
+    o('oilrect').setAttribute('y', String(92 - Math.min(58, h)));
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  presetCountry(q('u') as unknown as HTMLSelectElement, { usa: 'usgal', uk: 'ukgal', india: 'l', canada: 'l', gulf: 'l' });
+  calc();
+</script>
