@@ -1,7 +1,7 @@
 ---
 name: Road trip
 num: 1807
-shelf: money
+shelf: vehicles
 code: T896
 section: vehicle-running
 title: "Road trip planner: driving time, breaks, fuel stops, cost and arrival time"

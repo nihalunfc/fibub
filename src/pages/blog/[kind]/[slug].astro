@@ -13,7 +13,9 @@ export async function getStaticPaths() {
   const all = await allArticles();
   const tools = await allTools();
   const live = new Map(tools.filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
-  return all.map((a) => {
+  // Quick builds (FIBUB_ONLY) leave out articles about tools that are not in the build.
+  const keep = process.env.FIBUB_ONLY ? all.filter((a) => a.data.tools.every((id) => live.has(id))) : all;
+  return keep.map((a) => {
     for (const id of a.data.tools) if (!live.has(id)) throw new Error(`src/blog/${a.id}.md: tools lists "${id}", which is not a live tool id`);
     if (KINDS.some((k) => k.id === slugOf(a))) throw new Error(`src/blog/${a.id}.md: a slug may not be a kind name`);
     return { params: { kind: kindOf(a), slug: slugOf(a) }, props: { a, all, live } };

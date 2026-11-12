@@ -1,7 +1,7 @@
 // #1781 Commute cost
-export const path = '/money/commute-cost/';
+export const path = '/vehicles/commute-cost/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/commute-cost/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/commute-cost/`); await page.waitForTimeout(400);
   const R = '.cc ', out = () => page.textContent(R + '.cc-out');
   check((await out()).includes('3,873'), `commute: car 16.84 x 230 days = 3,873 (${(await out()).slice(0, 200)})`);
   check((await out()).includes('1,440') && (await out()).includes('115'), 'commute: transit 1,440 and bike 115 a year');

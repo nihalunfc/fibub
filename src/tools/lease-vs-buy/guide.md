@@ -1,7 +1,7 @@
 ---
 name: Lease or buy
 num: 1782
-shelf: money
+shelf: vehicles
 code: T816
 section: vehicle-buying
 title: "Lease vs buy a car: total cost and net cost over the same period"

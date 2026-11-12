@@ -1,7 +1,7 @@
 ---
 name: Car loan
 num: 1745
-shelf: money
+shelf: vehicles
 code: T779
 section: vehicle-buying
 title: "Car loan calculator: monthly payment with trade-in, sales tax and balloon"

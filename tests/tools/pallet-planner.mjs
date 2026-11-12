@@ -1,7 +1,7 @@
 // #T907 Pallet planner
-export const path = '/money/pallet-planner/';
+export const path = '/vehicles/pallet-planner/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/pallet-planner/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/pallet-planner/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.pp .pp-big'), rows = () => page.textContent('.pp .pp-rows');
   const set = async (k, v) => { await page.fill(`.pp [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   const sel = async (k, v) => { await page.selectOption(`.pp [data-k="${k}"]`, v); await page.waitForTimeout(100); };

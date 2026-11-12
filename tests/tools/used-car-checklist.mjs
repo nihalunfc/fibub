@@ -1,7 +1,7 @@
 // #T910 Used car checklist
-export const path = '/money/used-car-checklist/';
+export const path = '/vehicles/used-car-checklist/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/used-car-checklist/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/used-car-checklist/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.uc .uc-big'), flags = () => page.textContent('.uc .uc-flags');
   check((await big()).includes('Nothing checked'), 'used-car-checklist: starts with nothing checked');
   const n0 = await page.locator('.uc .uc-item').count();

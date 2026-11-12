@@ -1,7 +1,7 @@
 // #1782 Lease or buy
-export const path = '/money/lease-vs-buy/';
+export const path = '/vehicles/lease-vs-buy/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/lease-vs-buy/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/lease-vs-buy/`); await page.waitForTimeout(400);
   const R = '.lb ', big = () => page.textContent(R + '.lb-big'), rows = () => page.textContent(R + '.lb-rows');
   check(/Buying costs 1,\d\d\d less over 36 months/.test(await big()), `lease: default result (${await big()})`);
   check((await rows()).includes('22,000'), 'lease: lease total 2000 + 450 x 36 + 800 + 3000 excess = 22,000');

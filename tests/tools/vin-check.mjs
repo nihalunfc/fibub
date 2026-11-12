@@ -1,7 +1,7 @@
 // #T909 VIN check
-export const path = '/money/vin-check/';
+export const path = '/vehicles/vin-check/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/vin-check/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/vin-check/`); await page.waitForTimeout(300);
   const rows = () => page.textContent('.vc .vc-rows');
   check((await rows()).includes('Valid (X)') && (await rows()).includes('North America'), 'vin-check: 1M8GDM9AXKP042788 valid, North America');
   check((await rows()).includes('1989 or 2019'), 'vin-check: year K = 1989 or 2019');

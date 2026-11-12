@@ -1,7 +1,7 @@
 // #T908 Fleet fuel
-export const path = '/money/fleet-fuel/';
+export const path = '/vehicles/fleet-fuel/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/fleet-fuel/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/fleet-fuel/`); await page.waitForTimeout(300);
   await page.setInputFiles('.ff .ff-file', 'tests/fixtures/fleet-fuel.csv'); await page.waitForTimeout(400);
   const big = () => page.textContent('.ff .ff-big'), flags = () => page.textContent('.ff .ff-flags'), sum = () => page.textContent('.ff .ff-sum');
   const set = async (k, v) => { await page.fill(`.ff [data-k="${k}"]`, v); await page.waitForTimeout(100); };

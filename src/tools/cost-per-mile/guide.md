@@ -1,7 +1,7 @@
 ---
 name: Cost per mile
 num: 1816
-shelf: money
+shelf: vehicles
 code: T905
 section: trucking
 title: "Cost per mile calculator for trucks: break-even rate and rate for your margin"

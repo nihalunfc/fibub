@@ -1,7 +1,7 @@
 ---
 name: Stopping distance
 num: 1808
-shelf: money
+shelf: vehicles
 code: T897
 section: driving
 title: "Stopping distance: how far a car, bike or truck needs to stop"

@@ -12,6 +12,7 @@ export const SITE = {
 // The shelves. A tool's `shelf` must be one of these ids; it sets the tool's URL: /<shelf>/<tool>/.
 export const SHELVES = [
   { id: 'money', name: 'Money', blurb: 'Budgets, loans, taxes and currency.' },
+  { id: 'vehicles', name: 'Vehicles', blurb: 'Cars, bikes and trucks: tyres, fuel, buying, running costs and safety, for India, Canada, the USA, the UK and the Gulf.' },
   { id: 'documents', name: 'Documents', blurb: 'PDFs and images, processed on your device.' },
   { id: 'everyday', name: 'Everyday', blurb: 'Developer helpers, home and kitchen maths, fitness, media and life admin.' },
   { id: 'science', name: 'Science', blurb: 'Astronomy and more science tools, worked out in your browser.' },
@@ -52,9 +53,18 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'tax', name: 'Tax and pay', blurb: 'Income tax, take-home pay and what your work earns.' },
     { id: 'canada-work', name: 'Work in Canada', blurb: 'EI, pay and benefits for anyone working in Canada: students, work-permit holders, permanent residents and citizens.' },
     { id: 'insurance', name: 'Insurance', blurb: 'What a policy really costs and pays, worked out with plain maths. Educational, not advice.' },
-    { id: 'vehicles', name: 'Cars, bikes and trucks', blurb: 'Buying, running and driving a car, two-wheeler or truck, with India, Canada and US rules.' },
     { id: 'business', name: 'Business', blurb: 'Pricing, break-even and the numbers behind a small business.' },
     { id: 'medical-costs', name: 'Medical costs', blurb: 'Check medical bills, claim back costs and plan what you owe.' },
+  ],
+  // Vehicles (nihal, 2026-11-12): its own shelf, by vehicle type, plus Tyres, Fuel and Safety for every vehicle.
+  // Each tool also lists the countries it suits (`countries:` in guide.md); /vehicles/<country>/ lists them.
+  vehicles: [
+    { id: 'cars', name: 'Cars and SUVs', blurb: 'Buying a car, what it costs to run, and electric cars.' },
+    { id: 'bikes', name: 'Bikes and scooters', blurb: 'Motorcycles, scooters and their engines, gearing and helmets.' },
+    { id: 'trucks', name: 'Trucks and transport', blurb: 'Trip sheets, hours, fuel tax, axle weights and load profit.' },
+    { id: 'tyres', name: 'Tyres', blurb: 'Read the size on your tyre, check its age and tread, and pick the right tyre for your weather.' },
+    { id: 'fuel', name: 'Fuel', blurb: 'Fuel cost, real mileage, octane, ethanol blends, CNG and two-stroke mixes.' },
+    { id: 'safety', name: 'Driving and safety', blurb: 'Stopping distances and staying safe in heat and cold.' },
   ],
   documents: [
     { id: 'pdf', name: 'PDF tools', blurb: 'Organise, number, stamp, sign and fill PDFs on your device.' },
@@ -274,15 +284,21 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'car-insurance', subject: 'insurance', name: 'Car and bike' },
     { id: 'life-insurance', subject: 'insurance', name: 'Life' },
     { id: 'home-insurance', subject: 'insurance', name: 'Home and contents' },
-    { id: 'vehicle-buying', subject: 'vehicles', name: 'Buying a vehicle' },
-    { id: 'vehicle-running', subject: 'vehicles', name: 'Running costs' },
-    { id: 'driving', subject: 'vehicles', name: 'Driving and safety' },
-    { id: 'two-wheelers', subject: 'vehicles', name: 'Bikes and scooters' },
-    { id: 'trucking', subject: 'vehicles', name: 'Trucks and transport' },
     { id: 'small-business', subject: 'business', name: 'Small business' },
     { id: 'accounting', subject: 'business', name: 'Accounting' },
     { id: 'medical-bills', subject: 'medical-costs', name: 'Bills and claims' },
     { id: 'medical-tax', subject: 'medical-costs', name: 'Tax and payment plans' },
+  ],
+  vehicles: [
+    { id: 'vehicle-buying', subject: 'cars', name: 'Buying a vehicle' },
+    { id: 'vehicle-running', subject: 'cars', name: 'Running costs' },
+    { id: 'two-wheelers', subject: 'bikes', name: 'Bikes and scooters' },
+    { id: 'trucking', subject: 'trucks', name: 'Trucks and transport' },
+    { id: 'tyre-basics', subject: 'tyres', name: 'Size, age and tread' },
+    { id: 'tyre-weather', subject: 'tyres', name: 'Weather and seasons' },
+    { id: 'fuel-use', subject: 'fuel', name: 'Fuel use and cost' },
+    { id: 'fuel-types', subject: 'fuel', name: 'Fuel types and blends' },
+    { id: 'driving', subject: 'safety', name: 'Driving and safety' },
   ],
   documents: [
     { id: 'pdf-pages', subject: 'pdf', name: 'Organise pages' },
@@ -353,7 +369,7 @@ export const sectionLabel = (s: { name: string; subject?: string }, shelf = 'sci
  * Old plain numbers (#3, #1211) stay as search aliases. scripts/renumber.mjs and new-tool.mjs follow this.
  */
 export const CODES = [
-  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'everyday', 'collecting'], text: 'Everything on the Tools tab: Science, Documents, Money, Everyday and Collecting.' },
+  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'vehicles', 'everyday', 'collecting'], text: 'Everything on the Tools tab: Science, Documents, Money, Vehicles, Everyday and Collecting.' },
   { prefix: 'L', name: 'Learn', shelves: ['learn'], text: 'School science and maths activities, Class 8 to 12.' },
 ] as const;
 export const codePrefix = (shelf: string) => CODES.find((c) => (c.shelves as readonly string[]).includes(shelf))?.prefix ?? 'T';
@@ -433,3 +449,16 @@ export function currentTab(area: Area, path: string): AreaTab | undefined {
   const p = path.endsWith('/') ? path : path + '/';
   return area.tabs.find((t) => t.href === p) ?? area.tabs.find((t) => t.match?.some((m) => p.startsWith(m)));
 }
+
+// Vehicles by country (nihal, 2026-11-12): the same tool can suit several countries, so each Vehicles tool
+// lists the ones it suits in `countries:` (left out = every country). /vehicles/<id>/ lists a country's tools,
+// and links from there add ?c=<id> so a tool opens on that country's rules and units (src/lib/vehicles/country.ts).
+// A tool or subject id may never equal one of these ids.
+export const COUNTRIES = [
+  { id: 'india', name: 'India', short: 'India', flag: 'IN', units: 'km, litres, ₹' },
+  { id: 'canada', name: 'Canada', short: 'Canada', flag: 'CA', units: 'km, litres, C$' },
+  { id: 'usa', name: 'the USA', short: 'USA', flag: 'US', units: 'miles, US gallons, US$' },
+  { id: 'uk', name: 'the UK', short: 'UK', flag: 'GB', units: 'miles, litres, £' },
+  { id: 'gulf', name: 'the UAE and the Gulf', short: 'UAE & Gulf', flag: 'AE', units: 'km, litres, AED/SAR/QAR' },
+] as const;
+export type CountryId = (typeof COUNTRIES)[number]['id'];

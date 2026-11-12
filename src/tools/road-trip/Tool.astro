@@ -29,7 +29,7 @@
       <label>Minutes per fuel stop <input data-k="smin" inputmode="decimal" value="10" /></label>
       <label>Tolls you will pay (total) <input data-k="tolls" inputmode="decimal" value="0" /></label>
     </div>
-    <p class="rt-fine">Fuel stops assume you start with a full tank and refill when only the reserve is left. A fuel stop that you make during a break still adds the minutes here, so lower them to zero if you refuel on your break. For the cost of one drive see <a href="/money/fuel-cost/">Fuel cost</a>.</p>
+    <p class="rt-fine">Fuel stops assume you start with a full tank and refill when only the reserve is left. A fuel stop that you make during a break still adds the minutes here, so lower them to zero if you refuel on your break. For the cost of one drive see <a href="/vehicles/fuel-cost/">Fuel cost</a>.</p>
   </section>
   <section class="panel" aria-live="polite">
     <p class="rt-big"></p>
@@ -100,4 +100,9 @@
   addLeg('600', '80');
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="unit"]') as HTMLSelectElement | null, { usa: 'mi', uk: 'mi', canada: 'km', india: 'km', gulf: 'km' });
+  presetCountry(document.querySelector('.tool-ui [data-k="eco"]') as HTMLSelectElement | null, { usa: 'us', uk: 'uk', canada: 'l100', india: 'kml', gulf: 'kml' });
 </script>

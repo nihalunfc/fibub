@@ -1,7 +1,7 @@
 ---
 name: EV vs petrol
 num: 1780
-shelf: money
+shelf: vehicles
 code: T814
 section: vehicle-running
 title: "EV vs petrol: total cost of ownership, break-even and CO2"

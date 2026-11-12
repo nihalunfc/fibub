@@ -1,7 +1,7 @@
 // #T899 EV range
-export const path = '/money/ev-range/';
+export const path = '/vehicles/ev-range/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/ev-range/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/ev-range/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.ev .ev-big'), rows = () => page.textContent('.ev .ev-rows');
   const set = async (k, v) => { await page.fill(`.ev [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   check((await big()).includes('375 km'), `ev-range: 60 kWh at 16/100 km, mild, no factors = 375 km (${await big()})`);

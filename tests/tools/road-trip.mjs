@@ -1,7 +1,7 @@
 // #T896 Road trip
-export const path = '/money/road-trip/';
+export const path = '/vehicles/road-trip/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/road-trip/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/road-trip/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.rt .rt-big'), rows = () => page.textContent('.rt .rt-rows');
   const set = async (k, v) => { await page.fill(`.rt [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 600 km at 80 km/h = 7 h 30 m, breaks at 2, 4 and 6 h = 3 x 15 = 45 min -> 8 h 15 m

@@ -1,7 +1,7 @@
 ---
 name: Car depreciation
 num: 1805
-shelf: money
+shelf: vehicles
 code: T894
 section: vehicle-buying
 title: "Car depreciation calculator: what your vehicle will be worth each year"

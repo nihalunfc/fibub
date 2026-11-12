@@ -1,7 +1,7 @@
 // #T898 Tyre pressure
-export const path = '/money/tyre-pressure/';
+export const path = '/vehicles/tyre-pressure/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/tyre-pressure/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/tyre-pressure/`); await page.waitForTimeout(300);
   const t = (k) => page.textContent(`.tp [data-o="${k}"]`);
   const set = async (k, v) => { await page.fill(`.tp [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   // (35 + 14.696) psi * 263.15 / 293.15 - 14.696 = 29.9 psi

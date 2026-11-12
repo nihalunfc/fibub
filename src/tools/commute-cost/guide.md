@@ -1,7 +1,7 @@
 ---
 name: Commute cost
 num: 1781
-shelf: money
+shelf: vehicles
 code: T815
 section: vehicle-running
 title: "Commute cost calculator: car vs transit vs bike, per day, month and year"

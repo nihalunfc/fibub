@@ -1,7 +1,7 @@
 ---
 name: Sprocket ratio
 num: 1812
-shelf: money
+shelf: vehicles
 code: T901
 section: two-wheelers
 title: "Sprocket ratio calculator: speed per gear and chain length for a bike"

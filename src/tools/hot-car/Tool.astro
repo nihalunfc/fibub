@@ -1,0 +1,93 @@
+---
+// #T945 Hot car
+---
+<div class="tool-ui hc">
+  <p class="hc-alert" role="note"><strong>Never leave a child or a pet in a parked car, even for a minute.</strong> If you see one alone and in distress, call the emergency number now: <span data-o="emerg">911 (USA, Canada), 999 (UK, UAE), 112 (India), 998 (UAE ambulance)</span>. Check your local emergency number.</p>
+  <section class="panel">
+    <div class="hc-grid">
+      <label>Unit <select data-k="unit"><option value="c">°C</option><option value="f">°F</option></select></label>
+      <label>Outside temperature <input data-k="out" inputmode="decimal" value="30" /></label>
+      <label>Sun or shade <select data-k="sun"><option value="sun">Parked in full sun</option><option value="shade">Parked in shade</option></select></label>
+      <label>Windows <select data-k="win"><option value="shut">Shut</option><option value="cracked">Cracked open</option></select></label>
+    </div>
+    <label class="hc-slide">Minutes parked: <b data-o="min">30</b> <input data-k="min" type="range" min="0" max="60" step="1" value="30" /></label>
+  </section>
+  <section class="panel">
+    <p class="hc-big" data-o="big" aria-live="polite"></p>
+    <p class="hc-line" data-o="band"></p>
+    <svg class="hc-chart" viewBox="0 0 320 180" role="img" aria-label="Line chart of the cabin temperature over 60 minutes with danger bands"></svg>
+    <p class="hc-fine">Rough estimate, real cars can be hotter. Bands: yellow is hot, orange is dangerous, red is deadly for a child or pet.</p>
+  </section>
+  <details class="panel">
+    <summary>What to do if you see a child or pet alone</summary>
+    <ol class="hc-fine">
+      <li>Check if they are awake and responding. Note the car's colour, make and number plate.</li>
+      <li>Call the emergency number and follow the call-taker's advice. Do not wait for the owner.</li>
+      <li>Ask nearby shops or security to page the owner. Stay until help arrives.</li>
+      <li>Heat stroke signs: red hot skin, very sleepy or confused, vomiting, fast breathing. Move to shade and cool the body while waiting for help.</li>
+    </ol>
+  </details>
+  <p class="hc-fine">The curve is fibub's own rough fit to the shape found in published studies (McLaren, Null and Quinn 2005, Pediatrics; Grundstein et al.). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .hc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .hc .panel { padding: 16px; }
+  .hc-alert { margin: 0; padding: 12px 14px; border: 2px solid var(--bad); border-radius: 10px; color: var(--ink); background: var(--bad-soft); }
+  .hc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; margin-bottom: 12px; }
+  .hc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hc input, .hc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .hc input[type=range] { padding: 0; }
+  .hc-big { font-size: 32px; font-weight: 700; margin: 0; }
+  .hc-line { margin: 4px 0 8px; font-weight: 600; }
+  .hc-chart { width: 100%; height: auto; display: block; color: var(--ink); }
+  .hc-chart text { fill: currentColor; font-size: 10px; }
+  .hc-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .hc ol.hc-fine { padding-left: 20px; }
+  .hc summary { cursor: pointer; font-weight: 600; }
+</style>
+
+<script>
+  import { cabinTempC, cabinSeries, hotBand, cToF, fToC } from '../../lib/vehicles/weather';
+  import { presetCountry } from '../../lib/vehicles/country';
+  const root = document.querySelector('.hc') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const svg = root.querySelector('.hc-chart') as SVGSVGElement;
+  const NOTE: Record<string, string> = { ok: 'Warm inside, but still not safe for a child or pet.', warm: 'Hot: heat illness is possible.', danger: 'Dangerous: heat stroke can start within minutes.', deadly: 'Deadly: life-threatening for a child or pet.' };
+  let lastUnit = 'c';
+  const calc = () => {
+    const f = q('unit').value === 'f';
+    if (q('unit').value !== lastUnit) { // convert the typed number when the unit changes
+      const v = parseFloat(q('out').value);
+      if (isFinite(v)) q('out').value = String(Math.round(f ? cToF(v) : fToC(v)));
+      lastUnit = q('unit').value;
+    }
+    const raw = parseFloat(q('out').value.replace(/,/g, ''));
+    const mins = parseFloat(q('min').value);
+    o('min').textContent = String(mins);
+    if (!isFinite(raw)) { o('big').textContent = ''; o('band').textContent = 'Type the outside temperature.'; return; }
+    const outC = f ? fToC(raw) : raw, sun = q('sun').value === 'sun', cracked = q('win').value === 'cracked';
+    const c = cabinTempC({ outsideC: outC, minutes: mins, sun, cracked });
+    const show = (v: number) => `${Math.round(f ? cToF(v) : v)} ${f ? '°F' : '°C'}`;
+    o('big').textContent = `About ${show(c)} inside`;
+    o('band').textContent = NOTE[hotBand(c)];
+    // chart: y from 0 to 70 °C
+    const W = 320, H = 180, L = 34, R = 8, T = 8, B = 24, YMAX = 70;
+    const x = (m: number) => L + ((W - L - R) * m) / 60, y = (v: number) => T + (H - T - B) * (1 - Math.min(Math.max(v, 0), YMAX) / YMAX);
+    const band = (a: number, b: number, fill: string, op: number) => `<rect x="${L}" y="${y(b)}" width="${W - L - R}" height="${y(a) - y(b)}" fill="${fill}" opacity="${op}"/>`;
+    const s = cabinSeries({ outsideC: outC, sun, cracked });
+    let g = band(32, 40, 'var(--warn)', 0.22) + band(40, 50, 'var(--bad)', 0.22) + band(50, YMAX, 'var(--bad)', 0.45);
+    for (const t of [0, 20, 40, 60]) g += `<text x="${x(t)}" y="${H - 8}" text-anchor="middle">${t}</text>`;
+    g += `<text x="${(L + W) / 2}" y="${H - 0}" text-anchor="middle" style="font-size:9px">minutes parked</text>`;
+    for (const t of [0, 20, 40, 60]) g += `<text x="${L - 4}" y="${y(t) + 3}" text-anchor="end">${Math.round(f ? cToF(t) : t)}</text>`;
+    g += `<polyline fill="none" stroke="currentColor" stroke-width="2.5" points="${s.map((p) => `${x(p.min)},${y(p.c)}`).join(' ')}"/>`;
+    g += `<circle cx="${x(mins)}" cy="${y(c)}" r="5" fill="currentColor"/>`;
+    svg.innerHTML = g;
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  const emerg: Record<string, string> = { usa: '911', canada: '911', uk: '999', india: '112', gulf: '999 (police), 998 (ambulance) in the UAE' };
+  const pc = presetCountry(q('unit') as unknown as HTMLSelectElement, { usa: 'f', canada: 'c', uk: 'c', india: 'c', gulf: 'c' });
+  if (pc) { o('emerg').textContent = emerg[pc]; if (pc === 'usa') { /* preset fires calc via change */ } }
+  calc();
+</script>

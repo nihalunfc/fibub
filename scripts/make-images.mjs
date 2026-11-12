@@ -16,7 +16,7 @@ const tools = readdirSync('src/tools').map((id) => {
   return { id, name: get('name'), status: get('status'), icon: get('icon'), shelf: get('shelf'), works: get('works') };
 }).filter((t) => t.status === 'live');
 
-const SHELF = { money: ['#d97706', '#fff4e2'], documents: ['#4f5bd5', '#eceefe'], everyday: ['#e0457b', '#fdebf2'], science: ['#0b7fa6', '#e1f3fa'], learn: ['#0f766e', '#ddf3f0'], collecting: ['#8a6d1d', '#f6efdc'] };
+const SHELF = { money: ['#d97706', '#fff4e2'], documents: ['#4f5bd5', '#eceefe'], everyday: ['#e0457b', '#fdebf2'], science: ['#0b7fa6', '#e1f3fa'], learn: ['#0f766e', '#ddf3f0'], collecting: ['#8a6d1d', '#f6efdc'], vehicles: ['#334155', '#e7ecf3'] };
 const chip = (t) => `<span class="chip">${t}</span>`;
 const page = (body) => `<!doctype html><html><head><style>
   * { box-sizing: border-box; margin: 0; }

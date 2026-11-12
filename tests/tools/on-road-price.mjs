@@ -1,7 +1,7 @@
 // #T890 On-road price
-export const path = '/money/on-road-price/';
+export const path = '/vehicles/on-road-price/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/on-road-price/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/on-road-price/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.or .or-big'), rows = () => page.textContent('.or .or-rows');
   const set = async (k, v) => { await page.fill(`.or [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   // India: 8,00,000 + 10% road tax 80,000 + 1,000 + 30,000 + 500 = 9,11,500

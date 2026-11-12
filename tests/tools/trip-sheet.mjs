@@ -1,7 +1,7 @@
 // #T892 Trip sheet
-export const path = '/money/trip-sheet/';
+export const path = '/vehicles/trip-sheet/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/trip-sheet/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/trip-sheet/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.ts .ts-big'), rows = () => page.textContent('.ts .ts-out');
   // 40,000 freight; diesel 150 L x 95 = 14,250; tolls 2,500; bata 3 x 500 = 1,500 -> cost 18,250, profit 21,750
   check((await big()) === 'Profit 21,750', `trip-sheet: profit 21,750 (${await big()})`);

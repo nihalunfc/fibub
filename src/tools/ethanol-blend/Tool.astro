@@ -1,0 +1,87 @@
+---
+// #T947 Ethanol blend
+---
+<div class="tool-ui eb">
+  <section class="panel">
+    <div class="eb-grid">
+      <label>Old fuel
+        <select data-k="b1"><option value="0" selected>E0 (plain petrol)</option><option value="5">E5</option><option value="10">E10</option><option value="15">E15</option><option value="20">E20</option><option value="27">E27</option><option value="85">E85</option><option value="custom">Custom</option></select>
+      </label>
+      <label>New blend
+        <select data-k="b2"><option value="0">E0 (plain petrol)</option><option value="5">E5</option><option value="10">E10</option><option value="15">E15</option><option value="20" selected>E20</option><option value="27">E27</option><option value="85">E85</option><option value="custom">Custom</option></select>
+      </label>
+      <label class="eb-cu" hidden data-w="c1">Old ethanol % <input data-k="c1" inputmode="decimal" value="10" /></label>
+      <label class="eb-cu" hidden data-w="c2">New ethanol % <input data-k="c2" inputmode="decimal" value="30" /></label>
+      <label>Your mileage on the old fuel (km/L) <input data-k="m" inputmode="decimal" value="15" /></label>
+      <label>Kilometres a month <input data-k="km" inputmode="decimal" value="1000" /></label>
+      <label>Old fuel price per litre <input data-k="p1" inputmode="decimal" value="100" /></label>
+      <label>New fuel price per litre <input data-k="p2" inputmode="decimal" value="100" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <svg class="eb-bar" viewBox="0 0 300 54" role="img" aria-label="Energy in a litre of the new blend compared with petrol">
+      <rect x="0" y="4" width="300" height="18" rx="4" fill="none" stroke="currentColor" opacity=".5"/>
+      <rect data-o="bar" x="0" y="4" width="300" height="18" rx="4" fill="currentColor" opacity=".75"/>
+      <text x="0" y="42" font-size="11" fill="currentColor">Energy in a litre of the new blend, against plain petrol</text>
+    </svg>
+    <p class="eb-big" data-o="drop" aria-live="polite"></p>
+    <p class="eb-line" data-o="mile"></p>
+    <p class="eb-line" data-o="cost"></p>
+    <p class="eb-line" data-o="month"></p>
+    <p class="eb-warn" data-o="warn"></p>
+  </section>
+  <details class="panel">
+    <summary>Change the energy figures</summary>
+    <div class="eb-grid">
+      <label>Petrol (MJ per litre) <input data-k="ep" inputmode="decimal" value="32" /></label>
+      <label>Ethanol (MJ per litre) <input data-k="ee" inputmode="decimal" value="21" /></label>
+    </div>
+  </details>
+  <p class="eb-fine">Estimate from energy content only; real cars often lose less, and it depends on whether the engine is tuned for the blend. Check your fuel flap and manual for the blends your vehicle can use (rules as checked November 2026; check the official source). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .eb { display: grid; gap: 14px; margin-bottom: 32px; }
+  .eb .panel { padding: 16px; }
+  .eb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .eb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .eb label[hidden] { display: none; }
+  .eb input, .eb select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .eb input:focus, .eb select:focus { border-color: var(--accent); outline: none; }
+  .eb-bar { width: 100%; max-width: 420px; color: var(--ink); display: block; }
+  .eb-big { font-size: 24px; font-weight: 700; margin: 10px 0 0; }
+  .eb-line { margin: 8px 0 0; font-weight: 600; }
+  .eb-warn { color: var(--bad); margin: 8px 0 0; } .eb-warn:empty { display: none; }
+  .eb-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .eb summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+</style>
+
+<script>
+  import { presetCountry } from '../../lib/vehicles/country';
+  import { compareBlend } from '../../lib/vehicles/fuel';
+  const root = document.querySelector('.eb') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as SVGElement & HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const f1 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const pct = (k: string, c: string) => (q(k).value === 'custom' ? num(c) : parseFloat(q(k).value)) / 100;
+  const calc = () => {
+    (root.querySelector('[data-w="c1"]') as HTMLElement).hidden = q('b1').value !== 'custom';
+    (root.querySelector('[data-w="c2"]') as HTMLElement).hidden = q('b2').value !== 'custom';
+    const f1v = pct('b1', 'c1'), f2v = pct('b2', 'c2'), m = num('m'), p1 = num('p1'), p2 = num('p2'), km = num('km'), ep = num('ep'), ee = num('ee');
+    const ok = [f1v, f2v, m, p1, p2, km, ep, ee].every(isFinite) && m > 0 && f1v >= 0 && f2v >= 0 && f1v <= 1 && f2v <= 1 && ep > 0;
+    o('warn').textContent = ok ? '' : 'Type a mileage, prices and an ethanol percentage between 0 and 100.';
+    if (!ok) return;
+    const r = compareBlend({ fOld: f1v, fNew: f2v, mileage: m, priceOld: p1, priceNew: p2, kmMonth: km, petrol: ep, ethanol: ee });
+    o('bar').setAttribute('width', String(Math.max(0, Math.min(300, 300 * (1 - r.dropPct / 100)))));
+    o('drop').textContent = r.dropPct >= 0 ? `About ${f1(r.dropPct)}% less energy per litre` : `About ${f1(-r.dropPct)}% more energy per litre`;
+    o('mile').textContent = `Estimated mileage: ${f1(r.newMileage)} km/L (was ${f1(m)})`;
+    o('cost').textContent = `Cost per km: ${f2(r.costPerKmNew)} (was ${f2(r.costPerKmOld)})`;
+    const d = r.monthlyDiff;
+    o('month').textContent = `A month of ${f1(km).replace(/\.0$/, '')} km: ${d > 0 ? `${f2(d)} more` : d < 0 ? `${f2(-d)} less` : 'the same'} than before`;
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  presetCountry(q('b2') as unknown as HTMLSelectElement, { india: '20', uk: '10', usa: '10', canada: '10' });
+  calc();
+</script>

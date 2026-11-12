@@ -128,4 +128,8 @@
     load(await f.text());
   });
   root.addEventListener('input', calc); root.addEventListener('change', calc);
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="du"]') as HTMLSelectElement | null, { usa: 'mi', uk: 'mi', canada: 'km', india: 'km', gulf: 'km' });
 </script>

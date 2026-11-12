@@ -93,4 +93,8 @@
   $('.ift-add').onclick = () => { addRow('', '0', '0', '0'); calc(); };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="unit"]') as HTMLSelectElement | null, { usa: 'us', canada: 'si' });
 </script>

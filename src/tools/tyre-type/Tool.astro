@@ -1,0 +1,110 @@
+---
+// #T944 Tyre type
+---
+<div class="tool-ui tt">
+  <section class="panel">
+    <div class="tt-grp"><h2 class="tt-h">Where do you drive?</h2>
+      <select data-k="country" aria-label="Country">
+        <option value="canada">Canada</option><option value="usa">USA</option><option value="uk">UK</option><option value="india">India</option><option value="gulf">UAE and Gulf</option>
+      </select></div>
+    <div class="tt-grp"><h2 class="tt-h">Your vehicle</h2>
+      <div class="tt-chips" data-g="vehicle"><button type="button" data-v="car" aria-pressed="true">Car</button><button type="button" data-v="suv" aria-pressed="false">Pickup or SUV</button><button type="button" data-v="bike" aria-pressed="false">Motorcycle</button><button type="button" data-v="truck" aria-pressed="false">Truck</button></div></div>
+    <div class="tt-grp"><h2 class="tt-h">Coldest month: typical low</h2>
+      <div class="tt-chips" data-g="cold"><button type="button" data-v="mild" aria-pressed="true">Above 7 °C</button><button type="button" data-v="cold" aria-pressed="false">Around 0 °C</button><button type="button" data-v="vcold" aria-pressed="false">Below -10 °C</button></div></div>
+    <div class="tt-grp"><h2 class="tt-h">Snow</h2>
+      <div class="tt-chips" data-g="snow"><button type="button" data-v="never" aria-pressed="true">Never</button><button type="button" data-v="few" aria-pressed="false">A few days</button><button type="button" data-v="weeks" aria-pressed="false">Weeks</button></div></div>
+    <div class="tt-grp"><h2 class="tt-h">Roads</h2>
+      <div class="tt-chips" data-g="roads"><button type="button" data-v="city" aria-pressed="true">City and highway</button><button type="button" data-v="rough" aria-pressed="false">Gravel or rough</button><button type="button" data-v="sand" aria-pressed="false">Sand or desert</button><button type="button" data-v="mud" aria-pressed="false">Mud and trails</button></div></div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="tt-fine">Best pick</p>
+    <p class="tt-big" data-o="first"></p>
+    <p class="tt-line" data-o="why"></p>
+    <p class="tt-fine">Second choice: <b data-o="second"></b></p>
+    <p class="tt-note" data-o="note"></p>
+    <p class="tt-note" data-o="country"></p>
+  </section>
+  <section class="panel">
+    <h2 class="tt-h">Marks to look for on the sidewall</h2>
+    <div class="tt-marks">
+      <figure data-m="3pmsf"><svg viewBox="0 0 60 60" role="img" aria-label="Three-peak mountain with a snowflake"><path d="M4 52 L20 20 L28 34 L36 14 L56 52 Z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M36 28v16M28 36h16M30 30l12 12M42 30L30 42"/></g></svg><figcaption><b>3PMSF</b> mountain and snowflake: tested for snow. Best mark for winter.</figcaption></figure>
+      <figure data-m="ms"><svg viewBox="0 0 60 60" role="img" aria-label="M plus S mark"><rect x="4" y="16" width="52" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><text x="30" y="37" text-anchor="middle" font-size="16" font-weight="700" fill="currentColor">M+S</text></svg><figcaption><b>M+S</b> mud and snow: a tread shape claim only, not a snow test.</figcaption></figure>
+      <figure data-m="label"><svg viewBox="0 0 60 60" role="img" aria-label="Tyre label"><rect x="10" y="4" width="40" height="52" rx="3" fill="none" stroke="currentColor" stroke-width="3"/><path d="M16 14h28M16 24h20M16 34h24M16 44h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><figcaption><b>Tyre label</b> (UK and Europe): fuel, wet grip and noise ratings.</figcaption></figure>
+    </div>
+  </section>
+  <details class="panel">
+    <summary>The six types in one line each</summary>
+    <ul class="tt-fine" data-o="types"></ul>
+    <p class="tt-fine"><b>Motorcycles:</b> road is for daily riding, sport for fast riding on dry tarmac, touring for long miles and luggage, dual-sport for gravel and tarmac.</p>
+  </details>
+  <p class="tt-fine">Set the pressure on the vehicle's own label: see <a href="/vehicles/tyre-pressure/">Tyre pressure</a>. Rules for winter tyres differ by area, as checked November 2026; check the official source. Nothing you pick leaves this page.</p>
+</div>
+
+<style is:inline>
+  .tt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tt .panel { padding: 16px; }
+  .tt-grp { margin-bottom: 12px; }
+  .tt-h { font-size: 15px; margin: 0 0 6px; }
+  .tt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; max-width: 280px; }
+  .tt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tt-chips button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; min-height: 44px; cursor: pointer; }
+  .tt-chips button[aria-pressed="true"] { border: 2px solid var(--accent); font-weight: 700; }
+  .tt-big { font-size: 28px; font-weight: 700; margin: 2px 0 6px; }
+  .tt-line { margin: 0 0 8px; font-weight: 600; }
+  .tt-fine { color: var(--muted); font-size: 13px; margin: 6px 0; }
+  .tt-note { font-size: 14px; margin: 8px 0 0; }
+  .tt-note:empty { display: none; }
+  .tt-marks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .tt-marks figure { margin: 0; font-size: 13px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
+  .tt-marks figure.on { border: 2px solid var(--accent); }
+  .tt-marks svg { width: 64px; height: 64px; display: block; color: var(--ink); margin-bottom: 4px; }
+  .tt-marks figcaption { color: var(--muted); }
+  .tt summary { cursor: pointer; font-weight: 600; }
+</style>
+
+<script>
+  import { pickTyre, type Cold, type Snow, type Roads, type Vehicle } from '../../lib/vehicles/weather';
+  import { presetCountry } from '../../lib/vehicles/country';
+  const root = document.querySelector('.tt') as HTMLElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const sel = root.querySelector('[data-k="country"]') as HTMLSelectElement;
+  const NAME: Record<string, [string, string]> = {
+    summer: ['Summer tyre', 'soft rubber for warm roads, strong grip in dry and wet, but stiff and slippery below about 7 °C'],
+    'all-season': ['All-season tyre', 'a middle road for mild winters and light cold, not made for real snow'],
+    'all-weather': ['All-weather tyre', 'all-season with the snowflake mark: copes with snow all year'],
+    winter: ['Winter tyre', 'stays soft in the cold, with deep cuts in the tread for snow and ice'],
+    'all-terrain': ['All-terrain tyre', 'tough sidewalls and a bigger tread for gravel, sand and rough roads, still fine on tarmac'],
+    'mud-terrain': ['Mud-terrain tyre', 'big open blocks for deep mud and rocks, noisy and short-lived on tarmac'],
+    road: ['Road tyre', 'everyday riding, good wet grip'], sport: ['Sport tyre', 'fast riding on dry tarmac'],
+    touring: ['Touring tyre', 'long distance and loads, long life'], 'dual-sport': ['Dual-sport tyre', 'part gravel, part tarmac'],
+  };
+  const COUNTRY: Record<string, string> = {
+    canada: 'Canada: Quebec requires winter tyres on passenger vehicles 1 Dec to 15 Mar; BC requires winter (M+S or snowflake) tyres on many highways 1 Oct to 31 Mar. Check the official source.',
+    usa: 'USA: no national winter tyre rule; some mountain passes need snow tyres or chains in storms. Check the official source.',
+    uk: 'UK: no winter tyre law. Winter or all-weather tyres help in frost and below about 7 °C. Check the official source.',
+    india: 'India: most roads are warm all year; hill areas in winter may need chains or snow tyres. Check local rules.',
+    gulf: 'Gulf: heat and sand are the enemy. Let air out for sand only off-road and reinflate before the road, using Tyre pressure. Check tyre date codes, as heat ages tyres.',
+  };
+  const S = { vehicle: 'car', cold: 'mild', snow: 'never', roads: 'city' } as Record<string, string>;
+  const calc = () => {
+    const p = pickTyre(S as { vehicle: Vehicle; cold: Cold; snow: Snow; roads: Roads });
+    o('first').textContent = NAME[p.first][0]; o('why').textContent = p.why;
+    o('second').textContent = NAME[p.second][0];
+    const sand = S.roads === 'sand' || sel.value === 'gulf';
+    o('note').textContent = sand && S.vehicle !== 'bike' ? 'Hot or sandy ground: heat and sand wear tyres fast. For deep sand off-road you may let some air out, then reinflate before you drive on the road.' : (S.vehicle === 'truck' ? 'Trucks: choose the right load and speed rating, and winter-rated drive-axle tyres for snow.' : '');
+    o('country').textContent = COUNTRY[sel.value] || '';
+    const snowy = ['winter', 'all-weather'].includes(p.first) || ['winter', 'all-weather'].includes(p.second) || S.snow !== 'never' || p.first === 'all-terrain';
+    root.querySelector('[data-m="3pmsf"]')!.classList.toggle('on', snowy);
+    root.querySelector('[data-m="ms"]')!.classList.toggle('on', ['all-season', 'all-terrain', 'mud-terrain'].includes(p.first));
+    root.querySelector('[data-m="label"]')!.classList.toggle('on', sel.value === 'uk');
+  };
+  root.querySelectorAll<HTMLElement>('[data-g]').forEach((g) => g.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null; if (!b) return;
+    g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    S[g.dataset.g!] = b.dataset.v!; calc();
+  }));
+  sel.addEventListener('change', calc);
+  o('types').innerHTML = Object.entries(NAME).slice(0, 6).map(([, v]) => `<li><b>${v[0]}</b>: ${v[1]}.</li>`).join('');
+  presetCountry(sel, { gulf: 'gulf' });
+  calc();
+</script>

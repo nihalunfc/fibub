@@ -1,7 +1,7 @@
 // #T897 Stopping distance
-export const path = '/money/stopping-distance/';
+export const path = '/vehicles/stopping-distance/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/stopping-distance/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/stopping-distance/`); await page.waitForTimeout(300);
   const rows = () => page.textContent('.sd .sd-rows'), big = () => page.textContent('.sd .sd-big');
   const set = async (k, v) => { await page.fill(`.sd [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   // 100 km/h = 27.78 m/s; 1.5 s -> 41.7 m; 27.78^2 / (2 * 0.7 * 9.81) = 56.2 m; total 97.9 m

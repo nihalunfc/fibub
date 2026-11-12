@@ -1,7 +1,7 @@
 // #1745 Car loan
-export const path = '/money/car-loan/';
+export const path = '/vehicles/car-loan/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/car-loan/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/car-loan/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.cr .cr-big'), rows = () => page.textContent('.cr .cr-rows');
   const set = async (k, v) => { await page.fill(`.cr [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 30,000 + tax 8% of 25,000 (2,000) + 500 fees - 5,000 trade - 2,000 down = 25,500 at 6% for 60 months

@@ -1,0 +1,301 @@
+---
+// #T940 Tyre size
+---
+<div class="tool-ui ts">
+  <div class="ts-veh" role="group" aria-label="Your vehicle">
+    <button type="button" data-v="car" aria-pressed="true">
+      <svg viewBox="0 0 56 30" aria-hidden="true"><path d="M3 21v-5l7-2 7-7h18l9 7 8 2v5" /><path d="M3 21h4m10 0h22m10 0h4" /><circle cx="12" cy="22" r="5" /><circle cx="44" cy="22" r="5" /><path d="M19 9h8v5H14zM30 9h5l6 5H30z" /></svg>
+      <span>Car or SUV</span></button>
+    <button type="button" data-v="pickup" aria-pressed="false">
+      <svg viewBox="0 0 56 30" aria-hidden="true"><path d="M3 21v-7h20V6h12l6 8h12v7" /><path d="M3 21h4m10 0h22m10 0h4" /><circle cx="12" cy="22" r="5" /><circle cx="44" cy="22" r="5" /><path d="M27 9h6l4 5H27z" /></svg>
+      <span>Pickup or light truck</span></button>
+    <button type="button" data-v="bike" aria-pressed="false">
+      <svg viewBox="0 0 56 30" aria-hidden="true"><circle cx="11" cy="20" r="8" /><circle cx="45" cy="20" r="8" /><path d="M11 20l9-9h12l6-5M45 20l-7-14h-6M20 11l4 9h10l4-9" /><path d="M24 11h8" /></svg>
+      <span>Motorcycle or scooter</span></button>
+    <button type="button" data-v="truck" aria-pressed="false">
+      <svg viewBox="0 0 56 30" aria-hidden="true"><path d="M2 22V4h32v18M34 9h11l8 8v5" /><path d="M2 22h4m10 0h22m10 0h5" /><circle cx="11" cy="23" r="4.5" /><circle cx="43" cy="23" r="4.5" /><path d="M37 11h7l5 5H37z" /></svg>
+      <span>Truck or bus</span></button>
+  </div>
+
+  <div class="ts-in">
+    <label class="ts-code">The size on your tyre
+      <input data-k="code" type="text" value="205/55 R16 91V" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="like 205/55 R16 91V" />
+    </label>
+    <label class="ts-ctry">Country
+      <select data-k="country">
+        <option value="world">Anywhere</option><option value="india">India</option><option value="canada">Canada</option>
+        <option value="usa">USA</option><option value="uk">UK</option><option value="gulf">UAE and Gulf</option>
+      </select>
+    </label>
+  </div>
+  <p class="ts-err" role="alert"></p>
+
+  <div class="ts-pics" aria-hidden="false">
+    <figure><svg class="ts-side" viewBox="0 0 220 220" role="img" aria-label="The side of a tyre with the size written on it"></svg><figcaption>Tap a part of the code</figcaption></figure>
+    <figure><svg class="ts-cut" viewBox="0 0 180 230" role="img" aria-label="A wheel cut in half, showing width, sidewall and wheel size"></svg><figcaption>Cut through the wheel</figcaption></figure>
+  </div>
+
+  <div class="ts-res" data-o="lines" aria-live="polite"></div>
+  <p class="note ts-veh-note" data-o="veh"></p>
+
+  <section class="ts-where">
+    <h2 class="ts-h">Where to find your size</h2>
+    <ul data-o="where"></ul>
+    <p class="ts-fine">The sticker or manual gives the size the vehicle maker fitted: use that one when you buy new tyres.</p>
+  </section>
+
+  <p class="ts-fine ts-cnote" data-o="country"></p>
+
+  <details class="ts-more">
+    <summary>More detail</summary>
+    <ul data-o="detail"></ul>
+  </details>
+
+  <details class="ts-more" data-o="cmpbox">
+    <summary>Compare with another size</summary>
+    <label class="ts-code">Another size <input data-k="code2" type="text" value="" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="like 225/45 R17 91W" /></label>
+    <div data-o="cmp" aria-live="polite"></div>
+  </details>
+
+  <p class="ts-fine">The speed rating is the most the tyre is built for when in good shape and at the right pressure: it is not a speed to drive at. Load and speed values follow the ISO and ETRTO tables, as checked November 2026; check the official source and your vehicle's manual. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ts { display: grid; gap: 14px; margin-bottom: 32px;
+    --c-width: #1d4ed8; --c-aspect: #7e22ce; --c-construction: #0f766e; --c-rim: #b45309; --c-load: #15803d; --c-speed: #b91c1c; --c-ply: #4b5563; --c-prefix: #4b5563; }
+  html[data-theme=dark] .ts { --c-width: #8ab4f8; --c-aspect: #d0a8ff; --c-construction: #5eead4; --c-rim: #fbbf24; --c-load: #86efac; --c-speed: #fca5a5; --c-ply: #d1d5db; --c-prefix: #d1d5db; }
+  html.red-mode .ts { --c-width: #c00000; --c-aspect: #c00000; --c-construction: #c00000; --c-rim: #c00000; --c-load: #c00000; --c-speed: #c00000; --c-ply: #a30000; --c-prefix: #a30000; }
+  .ts .c-width { color: var(--c-width); } .ts .c-aspect { color: var(--c-aspect); } .ts .c-construction { color: var(--c-construction); }
+  .ts .c-rim { color: var(--c-rim); } .ts .c-load { color: var(--c-load); } .ts .c-speed { color: var(--c-speed); } .ts .c-ply { color: var(--c-ply); } .ts .c-prefix { color: var(--c-prefix); }
+  .ts-veh { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .ts-veh button { font: inherit; font-size: 13px; line-height: 1.25; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 4px; display: grid; justify-items: center; gap: 4px; cursor: pointer; min-width: 0; }
+  .ts-veh button[aria-pressed=true] { border: 2px solid var(--accent); padding: 7px 3px; font-weight: 650; }
+  .ts-veh svg { width: 52px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .ts-in { display: grid; gap: 8px; }
+  .ts .ts-ctry { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .ts .ts-ctry select { width: auto; padding: 5px 8px; font-size: 14px; }
+  .ts label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ts input, .ts select { font: inherit; color: var(--ink); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ts input[data-k=code] { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+  .ts input:focus, .ts select:focus { border-color: var(--accent); outline: none; }
+  .ts-err { color: var(--bad); margin: -6px 0 0; } .ts-err:empty { display: none; }
+  .ts-pics { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: center; }
+  .ts-pics figure { margin: 0; text-align: center; }
+  .ts-pics svg { overflow: visible; width: 100%; max-width: 230px; height: auto; display: block; margin: 0 auto; }
+  .ts-pics figcaption { font-size: 12px; color: var(--muted); }
+  .ts-side .tread { fill: none; stroke: var(--muted); stroke-width: 5; stroke-dasharray: 2 5; }
+  .ts-side .ring { fill: var(--line); stroke: var(--ink); stroke-width: 2; }
+  .ts-side .rim { fill: var(--bg); stroke: var(--muted); stroke-width: 2; }
+  .ts-side .spoke { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .ts-side text { font: 700 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--ink); }
+  .ts-side tspan[data-p] { fill: currentColor; cursor: pointer; }
+  .ts-cut .tyre { fill: var(--line); stroke: var(--ink); stroke-width: 1.6; }
+  .ts-cut .wheel { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 3; }
+  .ts-cut .ar { stroke: currentColor; fill: currentColor; stroke-width: 1.8; }
+  .ts-cut text { font: 700 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: currentColor; stroke: none; }
+  .ts-res { display: grid; gap: 4px; }
+  .ts-r { font: inherit; text-align: left; color: var(--ink); background: none; border: 0; border-left: 4px solid currentColor; padding: 6px 10px; cursor: pointer; border-radius: 0 8px 8px 0; display: grid; }
+  .ts-r b { font-size: 19px; line-height: 1.3; color: var(--ink); font-weight: 650; }
+  .ts-r small { color: var(--muted); font-size: 13px; }
+  .ts-r.miss b { color: var(--muted); font-weight: 500; font-size: 15px; }
+  .ts.hl [data-p]:not(.on) { opacity: .28; }
+  .ts .ts-r.on { background: var(--line); }
+  .ts-h { font-size: 16px; margin: 0 0 8px; }
+  .ts-where ul { list-style: none; padding: 0; margin: 0 0 6px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .ts-where li { display: flex; gap: 8px; align-items: center; font-size: 14px; line-height: 1.3; }
+  .ts-where svg { flex: none; width: 38px; height: 38px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .ts-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .ts-veh-note { margin: 0; }
+  .ts-more { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  .ts-more summary { cursor: pointer; font-weight: 650; }
+  .ts-more ul { margin: 8px 0 0; padding-left: 18px; }
+  .ts-more .ts-code { margin-top: 10px; }
+  .ts-cmp p { margin: 8px 0 0; }
+  .ts-cmp .big { font-size: 19px; font-weight: 650; }
+  @media (max-width: 360px) { .ts-veh button { font-size: 12px; } .ts-r b { font-size: 17px; } }
+</style>
+
+<script>
+  import { parseTyre, loadKg, speedKmh, compareTyres, circumferenceMm, revsPerKm, MM_PER_IN, KM_PER_MI, LB_PER_KG, type TyreSize, type PartKey } from '../../lib/vehicles/tyres';
+  import { presetCountry } from '../../lib/vehicles/country';
+
+  type Veh = 'car' | 'pickup' | 'bike' | 'truck';
+  const EXAMPLES: Record<Veh, string> = { car: '205/55 R16 91V', pickup: 'LT245/75R16 120/116S', bike: '120/70 ZR17 58W', truck: '295/80R22.5 152/148M' };
+  const VEH_NOTE: Record<Veh, string> = {
+    car: 'Cars: fit the same size and type on each axle, ideally all four. The load and speed numbers must be at least what the maker fitted.',
+    pickup: 'Pickups and light trucks: LT tyres are built for heavy loads and towing. A second load number (120/116) is for twin rear wheels.',
+    bike: 'Motorcycles and scooters: the front and rear tyres are usually different sizes, so read both. Use the sizes in your manual.',
+    truck: 'Trucks and buses: the second load number is for each tyre of a twin (dual) pair. Fleet and retread rules differ by country.',
+  };
+  const ICON: Record<string, string> = {
+    side: '<circle cx="20" cy="20" r="17"/><circle cx="20" cy="20" r="8"/><path d="M7 14a14 14 0 0 1 12-7" stroke-width="3"/>',
+    door: '<path d="M8 36V9l8-6h17v33z"/><path d="M12 10h17v9H12z"/><rect x="24" y="23" width="7" height="6" stroke-width="1.4"/>',
+    flap: '<rect x="5" y="5" width="30" height="30" rx="4"/><circle cx="20" cy="22" r="7"/><path d="M20 15v-4"/><rect x="8" y="8" width="8" height="5" stroke-width="1.2"/>',
+    book: '<path d="M6 7h11a3 3 0 0 1 3 3v24a3 3 0 0 0-3-3H6zM34 7H23a3 3 0 0 0-3 3v24a3 3 0 0 1 3-3h11z"/>',
+    arm: '<circle cx="10" cy="26" r="8"/><path d="M10 26l24-10"/><rect x="18" y="16" width="9" height="6" transform="rotate(-22 22 19)" stroke-width="1.4"/>',
+    plate: '<path d="M4 34V8h22l8 10v16z"/><rect x="9" y="22" width="12" height="7" stroke-width="1.4"/><path d="M11 25h8"/>',
+  };
+  const WHERE: Record<Veh, [string, string][]> = {
+    car: [['side', 'On the tyre’s sidewall'], ['door', 'Sticker on the driver’s door frame'], ['flap', 'Inside the fuel flap or glovebox (some cars)'], ['book', 'Owner’s manual']],
+    pickup: [['side', 'On the tyre’s sidewall'], ['door', 'Sticker on the driver’s door frame'], ['book', 'Owner’s manual']],
+    bike: [['side', 'On the tyre’s sidewall'], ['arm', 'Sticker on the swingarm or chain guard'], ['book', 'Owner’s manual']],
+    truck: [['side', 'On the tyre itself'], ['plate', 'The maker’s plate in the cab or door frame'], ['book', 'Owner’s manual or fleet records']],
+  };
+  const COUNTRY: Record<string, string> = {
+    world: 'Next to the size, look for the approval mark of the country it was sold in and the 4-digit date code (week and year made).',
+    india: 'India: tyres sold here must carry the ISI mark under the BIS standards for car, two-wheeler and truck tyres. As checked November 2026; check the official source (BIS).',
+    canada: 'Canada: tyres carry the DOT code; its last 4 digits are the week and year made (2325 = week 23 of 2025). P is a passenger-car size, LT a light-truck size. As checked November 2026; check the official source (Transport Canada).',
+    usa: 'USA: tyres carry the DOT code; its last 4 digits are the week and year made (2325 = week 23 of 2025). P is a passenger-car size, LT a light-truck size. As checked November 2026; check the official source (NHTSA).',
+    uk: 'UK: tyres carry an E-mark (an E in a circle: approved) and are sold with the tyre label showing fuel efficiency, wet grip and noise. As checked November 2026; check the official source (GOV.UK).',
+    gulf: 'UAE and Gulf: look for the standards body’s mark and read the 4-digit date code (week and year made). Heat ages tyres faster, so avoid old stock. As checked November 2026; check the official source.',
+  };
+
+  const root = document.querySelector('.ts') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const side = root.querySelector('.ts-side') as SVGSVGElement, cut = root.querySelector('.ts-cut') as SVGSVGElement;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const n = (v: number, d = 0) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  let veh: Veh = 'car', hl = '';
+
+  const mph = () => ['usa', 'uk'].includes(q('country').value);
+  const lb = () => q('country').value === 'usa';
+  const spd = (kmh: number) => (mph() ? `${n(kmh / KM_PER_MI)} mph` : `${n(kmh)} km/h`);
+  const kg = (k: number) => `${n(k)} kg` + (lb() ? ` (${n(k * LB_PER_KG)} lb)` : '');
+  const rimTxt = (r: number) => `${n(r, 1)}-inch`;
+
+  type Line = { key: PartKey; main: string; sub?: string; miss?: boolean };
+  function lines(t: TyreSize): Line[] {
+    const L: Line[] = [];
+    const pre: Record<string, string> = { P: 'P: made to the US passenger-car size standard', LT: 'LT: light truck tyre, built for heavy loads and towing', ST: 'ST: trailer tyre, for trailers only', T: 'T: temporary spare, for short, slow trips only' };
+    if (t.prefix) L.push({ key: 'prefix', main: pre[t.prefix] });
+    if (t.commercial) L.push({ key: 'prefix', main: 'C: commercial (van) tyre, built for heavier loads' });
+    if (t.kind === 'flotation') {
+      L.push({ key: 'aspect', main: `${n(t.diameterMm / MM_PER_IN, 1)} inches tall overall`, sub: `Sidewall ${n(t.sidewallMm)} mm tall (${n(t.aspect)}% of the width)` });
+      L.push({ key: 'width', main: `${n(t.widthMm / MM_PER_IN, 2)} inches (${n(t.widthMm)} mm) wide` });
+    } else {
+      L.push({ key: 'width', main: t.kind === 'inch' ? `${n(t.widthMm / MM_PER_IN, 2)} inches (${n(t.widthMm)} mm) wide` : `${n(t.widthMm)} mm wide` });
+      L.push(t.aspectAssumed
+        ? { key: 'aspect', main: `Sidewall about ${n(t.sidewallMm)} mm tall`, sub: `No height ratio in the code, so a usual ${n(t.aspect)}% of the width is assumed` }
+        : { key: 'aspect', main: `Sidewall ${n(t.sidewallMm)} mm tall (${n(t.aspect)}% of the width)` });
+    }
+    const con = { radial: ['Radial tyre', 'Cords run straight across: the usual kind today'], bias: ['Bias-ply tyre', 'Cords cross at an angle: older bikes, scooters, trailers and trucks'], belted: ['Belted bias tyre', 'Bias-ply with extra belts under the tread'] }[t.construction];
+    L.push({ key: 'construction', main: con[0], sub: con[1] });
+    L.push({ key: 'rim', main: `Fits a ${rimTxt(t.rimIn)} wheel` });
+    const k1 = loadKg(t.load), k2 = loadKg(t.load2);
+    if (k1 !== undefined && k2 !== undefined) L.push({ key: 'load', main: `Carries up to ${kg(k1)} per tyre`, sub: `${kg(k2)} each when fitted as a twin pair (load index ${t.load}/${t.load2})` });
+    else if (k1 !== undefined) L.push({ key: 'load', main: `Carries up to ${kg(k1)} per tyre (load index ${t.load})`, sub: t.extraLoad ? 'XL: an extra-load tyre, needs higher pressure for that load' : undefined });
+    else if (!t.ply) L.push({ key: 'load', miss: true, main: 'No load index typed (the number after the wheel size, like 91)' });
+    if (t.ply) L.push({ key: 'ply', main: `Ply rating ${t.ply}`, sub: 'A strength grade: higher carries more. The maker’s table gives the kilos.' });
+    const s = speedKmh(t.speed);
+    if (t.speedOver) L.push({ key: 'speed', main: `Safe over ${spd(300)} (speed rating (Y))`, sub: 'The tyre maker gives the exact top speed' });
+    else if (s !== undefined) L.push({ key: 'speed', main: `Safe up to ${spd(s)} (speed rating ${t.speed})` });
+    else if (t.zr) L.push({ key: 'speed', main: `Rated over ${spd(240)} (${t.zr})`, sub: 'The exact rating is the letter after the load number' });
+    else L.push({ key: 'speed', miss: true, main: 'No speed rating typed (the letter at the end, like V)' });
+    return L;
+  }
+
+  function drawSide(t: TyreSize) {
+    const c = 110, R = 104;
+    let r = R * (t.rimIn * MM_PER_IN) / t.diameterMm;
+    r = Math.max(R - 62, Math.min(R - 30, r));
+    const rt = (R + r) / 2 - 5;
+    const txt = t.parts.map((p) => p.text).join('');
+    const fs = Math.min(18, (Math.PI * rt * 0.85) / (txt.length * 0.62));
+    const spokes = [0, 72, 144, 216, 288].map((a) => { const x = Math.cos(a * Math.PI / 180), y = Math.sin(a * Math.PI / 180); return `<path class="spoke" d="M${c + x * 12} ${c + y * 12}L${c + x * (r - 6)} ${c + y * (r - 6)}"/>`; }).join('');
+    const tsp = t.parts.map((p) => p.key ? `<tspan data-p="${p.key}" class="c-${p.key}">${esc(p.text)}</tspan>` : `<tspan>${esc(p.text)}</tspan>`).join('');
+    side.innerHTML = `<defs><path id="ts-arc" d="M${c - rt} ${c} A${rt} ${rt} 0 0 1 ${c + rt} ${c}"/></defs>
+      <circle class="ring" cx="${c}" cy="${c}" r="${R}"/><circle class="tread" cx="${c}" cy="${c}" r="${R - 4}"/>
+      <circle class="rim" cx="${c}" cy="${c}" r="${r}"/><circle class="spoke" cx="${c}" cy="${c}" r="11"/>${spokes}
+      <text style="font-size:${fs.toFixed(1)}px" xml:space="preserve"><textPath href="#ts-arc" startOffset="50%" text-anchor="middle">${tsp}</textPath></text>`;
+  }
+
+  function arrow(x1: number, y1: number, x2: number, y2: number) {
+    const a = Math.atan2(y2 - y1, x2 - x1), h = 5;
+    const head = (x: number, y: number, d: number) => { const b = a + d; return `M${x} ${y}L${x - h * Math.cos(b - .5)} ${y - h * Math.sin(b - .5)}L${x - h * Math.cos(b + .5)} ${y - h * Math.sin(b + .5)}Z`; };
+    return `<path class="ar" d="M${x1} ${y1}L${x2} ${y2}"/><path class="ar" d="${head(x2, y2, 0)}${head(x1, y1, Math.PI)}"/>`;
+  }
+  function drawCut(t: TyreSize) {
+    const H = 180, y0 = 34, cx = 88, s = H / t.diameterMm;
+    const W = Math.min(60, Math.max(14, t.widthMm * s)), S = t.sidewallMm * s, Rm = t.rimIn * MM_PER_IN * s;
+    const x0 = cx - W / 2, rx = Math.min(W, S) * 0.35;
+    const sec = (y: number) => `<rect class="tyre" x="${x0}" y="${y}" width="${W}" height="${S}" rx="${rx}"/>`;
+    const lab = (key: string, x: number, y: number, anchor: string, text: string) => `<g data-p="${key}" class="c-${key}"><text x="${x}" y="${y}" text-anchor="${anchor}">${esc(text)}</text>`;
+    const unitW = t.kind === 'metric' ? `${n(t.widthMm)} mm` : `${n(t.widthMm / MM_PER_IN, 2)} in`;
+    cut.innerHTML = `${sec(y0)}${sec(y0 + H - S)}
+      <rect class="wheel" x="${cx - W * 0.42}" y="${y0 + S}" width="${W * 0.84}" height="${Rm}"/>
+      <path class="wheel" d="M${cx - W / 2 - 4} ${y0 + H / 2}H${cx + W / 2 + 4}"/>
+      ${lab('width', cx, 18, 'middle', unitW)}${arrow(x0, 24, x0 + W, 24)}</g>
+      ${lab('aspect', cx + W / 2 + 12, y0 + S / 2 + 4, 'start', `${n(t.sidewallMm)} mm`)}${arrow(cx + W / 2 + 8, y0, cx + W / 2 + 8, y0 + S)}</g>
+      ${lab('rim', cx - W / 2 - 16, y0 + H / 2 + 4, 'end', `${n(t.rimIn, 1)} in`)}${arrow(cx - W / 2 - 8, y0 + S, cx - W / 2 - 8, y0 + H - S)}</g>`;
+  }
+
+  function applyHl() {
+    root.classList.toggle('hl', !!hl);
+    root.querySelectorAll('[data-p]').forEach((e) => e.classList.toggle('on', !!hl && (e as HTMLElement).dataset.p === hl));
+  }
+
+  let cur: TyreSize | null = null;
+  function render() {
+    root.querySelectorAll<HTMLButtonElement>('.ts-veh button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === veh)));
+    o('veh').textContent = VEH_NOTE[veh];
+    o('where').innerHTML = WHERE[veh].map(([i, t]) => `<li><svg viewBox="0 0 40 40" aria-hidden="true">${ICON[i]}</svg><span>${t}</span></li>`).join('');
+    o('country').textContent = COUNTRY[q('country').value] || '';
+    const err = root.querySelector('.ts-err') as HTMLElement;
+    const raw = q('code').value;
+    cur = parseTyre(raw);
+    if (!cur) {
+      err.textContent = raw.trim() ? 'Could not read that. Type it as printed, like 205/55 R16 91V, LT245/75R16 120/116S or 90/90-12 54J.' : 'Type the size from your tyre.';
+      o('lines').innerHTML = ''; side.innerHTML = ''; cut.innerHTML = ''; o('detail').innerHTML = ''; compare(); return;
+    }
+    err.textContent = '';
+    o('lines').innerHTML = lines(cur).map((l) => `<button type="button" class="ts-r c-${l.key}${l.miss ? ' miss' : ''}" data-p="${l.key}"><b>${esc(l.main)}</b>${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</button>`).join('');
+    drawSide(cur); drawCut(cur);
+    const d = cur.diameterMm, circ = circumferenceMm(cur), rev = revsPerKm(cur);
+    o('detail').innerHTML = [
+      `Whole tyre: <span data-o="dia">${n(d, 1)} mm</span> (${n(d / MM_PER_IN, 1)} in) tall`,
+      `Sidewall exactly <span data-o="sw">${n(cur.sidewallMm, 2)} mm</span> (${n(cur.sidewallMm / MM_PER_IN, 2)} in)`,
+      `Width ${n(cur.widthMm, 1)} mm (${n(cur.widthMm / MM_PER_IN, 2)} in); wheel ${n(cur.rimIn * MM_PER_IN, 1)} mm across`,
+      `Once round: ${n(circ)} mm, so it turns about ${n(rev)} times per km (${n(rev * KM_PER_MI)} per mile)`,
+      cur.zr ? `${cur.zr}: an older way to show a tyre built for over 240 km/h (149 mph)` : '',
+    ].filter(Boolean).map((x) => `<li>${x}</li>`).join('');
+    applyHl(); compare();
+  }
+
+  function compare() {
+    const out = o('cmp'), raw = q('code2').value.trim();
+    if (!raw) { out.innerHTML = '<p class="ts-fine">Type a second size to see how much taller or shorter it is, and what your speedometer would show.</p>'; return; }
+    const b = parseTyre(raw);
+    if (!cur || !b) { out.innerHTML = '<p class="ts-err">Could not read one of the sizes.</p>'; return; }
+    const c = compareTyres(cur, b), shown = mph() ? 60 : 100, u = mph() ? 'mph' : 'km/h';
+    const pct = `${c.diffPct >= 0 ? '+' : '−'}${n(Math.abs(c.diffPct), 1)}%`;
+    const warn: string[] = [];
+    const la = loadKg(cur.load), lbk = loadKg(b.load);
+    if (la !== undefined && lbk !== undefined && lbk < la) warn.push('Its load index is lower than yours.');
+    const sa = speedKmh(cur.speed), sb = speedKmh(b.speed);
+    if (sa !== undefined && sb !== undefined && sb < sa) warn.push('Its speed rating is lower than yours.');
+    out.innerHTML = `<div class="ts-cmp">
+      <p>Yours: <b data-o="d1">${n(cur.diameterMm, 1)} mm</b> tall. The other: <b data-o="d2">${n(b.diameterMm, 1)} mm</b> tall.</p>
+      <p class="big" data-o="pct">${pct} ${c.diffPct >= 0 ? 'taller' : 'shorter'}</p>
+      <p data-o="speedo">When your speedometer says ${shown} ${u}, you are really doing about ${n(c.trueSpeed(shown), 1)} ${u}.</p>
+      <p class="note ${c.withinPct && !warn.length ? 'good' : 'warn'}" data-o="verdict">${c.withinPct ? 'Within 3%: usually fine. Also check it clears the body and suspension.' : 'More than 3% different: check with a tyre shop before fitting.'} ${warn.join(' ')}</p>
+    </div>`;
+  }
+
+  root.addEventListener('click', (e) => {
+    const vb = (e.target as Element).closest('.ts-veh button') as HTMLButtonElement | null;
+    if (vb) {
+      veh = vb.dataset.v as Veh;
+      const v = q('code').value.trim();
+      if (!v || Object.values(EXAMPLES).includes(v)) q('code').value = EXAMPLES[veh];
+      hl = ''; render(); return;
+    }
+    const p = (e.target as Element).closest('[data-p]') as HTMLElement | null;
+    if (p && root.contains(p)) { hl = hl === p.dataset.p ? '' : p.dataset.p!; applyHl(); }
+  });
+  q('code').addEventListener('input', () => { hl = ''; render(); });
+  q('code2').addEventListener('input', compare);
+  q('country').addEventListener('change', render);
+  presetCountry(q('country') as unknown as HTMLSelectElement);
+  render();
+</script>

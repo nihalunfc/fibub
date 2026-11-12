@@ -1,8 +1,9 @@
 ---
 name: On-road price
 num: 1800
-shelf: money
+shelf: vehicles
 code: T890
+countries: [india, canada, usa]
 section: vehicle-buying
 title: "On-road price calculator: car and bike road tax, insurance, TCS and out-the-door price"
 summary: "Turn an ex-showroom or sticker price into the full on-road (out-the-door) price for a car or two-wheeler in India, Canada or the US, itemised, with the loan you need after the down payment."
