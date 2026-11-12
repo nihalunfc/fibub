@@ -1,7 +1,7 @@
 // #T895 Car affordability
-export const path = '/money/car-affordability/';
+export const path = '/vehicles/car-affordability/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/car-affordability/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/car-affordability/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.ca .ca-big'), rows = () => page.textContent('.ca .ca-rows');
   const set = async (k, v) => { await page.fill(`.ca [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 6,000 x 10% = 600, minus 150 running = 450 payment; 7% over 48 months -> loan 18,792.09; with 20% down price 23,490.11

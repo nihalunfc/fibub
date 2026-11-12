@@ -1,9 +1,9 @@
 ---
 name: Real mileage
 num: 1804
-shelf: money
+shelf: vehicles
 code: T893
-section: vehicle-running
+section: fuel-use
 title: "Real mileage calculator: km/L, L/100 km and mpg from your fill-ups"
 summary: "Log your fill-ups with the full-tank method and see your real km/L, L/100 km, US and UK mpg, cost per km, a trend chart and the range left in the tank."
 status: live

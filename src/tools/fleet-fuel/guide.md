@@ -1,7 +1,7 @@
 ---
 name: Fleet fuel
 num: 1819
-shelf: money
+shelf: vehicles
 code: T908
 section: trucking
 title: "Fleet fuel report: fuel economy per vehicle from a fuel-card CSV"

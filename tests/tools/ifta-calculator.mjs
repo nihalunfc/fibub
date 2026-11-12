@@ -1,7 +1,7 @@
 // #T903 IFTA
-export const path = '/money/ifta-calculator/';
+export const path = '/vehicles/ifta-calculator/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/ifta-calculator/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/ifta-calculator/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.ift .ift-big'), tab = () => page.textContent('.ift .ift-tab'), net = () => page.textContent('.ift .ift-net');
   // 10,000 mi / 1,600 gal = 6.25 mpg; 4,000 mi -> 640 gal taxable, 500 bought, 140 x 0.30 = 42.00
   check((await big()).includes('6.25 mpg'), `ifta-calculator: 6.25 mpg (${await big()})`);

@@ -1,5 +1,5 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { SECTIONS, SUBJECTS, sectionLabel, LEARN_PAGES, codePrefix } from '../site';
+import { SECTIONS, SUBJECTS, sectionLabel, LEARN_PAGES, codePrefix, COUNTRIES } from '../site';
 
 export type Tool = CollectionEntry<'tools'>;
 
@@ -26,6 +26,8 @@ export async function allTools() {
     for (const r of t.data.related) if (!ids.has(r)) throw new Error(`Tool "${t.id}" lists unknown related tool "${r}"`);
     if (t.data.section && !SECTIONS[t.data.shelf]?.some((s) => s.id === t.data.section)) throw new Error(`Tool "${t.id}" has unknown section "${t.data.section}" for shelf "${t.data.shelf}"`);
     if (SUBJECTS[t.data.shelf]?.some((s) => s.id === t.id)) throw new Error(`Tool id "${t.id}" is also a subject id: both would live at /${t.data.shelf}/${t.id}/`);
+    if (t.data.shelf === 'vehicles' && COUNTRIES.some((c) => c.id === t.id)) throw new Error(`Tool id "${t.id}" is also a country page: both would live at /vehicles/${t.id}/`);
+    if (t.data.countries && t.data.shelf !== 'vehicles') throw new Error(`Tool "${t.id}" lists countries, which only Vehicles tools use`);
     if (t.data.shelf === 'learn' && LEARN_PAGES.includes(t.id)) throw new Error(`Tool id "${t.id}" is also a Learn page: both would live at /learn/${t.id}/`);
     if (t.data.status === 'live' && t.data.shelf === 'learn' && !t.data.section) throw new Error(`Tool "${t.id}" is on the learn shelf but has no section (school-physics, school-chemistry, school-biology, school-maths or school-earth)`);
     if (t.data.status === 'live' && SUBJECTS[t.data.shelf] && !t.data.section) throw new Error(`Tool "${t.id}" is on the ${t.data.shelf} shelf but has no section (see SECTIONS in src/site.ts)`);

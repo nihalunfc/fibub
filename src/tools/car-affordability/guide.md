@@ -1,7 +1,7 @@
 ---
 name: Car affordability
 num: 1806
-shelf: money
+shelf: vehicles
 code: T895
 section: vehicle-buying
 title: "How much car can I afford? The 20/4/10 rule calculator"

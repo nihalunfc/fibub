@@ -1,7 +1,7 @@
 // #T900 Engine CC
-export const path = '/money/engine-cc/';
+export const path = '/vehicles/engine-cc/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/engine-cc/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/engine-cc/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.ec .ec-big'), rows = () => page.textContent('.ec .ec-rows');
   const set = async (k, v) => { await page.fill(`.ec [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   check((await big()).startsWith('149.5 cc'), `engine-cc: 57 x 58.6 mm, 1 cylinder = 149.5 cc (${await big()})`);

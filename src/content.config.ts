@@ -1,6 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
-import { SHELF_IDS } from './site';
+import { SHELF_IDS, COUNTRIES } from './site';
 import { ICON_NAMES } from './lib/icons';
 
 // Each tool is one folder in src/tools/<id>/ holding:
@@ -34,6 +34,8 @@ const tools = defineCollection({
     // while in use (for example live currency rates). Shown on every card and tool page.
     icon: z.enum(ICON_NAMES),     // shown on the tool's card
     section: z.string().optional(), // a group within the shelf (see SECTIONS in src/site.ts)
+    // Vehicles tools: the countries the tool suits (COUNTRIES in src/site.ts). Left out = every country.
+    countries: z.array(z.enum(COUNTRIES.map((c) => c.id) as [string, ...string[]])).optional(),
     // Tools that go well with this one. Links show both ways automatically, so list each pair once.
     related: z.array(z.string()).default([]),
     // Where the tool's reference numbers come from (shown on the page with a link for removal requests).

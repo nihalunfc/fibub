@@ -1,7 +1,7 @@
 // #T894 Car depreciation
-export const path = '/money/car-depreciation/';
+export const path = '/vehicles/car-depreciation/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/car-depreciation/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/car-depreciation/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.cd .cd-big'), rows = () => page.textContent('.cd .cd-rows');
   const set = async (k, v) => { await page.fill(`.cd [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 20,000 x 0.85^3 = 12,282.50

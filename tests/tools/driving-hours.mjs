@@ -1,7 +1,7 @@
 // #T902 Driving hours
-export const path = '/money/driving-hours/';
+export const path = '/vehicles/driving-hours/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/driving-hours/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/driving-hours/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.dh .dh-big'), br = () => page.textContent('.dh .dh-break'), out = () => page.textContent('.dh .dh-out');
   // US: driving since 06:00, now 14:00 -> break due now, 3 h left, window ends 20:00
   check((await big()).includes('3 h 00 m'), `driving-hours: US 8 h driven leaves 3 h (${await big()})`);

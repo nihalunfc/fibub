@@ -1,8 +1,9 @@
 ---
 name: IFTA
 num: 1814
-shelf: money
+shelf: vehicles
 code: T903
+countries: [usa, canada]
 section: trucking
 title: "IFTA calculator: quarterly fuel tax by state and province"
 seoTitle: "IFTA fuel tax calculator by jurisdiction"

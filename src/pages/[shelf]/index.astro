@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import SoonList from '../../components/SoonList.astro';
-import { SHELVES, SECTIONS, SUBJECTS } from '../../site';
+import { SHELVES, SECTIONS, SUBJECTS, COUNTRIES } from '../../site';
 import { allTools, bySection, bySubject } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
 export function getStaticPaths() {
@@ -22,6 +22,13 @@ const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live) : null;
   <div class="crumbs"><a href="/">Home</a> / {shelf.name}</div>
   <h1>{shelf.name} tools</h1>
   <p class="lead">{shelf.blurb} Free, with no sign-up.</p>
+  {shelf.id === 'vehicles' && (
+    <nav class="cty" aria-label="Vehicle tools by country">
+      <b>Pick your country</b>
+      <div>{COUNTRIES.map((c) => <a href={`/vehicles/${c.id}/`}><span class="cty-flag">{c.flag}</span>{c.short}</a>)}</div>
+      <small>Shows only the tools that fit your country, opened on its rules and units.</small>
+    </nav>
+  )}
   {subjects ? (
     <div class="sj-grid">
       {subjects.map((sj) => (
@@ -54,6 +61,13 @@ const subjects = SUBJECTS[shelf.id] ? bySubject(shelf.id, live) : null;
 </Base>
 
 <style>
+  .cty { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  .cty > b { display: block; margin-bottom: 8px; }
+  .cty div { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cty a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600; min-height: 40px; }
+  .cty a:hover { border-color: var(--accent); }
+  .cty-flag { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+  .cty small { display: block; margin-top: 8px; color: var(--muted); }
   .sf { display: block; max-width: 420px; margin: 0 0 16px; }
   .sf input { width: 100%; font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
   .sf input:focus { outline: none; border-color: var(--accent); }

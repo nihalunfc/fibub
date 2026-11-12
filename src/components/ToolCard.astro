@@ -2,11 +2,11 @@
 // A tool on the home and shelf pages: icon, name, one-line summary (and a label if it needs internet).
 import { ICONS } from '../lib/icons';
 import { toolUrl, type Tool } from '../lib/tools';
-interface Props { tool: Tool }
-const { tool } = Astro.props;
+interface Props { tool: Tool; query?: string }
+const { tool, query = '' } = Astro.props;
 const d = tool.data;
 ---
-<a class="tc" href={toolUrl(tool)} data-shelf={d.shelf} data-num={d.code} data-search={`${d.name} ${d.summary}`.toLowerCase()}>
+<a class="tc" href={toolUrl(tool) + query} data-shelf={d.shelf} data-num={d.code} data-search={`${d.name} ${d.summary}`.toLowerCase()}>
   <span class="tc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS[d.icon]} /></span>
   <span class="tc-body">
     <b>{d.name}{d.code && <small class="num"> #{d.code}</small>}</b>
@@ -25,6 +25,7 @@ const d = tool.data;
   .tc[data-shelf=everyday] { --c: var(--everyday); --cs: var(--everyday-soft); }
   .tc[data-shelf=science], .tc[data-shelf=learn] { --c: var(--science); --cs: var(--science-soft); }
   .tc[data-shelf=collecting] { --c: var(--collecting); --cs: var(--collecting-soft); }
+  .tc[data-shelf=vehicles] { --c: var(--vehicles); --cs: var(--vehicles-soft); }
   .tc-ico { width: 24px; height: 24px; margin-top: 1px; display: grid; place-items: center; color: var(--c); }
   .tc-ico svg { width: 22px; height: 22px; }
   .tc-body { display: grid; gap: 2px; min-width: 0; }

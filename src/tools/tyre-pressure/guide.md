@@ -1,9 +1,9 @@
 ---
 name: Tyre pressure
 num: 1809
-shelf: money
+shelf: vehicles
 code: T898
-section: driving
+section: tyre-basics
 title: "Tyre pressure converter: psi, bar, kPa and cold or hot correction"
 summary: "Convert tyre pressure between psi, bar and kPa, see how temperature changes it, and find what to fill to today so the tyre is right on a hotter or colder day."
 status: live

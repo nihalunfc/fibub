@@ -100,7 +100,7 @@ import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
     const loan = $('.or-loan'); loan.textContent = '';
     if (down > 0 || p.loan > 0) {
       loan.append(`After a down payment of ${fmt(down)}, you would borrow ${fmt(p.loan)}. `);
-      const a = document.createElement('a'); a.href = '/money/car-loan/'; a.textContent = 'Work out the monthly payment'; loan.append(a, '.');
+      const a = document.createElement('a'); a.href = '/vehicles/car-loan/'; a.textContent = 'Work out the monthly payment'; loan.append(a, '.');
     }
   };
   root.addEventListener('change', (e) => {

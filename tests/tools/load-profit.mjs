@@ -1,7 +1,7 @@
 // #T906 Load profit
-export const path = '/money/load-profit/';
+export const path = '/vehicles/load-profit/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/load-profit/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/load-profit/`); await page.waitForTimeout(300);
   const out = () => page.textContent('.lp .lp-out'), rows = () => page.textContent('.lp .lp-rows');
   const set = async (k, v) => { await page.fill(`.lp [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 2,000 - 1,000 mi x 1.50 = 500; 2,000 / 1,000 = 2.00 per total mile; 2 days = 250 a day

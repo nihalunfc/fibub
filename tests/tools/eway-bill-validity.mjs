@@ -1,7 +1,7 @@
 // #T891 E-way bill validity
-export const path = '/money/eway-bill-validity/';
+export const path = '/vehicles/eway-bill-validity/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/eway-bill-validity/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/eway-bill-validity/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.ew .ew-big'), rows = () => page.textContent('.ew .ew-rows');
   check((await big()).startsWith('3 days'), `eway-bill-validity: 450 km normal = 3 days (${await big()})`);
   check((await rows()).includes('end of 13 Nov 2026'), 'eway-bill-validity: entered 10 Nov, 3 days -> ends midnight 13 Nov');

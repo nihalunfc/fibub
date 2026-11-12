@@ -1,7 +1,7 @@
 ---
 name: Engine CC
 num: 1811
-shelf: money
+shelf: vehicles
 code: T900
 section: two-wheelers
 title: "Engine CC calculator: displacement from bore, stroke and cylinders"

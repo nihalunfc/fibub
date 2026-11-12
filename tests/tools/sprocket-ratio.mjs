@@ -1,7 +1,7 @@
 // #T901 Sprocket ratio
-export const path = '/money/sprocket-ratio/';
+export const path = '/vehicles/sprocket-ratio/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/sprocket-ratio/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/sprocket-ratio/`); await page.waitForTimeout(300);
   const rows = () => page.$$eval('.sr tbody tr', (r) => r.map((x) => [...x.children].map((c) => c.textContent)));
   const set = async (k, v) => { await page.fill(`.sr [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   // 14/42 = 3.0, primary 3.0, 5th 1.0 -> 9.0 overall; 6000 / 9 = 666.7 rpm x 2.0 m = 80 km/h

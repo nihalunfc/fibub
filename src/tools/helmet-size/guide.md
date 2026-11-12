@@ -1,7 +1,7 @@
 ---
 name: Helmet size
 num: 1822
-shelf: money
+shelf: vehicles
 code: T911
 section: two-wheelers
 title: "Helmet size calculator: head circumference to XS, S, M, L, XL"

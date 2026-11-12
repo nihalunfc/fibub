@@ -1,7 +1,7 @@
 // #1780 EV vs petrol
-export const path = '/money/ev-vs-petrol/';
+export const path = '/vehicles/ev-vs-petrol/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/ev-vs-petrol/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/ev-vs-petrol/`); await page.waitForTimeout(400);
   const R = '.ev ', big = () => page.textContent(R + '.ev-big');
   check((await big()) === 'Electric costs least: 46,778 over 8 years', `ev: default totals (${await big()})`);
   check((await page.textContent(R + '.ev-say')).includes('about 4.9 years'), 'ev: break-even about 4.9 years');

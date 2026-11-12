@@ -1,7 +1,7 @@
 // #1718 Fuel cost
-export const path = '/money/fuel-cost/';
+export const path = '/vehicles/fuel-cost/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/fuel-cost/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/fuel-cost/`); await page.waitForTimeout(400);
   const R = '.fc ';
   const big = () => page.textContent(R + '.fc-big');
   const set = async (k, v) => { await page.fill(R + `[data-k="${k}"]`, v); await page.waitForTimeout(100); };

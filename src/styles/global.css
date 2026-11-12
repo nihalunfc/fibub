@@ -5,7 +5,7 @@
   --accent: #0a0a0a; --accent-2: #0a0a0a; --accent-ink: #ffffff; --accent-soft: #f2f2f2;
   --warn: #8a5300; --warn-soft: #fff4e0; --good: #146c34; --good-soft: #e8f5ec; --bad: #b3261e; --bad-soft: #fdeceb;
   /* Shelf colours are kept as names for older styles; they are all ink now. */
-  --money: var(--ink); --money-soft: var(--accent-soft); --documents: var(--ink); --documents-soft: var(--accent-soft); --everyday: var(--ink); --everyday-soft: var(--accent-soft); --science: var(--ink); --science-soft: var(--accent-soft); --collecting: var(--ink); --collecting-soft: var(--accent-soft);
+  --money: var(--ink); --money-soft: var(--accent-soft); --documents: var(--ink); --documents-soft: var(--accent-soft); --everyday: var(--ink); --everyday-soft: var(--accent-soft); --science: var(--ink); --science-soft: var(--accent-soft); --collecting: var(--ink); --collecting-soft: var(--accent-soft); --vehicles: var(--ink); --vehicles-soft: var(--accent-soft);
   --radius: 10px; --max: 1080px; --shadow: none;
   color-scheme: light;
 }
@@ -73,7 +73,7 @@ nav.main a { display: inline-flex; align-items: center; gap: 4px; }
   nav.main .dd-item, nav.main .dd-item span { white-space: normal; min-width: 0; height: auto; }
   nav.main .dd-item:hover, nav.main .dd-item:focus-visible { background: var(--bg); }
   .dd-item svg { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--c, var(--accent)); }
-  .dd[data-shelf=money] { --c: var(--money); } .dd[data-shelf=documents] { --c: var(--documents); } .dd[data-shelf=everyday] { --c: var(--everyday); } .dd[data-shelf=science] { --c: var(--science); } .dd[data-shelf=collecting] { --c: var(--collecting); }
+  .dd[data-shelf=money] { --c: var(--money); } .dd[data-shelf=documents] { --c: var(--documents); } .dd[data-shelf=everyday] { --c: var(--everyday); } .dd[data-shelf=science] { --c: var(--science); } .dd[data-shelf=collecting] { --c: var(--collecting); } .dd[data-shelf=vehicles] { --c: var(--vehicles); }
   nav.main .dd-all { display: block; margin-top: 6px; padding: 9px 10px 4px; border-top: 1px solid var(--line); border-radius: 0; color: var(--accent); font-size: 14px; font-weight: 600; }
   nav.main .dd-all:hover { background: none; }
 }
@@ -151,7 +151,7 @@ footer.site a:hover { color: var(--accent); }
 .at-item { display: flex; align-items: center; gap: 8px; padding: 9px 4px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; line-height: 1.3; }
 .at-item:hover, .at-item:focus-visible { background: var(--bg); }
 .at-item svg { width: 18px; height: 18px; flex: none; color: var(--c, var(--accent)); }
-.at-shelf[data-shelf=money] { --c: var(--money); } .at-shelf[data-shelf=documents] { --c: var(--documents); } .at-shelf[data-shelf=everyday] { --c: var(--everyday); } .at-shelf[data-shelf=science] { --c: var(--science); } .at-shelf[data-shelf=collecting] { --c: var(--collecting); }
+.at-shelf[data-shelf=money] { --c: var(--money); } .at-shelf[data-shelf=documents] { --c: var(--documents); } .at-shelf[data-shelf=everyday] { --c: var(--everyday); } .at-shelf[data-shelf=science] { --c: var(--science); } .at-shelf[data-shelf=collecting] { --c: var(--collecting); } .at-shelf[data-shelf=vehicles] { --c: var(--vehicles); }
 .at-note, .at-empty { margin: 4px; font-size: 13px; color: var(--muted); }
 @media not ((min-width: 900px) and (hover: hover)) {
   nav.main { display: none !important; }
@@ -185,7 +185,7 @@ html.red-mode, html.red-mode body { background: #000 !important; }
 html.red-mode {
   --bg: #000; --surface: #070000; --ink: #a30000; --muted: #6e0000; --line: #2b0000; --accent: #a30000; --accent-2: #a30000; --accent-ink: #000; --accent-soft: #140000;
   --good: #a30000; --good-soft: #140000; --warn: #a30000; --warn-soft: #140000; --bad: #c00000; --bad-soft: #140000;
-  --science: #a30000; --money: #a30000; --documents: #a30000; --everyday: #a30000; --collecting: #a30000; color-scheme: dark;
+  --science: #a30000; --money: #a30000; --documents: #a30000; --everyday: #a30000; --collecting: #a30000; --vehicles: #a30000; color-scheme: dark;
 }
 html.red-mode header.site, html.red-mode footer.site, html.red-mode .all-tools, html.red-mode .dd-panel { background: #000; }
 html.red-mode *, html.red-mode *::before, html.red-mode *::after { box-shadow: none !important; text-shadow: none !important; }

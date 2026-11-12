@@ -1,7 +1,7 @@
 ---
 name: Load profit
 num: 1817
-shelf: money
+shelf: vehicles
 code: T906
 section: trucking
 title: "Load profit calculator: is this freight load worth taking?"

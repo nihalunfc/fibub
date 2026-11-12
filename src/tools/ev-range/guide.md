@@ -1,7 +1,7 @@
 ---
 name: EV range
 num: 1810
-shelf: money
+shelf: vehicles
 code: T899
 section: vehicle-running
 title: "EV range estimator: how far an electric car goes with speed, cold and load"

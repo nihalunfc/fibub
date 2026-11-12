@@ -1,9 +1,9 @@
 ---
 name: Fuel cost
 num: 1718
-shelf: money
+shelf: vehicles
 code: T752
-section: vehicle-running
+section: fuel-use
 title: "Fuel cost calculator: trip cost from distance, mpg or L/100 km and fuel price"
 summary: "Work out what a drive will cost in fuel, split it between passengers, and convert fuel economy between L/100 km, km/L, US mpg and UK mpg."
 status: live

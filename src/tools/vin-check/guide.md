@@ -1,7 +1,7 @@
 ---
 name: VIN check
 num: 1820
-shelf: money
+shelf: vehicles
 code: T909
 section: vehicle-buying
 title: "VIN check: is this vehicle identification number valid?"

@@ -1,7 +1,7 @@
 // #T904 Axle weights
-export const path = '/money/axle-weights/';
+export const path = '/vehicles/axle-weights/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/axle-weights/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/axle-weights/`); await page.waitForTimeout(400);
   const out = () => page.textContent('.ax .ax-out'), big = () => page.textContent('.ax .ax-big');
   // Bridge formula: 5 axles over 51 ft = 500 (51*5/4 + 60 + 36) = 79,875 -> 80,000
   check((await page.textContent('.ax .ax-bres')).includes('80,000 lb'), 'axle-weights: bridge formula 5 axles over 51 ft = 80,000');

@@ -1,7 +1,7 @@
 // #T893 Real mileage
-export const path = '/money/real-mileage/';
+export const path = '/vehicles/real-mileage/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/real-mileage/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/vehicles/real-mileage/`); await page.waitForTimeout(400);
   const big = () => page.textContent('.rm .rm-big'), rows = () => page.textContent('.rm .rm-rows');
   const wait = () => page.waitForTimeout(120);
   // fills at 10,000 (full) and 10,450 with 30 L (full) -> 15.0 km/L = 6.67 L/100 km

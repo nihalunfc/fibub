@@ -1,0 +1,56 @@
+---
+// Vehicle tools for one country (nihal, 2026-11-12): /vehicles/india/, /vehicles/canada/ ... Only the tools
+// that suit the country (`countries:` in guide.md, or none = every country), grouped like the shelf, and each
+// link adds ?c=<country> so the tool opens on that country's rules and units.
+import Base from '../../layouts/Base.astro';
+import ToolCard from '../../components/ToolCard.astro';
+import { COUNTRIES } from '../../site';
+import { allTools, bySubject } from '../../lib/tools';
+import { collectionLd } from '../../lib/seo';
+export function getStaticPaths() {
+  return COUNTRIES.map((c) => ({ params: { country: c.id }, props: { country: c } }));
+}
+const { country } = Astro.props;
+const tools = await allTools();
+const fits = (t: any) => !t.data.countries || t.data.countries.includes(country.id);
+const live = tools.filter((t) => t.data.shelf === 'vehicles' && t.data.status === 'live' && fits(t));
+const only = live.filter((t) => t.data.countries);
+const subjects = bySubject('vehicles', live);
+const q = `?c=${country.id}`;
+const title = `Vehicle tools for ${country.short}`;
+const desc = `Free car, bike and truck tools set up for ${country.name}: tyres, fuel, buying, running costs and safety, in ${country.units}. They run in your browser.`;
+---
+<Base title={title} docTitle={`Free car and vehicle tools for ${country.short} | fibub`} description={desc} ld={collectionLd(title, desc, `/vehicles/${country.id}/`, [{ name: 'Home', url: '/' }, { name: 'Vehicles', url: '/vehicles/' }, { name: country.short, url: `/vehicles/${country.id}/` }])} shelf="vehicles">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/vehicles/">Vehicles</a> / {country.short}</div>
+  <h1>{title}</h1>
+  <p class="lead">{live.length} tools that fit {country.name}. Each one opens on {country.short} rules and units ({country.units}), and you can still switch inside the tool.</p>
+  <nav class="cty-sw" aria-label="Other countries">{COUNTRIES.map((c) => c.id === country.id ? <b aria-current="page">{c.short}</b> : <a href={`/vehicles/${c.id}/`}>{c.short}</a>)}<a href="/vehicles/">All countries</a></nav>
+  {only.length > 0 && <p class="cty-note">Made for {country.short} in particular: {only.map((t, i) => <>{i ? ', ' : ''}<a href={`/vehicles/${t.id}/${q}`}>{t.data.name}</a></>)}.</p>}
+  {subjects.map((sj) => (
+    <section class="cty-sj">
+      <h2>{sj.name}</h2>
+      {sj.groups.map((g) => (
+        <>
+          {sj.groups.length > 1 && <h3>{g.name}</h3>}
+          <div class="grid">{g.tools.map((t) => <ToolCard tool={t} query={q} />)}</div>
+        </>
+      ))}
+    </section>
+  ))}
+  <p class="cty-fine">Rules, rates and limits change. Each tool shows where its numbers come from and the date they were checked; always check the official source before you rely on one.</p>
+</Base>
+
+<style>
+  .cty-sw { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .cty-sw a, .cty-sw b { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--ink); font-size: 14px; }
+  .cty-sw b { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .cty-note { color: var(--muted); }
+  .cty-sj h2 { font-size: 20px; margin: 24px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+  .cty-sj h3 { font-size: 15px; color: var(--muted); margin: 14px 0 8px; }
+  .cty-fine { color: var(--muted); font-size: 14px; margin-top: 24px; }
+  @media (max-width: 600px) {
+    .grid { gap: 6px; }
+    .grid :global(.tc) { padding: 10px 12px; gap: 12px; }
+    .grid :global(.tc-sum) { -webkit-line-clamp: 1; }
+  }
+</style>

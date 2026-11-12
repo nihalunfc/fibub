@@ -1,7 +1,7 @@
 // #T905 Cost per mile
-export const path = '/money/cost-per-mile/';
+export const path = '/vehicles/cost-per-mile/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/cost-per-mile/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/vehicles/cost-per-mile/`); await page.waitForTimeout(300);
   const big = () => page.textContent('.cp .cp-big'), rows = () => page.textContent('.cp .cp-rows');
   const set = async (k, v) => { await page.fill(`.cp [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   // 4,000 / 10,000 = 0.40; fuel 4 / 6.5 = 0.6154; + 0.15 + 0.60 = 1.7654

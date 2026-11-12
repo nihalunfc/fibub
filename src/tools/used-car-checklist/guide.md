@@ -1,7 +1,7 @@
 ---
 name: Used car checklist
 num: 1821
-shelf: money
+shelf: vehicles
 code: T910
 section: vehicle-buying
 title: "Used car checklist: printable inspection list for a car, bike or truck"
