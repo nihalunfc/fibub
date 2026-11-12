@@ -1,0 +1,95 @@
+---
+// #T943 Winter tyres
+---
+<div class="tool-ui wt">
+  <section class="panel">
+    <label class="wt-l">Country
+      <select data-k="region"><option value="canada">Canada</option><option value="usa">USA</option><option value="uk">UK</option></select>
+    </label>
+    <h2 class="wt-h">1. Which mark is on the sidewall?</h2>
+    <div class="wt-syms" role="radiogroup" aria-label="Winter mark">
+      <label class="wt-sym"><input type="radio" name="sym" value="snowflake" />
+        <svg viewBox="0 0 60 56" aria-hidden="true"><path d="M4 50 24 12l10 18 8-10 14 30z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M33 8v14M27 15h12M28 10l10 10M38 10 28 20" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span><b>Mountain snowflake</b><br>3PMSF, passed a snow test</span></label>
+      <label class="wt-sym"><input type="radio" name="sym" value="ms" />
+        <svg viewBox="0 0 60 56" aria-hidden="true"><rect x="6" y="14" width="48" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="2.5"/><text x="30" y="34" text-anchor="middle" font-size="16" font-weight="700" fill="currentColor">M+S</text></svg>
+        <span><b>M+S only</b><br>mud and snow, no grip test</span></label>
+      <label class="wt-sym"><input type="radio" name="sym" value="none" checked />
+        <svg viewBox="0 0 60 56" aria-hidden="true"><circle cx="30" cy="28" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M17 41 43 15" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span><b>Neither</b><br>a summer tyre</span></label>
+    </div>
+    <h2 class="wt-h">2. Tread, age and pressure</h2>
+    <div class="wt-grid">
+      <label>Tread depth <input data-k="tread" inputmode="decimal" placeholder="6" /></label>
+      <label>Unit <select data-k="unit"><option value="mm">mm</option><option value="32">32nds of an inch</option></select></label>
+      <label>Date code (4 digits, optional) <input data-k="dot" inputmode="numeric" maxlength="12" placeholder="2423" /></label>
+    </div>
+    <label class="wt-chk"><input type="checkbox" data-k="psi" /> I checked the pressure with cold tyres</label>
+  </section>
+  <section class="panel wt-res">
+    <p class="wt-pill" aria-live="polite"></p>
+    <ul class="wt-reasons"></ul>
+  </section>
+  <section class="panel">
+    <h2 class="wt-h">The rules</h2>
+    <ul class="wt-rules"></ul>
+    <p class="wt-fine">As checked November 2026; check the official source for your area.</p>
+    <p class="wt-fine"><b>The 7 C guide:</b> below about 7 C, winter tyres grip better than summer ones, even on dry roads. Cold air also lowers tyre pressure: see <a href="/vehicles/tyre-pressure/">Tyre pressure</a>. For braking on snow and ice, see <a href="/vehicles/stopping-distance/">Stopping distance</a>.</p>
+  </section>
+  <p class="wt-fine">Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .wt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .wt .panel { padding: 16px; }
+  .wt-h { font-size: 16px; margin: 16px 0 8px; }
+  .wt-l, .wt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .wt select, .wt input[type=text], .wt input:not([type]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .wt input:focus, .wt select:focus { border-color: var(--accent); outline: none; }
+  .wt-syms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .wt-sym { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; color: var(--ink); font-size: 13px; position: relative; }
+  .wt-sym input { position: absolute; opacity: 0; }
+  .wt-sym:has(input:checked) { border: 2px solid var(--accent); padding: 9px; }
+  .wt-sym:has(input:focus-visible) { outline: 2px solid var(--accent); }
+  .wt-sym svg { width: 60px; height: auto; }
+  .wt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .wt-chk { display: flex !important; grid-template-columns: none; align-items: center; gap: 8px; margin-top: 12px; color: var(--ink) !important; font-size: 15px !important; }
+  .wt-chk input { width: 20px; height: 20px; }
+  .wt-pill { display: inline-block; margin: 0; padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 22px; }
+  .wt-pill.good { background: var(--good-soft); color: var(--good); }
+  .wt-pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .wt-pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .wt-reasons, .wt-rules { margin: 10px 0 0; padding: 0 0 0 20px; display: grid; gap: 6px; }
+  .wt-reasons li.good::marker { color: var(--good); } .wt-reasons li.warn::marker { color: var(--warn); } .wt-reasons li.bad::marker { color: var(--bad); }
+  .wt-reasons li.bad { color: var(--bad); } .wt-reasons li.warn { color: var(--warn); }
+  .wt-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .wt > .wt-fine { margin: 0; }
+</style>
+
+<script>
+  import { judgeWinter, parseDateCode, ageMonths, from32nds, WINTER_RULES, type Symbol3 } from '../../lib/vehicles/tyre-checks';
+  import { presetCountry } from '../../lib/vehicles/country';
+  const root = document.querySelector('.wt') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement & HTMLSelectElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const nowParam = new URLSearchParams(location.search).get('now');
+  const now = nowParam && !isNaN(Date.parse(nowParam)) ? new Date(nowParam) : new Date();
+  const calc = () => {
+    const sym = (root.querySelector('input[name="sym"]:checked') as HTMLInputElement).value as Symbol3;
+    const tv = parseFloat(q('tread').value.replace(/,/g, '.'));
+    const treadMm = isFinite(tv) && tv >= 0 ? (q('unit').value === '32' ? from32nds(tv) : tv) : null;
+    let months: number | null = null;
+    const dot = q('dot').value.trim();
+    if (dot) { const d = parseDateCode(dot); if (d.ok) months = ageMonths(d.start, now); }
+    const v = judgeWinter({ symbol: sym, treadMm, ageMonths: months, pressureChecked: q('psi').checked });
+    const p = $('.wt-pill'); p.textContent = v.label; p.className = 'wt-pill ' + v.level;
+    $('.wt-reasons').innerHTML = '';
+    for (const r of v.reasons) { const li = document.createElement('li'); li.className = r.level; li.textContent = r.text; $('.wt-reasons').appendChild(li); }
+    const rules = $('.wt-rules'); rules.innerHTML = '';
+    for (const t of WINTER_RULES[q('region').value as 'canada' | 'usa' | 'uk']) { const li = document.createElement('li'); li.textContent = t; rules.appendChild(li); }
+  };
+  q('region').addEventListener('change', () => { q('unit').value = q('region').value === 'usa' ? '32' : 'mm'; });
+  presetCountry(q('region'));
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
