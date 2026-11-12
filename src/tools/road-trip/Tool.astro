@@ -100,4 +100,9 @@
   addLeg('600', '80');
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="unit"]') as HTMLSelectElement | null, { usa: 'mi', uk: 'mi', canada: 'km', india: 'km', gulf: 'km' });
+  presetCountry(document.querySelector('.tool-ui [data-k="eco"]') as HTMLSelectElement | null, { usa: 'us', uk: 'uk', canada: 'l100', india: 'kml', gulf: 'kml' });
 </script>

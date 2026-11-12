@@ -64,4 +64,10 @@
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="du"]') as HTMLSelectElement | null, { usa: 'mi', uk: 'mi', canada: 'km', india: 'km', gulf: 'km' });
+  presetCountry(document.querySelector('.tool-ui [data-k="eu"]') as HTMLSelectElement | null, { usa: 'mpgus', uk: 'mpguk', canada: 'l100', india: 'kml', gulf: 'kml' });
+  presetCountry(document.querySelector('.tool-ui [data-k="pu"]') as HTMLSelectElement | null, { usa: 'usgal', uk: 'l', canada: 'l', india: 'l', gulf: 'l' });
 </script>

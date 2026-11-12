@@ -129,4 +129,8 @@
     calc();
   });
   labels(); fillTrailer(); fillPallet(); calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="unit"]') as HTMLSelectElement | null, { usa: 'in', canada: 'in', india: 'mm', uk: 'mm', gulf: 'mm' });
 </script>

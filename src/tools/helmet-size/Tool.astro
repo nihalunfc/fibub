@@ -74,4 +74,8 @@
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui .hs-u') as HTMLSelectElement | null, { usa: 'in', canada: 'cm', india: 'cm', uk: 'cm', gulf: 'cm' });
 </script>

@@ -111,4 +111,8 @@ import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
   });
   root.addEventListener('input', calc);
   setState(); setProv(); calc();
+
+  // Opened from a country page (/vehicles/<country>/): start on that country's units.
+  import { presetCountry } from '../../lib/vehicles/country';
+  presetCountry(document.querySelector('.tool-ui [data-k="region"]') as HTMLSelectElement | null, { india: 'in', canada: 'ca', usa: 'us' });
 </script>
