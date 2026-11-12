@@ -1,6 +1,6 @@
 ---
 name: Tyre size
-num: 2113
+num: 2114
 shelf: vehicles
 code: T940
 section: tyre-basics
@@ -9,7 +9,7 @@ summary: "Type the size printed on your tyre, like 205/55 R16 91V, and see in pl
 seoDescription: "Read the size on your tyre in plain words: width, sidewall, wheel size, load and speed rating, with pictures. Compare two sizes and your speedometer error."
 status: live
 ads: false
-order: 2113
+order: 2114
 icon: ruler
 works: offline
 updated: 2026-11-12

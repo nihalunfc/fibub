@@ -1,6 +1,6 @@
 ---
 name: 2-stroke mix
-num: 2122
+num: 2123
 shelf: vehicles
 code: T949
 section: fuel-types
@@ -8,7 +8,7 @@ title: "2-stroke fuel mix calculator: petrol to oil ratio"
 summary: "Work out how much 2-stroke oil to add to your petrol for a ratio like 50:1, in ml and fluid ounces, or how much petrol goes with the oil you have."
 status: live
 ads: false
-order: 2122
+order: 2123
 icon: flask
 works: offline
 updated: 2026-11-12

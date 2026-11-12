@@ -1,6 +1,6 @@
 ---
 name: Winter tyres
-num: 2116
+num: 2117
 shelf: vehicles
 code: T943
 section: tyre-weather
@@ -8,7 +8,7 @@ title: "Winter tyre check: are your tyres ready for snow?"
 summary: "Tap the mark on your tyre, then add tread depth, age and a cold pressure check, to see if your tyres are ready for snow, with the winter tyre rules for Canada, the USA and the UK."
 status: live
 ads: false
-order: 2116
+order: 2117
 icon: check
 works: offline
 updated: 2026-11-12

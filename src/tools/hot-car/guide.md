@@ -1,6 +1,6 @@
 ---
 name: Hot car
-num: 2118
+num: 2119
 shelf: vehicles
 code: T945
 section: driving
@@ -8,7 +8,7 @@ title: "Hot car temperature: how fast a parked car heats up"
 summary: "See how hot a parked car gets in the first hour, in sun or shade, with a simple chart and what to do if you see a child or pet inside."
 status: live
 ads: false
-order: 2118
+order: 2119
 icon: curve
 works: offline
 updated: 2026-11-12

@@ -1,6 +1,6 @@
 ---
 name: Ethanol blend
-num: 2120
+num: 2121
 shelf: vehicles
 code: T947
 section: fuel-types
@@ -8,7 +8,7 @@ title: "E10 and E20 petrol: mileage and cost calculator"
 summary: "Work out how much mileage you may lose on E10, E15, E20 or E85 compared with plain petrol, and what each kilometre and each month costs."
 status: live
 ads: false
-order: 2120
+order: 2121
 icon: percent
 works: offline
 updated: 2026-11-12

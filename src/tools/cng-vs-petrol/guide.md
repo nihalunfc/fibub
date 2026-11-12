@@ -1,6 +1,6 @@
 ---
 name: CNG vs petrol
-num: 2121
+num: 2122
 shelf: vehicles
 code: T948
 section: fuel-types
@@ -9,7 +9,7 @@ title: "CNG vs petrol cost calculator: payback on a CNG car or kit"
 summary: "Compare the running cost per kilometre of petrol and CNG (or LPG), see your monthly saving, and how many months a CNG variant or kit takes to pay for itself."
 status: live
 ads: false
-order: 2121
+order: 2122
 icon: calculator
 works: offline
 updated: 2026-11-12
