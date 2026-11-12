@@ -13,10 +13,10 @@ order: 2113
 icon: ruler
 works: offline
 updated: 2026-11-12
-related: [tyre-pressure, stopping-distance, used-car-checklist, real-mileage]
+related: [tyre-age, tread-depth, tyre-type, tyre-pressure, stopping-distance, used-car-checklist, real-mileage]
 sources:
   - "Size maths: sidewall = width × aspect ratio ÷ 100; overall diameter = rim (inches × 25.4 mm) + 2 × sidewall. Load index (kg per tyre) and speed symbols (km/h) follow the ISO 4000 and ETRTO tables, as checked November 2026; check the official source. Speedometer error assumes the speedometer was right on the original size."
-  - "Country marks: BIS (India: ISI mark, IS 15633, IS 15627, IS 15636), NHTSA and Transport Canada (DOT code), GOV.UK (E-mark and tyre label), as checked November 2026; check the official source. Drawings are fibub's own."
+  - "Country marks: BIS (India: ISI mark), NHTSA and Transport Canada (DOT code), GOV.UK (E-mark and tyre label), as checked November 2026; check the official source. Drawings are fibub's own."
 flow:
   - { icon: pointer, label: "Vehicle" }
   - { icon: pencil, label: "Type size" }
