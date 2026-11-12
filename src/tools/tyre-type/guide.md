@@ -12,7 +12,7 @@ order: 2113
 icon: check
 works: offline
 updated: 2026-11-12
-related: [tyre-pressure, stopping-distance, used-car-checklist]
+related: [tread-depth, tyre-pressure, stopping-distance, used-car-checklist]
 sources:
   - "Tyre types and the 7 C rule of thumb are widely published tyre-engineering basics. The 3PMSF (three-peak mountain snowflake) mark means the tyre passed a standard snow-grip test; M+S only describes tread shape. Winter tyre rules as checked November 2026: Quebec (1 Dec to 15 Mar), British Columbia (many highways 1 Oct to 31 Mar); check the official source. The picks are fibub's own simple rules. Drawings are fibub's own."
 flow:
