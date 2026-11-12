@@ -1,0 +1,84 @@
+---
+// #T941 Tyre age
+---
+<div class="tool-ui ta">
+  <section class="panel">
+    <label class="ta-l">Date code (last 4 digits of the DOT number)
+      <input class="ta-in" inputmode="numeric" maxlength="12" placeholder="2423" value="2423" aria-describedby="ta-err" />
+    </label>
+    <p class="ta-err" id="ta-err" role="alert"></p>
+    <svg class="ta-fig" viewBox="0 0 240 160" role="img" aria-label="A tyre sidewall with an oval stamp holding the letters DOT and the date code">
+      <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="10"/>
+      <circle cx="80" cy="80" r="40" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/>
+      <circle cx="80" cy="80" r="8" fill="currentColor" opacity=".5"/>
+      <rect class="ta-oval" x="104" y="26" width="116" height="40" rx="20" fill="none" stroke="var(--accent)" stroke-width="3"/>
+      <text x="162" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor" class="ta-stamp">DOT … <tspan class="ta-wk" fill="var(--accent)">2423</tspan></text>
+      <line x1="92" y1="30" x2="104" y2="40" stroke="var(--accent)" stroke-width="2"/>
+      <text x="162" y="90" text-anchor="middle" font-size="11" fill="currentColor">week + year</text>
+      <text x="162" y="108" text-anchor="middle" font-size="11" fill="currentColor">on one sidewall</text>
+    </svg>
+  </section>
+  <section class="panel ta-res" hidden>
+    <p class="ta-big"></p>
+    <p class="ta-age"></p>
+    <p class="ta-pill"></p>
+    <p class="ta-adv"></p>
+  </section>
+  <details class="panel">
+    <summary>More about tyre age</summary>
+    <ul class="ta-more">
+      <li>Buying new tyres: ask for ones made in the last year or so. Old stock on a shelf has already aged.</li>
+      <li>Check the spare. It ages in the boot and is easy to forget.</li>
+      <li>Heat and sun age rubber faster, so in hot places check more often.</li>
+      <li>Look at the tyre too: cracks in the sidewall or between the blocks, bulges and hard, dry rubber mean replace it at any age.</li>
+    </ul>
+  </details>
+  <p class="ta-fine">Advice as checked November 2026; check your vehicle maker and the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ta { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ta .panel { padding: 16px; }
+  .ta-l { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ta-in { font: inherit; font-size: 22px; font-weight: 700; letter-spacing: .15em; color: var(--ink); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ta-in:focus { border-color: var(--accent); outline: none; }
+  .ta-err { color: var(--bad); margin: 8px 0 0; } .ta-err:empty { display: none; }
+  .ta-fig { width: 100%; max-width: 320px; height: auto; display: block; margin: 12px auto 0; color: var(--ink); }
+  .ta-big { font-size: 22px; font-weight: 700; margin: 0; }
+  .ta-age { font-size: 18px; margin: 6px 0 0; }
+  .ta-pill { display: inline-block; margin: 10px 0 0; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 15px; }
+  .ta-pill.good { background: var(--good-soft); color: var(--good); }
+  .ta-pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .ta-pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .ta-adv { margin: 10px 0 0; }
+  .ta-more { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+  .ta-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { parseDateCode, weekRange, ageMonths, ageText, ageAdvice } from '../../lib/vehicles/tyre-checks';
+  const root = document.querySelector('.ta') as HTMLElement;
+  const input = root.querySelector('.ta-in') as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  // ?now=YYYY-MM-DD is only for testing the age sums on a fixed day.
+  const nowParam = new URLSearchParams(location.search).get('now');
+  const now = nowParam && !isNaN(Date.parse(nowParam)) ? new Date(nowParam) : new Date();
+  const update = () => {
+    const raw = input.value.trim();
+    const res = $('.ta-res'), err = $('.ta-err');
+    const wk = root.querySelector('.ta-wk') as SVGElement;
+    if (!raw) { res.hidden = true; err.textContent = ''; return; }
+    const d = parseDateCode(raw);
+    if (!d.ok) { res.hidden = true; err.textContent = d.error; return; }
+    if (d.start.getTime() > now.getTime() + 31 * 86400000) { res.hidden = true; err.textContent = 'That date is in the future. Check the digits.'; return; }
+    err.textContent = ''; res.hidden = false;
+    wk.textContent = raw.replace(/\D/g, '');
+    const m = ageMonths(d.start, now), a = ageAdvice(m);
+    $('.ta-big').textContent = `Made in week ${d.week} of ${d.year} (about ${weekRange(d.start, d.end)})`;
+    $('.ta-age').textContent = `${ageText(m)} old${d.pre2000 ? '. Three digits means it was made in the 1990s: do not use it.' : ''}`;
+    const p = $('.ta-pill'); p.textContent = a.label; p.className = 'ta-pill ' + a.level;
+    $('.ta-adv').textContent = a.text;
+  };
+  input.addEventListener('input', update);
+  update();
+</script>
