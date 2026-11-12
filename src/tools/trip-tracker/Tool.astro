@@ -1,0 +1,534 @@
+---
+// #T938 Trip Tracker: records a trip from the phone's GPS in the browser. Nothing is uploaded; trips are kept only if the box is ticked.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tt">
+  <div class="ax-card">
+    <h2>Record a trip</h2>
+    <div class="ax-seg tt-modes" role="group" aria-label="How are you travelling?">
+      <button type="button" data-mode="walk" aria-pressed="false">Walk</button>
+      <button type="button" data-mode="run" aria-pressed="false">Run</button>
+      <button type="button" data-mode="cycle" aria-pressed="false">Cycle</button>
+      <button type="button" data-mode="car" aria-pressed="true">Car</button>
+      <button type="button" data-mode="bus" aria-pressed="false">Bus</button>
+      <button type="button" data-mode="train" aria-pressed="false">Train</button>
+    </div>
+    <p class="ax-help tt-modehelp"></p>
+    <label class="tt-units-l">Units
+      <select class="tt-units"><option value="km" selected>km and km/h</option><option value="mi">miles and mph</option></select>
+    </label>
+    <p class="note tt-keepopen"><strong>Keep this page open with the screen on.</strong> Phones stop sending location to web pages when they are minimised or locked; this is a browser limit.</p>
+    <div class="ax-row tt-buttons">
+      <button type="button" class="btn tt-start">Start</button>
+      <button type="button" class="btn secondary tt-pause" disabled>Pause</button>
+      <button type="button" class="btn secondary tt-stop" disabled>Stop</button>
+      <button type="button" class="btn secondary tt-darkbtn" disabled>Dark screen</button>
+    </div>
+    <div class="ax-row tt-markrow">
+      <input class="tt-label" type="text" maxlength="40" placeholder="Label, e.g. Bus stop (optional)" aria-label="Label for the next point" />
+      <button type="button" class="btn secondary small tt-mark" disabled>Mark point</button>
+    </div>
+    <p class="ax-err tt-msg" role="alert" hidden></p>
+    <p class="ax-help tt-status" aria-live="polite">Not recording.</p>
+    <p class="ax-help tt-wake">Screen wake lock: not needed yet. It is switched on while you record.</p>
+    <p class="ax-help"><button type="button" class="btn secondary small tt-sample">Try with a sample trip</button> The sample is a made-up drive, not a real route, so you can look around without GPS. Setting the units or the travel mode above changes how it is shown.</p>
+    <p class="ax-help"><strong>Set it up before you go and do not handle the phone while driving.</strong> Passengers can press the buttons.</p>
+  </div>
+
+  <div class="ax-card tt-live">
+    <h2>Now</h2>
+    <div class="tt-grid">
+      <div class="tt-cell"><span class="k">Distance</span><b class="tt-d">–</b><small class="tt-ds"></small></div>
+      <div class="tt-cell"><span class="k">Elapsed</span><b class="tt-e">–</b></div>
+      <div class="tt-cell"><span class="k">Moving time</span><b class="tt-m">–</b></div>
+      <div class="tt-cell"><span class="k">Speed now</span><b class="tt-v">–</b><small class="tt-vs"></small></div>
+      <div class="tt-cell"><span class="k">Average (moving)</span><b class="tt-a">–</b><small class="tt-as"></small></div>
+      <div class="tt-cell"><span class="k">Top speed</span><b class="tt-t">–</b></div>
+      <div class="tt-cell"><span class="k">GPS accuracy</span><b class="tt-acc">–</b><small class="tt-accs"></small></div>
+    </div>
+  </div>
+
+  <div class="ax-card tt-out" hidden>
+    <h2 class="tt-title">Trip</h2>
+    <p class="ax-help tt-sub"></p>
+    <dl class="ax-facts tt-facts"></dl>
+    <p class="note tt-after" hidden>Open the GPX in the <a href="/science/gps-track-analyser/">GPS track analyser</a> for splits and elevation.</p>
+    <canvas class="ax-fig tt-route"></canvas>
+    <canvas class="ax-fig tt-speed"></canvas>
+    <p class="ax-help tt-figkey"></p>
+    <h3>Speed changes</h3>
+    <div class="ax-scroll tt-events-s"><table class="tt-events"></table></div>
+    <p class="ax-help tt-events-n"></p>
+    <h3 class="tt-gaps-h">Gaps</h3>
+    <div class="ax-scroll tt-gaps-s"><table class="tt-gaps"></table></div>
+    <p class="ax-help tt-gaps-n"></p>
+    <h3>Points and legs</h3>
+    <div class="ax-scroll"><table class="tt-legs"></table></div>
+    <p class="ax-help">Marks are added every 1 km (or 1 mile) on their own, and when you press Mark point.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small tt-gpx">GPX</button>
+      <button type="button" class="btn secondary small tt-csv">CSV</button>
+      <span class="ax-help" style="margin:0">GPX has times; a gap starts a new segment, so no line is drawn across it.</span>
+    </div>
+    <Downloads label="Report" />
+  </div>
+
+  <div class="ax-card">
+    <h2>Saved trips</h2>
+    <label class="tt-check"><input type="checkbox" class="tt-keep" /> Keep my trips on this device</label>
+    <p class="ax-help">Off by default, so nothing is stored. When ticked, the trip you are recording is saved here about every 15 seconds, so a crash or reload does not lose it, and finished trips are kept. It stays in this browser only and is never sent anywhere. Unticking stops saving; use the button below to delete everything.</p>
+    <ul class="tt-saved"></ul>
+    <p class="ax-help tt-saved-n"></p>
+    <button type="button" class="btn secondary small tt-clear">Clear saved trips</button>
+  </div>
+
+  <div class="tt-dark" hidden role="button" tabindex="0" aria-label="Dark screen. Tap to go back.">
+    <div class="tt-dk-v"><b class="dk-v">–</b></div>
+    <div class="tt-dk-row"><span><small>Distance</small><b class="dk-d">–</b></span><span><small>Time</small><b class="dk-e">–</b></span></div>
+    <p class="tt-dk-hint">Recording. Tap anywhere to go back.</p>
+  </div>
+</div>
+
+<script>
+  import {
+    MODES, analyse, addFix, addMark, pauseTrip, newTrip, sampleTrip, toGpx, toCsv, pack, unpack,
+    fmtDist, fmtSpeed, fmtPace, fmtDur, fmtMetres, fmtPos, fmtClock, unitInfo, GAP_SECONDS,
+    type Trip, type Mode, type Units, type Analysis,
+  } from '../../lib/trip';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, save, fileSafe, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-trips-v1', AUTOSAVE_MS = 15000;
+
+  let mode: Mode = 'car';
+  let trip: Trip | null = null;
+  let state: 'idle' | 'rec' | 'paused' | 'done' = 'idle';
+  let watchId: number | null = null, timer: number | null = null, tick = 0, lastSave = 0;
+  let lock: any = null, hiddenFlag = false, lastRawAcc = NaN, lastErr = '';
+  let figs: { route?: Figure; speed?: Figure } = {}, report: Section[] = [], reportTitle = 'Trip', reportSub = '';
+  let isSample = false;
+
+  const units = (): Units => (q<HTMLSelectElement>('.tt-units').value === 'mi' ? 'mi' : 'km');
+  const isFoot = () => mode === 'walk' || mode === 'run';
+
+  // ---------- messages ----------
+  const msg = (t: string) => { const e = q('.tt-msg'); e.textContent = t; e.hidden = !t; };
+  const status = (t: string) => { q('.tt-status').textContent = t; };
+  function modeHelp() {
+    const R = MODES[mode], u = units();
+    q('.tt-modehelp').textContent = `${R.label}: readings worse than ${R.maxAcc} m and jumps faster than ${fmtSpeed(R.maxSpeed, u)} are ignored. A speed change is listed when speed rises or falls by ${R.sharp} m/s² or more for at least two readings in a row.`;
+  }
+
+  // ---------- storage (only when the box is ticked) ----------
+  type Store = { v: 1; trips: any[] };
+  const readStore = (): Store => { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.v === 1 && Array.isArray(s.trips)) return s; } catch {} return { v: 1, trips: [] }; };
+  function writeStore(s: Store): boolean {
+    try { s.trips.length ? localStorage.setItem(KEY, JSON.stringify(s)) : localStorage.removeItem(KEY); return true; } catch { return false; }
+  }
+  const keeping = () => q<HTMLInputElement>('.tt-keep').checked;
+  function saveTrip(t: Trip, live: boolean) {
+    if (!keeping() || t.samples.length < 1) return;
+    const s = readStore(), p = pack({ ...t, live });
+    const i = s.trips.findIndex((x) => x.id === t.id);
+    if (i >= 0) s.trips[i] = p; else s.trips.unshift(p);
+    s.trips = s.trips.slice(0, 30);
+    if (!writeStore(s)) msg('Could not save on this device (storage is full or blocked). Your trip is still here; download the GPX to keep it.');
+    lastSave = Date.now();
+    drawSaved();
+  }
+  function drawSaved() {
+    const ul = q('.tt-saved'), s = readStore();
+    ul.replaceChildren();
+    for (const p of s.trips) {
+      const t = unpack(p); if (!t) continue;
+      const a = analyse(t);
+      const li = document.createElement('li');
+      const nm = document.createElement('span'); nm.className = 'nm';
+      nm.textContent = t.name; li.append(nm);
+      const sm = document.createElement('small');
+      sm.textContent = `${fmtDist(a.metres, units())}, ${fmtDur(a.elapsed)}${t.live ? ', unfinished (recovered)' : ''}`;
+      li.append(sm);
+      const mk = (label: string, fn: () => void) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = label; b.addEventListener('click', fn); li.append(b); };
+      mk('Open', () => { if (state === 'rec' || state === 'paused') { msg('Stop the current recording first.'); return; } t.live = false; show(t, 'done'); });
+      if (t.live) mk('Resume', () => resume(t));
+      mk('Delete', () => { const st = readStore(); st.trips = st.trips.filter((x) => x.id !== t.id); writeStore(st); drawSaved(); });
+      ul.append(li);
+    }
+    q('.tt-saved-n').textContent = ul.children.length ? '' : 'No saved trips.';
+    q<HTMLButtonElement>('.tt-clear').disabled = !s.trips.length;
+  }
+
+  // ---------- wake lock ----------
+  const wakeText = (t: string) => { q('.tt-wake').textContent = 'Screen wake lock: ' + t; };
+  async function getLock() {
+    const wl = (navigator as any).wakeLock;
+    if (!wl) { wakeText('off. This browser does not offer it, so set your phone to keep the screen on, or leave it plugged in with the screen awake.'); return; }
+    try {
+      lock = await wl.request('screen');
+      lock.addEventListener('release', () => { lock = null; if (state === 'rec') wakeText('off for now (it comes back when you return to this page).'); });
+      wakeText('on. The screen will stay awake while you record.');
+    } catch { lock = null; wakeText('off. The browser refused it (battery saver can do this). Keep the screen on yourself.'); }
+  }
+  async function dropLock() { try { await lock?.release(); } catch {} lock = null; wakeText('off (not recording).'); }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { if (state === 'rec') hiddenFlag = true; return; }
+    if (state === 'rec' && !lock) getLock();
+    if (state === 'rec') render();
+  });
+
+  // ---------- recording ----------
+  function support(): string {
+    if (!window.isSecureContext) return 'Location only works on secure (https) pages, and this page is not one, so the browser blocks it.';
+    if (!('geolocation' in navigator)) return 'This browser does not offer location to web pages. Try a recent Chrome, Safari, Firefox or Edge on your phone. You can still try the sample trip.';
+    return '';
+  }
+  function onFix(pos: GeolocationPosition) {
+    if (!trip || state !== 'rec') return;
+    const c = pos.coords, now = Date.now();
+    lastRawAcc = c.accuracy; lastErr = '';
+    const t = Math.abs(pos.timestamp - now) < 864e5 ? pos.timestamp : now;
+    const r = addFix(trip, { t, lat: c.latitude, lon: c.longitude, acc: c.accuracy, speed: c.speed, hid: hiddenFlag });
+    if (r.kept) hiddenFlag = false;
+    if (r.kept && keeping() && Date.now() - lastSave > AUTOSAVE_MS) saveTrip(trip, true);
+    live();
+  }
+  function onErr(e: GeolocationPositionError) {
+    if (e.code === 1) {
+      msg('Location is blocked for this page. Allow it in your browser\'s site settings (the icon beside the address), then press Start again. Nothing is recorded without it.');
+      if (state === 'rec') halt(trip && trip.samples.length > 1 ? 'paused' : 'idle');
+    } else if (e.code === 2) lastErr = 'Your device cannot work out its position right now (no signal?). Still trying.';
+    else lastErr = 'Waiting for a location fix. This can take a minute outdoors.';
+    live();
+  }
+  function watch() {
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    watchId = navigator.geolocation.watchPosition(onFix, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    if (timer == null) timer = window.setInterval(() => { tick++; live(); if (tick % 5 === 0) results(); if (trip && keeping() && state === 'rec' && Date.now() - lastSave > AUTOSAVE_MS) saveTrip(trip, true); }, 1000);
+    getLock();
+  }
+  function halt(next: 'idle' | 'paused' | 'done') {
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (timer != null) { clearInterval(timer); timer = null; }
+    dropLock();
+    state = next;
+    buttons();
+  }
+  function start() {
+    msg('');
+    const bad = support(); if (bad) { msg(bad); return; }
+    if (state === 'rec' || state === 'paused') return;
+    isSample = false;
+    trip = newTrip(mode, Date.now(), unitInfo(units()).d);
+    state = 'rec'; lastRawAcc = NaN; lastErr = ''; hiddenFlag = false; tick = 0;
+    if (keeping()) saveTrip(trip, true);
+    watch(); buttons(); live(); results();
+  }
+  function resume(t: Trip) {
+    msg('');
+    const bad = support(); if (bad) { msg(bad); return; }
+    if (state === 'rec' || state === 'paused') { msg('Stop the current recording first.'); return; }
+    isSample = false; trip = t; trip.live = true; mode = t.mode; setMode(mode);
+    state = 'rec'; lastErr = ''; hiddenFlag = true; tick = 0;
+    q<HTMLInputElement>('.tt-keep').checked = true;
+    watch(); buttons(); live(); results();
+  }
+  function pause() {
+    if (!trip) return;
+    if (state === 'rec') {
+      halt('paused'); pauseTrip(trip);
+      if (keeping()) saveTrip(trip, true);
+      live(); results();
+      status('Paused. Nothing is recorded, and no distance is counted across the pause.');
+    } else if (state === 'paused') {
+      state = 'rec'; msg(''); lastErr = ''; hiddenFlag = false; watch(); buttons(); live();
+    }
+  }
+  function stop() {
+    if (!trip) return;
+    halt('done'); trip.live = false;
+    if (keeping()) saveTrip(trip, false);
+    leaveDark(); live(); results();
+  }
+
+  // ---------- showing a trip (sample, saved or just recorded) ----------
+  function show(t: Trip, next: 'done') {
+    trip = t; state = next; mode = t.mode; setMode(mode, true);
+    isSample = t.id === 'sample'; msg(''); live(); results(); buttons();
+    q('.tt-out').scrollIntoView?.({ block: 'start' });
+  }
+
+  function buttons() {
+    const rec = state === 'rec', paused = state === 'paused';
+    q<HTMLButtonElement>('.tt-start').disabled = rec || paused;
+    q<HTMLButtonElement>('.tt-pause').disabled = !(rec || paused);
+    q('.tt-pause').textContent = paused ? 'Resume' : 'Pause';
+    q<HTMLButtonElement>('.tt-stop').disabled = !(rec || paused);
+    q<HTMLButtonElement>('.tt-darkbtn').disabled = !rec;
+    q<HTMLButtonElement>('.tt-mark').disabled = !((rec || paused) && !!trip && trip.samples.length > 0);
+    root.querySelectorAll<HTMLButtonElement>('.tt-modes button').forEach((b) => { b.disabled = rec || paused; });
+  }
+
+  // ---------- numbers ----------
+  function live() {
+    buttons();
+    const u = units(), now = Date.now(), o = (c: string, t: string) => { q(c).textContent = t; };
+    if (!trip || !trip.samples.length) {
+      for (const c of ['.tt-d', '.tt-e', '.tt-m', '.tt-v', '.tt-a', '.tt-t']) o(c, '–');
+      for (const c of ['.tt-ds', '.tt-vs', '.tt-as']) o(c, '');
+      o('.tt-acc', Number.isFinite(lastRawAcc) ? `±${Math.round(lastRawAcc)} m` : '–'); o('.tt-accs', state === 'rec' ? 'waiting for the first good fix' : '');
+      status(state === 'rec' ? (lastErr || 'Recording. Waiting for the first GPS fix.') : state === 'paused' ? 'Paused.' : 'Not recording.');
+      darkNums('–', '–', '–');
+      return;
+    }
+    const a = analyse(trip), last = trip.samples[trip.samples.length - 1];
+    const idle = state === 'rec' ? Math.max(0, (now - last.t) / 1000) : 0;
+    const elapsed = a.elapsed + (state === 'rec' ? idle : 0);
+    const stale = state === 'rec' && idle > 10;
+    o('.tt-d', fmtDist(a.metres, u)); o('.tt-ds', a.gapMetres > 0 ? `plus at least ${fmtDist(a.gapMetres, u)} in gaps` : '');
+    o('.tt-e', fmtDur(elapsed)); o('.tt-m', fmtDur(a.moving));
+    o('.tt-v', state === 'rec' && !stale ? fmtSpeed(a.speed, u) : '–');
+    o('.tt-vs', isFoot() && state === 'rec' && !stale ? fmtPace(a.speed, u) : '');
+    o('.tt-a', a.moving > 0 ? fmtSpeed(a.avgMoving, u) : '–'); o('.tt-as', isFoot() && a.moving > 0 ? fmtPace(a.avgMoving, u) : '');
+    o('.tt-t', fmtSpeed(a.top, u));
+    const acc = state === 'rec' && Number.isFinite(lastRawAcc) ? lastRawAcc : last.acc;
+    o('.tt-acc', `±${Math.round(acc)} m`);
+    o('.tt-accs', acc <= 15 ? 'good' : acc <= 35 ? 'fair' : 'poor');
+    if (state === 'rec') {
+      const bits = ['Recording.'];
+      if (lastErr) bits.push(lastErr);
+      else if (stale) bits.push(`No new reading for ${Math.round(idle)} s.${document.visibilityState === 'hidden' ? ' The page is hidden.' : ''}`);
+      if (trip.dropped.acc + trip.dropped.jump > 0) bits.push(`Ignored ${trip.dropped.acc + trip.dropped.jump} poor reading${trip.dropped.acc + trip.dropped.jump > 1 ? 's' : ''}.`);
+      status(bits.join(' '));
+    } else if (state === 'done') status(isSample ? 'Sample trip (made up).' : 'Finished.');
+    darkNums(state === 'rec' && !stale ? fmtSpeed(a.speed, u) : '–', fmtDist(a.metres, u), fmtDur(elapsed));
+  }
+
+  // ---------- results ----------
+  const cell = (tr: HTMLTableRowElement, v: string, right = false) => { const c = tr.insertCell(); c.textContent = v; if (right) c.className = 'r'; };
+  function table(tab: HTMLTableElement, head: string[], rows: string[][]) {
+    tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((v, i) => cell(tr, v, false && i > 0)); });
+  }
+  const fact = (k: string, v: string, sm = '') => {
+    const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>';
+    d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); }
+    return d;
+  };
+
+  function results() {
+    const out = q('.tt-out');
+    if (!trip || trip.samples.length < 1) { out.hidden = true; report = []; return; }
+    out.hidden = false;
+    const t = trip, a = analyse(t), u = units(), R = MODES[t.mode];
+    const dstr = (m: number) => fmtDist(m, u);
+    reportTitle = t.name; reportSub = `${new Date(t.startedAt).toLocaleString()}. ${R.label}, ${t.samples.length.toLocaleString('en')} points${isSample ? '. Made-up sample, not a real route' : ''}.`;
+    q('.tt-title').textContent = t.name; q('.tt-sub').textContent = reportSub;
+    q('.tt-after').hidden = state !== 'done' || isSample;
+    const f: HTMLElement[] = [
+      fact('Distance', dstr(a.metres), 'tracked, between kept readings'),
+    ];
+    if (a.gaps.length) f.push(fact('Gap distance (straight line, minimum)', `at least ${dstr(a.gapMetres)}`, `${a.gaps.length} gap${a.gaps.length > 1 ? 's' : ''}; the real distance there is probably more`));
+    f.push(fact('Time', `${fmtDur(a.elapsed)} in all`, `${fmtDur(a.moving)} moving`));
+    f.push(fact('Average (moving)', a.moving ? fmtSpeed(a.avgMoving, u) : '–', isFoot() && a.moving ? fmtPace(a.avgMoving, u) : ''));
+    f.push(fact('Top speed', fmtSpeed(a.top, u)));
+    f.push(fact('Speed changes', String(a.events.length), `${a.events.filter((e) => e.kind === 'up').length} speed-ups, ${a.events.filter((e) => e.kind === 'down').length} hard slow-downs`));
+    f.push(fact('Readings', `${t.samples.length.toLocaleString('en')} kept`, `${t.dropped.acc} poor accuracy and ${t.dropped.jump} jumps ignored`));
+    q('.tt-facts').replaceChildren(...f);
+
+    const evRows = a.events.map((e) => [fmtClock(e.t), fmtDur(e.into), e.kind === 'up' ? 'Speed-up' : 'Hard slow-down', `${fmtSpeed(e.from, u)} to ${fmtSpeed(e.to, u)}`, fmtPos(e.lat, e.lon)]);
+    const evHead = ['Clock time', 'Into trip', 'Change', 'Speed', 'Position'];
+    q('.tt-events-s').hidden = !evRows.length;
+    if (evRows.length) table(q<HTMLTableElement>('.tt-events'), evHead, evRows);
+    q('.tt-events-n').textContent = evRows.length ? 'Position is latitude, longitude. The time is when the change began.' : `None yet. A speed change is listed when speed rises or falls by ${R.sharp} m/s² or more for two readings in a row.`;
+    const gHead = ['Clock time', 'Length', 'Straight line (at least)', 'Why'];
+    const gRows = a.gaps.map((g) => [fmtClock(g.t0), fmtDur(g.seconds), fmtMetres(g.metres), g.hidden ? 'page was hidden' : 'no readings']);
+    q('.tt-gaps-h').hidden = !gRows.length; q('.tt-gaps-s').hidden = !gRows.length;
+    if (gRows.length) table(q<HTMLTableElement>('.tt-gaps'), gHead, gRows);
+    q('.tt-gaps-n').textContent = gRows.length ? `A gap is a spell of more than ${GAP_SECONDS} seconds with no readings while you moved. No points are invented; the straight line is the shortest the distance could be.` : '';
+    const lHead = ['Leg', 'Distance', 'Time', `Average`, 'Top'];
+    const lRows = a.legs.map((l) => [`${l.from} to ${l.to}`, dstr(l.metres) + (l.gapMetres > 0 ? ` + at least ${dstr(l.gapMetres)} in a gap` : ''), fmtDur(l.seconds), l.moving ? fmtSpeed(l.avg, u) + (isFoot() ? ` (${fmtPace(l.avg, u)})` : '') : '–', fmtSpeed(l.top, u)]);
+    table(q<HTMLTableElement>('.tt-legs'), lHead, lRows.length ? lRows : [['Not enough points yet', '', '', '', '']]);
+
+    figs.route = routeFigure(t, a, u); figs.speed = speedFigure(t, a, u);
+    paint(q<HTMLCanvasElement>('.tt-route'), figs.route); paint(q<HTMLCanvasElement>('.tt-speed'), figs.speed);
+    q('.tt-figkey').textContent = a.gaps.length ? 'Dashed lines are gaps: no readings, so the line only joins the two ends.' : 'The route is a plain flat drawing of your readings with no map underneath.';
+    report = [
+      { title: 'Summary', facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs.route, note: a.gaps.length ? 'Dashed lines mark gaps where no readings arrived; their distance is a straight-line minimum.' : undefined },
+      { title: 'Speed over time', figure: figs.speed },
+    ];
+    if (evRows.length) report.push({ title: 'Speed changes', table: { head: evHead, rows: evRows, align: ['l', 'r', 'l', 'l', 'l'] } });
+    if (gRows.length) report.push({ title: 'Gaps', table: { head: gHead, rows: gRows, align: ['l', 'r', 'r', 'l'] } });
+    if (lRows.length) report.push({ title: 'Points and legs', table: { head: lHead, rows: lRows, align: ['l', 'r', 'r', 'r', 'r'] } });
+  }
+
+  function routeFigure(t: Trip, a: Analysis, u: Units): Figure {
+    const S = t.samples, n = S.length;
+    const lat0 = S.reduce((s, p) => s + p.lat, 0) / n, kx = Math.cos((lat0 * Math.PI) / 180);
+    const xs = S.map((p) => p.lon * kx), ys = S.map((p) => p.lat);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const events = a.events, gaps = a.gaps, marks = t.marks;
+    return {
+      w: 380, h: 340, alt: `Route of the trip, ${fmtDist(a.metres, u)}, with start, end, marks, speed changes and gaps`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const pad = 22, top = 8, bot = 34;
+        const sx = (W - 2 * pad) / Math.max(x1 - x0, 1e-9), sy = (H - top - bot - 2 * 8) / Math.max(y1 - y0, 1e-9);
+        const s = Math.min(sx, sy, 1e9); // equal scale both ways
+        const ox = (W - s * (x1 - x0)) / 2, oy = top + 8 + ((H - top - bot - 16) - s * (y1 - y0)) / 2;
+        const X = (i: number) => ox + (xs[i] - x0) * s, Y = (i: number) => oy + (y1 - ys[i]) * s;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = 2.5; ctx.strokeStyle = pal.accent; ctx.setLineDash([]);
+        ctx.beginPath(); let pen = false;
+        S.forEach((p, i) => { if (i === 0 || p.brk) pen = false; if (pen) ctx.lineTo(X(i), Y(i)); else ctx.moveTo(X(i), Y(i)); pen = true; });
+        ctx.stroke();
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+        for (const g of gaps) { ctx.beginPath(); ctx.moveTo(X(g.i - 1), Y(g.i - 1)); ctx.lineTo(X(g.i), Y(g.i)); ctx.stroke(); }
+        ctx.setLineDash([]);
+        // Speed changes: triangles.
+        for (const e of events) {
+          const x = X(e.i0), y = Y(e.i0), d = 5.5, up = e.kind === 'up';
+          ctx.fillStyle = up ? pal.accent2 : pal.bad; ctx.strokeStyle = pal.bg; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x, y + (up ? -d : d)); ctx.lineTo(x - d, y + (up ? d : -d)); ctx.lineTo(x + d, y + (up ? d : -d)); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        // Marks: ringed dots, with the number of the mark.
+        ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        marks.slice().sort((p, r) => p.i - r.i).forEach((m, k) => {
+          if (m.i >= n) return;
+          ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(X(m.i), Y(m.i), 6.5, 0, 7); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = pal.ink; ctx.fillText(String(k + 1), X(m.i), Y(m.i) + 0.5);
+        });
+        ctx.fillStyle = pal.good; ctx.beginPath(); ctx.arc(X(0), Y(0), 5.5, 0, 7); ctx.fill();
+        ctx.strokeStyle = pal.bad; ctx.lineWidth = 2.2; ctx.strokeRect(X(n - 1) - 4.5, Y(n - 1) - 4.5, 9, 9);
+        // Scale bar and north.
+        const spanM = (Math.max(x1 - x0, y1 - y0) * Math.PI * 6371008.8) / 180;
+        const bar = [1, 2, 5].flatMap((m) => [1, 10, 100, 1000, 10000, 100000].map((k) => m * k)).sort((p, r) => p - r).filter((m) => m <= spanM / 2).pop() ?? 1;
+        const bw = (bar / ((Math.PI * 6371008.8) / 180)) * s, ly = H - 24;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.fillStyle = pal.ink; ctx.textBaseline = 'middle';
+        ctx.beginPath(); ctx.moveTo(10, ly - 4); ctx.lineTo(10, ly); ctx.lineTo(10 + bw, ly); ctx.lineTo(10 + bw, ly - 4); ctx.stroke();
+        ctx.textAlign = 'left'; ctx.fillText(bar >= 1000 ? `${bar / 1000} km` : `${bar} m`, 14 + bw, ly - 2);
+        ctx.textAlign = 'center'; ctx.beginPath(); ctx.moveTo(W - 14, 34); ctx.lineTo(W - 14, 14); ctx.lineTo(W - 18, 20); ctx.moveTo(W - 14, 14); ctx.lineTo(W - 10, 20); ctx.stroke(); ctx.fillText('N', W - 14, 42);
+        // Key.
+        ctx.textAlign = 'left'; ctx.font = '10px system-ui, sans-serif'; let kx0 = 10; const ky = H - 9;
+        const item = (draw: (x: number) => void, label: string) => { draw(kx0 + 5); ctx.fillStyle = pal.ink; ctx.fillText(label, kx0 + 13, ky); kx0 += 13 + ctx.measureText(label).width + 10; };
+        item((x) => { ctx.fillStyle = pal.good; ctx.beginPath(); ctx.arc(x, ky, 4, 0, 7); ctx.fill(); }, 'start');
+        item((x) => { ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.strokeRect(x - 3.5, ky - 3.5, 7, 7); }, 'end');
+        item((x) => { ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(x, ky - 4); ctx.lineTo(x - 4, ky + 3); ctx.lineTo(x + 4, ky + 3); ctx.fill(); }, 'speed-up');
+        item((x) => { ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.moveTo(x, ky + 4); ctx.lineTo(x - 4, ky - 3); ctx.lineTo(x + 4, ky - 3); ctx.fill(); }, 'slow-down');
+        if (gaps.length) item((x) => { ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.setLineDash([3, 2]); ctx.beginPath(); ctx.moveTo(x - 5, ky); ctx.lineTo(x + 5, ky); ctx.stroke(); ctx.setLineDash([]); }, 'gap');
+      },
+    };
+  }
+
+  function speedFigure(t: Trip, a: Analysis, u: Units): Figure {
+    const S = t.samples, k = unitInfo(u).v;
+    const total = Math.max(a.elapsed, 1), mins = total >= 180, tx = (i: number) => a.clock[i] / (mins ? 60 : 1);
+    const vmax = Math.max(1, ...S.map((p) => p.v * k)), tickY = niceTicks(0, vmax * 1.05, 5), yMax = Math.max(vmax * 1.05, tickY[tickY.length - 1] || 0);
+    const xMax = total / (mins ? 60 : 1), tickX = niceTicks(0, xMax, 6).filter((v) => v <= xMax * 1.001);
+    return {
+      w: 380, h: 230, alt: `Speed over time, top ${fmtSpeed(a.top, u)}`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const L = 40, Rr = W - 10, T = 10, B = H - 34;
+        const X = (x: number) => L + (x / (xMax || 1)) * (Rr - L), Y = (y: number) => B - (y / yMax) * (B - T);
+        ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.lineWidth = 1;
+        for (const y of tickY) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(y)); ctx.lineTo(Rr, Y(y)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(String(+y.toFixed(1)), L - 4, Y(y)); }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (const x of tickX) { ctx.fillStyle = pal.muted; ctx.fillText(String(+x.toFixed(1)), X(x), B + 4); }
+        ctx.fillStyle = pal.ink; ctx.fillText(`Time (${mins ? 'minutes' : 'seconds'})`, (L + Rr) / 2, B + 18);
+        ctx.save(); ctx.translate(11, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(`Speed (${unitInfo(u).vl})`, 0, 0); ctx.restore();
+        ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, B); ctx.lineTo(Rr, B); ctx.stroke();
+        for (const g of a.gaps) { ctx.fillStyle = pal.grid; ctx.fillRect(X(tx(g.i - 1)), T, Math.max(1, X(tx(g.i)) - X(tx(g.i - 1))), B - T); }
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath(); let pen = false;
+        S.forEach((p, i) => { if (i === 0 || p.brk) pen = false; if (pen) ctx.lineTo(X(tx(i)), Y(p.v * k)); else ctx.moveTo(X(tx(i)), Y(p.v * k)); pen = true; });
+        ctx.stroke();
+        ctx.strokeStyle = pal.muted; ctx.setLineDash([5, 4]);
+        for (const g of a.gaps) { ctx.beginPath(); ctx.moveTo(X(tx(g.i - 1)), Y(S[g.i - 1].v * k)); ctx.lineTo(X(tx(g.i)), Y(S[g.i].v * k)); ctx.stroke(); }
+        ctx.setLineDash([]);
+        for (const e of a.events) {
+          const x = X(tx(e.i0)), y = Y(S[e.i0].v * k), d = 4.5, up = e.kind === 'up';
+          ctx.fillStyle = up ? pal.accent2 : pal.bad; ctx.beginPath(); ctx.moveTo(x, y + (up ? -d : d)); ctx.lineTo(x - d, y + (up ? d : -d)); ctx.lineTo(x + d, y + (up ? d : -d)); ctx.closePath(); ctx.fill();
+        }
+      },
+    };
+  }
+
+  // ---------- dark screen ----------
+  const dark = q('.tt-dark');
+  const darkNums = (v: string, d: string, e: string) => { q('.dk-v').textContent = v; q('.dk-d').textContent = d; q('.dk-e').textContent = e; };
+  function enterDark() { dark.hidden = false; (dark as HTMLElement).focus(); }
+  function leaveDark() { dark.hidden = true; }
+  dark.addEventListener('click', leaveDark);
+  dark.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ' || (e as KeyboardEvent).key === 'Escape') { e.preventDefault(); leaveDark(); } });
+
+  // ---------- controls ----------
+  function setMode(m: Mode, quiet = false) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.tt-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    modeHelp();
+    if (!quiet) { live(); }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.tt-modes button').forEach((b) => b.addEventListener('click', () => {
+    if (state === 'rec' || state === 'paused') return;
+    setMode(b.dataset.mode as Mode);
+    // Looking at a finished trip: changing mode is only for the next recording; show it as recorded.
+  }));
+  q('.tt-units').addEventListener('change', () => { modeHelp(); live(); results(); drawSaved(); });
+  q('.tt-start').addEventListener('click', start);
+  q('.tt-pause').addEventListener('click', pause);
+  q('.tt-stop').addEventListener('click', stop);
+  q('.tt-darkbtn').addEventListener('click', enterDark);
+  q('.tt-mark').addEventListener('click', () => {
+    if (!trip) return;
+    const inp = q<HTMLInputElement>('.tt-label');
+    if (addMark(trip, inp.value)) { inp.value = ''; if (keeping()) saveTrip(trip, state !== 'done'); results(); }
+  });
+  q('.tt-sample').addEventListener('click', () => {
+    if (state === 'rec' || state === 'paused') { msg('Stop the current recording first.'); return; }
+    show(sampleTrip(), 'done');
+  });
+  q('.tt-gpx').addEventListener('click', () => { if (trip) save(new Blob([toGpx(trip)], { type: 'application/gpx+xml' }), fileSafe(trip.name) + '.gpx', 'application/gpx+xml'); });
+  q('.tt-csv').addEventListener('click', () => { if (trip) save(new Blob([toCsv(trip)], { type: 'text/csv' }), fileSafe(trip.name) + '.csv', 'text/csv'); });
+  q('.tt-keep').addEventListener('change', () => { if (keeping() && trip && trip.samples.length) saveTrip(trip, state === 'rec' || state === 'paused'); });
+  q('.tt-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} drawSaved(); });
+  document.addEventListener('fibub:theme', () => { if (!q('.tt-out').hidden && figs.route && figs.speed) { paint(q<HTMLCanvasElement>('.tt-route'), figs.route); paint(q<HTMLCanvasElement>('.tt-speed'), figs.speed); } });
+  wireDownloads(q('.dl'), () => ({ title: reportTitle, subtitle: reportSub, file: fileSafe(reportTitle) || 'trip', sections: report }));
+
+  setMode('car', true); buttons(); live(); drawSaved();
+  if (support()) status(support() + ' (The sample trip still works.)');
+</script>
+
+<style is:inline>
+  .tt .tt-modes { margin-bottom: 4px; max-width: 100%; }
+  .tt .tt-units-l { display: block; margin: 10px 0; max-width: 260px; }
+  .tt .tt-units-l select { width: 100%; }
+  .tt .tt-buttons { margin: 10px 0; }
+  .tt .tt-buttons .btn { min-width: 84px; }
+  .tt .tt-markrow { margin: 6px 0 10px; }
+  .tt .tt-markrow input { flex: 1 1 180px; min-width: 0; }
+  .tt .tt-check { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+  .tt .tt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tt .tt-cell { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .tt .tt-cell .k { display: block; font-size: 13px; color: var(--muted); }
+  .tt .tt-cell b { display: block; font-size: clamp(24px, 7vw, 32px); line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .tt .tt-cell small { display: block; min-height: 1.2em; font-size: 13px; color: var(--muted); }
+  .tt h3 { margin: 16px 0 6px; font-size: 1rem; }
+  .tt table td, .tt table th { white-space: nowrap; }
+  .tt table td.r { text-align: right; }
+  .tt .tt-saved { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+  .tt .tt-saved li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+  .tt .tt-saved .nm { font-weight: 600; flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+  .tt .tt-saved small { color: var(--muted); flex: 1 1 100%; }
+  .tt .tt-dark { position: fixed; inset: 0; z-index: 99999; background: #000; color: #9a9a9a; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 28px; cursor: pointer; padding: 16px; text-align: center; }
+  .tt .tt-dark[hidden] { display: none; }
+  .tt .tt-dark b { display: block; font-variant-numeric: tabular-nums; font-weight: 700; color: #b0b0b0; }
+  .tt .tt-dk-v b { font-size: clamp(56px, 22vw, 150px); line-height: 1; }
+  .tt .tt-dk-row { display: flex; flex-wrap: wrap; gap: 20px 40px; justify-content: center; }
+  .tt .tt-dk-row b { font-size: clamp(32px, 11vw, 72px); line-height: 1.1; }
+  .tt .tt-dark small { display: block; font-size: 16px; color: #6a6a6a; }
+  .tt .tt-dk-hint { margin: 0; font-size: 14px; color: #5a5a5a; }
+  html.red-mode .tt .tt-dark b { color: #8a0000; }
+  html.red-mode .tt .tt-dark { color: #6e0000; }
+  html.red-mode .tt .tt-dark small, html.red-mode .tt .tt-dk-hint { color: #4a0000; }
+</style>
