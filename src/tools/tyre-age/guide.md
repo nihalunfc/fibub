@@ -1,6 +1,6 @@
 ---
 name: Tyre age
-num: 2113
+num: 2114
 shelf: vehicles
 code: T941
 section: tyre-basics
@@ -8,7 +8,7 @@ title: "Tyre manufacturing date: read the DOT date code"
 summary: "Type the 4 digits from the DOT stamp on a tyre to see the week and year it was made, how old it is, and whether it is time to have it checked or replaced."
 status: live
 ads: false
-order: 2113
+order: 2114
 icon: clock
 works: offline
 updated: 2026-11-12

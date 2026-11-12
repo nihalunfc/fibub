@@ -1,6 +1,6 @@
 ---
 name: Tyre type
-num: 2113
+num: 2117
 shelf: vehicles
 code: T944
 section: tyre-weather
@@ -8,7 +8,7 @@ title: "Which tyre type do I need? Summer, all-season, all-weather or winter"
 summary: "Answer five quick taps about your weather, roads and vehicle and get one recommended tyre type, a second choice and the sidewall marks to look for."
 status: live
 ads: false
-order: 2113
+order: 2117
 icon: check
 works: offline
 updated: 2026-11-12

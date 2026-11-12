@@ -1,6 +1,6 @@
 ---
 name: Tread depth
-num: 2114
+num: 2115
 shelf: vehicles
 code: T942
 section: tyre-basics
@@ -8,7 +8,7 @@ title: "Tyre tread depth: is it legal, and when to replace"
 summary: "Type your tread depth in mm or 32nds of an inch and see if the tyre is legal, close to the limit or needs replacing, with coin tests and wear-bar checks you can do at home."
 status: live
 ads: false
-order: 2114
+order: 2115
 icon: ruler
 works: offline
 updated: 2026-11-12
