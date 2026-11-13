@@ -1,0 +1,183 @@
+---
+// #T950 Price tracker
+---
+<div class="tool-ui pt">
+  <section class="panel pt-top">
+    <label>Compare with the last<select class="pt-days"><option value="30">30 days</option><option value="60">60 days</option><option value="90" selected>90 days</option></select></label>
+    <label>My budget (optional)<input class="pt-budget" inputmode="decimal" placeholder="e.g. 400" /></label>
+  </section>
+  <section class="panel pt-sum" aria-live="polite"></section>
+  <div class="pt-items"></div>
+  <form class="panel pt-new">
+    <label>Add an item<input class="pt-new-name" placeholder="e.g. 55-inch TV" maxlength="80" /></label>
+    <button type="submit" class="btn">+ Add item</button>
+  </form>
+  <section class="panel pt-keep">
+    <label class="pt-chk"><input type="checkbox" class="pt-remember" /> Remember my list on this device</label>
+    <p class="pt-fine">Off by default. When ticked, your list is kept in this browser only (localStorage) and never leaves your device. Untick it or press Clear to delete it.</p>
+    <div class="pt-btns">
+      <button type="button" class="btn secondary pt-csv">Download CSV</button>
+      <button type="button" class="btn secondary pt-clear">Clear list</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .pt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pt .panel { padding: 16px; }
+  .pt label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .pt input:not([type=checkbox]), .pt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); width: 100%; min-width: 0; }
+  .pt input:focus, .pt select:focus { border-color: var(--accent); outline: none; }
+  .pt-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pt-sum p { margin: 0 0 6px; } .pt-sum p:last-child { margin: 0; }
+  .pt-sum .pt-big { font-size: 20px; font-weight: 700; }
+  .pt-items { display: grid; gap: 14px; }
+  .pt-item { display: grid; gap: 10px; }
+  .pt-row { display: grid; grid-template-columns: 2fr 1.4fr 1fr 1.2fr; gap: 8px; align-items: end; }
+  @media (max-width: 480px) { .pt-row { grid-template-columns: 1fr 1fr; } }
+  .pt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .pt-chk { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; font-size: 15px !important; }
+  .pt-x { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; color: var(--muted); cursor: pointer; font: inherit; padding: 6px 10px; }
+  .pt-v { font-weight: 700; margin: 0; }
+  .pt-v.deal { color: var(--good); } .pt-v.worse { color: var(--bad); } .pt-flag { color: var(--warn); font-weight: 600; margin: 0; } .pt-flag.ok { color: var(--ink); font-weight: 400; }
+  .pt-v:empty, .pt-flag:empty, .pt-note:empty { display: none; }
+  .pt-note { margin: 0; font-size: 14px; color: var(--muted); }
+  .pt-log { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .pt-log td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  .pt-log td:nth-child(2) { text-align: right; } .pt-log td:last-child { text-align: right; width: 1%; }
+  .pt-add { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 8px; align-items: end; }
+  .pt-add .btn { padding: 10px 14px; }
+  .pt-spark { width: 100%; height: 56px; display: block; }
+  .pt-spark polyline { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .pt-spark circle { fill: var(--accent); } .pt-spark line { stroke: var(--line); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+  .pt-new { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .pt-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pt-fine { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+</style>
+
+<script>
+  import { check, basket, clean, toCsv, type Seen } from '../../lib/money/price-track';
+  type Item = { name: string; store: string; qty: number; was: number; buy: boolean; seen: Seen[] };
+  const KEY = 'fibub-price-tracker-v1';
+  const root = document.querySelector('.pt') as HTMLElement;
+  const q = <T extends Element>(s: string, el: ParentNode = root) => el.querySelector(s) as T;
+  const list = q<HTMLElement>('.pt-items'), sum = q<HTMLElement>('.pt-sum');
+  const remember = q<HTMLInputElement>('.pt-remember');
+  const f = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const p1 = (v: number) => Math.abs(v).toFixed(1) + '%';
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const num = (s: string) => { const v = parseFloat(s.replace(/[^\d.]/g, '')); return Number.isFinite(v) ? v : 0; };
+  const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const nice = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+  const EXAMPLE: Item[] = [
+    { name: 'Headphones', store: 'Example store', qty: 1, was: 299.99, buy: true, seen: [{ date: '2026-10-01', price: 199.99 }, { date: '2026-10-20', price: 179.99 }, { date: '2026-11-10', price: 229.99 }, { date: '2026-11-27', price: 179.99 }] },
+    { name: 'Air fryer', store: 'Example store', qty: 1, was: 129.99, buy: true, seen: [{ date: '2026-10-05', price: 129.99 }, { date: '2026-11-01', price: 119.99 }, { date: '2026-11-27', price: 89.99 }] },
+  ];
+  let items: Item[] = structuredClone(EXAMPLE);
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Array.isArray(saved.items)) { items = saved.items; remember.checked = true; q<HTMLInputElement>('.pt-budget').value = saved.budget || ''; q<HTMLSelectElement>('.pt-days').value = saved.days || '90'; }
+  } catch {}
+  const days = () => +q<HTMLSelectElement>('.pt-days').value;
+  const store = () => { try { if (remember.checked) localStorage.setItem(KEY, JSON.stringify({ items, budget: q<HTMLInputElement>('.pt-budget').value, days: String(days()) })); } catch {} };
+
+  const spark = (s: Seen[], low: number) => {
+    if (s.length < 2) return '';
+    const t0 = Date.parse(s[0].date), t1 = Date.parse(s[s.length - 1].date) || t0 + 1;
+    const ps = s.map((x) => x.price), lo = Math.min(...ps), hi = Math.max(...ps), span = hi - lo || 1;
+    const X = (d: string) => 4 + ((Date.parse(d) - t0) / (t1 - t0 || 1)) * 292, Y = (v: number) => 50 - ((v - lo) / span) * 44;
+    const pts = s.map((x) => `${X(x.date).toFixed(1)},${Y(x.price).toFixed(1)}`);
+    const ln = Number.isFinite(low) ? `<line x1="0" x2="300" y1="${Y(low).toFixed(1)}" y2="${Y(low).toFixed(1)}" />` : '';
+    return `<svg class="pt-spark" viewBox="0 0 300 56" preserveAspectRatio="none" role="img" aria-label="Price history from ${f(ps[0])} to ${f(ps[ps.length - 1])}">${ln}<polyline points="${pts.join(' ')}" />${s.map((x) => `<circle cx="${X(x.date).toFixed(1)}" cy="${Y(x.price).toFixed(1)}" r="2.5" />`).join('')}</svg>`;
+  };
+
+  const verdictOf = (it: Item) => {
+    const c = check(it.seen, days(), it.was);
+    if (!c.now) return { c, v: '', note: 'Log the price you see today, then again later (for example on Black Friday).', flag: '' };
+    let v = '', note = '';
+    if (c.verdict === 'none') note = `Latest price ${f(c.now.price)} on ${nice(c.now.date)}. Log an earlier price from the last ${days()} days to check the deal.`;
+    else {
+      v = c.verdict === 'deal' ? `Real deal: ${p1(c.vsLow)} below the lowest price you saw (${f(c.low)}).`
+        : c.verdict === 'same' ? `Same as its recent low (${f(c.low)}): not a special deal.`
+        : `Not a deal: ${f(c.now.price - c.low)} more than the ${f(c.low)} you saw before.`;
+      note = `Latest ${f(c.now.price)} on ${nice(c.now.date)}. Typical price over ${c.count} earlier ${c.count === 1 ? 'check' : 'checks'}: ${f(c.typical)}, so ${c.realOff >= 0 ? p1(c.realOff) + ' off' : p1(c.realOff) + ' more'}.`;
+    }
+    let flag = '';
+    if (Number.isFinite(c.claimedOff)) flag = c.inflated
+      ? `The store's "was" price of ${f(it.was)} is higher than any price you saw. Its claimed ${p1(c.claimedOff)} off is inflated.`
+      : `Store claims ${p1(c.claimedOff)} off ${f(it.was)}.`;
+    return { c, v, note, flag };
+  };
+
+  const render = () => {
+    list.innerHTML = items.map((it, i) => `<section class="panel pt-item" data-i="${i}">
+      <div class="pt-head"><label class="pt-chk"><input type="checkbox" class="pt-buy"${it.buy ? ' checked' : ''} /> Buying this</label><button type="button" class="pt-x pt-del" aria-label="Remove ${esc(it.name)}">Remove</button></div>
+      <div class="pt-row"><label>Item<input class="pt-name" value="${esc(it.name)}" maxlength="80" /></label><label>Store<input class="pt-store" value="${esc(it.store)}" maxlength="60" /></label>
+      <label>How many<input class="pt-qty" inputmode="numeric" value="${it.qty || 1}" /></label><label>Store's "was" price<input class="pt-was" inputmode="decimal" value="${it.was || ''}" placeholder="optional" /></label></div>
+      <p class="pt-v"></p><p class="pt-flag"></p><p class="pt-note"></p><div class="pt-chart"></div>
+      <table class="pt-log"><tbody>${clean(it.seen).map((s) => `<tr><td>${nice(s.date)}</td><td>${f(s.price)}</td><td><button type="button" class="pt-x pt-rm" data-d="${s.date}" data-p="${s.price}" aria-label="Remove price">×</button></td></tr>`).join('')}</tbody></table>
+      <div class="pt-add"><label>Date seen<input type="date" class="pt-date" value="${today()}" /></label><label>Price<input class="pt-price" inputmode="decimal" placeholder="0.00" /></label><button type="button" class="btn pt-log-add">Log price</button></div>
+    </section>`).join('') || '<p class="panel pt-note">Your list is empty. Add an item below.</p>';
+    refresh();
+  };
+
+  const refresh = () => {
+    list.querySelectorAll<HTMLElement>('.pt-item').forEach((el) => {
+      const it = items[+el.dataset.i!], r = verdictOf(it);
+      const v = q<HTMLElement>('.pt-v', el); v.textContent = r.v; v.className = 'pt-v ' + r.c.verdict;
+      const fl = q<HTMLElement>('.pt-flag', el); fl.textContent = r.flag; fl.classList.toggle('ok', !r.c.inflated); q<HTMLElement>('.pt-note', el).textContent = r.note;
+      q<HTMLElement>('.pt-chart', el).innerHTML = spark(clean(it.seen), r.c.low);
+    });
+    const budget = num(q<HTMLInputElement>('.pt-budget').value);
+    const b = basket(items, days(), budget), n = items.filter((x) => x.buy && x.seen.length).length;
+    sum.innerHTML = !n ? '<p>Tick "Buying this" on items to see your basket total.</p>'
+      : `<p class="pt-big">Basket: ${f(b.total)} for ${n} ${n === 1 ? 'item' : 'items'}</p><p>${b.saved > 0.004 ? `You save ${f(b.saved)} against the typical prices you logged (${f(b.typicalTotal)}).` : b.saved < -0.004 ? `That is ${f(-b.saved)} more than the typical prices you logged (${f(b.typicalTotal)}).` : 'Same as the typical prices you logged.'}</p>`
+        + (budget > 0 ? `<p>${b.left >= 0 ? `${f(b.left)} left of your ${f(budget)} budget.` : `${f(-b.left)} over your ${f(budget)} budget.`}</p>` : '');
+    store();
+  };
+
+  list.addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement, card = el.closest<HTMLElement>('.pt-item'); if (!card) return;
+    const it = items[+card.dataset.i!];
+    if (el.matches('.pt-name')) it.name = el.value; else if (el.matches('.pt-store')) it.store = el.value;
+    else if (el.matches('.pt-qty')) it.qty = num(el.value); else if (el.matches('.pt-was')) it.was = num(el.value);
+    else if (el.matches('.pt-buy')) it.buy = el.checked; else return;
+    refresh();
+  });
+  const logPrice = (card: HTMLElement) => {
+    const it = items[+card.dataset.i!], date = q<HTMLInputElement>('.pt-date', card).value, price = num(q<HTMLInputElement>('.pt-price', card).value);
+    if (!date || !(price > 0)) { q<HTMLInputElement>('.pt-price', card).focus(); return; }
+    it.seen = it.seen.filter((s) => s.date !== date).concat({ date, price }); // one price per day: a new one replaces it
+    render();
+  };
+  list.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'), card = b?.closest<HTMLElement>('.pt-item'); if (!b || !card) return;
+    const i = +card.dataset.i!;
+    if (b.matches('.pt-del')) { items.splice(i, 1); render(); }
+    else if (b.matches('.pt-rm')) { items[i].seen = items[i].seen.filter((s) => !(s.date === b.dataset.d && s.price === +b.dataset.p!)); render(); }
+    else if (b.matches('.pt-log-add')) logPrice(card);
+  });
+  list.addEventListener('keydown', (e) => {
+    const el = e.target as HTMLElement;
+    if (e.key === 'Enter' && el.matches('.pt-price, .pt-date')) { e.preventDefault(); logPrice(el.closest<HTMLElement>('.pt-item')!); }
+  });
+  q('.pt-new').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const inp = q<HTMLInputElement>('.pt-new-name'), name = inp.value.trim(); if (!name) { inp.focus(); return; }
+    items.push({ name, store: '', qty: 1, was: 0, buy: true, seen: [] }); inp.value = ''; render();
+    list.querySelector<HTMLInputElement>('.pt-item:last-child .pt-price')?.focus();
+  });
+  q('.pt-top').addEventListener('input', refresh); q('.pt-top').addEventListener('change', refresh);
+  remember.addEventListener('change', () => { try { if (!remember.checked) localStorage.removeItem(KEY); } catch {} store(); });
+  q('.pt-clear').addEventListener('click', () => {
+    items = []; q<HTMLInputElement>('.pt-budget').value = '';
+    try { localStorage.removeItem(KEY); } catch {} remember.checked = false; render();
+  });
+  q('.pt-csv').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([toCsv(items)], { type: 'text/csv' })); a.download = 'price-tracker.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  render();
+</script>
