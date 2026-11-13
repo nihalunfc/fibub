@@ -47,6 +47,13 @@ Read the tool's own `src/tools/<id>/guide.md` and `Tool.astro` first, so you des
 - `[[tool-id]]` links a tool by its name; `[[tool-id|your words]]` with your words. Another article: `[[blog:guides/planner]]` or `[[blog:guides/planner|your words]]` (only once that article exists).
 - Tool names also link themselves the first time they appear. Link where it helps the reader, not as a list.
 
+## Checked with the tools (every article, nihal's rule of 2026-11-12)
+Every article has a section `## Checked with the tools` with at least one plot or graph made with the same maths the fibub tools use (`src/lib/sci/`), not drawn by hand.
+- Write a small script `scripts/blog-figures/<slug>.mjs` that imports the tool's maths, works out the numbers and writes the charts into the article with `chart()`, `figure()` and `inject()` from `scripts/blog-figures/svg.mjs`. Put `<!-- fig:name -->` and `<!-- /fig:name -->` where each chart goes; run `node scripts/blog-figures/<slug>.mjs` and commit the article with the charts in it.
+- Charts are inline SVG that use the page's colours, so they follow dark and red-light modes. Keep each under about 12 KB (the page limit is 120 KB): thin lines, rounded numbers, a few hundred points at most.
+- Say plainly what was checked and how: a recomputation from the paper's stated values, a fit to simulated data, or a fit to the real public data. Never present a simulation as the paper's data. Give a short table of "paper says / tool gives" where it helps.
+- Older articles get the section when they are next edited.
+
 ## House rules
 - Plain, friendly English. Short sentences. Explain every term the first time.
 - Science only: nothing religious, astrological or pseudo-scientific.
