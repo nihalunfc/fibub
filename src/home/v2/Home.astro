@@ -50,6 +50,7 @@ const promises = ['Runs in your browser', 'Nothing is uploaded', 'No sign-up', '
       <input type="search" placeholder={`Search ${live.length.toLocaleString('en')} tools or #T3`} autocomplete="off" />
     </label>
     <p class="ids-line">Tool IDs: <b>#T</b> Tools, <b>#L</b> Learn. <a href="/tools/#ids">What they mean</a></p>
+    <p class="ids-line inst-hide">Use it like an app: <a href="/app/" data-install>install fibub</a> on your phone or computer, and the tools you open work offline.</p>
     <ul class="promise" aria-label="What fibub promises">
       {promises.map((p) => <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={tick} />{p}</li>)}
     </ul>

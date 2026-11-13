@@ -187,6 +187,7 @@ if (bm) {
     const dark = html.dataset.theme !== 'dark';
     if (dark) html.dataset.theme = 'dark'; else delete html.dataset.theme;
     try { dark ? localStorage.setItem('fibub-theme', 'dark') : localStorage.removeItem('fibub-theme'); } catch {}
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#ffffff');
     sync(); fire();
   }));
   document.querySelectorAll('.red-btn').forEach((b) => b.addEventListener('click', () => {

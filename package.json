@@ -5,9 +5,9 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/check-ids.mjs && node scripts/check-links.mjs && node scripts/changelog.mjs && node --max-old-space-size=6144 node_modules/astro/astro.js build && node scripts/list-pages.mjs",
+    "build": "node scripts/check-ids.mjs && node scripts/check-links.mjs && node scripts/changelog.mjs && node --max-old-space-size=6144 node_modules/astro/astro.js build && node scripts/list-pages.mjs && node scripts/make-sw.mjs",
     "preview": "astro preview",
-    "test": "node tests/sci.mjs && node tests/ats-parse.mjs && node tests/views.mjs && node tests/run.mjs",
+    "test": "node tests/sci.mjs && node tests/ats-parse.mjs && node tests/views.mjs && node tests/pwa.mjs && node tests/run.mjs",
     "images": "node scripts/make-images.mjs",
     "changelog": "node scripts/changelog.mjs",
     "new-tool": "node scripts/new-tool.mjs"

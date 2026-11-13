@@ -1,0 +1,50 @@
+---
+// What the installed app (or any browser with the service worker, src/sw.js) shows when there is no
+// internet and the page asked for was never opened before. It lists the pages kept on this device.
+import Base from '../layouts/Base.astro';
+---
+<Base title="You are offline" description="No internet connection. Pages you have opened on fibub before still work." noindex>
+  <article class="prose off">
+    <h1>You are offline</h1>
+    <p class="lead">This page has not been opened on this device before, so it is not kept here yet. Every page you have opened on fibub still works without the internet.</p>
+    <div class="off-kept" hidden>
+      <h2>Kept on this device</h2>
+      <ul class="off-list"></ul>
+    </div>
+    <p class="off-none" hidden>Nothing is kept yet. Next time you are online, open the tools you use; they will then work here offline too.</p>
+    <p><button type="button" class="btn off-retry">Try again</button></p>
+    <p class="off-note">Pages are kept only in this browser's own storage, never sent anywhere. Clearing this site's data in your browser settings removes them.</p>
+  </article>
+</Base>
+<style>
+  .off-list { padding-left: 20px; }
+  .off-list li { margin: 0 0 6px; }
+  .off-note { color: var(--muted); font-size: 14px; }
+</style>
+<script>
+  // Names come from /tools.json when it is kept too; otherwise a page's address is tidied into a name.
+  const list = document.querySelector<HTMLUListElement>('.off-list')!;
+  document.querySelector('.off-retry')!.addEventListener('click', () => location.reload());
+  (async () => {
+    let keys: string[] = [];
+    try { keys = (await (await caches.open('fibub-pages-v1')).keys()).map((r) => new URL(r.url).pathname); } catch { /* no storage */ }
+    keys = [...new Set(keys)].filter((p) => p !== '/offline/').sort();
+    const names = new Map<string, string>();
+    try {
+      const hit = await caches.match('/tools.json');
+      if (hit) for (const t of await hit.json() as { n: string; u: string }[]) names.set(t.u, t.n);
+    } catch { /* no index kept */ }
+    const tidy = (p: string) => {
+      if (p === '/') return 'Home';
+      const last = p.split('/').filter(Boolean).pop()!;
+      return last.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+    };
+    for (const p of keys) {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = p; a.textContent = names.get(p) ?? tidy(p);
+      li.append(a);
+      list.append(li);
+    }
+    document.querySelector<HTMLElement>(keys.length ? '.off-kept' : '.off-none')!.hidden = false;
+  })();
+</script>

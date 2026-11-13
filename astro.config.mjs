@@ -37,8 +37,8 @@ export default defineConfig({
   site: 'https://fibub.com',
   trailingSlash: 'always',
   integrations: [sitemap({
-    // /nav/ only holds the menu's tool lists for the header to load; it is not a page of its own.
-    filter: (page) => !/\/nav\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
+    // /nav/ only holds the menu's tool lists for the header to load, and /offline/ is what the app shows with no internet: neither is a page of its own.
+    filter: (page) => !/\/(nav|offline)\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
     serialize(item) {
       const path = new URL(item.url).pathname.split('/').filter(Boolean);
       const date = path[0] === 'blog' && path.length === 3 ? changed.byArticle.get(`${path[1]}/${path[2]}`)
