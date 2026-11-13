@@ -1,14 +1,26 @@
 {
-  "name": "fibub",
+  "id": "/",
+  "name": "fibub: free tools that run in your browser",
   "short_name": "fibub",
-  "description": "Free everyday tools that never see your files.",
+  "description": "Free tools for school, work and everyday life. Everything runs on your own device, and pages you have opened keep working offline.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
-  "display": "browser",
-  "background_color": "#f6f7fb",
-  "theme_color": "#f6f7fb",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": ["utilities", "productivity", "education"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Tools", "short_name": "Tools", "url": "/tools/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Learn", "short_name": "Learn", "url": "/learn/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Blog", "short_name": "Blog", "url": "/blog/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

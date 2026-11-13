@@ -230,3 +230,19 @@ html.red-mode .ico-btn.red-btn[aria-pressed=true] { background: #2b0000; color: 
 .find svg { width: 18px; height: 18px; flex: none; }
 .find input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink); height: 100%; }
 .nav-wait { margin: 8px 4px; color: var(--muted); font-size: 14px; }
+
+/* Install fibub as an app (src/scripts/install.ts, /app/). In the installed app the install links hide
+   and a Back button shows in the header; the sides keep clear of a phone's notch in landscape. */
+.back-btn[hidden] { display: none; }
+html.is-app .ft-install, html.is-app .at-install, html.is-app .inst-hide { display: none !important; }
+@supports (padding: env(safe-area-inset-left)) {
+  header.site, main, footer.site { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+}
+.inst-dlg { border: 1px solid var(--line); border-radius: 16px; padding: 20px; max-width: min(420px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 16px 48px rgba(18, 24, 38, .2); }
+.inst-dlg::backdrop { background: rgba(18, 24, 38, .35); }
+.inst-dlg h2 { margin: 0 0 10px; font-size: 19px; }
+.inst-dlg ol { margin: 0 0 12px; padding-left: 22px; }
+.inst-dlg li { margin: 0 0 8px; }
+.inst-dlg li svg { vertical-align: -3px; }
+.inst-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+.inst-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

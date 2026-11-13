@@ -129,7 +129,8 @@ const stopServer = () => { try { process.kill(-server.pid); } catch { server.kil
 try {
   for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ acceptDownloads: true });
+  // The service worker is tested on its own in tests/pwa.mjs; here it would sit between the page and these routes.
+  const ctx = await browser.newContext({ acceptDownloads: true, serviceWorkers: 'block' });
   // The view and use counters (worker/index.ts) are not part of the static preview, so the tests
   // answer for them: running totals that go up by one per note, as the real Worker does.
   const fakeCounts = { site: 41, v: 9, u: 2 };

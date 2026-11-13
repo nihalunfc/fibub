@@ -1,0 +1,54 @@
+---
+// How to install fibub as an app on a phone, tablet or computer (src/scripts/install.ts does the button).
+import Base from '../layouts/Base.astro';
+---
+<Base title="Install fibub as an app" description="Put fibub on your phone's home screen or your computer like an app: its own icon, full screen, and the tools you open keep working offline. Free, no app store, nothing tracked.">
+  <article class="prose app-pg">
+    <h1>Install fibub as an app</h1>
+    <p class="lead">Put fibub on your home screen like any other app: one tap opens it full screen, and every tool you have opened keeps working with no internet. No app store, no sign-up, nothing to pay.</p>
+
+    <div class="app-cta inst-hide">
+      <p data-install-only hidden><button type="button" class="btn app-btn" data-install>Install fibub</button></p>
+      <p class="app-done" data-install-done hidden><b>Installed.</b> Open fibub from its icon on your home screen or in your apps.</p>
+    </div>
+    <p class="app-in" hidden>You are using the fibub app now. Tools you open here keep working offline.</p>
+
+    <h2>What you get</h2>
+    <ul>
+      <li><b>Its own icon</b> on your home screen, app drawer, dock or Start menu.</li>
+      <li><b>Full screen</b>, without the browser's address bar, with the same Learn, Tools, Home, Blog and Menu bar at the bottom.</li>
+      <li><b>Works offline.</b> Every page you open is kept on your device, so the tools you use work on a plane or with no signal. Pages you have never opened need the internet the first time.</li>
+      <li><b>Always up to date.</b> When you are online, each page loads fresh, so you get new tools and fixes straight away. There is nothing to update by hand.</li>
+      <li><b>The same privacy.</b> The app is the website itself. Your files and numbers still never leave your device, and installing it tells us nothing about you.</li>
+    </ul>
+
+    <h2>Android phones and tablets</h2>
+    <p><b>Chrome:</b> tap <b>Install fibub</b> above, or open the menu (⋮) and choose <b>Add to Home screen</b>, then <b>Install</b>.</p>
+    <p><b>Samsung Internet:</b> tap the menu (☰) and choose <b>Add page to</b>, then <b>Home screen</b>.</p>
+    <p><b>Firefox:</b> tap the menu (⋮) and choose <b>Install</b> or <b>Add to Home screen</b>.</p>
+
+    <h2>iPhone and iPad</h2>
+    <ol>
+      <li>Open fibub.com in <b>Safari</b> (newer iPhones also allow this from Chrome and Edge).</li>
+      <li>Tap the <b>Share</b> button: the square with an arrow pointing up.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    </ol>
+    <p>On iPhone, the app has a <b>Back</b> button at the top left, because there is no browser bar.</p>
+
+    <h2>Computers</h2>
+    <p><b>Chrome and Edge</b> (Windows, Mac, Linux, ChromeOS): click <b>Install fibub</b> above, or the install icon at the right of the address bar. fibub then opens in its own window and appears in your Start menu or Applications.</p>
+    <p><b>Safari on a Mac</b> (macOS Sonoma or newer): choose <b>File</b>, then <b>Add to Dock</b>.</p>
+    <p><b>Firefox</b> on computers cannot install websites as apps. Bookmark fibub instead; pages you have opened still work offline.</p>
+
+    <h2>What is kept on your device</h2>
+    <p>Copies of the fibub pages you open and the files they need (up to a few hundred pages; the oldest go first). They are kept in your browser's own storage and are never sent anywhere. fibub has no account and no cloud copy of anything.</p>
+
+    <h2>Removing the app</h2>
+    <p>Remove it like any other app: press and hold its icon and choose <b>Remove</b> or <b>Uninstall</b>; on a computer, open the app's menu and choose <b>Uninstall</b>. To also delete the pages kept for offline use, clear fibub's site data in your browser settings.</p>
+  </article>
+</Base>
+<style>
+  .app-cta { margin: 0 0 8px; }
+  .app-btn { font-size: 17px; padding: 13px 24px; }
+  :global(html.is-app) .app-in { display: block !important; }
+</style>

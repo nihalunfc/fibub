@@ -34,7 +34,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
 <html lang="en" data-shelf={shelf} data-tool={tool} data-area={area.id}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -55,6 +55,9 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={imageUrl} />
     <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-title" content="fibub" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="sitemap" href="/sitemap-index.xml" />
     {ldJson && <script is:inline type="application/ld+json" set:html={ldJson} />}
@@ -64,6 +67,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
     {shelf === 'science' && <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="red-night" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0.19 0.38 0.07 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" /></filter></svg>}
     <header class="site">
       <div class="wrap">
+        <button type="button" class="ico-btn back-btn" aria-label="Back" title="Back" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg></button>
         <a class="logo" href="/" aria-label="fibub home"><Fragment set:html={mark()} /><span class="logo-t">fi<span>bub</span></span></a>
         <nav class="main" aria-label="Shelves">
           {menus.map(({ shelf: s, hasSubjects }) => (
@@ -125,6 +129,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
               <a class="at-link" href="/">Home</a>
               <a class="at-link" href="/about/">About</a>
               <a class="at-link" href="/contact/">Contact and tool ideas</a>
+              <a class="at-link at-install" href="/app/" data-install>Install fibub as an app</a>
               <a class="at-link" href="/privacy/">Privacy</a>
               <a class="at-link" href="/terms/">Terms</a>
               <a class="at-link" href={SITE.maker.url} rel="author">Developer</a>
@@ -138,7 +143,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
       <div class="wrap">
         <div class="row">
           <span><b>fibub</b>: Free In-Browser Utility Bubble. Your files stay on your device.</span>
-          <nav aria-label="Site"><a href="/about/">About</a><a href="/changes/">Change log</a><a href="/stats/">Usage stats</a><a href="/sitemap/">Site map</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/contact/">Contact</a></nav>
+          <nav aria-label="Site"><a href="/about/">About</a><a href="/changes/">Change log</a><a href="/stats/">Usage stats</a><a href="/sitemap/">Site map</a><a href="/app/" class="ft-install">Install app</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/contact/">Contact</a></nav>
         </div>
         <div class="row">
           <span><a href={SITE.maker.url} rel="author">Developer</a></span>
@@ -148,6 +153,7 @@ const fullTitle = docTitle ?? (title === SITE.name ? `${SITE.name}: ${SITE.tagli
     <TabBar path={path} sub={!tool} />
     <script>
       import '../scripts/site';
+      import '../scripts/install';
       import '../scripts/counts';
     </script>
   </body>

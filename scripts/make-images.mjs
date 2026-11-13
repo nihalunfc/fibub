@@ -63,15 +63,20 @@ const shot = async (html, w, h, path, transparent = false) => {
 };
 mkdirSync('public/og', { recursive: true });
 // `npm run images -- id1 id2` makes only those tools' share images (and nothing else); no ids makes everything.
-const only = process.argv.slice(2);
-for (const t of tools) if (!only.length || only.includes(t.id)) await shot(toolCard(t), 1200, 630, `public/og/${t.id}.png`);
+const only = process.argv.slice(2).filter((a) => a !== '--icons');
+const iconsOnly = process.argv.includes('--icons'); // `npm run images -- --icons`: the favicons and app icons only
+if (!iconsOnly) for (const t of tools) if (!only.length || only.includes(t.id)) await shot(toolCard(t), 1200, 630, `public/og/${t.id}.png`);
 if (only.length) { await browser.close(); console.log(`Made ${only.length} share images.`); process.exit(0); }
-await shot(homeCard, 1200, 630, 'public/og/home.png');
+if (!iconsOnly) await shot(homeCard, 1200, 630, 'public/og/home.png');
 const icon = (size, radius = 0.22) => `<body style="margin:0;width:${size}px;height:${size}px;background:transparent"><div style="width:${size}px;height:${size}px;border-radius:${size * radius}px;background:#fff;display:grid;place-items:center">${mark().replace('<svg ', `<svg width="${Math.round(size * 0.78)}" height="${Math.round(size * 0.78)}" `)}</div></body>`;
 await shot(icon(32), 32, 32, 'public/favicon-32.png', true);
 await shot(icon(192), 192, 192, 'public/icon-192.png', true);
 await shot(icon(512), 512, 512, 'public/icon-512.png', true);
 // Apple adds its own rounded corners and ignores transparency, so fill the square.
 await shot(icon(180, 0), 180, 180, 'public/apple-touch-icon.png');
+// Android crops app icons to its own shape (circle, squircle...), keeping only the middle 80%: a full
+// white square with the bubbles inside that safe zone (the installed app's icon, site.webmanifest).
+const maskable = (size) => `<body style="margin:0;width:${size}px;height:${size}px;background:#fff;display:grid;place-items:center">${mark().replace('<svg ', `<svg width="${Math.round(size * 0.56)}" height="${Math.round(size * 0.56)}" `)}</body>`;
+await shot(maskable(512), 512, 512, 'public/icon-maskable-512.png');
 await browser.close();
-console.log(`Made ${tools.length + 1} share images and 4 icons.`);
+console.log(`Made ${tools.length + 1} share images and 5 icons.`);

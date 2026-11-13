@@ -25,3 +25,11 @@
 # OCR reader files (tesseract.js 7.0.0, src/lib/ocr.ts): versioned by the package pin, keep for a year.
 /ocr/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The service worker (scripts/make-sw.mjs) and the app manifest: always check for a newer copy, so a
+# new deploy reaches installed apps on their next visit.
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+/site.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
