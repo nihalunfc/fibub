@@ -19,22 +19,22 @@ import '../../styles/astro.css';
     <div class="ax-grid pf-opts">
       <label>Within
         <select class="pf-r">
-          <option value="250">250 m (3 min walk)</option>
-          <option value="500" selected>500 m (7 min walk)</option>
-          <option value="1000">1 km (13 min walk)</option>
-          <option value="2000">2 km (25 min walk)</option>
+          <option value="250">250 m</option>
+          <option value="500" selected>500 m</option>
+          <option value="1000">1 km</option>
+          <option value="2000">2 km</option>
           <option value="5000">5 km</option>
         </select>
       </label>
       <label>Show
         <select class="pf-kind">
-          <option value="all">Lots, garages and street</option>
-          <option value="l">Lots and garages only</option>
-          <option value="s">Street parking only</option>
+          <option value="all">All parking</option>
+          <option value="l">Lots and garages</option>
+          <option value="s">Street parking</option>
         </select>
       </label>
       <label>When
-        <select class="pf-when"><option value="now">Now</option><option value="at">At a time I choose</option></select>
+        <select class="pf-when"><option value="now">Now</option><option value="at">Pick a time</option></select>
       </label>
       <label class="pf-atl" hidden>Date and time <input class="pf-at" type="datetime-local" /></label>
     </div>
@@ -314,7 +314,7 @@ import '../../styles/astro.css';
     if (!inOntario(lat, lon)) { showErr('That spot is outside Ontario. This tool covers Ontario only for now.'); return; }
     spot = { lat, lon, label };
     sugg.innerHTML = '';
-    run();
+    run().then(() => { if (!out.hidden && window.innerWidth < 700) out.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   }
 
   $<HTMLButtonElement>('.pf-gps').addEventListener('click', () => {
