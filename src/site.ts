@@ -271,6 +271,7 @@ export const SECTIONS: Record<string, Section[]> = {
   money: [
     { id: 'budgeting', subject: 'everyday-money', name: 'Budgets and bills' },
     { id: 'shopping', subject: 'everyday-money', name: 'Shopping and prices' },
+    { id: 'renting', subject: 'everyday-money', name: 'Renting a home' },
     { id: 'loans', subject: 'borrowing', name: 'Loans' },
     { id: 'mortgages', subject: 'borrowing', name: 'Mortgages and homes' },
     { id: 'debt', subject: 'borrowing', name: 'Credit cards and debt' },
