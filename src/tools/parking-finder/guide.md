@@ -1,6 +1,6 @@
 ---
 name: Parking Finder
-num: 2127
+num: 2128
 shelf: vehicles
 code: T954
 section: parking
@@ -11,7 +11,7 @@ seoDescription: "Find parking lots, garages and street parking near you or any p
 summary: "Find parking lots, garages and street parking near you or any place in Ontario, sorted by walking distance, with whether it is free or paid, open hours, time limits and the city's own street rules."
 status: live
 ads: false
-order: 2127
+order: 2128
 icon: target
 works: online
 updated: 2026-11-14
