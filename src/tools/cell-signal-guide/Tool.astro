@@ -1,0 +1,213 @@
+---
+// #T952 Cell Signal: which mobile network is strongest where you are. Web pages cannot scan cell towers or read
+// signal strength, so this tool (1) points to each country's official and open coverage maps, (2) rates the signal
+// number your phone shows, and (3) keeps your own log of readings per network and place to compare. Engine for the
+// optional speed check: src/lib/net/speed.ts.
+import '../../styles/astro.css';
+---
+<div class="ax csg">
+  <div class="ax-card">
+    <h2>Which network is strongest here?</h2>
+    <p class="note"><strong>A web page cannot scan cell towers or read your phone's signal.</strong> Browsers do not allow it on any phone. So this tool does the next best things: the official coverage maps for your country, a reader for the signal number your phone shows, and a log to compare networks place by place.</p>
+    <div class="ax-seg csg-c" role="group" aria-label="Country">
+      <button type="button" data-c="ca" aria-pressed="true">Canada</button>
+      <button type="button" data-c="in" aria-pressed="false">India</button>
+      <button type="button" data-c="uk" aria-pressed="false">UK</button>
+      <button type="button" data-c="us" aria-pressed="false">USA</button>
+    </div>
+    <div class="csg-country"></div>
+    <p class="ax-help">Supported now: Canada, India, the UK and the USA. Links checked 2026-11-14; maps are the operators' own predictions, so check the official source and test where you live.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rate your phone's signal number</h2>
+    <p class="ax-help">Bars are not the same between phones. The number in dBm is. Find it (steps below), pick the network type and type it in.</p>
+    <div class="ax-grid">
+      <label>Network type
+        <select class="csg-tech">
+          <option value="lte" selected>4G LTE (RSRP)</option>
+          <option value="nr">5G (SS-RSRP)</option>
+          <option value="umts">3G (RSCP)</option>
+          <option value="gsm">2G (RSSI)</option>
+        </select>
+      </label>
+      <label>Signal (dBm) <input class="csg-dbm" type="number" value="-95" min="-140" max="-30" step="1" /></label>
+      <label>SINR or SNR (dB, optional) <input class="csg-sinr" type="number" step="0.5" placeholder="e.g. 12" /></label>
+    </div>
+    <p class="csg-rate" aria-live="polite"></p>
+    <details>
+      <summary>How to find the dBm number on your phone</summary>
+      <ul class="csg-list">
+        <li><strong>Android:</strong> Settings, About phone, SIM status (or Status), Signal strength. It shows dBm and sometimes ASU. On some phones it is under Settings, Network, SIM, Signal.</li>
+        <li><strong>iPhone:</strong> Apple does not show dBm in Settings. The Field Test mode (dial <code>*3001#12345#*</code> and press Call) shows RSRP on some models and iOS versions; if it does not, use bars and a speed test instead.</li>
+        <li>Two SIMs (dual SIM) are the quickest way to compare two networks in the same spot.</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Log readings and compare networks</h2>
+    <p class="ax-help">Take readings with each network you can (your SIM, a family member's, a second SIM) in the places that matter: home, work, the commute.</p>
+    <div class="ax-grid">
+      <label>Place <input class="csg-place" type="text" maxlength="30" placeholder="e.g. Home, bedroom" /></label>
+      <label>Network <input class="csg-net" type="text" maxlength="24" list="csg-nets" placeholder="e.g. Rogers" /></label>
+      <label>Type <select class="csg-ltech"><option value="5G">5G</option><option value="4G" selected>4G LTE</option><option value="3G">3G</option><option value="2G">2G</option></select></label>
+      <label>Signal (dBm) <input class="csg-ldbm" type="number" min="-140" max="-30" step="1" placeholder="e.g. -98" /></label>
+      <label>Or bars <select class="csg-lbars"><option value="">–</option><option>4</option><option>3</option><option>2</option><option>1</option><option>0</option></select></label>
+    </div>
+    <datalist id="csg-nets"></datalist>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn csg-add">Add reading</button>
+      <button type="button" class="btn secondary small csg-speed">Add with speed test</button>
+      <label class="ax-check"><input type="checkbox" class="csg-geo" /> Add my rough location</label>
+    </div>
+    <p class="ax-help csg-status" aria-live="polite">"Add with speed test" runs a short test (about 8 MB). Turn Wi-Fi off first so it tests mobile data.</p>
+    <p class="ax-err csg-err" role="alert" hidden></p>
+    <button type="button" class="btn secondary small csg-sample">Try with sample readings</button>
+  </div>
+
+  <div class="ax-card csg-out" hidden>
+    <h2>Networks, strongest first</h2>
+    <p class="csg-best"></p>
+    <div class="ax-scroll"><table class="csg-sum"><thead><tr><th>Network</th><th class="r">Readings</th><th class="r">Average dBm</th><th>Signal</th><th class="r">Median down Mbps</th><th class="r">Median ping ms</th></tr></thead><tbody></tbody></table></div>
+    <h3>All readings</h3>
+    <div class="ax-scroll"><table class="csg-all"><thead><tr><th>Place</th><th>Network</th><th>Type</th><th class="r">dBm</th><th class="r">Down</th><th class="r">Ping</th><th>Where</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small csg-csv">Download CSV</button></div>
+  </div>
+
+  <div class="ax-card">
+    <label class="ax-check"><input type="checkbox" class="csg-keep" /> Keep my readings on this device</label>
+    <p class="ax-help">Off by default. When ticked, readings (and rough locations, if you added them) stay in this browser only. Nothing is sent anywhere.</p>
+    <button type="button" class="btn secondary small csg-clear">Clear all readings</button>
+  </div>
+</div>
+
+<style is:inline>
+  .csg-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+  .csg-country h3 { margin: 12px 0 4px; font-size: 15px; }
+  .csg-rate { font-size: 16px; margin: 10px 0 6px; }
+  .csg-all button { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
+  .csg details { margin-top: 6px; } .csg summary { cursor: pointer; font-size: 15px; }
+</style>
+
+<script>
+  import { PLANS, runTest, median, fmtMbps, fmtMs } from '../../lib/net/speed';
+  import { COUNTRIES_CELL, rateSignal, barsToDbm } from '../../lib/net/cell';
+  const root = document.querySelector('.csg') as HTMLElement;
+  const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
+  const KEY = 'fibub-cellreadings-v1';
+  let country = 'ca';
+
+  // ---- Country links ----
+  const el = (tag: string, text?: string) => { const e = document.createElement(tag); if (text) e.textContent = text; return e; };
+  function showCountry() {
+    const c = COUNTRIES_CELL[country], box = $('.csg-country'); box.textContent = '';
+    const blocks: [string, { name: string; url?: string; note: string }[]][] = [['Official coverage maps and data', c.official], ['Mobile networks (each has a coverage map on its website)', c.networks], ['Tower locations and crowd-sourced maps', c.towers]];
+    for (const [h, items] of blocks) {
+      box.append(el('h3', h)); const ul = el('ul'); ul.className = 'csg-list';
+      for (const it of items) {
+        const li = el('li');
+        if (it.url) { const a = el('a', it.name) as HTMLAnchorElement; a.href = it.url; a.rel = 'noopener'; li.append(a); } else li.append(el('strong', it.name));
+        li.append(document.createTextNode(': ' + it.note)); ul.append(li);
+      }
+      box.append(ul);
+    }
+    const p = el('p', c.tip); p.className = 'ax-help'; box.append(p);
+    const list = document.getElementById('csg-nets')!; list.textContent = '';
+    for (const n of c.networks) { const o = document.createElement('option'); o.value = n.name.split(' (')[0]; list.append(o); }
+  }
+  root.querySelectorAll<HTMLButtonElement>('[data-c]').forEach((b) => b.addEventListener('click', () => {
+    country = b.dataset.c!; root.querySelectorAll('[data-c]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); showCountry();
+  }));
+  // Start on the visitor's country when the browser's language says so (en-IN, en-GB, en-US, en-CA, fr-CA).
+  const lang = (navigator.language || '').toUpperCase();
+  const guess = lang.endsWith('-IN') ? 'in' : lang.endsWith('-GB') ? 'uk' : lang.endsWith('-US') ? 'us' : 'ca';
+  root.querySelector<HTMLButtonElement>(`[data-c="${guess}"]`)?.click();
+
+  // ---- Signal reader ----
+  function rate() {
+    const r = rateSignal($<HTMLSelectElement>('.csg-tech').value as any, $<HTMLInputElement>('.csg-dbm').valueAsNumber, $<HTMLInputElement>('.csg-sinr').valueAsNumber);
+    const p = $('.csg-rate'); p.textContent = '';
+    if (!r) { p.textContent = 'Type a signal number in dBm, such as -95.'; return; }
+    const pill = el('span', r.label); pill.className = 'ax-pill ' + r.tone;
+    p.append(pill, document.createTextNode(' ' + r.text));
+  }
+  for (const s of ['.csg-tech', '.csg-dbm', '.csg-sinr']) $(s).addEventListener('input', rate);
+  rate();
+
+  // ---- Log ----
+  type Reading = { place: string; net: string; tech: string; dbm: number | null; bars: number | null; down: number | null; lat: number | null; where: string };
+  let rows: Reading[] = [];
+  const keep = $<HTMLInputElement>('.csg-keep');
+  try { rows = JSON.parse(localStorage.getItem(KEY) || '[]'); keep.checked = rows.length > 0; } catch {}
+  const persist = () => { if (keep.checked) try { localStorage.setItem(KEY, JSON.stringify(rows)); } catch {} };
+  const dbmOf = (r: Reading) => r.dbm ?? (r.bars != null ? barsToDbm(r.bars) : null);
+
+  function draw() {
+    $('.csg-out').hidden = rows.length === 0;
+    const by = new Map<string, Reading[]>();
+    for (const r of rows) { const k = r.net.trim() || 'Unknown'; const key = [...by.keys()].find((x) => x.toLowerCase() === k.toLowerCase()) ?? k; by.set(key, [...(by.get(key) || []), r]); }
+    const sum = [...by].map(([net, rs]) => {
+      const d = rs.map(dbmOf).filter((x): x is number => x != null);
+      const avg = d.length ? d.reduce((a, b) => a + b, 0) / d.length : null;
+      const dn = rs.map((r) => r.down).filter((x): x is number => x != null), lt = rs.map((r) => r.lat).filter((x): x is number => x != null);
+      return { net, n: rs.length, avg, down: dn.length ? median(dn) : null, lat: lt.length ? median(lt) : null };
+    }).sort((a, b) => (b.avg ?? -999) - (a.avg ?? -999));
+    const tb = $('.csg-sum tbody'); tb.textContent = '';
+    for (const s of sum) {
+      const tr = el('tr'); const q = s.avg == null ? null : rateSignal('lte', s.avg);
+      for (const [v, c] of [[s.net, ''], [String(s.n), 'r'], [s.avg == null ? '–' : s.avg.toFixed(0), 'r'], [q ? q.label : '–', ''], [fmtMbps(s.down), 'r'], [fmtMs(s.lat), 'r']] as const) { const td = el('td', v); if (c) td.className = c; tr.append(td); }
+      tb.append(tr);
+    }
+    const best = sum.find((s) => s.avg != null);
+    $('.csg-best').textContent = best ? (sum.length > 1 ? `Strongest signal in your readings: ${best.net} (average ${best.avg!.toFixed(0)} dBm over ${best.n} reading${best.n > 1 ? 's' : ''}). Signal is not everything: also compare the speeds.` : `${best.net}: average ${best.avg!.toFixed(0)} dBm. Add readings for another network to compare.`) : '';
+    const ta = $('.csg-all tbody'); ta.textContent = '';
+    rows.forEach((r, i) => {
+      const tr = el('tr');
+      for (const [v, c] of [[r.place || '–', ''], [r.net || '–', ''], [r.tech, ''], [r.dbm != null ? String(r.dbm) : r.bars != null ? `${r.bars} bars` : '–', 'r'], [fmtMbps(r.down), 'r'], [fmtMs(r.lat), 'r'], [r.where || '–', '']] as const) { const td = el('td', v); if (c) td.className = c; tr.append(td); }
+      const td = el('td'); const b = el('button', 'Remove') as HTMLButtonElement; b.type = 'button';
+      b.addEventListener('click', () => { rows.splice(i, 1); persist(); draw(); }); td.append(b); tr.append(td); ta.append(tr);
+    });
+  }
+
+  async function where(): Promise<string> {
+    if (!$<HTMLInputElement>('.csg-geo').checked || !navigator.geolocation) return '';
+    // Rounded to 3 decimals (about 100 m) and kept on this device only.
+    return new Promise((ok) => navigator.geolocation.getCurrentPosition((p) => ok(`${p.coords.latitude.toFixed(3)}, ${p.coords.longitude.toFixed(3)}`), () => ok(''), { timeout: 10000, maximumAge: 60000 }));
+  }
+  function reading(): Reading | null {
+    const dbm = $<HTMLInputElement>('.csg-ldbm').valueAsNumber, bars = $<HTMLSelectElement>('.csg-lbars').value;
+    const net = $<HTMLInputElement>('.csg-net').value.trim();
+    if (!net) { const e = $('.csg-err'); e.textContent = 'Type the network name (e.g. the carrier on your SIM).'; e.hidden = false; return null; }
+    $('.csg-err').hidden = true;
+    return { place: $<HTMLInputElement>('.csg-place').value.trim(), net, tech: $<HTMLSelectElement>('.csg-ltech').value, dbm: isFinite(dbm) ? Math.round(dbm) : null, bars: bars === '' ? null : +bars, down: null, lat: null, where: '' };
+  }
+  $('.csg-add').addEventListener('click', async () => { const r = reading(); if (!r) return; r.where = await where(); rows.push(r); persist(); draw(); $('.csg-status').textContent = `Added ${r.net} at ${r.place || 'this place'}.`; });
+  $('.csg-speed').addEventListener('click', async () => {
+    const r = reading(); if (!r) return;
+    const c = (navigator as any).connection;
+    if (c?.type === 'wifi') $('.csg-status').textContent = 'Your browser says you are on Wi-Fi; turn Wi-Fi off to test mobile data. Testing anyway…';
+    const b = $<HTMLButtonElement>('.csg-speed'); b.disabled = true;
+    try {
+      const t = await runTest(PLANS.spot, (p) => { $('.csg-status').textContent = `Testing ${r.net}: ${p.phase === 'latency' ? 'ping' : p.phase}${p.mbps ? ', ' + fmtMbps(p.mbps) + ' Mbps' : ''}…`; });
+      r.down = t.down; r.lat = t.latency; r.where = await where(); rows.push(r); persist(); draw();
+      $('.csg-status').textContent = `Added ${r.net}: ${fmtMbps(t.down)} Mbps down, ping ${fmtMs(t.latency)} ms.`;
+    } catch {
+      const e = $('.csg-err'); e.textContent = 'The speed test server could not be reached. No signal, or a blocked network? You can still add the reading without a speed test.'; e.hidden = false;
+    } finally { b.disabled = false; }
+  });
+  $('.csg-sample').addEventListener('click', () => {
+    // Made-up readings in a made-up town, to show how the comparison works.
+    const s = (place: string, net: string, tech: string, dbm: number, down: number | null, lat: number | null): Reading => ({ place, net, tech, dbm, bars: null, down, lat, where: '' });
+    rows = [s('Home', 'Network A', '5G', -92, 180, 28), s('Home', 'Network B', '4G', -104, 35, 41), s('Home', 'Network C', '4G', -113, 6, 70), s('Work', 'Network A', '4G', -99, 60, 33), s('Work', 'Network B', '4G', -84, 95, 30), s('Work', 'Network C', '4G', -101, 22, 52)];
+    draw();
+  });
+  $('.csg-csv').addEventListener('click', () => {
+    const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = ['place,network,type,dbm,bars,download_mbps,ping_ms,location', ...rows.map((r) => [r.place, r.net, r.tech, r.dbm, r.bars, r.down?.toFixed(2), r.lat?.toFixed(0), r.where].map(q).join(','))].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'cell-signal-readings.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  keep.addEventListener('change', () => { if (keep.checked) persist(); else try { localStorage.removeItem(KEY); } catch {} });
+  $('.csg-clear').addEventListener('click', () => { rows = []; try { localStorage.removeItem(KEY); } catch {} keep.checked = false; draw(); });
+  draw();
+</script>

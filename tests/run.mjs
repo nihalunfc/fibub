@@ -894,9 +894,12 @@ try {
   }
 
   // 7. Nothing is uploaded: every request is a GET to this site.
-  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url));
+  // The one allowed outside host: Cloudflare's public speed test server, used only by the internet tools (#T950-#T952),
+  // which send it random test bytes and nothing about the visitor.
+  const SPEED = /^https:\/\/speed\.cloudflare\.com\//;
+  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url) && !SPEED.test(r.url));
   check(offsite.length === 0, `no requests leave the site (${offsite.map((r) => r.url).join(', ') || 'none'})`);
-  check(requests.every((r) => r.method === 'GET'), `no uploads: ${requests.length} requests, all GET`);
+  check(requests.every((r) => r.method === 'GET' || (SPEED.test(r.url) && /\/__up\?/.test(r.url))), `no uploads: ${requests.length} requests, all GET`);
   check(counterNotes.length > 0 && counterNotes.every((n) => { const b = JSON.parse(n.body || '{}'); return Object.keys(b).every((k) => k === 't' || k === 'p') && (b.t === undefined || /^[a-z0-9-]+$/.test(b.t)) && (b.p === undefined || /^\/[a-z0-9\/-]*$/.test(b.p)); }),
     `counter notes carry only the page address and tool id (${counterNotes.length} notes)`);
 

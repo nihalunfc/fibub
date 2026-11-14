@@ -45,9 +45,12 @@ try {
     await t.default({ page, check, BASE, OUT, readFileSync, writeFileSync });
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
-  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url));
+  // The one allowed outside host: Cloudflare's public speed test server, used only by the internet tools (#T950-#T952),
+  // which send it random test bytes and nothing about the visitor.
+  const SPEED = /^https:\/\/speed\.cloudflare\.com\//;
+  const offsite = requests.filter((r) => !r.url.startsWith(BASE) && !/^(blob|data):/.test(r.url) && !SPEED.test(r.url));
   check(offsite.length === 0, `nothing fetched from other sites ${offsite.map((r) => r.url).slice(0, 3).join(' ')}`);
-  check(requests.every((r) => r.method === 'GET'), `no uploads: ${requests.length} requests, all GET`);
+  check(requests.every((r) => r.method === 'GET' || (SPEED.test(r.url) && /\/__up\?/.test(r.url))), `no uploads: ${requests.length} requests, all GET`);
   const pctx = await browser.newContext({ ...devices['iPhone 13'], acceptDownloads: true }); await setup(pctx);
   const phone = await pctx.newPage();
   for (const path of paths) {

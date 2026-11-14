@@ -1,0 +1,213 @@
+---
+// #T951 Wi-Fi Finder: test the connection at named spots and rank them; "walk and watch" pings live to find dead zones.
+// Browsers cannot read Wi-Fi signal strength, so this measures connectivity (what actually gets through) and lets the
+// visitor type in the signal their device shows. Engine: src/lib/net/speed.ts.
+import '../../styles/astro.css';
+---
+<div class="ax wsf">
+  <div class="ax-card">
+    <h2>Test a spot</h2>
+    <p class="ax-help">Stand where you would use the device, type a name for the spot and press Test. Repeat in each room. Made for homes and offices in <strong>Canada, India, the UK and the USA</strong>; works on any Wi-Fi.</p>
+    <div class="ax-grid">
+      <label>Spot name <input class="wsf-name" type="text" maxlength="30" placeholder="e.g. Kitchen table" /></label>
+      <label>Signal your device shows (optional)
+        <select class="wsf-sig">
+          <option value="">Not noted</option>
+          <option value="4">4 bars (full)</option><option value="3">3 bars</option><option value="2">2 bars</option><option value="1">1 bar</option><option value="0">No bars</option>
+          <option value="dbm">A number in dBm…</option>
+        </select>
+      </label>
+      <label class="wsf-dbml" hidden>dBm (e.g. -60) <input class="wsf-dbm" type="number" min="-100" max="-20" step="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn wsf-test">Test this spot</button>
+      <button type="button" class="btn secondary small wsf-sample">Try with sample spots</button>
+    </div>
+    <p class="ax-help wsf-status" aria-live="polite">Each test takes about 10 seconds and uses up to about 8 MB.</p>
+    <p class="ax-err wsf-err" role="alert" hidden></p>
+  </div>
+
+  <div class="ax-card wsf-out" hidden>
+    <h2>Spots, best first</h2>
+    <p class="wsf-best"></p>
+    <canvas class="ax-fig wsf-chart" width="640" height="220" aria-label="Bar chart of each spot's score"></canvas>
+    <div class="ax-scroll"><table class="wsf-table"><thead><tr><th>Spot</th><th class="r">Score</th><th class="r">Down Mbps</th><th class="r">Up Mbps</th><th class="r">Ping ms</th><th class="r">Jitter ms</th><th>Signal</th><th></th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Score: 0 to 100 from download (45%), ping (25%), upload (20%) and jitter (10%). Test each spot twice at different times if two are close.</p>
+    <p class="note wsf-mismatch" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Walk and watch</h2>
+    <p class="ax-help">Sends a tiny request every second and shows how long each one takes. Walk slowly around the house: the line jumps up or turns red where the connection struggles. Uses about 1 MB per 10 minutes.</p>
+    <div class="ax-row"><button type="button" class="btn secondary wsf-walk">Start walking test</button><b class="ax-big wsf-live">–</b><span class="ax-pill wsf-livep"></span></div>
+    <canvas class="ax-fig wsf-wchart" width="640" height="160" aria-label="Live chart of each ping"></canvas>
+    <p class="ax-help wsf-wstat"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Signal and connectivity are not the same</h2>
+    <ul class="wsf-list">
+      <li><strong>Wi-Fi signal</strong> is how strongly your device hears the router (the bars, or dBm). It drops with distance, walls, floors, mirrors and microwaves.</li>
+      <li><strong>Connectivity</strong> is how well data actually gets to the internet and back: speed, ping and jitter. It also depends on the router, how many devices share it, interference from neighbours' Wi-Fi, and the line from your provider.</li>
+      <li>So full bars can still be slow (busy channel, slow plan, overloaded router), and two bars can be fine for calls. This tool measures connectivity, which is what you feel.</li>
+    </ul>
+    <h3>Reading the real signal number</h3>
+    <p class="ax-help">Web pages are not allowed to read Wi-Fi signal strength, so fibub cannot show it. Your device can:</p>
+    <ul class="wsf-list">
+      <li><strong>Windows:</strong> open Command Prompt and type <code>netsh wlan show interfaces</code>; "Signal" is a percentage.</li>
+      <li><strong>Mac:</strong> hold Option and click the Wi-Fi icon; RSSI is in dBm.</li>
+      <li><strong>Android:</strong> Settings, Wi-Fi, tap your network; some phones show signal strength or dBm there.</li>
+      <li><strong>iPhone:</strong> only bars are shown.</li>
+    </ul>
+    <p class="ax-help">Rough guide: -30 to -55 dBm excellent, -55 to -67 good for calls and video, -67 to -75 fair, below -75 weak, below -85 unusable.</p>
+  </div>
+
+  <div class="ax-card">
+    <label class="ax-check"><input type="checkbox" class="wsf-keep" /> Keep my spots on this device</label>
+    <p class="ax-help">Off by default. When ticked, spot names and results stay in this browser only. Nothing is sent anywhere.</p>
+    <button type="button" class="btn secondary small wsf-clear">Clear all spots</button>
+  </div>
+</div>
+
+<style is:inline>
+  .wsf-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+  .wsf-best { font-size: 16px; margin: 0 0 8px; }
+  .wsf-table button { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
+  .wsf-table tr.top td:first-child { font-weight: 700; }
+</style>
+
+<script>
+  import { PLANS, runTest, measureLatency, spotScore, fmtMbps, fmtMs, median, jitter } from '../../lib/net/speed';
+  const root = document.querySelector('.wsf') as HTMLElement;
+  const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
+  const KEY = 'fibub-wifispots-v1';
+  type Spot = { name: string; sig: string; down: number | null; up: number | null; lat: number | null; jit: number | null; score: number };
+  let spots: Spot[] = [];
+  const keep = $<HTMLInputElement>('.wsf-keep');
+  try { spots = JSON.parse(localStorage.getItem(KEY) || '[]'); keep.checked = spots.length > 0; } catch {}
+  const persist = () => { if (!keep.checked) return; try { localStorage.setItem(KEY, JSON.stringify(spots)); } catch {} };
+
+  const sigSel = $<HTMLSelectElement>('.wsf-sig');
+  sigSel.addEventListener('change', () => { $('.wsf-dbml').hidden = sigSel.value !== 'dbm'; });
+  const sigText = () => {
+    if (sigSel.value === 'dbm') { const v = $<HTMLInputElement>('.wsf-dbm').valueAsNumber; return isFinite(v) ? `${Math.round(v)} dBm` : ''; }
+    return sigSel.value === '' ? '' : sigSel.value + (sigSel.value === '1' ? ' bar' : ' bars');
+  };
+  // Signal as a 0-4 level, to spot "full bars but slow" and "weak bars but fine".
+  const sigLevel = (s: string) => {
+    const m = s.match(/^(-?\d+) dBm/); if (m) { const d = +m[1]; return d >= -55 ? 4 : d >= -67 ? 3 : d >= -75 ? 2 : d >= -85 ? 1 : 0; }
+    const b = s.match(/^(\d)/); return b ? +b[1] : null;
+  };
+
+  function draw() {
+    $('.wsf-out').hidden = spots.length === 0;
+    const sorted = spots.map((s, i) => ({ ...s, i })).sort((a, b) => b.score - a.score);
+    const tb = $('.wsf-table tbody'); tb.textContent = '';
+    sorted.forEach((s, k) => {
+      const tr = document.createElement('tr'); if (k === 0 && sorted.length > 1) tr.className = 'top';
+      for (const [v, c] of [[s.name, ''], [String(s.score), 'r'], [fmtMbps(s.down), 'r'], [fmtMbps(s.up), 'r'], [fmtMs(s.lat), 'r'], [fmtMs(s.jit), 'r'], [s.sig || '–', '']] as const) {
+        const td = document.createElement('td'); td.textContent = v; if (c) td.className = c; tr.append(td);
+      }
+      const td = document.createElement('td'); const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Remove';
+      b.addEventListener('click', () => { spots.splice(s.i, 1); persist(); if (!spots.length) try { localStorage.removeItem(KEY); } catch {} draw(); });
+      td.append(b); tr.append(td); tb.append(tr);
+    });
+    if (sorted.length) {
+      const b = sorted[0], w = sorted[sorted.length - 1];
+      $('.wsf-best').textContent = sorted.length > 1
+        ? `Best spot: ${b.name} (score ${b.score}). Weakest: ${w.name} (score ${w.score}).`
+        : `${b.name}: score ${b.score}. Test another spot to compare.`;
+    }
+    // Signal vs connectivity mismatches.
+    const odd = sorted.filter((s) => { const l = sigLevel(s.sig); return l != null && ((l >= 3 && s.score < 45) || (l <= 1 && s.score >= 65)); });
+    const mm = $('.wsf-mismatch');
+    mm.hidden = !odd.length;
+    mm.textContent = odd.map((s) => (sigLevel(s.sig)! >= 3
+      ? `${s.name}: strong signal but poor connection. The router, a busy channel or the line from your provider is the bottleneck, not distance.`
+      : `${s.name}: weak signal but a good connection. Fine for now, but it may drop when more people use the Wi-Fi.`)).join(' ');
+    chart(sorted);
+  }
+
+  function css(v: string) { return getComputedStyle(root).getPropertyValue(v).trim() || '#333'; }
+  function chart(rows: Spot[]) {
+    const c = $<HTMLCanvasElement>('.wsf-chart'), dpr = window.devicePixelRatio || 1, W = c.clientWidth || 600, rowH = 28, H = Math.max(60, rows.length * rowH + 20);
+    c.width = W * dpr; c.height = H * dpr; c.style.height = H + 'px';
+    const g = c.getContext('2d')!; g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+    g.font = '13px system-ui, sans-serif'; g.textBaseline = 'middle';
+    const lab = Math.min(140, W * 0.35);
+    rows.forEach((s, i) => {
+      const y = 10 + i * rowH;
+      g.fillStyle = css('--ink'); g.fillText(s.name.slice(0, 18), 0, y + rowH / 2 - 2);
+      const w = ((W - lab - 40) * s.score) / 100;
+      g.fillStyle = s.score >= 65 ? css('--good') : s.score >= 40 ? css('--warn') : css('--bad');
+      g.fillRect(lab, y + 4, Math.max(2, w), rowH - 12);
+      g.fillStyle = css('--ink'); g.fillText(String(s.score), lab + w + 6, y + rowH / 2 - 2);
+    });
+  }
+
+  $('.wsf-test').addEventListener('click', async () => {
+    const name = ($<HTMLInputElement>('.wsf-name').value.trim() || `Spot ${spots.length + 1}`).slice(0, 30);
+    const btn = $<HTMLButtonElement>('.wsf-test'); btn.disabled = true; $('.wsf-err').hidden = true;
+    try {
+      const r = await runTest(PLANS.spot, (p) => { $('.wsf-status').textContent = `Testing ${name}: ${p.phase === 'latency' ? 'ping' : p.phase}${p.mbps ? ', ' + fmtMbps(p.mbps) + ' Mbps' : ''}…`; });
+      spots.push({ name, sig: sigText(), down: r.down, up: r.up, lat: r.latency, jit: r.jitter, score: spotScore(r) });
+      persist(); draw();
+      $('.wsf-status').textContent = `${name} done. Move to the next spot.`;
+      $<HTMLInputElement>('.wsf-name').value = '';
+    } catch {
+      const e = $('.wsf-err'); e.hidden = false;
+      e.textContent = 'The test server could not be reached. If this spot has no connection at all, that is your answer; otherwise a firewall or ad blocker may block speed.cloudflare.com.';
+      $('.wsf-status').textContent = '';
+    } finally { btn.disabled = false; }
+  });
+
+  $('.wsf-sample').addEventListener('click', () => {
+    // Made-up readings for a two-floor house, so the page can be explored without testing.
+    const s = (name: string, sig: string, down: number, up: number, lat: number, jit: number): Spot => ({ name, sig, down, up, lat, jit, score: spotScore({ down, up, latency: lat, jitter: jit }) });
+    spots = [s('Living room', '4 bars', 210, 38, 14, 2), s('Kitchen', '3 bars', 120, 30, 18, 4), s('Bedroom upstairs', '2 bars', 35, 9, 32, 11), s('Back porch', '4 bars', 4, 1.5, 120, 45), s('Basement', '1 bar', 2.4, 0.8, 140, 55)];
+    draw();
+  });
+
+  // Walk and watch: one tiny request a second, live chart.
+  let walking = false; const pts: number[] = []; let lost = 0;
+  async function walkLoop() {
+    while (walking) {
+      const t0 = performance.now();
+      try {
+        const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 2000);
+        const [v] = await measureLatency(1, undefined, ctl.signal); clearTimeout(to);
+        pts.push(v);
+      } catch { pts.push(2000); lost++; }
+      if (pts.length > 120) pts.shift();
+      liveDraw();
+      await new Promise((ok) => setTimeout(ok, Math.max(0, 1000 - (performance.now() - t0))));
+    }
+  }
+  function liveDraw() {
+    const v = pts[pts.length - 1];
+    $('.wsf-live').textContent = v >= 2000 ? 'Lost' : fmtMs(v) + ' ms';
+    const p = $('.wsf-livep'); p.className = 'ax-pill ' + (v < 60 ? 'good' : v < 150 ? 'warn' : 'bad'); p.textContent = v < 60 ? 'Good here' : v < 150 ? 'So-so' : 'Poor here';
+    const recent = pts.slice(-10).filter((x) => x < 2000);
+    $('.wsf-wstat').textContent = `Last 10: median ${fmtMs(median(recent))} ms, jitter ${fmtMs(jitter(recent))} ms. Lost so far: ${lost}.`;
+    const c = $<HTMLCanvasElement>('.wsf-wchart'), dpr = window.devicePixelRatio || 1, W = c.clientWidth || 600, H = 160;
+    c.width = W * dpr; c.height = H * dpr; c.style.height = H + 'px';
+    const g = c.getContext('2d')!; g.scale(dpr, dpr);
+    const top = 300, y = (ms: number) => H - 14 - (Math.min(ms, top) / top) * (H - 24);
+    g.strokeStyle = css('--line'); g.fillStyle = css('--muted'); g.font = '11px system-ui, sans-serif';
+    for (const m of [0, 100, 200, 300]) { g.beginPath(); g.moveTo(30, y(m)); g.lineTo(W, y(m)); g.stroke(); g.fillText(m + '', 0, y(m) + 4); }
+    const step = (W - 34) / 119;
+    pts.forEach((ms, i) => {
+      g.fillStyle = ms < 60 ? css('--good') : ms < 150 ? css('--warn') : css('--bad');
+      g.fillRect(32 + (i + 120 - pts.length) * step, y(ms), Math.max(2, step - 1), H - 14 - y(ms));
+    });
+  }
+  $('.wsf-walk').addEventListener('click', () => {
+    walking = !walking;
+    $('.wsf-walk').textContent = walking ? 'Stop walking test' : 'Start walking test';
+    if (walking) walkLoop();
+  });
+
+  keep.addEventListener('change', () => { if (keep.checked) persist(); else try { localStorage.removeItem(KEY); } catch {} });
+  $('.wsf-clear').addEventListener('click', () => { spots = []; try { localStorage.removeItem(KEY); } catch {} keep.checked = false; draw(); });
+  draw();
+</script>
