@@ -32,7 +32,7 @@ function lot(e) {
   if (kind === 'private') return null;
   const [y, x] = where(e);
   if (y == null) return null;
-  const o = { k: kind === 'street' ? 's' : 'l', y: r5(y), x: r5(x), src: 'o', id: e.type[0] + e.id };
+  const o = { k: kind === 'street' ? 's' : 'l', y: r5(y), x: r5(x) }; // no src = OpenStreetMap
   if (kind !== 'street') o.p = kind; // surface | garage | underground
   const name = t.name || t['name:en'] || '';
   if (name) o.n = name;
@@ -79,7 +79,7 @@ function streetSides(e) {
     }
     if (type == null || NOPARK.has(type) || type === 'no') continue;
     if (restr && NOPARK.has(restr)) continue;
-    const o = { k: 's', y: r5(y), x: r5(x), src: 'o', id: 'w' + e.id, side: side[0] };
+    const o = { k: 's', y: r5(y), x: r5(x), side: side[0] };
     if (t.name) o.n = t.name;
     const fee = get('fee') ?? getOld('fee');
     if (fee) o.f = fee === 'no' ? 0 : fee === 'yes' ? 1 : fee;
@@ -130,6 +130,13 @@ function mid(g) {
   const p = line[Math.floor(line.length / 2)];
   return [p[1], p[0]];
 }
+// Ottawa block codes such as "BANK_E_CLARE-HOLMW" (street, side, cross streets cut to 5 letters) -> "Bank, east side".
+function blockName(code) {
+  const m = (code || '').match(/^([A-Z0-9]+)_([NSEW])_/);
+  if (!m) return 'Pay and display street parking';
+  const street = m[1].charAt(0) + m[1].slice(1).toLowerCase();
+  return `${street}, ${{ N: 'north', S: 'south', E: 'east', W: 'west' }[m[2]]} side (pay and display)`;
+}
 const clean = (v) => (v == null ? '' : String(v).trim());
 const prop = (p, ...keys) => { for (const k of keys) { const hit = Object.keys(p).find((x) => x.toUpperCase() === k); if (hit && clean(p[hit])) return clean(p[hit]); } return ''; };
 
@@ -141,10 +148,15 @@ async function ottawa() {
     if (!at) return null;
     const st = prop(p, 'STATUS');
     if (st && /remov|inactive|out/i.test(st)) return null;
-    const o = { k: 's', y: r5(at[0]), x: r5(at[1]), src: 'ott', f: 1, n: prop(p, 'BLOCKFACE', 'LOCATION', 'ADDRESS') || 'Pay and display street parking' };
-    const wk = { mf: [prop(p, 'MON_FRI_HOURS'), prop(p, 'MON_FRI_HR')], sa: [prop(p, 'SAT_HOURS'), prop(p, 'SAT_HR')], su: [prop(p, 'SUN_HOURS'), prop(p, 'SUN_HR')] };
-    o.pay = wk; // [hours text, hourly rate text] per day group
-    const rd = prop(p, 'RATE_DESC'); if (rd) o.c = rd;
+    const o = { k: 's', y: r5(at[0]), x: r5(at[1]), src: 'ott', f: 1, n: blockName(prop(p, 'BLOCKFACE')) };
+    // RATE_DESC is the clean source: "$0.25/5 min, Monday / Lundi to / à Friday / Vendredi ( 8:30am - 5:30pm ) Saturday ...".
+    const rd = prop(p, 'RATE_DESC');
+    const hrsAfter = (word) => { const m = rd.match(new RegExp(word + '[^(]*\\(\\s*([^)]+?)\\s*\\)', 'i')); return m ? m[1].replace(/\s*-\s*/, ' - ') : ''; };
+    const rate = (k) => { const v = prop(p, k); return /^\d+(\.\d+)?$/.test(v) ? `$${(+v).toFixed(2)}` : ''; };
+    const wk = { mf: [hrsAfter('Friday') || hrsAfter('Monday'), rate('MON_FRI_HR')], sa: [hrsAfter('Saturday'), rate('SAT_HR')], su: [hrsAfter('Sunday'), rate('SUN_HR')] };
+    for (const g of ['sa', 'su']) if (!wk[g][0]) wk[g][1] = '';
+    o.pay = wk; // [hours like "8:30am - 5:30pm", hourly rate like "$3.00"] per day group; empty hours = not paid that day
+    const step = rd.match(/^\$[\d.]+\/[^,]+/); if (step) o.c = `Pay ${step[0]}`;
     const hol = prop(p, 'HOLIDAY'); if (hol) o.hol = hol;
     return o;
   });

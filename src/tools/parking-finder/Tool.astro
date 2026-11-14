@@ -112,7 +112,7 @@ import '../../styles/astro.css';
   import { isOpen, inAmPm, conditionalNow, hoursWords, dayGroup } from '../../lib/parking/hours';
   import { cityAt, GENERAL, metres, bearing, walkMin, inOntario } from '../../lib/parking/rules';
 
-  type Item = Record<string, any> & { k: 'l' | 's'; y: number; x: number; src: string };
+  type Item = Record<string, any> & { k: 'l' | 's'; y: number; x: number; src?: string };
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const root = document.querySelector('.pf') as HTMLElement;
   const q = $<HTMLInputElement>('.pf-q'), sugg = $<HTMLElement>('.pf-sugg');
@@ -171,7 +171,7 @@ import '../../styles/astro.css';
       const g = dayGroup(d), [hrs, rate] = o.pay[g] || ['', ''];
       const paid = hrs ? inAmPm(hrs, d) : null;
       if (paid === true) { free = false; pills.push(['warn', `Paid now${rate ? ', ' + rate + ' an hour' : ''}`]); }
-      else if (paid === false) { free = true; pills.push(['good', 'Free at this time']); }
+      else if (paid === false || (!hrs && o.pay.mf?.[0])) { free = true; pills.push(['good', 'Free at this time']); }
       else pills.push(['', 'Paid street parking']);
       const day = (k: string, n: string) => (o.pay[k]?.[0] ? `${n}: ${o.pay[k][0]}${o.pay[k][1] ? ', ' + o.pay[k][1] + '/h' : ''}` : '');
       const lines = [day('mf', 'Mon to Fri'), day('sa', 'Sat'), day('su', 'Sun')].filter(Boolean);
