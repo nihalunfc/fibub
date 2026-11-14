@@ -17,7 +17,7 @@ works: online
 updated: 2026-11-14
 related: [commute-cost, fuel-cost, road-trip, ev-range, winter-tyres]
 sources:
-  - "Parking lots, garages and street parking: OpenStreetMap, © OpenStreetMap contributors, available under the Open Database Licence (openstreetmap.org/copyright). Read through the Overpass API once a month."
+  - "Parking lots, garages and street parking: OpenStreetMap, © OpenStreetMap contributors, available under the Open Database Licence (openstreetmap.org/copyright). Read once a month from Geofabrik's Ontario extract of OpenStreetMap."
   - "Ottawa pay and display machines (hours and hourly rates), time-limited street parking and city lots: City of Ottawa open data, Parking map service (maps.ottawa.ca), Open Government Licence - City of Ottawa. Read once a month."
   - "City street rules, checked 14 November 2026 on the cities' own pages: City of Toronto Parking regulations; City of Ottawa Winter weather parking bans and Traffic and Parking By-law 2017-301 (3-hour default as reported by CTV News); City of Mississauga as quoted by Modern Mississauga 'Ask The City'; City of Brampton Parking enforcement; City of Kitchener Parking bylaws; City of London Overnight parking restrictions; City of Niagara Falls Overnight parking. Rules change: check the official source and the signs."
   - "Walking time uses 4.8 km/h (80 m a minute) in a straight line, so real walks are a little longer. The plot and wording are fibub's own."

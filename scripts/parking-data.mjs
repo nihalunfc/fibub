@@ -2,7 +2,8 @@
 // Builds the open parking data for Parking Finder (#T954) into public/parking/v1/.
 // Run by .github/workflows/parking-data.yml once a month (and by hand). It needs the internet, so it never runs in
 // `npm run build`. Sources (both open, both credited on the tool page):
-//   - OpenStreetMap (ODbL, © OpenStreetMap contributors) through the Overpass API: parking lots and garages,
+//   - OpenStreetMap (ODbL, © OpenStreetMap contributors), from Geofabrik's Ontario extract cut down with osmium
+//     by the workflow (the whole of Ontario is too big for the public Overpass servers): parking lots and garages,
 //     street parking tagged on roads, and a list of Ontario places, stations, hospitals, campuses and malls so
 //     visitors can search by name without the page calling any outside service.
 //   - City of Ottawa open data (Open Government Licence - City of Ottawa): pay and display machines (hours and
@@ -10,39 +11,15 @@
 // Output: one small JSON file per 0.2 x 0.2 degree square (a visitor's phone downloads only the squares around
 // them, from fibub itself), places.json for the search box and index.json with the list of squares and the date.
 // Nothing about visitors is involved: this only reads public map data.
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 const OUT = 'public/parking/v1';
 const TILE = 5; // squares per degree (0.2 degrees, about 22 km north-south)
-const OVERPASS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
-];
 const UA = { 'User-Agent': 'fibub-parking-data/1.0 (+https://fibub.com/vehicles/parking-finder/)' };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const r5 = (v) => Math.round(v * 1e5) / 1e5;
 
-async function overpass(q, label) {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const url = OVERPASS[attempt % OVERPASS.length];
-    try {
-      const res = await fetch(url, { method: 'POST', headers: { ...UA, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(q) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json();
-      if (j.remark && /runtime error|timed out|out of memory/i.test(j.remark)) throw new Error(j.remark);
-      console.log(`${label}: ${j.elements.length} elements from ${url}`);
-      return j.elements;
-    } catch (e) {
-      console.warn(`${label}: ${url} failed (${e.message}); retrying`);
-      await sleep(20000 * (attempt + 1));
-    }
-  }
-  throw new Error(`${label}: every Overpass server failed`);
-}
-
-const AREA = 'area["ISO3166-2"="CA-ON"][admin_level=4]->.on;';
 const where = (e) => (e.center ? [e.center.lat, e.center.lon] : [e.lat, e.lon]);
 
 // ---- OpenStreetMap: lots and garages ----
@@ -135,7 +112,7 @@ async function arcgis(layer) {
     const u = `${OTTAWA}/${layer}/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultOffset=${offset}&resultRecordCount=1000`;
     let j;
     for (let a = 0; a < 4; a++) {
-      try { const r = await fetch(u, { headers: UA }); if (!r.ok) throw new Error('HTTP ' + r.status); j = await r.json(); break; } catch (e) { console.warn(`Ottawa layer ${layer}: ${e.message}`); await sleep(5000 * (a + 1)); }
+      try { const r = await fetch(u, { headers: UA, signal: AbortSignal.timeout(90 * 1000) }); if (!r.ok) throw new Error('HTTP ' + r.status); j = await r.json(); break; } catch (e) { console.warn(`Ottawa layer ${layer}: ${e.message}`); await sleep(5000 * (a + 1)); }
     }
     if (!j || !j.features) throw new Error(`Ottawa layer ${layer} failed`);
     all.push(...j.features);
@@ -208,21 +185,45 @@ function place(e) {
   return [name, r5(y), r5(x), k];
 }
 
-async function main() {
-  const lotsQ = `[out:json][timeout:900][maxsize:1073741824];${AREA}nwr["amenity"="parking"](area.on);out center tags qt;`;
-  const streetQ = `[out:json][timeout:900][maxsize:1073741824];${AREA}(way["highway"]["parking:both"](area.on);way["highway"]["parking:left"](area.on);way["highway"]["parking:right"](area.on);way["highway"]["parking:lane:both"](area.on);way["highway"]["parking:lane:left"](area.on);way["highway"]["parking:lane:right"](area.on););out center tags qt;`;
-  const placesQ = `[out:json][timeout:600][maxsize:536870912];${AREA}(node["place"~"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$"]["name"](area.on);nwr["railway"="station"]["name"](area.on);nwr["public_transport"="station"]["name"](area.on);nwr["amenity"~"^(hospital|university|college|bus_station)$"]["name"](area.on);nwr["shop"="mall"]["name"](area.on);nwr["aeroway"="aerodrome"]["iata"](area.on);nwr["leisure"="stadium"]["name"](area.on);nwr["tourism"="attraction"]["name"]["wikidata"](area.on););out center tags qt;`;
+// Read osmium's GeoJSON lines (one feature per line) and hand each one on as {type, id, tags, center}.
+function* features(file) {
+  const text = readFileSync(file, 'utf8');
+  for (let line of text.split('\n')) {
+    line = line.replace(/^\x1e/, '').trim();
+    if (!line) continue;
+    const f = JSON.parse(line);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const walk = (c) => { if (typeof c[0] === 'number') { if (c[0] < minX) minX = c[0]; if (c[0] > maxX) maxX = c[0]; if (c[1] < minY) minY = c[1]; if (c[1] > maxY) maxY = c[1]; } else c.forEach(walk); };
+    if (!f.geometry) continue;
+    walk(f.geometry.coordinates);
+    if (!isFinite(minX)) continue;
+    const id = String(f.id || 'x0');
+    yield { type: { n: 'node', w: 'way', r: 'relation', a: 'way' }[id[0]] || 'way', id: id.slice(1), tags: f.properties || {}, center: { lat: (minY + maxY) / 2, lon: (minX + maxX) / 2 } };
+  }
+}
 
+async function main() {
+  const dir = process.argv[2] || 'osm';
   const items = [];
-  for (const e of await overpass(lotsQ, 'parking lots')) { const o = lot(e); if (o) items.push(o); }
-  await sleep(10000);
+  const seenLot = new Set();
+  for (const e of features(`${dir}/lots.geojsonseq`)) {
+    if (e.tags.amenity !== 'parking' || seenLot.has(e.type + e.id)) continue;
+    seenLot.add(e.type + e.id);
+    const o = lot(e); if (o) items.push(o);
+  }
+  console.log(`parking lots from OSM: ${items.length}`);
   let streets = 0;
-  for (const e of await overpass(streetQ, 'street parking')) for (const o of streetSides(e)) { items.push(o); streets++; }
+  for (const e of features(`${dir}/street.geojsonseq`)) {
+    if (!e.tags.highway) continue;
+    for (const o of streetSides(e)) { items.push(o); streets++; }
+  }
   console.log(`street parking points from OSM: ${streets}`);
-  await sleep(10000);
   const places = [];
   const seen = new Set();
-  for (const e of await overpass(placesQ, 'places')) {
+  for (const e of features(`${dir}/places.geojsonseq`)) {
+    const t = e.tags;
+    if (t.place && e.type !== 'node') continue;
+    if (t.aeroway === 'aerodrome' && !t.iata) continue;
     const p = place(e);
     if (!p) continue;
     const key = p[0] + '|' + Math.round(p[1] * 100) + '|' + Math.round(p[2] * 100);
