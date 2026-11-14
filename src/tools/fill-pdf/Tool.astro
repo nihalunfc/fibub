@@ -69,6 +69,14 @@
   .fp.placing .pv-layer { cursor: crosshair; outline: 2px dashed var(--accent); outline-offset: -2px; }
   .fp-add[aria-pressed="true"] { outline: 3px solid var(--accent); }
   .fp-txt { position: absolute; left: 0; top: 0; white-space: nowrap; line-height: 1; color: #000; font-family: Helvetica, Arial, sans-serif; pointer-events: none; }
+  .fp-w { position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 2px; background: rgba(37, 99, 235, 0.12); box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.55); color: #000; font-family: Helvetica, Arial, sans-serif; line-height: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+  .fp-w-text { justify-content: stretch; cursor: text; }
+  .fp-w-drop, .fp-w-list { justify-content: flex-start; padding: 0 3px; white-space: nowrap; }
+  .fp-w input, .fp-w textarea { all: unset; box-sizing: border-box; width: 100%; height: 100%; padding: 0 3px; color: #000; font-family: Helvetica, Arial, sans-serif; line-height: 1.15; }
+  .fp-w textarea { padding-top: 2px; white-space: pre-wrap; }
+  .fp-w:focus-within, .fp-w:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); background: rgba(255, 255, 255, 0.9); }
+  .fp-w[aria-pressed="true"] { font-weight: 700; }
+  html.red-mode .fp-w { background: transparent; }
   .fp-tick { width: 100%; height: 100%; pointer-events: none; display: block; }
   .pv-pages { display: grid; gap: 14px; justify-items: center; }
   .pv-page { position: relative; background: #fff; box-shadow: 0 0 0 1px var(--line); max-width: 100%; margin-top: 18px; }
@@ -89,35 +97,62 @@
   const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
   idle(() => import('../../lib/compress/pdf').then((m) => m.warmUp()).catch(() => {}));
 
-  type FieldInfo = { name: string; type: 'text' | 'check' | 'drop' | 'list' | 'radio'; options: string[]; value: string | boolean | string[]; multiline?: boolean };
+  /** Where one field's box sits on a page, as fractions of the shown page (from the top-left). */
+  type Spot = { page: number; fx: number; fy: number; fw: number; fh: number; on?: string };
+  type FieldInfo = { name: string; label: string; type: 'text' | 'check' | 'drop' | 'list' | 'radio'; options: string[]; value: string | boolean | string[]; multiline?: boolean; spots: Spot[] };
   let bytes: Uint8Array | null = null, fileName = 'form.pdf', views: PageView[] = [], items: Item[] = [], nextId = 1, fields: FieldInfo[] = [];
   let pending: string | null = null;
   const err = (m = '') => { const e = $('.fp-err'); e.textContent = m; e.hidden = !m; };
   const status = (m = '') => { $('.fp-status').textContent = m; };
+  const tidy = (n: string) => (n.split('.').pop() || n).replace(/\[\d+\]/g, '') || n;
+
+  /* ---------- where each field sits on the page (pdf.js, so rotated and cropped pages line up) ---------- */
+  async function readSpots(pdf: any): Promise<Map<string, { spots: Spot[]; alt: string }>> {
+    const m = new Map<string, { spots: Spot[]; alt: string }>();
+    for (let i = 0; i < pdf.numPages; i++) {
+      const page = await pdf.getPage(i + 1), vp = page.getViewport({ scale: 1 });
+      let anns: any[] = [];
+      try { anns = await page.getAnnotations({ intent: 'display' }); } catch { continue; }
+      for (const a of anns) {
+        if (a.subtype !== 'Widget' || !a.fieldName || a.pushButton || !a.rect) continue;
+        const [x1, y1, x2, y2] = vp.convertToViewportRectangle(a.rect);
+        const s: Spot = { page: i, fx: Math.min(x1, x2) / vp.width, fy: Math.min(y1, y2) / vp.height, fw: Math.abs(x2 - x1) / vp.width, fh: Math.abs(y2 - y1) / vp.height };
+        if (a.radioButton) s.on = a.buttonValue;
+        const e = m.get(a.fieldName) ?? { spots: [], alt: '' };
+        e.spots.push(s); if (!e.alt && a.alternativeText) e.alt = String(a.alternativeText).trim();
+        m.set(a.fieldName, e);
+      }
+    }
+    return m;
+  }
 
   /* ---------- read the form fields (pdf-lib, loaded when a file is opened) ---------- */
-  async function readFields(b: Uint8Array): Promise<FieldInfo[]> {
+  async function readFields(b: Uint8Array, pdf: any): Promise<FieldInfo[]> {
     const { loadForEdit } = await import('../../lib/docs/stamp');
     const lib = await import('pdf-lib');
     const doc = await loadForEdit(b), out: FieldInfo[] = [];
     let list: any[] = [];
     try { list = doc.getForm().getFields(); } catch { return []; }
+    let where = new Map<string, { spots: Spot[]; alt: string }>();
+    try { where = await readSpots(pdf); } catch { /* boxes on the page are a bonus; the list below still works */ }
     for (const f of list) {
-      const name = f.getName();
-      if (f instanceof lib.PDFTextField) out.push({ name, type: 'text', options: [], value: f.getText() ?? '', multiline: f.isMultiline() });
-      else if (f instanceof lib.PDFCheckBox) out.push({ name, type: 'check', options: [], value: f.isChecked() });
-      else if (f instanceof lib.PDFDropdown) out.push({ name, type: 'drop', options: f.getOptions(), value: f.getSelected()[0] ?? '' });
-      else if (f instanceof lib.PDFOptionList) out.push({ name, type: 'list', options: f.getOptions(), value: f.getSelected() });
-      else if (f instanceof lib.PDFRadioGroup) out.push({ name, type: 'radio', options: f.getOptions(), value: f.getSelected() ?? '' });
+      const name = f.getName(), w = where.get(name), base = { name, label: w?.alt || tidy(name), spots: w?.spots ?? [] };
+      if (f instanceof lib.PDFTextField) out.push({ ...base, type: 'text', options: [], value: f.getText() ?? '', multiline: f.isMultiline() });
+      else if (f instanceof lib.PDFCheckBox) out.push({ ...base, type: 'check', options: [], value: f.isChecked() });
+      else if (f instanceof lib.PDFDropdown) out.push({ ...base, type: 'drop', options: f.getOptions(), value: f.getSelected()[0] ?? '' });
+      else if (f instanceof lib.PDFOptionList) out.push({ ...base, type: 'list', options: f.getOptions(), value: f.getSelected() });
+      else if (f instanceof lib.PDFRadioGroup) out.push({ ...base, type: 'radio', options: f.getOptions(), value: f.getSelected() ?? '' });
     }
-    return out;
+    // Same order as on paper: page, then top to bottom, then left to right.
+    const key = (f: FieldInfo) => { const s = f.spots[0]; return s ? s.page * 10 + Math.round(s.fy * 200) / 200 + s.fx / 1000 : 1e9; };
+    return out.sort((a, b) => key(a) - key(b));
   }
 
   function buildForm() {
     const box = $('.fp-fields'); box.textContent = '';
     fields.forEach((f, i) => {
       const wrap = document.createElement('div'); wrap.className = 'fp-field'; wrap.dataset.i = String(i);
-      const lab = document.createElement('span'); lab.textContent = f.name;
+      const lab = document.createElement('span'); lab.textContent = f.label; if (f.label !== f.name) lab.title = f.name;
       let ctl: HTMLElement;
       if (f.type === 'text') {
         const t = f.multiline ? document.createElement('textarea') : Object.assign(document.createElement('input'), { type: 'text' });
@@ -143,18 +178,65 @@
       wrap.append(lab, ctl); box.append(wrap);
     });
   }
+  const fieldBox = (i: number) => root.querySelector<HTMLElement>(`.fp-field[data-i="${i}"]`)!;
+  function readOne(i: number): string | boolean | string[] {
+    const f = fields[i], w = fieldBox(i);
+    if (f.type === 'text') return (w.querySelector('.fp-val') as HTMLInputElement).value;
+    if (f.type === 'check') return (w.querySelector('.fp-val') as HTMLInputElement).checked;
+    if (f.type === 'drop') return (w.querySelector('.fp-val') as HTMLSelectElement).value;
+    if (f.type === 'list') return Array.from((w.querySelector('.fp-val') as HTMLSelectElement).selectedOptions).map((o) => o.value);
+    return (w.querySelector('input:checked') as HTMLInputElement | null)?.value ?? '';
+  }
   function readValues(): Record<string, string | boolean | string[]> {
     const v: Record<string, any> = {};
-    root.querySelectorAll<HTMLElement>('.fp-field').forEach((w) => {
-      const f = fields[+w.dataset.i!];
-      if (f.type === 'text') v[f.name] = (w.querySelector('.fp-val') as HTMLInputElement).value;
-      else if (f.type === 'check') v[f.name] = (w.querySelector('.fp-val') as HTMLInputElement).checked;
-      else if (f.type === 'drop') v[f.name] = (w.querySelector('.fp-val') as HTMLSelectElement).value;
-      else if (f.type === 'list') v[f.name] = Array.from((w.querySelector('.fp-val') as HTMLSelectElement).selectedOptions).map((o) => o.value);
-      else v[f.name] = (w.querySelector('input:checked') as HTMLInputElement | null)?.value ?? '';
-    });
+    fields.forEach((f, i) => { v[f.name] = readOne(i); });
     return v;
   }
+
+  /* ---------- fill in on the page itself: a box over each field, kept in step with the list ---------- */
+  const optOf = (f: FieldInfo, k: number) => { const on = f.spots[k]?.on; return on && f.options.includes(on) ? on : f.options[k]; };
+  function paintSpots(i: number, except?: Element) {
+    const f = fields[i], v = readOne(i);
+    root.querySelectorAll<HTMLElement>(`.fp-w[data-i="${i}"]`).forEach((el, k) => {
+      if (el === except) return;
+      if (f.type === 'text') (el.firstElementChild as HTMLInputElement).value = String(v);
+      else if (f.type === 'check') { el.setAttribute('aria-pressed', String(!!v)); el.textContent = v ? '✓' : ''; }
+      else if (f.type === 'radio') { const yes = !!v && optOf(f, k) === v; el.setAttribute('aria-pressed', String(yes)); el.textContent = yes ? '●' : ''; }
+      else el.textContent = Array.isArray(v) ? v.join(', ') : String(v);
+    });
+  }
+  function mountSpots() {
+    fields.forEach((f, i) => f.spots.forEach((s, k) => {
+      const v = views[s.page]; if (!v) return;
+      const H = v.layer.clientHeight || 800, px = Math.max(8, Math.min(s.fh * H * 0.62, 18));
+      let el: HTMLElement;
+      if (f.type === 'text') {
+        el = document.createElement('label');
+        const t = f.multiline ? document.createElement('textarea') : Object.assign(document.createElement('input'), { type: 'text' });
+        t.setAttribute('aria-label', f.label); t.style.fontSize = px + 'px';
+        t.addEventListener('input', () => { (fieldBox(i).querySelector('.fp-val') as HTMLInputElement).value = t.value; paintSpots(i, el); });
+        el.append(t);
+      } else {
+        el = document.createElement('button'); (el as HTMLButtonElement).type = 'button'; el.style.fontSize = px + 'px';
+        el.setAttribute('aria-label', f.type === 'radio' ? `${f.label}: ${optOf(f, k) ?? ''}` : f.label);
+        el.addEventListener('click', () => {
+          const w = fieldBox(i);
+          if (f.type === 'check') { const c = w.querySelector('.fp-val') as HTMLInputElement; c.checked = !c.checked; }
+          else if (f.type === 'radio') {
+            const want = optOf(f, k), r = Array.from(w.querySelectorAll<HTMLInputElement>('input')).find((x) => x.value === want);
+            if (r) r.checked = true; else w.querySelector<HTMLElement>('input')?.focus();
+          } else { w.scrollIntoView({ block: 'center' }); (w.querySelector('.fp-val') as HTMLElement).focus(); }
+          paintSpots(i);
+        });
+      }
+      el.className = 'fp-w fp-w-' + f.type; el.dataset.i = String(i);
+      Object.assign(el.style, { left: s.fx * 100 + '%', top: s.fy * 100 + '%', width: s.fw * 100 + '%', height: s.fh * 100 + '%' });
+      v.layer.append(el);
+    }));
+    fields.forEach((_, i) => paintSpots(i));
+  }
+  root.addEventListener('input', (e) => { const w = (e.target as HTMLElement).closest<HTMLElement>('.fp-field'); if (w) paintSpots(+w.dataset.i!); });
+  root.addEventListener('change', (e) => { const w = (e.target as HTMLElement).closest<HTMLElement>('.fp-field'); if (w) paintSpots(+w.dataset.i!); });
 
   /* ---------- type anywhere ---------- */
   function addItemEl(v: PageView, it: Item) {
@@ -204,13 +286,14 @@
     try {
       const b = await readFile(f);
       const doc = await openPdfJs(b);
-      fields = await readFields(b);
+      fields = await readFields(b, doc);
       bytes = b; fileName = f.name; items = []; stop(); status(); $('.fp-saved').hidden = true;
       root.dataset.state = 'ready'; $('.fp-work').hidden = false;
       $('.fp-form').hidden = !fields.length; buildForm();
       $('.fp-flat-box').hidden = !fields.length;
-      $('.fp-found').textContent = fields.length ? `Found ${fields.length} form field${fields.length === 1 ? '' : 's'}. Fill them in below. You can also type anywhere on the page.` : 'This PDF has no form fields, so type anywhere: pick what to add, then tap the page.';
+      $('.fp-found').textContent = fields.length ? `Found ${fields.length} form field${fields.length === 1 ? '' : 's'}. Fill them in on the page or in the list below. You can also type anywhere on the page.` : 'This PDF has no form fields, so type anywhere: pick what to add, then tap the page.';
       root.scrollIntoView({ block: 'start' }); views = await showPages(doc, $('.fp-pages'));
+      mountSpots();
     } catch (e: any) {
       root.dataset.state = 'empty'; $('.fp-work').hidden = true;
       err(/password|encrypt/i.test(String(e?.message || e?.name)) ? 'This PDF is locked with a password. Unlock it first, then come back.' : 'That file could not be opened as a PDF.');
@@ -223,31 +306,79 @@
   drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
   $('.fp-other').addEventListener('click', () => { root.scrollIntoView({ block: 'start' }); root.dataset.state = 'empty'; $('.fp-work').hidden = true; $<HTMLInputElement>('.fp-file').value = ''; bytes = null; $('.fp-pages').textContent = ''; items = []; fields = []; });
 
+  /** Text the standard PDF font cannot show (Hindi, Arabic, Chinese, emoji...), drawn as a sharp picture instead. */
+  function textPicture(text: string) {
+    const px = 48, lines = text.split(/\r?\n/), c = document.createElement('canvas'), g = c.getContext('2d')!;
+    const font = `${px}px system-ui, sans-serif`; g.font = font;
+    c.width = Math.ceil(Math.max(1, ...lines.map((l) => g.measureText(l).width))) + 4; c.height = Math.ceil(px * 1.25 * lines.length);
+    g.font = font; g.fillStyle = '#000'; g.textBaseline = 'alphabetic';
+    lines.forEach((l, k) => g.fillText(l, 2, px * (1 + 1.25 * k)));
+    return { url: c.toDataURL('image/png'), ratio: c.width / c.height, lines: lines.length };
+  }
+
   $('.fp-save').addEventListener('click', async () => {
     if (!bytes) return;
     const { loadForEdit, drawItems, EncryptedError } = await import('../../lib/docs/stamp');
+    const lib = await import('pdf-lib');
     try {
       const doc = await loadForEdit(bytes);
-      let nFilled = 0;
+      let nFilled = 0, nPicture = 0;
       if (fields.length) {
         const form = doc.getForm(), vals = readValues();
+        // Every changed field gets a fresh look drawn with Helvetica, which is put into the file, so the text shows the
+        // same in every viewer (no blank or black boxes from a font the PDF does not carry).
+        const helv = await doc.embedFont(lib.StandardFonts.Helvetica);
+        const fits = (s: string) => { try { helv.encodeText(s.replace(/[\r\n\t]/g, ' ')); return true; } catch { return false; } };
+        const pictures: { field: any; text: string }[] = [];
         for (const f of fields) {
           const v = vals[f.name]; if (v === undefined) continue;
           try {
-            if (f.type === 'text') { const t = form.getTextField(f.name); if (t.getText() !== v) { t.setText(String(v)); nFilled++; } }
+            if (f.type === 'text') {
+              const t = form.getTextField(f.name), s = String(v);
+              if ((t.getText() ?? '') === s) continue;
+              const max = t.getMaxLength(); if (max !== undefined && s.length > max) t.setMaxLength(undefined);
+              t.setText(s); nFilled++;
+              if (fits(s)) t.updateAppearances(helv); else pictures.push({ field: t, text: s });
+            }
             else if (f.type === 'check') { const c = form.getCheckBox(f.name); if (c.isChecked() !== v) { v ? c.check() : c.uncheck(); nFilled++; } }
-            else if (f.type === 'drop') { const d = form.getDropdown(f.name); if (v) { if (d.getSelected()[0] !== v) { d.select(String(v)); nFilled++; } } else d.clear(); }
-            else if (f.type === 'list') { const l = form.getOptionList(f.name); if ((v as string[]).length) l.select(v as string[]); else l.clear(); }
+            else if (f.type === 'drop') {
+              const d = form.getDropdown(f.name);
+              if ((d.getSelected()[0] ?? '') !== v) { v ? d.select(String(v)) : d.clear(); nFilled++; if (fits(String(v))) d.updateAppearances(helv); }
+            }
+            else if (f.type === 'list') { const l = form.getOptionList(f.name); (v as string[]).length ? l.select(v as string[]) : l.clear(); if ((v as string[]).every(fits)) l.updateAppearances(helv); }
             else if (v) { const r = form.getRadioGroup(f.name); if (r.getSelected() !== v) { r.select(String(v)); nFilled++; } }
           } catch { /* a field this tool cannot set is left as it was */ }
         }
-        form.updateFieldAppearances();
-        if ($<HTMLInputElement>('.fp-flat').checked) form.flatten();
+        // Letters Helvetica lacks: write them onto the page as a picture in the field's box, and take the field away
+        // (otherwise a viewer would draw its own, possibly empty or black, box on top).
+        const pages = doc.getPages();
+        for (const { field, text } of pictures) {
+          const pic = textPicture(text), img = await doc.embedPng(pic.url);
+          for (const w of field.acroField.getWidgets()) {
+            const ref = doc.context.getObjectRef(w.dict), pRef = w.P();
+            const page = pages.find((p) => p.ref === pRef || (p.node.Annots()?.asArray() ?? []).includes(ref as any)); if (!page) continue;
+            const r = w.getRectangle(), pad = Math.min(2, r.width / 10);
+            let h = Math.min(r.height * 0.8, 14 * 1.25 * pic.lines), wd = h * pic.ratio;
+            if (wd > r.width - pad * 2) { wd = r.width - pad * 2; h = wd / pic.ratio; }
+            const y = pic.lines > 1 ? r.y + r.height - h - pad : r.y + (r.height - h) / 2;
+            page.drawImage(img, { x: r.x + pad, y, width: wd, height: h });
+          }
+          try { form.removeField(field); nPicture++; } catch { /* left as a field */ }
+        }
+        try { form.updateFieldAppearances(helv); } catch { /* fields that were not changed keep their own look */ }
+        if ($<HTMLInputElement>('.fp-flat').checked) form.flatten({ updateFieldAppearances: false });
+        // pdf-lib can leave a page pointing at a field box it has just removed; strict readers then warn or repair the file.
+        for (const pg of doc.getPages()) {
+          const an = pg.node.Annots(); if (!an) continue;
+          for (let k = an.size() - 1; k >= 0; k--) { const r = an.get(k); if (r instanceof lib.PDFRef && !doc.context.lookup(r)) an.remove(k); }
+        }
       }
       await drawItems(doc, items);
-      downloadBytes(await doc.save(), outName(fileName, '-filled'));
+      downloadBytes(await doc.save({ updateFieldAppearances: false }), outName(fileName, '-filled'));
       const s = $('.fp-saved'); s.hidden = false;
-      s.textContent = `Saved. ${nFilled} form field${nFilled === 1 ? '' : 's'} changed and ${items.length} mark${items.length === 1 ? '' : 's'} added${fields.length && $<HTMLInputElement>('.fp-flat').checked ? '; the form is flattened' : ''}. Open the file to check it before you send it.`;
+      s.textContent = `Saved. ${nFilled} form field${nFilled === 1 ? '' : 's'} changed and ${items.length} mark${items.length === 1 ? '' : 's'} added${fields.length && $<HTMLInputElement>('.fp-flat').checked ? '; the form is flattened' : ''}.`
+        + (nPicture ? ` ${nPicture} field${nPicture === 1 ? ' has' : 's have'} letters the standard PDF font lacks, so ${nPicture === 1 ? 'it was' : 'they were'} written onto the page as a picture and can no longer be edited.` : '')
+        + ' Open the file to check it before you send it.';
     } catch (e: any) {
       err(e instanceof EncryptedError ? 'This PDF is locked with a password. Unlock it first.' : 'Could not save this PDF: ' + (e?.message || e));
     }
