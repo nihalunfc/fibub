@@ -85,6 +85,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'life-admin', name: 'Life admin and travel', blurb: 'Immigration points, day counts, reminders and trips.' },
     { id: 'security', name: 'Passwords and security', blurb: 'Strong passwords made and checked on your device.' },
     { id: 'planning', name: 'Time and sharing', blurb: 'Planners, time zones, shifts, links and QR codes.' },
+    { id: 'internet', name: 'Internet and phone signal', blurb: 'Test your internet speed, find the best Wi-Fi spot at home and compare mobile networks. For Canada, India, the UK and the USA.' },
   ],
 };
 
@@ -337,6 +338,7 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'passwords', subject: 'security', name: 'Passwords' },
     { id: 'plan-time', subject: 'planning', name: 'Plans and time zones' },
     { id: 'sharing', subject: 'planning', name: 'Links and sharing' },
+    { id: 'connection', subject: 'internet', name: 'Speed and signal' },
   ],
   // Collecting: sections only, no subjects.
   collecting: [

@@ -1,0 +1,210 @@
+---
+// #T950 Speed Test: download, upload, round trip (ping), jitter and loaded round trip, timed in the browser
+// against Cloudflare's public speed test server. Engine: src/lib/net/speed.ts (shared with #T951 and #T952).
+import '../../styles/astro.css';
+---
+<div class="ax ist">
+  <div class="ax-card">
+    <h2>Test your internet</h2>
+    <p class="ax-help">Works anywhere. Made for <strong>Canada, India, the UK and the USA</strong>, with the official ways to check and complain in each one below.</p>
+    <div class="ax-row">
+      <div class="ax-seg" role="group" aria-label="How much data to use">
+        <button type="button" data-plan="light" aria-pressed="true">Light test</button>
+        <button type="button" data-plan="full" aria-pressed="false">Full test</button>
+      </div>
+      <button type="button" class="btn ist-go">Start</button>
+      <button type="button" class="btn secondary ist-stop" hidden>Stop</button>
+    </div>
+    <p class="ax-help ist-planhelp"></p>
+    <div class="ist-dial" aria-live="polite">
+      <span class="ist-phase">Ready</span>
+      <b class="ax-big ist-now">–</b>
+      <div class="ist-bar"><i class="ist-fill"></i></div>
+    </div>
+    <p class="ax-err ist-err" role="alert" hidden></p>
+  </div>
+
+  <div class="ax-card ist-res" hidden>
+    <h2>Results</h2>
+    <dl class="ax-facts">
+      <div><dt>Download</dt><dd class="ist-down">–<small></small></dd></div>
+      <div><dt>Upload</dt><dd class="ist-up">–<small></small></dd></div>
+      <div><dt>Ping (idle)</dt><dd class="ist-lat">–<small></small></dd></div>
+      <div><dt>Jitter</dt><dd class="ist-jit">–<small></small></dd></div>
+      <div><dt>Ping while busy</dt><dd class="ist-load">–<small></small></dd></div>
+      <div><dt>Data used</dt><dd class="ist-bytes">–<small>both ways</small></dd></div>
+    </dl>
+    <h3>Good enough for</h3>
+    <ul class="ist-uses"></ul>
+    <div class="ax-row"><button type="button" class="btn secondary small ist-copy">Copy results</button><span class="ax-help ist-copied" aria-live="polite"></span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your connection</h2>
+    <dl class="ax-facts ist-info"><div><dt>Checking…</dt><dd>–</dd></div></dl>
+    <p class="ax-help">Your IP address and network name are what every website you visit already sees. fibub shows them here and does not keep them.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Past tests on this device</h2>
+    <label class="ax-check"><input type="checkbox" class="ist-keep" /> Keep my results on this device</label>
+    <p class="ax-help">Off by default. When ticked, each result (time, speeds, ping) is kept in this browser only, so you can compare times of day. Nothing is sent anywhere.</p>
+    <div class="ax-scroll"><table class="ist-hist"><thead><tr><th>When</th><th class="r">Down</th><th class="r">Up</th><th class="r">Ping</th><th class="r">Jitter</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help ist-histn">No saved results.</p>
+    <button type="button" class="btn secondary small ist-clear">Clear saved results</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check against the official tools</h2>
+    <p class="ax-help">If your speed is far below your plan, test a few times on a cable, then use your country's official checker; regulators accept their own results when you complain.</p>
+    <ul class="ist-off">
+      <li><strong>Canada:</strong> <a href="https://performance.cira.ca/" rel="noopener">CIRA Internet Performance Test</a>; complaints to the <a href="https://www.ccts-cprst.ca/" rel="noopener">CCTS</a>.</li>
+      <li><strong>India:</strong> TRAI's <a href="https://myspeed.trai.gov.in/" rel="noopener">MySpeed</a> app and portal; complaints first to your provider, then the appellate authority it names.</li>
+      <li><strong>UK:</strong> <a href="https://checker.ofcom.org.uk/" rel="noopener">Ofcom broadband and mobile checker</a>; the Ofcom Voluntary Code lets you leave if speeds fall below the minimum promised.</li>
+      <li><strong>USA:</strong> the FCC Speed Test app (in the app stores) and the <a href="https://broadbandmap.fcc.gov/" rel="noopener">National Broadband Map</a>; check your provider's broadband label.</li>
+    </ul>
+    <p class="ax-help">Checked 2026-11-14. Links and rules change; check the official source.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .ist-dial { display: grid; gap: 6px; margin-top: 12px; }
+  .ist-phase { font-size: 14px; color: var(--muted); }
+  .ist-bar { height: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .ist-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .ist-uses, .ist-off { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; }
+  .ist-uses li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .ist-uses small { color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  import { PLANS, runTest, uses, rateLatency, rateDown, bloat, fmtMbps, fmtMs, fmtBytes, linkInfo, traceInfo, ispInfo, type Result } from '../../lib/net/speed';
+  const root = document.querySelector('.ist') as HTMLElement;
+  const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
+  const KEY = 'fibub-speedtests-v1';
+  let plan: 'light' | 'full' = 'light';
+  let ctl: AbortController | null = null;
+  let last: Result | null = null;
+
+  const planHelp = () => {
+    $('.ist-planhelp').textContent = plan === 'light'
+      ? 'Light: about 15 seconds and up to about 25 MB. Good on mobile data.'
+      : 'Full: about 30 seconds and up to about 200 MB on a very fast line. Measures fast connections (over 100 Mbps) better.';
+  };
+  root.querySelectorAll<HTMLButtonElement>('[data-plan]').forEach((b) => b.addEventListener('click', () => {
+    plan = b.dataset.plan as 'light' | 'full';
+    root.querySelectorAll('[data-plan]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    planHelp();
+  }));
+  // On mobile data the light test is the default; say so.
+  const li = linkInfo();
+  planHelp();
+  if (li?.type === 'cellular') $('.ist-planhelp').textContent += ' You seem to be on mobile data.';
+
+  const phaseName: Record<string, string> = { latency: 'Measuring ping…', download: 'Download…', upload: 'Upload…', done: 'Done' };
+  const set = (sel: string, v: string, note = '') => { const d = $(sel); d.firstChild!.textContent = v; (d.querySelector('small') as HTMLElement).textContent = note; };
+
+  function show(r: Result) {
+    $('.ist-res').hidden = false;
+    set('.ist-down', r.down == null ? '–' : fmtMbps(r.down) + ' Mbps', rateDown(r.down));
+    set('.ist-up', r.up == null ? '–' : fmtMbps(r.up) + ' Mbps', rateDown(r.up));
+    set('.ist-lat', fmtMs(r.latency) + ' ms', rateLatency(r.latency));
+    set('.ist-jit', fmtMs(r.jitter) + ' ms', r.jitter == null ? '' : r.jitter < 10 ? 'Steady' : r.jitter < 30 ? 'A little uneven' : 'Uneven');
+    set('.ist-load', r.loaded == null ? '–' : fmtMs(r.loaded) + ' ms', r.loaded == null ? '' : 'Bufferbloat: ' + bloat(r.latency, r.loaded));
+    set('.ist-bytes', fmtBytes(r.bytes), 'both ways');
+    const ul = $('.ist-uses'); ul.textContent = '';
+    for (const u of uses(r)) {
+      const li = document.createElement('li');
+      const p = document.createElement('span'); p.className = 'ax-pill ' + u.ok; p.textContent = u.ok === 'good' ? 'Yes' : u.ok === 'warn' ? 'Mostly' : 'No';
+      const t = document.createElement('span'); t.textContent = u.label;
+      const s = document.createElement('small'); s.textContent = u.why;
+      li.append(p, t, s); ul.append(li);
+    }
+  }
+
+  async function start() {
+    $('.ist-err').hidden = true;
+    ctl = new AbortController();
+    $('.ist-go').hidden = true; $('.ist-stop').hidden = false;
+    const fill = $('.ist-fill');
+    try {
+      const r = await runTest(PLANS[plan], (p) => {
+        $('.ist-phase').textContent = phaseName[p.phase];
+        if (p.phase === 'latency' && p.ms != null) $('.ist-now').textContent = fmtMs(p.ms) + ' ms';
+        if (p.mbps != null) $('.ist-now').textContent = fmtMbps(p.mbps) + ' Mbps';
+        const base = p.phase === 'latency' ? 0 : p.phase === 'download' ? 1 / 4 : p.phase === 'upload' ? 5 / 8 : 1;
+        const span = p.phase === 'latency' ? 1 / 4 : 3 / 8;
+        fill.style.width = Math.round(100 * Math.min(1, base + span * (p.frac ?? 0))) + '%';
+      }, ctl.signal);
+      last = r;
+      $('.ist-now').textContent = fmtMbps(r.down) + ' Mbps down';
+      show(r); save(r);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        const err = $('.ist-err');
+        err.textContent = navigator.onLine === false ? 'You seem to be offline. Connect and try again.' : 'The test server could not be reached. A firewall, ad blocker or school/work network may block speed.cloudflare.com. Try again or on another network.';
+        err.hidden = false;
+      }
+      $('.ist-phase').textContent = 'Stopped';
+    } finally {
+      $('.ist-go').hidden = false; $('.ist-stop').hidden = true; ctl = null;
+      $('.ist-go').textContent = 'Test again';
+    }
+  }
+  $('.ist-go').addEventListener('click', start);
+  $('.ist-stop').addEventListener('click', () => ctl?.abort());
+
+  $('.ist-copy').addEventListener('click', async () => {
+    if (!last) return;
+    const t = `Internet speed (fibub.com): download ${fmtMbps(last.down)} Mbps, upload ${fmtMbps(last.up)} Mbps, ping ${fmtMs(last.latency)} ms, jitter ${fmtMs(last.jitter)} ms, ping while busy ${fmtMs(last.loaded)} ms, ${new Date().toLocaleString()}`;
+    try { await navigator.clipboard.writeText(t); $('.ist-copied').textContent = 'Copied.'; } catch { $('.ist-copied').textContent = t; }
+  });
+
+  // Saved results: only when the box is ticked.
+  type Row = { t: number; d: number | null; u: number | null; l: number | null; j: number | null };
+  const read = (): Row[] => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } };
+  const keep = $<HTMLInputElement>('.ist-keep');
+  keep.checked = read().length > 0;
+  function drawHist() {
+    const rows = read(), tb = $('.ist-hist tbody'); tb.textContent = '';
+    for (const r of rows.slice().reverse()) {
+      const tr = document.createElement('tr');
+      for (const [v, c] of [[new Date(r.t).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }), ''], [fmtMbps(r.d), 'r'], [fmtMbps(r.u), 'r'], [fmtMs(r.l), 'r'], [fmtMs(r.j), 'r']] as const) {
+        const td = document.createElement('td'); td.textContent = v; if (c) td.className = c; tr.append(td);
+      }
+      tb.append(tr);
+    }
+    $('.ist-histn').textContent = rows.length ? `${rows.length} saved result${rows.length > 1 ? 's' : ''}, newest first.` : 'No saved results.';
+  }
+  function save(r: Result) {
+    if (!keep.checked) return;
+    const rows = read(); rows.push({ t: Date.now(), d: r.down, u: r.up, l: r.latency, j: r.jitter });
+    try { localStorage.setItem(KEY, JSON.stringify(rows.slice(-50))); } catch {}
+    drawHist();
+  }
+  keep.addEventListener('change', () => { if (keep.checked && last) save(last); });
+  $('.ist-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} keep.checked = false; drawHist(); });
+  drawHist();
+
+  // Connection details.
+  (async () => {
+    const box = $('.ist-info'); const rows: [string, string][] = [];
+    if (li) {
+      if (li.type) rows.push(['Link type (browser says)', li.type]);
+      if (li.effectiveType) rows.push(['Browser estimate', li.effectiveType.toUpperCase() + (li.downlink ? `, about ${li.downlink} Mbps` : '')]);
+    }
+    const [tr, isp] = await Promise.all([traceInfo(), ispInfo()]);
+    if (tr) {
+      rows.push(['Your IP address', tr.ip]);
+      rows.push(['IP version', tr.ip.includes(':') ? 'IPv6' : 'IPv4']);
+      if (tr.loc) rows.push(['Country (from IP)', tr.loc]);
+      if (tr.colo) rows.push(['Nearest Cloudflare data centre', tr.colo]);
+      if (tr.http) rows.push(['Web protocol', tr.http.replace('http/', 'HTTP/')]);
+    }
+    if (isp?.isp) rows.push(['Network (ISP)', isp.isp]);
+    if (isp?.city) rows.push(['Test server city', isp.city]);
+    box.textContent = '';
+    if (!rows.length) rows.push(['Details', 'Not available in this browser']);
+    for (const [k, v] of rows) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); box.append(d); }
+  })();
+</script>
