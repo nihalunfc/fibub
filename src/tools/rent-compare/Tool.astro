@@ -1,0 +1,251 @@
+---
+// #T953 Rent compare
+---
+<div class="tool-ui rc">
+  <section class="panel">
+    <h2>1. The homes you are looking at</h2>
+    <p class="rc-fine">For each place, type the rent and every monthly bill you would pay on top. Put 0 for anything the rent already includes. Location: a postal code (the centre of that area), or for an exact spot, coordinates or a link copied from your map app.</p>
+    <div class="rc-homes"></div>
+    <button type="button" class="rc-add" data-add="home">+ Add a home</button>
+  </section>
+
+  <section class="panel">
+    <h2>2. Places you go from home</h2>
+    <p class="rc-fine">Work, school, daycare, the gym, a bus stop or train station. Say how you get there and how many round trips a week. A stop you only want the distance to can have 0 trips.</p>
+    <div class="rc-places"></div>
+    <button type="button" class="rc-add" data-add="place">+ Add a place</button>
+  </section>
+
+  <section class="panel">
+    <h2>3. Travel costs</h2>
+    <div class="rc-grid">
+      <label>Gas price per litre <input data-s="fuelPrice" inputmode="decimal" value="1.40" /></label>
+      <label>Your car's litres per 100 km <input data-s="l100" inputmode="decimal" value="8.5" /></label>
+      <label>Car wear per km <input data-s="wearPerKm" inputmode="decimal" value="0.10" /></label>
+      <label>Bus or train fare per ride <input data-s="fare" inputmode="decimal" value="3.30" /></label>
+      <label>Monthly pass (0 if none) <input data-s="passMonthly" inputmode="decimal" value="0" /></label>
+      <label>Value of an hour of your time <input data-s="timeValue" inputmode="decimal" value="0" /></label>
+      <label>Road distance vs straight line <input data-s="roadFactor" inputmode="decimal" value="1.3" /></label>
+    </div>
+    <p class="rc-fine">Example values: type your own. Fares are capped at the monthly pass if you give one. Road factor: roads are rarely straight, so straight-line distance is multiplied by this (1.2 to 1.4 in most towns). Time value 0 compares money only.</p>
+  </section>
+
+  <section class="panel" aria-live="polite">
+    <h2>4. Which home costs least</h2>
+    <p class="rc-big"></p>
+    <div class="rc-scroll"><table class="rc-tab rc-rank"></table></div>
+    <div class="rc-chart"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Distance and time to each place</h2>
+    <p class="rc-fine">Estimates from straight-line distance. If your map app gives the real distance or minutes for a trip, type them in the boxes and they replace the estimate.</p>
+    <div class="rc-scroll"><table class="rc-tab rc-mx"></table></div>
+    <div class="rc-map"></div>
+  </section>
+
+  <section class="panel">
+    <label class="rc-check"><input type="checkbox" class="rc-keep" /> Remember these homes on this device</label>
+    <p class="rc-fine">Off by default. When ticked, your homes and places are kept only in this browser (nothing is sent anywhere). <button type="button" class="rc-clear">Clear saved homes</button></p>
+  </section>
+  <p class="rc-fine">Estimates, not advice. Postal codes are looked up in a list loaded from fibub.com itself; addresses and links you type never leave this page.</p>
+</div>
+
+<style is:inline>
+  .rc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rc .panel { padding: 16px; }
+  .rc h2 { margin: 0 0 10px; font-size: 18px; }
+  .rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .rc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rc input:not([type=checkbox]), .rc select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rc input:focus, .rc select:focus { border-color: var(--accent); outline: none; }
+  .rc-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 0 0 12px; display: grid; gap: 10px; }
+  .rc-head { display: flex; gap: 8px; align-items: center; }
+  .rc-head input { flex: 1; font-weight: 600; }
+  .rc-tag { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; }
+  .rc-tag.sq { border-radius: 6px; background: var(--ink); color: var(--bg); }
+  .rc-where { font-size: 13px; margin: -4px 0 0; color: var(--muted); }
+  .rc-where.bad { color: var(--bad); }
+  .rc-where.good { color: var(--good); }
+  .rc-fine { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  .rc button { font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .rc button.rc-add { border-color: var(--accent); color: var(--accent); }
+  .rc button.rc-del { padding: 4px 10px; font-size: 13px; flex: none; }
+  .rc label.rc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin: 0 0 8px; }
+  .rc input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .rc-big { font-size: 20px; font-weight: 700; margin: 0 0 12px; line-height: 1.35; }
+  .rc-scroll { overflow-x: auto; margin: 0 0 12px; }
+  .rc-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rc-tab th, .rc-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+  .rc-tab th:first-child, .rc-tab td:first-child { text-align: left; }
+  .rc-tab tr.best td { font-weight: 700; }
+  .rc .rc-mx td input { width: 64px; padding: 4px 6px; font-size: 13px; }
+  .rc-mx .est { display: block; color: var(--muted); font-size: 12px; }
+  .rc-mx .pair { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
+  .rc svg { display: block; width: 100%; height: auto; }
+  .rc svg text { font: 12px system-ui, sans-serif; fill: var(--ink); }
+  .rc svg .mut { fill: var(--muted); }
+  .rc-key { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .rc-key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+</style>
+
+<script>
+  import { REGIONS, MODES, locate, haversineKm, leg, travel, monthly, type Mode, type Point, type Settings } from '../../lib/money/rental';
+  import { fmt, esc } from '../../lib/money/ui';
+
+  const root = document.querySelector('.rc') as HTMLElement;
+  const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const region = REGIONS[0];
+  const BILLS: [string, string][] = [['hydro', 'Hydro (electricity)'], ['heat', 'Heat (gas)'], ['water', 'Water'], ['internet', 'Internet'], ['parking', 'Parking spot'], ['insurance', 'Tenant insurance'], ['other', 'Other monthly']];
+  type HomeIn = { name: string; loc: string; rent: number; bills: Record<string, number> };
+  type PlaceIn = { name: string; loc: string; mode: Mode; perWeek: number; park?: number };
+  const KEY = 'fibub-rent-compare-v1';
+  const blankBills = () => Object.fromEntries(BILLS.map(([k]) => [k, 0]));
+  let homes: HomeIn[] = [
+    { name: 'Apartment in Mississauga', loc: 'L5B 2C9', rent: 2250, bills: { ...blankBills(), hydro: 60, internet: 65, parking: 75, insurance: 25 } },
+    { name: 'Basement in Brampton', loc: 'L6Y 1N5', rent: 1850, bills: { ...blankBills(), hydro: 70, heat: 60, water: 35, internet: 65, insurance: 25 } },
+  ];
+  let places: PlaceIn[] = [
+    { name: 'Work', loc: 'M5V 3L9', mode: 'car', perWeek: 5, park: 0 },
+    { name: 'College', loc: 'L4W 4Y4', mode: 'transit', perWeek: 2 },
+  ];
+  let over: Record<string, { km?: number; min?: number }> = {};
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s?.homes?.length) { homes = s.homes; places = s.places || []; over = s.over || {}; ($('.rc-keep') as HTMLInputElement).checked = true; } } catch {}
+
+  let table: Record<string, [number, number, string]> | null = null, loading = false;
+  const needTable = () => [...homes, ...places].some((x) => region.postal(x.loc));
+  const loadTable = () => {
+    if (table || loading || !needTable()) return;
+    loading = true;
+    fetch(region.table).then((r) => r.json()).then((t) => { table = t; calc(); }).catch(() => { loading = false; });
+  };
+  const where = (text: string): Point | null => locate(text, region, table);
+  const letter = (i: number) => String.fromCharCode(65 + i);
+  const n = (v: string) => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
+
+  const drawHomes = () => {
+    $('.rc-homes').innerHTML = homes.map((h, i) => `<div class="rc-card" data-h="${i}">
+      <div class="rc-head"><span class="rc-tag">${letter(i)}</span><input aria-label="Name of home ${letter(i)}" data-f="name" value="${esc(h.name)}" />${homes.length > 2 ? `<button type="button" class="rc-del" data-del="home">Remove</button>` : ''}</div>
+      <label>Location <input data-f="loc" value="${esc(h.loc)}" placeholder="Postal code, coordinates or map link" autocomplete="off" /></label>
+      <p class="rc-where" data-w></p>
+      <div class="rc-grid"><label>Rent a month <input data-f="rent" inputmode="decimal" value="${h.rent}" /></label>
+      ${BILLS.map(([k, l]) => `<label>${l} <input data-b="${k}" inputmode="decimal" value="${h.bills[k] ?? 0}" /></label>`).join('')}</div></div>`).join('');
+  };
+  const drawPlaces = () => {
+    $('.rc-places').innerHTML = places.map((p, i) => `<div class="rc-card" data-p="${i}">
+      <div class="rc-head"><span class="rc-tag sq">${i + 1}</span><input aria-label="Name of place ${i + 1}" data-f="name" value="${esc(p.name)}" />${places.length > 1 ? `<button type="button" class="rc-del" data-del="place">Remove</button>` : ''}</div>
+      <label>Location <input data-f="loc" value="${esc(p.loc)}" placeholder="Postal code, coordinates or map link" autocomplete="off" /></label>
+      <p class="rc-where" data-w></p>
+      <div class="rc-grid"><label>How you go <select data-f="mode">${(Object.keys(MODES) as Mode[]).map((m) => `<option value="${m}"${m === p.mode ? ' selected' : ''}>${MODES[m].name}</option>`).join('')}</select></label>
+      <label>Round trips a week <input data-f="perWeek" inputmode="decimal" value="${p.perWeek}" /></label>
+      <label>Parking per visit (car) <input data-f="park" inputmode="decimal" value="${p.park ?? 0}" /></label></div></div>`).join('');
+  };
+  const drawMatrix = () => {
+    $('.rc-mx').innerHTML = `<thead><tr><th></th>${homes.map((h, i) => `<th>${letter(i)}</th>`).join('')}</tr></thead><tbody>` +
+      places.map((p, j) => `<tr><td>${j + 1}. <span data-pn="${j}"></span></td>${homes.map((_, i) => `<td data-c="${i}-${j}"><span class="est"></span><span class="pair"><input aria-label="Real km" data-o="km" placeholder="km" inputmode="decimal" value="${over[`${i}-${j}`]?.km ?? ''}" /><input aria-label="Real minutes" data-o="min" placeholder="min" inputmode="decimal" value="${over[`${i}-${j}`]?.min ?? ''}" /></span></td>`).join('')}</tr>`).join('') + '</tbody>';
+  };
+  const drawAll = () => { drawHomes(); drawPlaces(); drawMatrix(); calc(); };
+
+  const settings = (): Settings => Object.fromEntries([...root.querySelectorAll<HTMLInputElement>('[data-s]')].map((e) => [e.dataset.s, n(e.value)])) as unknown as Settings;
+
+  const calc = () => {
+    loadTable();
+    const s = settings(), cur = region.currency;
+    const hp = homes.map((h) => where(h.loc)), pp = places.map((p) => where(p.loc));
+    const say = (sel: string, i: number, text: string, pt: Point | null) => {
+      const el = root.querySelector(`[${sel}="${i}"] [data-w]`) as HTMLElement;
+      if (!el) return;
+      el.className = 'rc-where ' + (pt ? 'good' : text.trim() ? 'bad' : '');
+      el.textContent = pt ? `Found: ${pt.label}${pt.exact ? '' : ' (area centre, roughly 1 to 3 km in towns)'}` : !text.trim() ? 'No location yet: distances need one.' : region.postal(text) && !table ? 'Looking up the postal code...' : `Not found. Try ${region.hint}, or coordinates like 43.6532, -79.3832.`;
+    };
+    homes.forEach((h, i) => say('data-h', i, h.loc, hp[i]));
+    places.forEach((p, j) => { say('data-p', j, p.loc, pp[j]); const e = root.querySelector(`[data-pn="${j}"]`); if (e) e.textContent = p.name; });
+
+    const rows = homes.map((h, i) => {
+      const legs = places.map((p, j) => {
+        const o = over[`${i}-${j}`] || {}, st = hp[i] && pp[j] ? haversineKm(hp[i]!, pp[j]!) : null;
+        const trip = { mode: p.mode, perWeek: p.perWeek, park: p.park || 0 };
+        const l = leg(st, { ...trip, km: o.km, min: o.min }, s);
+        const cell = root.querySelector(`[data-c="${i}-${j}"] .est`);
+        if (cell) cell.textContent = l.roadKm == null ? 'needs both locations' : `${fmt(l.roadKm, 1)} km${l.estimated ? ' (est.)' : ''}, ${fmt(l.min!, 0)} min ${MODES[p.mode].name.toLowerCase()}`;
+        return { ...l, trip };
+      });
+      const tr = travel(legs, s);
+      return { i, name: h.name, missing: legs.some((l) => l.roadKm == null && l.trip.perWeek > 0), ...monthly({ name: h.name, rent: h.rent, bills: h.bills }, tr, s) };
+    });
+    const useTime = s.timeValue > 0, key = (r: typeof rows[number]) => (useTime ? r.withTime : r.money);
+    const sorted = [...rows].sort((a, b) => key(a) - key(b)), best = sorted[0], cheapRent = [...rows].sort((a, b) => a.rent - b.rent)[0];
+    const second = sorted[1];
+    let msg = `${letter(best.i)}. ${best.name} costs least: ${cur}${fmt(key(best), 0)} a month${useTime ? ' with your time counted' : ''}`;
+    if (second) msg += `, ${cur}${fmt(key(second) - key(best), 0)} less than ${letter(second.i)}.`;
+    if (cheapRent.i !== best.i) msg += ` ${letter(cheapRent.i)} has the lowest rent but costs more once bills and travel are added.`;
+    else if (second && best.hours > second.hours + 0.5 && !useTime) {
+      const dh = best.hours - second.hours;
+      msg += ` But it adds ${fmt(dh, 0)} hours of travel a month, so you save about ${cur}${fmt((key(second) - key(best)) / dh, 2)} for each extra hour on the road.`;
+    }
+    if (rows.some((r) => r.missing)) msg += ' Some trips have no location yet, so their travel is left out.';
+    $('.rc-big').textContent = msg;
+    $('.rc-rank').innerHTML = `<thead><tr><th>Home</th><th>Rent</th><th>Bills</th><th>Travel</th><th>Total a month</th><th>Hours travelling</th>${useTime ? '<th>With time</th>' : ''}<th>A year</th></tr></thead><tbody>` +
+      sorted.map((r) => `<tr class="${r === best ? 'best' : ''}"><td>${letter(r.i)}. ${esc(r.name)}</td><td>${fmt(r.rent, 0)}</td><td>${fmt(r.bills, 0)}</td><td>${fmt(r.travel, 0)}</td><td>${cur}${fmt(r.money, 0)}</td><td>${fmt(r.hours, 1)}</td>${useTime ? `<td>${cur}${fmt(r.withTime, 0)}</td>` : ''}<td>${cur}${fmt(key(r) * 12, 0)}</td></tr>`).join('') + '</tbody>';
+    chart(rows, useTime, s.timeValue);
+    map(hp, pp);
+    save();
+  };
+
+  const chart = (rows: { i: number; rent: number; bills: number; travel: number; hours: number }[], useTime: boolean, tv: number) => {
+    const parts: [string, string, (r: typeof rows[number]) => number][] = [['Rent', 'var(--accent)', (r) => r.rent], ['Bills', 'var(--muted)', (r) => r.bills], ['Travel', 'var(--warn)', (r) => r.travel]];
+    if (useTime) parts.push(['Time', 'var(--bad)', (r) => r.hours * tv]);
+    const max = Math.max(1, ...rows.map((r) => parts.reduce((a, p) => a + p[2](r), 0)));
+    const W = 600, x0 = 30, bw = W - x0 - 80, H = rows.length * 34 + 8;
+    let b = '';
+    rows.forEach((r, k) => {
+      let x = x0; const y = 4 + k * 34;
+      b += `<text x="${x0 - 8}" y="${y + 18}" text-anchor="end">${letter(r.i)}</text>`;
+      for (const [, col, f] of parts) { const w = (bw * Math.max(0, f(r))) / max; b += `<rect x="${x.toFixed(1)}" y="${y}" width="${w.toFixed(1)}" height="24" style="fill:${col}"/>`; x += w; }
+      b += `<text x="${(x + 6).toFixed(1)}" y="${y + 17}">${fmt(parts.reduce((a, p) => a + p[2](r), 0), 0)}</text>`;
+    });
+    $('.rc-chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly cost of each home, split into rent, bills and travel">${b}</svg><p class="rc-key">${parts.map(([l, c]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}</p>`;
+  };
+
+  const map = (hp: (Point | null)[], pp: (Point | null)[]) => {
+    const pts = [...hp, ...pp].filter(Boolean) as Point[];
+    if (pts.length < 2) { $('.rc-map').innerHTML = ''; return; }
+    const lat0 = pts.reduce((a, p) => a + p.lat, 0) / pts.length, kx = 111.32 * Math.cos((lat0 * Math.PI) / 180), ky = 110.57;
+    const xy = (p: Point) => [p.lon * kx, -p.lat * ky];
+    const all = pts.map(xy), xs = all.map((a) => a[0]), ys = all.map((a) => a[1]);
+    const minX = Math.min(...xs), minY = Math.min(...ys);
+    const W = 600, pad = 36, ex = Math.max(Math.max(...xs) - minX, 0.5), ey = Math.max(...ys) - minY;
+    const sc = Math.min((W - 2 * pad) / ex, 300 / Math.max(ey, 0.5)), H = Math.max(120, ey * sc + 2 * pad + 24);
+    const P = (p: Point) => { const [x, y] = xy(p); return [pad + (x - minX) * sc, pad + (y - minY) * sc]; };
+    let b = '';
+    hp.forEach((h) => { if (!h) return; pp.forEach((p) => { if (!p) return; const [x1, y1] = P(h), [x2, y2] = P(p); b += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke-dasharray="4 4" style="stroke:var(--line)"/>`; }); });
+    pp.forEach((p, j) => { if (!p) return; const [x, y] = P(p); b += `<rect x="${(x - 10).toFixed(1)}" y="${(y - 10).toFixed(1)}" width="20" height="20" rx="4" style="fill:var(--ink)"/><text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" style="fill:var(--bg)">${j + 1}</text>`; });
+    hp.forEach((h, i) => { if (!h) return; const [x, y] = P(h); b += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11" style="fill:var(--accent)"/><text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" style="fill:#fff">${letter(i)}</text>`; });
+    const nice = [0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500].find((k) => k * sc > 60) ?? 1000;
+    b += `<line x1="${pad}" x2="${(pad + nice * sc).toFixed(1)}" y1="${H - 12}" y2="${H - 12}" stroke-width="3" style="stroke:var(--ink)"/><text x="${(pad + nice * sc + 6).toFixed(1)}" y="${H - 8}" class="mut">${nice} km (straight line)</text>`;
+    $('.rc-map').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sketch of where the homes (circles) and places (squares) are, north up">${b}</svg><p class="rc-key"><span>Circles: homes. Squares: places. North is up. A sketch, not a street map.</span></p>`;
+  };
+
+  const save = () => {
+    try { if (($('.rc-keep') as HTMLInputElement).checked) localStorage.setItem(KEY, JSON.stringify({ homes, places, over })); } catch {}
+  };
+
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement;
+    const h = t.closest('[data-h]') as HTMLElement | null, p = t.closest('[data-p]') as HTMLElement | null, c = t.closest('[data-c]') as HTMLElement | null;
+    if (h) { const x = homes[+h.dataset.h!]; if (t.dataset.f === 'rent') x.rent = n(t.value); else if (t.dataset.b) x.bills[t.dataset.b] = n(t.value); else if (t.dataset.f) (x as any)[t.dataset.f] = t.value; }
+    else if (p) { const x = places[+p.dataset.p!]; if (t.dataset.f === 'perWeek' || t.dataset.f === 'park') x[t.dataset.f] = n(t.value); else if (t.dataset.f) (x as any)[t.dataset.f] = t.value; }
+    else if (c && t.dataset.o) { const k = c.dataset.c!, v = parseFloat(t.value); over[k] = { ...over[k], [t.dataset.o]: isFinite(v) && v > 0 ? v : undefined }; }
+    if (t.classList.contains('rc-keep')) { if (!t.checked) try { localStorage.removeItem(KEY); } catch {} }
+    calc();
+  });
+  root.addEventListener('click', (e) => {
+    const b = e.target as HTMLElement;
+    if (b.dataset.add === 'home' && homes.length < 6) { homes.push({ name: `Home ${letter(homes.length)}`, loc: '', rent: 0, bills: blankBills() }); over = {}; drawAll(); }
+    else if (b.dataset.add === 'place' && places.length < 8) { places.push({ name: `Place ${places.length + 1}`, loc: '', mode: 'walk', perWeek: 0 }); over = {}; drawAll(); }
+    else if (b.dataset.del === 'home') { homes.splice(+(b.closest('[data-h]') as HTMLElement).dataset.h!, 1); over = {}; drawAll(); }
+    else if (b.dataset.del === 'place') { places.splice(+(b.closest('[data-p]') as HTMLElement).dataset.p!, 1); over = {}; drawAll(); }
+    else if (b.classList.contains('rc-clear')) { try { localStorage.removeItem(KEY); } catch {} ($('.rc-keep') as HTMLInputElement).checked = false; b.textContent = 'Cleared'; }
+  });
+  drawAll();
+</script>
