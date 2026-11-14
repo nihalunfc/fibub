@@ -1,0 +1,377 @@
+---
+// #T954 Parking Finder: parking lots, garages and street parking near a spot in Ontario, with fees, hours, time
+// limits and the city's street rules. Data: OpenStreetMap and City of Ottawa open data, packed monthly into small
+// squares on fibub (scripts/parking-data.mjs); the phone downloads only the squares around the spot, from fibub.
+// The location never leaves the device. Engine: src/lib/parking/.
+import '../../styles/astro.css';
+---
+<div class="ax pf">
+  <div class="ax-card">
+    <h2>Where do you want to park?</h2>
+    <div class="ax-row">
+      <button type="button" class="btn pf-gps">Use my location</button>
+      <span class="ax-help">or</span>
+    </div>
+    <label class="pf-searchl">Type a place, station, hospital, campus or mall in Ontario
+      <input class="pf-q" type="search" autocomplete="off" placeholder="e.g. Union Station, Niagara Falls, 43.65, -79.38" />
+    </label>
+    <div class="pf-sugg" role="listbox" aria-label="Matching places"></div>
+    <div class="ax-grid pf-opts">
+      <label>Within
+        <select class="pf-r">
+          <option value="250">250 m</option>
+          <option value="500" selected>500 m</option>
+          <option value="1000">1 km</option>
+          <option value="2000">2 km</option>
+          <option value="5000">5 km</option>
+        </select>
+      </label>
+      <label>Show
+        <select class="pf-kind">
+          <option value="all">All parking</option>
+          <option value="l">Lots and garages</option>
+          <option value="s">Street parking</option>
+        </select>
+      </label>
+      <label>When
+        <select class="pf-when"><option value="now">Now</option><option value="at">Pick a time</option></select>
+      </label>
+      <label class="pf-atl" hidden>Date and time <input class="pf-at" type="datetime-local" /></label>
+    </div>
+    <div class="ax-row pf-checks">
+      <label class="ax-check"><input type="checkbox" class="pf-free" /> Free only</label>
+      <label class="ax-check"><input type="checkbox" class="pf-open" /> Open or allowed then</label>
+      <label class="ax-check"><input type="checkbox" class="pf-pub" /> Hide customers-only and permit parking</label>
+    </div>
+    <p class="ax-help pf-status" aria-live="polite">Your location stays on this device. The tool downloads parking data for the area around the spot from fibub itself, not from a map company.</p>
+    <p class="ax-err pf-err" role="alert" hidden></p>
+  </div>
+
+  <div class="ax-card pf-out" hidden>
+    <h2 class="pf-h">Parking nearby</h2>
+    <p class="pf-sum"></p>
+    <svg class="pf-plot" viewBox="-110 -110 220 220" role="img" aria-label="Where each parking place is around the spot: up is north"></svg>
+    <p class="ax-help pf-legend"><span class="pf-key pf-key-l"></span> lot or garage <span class="pf-key pf-key-s"></span> street parking <span class="pf-key pf-key-me"></span> your spot. Up is north; the rings are half and all of the distance you chose.</p>
+    <ol class="pf-list"></ol>
+    <button type="button" class="btn secondary small pf-more" hidden>Show more</button>
+  </div>
+
+  <div class="ax-card pf-city" hidden>
+    <h2 class="pf-cityh">Street rules here</h2>
+    <ul class="pf-rules"></ul>
+    <p class="note pf-winter" hidden></p>
+    <p class="ax-help pf-citysrc"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>About the data</h2>
+    <p class="ax-help pf-data">Parking lots, garages and street parking from <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> (© OpenStreetMap contributors, ODbL) and on-street parking and city lots from <a href="https://maps.ottawa.ca/arcgis/rest/services/Parking/MapServer" rel="noopener">City of Ottawa open data</a> (Open Government Licence - City of Ottawa). Refreshed once a month.</p>
+    <ul class="pf-notes">
+      <li>It does not show live free spaces: no Ontario city publishes them openly.</li>
+      <li>Fees, hours and time limits show only where they are recorded. "Unknown" means nobody has added it yet, not that it is free.</li>
+      <li>Signs on the lot or street always win. A rule here may be out of date.</li>
+      <li>Something missing or wrong? Anyone can fix it on <a href="https://www.openstreetmap.org/" rel="noopener">OpenStreetMap</a>; the fix reaches this tool at the next monthly refresh.</li>
+    </ul>
+  </div>
+</div>
+
+<style is:inline>
+  .pf-searchl { display: grid; gap: 4px; margin-top: 10px; }
+  .pf-q { width: 100%; box-sizing: border-box; }
+  .pf-sugg { display: grid; gap: 4px; margin-top: 6px; }
+  .pf-sugg:empty { display: none; }
+  .pf-sugg button { text-align: left; font: inherit; font-size: 15px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--fg); cursor: pointer; }
+  .pf-sugg button small { color: var(--muted); margin-left: 6px; }
+  .pf-opts { margin-top: 12px; }
+  .pf-checks { flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
+  .pf-sum { font-size: 16px; margin: 0 0 8px; }
+  .pf-plot { display: block; width: 100%; max-width: 320px; margin: 0 auto 6px; }
+  .pf-plot .ring { fill: none; stroke: var(--line); }
+  .pf-plot .l { fill: var(--accent); }
+  .pf-plot .s { fill: none; stroke: var(--fg); stroke-width: 1.6; }
+  .pf-plot .me { fill: var(--fg); }
+  .pf-plot text { font-size: 9px; fill: var(--muted); }
+  .pf-plot .num { font-size: 8px; fill: var(--fg); font-weight: 700; }
+  .pf-key { display: inline-block; width: 10px; height: 10px; vertical-align: -1px; margin: 0 3px 0 8px; }
+  .pf-key-l { background: var(--accent); }
+  .pf-key-s { border: 1.6px solid var(--fg); border-radius: 50%; box-sizing: border-box; }
+  .pf-key-me { background: var(--fg); border-radius: 50%; }
+  .pf-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .pf-list li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .pf-list .t { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+  .pf-list .t b { font-size: 16px; overflow-wrap: anywhere; }
+  .pf-list .d { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .pf-list .pills { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .pf-list .facts { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 2px; }
+  .pf-list .links { margin-top: 6px; font-size: 14px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .pf-list .src { color: var(--muted); font-size: 12px; }
+  .pf-rules, .pf-notes { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+</style>
+
+<script>
+  import { isOpen, inAmPm, conditionalNow, hoursWords, dayGroup } from '../../lib/parking/hours';
+  import { cityAt, GENERAL, metres, bearing, walkMin, inOntario } from '../../lib/parking/rules';
+
+  type Item = Record<string, any> & { k: 'l' | 's'; y: number; x: number; src?: string };
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const root = document.querySelector('.pf') as HTMLElement;
+  const q = $<HTMLInputElement>('.pf-q'), sugg = $<HTMLElement>('.pf-sugg');
+  const rSel = $<HTMLSelectElement>('.pf-r'), kindSel = $<HTMLSelectElement>('.pf-kind'), whenSel = $<HTMLSelectElement>('.pf-when');
+  const at = $<HTMLInputElement>('.pf-at'), atl = $<HTMLElement>('.pf-atl');
+  const freeC = $<HTMLInputElement>('.pf-free'), openC = $<HTMLInputElement>('.pf-open'), pubC = $<HTMLInputElement>('.pf-pub');
+  const status = $<HTMLElement>('.pf-status'), err = $<HTMLElement>('.pf-err');
+  const out = $<HTMLElement>('.pf-out'), sum = $<HTMLElement>('.pf-sum'), plot = $<SVGSVGElement>('.pf-plot'), list = $<HTMLOListElement>('.pf-list'), more = $<HTMLButtonElement>('.pf-more');
+  const BASE = '/parking/v1/';
+
+  let index: { date: string; tile: number; counts: Record<string, number>; tiles: Record<string, number> } | null = null;
+  const tiles = new Map<string, Item[]>();
+  let spot: { lat: number; lon: number; label: string } | null = null;
+  let shown = 25;
+
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+  const showErr = (m: string) => { err.textContent = m; err.hidden = !m; };
+  const fmtDist = (m: number) => (m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`);
+
+  async function getIndex() {
+    if (index) return index;
+    const r = await fetch(BASE + 'index.json');
+    if (!r.ok) throw new Error('The parking data is not available right now. Please try again later.');
+    index = await r.json();
+    return index!;
+  }
+
+  async function itemsNear(lat: number, lon: number, radius: number): Promise<Item[]> {
+    const idx = await getIndex();
+    const T = idx.tile;
+    const dLat = radius / 111320, dLon = radius / (111320 * Math.cos((lat * Math.PI) / 180));
+    const keys: string[] = [];
+    for (let a = Math.floor((lat - dLat) * T); a <= Math.floor((lat + dLat) * T); a++)
+      for (let b = Math.floor((lon - dLon) * T); b <= Math.floor((lon + dLon) * T); b++) {
+        const k = `${a}_${b}`;
+        if (idx.tiles[k]) keys.push(k);
+      }
+    await Promise.all(keys.filter((k) => !tiles.has(k)).map(async (k) => {
+      const r = await fetch(`${BASE}t/${k}.json`);
+      tiles.set(k, r.ok ? await r.json() : []);
+    }));
+    return keys.flatMap((k) => tiles.get(k) || []);
+  }
+
+  function when(): Date {
+    if (whenSel.value === 'at' && at.value) { const d = new Date(at.value); if (!isNaN(+d)) return d; }
+    return new Date();
+  }
+
+  // What can be said about one place at the chosen time.
+  function judge(o: Item, d: Date) {
+    const pills: [string, string][] = [];
+    const facts: string[] = [];
+    let free: boolean | null = null, allowed: boolean | null = null;
+    if (o.pay) {
+      const g = dayGroup(d), [hrs, rate] = o.pay[g] || ['', ''];
+      const paid = hrs ? inAmPm(hrs, d) : null;
+      if (paid === true) { free = false; pills.push(['warn', `Paid now${rate ? ', ' + rate + ' an hour' : ''}`]); }
+      else if (paid === false || (!hrs && o.pay.mf?.[0])) { free = true; pills.push(['good', 'Free at this time']); }
+      else pills.push(['', 'Paid street parking']);
+      const day = (k: string, n: string) => (o.pay[k]?.[0] ? `${n}: ${o.pay[k][0]}${o.pay[k][1] ? ', ' + o.pay[k][1] + '/h' : ''}` : '');
+      const lines = [day('mf', 'Mon to Fri'), day('sa', 'Sat'), day('su', 'Sun')].filter(Boolean);
+      if (lines.length) facts.push('Paid hours: ' + lines.join('; '));
+      if (o.c) facts.push(o.c);
+      allowed = true;
+    } else if (o.f === 0) { free = true; pills.push(['good', 'Free']); }
+    else if (o.f === 1) { free = false; pills.push(['warn', 'Paid']); }
+    else if (typeof o.f === 'string') {
+      const p = isOpen(o.f, d);
+      free = p == null ? null : !p;
+      pills.push([p ? 'warn' : p === false ? 'good' : '', p ? 'Paid now' : p === false ? 'Free at this time' : 'Paid at times']);
+      facts.push('Paid: ' + hoursWords(o.f));
+    } else pills.push(['', 'Fee unknown']);
+    if (o.fc) { const c = conditionalNow(o.fc, d); if (c.now.includes('yes')) { free = false; pills.push(['warn', 'Paid at this time']); } facts.push('Fee times: ' + o.fc); }
+    if (o.c && !o.pay) facts.push('Price: ' + o.c);
+    if (o.h) {
+      const open = isOpen(o.h, d);
+      allowed = open;
+      pills.push(open ? ['good', 'Open'] : open === false ? ['bad', 'Closed'] : ['', 'Hours vary']);
+      facts.push('Hours: ' + hoursWords(o.h));
+    }
+    if (o.rc) {
+      const c = conditionalNow(o.rc, d);
+      if (c.now.some((v) => /no_(parking|stopping|standing)/.test(v))) { allowed = false; pills.push(['bad', 'No parking at this time']); }
+      facts.push('Restrictions: ' + o.rc.replace(/_/g, ' '));
+    }
+    if (o.ac) facts.push('Access at times: ' + o.ac);
+    if (o.lim) {
+      const inLim = inAmPm(o.lim, d);
+      facts.push(`Time limit ${o.m || ''} applies ${o.lim}${o.days ? ', ' + o.days : ''}`.replace(/\s+/g, ' '));
+      if (inLim === false) pills.push(['good', 'No time limit at this time']);
+      else if (o.m) pills.push(['', `Max ${o.m}`]);
+      if (allowed == null) allowed = true;
+    } else if (o.m) pills.push(['', `Max stay ${o.m}`]);
+    if (o.mc) facts.push('Max stay at times: ' + o.mc);
+    if (o.a === 'c') pills.push(['', 'Customers only']);
+    if (o.a === 'p' || o.pm) pills.push(['', 'Permit or residents']);
+    if (o.a === 'd') pills.push(['', 'Visitors to this place only']);
+    if (o.pr) pills.push(['', 'Park and ride']);
+    if (o.cap) facts.push(`${o.cap} spaces${o.dis ? `, ${o.dis} accessible` : ''}${o.ev ? `, ${o.ev} with EV charging` : ''}`);
+    else if (o.dis || o.ev) facts.push([o.dis ? `${o.dis} accessible spaces` : '', o.ev ? `${o.ev} EV charging spaces` : ''].filter(Boolean).join(', '));
+    if (o.mh) facts.push('Height limit: ' + o.mh);
+    if (o.op) facts.push('Run by ' + o.op);
+    if (o.app) facts.push('Pay by app accepted');
+    if (o.hol) facts.push('Holidays: ' + o.hol);
+    return { pills, facts, free, allowed };
+  }
+
+  function title(o: Item) {
+    const side = o.side ? (o.side === 'l' ? ' (left side of the road)' : ' (right side of the road)') : '';
+    if (o.k === 's' && o.n && !o.src) return `Street parking on ${o.n}${side}`;
+    if (o.n) return o.n;
+    if (o.k === 's') return 'Street parking' + side;
+    return o.p === 'garage' ? 'Parking garage' : o.p === 'underground' ? 'Underground parking' : 'Parking lot';
+  }
+
+  async function run() {
+    if (!spot) return;
+    showErr('');
+    const radius = +rSel.value;
+    status.textContent = 'Loading parking data for this area…';
+    let items: Item[];
+    try { items = await itemsNear(spot.lat, spot.lon, radius); }
+    catch (e) { status.textContent = ''; showErr((e as Error).message); return; }
+    const d = when();
+    const rows = [];
+    let hidden = 0;
+    for (const o of items) {
+      const m = metres(spot.lat, spot.lon, o.y, o.x);
+      if (m > radius) continue;
+      if (kindSel.value !== 'all' && o.k !== kindSel.value) continue;
+      const j = judge(o, d);
+      if ((freeC.checked && j.free !== true) || (openC.checked && j.allowed === false) || (pubC.checked && (o.a === 'c' || o.a === 'p' || o.a === 'd' || o.pm))) { hidden++; continue; }
+      rows.push({ o, m, j });
+    }
+    rows.sort((a, b) => a.m - b.m);
+    const nl = rows.filter((r) => r.o.k === 'l').length, ns = rows.length - nl;
+    out.hidden = false;
+    $<HTMLElement>('.pf-h').textContent = `Parking near ${spot.label}`;
+    sum.innerHTML = rows.length
+      ? `<b>${rows.length}</b> within ${fmtDist(radius)}: ${nl} lot${nl === 1 ? '' : 's'} or garage${nl === 1 ? '' : 's'}, ${ns} street parking spot${ns === 1 ? '' : 's'}. Nearest: ${fmtDist(rows[0].m)}, about ${walkMin(rows[0].m)} min walk.${hidden ? ` ${hidden} more hidden by your filters.` : ''}`
+      : `Nothing found within ${fmtDist(radius)}${hidden ? ` (${hidden} hidden by your filters)` : ''}. Try a wider distance.`;
+    drawPlot(rows.slice(0, 120), radius);
+    shown = 25;
+    renderList(rows, d);
+    showCity(spot.lat, spot.lon);
+    status.textContent = index ? `Data from ${index.date}. Times are checked for ${d.toLocaleString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' })}.` : '';
+  }
+
+  let lastRows: any[] = [];
+  function renderList(rows: any[], d: Date) {
+    lastRows = rows;
+    list.innerHTML = rows.slice(0, shown).map((r, i) => {
+      const { o, m, j } = r;
+      const b = bearing(spot!.lat, spot!.lon, o.y, o.x);
+      const osm = `https://www.openstreetmap.org/?mlat=${o.y}&mlon=${o.x}#map=19/${o.y}/${o.x}`;
+      const dir = `https://www.google.com/maps/dir/?api=1&destination=${o.y},${o.x}`;
+      return `<li><div class="t"><b>${i + 1}. ${esc(title(o))}</b><span class="d">${fmtDist(m)} ${b.name} · ${walkMin(m)} min walk</span></div>
+        <div class="pills">${j.pills.map(([c, t]: [string, string]) => `<span class="ax-pill ${c}">${esc(t)}</span>`).join('')}</div>
+        ${j.facts.length ? `<ul class="facts">${j.facts.map((f: string) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+        <div class="links"><a href="${osm}" target="_blank" rel="noopener">Open map</a><a href="${dir}" target="_blank" rel="noopener">Directions</a><span class="src">${o.src === 'ott' ? 'City of Ottawa' : 'OpenStreetMap'}</span></div></li>`;
+    }).join('');
+    more.hidden = rows.length <= shown;
+    more.textContent = `Show more (${rows.length - shown} left)`;
+  }
+  more.addEventListener('click', () => { shown += 25; renderList(lastRows, when()); });
+
+  function drawPlot(rows: any[], radius: number) {
+    const s = 100 / radius;
+    const pts = rows.map((r: any, i: number) => {
+      const dx = (r.o.x - spot!.lon) * 111320 * Math.cos((spot!.lat * Math.PI) / 180) * s;
+      const dy = -(r.o.y - spot!.lat) * 111320 * s;
+      const shape = r.o.k === 'l' ? `<rect class="l" x="${(dx - 3).toFixed(1)}" y="${(dy - 3).toFixed(1)}" width="6" height="6"/>` : `<circle class="s" cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="3"/>`;
+      const label = i < 9 ? `<text class="num" x="${(dx + 4).toFixed(1)}" y="${(dy - 3).toFixed(1)}">${i + 1}</text>` : '';
+      return shape + label;
+    }).reverse().join('');
+    plot.innerHTML = `<circle class="ring" r="50"/><circle class="ring" r="100"/><text x="2" y="-102">N</text><text x="52" y="-2">${fmtDist(radius / 2)}</text>${pts}<circle class="me" r="4"/>`;
+  }
+
+  function showCity(lat: number, lon: number) {
+    const c = cityAt(lat, lon);
+    const box = $<HTMLElement>('.pf-city');
+    box.hidden = false;
+    const w = $<HTMLElement>('.pf-winter');
+    if (c) {
+      $<HTMLElement>('.pf-cityh').textContent = `Street rules in ${c.name}`;
+      $<HTMLElement>('.pf-rules').innerHTML = [...c.rules, ...(c.pay ? [c.pay] : [])].map((r) => `<li>${esc(r)}</li>`).join('');
+      w.hidden = !c.winter; w.textContent = c.winter ? 'Winter: ' + c.winter : '';
+      $<HTMLElement>('.pf-citysrc').innerHTML = `Source: ${esc(c.source)}, checked ${c.checked}. Rules change, so check the official source: <a href="${c.link}" target="_blank" rel="noopener">${esc(new URL(c.link).hostname)}</a>. Signs always win.`;
+    } else {
+      $<HTMLElement>('.pf-cityh').textContent = 'Street rules here';
+      $<HTMLElement>('.pf-rules').innerHTML = GENERAL.map((r) => `<li>${esc(r)}</li>`).join('');
+      w.hidden = true;
+      $<HTMLElement>('.pf-citysrc').textContent = 'This tool has city rules for Toronto, Ottawa, Mississauga, Brampton, Kitchener, London and Niagara Falls. Elsewhere, check the town\'s website and the signs.';
+    }
+  }
+
+  function setSpot(lat: number, lon: number, label: string) {
+    if (!inOntario(lat, lon)) { showErr('That spot is outside Ontario. This tool covers Ontario only for now.'); return; }
+    spot = { lat, lon, label };
+    sugg.innerHTML = '';
+    run().then(() => { if (!out.hidden && window.innerWidth < 700) out.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  }
+
+  $<HTMLButtonElement>('.pf-gps').addEventListener('click', () => {
+    showErr('');
+    if (!navigator.geolocation) { showErr('This browser cannot share your location. Type a place instead.'); return; }
+    status.textContent = 'Asking your device for your location…';
+    navigator.geolocation.getCurrentPosition(
+      (p) => setSpot(p.coords.latitude, p.coords.longitude, 'you'),
+      () => { status.textContent = ''; showErr('Location was blocked or not found. Allow location for this site, or type a place instead.'); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+    );
+  });
+
+  // Place search, from a list packed with the data (no outside search service).
+  let places: [string, number, number, string][] | null = null;
+  const KIND: Record<string, string> = { city: 'city', town: 'town', village: 'village', suburb: 'area', neighbourhood: 'neighbourhood', quarter: 'area', hamlet: 'hamlet', station: 'station', hospital: 'hospital', campus: 'campus', mall: 'mall', airport: 'airport', bus: 'bus station', stadium: 'stadium', sight: 'sight' };
+  const RANK: Record<string, number> = { city: 0, town: 1, station: 2, hospital: 2, campus: 2, mall: 2, airport: 2, bus: 2, stadium: 3, sight: 3, suburb: 3, village: 4, neighbourhood: 4, quarter: 4, hamlet: 5 };
+  async function loadPlaces() {
+    if (places) return places;
+    try { const r = await fetch(BASE + 'places.json'); places = r.ok ? await r.json() : []; } catch { places = []; }
+    return places!;
+  }
+  q.addEventListener('focus', () => { loadPlaces(); });
+  q.addEventListener('input', async () => {
+    const v = q.value.trim();
+    const ll = v.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    if (ll) { sugg.innerHTML = `<button type="button" data-ll="${+ll[1]},${+ll[2]}">Use ${esc(+ll[1])}, ${esc(+ll[2])}<small>coordinates</small></button>`; return; }
+    if (v.length < 2) { sugg.innerHTML = ''; return; }
+    const all = await loadPlaces();
+    const n = v.toLowerCase();
+    const hits: [number, number][] = [];
+    for (let i = 0; i < all.length; i++) {
+      const name = all[i][0].toLowerCase();
+      const pos = name.indexOf(n);
+      if (pos < 0) continue;
+      const wordStart = pos === 0 || /[\s\-'(]/.test(name[pos - 1]);
+      if (!wordStart) continue;
+      hits.push([i, (pos === 0 ? 0 : 10) + (name === n ? -5 : 0) + (RANK[all[i][3]] ?? 5)]);
+    }
+    hits.sort((a, b) => a[1] - b[1]);
+    sugg.innerHTML = hits.slice(0, 8).map(([i]) => `<button type="button" data-i="${i}">${esc(all[i][0])}<small>${esc(KIND[all[i][3]] || 'place')}</small></button>`).join('')
+      || (all.length ? '<p class="ax-help">No match. Try the town or a nearby station, or paste coordinates like 43.65, -79.38.</p>' : '');
+  });
+  q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { (sugg.querySelector('button') as HTMLButtonElement | null)?.click(); } });
+  sugg.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
+    if (!b) return;
+    if (b.dataset.ll) { const [a, c] = b.dataset.ll.split(',').map(Number); q.value = `${a}, ${c}`; setSpot(a, c, `${a.toFixed(4)}, ${c.toFixed(4)}`); return; }
+    const p = places![+b.dataset.i!];
+    q.value = p[0];
+    setSpot(p[1], p[2], p[0]);
+  });
+
+  whenSel.addEventListener('change', () => {
+    atl.hidden = whenSel.value !== 'at';
+    if (!atl.hidden && !at.value) { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); at.value = d.toISOString().slice(0, 16); }
+    run();
+  });
+  for (const el of [rSel, kindSel, at, freeC, openC, pubC]) el.addEventListener('change', run);
+</script>

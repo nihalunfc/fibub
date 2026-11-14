@@ -293,6 +293,7 @@ export const SECTIONS: Record<string, Section[]> = {
   vehicles: [
     { id: 'vehicle-buying', subject: 'cars', name: 'Buying a vehicle' },
     { id: 'vehicle-running', subject: 'cars', name: 'Running costs' },
+    { id: 'parking', subject: 'cars', name: 'Parking' },
     { id: 'two-wheelers', subject: 'bikes', name: 'Bikes and scooters' },
     { id: 'trucking', subject: 'trucks', name: 'Trucks and transport' },
     { id: 'tyre-basics', subject: 'tyres', name: 'Size, age and tread' },

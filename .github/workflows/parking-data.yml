@@ -1,0 +1,51 @@
+# Once a month, rebuild the open parking data for Parking Finder (#T954) into public/parking/v1/:
+# OpenStreetMap (ODbL, Geofabrik's Ontario extract cut down with osmium) parking lots, street parking and place
+# names for Ontario, plus City of Ottawa open data.
+# It reads public map data only; nothing about visitors is involved. About 5 to 15 minutes a run (free in a
+# public repository). The commit is not [skip ci], so Cloudflare rebuilds the site with the new data.
+# It also runs when the script itself changes, so a change is checked against real data straight away.
+name: Parking data
+
+on:
+  schedule:
+    - cron: '30 6 3 * *' # 06:30 UTC on the 3rd of each month
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/**']
+    paths: [scripts/parking-data.mjs, .github/workflows/parking-data.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parking-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cut Ontario's OpenStreetMap data down to parking and place names
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+          mkdir -p osm && cd osm
+          curl -fsSL --retry 4 -o ontario.osm.pbf https://download.geofabrik.de/north-america/canada/ontario-latest.osm.pbf
+          osmium tags-filter ontario.osm.pbf nwr/amenity=parking -o lots.pbf
+          osmium tags-filter ontario.osm.pbf w/parking:both w/parking:left w/parking:right w/parking:lane:both w/parking:lane:left w/parking:lane:right -o street.pbf
+          osmium tags-filter ontario.osm.pbf n/place=city,town,village,suburb,neighbourhood,quarter,hamlet nwr/railway=station nwr/public_transport=station nwr/amenity=hospital,university,college,bus_station nwr/shop=mall nwr/aeroway=aerodrome nwr/leisure=stadium -o places.pbf
+          for f in lots street places; do osmium export "$f.pbf" -f geojsonseq --add-unique-id=type_id -o "$f.geojsonseq"; done
+          rm ontario.osm.pbf
+          ls -la
+      - run: node scripts/parking-data.mjs osm
+      - name: Commit the new data
+        run: |
+          git add public/parking
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git -c user.name="fibub data" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Parking data: OpenStreetMap and City of Ottawa, $(date -u +%F)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin HEAD:"${GITHUB_REF_NAME}"
