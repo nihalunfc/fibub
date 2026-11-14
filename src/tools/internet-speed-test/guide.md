@@ -32,7 +32,7 @@ The Speed Test measures how fast your internet really is right now, from the dev
 
 It works anywhere and is made for **Canada, India, the UK and the USA**, with links to each country's official checker. There is no app, no sign-up and no tracking. To find the room where your Wi-Fi works best, use the [[wifi-spot-finder]]; to compare mobile networks where you live, use [[cell-signal-guide|Cell Signal]].
 
-## How to use it
+## How to test your internet speed
 
 1. Close other apps and tabs that are downloading or streaming, so you measure the line and not your own traffic.
 2. Pick **Light test** (about 15 seconds, up to about 25 MB) or **Full test** (about 30 seconds; up to about 200 MB on a very fast line, so it measures gigabit plans better).
@@ -44,9 +44,12 @@ It works anywhere and is made for **Canada, India, the UK and the USA**, with li
 
 - **Download**: how fast data reaches you. Streaming, browsing and app updates depend on it.
 - **Upload**: how fast you send data. Video calls, cloud backups and posting videos depend on it.
-- **Ping (idle)**: round trip in milliseconds with the line quiet. Under 30 ms is excellent, under 60 ms good.
-- **Jitter**: under 10 ms is steady. High jitter makes calls robotic and games stutter.
-- **Ping while busy**: if it is 100 ms or more above the idle ping, your router lets downloads crowd out everything else. Turning on "SQM" or "Smart Queue" in the router settings often fixes it.
+- **Ping (idle)**: round trip in milliseconds with the line quiet.
+- **Jitter**: how much the ping jumps around.
+- **Ping while busy**: the ping during the download; a big rise means bufferbloat.
+
+For what good numbers look like, how much speed streaming and calls need, and how to fix bufferbloat, read [[blog:guides/internet-speed-test|what is a good internet speed]].
+
 - **Your connection**: your IP address, IPv4 or IPv6, the nearest Cloudflare data centre and, when available, your provider's network name. Every website already sees these; fibub shows them and keeps nothing.
 
 ## Worked example

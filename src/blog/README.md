@@ -43,6 +43,14 @@ Read the tool's own `src/tools/<id>/guide.md` and `Tool.astro` first, so you des
 6. `## Common mistakes`: 3 to 5, each with how to avoid it.
 7. `## Questions people ask`: 2 to 4 short questions with answers, different from the tool page's FAQ.
 
+## Search: one page per search (nihal, 2026-11-14)
+Our pages must never compete with each other in search. Each page targets a different kind of search:
+- **The tool page** (`/<shelf>/<id>/`) takes the *doing* searches: "internet speed test", "test my wifi speed", "loan calculator". Its `title` and `seoTitle` lead with the tool's job; its headings say what you do ("How to test your internet speed").
+- **The tool's guide** (`/blog/guides/<id>/`) takes the *understanding* searches: "what is a good internet speed", "what is jitter", "why full bars but slow". Its title is a question or an explanation, never the tool's name plus "calculator" or "test".
+- **How-to and together articles** take a task that no single tool page owns ("how to plan a move abroad").
+- Before writing, check the tool page's title, `seoTitle` and headings and pick different words. The tool page links to the guide with understanding words; the guide links to the tool with doing words ("test your internet speed").
+- Record each page's main search phrases in `/mnt/project-files/fibub/seo/keyword-map.md`, so Search Console data can sharpen them later without two pages chasing the same phrase.
+
 ## Links, like an encyclopedia
 - `[[tool-id]]` links a tool by its name; `[[tool-id|your words]]` with your words. Another article: `[[blog:guides/planner]]` or `[[blog:guides/planner|your words]]` (only once that article exists).
 - Tool names also link themselves the first time they appear. Link where it helps the reader, not as a list.
