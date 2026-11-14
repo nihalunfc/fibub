@@ -132,10 +132,9 @@ function mid(g) {
 }
 // Ottawa block codes such as "BANK_E_CLARE-HOLMW" (street, side, cross streets cut to 5 letters) -> "Bank, east side".
 function blockName(code) {
-  const m = (code || '').match(/^([A-Z0-9]+)_([NSEW])_/);
-  if (!m) return 'Pay and display street parking';
-  const street = m[1].charAt(0) + m[1].slice(1).toLowerCase();
-  return `${street}, ${{ N: 'north', S: 'south', E: 'east', W: 'west' }[m[2]]} side (pay and display)`;
+  // The street part is cut to 5 letters ("HOLLA" for Holland), so only the side is shown; "Open map" shows the block.
+  const m = (code || '').match(/^[A-Z0-9]+_([NSEW])_/);
+  return m ? `Pay and display street parking, ${{ N: 'north', S: 'south', E: 'east', W: 'west' }[m[1]]} side` : 'Pay and display street parking';
 }
 const clean = (v) => (v == null ? '' : String(v).trim());
 const prop = (p, ...keys) => { for (const k of keys) { const hit = Object.keys(p).find((x) => x.toUpperCase() === k); if (hit && clean(p[hit])) return clean(p[hit]); } return ''; };
@@ -164,9 +163,9 @@ async function ottawa() {
   await tries(1, (p, at) => {
     if (!at) return null;
     if (/yes|y/i.test(prop(p, 'NO_STOP')) || /yes|y/i.test(prop(p, 'NO_PARK'))) return null;
-    const o = { k: 's', y: r5(at[0]), x: r5(at[1]), src: 'ott', f: 0, n: prop(p, 'BLOCKFACE') || 'Time-limited street parking' };
+    const o = { k: 's', y: r5(at[0]), x: r5(at[1]), src: 'ott', f: 0, n: 'Short-stay free street parking' };
     const reg = prop(p, 'REGULATION'); if (reg) o.m = reg;
-    const dur = prop(p, 'DURATION'); if (dur) o.lim = dur;
+    const dur = prop(p, 'DURATION'); if (/\d\s*(AM|PM)/i.test(dur)) o.lim = dur;
     const day = prop(p, 'DAY'); if (day) o.days = day;
     const n = prop(p, 'SUMSTALLS'); if (/^\d+$/.test(n)) o.cap = +n;
     return o;
@@ -188,7 +187,7 @@ async function ottawa() {
 // ---- Places for the search box ----
 function place(e) {
   const t = e.tags || {};
-  const name = t.name || t['name:en'];
+  const name = (t.name || t['name:en'] || '').split(';')[0].trim();
   if (!name) return null;
   const [y, x] = where(e);
   if (y == null) return null;
@@ -247,6 +246,17 @@ async function main() {
   items.push(...ott);
 
   if (items.length < 5000) throw new Error(`only ${items.length} parking items: something went wrong, keeping the old data`);
+
+  // The same lot can come out twice (a closed way as a line and as an area), and a street as several short pieces:
+  // keep one per kind, name, fee, hours and side within about 50 m.
+  const kept = new Map();
+  for (const o of items) {
+    const k = [o.k, o.n || '', o.f ?? '', o.h || '', o.side || '', o.src || '', o.pay ? JSON.stringify(o.pay) : '', Math.round(o.y * 2000), Math.round(o.x * 2000)].join('|');
+    if (!kept.has(k)) kept.set(k, o);
+  }
+  console.log(`after removing duplicates: ${kept.size} of ${items.length}`);
+  items.length = 0;
+  items.push(...kept.values());
 
   // Split into squares.
   const tiles = new Map();

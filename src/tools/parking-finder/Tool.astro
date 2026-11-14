@@ -222,8 +222,10 @@ import '../../styles/astro.css';
   }
 
   function title(o: Item) {
+    const side = o.side ? (o.side === 'l' ? ' (left side of the road)' : ' (right side of the road)') : '';
+    if (o.k === 's' && o.n && !o.src) return `Street parking on ${o.n}${side}`;
     if (o.n) return o.n;
-    if (o.k === 's') return 'Street parking' + (o.side ? (o.side === 'l' ? ' (left side of the road)' : ' (right side of the road)') : '');
+    if (o.k === 's') return 'Street parking' + side;
     return o.p === 'garage' ? 'Parking garage' : o.p === 'underground' ? 'Underground parking' : 'Parking lot';
   }
 
