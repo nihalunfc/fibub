@@ -31,7 +31,9 @@ Wi-Fi Finder helps you find the best place in your home or office to work, take 
 
 **Wi-Fi signal and connectivity are not the same thing.** Signal is how loudly your device hears the router; connectivity is how well data actually gets through. Full bars can be slow when the router, a crowded channel or your plan is the bottleneck, and two bars can be fine for a call. Browsers are not allowed to read Wi-Fi signal strength, so this tool measures connectivity, which is what you feel, and lets you type in the bars or dBm your device shows so you can see both side by side. It works on any Wi-Fi and is made for homes in **Canada, India, the UK and the USA**. For one full measurement of your line, use the [[internet-speed-test|Speed Test]]; for mobile networks, [[cell-signal-guide|Cell Signal]].
 
-## How to use it
+Why full bars can still be slow, good Wi-Fi dBm values and where to put a router are explained in [[blog:guides/wifi-spot-finder|full Wi-Fi bars but slow internet]].
+
+## How to find the best Wi-Fi spot
 
 1. Stand where you would really use the device: on the sofa, at the desk, by the bed.
 2. Type a spot name and, if you like, the bars or dBm your device shows.

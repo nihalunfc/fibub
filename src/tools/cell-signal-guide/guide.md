@@ -35,7 +35,9 @@ Cell Signal helps you choose the mobile network that works best where you live, 
 
 Supported now: **Canada, India, the UK and the USA**. To measure your mobile data speed in detail, use the [[internet-speed-test|Speed Test]] with Wi-Fi off; for Wi-Fi at home, the [[wifi-spot-finder]].
 
-## How to use it
+What RSRP, RSRQ and SINR mean and which values count as good are explained in [[blog:guides/cell-signal-guide|what is a good cell signal in dBm]].
+
+## How to find the strongest network near you
 
 1. Choose your country and open the official map. Check your address for each network, indoors.
 2. Find your phone's dBm number: on Android, Settings, About phone, SIM status, Signal strength. iPhones only show it in Field Test mode on some models.
