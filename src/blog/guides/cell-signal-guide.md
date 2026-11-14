@@ -30,13 +30,13 @@ On 3G the strength number is **RSCP** and on 2G it is **RSSI**. Their good value
 
 A strong RSRP with low SINR is common in busy city centres: the tower is close but so are others. That is why a full-bar phone can still be slow.
 
-## What a web page cannot do
+## What a web page can and cannot do
 
-No browser lets a website read your phone's signal or list the towers around you. Any site claiming to scan nearby cells from a web page is guessing. You can still compare networks well with three things: the regulator's coverage map, the dBm number from your own phone, and a speed test on mobile data.
+No browser lets a website read your phone's radio, so no site can measure another network's live signal. What a page can do is look up where each network has cells. Cell Signal does that from OpenCelliD, an open database of cells reported by phones, and shows the networks around you as soon as you open it. Close 4G and 5G cells are a strong guide to good coverage; your own phone's dBm number, and a speed test on mobile data, confirm it.
 
 ## How to use it
 
-1. Open Cell Signal and pick your country: Canada, India, the UK or the USA. Check your address on the official map for each network, indoors.
+1. Open Cell Signal and allow location: **Networks near you** lists the carriers with cells around you. Then pick your country (Canada, India, the UK or the USA) and check the official map for each network, indoors.
 2. Find the dBm number on your phone. On Android: Settings, About phone, SIM status, Signal strength. On some iPhones, Field Test mode shows RSRP.
 3. Type it into **Rate your phone's signal number**, with the network type and SINR if shown.
 4. Log a reading for each network you can test (family members' phones, a second SIM) in each place that matters.

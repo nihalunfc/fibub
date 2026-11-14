@@ -1,0 +1,83 @@
+# Mobile tower tiles for the Cell Signal tool's "Networks near you" (#T952).
+# Downloads OpenCelliD's cell exports for Canada (302), the USA (310-316), the UK (234-235) and India (404-406),
+# groups them into ~1 km squares per carrier (scripts/cells/build-tiles.mjs) and commits public/cells/.
+# OpenCelliD limits downloads per day, so the raw files are kept in the Actions cache and the run picks up where it
+# stopped the next day; a country is rebuilt only once all its files are in. Runs daily but exits in seconds once
+# this month's tiles are built. Public repo, so Actions minutes are free; a full build takes about 5-10 minutes.
+# Needs the repository secret OPENCELLID_TOKEN (a free account at opencellid.org).
+name: Build cell tower tiles
+
+on:
+  schedule:
+    - cron: '40 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Rebuild even if this month is done'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cells
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is this month already built?
+        id: check
+        run: |
+          month=$(date -u +%Y-%m)
+          echo "month=$month" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.force }}" != "true" ] && [ -f public/cells/index.json ] && node -e "const i=require('./public/cells/index.json');process.exit(['ca','us','uk','in'].every(c=>(i.countries[c]?.updated||'').startsWith('$month'))?0:1)"; then
+            echo "done=yes" >> "$GITHUB_OUTPUT"; echo "Tiles for $month are already built."
+          fi
+      - uses: actions/cache/restore@v4
+        if: steps.check.outputs.done != 'yes'
+        with:
+          path: raw-cells
+          key: cells-raw-${{ steps.check.outputs.month }}-${{ github.run_id }}
+          restore-keys: cells-raw-${{ steps.check.outputs.month }}-
+      - name: Download what is missing
+        if: steps.check.outputs.done != 'yes'
+        env:
+          TOKEN: ${{ secrets.OPENCELLID_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "::warning::Add the OPENCELLID_TOKEN secret (free account at opencellid.org) to build the tiles"; fi
+          mkdir -p raw-cells
+          curl -fsSL -o raw-cells/names.csv https://raw.githubusercontent.com/musalbas/mcc-mnc-table/master/mcc-mnc-table.csv || true
+          [ -z "$TOKEN" ] && exit 0
+          for m in 302 310 311 312 313 314 315 316 234 235 404 405 406; do
+            [ -s raw-cells/$m.csv.gz ] && continue
+            code=$(curl -sS -w '%{http_code}' -o raw-cells/$m.tmp "https://opencellid.org/ocid/downloads?token=$TOKEN&type=mcc&file=$m.csv.gz")
+            # A good file is gzip; the limit message is plain text.
+            if [ "$code" = "200" ] && gzip -t raw-cells/$m.tmp 2>/dev/null; then mv raw-cells/$m.tmp raw-cells/$m.csv.gz; echo "got $m";
+            else echo "stopped at $m (HTTP $code): $(head -c 200 raw-cells/$m.tmp)"; rm -f raw-cells/$m.tmp; break; fi
+            sleep 5
+          done
+          ls -la raw-cells
+      - uses: actions/cache/save@v4
+        if: steps.check.outputs.done != 'yes' && always()
+        with:
+          path: raw-cells
+          key: cells-raw-${{ steps.check.outputs.month }}-${{ github.run_id }}
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.done != 'yes'
+        with:
+          node-version: 22
+      - name: Build tiles
+        if: steps.check.outputs.done != 'yes'
+        run: node scripts/cells/build-tiles.mjs --raw raw-cells --names raw-cells/names.csv --out public/cells
+      - name: Commit the tiles
+        if: steps.check.outputs.done != 'yes'
+        run: |
+          git add public/cells
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git -c user.name="fibub cells" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Update cell tower tiles (OpenCelliD, $(date -u +%F))"
+          git push
