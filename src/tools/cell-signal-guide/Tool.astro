@@ -6,9 +6,32 @@
 import '../../styles/astro.css';
 ---
 <div class="ax csg">
+  <div class="ax-card csg-near">
+    <h2>Networks near you</h2>
+    <p class="ax-help">Shows every mobile network with cells around you, nearest first, from open tower data. Works in <strong>Canada, India, the UK and the USA</strong>. Walk around a house, office, café or town and it updates as you move.</p>
+    <div class="ax-row">
+      <button type="button" class="btn csg-locate">Find networks near me</button>
+      <label class="ax-check"><input type="checkbox" class="csg-follow" /> Keep updating as I move</label>
+      <label>Within <select class="csg-r"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="10">10 km</option></select></label>
+    </div>
+    <details class="csg-manual"><summary>Or type a place's coordinates</summary>
+      <div class="ax-row" style="margin-top:8px"><input class="csg-ll" type="text" placeholder="e.g. 43.0896, -79.0849" aria-label="Latitude, longitude" /><button type="button" class="btn secondary small csg-go">Show</button></div>
+      <p class="ax-help">Copy them from any map app (long-press a spot). Handy for checking a house before you visit.</p>
+    </details>
+    <p class="ax-help csg-nstatus" aria-live="polite"></p>
+    <p class="ax-err csg-nerr" role="alert" hidden></p>
+    <div class="csg-nout" hidden>
+      <div class="ax-scroll"><table class="csg-ntab"><thead><tr><th>Network</th><th>Likely signal</th><th class="r">Nearest</th><th class="r">5G</th><th class="r">4G</th><th class="r">3G/2G</th></tr></thead><tbody></tbody></table></div>
+      <canvas class="ax-fig csg-map" width="600" height="600" aria-label="Map of cells around you, one colour per network"></canvas>
+      <div class="ax-legend csg-leg"></div>
+      <p class="ax-help csg-ninfo"></p>
+    </div>
+    <p class="note"><strong>How this works, honestly:</strong> web pages cannot read your phone's radio, so no website can measure other networks' signal directly. This uses OpenCelliD, an open database of cells that phones around the world have reported, grouped into squares of about 1 km. Close cells usually mean good signal, but walls, hills and busy towers change that, so confirm with a phone on that network (log it below). Your exact location stays on your device: the page downloads the tower file for your area (about 100 km across) from fibub.com and works everything out here.</p>
+  </div>
+
   <div class="ax-card">
-    <h2>Which network is strongest here?</h2>
-    <p class="note"><strong>A web page cannot scan cell towers or read your phone's signal.</strong> Browsers do not allow it on any phone. So this tool does the next best things: the official coverage maps for your country, a reader for the signal number your phone shows, and a log to compare networks place by place.</p>
+    <h2>Official coverage maps</h2>
+    <p class="ax-help">The regulators' and operators' own coverage checks for each country.</p>
     <div class="ax-seg csg-c" role="group" aria-label="Country">
       <button type="button" data-c="ca" aria-pressed="true">Canada</button>
       <button type="button" data-c="in" aria-pressed="false">India</button>
@@ -93,6 +116,7 @@ import '../../styles/astro.css';
 <script>
   import { PLANS, runTest, median, fmtMbps, fmtMs } from '../../lib/net/speed';
   import { COUNTRIES_CELL, rateSignal, barsToDbm } from '../../lib/net/cell';
+  import { summarise, tilesAround, centres, km, TECHS, COUNTRY_NAME, type Tile, type Op } from '../../lib/net/cells';
   const root = document.querySelector('.csg') as HTMLElement;
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
   const KEY = 'fibub-cellreadings-v1';
@@ -210,4 +234,113 @@ import '../../styles/astro.css';
   keep.addEventListener('change', () => { if (keep.checked) persist(); else try { localStorage.removeItem(KEY); } catch {} });
   $('.csg-clear').addEventListener('click', () => { rows = []; try { localStorage.removeItem(KEY); } catch {} keep.checked = false; draw(); });
   draw();
+
+  // ---- Networks near you ----
+  type Index = { ops: Op[]; tiles: Record<string, { c: string[]; n: number }>; countries: Record<string, { updated: string; cells: number }>; source: string };
+  let index: Index | null = null;
+  const tileCache = new Map<string, Tile>();
+  const COLS = ['#1f6feb', '#d63384', '#2f9e44', '#e8590c', '#7048e8', '#0c8599', '#a61e4d', '#5c940d', '#495057', '#c92a2a'];
+  let here: { lat: number; lon: number; acc?: number } | null = null;
+  let watchId: number | null = null;
+  const nstat = (t: string) => { $('.csg-nstatus').textContent = t; };
+  const nerr = (t: string) => { const e = $('.csg-nerr'); e.textContent = t; e.hidden = !t; };
+  async function loadIndex() {
+    if (index) return index;
+    const r = await fetch('/cells/index.json'); if (!r.ok) throw new Error('index');
+    return (index = await r.json());
+  }
+  async function loadTiles(keys: string[]) {
+    const out: Tile[] = [];
+    for (const k of keys) {
+      if (!index!.tiles[k]) continue;
+      if (!tileCache.has(k)) { const r = await fetch(`/cells/${k}.json`); if (r.ok) tileCache.set(k, await r.json()); }
+      const t = tileCache.get(k); if (t) out.push(t);
+    }
+    return out;
+  }
+  async function show(lat: number, lon: number, acc?: number) {
+    here = { lat, lon, acc }; nerr('');
+    try { await loadIndex(); } catch { nerr('The tower data could not be loaded. Check your connection and try again.'); return; }
+    if (!Object.keys(index!.tiles).length) { nerr('The tower data is still being prepared. Please check back soon; the official maps below work now.'); return; }
+    const rKm = +$<HTMLSelectElement>('.csg-r').value;
+    const tiles = await loadTiles(tilesAround(lat, lon, Math.max(rKm, 10)));
+    const near = summarise(tiles, index!.ops, lat, lon, rKm);
+    $('.csg-nout').hidden = false;
+    const tb = $('.csg-ntab tbody'); tb.textContent = '';
+    if (!near.length) { const tr = el('tr'); const td = el('td', 'No cells in the open data near this place. Coverage may still exist; check the official maps below.'); (td as HTMLTableCellElement).colSpan = 6; tr.append(td); tb.append(tr); }
+    near.forEach((n) => {
+      const tr = el('tr');
+      const name = el('td'); const sw = el('i'); sw.style.cssText = `display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${COLS[n.op % COLS.length]}`; name.append(sw, document.createTextNode(n.name));
+      const lab = el('td'); const p = el('span', n.label); p.className = 'ax-pill ' + n.tone; lab.append(p);
+      tr.append(name, lab);
+      for (const [v, c] of [[isFinite(n.nearest) ? (n.nearest < 1 ? Math.round(n.nearest * 1000) + ' m' : n.nearest.toFixed(1) + ' km') : '–', 'r'], [String(n.cells[0]), 'r'], [String(n.cells[1]), 'r'], [String(n.cells[2] + n.cells[3]), 'r']]) { const td = el('td', v); td.className = c; tr.append(td); }
+      tb.append(tr);
+    });
+    const cs = [...new Set(near.map((n) => n.country))];
+    const dates = cs.map((c) => index!.countries[c] ? `${COUNTRY_NAME[c as keyof typeof COUNTRY_NAME]} data from ${index!.countries[c].updated}` : '').filter(Boolean).join('; ');
+    $('.csg-ninfo').textContent = `${lat.toFixed(4)}, ${lon.toFixed(4)}${acc ? ` (±${Math.round(acc)} m)` : ''}. Counts are cells within ${rKm} km; one tower usually carries several. ${dates}. Source: OpenCelliD, CC BY-SA 4.0.`;
+    nstat(`Found ${near.length} network${near.length === 1 ? '' : 's'} near you.`);
+    drawMap(tiles, near.map((n) => n.op), lat, lon, rKm);
+    // Help the log below: the networks found become suggestions.
+    const list = document.getElementById('csg-nets')!;
+    for (const n of near) if (![...list.querySelectorAll('option')].some((o) => (o as HTMLOptionElement).value === n.name)) { const o = document.createElement('option'); o.value = n.name; list.append(o); }
+  }
+  function drawMap(tiles: Tile[], ops: number[], lat: number, lon: number, rKm: number) {
+    const c = $<HTMLCanvasElement>('.csg-map'), dpr = window.devicePixelRatio || 1, W = Math.min(c.clientWidth || 360, 600), H = W;
+    c.width = W * dpr; c.height = H * dpr; c.style.height = H + 'px';
+    const g = c.getContext('2d')!; g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
+    const s = (W / 2) / rKm, cosL = Math.cos((lat * Math.PI) / 180);
+    const xy = (a: number, b: number) => [W / 2 + (b - lon) * 111.32 * cosL * s, H / 2 - (a - lat) * 110.57 * s];
+    g.strokeStyle = getComputedStyle(root).getPropertyValue('--line').trim() || '#ccc';
+    for (const f of [0.5, 1]) { g.beginPath(); g.arc(W / 2, H / 2, (W / 2) * f, 0, Math.PI * 2); g.stroke(); }
+    const set = new Set(ops), sq = Math.max(3, 1.1 * s * 0.6);
+    const offs = [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]];
+    for (const t of tiles) for (const p of centres(t)) {
+      if (!set.has(p.op) || km(lat, lon, p.lat, p.lon) > rKm * 1.05) continue;
+      const [x, y] = xy(p.lat, p.lon), o = offs[ops.indexOf(p.op) % offs.length];
+      g.fillStyle = COLS[p.op % COLS.length]; g.globalAlpha = 0.85;
+      g.fillRect(x + (o[0] * sq) / 2 - sq / 2, y + (o[1] * sq) / 2 - sq / 2, sq, sq);
+    }
+    g.globalAlpha = 1; g.fillStyle = getComputedStyle(root).getPropertyValue('--ink').trim() || '#000';
+    g.beginPath(); g.arc(W / 2, H / 2, 6, 0, Math.PI * 2); g.fill();
+    g.font = '12px system-ui, sans-serif'; g.fillText('You', W / 2 + 9, H / 2 + 4);
+    g.fillText(`${rKm / 2} km`, W / 2 + 4, H / 4 - 4); g.fillText(`${rKm} km`, W / 2 + 4, 14);
+    const leg = $('.csg-leg'); leg.textContent = '';
+    for (const op of ops) { const sp = el('span'); const i = el('i'); i.style.background = COLS[op % COLS.length]; sp.append(i, document.createTextNode(index!.ops[op].name)); leg.append(sp); }
+  }
+  function locate() {
+    if (!navigator.geolocation) { nerr('This browser cannot share its location. Type the coordinates instead.'); return; }
+    nstat('Finding where you are…');
+    navigator.geolocation.getCurrentPosition((p) => show(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
+      (e) => { nstat(''); nerr(e.code === 1 ? 'Location is blocked for this page. Allow it in the browser settings, or type the coordinates below.' : 'Your location could not be found. Try again outdoors or near a window, or type the coordinates below.'); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  }
+  $('.csg-locate').addEventListener('click', locate);
+  $('.csg-r').addEventListener('change', () => { if (here) show(here.lat, here.lon, here.acc); });
+  $('.csg-go').addEventListener('click', () => {
+    const m = $<HTMLInputElement>('.csg-ll').value.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
+    if (!m || Math.abs(+m[1]) > 90 || Math.abs(+m[2]) > 180) { nerr('Type latitude and longitude, like 43.0896, -79.0849.'); return; }
+    show(+m[1], +m[2]);
+  });
+  $<HTMLInputElement>('.csg-follow').addEventListener('change', (e) => {
+    const on = (e.target as HTMLInputElement).checked;
+    if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    if (on && navigator.geolocation) {
+      let last: { lat: number; lon: number } | null = null;
+      watchId = navigator.geolocation.watchPosition((p) => {
+        const { latitude: a, longitude: b, accuracy } = p.coords;
+        if (last && km(last.lat, last.lon, a, b) < 0.05) return; // redraw every 50 m or so
+        last = { lat: a, lon: b }; show(a, b, accuracy);
+      }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+    }
+  });
+  // Open with the answer: if location is already allowed for this site, look it up straight away;
+  // otherwise ask once (the browser shows its own permission box).
+  (async () => {
+    try {
+      const st = await (navigator as any).permissions?.query({ name: 'geolocation' });
+      if (st?.state === 'denied') { nstat('Location is blocked for this page; press the button after allowing it, or type coordinates.'); return; }
+    } catch {}
+    locate();
+  })();
 </script>

@@ -1,0 +1,32 @@
+// Checks for the cell tower tiles (#T952): build tiles from a tiny made-up OpenCelliD export, then summarise them.
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { summarise, tilesAround, brandOf, km } from '../src/lib/net/cells.ts';
+let fail = 0; const check = (ok, m) => { if (!ok) { fail++; console.log('FAIL  ' + m); } };
+const dir = mkdtempSync(tmpdir() + '/cells-'), raw = dir + '/raw', out = dir + '/out';
+execFileSync('mkdir', ['-p', raw]);
+const now = Math.floor(Date.now() / 1000), old = now - 6 * 365 * 86400;
+const csv = (rows) => gzipSync('radio,mcc,net,area,cell,unit,lon,lat,range,samples,changeable,created,updated,averageSignal\n' + rows.map((r) => r.join(',')).join('\n') + '\n');
+const row = (radio, mcc, net, lon, lat, upd = now) => [radio, mcc, net, 1, 1, 0, lon, lat, 1000, 5, 1, upd, upd, 0];
+writeFileSync(raw + '/302.csv.gz', csv([row('LTE', 302, 720, -79.081, 43.091), row('LTE', 302, 720, -79.082, 43.092), row('NR', 302, 610, -79.07, 43.10), row('GSM', 302, 610, -79.2, 43.2, old)]));
+for (const m of [310, 311, 312, 313, 314, 315, 316, 234, 235, 404, 405, 406]) writeFileSync(`${raw}/${m}.csv.gz`, csv(m === 404 ? [row('LTE', 404, 45, 77.59, 12.97)] : []));
+writeFileSync(raw + '/names.csv', 'MCC,MCC (int),MNC,MNC (int),ISO,Country,Country Code,Network\n302,302,720,720,ca,Canada,1,Rogers Wireless\n302,302,610,610,ca,Canada,1,Bell Mobility\n404,404,45,45,in,India,91,Bharti Airtel Ltd (Karnataka)\n');
+execFileSync('node', ['scripts/cells/build-tiles.mjs', '--raw', raw, '--names', raw + '/names.csv', '--out', out]);
+const ix = JSON.parse(readFileSync(out + '/index.json', 'utf8'));
+check(ix.ops.map((o) => o.name).join() === 'Rogers,Bell,Airtel', `carriers named by brand (${ix.ops.map((o) => o.name)})`);
+check(existsSync(out + '/43_-80.json') && existsSync(out + '/12_77.json'), 'one tile per 1° square');
+const t = JSON.parse(readFileSync(out + '/43_-80.json', 'utf8'));
+check(t.rows.length === 2, `old cells left out, same square merged (${t.rows.length} rows)`);
+const near = summarise([t], ix.ops, 43.0896, -79.0849, 3);
+check(near.length === 2 && near[0].name === 'Rogers' && near[0].cells[1] === 2 && near[0].label === 'Likely strong', `summary: Rogers first with 2 4G cells (${JSON.stringify(near.map((n) => [n.name, n.cells, n.label]))})`);
+check(tilesAround(43.99, -79.5, 3).includes('44_-80'), 'tiles across a border are fetched');
+check(brandOf('in', 'Vodafone Idea Limited') === 'Vi' && brandOf('uk', 'EE Limited (Orange)') === 'EE' && brandOf('us', 'Cellco Partnership') === 'Verizon', 'brand names');
+check(Math.abs(km(43, -79, 44, -79) - 111.2) < 0.5, 'distance: 1° of latitude is about 111 km');
+// A second build with India missing keeps India's tile.
+execFileSync('rm', [`${raw}/404.csv.gz`]);
+execFileSync('node', ['scripts/cells/build-tiles.mjs', '--raw', raw, '--names', raw + '/names.csv', '--out', out]);
+check(existsSync(out + '/12_77.json') && JSON.parse(readFileSync(out + '/index.json', 'utf8')).tiles['12_77'], 'a partial download keeps the old tiles');
+console.log(fail ? `${fail} cell tile checks FAILED` : 'All cell tile checks passed');
+process.exit(fail ? 1 : 0);
