@@ -196,7 +196,10 @@ import '../../styles/learnquiz-d.css';
       for (let k = 0; k < 200; k++) { a = one(visible(lv)).id; b = one(visible(lv)).id; const p = route(a, b, { lv }); if (p && p.length >= 2 && p.length <= 4) { d = p.length; break; } }
       const p3 = route(a, b, { lv })!;
       // 4: carbon count
-      const r4 = one(pool.filter((x) => x.dc === 1 || x.dc === -1 || (x.dc === 0 && Math.random() < 0.15)));
+      // Mostly reactions that add or lose a carbon, now and then one that keeps the count. Class 11 has few
+      // carbon changers, so fall back to every same-or-±1 reaction rather than pick from an empty list.
+      const carbon = pool.filter((x) => x.dc !== 'join'), changers = carbon.filter((x) => x.dc !== 0);
+      const r4 = one(changers.length && Math.random() >= 0.15 ? changers : carbon);
       const C4 = ['The same', 'One more', 'One fewer'], a4 = r4.dc === 0 ? 0 : r4.dc === 1 ? 1 : 2;
       return [
         { q: `Which reagent turns a ${name(r1.from).toLowerCase()} into a ${name(r1.to).toLowerCase()}?`, ans: c1.indexOf(r1.reagent), choices: c1, work: `${r1.reagent}: ${r1.name}. Example: ${ex(r1.from)} → ${ex(r1.to)}.` },
