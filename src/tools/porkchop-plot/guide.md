@@ -6,6 +6,8 @@ code: T63
 section: spaceflight-and-astrodynamics
 title: "Porkchop plot: launch windows and launch energy C3 for trips between planets"
 summary: "Draw a porkchop plot for a trip from one planet to another: launch energy and arrival speed for every launch date and flight time, the cheapest window, and the burns from a parking orbit."
+seoTitle: "Porkchop plot: find the best launch dates to Mars | fibub"
+seoDescription: "A porkchop plot is the chart mission planners use to find the best launch dates: launch energy C3 and arrival speed for every departure date and flight time."
 status: live
 ads: true
 order: 20

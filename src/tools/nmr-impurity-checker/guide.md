@@ -6,6 +6,8 @@ code: T106
 section: analytical-chemistry
 title: "NMR impurities"
 summary: "Paste a peak list (even a journal-style one) and see which peaks are residual solvent, water, grease or common lab solvents such as ethyl acetate, DCM and ether, in CDCl₃, DMSO-d₆, CD₃OD, D₂O and six more, for ¹H and ¹³C."
+seoTitle: "NMR impurity calculator: solvent and water peaks | fibub"
+seoDescription: "Free NMR impurity calculator: paste ¹H or ¹³C peaks and see which are residual solvent, water or grease in CDCl₃, DMSO-d₆, CD₃OD, D₂O and six more solvents."
 status: live
 ads: true
 order: 11

@@ -6,6 +6,8 @@ code: L200
 section: school-physics
 title: "Vertical circle"
 summary: "Whirl a stone on a string and see its centripetal acceleration v²/r and the pull it needs; let go and watch it fly off along the tangent. Then swing a mass in a vertical circle: the speed and tension all the way round, the least speed to loop, and where the string goes slack if it is too slow."
+seoTitle: "Vertical circle: minimum speed and tension simulator | fibub"
+seoDescription: "Swing a mass in a vertical circle and see speed and tension: least speed √(gr) at the top, √(5gr) at the bottom, and when the string goes slack."
 status: live
 ads: false
 order: 1338

@@ -6,6 +6,8 @@ code: L132
 section: school-maths
 title: "Race track"
 summary: "Two runners on a straight track: the same way with a head start, or towards each other. Play or scrub the race, watch both lines on a distance-time graph, and see when and where they meet, worked out with the relative speed. Includes m/s to km/h and fresh practice questions."
+seoTitle: "Relative speed: when and where two runners meet | fibub"
+seoDescription: "Two runners on a track, same way with a head start or towards each other: see when and where they meet on a distance-time graph, worked with relative speed."
 status: live
 ads: false
 order: 1247
