@@ -26,6 +26,8 @@ const kind = KINDS.find((k) => k.id === kindOf(a))!;
 const { Content } = await render(a);
 const covered = a.data.tools.map((id: string) => live.get(id));
 const main = kind.id === 'guides' ? covered[0] : null;
+// How-to articles also open with a button to the tool that does the job (their first tool).
+const opener = main ?? (kind.id === 'howto' ? covered[0] : null);
 const url = articleUrl(a);
 const day = a.data.updated.toISOString().slice(0, 10);
 // More reading: other articles that share a tool with this one, then the newest of the same kind.
@@ -40,7 +42,7 @@ const p = a.data.paper;
     <h1>{a.data.title}</h1>
     <p class="post-meta">{kind.one} · Updated <time datetime={day}>{day}</time>{a.data.level && <> · For {a.data.level}</>}</p>
     <p class="lead">{a.data.summary}</p>
-    {main && <p class="post-open"><a class="btn" href={toolUrl(main)}>Open the {main.data.name}</a> <span>Free, in your browser, nothing uploaded.</span></p>}
+    {opener && <p class="post-open"><a class="btn" href={toolUrl(opener)}>Open the {opener.data.name}</a> <span>Free, in your browser, nothing uploaded.</span></p>}
     {p && (
       <aside class="paper panel">
         <b>The research</b>

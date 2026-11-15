@@ -6,13 +6,14 @@ code: T36
 section: cell-biology-and-cell-culture
 title: "Hemocytometer cell counter: cells per mL, viability and seeding calculator"
 summary: "Tally live and dead cells square by square with on-screen buttons or the keyboard. Get cells per mL, viability, the counting error, and exactly how much suspension and medium to mix to seed your plates."
+seoDescription: "Free hemocytometer calculator: tally live and dead cells square by square and get cells per mL, viability and the volumes to seed your plates. Works offline."
 status: live
 ads: true
 order: 10
 icon: calculator
 works: offline
 updated: 2026-11-08
-related: [plate-layout, solution-calculator, pcr-master-mix]
+related: [plate-layout, solution-calculator, cell-doubling-time, pcr-master-mix]
 sources:
   - "Chamber size: the improved Neubauer chamber (0.1 µL per large square)."
 flow:

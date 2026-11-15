@@ -6,6 +6,8 @@ code: L243
 section: school-biology
 title: "Floral formula"
 summary: "Choose a flower's symmetry and sex, type its sepals, petals, stamens and carpels (free or joined, in groups such as 1+2+(2)), tick stamens on the petals and pick the ovary position. Get the floral formula in proper notation and a floral diagram drawn from it, with the mustard, pea, potato and lily families ready to explore."
+seoTitle: "Floral formula: symbols, examples and diagram maker | fibub"
+seoDescription: "Write a floral formula from symmetry, sex, sepals, petals, stamens and carpels, and see its floral diagram. Symbols explained, with mustard, pea and lily."
 status: live
 ads: false
 order: 1388

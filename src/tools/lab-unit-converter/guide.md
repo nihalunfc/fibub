@@ -6,6 +6,8 @@ code: T352
 section: nursing-and-lab-medicine
 title: "Lab unit converter: mg/dL to mmol/L and µmol/L (glucose, cholesterol, creatinine, HbA1c)"
 summary: "Convert lab results between conventional and SI units for glucose, cholesterol, triglycerides, creatinine, urea and BUN, uric acid, calcium, magnesium, phosphate, bilirubin and HbA1c, with the molar mass and factor shown. Paste a column to convert many at once."
+seoTitle: "mg/dL to mmol/L converter for lab results | fibub"
+seoDescription: "Convert lab results between mg/dL and mmol/L for glucose, cholesterol (LDL, HDL), triglycerides, creatinine, urea and more, with the factor shown. Free."
 status: live
 ads: false
 order: 41

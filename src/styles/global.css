@@ -115,6 +115,8 @@ footer.site { border-top: 1px solid var(--line); color: var(--muted); font-size:
 footer.site .wrap { display: grid; gap: 12px; }
 footer.site .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; align-items: center; }
 footer.site nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+/* Touch screens: footer links at least 32 px tall so a thumb hits the right one. */
+@media (pointer: coarse) { footer.site nav { gap: 0 16px; } footer.site nav a { display: inline-flex; align-items: center; min-height: 32px; } }
 footer.site a { color: var(--muted); text-decoration: none; }
 footer.site a:hover { color: var(--accent); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -6,6 +6,8 @@ code: L199
 section: school-physics
 title: "River crossing and relative velocity: time to cross, drift downstream, and the heading to land straight opposite"
 summary: "Point a boat across a flowing river and watch where it lands. See the boat's velocity, the river's velocity and the velocity over the ground added as arrows, the time to cross, the drift, and the headings for the fastest crossing and for landing straight opposite."
+seoTitle: "River crossing problem: relative velocity simulator | fibub"
+seoDescription: "Boat and river relative velocity: the time to cross, the drift downstream, and the heading to land straight opposite, with the velocity arrows drawn as you go."
 status: live
 ads: false
 order: 1337

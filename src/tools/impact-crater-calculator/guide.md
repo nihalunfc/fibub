@@ -6,6 +6,7 @@ code: T58
 section: planetary-science
 title: "Impact crater calculator: crater size and energy from an asteroid, or the asteroid from a crater"
 summary: "Work out the crater an asteroid or comet would dig on the Earth, the Moon or Mars, the energy in megatons and how often such impacts happen, or work back from a crater to the size of the body that made it."
+seoDescription: "Work out the crater an asteroid or comet would make on Earth, the Moon or Mars, its energy in megatons and how often it happens, or the asteroid from a crater."
 status: live
 ads: true
 order: 12

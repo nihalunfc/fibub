@@ -6,6 +6,8 @@ code: L237
 section: school-maths
 title: "3D coordinates: plot points in space, find the octant and use the distance formula in 3D"
 summary: "Turn a set of x, y and z axes round with your finger, place two points and see the dashed box that shows each coordinate. The octant of each point and the 3D distance formula are worked with your numbers, and the section formula puts a third point between them."
+seoTitle: "3D coordinates: plot points, octants and distance | fibub"
+seoDescription: "Plot two points in 3D on axes you turn with your finger, find the octant of each, and work the 3D distance formula and section formula with your own numbers."
 status: live
 ads: false
 order: 1379

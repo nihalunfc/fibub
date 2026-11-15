@@ -6,6 +6,8 @@ code: L248
 section: school-biology
 title: "Z-scheme of photosynthesis: electron flow through photosystem II and I, step by step"
 summary: "Follow one electron from water through photosystem II, plastoquinone, cytochrome b6f, plastocyanin and photosystem I to NADPH on the Z-shaped energy diagram. Compare cyclic and non-cyclic flow and count the photons, O₂, NADPH, H⁺ and ATP for any number of electrons."
+seoTitle: "Z-scheme of photosynthesis: interactive diagram | fibub"
+seoDescription: "The Z-scheme of photosynthesis step by step: follow an electron from water through PSII, plastoquinone, cytochrome b6f and PSI to NADPH, with photons counted."
 status: live
 ads: false
 order: 1393

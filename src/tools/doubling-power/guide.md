@@ -6,6 +6,7 @@ code: L119
 section: school-maths
 title: "Power of doubling: fold paper to the Moon and fill a chessboard with grains"
 summary: "Fold a sheet of paper again and again and watch its thickness climb a ladder from a fingernail to the Moon, or put 1, 2, 4, 8 grains on a chessboard and see the exact total. Exponents and exponential growth, live."
+seoTitle: "Power of doubling: paper folding and chessboard | fibub"
 status: live
 ads: false
 order: 1234
