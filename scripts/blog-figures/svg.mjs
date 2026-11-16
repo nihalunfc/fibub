@@ -14,7 +14,7 @@ const fmt = (v) => { const a = Math.abs(v); if (a === 0) return '0'; if (a >= 10
  * A line/scatter chart.
  * opts: { title, xLabel, yLabel, series: [{ name, x[], y[], kind: 'line'|'dots'|'step', colour?, dash?, label? }],
  *         xDomain?, yDomain?, yReverse?, hlines?: [{ y, text }], vlines?: [{ x, text }], bands?: [{ x0, x1, text }],
- *         width?, height?, desc }
+ *         xTicks?, yTicks?, xFmt?, yFmt? (tick label functions; yFmt with log10 values gives a log axis), width?, height?, desc }
  */
 export function chart(o) {
   const named = o.series.filter((s) => s.name && !s.noLegend), hasLegend = named.length >= 2;
@@ -34,7 +34,7 @@ export function chart(o) {
     if (b.text) out.push(`<text x="${r((X(b.x0) + X(b.x1)) / 2)}" y="${T + 14}" text-anchor="middle" style="fill:var(--muted)">${esc(b.text)}</text>`);
   }
   // Grid and axes (recessive).
-  for (const t of niceTicks(y0, y1, 5)) { if (t < Math.min(y0, y1) || t > Math.max(y0, y1)) continue; out.push(`<line x1="${L}" x2="${W - R}" y1="${r(Y(t))}" y2="${r(Y(t))}" style="stroke:var(--line)"/><text x="${L - 6}" y="${r(Y(t)) + 4}" text-anchor="end" style="fill:var(--muted)">${fmt(t)}</text>`); }
+  for (const t of o.yTicks ?? niceTicks(y0, y1, 5)) { if (t < Math.min(y0, y1) || t > Math.max(y0, y1)) continue; out.push(`<line x1="${L}" x2="${W - R}" y1="${r(Y(t))}" y2="${r(Y(t))}" style="stroke:var(--line)"/><text x="${L - 6}" y="${r(Y(t)) + 4}" text-anchor="end" style="fill:var(--muted)">${o.yFmt ? o.yFmt(t) : fmt(t)}</text>`); }
   for (const t of o.xTicks ?? niceTicks(x0, x1, 6)) { if (t < x0 || t > x1) continue; out.push(`<line x1="${r(X(t))}" x2="${r(X(t))}" y1="${H - B}" y2="${H - B + 4}" style="stroke:var(--muted)"/><text x="${r(X(t))}" y="${H - B + 17}" text-anchor="middle" style="fill:var(--muted)">${o.xFmt ? o.xFmt(t) : fmt(t)}</text>`); }
   out.push(`<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" style="stroke:var(--muted)"/>`);
   out.push(`<text x="${(L + W - R) / 2}" y="${H - 8}" text-anchor="middle" style="fill:var(--ink)">${esc(o.xLabel)}</text>`);
