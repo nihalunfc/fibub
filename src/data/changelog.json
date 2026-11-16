@@ -1,5 +1,123 @@
 [
  {
+  "sha": "baa610c85ce1",
+  "date": "2026-11-16T22:17:38+00:00",
+  "title": "Home skills: link hand tools lessons and cut list with carpentry",
+  "tools": [
+   "build-simple-shelf",
+   "saw-straight",
+   "shelf-load",
+   "workshop-safety"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d789e6d62a5a",
+  "date": "2026-11-16T22:17:13+00:00",
+  "title": "Hand tools and safety course: #L373 know your hand tools, #L374 workshop safety, #L375 measure and mark, #T1011 cut list",
+  "tools": [
+   "cut-list",
+   "know-hand-tools",
+   "measure-and-mark",
+   "workshop-safety"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9366b970ef18",
+  "date": "2026-11-16T22:15:18+00:00",
+  "title": "Home skills: cross-link carpentry, wall fixings and machines lessons",
+  "tools": [
+   "build-simple-shelf",
+   "levers-in-tools",
+   "pick-wall-plug"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aba24f928581",
+  "date": "2026-11-16T22:14:47+00:00",
+  "title": "Learn: How machines work lessons #L382 levers in tools, #L383 belts and pulleys, #L384 bearings and friction",
+  "tools": [
+   "bearings-and-friction",
+   "belts-and-pulleys",
+   "levers-in-tools"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c74dec42459e",
+  "date": "2026-11-16T22:13:28+00:00",
+  "title": "Light carpentry course: saw a straight cut (#L376), drill and screw wood (#L377), build a simple shelf (#L378), shelf load (#T1012)",
+  "tools": [
+   "build-simple-shelf",
+   "drill-and-screw",
+   "saw-straight",
+   "shelf-load"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eb21626d34e1",
+  "date": "2026-11-16T22:11:31+00:00",
+  "title": "Learn: Wall fixings course (#L379 What's in your wall, #L380 Pick the right wall plug, #L381 Hang a picture or mirror)",
+  "tools": [
+   "hang-picture-mirror",
+   "pick-wall-plug",
+   "whats-in-your-wall"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b3b5d360dc40",
+  "date": "2026-11-16T22:08:25+00:00",
+  "title": "Change a flat tyre: link the torque tool and the puncture lesson",
+  "tools": [
+   "change-flat-tyre"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eb97e666a021",
+  "date": "2026-11-16T22:07:55+00:00",
+  "title": "Tyres and punctures: #L371 plug a tyre puncture, #L372 fix a bike puncture, #T1010 wheel nut torque",
+  "tools": [
+   "fix-bike-puncture",
+   "plug-tyre-puncture",
+   "wheel-nut-torque"
+  ],
+  "site": false
+ },
+ {
+  "sha": "74dc7ff8ba19",
+  "date": "2026-11-16T21:55:57+00:00",
+  "title": "Everyday: Woodwork and fixings section for the home skills calculators",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "2cfc4f16fa67",
+  "date": "2026-11-16T21:55:32+00:00",
+  "title": "Home skills courses: shared lesson engine, course pages, first lesson (#L370 change a flat tyre)",
+  "tools": [
+   "change-flat-tyre"
+  ],
+  "site": true
+ },
+ {
+  "sha": "eb16852b2bd6",
+  "date": "2026-11-16T18:17:58+00:00",
+  "title": "Add video tools: frame grabber, compressor, rotate, mute, video info (#T966-#T970)",
+  "tools": [
+   "frame-grabber",
+   "mute-video",
+   "rotate-video",
+   "video-compressor",
+   "video-info"
+  ],
+  "site": true
+ },
+ {
   "sha": "6e532f98d459",
   "date": "2026-11-16T18:00:25+00:00",
   "title": "Make 15 more money tools more useful (tax, pay, planning)",
