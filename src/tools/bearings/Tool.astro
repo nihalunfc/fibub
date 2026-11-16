@@ -1,0 +1,205 @@
+---
+// #L354 Bearings. Drag two points on a map, read the three-figure bearing and the back bearing, or walk a journey. Maths: src/lib/learn/curr-maths.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn bear">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">A bearing is an angle measured clockwise from north, written with three figures (so east is 090°). Drag A and B on the map, or use the sliders. Each square is 1 km.</p>
+    <div class="ax-seg bear-modes" role="group" aria-label="Mode"><button type="button" data-mode="points" aria-pressed="true">Two points</button><button type="button" data-mode="journey" aria-pressed="false">Journey</button></div>
+    <canvas class="lrn-cv bear-cv" aria-label="A map with points A and B, a dashed north line at each point and the bearing angle drawn clockwise from north" style="margin-top:8px"></canvas>
+    <div class="bear-points">
+      <div class="ax-grid" style="margin-top:10px">
+        <label class="lrn-sl">Bearing of B from A: <b class="bear-bv"></b> <input class="bear-b" type="range" min="0" max="359" step="1" value="45" /></label>
+        <label class="lrn-sl">Distance AB: <b class="bear-dv"></b> km <input class="bear-d" type="range" min="0.5" max="9" step="0.1" value="5" /></label>
+      </div>
+      <p class="ax-big bear-out" aria-live="polite"></p>
+      <p class="ax-help bear-sub"></p>
+      <p class="ax-help bear-work" data-only="11" hidden></p>
+    </div>
+    <div class="bear-journey" hidden>
+      <p class="ax-help">Add legs: each is a bearing and a distance. The page draws the path and finds the straight way back to the start.</p>
+      <div class="bear-legs"></div>
+      <div class="bear-row"><button type="button" class="btn small bear-add">Add a leg</button><button type="button" class="btn secondary small bear-rm">Remove last</button><button type="button" class="btn secondary small bear-reset">Reset</button></div>
+      <p class="ax-big bear-jout" aria-live="polite"></p>
+      <p class="ax-help bear-jwork" data-only="11" hidden></p>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Drag B straight east of A. Is the bearing 090°? Now drag it straight south: 180°.</li><li>Compare the two numbers: the back bearing is always the bearing plus or minus 180°. Why?</li><li>In Journey mode, walk 4 km on 090° then 3 km on 180°. How far from the start are you?</li><li>Try three legs that make a square. Do you end up back at the start?</li></ul>
+  </div>
+  <div class="ax-card bear-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .bear .bear-cv { width: 100%; cursor: grab; }
+  .bear .bear-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .bear .bear-leg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; font-size: 15px; }
+  .bear .bear-leg input { font: inherit; font-size: 16px; width: 5.5em; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .bear .bear-modes { margin-top: 8px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { bearing, backBearing, fmtBearing, dist, journey, cosineRuleBack, turnAngle, type Leg } from '../../lib/learn/curr-maths';
+  const root = document.querySelector('.bear') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.bear-cv'), out = $('.bear-out'), jout = $('.bear-jout');
+  const sb = $<HTMLInputElement>('.bear-b'), sd = $<HTMLInputElement>('.bear-d');
+  const A = { x: 3, y: 3 }, B = { x: 7, y: 6.5 };
+  let mode = 'points';
+  let legs: Leg[] = [{ b: 90, d: 4 }, { b: 180, d: 3 }];
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const deg = (t: number) => (t * Math.PI) / 180;
+  const geom = () => {
+    const W = Math.max(200, cv.clientWidth || 340), H = Math.min(380, Math.round(W * 0.9)), s = (W - 20) / 10;
+    return { W, H, s, ymax: (H - 20) / s };
+  };
+  const toPx = (x: number, y: number, g: { s: number; H: number }) => [10 + x * g.s, g.H - 10 - y * g.s];
+
+  const arc = (ctx: CanvasRenderingContext2D, cx: number, cy: number, rad: number, b: number, col: string, label: string) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, rad, -Math.PI / 2, -Math.PI / 2 + deg(b)); ctx.stroke();
+    const m = -Math.PI / 2 + deg(b / 2);
+    ctx.fillStyle = col; ctx.font = 'bold 12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, cx + (rad + 20) * Math.cos(m), cy + (rad + 20) * Math.sin(m) + 4);
+  };
+  const north = (ctx: CanvasRenderingContext2D, x: number, y: number, pal: ReturnType<typeof pagePalette>) => {
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, Math.max(4, y - 62)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.fillText('N', x + 3, Math.max(14, y - 56));
+  };
+  const dot = (ctx: CanvasRenderingContext2D, x: number, y: number, name: string, pal: ReturnType<typeof pagePalette>, fill: string) => {
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText(name, x, y + 4);
+  };
+
+  const drawPoints = () => {
+    const g = geom(), { ctx, W, H } = fitCanvas(cv, g.H), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = '10px system-ui,sans-serif'; ctx.textAlign = 'center';
+    for (let k = 0; k <= 10; k++) { const [px] = toPx(k, 0, g); ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke(); if (k % 2 === 0) ctx.fillText(String(k), px, H - 1); }
+    for (let k = 0; k <= Math.floor(g.ymax); k++) { const [, py] = toPx(0, k, g); ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke(); }
+    const [ax, ay] = toPx(A.x, A.y, g), [bx, by] = toPx(B.x, B.y, g);
+    north(ctx, ax, ay, pal); north(ctx, bx, by, pal);
+    const b = bearing(A.x, A.y, B.x, B.y), bb = backBearing(b);
+    arc(ctx, ax, ay, 34, b, pal.accent, fmtBearing(b));
+    arc(ctx, bx, by, 26, bb, pal.accent2, fmtBearing(bb));
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    dot(ctx, ax, ay, 'A', pal, pal.accent); dot(ctx, bx, by, 'B', pal, pal.accent2);
+  };
+  const sync = () => {
+    const b = bearing(A.x, A.y, B.x, B.y), d = dist(A.x, A.y, B.x, B.y), bb = backBearing(b);
+    sb.value = String(Math.round(b) % 360); sd.value = String(+d.toFixed(1));
+    $('.bear-bv').textContent = fmtBearing(b); $('.bear-dv').textContent = d.toFixed(1);
+    out.textContent = `Bearing of B from A: ${fmtBearing(b)}. Back bearing (A from B): ${fmtBearing(bb)}.`;
+    out.dataset.bearing = b.toFixed(2); out.dataset.back = bb.toFixed(2); out.dataset.dist = d.toFixed(3);
+    $('.bear-sub').textContent = `Distance AB = ${d.toFixed(1)} km on the map (1 square = 1 km). B is ${Math.abs(B.x - A.x).toFixed(1)} km ${B.x >= A.x ? 'east' : 'west'} and ${Math.abs(B.y - A.y).toFixed(1)} km ${B.y >= A.y ? 'north' : 'south'} of A.`;
+    const dx = B.x - A.x, dy = B.y - A.y;
+    $('.bear-work').textContent = `Grade 11 to 12: tan θ = east ÷ north = ${dx.toFixed(1)} ÷ ${dy.toFixed(1)}, so θ = ${(Math.atan(Math.abs(dx / (dy || 1e-9))) * 180 / Math.PI).toFixed(1)}° from the north-south line. Then use the quadrant (${dy >= 0 ? 'north' : 'south'}-${dx >= 0 ? 'east' : 'west'}) to turn it into a bearing from north: ${fmtBearing(b)}. Back bearing = ${Math.round(b) % 360} ${b < 180 ? '+' : '−'} 180 = ${fmtBearing(bb)}. Distance = √(${dx.toFixed(1)}² + ${dy.toFixed(1)}²) = ${d.toFixed(1)} km.`;
+    drawPoints();
+  };
+  const fromSliders = () => {
+    const t = deg(+sb.value), d = +sd.value, g = geom();
+    // Keep the bearing exact: if B would leave the map, shorten the distance along the same direction instead of clamping each axis.
+    const ux = Math.sin(t), uy = Math.cos(t), lim = (p: number, u: number, lo: number, hi: number) => u > 1e-9 ? (hi - p) / u : u < -1e-9 ? (lo - p) / u : Infinity;
+    const dd = Math.max(0, Math.min(d, lim(A.x, ux, 0.2, 9.8), lim(A.y, uy, 0.2, g.ymax - 0.2)));
+    B.x = A.x + dd * ux; B.y = A.y + dd * uy;
+    sync();
+  };
+
+  /* journey */
+  const legBox = $('.bear-legs');
+  const drawJourney = () => {
+    const g = geom(), { ctx, W, H } = fitCanvas(cv, g.H), pal = pagePalette(), jr = journey(legs);
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const xs = jr.pts.map((p) => p.x), ys = jr.pts.map((p) => p.y);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    x0 -= 0.8; x1 += 0.8; y0 -= 0.8; y1 += 1.6;
+    const s = Math.min((W - 30) / (x1 - x0), (H - 30) / (y1 - y0)), ox = (W - s * (x1 - x0)) / 2 - x0 * s, oy = (H + s * (y1 - y0)) / 2 + y0 * s;
+    const P = (p: { x: number; y: number }) => [ox + p.x * s, oy - p.y * s];
+    jr.pts.forEach((p) => { const [x, y] = P(p); north(ctx, x, y, pal); });
+    ctx.lineWidth = 2.5; ctx.strokeStyle = pal.accent; ctx.beginPath(); jr.pts.forEach((p, i) => { const [x, y] = P(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    if (jr.backDist > 1e-6) { const [x, y] = P(jr.end), [sx, sy] = P(jr.pts[0]); ctx.strokeStyle = pal.accent2; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(sx, sy); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.ink;
+    legs.forEach((l, i) => { const [x, y] = P({ x: (jr.pts[i].x + jr.pts[i + 1].x) / 2, y: (jr.pts[i].y + jr.pts[i + 1].y) / 2 }); ctx.fillText(`${fmtBearing(l.b)}, ${l.d} km`, x, y - 7); });
+    const [sx, sy] = P(jr.pts[0]); dot(ctx, sx, sy, 'S', pal, pal.accent);
+    if (legs.length) { const [ex, ey] = P(jr.end); dot(ctx, ex, ey, 'E', pal, pal.accent2); }
+  };
+  const showJourney = () => {
+    const jr = journey(legs);
+    jout.textContent = legs.length ? `Back to the start: bearing ${fmtBearing(jr.backBearing)}, distance ${jr.backDist.toFixed(1)} km.` : 'Add a leg to start.';
+    jout.dataset.jbearing = jr.backBearing.toFixed(2); jout.dataset.jdist = jr.backDist.toFixed(3); jout.dataset.jlegs = String(legs.length);
+    let w = '';
+    if (legs.length === 2) {
+      const c = cosineRuleBack(legs[0].b, legs[0].d, legs[1].b, legs[1].d);
+      w = `Grade 11 to 12: the angle inside the triangle at the turn is ${turnAngle(legs[0].b, legs[1].b).toFixed(0)}° (between the way back, ${fmtBearing(backBearing(legs[0].b))}, and the way on, ${fmtBearing(legs[1].b)}). Cosine rule: c² = ${legs[0].d}² + ${legs[1].d}² − 2 × ${legs[0].d} × ${legs[1].d} × cos ${c.C.toFixed(0)}°, so c = ${c.dist.toFixed(2)} km. The sine rule then gives the angle at the start, which turns into the back bearing.`;
+    } else if (legs.length > 2) {
+      const e = legs.reduce((t, l) => t + l.d * Math.sin(deg(l.b)), 0), n = legs.reduce((t, l) => t + l.d * Math.cos(deg(l.b)), 0);
+      w = `Grade 11 to 12: with more than two legs, add the parts. East = Σ d sin b = ${e.toFixed(2)} km, north = Σ d cos b = ${n.toFixed(2)} km. Distance back = √(${e.toFixed(2)}² + ${n.toFixed(2)}²) = ${jr.backDist.toFixed(2)} km. The way back points ${fmtBearing(jr.backBearing)}.`;
+    } else w = 'Grade 11 to 12: with two legs, the cosine rule finds the way back. Add a second leg to see it.';
+    $('.bear-jwork').textContent = w;
+    drawJourney();
+  };
+  const buildLegs = () => {
+    legBox.replaceChildren();
+    legs.forEach((l, i) => {
+      const row = document.createElement('div'); row.className = 'bear-leg';
+      const mk = (label: string, key: 'b' | 'd', min: number, max: number, step: string) => {
+        const lab = document.createElement('label'); lab.append(label + ' ');
+        const inp = document.createElement('input'); inp.type = 'number'; inp.inputMode = 'decimal'; inp.min = String(min); inp.max = String(max); inp.step = step; inp.value = String(l[key]);
+        inp.setAttribute('aria-label', `Leg ${i + 1} ${key === 'b' ? 'bearing in degrees' : 'distance in km'}`);
+        inp.addEventListener('input', () => { const v = parseFloat(inp.value); if (Number.isFinite(v)) { legs[i][key] = key === 'b' ? ((v % 360) + 360) % 360 : Math.max(0, v); showJourney(); } });
+        lab.append(inp); return lab;
+      };
+      const tag = document.createElement('b'); tag.textContent = `Leg ${i + 1}`;
+      row.append(tag, mk('bearing', 'b', 0, 360, '1'), mk('distance (km)', 'd', 0, 50, '0.5')); legBox.append(row);
+    });
+  };
+  $('.bear-add').addEventListener('click', () => { if (legs.length < 6) { legs.push({ b: 0, d: 2 }); buildLegs(); showJourney(); } });
+  $('.bear-rm').addEventListener('click', () => { legs.pop(); buildLegs(); showJourney(); });
+  $('.bear-reset').addEventListener('click', () => { legs = [{ b: 90, d: 4 }, { b: 180, d: 3 }]; buildLegs(); showJourney(); });
+
+  const setMode = (m: string) => {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    $('.bear-points').hidden = m !== 'points'; $('.bear-journey').hidden = m !== 'journey';
+    cv.style.cursor = m === 'points' ? 'grab' : 'default';
+    m === 'points' ? sync() : showJourney();
+  };
+  root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+
+  let drag: 'A' | 'B' | null = null;
+  const where = (e: PointerEvent) => { const rc = cv.getBoundingClientRect(), g = geom(); return { x: clamp((e.clientX - rc.left - 10) / g.s, 0.2, 9.8), y: clamp((g.H - 10 - (e.clientY - rc.top)) / g.s, 0.2, g.ymax - 0.2), g }; };
+  cv.addEventListener('pointerdown', (e) => {
+    if (mode !== 'points') return;
+    const rc = cv.getBoundingClientRect(), g = geom(), px = e.clientX - rc.left, py = e.clientY - rc.top;
+    const [ax, ay] = toPx(A.x, A.y, g), [bx, by] = toPx(B.x, B.y, g);
+    const da = Math.hypot(px - ax, py - ay), db = Math.hypot(px - bx, py - by);
+    if (Math.min(da, db) < 28) { drag = da <= db ? 'A' : 'B'; cv.setPointerCapture(e.pointerId); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const w = where(e), p = drag === 'A' ? A : B; p.x = Math.round(w.x * 10) / 10; p.y = Math.round(w.y * 10) / 10; sync();
+  });
+  const stop = () => { drag = null; };
+  cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  sb.addEventListener('input', fromSliders); sd.addEventListener('input', fromSliders);
+  addEventListener('resize', () => (mode === 'points' ? drawPoints() : drawJourney()));
+  wireLevel(root, () => {});
+  buildLegs(); fromSliders();
+
+  mountQuiz($('.bear-quiz'), () => {
+    const b1 = pick(10, 350, 5), b2 = pick(10, 350, 5), dx = pick(2, 9) * (Math.random() < 0.5 ? 1 : -1), dy = pick(2, 9) * (Math.random() < 0.5 ? 1 : -1);
+    const bq = bearing(0, 0, dx, dy), d1 = pick(4, 12), d2 = pick(4, 12), t1 = pick(10, 70, 10), t2 = t1 + pick(60, 120, 10);
+    const cr = cosineRuleBack(t1, d1, t2, d2);
+    return [
+      { q: `A ship sails on a bearing of ${fmtBearing(b1)}. What is the bearing it must sail on to return? (give the three-figure bearing)`, ans: backBearing(b1), abs: 0.5, hint: 'Add or subtract 180°.', work: `${b1}° ${b1 < 180 ? '+' : '−'} 180° = ${backBearing(b1)}°, so the back bearing is ${fmtBearing(backBearing(b1))}.` },
+      { q: `Town B is ${Math.abs(dx)} km ${dx > 0 ? 'east' : 'west'} and ${Math.abs(dy)} km ${dy > 0 ? 'north' : 'south'} of town A. Find the bearing of B from A, to the nearest degree.`, ans: Math.round(bq), abs: 1, work: `Reference angle tan⁻¹(${Math.abs(dx)} ÷ ${Math.abs(dy)}) = ${r(Math.atan(Math.abs(dx / dy)) * 180 / Math.PI, 4)}° from the north-south line. In the ${dy > 0 ? 'north' : 'south'}-${dx > 0 ? 'east' : 'west'} quarter that makes a bearing of ${fmtBearing(bq)}.` },
+      { q: `The bearing of Q from P is ${fmtBearing(b2)}. What is the bearing of P from Q?`, ans: backBearing(b2), abs: 0.5, work: `${b2}° ${b2 < 180 ? '+' : '−'} 180° = ${backBearing(b2)}°, so ${fmtBearing(backBearing(b2))}.` },
+      { q: `A walker goes ${d1} km on a bearing of ${fmtBearing(t1)}, then ${d2} km on a bearing of ${fmtBearing(t2)}. How far (km, 1 d.p.) is she from the start in a straight line?`, ans: cr.dist, tol: 0.02, unit: 'km', work: `The angle at the turn is ${cr.C.toFixed(0)}° (back bearing ${fmtBearing(backBearing(t1))} to the new bearing ${fmtBearing(t2)}). Cosine rule: c² = ${d1}² + ${d2}² − 2×${d1}×${d2}×cos ${cr.C.toFixed(0)}° = ${r(cr.dist ** 2, 4)}, so c = ${r(cr.dist, 4)} km.` },
+    ];
+  });
+</script>

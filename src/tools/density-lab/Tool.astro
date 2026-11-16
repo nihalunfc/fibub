@@ -1,0 +1,150 @@
+---
+// #L342 Density lab. Maths: src/lib/learn/curr-physics.ts (checks in tests/curr-physics.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn dl">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">GCSE / Grade 11</button></div>
+    <p class="ax-help">Density = mass ÷ volume. Measure a block with a ruler, find a stone's volume by displacement, or measure a liquid in a cylinder. Then drop your object in a liquid to see if it floats.</p>
+    <div class="ax-seg dl-modes" role="group" aria-label="What to measure"><button type="button" data-m="block" aria-pressed="true">Block</button><button type="button" data-m="stone" aria-pressed="false">Stone</button><button type="button" data-m="liquid" aria-pressed="false">Liquid</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-top:8px">
+      <label class="dl-objl">Material <select class="dl-obj" aria-label="Material"></select></label>
+      <label class="dl-liql" hidden>Liquid <select class="dl-liq" aria-label="Liquid"></select></label>
+      <button type="button" class="btn secondary dl-new">New object</button>
+    </div>
+    <canvas class="lrn-cv dl-cv" aria-label="The apparatus: a ruler and block, a eureka can and measuring cylinder, or a cylinder of liquid, with the balance reading" style="margin-top:8px"></canvas>
+    <label class="lrn-sl dl-lowl" style="margin-top:8px" hidden><span>Lower the stone into the can: <b class="dl-lowv">0</b> %</span> <input class="dl-low" type="range" min="0" max="100" step="5" value="0" /></label>
+    <label class="lrn-sl dl-voll" style="margin-top:8px" hidden><span>Liquid in the cylinder: <b class="dl-volv">50</b> mL</span> <input class="dl-vol" type="range" min="20" max="100" step="10" value="50" /></label>
+    <p class="ax-big dl-out" aria-live="polite"></p>
+    <p class="ax-help dl-sub"></p>
+    <div class="dl-floatbox">
+      <label>Drop it in: <select class="dl-fl" aria-label="Liquid to float it in"></select></label>
+      <canvas class="lrn-cv dl-cv2" aria-label="Beaker of liquid with the object floating or sunk" style="margin-top:8px"></canvas>
+      <p class="ax-help dl-fsub"></p>
+    </div>
+    <p class="ax-help" data-only="11" hidden>GCSE / Grade 11: every reading has an uncertainty. A ruler reads to ±0.05 cm (half a division) and the cylinder to ±0.5 mL, so the percentage uncertainty in the volume adds up the percentage uncertainty of each measurement. Use a large sample to keep it small.</p>
+    <p class="ax-help dl-unc" data-only="11" hidden></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Measure a block of each material. Does the density change with the size of the block?</li><li>Find the density of a stone by displacement, then drop it in syrup. Does it float?</li><li>Which materials float in water? Which float in oil?</li><li>Measure the three liquids. Which is the densest?</li></ul>
+  </div>
+  <div class="ax-card dl-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .dl .lrn-cv { width: 100%; }
+  .dl select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .dl .dl-modes button { min-height: 40px; }
+  .dl .dl-floatbox { margin-top: 10px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { MATERIALS, STONES, LIQUIDS, rng, round, blockVolume, balanceReading, density, toKgPerM3, floats, submergedFraction, liquidDensity, overflowReading, volumeUncertaintyPct } from '../../lib/learn/curr-physics';
+  const root = document.querySelector('.dl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const out = $('.dl-out'), cv = $<HTMLCanvasElement>('.dl-cv'), cv2 = $<HTMLCanvasElement>('.dl-cv2');
+  const obj = $<HTMLSelectElement>('.dl-obj'), liq = $<HTMLSelectElement>('.dl-liq'), fl = $<HTMLSelectElement>('.dl-fl'), low = $<HTMLInputElement>('.dl-low'), vol = $<HTMLInputElement>('.dl-vol');
+  let mode = 'block', seed = 7, dims = [3.2, 4.1, 2.5], stoneV = 32.4, cylEmpty = 82.5;
+  const fill = (s: HTMLSelectElement, xs: { id: string; name: string; rho: number }[]) => { s.replaceChildren(); xs.forEach((m) => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.name; s.append(o); }); };
+  fill(fl, LIQUIDS); fl.value = 'water'; fill(liq, LIQUIDS); fill(obj, MATERIALS);
+  const list = () => (mode === 'stone' ? STONES : MATERIALS);
+  const cur = () => (mode === 'liquid' ? LIQUIDS.find((x) => x.id === liq.value)! : list().find((x) => x.id === obj.value)!);
+  const newObj = () => { const R = rng(seed++ * 7919); dims = [0, 0, 0].map(() => round(2 + R() * 3, 1)); stoneV = round(15 + R() * 45, 1); cylEmpty = round(70 + R() * 30, 1); };
+  const state = () => {
+    const m = cur();
+    if (mode === 'liquid') { const V = +vol.value, full = round(cylEmpty + m.rho * V, 1); return { V, mass: full, empty: cylEmpty, rho: liquidDensity(cylEmpty, full, V), vTrue: V, label: m.name }; }
+    if (mode === 'block') { const V = round(blockVolume(...(dims as [number, number, number])), 2); return { V, mass: balanceReading(m.rho, V), rho: 0, vTrue: V, label: m.name, empty: 0 }; }
+    const V = overflowReading(stoneV * (+low.value / 100)); return { V, mass: balanceReading(m.rho, stoneV), rho: 0, vTrue: stoneV, label: m.name, empty: 0 };
+  };
+  const have = (s: ReturnType<typeof state>) => (mode === 'block' ? true : mode === 'stone' ? +low.value === 100 : true);
+
+  const drawMain = (s: ReturnType<typeof state>) => {
+    const { ctx, W, H } = fitCanvas(cv, 210), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif'; ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+    // balance
+    const bx = W - 98; ctx.strokeRect(bx, 10, 90, 26); ctx.font = 'bold 14px system-ui,sans-serif'; ctx.fillText(`${s.mass.toFixed(1)} g`, bx + 45, 29); ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = pal.muted; ctx.fillText('balance', bx + 45, 50); ctx.fillStyle = pal.ink;
+    if (mode === 'block') {
+      const sc = (W - 120) / 7.5, [a, b, c] = dims, x0 = 14, yb = 130, dx = c * sc * 0.5, dy = c * sc * 0.3;
+      ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.85; ctx.fillRect(x0, yb - b * sc, a * sc, b * sc);
+      ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(x0, yb - b * sc); ctx.lineTo(x0 + dx, yb - b * sc - dy); ctx.lineTo(x0 + dx + a * sc, yb - b * sc - dy); ctx.lineTo(x0 + a * sc, yb - b * sc); ctx.fill();
+      ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(x0 + a * sc, yb - b * sc); ctx.lineTo(x0 + a * sc + dx, yb - b * sc - dy); ctx.lineTo(x0 + a * sc + dx, yb - dy); ctx.lineTo(x0 + a * sc, yb); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(x0, yb - b * sc, a * sc, b * sc);
+      // ruler
+      ctx.fillStyle = pal.day; ctx.fillRect(x0, yb, 7.5 * sc, 26); ctx.strokeRect(x0, yb, 7.5 * sc, 26); ctx.fillStyle = pal.ink; ctx.lineWidth = 1;
+      for (let i = 0; i <= 75; i++) { const x = x0 + (i / 10) * sc, h = i % 10 === 0 ? 12 : i % 5 === 0 ? 8 : 4; ctx.beginPath(); ctx.moveTo(x, yb); ctx.lineTo(x, yb + h); ctx.stroke(); if (i % 10 === 0 && i > 0 && i < 75) ctx.fillText(String(i / 10), x, yb + 24); }
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '13px system-ui,sans-serif';
+      ctx.fillText(`Ruler readings: width ${a.toFixed(1)} cm, height ${b.toFixed(1)} cm, depth ${c.toFixed(1)} cm`, 8, 188); ctx.fillText(`Volume = ${a.toFixed(1)} × ${b.toFixed(1)} × ${c.toFixed(1)} = ${s.V.toFixed(2)} cm³`, 8, 206);
+    } else if (mode === 'stone') {
+      const f = +low.value / 100, cx = 14, cw = 120, ctop = 70, cb = 190, wl = ctop + 18;
+      ctx.fillStyle = 'rgba(80,150,220,0.35)'; ctx.fillRect(cx, wl, cw, cb - wl); ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(cx, ctop); ctx.lineTo(cx, cb); ctx.lineTo(cx + cw, cb); ctx.lineTo(cx + cw, ctop); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + cw, ctop + 8); ctx.lineTo(cx + cw + 28, ctop + 22); ctx.stroke();
+      const sy = 16 + f * 70, sx = cx + cw / 2; ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.moveTo(sx - 20, sy + 6); ctx.lineTo(sx - 8, sy - 14); ctx.lineTo(sx + 14, sy - 10); ctx.lineTo(sx + 22, sy + 8); ctx.lineTo(sx + 4, sy + 22); ctx.lineTo(sx - 14, sy + 18); ctx.fill();
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, sy - 12); ctx.stroke();
+      // cylinder
+      const kx = cx + cw + 40, kt = 70, kb = 190, lv = (s.V / 100) * (kb - kt); ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.fillStyle = 'rgba(80,150,220,0.45)'; ctx.fillRect(kx, kb - lv, 36, lv); ctx.beginPath(); ctx.moveTo(kx, kt); ctx.lineTo(kx, kb); ctx.lineTo(kx + 36, kb); ctx.lineTo(kx + 36, kt); ctx.stroke();
+      ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; for (let v = 0; v <= 100; v += 20) { const y = kb - (v / 100) * (kb - kt); ctx.beginPath(); ctx.moveTo(kx + 36, y); ctx.lineTo(kx + 30, y); ctx.stroke(); ctx.fillText(String(v), kx + 40, y + 4); }
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText('eureka can', cx + cw / 2, cb + 14); ctx.fillText(`${s.V} mL`, kx + 18, kt - 6);
+    } else {
+      const V = s.V, kx = W / 2 - 22, kt = 44, kb = 160, lv = (V / 100) * (kb - kt), m = cur();
+      ctx.fillStyle = m.id === 'oil' ? 'rgba(230,200,40,0.55)' : m.id === 'syrup' ? 'rgba(200,120,20,0.6)' : 'rgba(80,150,220,0.45)'; ctx.fillRect(kx, kb - lv, 44, lv);
+      ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(kx, kt); ctx.lineTo(kx, kb); ctx.lineTo(kx + 44, kb); ctx.lineTo(kx + 44, kt); ctx.stroke();
+      ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; for (let v = 0; v <= 100; v += 20) { const y = kb - (v / 100) * (kb - kt); ctx.beginPath(); ctx.moveTo(kx + 44, y); ctx.lineTo(kx + 38, y); ctx.stroke(); ctx.fillText(String(v), kx + 48, y + 4); }
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '13px system-ui,sans-serif'; ctx.fillText(`Empty cylinder: ${s.empty.toFixed(1)} g`, 8, 184); ctx.fillText(`With ${V} mL of liquid: ${s.mass.toFixed(1)} g`, 8, 204);
+    }
+  };
+  const drawFloat = (s: ReturnType<typeof state>) => {
+    const { ctx, W, H } = fitCanvas(cv2, 130), pal = pagePalette(), L = LIQUIDS.find((x) => x.id === fl.value)!, rho = mode === 'liquid' ? 0 : s.mass / s.vTrue;
+    ctx.clearRect(0, 0, W, H); ctx.lineWidth = 2; ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center';
+    const bx = W / 2 - 80, bw = 160, top = 14, bot = 120, surf = top + 26;
+    ctx.fillStyle = L.id === 'oil' ? 'rgba(230,200,40,0.55)' : L.id === 'syrup' ? 'rgba(200,120,20,0.6)' : 'rgba(80,150,220,0.4)'; ctx.fillRect(bx, surf, bw, bot - surf);
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(bx, top); ctx.lineTo(bx, bot); ctx.lineTo(bx + bw, bot); ctx.lineTo(bx + bw, top); ctx.stroke();
+    if (mode === 'liquid') { ctx.fillStyle = pal.ink; ctx.fillText('Choose block or stone to test floating', W / 2, 70); return; }
+    const size = 44, f = submergedFraction(rho, L.rho), fl2 = floats(rho, L.rho), y = fl2 ? surf - size * (1 - f) : bot - size - 2;
+    ctx.fillStyle = pal.muted; ctx.fillRect(W / 2 - size / 2, y, size, size); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(W / 2 - size / 2, y, size, size);
+  };
+  const show = () => {
+    const s = state(), m = cur(), ready = have(s);
+    root.querySelectorAll<HTMLElement>('[data-m]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    $('.dl-objl').hidden = mode === 'liquid'; $('.dl-liql').hidden = mode !== 'liquid'; $('.dl-lowl').hidden = mode !== 'stone'; $('.dl-voll').hidden = mode !== 'liquid'; $('.dl-floatbox').hidden = mode === 'liquid';
+    $('.dl-lowv').textContent = low.value; $('.dl-volv').textContent = vol.value;
+    const rho = mode === 'liquid' ? s.rho : ready && s.V > 0 ? density(s.mass, s.V) : NaN;
+    if (Number.isFinite(rho)) {
+      out.textContent = `ρ = ${s.mass.toFixed(1)} ÷ ${mode === 'liquid' ? `${s.V}` : s.V} = ${r(rho, 3)} g/cm³ = ${r(toKgPerM3(rho), 4)} kg/m³`;
+      out.dataset.rho = rho.toFixed(4); out.dataset.rhosi = String(Math.round(toKgPerM3(rho)));
+    } else { out.textContent = 'Lower the stone all the way in to read the overflow, then work out ρ.'; out.dataset.rho = ''; out.dataset.rhosi = ''; }
+    out.dataset.mass = String(s.mass); out.dataset.vol = String(s.V); out.dataset.mode = mode; out.dataset.true = String(m.rho);
+    $('.dl-sub').textContent = mode === 'liquid' ? `Density = (mass with liquid − mass of empty cylinder) ÷ volume = (${s.mass.toFixed(1)} − ${s.empty.toFixed(1)}) ÷ ${s.V}.` : `Mass from the balance ÷ volume. ${mode === 'block' ? 'Volume = width × height × depth.' : 'The overflow in the cylinder is the volume of the stone, since 1 mL = 1 cm³.'}`;
+    if (mode !== 'liquid') {
+      const L = LIQUIDS.find((x) => x.id === fl.value)!, rt = s.mass / s.vTrue, f = floats(rt, L.rho);
+      out.dataset.floats = String(f);
+      $('.dl-fsub').textContent = f ? `Floats in ${L.name}: the object (${r(rt, 3)} g/cm³) is less dense than ${L.name} (${L.rho} g/cm³), with about ${Math.round(submergedFraction(rt, L.rho) * 100)} % below the surface.` : `Sinks in ${L.name}: the object (${r(rt, 3)} g/cm³) is denser than ${L.name} (${L.rho} g/cm³).`;
+    } else { out.dataset.floats = ''; $('.dl-fsub').textContent = ''; }
+    $('.dl-unc').textContent = mode === 'block' ? `Uncertainty in the volume: ${r(volumeUncertaintyPct(dims, 0.05), 2)} % (adding the three side uncertainties ±0.05 cm).` : mode === 'stone' ? `Uncertainty in the volume: ±0.5 mL out of ${s.V || '…'} mL.` : `Uncertainty in the volume: ±0.5 mL out of ${s.V} mL.`;
+    drawMain(s); drawFloat(s);
+  };
+  const setObjList = () => { fill(obj, list()); };
+  root.querySelectorAll<HTMLElement>('[data-m]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; if (mode !== 'liquid') setObjList(); low.value = '0'; newObj(); show(); }));
+  $('.dl-new').addEventListener('click', () => { newObj(); low.value = '0'; show(); });
+  [obj, liq, fl, low, vol].forEach((e) => e.addEventListener('input', show));
+  addEventListener('resize', show);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.dl-quiz'), () => {
+    const a = pick(2, 6), b = pick(2, 5), c = pick(2, 5), rho = one([2.7, 7.85, 8.96, 0.55, 1.18]), V = a * b * c, m = round(rho * V, 1), Vs = pick(20, 60, 5), ms = round(2.65 * Vs, 1), mE = pick(60, 100, 5), vv = pick(40, 100, 10), rl = one([0.92, 1.0, 1.38]), full = round(mE + rl * vv, 1), g = one([1.2, 2.7, 0.8]);
+    return [
+      { q: `A block measures ${a} cm × ${b} cm × ${c} cm and has a mass of ${m} g. What is its density in g/cm³?`, ans: m / V, unit: 'g/cm³', work: `V = ${a} × ${b} × ${c} = ${V} cm³. ρ = m ÷ V = ${m} ÷ ${V} = ${r(m / V)} g/cm³.` },
+      { q: `A stone of mass ${ms} g makes ${Vs} mL of water overflow from a eureka can. What is its density in g/cm³?`, ans: ms / Vs, unit: 'g/cm³', work: `The stone's volume is the overflow, ${Vs} cm³. ρ = ${ms} ÷ ${Vs} = ${r(ms / Vs)} g/cm³.` },
+      { q: `An empty measuring cylinder has a mass of ${mE} g. With ${vv} mL of liquid it has a mass of ${full} g. What is the density of the liquid in g/cm³?`, ans: liquidDensity(mE, full, vv), unit: 'g/cm³', work: `Mass of liquid = ${full} − ${mE} = ${r(full - mE)} g. ρ = ${r(full - mE)} ÷ ${vv} = ${r(liquidDensity(mE, full, vv))} g/cm³.` },
+      one([
+        { q: `Convert a density of ${g} g/cm³ to kg/m³.`, ans: g * 1000, unit: 'kg/m³', work: `1 g/cm³ = 1000 kg/m³, so ${g} g/cm³ = ${r(g * 1000, 4)} kg/m³.` },
+        { q: `A solid has a density of ${g} g/cm³. In water (1.0 g/cm³) it will...`, choices: ['float', 'sink'], ans: g < 1 ? 0 : 1, work: `It floats only if it is less dense than the liquid. ${g} ${g < 1 ? '<' : '>'} 1.0, so it ${g < 1 ? 'floats' : 'sinks'}.` },
+      ]),
+    ];
+  });
+</script>
