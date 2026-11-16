@@ -1,5 +1,12 @@
 [
  {
+  "sha": "7261d76a0352",
+  "date": "2026-11-16T22:26:47+00:00",
+  "title": "Add Copy link / Copy result bar to science tool pages",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "4cb479411b57",
   "date": "2026-11-16T22:14:09+00:00",
   "title": "Tools: argon isochron in the radiometric age calculator; Mars-level sunlight in the energy balance model",

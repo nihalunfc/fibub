@@ -42,7 +42,8 @@ function save(list: Field[]): string {
 function load(list: Field[], hash: string): number {
   const p = new URLSearchParams(hash);
   let n = 0;
-  list.forEach((f, i) => {
+  const fire = (f: Field) => { f.dispatchEvent(new Event('input', { bubbles: true })); f.dispatchEvent(new Event('change', { bubbles: true })); };
+  const apply = (f: Field, i: number) => {
     const k = keyOf(f, i);
     if (!p.has(k)) return;
     const v = p.get(k)!;
@@ -50,8 +51,13 @@ function load(list: Field[], hash: string): number {
     else if (f instanceof HTMLSelectElement && ![...f.options].some((o) => o.value === v)) return;
     else f.value = v;
     n++;
-  });
-  if (n) list.forEach((f) => { f.dispatchEvent(new Event('input', { bubbles: true })); f.dispatchEvent(new Event('change', { bubbles: true })); });
+  };
+  // Choices first (a drop-down of presets may reset the number boxes), then the numbers typed on top of them.
+  const isChoice = (f: Field) => f instanceof HTMLSelectElement || (f instanceof HTMLInputElement && (f.type === 'checkbox' || f.type === 'radio'));
+  list.forEach((f, i) => { if (isChoice(f)) apply(f, i); });
+  list.forEach((f) => { if (isChoice(f)) fire(f); });
+  list.forEach((f, i) => { if (!isChoice(f)) apply(f, i); });
+  if (n) list.forEach((f) => { if (!isChoice(f)) fire(f); });
   return n;
 }
 
