@@ -1,0 +1,150 @@
+---
+// #L379 What's in your wall. Home skills engine: src/lib/learn/skill.ts (steps, labels) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk wiw">
+  <CourseNav id="whats-in-your-wall" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Never drill straight above, below or beside a light switch or socket: cables run from them in straight lines.</li>
+      <li>Check for cables and pipes with a detector before every hole, and still drill with care: detectors miss things.</li>
+      <li>If you hit a cable or pipe, stop. Switch off the power at the main switch or the water at the stop tap, and call an electrician or plumber. Never try to repair it yourself.</li>
+      <li>Wear safety glasses when you drill, and keep children and pets away.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Stud, cable and pipe detector</li><li>Small strong magnet</li><li>Tape measure</li><li>Pencil</li><li>Masking tape</li><li>Torch</li><li>Thin drill bit (3 mm)</li><li>Safety glasses</li></ul>
+  </div>
+  <div class="ax-card wiw-types">
+    <h2>Wall types at a glance</h2>
+    <div class="ax-scroll">
+      <table>
+        <thead><tr><th>Wall</th><th>Knock</th><th>Test-hole dust</th><th>Found in</th></tr></thead>
+        <tbody>
+          <tr><td>Drywall or plasterboard on wood studs</td><td>Hollow, solid over studs</td><td>White, then wood shavings on a stud</td><td>Most North American homes, newer UK inside walls</td></tr>
+          <tr><td>Drywall on metal studs</td><td>Hollow, ringing over studs</td><td>White, bit skids on thin metal</td><td>Flats, offices, newer builds</td></tr>
+          <tr><td>Lath and plaster</td><td>Dull, a bit hollow</td><td>White or grey plaster, then wood</td><td>Older houses (before about 1950)</td></tr>
+          <tr><td>Solid brick</td><td>Solid, dead sound</td><td>Red or orange</td><td>UK, India, Gulf and older homes</td></tr>
+          <tr><td>Concrete</td><td>Solid, very hard to drill</td><td>Grey, fine</td><td>Flats, towers, newer homes in India and the Gulf</td></tr>
+          <tr><td>Breeze, cinder or aircrete block</td><td>Solid (dense) or soft</td><td>Grey (dense) or white and powdery (aircrete)</td><td>Modern UK houses, basements, garages</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ax-help">Tiles can cover any of these. Look at an edge, a switch plate or the inside of a cupboard to see what is under them.</p>
+  </div>
+  <div class="ax-card wiw-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A knuckle knocking on a wall, with sound waves: hollow between studs, solid over a stud" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10v90M180 10v90M20 10h160M20 100h160" /><path d="M60 10v90M140 10v90" stroke-dasharray="4 5" stroke-width="1.5" />
+          <path d="M92 48h18a6 6 0 0 1 0 12h-18zM96 60v8h12v-8" /><path class="hl" d="M84 46a12 12 0 0 0 0 16M76 40a22 22 0 0 0 0 28" />
+        </svg>
+        <div class="sk-txt"><h3>Knock on the wall</h3><p>Knock with a knuckle as you move along. A hollow, drum-like sound means a stud wall (drywall, plasterboard or lath). A dull, solid sound everywhere means brick, block or concrete.</p><p class="sk-tip">On a hollow wall the sound goes solid every 400 mm (16 in) or so: those are the studs.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A drill making a small test hole, with a little pile of dust on a piece of paper below" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M30 10v90" /><path d="M30 50h20" /><path d="M50 40h70v22h-70zM120 46h20v10h-20zM80 62l-6 30h20l6-30" />
+          <path d="M20 100h60" /><path class="hl" d="M36 96l6-8 6 8 6-6 6 6z" fill="currentColor" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Look at the dust</h3><p>In a spot you have already checked for cables, drill a tiny 3 mm test hole with tape-stuck paper below it. White dust then nothing means hollow board. Red or orange means brick. Fine grey means concrete or dense block. Wood shavings mean you hit a stud.</p><p class="sk-tip">Choose a spot that a picture or shelf will hide later.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A stud finder on a wall with a light showing at the edge of a stud, and stud lines 400 mm apart" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 10h180M10 100h180" /><path d="M40 10v90M100 10v90M160 10v90" stroke-dasharray="4 5" stroke-width="1.5" />
+          <path d="M40 60h60M44 56l-4 4 4 4M96 56l4 4-4 4" stroke-width="1.5" /><text x="70" y="78" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">400 mm</text>
+          <rect class="hl" x="82" y="18" width="36" height="28" rx="6" /><circle class="hl" cx="100" cy="28" r="3" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Find the studs</h3><p>Slide a stud finder slowly across the wall and mark each edge it finds. Studs are usually 400 mm (16 in) apart, sometimes 600 mm (24 in). A small magnet sticks to the screws or nails that hold the board to each stud.</p><p class="sk-tip">Nail heads in the skirting board (baseboard) usually line up with the studs.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A light switch with dashed cable lines running straight up to the ceiling and straight across" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 8h180" /><rect x="88" y="50" width="24" height="32" rx="3" /><path d="M100 60v12" />
+          <path class="hl" d="M100 48V10M86 66H20M114 66h70" stroke-dasharray="6 5" />
+        </svg>
+        <div class="sk-txt"><h3>Picture the cables</h3><p>Cables usually run straight up or down from switches, sockets and lights, and sometimes straight across between them. Treat those lines as no-drill zones, all the way to the ceiling and floor.</p><p class="sk-tip">In the UK, cables should be within 150 mm of the ceiling or a corner, or in line with a switch or socket ("safe zones"). North American codes differ. Either way, cables can be anywhere in old or DIY wiring: check your local rules and always use a detector.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A radiator with dashed pipe lines running down to the floor and a sink with pipes below it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><rect x="20" y="40" width="80" height="40" rx="4" /><path d="M36 40v40M52 40v40M68 40v40M84 40v40" stroke-width="1.5" />
+          <path d="M130 50h50l-6 14h-38z" /><path class="hl" d="M28 80v20M92 80v20M155 64v36M145 64v36" stroke-dasharray="5 4" />
+        </svg>
+        <div class="sk-txt"><h3>Picture the pipes</h3><p>Water and heating pipes run to radiators, sinks, baths, toilets and boilers, often straight up from the floor or down from the ceiling. Keep clear of the lines above and below them, and of any wall behind a kitchen or bathroom.</p><p class="sk-tip">Gas pipes run to the cooker, boiler or fire. Never drill near them; for any gas pipe work call a registered gas engineer.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A cable and pipe detector held against the wall, showing a warning sign over a hidden cable" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 10h180M10 100h180" /><path d="M140 10v90" stroke-dasharray="6 5" stroke-width="1.5" />
+          <rect x="118" y="34" width="44" height="40" rx="6" /><path class="hl" d="M140 42l10 18h-20z" /><path class="hl" d="M140 49v5" /><path d="M140 74v14" />
+          <path d="M40 50l14 14M54 50l-14 14" />
+        </svg>
+        <div class="sk-txt"><h3>Scan, then mark the spot</h3><p>Run a cable and pipe detector over the spot and about 30 cm (12 in) around it, both up and down and side to side. When it is clear, mark the hole with a small pencil cross on masking tape.</p><p class="sk-tip">Detectors find live cables better than dead ones. They can miss cables deep in a wall, so the "no drill" lines still apply.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A drill bit with a tape flag marking how deep to drill, going into the wall" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M150 10v90M150 10h40M150 100h40" /><path d="M20 45h60v20h-60zM80 52h70" /><path class="hl" d="M118 52v-16h14v16" fill="currentColor" stroke-width="1.5" />
+          <path d="M80 80h40M80 76v8M120 76v8" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Drill only as deep as you need</h3><p>Wrap tape round the bit to show the depth: the plug's length plus a few millimetres. In a hollow wall, stop as soon as the bit goes through the board. If the bit suddenly hits something hard or soft and odd, stop and check.</p><p class="sk-tip">Hit a cable or pipe? Stop, switch off at the main switch or stop tap, and call an electrician or plumber.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label wiw-label">
+    <h2>Safe to drill here?</h2>
+    <p class="ax-help">This wall is shown as a detector might see it: dashed lines are studs, cables and a pipe. Tap each numbered spot to see if it is safe, then press Test me.</p>
+    <svg viewBox="0 0 320 220" role="group" aria-label="A wall with three studs, a light switch, a socket and a radiator, with hidden cables and a pipe, and six numbered drill spots" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 18h308M6 192h308M6 206h308" /><path d="M40 18v174M140 18v174M240 18v174" stroke-dasharray="3 6" stroke-width="2" opacity=".55" />
+      <rect x="80" y="84" width="20" height="26" rx="3" /><path d="M90 92v10" />
+      <path d="M90 82V20" stroke-dasharray="7 5" stroke-width="2" opacity=".7" />
+      <rect x="276" y="160" width="28" height="20" rx="3" /><circle cx="285" cy="170" r="2" fill="currentColor" /><circle cx="295" cy="170" r="2" fill="currentColor" />
+      <path d="M290 158V20" stroke-dasharray="7 5" stroke-width="2" opacity=".7" />
+      <rect x="160" y="140" width="60" height="38" rx="4" /><path d="M175 140v38M190 140v38M205 140v38" stroke-width="1.5" />
+      <path d="M214 138V20" stroke-dasharray="10 4" stroke-width="4" opacity=".55" />
+      <text x="90" y="126" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">switch</text>
+      <text x="272" y="176" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="end">socket</text>
+      <text x="190" y="190" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">radiator</text>
+      <g data-part="above-switch" data-name="Danger: straight above the switch" data-note="the cable to the switch runs straight up to the ceiling here."><circle cx="90" cy="50" r="11" fill="var(--bg)" /><text x="90" y="54" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">1</text></g>
+      <g data-part="level-switch" data-name="Danger: level with the switch" data-note="cables can run straight across from a switch, so a spot at the same height is risky."><circle cx="62" cy="97" r="11" fill="var(--bg)" /><text x="62" y="101" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">2</text></g>
+      <g data-part="on-stud" data-name="Safe spot: on a stud, clear of cables" data-note="a screw into the stud holds well, and no cable or pipe line passes here."><circle cx="40" cy="150" r="11" fill="var(--bg)" /><text x="40" y="154" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">3</text></g>
+      <g data-part="between-studs" data-name="Safe spot: between studs, away from cables" data-note="no cable or pipe line here. The wall is hollow, so use a hollow-wall fixing."><circle cx="120" cy="60" r="11" fill="var(--bg)" /><text x="120" y="64" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">4</text></g>
+      <g data-part="on-pipe" data-name="Danger: on the radiator pipe line" data-note="the pipe to the radiator runs straight up the wall here."><circle cx="214" cy="80" r="11" fill="var(--bg)" /><text x="214" y="84" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">5</text></g>
+      <g data-part="above-socket" data-name="Danger: straight above the socket" data-note="the socket's cable runs straight up from it."><circle cx="290" cy="105" r="11" fill="var(--bg)" /><text x="290" y="109" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">6</text></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>You hit, nick or see a cable: switch off at the main switch and call an electrician. Never tape or mend it yourself.</li>
+      <li>Water appears from the hole: turn off the stop tap and call a plumber. Leave the bit or a screw in the hole for now, as it can slow the leak.</li>
+      <li>You smell gas: leave, do not use switches, and call the gas emergency number from outside.</li>
+      <li>You cannot tell what the wall is, or it is a fire-rated, party or structural wall in a flat: ask the building manager.</li>
+    </ul>
+  </div>
+  <div class="ax-card wiw-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.wiw') as HTMLElement;
+  mountSteps(root.querySelector('.wiw-steps') as HTMLElement, 'whats-in-your-wall');
+  mountLabels(root.querySelector('.wiw-label') as HTMLElement);
+  const bank = [
+    () => choice('A test hole gives red-orange dust. What is the wall?', 'Brick', ['Drywall', 'Concrete', 'A wood stud'], 'Red or orange dust comes from fired clay brick. Concrete gives grey dust, drywall white, a stud wood shavings.'),
+    () => choice('Knocking sounds hollow, then solid every 40 cm. What is it?', 'A stud wall: board on studs about 400 mm apart', ['Solid brick', 'Concrete'], 'Hollow between, solid over the studs. Studs are usually 400 mm (16 in) apart.'),
+    () => choice('Where do cables to a light switch usually run?', 'Straight up or down from it, sometimes straight across', ['Diagonally to the nearest corner', 'Anywhere, there is no pattern'], 'Cables run in straight lines from switches and sockets, which is why you never drill in line with them.'),
+    () => choice('Which spot is safest to drill?', 'Between studs, away from any line from a switch, socket or pipe', ['Just above a socket', 'Level with a light switch', 'Above a radiator pipe'], 'Spots in line with switches, sockets and pipes are where cables and pipes run.'),
+    () => choice('How can a small magnet help on a drywall wall?', 'It sticks to the screws that hold the board to the studs', ['It finds water pipes', 'It switches off cables'], 'The screws or nails go into the studs, so a line of them shows where a stud is.'),
+    () => choice('You drill and hit a cable. What do you do?', 'Stop, switch off at the main switch, call an electrician', ['Tape it up and carry on', 'Pull the drill out and fill the hole'], 'A damaged cable can give a shock or start a fire later. Only an electrician should repair it.'),
+    () => choice('What are the UK cable "safe zones"?', 'Within 150 mm of the ceiling or a corner, and in line with switches and sockets', ['The middle of every wall', 'Anywhere behind furniture'], 'They are where UK cables are allowed to run, so they are where you should not drill. Other countries have different rules.'),
+    () => choice('Does a detector make drilling completely safe?', 'No, it can miss deep or dead cables, so still avoid the danger lines', ['Yes, always', 'Only on brick'], 'Detectors help a lot, but the straight-line rule is your back-up.'),
+    () => choice('Nail heads in the skirting board usually show where...', 'the studs are', ['the water pipes run', 'the cables run'], 'Skirting (baseboard) is nailed into the studs, so the nails line up with them.'),
+  ];
+  mountQuiz(root.querySelector('.wiw-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>
