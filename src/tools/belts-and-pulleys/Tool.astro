@@ -1,0 +1,205 @@
+---
+// #L383 Belts and pulleys. How machines work, lesson 3. Maths: src/lib/sci/millwright.ts. Engine: src/lib/learn/skill.ts + quiz.ts + sim.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk lrn bnp">
+  <CourseNav id="belts-and-pulleys" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>This lesson explains the physics. It is not training to work on machines.</li>
+      <li>Never reach towards a running belt or chain. Where the belt meets the pulley (the in-running nip) it pulls fingers, sleeves and hair in faster than you can react.</li>
+      <li>Guards stay on. Belts are only looked at or touched with the machine switched off, isolated and locked out by a trained person, after it has stopped turning.</li>
+      <li>Tie back long hair; no loose sleeves, gloves, ties or jewellery near moving parts.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>Where you see them</h2>
+    <ul class="sk-kit"><li>Bicycle chain</li><li>Car engine belt</li><li>Washing machine</li><li>Pillar drill</li><li>Lawn mower</li><li>Conveyor</li><li>Fans and pumps</li></ul>
+  </div>
+  <div class="ax-card bnp-steps">
+    <h2>The big ideas</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A small pulley and a large pulley joined by a belt; the small one turns faster" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="45" cy="55" r="20" /><circle cx="145" cy="55" r="40" /><path d="M45 35L145 15M45 75L145 95" /><circle cx="45" cy="55" r="3" fill="currentColor" /><circle cx="145" cy="55" r="3" fill="currentColor" />
+          <path class="hl" d="M30 40a20 20 0 0 1 30 0M60 40l-2-6M60 40l-6 0" /><path class="hl" d="M128 30a30 30 0 0 1 20-5M148 25l-4-4M148 25l-4 4" />
+        </svg>
+        <div class="sk-txt"><h3>Same belt, different speeds</h3><p>The belt moves at one speed, so both rims do too. A small pulley must turn more times to pass the same length of belt. That gives the rule <strong>n1 × d1 = n2 × d2</strong>: speed × diameter is the same on both.</p><p class="sk-tip">Small driving big slows things down. Big driving small speeds them up.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A motor with a small pulley drives a big pulley that turns slowly with a large twisting force" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="40" width="34" height="30" /><circle cx="56" cy="55" r="12" /><circle cx="145" cy="55" r="40" /><path d="M56 43L145 15M56 67L145 95" />
+          <path class="hl" d="M145 55l26-26M171 29l-10 1M171 29l-1 10" stroke-width="4" />
+        </svg>
+        <div class="sk-txt"><h3>Slower means stronger</h3><p>Power is shared between speed and torque (twisting force). If the driven pulley turns at half the speed, it gives about twice the torque: <strong>T2 = T1 × d2 ÷ d1</strong>, less a few per cent lost to the belt bending and slipping.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two pulleys with the centre distance C marked between their centres" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="45" cy="50" r="22" /><circle cx="150" cy="50" r="34" /><path d="M45 28L150 16M45 72L150 84" />
+          <path class="hl" d="M45 100h105M45 94v12M150 94v12" stroke-width="1.5" /><text x="97" y="96" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle">C</text>
+        </svg>
+        <div class="sk-txt"><h3>How long is the belt?</h3><p>For an open belt with pulley diameters D and d and centre distance C, the length is about <strong>L ≈ 2C + π(D + d)/2 + (D − d)² ÷ 4C</strong>. Belts are sold by length, so this is how you check the size.</p><p class="sk-tip">For real numbers use the belt drive part of the <a href="/science/gear-train-calculator/">gear trains</a> tool.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The belt wraps round most of the big pulley but less of the small one; the angle of contact is marked" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="55" r="16" /><circle cx="140" cy="55" r="44" /><path d="M48 39L134 11M48 71L134 99" />
+          <path class="hl" d="M48 39a16 16 0 0 0 0 32" stroke-width="5" /><path d="M50 55L48 39M50 55L48 71" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Wrap angle and grip</h3><p>The belt grips by friction over the part of the pulley it wraps round. The small pulley has less wrap, so it slips first. Pulleys very different in size and close together give little wrap; most belt makers want at least 120°.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A belt drive with a tight side pulled straight and a slack side that sags a little" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="45" cy="55" r="22" /><circle cx="150" cy="55" r="34" /><path class="hl" d="M45 33L150 21" stroke-width="4" /><path d="M45 77Q100 96 150 89" />
+          <text x="98" y="20" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">tight</text><text x="98" y="106" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">slack</text>
+        </svg>
+        <div class="sk-txt"><h3>Belt tension</h3><p>The side being pulled by the driver is the <strong>tight side</strong>; the other is the <strong>slack side</strong>. The difference in pull is what turns the driven pulley. Too loose and the belt slips, squeals and glazes. Too tight and it overloads the shaft bearings.</p><p class="sk-tip">Makers give a tension or a deflection test for each belt.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two pulleys seen from above with a straight edge laid across both faces, showing one pulley out of line" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="30" y="30" width="16" height="50" /><rect x="150" y="34" width="16" height="50" transform="rotate(6 158 59)" /><path d="M38 40h120M38 70h120" stroke-dasharray="4 4" />
+          <path class="hl" d="M24 30v62M24 92l150 0" stroke-width="1.5" /><path class="hl" d="M30 98h140" stroke-width="4" />
+        </svg>
+        <div class="sk-txt"><h3>Alignment</h3><p>Both pulleys must sit in one plane and their shafts must be parallel. A straight edge (or a laser tool) laid across both faces should touch at all four points. Out of line, the belt rubs on one side, wears fast, gets hot and can jump off.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A chain over two toothed sprockets, like a bicycle" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="55" r="34" /><circle cx="155" cy="55" r="16" /><path d="M50 21L155 39M50 89L155 71" stroke-dasharray="5 3" stroke-width="4" />
+          <g class="hl"><path d="M50 15v6M84 55h6M50 95v-6M16 55h-6M74 31l4-4M74 79l4 4M26 79l-4 4M26 31l-4-4" /></g>
+        </svg>
+        <div class="sk-txt"><h3>Chains and sprockets</h3><p>A chain does the same job with teeth, so it cannot slip: <strong>n1 × z1 = n2 × z2</strong>, where z is the number of teeth. Chains carry big forces at low speed but need oil and wear, which stretches them.</p><p class="sk-tip">A bike in low gear: a small front ring and big back sprocket, so the wheel turns slowly with more torque.</p></div>
+      </li>
+    </ol>
+  </div>
+
+  <div class="ax-card bnp-sim">
+    <h2>Try it: a belt drive</h2>
+    <canvas class="lrn-cv bnp-cv" aria-label="Two pulleys joined by a belt, drawn to scale and turning at the right speeds"></canvas>
+    <div class="sk-bar" style="margin-top:6px"><button type="button" class="sk-btn bnp-play">Pause</button><span class="sk-small" style="margin:0">Shown slowed down: the motor pulley turns once a second at 1,450 rpm.</span></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span>Motor pulley d1: <b class="bnp-d1v"></b></span><input class="bnp-d1" type="range" min="50" max="300" step="5" value="100" /></label>
+      <label class="lrn-sl"><span>Driven pulley d2: <b class="bnp-d2v"></b></span><input class="bnp-d2" type="range" min="50" max="400" step="5" value="200" /></label>
+      <label class="lrn-sl"><span>Centre distance C: <b class="bnp-cv-v"></b></span><input class="bnp-c" type="range" min="100" max="1200" step="10" value="500" /></label>
+      <label class="lrn-sl"><span>Motor speed: <b class="bnp-nv"></b></span><input class="bnp-n" type="range" min="500" max="3000" step="50" value="1450" /></label>
+      <label class="lrn-sl"><span>Motor power: <b class="bnp-pv"></b></span><input class="bnp-p" type="range" min="0.25" max="7.5" step="0.25" value="1.5" /></label>
+    </div>
+    <p class="ax-big bnp-out" aria-live="polite"></p>
+    <table class="bnp-tab"><tbody class="bnp-rows"></tbody></table>
+    <p class="ax-help bnp-warn" hidden></p>
+    <ul class="lrn-try" style="margin-top:8px"><li>Make both pulleys the same size. What happens to the speed and the torque?</li><li>Make d2 = 400 mm and d1 = 100 mm, then slide the pulleys close together. Watch the wrap angle on the small pulley drop.</li><li>Double the motor pulley. Why does the belt speed double too?</li></ul>
+  </div>
+
+  <div class="ax-card sk-pro">
+    <h2>Leave it to a qualified millwright or technician when</h2>
+    <ul>
+      <li>Any belt, chain or guard on a powered machine needs adjusting, changing or removing. That needs isolation, lock-out and training.</li>
+      <li>A belt squeals, smokes, cracks, flaps or keeps coming off, or a chain is stretched, stiff or noisy.</li>
+      <li>Pulleys need aligning or a belt needs tensioning to the maker's figure, often with a laser tool or a tension gauge.</li>
+      <li>You want to change the pulley sizes to make a machine run faster: parts like blades, fans and wheels have speed limits.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card bnp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .bnp .bnp-tab { border-collapse: collapse; margin-top: 8px; font-size: 14.5px; width: 100%; }
+  .bnp .bnp-tab td { padding: 3px 12px 3px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .bnp .bnp-tab td:first-child { color: var(--muted); }
+  .bnp .bnp-warn { color: var(--warn); font-weight: 600; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { mountSteps, choice, some } from '../../lib/learn/skill';
+  import { fitCanvas, pagePalette, loop } from '../../lib/learn/sim';
+  import { beltDrive, beltLength, drivenRpm, drivenTorque, minCentre } from '../../lib/sci/millwright';
+  const root = document.querySelector('.bnp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  mountSteps($('.bnp-steps'), 'belts-and-pulleys');
+
+  const cv = $<HTMLCanvasElement>('.bnp-cv'), d1i = $<HTMLInputElement>('.bnp-d1'), d2i = $<HTMLInputElement>('.bnp-d2'), ci = $<HTMLInputElement>('.bnp-c');
+  const ni = $<HTMLInputElement>('.bnp-n'), pi = $<HTMLInputElement>('.bnp-p'), out = $('.bnp-out'), rows = $('.bnp-rows'), warn = $('.bnp-warn');
+  let th1 = 0, th2 = 0, belt = 0;
+  const val = () => {
+    const d1 = +d1i.value, d2 = +d2i.value, n1 = +ni.value, P = +pi.value;
+    const cmin = Math.ceil((minCentre(d1, d2) + 20) / 10) * 10; ci.min = String(cmin);
+    if (+ci.value < cmin) ci.value = String(cmin);
+    return { d1, d2, C: +ci.value, n1, P, cmin };
+  };
+  const update = () => {
+    const { d1, d2, C, n1, P } = val(), b = beltDrive(d1, d2, C, n1, P * 1000);
+    $('.bnp-d1v').textContent = `${d1} mm`; $('.bnp-d2v').textContent = `${d2} mm`; $('.bnp-cv-v').textContent = `${C} mm`;
+    $('.bnp-nv').textContent = `${n1.toLocaleString('en')} rpm`; $('.bnp-pv').textContent = `${P} kW`;
+    Object.assign(out.dataset, { n2: String(b.n2), t2: String(b.t2), len: String(b.L), wrap: String(b.wrap) });
+    out.textContent = `Driven pulley: ${r(b.n2)} rpm`;
+    const data: [string, string][] = [
+      ['Speed ratio (d2 ÷ d1)', `${r(b.ratio)} : 1 (${b.ratio > 1 ? 'slower' : b.ratio < 1 ? 'faster' : 'same speed'})`],
+      ['Motor torque T1 = P ÷ ω', `${r(b.t1)} N·m`],
+      ['Driven torque T2 = T1 × d2 ÷ d1', `${r(b.t2)} N·m (no losses)`],
+      ['Belt speed v = π d1 n1 ÷ 60', `${r(b.v)} m/s`],
+      ['Belt length (formula)', `${r(b.L, 4)} mm`],
+      ['Belt length (exact)', `${r(b.Lexact, 4)} mm`],
+      ['Wrap on the small pulley', `${r(b.wrap)}°`],
+    ];
+    rows.replaceChildren(...data.map(([k, v]) => { const tr = document.createElement('tr'), a = document.createElement('td'), c = document.createElement('td'); a.textContent = k; c.textContent = v; tr.append(a, c); return tr; }));
+    warn.hidden = b.wrap >= 120 && b.v <= 30;
+    warn.textContent = b.wrap < 120 ? `Only ${r(b.wrap)}° of wrap: the belt is likely to slip. Move the pulleys apart or add an idler.` : `Belt speed ${r(b.v)} m/s is above about 30 m/s, faster than most ordinary V-belts are made for.`;
+    anim.redraw();
+  };
+  const draw = (dt: number) => {
+    const { d1, d2, C, n1 } = val(), n2 = drivenRpm(n1, d1, d2);
+    const { ctx, W, H } = fitCanvas(cv, 210), pal = pagePalette();
+    const s = Math.min((W - 24) / (C + d1 / 2 + d2 / 2), (H - 20) / Math.max(d1, d2));
+    const r1 = (d1 / 2) * s, r2 = (d2 / 2) * s, cy = H / 2, x1 = 12 + r1, x2 = x1 + C * s, dist = x2 - x1;
+    const w1 = (2 * Math.PI * n1) / 1450; th1 += w1 * dt; th2 += ((2 * Math.PI * n2) / 1450) * dt; belt += w1 * r1 * dt;
+    ctx.clearRect(0, 0, W, H); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const phi = Math.acos(Math.max(-1, Math.min(1, (r1 - r2) / dist)));
+    // belt
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.setLineDash([10, 6]); ctx.lineDashOffset = -belt;
+    ctx.beginPath();
+    ctx.moveTo(x1 + r1 * Math.cos(phi), cy - r1 * Math.sin(phi)); ctx.lineTo(x2 + r2 * Math.cos(phi), cy - r2 * Math.sin(phi));
+    ctx.arc(x2, cy, r2, -phi, phi); ctx.lineTo(x1 + r1 * Math.cos(phi), cy + r1 * Math.sin(phi));
+    ctx.arc(x1, cy, r1, phi, 2 * Math.PI - phi); ctx.stroke(); ctx.setLineDash([]);
+    // pulleys
+    const pulley = (x: number, rr: number, th: number, col: string) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, cy, Math.max(3, rr - 4), 0, 7); ctx.stroke();
+      for (let k = 0; k < 4; k++) { const a = th + (k * Math.PI) / 2; ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x + (rr - 6) * Math.cos(a), cy + (rr - 6) * Math.sin(a)); ctx.stroke(); }
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, cy, 3, 0, 7); ctx.fill();
+    };
+    pulley(x1, r1, th1, pal.accent); pulley(x2, r2, th2, pal.accent2);
+    ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.accent;
+    ctx.fillText('motor', x1, Math.min(H - 4, cy + r1 + 14)); ctx.fillStyle = pal.accent2; ctx.fillText('driven', x2, Math.min(H - 4, cy + r2 + 14));
+  };
+  const anim = loop(draw, $<HTMLButtonElement>('.bnp-play'));
+  for (const i of [d1i, d2i, ci, ni, pi]) i.addEventListener('input', update);
+  addEventListener('resize', update);
+  update();
+
+  const bank = [
+    () => choice('A small pulley drives a big one. The big one turns...', 'Slower, with more torque', ['Faster, with more torque', 'Slower, with less torque'], 'n1 d1 = n2 d2, so the bigger pulley turns slower. Power is about the same, so torque goes up.'),
+    () => choice('Which pulley slips first if the belt is loose?', 'The smaller one', ['The bigger one', 'Both at once'], 'It has the smaller wrap angle, so less belt is gripping it.'),
+    () => choice('What is the usual least wrap angle belt makers want on the small pulley?', 'About 120°', ['About 30°', 'Exactly 360°'], 'Below about 120° there is too little belt in contact and it slips.'),
+    () => choice('What does a straight edge across both pulley faces check?', 'That the pulleys are in line', ['The belt tension', 'The motor speed'], 'It should touch both faces at all four points. A gap means one pulley is offset or twisted.'),
+    () => choice('A belt is much too tight. What suffers?', 'The shaft bearings and the belt', ['Nothing, tighter is better', 'Only the paint'], 'Extra tension pulls the shafts sideways, loading the bearings and stretching the belt.'),
+    () => choice('Why can a chain not slip like a belt?', 'Its links mesh with the sprocket teeth', ['It is made of metal', 'It is oiled'], 'The teeth lock it to the sprocket, so n1 z1 = n2 z2 exactly.'),
+    () => choice('A belt starts squealing. What is the safe first step?', 'Report it and leave it to a trained person', ['Hold a rag on it while it runs', 'Spray oil on the moving belt'], 'Never touch a running belt. Adjusting it needs the machine stopped, isolated and locked out.'),
+    () => choice('Where on a belt drive is the in-running nip?', 'Where the belt runs onto a pulley', ['In the middle of the slack side', 'At the motor switch'], 'The belt drags anything there into the gap. That is why guards cover it.'),
+    () => choice('A bike chain runs on a 40-tooth front ring and a 20-tooth back sprocket. The back wheel turns...', 'Twice for each turn of the pedals', ['Half a turn', 'Once'], 'n2 = n1 × z1 ÷ z2 = 1 × 40 ÷ 20 = 2.'),
+  ];
+  const nums = () => {
+    const n1 = pick(900, 2900, 100), d1 = pick(80, 150, 10), d2 = pick(160, 320, 20);
+    const D = pick(150, 300, 50), d = pick(75, 125, 25), C = pick(400, 800, 100), T1 = pick(5, 20);
+    return [
+      { q: `A motor at ${n1} rpm has a ${d1} mm pulley. It drives a ${d2} mm pulley. What speed does the driven pulley turn at?`, ans: drivenRpm(n1, d1, d2), unit: 'rpm', work: `n2 = n1 × d1 ÷ d2 = ${n1} × ${d1} ÷ ${d2} = ${r(drivenRpm(n1, d1, d2))} rpm` },
+      { q: `Pulleys of ${D} mm and ${d} mm are ${C} mm apart. About how long is the open belt? (L ≈ 2C + π(D + d)/2 + (D − d)²/4C)`, ans: beltLength(D, d, C), unit: 'mm', work: `L ≈ 2 × ${C} + π × ${D + d} ÷ 2 + ${D - d}² ÷ (4 × ${C}) = ${2 * C} + ${r(Math.PI * (D + d) / 2, 4)} + ${r((D - d) ** 2 / (4 * C))} = ${r(beltLength(D, d, C), 4)} mm` },
+      { q: `The motor gives ${T1} N·m on a ${d1} mm pulley driving a ${d2} mm pulley. Ignoring losses, what torque does the driven shaft get?`, ans: drivenTorque(T1, d1, d2), unit: 'N·m', work: `T2 = T1 × d2 ÷ d1 = ${T1} × ${d2} ÷ ${d1} = ${r(drivenTorque(T1, d1, d2))} N·m` },
+    ];
+  };
+  mountQuiz($('.bnp-quiz'), () => [...some(bank, 4).map((f) => f()), ...some(nums(), 2)]);
+</script>

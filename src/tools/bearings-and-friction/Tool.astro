@@ -1,0 +1,213 @@
+---
+// #L384 Bearings and friction. How machines work, lesson 4. Maths: src/lib/sci/millwright.ts. Engine: src/lib/learn/skill.ts + quiz.ts + sim.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk lrn bnf">
+  <CourseNav id="bearings-and-friction" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>This lesson explains the physics. It is not training to work on machines.</li>
+      <li>Never touch a turning shaft, coupling or flywheel. A flywheel stores energy and keeps spinning long after the power is off.</li>
+      <li>Bearings on machines are checked or changed only with the machine stopped, isolated and locked out by a trained person.</li>
+      <li>A failing bearing can be hot enough to burn. Do not grab a housing to "feel" it.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>Where you see them</h2>
+    <ul class="sk-kit"><li>Skateboard wheels</li><li>Bicycle hubs</li><li>Fidget spinner</li><li>Electric fan</li><li>Washing machine drum</li><li>Car wheel hubs</li><li>Door hinges (plain)</li></ul>
+  </div>
+  <div class="ax-card bnf-steps">
+    <h2>The big ideas</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A box being dragged along the floor next to the same box on rollers, which moves easily" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 92h180" /><rect x="20" y="52" width="50" height="40" /><path d="M70 72h22M86 66l6 6-6 6" />
+          <rect x="120" y="44" width="50" height="40" /><circle class="hl" cx="130" cy="88" r="4" /><circle class="hl" cx="145" cy="88" r="4" /><circle class="hl" cx="160" cy="88" r="4" /><path d="M170 64h12M178 60l4 4-4 4" />
+        </svg>
+        <div class="sk-txt"><h3>Sliding versus rolling</h3><p>Friction is the force that resists one surface moving over another. Sliding friction is large; rolling friction is much smaller, because a rolling ball or roller barely rubs. That is the whole idea of a bearing: let a shaft turn with as little friction as possible.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A shaft turning inside a plain bronze bush with a thin film of oil around it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="100" cy="55" r="44" /><circle cx="100" cy="55" r="32" /><circle class="hl" cx="100" cy="57" r="28" stroke-dasharray="3 3" /><circle cx="100" cy="58" r="24" fill="currentColor" fill-opacity=".15" />
+          <path d="M100 58l14-14" />
+        </svg>
+        <div class="sk-txt"><h3>Plain bearings (bushes)</h3><p>A plain bearing is a sleeve, often bronze or plastic, that the shaft turns inside. Dry, it rubs and wears. With oil or grease a thin film separates the metal parts; at speed the oil film can lift the shaft completely, so friction drops a long way.</p><p class="sk-tip">Simple, quiet, cheap and good with shock loads: door hinges, engine crankshafts, pumps.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A ball bearing and a roller bearing side by side: balls touch at points, rollers touch along lines" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="52" cy="55" r="42" /><circle cx="52" cy="55" r="18" /><g class="hl"><circle cx="52" cy="25" r="8" /><circle cx="82" cy="55" r="8" /><circle cx="52" cy="85" r="8" /><circle cx="22" cy="55" r="8" /></g>
+          <circle cx="148" cy="55" r="42" /><circle cx="148" cy="55" r="18" /><g class="hl"><rect x="141" y="19" width="14" height="14" /><rect x="171" y="48" width="14" height="14" /><rect x="141" y="77" width="14" height="14" /><rect x="111" y="48" width="14" height="14" /></g>
+        </svg>
+        <div class="sk-txt"><h3>Ball and roller bearings</h3><p>Rolling bearings have an inner ring on the shaft, an outer ring in the housing, and balls or rollers between them held apart by a cage. Balls touch at tiny points: low friction, high speeds. Rollers touch along lines: they carry heavier loads.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two rough surfaces magnified, kept apart by a layer of oil" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 30l10 8 10-6 10 9 10-7 10 8 10-6 10 9 10-7 10 8 10-6 10 9 10-7 10 8 10-6 10 9 10-7 10 8 10-6" /><path d="M10 80l10-8 10 6 10-9 10 7 10-8 10 6 10-9 10 7 10-8 10 6 10-9 10 7 10-8 10 6 10-9 10 7 10-8 10 6" />
+          <path class="hl" d="M10 58h180" stroke-width="10" stroke-opacity=".35" />
+        </svg>
+        <div class="sk-txt"><h3>What lubrication does</h3><p>Oil or grease keeps the surfaces apart so they do not touch, carries heat away, and keeps out dirt and water. The amount matters: too little and parts rub; too much grease churns, gets hot and can push seals out.</p><p class="sk-tip">Always the grease type and amount the maker gives.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A bearing with grit on its tracks, a bent shaft line and a heavy weight: the main causes of failure" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="60" cy="55" r="40" /><circle cx="60" cy="55" r="16" /><g class="hl" fill="currentColor"><circle cx="40" cy="30" r="2" /><circle cx="84" cy="44" r="2" /><circle cx="78" cy="78" r="2" /><circle cx="36" cy="74" r="2" /></g>
+          <path d="M120 40l64 12" stroke-dasharray="5 4" /><path class="hl" d="M120 55h64" /><rect x="138" y="70" width="34" height="26" /><path d="M155 62v8" />
+        </svg>
+        <div class="sk-txt"><h3>Why bearings fail</h3><p>Most bearings are killed, not worn out: by <strong>dirt or water</strong> getting in, the <strong>wrong amount of grease</strong>, <strong>misalignment</strong> (a shaft or pulley out of line), <strong>overload</strong> (such as an over-tight belt) and rough fitting (hammering on the wrong ring).</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A bearing housing giving off sound waves and heat lines as warning signs" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="60" y="40" width="80" height="56" rx="6" /><circle cx="100" cy="68" r="16" /><path d="M10 68h50M140 68h50" stroke-width="6" />
+          <path class="hl" d="M150 30a20 20 0 0 1 0 -20M162 34a32 32 0 0 1 0 -28M84 30q4-8 0-16t0-16M100 30q4-8 0-16M116 30q4-8 0-16" />
+        </svg>
+        <div class="sk-txt"><h3>Warning signs</h3><p>A bearing on its way out usually gets <strong>noisier</strong> (rumble, grinding, squeal), <strong>hotter</strong> and <strong>shakier</strong> long before it seizes. Maintenance teams listen with instruments, check temperatures and measure vibration so they can plan a change before it breaks.</p><p class="sk-tip">Makers rate rolling bearings by L10 life: the running time 90 % of them reach. Try the <a href="/science/shaft-bearing-life/">bearing life</a> tool.</p></div>
+      </li>
+    </ol>
+  </div>
+
+  <div class="ax-card bnf-sim">
+    <h2>Try it: spin a flywheel and let it coast</h2>
+    <p class="ax-help">A 40 cm steel disc on a 25 mm shaft, held by two bearings. Pick a bearing, press Spin, and watch how long it coasts. Only bearing friction slows it here (no air drag), with friction torque T = μ × F × r.</p>
+    <div class="ax-seg bnf-type" role="group" aria-label="Bearing">
+      <button type="button" data-b="dry" aria-pressed="true">Dry bush</button>
+      <button type="button" data-b="oiled" aria-pressed="false">Oiled bush</button>
+      <button type="button" data-b="ball" aria-pressed="false">Ball</button>
+      <button type="button" data-b="roller" aria-pressed="false">Roller</button>
+    </div>
+    <canvas class="lrn-cv bnf-cv" aria-label="A flywheel turning on its shaft; the bearing in the middle turns red as it makes heat" style="margin-top:10px"></canvas>
+    <div class="sk-bar" style="margin-top:6px"><button type="button" class="sk-btn bnf-spin">Spin and let go</button><button type="button" class="sk-btn bnf-play">Pause</button><span class="sk-small bnf-clock" style="margin:0"></span></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span>Start speed: <b class="bnf-nv"></b></span><input class="bnf-n" type="range" min="200" max="3000" step="100" value="1000" /></label>
+      <label class="lrn-sl"><span>Flywheel mass: <b class="bnf-mv"></b></span><input class="bnf-m" type="range" min="5" max="50" step="5" value="20" /></label>
+      <label class="lrn-sl"><span>Extra side load (belt pull): <b class="bnf-fv"></b></span><input class="bnf-f" type="range" min="0" max="2000" step="100" value="0" /></label>
+    </div>
+    <p class="ax-big bnf-out" aria-live="polite"></p>
+    <p class="lrn-eq bnf-eq"></p>
+    <table class="bnf-tab"><thead><tr><th>Bearing</th><th>μ</th><th>Coasts for</th><th>Heat at start</th></tr></thead><tbody class="bnf-rows"></tbody></table>
+    <ul class="lrn-try" style="margin-top:8px"><li>Compare a dry bush with a ball bearing. How many times longer does the ball bearing coast?</li><li>Add 2,000 N of belt pull. Why does every bearing stop sooner and get hotter? (This is what an over-tight belt does.)</li><li>Double the start speed. The coast time doubles, but the heat made at the start doubles too.</li></ul>
+  </div>
+
+  <div class="ax-card sk-label bnf-label">
+    <h2>Name the parts of a ball bearing</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="A ball bearing seen face on, with the seal cut away on the right to show the balls and cage" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="outer" data-name="Outer race (outer ring)" data-note="sits still in the housing. The balls roll round its inside track."><circle cx="160" cy="100" r="86" stroke-width="14" pointer-events="visibleStroke" /></g>
+      <g data-part="seal" data-name="Seal" data-note="a rubber or metal ring that keeps grease in and dirt and water out. Cut away on the right of this drawing."><path d="M160 22a78 78 0 0 0 0 156v-28a50 50 0 0 1 0-100z" fill="currentColor" fill-opacity=".18" /></g>
+      <g data-part="cage" data-name="Cage" data-note="keeps the balls evenly spaced so they do not rub on each other."><path d="M160 36a64 64 0 0 1 0 128" stroke-width="5" stroke-dasharray="6 4" /></g>
+      <g data-part="balls" data-name="Balls" data-note="roll between the two races, so the shaft turns with rolling friction instead of sliding."><circle cx="176.6" cy="38.2" r="10" /><circle cx="209.4" cy="58.9" r="10" /><circle cx="224" cy="100" r="10" /><circle cx="209.4" cy="141.1" r="10" /><circle cx="176.6" cy="161.8" r="10" /></g>
+      <g data-part="inner" data-name="Inner race (inner ring)" data-note="fits tightly on the shaft and turns with it."><circle cx="160" cy="100" r="42" stroke-width="12" pointer-events="visibleStroke" /></g>
+      <g data-part="shaft" data-name="Shaft" data-note="the turning part the bearing supports."><circle cx="160" cy="100" r="26" fill="currentColor" fill-opacity=".1" stroke-width="2" /></g>
+    </svg>
+  </div>
+
+  <div class="ax-card sk-pro">
+    <h2>Leave it to a qualified millwright or technician when</h2>
+    <ul>
+      <li>A bearing on a machine is noisy, hot, shaking or leaking grease: report it, do not keep running it.</li>
+      <li>A bearing needs greasing, changing or fitting. Wrong grease, too much grease or hammering it on can wreck a new bearing within hours.</li>
+      <li>Shafts, couplings or pulleys need aligning, or a machine needs vibration or temperature checks.</li>
+      <li>Anything on a running machine, or any guard has to come off.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card bnf-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .bnf .bnf-tab { border-collapse: collapse; margin-top: 8px; font-size: 14px; width: 100%; }
+  .bnf .bnf-tab th { text-align: left; font-weight: 600; color: var(--muted); padding: 3px 8px 3px 0; border-bottom: 1px solid var(--line); }
+  .bnf .bnf-tab td { padding: 3px 8px 3px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .bnf .bnf-tab tr.is-on td { font-weight: 700; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, choice, some } from '../../lib/learn/skill';
+  import { fitCanvas, pagePalette, loop } from '../../lib/learn/sim';
+  import { BEARINGS, spinDown, speedAt, angleAt, frictionTorque, discInertia, rpmToRad, type BearingId } from '../../lib/sci/millwright';
+  const root = document.querySelector('.bnf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  mountSteps($('.bnf-steps'), 'bearings-and-friction');
+  mountLabels($('.bnf-label'));
+
+  const R = 0.2, rs = 0.0125; // flywheel radius and shaft radius, m
+  const cv = $<HTMLCanvasElement>('.bnf-cv'), ni = $<HTMLInputElement>('.bnf-n'), mi = $<HTMLInputElement>('.bnf-m'), fi = $<HTMLInputElement>('.bnf-f');
+  const out = $('.bnf-out'), eq = $('.bnf-eq'), clock = $('.bnf-clock'), rows = $('.bnf-rows');
+  let type: BearingId = 'dry', t = -1, warp = 1;
+  const fmt = (s: number) => s < 120 ? `${r(s)} s` : s < 7200 ? `${r(s / 60)} min` : `${r(s / 3600)} h`;
+  const now = () => spinDown(BEARINGS[type].mu, +mi.value, R, rs, +ni.value, +fi.value);
+  const update = () => {
+    $('.bnf-nv').textContent = `${(+ni.value).toLocaleString('en')} rpm`; $('.bnf-mv').textContent = `${mi.value} kg`; $('.bnf-fv').textContent = `${(+fi.value).toLocaleString('en')} N`;
+    root.querySelectorAll<HTMLButtonElement>('.bnf-type button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.b === type)));
+    const s = now(); const F = +mi.value * 9.8 + +fi.value;
+    Object.assign(out.dataset, { time: String(s.time), torque: String(s.T), heat: String(s.heatStart) });
+    out.textContent = `${BEARINGS[type].name}: coasts for ${fmt(s.time)}`;
+    eq.textContent = `Friction torque T = μ F r = ${BEARINGS[type].mu} × ${r(F)} N × ${rs} m = ${r(s.T)} N·m. Flywheel I = ½ m R² = ${r(s.I)} kg·m². Slows by α = T ÷ I = ${r(s.alpha)} rad/s², so it stops after ω ÷ α = ${r(s.w0)} ÷ ${r(s.alpha)} = ${fmt(s.time)}. All ${r(s.energy)} J of spin energy ends up as heat in the bearings.`;
+    rows.replaceChildren(...(Object.keys(BEARINGS) as BearingId[]).map((k) => {
+      const x = spinDown(BEARINGS[k].mu, +mi.value, R, rs, +ni.value, +fi.value), tr = document.createElement('tr');
+      tr.className = k === type ? 'is-on' : '';
+      for (const v of [BEARINGS[k].name, String(BEARINGS[k].mu), fmt(x.time), `${r(x.heatStart)} W`]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); }
+      return tr;
+    }));
+    t = -1; clock.textContent = 'Press Spin to start.'; anim.redraw();
+  };
+  const draw = (dt: number) => {
+    const s = now(); const { ctx, W, H } = fitCanvas(cv, 200), pal = pagePalette();
+    if (t >= 0) t += dt * warp;
+    const rpm = t < 0 ? 0 : speedAt(s, t), ang = t < 0 ? 0 : angleAt(s, t), heat = t < 0 ? 0 : frictionTorque(BEARINGS[type].mu, +mi.value * 9.8 + +fi.value, rs) * rpmToRad(rpm);
+    // the drawn wheel turns at the real speed slowed down 30×, so fast and slow are both visible
+    const shown = ang / 30;
+    ctx.clearRect(0, 0, W, H);
+    const cx = Math.min(W / 2, 110), cy = H / 2, rad = 80;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7); ctx.stroke();
+    ctx.lineWidth = 2; for (let k = 0; k < 6; k++) { const a = shown + (k * Math.PI) / 3; ctx.beginPath(); ctx.moveTo(cx + 22 * Math.cos(a), cy + 22 * Math.sin(a)); ctx.lineTo(cx + (rad - 4) * Math.cos(a), cy + (rad - 4) * Math.sin(a)); ctx.stroke(); }
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(cx + (rad - 12) * Math.cos(shown), cy + (rad - 12) * Math.sin(shown), 6, 0, 7); ctx.fill();
+    // bearing: glows with the heat it makes (full colour at 50 W)
+    ctx.globalAlpha = Math.min(1, heat / 50); ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(cx, cy, 18, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, cy, 18, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, 8, 0, 7); ctx.stroke();
+    // read-outs
+    const tx = cx + rad + 18; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 15px system-ui,sans-serif';
+    if (tx < W - 90) {
+      ctx.fillText(`${Math.round(rpm).toLocaleString('en')} rpm`, tx, cy - 22);
+      ctx.font = '13px system-ui,sans-serif'; ctx.fillStyle = pal.muted;
+      ctx.fillText(`heat now ${r(heat, 2)} W`, tx, cy + 2); ctx.fillText(t < 0 ? 'not spinning' : `t = ${fmt(Math.min(t, s.time))}`, tx, cy + 22);
+    } else { ctx.font = '600 13px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${Math.round(rpm).toLocaleString('en')} rpm`, cx, 16); }
+    if (t >= 0) clock.textContent = rpm > 0 ? `Coasting: ${fmt(t)} so far. Time runs ${warp.toLocaleString('en')}× fast.` : `Stopped after ${fmt(s.time)}.`;
+  };
+  const anim = loop(draw, $<HTMLButtonElement>('.bnf-play'));
+  $('.bnf-spin').addEventListener('click', () => {
+    const s = now(); warp = [1, 10, 100, 1000, 10000].find((w) => s.time / w <= 15) ?? 100000; t = 0;
+    if (!anim.playing) anim.redraw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.bnf-type button').forEach((b) => b.addEventListener('click', () => { type = b.dataset.b as BearingId; update(); }));
+  for (const i of [ni, mi, fi]) i.addEventListener('input', update);
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  const bank = [
+    () => choice('Why does a ball bearing turn more easily than a dry bush?', 'Rolling friction is much smaller than sliding friction', ['Balls are lighter than bushes', 'Ball bearings have no load on them'], 'The balls roll instead of rubbing, so far less force is lost.'),
+    () => choice('Which part of a ball bearing fits on the shaft and turns with it?', 'The inner race', ['The outer race', 'The cage', 'The seal'], 'The inner ring is a tight fit on the shaft. The outer ring sits still in the housing.'),
+    () => choice('What does the cage in a ball bearing do?', 'Keeps the balls evenly spaced', ['Holds the grease in', 'Stops the shaft turning'], 'Without it the balls would bunch up and rub on each other.'),
+    () => choice('What happens if a bearing is packed with far too much grease?', 'It churns, gets hot and can push the seals out', ['It lasts for ever', 'Nothing, more is better'], 'The balls have to push through the extra grease, which makes heat. Use the amount the maker gives.'),
+    () => choice('Which is a common cause of early bearing failure?', 'Dirt or water getting in', ['Running at the rated speed', 'Using the right grease'], 'Grit dents the tracks and water rusts them. Seals and clean handling matter.'),
+    () => choice('A machine bearing is getting louder and hotter. What should you do?', 'Report it so a trained person can check it', ['Keep running it until it stops', 'Touch it to see how hot it is'], 'Noise and heat are early warnings. Machines are only checked when stopped and locked out.'),
+    () => choice('Roller bearings are chosen over ball bearings mainly for...', 'Heavier loads', ['Higher speeds', 'Lower price'], 'Rollers touch along a line, so they spread a heavy load over more metal.'),
+    () => choice('What does a bearing\'s L10 life mean?', 'The running time 90 % of those bearings will reach', ['The time every bearing lasts', 'Ten years'], 'It is a statistical rating: 1 in 10 may fail sooner.'),
+    () => choice('An over-tight belt makes the shaft bearings...', 'Work harder, get hotter and wear sooner', ['Run cooler', 'Last longer'], 'More side load F means more friction torque μFr and a shorter life.'),
+  ];
+  const nums = () => {
+    const mu = [0.15, 0.02, 0.0015][pick(0, 2)], F = pick(200, 2000, 100), rmm = pick(10, 25, 5);
+    const m = pick(10, 40, 10), Rf = [0.1, 0.2, 0.25][pick(0, 2)], rpm = pick(600, 1800, 300);
+    const I = discInertia(m, Rf), w = rpmToRad(rpm);
+    return [
+      { q: `A shaft of radius ${rmm} mm carries ${F} N in a bearing with μ = ${mu}. What is the friction torque? (T = μ F r)`, ans: frictionTorque(mu, F, rmm / 1000), unit: 'N·m', work: `T = ${mu} × ${F} × ${rmm / 1000} = ${r(frictionTorque(mu, F, rmm / 1000))} N·m` },
+      { q: `A ${m} kg disc flywheel of radius ${Rf} m spins at ${rpm} rpm. How much energy (heat, in the end) is stored in it? (I = ½ m R², E = ½ I ω²)`, ans: 0.5 * I * w * w, unit: 'J', work: `I = ½ × ${m} × ${Rf}² = ${r(I)} kg·m². ω = 2π × ${rpm} ÷ 60 = ${r(w)} rad/s. E = ½ × ${r(I)} × ${r(w)}² = ${r(0.5 * I * w * w)} J` },
+      { q: `A flywheel with I = ${r(I)} kg·m² spins at ${r(w)} rad/s. Its bearings give 0.5 N·m of friction torque. How many seconds does it coast? (t = ω ÷ (T ÷ I))`, ans: w / (0.5 / I), unit: 's', work: `α = T ÷ I = 0.5 ÷ ${r(I)} = ${r(0.5 / I)} rad/s². t = ω ÷ α = ${r(w)} ÷ ${r(0.5 / I)} = ${r(w / (0.5 / I))} s` },
+    ];
+  };
+  mountQuiz($('.bnf-quiz'), () => [...some(bank, 4).map((f) => f()), ...some(nums(), 2)]);
+</script>
