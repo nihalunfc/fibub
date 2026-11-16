@@ -19,4 +19,19 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.or .or-loan')).includes('borrow 30,000'), 'on-road-price: down payment gives the loan amount');
   await page.selectOption('.or [data-k="region"]', 'us'); await page.waitForTimeout(80);
   check((await big()).startsWith('32,100 out-the-door'), `on-road-price: US 30,000 at 7% = 32,100 (${await big()})`);
+  // more options: extras share, monthly payment
+  await page.goto(`${BASE}/vehicles/on-road-price/`); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('rt', '10');
+  // 9,11,500 - 8,00,000 = 1,11,500 = 13.9% over the ex-showroom price
+  check((await page.textContent('.or .or-extra')).includes('1,11,500') && (await page.textContent('.or .or-extra')).includes('13.9%'), `on-road-price: extras 1,11,500 = 13.9% (${await page.textContent('.or .or-extra')})`);
+  await set('down', '911500');
+  check((await page.textContent('.or .or-emi')) === '', 'on-road-price: no loan, no payment line');
+  await set('down', '111500');
+  // loan 8,00,000 at 9% over 60 months
+  check((await page.textContent('.or .or-emi')).includes('16,606') || (await page.textContent('.or .or-emi')).includes('16,607'), `on-road-price: 8,00,000 at 9% for 60 months is about 16,607 a month (${await page.textContent('.or .or-emi')})`);
+  await set('rate', '0');
+  check((await page.textContent('.or .or-emi')).includes('13,333.33') || (await page.textContent('.or .or-emi')).includes('13,333'), 'on-road-price: 0% rate = loan / months');
+  await set('months', '0');
+  check((await page.textContent('.or .or-emi')) === '', 'on-road-price: zero months shows nothing');
 };

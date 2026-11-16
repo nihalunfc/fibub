@@ -43,13 +43,31 @@ import '../../styles/astro.css';
       <label class="ax-check"><input type="checkbox" class="pf-open" /> Open or allowed then</label>
       <label class="ax-check"><input type="checkbox" class="pf-pub" /> Hide customers-only and permit parking</label>
     </div>
+    <details class="pf-more-opts">
+      <summary>More options: how long you will stay, sort, accessible and EV</summary>
+      <div class="ax-grid pf-opts">
+        <label>How long will you stay?
+          <select class="pf-stay" data-k="stay">
+            <option value="0" selected>Not sure</option><option value="30">30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="180">3 hours</option><option value="240">4 hours</option><option value="480">8 hours (a work day)</option>
+          </select>
+        </label>
+        <label>Sort by
+          <select class="pf-sort" data-k="sort"><option value="near">Nearest first</option><option value="cheap">Cheapest first</option></select>
+        </label>
+      </div>
+      <p class="ax-help">With a stay length, places whose maximum stay is shorter are hidden, and street parking with a known price shows the estimated cost for your stay, starting at the time you chose.</p>
+      <div class="ax-row pf-checks">
+        <label class="ax-check"><input type="checkbox" class="pf-dis" /> Has accessible spaces</label>
+        <label class="ax-check"><input type="checkbox" class="pf-ev" /> Has EV charging</label>
+      </div>
+    </details>
     <p class="ax-help pf-status" aria-live="polite">Your location stays on this device. The tool downloads parking data for the area around the spot from fibub itself, not from a map company.</p>
     <p class="ax-err pf-err" role="alert" hidden></p>
   </div>
 
   <div class="ax-card pf-out" hidden>
     <h2 class="pf-h">Parking nearby</h2>
-    <p class="pf-sum"></p>
+    <p class="pf-sum" aria-live="polite"></p>
     <svg class="pf-plot" viewBox="-110 -110 220 220" role="img" aria-label="Where each parking place is around the spot: up is north"></svg>
     <p class="ax-help pf-legend"><span class="pf-key pf-key-l"></span> lot or garage <span class="pf-key pf-key-s"></span> street parking <span class="pf-key pf-key-me"></span> your spot. Up is north; the rings are half and all of the distance you chose.</p>
     <ol class="pf-list"></ol>
@@ -82,6 +100,7 @@ import '../../styles/astro.css';
   .pf-sugg:empty { display: none; }
   .pf-sugg button { text-align: left; font: inherit; font-size: 15px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--fg); cursor: pointer; }
   .pf-sugg button small { color: var(--muted); margin-left: 6px; }
+  .pf-more-opts { margin-top: 10px; } .pf-more-opts summary { cursor: pointer; font-weight: 600; font-size: 15px; }
   .pf-opts { margin-top: 12px; }
   .pf-checks { flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; }
   .pf-sum { font-size: 16px; margin: 0 0 8px; }
@@ -109,7 +128,7 @@ import '../../styles/astro.css';
 </style>
 
 <script>
-  import { isOpen, inAmPm, conditionalNow, hoursWords, dayGroup } from '../../lib/parking/hours';
+  import { maxStayMinutes, stayCost, isOpen, inAmPm, conditionalNow, hoursWords, dayGroup } from '../../lib/parking/hours';
   import { cityAt, GENERAL, metres, bearing, walkMin, inOntario } from '../../lib/parking/rules';
 
   type Item = Record<string, any> & { k: 'l' | 's'; y: number; x: number; src?: string };
@@ -119,6 +138,7 @@ import '../../styles/astro.css';
   const rSel = $<HTMLSelectElement>('.pf-r'), kindSel = $<HTMLSelectElement>('.pf-kind'), whenSel = $<HTMLSelectElement>('.pf-when');
   const at = $<HTMLInputElement>('.pf-at'), atl = $<HTMLElement>('.pf-atl');
   const freeC = $<HTMLInputElement>('.pf-free'), openC = $<HTMLInputElement>('.pf-open'), pubC = $<HTMLInputElement>('.pf-pub');
+  const staySel = $<HTMLSelectElement>('.pf-stay'), sortSel = $<HTMLSelectElement>('.pf-sort'), disC = $<HTMLInputElement>('.pf-dis'), evC = $<HTMLInputElement>('.pf-ev');
   const status = $<HTMLElement>('.pf-status'), err = $<HTMLElement>('.pf-err');
   const out = $<HTMLElement>('.pf-out'), sum = $<HTMLElement>('.pf-sum'), plot = $<SVGSVGElement>('.pf-plot'), list = $<HTMLOListElement>('.pf-list'), more = $<HTMLButtonElement>('.pf-more');
   const BASE = '/parking/v1/';
@@ -245,10 +265,15 @@ import '../../styles/astro.css';
       if (m > radius) continue;
       if (kindSel.value !== 'all' && o.k !== kindSel.value) continue;
       const j = judge(o, d);
+      const stay = +staySel.value;
+      const cap = o.m && (!o.lim || inAmPm(o.lim, d) !== false) ? maxStayMinutes(o.m) : null;
+      if ((stay > 0 && cap != null && stay > cap) || (disC.checked && !(o.dis > 0)) || (evC.checked && !(o.ev > 0))) { hidden++; continue; }
+      const cost = stay > 0 && o.pay ? stayCost(o.pay, d, stay) : null;
+      if (cost != null) j.facts.unshift(cost === 0 ? `Estimated cost for ${stay / 60} h: free (outside paid hours)` : `Estimated cost for ${stay / 60} h: about $${cost.toFixed(2)} (a machine may round up; check the sign)`);
       if ((freeC.checked && j.free !== true) || (openC.checked && j.allowed === false) || (pubC.checked && (o.a === 'c' || o.a === 'p' || o.a === 'd' || o.pm))) { hidden++; continue; }
-      rows.push({ o, m, j });
+      rows.push({ o, m, j, cost: cost ?? (j.free === true ? 0 : null) });
     }
-    rows.sort((a, b) => a.m - b.m);
+    rows.sort(sortSel.value === 'cheap' ? (a, b) => (a.cost ?? 1e9) - (b.cost ?? 1e9) || a.m - b.m : (a, b) => a.m - b.m);
     const nl = rows.filter((r) => r.o.k === 'l').length, ns = rows.length - nl;
     out.hidden = false;
     $<HTMLElement>('.pf-h').textContent = `Parking near ${spot.label}`;
@@ -373,5 +398,5 @@ import '../../styles/astro.css';
     if (!atl.hidden && !at.value) { const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); at.value = d.toISOString().slice(0, 16); }
     run();
   });
-  for (const el of [rSel, kindSel, at, freeC, openC, pubC]) el.addEventListener('change', run);
+  for (const el of [rSel, kindSel, at, freeC, openC, pubC, staySel, sortSel, disC, evC]) el.addEventListener('change', run);
 </script>

@@ -11,7 +11,7 @@ ads: false
 order: 2121
 icon: percent
 works: offline
-updated: 2026-11-12
+updated: 2026-11-16
 related: [octane-guide, fuel-cost, real-mileage]
 sources:
   - "Energy per litre: petrol about 32 MJ/L, ethanol about 21 MJ/L (typical published figures; both are editable). The blend's energy is the weighted average, and mileage is taken to move in proportion. Real cars often lose less, because engines tuned for ethanol run more efficiently. Blends in use as checked November 2026; check the official source. Drawings are fibub's own."
@@ -41,6 +41,10 @@ It is a quick estimate from energy content only. Real mileage can differ, so mea
 - **Price per litre**: what each fuel costs where you fill up.
 - **Kilometres a month**: turns the cost per kilometre into a monthly figure.
 - **Energy per litre** (under the details): change petrol and ethanol energy if you have better figures.
+
+## More options
+
+Type your mileage in km/L, L/100 km, mpg (US) or mpg (UK), and the answer comes back in the same unit. A line under the result gives the break-even price: the most the new blend can cost per litre before it works out dearer per km than the old fuel. Open "More options" to mix your own blend. In the first box, type the tank size, the blend you want and the two fuels you have (for example E10 and E85) to get the litres of each. In the second, type what is already in the tank and what you are adding to see the blend you end up with. Only use blends your vehicle is approved for: E85 is for flex-fuel vehicles.
 
 ## Worked example
 

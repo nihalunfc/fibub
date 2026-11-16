@@ -14,4 +14,17 @@ export default async ({ page, check, BASE }) => {
   await page.waitForFunction(() => document.querySelectorAll('.wsf .wsf-table tbody tr').length === 6, null, { timeout: 30000 });
   check(/-62 dBm/.test(await page.textContent('.wsf .wsf-table')), 'wifi-spot-finder: a tested spot joins the table with its signal');
   check(await page.evaluate(() => localStorage.getItem('fibub-wifispots-v1') === null), 'wifi-spot-finder: nothing stored unless ticked');
+  // More options (sample spots are reloaded so the numbers are known)
+  await page.click('.wsf .wsf-sample');
+  check(await page.isHidden('.wsf .wsf-fith'), 'wifi-spot-finder: no Enough column until a use is picked');
+  await page.selectOption('.wsf [data-k="need"]', 'call');
+  const col = await page.$$eval('.wsf .wsf-table tbody tr', (rs) => rs.map((r) => r.children[7].textContent));
+  // Sorted by score: Living room (Yes) ... Basement 2.4 down / 0.8 up (No)
+  check(col[0] === 'Yes' && col[col.length - 1] === 'No', `wifi-spot-finder: Enough? column (${col.join()})`);
+  check(/far behind Living room/.test(await page.textContent('.wsf .wsf-tips')), 'wifi-spot-finder: gives a next step for the weak spot');
+  await page.click('.wsf [data-chip="Kitchen"]');
+  check((await page.inputValue('.wsf [data-k="name"]')) === 'Kitchen', 'wifi-spot-finder: quick name fills the box');
+  await page.click('.wsf .wsf-retest');
+  await page.waitForFunction(() => document.querySelectorAll('.wsf .wsf-table tbody tr').length === 5 && !document.querySelector('.wsf .wsf-test').disabled, null, { timeout: 30000 });
+  check(/Basement/.test(await page.textContent('.wsf .wsf-table')) && await page.$$eval('.wsf .wsf-table tbody tr', (r) => r.length) === 5, 'wifi-spot-finder: retest replaces the weakest spot');
 };

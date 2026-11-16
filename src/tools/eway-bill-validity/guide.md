@@ -12,7 +12,7 @@ ads: true
 order: 1802
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [trip-sheet, vehicle-routing, unit-converter]
 sources:
   - "Validity: Rule 138(10) of the CGST Rules, 2017, as amended from 1 January 2021: 1 day for every 200 km or part (normal cargo), 1 day for every 20 km or part (over-dimensional cargo); a day ends at midnight of the day after the vehicle details are entered; extension within 8 hours before or after expiry. E-way bill portal FAQ, docs.ewaybillgst.gov.in. Checked 2026-11-10, check the official source."
@@ -42,6 +42,9 @@ It also tells you whether a consignment of that value needs a bill at all. To pl
 - **Cargo**: over-dimensional cargo moves slowly, so it gets one day per 20 km.
 - **Part B date**: the first day ends at midnight of the next day, so the hours left on the day you start are a bonus.
 - **Consignment value and movement**: over 50,000 rupees needs a bill. Many states set a higher limit for goods that stay inside the state.
+
+- **Today line**: the tool compares the last valid day with today's date on your device and says whether the bill is still valid, ends today, has expired or has not started yet. Use it to check a bill that is already made.
+- **Longest distance**: the most kilometres the number of days can cover, which helps you see how much slack a bill has.
 
 ## Worked example
 

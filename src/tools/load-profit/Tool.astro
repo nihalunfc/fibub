@@ -25,6 +25,7 @@
     <p class="lp-big lp-out"></p>
     <dl class="lp-rows"></dl>
     <p class="lp-warn" role="alert"></p>
+    <p class="lp-ask" aria-live="polite"></p>
   </section>
   <p class="lp-fine">Total distance means loaded plus empty. Nothing you type leaves this page.</p>
 </div>
@@ -41,6 +42,7 @@
   .lp-big.ok { color: var(--good); } .lp-big.no { color: var(--bad); }
   .lp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .lp-rows dt { color: var(--muted); } .lp-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .lp-ask { margin: 10px 0 0; font-weight: 600; } .lp-ask:empty { display: none; }
   .lp-warn { color: var(--bad); margin: 10px 0 0; } .lp-warn:empty { display: none; }
   .lp-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
@@ -65,6 +67,7 @@
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
     $('.lp-rows').innerHTML = line('Money in (rate plus extras)', m2(r.revenue)) + line('Cost (all distance plus tolls)', m2(r.cost)) + line('Profit', m2(r.profit)) +
       line(`Total distance (${km ? 'km' : 'miles'})`, r.totalDist.toLocaleString('en-US', { maximumFractionDigits: 1 })) + line(`Rate for every total ${d}`, m2(r.ratePerTotal)) + line('Profit a day', m2(r.profitPerDay));
+    $('.lp-ask').textContent = `Counter-offer: ask for at least ${m2(r.minFlat)} flat (${m2(r.minPerLoaded)} per loaded ${d}) to meet your minimums; ${m2(r.breakEvenFlat)} just breaks even.` + (r.profit > 0 && r.ok ? ' Your offer already beats that.' : '');
     $('.lp-warn').textContent = r.ok ? '' : 'Decline because ' + r.reasons.join(' and ') + '.';
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);

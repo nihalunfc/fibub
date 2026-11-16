@@ -33,7 +33,15 @@
   </section>
   <section class="panel ff-out" hidden aria-live="polite">
     <p class="ff-big"></p>
-    <div class="ff-scroll"><table class="ff-tab"><thead></thead><tbody class="ff-sum"></tbody></table></div>
+    <p class="ff-fleet"></p>
+    <div class="ff-row"><label class="ff-inl">Show vehicles by
+      <select data-k="sort"><option value="vehicle">Name</option><option value="best">Best economy first</option><option value="worst">Worst economy first</option><option value="cost">Highest cost first</option></select></label></div>
+    <div class="ff-scroll"><table class="ff-tab"><thead></thead><tbody class="ff-sum"></tbody><tfoot class="ff-total"></tfoot></table></div>
+    <p class="ff-whatif"></p>
+    <div class="ff-row" style="margin-top:10px">
+      <button type="button" class="btn secondary ff-dl-sum">Download vehicle table (CSV)</button>
+      <button type="button" class="btn secondary ff-dl-flags">Download flags (CSV)</button>
+    </div>
     <h2 class="ff-h">Fills to look at</h2>
     <p class="ff-none">None.</p>
     <ul class="ff-flags"></ul>
@@ -53,6 +61,9 @@
   .ff label.ff-wide { margin-top: 12px; }
   .ff input, .ff select, .ff textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
   .ff input:focus, .ff select:focus, .ff textarea:focus { border-color: var(--accent); outline: none; }
+  .ff-fleet { margin: 0 0 10px; } .ff-whatif { margin: 10px 0 0; font-weight: 600; } .ff-whatif:empty { display: none; }
+  .ff label.ff-inl { display: inline-grid; margin-top: 4px; }
+  .ff-tab tfoot td { font-weight: 700; border-top: 2px solid var(--line); }
   .ff-h { font-size: 15px; margin: 16px 0 8px; }
   .ff-big { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
   .ff-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
@@ -69,7 +80,7 @@
 </style>
 
 <script>
-  import { parseCsv, guessColumns, rowsToFills, analyse, econChart, toNum, type Field } from '../../lib/money/fleetfuel';
+  import { fleetTotals, sortStats, whatIfMedian, summaryCsv, flagsCsv, parseCsv, guessColumns, rowsToFills, analyse, econChart, toNum, type Field } from '../../lib/money/fleetfuel';
   const root = document.querySelector('.ff') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -77,6 +88,8 @@
   const FIELDS: Field[] = ['vehicle', 'odo', 'qty', 'amount', 'date'];
   const EXAMPLE = 'Date,Vehicle,Odometer,Litres,Amount\n2026-10-01,TRK-1,100000,250,300\n2026-10-05,TRK-1,100800,200,240\n2026-10-09,TRK-1,101600,200,240\n2026-10-13,TRK-1,102400,200,240\n2026-10-17,TRK-1,103000,200,240\n2026-10-02,TRK-2,50000,100,120\n2026-10-09,TRK-2,50500,400,480\n2026-10-17,TRK-2,51500,250,300\n';
   let rows: string[][] = [];
+  let lastOut: { stats: any[]; flags: any[]; ecoUnit: string } | null = null;
+  const save = (name: string, text: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
   const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
   const f2 = (v: number, d = 2) => (Number.isFinite(v) ? v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '-');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
@@ -104,7 +117,8 @@
     const { fills, skipped } = rowsToFills(rows.slice(1), map);
     const tankBy: Record<string, number> = {};
     for (const l of (root.querySelector('[data-k="tanks"]') as HTMLTextAreaElement).value.split('\n')) { const p = l.split('='); if (p.length === 2 && toNum(p[1]) > 0) tankBy[p[0].trim()] = toNum(p[1]); }
-    const { stats, flags } = analyse(fills, { tank: num('tank'), tankBy, closeDist: num('close'), worsePct: num('worse') });
+    const { stats: raw, flags } = analyse(fills, { tank: num('tank'), tankBy, closeDist: num('close'), worsePct: num('worse') });
+    const stats = sortStats(raw, q('sort').value as any);
     const ecoUnit = km && vu === 'L' ? 'km/L' : !km && vu === 'gal' ? 'mpg (US)' : !km && vu === 'ukgal' ? 'mpg (UK)' : `${dname}/${vu === 'L' ? 'L' : 'gal'}`;
     const out = $('.ff-out'); out.hidden = !fills.length;
     if (!fills.length) { $('.ff-err').textContent = 'No usable rows. Check that the vehicle, odometer and quantity columns are right.'; return; }
@@ -112,6 +126,12 @@
     const hasCost = stats.some((s) => Number.isFinite(s.costPerDist));
     const l100 = km && vu === 'L';
     $('.ff-tab thead').innerHTML = `<tr><th>Vehicle</th><th>Fills</th><th>Distance (${dname})</th><th>Fuel (${vname})</th><th>${ecoUnit}</th>${l100 ? '<th>L/100 km</th>' : ''}${hasCost ? `<th>Cost per ${km ? 'km' : 'mile'}</th>` : ''}<th>Flags</th></tr>`;
+    const T = fleetTotals(stats);
+    $('.ff-fleet').textContent = T.distance > 0 ? `Whole fleet: ${f2(T.distance, 0)} ${dname}, ${f2(T.qty, 1)} ${vname}, ${f2(T.economy)} ${ecoUnit}` + (Number.isFinite(T.costPerDist) ? `, ${f2(T.costPerDist, 3)} per ${km ? 'km' : 'mile'}, about ${f2(T.pricePerUnit, 3)} per ${vu === 'L' ? 'litre' : 'gallon'}.` : '.') : 'Each vehicle needs at least two fills to work out economy.';
+    const wi = whatIfMedian(stats);
+    $('.ff-whatif').textContent = wi && wi.qty > 0.05 ? `What if: if every vehicle below the fleet's middle economy (${f2(wi.median)} ${ecoUnit}) matched it, the fleet would use about ${f2(wi.qty, 0)} ${vname} less over this period` + (Number.isFinite(wi.amount) ? ` (about ${f2(wi.amount, 0)} at this period's average price).` : '.') : '';
+    $('.ff-total').innerHTML = stats.length > 1 && T.distance > 0 ? `<tr><td>Fleet</td><td>${T.fills}</td><td>${f2(T.distance, 0)}</td><td>${f2(T.qty, 1)}</td><td>${f2(T.economy)}</td>${l100 ? `<td>${f2(100 / T.economy)}</td>` : ''}${hasCost ? `<td>${f2(T.costPerDist, 3)}</td>` : ''}<td>${flags.length}</td></tr>` : '';
+    lastOut = { stats, flags, ecoUnit };
     $('.ff-sum').innerHTML = stats.map((s) => `<tr><td>${esc(s.vehicle)}</td><td>${s.fills}</td><td>${f2(s.distance, 0)}</td><td>${f2(s.qty, 1)}</td><td>${f2(s.economy)}</td>${l100 ? `<td>${f2(100 / s.economy)}</td>` : ''}${hasCost ? `<td>${f2(s.costPerDist, 3)}</td>` : ''}<td>${s.flags}</td></tr>`).join('');
     $('.ff-none').hidden = flags.length > 0;
     const label = { big: 'Bigger than the tank', close: 'Two fills close together', economy: 'Economy much worse than usual' } as const;
@@ -119,6 +139,8 @@
     $('.ff-charts').innerHTML = stats.filter((s) => s.points.length >= 2).map((s) => `<div><h3>${esc(s.vehicle)} (${ecoUnit})</h3>${econChart(s, ecoUnit)}</div>`).join('');
   };
 
+  $('.ff-dl-sum').addEventListener('click', () => { if (lastOut) save('fleet-fuel-summary.csv', summaryCsv(lastOut.stats, lastOut.ecoUnit)); });
+  $('.ff-dl-flags').addEventListener('click', () => { if (lastOut) save('fleet-fuel-flags.csv', flagsCsv(lastOut.flags)); });
   const file = $('.ff-file') as HTMLInputElement;
   $('.ff-open').addEventListener('click', () => file.click());
   $('.ff-ex').addEventListener('click', () => { q('tank').value = '300'; load(EXAMPLE); });

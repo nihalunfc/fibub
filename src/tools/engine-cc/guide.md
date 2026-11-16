@@ -11,10 +11,11 @@ ads: false
 order: 1811
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [sprocket-ratio, unit-converter, fuel-cost]
 sources:
   - "Displacement = pi / 4 x bore squared x stroke x number of cylinders; 1 cc = 1,000 mm3 and 1 cubic inch = 16.387064 cc. Compression ratio = (swept volume of one cylinder + combustion chamber volume) / combustion chamber volume. Tax, licence and insurance classes that depend on cc are set by your own authority: check the official source. Drawings are fibub's own."
+  - "Mean piston speed = 2 x stroke x rpm / 60 (standard engine formula); 1 hp (mechanical) = 745.7 W, 1 PS = 735.5 W. Checked 2026-11-16."
 flow:
   - { icon: sliders, label: "Bore, stroke" }
   - { icon: calculator, label: "Displace" }
@@ -39,6 +40,10 @@ It also works out the bore to stroke ratio, which tells you whether the engine i
 - **Cylinders**: the volume is multiplied by this number.
 - **Combustion chamber volume**: the space left above the piston at the top of its stroke. It sets the compression ratio.
 - **Bore / stroke ratio**: above 1 is over-square (short stroke, revs freely), below 1 is under-square (long stroke, more low-down pull).
+
+## More options
+
+Open "More options" for the extras people ask about most. Overbore and stroker: type the extra bore or stroke and see the new size, the gain in cc and percent, and the compression ratio if the chamber stays the same. Find a size: type the cc you want and it gives the stroke for your bore, and the bore for your stroke. Piston speed: type the engine speed for the mean piston speed (2 x stroke x rpm / 60) in metres per second. Type the peak power in kW, hp or PS for the power per litre. The converter turns cc, litres or cubic inches into the other two. Everything follows your millimetre or inch choice above.
 
 ## Worked example
 

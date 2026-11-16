@@ -55,6 +55,12 @@ Your location never leaves your phone. The tool does not use a map company: the 
 
 Say you are meeting a friend near a downtown station on a Friday at 8:00 p.m. You type the station's name, choose 500 m, and set **When** to Friday 20:00. A lot tagged with the hours "Mo-Fr 07:00-19:00" now shows **Closed**, because 8:00 p.m. is after 7:00 p.m.; turn on **Open or allowed then** and it disappears from the list. A garage 640 m away shows as 640 m and about 8 minutes on foot (640 ÷ 80 = 8). In Ottawa, a pay machine with the hours "7:00am - 7:00pm" on weekdays shows **Free at this time** at 8:00 p.m., and **Paid now** with its hourly rate at 6:00 p.m.
 
+## More options
+
+- **How long will you stay?** Pick 30 minutes up to a work day. Places whose maximum stay is shorter than that are hidden (a one-hour street is no use for a three-hour visit), and street parking with a known price shows the estimated cost for your stay from the time you chose. A machine may round up or have its own rules, so the sign wins.
+- **Sort by**: nearest first, or cheapest first (free places, then priced ones, then those with no known price).
+- **Has accessible spaces / Has EV charging**: show only places where the map data records them. Missing data means unknown, not none, so use these as a shortcut and not a promise.
+
 ## What it cannot do
 
 - It cannot show live free spaces. No Ontario city publishes them openly.

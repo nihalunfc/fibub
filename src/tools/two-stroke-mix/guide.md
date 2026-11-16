@@ -11,7 +11,7 @@ ads: false
 order: 2123
 icon: flask
 works: offline
-updated: 2026-11-12
+updated: 2026-11-16
 related: [fuel-cost, unit-converter, octane-guide]
 sources:
   - "Oil = petrol / ratio. 1 US gallon = 3.785 L, 1 UK gallon = 4.546 L, 1 US fluid ounce = 29.574 ml. Always use the ratio in your engine's own manual or on the tank. Drawings are fibub's own."
@@ -41,6 +41,10 @@ Fuel quality matters too, so see [[octane-guide]] for the petrol grade, and [[un
 - **Petrol unit**: litres, US gallons or UK gallons. It follows your country if you open the page from a country page.
 - **Cap size (ml)**: the oil the cap holds when filled; look on the bottle.
 - **I have this much oil**: gives the petrol amount for a chosen oil volume.
+
+## More options
+
+The ratio list now includes 20:1, 30:1, 60:1 and 100:1 as well as 50:1, 40:1, 32:1 and 25:1. Open "More options" for a mixing table at the ratio you chose (1, 2, 3, 4, 5, 10 and 20 litres, or common gallon amounts) with the oil in millilitres and US fluid ounces, and a button to print it for the shed or workshop wall. The oil percent line turns a ratio into a percent of oil (50:1 is about 2%). The fix box is for a wrong mix: type how much petrol is mixed and the ratio it was mixed at, and it tells you how much oil to add if it is too lean, or how much plain petrol to add if it has too much oil. Always use the ratio in your engine's manual.
 
 ## Worked example
 

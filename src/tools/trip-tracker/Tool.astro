@@ -53,6 +53,22 @@ import Downloads from '../../components/Downloads.astro';
     <h2 class="tt-title">Trip</h2>
     <p class="ax-help tt-sub"></p>
     <dl class="ax-facts tt-facts"></dl>
+    <details class="tt-cost">
+      <summary>More options: what did this trip cost?</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Fuel economy
+          <select data-k="ecokind" class="tt-ecokind"><option value="l100">L per 100 km</option><option value="kmpl">km per L</option><option value="mpgus">miles per US gallon</option><option value="mpguk">miles per UK gallon</option></select>
+        </label>
+        <label>Economy number <input data-k="eco" class="tt-eco" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 8" /></label>
+        <label>Fuel price (per litre, or per gallon for mpg) <input data-k="price" class="tt-price" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 1.65" /></label>
+      </div>
+      <p class="tt-fuelout" aria-live="polite"></p>
+      <div class="ax-grid">
+        <label>Or a claim rate (per km or per mile, as your employer or tax authority sets it) <input data-k="rate" class="tt-rate" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 0.70" /></label>
+      </div>
+      <p class="tt-claimout" aria-live="polite"></p>
+      <p class="ax-help">Typed numbers stay on this page and are not saved. For a claim, check the official source for the current rate.</p>
+    </details>
     <p class="note tt-after" hidden>Open the GPX in the <a href="/science/gps-track-analyser/">GPS track analyser</a> for splits and elevation.</p>
     <canvas class="ax-fig tt-route"></canvas>
     <canvas class="ax-fig tt-speed"></canvas>
@@ -92,7 +108,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import {
-    MODES, analyse, addFix, addMark, pauseTrip, newTrip, sampleTrip, toGpx, toCsv, pack, unpack,
+    MODES, fuelCost, claimAmount, analyse, addFix, addMark, pauseTrip, newTrip, sampleTrip, toGpx, toCsv, pack, unpack,
     fmtDist, fmtSpeed, fmtPace, fmtDur, fmtMetres, fmtPos, fmtClock, unitInfo, GAP_SECONDS,
     type Trip, type Mode, type Units, type Analysis,
   } from '../../lib/trip';
@@ -320,6 +336,17 @@ import Downloads from '../../components/Downloads.astro';
     return d;
   };
 
+  let costNow = 0;
+  function costs() {
+    const n = (c: string) => parseFloat(q<HTMLInputElement>(c).value);
+    const kind = q<HTMLSelectElement>('.tt-ecokind').value as any, u = units();
+    const fc = fuelCost(costNow, kind, n('.tt-eco'), n('.tt-price'));
+    q('.tt-fuelout').textContent = fc ? `Fuel: about ${fc.fuel.toFixed(2)} ${fc.unit} (${fc.litres.toFixed(2)} L), costing about ${fc.cost.toFixed(2)} for ${fmtDist(costNow, u)}.` : 'Type your fuel economy and fuel price to see what this trip cost.';
+    const ca = claimAmount(costNow, u, n('.tt-rate'));
+    q('.tt-claimout').textContent = ca != null ? `Claim: ${fmtDist(costNow, u)} at ${n('.tt-rate')} per ${u === 'mi' ? 'mile' : 'km'} is ${ca.toFixed(2)}.` : '';
+  }
+  root.querySelectorAll('.tt-cost input, .tt-cost select').forEach((e) => { e.addEventListener('input', costs); e.addEventListener('change', costs); });
+
   function results() {
     const out = q('.tt-out');
     if (!trip || trip.samples.length < 1) { out.hidden = true; report = []; return; }
@@ -339,6 +366,7 @@ import Downloads from '../../components/Downloads.astro';
     f.push(fact('Speed changes', String(a.events.length), `${a.events.filter((e) => e.kind === 'up').length} speed-ups, ${a.events.filter((e) => e.kind === 'down').length} hard slow-downs`));
     f.push(fact('Readings', `${t.samples.length.toLocaleString('en')} kept`, `${t.dropped.acc} poor accuracy and ${t.dropped.jump} jumps ignored`));
     q('.tt-facts').replaceChildren(...f);
+    costNow = a.metres + a.gapMetres; costs();
 
     const evRows = a.events.map((e) => [fmtClock(e.t), fmtDur(e.into), e.kind === 'up' ? 'Speed-up' : 'Hard slow-down', `${fmtSpeed(e.from, u)} to ${fmtSpeed(e.to, u)}`, fmtPos(e.lat, e.lon)]);
     const evHead = ['Clock time', 'Into trip', 'Change', 'Speed', 'Position'];
