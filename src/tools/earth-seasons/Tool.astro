@@ -1,0 +1,83 @@
+---
+// #L335 Earth's seasons. Day length and noon Sun height from latitude, day of the year and axial tilt. Maths: src/lib/learn/usa-math.ts (declination model, a teaching model good to about half an hour).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn es">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 9</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Seasons come from Earth's tilt, not from its distance from the Sun. Pick a place and a day, and change the tilt to see why.</p>
+    <canvas class="lrn-cv es-cv" aria-label="Graph of hours of daylight through the year for the chosen latitude, with a marker on the chosen day"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Latitude: <b class="es-latv"></b>° <input class="es-lat" type="range" min="-80" max="80" step="1" value="43" /></label>
+      <label class="lrn-sl">Day of the year: <b class="es-dayv"></b> <input class="es-day" type="range" min="1" max="365" step="1" value="172" /></label>
+      <label class="lrn-sl">Tilt of the axis: <b class="es-tiltv"></b>° <input class="es-tilt" type="range" min="0" max="45" step="0.5" value="23.4" /></label>
+    </div>
+    <div class="ax-row es-pre" style="margin-top:8px">
+      <button type="button" class="btn secondary small" data-day="80">Spring equinox</button>
+      <button type="button" class="btn secondary small" data-day="172">June solstice</button>
+      <button type="button" class="btn secondary small" data-day="266">Autumn equinox</button>
+      <button type="button" class="btn secondary small" data-day="355">December solstice</button>
+    </div>
+    <p class="ax-big es-out" aria-live="polite"></p>
+    <p class="ax-help es-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: the Sun's declination is δ = tilt × sin(360° × (day − 80) ÷ 365), the cosine of the half day length H is −tan(latitude) × tan(δ), and the noon height is 90° − |latitude − δ|. This simple model ignores the Sun's size and air bending its light, so real day lengths differ by a few minutes.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Set the tilt to 0°. The curve goes flat: no seasons at all, 12 hours everywhere.</li><li>Set the latitude to 80° and slide through the year. Where is the polar night and the midnight Sun?</li><li>Compare the noon Sun height at 43° on the June and December solstices. How many degrees lower is it in winter?</li></ul>
+  </div>
+  <div class="ax-card es-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .es .es-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { daylightHours, noonElevation, declination } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.es') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.es-cv'), out = $('.es-out');
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const draw = () => {
+    const lat = val('.es-lat'), day = val('.es-day'), tilt = val('.es-tilt');
+    const { ctx, W, H } = fitCanvas(cv, 230), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const L = 34, R = W - 12, T = 12, B = H - 30, px = (d: number) => L + ((d - 1) / 364) * (R - L), py = (h: number) => B - (h / 24) * (B - T);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+    for (const h of [0, 6, 12, 18, 24]) { ctx.beginPath(); ctx.moveTo(L, py(h)); ctx.lineTo(R, py(h)); ctx.stroke(); ctx.fillText(h + ' h', L - 4, py(h) + 4); }
+    ctx.textAlign = 'center';
+    [['Jan', 1], ['Apr', 91], ['Jul', 182], ['Oct', 274]].forEach(([m, d]) => ctx.fillText(String(m), px(+d), H - 10));
+    ctx.beginPath(); for (let d = 1; d <= 365; d++) { const h = daylightHours(lat, d, tilt); d === 1 ? ctx.moveTo(px(d), py(h)) : ctx.lineTo(px(d), py(h)); }
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    const h = daylightHours(lat, day, tilt); ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(px(day), py(h), 5, 0, 7); ctx.fill();
+  };
+  const show = () => {
+    const lat = val('.es-lat'), day = val('.es-day'), tilt = val('.es-tilt');
+    $('.es-latv').textContent = String(lat); $('.es-dayv').textContent = String(day); $('.es-tiltv').textContent = String(tilt);
+    const h = daylightHours(lat, day, tilt), el = noonElevation(lat, day, tilt), dec = declination(day, tilt);
+    const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+    out.textContent = h === 0 ? 'Polar night: the Sun stays below the horizon all day.' : h === 24 ? 'Midnight Sun: the Sun stays above the horizon all day.' : `${hh} h ${String(mm).padStart(2, '0')} min of daylight, noon Sun ${r(Math.max(el, 0), 3)}° up.`;
+    out.dataset.h = h.toFixed(3); out.dataset.el = el.toFixed(3); out.dataset.dec = dec.toFixed(3);
+    $('.es-sub').textContent = `On day ${day} the Sun is over latitude ${r(dec)}°. ${lat >= 0 ? 'In the northern hemisphere' : 'In the southern hemisphere'}, that makes it ${((lat >= 0 ? dec : -dec) > 5) ? 'summer-like' : ((lat >= 0 ? dec : -dec) < -5) ? 'winter-like' : 'near an equinox'}.`;
+    draw();
+  };
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', show));
+  root.querySelectorAll<HTMLButtonElement>('.es-pre button').forEach((b) => b.addEventListener('click', () => { $<HTMLInputElement>('.es-day').value = b.dataset.day!; show(); }));
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.es-quiz'), () => {
+    const lat = pick(20, 60, 10), noonJ = 90 - (lat - 23.44), noonD = 90 - (lat + 23.44);
+    return [
+      { q: `At latitude ${lat}°N on the June solstice, how high is the Sun at noon? (tilt 23.44°)`, ans: noonJ, abs: 0.2, unit: '°', work: `Noon height = 90° − (latitude − declination) = 90 − (${lat} − 23.44) = ${r(noonJ)}°.` },
+      { q: `At latitude ${lat}°N on the December solstice, how high is the Sun at noon?`, ans: noonD, abs: 0.2, unit: '°', work: `The Sun is over 23.44°S, so noon height = 90 − (${lat} + 23.44) = ${r(noonD)}°.` },
+      { q: 'What causes the seasons?', choices: ['Earth is closer to the Sun in summer', 'Earth\'s axis is tilted', 'The Sun gets hotter in summer'], ans: 1, work: 'Because the axis is tilted, each hemisphere leans toward the Sun for part of the year: longer days and a higher Sun.' },
+    ];
+  });
+</script>

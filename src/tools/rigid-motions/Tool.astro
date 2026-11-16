@@ -1,0 +1,92 @@
+---
+// #L334 Rigid motions. Translate, rotate, reflect and dilate a shape on a grid and see what changes (length, angle, size). Maths: src/lib/learn/usa-math.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn rm">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 9</button><button type="button" data-level="10" aria-pressed="false">Grade 10</button></div>
+    <p class="ax-help">The dark triangle is the original and the coloured one is its image. Pick a move and change it.</p>
+    <canvas class="lrn-cv rm-cv" aria-label="A grid with a triangle and its image after the chosen move"></canvas>
+    <div class="ax-seg rm-kind" role="group" aria-label="Move" style="margin-top:8px">
+      <button type="button" data-k="translate" aria-pressed="true">Slide</button>
+      <button type="button" data-k="rotate" aria-pressed="false">Turn</button>
+      <button type="button" data-k="reflect" aria-pressed="false">Flip</button>
+      <button type="button" data-k="dilate" aria-pressed="false">Resize</button>
+    </div>
+    <div class="ax-grid rm-ctl" style="margin-top:10px">
+      <label class="lrn-sl rm-c rm-c-translate">Right: <b class="rm-dxv"></b> <input class="rm-dx" type="range" min="-6" max="6" step="1" value="3" /></label>
+      <label class="lrn-sl rm-c rm-c-translate">Up: <b class="rm-dyv"></b> <input class="rm-dy" type="range" min="-6" max="6" step="1" value="2" /></label>
+      <label class="lrn-sl rm-c rm-c-rotate">Turn counter-clockwise by: <b class="rm-av"></b>° <input class="rm-a" type="range" min="0" max="360" step="15" value="90" /></label>
+      <label class="rm-c rm-c-reflect">Mirror line <select class="rm-ax"><option value="y">y-axis (up and down)</option><option value="x">x-axis (left and right)</option><option value="y=x">line y = x</option></select></label>
+      <label class="lrn-sl rm-c rm-c-dilate">Scale factor: <b class="rm-kv"></b> <input class="rm-k" type="range" min="0.5" max="3" step="0.5" value="2" /></label>
+    </div>
+    <p class="ax-big rm-out" aria-live="polite"></p>
+    <p class="ax-help rm-sub"></p>
+    <p class="ax-help" data-only="10" hidden>Grade 10: slides, turns and flips are rigid motions (isometries): they keep every length and angle, so the image is congruent to the original. A resize keeps angles but not lengths, so the image is only similar. Turns here are about the origin; a turn of 180° is the same as a point reflection.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Turn by 90° four times (90, 180, 270, 360). Where does the triangle end up at 360°?</li><li>Flip over the y-axis. Do the corners keep their order (clockwise or anti-clockwise)?</li><li>Resize by 2. The perimeter doubles but what happens to the area?</li></ul>
+  </div>
+  <div class="ax-card rm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .rm .rm-cv { width: 100%; }
+  .rm select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { translate, rotate, reflect, dilate, area, perimeter, type Pt } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.rm') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.rm-cv'), out = $('.rm-out');
+  const TRI: Pt[] = [[1, 1], [3, 1], [1, 3]];
+  let kind = 'translate';
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const image = (): Pt[] => kind === 'translate' ? translate(TRI, val('.rm-dx'), val('.rm-dy'))
+    : kind === 'rotate' ? rotate(TRI, val('.rm-a')) : kind === 'reflect' ? reflect(TRI, $<HTMLSelectElement>('.rm-ax').value as 'x' | 'y' | 'y=x') : dilate(TRI, val('.rm-k'));
+  const draw = (img: Pt[]) => {
+    const { ctx, W, H } = fitCanvas(cv, 300), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    const N = 10, s = Math.min(W, H) / (2 * N), cx = W / 2, cy = H / 2, px = (p: Pt) => [cx + p[0] * s, cy - p[1] * s];
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = -N; i <= N; i++) { ctx.beginPath(); ctx.moveTo(cx + i * s, cy - N * s); ctx.lineTo(cx + i * s, cy + N * s); ctx.moveTo(cx - N * s, cy + i * s); ctx.lineTo(cx + N * s, cy + i * s); ctx.stroke(); }
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(cx - N * s, cy); ctx.lineTo(cx + N * s, cy); ctx.moveTo(cx, cy - N * s); ctx.lineTo(cx, cy + N * s); ctx.stroke();
+    if (kind === 'reflect' && $<HTMLSelectElement>('.rm-ax').value === 'y=x') { ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(cx - N * s, cy + N * s); ctx.lineTo(cx + N * s, cy - N * s); ctx.stroke(); ctx.setLineDash([]); }
+    const poly = (pts: Pt[], col: string, fill: string, label: string) => {
+      ctx.beginPath(); pts.forEach((p, i) => { const [x, y] = px(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
+      ctx.fillStyle = fill; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = col; pts.forEach((p, i) => { const [x, y] = px(p); ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); ctx.fillText(label + 'ABC'[i] + (label ? "'" : ''), x + 5, y - 5); });
+    };
+    poly(TRI, pal.ink, pal.ink, ''); poly(img, pal.accent, pal.accent, '');
+  };
+  const show = () => {
+    ['dx', 'dy', 'a', 'k'].forEach((k) => { const el = root.querySelector('.rm-' + k + 'v'); if (el) el.textContent = String(val('.rm-' + k)); });
+    root.querySelectorAll<HTMLElement>('.rm-c').forEach((e) => { e.hidden = !e.classList.contains('rm-c-' + kind); });
+    const img = image(), a0 = area(TRI), a1 = area(img), p0 = perimeter(TRI), p1 = perimeter(img);
+    const rigid = Math.abs(p1 - p0) < 1e-9;
+    out.textContent = rigid ? 'Every length and angle is kept: the image is congruent to the original.' : 'Angles are kept but lengths change: the image is similar, not congruent.';
+    out.dataset.area = a1.toFixed(4); out.dataset.perim = p1.toFixed(4); out.dataset.rigid = String(rigid); out.dataset.x0 = img[0][0].toFixed(3); out.dataset.y0 = img[0][1].toFixed(3);
+    $('.rm-sub').textContent = `Perimeter ${r(p0)} → ${r(p1)}. Area ${r(a0)} → ${r(a1)}. Corner A (${TRI[0]}) goes to (${r(img[0][0])}, ${r(img[0][1])}).`;
+    draw(img);
+  };
+  root.querySelectorAll<HTMLButtonElement>('.rm-kind button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.k!; root.querySelectorAll('.rm-kind button').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); show(); }));
+  root.querySelectorAll('input[type=range], select').forEach((i) => i.addEventListener('input', show));
+  addEventListener('resize', show);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.rm-quiz'), () => {
+    const x = pick(1, 6), y = pick(1, 6), dx = pick(-5, 5), dy = pick(-5, 5), k = one([2, 3]);
+    return [
+      { q: `Point (${x}, ${y}) is slid ${dx} right and ${dy} up. What is the new x-coordinate?`, ans: x + dx, work: `x + ${dx} = ${x + dx}. (The new y is ${y + dy}.)` },
+      { q: `Point (${x}, ${y}) is flipped over the y-axis. What is the new x-coordinate?`, ans: -x, work: `Reflecting over the y-axis changes the sign of x: (${-x}, ${y}).` },
+      { q: `A shape with area ${x * y + 4} is resized by scale factor ${k}. What is the new area?`, ans: (x * y + 4) * k * k, work: `Area scales by the factor squared: ${x * y + 4} × ${k}² = ${(x * y + 4) * k * k}.` },
+    ];
+  });
+</script>

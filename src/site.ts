@@ -385,7 +385,7 @@ export const codePrefix = (shelf: string) => CODES.find((c) => (c.shelves as rea
 // chapter from src/data/ncert.ts, together with the science tools that fit a chapter.
 export const LEARN_SHELF = { id: 'learn', name: 'Learn', blurb: 'Interactive science and maths for school students, Class 8 to 12.' } as const;
 // Pages of the Learn area that sit at /learn/<name>/: a learn tool may never take one of these ids.
-export const LEARN_PAGES = ['school', 'experiments', 'courses', 'languages', 'class-8', 'class-9', 'class-10', 'class-11', 'class-12'];
+export const LEARN_PAGES = ['school', 'experiments', 'courses', 'languages', 'class-8', 'class-9', 'class-10', 'class-11', 'class-12', 'ontario-grade-8', 'ontario-grade-9', 'ontario-grade-10', 'ontario-grade-11', 'ontario-grade-12', 'uk-ks3', 'uk-gcse', 'uk-a-level'];
 export type ShelfId = (typeof SHELVES)[number]['id'] | 'learn';
 export const SHELF_IDS = [...SHELVES.map((s) => s.id), LEARN_SHELF.id] as [ShelfId, ...ShelfId[]];
 export const shelfById = (id: string) => (id === LEARN_SHELF.id ? LEARN_SHELF : SHELVES.find((s) => s.id === id)!) as { id: string; name: string; blurb: string };
@@ -401,7 +401,7 @@ export const AREAS: Area[] = [
     blurb: 'For school students: tools, experiments, short courses and language practice.',
     tabs: [
       { name: 'Overview', href: '/learn/' },
-      { name: 'Class 8 to 12', href: '/learn/school/', match: ['/learn/class-'] },
+      { name: 'Class 8 to 12', href: '/learn/school/', match: ['/learn/class-', '/learn/ontario-', '/learn/uk-'] },
       { name: 'Experiments', href: '/learn/experiments/' },
       { name: 'Courses', href: '/learn/courses/' },
       { name: 'Languages', href: '/learn/languages/' },

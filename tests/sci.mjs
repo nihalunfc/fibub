@@ -1,6 +1,7 @@
 // Checks for the science maths in src/lib/sci/ against published worked examples.
 import zlib from 'node:zlib';
 // Run with `node tests/sci.mjs` (Node 22+ strips the TypeScript types itself).
+import { binomPmf, binomCdf, binomUpper, criticalUpper, criticalLower, normalCdf } from '../src/lib/sci/ukstats.ts';
 import { tInv, tTwoSided, normInv, normCdf } from '../src/lib/sci/stats.ts';
 import { num, parseTable, numericColumns, sig } from '../src/lib/sci/num.ts';
 import { calibrate, inverse, limits } from '../src/lib/sci/calibration.ts';
@@ -10,6 +11,7 @@ import { parse, variables, compile, splitName } from '../src/lib/sci/expr.ts';
 import { makeMap, traceLine, findMarkers } from '../src/lib/sci/digitize.ts';
 import { pngWithDpi, niceTicks } from '../src/lib/sci/plot.ts';
 
+import * as U from '../src/lib/learn/usa-math.ts';
 import { powerT, powerProp, solveN, surveyN } from '../src/lib/sci/power.ts';
 import { pws, air, heatIndexF, humidex, pressureAt } from '../src/lib/sci/psychro.ts';
 import { pole, project, greatCircle, fisher, planeFromPole, roseBins } from '../src/lib/sci/stereonet.ts';
@@ -3668,6 +3670,32 @@ ORIGIN
   check('trip: the sample trip is a few km and the same every time', as.metres > 2000 && as.metres < 5000 && JSON.stringify(T.pack(st)) === JSON.stringify(T.pack(T.sampleTrip())));
   // Formatting.
   check('trip: formats', T.fmtDur(3725) === '1:02:05' && T.fmtDist(2400, 'km') === '2.40 km' && T.fmtSpeed(10, 'km') === '36.0 km/h' && T.fmtPace(2.5, 'km') === '6:40 /km' && T.fmtPos(1.2345678, -0.5) === '1.23457, -0.50000');
+  // US curriculum tools (src/lib/learn/usa-math.ts).
+  const nrU = (a, b, e = 1e-3) => Math.abs(a - b) <= e;
+  const f1 = U.fiveNumber([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), f2 = U.fiveNumber([1, 3, 5, 7, 9, 11, 13]), f3 = U.fiveNumber([1, 2, 3, 4, 5, 100]);
+  check('usa: five-number summary (even and odd counts)', f1.q1 === 3 && f1.median === 5.5 && f1.q3 === 8 && f2.q1 === 3 && f2.median === 7 && f2.q3 === 11);
+  check('usa: 100 is an outlier by the 1.5 × IQR rule', f3.outliers.length === 1 && f3.outliers[0] === 100 && f3.whiskerHigh === 5);
+  check('usa: empirical rule 68, 95 and 99.7 %', nrU(U.withinK(1), 0.6827) && nrU(U.withinK(2), 0.9545) && nrU(U.withinK(3), 0.9973) && nrU(U.normalBelow(110, 100, 15), 0.7475, 2e-3));
+  const ln = U.fitLine([[1, 2], [2, 4], [3, 5], [4, 4], [5, 5]]), ex = U.fitLine([[0, 1], [1, 3], [2, 5]]);
+  check('usa: best-fit line and r (hand worked)', nrU(ln.slope, 0.6) && nrU(ln.intercept, 2.2) && nrU(ln.r, 0.7746) && nrU(ex.r, 1) && nrU(ex.slope, 2) && nrU(ex.intercept, 1));
+  check('usa: best-fit line has the smallest squared error', U.sseFor([[1, 2], [2, 4], [3, 5], [4, 4], [5, 5]], 0.7, 2) > ln.sse);
+  check('usa: margin of error and sample size', nrU(U.marginOfError(0.5, 1000), 0.03099, 1e-4) && U.sampleSizeFor(0.03) === 1068);
+  const sq = [[0, 0], [2, 0], [2, 1], [0, 1]];
+  check('usa: rigid motions keep area, dilation by 2 makes it ×4', nrU(U.area(U.rotate(sq, 33, 1, 1)), 2) && nrU(U.area(U.reflect(sq, 'y')), 2) && nrU(U.area(U.dilate(sq, 2)), 8) && nrU(U.perimeter(U.translate(sq, 5, -3)), 6));
+  check('usa: rotate (1,0) by 90° gives (0,1)', nrU(U.rotate([[1, 0]], 90)[0][0], 0, 1e-9) && nrU(U.rotate([[1, 0]], 90)[0][1], 1, 1e-9));
+  check('usa: daylight (equator 12 h, 45°N on 21 June about 15.4 h, polar night and midnight sun)', nrU(U.daylightHours(0, 172), 12, 0.01) && nrU(U.daylightHours(45, 172), 15.45, 0.1) && U.daylightHours(80, 355) === 0 && U.daylightHours(80, 172) === 24);
+  check('usa: noon sun at 40°N on 21 June is 73.6° up', nrU(U.noonElevation(40, 172), 73.56, 0.2));
+  const lm = U.limiting(U.REACTIONS[0], 4, 32);
+  check('usa: limiting reagent (4 g H₂ + 32 g O₂ makes 35.7 g water, H₂ runs out)', lm.limiter === 'H2' && nrU(lm.productG, 35.745, 0.01) && lm.leftSpecies === 'O2' && lm.leftoverG > 0 && lm.leftoverG < 0.3);
+  check('usa: heat sharing (equal water 20 and 80 °C gives 50 °C; metal c = 0.558)', nrU(U.mixTemp(100, 4.184, 20, 100, 4.184, 80), 50) && nrU(U.metalSpecificHeat(100, 20, 50, 100, 25), 0.5579, 1e-3) && nrU(U.heatQ(100, 4.184, 10), 4184, 1e-6));
+}
+
+{ // UK statistics: standard published values (A-level tables)
+  check('ukstats: N(100,15) P(X<115) = 0.8413', Math.abs(normalCdf(115, 100, 15) - 0.8413) < 1e-4);
+  check('ukstats: B(20,0.5) P(X=10) = 0.1762', Math.abs(binomPmf(20, 0.5, 10) - 0.1762) < 1e-4);
+  check('ukstats: B(20,0.5) P(X<=7) = 0.1316', Math.abs(binomCdf(20, 0.5, 7) - 0.1316) < 1e-4);
+  check('ukstats: B(20,0.5) P(X>=15) = 0.0207', Math.abs(binomUpper(20, 0.5, 15) - 0.0207) < 1e-4);
+  check('ukstats: critical values for B(20,0.5) at 5%', criticalUpper(20, 0.5, 0.05) === 15 && criticalLower(20, 0.5, 0.05) === 5);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

@@ -6,6 +6,9 @@
 // map like src/data/ncert.ts (a list of classes or grades, each with subjects and chapters that list
 // tool ids), export it here with status 'live', and add its pages. A 'planned' entry is not counted.
 import { CLASSES, type SchoolClass } from './ncert';
+import { UK_LEVELS } from './uk';
+import { ONTARIO_CLASSES } from './ontario';
+import { USA_GRADES } from './usa';
 
 export type Curriculum = {
   id: string;
@@ -14,13 +17,19 @@ export type Curriculum = {
   grades: string;    // e.g. "Class 8 to 12"
   status: 'live' | 'planned';
   classes: SchoolClass[]; // empty while planned
+  unit?: string;     // what a chapter is called here (default "chapter"; Ontario uses "strand")
+  note?: string;     // shown at the foot of each grade page: which documents the topics follow
 };
 
 export const CURRICULA: Curriculum[] = [
-  { id: 'ncert', name: 'NCERT (India)', country: 'India', grades: 'Class 8 to 12', status: 'live', classes: CLASSES },
-  { id: 'canada', name: 'Canada', country: 'Canada', grades: 'Grade 8 to 12', status: 'planned', classes: [] },
-  { id: 'usa', name: 'United States', country: 'United States', grades: 'Grade 8 to 12', status: 'planned', classes: [] },
-  { id: 'uk', name: 'United Kingdom', country: 'United Kingdom', grades: 'Year 9 to 13', status: 'planned', classes: [] },
+  { id: 'ncert', name: 'NCERT (India)', country: 'India', grades: 'Class 8 to 12', status: 'live', classes: CLASSES,
+    note: 'Chapters follow the topics of the NCERT books used in 2026-27 (the new books for Class 8 and 9, the 2023 rationalised books for Class 10 to 12). fibub is an independent free site, not part of NCERT, and copies no textbook text or pictures.' },
+  { id: 'canada', name: 'Canada (Ontario)', country: 'Canada', grades: 'Grade 8 to 12', status: 'live', classes: ONTARIO_CLASSES, unit: 'strand',
+    note: 'Education in Canada is set by each province, so this starts with Ontario, the largest. Strands follow the Ontario Ministry of Education course outlines (course codes such as SNC1W, MPM2D and SPH3U); courses are revised from time to time, so check the official Ontario curriculum for the current wording. fibub is an independent free site, not part of the Ontario government, and copies no curriculum or textbook text. British Columbia and Alberta may follow.' },
+  { id: 'usa', name: 'United States', country: 'United States', grades: 'Grade 8 to 12', status: 'live', classes: USA_GRADES, unit: 'topic',
+    note: 'Topics follow the Common Core State Standards for Mathematics and the Next Generation Science Standards, with standard codes such as 8.EE, HS-PS1 and MS-ESS2 so you can match them to your own state\'s list (some states, such as Texas, Virginia and New York, have their own standards). High school courses differ by school, so each grade shows the usual course for it. fibub is an independent free site, not part of Common Core, NGSS or any state, and copies no standards or textbook text.' },
+  { id: 'uk', name: 'England national curriculum (UK)', country: 'United Kingdom', grades: 'Key Stage 3, GCSE, A-level', status: 'live', classes: UK_LEVELS, unit: 'topic',
+    note: "Topics follow the national curriculum for England (Key Stage 3, GCSE and A-level subject content) as exam boards teach it, so they fit students in England, Wales and Northern Ireland with small differences; Scotland has its own system. Check your own exam board's specification. fibub is an independent free site, not part of the Department for Education or any exam board, and copies no textbook text or pictures." },
 ];
 
 export type Course = { id: string; name: string; text: string; status: 'live' | 'planned'; href?: string };
@@ -34,3 +43,14 @@ export const COURSES: Course[] = [
   { id: 'money-basics', name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.', status: 'planned' },
   { id: 'think-like-scientist', name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.', status: 'planned' },
 ];
+
+/** Every grade or class of every live curriculum, with the curriculum it belongs to. */
+export const allClasses = () => CURRICULA.filter((c) => c.status === 'live').flatMap((cur) => cur.classes.map((cls) => ({ cur, cls })));
+
+/** Every chapter (in any live curriculum) that lists a tool, for "In the school syllabus" on the tool's page. */
+export function chaptersForAll(toolId: string) {
+  const out: { cur: Curriculum; cls: SchoolClass; subject: SchoolClass['subjects'][number]; chapter: SchoolClass['subjects'][number]['chapters'][number] }[] = [];
+  for (const { cur, cls } of allClasses()) for (const subject of cls.subjects) for (const chapter of subject.chapters)
+    if (chapter.tools.includes(toolId)) out.push({ cur, cls, subject, chapter });
+  return out;
+}

@@ -1,0 +1,111 @@
+---
+// #L331 Best-fit line. Scatter plot, a line you set yourself against the least-squares line, residuals, r and r². Maths: src/lib/learn/usa-math.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn sb">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 9</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Each dot is one person or day. Choose a set of made-up data, then set your own line and see how close you get to the best-fit line. Tap or click the graph to add your own dot.</p>
+    <div class="ax-seg sb-set" role="group" aria-label="Data set" style="margin-bottom:8px">
+      <button type="button" data-set="0" aria-pressed="true">Study time and score</button>
+      <button type="button" data-set="1" aria-pressed="false">Heat and cold drinks</button>
+      <button type="button" data-set="2" aria-pressed="false">Shoe size and score</button>
+    </div>
+    <canvas class="lrn-cv sb-cv" aria-label="Scatter plot with your line and, when shown, the best-fit line and the gaps from the dots to it"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Your slope: <b class="sb-mv"></b> <input class="sb-m" type="range" min="-10" max="10" step="0.1" value="1" /></label>
+      <label class="lrn-sl">Your intercept: <b class="sb-bv"></b> <input class="sb-b" type="range" min="-100" max="200" step="1" value="50" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sb-show" aria-pressed="false">Show best-fit line</button>
+      <button type="button" class="btn secondary small sb-reset">Reset dots</button>
+    </div>
+    <p class="ax-big sb-out" aria-live="polite"></p>
+    <p class="ax-help sb-fit"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: the best-fit (least-squares) line has the slope r × s<sub>y</sub> ÷ s<sub>x</sub> and passes through the point of means. It makes the sum of the squared gaps as small as possible. r² is the share of the spread in y that the line explains.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Move your line until the "your line" total is as small as you can get it. How close can you get to the best-fit total?</li><li>Switch to "Shoe size and score": r is near 0, so a line explains almost nothing.</li><li>Add one dot far above the others. How much does the best-fit line move?</li></ul>
+  </div>
+  <div class="ax-card sb-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .sb .sb-cv { width: 100%; cursor: crosshair; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { fitLine, sseFor } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.sb') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.sb-cv'), out = $('.sb-out');
+  type P = [number, number];
+  const SETS: { x: string; y: string; pts: P[] }[] = [
+    { x: 'Hours studied', y: 'Test score', pts: [[1, 52], [2, 58], [2.5, 61], [3, 60], [4, 68], [5, 70], [6, 77], [7, 75], [8, 84], [9, 88]] },
+    { x: 'Temperature (°C)', y: 'Cold drinks sold', pts: [[12, 40], [15, 55], [18, 63], [20, 80], [23, 92], [25, 100], [28, 125], [30, 130], [33, 150]] },
+    { x: 'Shoe size', y: 'Test score', pts: [[5, 70], [6, 55], [7, 82], [8, 64], [9, 75], [10, 58], [11, 80], [12, 66]] },
+  ];
+  let set = 0, pts: P[] = SETS[0].pts.map((p) => [...p] as P), showBest = false;
+  const range = () => {
+    const xs = SETS[set].pts.map((p) => p[0]), ys = SETS[set].pts.map((p) => p[1]);
+    const x0 = 0, x1 = Math.ceil(Math.max(...xs) * 1.1), y0 = 0, y1 = Math.ceil(Math.max(...ys) * 1.15 / 10) * 10;
+    return { x0, x1, y0, y1 };
+  };
+  const geo = () => { const { W, H } = fitCanvas(cv, 260), g = range(); return { W, H, g, L: 40, B: H - 32, T: 12, R: W - 12 }; };
+  const toPx = (G: ReturnType<typeof geo>, x: number, y: number) => [G.L + ((x - G.g.x0) / (G.g.x1 - G.g.x0)) * (G.R - G.L), G.B - ((y - G.g.y0) / (G.g.y1 - G.g.y0)) * (G.B - G.T)];
+  const draw = () => {
+    const G = geo(), { ctx, W, H } = { ctx: cv.getContext('2d')!, W: G.W, H: G.H }, pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(G.L, G.T); ctx.lineTo(G.L, G.B); ctx.lineTo(G.R, G.B); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(SETS[set].x, (G.L + G.R) / 2, H - 6);
+    ctx.save(); ctx.translate(11, (G.T + G.B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(SETS[set].y, 0, 0); ctx.restore();
+    ctx.textAlign = 'right'; for (let i = 0; i <= 4; i++) { const v = G.g.y0 + (i / 4) * (G.g.y1 - G.g.y0); ctx.fillText(String(Math.round(v)), G.L - 4, toPx(G, 0, v)[1] + 4); }
+    ctx.textAlign = 'center'; for (let i = 0; i <= 4; i++) { const v = G.g.x0 + (i / 4) * (G.g.x1 - G.g.x0); ctx.fillText(String(Math.round(v)), toPx(G, v, 0)[0], G.B + 14); }
+    const m = +$<HTMLInputElement>('.sb-m').value, b = +$<HTMLInputElement>('.sb-b').value, f = fitLine(pts);
+    const line = (mm: number, bb: number, col: string, dash: number[]) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); const [ax, ay] = toPx(G, G.g.x0, bb + mm * G.g.x0), [bx, by] = toPx(G, G.g.x1, bb + mm * G.g.x1); ctx.save(); ctx.beginPath(); ctx.rect(G.L, G.T, G.R - G.L, G.B - G.T); ctx.clip(); ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore(); ctx.setLineDash([]); ctx.lineWidth = 1; };
+    if (showBest) {
+      ctx.strokeStyle = pal.good; pts.forEach(([x, y]) => { const [px, py] = toPx(G, x, y), [, qy] = toPx(G, x, f.intercept + f.slope * x); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, qy); ctx.stroke(); });
+      line(f.slope, f.intercept, pal.good, []);
+    }
+    line(m, b, pal.accent2, [6, 4]);
+    ctx.fillStyle = pal.accent; pts.forEach(([x, y]) => { const [px, py] = toPx(G, x, y); ctx.beginPath(); ctx.arc(px, py, 4.5, 0, 7); ctx.fill(); });
+  };
+  const readout = () => {
+    const m = +$<HTMLInputElement>('.sb-m').value, b = +$<HTMLInputElement>('.sb-b').value, f = fitLine(pts), mine = sseFor(pts, m, b);
+    $('.sb-mv').textContent = String(m); $('.sb-bv').textContent = String(b);
+    const strength = Math.abs(f.r) > 0.8 ? 'strong' : Math.abs(f.r) > 0.5 ? 'moderate' : 'weak';
+    out.textContent = `r = ${r(f.r)} (${strength} ${f.r >= 0 ? 'positive' : 'negative'} link), r² = ${r(f.r2)}`;
+    out.dataset.r = f.r.toFixed(5); out.dataset.slope = f.slope.toFixed(5); out.dataset.sse = f.sse.toFixed(4); out.dataset.mine = mine.toFixed(4);
+    $('.sb-fit').textContent = `Best fit: y = ${r(f.slope)}x ${f.intercept < 0 ? '−' : '+'} ${r(Math.abs(f.intercept))}. Total squared gap: your line ${r(mine)}, best-fit line ${r(f.sse)}. Smaller is closer.`;
+    draw();
+  };
+  root.querySelectorAll('.sb-m, .sb-b').forEach((i) => i.addEventListener('input', readout));
+  $('.sb-show').addEventListener('click', (e) => { showBest = !showBest; (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(showBest)); (e.currentTarget as HTMLElement).textContent = showBest ? 'Hide best-fit line' : 'Show best-fit line'; draw(); });
+  $('.sb-reset').addEventListener('click', () => { pts = SETS[set].pts.map((p) => [...p] as P); readout(); });
+  root.querySelectorAll<HTMLButtonElement>('.sb-set button').forEach((bt) => bt.addEventListener('click', () => {
+    set = +bt.dataset.set!; root.querySelectorAll('.sb-set button').forEach((o) => o.setAttribute('aria-pressed', String(o === bt))); pts = SETS[set].pts.map((p) => [...p] as P);
+    const f = fitLine(pts); $<HTMLInputElement>('.sb-m').value = String(Math.round(f.slope * 10) / 10 - 0.5); $<HTMLInputElement>('.sb-b').value = String(Math.round(f.intercept)); readout();
+  }));
+  cv.addEventListener('pointerdown', (e) => {
+    const G = geo(), rc = cv.getBoundingClientRect(), px = e.clientX - rc.left, py = e.clientY - rc.top;
+    if (px < G.L || px > G.R || py < G.T || py > G.B) return;
+    pts.push([G.g.x0 + ((px - G.L) / (G.R - G.L)) * (G.g.x1 - G.g.x0), G.g.y0 + ((G.B - py) / (G.B - G.T)) * (G.g.y1 - G.g.y0)]); readout();
+  });
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  readout();
+  mountQuiz($('.sb-quiz'), () => {
+    const a = pick(2, 9), b = pick(1, 6), x = pick(2, 9);
+    return [
+      { q: `A best-fit line is y = ${a}x + ${b}. What does it predict when x = ${x}?`, ans: a * x + b, work: `y = ${a} × ${x} + ${b} = ${a * x + b}.` },
+      { q: 'Two data sets have r = 0.92 and r = −0.35. Which has the stronger straight-line link?', choices: ['r = 0.92', 'r = −0.35', 'The same'], ans: 0, work: 'What counts is how close |r| is to 1, not the sign. 0.92 is stronger than 0.35.' },
+      { q: 'A dot sits above the best-fit line. Is its residual (actual − predicted) positive or negative?', choices: ['Positive', 'Negative', 'Zero'], ans: 0, work: 'Above the line means the actual value is more than predicted, so actual − predicted is positive.' },
+    ];
+  });
+</script>

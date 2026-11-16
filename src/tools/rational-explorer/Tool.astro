@@ -1,0 +1,99 @@
+---
+// #L326 Rational explorer. f(x) = k (x − z1)(x − z2) / ((x − p1)(x − p2)): vertical asymptotes, holes, the
+// horizontal asymptote and the intercepts, found from the factors. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn rxp">
+  <div class="ax-card">
+    <h2>Rational function from its factors</h2>
+    <p class="ax-big rxp-eq" aria-live="polite"></p>
+    <canvas class="lrn-cv rxp-cv" aria-label="Graph of the rational function with its vertical asymptotes drawn as dashed lines and its horizontal asymptote"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Zero z₁: <b class="rxp-v" data-for="z1"></b> <input class="rxp-in" data-k="z1" type="range" min="-6" max="6" step="1" value="-2" /></label>
+      <label>Zero z₂: <b class="rxp-v" data-for="z2"></b> <input class="rxp-in" data-k="z2" type="range" min="-6" max="6" step="1" value="3" /></label>
+      <label>Pole p₁: <b class="rxp-v" data-for="p1"></b> <input class="rxp-in" data-k="p1" type="range" min="-6" max="6" step="1" value="-1" /></label>
+      <label>Pole p₂: <b class="rxp-v" data-for="p2"></b> <input class="rxp-in" data-k="p2" type="range" min="-6" max="6" step="1" value="2" /></label>
+      <label>Scale k: <b class="rxp-v" data-for="k"></b> <input class="rxp-in" data-k="k" type="range" min="-3" max="3" step="0.5" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:6px">
+      <label class="ax-check"><input type="checkbox" class="rxp-lin" /> Linear numerator (leave out the second zero)</label>
+    </div>
+    <dl class="ax-facts rxp-facts" aria-live="polite"></dl>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Set a zero equal to a pole, such as z₁ = −1 and p₁ = −1. The factor cancels: the asymptote becomes a hole (an open circle).</li><li>Tick "Linear numerator". The degree of the top is now lower than the bottom, so the horizontal asymptote drops to y = 0.</li><li>Make both poles equal. The curve now has one asymptote, and both arms go to the same infinity.</li></ul>
+  </div>
+  <div class="ax-card rxp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .rxp .rxp-cv { width: 100%; }
+  .rxp .ax-check { display: flex; gap: 8px; align-items: center; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.rxp') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const cv = q('.rxp-cv') as HTMLCanvasElement, lin = q('.rxp-lin') as HTMLInputElement;
+  const val: Record<string, number> = { z1: -2, z2: 3, p1: -1, p2: 2, k: 1 };
+  const sgn = (v: number) => v === 0 ? 'x' : v > 0 ? `(x − ${v})` : `(x + ${-v})`;
+  const g = (x: number) => String(+x.toFixed(3));
+  const analyse = () => {
+    const { z1, z2, p1, p2, k } = val, quad = !lin.checked;
+    const zeros = quad ? [z1, z2] : [z1], poles = [p1, p2];
+    // Cancel common factors: they leave holes, not asymptotes.
+    const z = [...zeros], p = [...poles], holes: number[] = [];
+    for (const v of [...new Set(poles)]) while (z.includes(v) && p.includes(v)) { z.splice(z.indexOf(v), 1); p.splice(p.indexOf(v), 1); if (!holes.includes(v)) holes.push(v); }
+    const vas = [...new Set(p)];
+    const f = (x: number) => k * z.reduce((a, c) => a * (x - c), 1) / p.reduce((a, c) => a * (x - c), 1);
+    let ha: string;
+    if (z.length < p.length) ha = 'y = 0'; else if (z.length === p.length) ha = 'y = ' + g(k); else ha = 'none (the curve goes off to infinity)';
+    return { zeros, poles, z, p, holes, vas, f, ha, k, quad, y0: poles[0] * poles[1] === 0 ? null : (k * zeros.reduce((a, c) => a * (0 - c), 1)) / (poles[0] * poles[1]) };
+  };
+  const draw = () => {
+    for (const e of root.querySelectorAll<HTMLElement>('.rxp-v')) e.textContent = String(val[e.dataset.for!]);
+    const a = analyse();
+    q('.rxp-eq').textContent = `f(x) = ${g(a.k)} · ${a.zeros.map(sgn).join('')} / ${a.poles.map(sgn).join('')}`;
+    const { ctx, W, H } = fitCanvas(cv, 280), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H);
+    const xr = 9, yr = 9, X = (x: number) => W / 2 + x * (W / 2 / xr), Y = (y: number) => H / 2 - y * (H / 2 / yr);
+    ctx.lineWidth = 1; ctx.strokeStyle = pal.grid;
+    for (let k = -xr; k <= xr; k++) { ctx.beginPath(); ctx.moveTo(X(k), 0); ctx.lineTo(X(k), H); ctx.stroke(); }
+    for (let k = -yr; k <= yr; k++) { ctx.beginPath(); ctx.moveTo(0, Y(k)); ctx.lineTo(W, Y(k)); ctx.stroke(); }
+    ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5;
+    for (const v of a.vas) { ctx.beginPath(); ctx.moveTo(X(v), 0); ctx.lineTo(X(v), H); ctx.stroke(); }
+    if (a.z.length <= a.p.length && a.ha !== 'none (the curve goes off to infinity)') { const hy = a.z.length === a.p.length ? a.k : 0; ctx.beginPath(); ctx.moveTo(0, Y(hy)); ctx.lineTo(W, Y(hy)); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+    let on = false, last = 0;
+    for (let i = 0; i <= 900; i++) {
+      const x = -xr + (2 * xr * i) / 900, y = a.f(x), py = Y(y);
+      const bad = !Number.isFinite(y) || Math.abs(y) > 40 || (on && Math.abs(py - last) > H * 0.6);
+      if (bad) { on = false; continue; }
+      if (on) ctx.lineTo(X(x), py); else ctx.moveTo(X(x), py); on = true; last = py;
+    }
+    ctx.stroke();
+    ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.bg; ctx.lineWidth = 2;
+    for (const h of a.holes) { const y = a.f(h); if (!Number.isFinite(y)) continue; ctx.beginPath(); ctx.arc(X(h), Y(y), 5, 0, 7); ctx.fill(); ctx.stroke(); }
+    const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    const list = (xs: number[]) => xs.length ? xs.map((v) => 'x = ' + v).join(', ') : 'none';
+    q('.rxp-facts').innerHTML = row('Vertical asymptotes', list(a.vas)) + row('Holes', a.holes.length ? a.holes.map((h) => `(${h}, ${g(a.f(h))})`).join(', ') : 'none')
+      + row('Horizontal asymptote', a.ha) + row('x-intercepts', list([...new Set(a.z)])) + row('y-intercept', a.y0 === null ? 'none (x = 0 is an asymptote or hole)' : g(a.y0));
+  };
+  for (const i of root.querySelectorAll<HTMLInputElement>('.rxp-in')) i.addEventListener('input', () => { val[i.dataset.k!] = +i.value; draw(); });
+  lin.addEventListener('change', draw);
+  addEventListener('resize', draw);
+  draw();
+  mountQuiz(q('.rxp-quiz'), () => {
+    const z = pick(-5, 5), k = pick(1, 4); let p = pick(-5, 5); if (p === z) p = z + 1;
+    const kind = pick(0, 1);
+    if (kind === 0) return [{ q: `f(x) = ${k}${sgn(z)} / ${sgn(p)}. Where is the vertical asymptote? (x = ?)`, ans: p, work: `The bottom is zero at x = ${p}, and the top is not, so there is a vertical asymptote at x = ${p}.` }];
+    return [{ q: `f(x) = ${k}${sgn(z)} / ${sgn(p)}. What value does f(x) approach as x gets very large (the horizontal asymptote y = ?)`, ans: k, work: `Top and bottom both have degree 1, so y approaches the ratio of the leading numbers: ${k} / 1 = ${k}.` }];
+  });
+</script>

@@ -1,0 +1,84 @@
+---
+// #L327 Moments lab. Engine: src/lib/learn/ (quiz.ts, sim.ts).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ml">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="gcse" aria-pressed="true">GCSE</button><button type="button" data-level="alevel" aria-pressed="false">A-level</button></div>
+    <h2>Balance the beam</h2>
+    <canvas class="lrn-cv ml-cv" aria-label="A 10 metre beam on a pivot with a weight on each side"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Left weight: <b class="ml-w1v"></b> <input class="ml-w1" type="range" min="1" max="20" step="1" value="10" /></label>
+      <label>Left position: <b class="ml-x1v"></b> <input class="ml-x1" type="range" min="0" max="10" step="0.5" value="2" /></label>
+      <label>Right weight: <b class="ml-w2v"></b> <input class="ml-w2" type="range" min="1" max="20" step="1" value="10" /></label>
+      <label>Right position: <b class="ml-x2v"></b> <input class="ml-x2" type="range" min="0" max="10" step="0.5" value="8" /></label>
+      <label>Pivot position: <b class="ml-pv"></b> <input class="ml-p" type="range" min="0" max="10" step="0.5" value="5" /></label>
+      <label data-only="alevel" hidden>Beam weight: <b class="ml-wbv"></b> <input class="ml-wb" type="range" min="0" max="20" step="1" value="0" /></label>
+    </div>
+    <p class="ax-big ml-out" aria-live="polite"></p>
+    <p class="ax-help ml-calc"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Move the left weight twice as far out and halve it: what happens to its moment?</li><li>Slide the pivot to one end. Can the beam balance?</li><li>On A-level, give the beam a weight and find where the pivot must be for balance.</li></ul>
+  </div>
+  <div class="ax-card ml-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ml .ml-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.ml') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const inp = (s: string) => q(s) as HTMLInputElement;
+  const cv = q('.ml-cv') as HTMLCanvasElement;
+  let level = 'gcse';
+  const fmt = (x: number) => String(+x.toFixed(1));
+  const draw = () => {
+    const w1 = +inp('.ml-w1').value, x1 = +inp('.ml-x1').value, w2 = +inp('.ml-w2').value, x2 = +inp('.ml-x2').value, p = +inp('.ml-p').value;
+    const wb = level === 'alevel' ? +inp('.ml-wb').value : 0;
+    q('.ml-w1v').textContent = w1 + ' N'; q('.ml-x1v').textContent = fmt(x1) + ' m'; q('.ml-w2v').textContent = w2 + ' N'; q('.ml-x2v').textContent = fmt(x2) + ' m';
+    q('.ml-pv').textContent = fmt(p) + ' m'; q('.ml-wbv').textContent = wb + ' N';
+    // Clockwise moment about the pivot is W × (x − p): positive for weights to the right of it.
+    const parts = [{ n: 'left weight', w: w1, x: x1 }, { n: 'right weight', w: w2, x: x2 }, ...(wb ? [{ n: 'beam weight', w: wb, x: 5 }] : [])];
+    const mom = parts.map((a) => ({ ...a, m: a.w * (a.x - p) }));
+    const cw = mom.filter((a) => a.m > 0).reduce((s, a) => s + a.m, 0), acw = -mom.filter((a) => a.m < 0).reduce((s, a) => s + a.m, 0);
+    const net = cw - acw, total = w1 + w2 + wb;
+    const out = q('.ml-out');
+    out.textContent = Math.abs(net) < 0.001 ? 'Balanced: clockwise and anticlockwise moments are equal.' : `Not balanced: it turns ${net > 0 ? 'clockwise' : 'anticlockwise'} (net moment ${fmt(Math.abs(net))} N m).`;
+    q('.ml-calc').textContent = `Clockwise ${fmt(cw)} N m, anticlockwise ${fmt(acw)} N m. ` + mom.map((a) => `${a.n}: ${a.w} N × ${fmt(Math.abs(a.x - p))} m = ${fmt(Math.abs(a.m))} N m`).join('; ') + `. Pivot force ${total} N upwards.`;
+    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = W - 40, X = (m: number) => 20 + (m / 10) * L, cy = 120, ang = Math.max(-0.12, Math.min(0.12, net * 0.002));
+    ctx.save(); ctx.translate(X(p), cy); ctx.rotate(ang); ctx.translate(-X(p), -cy);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(X(0), cy); ctx.lineTo(X(10), cy); ctx.stroke();
+    ctx.lineWidth = 2; ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+    for (const a of parts) {
+      const h = a.n === 'beam weight' ? 16 + a.w : 14 + a.w * 1.6, bx = X(a.x);
+      ctx.fillStyle = a.n === 'left weight' ? pal.accent : a.n === 'right weight' ? pal.accent2 : pal.muted;
+      ctx.fillRect(bx - 12, cy + 4, 24, Math.min(h, 60));
+      ctx.fillStyle = pal.ink; ctx.fillText(`${a.w} N`, bx, cy + 4 + Math.min(h, 60) + 14);
+    }
+    ctx.restore();
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(X(p), cy + 3); ctx.lineTo(X(p) - 14, cy + 40); ctx.lineTo(X(p) + 14, cy + 40); ctx.closePath(); ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = pal.muted; ctx.fillText('pivot', X(p), cy + 56);
+  };
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.ml-quiz'), () => {
+    const w2 = pick(2, 12), d2 = pick(1, 5), d1 = pick(1, 5), f = pick(2, 20), d = pick(1, 8);
+    return [
+      { q: `A ${f} N force acts ${d} m from a pivot, at right angles to the beam. What is its moment?`, ans: f * d, unit: 'N m', work: `moment = force × distance = ${f} × ${d} = ${r(f * d)} N m` },
+      { q: `A ${w2} N weight sits ${d2} m to the right of a pivot. What weight, ${d1} m to the left, balances it?`, ans: (w2 * d2) / d1, unit: 'N', work: `Clockwise moment = ${w2} × ${d2} = ${r(w2 * d2)} N m. Balance needs ${r(w2 * d2)} = W × ${d1}, so W = ${r((w2 * d2) / d1)} N.` },
+      { q: 'A beam balances with weights of 6 N and 4 N hanging from it. What upward force does the pivot give?', ans: 10, unit: 'N', work: 'The pivot force equals the total weight: 6 + 4 = 10 N.' },
+    ];
+  });
+</script>

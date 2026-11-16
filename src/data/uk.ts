@@ -1,0 +1,140 @@
+// The Learn area's map of school topics for England (the UK's most used public curriculum): Key Stage 3
+// (Years 7 to 9), GCSE (Years 10 and 11) and A-level (Years 12 and 13), in science and maths. Only topic names
+// and short descriptions are used (the Department for Education's subject content is a list of topics, and fibub
+// is not part of it, nor of any exam board). Same shape as src/data/ncert.ts, so the pages, the home page totals
+// and the "In the school syllabus" row on tool pages all work from it. Tool ids that are not live are left out.
+import type { SchoolClass, Chapter } from './ncert';
+
+const c = (n: number, title: string, topics: string, tools: string[] = []): Chapter => ({ n, title, topics, tools });
+
+export const UK_LEVELS: SchoolClass[] = [
+  {
+    id: 'uk-ks3', n: 9, name: 'UK Key Stage 3', blurb: 'Years 7 to 9: science and maths.',
+    subjects: [
+      { id: 'science', name: 'Science', chapters: [
+        c(1, 'Working scientifically', 'Fair tests, measuring, graphs, uncertainty', ['fair-test-planner', 'plot-maker', 'sig-fig-checker', 'si-unit-converter']),
+        c(2, 'Particles and matter', 'States of matter, particle model, diffusion, density', ['states-of-matter', 'random-walk-diffusion', 'heating-curve', 'kinetic-theory']),
+        c(3, 'Atoms, elements and the periodic table', 'Atoms, elements, compounds, mixtures, periodic table', ['build-an-atom', 'periodic-table', 'matter-sorter', 'separation-lab']),
+        c(4, 'Chemical reactions', 'Reactions, acids and alkalis, pH, metals and the reactivity series', ['ph-scale-explorer', 'reactivity-series', 'reaction-type-sorter', 'equation-balancer', 'rusting-lab']),
+        c(5, 'Forces and motion', 'Speed, distance-time graphs, forces, friction, pressure', ['motion-graphs', 'newtons-laws', 'friction-ramp', 'pressure-explorer', 'distance-displacement', 'stopping-distance']),
+        c(6, 'Energy', 'Energy stores and transfers, work, power, heating and cooling', ['energy-track', 'power-bill', 'heating-curve', 'spring-energy']),
+        c(7, 'Waves: light and sound', 'Reflection, refraction, colour, sound, hearing', ['mirror-ray-diagram', 'plane-mirror-lab', 'prism-dispersion', 'sound-wave-visualiser', 'hearing-range', 'em-spectrum']),
+        c(8, 'Electricity and magnetism', 'Circuits, current, potential difference, resistance, magnets', ['simple-circuit-lab', 'series-parallel', 'ohms-law-lab', 'electromagnet-builder', 'static-charge']),
+        c(9, 'Space', 'Earth, Moon, Sun, seasons, the Solar System, gravity', ['moon-phase-simulator', 'sky-tonight', 'sun-position-calculator', 'kepler-orbits', 'eclipse-finder']),
+        c(10, 'Cells and organisms', 'Cells, microscopes, tissues, organs, unicellular organisms', ['cell-explorer', 'virtual-microscope', 'tissue-identifier', 'osmosis-lab']),
+        c(11, 'Body systems', 'Digestion, breathing, circulation, skeleton and muscles, reproduction', ['digestion-journey', 'heart-circulation', 'cardiac-cycle', 'reproduction-modes']),
+        c(12, 'Plants and photosynthesis', 'Photosynthesis, plant reproduction, transport in plants', ['photosynthesis-lab', 'flower-parts', 'flower-pollination', 'transpiration-lab']),
+        c(13, 'Genes, variation and evolution', 'Variation, inheritance, natural selection, extinction', ['mendel-peas', 'natural-selection', 'pedigree-analyser']),
+        c(14, 'Ecosystems and interdependence', 'Food webs, ecosystems, the carbon cycle, biodiversity', ['food-web-builder', 'carbon-cycle', 'biodiversity-indices', 'decomposer-race']),
+        c(15, 'Earth and atmosphere', 'Rocks, the water cycle, climate, the greenhouse effect', ['water-cycle-sim', 'earth-energy-budget', 'geological-time']),
+      ] },
+      { id: 'maths', name: 'Maths', chapters: [
+        c(1, 'Number and place value', 'Place value, negative numbers, rounding, standard form', ['number-line-zoom', 'standard-form-ladder', 'number-systems']),
+        c(2, 'Factors, multiples and primes', 'Factors, HCF and LCM, primes, divisibility', ['hcf-lcm-venn', 'divisibility-tests', 'number-theory-toolkit']),
+        c(3, 'Fractions, decimals and percentages', 'Equivalent fractions, percentage change, ratio', ['percentage-bar', 'ratio-mixer', 'proportion-grapher']),
+        c(4, 'Powers and roots', 'Squares, cubes, roots, index laws', ['square-cube-builder', 'square-root-finder', 'exponent-laws']),
+        c(5, 'Algebra: expressions and equations', 'Simplifying, expanding, solving linear equations', ['balance-scale', 'identity-tiles', 'symbolic-algebra', 'linear-word-problems']),
+        c(6, 'Sequences and graphs', 'Number sequences, straight-line graphs, gradient', ['sequence-explorer', 'linear-explorer', 'two-variable-line', 'function-gallery']),
+        c(7, 'Angles and shapes', 'Angle rules, polygons, parallel lines, constructions', ['polygon-angle-sum', 'quadrilateral-explorer', 'geometry-construction']),
+        c(8, 'Perimeter, area and volume', 'Areas of triangles, circles and compound shapes, volume', ['area-shear', 'circle-slices', 'combined-solids', 'picks-theorem']),
+        c(9, 'Pythagoras and similar shapes', 'Pythagoras theorem, similarity, scale drawing', ['pythagoras-proofs', 'similar-triangles', 'map-scale']),
+        c(10, 'Transformations', 'Reflection, rotation, translation, enlargement', ['matrix-transform', 'tessellation-studio']),
+        c(11, 'Probability', 'Probability scale, sample space, tree diagrams, Venn diagrams', ['sample-space', 'probability-tree', 'venn-diagram', 'spinner-designer']),
+        c(12, 'Statistics', 'Averages, charts, scatter graphs, spread', ['histogram-builder', 'grouped-data-stats', 'spread-explorer', 'plot-maker']),
+      ] },
+    ],
+  },
+  {
+    id: 'uk-gcse', n: 11, name: 'UK GCSE', blurb: 'Years 10 and 11: combined and separate sciences, and maths.',
+    subjects: [
+      { id: 'physics', name: 'Physics', chapters: [
+        c(1, 'Energy', 'Energy stores, conservation, efficiency, power', ['energy-stores', 'energy-track', 'spring-energy', 'power-bill']),
+        c(2, 'Electricity', 'Circuits, resistance, I-V graphs, mains electricity, power', ['ohms-law-lab', 'series-parallel', 'simple-circuit-lab', 'internal-resistance', 'transformer-calculator']),
+        c(3, 'Particle model of matter', 'Density, internal energy, specific heat capacity, gas pressure', ['states-of-matter', 'heating-curve', 'heat-capacity-fitter', 'gas-law-calculator', 'kinetic-theory']),
+        c(4, 'Atomic structure and radiation', 'Atomic models, isotopes, radioactive decay, half-life, uses', ['rutherford-scattering', 'decay-dice', 'decay-calculator', 'build-an-atom', 'binding-energy']),
+        c(5, 'Forces', 'Vectors, Newton\'s laws, moments, springs, pressure, stopping distances', ['newtons-laws', 'free-body-diagram', 'moments-lab', 'vector-adder', 'stopping-distance', 'liquid-pressure', 'friction-ramp']),
+        c(6, 'Motion and momentum', 'Speed, acceleration, motion graphs, momentum, collisions', ['motion-graphs', 'equations-of-motion', 'collision-carts', 'free-fall', 'projectile-launcher']),
+        c(7, 'Waves', 'Transverse and longitudinal waves, the electromagnetic spectrum, lenses', ['travelling-wave', 'em-spectrum', 'lens-ray-diagram', 'snell-law', 'sound-wave-visualiser', 'standing-waves']),
+        c(8, 'Magnetism and electromagnetism', 'Magnetic fields, motors, induction, transformers', ['magnetic-field-mapper', 'electromagnet-builder', 'fleming-rule', 'faraday-induction', 'transformer-calculator']),
+        c(9, 'Space physics', 'Solar System, stars, life cycle of stars, red-shift', ['kepler-orbits', 'hr-diagram', 'redshift-calculator', 'cosmology-calculator']),
+      ] },
+      { id: 'chemistry', name: 'Chemistry', chapters: [
+        c(1, 'Atomic structure and the periodic table', 'Atoms, isotopes, electron shells, groups and trends', ['build-an-atom', 'periodic-table', 'electron-configuration', 'periodic-trends', 'mendeleev-predictor']),
+        c(2, 'Bonding, structure and properties of matter', 'Ionic, covalent and metallic bonding, giant structures, nanoparticles', ['ionic-bond-dots', 'lewis-structures', 'solids-lab', 'nanoparticle-calculator', 'states-of-matter']),
+        c(3, 'Quantitative chemistry', 'Relative formula mass, moles, balancing equations, concentration', ['mole-bridge', 'molar-mass-calculator', 'equation-balancer', 'concentration-converter', 'constant-proportions']),
+        c(4, 'Chemical changes', 'Reactivity series, acids and alkalis, pH, electrolysis, neutralisation', ['reactivity-series', 'ph-scale-explorer', 'titration-curve', 'galvanic-cell', 'chlor-alkali']),
+        c(5, 'Energy changes', 'Exothermic and endothermic reactions, bond energies, cells', ['bond-enthalpy', 'bomb-calorimeter', 'galvanic-cell']),
+        c(6, 'Rate and extent of chemical change', 'Rates of reaction, collision theory, reversible reactions, equilibrium', ['rate-of-reaction-lab', 'reaction-kinetics-fitter', 'le-chatelier', 'equilibrium-solver']),
+        c(7, 'Organic chemistry', 'Crude oil, alkanes, alkenes, alcohols, polymers', ['carbon-chain-namer', 'isomer-explorer', 'organic-reaction-map', 'esterification', 'polymer-molar-mass']),
+        c(8, 'Chemical analysis', 'Pure substances, chromatography, tests for gases and ions', ['chromatography-calculator', 'separation-lab', 'tlc-rf-calculator', 'ksp-precipitation']),
+        c(9, 'Chemistry of the atmosphere and resources', 'Atmosphere, greenhouse gases, climate, water, recycling', ['earth-energy-budget', 'carbon-cycle', 'energy-balance-model', 'water-cycle-sim']),
+      ] },
+      { id: 'biology', name: 'Biology', chapters: [
+        c(1, 'Cell biology', 'Cell structure, microscopy, cell division, transport', ['cell-explorer', 'virtual-microscope', 'cell-division', 'osmosis-lab', 'cell-membrane']),
+        c(2, 'Organisation', 'Digestive system, enzymes, heart and blood, plant tissues, transport', ['digestion-journey', 'enzyme-activity', 'heart-circulation', 'transpiration-lab', 'tissue-identifier']),
+        c(3, 'Infection and response', 'Pathogens, vaccination, antibiotics, immune response', ['immune-response', 'antibiotic-zones', 'epidemic-model', 'herd-immunity', 'malaria-life-cycle']),
+        c(4, 'Bioenergetics', 'Photosynthesis, respiration, metabolism', ['photosynthesis-lab', 'respiration-atp', 'respiration-pathways', 'enzyme-activity']),
+        c(5, 'Homeostasis and response', 'Nervous system, hormones, blood glucose, reproduction', ['action-potential', 'hormone-feedback', 'reaction-time-test', 'brain-map']),
+        c(6, 'Inheritance, variation and evolution', 'DNA, genetic crosses, evolution, classification', ['mendel-peas', 'pedigree-analyser', 'central-dogma', 'natural-selection', 'classification-tree', 'sex-determination']),
+        c(7, 'Ecology', 'Ecosystems, food webs, cycles, biodiversity, sampling', ['food-web-builder', 'carbon-cycle', 'nitrogen-cycle', 'biodiversity-indices', 'field-sampling-planner', 'predator-prey', 'population-growth']),
+      ] },
+      { id: 'maths', name: 'Maths', chapters: [
+        c(1, 'Number', 'Standard form, fractions, percentages, ratio, surds', ['standard-form-ladder', 'percentage-bar', 'ratio-mixer', 'rationalise-denominator', 'exponent-laws']),
+        c(2, 'Algebra', 'Expanding, factorising, quadratics, simultaneous equations, inequalities', ['factorise-steps', 'quadratic-explorer', 'linear-pair-solver', 'inequality-shader', 'symbolic-algebra']),
+        c(3, 'Graphs and sequences', 'Straight lines, quadratic and cubic graphs, gradients, sequences', ['function-grapher', 'linear-explorer', 'sequence-explorer', 'function-gallery', 'derivative-slope']),
+        c(4, 'Ratio, proportion and rates of change', 'Direct and inverse proportion, growth and decay, speed', ['proportion-grapher', 'doubling-power', 'race-track']),
+        c(5, 'Geometry and measures', 'Angles, circle theorems, area, volume, constructions, vectors', ['geometry-construction', 'circle-sector', 'combined-solids', 'vector-adder', 'polygon-angle-sum']),
+        c(6, 'Trigonometry and Pythagoras', 'Right-angled triangles, sine and cosine rules, graphs', ['trig-ratios', 'unit-circle', 'heights-distances', 'pythagoras-proofs']),
+        c(7, 'Probability', 'Tree diagrams, Venn diagrams, conditional probability', ['probability-tree', 'venn-diagram', 'sample-space', 'event-algebra']),
+        c(8, 'Statistics', 'Averages, histograms, box plots, scatter graphs, sampling', ['histogram-builder', 'grouped-data-stats', 'spread-explorer', 'regression-workbench']),
+      ] },
+    ],
+  },
+  {
+    id: 'uk-a-level', n: 13, name: 'UK A-level', blurb: 'Years 12 and 13: physics, chemistry, biology and maths.',
+    subjects: [
+      { id: 'physics', name: 'Physics', chapters: [
+        c(1, 'Measurements and errors', 'Units, uncertainties, vectors, scalars', ['uncertainty-calculator', 'dimensional-analysis', 'vector-lab-3d', 'sig-fig-checker']),
+        c(2, 'Particles and radiation', 'Quarks and leptons, photons, the photoelectric effect, energy levels', ['photoelectric-lab', 'hydrogen-spectrum', 'binding-energy', 'electron-diffraction-indexer', 'rutherford-scattering']),
+        c(3, 'Waves', 'Superposition, stationary waves, diffraction, interference', ['double-slit', 'diffraction-patterns', 'standing-waves', 'beats-lab', 'resonance-tube', 'optical-fibre']),
+        c(4, 'Mechanics and materials', 'Projectiles, moments, momentum, work, stress and strain', ['projectile-launcher', 'equations-of-motion', 'moments-lab', 'collision-lab', 'stress-strain-test', 'variable-force-work']),
+        c(5, 'Electricity', 'Resistivity, internal resistance, potential dividers, capacitors', ['internal-resistance', 'potentiometer', 'capacitor-lab', 'kirchhoff-solver', 'drift-velocity']),
+        c(6, 'Further mechanics and thermal physics', 'Circular motion, SHM, ideal gases, thermal energy', ['shm-circle', 'spring-mass', 'forced-oscillations', 'vertical-circle', 'kinetic-theory', 'gas-law-calculator', 'heat-engine-cycles']),
+        c(7, 'Fields and their consequences', 'Gravitational, electric and magnetic fields, capacitors, induction', ['coulomb-forces', 'gauss-law', 'faraday-induction', 'lorentz-motion', 'kepler-orbits', 'potential-map']),
+        c(8, 'Nuclear physics', 'Radioactive decay, nuclear energy, binding energy', ['decay-calculator', 'decay-chain', 'decay-dice', 'binding-energy', 'counting-statistics']),
+        c(9, 'Astrophysics and cosmology', 'Stars, Hertzsprung-Russell diagram, red-shift, expanding Universe', ['hr-diagram', 'redshift-calculator', 'cosmology-calculator', 'schwarzschild-orbits']),
+      ] },
+      { id: 'chemistry', name: 'Chemistry', chapters: [
+        c(1, 'Atomic structure and amount of substance', 'Electron configuration, moles, empirical formulae, mass spectra', ['electron-configuration', 'mole-bridge', 'molar-mass-calculator', 'isotope-pattern-calculator', 'oxidation-number']),
+        c(2, 'Bonding and periodicity', 'Shapes of molecules, polarity, intermolecular forces, trends', ['vsepr-shapes', 'dipole-polarity', 'hydrogen-bonding', 'periodic-trends', 'mo-diagram']),
+        c(3, 'Energetics and kinetics', 'Enthalpy changes, Hess cycles, rates, Arrhenius', ['bond-enthalpy', 'bomb-calorimeter', 'rate-of-reaction-lab', 'reaction-kinetics-fitter', 'gibbs-explorer']),
+        c(4, 'Equilibria and acids', 'Kc, Kp, pH, buffers, titration curves', ['equilibrium-solver', 'le-chatelier', 'ph-scale-explorer', 'buffer-recipe-calculator', 'titration-curve', 'ksp-precipitation']),
+        c(5, 'Redox and electrochemistry', 'Oxidation states, electrode potentials, cells, corrosion', ['galvanic-cell', 'oxidation-number', 'tafel-corrosion-rate', 'rusting-lab']),
+        c(6, 'Transition metals', 'Complex ions, colour, ligands, catalysts', ['complex-namer', 'electron-configuration']),
+        c(7, 'Organic chemistry', 'Mechanisms, isomerism, carbonyls, polymers, synthesis routes', ['organic-reaction-map', 'sn1-sn2', 'markovnikov-addition', 'isomer-explorer', 'chirality-checker', 'carbon-chain-namer', 'esterification']),
+        c(8, 'Analysis', 'Chromatography, NMR, infrared, mass spectrometry', ['chromatography-calculator', 'nmr-impurity-checker', 'ir-band-finder', 'isotope-pattern-calculator', 'tlc-rf-calculator']),
+      ] },
+      { id: 'biology', name: 'Biology', chapters: [
+        c(1, 'Biological molecules', 'Carbohydrates, proteins, lipids, enzymes, DNA', ['biomolecule-tests', 'protein-structure', 'sugar-structures', 'enzyme-activity', 'enzyme-kinetics-fitter']),
+        c(2, 'Cells and transport', 'Cell structure, membranes, cell cycle, immunity', ['cell-explorer', 'cell-membrane', 'cell-division', 'osmosis-lab', 'immune-response']),
+        c(3, 'Organisms exchange substances', 'Gas exchange, digestion, mass transport in animals and plants', ['digestion-journey', 'heart-circulation', 'oxygen-dissociation', 'transpiration-lab', 'cardiac-cycle']),
+        c(4, 'Genetic information and variation', 'DNA, protein synthesis, meiosis, diversity, classification', ['central-dogma', 'copy-errors', 'meselson-stahl', 'taxonomy-ladder', 'classification-tree', 'gel-band-sizer']),
+        c(5, 'Energy transfers', 'Photosynthesis, respiration, ecosystems and nutrient cycles', ['photosynthesis-lab', 'calvin-c4', 'z-scheme', 'respiration-pathways', 'respiration-atp', 'nitrogen-cycle']),
+        c(6, 'Organisms respond to change', 'Nervous coordination, muscles, homeostasis, hormones', ['action-potential', 'sliding-filament', 'hormone-feedback', 'nephron-filter', 'brain-map']),
+        c(7, 'Genetics, populations and evolution', 'Inheritance, Hardy-Weinberg, selection, speciation', ['mendel-peas', 'hardy-weinberg-tester', 'natural-selection', 'mendelian-chi-square', 'pedigree-analyser', 'polygenic-traits']),
+        c(8, 'Control of gene expression and ecology', 'Gene regulation, biotechnology, populations, sampling', ['lac-operon', 'pcr-master-mix', 'recombinant-insulin', 'population-growth-models', 'biodiversity-indices', 'distance-sampling']),
+      ] },
+      { id: 'maths', name: 'Maths', chapters: [
+        c(1, 'Proof, algebra and functions', 'Proof, surds, polynomials, functions and transformations', ['irrational-proof', 'polynomial-zeros', 'function-gallery', 'function-grapher', 'inequality-shader', 'e-and-ln']),
+        c(2, 'Coordinate geometry and sequences', 'Circles, parametric equations, series, binomial expansion', ['conic-explorer', 'gp-explorer', 'binomial-expansion', 'sequence-explorer', 'coord-triangle']),
+        c(3, 'Trigonometry', 'Radians, identities, compound angles, inverse functions', ['radian-ruler', 'unit-circle', 'compound-angle', 'inverse-trig', 'trig-ratios']),
+        c(4, 'Differentiation', 'First principles, chain rule, maxima and minima, rates of change', ['limit-zoom', 'derivative-slope', 'derivative-steps', 'chain-rule', 'maxima-minima', 'related-rates']),
+        c(5, 'Integration and differential equations', 'Area under a curve, integration methods, numerical methods', ['integration-coach', 'riemann-sums', 'integral-properties', 'slope-field', 'ode-solver', 'numerical-methods']),
+        c(6, 'Vectors', 'Vectors in two and three dimensions, lines', ['vector-adder', 'vector-lab-3d', 'points-3d']),
+        c(7, 'Statistics', 'Sampling, distributions, binomial and normal, hypothesis tests, regression', ['normal-distribution-lab', 'binomial-distribution-lab', 'hypothesis-tests', 'random-variable', 'distribution-explorer', 'regression-workbench']),
+        c(8, 'Mechanics', 'Kinematics, forces and Newton\'s laws, moments, projectiles', ['equations-of-motion', 'projectile-launcher', 'newtons-laws', 'moments-lab', 'vector-adder']),
+        c(9, 'Further pure and matrices', 'Complex numbers, matrices, linear transformations', ['argand-plane', 'matrix-transform', 'linear-pair-solver']),
+      ] },
+    ],
+  },
+];
