@@ -7,51 +7,63 @@ import Downloads from '../../components/Downloads.astro';
 <div class="ax foc">
   <div class="ax-card">
     <h2>Fibre</h2>
-    <label>Start from <select class="fo-pre">
+    <label>Start from <select data-k="pre" class="fo-pre">
       <option value="sm" selected>Single-mode fibre, 1550 nm long link</option>
       <option value="mms">Multimode step-index, 850 nm LED</option>
       <option value="mmg">Multimode graded-index, 850 nm laser</option>
       <option value="custom">My own values</option>
     </select></label>
     <div class="ax-grid" style="margin-top:10px">
-      <label>Core index n₁ <input class="fo-n1" type="text" inputmode="decimal" /></label>
-      <label>Cladding index n₂ <input class="fo-n2" type="text" inputmode="decimal" /></label>
-      <label>Core diameter (µm) <input class="fo-d" type="text" inputmode="decimal" /></label>
-      <label>Wavelength (nm) <input class="fo-l" type="text" inputmode="decimal" /></label>
-      <label>Index profile <select class="fo-p"><option value="step">Step index</option><option value="graded">Graded (parabolic)</option></select></label>
-      <label>Outside medium index <input class="fo-n0" type="text" inputmode="decimal" value="1" /></label>
+      <label>Core index n₁ <input data-k="n1" class="fo-n1" type="text" inputmode="decimal" /></label>
+      <label>Cladding index n₂ <input data-k="n2" class="fo-n2" type="text" inputmode="decimal" /></label>
+      <label>Core diameter (µm) <input data-k="d" class="fo-d" type="text" inputmode="decimal" /></label>
+      <label>Wavelength (nm) <input data-k="l" class="fo-l" type="text" inputmode="decimal" /></label>
+      <label>Index profile <select data-k="p" class="fo-p"><option value="step">Step index</option><option value="graded">Graded (parabolic)</option></select></label>
+      <label>Outside medium index <input data-k="n0" class="fo-n0" type="text" inputmode="decimal" value="1" /></label>
     </div>
     <h3>Pulse spreading</h3>
     <div class="ax-grid">
-      <label>Link length (km) <input class="fo-L" type="text" inputmode="decimal" /></label>
-      <label>Chromatic dispersion D (ps/(nm·km)) <input class="fo-D" type="text" inputmode="decimal" /></label>
-      <label>Source spectral width (nm) <input class="fo-dl" type="text" inputmode="decimal" /></label>
+      <label>Link length <input data-k="L" class="fo-L" type="text" inputmode="decimal" /></label>
+      <label>Length unit <select data-k="lu" class="fo-lu"><option value="1" selected>kilometres</option><option value="0.001">metres</option><option value="1.609344">miles</option></select></label>
+      <label>Chromatic dispersion D (ps/(nm·km)) <input data-k="D" class="fo-D" type="text" inputmode="decimal" /></label>
+      <label>Source spectral width (nm) <input data-k="dl" class="fo-dl" type="text" inputmode="decimal" /></label>
     </div>
     <h3>Power budget</h3>
     <div class="ax-grid">
-      <label>Transmitter power (dBm) <input class="fo-tx" type="text" inputmode="decimal" /></label>
-      <label>Receiver sensitivity (dBm) <input class="fo-rx" type="text" inputmode="decimal" /></label>
-      <label>Fibre loss (dB/km) <input class="fo-att" type="text" inputmode="decimal" /></label>
-      <label>Connectors (pairs) <input class="fo-nc" type="text" inputmode="numeric" /></label>
-      <label>Loss per connector (dB) <input class="fo-lc" type="text" inputmode="decimal" /></label>
-      <label>Splices <input class="fo-ns" type="text" inputmode="numeric" /></label>
-      <label>Loss per splice (dB) <input class="fo-ls" type="text" inputmode="decimal" /></label>
-      <label>Safety margin (dB) <input class="fo-m" type="text" inputmode="decimal" /></label>
+      <label>Transmitter power (dBm) <input data-k="tx" class="fo-tx" type="text" inputmode="decimal" /></label>
+      <label>Receiver sensitivity (dBm) <input data-k="rx" class="fo-rx" type="text" inputmode="decimal" /></label>
+      <label>Fibre loss (dB/km) <input data-k="att" class="fo-att" type="text" inputmode="decimal" /></label>
+      <label>Connectors (pairs) <input data-k="nc" class="fo-nc" type="text" inputmode="numeric" /></label>
+      <label>Loss per connector (dB) <input data-k="lc" class="fo-lc" type="text" inputmode="decimal" /></label>
+      <label>Splices <input data-k="ns" class="fo-ns" type="text" inputmode="numeric" /></label>
+      <label>Loss per splice (dB) <input data-k="ls" class="fo-ls" type="text" inputmode="decimal" /></label>
+      <label>Safety margin (dB) <input data-k="m" class="fo-m" type="text" inputmode="decimal" /></label>
     </div>
+    <details class="fo-more"><summary>More: splitter, other losses and the itemised loss budget</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Splitter ways (1 for none) <input data-k="sp" class="fo-sp" type="text" inputmode="numeric" value="1" /></label>
+        <label>Splitter excess loss (dB) <input data-k="spx" class="fo-spx" type="text" inputmode="decimal" value="0" /></label>
+        <label>Other losses (dB) <input data-k="ex" class="fo-ex" type="text" inputmode="decimal" value="0" /></label>
+      </div>
+      <p class="ax-help">An ideal 1:N splitter loses 10 × log10(N) dB (3.01 dB for 1:2); add the excess loss from its data sheet. Other losses: patch panels, attenuators, a bend you know about. Leave at 0 if unsure.</p>
+    </details>
     <p class="ax-help">D: how much the fibre delays one wavelength against another; use your fibre's data sheet value at your wavelength. Spectral width: the source's linewidth (wide for an LED, narrow for a laser). Receiver sensitivity: the weakest signal the receiver can use. The margin covers ageing, repairs and temperature. The examples use rounded, made-up values: replace them with your own.</p>
     <p class="ax-err fo-err" hidden></p>
   </div>
 
   <div class="ax-card fo-out">
     <h2>Result</h2>
-    <p class="ax-big fo-big"></p>
+    <p class="ax-big fo-big" aria-live="polite"></p>
     <dl class="ax-facts fo-facts"></dl>
     <h3>Pulse spreading</h3>
     <dl class="ax-facts fo-facts2"></dl>
     <h3>Power budget</h3>
-    <p class="fo-verdict"></p>
+    <p class="fo-verdict" aria-live="polite"></p>
     <dl class="ax-facts fo-facts3"></dl>
     <canvas class="ax-fig fo-fig"></canvas>
+    <h3>Loss budget, item by item</h3>
+    <div class="ax-scroll"><table class="fo-lt"></table></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fo-csv">Download the loss budget (CSV)</button></div>
     <h3 class="fo-mh">Guided modes</h3>
     <div class="ax-scroll"><table class="fo-tab"></table></div>
     <p class="ax-help fo-mnote"></p>
@@ -61,15 +73,15 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { basics, lpModes, bLP01, nEff, marcuse, spreading, linkBudget, type Fibre } from '../../lib/sci/phfibre';
+  import { basics, lpModes, bLP01, nEff, marcuse, spreading, linkBudget, splitterLoss, type Fibre } from '../../lib/sci/phfibre';
   import { chartFigure } from '../../lib/sci/plot';
-  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
-  import { num, sig } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
 
   const PRE: Record<string, Record<string, string>> = {
-    sm: { n1: '1.45', n2: '1.445', d: '8', l: '1550', p: 'step', L: '80', D: '17', dl: '0.1', tx: '0', rx: '-28', att: '0.25', nc: '2', lc: '0.5', ns: '8', ls: '0.1', m: '3' },
-    mms: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'step', L: '1', D: '100', dl: '30', tx: '-15', rx: '-30', att: '3', nc: '2', lc: '0.5', ns: '0', ls: '0.1', m: '3' },
-    mmg: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'graded', L: '2', D: '100', dl: '1', tx: '-3', rx: '-17', att: '3', nc: '2', lc: '0.5', ns: '2', ls: '0.1', m: '3' },
+    sm: { n1: '1.45', n2: '1.445', d: '8', l: '1550', p: 'step', L: '80', D: '17', dl: '0.1', tx: '0', rx: '-28', att: '0.25', nc: '2', lc: '0.5', ns: '8', ls: '0.1', m: '3', sp: '1', spx: '0', ex: '0' },
+    mms: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'step', L: '1', D: '100', dl: '30', tx: '-15', rx: '-30', att: '3', nc: '2', lc: '0.5', ns: '0', ls: '0.1', m: '3', sp: '1', spx: '0', ex: '0' },
+    mmg: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'graded', L: '2', D: '100', dl: '1', tx: '-3', rx: '-17', att: '3', nc: '2', lc: '0.5', ns: '2', ls: '0.1', m: '3', sp: '1', spx: '0', ex: '0' },
   };
   const root = document.querySelector<HTMLElement>('.foc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -79,21 +91,25 @@ import Downloads from '../../components/Downloads.astro';
   const time = (s: number) => (s === 0 ? '0' : s < 1e-9 ? `${sig(s * 1e12, 3)} ps` : s < 1e-6 ? `${sig(s * 1e9, 3)} ns` : `${sig(s * 1e6, 3)} µs`);
   const rate = (hz: number) => (!Number.isFinite(hz) ? 'not limited by spreading' : hz >= 1e9 ? `${sig(hz / 1e9, 3)} GHz` : `${sig(hz / 1e6, 3)} MHz`);
   const db = (x: number) => `${sig(x, 3)} dB`;
-  let fig: Figure | null = null, report: Section[] = [];
+  let fig: Figure | null = null, report: Section[] = [], csvRows: string[][] = [], lastLu = '1';
 
   function preset() {
     const p = PRE[q<HTMLSelectElement>('.fo-pre').value];
     if (!p) return;
+    q<HTMLSelectElement>('.fo-lu').value = '1'; lastLu = '1';
     for (const [k, v] of Object.entries(p)) { const e = q<HTMLInputElement>('.fo-' + k); e.value = v; }
     calc();
   }
 
   function calc() {
     const err = q('.fo-err'), out = q('.fo-out');
-    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
     const n1 = val('.fo-n1'), n2 = val('.fo-n2'), dUm = val('.fo-d'), lam = val('.fo-l'), prof = q<HTMLSelectElement>('.fo-p').value as 'step' | 'graded', n0 = val('.fo-n0');
-    const L = val('.fo-L'), D = val('.fo-D'), dl = val('.fo-dl');
-    const B = { txDbm: val('.fo-tx'), rxDbm: val('.fo-rx'), attDbPerKm: val('.fo-att'), Lkm: L, nConn: val('.fo-nc'), connDb: val('.fo-lc'), nSplice: val('.fo-ns'), spliceDb: val('.fo-ls'), marginDb: val('.fo-m') };
+    const lu = q<HTMLSelectElement>('.fo-lu').value;
+    if (lu !== lastLu) { const k = +lastLu / +lu, v = val('.fo-L'); if (Number.isFinite(v)) inp('.fo-L').value = sig(v * k, 6).replace('−', '-'); lastLu = lu; }
+    const L = val('.fo-L') * +lu, D = val('.fo-D'), dl = val('.fo-dl');
+    const spw = val('.fo-sp'), spx = val('.fo-spx'), ex = val('.fo-ex');
+    const B = { txDbm: val('.fo-tx'), rxDbm: val('.fo-rx'), attDbPerKm: val('.fo-att'), Lkm: L, nConn: val('.fo-nc'), connDb: val('.fo-lc'), nSplice: val('.fo-ns'), spliceDb: val('.fo-ls'), marginDb: val('.fo-m'), extraDb: 0 };
     if (!(n1 > 1 && n1 < 4)) return fail('Give the core refractive index (about 1.45 for silica).');
     if (!(n2 >= 1 && n2 < n1)) return fail('The cladding index must be lower than the core index, or light is not guided.');
     if (!(dUm > 0 && dUm <= 3000)) return fail('Give the core diameter in µm (for example 8 to 10 for single-mode, 50 or 62.5 for multimode).');
@@ -103,6 +119,9 @@ import Downloads from '../../components/Downloads.astro';
     if (!Number.isFinite(D) || !(dl >= 0)) return fail('Give the chromatic dispersion D (any sign) and the source spectral width (0 or more).');
     if (![B.txDbm, B.rxDbm, B.marginDb].every(Number.isFinite) || !(B.attDbPerKm >= 0 && B.connDb >= 0 && B.spliceDb >= 0)) return fail('Give the transmitter power and receiver sensitivity in dBm, and losses of 0 dB or more.');
     if (!(Number.isInteger(B.nConn) && B.nConn >= 0 && Number.isInteger(B.nSplice) && B.nSplice >= 0)) return fail('The numbers of connectors and splices must be whole numbers, 0 or more.');
+    if (!(Number.isInteger(spw) && spw >= 1 && spw <= 1024)) return fail('Splitter ways must be a whole number from 1 (no splitter) to 1024.');
+    if (!(spx >= 0 && ex >= 0)) return fail('Splitter excess loss and other losses must be 0 dB or more.');
+    B.extraDb = (spw > 1 ? splitterLoss(spw, spx) : 0) + ex;
     err.hidden = true; out.hidden = false;
     const f: Fibre = { n1, n2, aUm: dUm / 2, lamNm: lam }, b = basics(f, n0);
     const sm = prof === 'step' ? b.singleMode : b.V < 2.405 * Math.SQRT2;
@@ -135,19 +154,37 @@ import Downloads from '../../components/Downloads.astro';
     v.textContent = lb.ok ? `Works: ${db(lb.spare)} to spare after the ${db(B.marginDb)} margin.` : `Does not work: ${db(-lb.spare)} short (including the ${db(B.marginDb)} margin).`;
     v.className = `fo-verdict ax-pill ${lb.ok ? 'good' : 'bad'}`;
     const f3 = [
-      fact('Total loss', db(lb.loss), `fibre ${db(lb.fibre)} + connectors ${db(lb.conn)} + splices ${db(lb.splice)}`),
+      fact('Total loss', db(lb.loss), `fibre ${db(lb.fibre)} + connectors ${db(lb.conn)} + splices ${db(lb.splice)}${lb.extra ? ` + splitter and other ${db(lb.extra)}` : ''}`),
+      fact('Power that arrives', `${sig(lb.keptPct, 3)} %`, 'of the transmitted light'),
       fact('Power at the receiver', `${sig(lb.rx, 3)} dBm`, `${sig(10 ** (lb.rx / 10) * 1000, 3)} µW; sensitivity ${sig(B.rxDbm, 3)} dBm`),
       fact('Power budget', db(lb.available), 'transmitter − sensitivity'),
       fact('Longest link', B.attDbPerKm > 0 ? (lb.maxKm > 0 ? `${sig(lb.maxKm, 3)} km` : 'none') : 'no fibre loss given', 'by power, with the same connectors, splices and margin'),
+      fact('Transmitter power needed', `${sig(lb.needTx, 3)} dBm`, `to meet the sensitivity and the ${db(B.marginDb)} margin over this link`),
+      fact('Connectors you could add', lb.ok ? (Number.isFinite(lb.moreConn) ? String(lb.moreConn) : 'any number') : 'none', lb.ok ? 'more connector pairs before the margin is used up' : 'the budget is already over'),
     ];
     q('.fo-facts3').replaceChildren(...f3);
     // Power along the link.
-    const xs = [0, 0], ys = [B.txDbm, B.txDbm - (B.nConn > 0 ? B.connDb : 0)];
+    const x0 = (B.nConn > 0 ? B.connDb : 0) + lb.extra, xs = [0, 0], ys = [B.txDbm, B.txDbm - x0];
     const steps = 40;
-    for (let i = 1; i <= steps; i++) { const x = (L * i) / steps; xs.push(x); ys.push(B.txDbm - (B.nConn > 0 ? B.connDb : 0) - B.attDbPerKm * x - (B.nSplice * B.spliceDb * i) / steps); }
+    for (let i = 1; i <= steps; i++) { const x = (L * i) / steps; xs.push(x); ys.push(B.txDbm - x0 - B.attDbPerKm * x - (B.nSplice * B.spliceDb * i) / steps); }
     xs.push(L); ys.push(lb.rx);
     fig = chartFigure({ w: 400, h: 220, xLabel: 'Distance along the link (km)', yLabel: 'Power (dBm)', legend: 'below', series: [{ name: 'Signal power (splices spread out)', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: B.rxDbm, dash: [5, 4], label: 'sensitivity' }, { kind: 'hline', at: B.rxDbm + B.marginDb, dash: [2, 3], label: 'with margin' }] }, `Power along a ${L} km link`);
     paint(q<HTMLCanvasElement>('.fo-fig'), fig);
+    // Itemised loss budget.
+    const lt = q<HTMLTableElement>('.fo-lt'); lt.replaceChildren();
+    const items: string[][] = [
+      ['Fibre', `${sig(L, 4)} km × ${sig(B.attDbPerKm, 3)} dB/km`, sig(lb.fibre, 3)],
+      ['Connector pairs', `${B.nConn} × ${sig(B.connDb, 3)} dB`, sig(lb.conn, 3)],
+      ['Splices', `${B.nSplice} × ${sig(B.spliceDb, 3)} dB`, sig(lb.splice, 3)],
+      ...(spw > 1 ? [['Splitter', `1:${spw}, 10 × log10(${spw}) + ${sig(spx, 3)} dB`, sig(splitterLoss(spw, spx), 3)]] : []),
+      ...(ex > 0 ? [['Other losses', '', sig(ex, 3)]] : []),
+      ['Total loss', '', sig(lb.loss, 3)],
+      ['Safety margin', '', sig(B.marginDb, 3)],
+      ['Loss plus margin', `against a budget of ${sig(lb.available, 3)} dB`, sig(lb.loss + B.marginDb, 3)],
+    ];
+    const ltHead = ['Item', 'Working', 'Loss (dB)'];
+    for (const [i, r] of [ltHead, ...items].entries()) { const tr = lt.insertRow(); r.forEach((c, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = c; if (j === 2) e.className = 'r'; tr.append(e); }); }
+    csvRows = [ltHead, ...items];
     // Modes.
     const t = q<HTMLTableElement>('.fo-tab');
     t.replaceChildren();
@@ -164,12 +201,13 @@ import Downloads from '../../components/Downloads.astro';
     report = [
       { title: q('.fo-big').textContent!, facts: plain(f1) },
       { title: 'Pulse spreading', facts: plain(f2) },
-      { title: 'Power budget', text: [v.textContent!], facts: plain(f3), figure: fig },
+      { title: 'Power budget', text: [v.textContent!], facts: plain(f3), figure: fig, table: { head: ltHead, rows: items, align: ['l', 'l', 'r'] as ('l' | 'r')[] } },
       ...(rows.length ? [{ title: 'Guided modes', table: { head: ['Mode', 'Cut-off V', 'Cut-off wavelength', 'Field patterns'], rows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, note: q('.fo-mnote').textContent! }] : []),
     ];
   }
 
   q('.fo-pre').addEventListener('change', preset);
+  q('.fo-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'fibre-loss-budget.csv', 'text/csv'); });
   root.querySelectorAll('input, select:not(.fo-pre)').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); i.addEventListener('input', () => { q<HTMLSelectElement>('.fo-pre').value = 'custom'; }); });
   document.addEventListener('fibub:theme', () => { if (fig && !q('.fo-out').hidden) paint(q<HTMLCanvasElement>('.fo-fig'), fig); });
   preset();
@@ -177,6 +215,7 @@ import Downloads from '../../components/Downloads.astro';
 </script>
 
 <style is:inline>
+  .foc .fo-lt td, .foc .fo-lt th { white-space: nowrap; }
   .foc h3 { margin: 16px 0 8px; font-size: 15px; }
   .foc .fo-verdict { font-size: 14px; padding: 4px 10px; margin: 0 0 10px; display: inline-block; }
 </style>

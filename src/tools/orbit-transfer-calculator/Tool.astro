@@ -7,20 +7,31 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Orbits</h2>
     <div class="ax-grid">
-      <label>Around <select class="ot-body"></select></label>
+      <label>Around <select class="ot-body" data-k="body"></select></label>
+      <label>Orbit height measured from <select class="ot-from" data-k="from"><option value="surface" selected>the surface (altitude)</option><option value="centre">the centre (orbit radius)</option></select></label>
+      <label>Distances in <select class="ot-lu" data-k="lenunit"><option value="km" selected>km</option><option value="mi">miles</option></select></label>
+      <label>Speeds in <select class="ot-su" data-k="speedunit"><option value="kms" selected>km/s</option><option value="ms">m/s</option><option value="mph">mph</option></select></label>
     </div>
     <div class="ax-grid" style="margin-top:10px">
-      <label><span class="ot-l1">Start altitude (km)</span> <input class="ot-r1" inputmode="decimal" value="300" /></label>
-      <label><span class="ot-l2">Target altitude (km)</span> <input class="ot-r2" inputmode="decimal" value="35786" /></label>
-      <label>Bi-elliptic apoapsis (optional) <input class="ot-rb" inputmode="decimal" placeholder="leave blank to skip" /></label>
+      <label><span class="ot-l1">Start altitude (km)</span> <input class="ot-r1" data-k="r1" inputmode="decimal" value="300" /></label>
+      <label><span class="ot-l2">Target altitude (km)</span> <input class="ot-r2" data-k="r2" inputmode="decimal" value="35786" /></label>
+      <label><span class="ot-rbl">Bi-elliptic far point (optional)</span> <input class="ot-rb" data-k="rb" inputmode="decimal" placeholder="leave blank to skip" /></label>
     </div>
     <div class="ax-row ot-quick" style="margin-top:10px"></div>
+    <details class="ot-more"><summary>More options: plane change and fuel</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Change of orbit tilt (degrees) <input class="ot-inc" data-k="inc" inputmode="decimal" placeholder="optional, e.g. 28.5" /></label>
+        <label>Spacecraft mass after the burns (kg) <input class="ot-m" data-k="mass" inputmode="decimal" placeholder="optional, e.g. 1000" /></label>
+        <label>Engine Isp (seconds) <input class="ot-isp" data-k="isp" inputmode="decimal" placeholder="e.g. 320" /></label>
+      </div>
+      <p class="ax-help">The tilt change is worked out two ways: a separate burn, or folded into the second burn, which is always cheaper. The fuel needs the mass and the Isp (320 s is a typical storable-propellant engine, 450 s a hydrogen one). Orbits that are not circular or not coplanar need more careful tools.</p>
+    </details>
     <p class="ax-help ot-help"></p>
     <p class="ax-err ot-err" hidden></p>
   </div>
   <div class="ax-card ot-out" hidden>
     <h2>Hohmann transfer</h2>
-    <p class="ax-big ot-big"></p>
+    <p class="ax-big ot-big" aria-live="polite"></p>
     <dl class="ax-facts ot-facts"></dl>
     <canvas class="ax-fig ot-fig" style="margin-top:14px"></canvas>
     <Downloads />
@@ -29,7 +40,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig } from '../../lib/sci/num';
-  import { BODIES, AU, hohmann, biElliptic } from '../../lib/sci/orbit';
+  import { BODIES, AU, hohmann, biElliptic, planeChangeDv, combinedBurnDv, propellantFor, SPEED_UNITS, KM_PER_MILE } from '../../lib/sci/orbit';
   import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.ot')!;
@@ -46,16 +57,31 @@ import Downloads from '../../components/Downloads.astro';
     sun: [['Earth to Mars', 1, 1.5237], ['Earth to Venus', 1, 0.7233], ['Earth to Jupiter', 1, 5.2034], ['Earth to Mercury', 1, 0.3871]],
   };
   const dur = (s: number) => s < 2 * 3600 ? `${sig(s / 60, 3)} min` : s < 3 * 86400 ? `${sig(s / 3600, 3)} h` : s < 2 * 365.25 * 86400 ? `${sig(s / 86400, 4)} days` : `${sig(s / (365.25 * 86400), 3)} years`;
-  const kms = (v: number) => `${v.toFixed(3)} km/s`;
+  const kms = (v: number) => { const u = SPEED_UNITS[q<HTMLSelectElement>('.ot-su').value]; return `${(v * u.perKms).toFixed(u.perKms === 1 ? 3 : 1)} ${u.name}`; };
+  const mi = () => q<HTMLSelectElement>('.ot-lu').value === 'mi';
+  const klen = (km: number) => (mi() ? `${Math.round(km / KM_PER_MILE).toLocaleString('en')} miles` : `${Math.round(km).toLocaleString('en')} km`);
 
+  // Presets are stored as altitudes in km (or AU round the Sun). Show them in the chosen reference and unit.
+  const bodyNow = () => BODIES.find((b) => b.id === sel.value)!;
+  const unitK = () => (mi() ? KM_PER_MILE : 1);
+  const setVals = (a: number, b: number) => {
+    const sun = sel.value === 'sun', add = !sun && q<HTMLSelectElement>('.ot-from').value === 'centre' ? bodyNow().radius : 0, k = sun ? 1 : unitK();
+    q<HTMLInputElement>('.ot-r1').value = String(+((a + add) / k).toPrecision(8)); q<HTMLInputElement>('.ot-r2').value = String(+((b + add) / k).toPrecision(8));
+  };
+  function labels() {
+    const sun = sel.value === 'sun', what = q<HTMLSelectElement>('.ot-from').value === 'centre' ? 'orbit radius' : 'altitude', u = mi() ? 'miles' : 'km';
+    q('.ot-l1').textContent = sun ? 'Start distance from the Sun (AU)' : `Start ${what} (${u})`;
+    q('.ot-l2').textContent = sun ? 'Target distance from the Sun (AU)' : `Target ${what} (${u})`;
+    q('.ot-rbl').textContent = sun ? 'Bi-elliptic far point (AU, optional)' : `Bi-elliptic far point (${u}, optional)`;
+  }
   function setBody() {
     const sun = sel.value === 'sun';
-    q('.ot-l1').textContent = sun ? 'Start distance from the Sun (AU)' : 'Start altitude (km)';
-    q('.ot-l2').textContent = sun ? 'Target distance from the Sun (AU)' : 'Target altitude (km)';
+    q<HTMLSelectElement>('.ot-from').disabled = sun; q<HTMLSelectElement>('.ot-lu').disabled = sun;
+    labels();
     const [, a, b] = QUICK[sel.value][0];
-    q<HTMLInputElement>('.ot-r1').value = String(a); q<HTMLInputElement>('.ot-r2').value = String(b); q<HTMLInputElement>('.ot-rb').value = '';
+    setVals(a, b); q<HTMLInputElement>('.ot-rb').value = '';
     q('.ot-help').textContent = sun ? 'Planets move in near-circular orbits, so this gives the classic Hohmann transfer between them: the speed changes relative to each planet\'s orbit, before the planets\' own gravity is counted. The launch from Earth costs more, as the rocket must also climb out of Earth\'s gravity.' : 'Altitudes are above the mean equatorial radius. Both orbits are taken as circular and in the same plane.';
-    q('.ot-quick').replaceChildren(...QUICK[sel.value].map(([label, a1, b1]) => { const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn secondary small'; bt.textContent = label; bt.addEventListener('click', () => { q<HTMLInputElement>('.ot-r1').value = String(a1); q<HTMLInputElement>('.ot-r2').value = String(b1); calc(); }); return bt; }));
+    q('.ot-quick').replaceChildren(...QUICK[sel.value].map(([label, a1, b1]) => { const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn secondary small'; bt.textContent = label; bt.addEventListener('click', () => { setVals(a1, b1); calc(); }); return bt; }));
     calc();
   }
 
@@ -85,11 +111,13 @@ import Downloads from '../../components/Downloads.astro';
   function calc() {
     const err = q('.ot-err'), body = BODIES.find((b) => b.id === sel.value)!, sun = body.id === 'sun';
     try {
-      const toR = (v: number) => (sun ? v * AU : v + body.radius);
+      const centre = q<HTMLSelectElement>('.ot-from').value === 'centre', k = unitK();
+      const toR = (v: number) => (sun ? v * AU : centre ? v * k : v * k + body.radius);
       const a1 = num(q<HTMLInputElement>('.ot-r1').value), a2 = num(q<HTMLInputElement>('.ot-r2').value), rbTxt = q<HTMLInputElement>('.ot-rb').value.trim();
       if (!Number.isFinite(a1) || !Number.isFinite(a2)) throw new Error(sun ? 'Type both distances in AU (Earth is 1).' : 'Type both altitudes in km.');
       const r1 = toR(a1), r2 = toR(a2);
-      if (!sun && (a1 < 0 || a2 < 0)) throw new Error('Altitudes must be zero or more.');
+      if (!sun && (a1 < 0 || a2 < 0)) throw new Error(centre ? 'Orbit radii must be above zero.' : 'Altitudes must be zero or more.');
+      if (!sun && (r1 <= body.radius * 0.999 || r2 <= body.radius * 0.999)) throw new Error(`An orbit radius must be bigger than ${body.name}'s own radius (${klen(body.radius)}).`);
       if (Math.abs(r1 - r2) < 1e-9) throw new Error('The two orbits are the same.');
       const h = hohmann(body.mu, r1, r2);
       err.hidden = true; q('.ot-out').hidden = false;
@@ -98,11 +126,26 @@ import Downloads from '../../components/Downloads.astro';
         ['First burn', kms(h.dv1), `${r2 > r1 ? 'speed up' : 'slow down'} from ${kms(h.v1)} circular speed`],
         ['Second burn', kms(h.dv2), `${r2 > r1 ? 'speed up' : 'slow down'} to ${kms(h.v2)} circular speed`],
         ['Transfer time', dur(h.tof)],
-        ['Transfer orbit', `${sun ? `${sig(h.a / AU, 4)} AU` : `${Math.round(h.a).toLocaleString('en')} km`} semi-major axis, eccentricity ${h.e.toFixed(4)}`],
+        ['Transfer orbit', `${sun ? `${sig(h.a / AU, 4)} AU` : klen(h.a)} semi-major axis, eccentricity ${h.e.toFixed(4)}`],
         ['Orbital periods', `${dur(h.T1)} at the start, ${dur(h.T2)} at the target`],
         ['Target lead angle at departure', `${(((h.lead * 180) / Math.PI) % 360).toFixed(1)}°`, 'how far ahead of you the target must be when you leave; a negative angle means behind'],
         ['Launch windows', `every ${dur(h.synodic)}`, 'the synodic period: how often that alignment comes round'],
       ];
+      const inc = num(q<HTMLInputElement>('.ot-inc').value);
+      if (q<HTMLInputElement>('.ot-inc').value.trim()) {
+        if (!(inc > 0 && inc <= 180)) throw new Error('The change of tilt runs from just above 0 to 180 degrees.');
+        const sep = planeChangeDv(h.v2, inc), comb = combinedBurnDv(h.vT2, h.v2, inc);
+        facts.push(['Tilt change on its own', kms(sep), `a separate burn in the target orbit, at ${kms(h.v2)}; ${kms(h.dv + sep)} in all`]);
+        facts.push(['Tilt change folded into the second burn', kms(comb), `${kms(h.dv1 + comb)} in all, ${kms(h.dv + sep - h.dv1 - comb)} less than doing it separately`]);
+      }
+      const m = num(q<HTMLInputElement>('.ot-m').value), isp = num(q<HTMLInputElement>('.ot-isp').value);
+      if (q<HTMLInputElement>('.ot-m').value.trim() || q<HTMLInputElement>('.ot-isp').value.trim()) {
+        if (!(m > 0) || !(isp > 0)) throw new Error('For the fuel, type both the spacecraft mass in kg and the engine Isp in seconds.');
+        const dv2use = q<HTMLInputElement>('.ot-inc').value.trim() ? combinedBurnDv(h.vT2, h.v2, inc) : h.dv2;
+        const p2 = propellantFor(dv2use * 1000, isp, m), p1 = propellantFor(h.dv1 * 1000, isp, m + p2), pt = p1 + p2;
+        const kg = (x: number) => `${Math.round(x).toLocaleString('en')} kg`;
+        facts.push(['Fuel needed', kg(pt), `${kg(p1)} for the first burn and ${kg(p2)} for the second, from the rocket equation at Isp ${sig(isp, 3)} s${q<HTMLInputElement>('.ot-inc').value.trim() ? ', with the tilt change in the second burn' : ''}; ${sig((pt / (m + pt)) * 100, 3)} % of the craft's starting mass`]);
+      }
       let rb: number | null = null;
       if (rbTxt) {
         const rbv = num(rbTxt); if (!Number.isFinite(rbv)) throw new Error('Type the bi-elliptic apoapsis, or leave it blank.');
@@ -119,6 +162,18 @@ import Downloads from '../../components/Downloads.astro';
     } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.ot-out').hidden = true; report = []; }
   }
   sel.addEventListener('change', setBody);
+  q('.ot-lu').addEventListener('change', () => {
+    // Keep the same orbits: convert typed lengths between km and miles.
+    const to = mi() ? 1 / KM_PER_MILE : KM_PER_MILE;
+    for (const c of ['.ot-r1', '.ot-r2', '.ot-rb']) { const el = q<HTMLInputElement>(c), v = num(el.value); if (Number.isFinite(v)) el.value = String(+(v * to).toPrecision(8)); }
+    labels(); calc();
+  });
+  q('.ot-from').addEventListener('change', () => {
+    const R = bodyNow().radius / unitK(), up = q<HTMLSelectElement>('.ot-from').value === 'centre' ? R : -R;
+    for (const c of ['.ot-r1', '.ot-r2', '.ot-rb']) { const el = q<HTMLInputElement>(c), v = num(el.value); if (Number.isFinite(v)) el.value = String(+(v + up).toPrecision(8)); }
+    labels(); calc();
+  });
+  q('.ot-su').addEventListener('change', calc);
   root.addEventListener('input', calc);
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ot-fig'), fig));
   setBody();

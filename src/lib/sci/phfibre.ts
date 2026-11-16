@@ -83,11 +83,17 @@ export function spreading(f: Fibre, profile: 'step' | 'graded', singleMode: bool
   return { modal, chrom, total, bandwidth: total > 0 ? 0.44 / total : Infinity };
 }
 
-export type Budget = { txDbm: number; rxDbm: number; attDbPerKm: number; Lkm: number; nConn: number; connDb: number; nSplice: number; spliceDb: number; marginDb: number };
+export type Budget = { txDbm: number; rxDbm: number; attDbPerKm: number; Lkm: number; nConn: number; connDb: number; nSplice: number; spliceDb: number; marginDb: number; extraDb?: number };
+/** Ideal loss (dB) of a 1:N optical splitter, 10 log10 N, plus any excess loss from the data sheet. */
+export const splitterLoss = (ways: number, excessDb = 0) => 10 * Math.log10(ways) + excessDb;
 export function linkBudget(b: Budget) {
+  const extra = b.extraDb ?? 0;
   const fibre = b.attDbPerKm * b.Lkm, conn = b.nConn * b.connDb, splice = b.nSplice * b.spliceDb;
-  const loss = fibre + conn + splice;
+  const loss = fibre + conn + splice + extra;
   const rx = b.txDbm - loss, spare = rx - b.rxDbm - b.marginDb;
-  const maxKm = b.attDbPerKm > 0 ? (b.txDbm - b.rxDbm - b.marginDb - conn - splice) / b.attDbPerKm : Infinity;
-  return { fibre, conn, splice, loss, rx, spare, ok: spare >= 0, maxKm, available: b.txDbm - b.rxDbm };
+  const maxKm = b.attDbPerKm > 0 ? (b.txDbm - b.rxDbm - b.marginDb - conn - splice - extra) / b.attDbPerKm : Infinity;
+  // What it would take: the transmitter power that leaves the margin, and how many more connectors fit.
+  const needTx = b.rxDbm + b.marginDb + loss;
+  const moreConn = b.connDb > 0 ? Math.floor(spare / b.connDb + 1e-9) : Infinity;
+  return { fibre, conn, splice, extra, loss, rx, spare, ok: spare >= 0, maxKm, available: b.txDbm - b.rxDbm, needTx, moreConn, keptPct: 100 * 10 ** (-loss / 10) };
 }

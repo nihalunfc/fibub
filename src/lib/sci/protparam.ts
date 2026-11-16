@@ -134,3 +134,10 @@ export const EXAMPLE = `>Example protein (made up for fibub, not a real protein)
 MSKGEELFTA VNPQRSDWHY KLGCEATRPV DMNSFYGKEQ LHTCIRAPWD
 EVKSGNLYQT AMRDFHPEKS VCWLGTNAQY RDPEKMSHVF GLTNWQYKAE
 CDRSPLVGHT KYEMAQNWFR`;
+
+/** Moles (as pmol) in a mass of protein: pmol = µg ÷ MW (g/mol) × 10⁶. */
+export const pmolFromUg = (ug: number, mw: number) => (ug / mw) * 1e6;
+/** Mass (µg) of a number of pmol of protein: µg = pmol × MW ÷ 10⁶. */
+export const ugFromPmol = (pmol: number, mw: number) => (pmol * mw) / 1e6;
+/** Molar concentration (µM) from mg/mL: µM = mg/mL ÷ MW × 10⁶ (1 mg/mL = 1 g/L). */
+export const uMFromMgMl = (mgMl: number, mw: number) => (mgMl / mw) * 1e6;

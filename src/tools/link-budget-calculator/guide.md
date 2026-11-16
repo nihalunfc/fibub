@@ -11,7 +11,7 @@ ads: true
 order: 12
 icon: sliders
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [radio-telescope-calculator, orbit-transfer-calculator, rocket-equation, uncertainty-calculator]
 sources:
   - "Physical constants: CODATA recommended values (NIST)."
@@ -35,6 +35,8 @@ To see when the satellite passes over your station, use the [[satellite-tracker]
 4. Fill in the **receiver**: antenna gain, or a dish size and efficiency, plus cable losses and the **system noise temperature**.
 5. Add **path losses**: atmosphere and rain, polarisation mismatch (3 dB for linear against circular), and pointing.
 6. Type the **data rate**, the **modulation** and the bit error rate you need, and an **implementation loss** for real hardware.
+
+**More options.** Under "More: the margin you want" set the margin you aim for (3 dB by default). The results then list the farthest distance, the transmit power, the fastest data rate and, for a dish, the dish size that would give exactly that margin, each worked from the free-space loss law (20 × log10 of distance) and the dB sums, with the other numbers held. A "margin at other distances" table shows the margin at elevations from 5 to 90 degrees for a satellite, or at a quarter to ten times the distance for a fixed link. "Download the budget and table" saves the line-by-line budget and that table as a CSV file. No receiver sensitivity or standard-specific presets (LoRa, Wi-Fi and so on) are added because those values vary by chip and are not in the public sources used here.
 
 ## How it is worked out
 

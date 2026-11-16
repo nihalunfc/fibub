@@ -15,8 +15,25 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption(R + '.an-lu', 'imp'); await page.waitForTimeout(60);
   check((await big()) === 'Total length 3 ft 2.66 in, each side 19.33 in', `antenna: imperial lengths (${await big()})`);
   await page.selectOption(R + '.an-lu', 'si');
+  // New options: working line, band table + CSV, frequency from a length, band presets.
+  await page.evaluate(() => document.querySelectorAll('.anc details').forEach((d) => { d.open = true; }));
+  check((await page.textContent(R + '.an-work')).includes('0.95 × 2.0675 m ÷ 2 = 98.21 cm'), `antenna: working line (${await page.textContent(R + '.an-work')})`);
+  { const tb = await page.textContent(R + '.an-tab'); check((await page.$$(R + '.an-tab tr')).length === 6 && tb.includes('137.75 MHz') && tb.includes('1.0338 m') && tb.includes('152.25 MHz') && tb.includes('46.77 cm'), `antenna: band table (${tb})`); }
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.an-csv')]); check(d.suggestedFilename() === 'antenna-dipole.csv', 'antenna: table CSV'); }
+  await page.fill(R + '.an-len', '100'); await page.waitForTimeout(80);
+  check((await page.textContent(R + '.an-revout')).includes('142.401 MHz'), `antenna: frequency from a 1 m dipole (${await page.textContent(R + '.an-revout')})`);
+  await page.fill(R + '.an-len', '-5'); await page.waitForTimeout(80);
+  check((await page.textContent(R + '.an-revout')).includes('above 0'), 'antenna: bad length message');
+  await page.fill(R + '.an-len', '');
+  await page.selectOption(R + '.an-pre', '7.1'); await page.waitForTimeout(80);
+  check((await page.inputValue(R + '.an-f')) === '7.1' && (await big()) === 'Total length 20.057 m, each side 10.028 m', `antenna: 40 m band preset (${await big()})`);
+  await page.fill(R + '.an-f', '145'); await page.waitForTimeout(80);
+  check((await page.inputValue(R + '.an-pre')) === '', 'antenna: typing a frequency resets the preset');
   await page.click(R + '[data-k=monopole]'); await page.waitForTimeout(80);
   check((await big()) === 'Element length 49.1 cm' && (await facts()).includes('about 37 Ω'), 'antenna: monopole');
+  await page.fill(R + '.an-len', '49'); await page.waitForTimeout(80);
+  check((await page.textContent(R + '.an-revout')).includes('145.308 MHz') && (await page.textContent(R + '.an-work')).includes('λ / 4'), 'antenna: monopole frequency from length');
+  await page.fill(R + '.an-len', '');
   await page.click(R + '[data-k=patch]'); await page.waitForTimeout(80);
   check((await page.inputValue(R + '.an-f')) === '2.45' && (await big()) === 'Patch 3.723 cm wide × 2.881 cm long', 'antenna: patch example 2.45 GHz on 1.6 mm, εr 4.4');
   { const f = await facts(); check(f.includes('4.081') && f.includes('0.7386 mm') && f.includes('321.4 Ω') && f.includes('1.069 cm') && f.includes('4.683 cm × 3.841 cm'), 'antenna: patch facts'); }

@@ -128,3 +128,6 @@ export function dateOf(day: number): string {
   let m = 0; while (d >= LEN[m]) { d -= LEN[m]; m++; }
   return `${d + 1} ${MONTHS[m]}`;
 }
+
+/** A daily mean in W/m² as energy per square metre per day: MJ (× 0.0864) or kWh (× 0.024), since a day is 86 400 s. */
+export const convertDaily = (w: number, unit: 'W' | 'MJ' | 'kWh') => (unit === 'MJ' ? (w * 86400) / 1e6 : unit === 'kWh' ? (w * 24) / 1000 : w);

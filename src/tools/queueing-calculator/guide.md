@@ -11,7 +11,7 @@ ads: true
 order: 584
 icon: clock
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [lp-solver, sample-size, plot-maker, shift-scheduler, distribution-explorer, agent-based-models]
 sources:
   - "Formulas: the standard results of queueing theory (Erlang B and C, the M/M/c/K balance equations, Pollaczek-Khinchine), as in operations research textbooks."
@@ -45,6 +45,8 @@ Turn the number of staff you need into a rota with the [[shift-scheduler|shift s
 2. Type the arrival rate (for example 100 per hour) and the average service time (for example 3 minutes). The two units can differ; all results are given in the service time unit.
 3. Type the number of servers c, and K or the service time standard deviation where the model needs them.
 4. Set the staffing target, and the size and seed of the simulation.
+
+**More options.** A line of working shows the arithmetic behind the load and utilisation. A chart plots the average wait (or the share turned away, for the models with a limit) against utilisation, with your queue marked, so you can see how steeply waiting rises near 100 %. Under "More: what if the arrivals change?" a table shows the same queue with half, three quarters, one and a quarter, one and a half and twice the arrivals, with a CSV download.
 
 ## What the results mean
 

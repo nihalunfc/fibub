@@ -8,7 +8,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Queue</h2>
     <div class="ax-grid">
-      <label>Model <select class="qc-k">
+      <label>Model <select data-k="k" class="qc-k">
         <option value="mm1">M/M/1: one server</option>
         <option value="mmc" selected>M/M/c: several servers (Erlang C)</option>
         <option value="mmck">M/M/c/K: limited room, extra arrivals turned away</option>
@@ -18,13 +18,13 @@ import Downloads from '../../components/Downloads.astro';
       </select></label>
     </div>
     <div class="ax-grid" style="margin-top:10px">
-      <label>Arrivals <input class="qc-l" inputmode="decimal" value="100" /></label>
-      <label>per <select class="qc-lu"><option value="1">second</option><option value="60">minute</option><option value="3600" selected>hour</option><option value="86400">day</option></select></label>
-      <label>Average service time <input class="qc-s" inputmode="decimal" value="3" /></label>
-      <label>in <select class="qc-su"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option><option value="86400">days</option></select></label>
-      <label class="qc-cw">Servers c <input class="qc-c" inputmode="numeric" value="6" /></label>
-      <label class="qc-kw" hidden>Room in the system K <input class="qc-K" inputmode="numeric" value="10" /></label>
-      <label class="qc-sdw" hidden>Service time standard deviation <input class="qc-sd" inputmode="decimal" value="1.5" /></label>
+      <label>Arrivals <input data-k="l" class="qc-l" inputmode="decimal" value="100" /></label>
+      <label>per <select data-k="lu" class="qc-lu"><option value="1">second</option><option value="60">minute</option><option value="3600" selected>hour</option><option value="86400">day</option></select></label>
+      <label>Average service time <input data-k="s" class="qc-s" inputmode="decimal" value="3" /></label>
+      <label>in <select data-k="su" class="qc-su"><option value="1">seconds</option><option value="60" selected>minutes</option><option value="3600">hours</option><option value="86400">days</option></select></label>
+      <label class="qc-cw">Servers c <input data-k="c" class="qc-c" inputmode="numeric" value="6" /></label>
+      <label class="qc-kw" hidden>Room in the system K <input data-k="K" class="qc-K" inputmode="numeric" value="10" /></label>
+      <label class="qc-sdw" hidden>Service time standard deviation <input data-k="sd" class="qc-sd" inputmode="decimal" value="1.5" /></label>
     </div>
     <p class="ax-help qc-help"></p>
     <p class="ax-err qc-err" hidden></p>
@@ -32,18 +32,26 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card qc-out" hidden>
     <h2>Results</h2>
-    <p class="ax-big qc-big"></p>
+    <p class="ax-big qc-big" aria-live="polite"></p>
+    <p class="ax-help qc-work"></p>
     <dl class="ax-facts qc-facts"></dl>
     <p class="ax-help qc-note"></p>
+    <canvas class="ax-fig qc-curve" style="margin-top:12px"></canvas>
+    <p class="ax-help qc-curvenote"></p>
+    <details class="qc-wi" style="margin-top:10px"><summary>More: what if the arrivals change?</summary>
+      <p class="ax-help">The same queue with more or fewer arrivals (same servers and service time).</p>
+      <div class="ax-scroll"><table class="qc-witab"></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small qc-wcsv">Download this table (CSV)</button></div>
+    </details>
   </div>
 
   <div class="ax-card qc-staff" hidden>
     <h2>Staffing</h2>
     <div class="ax-grid">
-      <label class="qc-tkw">Target <select class="qc-tk"><option value="sl">Share served within a time</option><option value="asa">Average wait at most</option></select></label>
-      <label class="qc-pw">Share (%) <input class="qc-pct" inputmode="decimal" value="80" /></label>
-      <label class="qc-tw">Within (seconds) <input class="qc-t" inputmode="decimal" value="20" /></label>
-      <label class="qc-bw" hidden>Lost at most (%) <input class="qc-bt" inputmode="decimal" value="1" /></label>
+      <label class="qc-tkw">Target <select data-k="tk" class="qc-tk"><option value="sl">Share served within a time</option><option value="asa">Average wait at most</option></select></label>
+      <label class="qc-pw">Share (%) <input data-k="pct" class="qc-pct" inputmode="decimal" value="80" /></label>
+      <label class="qc-tw">Within (seconds) <input data-k="t" class="qc-t" inputmode="decimal" value="20" /></label>
+      <label class="qc-bw" hidden>Lost at most (%) <input data-k="bt" class="qc-bt" inputmode="decimal" value="1" /></label>
     </div>
     <p class="ax-big qc-sbig" style="margin-top:12px"></p>
     <div class="ax-scroll"><table class="qc-stab"></table></div>
@@ -54,8 +62,8 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Simulation</h2>
     <p class="ax-help" style="margin-top:0">Customers arrive at random and are served first come, first served, one by one in the computer. The first tenth is left out as warm-up. Averages from a simulation wobble; the ± is a 95 % range from 20 batches.</p>
     <div class="ax-grid" style="margin-top:8px">
-      <label>Customers <select class="qc-n"><option>5000</option><option>20000</option><option selected>100000</option><option>500000</option></select></label>
-      <label>Seed <input class="qc-seed" inputmode="numeric" value="1" /></label>
+      <label>Customers <select data-k="n" class="qc-n"><option>5000</option><option>20000</option><option selected>100000</option><option>500000</option></select></label>
+      <label>Seed <input data-k="seed" class="qc-seed" inputmode="numeric" value="1" /></label>
     </div>
     <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small qc-new">New seed and run again</button></div>
     <div class="ax-scroll" style="margin-top:10px"><table class="qc-simtab"></table></div>
@@ -85,7 +93,7 @@ import Downloads from '../../components/Downloads.astro';
     mminf: 'So many servers that nobody waits, such as people browsing a shop or a self-service car park. The number present follows a Poisson distribution.',
     mg1: 'One server, arrivals at random, and any service time distribution with the given mean and standard deviation (Pollaczek-Khinchine). SD = mean is the M/M/1 case; SD = 0 is a fixed service time.',
   };
-  let figs: Figure[] = [], report: Section[] = [], staffRows: (string | number)[][] = [], pnRows: (string | number)[][] = [], seed = 1;
+  let curveFig: Figure | null = null, whatIf: (string | number)[][] = [], figs: Figure[] = [], report: Section[] = [], staffRows: (string | number)[][] = [], pnRows: (string | number)[][] = [], seed = 1;
 
   const facts = (el: HTMLElement, list: [string, string][]) => el.replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
   const table = (t: HTMLElement, head: string[], rows: string[][], hi = -1) => {
@@ -134,12 +142,49 @@ import Downloads from '../../components/Downloads.astro';
         facts(q('.qc-facts'), list.filter(([, v]) => !/NaN/.test(v)));
         q('.qc-note').textContent = `Little's law holds: L = λW (${sig(r.L, 4)} = ${sig(r.lambdaEff, 4)} × ${sig(r.W, 4)}). Formulas assume steady state: the same rates for a long time.`;
       }
+      work(inp, r, unit);
+      curveAndWhatIf(inp, r, unit);
       staff(inp, r, unit, uSec);
       sim(inp, r, unit);
       report = [{ title: q<HTMLSelectElement>('.qc-k').selectedOptions[0].textContent!, text: [q('.qc-big').textContent!], facts: [...q('.qc-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!]) as [string, string][] }];
+      if (!q('.qc-wi').hidden && whatIf.length) report.push({ title: 'What if the arrivals change?', ...(curveFig ? { figure: curveFig } : {}), table: { head: whatIf[0].map(String), rows: whatIf.slice(1).map((x) => x.map(String)), align: whatIf[0].map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } });
       if (!q('.qc-staff').hidden) report.push({ title: 'Staffing', text: [q('.qc-sbig').textContent!], table: { head: staffRows[0].map(String), rows: staffRows.slice(1).map((x) => x.map(String)) } });
       if (!q('.qc-simc').hidden) report.push({ title: 'Simulation', table: { head: ['Measure', 'Formula', 'Simulation'], rows: [...q('.qc-simtab').querySelectorAll('tr')].slice(1).map((tr) => [...tr.children].map((c) => c.textContent!)) }, figure: figs[0] });
-    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; for (const c of ['.qc-out', '.qc-staff', '.qc-simc']) q(c).hidden = true; report = []; }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; for (const c of ['.qc-out', '.qc-staff', '.qc-simc']) q(c).hidden = true; report = []; whatIf = []; curveFig = null; }
+  }
+
+  /** One line of arithmetic behind the numbers. */
+  function work(inp: Input, r: Result, unit: string) {
+    const c = inp.c ?? 1, per = unit.replace(/s$/, '');
+    const a = `a = λ × service time = ${sig(inp.lambda, 4)} per ${per} × ${sig(1 / inp.mu, 4)} ${unit} = ${sig(r.a, 4)} erlangs`;
+    q('.qc-work').textContent = 'Working: ' + (inp.kind === 'mminf' ? `${a}; the number present is Poisson with mean a.`
+      : inp.kind === 'erlangb' || inp.kind === 'mmck' ? `${a}; spread over ${c} servers that is ${sig((r.a / c) * 100, 4)} % of what they could do.`
+      : r.stable ? `${a}; utilisation ρ = a ÷ ${c} = ${sig(r.rho * 100, 4)} %.` : `${a}; utilisation a ÷ ${c} = ${sig(r.rho * 100, 4)} %, which is not below 100 %.`);
+  }
+
+  /** The wait (or loss) against load, and the same queue with other arrival rates. */
+  function curveAndWhatIf(inp: Input, r: Result, unit: string) {
+    const cv = q<HTMLCanvasElement>('.qc-curve'), wi = q('.qc-wi');
+    curveFig = null; whatIf = [];
+    cv.hidden = wi.hidden = inp.kind === 'mminf'; q('.qc-curvenote').hidden = cv.hidden;
+    if (cv.hidden) return;
+    const c = inp.c ?? 1, loss = inp.kind === 'mmck' || inp.kind === 'erlangb';
+    const at = (lam: number) => { const x = solveQueue({ ...inp, lambda: lam }); return loss ? x.pBlock * 100 : x.Wq; };
+    const lo = loss ? 0.1 : 0.05, hi = loss ? 2 : 0.97, xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 60; i++) { const u = lo + ((hi - lo) * i) / 60, y = at(u * c * inp.mu); if (Number.isFinite(y)) { xs.push(u * 100); ys.push(y); } }
+    const cur = (r.a / c) * 100;
+    curveFig = chartFigure({ h: 260, xLabel: loss ? 'Offered load as a share of the servers (%)' : 'Utilisation (%)', yLabel: loss ? 'Turned away (%)' : `Average wait in the queue (${unit})`, xMin: 0, yMin: 0, legend: 'none', series: [{ name: loss ? 'Turned away' : 'Wait', x: xs, y: ys, mode: 'line', width: 2.2 }], marks: [{ kind: 'vline', at: Math.min(cur, hi * 100), label: 'this queue' }] }, loss ? 'Share of arrivals turned away against offered load' : 'Average wait against utilisation, with the same service time and servers');
+    paint(cv, curveFig);
+    q('.qc-curvenote').textContent = loss ? 'Losses rise quickly once the offered load passes what the servers can carry.' : 'Waits stay short at low utilisation and climb steeply as it nears 100 %: a little more load near the limit costs a lot of waiting.';
+    const lu = q<HTMLSelectElement>('.qc-lu').selectedOptions[0].textContent!, l0 = val('.qc-l');
+    const head = [`Arrivals (per ${lu})`, 'Utilisation (%)', loss ? 'Turned away (%)' : 'Chance of waiting (%)', loss ? 'Time in the system (' + unit + ')' : `Average wait (${unit})`];
+    const rows = [0.5, 0.75, 1, 1.25, 1.5, 2].map((f) => {
+      const x = solveQueue({ ...inp, lambda: inp.lambda * f }), arr = sig(l0 * f, 4);
+      return !x.stable ? [arr, sig(x.rho * 100, 4), 'queue grows', 'without limit'] : loss ? [arr, sig(x.rho * 100, 4), sig(x.pBlock * 100, 4), sig(x.W, 4)] : [arr, sig(x.rho * 100, 4), sig(x.pWait * 100, 4), sig(x.Wq, 4)];
+    });
+    whatIf = [head, ...rows];
+    const t = q<HTMLTableElement>('.qc-witab'); t.replaceChildren();
+    for (const [i, rr] of whatIf.entries()) { const tr = t.insertRow(); rr.forEach((v, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = String(v); if (j) e.className = 'r'; if (i === 3) e.style.fontWeight = '700'; tr.append(e); }); }
   }
 
   function staff(inp: Input, r: Result, unit: string, uSec: number) {
@@ -206,9 +251,10 @@ import Downloads from '../../components/Downloads.astro';
   root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
   root.addEventListener('change', calc);
   q('.qc-new').addEventListener('click', () => { seed = Math.floor(val('.qc-seed')) + 1 || 1; q<HTMLInputElement>('.qc-seed').value = String(seed); calc(); });
+  q('.qc-wcsv').addEventListener('click', () => { if (whatIf.length) save(new Blob([csv(whatIf)], { type: 'text/csv' }), 'queue-what-if.csv', 'text/csv'); });
   q('.qc-scsv').addEventListener('click', () => save(new Blob([csv(staffRows)], { type: 'text/csv' }), 'staffing.csv', 'text/csv'));
   q('.qc-pcsv').addEventListener('click', () => save(new Blob([csv(pnRows)], { type: 'text/csv' }), 'number-in-system.csv', 'text/csv'));
-  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.qc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.qc-fig2'), figs[1]); } });
+  document.addEventListener('fibub:theme', () => { if (curveFig && !q('.qc-curve').hidden) paint(q<HTMLCanvasElement>('.qc-curve'), curveFig); if (figs.length) { paint(q<HTMLCanvasElement>('.qc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.qc-fig2'), figs[1]); } });
   calc();
   wireDownloads(q('.dl'), () => ({ title: 'Queueing calculator', subtitle: q('.qc-big').textContent ?? '', file: 'queue', sections: report }));
 </script>

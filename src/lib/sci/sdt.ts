@@ -51,6 +51,29 @@ export function yesNo(t: YesNo, corr: Correction = 'loglinear'): SdtResult {
   };
 }
 
+/**
+ * Measures from a hit rate and a false-alarm rate alone (both strictly between 0 and 1). There are no trial counts,
+ * so there is no standard error or interval, and percent correct assumes equal numbers of signal and noise trials.
+ */
+export function fromRates(H: number, F: number): SdtResult {
+  if (!(H > 0 && H < 1) || !(F > 0 && F < 1)) throw new Error('Rates must be strictly between 0 and 1 (0 % and 100 % give an infinite d′).');
+  const zH = normInv(H), zF = normInv(F), dprime = zH - zF, c = -(zH + zF) / 2, lnBeta = dprime * c;
+  const aPrime = H === F ? 0.5 : H > F ? 0.5 + ((H - F) * (1 + H - F)) / (4 * H * (1 - F)) : 0.5 - ((F - H) * (1 + F - H)) / (4 * F * (1 - H));
+  const a = H * (1 - H), b = F * (1 - F);
+  return {
+    H, F, rawH: H, rawF: F, nS: NaN, nN: NaN, corrected: false, zH, zF, dprime, c, cRel: c / dprime, beta: Math.exp(lnBeta), lnBeta,
+    aPrime, bDoublePrime: a + b === 0 ? 0 : H >= F ? (a - b) / (a + b) : (b - a) / (a + b), azEqual: normCdf(dprime / Math.SQRT2),
+    pc: (H + 1 - F) / 2, se: NaN, ci: [NaN, NaN],
+  };
+}
+
+/** The equal-variance ROC curve for sensitivity d′: hit rate Φ(d′ + z(F)) at each false-alarm rate F. */
+export function isoROC(dprime: number, n = 120): { F: number[]; H: number[] } {
+  const F: number[] = [], H: number[] = [];
+  for (let i = 1; i < n; i++) { const f = i / n; F.push(f); H.push(normCdf(dprime + normInv(f))); }
+  return { F: [0, ...F, 1], H: [0, ...H, 1] };
+}
+
 // ---------- ROC from confidence ratings ----------
 
 export type RocPoint = { F: number; H: number; zF: number; zH: number };

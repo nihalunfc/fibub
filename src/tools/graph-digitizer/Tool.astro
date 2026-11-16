@@ -68,6 +68,15 @@ import '../../styles/astro.css';
         <button type="button" class="btn secondary small gd-add">Add a series</button>
         <label class="ax-check"><input type="checkbox" class="gd-sort" checked /> Sort by x</label>
       </div>
+      <details class="gd-more" style="margin-top:8px">
+        <summary>More options: digits, even spacing, area</summary>
+        <div class="ax-grid">
+          <label>Significant digits <select class="gd-dig" data-k="digits"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option></select></label>
+          <label>Even spacing: number of x values (optional) <input class="gd-rs" data-k="resample" inputmode="numeric" placeholder="e.g. 20" /></label>
+        </div>
+        <p class="ax-help">Digits sets how many significant figures the table shows (the CSV keeps at least 6). Even spacing replaces your points, in the table, copy and CSV, by that many x values spread evenly from your first to your last point, read off the straight lines between your points. It is handy for comparing curves or fitting.</p>
+      </details>
+      <p class="ax-help gd-stats" aria-live="polite"></p>
       <div class="ax-scroll gd-tabwrap"><table class="gd-tab"></table></div>
       <div class="ax-row" style="margin-top:10px">
         <button type="button" class="btn small gd-copy">Copy (paste into Excel)</button>
@@ -98,7 +107,7 @@ import '../../styles/astro.css';
 </style>
 
 <script>
-  import { makeMap, traceLine, findMarkers, type Axes, type Pt } from '../../lib/sci/digitize';
+  import { makeMap, traceLine, findMarkers, resample, trapezoidArea, asFunction, type Axes, type Pt } from '../../lib/sci/digitize';
   import { num, sig, csv } from '../../lib/sci/num';
   import { save } from '../../lib/report';
 
@@ -278,35 +287,44 @@ import '../../styles/astro.css';
   function rows(i = cur) {
     const map = mapper(); if (!map) return [];
     const r = series[i].pts.map((p) => map(p));
+    const n = nResample();
+    if (n && r.length >= 2) return resample(r, n);
     return q<HTMLInputElement>('.gd-sort').checked ? r.sort((a, b) => a.x - b.x) : r;
   }
+  const nResample = () => { const n = num(q<HTMLInputElement>('.gd-rs').value); return Number.isInteger(n) && n >= 2 && n <= 2000 ? n : 0; };
+  const digits = () => Number(q<HTMLSelectElement>('.gd-dig').value) || 5;
   function table() {
     const sel = q<HTMLSelectElement>('.gd-series');
     sel.replaceChildren(...series.map((s, i) => Object.assign(document.createElement('option'), { value: String(i), textContent: `${s.name} (${s.pts.length})`, selected: i === cur })));
     const tb = q<HTMLTableElement>('.gd-tab'); tb.innerHTML = '';
     const r = rows();
-    if (!r.length) { const p = document.createElement('caption'); p.className = 'ax-help'; p.style.textAlign = 'left'; p.textContent = mapper() ? 'No points yet.' : 'Points appear here once the axes are set.'; tb.append(p); return; }
+    if (!r.length) { q('.gd-stats').textContent = ''; const p = document.createElement('caption'); p.className = 'ax-help'; p.style.textAlign = 'left'; p.textContent = mapper() ? 'No points yet.' : 'Points appear here once the axes are set.'; tb.append(p); return; }
     const hr = tb.createTHead().insertRow(); ['#', 'x', 'y', ''].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1 || i === 2) th.className = 'r'; hr.append(th); });
     const body = tb.createTBody();
     const map = mapper()!;
-    const order = series[cur].pts.map((p, i) => ({ i, v: map(p) }));
-    if (q<HTMLInputElement>('.gd-sort').checked) order.sort((a, b) => a.v.x - b.v.x);
+    const rs = nResample() && series[cur].pts.length >= 2;
+    const order = rs ? r.map((v, i) => ({ i, v })) : series[cur].pts.map((p, i) => ({ i, v: map(p) }));
+    if (!rs && q<HTMLInputElement>('.gd-sort').checked) order.sort((a, b) => a.v.x - b.v.x);
+    const f = asFunction(series[cur].pts.map((p) => map(p)));
+    q('.gd-stats').textContent = f.length >= 2 ? `${rs ? `${order.length} evenly spaced values. ` : ''}Area under the curve (trapezoid rule, from x = ${sig(f[0].x, digits())} to ${sig(f[f.length - 1].x, digits())}): ${sig(trapezoidArea(f), digits())}` : '';
     order.forEach((o, n) => {
       const tr = body.insertRow();
-      [String(n + 1), sig(o.v.x, 5), sig(o.v.y, 5)].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; });
+      [String(n + 1), sig(o.v.x, digits()), sig(o.v.y, digits())].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; });
       const del = document.createElement('button'); del.type = 'button'; del.textContent = '×'; del.setAttribute('aria-label', `Remove point ${n + 1}`);
       del.addEventListener('click', () => { const se = series[cur], p = se.pts.splice(o.i, 1)[0]; history.push(() => se.pts.splice(o.i, 0, p)); draw(); table(); });
-      tr.insertCell().append(del);
+      if (rs) tr.insertCell(); else tr.insertCell().append(del);
     });
   }
   q('.gd-series').addEventListener('change', (e) => { cur = Number((e.target as HTMLSelectElement).value); draw(); table(); hint(); });
   q('.gd-add').addEventListener('click', () => { series.push({ name: `Series ${series.length + 1}`, pts: [] }); cur = series.length - 1; history.push(() => { series.pop(); cur = Math.min(cur, series.length - 1); }); if (mapper()) setMode('points'); table(); draw(); });
   q('.gd-sort').addEventListener('change', table);
+  q('.gd-dig').addEventListener('change', table);
+  q('.gd-rs').addEventListener('input', table);
   q('.gd-undo').addEventListener('click', () => { history.pop()?.(); draw(); table(); hint(); });
   q('.gd-clear').addEventListener('click', () => { const se = series[cur], old = se.pts.slice(); se.pts.length = 0; history.push(() => se.pts.push(...old)); draw(); table(); });
   const allRows = () => {
     const out: (string | number)[][] = [];
-    series.forEach((s, i) => rows(i).forEach((p) => out.push([s.name, +p.x.toPrecision(6), +p.y.toPrecision(6)])));
+    series.forEach((s, i) => rows(i).forEach((p) => out.push([s.name, +p.x.toPrecision(Math.max(digits(), 6)), +p.y.toPrecision(Math.max(digits(), 6))])));
     return out;
   };
   q('.gd-copy').addEventListener('click', async () => {

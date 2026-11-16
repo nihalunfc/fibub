@@ -76,3 +76,35 @@ export function findMarkers(img: ImageData, box: { x0: number; y0: number; x1: n
   }
   return out;
 }
+
+// Working with the digitised points (data coordinates).
+
+/** Points sorted by x, with repeated x values averaged so the curve is a function of x. */
+export function asFunction(pts: Pt[]): Pt[] {
+  const s = [...pts].filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y)).sort((a, b) => a.x - b.x), out: Pt[] = [];
+  for (let i = 0; i < s.length;) {
+    let j = i, sum = 0; while (j < s.length && s[j].x === s[i].x) sum += s[j++].y;
+    out.push({ x: s[i].x, y: sum / (j - i) }); i = j;
+  }
+  return out;
+}
+/** n values evenly spaced in x from the first to the last point, read off the straight lines between the points. */
+export function resample(pts: Pt[], n: number): Pt[] {
+  const f = asFunction(pts);
+  if (f.length < 2 || !(n >= 2)) return f;
+  const x0 = f[0].x, x1 = f[f.length - 1].x, out: Pt[] = [];
+  let j = 0;
+  for (let i = 0; i < n; i++) {
+    const x = i === n - 1 ? x1 : x0 + ((x1 - x0) * i) / (n - 1);
+    while (j < f.length - 2 && f[j + 1].x < x) j++;
+    const a = f[j], b = f[j + 1], t = b.x === a.x ? 0 : (x - a.x) / (b.x - a.x);
+    out.push({ x, y: a.y + t * (b.y - a.y) });
+  }
+  return out;
+}
+/** Area between the curve and y = 0 by the trapezoid rule (negative below the axis). */
+export function trapezoidArea(pts: Pt[]): number {
+  const f = asFunction(pts); let a = 0;
+  for (let i = 1; i < f.length; i++) a += ((f[i].y + f[i - 1].y) / 2) * (f[i].x - f[i - 1].x);
+  return a;
+}

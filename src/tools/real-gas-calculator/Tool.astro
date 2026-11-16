@@ -24,6 +24,18 @@ import { GASES } from '../../lib/sci/phrealgas';
     <p class="ax-err rg-err" hidden></p>
   </div>
 
+  <div class="ax-card rg-ctc">
+    <h2>Gas in a container</h2>
+    <div class="ax-grid">
+      <label>Amount of gas <input class="rg-n" data-k="amount" type="text" inputmode="decimal" placeholder="e.g. 10" /></label>
+      <label>Amount unit <select class="rg-nu" data-k="amountunit"><option value="mol" selected>mol</option><option value="g">g</option><option value="kg">kg</option></select></label>
+      <label>Container volume <input class="rg-v" data-k="volume" type="text" inputmode="decimal" placeholder="e.g. 1 (leave blank to find it)" /></label>
+      <label>Volume unit <select class="rg-vu" data-k="volumeunit"><option value="1e-3" selected>litres</option><option value="1">m³</option><option value="1e-6">mL</option></select></label>
+    </div>
+    <p class="ax-help rg-ct-msg" aria-live="polite">Type an amount and a volume to get the pressure it makes at the temperature above, from each equation. Type only an amount to get the volume it takes at the pressure above.</p>
+    <div class="ax-scroll"><table class="rg-ct-tab"></table></div>
+  </div>
+
   <div class="ax-card rg-out">
     <h2>Compressibility factor</h2>
     <p class="ax-big rg-big"></p>
@@ -41,7 +53,7 @@ import { GASES } from '../../lib/sci/phrealgas';
 </div>
 
 <script>
-  import { GASES, EOS_LIST, EOS_NAMES, R, solveTP, psat, pressure, params, zCurve, type Eos } from '../../lib/sci/phrealgas';
+  import { GASES, EOS_LIST, EOS_NAMES, R, solveTP, psat, pressure, params, zCurve, vdwConstants, containerPressures, type Eos } from '../../lib/sci/phrealgas';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, sig, csv } from '../../lib/sci/num';
@@ -60,6 +72,31 @@ import { GASES } from '../../lib/sci/phrealgas';
     inp('.rg-tc').value = String(g.Tc); inp('.rg-pc').value = String(+(g.Pc / 1e5).toPrecision(4)); inp('.rg-w').value = String(g.w); inp('.rg-m').value = String(g.M);
   });
   for (const c of ['.rg-tc', '.rg-pc', '.rg-w', '.rg-m']) inp(c).addEventListener('input', () => { q<HTMLSelectElement>('.rg-gas').value = 'custom'; });
+
+  function container(g: { Tc: number; Pc: number; w: number }, T: number, P: number, Vm: number, eos: Eos, M: number, PU: number, pu: string) {
+    const msg = q('.rg-ct-msg'), tab = q('.rg-ct-tab'); tab.replaceChildren();
+    const nTxt = inp('.rg-n').value.trim(), vTxt = inp('.rg-v').value.trim();
+    if (!nTxt) { msg.textContent = 'Type an amount and a volume to get the pressure it makes at the temperature above, from each equation. Type only an amount to get the volume it takes at the pressure above.'; return; }
+    const nu = sel('.rg-nu'), nIn = val('.rg-n');
+    if (!(nIn > 0)) { msg.textContent = 'Type an amount above zero, such as 10.'; return; }
+    const n = nu === 'mol' ? nIn : (nu === 'g' ? nIn : nIn * 1000) / M;
+    if (!vTxt) {
+      const V = n * Vm;
+      msg.textContent = `${sig(n, 4)} mol (${sig(n * M, 4)} g) of this gas takes ${sig(V * 1000, 4)} litres (${sig(V, 4)} m³) at ${sig(T, 5)} K and ${sig(P / PU, 4)} ${pu}, by ${EOS_NAMES[eos]}.`;
+      return;
+    }
+    const vIn = val('.rg-v');
+    if (!(vIn > 0)) { msg.textContent = 'Type a container volume above zero, or leave it blank to find the volume.'; return; }
+    const V = vIn * +sel('.rg-vu');
+    const rows = containerPressures(g, T, n, V);
+    const cur = rows.find((r) => r.eos === eos)!;
+    msg.textContent = Number.isFinite(cur.P)
+      ? `${sig(n, 4)} mol (${sig(n * M, 4)} g) in ${sig(V * 1000, 4)} litres at ${sig(T, 5)} K: ${EOS_NAMES[eos]} gives ${sig(cur.P / PU, 4)} ${pu}${cur.twoPhase ? ' (liquid and vapour together, so this is the saturation pressure)' : ''}; an ideal gas would give ${sig(rows[0].P / PU, 4)} ${pu}.`
+      : `${EOS_NAMES[eos]} cannot fit ${sig(n, 4)} mol in ${sig(V * 1000, 4)} litres: that is less than the volume the molecules take up themselves (b). Use a bigger container.`;
+    const head = ['Equation', `Pressure (${pu})`, 'Z', 'Note'];
+    const mk = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i === 1 || i === 2) d.className = 'r'; r.append(d); }); return r; };
+    tab.append(mk(head, true), ...rows.map((r) => mk([EOS_NAMES[r.eos], Number.isFinite(r.P) ? sig(r.P / PU, 4) : '–', Number.isFinite(r.P) ? sig(r.Z, 4) : '–', r.twoPhase ? 'two phases: saturation pressure' : Number.isFinite(r.P) ? '' : 'too crowded for this equation'])));
+  }
 
   function calc() {
     const err = q('.rg-err'), out = q('.rg-out');
@@ -87,9 +124,11 @@ import { GASES } from '../../lib/sci/phrealgas';
       fact('Reduced temperature Tr', sig(T / Tc, 4), T > Tc ? 'above the critical temperature: no liquid at any pressure' : 'below the critical temperature: can condense'),
       fact('Reduced pressure Pr', sig(P / Pc, 4), `${sig(T, 5)} K, ${fmtP(P)}`),
     ];
+    { const vw = vdwConstants(Tc, Pc); f.push(fact('van der Waals constants', `a = ${sig(vw.a * 10, 4)} L² bar/mol², b = ${sig(vw.b * 1000, 4)} L/mol`, 'from the critical point: a = 27R²Tc²/(64Pc) and b = RTc/(8Pc)')); }
     if (T < Tc) f.push(fact('Saturation pressure', sat ? fmtP(sat.P) : 'not found', sat ? `predicted by ${EOS_NAMES[eos]}; ${P > sat.P ? 'above it the stable phase is liquid' : 'below it the stable phase is vapour'}` : 'too close to the critical point to separate the roots'));
     f.push(fact('Root used', st.phase === 'one root' ? 'only one physical root' : st.phase, st.roots.length > 1 ? `roots Z = ${st.roots.map((z) => sig(z, 4)).join(', ')}` : ''));
     q('.rg-facts').replaceChildren(...f);
+    container(g, T, P, st.V, eos, M, PU, pu);
     // Comparison table.
     const head = ['Equation', 'Z', 'Molar volume (L/mol)', 'Density (kg/m³)', 'φ', `Fugacity (${pu})`, 'Off ideal'];
     const rows = EOS_LIST.map((e) => { const s = solveTP(e, g, T, P); return [EOS_NAMES[e], sig(s.Z, 4), sig(s.V * 1000, 4), sig((M / 1000) / s.V, 4), sig(s.phi, 4), sig((s.phi * P) / PU, 4), e === 'ideal' ? '–' : pct(s.Z)]; });

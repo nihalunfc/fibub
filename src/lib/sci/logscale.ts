@@ -50,3 +50,8 @@ export function scaleLog(g: Log, imperial: boolean): LogResult {
     newton: Number.isFinite(Al) && Number.isFinite(Am) ? newton(As, Am, Al, g.length) : NaN,
   };
 }
+
+/** Volume left after a defect deduction in per cent (0..100), applied evenly to the whole volume. */
+export const netVolume = (v: number, defectPercent: number) => v * (1 - Math.min(100, Math.max(0, defectPercent)) / 100);
+/** Value of a board-foot volume at a price per thousand board feet (MBF). */
+export const valueMBF = (boardFeet: number, pricePerMBF: number) => (boardFeet / 1000) * pricePerMBF;

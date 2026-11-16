@@ -13,6 +13,22 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check(await page.isVisible('.dx .dx-pdf') && await page.isVisible('.dx .dx-cdf'), 'distribution explorer: density and CDF charts drawn');
   await page.setViewportSize({ width: 375, height: 900 }); await page.screenshot({ path: OUT + 'distribution-explorer-375.png', fullPage: true }); await page.setViewportSize(vp0);
 
+  // Z-scores, working line and value from probability (normal).
+  { const f = await facts(); check(f.includes('z-scores of a and b−1.96 and 1.96'), 'distribution explorer: z-scores of a and b'); }
+  check((await page.textContent('.dx .dx-work')).includes('Working: z = (x − μ) ÷ σ = (x − 0) ÷ 1') && (await page.textContent('.dx .dx-work')).includes('z(a) = −1.96, z(b) = 1.96'), 'distribution explorer: working line');
+  await page.fill('.dx .dx-fp', '0.95'); await wait();
+  check((await page.textContent('.dx .dx-find')) === 'P(X ≤ x) = 0.95 at x = 1.64485 (z = 1.6449)', `distribution explorer: left-tail value (${await page.textContent('.dx .dx-find')})`);
+  await page.selectOption('.dx .dx-ft', 'right'); await page.fill('.dx .dx-fp', '0.05'); await wait();
+  check((await page.textContent('.dx .dx-find')).includes('P(X > x) = 0.05 at x = 1.64485'), 'distribution explorer: right-tail value');
+  await page.selectOption('.dx .dx-ft', 'middle'); await page.fill('.dx .dx-fp', '0.95'); await wait();
+  check((await page.textContent('.dx .dx-find')).includes('x = −1.95996 and x = 1.95996'), 'distribution explorer: middle interval value');
+  await page.selectOption('.dx .dx-ft', 'both'); await page.fill('.dx .dx-fp', '0.05'); await wait();
+  check((await page.textContent('.dx .dx-find')).includes('Both tails 0.05: x = −1.95996 and x = 1.95996'), 'distribution explorer: both tails value');
+  await page.fill('.dx .dx-fp', '1.5'); await wait();
+  check((await page.textContent('.dx .dx-err')).includes('between 0 and 1') && await page.isHidden('.dx .dx-out'), 'distribution explorer: bad find probability message');
+  await page.fill('.dx .dx-fp', ''); await page.selectOption('.dx .dx-ft', 'left'); await wait();
+  check(await page.isHidden('.dx .dx-err'), 'distribution explorer: recovers after clearing');
+
   // Every shading option.
   await page.selectOption('.dx .dx-r', 'below'); await wait();
   check((await big()) === 'P(X < 1.96) = 0.975002', `distribution explorer: left tail (${await big()})`);

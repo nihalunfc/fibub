@@ -15,7 +15,8 @@ import Downloads from '../../components/Downloads.astro';
     <p class="ax-help">Spaces, numbers and a final * are ignored. U (selenocysteine) and O (pyrrolysine) are counted; B, Z, J and X are left out of the mass and charge. Up to 5 MB.</p>
     <label class="pp-rec-l" hidden>Protein in the file <select class="pp-rec"></select></label>
     <div class="ax-grid" style="margin-top:10px">
-      <label>pH for the charge <input class="pp-ph" type="number" min="0" max="14" step="0.1" value="7.0" inputmode="decimal" /></label>
+      <label>pH for the charge <input class="pp-ph" data-k="ph" type="number" min="0" max="14" step="0.1" value="7.0" inputmode="decimal" /></label>
+      <label>pH slider <input class="pp-phs" type="range" min="0" max="14" step="0.1" value="7" aria-label="pH slider" /></label>
       <label>Disulfide bonds <input class="pp-ss" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
     </div>
     <p class="ax-help">Each disulfide bond (cystine) takes 2 hydrogens off the mass, adds to the extinction coefficient and takes two cysteines out of the charge.</p>
@@ -32,7 +33,7 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card pp-out" hidden>
     <h2>Parameters</h2>
-    <p class="ax-big pp-big"></p>
+    <p class="ax-big pp-big" aria-live="polite" data-k="result"></p>
     <dl class="ax-facts pp-facts"></dl>
     <h3>Charge against pH</h3>
     <canvas class="ax-fig pp-fig"></canvas>
@@ -42,6 +43,14 @@ import Downloads from '../../components/Downloads.astro';
       <label>Path length (cm) <input class="pp-path" type="number" min="0.001" step="0.01" value="1" inputmode="decimal" /></label>
     </div>
     <p class="ax-help pp-conc" aria-live="polite">Type a blank-corrected A280 reading to get the concentration.</p>
+    <h3>Amount and concentration converter</h3>
+    <div class="ax-grid">
+      <label>Amount <input class="pp-am" inputmode="decimal" placeholder="e.g. 1" /></label>
+      <label>In <select class="pp-amu"><option value="ug" selected>µg</option><option value="mg">mg</option><option value="pmol">pmol</option><option value="nmol">nmol</option></select></label>
+      <label>Concentration <input class="pp-cn" inputmode="decimal" placeholder="e.g. 2" /></label>
+      <label>In <select class="pp-cnu"><option value="mgml" selected>mg/mL</option><option value="uM">µM</option><option value="nM">nM</option></select></label>
+    </div>
+    <p class="ax-help pp-conv" aria-live="polite">Type an amount or a concentration to convert it using the average mass above.</p>
     <h3>Composition</h3>
     <div class="ax-scroll"><table class="pp-comp"></table></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pp-csv">Download composition (CSV)</button></div>
@@ -57,7 +66,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { readProtein, analyse, chargeCurve, fromA280, RESIDUES, ORDER, PKA_DEFAULT, EPS_DEFAULT, EXAMPLE, type PkaSet, type EpsSet, type ParsedProtein } from '../../lib/sci/protparam';
+  import { pmolFromUg, ugFromPmol, uMFromMgMl, readProtein, analyse, chargeCurve, fromA280, RESIDUES, ORDER, PKA_DEFAULT, EPS_DEFAULT, EXAMPLE, type PkaSet, type EpsSet, type ParsedProtein } from '../../lib/sci/protparam';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
 
@@ -129,7 +138,7 @@ import Downloads from '../../components/Downloads.astro';
     const t = q('.pp-comp'); t.replaceChildren();
     const h = t.insertRow(); for (const x of ['Amino acid', '', 'Count', '%']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
     for (const row of comp) { const tr = t.insertRow(); row.forEach((x, k) => { const td = tr.insertCell(); td.textContent = k === 0 ? `${RESIDUES[row[1]].name}` : x; if (k > 1) td.className = 'r'; }); }
-    conc();
+    conc(); convert();
     sections = [
       { title: 'Sequence', text: [name, r.seq.replace(/(.{60})/g, '$1 ').trim()] },
       { title: 'Parameters', facts: rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]) },
@@ -149,6 +158,22 @@ import Downloads from '../../components/Downloads.astro';
     out.textContent = `${n2(c.mgPerMl, 3)} mg/mL, which is ${n2(c.uM, 2)} µM.${A > 1.5 ? ' Readings above about 1.5 are often outside the linear range; dilute and measure again.' : ''}`;
   }
 
+  function convert() {
+    const out = q('.pp-conv'); if (!res) return;
+    const parts: string[] = [], amt = q<HTMLInputElement>('.pp-am').value.trim(), cn = q<HTMLInputElement>('.pp-cn').value.trim();
+    const A = amt === '' ? NaN : Number(amt), C = cn === '' ? NaN : Number(cn);
+    if (amt !== '') { if (!(A > 0)) { out.textContent = 'Give an amount above zero.'; return; }
+      const au = q<HTMLSelectElement>('.pp-amu').value, ug = au === 'ug' ? A : au === 'mg' ? A * 1000 : ugFromPmol(au === 'pmol' ? A : A * 1000, res.avg), pm = pmolFromUg(ug, res.avg);
+      parts.push(`${n2(ug, 3)} µg = ${n2(pm, 3)} pmol (${n2(pm / 1000, 4)} nmol)`); }
+    if (cn !== '') { if (!(C > 0)) { out.textContent = 'Give a concentration above zero.'; return; }
+      const cu = q<HTMLSelectElement>('.pp-cnu').value, uM = cu === 'mgml' ? uMFromMgMl(C, res.avg) : cu === 'uM' ? C : C / 1000;
+      parts.push(`${n2((uM * res.avg) / 1e6, 4)} mg/mL = ${n2(uM, 3)} µM`); }
+    out.textContent = parts.length ? parts.join('; ') + '.' : 'Type an amount or a concentration to convert it using the average mass above.';
+  }
+  for (const c of ['.pp-am', '.pp-cn']) q(c).addEventListener('input', convert);
+  for (const c of ['.pp-amu', '.pp-cnu']) q(c).addEventListener('change', convert);
+  q('.pp-phs').addEventListener('input', () => { q<HTMLInputElement>('.pp-ph').value = q<HTMLInputElement>('.pp-phs').value; run(); });
+  q('.pp-ph').addEventListener('input', () => { const v = num('.pp-ph'); if (Number.isFinite(v)) q<HTMLInputElement>('.pp-phs').value = String(Math.min(14, Math.max(0, v))); });
   let t = 0;
   q('.pp-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => load(q<HTMLTextAreaElement>('.pp-in').value), 250); });
   q('.pp-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.pp-in').value = EXAMPLE; load(EXAMPLE); });

@@ -6,6 +6,17 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await big()) === 'Average wait in the queue Wq = 1.763 minutes' && (await facts()).includes('58.75 %') && (await facts()).includes('83.33 %') && (await facts()).includes('7.938'), 'queue: help desk example (M/M/c)');
   check((await page.textContent('.qcs .qc-sbig')) === '8 servers answer 80 % within 20 s' && (await page.textContent('.qcs .qc-stab .qc-hi')).includes('88.01'), 'queue: staffing for 80 % in 20 s');
   { const t = await page.textContent('.qcs .qc-simtab'); check((await page.textContent('.qcs .qc-simn')).startsWith('100,000 customers') && t.includes('±') && await page.isVisible('.qcs .qc-fig') && await page.isVisible('.qcs .qc-fig2'), 'queue: simulation table and charts'); }
+  // New options: working line, wait-against-load chart, what-if table and CSV.
+  check((await page.textContent('.qcs .qc-work')) === 'Working: a = λ × service time = 1.667 per minute × 3 minutes = 5 erlangs; utilisation ρ = a ÷ 6 = 83.33 %.', `queue: working line (${await page.textContent('.qcs .qc-work')})`);
+  check(await page.isVisible('.qcs .qc-curve') && (await page.textContent('.qcs .qc-curvenote')).includes('climb steeply'), 'queue: wait against utilisation chart');
+  { const t = await page.textContent('.qcs .qc-witab'); check((await page.locator('.qcs .qc-witab tr').count()) === 7 && t.includes('4.744') && t.includes('0.04067') && t.includes('104.2') && t.includes('queue growswithout limit') && t.includes('Arrivals (per hour)'), `queue: what-if table (${t})`); }
+  await page.evaluate(() => { document.querySelector('.qcs .qc-wi').open = true; });
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.qcs .qc-wcsv')]); const f = OUT + 'whatif.csv'; await d.saveAs(f); const rows = readFileSync(f, 'utf8').trim().split('\n'); check(rows.length === 7 && rows[0].startsWith('Arrivals (per hour),Utilisation'), 'queue: what-if CSV'); }
+  await page.selectOption('.qcs .qc-k', 'erlangb'); await page.fill('.qcs .qc-c', '5'); await page.fill('.qcs .qc-l', '20'); await page.waitForTimeout(400);
+  check((await page.textContent('.qcs .qc-witab')).includes('Turned away (%)') && (await page.textContent('.qcs .qc-work')).includes('spread over 5 servers'), 'queue: what-if table for lost calls');
+  await page.selectOption('.qcs .qc-k', 'mminf'); await page.waitForTimeout(400);
+  check(await page.isHidden('.qcs .qc-curve') && await page.isHidden('.qcs .qc-wi'), 'queue: no curve or what-if for self-service');
+  await page.selectOption('.qcs .qc-k', 'mmc'); await page.fill('.qcs .qc-c', '6'); await page.fill('.qcs .qc-l', '100'); await page.waitForTimeout(400);
   const before = await page.textContent('.qcs .qc-simtab');
   await page.click('.qcs .qc-new'); await page.waitForTimeout(300);
   check((await page.inputValue('.qcs .qc-seed')) === '2' && (await page.textContent('.qcs .qc-simtab')) !== before, 'queue: new seed runs again');

@@ -8,17 +8,27 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Disease and vaccine</h2>
     <div class="ax-grid">
-      <label>R0 (basic reproduction number) <input class="hi-r0" inputmode="decimal" value="3" /></label>
-      <label>Vaccine effectiveness (%) <input class="hi-e" inputmode="decimal" value="90" /></label>
-      <label>Vaccine coverage (%) <input class="hi-c" inputmode="decimal" value="80" /></label>
+      <label>R0 (basic reproduction number) <input class="hi-r0" data-k="r0" inputmode="decimal" value="3" /><input type="range" class="hi-sl" data-for=".hi-r0" min="0.5" max="20" step="0.1" value="3" aria-label="R0 slider" /></label>
+      <label>Vaccine effectiveness (%) <input class="hi-e" data-k="effectiveness" inputmode="decimal" value="90" /><input type="range" class="hi-sl" data-for=".hi-e" min="1" max="100" step="1" value="90" aria-label="Effectiveness slider" /></label>
+      <label>Vaccine coverage (%) <input class="hi-c" data-k="coverage" inputmode="decimal" value="80" /><input type="range" class="hi-sl" data-for=".hi-c" min="0" max="100" step="1" value="80" aria-label="Coverage slider" /></label>
     </div>
+    <details class="hi-more" style="margin-top:10px">
+      <summary>More options</summary>
+      <div class="ax-grid">
+        <label>Already immune from past infection (%) <input class="hi-p" data-k="prior" inputmode="decimal" value="0" /></label>
+        <label>Target effective R (1 = stop growth) <input class="hi-t" data-k="target" inputmode="decimal" value="1" /></label>
+        <label>Population (people, optional) <input class="hi-pop" data-k="population" inputmode="numeric" value="" placeholder="e.g. 50000" /></label>
+      </div>
+      <p class="ax-help">Past infection is treated as separate from vaccination: the immune share is past + (1 − past) × coverage × effectiveness. Immunity from infection can fade and varies by disease, so use a number from an official source. Population turns coverage into a head count.</p>
+    </details>
     <p class="ax-help">R0 is how many people one case infects when nobody is immune. Effectiveness is the share of vaccinated people who are fully protected from catching and passing on the infection. Coverage is the share of the whole population vaccinated.</p>
     <p class="ax-err hi-err" hidden></p>
   </div>
 
   <div class="ax-card hi-out" hidden>
     <h2>Result</h2>
-    <p class="ax-big hi-big"></p>
+    <p class="ax-big hi-big" data-k="result" aria-live="polite"></p>
+    <p class="hi-work ax-help" aria-live="polite"></p>
     <dl class="ax-facts hi-facts"></dl>
   </div>
 
@@ -34,6 +44,8 @@ Example E, 18</textarea></label>
     <div class="ax-scroll" style="margin-top:12px"><table class="hi-tab"></table></div>
     <p class="ax-help">Coverage needed above 100 % means this vaccine alone cannot reach the threshold. The last column uses your coverage and effectiveness above.</p>
     <canvas class="ax-fig hi-fig" style="margin-top:14px"></canvas>
+    <h3 style="margin:16px 0 4px;font-size:16px">What if coverage changes?</h3>
+    <canvas class="ax-fig hi-fig2"></canvas>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hi-csv">Download table (CSV)</button></div>
     <Downloads />
   </div>
@@ -41,7 +53,7 @@ Example E, 18</textarea></label>
 
 <script>
   import { num, csv } from '../../lib/sci/num';
-  import { threshold, coverageNeeded, effectiveR, maxR0, table, parseRows, type HerdRow } from '../../lib/sci/herd';
+  import { threshold, coverageNeeded, table, parseRows, immuneShare, effectiveRPrior, coverageForTarget, peopleToVaccinate, reCurve, type HerdRow } from '../../lib/sci/herd';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
 
@@ -50,7 +62,7 @@ Example E, 18</textarea></label>
   const val = (c: string) => num(q<HTMLInputElement>(c).value);
   const sig = (x: number, n: number) => String(+x.toPrecision(n));
   const pct = (x: number) => (Number.isFinite(x) ? `${sig(100 * x, 3)} %` : '–');
-  let fig: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+  let fig: Figure | null = null, fig2: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
 
   function fail(el: string, msg: string) { const e = q(el); e.textContent = msg; e.hidden = false; }
   function facts(list: [string, string, string?][]) {
@@ -60,19 +72,27 @@ Example E, 18</textarea></label>
   function calc() {
     q('.hi-err').hidden = true; q('.hi-rerr').hidden = true;
     const R0 = val('.hi-r0'), E = val('.hi-e') / 100, c = val('.hi-c') / 100;
+    const pRaw = q<HTMLInputElement>('.hi-p').value.trim(), P = pRaw === '' ? 0 : val('.hi-p') / 100;
+    const tRaw = q<HTMLInputElement>('.hi-t').value.trim(), TR = tRaw === '' ? 1 : val('.hi-t');
+    const popRaw = q<HTMLInputElement>('.hi-pop').value.trim(), pop = popRaw === '' ? 0 : val('.hi-pop');
     const outs = root.querySelectorAll<HTMLElement>('.hi-out');
-    const bad = !(R0 > 0 && R0 <= 100) ? 'R0 must be above 0 and at most 100.' : !(E > 0 && E <= 1) ? 'Effectiveness must be above 0 and at most 100 %.' : !(c >= 0 && c <= 1) ? 'Coverage must be from 0 to 100 %.' : '';
+    const bad = !(R0 > 0 && R0 <= 100) ? 'R0 must be above 0 and at most 100.' : !(E > 0 && E <= 1) ? 'Effectiveness must be above 0 and at most 100 %.' : !(c >= 0 && c <= 1) ? 'Coverage must be from 0 to 100 %.' : !(P >= 0 && P < 1) ? 'Past infection must be from 0 to under 100 %.' : !(TR > 0 && TR <= 100) ? 'Target effective R must be above 0.' : popRaw !== '' && !(pop > 0 && pop <= 1e10) ? 'Population must be a positive number of people.' : '';
     if (bad) { fail('.hi-err', bad); outs.forEach((o) => (o.hidden = true)); report = []; rows = []; return; }
     outs.forEach((o) => (o.hidden = false));
-    const hit = threshold(R0), need = coverageNeeded(R0, E), Re = effectiveR(R0, c, E), top = maxR0(c, E);
+    q<HTMLCanvasElement>('.hi-fig2').hidden = false;
+    const hit = threshold(R0), need = coverageForTarget(R0, E, P, 1), Re = effectiveRPrior(R0, c, E, P), imm = immuneShare(c, E, P), top = imm >= 1 ? Infinity : 1 / (1 - imm), needT = coverageForTarget(R0, E, P, TR);
     q('.hi-big').textContent = R0 <= 1 ? `R0 ${sig(R0, 3)} is not above 1: no epidemic to stop` : `Herd immunity threshold ${pct(hit)}; vaccinate ${need <= 1 ? pct(need) : 'over 100 %'}`;
     const list: [string, string, string?][] = [
       ['Herd immunity threshold', pct(hit), '1 − 1/R0: share that must be immune'],
       ['Coverage needed', need <= 1 ? pct(need) : `${pct(need)} (not reachable)`, need <= 1 ? `(1 − 1/R0) ÷ ${pct(E)} effectiveness` : 'more than everyone: needs a better vaccine or other measures'],
       ['Effective R at your coverage', sig(Re, 3), Re < 1 ? 'below 1: outbreaks shrink' : 'at or above 1: outbreaks can grow'],
       ['Immune from the vaccine', pct(c * E), 'coverage × effectiveness'],
-      ['Highest R0 this holds below 1', Number.isFinite(top) ? sig(top, 3) : 'any', '1 ÷ (1 − coverage × effectiveness)'],
+      ['Highest R0 this holds below 1', Number.isFinite(top) ? sig(top, 3) : 'any', P > 0 ? '1 ÷ (1 − total immune share)' : '1 ÷ (1 − coverage × effectiveness)'],
     ];
+    if (P > 0) list.splice(4, 0, ['Immune in total', pct(imm), 'past infection + vaccine protection among the rest']);
+    if (TR !== 1) list.push([`Coverage for an effective R of ${sig(TR, 3)}`, needT <= 1 ? pct(needT) : `${pct(needT)} (not reachable)`, TR > R0 ? 'R0 is already below this: no vaccine needed' : 'with your effectiveness and past infection']);
+    if (pop > 0) { const n = (x: number) => Math.round(x).toLocaleString('en'); list.push(['People to vaccinate for the threshold', need <= 1 ? n(peopleToVaccinate(need, pop)) : 'not reachable', `${pct(need)} of ${n(pop)} people`], ['People vaccinated at your coverage', n(peopleToVaccinate(c, pop)), `${pct(c)} of ${n(pop)}`]); }
+    q('.hi-work').textContent = R0 <= 1 ? '' : `Working: threshold = 1 − 1/${sig(R0, 3)} = ${pct(hit)}. ` + (P > 0 ? `With ${pct(P)} already immune, coverage needed = (${pct(hit)} − ${pct(P)}) ÷ ((1 − ${pct(P)}) × ${pct(E)}) = ${need <= 0 ? '0 %' : pct(need)}. ` : `Coverage needed = ${pct(hit)} ÷ ${pct(E)} = ${pct(need)}. `) + `Effective R = ${sig(R0, 3)} × (1 − ${pct(imm)}) = ${sig(Re, 3)}.`;
     q('.hi-facts').replaceChildren(...facts(list));
 
     const pr = parseRows(q<HTMLTextAreaElement>('.hi-rows').value);
@@ -97,15 +117,26 @@ Example E, 18</textarea></label>
       ...(t.length ? [{ name: 'Your rows', x: t.map((r) => r.R0), y: t.map((r) => 100 * r.hit), marker: 'circle' as const, labels: t.map((r) => r.name) }] : []),
     ], marks: [{ kind: 'hline', at: 100 * c, dash: [3, 3], label: `Your coverage ${pct(c)}` }] }, `Herd immunity threshold and coverage needed against R0 up to ${sig(xMax, 3)}`);
     paint(q<HTMLCanvasElement>('.hi-fig'), fig);
+    const cv = reCurve(R0, E, P);
+    fig2 = chartFigure({ h: 300, xLabel: 'Vaccine coverage (%)', yLabel: 'Effective R', xMin: 0, xMax: 100, yMin: 0, legend: 'below', series: [
+      { name: `Effective R (R0 ${sig(R0, 3)})`, x: cv.x, y: cv.y, mode: 'line', width: 2.5 },
+      { name: 'Your coverage', x: [100 * c], y: [Re], marker: 'circle' as const },
+    ], marks: [{ kind: 'hline', at: 1, dash: [3, 3], label: 'R = 1' }] }, `Effective R against vaccine coverage, from ${sig(R0, 3)} at no coverage to ${sig(cv.y[cv.y.length - 1], 3)} at full coverage`);
+    paint(q<HTMLCanvasElement>('.hi-fig2'), fig2);
     report = [
       { title: 'Herd immunity', text: [`R0 ${sig(R0, 4)}, vaccine effectiveness ${pct(E)}, coverage ${pct(c)}. Simple well-mixed model: real populations mix unevenly, and immunity can wane.`], facts: list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]) },
-      ...(body.length ? [{ title: 'Compared (made-up example values unless you typed your own)', table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, figure: fig }] : [{ title: 'Chart', figure: fig }]),
+      ...(body.length ? [{ title: 'Compared (made-up example values unless you typed your own)', table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, figure: fig }, { title: 'Effective R against coverage', figure: fig2 }] : [{ title: 'Chart', figure: fig }, { title: 'Effective R against coverage', figure: fig2 }]),
     ];
   }
   let timer = 0;
   const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
-  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
-  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.hi-fig'), fig));
+  root.querySelectorAll('textarea, input:not([type=range])').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll<HTMLInputElement>('input[type=range]').forEach((sl) => {
+    const tx = q<HTMLInputElement>(sl.dataset.for!);
+    sl.addEventListener('input', () => { tx.value = sl.value; later(); });
+    tx.addEventListener('input', () => { const v = num(tx.value); if (Number.isFinite(v)) sl.value = String(v); });
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.hi-fig'), fig); if (fig2) paint(q<HTMLCanvasElement>('.hi-fig2'), fig2); });
   q('.hi-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'herd-immunity.csv', 'text/csv'));
   calc();
   wireDownloads(q('.dl'), () => ({ title: 'Herd immunity', subtitle: q('.hi-big').textContent ?? '', file: 'herd-immunity', sections: report }));
@@ -113,6 +144,7 @@ Example E, 18</textarea></label>
 
 <style is:inline>
   .hit .hi-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .hit .hi-sl { width: 100%; margin-top: 6px; }
   .hit .hi-tab th, .hit .hi-tab td { padding: 7px 4px; }
   .hit .hi-tab td.r { white-space: nowrap; }
 </style>

@@ -28,6 +28,7 @@ flow:
 
 Mass spectrometry identifies proteins from the masses of their pieces. This calculator does the sums you need around that, for any protein sequence:
 
+- **Mass of one peptide**: type a peptide and get its monoisotopic and average mass, formula, an approximate pI and the m/z at 1+ to 4+, with a free or acetylated N-terminus, a free or amidated C-terminus, and optional carbamidomethyl Cys, oxidised Met and phosphates on Ser, Thr or Tyr.
 - **In-silico digest**: cuts the protein the way an enzyme would, and lists every peptide with its position, missed cleavages, monoisotopic mass and m/z at charge 1+ and 2+.
 - **Peptide mass fingerprint**: paste the m/z values you measured (for example from MALDI-TOF) and see which peaks match a peptide within your tolerance in ppm, and how much of the protein those peptides cover.
 - **Fragment ions**: the b, y and a ions of any peptide at charge 1+ to 3+, with water and ammonia losses if you want them, as a table and a stick picture. Use it to read an MS/MS spectrum by hand.
@@ -36,6 +37,7 @@ For the whole protein's parameters, use the [[protein-calculator|protein paramet
 
 ## Options
 
+- **One peptide**: the first card needs no protein. Ends and modifications use standard additions worked out from their formulas (acetyl C₂H₂O, amide: OH becomes NH₂, phospho HPO₃, carbamidomethyl C₂H₃NO, oxidation O).
 - **Enzyme**: trypsin (cuts after K and R, but not before P), trypsin ignoring the P rule, Lys-C, Arg-C, Glu-C, Asp-N, chymotrypsin (after F, Y and W) and cyanogen bromide (after M).
 - **Missed cleavages**: real digests often skip a site. Allowing 1 or 2 adds the longer peptides that join neighbours.
 - **Shortest and longest peptide**: very short peptides are rarely seen and match too easily, so the default starts at 4 residues.

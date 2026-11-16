@@ -16,19 +16,32 @@ import Downloads from '../../components/Downloads.astro';
     <h2 style="margin-top:16px">Planet</h2>
     <div class="ax-grid">
       <label>Planet <select class="hz-pl"></select></label>
-      <label>Distance from the star (AU) <input class="hz-d" inputmode="decimal" /></label>
+      <label>Distance from the star (AU) <input class="hz-d" data-k="d" inputmode="decimal" /></label>
       <label>or orbital period (days) <input class="hz-p" inputmode="decimal" /></label>
       <label>Albedo (0 to 1) <input class="hz-a" inputmode="decimal" /></label>
       <label>Planet mass <select class="hz-mass"><option value="0.1">0.1 Earth (like Mars)</option><option value="1" selected>1 Earth</option><option value="5">5 Earths (super-Earth)</option></select></label>
       <label>Heat spread <select class="hz-f"><option value="1" selected>Round the whole planet</option><option value="2">Day side only (tidally locked, no air)</option></select></label>
     </div>
+    <div class="ax-row hz-snap" style="margin:4px 0 8px"><span class="ax-help" style="margin:0">Put the planet at the</span>
+      <button type="button" class="btn secondary small" data-at="in">inner edge</button>
+      <button type="button" class="btn secondary small" data-at="mid">middle</button>
+      <button type="button" class="btn secondary small" data-at="out">outer edge</button>
+      <span class="ax-help" style="margin:0">of the conservative zone.</span></div>
+    <details class="hz-more"><summary>More options: units and a target temperature</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Show distances in <select class="hz-du" data-k="distunit"><option value="au" selected>AU</option><option value="mkm">million km</option><option value="lmin">light-minutes</option></select></label>
+        <label>Show temperatures in <select class="hz-tu" data-k="tempunit"><option value="K" selected>kelvin</option><option value="C">°C</option><option value="F">°F</option></select></label>
+        <label>Find the distance for an equilibrium temperature (K) <input class="hz-tt" data-k="targettemp" inputmode="decimal" placeholder="e.g. 255 for Earth-like" /></label>
+      </div>
+      <p class="ax-help hz-tt-out" aria-live="polite"></p>
+    </details>
     <p class="ax-help">Albedo is the share of light reflected: Earth 0.31, Mars 0.25, cloudy Venus 0.76. Planet mass moves the inner edge a little, as heavier planets hold thicker air.</p>
     <p class="ax-err hz-err" hidden></p>
   </div>
 
   <div class="ax-card hz-out" hidden>
     <h2>Habitable zone</h2>
-    <p class="ax-big hz-big"></p>
+    <p class="ax-big hz-big" aria-live="polite"></p>
     <dl class="ax-facts hz-facts"></dl>
     <canvas class="ax-fig hz-fig" style="margin-top:12px"></canvas>
     <h3>Zone edges</h3>
@@ -45,7 +58,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig } from '../../lib/sci/num';
-  import { habitableZone, tEq, insolation, periodDays, auForPeriod, lumFrom, radiusFrom, T_MIN, T_MAX } from '../../lib/sci/habitable';
+  import { distForTeq, DIST_UNITS, kelvinTo, habitableZone, tEq, insolation, periodDays, auForPeriod, lumFrom, radiusFrom, T_MIN, T_MAX } from '../../lib/sci/habitable';
   import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.hz')!;
@@ -65,6 +78,8 @@ import Downloads from '../../components/Downloads.astro';
     { id: 'earth', name: 'Earth', star: 'sun', d: 1, a: 0.306 },
     { id: 'venus', name: 'Venus', star: 'sun', d: 0.723, a: 0.76 },
     { id: 'mars', name: 'Mars', star: 'sun', d: 1.524, a: 0.25 },
+    { id: 'mercury', name: 'Mercury', star: 'sun', d: 0.3871, a: 0.088 },
+    { id: 'jupiter', name: 'Jupiter', star: 'sun', d: 5.204, a: 0.343 },
     { id: 'proxb', name: 'Proxima b (albedo assumed)', star: 'proxima', d: 0.0485, a: 0.3 },
     { id: 't1e', name: 'TRAPPIST-1 e (albedo assumed)', star: 'trappist', d: 0.02925, a: 0.3 },
     { id: 'custom', name: 'My own planet', star: '', d: NaN, a: 0.3 },
@@ -83,6 +98,9 @@ import Downloads from '../../components/Downloads.astro';
     if (id === 'custom') return;
     setStar(p.star); inp('.hz-d').value = String(p.d); inp('.hz-a').value = String(p.a); inp('.hz-p').value = ''; periodLast = false;
   }
+  const du = () => DIST_UNITS[q<HTMLSelectElement>('.hz-du').value];
+  const dd = (x: number) => (du().perAU === 1 ? `${au(x)} AU` : `${sig(x * du().perAU, 4)} ${du().name}`);
+  const tmp = (k: number) => { const u = q<HTMLSelectElement>('.hz-tu').value as 'K' | 'C' | 'F'; return minus(`${Math.round(kelvinTo(k, u))} ${u === 'K' ? 'K' : '°' + u}`); };
   const au = (x: number) => (x < 0.1 ? x.toFixed(4) : x < 10 ? x.toFixed(3) : sig(x, 4));
   const suns = (x: number) => `${sig(x, 3).replace(/\.?0+$/, '')} ${Math.abs(x - 1) < 1e-9 ? 'Sun' : 'Suns'}`;
   const minus = (s: string) => s.replace(/-/g, '−');
@@ -129,15 +147,19 @@ import Downloads from '../../components/Downloads.astro';
       q('.hz-big').textContent = `${where}`;
       const facts: [string, string, string?][] = [
         ['Starlight at the planet', Math.abs(S - 1) < 0.0005 ? 'the same as Earth\'s' : `${sig(S, 3)} times Earth's`, `${Math.round(S * 1361).toLocaleString('en')} W/m²`],
-        ['Equilibrium temperature', minus(`${Math.round(te)} K (${Math.round(te - 273.15)} °C)`), f === 2 ? 'day side only, no greenhouse warming' : 'heat spread round the planet, no greenhouse warming'],
-        ['Orbital period', days(per), periodLast ? `distance from Kepler's third law: ${au(d)} AU` : `at ${au(d)} AU round ${suns(M)}`],
-        ['Conservative zone', `${au(ci)} to ${au(co)} AU`, `orbits of ${days(periodDays(ci, M))} to ${days(periodDays(co, M))}`],
-        ['Optimistic zone', `${au(oi)} to ${au(oo)} AU`, `orbits of ${days(periodDays(oi, M))} to ${days(periodDays(oo, M))}`],
+        ['Equilibrium temperature', q<HTMLSelectElement>('.hz-tu').value === 'K' ? minus(`${Math.round(te)} K (${Math.round(te - 273.15)} °C)`) : tmp(te), f === 2 ? 'day side only, no greenhouse warming' : 'heat spread round the planet, no greenhouse warming'],
+        ['Orbital period', days(per), periodLast ? `distance from Kepler's third law: ${dd(d)}` : `at ${dd(d)} round ${suns(M)}`],
+        ['Conservative zone', `${dd(ci).replace(/ [^ ]+( [^ ]+)?$/, '')} to ${dd(co)}`, `orbits of ${days(periodDays(ci, M))} to ${days(periodDays(co, M))}`],
+        ['Optimistic zone', `${dd(oi).replace(/ [^ ]+( [^ ]+)?$/, '')} to ${dd(oo)}`, `orbits of ${days(periodDays(oi, M))} to ${days(periodDays(oo, M))}`],
         ['Star', `${Math.round(T)} K, luminosity ${suns(L)}, radius ${suns(radiusFrom(L, T))}`, hz.outOfRange ? `outside the ${T_MIN} to ${T_MAX} K range the edges were fitted for, so they are extrapolated` : undefined],
       ];
+      const tt = num(inp('.hz-tt').value), ttOut = q('.hz-tt-out');
+      if (inp('.hz-tt').value.trim() === '') ttOut.textContent = '';
+      else if (!(tt > 0)) ttOut.textContent = 'Type a temperature in kelvin above 0, for example 255.';
+      else { const dT = distForTeq(L, tt, A, f), per2 = periodDays(dT, M); ttOut.textContent = `A planet with this albedo and heat spread reaches ${sig(tt, 4)} K at ${dd(dT)} from the star (${sig(insolation(L, dT), 3)} times Earth's starlight, an orbit of ${days(per2)}), ${dT >= ci && dT <= co ? 'inside' : dT >= oi && dT <= oo ? 'inside the optimistic edge of' : 'outside'} the habitable zone.`; }
       q('.hz-facts').replaceChildren(...facts.map(([k, v, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; dd.querySelector('dd')!.append(m); } return dd; }));
-      const head = ['Edge', 'Starlight (Earth = 1)', 'Distance (AU)', 'Orbital period', 'Equilibrium temperature'];
-      const rows = hz.edges.map((e) => [e.name, e.seff.toFixed(3), au(e.au), days(periodDays(e.au, M)), `${Math.round(tEq(L, e.au, A, f))} K`]);
+      const head = ['Edge', 'Starlight (Earth = 1)', `Distance (${du().name})`, 'Orbital period', 'Equilibrium temperature'];
+      const rows = hz.edges.map((e) => [e.name, e.seff.toFixed(3), sig(e.au * du().perAU, 4), days(periodDays(e.au, M)), tmp(tEq(L, e.au, A, f))]);
       const t = q<HTMLTableElement>('.hz-tab'); t.innerHTML = '';
       const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
       const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
@@ -152,6 +174,16 @@ import Downloads from '../../components/Downloads.astro';
   inp('.hz-d').addEventListener('input', () => { periodLast = false; inp('.hz-p').value = ''; q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc(); });
   inp('.hz-p').addEventListener('input', () => { periodLast = true; inp('.hz-d').value = ''; q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc(); });
   inp('.hz-a').addEventListener('input', calc);
+  inp('.hz-tt').addEventListener('input', calc);
+  for (const c of ['.hz-du', '.hz-tu']) q(c).addEventListener('change', calc);
+  root.querySelectorAll<HTMLButtonElement>('.hz-snap button').forEach((b) => b.addEventListener('click', () => {
+    const T = num(inp('.hz-t').value), M = num(inp('.hz-m').value), Lt = inp('.hz-l').value.trim(), Rv = num(inp('.hz-r').value);
+    const L = Lt ? num(Lt) : lumFrom(Rv, T);
+    if (!(T > 0) || !(L > 0)) return;
+    const z = habitableZone(T, L, q<HTMLSelectElement>('.hz-mass').value as '1'), [ci, co] = z.conservative;
+    const pick = b.dataset.at === 'in' ? ci * (1 + 1e-7) : b.dataset.at === 'out' ? co * (1 - 1e-7) : (ci + co) / 2;
+    periodLast = false; inp('.hz-p').value = ''; inp('.hz-d').value = String(+pick.toPrecision(8)); q<HTMLSelectElement>('.hz-pl').value = 'custom'; calc();
+  }));
   for (const c of ['.hz-mass', '.hz-f']) q(c).addEventListener('change', calc);
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.hz-fig'), fig));
   setPlanet('earth'); calc();

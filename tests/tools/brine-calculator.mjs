@@ -30,6 +30,24 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.br-csv')]); const f = OUT + 'brine.csv'; await d.saveAs(f); const t = readFileSync(f, 'utf8'); check(t.startsWith('section,item,value') && t.includes('Curing salt,Cure needed (g),2.00') && t.includes('Dry cure,Salt (g),50.0') && t.includes('Vegetable ferment,Salt (g),30.0'), 'brine: CSV'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.dl [data-f=pdf]')]); check((await d.suggestedFilename()) === 'brine-and-cure.pdf', 'brine: PDF download'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(S + '.dl [data-f=png]')]); check((await d.suggestedFilename()) === 'brine-and-cure.png', 'brine: PNG download'); }
+  // more options: water unit, slider, strength table, fix a brine
+  await page.evaluate(() => document.querySelectorAll('.brin details').forEach((d) => { d.open = true; }));
+  await page.fill(S + '.br-p', '5'); await page.selectOption(S + '.br-wu', 'lb'); await page.fill(S + '.br-w', '2'); await page.waitForTimeout(80);
+  check((await page.textContent(S + '.br-big1')) === '47.7 g salt (1.7 oz) in 2 lb water', 'brine: pounds of water');
+  check((await page.textContent(S + '.br-wk')).startsWith('Working:'), 'brine: working line');
+  check((await page.textContent(S + '.br-tab')).includes('10 %'), 'brine: strength table');
+  await page.selectOption(S + '.br-wu', 'g'); await page.fill(S + '.br-w', '1000');
+  await page.evaluate(() => { const r = document.querySelector('.brin .br-ps'); r.value = '10'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(80);
+  check((await page.inputValue(S + '.br-p')) === '10' && (await page.textContent(S + '.br-big1')) === '111 g salt in 1,000 g water', 'brine: slider sets the strength');
+  await page.fill(S + '.br-tw', '1000'); await page.fill(S + '.br-tc', '3'); await page.fill(S + '.br-tt', '5'); await page.waitForTimeout(80);
+  check((await page.textContent(S + '.br-big6')) === 'Stir in 21.1 g salt (0.7 oz) to reach 5 %', 'brine: add salt');
+  await page.fill(S + '.br-tc', '10'); await page.waitForTimeout(80);
+  check((await page.textContent(S + '.br-big6')) === 'Add 1,000 g water to reach 5 %', 'brine: add water');
+  await page.fill(S + '.br-tt', '30'); await page.waitForTimeout(80);
+  check((await page.textContent(S + '.br-err6')).includes('saturated'), 'brine: too strong target');
+  await page.fill(S + '.br-w', '-5'); await page.waitForTimeout(80);
+  check(!(await page.textContent(S + '.br-big1')).includes('NaN'), 'brine: negative water has no NaN');
+  await page.fill(S + '.br-w', '1000');
   const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
   await page.locator('.brin').screenshot({ path: OUT + 'brine-375.png' }); await page.setViewportSize(vp0);
 };

@@ -11,7 +11,7 @@ ads: true
 order: 10
 icon: sliders
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [uncertainty-calculator, plot-maker, sample-size]
 sources:
   - "Moist air equations: Hyland and Wexler, as given in the ASHRAE Handbook, Fundamentals (2017)."
@@ -35,6 +35,10 @@ For dry gases at any pressure, use the [[gas-law-calculator]]; for a full profil
 3. Choose the second value: **relative humidity**, the **dew point**, or the **wet bulb** temperature from a sling psychrometer.
 4. Give the **altitude**, or type the **pressure** if you know it. Pressure matters for the humidity ratio, the wet bulb and the enthalpy. At 1500 m, air pressure is about 85 kPa instead of 101.3.
 
+5. Open **More options** to switch the altitude to feet and the pressure to hPa, atm, psi or inHg, to **cool or heat the air** to a new temperature, or to check a **surface** for condensation.
+   - Type a final temperature to see the air's new state, the heat removed or added per kilogram of dry air, and the water that condenses if the air is cooled below its dew point. Add an **airflow** in m³/h to get the load in kilowatts and the litres of condensate per hour. The path is drawn on the chart. Condensing at or below 0 °C (frost) is not modelled.
+   - Type the temperature of a window, pipe or wall to see whether water condenses on it, and by how many degrees it is above or below the dew point.
+
 ## What the results mean
 
 - **Dew point:** cool air to this temperature and water starts to condense. Below 0 °C it is the frost point.
@@ -49,9 +53,11 @@ For dry gases at any pressure, use the [[gas-law-calculator]]; for a full profil
 
 Saturation pressure uses the Hyland and Wexler equations, as in the ASHRAE Handbook, Fundamentals (2017), chapter 1, over ice below 0 °C and over water above. The wet bulb is found by solving ASHRAE's equation 35 numerically. The heat index uses the NWS Rothfusz regression with its corrections. The humidex uses Environment Canada's formula.
 
+The process heat is q = h₂ − h₁ + (W₁ − W₂) × 4.186 × t₂ in kJ per kg of dry air, where the last term is the energy carried off by the condensate, and the load is the dry-air mass flow (volume flow divided by specific volume) times q. This is a guide for sizing; real coils have losses and a contact factor, so ask a mechanical engineer for design work.
+
 ## Worked example
 
-ASHRAE's example air at 40 °C dry bulb and 20 °C wet bulb at sea level has a humidity ratio of 6.40 g/kg, a relative humidity of 14 %, a dew point of 7.4 °C, an enthalpy of 56.7 kJ/kg and a specific volume of 0.896 m³/kg. Room air at 25 °C and 50 % has a dew point of 13.9 °C and a wet bulb of 17.9 °C. At 32.2 °C (90 °F) and 70 %, the heat index is 41 °C (106 °F): danger. At 30 °C with a dew point of 15 °C, the humidex is 34: some discomfort.
+ASHRAE's example air at 40 °C dry bulb and 20 °C wet bulb at sea level has a humidity ratio of 6.40 g/kg, a relative humidity of 14 %, a dew point of 7.4 °C, an enthalpy of 56.7 kJ/kg and a specific volume of 0.896 m³/kg. Room air at 25 °C and 50 % has a dew point of 13.9 °C and a wet bulb of 17.9 °C. Cooling it to 10 °C removes 20.9 kJ per kg and 2.25 g of water per kg of dry air; 1000 m³/h is a load of 6.8 kW. A window at 10 °C is 3.9 °C below the dew point, so it fogs up. At 32.2 °C (90 °F) and 70 %, the heat index is 41 °C (106 °F): danger. At 30 °C with a dew point of 15 °C, the humidex is 34: some discomfort.
 
 ## Frequently asked questions
 

@@ -11,7 +11,7 @@ ads: false
 order: 561
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [distribution-explorer, calibration-curve, plot-maker, data-cleaner, sample-size, hypothesis-tests, time-series-analyser, experiment-design, bootstrap-permutation, curve-fitter, regression-ols-iv-panel, csv-profiler]
 sources:
   - "Methods: least squares by Householder QR; logistic regression by iteratively reweighted least squares; standard textbook formulas for leverage, studentized residuals, Cook's distance, VIF and Durbin–Watson."
@@ -49,11 +49,17 @@ A regression is only as good as its assumptions, so the page draws the standard 
 
 ## How to use it
 
-1. Paste a table with a header row, open a CSV or Excel file, or start from an example.
+1. Paste a table with a header row, open a CSV or Excel file, or start from an example. For a quick fit of just two lists of numbers, tick **My numbers have no header row** and paste x and y side by side (the last column is y; a single column is y against the row number 1, 2, 3 …). The tool names the columns x and y for you.
 2. Choose the model type, the response and the predictors (or, for a polynomial, the x and the degree).
 3. Leave the intercept on unless theory says the line must pass through zero.
 4. Read the coefficient table and the plots; type values in **Predict** to use the model.
 5. Download the coefficients and the residuals as CSV, or the whole report as an image, PDF or Word file.
+
+## ANOVA and correlation
+
+For least-squares fits the page shows an **analysis of variance table**: the sum of squares explained by the regression and left in the residuals, their degrees of freedom and mean squares, and the F test (the same F and p as above). With one predictor and an intercept it also gives the **correlation r**, the square root of R² with the sign of the slope. The ANOVA table is included in the PDF and Word report.
+
+For five made-up points x = 1 to 5 and y = 2, 4, 5, 4, 5 (no header), the line is y = 2.2 + 0.6 x, R² = 0.6, r = 0.7746, with 3.6 explained, 2.4 left over, 6 in total, and F = 4.5.
 
 ## Worked example
 

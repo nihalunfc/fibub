@@ -11,7 +11,7 @@ ads: true
 order: 624
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [circuit-simulator, filter-designer, link-budget-calculator, skin-depth-calculator, smith-chart, op-amp-calculator]
 sources:
   - "Trace current capacity: the curve-fit formula for the IPC-2221 design chart, I = k ΔT^0.44 A^0.725 (as widely published; the formula only, no chart data)."
@@ -41,6 +41,8 @@ Simulate the circuit before you lay it out with the [[circuit-simulator]], and m
 1. Choose millimetres or mils. Values already typed are converted when you switch.
 2. For current: give the current, the temperature rise you accept (10 °C is a common, cautious choice), the copper weight and whether the trace is on an outer or inner layer. Add the length to see resistance and drop.
 3. For impedance: pick microstrip or stripline, the dielectric height (to the plane for microstrip; between the two planes for stripline), the board εr and either the width or the impedance you want.
+
+**More options.** "Find" switches the trace-width sum round: type a width and get the most current it can carry for your temperature rise. Copper weight has a "My own thickness" choice in micrometres, for boards that are not a standard weight. A line of working under the answer shows the formula with your numbers filled in. Under "More: the table for other temperature rises" you get the same answer for 10, 20, 30, 40, 60, 80 and 100 °C rises on outer and inner layers, and a CSV download of that table. No ready-made trace-width presets from a standard are included: only the IPC-2221 curve-fit formula is used, with its source below, and differential-pair or via-current calculators are left out because no verified formula is built in.
 
 ## Worked example
 

@@ -7,7 +7,9 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Redshift and cosmology</h2>
     <div class="ax-grid">
-      <label>Redshift z <input class="cz-z" inputmode="decimal" value="3" /></label>
+      <label>Start from <select class="cz-from" data-k="from"><option value="z" selected>Redshift z</option><option value="lookback">Lookback time (billion years)</option><option value="age">Age of the universe then (billion years)</option><option value="dc">Comoving distance</option><option value="dl">Luminosity distance</option></select></label>
+      <label><span class="cz-zl">Redshift z</span> <input class="cz-z" data-k="z" inputmode="decimal" value="3" /></label>
+      <label>Distances in <select class="cz-unit" data-k="unit"><option value="mpc" selected>Mpc</option><option value="gly">billion light years</option><option value="mly">million light years</option><option value="gpc">Gpc</option></select></label>
       <label>Cosmology <select class="cz-pre">
         <option value="planck18" selected>Planck 2018 (flat)</option>
         <option value="wmap9">WMAP 9-year (flat)</option>
@@ -30,9 +32,23 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card cz-out" hidden>
     <h2>At this redshift</h2>
-    <p class="ax-big cz-big"></p>
+    <p class="ax-big cz-big" aria-live="polite"></p>
     <dl class="ax-facts cz-facts"></dl>
     <canvas class="ax-fig cz-fig" style="margin-top:14px"></canvas>
+    <details class="cz-more"><summary>Angular size and physical size</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Object size (kpc) <input class="cz-kpc" data-k="kpc" inputmode="decimal" placeholder="e.g. 30 for a galaxy" /></label>
+        <label>or angle on the sky (arcsec) <input class="cz-arc" data-k="arcsec" inputmode="decimal" placeholder="e.g. 2" /></label>
+      </div>
+      <p class="ax-help cz-ang" aria-live="polite">Type a size to get its angle at this redshift, or an angle to get the size. Uses the angular diameter distance above.</p>
+    </details>
+    <details class="cz-more"><summary>Table of common redshifts</summary>
+      <div class="ax-scroll"><table class="cz-tab"></table></div>
+      <p class="ax-help">Same cosmology as above. The row you typed is not added; use the box at the top for any other value.</p>
+    </details>
+    <details class="cz-more"><summary>Show the working</summary>
+      <p class="ax-help cz-work"></p>
+    </details>
     <Downloads />
   </div>
 </div>
@@ -44,7 +60,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig } from '../../lib/sci/num';
-  import { cosmology, omegaR, presets } from '../../lib/sci/cosmo';
+  import { cosmology, omegaR, presets, redshiftFrom, arcsecFromSize, sizeFromArcsec, DIST_UNITS, C_KMS, E } from '../../lib/sci/cosmo';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
 
@@ -53,7 +69,11 @@ import Downloads from '../../components/Downloads.astro';
   const inp = (c: string) => q<HTMLInputElement>(c);
   let fig: Figure | null = null, report: Section[] = [];
   const gyr = (x: number) => `${x.toFixed(x < 1 ? 4 : 3)} Gyr`;
-  const mpc = (x: number) => `${Math.round(x).toLocaleString('en')} Mpc (${sig(x * 3.26156e-3, 4)} billion light years)`;
+  const mpc = (x: number) => {
+    const u = q<HTMLSelectElement>('.cz-unit').value;
+    if (u === 'mpc') return `${Math.round(x).toLocaleString('en')} Mpc (${sig(x * DIST_UNITS.gly.perMpc, 4)} billion light years)`;
+    return `${sig(x * DIST_UNITS[u].perMpc, 5)} ${DIST_UNITS[u].name}`;
+  };
 
   function params() {
     const H0 = num(inp('.cz-h0').value), Om = num(inp('.cz-om').value);
@@ -69,12 +89,19 @@ import Downloads from '../../components/Downloads.astro';
   function calc() {
     const err = q('.cz-err');
     try {
-      const c = params(), z = num(inp('.cz-z').value);
+      const c = params(), from = q<HTMLSelectElement>('.cz-from').value, raw = num(inp('.cz-z').value);
+      let z = raw;
+      if (from !== 'z') {
+        if (!(raw >= 0)) throw new Error('Type a value of 0 or more.');
+        const perMpc = DIST_UNITS[q<HTMLSelectElement>('.cz-unit').value].perMpc;
+        z = redshiftFrom(c, from as 'lookback', from === 'dc' || from === 'dl' ? raw / perMpc : raw);
+      }
       if (!(z >= 0)) throw new Error('Type a redshift of 0 or more, such as 0.5 or 3.');
       if (z > 1e5) throw new Error('Redshifts above 100,000 are before the hot Big Bang ended; this calculator stops there.');
       const r = cosmology(c, z);
       err.hidden = true; q('.cz-out').hidden = false;
-      q('.cz-big').textContent = z > 0 ? `Light left ${gyr(r.lookback).replace(' Gyr', ' billion years')} ago` : `The universe is ${gyr(r.age0).replace(' Gyr', ' billion years')} old`;
+      const zNote = from !== 'z' ? `Redshift z = ${sig(z, 6)}. ` : '';
+      q('.cz-big').textContent = zNote + (z > 0 ? `Light left ${gyr(r.lookback).replace(' Gyr', ' billion years')} ago` : `The universe is ${gyr(r.age0).replace(' Gyr', ' billion years')} old`);
       const facts: [string, string, string?][] = [
         ['Age of the universe now', gyr(r.age0)],
         ['Age at redshift z', gyr(r.ageZ)],
@@ -92,6 +119,17 @@ import Downloads from '../../components/Downloads.astro';
         ['Densities', `Ωm ${c.Om.toFixed(4)}, ΩΛ ${c.OL.toFixed(4)}, Ωr ${c.Or.toExponential(2)}, Ωk ${Math.abs(r.Ok) < 1e-9 ? '0' : r.Ok.toFixed(4)}`],
       ];
       q('.cz-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+      // Table of common redshifts.
+      const tz = [0.1, 0.5, 1, 2, 3, 6, 10, 20, 1100], uN = DIST_UNITS[q<HTMLSelectElement>('.cz-unit').value];
+      const th = ['z', 'Lookback (Gyr)', 'Age then (Gyr)', `Comoving (${uN.name})`, `Luminosity (${uN.name})`, 'kpc per arcsec'];
+      const trows = tz.map((zz) => { const t = cosmology(c, zz); return [String(zz), sig(t.lookback, 4), sig(t.ageZ, 4), sig(t.dc * uN.perMpc, 5), sig(t.dl * uN.perMpc, 5), sig(t.kpcPerArcsec, 4)]; });
+      const tb = q<HTMLTableElement>('.cz-tab'); tb.innerHTML = '';
+      const hr = tb.createTHead().insertRow(); th.forEach((h, i) => { const e = document.createElement('th'); e.textContent = h; if (i) e.className = 'r'; hr.append(e); });
+      const bd = tb.createTBody(); trows.forEach((rw) => { const tr = bd.insertRow(); rw.forEach((v, i) => { const td = tr.insertCell(); td.textContent = v; if (i) td.className = 'r'; }); });
+      // The working.
+      const DH = C_KMS / c.H0;
+      q('.cz-work').textContent = `Hubble distance c/H0 = ${sig(DH, 5)} Mpc and Hubble time 1/H0 = ${sig(977.792 / c.H0, 5)} Gyr (c = 299,792.458 km/s). E(z) = √(Ωr(1+z)⁴ + Ωm(1+z)³ + Ωk(1+z)² + ΩΛ) = ${sig(E(c, z), 6)} at z = ${sig(z, 6)}. Comoving distance = (c/H0) ∫ dz/E(z) from 0 to z = ${sig(r.dc, 6)} Mpc; luminosity distance = (1+z) × comoving = ${sig(r.dl, 6)} Mpc; angular diameter distance = comoving/(1+z) = ${sig(r.da, 6)} Mpc. Lookback time = (1/H0) ∫ dz/((1+z)E(z)).`;
+      angular(r.da);
       // Distances against redshift, on a log axis from z = 0.01 to past the chosen z.
       const zMax = Math.max(10, z * 1.5), xs: number[] = [];
       for (let i = 0; i <= 80; i++) xs.push(10 ** (-2 + (Math.log10(zMax) + 2) * (i / 80)));
@@ -106,6 +144,15 @@ import Downloads from '../../components/Downloads.astro';
     } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.cz-out').hidden = true; report = []; }
   }
 
+  let daNow = NaN;
+  function angular(da: number) {
+    daNow = da;
+    const kpc = num(inp('.cz-kpc').value), arc = num(inp('.cz-arc').value), out = q('.cz-ang');
+    if (!(da > 0)) { out.textContent = 'Angular size needs a redshift above 0.'; return; }
+    if (kpc > 0) out.textContent = `An object ${sig(kpc, 4)} kpc across spans ${sig(arcsecFromSize(kpc, da), 4)} arcseconds at this redshift.`;
+    else if (arc > 0) out.textContent = `An object ${sig(arc, 4)} arcseconds across is ${sig(sizeFromArcsec(arc, da), 4)} kpc wide at this redshift.`;
+    else out.textContent = 'Type a size to get its angle at this redshift, or an angle to get the size. Uses the angular diameter distance above.';
+  }
   function preset() {
     const p = presets[q<HTMLSelectElement>('.cz-pre').value];
     if (p) { inp('.cz-h0').value = String(p.H0); inp('.cz-om').value = String(p.Om); inp('.cz-flat').checked = true; }
@@ -114,8 +161,16 @@ import Downloads from '../../components/Downloads.astro';
   }
   function sync() { inp('.cz-ol').disabled = inp('.cz-flat').checked; }
   q('.cz-pre').addEventListener('change', preset);
+  q('.cz-from').addEventListener('change', () => {
+    const f = q<HTMLSelectElement>('.cz-from').value;
+    q('.cz-zl').textContent = { z: 'Redshift z', lookback: 'Lookback time (billion years)', age: 'Age then (billion years)', dc: 'Comoving distance (chosen unit)', dl: 'Luminosity distance (chosen unit)' }[f]!;
+    calc();
+  });
+  q('.cz-unit').addEventListener('change', calc);
   root.addEventListener('input', (e) => {
     const t = e.target as HTMLElement;
+    if (t.matches('.cz-kpc')) inp('.cz-arc').value = '';
+    if (t.matches('.cz-arc')) inp('.cz-kpc').value = '';
     if (t.matches('.cz-h0, .cz-om, .cz-ol')) q<HTMLSelectElement>('.cz-pre').value = 'custom';
     if (t.matches('.cz-flat')) { q<HTMLSelectElement>('.cz-pre').value = 'custom'; sync(); }
     if (t.matches('.cz-h0, .cz-om, .cz-ol, .cz-flat')) q('.cz-note').textContent = 'Your own values. Untick "Flat universe" to set ΩΛ freely; then Ωk = 1 − Ωm − ΩΛ − Ωr.';

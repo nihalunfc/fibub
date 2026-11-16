@@ -22,7 +22,7 @@ import Downloads from '../../components/Downloads.astro';
     <p class="ax-help">Efficiency: counts recorded per particle emitted (from a calibration source); yield: particles of that kind per decay. Leave it blank to work in counts only. The example numbers are made up.</p>
     <p class="ax-err cs-err1" hidden></p>
     <div class="cs-out1">
-      <p class="ax-big cs-big1"></p>
+      <p class="ax-big cs-big1" data-k="result" aria-live="polite"></p>
       <p class="cs-pill"><span class="ax-pill cs-dec"></span></p>
       <dl class="ax-facts cs-facts1"></dl>
       <canvas class="ax-fig cs-fig1" style="margin-top:12px"></canvas>
@@ -58,6 +58,21 @@ import Downloads from '../../components/Downloads.astro';
       <dl class="ax-facts cs-facts3"></dl>
     </div>
     <p class="ax-help">Poisson counting statistics only: add calibration, geometry and other uncertainties yourself. For study and planning, not a substitute for professional judgement or your laboratory's validated procedures.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Poisson probabilities</h2>
+    <div class="ax-grid">
+      <label>Expected average count μ <input class="cs-mu" data-k="mu" type="text" inputmode="decimal" value="4" /></label>
+      <label>Count k <input class="cs-k" data-k="k" type="text" inputmode="numeric" value="7" /></label>
+    </div>
+    <p class="ax-help">Chance of seeing exactly, at most or at least k counts in an interval when the true average is μ (for example rate × time). Counts must be independent random events.</p>
+    <p class="ax-err cs-err4" hidden></p>
+    <div class="cs-out4">
+      <p class="ax-big cs-big4" data-k="poisson" aria-live="polite"></p>
+      <dl class="ax-facts cs-facts4"></dl>
+      <canvas class="ax-fig cs-fig4" style="margin-top:12px"></canvas>
+    </div>
     <Downloads />
   </div>
 </div>
@@ -68,7 +83,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { netRate, currie, mda, trueNonPar, truePar, measNonPar, measPar, bestSplit, timeForPrecision, poissonCI } from '../../lib/sci/phcount';
+  import { netRate, currie, mda, trueNonPar, truePar, measNonPar, measPar, bestSplit, timeForPrecision, poissonCI, poissonPmf, poissonAtLeast, poissonAtMost, countsForPrecision } from '../../lib/sci/phcount';
   import { num, fmtExp } from '../../lib/sci/num';
   import { normInv } from '../../lib/sci/stats';
   import { chartFigure } from '../../lib/sci/plot';
@@ -82,8 +97,8 @@ import Downloads from '../../components/Downloads.astro';
   const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
   const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
   const tuName = () => q<HTMLSelectElement>('.cs-tu').selectedOptions[0].text;
-  const figs: (Figure | null)[] = [null, null];
-  const report: (Section | null)[] = [null, null, null];
+  const figs: (Figure | null)[] = [null, null, null, null];
+  const report: (Section | null)[] = [null, null, null, null];
   function part(i: number, ok: boolean, msg = '') { const e = q(`.cs-err${i}`), o = q(`.cs-out${i}`); e.textContent = msg; e.hidden = ok; o.hidden = !ok; if (!ok) report[i - 1] = null; }
   const gauss = (x: number, m: number, s: number) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
 
@@ -167,9 +182,36 @@ import Downloads from '../../components/Downloads.astro';
     report[2] = { title: q('.cs-big3').textContent!, facts: rows(f) };
   }
 
-  const calc = () => { first(); second(); third(); };
+  function fourth() {
+    const mu = v('.cs-mu'), k = v('.cs-k');
+    if (!(mu >= 0 && mu <= 1e6)) return part(4, false, 'Give the expected count μ: zero or more, up to 1,000,000.');
+    if (!(k >= 0 && Number.isInteger(k) && k <= 2e6)) return part(4, false, 'k is a whole number of counts, zero or more.');
+    part(4, true);
+    const eq = poissonPmf(k, mu), le = poissonAtMost(k, mu), ge = poissonAtLeast(k, mu), lt = 1 - ge, gt = 1 - le;
+    const pc = (x: number) => sig(100 * Math.max(0, Math.min(1, x)), 4) + ' %';
+    q('.cs-big4').textContent = `P(exactly ${k}) = ${pc(eq)}; P(${k} or fewer) = ${pc(le)}; P(${k} or more) = ${pc(ge)}`;
+    const f = [
+      fact(`P(X = ${k})`, pc(eq), `e^−μ μ^k / k!`),
+      fact(`P(X ≤ ${k})`, pc(le), 'k or fewer'),
+      fact(`P(X ≥ ${k})`, pc(ge), 'k or more'),
+      fact(`P(X < ${k})`, pc(lt), 'fewer than k'),
+      fact(`P(X > ${k})`, pc(gt), 'more than k'),
+      fact('Standard deviation', sig(Math.sqrt(mu), 4), mu > 0 ? `√μ; ${sig(100 / Math.sqrt(mu), 3)} % of μ, so ${sig(countsForPrecision(0.01), 6)} counts give 1 %` : 'μ = 0'),
+    ];
+    q('.cs-facts4').replaceChildren(...f);
+    const hiK = Math.ceil(Math.max(mu + 5 * Math.sqrt(mu) + 5, k + 2)), loK = Math.max(0, Math.floor(Math.min(mu - 5 * Math.sqrt(mu) - 2, k - 2)));
+    const ks: number[] = []; for (let i = loK; i <= Math.min(hiK, loK + 400); i++) ks.push(i);
+    const fig = chartFigure({ w: 380, h: 230, xLabel: 'Counts', yLabel: 'Probability', xMin: ks[0] - 0.5, yMin: 0, legend: 'below', series: [
+      { name: `Poisson, μ = ${sig(mu)}`, x: ks, y: ks.map((x) => poissonPmf(x, mu)), mode: 'both', width: 1.5, size: 2.6 },
+      { name: `k = ${k}`, x: [k], y: [eq], marker: 'circle' as const, size: 5 },
+    ] }, `Poisson probabilities for mean ${sig(mu)}; the chance of exactly ${k} counts is ${pc(eq)}`);
+    paint(q<HTMLCanvasElement>('.cs-fig4'), fig); figs[3] = fig;
+    report[3] = { title: q('.cs-big4').textContent!, facts: rows(f), figure: fig };
+  }
+
+  const calc = () => { first(); second(); third(); fourth(); };
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
-  document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.cs-out1').hidden) paint(q<HTMLCanvasElement>('.cs-fig1'), figs[0]); if (figs[1] && !q('.cs-out2').hidden) paint(q<HTMLCanvasElement>('.cs-fig2'), figs[1]); });
+  document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.cs-out1').hidden) paint(q<HTMLCanvasElement>('.cs-fig1'), figs[0]); if (figs[1] && !q('.cs-out2').hidden) paint(q<HTMLCanvasElement>('.cs-fig2'), figs[1]); if (figs[3] && !q('.cs-out4').hidden) paint(q<HTMLCanvasElement>('.cs-fig4'), figs[3]); });
   calc();
   wireDownloads(q('.dl'), () => ({ title: 'Counting statistics', subtitle: 'Poisson counting, Currie limits, dead time', file: 'counting-statistics', sections: report.filter((s): s is Section => !!s) }));
 </script>

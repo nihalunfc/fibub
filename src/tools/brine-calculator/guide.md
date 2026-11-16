@@ -17,6 +17,7 @@ sources:
   - "Arithmetic by weight (general facts): brine % = salt ÷ (salt + water); salt per water = salt ÷ water; ppm = mg per kg. The salinometer scale (0° for water, 100° for saturated brine, about 26.4 % sodium chloride by weight at 15.6 °C / 60 °F) is a general convention."
   - "Checked by hand and with an independent Python calculation (salt for 5 % brine both ways, strength of 60 g in 940 g, salinometer degrees, equilibrium salt, dry cure, cure grams for a ppm and back)."
   - "No salt or nitrite levels are recommended. The example amounts are made up to show the arithmetic; the nitrite target and the cure's nitrite % are always entered by the user."
+  - "Unit conversions: 1 oz = 28.349523125 g and 1 lb = 453.59237 g (international avoirdupois, exact); 1 US cup = 236.5882365 ml (US legal cup); water taken as 1 g per ml. Dated 2026-11-16; check the official source."
 flow:
   - { icon: pencil, label: "Weights" }
   - { icon: percent, label: "Salt %" }
@@ -26,9 +27,11 @@ flow:
 
 ## What it does
 
-Brining, fermenting and curing all come down to weighing salt as a percentage of something. The trouble is that recipes mean different things by "a 5 % brine", and curing salt needs care. This page does the arithmetic in five small calculators:
+Brining, fermenting and curing all come down to weighing salt as a percentage of something. The trouble is that recipes mean different things by "a 5 % brine", and curing salt needs care. This page does the arithmetic in a few small calculators:
 
 - **Make a brine**: grams of salt for a given weight of water and strength. "% of salt + water" is the strength of the finished brine (salt ÷ whole brine); "% of the water only" is salt ÷ water, which many recipes use and which gives a slightly weaker brine.
+- **Water in any unit**: type the water in grams, kilograms, millilitres, litres, ounces, pounds or US cups (1 ml of water counts as 1 g), pair the typed strength with a slider, and see a one-line working and a table of the salt needed for the same water at 2 to 20 %.
+- **Fix a brine you already have**: how much salt to stir in, or water to add, to move a brine from its strength now to the one you want (percent of the brine, by weight).
 - **Check a brine**: the strength of a brine you made, both ways, and in **salinometer degrees** (°SAL), where 100° is saturated brine (about 26.4 % salt by weight at 15.6 °C). You can also turn a salinometer reading into a percentage.
 - **Vegetable ferment (equilibrium brine)**: salt as a percentage of the vegetables plus any water, because the salt evens out across both.
 - **Dry cure**: salt and sugar as percentages of the meat's weight.

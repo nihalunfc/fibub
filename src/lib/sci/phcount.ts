@@ -87,3 +87,13 @@ export function poissonCI(n: number, conf = 0.95) {
   const a = 1 - conf;
   return { lo: n === 0 ? 0 : gammaInv(a / 2, n), hi: gammaInv(1 - a / 2, n + 1) };
 }
+
+// Poisson probabilities for a count with mean mu (the same law that gives the √N uncertainty).
+/** P(X = k) for a Poisson count with mean mu. */
+export const poissonPmf = (k: number, mu: number) => (mu === 0 ? (k === 0 ? 1 : 0) : Math.exp(-mu + k * Math.log(mu) - logGamma(k + 1)));
+/** P(X ≥ k): the regularised lower incomplete gamma P(k, mu). */
+export const poissonAtLeast = (k: number, mu: number) => (k <= 0 ? 1 : mu <= 0 ? 0 : gammaP(k, mu));
+/** P(X ≤ k). */
+export const poissonAtMost = (k: number, mu: number) => 1 - poissonAtLeast(k + 1, mu);
+/** Counts needed for a wanted relative 1σ uncertainty rel of a single count (1/√N). */
+export const countsForPrecision = (rel: number) => Math.ceil(1 / (rel * rel) - 1e-9);

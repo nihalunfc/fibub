@@ -35,3 +35,25 @@ export function parseRows(text: string): { rows: { name: string; R0: number }[];
   if (rows.length > 30) return { rows, error: 'Up to 30 rows.' };
   return { rows, error: null };
 }
+
+// Extra options. Prior immunity p (from past infection, say) is taken as independent of vaccination, so the immune
+// share is p + (1 − p) c E and the susceptible share is (1 − p)(1 − c E). Same well-mixed model as above.
+
+/** Share of the population that is immune: prior immunity p plus vaccine protection among those not yet immune. */
+export const immuneShare = (c: number, E: number, p = 0) => p + (1 - p) * c * E;
+/** Effective R with prior immunity p. */
+export const effectiveRPrior = (R0: number, c: number, E: number, p = 0) => R0 * (1 - immuneShare(c, E, p));
+/** Coverage needed to reach a target effective R (1 = the threshold), given prior immunity p. 0 when nothing is needed, above 1 when unreachable. */
+export function coverageForTarget(R0: number, E: number, p = 0, target = 1) {
+  const immuneNeeded = 1 - target / R0;
+  if (immuneNeeded <= p) return 0;
+  return (immuneNeeded - p) / ((1 - p) * E);
+}
+/** Whole people to vaccinate for a coverage share in a population (rounded up). */
+export const peopleToVaccinate = (coverage: number, population: number) => Math.ceil(coverage * population - 1e-9);
+/** Points of effective R against coverage 0..1, for a chart. */
+export function reCurve(R0: number, E: number, p = 0, n = 50) {
+  const x: number[] = [], y: number[] = [];
+  for (let i = 0; i <= n; i++) { const c = i / n; x.push(100 * c); y.push(effectiveRPrior(R0, c, E, p)); }
+  return { x, y };
+}

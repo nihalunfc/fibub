@@ -11,12 +11,13 @@ ads: true
 order: 743
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [loan-payoff-planner, budget-calculator, currency-converter, uncertainty-calculator, inflation-calculator, lcoe-calculator, grant-budget]
 sources:
   - "Standard capital budgeting formulas (discounted cash flow, internal rate of return, modified IRR, payback, profitability index, equivalent annual annuity) as in corporate finance textbooks. No tables copied."
   - "Written by fibub. Checked in the tests against numpy-financial 1.1 (npv, irr, mirr), every IRR against the real roots of the cash-flow polynomial from numpy.roots, and payback against numpy.cumsum."
   - "The example project is made up."
+  - "XNPV and XIRR follow the spreadsheet convention: years are the number of days since the first date divided by 365."
 flow:
   - { icon: table, label: "Cash flows" }
   - { icon: percent, label: "Rate" }
@@ -46,6 +47,8 @@ Turn past or future prices into today's money with the [[inflation-calculator]],
 2. Enter the discount rate per period, such as your cost of borrowing or the return you could earn elsewhere.
 3. Leave the MIRR rates blank to use the discount rate, or set a finance and a reinvestment rate.
 4. Download the table as CSV, or the report as an image, PDF or Word file.
+
+**More options.** Open "More: dated cash flows and comparing two projects". Tick the dates box and put a date (year-month-day, for example 2026-03-15) first on each row to get XNPV and XIRR: the rate is per year and each flow is discounted by days ÷ 365 from the first date, the way spreadsheets do it. Type a second project in the Project B box to see both side by side (NPV, IRR, MIRR, payback, profitability index, equivalent annual amount), the rate at which their NPVs are equal and which one wins at your rate. The dated results have their own CSV download; the PNG, PDF and Word report covers the period-by-period results.
 
 ## Worked example (made-up project)
 

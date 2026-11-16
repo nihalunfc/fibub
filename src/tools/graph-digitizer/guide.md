@@ -11,7 +11,7 @@ ads: false
 order: 10
 icon: pointer
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [plot-maker, calibration-curve, dose-response, image-resizer]
 flow:
   - { icon: image, label: "Open image" }
@@ -36,6 +36,8 @@ Once you have the numbers, redraw them with the [[plot-maker]] or fit them with 
 4. **Several curves?** Press **Add a series** for each one.
 5. **Copy** the table and paste it into Excel or Google Sheets, or **download a CSV** with every series.
 
+Under **More options** you can choose how many **significant digits** the table shows, ask for **evenly spaced x values** (type a number such as 20 to get that many x values between your first and last point, read off the straight lines between your points, which suits comparing or fitting curves), and read the **area under the curve** (trapezoid rule, in the units of your axes) for the series you are on.
+
 Undo removes the last step, whether it was one click or a whole colour search. The **×** next to a row removes that point. **Zoom** to 2× or 4× for crowded plots.
 
 ## How accurate is it?
@@ -45,6 +47,10 @@ The accuracy depends on the picture. On a clean screenshot, each point is usuall
 ## Worked example
 
 A figure shows enzyme activity against temperature, with x from 0 to 80 °C and y from 0 to 1.2. Tap the 0 and 80 ticks on the x axis and type 0 and 80. Tap the 0 and 1.2 ticks on the y axis and type 0 and 1.2. Then switch to Find by colour, tap the red curve, and press Find points: about 100 points across the curve appear in the table, sorted by temperature. Paste them into the [publication plot maker](/science/plot-maker/) to redraw the figure, or fit them with the [dose-response tool](/science/dose-response/).
+
+## Worked example, more options
+
+Three clicked points at (20, 2), (40, 4) and (80, 8) on a straight line give an area of about 300 (the trapezoid rule over x from 20 to 80). Typing 5 under even spacing turns them into five rows at x = 20, 35, 50, 65 and 80.
 
 ## Frequently asked questions
 

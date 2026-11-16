@@ -6,6 +6,28 @@ import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax pep">
   <div class="ax-card">
+    <h2>Mass of one peptide</h2>
+    <label>Peptide sequence (one-letter codes) <input class="pm-seq" data-k="peptide" type="text" value="DFSLQGECK" spellcheck="false" autocomplete="off" autocapitalize="characters" /></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>N-terminus <select class="pm-n" data-k="nterm"><option value="free" selected>Free (NH₂)</option><option value="acetyl">Acetylated</option></select></label>
+      <label>C-terminus <select class="pm-c" data-k="cterm"><option value="acid" selected>Free acid (COOH)</option><option value="amide">Amide (CONH₂)</option></select></label>
+    </div>
+    <p class="ax-help">Free ends are what a peptide from a protein digest has. Many synthetic peptides are acetylated at the N-terminus and amidated at the C-terminus.</p>
+    <details>
+      <summary>More options: modifications</summary>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="pm-cam" /> Cysteines carbamidomethylated (+57.0215 each)</label>
+      <label class="ax-check"><input type="checkbox" class="pm-ox" /> Methionines oxidised (+15.9949 each)</label>
+      <label style="margin-top:8px">Phosphorylated residues (Ser, Thr or Tyr, +79.9663 each) <input class="pm-ph" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
+    </details>
+    <p class="ax-err pm-err" hidden></p>
+    <div class="pm-out">
+      <p class="ax-big pm-big" aria-live="polite" data-k="result"></p>
+      <dl class="ax-facts pm-facts"></dl>
+      <div class="ax-scroll"><table class="pm-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
     <h2>Protein and digest</h2>
     <div class="ax-row">
       <button type="button" class="btn secondary small pe-open">Open a FASTA file</button>
@@ -68,7 +90,8 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { digest, fingerprint, fragments, mz, ENZYMES, EXAMPLE_PROTEIN, EXAMPLE_PEAKS, type EnzymeId, type ModId, type Peptide } from '../../lib/sci/peptide';
+  import { digest, fingerprint, fragments, mz, peptideProps, ENZYMES, EXAMPLE_PROTEIN, EXAMPLE_PEAKS, type EnzymeId, type ModId, type Peptide } from '../../lib/sci/peptide';
+  import { analyse } from '../../lib/sci/protparam';
   import { readProtein } from '../../lib/sci/protparam';
   import { wireDownloads, save, fileSafe, paint, type Figure, type Section } from '../../lib/report';
 
@@ -103,6 +126,25 @@ import Downloads from '../../components/Downloads.astro';
     q('.pe-tnote').textContent = `${peps.length > MAX_ROWS ? `The first ${MAX_ROWS} of ${peps.length.toLocaleString('en')} peptides are shown; the CSV has them all. ` : ''}Tap a peptide to see its fragment ions. Mass is the neutral monoisotopic mass; ${mods.length ? `modifications: ${mods.map((m) => (m === 'carbamidomethyl' ? 'carbamidomethyl Cys' : 'oxidised Met')).join(', ')}.` : 'no modifications.'}`;
     match(); frag();
   }
+
+  function single() {
+    const raw = q<HTMLInputElement>('.pm-seq').value.toUpperCase().replace(/[\s\d*-]/g, ''), err = q('.pm-err'), out = q('.pm-out');
+    err.hidden = true; out.hidden = false;
+    if (!raw) { out.hidden = true; return; }
+    try {
+      const mm: ModId[] = [...(q<HTMLInputElement>('.pm-cam').checked ? ['carbamidomethyl' as ModId] : []), ...(q<HTMLInputElement>('.pm-ox').checked ? ['oxidation' as ModId] : [])];
+      const nT = q<HTMLSelectElement>('.pm-n').value as 'free' | 'acetyl', cT = q<HTMLSelectElement>('.pm-c').value as 'acid' | 'amide', ph = Number(q<HTMLInputElement>('.pm-ph').value) || 0;
+      const r = peptideProps(raw, { nTerm: nT, cTerm: cT, mods: mm, phospho: ph });
+      q('.pm-big').textContent = `${f4(r.mono)} Da monoisotopic, [M+H]⁺ ${f4(mz(r.mono, 1))}`;
+      const facts: [string, string][] = [['Monoisotopic mass', `${f4(r.mono)} Da`], ['Average mass', `${r.avg.toFixed(3)} Da`], ['Formula', r.formula], ['Length', `${r.residues} amino acid${r.residues === 1 ? '' : 's'}`]];
+      if (r.residues >= 2) facts.push(['Approximate pI (unmodified, free ends)', analyse(raw).pI.toFixed(2)]);
+      q('.pm-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      table(q('.pm-tab'), ['Charge', 'm/z (monoisotopic)', 'm/z (average)'], [1, 2, 3, 4].map((z) => [`${z}+`, f4(mz(r.mono, z)), (r.avg / z + 1.00728).toFixed(3)]), ['', 'r', 'r']);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; }
+  }
+  for (const c of ['.pm-seq', '.pm-ph']) q(c).addEventListener('input', single);
+  for (const c of ['.pm-n', '.pm-c', '.pm-cam', '.pm-ox']) q(c).addEventListener('change', single);
+  single();
 
   function match() {
     const peaks = q<HTMLTextAreaElement>('.pe-peaks').value.split(/\r?\n/).map((l) => Number((/[-+]?\d+(\.\d+)?/.exec(l) ?? [''])[0])).filter((x) => x > 0);

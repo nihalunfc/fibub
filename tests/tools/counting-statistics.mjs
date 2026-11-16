@@ -23,4 +23,15 @@ export default async ({ page, check, BASE }) => {
   check((await t('.cs-err1')).includes('efficiency'), 'counting: bad efficiency message');
   await page.fill('.cst .cs-Rb', '3'); await wait();
   check((await t('.cs-err3')).includes('higher than the background'), 'counting: planning rates message');
+  // Poisson probabilities card.
+  await page.fill('.cst .cs-mu', '4'); await page.fill('.cst .cs-k', '7'); await wait();
+  check((await t('.cs-big4')) === 'P(exactly 7) = 5.954 %; P(7 or fewer) = 94.89 %; P(7 or more) = 11.07 %', `counting: Poisson probabilities (${await t('.cs-big4')})`);
+  { const f = await t('.cs-facts4'); check(f.includes('88.93 %') && f.includes('5.113 %') && f.includes('10000 counts give 1 %'), 'counting: Poisson less/more than and 1/sqrt(N)'); }
+  check(await page.isVisible('.cst .cs-fig4'), 'counting: Poisson chart');
+  await page.fill('.cst .cs-mu', '0'); await page.fill('.cst .cs-k', '0'); await wait();
+  check((await t('.cs-big4')).startsWith('P(exactly 0) = 100 %'), 'counting: mean zero');
+  await page.fill('.cst .cs-k', '2.5'); await wait();
+  check((await t('.cs-err4')).includes('whole number') && await page.isHidden('.cst .cs-out4'), 'counting: bad k message');
+  await page.fill('.cst .cs-mu', '-1'); await wait();
+  check((await t('.cs-err4')).includes('zero or more'), 'counting: negative mean message');
 };

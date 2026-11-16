@@ -18,12 +18,25 @@ const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19
     <label style="margin-top:10px;display:block"><span>One row per log: name (optional), small-end diameter, length, and if you have them the large-end and middle diameters</span> <textarea class="ls-data" rows="8" spellcheck="false">{logs}</textarea></label>
     <DataFile target=".ls-data" maxCols={10} maxRows={20000} />
     <p class="ax-help">Measure diameters inside the bark. The board-foot rules use only the small-end diameter and the length; Smalian needs both ends, Huber the middle, and Newton all three. In metric the board-foot rules use the diameter and length converted to inches and feet. Up to 20,000 logs. The example logs are made up.</p>
+    <details class="ls-more" style="margin-top:10px">
+      <summary>More options: defects and price</summary>
+      <div class="ax-grid">
+        <label>Defect deduction (% of volume) <input class="ls-def" data-k="defect" inputmode="decimal" value="0" /></label>
+        <label>Price per 1,000 board feet (optional) <input class="ls-price" data-k="price" inputmode="decimal" value="" placeholder="e.g. 450" /></label>
+        <label>Price is quoted by <select class="ls-rule" data-k="rule">
+          <option value="intl" selected>International ¼-inch</option>
+          <option value="scrib">Scribner (formula)</option>
+          <option value="doyle">Doyle</option>
+        </select></label>
+      </div>
+      <p class="ax-help">The deduction takes the same share off every log for rot, sweep or splits; real scalers deduct per log by their own rules. Type your own price: this tool has no market prices. The result shows the value as a plain number, in whatever currency you used.</p>
+    </details>
     <p class="ax-err ls-err" hidden></p>
   </div>
 
   <div class="ax-card ls-out">
     <h2>Volume</h2>
-    <p class="ax-big ls-big"></p>
+    <p class="ax-big ls-big" data-k="result" aria-live="polite"></p>
     <dl class="ax-facts ls-facts"></dl>
     <div class="ax-grid" style="margin-top:10px">
       <label><span>Chart: rules for a log of length (<span class="ls-lu">ft</span>)</span> <input class="ls-cl" inputmode="decimal" value="16" /></label>
@@ -39,7 +52,7 @@ const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19
 </div>
 
 <script>
-  import { scaleLog, type Log, type LogResult } from '../../lib/sci/logscale';
+  import { scaleLog, netVolume, valueMBF, type Log, type LogResult } from '../../lib/sci/logscale';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
@@ -89,6 +102,11 @@ const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19
     q('.ls-out').hidden = false;
     q('.ls-big').textContent = `${bf(T.intl)} bd ft by International ¼-inch, ${bf(T.scrib)} Scribner, ${bf(T.doyle)} Doyle (${logs.length} log${logs.length > 1 ? 's' : ''})`;
     const cub = (k: 'smalian' | 'huber' | 'newton', name: string, need: string) => { const ok = all3(k); return fact(name, ok.length ? `${sg(ok.reduce((s, r) => s + r[k], 0), 4)} ${vu}` : 'not worked out', ok.length ? `${ok.length} of ${res.length} logs${ok.length < res.length ? `; needs ${need}` : ''}` : `needs ${need}`); };
+    const defRaw = q<HTMLInputElement>('.ls-def').value.trim(), def = defRaw === '' ? 0 : num(defRaw);
+    if (!(def >= 0 && def <= 100)) return fail('Defect deduction must be from 0 to 100 %.');
+    const prRaw = q<HTMLInputElement>('.ls-price').value.trim(), price = prRaw === '' ? NaN : num(prRaw);
+    if (prRaw !== '' && !(price >= 0)) return fail('Price must be zero or more, per 1,000 board feet.');
+    const rk = q<HTMLSelectElement>('.ls-rule').value as 'intl' | 'scrib' | 'doyle', rn = { intl: 'International ¼-inch', scrib: 'Scribner', doyle: 'Doyle' }[rk];
     const small = res.filter((r) => r.intl > 0 && r.doyle / r.intl < 0.8).map((r) => r.id);
     q('.ls-facts').replaceChildren(
       fact('International ¼-inch', `${bf(T.intl)} bd ft`, 'formula version: 4 ft sections, ½ inch taper each, × 0.905 for a ¼-inch kerf'),
@@ -97,6 +115,8 @@ const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19
       cub('smalian', 'Smalian cubic volume', 'both end diameters'),
       cub('huber', 'Huber cubic volume', 'the middle diameter'),
       cub('newton', 'Newton cubic volume', 'both ends and the middle'),
+      ...(def > 0 ? [fact(`After ${sg(def, 3)} % defect deduction`, `${bf(netVolume(T.intl, def))} Intl, ${bf(netVolume(T.scrib, def))} Scribner, ${bf(netVolume(T.doyle, def))} Doyle`, 'net board feet')] : []),
+      ...(Number.isFinite(price) ? [fact(`Value at ${sg(price, 4)} per 1,000 bd ft (${rn})`, sg(valueMBF(netVolume(T[rk], def), price), 5), `${bf(netVolume(T[rk], def))} net bd ft ÷ 1,000 × price`)] : []),
     );
     // Chart: each rule against small-end diameter for one log length.
     const cl = num(q<HTMLInputElement>('.ls-cl').value), CL = cl > 0 && cl <= maxL ? cl : imp ? 16 : 5;

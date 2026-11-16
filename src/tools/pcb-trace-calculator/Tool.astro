@@ -7,34 +7,43 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Trace width for current</h2>
     <div class="ax-grid">
-      <label>Lengths in <select class="pc-u"><option value="mm" selected>millimetres (mm)</option><option value="mil">mils (thousandths of an inch)</option></select></label>
-      <label>Current (A) <input class="pc-i" type="text" inputmode="decimal" value="2" /></label>
-      <label>Allowed temperature rise (°C) <input class="pc-dt" type="text" inputmode="decimal" value="10" /></label>
-      <label>Copper weight <select class="pc-oz"><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option><option value="3">3 oz (105 µm)</option></select></label>
-      <label>Layer <select class="pc-layer"><option value="outer" selected>Outer layer (in air)</option><option value="inner">Inner layer (inside the board)</option></select></label>
-      <label><span>Trace length (<span class="pc-lu">mm</span>)</span> <input class="pc-len" type="text" inputmode="decimal" value="50" /></label>
-      <label>Ambient temperature (°C) <input class="pc-ta" type="text" inputmode="decimal" value="25" /></label>
+      <label>Lengths in <select data-k="u" class="pc-u"><option value="mm" selected>millimetres (mm)</option><option value="mil">mils (thousandths of an inch)</option></select></label>
+      <label>Find <select data-k="find" class="pc-find"><option value="w" selected>Width for a current</option><option value="i">Current for a width</option></select></label>
+      <label class="pc-iw">Current (A) <input data-k="i" class="pc-i" type="text" inputmode="decimal" value="2" /></label>
+      <label class="pc-wdw" hidden><span>Trace width (<span class="pc-lu">mm</span>)</span> <input data-k="wd" class="pc-wd" type="text" inputmode="decimal" value="0.8" /></label>
+      <label>Allowed temperature rise (°C) <input data-k="dt" class="pc-dt" type="text" inputmode="decimal" value="10" /></label>
+      <label>Copper weight <select data-k="oz" class="pc-oz"><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option><option value="3">3 oz (105 µm)</option><option value="custom">My own thickness</option></select></label>
+      <label class="pc-cuw" hidden>Copper thickness (µm) <input data-k="cu" class="pc-cu" type="text" inputmode="decimal" value="35" /></label>
+      <label>Layer <select data-k="layer" class="pc-layer"><option value="outer" selected>Outer layer (in air)</option><option value="inner">Inner layer (inside the board)</option></select></label>
+      <label><span>Trace length (<span class="pc-lu">mm</span>)</span> <input data-k="len" class="pc-len" type="text" inputmode="decimal" value="50" /></label>
+      <label>Ambient temperature (°C) <input data-k="ta" class="pc-ta" type="text" inputmode="decimal" value="25" /></label>
     </div>
     <p class="ax-help">The IPC-2221 chart, as a formula: I = k × ΔT^0.44 × A^0.725, with A the cross-section in square mils, k = 0.048 for outer and 0.024 for inner layers. It is an old, conservative fit for traces alone; nearby planes, vias and airflow change the real temperature. The example values are made up.</p>
-    <p class="ax-big pc-big1"></p>
+    <p class="ax-big pc-big1" aria-live="polite"></p>
+    <p class="ax-help pc-work"></p>
     <dl class="ax-facts pc-facts1"></dl>
     <canvas class="ax-fig pc-fig1"></canvas>
+    <details class="pc-more" style="margin-top:10px"><summary>More: the table for other temperature rises</summary>
+      <p class="ax-help">The same current (or width) for other allowed temperature rises, on outer and inner layers. The IPC-2221 chart covers rises of 10 to 100 °C.</p>
+      <div class="ax-scroll"><table class="pc-tab"></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pc-csv">Download the table (CSV)</button></div>
+    </details>
     <p class="ax-err pc-err1" hidden></p>
   </div>
 
   <div class="ax-card">
     <h2>Impedance</h2>
     <div class="ax-grid">
-      <label>Line <select class="pc-line"><option value="ms" selected>Microstrip (outer layer over a plane)</option><option value="sl">Stripline (inner layer between two planes, centred)</option></select></label>
-      <label>Find <select class="pc-mode"><option value="z" selected>Impedance from the width</option><option value="w">Width for an impedance</option></select></label>
-      <label><span><span class="pc-hlab">Dielectric height h to the plane</span> (<span class="pc-lu">mm</span>)</span> <input class="pc-h" type="text" inputmode="decimal" value="0.2" /></label>
-      <label class="pc-wbox"><span>Trace width W (<span class="pc-lu">mm</span>)</span> <input class="pc-w" type="text" inputmode="decimal" value="0.35" /></label>
-      <label class="pc-zbox" hidden>Wanted impedance (Ω) <input class="pc-z" type="text" inputmode="decimal" value="50" /></label>
-      <label>Copper weight <select class="pc-oz2"><option value="0">ignore thickness</option><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option></select></label>
-      <label>Relative permittivity εr <input class="pc-er" type="text" inputmode="decimal" value="4.2" /></label>
+      <label>Line <select data-k="line" class="pc-line"><option value="ms" selected>Microstrip (outer layer over a plane)</option><option value="sl">Stripline (inner layer between two planes, centred)</option></select></label>
+      <label>Find <select data-k="mode" class="pc-mode"><option value="z" selected>Impedance from the width</option><option value="w">Width for an impedance</option></select></label>
+      <label><span><span class="pc-hlab">Dielectric height h to the plane</span> (<span class="pc-lu">mm</span>)</span> <input data-k="h" class="pc-h" type="text" inputmode="decimal" value="0.2" /></label>
+      <label class="pc-wbox"><span>Trace width W (<span class="pc-lu">mm</span>)</span> <input data-k="w" class="pc-w" type="text" inputmode="decimal" value="0.35" /></label>
+      <label class="pc-zbox" hidden>Wanted impedance (Ω) <input data-k="z" class="pc-z" type="text" inputmode="decimal" value="50" /></label>
+      <label>Copper weight <select data-k="oz2" class="pc-oz2"><option value="0">ignore thickness</option><option value="0.5">½ oz (17 µm)</option><option value="1" selected>1 oz (35 µm)</option><option value="2">2 oz (70 µm)</option></select></label>
+      <label>Relative permittivity εr <input data-k="er" class="pc-er" type="text" inputmode="decimal" value="4.2" /></label>
     </div>
     <p class="ax-help">εr of FR-4 is about 4 to 4.6 depending on the glass weave and frequency; ask your board maker for their stack-up value. These closed-form formulas (Hammerstad-Jensen for microstrip, Wheeler for stripline) are approximations, usually within a few percent of a field solver; solder mask, etching and plating change real boards more than that.</p>
-    <p class="ax-big pc-big2"></p>
+    <p class="ax-big pc-big2" aria-live="polite"></p>
     <dl class="ax-facts pc-facts2"></dl>
     <canvas class="ax-fig pc-fig2"></canvas>
     <p class="ax-err pc-err2" hidden></p>
@@ -44,10 +53,10 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { ipcArea, ipcWidth, traceR, microstrip, stripline, perLength, widthFor, MIL, OZ } from '../../lib/sci/eng-pcb';
+  import { ipcArea, ipcWidth, ipcCurrent, traceR, microstrip, stripline, perLength, widthFor, MIL, OZ } from '../../lib/sci/eng-pcb';
   import { chartFigure } from '../../lib/sci/plot';
-  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
-  import { num, sig } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
 
   const root = document.querySelector<HTMLElement>('.pcbt')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -60,32 +69,53 @@ import Downloads from '../../components/Downloads.astro';
   const len = (m: number) => { const U = unit(); return `${sig(m / U.f, 3)} ${U.u}`; };
   const ohm = (r: number) => (r < 1 ? `${sig(r * 1000, 3)} mΩ` : `${sig(r, 3)} Ω`);
 
+  let csvRows: string[][] = [];
+  const thick = () => (sel('.pc-oz') === 'custom' ? val('.pc-cu') * 1e-6 : +sel('.pc-oz') * OZ);
+  const ozName = () => (sel('.pc-oz') === 'custom' ? `${sig(val('.pc-cu'), 3)} µm` : `${sel('.pc-oz')} oz`);
   function width() {
-    const U = unit(), err = q('.pc-err1');
-    const I = val('.pc-i'), dT = val('.pc-dt'), t = +sel('.pc-oz') * OZ, inner = sel('.pc-layer') === 'inner', L = val('.pc-len') * U.f, Ta = val('.pc-ta');
-    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pc-big1').textContent = ''; q('.pc-facts1').replaceChildren(); q('.pc-fig1').hidden = true; sec[0] = null; };
-    if (!(I > 0)) return fail('Give the current in amps.');
+    const U = unit(), err = q('.pc-err1'), byI = sel('.pc-find') === 'w';
+    q('.pc-iw').hidden = !byI; q('.pc-wdw').hidden = byI; q('.pc-cuw').hidden = sel('.pc-oz') !== 'custom';
+    const dT = val('.pc-dt'), t = thick(), inner = sel('.pc-layer') === 'inner', L = val('.pc-len') * U.f, Ta = val('.pc-ta');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pc-big1').textContent = ''; q('.pc-work').textContent = ''; q('.pc-facts1').replaceChildren(); q('.pc-tab').replaceChildren(); q('.pc-fig1').hidden = true; sec[0] = null; csvRows = []; };
+    if (byI && !(val('.pc-i') > 0)) return fail('Give the current in amps.');
+    if (!byI && !(val('.pc-wd') > 0)) return fail('Give the trace width.');
     if (!(dT > 0 && dT <= 150)) return fail('Give a temperature rise between 0 and 150 °C (10 °C is common).');
+    if (!(t > 0 && t < 1e-3)) return fail('Give a copper thickness between 0 and 1000 µm.');
     if (!(L >= 0)) return fail('Give the trace length (0 to skip the resistance).');
     if (!Number.isFinite(Ta)) return fail('Give the ambient temperature.');
     err.hidden = true; q('.pc-fig1').hidden = false;
-    const w = ipcWidth(I, dT, t, inner), A = ipcArea(I, dT, inner), T = Ta + dT;
-    q('.pc-big1').textContent = `At least ${len(w)} wide (${U.other(w)})`;
-    const f = [fact('Cross-section', `${sig(A, 4)} mil² (${sig(A * MIL * MIL * 1e12, 4)} µm²)`, `${sel('.pc-oz')} oz copper is about ${sig(t * 1e6, 3)} µm thick`)];
+    let I: number, w: number, A: number;
+    if (byI) { I = val('.pc-i'); w = ipcWidth(I, dT, t, inner); A = ipcArea(I, dT, inner); }
+    else { w = val('.pc-wd') * U.f; A = (w * t) / (MIL * MIL); I = ipcCurrent(A, dT, inner); }
+    const T = Ta + dT, k = inner ? 0.024 : 0.048;
+    q('.pc-big1').textContent = byI ? `At least ${len(w)} wide (${U.other(w)})` : `Up to ${sig(I, 3)} A for a ${sig(dT, 3)} °C rise`;
+    q('.pc-work').textContent = byI
+      ? `Working: A = (I ÷ (k × ΔT^0.44))^(1/0.725) = (${sig(I, 3)} ÷ (${k} × ${sig(dT, 3)}^0.44))^1.379 = ${sig(A, 4)} mil²; width = A ÷ thickness = ${sig(A, 4)} ÷ ${sig((t * 1e6) / 25.4, 3)} mil = ${sig(w / MIL, 3)} mil.`
+      : `Working: A = width × thickness = ${sig(w / MIL, 3)} × ${sig((t * 1e6) / 25.4, 3)} mil = ${sig(A, 4)} mil²; I = k × ΔT^0.44 × A^0.725 = ${k} × ${sig(dT, 3)}^0.44 × ${sig(A, 4)}^0.725 = ${sig(I, 3)} A.`;
+    const f = [fact('Cross-section', `${sig(A, 4)} mil² (${sig(A * MIL * MIL * 1e12, 4)} µm²)`, `${ozName()} copper is about ${sig(t * 1e6, 3)} µm thick`)];
+    if (!byI) f.push(fact('Trace width', `${len(w)} (${U.other(w)})`));
     if (L > 0) {
       const R = traceR(w, t, L, T), V = I * R;
       f.push(fact('Resistance', ohm(R), `at ${sig(T, 3)} °C (ambient + rise), copper 1.724 × 10⁻⁸ Ω·m at 20 °C`));
       f.push(fact('Voltage drop and heat', `${V < 1 ? `${sig(V * 1000, 3)} mV` : `${sig(V, 3)} V`}, ${I * V < 1 ? `${sig(I * V * 1000, 3)} mW` : `${sig(I * V, 3)} W`}`, 'one way; double it for a supply and return pair'));
     }
-    f.push(fact(inner ? 'On an outer layer' : 'On an inner layer', len(ipcWidth(I, dT, t, !inner)), inner ? 'outer layers shed heat to the air, so they can be narrower' : 'inner layers need wider traces for the same current'));
+    if (byI) f.push(fact(inner ? 'On an outer layer' : 'On an inner layer', len(ipcWidth(I, dT, t, !inner)), inner ? 'outer layers shed heat to the air, so they can be narrower' : 'inner layers need wider traces for the same current'));
+    else f.push(fact(inner ? 'On an outer layer' : 'On an inner layer', `${sig(ipcCurrent(A, dT, !inner), 3)} A`, inner ? 'outer layers shed heat to the air, so they carry more' : 'inner layers carry less for the same width'));
     if (I > 35 || A > 1e4 || dT < 10 || dT > 100) f.push(fact('Outside the chart', 'the IPC-2221 curves cover up to 35 A, 400 mil wide and 10 to 100 °C rise', 'use the result with extra care'));
     q('.pc-facts1').replaceChildren(...f);
+    // Table of other temperature rises.
+    const head = byI ? ['Rise (°C)', `Outer width (${U.u})`, `Inner width (${U.u})`] : ['Rise (°C)', 'Outer layer (A)', 'Inner layer (A)'];
+    const rise = [10, 20, 30, 40, 60, 80, 100];
+    const trows = rise.map((d) => (byI ? [String(d), sig(ipcWidth(I, d, t, false) / U.f, 3), sig(ipcWidth(I, d, t, true) / U.f, 3)] : [String(d), sig(ipcCurrent(A, d, false), 3), sig(ipcCurrent(A, d, true), 3)]));
+    const tab = q<HTMLTableElement>('.pc-tab'); tab.replaceChildren();
+    for (const [i, r] of [head, ...trows].entries()) { const tr = tab.insertRow(); r.forEach((c, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = c; if (j) e.className = 'r'; tr.append(e); }); }
+    csvRows = [head, ...trows];
     const Is: number[] = []; for (let i = 0; i <= 60; i++) Is.push((Math.max(I * 2, 1) * i) / 60);
     const series = [10, 20, 40].map((d) => ({ name: `${d} °C rise`, x: Is, y: Is.map((x) => (x > 0 ? ipcWidth(x, d, t, inner) / U.f : 0)), mode: 'line' as const, width: d === 10 ? 2 : 1.5 }));
     series.push({ name: 'This trace', x: [I], y: [w / U.f], mode: 'points' as const, width: 1 } as typeof series[0]);
-    figs[0] = chartFigure({ w: 380, h: 230, xLabel: 'Current (A)', yLabel: `Minimum width (${U.u})`, xMin: 0, yMin: 0, legend: 'below', series }, `Minimum trace width against current, ${inner ? 'inner' : 'outer'} layer, ${sel('.pc-oz')} oz copper`);
+    figs[0] = chartFigure({ w: 380, h: 230, xLabel: 'Current (A)', yLabel: `Minimum width (${U.u})`, xMin: 0, yMin: 0, legend: 'below', series }, `Minimum trace width against current, ${inner ? 'inner' : 'outer'} layer, ${ozName()} copper`);
     paint(q<HTMLCanvasElement>('.pc-fig1'), figs[0]);
-    sec[0] = { title: `Trace for ${sig(I, 3)} A, ${sig(dT, 3)} °C rise, ${sel('.pc-oz')} oz, ${inner ? 'inner' : 'outer'} layer: ${q('.pc-big1').textContent}`, facts: pairs('.pc-facts1'), figure: figs[0] };
+    sec[0] = { title: `Trace for ${sig(I, 3)} A, ${sig(dT, 3)} °C rise, ${ozName()}, ${inner ? 'inner' : 'outer'} layer: ${q('.pc-big1').textContent}`, text: [q('.pc-work').textContent!], facts: pairs('.pc-facts1'), figure: figs[0], table: { head, rows: trows, align: ['r', 'r', 'r'] } };
   }
 
   function imp() {
@@ -129,7 +159,7 @@ import Downloads from '../../components/Downloads.astro';
     const u = sel('.pc-u');
     if (u !== lastU) {
       const k = u === 'mil' ? 1e-3 / MIL : MIL / 1e-3;
-      for (const c of ['.pc-len', '.pc-h', '.pc-w']) { const v = num(q<HTMLInputElement>(c).value); if (Number.isFinite(v)) q<HTMLInputElement>(c).value = sig(v * k, 4).replace('−', '-'); }
+      for (const c of ['.pc-len', '.pc-h', '.pc-w', '.pc-wd']) { const v = num(q<HTMLInputElement>(c).value); if (Number.isFinite(v)) q<HTMLInputElement>(c).value = sig(v * k, 4).replace('−', '-'); }
       lastU = u;
     }
     root.querySelectorAll('.pc-lu').forEach((e) => (e.textContent = u));
@@ -137,10 +167,12 @@ import Downloads from '../../components/Downloads.astro';
   }
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
   document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.pc-fig1').hidden) paint(q<HTMLCanvasElement>('.pc-fig1'), figs[0]); if (figs[1] && !q('.pc-fig2').hidden) paint(q<HTMLCanvasElement>('.pc-fig2'), figs[1]); });
+  q('.pc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'pcb-trace-table.csv', 'text/csv'); });
   all();
   wireDownloads(q('.dl'), () => ({ title: 'PCB trace calculator', subtitle: [q('.pc-big1').textContent, q('.pc-big2').textContent].filter(Boolean).join('; '), file: 'pcb-trace', sections: sec.filter((s): s is Section => !!s) }));
 </script>
 
 <style is:inline>
   .pcbt select, .pcbt input { max-width: 100%; }
+  .pcbt .pc-tab td, .pcbt .pc-tab th { white-space: nowrap; }
 </style>

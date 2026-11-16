@@ -9,6 +9,20 @@ export default async ({ page, check, BASE }) => {
   { const f = await facts('2'); check(f.includes('136 ps') && f.includes('3.24 GHz') && f.includes('Modal spreading0none'), `fibre: example spreading ${f}`); }
   { const f = await facts('3'); check((await page.textContent(R + '.fo-verdict')) === 'Works: 3.20 dB to spare after the 3 dB margin.' && f.includes('21.8 dB') && f.includes('−21.8 dBm') && f.includes('92.8 km'), `fibre: example budget ${await page.textContent(R + '.fo-verdict')}`); }
   check((await page.$$(R + '.fo-tab tr')).length === 2 && (await page.textContent(R + '.fo-tab')).includes('LP01') && await page.isVisible(R + '.fo-fig'), 'fibre: one guided mode and the power chart');
+  // New options: what it would take, itemised loss budget and CSV, splitter and other losses, length unit.
+  { const f = await facts('3'); check(f.includes('−3.20 dBm') && f.includes('0.661 %') && /Connectors you could add\s*6/.test(f), `fibre: what it would take (${f})`); }
+  { const tb = await page.textContent(R + '.fo-lt'); check((await page.$$(R + '.fo-lt tr')).length === 7 && tb.includes('80 km × 0.250 dB/km') && tb.includes('21.8') && !tb.includes('Splitter'), `fibre: itemised budget (${tb})`); }
+  await page.evaluate(() => document.querySelectorAll('.foc details').forEach((d) => { d.open = true; }));
+  await page.fill(R + '.fo-sp', '8'); await page.fill(R + '.fo-spx', '0.5'); await page.waitForTimeout(300);
+  check((await page.textContent(R + '.fo-verdict')) === 'Does not work: 6.33 dB short (including the 3 dB margin).' && (await page.textContent(R + '.fo-lt')).includes('9.53') && (await facts('3')).includes('54.7 km'), `fibre: 1:8 splitter (${await page.textContent(R + '.fo-verdict')})`);
+  await page.fill(R + '.fo-sp', '0'); await page.waitForTimeout(300);
+  check((await page.textContent(R + '.fo-err')).includes('Splitter ways'), 'fibre: bad splitter message');
+  await page.fill(R + '.fo-sp', '1'); await page.fill(R + '.fo-ex', '2'); await page.waitForTimeout(300);
+  check((await page.textContent(R + '.fo-lt')).includes('Other losses') && (await page.textContent(R + '.fo-verdict')) === 'Works: 1.20 dB to spare after the 3 dB margin.', `fibre: other losses row (${await page.textContent(R + '.fo-verdict')})`);
+  await page.fill(R + '.fo-ex', '0'); await page.selectOption(R + '.fo-lu', '1.609344'); await page.waitForTimeout(300);
+  check((await page.inputValue(R + '.fo-L')) === '49.7097' && await page.isHidden(R + '.fo-err'), `fibre: miles convert the length (${await page.inputValue(R + '.fo-L')})`);
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.fo-csv')]); check(d.suggestedFilename() === 'fibre-loss-budget.csv', 'fibre: loss budget CSV'); }
+  await page.selectOption(R + '.fo-lu', '1'); await page.waitForTimeout(300);
   await page.fill(R + '.fo-l', '1000'); await page.waitForTimeout(300);
   check((await big()).startsWith('Multimode') && (await page.textContent(R + '.fo-tab')).includes('LP11') && (await page.inputValue(R + '.fo-pre')) === 'custom', 'fibre: below cut-off, LP11 appears');
   await page.selectOption(R + '.fo-pre', 'mms'); await page.waitForTimeout(800);

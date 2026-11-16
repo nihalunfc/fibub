@@ -13,23 +13,44 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
       <textarea class="nv-cf" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
     <DataFile target=".nv-cf" maxCols={4} maxRows={1200} />
     <div class="ax-grid" style="margin-top:10px">
-      <label>Discount rate (% per period) <input class="nv-r" inputmode="decimal" value="10" /></label>
-      <label>Periods are <select class="nv-per"><option value="year" selected>Years</option><option value="quarter">Quarters</option><option value="month">Months</option></select></label>
-      <label>Currency sign <input class="nv-cur" value="$" /></label>
-      <label>MIRR finance rate (%) <input class="nv-fin" inputmode="decimal" placeholder="same as discount rate" /></label>
-      <label>MIRR reinvestment rate (%) <input class="nv-re" inputmode="decimal" placeholder="same as discount rate" /></label>
+      <label>Discount rate (% per period) <input data-k="r" class="nv-r" inputmode="decimal" value="10" /></label>
+      <label>Periods are <select data-k="per" class="nv-per"><option value="year" selected>Years</option><option value="quarter">Quarters</option><option value="month">Months</option></select></label>
+      <label>Currency sign <input data-k="cur" class="nv-cur" value="$" /></label>
+      <label>MIRR finance rate (%) <input data-k="fin" class="nv-fin" inputmode="decimal" placeholder="same as discount rate" /></label>
+      <label>MIRR reinvestment rate (%) <input data-k="re" class="nv-re" inputmode="decimal" placeholder="same as discount rate" /></label>
     </div>
     <p class="ax-help">The first row is today (period 0) and each later row is the end of the next period. The discount rate is your cost of capital or the return you could get elsewhere. The example project is made up.</p>
+    <details class="nv-more" style="margin-top:10px"><summary>More: dated cash flows (XNPV and XIRR) and comparing two projects</summary>
+      <label class="nv-chk" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input data-k="dated" class="nv-dated" type="checkbox" /> The first column holds dates, one per row (like spreadsheet XNPV and XIRR)</label>
+      <p class="ax-help">Write each date as year-month-day, for example 2026-03-15, with the amount after it. The rate is then per year and each flow is discounted by days ÷ 365 from the first date, as spreadsheets do.</p>
+      <label style="margin-top:8px">Project B to compare with (same layout, amounts only, today first; optional)
+        <textarea class="nv-b" rows="5" spellcheck="false" wrap="off" placeholder="-8000&#10;2000&#10;3000&#10;3500&#10;3500"></textarea></label>
+      <p class="ax-help">The shorter project is padded with zeros. Not used with dated cash flows.</p>
+    </details>
     <p class="ax-err nv-err" hidden></p>
+  </div>
+
+  <div class="ax-card nv-dc" hidden>
+    <h2>Dated cash flows</h2>
+    <p class="ax-big nv-dbig" aria-live="polite"></p>
+    <p class="ax-help nv-dverdict"></p>
+    <dl class="ax-facts nv-dfacts" style="margin-top:10px"></dl>
+    <div class="ax-scroll"><table class="nv-dtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nv-dcsv">Download results (CSV)</button></div>
   </div>
 
   <div class="ax-card nv-out">
     <h2>Appraisal</h2>
-    <p class="ax-big nv-big"></p>
+    <p class="ax-big nv-big" aria-live="polite"></p>
     <p class="ax-help nv-verdict"></p>
     <dl class="ax-facts nv-facts" style="margin-top:10px"></dl>
     <p class="ax-err nv-warn" hidden></p>
     <canvas class="ax-fig nv-fig" style="margin-top:12px"></canvas>
+    <div class="nv-cw" hidden>
+      <h3>Project A against project B</h3>
+      <div class="ax-scroll"><table class="nv-cmp"></table></div>
+      <p class="ax-help nv-cmpn"></p>
+    </div>
     <h3>Period by period</h3>
     <div class="ax-scroll"><table class="nv-tab"></table></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nv-csv">Download results (CSV)</button></div>
@@ -45,19 +66,19 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
 </style>
 
 <script>
-  import { npv, irrAll, mirr, payback, profitabilityIndex, equivalentAnnuity, signChanges } from '../../lib/sci/npv';
+  import { npv, irrAll, mirr, payback, profitabilityIndex, equivalentAnnuity, signChanges, parseDay, xnpv, xirrAll, crossovers } from '../../lib/sci/npv';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
 
   const root = document.querySelector<HTMLElement>('.nv')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
-  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], cmpRows: string[][] = [];
   const pc = (x: number, d = 2) => (Number.isFinite(x) ? `${(100 * x).toFixed(d).replace('-', '−')} %` : '–');
   function fact(k: string, val: string, sm = '') { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; }
 
-  function read(): { cf: number[]; labels: string[] } {
-    const rows = parseTable(q<HTMLTextAreaElement>('.nv-cf').value);
+  function read(src = '.nv-cf'): { cf: number[]; labels: string[] } {
+    const rows = parseTable(q<HTMLTextAreaElement>(src).value);
     const isNum = (c?: string) => c !== undefined && c.trim() !== '' && Number.isFinite(num(c));
     const body = rows.length && !rows[0].some((c) => isNum(c)) ? rows.slice(1) : rows;
     const two = body.length > 0 && body.every((r) => r.length >= 2 && r[1].trim() !== '');
@@ -74,6 +95,52 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
     return { cf, labels };
   }
 
+  type Summary = { v: number; irrs: number[]; m: number; pb: number; pi: number; eaa: number };
+  /** Project B beside project A, when B has been typed in. */
+  function compare(cfA: number[], r: number, fin: number, re: number, money: (x: number) => string, per: string) {
+    const box = q('.nv-cw'), txt = q<HTMLTextAreaElement>('.nv-b').value.trim();
+    box.hidden = true; cmpRows = [];
+    if (!txt) return;
+    let B: number[];
+    try { B = read('.nv-b').cf; } catch (e) { q('.nv-cmpn').textContent = `Project B: ${(e as Error).message}`; box.hidden = false; q('.nv-cmp').replaceChildren(); return; }
+    const n = Math.max(cfA.length, B.length), a = Array.from({ length: n }, (_, i) => cfA[i] ?? 0), b = Array.from({ length: n }, (_, i) => B[i] ?? 0);
+    const sB: Summary = { v: npv(r, b), irrs: irrAll(b), m: mirr(b, fin, re), pb: payback(b), pi: profitabilityIndex(r, b), eaa: equivalentAnnuity(r, b) };
+    const sA: Summary = { v: npv(r, a), irrs: irrAll(a), m: mirr(a, fin, re), pb: payback(a), pi: profitabilityIndex(r, a), eaa: equivalentAnnuity(r, a) };
+    const irrT = (x: number[]) => (x.length ? x.map((y) => pc(y)).join(', ') : 'none');
+    const pbT = (x: number) => (Number.isFinite(x) ? `${sig(x, 3)} ${per}s` : 'never');
+    const rows = [['NPV', money(sA.v), money(sB.v)], ['IRR', irrT(sA.irrs), irrT(sB.irrs)], ['MIRR', pc(sA.m), pc(sB.m)], ['Payback', pbT(sA.pb), pbT(sB.pb)], ['Profitability index', Number.isFinite(sA.pi) ? sig(sA.pi, 4) : '–', Number.isFinite(sB.pi) ? sig(sB.pi, 4) : '–'], [`Equivalent ${per}ly amount`, money(sA.eaa), money(sB.eaa)]];
+    cmpRows = [['Measure', 'A', 'B'], ...rows];
+    const t = q<HTMLTableElement>('.nv-cmp'); t.replaceChildren();
+    for (const [i, rr] of cmpRows.entries()) { const tr = t.insertRow(); rr.forEach((c, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = c; if (j) e.className = 'r'; tr.append(e); }); }
+    const x = crossovers(a, b), diff = sA.v - sB.v;
+    q('.nv-cmpn').textContent = `At ${pc(r)}, ${diff === 0 ? 'the two have the same NPV' : `${diff > 0 ? 'A' : 'B'} has the higher NPV, by ${money(Math.abs(diff))}`}. ${x.length ? `The two NPVs are equal at ${x.map((y) => pc(y)).join(' and ')}: on the other side of that rate the ranking flips.` : 'There is no rate at which the two NPVs are equal, so the ranking never flips.'}${cfA.length !== B.length ? ` The shorter project is padded with zeros; for projects of different lengths compare the equivalent ${per}ly amounts as well.` : ''}`;
+    box.hidden = false;
+  }
+  /** Dated flows: XNPV, XIRR and a day-by-day table. */
+  function dated(cf: number[], labels: string[], r: number, cur: string, money: (x: number) => string, fail: (m: string) => void) {
+    const days = labels.map(parseDay);
+    const bad = days.findIndex((d) => !Number.isFinite(d));
+    if (bad >= 0) return fail(`Row ${bad + 1}: "${labels[bad]}" is not a date. Put a date such as 2026-03-15 (year-month-day) first on every row, then the amount.`);
+    if (days.some((d) => d < days[0])) return fail('Dates must not be earlier than the first date, which counts as today.');
+    q('.nv-out').hidden = true; q('.nv-dc').hidden = false;
+    const v = xnpv(r, cf, days), irrs = xirrAll(cf, days), span = (days[days.length - 1] - days[0]) / 365, sc = signChanges(cf);
+    q('.nv-dbig').textContent = `XNPV ${money(v)} at ${pc(r, 2)} a year`;
+    q('.nv-dverdict').textContent = v > 0 ? `Positive: on these dates the project earns more than ${pc(r)} a year.` : v < 0 ? `Negative: on these dates the project earns less than ${pc(r)} a year.` : 'Zero: the project earns exactly the discount rate.';
+    const total = cf.reduce((a, c) => a + c, 0);
+    q('.nv-dfacts').replaceChildren(
+      fact(irrs.length > 1 ? 'XIRRs (several)' : 'XIRR', irrs.length ? irrs.map((x) => pc(x)).join(', ') : 'none', irrs.length ? 'a yearly rate: the rate at which XNPV is zero' : sc === 0 ? 'the cash flows never change sign' : 'XNPV never crosses zero'),
+      fact('From first to last date', `${sig(span, 4)} years`, `${days[days.length - 1] - days[0]} days ÷ 365`),
+      fact('Total of cash flows', money(total), 'undiscounted'),
+    );
+    const head = ['Date', 'Cash flow', 'Days from first', 'Discount factor', 'Present value'];
+    const rows = cf.map((c, i) => { const dd = days[i] - days[0], df = 1 / (1 + r) ** (dd / 365); return [labels[i].trim(), money(c), String(dd), df.toFixed(4), money(c * df)]; });
+    const tab = q<HTMLTableElement>('.nv-dtab'); tab.replaceChildren();
+    for (const [i, rr] of [head, ...rows.slice(0, 400)].entries()) { const tr = tab.insertRow(); rr.forEach((c, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = c; if (j) e.className = 'r'; tr.append(e); }); }
+    const plain = (x: number) => (Number.isFinite(x) ? String(+x.toFixed(10)) : '');
+    csvRows = [['Measure', 'Value'], ['XNPV', plain(v)], ['Discount rate per year', plain(r)], ...irrs.map((x, i) => [`XIRR ${i + 1}`, plain(x)]), [], head, ...cf.map((c, i) => { const dd = days[i] - days[0]; return [labels[i].trim(), plain(c), String(dd), plain(1 / (1 + r) ** (dd / 365)), plain(c / (1 + r) ** (dd / 365))]; })];
+    sections = [];
+  }
+
   function calc() {
     const err = q('.nv-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.nv-out').hidden = true; fig = null; sections = []; csvRows = []; };
     err.hidden = true;
@@ -88,6 +155,8 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
     const cur = q<HTMLInputElement>('.nv-cur').value.trim(), per = q<HTMLSelectElement>('.nv-per').value;
     const money = (x: number) => (Number.isFinite(x) ? `${x < 0 ? '−' : ''}${cur}${Math.abs(x).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '–');
     const plural = (x: number) => `${sig(x, 3)} ${per}${x === 1 ? '' : 's'}`;
+    q('.nv-dc').hidden = true;
+    if (q<HTMLInputElement>('.nv-dated').checked) return dated(cf, labels, r, cur, money, fail);
     const v = npv(r, cf), irrs = irrAll(cf), m = mirr(cf, fin, re), pb = payback(cf), dpb = payback(cf, r), pi = profitabilityIndex(r, cf), eaa = equivalentAnnuity(r, cf), sc = signChanges(cf);
     q('.nv-out').hidden = false;
     q('.nv-big').textContent = `NPV ${money(v)} at ${pc(r, 2).replace(' %', ' %')}`;
@@ -105,6 +174,7 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
       fact('Total of cash flows', money(cum[cum.length - 1]), 'undiscounted'),
     ];
     q('.nv-facts').replaceChildren(...facts);
+    compare(cf, r, fin, re, money, per);
     const warn: string[] = [];
     if (irrs.length > 1) warn.push(`The cash flows change sign ${sc} times and NPV is zero at ${irrs.length} rates, so the IRR has no single meaning. Judge the project by its NPV at your discount rate, or by the MIRR.`);
     else if (sc > 1) warn.push(`The cash flows change sign ${sc} times, so there could be more than one IRR; only one was found between −99.9 % and 100,000 %.`);
@@ -133,12 +203,13 @@ const example = 'Year\tCash flow\n0\t-10000\n1\t3000\n2\t4200\n3\t4800\n4\t2500\
     const plain = (x: number) => (Number.isFinite(x) ? String(+x.toFixed(10)) : '');
     csvRows = [['Measure', 'Value'], ['NPV', plain(v)], ['Discount rate', plain(r)], ...irrs.map((x, i) => [`IRR ${i + 1}`, plain(x)]), ['MIRR', plain(m)], ['Payback', plain(pb)], ['Discounted payback', plain(dpb)], ['Profitability index', plain(pi)], [],
       head, ...cf.map((c, t) => { const df = 1 / (1 + r) ** t; return [labels[t], plain(c), plain(df), plain(c * df), plain(cum[t]), plain(cf.slice(0, t + 1).reduce((s, x, k) => s + x / (1 + r) ** k, 0))]; })];
-    sections = [{ title: q('.nv-big').textContent!, text: [q('.nv-verdict').textContent!, ...warn], facts: fl, figure: fig, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+    sections = [{ title: q('.nv-big').textContent!, text: [q('.nv-verdict').textContent!, ...warn], facts: fl, figure: fig, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }, ...(cmpRows.length ? [{ title: 'Project A against project B', text: [q('.nv-cmpn').textContent!], table: { head: cmpRows[0], rows: cmpRows.slice(1), align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : [])];
   }
 
   let timer = 0;
   const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
   root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.nv-dcsv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'xnpv-xirr.csv', 'text/csv'); });
   q('.nv-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'npv-irr.csv', 'text/csv'); });
   document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nv-fig'), fig); });
   calc();

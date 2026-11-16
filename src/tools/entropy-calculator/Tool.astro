@@ -24,8 +24,12 @@ import DataFile from '../../components/DataFile.astro';
     </div>
 
     <div class="en-p" data-p="dist">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Quick start <select class="en-pre" data-k="preset"><option value="">Pick an example</option><option value="1, 1">Fair coin</option><option value="0.9, 0.1">Loaded coin (90 / 10)</option><option value="1, 1, 1, 1, 1, 1">Fair six-sided die</option><option value="sum 2, 1&#10;sum 3, 2&#10;sum 4, 3&#10;sum 5, 4&#10;sum 6, 5&#10;sum 7, 6&#10;sum 8, 5&#10;sum 9, 4&#10;sum 10, 3&#10;sum 11, 2&#10;sum 12, 1">Sum of two fair dice</option><option value="0.25, 0.25, 0.25, 0.25">Four equal outcomes</option></select></label>
+        <label>Two outcomes: chance of the first, p <input class="en-bp" type="range" min="0.01" max="0.99" step="0.01" value="0.25" aria-label="Chance of the first of two outcomes" /></label>
+      </div>
       <label style="margin-top:12px">Probabilities or counts (commas, spaces or one per line; 1/3 is fine; or "label, value" lines)
-        <textarea class="en-dist" rows="3" spellcheck="false"></textarea></label>
+        <textarea class="en-dist" data-k="dist" rows="3" spellcheck="false"></textarea></label>
       <DataFile target=".en-dist" maxMB={5} maxCols={2} maxRows={100000} />
       <p class="ax-help">Counts are turned into probabilities by dividing by their total.</p>
     </div>
@@ -86,7 +90,8 @@ import DataFile from '../../components/DataFile.astro';
 
   <div class="ax-card en-out" hidden>
     <h2 class="en-h">Result</h2>
-    <p class="ax-big en-big"></p>
+    <p class="ax-big en-big" aria-live="polite" data-k="result"></p>
+    <p class="ax-help en-work" hidden></p>
     <dl class="ax-facts en-facts"></dl>
     <canvas class="ax-fig en-fig" style="margin-top:14px"></canvas>
     <p class="ax-help en-fnote"></p>
@@ -169,7 +174,7 @@ import DataFile from '../../components/DataFile.astro';
     const err = q('.en-err'); err.hidden = true;
     const base = baseOf(), u = unitOf();
     let big = '', facts: [string, string][] = [], head: string[] = [], rows: (string | number)[][] = [], cls: string[] = [], shown = 500, tnote = '', fnote = '', title = '';
-    fig = null; csvName = 'entropy';
+    fig = null; csvName = 'entropy'; q('.en-work').hidden = true;
     try {
       if (mode === 'dist') {
         const d = readDist(ta('.en-dist').value);
@@ -185,6 +190,8 @@ import DataFile from '../../components/DataFile.astro';
         fig = barsFigure({ w: figW(), labels: top.map((i) => labels[i]), values: top.map((i) => s.p[i]), yLabel: 'Probability' }, 'Bar chart of the probabilities');
         fnote = s.n > 60 ? 'The chart shows the 60 most likely values.' : '';
         csvName = 'entropy-distribution';
+        { const L = base === 2 ? 'log₂' : base === 10 ? 'log₁₀' : 'ln', terms = s.p.map((p) => p).filter((p) => p > 0);
+          if (terms.length <= 8) { const wk = q('.en-work'); wk.textContent = `Working: H = −Σ p ${L} p = −(${terms.map((p) => `${sig(p, 4)} × ${L} ${sig(p, 4)}`).join(' + ')}) = ${f(s.H)} ${u}`; wk.hidden = false; } }
       } else if (mode === 'text') {
         let counts: Map<string, number>, n = 0, what = '';
         const unit = q<HTMLSelectElement>('.en-unit').value as 'char' | 'byte' | 'word';
@@ -314,6 +321,8 @@ import DataFile from '../../components/DataFile.astro';
     run();
   });
   q('.en-ex').addEventListener('click', () => { EX[mode](); if (mode === 'text') { q('.en-clear').hidden = true; q<HTMLSelectElement>('.en-unit').disabled = false; } run(); });
+  q('.en-pre').addEventListener('change', () => { const v = q<HTMLSelectElement>('.en-pre').value; if (v) { ta('.en-dist').value = v; run(); } });
+  q('.en-bp').addEventListener('input', () => { const p = Number(q<HTMLInputElement>('.en-bp').value); ta('.en-dist').value = `${p}, ${+(1 - p).toFixed(2)}`; run(); });
   q('.en-open').addEventListener('click', () => q<HTMLInputElement>('.en-file').click());
   q('.en-file').addEventListener('change', async () => {
     const inp = q<HTMLInputElement>('.en-file'), file = inp.files?.[0]; inp.value = '';

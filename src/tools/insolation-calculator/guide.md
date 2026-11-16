@@ -11,7 +11,7 @@ ads: true
 order: 840
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [sun-position-calculator, koppen-climate, proxy-stacker, age-depth-model, energy-balance-model, glacier-ice]
 sources:
   - "Daily and instantaneous insolation: A. Berger, 'Long-term variations of daily insolation and Quaternary climatic changes', Journal of the Atmospheric Sciences 35 (1978); formulas written by fibub, with Kepler's equation solved exactly."
@@ -31,7 +31,7 @@ flow:
 
 This tool works out, for an orbit you type in:
 
-- the **daily-mean insolation** at any latitude, on a calendar day or at a true solar longitude λ;
+- the **daily-mean insolation** at any latitude, on a calendar day or at a true solar longitude λ, in W/m² and as energy per day in MJ/m² and kWh/m² (the daily mean in watts times 86,400 seconds, or times 24 hours);
 - the **instantaneous insolation** at a local solar time, with the declination, Earth–Sun distance and day length;
 - the **seasonal cycle** at your latitude and a **latitude profile** (chosen day, annual mean, caloric summer or winter, or summer energy);
 - a **latitude by season map**, for either orbit or the difference between them;
@@ -47,7 +47,8 @@ Set your records side by side with the [[proxy-stacker]], and see what a change 
 1. **Orbit A** starts at today's orbit. For a past time, type e, ε and ϖ for that age from an orbital solution you trust (for example the Berger and Loutre 1991 or Laskar et al. 2004 tables). None are built in.
 2. Tick **Orbit B** to compare a second orbit, such as a glacial inception setting against today. Its starting values are made up.
 3. Check **ϖ is measured as**. Most published tables give ϖ seen from the Sun (today about 102.9°). Some software, such as climlab, uses the Sun's longitude at perihelion instead (today about 282.9°). Switching keeps the same orbits and adds or takes off 180° in both boxes.
-4. Type a **latitude** and the time of year, as a **calendar day** (the March equinox is fixed on day 80, 21 March) or as a **true solar longitude** λ (0° March equinox, 90° June solstice).
+4. Pick a **place** (equator, tropic, mid-latitudes, 65° N, the poles) or type a **latitude**, and set the time of year, as a **calendar day** (the March equinox is fixed on day 80, 21 March) or as a **true solar longitude** λ (0° March equinox, 90° June solstice).
+   The buttons **March equinox, June solstice, September equinox, December solstice** jump to those points (λ = 0°, 90°, 180°, 270°), and **Today's date** sets the calendar day for today.
 5. Read the table, the three figures and download a CSV of the map grid or of a latitude table, or a report as an image, PDF or Word file.
 
 ## Calendar day or solar longitude?

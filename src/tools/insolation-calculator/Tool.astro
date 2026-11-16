@@ -43,14 +43,22 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Place and time</h2>
     <div class="ax-grid">
-      <label>Latitude (°, south negative) <input class="isl-lat" inputmode="decimal" value="65" /></label>
+      <label>Place <select class="isl-place" data-k="place"><option value="">Type a latitude below</option><option value="0">Equator (0°)</option><option value="23.44">Tropic of Cancer (23.44° N)</option><option value="45">Mid-latitudes (45° N)</option><option value="65">65° N (the Milankovitch latitude)</option><option value="90">North Pole (90° N)</option><option value="-45">Mid-latitudes (45° S)</option><option value="-90">South Pole (90° S)</option></select></label>
+      <label>Latitude (°, south negative) <input class="isl-lat" data-k="lat" inputmode="decimal" value="65" /></label>
       <label>Time of year by <select class="isl-mode">
         <option value="day">Calendar day (equinox on 21 Mar)</option>
         <option value="lam">True solar longitude λ</option>
       </select></label>
-      <label><span class="isl-tlab">Day of year (1 to 365)</span> <input class="isl-t" inputmode="decimal" value="172" /></label>
+      <label><span class="isl-tlab">Day of year (1 to 365)</span> <input class="isl-t" data-k="t" inputmode="decimal" value="172" /></label>
       <label>Local solar time (h) <input class="isl-hr" inputmode="decimal" value="12" /></label>
       <label>Summer energy threshold (W/m²) <input class="isl-thr" inputmode="decimal" value="275" /></label>
+    </div>
+    <div class="ax-row isl-season" style="margin-top:10px" role="group" aria-label="Jump to a time of year">
+      <button type="button" class="btn secondary small" data-l="0">March equinox</button>
+      <button type="button" class="btn secondary small" data-l="90">June solstice</button>
+      <button type="button" class="btn secondary small" data-l="180">September equinox</button>
+      <button type="button" class="btn secondary small" data-l="270">December solstice</button>
+      <button type="button" class="btn secondary small" data-l="today">Today's date</button>
     </div>
     <p class="ax-help">Calendar day keeps the March equinox on day 80 and counts one tropical year (365.2422 days), as climate models do. True solar longitude λ is the Sun's position on its path: 0° March equinox, 90° June solstice, 180° September, 270° December. With two orbits, the same calendar day can fall at different λ, and the same λ on different days.</p>
     <p class="ax-err isl-terr" hidden></p>
@@ -229,6 +237,8 @@ import Downloads from '../../components/Downloads.astro';
       [`Energy on those days (GJ/m²)`, (p) => p.h.aboveGJ.toFixed(3), (p) => p.h.aboveGJ],
       ['Precession index e sin ϖ', (_p, o) => I.precessionIndex(o).toFixed(5), null],
       ['Global annual mean (W/m²)', (_p, o) => f1(I.globalMean(o), 2), null],
+      ['Daily mean (MJ/m² per day)', (p) => I.convertDaily(p.q, 'MJ').toFixed(2), (p) => I.convertDaily(p.q, 'MJ')],
+      ['Daily mean (kWh/m² per day)', (p) => I.convertDaily(p.q, 'kWh').toFixed(3), (p) => I.convertDaily(p.q, 'kWh')],
     ];
     const head = ['', ...orbits.map((o) => o.name), ...(two ? ['B − A'] : [])];
     const body = rows.map(([label, fmt, val]) => {
@@ -309,6 +319,17 @@ import Downloads from '../../components/Downloads.astro';
     q('.isl-tlab').textContent = m === 'lam' ? 'True solar longitude λ (°)' : 'Day of year (1 to 365)';
     calc();
   });
+  q('.isl-place').addEventListener('change', () => { const v = q<HTMLSelectElement>('.isl-place').value; if (v !== '') { q<HTMLInputElement>('.isl-lat').value = v; calc(); } });
+  q('.isl-lat').addEventListener('input', () => { q<HTMLSelectElement>('.isl-place').value = ''; });
+  root.querySelectorAll<HTMLButtonElement>('.isl-season button').forEach((b) => b.addEventListener('click', () => {
+    const modeEl = q<HTMLSelectElement>('.isl-mode'), tEl = q<HTMLInputElement>('.isl-t');
+    if (b.dataset.l === 'today') {
+      const n = new Date(), doy = Math.round((Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) - Date.UTC(n.getFullYear(), 0, 0)) / 864e5);
+      modeEl.value = 'day'; tEl.value = String(Math.min(365, doy));
+    } else { modeEl.value = 'lam'; tEl.value = b.dataset.l!; }
+    q('.isl-tlab').textContent = modeEl.value === 'lam' ? 'True solar longitude λ (°)' : 'Day of year (1 to 365)';
+    calc();
+  }));
   q('.isl-today').addEventListener('click', () => {
     const el = sets[0], P = I.PRESENT, sun = q<HTMLSelectElement>('.isl-conv').value === 'sun';
     q<HTMLInputElement>('.isl-e', el).value = String(P.e); q<HTMLInputElement>('.isl-obl', el).value = String(P.obl);

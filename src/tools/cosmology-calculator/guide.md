@@ -11,7 +11,7 @@ ads: true
 order: 10
 icon: orbit
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [sky-coordinates, telescope-calculator, uncertainty-calculator, plot-maker]
 sources:
   - "Distance formulas: Hogg (1999), Distance measures in cosmology."
@@ -30,11 +30,13 @@ To turn a velocity or a spectral line into a redshift first, use the [[redshift-
 
 ## How to use it
 
-1. Type the **redshift z**, for example 0.05 for a nearby galaxy cluster or 3 for a distant galaxy.
+1. Type the **redshift z**, for example 0.05 for a nearby galaxy cluster or 3 for a distant galaxy. Don't have a redshift? Change **Start from** to a lookback time, the age of the universe then, a comoving distance or a luminosity distance, and the calculator works out the redshift for you and shows it at the top.
 2. Choose a **cosmology**. Planck 2018 is the default. WMAP 9-year and the round textbook values (H0 = 70, Ωm = 0.3) are there too, or type your own.
 3. Leave **Flat universe** ticked unless you need curvature. Then ΩΛ is set so everything adds up to 1. Untick it to type ΩΛ yourself; the curvature Ωk is then 1 − Ωm − ΩΛ − Ωr.
 4. **Include radiation** adds photons and neutrinos (CMB at 2.7255 K, Neff = 3.046). It matters at high redshift and makes the ages match those published by Planck.
-5. Download the results with the chart as PNG, PDF or Word.
+5. Pick the **distance unit** you like: Mpc, Gpc, million light years or billion light years. Every distance and the table follow it.
+6. Under the chart, open **Angular size and physical size** to turn a size in kpc into an angle on the sky (or an angle in arcseconds into a size), the **table of common redshifts** (0.1 to 1100) or **Show the working** for the Hubble distance, E(z) and the formulas used.
+7. Download the results with the chart as PNG, PDF or Word.
 
 ## What each number means
 

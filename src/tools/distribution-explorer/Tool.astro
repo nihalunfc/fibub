@@ -35,13 +35,24 @@ const groups = ['Continuous', 'Discrete'] as const;
       <label>Plot from <input class="dx-x0" inputmode="decimal" placeholder="auto" /></label>
       <label>Plot to <input class="dx-x1" inputmode="decimal" placeholder="auto" /></label>
     </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Find x for a probability <input class="dx-fp" data-k="find-p" inputmode="decimal" placeholder="e.g. 0.95" /></label>
+      <label>Probability is the <select class="dx-ft" data-k="find-tail">
+        <option value="left">left tail: P(X ≤ x)</option>
+        <option value="right">right tail: P(X ≥ x)</option>
+        <option value="middle">middle: centred on the median</option>
+        <option value="both">both tails together</option>
+      </select></label>
+    </div>
     <p class="ax-help">For whole-number distributions the end points count: “between” is P(a ≤ X ≤ b), “above” is P(X ≥ a). A quantile is the value x with P(X ≤ x) = p; for whole numbers it is the smallest k with P(X ≤ k) ≥ p.</p>
     <p class="ax-err dx-err" hidden></p>
   </div>
 
   <div class="ax-card dx-out">
     <h2>Result</h2>
-    <p class="ax-big dx-big"></p>
+    <p class="ax-big dx-big" data-k="result" aria-live="polite"></p>
+    <p class="dx-find" data-k="find-result" aria-live="polite"></p>
+    <p class="ax-help dx-work"></p>
     <dl class="ax-facts dx-facts"></dl>
     <canvas class="ax-fig dx-pdf" style="margin-top:14px"></canvas>
     <canvas class="ax-fig dx-cdf" style="margin-top:10px"></canvas>
@@ -80,7 +91,7 @@ const groups = ['Continuous', 'Discrete'] as const;
 
 <script>
   import { num, sig, csv, fmtExp } from '../../lib/sci/num';
-  import { DIST, defaults, validate, quantile, regionProb, sample, plotRange, type Dist, type Params, type Region } from '../../lib/sci/distributions';
+  import { DIST, defaults, validate, quantile, regionProb, sample, plotRange, valueForProbability, zScore, type Tail, type Dist, type Params, type Region } from '../../lib/sci/distributions';
   import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
   import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
 
@@ -220,6 +231,25 @@ const groups = ['Continuous', 'Discrete'] as const;
         ['Skewness', mom(M.skewness)], ['Excess kurtosis', mom(M.kurtosis)], ['Median', fx(med)],
         ['Support', `${d.discrete ? '{' : '['}${fx(s0)}, ${d.discrete && !Number.isFinite(s1) ? '…' : fx(s1)}${d.discrete ? '}' : ']'}`],
       ];
+      // Normal: z-scores and a working line.
+      let work = '';
+      if (d.id === 'normal') {
+        const za = zScore(a, p.mu, p.sigma), zb = zScore(b, p.mu, p.sigma), zs = (v: number) => g(v, 5);
+        if (r === 'between' || r === 'outside') rows.push(['z-scores of a and b', `${zs(za)} and ${zs(zb)}`]);
+        else if (r === 'below') rows.push(['z-score of b', zs(zb)]); else rows.push(['z-score of a', zs(za)]);
+        work = `Working: z = (x − μ) ÷ σ = (x − ${g(p.mu)}) ÷ ${g(p.sigma)}. ` + (r === 'below' ? `z(b) = ${zs(zb)}; P(Z < ${zs(zb)}) = ${fmtP(prob)}.` : r === 'above' ? `z(a) = ${zs(za)}; P(Z > ${zs(za)}) = ${fmtP(prob)}.` : `z(a) = ${zs(za)}, z(b) = ${zs(zb)}; the area ${r === 'between' ? 'between' : 'outside'} them is ${fmtP(prob)}.`);
+      }
+      q('.dx-work').textContent = work;
+      // Value from probability.
+      const fpS = inp('.dx-fp').value.trim(), fe = q('.dx-find');
+      if (fpS === '') fe.textContent = '';
+      else {
+        const pr = num(fpS);
+        if (!(pr >= 0 && pr <= 1)) throw new Error('The probability for “Find x” must be between 0 and 1 (for 95 %, type 0.95).');
+        const tail = q<HTMLSelectElement>('.dx-ft').value as Tail, vs = valueForProbability(d, p, pr, tail);
+        fe.textContent = tail === 'left' ? `P(X ≤ x) = ${g(pr, 6)} at x = ${fx(vs[0])}` : tail === 'right' ? `P(X ${d.discrete ? '≥' : '>'} x) = ${g(pr, 6)} at x = ${fx(vs[0])}` : `${tail === 'middle' ? 'Middle' : 'Both tails'} ${g(pr, 6)}: x = ${fx(vs[0])} and x = ${fx(vs[1])}`;
+        if (d.id === 'normal') fe.textContent += ` (z = ${g(zScore(vs[0], p.mu, p.sigma), 5)}${vs.length > 1 ? ` and ${g(zScore(vs[1], p.mu, p.sigma), 5)}` : ''})`;
+      }
       if (r === 'between' || r === 'outside') rows.push([r === 'between' ? 'Outside, 1 − P' : 'Inside, 1 − P', fmtP(1 - prob)]);
       facts(q('.dx-facts'), rows);
       // Quantile table.
@@ -313,6 +343,7 @@ const groups = ['Continuous', 'Discrete'] as const;
     clearTimeout(t); t = window.setTimeout(calc, 200);
   });
   q('.dx-r').addEventListener('change', calc);
+  q('.dx-ft').addEventListener('change', calc);
   q('.dx-draw').addEventListener('click', drawSample);
   q('.dx-ccsv').addEventListener('click', () => save(new Blob([csv(curve)], { type: 'text/csv' }), `${d.id}-distribution.csv`, 'text/csv'));
   q('.dx-scsv').addEventListener('click', () => drawn.length && save(new Blob([csv([['value'], ...drawn.map((v) => [d.discrete ? v : +v.toPrecision(15)])])], { type: 'text/csv' }), `${d.id}-sample.csv`, 'text/csv'));

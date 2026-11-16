@@ -78,4 +78,15 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   writeFileSync(OUT + 'rw.csv', 'yield,temp,group\n10,20,A\n12,22,B\n15,25,A\n18,27,B\n19,30,A\n23,33,B\n25,35,A\n');
   await page.setInputFiles('.rw .dfb-in', OUT + 'rw.csv'); await wait(800);
   check((await big()).includes('(n = 7)') && (await page.textContent('.rw .dfb-note')).includes('Opened rw.csv'), `regression: data from a file (${await big()})`);
+  // Numbers with no header row, correlation r and the ANOVA table.
+  await page.selectOption('.rw .rw-kind', 'linear');
+  await page.check('.rw .rw-nohdr'); await page.fill('.rw .rw-data', '1 2\n2 4\n3 5\n4 4\n5 5'); await wait(700);
+  check((await big()) === 'R² = 0.6, adjusted R² = 0.4667 (n = 5)', `regression: no header row, x and y (${await big()})`);
+  check((await page.textContent('.rw .rw-eq')) === 'y = 2.2 + 0.6 × x', 'regression: equation for no-header data');
+  check((await page.textContent('.rw .rw-facts')).includes('Correlation r0.7746'), 'regression: correlation r');
+  { const a = await page.textContent('.rw .rw-anova'); check(a.includes('Regression') && a.includes('3.6') && a.includes('2.4') && a.includes('4.5') && a.includes('Total (about the mean)'), `regression: ANOVA table (${a})`); }
+  await page.fill('.rw .rw-data', '3\n5\n8\n9\n12'); await wait(700);
+  check((await page.textContent('.rw .rw-eq')).startsWith('y = ') && (await big()).includes('n = 5'), 'regression: one column is y against row number');
+  await page.uncheck('.rw .rw-nohdr'); await wait(700);
+  check((await err()).length > 0, 'regression: unticked, no header is refused again');
 };

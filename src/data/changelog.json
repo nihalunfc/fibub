@@ -1,5 +1,75 @@
 [
  {
+  "sha": "c9f51cdcc581",
+  "date": "2026-11-16T23:23:40+00:00",
+  "title": "Family plan edits: Gulf overtime presets, slab tariffs, UAE passport size, CV extra fields, savings in another currency; tuner first-reading fix",
+  "tools": [
+   "electricity-cost",
+   "instrument-tuner",
+   "overtime-calculator",
+   "passport-photo",
+   "resume-builder",
+   "savings-goal"
+  ],
+  "site": false
+ },
+ {
+  "sha": "835ffde1489a",
+  "date": "2026-11-16T23:13:44+00:00",
+  "title": "Fix two failing site tests: zip checker reads the file table, carbon quiz shows a real minus sign",
+  "tools": [
+   "carbon-cycle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7a3d13112edf",
+  "date": "2026-11-16T23:02:14+00:00",
+  "title": "Leave ph-scale-explorer and si-unit-converter to the Learn upgrade (#129)",
+  "tools": [
+   "ph-scale-explorer",
+   "si-unit-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4ebc5d7a1297",
+  "date": "2026-11-16T23:01:03+00:00",
+  "title": "Make 29 science tools more useful (chemistry, units, electronics, bio, physics)",
+  "tools": [
+   "antibody-dilution",
+   "beam-calculator",
+   "blackbody-calculator",
+   "bolt-torque-calculator",
+   "buffer-recipe-calculator",
+   "capacitor-inductor-calculator",
+   "centrifuge-calculator",
+   "combinatorics-calculator",
+   "concentration-converter",
+   "decay-calculator",
+   "diagnostic-test-calculator",
+   "effect-size-converter",
+   "gas-law-calculator",
+   "gear-train-calculator",
+   "lab-unit-converter",
+   "led-resistor-calculator",
+   "matrix-calculator",
+   "molar-mass-calculator",
+   "nernst-calculator",
+   "nnt-calculator",
+   "op-amp-calculator",
+   "osmolarity-calculator",
+   "ph-scale-explorer",
+   "primer-checker",
+   "redshift-calculator",
+   "sample-size",
+   "scientific-notation-formatter",
+   "si-unit-converter",
+   "wave-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "56bd2f645357",
   "date": "2026-11-16T22:40:07+00:00",
   "title": "Blog: 24 research articles checked with the tools; LOD rule, Laviron fit, Peppas n range, UK Met Office degree-days",
