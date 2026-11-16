@@ -11,7 +11,7 @@ ads: false
 order: 1812
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [engine-cc, unit-converter, fuel-cost]
 sources:
   - "Road speed = (rpm / (primary x gear x rear teeth / front teeth)) x wheel circumference. Tyre circumference from a tyre size code is pi x (rim diameter + 2 x width x aspect ratio / 100). Chain links = 2C/p + (F + R)/2 + ((R - F) / (2 pi))2 x p/C, rounded up to an even number. Gear ratios and primary ratio come from your bike's spec sheet or manual. Drawings are fibub's own."
@@ -40,6 +40,10 @@ Change the front or rear sprocket and the table shows the new speed and the perc
 - **Gear ratios**: first gear to top, separated by commas.
 - **New front / rear**: the sprockets you are thinking of. A bigger rear gives quicker pull and a lower top speed.
 - **Chain pitch and centre distance**: used for the link count only. It is a rough estimate.
+
+## More options
+
+Open "More options" to show speeds in mph, and to type a cruising speed: the last column of the gear table then shows the rpm your engine turns in each gear at that speed, which tells you whether a sprocket change makes motorway cruising too busy. Type the top speed you want and it tells you the rear sprocket (and the two whole tooth counts either side of it) that gives it in top gear at your rpm. A table of rear sprockets three teeth either side of yours shows the final drive, the top-gear speed and the percent change for each, so you can compare options at a glance. All of it uses the same gear ratios, primary ratio and wheel size you entered above.
 
 ## Worked example
 

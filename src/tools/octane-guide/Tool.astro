@@ -34,6 +34,24 @@
     <p class="og-big" data-o="buy" aria-live="polite"></p>
     <p class="og-fine" data-o="why"></p>
   </section>
+  <section class="panel">
+    <h2 class="og-h">Can I use a different grade?</h2>
+    <p class="og-fine">Uses the number from "My manual says" above.</p>
+    <div class="og-grid">
+      <label>I want to put in <input data-k="use" inputmode="decimal" placeholder="e.g. 87" /></label>
+      <label>That number is <select data-k="us"><option value="ron">RON</option><option value="aki">AKI</option></select></label>
+    </div>
+    <p class="og-big" data-o="verdict" aria-live="polite"></p>
+    <p class="og-fine" data-o="vwhy"></p>
+    <details><summary>More options: what does the dearer grade cost me a year?</summary>
+      <div class="og-grid">
+        <label>Extra price per litre for the dearer grade <input data-k="ex" inputmode="decimal" placeholder="e.g. 8" /></label>
+        <label>Km a year <input data-k="ky" inputmode="decimal" placeholder="e.g. 12000" /></label>
+        <label>Mileage (km/L) <input data-k="mi" inputmode="decimal" placeholder="e.g. 15" /></label>
+      </div>
+      <p class="og-big" data-o="yr" aria-live="polite"></p>
+    </details>
+  </section>
   <p class="og-fine">Higher octane than the manual asks for gives no gain in most cars; lower than it asks can make the engine knock. Grades are typical, as checked November 2026; check the official source and the label on your fuel pump. Nothing you type leaves this page.</p>
 </div>
 
@@ -56,7 +74,7 @@
 
 <script>
   import { presetCountry } from '../../lib/vehicles/country';
-  import { ronToAki, akiToRon } from '../../lib/vehicles/fuel';
+  import { ronToAki, akiToRon, octaneVerdict, extraGradeYearly } from '../../lib/vehicles/fuel';
   type G = { name: string; ron: [number, number]; aki?: [number, number] };
   const NA: G[] = [{ name: 'Regular', ron: [91, 91], aki: [87, 87] }, { name: 'Mid-grade', ron: [93, 93], aki: [89, 89] }, { name: 'Premium', ron: [95, 98], aki: [91, 94] }];
   const DATA: Record<string, { title: string; scale: 'RON' | 'AKI'; note: string; grades: G[] }> = {
@@ -104,13 +122,27 @@
       ? `Your car asks for ${r1(ron)} RON, higher than the usual grades here. Check the manual.`
       : `Your manual's number is about ${r1(ron)} RON (${r1(ronToAki(ron, gap))} AKI). This is the lowest grade here that meets it; a higher one gives no gain in most cars.`;
   };
+  const verdict = () => {
+    const m = num('man'), u = num('use'), gap = gapv();
+    const blank = q('use').value.trim() === '';
+    if (!isFinite(m) || blank || !isFinite(u)) { o('verdict').textContent = ''; o('vwhy').textContent = blank ? '' : 'Type the number from your manual above and the grade you want.'; o('yr').textContent = ''; return; }
+    const mr = q('mu').value === 'ron' ? m : akiToRon(m, gap), ur = q('us').value === 'ron' ? u : akiToRon(u, gap);
+    const v = octaneVerdict(mr, ur);
+    o('verdict').textContent = v === 'below' ? 'Not advised: lower than the manual asks' : v === 'ok' ? 'Fine: it meets what the manual asks' : 'It works, but you are paying for nothing in most cars';
+    o('vwhy').textContent = v === 'below'
+      ? `${r1(ur)} RON is below your car's ${r1(mr)} RON. Low octane can make the engine knock (pinging), which can damage it over time. If the manual says "required", do not go lower; if it only says "recommended", read what it says about power and economy.`
+      : v === 'ok' ? `${r1(ur)} RON (${r1(ronToAki(ur, gap))} AKI) is the same as or just above ${r1(mr)} RON. That is all your engine needs.`
+      : `${r1(ur)} RON is well above ${r1(mr)} RON. Most engines gain nothing from higher octane than the manual asks; high-compression or turbo engines that say "premium" are the exception.`;
+    const ex = num('ex'), ky = num('ky'), mi = num('mi');
+    o('yr').textContent = q('ex').value.trim() === '' && q('ky').value.trim() === '' && q('mi').value.trim() === '' ? '' : ex >= 0 && ky > 0 && mi > 0 ? `About ${Math.round(extraGradeYearly(ky, mi, ex)).toLocaleString('en-US')} a year extra (${Math.round(ky / mi).toLocaleString('en-US')} litres at ${ex} more per litre)` : 'Type the extra price, km a year and mileage (above 0).';
+  };
   root.addEventListener('input', (e) => {
     const t = (e.target as HTMLElement).getAttribute('data-k');
     if (t === 'ron') last = 'ron'; else if (t === 'aki') last = 'aki';
     if (t === 'ron' || t === 'aki' || t === 'gap') { conv(); cards(); }
-    buy();
+    buy(); verdict();
   });
-  q('c').addEventListener('change', () => { cards(); buy(); });
+  q('c').addEventListener('change', () => { cards(); buy(); verdict(); });
   presetCountry(q('c') as unknown as HTMLSelectElement);
   conv(); cards(); buy();
 </script>

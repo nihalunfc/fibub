@@ -8,7 +8,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Shape</h2>
     <div class="ax-grid">
-      <label>What to work out <select class="ci-g">
+      <label>What to work out <select data-k="g" class="ci-g">
         <optgroup label="Capacitors and lines">
           <option value="plate" selected>Parallel plates (with dielectric layers)</option>
           <option value="coax">Coaxial cable</option>
@@ -20,6 +20,10 @@ import Downloads from '../../components/Downloads.astro';
           <option value="solenoid">Solenoid (single-layer coil)</option>
           <option value="torect">Toroid, rectangular cross-section</option>
           <option value="toround">Toroid, round cross-section</option>
+        </optgroup>
+        <optgroup label="Charge and discharge time">
+          <option value="rc">Capacitor and resistor (RC time constant)</option>
+          <option value="rl">Inductor and resistor (RL time constant)</option>
         </optgroup>
       </select></label>
       <label class="ci-mat-l">Fill εr from a material <select class="ci-mat">
@@ -47,7 +51,7 @@ import Downloads from '../../components/Downloads.astro';
   </div>
 
   <div class="ax-card ci-out">
-    <p class="ax-big ci-big"></p>
+    <p class="ax-big ci-big" aria-live="polite"></p>
     <dl class="ax-facts ci-facts"></dl>
     <canvas class="ax-fig ci-fig" style="margin-top:12px"></canvas>
     <p class="ax-help ci-warn"></p>
@@ -71,6 +75,8 @@ import Downloads from '../../components/Downloads.astro';
     sphere: { cap: true, note: 'A metal sphere inside a larger hollow one. Leave the outer radius empty for a sphere on its own, far from everything.', fields: [['ra', 'Inner sphere radius (cm)', '10'], ['rb', 'Outer sphere radius (cm, empty = none)', ''], ['er', 'εr between them', '1'], ['V', 'Voltage (V)', '1000']] },
     twin: { cap: true, note: 'Two long parallel round wires, such as a twin-lead or a pair of bus bars, in a uniform medium.', fields: [['dw', 'Wire diameter (mm)', '1'], ['D', 'Centre-to-centre spacing (mm)', '3'], ['len', 'Length (m)', '1'], ['er', 'εr around the wires', '1'], ['mr', 'μr', '1'], ['V', 'Voltage (V)', '100']] },
     plane: { cap: true, note: 'One long round wire parallel to a large flat ground plane, in a uniform medium.', fields: [['dw', 'Wire diameter (mm)', '1'], ['h', 'Height of the wire centre (mm)', '2'], ['len', 'Length (m)', '1'], ['er', 'εr around the wire', '1'], ['mr', 'μr', '1'], ['V', 'Voltage (V)', '100']] },
+    rc: { cap: true, note: 'Charging a capacitor through a resistor from a steady supply, starting empty, and discharging it through the same resistor. Leave the target or the time at 0 to skip it.', fields: [['R', 'Resistance R (Ω)', '10000'], ['Cu', 'Capacitance C (µF)', '100'], ['V', 'Supply voltage (V)', '5'], ['tg', 'Target voltage on the capacitor (V, 0 = none)', '3'], ['tt', 'Look at this time (ms, 0 = none)', '500']] },
+    rl: { cap: false, note: 'Current building up in a coil (with its own resistance, or a resistor in series) after a steady supply is switched on. Leave the target or the time at 0 to skip it.', fields: [['R', 'Total resistance R (Ω)', '100'], ['Lm', 'Inductance L (mH)', '500'], ['V', 'Supply voltage (V)', '12'], ['tg', 'Target current (mA, 0 = none)', '80'], ['tt', 'Look at this time (ms, 0 = none)', '10']] },
     solenoid: { cap: false, note: "A single-layer coil wound on a tube. With an air core, Nagaoka's coefficient corrects the long-coil formula for a short coil.", fields: [['N', 'Turns N', '100'], ['Dm', 'Coil diameter (mm, to the wire centres)', '20'], ['l', 'Coil length (mm)', '50'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
     torect: { cap: false, note: 'A ring core with a rectangular cross-section, wound evenly all the way round.', fields: [['N', 'Turns N', '200'], ['tdi', 'Inside diameter (mm)', '40'], ['tdo', 'Outside diameter (mm)', '80'], ['th', 'Height (mm)', '10'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
     toround: { cap: false, note: 'A ring with a round cross-section (like a doughnut), wound evenly all the way round.', fields: [['N', 'Turns N', '200'], ['Rm', 'Radius to the centre of the tube (mm)', '30'], ['tr', 'Tube radius (mm)', '10'], ['mr', 'Core μr', '1'], ['I', 'Current (A)', '1']] },
@@ -84,7 +90,7 @@ import Downloads from '../../components/Downloads.astro';
     const g = q<HTMLSelectElement>('.ci-g').value, s = SPEC[g];
     q('.ci-fields').replaceChildren(...s.fields.map(([k, lab, def]) => {
       const l = document.createElement('label'); l.textContent = lab + ' ';
-      const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.className = `ci-${k}`; i.value = kept[g]?.[k] ?? def;
+      const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.className = `ci-${k}`; i.dataset.k = k; i.value = kept[g]?.[k] ?? def;
       i.addEventListener('input', () => { (kept[g] ??= {})[k] = i.value; calc(); });
       l.append(i); return l;
     }));
@@ -102,7 +108,7 @@ import Downloads from '../../components/Downloads.astro';
       const raw = q<HTMLInputElement>(`.ci-${k}`).value.trim();
       if (k === 'rb' && raw === '') { v.rb = Infinity; continue; }
       v[k] = num(raw);
-      const zeroOk = k === 'd2' || k === 'V' || k === 'I';
+      const zeroOk = k === 'd2' || k === 'V' || k === 'I' || k === 'tg' || k === 'tt';
       if (!(zeroOk ? v[k] >= 0 : v[k] > 0)) return fail(`${lab.replace(/ \(.*\)$/, '')}: give a number ${zeroOk ? 'of 0 or more' : 'greater than 0'}.`);
     }
     if (v.er !== undefined && v.er < 1) return fail('εr is 1 or more for ordinary materials.');
@@ -119,6 +125,36 @@ import Downloads from '../../components/Downloads.astro';
       E.forEach((e, i) => { f.push(fact(`Field in layer ${i + 1}`, `${sig(e / 1e6, 3)} kV/mm`, layers.length > 1 ? 'the layer with the lower εr takes more of the voltage' : 'E = V/d')); if (layers[i].er < 1.01 && e > 3e6) warn.push(`Layer ${i + 1} is air at ${sig(e / 1e6, 3)} kV/mm: dry air breaks down at roughly 3 kV/mm.`); });
       const ds: number[] = []; for (let i = 0; i <= 80; i++) ds.push(v.d1 * Math.pow(10, -1 + (i / 80) * 2));
       chart = chartFigure({ w: 380, h: 230, xLabel: 'Layer 1 thickness (mm)', yLabel: 'Capacitance (pF)', xLog: true, yLog: true, legend: 'none', series: [{ name: 'C', x: ds, y: ds.map((d) => K.plates(A, [{ d: d * mm, er: v.er }, ...(v.d2 > 0 ? [{ d: v.d2 * mm, er: v.er2 }] : [])]) * 1e12), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: v.d1, dash: [3, 3], label: 'now' }] }, 'Capacitance against the gap');
+    } else if (g === 'rc' || g === 'rl') {
+      if (!(v.V > 0)) return fail('Supply voltage: give a number greater than 0.');
+      const rc = g === 'rc', tau = rc ? K.tauRC(v.R, v.Cu * 1e-6) : K.tauRL(v.R, v.Lm * 1e-3);
+      const fin = rc ? v.V : v.V / v.R;
+      const fv = (x: number) => (rc ? si(x, 'V') : si(x, 'A'));
+      const TU: [number, string][] = tau < 1e-6 ? [[1e-9, 'ns']] : tau < 1e-3 ? [[1e-6, 'µs']] : tau < 1 ? [[1e-3, 'ms']] : tau < 120 ? [[1, 's']] : [[60, 'min']];
+      const [tsc, tname] = TU[0];
+      big = `τ = ${rc ? 'R × C' : 'L / R'} = ${si(tau, 's')}`;
+      f.push(fact('Time constant τ', si(tau, 's'), rc ? 'R × C: the time to reach 63.2 % of the final voltage' : 'L ÷ R: the time to reach 63.2 % of the final current'));
+      for (const [p, lab] of [[0.5, '50 %'], [0.9, '90 %'], [0.99, '99 %']] as [number, string][]) f.push(fact(`Time to ${lab}`, si(K.timeToFrac(p, tau), 's'), `${sig(K.timeToFrac(p, tau) / tau, 3)} τ ${rc ? 'charging from empty; discharging takes the same time to fall to the other ' + sig(100 - p * 100, 3) + ' %' : 'with the current rising from zero'}`));
+      f.push(fact('Fully settled', si(5 * tau, 's'), '5 τ: 99.3 % of the way, usually called full'));
+      f.push(fact(rc ? 'Charging current at the start' : 'Final current', rc ? si(v.V / v.R, 'A') : si(fin, 'A'), rc ? 'V ÷ R, falling away as the capacitor fills' : 'V ÷ R, once the coil has settled'));
+      f.push(fact(rc ? 'Energy stored when full' : 'Energy stored when settled', rc ? si(0.5 * v.Cu * 1e-6 * v.V * v.V, 'J') : si(0.5 * v.Lm * 1e-3 * fin * fin, 'J'), rc ? '½CV²' : '½LI²'));
+      const tgv = rc ? v.tg : v.tg / 1000;
+      if (v.tg > 0) {
+        if (tgv < fin) {
+          f.push(fact(rc ? `Time to charge to ${sig(v.tg, 4)} V` : `Time for the current to reach ${sig(v.tg, 4)} mA`, si(K.timeToFrac(tgv / fin, tau), 's'), `−τ ln(1 − target ÷ ${rc ? 'supply' : 'final'}), starting from ${rc ? 'empty' : 'zero current'}`));
+          if (rc) f.push(fact(`Time to discharge from ${sig(v.V, 4)} V to ${sig(v.tg, 4)} V`, si(K.timeToFall(tgv, v.V, tau), 's'), '−τ ln(target ÷ start), through the same resistor'));
+        } else f.push(fact('Target', 'never reached', `the ${rc ? 'capacitor voltage' : 'current'} only creeps up towards ${fv(fin)}, so a target of ${fv(fin)} or more takes forever`));
+      }
+      if (v.tt > 0) {
+        const t = v.tt * 1e-3, up = fin * K.chargeFrac(t, tau);
+        f.push(fact(`After ${sig(v.tt, 4)} ms${rc ? ' charging' : ''}`, fv(up), `${sig(100 * K.chargeFrac(t, tau), 4)} % of ${fv(fin)} (${sig(t / tau, 3)} τ)`));
+        if (rc) f.push(fact(`After ${sig(v.tt, 4)} ms discharging`, fv(v.V * Math.exp(-t / tau)), `from ${sig(v.V, 4)} V, ${sig(100 * Math.exp(-t / tau), 4)} % left`));
+      }
+      if (!rc) warn.push('Switching a coil off quickly makes a large voltage spike (the current cannot stop at once): fit a diode or snubber across relays and solenoids.');
+      const xs: number[] = []; for (let i = 0; i <= 100; i++) xs.push((5 * tau * i) / 100 / tsc);
+      const ser = [{ name: rc ? 'Charging' : 'Current building up', x: xs, y: xs.map((x) => fin * K.chargeFrac(x * tsc, tau) * (rc ? 1 : 1000)), mode: 'line' as const, width: 2 }];
+      if (rc) ser.push({ name: 'Discharging', x: xs, y: xs.map((x) => v.V * Math.exp(-(x * tsc) / tau)), mode: 'line' as const, width: 2 });
+      chart = chartFigure({ w: 380, h: 230, xLabel: `Time (${tname})`, yLabel: rc ? 'Capacitor voltage (V)' : 'Current (mA)', xMin: 0, yMin: 0, legend: rc ? 'below' : 'none', series: ser, marks: [{ kind: 'hline', at: fin * (rc ? 1 : 1000), dash: [4, 4] }, ...(v.tt > 0 && v.tt * 1e-3 <= 5 * tau ? [{ kind: 'vline' as const, at: (v.tt * 1e-3) / tsc, dash: [3, 3], label: 'now' }] : [])] }, rc ? 'Capacitor voltage while charging and discharging' : 'Current in the coil after switch-on');
     } else if (g === 'sphere') {
       const a = v.ra / 100, b = v.rb / 100;
       if (Number.isFinite(b) && !(b > a)) return fail('The outer sphere must be larger than the inner one.');

@@ -11,7 +11,7 @@ ads: true
 order: 643
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [bolt-torque-calculator, beam-calculator, shaft-bearing-life, spring-designer, tolerance-stackup, unit-converter]
 sources:
   - "Gear train speed and torque ratios, centre distance from the module, and the Willis (tabular) equation for epicyclic gear sets, as in standard machine design texts such as Shigley's Mechanical Engineering Design and Norton's Design of Machinery (equations only)."
@@ -35,6 +35,10 @@ Three calculators for passing rotation from one shaft to another:
 - **Belt drive.** The exact belt length and wrap angles for an open or crossed belt, the driven speed with slip, the belt speed, or the centre distance for a belt you already have.
 
 Once you know the speeds and torques, size the shafts and bearings with the [[shaft-bearing-life|shaft and bearing life calculator]], and check the fits in the [[tolerance-stackup]].
+
+## Find tooth counts for a ratio
+
+Under **More options** in the first box, type the ratio you want (driven teeth ÷ driver teeth, for example 3.7), choose one pair or two pairs in a row (a compound train), and set the fewest and most teeth you can use (from 12 by default, because very small gears usually need special tooth shapes). The tool lists the five closest tooth combinations with the error in percent and the output speed for your input speed, and one tap puts the best one into the train above. A ratio below 1 speeds the output up.
 
 ## How to use it
 

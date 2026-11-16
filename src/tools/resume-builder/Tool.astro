@@ -162,6 +162,8 @@
   .rb-doc.left .n, .rb-doc.left .hl, .rb-doc.left .ct { text-align: left; }
   .rb-doc.compact { font-size: 1.55cqw; line-height: 1.24; padding: 6.5cqw; }
   .rb-doc.compact.serif { font-size: 1.62cqw; }
+  .rb-doc .rb-ph { display: block; width: 7.2cqw; height: 9.2cqw; object-fit: cover; margin: 0 auto 1cqw; }
+  .rb-doc.left .rb-ph { margin-left: 0; }
   .rb-doc .empty { color: #9aa1b0; text-align: center; margin-top: 30cqw; font-size: 2.2cqw; }
   .rb-pages { margin: 0; font-size: 13px; color: var(--muted); }
   .rb-keep { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
@@ -205,7 +207,7 @@
   try { remembered = !!localStorage.getItem(KEY); } catch {}
   let R: Resume = load() ?? emptyResume(defaultPaper);
   const save = () => {
-    const s = JSON.stringify(R);
+    const s = JSON.stringify({ ...R, photo: undefined });
     try { sessionStorage.setItem(KEY, s); } catch {}
     try { if (remembered) localStorage.setItem(KEY, s); } catch {}
   };
@@ -239,7 +241,15 @@
       ${field('phone', 'Phone', { type: 'tel', ph: '+1 555 010 0100', auto: 'tel' })}
       ${field('location', 'City and region', { ph: 'e.g. Toronto, ON', auto: 'address-level2' })}
       ${field('links', 'Links (comma between them)', { ph: 'linkedin.com/in/you, github.com/you', auto: 'url' })}
-    </div><p class="rb-hint">Contact details go in the main text, not a page header, because many ATS skip headers. Skip your full street address, photo and date of birth.</p>`, openCards.has('contact')));
+    </div><p class="rb-hint">Contact details go in the main text, not a page header, because many ATS skip headers. Skip your full street address, photo and date of birth.</p>
+    <label class="rb-check full rb-xon"><input type="checkbox" data-p="extraOn"${R.extraOn ? ' checked' : ''} /> Show extra fields some regions expect</label>
+    <p class="rb-hint">Some employers in parts of Asia and the Middle East expect these; in Canada, the UK and the US leave them out.</p>
+    ${R.extraOn ? `<div class="rb-grid">
+      ${field('nationality', 'Nationality')}${field('visa', 'Visa or residence status', { ph: 'e.g. Work permit, valid to 2028' })}
+      ${field('notice', 'Notice period', { ph: 'e.g. 1 month' })}${field('licence', 'Driving licence', { ph: 'e.g. Class 5, full' })}
+      <label class="full">Photo (stays on this device, never saved or uploaded; add it again next visit)<input type="file" class="rb-photo" accept="image/*" /></label>
+      ${R.photo ? '<button type="button" class="btn secondary rb-photo-x">Remove photo</button>' : ''}
+    </div>` : ''}`, openCards.has('contact')));
     c.push(card('summary', 'Summary', `${field('summary', 'A short pitch (2 to 3 lines)', { area: 4, full: true, ph: 'Who you are, your strongest skills, and the result you bring. Use words from the job ad.' })}`, openCards.has('summary')));
     c.push(card('skills', 'Skills', `${field('skills', 'One line per group', { area: 4, full: true, ph: 'Tools: Excel, SQL, Power BI\nLanguages: English, Hindi' })}<p class="rb-hint">Write skills as plain words separated by commas. ATS search for exact terms, so copy the spelling from the job ad (for example "Microsoft Excel", "Power BI").</p>`, openCards.has('skills')));
     c.push(card('experience', 'Experience', R.experience.map((j, i) => `<div class="rb-item">${itemHead('experience', i, R.experience.length, [j.title, j.company].filter(Boolean).join(', '))}<div class="rb-grid">
@@ -294,7 +304,8 @@
     const doc = q('.rb-doc');
     doc.className = `rb-doc${R.style === 'serif' ? ' serif' : ''}${R.header === 'left' ? ' left' : ''}${R.density === 'compact' ? ' compact' : ''}`;
     q('.rb-paper').classList.toggle('a4', R.paper === 'a4');
-    doc.innerHTML = current.length ? current.map((k) => {
+    const phHtml = R.extraOn && R.photo ? `<img class="rb-ph" src="${R.photo}" alt="Your photo" />` : '';
+    doc.innerHTML = current.length ? phHtml + current.map((k) => {
       switch (k.t) {
         case 'name': return `<div class="n">${esc(k.text)}</div>`;
         case 'headline': return `<div class="hl">${esc(k.text)}</div>`;
@@ -364,6 +375,20 @@
     if (el.name === 'rb-density') { R.density = el.value as any; later(); }
     if (el.name === 'rb-paper') { R.paper = el.value as any; later(); }
   });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (!el.matches('.rb-photo') || !el.files?.[0]) return;
+    const url = URL.createObjectURL(el.files[0]), im = new Image();
+    im.onload = () => {
+      const w = 300, h = 380, c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d')!, k = Math.max(w / im.width, h / im.height);
+      x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(im, (w - im.width * k) / 2, (h - im.height * k) / 2, im.width * k, im.height * k);
+      R.photo = c.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url); renderForm(); renderPreview();
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); alert('That picture could not be read.'); };
+    im.src = url;
+  });
+  root.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('.rb-photo-x')) { R.photo = undefined; renderForm(); renderPreview(); } });
   const FRESH: Record<string, () => any> = { experience: emptyJob, education: emptyEdu, projects: emptyProject, extras: emptyExtra };
   root.addEventListener('click', (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>('button');
@@ -413,8 +438,8 @@
   // ---------- drafts ----------
   const remember = q<HTMLInputElement>('.rb-remember');
   remember.checked = remembered;
-  remember.addEventListener('change', () => { remembered = remember.checked; try { if (remembered) localStorage.setItem(KEY, JSON.stringify(R)); else localStorage.removeItem(KEY); } catch {} });
-  q('.rb-save').addEventListener('click', () => download(new Blob([JSON.stringify({ fibub: 'resume', v: 1, resume: R }, null, 2)], { type: 'application/json' }), `${fileBase(R)}-backup.json`));
+  remember.addEventListener('change', () => { remembered = remember.checked; try { if (remembered) localStorage.setItem(KEY, JSON.stringify({ ...R, photo: undefined })); else localStorage.removeItem(KEY); } catch {} });
+  q('.rb-save').addEventListener('click', () => download(new Blob([JSON.stringify({ fibub: 'resume', v: 1, resume: { ...R, photo: undefined } }, null, 2)], { type: 'application/json' }), `${fileBase(R)}-backup.json`));
   q('.rb-open').addEventListener('click', () => q<HTMLInputElement>('.rb-file').click());
   q<HTMLInputElement>('.rb-file').addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0];

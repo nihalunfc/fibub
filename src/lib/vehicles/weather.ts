@@ -20,6 +20,13 @@ export function cabinSeries(i: Omit<HotCarInput, 'minutes'>, maxMin = 60, step =
   for (let m = 0; m <= maxMin; m += step) out.push({ min: m, c: cabinTempC({ ...i, minutes: m }) });
   return out;
 }
+/** Minutes until the cabin reaches targetC: 0 if already there, null if the curve never gets there. */
+export function minutesToTemp(i: Omit<HotCarInput, 'minutes'>, targetC: number): number | null {
+  const rise = cabinRise(1e6, i.sun, i.cracked), need = targetC - i.outsideC;
+  if (need <= 0) return 0;
+  if (need >= rise) return null;
+  return -RISE_MINUTES * Math.log(1 - need / rise);
+}
 export type HotBand = 'ok' | 'warm' | 'danger' | 'deadly';
 /** Plain-language bands: under 32 °C ok, 32-40 hot, 40-50 dangerous, 50 and over deadly for a child or pet. */
 export function hotBand(c: number): HotBand { return c >= 50 ? 'deadly' : c >= 40 ? 'danger' : c >= 32 ? 'warm' : 'ok'; }

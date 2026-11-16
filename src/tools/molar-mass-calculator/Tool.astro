@@ -18,7 +18,8 @@ import Downloads from '../../components/Downloads.astro';
     <p class="ax-help">Capitals matter: Co is cobalt, CO is carbon monoxide. Brackets nest, and a dot, · or * adds water of crystallisation (CuSO4.5H2O). Write isotopes as [13C] or ^13C, deuterium as D, and charges with ^ (Fe^3+, SO4^2-) or a sign at the end (NH4+, Cl-).</p>
     <p class="ax-err mmc-err" hidden></p>
     <div class="mmc-out">
-      <p class="ax-big mmc-big"></p>
+      <p class="ax-big mmc-big" aria-live="polite"></p>
+      <p class="ax-help mmc-work"></p>
       <dl class="ax-facts mmc-facts"></dl>
     </div>
   </div>
@@ -38,13 +39,39 @@ import Downloads from '../../components/Downloads.astro';
       <label>Particles <input class="mmc-n" inputmode="decimal" /></label>
     </div>
     <p class="ax-help">Change any box and the other two follow: moles = grams ÷ molar mass, particles = moles × 6.022 × 10²³ (Avogadro's number). Particles means formula units, so for a salt it counts whole CuSO₄·5H₂O units, not ions.</p>
-    <p class="ax-big mmc-conv" style="font-size:18px"></p>
+    <p class="ax-big mmc-conv" style="font-size:18px" aria-live="polite"></p>
+    <details style="margin-top:10px">
+      <summary>More options: weigh out for a solution</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Concentration wanted
+          <span class="ax-row" style="gap:6px"><input class="mmc-c" data-k="conc" inputmode="decimal" value="0.1" /><select class="mmc-cu" data-k="concunit"><option value="1">mol/L (M)</option><option value="0.001">mmol/L (mM)</option><option value="1e-6">µmol/L (µM)</option></select></span></label>
+        <label>Volume
+          <span class="ax-row" style="gap:6px"><input class="mmc-v" data-k="vol" inputmode="decimal" value="250" /><select class="mmc-vu" data-k="volunit"><option value="1e-3">mL</option><option value="1">L</option></select></span></label>
+        <label>Purity of the solid (%) <input class="mmc-p" data-k="purity" inputmode="decimal" value="100" /></label>
+      </div>
+      <p class="ax-big mmc-weigh" style="font-size:18px" aria-live="polite"></p>
+      <p class="ax-help">Weigh this much, dissolve it in a little solvent, then top up to the final volume. A hydrate such as CuSO4·5H2O needs its own formula, so type it with the water.</p>
+    </details>
     <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Several formulas at once</h2>
+    <details>
+      <summary>More options: a list of formulas</summary>
+      <label style="margin-top:8px">One formula per line (add a name first, then a colon, if you like)
+        <textarea class="mmc-list" data-k="list" rows="5" spellcheck="false" autocapitalize="off">NaCl
+Tris: C4H11NO3
+glucose: C6H12O6
+CaCl2·2H2O</textarea></label>
+      <div class="ax-scroll"><table class="mmc-ltab" style="margin-top:8px"></table></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small mmc-lcopy">Copy table</button><button type="button" class="btn secondary small mmc-lcsv">Table (CSV)</button></div>
+    </details>
   </div>
 </div>
 
 <script>
-  import { parseFormula, molarMass, monoMass, nominalMass, composition, hill, unsaturation, pretty, AVOGADRO, FormulaError, byElement, BY_SYMBOL, type Formula } from '../../lib/sci/chem';
+  import { parseFormula, workingLine, gramsForSolution, molarMass, monoMass, nominalMass, composition, hill, unsaturation, pretty, AVOGADRO, FormulaError, byElement, BY_SYMBOL, type Formula } from '../../lib/sci/chem';
   import { num, sig, csv, fmtExp } from '../../lib/sci/num';
   import { paint, save, wireDownloads, type Figure } from '../../lib/report';
 
@@ -80,6 +107,7 @@ import Downloads from '../../components/Downloads.astro';
     if (radio.length) facts.push(fact('Radioactive elements', radio.join(', '), 'no standard atomic weight: the mass number of the longest-lived isotope is used'));
     q('.mmc-facts').replaceChildren(...facts);
 
+    q('.mmc-work').textContent = workingLine(f);
     rows = composition(f);
     const tb = q<HTMLTableElement>('.mmc-tab'); tb.replaceChildren();
     const tr = tb.createTHead().insertRow(); ['Element', 'Atoms', 'Atomic weight', 'Mass (g/mol)', 'Mass %'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
@@ -103,7 +131,7 @@ import Downloads from '../../components/Downloads.astro';
       },
     };
     paint(q<HTMLCanvasElement>('.mmc-fig'), fig);
-    convert();
+    convert(); weigh();
   }
 
   function convert(from = last) {
@@ -120,6 +148,35 @@ import Downloads from '../../components/Downloads.astro';
     q('.mmc-conv').textContent = `${big(mol * M)} g = ${big(mol)} mol = ${fmtExp(mol * AVOGADRO, 4)} formula units`;
   }
 
+  function weigh() {
+    const o = q('.mmc-weigh');
+    if (!f || !(M > 0)) { o.textContent = ''; return; }
+    const c = num(q<HTMLInputElement>('.mmc-c').value), v = num(q<HTMLInputElement>('.mmc-v').value), p = num(q<HTMLInputElement>('.mmc-p').value) / 100;
+    if (!(c >= 0) || !(v >= 0)) { o.textContent = 'Type a concentration and a volume of zero or more.'; return; }
+    if (!(p > 0 && p <= 1)) { o.textContent = 'Purity is a percentage above 0 and up to 100.'; return; }
+    const cu = Number(q<HTMLSelectElement>('.mmc-cu').value), vu = Number(q<HTMLSelectElement>('.mmc-vu').value);
+    const g = gramsForSolution(M, c * cu, v * vu, p);
+    o.textContent = `Weigh ${g >= 1 ? sig(g, 4) + ' g' : sig(g * 1000, 4) + ' mg'} for ${sig(v, 4)} ${vu === 1 ? 'L' : 'mL'} of ${sig(c, 4)} ${q<HTMLSelectElement>('.mmc-cu').selectedOptions[0].textContent!.split(' ')[0]}.`;
+  }
+  let listRows: string[][] = [];
+  function list() {
+    const tb = q<HTMLTableElement>('.mmc-ltab'); tb.replaceChildren();
+    const tr = tb.createTHead().insertRow(); ['Name', 'Formula', 'Molar mass (g/mol)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; tr.append(th); });
+    const bd = tb.createTBody(); listRows = [];
+    for (const raw of q<HTMLTextAreaElement>('.mmc-list').value.split('\n')) {
+      const line = raw.trim(); if (!line) continue;
+      const i = line.indexOf(':'), name = i > 0 ? line.slice(0, i).trim() : '', form = (i > 0 ? line.slice(i + 1) : line).trim();
+      let out: string;
+      try { out = molarMass(parseFormula(form)).toFixed(3); } catch (e) { out = 'not readable'; }
+      listRows.push([name, form, out]);
+      const row = bd.insertRow(); [name, form, out].forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j === 2) td.style.textAlign = 'right'; });
+    }
+  }
+  q('.mmc-list').addEventListener('input', list);
+  q('.mmc-lcopy').addEventListener('click', () => { void navigator.clipboard?.writeText(listRows.map((r) => r.join('\t')).join('\n')).catch(() => {}); });
+  q('.mmc-lcsv').addEventListener('click', () => save(new Blob([csv([['name', 'formula', 'molar_mass_g_mol'], ...listRows])], { type: 'text/csv' }), 'molar-masses.csv', 'text/csv'));
+  ['.mmc-c', '.mmc-v', '.mmc-p'].forEach((s) => q(s).addEventListener('input', weigh));
+  ['.mmc-cu', '.mmc-vu'].forEach((s) => q(s).addEventListener('change', weigh));
   q('.mmc-in').addEventListener('input', run);
   root.querySelectorAll<HTMLButtonElement>('.mmc-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.mmc-in').value = b.dataset.f!; run(); }));
   q('.mmc-g').addEventListener('input', () => convert('g'));
@@ -130,7 +187,7 @@ import Downloads from '../../components/Downloads.astro';
     save(new Blob([csv([['element', 'name', 'atoms', 'atomic_weight', 'mass_g_mol', 'mass_percent'], ...rows.map((r) => [r.symbol, r.name, r.count, +(r.mass / r.count).toFixed(6), +r.mass.toFixed(4), +r.percent.toFixed(4)]), ['total', '', '', '', +M.toFixed(4), 100]])], { type: 'text/csv' }), `molar-mass-${hill(f).replace(/[^A-Za-z0-9]+/g, '') || 'formula'}.csv`, 'text/csv');
   });
   document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mmc-fig'), fig); });
-  run();
+  run(); list();
   wireDownloads(q('.dl'), () => ({
     title: `Molar mass of ${pretty(q<HTMLInputElement>('.mmc-in').value)}`, file: 'molar-mass',
     sections: f ? [

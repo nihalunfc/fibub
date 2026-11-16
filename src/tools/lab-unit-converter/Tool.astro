@@ -8,17 +8,20 @@ import '../../styles/astro.css';
   <div class="ax-card">
     <h2>Convert a value</h2>
     <div class="ax-grid">
-      <label>Test <select class="luc-a"></select></label>
-      <label>Value <input class="luc-x" inputmode="decimal" value="100" /></label>
-      <label>From <select class="luc-from"></select></label>
-      <label>To <select class="luc-to"></select></label>
+      <label>Test <select class="luc-a" data-k="test"></select></label>
+      <label>Value <input class="luc-x" data-k="value" inputmode="decimal" value="100" /></label>
+      <label>From <select class="luc-from" data-k="from"></select></label>
+      <label>To <select class="luc-to" data-k="to"></select></label>
     </div>
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn secondary small luc-swap">Swap units</button>
-      <label class="luc-dl">Round to <select class="luc-d"><option value="">4 significant figures</option><option value="0">0 decimals</option><option value="1">1 decimal</option><option value="2">2 decimals</option><option value="3">3 decimals</option></select></label>
+      <label class="luc-dl">Round to <select class="luc-d" data-k="round"><option value="">4 significant figures</option><option value="s3">3 significant figures</option><option value="s5">5 significant figures</option><option value="s6">6 significant figures</option><option value="0">0 decimals</option><option value="1">1 decimal</option><option value="2">2 decimals</option><option value="3">3 decimals</option></select></label>
     </div>
     <p class="ax-big luc-out" aria-live="polite"></p>
     <p class="ax-err luc-err" hidden></p>
+    <details class="luc-more"><summary>More options: this value in every unit</summary>
+      <div class="ax-scroll"><table class="luc-units"></table></div>
+    </details>
     <dl class="ax-facts luc-facts"></dl>
     <p class="ax-help luc-note"></p>
   </div>
@@ -56,7 +59,7 @@ import '../../styles/astro.css';
 </style>
 
 <script>
-  import { ANALYTES, byId, molar, factor, convert, convertList, fmt, type Row } from '../../lib/sci/labunits';
+  import { ANALYTES, byId, molar, factor, convert, convertList, fmt, fmtBy, allUnits, type Row } from '../../lib/sci/labunits';
   import { num, sig, csv } from '../../lib/sci/num';
   import { save } from '../../lib/report';
 
@@ -70,7 +73,7 @@ import '../../styles/astro.css';
     const a = byId(sel.a.value);
     for (const [s, i] of [[sel.from, 0], [sel.to, 1]] as const) { s.innerHTML = ''; for (const u of a.units) s.append(new Option(u, u)); s.value = a.units[i]; }
   }
-  const dec = () => (sel.d.value === '' ? null : Number(sel.d.value));
+  const fm = (x: number) => fmtBy(x, sel.d.value);
 
   function one() {
     const a = byId(sel.a.value), from = sel.from.value, to = sel.to.value, x = num(q<HTMLInputElement>('.luc-x').value);
@@ -88,8 +91,10 @@ import '../../styles/astro.css';
       if (from === 'mg/dL' && to !== 'mg/dL') fact('Why', `1 mg/dL = 10 mg/L; 10 ÷ ${M.toFixed(3)} = ${sig(10 / M, 5)} mmol/L${to === 'µmol/L' ? ` = ${sig(1e4 / M, 5)} µmol/L` : to === 'mEq/L' ? `, × charge ${a.charge}` : ''}`);
     }
     q('.luc-note').textContent = a.note ?? '';
+    const ut = q<HTMLTableElement>('.luc-units'); ut.innerHTML = '';
+    if (Number.isFinite(x) && x >= 0) for (const r of allUnits(a, x, from, sel.d.value)) { const tr = ut.insertRow(); tr.insertCell().textContent = r.unit; const c = tr.insertCell(); c.textContent = r.text; c.className = 'r'; }
     if (!Number.isFinite(x) || x < 0) { err.textContent = 'Type a value of zero or more, such as 5.4 or 126.'; err.hidden = false; out.textContent = ''; }
-    else { err.hidden = true; out.textContent = `${x} ${from} = ${fmt(convert(a, x, from, to), dec())} ${to}`; }
+    else { err.hidden = true; out.textContent = `${x} ${from} = ${fm(convert(a, x, from, to))} ${to}`; }
     list();
   }
 
@@ -105,7 +110,7 @@ import '../../styles/astro.css';
     const b = t.createTBody();
     rows.slice(0, 500).forEach((r) => {
       const tr = b.insertRow();
-      [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? r.error : r.prefix + fmt(r.out, dec())].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; if (i === 2 && r.error) td.classList.add('bad'); });
+      [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? r.error : r.prefix + fm(r.out)].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; if (i === 2 && r.error) td.classList.add('bad'); });
     });
   }
 
@@ -133,7 +138,7 @@ import '../../styles/astro.css';
     if (!rows.length) return;
     const a = byId(sel.a.value);
     const head = ['input', `value (${sel.from.value})`, `result (${sel.to.value})`, 'note'];
-    const body = rows.map((r) => [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? '' : r.prefix + fmt(r.out, dec()), r.error ?? '']);
+    const body = rows.map((r) => [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? '' : r.prefix + fm(r.out), r.error ?? '']);
     const basis = a.id === 'hba1c' ? 'IFCC-NGSP master equation' : `molar mass ${molar(a).toFixed(3)} g/mol, factor ${sig(factor(a, sel.from.value, sel.to.value), 6)}`;
     save(new TextEncoder().encode(csv([[`# ${a.name}: ${basis}`], head, ...body])), `lab-units-${a.id}.csv`, 'text/csv');
   });

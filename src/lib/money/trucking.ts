@@ -31,6 +31,12 @@ export function costPerMile(i: CpmIn): CpmOut | null {
   };
 }
 
+/** Rate needed for each margin (profit as a share of the rate): cost / (1 - margin). */
+export const marginRates = (cost: number, margins: number[]) => margins.map((m) => ({ margin: m, rate: cost / (1 - m / 100) }));
+
+/** Cost per distance if fuel price moves by pct percent (only the fuel part changes). */
+export const withFuelChange = (fuelPerDist: number, total: number, pct: number) => total + fuelPerDist * (pct / 100);
+
 export interface LoadIn {
   rate: number; perMile: boolean; loaded: number; deadhead: number; costPerDist: number;
   tolls: number; detention: number; days: number; minPerDay: number; minPerMile: number;
@@ -38,6 +44,8 @@ export interface LoadIn {
 export interface LoadOut {
   revenue: number; cost: number; profit: number; totalDist: number; ratePerTotal: number;
   profitPerDay: number; ok: boolean; reasons: string[];
+  /** Lowest flat load rate (before detention) that breaks even, and the lowest that also meets your minimums. */
+  breakEvenFlat: number; minFlat: number; breakEvenPerLoaded: number; minPerLoaded: number;
 }
 export function loadProfit(i: LoadIn): LoadOut | null {
   if (!(i.loaded > 0) || i.deadhead < 0 || !(i.days > 0)) return null;
@@ -52,7 +60,17 @@ export function loadProfit(i: LoadIn): LoadOut | null {
   if (profit <= 0) reasons.push('it loses money');
   if (i.minPerDay > 0 && profitPerDay < i.minPerDay) reasons.push('profit per day is under your minimum');
   if (i.minPerMile > 0 && ratePerTotal < i.minPerMile) reasons.push('rate per total mile is under your minimum');
-  return { revenue, cost, profit, totalDist, ratePerTotal, profitPerDay, ok: reasons.length === 0, reasons };
+  const breakEvenFlat = Math.max(0, cost - i.detention);
+  const minFlat = Math.max(breakEvenFlat, i.minPerDay > 0 ? cost + i.minPerDay * i.days - i.detention : 0, i.minPerMile > 0 ? i.minPerMile * totalDist - i.detention : 0);
+  return { revenue, cost, profit, totalDist, ratePerTotal, profitPerDay, ok: reasons.length === 0, reasons,
+    breakEvenFlat, minFlat, breakEvenPerLoaded: breakEvenFlat / i.loaded, minPerLoaded: minFlat / i.loaded };
+}
+
+/** Loads needed to ship n pallets when one load carries perLoad; last is how many ride on the final load. */
+export function trucksNeeded(n: number, perLoad: number): { trucks: number; last: number } | null {
+  if (!(perLoad >= 1) || !(n > 0)) return null;
+  const trucks = Math.ceil(n / perLoad);
+  return { trucks, last: n - (trucks - 1) * perLoad };
 }
 
 // ---- Pallet planner (all sizes in the same unit, e.g. mm) ----

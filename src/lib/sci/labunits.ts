@@ -87,3 +87,20 @@ export function fmt(x: number, d: number | null): string {
   const p = Math.max(0, 3 - Math.floor(Math.log10(Math.abs(x))));
   return x.toFixed(Math.min(p, 8));
 }
+
+/** Round by a menu choice: "" = 4 significant figures, "s3"/"s5"/"s6" = that many significant figures, "0".."3" = decimals. */
+export function fmtBy(x: number, opt: string): string {
+  if (!Number.isFinite(x)) return '';
+  if (opt === '') return fmt(x, null);
+  if (opt[0] === 's') {
+    if (x === 0) return '0';
+    const n = Number(opt.slice(1)), p = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+    return x.toFixed(Math.min(p, 10));
+  }
+  return x.toFixed(Number(opt));
+}
+
+/** The same value in every unit the test offers (for a "see them all" table). */
+export function allUnits(a: Analyte, x: number, from: string, opt: string): { unit: string; text: string }[] {
+  return a.units.map((u) => ({ unit: u, text: fmtBy(convert(a, x, from, u), opt) }));
+}

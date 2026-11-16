@@ -24,7 +24,16 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await big()).startsWith('Infinitely many solutions (1 free') && (await sub()).includes('x = (0, 3, 0) + t₁·(1, −2, 1)'), `matrix: infinitely many solutions (${await sub()})`);
   await page.fill(R + '.mx-b', '1\n1\n2'); await page.waitForTimeout(400);
   check((await big()) === 'No solution' && (await sub()).includes('0 = '), 'matrix: no solution');
-  await op('transpose'); await setA('1 2 3\n4 5 6');
+  await setA('2 1\n5 3');
+  await op('adj');
+  check((await big()) === 'det A = 1' && (await cells()).includes('3 −1 −5 2') && (await page.textContent(R + '.mx-facts')).includes('A × adj(A) = det(A) × I exactly'), `matrix: adjugate of [[2,1],[5,3]] (${await cells()})`);
+  await op('scalar'); await page.fill(R + '.mx-k', '-1/2'); await page.waitForTimeout(400);
+  check((await big()) === '−1/2 × A is 2 × 2' && (await cells()) === '−1 −1/2 −5/2 −3/2', `matrix: scalar (${await cells()})`);
+  await op('cramer'); await page.fill(R + '.mx-b', '4\n11'); await page.waitForTimeout(400);
+  check((await big()) === 'One solution' && (await sub()) === 'x1 = 1, x2 = 2' && (await page.textContent(R + '.mx-tab')).includes('2 ÷ 1 = 2'), `matrix: Cramer's rule (${await sub()})`);
+  await setA('1 2\n2 4'); await page.waitForTimeout(300);
+  check((await big()).includes('cannot be used'), 'matrix: Cramer with det 0');
+  await setA('1 2 3\n4 5 6\n7 8 9'); await op('rref'); await op('transpose'); await setA('1 2 3\n4 5 6');
   check((await big()) === 'Aᵀ is 3 × 2' && (await cells()) === '1 4 2 5 3 6', 'matrix: transpose');
   await op('pow');
   check(!(await page.isHidden(R + '.mx-err')) && (await page.textContent(R + '.mx-err')).includes('square'), 'matrix: power needs a square matrix');

@@ -17,4 +17,8 @@ export default async ({ page, check, BASE }) => {
   check((await out()).startsWith('Accept: profit 750.00'), `load-profit: no empty miles, tolls 100, detention 50 (${await out()})`); // 2,050 - 1,200 - 100
   await set('rate', '1'); 
   check((await out()).startsWith('Decline: profit -'), 'load-profit: a losing load is declined');
+  await page.goto(`${BASE}/vehicles/load-profit/`); await page.waitForTimeout(300);
+  check((await page.textContent('.lp .lp-ask')).includes('1,500.00 flat'), `load-profit: break-even counter-offer 1,500 (${await page.textContent('.lp .lp-ask')})`);
+  await set('minday', '300'); // 1,500 cost + 300 x 2 days = 2,100
+  check((await page.textContent('.lp .lp-ask')).includes('2,100.00 flat'), 'load-profit: counter-offer meets the minimum profit a day');
 };

@@ -14,4 +14,7 @@ export default async ({ page, check, BASE }) => {
   check((await first()) === 'Road tyre', 'tyre-type: motorcycle in the city -> road tyre');
   await page.goto(`${BASE}/vehicles/tyre-type/?c=uk`); await page.waitForTimeout(300);
   check((await page.inputValue('.tt [data-k="country"]')) === 'uk', 'tyre-type: ?c=uk presets the country');
+  await page.goto(`${BASE}/vehicles/tyre-type/`); await page.waitForTimeout(300);
+  check((await page.$$('.tt [data-o="cmp"] tr')).length === 7 && (await page.textContent('.tt [data-o="cmp"] tr.pick')).includes('Summer tyre (best pick)'), 'tyre-type: comparison table highlights the pick');
+  check((await page.textContent('.tt [data-o="shop"]')).includes('summer tyres'), 'tyre-type: shop line names the pick');
 };

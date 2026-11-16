@@ -4,8 +4,8 @@ num: 1776
 shelf: money
 code: T810
 section: pay
-title: "Overtime pay calculator: Canada, US, UK and India rules"
-summary: "Work out overtime hours and pay from your hourly rate and hours, with the weekly and daily rules for Canada, the United States, the UK and India, or your own."
+title: "Overtime pay calculator: rules for Canada, the US, the UK, India and more"
+summary: "Work out overtime hours and pay from your hourly rate and hours, with the weekly and daily rules for Canada, the US, the UK, India, the UAE, Saudi Arabia and Oman, or your own."
 status: live
 ads: false
 order: 1776
@@ -15,6 +15,7 @@ updated: 2026-11-16
 related: [timesheet, hourly-salary]
 sources:
   - "ontario.ca Employment Standards Act guide (44 hours, 1.5 times); canada.ca federal labour standards, Hours of work (8 a day, 40 a week); US Department of Labor Fact Sheet 23 (FLSA, 40 hours); gov.uk Overtime: your rights (no statutory premium); all checked 2026-11-10. Other provinces and the Indian Factories Act are not confirmed on an official page: check the official source."
+  - "Gulf presets, checked 2026-11-16: UAE Federal Decree-Law 33/2021 Art. 17 and 19 as summarised on u.ae (8 h a day, 48 a week, +25% of the basic-salary rate, +50% from 10 pm to 4 am or on a rest day, at most 2 overtime hours a day); Saudi Labor Law Part Six (Art. 98, 107) as summarised on my.gov.sa (8 h a day, 48 a week, hourly wage + 50% of the basic wage); Oman Labour Law, Royal Decree 53/2023 Art. 70 and 71 on mol.gov.om (8 h a day, 40 a week, basic wage + 25% by day, + 50% at night 9 pm to 5 am, 12 h a day in all). Qatar (Law 14/2004), Bahrain (Law 36/2012) and Kuwait (Law 6/2010) are left out: their official law pages could not be read that day, only secondary summaries."
 flow:
   - { icon: coin, label: "Pay, hours" }
   - { icon: flag, label: "Pick rule" }
@@ -54,6 +55,8 @@ In Ontario, 48 hours in a week at 25 an hour: overtime starts after 44 hours, so
 **Does everyone get overtime?** No. Managers, some salaried staff and some industries are exempt, and the rules differ for each. Check the official source and your contract.
 
 **Why does a province say "not confirmed"?** The thresholds for those provinces come from a secondary summary, not an official page we could read, so they are marked check the official source. Some provinces also base overtime on the minimum wage, not your own rate.
+
+**What about the Gulf?** The United Arab Emirates, Saudi Arabia and Oman presets fill in what each labour law sets: 8 hours a day, with 48 hours a week in the UAE and Saudi Arabia and 40 in Oman. Overtime pays at least 1.25 times in the UAE and Oman (1.5 at night, and on a rest day in the UAE) and the hourly wage plus half the basic wage in Saudi Arabia. In all three the premium is worked out on the basic wage, so if your allowances make your full pay higher, use your basic hourly rate or lower the Overtime pays figure as the note explains. Each preset names the law and article, links the official page and was checked on 16 November 2026. Qatar, Bahrain and Kuwait are not in the list yet because we could not read their laws on an official page. It is an estimate, not legal advice; check the official source.
 
 **What about India?** The Factories Act sets 9 hours a day and 48 a week with pay at twice the ordinary rate for factory workers. Other workers follow state laws and the new labour codes, so check the official source.
 

@@ -13,4 +13,9 @@ export default async ({ page, check, BASE }) => {
   check((await out()).includes('37,000 / 34,000') && (await big()).startsWith('Over'), `axle-weights: moving the load back overloads the trailer tandem (${await big()})`);
   await page.selectOption('.ax [data-k="reg"]', 'ca'); await page.waitForTimeout(100);
   check((await out()).includes('kg') && (await page.textContent('.ax .ax-src')).includes('Estimate'), 'axle-weights: Canada switches to kg and says estimate');
+  await page.goto(`${BASE}/vehicles/axle-weights/`); await page.waitForTimeout(300);
+  const adv = await page.textContent('.ax .ax-adv');
+  // drive group: 12,500 + 0.475 x load <= 34,000 -> 45,263; the trailer tandem limit puts the centre at 27 ft at most
+  check(adv.includes('45,263 lb') && adv.includes('drive group'), `axle-weights: most load 45,263 lb (${adv})`);
+  check(adv.includes('17.4 to 27'), 'axle-weights: legal load positions 17.4 to 27 ft');
 };

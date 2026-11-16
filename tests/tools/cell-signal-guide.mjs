@@ -32,4 +32,14 @@ export default async ({ page, check, BASE }) => {
   await page.click('.csg .csg-add'); await page.waitForTimeout(200);
   check(await page.$$eval('.csg .csg-all tbody tr', (r) => r.length) === 7, 'cell-signal-guide: a reading is added');
   check(await page.evaluate(() => localStorage.getItem('fibub-cellreadings-v1') === null), 'cell-signal-guide: nothing stored unless ticked');
+  // More options: ASU, uses, best per place. LTE ASU 45 = -95 dBm (Fair); GSM ASU 10 = -93 dBm.
+  await page.selectOption('.csg .csg-tech', 'lte'); await page.selectOption('.csg .csg-unit', 'asu'); await page.fill('.csg .csg-dbm', '45');
+  check(/^Fair 45 ASU is -95 dBm/.test(await page.textContent('.csg .csg-rate')), `cell-signal-guide: ASU converts (${await page.textContent('.csg .csg-rate')})`);
+  check((await page.textContent('.csg .csg-fit')).includes('Patchy'), 'cell-signal-guide: Fair signal marks video patchy');
+  await page.fill('.csg .csg-dbm', '');
+  check(/Type the ASU number/.test(await page.textContent('.csg .csg-rate')) && !/NaN/.test(await page.textContent('.csg .csg-rate')), 'cell-signal-guide: blank ASU is friendly');
+  await page.selectOption('.csg .csg-unit', 'dbm'); await page.fill('.csg .csg-dbm', '-108');
+  check(/Wi-Fi calling/.test(await page.textContent('.csg .csg-help')), 'cell-signal-guide: poor signal suggests Wi-Fi calling');
+  // Sample + Park/Network C -90: Home: A -92 (5G), B -104, C -113 -> A best by 12 over B. Work: B -84 best, 15 ahead of A (-99).
+  check(/Home: Network A \(-92 dBm\), 12 dB ahead of Network B/.test(await page.textContent('.csg .csg-places')) && /Work: Network B \(-84 dBm\), 15 dB ahead of Network A/.test(await page.textContent('.csg .csg-places')), `cell-signal-guide: best per place (${await page.textContent('.csg .csg-places')})`);
 };

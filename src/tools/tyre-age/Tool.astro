@@ -23,7 +23,19 @@
     <p class="ta-age"></p>
     <p class="ta-pill"></p>
     <p class="ta-adv"></p>
+    <p class="ta-miles"></p>
   </section>
+  <details class="panel ta-set">
+    <summary>Check a whole set (up to four codes)</summary>
+    <p class="ta-fine">Type the date code of each tyre. Tyres on one axle should be within about two years of each other.</p>
+    <div class="ta-setgrid">
+      <input data-k="s1" inputmode="numeric" maxlength="12" placeholder="Front left" aria-label="Front left date code" />
+      <input data-k="s2" inputmode="numeric" maxlength="12" placeholder="Front right" aria-label="Front right date code" />
+      <input data-k="s3" inputmode="numeric" maxlength="12" placeholder="Rear left" aria-label="Rear left date code" />
+      <input data-k="s4" inputmode="numeric" maxlength="12" placeholder="Rear right" aria-label="Rear right date code" />
+    </div>
+    <p class="ta-setres" aria-live="polite"></p>
+  </details>
   <details class="panel">
     <summary>More about tyre age</summary>
     <ul class="ta-more">
@@ -51,12 +63,16 @@
   .ta-pill.warn { background: var(--warn-soft); color: var(--warn); }
   .ta-pill.bad { background: var(--bad-soft); color: var(--bad); }
   .ta-adv { margin: 10px 0 0; }
+  .ta-miles { margin: 8px 0 0; font-size: 14px; color: var(--muted); } .ta-miles:empty { display: none; }
+  .ta-setgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 8px; }
+  .ta-setgrid input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ta-setres { margin: 10px 0 0; font-weight: 600; } .ta-setres:empty { display: none; }
   .ta-more { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
   .ta-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
-  import { parseDateCode, weekRange, ageMonths, ageText, ageAdvice } from '../../lib/vehicles/tyre-checks';
+  import { parseDateCode, weekRange, ageMonths, ageText, ageAdvice, ageMilestones } from '../../lib/vehicles/tyre-checks';
   const root = document.querySelector('.ta') as HTMLElement;
   const input = root.querySelector('.ta-in') as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -78,7 +94,29 @@
     $('.ta-age').textContent = `${ageText(m)} old${d.pre2000 ? '. Three digits means it was made in the 1990s: do not use it.' : ''}`;
     const p = $('.ta-pill'); p.textContent = a.label; p.className = 'ta-pill ' + a.level;
     $('.ta-adv').textContent = a.text;
+    const f = (x: Date) => `${MON[x.getUTCMonth()]} ${x.getUTCFullYear()}`;
+    $('.ta-miles').textContent = 'Milestones: ' + ageMilestones(d.start).map((x) => `${x.years} years in ${f(x.date)}`).join(', ') + '.';
   };
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const setCheck = () => {
+    const ages: number[] = [], bad: string[] = [];
+    ['s1', 's2', 's3', 's4'].forEach((k, i) => {
+      const v = (root.querySelector(`[data-k="${k}"]`) as HTMLInputElement).value.trim();
+      if (!v) return;
+      const d = parseDateCode(v);
+      if (!d.ok) { bad.push(['front left', 'front right', 'rear left', 'rear right'][i]); return; }
+      ages.push(ageMonths(d.start, now));
+    });
+    let t = '';
+    if (bad.length) t = `Check the code for ${bad.join(' and ')}. `;
+    if (ages.length) {
+      const old = Math.max(...ages), young = Math.min(...ages), a = ageAdvice(old);
+      t += `Oldest tyre: ${ageText(old)} (${a.label}). `;
+      if (ages.length > 1) t += old - young > 24 ? `There are ${ageText(old - young)} between the oldest and newest, more than two years: fit matching tyres in pairs.` : 'The tyres are close in age.';
+    }
+    $('.ta-setres').textContent = t.trim();
+  };
+  root.querySelectorAll('.ta-setgrid input').forEach((e) => e.addEventListener('input', setCheck));
   input.addEventListener('input', update);
   update();
 </script>

@@ -50,3 +50,14 @@ export const toroidRound = (N: number, R: number, r: number, mr: number) => MU0 
 
 /** Characteristic impedance √(L/C) and speed 1/√(LC) of a line from its per-metre L and C. */
 export const line = (L: number, C: number) => ({ z0: Math.sqrt(L / C), v: 1 / Math.sqrt(L * C) });
+
+// Charging and discharging through a resistor: first-order RC and RL circuits.
+/** Time constant of a resistor with a capacitor (RC) or an inductor (L/R). */
+export const tauRC = (R: number, C: number) => R * C;
+export const tauRL = (R: number, L: number) => L / R;
+/** Fraction of the final value reached after t when charging (1 − e^(−t/τ)). */
+export const chargeFrac = (t: number, tau: number) => 1 - Math.exp(-t / tau);
+/** Time to reach a fraction f (0 < f < 1) of the final value when charging. */
+export const timeToFrac = (f: number, tau: number) => -tau * Math.log(1 - f);
+/** Time for a discharge from v0 to fall to v (0 < v < v0). */
+export const timeToFall = (v: number, v0: number, tau: number) => -tau * Math.log(v / v0);

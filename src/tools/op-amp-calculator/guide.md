@@ -11,7 +11,7 @@ ads: true
 order: 625
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [filter-designer, circuit-simulator, resistor-colour-code, oscilloscope-viewer, pcb-trace-calculator, notch-filter-psd]
 sources:
   - "Ideal op-amp circuit gains and the feedback-factor model of a single-pole op-amp, closed-loop gain G × Aβ/(1 + Aβ), as in electronics textbooks (for example Horowitz and Hill, The Art of Electronics; Franco, Design with Operational Amplifiers and Analog Integrated Circuits; equations only)."
@@ -36,6 +36,11 @@ Op-amps are the building block of analog electronics. Pick one of six classic ci
 The Bode plot compares the ideal circuit with your op-amp, and the waveform shows two periods of the input and the (clipped) output.
 
 Pick standard resistor values with the [[resistor-colour-code]], and turn a gain stage into a full filter with the [[filter-designer|analog filter designer]].
+
+## Extra options
+
+- **A working line** under the answer shows the gain sum with your resistors.
+- **Pick resistors for the gain I want** (under More options): type the gain and choose E12, E24 or E96. It shows the exact Rf for your R1, the nearest standard Rf and the gain you really get with its error, then the best pair of standard values overall (R1 from 1 kΩ to 100 kΩ). One tap puts the pair into the circuit above. It works for the inverting, non-inverting and difference circuits. The resistors' own tolerance adds to the error shown.
 
 ## How to use it
 

@@ -16,7 +16,7 @@ export const toMin = (t: string): number => {
 /** Minutes to "HH:MM" (wraps past midnight, adds "+1 day"). */
 export const clock = (min: number): string => {
   const day = Math.floor(min / 1440), m = ((Math.round(min) % 1440) + 1440) % 1440;
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}${day > 0 ? ' (+1 day)' : ''}`;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}${day > 0 ? ` (+${day} day${day > 1 ? 's' : ''})` : ''}`;
 };
 /** Minutes to "3 h 05 m". */
 export const dur = (min: number): string => {
@@ -64,8 +64,10 @@ const sum = (segs: Seg[], from: number, pred: (d: Duty) => boolean) =>
   segs.reduce((a, s) => a + (pred(s.status) ? Math.max(0, s.to - Math.max(s.from, from)) : 0), 0);
 
 /** US FMCSA property-carrying: 11 h driving, 14 h window, 30-min break after 8 h driving, 60/70 h. */
-export const usClocks = (rows: Row[], now: number, o: { cycleHours: 60 | 70; usedBefore: number }): Clocks => {
-  const segs = segments(rows, now), start = shiftStart(segs, 600);
+export const usClocks = (rows: Row[], now: number, o: { cycleHours: 60 | 70; usedBefore: number; passenger?: boolean }): Clocks => {
+  // Passenger-carrying (FMCSA summary): 10 h driving and a 15-hour window after 8 h off, no 30-minute break rule.
+  const pax = !!o.passenger;
+  const segs = segments(rows, now), start = shiftStart(segs, pax ? 480 : 600);
   const from = start ?? now;
   const driving = sum(segs, from, (d) => d === 'd'), onDuty = sum(segs, from, work);
   // Driving since the last break of 30+ minutes in a row of anything but driving.
@@ -77,14 +79,15 @@ export const usClocks = (rows: Row[], now: number, o: { cycleHours: 60 | 70; use
     else if (gapFrom === null) gapFrom = a;
   }
   if (gapFrom !== null && now - gapFrom >= 30) sinceBreak = 0;
-  const windowEnds = start === null ? null : start + 14 * 60;
+  const winH = pax ? 15 : 14, driveH = pax ? 10 : 11;
+  const windowEnds = start === null ? null : start + winH * 60;
   const cycleLeft = o.cycleHours * 60 - o.usedBefore * 60 - onDuty;
   const limits = [
-    { name: '11-hour driving', left: 660 - driving, note: `${dur(driving)} driven this shift` },
-    { name: '14-hour window', left: windowEnds === null ? 840 : windowEnds - now, note: windowEnds === null ? 'Starts when you come on duty' : `Ends at ${clock(windowEnds)}` },
+    { name: `${driveH}-hour driving`, left: driveH * 60 - driving, note: `${dur(driving)} driven this shift` },
+    { name: `${winH}-hour window`, left: windowEnds === null ? winH * 60 : windowEnds - now, note: windowEnds === null ? 'Starts when you come on duty' : `Ends at ${clock(windowEnds)}` },
     { name: `${o.cycleHours}-hour cycle`, left: cycleLeft, note: `${o.cycleHours === 60 ? '7' : '8'} days, counting today` },
   ];
-  const breakDueIn = Math.max(0, 480 - sinceBreak);
+  const breakDueIn = pax ? null : Math.max(0, 480 - sinceBreak);
   return { started: start, driving, onDuty, drivingLeft: Math.max(0, Math.min(...limits.map((l) => l.left))), limits, breakDueIn, windowEnds, cycleLeft };
 };
 
@@ -111,4 +114,24 @@ export const caClocks = (rows: Row[], now: number, o: { cycle: 1 | 2; usedBefore
   const offToday = sum(segs, 0, rest) + Math.max(0, (segs[0]?.from ?? now));
   const offNeeded = Math.max(0, 600 - offToday);
   return { started: start, driving, onDuty, drivingLeft: Math.max(0, Math.min(...limits.map((l) => l.left))), limits, breakDueIn: null, windowEnds, cycleLeft, offToday, offNeeded };
+};
+
+/** When rest and cycle resets are done if you go off duty at `offAt` (minutes from 00:00, may pass midnight).
+ *  US property: 10 h off for a new shift, 34 h restart for the cycle; passenger: 8 h off, and the FMCSA rules
+ *  give passenger carriers no restart (reset is null: hours drop off the 7/8-day cycle day by day).
+ *  Canada: 8 h off for a new shift, 36 h (cycle 1) or 72 h (cycle 2) to reset the cycle. */
+export const restDone = (offAt: number, rules: 'us' | 'usPassenger' | 'ca', cycle: 1 | 2 = 1) => {
+  if (!Number.isFinite(offAt)) return null;
+  const shiftH = rules === 'us' ? 10 : 8;
+  const resetH = rules === 'ca' ? (cycle === 2 ? 72 : 36) : rules === 'us' ? 34 : null;
+  return { shift: offAt + shiftH * 60, shiftH, reset: resetH == null ? null : offAt + resetH * 60, resetH };
+};
+
+/** Can a trip of `dist` (in km or miles) at an average `speed` (same unit per hour) fit in the driving left?
+ *  Returns the drive time in minutes, the minutes short (0 when it fits) and the clock time of arrival if driven straight on.
+ *  Blank, zero or negative input gives null, never NaN. */
+export const tripFit = (dist: number, speed: number, drivingLeft: number, now: number) => {
+  if (!(dist > 0) || !(speed > 0) || !isFinite(dist) || !isFinite(speed)) return null;
+  const need = Math.round((dist / speed) * 60);
+  return { need, short: Math.max(0, need - drivingLeft), arrive: now + need, reach: Math.round((drivingLeft / 60) * speed) };
 };

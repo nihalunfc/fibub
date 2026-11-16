@@ -5,19 +5,20 @@ shelf: science
 code: T139
 section: physical-oceanography
 title: "Wave calculator: wavelength from period and depth, wave speed, power, shoaling, refraction and breaking depth"
-summary: "From a wave's period, height and the water depth, get the wavelength (solving the dispersion relation exactly), phase and group speed, energy and power, orbital velocity at the bed, then follow the wave into shallow water with shoaling and refraction to find where and how high it breaks, and the breaker type."
+summary: "From a wave's period, height and the water depth, get the wavelength (solving the dispersion relation exactly), phase and group speed, energy and power, orbital velocity at the bed, then follow the wave into shallow water with shoaling and refraction to find where and how high it breaks, and the breaker type. It also solves wavelength, frequency and speed for light, radio and sound."
 status: live
 ads: true
 order: 1
 icon: curve
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [trend-analyser, darcy-flow-calculator, uncertainty-calculator, plot-maker]
 sources:
   - "Linear (Airy) wave theory, dispersion relation, group velocity, energy flux, shoaling and Snell's law refraction: standard results, for example Dean, R. G. and Dalrymple, R. A. (1991), Water Wave Mechanics for Engineers and Scientists, and the US Army Corps of Engineers Coastal Engineering Manual (public domain)."
   - "Explicit wavelength approximation: Fenton, J. D. and McKee, W. D. (1990), Coastal Engineering 14, 499 to 513. Breaker index 0.78: McCowan (1894). Steepness limit 0.142 tanh(kh): Miche (1944). Breaker types from the Iribarren number: Battjes (1974)."
   - "Checked against an independent root-finding solution of the dispersion relation (SciPy) written for the tests; no data tables are used."
   - "The example wave is made up."
+  - "Speed of light in vacuum 299,792,458 m/s and the Planck constant 6.62607015 × 10⁻³⁴ J s are exact values fixed by the 2019 SI (BIPM SI Brochure); 1 eV = 1.602176634 × 10⁻¹⁹ J. Speed of sound in dry air, about 331.3 √(1 + T/273.15) m/s, is the standard textbook approximation. The band and colour names are rough conventions."
 flow:
   - { icon: sliders, label: "Wave" }
   - { icon: ruler, label: "Wavelength" }
@@ -32,6 +33,10 @@ A wave's **period** (the time between crests) hardly changes as it crosses the o
 This calculator solves the linear wave **dispersion relation**, ω² = g k tanh(k h), exactly by Newton's method for any period and depth, and gives everything that follows from it. It then carries the wave towards the shore over straight, parallel depth contours, applying **shoaling** (the slowing wave bunches its energy into a taller wave) and **refraction** (crests turn to line up with the contours), and finds where it **breaks**.
 
 For flow in rivers and channels rather than waves, use the [[manning-weir-calculator]]; to test a record of wave heights for a trend, the [[trend-analyser]].
+
+## Wavelength, frequency and speed of any wave
+
+The first box works out the basic wave equation v = f × λ for light and radio, sound in air, or any wave whose speed you know. Pick what to find: the wavelength from the frequency (for example a 100 MHz radio station is 2.998 m long), the frequency from the wavelength (green light at 550 nm is about 545 THz), or the speed from both. For light it also gives the photon energy in electronvolts, the wavenumber in cm⁻¹ and a rough name for the band and colour; a refractive index n slows the wave and shortens the wavelength while the frequency stays the same. Sound uses the common dry-air approximation for the speed from the temperature. A working line shows the sum, and a chart follows your numbers.
 
 ## How to use it
 

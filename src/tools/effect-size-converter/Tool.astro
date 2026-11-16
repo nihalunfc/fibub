@@ -7,8 +7,9 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>What do you have?</h2>
     <div class="ax-grid">
-      <label>Start from <select class="es-from">
-        <option value="t-ind" selected>t statistic, two separate groups</option>
+      <label>Start from <select data-k="from" class="es-from">
+        <option value="means" selected>Two means and standard deviations</option>
+        <option value="t-ind">t statistic, two separate groups</option>
         <option value="t-paired">t statistic, paired or one group</option>
         <option value="f-stat">F statistic (ANOVA)</option>
         <option value="chi2">Chi-square statistic</option>
@@ -21,16 +22,20 @@ import Downloads from '../../components/Downloads.astro';
         <option value="cohen-f">Cohen's f</option>
         <option value="cliff">Cliff's delta</option>
       </select></label>
-      <label><span class="es-vl">Value</span> <input class="es-v" inputmode="decimal" value="2.5" /></label>
-      <label class="es-f es-n12">Group 1 size <input class="es-n1" inputmode="numeric" value="20" /></label>
-      <label class="es-f es-n12">Group 2 size <input class="es-n2" inputmode="numeric" value="25" /></label>
-      <label class="es-f es-nl" hidden><span class="es-nt">Sample size</span> <input class="es-n" inputmode="numeric" /></label>
-      <label class="es-f es-dfl" hidden>df1 (effect) <input class="es-df1" inputmode="numeric" /></label>
-      <label class="es-f es-dfl" hidden>df2 (error) <input class="es-df2" inputmode="numeric" /></label>
-      <label class="es-f es-chil" hidden>Degrees of freedom <input class="es-cdf" inputmode="numeric" value="1" /></label>
-      <label class="es-f es-dim" hidden>Smaller table side (rows or columns) <input class="es-m" inputmode="numeric" value="2" /></label>
-      <label class="es-f es-kl" hidden>Number of groups <input class="es-k" inputmode="numeric" value="2" /></label>
-      <label>Confidence level <select class="es-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label class="es-vlab"><span class="es-vl">Value</span> <input data-k="v" class="es-v" inputmode="decimal" value="2.5" /></label>
+      <label class="es-f es-ml" hidden>Group 1 mean <input data-k="m1" class="es-m1" inputmode="decimal" /></label>
+      <label class="es-f es-ml" hidden>Group 1 SD <input data-k="sd1" class="es-sd1" inputmode="decimal" /></label>
+      <label class="es-f es-ml" hidden>Group 2 mean <input data-k="m2" class="es-m2" inputmode="decimal" /></label>
+      <label class="es-f es-ml" hidden>Group 2 SD <input data-k="sd2" class="es-sd2" inputmode="decimal" /></label>
+      <label class="es-f es-n12">Group 1 size <input data-k="n1" class="es-n1" inputmode="numeric" value="20" /></label>
+      <label class="es-f es-n12">Group 2 size <input data-k="n2" class="es-n2" inputmode="numeric" value="25" /></label>
+      <label class="es-f es-nl" hidden><span class="es-nt">Sample size</span> <input data-k="n" class="es-n" inputmode="numeric" /></label>
+      <label class="es-f es-dfl" hidden>df1 (effect) <input data-k="df1" class="es-df1" inputmode="numeric" /></label>
+      <label class="es-f es-dfl" hidden>df2 (error) <input data-k="df2" class="es-df2" inputmode="numeric" /></label>
+      <label class="es-f es-chil" hidden>Degrees of freedom <input data-k="cdf" class="es-cdf" inputmode="numeric" value="1" /></label>
+      <label class="es-f es-dim" hidden>Smaller table side (rows or columns) <input data-k="m" class="es-m" inputmode="numeric" value="2" /></label>
+      <label class="es-f es-kl" hidden>Number of groups <input data-k="k" class="es-k" inputmode="numeric" value="2" /></label>
+      <label>Confidence level <select data-k="conf" class="es-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
     </div>
     <p class="ax-help es-help"></p>
     <p class="ax-err es-err" hidden></p>
@@ -38,9 +43,11 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card es-out" hidden>
     <h2>Converted effect sizes</h2>
-    <p class="ax-big es-big"></p>
+    <p class="ax-big es-big" aria-live="polite"></p>
+    <p class="es-plain" aria-live="polite"></p>
     <div class="ax-scroll"><table class="es-tab"></table></div>
     <ul class="ax-help es-notes"></ul>
+    <details class="es-work"><summary>Show the working</summary><div class="es-wk"></div></details>
     <canvas class="ax-fig es-fig" style="margin-top:14px"></canvas>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small es-csv">Download the table (CSV)</button></div>
     <Downloads />
@@ -52,12 +59,15 @@ import Downloads from '../../components/Downloads.astro';
   .es .es-tab td, .es .es-tab th { padding: 7px 5px; }
   .es .es-tab td:nth-child(2) { white-space: nowrap; }
   .es .es-tab td:nth-child(3) { min-width: 80px; }
+  .es .es-plain { margin: 4px 0 10px; font-size: 15px; }
+  .es .es-wk p { margin: 6px 0; font-size: 14px; }
   .es .es-notes { padding-left: 18px; }
 </style>
 
 <script>
   import { num, sig, csv } from '../../lib/sci/num';
-  import { convert, sizeLabel, type From, type Row } from '../../lib/sci/effsize';
+  import { normCdf as normCdfLocal } from '../../lib/sci/stats';
+  import { convert, meansToD, sizeLabel, type From, type Row } from '../../lib/sci/effsize';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
 
@@ -69,6 +79,7 @@ import Downloads from '../../components/Downloads.astro';
 
   // Example values for each starting point (made up), and which boxes it needs.
   const EX: Record<From, { v: string; show: string[]; set?: Record<string, string>; help: string; label: string; nLabel?: string }> = {
+    means: { v: '0', show: ['.es-n12', '.es-ml'], set: { '.es-m1': '105', '.es-sd1': '15', '.es-m2': '100', '.es-sd2': '15', '.es-n1': '30', '.es-n2': '30' }, label: 'd', help: 'The mean, standard deviation and size of each group, as in a results table. Group 2 is the comparison (control) group, so a higher mean in group 1 gives a positive d. Uses the pooled SD.' },
     't-ind': { v: '2.5', show: ['.es-n12'], set: { '.es-n1': '20', '.es-n2': '25' }, label: 't', help: "The t from an independent-samples t test (Student's) and both group sizes." },
     't-paired': { v: '3.1', show: ['.es-nl'], set: { '.es-n': '16' }, label: 't', nLabel: 'Number of pairs', help: 'The t from a paired (or one-sample) t test and the number of pairs. Gives dz, the mean change in units of the SD of the changes.' },
     'f-stat': { v: '5.2', show: ['.es-dfl', '.es-n12'], set: { '.es-df1': '2', '.es-df2': '27', '.es-n1': '', '.es-n2': '' }, label: 'F', help: 'F with its two degrees of freedom, as in F(2, 27) = 5.2. With df1 = 1 (two groups) d is worked out too; group sizes are optional.' },
@@ -89,7 +100,7 @@ import Downloads from '../../components/Downloads.astro';
   function setup(from: From) {
     const e = EX[from];
     root.querySelectorAll<HTMLElement>('.es-f').forEach((el) => { el.hidden = !e.show.some((s) => el.matches(s)); });
-    inp('.es-v').value = e.v;
+    inp('.es-v').value = e.v; q('.es-vlab').hidden = from === 'means';
     for (const [s, v] of Object.entries(e.set ?? {})) inp(s).value = v;
     q('.es-vl').textContent = `Value of ${e.label}`;
     if (e.nLabel) q('.es-nt').textContent = e.nLabel;
@@ -100,13 +111,15 @@ import Downloads from '../../components/Downloads.astro';
     const from = q<HTMLSelectElement>('.es-from').value as From, err = q('.es-err');
     const shown = (s: string) => !q(s).hidden;
     try {
-      const vs = inp('.es-v').value.trim();
+      const vs = from === 'means' ? '0' : inp('.es-v').value.trim();
       if (!vs) throw new Error('Type the value to convert.');
       const v = num(vs);
       if (!Number.isFinite(v)) throw new Error(`"${vs}" is not a number.`);
+      const mv = (c: string, w: string) => { const x = chk0(c); if (from === 'means' && !Number.isFinite(x)) throw new Error(`${w} is not a number.`); return x; };
+      const chk0 = (c: string) => num(inp(c).value);
       const chk = (x: number | undefined, what: string) => { if (x !== undefined && !Number.isFinite(x)) throw new Error(`${what} is not a number.`); return x; };
       const r = convert({
-        from, value: v, conf: Number(q<HTMLSelectElement>('.es-conf').value),
+        from, value: v, m1: from === 'means' ? mv('.es-m1', 'Group 1 mean') : undefined, sd1: from === 'means' ? mv('.es-sd1', 'Group 1 SD') : undefined, m2: from === 'means' ? mv('.es-m2', 'Group 2 mean') : undefined, sd2: from === 'means' ? mv('.es-sd2', 'Group 2 SD') : undefined, conf: Number(q<HTMLSelectElement>('.es-conf').value),
         n1: shown('.es-n12') ? chk(opt('.es-n1'), 'Group 1 size') : undefined, n2: shown('.es-n12') ? chk(opt('.es-n2'), 'Group 2 size') : undefined,
         n: shown('.es-nl') ? chk(opt('.es-n'), 'The sample size') : undefined,
         df1: shown('.es-dfl') ? chk(opt('.es-df1'), 'df1') : undefined, df2: shown('.es-dfl') ? chk(opt('.es-df2'), 'df2') : undefined,
@@ -126,6 +139,19 @@ import Downloads from '../../components/Downloads.astro';
         c0.textContent = x.name; if (x.note) { const s = document.createElement('small'); s.textContent = x.note; c0.append(s); }
         tr.insertCell().textContent = fmt(x.value); tr.insertCell().textContent = ciTxt(x.ci); tr.insertCell().textContent = sizeLabel(x.key, x.value);
       }
+      const val = (k: string) => pick(k)?.value;
+      let plain = '';
+      if (r.d !== undefined) { const ad = Math.abs(r.d); plain = `d = ${fmt(r.d)} is a ${sizeLabel('d', r.d)} effect. ${ad === 0 ? 'The groups do not differ on average.' : `The average person in the higher-scoring group is above ${Math.round(normCdfLocal(ad) * 100)} % of the other group, and a person picked at random from it scores higher than one picked from the other group ${Math.round(normCdfLocal(ad / Math.SQRT2) * 100)} % of the time.`}`; }
+      else if (pick('eta2')) plain = `η² = ${fmt(val('eta2')!)} is a ${sizeLabel('eta2', val('eta2')!)} effect: about ${sig(val('eta2')! * 100, 2)} % of the variation is explained by group.`;
+      else if (pick('w')) plain = `Cohen's w = ${fmt(val('w')!)} is a ${sizeLabel('w', val('w')!)} effect.`;
+      q('.es-plain').textContent = plain;
+      const a4 = (x: number) => sig(x, 4);
+      const wk: string[] = [];
+      if (from === 'means') { const sdv = (c: string) => num(inp(c).value), nn1 = num(inp('.es-n1').value), nn2 = num(inp('.es-n2').value), s1 = sdv('.es-sd1'), s2 = sdv('.es-sd2'), mm = meansToD(num(inp('.es-m1').value), s1, nn1, num(inp('.es-m2').value), s2, nn2); wk.push(`Pooled SD = √(((n₁ − 1)·SD₁² + (n₂ − 1)·SD₂²) ÷ (n₁ + n₂ − 2)) = √((${nn1 - 1} × ${a4(s1 * s1)} + ${nn2 - 1} × ${a4(s2 * s2)}) ÷ ${nn1 + nn2 - 2}) = ${a4(mm.sp)}`, `d = (M₁ − M₂) ÷ pooled SD = ${a4(mm.diff)} ÷ ${a4(mm.sp)} = ${a4(mm.d)}`, `Glass's delta = (M₁ − M₂) ÷ SD₂ = ${a4(mm.diff)} ÷ ${a4(s2)} = ${a4(mm.glass)}`); }
+      if (from === 't-ind') wk.push(`d = t × √(1/n₁ + 1/n₂) = ${a4(v)} × √(1/${opt('.es-n1')} + 1/${opt('.es-n2')}) = ${a4(r.d ?? NaN)}`);
+      if (from === 't-paired') wk.push(`dz = t ÷ √n = ${a4(v)} ÷ √${opt('.es-n')} = ${a4(r.d ?? NaN)}`);
+      if (r.d !== undefined) { const dd = r.d; wk.push(`Hedges' g = d × J, with J = 1 − 3 ÷ (4·df − 1) (shown in the table)`, `r = d ÷ √(d² + a) = ${a4(pick('r')?.value ?? NaN)}; ln OR = d × π ÷ √3 = ${a4(dd * Math.PI / Math.sqrt(3))}; Cliff's δ = 2Φ(d ÷ √2) − 1 = ${a4(val('cliff') ?? NaN)}`); }
+      q('.es-wk').replaceChildren(...wk.map((t) => { const e = document.createElement('p'); e.textContent = t; return e; }));
       const notes = [...r.notes, 'Size labels are Cohen\'s rough guides (Romano et al. for Cliff\'s delta); what counts as large depends on the field.', 'Intervals use the usual large-sample standard errors (Borenstein et al. 2009), carried through each conversion.'];
       q('.es-notes').replaceChildren(...notes.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
       fig = null;
@@ -149,5 +175,5 @@ import Downloads from '../../components/Downloads.astro';
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.es-fig'), fig));
   q('.es-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'effect-sizes.csv', 'text/csv'); });
   wireDownloads(q('.dl'), () => ({ title: 'Effect sizes', subtitle: q('.es-big').textContent ?? '', file: 'effect-sizes', sections: report }));
-  setup('t-ind'); calc();
+  setup('means'); calc();
 </script>

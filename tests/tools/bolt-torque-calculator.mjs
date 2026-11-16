@@ -19,6 +19,16 @@ export default async ({ page, check, BASE }) => {
   // Inch: 1/2-13 UNC, 85 ksi example, 75 %.
   await page.selectOption(`${R} .bt-mode`, 'T'); await page.selectOption(`${R} .bt-sys`, 'un'); await page.fill(`${R} .bt-K`, '0.2'); await page.waitForTimeout(100);
   check((await big()) === 'Tighten to 75.4 lbf·ft for a preload of 9046 lbf' && (await facts()).includes('0.1419 in²') && await page.isHidden(`${R} .bt-pc`), `bolt: 1/2-13 UNC (${await big()})`);
+  // Torque chart for common sizes.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  check((await page.textContent(`${R} .bt-tab`)).includes('1/2-130.1419904675.4') && (await page.$$(`${R} .bt-tab tr`)).length === 11 && await page.isVisible(`${R} .bt-tser`), 'bolt: UNC torque chart');
+  await page.selectOption(`${R} .bt-tser`, 'unf'); await page.waitForTimeout(100);
+  check((await page.textContent(`${R} .bt-tab`)).includes('1/2-20') && !(await page.textContent(`${R} .bt-tab`)).includes('1/2-13') && (await page.getAttribute(`${R} .bt-big`, 'aria-live')) === 'polite', 'bolt: UNF torque chart');
+  await page.selectOption(`${R} .bt-sys`, 'iso'); await page.waitForTimeout(100);
+  check((await page.textContent(`${R} .bt-tab`)).includes('M1057.9926.152.2') && (await page.$$(`${R} .bt-tab tr`)).length === 11 && !(await page.isVisible(`${R} .bt-tser`)) && (await page.textContent(`${R} .bt-chnote`)).includes('75 % of the proof load'), 'bolt: metric torque chart');
+  await page.selectOption(`${R} .bt-meth`, 'mu'); await page.waitForTimeout(100);
+  check((await page.textContent(`${R} .bt-tab`)).includes('M1057.9926.142.9') && (await page.textContent(`${R} .bt-chnote`)).includes('friction values'), `bolt: chart with the friction method (${(await page.textContent(`${R} .bt-tab`)).slice(0, 80)})`);
+  await page.selectOption(`${R} .bt-meth`, 'K'); await page.selectOption(`${R} .bt-sys`, 'un'); await page.waitForTimeout(100);
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`${R} .dl button[data-f=docx]`)]); check((await d.suggestedFilename()) === 'bolt-torque.docx', 'bolt: Word report'); }
   await page.fill(`${R} .bt-n`, '0'); await page.waitForTimeout(100);
   check((await page.textContent(`${R} .bt-err`)).includes('threads per inch') && await page.isHidden(`${R} .bt-out`), 'bolt: bad thread count');

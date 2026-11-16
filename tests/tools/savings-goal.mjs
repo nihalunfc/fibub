@@ -35,4 +35,11 @@ export default async ({ page, check, BASE }) => {
   check(/today's money/.test(await page.textContent('.sg .sg-note')) && parseFloat((await page.textContent('.sg .sg-r1')).replace(/[^\d.]/g, '')) > 500, 'savings-goal: inflation raises the monthly amount');
   await set('infl', '0'); await set('target', '');
   check(!/NaN/.test(await page.textContent('.sg')) && await page.isVisible('.sg .sg-err'), 'savings-goal: blank target shows a friendly message');
+  // saving in another currency: 12,000 in 24 months at 0%, 1 unit costs 2 of mine
+  await set('target', '12000'); await set('start', '0'); await set('rate', '0'); await set('months', '24');
+  await page.selectOption('.sg [data-k="fxcur"]', 'USD'); await set('fxrate', '2'); await set('fxdrift', '0');
+  check((await page.textContent('.sg .sg-fxout')).includes('1,000.00'), 'savings-goal: flat rate 2 = 500 x 2 = 1,000 a month in my currency (' + (await page.textContent('.sg .sg-fxout')) + ')');
+  await set('fxdrift', '5');
+  const fx = await page.textContent('.sg .sg-fxout');
+  check(fx.includes('1,051.72') && fx.includes('adds') && fx.includes('1,241.28'), 'savings-goal: rate rising 5% a year needs 1,051.72 a month, adds 1,241.28 over 2 years (' + fx + ')');
 };

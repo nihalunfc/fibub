@@ -170,7 +170,7 @@ import '../../styles/smath.css';
     const sink = randInt(2, 5), need = sink * randInt(5, 20);
     out.push({ q: `New forests take in ${sink} GtC a year. How many years to take in ${need} GtC?`, want: [need / sink], hint: 'years', work: `${need} ÷ ${sink} = ${need / sink} years.` });
     const a = randInt(3, 8), b = randInt(2, 4), cc = randInt(1, 3), net = a - b - cc;
-    out.push({ q: `In a year ${a} GtC goes into the air, the ocean takes ${b} GtC out and plants take ${cc} GtC out. By how much does the air's carbon change (GtC)? Use a minus sign for a fall.`, want: [net], hint: 'GtC', work: `${a} − ${b} − ${cc} = ${net} GtC.` });
+    out.push({ q: `In a year ${a} GtC goes into the air, the ocean takes ${b} GtC out and plants take ${cc} GtC out. By how much does the air's carbon change (GtC)? Use a minus sign for a fall.`, want: [net], hint: 'GtC', work: `${a} − ${b} − ${cc} = ${String(net).replace("-", "−")} GtC.` });
     return out;
   });
 </script>

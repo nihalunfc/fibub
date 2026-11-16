@@ -55,3 +55,7 @@ US rules, tandem drive and tandem trailer. Empty weights 10,500 / 12,500 / 7,000
 **Why is the steer limit 20,000 lb?** That is the federal single-axle limit. Many states and most tyre ratings hold a steer axle to about 12,000 lb, so change it if yours does.
 
 **Is this as good as a scale?** No. It is for planning; the scale ticket is what counts.
+
+## More options
+
+A new line under the verdict tells you the most load you can carry with the load where it is and which axle group runs out first, and the range of positions along the trailer where the load's centre keeps the steer, drive, trailer and gross limits. It checks the four simple limits you entered, not the bridge formula rows, so still read the full list.

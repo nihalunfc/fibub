@@ -11,7 +11,7 @@ ads: false
 order: 1805
 icon: curve
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [depreciation, car-loan, lease-vs-buy]
 sources:
   - "Declining-balance method: value after a year = last year's value x (1 - rate). The typical year-by-year curves are rough round numbers for illustration (estimate), not data from any maker or market; change them to match prices you see for the same model. The extra loss for high mileage is a simple rule of thumb you can edit. Drawings are fibub's own."
@@ -40,6 +40,9 @@ Use it before you buy, to compare a new vehicle with a used one, or before you s
 - **Same percent each year**: every year loses that share of what it was worth at the start of the year, so the loss shrinks in money terms.
 - **Typical curve**: a rough shape with a big first-year drop that flattens out. Every year is editable.
 - **Km you drive a year, typical km, extra loss**: driving more than typical makes the vehicle worth less. For each 10,000 km a year above typical, the yearly loss goes up by the points you set (1 by default). Leave the km empty to ignore this.
+
+- **More options, already own one?**: type what you paid, what it is worth now and the years you have owned it. The tool works out the yearly percent it has lost so far, and one button copies that rate into the calculator above to project the years ahead.
+- **Left (% of price)**: a table column showing how much of the price is still there at the end of each year.
 
 ## Worked example
 

@@ -38,5 +38,22 @@ export default async ({ page, check, BASE }) => {
   await page.fill(R + '.op-c', '10n'); await page.fill(R + '.op-vp', '-20'); await page.waitForTimeout(100);
   check((await t('.op-err')).includes('supplies'), 'opamp: bad supply message');
   await page.fill(R + '.op-vp', '15'); await page.waitForTimeout(100);
+  // Working line and resistor picker.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.selectOption(R + '.op-cfg', 'inv'); await page.fill(R + '.op-r1', '10k'); await page.fill(R + '.op-rf', '100k'); await page.waitForTimeout(100);
+  check((await t('.op-work')) === 'Working: gain = −Rf ÷ R1 = −100 kΩ ÷ 10 kΩ = −10' && (await page.getAttribute(R + '.op-big', 'aria-live')) === 'polite', `opamp: working line (${await t('.op-work')})`);
+  check((await t('.op-dbig')).startsWith('With R1 = 10 kΩ: Rf = 100 kΩ, nearest E24 100 kΩ gives gain 10 (exact)'), `opamp: picker exact (${await t('.op-dbig')})`);
+  await page.fill(R + '.op-tg', '7'); await page.selectOption(R + '.op-tser', '12'); await page.waitForTimeout(100);
+  check((await t('.op-dbig')).includes('Rf = 70 kΩ, nearest E12 68 kΩ gives gain 6.800 (−2.9 % off)'), `opamp: picker E12 (${await t('.op-dbig')})`);
+  await page.selectOption(R + '.op-tser', '24'); await page.waitForTimeout(100);
+  check((await t('.op-dsub')).includes('R1 = 13 kΩ, Rf = 91 kΩ, gain 7 (exact)'), `opamp: best pair (${await t('.op-dsub')})`);
+  await page.click(R + '.op-use'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.op-r1')) === '13k' && (await page.inputValue(R + '.op-rf')) === '91k' && (await t('.op-big')) === 'Inverting: gain −7 (16.9 dB)', `opamp: use these resistors (${await t('.op-big')})`);
+  await page.selectOption(R + '.op-cfg', 'noninv'); await page.fill(R + '.op-tg', '0.5'); await page.waitForTimeout(100);
+  check((await t('.op-dbig')).includes('cannot have a gain below 1'), 'opamp: non-inverting gain below 1');
+  await page.fill(R + '.op-tg', 'x'); await page.waitForTimeout(100);
+  check((await t('.op-dbig')).includes('Give the gain you want'), 'opamp: bad target gain');
+  await page.selectOption(R + '.op-cfg', 'int'); await page.fill(R + '.op-rf', ''); await page.waitForTimeout(100);
+  check((await t('.op-dbig')).includes('Pick the inverting'), 'opamp: picker needs a gain circuit');
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.dl [data-f=docx]')]); check((await d.suggestedFilename()).endsWith('.docx'), 'opamp: Word download'); }
 };

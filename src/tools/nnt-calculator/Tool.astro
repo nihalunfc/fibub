@@ -8,26 +8,35 @@ import Downloads from '../../components/Downloads.astro';
     <h2>Two groups</h2>
     <p class="nnt-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
     <p class="ax-help" style="margin-top:0">Count the people who had the event in each group, from a trial or a cohort. Example numbers are made up.</p>
+    <label class="nnt-ml">I know the <select data-k="mode" class="nnt-mode"><option value="counts" selected>number of people with the event</option><option value="risks">risk in each group (%)</option></select></label>
+    <div class="nnt-risks" hidden>
+      <div class="ax-grid">
+        <label>Risk in treated or exposed group (%) <input data-k="r1" class="nnt-r1" inputmode="decimal" value="12" /></label>
+        <label>Risk in control group (%) <input data-k="r2" class="nnt-r2" inputmode="decimal" value="20" /></label>
+      </div>
+      <p class="ax-help">With risks alone the NNT and relative measures can be worked out, but not their intervals, which need group sizes.</p>
+    </div>
     <div class="nnt-groups">
       <fieldset class="nnt-g"><legend>Treated (or exposed)</legend>
         <div class="ax-grid">
           <label>Name <input class="nnt-n1" value="New treatment" /></label>
-          <label>Had the event <input class="nnt-x1" inputmode="numeric" value="30" /></label>
-          <label>Group size <input class="nnt-t1" inputmode="numeric" value="250" /></label>
+          <label>Had the event <input data-k="x1" class="nnt-x1" inputmode="numeric" value="30" /></label>
+          <label>Group size <input data-k="t1" class="nnt-t1" inputmode="numeric" value="250" /></label>
         </div>
       </fieldset>
       <fieldset class="nnt-g"><legend>Control</legend>
         <div class="ax-grid">
           <label>Name <input class="nnt-n2" value="Usual care" /></label>
-          <label>Had the event <input class="nnt-x2" inputmode="numeric" value="50" /></label>
-          <label>Group size <input class="nnt-t2" inputmode="numeric" value="250" /></label>
+          <label>Had the event <input data-k="x2" class="nnt-x2" inputmode="numeric" value="50" /></label>
+          <label>Group size <input data-k="t2" class="nnt-t2" inputmode="numeric" value="250" /></label>
         </div>
       </fieldset>
     </div>
     <div class="ax-grid" style="margin-top:12px">
-      <label>The event is <select class="nnt-out"><option value="bad" selected>Bad (death, relapse)</option><option value="good">Good (cure, recovery)</option></select></label>
-      <label>Interval for the difference <select class="nnt-meth"><option value="newcombe" selected>Newcombe (score)</option><option value="wald">Wald (simple)</option></select></label>
-      <label>Confidence <select class="nnt-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>The event is <select data-k="out" class="nnt-out"><option value="bad" selected>Bad (death, relapse)</option><option value="good">Good (cure, recovery)</option></select></label>
+      <label>Interval for the difference <select data-k="meth" class="nnt-meth"><option value="newcombe" selected>Newcombe (score)</option><option value="wald">Wald (simple)</option></select></label>
+      <label>Over what time (optional) <input data-k="time" class="nnt-time" placeholder="e.g. 2 years" maxlength="30" /></label>
+      <label>Confidence <select data-k="conf" class="nnt-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
     </div>
     <p class="ax-help">The event's direction decides whether a change is a benefit (NNTB) or a harm (NNTH). Newcombe's score interval behaves well with small groups or risks near 0 or 100 %; the Wald interval is the textbook formula.</p>
     <p class="ax-err nnt-err" hidden></p>
@@ -35,8 +44,11 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card nnt-out" hidden>
     <h2>Number needed to treat</h2>
-    <p class="ax-big nnt-big"></p>
+    <p class="ax-big nnt-big" aria-live="polite"></p>
+    <p class="nnt-plain" aria-live="polite"></p>
     <p class="nnt-ci"></p>
+    <div class="nnt-icons" role="img" aria-label="100 people"></div>
+    <div class="ax-legend nnt-leg"></div>
     <dl class="ax-facts nnt-facts" style="margin-top:12px"></dl>
     <div class="ax-scroll" style="margin-top:12px"><table class="nnt-tab"></table></div>
     <p class="ax-help nnt-note"></p>
@@ -45,36 +57,54 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card nnt-out" hidden>
     <h2>For a different baseline risk</h2>
     <div class="ax-grid">
-      <label>Risk without treatment (%) <input class="nnt-base" inputmode="decimal" value="40" /></label>
+      <label>Risk without treatment (%) <input data-k="base" class="nnt-base" inputmode="decimal" value="40" /></label>
     </div>
+    <label class="nnt-sl">Slider <input data-k="baser" type="range" class="nnt-baser" min="1" max="100" step="1" value="40" /></label>
     <p class="ax-help">A person or group at higher risk than the trial's control group gains more from the same relative effect. This applies the relative risk reduction to the risk you type.</p>
     <dl class="ax-facts nnt-pt" style="margin-top:12px"></dl>
+    <canvas class="ax-fig nnt-curve" style="margin-top:12px"></canvas>
+    <p class="ax-help">The NNT falls as the baseline risk rises: the same relative effect helps more when more people would have had the event. The line marks the risk above.</p>
+    <details style="margin-top:8px"><summary>Show the working</summary><div class="nnt-wk"></div></details>
     <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small nnt-csv">Results (CSV)</button></div>
     <Downloads />
   </div>
 </div>
 
 <style is:inline>
+  .nnt-out.is-err > :not(h2):not(.ax-grid):not(.nnt-sl) { display: none; }
   .nnt .nnt-med { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
   .nnt .nnt-groups { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); margin-top: 10px; }
   .nnt .nnt-g { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; margin: 0; min-width: 0; }
   .nnt .nnt-g legend { font-weight: 650; font-size: 14px; padding: 0 4px; }
   .nnt .nnt-g .ax-grid { grid-template-columns: 1fr 1fr; }
   .nnt .nnt-g .ax-grid label:first-child { grid-column: 1 / -1; }
+  .nnt .nnt-groups[hidden] { display: none; }
+  .nnt .nnt-ml { display: block; margin: 10px 0; font-size: 14px; }
+  .nnt .nnt-sl { display: block; margin-top: 8px; font-size: 14px; }
+  .nnt .nnt-sl input { width: 100%; }
+  .nnt .nnt-plain { margin: 4px 0 8px; font-size: 15px; }
+  .nnt .nnt-icons { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; max-width: 360px; margin: 12px 0 6px; }
+  .nnt .nnt-icons i { display: block; aspect-ratio: 1; border-radius: 50%; background: var(--line); }
+  .nnt .nnt-icons i.ev { background: var(--ink, #000); }
+  .nnt .nnt-icons i.ok { background: #009E73; }
+  .nnt .nnt-icons i.bad { background: #D55E00; }
+  .nnt .nnt-leg i { border-radius: 50%; }
+  .nnt .nnt-wk p { margin: 6px 0; font-size: 14px; }
   .nnt .nnt-ci { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
   .nnt .nnt-tab td:nth-child(n+2) { white-space: nowrap; }
 </style>
 
 <script>
   import { num, sig, csv } from '../../lib/sci/num';
-  import { compare, patientNNT, type NNTInterval } from '../../lib/sci/nnt';
+  import { compare, patientNNT, fromRisks, nntCurve, iconCounts, type NNTInterval } from '../../lib/sci/nnt';
   import { counts } from '../../lib/sci/epistat';
-  import { save, wireDownloads, type Section } from '../../lib/report';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, save, wireDownloads, type Figure, type Section } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.nnt')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const v = (c: string) => q<HTMLInputElement>(c).value;
-  let report: Section[] = [], csvRows: string[][] = [];
+  let curve: Figure | null = null, report: Section[] = [], csvRows: string[][] = [];
   const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d).replace(/^-/, '−')} %` : '–');
   const r3 = (x: number) => (Number.isFinite(x) ? sig(x, 3) : '–');
   const n1 = (x: number) => (Number.isFinite(x) ? (x < 10 ? x.toFixed(2) : x.toFixed(1)) : '∞');
@@ -89,21 +119,34 @@ import Downloads from '../../components/Downloads.astro';
   function calc() {
     const err = q('.nnt-err');
     try {
+      const riskMode = v('.nnt-mode') === 'risks';
       const [x1, t1, x2, t2] = ['.nnt-x1', '.nnt-t1', '.nnt-x2', '.nnt-t2'].map((c) => num(v(c)));
-      if (!counts(x1, t1, x2, t2)) throw new Error('Events and group sizes must be whole numbers of zero or more.');
-      if (!(t1 > 0 && t2 > 0)) throw new Error('Each group needs at least one person.');
-      if (x1 > t1 || x2 > t2) throw new Error('A group cannot have more people with the event than people in it.');
+      const [k1, k2] = ['.nnt-r1', '.nnt-r2'].map((c) => num(v(c)) / 100);
+      if (riskMode) { if (!(k1 >= 0 && k1 <= 1 && k2 >= 0 && k2 <= 1)) throw new Error('Each risk must be a percentage from 0 to 100.'); }
+      else {
+        if (!counts(x1, t1, x2, t2)) throw new Error('Events and group sizes must be whole numbers of zero or more.');
+        if (!(t1 > 0 && t2 > 0)) throw new Error('Each group needs at least one person.');
+        if (x1 > t1 || x2 > t2) throw new Error('A group cannot have more people with the event than people in it.');
+      }
       const name1 = v('.nnt-n1').trim() || 'Treated', name2 = v('.nnt-n2').trim() || 'Control';
       const outcome = q<HTMLSelectElement>('.nnt-out').value as 'bad' | 'good', method = q<HTMLSelectElement>('.nnt-meth').value as 'wald' | 'newcombe';
       const conf = Number(q<HTMLSelectElement>('.nnt-conf').value), cl = `${Math.round(conf * 100)} %`;
-      const r = compare(x1, t1, x2, t2, { outcome, method, conf });
+      const r = riskMode ? fromRisks(k1, k2, outcome) : compare(x1, t1, x2, t2, { outcome, method, conf });
+      const time = v('.nnt-time').trim(), tx = time ? ` over ${time}` : '';
       q('.nnt-big').textContent = nntTxt(r.nnt.nnt, r.nnt.kind) + (r.nnt.kind !== 'none' && Number.isFinite(r.nnt.nnt) ? ` (round up: ${Math.ceil(r.nnt.nnt - 1e-9)})` : '');
-      q('.nnt-ci').textContent = `${cl} interval: ${ivTxt(r.nnt.ci)}`;
+      q('.nnt-ci').textContent = riskMode ? 'Intervals need the number of people in each group: choose "number of people with the event".' : `${cl} interval: ${ivTxt(r.nnt.ci)}`;
+      if (r.nnt.kind === 'none') q('.nnt-plain').textContent = 'The two risks are equal, so treatment makes no difference to the number of people with the event.';
+      else { const m = Math.ceil(r.nnt.nnt - 1e-9), g = r.nnt.kind === 'benefit'; q('.nnt-plain').textContent = `About ${m} ${m === 1 ? 'person needs' : 'people need'} to be treated${tx} for ${g ? 'one more to benefit' : 'one more to be harmed'}. Out of 100 people, ${sig(Math.abs(r.rd) * 100, 3)} ${r.rd < 0 ? 'fewer' : 'more'} would have the event.`; }
+      const ic = iconCounts(r.p1, r.p2, outcome), icons = q('.nnt-icons'); icons.replaceChildren();
+      const kinds = [...Array(ic.common).fill('ev'), ...Array(ic.diff).fill(ic.benefit ? 'ok' : 'bad'), ...Array(Math.max(0, ic.rest)).fill('')];
+      kinds.forEach((c) => { const i = document.createElement('i'); if (c) i.className = c; icons.append(i); });
+      icons.setAttribute('aria-label', `Out of 100 people: ${ic.common} have the event either way, ${ic.diff} ${ic.benefit ? 'avoid it (or gain it)' : 'are affected because of the treatment'}, ${ic.rest} do not.`);
+      q('.nnt-leg').innerHTML = `<span><i style="background:var(--ink,#000)"></i>${ic.common} have the event either way</span><span><i style="background:${ic.benefit ? '#009E73' : '#D55E00'}"></i>${ic.diff} ${ic.benefit ? 'helped' : 'harmed'}</span><span><i style="background:var(--line)"></i>${Math.max(0, ic.rest)} no event</span>`;
       const benName = outcome === 'bad' ? 'Absolute risk reduction (ARR)' : 'Absolute benefit increase (ABI)';
       const per1000 = Math.abs(r.rd) * 1000, word = r.rd < 0 ? 'fewer' : 'more';
       const fl: [string, string][] = [
         [benName, `${pct(r.ben)} (${pct(r.benCI[0])} to ${pct(r.benCI[1])})`],
-        [`Per 1000 people treated`, r.rd === 0 ? 'no change' : `${sig(per1000, 3)} ${word} with the event`],
+        [`Per 1000 people treated${tx}`, r.rd === 0 ? 'no change' : `${sig(per1000, 3)} ${word} with the event`],
         ['Relative risk (RR)', `${r3(r.rr)} (${r3(r.rrCI[0])} to ${r3(r.rrCI[1])})`],
         ['Relative risk reduction (RRR)', `${pct(r.rrr)} (${pct(r.rrrCI[0])} to ${pct(r.rrrCI[1])})`],
         ['Odds ratio', `${r3(r.or)} (${r3(r.orCI[0])} to ${r3(r.orCI[1])})`],
@@ -111,12 +154,13 @@ import Downloads from '../../components/Downloads.astro';
       ];
       facts('.nnt-facts', fl);
       const head = ['Group', 'Events', 'People', 'Risk', `${cl} interval (Wilson)`];
-      const rows = [[name1, String(x1), String(t1), pct(r.p1), `${pct(r.p1CI[0])} to ${pct(r.p1CI[1])}`], [name2, String(x2), String(t2), pct(r.p2), `${pct(r.p2CI[0])} to ${pct(r.p2CI[1])}`]];
+      const iv = (c: [number, number]) => (Number.isFinite(c[0]) ? `${pct(c[0])} to ${pct(c[1])}` : '–');
+      const rows = [[name1, riskMode ? '–' : String(x1), riskMode ? '–' : String(t1), pct(r.p1), iv(r.p1CI)], [name2, riskMode ? '–' : String(x2), riskMode ? '–' : String(t2), pct(r.p2), iv(r.p2CI)]];
       const t = q<HTMLTableElement>('.nnt-tab'); t.innerHTML = '';
       const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
       const tb = t.createTBody(); rows.forEach((row) => { const tr = tb.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
-      const zero = x1 === 0 || x2 === 0;
-      q('.nnt-note').textContent = `Risk difference (${name1} − ${name2}): ${pct(r.rd)} (${pct(r.rdCI[0])} to ${pct(r.rdCI[1])}). ` + (r.nnt.ci.kind === 'cross' ? 'The interval for the difference includes zero, so the NNT interval runs from benefit through infinity (no effect) to harm, as Altman (1998) recommends writing it. ' : '') + 'NNTs are usually rounded up to a whole number of people. Give the NNT with its time span, for example "over 2 years".' + (zero ? ' A group with no events makes the relative risk 0 or infinite, so its log interval cannot be given.' : '');
+      const zero = !riskMode && (x1 === 0 || x2 === 0);
+      q('.nnt-note').textContent = `Risk difference (${name1} − ${name2}): ${pct(r.rd)}${riskMode ? '' : ` (${pct(r.rdCI[0])} to ${pct(r.rdCI[1])})`}. ` + (r.nnt.ci.kind === 'cross' ? 'The interval for the difference includes zero, so the NNT interval runs from benefit through infinity (no effect) to harm, as Altman (1998) recommends writing it. ' : '') + 'NNTs are usually rounded up to a whole number of people. Give the NNT with its time span, for example "over 2 years".' + (zero ? ' A group with no events makes the relative risk 0 or infinite, so its log interval cannot be given.' : '');
 
       const base = num(v('.nnt-base')) / 100;
       if (!(base >= 0 && base <= 1)) throw new Error('The baseline risk must be a percentage from 0 to 100.');
@@ -125,6 +169,14 @@ import Downloads from '../../components/Downloads.astro';
         ? [['Risk change', `${pct(p.ben)} ${p.ben >= 0 ? 'benefit' : 'harm'}`], ['NNT for this risk', p.kind === 'none' ? '∞' : nntTxt(p.nnt, p.kind)], [`${cl} interval`, Number.isFinite(r.rrrCI[0]) ? ivTxt(p.ci) : '–']]
         : [['NNT for this risk', 'needs a relative risk (events in the control group)']];
       facts('.nnt-pt', pt);
+      const sl = q<HTMLInputElement>('.nnt-baser'); if (document.activeElement !== sl) sl.value = String(Math.min(100, Math.max(1, Math.round(base * 100))));
+      if (Number.isFinite(r.rrr) && r.rrr !== 0) {
+        const cv = nntCurve(r.rrr);
+        curve = chartFigure({ h: 240, xLabel: 'risk without treatment (%)', yLabel: 'NNT (log scale)', yLog: true, legend: 'none', series: [{ name: 'NNT', x: cv.x, y: cv.y, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: base * 100, dash: [4, 3], label: `${sig(base * 100, 3)} %` }] }, 'Number needed to treat against baseline risk');
+        paint(q<HTMLCanvasElement>('.nnt-curve'), curve, pagePalette()); q('.nnt-curve').hidden = false;
+      } else { curve = null; q('.nnt-curve').hidden = true; }
+      const wk = [`Risk difference = ${pct(r.p1)} − ${pct(r.p2)} = ${pct(r.rd)}`, `NNT = 1 ÷ |risk difference| = 1 ÷ ${Number.isFinite(r.ben) ? sig(Math.abs(r.ben), 4) : '–'} = ${r.nnt.kind === 'none' ? '∞' : sig(r.nnt.nnt, 4)}, rounded up to ${r.nnt.kind === 'none' ? '∞' : Math.ceil(r.nnt.nnt - 1e-9)}`, `Relative risk = ${pct(r.p1)} ÷ ${pct(r.p2)} = ${r3(r.rr)}; relative risk reduction = 1 − RR = ${pct(r.rrr)}`, `At a baseline risk of ${pct(base)}: risk change = baseline × RRR = ${pct(p.ben)}, so NNT = ${p.kind === 'none' ? '∞' : sig(p.nnt, 4)}`];
+      q('.nnt-wk').replaceChildren(...wk.map((t) => { const e = document.createElement('p'); e.textContent = t; return e; }));
       csvRows = [['Measure', 'Value', 'Lower', 'Upper'],
         [`Risk ${name1}`, String(r.p1), String(r.p1CI[0]), String(r.p1CI[1])], [`Risk ${name2}`, String(r.p2), String(r.p2CI[0]), String(r.p2CI[1])],
         ['Risk difference', String(r.rd), String(r.rdCI[0]), String(r.rdCI[1])], ['Relative risk', String(r.rr), String(r.rrCI[0]), String(r.rrCI[1])],
@@ -132,13 +184,16 @@ import Downloads from '../../components/Downloads.astro';
         [r.nnt.kind === 'harm' ? 'NNTH' : 'NNTB', String(r.nnt.nnt), ivTxt(r.nnt.ci), ''], ['Chi-square p', String(r.p), '', '']];
       report = [
         { title: q('.nnt-big').textContent!, text: [q('.nnt-ci').textContent!], facts: fl, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] }, note: q('.nnt-note').textContent! },
-        { title: `For a baseline risk of ${pct(base)}`, facts: pt, note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
+        { title: `For a baseline risk of ${pct(base)}`, facts: pt, ...(curve ? { figure: curve } : {}), note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
       ];
-      err.hidden = true; root.querySelectorAll<HTMLElement>('.nnt-out').forEach((e) => (e.hidden = false));
-    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.nnt-out').forEach((x) => (x.hidden = true)); report = []; }
+      err.hidden = true; root.querySelectorAll<HTMLElement>('.nnt-out').forEach((e) => (e.hidden = false)); root.querySelectorAll<HTMLElement>('.nnt-out').forEach((e) => e.classList.remove('is-err'));
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.nnt-out').forEach((x) => { if (x.querySelector('.nnt-base')) { x.hidden = false; x.classList.add('is-err'); } else x.hidden = true; }); report = []; }
   }
   let tm = 0;
-  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 200); });
+  q('.nnt-baser').addEventListener('input', () => { q<HTMLInputElement>('.nnt-base').value = q<HTMLInputElement>('.nnt-baser').value; calc(); });
+  q('.nnt-mode').addEventListener('change', () => { const r = v('.nnt-mode') === 'risks'; q('.nnt-groups').hidden = r; q('.nnt-risks').hidden = !r; });
+  document.addEventListener('fibub:theme', () => { if (curve) paint(q<HTMLCanvasElement>('.nnt-curve'), curve, pagePalette()); });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLInputElement).type === 'range') return; clearTimeout(tm); tm = window.setTimeout(calc, 200); });
   root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
   q('.nnt-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(csvRows)), 'nnt.csv', 'text/csv'));
   calc();

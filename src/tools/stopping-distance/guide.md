@@ -11,7 +11,7 @@ ads: false
 order: 1808
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, unit-converter, tyre-pressure]
 sources:
   - "Reaction distance = speed x reaction time; braking distance = v squared / (2 x (grip + slope/100) x g) with g = 9.80665 m/s2. Grip values (dry 0.7, wet 0.4, snow 0.2, ice 0.1) are typical textbook figures, not official limits; check your own road authority's driving manual. Reaction time of 1.5 s is a common planning figure. Drawings are fibub's own."
@@ -40,6 +40,10 @@ Braking distance grows with the square of speed, so doubling your speed makes it
 - **Road and grip (μ)**: dry 0.7, wet 0.4, snow 0.2, ice 0.1. Lower grip means a longer stop. You can type your own.
 - **Slope %**: uphill helps the brakes, downhill works against them.
 - **Loaded truck**: adds 0.5 s for the air-brake lag before the brakes bite. A two-wheeler uses the same grip, but in real life it has less margin when braking hard.
+
+## More options
+
+A slider sits under the speed box and follows what you type, so you can drag from 10 to 200 and watch the bar change. Reaction-time buttons (1.0, 1.5, 2.0 and 2.5 seconds) fill the box for you. The line under the result says how much longer the stop gets for 10 more km/h or mph, and a table shows the stop at common speeds on the same road. Open "More options" and type how far ahead something appears: the tool tells you whether you stop in time or the speed you would still be doing when you reach it. The grip numbers are textbook figures, not official limits, and this is never a way to pick a safe following distance.
 
 ## Worked example
 

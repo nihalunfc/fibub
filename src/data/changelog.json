@@ -1,49 +1,29 @@
 [
  {
-  "sha": "baa610c85ce1",
-  "date": "2026-11-16T22:17:38+00:00",
-  "title": "Home skills: link hand tools lessons and cut list with carpentry",
+  "sha": "56bd2f645357",
+  "date": "2026-11-16T22:40:07+00:00",
+  "title": "Blog: 24 research articles checked with the tools; LOD rule, Laviron fit, Peppas n range, UK Met Office degree-days",
   "tools": [
-   "build-simple-shelf",
-   "saw-straight",
-   "shelf-load",
-   "workshop-safety"
+   "calibration-curve",
+   "cyclic-voltammetry",
+   "degree-days",
+   "gamma-shielding"
   ],
   "site": false
  },
  {
-  "sha": "d789e6d62a5a",
-  "date": "2026-11-16T22:17:13+00:00",
-  "title": "Hand tools and safety course: #L373 know your hand tools, #L374 workshop safety, #L375 measure and mark, #T1011 cut list",
-  "tools": [
-   "cut-list",
-   "know-hand-tools",
-   "measure-and-mark",
-   "workshop-safety"
-  ],
-  "site": false
+  "sha": "846da5feb073",
+  "date": "2026-11-16T22:32:07+00:00",
+  "title": "Share link: apply drop-downs before number boxes so presets cannot overwrite them",
+  "tools": [],
+  "site": true
  },
  {
-  "sha": "9366b970ef18",
-  "date": "2026-11-16T22:15:18+00:00",
-  "title": "Home skills: cross-link carpentry, wall fixings and machines lessons",
-  "tools": [
-   "build-simple-shelf",
-   "levers-in-tools",
-   "pick-wall-plug"
-  ],
-  "site": false
- },
- {
-  "sha": "aba24f928581",
-  "date": "2026-11-16T22:14:47+00:00",
-  "title": "Learn: How machines work lessons #L382 levers in tools, #L383 belts and pulleys, #L384 bearings and friction",
-  "tools": [
-   "bearings-and-friction",
-   "belts-and-pulleys",
-   "levers-in-tools"
-  ],
-  "site": false
+  "sha": "7261d76a0352",
+  "date": "2026-11-16T22:26:47+00:00",
+  "title": "Add Copy link / Copy result bar to science tool pages",
+  "tools": [],
+  "site": true
  },
  {
   "sha": "4cb479411b57",
@@ -52,29 +32,6 @@
   "tools": [
    "energy-balance-model",
    "radiometric-age-calculator"
-  ],
-  "site": false
- },
- {
-  "sha": "c74dec42459e",
-  "date": "2026-11-16T22:13:28+00:00",
-  "title": "Light carpentry course: saw a straight cut (#L376), drill and screw wood (#L377), build a simple shelf (#L378), shelf load (#T1012)",
-  "tools": [
-   "build-simple-shelf",
-   "drill-and-screw",
-   "saw-straight",
-   "shelf-load"
-  ],
-  "site": false
- },
- {
-  "sha": "eb21626d34e1",
-  "date": "2026-11-16T22:11:31+00:00",
-  "title": "Learn: Wall fixings course (#L379 What's in your wall, #L380 Pick the right wall plug, #L381 Hang a picture or mirror)",
-  "tools": [
-   "hang-picture-mirror",
-   "pick-wall-plug",
-   "whats-in-your-wall"
   ],
   "site": false
  },
@@ -137,22 +94,51 @@
   "site": false
  },
  {
-  "sha": "b3b5d360dc40",
-  "date": "2026-11-16T22:08:25+00:00",
-  "title": "Change a flat tyre: link the torque tool and the puncture lesson",
+  "sha": "00543a2b8e96",
+  "date": "2026-11-16T22:06:34+00:00",
+  "title": "Make 41 vehicle, internet, parking and trip tools more useful",
   "tools": [
-   "change-flat-tyre"
-  ],
-  "site": false
- },
- {
-  "sha": "eb97e666a021",
-  "date": "2026-11-16T22:07:55+00:00",
-  "title": "Tyres and punctures: #L371 plug a tyre puncture, #L372 fix a bike puncture, #T1010 wheel nut torque",
-  "tools": [
-   "fix-bike-puncture",
-   "plug-tyre-puncture",
-   "wheel-nut-torque"
+   "axle-weights",
+   "car-affordability",
+   "car-depreciation",
+   "cell-signal-guide",
+   "cng-vs-petrol",
+   "commute-cost",
+   "cost-per-mile",
+   "driving-hours",
+   "engine-cc",
+   "ethanol-blend",
+   "ev-range",
+   "ev-vs-petrol",
+   "eway-bill-validity",
+   "fleet-fuel",
+   "fuel-cost",
+   "helmet-size",
+   "hot-car",
+   "ifta-calculator",
+   "internet-speed-test",
+   "lease-vs-buy",
+   "load-profit",
+   "octane-guide",
+   "on-road-price",
+   "pallet-planner",
+   "parking-finder",
+   "real-mileage",
+   "road-trip",
+   "sprocket-ratio",
+   "stopping-distance",
+   "tread-depth",
+   "trip-sheet",
+   "trip-tracker",
+   "two-stroke-mix",
+   "tyre-age",
+   "tyre-pressure",
+   "tyre-size",
+   "tyre-type",
+   "used-car-checklist",
+   "vin-check",
+   "wifi-spot-finder",
+   "winter-tyres"
   ],
   "site": false
  },
@@ -205,22 +191,6 @@
    "watermark-pdf",
    "word-counter",
    "zip-checker"
-  ],
-  "site": true
- },
- {
-  "sha": "74dc7ff8ba19",
-  "date": "2026-11-16T21:55:57+00:00",
-  "title": "Everyday: Woodwork and fixings section for the home skills calculators",
-  "tools": [],
-  "site": true
- },
- {
-  "sha": "2cfc4f16fa67",
-  "date": "2026-11-16T21:55:32+00:00",
-  "title": "Home skills courses: shared lesson engine, course pages, first lesson (#L370 change a flat tyre)",
-  "tools": [
-   "change-flat-tyre"
   ],
   "site": true
  },

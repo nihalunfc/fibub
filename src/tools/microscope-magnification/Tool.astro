@@ -1,0 +1,146 @@
+---
+// #L351 Magnification. A virtual light microscope: specimen, objective, ruler measurement, calibration and field of view. Maths: src/lib/learn/curr-geo.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn mm">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Look down a light microscope. Choose what you are looking at and the objective lens, then drag the ruler across a cell to measure its image and work out how big the cell really is.</p>
+    <div class="ax-grid">
+      <label>Specimen <select class="mm-spec" aria-label="Specimen"></select></label>
+      <label>Objective lens <select class="mm-obj" aria-label="Objective lens"></select></label>
+    </div>
+    <p class="ax-help">Eyepiece lens: ×10 (fixed). Total magnification = eyepiece × objective.</p>
+    <canvas class="lrn-cv mm-cv" aria-label="Circular microscope field of view with cells and a draggable ruler" style="aspect-ratio:1/1;max-width:340px;margin:0 auto"></canvas>
+    <p class="ax-help">Drag either end of the red ruler so it spans one cell. The ruler reads in mm on the image (the whole round view is 180 mm across).</p>
+    <p class="ax-big mm-out" aria-live="polite"></p>
+    <p class="ax-help mm-sub"></p>
+    <label>Show size in <select class="mm-unit" aria-label="Unit"><option value="mm">mm</option><option value="um" selected>µm</option><option value="nm">nm</option></select></label>
+    <p class="ax-help mm-fov"></p>
+  </div>
+  <div class="ax-card mm-cal">
+    <h2>Calibrate the eyepiece graticule</h2>
+    <p class="ax-help">A stage micrometer is a slide ruled in 10 µm steps. Line it up with the eyepiece scale and count how many divisions of each match.</p>
+    <div class="ax-grid">
+      <label class="lrn-sl">Eyepiece divisions: <b class="mm-gv"></b> <input class="mm-g" type="range" min="10" max="100" step="5" value="40" /></label>
+      <label class="lrn-sl">Stage divisions they cover: <b class="mm-sv"></b> <input class="mm-s" type="range" min="1" max="20" step="1" value="10" /></label>
+    </div>
+    <p class="ax-big mm-calout" aria-live="polite"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Light or electron?</h2>
+    <canvas class="lrn-cv mm-res" aria-label="Bar chart on a log scale comparing the smallest detail seen by a light microscope and an electron microscope"></canvas>
+    <p class="ax-help mm-resout"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: resolution is the smallest distance between two points you can still tell apart. The Abbe limit is d = 0.61 λ ÷ NA. Green light (550 nm) with a ×100 oil lens (NA 1.25) gives about 270 nm, usually quoted as about 200 nm. Electrons have a far shorter wavelength, so an electron microscope resolves about 0.2 nm. Magnifying more than the resolution allows only makes a bigger blur ("empty magnification").</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Pick the bacterium and try each objective. At which one can you first see it?</li><li>Watch the field of view number as you go from ×4 to ×100. Why is it so much smaller?</li><li>Measure the onion cell, then switch lens and measure again. The image grows but the actual size should stay the same.</li></ul>
+  </div>
+  <div class="ax-card mm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .mm select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .mm .mm-res { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { SPECIMENS, OBJECTIVES, EYEPIECE, totalMag, fieldOfViewMm, imageFieldMm, imageSize, actualSize, convert, unitLabel, calibrate, resolutionNm, LIGHT_LIMIT_NM, ELECTRON_LIMIT_NM } from '../../lib/learn/curr-geo';
+  const root = document.querySelector('.mm') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.mm-cv'), spec = $<HTMLSelectElement>('.mm-spec'), obj = $<HTMLSelectElement>('.mm-obj'), unit = $<HTMLSelectElement>('.mm-unit'), out = $('.mm-out');
+  SPECIMENS.forEach((s, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = s.name; spec.append(o); });
+  OBJECTIVES.forEach((m) => { const o = document.createElement('option'); o.value = String(m); o.textContent = `×${m}${m === 100 ? ' (oil)' : ''}`; if (m === 10) o.selected = true; obj.append(o); });
+  const rnd = (i: number) => { const x = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return x - Math.floor(x); };
+  // ruler ends in canvas fractions of the diameter
+  let p1 = { x: 0.35, y: 0.5 }, p2 = { x: 0.65, y: 0.5 }, drag: 0 | 1 | 2 = 0;
+  const geom = () => { const { W } = fitCanvas(cv, cv.clientWidth || 300); const D = W - 8; return { W, D, cx: W / 2, cy: W / 2, mmPx: 180 / D }; };
+  const current = () => { const s = SPECIMENS[+spec.value], ob = +obj.value, mag = totalMag(ob, EYEPIECE); return { s, ob, mag }; };
+
+  function drawCell(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, sz: number, ang: number, pal: ReturnType<typeof pagePalette>) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.lineWidth = Math.max(1, Math.min(2.5, sz / 30)); ctx.strokeStyle = pal.ink;
+    const fillc = (c: string, a: number) => { ctx.globalAlpha = a; ctx.fillStyle = c; };
+    if (id === 'onion') { fillc(pal.accent2, 0.25); ctx.fillRect(-sz / 2, -sz / 5, sz, sz * 0.4); ctx.globalAlpha = 1; ctx.strokeRect(-sz / 2, -sz / 5, sz, sz * 0.4); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(sz * 0.15, 0, sz * 0.06, 0, 7); ctx.fill(); }
+    else if (id === 'cheek') { fillc(pal.accent2, 0.2); ctx.beginPath(); ctx.ellipse(0, 0, sz / 2, sz * 0.42, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(0, 0, sz * 0.14, 0, 7); ctx.fill(); }
+    else if (id === 'stoma') { fillc(pal.good, 0.3); for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(0, s * sz * 0.1, sz / 2, sz * 0.09, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); ctx.globalAlpha = 0.3; } ctx.globalAlpha = 1; }
+    else if (id === 'rbc') { fillc(pal.bad, 0.35); ctx.beginPath(); ctx.arc(0, 0, sz / 2, 0, 7); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); fillc(pal.bad, 0.25); ctx.beginPath(); ctx.arc(0, 0, sz * 0.18, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+    else { fillc(pal.accent, 0.4); ctx.beginPath(); ctx.roundRect(-sz / 2, -sz * 0.2, sz, sz * 0.4, sz * 0.2); ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); }
+    ctx.restore();
+  }
+
+  const calc = () => {
+    const { s, mag } = current(), g = geom();
+    const dx = (p2.x - p1.x) * g.W, dy = (p2.y - p1.y) * g.W, imgPx = Math.hypot(dx, dy), imgMm = imgPx * g.mmPx, actUm = actualSize(imgMm, mag) * 1000;
+    return { s, mag, g, imgMm, actUm };
+  };
+  const draw = () => {
+    const { s, mag, g, imgMm, actUm } = calc(), ob = +obj.value, pal = pagePalette(), { ctx } = fitCanvas(cv, g.W);
+    ctx.clearRect(0, 0, g.W, g.W); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, g.W, g.W);
+    ctx.save(); ctx.beginPath(); ctx.arc(g.cx, g.cy, g.D / 2, 0, 7); ctx.clip(); ctx.fillStyle = pal.day; ctx.fillRect(0, 0, g.W, g.W);
+    // cells: true image size in px = actual um * mag / 1000 mm / mmPx
+    const szPx = (s.sizeUm * mag / 1000) / g.mmPx;
+    if (mag < s.minTotal / 2.5) { ctx.fillStyle = pal.muted; ctx.font = '13px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Too small to see: try a stronger lens', g.cx, g.cy - 40); }
+    const n = szPx < 12 ? 70 : szPx > 90 ? 3 : 10;
+    const placed: [number, number][] = [[0, 0]];
+    for (let i = 1; i < n; i++) placed.push([(rnd(i) - 0.5) * g.D * 0.9, (rnd(i + 40) - 0.5) * g.D * 0.9]);
+    placed.forEach(([x, y], i) => { const ang = s.id === 'rbc' ? 0 : s.id === 'bacterium' ? rnd(i + 7) * 3.14 : 0, sz = szPx * (i ? 0.85 + rnd(i + 3) * 0.3 : 1); if (sz > 0.8) drawCell(ctx, s.id, g.cx + (i ? x : 0), g.cy + (i ? y : 0), sz, ang, pal); });
+    ctx.restore();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(g.cx, g.cy, g.D / 2, 0, 7); ctx.stroke();
+    // ruler
+    const a = { x: p1.x * g.W, y: p1.y * g.W }, b = { x: p2.x * g.W, y: p2.y * g.W };
+    ctx.strokeStyle = pal.bad; ctx.fillStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    for (const p of [a, b]) { ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, 7); ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, 7); ctx.fill(); }
+    ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.bad; ctx.fillText(`${r(imgMm, 3)} mm`, (a.x + b.x) / 2, Math.min(g.W - 6, Math.max(14, (a.y + b.y) / 2 - 10)));
+    // scale bar of real length
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`×${mag}`, 8, 16);
+    const u = unit.value, val = convert(actUm, 'um', u);
+    out.textContent = `Image ${r(imgMm, 3)} mm ÷ ×${mag} = actual size ${r(val, 3)} ${unitLabel(u)}`;
+    out.dataset.mag = String(mag); out.dataset.image = imgMm.toFixed(3); out.dataset.actualUm = actUm.toFixed(3); out.dataset.actual = val.toPrecision(4); out.dataset.fov = fieldOfViewMm(ob).toFixed(3);
+    $('.mm-sub').textContent = `Real ${s.name.toLowerCase()} (${s.what}): about ${s.sizeUm} µm. Its image should be about ${r(imageSize(s.sizeUm / 1000, mag), 3)} mm long at this magnification.`;
+    $('.mm-fov').textContent = `Field of view (the width of what you can see): 18 mm ÷ ${ob} = ${r(fieldOfViewMm(ob), 3)} mm = ${r(fieldOfViewMm(ob) * 1000, 4)} µm. Stronger lens, smaller view. The image of the whole view is always ${r(imageFieldMm(ob), 3)} mm across.`;
+  };
+  const pos = (e: PointerEvent) => { const rc = cv.getBoundingClientRect(); return { x: (e.clientX - rc.left) / rc.width, y: (e.clientY - rc.top) / rc.height }; };
+  cv.addEventListener('pointerdown', (e) => { const q = pos(e), d1 = Math.hypot(q.x - p1.x, q.y - p1.y), d2 = Math.hypot(q.x - p2.x, q.y - p2.y); drag = d1 <= d2 ? 1 : 2; (drag === 1 ? p1 : p2).x = q.x; (drag === 1 ? p1 : p2).y = q.y; cv.setPointerCapture(e.pointerId); draw(); });
+  cv.addEventListener('pointermove', (e) => { if (!drag) return; const q = pos(e), p = drag === 1 ? p1 : p2; p.x = Math.max(0.02, Math.min(0.98, q.x)); p.y = Math.max(0.02, Math.min(0.98, q.y)); draw(); });
+  cv.addEventListener('pointerup', () => { drag = 0; });
+  [spec, obj, unit].forEach((e) => e.addEventListener('input', draw));
+  // test hook: place the ruler by image millimetres (also used by the page test)
+  (cv as any).setRuler = (mm: number) => { const g = geom(), half = (mm / g.mmPx) / 2 / g.W; p1 = { x: 0.5 - half, y: 0.5 }; p2 = { x: 0.5 + half, y: 0.5 }; draw(); };
+
+  const gI = $<HTMLInputElement>('.mm-g'), sI = $<HTMLInputElement>('.mm-s'), co = $('.mm-calout');
+  const cal = () => { const g = +gI.value, s = +sI.value, u = calibrate(g, s); $('.mm-gv').textContent = String(g); $('.mm-sv').textContent = String(s); co.textContent = `${g} eyepiece divisions = ${s} × 10 µm, so 1 division = ${r(u, 3)} µm.`; co.dataset.um = u.toFixed(4); };
+  gI.addEventListener('input', cal); sI.addEventListener('input', cal); cal();
+  $('.mm-cal').insertAdjacentHTML('beforeend', '<p class="ax-help">With the objective in use, a cell that spans 6 divisions is 6 × this value long.</p>');
+
+  const resDraw = () => {
+    const c = $<HTMLCanvasElement>('.mm-res'), { ctx, W, H } = fitCanvas(c, 110), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const lg = (nm: number) => 70 + ((Math.log10(nm) + 1) / 7) * (W - 90); // 0.1 nm .. 1 mm in log
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    [[0.1, '0.1 nm'], [10, '10 nm'], [1000, '1 µm'], [1e5, '100 µm'], [1e6, '1 mm']].forEach(([nm, t]) => { const x = lg(nm as number); ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, 80); ctx.stroke(); ctx.fillText(t as string, x, 98); });
+    ctx.textAlign = 'right'; ctx.fillStyle = pal.ink; ctx.fillText('Light', 64, 30); ctx.fillText('Electron', 64, 66);
+    ctx.fillStyle = pal.accent2; ctx.fillRect(lg(LIGHT_LIMIT_NM), 16, 6, 20); ctx.fillStyle = pal.accent; ctx.fillRect(lg(ELECTRON_LIMIT_NM), 52, 6, 20);
+    ctx.textAlign = 'left'; ctx.fillStyle = pal.ink; ctx.fillText('about 200 nm', lg(LIGHT_LIMIT_NM) + 10, 31); ctx.fillText('about 0.2 nm', lg(ELECTRON_LIMIT_NM) + 10, 67);
+  };
+  $('.mm-resout').textContent = `A light microscope cannot show detail smaller than about ${LIGHT_LIMIT_NM} nm (0.2 µm). An electron microscope resolves about ${ELECTRON_LIMIT_NM} nm, ${LIGHT_LIMIT_NM / ELECTRON_LIMIT_NM} times finer, so it can show ribosomes and viruses. Resolution of green light with an oil lens: ${Math.round(resolutionNm(550, 1.25))} nm. Bars are drawn on a log scale.`;
+  addEventListener('resize', () => { draw(); resDraw(); });
+  wireLevel(root, () => {});
+  draw(); resDraw();
+
+  mountQuiz($('.mm-quiz'), () => {
+    const ob = one([4, 10, 40, 100]), mag = ob * 10, sz = one([20, 50, 80, 120]), im = sz * mag / 1000, gD = one([20, 25, 40, 50]), sd = one([5, 8, 10, 15]), sp = one([6, 8, 12]);
+    const act = pick(2, 9) * 5; // um
+    return [
+      { q: `The eyepiece is ×10 and the objective is ×${ob}. What is the total magnification?`, ans: mag, unit: '×', work: `Total = ${EYEPIECE} × ${ob} = ${mag}.` },
+      { q: `A cell's image measures ${r(im, 3)} mm on a drawing at ×${mag}. How long is the real cell in µm?`, ans: sz, unit: 'µm', work: `actual = image ÷ magnification = ${r(im, 3)} mm ÷ ${mag} = ${r(im / mag, 3)} mm = ${sz} µm (× 1000 to change mm to µm).` },
+      { q: `A cell is ${act} µm long. At ×${mag}, how long is its image in mm?`, ans: act * mag / 1000, unit: 'mm', work: `image = actual × magnification = ${act} µm × ${mag} = ${act * mag} µm = ${r(act * mag / 1000, 3)} mm.` },
+      { q: `${gD} eyepiece divisions line up with ${sd} stage micrometer divisions (each 10 µm). A cell covers ${sp} eyepiece divisions. How long is the cell in µm?`, ans: calibrate(gD, sd) * sp, unit: 'µm', work: `One division = ${sd} × 10 ÷ ${gD} = ${r(calibrate(gD, sd), 3)} µm. Cell = ${sp} × ${r(calibrate(gD, sd), 3)} = ${r(calibrate(gD, sd) * sp, 3)} µm.` },
+    ];
+  });
+</script>

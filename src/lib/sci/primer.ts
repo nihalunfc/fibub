@@ -96,3 +96,21 @@ export function products(fSites: Site[], rSites: Site[], rLen: number, maxLen = 
   }
   return out.sort((x, y) => x.mm - y.mm || x.size - y.size);
 }
+
+// Standard atomic weights (IUPAC/CIAAW, abridged values) used for the single-strand DNA mass.
+const AW = { C: 12.011, H: 1.008, N: 14.007, O: 15.999, P: 30.974 };
+/** Nucleotide residue formulas (deoxynucleoside monophosphate minus water), as [C, H, N, O, P] counts. */
+const RESIDUE: Record<string, [number, number, number, number, number]> = {
+  A: [10, 12, 5, 5, 1], C: [9, 12, 3, 6, 1], G: [10, 12, 5, 6, 1], T: [10, 13, 2, 7, 1],
+};
+const mass = (f: number[]) => f[0] * AW.C + f[1] * AW.H + f[2] * AW.N + f[3] * AW.O + f[4] * AW.P;
+/** Molecular weight (g/mol) of a single-stranded DNA oligo with a 5′ hydroxyl and a 3′ hydroxyl: the sum of the residues, minus HPO₃, plus H₂O. */
+export function molWeight(s: string) {
+  let m = 0;
+  for (const b of s) m += mass(RESIDUE[b]);
+  return m - mass([0, 1, 0, 3, 1]) + mass([0, 2, 0, 1, 0]);
+}
+/** Volume (µL) to dissolve an amount of oligo in to reach a stock concentration (µM). nmol × 1000 ÷ µM. */
+export const resuspendUL = (nmol: number, stockUM: number) => (nmol * 1000) / stockUM;
+/** nmol from µg of an oligo of molecular weight mw (g/mol): µg × 1000 ÷ mw. */
+export const nmolFromUg = (ug: number, mw: number) => (ug * 1000) / mw;

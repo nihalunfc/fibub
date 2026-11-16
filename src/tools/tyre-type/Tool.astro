@@ -33,6 +33,16 @@
     </div>
   </section>
   <details class="panel">
+    <summary>Compare the car and SUV types side by side</summary>
+    <div class="tt-scroll"><table class="tt-tab" data-o="cmp"></table></div>
+    <p class="tt-fine">Rough guide only, 3 is best. Brands and models differ, so check independent tests before you buy.</p>
+  </details>
+  <section class="panel">
+    <h2 class="tt-h">Take this to the tyre shop</h2>
+    <p class="tt-shop" data-o="shop"></p>
+    <p class="tt-fine">Your tyre size is on the sidewall; if you only know the numbers, see <a href="/vehicles/tyre-size/">Tyre size</a>.</p>
+  </section>
+  <details class="panel">
     <summary>The six types in one line each</summary>
     <ul class="tt-fine" data-o="types"></ul>
     <p class="tt-fine"><b>Motorcycles:</b> road is for daily riding, sport for fast riding on dry tarmac, touring for long miles and luggage, dual-sport for gravel and tarmac.</p>
@@ -59,6 +69,10 @@
   .tt-marks figure.on { border: 2px solid var(--accent); }
   .tt-marks svg { width: 64px; height: 64px; display: block; color: var(--ink); margin-bottom: 4px; }
   .tt-marks figcaption { color: var(--muted); }
+  .tt-scroll { overflow-x: auto; } .tt-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tt-tab th, .tt-tab td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; } .tt-tab th:first-child, .tt-tab td:first-child { text-align: left; }
+  .tt-tab tr.pick td, .tt-tab tr.pick th { font-weight: 700; background: var(--good-soft); }
+  .tt-shop { margin: 0 0 6px; font-weight: 600; }
   .tt summary { cursor: pointer; font-weight: 600; }
 </style>
 
@@ -85,6 +99,8 @@
     india: 'India: most roads are warm all year; hill areas in winter may need chains or snow tyres. Check local rules.',
     gulf: 'Gulf: heat and sand are the enemy. Let air out for sand only off-road and reinflate before the road, using Tyre pressure. Check tyre date codes, as heat ages tyres.',
   };
+  // [dry grip, snow and ice, long life, quiet] out of 3: a rough, general guide, not test data.
+  const RATE: Record<string, number[]> = { summer: [3, 0, 2, 3], 'all-season': [2, 1, 2, 3], 'all-weather': [2, 2, 2, 2], winter: [1, 3, 1, 2], 'all-terrain': [2, 2, 2, 1], 'mud-terrain': [1, 1, 1, 0] };
   const S = { vehicle: 'car', cold: 'mild', snow: 'never', roads: 'city' } as Record<string, string>;
   const calc = () => {
     const p = pickTyre(S as { vehicle: Vehicle; cold: Cold; snow: Snow; roads: Roads });
@@ -93,6 +109,11 @@
     const sand = S.roads === 'sand' || sel.value === 'gulf';
     o('note').textContent = sand && S.vehicle !== 'bike' ? 'Hot or sandy ground: heat and sand wear tyres fast. For deep sand off-road you may let some air out, then reinflate before you drive on the road.' : (S.vehicle === 'truck' ? 'Trucks: choose the right load and speed rating, and winter-rated drive-axle tyres for snow.' : '');
     o('country').textContent = COUNTRY[sel.value] || '';
+    const dots = (n: number) => '●'.repeat(n) + '○'.repeat(3 - n);
+    o('cmp').innerHTML = '<tr><th>Type</th><th>Dry and wet grip</th><th>Snow and ice</th><th>Long life</th><th>Quiet</th></tr>' +
+      Object.keys(RATE).map((k) => `<tr class="${k === p.first ? 'pick' : ''}"><th scope="row">${NAME[k][0]}${k === p.first ? ' (best pick)' : k === p.second ? ' (second)' : ''}</th>${RATE[k].map((n) => `<td aria-label="${n} of 3">${dots(n)}</td>`).join('')}</tr>`).join('');
+    const bike = S.vehicle === 'bike';
+    o('shop').textContent = `Ask for: ${NAME[p.first][0].toLowerCase()}s (second choice: ${NAME[p.second][0].toLowerCase()}s), in your size${bike ? '' : ', with the snowflake mark if you get snow'}. Ask for the date code (made in the last year or two) and for all ${bike ? 'tyres on the axle' : 'four'} to match.`;
     const snowy = ['winter', 'all-weather'].includes(p.first) || ['winter', 'all-weather'].includes(p.second) || S.snow !== 'never' || p.first === 'all-terrain';
     root.querySelector('[data-m="3pmsf"]')!.classList.toggle('on', snowy);
     root.querySelector('[data-m="ms"]')!.classList.toggle('on', ['all-season', 'all-terrain', 'mud-terrain'].includes(p.first));

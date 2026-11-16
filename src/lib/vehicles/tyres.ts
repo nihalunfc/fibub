@@ -150,3 +150,31 @@ export function compareTyres(orig: TyreSize, other: TyreSize, limitPct = 3): Com
   const diffPct = (ratio - 1) * 100;
   return { diffPct, trueSpeed: (shown) => shown * ratio, withinPct: Math.abs(diffPct) <= limitPct };
 }
+
+// ---------- pick-from-lists builder, near sizes, speedometer table ----------
+export const WIDTHS_MM = [125, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335, 345, 355];
+export const ASPECTS = [25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85];
+export const RIMS_IN = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+
+/** The size written as a car tyre code, for example 205/55 R16. */
+export const buildCode = (width: number, aspect: number, rim: number) => `${width}/${aspect} R${rim}`;
+
+/** Overall diameter in mm of a metric size built from the three numbers. */
+export const diameterOf = (width: number, aspect: number, rim: number) => rim * MM_PER_IN + 2 * width * aspect / 100;
+
+export interface NearSize { code: string; width: number; aspect: number; rim: number; diameterMm: number; diffPct: number }
+/** Common sizes whose height is within limitPct of the given tyre (same rim size first when sameRim is set), nearest first. */
+export function nearSizes(orig: TyreSize, limitPct = 3, sameRim = false, max = 12): NearSize[] {
+  const out: NearSize[] = [];
+  for (const rim of RIMS_IN) {
+    if (sameRim && rim !== orig.rimIn) continue;
+    for (const width of WIDTHS_MM) for (const aspect of ASPECTS) {
+      const d = diameterOf(width, aspect, rim), diffPct = (d / orig.diameterMm - 1) * 100;
+      if (Math.abs(diffPct) <= limitPct) out.push({ code: buildCode(width, aspect, rim), width, aspect, rim, diameterMm: d, diffPct });
+    }
+  }
+  return out.filter((s) => Math.abs(s.width - orig.widthMm) <= 40 && !(s.width === orig.widthMm && s.aspect === orig.aspect && s.rim === orig.rimIn)).sort((a, b) => Math.abs(a.diffPct) - Math.abs(b.diffPct)).slice(0, max);
+}
+
+/** What the speedometer reads versus the true speed for a size change: [shown, true] pairs. */
+export const speedoTable = (c: Comparison, shown: number[]) => shown.map((s) => [s, c.trueSpeed(s)] as [number, number]);

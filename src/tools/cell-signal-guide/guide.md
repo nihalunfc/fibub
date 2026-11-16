@@ -15,6 +15,7 @@ works: online
 updated: 2026-11-14
 related: [internet-speed-test, wifi-spot-finder]
 sources:
+  - "ASU to dBm: the formulas Android uses (4G and 5G: dBm = ASU - 140; 3G: ASU - 120, the RSCP scale of 3GPP TS 27.007; 2G: 2 x ASU - 113), from the Android developer documentation for CellSignalStrength (Lte, Nr, Wcdma, Gsm); checked 2026-11-16. The Fine, Patchy and Struggles marks are fibub rules of thumb for the signal bands, not measurements."
   - "Signal bands (LTE and 5G RSRP: -80 / -90 / -100 / -110 dBm; 3G RSCP and 2G RSSI: -70 / -85 / -100 / -110 dBm; SINR 0 / 13 / 20 dB) are widely used rules of thumb from operators and equipment makers, not a standard. The bars-to-dBm conversion is a rough LTE guide."
   - "Coverage maps and tower data: ISED and CRTC (Canada), TRAI and the Department of Telecommunications' Tarang Sanchar (India), Ofcom (UK), FCC (USA); CellMapper is crowd-sourced. Network lists and links checked 2026-11-14; check the official source."
   - "Networks near you: cell records from OpenCelliD (opencellid.org), CC BY-SA 4.0, grouped into squares of about 1 km per carrier by fibub (data in /cells/, shared under CC BY-SA 4.0; rebuilt monthly by .github/workflows/cells.yml). Carrier names from the public MCC-MNC table, normalised to brands by fibub. The 'likely signal' labels are fibub's rules of thumb from the distance to the nearest 4G/5G cells, not measurements."
@@ -55,6 +56,12 @@ What RSRP, RSRQ and SINR mean and which values count as good are explained in [[
 - **SINR**: signal against noise. A strong signal with low SINR (crowded or interfered cell) can still be slow.
 - **Add my rough location**: rounds your position to about 100 m and keeps it on this device only.
 - **Keep my readings on this device**: off by default.
+
+## More options
+
+- **dBm or ASU**: Android phones often show an ASU number. Switch "Number is in" to ASU and the page converts it using Android's own formulas (4G and 5G: dBm = ASU minus 140; 3G: ASU minus 120; 2G: twice ASU minus 113).
+- **What it means for you**: under the rating, calls and texts, maps and web pages, and video are marked Fine, Patchy or Struggles. These are rules of thumb for each band, not a measurement. For a poor signal it suggests Wi-Fi calling, moving near a window or a higher floor, and logging another network in the same spot.
+- **Best network at each place**: your log is grouped by place so you can see which network wins at home, at work and on the commute, and by how many dB.
 
 ## Worked example
 
