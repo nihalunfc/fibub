@@ -1,5 +1,24 @@
 [
  {
+  "sha": "56bd2f645357",
+  "date": "2026-11-16T22:40:07+00:00",
+  "title": "Blog: 24 research articles checked with the tools; LOD rule, Laviron fit, Peppas n range, UK Met Office degree-days",
+  "tools": [
+   "calibration-curve",
+   "cyclic-voltammetry",
+   "degree-days",
+   "gamma-shielding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "846da5feb073",
+  "date": "2026-11-16T22:32:07+00:00",
+  "title": "Share link: apply drop-downs before number boxes so presets cannot overwrite them",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "7261d76a0352",
   "date": "2026-11-16T22:26:47+00:00",
   "title": "Add Copy link / Copy result bar to science tool pages",
@@ -71,6 +90,55 @@
    "wallpaper-calculator",
    "water-intake",
    "weighted-grade-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "00543a2b8e96",
+  "date": "2026-11-16T22:06:34+00:00",
+  "title": "Make 41 vehicle, internet, parking and trip tools more useful",
+  "tools": [
+   "axle-weights",
+   "car-affordability",
+   "car-depreciation",
+   "cell-signal-guide",
+   "cng-vs-petrol",
+   "commute-cost",
+   "cost-per-mile",
+   "driving-hours",
+   "engine-cc",
+   "ethanol-blend",
+   "ev-range",
+   "ev-vs-petrol",
+   "eway-bill-validity",
+   "fleet-fuel",
+   "fuel-cost",
+   "helmet-size",
+   "hot-car",
+   "ifta-calculator",
+   "internet-speed-test",
+   "lease-vs-buy",
+   "load-profit",
+   "octane-guide",
+   "on-road-price",
+   "pallet-planner",
+   "parking-finder",
+   "real-mileage",
+   "road-trip",
+   "sprocket-ratio",
+   "stopping-distance",
+   "tread-depth",
+   "trip-sheet",
+   "trip-tracker",
+   "two-stroke-mix",
+   "tyre-age",
+   "tyre-pressure",
+   "tyre-size",
+   "tyre-type",
+   "used-car-checklist",
+   "vin-check",
+   "wifi-spot-finder",
+   "winter-tyres"
   ],
   "site": false
  },
