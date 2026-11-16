@@ -229,3 +229,65 @@ export async function ispInfo(): Promise<{ isp?: string; city?: string; colo?: s
     return { isp: j.asOrganization, city: j.city, colo: j.colo };
   } catch { return null; }
 }
+
+// ---------- extras: household need, plan check, transfer time ----------
+// Per-stream figures reuse the guidance above: HD video 5 Mbps, 4K 15 Mbps, HD video call about 3.8 Mbps down and 3.0 up,
+// everyday browsing about 1 Mbps per busy device. A household rarely peaks all at once, so this is a worst case.
+export const STREAM_MBPS = { hd: 5, uhd: 15, callDown: 3.8, callUp: 3.0, browse: 1 } as const;
+export type Household = { hd: number; uhd: number; calls: number; browsing: number };
+const cnt = (n: number) => (isFinite(n) && n > 0 ? Math.min(99, Math.floor(n)) : 0);
+export const householdNeed = (h: Household) => {
+  const hd = cnt(h.hd), uhd = cnt(h.uhd), calls = cnt(h.calls), browsing = cnt(h.browsing);
+  return {
+    down: hd * STREAM_MBPS.hd + uhd * STREAM_MBPS.uhd + calls * STREAM_MBPS.callDown + browsing * STREAM_MBPS.browse,
+    up: calls * STREAM_MBPS.callUp,
+  };
+};
+// How the measured speed compares with what a household needs at once.
+export const householdVerdict = (need: { down: number; up: number }, down: number | null, up: number | null) => {
+  if (down == null) return { ok: 'warn' as const, text: 'Run the test above to compare.' };
+  if (need.down === 0 && need.up === 0) return { ok: 'warn' as const, text: 'Add at least one activity.' };
+  const dOk = down >= need.down, uOk = need.up === 0 || (up ?? 0) >= need.up;
+  if (dOk && uOk) return { ok: 'good' as const, text: `Enough: you measured ${fmtMbps(down)} Mbps down and need about ${fmtMbps(need.down)} Mbps if all of this runs at once.` };
+  if (!dOk) return { ok: 'bad' as const, text: `Not quite: about ${fmtMbps(need.down)} Mbps needed down, you measured ${fmtMbps(down)} Mbps. Fewer streams at once, or a faster plan.` };
+  return { ok: 'bad' as const, text: `Upload is the limit: calls need about ${fmtMbps(need.up)} Mbps up, you measured ${fmtMbps(up)} Mbps.` };
+};
+// Measured speed as a share of the speed the plan promises (0 or blank gives null, never NaN).
+export const planShare = (measured: number | null, promised: number) =>
+  measured == null || !isFinite(promised) || promised <= 0 ? null : Math.round((100 * measured) / promised);
+export const planVerdict = (pct: number | null) =>
+  pct == null ? '' : pct >= 90 ? 'About what you pay for.' : pct >= 70 ? 'A bit under. Wi-Fi, busy hours and the test itself can cost this much; try again on a cable.' : pct >= 50 ? 'Well under. Test on a cable at a quiet hour before you call your provider.' : 'Far under. Test on a cable a few times, then ask your provider.';
+export const mbpsToMBps = (m: number) => m / 8;
+// Time to move a file of `size` bytes at `rateMbps`; null when the rate or size is not usable.
+export const transferSeconds = (bytes: number, rateMbps: number | null) =>
+  rateMbps == null || !isFinite(rateMbps) || rateMbps <= 0 || !isFinite(bytes) || bytes <= 0 ? null : (bytes * 8) / (rateMbps * 1e6);
+export const fmtDuration = (s: number | null) => {
+  if (s == null || !isFinite(s)) return '–';
+  if (s < 1) return 'under a second';
+  if (s < 90) return Math.round(s) + ' seconds';
+  const m = s / 60;
+  if (m < 90) return Math.round(m) + ' minutes';
+  const h = m / 60;
+  return h < 48 ? (Math.round(h * 10) / 10) + ' hours' : Math.round(h / 24) + ' days';
+};
+export const FILE_UNITS: Record<string, number> = { MB: 1e6, GB: 1e9 };
+
+// ---------- Wi-Fi spot helpers ----------
+export type SpotLike = { down: number | null; up: number | null; lat: number | null; jit: number | null };
+/** How one measured spot fares for one use from `uses()` ('web', 'hd', 'uhd', 'call', 'game', 'upload'). */
+export const spotFit = (s: SpotLike, useId: string): Use['ok'] | null => {
+  const u = uses({ down: s.down, up: s.up, latency: s.lat, jitter: s.jit, loaded: null }).find((x) => x.id === useId);
+  return u ? u.ok : null;
+};
+export const FIT_WORD: Record<Use['ok'], string> = { good: 'Yes', warn: 'Mostly', bad: 'No' };
+/** Plain next steps from the spread of scores. Scores are 0 to 100 (spotScore). Nothing is promised. */
+export const spotTips = (scores: number[], names: string[]): string[] => {
+  const tips: string[] = [];
+  if (!scores.length) return tips;
+  const min = Math.min(...scores), max = Math.max(...scores), worst = names[scores.indexOf(min)], best = names[scores.indexOf(max)];
+  if (scores.length > 1 && max - min >= 30) tips.push(`${worst} is far behind ${best}. Try moving the router toward the middle of the home, up off the floor and away from metal and microwaves, then test ${worst} again.`);
+  if (scores.length > 1 && max - min >= 30 && min < 40) tips.push(`If moving the router is not possible, a mesh system or a wired access point near ${worst} helps more than a plug-in range extender.`);
+  if (max < 50) tips.push('Even the best spot scores low. Test the same spot by cable next to the router: if it is also slow, the line from your provider is the limit, not the Wi-Fi.');
+  if (scores.length > 1 && max - min < 15 && min >= 65) tips.push('All spots are close and good. Your Wi-Fi is fine at home; if something still lags, look at the device or the app.');
+  return tips;
+};

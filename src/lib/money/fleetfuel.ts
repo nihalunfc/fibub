@@ -121,3 +121,52 @@ export function econChart(s: VehicleStat, unit: string): string {
     `<text x="${W - R}" y="${H - 4}" text-anchor="end" font-size="10" fill="var(--muted)">each fill, oldest to newest</text>` +
     `${med}<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${line}"/>${dots}</svg>`;
 }
+
+// ---------- fleet totals, sorting, what-if and CSV out ----------
+export interface FleetTotals { vehicles: number; fills: number; distance: number; qty: number; amount: number; economy: number; costPerDist: number; pricePerUnit: number; medianEconomy: number }
+/** Whole-fleet figures. Cost is only counted when every vehicle with distance has a cost, otherwise NaN. */
+export function fleetTotals(stats: VehicleStat[]): FleetTotals {
+  const distance = stats.reduce((s, v) => s + v.distance, 0), qty = stats.reduce((s, v) => s + v.qty, 0);
+  const costed = stats.filter((v) => v.distance > 0);
+  const hasCost = costed.length > 0 && costed.every((v) => Number.isFinite(v.costPerDist));
+  const amount = hasCost ? costed.reduce((s, v) => s + v.amount, 0) : NaN;
+  const eco = stats.map((v) => v.economy).filter((e) => Number.isFinite(e) && e > 0);
+  return {
+    vehicles: stats.length, fills: stats.reduce((s, v) => s + v.fills, 0), distance, qty, amount,
+    economy: qty > 0 ? distance / qty : NaN,
+    costPerDist: hasCost && distance > 0 ? amount / distance : NaN,
+    pricePerUnit: hasCost && qty > 0 ? amount / qty : NaN,
+    medianEconomy: eco.length ? median(eco) : NaN,
+  };
+}
+export type SortKey = 'vehicle' | 'best' | 'worst' | 'cost';
+/** Sorted copy. Vehicles without a figure go last. */
+export function sortStats(stats: VehicleStat[], key: SortKey): VehicleStat[] {
+  const by = (f: (s: VehicleStat) => number, dir: 1 | -1) => [...stats].sort((a, b) => {
+    const x = f(a), y = f(b), ax = Number.isFinite(x), ay = Number.isFinite(y);
+    if (!ax || !ay) return ax === ay ? 0 : ax ? -1 : 1;
+    return (x - y) * dir;
+  });
+  return key === 'best' ? by((s) => s.economy, -1) : key === 'worst' ? by((s) => s.economy, 1) : key === 'cost' ? by((s) => s.costPerDist, -1) : [...stats];
+}
+/** What-if: fuel (and money, at the fleet's average price) saved if every vehicle that is below the fleet's median economy matched it. */
+export function whatIfMedian(stats: VehicleStat[]) {
+  const t = fleetTotals(stats);
+  if (!(t.medianEconomy > 0) || stats.length < 2) return null;
+  let qty = 0;
+  for (const v of stats) if (v.economy > 0 && v.economy < t.medianEconomy) qty += v.distance / v.economy - v.distance / t.medianEconomy;
+  return { qty, amount: Number.isFinite(t.pricePerUnit) ? qty * t.pricePerUnit : NaN, median: t.medianEconomy };
+}
+const csvCell = (v: string | number) => {
+  let s = typeof v === 'number' ? (Number.isFinite(v) ? String(+v.toFixed(4)) : '') : v;
+  if (/^[=+\-@]/.test(s) && typeof v === 'string') s = "'" + s;  // keep spreadsheets from running a cell as a formula
+  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+export const toCsv = (head: string[], rows: (string | number)[][]) => [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+export function summaryCsv(stats: VehicleStat[], unit: string): string {
+  return toCsv(['Vehicle', 'Fills', 'Distance', 'Fuel', `Economy (${unit})`, 'Cost per distance', 'Flags'],
+    stats.map((s) => [s.vehicle, s.fills, s.distance, s.qty, s.economy, s.costPerDist, s.flags]));
+}
+export function flagsCsv(flags: Flag[]): string {
+  return toCsv(['Vehicle', 'Date', 'Odometer', 'Kind', 'Detail'], flags.map((f) => [f.vehicle, f.date, f.odo, f.kind, f.text]));
+}

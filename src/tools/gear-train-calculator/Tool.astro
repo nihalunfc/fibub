@@ -8,16 +8,28 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Gear train</h2>
     <div class="ax-grid">
-      <label>Input speed (rpm) <input class="gt-n" type="text" inputmode="decimal" value="1440" /></label>
-      <label>Input torque (N·m) <input class="gt-t" type="text" inputmode="decimal" value="20" /></label>
-      <label>Module (mm, optional) <input class="gt-m" type="text" inputmode="decimal" value="2" /></label>
+      <label>Input speed (rpm) <input data-k="n" class="gt-n" type="text" inputmode="decimal" value="1440" /></label>
+      <label>Input torque (N·m) <input data-k="t" class="gt-t" type="text" inputmode="decimal" value="20" /></label>
+      <label>Module (mm, optional) <input data-k="m" class="gt-m" type="text" inputmode="decimal" value="2" /></label>
     </div>
     <div class="gt-meshes"></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gt-add">Add a mesh</button></div>
+    <details class="gt-find"><summary>More options: find tooth counts for a ratio I want</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Ratio I want (driven ÷ driver, such as 3.7) <input data-k="fr" class="gf-r" type="text" inputmode="decimal" value="3.7" /></label>
+        <label>Gear pairs in a row <select data-k="fs" class="gf-s"><option value="1" selected>1 pair</option><option value="2">2 pairs (compound)</option></select></label>
+        <label>Fewest teeth on any gear <input data-k="flo" class="gf-lo" type="text" inputmode="numeric" value="12" /></label>
+        <label>Most teeth on any gear <input data-k="fhi" class="gf-hi" type="text" inputmode="numeric" value="60" /></label>
+      </div>
+      <p class="ax-help">A ratio above 1 slows the output and raises the torque; below 1 speeds it up. Gears with very few teeth (under about 12) usually need special tooth shapes, so the list starts at 12. Every pair keeps its own centre distance: use the same module for all of them.</p>
+      <p class="ax-err gf-err" hidden></p>
+      <ol class="gf-list"></ol>
+      <button type="button" class="btn secondary small gf-use" hidden>Use the best one in the train above</button>
+    </details>
     <p class="ax-help">Each row is one pair of gears in mesh, from the input onward. The driven gear of a row sits on the same shaft as the driver of the next row (a compound train). For an idler, make the next driver the same gear: same tooth count. External gears reverse the direction; an internal (ring) gear or a chain keeps it. Efficiency is per mesh; about 98 % is a rounded example for good spur gears. The module (tooth size in mm) gives the centre distances.</p>
     <p class="ax-err gt-err" hidden></p>
     <div class="gt-out">
-      <p class="ax-big gt-big"></p>
+      <p class="ax-big gt-big" aria-live="polite"></p>
       <dl class="ax-facts gt-facts"></dl>
       <div class="ax-scroll" style="margin-top:12px"><table class="gt-tab"></table></div>
       <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gt-csv">Download shafts (CSV)</button></div>
@@ -27,13 +39,13 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Planetary gear set</h2>
     <div class="ax-grid">
-      <label>Sun teeth <input class="pl-s" type="text" inputmode="numeric" value="24" /></label>
-      <label>Ring teeth <input class="pl-r" type="text" inputmode="numeric" value="72" /></label>
-      <label>Number of planets <input class="pl-np" type="text" inputmode="numeric" value="3" /></label>
-      <label>Sun speed (rpm) <input class="pl-ws" type="text" inputmode="decimal" value="1500" /></label>
-      <label>Ring speed (rpm) <input class="pl-wr" type="text" inputmode="decimal" value="0" /></label>
-      <label>Carrier speed (rpm) <input class="pl-wc" type="text" inputmode="decimal" value="" /></label>
-      <label>Torque on the sun (N·m, optional) <input class="pl-ts" type="text" inputmode="decimal" value="10" /></label>
+      <label>Sun teeth <input data-k="s" class="pl-s" type="text" inputmode="numeric" value="24" /></label>
+      <label>Ring teeth <input data-k="r" class="pl-r" type="text" inputmode="numeric" value="72" /></label>
+      <label>Number of planets <input data-k="np" class="pl-np" type="text" inputmode="numeric" value="3" /></label>
+      <label>Sun speed (rpm) <input data-k="ws" class="pl-ws" type="text" inputmode="decimal" value="1500" /></label>
+      <label>Ring speed (rpm) <input data-k="wr" class="pl-wr" type="text" inputmode="decimal" value="0" /></label>
+      <label>Carrier speed (rpm) <input data-k="wc" class="pl-wc" type="text" inputmode="decimal" value="" /></label>
+      <label>Torque on the sun (N·m, optional) <input data-k="ts" class="pl-ts" type="text" inputmode="decimal" value="10" /></label>
     </div>
     <p class="ax-help">Give two of the three speeds and leave the third empty; type 0 for the part that is held still. Directions follow the sign: a negative speed turns the other way.</p>
     <p class="ax-err pl-err" hidden></p>
@@ -47,14 +59,14 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Belt drive</h2>
     <div class="ax-grid">
-      <label>Driving pulley diameter (mm) <input class="bd-d1" type="text" inputmode="decimal" value="100" /></label>
-      <label>Driven pulley diameter (mm) <input class="bd-d2" type="text" inputmode="decimal" value="300" /></label>
-      <label>Belt <select class="bd-x"><option value="open" selected>Open (same direction)</option><option value="crossed">Crossed (opposite direction)</option></select></label>
-      <label>Find <select class="bd-mode"><option value="L" selected>Belt length from the centre distance</option><option value="C">Centre distance from a belt length</option></select></label>
-      <label class="bd-cbox">Centre distance (mm) <input class="bd-c" type="text" inputmode="decimal" value="500" /></label>
-      <label class="bd-lbox" hidden>Belt length (mm) <input class="bd-l" type="text" inputmode="decimal" value="1700" /></label>
-      <label>Driving speed (rpm) <input class="bd-n" type="text" inputmode="decimal" value="1440" /></label>
-      <label>Slip (%) <input class="bd-slip" type="text" inputmode="decimal" value="0" /></label>
+      <label>Driving pulley diameter (mm) <input data-k="d1" class="bd-d1" type="text" inputmode="decimal" value="100" /></label>
+      <label>Driven pulley diameter (mm) <input data-k="d2" class="bd-d2" type="text" inputmode="decimal" value="300" /></label>
+      <label>Belt <select data-k="x" class="bd-x"><option value="open" selected>Open (same direction)</option><option value="crossed">Crossed (opposite direction)</option></select></label>
+      <label>Find <select data-k="bmode" class="bd-mode"><option value="L" selected>Belt length from the centre distance</option><option value="C">Centre distance from a belt length</option></select></label>
+      <label class="bd-cbox">Centre distance (mm) <input data-k="c" class="bd-c" type="text" inputmode="decimal" value="500" /></label>
+      <label class="bd-lbox" hidden>Belt length (mm) <input data-k="l" class="bd-l" type="text" inputmode="decimal" value="1700" /></label>
+      <label>Driving speed (rpm) <input data-k="bn" class="bd-n" type="text" inputmode="decimal" value="1440" /></label>
+      <label>Slip (%) <input data-k="slip" class="bd-slip" type="text" inputmode="decimal" value="0" /></label>
     </div>
     <p class="ax-help">Use pitch diameters (where the belt's middle runs). Flat and V-belts creep 1 to 3 % (a rounded example); toothed belts do not slip. A wrap below about 120° on the small pulley makes slipping more likely.</p>
     <p class="ax-err bd-err" hidden></p>
@@ -68,7 +80,7 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <template class="gt-tpl">
-  <div class="gt-row">
+  <div class="gt-row" data-nokit>
     <label>Driver teeth <input class="gt-a" type="text" inputmode="numeric" /></label>
     <label>Driven teeth <input class="gt-b" type="text" inputmode="numeric" /></label>
     <label>Type <select class="gt-k"><option value="external">External</option><option value="internal">Internal (ring)</option><option value="chain">Chain or toothed belt</option></select></label>
@@ -78,7 +90,7 @@ import Downloads from '../../components/Downloads.astro';
 </template>
 
 <script>
-  import { train, centreDistance, planetary, planetaryTorques, planetaryChecks, belt, beltApprox, beltCentre, type Mesh } from '../../lib/sci/eng-gear';
+  import { train, centreDistance, planetary, planetaryTorques, planetaryChecks, belt, beltApprox, beltCentre, findRatios, type Mesh } from '../../lib/sci/eng-gear';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, sig, csv } from '../../lib/sci/num';
 
@@ -214,7 +226,29 @@ import Downloads from '../../components/Downloads.astro';
     bdSec = { title: `Belt drive: ${q('.bd-big').textContent}`, facts: facts2(q('.bd-facts')), figure: bdFig };
   }
 
-  const all = () => { gears(); planet(); belts(); };
+  let best: number[] | null = null;
+  function finder() {
+    if (!q<HTMLDetailsElement>('.gt-find').open) return;
+    const err = q('.gf-err'), list = q('.gf-list'), btn = q('.gf-use'), n = val('.gt-n');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; list.replaceChildren(); btn.hidden = true; best = null; };
+    const r = val('.gf-r'), stages = +q<HTMLSelectElement>('.gf-s').value as 1 | 2, lo = val('.gf-lo'), hi = val('.gf-hi');
+    if (!(r > 0 && r < 1000)) return fail('Give the ratio you want as a number above 0, such as 3.7.');
+    if (!(Number.isInteger(lo) && Number.isInteger(hi) && lo >= 6 && hi >= lo && hi <= 200)) return fail('Give whole tooth counts, at least 6 and at most 200, with the most at least the fewest.');
+    if (stages === 2 && hi - lo > 100) return fail('For two pairs keep the range to 100 teeth or less so the search stays quick.');
+    err.hidden = true;
+    const hits = findRatios(r, lo, hi, stages, 5);
+    if (!hits.length) return fail('No combination found: widen the tooth range.');
+    best = hits[0].teeth; btn.hidden = false;
+    list.replaceChildren(...hits.map((h) => { const li = document.createElement('li'); const pairs = h.teeth.length === 2 ? `${h.teeth[0]} → ${h.teeth[1]}` : `${h.teeth[0]} → ${h.teeth[1]}, then ${h.teeth[2]} → ${h.teeth[3]}`; li.textContent = `${pairs}: ratio ${sg(h.ratio, 5)} : 1 (${Math.abs(h.err) < 1e-9 ? 'exact' : `${sg(h.err, 2)} % off`})${n > 0 ? `, ${sg(n / h.ratio, 4)} rpm out from ${sg(n, 4)} rpm in` : ''}`; return li; }));
+  }
+  q('.gf-use').addEventListener('click', () => {
+    if (!best) return;
+    root.querySelectorAll('.gt-row').forEach((x) => x.remove());
+    for (let i = 0; i < best.length; i += 2) addMesh(String(best[i]), String(best[i + 1]));
+    all();
+  });
+  q('.gt-find').addEventListener('toggle', finder);
+  const all = () => { gears(); planet(); belts(); finder(); };
   q('.gt-add').addEventListener('click', () => { addMesh('20', '40'); gears(); });
   q('.gt-csv').addEventListener('click', () => rows.length > 1 && save(new Blob([csv(rows)], { type: 'text/csv' }), 'gear-train.csv', 'text/csv'));
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });

@@ -192,3 +192,12 @@ export function format(x: Parsed, o: Opts): Formatted {
 
 /** Significant figures of a number as typed ("0.00120" has 3; "1200" is counted as 4). */
 export const typedSig = (x: Dec) => Math.max(1, x.d.length);
+
+/** One plain sentence on how the power of ten was found, for the first line of input. */
+export function working(x: Parsed, f: Formatted): string {
+  const n = Math.abs(f.p), moves = (dir: string) => `The decimal point moves ${n} place${n === 1 ? '' : 's'} to the ${dir}`;
+  const sig = x.u ? `The uncertainty is rounded to ${f.uncSig} significant figure${f.uncSig === 1 ? '' : 's'} and the value to the same decimal place.` : `${typedSig(x.v)} figure${typedSig(x.v) === 1 ? ' was' : 's were'} typed.`;
+  if (f.prefix) return `The power of ten is a multiple of 3 and its prefix is ${PREFIXES[Object.keys(PREFIXES).map(Number).find((k) => PREFIXES[k].sym === f.prefix)!].name}. ${sig}`;
+  if (!f.p) return `No power of ten is needed. ${sig}`;
+  return `${moves(f.p > 0 ? 'left' : 'right')}, so the power of ten is ${f.p < 0 ? '−' : '+'}${n}${f.p < 0 ? ' (the number is smaller than 1)' : ' (the number is 10 or more)'}. ${sig}`;
+}

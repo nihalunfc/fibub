@@ -6,13 +6,21 @@
     <div class="cv-grid">
       <label>Gas <select data-k="g"><option value="cng">CNG</option><option value="lpg">LPG</option></select></label>
       <label>Kilometres a month <input data-k="km" inputmode="decimal" value="1500" /></label>
-      <label>Petrol price (₹ per litre) <input data-k="pp" inputmode="decimal" value="105" /></label>
+      <label>Petrol price (<span data-o="cs">₹ </span>per litre) <input data-k="pp" inputmode="decimal" value="105" /></label>
       <label>Petrol mileage (km/L) <input data-k="pm" inputmode="decimal" value="15" /></label>
       <label><span data-o="gpl">CNG price (₹ per kg)</span> <input data-k="gp" inputmode="decimal" value="90" /></label>
       <label><span data-o="gml">CNG mileage (km/kg)</span> <input data-k="gm" inputmode="decimal" value="22" /></label>
-      <label>Extra cost: variant or kit (₹) <input data-k="ex" inputmode="decimal" value="95000" /></label>
+      <label>Extra cost: variant or kit<span data-o="cs3"> (₹)</span> <input data-k="ex" inputmode="decimal" value="95000" /></label>
       <label>Years you keep it <input data-k="yr" inputmode="decimal" value="5" /></label>
     </div>
+    <details class="cv-opt">
+      <summary>More options: currency, share of km on gas</summary>
+      <div class="cv-grid">
+        <label>Currency symbol <select data-k="cur"><option value="₹">₹ rupee</option><option value="$">$ dollar</option><option value="£">£ pound</option><option value="AED ">AED dirham</option><option value="SAR ">SAR riyal</option><option value="">none</option></select></label>
+        <label>Share of your km driven on gas (%) <input data-k="share" inputmode="decimal" value="100" /></label>
+      </div>
+      <p class="cv-fine">Most CNG cars start on petrol and some trips stay on petrol, so 100% is the best case. The prices above are only labels for the currency; type your own local prices.</p>
+    </details>
   </section>
   <section class="panel">
     <svg class="cv-svg" viewBox="0 0 300 80" role="img" aria-label="Cost per kilometre, petrol against gas">
@@ -26,6 +34,14 @@
     <p class="cv-line" data-o="mon"></p>
     <p class="cv-line" data-o="tot"></p>
     <p class="cv-warn" data-o="warn"></p>
+  </section>
+  <section class="panel">
+    <h2 class="cv-h">Total cost year by year</h2>
+    <p class="cv-fine">Petrol only against gas, with the extra cost paid on day one. The first year gas is cheaper overall is where the lines cross.</p>
+    <svg class="cv-svg" data-o="chart" viewBox="0 0 300 140" role="img" aria-label="Total cost over the years, petrol against gas"></svg>
+    <div class="cv-scroll"><table class="cv-tab"><thead><tr><th>Year</th><th>Petrol only</th><th data-o="th2">Gas</th><th>Ahead</th></tr></thead><tbody></tbody></table></div>
+    <h2 class="cv-h">What if the gas price changes?</h2>
+    <div class="cv-scroll"><table class="cv-tab cv-sens"><thead><tr><th>Gas price</th><th>Per km</th><th>Saves a month</th><th>Pays back in</th></tr></thead><tbody></tbody></table></div>
   </section>
   <p class="cv-fine">Boot space shrinks with a cylinder, and CNG stations can have queues. Fit only a government-approved kit and get the change endorsed on the RC (rules as checked November 2026; check the official source). Prices change often. Nothing you type leaves this page.</p>
 </div>
@@ -41,31 +57,63 @@
   .cv-big { font-size: 24px; font-weight: 700; margin: 10px 0 0; }
   .cv-line { margin: 8px 0 0; font-weight: 600; }
   .cv-warn { color: var(--bad); margin: 8px 0 0; } .cv-warn:empty { display: none; }
+  .cv-h { font-size: 16px; margin: 16px 0 6px; }
+  .cv-opt summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .cv-scroll { overflow-x: auto; }
+  .cv-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .cv-tab th, .cv-tab td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cv-tab tr.on td { font-weight: 700; }
   .cv-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
-  import { compareCng } from '../../lib/vehicles/fuel';
+  import { compareCng, cumulativeCng } from '../../lib/vehicles/fuel';
   const root = document.querySelector('.cv') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
   const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
-  const inr = (v: number) => '₹' + Math.round(v).toLocaleString('en-IN');
-  const p2 = (v: number) => '₹' + v.toFixed(2);
+  let cur = '₹';
+  const inr = (v: number) => cur + Math.round(v).toLocaleString('en-IN');
+  const p2 = (v: number) => cur + v.toFixed(2);
+  const extras = (a: { kmMonth: number; petrolPrice: number; petrolMileage: number; gasPrice: number; gasMileage: number; extra: number; years: number; gasShare: number }, r: ReturnType<typeof compareCng>, lpg: boolean) => {
+    const name = lpg ? 'LPG' : 'CNG';
+    o('th2').textContent = `${name} (with the extra cost)`;
+    const yrs = Math.min(Math.max(Math.floor(a.years), 1), 30);
+    const rows = cumulativeCng({ kmMonth: a.kmMonth, petrolPerKm: r.petrolPerKm, gasPerKm: r.gasPerKm, extra: a.extra, years: yrs });
+    // line chart
+    const W = 300, H = 140, L = 6, B = 16, mx = Math.max(...rows.map((x) => Math.max(x.petrol, x.gas)), 1);
+    const X = (y: number) => L + (y / yrs) * (W - L - 6), Y = (v: number) => H - B - (v / mx) * (H - B - 8);
+    const path = (key: 'petrol' | 'gas') => rows.map((x, i) => `${i ? 'L' : 'M'}${X(x.year).toFixed(1)} ${Y(x[key]).toFixed(1)}`).join(' ');
+    (o('chart') as unknown as SVGElement).innerHTML = `<path d="${path('petrol')}" fill="none" stroke="currentColor" stroke-width="2" opacity=".5"/><path d="${path('gas')}" fill="none" stroke="var(--good)" stroke-width="2.5"/>` +
+      `<text x="${L}" y="${H - 3}" font-size="10" fill="currentColor">0</text><text x="${W - 6}" y="${H - 3}" font-size="10" fill="currentColor" text-anchor="end">${yrs} yr</text>` +
+      `<text x="${L + 4}" y="12" font-size="10" fill="currentColor">Grey: petrol only. Green: ${name} (top ${inr(mx)})</text>`;
+    (root.querySelector('.cv-tab tbody') as HTMLElement).innerHTML = rows.filter((x) => x.year > 0).map((x) => { const d = x.petrol - x.gas; return `<tr class="${x.year === Math.floor(a.years) ? 'on' : ''}"><td>${x.year}</td><td>${inr(x.petrol)}</td><td>${inr(x.gas)}</td><td>${d >= 0 ? inr(d) + ' ahead' : inr(-d) + ' behind'}</td></tr>`; }).join('');
+    const sens = [-20, 0, 20, 50].map((pc) => {
+      const gp = a.gasPrice * (1 + pc / 100), c = compareCng({ ...a, gasPrice: gp });
+      return `<tr class="${pc === 0 ? 'on' : ''}"><td>${pc === 0 ? 'Now' : (pc > 0 ? '+' : '') + pc + '%'} (${p2(gp)})</td><td>${p2(c.gasPerKm)}</td><td>${c.monthlySaving > 0 ? inr(c.monthlySaving) : 'no saving'}</td><td>${c.paybackMonths === null ? 'never' : a.extra <= 0 ? 'from month 1' : c.paybackMonths.toFixed(1) + ' months'}</td></tr>`;
+    });
+    (root.querySelector('.cv-sens tbody') as HTMLElement).innerHTML = sens.join('');
+  };
   const calc = () => {
     const lpg = q('g').value === 'lpg';
-    o('gpl').textContent = lpg ? 'LPG price (₹ per litre)' : 'CNG price (₹ per kg)';
+    cur = q('cur').value;
+    const cs = cur.trim();
+    const pre = cs ? cs + ' ' : '';
+    o('cs').textContent = pre; o('cs3').textContent = cs ? ` (${cs})` : '';
+    o('gpl').textContent = lpg ? `LPG price (${pre}per litre)` : `CNG price (${pre}per kg)`;
     o('gml').textContent = lpg ? 'LPG mileage (km/L)' : 'CNG mileage (km/kg)';
     o('gname').textContent = lpg ? 'LPG' : 'CNG';
-    const a = { kmMonth: num('km'), petrolPrice: num('pp'), petrolMileage: num('pm'), gasPrice: num('gp'), gasMileage: num('gm'), extra: num('ex'), years: num('yr') };
-    const ok = Object.values(a).every(isFinite) && a.petrolMileage > 0 && a.gasMileage > 0 && a.kmMonth >= 0;
-    o('warn').textContent = ok ? '' : 'Type every number (mileages must be above 0).';
-    if (!ok) return;
+    const a = { kmMonth: num('km'), petrolPrice: num('pp'), petrolMileage: num('pm'), gasPrice: num('gp'), gasMileage: num('gm'), extra: num('ex'), years: num('yr'), gasShare: (q('share').value.trim() === '' ? 100 : num('share')) / 100 };
+    const ok = Object.values(a).every(isFinite) && a.petrolMileage > 0 && a.gasMileage > 0 && a.kmMonth >= 0 && a.gasShare >= 0 && a.gasShare <= 1;
+    o('warn').textContent = ok ? '' : 'Type every number (mileages must be above 0, share of km on gas between 0 and 100).';
+    const clear = () => { (o('chart') as unknown as SVGElement).innerHTML = ''; (root.querySelector('.cv-tab tbody') as HTMLElement).innerHTML = ''; (root.querySelector('.cv-sens tbody') as HTMLElement).innerHTML = ''; };
+    if (!ok) { clear(); return; }
     const r = compareCng(a);
     const mx = Math.max(r.petrolPerKm, r.gasPerKm, 0.01);
     o('b1').setAttribute('width', String((r.petrolPerKm / mx) * 230));
     o('b2').setAttribute('width', String(Math.max(0, r.gasPerKm / mx) * 230));
     o('km').textContent = `Per km: petrol ${p2(r.petrolPerKm)}, ${lpg ? 'LPG' : 'CNG'} ${p2(r.gasPerKm)}`;
+    extras(a, r, lpg);
     if (r.paybackMonths === null) { o('pay').textContent = 'Gas does not save money with these numbers'; o('mon').textContent = ''; o('tot').textContent = ''; return; }
     o('pay').textContent = a.extra <= 0 ? 'Saves from the first month' : `Pays back in about ${r.paybackMonths.toFixed(1)} months`;
     o('mon').textContent = `You save about ${inr(r.monthlySaving)} a month`;

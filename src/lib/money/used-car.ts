@@ -132,3 +132,18 @@ export function score(marks: Mark[]) {
   const checked = ok + problems;
   return { ok, problems, checked, skipped: marks.length - checked, pct: checked ? Math.round((ok / checked) * 100) : 0 };
 }
+
+// ---- added 2026-11-16 ----
+/** Highest price worth offering: what the seller asks minus what the problems would cost to fix. */
+export const offerAfterRepairs = (asking: number, repairs: number[]) => {
+  const total = repairs.reduce((a, b) => a + (b > 0 ? b : 0), 0);
+  return { total, offer: Math.max(0, (asking > 0 ? asking : 0) - total), tooMuch: asking > 0 && total >= asking };
+};
+/** A plain one-line answer from the score and the red flags. */
+export function verdict(s: { checked: number; problems: number; pct: number }, redFlags: number, totalItems: number) {
+  if (!s.checked) return 'Mark each item OK or Problem as you go.';
+  if (redFlags > 0) return 'Red flag found: do not pay until it is explained, or walk away.';
+  if (s.checked < totalItems / 2) return 'Less than half checked so far: keep going before you decide.';
+  if (s.problems === 0) return 'No problems found in what you checked. A mechanic can still find more.';
+  return s.pct >= 80 ? 'Mostly fine. Use the problems to ask for a lower price.' : 'Several problems. Get repair quotes and bargain, or look at another one.';
+}

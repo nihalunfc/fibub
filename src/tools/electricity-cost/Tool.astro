@@ -20,7 +20,7 @@ import { PRESETS } from '../../lib/money/household';
   <section class="panel">
     <h2>Your tariff</h2>
     <div class="ec-grid">
-      <label>Price type <select data-k="mode"><option value="flat">One flat price</option><option value="tou">Time-of-use (on, mid, off-peak)</option></select></label>
+      <label>Price type <select data-k="mode"><option value="flat">One flat price</option><option value="tou">Time-of-use (on, mid, off-peak)</option><option value="slab">Slab tariff (price steps by monthly kWh)</option></select></label>
       <label class="ec-flat">Price per kWh <input data-k="flat" inputmode="decimal" value="0.15" /></label>
       <label class="ec-tou">On-peak price per kWh <input data-k="on" inputmode="decimal" value="0.20" /></label>
       <label class="ec-tou">Mid-peak price per kWh <input data-k="mid" inputmode="decimal" value="0.15" /></label>
@@ -28,6 +28,15 @@ import { PRESETS } from '../../lib/money/household';
       <label class="ec-tou">Share of your use on-peak (%) <input data-k="onShare" inputmode="decimal" value="20" /></label>
       <label class="ec-tou">Share of your use mid-peak (%) <input data-k="midShare" inputmode="decimal" value="20" /></label>
       <label>Fixed monthly charge <input data-k="fixed" inputmode="decimal" value="0" /></label>
+    </div>
+    <div class="ec-slab" hidden>
+      <p class="ec-fine">Type the steps from your bill: the price per kWh applies to the kWh between "From" and "To". Leave the last "To" empty for no upper limit. Leave unused rows empty.</p>
+      <div class="ec-scroll"><table class="ec-tab"><thead><tr><th>Slab</th><th>From kWh</th><th>To kWh</th><th>Price per kWh</th></tr></thead><tbody class="ec-sb"></tbody></table></div>
+      <div class="ec-grid">
+        <label>Fuel surcharge per kWh (optional) <input data-k="fuel" inputmode="decimal" value="0" /></label>
+        <label>VAT or tax on the bill (%) <input data-k="vat" inputmode="decimal" value="0" /></label>
+      </div>
+      <div class="ec-slabout"></div>
     </div>
     <p class="ec-fine">Time-of-use: the rest of your use counts as off-peak. Enter your own utility's prices and hours; they change, so take them from your bill or the utility's website.</p>
   </section>
@@ -39,6 +48,8 @@ import { PRESETS } from '../../lib/money/household';
 </div>
 
 <style is:inline>
+  .ec-slab[hidden], .ec-flat[hidden], .ec-tou[hidden] { display: none; }
+  .ec-slab .ec-grid { margin-top: 12px; }
   .ec { display: grid; gap: 14px; margin-bottom: 32px; }
   .ec .panel { padding: 16px; }
   .ec h2 { margin: 0 0 12px; font-size: 18px; }
@@ -74,17 +85,37 @@ import { PRESETS } from '../../lib/money/household';
     tr.innerHTML = `<td><input class="n" value="${esc(n)}" aria-label="Appliance name" /></td><td><input class="w" inputmode="decimal" value="${w}" aria-label="Watts" /></td><td><input class="h" inputmode="decimal" value="${h}" aria-label="Hours a day" /></td><td><input class="d" inputmode="decimal" value="30" aria-label="Days a month" /></td><td><input class="s" inputmode="decimal" value="${s}" aria-label="Standby watts" /></td><td class="k">0</td><td class="c">0</td><td><button type="button" class="x" aria-label="Remove">x</button></td>`;
     body.appendChild(tr);
   };
+  const sb = root.querySelector('.ec-sb') as HTMLElement, slabOut = root.querySelector('.ec-slabout') as HTMLElement;
+  const slabDefaults = [['0', '100', ''], ['100', '300', ''], ['300', '', '']];
+  for (let i = 0; i < 6; i++) { const d = slabDefaults[i] || ['', '', '']; const tr = document.createElement('tr'); tr.innerHTML = `<td>${i + 1}</td><td><input class="sf" inputmode="decimal" value="${d[0]}" aria-label="Slab ${i + 1} from kWh" /></td><td><input class="st" inputmode="decimal" value="${d[1]}" aria-label="Slab ${i + 1} to kWh" /></td><td><input class="sr" inputmode="decimal" value="${d[2]}" aria-label="Slab ${i + 1} price per kWh" /></td>`; sb.appendChild(tr); }
+  const slabBill = (kwh: number) => {
+    const sl = [...sb.querySelectorAll('tr')].map((tr) => { const g = (c: string) => (tr.querySelector('.' + c) as HTMLInputElement).value.trim(); const to = g('st'); return { from: parseFloat(g('sf')) || 0, to: to === '' ? Infinity : parseFloat(to), rate: parseFloat(g('sr')), used: g('sr') !== '' && isFinite(parseFloat(g('sr'))) }; }).filter((x) => x.used && x.to > x.from);
+    const parts = sl.map((x) => { const k = Math.max(0, Math.min(kwh, x.to) - x.from); return { ...x, k, cost: k * x.rate }; });
+    const fuel = num(root, 'fuel'), vat = num(root, 'vat'), fixed = num(root, 'fixed');
+    const energy = parts.reduce((a, p) => a + p.cost, 0), fuelCost = fuel * kwh;
+    const sub = energy + fuelCost + fixed, tax = sub * vat / 100;
+    const top = sl.find((x) => kwh >= x.from && kwh < x.to) || sl.filter((x) => kwh >= x.to).pop();
+    const marginal = top ? (top.rate + fuel) * (1 + vat / 100) : 0;
+    return { parts, energy, fuelCost, fixed, tax, total: sub + tax, marginal, covered: parts.reduce((a, p) => a + p.k, 0) };
+  };
   const n = (tr: Element, c: string) => { const v = parseFloat((tr.querySelector('.' + c) as HTMLInputElement).value); return isFinite(v) ? v : 0; };
   const calc = () => {
-    const mode = val(root, 'mode') as 'flat' | 'tou';
+    const mode = val(root, 'mode') as 'flat' | 'tou' | 'slab';
+    (root.querySelector('.ec-slab') as HTMLElement).hidden = mode !== 'slab';
     root.querySelectorAll('.ec-flat').forEach((e) => ((e as HTMLElement).hidden = mode !== 'flat'));
     root.querySelectorAll('.ec-tou').forEach((e) => ((e as HTMLElement).hidden = mode !== 'tou'));
     const trs = [...body.querySelectorAll('tr')];
     const list: Appliance[] = trs.map((tr) => ({ name: (tr.querySelector('.n') as HTMLInputElement).value, watts: n(tr, 'w'), hoursPerDay: Math.min(24, n(tr, 'h')), daysPerMonth: Math.min(31, n(tr, 'd')), standbyWatts: n(tr, 's') }));
-    const r = electricity(list, { mode, flat: num(root, 'flat'), on: num(root, 'on'), mid: num(root, 'mid'), off: num(root, 'off'), onShare: num(root, 'onShare'), midShare: num(root, 'midShare'), fixed: num(root, 'fixed') });
+    const slabMode = mode === 'slab';
+    let sbill: ReturnType<typeof slabBill> | null = null;
+    if (slabMode) { const k0 = electricity(list, { mode: 'flat', flat: 0, on: 0, mid: 0, off: 0, onShare: 0, midShare: 0, fixed: 0 }).kwh; sbill = slabBill(k0); }
+    const avg = sbill && sbill.covered > 0 ? (sbill.energy + sbill.fuelCost) * (1 + num(root, 'vat') / 100) / sbill.covered : 0;
+    const r = electricity(list, slabMode ? { mode: 'flat', flat: avg, on: 0, mid: 0, off: 0, onShare: 0, midShare: 0, fixed: 0 } : { mode, flat: num(root, 'flat'), on: num(root, 'on'), mid: num(root, 'mid'), off: num(root, 'off'), onShare: num(root, 'onShare'), midShare: num(root, 'midShare'), fixed: num(root, 'fixed') });
     trs.forEach((tr, i) => { (tr.querySelector('.k') as HTMLElement).textContent = fmt(r.rows[i].kwh, 1); (tr.querySelector('.c') as HTMLElement).textContent = fmt(r.rows[i].cost); });
+    if (sbill) { const m = sbill.total; r.month = m; r.day = m * 12 / 365; r.year = m * 12; r.rate = r.kwh ? m / r.kwh : 0; }
     big.textContent = list.length ? `${fmt(r.month)} a month` : 'Add an appliance to start';
-    rows.innerHTML = list.length ? rowsHtml([['Per day', fmt(r.day)], ['Per month', fmt(r.month)], ['Per year', fmt(r.year)], ['Energy a month', fmt(r.kwh, 1) + ' kWh'], ['Price used per kWh', fmt(r.rate, 4)]]) : '';
+    slabOut.innerHTML = sbill && list.length ? '<h3>Your bill by slab</h3>' + `<dl class="ec-rows">` + sbill.parts.map((p, i) => `<dt>Slab ${i + 1}: ${fmt(p.k, 1)} kWh at ${fmt(p.rate, 4)}</dt><dd>${fmt(p.cost)}</dd>`).join('') + (sbill.fuelCost ? `<dt>Fuel surcharge</dt><dd>${fmt(sbill.fuelCost)}</dd>` : '') + (sbill.fixed ? `<dt>Fixed monthly charge</dt><dd>${fmt(sbill.fixed)}</dd>` : '') + (sbill.tax ? `<dt>VAT or tax</dt><dd>${fmt(sbill.tax)}</dd>` : '') + `<dt>Cost of your last kWh (marginal, with surcharge and tax)</dt><dd>${fmt(sbill.marginal, 4)}</dd></dl>` + (sbill.covered < r.kwh - 0.001 ? '<p class="ec-fine">Your use is higher than the top of your last slab, so the extra kWh are not priced. Raise or empty the last "To".</p>' : '') : '';
+    rows.innerHTML = list.length ? rowsHtml([['Per day', fmt(r.day)], ['Per month', fmt(r.month)], ['Per year', fmt(r.year)], ['Energy a month', fmt(r.kwh, 1) + ' kWh'], [slabMode ? 'Average price per kWh (all in)' : 'Price used per kWh', fmt(r.rate, 4)]]) : '';
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   root.addEventListener('click', (e) => {

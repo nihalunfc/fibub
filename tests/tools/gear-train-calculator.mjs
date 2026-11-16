@@ -7,6 +7,20 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   { const f = await t('.gt-facts'); check(f.includes('9 : 1') && f.includes('96.04 %') && f.includes('in 3.016 kW, out 2.896 kW') && f.includes('72, 80 mm'), 'gear: ratio, efficiency, power, centre distances'); }
   check((await page.$$(`${R} .gt-tab tbody tr`)).length === 3 && (await t('.gt-tab')).includes('480reversed'), 'gear: shaft table');
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`${R} .gt-csv`)]); const f = OUT + 'gear.csv'; await d.saveAs(f); const rows = readFileSync(f, 'utf8').trim().split('\n'); check(rows.length === 4 && rows[0] === 'shaft,speed_rpm,direction,torque_Nm,power_kW' && rows[3].startsWith('2,160,same as input,172.872'), 'gear: shafts CSV'); }
+  // Ratio finder.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; })); await page.waitForTimeout(150);
+  { const items = await page.$$eval(`${R} .gf-list li`, (e) => e.map((x) => x.textContent)); check(items.length === 5 && items[0] === '13 → 48: ratio 3.6923 : 1 (−0.21 % off), 390 rpm out from 1440 rpm in', `gear: ratio finder, one pair (${items[0]})`); }
+  await page.fill(`${R} .gf-r`, '0'); await page.waitForTimeout(100);
+  check((await t('.gf-err')).includes('ratio you want') && await page.isHidden(`${R} .gf-use`), 'gear: finder bad ratio');
+  await page.fill(`${R} .gf-r`, '9'); await page.fill(`${R} .gf-lo`, '3'); await page.waitForTimeout(100);
+  check((await t('.gf-err')).includes('at least 6'), 'gear: finder bad tooth range');
+  await page.fill(`${R} .gf-lo`, '12'); await page.selectOption(`${R} .gf-s`, '2'); await page.waitForTimeout(150);
+  check((await page.textContent(`${R} .gf-list li`)) === '12 → 36, then 12 → 36: ratio 9 : 1 (exact), 160 rpm out from 1440 rpm in' && (await page.getAttribute(`${R} .gt-big`, 'aria-live')) === 'polite', 'gear: ratio finder, two pairs');
+  await page.fill(`${R} .gf-r`, '0.5'); await page.selectOption(`${R} .gf-s`, '1'); await page.waitForTimeout(100);
+  check((await page.textContent(`${R} .gf-list li`)).startsWith('24 → 12: ratio 0.5 : 1 (exact), 2880 rpm out'), 'gear: finder speed-up ratio');
+  await page.fill(`${R} .gf-r`, '9'); await page.selectOption(`${R} .gf-s`, '2'); await page.waitForTimeout(150);
+  await page.click(`${R} .gf-use`); await page.waitForTimeout(150);
+  check((await t('.gt-big')).startsWith('Output 160 rpm same way') && (await page.$$(`${R} .gt-row`)).length === 2 && (await page.inputValue(`${R} .gt-row:first-child .gt-a`)) === '12', `gear: use the best result (${await t('.gt-big')})`);
   await page.click(`${R} .gt-add`); await page.selectOption(`${R} .gt-row:nth-child(3) .gt-k`, 'internal'); await page.waitForTimeout(100);
   check((await t('.gt-big')).startsWith('Output 80 rpm same way'), 'gear: internal mesh added keeps direction');
   await page.click(`${R} .gt-row:nth-child(3) .gt-del`); await page.fill(`${R} .gt-row:nth-child(2) .gt-a`, '54'); await page.fill(`${R} .gt-row:nth-child(2) .gt-b`, '18'); await page.waitForTimeout(100);

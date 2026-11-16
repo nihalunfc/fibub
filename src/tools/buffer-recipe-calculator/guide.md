@@ -11,7 +11,7 @@ ads: true
 order: 2
 icon: flask
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [solution-calculator, titration-curve, equilibrium-solver, pcr-master-mix, enzyme-kinetics-fitter]
 sources:
   - "Henderson–Hasselbalch, charge balance and buffer capacity: standard acid–base chemistry."
@@ -48,6 +48,13 @@ For plain stock solutions and dilutions, use the [[solution-calculator]]; to see
 4. Follow the numbered steps. Always finish with a calibrated pH meter, because real pKa values vary with the batch, the exact salt and the meter.
 
 The capacity β tells you how many mM of strong acid or base it takes to shift the pH by one unit. A buffer works best within about one unit of its pKa′.
+
+## More options
+
+- **Common recipes.** Four buttons fill in a typical buffer (50 mM Tris pH 7.5, 10 mM phosphate pH 7.4, 20 mM HEPES pH 7.4, 50 mM acetate pH 5). They are only starting points: change anything afterwards.
+- **Ingredient table.** The recipe also appears as a short table of what to weigh or measure and how much, easy to copy into a lab notebook.
+- **Base to acid ratio.** The ratio of the two species either side of the nearest pKa at your pH, the number a Henderson–Hasselbalch sum gives, here with the activity-corrected pKa′.
+- **Concentrated stock.** Under "More options", type 10 for a 10× stock. A second table gives the amounts for the stock in the same final volume, and the dilution to get back to the buffer. The pH shifts a little on dilution because the ionic strength drops, so check it on the diluted buffer.
 
 ## Worked example
 

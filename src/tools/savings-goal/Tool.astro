@@ -27,6 +27,17 @@
       </div>
       <p class="sg-hint">Prices rise: your goal is in today's money, so the amount you need grows by this much each year. Leave it at 0 to ignore inflation.</p>
     </details>
+    <details class="sg-more sg-fx">
+      <summary>Saving in another currency</summary>
+      <p class="sg-hint">For a goal priced in another currency, such as a goal back home, while you earn and save in your own. The goal above is in the goal's currency; this works out what to set aside in yours.</p>
+      <div class="sg-grid" style="margin-top:10px">
+        <label>I save in <select class="sg-fxcur" data-k="fxcur"></select></label>
+        <label>Today's rate: 1 unit of the goal's currency costs <input data-k="fxrate" inputmode="decimal" placeholder="for example 0.012" /></label>
+        <label>Expected change in the rate <span class="sg-suf"><input data-k="fxdrift" inputmode="decimal" value="0" /><i>% a year</i></span></label>
+      </div>
+      <p class="sg-hint">Expected change: a plus figure means the goal's currency gets dearer for you each year, so each month's saving buys a little less of it. Rates move in both directions and nobody can predict them; try a few figures.</p>
+      <p class="sg-line sg-fxout" aria-live="polite"></p>
+    </details>
     <p class="note bad sg-err" role="alert" hidden></p>
   </section>
   <section class="sg-res" aria-live="polite">
@@ -93,12 +104,13 @@
 <script>
   import { monthlyNeeded, monthsToReach, balanceAfter, inflate, whatIfMonthly } from '../../lib/money/goals';
   import { lineSvg, legend } from '../../lib/money/chart';
+  import { fxMonthly } from '../../lib/money/fx-goal';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.sg')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency();
-  q('.sg-cur').innerHTML = currencyOptions(cur);
+  q('.sg-cur').innerHTML = currencyOptions(cur); q('.sg-fxcur').innerHTML = currencyOptions(cur);
   const india = cur === 'INR';
   f('target').value = india ? '5,00,000' : '10,000'; f('start').value = '0'; f('rate').value = '3'; f('months').value = '24';
   f('monthly').value = india ? '10,000' : '300'; f('ess').value = india ? '40,000' : '2,500'; f('mcover').value = '6';
@@ -114,6 +126,19 @@
     if (isNaN(+d)) return;
     f('months').value = String(Math.max(1, (d.getFullYear() - n.getFullYear()) * 12 + d.getMonth() - n.getMonth()));
   });
+  // Saving in another currency: monthly amount in the saver's currency, with the rate drifting each month.
+  function runFx(target: number, start: number, rate: number, n: number, due: boolean, ok: boolean) {
+    const out = q('.sg-fxout'), r0 = num(f('fxrate').value), drift = num(f('fxdrift').value), mine = f('fxcur').value;
+    const $m = (x: number) => money(x, mine, Math.abs(x) < 10000 ? 2 : 0);
+    if (!ok) { out.textContent = ''; return; }
+    if (f('mode').value !== 'monthly') { out.textContent = 'Switch to "how much to save each month" to see the amount in your currency.'; return; }
+    if (!(r0 > 0)) { out.textContent = "Type today's rate to see the monthly amount in your currency."; return; }
+    if (!(drift > -100 && drift <= 100)) { out.textContent = 'Enter the expected yearly change as a percent, for example 2 or -1.'; return; }
+    const fx = fxMonthly(target, start, rate, n, due, r0, drift);
+    if (!fx) { out.textContent = ''; return; }
+    const d = fx.diffTotal;
+    out.textContent = `Save about ${$m(fx.perMonth)} a month in your currency. At a flat rate it would be ${$m(fx.flat)} a month` + (Math.abs(d) < 0.005 ? '.' : `, so the expected change ${d > 0 ? 'adds' : 'saves'} about ${$m(Math.abs(d))} over ${fmtLen(n)} (${$m(Math.abs(fx.diffMonth))} a month).`);
+  }
   function run() {
     q('.sg-yr').hidden = true;
     const mode = f('mode').value, em = f('kind').value === 'emergency';
@@ -126,19 +151,20 @@
     const start = num(f('start').value), rate = num(f('rate').value), months = Math.round(num(f('months').value)), monthly0 = num(f('monthly').value);
     const bad = !(target0 > 0) ? (em ? 'Enter your essential costs and the months to cover.' : 'Enter the target amount.') : start < 0 || monthly0 < 0 ? 'Amounts cannot be negative.' : infl < 0 || infl > 100 ? 'Enter the yearly price rise as a percent from 0 to 100, or 0.' : rate < 0 || rate > 100 ? 'Enter the yearly interest rate, for example 3.' : mode === 'monthly' && !(months >= 1 && months <= 1200) ? 'Enter the months to go, from 1 to 1,200.' : '';
     q('.sg-err').hidden = !bad; q('.sg-err').textContent = bad; q('.sg-res').hidden = !!bad;
-    if (bad) return;
+    if (bad) { runFx(0, 0, 0, 0, due, false); return; }
     let monthly: number, n: number, target = target0;
     if (mode === 'monthly') { n = months; target = inflate(target0, infl, n); monthly = monthlyNeeded(target, start, rate, n, due); }
     else {
       let m = monthsToReach(target0, start, rate, monthly0, due);
       for (let k = 0; k < 30 && isFinite(m) && infl > 0; k++) { const t = inflate(target0, infl, Math.ceil(m - 1e-9)); const m2 = monthsToReach(t, start, rate, monthly0, due); if (Math.abs(m2 - m) < 1e-6) break; m = m2; }
-      if (!isFinite(m) || m > 1200) { q('.sg-err').hidden = false; q('.sg-err').textContent = !isFinite(m) ? 'With nothing saved each month and no interest, you will not reach the goal. Enter a monthly amount.' : 'At that rate of saving the goal is more than 100 years away. Try saving more each month.'; q('.sg-res').hidden = true; return; }
+      if (!isFinite(m) || m > 1200) { q('.sg-err').hidden = false; q('.sg-err').textContent = !isFinite(m) ? 'With nothing saved each month and no interest, you will not reach the goal. Enter a monthly amount.' : 'At that rate of saving the goal is more than 100 years away. Try saving more each month.'; q('.sg-res').hidden = true; runFx(0, 0, 0, 0, due, false); return; }
       n = Math.ceil(m - 1e-9); monthly = monthly0; target = inflate(target0, infl, n);
     }
     // keep the sliders in step with the typed numbers
     const mr = f('monthsr'), tr = f('monthlyr');
     mr.value = String(Math.min(120, Math.max(1, months || 1)));
     tr.max = String(Math.max(100, Math.ceil((monthly0 * 3) / 10) * 10)); tr.value = String(Math.min(monthly0, +tr.max));
+    runFx(target, start, rate, n, due, true);
     const total = balanceAfter(start, rate, monthly, n, due);
     const put = start + monthly * n;
     q('.sg-l1').textContent = mode === 'monthly' ? 'Save each month' : 'Time to reach it';

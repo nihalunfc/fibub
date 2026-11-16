@@ -53,3 +53,7 @@ The load pays 2,000 flat for 800 loaded miles, and you drive 200 empty miles to 
 **Should I include my own pay?** Yes, in the cost for every mile or by keeping the profit as your pay. Be consistent.
 
 **Is a small profit always bad?** Not if the truck would otherwise sit idle, but check it against [[cost-per-mile]] so fixed costs are covered.
+
+## More options
+
+Below the verdict the tool now gives a counter-offer line: the lowest flat rate that meets your minimum profit a day and minimum rate per total mile, the same figure per loaded mile, and the rate that only breaks even. Use it when a broker asks what you need to take the load.

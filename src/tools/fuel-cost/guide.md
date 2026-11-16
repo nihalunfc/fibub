@@ -11,7 +11,7 @@ ads: false
 order: 1718
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [percentage-calculator, budget-calculator]
 sources:
   - "Conversions: 1 mile = 1.609344 km, 1 US gallon = 3.785411784 L, 1 UK (imperial) gallon = 4.54609 L (international standard definitions)."
@@ -40,6 +40,10 @@ A second box converts between the four economy units, handy when comparing a UK 
 - **L/100 km**: litres used per 100 km. Lower is better.
 - **km/L**: kilometres per litre. Higher is better.
 - **mpg (US) and mpg (UK)**: miles per gallon. A UK gallon is bigger, so the same car shows a bigger UK number.
+
+## More options
+
+The distance box has quick presets (10, 25, 50, 100, 250 and 500) so the common trips take one tap. Under the answer you also get the cost per km, per mile and per 100 km, and the fuel in US and UK gallons, so you can compare with a quote in any unit. Open "More options" to turn a trip into a weekly, monthly and yearly cost (type the trips a week), to compare a second vehicle on the same trip (its economy, and its own fuel price if it uses a different fuel), and to work out your real economy from a fill-up: fill the tank, reset the trip meter, drive, fill again, then type the distance and the fuel added. One tap on "Use this economy above" puts the answer into the trip. Blank, zero or negative boxes give a plain message, never a broken number.
 
 ## Worked example
 

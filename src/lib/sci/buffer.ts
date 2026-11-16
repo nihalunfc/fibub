@@ -157,3 +157,19 @@ export function pHAtOtherT(b: Buffer, r: Recipe, tUse: number, salt = 0): number
 
 /** Maximum buffer capacity near a pKa (for scale): β at pH = pKa′ for a single pair is 2.303·C/4. */
 export const betaMaxSingle = (C: number) => 2.302585 * C / 4;
+
+/** The same amounts for an N-times stock made up in the same final volume: every mass, volume and mole count is N times as much. */
+export function scaleRecipe(r: Recipe, n: number): { forms: { name: string; formula: string; grams: number; mL?: number; mol: number }[]; titrant: number; titrantmL: number } | null {
+  if (!(n >= 1) || !Number.isFinite(n)) return null;
+  return {
+    forms: r.forms.filter((x) => x.mol > 1e-12).map((x) => ({ name: x.form.name, formula: x.form.formula, grams: x.grams * n, mL: x.mL === undefined ? undefined : x.mL * n, mol: x.mol * n })),
+    titrant: r.titrant * n, titrantmL: r.titrantmL * n,
+  };
+}
+
+/** Base-to-acid ratio of the two species either side of the pKa nearest the pH (the Henderson–Hasselbalch ratio, with activity-corrected pKa′). */
+export function baseAcidRatio(alpha: number[], pKa: number[], pH: number): { ratio: number; pKa: number; basePct: number } {
+  const near = pKa.reduce((bi, p, i) => (Math.abs(p - pH) < Math.abs(pKa[bi] - pH) ? i : bi), 0);
+  const a = alpha[near], bse = alpha[near + 1];
+  return { ratio: bse / a, pKa: pKa[near], basePct: (100 * bse) / (a + bse) };
+}

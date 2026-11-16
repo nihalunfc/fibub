@@ -1,0 +1,153 @@
+---
+// #L346 Ion tests. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths: src/lib/learn/curr-chem.ts, checked in tests/curr-chem.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn it">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 11 to 12</button></div>
+    <div class="ax-seg" role="group" aria-label="Mode" style="margin-top:8px"><button type="button" class="it-mode" data-mode="mystery" aria-pressed="true">Mystery salt</button><button type="button" class="it-mode" data-mode="practice" aria-pressed="false">Practice</button></div>
+    <p class="ax-help it-help"></p>
+    <div class="ax-grid">
+      <label><span class="it-lc">Positive ion (cation)</span> <select class="it-cat" aria-label="Cation"></select></label>
+      <label><span class="it-la">Negative ion (anion)</span> <select class="it-an" aria-label="Anion"></select></label>
+    </div>
+    <canvas class="lrn-cv it-cv" aria-label="A bench showing the last test: a flame, a test tube with a precipitate, or a gas bubbling into limewater" style="margin-top:8px"></canvas>
+    <p class="ax-big it-out" aria-live="polite">Pick a test.</p>
+    <p class="ax-help it-eq" data-only="11" hidden></p>
+    <div class="it-tests">
+      <button type="button" class="btn secondary small" data-t="flame">Flame test</button>
+      <button type="button" class="btn secondary small" data-t="naoh">Add NaOH (drops)</button>
+      <button type="button" class="btn secondary small" data-t="naoh2">Add NaOH (excess)</button>
+      <button type="button" class="btn secondary small" data-t="acid">Add dilute acid</button>
+      <button type="button" class="btn secondary small" data-t="agno3">Add AgNO₃ + HNO₃</button>
+      <button type="button" class="btn secondary small" data-t="bacl2">Add BaCl₂ + HCl</button>
+    </div>
+    <h3 style="margin:12px 0 4px;font-size:15px">Your results</h3>
+    <ol class="it-log ax-help"></ol>
+    <div class="it-game">
+      <p><button type="button" class="btn small it-check">Check my answer</button> <button type="button" class="btn secondary small it-new">New mystery salt</button></p>
+      <p class="ax-big it-verdict" aria-live="polite"></p>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>In Practice mode, tell calcium, magnesium and aluminium apart: which tests separate them?</li><li>Test copper(II) sulfate with sodium hydroxide, then with barium chloride. Which ion does each test find?</li><li>Switch to Mystery salt: use as few tests as you can, then guess the cation and the anion.</li></ul>
+  </div>
+  <div class="ax-card it-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .it .it-cv { width: 100%; }
+  .it select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .it .it-tests { display: flex; flex-wrap: wrap; gap: 8px; }
+  .it .it-tests .btn { min-height: 44px; }
+  .it .it-log { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
+  .it .ax-seg button { min-height: 44px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { CATIONS, ANIONS, cationById, anionById, flameTest, naohTest, anionTest, saltFormula, saltName, mysterySalt, checkGuess, saltExists, sub, type Obs } from '../../lib/learn/curr-chem';
+  const root = document.querySelector('.it') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cvEl = $<HTMLCanvasElement>('.it-cv'), out = $('.it-out'), log = $('.it-log'), cs = $<HTMLSelectElement>('.it-cat'), as = $<HTMLSelectElement>('.it-an');
+  const sup = (n: number) => (n === 1 ? '' : '²³'[n - 2]);
+  const cLabel = (c: (typeof CATIONS)[0]) => `${c.sym}${sup(c.charge)}⁺ (${c.name})`;
+  const aLabel = (a: (typeof ANIONS)[0]) => `${a.sym.replace(/\d/g, (d) => sub(+d))}${sup(a.charge)}⁻ (${a.name})`;
+  CATIONS.forEach((c) => cs.append(new Option(cLabel(c), c.id)));
+  ANIONS.forEach((a) => as.append(new Option(aLabel(a), a.id)));
+  let mode = 'mystery', sample = mysterySalt(), revealed = false, tests = 0;
+  type View = { kind: 'idle' | 'flame' | 'tube' | 'gas'; hex?: string; milky?: boolean; clear?: boolean };
+  let view: View = { kind: 'idle' };
+  const NAMES: Record<string, string> = { flame: 'Flame test', naoh: 'NaOH (drops)', naoh2: 'NaOH (excess)', acid: 'Dilute acid', agno3: 'AgNO₃ + HNO₃', bacl2: 'BaCl₂ + HCl' };
+  const current = () => (mode === 'practice' ? { c: cationById(cs.value), a: anionById(as.value) } : sample);
+  const fix = () => {
+    // keep practice samples that really exist
+    if (mode === 'practice' && !saltExists(cationById(cs.value), anionById(as.value))) as.value = 'Cl-';
+  };
+  const clearLog = () => { log.replaceChildren(); tests = 0; out.textContent = 'Pick a test.'; delete out.dataset.last; view = { kind: 'idle' }; $('.it-eq').textContent = ''; };
+  const setMode = (m: string) => {
+    mode = m; root.querySelectorAll('.it-mode').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.mode === m)));
+    $('.it-game').hidden = m !== 'mystery'; revealed = false; $('.it-verdict').textContent = '';
+    $('.it-help').textContent = m === 'mystery' ? 'A salt is hidden in the tube (one cation and one anion). Run tests to gather clues, then choose your answer below and check it. The solutions are drawn colourless so the tests give the clues.' : 'Choose a cation and an anion to make a sample, then run the tests to see what each one shows.';
+    $('.it-lc').textContent = m === 'mystery' ? 'Your guess: cation' : 'Positive ion (cation)'; $('.it-la').textContent = m === 'mystery' ? 'Your guess: anion' : 'Negative ion (anion)';
+    if (m === 'mystery') sample = mysterySalt();
+    clearLog(); fix(); upd();
+  };
+  const upd = () => { const s = current(); out.dataset.cation = s.c.id; out.dataset.anion = s.a.id; };
+  const run = (t: string) => {
+    const { c, a } = current(); let o: Obs;
+    if (t === 'flame') o = flameTest(c); else if (t === 'naoh') o = naohTest(c, false); else if (t === 'naoh2') o = naohTest(c, true);
+    else o = anionTest(a, t as 'acid' | 'agno3' | 'bacl2');
+    out.textContent = `${NAMES[t]}: ${o.text}.`; out.dataset.last = o.text; out.dataset.kind = o.kind;
+    $('.it-eq').textContent = o.eq ? `Ionic equation: ${o.eq}` : '';
+    const li = document.createElement('li'); li.textContent = `${NAMES[t]}: ${o.text}`; log.append(li); tests++;
+    if (t === 'flame') view = { kind: 'flame', hex: o.hex };
+    else if (t === 'acid') view = { kind: 'gas', milky: o.kind === 'milky' };
+    else if (t === 'agno3' && o.kind === 'gas') view = { kind: 'gas', milky: false };
+    else if (t === 'bacl2' && o.kind === 'gas') view = { kind: 'gas', milky: false };
+    else view = { kind: 'tube', hex: o.kind === 'ppt' ? o.hex : undefined, clear: o.kind !== 'ppt' };
+    out.dataset.tests = String(tests);
+    lp.redraw();
+  };
+  root.querySelectorAll<HTMLButtonElement>('[data-t]').forEach((b) => b.addEventListener('click', () => run(b.dataset.t!)));
+  root.querySelectorAll<HTMLButtonElement>('.it-mode').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+  [cs, as].forEach((s) => s.addEventListener('input', () => { fix(); if (mode === 'practice') clearLog(); upd(); lp.redraw(); }));
+  $('.it-new').addEventListener('click', () => { sample = mysterySalt(); revealed = false; $('.it-verdict').textContent = ''; clearLog(); upd(); lp.redraw(); });
+  $('.it-check').addEventListener('click', () => {
+    const g = checkGuess(sample.c.id, sample.a.id, cs.value, as.value), v = $('.it-verdict');
+    const f = saltFormula(sample.c, sample.a), nm = saltName(sample.c, sample.a);
+    v.dataset.result = g.both ? 'both' : g.cation ? 'cation' : g.anion ? 'anion' : 'none';
+    v.textContent = g.both ? `Correct! It is ${nm}, ${f}.` : g.cation ? 'The cation is right, but the anion is not. Try another test.' : g.anion ? 'The anion is right, but the cation is not. Try another test.' : 'Neither is right yet. Look at your results again.';
+    if (g.both) revealed = true;
+  });
+  const step = (dt: number) => {
+    const { ctx, W, H } = fitCanvas(cvEl, 210), pal = pagePalette();
+    t0 += dt; ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif'; ctx.textAlign = 'center';
+    const tube = (x: number, y: number, w: number, h: number, liquid: string, ppt?: string) => {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - w / 2, y); ctx.lineTo(x - w / 2, y + h - w / 2); ctx.arc(x, y + h - w / 2, w / 2, Math.PI, 0, true); ctx.lineTo(x + w / 2, y); ctx.stroke();
+      ctx.fillStyle = liquid; ctx.beginPath(); ctx.moveTo(x - w / 2 + 1, y + h * 0.3); ctx.lineTo(x - w / 2 + 1, y + h - w / 2); ctx.arc(x, y + h - w / 2, w / 2 - 1, Math.PI, 0, true); ctx.lineTo(x + w / 2 - 1, y + h * 0.3); ctx.closePath(); ctx.fill();
+      if (ppt) { ctx.fillStyle = ppt; ctx.beginPath(); ctx.arc(x, y + h - w / 2, w / 2 - 3, 0, Math.PI); ctx.fill(); ctx.fillRect(x - w / 2 + 3, y + h * 0.7, w - 6, h * 0.12); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.stroke(); }
+    };
+    const water = 'rgba(120,170,230,0.18)';
+    if (view.kind === 'flame') {
+      const cx = W / 2, by = 170, wob = Math.sin(t0 * 9) * 2;
+      ctx.fillStyle = pal.muted; ctx.fillRect(cx - 12, by, 24, 30);
+      const col = view.hex ?? '#4a8bff';
+      const fl = (sc: number, c: string, a: number) => { ctx.fillStyle = c; ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(cx - 20 * sc, by); ctx.quadraticCurveTo(cx - 24 * sc, by - 60 * sc, cx + wob, by - 110 * sc); ctx.quadraticCurveTo(cx + 24 * sc, by - 60 * sc, cx + 20 * sc, by); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; };
+      fl(1, col, 0.9); fl(0.55, '#4a8bff', 0.8);
+      ctx.fillStyle = pal.ink; ctx.fillText(view.hex ? 'Flame colour of the sample' : 'Plain blue flame (no colour from the sample)', cx, 20);
+    } else if (view.kind === 'gas') {
+      tube(W * 0.3, 60, 46, 130, water); tube(W * 0.72, 100, 46, 90, view.milky ? 'rgba(235,235,235,0.9)' : water);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W * 0.3 + 12, 50); ctx.lineTo(W * 0.3 + 12, 36); ctx.lineTo(W * 0.72, 36); ctx.lineTo(W * 0.72, 150); ctx.stroke();
+      const fizz = current().a.id === 'CO32-';
+      ctx.fillStyle = pal.muted; if (fizz) for (let i = 0; i < 7; i++) { const y = 175 - ((t0 * 40 + i * 19) % 90); ctx.beginPath(); ctx.arc(W * 0.3 - 10 + ((i * 11) % 22), y, 3, 0, 7); ctx.fill(); }
+      ctx.fillStyle = pal.ink; ctx.fillText('Sample + acid', W * 0.3, 206); ctx.fillText(view.milky ? 'Limewater: milky' : 'Limewater: clear', W * 0.72, 206);
+    } else {
+      tube(W / 2, 20, 56, 160, water, view.kind === 'tube' ? view.hex : undefined);
+      ctx.fillStyle = pal.ink; ctx.fillText(view.kind === 'idle' ? 'Test tube with the sample solution' : view.clear ? 'Solution stays clear' : 'Precipitate settles', W / 2, 202);
+    }
+  };
+  let t0 = 0;
+  const lp = loop(step);
+  addEventListener('resize', () => lp.redraw());
+  wireLevel(root, () => {});
+  setMode('mystery');
+  const pool = <T>(correct: T, all: readonly T[], k = 3) => { const others = all.filter((x) => x !== correct).sort(() => Math.random() - 0.5).slice(0, k - 1); const ch = [correct, ...others].sort(() => Math.random() - 0.5); return { ch, ans: ch.indexOf(correct) }; };
+  mountQuiz($('.it-quiz'), () => {
+    const fc = one(CATIONS.filter((c) => c.flame)), q1 = pool(fc.id, CATIONS.filter((c) => c.flame).map((c) => c.id));
+    const pc = one(['Cu2+', 'Fe2+', 'Fe3+']), pcat = cationById(pc), q2 = pool(pc, ['Cu2+', 'Fe2+', 'Fe3+', 'Mg2+']);
+    const ha = one(['Cl-', 'Br-', 'I-']), hobs = anionTest(anionById(ha), 'agno3').text.split(' ')[0], q3 = pool(ha, ['Cl-', 'Br-', 'I-', 'SO42-']);
+    const lab = (id: string) => (id.includes('-') && !id.includes('+') ? aLabel(anionById(id)) : cLabel(cationById(id)));
+    return [
+      { q: `A flame test gives a ${fc.flame!.name} flame. Which ion is present?`, choices: q1.ch.map(lab), ans: q1.ans, work: `${fc.name} gives a ${fc.flame!.name} flame. The others give different colours (Li crimson, Na yellow, K lilac, Ca orange-red, Cu green).` },
+      { q: `Sodium hydroxide gives a ${pcat.ppt!.name} precipitate that does not dissolve in excess. Which ion?`, choices: q2.ch.map(lab), ans: q2.ans, work: `Cu²⁺ gives blue, Fe²⁺ green, Fe³⁺ brown. Mg²⁺ gives white. So the answer is ${lab(pc)}.` },
+      { q: `Adding silver nitrate (with nitric acid) gives a ${hobs} precipitate. Which ion is present?`, choices: q3.ch.map(lab), ans: q3.ans, work: `Chloride gives white, bromide cream, iodide yellow. Sulfate gives no precipitate with silver nitrate. Answer: ${lab(ha)}.` },
+      { q: 'Dilute acid is added to a solid and the gas turns limewater milky. Which ion was in the solid?', choices: ['Sulfate', 'Carbonate', 'Chloride'], ans: 1, work: 'Carbonates react with acid to give carbon dioxide, which turns limewater milky.' },
+    ];
+  });
+</script>

@@ -105,3 +105,29 @@ export function tripTotals(t: Trip) {
   const paidByDriver = (t.driverPays.diesel ? diesel : 0) + (t.driverPays.tolls ? pos(t.tolls) : 0) + (t.driverPays.loading ? pos(t.loading) : 0) + (t.driverPays.other ? pos(t.other) : 0);
   return { km, litres, kmpl: litres > 0 && km > 0 ? km / litres : 0, diesel, bata, cost, profit: r2(pos(t.freight) - cost), driverBalance: r2(bata + paidByDriver - pos(t.advance)) };
 }
+
+// ---- added 2026-11-16 ----
+export const emiOf = (loan: number, ratePct: number, months: number) => {
+  if (!(loan > 0) || !(months >= 1)) return { payment: 0, interest: 0 };
+  const r = ratePct / 1200;
+  const payment = r > 0 ? (loan * r) / (1 - Math.pow(1 + r, -months)) : loan / months;
+  return { payment, interest: payment * months - loan };
+};
+/** How much taxes and fees add on top of the vehicle price, as an amount and a percent. */
+export const extrasOver = (total: number, base: number) => (base > 0 && total >= base ? { amount: total - base, pct: ((total - base) / base) * 100 } : { amount: 0, pct: 0 });
+/** Longest distance an e-way bill of this many days can cover. */
+export const ewayMaxKm = (days: number, odc: boolean) => (days > 0 ? days * (odc ? EWB_KM.odc : EWB_KM.normal) : 0);
+/** Compare the last valid day with today: negative = days since it ended; `ymd` are [y, m, d]. */
+export function ewayDaysLeft(todayYmd: number[], lastYmd: number[]): number {
+  const a = Date.UTC(todayYmd[0], todayYmd[1] - 1, todayYmd[2]), b = Date.UTC(lastYmd[0], lastYmd[1] - 1, lastYmd[2]);
+  return Math.round((b - a) / 864e5);
+}
+export function tripExtras(t: Trip, expectedKmpl: number) {
+  const r = tripTotals(t);
+  const f = pos(t.freight);
+  const perKm = (v: number) => (r.km > 0 ? r2(v / r.km) : 0);
+  const expectedL = expectedKmpl > 0 && r.km > 0 ? r.km / expectedKmpl : 0;
+  const avgPrice = r.litres > 0 ? r.diesel / r.litres : 0;
+  return { costPerKm: perKm(r.cost), freightPerKm: perKm(f), profitPerKm: perKm(r.profit), marginPct: f > 0 ? Math.round((r.profit / f) * 1000) / 10 : 0,
+    expectedL, litreGap: expectedL > 0 ? r.litres - expectedL : 0, gapValue: expectedL > 0 ? r2((r.litres - expectedL) * avgPrice) : 0, avgPrice };
+}

@@ -56,3 +56,38 @@ export function specific(half: number, A: number) {
 }
 /** Units of activity in Bq. */
 export const ACT_UNITS: Record<string, number> = { Bq: 1, kBq: 1e3, MBq: 1e6, GBq: 1e9, TBq: 1e12, µCi: CI * 1e-6, mCi: CI * 1e-3, Ci: CI };
+
+export type HalfLifeInput = { n0: number | null; nt: number | null; t: number | null; T: number | null };
+export type HalfLifeResult = { missing: 'n0' | 'nt' | 't' | 'T'; value: number; halves: number; fraction: number; steps: string[] };
+
+/**
+ * Solve N(t) = N0 × 2^(−t/T½) for whichever of N0, N(t), t or T½ is left empty (null). t and T½ must be in the same unit.
+ * Throws an Error with a plain message when the numbers cannot work.
+ */
+export function halfLifeSolve(v: HalfLifeInput): HalfLifeResult {
+  const keys = ['n0', 'nt', 't', 'T'] as const, empty = keys.filter((k) => v[k] === null);
+  if (empty.length !== 1) throw new Error(empty.length === 0 ? 'Leave one box empty: the one you want to find.' : 'Fill in three boxes and leave only the one you want to find empty.');
+  const missing = empty[0];
+  for (const k of keys) if (v[k] !== null && !Number.isFinite(v[k] as number)) throw new Error('Type plain numbers.');
+  if (missing !== 'n0' && !((v.n0 as number) > 0)) throw new Error('The starting amount must be above zero.');
+  if (missing !== 'nt' && !((v.nt as number) > 0)) throw new Error(v.nt === 0 ? 'The amount left never reaches exactly zero; type a small amount above zero.' : 'The amount left must be above zero.');
+  if (missing !== 'T' && !((v.T as number) > 0)) throw new Error('The half-life must be above zero.');
+  if (missing !== 't' && (v.t as number) < 0) throw new Error('The time cannot be negative.');
+  const { n0, nt, t, T } = v as Record<string, number>;
+  let value = 0; const steps: string[] = [];
+  if (missing === 'nt') { value = n0 * Math.pow(2, -t / T); steps.push('N = N₀ × 2^(−t / T½)', `t / T½ = ${t} / ${T} = ${t / T} half-lives`, `N = ${n0} × 2^(−${t / T}) = ${value}`); }
+  else if (missing === 'n0') { value = nt * Math.pow(2, t / T); steps.push('N₀ = N × 2^(t / T½)', `t / T½ = ${t} / ${T} = ${t / T} half-lives`, `N₀ = ${nt} × 2^(${t / T}) = ${value}`); }
+  else {
+    if (nt > n0) throw new Error('The amount left cannot be more than the starting amount.');
+    const r = Math.log2(n0 / nt);
+    if (missing === 't') { value = T * r; steps.push('t = T½ × log₂(N₀ / N)', `log₂(${n0} / ${nt}) = ${r} half-lives`, `t = ${T} × ${r} = ${value}`); }
+    else {
+      if (r === 0) throw new Error('Nothing has decayed (the amount left equals the starting amount), so the half-life cannot be found.');
+      if (t === 0) throw new Error('With a time of zero nothing can have decayed, so the half-life cannot be found.');
+      value = t / r; steps.push('T½ = t / log₂(N₀ / N)', `log₂(${n0} / ${nt}) = ${r}`, `T½ = ${t} / ${r} = ${value}`);
+    }
+  }
+  const n0v = missing === 'n0' ? value : n0, ntv = missing === 'nt' ? value : nt, tv = missing === 't' ? value : t, Tv = missing === 'T' ? value : T;
+  if (!Number.isFinite(value)) throw new Error('That number is too large or too small to work out.');
+  return { missing, value, halves: tv / Tv, fraction: ntv / n0v, steps };
+}

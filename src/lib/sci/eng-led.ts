@@ -46,3 +46,11 @@ export function layout(total: number, per: number): { strings: number; sizes: nu
 export function spread(vs: number, vf: number, n: number, r: number, dVf: number, dVs: number): { lo: number; hi: number } {
   return { lo: currentWith(vs - dVs, vf + dVf, n, r), hi: currentWith(vs + dVs, vf - dVf, n, r) };
 }
+
+/** What an existing resistor r gives with n LEDs (forward voltage vf each) from supply vs, against a target current. */
+export function checkResistor(vs: number, vf: number, n: number, r: number, target: number): { lit: boolean; i: number; p: number; pct: number; verdict: string } {
+  const i = currentWith(vs, vf, n, r), lit = vs - n * vf > 0;
+  const pct = target > 0 ? (100 * i) / target : NaN;
+  const verdict = !lit ? 'the LEDs do not light' : pct > 110 ? 'too much current: use a bigger resistor' : pct < 50 ? 'dim: the current is under half the target' : pct < 90 ? 'a little dim but safe' : 'about right';
+  return { lit, i, p: i * i * r, pct, verdict };
+}

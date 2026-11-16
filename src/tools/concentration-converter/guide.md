@@ -11,7 +11,7 @@ ads: true
 order: 517
 icon: convert
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [solution-calculator, molar-mass-calculator, gas-law-calculator, reaction-equivalents, colligative-properties, lab-unit-converter, periodic-table, buffer-recipe-calculator]
 sources:
   - "Unit definitions and the ideal gas law are standard; the gas constant is the exact SI value (Avogadro constant × Boltzmann constant). Code written by fibub and checked in the tests against an independent Python version built on pint and scipy.optimize.brentq."
@@ -65,6 +65,13 @@ For a liquid, every unit goes through the **mass fraction w**, the grams of solu
 - mole fraction x = (w/M) / (w/M + (1 − w)/Ms)
 
 For a gas, every unit goes through the **mole fraction x**. For an ideal gas the volume fraction equals the mole fraction, so ppmv = 10⁶·x and % v/v = mol % = 100·x. The total amount per litre is P/(RT), so c = x·P/(RT) and the mass concentration is x·P·M/(RT); mg/m³ is the same number as µg/L. The mass fraction is w = x·M / (x·M + (1 − x)·Mg), with Mg the molar mass of the other gas.
+
+## More options
+
+Under the converted table, "More options" has two shortcuts:
+
+- **From a weighed mass.** Type the grams (or mg, kg) of solute and the final volume. You get g/L, and mol/L when the solute's formula is filled in, and a button copies the result into the value above so every other unit follows.
+- **Dilute it (C₁V₁ = C₂V₂).** The value you typed is the stock. Type the concentration you want, in the same unit, and the final volume, and read how much stock to take and how much solvent to add. A wanted value above the stock is explained, not calculated.
 
 ## Worked examples
 

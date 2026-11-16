@@ -1,0 +1,198 @@
+---
+// #L350 Plate boundaries. Cross-section and top view of two plates; animated at a rate (cm/year) over a time (million years). Maths: src/lib/learn/curr-geo.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn pb">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Earth's hard outer shell is split into plates that move a few centimetres a year, about as fast as your fingernails grow. Pick how two plates meet, set their speed and watch what happens over millions of years.</p>
+    <label>Boundary <select class="pb-type" aria-label="Boundary type"></select></label>
+    <p class="ax-help pb-ex"></p>
+    <canvas class="lrn-cv pb-cv" aria-label="Side view of two tectonic plates with earthquake dots at their depth"></canvas>
+    <canvas class="lrn-cv pb-top" aria-label="View from above of the same two plates" style="margin-top:8px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Speed of one plate relative to the other: <b class="pb-rv"></b> cm/year <input class="pb-rate" type="range" min="0.5" max="15" step="0.5" value="2.5" /></label>
+      <label class="lrn-sl">Time: <b class="pb-tv"></b> million years <input class="pb-time" type="range" min="0" max="150" step="1" value="0" /></label>
+    </div>
+    <p><button type="button" class="btn secondary small pb-play">Pause</button></p>
+    <p class="ax-big pb-out" aria-live="polite"></p>
+    <p class="ax-help pb-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: 1 cm/year is 10 km per million years, so distance (km) = rate (cm/year) × time (million years) × 10. At a ridge each side moves half the opening rate, so a magnetic stripe at distance d is d ÷ (half rate × 10) million years old. On a subduction slab, depth = distance from the trench × tan(dip); volcanoes sit where the slab is about 100 km deep.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Choose Ocean ridge, set 2.5 cm/year and slide time to 100. How far apart are the two sides? Do the magnetic stripes match on both sides?</li><li>Compare the deepest earthquake dot at Ocean-continent with the Ocean ridge. Why are they so different?</li><li>Switch to Continent-continent and let time run. Which way does the mountain height change?</li><li>At Transform, watch the river in the top view. How far has it been offset after 20 million years?</li></ul>
+  </div>
+  <div class="ax-card pb-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .pb .pb-cv, .pb .pb-top { width: 100%; }
+  .pb select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { BOUNDARIES, boundary, kmMoved, myrToMove, floorAge, polarity } from '../../lib/learn/curr-geo';
+  const root = document.querySelector('.pb') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.pb-cv'), top = $<HTMLCanvasElement>('.pb-top'), sel = $<HTMLSelectElement>('.pb-type');
+  const rate = $<HTMLInputElement>('.pb-rate'), time = $<HTMLInputElement>('.pb-time'), out = $('.pb-out');
+  BOUNDARIES.forEach((b) => { const o = document.createElement('option'); o.value = b.id; o.textContent = `${b.family}: ${b.name}`; sel.append(o); });
+  const SC = 0.22, S0 = 44, rnd = (i: number) => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+  const num = (e: HTMLInputElement) => +e.value;
+
+  function cross(W: number, H: number, pal: ReturnType<typeof pagePalette>, id: string, dist: number, rt: number, tt: number, now: number) {
+    const ctx = cv.getContext('2d')!, b = boundary(id), xc = W / 2, dip = b.dip * Math.PI / 180;
+    const poly = (pts: number[][], fill: string, a = 1) => { ctx.globalAlpha = a; ctx.fillStyle = fill; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; };
+    const text = (s: string, x: number, y: number, al: CanvasTextAlign = 'left', col = pal.ink) => { ctx.fillStyle = col; ctx.textAlign = al; ctx.fillText(s, x, y); };
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    poly([[0, S0], [W, S0], [W, H], [0, H]], pal.day);
+    const water = (x0: number, x1: number, y1: number) => poly([[x0, 14], [x1, 14], [x1, y1], [x0, y1]], pal.accent, 0.2);
+    const quake = (x: number, y: number, k: number) => {
+      const d = (y - S0) / SC, col = d < 70 ? pal.warn : d < 300 ? pal.accent2 : pal.bad, pulse = 1 + 0.5 * Math.max(0, Math.sin(now / 400 + k * 1.7));
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 2.2 * pulse, 0, 7); ctx.fill();
+    };
+    const arrow = (x0: number, y0: number, x1: number, y1: number) => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); const a = Math.atan2(y1 - y0, x1 - x0); ctx.lineTo(x1 - 6 * Math.cos(a - 0.5), y1 - 6 * Math.sin(a - 0.5)); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 6 * Math.cos(a + 0.5), y1 - 6 * Math.sin(a + 0.5)); ctx.stroke(); };
+    // depth guide
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+    [0, 100, 300, 500, 700].forEach((d) => { const y = S0 + d * SC; ctx.beginPath(); ctx.moveTo(W - 44, y); ctx.lineTo(W, y); ctx.stroke(); ctx.fillText(d + ' km', W - 2, y - 2); });
+    const quakes = (n: number, f: (i: number) => [number, number]) => { for (let i = 0; i < n; i++) { const [x, y] = f(i); quake(x, y, i); } };
+    ctx.lineWidth = 1;
+    if (id === 'ridge') {
+      const hsk = (W * 0.4) / Math.max(40, dist / 2), reach = Math.min(W * 0.4, (dist / 2) * hsk);
+      water(0, W, S0 + 3);
+      for (const sg of [-1, 1]) {
+        const xe = sg > 0 ? W : 0;
+        poly([[xe, S0 + 3], [xc, S0], [xc, S0 + 5], [xc + sg * W * 0.12, S0 + 18], [xe, S0 + 18]], pal.muted, 0.4);
+        for (let px = 0; px < reach; px += 2) { const age = floorAge(px / hsk, rt); ctx.fillStyle = polarity(age) > 0 ? pal.ink : pal.bg; ctx.fillRect(sg > 0 ? xc + px : xc - px - 2, S0 - 1 + (px / (W / 2)) * 4, 2, 5); }
+        if (dist > 0) { const fx = xc + sg * reach; ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(fx, S0 + 8); ctx.lineTo(fx - 4, S0 + 18); ctx.lineTo(fx + 4, S0 + 18); ctx.fill(); }
+        arrow(xc + sg * 24, S0 + 28, xc + sg * 70, S0 + 28);
+      }
+      ctx.fillStyle = pal.bad; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.ellipse(xc, S0 + 12, 9, 12, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      arrow(xc, S0 + 80, xc, S0 + 40);
+      text('magma rises', xc + 8, S0 + 70); text('new crust: stripes', xc, 11, 'center');
+      quakes(26, (i) => [xc + (rnd(i) - 0.5) * 30, S0 + rnd(i + 99) * 15 * SC]);
+    } else if (id === 'rift') {
+      const vw = 10 + Math.min(W * 0.3, dist * 0.05), x1 = xc - vw / 2, x2 = xc + vw / 2;
+      poly([[0, S0], [x1 - 8, S0], [x1 + 3, S0 + 14], [x2 - 3, S0 + 14], [x2 + 8, S0], [W, S0], [W, S0 + 33], [x2, S0 + 22], [x1, S0 + 22], [0, S0 + 33]], pal.accent2, 0.35);
+      ctx.fillStyle = pal.bad; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.ellipse(xc, S0 + 40, 14, 10, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      arrow(xc, S0 + 90, xc, S0 + 52); arrow(x1 - 14, S0 + 16, x1 - 50, S0 + 16); arrow(x2 + 14, S0 + 16, x2 + 50, S0 + 16);
+      text('land stretches and drops', xc, 22, 'center'); text('thin, stretched crust', xc, S0 + 105, 'center');
+      quakes(26, (i) => [xc + (rnd(i) - 0.5) * (vw + 40), S0 + rnd(i + 99) * 30 * SC]);
+    } else if (id === 'subduction' || id === 'arc') {
+      const xt = Math.min(W * 0.3, W - 190), cd = Math.cos(dip), sd = Math.sin(dip), td = Math.tan(dip), sy = 47;
+      const topPt = (s: number) => [xt + s * cd, sy + s * sd], sMax = (S0 + 700 * SC - sy) / sd, th = 18, bend = xt - th * sd + th * Math.tan(dip / 2) * cd;
+      water(0, id === 'arc' ? W : xt, sy);
+      const [ex, ey] = topPt(sMax);
+      poly([[0, sy], [xt, sy], [ex, ey], [ex - th * sd, ey + th * cd], [bend, sy + th], [0, sy + th]], pal.muted, 0.45);
+      if (id === 'subduction') {
+        const yb = S0 - 4 + 33, xi = xt + (yb - sy) / td;
+        poly([[xt - 6, sy], [xt + 20, S0 - 4], [W, S0 - 4], [W, yb], [xi, yb], [xt, sy]], pal.accent2, 0.35);
+      } else {
+        const yb = sy + th, xi = xt + (yb - sy) / td;
+        poly([[xt - 6, sy], [W, sy], [W, yb], [xi, yb], [xt, sy]], pal.accent2, 0.35);
+      }
+      const volcX = xt + (S0 + 100 * SC - sy) / td, vb = id === 'arc' ? sy : S0 - 4;
+      poly([[volcX - 10, vb], [volcX, vb - 20], [volcX + 10, vb]], pal.bad, 0.8);
+      ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(volcX, S0 + 100 * SC); ctx.lineTo(volcX, vb); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+      // moving ticks along the slab
+      const travel = (dist * 0.06) % 34;
+      for (let k = -4; k < 30; k++) { const s = k * 34 + travel; let x: number, y: number; if (s < 0) { x = xt + s; y = sy + th / 2; } else { const t = topPt(s); x = t[0] - (th / 2) * sd; y = t[1] + (th / 2) * cd; } if (x > 0 && y < H - 4) { ctx.fillStyle = pal.ink; ctx.fillRect(x - 2, y - 2, 4, 4); } }
+      arrow(14, sy - 22, 70, sy - 22);
+      quakes(60, (i) => { const s = Math.pow(rnd(i), 1.4) * sMax, t = topPt(s), j = (rnd(i + 50) - 0.5) * 10; return [t[0] - (th / 2) * sd + j * sd, t[1] + (th / 2) * cd + j * cd]; });
+      text('trench', xt - 4, 30, 'right'); text(id === 'arc' ? 'island arc' : 'volcanoes', volcX, vb - 26, 'center');
+      text('slab sinks', xt + 90 * cd + 10, sy + 90 * sd - 30);
+    } else if (id === 'collision') {
+      const mh = 6 + 20 * (1 - Math.exp(-dist / 1500)), by = S0 + 33;
+      poly([[0, S0], [xc, S0], [xc, by], [0, by]], pal.accent2, 0.35); poly([[W, S0], [xc, S0], [xc, by], [W, by]], pal.accent2, 0.35);
+      poly([[xc - 50, S0], [xc, S0 - mh], [xc + 50, S0], [xc + 50, by], [xc, by + mh * 3], [xc - 50, by]], pal.accent2, 0.5);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+      [8, 16, 24].forEach((dy) => { ctx.beginPath(); for (let x = 0; x <= W; x += 3) { const inM = Math.abs(x - xc) < 50 ? Math.sin((x - xc) / 6) * Math.min(5, mh * 0.25) * (1 - Math.abs(x - xc) / 50) : 0; const y = S0 + dy + inM; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); });
+      ctx.globalAlpha = 1;
+      arrow(10, S0 + 40, 60, S0 + 40); arrow(W - 10, S0 + 40, W - 60, S0 + 40);
+      text('folded mountains', xc, S0 - mh - 6, 'center'); text('thick crustal root', xc, by + mh * 3 + 12, 'center');
+      quakes(40, (i) => [xc + (rnd(i) - 0.5) * 120, S0 + rnd(i + 99) * 100 * SC]);
+    } else {
+      poly([[0, S0], [xc - 1, S0], [xc - 1, S0 + 33], [0, S0 + 33]], pal.accent2, 0.35); poly([[W, S0], [xc + 1, S0], [xc + 1, S0 + 33], [W, S0 + 33]], pal.accent2, 0.35);
+      for (const [x, away] of [[xc - 40, true], [xc + 40, false]] as [number, boolean][]) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, S0 + 16, 8, 0, 7); ctx.stroke(); if (away) { ctx.beginPath(); ctx.moveTo(x - 4, S0 + 12); ctx.lineTo(x + 4, S0 + 20); ctx.moveTo(x + 4, S0 + 12); ctx.lineTo(x - 4, S0 + 20); ctx.stroke(); } else { ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(x, S0 + 16, 2, 0, 7); ctx.fill(); } }
+      text('into the page', xc - 40, S0 + 44, 'center'); text('out of the page', xc + 40, S0 + 44, 'center'); text('fault', xc, S0 - 6, 'center');
+      quakes(30, (i) => [xc + (rnd(i) - 0.5) * 5, S0 + rnd(i + 99) * 15 * SC]);
+    }
+    text('● shallow  ', 8, H - 8, 'left', pal.warn); text('● middle', 76, H - 8, 'left', pal.accent2); text('● deep earthquakes', 138, H - 8, 'left', pal.bad);
+  }
+
+  function topView(W: number, H: number, pal: ReturnType<typeof pagePalette>, id: string, dist: number, rt: number) {
+    const ctx = top.getContext('2d')!, xc = W / 2;
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    const rect = (x: number, y: number, w: number, h: number, c: string, a = 1) => { ctx.globalAlpha = a; ctx.fillStyle = c; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1; };
+    const text = (s: string, x: number, y: number, al: CanvasTextAlign = 'left') => { ctx.fillStyle = pal.ink; ctx.textAlign = al; ctx.fillText(s, x, y); };
+    const arrow = (x0: number, y0: number, x1: number, y1: number) => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); const a = Math.atan2(y1 - y0, x1 - x0); ctx.lineTo(x1 - 6 * Math.cos(a - 0.5), y1 - 6 * Math.sin(a - 0.5)); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 6 * Math.cos(a + 0.5), y1 - 6 * Math.sin(a + 0.5)); ctx.stroke(); };
+    ctx.lineWidth = 1;
+    if (id === 'ridge') {
+      const hsk = (W * 0.4) / Math.max(40, dist / 2), reach = Math.min(W * 0.4, (dist / 2) * hsk);
+      rect(0, 0, W, H, pal.muted, 0.3);
+      for (const sg of [-1, 1]) for (let px = 0; px < reach; px += 2) { const age = floorAge(px / hsk, rt); ctx.fillStyle = polarity(age) > 0 ? pal.ink : pal.bg; ctx.fillRect(sg > 0 ? xc + px : xc - px - 2, 0, 2, H); }
+      arrow(xc - 6, H - 12, xc - 56, H - 12); arrow(xc + 6, H - 12, xc + 56, H - 12);
+      const half = dist / 2, bars = [10, 20, 50, 100, 200, 500, 1000, 2000], bar = [...bars].reverse().find((k) => k <= Math.max(10, half) * 0.6) ?? 10;
+      ctx.fillStyle = pal.accent2; ctx.fillRect(8, 8, bar * hsk, 4); text(`${bar} km`, 8, 24);
+      text('ridge', xc, H - 2, 'center');
+    } else if (id === 'rift') {
+      const gap = 3 + Math.min(W * 0.3, dist * (W * 0.3) / Math.max(100, dist));
+      rect(0, 0, W, H, pal.accent2, 0.3); rect(xc - gap / 2, 0, gap, H, pal.accent, 0.55);
+      arrow(xc - gap / 2 - 4, H / 2, xc - gap / 2 - 44, H / 2); arrow(xc + gap / 2 + 4, H / 2, xc + gap / 2 + 44, H / 2);
+      text('rift valley (may flood)', xc, H - 4, 'center');
+    } else if (id === 'subduction' || id === 'arc') {
+      const xt = W * 0.42;
+      rect(0, 0, xt, H, id === 'arc' ? pal.accent : pal.accent, 0.25); rect(xt, 0, W - xt, H, id === 'arc' ? pal.accent : pal.accent2, id === 'arc' ? 0.25 : 0.3);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); if (id === 'arc') ctx.arc(xt + 110, H / 2, 110, Math.PI * 0.72, Math.PI * 1.28); else { ctx.moveTo(xt, 0); ctx.lineTo(xt, H); } ctx.stroke();
+      for (let i = 0; i < 6; i++) { const y = 12 + i * ((H - 24) / 5), x = id === 'arc' ? xt + 110 - Math.sqrt(110 * 110 - (y - H / 2) ** 2) + 26 : xt + 28 + (rnd(i) - 0.5) * 8; ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.moveTo(x - 6, y + 5); ctx.lineTo(x, y - 6); ctx.lineTo(x + 6, y + 5); ctx.fill(); }
+      arrow(8, H / 2, xt - 10, H / 2); text('trench', xt + 3, H - 4); text(id === 'arc' ? 'island arc' : 'volcano line', W - 6, H - 4, 'right');
+    } else if (id === 'collision') {
+      const mw = 12 + Math.min(W * 0.3, dist * 0.02 * 2);
+      rect(0, 0, W, H, pal.accent2, 0.3); rect(xc - mw / 2, 0, mw, H, pal.warn, 0.45);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.globalAlpha = 0.5; for (let y = 4; y < H; y += 8) { ctx.beginPath(); ctx.moveTo(xc - mw / 2, y); ctx.lineTo(xc + mw / 2, y + 4); ctx.stroke(); } ctx.globalAlpha = 1;
+      arrow(8, H / 2, xc - mw / 2 - 6, H / 2); arrow(W - 8, H / 2, xc + mw / 2 + 6, H / 2); text('mountain belt', xc, H - 4, 'center');
+    } else {
+      const hs = (W * 0.3) / Math.max(100, dist), shift = Math.min(H * 0.6, Math.min(W * 0.3, dist * hs * 0.5));
+      rect(0, 0, xc - 1, H, pal.accent2, 0.3); rect(xc + 1, 0, xc - 1, H, pal.accent2, 0.3); rect(xc - 1, 0, 2, H, pal.ink, 0.8);
+      const y1 = H / 2 - shift / 2, y2 = H / 2 + shift / 2; ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, y1); ctx.lineTo(xc - 1, y1); ctx.lineTo(xc - 1, y2); ctx.lineTo(xc + 1, y2); ctx.lineTo(W, y2); ctx.stroke(); ctx.lineWidth = 1;
+      arrow(xc - 30, H - 6, xc - 30, 10); arrow(xc + 30, 10, xc + 30, H - 6); text('river offset', 8, 12); text('fault', xc + 4, H - 2);
+    }
+  }
+
+  let now = 0;
+  const draw = () => {
+    const id = sel.value, b = boundary(id), rt = num(rate), tt = num(time), dist = kmMoved(rt, tt);
+    const a = fitCanvas(cv, 236), t = fitCanvas(top, 100), pal = pagePalette();
+    cross(a.W, a.H, pal, id, dist, rt, tt, now); topView(t.W, t.H, pal, id, dist, rt);
+    $('.pb-rv').textContent = String(rt); $('.pb-tv').textContent = String(tt);
+    out.textContent = `${rt} cm/year × ${tt} million years × 10 = ${dist.toLocaleString('en')} km moved.`;
+    out.dataset.type = id; out.dataset.family = b.family; out.dataset.dist = String(dist); out.dataset.depthmax = String(b.depth[1]); out.dataset.rate = String(rt); out.dataset.time = String(tt);
+    $('.pb-sub').textContent = `${b.note} Earthquakes here are ${b.depth[0]} to ${b.depth[1]} km deep.`;
+  };
+  const lp = loop((dt) => { now = performance.now(); if (dt > 0) { let v = num(time) + dt * 5; if (v > 150) v = 0; time.value = String(Math.round(v * 10) / 10); } draw(); }, $<HTMLButtonElement>('.pb-play'));
+  const pick1 = () => { const b = boundary(sel.value); rate.value = String(b.rate); $('.pb-ex').textContent = 'Real example: ' + b.example; lp.redraw(); };
+  sel.addEventListener('input', pick1);
+  rate.addEventListener('input', () => lp.redraw()); time.addEventListener('input', () => lp.redraw());
+  addEventListener('resize', () => lp.redraw());
+  wireLevel(root, () => {});
+  pick1();
+  const FEAT: [string, string][] = [['Deep earthquakes, down to about 600 km', 'subduction'], ['New ocean floor with stripes of magnetic field', 'ridge'], ['Two plates slide sideways; shallow quakes, no volcanoes', 'transform'], ['Fold mountains like the Himalaya', 'collision'], ['A land valley that is slowly splitting', 'rift']];
+  const NAMES = ['Ocean ridge', 'Ocean-continent subduction', 'Transform', 'Continent-continent collision', 'Rift valley'];
+  const ORDER = ['ridge', 'subduction', 'transform', 'collision', 'rift'];
+  mountQuiz($('.pb-quiz'), () => {
+    const v = one([2, 4, 5, 8, 10]), t = pick(10, 60, 5), half = one([1, 1.5, 2, 2.5]), age = pick(2, 8, 2), f = one(FEAT);
+    const idxs = [...ORDER.keys()];
+    return [
+      { q: `Two plates move apart at ${v} cm/year. How far apart are they after ${t} million years (km)?`, ans: kmMoved(v, t), unit: 'km', work: `1 cm/year = 10 km per million years. ${v} × ${t} × 10 = ${r(kmMoved(v, t))} km.` },
+      { q: `A plate moves ${v} cm/year. How many million years does it take to move ${v * t * 10} km?`, ans: myrToMove(v * t * 10, v), unit: 'million years', work: `time = distance ÷ (rate × 10) = ${v * t * 10} ÷ (${v} × 10) = ${t} million years.` },
+      { q: `Which boundary matches this? "${f[0]}"`, choices: idxs.map((i) => NAMES[i]), ans: ORDER.indexOf(f[1]), work: `${NAMES[ORDER.indexOf(f[1])]}: ${boundary(f[1]).note}` },
+      { q: `Each side of an ocean ridge moves ${half} cm/year. A magnetic stripe is ${half * 10 * age} km from the ridge. How old is that rock (million years)?`, ans: age, unit: 'million years', work: `Each side moves ${half} × 10 = ${half * 10} km per million years. ${half * 10 * age} ÷ ${half * 10} = ${age} million years.` },
+    ];
+  });
+</script>

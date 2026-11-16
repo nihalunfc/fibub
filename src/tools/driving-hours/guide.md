@@ -17,6 +17,7 @@ related: [fuel-cost, vehicle-routing, timesheet]
 sources:
   - "US: FMCSA Summary of Hours of Service Regulations, property-carrying (11 h driving after 10 h off, 14 h window, 30-min break after 8 h driving, 60/70 h in 7/8 days, 34 h restart), https://www.fmcsa.dot.gov/regulations/hours-service/summary-hours-service-regulations, checked 2026-11-10."
   - "Canada: Commercial Vehicle Drivers Hours of Service Regulations, SOR/2005-313, ss. 12-16 and 24-28 (13 h driving, 14 h on duty, 16 h elapsed after 8 h off, 10 h off a day, cycle 1 70 h/7 days, cycle 2 120 h/14 days with 70 h before 24 h off, 36/72 h reset), https://laws-lois.justice.gc.ca/eng/regulations/SOR-2005-313/fulltext.html, checked 2026-11-10."
+  - "US passenger-carrying (10 h driving and a 15-hour window after 8 h off, 60/70 h cycle, no 30-minute break rule, and no 34-hour restart, which is for property carriers only): the same FMCSA summary page, checked 2026-11-16. Canadian 36/72-hour resets: SOR/2005-313 as above."
   - "Not an ELD. Split sleeper berth, adverse conditions, short-haul and other exemptions are left out. Check the official source. Drawings are fibub's own."
 flow:
   - { icon: pencil, label: "Log" }
@@ -45,6 +46,12 @@ It follows the US federal rules for property-carrying drivers (FMCSA) or the Can
 - **Hours already used**: on-duty time (driving counts) from the earlier days of the cycle.
 - **Log rows**: each row lasts until the next one. A rest of 10 hours (US) or 8 hours (Canada) in the log starts a new shift.
 
+## More options
+
+- **Passenger-carrying (US)**: pick it in Rules for the 10-hour driving and 15-hour window limits. It has no 30-minute break clock.
+- **Can I finish this trip?** Type the distance left (miles or km) and your average speed. The page works out the driving time, says whether it fits in the driving you have left, how far you can go before you must rest and, if it fits, roughly when you would arrive.
+- **When is my rest done?** Type the time you go off duty to see when a new shift can start (10 hours off in the US for property, 8 for passenger and Canada) and when a full cycle reset is done (34 hours for US property carriers; US passenger carriers have no restart; 36 hours for Canadian cycle 1, 72 for cycle 2).
+
 ## Worked example
 
 US rules. Off duty until 06:00, then driving with no stop. At 14:00 you have driven 8 hours, so the 30-minute break is due now. The 11-hour limit leaves 3 hours of driving, and the 14-hour window ends at 20:00. Under Canadian rules the same day leaves 5 hours: the 13-hour driving limit is the first to run out.
@@ -55,6 +62,6 @@ US rules. Off duty until 06:00, then driving with no stop. At 14:00 you have dri
 
 **Does a break pause the 14-hour window?** No. Off-duty time inside the window does not stop it.
 
-**How do I reset my cycle?** US: 34 hours in a row off duty. Canada: 36 hours off for cycle 1, 72 hours for cycle 2.
+**How do I reset my cycle?** US property carriers: 34 hours in a row off duty (passenger carriers have no restart). Canada: 36 hours off for cycle 1, 72 hours for cycle 2.
 
 **Is this a legal record?** No. Keep your ELD or paper log; this only helps you plan.

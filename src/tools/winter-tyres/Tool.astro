@@ -25,6 +25,10 @@
       <label>Date code (4 digits, optional) <input data-k="dot" inputmode="numeric" maxlength="12" placeholder="2423" /></label>
     </div>
     <label class="wt-chk"><input type="checkbox" data-k="psi" /> I checked the pressure with cold tyres</label>
+    <details class="wt-more"><summary>More options: set of four, today's temperature</summary>
+      <label class="wt-chk"><input type="checkbox" data-k="four" /> The same winter tyres are on all four wheels</label>
+      <label>Usual morning temperature now (&deg;C, optional) <input data-k="temp" inputmode="decimal" placeholder="e.g. 4" /></label>
+    </details>
   </section>
   <section class="panel wt-res">
     <p class="wt-pill" aria-live="polite"></p>
@@ -62,6 +66,7 @@
   .wt-reasons, .wt-rules { margin: 10px 0 0; padding: 0 0 0 20px; display: grid; gap: 6px; }
   .wt-reasons li.good::marker { color: var(--good); } .wt-reasons li.warn::marker { color: var(--warn); } .wt-reasons li.bad::marker { color: var(--bad); }
   .wt-reasons li.bad { color: var(--bad); } .wt-reasons li.warn { color: var(--warn); }
+  .wt-more { margin-top: 12px; display: grid; gap: 8px; } .wt-more summary { cursor: pointer; font-size: 14px; color: var(--accent); }
   .wt-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
   .wt > .wt-fine { margin: 0; }
 </style>
@@ -81,7 +86,8 @@
     let months: number | null = null;
     const dot = q('dot').value.trim();
     if (dot) { const d = parseDateCode(dot); if (d.ok) months = ageMonths(d.start, now); }
-    const v = judgeWinter({ symbol: sym, treadMm, ageMonths: months, pressureChecked: q('psi').checked });
+    const v = judgeWinter({ symbol: sym, treadMm, ageMonths: months, pressureChecked: q('psi').checked,
+      allFour: q('four').checked ? true : (sym !== 'none' ? false : undefined), tempC: q('temp').value.trim() && isFinite(parseFloat(q('temp').value)) ? parseFloat(q('temp').value) : null });
     const p = $('.wt-pill'); p.textContent = v.label; p.className = 'wt-pill ' + v.level;
     $('.wt-reasons').innerHTML = '';
     for (const r of v.reasons) { const li = document.createElement('li'); li.className = r.level; li.textContent = r.text; $('.wt-reasons').appendChild(li); }

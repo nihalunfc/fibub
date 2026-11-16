@@ -56,3 +56,7 @@ Call the emergency number straight away: 911 (USA, Canada), 999 (UK, UAE police)
 **Does it matter in cool weather?** Yes. On a mild day the inside can still rise by 10 C or more in sun.
 
 **Is the number exact?** No. Colour, size, glass and air flow all matter. Treat it as a minimum warning, not a safe limit.
+
+## More options
+
+The result now says in how many minutes the cabin reaches 40 and 50 degrees Celsius for your temperature, sun and window settings, and shows a short table of the cabin temperature at 10, 20, 30 and 60 minutes. These come from the same rough curve as the chart and are estimates only. Real cars can be hotter. Never leave a child or pet in a parked car.

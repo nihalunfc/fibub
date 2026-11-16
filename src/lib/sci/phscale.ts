@@ -134,3 +134,43 @@ export function solvePH(known: PHKnown, value: number, n = 1, k = 0): PHSolved {
   else steps.push(...(known === 'pH' ? [] : [`pH = −log[H⁺] = −log(${s3(H)}) = ${f2(pH)}`]), `pOH = 14 − pH = 14 − ${f2(pH)} = ${f2(14 - pH)}`);
   return { pH, pOH: 14 - pH, H, OH, steps, note };
 }
+
+export type Know = 'pH' | 'h' | 'pOH' | 'oh' | 'strongAcid' | 'strongBase' | 'weakAcid' | 'weakBase';
+export const KNOW_LABELS: Record<Know, string> = {
+  pH: 'pH', h: '[H⁺] in mol/L', pOH: 'pOH', oh: '[OH⁻] in mol/L',
+  strongAcid: 'a strong acid of this concentration (mol/L)', strongBase: 'a strong base of this concentration (mol/L)',
+  weakAcid: 'a weak acid of this concentration (mol/L), with its pKa', weakBase: 'a weak base of this concentration (mol/L), with its pKb',
+};
+/**
+ * pH from what you know, at 25 °C (Kw = 1.0 × 10⁻¹⁴). Strong acids and bases are fully ionised and include water's own ions;
+ * weak ones use Ka = 10^−pKa and [H⁺]² + Ka[H⁺] − Ka·C = 0 (water's own ions ignored, which is fine unless the acid is very dilute or very weak).
+ * Returns the exact pH (it can lie outside 0 to 14 for very strong solutions), a line of working, and for weak ones the share ionised.
+ */
+export function phFrom(know: Know, value: number, pK?: number): { pH: number; working: string; ionised?: number; note?: string } {
+  if (!Number.isFinite(value)) throw new Error('Type a number.');
+  const needPos = know !== 'pH' && know !== 'pOH';
+  if (needPos && !(value > 0)) throw new Error('A concentration must be above zero.');
+  const r = (x: number) => String(+x.toPrecision(4));
+  switch (know) {
+    case 'pH': return { pH: value, working: `pH = ${r(value)}` };
+    case 'pOH': return { pH: 14 - value, working: `pH = 14 − pOH = 14 − ${r(value)} = ${r(14 - value)}` };
+    case 'h': return { pH: -Math.log10(value), working: `pH = −log[H⁺] = −log(${sci(value)}) = ${r(-Math.log10(value))}` };
+    case 'oh': { const po = -Math.log10(value); return { pH: 14 - po, working: `pOH = −log(${sci(value)}) = ${r(po)}; pH = 14 − ${r(po)} = ${r(14 - po)}` }; }
+    case 'strongAcid': case 'strongBase': {
+      const h = (value + Math.sqrt(value * value + 4 * KW)) / 2, p = -Math.log10(h), acid = know === 'strongAcid';
+      const note = value < 1e-6 ? "At this dilution water's own ions matter, so the answer is closer to 7 than −log C." : undefined;
+      if (note) return { pH: acid ? p : 14 - p, working: `[${acid ? 'H⁺' : 'OH⁻'}] = (C + √(C² + 4Kw)) / 2 = ${sci(h)} mol/L with C = ${sci(value)} and Kw = 1.0 × 10⁻¹⁴, so ${acid ? `pH = ${r(p)}` : `pOH = ${r(p)} and pH = ${r(14 - p)}`}`, note };
+      return acid ? { pH: p, working: `[H⁺] = ${sci(value)} mol/L (fully ionised), so pH = −log(${sci(value)}) = ${r(p)}`, note }
+        : { pH: 14 - p, working: `[OH⁻] = ${sci(value)} mol/L (fully ionised), pOH = ${r(p)}, so pH = 14 − ${r(p)} = ${r(14 - p)}`, note };
+    }
+    case 'weakAcid': case 'weakBase': {
+      if (pK === undefined || !Number.isFinite(pK)) throw new Error(know === 'weakAcid' ? 'Type the pKa of the acid.' : 'Type the pKb of the base.');
+      const K = 10 ** -pK, x = (-K + Math.sqrt(K * K + 4 * K * value)) / 2, p = -Math.log10(x), ionised = (100 * x) / value;
+      const note = x < 1e-6 ? "The solution is so dilute or the acid so weak that water's own ions matter; this answer is only a rough guide." : undefined;
+      const w = know === 'weakAcid'
+        ? `Ka = 10^−${r(pK)} = ${sci(K)}; [H⁺] = ${sci(x)} mol/L from x² / (C − x) = Ka; pH = ${r(p)}`
+        : `Kb = 10^−${r(pK)} = ${sci(K)}; [OH⁻] = ${sci(x)} mol/L from x² / (C − x) = Kb; pOH = ${r(p)}, pH = 14 − ${r(p)} = ${r(14 - p)}`;
+      return { pH: know === 'weakAcid' ? p : 14 - p, working: w, ionised, note };
+    }
+  }
+}

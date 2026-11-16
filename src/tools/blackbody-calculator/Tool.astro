@@ -7,19 +7,28 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Temperature</h2>
     <div class="ax-grid">
-      <label>Example <select class="bb-pre"></select></label>
-      <label>I know <select class="bb-kind">
+      <label>Example <select data-k="pre" class="bb-pre"></select></label>
+      <label>I know <select data-k="kind" class="bb-kind">
         <option value="t" selected>The temperature (K)</option>
         <option value="bv">The B − V colour</option>
         <option value="peak">The peak wavelength (nm)</option>
       </select></label>
-      <label><span class="bb-vl">Temperature (K)</span> <input class="bb-v" inputmode="decimal" /></label>
-      <label>Compare with (K, optional) <input class="bb-cmp" inputmode="decimal" placeholder="e.g. 3000" /></label>
+      <label><span class="bb-vl">Temperature (K)</span> <input data-k="v" class="bb-v" inputmode="decimal" /></label>
+      <label>Compare with (K, optional) <input data-k="cmp" class="bb-cmp" inputmode="decimal" placeholder="e.g. 3000" /></label>
     </div>
+    <label class="bb-sl">Temperature slider (3 K to 50,000 K, log scale) <input data-k="slider" type="range" class="bb-slider" min="0" max="1000" step="1" value="500" aria-label="Temperature slider" /></label>
+    <details class="bb-more"><summary>More options: radiance at a wavelength, power in a band</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Wavelength (nm) <input data-k="lam" class="bb-lam" inputmode="decimal" placeholder="e.g. 550" /></label>
+        <label>Band from (nm) <input data-k="b1" class="bb-b1" inputmode="decimal" placeholder="e.g. 400" /></label>
+        <label>Band to (nm) <input data-k="b2" class="bb-b2" inputmode="decimal" placeholder="e.g. 700" /></label>
+      </div>
+      <p class="ax-help">The wavelength gives the spectral radiance there. The band gives the share of the total power (and the power per square metre) that falls between the two wavelengths.</p>
+    </details>
     <h2 style="margin-top:16px">For a star (optional)</h2>
     <div class="ax-grid">
-      <label>Radius (Suns) <input class="bb-r" inputmode="decimal" placeholder="e.g. 1" /></label>
-      <label>Distance (parsecs) <input class="bb-d" inputmode="decimal" placeholder="1 pc = 3.26 light years" /></label>
+      <label>Radius (Suns) <input data-k="r" class="bb-r" inputmode="decimal" placeholder="e.g. 1" /></label>
+      <label>Distance (parsecs) <input data-k="d" class="bb-d" inputmode="decimal" placeholder="1 pc = 3.26 light years" /></label>
     </div>
     <p class="ax-help">Add a radius to get the luminosity and absolute magnitudes, and a distance for how bright it looks from Earth. Stars are only roughly black bodies: their spectra have absorption lines, so the bolometric correction comes from real stars, not from the Planck curve.</p>
     <p class="ax-err bb-err" hidden></p>
@@ -27,8 +36,9 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card bb-out" hidden>
     <h2 class="bb-title"></h2>
-    <p class="ax-big bb-big"></p>
+    <p class="ax-big bb-big" aria-live="polite"></p>
     <dl class="ax-facts bb-facts"></dl>
+    <details class="bb-work"><summary>Show the working</summary><div class="bb-wk"></div></details>
     <canvas class="ax-fig bb-fig" style="margin-top:12px"></canvas>
     <Downloads />
   </div>
@@ -36,7 +46,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig } from '../../lib/sci/num';
-  import { planckLam, bandFraction, tFromBV, star, WIEN_LAM, WIEN_NU, SIGMA } from '../../lib/sci/blackbody';
+  import { planckLam, planckNu, bandFraction, tFromBV, star, WIEN_LAM, WIEN_NU, SIGMA } from '../../lib/sci/blackbody';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
 
@@ -62,6 +72,7 @@ import Downloads from '../../components/Downloads.astro';
   const pct = (x: number) => (x < 0.001 ? '< 0.1 %' : x > 0.999 ? '> 99.9 %' : `${(x * 100).toFixed(1)} %`);
   const looks = (T: number) => T < 800 ? 'gives off almost no visible light' : T < 1300 ? 'glows dull red' : T < 2500 ? 'glows orange-red' : T < 3700 ? 'looks orange' : T < 5200 ? 'looks yellow-orange' : T < 6000 ? 'looks white with a hint of yellow' : T < 7500 ? 'looks white' : T < 10000 ? 'looks bluish white' : 'looks blue-white';
 
+  const fmtSci = (x: number) => { const e = Math.floor(Math.log10(Math.abs(x))); return `${sig(x / 10 ** e, 4)} × 10^${e}`; };
   function setPre(id: string) {
     const p = PRE.find((x) => x.id === id)!; if (id === 'custom') return;
     kind.value = 't'; q('.bb-vl').textContent = 'Temperature (K)'; inp('.bb-v').value = String(p.t); inp('.bb-r').value = p.r; inp('.bb-d').value = p.d;
@@ -86,12 +97,23 @@ import Downloads from '../../components/Downloads.astro';
       q('.bb-big').textContent = `Peak at ${lamTxt(peak)}; it ${looks(T)}`;
       const uv = bandFraction(1e-12, 400e-9, T), vis = bandFraction(400e-9, 700e-9, T), ir = Math.max(0, 1 - uv - vis);
       const flux = SIGMA * T ** 4;
+      const lamNm = num(inp('.bb-lam').value), b1 = num(inp('.bb-b1').value), b2 = num(inp('.bb-b2').value);
+      if (inp('.bb-lam').value.trim() && !(lamNm > 0)) throw new Error('Type the wavelength in nanometres, above zero');
+      const hasBand = inp('.bb-b1').value.trim() || inp('.bb-b2').value.trim();
+      if (hasBand && !(b1 > 0 && b2 > b1)) throw new Error('Type a band from a shorter to a longer wavelength in nanometres');
+      const sl = inp('.bb-slider'); if (document.activeElement !== sl) sl.value = String(Math.round((Math.log10(Math.min(50000, Math.max(3, T))) - Math.log10(3)) / (Math.log10(50000) - Math.log10(3)) * 1000));
       const facts: [string, string, string?][] = [
         ['Peak (per wavelength)', lamTxt(peak), "Wien's law: 2.898 mm K ÷ T"],
         ['Peak (per frequency)', nuTxt(WIEN_NU * T), `that is ${lamTxt(2.99792458e8 / (WIEN_NU * T))}: the peak depends on how you slice the spectrum`],
         ['Power from each square metre', flux >= 1e6 ? `${sig(flux / 1e6, 4)} MW/m²` : flux >= 1 ? `${sig(flux, 4)} W/m²` : `${sig(flux * 1e6, 4)} µW/m²`, 'Stefan-Boltzmann: σT⁴'],
         ['Where the power goes', `${pct(uv)} ultraviolet, ${pct(vis)} visible, ${pct(ir)} infrared`, 'visible taken as 400 to 700 nm'],
       ];
+      const fmtRad = (x: number) => (x === 0 ? '0' : x >= 1e-3 && x < 1e6 ? sig(x, 4) : fmtSci(x));
+      if (lamNm > 0) { const B = planckLam(lamNm * 1e-9, T); facts.push([`Spectral radiance at ${sig(lamNm, 4)} nm`, `${fmtRad(B)} W m⁻² sr⁻¹ m⁻¹`, `${fmtRad(B * 1e-9)} W m⁻² sr⁻¹ nm⁻¹; per frequency there: ${fmtRad(planckNu(2.99792458e8 / (lamNm * 1e-9), T))} W m⁻² sr⁻¹ Hz⁻¹`]); }
+      if (hasBand) { const fr = bandFraction(b1 * 1e-9, b2 * 1e-9, T); facts.push([`Power between ${sig(b1, 4)} and ${sig(b2, 4)} nm`, `${(fr * 100).toFixed(fr < 0.001 ? 4 : 2)} % of the total`, `${fmtRad(fr * flux)} W/m² of the ${fmtRad(flux)} W/m² from each square metre`]); }
+      const wk = [`Wien: λpeak = b ÷ T = 2.897772 × 10⁻³ m K ÷ ${sig(T, 5)} K = ${lamTxt(peak)}`, `Stefan-Boltzmann: σT⁴ = 5.670374 × 10⁻⁸ × ${sig(T, 5)}⁴ = ${fmtRad(flux)} W/m²`, `Planck: B(λ) = 2hc² ÷ λ⁵ ÷ (e^(hc/λkT) − 1), drawn in the chart relative to its peak`];
+      if (R > 0) wk.push(`Luminosity L = 4π R² σT⁴, with R = ${sig(R, 4)} × 6.957 × 10⁸ m: ${sig(star(T, R).L, 4)} W`);
+      q('.bb-wk').replaceChildren(...wk.map((t) => { const e = document.createElement('p'); e.textContent = t; return e; }));
       if (kind.value === 'bv') facts.unshift(['Temperature from B − V', `${Math.round(T).toLocaleString('en')} K`, 'Ballesteros (2012), for stars near the main sequence']);
       if (R > 0) {
         const s = star(T, R, D > 0 ? D : undefined);
@@ -106,7 +128,8 @@ import Downloads from '../../components/Downloads.astro';
       const norm = planckLam(peak, T);
       const series = [{ name: `${sig(T, 4)} K`, x: xs.map((l) => l * 1e6), y: xs.map((l) => planckLam(l, T) / norm), mode: 'line' as const, width: 2.2 }];
       if (cmpT > 0) series.push({ name: `${sig(cmpT, 4)} K`, x: xs.map((l) => l * 1e6), y: xs.map((l) => planckLam(l, cmpT) / norm), mode: 'line' as const, width: 1.6 });
-      const marks = lo < 0.7e-6 && hi > 0.4e-6 ? [{ kind: 'vline' as const, at: 0.4, dash: [3, 3], label: '400 nm' }, { kind: 'vline' as const, at: 0.7, dash: [3, 3], label: '700 nm' }] : [];
+      const lamMark = lamNm > 0 && lamNm * 1e-9 > lo && lamNm * 1e-9 < hi ? [{ kind: 'vline' as const, at: lamNm / 1000, dash: [2, 2], label: `${sig(lamNm, 3)} nm` }] : [];
+      const marks = [...lamMark, ...(lo < 0.7e-6 && hi > 0.4e-6 ? [{ kind: 'vline' as const, at: 0.4, dash: [3, 3], label: '400 nm' }, { kind: 'vline' as const, at: 0.7, dash: [3, 3], label: '700 nm' }] : [])];
       fig = chartFigure({ h: 300, xLog: true, yLog: cmpT > 0 && Math.abs(Math.log10(cmpT / T)) > 0.3, xLabel: 'Wavelength (µm)', yLabel: `Radiance (peak at ${sig(T, 4)} K = 1)`, yMin: cmpT > 0 && Math.abs(Math.log10(cmpT / T)) > 0.3 ? undefined : 0, legend: cmpT > 0 ? 'inside' : 'none', series, marks }, `Planck spectrum at ${sig(T, 4)} K`);
       paint(q<HTMLCanvasElement>('.bb-fig'), fig);
       report = [{ title: q('.bb-title').textContent!, facts: [['Result', q('.bb-big').textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])], figure: fig }];
@@ -115,8 +138,16 @@ import Downloads from '../../components/Downloads.astro';
   pre.addEventListener('change', () => { setPre(pre.value); calc(); });
   kind.addEventListener('change', () => { q('.bb-vl').textContent = { t: 'Temperature (K)', bv: 'B − V', peak: 'Peak wavelength (nm)' }[kind.value]!; inp('.bb-v').value = { t: '5772', bv: '0.65', peak: '502' }[kind.value]!; pre.value = 'custom'; calc(); });
   inp('.bb-v').addEventListener('input', () => { pre.value = 'custom'; calc(); });
-  for (const c of ['.bb-cmp', '.bb-r', '.bb-d']) inp(c).addEventListener('input', calc);
+  inp('.bb-slider').addEventListener('input', () => { const T = 3 * (50000 / 3) ** (Number(inp('.bb-slider').value) / 1000); kind.value = 't'; q('.bb-vl').textContent = 'Temperature (K)'; inp('.bb-v').value = String(T < 100 ? +T.toPrecision(3) : Math.round(T)); pre.value = 'custom'; calc(); });
+  for (const c of ['.bb-cmp', '.bb-r', '.bb-d', '.bb-lam', '.bb-b1', '.bb-b2']) inp(c).addEventListener('input', calc);
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.bb-fig'), fig));
   setPre('sun'); calc();
   wireDownloads(q('.dl'), () => ({ title: 'Blackbody calculator', file: 'blackbody', sections: report }));
 </script>
+
+<style is:inline>
+  .bb .bb-sl { display: block; margin-top: 10px; font-size: 14px; }
+  .bb .bb-sl input { width: 100%; }
+  .bb details summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
+  .bb .bb-wk p { margin: 6px 0; font-size: 14px; }
+</style>

@@ -15,6 +15,7 @@ works: online
 updated: 2026-11-14
 related: [wifi-spot-finder, cell-signal-guide, unit-converter]
 sources:
+  - "Household need adds per-stream figures: HD video 5 Mbps, 4K 15 Mbps, HD video call about 3.8 Mbps down and 3.0 up, 1 Mbps for each other busy device. Rounded from public guidance by streaming and video-call services; real use varies."
   - "Test server: Cloudflare's public speed test server (speed.cloudflare.com), the one behind Cloudflare's open-source @cloudflare/speedtest library (MIT). Only random test bytes are sent; fibub does not report results to Cloudflare or anyone else."
   - "Jitter is the average change between back-to-back pings, as most speed tests report it. Download and upload are the 90th percentile of the timed transfers; ping is the median."
   - "'Good enough for' thresholds are rounded from public guidance by streaming and video-call services (about 5 Mbps for HD video, 15 to 25 Mbps for 4K, about 3 Mbps each way for HD video calls) and common gaming advice (ping under 60 ms)."
@@ -39,6 +40,14 @@ It works anywhere and is made for **Canada, India, the UK and the USA**, with li
 3. Press **Start**. The bar shows ping first, then download, then upload.
 4. Read the results and the "Good enough for" list. Press **Copy results** to paste them into a message to your provider.
 5. Tick **Keep my results on this device** if you want to compare times of day, such as 8 am and 9 pm.
+
+## More options
+
+- **Mbps or MB/s**: switch the speeds to megabytes per second (Mbps divided by 8), the number most download windows show.
+- **Your tests this visit**: every run since you opened the page is listed with the middle, fastest and slowest download, so you can compare Wi-Fi with a cable or one room with another. It is kept in memory only and is gone when you close the tab.
+- **Is this what I pay for?** Type the speed on your bill and see the share you got, with a plain note on what a gap usually means.
+- **Is it enough for my home?** Say how many HD videos, 4K videos, video calls and busy devices run at once; the page adds up the speed they need (HD 5 Mbps, 4K 15, a video call about 3.8 down and 3 up, 1 Mbps per busy device) and compares it with your result.
+- **How long will a download take?** Type a file size in MB or GB to see the time at your measured speed.
 
 ## What each result means
 

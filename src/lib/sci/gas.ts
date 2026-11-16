@@ -85,3 +85,23 @@ export const MOLAR_VOLUME = {
   stpOld: (R * 273.15) / 101325, // 0 °C, 1 atm: 22.414 L
   satp: (R * 298.15) / 1e5, // 25 °C, 1 bar: 24.790 L
 };
+
+/** The line of working for PV = nRT in SI units (Pa, m³, mol, K), for the quantity that was solved. */
+export function idealWorking(s: { P: number; V: number; n: number; T: number }, solved: 'P' | 'V' | 'n' | 'T'): string {
+  const g = (x: number) => String(+x.toPrecision(6));
+  const r = String(+R.toPrecision(5));
+  switch (solved) {
+    case 'P': return `P = nRT / V = ${g(s.n)} × ${r} × ${g(s.T)} / ${g(s.V)} = ${g(s.P)} Pa`;
+    case 'V': return `V = nRT / P = ${g(s.n)} × ${r} × ${g(s.T)} / ${g(s.P)} = ${g(s.V)} m³`;
+    case 'n': return `n = PV / RT = ${g(s.P)} × ${g(s.V)} / (${r} × ${g(s.T)}) = ${g(s.n)} mol`;
+    case 'T': return `T = PV / nR = ${g(s.P)} × ${g(s.V)} / (${g(s.n)} × ${r}) = ${g(s.T)} K`;
+  }
+}
+
+/** Common reference conditions: pressure in Pa and temperature in °C. */
+export const CONDITIONS: { id: string; label: string; P: number; tC: number }[] = [
+  { id: 'stp-atm', label: 'STP, 0 °C and 1 atm', P: 101325, tC: 0 },
+  { id: 'stp-iupac', label: 'STP (IUPAC), 0 °C and 1 bar', P: 1e5, tC: 0 },
+  { id: 'satp', label: 'SATP, 25 °C and 1 bar', P: 1e5, tC: 25 },
+  { id: 'room', label: 'Room, 20 °C and 1 atm', P: 101325, tC: 20 },
+];

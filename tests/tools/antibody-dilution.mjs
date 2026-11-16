@@ -13,6 +13,12 @@ export default async ({ page, check, OUT, BASE, readFileSync }) => {
   { const f = await T('.ab-tfacts'); check(f.includes('0.071blank mean + 3 SD') && f.includes('0.053 ± 0.0058') && f.includes('1:24,300') && f.includes('4.83'), 'antibody: titre facts'); }
   check(await page.isVisible('.abd .ab-fig') && (await page.locator('.abd .ab-ttab tr.on').textContent()).startsWith('1:24,300') && (await T('.ab-ttab')).includes('0.146'), 'antibody: titre chart and table');
   check((await T('.ab-nbig')) === '33 µL of antibody in 66 mL' && (await T('.ab-nfacts')).includes('26.4 µg') && (await T('.ab-nfacts')).includes('18 blots67 µL left'), 'antibody: example run of blots');
+  // Usual-dilution table and chips.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  { const c = (await T('.ab-ctab')); check(c.includes('1:100100 µL9.9 mL8 µg/mL') && c.includes('1:10,0001 µL9.999 mL80 ng/mL'), 'antibody: usual dilutions table'); }
+  await page.click('.abd .ab-pre button[data-r="500"]'); await wait();
+  check((await T('.ab-wbig')) === '20 µL of stock + 9.98 mL of diluent' && (await page.inputValue('.abd .ab-ratio')) === '500', 'antibody: 1:500 chip');
+  await page.click('.abd .ab-ex'); await wait();
   // CSV and report downloads.
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.abd .ab-scsv')]); const f = OUT + 'abd-s.csv'; await d.saveAs(f); const r = readFileSync(f, 'utf8').trim().split('\n');
     check(r.length === 9 && r[0].startsWith('tube,dilution_1_in') && r[1] === '1,100,8,198,2,stock,100' && r[8] === '8,12800,0.0625,100,100,tube 7,100', 'antibody: series CSV'); }

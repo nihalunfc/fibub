@@ -5,6 +5,7 @@ export const SPECS: Spec[] = [
   { id: 'us', name: 'United States passport (2 x 2 in)', wmm: 50.8, hmm: 50.8, headMin: 25, headMax: 35, note: 'Head 1 to 1 3/8 in (25 to 35 mm) from chin to top of head.' },
   { id: 'uk', name: 'United Kingdom passport (35 x 45 mm)', wmm: 35, hmm: 45, headMin: 29, headMax: 34, note: 'Head 29 to 34 mm from chin to crown.' },
   { id: 'in', name: 'India passport (2 x 2 in, 51 x 51 mm)', wmm: 50.8, hmm: 50.8, headMin: 35, headMax: 40, note: 'Head 35 to 40 mm (1.4 to 1.6 in) from top of hair to chin.' },
+  { id: 'ae', name: 'United Arab Emirates passport (35 x 45 mm)', wmm: 35, hmm: 45, headMin: 31.5, headMax: 36, note: 'Size from the ICP (icp.gov.ae) FAQ, checked 2026-11-16. The page gives no head size, so the guide lines use the general ICAO range of 70 to 80% of the photo height. Check the official source.' },
 ];
 export const DPI = 300;
 export const mmToPx = (mm: number) => Math.round(mm / 25.4 * DPI);

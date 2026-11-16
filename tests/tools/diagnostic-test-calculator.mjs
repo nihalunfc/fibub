@@ -3,7 +3,7 @@ export const path = '/science/diagnostic-test-calculator/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
   const R = '.dxt ';
   const txt = (c) => page.textContent(R + c);
-  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  await page.goto(`${BASE}${path}`); const __op = () => page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); for (const m of ['fill', 'selectOption', 'check', 'uncheck', 'click']) { const o = page[m].bind(page); page[m] = async (...a) => { await __op(); return o(...a); }; } /* WRAP-OPEN */  await page.waitForTimeout(500);
   check((await txt('.dxt-med')).includes('For study and teaching, not medical advice. Check with a qualified professional.'), 'diag: medical line near the top');
   check((await txt('.dxt-big')) === 'Sensitivity 84.0 %, specificity 90.0 %', 'diag: example sensitivity and specificity');
   { const t = await txt('.dxt-tab'); check(t.includes('75.3 % to 90.6 %') && t.includes('86.0 % to 93.2 %') && t.includes('73.7 %') && t.includes('94.4 %') && t.includes('8.4') && t.includes('5.92 to 11.9') && t.includes('0.178') && t.includes('47.3') && t.includes('0.740'), 'diag: example table with exact intervals'); }
@@ -35,4 +35,19 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await txt('.dxt-err')).includes('Specificity must be a percentage'), 'diag: bad percentage message');
   await page.fill(R + '.dxt-sp', '95'); await page.fill(R + '.dxt-pre', '150'); await page.waitForTimeout(300);
   check((await txt('.dxt-err')).includes('Pre-test probability must be'), 'diag: bad pre-test message');
+  // Upgrades: plain sentence, examples, slider, prevalence chart, working.
+  await page.fill(R + '.dxt-pre', ''); await page.fill(R + '.dxt-sp', '95'); await page.click(R + '.dxt-mode button[data-m=table]'); await page.waitForTimeout(300);
+  check((await txt('.dxt-plain')).includes('this test finds about 84') && (await txt('.dxt-plain')).includes('clears about 90'), 'diag: plain sentence for 100 people');
+  check(await page.isVisible(R + '.dxt-curve') && (await txt('.dxt-curvenote')).includes('about 11 %'), 'diag: PPV and NPV chart with the 50 % PPV prevalence (1/8.4 odds = 10.6 %)');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await txt('.dxt-wk')).includes('Sensitivity = TP ÷ (TP + FN) = 84 ÷ 100 = 84.0 %'), 'diag: working shows the numbers');
+  await page.evaluate(() => { const r = document.querySelector('.dxt-prer'); r.value = '10'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(300);
+  check((await page.inputValue(R + '.dxt-pre')) === '10' && (await txt('.dxt-post')).includes('After a positive result48.3 %'), 'diag: slider drives the pre-test probability');
+  await page.selectOption(R + '.dxt-preset', 'coin'); await page.waitForTimeout(300);
+  check((await txt('.dxt-big')) === 'PPV 10.0 %, NPV 90.00 %' && (await page.inputValue(R + '.dxt-pre')) === '', 'diag: coin-toss example (PPV 0.05 / 0.5 = 10 %)');
+  check((await txt('.dxt-curvenote')).includes('not informative'), 'diag: LR+ of 1 explained');
+  await page.selectOption(R + '.dxt-preset', 'rare'); await page.waitForTimeout(300);
+  check((await txt('.dxt-big')) === 'PPV 15.4 %, NPV 99.89 %', 'diag: rare-condition example');
+  await page.selectOption(R + '.dxt-preset', 'small'); await page.waitForTimeout(300);
+  check((await txt('.dxt-big')).startsWith('Sensitivity 90.0 %, specificity 90.0 %'), 'diag: small-study example (9 of 10, 18 of 20)');
 };

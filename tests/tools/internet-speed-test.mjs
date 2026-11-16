@@ -17,6 +17,24 @@ export default async ({ page, check, BASE }) => {
   check(await page.$$eval('.ist .ist-uses li', (l) => l.length) === 6, 'internet-speed-test: lists six uses');
   check(/MB/.test(await page.textContent('.ist .ist-bytes')), 'internet-speed-test: shows data used');
   check(await page.evaluate(() => localStorage.getItem('fibub-speedtests-v1') === null), 'internet-speed-test: nothing stored unless ticked');
+  check((await page.textContent('.ist .ist-sum')).includes('Mbps down'), 'internet-speed-test: one-line summary after a test');
+  check(await page.isVisible('.ist .ist-runs') && await page.$$eval('.ist .ist-sess tbody tr', (r) => r.length) === 1, 'internet-speed-test: this visit lists the run');
+  await page.click('.ist [data-unit="mbs"]');
+  check(/MB\/s/.test(await page.textContent('.ist .ist-down')), 'internet-speed-test: MB/s switch');
+  await page.click('.ist [data-unit="mbps"]');
+  await page.evaluate(() => document.querySelectorAll('.ist-ui details, .ist details').forEach((d) => (d.open = true)));
+  check(/Type the speed/.test(await page.textContent('.ist .ist-planout')), 'internet-speed-test: blank plan asks for a number');
+  await page.fill('.ist [data-k=plan]', '0');
+  check(!/NaN|Infinity/.test(await page.textContent('.ist .ist-planout')), 'internet-speed-test: zero plan is safe');
+  await page.fill('.ist [data-k=plan]', '100000');
+  check(/%/.test(await page.textContent('.ist .ist-planout')), 'internet-speed-test: plan percentage');
+  await page.fill('.ist [data-k=hd]', '2'); await page.fill('.ist [data-k=uhd]', '1'); await page.fill('.ist [data-k=calls]', '1'); await page.fill('.ist [data-k=browse]', '3');
+  // 2*5 + 15 + 3.8 + 3 = 31.8 down, 3 up
+  check(/about 31\.8 Mbps down and 3\.00 Mbps up/.test(await page.textContent('.ist .ist-hhout')), 'internet-speed-test: household need adds up');
+  await page.fill('.ist [data-k=size]', '-3');
+  check(/Type a file size/.test(await page.textContent('.ist .ist-sizeout')), 'internet-speed-test: negative size is friendly');
+  await page.fill('.ist [data-k=size]', '5');
+  check(/About .* at your measured/.test(await page.textContent('.ist .ist-sizeout')), 'internet-speed-test: download time');
   await page.check('.ist .ist-keep');
   check(await page.$$eval('.ist .ist-hist tbody tr', (r) => r.length) === 1, 'internet-speed-test: ticking keeps the result');
   await page.click('.ist .ist-clear');

@@ -11,7 +11,7 @@ ads: false
 order: 1782
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [car-loan, loan-comparison, ev-vs-petrol]
 sources:
   - "Loan payment: the standard level-payment formula. Balance after k payments: P(1+i)^k minus the payment x ((1+i)^k - 1) / i. Net cost of buying = down payment + payments made + balance still owed - the car's value at the end. Lease cost = signing payment + monthly payments x term + fees + extra-distance charge."
@@ -40,6 +40,10 @@ For the purchase, it treats what you still owe on the loan at the end of the lea
 - **Fees**: acquisition fee when you start and disposition fee when you return it.
 - **Kilometre limit and extra charge**: driving over the limit costs extra, shown separately.
 - **Value of the car at the end**: a guess; used car values vary, so try a lower and a higher figure.
+
+- **Distance in**: choose kilometres or miles for the yearly limit, the extra charge and what you drive. The sums are the same either way; only the labels change.
+- **Car value that makes it a tie**: under the result, the value the car must have at the end for buying and leasing to cost the same, compared with your own guess.
+- **What if the car is worth more or less**: a table that moves your car value 10 and 20 percent either way and says which option wins each time. The value of the car is the number people guess worst, so check it.
 
 ## Worked example
 

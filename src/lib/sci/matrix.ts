@@ -709,3 +709,30 @@ export function fmtQC(z: QC, ascii = false): string {
 }
 /** A fraction as a decimal to n significant figures. */
 export const qDec = (q: Q, n = 6, ascii = false) => fmt(q.toNumber(), n, ascii);
+
+
+/** Every entry multiplied by k (an exact fraction). */
+export const qScale = (A: QM, k: Q): QM => A.map((r) => r.map((x) => x.mul(k)));
+
+/** The minor of entry (i, j): the determinant of A with row i and column j removed (1 for a 1 × 1 matrix's missing part). */
+export function minorAt(A: QM, i: number, j: number): Q {
+  const R = A.filter((_, r) => r !== i).map((r) => r.filter((_, c) => c !== j));
+  return R.length ? det(R).value : Q.ONE;
+}
+/** The matrix of minors and the matrix of cofactors ((-1)^(i+j) times the minor). */
+export function cofactors(A: QM): { minors: QM; cof: QM } {
+  if (!isSquare(A)) throw new Error(`Cofactors need a square matrix; this one is ${A.length} × ${A[0].length}.`);
+  const minors = A.map((r, i) => r.map((_, j) => minorAt(A, i, j)));
+  return { minors, cof: minors.map((r, i) => r.map((m, j) => ((i + j) % 2 ? m.neg() : m))) };
+}
+/** The adjugate (classical adjoint): the transpose of the cofactor matrix. A × adj(A) = det(A) × I. */
+export const adjugate = (A: QM): QM => transpose(cofactors(A).cof);
+
+/** Cramer's rule for A x = b (one column): x_i = det(A_i) / det(A), where A_i has column i replaced by b. Null when det A = 0. */
+export function cramer(A: QM, B: QM): { d: Q; parts: { dets: Q; x: Q }[] } | { d: Q; parts: null } {
+  if (!isSquare(A)) throw new Error(`Cramer's rule needs a square A; this one is ${A.length} × ${A[0].length}.`);
+  if (B.length !== A.length || B[0].length !== 1) throw new Error(`B must be one column with ${A.length} entries.`);
+  const d = det(A).value;
+  if (d.isZero()) return { d, parts: null };
+  return { d, parts: A[0].map((_, i) => { const Ai = A.map((r, rr) => r.map((x, c) => (c === i ? B[rr][0] : x))); const di = det(Ai).value; return { dets: di, x: di.div(d) }; }) };
+}

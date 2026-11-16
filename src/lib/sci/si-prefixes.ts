@@ -16,6 +16,9 @@ export const UNITS: Unit[] = [
   { sym: 'L', name: 'litre', kind: 'volume' }, { sym: 'A', name: 'ampere', kind: 'current' }, { sym: 'V', name: 'volt', kind: 'voltage' },
   { sym: 'W', name: 'watt', kind: 'power' }, { sym: 'J', name: 'joule', kind: 'energy' }, { sym: 'Hz', name: 'hertz', kind: 'frequency' },
   { sym: 'Pa', name: 'pascal', kind: 'pressure' }, { sym: 'N', name: 'newton', kind: 'force' }, { sym: 'mol', name: 'mole', kind: 'amount of substance' },
+  { sym: 'Ω', name: 'ohm', kind: 'resistance' }, { sym: 'F', name: 'farad', kind: 'capacitance' }, { sym: 'C', name: 'coulomb', kind: 'charge' },
+  { sym: 'T', name: 'tesla', kind: 'magnetic flux density' }, { sym: 'H', name: 'henry', kind: 'inductance' }, { sym: 'S', name: 'siemens', kind: 'conductance' },
+  { sym: 'K', name: 'kelvin', kind: 'temperature' }, { sym: 'cd', name: 'candela', kind: 'luminous intensity' },
 ];
 
 /** The seven SI base units (a general fact). */
@@ -83,4 +86,33 @@ export function sci(v: string): { m: string; e: number } | null {
   if (i < 0) return { m: '0', e: 0 };
   const e = d.point - i - 1;
   return { m: (d.neg ? '−' : '') + shift(d.digits.slice(i), 1 - (d.digits.length - i)), e };
+}
+
+/** Split a prefixed unit like "km", "mA", "µs" or "Pa" into prefix exponent and unit. Case-sensitive (m is milli, M is mega). */
+export function parseUnit(raw: string): { e: number; unit: string } | null {
+  const s = raw.trim().replace(/[μ]/g, 'µ').replace(/^u(?=[A-Za-z])/, 'µ');
+  const units = [...UNITS].sort((a, b) => b.sym.length - a.sym.length);
+  for (const u of units) {
+    if (!s.endsWith(u.sym)) continue;
+    const pre = s.slice(0, s.length - u.sym.length), p = PREFIXES.find((x) => x.sym === pre);
+    if (p) return { e: p.exp, unit: u.sym };
+  }
+  return null;
+}
+
+/** Read a typed request such as "5 km in cm", "250 mg to kg" or "0.5 GHz = MHz". */
+export function parseQuick(text: string): { v: string; e1: number; e2: number; unit: string } | { error: string } {
+  const t = text.trim().replace(/,/g, '');
+  if (!t) return { error: '' };
+  const m = /^([-+−–]?\d*\.?\d+|[-+−–]?\d+\.)\s*([^\s]+)\s*(?:in|to|into|as|=|->|→)\s*([^\s]+)$/i.exec(t);
+  if (!m) return { error: 'Write it like "5 km in cm" (a number, a unit, "in", a unit).' };
+  const a = parseUnit(m[2]), b = parseUnit(m[3]);
+  if (!a || !b) return { error: `I do not know the unit "${!a ? m[2] : m[3]}". Try a prefix and one of the listed units, such as km, mg or MHz.` };
+  if (a.unit !== b.unit) return { error: `${m[2]} and ${m[3]} measure different things, so they cannot be converted by a prefix change.` };
+  return { v: m[1].replace(/^\+/, ''), e1: a.e, e2: b.e, unit: a.unit };
+}
+
+/** The same value written with every prefix, for a "see them all" table. */
+export function allPrefixes(v: string, e: number): { sym: string; name: string; exp: number; out: string }[] {
+  return PREFIXES.map((p) => ({ sym: p.sym, name: p.name, exp: p.exp, out: shift(v, e - p.exp) }));
 }

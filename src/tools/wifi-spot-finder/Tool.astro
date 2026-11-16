@@ -9,7 +9,7 @@ import '../../styles/astro.css';
     <h2>Test a spot</h2>
     <p class="ax-help">Stand where you would use the device, type a name for the spot and press Test. Repeat in each room. Made for homes and offices in <strong>Canada, India, the UK and the USA</strong>; works on any Wi-Fi.</p>
     <div class="ax-grid">
-      <label>Spot name <input class="wsf-name" type="text" maxlength="30" placeholder="e.g. Kitchen table" /></label>
+      <label>Spot name <input class="wsf-name" data-k="name" type="text" maxlength="30" placeholder="e.g. Kitchen table" /></label>
       <label>Signal your device shows (optional)
         <select class="wsf-sig">
           <option value="">Not noted</option>
@@ -18,6 +18,9 @@ import '../../styles/astro.css';
         </select>
       </label>
       <label class="wsf-dbml" hidden>dBm (e.g. -60) <input class="wsf-dbm" type="number" min="-100" max="-20" step="1" /></label>
+    </div>
+    <div class="ax-row wsf-chips" aria-label="Quick names">
+      <button type="button" class="ax-pill" data-chip="Living room">Living room</button><button type="button" class="ax-pill" data-chip="Kitchen">Kitchen</button><button type="button" class="ax-pill" data-chip="Bedroom">Bedroom</button><button type="button" class="ax-pill" data-chip="Home office">Home office</button><button type="button" class="ax-pill" data-chip="Garden">Garden</button>
     </div>
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn wsf-test">Test this spot</button>
@@ -29,11 +32,19 @@ import '../../styles/astro.css';
 
   <div class="ax-card wsf-out" hidden>
     <h2>Spots, best first</h2>
-    <p class="wsf-best"></p>
+    <p class="wsf-best" aria-live="polite"></p>
+    <label class="wsf-need">I need this spot for
+      <select data-k="need" class="wsf-needsel">
+        <option value="">Nothing in particular</option>
+        <option value="web">Web and email</option><option value="hd">HD video</option><option value="uhd">4K video</option><option value="call">Video calls</option><option value="game">Online games</option><option value="upload">Big uploads</option>
+      </select>
+    </label>
     <canvas class="ax-fig wsf-chart" width="640" height="220" aria-label="Bar chart of each spot's score"></canvas>
-    <div class="ax-scroll"><table class="wsf-table"><thead><tr><th>Spot</th><th class="r">Score</th><th class="r">Down Mbps</th><th class="r">Up Mbps</th><th class="r">Ping ms</th><th class="r">Jitter ms</th><th>Signal</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-scroll"><table class="wsf-table"><thead><tr><th>Spot</th><th class="r">Score</th><th class="r">Down Mbps</th><th class="r">Up Mbps</th><th class="r">Ping ms</th><th class="r">Jitter ms</th><th>Signal</th><th class="wsf-fith" hidden>Enough?</th><th></th></tr></thead><tbody></tbody></table></div>
     <p class="ax-help">Score: 0 to 100 from download (45%), ping (25%), upload (20%) and jitter (10%). Test each spot twice at different times if two are close.</p>
     <p class="note wsf-mismatch" hidden></p>
+    <ul class="wsf-list wsf-tips"></ul>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wsf-retest">Test the weakest spot again</button></div>
   </div>
 
   <div class="ax-card">
@@ -71,18 +82,21 @@ import '../../styles/astro.css';
 
 <style is:inline>
   .wsf-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+  .wsf-chips { margin-top: 10px; gap: 6px; } .wsf-chips button { cursor: pointer; font: inherit; font-size: 13px; }
+  .wsf-need { margin: 0 0 8px; max-width: 300px; }
   .wsf-best { font-size: 16px; margin: 0 0 8px; }
   .wsf-table button { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
   .wsf-table tr.top td:first-child { font-weight: 700; }
 </style>
 
 <script>
-  import { PLANS, runTest, measureLatency, spotScore, fmtMbps, fmtMs, median, jitter } from '../../lib/net/speed';
+  import { PLANS, runTest, measureLatency, spotScore, fmtMbps, fmtMs, median, jitter, spotFit, FIT_WORD, spotTips } from '../../lib/net/speed';
   const root = document.querySelector('.wsf') as HTMLElement;
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
   const KEY = 'fibub-wifispots-v1';
   type Spot = { name: string; sig: string; down: number | null; up: number | null; lat: number | null; jit: number | null; score: number };
   let spots: Spot[] = [];
+  let replace = '';
   const keep = $<HTMLInputElement>('.wsf-keep');
   try { spots = JSON.parse(localStorage.getItem(KEY) || '[]'); keep.checked = spots.length > 0; } catch {}
   const persist = () => { if (!keep.checked) return; try { localStorage.setItem(KEY, JSON.stringify(spots)); } catch {} };
@@ -102,12 +116,15 @@ import '../../styles/astro.css';
   function draw() {
     $('.wsf-out').hidden = spots.length === 0;
     const sorted = spots.map((s, i) => ({ ...s, i })).sort((a, b) => b.score - a.score);
+    const need = $<HTMLSelectElement>('.wsf-needsel').value;
+    $('.wsf-fith').hidden = !need;
     const tb = $('.wsf-table tbody'); tb.textContent = '';
     sorted.forEach((s, k) => {
       const tr = document.createElement('tr'); if (k === 0 && sorted.length > 1) tr.className = 'top';
       for (const [v, c] of [[s.name, ''], [String(s.score), 'r'], [fmtMbps(s.down), 'r'], [fmtMbps(s.up), 'r'], [fmtMs(s.lat), 'r'], [fmtMs(s.jit), 'r'], [s.sig || '–', '']] as const) {
         const td = document.createElement('td'); td.textContent = v; if (c) td.className = c; tr.append(td);
       }
+      if (need) { const td0 = document.createElement('td'); const f = spotFit(s, need); td0.textContent = f ? FIT_WORD[f] : '–'; tr.append(td0); }
       const td = document.createElement('td'); const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Remove';
       b.addEventListener('click', () => { spots.splice(s.i, 1); persist(); if (!spots.length) try { localStorage.removeItem(KEY); } catch {} draw(); });
       td.append(b); tr.append(td); tb.append(tr);
@@ -125,8 +142,18 @@ import '../../styles/astro.css';
     mm.textContent = odd.map((s) => (sigLevel(s.sig)! >= 3
       ? `${s.name}: strong signal but poor connection. The router, a busy channel or the line from your provider is the bottleneck, not distance.`
       : `${s.name}: weak signal but a good connection. Fine for now, but it may drop when more people use the Wi-Fi.`)).join(' ');
+    const tl = $('.wsf-tips'); tl.textContent = '';
+    for (const t of spotTips(sorted.map((x) => x.score), sorted.map((x) => x.name))) { const li = document.createElement('li'); li.textContent = t; tl.append(li); }
+    $('.wsf-retest').hidden = sorted.length < 2;
     chart(sorted);
   }
+  $('.wsf-needsel').addEventListener('change', draw);
+  root.querySelectorAll<HTMLButtonElement>('[data-chip]').forEach((b) => b.addEventListener('click', () => { $<HTMLInputElement>('.wsf-name').value = b.dataset.chip!; }));
+  // Retest: puts the weakest spot's name back in the box and runs a new test; the new result replaces the old one.
+  $('.wsf-retest').addEventListener('click', () => {
+    const w = spots.slice().sort((a, b) => a.score - b.score)[0]; if (!w) return;
+    $<HTMLInputElement>('.wsf-name').value = w.name; replace = w.name; $<HTMLButtonElement>('.wsf-test').click();
+  });
 
   function css(v: string) { return getComputedStyle(root).getPropertyValue(v).trim() || '#333'; }
   function chart(rows: Spot[]) {
@@ -150,11 +177,14 @@ import '../../styles/astro.css';
     const btn = $<HTMLButtonElement>('.wsf-test'); btn.disabled = true; $('.wsf-err').hidden = true;
     try {
       const r = await runTest(PLANS.spot, (p) => { $('.wsf-status').textContent = `Testing ${name}: ${p.phase === 'latency' ? 'ping' : p.phase}${p.mbps ? ', ' + fmtMbps(p.mbps) + ' Mbps' : ''}…`; });
+      if (replace && replace === name) { const k = spots.findIndex((x) => x.name === name); if (k >= 0) spots.splice(k, 1); }
+      replace = '';
       spots.push({ name, sig: sigText(), down: r.down, up: r.up, lat: r.latency, jit: r.jitter, score: spotScore(r) });
       persist(); draw();
       $('.wsf-status').textContent = `${name} done. Move to the next spot.`;
       $<HTMLInputElement>('.wsf-name').value = '';
     } catch {
+      replace = '';
       const e = $('.wsf-err'); e.hidden = false;
       e.textContent = 'The test server could not be reached. If this spot has no connection at all, that is your answer; otherwise a firewall or ad blocker may block speed.cloudflare.com.';
       $('.wsf-status').textContent = '';

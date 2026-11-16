@@ -14,6 +14,7 @@ works: offline
 updated: 2026-11-09
 related: [pcr-master-mix, sequence-tools, ligation-calculator, qpcr-analyser]
 sources:
+  - "Molecular weight: nucleotide residue formulas with IUPAC/CIAAW standard atomic weights (abridged values); resuspension volume is plain arithmetic (nmol × 1000 ÷ µM)."
   - "Tm by the Wallace rule (2 °C per A/T, 4 °C per G/C), the basic formula 64.9 + 41 × (G+C − 16.4) ÷ N and the sodium-adjusted formula 81.5 + 16.6 log₁₀[Na⁺] + 0.41 × %GC − 675 ÷ N: textbook formulas, checked against Biopython 1.88 MeltingTemp. No nearest-neighbour parameter tables are used."
   - "Hairpin, dimer, run and clamp checks and template search written by fibub, checked in the tests against an independent brute-force Python search. The ranges are common rules of thumb, not a standard."
   - "The example primers and template are random made-up sequence."
@@ -42,7 +43,8 @@ Make up the reaction with the [[pcr-master-mix]], and see where the primers sit 
 1. **Primers.** Type or paste each one 5′ to 3′, exactly as you would order it. The reverse primer is optional.
 2. **Sodium.** Only the salt-adjusted Tm uses it; 50 mM is a common PCR buffer value.
 3. **Template.** Optional: paste the sequence (FASTA headers are skipped), choose how many mismatches to allow and the largest product to report.
-4. **Read the checks.** Anything outside the usual ranges is marked "(check)" and listed at the top.
+4. **Read the checks.** Anything outside the usual ranges is marked "(check)" and listed at the top. The table also gives each primer's molecular weight, worked out from its sequence (standard atomic weights, 5′ and 3′ hydroxyl ends). Open **Show the working** to see each Tm formula with your numbers filled in, and the reverse primer written as it reads along the template.
+5. **Ordering and resuspension.** Under **More options**, type the amount on the tube label in nmol or µg and the stock strength you want, usually 100 µM. You get the volume of water or buffer to add: 25 nmol at 100 µM needs 250 µL. From µg, the tool converts to nmol with the molecular weight first.
 
 ## Worked example
 
@@ -50,6 +52,7 @@ The made-up example pair is ACTCACATCGGTGTCACCTG and TACTTCACGGCGTGTGCATC. Both 
 
 ## Good to know
 
+- Nearest-neighbour Tm (SantaLucia 1998) is not included: it needs a published parameter table that this site does not carry, so the formulas above are the only Tm methods here.
 - Formula Tm values differ from nearest-neighbour calculators by several degrees. For the annealing temperature, use your polymerase supplier's calculator, then fine-tune with a gradient.
 - A dimer that ends at a 3′ end matters far more than one in the middle.
 - The template search is exact apart from the mismatches you allow; it does not search a whole genome.

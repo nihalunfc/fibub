@@ -23,4 +23,10 @@ export default async ({ page, check, BASE }) => {
   check((await t('.td-pill')) === 'Close to limit', 'tread-depth: UK motorcycle 1.2 mm is above its 1 mm limit');
   await page.goto(`${BASE}/vehicles/tread-depth/?c=usa`); await page.waitForTimeout(300);
   check((await page.inputValue('.td [data-k="unit"]')) === '32' || (await page.inputValue('.td [data-k="region"]')) === 'usa', 'tread-depth: ?c=usa opens in USA mode');
+  await page.goto(`${BASE}/vehicles/tread-depth/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach(d => d.open = true));
+  await set('din', '2'); await set('dmid', '4'); await set('dout', '4');
+  check((await t('.td-pill')) === 'Close to limit' && (await t('.td-extra')).includes('inner edge'), `tread-depth: inner edge worn, lowest 2 mm counts (${await t('.td-extra')})`);
+  await set('dnew', '8'); await set('ddist', '30000'); // (8 - 2) / 30,000 = 0.0002 mm/km; (2 - 1.6) / 0.0002 = 2,000 km
+  check((await t('.td-extra')).includes('2 mm every 10,000 km') && (await t('.td-extra')).includes('About 2,000 km'), `tread-depth: life left (${await t('.td-extra')})`);
 };

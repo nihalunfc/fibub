@@ -3,8 +3,8 @@
 ---
 <div class="tool-ui hs">
   <section class="panel hs-in">
-    <label>Head circumference <input class="hs-v" inputmode="decimal" value="57" /></label>
-    <label>Unit <select class="hs-u"><option value="cm">cm</option><option value="in">inches</option></select></label>
+    <label>Head circumference <input class="hs-v" data-k="head" inputmode="decimal" value="57" /></label>
+    <label>Unit <select class="hs-u" data-k="unit"><option value="cm">cm</option><option value="in">inches</option></select></label>
   </section>
   <section class="panel" aria-live="polite">
     <p class="hs-big"></p>
@@ -24,14 +24,22 @@
       <text x="176" y="70" font-size="11" fill="currentColor">2 cm</text>
       <text x="8" y="144" font-size="11" fill="currentColor">Tape above the eyebrows, over the widest part</text>
     </svg>
+    <p class="hs-fine">No tape measure? Wrap a piece of string or a phone charger cable around the same line, mark where it meets, then lay it along a ruler.</p>
+    <p class="hs-fine">Head shape matters as much as size: helmets are cut for round, intermediate or long-oval heads, and the same size can feel very different. If one model gives a hot spot, try a different model of the same size before going up a size. This page does not guess your shape because there is no standard test.</p>
     <h2 class="hs-h">Fit checks</h2>
-    <ul class="hs-list">
-      <li>Snug on the cheeks, with no gap at the forehead and no pressure points.</li>
-      <li>With the strap fastened, shake your head: the helmet must not slide on your head.</li>
-      <li>You cannot push it forward over your eyes or roll it off backwards.</li>
-      <li>Wear it for 10 minutes: a hot spot or headache means the wrong size or shape.</li>
-      <li>Two fingers fit between the strap and your chin.</li>
+    <p class="hs-fine">Put the helmet on, then tick what is true.</p>
+    <ul class="hs-list hs-checks">
+      <li><label><input type="checkbox" data-k="c1" /> Snug on the cheeks, with no gap at the forehead and no pressure points.</label></li>
+      <li><label><input type="checkbox" data-k="c2" /> With the strap fastened, shake your head: the helmet does not slide on your head.</label></li>
+      <li><label><input type="checkbox" data-k="c3" /> You cannot push it forward over your eyes or roll it off backwards.</label></li>
+      <li><label><input type="checkbox" data-k="c4" /> After 10 minutes there is no hot spot or headache.</label></li>
+      <li><label><input type="checkbox" data-k="c5" /> Two fingers fit between the strap and your chin.</label></li>
     </ul>
+    <p class="hs-big hs-chk" aria-live="polite"></p>
+    <h2 class="hs-h">Is my helmet too old?</h2>
+    <label>Year it was made (printed on the label inside) <input class="hs-y" data-k="year" inputmode="numeric" placeholder="e.g. 2019" /></label>
+    <p class="hs-big hs-age" aria-live="polite"></p>
+    <p class="hs-fine">Many makers advise replacing a helmet about 5 years after you start using it, and some allow up to 7 years from the date of manufacture. Always replace it after a crash or a hard knock, even if it looks fine. This is common maker guidance, not a law: check your maker's own advice.</p>
     <h2 class="hs-h">Marks to look for</h2>
     <ul class="hs-list">
       <li><b>India:</b> ISI mark, BIS standard IS 4151.</li>
@@ -56,11 +64,15 @@
   .hs-h { font-size: 16px; margin: 12px 0 6px; }
   .hs-svg { width: 100%; max-width: 320px; height: auto; color: var(--ink); }
   .hs-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .hs-checks { list-style: none; padding: 0; }
+  .hs-checks label { display: flex; gap: 8px; align-items: flex-start; }
+  .hs-checks input { width: 18px; height: 18px; flex: none; margin-top: 2px; accent-color: var(--accent); }
+  .hs-chk, .hs-age { font-size: 17px; margin: 10px 0 0; } .hs-chk:empty, .hs-age:empty { display: none; }
   .hs-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { BANDS, toCm, helmetSize } from '../../lib/money/helmet';
+  import { BANDS, toCm, helmetSize, helmetAge } from '../../lib/money/helmet';
   const root = document.querySelector('.hs') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const v = $('.hs-v') as HTMLInputElement, u = $('.hs-u') as HTMLSelectElement;
@@ -70,6 +82,11 @@
     const r = helmetSize(cm);
     $('.hs-big').textContent = r.size ? `Size ${r.size}` : 'No size';
     $('.hs-note').textContent = r.note;
+    const ticks = ['c1', 'c2', 'c3', 'c4', 'c5'].filter((k) => (root.querySelector(`[data-k="${k}"]`) as HTMLInputElement).checked).length;
+    $('.hs-chk').textContent = ticks === 0 ? '' : ticks === 5 ? 'All 5 checks pass. This size looks right; still compare with the maker\'s chart.' : `${ticks} of 5 checks pass. A helmet should pass all 5: try another size or model.`;
+    const yv = (root.querySelector('[data-k="year"]') as HTMLInputElement).value.trim(), yr = parseInt(yv, 10), now = new Date().getFullYear();
+    const age = helmetAge(yr, now);
+    $('.hs-age').textContent = yv === '' ? '' : age === null ? `Type a four-digit year from 1980 to ${now}.` : age >= 5 ? `Made ${yr}: about ${age} years old. Think about replacing it, and check your maker's advice.` : `Made ${yr}: about ${age} year${age === 1 ? '' : 's'} old. Replace it after any crash.`;
     $('.hs-tab tbody').innerHTML = BANDS.map((b) => `<tr class="${b.size === r.size ? 'on' : ''}"><td>${b.size}</td><td>${f1(b.min)} to ${f1(b.max)}</td><td>${f1(b.min / 2.54)} to ${f1(b.max / 2.54)}</td></tr>`).join('');
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);

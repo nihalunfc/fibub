@@ -11,7 +11,7 @@ ads: false
 order: 24
 icon: resume
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [ats-resume-checker, linkedin-post-formatter, file-converter, readability-checker]
 flow:
   - { icon: pencil, label: "Fill it in" }
@@ -40,6 +40,10 @@ Already have a resume? Score it with the [[ats-resume-checker]] and press **Fix 
 As you type, the preview shows the finished page and the **ATS score** updates, with the top things to improve. Open **Match it to a job ad** and paste a job description to see which of its key terms your resume already has and which are missing. The score uses the same checks as our [ATS resume checker](/documents/ats-resume-checker/).
 
 When you're happy, press **Download PDF** or **Download Word**. The PDF has real, selectable text (not a picture), and the Word file uses Word's own headings and bullet lists, so you can keep editing it in Word or Google Docs.
+
+## Extra fields some regions expect
+
+Under Contact details, a tick box called "Show extra fields some regions expect" adds nationality, visa or residence status, notice period, driving licence and an optional photo. It is off by default. Some employers in parts of Asia and the Middle East expect these; in Canada, the UK and the US leave them out. When ticked, the details appear under your contact line and in the PDF and Word file; untick it and they disappear from both. The photo is shrunk on your device, is never uploaded, and is not kept in the saved draft or backup file, so add it again next visit.
 
 ## Fixing a resume you already have
 

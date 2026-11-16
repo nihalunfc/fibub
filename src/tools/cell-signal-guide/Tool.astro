@@ -54,10 +54,13 @@ import '../../styles/astro.css';
           <option value="gsm">2G (RSSI)</option>
         </select>
       </label>
-      <label>Signal (dBm) <input class="csg-dbm" type="number" value="-95" min="-140" max="-30" step="1" /></label>
+      <label>Signal <input class="csg-dbm" data-k="dbm" type="number" value="-95" min="-140" max="-30" step="1" /></label>
+      <label>Number is in <select class="csg-unit" data-k="unit"><option value="dbm" selected>dBm</option><option value="asu">ASU (Android)</option></select></label>
       <label>SINR or SNR (dB, optional) <input class="csg-sinr" type="number" step="0.5" placeholder="e.g. 12" /></label>
     </div>
     <p class="csg-rate" aria-live="polite"></p>
+    <ul class="csg-list csg-fit"></ul>
+    <ul class="csg-list csg-help"></ul>
     <details>
       <summary>How to find the dBm number on your phone</summary>
       <ul class="csg-list">
@@ -93,6 +96,8 @@ import '../../styles/astro.css';
     <h2>Networks, strongest first</h2>
     <p class="csg-best"></p>
     <div class="ax-scroll"><table class="csg-sum"><thead><tr><th>Network</th><th class="r">Readings</th><th class="r">Average dBm</th><th>Signal</th><th class="r">Median down Mbps</th><th class="r">Median ping ms</th></tr></thead><tbody></tbody></table></div>
+    <h3>Best network at each place</h3>
+    <ul class="csg-list csg-places"></ul>
     <h3>All readings</h3>
     <div class="ax-scroll"><table class="csg-all"><thead><tr><th>Place</th><th>Network</th><th>Type</th><th class="r">dBm</th><th class="r">Down</th><th class="r">Ping</th><th>Where</th><th></th></tr></thead><tbody></tbody></table></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small csg-csv">Download CSV</button></div>
@@ -115,7 +120,7 @@ import '../../styles/astro.css';
 
 <script>
   import { PLANS, runTest, median, fmtMbps, fmtMs } from '../../lib/net/speed';
-  import { COUNTRIES_CELL, rateSignal, barsToDbm } from '../../lib/net/cell';
+  import { COUNTRIES_CELL, rateSignal, barsToDbm, asuToDbm, signalUses, poorSignalTips, bestPerPlace } from '../../lib/net/cell';
   import { summarise, tilesAround, centres, km, TECHS, COUNTRY_NAME, type Tile, type Op } from '../../lib/net/cells';
   const root = document.querySelector('.csg') as HTMLElement;
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
@@ -150,13 +155,18 @@ import '../../styles/astro.css';
 
   // ---- Signal reader ----
   function rate() {
-    const r = rateSignal($<HTMLSelectElement>('.csg-tech').value as any, $<HTMLInputElement>('.csg-dbm').valueAsNumber, $<HTMLInputElement>('.csg-sinr').valueAsNumber);
+    const tech = $<HTMLSelectElement>('.csg-tech').value as any, asu = $<HTMLSelectElement>('.csg-unit').value === 'asu';
+    const raw = $<HTMLInputElement>('.csg-dbm').valueAsNumber, dbm = asu ? asuToDbm(tech, raw) : raw;
+    const r = rateSignal(tech, dbm, $<HTMLInputElement>('.csg-sinr').valueAsNumber);
     const p = $('.csg-rate'); p.textContent = '';
-    if (!r) { p.textContent = 'Type a signal number in dBm, such as -95.'; return; }
+    for (const l of ['.csg-fit', '.csg-help']) $(l).textContent = '';
+    if (!r || (!asu && (dbm > -20 || dbm < -150))) { p.textContent = asu ? 'Type the ASU number your phone shows, such as 45.' : 'Type a signal number in dBm, such as -95 (always negative).'; return; }
     const pill = el('span', r.label); pill.className = 'ax-pill ' + r.tone;
-    p.append(pill, document.createTextNode(' ' + r.text));
+    p.append(pill, document.createTextNode((asu ? ` ${raw} ASU is ${Math.round(dbm)} dBm. ` : ' ') + r.text));
+    for (const u of signalUses(r.label)) { const li = el('li'); const b = el('span', u.ok === 'good' ? 'Fine' : u.ok === 'warn' ? 'Patchy' : 'Struggles'); b.className = 'ax-pill ' + u.ok; li.append(b, document.createTextNode(' ' + u.what)); $('.csg-fit').append(li); }
+    for (const t of poorSignalTips(r.label)) $('.csg-help').append(el('li', t));
   }
-  for (const s of ['.csg-tech', '.csg-dbm', '.csg-sinr']) $(s).addEventListener('input', rate);
+  for (const s of ['.csg-tech', '.csg-dbm', '.csg-sinr', '.csg-unit']) { $(s).addEventListener('input', rate); $(s).addEventListener('change', rate); }
   rate();
 
   // ---- Log ----
@@ -185,6 +195,10 @@ import '../../styles/astro.css';
     }
     const best = sum.find((s) => s.avg != null);
     $('.csg-best').textContent = best ? (sum.length > 1 ? `Strongest signal in your readings: ${best.net} (average ${best.avg!.toFixed(0)} dBm over ${best.n} reading${best.n > 1 ? 's' : ''}). Signal is not everything: also compare the speeds.` : `${best.net}: average ${best.avg!.toFixed(0)} dBm. Add readings for another network to compare.`) : '';
+    const pl = $('.csg-places'); pl.textContent = '';
+    for (const b of bestPerPlace(rows.map((r) => ({ place: r.place, net: r.net, dbm: dbmOf(r) })))) {
+      pl.append(el('li', `${b.place}: ${b.best.net} (${b.best.avg.toFixed(0)} dBm)` + (b.gap != null ? `, ${b.gap.toFixed(0)} dB ahead of ${b.others[0].net}` : ', no other network logged here yet')));
+    }
     const ta = $('.csg-all tbody'); ta.textContent = '';
     rows.forEach((r, i) => {
       const tr = el('tr');

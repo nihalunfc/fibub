@@ -11,7 +11,7 @@ ads: true
 order: 641
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [uncertainty-calculator, plot-maker, truss-solver, column-buckling, load-combination-helper, rebar-calculator, stress-strain-analyser, fatigue-sn-calculator, shaft-bearing-life]
 sources:
   - "Euler-Bernoulli beam theory and the finite element method with Hermite cubic beam elements and consistent nodal loads, as in standard texts such as Gere and Goodno, Mechanics of Materials, and Logan, A First Course in the Finite Element Method (methods and formulas only)."
@@ -19,6 +19,7 @@ sources:
   - "Section properties (I = bh³/12, πd⁴/64, built-up I-section) and shear stress factors are standard mechanics of materials results."
   - "Typical Young's modulus values are rounded general figures chosen by fibub as examples, not copied from any table. The example beam is made up."
   - "Checked against an independent NumPy/SciPy solution written for the tests (reactions as unknowns, bending moment by statics, double integration of M/EI)."
+  - "US customary conversions use the exact definitions 1 in = 0.0254 m, 1 ft = 0.3048 m and 1 lbf = 4.4482216152605 N (NIST SP 811). The deflection limits span / 180, 240, 360 and 480 are rounded typical values, not taken from a code table: check the official source for your job."
 flow:
   - { icon: ruler, label: "Beam" }
   - { icon: target, label: "Loads" }
@@ -38,6 +39,12 @@ This calculator works out how a straight beam carries its loads. Tell it how the
 It handles beams that statics alone cannot solve, such as a beam fixed at both ends, a propped cantilever or a beam continuous over three supports. Behind the scenes the beam is split into a few hundred short finite elements (Euler-Bernoulli beam theory), with a node at every support, load and load end, so the deflections at the nodes are exact for the theory. The shear and moment then come from simple statics using the solved reactions.
 
 Combine your loads first with the [[load-combination-helper]], solve whole frames in the [[truss-solver]], and check slender posts with the [[column-buckling|column buckling calculator]].
+
+## Extra options
+
+- **Start from a common case**: one tap sets the supports and loads for a simply supported beam with a load in the middle, an even load or two loads at the third points, a cantilever with a tip load or an even load, or a beam fixed at both ends with an even load. Then change the numbers.
+- **Deflection limit** (under More options): choose span ÷ 180, 240, 360 or 480 and the result row says OK or exceeded, and by how much. These are typical limits only; your building code and the use of the beam decide, so check the official source.
+- **In US units**: a result row repeats the largest deflection in inches, the moment in kip·ft, the largest reaction in kips and the stress in ksi. The conversions use the exact definitions of the inch, foot and pound-force.
 
 ## How to use it
 
