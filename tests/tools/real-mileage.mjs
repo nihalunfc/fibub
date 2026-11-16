@@ -24,4 +24,20 @@ export default async ({ page, check, BASE }) => {
   check((await rows()).includes('kWh per 100 km'), 'real-mileage: kWh mode');
   await page.selectOption('.rm [data-k="vehicle"]', 'truck'); await wait();
   check((await page.inputValue('.rm [data-k="tank"]')) === '200', 'real-mileage: vehicle sets the battery size');
+  // more options: claimed figure, trip estimate, best and worst tank (fresh page, simple data)
+  await page.goto(`${BASE}/vehicles/real-mileage/`); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.rm [data-k="claim"]', '6'); await wait();
+  // 6.667 L/100 km against a claimed 6: 11.1% more
+  check((await rows()).includes('11.1% more fuel than claimed'), `real-mileage: 11.1% above the claim (${await rows()})`);
+  await page.fill('.rm [data-k="plan"]', '300'); await wait();
+  check((await rows()).includes('300 km trip needs20.00 L'), `real-mileage: 300 km at 15 km/L needs 20.00 L (${await rows()})`);
+  await page.locator('.rm .rm-body tr').nth(1).locator('[data-c="price"]').fill('1.5'); await wait();
+  check((await rows()).includes('Trip fuel cost30.00'), 'real-mileage: trip cost 20 L x 1.50 = 30.00');
+  await page.click('.rm .rm-add'); await wait();
+  const l3 = page.locator('.rm .rm-body tr').nth(2);
+  await l3.locator('[data-c="odo"]').fill('10900'); await l3.locator('[data-c="amt"]').fill('45'); await wait();
+  check((await rows()).includes('Best tank15.00 km/L (fill-up 1)') && (await rows()).includes('Worst tank10.00 km/L (fill-up 2)'), `real-mileage: best and worst tank (${await rows()})`);
+  await page.fill('.rm [data-k="claim"]', ''); await page.fill('.rm [data-k="plan"]', ''); await wait();
+  check(!(await rows()).includes('claimed') && !(await rows()).includes('NaN'), 'real-mileage: blank extras add nothing');
 };

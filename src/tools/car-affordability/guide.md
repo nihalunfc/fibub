@@ -11,7 +11,7 @@ ads: false
 order: 1806
 icon: wallet
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [car-loan, budget-calculator, lease-vs-buy]
 sources:
   - "The 20/4/10 rule is a common personal-finance rule of thumb, not a law or a lender's test. Loan size is the present value of the payments at the monthly rate (rate / 12), the same level-payment formula lenders use. Drawings are fibub's own."
@@ -39,7 +39,9 @@ It uses the 20/4/10 rule of thumb. Put down 20% of the price, borrow for no more
 
 - **Total car costs (% of gross income)**: your car budget a month is this share of your monthly gross income. The running costs come out of it first.
 - **Down payment (%)**: the loan is the price minus the down payment, so a bigger down payment allows a higher price for the same monthly payment.
-- **Loan length**: a longer loan lowers the payment but costs more interest.
+- **Loan length**: a longer loan lowers the payment but costs more interest. A table under the answer shows the top price, payment and interest for 36 to 84 months side by side, with your own term highlighted.
+- **More options, sales tax**: type your local sales tax and the answer also shows the sticker price before tax, because the budget has to cover the tax too.
+- **More options, a car you are looking at**: type the total price of a real car and the tool shows its monthly payment (same down payment, rate and term), the share of your gross income it uses with running costs, and whether it fits or by how much it is over budget.
 
 ## Worked example
 

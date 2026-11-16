@@ -12,7 +12,7 @@ ads: false
 order: 2122
 icon: calculator
 works: offline
-updated: 2026-11-12
+updated: 2026-11-16
 related: [fuel-cost, real-mileage, ev-vs-petrol]
 sources:
   - "Simple arithmetic on the prices and mileages you type: cost per km = price / mileage; payback = extra cost / monthly saving. Prices change often, so use today's pump prices. Fitting rules as checked November 2026; check the official source (the transport department and the vehicle maker). Drawings are fibub's own."
@@ -41,6 +41,10 @@ Use your own real mileage for both fuels, which you can measure with [[real-mile
 - **Gas**: CNG (price per kg, km per kg) or LPG (price per litre, km per litre).
 - **Extra cost**: the factory CNG premium or the kit and fitting.
 - **Years kept**: shows what you save in total over that time, after paying the extra cost.
+
+## More options
+
+Under the numbers there is a year-by-year table and a line chart of the total cost of petrol only against gas with the extra cost paid on day one, so you can see the year the gas car pulls ahead. A second table shows what happens if the gas price falls 20% or rises 20% or 50%: the cost per km, the monthly saving and the payback. Open "More options" to change the currency symbol (rupee, dollar, pound, dirham, riyal or none) and to set the share of your kilometres driven on gas. Most CNG cars start on petrol and some trips stay on petrol, so a figure below 100% is often closer to real life. The prices are yours to type: the symbol only changes the label.
 
 ## Worked example
 

@@ -92,3 +92,15 @@ export function unitPriceAt(price: number, qty: number, unit: string, packs = 1,
 
 /** How much dearer `per` is than the best (cheapest) one, in percent. 0 for the best. */
 export const dearerThanBest = (per: number, best: number) => (best > 0 ? Math.max(0, (per / best - 1) * 100) : 0);
+
+// ---- Fuel cost extras (added for the fuel-cost tool) ----
+/** Fuel economy worked out from a fill-up: distance driven (km) and fuel added (litres). Returns L/100 km, or null. */
+export const l100FromFill = (km: number, litres: number) => (km > 0 && litres > 0 ? (litres / km) * 100 : null);
+/** Cost of a regular trip repeated: per week, per month (52/12 weeks) and per year. */
+export function repeatCost(tripCost: number, tripsPerWeek: number) {
+  const week = tripCost * Math.max(0, tripsPerWeek);
+  return { week, month: (week * 52) / 12, year: week * 52 };
+}
+/** Cost per km and per mile from a trip's total cost and distance in km. */
+export const costPerDistance = (cost: number, km: number) => (km > 0 ? { perKm: cost / km, perMile: (cost * MI) / km, per100km: (cost * 100) / km } : null);
+export const litresToGallons = (l: number) => ({ us: l / L_US, uk: l / L_UK });

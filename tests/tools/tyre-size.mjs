@@ -38,4 +38,13 @@ export default async ({ page, check, BASE }) => {
   // ?c=usa: mph and lb
   await page.goto(`${BASE}/vehicles/tyre-size/?c=usa`); await page.waitForTimeout(300);
   check((await line('speed')).includes('149 mph') && (await line('load')).includes('lb'), `tyre-size: ?c=usa shows mph (${await line('speed')})`);
+  await page.goto(`${BASE}/vehicles/tyre-size/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach(d => d.open = true));
+  check((await page.inputValue('.ts [data-k="pw"]')) === '205' && (await page.inputValue('.ts [data-k="pr"]')) === '16', 'tyre-size: lists start on the typed size');
+  await page.selectOption('.ts [data-k="pw"]', '225'); await page.selectOption('.ts [data-k="pa"]', '45'); await page.selectOption('.ts [data-k="pr"]', '17'); await page.waitForTimeout(150);
+  check((await page.inputValue('.ts [data-k="code"]')) === '225/45 R17', 'tyre-size: lists fill the size box');
+  await page.fill('.ts [data-k="code"]', '205/55 R16'); await page.waitForTimeout(150);
+  check((await page.$$('.ts .ts-near')).length > 0, 'tyre-size: near sizes are listed');
+  await page.fill('.ts [data-k="code2"]', '225/45 R17'); await page.waitForTimeout(150); // 634.3 / 631.9 = +0.38%
+  check((await page.textContent('.ts [data-o="speedtab"]')).includes('100 km/h reads as 100.4'), `tyre-size: speedometer table (${await page.textContent('.ts [data-o="speedtab"]')})`);
 };

@@ -11,10 +11,11 @@ ads: false
 order: 2120
 icon: sliders
 works: offline
-updated: 2026-11-12
+updated: 2026-11-16
 related: [ethanol-blend, fuel-cost, real-mileage]
 sources:
   - "AKI (anti-knock index, the pump number in the USA and Canada) is (RON + MON) / 2. For ordinary petrol AKI is about RON minus 4, so the gap is editable. Grade lists are typical pump grades as checked November 2026; check the official source and your fuel pump. Drawings are fibub's own."
+  - "The check for a different grade uses the manual number you type and the RON/AKI gap above; \"required\" and \"recommended\" wording is the maker's. Checked 2026-11-16, check the official source and your manual."
 flow:
   - { icon: sliders, label: "Number" }
   - { icon: convert, label: "Convert" }
@@ -40,6 +41,10 @@ That is why 87 at a pump in Toronto and 91 in Mumbai can be nearly the same fuel
 - **RON / AKI**: type either one; the other is worked out.
 - **RON minus AKI gap**: about 4 for ordinary petrol. Change it only if you have a better figure.
 - **My manual says**: the number, and which scale it uses.
+
+## More options
+
+After "Which one do I buy?" there is a check for a different grade. Type the grade you want to use and whether it is RON or AKI, and it tells you if it meets your manual's number, is below it (risk of knock) or is higher than the engine needs. The wording matters: if the manual says "required", do not go lower; if it says "recommended", read what the manual says about power and economy. Open the details under it to see what the dearer grade costs you in a year: type the extra price per litre, your km a year and your mileage. The grade lists by country are typical pump grades, so check the pump label.
 
 ## Worked example
 

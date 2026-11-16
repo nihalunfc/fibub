@@ -7,11 +7,15 @@
       <select class="uc-veh"><option value="car">Car</option><option value="bike">Two-wheeler</option><option value="truck">Truck</option></select>
     </label>
     <label>Notes about the vehicle (make, plate, seller) <input class="uc-title" maxlength="80" /></label>
+    <label>Price the seller asks (optional) <input class="uc-ask" inputmode="decimal" placeholder="e.g. 8000" /></label>
+    <label>Show <select class="uc-show"><option value="all">All items</option><option value="open">Not checked yet</option><option value="problem">Problems only</option></select></label>
   </section>
   <div class="uc-list"></div>
   <section class="panel" aria-live="polite">
     <p class="uc-big"></p>
+    <p class="uc-say"></p>
     <ul class="uc-flags"></ul>
+    <p class="uc-offer"></p>
     <p class="uc-act">
       <button type="button" class="uc-btn uc-print">Print</button>
       <button type="button" class="uc-btn uc-pdf">Download PDF</button>
@@ -27,6 +31,9 @@
   .uc-top { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
   .uc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .uc input:not([type=radio]), .uc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .uc-say { margin: 0 0 8px; } .uc-offer { margin: 0 0 8px; font-weight: 600; } .uc-offer:empty { display: none; }
+  .uc-extra { display: flex; gap: 8px; flex-wrap: wrap; } .uc-extra .uc-note { flex: 1 1 180px; width: auto; }
+  .uc-cost { width: 120px !important; } .uc-item[hidden] { display: none; }
   .uc-g { margin: 0 0 8px; font-size: 16px; }
   .uc-item { padding: 10px 0; border-top: 1px solid var(--line); display: grid; gap: 6px; }
   .uc-t { margin: 0; }
@@ -50,7 +57,7 @@
 </style>
 
 <script>
-  import { SETS, score, type Mark } from '../../lib/money/used-car';
+  import { SETS, score, offerAfterRepairs, verdict, type Mark } from '../../lib/money/used-car';
   const root = document.querySelector('.uc') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const veh = $('.uc-veh') as HTMLSelectElement;
@@ -62,7 +69,7 @@
       const i = n++;
       return `<div class="uc-item" data-i="${i}"><p class="uc-t">${esc(it.t)}${it.rf ? '<span class="uc-rf">RED FLAG</span>' : ''}</p>` +
         `<div class="uc-opts"><label><input type="radio" name="m${i}" value="ok" /> OK</label><label><input type="radio" name="m${i}" value="problem" /> Problem</label><label><input type="radio" name="m${i}" value="" checked /> Not checked</label></div>` +
-        `<input class="uc-note" data-n="${i}" placeholder="Notes" maxlength="200" aria-label="Notes" /></div>`;
+        `<div class="uc-extra"><input class="uc-note" data-n="${i}" placeholder="Notes" maxlength="200" aria-label="Notes" /> <input class="uc-cost" data-cost="${i}" inputmode="decimal" placeholder="Repair cost" aria-label="Estimated repair cost" hidden /></div></div>`;
     }).join('') + '</section>').join('');
     calc();
   };
@@ -72,6 +79,18 @@
     const m = marks(), s = score(m), f = flags(m);
     $('.uc-big').textContent = s.checked ? `Score ${s.pct}% OK: ${s.ok} OK, ${s.problems} problem${s.problems === 1 ? '' : 's'}, ${s.skipped} not checked` : `Nothing checked yet (${m.length} items)`;
     $('.uc-flags').innerHTML = f.map((x) => `<li>Red flag: ${esc(x)}</li>`).join('');
+    $('.uc-say').textContent = verdict(s, f.length, m.length);
+    // repair cost box only for items marked Problem; the asking price turns the total into a suggested offer
+    const costs: number[] = [];
+    root.querySelectorAll<HTMLInputElement>('.uc-cost').forEach((c, i) => {
+      c.hidden = m[i] !== 'problem';
+      if (m[i] === 'problem') costs.push(parseFloat(c.value.replace(/,/g, '')) || 0);
+    });
+    const ask = parseFloat(($('.uc-ask') as HTMLInputElement).value.replace(/,/g, '')) || 0, o = offerAfterRepairs(ask, costs);
+    const f0 = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    $('.uc-offer').textContent = o.total > 0 || ask > 0 ? `Repairs you listed: ${f0(o.total)}.` + (ask > 0 ? (o.tooMuch ? ' That is as much as the asking price: probably not worth buying.' : ` Asking ${f0(ask)} minus repairs: offer at most ${f0(o.offer)}.`) : ' Type the asking price to see a suggested top offer.') : '';
+    const show = ($('.uc-show') as HTMLSelectElement).value;
+    root.querySelectorAll<HTMLElement>('.uc-item').forEach((el, i) => { el.hidden = show === 'open' ? m[i] !== '' : show === 'problem' ? m[i] !== 'problem' : false; });
   };
   async function pdf() {
     const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
@@ -91,12 +110,14 @@
     line('Used vehicle checklist (' + veh.selectedOptions[0].text + ')', true, 16); y -= 4;
     const title = ($('.uc-title') as HTMLInputElement).value; if (title) line(title, false, 11);
     line(s.checked ? `Score ${s.pct}% OK: ${s.ok} OK, ${s.problems} problems, ${s.skipped} not checked` : 'Nothing checked yet', true, 11);
+    line($('.uc-say').textContent || '', false, 10); const off = $('.uc-offer').textContent; if (off) line(off, true, 10);
     f.forEach((x) => line('RED FLAG: ' + x, true, 11, rgb(0.7, 0, 0))); y -= 6;
     let g = '';
     flat().forEach((it, i) => {
       if (it.g !== g) { g = it.g; y -= 6; line(g, true, 12); }
       const note = (root.querySelector(`[data-n="${i}"]`) as HTMLInputElement).value;
-      line(`[${label[m[i]]}] ${it.t}${it.rf ? ' (red flag item)' : ''}${note ? ' - Note: ' + note : ''}`);
+      const rc = (root.querySelector(`[data-cost="${i}"]`) as HTMLInputElement).value;
+      line(`[${label[m[i]]}] ${it.t}${it.rf ? ' (red flag item)' : ''}${note ? ' - Note: ' + note : ''}${m[i] === 'problem' && rc ? ' - Repair: ' + rc : ''}`);
     });
     y -= 8; line('General guide only, not a mechanic\'s inspection. fibub.com', false, 8);
     const bytes = await doc.save();
@@ -104,9 +125,9 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
   veh.addEventListener('change', build);
-  root.addEventListener('change', calc);
+  root.addEventListener('change', calc); root.addEventListener('input', (e) => { const c = (e.target as HTMLElement).classList; if (c.contains('uc-cost') || c.contains('uc-ask')) calc(); });
   $('.uc-print').addEventListener('click', () => window.print());
   $('.uc-pdf').addEventListener('click', pdf);
-  $('.uc-reset').addEventListener('click', () => { ($('.uc-title') as HTMLInputElement).value = ''; build(); });
+  $('.uc-reset').addEventListener('click', () => { ($('.uc-title') as HTMLInputElement).value = ''; ($('.uc-ask') as HTMLInputElement).value = ''; ($('.uc-show') as HTMLSelectElement).value = 'all'; build(); });
   build();
 </script>

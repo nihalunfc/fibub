@@ -18,4 +18,15 @@ export default async ({ page, check, BASE }) => {
   await set('close', '10');
   check(!(await flags()).includes('close together') && (await big()).includes('0 flags'), 'fleet-fuel: smaller closeness limit clears the last flag');
   check((await page.$$('.ff .ff-charts svg')).length >= 1, 'fleet-fuel: a chart is drawn');
+  // Fleet totals, sort, what-if, CSV out. Fleet: 5,780 km, 1,815 L = 3.18 km/L, 2,178 / 5,780 = 0.377 a km, 1.200 a litre.
+  check(/5,780 km, 1,815\.0 litres, 3\.18 km\/L, 0\.377 per km, about 1\.200 per litre/.test(await page.textContent('.ff .ff-fleet')), `fleet-fuel: whole-fleet line (${await page.textContent('.ff .ff-fleet')})`);
+  check((await page.textContent('.ff .ff-total')).includes('Fleet') && (await page.textContent('.ff .ff-total')).includes('5,780'), 'fleet-fuel: fleet total row');
+  // TRK-2 is 2.31 km/L, below the middle 3.15: 1,500/2.3077 - 1,500/3.1515 = 174 L; at 1.20 = 209
+  check(/about 174 litres less/.test(await page.textContent('.ff .ff-whatif')) && /about 209/.test(await page.textContent('.ff .ff-whatif')), `fleet-fuel: what-if (${await page.textContent('.ff .ff-whatif')})`);
+  await page.selectOption('.ff [data-k="sort"]', 'best'); await page.waitForTimeout(100);
+  check((await page.$$eval('.ff .ff-sum tr td:first-child', (e) => e.map((x) => x.textContent))).join() === 'TRK-1,TRK-3,TRK-2', 'fleet-fuel: best economy first');
+  await page.selectOption('.ff [data-k="sort"]', 'worst'); await page.waitForTimeout(100);
+  check((await page.$$eval('.ff .ff-sum tr td:first-child', (e) => e[0].textContent)) === 'TRK-2', 'fleet-fuel: worst economy first');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.ff .ff-dl-sum')]);
+  check(dl.suggestedFilename() === 'fleet-fuel-summary.csv', 'fleet-fuel: summary CSV downloads');
 };

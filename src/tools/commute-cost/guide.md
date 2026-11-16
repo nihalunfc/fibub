@@ -11,7 +11,7 @@ ads: false
 order: 1781
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, ev-vs-petrol, budget-calculator]
 sources:
   - "Car cost per day = round-trip distance x (fuel use x fuel price + wear per km) + parking + tolls. Transit = monthly pass x 12 + extra per day x days. Time cost = travel hours x the hourly value you choose. All figures are your own inputs; wear per km is your estimate."
@@ -40,6 +40,10 @@ Car costs include fuel, parking, tolls and wear on the vehicle. For an electric 
 - **Wear and tear per km**: tyres, servicing, repairs and, if you like, depreciation. It is your estimate; official allowance rates can be a guide but also include insurance and depreciation.
 - **Extra per day**: single fares or last-mile rides on top of a pass.
 - **Weeks a year**: leave out holidays and remote weeks.
+
+- **Distance in** and **Fuel economy in**: choose km or miles, and litres per 100 km, km per litre, or miles per US or UK gallon. Switching converts the numbers you typed, so the same car gives the same answer; the fuel price and wear figure are converted too.
+- **People in the car**: put 2 or more to share the car's money cost (fuel, parking, tolls, wear). Your travel time is not shared.
+- **Pass line**: under the table, the tool says how many days a month you need to commute before a monthly transit pass costs less than driving, next to how many days you actually commute.
 
 ## Worked example
 

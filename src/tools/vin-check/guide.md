@@ -11,7 +11,7 @@ ads: false
 order: 1820
 icon: search
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [used-car-checklist, car-loan, car-depreciation]
 sources:
   - "VIN layout and check digit: the 17-character standard (ISO 3779) and the North American rule in US federal regulation 49 CFR Part 565 (weights 8 7 6 5 4 3 2 10 0 9 8 7 6 5 4 3 2, letters turned into numbers, remainder of 11, 10 shown as X). Checked 2026-11-10; check the official source."
@@ -40,6 +40,12 @@ Everything is worked out on this page: no database is asked, so it cannot tell y
 - **Check digit**: required on vehicles made for North America. Other regions often do not use the same rule, so a mismatch there is only a hint.
 - **Model year**: position 10 repeats every 30 years, so two years are shown. On North American vehicles, a letter in position 7 usually points to the later one.
 - **Plant code**: position 11 is a code the maker sets; it is not decoded here.
+
+- **Made in and most likely year**: the first characters show the maker's country for the common blocks, and for North American cars the 7th character (a letter means 2010 on, a digit means before 2010) picks one of the two years the 10th character allows. Countries not listed are left out rather than guessed.
+- **Maker code and serial number**: the first three and last six characters, as they appear on papers.
+- **Typo suggestion**: VINs never contain I, O or Q. If you typed one, the tool shows the version with 1 or 0 in its place and whether its check digit works.
+- **Show the working**: a table of each position's value, weight and product, and the sum that gives the check digit.
+- **Where to find the VIN**: the usual places on the vehicle and papers.
 
 ## Worked example
 

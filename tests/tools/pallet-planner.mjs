@@ -24,4 +24,12 @@ export default async ({ page, check, BASE }) => {
   check((await page.inputValue('.pp [data-k="pl"]')) === '1219' && (await big()) === '24 pallets', 'pallet-planner: millimetres give the same count');
   await sel('tr', 'in20'); await sel('pal', 'eur'); await sel('pat', 'across'); // 6100 x 2300 body, 1200 x 800 pallets, 800 along: 7 rows, 1 across (1200 of 2300)
   check((await big()) === '7 pallets', `pallet-planner: Indian 20 ft body with EUR pallets, long side across (${await big()})`);
+  await page.goto(`${BASE}/vehicles/pallet-planner/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach(d => d.open = true));
+  await sel('pat', 'along'); await set('ship', '80'); // 26 a load (payload would allow 37), 80 / 26 = 4 loads, last carries 2
+  const cmp = await page.textContent('.pp .pp-cmp');
+  check(cmp.includes('along 26') && cmp.includes('across 30') && cmp.includes('pinwheel 30'), `pallet-planner: pattern comparison (${cmp})`);
+  check(cmp.includes('4 loads') && cmp.includes('carries 2'), 'pallet-planner: 80 pallets need 4 loads, last one 2');
+  await sel('tr', 'c40'); // 12,032 mm / 1,219.2 = 9 rows, 2,352 / 1,016 = 2 across
+  check((await big()) === '18 pallets', `pallet-planner: 40 ft container fits 18 (${await big()})`);
 };

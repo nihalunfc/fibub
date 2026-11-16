@@ -14,13 +14,16 @@
   <section class="panel">
     <h2>Car</h2>
     <div class="cc-grid">
-      <label>One-way distance (km) <input data-k="dist" inputmode="decimal" value="15" /></label>
-      <label>Litres per 100 km <input data-k="l100" inputmode="decimal" value="8" /></label>
-      <label>Fuel price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label>Distance in <select data-k="dunit"><option value="km">Kilometres</option><option value="mi">Miles</option></select></label>
+      <label>One-way distance <input data-k="dist" inputmode="decimal" value="15" /></label>
+      <label>Fuel economy in <select data-k="eunit"><option value="l100">Litres per 100 km</option><option value="kml">km per litre</option><option value="mpgus">Miles per US gallon</option><option value="mpguk">Miles per UK gallon</option></select></label>
+      <label>Fuel economy <input data-k="l100" inputmode="decimal" value="8" /></label>
+      <label>Fuel price per <span class="cc-fu">litre</span> <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
       <label>Parking a day <input data-k="park" inputmode="decimal" value="10" /></label>
       <label>Tolls a day <input data-k="toll" inputmode="decimal" value="0" /></label>
-      <label>Wear and tear per km <input data-k="wear" inputmode="decimal" value="0.10" /></label>
+      <label>Wear and tear per <span class="cc-du">km</span> <input data-k="wear" inputmode="decimal" value="0.10" /></label>
       <label>Minutes one way <input data-k="cmin" inputmode="decimal" value="30" /></label>
+      <label>People in the car (share the cost) <input data-k="pool" inputmode="decimal" value="1" /></label>
     </div>
     <p class="cc-fine">Wear per km covers tyres, servicing and repairs (and, if you like, a share of depreciation). A typical figure is 0.05 to 0.15 in your currency; adjust it.</p>
   </section>
@@ -37,6 +40,7 @@
   <section class="panel" aria-live="polite">
     <p class="cc-big"></p>
     <div class="cc-scroll"><table class="cc-tab cc-out"></table></div>
+    <p class="cc-pass"></p>
   </section>
   <p class="cc-fine">Estimates, not financial advice. Nothing you type leaves this page.</p>
 </div>
@@ -54,6 +58,7 @@
   .cc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
   .cc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .cc-rows dt { color: var(--muted); } .cc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cc-pass { margin: 12px 0 0; } .cc-pass:empty { display: none; }
   .cc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .cc-scroll { overflow-x: auto; }
   .cc-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -66,20 +71,36 @@
 
 <script>
   import { commute } from '../../lib/money/household';
-  import { fmt, num } from '../../lib/money/ui';
+  import { fmt, num, val } from '../../lib/money/ui';
+  import { toL100, litresPerUnit, sharedCar, passBreakEvenDays, KM_PER_MI, type EconUnit } from '../../lib/money/vehicles';
   const root = document.querySelector('.cc') as HTMLElement;
   const big = root.querySelector('.cc-big') as HTMLElement, out = root.querySelector('.cc-out') as HTMLElement;
+  let lastE: EconUnit = 'l100', lastD = 'km';
+  const units = () => {
+    const eu = val(root, 'eunit') as EconUnit, du = val(root, 'dunit');
+    // switching unit keeps the same car: convert what is typed
+    if (eu !== lastE) { const v = toL100(num(root, 'l100'), lastE); const c = (root.querySelector('[data-k="l100"]') as HTMLInputElement); if (v > 0) { const e = eu === 'l100' ? v : eu === 'kml' ? 100 / v : (100 * litresPerUnit(eu)) / (KM_PER_MI * v); c.value = String(Math.round(e * 100) / 100); } const fp = root.querySelector('[data-k="fuel"]') as HTMLInputElement, pv = num(root, 'fuel'); if (pv > 0) fp.value = String(Math.round((pv / litresPerUnit(lastE)) * litresPerUnit(eu) * 10000) / 10000); lastE = eu; }
+    if (du !== lastD) { const c = root.querySelector('[data-k="dist"]') as HTMLInputElement, v = num(root, 'dist'); if (v > 0) c.value = String(Math.round((du === 'mi' ? v / KM_PER_MI : v * KM_PER_MI) * 100) / 100); const wr = root.querySelector('[data-k="wear"]') as HTMLInputElement, wv = num(root, 'wear'); if (wv > 0) wr.value = String(Math.round((du === 'mi' ? wv * KM_PER_MI : wv / KM_PER_MI) * 10000) / 10000); lastD = du; }
+    (root.querySelector('.cc-fu') as HTMLElement).textContent = eu === 'mpgus' ? 'US gallon' : eu === 'mpguk' ? 'UK gallon' : 'litre';
+    (root.querySelector('.cc-du') as HTMLElement).textContent = du === 'mi' ? 'mile' : 'km';
+    return { l100: toL100(num(root, 'l100'), eu), kmPer: du === 'mi' ? KM_PER_MI : 1, perL: 1 / litresPerUnit(eu) };
+  };
+  root.addEventListener('change', (e) => { const k = (e.target as HTMLElement).dataset.k; if (k === 'eunit' || k === 'dunit') calc(); });
   const calc = () => {
+    const u = units();
     const rows = commute({ daysPerWeek: num(root, 'dpw'), weeksPerYear: num(root, 'wpy'), hourly: num(root, 'hourly'),
-      car: { oneWayKm: num(root, 'dist'), l100: num(root, 'l100'), fuelPrice: num(root, 'fuel'), parking: num(root, 'park'), tolls: num(root, 'toll'), wearPerKm: num(root, 'wear'), minutes: num(root, 'cmin') },
+      car: { oneWayKm: num(root, 'dist') * u.kmPer, l100: u.l100, fuelPrice: num(root, 'fuel') * u.perL, parking: num(root, 'park'), tolls: num(root, 'toll'), wearPerKm: num(root, 'wear') / u.kmPer, minutes: num(root, 'cmin') },
       transit: { monthly: num(root, 'pass'), extraPerDay: num(root, 'textra'), minutes: num(root, 'tmin') },
       bike: { perDay: num(root, 'bday'), minutes: num(root, 'bmin') } });
+    rows[0] = sharedCar(rows[0], num(root, 'pool'));
     const best = rows.reduce((a, b) => (b.withTime < a.withTime ? b : a));
     big.textContent = `Cheapest with your time counted: ${best.name} (${fmt(best.withTime, 0)} a year)`;
     const r = (l: string, f: (x: typeof rows[number]) => string) => `<tr><td>${l}</td>${rows.map((x) => `<td>${f(x)}</td>`).join('')}</tr>`;
     out.innerHTML = `<thead><tr><th></th>${rows.map((x) => `<th>${x.name}</th>`).join('')}</tr></thead><tbody>` +
       r('Money per day', (x) => fmt(x.day)) + r('Money per month', (x) => fmt(x.month)) + r('Money per year', (x) => `<b>${fmt(x.year, 0)}</b>`) +
       r('Hours travelling a year', (x) => fmt(x.hoursYear, 0)) + r('Value of that time', (x) => fmt(x.timeYear, 0)) + r('Money plus time, a year', (x) => `<b>${fmt(x.withTime, 0)}</b>`) + '</tbody>';
+    const days = num(root, 'dpw') * num(root, 'wpy') / 12, be = passBreakEvenDays(rows[0].day, num(root, 'pass'), num(root, 'textra')), pass = root.querySelector('.cc-pass') as HTMLElement;
+    pass.textContent = be === null || !(days > 0) ? '' : `Driving costs ${fmt(rows[0].day)} a day, so a ${fmt(num(root, 'pass'))} monthly pass is cheaper once you commute more than ${fmt(be, 1)} days a month. You commute about ${fmt(days, 1)} days a month.`;
   };
   root.addEventListener('input', calc);
   calc();

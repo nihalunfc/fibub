@@ -12,3 +12,6 @@ export function helmetSize(cm: number) {
   const edge = cm - b.min < 0.5 ? 'You are near the smaller end: also try the size below.' : b.max - cm <= 0.5 ? 'You are near the larger end: also try the size above.' : '';
   return { size: b.size, band: b, note: edge };
 }
+
+/** Years since a helmet was made; null for a blank or future year. */
+export const helmetAge = (madeYear: number, nowYear: number) => (Number.isFinite(madeYear) && madeYear >= 1980 && madeYear <= nowYear ? nowYear - madeYear : null);

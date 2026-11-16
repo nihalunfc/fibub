@@ -26,6 +26,15 @@ import '../../styles/astro.css';
 
   <div class="ax-card ist-res" hidden>
     <h2>Results</h2>
+    <p class="ax-big ist-sum" aria-live="polite"></p>
+    <div class="ax-row" style="margin:8px 0">
+      <span class="ax-help" style="margin:0">Show speeds in</span>
+      <div class="ax-seg" role="group" aria-label="Speed unit">
+        <button type="button" data-unit="mbps" aria-pressed="true">Mbps</button>
+        <button type="button" data-unit="mbs" aria-pressed="false">MB/s</button>
+      </div>
+    </div>
+    <p class="ax-help ist-unithelp" hidden>MB/s is megabytes per second, the number most download windows show. 8 megabits make 1 megabyte, so it is the Mbps figure divided by 8.</p>
     <dl class="ax-facts">
       <div><dt>Download</dt><dd class="ist-down">–<small></small></dd></div>
       <div><dt>Upload</dt><dd class="ist-up">–<small></small></dd></div>
@@ -37,12 +46,41 @@ import '../../styles/astro.css';
     <h3>Good enough for</h3>
     <ul class="ist-uses"></ul>
     <div class="ax-row"><button type="button" class="btn secondary small ist-copy">Copy results</button><span class="ax-help ist-copied" aria-live="polite"></span></div>
+    <details class="ist-more">
+      <summary>More options: plan check, household, download time</summary>
+      <h3>Is this what I pay for?</h3>
+      <label>Speed your plan promises (Mbps)<input type="number" inputmode="decimal" min="0" step="any" data-k="plan" class="ist-plan" placeholder="e.g. 300" /></label>
+      <p class="ist-planout" aria-live="polite"></p>
+      <h3>Is it enough for my home?</h3>
+      <p class="ax-help">How many of each would run at the same time? Worst case, so a little spare is good.</p>
+      <div class="ax-grid">
+        <label>HD videos (5 Mbps each)<input type="number" inputmode="numeric" min="0" max="99" step="1" data-k="hd" class="ist-hh" value="1" /></label>
+        <label>4K videos (15 Mbps each)<input type="number" inputmode="numeric" min="0" max="99" step="1" data-k="uhd" class="ist-hh" value="0" /></label>
+        <label>Video calls (about 3.8 down, 3 up)<input type="number" inputmode="numeric" min="0" max="99" step="1" data-k="calls" class="ist-hh" value="1" /></label>
+        <label>Other busy devices (1 Mbps each)<input type="number" inputmode="numeric" min="0" max="99" step="1" data-k="browse" class="ist-hh" value="2" /></label>
+      </div>
+      <p class="ist-hhout" aria-live="polite"></p>
+      <h3>How long will a download take?</h3>
+      <div class="ax-grid">
+        <label>File size<input type="number" inputmode="decimal" min="0" step="any" data-k="size" class="ist-size" value="5" /></label>
+        <label>Unit<select data-k="sizeunit" class="ist-sizeunit"><option value="GB">GB</option><option value="MB">MB</option></select></label>
+      </div>
+      <p class="ist-sizeout" aria-live="polite"></p>
+      <p class="ax-help">Rates for streams are rounded from public guidance by streaming and video-call services (see the guide). Real speed varies.</p>
+    </details>
   </div>
 
   <div class="ax-card">
     <h2>Your connection</h2>
     <dl class="ax-facts ist-info"><div><dt>Checking…</dt><dd>–</dd></div></dl>
     <p class="ax-help">Your IP address and network name are what every website you visit already sees. fibub shows them here and does not keep them.</p>
+  </div>
+
+  <div class="ax-card ist-runs" hidden>
+    <h2>Your tests this visit</h2>
+    <p class="ax-help">Kept only while this page is open, so you can compare Wi-Fi with a cable or one room with another. Gone when you close the tab.</p>
+    <div class="ax-scroll"><table class="ist-sess"><thead><tr><th>#</th><th class="r">Down</th><th class="r">Up</th><th class="r">Ping</th><th class="r">Jitter</th><th class="r">Busy ping</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help ist-best"></p>
   </div>
 
   <div class="ax-card">
@@ -74,17 +112,22 @@ import '../../styles/astro.css';
   .ist-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
   .ist-uses, .ist-off { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; }
   .ist-uses li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .ist-more h3 { font-size: 15px; margin: 16px 0 6px; }
+  .ist-more summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
   .ist-uses small { color: var(--muted); font-size: 13px; }
 </style>
 
 <script>
-  import { PLANS, runTest, uses, rateLatency, rateDown, bloat, fmtMbps, fmtMs, fmtBytes, linkInfo, traceInfo, ispInfo, type Result } from '../../lib/net/speed';
+  import { PLANS, runTest, uses, rateLatency, rateDown, bloat, fmtMbps, householdNeed, householdVerdict, planShare, planVerdict, mbpsToMBps, transferSeconds, fmtDuration, FILE_UNITS, median, fmtMs, fmtBytes, linkInfo, traceInfo, ispInfo, type Result } from '../../lib/net/speed';
   const root = document.querySelector('.ist') as HTMLElement;
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
   const KEY = 'fibub-speedtests-v1';
   let plan: 'light' | 'full' = 'light';
   let ctl: AbortController | null = null;
   let last: Result | null = null;
+  let unit: 'mbps' | 'mbs' = 'mbps';
+  const runs: Result[] = [];
+  const spd = (m: number | null) => (m == null ? '–' : unit === 'mbps' ? fmtMbps(m) + ' Mbps' : fmtMbps(mbpsToMBps(m)) + ' MB/s');
 
   const planHelp = () => {
     $('.ist-planhelp').textContent = plan === 'light'
@@ -106,8 +149,9 @@ import '../../styles/astro.css';
 
   function show(r: Result) {
     $('.ist-res').hidden = false;
-    set('.ist-down', r.down == null ? '–' : fmtMbps(r.down) + ' Mbps', rateDown(r.down));
-    set('.ist-up', r.up == null ? '–' : fmtMbps(r.up) + ' Mbps', rateDown(r.up));
+    set('.ist-down', spd(r.down), rateDown(r.down));
+    set('.ist-up', spd(r.up), rateDown(r.up));
+    $('.ist-sum').textContent = r.down == null ? 'The test did not finish.' : `${spd(r.down)} down, ${spd(r.up)} up, ping ${fmtMs(r.latency)} ms.`;
     set('.ist-lat', fmtMs(r.latency) + ' ms', rateLatency(r.latency));
     set('.ist-jit', fmtMs(r.jitter) + ' ms', r.jitter == null ? '' : r.jitter < 10 ? 'Steady' : r.jitter < 30 ? 'A little uneven' : 'Uneven');
     set('.ist-load', r.loaded == null ? '–' : fmtMs(r.loaded) + ' ms', r.loaded == null ? '' : 'Bufferbloat: ' + bloat(r.latency, r.loaded));
@@ -121,6 +165,48 @@ import '../../styles/astro.css';
       li.append(p, t, s); ul.append(li);
     }
   }
+
+  root.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach((b) => b.addEventListener('click', () => {
+    unit = b.dataset.unit as 'mbps' | 'mbs';
+    root.querySelectorAll('[data-unit]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('.ist-unithelp').hidden = unit === 'mbps';
+    if (last) { show(last); drawRuns(); }
+  }));
+
+  // This visit's runs (memory only, nothing stored).
+  function drawRuns() {
+    $('.ist-runs').hidden = runs.length === 0;
+    const tb = $('.ist-sess tbody'); tb.textContent = '';
+    runs.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      for (const [v, c] of [[String(i + 1), ''], [spd(r.down), 'r'], [spd(r.up), 'r'], [fmtMs(r.latency) + ' ms', 'r'], [fmtMs(r.jitter) + ' ms', 'r'], [fmtMs(r.loaded) + ' ms', 'r']] as const) {
+        const td = document.createElement('td'); td.textContent = v; if (c) td.className = c; tr.append(td);
+      }
+      tb.append(tr);
+    });
+    const ds = runs.map((r) => r.down).filter((x): x is number => x != null && isFinite(x));
+    $('.ist-best').textContent = ds.length > 1 ? `Middle download of ${ds.length} tests: ${spd(median(ds))}. Fastest: ${spd(Math.max(...ds))}. Slowest: ${spd(Math.min(...ds))}.` : '';
+  }
+
+  // Plan check, household need, download time: all follow the typed values and the last test.
+  const num = (sel: string) => parseFloat($<HTMLInputElement>(sel).value);
+  function calc() {
+    const pct = planShare(last?.down ?? null, num('.ist-plan'));
+    const po = $('.ist-planout');
+    if (!last) po.textContent = 'Run a test to compare.';
+    else if (pct == null) po.textContent = 'Type the speed on your bill (in Mbps) to compare.';
+    else po.textContent = `You got ${pct}% of the promised ${fmtMbps(num('.ist-plan'))} Mbps (${spd(last.down)} measured). ${planVerdict(pct)}`;
+    const [hd, uhd, calls, browse] = ['hd', 'uhd', 'calls', 'browse'].map((k) => num(`[data-k=${k}]`));
+    const need = householdNeed({ hd, uhd, calls, browsing: browse });
+    const v = householdVerdict(need, last?.down ?? null, last?.up ?? null);
+    $('.ist-hhout').textContent = need.down === 0 && need.up === 0 ? 'Add at least one activity.' : `At once you need about ${fmtMbps(need.down)} Mbps down${need.up ? ' and ' + fmtMbps(need.up) + ' Mbps up' : ''}. ${v.text}`;
+    const size = num('.ist-size') * (FILE_UNITS[$<HTMLSelectElement>('.ist-sizeunit').value] || 1e9);
+    const sec = transferSeconds(size, last?.down ?? null);
+    $('.ist-sizeout').textContent = !last ? 'Run a test to see the time.' : !(size > 0) ? 'Type a file size.' : `About ${fmtDuration(sec)} at your measured download speed.`;
+  }
+  root.querySelectorAll('.ist-more input, .ist-more select').forEach((e) => e.addEventListener('input', calc));
+  root.querySelectorAll('.ist-more select').forEach((e) => e.addEventListener('change', calc));
+  calc();
 
   async function start() {
     $('.ist-err').hidden = true;
@@ -138,7 +224,7 @@ import '../../styles/astro.css';
       }, ctl.signal);
       last = r;
       $('.ist-now').textContent = fmtMbps(r.down) + ' Mbps down';
-      show(r); save(r);
+      runs.push(r); show(r); save(r); drawRuns(); calc();
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         const err = $('.ist-err');

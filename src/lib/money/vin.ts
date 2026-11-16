@@ -37,3 +37,42 @@ export function analyse(raw: string) {
   out.checkRequired = /[1-5]/.test(v[0]);
   return out;
 }
+
+// ---- added 2026-11-16 ----
+/** Country from the first characters (ISO 3779 blocks). Only blocks we are sure of; null otherwise. */
+export function country(v: string): string | null {
+  const a = v[0], b = v[1] ?? '';
+  if (/[145]/.test(a)) return 'United States';
+  if (a === '2') return 'Canada';
+  if (a === '3') return /[A-W]/.test(b) ? 'Mexico' : null;
+  if (a === '6') return /[A-W]/.test(b) ? 'Australia' : null;
+  if (a === 'J') return 'Japan';
+  if (a === 'L') return 'China';
+  if (a === 'W') return 'Germany';
+  if (a === 'K') return /[L-R]/.test(b) ? 'South Korea' : null;
+  if (a === 'M') return /[A-E]/.test(b) ? 'India' : null;
+  if (a === 'S') return /[A-M]/.test(b) ? 'United Kingdom' : null;
+  if (a === 'V') return /[F-R]/.test(b) ? 'France' : /[S-W]/.test(b) ? 'Spain' : null;
+  if (a === 'Z') return /[A-R]/.test(b) ? 'Italy' : null;
+  return null;
+}
+/** North American cars: position 7 a letter means the 2010 to 2039 cycle, a digit the 1980 to 2009 cycle. Null if it does not apply. */
+export function likelyYear(v: string): number | null {
+  if (v.length !== 17 || !/[1-5]/.test(v[0])) return null;
+  const y = years(v[9]); if (!y) return null;
+  return /[A-Z]/.test(v[6]) ? y[1] : y[0];
+}
+/** Each position's value, weight and product for the check digit sum. */
+export function workings(v: string) {
+  if (v.length !== 17 || badChars(v).length) return null;
+  const rows = v.split('').map((c, i) => ({ pos: i + 1, ch: c, value: TR[c], weight: WEIGHTS[i], product: TR[c] * WEIGHTS[i] }));
+  const sum = rows.reduce((a, r) => a + r.product, 0);
+  return { rows, sum, rest: sum % 11 };
+}
+/** Typing fixes for the letters I, O and Q (never used in a VIN): I becomes 1, O and Q become 0. Returns the fixed VIN and whether its check digit then works. */
+export function suggestFix(v: string): { vin: string; valid: boolean } | null {
+  if (v.length !== 17 || !/[IOQ]/.test(v)) return null;
+  const f = v.replace(/[IO]/g, (c) => (c === 'I' ? '1' : '0')).replace(/Q/g, '0');
+  const d = checkDigit(f);
+  return d ? { vin: f, valid: d === f[8] } : null;
+}

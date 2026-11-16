@@ -17,6 +17,7 @@ related: [load-profit, unit-converter, cost-per-mile]
 sources:
   - "US trailers: 53 ft and 48 ft long, about 100 in (2.54 m) wide and 110 in high inside, payload about 45,000 lb. Typical figures that vary by builder; check your own trailer."
   - "India bodies (20, 22, 24 and 32 ft): typical inside sizes and payloads, estimates only. Pallets: 48 x 40 in (US), 1200 x 800 mm (EUR), 1200 x 1000 mm. Drawing and layout search are fibub's own."
+  - "Container and 13.6 m trailer sizes are typical inside figures (20 ft about 5.9 x 2.35 x 2.39 m, 40 ft about 12.0 x 2.35 x 2.39 m, 13.6 m trailer about 13.6 x 2.45 x 2.7 m); estimates, checked 2026-11-16. Check your own equipment plate."
 flow:
   - { icon: ruler, label: "Trailer" }
   - { icon: sliders, label: "Pallet" }
@@ -55,3 +56,7 @@ A 53 ft trailer is 636 in long and 100 in wide inside. With 48 x 40 in pallets w
 **Are the India sizes exact?** No. They are typical inside sizes marked as estimates. Measure your own body.
 
 **Does it leave room for loading?** No. Real pallets need small gaps, so keep a pallet or two in hand.
+
+## More options
+
+The result now compares the three patterns on one level (long side along, across, and pinwheel). Under **More options** type how many pallets you need to ship to see how many loads that takes and how many ride on the last one, counting the payload limit when you give a pallet weight. Three more body sizes were added: a 13.6 m curtain-side trailer and 20 ft and 40 ft shipping containers, using typical inside sizes and payloads (estimates; use your own body's plate).
