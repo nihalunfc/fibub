@@ -9,23 +9,17 @@ import '../../styles/learnquiz-d.css';
 <div class="ax sm si">
   <div class="ax-card">
     <h2>Convert</h2>
-    <label class="si-qwrap">Or just type it <input type="text" class="si-quick" data-k="quick" placeholder="5 km in cm" autocomplete="off" spellcheck="false" aria-label="Type a conversion such as 5 km in cm" /></label>
-    <p class="ax-err si-qerr" hidden></p>
     <div class="si-row">
-      <input type="text" class="si-v" data-k="value" value="2.5" inputmode="decimal" aria-label="Value" />
-      <select class="si-p1" data-k="from-prefix" aria-label="From prefix"></select>
-      <select class="si-u" data-k="unit" aria-label="Unit"></select>
+      <input type="text" class="si-v" value="2.5" inputmode="decimal" aria-label="Value" />
+      <select class="si-p1" aria-label="From prefix"></select>
+      <select class="si-u" aria-label="Unit"></select>
       <span class="si-to">to</span>
-      <select class="si-p2" data-k="to-prefix" aria-label="To prefix"></select><span class="si-u2">m</span>
-      <button type="button" class="btn secondary small si-swap">Swap</button>
+      <select class="si-p2" aria-label="To prefix"></select><span class="si-u2">m</span>
     </div>
     <p class="ax-err si-err" hidden></p>
     <p class="ax-big si-big" aria-live="polite"></p>
     <ol class="sm-steps si-steps"></ol>
     <p class="ax-help si-note"></p>
-    <details class="si-all"><summary>More options: the same value in every prefix</summary>
-      <div class="ax-scroll"><table class="si-alltab"><thead><tr><th>Prefix</th><th>Power</th><th>Value</th></tr></thead><tbody></tbody></table></div>
-    </details>
     <svg class="sm-fig si-fig" viewBox="0 0 340 300" role="img" aria-label="The prefix ladder, with the jump from one prefix to the other"></svg>
   </div>
 
@@ -63,9 +57,6 @@ import '../../styles/learnquiz-d.css';
   .si .si-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
   .si .si-row input { width: 7em !important; min-height: 44px; font-size: 17px; }
   .si .si-row select { width: auto !important; min-height: 44px; font-size: 16px; }
-  .si .si-qwrap { display: block; margin-bottom: 8px; }
-  .si .si-quick { width: 100%; min-height: 44px; font-size: 17px; }
-  .si .si-alltab td:last-child, .si .si-alltab th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   .si .si-to, .si .si-plus, .si .si-u2 { font-weight: 700; }
   .si svg .si-rung { fill: var(--bg); stroke: var(--line); }
   .si svg .si-from { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
@@ -76,7 +67,7 @@ import '../../styles/learnquiz-d.css';
 </style>
 
 <script>
-  import { PREFIXES, UNITS, BASE, convert, addUp, sci, pow10, readDecimal, parseQuick, allPrefixes } from '../../lib/sci/si-prefixes';
+  import { PREFIXES, UNITS, BASE, convert, addUp, sci, pow10, readDecimal } from '../../lib/sci/si-prefixes';
   import { S } from '../../lib/smath-ui';
   import { mountQuiz, one, type QItem } from '../../lib/learnquiz-d';
 
@@ -116,8 +107,6 @@ import '../../styles/learnquiz-d.css';
     const v = q<HTMLInputElement>('.si-v').value, e1 = Number(q<HTMLSelectElement>('.si-p1').value), e2 = Number(q<HTMLSelectElement>('.si-p2').value), u = q<HTMLSelectElement>('.si-u').value;
     q('.si-u2').textContent = u;
     ladder(e1, e2);
-    const ap = readDecimal(v) ? allPrefixes(v, e1) : [];
-    q('.si-alltab tbody').replaceChildren(...ap.map((r) => { const tr = document.createElement('tr'); [`${r.sym ? r.sym + u : u} (${r.name})`, pow10(r.exp), group(r.out)].forEach((c) => { const td = document.createElement('td'); td.textContent = c; tr.append(td); }); return tr; }));
     const err = q('.si-err');
     if (!readDecimal(v)) { err.textContent = 'Type a plain number, like 2.5, 0.04 or 1200.'; err.hidden = false; q('.si-big').textContent = ''; q('.si-steps').replaceChildren(); return; }
     err.hidden = true;
@@ -139,15 +128,6 @@ import '../../styles/learnquiz-d.css';
     const s = sym(r.e) + g('.si-au');
     out.textContent = `In ${s}: ${group(r.a)} + ${group(r.b)} = ${group(r.out)} ${s}.`;
   }
-  function quick() {
-    const t = q<HTMLInputElement>('.si-quick').value, er = q('.si-qerr'), r = parseQuick(t);
-    if ('error' in r) { er.textContent = r.error; er.hidden = !r.error; return; }
-    er.hidden = true;
-    q<HTMLInputElement>('.si-v').value = r.v; q<HTMLSelectElement>('.si-p1').value = String(r.e1); q<HTMLSelectElement>('.si-p2').value = String(r.e2); q<HTMLSelectElement>('.si-u').value = r.unit;
-    draw();
-  }
-  q('.si-quick').addEventListener('input', quick);
-  q('.si-swap').addEventListener('click', () => { const a = q<HTMLSelectElement>('.si-p1'), b = q<HTMLSelectElement>('.si-p2'), x = a.value; a.value = b.value; b.value = x; draw(); });
   root.querySelectorAll('.si-v, .si-p1, .si-p2, .si-u').forEach((e) => { e.addEventListener('input', draw); e.addEventListener('change', draw); });
   root.querySelectorAll('.si-a, .si-b, .si-ap, .si-bp, .si-au, .si-bu').forEach((e) => { e.addEventListener('input', sum); e.addEventListener('change', sum); });
   draw(); sum();

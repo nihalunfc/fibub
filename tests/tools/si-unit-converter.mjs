@@ -15,19 +15,6 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption(R + '.si-bu', 's');
   check((await txt('.si-sum')).includes("can't add a length"), 'si: m + s refused');
   check((await page.$$(R + '.si-base tbody tr')).length === 7, 'si: seven base units');
-  await page.fill(R + '.si-quick', '5 km in cm');
-  check((await txt('.si-big')) === '5 km = 500 000 cm', `si: quick line (${await txt('.si-big')})`);
-  await page.fill(R + '.si-quick', '250 mA to A');
-  check((await txt('.si-big')) === '250 mA = 0.25 A', `si: quick mA (${await txt('.si-big')})`);
-  await page.fill(R + '.si-quick', '5 km in s');
-  check(await page.isVisible(R + '.si-qerr'), 'si: quick mismatch message');
-  await page.fill(R + '.si-quick', '5 km in cm');
-  await page.click(R + '.si-swap');
-  check((await txt('.si-big')) === '5 cm = 0.00005 km', `si: swap (${await txt('.si-big')})`);
-  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
-  check((await page.$$(R + '.si-alltab tbody tr')).length === 13, 'si: every-prefix table');
-  await page.fill(R + '.si-quick', '3 MΩ in kΩ');
-  check((await txt('.si-big')) === '3 MΩ = 3 000 kΩ', `si: ohm (${await txt('.si-big')})`);
   const items = await page.$$(R + '.lq-item');
   check(items.length === 5, 'si: five questions');
   for (const i of [0, 1, 2]) {

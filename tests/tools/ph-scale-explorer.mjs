@@ -35,23 +35,4 @@ export default async ({ page, check, BASE }) => {
     if ((await it.locator('.cq-res').textContent()) === 'Right!') right++;
   }
   check(n === 5 && right === n, `ph: every worked answer accepted (${right}/${n})`);
-  // pH calculator: strong, weak, concentration and scale link.
-  const kb = () => page.textContent('.phx .phx-kbig'), kw = () => page.textContent('.phx .phx-kwork');
-  check((await kb()) === 'pH 2: strongly acidic' && (await kw()).includes('= −log(0.01) = 2'), 'ph: 0.01 M strong acid is pH 2 (' + (await kb()) + ')');
-  await page.selectOption('.phx .phx-kn', 'strongBase'); await page.waitForTimeout(100);
-  check((await kb()) === 'pH 12: strongly basic (alkaline)', 'ph: 0.01 M strong base is pH 12');
-  await page.selectOption('.phx .phx-kn', 'weakAcid'); await page.fill('.phx .phx-kv', '0.1'); await page.waitForTimeout(100);
-  check((await kb()) === 'pH 2.88: strongly acidic' && (await kw()).includes('pH = 2.883') && (await kw()).includes('1.31 % of the acid'), 'ph: 0.1 M ethanoic acid (' + (await kb()) + ' ' + (await kw()) + ')');
-  await page.fill('.phx .phx-kp', '3.75'); await page.waitForTimeout(100);
-  check((await kb()).startsWith('pH 2.38'), 'ph: stronger weak acid has a lower pH');
-  await page.selectOption('.phx .phx-kn', 'h'); await page.fill('.phx .phx-kv', '1e-3'); await page.waitForTimeout(100);
-  check((await kb()) === 'pH 3: acidic', 'ph: from [H+]');
-  await page.selectOption('.phx .phx-kn', 'oh'); await page.fill('.phx .phx-kv', '0.001'); await page.waitForTimeout(100);
-  check((await kb()).startsWith('pH 11:'), 'ph: from [OH-]');
-  await page.click('.phx .phx-kshow'); await page.waitForTimeout(100);
-  check((await big()).startsWith('pH 11:'), 'ph: shown on the scale');
-  await page.fill('.phx .phx-kv', '0'); await page.waitForTimeout(100);
-  check((await page.textContent('.phx .phx-kerr')).includes('above zero') && !(await page.textContent('.phx')).includes('NaN'), 'ph: zero concentration message');
-  await page.selectOption('.phx .phx-kn', 'strongAcid'); await page.fill('.phx .phx-kv', '1e-8'); await page.waitForTimeout(100);
-  check((await kb()) === 'pH 6.98: neutral' && !(await page.isHidden('.phx .phx-knote')), 'ph: very dilute acid stays near 7');
 };

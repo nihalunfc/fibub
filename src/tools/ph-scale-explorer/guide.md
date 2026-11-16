@@ -11,12 +11,11 @@ ads: false
 order: 1083
 icon: flask
 works: offline
-updated: 2026-11-16
+updated: 2026-11-09
 related: [titration-curve, concentration-converter, equilibrium-solver]
 sources:
   - "pH = −log[H⁺], Kw = 1.0 × 10⁻¹⁴ at 25 °C and the indicator colour-change ranges (litmus about 4.5 to 8.3, phenolphthalein 8.2 to 10, methyl orange 3.1 to 4.4, turmeric about 7.4 to 8.6): general chemistry facts, as in IUPAC and standard handbook tables, rounded."
   - "pH values of household substances are rounded, typical values written for fibub (general knowledge); real samples vary."
-  - "The pKa 4.76 of ethanoic (acetic) acid and pKb 4.75 of ammonia that fill the weak-acid example are common rounded textbook values; type the value from your own table. Weak-acid pH uses the standard quadratic for Ka and ignores water's own ions."
 flow:
   - { icon: pointer, label: "Drag" }
   - { icon: flask, label: "Substance" }
@@ -43,10 +42,6 @@ It follows Class 10 Science (acids, bases and salts: indicators, the pH scale, h
 3. Look at the indicator colours. Try the same substance with different indicators.
 4. Choose a dilution in **Add water** and see where the pH ends up.
 5. Answer the **Check yourself** questions; **New questions** gives a fresh set.
-
-## Work out the pH
-
-The "Work out the pH" card turns what you know into a pH, with the working shown. Choose what you know: the pH, [H⁺], pOH or [OH⁻]; the concentration of a **strong acid or base** (fully ionised); or the concentration of a **weak acid** with its pKa or a **weak base** with its pKb. For a weak acid the tool solves x² / (C − x) = Ka and also shows what share of the acid has ionised. For example, 0.01 mol/L of a strong acid has pH 2, and 0.1 mol/L of ethanoic acid (pKa 4.76) has pH 2.88 with about 1.3 % ionised. Very dilute solutions are handled with water's own ions, so 10⁻⁸ mol/L acid gives pH 6.98, not 8. A button shows the answer on the scale above. All values are at 25 °C.
 
 ## Worked example: lemon juice
 
