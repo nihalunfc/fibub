@@ -1,0 +1,140 @@
+---
+// #T977 Add audio: put music or a voice-over on a video, replacing or mixed with its own sound. The picture is copied
+// without re-encoding. Engine: src/lib/video/compose.ts (addSound); sound reading: src/lib/audio/browser.ts. Nothing is uploaded.
+---
+<div class="tool-ui aav">
+  <section class="panel">
+    <div class="aav-drop" data-kind="video">
+      <button type="button" class="btn aav-openv">1. Open the video</button>
+      <input class="aav-vfile" type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" hidden />
+      <span class="aav-vname">MP4, MOV, WebM or MKV, up to 2 GB.</span>
+    </div>
+    <div class="aav-drop" data-kind="audio">
+      <button type="button" class="btn aav-opena">2. Open the sound</button>
+      <input class="aav-afile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.mp4" hidden />
+      <span class="aav-aname">MP3, WAV, M4A, OGG or FLAC, up to 500 MB. Both stay on this device.</span>
+    </div>
+    <p class="note bad aav-err" hidden></p>
+  </section>
+
+  <section class="panel aav-set" hidden>
+    <video class="aav-video" controls playsinline preload="metadata" muted></video>
+    <div class="aav-grid">
+      <label>The video's own sound
+        <select class="aav-mode"><option value="replace">Replace it</option><option value="mix">Keep it, mixed under the new sound</option></select>
+      </label>
+      <label>New sound volume, % <input class="aav-nv" type="number" min="0" max="200" step="5" value="100" inputmode="numeric" /></label>
+      <label class="aav-ov-l" hidden>Video's own sound volume, % <input class="aav-ov" type="number" min="0" max="200" step="5" value="100" inputmode="numeric" /></label>
+      <label>Start the sound at (s into the video) <input class="aav-at" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>Skip the start of the sound (s) <input class="aav-skip" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>Fade in (s) <input class="aav-fi" type="number" min="0" max="30" step="0.5" value="0" inputmode="decimal" /></label>
+      <label>Fade out (s) <input class="aav-fo" type="number" min="0" max="30" step="0.5" value="2" inputmode="decimal" /></label>
+      <label class="aav-check"><input class="aav-loop" type="checkbox" /> Repeat the sound if it is shorter than the video</label>
+    </div>
+    <p class="aav-plan" aria-live="polite"></p>
+    <div class="aav-row">
+      <button type="button" class="btn aav-go">Add the sound</button>
+      <button type="button" class="btn secondary aav-cancel" hidden>Cancel</button>
+    </div>
+    <progress class="aav-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel aav-out" hidden>
+    <video class="aav-result" controls playsinline></video>
+    <p class="aav-res" aria-live="polite"></p>
+    <button type="button" class="btn aav-dl">Download</button>
+  </section>
+  <p class="aav-fine">The picture is copied exactly as it is, so nothing is lost and long videos take seconds. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .aav { display: grid; gap: 14px; margin-bottom: 32px; }
+  .aav .panel { display: grid; gap: 12px; padding: 16px; }
+  .aav [hidden] { display: none !important; }
+  .aav-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .aav-drop.over { border-color: var(--accent); }
+  .aav-vname, .aav-aname, .aav-plan, .aav-res, .aav-fine { color: var(--muted); font-size: 14px; margin: 0; overflow-wrap: anywhere; }
+  .aav-video, .aav-result { width: 100%; max-height: 45vh; background: #000; border-radius: 10px; }
+  .aav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
+  .aav label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .aav label.aav-check { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .aav label.aav-check input { width: auto; margin-top: 3px; }
+  .aav input, .aav select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .aav-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .aav-prog { width: 100%; }
+</style>
+
+<script>
+  import { decodeFile, sizeText, secs, saveBytes, baseName } from '../../lib/audio/browser.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+  import type { Made, MixOptions } from '../../lib/video/compose.ts';
+  const root = document.querySelector('.aav') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const err = $('.aav-err'), plan = $('.aav-plan'), video = $<HTMLVideoElement>('.aav-video');
+  const go = $<HTMLButtonElement>('.aav-go'), cancelB = $<HTMLButtonElement>('.aav-cancel'), prog = $<HTMLProgressElement>('.aav-prog');
+  let vfile: File | null = null, vdur = 0, snd: Sound | null = null, vurl = '', outUrl = '', result: Made | null = null;
+  const sig: { cancel?: () => void; cancelled?: boolean } = {};
+  const n = (s: string) => Math.max(0, +$<HTMLInputElement>(s).value || 0);
+  const opts = (): MixOptions => ({
+    mode: $<HTMLSelectElement>('.aav-mode').value as 'replace', newVol: n('.aav-nv') / 100, oldVol: n('.aav-ov') / 100,
+    at: n('.aav-at'), skip: n('.aav-skip'), fadeIn: n('.aav-fi'), fadeOut: n('.aav-fo'), loop: $<HTMLInputElement>('.aav-loop').checked,
+  });
+  const update = () => {
+    $('.aav-ov-l').hidden = $<HTMLSelectElement>('.aav-mode').value !== 'mix';
+    $('.aav-set').hidden = !vfile;
+    go.disabled = !vfile || !snd;
+    if (!vfile) return;
+    if (!snd) { plan.textContent = 'Now open the sound to add.'; return; }
+    const o = opts(), slen = Math.max(0, snd.chans[0].length / snd.rate - o.skip!), room = Math.max(0, vdur - o.at!);
+    plan.textContent = `The video is ${secs(vdur)}; the sound is ${secs(slen)}` + (o.skip ? ' after the skip' : '') + '. ' +
+      (slen >= room ? `It plays from ${secs(o.at!)} and is cut at the end of the video.` : o.loop ? `It repeats ${(room / slen).toFixed(1)} times to fill the video.` : `It ends ${secs(room - slen)} before the video does${o.mode === 'replace' ? ', then silence' : ''}.`);
+  };
+  const openVideo = (f: File) => {
+    err.hidden = true; $('.aav-out').hidden = true;
+    if (f.size > 2e9) { err.textContent = 'Too big: videos up to 2 GB.'; err.hidden = false; return; }
+    vfile = f; if (vurl) URL.revokeObjectURL(vurl); vurl = URL.createObjectURL(f); video.src = vurl;
+    $('.aav-vname').textContent = `${f.name}: opening…`; update();
+  };
+  video.addEventListener('loadedmetadata', () => { vdur = video.duration; $('.aav-vname').textContent = `${vfile?.name}: ${secs(vdur)}, ${video.videoWidth} × ${video.videoHeight}, ${sizeText(vfile?.size ?? 0)}.`; update(); });
+  video.addEventListener('error', () => { if (vfile) $('.aav-vname').textContent = `${vfile.name}: this browser cannot preview it, but may still use it.`; });
+  const openAudio = async (f: File) => {
+    err.hidden = true; $('.aav-out').hidden = true; snd = null;
+    if (f.size > 500e6) { err.textContent = 'Too big: sound files up to 500 MB.'; err.hidden = false; return; }
+    $('.aav-aname').textContent = `${f.name}: reading…`;
+    try { snd = await decodeFile(f); if (!snd.chans[0]?.length) throw new Error('empty'); $('.aav-aname').textContent = `${f.name}: ${secs(snd.chans[0].length / snd.rate)}.`; }
+    catch { snd = null; $('.aav-aname').textContent = f.name; err.textContent = 'This browser cannot read the sound in this file. Chrome and Edge read the most kinds.'; err.hidden = false; }
+    update();
+  };
+  go.addEventListener('click', async () => {
+    if (!vfile || !snd) return;
+    err.hidden = true; go.disabled = true; cancelB.hidden = false; prog.hidden = false; prog.value = 0; sig.cancelled = false;
+    const t0 = performance.now();
+    try {
+      const { addSound } = await import('../../lib/video/compose.ts');
+      result = await addSound(vfile, snd, opts(), (p) => (prog.value = p), sig);
+      if (outUrl) URL.revokeObjectURL(outUrl);
+      outUrl = URL.createObjectURL(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }));
+      $<HTMLVideoElement>('.aav-result').src = outUrl;
+      $('.aav-res').textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${sizeText(result.bytes.length)} ${result.ext.toUpperCase()}.` + (result.note.length ? ' ' + result.note.join(' ') : '');
+      $('.aav-out').hidden = false;
+    } catch (e) {
+      const m = (e as Error).message;
+      err.textContent = m === 'cancelled' ? 'Cancelled.' : m === 'no-video' ? 'There is no video picture in the first file.' : m === 'no-audio-encoder' ? 'This browser cannot encode sound. Try Chrome, Edge or Safari.' : 'This browser could not make the video. Try Chrome or Edge, or another file.';
+      err.hidden = false;
+    }
+    go.disabled = false; cancelB.hidden = true; prog.hidden = true;
+  });
+  cancelB.addEventListener('click', () => sig.cancel?.());
+  $('.aav-dl').addEventListener('click', () => { if (result && vfile) saveBytes(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }), `${baseName(vfile.name, 'video')}-new-sound.${result.ext}`); });
+  root.querySelectorAll('select, input:not([type=file])').forEach((el) => el.addEventListener('input', update));
+  const wire = (btn: string, inp: string, fn: (f: File) => void) => {
+    const i = $<HTMLInputElement>(inp); $(btn).addEventListener('click', () => i.click());
+    i.addEventListener('change', () => { if (i.files?.[0]) fn(i.files[0]); i.value = ''; });
+  };
+  wire('.aav-openv', '.aav-vfile', openVideo); wire('.aav-opena', '.aav-afile', openAudio);
+  root.querySelectorAll<HTMLElement>('.aav-drop').forEach((d) => {
+    d.addEventListener('dragover', (e) => { e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('over'));
+    d.addEventListener('drop', (e) => { e.preventDefault(); d.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) (d.dataset.kind === 'video' ? openVideo(f) : openAudio(f)); });
+  });
+</script>

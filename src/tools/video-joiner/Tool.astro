@@ -1,0 +1,135 @@
+---
+// #T973 Video joiner: put clips in order and join them into one video. Engine: src/lib/video/compose.ts (joinVideos),
+// Mediabunny + the browser's WebCodecs encoder. Nothing is uploaded.
+---
+<div class="tool-ui vjn">
+  <p class="note bad vjn-none" hidden>This browser cannot encode video. Use a recent Chrome, Edge, Safari (16.4 or later) or Firefox (130 or later).</p>
+  <section class="panel">
+    <div class="vjn-drop">
+      <button type="button" class="btn vjn-open">Add videos</button>
+      <input class="vjn-file" type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" hidden />
+      <span class="vjn-hint">Or drop them here. MP4, MOV, WebM or MKV; up to 20 clips, 4 GB in all. They stay on this device.</span>
+    </div>
+    <p class="note bad vjn-err" hidden></p>
+    <ol class="vjn-list"></ol>
+  </section>
+
+  <section class="panel vjn-set" hidden>
+    <div class="vjn-grid">
+      <label>Picture size
+        <select class="vjn-h"><option value="0">Same as the first clip</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option></select>
+      </label>
+      <label>Clips of another shape
+        <select class="vjn-fit"><option value="contain">Fit inside, with black bars</option><option value="cover">Fill the frame (edges cut off)</option></select>
+      </label>
+      <label class="vjn-check"><input class="vjn-mute" type="checkbox" /> Remove the sound</label>
+    </div>
+    <p class="vjn-info" aria-live="polite"></p>
+    <div class="vjn-row">
+      <button type="button" class="btn vjn-go">Join the videos</button>
+      <button type="button" class="btn secondary vjn-cancel" hidden>Cancel</button>
+    </div>
+    <progress class="vjn-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel vjn-out" hidden>
+    <video class="vjn-result" controls playsinline></video>
+    <p class="vjn-res" aria-live="polite"></p>
+    <button type="button" class="btn vjn-dl">Download</button>
+  </section>
+  <p class="vjn-fine">Your browser does the work on this device with its built-in video encoder. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .vjn { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vjn .panel { display: grid; gap: 12px; padding: 16px; }
+  .vjn [hidden] { display: none !important; }
+  .vjn-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .vjn-drop.over { border-color: var(--accent); }
+  .vjn-hint, .vjn-info, .vjn-fine, .vjn-res { color: var(--muted); font-size: 14px; margin: 0; }
+  .vjn-list { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+  .vjn-item { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .vjn-item .nm { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+  .vjn-item .st { color: var(--muted); font-size: 13px; flex: 1 1 100%; }
+  .vjn-item .st.bad { color: var(--bad, #b00020); }
+  .vjn-item button { font: inherit; font-size: 14px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .vjn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
+  .vjn label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vjn label.vjn-check { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .vjn label.vjn-check input { width: auto; margin-top: 3px; }
+  .vjn select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .vjn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vjn-prog { width: 100%; }
+  .vjn-result { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; }
+</style>
+
+<script>
+  import { sizeText, secs, saveBytes, baseName } from '../../lib/audio/browser.ts';
+  import type { ClipInfo, Made } from '../../lib/video/compose.ts';
+  const root = document.querySelector('.vjn') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  if (typeof (window as any).VideoEncoder === 'undefined') $('.vjn-none').hidden = false;
+  const input = $<HTMLInputElement>('.vjn-file'), list = $('.vjn-list'), err = $('.vjn-err'), info = $('.vjn-info');
+  const go = $<HTMLButtonElement>('.vjn-go'), cancelB = $<HTMLButtonElement>('.vjn-cancel'), prog = $<HTMLProgressElement>('.vjn-prog');
+  type Item = { file: File; info?: ClipInfo; error?: string };
+  let items: Item[] = [], result: Made | null = null, outUrl = '';
+  const sig: { cancel?: () => void; cancelled?: boolean } = {};
+
+  const render = () => {
+    list.replaceChildren();
+    items.forEach((it, i) => {
+      const li = document.createElement('li'), box = document.createElement('div'); box.className = 'vjn-item';
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = it.file.name;
+      const btn = (t: string, label: string, fn: () => void, off = false) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.setAttribute('aria-label', label); b.disabled = off; b.addEventListener('click', fn); return b; };
+      const move = (d: number) => { const j = i + d; [items[i], items[j]] = [items[j], items[i]]; render(); };
+      const st = document.createElement('span'); st.className = 'st' + (it.error ? ' bad' : '');
+      st.textContent = it.error ?? (it.info ? `${secs(it.info.duration)}, ${it.info.width} × ${it.info.height}, ${Math.round(it.info.fps)} fps, ${it.info.hasAudio ? 'with sound' : 'no sound'}, ${sizeText(it.file.size)}` : 'Reading…');
+      box.append(nm, btn('↑', `Move ${it.file.name} up`, () => move(-1), i === 0), btn('↓', `Move ${it.file.name} down`, () => move(1), i === items.length - 1), btn('✕', `Remove ${it.file.name}`, () => { items.splice(i, 1); render(); }), st);
+      li.append(box); list.append(li);
+    });
+    const ok = items.filter((i) => i.info);
+    $('.vjn-set').hidden = !items.length;
+    const total = ok.reduce((s, i) => s + i.info!.duration, 0), f = ok[0]?.info;
+    const shapes = new Set(ok.map((i) => (i.info!.width / i.info!.height).toFixed(2))).size;
+    info.textContent = ok.length < 2 ? 'Add at least two clips.' : `${ok.length} clips → ${secs(total)}` + (f ? `, ${f.width} × ${f.height} like the first clip` : '') + (shapes > 1 ? '. Some clips have another shape: see "Clips of another shape".' : '.');
+    go.disabled = ok.length < 2 || items.some((i) => !i.info && !i.error);
+  };
+  const add = async (files: File[]) => {
+    err.hidden = true;
+    const room = Math.max(0, 20 - items.length);
+    if (files.length > room) { err.textContent = `Only 20 clips at a time: ${files.length - room} were left out.`; err.hidden = false; files = files.slice(0, room); }
+    const fresh = files.map((file) => ({ file }) as Item); items.push(...fresh); render();
+    const { clipInfo } = await import('../../lib/video/compose.ts');
+    for (const it of fresh) {
+      try { it.info = await clipInfo(it.file); } catch (e) { it.error = (e as Error).message === 'no-video' ? 'There is no video picture in this file.' : 'This browser cannot read this video.'; }
+      render();
+    }
+  };
+  go.addEventListener('click', async () => {
+    const ok = items.filter((i) => i.info); if (ok.length < 2) return;
+    err.hidden = true; go.disabled = true; cancelB.hidden = false; prog.hidden = false; prog.value = 0; sig.cancelled = false;
+    const t0 = performance.now();
+    try {
+      const { joinVideos } = await import('../../lib/video/compose.ts');
+      result = await joinVideos(ok.map((i) => i.file), { height: +$<HTMLSelectElement>('.vjn-h').value || undefined, fit: $<HTMLSelectElement>('.vjn-fit').value as 'contain', mute: $<HTMLInputElement>('.vjn-mute').checked }, (p) => (prog.value = p), sig);
+      if (outUrl) URL.revokeObjectURL(outUrl);
+      outUrl = URL.createObjectURL(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }));
+      $<HTMLVideoElement>('.vjn-result').src = outUrl;
+      $('.vjn-res').textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${secs(result.duration ?? 0)}, ${result.width} × ${result.height}, ${sizeText(result.bytes.length)} ${result.ext.toUpperCase()}.` + (result.note.length ? ' ' + result.note.join(' ') : '');
+      $('.vjn-out').hidden = false;
+    } catch (e) {
+      const m = (e as Error).message;
+      err.textContent = m === 'cancelled' ? 'Cancelled.' : m === 'no-audio-encoder' ? 'This browser cannot encode the sound. Tick "Remove the sound", or try Chrome or Edge.' : 'This browser could not join these videos. Try Chrome or Edge, or check that each clip plays.';
+      err.hidden = false;
+    }
+    go.disabled = false; cancelB.hidden = true; prog.hidden = true;
+  });
+  cancelB.addEventListener('click', () => sig.cancel?.());
+  $('.vjn-dl').addEventListener('click', () => { if (result) saveBytes(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }), `${baseName(items[0]?.file.name ?? 'video', 'video')}-joined.${result.ext}`); });
+  $('.vjn-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.length) add([...input.files]); input.value = ''; });
+  const drop = $('.vjn-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]); });
+</script>
