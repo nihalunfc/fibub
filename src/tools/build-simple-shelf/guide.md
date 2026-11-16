@@ -12,7 +12,7 @@ order: 3011
 icon: ruler
 works: offline
 updated: 2026-11-16
-related: [saw-straight, drill-and-screw, shelf-load]
+related: [saw-straight, drill-and-screw, shelf-load, whats-in-your-wall, pick-wall-plug]
 sources:
   - "Steps follow general woodworking and DIY practice (brackets set in from the ends, screws into the board shorter than its thickness, fixings chosen for the wall, level checked with a spirit level). Drawings are fibub's own."
   - "Bracket spacing and load figures are rough guides; the bracket and wall-fixing makers' ratings come first."
@@ -56,4 +56,4 @@ You want a 800 mm (about 31½ in) shelf, 200 mm (8 in) deep, for paperbacks. Boo
 
 **Why fix the brackets to the board first?** It is easier to get them square and in line on the bench. Then you only need to level one thing on the wall. Some people fix the brackets to the wall first and screw the board down after; both work.
 
-**What wall fixings should I use?** That depends on the wall. The Wall fixings course lessons "What's in your wall" and "Pick a wall plug" cover it.
+**What wall fixings should I use?** That depends on the wall. The Wall fixings lessons [[whats-in-your-wall]] and [[pick-wall-plug]] cover it.

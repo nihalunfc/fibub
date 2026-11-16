@@ -12,7 +12,7 @@ order: 3014
 icon: target
 works: offline
 updated: 2026-11-16
-related: [whats-in-your-wall, hang-picture-mirror, drywall-calculator]
+related: [whats-in-your-wall, hang-picture-mirror, drywall-calculator, shelf-load]
 sources:
   - "Fixing types, bit sizes and rough weight ranges follow common guidance from fixings makers' packets and catalogues; the picker's limits are cautious rules of thumb, fibub's own working, not product ratings. Always follow the rating on the packet for your wall type. Drawings are fibub's own."
 flow:

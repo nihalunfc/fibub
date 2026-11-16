@@ -12,7 +12,7 @@ order: 3016
 icon: ruler
 works: offline
 updated: 2026-11-16
-related: [simple-machines, moments-lab, bolt-torque-calculator, belts-and-pulleys, bearings-and-friction, friction-ramp]
+related: [wheel-nut-torque, simple-machines, moments-lab, bolt-torque-calculator, belts-and-pulleys, bearings-and-friction, friction-ramp]
 sources:
   - "The principle of moments (effort × effort arm = load × load arm), the three classes of lever and torque = force × distance: standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
   - "Nail pull-out forces, wheel nut torques and wheelbarrow loads in the sim are typical made-up examples; check your car's handbook for its real wheel nut torque. Drawings are fibub's own."
