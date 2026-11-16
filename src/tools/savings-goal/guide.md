@@ -11,7 +11,7 @@ ads: false
 order: 1732
 icon: piggy
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [compound-interest, budget-calculator, fd-calculator, net-worth]
 sources:
   - "Standard future value of an annuity formula, FV = S(1+i)^n + P((1+i)^n - 1)/i with i the monthly rate. At 0% interest it is simply (target - saved) / months. The 3 to 6 months of essential costs for an emergency fund is a common rule of thumb, not a rule."
@@ -47,6 +47,10 @@ You can also turn it round: enter what you can afford each month and it tells yo
 - **Prices rise:** your goal is treated as today's money. At 3% a year, a 10,000 goal in 5 years needs about 11,600 by then, and the answer says so.
 - **What if table:** shows the time and interest for saving half, three quarters, 1.25, 1.5 and 2 times your monthly amount, so you can see what a little extra buys.
 - **Emergency fund:** the target is your essential costs times the months you want covered.
+
+## Saving in another currency
+
+Open **Saving in another currency** when the goal is priced in one currency, such as a goal back home, but you earn and save in another. Keep the goal above in the goal's currency, then pick the currency you save in, type today's rate (how much of your currency buys 1 unit of the goal's currency) and the change you expect in that rate each year. The tool turns each month's saving into the goal's currency at that month's rate and tells you how much to set aside in your own currency, and how much the expected change adds, or saves, compared with a rate that stays flat. For example, 12,000 in 24 months at 0% interest and a rate of 2 needs 500 x 2 = 1,000 a month; if the rate rises 5% a year, it needs about 1,052 a month, about 1,241 more in all. Nobody can predict exchange rates, so try a few figures. It works when you choose to work out the monthly amount.
 
 ## Worked example
 

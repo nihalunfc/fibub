@@ -99,3 +99,37 @@ export function sci(x: bigint, digits = 6): string {
   if (t.length > digits) { t = t.slice(0, digits); e++; }
   return `${neg ? '−' : ''}${t[0]}.${t.slice(1)} × 10^${e}`;
 }
+
+/** The working for n and k written out: nPk as a product, nCk as that product over k!. Short lists show every factor; long ones are cut with "…". */
+export function working(n: number, k: number): { perm: string; comb: string } {
+  if (k > n) return { perm: `k is bigger than n, so there are 0 ways.`, comb: `k is bigger than n, so there are 0 ways.` };
+  const f = (a: number, b: number) => { const t: number[] = []; for (let i = a; i > b; i--) t.push(i); return t.length > 8 ? `${t.slice(0, 3).join(' × ')} × … × ${t[t.length - 1]}` : t.join(' × ') || '1'; };
+  const p = permutations(n, k), c = choose(n, k);
+  return {
+    perm: `${n}P${k} = ${f(n, n - k)} = ${shortNum(p, 30)}`,
+    comb: `${n}C${k} = ${n}P${k} ÷ ${k}! = ${shortNum(p, 30)} ÷ ${k > 8 ? k + '!' : shortNum(factorial(k))} = ${shortNum(c, 30)}`,
+  };
+}
+
+/** List the ways to pick k of the items (combinations, or permutations when order matters), in the order the items are given. Stops at max. */
+export function listPicks(items: string[], k: number, ordered: boolean, max = 200): { rows: string[][]; total: bigint; cut: boolean } {
+  const n = items.length, total = ordered ? permutations(n, k) : choose(n, k), rows: string[][] = [];
+  if (k > n || k < 0) return { rows, total, cut: false };
+  const used = new Array(n).fill(false), cur: string[] = [];
+  let stop = false;
+  const go = (start: number) => {
+    if (stop) return;
+    if (cur.length === k) { rows.push([...cur]); if (rows.length >= max) stop = true; return; }
+    for (let i = ordered ? 0 : start; i < n && !stop; i++) {
+      if (ordered && used[i]) continue;
+      used[i] = true; cur.push(items[i]);
+      go(i + 1);
+      cur.pop(); used[i] = false;
+    }
+  };
+  go(0);
+  return { rows, total, cut: BigInt(rows.length) < total };
+}
+
+/** "1 in 2 598 960", for a chance of one particular pick among all of them. */
+export function oneIn(x: bigint): string { return x <= 1n ? 'certain' : `1 in ${shortNum(x, 30)}`; }

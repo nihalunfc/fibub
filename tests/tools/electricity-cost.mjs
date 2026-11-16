@@ -17,4 +17,12 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.ec-top')).includes('Fridge') || (await page.textContent(R + '.ec-top')).includes('Television'), 'electricity: biggest spenders listed');
   await page.selectOption(R + '[data-k="mode"]', 'flat'); await page.fill(R + '[data-k="cut"]', '50'); await page.waitForTimeout(100);
   check((await page.textContent(R + '[data-k="save"]')).includes('fewer hours saves'), `electricity: what-if text (${await page.textContent(R + '[data-k="save"]')})`);
+  await page.selectOption(R + '[data-k="mode"]', 'slab'); await page.waitForTimeout(100);
+  const sv = (i, c, v) => page.fill(R + `.ec-sb tr:nth-child(${i}) .${c}`, v);
+  await sv(1, 'sf', '0'); await sv(1, 'st', '30'); await sv(1, 'sr', '0.10'); await sv(2, 'sf', '30'); await sv(2, 'st', '200'); await sv(2, 'sr', '0.20'); await sv(3, 'sf', '');
+  await page.waitForTimeout(100);
+  check((await big()) === '17.66 a month', `electricity: slab 30 kWh at 0.10 + 73.3 kWh at 0.20 = 17.66 (${await big()})`);
+  check((await page.textContent(R + '.ec-slabout')).includes('0.2000'), 'electricity: slab marginal price is 0.2000');
+  await page.fill(R + '[data-k="vat"]', '10'); await page.fill(R + '[data-k="fixed"]', '1'); await page.waitForTimeout(100);
+  check((await big()) === '20.53 a month', `electricity: slab + 1 fixed + 10% VAT = 20.53 (${await big()})`);
 };

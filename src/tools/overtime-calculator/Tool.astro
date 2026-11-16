@@ -99,19 +99,24 @@
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { OT_RULES, ruleById, splitHours, payFor, hourlyFromPay, whatIf, projectPay, type PayType } from '../../lib/money/overtime';
+  import { OT_RULES, splitHours, payFor, hourlyFromPay, whatIf, projectPay, type PayType } from '../../lib/money/overtime';
+  import { GULF_RULES, type LawRule } from '../../lib/money/overtime-gulf';
+  // Gulf presets sit before "My own rule" (last), in alphabetical order.
+  const RULES: (typeof OT_RULES[number] & Partial<LawRule>)[] = [...OT_RULES.slice(0, -1), ...GULF_RULES, OT_RULES[OT_RULES.length - 1]];
+  const ruleById = (id: string) => RULES.find((r) => r.id === id) || RULES[0];
   const root = document.querySelector<HTMLElement>('.oc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   q('.oc-cur').innerHTML = currencyOptions(defaultCurrency());
-  q('.oc-rule').innerHTML = OT_RULES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
+  q('.oc-rule').innerHTML = RULES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
   q('.oc-days').innerHTML = NAMES.map((n, i) => `<label>${n} <input data-day="${i}" inputmode="decimal" value="${i < 5 ? 8 : 0}" /></label>`).join('');
   f('rate').value = '20'; f('wk').value = '48'; f('norm').value = '40'; f('sal').value = '52000';
   function fillRule() {
     const r = ruleById(f('rule').value);
     f('daily').value = String(r.daily); f('weekly').value = String(r.weekly); f('mult').value = String(r.mult); f('dd').value = String(r.dailyDouble); f('mult2').value = String(r.mult2);
     q('.oc-note').textContent = r.note; q('.oc-src').textContent = 'Source: ' + r.src + (r.confirmed ? '' : '. Not confirmed on an official page: check the official source.');
+    if (r.url) { const a = document.createElement('a'); a.href = r.url; a.rel = 'noopener'; a.target = '_blank'; a.textContent = 'Read the official page'; q('.oc-src').append(' ', a, '.'); }
   }
   fillRule();
   function run() {

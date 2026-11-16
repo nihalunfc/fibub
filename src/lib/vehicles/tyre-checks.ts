@@ -43,6 +43,11 @@ export function ageText(months: number): string {
   return [ys, ms].filter(Boolean).join(' ') || 'under a month';
 }
 
+/** Dates when a tyre reaches 5, 6 and 10 years from its make week (the thresholds used in the advice). */
+export function ageMilestones(start: Date): { years: number; date: Date }[] {
+  return [5, 6, 10].map((y) => ({ years: y, date: new Date(Date.UTC(start.getUTCFullYear() + y, start.getUTCMonth(), start.getUTCDate())) }));
+}
+
 /** Plain advice by age. Maker advice differs: some car makers say 6 years, many say 10 at most. */
 export function ageAdvice(months: number): { level: Level; label: string; text: string } {
   if (months >= 120) return { level: 'bad', label: 'Replace', text: '10 years or more: replace it, whatever it looks like. Rubber hardens and cracks inside where you cannot see.' };
@@ -98,7 +103,7 @@ export type Reason = { level: Level; text: string };
 export const WINTER_MIN_MM = 4; // 5/32 inch is 3.97 mm; 4 mm (5/32") is the floor for a winter tyre
 
 /** Judge a winter set from the sidewall symbol, tread (mm), age in months (null = unknown) and a cold pressure check. */
-export function judgeWinter(o: { symbol: Symbol3; treadMm: number | null; ageMonths: number | null; pressureChecked: boolean }): { level: Level; label: string; reasons: Reason[] } {
+export function judgeWinter(o: { symbol: Symbol3; treadMm: number | null; ageMonths: number | null; pressureChecked: boolean; allFour?: boolean; tempC?: number | null }): { level: Level; label: string; reasons: Reason[] } {
   const r: Reason[] = [];
   if (o.symbol === 'snowflake') r.push({ level: 'good', text: 'Three-peak mountain snowflake: the tyre passed a snow-grip test.' });
   else if (o.symbol === 'ms') r.push({ level: 'warn', text: 'M+S only: the mark says mud and snow, but it needs no snow-grip test. Many rules accept it; the snowflake grips better.' });
@@ -112,6 +117,12 @@ export function judgeWinter(o: { symbol: Symbol3; treadMm: number | null; ageMon
   else r.push({ level: 'good', text: 'Age is fine.' });
   if (o.pressureChecked) r.push({ level: 'good', text: 'Pressure checked cold.' });
   else r.push({ level: 'warn', text: 'Check the pressure with cold tyres: cold air drops it, about 1 psi per 5 C.' });
+  if (o.allFour === true) r.push({ level: 'good', text: 'All four wheels have matching winter tyres: grip stays balanced front to back.' });
+  else if (o.allFour === false) r.push({ level: 'warn', text: 'Fit winter tyres on all four wheels. Two on one axle only can make the other end slide first.' });
+  if (o.tempC != null && isFinite(o.tempC)) {
+    if (o.tempC <= 7 && o.symbol === 'none') r.push({ level: 'bad', text: `At ${+o.tempC.toFixed(1)} C summer tyres are past their best. Winter tyres will stop shorter.` });
+    else if (o.tempC > 10 && o.symbol !== 'none') r.push({ level: 'warn', text: `At ${+o.tempC.toFixed(1)} C winter tyres wear faster and feel softer. Swap back when it stays above about 7 to 10 C.` });
+  }
   const bad = r.some((x) => x.level === 'bad'), warn = r.some((x) => x.level === 'warn');
   return bad ? { level: 'bad', label: 'Not ready', reasons: r } : warn ? { level: 'warn', label: 'Check these', reasons: r } : { level: 'good', label: 'Ready', reasons: r };
 }
@@ -128,3 +139,26 @@ export const WINTER_RULES: Record<'canada' | 'usa' | 'uk', string[]> = {
   ],
   uk: ['No winter tyre law in the UK. Winter tyres are allowed, and help in snow and in cold, wet weather.'],
 };
+
+// ---------- tread life and uneven wear ----------
+/** Wear so far gives a rate (mm per distance unit); the same rate predicts the distance left to a depth.
+ * Straight-line estimate only: wear slows or speeds up with driving, load and pressure. */
+export function treadLife(newMm: number, nowMm: number, driven: number, targetsMm: number[]): { rate: number; left: number[] } | null {
+  if (!(driven > 0) || !(newMm > nowMm) || nowMm < 0) return null;
+  const rate = (newMm - nowMm) / driven;
+  return { rate, left: targetsMm.map((t) => Math.max(0, (nowMm - t) / rate)) };
+}
+
+/** Compare three readings across the tread. Returns the lowest and a plain cause when the spread is 1 mm or more. */
+export function unevenWear(inner: number, middle: number, outer: number): { lowest: number; spread: number; cause: string } {
+  const lowest = Math.min(inner, middle, outer), highest = Math.max(inner, middle, outer), spread = highest - lowest;
+  let cause = '';
+  if (spread >= 1) {
+    if (middle < Math.min(inner, outer) - 0.5) cause = 'The middle is worn most: usually too much pressure.';
+    else if (Math.min(inner, outer) < middle - 0.5 && Math.abs(inner - outer) < 1) cause = 'Both edges are worn most: usually too little pressure.';
+    else if (inner < outer - 0.5) cause = 'The inner edge is worn most: often a wheel alignment problem (camber or toe).';
+    else if (outer < inner - 0.5) cause = 'The outer edge is worn most: often alignment or hard cornering.';
+    else cause = 'The wear is uneven: have the alignment and pressures checked.';
+  }
+  return { lowest, spread, cause };
+}

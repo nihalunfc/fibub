@@ -8,7 +8,16 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Beam and supports</h2>
     <div class="ax-grid">
-      <label>Supports <select class="bm-sup">
+      <label>Start from a common case <select class="bm-case" data-nokit>
+        <option value="">Pick to set supports and loads…</option>
+        <option value="ss-p">Simply supported, one load in the middle</option>
+        <option value="ss-u">Simply supported, even load along it</option>
+        <option value="c-p">Cantilever, one load at the free end</option>
+        <option value="c-u">Cantilever, even load along it</option>
+        <option value="ff-u">Fixed at both ends, even load along it</option>
+        <option value="ss-2">Simply supported, two loads at the third points</option>
+      </select></label>
+      <label>Supports <select data-k="sup" class="bm-sup">
         <option value="ss" selected>Simply supported</option>
         <option value="cant">Cantilever (fixed left)</option>
         <option value="ff">Fixed at both ends</option>
@@ -16,9 +25,9 @@ import Downloads from '../../components/Downloads.astro';
         <option value="ovh">Overhanging</option>
         <option value="cont">Continuous, 3 supports</option>
       </select></label>
-      <label>Length L (m) <input class="bm-L" type="text" inputmode="decimal" value="6" /></label>
-      <label class="bm-abox" hidden>First support at (m) <input class="bm-a" type="text" inputmode="decimal" value="1" /></label>
-      <label class="bm-bbox" hidden><span class="bm-bl">Second support at (m)</span> <input class="bm-b" type="text" inputmode="decimal" value="5" /></label>
+      <label>Length L (m) <input data-k="L" class="bm-L" type="text" inputmode="decimal" value="6" /></label>
+      <label class="bm-abox" hidden>First support at (m) <input data-k="a" class="bm-a" type="text" inputmode="decimal" value="1" /></label>
+      <label class="bm-bbox" hidden><span class="bm-bl">Second support at (m)</span> <input data-k="b" class="bm-b" type="text" inputmode="decimal" value="5" /></label>
     </div>
     <p class="ax-help">Positions are measured from the left end. A propped cantilever is fixed at the left with a roller at the right; an overhanging beam has a pin and a roller anywhere along it. A pin or roller stops the beam moving up or down but lets it turn; a fixed end (built in) stops both.</p>
   </div>
@@ -33,24 +42,24 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Section and material</h2>
     <div class="ax-grid">
-      <label>Cross-section <select class="bm-shape">
+      <label>Cross-section <select data-k="shape" class="bm-shape">
         <option value="I" selected>I-beam built from plates</option>
         <option value="rect">Solid rectangle</option>
         <option value="circle">Round bar or tube</option>
         <option value="custom">Enter I and c myself</option>
       </select></label>
-      <label class="bm-s bm-s-I">Depth h (mm) <input class="bm-h" type="text" inputmode="decimal" value="300" /></label>
-      <label class="bm-s bm-s-I">Flange width (mm) <input class="bm-bf" type="text" inputmode="decimal" value="150" /></label>
-      <label class="bm-s bm-s-I">Flange thickness (mm) <input class="bm-tf" type="text" inputmode="decimal" value="10" /></label>
-      <label class="bm-s bm-s-I">Web thickness (mm) <input class="bm-tw" type="text" inputmode="decimal" value="7" /></label>
-      <label class="bm-s bm-s-rect" hidden>Width b (mm) <input class="bm-rb" type="text" inputmode="decimal" value="100" /></label>
-      <label class="bm-s bm-s-rect" hidden>Depth h (mm) <input class="bm-rh" type="text" inputmode="decimal" value="200" /></label>
-      <label class="bm-s bm-s-circle" hidden>Outside diameter (mm) <input class="bm-d" type="text" inputmode="decimal" value="60" /></label>
-      <label class="bm-s bm-s-circle" hidden>Inside diameter (mm, 0 for solid) <input class="bm-di" type="text" inputmode="decimal" value="0" /></label>
-      <label class="bm-s bm-s-custom" hidden>I (mm⁴) <input class="bm-I" type="text" inputmode="decimal" value="8e7" /></label>
-      <label class="bm-s bm-s-custom" hidden>c, centroid to outer fibre (mm) <input class="bm-c" type="text" inputmode="decimal" value="150" /></label>
-      <label class="bm-s bm-s-custom" hidden>Area (mm²) <input class="bm-A" type="text" inputmode="decimal" value="5000" /></label>
-      <label>Young's modulus E (GPa) <input class="bm-E" type="text" inputmode="decimal" value="200" /></label>
+      <label class="bm-s bm-s-I">Depth h (mm) <input data-k="h" class="bm-h" type="text" inputmode="decimal" value="300" /></label>
+      <label class="bm-s bm-s-I">Flange width (mm) <input data-k="bf" class="bm-bf" type="text" inputmode="decimal" value="150" /></label>
+      <label class="bm-s bm-s-I">Flange thickness (mm) <input data-k="tf" class="bm-tf" type="text" inputmode="decimal" value="10" /></label>
+      <label class="bm-s bm-s-I">Web thickness (mm) <input data-k="tw" class="bm-tw" type="text" inputmode="decimal" value="7" /></label>
+      <label class="bm-s bm-s-rect" hidden>Width b (mm) <input data-k="rb" class="bm-rb" type="text" inputmode="decimal" value="100" /></label>
+      <label class="bm-s bm-s-rect" hidden>Depth h (mm) <input data-k="rh" class="bm-rh" type="text" inputmode="decimal" value="200" /></label>
+      <label class="bm-s bm-s-circle" hidden>Outside diameter (mm) <input data-k="d" class="bm-d" type="text" inputmode="decimal" value="60" /></label>
+      <label class="bm-s bm-s-circle" hidden>Inside diameter (mm, 0 for solid) <input data-k="di" class="bm-di" type="text" inputmode="decimal" value="0" /></label>
+      <label class="bm-s bm-s-custom" hidden>I (mm⁴) <input data-k="I" class="bm-I" type="text" inputmode="decimal" value="8e7" /></label>
+      <label class="bm-s bm-s-custom" hidden>c, centroid to outer fibre (mm) <input data-k="c" class="bm-c" type="text" inputmode="decimal" value="150" /></label>
+      <label class="bm-s bm-s-custom" hidden>Area (mm²) <input data-k="A" class="bm-A" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Young's modulus E (GPa) <input data-k="E" class="bm-E" type="text" inputmode="decimal" value="200" /></label>
       <label>Typical E (example) <select class="bm-Epick">
         <option value="">Pick to fill in E…</option>
         <option value="200">200 GPa steel</option>
@@ -59,15 +68,27 @@ import Downloads from '../../components/Downloads.astro';
         <option value="30">30 GPa concrete (uncracked)</option>
         <option value="11">11 GPa softwood along the grain</option>
       </select></label>
-      <label>Yield strength (MPa, optional) <input class="bm-fy" type="text" inputmode="decimal" value="250" /></label>
+      <label>Yield strength (MPa, optional) <input data-k="fy" class="bm-fy" type="text" inputmode="decimal" value="250" /></label>
     </div>
     <p class="ax-help">E is how stiff the material is; it sets the deflection but not the stress. The typical values are rounded examples; use the figure for your grade. The yield strength (example 250 MPa) is only used to show how close the bending stress comes to it.</p>
+    <details class="bm-more"><summary>More options: deflection limit</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Deflection limit, span divided by <select data-k="lim" class="bm-lim">
+          <option value="0">No limit check</option>
+          <option value="180">180 (roofs, rough work)</option>
+          <option value="240">240</option>
+          <option value="360" selected>360 (floors, typical)</option>
+          <option value="480">480 (brittle finishes)</option>
+        </select></label>
+      </div>
+      <p class="ax-help">Typical limits only: the right one depends on your building code and what the beam carries, so check the official source for your job. The span used is the longest span (or the overhang or cantilever length).</p>
+    </details>
     <p class="ax-err bm-err" hidden></p>
   </div>
 
   <div class="ax-card bm-out">
     <h2>Results</h2>
-    <p class="ax-big bm-big"></p>
+    <p class="ax-big bm-big" aria-live="polite"></p>
     <dl class="ax-facts bm-facts"></dl>
     <p class="ax-help bm-warn" hidden></p>
     <canvas class="ax-fig bm-sk"></canvas>
@@ -81,7 +102,7 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <template class="bm-tpl">
-  <div class="bm-row">
+  <div class="bm-row" data-nokit>
     <label>Type <select class="bm-lt"><option value="point">Point load (kN)</option><option value="dist">Distributed (kN/m)</option><option value="moment">Moment (kN·m)</option></select></label>
     <label><span class="bm-vl">Load (kN)</span> <input class="bm-lv" type="text" inputmode="decimal" /></label>
     <label>At (m) <input class="bm-lx" type="text" inputmode="decimal" /></label>
@@ -92,7 +113,7 @@ import Downloads from '../../components/Downloads.astro';
 </template>
 
 <script>
-  import { solveBeam, sectionProps, type Load, type Support, type SectionShape } from '../../lib/sci/eng-beam';
+  import { solveBeam, sectionProps, US, deflectionLimit, type Load, type Support, type SectionShape } from '../../lib/sci/eng-beam';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, sig, csv } from '../../lib/sci/num';
@@ -170,6 +191,8 @@ import Downloads from '../../components/Downloads.astro';
     const span = kind === 'cant' ? L : Math.max(...sups.map((s, j) => (j ? s.x - sups[j - 1].x : 0)), sups[0].x, L - sups[sups.length - 1].x);
     q('.bm-big').textContent = `Largest deflection ${sg(dmax, 3)} mm ${r.vmax.v <= 0 ? 'down' : 'up'} at ${sg(r.vmax.x, 4)} m`;
     const rx = r.reactions.map((s) => fact(`Reaction at ${sg(s.x, 4)} m`, `${sg(s.R, 4)} kN ${s.R >= 0 ? 'up' : 'down'}`, s.kind === 'fixed' ? `and a moment of ${sg(Math.abs(s.M), 4)} kN·m ${s.M >= 0 ? 'clockwise' : 'anticlockwise'} (fixed end)` : 'pin or roller'));
+    const limN = +sel('.bm-lim'), limMm = limN > 0 ? deflectionLimit(span, limN) : NaN;
+    const limFact = limN > 0 ? [fact(`Deflection limit span / ${limN}`, `${sg(limMm, 3)} mm: ${dmax <= limMm ? 'OK' : 'exceeded'}`, dmax <= limMm ? `the beam uses ${sg((dmax / limMm) * 100, 3)} % of the allowed deflection` : `the deflection is ${sg(dmax / limMm, 3)} times the limit: make the section deeper or stiffer`)] : [];
     const facts = [
       ...rx,
       fact('Largest bending moment', `${sg(Math.abs(Mabs.M), 4)} kN·m`, `${Mabs.M >= 0 ? 'sagging' : 'hogging'} at ${sg(Mabs.x, 4)} m; range ${sg(r.Mmin.M, 4)} to ${sg(r.Mmax.M, 4)} kN·m`),
@@ -177,6 +200,8 @@ import Downloads from '../../components/Downloads.astro';
       fact('Bending stress', `${sg(sigma, 4)} MPa`, `σ = M / Z at the outer fibre${fy > 0 ? `; ${sg((sigma / fy) * 100, 3)} % of the ${sg(fy, 4)} MPa yield (factor ${sg(fy / sigma, 3)})` : ''}`),
       fact('Shear stress', `${sg(tau, 3)} MPa`, shape === 'I' ? 'average over the web, V / (h × web)' : `largest, ${sg(sp.k, 3)} × V / A at the neutral axis`),
       fact('Deflection ratio', `span / ${sg((span * 1000) / dmax, 3)}`, `the longest span (or overhang) ${sg(span, 4)} m over the largest deflection`),
+      ...limFact,
+      fact('In US units', `${sg(dmax * US.mmToIn, 3)} in deflection, ${sg(Math.abs(Mabs.M) * US.kNmToKipFt, 4)} kip·ft moment`, `largest reaction ${sg(Math.max(...r.reactions.map((s) => Math.abs(s.R))) * US.kNToKip, 4)} kip, bending stress ${sg(sigma * US.MPaToKsi, 4)} ksi (1 kip = 1000 lbf)`),
       fact('Section', `I = ${sg(sp.I, 4)} mm⁴`, `Z = I / c = ${sg(sp.Z, 4)} mm³, area ${sg(sp.A, 4)} mm², EI = ${sg(EI, 4)} kN·m²`),
     ];
     q('.bm-facts').replaceChildren(...facts);
@@ -229,6 +254,19 @@ import Downloads from '../../components/Downloads.astro';
   }
 
   q('.bm-add').addEventListener('click', () => { addLoad('point', '5', String(val('.bm-L') / 2 || 1)); run(); });
+  const CASES: Record<string, [string, [string, string, string, string][]]> = {
+    'ss-p': ['ss', [['point', '10', 'half', '']]], 'ss-u': ['ss', [['dist', '5', '0', 'L']]],
+    'c-p': ['cant', [['point', '10', 'L', '']]], 'c-u': ['cant', [['dist', '5', '0', 'L']]],
+    'ff-u': ['ff', [['dist', '5', '0', 'L']]], 'ss-2': ['ss', [['point', '10', 'third', ''], ['point', '10', 'twothirds', '']]],
+  };
+  q('.bm-case').addEventListener('change', () => {
+    const c = CASES[sel('.bm-case')]; if (!c) return;
+    const L = val('.bm-L'); if (!(L > 0)) { q<HTMLSelectElement>('.bm-case').value = ''; return run(); }
+    q<HTMLSelectElement>('.bm-sup').value = c[0]; root.querySelectorAll('.bm-row').forEach((r) => r.remove());
+    const at: Record<string, number> = { half: L / 2, L, third: L / 3, twothirds: (2 * L) / 3 };
+    for (const [t, v, x, x2] of c[1]) addLoad(t, v, String(x in at ? +at[x].toPrecision(6) : x), x2 === 'L' ? String(L) : x2);
+    q<HTMLSelectElement>('.bm-case').value = ''; run();
+  });
   q('.bm-Epick').addEventListener('change', () => { const v = sel('.bm-Epick'); if (v) q<HTMLInputElement>('.bm-E').value = v; q<HTMLSelectElement>('.bm-Epick').value = ''; run(); });
   root.querySelectorAll(':scope > .ax-card input, :scope > .ax-card select').forEach((i) => { if (i.closest('.bm-row')) return; i.addEventListener('input', run); i.addEventListener('change', run); });
   q('.bm-csv').addEventListener('click', () => rows.length > 1 && save(new Blob([csv(rows)], { type: 'text/csv' }), 'beam-diagrams.csv', 'text/csv'));

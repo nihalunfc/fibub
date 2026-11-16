@@ -51,6 +51,25 @@
     <ul data-o="detail"></ul>
   </details>
 
+  <details class="ts-more" data-o="pick">
+    <summary>Pick the numbers from lists</summary>
+    <p class="ts-fine">Choose width, sidewall height and wheel size from the lists; the size above updates.</p>
+    <div class="ts-picks">
+      <label>Width (mm) <select data-k="pw"></select></label>
+      <label>Sidewall (% of width) <select data-k="pa"></select></label>
+      <label>Wheel size (inches) <select data-k="pr"></select></label>
+    </div>
+  </details>
+
+  <details class="ts-more" data-o="nearbox">
+    <summary>Other sizes that fit about as well</summary>
+    <label class="ts-chk"><input type="checkbox" data-k="samerim" /> Same wheel size only</label>
+    <label class="ts-chk">Allow a height difference up to
+      <select data-k="lim"><option value="1">1%</option><option value="2">2%</option><option value="3" selected>3%</option></select></label>
+    <ul data-o="near" aria-live="polite"></ul>
+    <p class="ts-fine">Sizes are worked out from height only. A different width or wheel size may rub, change the ride, or need a different rim, so check with a tyre shop. Tap a size to compare it.</p>
+  </details>
+
   <details class="ts-more" data-o="cmpbox">
     <summary>Compare with another size</summary>
     <label class="ts-code">Another size <input data-k="code2" type="text" value="" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="like 225/45 R17 91W" /></label>
@@ -110,13 +129,17 @@
   .ts-more summary { cursor: pointer; font-weight: 650; }
   .ts-more ul { margin: 8px 0 0; padding-left: 18px; }
   .ts-more .ts-code { margin-top: 10px; }
+  .ts-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .ts-picks label, .ts-more .ts-chk { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ts-picks select, .ts-more select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); min-width: 0; }
+  .ts-near { font: inherit; font-weight: 700; color: var(--accent); background: none; border: 0; padding: 6px 0; cursor: pointer; text-decoration: underline; min-height: 32px; }
   .ts-cmp p { margin: 8px 0 0; }
   .ts-cmp .big { font-size: 19px; font-weight: 650; }
   @media (max-width: 360px) { .ts-veh button { font-size: 12px; } .ts-r b { font-size: 17px; } }
 </style>
 
 <script>
-  import { parseTyre, loadKg, speedKmh, compareTyres, circumferenceMm, revsPerKm, MM_PER_IN, KM_PER_MI, LB_PER_KG, type TyreSize, type PartKey } from '../../lib/vehicles/tyres';
+  import { WIDTHS_MM, ASPECTS, RIMS_IN, buildCode, nearSizes, speedoTable, parseTyre, loadKg, speedKmh, compareTyres, circumferenceMm, revsPerKm, MM_PER_IN, KM_PER_MI, LB_PER_KG, type TyreSize, type PartKey } from '../../lib/vehicles/tyres';
   import { presetCountry } from '../../lib/vehicles/country';
 
   type Veh = 'car' | 'pickup' | 'bike' | 'truck';
@@ -259,7 +282,22 @@
       `Once round: ${n(circ)} mm, so it turns about ${n(rev)} times per km (${n(rev * KM_PER_MI)} per mile)`,
       cur.zr ? `${cur.zr}: an older way to show a tyre built for over 240 km/h (149 mph)` : '',
     ].filter(Boolean).map((x) => `<li>${x}</li>`).join('');
-    applyHl(); compare();
+    applyHl(); compare(); picks(); near();
+  }
+
+  const fillSel = (k: string, vals: number[]) => { const el = q(k) as unknown as HTMLSelectElement; if (!el.options.length) el.innerHTML = vals.map((v) => `<option value="${v}">${v}</option>`).join(''); return el; };
+  function picks() {
+    const w = fillSel('pw', WIDTHS_MM), a = fillSel('pa', ASPECTS), r = fillSel('pr', RIMS_IN);
+    if (cur && cur.kind === 'metric') {
+      const near = (arr: number[], v: number) => String(arr.reduce((p, c) => (Math.abs(c - v) < Math.abs(p - v) ? c : p)));
+      w.value = near(WIDTHS_MM, cur.widthMm); a.value = near(ASPECTS, cur.aspect); r.value = near(RIMS_IN, cur.rimIn);
+    }
+  }
+  function near() {
+    const ul = o('near');
+    if (!cur || cur.kind !== 'metric') { ul.innerHTML = '<li>Works for metric sizes like 205/55 R16.</li>'; return; }
+    const list = nearSizes(cur, +q('lim').value, q('samerim').checked);
+    ul.innerHTML = list.length ? list.map((s) => `<li><button type="button" class="ts-near" data-code="${s.code}">${s.code}</button> ${s.diffPct >= 0 ? '+' : '−'}${n(Math.abs(s.diffPct), 1)}% height (${n(s.diameterMm, 0)} mm)</li>`).join('') : '<li>No common sizes within that limit.</li>';
   }
 
   function compare() {
@@ -277,6 +315,7 @@
     out.innerHTML = `<div class="ts-cmp">
       <p>Yours: <b data-o="d1">${n(cur.diameterMm, 1)} mm</b> tall. The other: <b data-o="d2">${n(b.diameterMm, 1)} mm</b> tall.</p>
       <p class="big" data-o="pct">${pct} ${c.diffPct >= 0 ? 'taller' : 'shorter'}</p>
+      <p data-o="speedtab">${speedoTable(c, mph() ? [30, 50, 70] : [50, 100, 120]).map(([a, b]) => `${a} ${u} reads as ${n(b, 1)}`).join('; ')}.</p>
       <p data-o="speedo">When your speedometer says ${shown} ${u}, you are really doing about ${n(c.trueSpeed(shown), 1)} ${u}.</p>
       <p class="note ${c.withinPct && !warn.length ? 'good' : 'warn'}" data-o="verdict">${c.withinPct ? 'Within 3%: usually fine. Also check it clears the body and suspension.' : 'More than 3% different: check with a tyre shop before fitting.'} ${warn.join(' ')}</p>
     </div>`;
@@ -293,6 +332,9 @@
     const p = (e.target as Element).closest('[data-p]') as HTMLElement | null;
     if (p && root.contains(p)) { hl = hl === p.dataset.p ? '' : p.dataset.p!; applyHl(); }
   });
+  ['pw', 'pa', 'pr'].forEach((k) => q(k).addEventListener('change', () => { q('code').value = buildCode(+q('pw').value, +q('pa').value, +q('pr').value); hl = ''; render(); }));
+  ['lim', 'samerim'].forEach((k) => q(k).addEventListener('change', near));
+  o('near').addEventListener('click', (e) => { const b = (e.target as Element).closest('.ts-near') as HTMLElement | null; if (!b) return; q('code2').value = b.dataset.code!; (o('cmpbox') as HTMLDetailsElement).open = true; compare(); });
   q('code').addEventListener('input', () => { hl = ''; render(); });
   q('code2').addEventListener('input', compare);
   q('country').addEventListener('change', render);

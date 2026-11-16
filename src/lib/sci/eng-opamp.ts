@@ -84,3 +84,30 @@ export function f3db(h: (f: number) => number, f1: number, f2: number): number {
   for (let i = 0; i < 100; i++) { const m = (a + b) / 2; if (h(Math.exp(m)) > target) a = m; else b = m; }
   return Math.exp((a + b) / 2);
 }
+
+// Picking resistors for a wanted gain (inverting, non-inverting, difference). Gain magnitude as a plain number.
+import { nearest, seriesValues } from './eng-resistor.ts';
+export type GainCfg = 'inv' | 'noninv' | 'diff';
+/** Gain from the two resistors: inverting and difference Rf/R1 (magnitude), non-inverting 1 + Rf/R1. */
+export const gainOf = (cfg: GainCfg, r1: number, rf: number) => (cfg === 'noninv' ? 1 + rf / r1 : rf / r1);
+/** Feedback resistor that gives gain g with input resistor r1 (0 if non-inverting gain is 1). */
+export const rfForGain = (cfg: GainCfg, g: number, r1: number) => (cfg === 'noninv' ? (g - 1) * r1 : g * r1);
+/** Nearest standard Rf in an E series for gain g and a chosen R1, with the gain you really get and its error in %. */
+export function designGain(cfg: GainCfg, g: number, r1: number, ser: number) {
+  const exact = rfForGain(cfg, g, r1), rf = nearest(exact, ser).best, actual = gainOf(cfg, r1, rf);
+  return { exact, rf, actual, err: (actual / g - 1) * 100 };
+}
+/** The standard pair (both in the series, R1 from 1 kΩ to 100 kΩ) with the smallest gain error; ties go to R1 nearest 10 kΩ. */
+export function bestPair(cfg: GainCfg, g: number, ser: number) {
+  let best: { r1: number; rf: number; actual: number; err: number } | null = null;
+  const vals = seriesValues(ser, 1e3, 1e5);
+  for (const r1 of vals) {
+    const exact = rfForGain(cfg, g, r1);
+    if (!(exact > 0)) continue;
+    const near = seriesValues(ser, exact / 3, exact * 3).reduce((b, x) => (Math.abs(Math.log(gainOf(cfg, r1, x) / g)) < Math.abs(Math.log(gainOf(cfg, r1, b) / g)) ? x : b));
+    const actual = gainOf(cfg, r1, near), err = (actual / g - 1) * 100;
+    if (near < 1e3 || near > 1e7) continue;
+    if (!best || Math.abs(err) < Math.abs(best.err) - 1e-9 || (Math.abs(Math.abs(err) - Math.abs(best.err)) < 1e-9 && Math.abs(Math.log(r1 / 1e4)) < Math.abs(Math.log(best.r1 / 1e4)))) best = { r1, rf: near, actual, err };
+  }
+  return best;
+}

@@ -55,3 +55,7 @@ A UK car tyre measures 1.2 mm. The limit is 1.6 mm, so the answer is Replace. A 
 **Which tyre do I measure?** All of them, and the spare. Uneven wear points to pressure or alignment problems.
 
 Not safety advice. When in doubt, ask a tyre shop.
+
+## More options
+
+Under **More options** you can type the inner, middle and outer groove readings. The lowest one is used for the verdict, and a difference of 1 mm or more points to a likely cause (middle worn most usually means too much pressure, both edges means too little, one edge means alignment). Type the depth when new and the distance driven, in km or miles, and the tool estimates the wear per 10,000 and the distance left to the legal minimum and to 3 mm. That is a straight-line guess; wear speeds up as the tread gets low, so treat it as a planning aid.

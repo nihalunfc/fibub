@@ -17,6 +17,34 @@
     <dl class="ec-rows"></dl>
     <p class="ec-warn" role="alert"></p>
   </section>
+  <details class="panel ec-more">
+    <summary>More options: overbore, find a bore or stroke, piston speed, power per litre, unit converter</summary>
+    <h2 class="ec-h">Overbore or longer stroke: what if?</h2>
+    <div class="ec-grid">
+      <label>Extra bore (same unit as above) <input data-k="ob" inputmode="decimal" placeholder="e.g. 1" /></label>
+      <label>Extra stroke (same unit as above) <input data-k="os" inputmode="decimal" placeholder="e.g. 2" /></label>
+    </div>
+    <p class="ec-line" data-o="what" aria-live="polite"></p>
+    <h2 class="ec-h">Find the bore or stroke for a size</h2>
+    <div class="ec-grid">
+      <label>Wanted size (cc, whole engine) <input data-k="tcc" inputmode="decimal" placeholder="e.g. 650" /></label>
+    </div>
+    <p class="ec-line" data-o="find" aria-live="polite"></p>
+    <h2 class="ec-h">Piston speed and power per litre</h2>
+    <div class="ec-grid">
+      <label>Engine speed (rpm) <input data-k="rpm" inputmode="decimal" placeholder="e.g. 8000" /></label>
+      <label>Peak power <input data-k="pw" inputmode="decimal" placeholder="e.g. 12" /></label>
+      <label>Power unit <select data-k="pu"><option value="kw">kW</option><option value="hp">hp (mechanical)</option><option value="ps">PS (metric hp)</option></select></label>
+    </div>
+    <p class="ec-line" data-o="mps" aria-live="polite"></p>
+    <p class="ec-line" data-o="spec" aria-live="polite"></p>
+    <h2 class="ec-h">Convert a size you know</h2>
+    <div class="ec-grid">
+      <label>Size <input data-k="cvv" inputmode="decimal" placeholder="e.g. 1.6" /></label>
+      <label>Unit <select data-k="cvu"><option value="cc">cc</option><option value="l">litres</option><option value="cuin">cubic inches</option></select></label>
+    </div>
+    <p class="ec-line" data-o="conv" aria-live="polite"></p>
+  </details>
   <p class="ec-fine">Displacement is the volume the pistons sweep: π / 4 x bore x bore x stroke x cylinders. Makers round the badge (a 149.5 cc engine is sold as "150 cc"). Tax and licence classes often depend on cc: check your own authority. Nothing you type leaves this page.</p>
 </div>
 
@@ -31,11 +59,14 @@
   .ec-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .ec-rows dt { color: var(--muted); } .ec-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .ec-warn { color: var(--bad); margin: 10px 0 0; } .ec-warn:empty { display: none; }
+  .ec-more summary { cursor: pointer; font-weight: 600; }
+  .ec-h { font-size: 16px; margin: 18px 0 8px; }
+  .ec-line { margin: 8px 0 0; font-weight: 600; } .ec-line:empty { display: none; }
   .ec-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { engine } from '../../lib/money/vehicle-physics';
+  import { engine, meanPistonSpeed, specificOutput, ccFrom, strokeFor, boreFor, CC_PER_CUIN } from '../../lib/money/vehicle-physics';
   const root = document.querySelector('.ec') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -52,6 +83,32 @@
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
     $('.ec-rows').innerHTML = line('One cylinder', `${f(r.sweptEach)} cc`) + line('Total in litres', `${f(r.litres, 3)} L`) + line('Total in cubic inches', `${f(r.cuin)} cu in`) +
       line('Bore / stroke ratio', `${f(r.ratio, 2)}`) + line('Engine shape', shape) + (r.cr ? line('Compression ratio', `${f(r.cr)} : 1`) : '');
+    const blank = (k: string) => q(k).value.trim() === '', uName = q('unit').value === 'in' ? 'in' : 'mm';
+    const el = (n: string) => $(`[data-o="${n}"]`);
+    // What if
+    if (blank('ob') && blank('os')) el('what').textContent = '';
+    else {
+      const ob = blank('ob') ? 0 : num('ob') * k, os = blank('os') ? 0 : num('os') * k;
+      if (!isFinite(ob) || !isFinite(os) || bore + ob <= 0 || stroke + os <= 0) el('what').textContent = 'Type extra bore and stroke numbers that keep both above 0.';
+      else {
+        const n = engine({ boreMm: bore + ob, strokeMm: stroke + os, cyl, chamberCc: num('ch') });
+        el('what').textContent = `${f(n.cc)} cc (${n.cc >= r.cc ? '+' : '-'}${f(Math.abs(n.cc - r.cc))} cc, ${n.cc >= r.cc ? '+' : '-'}${f(Math.abs(n.cc / r.cc - 1) * 100)}%)` + (n.cr && r.cr ? `, compression ${f(n.cr)} : 1 if the chamber stays the same` : '');
+      }
+    }
+    // Find bore / stroke
+    if (blank('tcc')) el('find').textContent = '';
+    else if (!(num('tcc') > 0)) el('find').textContent = 'Type a wanted size above 0 cc.';
+    else {
+      const t = num('tcc'), u = uName === 'in' ? 25.4 : 1, d = (v: number) => (uName === 'in' ? f(v / u, 3) + ' in' : f(v, 1) + ' mm');
+      el('find').textContent = `With this bore you need a stroke of ${d(strokeFor(t, bore, cyl))}. With this stroke you need a bore of ${d(boreFor(t, stroke, cyl))}.`;
+    }
+    // Piston speed and power per litre
+    const rpm = num('rpm'), pw = num('pw');
+    el('mps').textContent = blank('rpm') ? '' : rpm > 0 ? `Mean piston speed: ${f(meanPistonSpeed(stroke, rpm), 1)} m/s at ${f(rpm, 0)} rpm (2 x stroke x rpm / 60).` : 'Type an engine speed above 0.';
+    el('spec').textContent = blank('pw') ? '' : pw > 0 ? `Power per litre: ${f(specificOutput(pw, q('pu').value as 'kw' | 'hp' | 'ps', r.litres), 1)} kW/L (${f(specificOutput(pw, q('pu').value as 'kw' | 'hp' | 'ps', r.litres) * 1.34102209, 1)} hp/L).` : 'Type a power above 0.';
+    // Convert
+    const cv = num('cvv');
+    el('conv').textContent = blank('cvv') ? '' : cv > 0 ? (() => { const c = ccFrom(cv, q('cvu').value as 'cc' | 'l' | 'cuin'); return `${f(c, 1)} cc = ${f(c / 1000, 3)} L = ${f(c / CC_PER_CUIN, 1)} cu in`; })() : 'Type a size above 0.';
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();

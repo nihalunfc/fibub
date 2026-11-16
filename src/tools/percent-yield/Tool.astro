@@ -1,0 +1,105 @@
+---
+// #L348 Yield and atom economy. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths: src/lib/learn/curr-chem.ts, checked in tests/curr-chem.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn py">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 11 to 12</button></div>
+    <p class="ax-help">Two different questions: how much product did you actually get compared with the most you could get (percentage yield)? And how much of the mass of the reactants ends up in the product you want (atom economy)?</p>
+    <label>Reaction <select class="py-rx" aria-label="Reaction"></select></label>
+    <p class="lrn-eq py-eq"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="lrn-sl"><span class="py-rn">Reactant</span>: <b class="py-mv"></b> g <input class="py-m" type="range" min="1" max="200" step="1" value="50" /></label>
+      <label class="lrn-sl">Actual mass of <span class="py-pn">product</span> obtained: <b class="py-av"></b> g <input class="py-a" type="range" min="0" max="100" step="0.1" value="30" /></label>
+    </div>
+    <canvas class="lrn-cv py-cv" aria-label="Two bars out of 100 percent: percentage yield and atom economy" style="margin-top:8px"></canvas>
+    <p class="ax-big py-out" aria-live="polite"></p>
+    <p class="ax-help py-sub"></p>
+    <p class="ax-help py-work" data-only="11" hidden style="white-space:pre-line"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Why yields are less than 100%</h2>
+    <ul class="lrn-try py-why"></ul>
+    <p class="ax-help py-waste"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Drag the actual mass up to the theoretical yield. What does the percentage yield become?</li><li>Compare ethanol made by fermentation with ethanol made by hydration. Which wastes more atoms?</li><li>Look at the Haber process: why can the atom economy be 100% while the yield is still low?</li></ul>
+  </div>
+  <div class="ax-card py-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .py .py-cv { width: 100%; }
+  .py select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { YIELD_RX, REASONS, theoreticalYield, percentYield, atomEconomy, molarMass } from '../../lib/learn/curr-chem';
+  const root = document.querySelector('.py') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.py-cv'), sel = $<HTMLSelectElement>('.py-rx'), aIn = $<HTMLInputElement>('.py-a'), out = $('.py-out');
+  YIELD_RX.forEach((x, i) => sel.append(new Option(`${x.name}: ${x.eq}`, String(i))));
+  const sub = (f: string) => f.replace(/\d+/g, (d) => d.split('').map((c) => '₀₁₂₃₄₅₆₇₈₉'[+c]).join(''));
+  let frac = 0.75;
+  REASONS.forEach((t) => { const li = document.createElement('li'); li.textContent = t; $('.py-why').append(li); });
+  const calc = () => {
+    const rx = YIELD_RX[+sel.value], m = +$<HTMLInputElement>('.py-m').value, th = theoreticalYield(rx, m), ae = atomEconomy(rx);
+    return { rx, m, th, ae };
+  };
+  const draw = () => {
+    const { rx, th, ae } = calc(), a = +aIn.value, py = percentYield(a, th.grams);
+    const { ctx, W, H } = fitCanvas(cv, 140), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif';
+    const l = 120, rgt = W - 20, bw = rgt - l;
+    const bar = (y: number, v: number, name: string, col: string) => {
+      ctx.fillStyle = pal.grid; ctx.fillRect(l, y, bw, 30); ctx.fillStyle = col; ctx.fillRect(l, y, bw * Math.min(1, v / 100), 30);
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, y, bw, 30);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(name, l - 6, y + 20);
+      ctx.textAlign = v > 80 ? 'right' : 'left'; ctx.fillStyle = v > 80 ? pal.bg : pal.ink; ctx.fillText(`${r(v, 3)} %`, v > 80 ? l + bw * Math.min(1, v / 100) - 6 : l + bw * Math.min(1, v / 100) + 6, y + 20);
+    };
+    bar(14, py, 'Percentage yield', py > 100 ? pal.bad : pal.accent); bar(62, ae.percent, 'Atom economy', pal.accent2);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; [0, 50, 100].forEach((v) => ctx.fillText(String(v), l + bw * v / 100, 112));
+  };
+  const show = () => {
+    const { rx, m, th, ae } = calc();
+    const max = Math.max(1, Math.ceil(th.grams * 1.2)); aIn.max = String(max); aIn.step = th.grams < 5 ? '0.01' : '0.1';
+    aIn.value = String(Math.min(max, +(frac * th.grams).toFixed(th.grams < 5 ? 2 : 1)));
+    update();
+  };
+  const update = () => {
+    const { rx, m, th, ae } = calc(), a = +aIn.value, py = percentYield(a, th.grams);
+    frac = th.grams > 0 ? a / th.grams : frac;
+    const r0 = rx.reactants[0], pn = sub(rx.desired.f);
+    $('.py-eq').textContent = rx.eq; $('.py-rn').textContent = `Mass of ${sub(r0.f)}`; $('.py-pn').textContent = pn;
+    $('.py-mv').textContent = String(m); $('.py-av').textContent = String(a);
+    out.textContent = `Percentage yield ${r(py, 3)} %. Atom economy ${r(ae.percent, 3)} %.`;
+    out.dataset.theo = th.grams.toFixed(4); out.dataset.pct = py.toFixed(3); out.dataset.ae = ae.percent.toFixed(3);
+    $('.py-sub').textContent = `Theoretical yield of ${pn}: ${r(th.grams)} g (the most the reaction can make from ${m} g of ${sub(r0.f)}, with the other reactants in excess). Actual: ${a} g. ${py > 100 ? 'More than 100 % is not possible: the product is probably wet or impure.' : ''}`;
+    $('.py-work').textContent = `Step 1: moles of ${sub(r0.f)} = ${m} ÷ ${r(molarMass(r0.f), 5)} = ${r(th.mol)} mol.\nStep 2: moles of ${pn} = ${r(th.mol)} × ${rx.desired.c} ÷ ${r0.c} = ${r(th.prodMol)} mol.\nStep 3: theoretical mass = ${r(th.prodMol)} × ${r(molarMass(rx.desired.f), 5)} = ${r(th.grams)} g.\nPercentage yield = ${a} ÷ ${r(th.grams)} × 100 = ${r(py)} %.\nAtom economy = ${r(ae.desired)} ÷ ${r(ae.total)} × 100 = ${r(ae.percent)} % (Mr of the wanted product × its coefficient, over the total Mr of the reactants).`;
+    $('.py-waste').textContent = rx.wasteNote;
+    draw();
+  };
+  sel.addEventListener('input', show); $('.py-m').addEventListener('input', show); aIn.addEventListener('input', update);
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.py-quiz'), () => {
+    const m1 = pick(10, 50, 10), t1 = theoreticalYield(YIELD_RX[0], m1), act = Math.round(t1.grams * pick(60, 90, 5)) / 100, p1 = percentYield(act, t1.grams);
+    const ids = [0, 2, 4], rx2 = YIELD_RX[one(ids)], ae2 = atomEconomy(rx2);
+    const m4 = pick(14, 56, 14), t4 = theoreticalYield(YIELD_RX[1], m4);
+    const pair = one([[1, 2], [3, 2], [3, 4], [1, 4]]).sort(() => Math.random() - 0.5), two = pair.map((i) => YIELD_RX[i].name);
+    const full = pair[0] === 1 || pair[0] === 3 ? 0 : 1;
+    return [
+      { q: `Heating ${m1} g of CaCO₃ should make ${r(t1.grams)} g of CaO, but only ${r(act, 3)} g is collected. What is the percentage yield?`, ans: p1, unit: '%', tol: 0.02, work: `Percentage yield = actual ÷ theoretical × 100 = ${r(act, 3)} ÷ ${r(t1.grams)} × 100 = ${r(p1)} %.` },
+      { q: `${rx2.eq}. What is the atom economy for making ${sub(rx2.desired.f)}? (Use Mr: ${rx2.reactants.map((x) => `${sub(x.f)} ${r(molarMass(x.f), 5)}`).join(', ')}, ${sub(rx2.desired.f)} ${r(molarMass(rx2.desired.f), 5)})`, ans: ae2.percent, unit: '%', tol: 0.02, work: `Atom economy = ${r(molarMass(rx2.desired.f))} × ${rx2.desired.c} ÷ ${r(ae2.total)} × 100 = ${r(ae2.percent)} %.` },
+      { q: `Which of these two processes has a 100 % atom economy: ${two[0]} or ${two[1]}?`, choices: two, ans: full, work: `${full === 0 ? two[0] : two[1]} makes only one product, so every reactant atom ends up in it.` },
+      { q: `How many grams of NH₃ can ${m4} g of N₂ make at most? (N₂ + 3H₂ → 2NH₃; Mr N₂ 28.014, NH₃ 17.031)`, ans: t4.grams, unit: 'g', tol: 0.02, work: `${m4} ÷ 28.014 = ${r(t4.mol)} mol N₂. × 2 = ${r(t4.prodMol)} mol NH₃. × 17.031 = ${r(t4.grams)} g.` },
+    ];
+  });
+</script>

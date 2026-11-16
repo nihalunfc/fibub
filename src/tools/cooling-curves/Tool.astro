@@ -1,0 +1,148 @@
+---
+// #L343 Cooling and insulation. Maths: src/lib/learn/curr-physics.ts (checks in tests/curr-physics.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn cc">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">GCSE / Grade 11</button></div>
+    <p class="ax-help">Two classic practicals. A Leslie cube shows how well different surfaces give out infrared. Wrapped beakers show how insulation slows cooling.</p>
+    <div class="ax-seg cc-modes" role="group" aria-label="Practical"><button type="button" data-m="leslie" aria-pressed="true">Leslie cube</button><button type="button" data-m="cool" aria-pressed="false">Insulation</button></div>
+
+    <div class="cc-leslie" style="margin-top:8px">
+      <canvas class="lrn-cv cc-cv1" aria-label="The four faces of a Leslie cube with an infrared detector pointing at one, and a bar chart of what the detector reads for each face" ></canvas>
+      <label class="lrn-sl" style="margin-top:8px"><span>Water in the cube: <b class="cc-tv">90</b> °C (room 20 °C)</span> <input class="cc-t" type="range" min="40" max="100" step="5" value="90" /></label>
+      <div class="ax-seg cc-faces" role="group" aria-label="Face to point the detector at" style="margin-top:8px"></div>
+      <p class="ax-big cc-lout" aria-live="polite"></p>
+      <p class="ax-help cc-lsub"></p>
+    </div>
+
+    <div class="cc-cool" hidden style="margin-top:8px">
+      <canvas class="lrn-cv cc-cv2" aria-label="Four beakers of hot water: bare, newspaper, bubble wrap and foam, with their temperatures" ></canvas>
+      <canvas class="lrn-cv cc-cv3" aria-label="Graph of temperature against time for each beaker" style="margin-top:6px"></canvas>
+      <div class="ax-grid" style="margin-top:8px">
+        <label class="lrn-sl"><span>Layers of newspaper: <b class="cc-lv">2</b></span> <input class="cc-layers" type="range" min="1" max="4" step="1" value="2" /></label>
+        <label class="lrn-sl"><span>Speed: <b class="cc-sv">5</b> minutes per second</span> <input class="cc-speed" type="range" min="1" max="20" step="1" value="5" /></label>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:15px;min-height:44px"><input class="cc-lid" type="checkbox" /> Lids on (less heat carried away by evaporation and air)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+        <button type="button" class="btn cc-play">Pause</button>
+        <button type="button" class="btn secondary cc-reset">Restart</button>
+        <button type="button" class="btn secondary cc-end">Jump to 60 min</button>
+      </div>
+      <p class="ax-big cc-cout" aria-live="polite"></p>
+      <p class="ax-help cc-csub"></p>
+    </div>
+    <p class="ax-help" data-only="11" hidden>GCSE / Grade 11: Newton's law of cooling says the rate of cooling is proportional to the temperature difference from the room, so T = T<sub>room</sub> + (T₀ − T<sub>room</sub>) e<sup>−kt</sup>. Insulation lowers k. In the Leslie cube, power radiated per area ∝ emissivity × (T⁴ − T<sub>room</sub>⁴) with T in kelvin. Emissivity values and cooling constants here are approximate teaching values, not measurements.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Point the detector at each face. Which gives out the most infrared, and which the least?</li><li>Raise the cube's temperature. How do all four readings change?</li><li>In Insulation, compare the temperature after 30 minutes for the four beakers.</li><li>Change the layers of newspaper from 1 to 4, then turn the lids on. Which change helps more?</li></ul>
+  </div>
+  <div class="ax-card cc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cc .lrn-cv { width: 100%; }
+  .cc .cc-faces button { min-height: 40px; font-size: 13px; padding: 6px 9px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { FACES, leslieReading, leslieEmission, coolingK, temperatureAt, timeToReach, halfTime, type Wrap } from '../../lib/learn/curr-physics';
+  const root = document.querySelector('.cc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const AIR = 20, T0 = 90, TMAX = 60;
+  let mode = 'leslie', face = 0, t = 0;
+  const tIn = $<HTMLInputElement>('.cc-t'), lay = $<HTMLInputElement>('.cc-layers'), spd = $<HTMLInputElement>('.cc-speed'), lid = $<HTMLInputElement>('.cc-lid');
+  const lout = $('.cc-lout'), cout = $('.cc-cout'), facesBox = $('.cc-faces');
+  FACES.forEach((f, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = f.name; b.dataset.f = String(i); b.setAttribute('aria-pressed', String(i === 0)); b.addEventListener('click', () => { face = i; showL(); }); facesBox.append(b); });
+
+  const faceFill = (id: string, pal: ReturnType<typeof pagePalette>) => (id === 'matt-black' ? '#2a2a2a' : id === 'shiny-black' ? '#0a0a0a' : id === 'matt-white' ? '#f1f1ec' : '#c4c8cc');
+  const drawL = () => {
+    const { ctx, W, H } = fitCanvas($<HTMLCanvasElement>('.cc-cv1'), 230), pal = pagePalette(), T = +tIn.value, tw = (W - 40) / 4;
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center';
+    FACES.forEach((f, i) => {
+      const x = 10 + i * (tw + 6), y = 70, w = tw, h = 80;
+      ctx.fillStyle = faceFill(f.id, pal); ctx.fillRect(x, y, w, h);
+      if (f.id.startsWith('shiny')) { ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(x + w * 0.2, y, w * 0.12, h); ctx.fillRect(x + w * 0.45, y, w * 0.05, h); }
+      ctx.lineWidth = i === face ? 4 : 1.5; ctx.strokeStyle = i === face ? pal.accent2 : pal.ink; ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = pal.ink; ctx.fillText(f.name.replace(' ', ' '), x + w / 2, y + h + 14);
+    });
+    // detector
+    const dx = 10 + face * (tw + 6) + tw / 2; ctx.strokeStyle = pal.accent2; ctx.fillStyle = pal.accent2; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(dx, 30); ctx.lineTo(dx, 66); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(dx - 5, 60); ctx.lineTo(dx + 5, 60); ctx.lineTo(dx, 68); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.fillRect(dx - 18, 12, 36, 18); ctx.fillStyle = pal.bg; ctx.fillText('IR', dx, 25);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`Cube at ${T} °C`, 10, 12 + 120 + 0 > 0 ? 190 + 6 : 0);
+    // bars
+    FACES.forEach((f, i) => { const v = leslieReading(f.eps, T, AIR), x = 10 + i * (tw + 6), bh = Math.min(1.3, v / 100) / 1.3 * 40; ctx.fillStyle = i === face ? pal.accent2 : pal.accent; ctx.fillRect(x + tw * 0.25, 224 - bh, tw * 0.5, bh); ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(v.toFixed(0), x + tw / 2, 224 - bh - 3); });
+  };
+  const showL = () => {
+    const T = +tIn.value, f = FACES[face], v = leslieReading(f.eps, T, AIR);
+    $('.cc-tv').textContent = String(T);
+    facesBox.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === face)));
+    lout.textContent = `${f.name}: detector reads ${v.toFixed(0)}`;
+    lout.dataset.reading = v.toFixed(3); lout.dataset.face = f.id; lout.dataset.eps = String(f.eps); lout.dataset.power = leslieEmission(f.eps, T, AIR).toFixed(2);
+    $('.cc-lsub').textContent = `The reading is scaled so a matt black face at 100 °C reads 100 (about ${leslieEmission(0.95, 100, AIR).toFixed(0)} W/m²). Emissivity of this face is about ${f.eps}; values are approximate. Power ≈ ${leslieEmission(f.eps, T, AIR).toFixed(0)} W/m².`;
+    drawL();
+  };
+  const WR: { w: Wrap; name: string }[] = [{ w: 'none', name: 'Bare' }, { w: 'newspaper', name: 'Newspaper' }, { w: 'bubble', name: 'Bubble wrap' }, { w: 'foam', name: 'Foam' }];
+  const ks = () => WR.map((x) => coolingK(x.w, +lay.value, lid.checked));
+  const COL = (pal: ReturnType<typeof pagePalette>) => [pal.bad, pal.accent2, pal.accent, pal.good];
+  const tempCol = (T: number) => `hsl(${Math.round(((T - 20) / 70) * 20 + 0)},80%,${Math.round(78 - ((T - 20) / 70) * 25)}%)`;
+  const drawC = () => {
+    const pal = pagePalette(), k = ks(), a = fitCanvas($<HTMLCanvasElement>('.cc-cv2'), 130), W = a.W, ctx = a.ctx, bw = W / 4;
+    ctx.clearRect(0, 0, W, 130); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center';
+    WR.forEach((x, i) => {
+      const T = temperatureAt(T0, AIR, k[i], t), cx = bw * i + bw / 2, w = 40, top = 28, bot = 100;
+      ctx.fillStyle = tempCol(T); ctx.fillRect(cx - w / 2 + 2, top + 12, w - 4, bot - top - 12);
+      if (x.w !== 'none') { ctx.strokeStyle = x.w === 'foam' ? pal.good : x.w === 'bubble' ? pal.accent : pal.accent2; ctx.lineWidth = x.w === 'newspaper' ? 2 + (+lay.value) * 2 : 8; if (x.w === 'bubble') ctx.setLineDash([2, 3]); ctx.strokeRect(cx - w / 2 - 3, top + 9, w + 6, bot - top - 6); ctx.setLineDash([]); }
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - w / 2, top); ctx.lineTo(cx - w / 2, bot); ctx.lineTo(cx + w / 2, bot); ctx.lineTo(cx + w / 2, top); ctx.stroke();
+      if (lid.checked) { ctx.fillStyle = pal.ink; ctx.fillRect(cx - w / 2 - 4, top - 4, w + 8, 5); }
+      ctx.fillStyle = pal.ink; ctx.font = 'bold 13px system-ui,sans-serif'; ctx.fillText(`${T.toFixed(1)} °C`, cx, 18); ctx.font = '11px system-ui,sans-serif'; ctx.fillText(x.name, cx, 120);
+    });
+    const g = fitCanvas($<HTMLCanvasElement>('.cc-cv3'), 262), gc = g.ctx, x0 = 38, x1 = g.W - 10, y0 = 12, y1 = 190, X = (m: number) => x0 + (m / TMAX) * (x1 - x0), Y = (T: number) => y1 - ((T - 20) / 70) * (y1 - y0);
+    gc.clearRect(0, 0, g.W, 262); gc.font = '11px system-ui,sans-serif'; gc.lineWidth = 1; gc.strokeStyle = pal.grid; gc.fillStyle = pal.muted; gc.textAlign = 'center';
+    for (let m = 0; m <= 60; m += 10) { gc.beginPath(); gc.moveTo(X(m), y0); gc.lineTo(X(m), y1); gc.stroke(); gc.fillText(String(m), X(m), y1 + 14); }
+    gc.textAlign = 'right'; for (let T = 20; T <= 90; T += 10) { gc.beginPath(); gc.moveTo(x0, Y(T)); gc.lineTo(x1, Y(T)); gc.stroke(); gc.fillText(String(T), x0 - 4, Y(T) + 4); }
+    gc.fillStyle = pal.ink; gc.textAlign = 'center'; gc.fillText('Time (minutes)', (x0 + x1) / 2, 218);
+    gc.save(); gc.translate(9, (y0 + y1) / 2); gc.rotate(-Math.PI / 2); gc.fillText('Temperature (°C)', 0, 0); gc.restore();
+    const cols = COL(pal); gc.lineWidth = 2.5;
+    WR.forEach((x, i) => { gc.strokeStyle = cols[i]; gc.beginPath(); for (let m = 0; m <= t + 1e-9; m += 0.5) { const px = X(m), py = Y(temperatureAt(T0, AIR, k[i], m)); m === 0 ? gc.moveTo(px, py) : gc.lineTo(px, py); } gc.lineTo(X(t), Y(temperatureAt(T0, AIR, k[i], t))); gc.stroke(); gc.fillStyle = cols[i]; const lx = x0 + 6 + (i % 2) * ((x1 - x0) / 2), ly = 234 + (i >> 1) * 16; gc.fillRect(lx, ly - 8, 10, 8); gc.fillStyle = pal.ink; gc.textAlign = 'left'; gc.fillText(x.name, lx + 14, ly); });
+  };
+  const showC = () => {
+    const k = ks();
+    $('.cc-lv').textContent = lay.value; $('.cc-sv').textContent = spd.value;
+    const T = k.map((kk) => temperatureAt(T0, AIR, kk, t));
+    cout.textContent = `After ${t.toFixed(0)} min: bare ${T[0].toFixed(1)} °C, newspaper ${T[1].toFixed(1)} °C, bubble wrap ${T[2].toFixed(1)} °C, foam ${T[3].toFixed(1)} °C`;
+    cout.dataset.t = t.toFixed(2); ['none', 'news', 'bubble', 'foam'].forEach((n, i) => { cout.dataset['temp' + n] = T[i].toFixed(3); cout.dataset['k' + n] = String(k[i]); });
+    $('.cc-csub').textContent = `Time to cool to 50 °C: ` + WR.map((x, i) => `${x.name} ${r(timeToReach(T0, AIR, k[i], 50) ?? 0, 3)} min`).join(', ') + `. Newton's law of cooling is used with approximate cooling constants. The room is ${AIR} °C and the water starts at ${T0} °C.`;
+    drawC();
+  };
+  const lp = loop((dt) => { if (mode === 'cool' && t < TMAX && dt > 0) { t = Math.min(TMAX, t + dt * +spd.value); showC(); } }, $<HTMLButtonElement>('.cc-play'));
+  const setMode = (m: string) => { mode = m; root.querySelectorAll<HTMLElement>('.cc-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m))); $('.cc-leslie').hidden = m !== 'leslie'; $('.cc-cool').hidden = m !== 'cool'; m === 'leslie' ? showL() : showC(); };
+  root.querySelectorAll<HTMLElement>('.cc-modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  tIn.addEventListener('input', showL);
+  [lay, lid, spd].forEach((e) => e.addEventListener('input', showC));
+  $('.cc-reset').addEventListener('click', () => { t = 0; showC(); });
+  $('.cc-end').addEventListener('click', () => { t = TMAX; showC(); });
+  addEventListener('resize', () => (mode === 'leslie' ? showL() : showC()));
+  wireLevel(root, () => {});
+  setMode('leslie');
+  mountQuiz($('.cc-quiz'), () => {
+    const Ta = pick(15, 25), Tz = pick(70, 95, 5), kb = one([0.7, 0.8, 0.5]);
+    const Rb = pick(60, 100, 10);
+    return [
+      { q: `Water cools by Newton's law from ${Tz} °C in a ${Ta} °C room. After one half-time, what is its temperature in °C?`, ans: Ta + (Tz - Ta) / 2, unit: '°C', work: `After one half-time the gap to the room halves: ${Tz} − ${Ta} = ${Tz - Ta}, half is ${(Tz - Ta) / 2}, so T = ${Ta} + ${(Tz - Ta) / 2} = ${Ta + (Tz - Ta) / 2} °C.` },
+      { q: `A Leslie cube's matt black face reads ${Rb} on the detector. Using emissivities 0.95 (matt black) and 0.05 (shiny silver), what would the shiny silver face read?`, ans: (Rb * 0.05) / 0.95, tol: 0.05, work: `Emission is proportional to emissivity: ${Rb} × 0.05 ÷ 0.95 = ${r((Rb * 0.05) / 0.95)}.` },
+      { q: 'Which Leslie cube face gives out the least infrared radiation?', choices: ['Matt black', 'Matt white', 'Shiny silver'], ans: 2, work: 'Shiny surfaces are poor emitters (and poor absorbers) of infrared. Matt black is among the best.' },
+      one([
+        { q: 'You wrap a beaker of hot water in more layers of newspaper. The cooling curve becomes...', choices: ['steeper', 'shallower', 'unchanged'], ans: 1, work: 'More insulation reduces the rate of energy loss, so the temperature falls more slowly: a shallower curve.' },
+        { q: 'Why does a hot beaker cool fastest at the start?', choices: ['The water is hotter, so the temperature difference to the room is larger', 'The room is colder at first', 'The beaker is lighter at first'], ans: 0, work: 'The rate of cooling is proportional to the temperature difference between the water and the room, which is biggest at the start.' },
+      ]),
+    ];
+  });
+</script>

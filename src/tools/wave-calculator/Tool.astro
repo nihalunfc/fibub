@@ -5,17 +5,39 @@ import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax wvc">
   <div class="ax-card">
-    <h2>Wave and water</h2>
+    <h2>Wavelength, frequency and speed (any wave)</h2>
     <div class="ax-grid">
-      <label>Units <select class="wv-u"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
-      <label>Wave period T (s) <input class="wv-T" type="text" inputmode="decimal" value="10" /></label>
-      <label><span>Wave height H (<span class="wv-lu">m</span>)</span> <input class="wv-H" type="text" inputmode="decimal" value="2" /></label>
-      <label><span>Water depth where H is measured (<span class="wv-lu">m</span>)</span> <input class="wv-h" type="text" inputmode="decimal" value="50" /></label>
-      <label>Angle between the wave crests and the depth contours (°) <input class="wv-a" type="text" inputmode="decimal" value="0" /></label>
-      <label><span>Shallower depth to carry the wave to (<span class="wv-lu">m</span>)</span> <input class="wv-h2" type="text" inputmode="decimal" value="5" /></label>
-      <label>Beach slope, 1 in <input class="wv-s" type="text" inputmode="decimal" value="50" /></label>
-      <label>Breaker index γ (breaking H ÷ depth) <input class="wv-g" type="text" inputmode="decimal" value="0.78" /></label>
-      <label>Water <select class="wv-rho"><option value="1025" selected>Sea water (1,025 kg/m³)</option><option value="1000">Fresh water (1,000 kg/m³)</option></select></label>
+      <label>Wave <select data-k="wm" class="wf-m"><option value="light" selected>Light or radio (electromagnetic)</option><option value="sound">Sound in air</option><option value="custom">Another wave (type its speed)</option></select></label>
+      <label>Find <select data-k="wfind" class="wf-find"><option value="lam" selected>Wavelength from frequency</option><option value="f">Frequency from wavelength</option><option value="v">Speed from frequency and wavelength</option></select></label>
+      <label class="wf-fb">Frequency <span class="wf-pair"><input data-k="wff" class="wf-f" type="text" inputmode="decimal" value="100" /> <select data-k="wfu" class="wf-fu"><option value="1">Hz</option><option value="1e3">kHz</option><option value="1e6" selected>MHz</option><option value="1e9">GHz</option><option value="1e12">THz</option></select></span></label>
+      <label class="wf-lb" hidden>Wavelength <span class="wf-pair"><input data-k="wfl" class="wf-l" type="text" inputmode="decimal" value="550" /> <select data-k="wlu" class="wf-lu"><option value="1e3">km</option><option value="1">m</option><option value="1e-2">cm</option><option value="1e-3">mm</option><option value="1e-6">µm</option><option value="1e-9" selected>nm</option><option value="1e-12">pm</option></select></span></label>
+      <label class="wf-nb">Refractive index n (1 for vacuum or air) <input data-k="wfn" class="wf-n" type="text" inputmode="decimal" value="1" /></label>
+      <label class="wf-tb" hidden>Air temperature (°C) <input data-k="wft" class="wf-t" type="text" inputmode="decimal" value="20" /></label>
+      <label class="wf-vb" hidden>Wave speed (m/s) <input data-k="wfv" class="wf-v" type="text" inputmode="decimal" value="343" /></label>
+    </div>
+    <p class="ax-help">Wavelength = speed ÷ frequency. Light and radio travel at 299,792,458 m/s in a vacuum (exact), and slower in a material by the refractive index n. In a material the frequency stays the same and the wavelength shrinks. The speed of sound in air uses the common approximation 331.3 × √(1 + T ÷ 273.15) m/s for dry air.</p>
+    <p class="ax-err wf-err" hidden></p>
+    <div class="wf-out">
+      <p class="ax-big wf-big" aria-live="polite"></p>
+      <p class="ax-help wf-work"></p>
+      <dl class="ax-facts wf-facts"></dl>
+      <canvas class="ax-fig wf-fig"></canvas>
+      <p class="ax-help">The names of the light bands and colours are rough: their edges are conventions, not sharp lines. For hearing, about 20 Hz to 20 kHz is a rounded figure for young healthy ears.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Water waves: wave and water</h2>
+    <div class="ax-grid">
+      <label>Units <select data-k="u" class="wv-u"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+      <label>Wave period T (s) <input data-k="T" class="wv-T" type="text" inputmode="decimal" value="10" /></label>
+      <label><span>Wave height H (<span class="wv-lu">m</span>)</span> <input data-k="H" class="wv-H" type="text" inputmode="decimal" value="2" /></label>
+      <label><span>Water depth where H is measured (<span class="wv-lu">m</span>)</span> <input data-k="h" class="wv-h" type="text" inputmode="decimal" value="50" /></label>
+      <label>Angle between the wave crests and the depth contours (°) <input data-k="a" class="wv-a" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Shallower depth to carry the wave to (<span class="wv-lu">m</span>)</span> <input data-k="h2" class="wv-h2" type="text" inputmode="decimal" value="5" /></label>
+      <label>Beach slope, 1 in <input data-k="s" class="wv-s" type="text" inputmode="decimal" value="50" /></label>
+      <label>Breaker index γ (breaking H ÷ depth) <input data-k="g" class="wv-g" type="text" inputmode="decimal" value="0.78" /></label>
+      <label>Water <select data-k="rho" class="wv-rho"><option value="1025" selected>Sea water (1,025 kg/m³)</option><option value="1000">Fresh water (1,000 kg/m³)</option></select></label>
     </div>
     <p class="ax-help">Period: the time between crests, from a buoy report or a stopwatch. Height: crest to trough (use the significant height Hs for a sea state, as an approximation). The angle is 0 when the crests run parallel to the shore. γ = 0.78 is McCowan's classic value; 0.6 to 1.2 is seen on real beaches. The example values are made up.</p>
     <p class="ax-err wv-err" hidden></p>
@@ -23,7 +45,7 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card wv-out">
     <h2>At the measured depth</h2>
-    <p class="ax-big wv-big"></p>
+    <p class="ax-big wv-big" aria-live="polite"></p>
     <dl class="ax-facts wv-facts"></dl>
     <h2 style="margin-top:14px">Into shallower water</h2>
     <p class="ax-big wv-big2"></p>
@@ -36,17 +58,18 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { wave, transform, breakPoint, deepEquivalent, iribarren, fentonMcKee } from '../../lib/sci/waves';
+  import { wave, transform, breakPoint, deepEquivalent, iribarren, fentonMcKee, C0, EV, soundAir, photonEnergy, solveFLV, emBand, colourName } from '../../lib/sci/waves';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
+  import { eng } from '../../lib/sci/eng-circuit';
 
   const root = document.querySelector<HTMLElement>('.wvc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const val = (c: string) => num(q<HTMLInputElement>(c).value);
   const sel = (c: string) => q<HTMLSelectElement>(c).value;
   const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
-  let figs: Figure[] = [], report: Section[] = [];
+  let figs: Figure[] = [], report: Section[] = [], wfFig: Figure | null = null, wfSec: Section | null = null;
 
   function calc() {
     const err = q('.wv-err'), out = q('.wv-out');
@@ -122,12 +145,58 @@ import Downloads from '../../components/Downloads.astro';
     report = [{ title: q('.wv-big').textContent!, facts: rows(f1), figure: c2 }, { title: q('.wv-big2').textContent!, facts: rows(f2), figure: c1 }];
   }
 
-  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
-  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.wv-out').hidden) { paint(q<HTMLCanvasElement>('.wv-fig'), figs[0]); paint(q<HTMLCanvasElement>('.wv-fig2'), figs[1]); } });
-  calc();
-  wireDownloads(q('.dl'), () => ({ title: 'Water waves', subtitle: `T = ${q<HTMLInputElement>('.wv-T').value} s, H = ${q<HTMLInputElement>('.wv-H').value} ${sel('.wv-u')}`, file: 'waves', sections: report }));
+  const spd = (x: number) => (x === C0 ? '299,792,458 m/s' : eng(x, 'm/s'));
+  function flv() {
+    const err = q('.wf-err'), out = q('.wf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; wfSec = null; };
+    const med = sel('.wf-m'), find = sel('.wf-find');
+    q('.wf-fb').hidden = find === 'f'; q('.wf-lb').hidden = find === 'lam'; q('.wf-nb').hidden = med !== 'light' || find === 'v'; q('.wf-tb').hidden = med !== 'sound' || find === 'v'; q('.wf-vb').hidden = med !== 'custom' || find === 'v';
+    let n = 1, speed = NaN, how = '';
+    if (find !== 'v') {
+      if (med === 'light') { n = val('.wf-n'); if (!(n >= 1 && n < 100)) return fail('The refractive index is 1 or more for ordinary materials (water is about 1.33, glass about 1.5).'); speed = C0 / n; how = n === 1 ? 'the speed of light in a vacuum' : `the speed of light divided by n = ${sig(n, 4)}`; }
+      else if (med === 'sound') { const tc = val('.wf-t'); if (!(tc > -100 && tc < 1000)) return fail('Give an air temperature between −100 and 1000 °C.'); speed = soundAir(tc); how = `sound in dry air at ${sig(tc, 4)} °C`; }
+      else { speed = val('.wf-v'); if (!(speed > 0)) return fail('Give the wave speed in metres per second, greater than 0.'); how = 'the speed you typed'; }
+    }
+    const fu = +sel('.wf-fu'), lu = +sel('.wf-lu');
+    let f = find === 'f' ? NaN : val('.wf-f') * fu, lam = find === 'lam' ? NaN : val('.wf-l') * lu;
+    if (find !== 'f' && !(f > 0)) return fail('Give the frequency as a number greater than 0.');
+    if (find !== 'lam' && !(lam > 0)) return fail('Give the wavelength as a number greater than 0.');
+    const r = solveFLV(f, lam, find === 'v' ? NaN : speed); f = r.f; lam = r.lam; const v = r.v;
+    if (!(f > 0 && lam > 0 && v > 0) || !Number.isFinite(f * lam * v)) return fail('That combination is too large or small to show: check the units.');
+    err.hidden = true; out.hidden = false;
+    q('.wf-big').textContent = find === 'lam' ? `Wavelength ${eng(lam, 'm')} at ${eng(f, 'Hz')}` : find === 'f' ? `Frequency ${eng(f, 'Hz')} at a wavelength of ${eng(lam, 'm')}` : `Speed ${spd(v)} (${eng(f, 'Hz')} × ${eng(lam, 'm')})`;
+    q('.wf-work').textContent = find === 'lam' ? `Working: λ = v ÷ f = ${spd(v)} ÷ ${eng(f, 'Hz')} = ${eng(lam, 'm')}, using ${how}.` : find === 'f' ? `Working: f = v ÷ λ = ${spd(v)} ÷ ${eng(lam, 'm')} = ${eng(f, 'Hz')}, using ${how}.` : `Working: v = f × λ = ${eng(f, 'Hz')} × ${eng(lam, 'm')} = ${spd(v)}.`;
+    const facts = [
+      fact('Wavelength', eng(lam, 'm'), `${sig(lam, 5)} m`),
+      fact('Frequency', eng(f, 'Hz'), `${sig(f, 5)} Hz`),
+      fact('Wave speed', `${spd(v)}`, find === 'v' ? 'f × λ' : how),
+      fact('Period', eng(1 / f, 's'), '1 ÷ f: the time between crests'),
+      fact('Angular frequency and wavenumber', `${sig(2 * Math.PI * f, 4)} rad/s, ${sig((2 * Math.PI) / lam, 4)} rad/m`, 'ω = 2πf and k = 2π/λ'),
+    ];
+    const em = find === 'v' ? Math.abs(v - C0) / C0 < 1e-6 : med === 'light';
+    if (em) {
+      const vac = C0 / f, E = photonEnergy(f), col = colourName(vac * 1e9);
+      facts.push(fact('Kind of wave', `${emBand(vac)}${col ? `, ${col}` : ''}`, n !== 1 ? `by the vacuum wavelength ${eng(vac, 'm')} (the wavelength inside the material is shorter)` : 'rough: the band edges are conventions'));
+      facts.push(fact('Photon energy', `${eng(E / EV, 'eV')}`, `E = h f = ${sig(E, 4)} J (h = 6.62607015 × 10⁻³⁴ J s, exact)`));
+      facts.push(fact('Wavenumber in spectroscopy', `${sig(0.01 / vac, 4)} cm⁻¹`, '1 ÷ the vacuum wavelength in cm'));
+    } else if (med === 'sound' && find !== 'v') {
+      facts.push(fact('Kind of sound', f < 20 ? 'infrasound' : f > 20000 ? 'ultrasound' : 'audible', 'rounded: hearing runs from about 20 Hz to 20 kHz'));
+    }
+    q('.wf-facts').replaceChildren(...facts);
+    const fs: number[] = []; for (let i = 0; i <= 80; i++) fs.push(f * Math.pow(10, -3 + (6 * i) / 80));
+    wfFig = chartFigure({ w: 380, h: 220, xLabel: 'Frequency (Hz)', yLabel: 'Wavelength (m)', xLog: true, yLog: true, legend: 'none', series: [{ name: 'λ = v / f', x: fs, y: fs.map((x) => v / x), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: f, dash: [3, 3], label: 'now' }, { kind: 'hline', at: lam, dash: [3, 3] }] }, `Wavelength against frequency for a wave of speed ${spd(v)}`);
+    paint(q<HTMLCanvasElement>('.wf-fig'), wfFig);
+    wfSec = { title: q('.wf-big').textContent!, text: [q('.wf-work').textContent!], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: wfFig };
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', () => { flv(); calc(); }); i.addEventListener('change', () => { flv(); calc(); }); });
+  document.addEventListener('fibub:theme', () => { if (wfFig && !q('.wf-out').hidden) paint(q<HTMLCanvasElement>('.wf-fig'), wfFig); if (figs.length && !q('.wv-out').hidden) { paint(q<HTMLCanvasElement>('.wv-fig'), figs[0]); paint(q<HTMLCanvasElement>('.wv-fig2'), figs[1]); } });
+  flv(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Water waves', subtitle: `T = ${q<HTMLInputElement>('.wv-T').value} s, H = ${q<HTMLInputElement>('.wv-H').value} ${sel('.wv-u')}`, file: 'waves', sections: [...(wfSec ? [wfSec] : []), ...report] }));
 </script>
 
 <style is:inline>
   .wvc select, .wvc input { max-width: 100%; }
+  .wvc .wf-pair { display: flex; gap: 8px; }
+  .wvc .wf-pair input { flex: 1 1 auto; min-width: 0; }
 </style>

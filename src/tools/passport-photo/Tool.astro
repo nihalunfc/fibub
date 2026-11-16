@@ -52,7 +52,7 @@
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const cv = $<HTMLCanvasElement>('.pp-cv'), msg = $<HTMLElement>('.pp-msg'), sel = $<HTMLSelectElement>('.pp-country'), sheetSel = $<HTMLSelectElement>('.pp-sheet');
   const zoom = $<HTMLInputElement>('.pp-zoom'), white = $<HTMLInputElement>('.pp-white');
-  SPECS.forEach((s) => sel.add(new Option(s.name, s.id)));
+  [...SPECS].sort((a, b) => a.name.localeCompare(b.name)).forEach((s) => sel.add(new Option(s.name, s.id)));
   let bmp: ImageBitmap | null = null, ox = 0, oy = 0, cover = 1;
   const spec = () => SPECS.find((s) => s.id === sel.value)!;
   const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };

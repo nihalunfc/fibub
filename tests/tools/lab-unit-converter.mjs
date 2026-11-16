@@ -7,6 +7,12 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(R + '.luc-out')) === '100 mg/dL = 5.551 mmol/L', 'lab units: example glucose 100 mg/dL');
   { const f = await page.textContent(R + '.luc-facts'); check(f.includes('180.156 g/mol') && f.includes('1 mg/dL = 0.055507 mmol/L'), 'lab units: molar mass and factor shown'); }
   { const t = await page.textContent(R + '.luc-tab'); check(['3.997', '5.273', '6.106', '6.994', '<2.220', '10.16'].every((x) => t.includes(x)), 'lab units: example list converted'); }
+  await page.selectOption(R + '.luc-d', 's3'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.luc-out')) === '100 mg/dL = 5.55 mmol/L', 'lab units: 3 significant figures');
+  await page.selectOption(R + '.luc-d', 's6'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.luc-out')) === '100 mg/dL = 5.55074 mmol/L', 'lab units: 6 significant figures');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  { const u = await page.textContent(R + '.luc-units'); check(u.includes('mg/dL') && u.includes('5.55074') && u.includes('1.00000'), `lab units: every-unit table (${u})`); }
   await page.selectOption(R + '.luc-d', '1'); await page.waitForTimeout(100);
   check((await page.textContent(R + '.luc-out')) === '100 mg/dL = 5.6 mmol/L', 'lab units: 1 decimal');
   await page.locator(R + '.luc-swap').scrollIntoViewIfNeeded(); await page.click(R + '.luc-swap'); await page.waitForTimeout(100);

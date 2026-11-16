@@ -5,7 +5,7 @@
   <section class="panel">
     <div class="ts-grid">
       <label>Ratio (petrol : oil)
-        <select data-k="r"><option value="50" selected>50:1</option><option value="40">40:1</option><option value="32">32:1</option><option value="25">25:1</option><option value="custom">Custom</option></select>
+        <select data-k="r"><option value="50" selected>50:1</option><option value="40">40:1</option><option value="32">32:1</option><option value="25">25:1</option><option value="20">20:1</option><option value="30">30:1</option><option value="60">60:1</option><option value="100">100:1</option><option value="custom">Custom</option></select>
       </label>
       <label hidden data-w="rc">Custom: petrol parts per 1 oil <input data-k="rc" inputmode="decimal" value="30" /></label>
       <label>Petrol unit
@@ -31,6 +31,22 @@
       <p class="ts-warn" data-o="warn"></p>
     </div>
   </section>
+  <details class="panel ts-more">
+    <summary>More options: mixing table to print, oil percent, fix a wrong mix</summary>
+    <h2 class="ts-h">Mixing table for this ratio</h2>
+    <p class="ts-fine" data-o="tabnote"></p>
+    <div class="ts-scroll"><table class="ts-tab"><thead><tr><th data-o="th1">Petrol</th><th>Oil (ml)</th><th>Oil (US fl oz)</th></tr></thead><tbody></tbody></table></div>
+    <button type="button" class="ts-print" data-print>Print this table</button>
+    <h2 class="ts-h">Oil as a percent</h2>
+    <p class="ts-line" data-o="pc"></p>
+    <h2 class="ts-h">I mixed it wrong: how do I fix it?</h2>
+    <div class="ts-grid">
+      <label>Petrol already mixed (in the petrol unit above) <input data-k="fv" inputmode="decimal" placeholder="e.g. 5" /></label>
+      <label>It was mixed at (petrol : oil) <input data-k="fr" inputmode="decimal" placeholder="e.g. 25" /></label>
+    </div>
+    <p class="ts-line" data-o="fix" aria-live="polite"></p>
+    <p class="ts-fine">The fix aims for the ratio chosen at the top. If the mix is far too lean (too little oil) and the engine has run on it, check it for damage. Never pour a bad mix on the ground: take it to a recycling point.</p>
+  </details>
   <p class="ts-fine">Use the ratio in your engine's own manual. Mix in a clean approved fuel can, outdoors, away from flames and sparks. For chainsaws, trimmers, mowers, outboards and older scooters and mopeds. Nothing you type leaves this page.</p>
 </div>
 
@@ -47,12 +63,20 @@
   .ts-big { font-size: 24px; font-weight: 700; margin: 0; }
   .ts-line { margin: 8px 0 0; font-weight: 600; }
   .ts-warn { color: var(--bad); margin: 8px 0 0; } .ts-warn:empty { display: none; }
+  .ts-more summary { cursor: pointer; font-weight: 600; }
+  .ts-h { font-size: 16px; margin: 16px 0 6px; }
+  .ts-scroll { overflow-x: auto; }
+  .ts-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ts-tab th, .ts-tab td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .ts-print { font: inherit; font-size: 14px; margin-top: 10px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ts-print:hover { border-color: var(--accent); }
+  @media print { .ts-print { display: none; } }
   .ts-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
   import { presetCountry } from '../../lib/vehicles/country';
-  import { toLitres, fromLitres, oilMl, petrolLFromOil, mlToFlOz, type VolUnit } from '../../lib/vehicles/fuel';
+  import { toLitres, fromLitres, oilMl, petrolLFromOil, mlToFlOz, oilPercentOfMix, fixMix, type VolUnit } from '../../lib/vehicles/fuel';
   const root = document.querySelector('.ts') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
@@ -74,6 +98,19 @@
     const cap = num('cap');
     o('caps').textContent = isFinite(cap) && cap > 0 ? `About ${f1(ml / cap)} capfuls` : '';
     o('pet').textContent = rev ? `Goes with ${g3(fromLitres(petrolL, u))} ${UN[u]} of petrol (${g3(petrolL)} L)` : `For ${g3(v)} ${UN[u]} of petrol at ${ratio}:1`;
+    // Table, percent, fix
+    const rows = u === 'l' ? [1, 2, 3, 4, 5, 10, 20] : [0.5, 1, 2, 2.5, 3, 5, 10];
+    o('th1').textContent = `Petrol (${UN[u]})`;
+    o('tabnote').textContent = `At ${ratio}:1. Oil is measured in millilitres; 1 US fl oz is about 29.6 ml.`;
+    (root.querySelector('.ts-tab tbody') as HTMLElement).innerHTML = rows.map((x) => { const m = oilMl(toLitres(x, u), ratio); return `<tr><td>${x}</td><td>${f1(m)}</td><td>${f1(mlToFlOz(m))}</td></tr>`; }).join('');
+    o('pc').textContent = `${ratio}:1 is about ${g3(oilPercentOfMix(ratio))}% oil in the finished mix (1 part oil in ${g3(ratio + 1)} parts), or ${g3(100 / ratio)}% of the petrol volume.`;
+    const fv = num('fv'), fr = num('fr');
+    if (q('fv').value.trim() === '' && q('fr').value.trim() === '') o('fix').textContent = '';
+    else if (!(fv > 0) || !(fr > 0)) o('fix').textContent = 'Type the amount of petrol and the ratio it was mixed at, both above 0.';
+    else {
+      const x = fixMix(toLitres(fv, u), fr, ratio);
+      o('fix').textContent = x.addOilMl > 0.05 ? `Too lean: add ${f1(x.addOilMl)} ml (${f1(mlToFlOz(x.addOilMl))} US fl oz) of oil to get to ${ratio}:1.` : x.addPetrolL > 0.0005 ? `Too much oil: add ${g3(fromLitres(x.addPetrolL, u))} ${UN[u]} of plain petrol (${g3(x.addPetrolL)} L) to get to ${ratio}:1.` : `Already at ${ratio}:1: nothing to add.`;
+    }
     // Oil layer: share of the fill is 1 / (ratio + 1), drawn at least 3 px so it shows.
     const h = Math.max(3, 58 / (ratio + 1) * 4);
     o('oilrect').setAttribute('height', String(Math.min(58, h)));
@@ -81,5 +118,6 @@
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   presetCountry(q('u') as unknown as HTMLSelectElement, { usa: 'usgal', uk: 'ukgal', india: 'l', canada: 'l', gulf: 'l' });
+  root.addEventListener('click', (e) => { if ((e.target as HTMLElement).hasAttribute('data-print')) window.print(); });
   calc();
 </script>

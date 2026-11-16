@@ -1,0 +1,177 @@
+---
+// #L355 Cumulative frequency. Class intervals and frequencies become a cumulative frequency table and graph, with median, quartiles, IQR, percentiles and a box plot. Maths: src/lib/learn/curr-maths.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn cf">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Grouped data shows how many values fall in each class. Adding the frequencies up as you go gives the cumulative frequency, and plotting it lets you read off the median and quartiles. Pick a data set or type your own numbers.</p>
+    <label>Data set <select class="cf-set" aria-label="Data set"></select></label>
+    <p class="ax-help cf-what"></p>
+    <table class="cf-tab" aria-label="Class intervals and frequencies"><thead><tr><th>Class</th><th>Frequency</th><th>Cumulative</th></tr></thead><tbody class="cf-body"></tbody></table>
+    <div class="cf-row"><button type="button" class="btn small cf-add">Add a class</button><button type="button" class="btn secondary small cf-rm">Remove last</button></div>
+    <p class="ax-help cf-err" role="alert" hidden></p>
+    <div class="ax-seg" role="group" aria-label="Curve style"><button type="button" data-style="smooth" aria-pressed="true">Smooth curve</button><button type="button" data-style="line" aria-pressed="false">Straight lines</button></div>
+    <canvas class="lrn-cv cf-cv" aria-label="Cumulative frequency graph with the median and quartiles marked, and the matching box plot underneath" style="margin-top:8px"></canvas>
+    <p class="ax-big cf-out" aria-live="polite"></p>
+    <p class="ax-help cf-sub"></p>
+    <div data-only="11" hidden>
+      <div class="ax-grid">
+        <label class="lrn-sl">Percentile: <b class="cf-pv"></b>th <input class="cf-p" type="range" min="0" max="100" step="1" value="90" /></label>
+        <label>How many are above <input class="cf-x" type="number" inputmode="decimal" step="any" aria-label="Value to count above" /></label>
+      </div>
+      <p class="ax-help cf-extra" aria-live="polite"></p>
+      <p class="ax-help">Grade 11 to 12: the position for the p-th percentile is p% of n up the vertical axis. Between two plotted points the curve is estimated by interpolation, so every answer is an estimate, not an exact value.</p>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Switch between smooth and straight lines. Which readings change a little, and which stay put at the plotted points?</li><li>Raise one frequency a lot. Which way does the median move, and does the box get wider or narrower?</li><li>Look at the box plot: the box is the middle half of the data. Compare its width to the IQR in the answer.</li><li>Change the first boundary or a class width and watch the graph stretch.</li></ul>
+  </div>
+  <div class="ax-card cf-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cf .cf-cv { width: 100%; }
+  .cf select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .cf .cf-tab { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .cf .cf-tab th, .cf .cf-tab td { border-bottom: 1px solid var(--line); padding: 4px 4px; text-align: left; }
+  .cf .cf-tab input { font: inherit; font-size: 16px; width: 4.6em; min-height: 36px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .cf .cf-tab input.cf-f { width: 4em; }
+  .cf .cf-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+  .cf [data-x] { font: inherit; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { cumulative, cfSummary, cfAt, cfInverse, cfAbove, cfPercentile, type CF } from '../../lib/learn/curr-maths';
+  const root = document.querySelector('.cf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.cf-cv'), out = $('.cf-out'), body = $('.cf-body'), sel = $<HTMLSelectElement>('.cf-set'), err = $('.cf-err');
+  const SETS = [
+    { name: 'Heights of 40 students (cm)', what: 'Heights in cm, grouped in classes 140 < h ≤ 150 and so on.', unit: 'cm', bounds: [140, 150, 160, 170, 180, 190], freq: [4, 9, 14, 9, 4], x: 170 },
+    { name: 'Journey times of 60 commuters (minutes)', what: 'How long each commute took, in minutes.', unit: 'min', bounds: [0, 10, 20, 30, 40, 60], freq: [6, 14, 20, 13, 7], x: 30 },
+    { name: 'Test marks of 50 pupils (out of 100)', what: 'Marks out of 100, grouped in tens from 20.', unit: 'marks', bounds: [20, 30, 40, 50, 60, 70, 80, 100], freq: [2, 5, 9, 14, 11, 6, 3], x: 60 },
+  ];
+  SETS.forEach((s, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = s.name; sel.append(o); });
+  let bounds = [...SETS[0].bounds], freq = [...SETS[0].freq], smooth = true, unit = 'cm';
+  const fmt = (v: number) => (Math.abs(v - Math.round(v)) < 0.005 ? String(Math.round(v)) : v.toFixed(1));
+
+  const buildTable = () => {
+    body.replaceChildren();
+    freq.forEach((f, i) => {
+      const tr = document.createElement('tr'), c0 = document.createElement('td'), c1 = document.createElement('td'), c2 = document.createElement('td');
+      const inp = (v: number, cls: string, label: string, on: (x: number) => void) => {
+        const e = document.createElement('input'); e.type = 'number'; e.inputMode = 'decimal'; e.step = 'any'; e.value = String(v); e.className = cls; e.setAttribute('aria-label', label);
+        e.addEventListener('input', () => { const x = parseFloat(e.value); on(Number.isFinite(x) ? x : NaN); update(); }); return e;
+      };
+      if (i === 0) c0.append(inp(bounds[0], 'cf-b', 'Lowest boundary', (x) => (bounds[0] = x))); else c0.append(fmtSpan(bounds[i]));
+      c0.append(' to ', inp(bounds[i + 1], 'cf-b', `Upper boundary of class ${i + 1}`, (x) => (bounds[i + 1] = x)));
+      c1.append(inp(f, 'cf-f', `Frequency of class ${i + 1}`, (x) => (freq[i] = x)));
+      c2.className = 'cf-cum'; tr.append(c0, c1, c2); body.append(tr);
+    });
+  };
+  const fmtSpan = (v: number) => { const s = document.createElement('span'); s.textContent = String(v); return s; };
+  const valid = () => {
+    if (freq.length < 2) return 'Use at least two classes.';
+    if (bounds.some((b) => !Number.isFinite(b)) || freq.some((f) => !Number.isFinite(f) || f < 0)) return 'Fill in every boundary and frequency (frequencies cannot be negative).';
+    for (let i = 0; i < bounds.length - 1; i++) if (bounds[i + 1] <= bounds[i]) return 'Each upper boundary must be bigger than the one before it.';
+    if (freq.reduce((a, b) => a + b, 0) <= 0) return 'The frequencies add up to zero. Enter some data.';
+    return '';
+  };
+  const data = (): CF => ({ bounds, freq });
+  let pctInit = false;
+  const update = () => {
+    const bad = valid();
+    err.hidden = !bad; err.textContent = bad;
+    if (bad) { out.textContent = ''; out.dataset.error = '1'; return; }
+    delete out.dataset.error;
+    const c = data(), cum = cumulative(freq), s = cfSummary(c, smooth);
+    body.querySelectorAll('.cf-cum').forEach((td, i) => (td.textContent = String(cum[i])));
+    const pv = +$<HTMLInputElement>('.cf-p').value, xv = parseFloat($<HTMLInputElement>('.cf-x').value);
+    $('.cf-pv').textContent = String(pv);
+    const pval = cfPercentile(c, pv, smooth), above = Number.isFinite(xv) ? cfAbove(c, xv, smooth) : NaN;
+    out.textContent = `n = ${s.n}. Median ≈ ${fmt(s.median)} ${unit}. Q1 ≈ ${fmt(s.q1)}, Q3 ≈ ${fmt(s.q3)}. IQR ≈ ${fmt(s.iqr)}.`;
+    Object.assign(out.dataset, { n: String(s.n), median: s.median.toFixed(3), q1: s.q1.toFixed(3), q3: s.q3.toFixed(3), iqr: s.iqr.toFixed(3), pct: pval.toFixed(3), above: Number.isFinite(above) ? above.toFixed(3) : '' });
+    $('.cf-sub').textContent = `Median is the value at n ÷ 2 = ${fmt(s.n / 2)}; lower quartile at n ÷ 4 = ${fmt(s.n / 4)}; upper quartile at 3n ÷ 4 = ${fmt((3 * s.n) / 4)}. Read across from those heights and down to the axis. Values are estimates.`;
+    $('.cf-extra').textContent = `${pv}th percentile ≈ ${fmt(pval)} ${unit} (position ${fmt((s.n * pv) / 100)}). ${Number.isFinite(above) ? `About ${fmt(above)} of the ${s.n} are above ${fmt(xv)} ${unit}: ${s.n} − ${fmt(cfAt(c, xv, smooth))} = ${fmt(above)}.` : 'Type a value to count how many are above it.'}`;
+    draw();
+  };
+
+  const draw = () => {
+    if (valid()) return;
+    const c = data(), s = cfSummary(c, smooth), W0 = Math.max(220, cv.clientWidth || 340), GH = 250, Hh = 340;
+    const { ctx, W, H } = fitCanvas(cv, Hh), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    const L = 40, Rm = 12, T = 12, B0 = T + GH, x0 = bounds[0], x1 = bounds[bounds.length - 1], n = s.n;
+    const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (W - L - Rm), Y = (v: number) => B0 - (v / n) * GH;
+    const stepY = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500].find((k) => n / k <= 8) ?? 100;
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.lineWidth = 1;
+    for (let v = 0; v <= n + 1e-9; v += stepY) { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - Rm, Y(v)); ctx.stroke(); ctx.fillText(String(v), L - 4, Y(v) + 4); }
+    ctx.textAlign = 'center';
+    const skip = Math.ceil(30 / ((W - L - Rm) / bounds.length));
+    bounds.forEach((b, i) => { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(b), T); ctx.lineTo(X(b), B0 + 46 + 40); ctx.stroke(); if (i % skip === 0 || i === bounds.length - 1) { ctx.fillStyle = pal.muted; ctx.fillText(String(b), X(b), B0 + 14); } });
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, B0); ctx.lineTo(W - Rm, B0); ctx.stroke();
+    ctx.save(); ctx.translate(11, T + GH / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = pal.muted; ctx.fillText('Cumulative frequency', 0, 0); ctx.restore();
+    // curve
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+    if (smooth) for (let k = 0; k <= 160; k++) { const v = x0 + ((x1 - x0) * k) / 160, y = Y(cfAt(c, v, true)); k ? ctx.lineTo(X(v), y) : ctx.moveTo(X(v), y); }
+    else { ctx.moveTo(X(bounds[0]), Y(0)); cumulative(freq).forEach((cu, i) => ctx.lineTo(X(bounds[i + 1]), Y(cu))); }
+    ctx.stroke();
+    ctx.fillStyle = pal.accent; cumulative(freq).forEach((cu, i) => { ctx.beginPath(); ctx.arc(X(bounds[i + 1]), Y(cu), 3.5, 0, 7); ctx.fill(); });
+    ctx.beginPath(); ctx.arc(X(bounds[0]), Y(0), 3.5, 0, 7); ctx.fill();
+    // reading lines
+    const mark = (pos: number, val: number, col: string, label: string, above = false) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(L, Y(pos)); ctx.lineTo(X(val), Y(pos)); ctx.lineTo(X(val), B0); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col; ctx.font = 'bold 11px system-ui,sans-serif'; ctx.textAlign = above ? 'right' : 'left'; ctx.fillText(label, X(val) + (above ? -4 : 4), B0 - 6 - (above ? 14 : 0)); ctx.font = '11px system-ui,sans-serif';
+    };
+    mark(n / 4, s.q1, pal.accent2, `Q1 ${fmt(s.q1)}`, true); mark(n / 2, s.median, pal.good, `Median ${fmt(s.median)}`); mark((3 * n) / 4, s.q3, pal.accent2, `Q3 ${fmt(s.q3)}`);
+    if (!root.querySelector<HTMLElement>('[data-only="11"]')!.hidden) {
+      const pv = +$<HTMLInputElement>('.cf-p').value; mark((n * pv) / 100, cfPercentile(c, pv, smooth), pal.bad, `${pv}th`);
+      const xv = parseFloat($<HTMLInputElement>('.cf-x').value);
+      if (Number.isFinite(xv) && xv >= x0 && xv <= x1) { ctx.strokeStyle = pal.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(xv), B0); ctx.lineTo(X(xv), Y(cfAt(c, xv, smooth))); ctx.lineTo(L, Y(cfAt(c, xv, smooth))); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    // box plot on the same scale
+    const by = B0 + 46 + 14, bh = 26;
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('Box plot', L, by - bh / 2 - 6);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(X(s.min), by); ctx.lineTo(X(s.q1), by); ctx.moveTo(X(s.q3), by); ctx.lineTo(X(s.max), by); ctx.moveTo(X(s.min), by - 8); ctx.lineTo(X(s.min), by + 8); ctx.moveTo(X(s.max), by - 8); ctx.lineTo(X(s.max), by + 8); ctx.stroke();
+    ctx.fillStyle = pal.day; ctx.fillRect(X(s.q1), by - bh / 2, X(s.q3) - X(s.q1), bh); ctx.strokeRect(X(s.q1), by - bh / 2, X(s.q3) - X(s.q1), bh);
+    ctx.strokeStyle = pal.good; ctx.beginPath(); ctx.moveTo(X(s.median), by - bh / 2); ctx.lineTo(X(s.median), by + bh / 2); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(`${fmt(s.min)} to ${fmt(s.max)} (lowest and highest boundary)`, (L + W - Rm) / 2, by + bh / 2 + 16);
+    void W0;
+  };
+
+  const load = (i: number) => {
+    const s = SETS[i]; bounds = [...s.bounds]; freq = [...s.freq]; unit = s.unit; $('.cf-what').textContent = s.what;
+    $<HTMLInputElement>('.cf-x').value = String(s.x); buildTable(); update();
+  };
+  sel.addEventListener('input', () => load(+sel.value));
+  $('.cf-add').addEventListener('click', () => { if (freq.length < 12) { const w = bounds[bounds.length - 1] - bounds[bounds.length - 2]; bounds.push(bounds[bounds.length - 1] + (w > 0 ? w : 10)); freq.push(5); buildTable(); update(); } });
+  $('.cf-rm').addEventListener('click', () => { if (freq.length > 2) { freq.pop(); bounds.pop(); buildTable(); update(); } });
+  root.querySelectorAll<HTMLButtonElement>('[data-style]').forEach((b) => b.addEventListener('click', () => {
+    smooth = b.dataset.style === 'smooth'; root.querySelectorAll<HTMLButtonElement>('[data-style]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update();
+  }));
+  $('.cf-p').addEventListener('input', update); $('.cf-x').addEventListener('input', update);
+  addEventListener('resize', draw);
+  wireLevel(root, () => { update(); });
+  void pctInit; void cfInverse;
+  load(0);
+
+  mountQuiz($('.cf-quiz'), () => {
+    const w = pick(5, 10, 5), lo = pick(0, 40, 10), f = Array.from({ length: 5 }, () => pick(3, 14)), bnd = Array.from({ length: 6 }, (_, i) => lo + i * w);
+    const c: CF = { bounds: bnd, freq: f }, cum = cumulative(f), n = cum[4], s = cfSummary(c, false), k = pick(1, 3);
+    const lab = f.map((v, i) => `${bnd[i]} to ${bnd[i + 1]}: ${v}`).join('; ');
+    const cls = pick(1, 4), x = bnd[cls] + w / 2, ab = n - (cum[cls - 1] + f[cls] / 2);
+    return [
+      { q: `Frequencies for each class (${lab}). What is the cumulative frequency at the upper boundary ${bnd[k + 1]}?`, ans: cum[k], abs: 0.01, work: `Add the frequencies up to that class: ${f.slice(0, k + 1).join(' + ')} = ${cum[k]}.` },
+      { q: `Using straight lines between the points, estimate the median of the same data (n = ${n}).`, ans: s.median, tol: 0.02, work: `n ÷ 2 = ${r(n / 2)}. It falls in the class ${bnd[cum.findIndex((v) => v >= n / 2)]} to ${bnd[cum.findIndex((v) => v >= n / 2) + 1]}; interpolate along the line to get ${r(s.median, 4)}.` },
+      { q: `Estimate the lower quartile (position n ÷ 4) of the same data, with straight lines.`, ans: s.q1, tol: 0.02, work: `n ÷ 4 = ${r(n / 4)}. Interpolate along the straight line between the two points either side: ${r(s.q1, 4)}.` },
+      { q: `Estimate how many of the ${n} values are above ${x}, with straight lines.`, ans: ab, tol: 0.03, work: `At ${x} the curve is halfway through its class, so cumulative frequency ≈ ${r(cum[cls - 1] + f[cls] / 2)}. Above = ${n} − ${r(cum[cls - 1] + f[cls] / 2)} = ${r(ab)}.` },
+    ];
+  });
+</script>

@@ -49,6 +49,10 @@ When you want splits and elevation from the saved file, open the GPX in the [[gp
 - **Keep my trips on this device**: off by default. When ticked, the trip is saved about every 15 seconds, so a crash or reload can be recovered, and finished trips are listed to reopen or delete. **Clear saved trips** removes them all.
 - **Try with a sample trip**: loads a made-up drive so you can look around without GPS.
 
+## What did the trip cost?
+
+After a trip, open "More options: what did this trip cost?" under the results. Type your fuel economy (L per 100 km, km per L, or miles per US or UK gallon) and the fuel price, and the page works out the fuel used and what it cost for the distance, gaps included. Or type a claim rate per km or mile, as your employer or tax authority sets it, to get the amount to claim. The numbers you type are not saved and the rate is yours: check the official source for the current one.
+
 ## Why it must stay open
 
 This is a web page, not an app. Browsers stop giving location to a page that is minimised, in another tab or on a locked screen, to save battery. That is a browser limit and no web page can get round it. So:

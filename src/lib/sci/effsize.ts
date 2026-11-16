@@ -6,7 +6,7 @@
 import { normCdf, normInv } from './stats.ts';
 import { hedgesJ } from './hyptest.ts';
 
-export type From = 'd' | 'g' | 'r' | 'or' | 'logor' | 't-ind' | 't-paired' | 'f-stat' | 'chi2' | 'eta2' | 'cohen-f' | 'cliff';
+export type From = 'means' | 'd' | 'g' | 'r' | 'or' | 'logor' | 't-ind' | 't-paired' | 'f-stat' | 'chi2' | 'eta2' | 'cohen-f' | 'cliff';
 export type Input = {
   from: From; value: number;
   /** Group sizes for two-group designs (both optional; when missing, a = 4, as for equal groups). */
@@ -19,6 +19,8 @@ export type Input = {
   chiDf?: number; minDim?: number;
   /** Number of groups for eta squared and Cohen's f (2 means the two-group conversions apply). */
   k?: number;
+  /** Means and standard deviations of the two groups (from = 'means'; group sizes in n1, n2). */
+  m1?: number; sd1?: number; m2?: number; sd2?: number;
   conf?: number;
 };
 export type Row = { key: string; name: string; value: number; ci?: [number, number]; note?: string };
@@ -28,6 +30,11 @@ export type Result = { rows: Row[]; d?: number; dCi?: [number, number]; notes: s
  * a in r = d / √(d² + a). With group sizes, a = N (N − 2) / (n1 n2), which makes r the sample point-biserial
  * correlation exactly (r = t / √(t² + df)); without them, the large-sample value 4 for equal groups.
  */
+/** Pooled SD, Cohen's d and Glass's delta (control SD = group 2) from two groups' means, SDs and sizes. */
+export function meansToD(m1: number, sd1: number, n1: number, m2: number, sd2: number, n2: number) {
+  const sp = Math.sqrt(((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2) / (n1 + n2 - 2));
+  return { sp, diff: m1 - m2, d: (m1 - m2) / sp, glass: (m1 - m2) / sd2 };
+}
 export const aOf = (n1?: number, n2?: number) => (n1 && n2 ? ((n1 + n2) * (n1 + n2 - 2)) / (n1 * n2) : 4);
 export const dToR = (d: number, a = 4) => d / Math.sqrt(d * d + a);
 export const rToD = (r: number, a = 4) => (Math.sqrt(a) * r) / Math.sqrt(1 - r * r);
@@ -42,7 +49,8 @@ export const varDz = (d: number, n: number) => 1 / n + (d * d) / (2 * n);
 
 /** Every effect size the input can be converted to, with intervals where a standard one exists. */
 export function convert(inp: Input): Result {
-  const conf = inp.conf ?? 0.95, z = normInv(1 - (1 - conf) / 2), v = inp.value;
+  const conf = inp.conf ?? 0.95, z = normInv(1 - (1 - conf) / 2), v = inp.from === 'means' ? 0 : inp.value;
+  let glass = NaN;
   const notes: string[] = [], rows: Row[] = [];
   if (!Number.isFinite(v)) throw new Error('Type the value to convert.');
   const pos = (x: number | undefined, what: string, min = 1) => { if (x === undefined || !Number.isFinite(x)) return undefined; if (!(x >= min)) throw new Error(`${what} must be at least ${min}.`); return x; };
@@ -55,6 +63,16 @@ export function convert(inp: Input): Result {
   // ---- reduce the input to d (two-group designs), or to the variance-explained family ----
   let eta2 = NaN, eta2Ci: [number, number] | undefined, omega2 = NaN, w = NaN, V = NaN, partial = false;
   switch (inp.from) {
+    case 'means': {
+      const { m1, sd1, m2, sd2 } = inp;
+      if (![m1, sd1, m2, sd2].every((x) => x !== undefined && Number.isFinite(x))) throw new Error('Give the mean and standard deviation of both groups.');
+      if (!(sd1! > 0 && sd2! > 0)) throw new Error('Standard deviations must be above zero.');
+      if (!(n1 && n2)) throw new Error('Give both group sizes.');
+      const m = meansToD(m1!, sd1!, n1, m2!, sd2!, n2);
+      d = m.d; glass = m.glass;
+      notes.push(`Pooled SD = ${m.sp.toPrecision(4)}; difference in means = ${m.diff.toPrecision(4)}.`);
+      break;
+    }
     case 'd': d = v; break;
     case 'g': {
       if (n1 && n2) d = v / hedgesJ(n1 + n2 - 2); else { d = v; notes.push("Without group sizes, g is treated as d (they differ by under 1 % above about 40 subjects)."); }
@@ -142,6 +160,7 @@ export function convert(inp: Input): Result {
       if (!Number.isFinite(eta2)) eta2 = r * r;
       if (!eta2Ci && dCi && inp.from !== 'f-stat') eta2Ci = (() => { const [lo, hi] = (rCi ?? map((x) => dToR(x, a)))!; return lo <= 0 && hi >= 0 ? [0, Math.max(lo * lo, hi * hi)] as [number, number] : [Math.min(lo * lo, hi * hi), Math.max(lo * lo, hi * hi)] as [number, number]; })();
     }
+    if (Number.isFinite(glass)) rows.push({ key: 'glass', name: "Glass's delta", value: glass, note: 'difference ÷ SD of group 2 (the control group)' });
     rows.push({ key: 'cliff', name: "Cliff's delta (approx.)", value: dToCliff(d), ci: map(dToCliff), note: '2Φ(d/√2) − 1, assuming normal groups with equal spread' });
     rows.push({ key: 'cl', name: 'Probability of superiority', value: normCdf(d / Math.SQRT2), ci: map((x) => normCdf(x / Math.SQRT2)), note: 'chance a random member of group 1 beats one of group 2 (also the AUC)' });
     rows.push({ key: 'u3', name: "Cohen's U3", value: normCdf(d), note: 'share of group 1 above the mean of group 2' });
@@ -169,7 +188,7 @@ export function sizeLabel(key: string, x: number): string {
   const a = Math.abs(x);
   const b = (c: number[]) => (a < c[0] ? 'negligible' : a < c[1] ? 'small' : a < c[2] ? 'medium' : 'large');
   switch (key) {
-    case 'd': case 'g': return b([0.2, 0.5, 0.8]);
+    case 'd': case 'g': case 'glass': return b([0.2, 0.5, 0.8]);
     case 'r': case 'w': case 'V': return b([0.1, 0.3, 0.5]);
     case 'eta2': case 'omega2': return b([0.01, 0.06, 0.14]);
     case 'f': return b([0.1, 0.25, 0.4]);

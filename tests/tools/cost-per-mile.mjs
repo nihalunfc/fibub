@@ -15,4 +15,12 @@ export default async ({ page, check, BASE }) => {
   check((await rows()).includes('Cost per tonne-mile') && (await rows()).includes('0.09'), 'cost-per-mile: per tonne figure');
   await page.selectOption('.cp [data-k="unit"]', 'km');
   check((await big()).includes('a km') && (await page.textContent('.cp .u-e')) === 'km per litre', 'cost-per-mile: kilometres switch the wording');
+  await page.goto(`${BASE}/vehicles/cost-per-mile/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach(d => d.open = true));
+  const tab = await page.textContent('.cp .cp-tab');
+  check(tab.includes('1.77') && tab.includes('1.96'), `cost-per-mile: margin table has 0% and 10% rates`);
+  check((await page.$$('.cp .cp-bar span')).length === 4, 'cost-per-mile: cost share bar has fixed, fuel, driver and other parts');
+  // fuel +10% (default slider): 0.6154 x 0.10 = 0.0615 more a mile, 615.38 a month; 1.7654 -> 1.8269
+  const fw = await page.textContent('.cp .cp-fw');
+  check(fw.includes('1.83') && fw.includes('615.38'), `cost-per-mile: fuel +10% what-if (${fw})`);
 };

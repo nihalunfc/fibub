@@ -4,12 +4,14 @@
 // as one-line inline SVG between <!-- fig:<name> --> and <!-- /fig -->. Colours use the site's CSS variables.
 // Run: node scripts/rent-figures.mjs   (rewrites the figures in place; prints one line per figure and the key numbers)
 import { readFileSync, writeFileSync } from 'node:fs';
+import { watermark } from './blog-figures/svg.mjs';
 import { REGIONS, locate, haversineKm, leg, travel, monthly } from '../src/lib/money/rental.ts';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const T = (x, y, s, a = 'start', st = 'fill:var(--ink)') => `<text x="${x}" y="${y}" text-anchor="${a}" style="${st};font:12px system-ui,sans-serif">${esc(s)}</text>`;
 const M = (x, y, s, a = 'start') => T(x, y, s, a, 'fill:var(--muted)');
-const svg = (w, h, label, body) => `<figure class="fig"><svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(label)}">${body}</svg><figcaption>${esc(label)}</figcaption></figure>`;
+// A 16-unit strip under each chart holds the fibub.com mark (bottom right, never over data).
+const svg = (w, h, label, body) => `<figure class="fig"><svg viewBox="0 0 ${w} ${h + 16}" width="100%" role="img" aria-label="${esc(label)}">${body}${watermark(w, h + 16, 8)}</svg><figcaption>${esc(label)}</figcaption></figure>`;
 const f0 = (v) => Math.round(v).toLocaleString('en-US');
 
 const table = JSON.parse(readFileSync('public/geo/ca-fsa.json', 'utf8'));

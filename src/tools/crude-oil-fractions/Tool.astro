@@ -1,0 +1,168 @@
+---
+// #L347 Crude oil fractions. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths: src/lib/learn/curr-chem.ts, checked in tests/curr-chem.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn co">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 11 to 12</button></div>
+    <p class="ax-help">Crude oil is a mixture of hydrocarbons with different chain lengths. It is heated, and the vapour rises up a column that is hotter at the bottom and cooler at the top. Each fraction condenses where the temperature drops below its boiling range. Tap a fraction on the picture.</p>
+    <canvas class="lrn-cv co-col" aria-label="A fractionating column with six fractions, from refinery gases at the top to bitumen at the bottom" style="margin-top:8px"></canvas>
+    <p><button type="button" class="btn secondary small co-play">Pause</button></p>
+    <div class="co-info" aria-live="polite">
+      <p class="ax-big co-fname"></p>
+      <p class="ax-help co-fdet"></p>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Chain length, boiling point and thickness</h2>
+    <label class="lrn-sl">Carbon atoms in the chain: <b class="co-nv"></b> <input class="co-n" type="range" min="1" max="20" step="1" value="8" /></label>
+    <p class="ax-big co-out" aria-live="polite"></p>
+    <canvas class="lrn-cv co-chart" aria-label="Boiling points of the alkanes C1 to C20 rising with chain length" style="margin-top:8px"></canvas>
+    <div class="co-bars">
+      <p class="ax-help" style="margin:6px 0 2px">Viscosity (thickness), relative trend: <b class="co-vv"></b></p><div class="co-bar"><span class="co-vb"></span></div>
+      <p class="ax-help" style="margin:6px 0 2px">Ease of ignition (flammability), relative trend: <b class="co-fv"></b></p><div class="co-bar"><span class="co-fb"></span></div>
+    </div>
+    <p class="ax-help">Longer chains have stronger forces between molecules, so they boil at higher temperatures, flow less easily and are harder to set alight. Boiling points are standard values for the straight-chain alkanes. The bars are a trend scale from 0 to 100, not measurements.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Cracking</h2>
+    <p class="ax-help">Long chains are in low demand, so they are broken into shorter, more useful ones. Cracking makes a shorter alkane and an alkene (which has a C=C double bond). Pick a long alkane and choose how big the alkane product is.</p>
+    <div class="ax-grid">
+      <label class="lrn-sl">Alkane to crack: <b class="co-cv2"></b> carbons <input class="co-cn" type="range" min="4" max="20" step="1" value="10" /></label>
+      <label class="lrn-sl">Shorter alkane made: <b class="co-kv"></b> carbons <input class="co-ck" type="range" min="1" max="8" step="1" value="8" /></label>
+    </div>
+    <canvas class="lrn-cv co-crk" aria-label="A carbon chain splitting into a shorter alkane and an alkene" style="margin-top:8px"></canvas>
+    <p class="ax-big co-ceq" aria-live="polite"></p>
+    <p class="ax-help co-cdet"></p>
+    <p class="ax-help" data-only="11" hidden>Thermal cracking uses high pressure and temperatures of about 700 to 900 °C and gives many alkenes. Catalytic cracking uses a zeolite catalyst at about 450 °C and lower pressure, and gives more branched alkanes and aromatics. In both, the number of carbon and hydrogen atoms is conserved. Alkene products are the starting point for making polymers.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Slide the chain length from 1 to 20. At which length does the alkane stop being a gas at 20 °C?</li><li>Tap petrol, then diesel. Which has the higher boiling range, and which is thicker?</li><li>Crack decane (10) into octane (8). What is the other product? Try making a 5-carbon alkane instead.</li></ul>
+  </div>
+  <div class="ax-card co-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .co canvas.co-col, .co canvas.co-chart, .co canvas.co-crk { width: 100%; }
+  .co canvas.co-col { cursor: pointer; }
+  .co .co-bar { height: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow: hidden; }
+  .co .co-bar span { display: block; height: 100%; background: var(--accent); }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { FRACTIONS, BOILING_C, ALKANE_NAMES, boilingPoint, alkaneFormula, viscosityTrend, flammabilityTrend, fractionFor, boilingRange, crack, stateAt20, alkeneFormula, ALKENE_NAMES } from '../../lib/learn/curr-chem';
+  const root = document.querySelector('.co') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const colCv = $<HTMLCanvasElement>('.co-col'), chCv = $<HTMLCanvasElement>('.co-chart'), crCv = $<HTMLCanvasElement>('.co-crk'), out = $('.co-out');
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  let sel = 1, t = 0;
+  const showFraction = () => {
+    const f = FRACTIONS[sel], c = f.hi > 40 ? `C${f.lo}+` : `C${f.lo} to C${f.hi}`;
+    $('.co-fname').textContent = `${f.name}: ${c}`; $('.co-fname').dataset.frac = f.id;
+    $('.co-fdet').textContent = `Boiling range: ${boilingRange(f)}. Uses: ${f.uses} Properties: ${f.props}`;
+  };
+  const drawColumn = (dt: number) => {
+    t += dt; const { ctx, W, H } = fitCanvas(colCv, 330), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const x0 = W * 0.3, x1 = W * 0.55, top = 14, bot = H - 16, bh = (bot - top) / 6;
+    const tints = ['rgba(70,130,220,0.18)', 'rgba(110,150,200,0.18)', 'rgba(170,160,150,0.2)', 'rgba(210,150,100,0.22)', 'rgba(220,110,70,0.25)', 'rgba(220,70,50,0.28)'];
+    FRACTIONS.forEach((f, i) => {
+      const y = top + i * bh, on = i === sel;
+      ctx.fillStyle = tints[i]; ctx.fillRect(x0, y, x1 - x0, bh);
+      ctx.strokeStyle = on ? pal.accent : pal.ink; ctx.lineWidth = on ? 3 : 1; ctx.strokeRect(x0, y, x1 - x0, bh);
+      // tray
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y + bh - 6); ctx.lineTo(x1 - 8, y + bh - 6); ctx.stroke();
+      // pipe out
+      ctx.strokeStyle = on ? pal.accent : pal.ink; ctx.lineWidth = on ? 3 : 1.5; ctx.beginPath(); ctx.moveTo(x1, y + bh - 10); ctx.lineTo(x1 + 14, y + bh - 10); ctx.stroke();
+      ctx.fillStyle = f.colour; ctx.fillRect(x1 + 14, y + bh / 2 - 12, 10, 24);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = (on ? 'bold ' : '') + '12px system-ui,sans-serif';
+      ctx.fillText(f.name, x1 + 30, y + bh / 2 - 1); ctx.fillStyle = pal.muted; ctx.font = '11px system-ui,sans-serif';
+      ctx.fillText(f.hi > 40 ? `C${f.lo}+` : `C${f.lo}–C${f.hi}`, x1 + 30, y + bh / 2 + 13);
+    });
+    // rising vapour
+    ctx.fillStyle = pal.muted; for (let i = 0; i < 14; i++) { const p = ((t * 0.25 + i / 14) % 1), y = bot - 6 - p * (bot - top - 12), x = x0 + 10 + ((i * 37) % (x1 - x0 - 20)); ctx.beginPath(); ctx.arc(x, y, 2, 0, 7); ctx.fill(); }
+    // furnace and labels
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.font = '11px system-ui,sans-serif';
+    ctx.fillText('Heated', x0 - 6, bot - 26); ctx.fillText('crude oil', x0 - 6, bot - 13); ctx.fillText('in ▸', x0 - 6, bot);
+    ctx.fillText('Cooler', x0 - 6, top + 14); ctx.fillText('Hotter', x0 - 6, bot - 44);
+    ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x0 - 16, top + 24); ctx.lineTo(x0 - 16, bot - 56); ctx.stroke();
+  };
+  const colLoop = loop(drawColumn, $<HTMLButtonElement>('.co-play'));
+  const pickAt = (e: PointerEvent) => { const b = colCv.getBoundingClientRect(), y = e.clientY - b.top, top = 14, bh = (330 - 30) / 6; sel = Math.max(0, Math.min(5, Math.floor((y - top) / bh))); showFraction(); colLoop.redraw(); };
+  colCv.addEventListener('pointerdown', pickAt);
+  colCv.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') pickAt(e); });
+  // chain length
+  const drawChart = () => {
+    const n = val('.co-n'), { ctx, W, H } = fitCanvas(chCv, 190), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    const l = 40, rgt = W - 10, tp = 10, bt = H - 28, lo = -200, hi = 400;
+    const X = (i: number) => l + ((i - 1) / 19) * (rgt - l), Y = (v: number) => bt - ((v - lo) / (hi - lo)) * (bt - tp);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.lineWidth = 1;
+    [-200, -100, 0, 100, 200, 300, 400].forEach((v) => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(rgt, Y(v)); ctx.stroke(); ctx.fillText(String(v), l - 4, Y(v) + 4); });
+    ctx.textAlign = 'center'; [1, 5, 10, 15, 20].forEach((i) => ctx.fillText(String(i), X(i), bt + 14)); ctx.fillText('Carbon atoms', (l + rgt) / 2, H - 4);
+    ctx.save(); ctx.translate(10, (tp + bt) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Boiling point (°C)', 0, 0); ctx.restore();
+    ctx.strokeStyle = pal.good; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(l, Y(20)); ctx.lineTo(rgt, Y(20)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.good; ctx.textAlign = 'left'; ctx.fillText('20 °C', l + 4, Y(20) - 4);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); BOILING_C.forEach((b, i) => (i ? ctx.lineTo(X(i + 1), Y(b)) : ctx.moveTo(X(1), Y(b)))); ctx.stroke();
+    ctx.fillStyle = pal.accent; BOILING_C.forEach((b, i) => { ctx.beginPath(); ctx.arc(X(i + 1), Y(b), 2.5, 0, 7); ctx.fill(); });
+    ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(n), Y(boilingPoint(n)), 6, 0, 7); ctx.fill();
+  };
+  const chain = () => {
+    const n = val('.co-n'), f = fractionFor(n);
+    $('.co-nv').textContent = String(n);
+    out.textContent = `${ALKANE_NAMES[n - 1][0].toUpperCase() + ALKANE_NAMES[n - 1].slice(1)}, ${alkaneFormula(n)}: boils at ${boilingPoint(n)} °C, a ${stateAt20(n)} at 20 °C. Fraction: ${f.name}.`;
+    out.dataset.formula = alkaneFormula(n); out.dataset.bp = String(boilingPoint(n)); out.dataset.frac = f.id; out.dataset.state = stateAt20(n);
+    $('.co-vv').textContent = String(viscosityTrend(n)); $('.co-fv').textContent = String(flammabilityTrend(n));
+    $('.co-vb').style.width = viscosityTrend(n) + '%'; $('.co-fb').style.width = flammabilityTrend(n) + '%';
+    drawChart();
+  };
+  // cracking
+  const drawCrack = () => {
+    const n = val('.co-cn'), k = Math.min(val('.co-ck'), n - 2), res = crack(n, k)!;
+    const { ctx, W, H } = fitCanvas(crCv, 120), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center';
+    const gap = 16, step = (W - 20 - gap) / (n - 1), px = (i: number) => 10 + i * step + (i >= k ? gap : 0), py = (i: number) => 52 + (i % 2 ? 14 : -14);
+    for (let i = 0; i < n - 1; i++) {
+      if (i === k - 1) continue;
+      ctx.strokeStyle = i >= k ? pal.accent2 : pal.accent; ctx.lineWidth = 2;
+      const dbl = i === k; ctx.beginPath(); ctx.moveTo(px(i), py(i)); ctx.lineTo(px(i + 1), py(i + 1)); ctx.stroke();
+      if (dbl) { ctx.beginPath(); ctx.moveTo(px(i), py(i) + 4); ctx.lineTo(px(i + 1), py(i + 1) + 4); ctx.stroke(); }
+    }
+    for (let i = 0; i < n; i++) { ctx.fillStyle = i < k ? pal.accent : pal.accent2; ctx.beginPath(); ctx.arc(px(i), py(i), 4, 0, 7); ctx.fill(); }
+    ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; const cx = (px(k - 1) + px(k)) / 2; ctx.beginPath(); ctx.moveTo(cx - 7, 28); ctx.lineTo(cx + 7, 92); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.fillText('crack here', cx, 108);
+    ctx.fillStyle = pal.accent; ctx.textAlign = 'left'; ctx.fillText('alkane (single bonds)', 10, 14); ctx.fillStyle = pal.accent2; ctx.textAlign = 'right'; ctx.fillText('alkene (C=C)', W - 10, 14);
+  };
+  const crackUi = () => {
+    const n = val('.co-cn'), ck = $<HTMLInputElement>('.co-ck'); ck.max = String(n - 2);
+    const k = Math.min(+ck.value, n - 2); ck.value = String(k);
+    $('.co-cv2').textContent = String(n); $('.co-kv').textContent = String(k);
+    const res = crack(n, k)!, ceq = $('.co-ceq');
+    ceq.textContent = res.eq; ceq.dataset.eq = res.eq; ceq.dataset.balanced = String(res.balanced); ceq.dataset.alkene = res.alkene;
+    $('.co-cdet').textContent = `${alkaneFormula(n)} (${ALKANE_NAMES[n - 1]}) makes ${res.alkane} (${res.alkaneName}) and ${res.alkene} (${res.alkeneName}). Check the atoms: carbon ${n} = ${k} + ${res.m}; hydrogen ${res.hLeft} = ${2 * k + 2} + ${2 * res.m}. Balanced: ${res.balanced ? 'yes' : 'no'}.`;
+    drawCrack();
+  };
+  $('.co-n').addEventListener('input', chain);
+  $('.co-cn').addEventListener('input', crackUi); $('.co-ck').addEventListener('input', crackUi);
+  addEventListener('resize', () => { colLoop.redraw(); chain(); crackUi(); });
+  wireLevel(root, () => {});
+  showFraction(); chain(); crackUi();
+  mountQuiz($('.co-quiz'), () => {
+    const f = one(FRACTIONS.slice(0, 5)), others = FRACTIONS.filter((x) => x.id !== f.id).sort(() => Math.random() - 0.5).slice(0, 2), ch = [f, ...others].sort(() => Math.random() - 0.5);
+    const useQ = ({ gases: 'cooking and heating gas bottles', petrol: 'fuel for cars', kerosene: 'jet fuel', diesel: 'fuel for lorries and trains', fueloil: 'fuel for large ships' } as Record<string, string>)[f.id];
+    const a = pick(8, 20), b = pick(1, 7), hi = Math.max(a, b);
+    const n = pick(8, 20), kk = pick(2, n - 2), kres = crack(n, kk)!, n2 = pick(10, 20), k2 = pick(2, n2 - 3), res2 = crack(n2, k2)!;
+    return [
+      { q: `Which fraction of crude oil is used as ${useQ}?`, choices: ch.map((x) => x.name), ans: ch.indexOf(f), work: `${f.name} is used for: ${f.uses}` },
+      { q: `Which alkane has the higher boiling point: C${b} or C${a}?`, choices: [`C${b}`, `C${a}`], ans: hi === b ? 0 : 1, work: `Longer chains have stronger forces between molecules, so C${a} boils at ${boilingPoint(a)} °C and C${b} at ${boilingPoint(b)} °C.` },
+      { q: `${alkaneFormula(n)} is cracked into ${kres.alkane} and an alkene. Give the formula of the alkene (type it like C3H6).`, text: [`C${kres.m}H${2 * kres.m}`, kres.alkene], work: `Carbon atoms: ${n} − ${kk} = ${kres.m}. Hydrogen atoms: ${2 * n + 2} − ${2 * kk + 2} = ${2 * kres.m}. The alkene is ${kres.alkene} (${kres.alkeneName}).`, hint: 'Write it as C then the number of carbons, then H then the number of hydrogens.' },
+      { q: `When C${n2}H${2 * n2 + 2} cracks into C${k2}H${2 * k2 + 2} and an alkene, how many hydrogen atoms are in the alkene?`, ans: 2 * res2.m, work: `Hydrogen atoms: ${2 * n2 + 2} − ${2 * k2 + 2} = ${2 * res2.m}. (An alkene CmH2m has twice as many hydrogens as carbons.)` },
+    ];
+  });
+</script>

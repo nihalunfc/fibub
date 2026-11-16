@@ -15,6 +15,8 @@
   <section class="panel">
     <p class="hc-big" data-o="big" aria-live="polite"></p>
     <p class="hc-line" data-o="band"></p>
+    <p class="hc-when" data-o="when"></p>
+    <table class="hc-tab" data-o="tab"></table>
     <svg class="hc-chart" viewBox="0 0 320 180" role="img" aria-label="Line chart of the cabin temperature over 60 minutes with danger bands"></svg>
     <p class="hc-fine">Rough estimate, real cars can be hotter. Bands: yellow is hot, orange is dangerous, red is deadly for a child or pet.</p>
   </section>
@@ -42,13 +44,16 @@
   .hc-line { margin: 4px 0 8px; font-weight: 600; }
   .hc-chart { width: 100%; height: auto; display: block; color: var(--ink); }
   .hc-chart text { fill: currentColor; font-size: 10px; }
+  .hc-when { margin: 0 0 10px; font-size: 15px; } .hc-when:empty { display: none; }
+  .hc-tab { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 12px; }
+  .hc-tab th, .hc-tab td { padding: 5px 8px; text-align: center; border-bottom: 1px solid var(--line); } .hc-tab th { color: var(--muted); font-weight: 600; }
   .hc-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
   .hc ol.hc-fine { padding-left: 20px; }
   .hc summary { cursor: pointer; font-weight: 600; }
 </style>
 
 <script>
-  import { cabinTempC, cabinSeries, hotBand, cToF, fToC } from '../../lib/vehicles/weather';
+  import { cabinTempC, cabinSeries, hotBand, minutesToTemp, cToF, fToC } from '../../lib/vehicles/weather';
   import { presetCountry } from '../../lib/vehicles/country';
   const root = document.querySelector('.hc') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -72,6 +77,11 @@
     const show = (v: number) => `${Math.round(f ? cToF(v) : v)} ${f ? '°F' : '°C'}`;
     o('big').textContent = `About ${show(c)} inside`;
     o('band').textContent = NOTE[hotBand(c)];
+    const fmtMin = (m: number | null) => (m == null ? 'not reached' : m < 1 ? 'under a minute' : `about ${Math.round(m)} minutes`);
+    const t40 = minutesToTemp({ outsideC: outC, sun, cracked }, 40), t50 = minutesToTemp({ outsideC: outC, sun, cracked }, 50);
+    o('when').textContent = `Reaches ${show(40)} (dangerous) in ${fmtMin(t40)}, and ${show(50)} (deadly) in ${fmtMin(t50)}. Cracked windows barely change this.`;
+    const rows = [10, 20, 30, 60];
+    o('tab').innerHTML = '<tr><th>Minutes</th>' + rows.map((m) => `<th>${m}</th>`).join('') + '</tr><tr><th>Inside</th>' + rows.map((m) => `<td>${show(cabinTempC({ outsideC: outC, minutes: m, sun, cracked }))}</td>`).join('') + '</tr>';
     // chart: y from 0 to 70 °C
     const W = 320, H = 180, L = 34, R = 8, T = 8, B = 24, YMAX = 70;
     const x = (m: number) => L + ((W - L - R) * m) / 60, y = (v: number) => T + (H - T - B) * (1 - Math.min(Math.max(v, 0), YMAX) / YMAX);

@@ -49,4 +49,19 @@ export default async ({ page, check, BASE }) => {
   await g('plane'); await fill('h', '0.2'); check((await err()).includes('above the plane'), 'capind: plane message');
   await g('plate'); await fill('A', 'x'); check((await err()).includes('Plate area'), 'capind: bad number message');
   await fill('A', '100'); await fill('er', '0.5'); check((await err()).includes('εr is 1 or more'), 'capind: εr below 1 message');
+  // RC and RL charge and discharge time.
+  await g('rc');
+  check((await big()) === 'τ = R × C = 1 s' && (await page.getAttribute('.cic .ci-big', 'aria-live')) === 'polite', `capind: RC time constant (${await big()})`);
+  { const f = await facts(); check(f.includes('Time to 50 %693.1 ms') && f.includes('Time to 90 %2.303 s') && f.includes('Time to charge to 3 V916.3 ms') && f.includes('510.8 ms') && f.includes('After 500 ms charging1.967 V') && f.includes('3.033 V') && f.includes('500 µA'), `capind: RC facts (${f})`); }
+  check(await page.isVisible('.cic .ci-fig'), 'capind: RC chart');
+  await fill('tg', '5');
+  check((await facts()).includes('never reached'), 'capind: RC target at the supply is never reached');
+  await fill('tg', '0'); await fill('tt', '0');
+  check(!(await facts()).includes('Time to charge to') && !(await facts()).includes('After'), 'capind: RC target and time can be skipped');
+  await fill('V', '0'); check((await err()).includes('Supply voltage'), 'capind: RC zero supply message');
+  await fill('V', '5'); await fill('R', '-3'); check((await err()).includes('Resistance R'), 'capind: RC negative resistance message');
+  await fill('R', '10000');
+  await g('rl');
+  check((await big()) === 'τ = L / R = 5 ms', `capind: RL time constant (${await big()})`);
+  { const f = await facts(); check(f.includes('Time for the current to reach 80 mA5.493 ms') && f.includes('After 10 ms103.8 mA') && f.includes('120 mA') && (await page.textContent('.cic .ci-warn')).includes('voltage spike'), `capind: RL facts (${f})`); }
 };

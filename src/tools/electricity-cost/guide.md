@@ -11,7 +11,7 @@ ads: false
 order: 1779
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [solar-pv-yield, budget-calculator, fuel-cost]
 sources:
   - "Cost = kilowatt-hours x price per kWh. kWh = watts x hours / 1000. A month is taken as 730 hours."
@@ -33,6 +33,8 @@ You can use one flat price per kWh, or a time-of-use plan like Ontario's, where 
 
 - **Biggest spenders**: under the total, the three appliances that cost most, with their share of the appliance cost, so you know where to cut first.
 - **What if I use less?**: open "More options", type a percentage (or drag the slider) and see what you would save per month and per year if every appliance ran that much less. Standby power is not reduced.
+
+There is also a slab (stepped) tariff option, for utilities that charge a higher price once your monthly kWh passes a set level, as many do for summer air-conditioning. Type up to six slabs (from kWh, to kWh, price) straight from your bill, plus an optional fixed charge, fuel surcharge per kWh and VAT or tax percentage. The page shows the bill split by slab and the cost of your last kWh, so you can see what one more hour of air conditioning really costs. No tariffs are filled in for you; your utility changes them, so check the official source.
 
 ## How to use it
 

@@ -10,13 +10,35 @@
       <label>Fuel price <span class="fc-pair"><input data-k="price" inputmode="decimal" value="1.50" /><select data-k="pu"><option value="l">per litre</option><option value="usgal">per US gallon</option><option value="ukgal">per UK gallon</option></select></span></label>
       <label>People sharing the cost <input data-k="n" inputmode="numeric" value="1" /></label>
     </div>
+    <div class="fc-chips" role="group" aria-label="Distance presets">Quick distance:
+      <button type="button" data-preset="10">10</button><button type="button" data-preset="25">25</button><button type="button" data-preset="50">50</button><button type="button" data-preset="100">100</button><button type="button" data-preset="250">250</button><button type="button" data-preset="500">500</button>
+    </div>
     <label class="fc-check"><input type="checkbox" data-k="round" /> Round trip (double the distance)</label>
     <p class="fc-hint">Works for a car, bike or truck. Use the economy figure from your dashboard or your last fill-up for the best answer.</p>
   </section>
   <section class="panel" aria-live="polite">
     <p class="fc-big"></p>
     <p class="fc-say"></p>
+    <dl class="fc-rows"></dl>
   </section>
+  <details class="panel fc-more">
+    <summary>More options: every week, a second vehicle, find your economy</summary>
+    <h3>If you drive it regularly</h3>
+    <label>Trips a week <input data-k="tpw" inputmode="decimal" placeholder="e.g. 10" /></label>
+    <p class="fc-out" data-o="repeat" aria-live="polite"></p>
+    <h3>Compare with another vehicle</h3>
+    <label>Its fuel economy <span class="fc-pair"><input data-k="eco2" inputmode="decimal" placeholder="e.g. 6" /><select data-k="eu2"><option value="l100">L/100 km</option><option value="kml">km/L</option><option value="mpgus">mpg (US)</option><option value="mpguk">mpg (UK)</option></select></span></label>
+    <label>Its fuel price (leave empty to use the same) <input data-k="price2" inputmode="decimal" placeholder="same as above" /></label>
+    <p class="fc-out" data-o="cmp" aria-live="polite"></p>
+    <h3>Work out your economy from a fill-up</h3>
+    <p class="fc-hint">Fill the tank, reset the trip meter, drive, fill again. Then type the distance and the fuel it took.</p>
+    <div class="fc-grid">
+      <label>Distance driven <span class="fc-pair"><input data-k="fd" inputmode="decimal" placeholder="e.g. 520" /><select data-k="fdu"><option value="km">km</option><option value="mi">miles</option></select></span></label>
+      <label>Fuel added <span class="fc-pair"><input data-k="ff" inputmode="decimal" placeholder="e.g. 40" /><select data-k="ffu"><option value="l">litres</option><option value="usgal">US gallons</option><option value="ukgal">UK gallons</option></select></span></label>
+    </div>
+    <p class="fc-out" data-o="fill" aria-live="polite"></p>
+    <button type="button" class="fc-use" data-use hidden>Use this economy above</button>
+  </details>
   <section class="panel">
     <h2>Convert fuel economy</h2>
     <label class="fc-conv">Value <span class="fc-pair"><input data-k="cv" inputmode="decimal" value="8" /><select data-k="cu"><option value="l100">L/100 km</option><option value="kml">km/L</option><option value="mpgus">mpg (US)</option><option value="mpguk">mpg (UK)</option></select></span></label>
@@ -39,30 +61,85 @@
   .fc-hint, .fc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .fc-big { font-size: 28px; font-weight: 700; margin: 0 0 6px; }
   .fc-say { margin: 0; color: var(--muted); }
+  .fc-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .fc-chips button, .fc-use { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .fc-chips button:hover, .fc-use:hover { border-color: var(--accent); }
+  .fc-use { margin-top: 10px; border-radius: 10px; }
+  .fc-rows { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 12px 0 0; font-size: 14px; }
+  .fc-rows:empty { display: none; }
+  .fc-rows dt { color: var(--muted); } .fc-rows dd { margin: 0; font-weight: 600; text-align: right; }
+  .fc-more summary { cursor: pointer; font-weight: 600; }
+  .fc-more h3 { font-size: 15px; margin: 18px 0 8px; }
+  .fc-more label { margin-top: 8px; }
+  .fc-out { margin: 8px 0 0; font-weight: 600; } .fc-out:empty { display: none; }
   .fc-cvt { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 12px 0 0; }
   .fc-cvt dt { color: var(--muted); } .fc-cvt dd { margin: 0; font-weight: 600; text-align: right; }
 </style>
 
 <script>
-  import { fuelTrip, ecoToL100, l100ToEco, type Eco, type PriceUnit } from '../../lib/money/shopping';
+  import { fuelTrip, ecoToL100, l100ToEco, l100FromFill, repeatCost, costPerDistance, litresToGallons, type Eco, type PriceUnit } from '../../lib/money/shopping';
   const root = document.querySelector('.fc') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const f = (v: number, d = 2) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   const big = root.querySelector('.fc-big') as HTMLElement, say = root.querySelector('.fc-say') as HTMLElement, cvt = root.querySelector('.fc-cvt') as HTMLElement;
   const names: [Eco, string][] = [['l100', 'L/100 km'], ['kml', 'km/L'], ['mpgus', 'mpg (US)'], ['mpguk', 'mpg (UK)']];
+  const rows = root.querySelector('.fc-rows') as HTMLElement;
+  const out = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const useBtn = root.querySelector('[data-use]') as HTMLButtonElement;
+  const LP: Record<string, number> = { l: 1, usgal: 3.785411784, ukgal: 4.54609 };
+  let fillL100 = 0;
   const ok = (k: string) => q(k).value.trim() !== '' && +q(k).value > 0;
   const calc = () => {
-    if (!ok('dist') || !ok('eco') || q('price').value.trim() === '' || !(+q('price').value >= 0) || !(+q('n').value >= 1)) { big.textContent = ''; say.textContent = 'Type the distance, economy and fuel price.'; }
+    const blank = !ok('dist') || !ok('eco') || q('price').value.trim() === '' || !(+q('price').value >= 0) || !(+q('n').value >= 1);
+    rows.innerHTML = ''; out('repeat').textContent = ''; out('cmp').textContent = '';
+    if (blank) { big.textContent = ''; say.textContent = 'Type the distance, economy and fuel price.'; }
     else {
       const r = fuelTrip({ distance: +q('dist').value, mi: q('du').value === 'mi', eco: +q('eco').value, ecoUnit: q('eu').value as Eco, price: +q('price').value, priceUnit: q('pu').value as PriceUnit, round: q('round').checked, people: +q('n').value });
       big.textContent = `${f(r.cost)} fuel cost`;
       say.textContent = `${f(r.km, 0)} km needs about ${f(r.litres, 1)} litres.` + (r.n > 1 ? ` Shared between ${r.n}: ${f(r.each)} each.` : '');
+      const cd = costPerDistance(r.cost, r.km), g = litresToGallons(r.litres);
+      const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+      if (cd) rows.innerHTML = line('Cost per km', f(cd.perKm, 3)) + line('Cost per mile', f(cd.perMile, 3)) + line('Cost per 100 km', f(cd.per100km)) +
+        line('Fuel in US gallons', f(g.us, 2)) + line('Fuel in UK gallons', f(g.uk, 2)) + line('Economy on this trip', `${f(ecoToL100(+q('eco').value, q('eu').value as Eco), 1)} L/100 km`);
+      const tpw = +q('tpw').value;
+      if (q('tpw').value.trim() !== '') {
+        if (tpw > 0) { const rc = repeatCost(r.cost, tpw); out('repeat').textContent = `${f(rc.week)} a week, ${f(rc.month)} a month, ${f(rc.year)} a year (${f(tpw, 0)} trips a week, 52 weeks).`; }
+        else out('repeat').textContent = 'Type trips a week above 0.';
+      }
+      if (q('eco2').value.trim() !== '') {
+        if (!(+q('eco2').value > 0)) out('cmp').textContent = 'Type an economy above 0 for the other vehicle.';
+        else {
+          const p2 = q('price2').value.trim() === '' ? +q('price').value : +q('price2').value;
+          if (!(p2 >= 0)) out('cmp').textContent = 'Type a fuel price of 0 or more.';
+          else {
+            const r2 = fuelTrip({ distance: +q('dist').value, mi: q('du').value === 'mi', eco: +q('eco2').value, ecoUnit: q('eu2').value as Eco, price: p2, priceUnit: q('pu').value as PriceUnit, round: q('round').checked, people: 1 });
+            const d = r.cost - r2.cost;
+            out('cmp').textContent = Math.abs(d) < 0.005 ? `The other vehicle costs the same: ${f(r2.cost)}.` : `The other vehicle costs ${f(r2.cost)}: ${f(Math.abs(d))} ${d > 0 ? 'less' : 'more'} than this one (${f(Math.abs(d / r.cost) * 100, 0)}%).`;
+          }
+        }
+      }
+    }
+    // Economy from a fill-up
+    fillL100 = 0; useBtn.hidden = true;
+    const fd = +q('fd').value, ff = +q('ff').value;
+    if (q('fd').value.trim() === '' && q('ff').value.trim() === '') out('fill').textContent = '';
+    else if (!(fd > 0) || !(ff > 0)) out('fill').textContent = 'Type a distance and an amount of fuel above 0.';
+    else {
+      const l = l100FromFill(fd * (q('fdu').value === 'mi' ? 1.609344 : 1), ff * LP[q('ffu').value])!;
+      fillL100 = l; useBtn.hidden = false;
+      out('fill').textContent = names.map(([u, t]) => `${f(l100ToEco(l, u), u === 'l100' ? 2 : 1)} ${t}`).join(' = ');
     }
     if (!ok('cv')) { cvt.innerHTML = ''; return; }
     const l = ecoToL100(+q('cv').value, q('cu').value as Eco);
     cvt.innerHTML = names.map(([u, t]) => `<dt>${t}</dt><dd>${f(l100ToEco(l, u), u === 'l100' ? 2 : 1)}</dd>`).join('');
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    const p = t.getAttribute('data-preset');
+    if (p) { q('dist').value = p; calc(); }
+    if (t.hasAttribute('data-use') && fillL100 > 0) { q('eu').value = 'l100'; q('eco').value = String(Math.round(fillL100 * 100) / 100); calc(); }
+  });
   calc();
 
   // Opened from a country page (/vehicles/<country>/): start on that country's units.

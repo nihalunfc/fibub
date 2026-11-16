@@ -7,6 +7,7 @@
       <label>Rules
         <select data-k="rules">
           <option value="us">US federal (FMCSA), property-carrying</option>
+          <option value="uspax">US federal (FMCSA), passenger-carrying</option>
           <option value="ca">Canada federal, south of 60°</option>
         </select>
       </label>
@@ -35,7 +36,21 @@
     <svg class="dh-bar" viewBox="0 0 480 56" role="img" aria-label="Today's log on a 24-hour line"></svg>
     <p class="dh-warn" role="alert"></p>
   </section>
-  <p class="dh-fine">This is a planning aid, not an ELD, a logbook or legal advice. It leaves out split sleeper-berth periods, the 2-hour adverse driving extension, short-haul and other exemptions, and provincial or state rules. Rules checked 2026-11-10 against FMCSA (49 CFR 395.3) and Canada's Commercial Vehicle Drivers Hours of Service Regulations (SOR/2005-313); check the official source. Nothing you type leaves this page.</p>
+  <details class="panel dh-more">
+    <summary>More options: can I finish this trip, and when is my rest done</summary>
+    <h3 class="dh-h">Can I finish this trip?</h3>
+    <div class="dh-grid">
+      <label>Distance left <input data-k="dist" inputmode="decimal" value="" placeholder="e.g. 400" /></label>
+      <label>Unit <select data-k="distunit"><option value="mi">miles</option><option value="km">km</option></select></label>
+      <label>Average speed (per hour, same unit) <input data-k="speed" inputmode="decimal" value="55" /></label>
+    </div>
+    <p class="dh-trip" aria-live="polite"></p>
+    <h3 class="dh-h">When is my rest done?</h3>
+    <label>Going off duty at (HH:MM) <input data-k="offat" inputmode="numeric" value="" placeholder="e.g. 20:00" /></label>
+    <p class="dh-rest" aria-live="polite"></p>
+    <p class="dh-fine">Driving time ignores breaks, fuel and traffic; add a margin. The trip answer uses the driving you have left now.</p>
+  </details>
+  <p class="dh-fine">This is a planning aid, not an ELD, a logbook or legal advice. It leaves out split sleeper-berth periods, the 2-hour adverse driving extension, short-haul and other exemptions, and provincial or state rules. Rules checked 2026-11-10 against FMCSA (49 CFR 395.3 and, for passenger-carrying, the FMCSA hours of service summary) and Canada's Commercial Vehicle Drivers Hours of Service Regulations (SOR/2005-313); check the official source. Nothing you type leaves this page.</p>
 </div>
 
 <style is:inline>
@@ -59,11 +74,14 @@
   .dh-bar { width: 100%; height: auto; margin-top: 12px; }
   .dh-bar text { font-size: 11px; fill: var(--muted); }
   .dh-warn { color: var(--bad); margin: 10px 0 0; } .dh-warn:empty { display: none; }
+  .dh-more summary { cursor: pointer; font-weight: 600; }
+  .dh-more .dh-h { margin-top: 14px; }
+  .dh-trip, .dh-rest { margin: 8px 0 0; font-weight: 600; }
   .dh-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
 </style>
 
 <script>
-  import { usClocks, caClocks, toMin, clock, dur, segments, type Row, type Duty } from '../../lib/money/hos';
+  import { usClocks, caClocks, restDone, tripFit, toMin, clock, dur, segments, type Row, type Duty } from '../../lib/money/hos';
   const root = document.querySelector('.dh') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -79,14 +97,14 @@
   };
   const rows = (): Row[] => [...root.querySelectorAll('.dh-row')].map((r) => ({ status: (r.querySelector('select') as HTMLSelectElement).value as Duty, start: (r.querySelector('input') as HTMLInputElement).value }));
   const calc = () => {
-    const us = q('rules').value === 'us';
+    const us = q('rules').value !== 'ca', pax = q('rules').value === 'uspax';
     root.querySelector('[data-us]')!.toggleAttribute('hidden', !us);
     root.querySelector('[data-ca]')!.toggleAttribute('hidden', us);
     root.querySelector('[data-ca2]')!.toggleAttribute('hidden', us || q('cacycle').value !== '2');
     const now = toMin(q('now').value), rs = rows();
     const bad = rs.some((r) => !Number.isFinite(toMin(r.start)));
     if (!Number.isFinite(now) || bad) { $('.dh-big').textContent = ''; $('.dh-break').textContent = ''; $('.dh-out').innerHTML = ''; $('.dh-warn').textContent = 'Type times as 24-hour HH:MM, for example 06:30.'; return; }
-    const c = us ? usClocks(rs, now, { cycleHours: q('uscycle').value === '60' ? 60 : 70, usedBefore: num('used') })
+    const c = us ? usClocks(rs, now, { cycleHours: q('uscycle').value === '60' ? 60 : 70, usedBefore: num('used'), passenger: pax })
                  : caClocks(rs, now, { cycle: q('cacycle').value === '2' ? 2 : 1, usedBefore: num('used'), sinceLong: num('since') });
     $('.dh-big').textContent = c.drivingLeft > 0 ? `Driving left: ${dur(c.drivingLeft)}` : 'No driving left: take your rest';
     const br = $('.dh-break');
@@ -97,6 +115,14 @@
       br.textContent = c.offNeeded > 0 ? `Off duty today so far ${dur(c.offToday!)}: you still need ${dur(c.offNeeded)} off before midnight (10 h a day, 2 h of it outside your 8 h rest).` : `You have the 10 hours off duty needed today (${dur(c.offToday!)}).`;
       br.classList.remove('due');
     } else { br.textContent = ''; }
+    const tf = tripFit(num('dist'), num('speed'), c.drivingLeft, now);
+    const tu = q('distunit').value;
+    $('.dh-trip').textContent = !tf ? 'Type a distance and an average speed to check the trip.' : tf.short === 0
+      ? `${dur(tf.need)} of driving: it fits in the driving you have left (${dur(c.drivingLeft)}). Straight on, you would arrive about ${clock(tf.arrive)}.`
+      : `${dur(tf.need)} of driving, ${dur(tf.short)} more than you have left. You can cover about ${tf.reach} ${tu} before you must rest.`;
+    const rd = restDone(toMin(q('offat').value), pax ? 'usPassenger' : us ? 'us' : 'ca', q('cacycle').value === '2' ? 2 : 1);
+    $('.dh-rest').textContent = !rd ? 'Type the time you go off duty to see when you can start a new shift.' :
+      `New shift from ${clock(rd.shift)} (${rd.shiftH} hours off). ` + (rd.reset == null ? 'Passenger carriers have no restart: hours drop off the 7/8-day cycle day by day.' : `Full cycle reset at ${clock(rd.reset)} (${rd.resetH} hours off).`);
     const minLeft = Math.min(...c.limits.map((l) => l.left));
     $('.dh-out').innerHTML = (c.started !== null ? `<dt>Shift started</dt><dd>${clock(c.started)}</dd>` : '') +
       c.limits.map((l) => `<dt>${l.name}<small>${l.note}</small></dt><dd class="${l.left === minLeft ? 'lim' : ''}">${dur(l.left)} left</dd>`).join('') +

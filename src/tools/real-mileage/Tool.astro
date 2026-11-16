@@ -28,6 +28,13 @@
       <button type="button" class="rm-csv">Download CSV</button>
       <button type="button" class="rm-clear">Clear all rows</button>
     </div>
+    <details class="rm-more"><summary>More options: compare, plan a trip</summary>
+      <div class="rm-grid">
+        <label>Maker's claimed figure (litres or kWh per 100 km) <input data-k="claim" inputmode="decimal" value="" placeholder="e.g. 6" /></label>
+        <label>Planned trip distance (in your distance unit) <input data-k="plan" inputmode="decimal" value="" placeholder="e.g. 300" /></label>
+      </div>
+      <p class="rm-fine">The claimed figure is on the spec sheet (litres per 100 km, or kWh per 100 km for electric). The trip estimate uses your real figure and the average price you paid.</p>
+    </details>
     <label class="rm-check"><input type="checkbox" class="rm-keep" /> Keep my log on this device (off by default; it never leaves your browser)</label>
     <button type="button" class="rm-forget" hidden>Clear saved log</button>
   </section>
@@ -58,6 +65,7 @@
   .rm-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .rm-btns button, .rm-forget, .rm-x { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
   .rm-forget { margin-top: 8px; }
+  .rm-more { margin-top: 12px; } .rm-more summary { cursor: pointer; color: var(--accent); } .rm-more .rm-grid { margin-top: 10px; }
   .rm-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
   .rm-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .rm-rows dt { color: var(--muted); } .rm-rows dd { margin: 0; text-align: right; font-weight: 600; }
@@ -67,7 +75,7 @@
 </style>
 
 <script>
-  import { mileage, TYPICAL_TANKS_L } from '../../lib/money/vehicles';
+  import { mileage, mileageStats, vsClaimed, tripFuel, TYPICAL_TANKS_L } from '../../lib/money/vehicles';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.rm') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -110,6 +118,18 @@
     if (r.cost > 0) h += line('Fuel cost counted', f2(r.cost));
     const tank = n(q('tank').value), lvl = Math.min(100, Math.max(0, n(q('level').value)));
     if (tank > 0) h += line('Range left from the tank level', `${f2((tank * vf * lvl / 100 * r.kmPerL) / df, 0)} ${dUnit}`);
+    const st = mileageStats(r.segments), eu = kwh ? 'km/kWh' : 'km/L';
+    if (st && r.segments.length >= 2) {
+      h += line('Best tank', `${f2(st.best)} ${eu} (fill-up ${st.bestIdx})`) + line('Worst tank', `${f2(st.worst)} ${eu} (fill-up ${st.worstIdx})`);
+      if (r.segments.length >= 3) h += line('Last three tanks', `${f2(st.recent)} ${eu}`);
+    }
+    const claim = n(q('claim').value), gap = vsClaimed(r.lPer100, claim);
+    if (gap !== null) h += line(`Against the claimed ${f2(claim)} per 100 km`, `${f2(Math.abs(gap), 1)}% ${gap > 0 ? 'more fuel than claimed' : gap < 0 ? 'less fuel than claimed' : 'as claimed'}`);
+    const plan = n(q('plan').value);
+    if (plan > 0) {
+      const tf = tripFuel(plan * df, r.kmPerL, r.cost > 0 ? r.cost / r.litres : 0);
+      h += line(`A ${f2(plan, 0)} ${dUnit} trip needs`, `${f2(tf.litres / vf)} ${vu}`) + (tf.cost > 0 ? line('Trip fuel cost', f2(tf.cost)) : '');
+    }
     dl.innerHTML = h;
     if (r.segments.length >= 2) {
       const s = [{ label: kwh ? 'km per kWh' : 'km per litre', ys: r.segments.map((x) => x.kmPerL), color: 'var(--accent)' }];

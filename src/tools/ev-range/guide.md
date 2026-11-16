@@ -11,10 +11,11 @@ ads: false
 order: 1810
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [ev-vs-petrol, fuel-cost, tyre-pressure]
 sources:
   - "Range = usable battery kWh / consumption x 100. The speed, temperature, heater and load multipliers are typical, rounded figures chosen by fibub from the general pattern seen in public EV tests; real cars differ by model, tyres and wind, so every factor is editable. Rated consumption comes from your car's own label or test result (check the official source for your region). Drawings are fibub's own."
+  - "Unit conversions: 1 mile = 1.609344 km. The round-number speed table uses the same editable speed factors as the main result; they are not official figures. Checked 2026-11-16, check the official source for your car."
 flow:
   - { icon: sliders, label: "Battery" }
   - { icon: curve, label: "Factors" }
@@ -40,6 +41,10 @@ Each factor is shown as a number you can change, and the result shows the range 
 - **Speed**: motorway speeds use much more energy because air resistance grows with speed squared.
 - **Cold**: batteries are less efficient and the cabin needs heat.
 - **Charging time**: energy added divided by charger power; real charging slows near full, so treat it as a minimum.
+
+## More options
+
+Under the range there is a table of the range at 50 to 130 km/h with your battery, temperature, heater and load held the same, so you can see what slowing down by 10 km/h is worth. Open "More options" to check a trip: type the distance, the battery you start with and the reserve you want to keep, and it tells you whether you arrive (and with how much) or how much energy you are short. The running cost box compares the cost of 100 km on electricity with a petrol car (type your price per kWh, the petrol car's litres per 100 km and the petrol price). The unit boxes let you type the rated consumption as Wh per km, Wh per mile, miles per kWh or km per kWh, and show distances in miles. The speed, cold and heater factors stay typical rounded figures, not official numbers: type your own if you know better.
 
 ## Worked example
 

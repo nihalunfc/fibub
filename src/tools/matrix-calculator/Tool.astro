@@ -9,17 +9,20 @@ import DataFile from '../../components/DataFile.astro';
   <div class="ax-card">
     <h2>Matrices</h2>
     <div class="ax-grid">
-      <label>Work out <select class="mx-op">
+      <label>Work out <select class="mx-op" data-k="op">
         <optgroup label="One matrix, exact fractions">
           <option value="det" selected>Determinant (with steps)</option>
           <option value="inv">Inverse (with steps)</option>
           <option value="rref">Rank and row reduction (RREF)</option>
           <option value="transpose">Transpose</option>
           <option value="pow">Power Aⁿ</option>
+          <option value="scalar">Multiply by a number (k × A)</option>
+          <option value="adj">Cofactors and adjugate</option>
           <option value="lu">LU decomposition</option>
         </optgroup>
         <optgroup label="Two matrices">
           <option value="solve">Solve A x = B (with steps)</option>
+          <option value="cramer">Solve A x = B by Cramer's rule</option>
           <option value="mul">Product A × B</option>
           <option value="add">Sum A + B</option>
           <option value="sub">Difference A − B</option>
@@ -31,20 +34,21 @@ import DataFile from '../../components/DataFile.astro';
           <option value="svd">Singular value decomposition (SVD)</option>
         </optgroup>
       </select></label>
-      <label>Show numbers as <select class="mx-fmt"><option value="frac" selected>Fractions</option><option value="dec">Decimals</option></select></label>
+      <label>Show numbers as <select class="mx-fmt" data-k="format"><option value="frac" selected>Fractions</option><option value="dec">Decimals</option></select></label>
     </div>
-    <label style="margin-top:10px">Matrix A, one row per line <textarea class="mx-a" rows="4" spellcheck="false" autocomplete="off">2 1 -1
+    <label style="margin-top:10px">Matrix A, one row per line <textarea class="mx-a" data-k="a" rows="4" spellcheck="false" autocomplete="off">2 1 -1
 -3 -1 2
 -2 1 2</textarea></label>
     <DataFile target=".mx-a" maxMB={1} maxCols={12} maxRows={12} label="Open a file for A" />
     <div class="mx-bwrap" hidden>
-      <label style="margin-top:10px"><span class="mx-blab">Matrix B</span> <textarea class="mx-b" rows="3" spellcheck="false" autocomplete="off">8
+      <label style="margin-top:10px"><span class="mx-blab">Matrix B</span> <textarea class="mx-b" data-k="b" rows="3" spellcheck="false" autocomplete="off">8
 -11
 -3</textarea></label>
       <DataFile target=".mx-b" maxMB={1} maxCols={12} maxRows={12} label="Open a file for B" />
     </div>
     <div class="ax-grid" style="margin-top:10px">
-      <label class="mx-nwrap" hidden>Power n <input class="mx-n" type="number" step="1" min="-100" max="100" value="3" inputmode="numeric" /></label>
+      <label class="mx-nwrap" hidden>Power n <input class="mx-n" data-k="power" type="number" step="1" min="-100" max="100" value="3" inputmode="numeric" /></label>
+      <label class="mx-kwrap" hidden>Number k <input class="mx-k" data-k="k" type="text" value="2" inputmode="decimal" autocomplete="off" /></label>
       <label class="mx-pwrap" hidden>Row swaps <select class="mx-piv"><option value="hand" selected>Only when a pivot is 0 (as by hand)</option><option value="partial">Largest pivot first (as numpy and scipy)</option></select></label>
     </div>
     <div class="ax-row" style="margin-top:10px">
@@ -60,7 +64,7 @@ import DataFile from '../../components/DataFile.astro';
 
   <div class="ax-card mx-out" hidden>
     <h2 class="mx-title">Result</h2>
-    <p class="ax-big mx-big"></p>
+    <p class="ax-big mx-big" aria-live="polite"></p>
     <p class="mx-sub"></p>
     <div class="mx-mats"></div>
     <div class="ax-scroll mx-tw" hidden><table class="mx-tab"></table></div>
@@ -93,7 +97,7 @@ import DataFile from '../../components/DataFile.astro';
 </style>
 
 <script>
-  import { parseMatrix, det, inverse, rowReduce, nullSpace, solve, transpose, qMul, qAdd, qPower, qTrace, qSymmetric, lu, eigen, qr, cholesky, svd, toFloat, fMul, maxDiff, rank, polyText, fmt, fmtC, fmtQC, qDec, Q, type QM, type M, type Step } from '../../lib/sci/matrix';
+  import { parseMatrix, det, inverse, rowReduce, nullSpace, solve, transpose, qMul, qAdd, qPower, qTrace, qSymmetric, qScale, cofactors, adjugate, cramer, parseQ, lu, eigen, qr, cholesky, svd, toFloat, fMul, maxDiff, rank, polyText, fmt, fmtC, fmtQC, qDec, Q, type QM, type M, type Step } from '../../lib/sci/matrix';
   import { csv } from '../../lib/sci/num';
   import { save, wireDownloads, type Section } from '../../lib/report';
 
@@ -110,6 +114,9 @@ import DataFile from '../../components/DataFile.astro';
     inv: 'Row reduce [A | I] until the left half is I; the right half is then A⁻¹. If a column has no pivot, A is singular and has no inverse.',
     rref: 'Reduced row echelon form: each pivot is 1 with zeros above and below it. The rank is the number of pivots; the free columns give the null space.',
     transpose: 'Rows become columns: entry (i, j) moves to (j, i).',
+    scalar: 'Every entry of A is multiplied by the number k (a whole number, decimal or fraction like -3/4).',
+    adj: 'The minor of an entry is the determinant of what is left when its row and column are removed. A cofactor is the minor with a sign: plus when row + column is even, minus when odd. The adjugate is the transpose of the cofactor matrix, and A × adj(A) = det(A) × I, so A⁻¹ = adj(A) ÷ det(A).',
+    cramer: "Cramer's rule: xᵢ = det(Aᵢ) ÷ det(A), where Aᵢ is A with column i replaced by B. It needs a square A, one column B and det(A) ≠ 0. Row reduction (Solve) is faster for big systems.",
     pow: 'A multiplied by itself n times (A⁰ = I). A negative n uses the inverse.',
     lu: 'P A = L U: L is lower triangular with 1s on its diagonal, U is upper triangular, and P records any row swaps.',
     solve: 'Row reduce [A | B]. One solution, none (a row 0 = nonzero), or infinitely many (free variables t₁, t₂ …). B is one column for one system.',
@@ -142,9 +149,9 @@ import DataFile from '../../components/DataFile.astro';
 
   function calc() {
     const op = q<HTMLSelectElement>('.mx-op').value, err = q('.mx-err');
-    const two = ['solve', 'mul', 'add', 'sub'].includes(op);
-    q('.mx-bwrap').hidden = !two; q('.mx-nwrap').hidden = op !== 'pow'; q('.mx-pwrap').hidden = op !== 'lu';
-    q('.mx-blab').textContent = op === 'solve' ? 'Right-hand side B (one column per system)' : 'Matrix B';
+    const two = ['solve', 'cramer', 'mul', 'add', 'sub'].includes(op);
+    q('.mx-bwrap').hidden = !two; q('.mx-nwrap').hidden = op !== 'pow'; q('.mx-kwrap').hidden = op !== 'scalar'; q('.mx-pwrap').hidden = op !== 'lu';
+    q('.mx-blab').textContent = op === 'solve' || op === 'cramer' ? 'Right-hand side B (one column per system)' : 'Matrix B';
     q('.mx-help').textContent = HELP[op];
     try {
       let A: QM;
@@ -152,7 +159,7 @@ import DataFile from '../../components/DataFile.astro';
       let B: QM | null = null;
       if (two) { try { B = parseMatrix(q<HTMLTextAreaElement>('.mx-b').value); } catch (e) { throw new Error('Matrix B: ' + (e as Error).message); } }
       const sq = A.length === A[0].length;
-      const needSq = ['det', 'inv', 'pow', 'eig', 'chol'];
+      const needSq = ['det', 'inv', 'pow', 'eig', 'chol', 'adj', 'cramer'];
       if (needSq.includes(op) && !sq) throw new Error(`A is ${sizeT(A)}; this needs a square matrix (as many rows as columns).`);
       let big = '', sub = '', mats: Mat[] = [], facts: [string, string][] = [], steps: Step[] = [], bar: number | undefined, table: { head: string[]; rows: string[][] } | null = null;
       switch (op) {
@@ -190,6 +197,29 @@ import DataFile from '../../components/DataFile.astro';
           const n = Number(q<HTMLInputElement>('.mx-n').value);
           const P = qPower(A, n);
           big = `A${String(n).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(c)] ?? '⁻').join('')} found`; mats = [qm(`A^${n} =`, P)]; break;
+        }
+        case 'scalar': {
+          let k: Q; try { k = parseQ(q<HTMLInputElement>('.mx-k').value); } catch { throw new Error('Number k: type a whole number, a decimal or a fraction such as -3/4.'); }
+          big = `${qs(k)} × A is ${sizeT(A)}`; mats = [qm(`${qs(k)} × A =`, qScale(A, k))]; break;
+        }
+        case 'adj': {
+          const { minors, cof } = cofactors(A), d = det(A).value, adj = adjugate(A);
+          big = `det A = ${qs(d)}`;
+          sub = d.isZero() ? 'The determinant is 0, so A has no inverse; the adjugate still exists.' : 'Divide the adjugate by det A to get the inverse.';
+          mats = [qm('Minors =', minors), qm('Cofactors =', cof), qm('adj(A) =', adj)];
+          if (!d.isZero()) mats.push(qm('A⁻¹ = adj(A) ÷ det A =', qScale(adj, Q.ONE.div(d))));
+          const P = qMul(A, adj), ok = P.every((r, i) => r.every((x, j) => (i === j ? x.eq(d) : x.isZero())));
+          facts.push(['Check', ok ? 'A × adj(A) = det(A) × I exactly' : 'A × adj(A) does not equal det(A) × I (this should not happen)']);
+          break;
+        }
+        case 'cramer': {
+          const r = cramer(A, B!);
+          if (!r.parts) { big = 'Cramer\'s rule cannot be used'; sub = 'det A = 0, so there is not exactly one solution. Use "Solve A x = B" to see whether there are none or infinitely many.'; break; }
+          big = 'One solution'; sub = r.parts.map((p, i) => `x${i + 1} = ${qs(p.x)}`).join(', ');
+          mats = [qm('x =', r.parts.map((p) => [p.x]))];
+          table = { head: ['Variable', 'det of Aᵢ (column replaced by B)', 'xᵢ = det(Aᵢ) ÷ det A'], rows: r.parts.map((p, i) => [`x${i + 1}`, qs(p.dets), `${qs(p.dets)} ÷ ${qs(r.d)} = ${qs(p.x)}`]) };
+          facts.push(['det A', qs(r.d)]);
+          break;
         }
         case 'lu': {
           const partial = q<HTMLSelectElement>('.mx-piv').value === 'partial';

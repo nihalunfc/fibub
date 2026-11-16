@@ -41,6 +41,13 @@ Your file is read on this device only. Nothing is uploaded and nothing is stored
 - **Two fills close together**: the odometer moved less than your limit since the last fill. A vehicle cannot burn much fuel in that distance.
 - **Economy much worse than usual**: that stretch is more than your percentage under the vehicle's median. Needs at least three stretches.
 
+## What else you get
+
+- **Whole-fleet line and total row**: distance, fuel, economy, cost per km or mile and the average price per litre or gallon for the period (cost only when every vehicle has an amount).
+- **Sort**: show vehicles by name, best or worst economy, or highest cost per km or mile, to see where to look first.
+- **What if**: how much fuel, and roughly how much money at the period's average price, the fleet would save if every vehicle below the fleet's middle economy matched it. It is a guide for where to look, not a promise.
+- **Download CSV**: the vehicle table and the flags, made on your device (nothing is uploaded) to open in a spreadsheet or send to a manager.
+
 ## Worked example
 
 A vehicle with fills at odometer 100,000 (250 L), then 200 L at 100,800, 101,600, 102,400, 103,200 and 103,760 km. Distance 3,760 km on 1,000 L gives 3.76 km/L. Each of the first four stretches gave 4.0 km/L, the last 560 / 200 = 2.8, which is 30% under the usual 4.0, so it is flagged at the 25% setting. If each 200 L fill cost 240, the fuel cost 1,200 over 3,760 km, which is 0.319 a km.

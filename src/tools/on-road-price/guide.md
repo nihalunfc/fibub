@@ -12,7 +12,7 @@ ads: true
 order: 1800
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [car-loan, sales-tax-calculator, lease-vs-buy]
 sources:
   - "India TCS: 1% on a motor vehicle worth over 10 lakh rupees, section 206C(1F), Income Tax Department (incometaxindia.gov.in). Checked 2026-11-10, check the official source."
@@ -46,6 +46,9 @@ Pick a car or a two-wheeler and where you are buying. Every rate is editable, so
 - **Registration and smart card, FASTag, insurance**: type the figures on your quote. First-year insurance usually includes the compulsory third-party cover.
 - **GST/HST and PST/QST**: Canadian taxes on the price, freight and dealer fees. Choosing a province fills them in.
 - **Tax only on price minus trade-in** (US): most states tax the price after the trade-in; some tax the full price.
+
+- **On top of the price**: a line under the total shows how much taxes, fees and extras add, as an amount and as a percent of the vehicle price.
+- **More options, monthly payment**: type your bank's interest rate and the loan length and the tool shows the monthly payment on the loan left after your down payment, with the total interest. The rate shown at first is only a placeholder, not a quote.
 
 ## Worked example
 

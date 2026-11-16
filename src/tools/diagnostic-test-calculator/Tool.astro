@@ -7,6 +7,7 @@ import Downloads from '../../components/Downloads.astro';
 <div class="ax dxt">
   <div class="ax-card">
     <h2>Your test</h2>
+    <label class="dxt-presetl">Try an example <select data-k="preset" class="dxt-preset"><option value="">Choose an example (made-up numbers)</option><option value="table">2 × 2 table from a study of 400 people</option><option value="small">Small study (30 people)</option><option value="rare">Good test, rare condition (1 in 100)</option><option value="common">Screening a common condition (1 in 5)</option><option value="coin">A test no better than a coin toss</option></select></label>
     <p class="dxt-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
     <div class="ax-seg dxt-mode" role="group" aria-label="Start from">
       <button type="button" data-m="table" aria-pressed="true">2 × 2 table</button><button type="button" data-m="rates" aria-pressed="false">Sensitivity and specificity</button>
@@ -18,14 +19,14 @@ import Downloads from '../../components/Downloads.astro';
         <table class="dxt-grid">
           <thead><tr><th></th><th>Condition present</th><th>Condition absent</th></tr></thead>
           <tbody>
-            <tr><th>Test positive</th><td><label>True positives <input class="dxt-a" inputmode="numeric" value="84" /></label></td><td><label>False positives <input class="dxt-b" inputmode="numeric" value="30" /></label></td></tr>
-            <tr><th>Test negative</th><td><label>False negatives <input class="dxt-c" inputmode="numeric" value="16" /></label></td><td><label>True negatives <input class="dxt-d" inputmode="numeric" value="270" /></label></td></tr>
+            <tr><th>Test positive</th><td><label>True positives <input data-k="tp" class="dxt-a" inputmode="numeric" value="84" /></label></td><td><label>False positives <input data-k="fp" class="dxt-b" inputmode="numeric" value="30" /></label></td></tr>
+            <tr><th>Test negative</th><td><label>False negatives <input data-k="fn" class="dxt-c" inputmode="numeric" value="16" /></label></td><td><label>True negatives <input data-k="tn" class="dxt-d" inputmode="numeric" value="270" /></label></td></tr>
           </tbody>
         </table>
       </div>
       <div class="ax-grid" style="margin-top:10px">
-        <label>Intervals <select class="dxt-meth"><option value="exact" selected>Exact (Clopper-Pearson)</option><option value="wilson">Wilson score</option></select></label>
-        <label>Confidence <select class="dxt-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+        <label>Intervals <select data-k="meth" class="dxt-meth"><option value="exact" selected>Exact (Clopper-Pearson)</option><option value="wilson">Wilson score</option></select></label>
+        <label>Confidence <select data-k="conf" class="dxt-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
       </div>
       <p class="ax-help">Exact intervals never fall below the true coverage and suit small counts; Wilson intervals are a little narrower and closer to the stated level on average. Ratios use the log method.</p>
     </div>
@@ -33,9 +34,9 @@ import Downloads from '../../components/Downloads.astro';
     <div class="dxt-p" data-m="rates" hidden>
       <p class="ax-help">Use the published sensitivity and specificity of a test and the prevalence in the group you are testing.</p>
       <div class="ax-grid">
-        <label>Sensitivity (%) <input class="dxt-se" inputmode="decimal" value="90" /></label>
-        <label>Specificity (%) <input class="dxt-sp" inputmode="decimal" value="95" /></label>
-        <label>Prevalence (%) <input class="dxt-pv" inputmode="decimal" value="1" /></label>
+        <label>Sensitivity (%) <input data-k="sens" class="dxt-se" inputmode="decimal" value="90" /></label>
+        <label>Specificity (%) <input data-k="spec" class="dxt-sp" inputmode="decimal" value="95" /></label>
+        <label>Prevalence (%) <input data-k="prev" class="dxt-pv" inputmode="decimal" value="1" /></label>
       </div>
     </div>
     <p class="ax-err dxt-err" hidden></p>
@@ -43,7 +44,8 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card dxt-out" hidden>
     <h2>Accuracy</h2>
-    <p class="ax-big dxt-big"></p>
+    <p class="ax-big dxt-big" aria-live="polite"></p>
+    <p class="dxt-plain" aria-live="polite"></p>
     <dl class="ax-facts dxt-facts"></dl>
     <div class="ax-scroll" style="margin-top:12px"><table class="dxt-tab"></table></div>
     <p class="ax-help dxt-note"></p>
@@ -52,13 +54,18 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card dxt-out" hidden>
     <h2>Pre-test to post-test probability</h2>
     <div class="ax-grid">
-      <label>Pre-test probability (%) <input class="dxt-pre" inputmode="decimal" placeholder="the prevalence" /></label>
+      <label>Pre-test probability (%) <input data-k="pre" class="dxt-pre" inputmode="decimal" placeholder="the prevalence" /></label>
     </div>
     <p class="ax-help">How likely the condition is before the test, for this person or setting. Leave it blank to use the prevalence above.</p>
-    <dl class="ax-facts dxt-post" style="margin-top:12px"></dl>
+    <label class="dxt-sl">Pre-test probability slider <input data-k="prer" type="range" class="dxt-prer" min="0" max="100" step="0.5" value="25" /></label>
+    <dl class="ax-facts dxt-post" style="margin-top:12px" aria-live="polite"></dl>
     <canvas class="ax-fig dxt-fig" style="margin-top:14px"></canvas>
     <div class="ax-legend"><span><i class="dxt-k1"></i>Positive result</span><span><i class="dxt-k2"></i>Negative result</span></div>
     <p class="ax-help">Fagan's nomogram: a straight line from the pre-test probability through the likelihood ratio meets the post-test probability.</p>
+    <h3 style="margin:18px 0 6px;font-size:16px">Predictive values at other prevalences</h3>
+    <p class="ax-help dxt-curvenote"></p>
+    <canvas class="ax-fig dxt-curve" style="margin-top:8px"></canvas>
+    <details class="dxt-work" style="margin-top:12px"><summary>Show the working</summary><div class="dxt-wk"></div></details>
     <div class="ax-row" style="margin-top:12px">
       <button type="button" class="btn secondary small dxt-csv">Table (CSV)</button>
       <button type="button" class="btn secondary small dxt-png">Nomogram (PNG)</button>
@@ -68,8 +75,14 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <style is:inline>
+  .dxt-out.is-err > :not(h2):not(.ax-grid):not(.dxt-sl) { display: none; }
   .dxt .dxt-med { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
   .dxt .dxt-p { margin-top: 12px; }
+  .dxt .dxt-presetl { display: block; margin-bottom: 10px; font-size: 14px; }
+  .dxt .dxt-sl { display: block; margin-top: 10px; font-size: 14px; }
+  .dxt .dxt-sl input { width: 100%; }
+  .dxt .dxt-plain { margin: 4px 0 10px; font-size: 15px; }
+  .dxt .dxt-wk p { margin: 6px 0; font-size: 14px; }
   .dxt .dxt-grid th { white-space: normal; font-size: 13px; }
   .dxt .dxt-grid td, .dxt .dxt-grid th { padding: 6px 4px; border: 0; }
   .dxt .dxt-grid label { font-size: 12.5px; }
@@ -80,14 +93,15 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig, csv } from '../../lib/sci/num';
-  import { fromTable, fromRates, postTest, fagan, type Measure } from '../../lib/sci/diagtest';
+  import { fromTable, fromRates, postTest, fagan, prevalenceCurve, prevalenceForPPV, type Measure } from '../../lib/sci/diagtest';
   import { counts } from '../../lib/sci/epistat';
+  import { chartFigure } from '../../lib/sci/plot';
   import { paint, save, wireDownloads, pagePalette, LIGHT, type Section, type Figure } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.dxt')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const val = (c: string) => num(q<HTMLInputElement>(c).value);
-  let mode = 'table', report: Section[] = [], rows: string[][] = [], fig: Figure | null = null;
+  let mode = 'table', curve: Figure | null = null, report: Section[] = [], rows: string[][] = [], fig: Figure | null = null;
   const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)} %` : '–');
   const rat = (x: number) => (Number.isFinite(x) ? sig(x, 3) : x > 0 ? '∞' : '–');
   const show = (m: Measure, x: number) => (m.kind === 'prop' ? pct(x) : m.kind === 'diff' ? (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–') : rat(x));
@@ -151,7 +165,10 @@ import Downloads from '../../components/Downloads.astro';
     table(['Measure', 'Value', cl], rows);
     const zero = [a, b, c, d].some((x) => x === 0);
     q('.dxt-note').textContent = 'Predictive values and accuracy depend on the prevalence in this sample. For another setting, put its prevalence in the pre-test box below.' + (zero ? ' A box with 0 makes some ratios 0 or infinite, so their log intervals cannot be given.' : '');
-    return { prev: g('prev').est, lrp: g('lrp').est, lrn: g('lrn').est, head: ['Measure', 'Value', cl] };
+    const sn = g('sens').est, sp = g('spec').est, f1 = (x: number) => (x * 100).toFixed(1);
+    const plain = `Of every 100 people who have the condition, this test finds about ${Math.round(sn * 100)}. Of every 100 who do not, it correctly clears about ${Math.round(sp * 100)}.`;
+    const work = [`Sensitivity = TP ÷ (TP + FN) = ${a} ÷ ${a + c} = ${f1(sn)} %`, `Specificity = TN ÷ (TN + FP) = ${d} ÷ ${b + d} = ${f1(sp)} %`, `PPV = TP ÷ (TP + FP) = ${a} ÷ ${a + b} = ${pct(g('ppv').est)}`, `NPV = TN ÷ (TN + FN) = ${d} ÷ ${c + d} = ${pct(g('npv').est)}`, `LR+ = sensitivity ÷ (1 − specificity) = ${rat(g('lrp').est)}; LR− = (1 − sensitivity) ÷ specificity = ${rat(g('lrn').est)}`];
+    return { prev: g('prev').est, lrp: g('lrp').est, lrn: g('lrn').est, se: sn, sp, plain, work, head: ['Measure', 'Value', cl] };
   }
   function runRates() {
     const se = val('.dxt-se') / 100, sp = val('.dxt-sp') / 100, pv = val('.dxt-pv') / 100;
@@ -163,7 +180,9 @@ import Downloads from '../../components/Downloads.astro';
     rows = [['Test positive', f(r.tp), f(r.fp), f(r.tp + r.fp)], ['Test negative', f(r.fn), f(r.tn), f(r.fn + r.tn)], ['Total', f(r.tp + r.fn), f(r.fp + r.tn), '1000']];
     table(['Out of 1000 people', 'Condition present', 'Condition absent', 'Total'], rows);
     q('.dxt-note').textContent = `Of ${f(r.tp + r.fp)} people who test positive, ${f(r.tp)} have the condition: that is the positive predictive value. When a condition is rare, most positives are false even for a good test.`;
-    return { prev: pv, lrp: r.lrp, lrn: r.lrn, head: ['Out of 1000 people', 'Condition present', 'Condition absent', 'Total'] };
+    const plain = `If 1000 people are tested and ${sig(pv * 100, 3)} % really have the condition, about ${f(r.tp + r.fp)} test positive, and ${f(r.tp)} of those truly have it.`;
+    const work = [`PPV = sens × prev ÷ (sens × prev + (1 − spec) × (1 − prev)) = ${sig(se, 4)} × ${sig(pv, 4)} ÷ (${sig(se * pv, 4)} + ${sig((1 - sp) * (1 - pv), 4)}) = ${pct(r.ppv)}`, `NPV = spec × (1 − prev) ÷ (spec × (1 − prev) + (1 − sens) × prev) = ${pct(r.npv, 2)}`, `LR+ = ${sig(se, 4)} ÷ ${sig(1 - sp, 4)} = ${rat(r.lrp)}; LR− = ${sig(1 - se, 4)} ÷ ${sig(sp, 4)} = ${rat(r.lrn)}`];
+    return { prev: pv, lrp: r.lrp, lrn: r.lrn, se, sp, plain, work, head: ['Out of 1000 people', 'Condition present', 'Condition absent', 'Total'] };
   }
 
   let head: string[] = [];
@@ -175,15 +194,24 @@ import Downloads from '../../components/Downloads.astro';
       const preTxt = q<HTMLInputElement>('.dxt-pre').value.trim(), pre = preTxt ? num(preTxt) / 100 : r.prev;
       if (!(pre >= 0 && pre <= 1)) throw new Error('Pre-test probability must be a percentage from 0 to 100.');
       const pp = postTest(pre, r.lrp), pn = postTest(pre, r.lrn);
+      q('.dxt-plain').textContent = r.plain;
+      const sl = q<HTMLInputElement>('.dxt-prer'); if (document.activeElement !== sl) sl.value = String(Math.round(pre * 1000) / 10);
+      const odds = pre / (1 - pre), wk = [...r.work, `Pre-test odds = ${pct(pre)} ÷ ${pct(1 - pre)} = ${Number.isFinite(odds) ? sig(odds, 4) : '–'}; after a positive result the odds are ${Number.isFinite(odds * r.lrp) ? sig(odds * r.lrp, 4) : '–'} (pre-test odds × LR+), which is ${pct(pp)}.`];
+      q('.dxt-wk').replaceChildren(...wk.map((t) => { const e = document.createElement('p'); e.textContent = t; return e; }));
+      const cv = prevalenceCurve(r.se, r.sp), p1 = pre * 100, need = prevalenceForPPV(r.se, r.sp, 0.5);
+      curve = chartFigure({ h: 260, xLabel: 'prevalence or pre-test probability (%)', yLabel: 'predictive value (%)', xMin: 0, xMax: 100, yMin: 0, yMax: 100, legend: 'below', series: [{ name: 'PPV', x: cv.x, y: cv.ppv, mode: 'line', width: 2 }, { name: 'NPV', x: cv.x, y: cv.npv, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: p1, dash: [4, 3], label: `${sig(p1, 3)} %` }] }, 'Positive and negative predictive value against prevalence');
+      q('.dxt-curvenote').textContent = `The line marks your pre-test probability. ${Number.isFinite(need) ? `A positive result is right more often than not (PPV above 50 %) once prevalence passes about ${sig(need * 100, 2)} %.` : 'This test is not informative enough for a positive result to raise the odds.'}`;
+      paint(q<HTMLCanvasElement>('.dxt-curve'), curve, pagePalette());
       const post: [string, string][] = [['Pre-test probability', pct(pre)], ['After a positive result', pct(pp)], ['After a negative result', pct(pn)]];
       facts('.dxt-post', post);
       fig = nomogram(pre, r.lrp, r.lrn); draw();
       report = [
         { title: q('.dxt-big').textContent!, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) }, note: q('.dxt-note').textContent! },
         { title: 'Pre-test to post-test probability', facts: post, figure: fig, note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
+        { title: 'Predictive values at other prevalences', figure: curve!, note: q('.dxt-curvenote').textContent! },
       ];
-      err.hidden = true; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((e) => (e.hidden = false));
-    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((x) => (x.hidden = true)); report = []; }
+      err.hidden = true; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((e) => (e.hidden = false)); root.querySelectorAll<HTMLElement>('.dxt-out').forEach((e) => e.classList.remove('is-err'));
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((x) => { if (x.querySelector('.dxt-pre')) { x.hidden = false; x.classList.add('is-err'); } else x.hidden = true; }); report = []; }
   }
   function setMode(m: string) {
     mode = m;
@@ -193,11 +221,19 @@ import Downloads from '../../components/Downloads.astro';
   }
   root.querySelectorAll<HTMLButtonElement>('.dxt-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
   let t = 0;
-  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
+  const presets: Record<string, [string, number[]]> = { table: ['table', [84, 30, 16, 270]], small: ['table', [9, 2, 1, 18]], rare: ['rates', [90, 95, 1]], common: ['rates', [85, 90, 20]], coin: ['rates', [50, 50, 10]] };
+  q('.dxt-preset').addEventListener('change', (e) => {
+    const p = presets[(e.target as HTMLSelectElement).value]; if (!p) return;
+    const ids = p[0] === 'table' ? ['.dxt-a', '.dxt-b', '.dxt-c', '.dxt-d'] : ['.dxt-se', '.dxt-sp', '.dxt-pv'];
+    ids.forEach((c, i) => (q<HTMLInputElement>(c).value = String(p[1][i]))); q<HTMLInputElement>('.dxt-pre').value = '';
+    setMode(p[0]);
+  });
+  q('.dxt-prer').addEventListener('input', () => { q<HTMLInputElement>('.dxt-pre').value = q<HTMLInputElement>('.dxt-prer').value; calc(); });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLInputElement).type === 'range') return; clearTimeout(t); t = window.setTimeout(calc, 200); });
   root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
   q('.dxt-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([head, ...rows])), 'diagnostic-test.csv', 'text/csv'));
   q('.dxt-png').addEventListener('click', () => { if (!fig) return; const c = document.createElement('canvas'); paint(c, fig, LIGHT); c.toBlob((b) => b && save(b, 'fagan-nomogram.png', 'image/png')); });
-  function draw() { if (!fig) return; const pal = pagePalette(); paint(q<HTMLCanvasElement>('.dxt-fig'), fig, pal); q('.dxt-k1').style.background = pal.accent; q('.dxt-k2').style.background = pal.accent2; }
+  function draw() { if (curve) paint(q<HTMLCanvasElement>('.dxt-curve'), curve, pagePalette()); if (!fig) return; const pal = pagePalette(); paint(q<HTMLCanvasElement>('.dxt-fig'), fig, pal); q('.dxt-k1').style.background = pal.accent; q('.dxt-k2').style.background = pal.accent2; }
   document.addEventListener('fibub:theme', draw);
   setMode('table');
   wireDownloads(q('.dl'), () => ({ title: 'Diagnostic test accuracy', file: 'diagnostic-test', sections: report }));

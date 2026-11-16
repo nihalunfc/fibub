@@ -52,6 +52,12 @@ The first example is the system 2x + y − z = 8, −3x − y + 2z = −11, −2
 
 The eigenvalue example A = [4 1; 2 3] has characteristic polynomial λ² − 7λ + 10, so its eigenvalues are 5 and 2, with eigenvectors (1, 1) and (1, −2). The complex example [1 −2; 1 3] has eigenvalues 2 + i and 2 − i, with eigenvectors (1 − i, −1) and (1 + i, −1). The Cholesky example gives L with rows (2, 0, 0), (6, 1, 0) and (−8, 5, 3).
 
+## More operations
+
+- **Multiply by a number (k × A):** k can be a whole number, decimal or fraction such as -1/2.
+- **Cofactors and adjugate:** shows the matrix of minors, the cofactors (minors with the checkerboard signs), the adjugate (the transpose of the cofactors) and, when the determinant is not 0, the inverse as adj(A) ÷ det A. It checks that A × adj(A) = det(A) × I exactly. For the matrix with rows (2, 1) and (5, 3) the determinant is 1 and the adjugate is rows (3, −1) and (−5, 2).
+- **Solve A x = B by Cramer's rule:** for a square A and one column B, shows each det(Aᵢ) and xᵢ = det(Aᵢ) ÷ det A. With A having rows (2, 1) and (5, 3) and B = (4, 11) it gives x₁ = 1 and x₂ = 2. When det A = 0 it says so and points you to the row-reduction solver.
+
 ## What is exact and what is decimal
 
 Determinants, inverses, row reduction, solving, products, powers, LU and the characteristic polynomial are exact. Eigenvalues are found numerically, then any that are fractions (such as 3 or −1/2) or fractions plus a fraction times i (such as 2 + i) are confirmed exactly in the characteristic polynomial and shown with whole-number eigenvectors. Others, such as the roots of λ² − 2, are shown as decimals with eigenvectors of length 1. QR, Cholesky and SVD need square roots, so they are decimals; the page shows the largest error when the factors are multiplied back.

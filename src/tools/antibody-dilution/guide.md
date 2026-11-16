@@ -11,7 +11,7 @@ ads: true
 order: 3
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [dose-response, solution-calculator, plate-layout, protein-assay, calibration-curve, tcid50-calculator, peptide-overlap-designer, reagent-inventory, binding-curve-fitter]
 sources:
   - "The arithmetic (stock volume = final volume ÷ N, 1 mg/mL = 1 µg/µL, serial transfer = volume ÷ (fold − 1)) and the endpoint titre (straight-line interpolation on log10 dilution to the cutoff) are written by fibub and checked in the tests against hand working and an independent NumPy script."
@@ -43,6 +43,11 @@ Lay out a titration plate with the [[plate-layout]], and fit the titration curve
 3. For a titration, set the first tube, the step and the number of tubes. Put the diluent in every tube first, then add the antibody to tube 1, mix, and carry the transfer volume down the row with a fresh tip each time.
 4. After the plate is read, paste the dilutions and ODs, add the blank ODs and pick the cutoff rule.
 5. Download the series or the titre table as CSV, or all four parts as an image, PDF or Word file.
+
+## More options
+
+- **Usual dilutions.** Buttons for 1:100, 1:500, 1:1000, 1:5000 and 1:10,000 fill the dilution box in one tap.
+- **Every usual dilution at this volume.** Under part 1, "More options" lists 1:100 to 1:10,000 side by side: microlitres of antibody, diluent, and (if you gave the stock) the final concentration, all for the final volume you typed. It is handy for choosing a dilution before you start.
 
 ## Worked example
 

@@ -3,25 +3,36 @@
 // Waals real-gas answer and compressibility, and the combined gas law for a change of state.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
+import { CONDITIONS } from '../../lib/sci/gas';
 ---
 <div class="ax gas">
   <div class="ax-card">
     <h2>Ideal gas law, PV = nRT</h2>
     <p class="ax-help">Fill in three and leave one empty: the empty one is worked out.</p>
+    <div class="ax-row gas-find" style="margin-bottom:10px">
+      <span class="ax-help" style="margin:0">Find</span>
+      <button type="button" class="btn secondary small" data-f="P">Pressure</button><button type="button" class="btn secondary small" data-f="V">Volume</button><button type="button" class="btn secondary small" data-f="n">Amount</button><button type="button" class="btn secondary small" data-f="T">Temperature</button>
+    </div>
     <div class="gas-rows">
-      <label>Pressure <span class="gas-pair"><input class="gas-P" inputmode="decimal" value="101.325" /><select class="gas-Pu"></select></span></label>
-      <label>Volume <span class="gas-pair"><input class="gas-V" inputmode="decimal" /><select class="gas-Vu"></select></span></label>
-      <label>Amount <span class="gas-pair"><input class="gas-n" inputmode="decimal" value="1" /><select class="gas-nu"><option value="mol">mol</option><option value="mmol">mmol</option><option value="g">g</option><option value="kg">kg</option></select></span></label>
-      <label>Temperature <span class="gas-pair"><input class="gas-T" inputmode="decimal" value="0" /><select class="gas-Tu"><option>°C</option><option>K</option><option>°F</option></select></span></label>
+      <label>Pressure <span class="gas-pair"><input class="gas-P" data-k="pressure" inputmode="decimal" value="101.325" /><select class="gas-Pu" data-k="pressureunit"></select></span></label>
+      <label>Volume <span class="gas-pair"><input class="gas-V" data-k="volume" inputmode="decimal" /><select class="gas-Vu" data-k="volumeunit"></select></span></label>
+      <label>Amount <span class="gas-pair"><input class="gas-n" data-k="amount" inputmode="decimal" value="1" /><select class="gas-nu" data-k="amountunit"><option value="mol">mol</option><option value="mmol">mmol</option><option value="g">g</option><option value="kg">kg</option></select></span></label>
+      <label>Temperature <span class="gas-pair"><input class="gas-T" data-k="temperature" inputmode="decimal" value="0" /><select class="gas-Tu" data-k="tempunit"><option>°C</option><option>K</option><option>°F</option></select></span></label>
     </div>
     <div class="ax-grid" style="margin-top:10px">
-      <label>Gas <select class="gas-gas"></select></label>
+      <label>Gas <select class="gas-gas" data-k="gas"></select></label>
       <label class="gas-fwrap" hidden>Formula <input class="gas-formula" value="SF6" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
     </div>
+    <details style="margin-top:10px">
+      <summary>More options: set the usual conditions</summary>
+      <div class="ax-row gas-cond" style="margin-top:8px">{CONDITIONS.map((c) => <button type="button" class="btn secondary small" data-c={c.id}>{c.label}</button>)}</div>
+      <p class="ax-help">Fills pressure and temperature in the units chosen above. Different books use different "standard" conditions, so check which one your question means.</p>
+    </details>
     <p class="ax-help">Choosing a gas lets you give the amount in grams, and adds its density and the van der Waals real-gas answer.</p>
     <p class="ax-err gas-err" hidden></p>
     <div class="gas-out">
-      <p class="ax-big gas-big"></p>
+      <p class="ax-big gas-big" aria-live="polite"></p>
+      <p class="ax-help gas-work"></p>
       <dl class="ax-facts gas-facts"></dl>
     </div>
   </div>
@@ -38,14 +49,14 @@ import Downloads from '../../components/Downloads.astro';
       <label>T₂ <input class="gas-t2" inputmode="decimal" value="100" /></label>
     </div>
     <p class="ax-err gas-cerr" hidden></p>
-    <p class="ax-big gas-cbig" style="font-size:18px"></p>
+    <p class="ax-big gas-cbig" style="font-size:18px" aria-live="polite"></p>
     <p class="ax-help gas-cnote"></p>
     <Downloads />
   </div>
 </div>
 
 <script>
-  import { P_UNITS, V_UNITS, toK, fromK, solveIdeal, combined, VDW, vdwPressure, vdwVolume, vdwCritical, R, type TUnit } from '../../lib/sci/gas';
+  import { P_UNITS, V_UNITS, toK, fromK, solveIdeal, combined, idealWorking, CONDITIONS, VDW, vdwPressure, vdwVolume, vdwCritical, R, type TUnit } from '../../lib/sci/gas';
   import { parseFormula, molarMass, pretty, FormulaError } from '../../lib/sci/chem';
   import { num, sig, fmtExp } from '../../lib/sci/num';
   import { wireDownloads } from '../../lib/report';
@@ -70,6 +81,8 @@ import Downloads from '../../components/Downloads.astro';
     return { M: molarMass(parseFormula(v.formula)), name: v.name.toLowerCase(), vdw: v };
   }
 
+  let last: { solved: 'P' | 'V' | 'n' | 'T'; vals: Record<string, string> } | null = null;
+  const FIELD = { P: '.gas-P', V: '.gas-V', n: '.gas-n', T: '.gas-T' } as const;
   function run() {
     const err = (m: string) => { q('.gas-err').textContent = m; q('.gas-err').hidden = !m; q('.gas-out').hidden = !!m; };
     let gas: ReturnType<typeof molar>;
@@ -85,6 +98,9 @@ import Downloads from '../../components/Downloads.astro';
     const label = { P: 'Pressure', V: 'Volume', n: 'Amount', T: 'Temperature' }[s.solved];
     const shown = s.solved === 'P' ? `${sig(s.P / P_UNITS[Pu], 5)} ${Pu}` : s.solved === 'V' ? `${sig(s.V / V_UNITS[Vu], 5)} ${Vu}` : s.solved === 'n' ? (nu === 'g' || nu === 'kg' ? `${sig((s.n * gas!.M) / (nu === 'kg' ? 1000 : 1), 5)} ${nu}` : `${sig(nu === 'mmol' ? s.n * 1000 : s.n, 5)} ${nu}`) : `${sig(fromK(s.T, Tu), 5)} ${Tu}`;
     q('.gas-big').textContent = `${label}: ${shown}`;
+    q('.gas-work').textContent = idealWorking(s, s.solved);
+    const gm = gas?.M, vv = (x: number) => String(+x.toPrecision(8));
+    last = { solved: s.solved, vals: { P: vv(s.P / P_UNITS[Pu]), V: vv(s.V / V_UNITS[Vu]), n: nu === 'mol' ? vv(s.n) : nu === 'mmol' ? vv(s.n * 1000) : vv((s.n * gm!) / (nu === 'kg' ? 1000 : 1)), T: vv(fromK(s.T, Tu)) } };
     const facts = [
       fact('Pressure', `${sig(s.P / 1000, 5)} kPa = ${sig(s.P / 101325, 5)} atm = ${sig(s.P / 1e5, 5)} bar`, `${sig(s.P / P_UNITS.psi, 4)} psi, ${sig(s.P / P_UNITS.mmHg, 5)} mmHg`),
       fact('Volume', `${sig(s.V * 1000, 5)} L`, `${sig(s.V, 4)} m³; molar volume ${sig((s.V / s.n) * 1000, 5)} L/mol (22.711 at 0 °C and 1 bar, 24.790 at 25 °C and 1 bar)`),
@@ -127,6 +143,20 @@ import Downloads from '../../components/Downloads.astro';
   for (const c of ['.gas-P', '.gas-V', '.gas-n', '.gas-T', '.gas-formula']) q(c).addEventListener('input', run);
   for (const c of ['.gas-Pu', '.gas-Vu', '.gas-nu', '.gas-Tu', '.gas-gas']) q(c).addEventListener('change', run);
   for (const c of ['.gas-p1', '.gas-v1', '.gas-t1', '.gas-p2', '.gas-v2', '.gas-t2']) q(c).addEventListener('input', runCombined);
+  q('.gas-find').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-f]'); if (!b || !last) return;
+    const k = b.dataset.f as 'P' | 'V' | 'n' | 'T';
+    if (k === last.solved) return;
+    q<HTMLInputElement>(FIELD[last.solved]).value = last.vals[last.solved]; q<HTMLInputElement>(FIELD[k]).value = ''; run();
+  });
+  q('.gas-cond').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-c]'); if (!b) return;
+    const c = CONDITIONS.find((x) => x.id === b.dataset.c)!;
+    q<HTMLInputElement>('.gas-P').value = String(+(c.P / P_UNITS[q<HTMLSelectElement>('.gas-Pu').value]).toPrecision(8));
+    q<HTMLInputElement>('.gas-T').value = String(+fromK(c.tC + 273.15, q<HTMLSelectElement>('.gas-Tu').value as TUnit).toPrecision(8));
+    if (last && (last.solved === 'P' || last.solved === 'T')) q<HTMLInputElement>('.gas-V').value = '';
+    run();
+  });
   run();
   wireDownloads(q('.dl'), () => ({
     title: 'Gas law calculation', file: 'gas-law',

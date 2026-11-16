@@ -7,6 +7,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await big()) === '(1.2 ± 0.4) × 10⁻⁴ m', 'scinote: example first line');
   check((await form('latex')) === '$(1.2 \\pm 0.4) \\times 10^{-4}\\,\\mathrm{m}$' && (await form('siunitx')) === '\\qty{1.2(4)e-4}{m}' && (await form('plain')) === '(1.2 +/- 0.4)e-4 m' && (await form('concise')) === '1.2(4) × 10⁻⁴ m', 'scinote: every output form');
   { const t = await page.textContent('.snf .snf-tab'); check(await page.locator('.snf .snf-tab tbody tr').count() === 6 && t.includes('9.81 ± 0.10') && t.includes('6.02 × 10²³') && t.includes('(1.234 ± 0.012) × 10⁻³ s') && t.includes('3.00 × 10⁸ m/s'), 'scinote: table of all lines'); }
+  check((await page.textContent('.snf .snf-work')).startsWith('The decimal point moves 4 places to the right, so the power of ten is −4'), `scinote: working line (${await page.textContent('.snf .snf-work')})`);
   await page.selectOption('.snf .snf-not', 'si'); await page.waitForTimeout(150);
   check((await big()) === '(120 ± 40) µm' && (await form('siunitx')) === '\\qty{120(40)}{\\micro m}', 'scinote: SI prefix');
   await page.selectOption('.snf .snf-not', 'eng'); await page.waitForTimeout(150);
@@ -29,6 +30,8 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__clip = t; } } }); });
   await page.selectOption('.snf .snf-col', 'e'); await page.click('.snf .snf-copycol'); await page.waitForTimeout(150);
   check((await page.textContent('.snf .snf-done')) === 'Copied 6 lines.' && (await page.evaluate(() => window.__clip)).split('\n')[0] === '1.2e-4\t0.4e-4', 'scinote: copy a column for Excel');
+  await page.selectOption('.snf .snf-col', 'E'); await page.click('.snf .snf-copycol'); await page.waitForTimeout(150);
+  check((await page.evaluate(() => window.__clip)).split('\n')[1] === '6.02214E23' || (await page.evaluate(() => window.__clip)).split('\n')[1].includes('E23'), 'scinote: E notation column');
   // A two-column file with a header.
   writeFileSync(OUT + 'sn.csv', 'value,uncertainty\n0.0123456,0.00078\n1500,25\n');
   await page.setInputFiles('.snf .dfb-in', OUT + 'sn.csv'); await page.waitForTimeout(500);

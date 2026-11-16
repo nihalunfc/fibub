@@ -11,7 +11,7 @@ ads: true
 order: 5
 icon: flask
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [solution-calculator, equation-balancer, isotope-pattern-calculator, calibration-curve, uncertainty-calculator]
 sources:
   - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
@@ -43,6 +43,12 @@ To make up a solution from the mass, use the [[solution-calculator]]; for the ex
 - Isotope labels go in square brackets or after a caret: [13C]6H12O6 or ^13C. D and T stand for deuterium and tritium.
 - Charges go at the end with a caret (Fe^3+, SO4^2-) or as a lone sign (NH4+, Cl-). Fe3+ would be read as three iron atoms with one positive charge, so use the caret.
 - Decimal counts such as Fe0.95O are allowed for non-stoichiometric solids.
+
+## More options
+
+- **Show the working.** Under the answer, one line adds up each element: for example 63.546 (Cu) + 10 × 1.008 (H) + 9 × 15.999 (O) + 32.06 (S) = 249.677 g/mol.
+- **Weigh out for a solution.** Open "More options" under the grams, moles and particles box, type the concentration you want (mol/L, mmol/L or µmol/L), the final volume and the purity of the solid, and read how many grams to weigh. For 250 mL of 0.1 mol/L of a compound of molar mass 249.677 g/mol that is 6.242 g. Dissolve it in a little solvent, then top up to the final volume.
+- **Several formulas at once.** Type one formula per line (optionally with a name and a colon, such as glucose: C6H12O6) and get a table of molar masses you can copy or download as CSV. A line that cannot be read says so and the others carry on.
 
 ## Worked example
 

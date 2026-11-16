@@ -7,6 +7,12 @@ import Downloads from '../../components/Downloads.astro';
 <div class="ax osm">
   <div class="ax-card">
     <h2>Solutes</h2>
+    <div class="ax-row os-pre" style="margin-bottom:10px">
+      <span class="ax-help" style="margin:0">Start from</span>
+      <button type="button" class="btn secondary small" data-p="saline">0.9 % saline</button>
+      <button type="button" class="btn secondary small" data-p="glucose">5 % glucose</button>
+      <button type="button" class="btn secondary small" data-p="water">One glucose row</button>
+    </div>
     <div class="os-rows"></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small os-add">Add a solute</button></div>
     <p class="ax-help">i is the number of particles one formula unit gives in water (NaCl 2, CaCl₂ 3, glucose 1). The osmotic coefficient φ corrects for ions not acting fully independently: 1 is ideal; about 0.93 is often used for NaCl near 0.15 mol/L. Tick "crosses membranes" for solutes such as urea or glycerol that enter cells, so they do not count towards tonicity. The example solution is made up.</p>
@@ -17,12 +23,23 @@ import Downloads from '../../components/Downloads.astro';
       <label>Counts as equal within (± mOsm/L) <input class="os-tol" inputmode="decimal" value="10" /></label>
     </div>
     <p class="ax-help">The reference is what you compare against, for example the cells' own inside (an example value of 290 is filled in; type your own). For study and teaching, not for clinical use.</p>
+    <details style="margin-top:10px">
+      <summary>More options: how much to weigh for a target osmolarity</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Solute <select class="os-gs" data-k="gsolute"></select></label>
+        <label>Target (mOsm/L) <input class="os-gt" data-k="gtarget" inputmode="decimal" value="290" /></label>
+        <label>Final volume (mL) <input class="os-gv" data-k="gvol" inputmode="decimal" value="1000" /></label>
+        <label>Osmotic coefficient φ <input class="os-gphi" data-k="gphi" inputmode="decimal" value="1" /></label>
+      </div>
+      <p class="ax-big os-gres" style="font-size:18px" aria-live="polite"></p>
+      <p class="ax-help">Uses the formula's molar mass and its i from the table above. Dissolve it in less water, then make up to the final volume. Osmolarity is per litre of solution; osmolality is per kg of water and is almost the same for dilute solutions.</p>
+    </details>
     <p class="ax-err os-err" hidden></p>
   </div>
 
   <div class="ax-card os-out">
     <h2>Result</h2>
-    <p class="ax-big os-big"></p>
+    <p class="ax-big os-big" aria-live="polite"></p>
     <dl class="ax-facts os-facts"></dl>
     <h3>Each solute</h3>
     <div class="ax-scroll"><table class="os-tab"></table></div>
@@ -32,7 +49,7 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { SOLUTES, UNITS, solute, formulaMass, toMmolL, osmolarity, osmoticKPa, compare, KPA_ATM, KPA_MMHG, type Unit, type Row } from '../../lib/sci/osmolar';
+  import { gramsForOsmolarity, SOLUTES, UNITS, solute, formulaMass, toMmolL, osmolarity, osmoticKPa, compare, KPA_ATM, KPA_MMHG, type Unit, type Row } from '../../lib/sci/osmolar';
   import { num, sig, csv as toCsv } from '../../lib/sci/num';
   import { wireDownloads, save, type Section } from '../../lib/report';
 
@@ -114,11 +131,29 @@ import Downloads from '../../components/Downloads.astro';
     sections = [{ title: q('.os-big').textContent!, text: ["Osmolarity = Σ concentration × i × φ; osmotic pressure by van 't Hoff, π = cRT. For study and teaching, not for clinical use."], facts: [...q('.os-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } }];
   }
 
+  const gsel = q<HTMLSelectElement>('.os-gs');
+  for (const so of SOLUTES) { const o = el('option', '', `${so.name} (i = ${so.i})`); o.value = so.id; gsel.append(o); }
+  gsel.value = 'NaCl'; q<HTMLInputElement>('.os-gphi').value = '0.93';
+  function grams() {
+    const so = solute(gsel.value)!, t = num(q<HTMLInputElement>('.os-gt').value), v = num(q<HTMLInputElement>('.os-gv').value), phi = num(q<HTMLInputElement>('.os-gphi').value);
+    const o = q('.os-gres');
+    if (!(t >= 0 && v >= 0 && phi > 0 && phi <= 2)) { o.textContent = 'Type a target of zero or more, a volume of zero or more, and φ above 0 and at most 2.'; return; }
+    const g = gramsForOsmolarity(t, so.i, phi, formulaMass(so.formula), v / 1000);
+    o.textContent = `Weigh ${g >= 1 ? sig(g, 4) + ' g' : sig(g * 1000, 4) + ' mg'} of ${so.name.toLowerCase()} for ${sig(v, 4)} mL at ${sig(t, 4)} mOsm/L.`;
+  }
+  gsel.addEventListener('change', () => { q<HTMLInputElement>('.os-gphi').value = gsel.value === 'NaCl' ? '0.93' : '1'; grams(); });
+  ['.os-gt', '.os-gv', '.os-gphi'].forEach((c) => q(c).addEventListener('input', grams));
+  q('.os-pre').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-p]'); if (!b) return;
+    q('.os-rows').replaceChildren();
+    if (b.dataset.p === 'saline') addRow('NaCl', '0.9', 'pct', '0.93'); else addRow('glucose', b.dataset.p === 'glucose' ? '5' : '10', b.dataset.p === 'glucose' ? 'pct' : 'mM', '1');
+    calc();
+  });
   q('.os-add').addEventListener('click', () => { addRow(); calc(); });
   root.querySelectorAll('.os-T, .os-ref, .os-tol').forEach((i) => i.addEventListener('input', calc));
   q('.os-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'osmolarity.csv', 'text/csv'); });
   addRow('NaCl', '0.9', 'pct', '0.93'); addRow('urea', '100', 'mM', '1');
-  calc();
+  calc(); grams();
   wireDownloads(q('.dl'), () => ({ title: 'Osmolarity', subtitle: q('.os-big').textContent ?? '', file: 'osmolarity', sections }));
 </script>
 

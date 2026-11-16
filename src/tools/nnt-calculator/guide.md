@@ -44,7 +44,9 @@ For odds and risk ratios from the same table, use the [[odds-risk-ratio|odds rat
 2. Choose whether the event is **bad** (death, relapse, infection) or **good** (cure, recovery). For a bad event, fewer events with treatment is a benefit; for a good event, more is.
 3. Choose the **interval for the difference**. *Newcombe* combines the Wilson intervals of the two risks (his method 10) and keeps good coverage with small groups. *Wald* is the plain risk difference ± 1.96 standard errors found in most textbooks.
 4. Choose 90, 95 or 99 % **confidence**.
-5. Under **For a different baseline risk**, type the risk without treatment for the person or group you care about.
+5. If you only have percentages (a news item or abstract that gives "12 % against 20 %"), switch **I know the** to *risk in each group* and type the two risks. You get the NNT and the relative measures, but no intervals, because those need the group sizes.
+6. Add the **time span** (for example "5 years") and it is written into the plain-English sentence under the answer. The row of 100 dots shows what the numbers mean for 100 people: how many have the event either way, and how many are helped (green) or harmed (orange).
+7. Under **For a different baseline risk**, type the risk without treatment for the person or group you care about, or drag the slider. The chart shows how the NNT falls as the baseline risk rises, and **Show the working** lists each step with your numbers.
 
 ## The formulas
 

@@ -33,7 +33,8 @@ For distances and ages at that redshift, use the [[cosmology-calculator]]; to ma
 1. Choose what you know: the **redshift**, a **velocity**, or where you measured a line, as a **wavelength** or a **frequency**.
 2. For a velocity, choose the **convention** it was quoted in. Catalogues of galaxies usually give cz; radio surveys give radio velocities.
 3. For a line, type the observed value, pick its unit and pick the line. Choose "Another line" to type any rest value in the same unit.
-4. Read the results, the table of where every common line falls, and the chart comparing the conventions.
+4. Drag the **redshift slider** (0 to 10) for a quick feel, or open **More options** to switch the cosmology between Planck 2018, WMAP 9-year and round numbers (H₀ 70, Ωm 0.3), and to turn any wavelength into its observed or rest value at this redshift. Besides the recession velocity and light-travel time, the results give the luminosity distance, the angular size distance with its scale in kpc per arcsecond, and the age of the universe when the light left. A plain sentence under the headline sums it up.
+5. Read the results, the table of where every common line falls, and the chart comparing the conventions.
 
 ## The three conventions
 

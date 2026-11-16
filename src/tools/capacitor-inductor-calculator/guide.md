@@ -5,13 +5,13 @@ shelf: science
 code: T646
 section: electromagnetism
 title: "Capacitor inductor calculator"
-summary: "Work out the capacitance or inductance of parallel plates (with one or two dielectric layers), coaxial cable, spheres, twin wires, a wire over a ground plane, solenoids and toroids. Get the charge, stored energy, fields, characteristic impedance and signal speed too."
+summary: "Work out the capacitance or inductance of parallel plates (with one or two dielectric layers), coaxial cable, spheres, twin wires, a wire over a ground plane, solenoids and toroids. Get the charge, stored energy, fields, characteristic impedance and signal speed too. Also the RC and RL time constant, with capacitor charge and discharge time and the curve."
 status: live
 ads: true
 order: 3
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [field-line-plotter, coil-field-designer, link-budget-calculator, skin-depth-calculator, magnetic-circuit, electrostatics-solver, circuit-simulator, filter-designer]
 sources:
   - "Capacitance and inductance of parallel plates, coaxial and twin lines, concentric spheres, a wire over a plane, solenoids and toroids: standard results, for example Griffiths, D. J., Introduction to Electrodynamics, and Ramo, Whinnery and Van Duzer, Fields and Waves in Communication Electronics."
@@ -38,6 +38,17 @@ Capacitance and inductance depend only on the shape and size of the conductors a
 For capacitors it also gives the charge and energy at a voltage and the strongest electric field, and warns when that field would break down air (roughly 3 kV/mm). For inductors it gives the energy, flux linkage and flux density at a current, and warns when a core would be near saturation.
 
 Try the part in a working circuit with the [[circuit-simulator]] or the [[filter-designer]], and check high-frequency losses with the [[skin-depth-calculator]].
+
+## Charge and discharge time (RC and RL)
+
+Pick **Capacitor and resistor (RC time constant)** or **Inductor and resistor (RL time constant)** in the first list for the questions people ask about timing:
+
+- The **time constant** τ (R × C, or L ÷ R), and the time to reach 50 %, 90 % and 99 % of the final value, and 5 τ ("fully charged").
+- The **time to charge** a capacitor to a target voltage (or for a coil's current to reach a target), and the time to **discharge** it from the supply voltage to that voltage.
+- The **voltage or current after a time you choose**, with a chart of the charging and discharging curves.
+- A reminder that switching a coil off quickly makes a voltage spike, so relays and solenoids need a diode.
+
+The formulas are the standard first-order results: charging follows 1 − e^(−t/τ), discharging follows e^(−t/τ). Leave the target or the time at 0 to skip it.
 
 ## How to use it
 
