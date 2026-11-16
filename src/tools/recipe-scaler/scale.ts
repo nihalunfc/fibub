@@ -47,6 +47,21 @@ const UNIT_SHOW = (u: string, v: number) => (u === 'cup' ? (v > 1 ? 'cups' : 'cu
 
 export type Scaled = { text: string; was?: string; changed: boolean };
 
+/** Factor to multiply by to go from `from` servings to `to` servings; NaN when either is missing or not above zero. */
+export function servingFactor(from: number, to: number): number {
+  return from > 0 && to > 0 && Number.isFinite(from) && Number.isFinite(to) ? to / from : NaN;
+}
+
+/** A short plain-English note about what a big or small scale-up does to the rest of the recipe. */
+export function scaleHint(k: number): string {
+  if (!(k > 0) || !Number.isFinite(k)) return '';
+  if (k > 1000) return 'That is a very large factor. Check the number.';
+  if (Math.abs(k - 1) < 0.001) return 'Same size as the original: nothing changes.';
+  if (k >= 2.5) return 'A big batch: add salt, spices and strong flavours a little at a time and taste, and expect baking and simmering times to change. A bigger pan may be needed.';
+  if (k <= 0.4) return 'A small batch: cooking times are usually shorter, so check early. Use a smaller pan or dish.';
+  return 'Check the pan or dish still fits the new amount, and look at the baking time a little early or late.';
+}
+
 export function scaleLine(line: string, k: number, toMetric = false): Scaled {
   const m = line.match(LINE);
   if (!m || line.trim() === '') return { text: line, changed: false };

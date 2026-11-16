@@ -24,9 +24,18 @@
     <label>Doors and windows to leave out (total width) <span data-u="len"></span><input data-k="open" inputmode="decimal" /></label>
   </section>
   <section class="panel">
+    <details class="wpc-more">
+      <summary>More options: price and sketch</summary>
+      <div class="wpc-grid">
+        <label>Price per roll (any currency)<input data-k="price" inputmode="decimal" placeholder="optional" /></label>
+        <label class="wpc-check"><input type="checkbox" data-k="spare" checked /> Include one spare roll in the cost</label>
+      </div>
+    </details>
     <p class="wpc-big" aria-live="polite"></p>
     <p class="wpc-spare" aria-live="polite"></p>
+    <p class="wpc-cost" aria-live="polite"></p>
     <ul class="wpc-lines"></ul>
+    <div class="wpc-sk" aria-label="Scaled sketch of the strips"></div>
     <button type="button" class="wpc-btn wpc-reset">Reset to the example</button>
   </section>
   <p class="wpc-fine">Roll sizes differ by brand: check the label. Nothing you type leaves this page.</p>
@@ -47,10 +56,15 @@
   .wpc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
   .wpc-spare { margin: 0; font-weight: 600; }
   .wpc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .wpc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .wpc .wpc-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .wpc-cost { margin: 0; font-weight: 600; }
+  .wpc-sk { max-width: 420px; }
   .wpc-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, stripSketch } from '../../lib/build-calc';
   const root = document.querySelector('.wpc') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
@@ -74,6 +88,7 @@
     (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
     list.append(row);
   };
+  const costEl = $('.wpc-cost'), sk = $('.wpc-sk');
   const big = $('.wpc-big'), spare = $('.wpc-spare'), lines = $('.wpc-lines');
   function calc() {
     const u = k('units').value, un = U[u];
@@ -83,7 +98,7 @@
     let W = 0; list.querySelectorAll('.wpc-w').forEach((i) => { W += num((i as HTMLInputElement).value); });
     const h = num(k('h').value), rw = num(k('rw').value) / small, rl = num(k('rl').value);
     const rep = num(k('rep').value || '0') / small, trim = num(k('trim').value || '0') / small, open = num(k('open').value || '0');
-    const fail = (m: string) => { big.textContent = ''; spare.textContent = m; lines.innerHTML = ''; };
+    const fail = (m: string) => { costEl.textContent = ''; sk.innerHTML = ''; big.textContent = ''; spare.textContent = m; lines.innerHTML = ''; };
     if (![W, h, rw, rl, rep, trim, open].every(Number.isFinite) || W <= 0 || h <= 0 || rw <= 0 || rl <= 0 || rep < 0 || trim < 0 || open < 0) return fail('Type the sizes above (numbers above zero).');
     const width = Math.max(0, W - open);
     const strips = Math.ceil(width / rw - 1e-9);
@@ -94,6 +109,9 @@
     const rolls = Math.ceil(strips / per - 1e-9);
     big.textContent = `${rolls} roll${rolls === 1 ? '' : 's'}`;
     spare.textContent = `Buy ${rolls + 1} to keep one spare from the same batch number.`;
+    const price = pnum(k('price').value), buy = rolls + (k('spare').checked ? 1 : 0), cost = costOf(buy, price);
+    costEl.textContent = cost !== null ? `Estimated cost: ${money(cost)} (${buy} roll${buy === 1 ? '' : 's'} × ${money(price)}${k('spare').checked ? ', spare included' : ''}). Paste, tax and delivery not included.` : '';
+    sk.innerHTML = stripSketch(width, h, strips, `${f(width, 2)} ${un.l} of wall`, `${f(h, 2)} ${un.l}`);
     const li = [
       `Walls ${f(W, 2)} ${un.l} wide${open > 0 ? `, minus ${f(open, 2)} ${un.l} of doors and windows = ${f(width, 2)} ${un.l}` : ''}.`,
       `${f(width, 2)} ${un.l} ÷ roll width ${f(rw * small, 2)} ${un.s} = ${f(width / rw, 2)}, rounded up to ${strips} strips.`,
@@ -110,9 +128,9 @@
     calc();
   };
   k('units').addEventListener('change', () => load(k('units').value));
-  k('match').addEventListener('change', calc);
-  for (const key of ['h', 'rw', 'rl', 'rep', 'trim', 'open']) k(key).addEventListener('input', calc);
+  k('match').addEventListener('change', calc); k('spare').addEventListener('change', calc);
+  for (const key of ['h', 'rw', 'rl', 'rep', 'trim', 'open', 'price']) k(key).addEventListener('input', calc);
   $('.wpc-add').addEventListener('click', () => { addWall(); calc(); });
-  $('.wpc-reset').addEventListener('click', () => { k('units').value = 'm'; load('m'); });
+  $('.wpc-reset').addEventListener('click', () => { k('price').value = ''; k('spare').checked = true; k('units').value = 'm'; load('m'); });
   load('m');
 </script>

@@ -47,6 +47,7 @@
         <input data-k="floor" inputmode="numeric" value="1500" />
       </label>
     </div>
+    <p class="cc-big" aria-live="polite"></p>
     <dl class="cc-facts">
       <div><dt>BMR (at rest)</dt><dd class="cc-bmr"></dd></div>
       <div><dt>To keep your weight</dt><dd class="cc-tdee"></dd></div>
@@ -54,6 +55,27 @@
     </dl>
     <p class="cc-warn" role="status"></p>
     <p class="cc-say"></p>
+    <details class="cc-more">
+      <summary>More options</summary>
+      <div class="cc-fields">
+        <label>Formula for BMR
+          <select data-k="eq">
+            <option value="mj" selected>Mifflin-St Jeor (1990)</option>
+            <option value="hb">Revised Harris-Benedict (1984)</option>
+            <option value="km">Katch-McArdle (needs body fat)</option>
+          </select>
+        </label>
+        <label data-eq="km">Body fat (%)
+          <input data-k="bf" inputmode="decimal" value="20" />
+        </label>
+        <label>Goal weight (<span class="cc-wu">kg</span>), optional
+          <input data-k="gw" inputmode="decimal" value="" placeholder="e.g. 72" />
+        </label>
+      </div>
+      <p class="cc-weeks" aria-live="polite"></p>
+      <h3>Split the day into meals</h3>
+      <div class="cc-scroll"><table class="cc-meals"><thead><tr><th>Meal</th><th>Share</th><th>kcal</th></tr></thead><tbody></tbody></table></div>
+    </details>
   </section>
 
   <section class="panel">
@@ -69,7 +91,7 @@
         <input data-k="fat" inputmode="decimal" value="30" />
       </label>
     </div>
-    <div class="cc-scroll"><table><thead><tr><th></th><th>Grams a day</th><th>kcal</th><th>% of calories</th></tr></thead><tbody></tbody></table></div>
+    <div class="cc-scroll"><table class="cc-macros"><thead><tr><th></th><th>Grams a day</th><th>kcal</th><th>% of calories</th></tr></thead><tbody></tbody></table></div>
     <p class="cc-fine">Protein and carbs have about 4 kcal per gram, fat about 9. Carbs get whatever is left.</p>
   </section>
   <button type="button" class="cc-reset">Reset</button>
@@ -90,6 +112,13 @@
   .cc-facts dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; overflow-wrap: anywhere; }
   .cc-warn { margin: 6px 0; color: var(--warn); font-size: 14.5px; }
   .cc-warn:empty { display: none; }
+  .cc-big { font-size: 20px; font-weight: 700; margin: 14px 0 0; overflow-wrap: anywhere; }
+  .cc-more { margin-top: 12px; }
+  .cc-more h3 { margin-top: 14px; }
+  .cc-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .cc label[hidden] { display: none; }
+  .cc-weeks { margin: 10px 0; color: var(--muted); font-size: 15px; }
+  .cc-weeks:empty { display: none; }
   .cc-say { margin: 0; color: var(--muted); font-size: 15px; }
   .cc-scroll { overflow-x: auto; margin-top: 12px; }
   .cc table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
@@ -100,11 +129,11 @@
 </style>
 
 <script>
+  import { bmrMifflin, bmrHarris, bmrKatch, weeksToGoal, mealSplit, LB, IN } from '../../lib/everyday/body';
   const root = document.querySelector('.cc') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const q = (c: string) => root.querySelector(c) as HTMLElement;
-  const IN = 2.54, LB = 0.45359237;
-  const DEF: Record<string, string> = { sys: 'm', sex: 'm', age: '30', wt: '80', ht: '180', act: '1.55', fac: '1.55', goal: '0', kcalkg: '7700', floor: '1500', pm: 'gkg', pv: '1.6', fat: '30' };
+  const DEF: Record<string, string> = { sys: 'm', sex: 'm', age: '30', wt: '80', ht: '180', act: '1.55', fac: '1.55', goal: '0', kcalkg: '7700', floor: '1500', pm: 'gkg', pv: '1.6', fat: '30', eq: 'mj', bf: '20', gw: '' };
   const FLOOR: Record<string, string> = { m: '1500', f: '1200' };
   const k0 = (v: number) => Math.round(v).toLocaleString('en-US');
   let sys = 'm';
@@ -112,13 +141,15 @@
     const imp = el('sys').value === 'i', sex = el('sex').value;
     root.querySelectorAll('.cc-wu').forEach((s) => (s.textContent = imp ? 'lb' : 'kg'));
     root.querySelectorAll('.cc-hu').forEach((s) => (s.textContent = imp ? 'in' : 'cm'));
+    root.querySelectorAll('[data-eq]').forEach((l) => ((l as HTMLElement).hidden = (l as HTMLElement).dataset.eq !== el('eq').value));
     q('.cc-pu').textContent = el('pm').value === 'gkg' ? 'g per kg' : '% of calories';
     const age = parseFloat(el('age').value), kg = parseFloat(el('wt').value) * (imp ? LB : 1), cm = parseFloat(el('ht').value) * (imp ? IN : 1);
     const fac = parseFloat(el('fac').value), rate = parseFloat(el('goal').value), kpk = parseFloat(el('kcalkg').value), floor = parseFloat(el('floor').value);
-    const tb = q('tbody'); tb.innerHTML = '';
-    if (!(age > 0 && kg > 0 && cm > 0 && fac > 0 && kpk > 0)) { ['.cc-bmr', '.cc-tdee', '.cc-goal'].forEach((c) => (q(c).textContent = '–')); q('.cc-warn').textContent = ''; q('.cc-say').textContent = 'Type your age, weight, height and an activity factor.'; return; }
-    // Mifflin-St Jeor (1990)
-    const bmr = 10 * kg + 6.25 * cm - 5 * age + (sex === 'm' ? 5 : -161);
+    const tb = q('.cc-macros tbody'); tb.innerHTML = ''; q('.cc-meals tbody').innerHTML = '';
+    const eq = el('eq').value, bf = parseFloat(el('bf').value);
+    const bad = !(age > 0 && kg > 0 && cm > 0 && fac > 0 && kpk > 0) || (eq === 'km' && !(bf >= 0 && bf < 100));
+    if (bad) { ['.cc-bmr', '.cc-tdee', '.cc-goal'].forEach((c) => (q(c).textContent = '–')); q('.cc-warn').textContent = ''; q('.cc-weeks').textContent = ''; q('.cc-big').textContent = ''; q('.cc-say').textContent = eq === 'km' ? 'Type your age, weight, height, body fat (0 to 99) and an activity factor.' : 'Type your age, weight, height and an activity factor.'; return; }
+    const bmr = eq === 'km' ? bmrKatch(kg, bf) : eq === 'hb' ? bmrHarris(kg, cm, age, sex as 'm' | 'f') : bmrMifflin(kg, cm, age, sex as 'm' | 'f');
     const tdee = bmr * fac, adj = (rate * kpk) / 7, target = tdee + adj;
     q('.cc-bmr').textContent = `${k0(bmr)} kcal`;
     q('.cc-tdee').textContent = `${k0(tdee)} kcal`;
@@ -126,7 +157,14 @@
     const warn: string[] = [];
     if (floor > 0 && target < floor) warn.push(`This target is below ${k0(floor)} kcal a day. Eating this little is hard to get enough nutrients from; check with a doctor or dietitian first.`);
     if (age < 18) warn.push('The formula is for adults.');
-    q('.cc-say').textContent = `BMR = 10 × ${+kg.toFixed(1)} kg + 6.25 × ${+cm.toFixed(1)} cm − 5 × ${age} ${sex === 'm' ? '+ 5' : '− 161'} = ${k0(bmr)} kcal. Times ${fac} for activity = ${k0(tdee)} kcal.` + (rate ? ` ${rate < 0 ? 'Less' : 'Plus'} ${k0(Math.abs(adj))} kcal a day for ${Math.abs(rate)} kg a week (about ${k0(kpk)} kcal per kg, approximate).` : '');
+    const how = eq === 'km' ? `BMR = 370 + 21.6 × ${+(kg * (1 - bf / 100)).toFixed(1)} kg lean mass = ${k0(bmr)} kcal.` : eq === 'hb' ? `BMR (revised Harris-Benedict) = ${k0(bmr)} kcal.` : `BMR = 10 × ${+kg.toFixed(1)} kg + 6.25 × ${+cm.toFixed(1)} cm − 5 × ${age} ${sex === 'm' ? '+ 5' : '− 161'} = ${k0(bmr)} kcal.`;
+    q('.cc-big').textContent = `About ${k0(target)} kcal a day${rate < 0 ? ' to lose weight' : rate > 0 ? ' to gain weight' : ' to keep your weight'}.`;
+    const gw = parseFloat(el('gw').value) * (imp ? LB : 1), wk = gw > 0 ? weeksToGoal(kg, gw, rate) : NaN;
+    q('.cc-weeks').textContent = !(gw > 0) ? '' : gw === kg ? 'You are already at your goal weight.' : Number.isFinite(wk) ? `About ${Math.ceil(wk)} weeks to reach ${imp ? +(gw / LB).toFixed(1) + ' lb' : +gw.toFixed(1) + ' kg'} at this rate (${+wk.toFixed(1)} weeks; real progress is uneven).` : 'Pick a goal above that moves your weight toward the goal weight.';
+    const MEALS: [string, number][] = [['Breakfast', 25], ['Lunch', 30], ['Dinner', 30], ['Snacks', 15]];
+    const mk = mealSplit(target, MEALS.map((m) => m[1]));
+    MEALS.forEach(([name, sh], i) => { const tr = document.createElement('tr'); tr.dataset.meal = name; for (const c of [name, `${sh}%`, k0(mk[i])]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); } q('.cc-meals tbody').append(tr); });
+    q('.cc-say').textContent = `${how} Times ${fac} for activity = ${k0(tdee)} kcal.` + (rate ? ` ${rate < 0 ? 'Less' : 'Plus'} ${k0(Math.abs(adj))} kcal a day for ${Math.abs(rate)} kg a week (about ${k0(kpk)} kcal per kg, approximate).` : '');
     // macros
     const pv = parseFloat(el('pv').value), fatPct = parseFloat(el('fat').value);
     const pk = el('pm').value === 'gkg' ? pv * kg * 4 : (target * pv) / 100, fk = (target * fatPct) / 100, ck = target - pk - fk;
@@ -145,6 +183,7 @@
   el('sys').addEventListener('change', () => {
     const s = el('sys').value; if (s === sys) return; const toI = s === 'i';
     const w = parseFloat(el('wt').value); if (w > 0) el('wt').value = String(+(toI ? w / LB : w * LB).toFixed(1));
+    const g = parseFloat(el('gw').value); if (g > 0) el('gw').value = String(+(toI ? g / LB : g * LB).toFixed(1));
     const h = parseFloat(el('ht').value); if (h > 0) el('ht').value = String(+(toI ? h / IN : h * IN).toFixed(1));
     sys = s; calc();
   });

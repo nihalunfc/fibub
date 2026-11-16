@@ -27,19 +27,36 @@
           <option value="-10">Good (−10%)</option>
         </select>
       </label>
-      <label>People who usually use the room <input data-k="ppl" inputmode="numeric" value="2" /></label>
-      <label>BTU/h for each person over 2 <input data-k="pp" inputmode="decimal" value="600" /></label>
-      <label class="ac-ck"><input type="checkbox" data-k="kit" /> The room is a kitchen</label>
-      <label>BTU/h added for a kitchen <input data-k="kb" inputmode="decimal" value="4000" /></label>
     </div>
+    <details class="ac-more">
+      <summary>More options: people, kitchen, room length and width, running cost</summary>
+      <div class="ac-row">
+        <label><span class="ac-ll">Room length (ft)</span> <input data-k="len" inputmode="decimal" placeholder="Optional" /></label>
+        <label><span class="ac-wl">Room width (ft)</span> <input data-k="wid" inputmode="decimal" placeholder="Optional" /></label>
+        <label>People who usually use the room <input data-k="ppl" inputmode="numeric" value="2" /></label>
+        <label>BTU/h for each person over 2 <input data-k="pp" inputmode="decimal" value="600" /></label>
+        <label class="ac-ck"><input type="checkbox" data-k="kit" /> The room is a kitchen</label>
+        <label>BTU/h added for a kitchen <input data-k="kb" inputmode="decimal" value="4000" /></label>
+        <label>Efficiency (EER: BTU/h per watt, on the unit's label) <input data-k="eer" inputmode="decimal" value="10" /></label>
+        <label>Hours it runs per day <input data-k="hrs" inputmode="decimal" value="8" /></label>
+        <label>Electricity price per kWh (your currency) <input data-k="price" inputmode="decimal" placeholder="Optional" /></label>
+      </div>
+      <p class="ac-small">Length times width fills in the area for you. Running cost is an upper estimate: it assumes the unit runs flat out for all those hours, and real units cycle on and off.</p>
+    </details>
   </section>
   <section class="panel ac-res" aria-live="polite">
     <p class="ac-band"></p>
     <p class="ac-big ac-need"></p>
     <p class="ac-conv"></p>
     <p class="ac-unit"></p>
+    <ul class="ac-sizes" aria-label="Common unit sizes, BTU per hour"></ul>
     <p class="ac-say"></p>
+    <p class="ac-cost"></p>
   </section>
+  <details class="panel ac-tbl-d">
+    <summary>ENERGY STAR sizing chart (room area to cooling needed)</summary>
+    <table class="ac-tbl"><thead><tr><th>Room area</th><th>BTU/h</th></tr></thead><tbody></tbody></table>
+  </details>
   <section class="panel">
     <h3>Heating: rough size</h3>
     <div class="ac-row">
@@ -66,45 +83,68 @@
   .ac-say { color: var(--muted); font-size: 14px; }
   .ac button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
   .ac-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .ac-small { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .ac-more { margin-top: 12px; }
+  .ac-more summary, .ac-tbl-d summary { cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+  .ac-sizes { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; padding: 0; list-style: none; }
+  .ac-sizes li { font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+  .ac-sizes li.lt { text-decoration: line-through; opacity: 0.7; }
+  .ac-sizes li.pick { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 700; }
+  .ac-cost { margin: 8px 0 0; font-size: 15px; }
+  .ac-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ac-tbl th, .ac-tbl td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .ac-tbl tr.now td { font-weight: 700; background: var(--accent-soft); }
 </style>
 
 <script>
+  import { BANDS, UNITS, SQFT, FT, BTU_W, bandIndex, unitsAround, runCost } from '../../lib/everyday/accalc';
   const root = document.querySelector('.ac') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const out = (c: string) => root.querySelector('.' + c) as HTMLElement;
   const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
-  const SQFT = 0.09290304, FT = 0.3048, BTU_W = 3.41214;
-  // ENERGY STAR room AC sizing chart: [upper limit in sq ft, BTU/h]. Each band runs from the previous limit (first from 100).
-  const BANDS: [number, number][] = [[150, 5000], [250, 6000], [300, 7000], [350, 8000], [400, 9000], [450, 10000], [550, 12000], [700, 14000], [1000, 18000], [1200, 21000], [1400, 23000], [1500, 24000], [2000, 30000], [2500, 34000]];
-  const UNITS = [5000, 6000, 8000, 10000, 12000, 14000, 18000, 24000];
   const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+  const bandText = (i: number) => `${i ? n(BANDS[i - 1][0], 0) : '100'} to ${n(BANDS[i][0], 0)} sq ft`;
+
+  // The chart as a table, built once; the row that matches the room is highlighted.
+  const tb = root.querySelector('.ac-tbl tbody') as HTMLElement;
+  tb.innerHTML = '';
+  BANDS.forEach(([, btu], i) => { const tr = document.createElement('tr'); for (const c of [i === 0 ? 'up to 150 sq ft' : bandText(i), n(btu, 0)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); } tb.append(tr); });
+  const mark = (i: number) => root.querySelectorAll('.ac-tbl tbody tr').forEach((r, j) => r.classList.toggle('now', j === i));
 
   const calc = () => {
     const ft = el('units').value === 'ft';
     const a = num(el('area').value), h = num(el('h').value);
     const sqft = ft ? a : a / SQFT, hFt = ft ? h : h / FT, m2 = ft ? a * SQFT : a;
-    const clear = (m: string) => { for (const c of ['ac-band', 'ac-need', 'ac-conv', 'ac-unit', 'ac-heat']) out(c).textContent = ''; out('ac-say').textContent = m; };
-    if (!Number.isFinite(sqft) || sqft <= 0) return clear('Type the room area.');
-    const i = BANDS.findIndex(([top]) => sqft <= top + 1e-9);
+    const clear = (m: string) => { for (const c of ['ac-band', 'ac-need', 'ac-conv', 'ac-unit', 'ac-heat', 'ac-cost']) out(c).textContent = ''; out('ac-sizes').innerHTML = ''; mark(-1); out('ac-say').textContent = m; };
+    if (!Number.isFinite(sqft) || sqft <= 0) return clear('Type the room area (a number more than 0).');
+    const i = bandIndex(sqft);
     if (i < 0) { clear(`${n(sqft, 0)} sq ft is beyond the ENERGY STAR room air conditioner chart (up to 2,500 sq ft). A space this big needs a proper load calculation by a professional.`); }
     else {
-      const [top, base] = BANDS[i], lo = i ? BANDS[i - 1][0] : 100;
-      out('ac-band').textContent = `ENERGY STAR chart: ${sqft < 100 ? 'up to 150' : `${n(lo, 0)} to ${n(top, 0)}`} sq ft → ${n(base, 0)} BTU/h`;
+      const [, base] = BANDS[i];
+      mark(i);
+      out('ac-band').textContent = `ENERGY STAR chart: ${sqft < 100 ? 'up to 150 sq ft' : bandText(i)} → ${n(base, 0)} BTU/h`;
       const hf = Number.isFinite(hFt) && hFt > 8 ? hFt / 8 : 1;
       const pct = (1 + +el('sun').value / 100) * (1 + +el('ins').value / 100);
-      const ppl = Math.max(0, (num(el('ppl').value) || 0) - 2), pp = num(el('pp').value) || 0;
-      const kit = el('kit').checked ? num(el('kb').value) || 0 : 0;
+      const ppl = Math.max(0, (num(el('ppl').value) || 0) - 2), pp = Math.max(0, num(el('pp').value) || 0);
+      const kit = el('kit').checked ? Math.max(0, num(el('kb').value) || 0) : 0;
       const need = Math.round(base * hf * pct + ppl * pp + kit);
       out('ac-need').textContent = `About ${n(need, 0)} BTU/h`;
       out('ac-conv').textContent = `= ${n(need / BTU_W / 1000, 2)} kW · ${n(need / 12000, 2)} tons of cooling`;
-      const unit = UNITS.find((u) => u >= need);
-      out('ac-unit').textContent = unit ? `Next common unit size: ${n(unit, 0)} BTU/h` : 'More than the largest common room unit (24,000 BTU/h): consider two units or a split system, and ask an installer.';
+      const { down, up } = unitsAround(need);
+      out('ac-unit').textContent = up ? `Next common unit size: ${n(up, 0)} BTU/h` + (down ? ` (the size below, ${n(down, 0)}, is ${n(((need - down) / need) * 100, 0)}% short)` : '') : 'More than the largest common room unit (24,000 BTU/h): consider two units or a split system, and ask an installer.';
+      const ul = out('ac-sizes'); ul.innerHTML = '';
+      for (const u of UNITS) { const li = document.createElement('li'); li.textContent = n(u, 0); if (u < need) li.className = 'lt'; else if (u === up) li.className = 'pick'; ul.append(li); }
       const parts = [`${n(base, 0)} BTU/h from the chart`];
       if (hf > 1) parts.push(`× ${n(hf, 3)} for a ${n(hFt, 2)} ft ceiling`);
       if (pct !== 1) parts.push(`× ${n(pct, 2)} for sun and insulation`);
       if (ppl && pp) parts.push(`+ ${n(ppl * pp, 0)} for ${n(ppl, 0)} extra ${ppl === 1 ? 'person' : 'people'}`);
       if (kit) parts.push(`+ ${n(kit, 0)} for a kitchen`);
       out('ac-say').textContent = parts.join(' ') + '. A unit far too big cools in short bursts and leaves the room damp; too small runs all the time.';
+      // Running cost, only when a price is typed.
+      const eer = num(el('eer').value), hrs = num(el('hrs').value), price = num(el('price').value), u = up || need;
+      out('ac-cost').textContent = !(price > 0) ? ''
+        : !(eer > 0) || !(hrs >= 0) || hrs > 24 ? 'Running cost: type an efficiency (EER) above 0 and hours between 0 and 24.'
+        : (() => { const c = runCost(u, eer, hrs, price); return `If a ${n(u, 0)} BTU/h unit ran flat out for ${n(hrs, 1)} hours a day: about ${n(c.kw, 2)} kW, ${n(c.kwhDay, 1)} kWh a day, ${n(c.costDay, 2)} a day or ${n(c.costMonth, 0)} a month (30 days). Real use is lower.`; })();
     }
     const wm = num(el('wm').value);
     if (!Number.isFinite(wm) || wm <= 0) { out('ac-heat').textContent = 'Type watts per m² to see a heating size.'; return; }
@@ -112,21 +152,30 @@
     out('ac-heat').textContent = `${n(m2, 1)} m² × ${n(wm)} W/m² = about ${n(w / 1000, 2)} kW (${n(w * BTU_W, 0)} BTU/h) of heating.`;
   };
 
+  const labels = () => {
+    const ft = el('units').value === 'ft';
+    (root.querySelector('.ac-al') as HTMLElement).textContent = ft ? 'Room area (sq ft)' : 'Room area (m²)';
+    (root.querySelector('.ac-hl') as HTMLElement).textContent = ft ? 'Ceiling height (ft)' : 'Ceiling height (m)';
+    (root.querySelector('.ac-ll') as HTMLElement).textContent = ft ? 'Room length (ft)' : 'Room length (m)';
+    (root.querySelector('.ac-wl') as HTMLElement).textContent = ft ? 'Room width (ft)' : 'Room width (m)';
+  };
   el('units').addEventListener('change', () => {
     const ft = el('units').value === 'ft', a = num(el('area').value), h = num(el('h').value);
     if (Number.isFinite(a)) el('area').value = String(+(ft ? a / SQFT : a * SQFT).toFixed(1));
     if (Number.isFinite(h)) el('h').value = String(+(ft ? h / FT : h * FT).toFixed(2));
-    (root.querySelector('.ac-al') as HTMLElement).textContent = ft ? 'Room area (sq ft)' : 'Room area (m²)';
-    (root.querySelector('.ac-hl') as HTMLElement).textContent = ft ? 'Ceiling height (ft)' : 'Ceiling height (m)';
-    calc();
+    for (const k of ['len', 'wid']) { const v = num(el(k).value); if (Number.isFinite(v)) el(k).value = String(+(ft ? v / FT : v * FT).toFixed(2)); }
+    labels(); calc();
   });
-  for (const k of ['area', 'h', 'ppl', 'pp', 'kb', 'wm']) el(k).addEventListener('input', calc);
+  // Length and width, once both are typed, fill the area box.
+  const fromLW = () => { const l = num(el('len').value), w = num(el('wid').value); if (l > 0 && w > 0) { el('area').value = String(+(l * w).toFixed(1)); } calc(); };
+  for (const k of ['len', 'wid']) el(k).addEventListener('input', fromLW);
+  for (const k of ['area', 'h', 'ppl', 'pp', 'kb', 'wm', 'eer', 'hrs', 'price']) el(k).addEventListener('input', calc);
   for (const k of ['sun', 'ins', 'kit']) el(k).addEventListener('change', calc);
   (root.querySelector('.ac-reset') as HTMLElement).addEventListener('click', () => {
     el('units').value = 'ft'; el('area').value = '300'; el('h').value = '8'; el('sun').value = '0'; el('ins').value = '0';
     el('ppl').value = '2'; el('pp').value = '600'; el('kit').checked = false; el('kb').value = '4000'; el('wm').value = '100';
-    (root.querySelector('.ac-al') as HTMLElement).textContent = 'Room area (sq ft)'; (root.querySelector('.ac-hl') as HTMLElement).textContent = 'Ceiling height (ft)';
-    calc();
+    el('len').value = ''; el('wid').value = ''; el('eer').value = '10'; el('hrs').value = '8'; el('price').value = '';
+    labels(); calc();
   });
-  calc();
+  labels(); calc();
 </script>

@@ -33,8 +33,9 @@ The default limits come from the 2021 International Residential Code (R311.7). C
 
 1. Choose Imperial (inches) or Metric (millimetres). Switching converts what you typed and loads that system's default limits.
 2. Measure the total rise from the finished lower floor to the finished upper floor.
-3. Type a target riser height and a tread depth. If the run is fixed, type the total run instead.
-4. Read the results and the checks. **Reset example** brings the example back; **Clear** empties the sizes.
+3. Type a target riser height (or drag the slider under the boxes) and a tread depth. If the run is fixed, type the total run instead. Lengths can be typed the way you say them: 108, 6 3/4, 9' 6" or 9 ft 6 in.
+4. Read the results, the side-view picture and the checks. Under them is a shopping list, and a folding table of the height of every riser for marking the stringer.
+5. Under More options you can set the number of risers yourself, plus the stair width and stringer spacing. **Reset example** brings the example back; **Clear** empties the sizes.
 
 ## What each setting does
 
@@ -43,6 +44,9 @@ The default limits come from the 2021 International Residential Code (R311.7). C
 - **Tread depth**: used when the total run is left blank. There is one tread fewer than risers, because the top floor is the last step.
 - **Total run (optional)**: when space is fixed, the tread becomes run ÷ treads.
 - **Headroom you have (optional)**: checked against the least headroom.
+- **Slider**: moves the target riser height between 5 and 8.5 in (125 to 215 mm); the number of risers and the picture follow at once.
+- **Number of risers (optional)**: if you already know how many steps you want, type it and the rise is split evenly across them. A friendly message appears if it is not a whole number from 1 to 200.
+- **Stair width and stringer spacing**: give the shopping list its stringer count: one at each edge and one every spacing (16 in or 400 mm is a common spacing, not a code rule: ask your tread supplier).
 - **Limits**: highest riser, shallowest tread, least headroom and the 2R + T comfort range, all editable.
 
 ## Worked example

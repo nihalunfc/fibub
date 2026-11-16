@@ -36,8 +36,13 @@ It reads whole numbers, decimals, fractions such as 2 1/2 or 1/3, the symbols ½
 ## What each setting does
 
 - **Servings**: the factor is the new servings divided by the old.
+- **Servings slider**: sits under the two serving boxes, runs from 1 to 24 and sets "I want to serve"; typing in the box moves it too.
 - **A factor**: multiply by any number; 2 doubles, 0.5 halves.
+- **Half, Double, Triple**: one-press shortcuts that switch to a factor of 0.5, 2 or 3.
 - **Change to grams or ml**: cups, spoons and fluid ounces become grams when the line names an ingredient the converter knows (flour, sugar, butter, milk, rice and about 40 more), otherwise ml; oz and lb become grams. US cups are assumed, and the old amount is shown in brackets.
+- **More options, show the original amount**: puts "(was 2 1/2 cups flour)" beside every changed line so you can check the sum.
+- **Print list**: prints just the scaled list, a plain shopping-style page you can save as PDF.
+- **Note under the list**: a one-line reminder that a very large or very small batch changes the pan, the time and how much salt and spice to add. It is general kitchen advice, not a calculation.
 - **Copy, Clear, Example**: copy the scaled list, empty the box, or bring back the example.
 
 Eggs cannot be split neatly, so a part egg gets a note: beat the eggs and weigh out the amount, counting about 50 g per large egg.

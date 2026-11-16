@@ -15,4 +15,17 @@ export default async ({ page, check, BASE }) => {
   check((await big()) === '3.26 L of paint', 'paint: wall-by-wall example matches the room');
   await page.selectOption(R + '[data-k="units"]', 'ft'); await page.waitForTimeout(150);
   check((await big()).includes('US gal'), `paint: imperial in US gallons (${await big()})`);
+  // More options: rooms, cost, sketch.
+  await page.goto(`${BASE}/everyday/paint-calculator/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '[data-k="price"]', '3'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.pnt-cost')).includes('22.50'), `paint: 7.5 L of tins x 3 = 22.50 (${await page.textContent(R + '.pnt-cost')})`);
+  check((await page.locator(R + '.pnt-sk svg').count()) === 1, 'paint: sketch of the 4 x 3.5 m room');
+  await page.fill(R + '[data-k="rooms"]', '2'); await page.waitForTimeout(100);
+  check((await big()) === '13.04 L of paint' && (await tins()) === 'Buy 3 × 5 L (15.00 L).', `paint: two rooms -> 13.04 L, 3 x 5 L (${await big()} / ${await tins()})`);
+  check((await page.textContent(R + '.pnt-cost')).includes('45.00'), 'paint: 15 L x 3 = 45.00');
+  await page.fill(R + '[data-k="rooms"]', '0'); await page.waitForTimeout(100);
+  check((await big()) === '6.52 L of paint', 'paint: 0 rooms is treated as 1');
+  await page.fill(R + '[data-k="price"]', ''); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.pnt-cost')).trim() === '', 'paint: blank price shows no cost');
 };
