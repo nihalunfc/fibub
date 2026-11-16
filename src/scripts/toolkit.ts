@@ -5,9 +5,11 @@
 // Documents pages are opt-in (an element with data-kit inside the tool) and share only settings: drop-downs,
 // numbers, sliders, ticks and choices, never typed text, dates or file contents.
 
-const SHELVES = ['money', 'everyday', 'vehicles', 'collecting', 'documents'];
+const SHELVES = ['money', 'everyday', 'vehicles', 'collecting', 'documents', 'science'];
 const shelf = document.documentElement.dataset.shelf || '';
 const DOCS = shelf === 'documents';
+// Science pages share only settings too (selects, sliders, ticks, choices and number boxes), never typed notes or data.
+const SCI = shelf === 'science';
 const DOC_TYPES = ['number', 'range', 'checkbox', 'radio'];
 const ui = document.querySelector<HTMLElement>('.tool-ui');
 
@@ -17,7 +19,7 @@ function fields(root: HTMLElement): Field[] {
   return [...root.querySelectorAll<Field>('input, select')].filter((f) => {
     if (f.closest('[data-nokit]')) return false;
     if (f instanceof HTMLInputElement && ['file', 'password', 'button', 'submit', 'reset', 'hidden', 'image'].includes(f.type)) return false;
-    if (DOCS && f instanceof HTMLInputElement && !DOC_TYPES.includes(f.type)) return false;
+    if ((DOCS || SCI) && f instanceof HTMLInputElement && !DOC_TYPES.includes(f.type) && !(SCI && f.type === 'text' && /^(decimal|numeric)$/.test(f.inputMode))) return false;
     return true;
   });
 }
