@@ -1,0 +1,184 @@
+---
+// #L381 Hang a picture or mirror. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+// Hook height maths: hookPosition in src/lib/learn/wall-fixings.ts, checked in tests/tools/hang-picture-mirror.mjs.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk hpm">
+  <CourseNav id="hang-picture-mirror" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Check for cables and pipes before you drill or hammer, and never in line with a switch or socket.</li>
+      <li>Large mirrors and glass are heavy and sharp when they break. Get a second person to lift and hold, and wear gloves.</li>
+      <li>Over a bed, sofa or cot, use strong fixings and D-rings or a cleat, never a single nail.</li>
+      <li>Use a sturdy step ladder, not a chair, for anything high up.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Tape measure</li><li>Pencil</li><li>Masking tape</li><li>Spirit level</li><li>Picture hooks, D-rings or a cleat</li><li>Fixings to suit the wall</li><li>Drill or hammer</li><li>Cable and pipe detector</li><li>A helper for big pieces</li></ul>
+  </div>
+  <div class="ax-card hpm-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A picture on a wall with its centre marked about 145 cm above the floor, at eye level" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 104h180" /><rect x="70" y="14" width="56" height="40" /><path class="hl" d="M98 34v70M92 34h12" stroke-dasharray="5 4" />
+          <circle cx="40" cy="30" r="7" /><path d="M40 37v36M40 73l-8 31M40 73l8 31M40 46l-10 16M40 46l10 16" />
+          <text x="150" y="70" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle">145 cm</text>
+        </svg>
+        <div class="sk-txt"><h3>Pick the height</h3><p>Hang most pictures with their centre at about 145 to 150 cm (57 to 60 in) above the floor: eye level for most people. Over a sofa or sideboard, leave a gap of 15 to 25 cm (6 to 10 in) above it instead.</p><p class="sk-tip">Cut paper to the frame size and tape it up first to see how it looks.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Three ways to hang: a single picture hook with wire, two D-rings, and a French cleat for a heavy mirror" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="30" width="50" height="60" /><path class="hl" d="M14 50l21-14 21 14" /><path d="M35 36v-12" />
+          <rect x="74" y="30" width="50" height="60" /><path class="hl" d="M80 40h10v8h-10zM108 40h10v8h-10z" />
+          <path d="M140 30h50v60h-50z" /><path class="hl" d="M140 34h44l-8 10h-36z" /><path d="M136 24h48v8" />
+        </svg>
+        <div class="sk-txt"><h3>Choose how it hangs</h3><p>A light frame can hang on wire over one picture hook. Heavier frames are steadier on two D-rings over two hooks or screws. A heavy mirror is safest on a French cleat: two strips with matching 45° edges, one on the wall and one on the frame.</p><p class="sk-tip">Two fixings share the weight and stop the picture tilting.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The back of a frame with the wire pulled up taut and the drop from the frame top to the wire measured" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="40" y="20" width="120" height="80" /><path d="M50 50l50-18 50 18" /><path class="hl" d="M100 32v-8" /><path class="hl" d="M172 20v12M168 20h8M168 32h8" stroke-width="2" />
+          <text x="186" y="30" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle">drop</text>
+        </svg>
+        <div class="sk-txt"><h3>Measure the drop</h3><p>Hook the wire with a finger or a ruler and pull it up taut, as a hook would. Measure from the top of the frame down to the top of the wire. For D-rings or a cleat, measure down to where they will rest on the hook or wall strip.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A sum: centre height plus half the picture height, minus the drop, equals the hook height" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <g font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle"><text x="100" y="34">centre + height ÷ 2</text><text x="100" y="58">− drop</text></g>
+          <path d="M40 68h120" /><text class="hl" x="100" y="92" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">= hook height</text>
+        </svg>
+        <div class="sk-txt"><h3>Work out the hook height</h3><p>Hook height = centre height + half the picture height − the drop. The calculator below does it for you, in cm or inches.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Masking tape on the wall with two pencil crosses and a spirit level resting along them" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="20" y="40" width="160" height="22" rx="2" stroke-width="1.5" /><path d="M56 45l10 12M66 45l-10 12M134 45l10 12M144 45l-10 12" />
+          <rect class="hl" x="30" y="66" width="140" height="18" rx="3" /><rect class="hl" x="90" y="70" width="20" height="10" rx="5" />
+        </svg>
+        <div class="sk-txt"><h3>Mark it on tape, level</h3><p>Put masking tape where the fixings go and mark the hook height. For two hooks, mark the second at the D-ring spacing and check with a spirit level that both are level. Scan both marks for cables and pipes.</p><p class="sk-tip">Tape also stops the plaster chipping when you drill.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A picture hook being tapped into the wall at an angle with a hammer" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M130 10v90" /><path class="hl" d="M118 40h12v20l-10 6M120 46l28 12" /><path d="M60 20l30 30M80 10l20 20-10 10-20-20z" />
+        </svg>
+        <div class="sk-txt"><h3>Fit the hook or fixings</h3><p>Fit the fixing that suits your wall and weight: picture hooks for light frames, plugs or anchors and screws for heavier ones. Put the hook so its bottom (where the wire sits) is on your mark.</p><p class="sk-tip">Not sure which fixing? Use the picker in the lesson before this one.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The picture hanging straight with a spirit level on top and small bumpers at the bottom corners" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="50" y="30" width="100" height="70" /><rect x="60" y="40" width="80" height="50" stroke-width="1.5" />
+          <rect class="hl" x="56" y="14" width="88" height="12" rx="3" /><circle class="hl" cx="100" cy="20" r="3" fill="currentColor" />
+          <circle cx="56" cy="104" r="3" fill="currentColor" /><circle cx="144" cy="104" r="3" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Hang it and level it</h3><p>Hang the picture, rest a spirit level on the top and nudge it until the bubble sits in the middle. Stick small felt or rubber bumpers on the bottom corners to stop it tilting and marking the wall.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card hpm-calc">
+    <h2>Hook height calculator</h2>
+    <div class="ax-grid">
+      <label>Hangs on <select class="hc-mode"><option value="wire" selected>Wire over one hook</option><option value="rings">Two D-rings</option><option value="cleat">French cleat</option></select></label>
+      <label>Units <select class="hc-unit"><option value="cm" selected>cm</option><option value="in">inches</option></select></label>
+      <label>Picture height <input class="hc-h" type="text" inputmode="decimal" value="60" /></label>
+      <label><span class="hc-droplab">Top of frame to taut wire</span> <input class="hc-drop" type="text" inputmode="decimal" value="10" /></label>
+      <label>Centre height from floor <input class="hc-c" type="text" inputmode="decimal" value="145" /></label>
+      <label class="hc-spbox" hidden>D-ring spacing (centre to centre) <input class="hc-sp" type="text" inputmode="decimal" value="40" /></label>
+      <label>Wall width (optional) <input class="hc-w" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Measure the frame's full height, top edge to bottom edge. The drop is measured from the top of the frame down to where it rests on the hook.</p>
+    <div aria-live="polite">
+      <p class="ax-big hc-out"></p>
+      <dl class="ax-facts"><div><dt>Top of frame</dt><dd class="hc-top"></dd></div><div><dt>Bottom of frame</dt><dd class="hc-bot"></dd></div><div class="hc-sidebox" hidden><dt class="hc-sidelab">Hook from left of wall</dt><dd class="hc-side"></dd></div></dl>
+    </div>
+  </div>
+  <div class="ax-card sk-label hpm-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="The back of a framed picture with wire, D-rings and a hook, a spirit level, a French cleat seen from the side, masking tape with marks and a bumper" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="frame" data-name="Frame" data-note="measure its full height, top edge to bottom edge."><rect x="14" y="44" width="150" height="120" /><rect x="24" y="54" width="130" height="100" stroke-width="1.5" /></g>
+      <g data-part="wire" data-name="Hanging wire" data-note="pulled taut up to the hook. Measure the drop from the frame top to here."><path d="M40 90l49-28 49 28" stroke-width="2" /></g>
+      <g data-part="rings" data-name="D-rings" data-note="screwed to the frame back. Two hooks at the same spacing keep it level."><path d="M32 82h10v14h-10zM34 82a6 6 0 0 1 6-8" /><path d="M136 82h10v14h-10zM138 82a6 6 0 0 1 6-8" /></g>
+      <g data-part="hook" data-name="Picture hook" data-note="its pin goes into the wall at an angle. The wire sits in its lowest point."><path d="M89 62v-28M83 30h12l-4 8h-4z" /><path d="M89 34l16-10" stroke-width="2" /></g>
+      <g data-part="bumper" data-name="Bumper" data-note="a felt or rubber pad that stops the frame tilting and marking the wall."><circle cx="24" cy="164" r="6" fill="currentColor" /></g>
+      <g data-part="level" data-name="Spirit level" data-note="the bubble sits between the lines when the edge is level."><rect x="190" y="18" width="120" height="20" rx="4" /><rect x="238" y="22" width="24" height="12" rx="6" /><path d="M245 22v12M255 22v12" stroke-width="1.5" /></g>
+      <g data-part="cleat" data-name="French cleat" data-note="two strips with 45° edges: one on the wall, one on the frame. Strong for heavy mirrors."><path d="M200 56v108M234 56v108" stroke-width="1.5" /><path d="M202 98l28-24v-14h-28z" /><path d="M202 104l28-24v44h-28z" /></g>
+      <g data-part="tape" data-name="Masking tape" data-note="mark fixing points on it; it also stops the plaster chipping."><rect x="252" y="140" width="60" height="20" rx="2" stroke-width="2" /><path d="M262 145l8 10M270 145l-8 10M292 145l8 10M300 145l-8 10" stroke-width="2" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order hpm-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The mirror or artwork is very large, heavy or valuable, or goes high up a stairwell.</li>
+      <li>The wall crumbles, the fixings will not hold, or you are not sure what is behind it.</li>
+      <li>You hit a cable or pipe: stop, switch off at the main switch or stop tap, and call an electrician or plumber.</li>
+    </ul>
+  </div>
+  <div class="ax-card hpm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .hpm .hc-out { margin: 12px 0 8px; }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  import { hookPosition } from '../../lib/learn/wall-fixings';
+  const root = document.querySelector('.hpm') as HTMLElement;
+  mountSteps(root.querySelector('.hpm-steps') as HTMLElement, 'hang-picture-mirror');
+  mountLabels(root.querySelector('.hpm-label') as HTMLElement);
+  mountOrder(root.querySelector('.hpm-order') as HTMLElement, ['Pick the centre height', 'Measure the drop to the wire', 'Work out the hook height', 'Mark it on masking tape', 'Scan for cables and pipes', 'Fit the hook', 'Hang it and level it']);
+
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as unknown as T;
+  const mode = $<HTMLSelectElement>('.hc-mode'), unit = $<HTMLSelectElement>('.hc-unit');
+  const hIn = $<HTMLInputElement>('.hc-h'), dIn = $<HTMLInputElement>('.hc-drop'), cIn = $<HTMLInputElement>('.hc-c'), sIn = $<HTMLInputElement>('.hc-sp'), wIn = $<HTMLInputElement>('.hc-w');
+  const num = (i: HTMLInputElement) => parseFloat(i.value.replace(',', '.'));
+  const fmt = (v: number) => `${Math.round(v * 10) / 10} ${unit.value}`;
+  const DROP = { wire: 'Top of frame to taut wire', rings: 'Top of frame to top of D-rings', cleat: 'Top of frame to top of cleat' };
+  let lastUnit = unit.value;
+  const run = () => {
+    const m = mode.value as keyof typeof DROP;
+    $<HTMLElement>('.hc-droplab').textContent = DROP[m];
+    $<HTMLElement>('.hc-spbox').hidden = m !== 'rings';
+    const h = num(hIn), d = num(dIn), c = num(cIn), sp = m === 'rings' ? num(sIn) : undefined, w = num(wIn);
+    const out = $<HTMLElement>('.hc-out');
+    if (!(h > 0) || !(d >= 0) || !(c > 0) || (m === 'rings' && !(sp! > 0))) { out.textContent = 'Fill in the sizes above.'; return; }
+    if (d > h) { out.textContent = 'The drop cannot be more than the picture height.'; return; }
+    const r = hookPosition({ height: h, drop: d, centre: c, spacing: sp, wall: w > 0 ? w : undefined });
+    out.textContent = `${m === 'rings' ? 'Hooks' : m === 'cleat' ? 'Top of wall cleat' : 'Hook'} at ${fmt(r.hook)} from the floor`;
+    $<HTMLElement>('.hc-top').textContent = fmt(r.top); $<HTMLElement>('.hc-bot').textContent = fmt(r.bottom);
+    const side = $<HTMLElement>('.hc-sidebox'); side.hidden = r.mid === undefined;
+    if (r.mid !== undefined) {
+      $<HTMLElement>('.hc-sidelab').textContent = r.hooks ? 'Hooks from left of wall' : m === 'cleat' ? 'Centre of cleat from left of wall' : 'Hook from left of wall';
+      $<HTMLElement>('.hc-side').textContent = r.hooks ? `${fmt(r.hooks[0])} and ${fmt(r.hooks[1])}` : fmt(r.mid);
+    }
+  };
+  unit.addEventListener('change', () => {
+    // Swap the example centre height with the units, and convert anything already typed.
+    const f = unit.value === 'in' ? 1 / 2.54 : 2.54;
+    if (lastUnit !== unit.value) [hIn, dIn, cIn, sIn, wIn].forEach((i) => { const v = num(i); if (v > 0) i.value = String(Math.round(v * f * 10) / 10); });
+    lastUnit = unit.value; run();
+  });
+  [mode].forEach((e) => e.addEventListener('change', run)); [hIn, dIn, cIn, sIn, wIn].forEach((i) => i.addEventListener('input', run));
+  run();
+
+  const bank = [
+    () => choice('About how high should the centre of a picture be?', '145 to 150 cm (57 to 60 in) from the floor', ['Level with the top of the door', '100 cm (39 in)'], 'That is about eye level for most adults, which is where galleries hang pictures.'),
+    () => choice('A 60 cm tall picture, drop 10 cm, centre at 145 cm. Hook height?', '165 cm', ['175 cm', '155 cm', '145 cm'], 'Top of frame = 145 + 30 = 175 cm. The hook is 10 cm lower: 175 − 10 = 165 cm.'),
+    () => choice('What is the "drop"?', 'From the top of the frame down to the wire pulled taut', ['From the floor to the frame', 'The frame width'], 'The wire sags until it rests on the hook, so measure it pulled up, as the hook will pull it.'),
+    () => choice('Which is safest for a heavy mirror?', 'A French cleat or two D-rings on strong fixings', ['One picture hook and wire', 'Sticky pads'], 'A cleat spreads the weight along a wide strip, and two fixings share the load and keep it level.'),
+    () => choice('Why use two hooks rather than one?', 'They share the weight and stop the picture tilting', ['It looks nicer from the side', 'One hook is never allowed'], 'With one hook the picture can swing off level; two hold it straight.'),
+    () => choice('Two D-rings are 40 cm apart. How far apart should the hooks be?', '40 cm', ['20 cm', '80 cm'], 'Each hook sits under its own D-ring, so the spacing is the same.'),
+    () => choice('Why put masking tape on the wall before marking?', 'You can mark on it easily and it stops plaster chipping', ['It makes the hook stronger', 'It hides cables'], 'Tape takes pencil well, peels off cleanly and holds the surface together as you drill.'),
+    () => choice('How high above a sofa should a picture\'s bottom edge be?', 'About 15 to 25 cm (6 to 10 in)', ['Touching the sofa', 'A metre above it'], 'Close enough that the picture and sofa look like a group, high enough that heads do not bump it.'),
+    () => choice('What do bumpers on the bottom corners do?', 'Stop the frame tilting and marking the wall', ['Hold the weight', 'Make it level'], 'They hold the bottom edge off the wall evenly so it hangs flat.'),
+  ];
+  mountQuiz(root.querySelector('.hpm-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>
