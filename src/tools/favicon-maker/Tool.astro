@@ -25,6 +25,10 @@
     <p class="fm-msg" aria-live="polite"></p>
   </section>
   <section class="panel">
+    <div class="fm-tabprev" aria-label="How it looks in a browser tab">
+      <div class="fm-tab fm-tab-l"><img alt="" width="16" height="16" /><span>Your site</span></div>
+      <div class="fm-tab fm-tab-d"><img alt="" width="16" height="16" /><span>Your site</span></div>
+    </div>
     <div class="fm-prev"></div>
     <div class="fm-acts">
       <button type="button" class="fm-zip fm-main">Download all (.zip)</button>
@@ -36,6 +40,10 @@
     <h3 class="fm-h">HTML for your page's &lt;head&gt;</h3>
     <textarea class="fm-code" rows="6" readonly></textarea>
     <button type="button" class="fm-copy">Copy HTML</button>
+    <details class="fm-mf"><summary>More options: site.webmanifest snippet</summary>
+      <p class="fm-fine">For installable web apps. Save as site.webmanifest next to the icons (it is also inside the .zip). Add your own name.</p>
+      <textarea class="fm-manifest" rows="8" readonly></textarea>
+    </details>
   </section>
   <p class="fm-fine">Your image is drawn on this page and never uploaded.</p>
 </div>
@@ -63,6 +71,10 @@
   .fm-acts { display: flex; flex-wrap: wrap; gap: 8px; }
   .fm-h { margin: 0 0 8px; font-size: 16px; }
   .fm-code { width: 100%; font: 13px ui-monospace, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); margin-bottom: 8px; resize: vertical; }
+  .fm-tabprev { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .fm-tab { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px 10px 0 0; font-size: 13px; min-width: 150px; }
+  .fm-tab-l { background: #fff; color: #202124; border: 1px solid #ccc; } .fm-tab-d { background: #35363a; color: #e8eaed; border: 1px solid #555; }
+  .fm-mf { margin-top: 10px; } .fm-mf textarea { width: 100%; font: 13px ui-monospace, monospace; }
   .fm-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
@@ -150,6 +162,8 @@
   const render = () => {
     for (const s of SIZES) draw(canv[s]);
     code.value = HTML;
+    (root.querySelector('.fm-manifest') as HTMLTextAreaElement).value = manifest();
+    root.querySelectorAll<HTMLImageElement>('.fm-tab img').forEach((im) => { im.src = canv[32].toDataURL('image/png'); });
     msg.textContent = mode === 'image' && !img ? 'Choose an image to start. Square images work best.' : `${SIZES.length} sizes ready: 16, 32 and 48 px go into favicon.ico; 180 px is for iPhones and iPads; 192 and 512 px are for Android and installed web apps.`;
   };
   const icoBytes = async () => ico(await Promise.all(ICO_SIZES.map(async (s) => [s, await png(s)] as [number, Uint8Array])));

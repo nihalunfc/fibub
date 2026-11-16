@@ -14,4 +14,6 @@ export default async ({ page, check, BASE }) => {
   check(hexes[0] === '#0000ff' && hexes[1] === '#ff0000', `palette: red and blue are the top 2 (${JSON.stringify(sw)})`);
   check(sw.slice(0, 2).every((s) => Math.abs(s[1] - 0.5) < 0.03), 'palette: each about 50%');
   check((await page.inputValue('.pp .pp-css')).includes('--colour-1: #'), 'palette: CSS variables written');
+  await page.selectOption('.pp [data-k="fmt"]', 'rgb'); await page.waitForTimeout(150);
+  check(/--colour-1: rgb\(\d+, \d+, \d+\);/.test(await page.inputValue('.pp .pp-css')), 'photo-palette: CSS follows the RGB format choice');
 };

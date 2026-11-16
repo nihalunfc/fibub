@@ -15,4 +15,15 @@ export default async ({ page, check, BASE }) => {
   await page.click(R + '.gm-pick');
   check(new Set(seen).size === 10 && (await page.textContent(R + '.gm-say2')).includes('Everyone has been picked'), `group-maker: picker never repeats with remove ticked (${seen.join(',')})`);
   check(!(await page.isChecked(R + '[data-k="keep"]')) && (await page.evaluate(() => localStorage.getItem('fibub-group-maker-v1'))) === null, 'group-maker: nothing saved until Remember is ticked');
+  // keep apart / together
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.gm-apart', 'Aisha + Ben\nChen + Divya'); await page.fill(R + '.gm-tog', 'Ethan + Fatima');
+  let okRules = true;
+  for (let i = 0; i < 8; i++) {
+    await page.click(R + '.gm-make');
+    const gs = await page.$$eval(R + '.gm-group', (els) => els.map((e) => [...e.querySelectorAll('li')].map((l) => l.textContent)));
+    const g = (n) => gs.findIndex((x) => x.includes(n));
+    if (g('Aisha') === g('Ben') || g('Chen') === g('Divya') || g('Ethan') !== g('Fatima')) okRules = false;
+  }
+  check(okRules, 'group-maker: keep-apart and keep-together rules hold over 8 shuffles');
 };

@@ -21,6 +21,8 @@ flow:
   - { icon: table, label: "Groups" }
 ---
 
+Open **More options** to keep people apart or together: type one rule per line with names joined by +, such as `Ben + Chen`. The shuffle tries many arrangements and tells you if a rule could not be met. Rules are never saved.
+
 ## What it does
 
 Teachers, coaches and team leads often need fair, random groups or a random name for the next question. Paste your list of names and this page shuffles them into groups that are as even as possible, or picks one name at a time. It uses your browser's secure random numbers, so every order is equally likely.

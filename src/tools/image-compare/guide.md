@@ -21,6 +21,8 @@ flow:
   - { icon: eye, label: "Spot changes" }
 ---
 
+The **Side by side** tab puts A and B next to each other at the same size, which is handy when you want to look at both without sliding.
+
 ## What it does
 
 Is the new screenshot the same as the old one? This page puts two images on top of each other so you can see the difference. Drag a line across to wipe between them, fade one over the other, or let it mark every pixel that changed and count them.

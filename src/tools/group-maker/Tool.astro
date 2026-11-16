@@ -17,6 +17,12 @@
       <label>Split by<select data-k="by"><option value="count">Number of groups</option><option value="size">People per group</option></select></label>
       <label><span class="gm-nl">Number of groups</span><input data-k="n" type="number" inputmode="numeric" min="1" value="3" /></label>
     </div>
+    <details class="gm-more">
+      <summary>More options: keep people apart or together</summary>
+      <label>Keep apart (one rule per line, names joined by +, e.g. Ben + Chen)<textarea class="gm-apart" rows="3" spellcheck="false" placeholder="Ben + Chen"></textarea></label>
+      <label>Keep together (one rule per line, names joined by +)<textarea class="gm-tog" rows="3" spellcheck="false" placeholder="Aisha + Divya"></textarea></label>
+      <p class="gm-fine">Rules are not saved, even if you tick Remember. Names must match the list above (capitals do not matter).</p>
+    </details>
     <p class="gm-say" aria-live="polite"></p>
     <div class="gm-groups" aria-live="polite"></div>
     <p class="gm-btns"><button type="button" class="btn gm-make">Shuffle again</button> <button type="button" class="btn secondary small gm-copy">Copy groups</button> <button type="button" class="btn secondary small gm-print">Print</button></p>
@@ -52,6 +58,7 @@
   .gm-big { font-size: 30px; font-weight: 700; margin: 12px 0 4px; overflow-wrap: anywhere; min-height: 1.2em; }
   .gm-btns { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .gm-picked { margin: 8px 0 0; padding-left: 22px; color: var(--muted); }
+  .gm-more summary { cursor: pointer; font-weight: 600; margin-top: 10px; } .gm-more label { margin-top: 8px; }
   .gm-fine { color: var(--muted); font-size: 13px; margin: 0; }
   @media print {
     body * { visibility: hidden; }
@@ -75,15 +82,44 @@
   // By people per group s: g = ceil(n / s) groups, then balanced the same way, so no group is more than s.
   const sizes = (n: number, g: number) => Array.from({ length: g }, (_, i) => Math.floor(n / g) + (i < n % g ? 1 : 0));
   let groups: string[][] = [];
+  const rules = (el: HTMLTextAreaElement, list: string[]) => {
+    const idx = new Map(list.map((x, i) => [x.toLowerCase(), i]));
+    return el.value.split('\n').map((l) => l.split('+').map((x) => idx.get(x.trim().toLowerCase())).filter((i): i is number => i !== undefined)).filter((r) => r.length > 1);
+  };
+  // Place names into groups of the given sizes, honouring keep-together (merged into blocks) and keep-apart rules; best of many random tries.
+  const place = (list: string[], sz: number[]) => {
+    const n = list.length, tog = rules(q<HTMLTextAreaElement>('.gm-tog'), list), apart = rules(q<HTMLTextAreaElement>('.gm-apart'), list);
+    const par = Array.from({ length: n }, (_, i) => i); const f = (i: number): number => (par[i] === i ? i : (par[i] = f(par[i])));
+    for (const r of tog) for (const i of r) par[f(i)] = f(r[0]);
+    const blocks = new Map<number, number[]>(); for (let i = 0; i < n; i++) { const k = f(i); blocks.set(k, [...(blocks.get(k) || []), i]); }
+    const units = [...blocks.values()];
+    if (!tog.length && !apart.length) { const m = shuffle(list); let at = 0; return { groups: sz.map((s) => { const x = m.slice(at, at + s); at += s; return x; }), note: '' }; }
+    let best: number[][] | null = null, bestBad = Infinity;
+    for (let t = 0; t < 400 && bestBad > 0; t++) {
+      const gs: number[][] = sz.map(() => []); let ok = true;
+      for (const u of shuffle(units).sort((a, b) => b.length - a.length)) {
+        const open = gs.map((x, gi) => gi).filter((gi) => sz[gi] - gs[gi].length >= u.length);
+        if (!open.length) { ok = false; break; }
+        gs[open[rand(open.length)]].push(...u);
+      }
+      if (!ok) continue;
+      const where = new Map<number, number>(); gs.forEach((x, gi) => x.forEach((i) => where.set(i, gi)));
+      let bad = 0; for (const r of apart) for (let a = 0; a < r.length; a++) for (let b = a + 1; b < r.length; b++) if (where.get(r[a]) === where.get(r[b])) bad++;
+      if (bad < bestBad) { bestBad = bad; best = gs; }
+    }
+    if (!best) { const m = shuffle(list); let at = 0; return { groups: sz.map((s) => { const x = m.slice(at, at + s); at += s; return x; }), note: ' The keep-together rules could not fit the group sizes, so they were ignored.' }; }
+    return { groups: best.map((x) => shuffle(x).map((i) => list[i])), note: bestBad ? ` ${bestBad} keep-apart rule${bestBad > 1 ? 's' : ''} could not be met.` : (apart.length || tog.length ? ' All rules met.' : '') };
+  };
   const make = () => {
     const list = names(), n = list.length, k = Math.floor(Number(nIn.value));
     out.innerHTML = ''; groups = [];
     if (n < 2) { say.textContent = 'Type at least two names.'; return; }
     if (!(k >= 1)) { say.textContent = 'Type a whole number of 1 or more.'; return; }
     const g = by.value === 'count' ? Math.min(k, n) : Math.ceil(n / k);
-    const sz = sizes(n, g), mixed = shuffle(list);
-    let at = 0; for (const s of sz) { groups.push(mixed.slice(at, at + s)); at += s; }
-    say.textContent = `${n} names in ${g} group${g > 1 ? 's' : ''} of ${[...new Set(sz)].join(' or ')}` + (by.value === 'count' && k > n ? ` (only ${n} names, so ${n} groups).` : '.');
+    const sz = sizes(n, g);
+    const r = place(list, sz);
+    groups = r.groups;
+    say.textContent = `${n} names in ${g} group${g > 1 ? 's' : ''} of ${[...new Set(sz)].join(' or ')}` + (by.value === 'count' && k > n ? ` (only ${n} names, so ${n} groups).` : '.') + r.note;
     groups.forEach((m, i) => {
       const d = document.createElement('div'); d.className = 'gm-group';
       const h = document.createElement('h3'); h.textContent = `Group ${i + 1} (${m.length})`;
@@ -111,6 +147,7 @@
   q('.gm-reset').addEventListener('click', () => { ta.value = EX.join('\n'); by.value = 'count'; nIn.value = '3'; q('.gm-nl').textContent = 'Number of groups'; changed(); });
   by.addEventListener('change', () => { q('.gm-nl').textContent = by.value === 'count' ? 'Number of groups' : 'People per group'; make(); });
   nIn.addEventListener('input', make);
+  q('.gm-apart').addEventListener('input', make); q('.gm-tog').addEventListener('input', make);
   q('.gm-make').addEventListener('click', make);
   q('.gm-copy').addEventListener('click', async () => {
     const t = groups.map((m, i) => `Group ${i + 1}: ${m.join(', ')}`).join('\n');

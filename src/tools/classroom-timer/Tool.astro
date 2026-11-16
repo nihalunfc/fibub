@@ -8,6 +8,7 @@
   </div>
   <section class="panel ct-stage">
     <p class="ct-big" role="timer" aria-live="off"></p>
+    <div class="ct-bar" role="progressbar" aria-label="Time used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
     <p class="ct-msg" aria-live="polite"></p>
     <p class="ct-btns">
       <button type="button" class="btn ct-go">Start</button>
@@ -23,6 +24,10 @@
       <button type="button" data-min="5">5 min</button>
       <button type="button" data-min="10">10 min</button>
       <button type="button" data-min="15">15 min</button>
+      <button type="button" data-min="20">20 min</button>
+      <button type="button" data-min="30">30 min</button>
+      <button type="button" data-min="45">45 min</button>
+      <button type="button" data-min="60">60 min</button>
     </p>
     <div class="ct-fields">
       <label>Minutes<input data-k="m" type="number" inputmode="numeric" min="0" max="999" step="1" value="5" /></label>
@@ -45,6 +50,7 @@
   .ct-tabs, .ct-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
   .ct-tabs button, .ct-presets button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
   .ct-tabs button[aria-selected="true"], .ct-presets button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .ct-bar { height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 10px 0; } .ct-bar span { display: block; height: 100%; width: 0; background: var(--accent); } .ct-stage[data-state="warn"] .ct-bar span { background: var(--warn); } .ct-stage[data-state="up"] .ct-bar span { background: var(--bad); }
   .ct-stage { text-align: center; background: var(--bg); }
   .ct-big { font-size: clamp(56px, 19vw, 120px); font-weight: 700; margin: 0; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .ct-stage[data-state="warn"] .ct-big { color: var(--warn); }
@@ -73,7 +79,7 @@
   const stage = q('.ct-stage'), big = q('.ct-big'), msg = q('.ct-msg'), err = q('.ct-err');
   const go = q<HTMLButtonElement>('.ct-go'), lapBtn = q<HTMLButtonElement>('.ct-lap');
   const inp = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
-  const lapsBody = q('.ct-laps tbody'), noLaps = q('.ct-nolaps');
+  const bar = q('.ct-bar'); const lapsBody = q('.ct-laps tbody'), noLaps = q('.ct-nolaps');
   let mode: 'down' | 'sw' = 'down', timer = 0;
   let ac: AudioContext | null = null;
   const audio = () => { if (!ac) { try { ac = new AudioContext(); } catch { ac = null; } } ac?.resume?.(); };
@@ -91,7 +97,7 @@
   const swFmt = (ms: number) => { const cs = Math.floor(ms / 10); return `${hms(Math.floor(cs / 100))}.${pad(cs % 100)}`; };
 
   // Countdown state
-  let dRun = false, dEnd = 0, dLeft = 0, dFresh = true, dUp = false;
+  let dTotal = 1, dRun = false, dEnd = 0, dLeft = 0, dFresh = true, dUp = false;
   const setMs = () => { const m = Number(inp('m').value || 0), s = Number(inp('s').value || 0); return Number.isInteger(m) && Number.isInteger(s) && m >= 0 && m <= 999 && s >= 0 && s <= 59 ? (m * 60 + s) * 1000 : NaN; };
   // Stopwatch state
   let sRun = false, sStart = 0, sAcc = 0; const laps: number[] = [];
@@ -105,11 +111,13 @@
       const warn = Number(inp('warn').value) || 0;
       stage.dataset.state = dUp ? 'up' : !dFresh && sec <= warn ? 'warn' : '';
       msg.textContent = dUp ? 'Time is up' : '';
+      const used = dUp ? 100 : Math.min(100, Math.max(0, (1 - ms / dTotal) * 100));
+      bar.setAttribute('aria-valuenow', String(Math.round(used))); (bar.firstElementChild as HTMLElement).style.width = used + '%';
       go.textContent = dRun ? 'Pause' : dFresh || dUp ? 'Start' : 'Resume';
       go.disabled = !!err.textContent || dUp;
     } else {
       big.textContent = swFmt(swNow());
-      stage.dataset.state = ''; msg.textContent = '';
+      stage.dataset.state = ''; msg.textContent = ''; bar.setAttribute('aria-valuenow', '0'); (bar.firstElementChild as HTMLElement).style.width = '0';
       go.textContent = sRun ? 'Pause' : sAcc ? 'Resume' : 'Start'; go.disabled = false;
       lapBtn.disabled = !sRun;
     }
@@ -124,7 +132,7 @@
   const readSet = () => {
     const ms = setMs();
     err.textContent = Number.isNaN(ms) ? 'Type whole minutes (0 to 999) and seconds (0 to 59).' : ms === 0 ? 'Set a time above zero.' : '';
-    if (!err.textContent) { dRun = false; dLeft = ms; dFresh = true; dUp = false; }
+    if (!err.textContent) { dRun = false; dLeft = ms; dTotal = ms; dFresh = true; dUp = false; }
     root.querySelectorAll<HTMLButtonElement>('.ct-presets button').forEach((b) => b.setAttribute('aria-pressed', String(!err.textContent && ms === Number(b.dataset.min) * 60000)));
     draw();
   };

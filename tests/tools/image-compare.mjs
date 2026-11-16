@@ -27,4 +27,7 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.ic-note')).includes('fitted to A') && (await big()) === '0.000% of pixels changed', `image-compare: different sizes are fitted (${await big()})`);
   await page.click(R + '.ic-tabs [data-m="overlay"]'); await page.waitForTimeout(100);
   check(await page.isVisible(R + '[data-k="op"]') && (await big()) === '', 'image-compare: overlay shows opacity control');
+  await page.click('.ic .ic-tabs [data-m="side"]'); await page.waitForTimeout(150);
+  const dims = await page.$eval('.ic .ic-canvas', (c) => [c.width, c.height]);
+  check(dims[0] === 2 * 200 + 4 && dims[1] === 150, `image-compare: side by side canvas is two images wide (${dims})`);
 };
