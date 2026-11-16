@@ -16,7 +16,7 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption(R + '.rt-preset', { label: 'Whole numbers' }); await page.waitForTimeout(100);
   check((await out()).startsWith('3 matches'), `regex-tester: preset whole numbers finds 3 (${await out()})`);
   await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
-  check((await page.textContent(R + '.rt-explain')).includes('1 or more times') === false && (await page.textContent(R + '.rt-explain')).includes('a digit'), 'regex-tester: explanation of -?\\d+');
+  check((await page.textContent(R + '.rt-explain')).includes('1 or more times') && (await page.textContent(R + '.rt-explain')).includes('a digit'), 'regex-tester: explanation of -?\\d+');
   await page.fill(R + '.rt-in', ','); await page.fill(R + '.rt-text', 'a,b'); await page.waitForTimeout(100);
   check((await page.textContent(R + '.rt-split')) === '1: "a"\n2: "b"', 'regex-tester: split preview');
 };

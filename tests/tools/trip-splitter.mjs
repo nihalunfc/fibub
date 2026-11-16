@@ -33,11 +33,11 @@ export default async ({ page, check, BASE }) => {
   b = await bals();
   check(b.join('|') === '+67.50|-22.50|-45.00', `trip-splitter: weighted shares (${b})`);
   // other currency: second expense 10 EUR at 2.0 = 20 main, paid by Ben, for all
-  await page.fill(R + '.ts-rates', 'EUR 2'); await page.dispatchEvent(R + '.ts-rates', 'change'); await page.waitForTimeout(150);
+  await page.fill(R + '.ts-rates', 'EUR 2'); await page.waitForTimeout(150);
   await page.selectOption(R + '.ts-e:nth-child(2) [data-f="cur"]', 'EUR');
   await page.fill(R + '.ts-e:nth-child(2) [data-f="amount"]', '10'); await page.waitForTimeout(100);
   b = await bals();
-  check(b.join('|') === '+62.50|-7.50|-55.00', `trip-splitter: currency conversion (${b})`);
+  check(b.join('|') === '+57.50|-12.50|-45.00', `trip-splitter: currency conversion (taxi still for Ana and Ben only) (${b})`);
   await page.click(R + '.ts-txt'); await page.waitForTimeout(100);
   check((await page.inputValue(R + '.ts-out')).includes('pays'), 'trip-splitter: text summary');
 };

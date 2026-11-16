@@ -16,6 +16,7 @@ export default async ({ page, check, BASE }) => {
   check(new Set(seen).size === 10 && (await page.textContent(R + '.gm-say2')).includes('Everyone has been picked'), `group-maker: picker never repeats with remove ticked (${seen.join(',')})`);
   check(!(await page.isChecked(R + '[data-k="keep"]')) && (await page.evaluate(() => localStorage.getItem('fibub-group-maker-v1'))) === null, 'group-maker: nothing saved until Remember is ticked');
   // keep apart / together
+  await page.click(R + '.gm-tabs [data-m="groups"]'); await page.waitForTimeout(100);
   await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
   await page.fill(R + '.gm-apart', 'Aisha + Ben\nChen + Divya'); await page.fill(R + '.gm-tog', 'Ethan + Fatima');
   let okRules = true;

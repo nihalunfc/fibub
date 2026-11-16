@@ -123,17 +123,16 @@
   let saved: any = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
   if (saved?.n?.length) { q<HTMLInputElement>('.ts-remember').checked = true; saved.n.forEach((nm: string, i: number) => addP(nm, String(saved.w?.[i] ?? 1))); q<HTMLTextAreaElement>('.ts-rates').value = saved.rates || ''; if (saved.wton) { q<HTMLInputElement>('.ts-wt').checked = true; root.classList.add('ts-wton'); } q<HTMLInputElement>('.ts-c').value = saved.cur || ''; drawEx(saved.ex || []); }
-  else { ['Ana', 'Ben', 'Cy'].forEach(addP); drawEx([{ what: 'Hotel', payer: 0, amount: '90', forWho: [true, true, true] }, { what: 'Taxi', payer: 1, amount: '30', forWho: [true, true, true] }]); }
-  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ts-people')) { rebuildKeep(); } run(); });
+  else { ['Ana', 'Ben', 'Cy'].forEach((nm) => addP(nm)); drawEx([{ what: 'Hotel', payer: 0, amount: '90', forWho: [true, true, true] }, { what: 'Taxi', payer: 1, amount: '30', forWho: [true, true, true] }]); }
+  root.addEventListener('input', (e) => { const t = e.target as HTMLElement; if (t.closest('.ts-people')) { rebuildKeep(); } if (t.classList.contains('ts-rates')) drawEx(readEx()); run(); });
   // Keep expense choices when a name is edited: just relabel instead of redrawing while typing.
   function rebuildKeep() { const n = names(); expsEl.querySelectorAll('select[data-f="payer"] option').forEach((o, k) => { (o as HTMLOptionElement).textContent = 'Paid by ' + n[k % n.length]; }); expsEl.querySelectorAll('.ts-for label').forEach((l, k) => { const t = l.lastChild as Text; t.textContent = ' ' + n[k % n.length]; }); }
   root.addEventListener('change', (e) => {
     const t = e.target as HTMLElement;
     if (t.classList.contains('ts-wt')) root.classList.toggle('ts-wton', (t as HTMLInputElement).checked);
-    if (t.classList.contains('ts-rates')) drawEx(readEx());
     run();
   });
-  q('.ts-txt').addEventListener('click', () => { const o = q<HTMLTextAreaElement>('.ts-out'); o.hidden = false; run(); o.select(); try { navigator.clipboard?.writeText(o.value); } catch {} });
+  q('.ts-txt').addEventListener('click', () => { const o = q<HTMLTextAreaElement>('.ts-out'); o.hidden = false; run(); o.select(); navigator.clipboard?.writeText(o.value).catch(() => {}); });
   root.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     if (!t.classList.contains('ts-x')) return;

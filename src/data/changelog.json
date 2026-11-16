@@ -1,5 +1,133 @@
 [
  {
+  "sha": "220aa78cda3c",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade tools (b7 batch)",
+  "tools": [
+   "classroom-timer",
+   "document-expiry",
+   "favicon-maker",
+   "group-maker",
+   "image-compare",
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "photo-palette",
+   "study-timer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aab79f3ec3b7",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade tools (b6 batch)",
+  "tools": [
+   "auction-costs",
+   "bullion-premium",
+   "bullion-weights",
+   "coin-counter",
+   "gold-purity",
+   "melt-value",
+   "specific-gravity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b3f8e8c6c988",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade tools (b5 batch)",
+  "tools": [
+   "health-plan-comparer",
+   "idv-ncb",
+   "insurance-deductible",
+   "life-cover-needed",
+   "policy-return",
+   "room-rent-cap",
+   "super-top-up",
+   "surrender-or-keep",
+   "term-fair-price",
+   "travel-insurance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e55e1f33a646",
+  "date": "2026-11-16T21:56:41+00:00",
+  "title": "Upgrade tools (b2 batch)",
+  "tools": [
+   "citizenship-days",
+   "crs-calculator",
+   "jet-lag-planner",
+   "resp-calculator",
+   "roth-vs-traditional",
+   "social-security-age",
+   "uk-pension-relief"
+  ],
+  "site": false
+ },
+ {
+  "sha": "da647af93588",
+  "date": "2026-11-16T21:53:07+00:00",
+  "title": "Upgrade 10 everyday dev and text tools: timestamp, regex, colour, UUID, sort lines, slug, Base64, URL encoder, hash, JWT",
+  "tools": [
+   "base64-converter",
+   "colour-converter",
+   "hash-checker",
+   "jwt-decoder",
+   "regex-tester",
+   "slug-maker",
+   "sort-lines",
+   "timestamp-converter",
+   "url-encoder",
+   "uuid-generator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b7788d552149",
+  "date": "2026-11-16T21:52:52+00:00",
+  "title": "Upgrade 8 money tools: trip splitter, net worth, electricity cost, debt-to-income, mileage log, rideshare, meeting cost, timesheet",
+  "tools": [
+   "debt-to-income",
+   "electricity-cost",
+   "meeting-cost",
+   "mileage-log",
+   "net-worth",
+   "rideshare-earnings",
+   "timesheet",
+   "trip-splitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0d928b5d5944",
+  "date": "2026-11-16T21:51:34+00:00",
+  "title": "Upgrade 8 money tools: dividend, return, freelance rate, break-even, rebalance, NPS, depreciation, cash runway",
+  "tools": [
+   "break-even",
+   "cash-runway",
+   "depreciation",
+   "dividend-calculator",
+   "freelance-rate",
+   "nps-calculator",
+   "rebalance-portfolio",
+   "return-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eb16852b2bd6",
+  "date": "2026-11-16T18:17:58+00:00",
+  "title": "Add video tools: frame grabber, compressor, rotate, mute, video info (#T966-#T970)",
+  "tools": [
+   "frame-grabber",
+   "mute-video",
+   "rotate-video",
+   "video-compressor",
+   "video-info"
+  ],
+  "site": true
+ },
+ {
   "sha": "6e532f98d459",
   "date": "2026-11-16T18:00:25+00:00",
   "title": "Make 15 more money tools more useful (tax, pay, planning)",
