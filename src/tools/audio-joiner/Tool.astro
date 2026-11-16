@@ -1,0 +1,128 @@
+---
+// #T964 Audio joiner: put sound files in order and join them into one MP3 or WAV, with a gap or a crossfade.
+// Kit: src/lib/audio/ (joinSounds in pcm.ts, encode.ts; checks in tests/audio.mjs). Nothing is uploaded.
+import { OUT_FORMATS } from '../../lib/audio/encode.ts';
+---
+<div class="tool-ui aj">
+  <section class="panel">
+    <div class="aj-drop">
+      <button type="button" class="btn aj-open">Add sound files</button>
+      <input class="aj-file" type="file" multiple accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden />
+      <span class="aj-hint">Or drop them here. Up to 50 files, 1 GB in all. They stay on this device.</span>
+    </div>
+    <p class="note bad aj-err" hidden></p>
+    <ol class="aj-list"></ol>
+  </section>
+
+  <section class="panel aj-set" hidden>
+    <div class="aj-grid">
+      <label>Between files
+        <select class="aj-mode"><option value="none">Straight join</option><option value="gap">Silence</option><option value="fade">Crossfade (blend)</option></select>
+      </label>
+      <label class="aj-sec-l">Seconds <input class="aj-sec" type="number" min="0" max="30" step="0.1" value="1" inputmode="decimal" /></label>
+      <label>Save as
+        <select class="aj-fmt">{Object.entries(OUT_FORMATS).map(([k, f]) => <option value={k}>{f.label}</option>)}</select>
+      </label>
+    </div>
+    <p class="aj-info" aria-live="polite"></p>
+    <div class="aj-row">
+      <button type="button" class="btn secondary aj-play">Play the joined sound</button>
+      <button type="button" class="btn aj-save">Download</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .aj { display: grid; gap: 14px; margin-bottom: 32px; }
+  .aj .panel { display: grid; gap: 12px; padding: 16px; }
+  .aj [hidden] { display: none !important; }
+  .aj-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .aj-drop.over { border-color: var(--accent); }
+  .aj-hint, .aj-info { color: var(--muted); font-size: 14px; margin: 0; }
+  .aj-list { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+  .aj-list li { padding-left: 4px; }
+  .aj-item { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .aj-item .nm { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+  .aj-item .st { color: var(--muted); font-size: 13px; flex: 1 1 100%; }
+  .aj-item .st.bad { color: var(--bad, #b00020); }
+  .aj-item button { font: inherit; font-size: 14px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .aj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .aj label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .aj input, .aj select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .aj-row { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+
+<script>
+  import { OUT_FORMATS, encodeAs, estimateBytes, type OutFormat } from '../../lib/audio/encode.ts';
+  import { joinSounds, type Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, baseName, sizeText, secs, saveBytes, player } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.aj') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.aj-file'), list = $('.aj-list'), err = $('.aj-err'), info = $('.aj-info');
+  const mode = $<HTMLSelectElement>('.aj-mode'), sec = $<HTMLInputElement>('.aj-sec'), fmtSel = $<HTMLSelectElement>('.aj-fmt');
+  const playB = $<HTMLButtonElement>('.aj-play'), saveB = $<HTMLButtonElement>('.aj-save');
+  type Item = { name: string; size: number; snd?: Sound; error?: string };
+  let items: Item[] = [];
+  const play = player();
+  const good = () => items.filter((i) => i.snd).map((i) => i.snd!);
+  const joined = () => { const s = Math.max(0, Math.min(30, +sec.value || 0)); return joinSounds(good(), mode.value === 'gap' ? s : 0, mode.value === 'fade' ? s : 0); };
+
+  const render = () => {
+    list.replaceChildren(...items.map((it, i) => {
+      const li = document.createElement('li'), box = document.createElement('div'); box.className = 'aj-item';
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = it.name;
+      const btn = (t: string, label: string, fn: () => void, off = false) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.setAttribute('aria-label', label); b.disabled = off; b.addEventListener('click', fn); return b; };
+      const st = document.createElement('span'); st.className = 'st' + (it.error ? ' bad' : '');
+      st.textContent = it.error ?? (it.snd ? `${secs(it.snd.chans[0].length / it.snd.rate)}, ${it.snd.chans.length === 1 ? 'mono' : 'stereo'}, ${it.snd.rate.toLocaleString('en-US')} Hz` : 'Reading…');
+      box.append(nm,
+        btn('↑', `Move ${it.name} up`, () => { [items[i - 1], items[i]] = [items[i], items[i - 1]]; render(); }, i === 0),
+        btn('↓', `Move ${it.name} down`, () => { [items[i + 1], items[i]] = [items[i], items[i + 1]]; render(); }, i === items.length - 1),
+        btn('✕', `Remove ${it.name}`, () => { items.splice(i, 1); render(); }), st);
+      li.append(box); return li;
+    }));
+    update();
+  };
+  const update = () => {
+    play.stop(); playB.textContent = 'Play the joined sound';
+    $('.aj-sec-l').hidden = mode.value === 'none';
+    const g = good();
+    $('.aj-set').hidden = !items.length;
+    if (g.length < 2) { info.textContent = 'Add at least two files that the browser can read.'; playB.disabled = saveB.disabled = true; return; }
+    playB.disabled = saveB.disabled = false;
+    const rate = Math.max(...g.map((s) => s.rate)), nc = g.some((s) => s.chans.length > 1) ? 2 : 1, s = Math.max(0, Math.min(30, +sec.value || 0));
+    let dur = g.reduce((t, x) => t + x.chans[0].length / x.rate, 0);
+    if (mode.value === 'gap') dur += s * (g.length - 1);
+    if (mode.value === 'fade') dur -= g.slice(1).reduce((t, x, i) => t + Math.min(s, x.chans[0].length / x.rate, g[i].chans[0].length / g[i].rate), 0);
+    info.textContent = `${g.length} files → ${secs(dur)}, ${nc === 1 ? 'mono' : 'stereo'}, ${rate.toLocaleString('en-US')} Hz. About ${sizeText(estimateBytes(dur, rate, nc, fmtSel.value as OutFormat))}.`;
+  };
+  const add = async (files: File[]) => {
+    err.hidden = true;
+    const room = Math.max(0, 50 - items.length), used = items.reduce((t, i) => t + i.size, 0);
+    if (files.length > room) { err.textContent = `Only 50 files at a time: ${files.length - room} were left out.`; err.hidden = false; files = files.slice(0, room); }
+    let budget = 1e9 - used;
+    const fresh = files.map((f) => ({ name: f.name, size: f.size, f } as Item & { f: File }));
+    items.push(...fresh); render();
+    for (const it of fresh) {
+      if (it.size > budget) it.error = 'Over the 1 GB limit for all files together.';
+      else { budget -= it.size; try { it.snd = await decodeFile(it.f); } catch { it.error = 'This browser cannot read this file.'; } }
+      render();
+    }
+  };
+  $('.aj-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.length) add([...input.files]); input.value = ''; });
+  const drop = $('.aj-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]); });
+  mode.addEventListener('change', update); sec.addEventListener('input', update); fmtSel.addEventListener('change', update);
+  playB.addEventListener('click', () => {
+    if (playB.textContent === 'Stop') { play.stop(); playB.textContent = 'Play the joined sound'; return; }
+    const j = joined(); playB.textContent = 'Stop'; play.play(j.chans, j.rate, () => (playB.textContent = 'Play the joined sound'));
+  });
+  saveB.addEventListener('click', async () => {
+    const f = fmtSel.value as OutFormat, first = items.find((i) => i.snd)!;
+    saveB.disabled = true; saveB.textContent = 'Making…';
+    try { saveBytes(await encodeAs(joined(), f), `${baseName(first.name)}-joined.${OUT_FORMATS[f].ext}`, OUT_FORMATS[f].mime); }
+    finally { saveB.disabled = false; saveB.textContent = 'Download'; }
+  });
+</script>

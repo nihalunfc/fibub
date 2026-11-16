@@ -42,3 +42,11 @@ shared under the MIT License:
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
+
+MP3 saving uses lamejs (https://github.com/zhuker/lamejs; packaged as
+@breezystack/lamejs), a JavaScript port of the LAME MP3 encoder
+(https://lame.sourceforge.io), licensed under the GNU Lesser General Public
+License, version 3 (LGPL-3.0), not the Apache License. It is used unmodified
+and loaded as its own file only when someone saves an MP3, so it can be
+replaced with any compatible version. Its source and licence are at the links
+above and in node_modules/@breezystack/lamejs/LICENSE when installed.

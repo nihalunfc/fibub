@@ -17,9 +17,9 @@ export const PHONE_FORMATS: Record<PhoneFormat, { ext: string; label: string; mi
 
 const tag = (v: DataView, o: number) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
 
-/** A WAV file. format: 1 PCM 16-bit, 6 A-law, 7 mu-law (both 8-bit). */
-export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 = 1): Uint8Array {
-  const nc = chans.length, len = chans[0]?.length ?? 0, bps = format === 1 ? 2 : 1, data = len * nc * bps;
+/** A WAV file. format: 1 PCM (16 or 24-bit), 6 A-law, 7 mu-law (both 8-bit). */
+export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 = 1, bits: 16 | 24 = 16): Uint8Array {
+  const nc = chans.length, len = chans[0]?.length ?? 0, bps = format === 1 ? bits / 8 : 1, data = len * nc * bps;
   const extra = format === 1 ? 0 : 2 + 12; // cbSize, then a fact chunk (required for non-PCM)
   const head = 44 + extra, pad = data & 1, b = new ArrayBuffer(head + data + pad), v = new DataView(b), u8 = new Uint8Array(b);
   const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
@@ -29,7 +29,12 @@ export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 
   let o = 36;
   if (format !== 1) { v.setUint16(o, 0, true); o += 2; str(o, 'fact'); v.setUint32(o + 4, 4, true); v.setUint32(o + 8, len, true); o += 12; }
   str(o, 'data'); v.setUint32(o + 4, data, true); o += 8;
-  if (format === 1) {
+  if (format === 1 && bps === 3) {
+    for (let i = 0; i < len; i++) for (let c = 0; c < nc; c++) {
+      const x = Math.max(-1, Math.min(1, chans[c][i])), q = Math.round(x < 0 ? x * 8388608 : x * 8388607);
+      u8[o] = q & 0xff; u8[o + 1] = (q >> 8) & 0xff; u8[o + 2] = (q >> 16) & 0xff; o += 3;
+    }
+  } else if (format === 1) {
     for (let i = 0; i < len; i++) for (let c = 0; c < nc; c++) { v.setInt16(o, toInt16(chans[c][i]), true); o += 2; }
   } else {
     const law = format === 7 ? 'ulaw' : 'alaw';
@@ -182,4 +187,38 @@ export function guessRaw(name: string): { kind: 'ulaw' | 'alaw' | 'sln'; rate: n
   const m = ext.match(/^(?:sln|slin|raw)(\d*)$/);
   if (m) { const k = +m[1] || 8; return { kind: 'sln', rate: k === 44 ? 44100 : k === 8 ? 8000 : k * 1000 }; }
   return null;
+}
+
+/**
+ * Join sounds end to end at one sample rate (the highest) and channel count (stereo if any is stereo).
+ * gap: seconds of silence between; fade: seconds of crossfade (overlap) instead. Both 0 = straight join.
+ */
+export function joinSounds(list: Sound[], gap = 0, fade = 0): Sound {
+  if (!list.length) return { rate: 48000, chans: [new Float32Array(0)] };
+  const rate = Math.max(...list.map((s) => s.rate)), nc = list.some((s) => s.chans.length > 1) ? 2 : 1;
+  const parts = list.map((s) => {
+    let ch = s.chans.length > 2 ? [toMono(s.chans.filter((_, i) => i % 2 === 0)), toMono(s.chans.filter((_, i) => i % 2 === 1))] : s.chans;
+    if (s.rate !== rate) ch = ch.map((c) => resample(c, s.rate, rate));
+    return nc === 2 && ch.length === 1 ? [ch[0], ch[0]] : ch;
+  });
+  const g = Math.round(Math.max(0, gap) * rate);
+  const total = parts.reduce((t, p, i) => {
+    const n = p[0].length, prev = i ? parts[i - 1][0].length : 0, f = i ? Math.min(Math.round(fade * rate), n, prev) : 0;
+    return t + n + (i ? (fade > 0 ? -f : g) : 0);
+  }, 0);
+  const out = Array.from({ length: nc }, () => new Float32Array(Math.max(0, total)));
+  let at = 0;
+  parts.forEach((p, i) => {
+    const n = p[0].length, prev = i ? parts[i - 1][0].length : 0, f = i && fade > 0 ? Math.min(Math.round(fade * rate), n, prev) : 0;
+    if (i) at += fade > 0 ? -f : g;
+    for (let c = 0; c < nc; c++) {
+      const src = p[c], dst = out[c];
+      for (let k = 0; k < n; k++) {
+        if (k < f) { const w = (k + 0.5) / f; dst[at + k] = dst[at + k] * (1 - w) + src[k] * w; } // equal-gain crossfade
+        else dst[at + k] = src[k];
+      }
+    }
+    at += n;
+  });
+  return { rate, chans: out };
 }

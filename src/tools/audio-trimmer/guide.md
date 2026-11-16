@@ -26,7 +26,7 @@ flow:
 
 This tool keeps one part of a sound file and throws the rest away, such as a ringtone from a song or one answer from a voice memo. You can fade the start and end so the cut does not click, and normalise it so it plays loud without clipping. Your browser decodes the file on this device; nothing is uploaded.
 
-The result is saved as a WAV file. MP3 export is not offered. To cut a video instead, use the [[video-trimmer]]; to see which pitches are in the sound, open it in the [[audio-spectrum-analyser]].
+The result is saved as a WAV file; to make an MP3 of it, open the WAV in the [[audio-converter]]. To cut a video instead, use the [[video-trimmer]]; to see which pitches are in the sound, open it in the [[audio-spectrum-analyser]].
 
 ## How to use it
 
