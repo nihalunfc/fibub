@@ -1,5 +1,24 @@
 [
  {
+  "sha": "56bd2f645357",
+  "date": "2026-11-16T22:40:07+00:00",
+  "title": "Blog: 24 research articles checked with the tools; LOD rule, Laviron fit, Peppas n range, UK Met Office degree-days",
+  "tools": [
+   "calibration-curve",
+   "cyclic-voltammetry",
+   "degree-days",
+   "gamma-shielding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "846da5feb073",
+  "date": "2026-11-16T22:32:07+00:00",
+  "title": "Share link: apply drop-downs before number boxes so presets cannot overwrite them",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "7261d76a0352",
   "date": "2026-11-16T22:26:47+00:00",
   "title": "Add Copy link / Copy result bar to science tool pages",

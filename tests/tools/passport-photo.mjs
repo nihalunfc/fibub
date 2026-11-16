@@ -35,4 +35,9 @@ export default async ({ page, check, BASE }) => {
   await page.click('.pp-rotr'); await page.waitForTimeout(200);
   const rot = await saved(page, () => page.click('.pp-one'));
   check(jpegSize(rot.buf).join('x') === '591x827', 'passport-photo: still the right size after turning');
+  const names = await page.$$eval('.pp-country option', (o) => o.map((x) => x.textContent));
+  check(names.join('|') === [...names].sort((a, b) => a.localeCompare(b)).join('|') && names.some((n) => n.startsWith('United Arab Emirates')), 'passport-photo: countries are alphabetical and include the UAE');
+  await page.selectOption('.pp-country', 'ae');
+  const ae = await saved(page, () => page.click('.pp-one'));
+  check(jpegSize(ae.buf).join('x') === '413x531', 'passport-photo: UAE photo is 413x531 px (' + jpegSize(ae.buf) + ')');
 };

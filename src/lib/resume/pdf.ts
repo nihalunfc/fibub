@@ -58,6 +58,14 @@ export async function resumePdf(r: Resume, b: Block[]): Promise<{ bytes: Uint8Ar
     }
   };
 
+  if (r.extraOn && r.photo?.startsWith('data:image/jpeg;base64,')) {
+    try {
+      const img = await doc.embedJpg(Uint8Array.from(atob(r.photo.split(',')[1]), (c) => c.charCodeAt(0)));
+      const ph = 78, pw = Math.min(62, (img.width / img.height) * ph);
+      page.drawImage(img, { x: left ? M : M + (width - pw) / 2, y: y - ph, width: pw, height: ph });
+      y -= ph + 6;
+    } catch { /* a bad picture is left out */ }
+  }
   for (let i = 0; i < b.length; i++) {
     const k = b[i];
     if (k.t === 'name') { write(k.text, F.bold, 20, { center: !left }); y -= 2; }

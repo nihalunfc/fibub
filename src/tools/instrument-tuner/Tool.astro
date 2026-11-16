@@ -95,7 +95,8 @@ const PRESETS: Record<string, { name: string; notes: string[] }> = {
       an.getFloatTimeDomainData(buf);
       const low = preset.value === 'bass' || preset.value === 'cello';
       const r = yin(low ? buf : buf.subarray(buf.length - 2048), rate, low ? 30 : 60, 1500);
-      if (r.hz && r.clarity > 0.85) { hist.push(r.hz); if (hist.length > 5) hist.shift(); show([...hist].sort((a, b) => a - b)[hist.length >> 1]); }
+      // Wait for 3 pitched frames so the first frame of a new note (half silence, half sound) never shows on its own.
+      if (r.hz && r.clarity > 0.85) { hist.push(r.hz); if (hist.length > 5) hist.shift(); if (hist.length >= 3) show([...hist].sort((a, b) => a - b)[hist.length >> 1]); }
       else if (hist.length) hist.shift();
     }, 66);
     go.textContent = 'Stop listening';

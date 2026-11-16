@@ -11,14 +11,15 @@ ads: false
 order: 1709
 icon: camera
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [image-resizer, compress-file]
 sources:
   - "Canada, 50 x 70 mm, face 31 to 36 mm: https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos (read 2026-11-10)"
   - "United States, 2 x 2 in (51 x 51 mm), head 1 to 1 3/8 in (25 to 35 mm): https://travel.state.gov/en/passports/apply/help/photos.html (read 2026-11-10)"
   - "United Kingdom, 45 x 35 mm, head 29 to 34 mm: https://gov.uk/photos-for-passports/photo-requirements (read 2026-11-10)"
   - "India, 2 x 2 in (51 x 51 mm), head 35 to 40 mm: Consulate General of India, Toronto photo specification, https://cgitoronto.gov.in/docs/1717007167Photo_Specification.pdf (read 2026-11-10). Check passportindia.gov.in for your own application."
-  - "Not included: Gulf states and Schengen, because no official page could be confirmed."
+  - "United Arab Emirates, 35 x 45 mm, white background: Federal Authority for Identity, Citizenship, Customs and Port Security FAQ, https://icp.gov.ae/en/faq/ (checked 2026-11-16). The page gives no head size, so the guide lines use the ICAO range of 70 to 80% of photo height. Check the official source."
+  - "Not included (checked 2026-11-16): India 35 x 45 mm (the Passport Seva photo pages could not be read, so the confirmed 2 x 2 in stays), UAE visa and Emirates ID sizes (no size on the ICP pages), Saudi Arabia, Qatar, Kuwait, Oman, Bahrain and Schengen, because no official page stating a size could be confirmed."
 flow:
   - { icon: image, label: "Photo" }
   - { icon: crop, label: "Align" }
@@ -31,6 +32,8 @@ flow:
 Passport photo crops a picture of your face to the exact size a passport office asks for. Pick a country, drag and zoom your photo under the frame, and use the guide lines to check how big your head is. Then save a single photo, or a print sheet that fills a 4 x 6 inch or 10 x 15 cm piece of photo paper.
 
 Everything happens on your device and nothing is stored. The sizes come from the government pages listed under Sources, but rules change and offices can reject photos for other reasons, so always check the official page. Resize or shrink the result with [[image-resizer]] and [[compress-file]] if an online form wants a smaller file.
+
+The list is in alphabetical order and now includes the United Arab Emirates passport photo (35 x 45 mm), from the ICP site. Its head-size lines follow the general ICAO range because the official page gives only the size. Other Gulf sizes are left out until an official page states them.
 
 ## How to use it
 

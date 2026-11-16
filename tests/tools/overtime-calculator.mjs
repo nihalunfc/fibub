@@ -34,4 +34,13 @@ export default async ({ page, check, BASE }) => {
   await page.fill('.oc [data-k="rate"]', ''); await page.waitForTimeout(100);
   check((await txt('.oc-answer')).includes('hourly pay'), 'overtime: blank pay shows a friendly message, no NaN');
   check(!(await page.textContent('.oc')).includes('NaN'), 'overtime: no NaN on the page');
+  // Gulf presets (checked 2026-11-16)
+  await page.fill('.oc [data-k="rate"]', '20'); await page.selectOption('.oc [data-k="how"]', 'week');
+  await page.selectOption('.oc [data-k="rule"]', 'ae'); await page.fill('.oc [data-k="wk"]', '50'); await page.waitForTimeout(100);
+  check((await txt('.oc-s-ot')) === '2.00' && (await txt('.oc-s-pay')).includes('1,010'), 'overtime: UAE 50 h at 20 = 48 x 20 + 2 x 25 = 1,010 (' + (await txt('.oc-s-pay')) + ')');
+  check((await txt('.oc-src')).includes('33 of 2021') && (await page.$('.oc .oc-src a[href*="u.ae"]')) !== null && (await txt('.oc-note')).includes('not legal advice'), 'overtime: UAE preset names the law, links u.ae and says not legal advice');
+  await page.selectOption('.oc [data-k="rule"]', 'sa'); await page.waitForTimeout(100);
+  check((await txt('.oc-s-pay')).includes('1,020'), 'overtime: Saudi Arabia 50 h at 20 = 48 x 20 + 2 x 30 = 1,020 (' + (await txt('.oc-s-pay')) + ')');
+  await page.selectOption('.oc [data-k="rule"]', 'om'); await page.fill('.oc [data-k="wk"]', '45'); await page.waitForTimeout(100);
+  check((await txt('.oc-s-ot')) === '5.00' && (await txt('.oc-s-pay')).includes('925'), 'overtime: Oman 45 h at 20 = 40 x 20 + 5 x 25 = 925 (' + (await txt('.oc-s-pay')) + ')');
 };
