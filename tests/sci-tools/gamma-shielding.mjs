@@ -33,4 +33,13 @@ export default async (check) => {
   check('gamma: buildup forms', buildup(2, { kind: 'none' }) === 1 && buildup(2, { kind: 'linear' }) === 3 && near(buildup(2, { kind: 'berger', a: 1, b: 0.1 }), 1 + 2 * Math.exp(0.2)));
   check('gamma: impossible transmissions give null', thicknessFor(mu, 1.5) === null && thicknessFor(mu, 0) === null && thicknessFor(mu, 1e-3, { kind: 'berger', a: 1, b: 1.2 }) === null);
   check('gamma: six materials, six lines, and the accuracy note says the values are approximate', Object.keys(MATERIALS).length === 6 && Object.keys(LINES).length === 6 && /approximate/.test(ACCURACY) && /XCOM/.test(ACCURACY));
+  // Against measurement: barium zinc borate glass 45 B2O3-20 ZnO-30 BaO-5 Fe2O3 (mol %), density 4.031 g/cm3, measured
+  // with an HPGe detector at 0.662 and 1.333 MeV: 0.307 and 0.208 /cm (Elsafi, Sayyed and Hanafy 2025, Sci. Rep. 15,
+  // 2618). The formulas must land within 6 % (they give 0.294 and 0.203 /cm), and a typed μ/ρ of 0.0763 cm²/g at
+  // 3.932 g/cm³ must give the paper's 2.31 cm half-value layer and 74.1 % through 1 cm.
+  { const w = { 5: 10.81, 8: 15.999, 30: 65.38, 56: 137.327, 26: 55.845 }, ox = [[45, [[5, 2], [8, 3]]], [20, [[30, 1], [8, 1]]], [30, [[56, 1], [8, 1]]], [5, [[26, 2], [8, 3]]]];
+    const comp = mix(ox.map(([m, f]) => [m * f.reduce((s, [Z, n]) => s + n * w[Z], 0), fromFormula(f)]));
+    const m662 = parts(comp, 0.662).total * 4.031, m133 = parts(comp, 1.333).total * 4.031;
+    check('gamma: barium borate glass within 6 % of HPGe measurements at 0.662 and 1.333 MeV', near(m662, 0.307, 0.06) && near(m133, 0.208, 0.06));
+    check('gamma: typed μ/ρ 0.0763 × 3.932 g/cm³: HVL 2.31 cm, 74.1 % through 1 cm', near(hvl(0.0763 * 3.932), 2.310, 2e-3) && near(transmission(0.0763 * 3.932, 1), 0.7408, 1e-3)); }
 };

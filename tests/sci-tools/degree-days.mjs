@@ -1,7 +1,7 @@
 // #216 degree days (heating, cooling, growing). Sine and triangle values checked against an independent Python
 // script that samples the day's curve at 200,000 points and averages max(0, T - base) with numpy; mean and
 // modified average against the same script's own formulas. The made-up example year is checked the same way.
-import { heating, cooling, growing, degreeDays, monthly, fillGaps, readDays, exampleYear, sineAbove, triangleAbove } from '../../src/lib/sci/degreedays.ts';
+import { heating, cooling, growing, degreeDays, monthly, fillGaps, readDays, exampleYear, sineAbove, triangleAbove, ukmoAbove, ukmoBelow } from '../../src/lib/sci/degreedays.ts';
 import { num, parseTable } from '../../src/lib/sci/num.ts';
 
 export default async (check) => {
@@ -31,6 +31,20 @@ export default async (check) => {
   near('flat day (min = max) sine', sineAbove(12, 12, 10), 2, 1e-12);
   // Heating plus cooling at one base is the mean distance from it (sine and triangle alike).
   near('HDD - CDD = base - mean (triangle)', heating(D(3, 21), 15, 'triangle') - cooling(D(3, 21), 15, 'triangle'), 3, 1e-12);
+
+  // UK Met Office four-case method (Met Office / CIBSE TM41 formulas), one day in each case, worked by hand.
+  // Heating base 15.5 and cooling base 22 as in Chervenkov and Slavov (2025, Atmosphere 16, 1153).
+  near('ukmo heating, max below base: -4 to 6', ukmoBelow(-4, 6, 15.5), 14.5, 1e-12);
+  near('ukmo heating, mean below base: 12 to 18', ukmoBelow(12, 18, 15.5), (15.5 - 12) / 2 - (18 - 15.5) / 4, 1e-12);
+  near('ukmo heating, base between min and mean: 12 to 24', ukmoBelow(12, 24, 15.5), 0.875, 1e-12);
+  near('ukmo heating, min above base', ukmoBelow(16, 30, 15.5), 0, 1e-12);
+  near('ukmo cooling, min above base: 23 to 33', ukmoAbove(23, 33, 22), 6, 1e-12);
+  near('ukmo cooling, mean above base: 16 to 30', ukmoAbove(16, 30, 22), 2.5, 1e-12);
+  near('ukmo cooling, base between mean and max: 12 to 24', ukmoAbove(12, 24, 22), 0.5, 1e-12);
+  near('ukmo cooling, max below base', ukmoAbove(5, 15, 22), 0, 1e-12);
+  near('ukmo HDD - CDD = base - mean', heating(D(3, 21), 15, 'ukmo') - cooling(D(3, 21), 15, 'ukmo'), 3, 1e-12);
+  near('ukmo close to sine on a crossing day (10 to 30, base 18)', cooling(D(10, 30), 18, 'ukmo'), 4, 1e-12);
+  near('ukmo growing with upper cutoff 30 (20 to 36, base 10)', growing(D(20, 36), 10, 30, 'ukmo'), 18 - 1.5, 1e-12);
 
   // The page's made-up year (2025, 14 March left out), bases 18 / 18 / 10 with an upper cutoff of 30 °C.
   const parsed = readDays(parseTable(exampleYear()), num);
