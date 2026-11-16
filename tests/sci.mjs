@@ -1,6 +1,7 @@
 // Checks for the science maths in src/lib/sci/ against published worked examples.
 import zlib from 'node:zlib';
 // Run with `node tests/sci.mjs` (Node 22+ strips the TypeScript types itself).
+import { binomPmf, binomCdf, binomUpper, criticalUpper, criticalLower, normalCdf } from '../src/lib/sci/ukstats.ts';
 import { tInv, tTwoSided, normInv, normCdf } from '../src/lib/sci/stats.ts';
 import { num, parseTable, numericColumns, sig } from '../src/lib/sci/num.ts';
 import { calibrate, inverse, limits } from '../src/lib/sci/calibration.ts';
@@ -3668,6 +3669,14 @@ ORIGIN
   check('trip: the sample trip is a few km and the same every time', as.metres > 2000 && as.metres < 5000 && JSON.stringify(T.pack(st)) === JSON.stringify(T.pack(T.sampleTrip())));
   // Formatting.
   check('trip: formats', T.fmtDur(3725) === '1:02:05' && T.fmtDist(2400, 'km') === '2.40 km' && T.fmtSpeed(10, 'km') === '36.0 km/h' && T.fmtPace(2.5, 'km') === '6:40 /km' && T.fmtPos(1.2345678, -0.5) === '1.23457, -0.50000');
+}
+
+{ // UK statistics: standard published values (A-level tables)
+  check('ukstats: N(100,15) P(X<115) = 0.8413', Math.abs(normalCdf(115, 100, 15) - 0.8413) < 1e-4);
+  check('ukstats: B(20,0.5) P(X=10) = 0.1762', Math.abs(binomPmf(20, 0.5, 10) - 0.1762) < 1e-4);
+  check('ukstats: B(20,0.5) P(X<=7) = 0.1316', Math.abs(binomCdf(20, 0.5, 7) - 0.1316) < 1e-4);
+  check('ukstats: B(20,0.5) P(X>=15) = 0.0207', Math.abs(binomUpper(20, 0.5, 15) - 0.0207) < 1e-4);
+  check('ukstats: critical values for B(20,0.5) at 5%', criticalUpper(20, 0.5, 0.05) === 15 && criticalLower(20, 0.5, 0.05) === 5);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);

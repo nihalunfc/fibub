@@ -1,0 +1,76 @@
+---
+// #L342 Rate of reaction lab. Engine: src/lib/learn/ (quiz.ts, sim.ts).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn rr">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="gcse" aria-pressed="true">GCSE</button><button type="button" data-level="alevel" aria-pressed="false">A-level</button></div>
+    <h2>Change the conditions</h2>
+    <canvas class="lrn-cv rr-cv" aria-label="Graph of gas volume against time for the current conditions and any kept curves"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Temperature: <b class="rr-tv"></b> <input class="rr-t" type="range" min="5" max="60" step="5" value="25" /></label>
+      <label>Concentration: <b class="rr-cv2"></b> <input class="rr-c" type="range" min="0.5" max="2" step="0.5" value="1" /></label>
+      <label>Solid pieces <select class="rr-s"><option value="1" selected>Lumps</option><option value="2">Granules</option><option value="4">Powder</option></select></label>
+      <label><input type="checkbox" class="rr-cat" /> Add a catalyst</label>
+    </div>
+    <p class="ax-big rr-out" aria-live="polite"></p>
+    <p class="ax-help rr-sub"></p>
+    <button type="button" class="btn secondary small rr-keep">Keep this curve</button> <button type="button" class="btn secondary small rr-clear">Clear kept curves</button>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Change one thing at a time and keep each curve. Which has the biggest effect?</li><li>Add a catalyst at 25 °C, then try the same speed-up with temperature instead.</li><li>Compare powder with lumps. Why does the final volume stay the same?</li></ul>
+  </div>
+  <div class="ax-card rr-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .rr .rr-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.rr') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const inp = (s: string) => q(s) as HTMLInputElement;
+  const cv = q('.rr-cv') as HTMLCanvasElement;
+  let level = 'gcse';
+  const R = 8.314, VMAX = 100;
+  // Rate constant (per second): proportional to concentration and surface area, with an Arrhenius temperature factor.
+  const rate = (tC: number, c: number, area: number, cat: boolean) => 0.05 * c * area * Math.exp((-(cat ? 35000 : 50000) / R) * (1 / (tC + 273.15) - 1 / 298.15));
+  const kept: { k: number; label: string }[] = [];
+  const draw = () => {
+    const tC = +inp('.rr-t').value, c = +inp('.rr-c').value, area = +(q('.rr-s') as HTMLSelectElement).value, cat = inp('.rr-cat').checked;
+    const k = rate(tC, c, area, cat), t90 = Math.LN10 / k;
+    q('.rr-tv').textContent = tC + ' °C'; q('.rr-cv2').textContent = c + ' mol/dm³';
+    q('.rr-out').textContent = `90% of the gas forms after ${r(t90, 2)} s. Starting rate ${r(VMAX * k, 2)} cm³/s.`;
+    q('.rr-sub').textContent = level === 'alevel' ? `k = ${r(k, 3)} s⁻¹, activation energy ${cat ? 35 : 50} kJ/mol (${cat ? 'catalyst lowers it' : 'no catalyst'}).` : 'A steeper start means a faster reaction. The final volume stays the same because the amount of reactant has not changed.';
+    const { ctx, W, H } = fitCanvas(cv, 240), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const all = [...kept.map((x) => x.k), k], tMax = Math.max(60, Math.min(240, (Math.LN10 / Math.min(...all)) * 1.3));
+    const ox = 44, oy = H - 30, pw = W - ox - 14, ph = oy - 14;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'right';
+    for (let v = 0; v <= 100; v += 25) { const y = oy - (v / VMAX) * ph; ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox + pw, y); ctx.stroke(); ctx.fillText(String(v), ox - 6, y + 4); }
+    ctx.textAlign = 'center'; ctx.fillText(`time (s), 0 to ${r(tMax, 2)}`, ox + pw / 2, H - 8);
+    ctx.save(); ctx.translate(12, oy - ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('gas (cm³)', 0, 0); ctx.restore();
+    const curve = (kk: number, col: string, w: number) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); for (let i = 0; i <= 120; i++) { const tt = (i / 120) * tMax, x = ox + (tt / tMax) * pw, y = oy - ((VMAX * (1 - Math.exp(-kk * tt))) / VMAX) * ph; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); };
+    kept.forEach((x) => curve(x.k, pal.muted, 2)); curve(k, pal.accent, 3);
+  };
+  root.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', draw));
+  q('.rr-keep').addEventListener('click', () => { const tC = +inp('.rr-t').value, c = +inp('.rr-c').value, area = +(q('.rr-s') as HTMLSelectElement).value; kept.push({ k: rate(tC, c, area, inp('.rr-cat').checked), label: '' }); draw(); });
+  q('.rr-clear').addEventListener('click', () => { kept.length = 0; draw(); });
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.rr-quiz'), () => {
+    const m = pick(2, 6), n = one(['concentration', 'surface area']);
+    return [
+      { q: `A reaction takes ${m * 10} s. The ${n} is doubled and nothing else changes, so the rate doubles. How long does it take now?`, ans: m * 5, unit: 's', work: `Double the rate means half the time: ${m * 10} ÷ 2 = ${m * 5} s.` },
+      { q: 'Which change gives particles more energy so that more collisions react?', choices: ['Raising the temperature', 'Using a bigger lump', 'Adding more solvent'], ans: 0, work: 'Raising the temperature gives particles more energy, so a larger fraction of collisions are successful.' },
+      { q: 'A catalyst is added. How does the total gas made change?', choices: ['It increases', 'It stays the same', 'It decreases'], ans: 1, work: 'A catalyst only speeds up the reaction. The amount of reactant, and so the total product, is unchanged.' },
+    ];
+  });
+</script>

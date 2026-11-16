@@ -6,6 +6,7 @@
 // map like src/data/ncert.ts (a list of classes or grades, each with subjects and chapters that list
 // tool ids), export it here with status 'live', and add its pages. A 'planned' entry is not counted.
 import { CLASSES, type SchoolClass } from './ncert';
+import { UK_LEVELS } from './uk';
 
 export type Curriculum = {
   id: string;
@@ -20,7 +21,7 @@ export const CURRICULA: Curriculum[] = [
   { id: 'ncert', name: 'NCERT (India)', country: 'India', grades: 'Class 8 to 12', status: 'live', classes: CLASSES },
   { id: 'canada', name: 'Canada', country: 'Canada', grades: 'Grade 8 to 12', status: 'planned', classes: [] },
   { id: 'usa', name: 'United States', country: 'United States', grades: 'Grade 8 to 12', status: 'planned', classes: [] },
-  { id: 'uk', name: 'United Kingdom', country: 'United Kingdom', grades: 'Year 9 to 13', status: 'planned', classes: [] },
+  { id: 'uk', name: 'England national curriculum (UK)', country: 'United Kingdom', grades: 'Key Stage 3, GCSE, A-level', status: 'live', classes: UK_LEVELS },
 ];
 
 export type Course = { id: string; name: string; text: string; status: 'live' | 'planned'; href?: string };

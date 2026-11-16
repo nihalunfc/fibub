@@ -1,0 +1,80 @@
+---
+// #L344 Binomial distribution lab. Maths in src/lib/sci/ukstats.ts (checked in tests/sci.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn bl">
+  <div class="ax-card">
+    <h2>B(n, p) probabilities</h2>
+    <canvas class="lrn-cv bl-cv" aria-label="Bar chart of binomial probabilities with the chosen values highlighted"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Trials n <input class="bl-n" type="number" min="1" max="50" step="1" value="20" /></label>
+      <label>Chance of success p <input class="bl-p" type="number" min="0" max="1" step="0.01" value="0.5" /></label>
+      <label>k <input class="bl-k" type="number" min="0" max="50" step="1" value="10" /></label>
+    </div>
+    <p class="ax-big bl-out" aria-live="polite"></p>
+    <p class="ax-help bl-sub"></p>
+  </div>
+  <div class="ax-card">
+    <h2>One-tailed hypothesis test</h2>
+    <p class="ax-help">Null hypothesis H0: the chance of success is p (the value above).</p>
+    <div class="ax-grid">
+      <label>Observed successes <input class="bl-x" type="number" min="0" max="50" step="1" value="15" /></label>
+      <label>H1: p is <select class="bl-dir"><option value="up" selected>higher than claimed</option><option value="down">lower than claimed</option></select></label>
+      <label>Significance level <select class="bl-a"><option value="0.01">1%</option><option value="0.05" selected>5%</option><option value="0.1">10%</option></select></label>
+    </div>
+    <p class="ax-big bl-test" aria-live="polite"></p>
+    <p class="ax-help bl-crit"></p>
+  </div>
+  <div class="ax-card bl-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .bl .bl-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, pagePalette } from '../../lib/learn/sim';
+  import { binomPmf, binomCdf, binomUpper, criticalUpper, criticalLower } from '../../lib/sci/ukstats';
+  const root = document.querySelector('.bl') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const val = (s: string) => +(q(s) as HTMLInputElement).value;
+  const cv = q('.bl-cv') as HTMLCanvasElement;
+  const draw = () => {
+    const n = Math.min(50, Math.max(1, Math.round(val('.bl-n')))), p = Math.min(1, Math.max(0, val('.bl-p'))), k = Math.min(n, Math.max(0, Math.round(val('.bl-k'))));
+    const x = Math.min(n, Math.max(0, Math.round(val('.bl-x')))), dir = (q('.bl-dir') as HTMLSelectElement).value, alpha = +(q('.bl-a') as HTMLSelectElement).value;
+    q('.bl-out').textContent = `P(X = ${k}) = ${r(binomPmf(n, p, k), 4)}`;
+    q('.bl-sub').textContent = `P(X ≤ ${k}) = ${r(binomCdf(n, p, k), 4)}, P(X ≥ ${k}) = ${r(binomUpper(n, p, k), 4)}. Mean np = ${r(n * p, 4)}, variance np(1 − p) = ${r(n * p * (1 - p), 4)}.`;
+    const pv = dir === 'up' ? binomUpper(n, p, x) : binomCdf(n, p, x);
+    const reject = pv <= alpha;
+    q('.bl-test').textContent = `${dir === 'up' ? `P(X ≥ ${x})` : `P(X ≤ ${x})`} = ${r(pv, 4)}: ${reject ? 'reject' : 'do not reject'} H0 at ${r(alpha * 100)}%.`;
+    const cu = criticalUpper(n, p, alpha), cl = criticalLower(n, p, alpha);
+    q('.bl-crit').textContent = dir === 'up' ? (cu > n ? 'Critical region: none, since even X = n is not unlikely enough.' : `Critical region: X ≥ ${cu}.`) : (cl < 0 ? 'Critical region: none, since even X = 0 is not unlikely enough.' : `Critical region: X ≤ ${cl}.`);
+    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const ox = 12, oy = H - 26, pw = W - 24, ph = H - 46, bw = pw / (n + 1);
+    const ps = Array.from({ length: n + 1 }, (_, i) => binomPmf(n, p, i)), top = Math.max(...ps, 1e-9);
+    ps.forEach((v, i) => {
+      const hit = dir === 'up' ? i >= cu : i <= cl;
+      ctx.fillStyle = i === k ? pal.accent : hit ? pal.warn : pal.muted; ctx.globalAlpha = i === k || hit ? 1 : 0.55;
+      ctx.fillRect(ox + i * bw + 1, oy - (v / top) * ph, Math.max(1, bw - 2), (v / top) * ph);
+    });
+    ctx.globalAlpha = 1; ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    const step = n > 25 ? 5 : n > 12 ? 2 : 1;
+    for (let i = 0; i <= n; i += step) ctx.fillText(String(i), ox + i * bw + bw / 2, oy + 16);
+  };
+  root.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', draw));
+  addEventListener('resize', draw);
+  draw();
+  mountQuiz(q('.bl-quiz'), () => {
+    const n = pick(6, 30, 2), p = pick(1, 9) / 10;
+    return [
+      { q: `X ~ B(${n}, ${p}). What is the mean of X?`, ans: n * p, unit: '', work: `mean = np = ${n} × ${p} = ${r(n * p)}` },
+      { q: `X ~ B(${n}, ${p}). What is the variance?`, ans: n * p * (1 - p), unit: '', work: `variance = np(1 − p) = ${n} × ${p} × ${r(1 - p)} = ${r(n * p * (1 - p))}` },
+      { q: 'A coin is flipped 3 times (fair). What is the probability of exactly 2 heads? Give a decimal.', ans: 0.375, unit: '', work: 'P = 3C2 × 0.5² × 0.5 = 3 × 0.125 = 0.375' },
+    ];
+  });
+</script>

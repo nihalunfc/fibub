@@ -1,0 +1,79 @@
+---
+// #L343 Normal distribution lab. Maths in src/lib/sci/ukstats.ts (checked in tests/sci.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn nl">
+  <div class="ax-card">
+    <h2>Shade the area</h2>
+    <canvas class="lrn-cv nl-cv" aria-label="Normal distribution curve with the chosen area shaded"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Mean μ <input class="nl-mu" type="number" step="any" value="100" /></label>
+      <label>Standard deviation σ <input class="nl-sd" type="number" step="any" min="0.01" value="15" /></label>
+      <label>Shade <select class="nl-mode"><option value="below" selected>Below a</option><option value="above">Above a</option><option value="between">Between a and b</option></select></label>
+      <label>a <input class="nl-a" type="number" step="any" value="115" /></label>
+      <label class="nl-bwrap" hidden>b <input class="nl-b" type="number" step="any" value="130" /></label>
+    </div>
+    <p class="ax-big nl-out" aria-live="polite"></p>
+    <p class="ax-help nl-sub"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Work backwards</h2>
+    <div class="ax-grid">
+      <label>Probability below x <input class="nl-p" type="number" step="any" min="0.0001" max="0.9999" value="0.95" /></label>
+    </div>
+    <p class="ax-big nl-inv" aria-live="polite"></p>
+  </div>
+  <div class="ax-card nl-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .nl .nl-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, pagePalette } from '../../lib/learn/sim';
+  import { normalCdf, normalPdf, normCdf, normInv } from '../../lib/sci/ukstats';
+  const root = document.querySelector('.nl') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const val = (s: string) => +(q(s) as HTMLInputElement).value;
+  const cv = q('.nl-cv') as HTMLCanvasElement;
+  const draw = () => {
+    const mu = val('.nl-mu'), sd = Math.max(0.01, val('.nl-sd')), a = val('.nl-a'), b = val('.nl-b');
+    const mode = (q('.nl-mode') as HTMLSelectElement).value;
+    (q('.nl-bwrap') as HTMLElement).hidden = mode !== 'between';
+    const lo = mode === 'above' ? a : mode === 'between' ? Math.min(a, b) : -Infinity;
+    const hi = mode === 'below' ? a : mode === 'between' ? Math.max(a, b) : Infinity;
+    const P = normalCdf(hi, mu, sd) - normalCdf(lo, mu, sd);
+    q('.nl-out').textContent = `P = ${r(P, 4)} (${r(P * 100, 3)}%)`;
+    const z = (x: number) => r((x - mu) / sd, 3);
+    q('.nl-sub').textContent = mode === 'between' ? `z-scores: ${z(Math.min(a, b))} and ${z(Math.max(a, b))}.` : `z-score of a: (${a} − ${mu}) ÷ ${sd} = ${z(a)}.`;
+    const p = val('.nl-p');
+    q('.nl-inv').textContent = p > 0 && p < 1 ? `P(X < x) = ${p} gives x = ${r(mu + sd * normInv(p), 5)}` : 'Type a probability between 0 and 1.';
+    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const x0 = mu - 4 * sd, x1 = mu + 4 * sd, ox = 12, oy = H - 24, pw = W - 24, ph = H - 44, top = normalPdf(mu, mu, sd);
+    const X = (x: number) => ox + ((x - x0) / (x1 - x0)) * pw, Y = (x: number) => oy - (normalPdf(x, mu, sd) / top) * ph;
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(Math.max(lo, x0)), oy);
+    for (let i = 0; i <= 160; i++) { const x = Math.max(lo, x0) + (i / 160) * (Math.min(hi, x1) - Math.max(lo, x0)); ctx.lineTo(X(x), Y(x)); }
+    ctx.lineTo(X(Math.min(hi, x1)), oy); ctx.closePath(); if (Math.max(lo, x0) < Math.min(hi, x1)) ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const x = x0 + (i / 200) * (x1 - x0); i ? ctx.lineTo(X(x), Y(x)) : ctx.moveTo(X(x), Y(x)); } ctx.stroke();
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + pw, oy); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (let k = -3; k <= 3; k++) ctx.fillText(r(mu + k * sd, 3), X(mu + k * sd), oy + 16);
+  };
+  root.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', draw));
+  addEventListener('resize', draw);
+  draw();
+  mountQuiz(q('.nl-quiz'), () => {
+    const mu = pick(40, 80, 10), sd = pick(4, 10, 2), k = one([1, 2]), x = mu + k * sd;
+    return [
+      { q: `X is normal with mean ${mu} and standard deviation ${sd}. What is the z-score of x = ${x}?`, ans: k, unit: '', work: `z = (x − μ) ÷ σ = (${x} − ${mu}) ÷ ${sd} = ${k}` },
+      { q: `For a normal distribution, what is P(X < μ)?`, ans: 0.5, unit: '', work: 'The curve is symmetrical about the mean, so half the area is below it: 0.5.' },
+      { q: `X ~ N(${mu}, ${sd}²). A value is z = −2. What is it?`, ans: mu - 2 * sd, unit: '', work: `x = μ + zσ = ${mu} + (−2) × ${sd} = ${mu - 2 * sd}` },
+    ];
+  });
+</script>
