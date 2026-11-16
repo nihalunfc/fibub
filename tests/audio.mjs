@@ -169,5 +169,37 @@ check(nn.name === 'A' && nn.octave === 4 && Math.abs(nn.cents - 19.56) < 0.05 &&
   }
 }
 
+// Speed and pitch (WSOLA): a 440 Hz tone keeps its pitch when the speed changes, and moves by 2^(n/12) when shifted.
+{
+  const { changeSpeed, shiftPitch } = await import('../src/lib/audio/stretch.ts');
+  const r = 44100, x = new Float32Array(r * 2).map((_, i) => 0.5 * Math.sin(2 * Math.PI * 440 * i / r));
+  const hz = (c) => yin(c.subarray(c.length >> 1, (c.length >> 1) + 4096), r).hz;
+  for (const sp of [0.5, 1.5, 2]) {
+    const o = changeSpeed({ rate: r, chans: [x, x] }, sp), c = o.chans[0];
+    check(c.length === Math.round(2 * r / sp) && Math.abs(hz(c) - 440) < 0.5 && Math.abs(rms(c.subarray(2000, c.length - 2000)) - 0.3536) < 0.005 && o.chans[1][1234] === c[1234], `speed ${sp}×: length ${c.length}, still 440 Hz (${hz(c).toFixed(2)}), same loudness`);
+  }
+  const tape = changeSpeed({ rate: r, chans: [x] }, 2, 'tape').chans[0];
+  check(tape.length === r && Math.abs(hz(tape) - 880) < 0.5, `speed 2× like a tape: one octave up (${hz(tape).toFixed(2)})`);
+  for (const st of [-12, 4, 12]) {
+    const c = shiftPitch({ rate: r, chans: [x] }, st).chans[0], want = 440 * 2 ** (st / 12);
+    check(c.length === x.length && Math.abs(hz(c) - want) < 0.5, `pitch ${st > 0 ? '+' : ''}${st} semitones: ${want.toFixed(2)} Hz, same length (${hz(c).toFixed(2)})`);
+  }
+}
+// GIF reader: every pixel of every frame matches ffmpeg's decoding of the same (optimised, partly transparent) GIF.
+{
+  const { gifInfo, gifFrames } = await import('../src/lib/video/gif.ts');
+  const g = new Uint8Array(readFileSync(new URL('./fixtures/anim.gif', import.meta.url)));
+  const gi = gifInfo(g);
+  check(gi.width === 96 && gi.height === 64 && gi.frames === 15 && Math.abs(gi.duration - 1.5) < 1e-9 && gi.loops === 0, `GIF info: 96 × 64, 15 frames, 1.5 s, loops for ever (${JSON.stringify(gi)})`);
+  if (ff) {
+    const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', new URL('./fixtures/anim.gif', import.meta.url).pathname, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-']);
+    let bad = 0, n = 0;
+    for (const f of gifFrames(g)) { const ref = raw.subarray(n * 96 * 64 * 4, (n + 1) * 96 * 64 * 4); for (let i = 0; i < ref.length; i += 4) if (f.rgba[i] !== ref[i] || f.rgba[i + 1] !== ref[i + 1] || f.rgba[i + 2] !== ref[i + 2]) bad++; n++; }
+    check(n === 15 && bad === 0, `GIF frames match ffmpeg pixel for pixel (${n} frames, ${bad} pixels differ)`);
+  }
+  let threw = false; try { gifInfo(new Uint8Array(20)); } catch { threw = true; }
+  check(threw, 'not a GIF: refused');
+}
+
 console.log(fails ? `audio: ${fails} check(s) failed` : 'audio: all checks passed');
 process.exit(fails ? 1 : 0);

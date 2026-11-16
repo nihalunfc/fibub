@@ -1,0 +1,110 @@
+---
+// #T974 GIF to MP4: an animated GIF as a much smaller video. GIF reader: src/lib/video/gif.ts (checked against ffmpeg in
+// tests/audio.mjs); encoder: src/lib/video/compose.ts (gifToVideo). Nothing is uploaded.
+---
+<div class="tool-ui g2m">
+  <p class="note bad g2m-none" hidden>This browser cannot encode video. Use a recent Chrome, Edge, Safari (16.4 or later) or Firefox (130 or later).</p>
+  <section class="panel">
+    <div class="g2m-drop">
+      <button type="button" class="btn g2m-open">Open a GIF</button>
+      <input class="g2m-file" type="file" accept="image/gif,.gif" hidden />
+      <span class="g2m-name">Or drop it here, up to 200 MB. It stays on this device.</span>
+    </div>
+    <p class="note bad g2m-err" hidden></p>
+  </section>
+
+  <section class="panel g2m-set" hidden>
+    <img class="g2m-img" alt="The GIF you opened" />
+    <div class="g2m-grid">
+      <label>Play it
+        <select class="g2m-rep"><option value="1">Once (like the GIF plays one loop)</option><option value="2">2 times</option><option value="3">3 times</option><option value="5">5 times</option><option value="10">10 times</option></select>
+      </label>
+      <label>See-through parts become
+        <select class="g2m-bg"><option value="#ffffff">White</option><option value="#000000">Black</option></select>
+      </label>
+      <label>Largest side
+        <select class="g2m-max"><option value="1920">Keep (up to 1920 px)</option><option value="1280">1280 px</option><option value="720">720 px</option><option value="480">480 px</option></select>
+      </label>
+    </div>
+    <p class="g2m-plan" aria-live="polite"></p>
+    <div class="g2m-row">
+      <button type="button" class="btn g2m-go">Make the video</button>
+    </div>
+    <progress class="g2m-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel g2m-out" hidden>
+    <video class="g2m-result" controls playsinline loop muted autoplay></video>
+    <p class="g2m-res" aria-live="polite"></p>
+    <button type="button" class="btn g2m-dl">Download</button>
+  </section>
+  <p class="g2m-fine">Your browser reads the GIF and encodes the video on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .g2m { display: grid; gap: 14px; margin-bottom: 32px; }
+  .g2m .panel { display: grid; gap: 12px; padding: 16px; }
+  .g2m [hidden] { display: none !important; }
+  .g2m-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .g2m-drop.over { border-color: var(--accent); }
+  .g2m-name, .g2m-plan, .g2m-res, .g2m-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .g2m-img { max-width: 100%; max-height: 40vh; justify-self: start; border-radius: 8px; border: 1px solid var(--line); }
+  .g2m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .g2m label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .g2m select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .g2m-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .g2m-prog { width: 100%; }
+  .g2m-result { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; }
+</style>
+
+<script>
+  import { sizeText, secs, saveBytes, baseName } from '../../lib/audio/browser.ts';
+  import { gifInfo, type GifInfo } from '../../lib/video/gif.ts';
+  import type { Made } from '../../lib/video/compose.ts';
+  const root = document.querySelector('.g2m') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  if (typeof (window as any).VideoEncoder === 'undefined') $('.g2m-none').hidden = false;
+  const input = $<HTMLInputElement>('.g2m-file'), err = $('.g2m-err'), plan = $('.g2m-plan'), go = $<HTMLButtonElement>('.g2m-go'), prog = $<HTMLProgressElement>('.g2m-prog');
+  let bytes: Uint8Array | null = null, info: GifInfo | null = null, name = 'animation', size = 0, imgUrl = '', outUrl = '', result: Made | null = null;
+
+  const update = () => {
+    if (!info) return;
+    const rep = +$<HTMLSelectElement>('.g2m-rep').value;
+    plan.textContent = `${info.frames} frames, ${secs(info.duration)} per loop` + (rep > 1 ? `, ${secs(info.duration * rep)} in all` : '') + (info.transparent ? '. Videos cannot be see-through, so clear parts get the colour above.' : '.') + (info.loops === null ? ' This GIF plays once.' : '');
+  };
+  const open = async (f: File) => {
+    err.hidden = true; $('.g2m-out').hidden = true; $('.g2m-set').hidden = true; info = null;
+    if (f.size > 200e6) { err.textContent = 'Too big: GIFs up to 200 MB.'; err.hidden = false; return; }
+    name = baseName(f.name, 'animation'); size = f.size;
+    bytes = new Uint8Array(await f.arrayBuffer());
+    try { info = gifInfo(bytes); } catch { err.textContent = 'This is not a GIF file (or it is damaged). For videos, use the video converter.'; err.hidden = false; return; }
+    if (imgUrl) URL.revokeObjectURL(imgUrl);
+    imgUrl = URL.createObjectURL(f); $<HTMLImageElement>('.g2m-img').src = imgUrl;
+    $('.g2m-name').textContent = `${f.name}: ${info.width} × ${info.height}, ${sizeText(f.size)}.`;
+    $('.g2m-set').hidden = false; update();
+  };
+  go.addEventListener('click', async () => {
+    if (!bytes) return;
+    err.hidden = true; go.disabled = true; prog.hidden = false; prog.value = 0;
+    const t0 = performance.now();
+    try {
+      const { gifToVideo } = await import('../../lib/video/compose.ts');
+      result = await gifToVideo(bytes, { repeat: +$<HTMLSelectElement>('.g2m-rep').value, background: $<HTMLSelectElement>('.g2m-bg').value, maxSide: +$<HTMLSelectElement>('.g2m-max').value }, (p) => (prog.value = p));
+      if (outUrl) URL.revokeObjectURL(outUrl);
+      outUrl = URL.createObjectURL(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }));
+      $<HTMLVideoElement>('.g2m-result').src = outUrl;
+      const pct = Math.round((1 - result.bytes.length / size) * 100);
+      $('.g2m-res').textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${result.width} × ${result.height}, ${secs(result.duration ?? 0)}, ${sizeText(result.bytes.length)} ${result.ext.toUpperCase()}` + (pct > 0 ? `, ${pct}% smaller than the GIF.` : '.');
+      $('.g2m-out').hidden = false;
+    } catch { err.textContent = 'This browser could not make the video. Try Chrome or Edge.'; err.hidden = false; }
+    go.disabled = false; prog.hidden = true;
+  });
+  $('.g2m-dl').addEventListener('click', () => { if (result) saveBytes(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: result.mime }), `${name}.${result.ext}`); });
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('input', update));
+  $('.g2m-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.g2m-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>
