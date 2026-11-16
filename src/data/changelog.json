@@ -1,5 +1,51 @@
 [
  {
+  "sha": "6e532f98d459",
+  "date": "2026-11-16T18:00:25+00:00",
+  "title": "Make 15 more money tools more useful (tax, pay, planning)",
+  "tools": [
+   "bill-splitter",
+   "budget-calculator",
+   "canada-income-tax",
+   "capital-gains",
+   "cpp-oas-age",
+   "currency-converter",
+   "debt-snowball",
+   "ei-calculator",
+   "fire-calculator",
+   "gratuity-calculator",
+   "hra-exemption",
+   "india-income-tax",
+   "overtime-calculator",
+   "uk-income-tax",
+   "us-paycheck"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d7b05da34f8b",
+  "date": "2026-11-16T17:53:10+00:00",
+  "title": "Add MP3 saving (LAME via lamejs, LGPL-3.0, credited) and audio converter, joiner, extract audio (#T963-#T965)",
+  "tools": [
+   "audio-converter",
+   "audio-joiner",
+   "audio-trimmer",
+   "extract-audio"
+  ],
+  "site": true
+ },
+ {
+  "sha": "594eca07ae00",
+  "date": "2026-11-16T17:53:10+00:00",
+  "title": "Add loudness normaliser, metronome and instrument tuner (#T960-#T962)",
+  "tools": [
+   "instrument-tuner",
+   "loudness-normaliser",
+   "metronome"
+  ],
+  "site": false
+ },
+ {
   "sha": "640b9e5f52c2",
   "date": "2026-11-16T17:35:25+00:00",
   "title": "Make 20 money tools more useful and add a shared Copy link / Copy result bar",
@@ -25,6 +71,26 @@
    "tip-calculator",
    "unit-price"
   ],
+  "site": true
+ },
+ {
+  "sha": "ed6f77bc8049",
+  "date": "2026-11-16T17:21:40+00:00",
+  "title": "Add phone audio converters, tone generator and voice recorder (#T955-#T959)",
+  "tools": [
+   "mp3-to-ulaw",
+   "tone-generator",
+   "ulaw-to-wav",
+   "voice-recorder",
+   "wav-to-ulaw"
+  ],
+  "site": true
+ },
+ {
+  "sha": "c5f5b3d606af",
+  "date": "2026-11-16T08:14:05+00:00",
+  "title": "Add structured data to every plain page and distinct descriptions to paginated lists",
+  "tools": [],
   "site": true
  },
  {
@@ -233,6 +299,13 @@
   "sha": "af77f0cb4a3e",
   "date": "2026-11-13T17:09:23+00:00",
   "title": "Make fibub installable as an app: manifest, offline service worker, Install buttons and /app/ page",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "901920d670b1",
+  "date": "2026-11-12T10:49:40+00:00",
+  "title": "Blog: TOI-2535 b vanishing transits, checked with the tools; charts for every article",
   "tools": [],
   "site": true
  },
