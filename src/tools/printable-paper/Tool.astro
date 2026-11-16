@@ -23,11 +23,14 @@ import { TYPES } from '../../lib/docs/paper';
       <fieldset class="pp-card">
         <legend>2. Page</legend>
         <div class="pp-grid">
-          <label>Paper <select class="pp-size"><option value="a4">A4</option><option value="letter">Letter</option><option value="a5">A5</option></select></label>
+          <label>Paper <select class="pp-size"><option value="a4">A4</option><option value="letter">Letter</option><option value="a5">A5</option><option value="a3">A3</option><option value="a6">A6</option><option value="legal">US Legal</option></select></label>
           <label>Direction <select class="pp-orient"><option value="p">Portrait</option><option value="l">Landscape</option></select></label>
           <label>Colour <select class="pp-tone"><option value="grey">Light grey</option><option value="blue">Light blue</option><option value="black">Black</option></select></label>
           <label>Margin (mm) <input class="pp-margin" type="number" min="0" max="50" step="1" value="10" /></label>
         </div>
+        <details><summary><b>More options</b>: line thickness</summary>
+          <label>Line thickness <select class="pp-weight" data-k="weight"><option value="thin">Thin (0.25 mm)</option><option value="medium">Medium (0.4 mm)</option><option value="bold">Bold (0.7 mm)</option></select></label>
+        </details>
         <p class="pp-hint">Spacing is the gap between lines. Print at 100% (actual size) so the grid measures what you set.</p>
       </fieldset>
     </form>
@@ -62,7 +65,7 @@ import { TYPES } from '../../lib/docs/paper';
 </style>
 
 <script>
-  import { TYPES, SIZES, drawPaper, toMm, toneCss, type PaperType, type PaperOpts, type Tone } from '../../lib/docs/paper';
+  import { TYPES, SIZES, WEIGHTS, drawPaper, toMm, toneCss, type PaperType, type PaperOpts, type Tone } from '../../lib/docs/paper';
   const root = document.querySelector('.pp') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const val = (s: string, d: number) => { const n = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(n) ? n : d; };
@@ -72,7 +75,7 @@ import { TYPES } from '../../lib/docs/paper';
   const base = (): PaperOpts => {
     let [w, h] = SIZES[q<HTMLSelectElement>('.pp-size').value as keyof typeof SIZES];
     if (q<HTMLSelectElement>('.pp-orient').value === 'l') [w, h] = [h, w];
-    return { w, h, margin: Math.max(0, val('.pp-margin', 10)), spacing: 5, major: val('.pp-major', 5), weight: 0.25 };
+    return { w, h, margin: Math.max(0, val('.pp-margin', 10)), spacing: 5, major: val('.pp-major', 5), weight: WEIGHTS[q<HTMLSelectElement>('.pp-weight').value as keyof typeof WEIGHTS] ?? 0.25 };
   };
   const tone = () => q<HTMLSelectElement>('.pp-tone').value as Tone;
   let lastUnit: 'mm' | 'in' = 'mm';

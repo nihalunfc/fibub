@@ -37,13 +37,15 @@ import Downloads from '../../components/Downloads.astro';
     </div>
     <p class="lrt-help lrt-other"></p>
     <h3>3. See the trend</h3>
+    <p class="lrt-sum" role="status" aria-live="polite"></p>
     <canvas class="lrt-chart" width="640" height="320" role="img" aria-label="Chart of results over time"></canvas>
     <p class="lrt-help">The line joins your results in date order. The light bar at each point is the range printed on that report, so different labs can differ. Nothing is added by fibub.</p>
-    <div class="lrt-wrap"><table class="lrt-tbl"><thead><tr><th>Date</th><th>Result</th><th>Unit</th><th>Range printed</th><th>Lab</th><th></th></tr></thead><tbody class="lrt-body"></tbody></table></div>
+    <div class="lrt-wrap"><table class="lrt-tbl"><thead><tr><th>Date</th><th>Result</th><th>Unit</th><th>Range printed</th><th>Lab</th><th>Compared with range</th><th></th></tr></thead><tbody class="lrt-body"></tbody></table></div>
 
     <h3>4. Download</h3>
     <div class="lrt-row">
       <button class="btn lrt-csv" type="button">Download CSV (all results)</button>
+      <button class="btn secondary lrt-print" type="button">Print this test</button>
     </div>
     <Downloads label="For your doctor" class="lrt-dl" />
   </div>
@@ -69,6 +71,8 @@ import Downloads from '../../components/Downloads.astro';
   .lrt-help { font-size: 14px; color: var(--muted); margin: 0; }
   .lrt-res[hidden] { display: none; } .lrt-res { display: grid; gap: .7rem; }
   .lrt-chart { width: 100%; max-width: 720px; height: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  .lrt-sum { margin: 0; font-weight: 600; }
+  @media print { body * { visibility: hidden; } .lrt-res, .lrt-res * { visibility: visible; } .lrt-res { position: absolute; left: 0; top: 0; width: 100%; } .lrt-res button, .lrt-dl, .lrt-res select { display: none !important; } }
   .lrt-wrap { overflow-x: auto; }
   .lrt-tbl { border-collapse: collapse; width: 100%; min-width: 480px; }
   .lrt-tbl th, .lrt-tbl td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; font-size: 15px; }
@@ -77,6 +81,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
+  import { summarise, where } from '../../lib/docs/labtrend';
   import { parseDate, TRACKER_HEAD } from '../../lib/docs/labparse';
   import { paint, wireDownloads, save, fileSafe, type Figure, type Palette } from '../../lib/report';
   import { parseCsv, toCsv } from '../../lib/convert/table';
@@ -185,16 +190,22 @@ import Downloads from '../../components/Downloads.astro';
       },
     };
   }
-  function draw() { paint($<HTMLCanvasElement>('.lrt-chart'), figure(pick.value, unitSel.value, current())); }
+  function sum() {
+    const pts = current();
+    $('.lrt-sum').textContent = pts.length ? summarise(pts) : '';
+  }
+  function draw() { sum(); drawChart(); }
+  function drawChart() { paint($<HTMLCanvasElement>('.lrt-chart'), figure(pick.value, unitSel.value, current())); }
   function table() {
     const b = $<HTMLElement>('.lrt-body'); b.textContent = '';
     for (const r of current()) {
       const tr = document.createElement('tr');
-      for (const v of [r.date, String(r.value), r.unit, rangeStr(r) || 'none printed', r.lab]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); }
+      for (const v of [r.date, String(r.value), r.unit, rangeStr(r) || 'none printed', r.lab, where(r.value, r.low, r.high)]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); }
       const td = document.createElement('td'), x = document.createElement('button'); x.type = 'button'; x.className = 'lrt-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Delete this result');
       x.onclick = () => { rows.splice(rows.indexOf(r), 1); update(); }; td.append(x); tr.append(td); b.append(tr);
     }
   }
+  $('.lrt-print').addEventListener('click', () => window.print());
   pick.addEventListener('change', units); unitSel.addEventListener('change', () => { draw(); table(); });
   window.addEventListener('resize', () => { if (!res.hidden) draw(); });
 

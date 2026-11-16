@@ -28,8 +28,9 @@ export async function resumePdf(r: Resume, b: Block[]): Promise<{ bytes: Uint8Ar
     ital: await doc.embedFont(serif ? StandardFonts.TimesRomanItalic : StandardFonts.HelveticaOblique),
   };
   const [W, H] = PAPER[r.paper];
-  const M = 54, width = W - M * 2;
-  const base = serif ? 11 : 10.5, lh = 1.32;
+  const compact = r.density === 'compact', left = r.header === 'left';
+  const M = compact ? 40 : 54, width = W - M * 2;
+  const base = (serif ? 11 : 10.5) - (compact ? 1 : 0), lh = compact ? 1.24 : 1.32;
   const ink = rgb(0.07, 0.09, 0.15), muted = rgb(0.3, 0.33, 0.4);
   const lost = new Set<string>();
   const safe = (s: string) => { const x = pdfSafe(s); x.lost.forEach((c) => lost.add(c)); return x.text; };
@@ -59,9 +60,9 @@ export async function resumePdf(r: Resume, b: Block[]): Promise<{ bytes: Uint8Ar
 
   for (let i = 0; i < b.length; i++) {
     const k = b[i];
-    if (k.t === 'name') { write(k.text, F.bold, 20, { center: true }); y -= 2; }
-    else if (k.t === 'headline') write(k.text, F.reg, base + 1, { center: true, color: muted });
-    else if (k.t === 'contact') { write(k.text, F.reg, base - 1, { center: true, color: muted }); y -= 2; }
+    if (k.t === 'name') { write(k.text, F.bold, 20, { center: !left }); y -= 2; }
+    else if (k.t === 'headline') write(k.text, F.reg, base + 1, { center: !left, color: muted });
+    else if (k.t === 'contact') { write(k.text, F.reg, base - 1, { center: !left, color: muted }); y -= 2; }
     else if (k.t === 'heading') {
       // Keep a heading with at least two lines of what follows it.
       need(base * lh * 3 + 14);

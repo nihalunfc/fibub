@@ -53,14 +53,15 @@ export async function makeBooklet(bytes: Uint8Array, o: BookletOpts): Promise<{ 
   return { bytes: await out.save(), sheets: N / 4, sides: N / 2, blanks: N - n };
 }
 
-export type NupOpts = { per: 2 | 4; paper: Paper; border: boolean };
+export type NupOpts = { per: 2 | 4 | 6 | 9; paper: Paper; border: boolean };
 export async function makeNup(bytes: Uint8Array, o: NupOpts): Promise<{ bytes: Uint8Array; sheets: number }> {
   const src = await load(bytes), n = src.getPageCount();
   const out = await PDFDocument.create();
   const emb = await out.embedPages(src.getPages());
   const [pw, ph] = PAPER[o.paper], m = 14;
-  const [W, H] = o.per === 2 ? [ph, pw] : [pw, ph];
-  const cols = 2, rows = o.per / 2, cw = (W - m * (cols + 1)) / cols, ch = (H - m * (rows + 1)) / rows;
+  const landscape = o.per === 2 || o.per === 6;
+  const [W, H] = landscape ? [ph, pw] : [pw, ph];
+  const cols = o.per === 9 ? 3 : o.per === 6 ? 3 : 2, rows = o.per / cols, cw = (W - m * (cols + 1)) / cols, ch = (H - m * (rows + 1)) / rows;
   for (let i = 0; i < n; i += o.per) {
     const page = out.addPage([W, H]);
     for (let k = 0; k < o.per && i + k < n; k++) {

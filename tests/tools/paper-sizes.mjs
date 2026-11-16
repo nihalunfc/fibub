@@ -12,4 +12,10 @@ export default async ({ page, check, BASE }) => {
   await page.click('.ps .ps-tab[data-g="Photo prints"]');
   check((await page.locator('.ps .ps-table tbody tr').count()) === 11, 'paper-sizes: photo group lists 11');
   check((await page.locator('.ps .ps-vis svg rect').count()) === 2, 'paper-sizes: visual compare draws both sizes');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.ps .ps-unit', 'mm');
+  await page.selectOption('.ps .ps-a', 'A5'); await page.selectOption('.ps .ps-b', 'A4');
+  await page.fill('.ps .ps-iw', '200'); await page.fill('.ps .ps-ih', '280'); await page.waitForTimeout(100);
+  check((await page.textContent('.ps .ps-fits')).includes('A4 (210 x 297 mm)'), `paper-sizes: 200 x 280 mm item fits A4 (${await page.textContent('.ps .ps-fits')})`);
+  check((await page.textContent('.ps .ps-many')).startsWith('2 pieces of A5'), `paper-sizes: two A5 fit on A4 (${await page.textContent('.ps .ps-many')})`);
 };

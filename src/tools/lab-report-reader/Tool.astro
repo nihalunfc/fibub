@@ -21,6 +21,8 @@ import Downloads from '../../components/Downloads.astro';
       <label>Lab name <input class="lrr-lab" type="text" maxlength="80" placeholder="optional" /></label>
     </div>
     <p class="lrr-help">Check every row against your report. Each row is editable, and the original line is shown small so a misread number is easy to spot. The mark only compares the result with the range printed on your report.</p>
+    <p class="lrr-count" role="status" aria-live="polite"></p>
+    <label class="lrr-only"><input class="lrr-flagonly" type="checkbox" /> Show only the rows outside the printed range</label>
     <div class="lrr-wrap">
       <table class="lrr-tbl">
         <thead><tr><th>Test</th><th>Result</th><th>Unit</th><th>Range on report</th><th>Mark</th><th></th></tr></thead>
@@ -32,6 +34,7 @@ import Downloads from '../../components/Downloads.astro';
     <div class="lrr-row">
       <button class="btn lrr-csv" type="button">Download CSV</button>
       <button class="btn secondary lrr-trk" type="button">CSV for the Lab results tracker</button>
+      <button class="btn secondary lrr-print" type="button">Print the table</button>
     </div>
     <Downloads label="Report as" class="lrr-dl" />
     <p class="lrr-help">The tracker file has the columns date, test, value, unit, low, high, lab. Open it in the <a href="/documents/lab-results-tracker/">Lab results tracker</a>.</p>
@@ -49,6 +52,10 @@ import Downloads from '../../components/Downloads.astro';
   .lrr-msg.err { color: var(--warn); }
   .lrr-res[hidden] { display: none; }
   .lrr-res { display: grid; gap: .7rem; }
+  .lrr-count { margin: 0; font-weight: 600; }
+  .lrr label.lrr-only { display: flex; align-items: center; gap: .5rem; font-weight: 400; }
+  tr.lrr-hide { display: none; }
+  @media print { body * { visibility: hidden; } .lrr-res, .lrr-res * { visibility: visible; } .lrr-res { position: absolute; left: 0; top: 0; width: 100%; } .lrr-res button, .lrr-only, .lrr-dl { display: none !important; } .lrr-tbl { min-width: 0; } }
   .lrr-help { font-size: 14px; color: var(--muted); margin: 0; }
   .lrr-wrap { overflow-x: auto; }
   .lrr-tbl { border-collapse: collapse; width: 100%; min-width: 640px; }
@@ -88,6 +95,13 @@ Page 1 of 1`;
   const rows: Row[] = [];
   const trs: HTMLTableRowElement[] = [];
 
+  function summary() {
+    const filled = rows.filter((r) => r.test.trim() || r.value.trim());
+    const out = filled.filter((r) => r.flag === 'below' || r.flag === 'above').length, none = filled.filter((r) => r.flag === 'none').length;
+    $('.lrr-count').textContent = `${filled.length} test${filled.length === 1 ? '' : 's'}: ${out} outside the printed range${none ? `, ${none} with no range to compare` : ''}. This only compares with the range on your report; it is not a diagnosis.`;
+    const only = $<HTMLInputElement>('.lrr-flagonly').checked;
+    trs.forEach((tr, i) => tr.classList.toggle('lrr-hide', only && !(rows[i].flag === 'below' || rows[i].flag === 'above')));
+  }
   function refresh(i: number) {
     const r = rows[i], tr = trs[i];
     r.num = parseFloat(r.value.replace(/[<>≤≥,]/g, ''));
@@ -95,6 +109,7 @@ Page 1 of 1`;
     r.flag = /^[<>≤≥]/.test(r.value.trim()) ? 'none' : flagFor(r.num, r.low, r.high, r.rangeText.trim());
     (tr.querySelector('.lrr-mark') as HTMLElement).textContent = MARK[r.flag];
     tr.classList.toggle('lrr-flagged', r.flag === 'below' || r.flag === 'above');
+    queueMicrotask(summary);
     const t = lookup(r.test), slot = tr.querySelector('.lrr-slot') as HTMLElement;
     slot.textContent = '';
     if (t) {
@@ -113,7 +128,7 @@ Page 1 of 1`;
       const el = e.target as HTMLInputElement, k = el.dataset.k as 'test' | 'value' | 'unit' | 'rangeText';
       const idx = trs.indexOf(tr); rows[idx][k] = el.value; refresh(idx);
     });
-    (tr.querySelector('.lrr-x') as HTMLElement).onclick = () => { const idx = trs.indexOf(tr); rows.splice(idx, 1); trs.splice(idx, 1); tr.remove(); };
+    (tr.querySelector('.lrr-x') as HTMLElement).onclick = () => { const idx = trs.indexOf(tr); rows.splice(idx, 1); trs.splice(idx, 1); tr.remove(); summary(); };
     body.append(tr); refresh(i);
   }
   function load(text: string) {
@@ -125,6 +140,8 @@ Page 1 of 1`;
     say(`Found ${found.length} test${found.length === 1 ? '' : 's'}. Please check each row against your report.`);
   }
 
+  $('.lrr-flagonly').addEventListener('change', summary);
+  $('.lrr-print').addEventListener('click', () => window.print());
   $('.lrr-read').addEventListener('click', () => load($<HTMLTextAreaElement>('.lrr-paste').value));
   $('.lrr-sample').addEventListener('click', () => { $<HTMLTextAreaElement>('.lrr-paste').value = SAMPLE; load(SAMPLE); });
   $('.lrr-add').addEventListener('click', () => { res.hidden = false; addRow({ test: '', value: '', num: NaN, unit: '', low: null, high: null, rangeText: '', flag: 'none', line: '' }); });

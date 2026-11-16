@@ -9,7 +9,7 @@
   <div class="mt-row"><button class="btn secondary mt-sample" type="button">Try a sample</button></div>
   <div class="mt-text" aria-live="polite" hidden></div>
   <div class="mt-def" role="status" hidden></div>
-  <div class="mt-found" hidden><h3>Words found</h3><dl class="mt-list"></dl></div>
+  <div class="mt-found" hidden><h3>Words found</h3><div class="mt-row"><button class="btn secondary mt-copy" type="button">Copy the list</button><button class="btn secondary mt-print" type="button">Print the list</button></div><p class="mt-copied" role="status" aria-live="polite"></p><dl class="mt-list"></dl></div>
   <h3>Look up one word</h3>
   <label class="mt-l">Search <input class="mt-q" type="search" placeholder="prn" autocomplete="off" /></label>
   <dl class="mt-res"></dl>
@@ -31,6 +31,7 @@
   .mt dt { font-weight: 700; margin-top: .5rem; }
   .mt dd { margin: .1rem 0 0; }
   .mt-kind { font-weight: 400; font-size: 12.5px; color: var(--muted); margin-left: .4rem; }
+  @media print { body * { visibility: hidden; } .mt-found, .mt-found * { visibility: visible; } .mt-found { position: absolute; left: 0; top: 0; width: 100%; } .mt-found button { display: none; } }
   .mt-az { display: flex; flex-wrap: wrap; gap: 4px; }
   .mt-az button { min-width: 38px; min-height: 38px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; font: inherit; cursor: pointer; }
   .mt-az button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
@@ -74,6 +75,11 @@
   input.addEventListener('input', render);
   $('.mt-sample').addEventListener('click', () => { input.value = SAMPLE; render(); });
 
+  $('.mt-print').addEventListener('click', () => window.print());
+  $('.mt-copy').addEventListener('click', async () => {
+    const t = [...list.querySelectorAll('dt')].map((dt) => `${dt.firstChild?.textContent}: ${dt.nextElementSibling?.textContent}`).join('\n') + '\nNot medical advice. Ask your doctor or pharmacist.';
+    try { await navigator.clipboard.writeText(t); $('.mt-copied').textContent = 'Copied the list of words.'; } catch { $('.mt-copied').textContent = 'Could not copy here. Select the list and copy it by hand.'; }
+  });
   const res = $<HTMLElement>('.mt-res');
   const norm = (s: string) => s.toLowerCase().replace(/[.\s]+/g, '');
   $<HTMLInputElement>('.mt-q').addEventListener('input', (e) => {

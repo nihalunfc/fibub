@@ -35,3 +35,23 @@ export function scaleBetween(a: PaperSize, b: PaperSize) {
   const sw = b.w / a.w, sh = b.h / a.h;
   return { fit: Math.min(sw, sh) * 100, fill: Math.max(sw, sh) * 100, width: sw * 100, height: sh * 100 };
 }
+
+/** Standard sizes that hold an item of w x h mm (either way round), smallest first; `nearest` is the closest size by width and height. */
+export function whichFit(w: number, h: number, group = '') {
+  if (!(w > 0) || !(h > 0)) return { fits: [] as PaperSize[], nearest: null as PaperSize | null };
+  const [lo, hi] = w <= h ? [w, h] : [h, w];
+  const pool = SIZES.filter((s) => !group || s.group === group);
+  const fits = pool.filter((s) => Math.min(s.w, s.h) >= lo - 0.01 && Math.max(s.w, s.h) >= hi - 0.01).sort((a, b) => a.w * a.h - b.w * b.h);
+  let nearest: PaperSize | null = null, best = Infinity;
+  for (const s of pool) { const d = Math.abs(Math.min(s.w, s.h) - lo) + Math.abs(Math.max(s.w, s.h) - hi); if (d < best) { best = d; nearest = s; } }
+  return { fits, nearest };
+}
+/** How many pieces of size a fit on one sheet of size b in a plain grid, trying both ways round; `gap` (mm) is left between and around pieces. */
+export function howMany(a: PaperSize, b: PaperSize, gap = 0) {
+  const g = Math.max(0, gap);
+  const grid = (pw: number, ph: number) => { const cols = Math.floor((b.w - g + 1e-6) / (pw + g)), rows = Math.floor((b.h - g + 1e-6) / (ph + g)); return { cols: Math.max(0, cols), rows: Math.max(0, rows), n: Math.max(0, cols) * Math.max(0, rows), turned: false }; };
+  const up = grid(a.w, a.h), turned = { ...grid(a.h, a.w), turned: true };
+  const best = turned.n > up.n ? turned : up;
+  const used = (best.n * a.w * a.h) / (b.w * b.h) * 100;
+  return { ...best, usedPercent: used };
+}

@@ -85,3 +85,25 @@ export function weightedGpa(courses: Course[], scale: Scale): { gpa: number; cre
   }
   return cr > 0 ? { gpa: pts / cr, credits: cr, used, skipped } : null;
 }
+
+// ---- plain rescale between scales (a straight proportion; not an official conversion) ----
+export const SCALES: { id: string; name: string; max: number }[] = [
+  { id: '4', name: 'out of 4.0 (US)', max: 4 }, { id: '4.3', name: 'out of 4.3', max: 4.3 }, { id: '4.5', name: 'out of 4.5', max: 4.5 },
+  { id: '5', name: 'out of 5', max: 5 }, { id: '7', name: 'out of 7', max: 7 }, { id: '10', name: 'out of 10 (India CGPA)', max: 10 },
+  { id: '20', name: 'out of 20', max: 20 }, { id: '100', name: 'percentage (out of 100)', max: 100 },
+];
+/** value out of `from` to the same share of `to`; null for blank, negative or above the scale. */
+export function rescale(value: number, from: number, to: number): number | null {
+  if (!isFinite(value) || value < 0 || value > from || !(from > 0) || !(to > 0)) return null;
+  return (value / from) * to;
+}
+
+// ---- what grade do I need? ----
+export interface Need { needed: number; totalCredits: number; possible: boolean; already: boolean }
+/** GPA needed over the remaining credits to reach a target overall GPA. Null for bad input (negative, no credits). */
+export function neededGpa(current: number, done: number, left: number, target: number, max = 4): Need | null {
+  if (![current, done, left, target].every(isFinite) || current < 0 || done < 0 || left <= 0 || target < 0 || current > max) return null;
+  const total = done + left;
+  const needed = (target * total - current * done) / left;
+  return { needed: Math.max(0, needed), totalCredits: total, possible: needed <= max + 1e-9, already: needed <= 0 };
+}

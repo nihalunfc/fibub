@@ -11,10 +11,11 @@ ads: false
 order: 1769
 icon: pencil
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [word-counter, text-cleaner]
 sources:
   - "Title Case keeps small words such as a, an, the, of and in lower case unless they start or end the title, a common style rule. Different style guides differ slightly; check yours."
+  - "Title case rules follow the common published summaries of AP, APA 7, Chicago 17 and MLA 9 (lowercase minor words; capitalise the first and last word); style guides differ in edge cases, so check your own guide. Checked 2026-11-16."
 flow:
   - { icon: pencil, label: "Paste" }
   - { icon: sliders, label: "Pick case" }
@@ -41,6 +42,12 @@ Your text never leaves your device. If you need to count the result, open [[word
 - **camelCase** and **PascalCase**: words joined with no spaces, with capitals marking each new word. camelCase starts small, PascalCase starts big.
 - **snake_case**, **CONSTANT_CASE**, **kebab-case**: words joined by an underscore or hyphen.
 - **aLtErNaTe**: letters switch between small and big, just for fun.
+
+## More options (added 2026-11-16)
+
+- **Title Case style**: when you choose Title Case, pick a rule. "Simple" keeps short words such as "of" and "the" small. "AP and APA" keeps articles, conjunctions and prepositions of three letters or fewer small and capitalises longer words. "Chicago and MLA" keeps all prepositions small, however long. The first and last word and the word after a colon are always capitalised. Check your own style guide for edge cases.
+- **dot.case**: words joined with dots, for file and setting names.
+- **See every case at once**: open the box under the result to see all cases, each with its own Copy button.
 
 ## Worked example
 

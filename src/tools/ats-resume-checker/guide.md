@@ -64,6 +64,10 @@ It never adds, rewords or summarises anything: every word in the new resume come
 
 Priya uploads a two-column PDF made from a design template and scores 58. The checker flags "Single-column layout" and "No icons or emoji" (the template uses a phone icon instead of the word "Phone"). In "What the ATS sees" her job titles appear in the middle of her skills list. She copies the content into a plain one-column Word document, writes "Phone:" and "Email:" in words, pastes the job ad, and adds two missing terms she really has ("stakeholder reporting" and "Power BI"). Her new score is 91.
 
+## Pasting text and copying missing keywords
+
+No file to hand? Open **No file? Paste your resume text instead**, paste your resume as plain text and press **Check pasted text**. It is scored with the same checks as a text file (layout checks for columns and tables need a real PDF or Word file). When you add a job ad, **Copy the missing keywords** puts the terms your resume lacks on your clipboard, ready to paste into your notes. Add only the ones you truly have.
+
 ## FAQs
 
 **Is my resume uploaded?** No. Everything happens in your browser. Nothing is saved, and you can disconnect from the internet after the page loads.

@@ -25,6 +25,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.lrt-body tr')).length === 4, 'lab-results-tracker: table shows 4 dates for the picked test');
   const drawn = await page.$eval('.lrt-chart', (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 120) n++; return n; });
   check(drawn > 200, `lab-results-tracker: chart canvas draws (${drawn} dark pixels)`);
+  const sm = await page.textContent('.lrt-sum');
+  check(sm.includes('4 results') && sm.includes('up 0.1 (+1.923%)'), `lab-results-tracker: change summary (${sm})`);
+  check((await page.textContent('.lrt-body tr:nth-child(2)')).includes('inside the printed range'), 'lab-results-tracker: 5.5 inside 3.9-5.6');
   check(await page.evaluate(() => localStorage.length === 0), 'lab-results-tracker: still nothing in localStorage after importing');
   const p = await saved(page, () => page.click('.lrt-dl [data-f=pdf]'));
   check(p.name.endsWith('.pdf') && p.buf.length > 800, `lab-results-tracker: PDF for the doctor downloads (${p.name})`);

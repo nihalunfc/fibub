@@ -36,6 +36,7 @@ Your names, text and logo stay on your device. To change the wording per person 
 
 ## What each setting does
 
+- **Start from a wording**: fills the title and both lines for Achievement, Course completion, Participation, Appreciation, Attendance or Excellence. Replace any [bracketed] part (a course or event name) with your own words before you download; you can edit everything afterwards.
 - **Classic**: a double border and a serif font.
 - **Modern**: a coloured band at the top and a thin one at the bottom.
 - **Simple**: two thin lines and a clean sans-serif font.

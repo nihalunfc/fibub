@@ -17,8 +17,12 @@
       <label><input class="stc-join" type="checkbox" checked /> Join a description that wraps onto the next line</label>
       <label><input class="stc-tidy" type="checkbox" /> Tidy dates (2026-01-31) and amounts (1234.56)</label>
       <label><input class="stc-head" type="checkbox" checked /> Put the first kept line as column headings</label>
+      <label>Dates in the CSV (used when "Tidy" is ticked)
+        <select class="stc-datefmt" data-k="datefmt"><option value="iso">2026-01-31 (year first, sorts well)</option><option value="dmy">31/01/2026 (day first)</option><option value="mdy">01/31/2026 (month first)</option></select>
+      </label>
     </div>
     <p class="stc-count" aria-live="polite"></p>
+    <p class="stc-totals" aria-live="polite"></p>
     <div class="stc-scroll"><table class="stc-table"></table></div>
     <div class="stc-row">
       <button class="btn stc-csv" type="button">Download CSV</button>
@@ -41,11 +45,13 @@
   .stc-table { border-collapse: collapse; font-size: .85rem; width: max-content; min-width: 100%; }
   .stc-table th, .stc-table td { border-bottom: 1px solid var(--line); padding: .3rem .5rem; text-align: left; white-space: nowrap; }
   .stc-table th { position: sticky; top: 0; background: var(--surface); }
+  .stc-totals { margin: 0; font-size: .9rem; } .stc-totals:empty { display: none; }
+  .stc-opts select { font: inherit; padding: .4rem; max-width: 100%; }
   .stc-row { display: flex; flex-wrap: wrap; gap: .75rem; }
 </style>
 
 <script>
-  import { groupRows, findColumns, toTable, readPieces, type Piece } from '../../lib/docs/statementpdf';
+  import { groupRows, findColumns, toTable, readPieces, formatIso, totalsCheck, type Piece } from '../../lib/docs/statementpdf';
   import { parseDate, parseAmount, toCsv, dateOrder } from '../../lib/money/statement';
   import { download } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.stc') as HTMLElement;
@@ -82,7 +88,7 @@
         if (vals.length && vals.every((v) => parseDate(v, order))) dateCol.add(i);
         else if (vals.length && vals.filter((v) => !isNaN(parseAmount(v))).length >= vals.length * 0.8 && vals.some((v) => /[.,]\d\d\s*(CR|DR|-)?\)?$/i.test(v))) amtCol.add(i);
       }
-      t = t.map((r) => hasDate(r) ? r.map((v, i) => dateCol.has(i) ? parseDate(v, order) || v : amtCol.has(i) && v && !isNaN(parseAmount(v)) ? String(parseAmount(v)) : v) : r);
+      t = t.map((r) => hasDate(r) ? r.map((v, i) => dateCol.has(i) ? formatIso(parseDate(v, order), $<HTMLSelectElement>('.stc-datefmt').value as 'iso') || v : amtCol.has(i) && v && !isNaN(parseAmount(v)) ? String(parseAmount(v)) : v) : r);
     }
     return t;
   }
@@ -94,6 +100,8 @@
       const tr = tbl.insertRow();
       r.forEach((v) => { const c = document.createElement(useHead && ri === 0 ? 'th' : 'td'); c.textContent = v; tr.appendChild(c); });
     });
+    const hd = (r: string[]) => r.some((x) => parseDate(x) || parseDate(x, 'mdy'));
+    $('.stc-totals').textContent = useHead ? totalsCheck(current, parseAmount, hd).join(' ') : '';
     const n = current.length - (useHead ? 1 : 0);
     $('.stc-count').textContent = current.length ? `${Math.max(0, n)} row${n === 1 ? '' : 's'} and ${cols().length} column${cols().length === 1 ? '' : 's'}${current.length > 300 ? ' (the first 300 are shown here; the download has them all)' : ''}.` : 'No rows yet. Add at least one column start.';
   }
@@ -113,7 +121,7 @@
     } catch (err: any) { say(`${f.name} could not be read. ${err.message || 'It may be damaged or locked with a password.'}`, true); }
   });
   colsIn.addEventListener('input', render);
-  for (const s of ['.stc-dated', '.stc-join', '.stc-tidy', '.stc-head']) $(s).addEventListener('change', render);
+  for (const s of ['.stc-dated', '.stc-join', '.stc-tidy', '.stc-head', '.stc-datefmt']) $(s).addEventListener('change', render);
   $('.stc-auto').addEventListener('click', auto);
   $('.stc-csv').addEventListener('click', () => {
     if (!current.length) { say('Nothing to download yet.', true); return; }

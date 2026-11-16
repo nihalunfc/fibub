@@ -1,7 +1,7 @@
 ---
 // #1713 Compare documents
 ---
-<div class="tool-ui cd">
+<div class="tool-ui cd" data-kit>
   <div class="cd-in">
     <div class="cd-box">
       <h3>Original</h3>
@@ -15,14 +15,20 @@
     </div>
   </div>
   <div class="cd-opts">
-    <label><input class="cd-case" type="checkbox" /> Ignore capital letters</label>
-    <label>Show as <select class="cd-view"><option value="inline">One column (inline)</option><option value="side">Side by side</option></select></label>
+    <label><input class="cd-case" data-k="case" type="checkbox" /> Ignore capital letters</label>
+    <label><input class="cd-punct" data-k="punct" type="checkbox" /> Ignore commas and full stops</label>
+    <label>Show as <select class="cd-view" data-k="view"><option value="inline">One column (inline)</option><option value="side">Side by side</option></select></label>
+    <button class="btn secondary cd-swap" type="button">Swap the two</button>
     <button class="btn cd-go" type="button">Compare</button>
   </div>
   <p class="cd-msg" role="status" aria-live="polite"></p>
   <div class="cd-result" hidden>
     <p class="cd-sum"><strong class="cd-count"></strong> <span class="cd-detail"></span></p>
     <div class="cd-doc"></div>
+    <details class="cd-chg"><summary>List of the changes</summary>
+      <ol class="cd-list"></ol>
+      <button class="btn secondary cd-copych" type="button">Copy the list</button>
+    </details>
     <div class="cd-row">
       <button class="btn secondary cd-pdf" type="button">Download redline PDF</button>
       <button class="btn secondary cd-print" type="button">Print</button>
@@ -31,6 +37,8 @@
 </div>
 
 <style is:inline>
+  .cd-chg summary { cursor: pointer; padding: 6px 0; }
+  .cd-list { padding-left: 20px; display: grid; gap: 4px; overflow-wrap: anywhere; }
   .cd { display: grid; gap: .75rem; }
   .cd-in { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   .cd-box { display: grid; gap: .5rem; align-content: start; } .cd-box h3 { margin: 0; } .cd-box label { display: grid; gap: .25rem; font-weight: 600; }
@@ -56,7 +64,7 @@
 </style>
 
 <script>
-  import { diffWords, type Diff } from '../../lib/docs/textdiff';
+  import { diffWords, changeList, changeSummary, type Diff } from '../../lib/docs/textdiff';
   import { fileText, redlinePdf } from '../../lib/docs/doctext';
   import { download } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.cd') as HTMLElement;
@@ -99,11 +107,22 @@
   }
   $('.cd-go').addEventListener('click', () => {
     if (!ta.value.trim() && !tb.value.trim()) { say('Add or paste both versions first.', true); return; }
-    last = diffWords(ta.value, tb.value, $<HTMLInputElement>('.cd-case').checked);
+    last = diffWords(ta.value, tb.value, { ignoreCase: $<HTMLInputElement>('.cd-case').checked, ignorePunct: $<HTMLInputElement>('.cd-punct').checked });
     result.hidden = false;
     $('.cd-count').textContent = last.same ? 'No differences' : `${last.changes} change${last.changes === 1 ? '' : 's'}`;
     $('.cd-detail').textContent = last.same ? 'The two versions have the same words.' : `${last.added} word${last.added === 1 ? '' : 's'} added, ${last.removed} word${last.removed === 1 ? '' : 's'} removed.`;
+    const L = changeList(last), ol = $('.cd-list'); ol.textContent = '';
+    L.slice(0, 200).forEach((c) => { const li = document.createElement('li'); li.textContent = c.before && c.after ? `"${c.before}" became "${c.after}"` : c.before ? `Removed "${c.before}"` : `Added "${c.after}"`; ol.append(li); });
     say(''); render();
+  });
+  $('.cd-copych').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(last ? changeSummary(last, 200) : ''); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C to copy'; }
+    setTimeout(() => (b.textContent = 'Copy the list'), 1600);
+  });
+  $('.cd-swap').addEventListener('click', () => {
+    [ta.value, tb.value] = [tb.value, ta.value]; [names.a, names.b] = [names.b, names.a];
+    if (last) $<HTMLButtonElement>('.cd-go').click();
   });
   $('.cd-view').addEventListener('change', render);
   $('.cd-pdf').addEventListener('click', async () => { if (last) { try { download(await redlinePdf(last, names.a, names.b), 'comparison.pdf'); } catch (e: any) { say(e.message || 'Could not make the PDF.', true); } } });

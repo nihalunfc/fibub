@@ -1,10 +1,14 @@
-// Shared helpers for money, everyday and vehicle tools: "Copy link with my numbers" and "Copy result".
+// Shared helpers for money, everyday, vehicle and (opt-in) documents tools: "Copy link with my numbers" and "Copy result".
 // The link keeps the tool's own settings in the part after # of the address, which the browser never sends
 // to any server. Opening such a link fills the same numbers in again. Nothing is stored, and nothing leaves
 // the device. Text boxes, passwords and files are never put in a link. A tool can opt out with data-nokit.
+// Documents pages are opt-in (an element with data-kit inside the tool) and share only settings: drop-downs,
+// numbers, sliders, ticks and choices, never typed text, dates or file contents.
 
-const SHELVES = ['money', 'everyday', 'vehicles', 'collecting'];
+const SHELVES = ['money', 'everyday', 'vehicles', 'collecting', 'documents'];
 const shelf = document.documentElement.dataset.shelf || '';
+const DOCS = shelf === 'documents';
+const DOC_TYPES = ['number', 'range', 'checkbox', 'radio'];
 const ui = document.querySelector<HTMLElement>('.tool-ui');
 
 type Field = HTMLInputElement | HTMLSelectElement;
@@ -13,6 +17,7 @@ function fields(root: HTMLElement): Field[] {
   return [...root.querySelectorAll<Field>('input, select')].filter((f) => {
     if (f.closest('[data-nokit]')) return false;
     if (f instanceof HTMLInputElement && ['file', 'password', 'button', 'submit', 'reset', 'hidden', 'image'].includes(f.type)) return false;
+    if (DOCS && f instanceof HTMLInputElement && !DOC_TYPES.includes(f.type)) return false;
     return true;
   });
 }
@@ -66,16 +71,16 @@ async function copy(text: string): Promise<boolean> {
   }
 }
 
-if (ui && SHELVES.includes(shelf) && !ui.querySelector('[data-nokit-all]')) {
+if (ui && SHELVES.includes(shelf) && !ui.querySelector('[data-nokit-all]') && (!DOCS || ui.querySelector('[data-kit]'))) {
   const init = () => {
     const list = fields(ui);
-    if (list.length < 2) return;
+    if (list.length < (DOCS ? 1 : 2)) return;
     // Apply a shared link (only when the hash looks like ours: key=value pairs, not a page anchor).
     if (location.hash.includes('=')) load(list, location.hash.slice(1));
     window.addEventListener('hashchange', () => { if (location.hash.includes('=')) load(fields(ui), location.hash.slice(1)); });
     const bar = document.createElement('div');
     bar.className = 'kit-bar';
-    bar.innerHTML = '<button type="button" class="kit-link">Copy link with my numbers</button><button type="button" class="kit-res">Copy result</button><span class="kit-msg" role="status" aria-live="polite"></span>';
+    bar.innerHTML = '<button type="button" class="kit-link">Copy link with my ' + (DOCS ? 'settings' : 'numbers') + '</button><button type="button" class="kit-res">Copy result</button><span class="kit-msg" role="status" aria-live="polite"></span>';
     const msg = bar.querySelector<HTMLElement>('.kit-msg')!;
     const say = (t: string) => { msg.textContent = t; setTimeout(() => { if (msg.textContent === t) msg.textContent = ''; }, 2500); };
     const resBtn = bar.querySelector<HTMLButtonElement>('.kit-res')!;
@@ -83,7 +88,7 @@ if (ui && SHELVES.includes(shelf) && !ui.querySelector('[data-nokit-all]')) {
       const q = save(fields(ui));
       const url = location.origin + location.pathname + (q ? '#' + q : '');
       history.replaceState(null, '', q ? '#' + q : location.pathname);
-      say((await copy(url)) ? 'Link copied. It holds only these numbers; nothing is sent anywhere.' : 'Copy the address from the bar above.');
+      say((await copy(url)) ? 'Link copied. It holds only these ' + (DOCS ? 'settings' : 'numbers') + '; nothing is sent anywhere.' : 'Copy the address from the bar above.');
     });
     resBtn.addEventListener('click', async () => {
       const t = resultText(ui);

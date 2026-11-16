@@ -59,6 +59,12 @@ import { HELPERS } from '../../lib/docs/coverletter';
 
     <aside class="cl-side">
       <p class="cl-count" aria-live="polite"></p>
+      <details class="cl-jd">
+        <summary>Match it to the job ad</summary>
+        <textarea rows="4" class="cl-jdt" aria-label="Job ad text" placeholder="Paste the job ad to see which of its key terms your letter already uses"></textarea>
+        <p class="cl-jdsum" aria-live="polite"></p>
+        <div class="cl-kw"></div>
+      </details>
       <div class="cl-dl">
         <button type="button" class="btn cl-pdf">Download PDF</button>
         <button type="button" class="btn secondary cl-docx">Download Word</button>
@@ -94,6 +100,13 @@ import { HELPERS } from '../../lib/docs/coverletter';
   .cl-chips { display: grid; gap: 6px; margin-top: 8px; }
   .cl-chips button { font: inherit; font-size: 13px; text-align: left; border: 1px dashed var(--line); background: none; color: var(--ink); border-radius: 10px; padding: 6px 10px; cursor: pointer; }
   .cl-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .cl-jd summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
+  .cl-jd[open] { display: grid; gap: 8px; }
+  .cl-jd textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  .cl-jdsum { margin: 0; font-size: 13px; color: var(--muted); }
+  .cl-kw { display: flex; flex-wrap: wrap; gap: 5px; }
+  .cl-kw span { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
+  .cl-kw span.miss { background: var(--bad-soft); color: var(--bad); }
   .cl-count { margin: 0; font-size: 14px; color: var(--muted); }
   .cl-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .cl-lost { margin: 0; font-size: 14px; color: var(--warn); }
@@ -126,7 +139,21 @@ import { HELPERS } from '../../lib/docs/coverletter';
     const n = wordCount(L);
     q('.cl-count').textContent = n ? `${n} words in your paragraphs. ${n < 180 ? 'A little short: most letters run 250 to 400 words.' : n > 420 ? 'Long: try to fit on one page, about 250 to 400 words.' : 'A good length for one page.'}` : 'Fill in the form and your letter appears here.';
     save();
+    matchAd();
   };
+  // The job ad is only read here, never kept or stored.
+  let kwFn: ((jd: string) => string[]) | null = null;
+  const matchAd = async () => {
+    const jd = q<HTMLTextAreaElement>('.cl-jdt').value;
+    if (!jd.trim()) { q('.cl-kw').innerHTML = ''; q('.cl-jdsum').textContent = ''; return; }
+    if (!kwFn) kwFn = (await import('../../lib/ats/score')).jobKeywords;
+    const kws = kwFn(jd, 20), low = plainText(L).toLowerCase();
+    const hit = kws.filter((k) => low.includes(k)), miss = kws.filter((k) => !low.includes(k));
+    const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    q('.cl-jdsum').textContent = kws.length ? `${hit.length} of ${kws.length} key terms from the ad appear in your letter. Add the missing ones only where they are true.` : 'No clear key terms found. Paste more of the ad.';
+    q('.cl-kw').innerHTML = [...hit.map((k) => `<span>✓ ${esc(k)}</span>`), ...miss.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('');
+  };
+  q('.cl-jdt').addEventListener('input', matchAd);
   root.addEventListener('input', (e) => {
     const el = e.target as HTMLInputElement;
     if (!el.dataset.k) return;

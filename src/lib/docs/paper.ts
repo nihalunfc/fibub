@@ -13,7 +13,9 @@ export const TYPES: { id: PaperType; name: string; spacing: number; hint: string
 ];
 export type Sink = { line(x1: number, y1: number, x2: number, y2: number, w: number, dark?: boolean): void; dot(x: number, y: number, r: number): void };
 export type PaperOpts = { w: number; h: number; margin: number; spacing: number; major: number; weight: number };
-export const SIZES = { a4: [210, 297], letter: [215.9, 279.4], a5: [148, 210] } as const;
+export const SIZES = { a4: [210, 297], letter: [215.9, 279.4], a5: [148, 210], a3: [297, 420], a6: [105, 148], legal: [215.9, 355.6] } as const;
+/** Line thickness choices in mm (the default is thin). */
+export const WEIGHTS = { thin: 0.25, medium: 0.4, bold: 0.7 } as const;
 export const toMm = (v: number, unit: 'mm' | 'in') => (unit === 'in' ? v * 25.4 : v);
 
 function clip(x1: number, y1: number, x2: number, y2: number, r: [number, number, number, number]): [number, number, number, number] | null {

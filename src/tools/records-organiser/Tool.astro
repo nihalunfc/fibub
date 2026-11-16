@@ -119,7 +119,7 @@
     }
     const has = items.length > 0;
     for (const s of ['.ro-opts', '.ro-wrap', '.ro-out']) ($(s) as HTMLElement).hidden = !has;
-    if (has) say(`${items.length} file${items.length === 1 ? '' : 's'}. Check the dates and types, then save.`);
+    if (has) say(`${items.length} file${items.length === 1 ? '' : 's'}. Check the dates and types, then save.${items.filter((i) => !i.iso).length ? ` ${items.filter((i) => !i.iso).length} without a date: type one so it sorts in the right place.` : ''}`);
   }
 
   $<HTMLInputElement>('.ro-file').addEventListener('change', async (e) => {

@@ -26,6 +26,15 @@
       <h2>2. Or draw boxes on the pages</h2>
       <p class="rd-help">Drag on a page to cover a name, a number, a picture or a signature. Drag a box to move it, pull its square corner to resize it, press the <b>x</b> to remove it. On a phone, switch drawing off to scroll.</p>
       <button type="button" class="btn secondary rd-mode" aria-pressed="true">Drawing is on</button>
+      <details class="rd-more">
+        <summary>More options</summary>
+        <div class="rd-btns">
+          <label>Black out whole pages <input class="rd-whole" type="text" placeholder="e.g. 2,5-6" /></label>
+          <button type="button" class="btn secondary rd-wholego">Cover these pages</button>
+          <button type="button" class="btn secondary rd-clearall">Remove all boxes</button>
+        </div>
+        <p class="rd-whole-msg rd-help" role="status" aria-live="polite"></p>
+      </details>
     </section>
 
     <div class="pv-pages rd-pages"></div>
@@ -231,6 +240,21 @@
   ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
   $('.rd-other').addEventListener('click', () => { root.scrollIntoView({ block: 'start' }); root.dataset.state = 'empty'; $('.rd-work').hidden = true; $<HTMLInputElement>('.rd-file').value = ''; bytes = null; doc = null; $('.rd-pages').textContent = ''; boxes = []; });
+
+  /* ---------- whole pages and clear all ---------- */
+  $('.rd-wholego').addEventListener('click', () => {
+    const msg = $('.rd-whole-msg'); msg.textContent = '';
+    const n = views.length, out = new Set<number>();
+    for (const part of $<HTMLInputElement>('.rd-whole').value.split(',').map((x) => x.trim()).filter(Boolean)) {
+      const m = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/); const a = m ? Number(m[1]) : 0, b = m ? Number(m[2] || m[1]) : 0;
+      if (!m || a < 1 || b < 1 || a > n || b > n) { msg.textContent = `"${part}" is not a page or range within 1 to ${n}.`; return; }
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) out.add(i - 1);
+    }
+    if (!out.size) { msg.textContent = 'Type the pages to cover, such as 2,5-6.'; return; }
+    for (const i of out) if (!boxes.some((b) => b.page === i && b.fw >= 0.99 && b.fh >= 0.99)) addBox(views[i], 0, 0, 1, 1, 'Whole page');
+    msg.textContent = `Covered ${out.size} whole page${out.size === 1 ? '' : 's'}.`;
+  });
+  $('.rd-clearall').addEventListener('click', () => { boxes = []; labels.clear(); rebuildLayers(); renderList(); refresh(); $('.rd-whole-msg').textContent = 'All boxes removed.'; });
 
   /* ---------- save: re-draw redacted pages as pictures ---------- */
   const MAX_PIXELS = 16_000_000;

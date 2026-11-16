@@ -30,6 +30,9 @@ Everything happens in your browser. Your text and pictures are never uploaded, a
 
 ## How to use it
 
+Under "More options" choose landscape, a serif or monospace typeface, and page numbers at the bottom (shown in Chrome and Edge). A line above the editor tells you the word count and roughly how many pages it will print as.
+
+
 1. Type or paste Markdown on the left, or press **Open a .md file**.
 2. Check the preview. If you used pictures, press **Add pictures** and choose the files with the same names as in your text.
 3. Pick the page size, text size and margins. Tick **Table of contents** to add a list of headings at the start.

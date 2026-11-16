@@ -1,5 +1,6 @@
 ---
 // #1761 Certificate maker. Layouts and PDF in src/lib/docs/certs.ts.
+import { PRESETS } from '../../lib/docs/certs';
 ---
 <div class="tool-ui cm">
   <div class="cm-cols">
@@ -14,6 +15,9 @@
       </fieldset>
       <fieldset class="cm-card">
         <legend>2. The words</legend>
+        <label>Start from a wording
+          <select class="cm-preset"><option value="">Keep my own words</option>{PRESETS.map((p) => <option value={p.id}>{p.name}</option>)}</select>
+        </label>
         <label>Title <input class="cm-title" type="text" value="Certificate of Achievement" /></label>
         <label>Line above the name <input class="cm-intro" type="text" value="This certificate is proudly presented to" /></label>
         <label>Text under the name <textarea class="cm-text" rows="3">in recognition of outstanding effort and commitment.</textarea></label>
@@ -61,7 +65,7 @@
 </style>
 
 <script>
-  import { parseNames, COLOURS, dateText, type Cert } from '../../lib/docs/certs';
+  import { parseNames, PRESETS, COLOURS, dateText, type Cert } from '../../lib/docs/certs';
   const root = document.querySelector('.cm') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const v = (s: string) => q<HTMLInputElement>(s).value;
@@ -81,6 +85,12 @@
     const nm = names[0] ?? 'Name goes here', top = c.layout === 'modern' ? 130 : 110;
     q('.cm-prev').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Certificate preview"><rect width="${W}" height="${H}" fill="#fff"/>${deco}${t(top + 20, 36, c.title, `font-weight="700" fill="${col}"`)}${t(top + 60, 16, c.intro, 'fill="#555" font-style="italic"')}${t(top + 125, 42, nm, 'fill="#111" font-style="italic"')}<line x1="${W / 2 - 170}" x2="${W / 2 + 170}" y1="${top + 140}" y2="${top + 140}" stroke="${col}"/>${t(top + 180, 15, c.text.split('\n')[0] ?? '', 'fill="#555"')}${t(H - 125, 14, dateText(c.date), `transform="translate(${-W * 0.25} 0)"`)}<line x1="${W * 0.25 - 100}" x2="${W * 0.25 + 100}" y1="${H - 105}" y2="${H - 105}" stroke="#333"/><line x1="${W * (c.sign2.trim() ? 0.5 : 0.7) - 100}" x2="${W * (c.sign2.trim() ? 0.5 : 0.7) + 100}" y1="${H - 105}" y2="${H - 105}" stroke="#333"/></svg>`;
   }
+  q('.cm-preset').addEventListener('change', (e) => {
+    const p = PRESETS.find((x) => x.id === (e.target as HTMLSelectElement).value);
+    if (!p) return;
+    q<HTMLInputElement>('.cm-title').value = p.title; q<HTMLInputElement>('.cm-intro').value = p.intro; q<HTMLTextAreaElement>('.cm-text').value = p.text;
+    refresh();
+  });
   root.addEventListener('input', refresh); root.addEventListener('change', refresh);
   q<HTMLInputElement>('.cm-file').addEventListener('change', async (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) { q<HTMLTextAreaElement>('.cm-names').value = await f.text(); refresh(); } });
   q<HTMLInputElement>('.cm-logo').addEventListener('change', async (e) => {
