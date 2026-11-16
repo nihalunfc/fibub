@@ -12,7 +12,7 @@ order: 3006
 icon: eye
 works: offline
 updated: 2026-11-16
-related: [know-hand-tools, measure-and-mark, cut-list]
+related: [saw-straight, know-hand-tools, measure-and-mark, cut-list]
 sources:
   - "Advice follows general guidance from workplace safety bodies (such as the UK HSE's ladder and PPE guidance and US OSHA's hand and power tool guidance) and first aid charities. The 1 in 4 ladder angle (about 75°) is the common rule for leaning ladders. Check the instructions for your own tools and ladder. Drawings are fibub's own."
   - "Mask ratings: FFP2 (Europe, UK) and N95 (US) are both rated to filter at least 94 to 95 percent of fine particles when well fitted."

@@ -12,7 +12,7 @@ order: 3009
 icon: scissors
 works: offline
 updated: 2026-11-16
-related: [drill-and-screw, build-simple-shelf, shelf-load]
+related: [measure-and-mark, drill-and-screw, build-simple-shelf, shelf-load]
 sources:
   - "Steps follow general woodworking practice for hand sawing (mark with a square, cut on the waste side, start with the thumb as a guide, about 45 degrees for a cross-cut handsaw, support the offcut). Drawings are fibub's own."
   - "Kerf (the width of wood a blade removes) is roughly 1 to 2 mm for a fine handsaw and 2.5 to 3.5 mm for a circular saw blade; check your own saw."

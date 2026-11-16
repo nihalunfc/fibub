@@ -12,7 +12,7 @@ order: 3011
 icon: ruler
 works: offline
 updated: 2026-11-16
-related: [saw-straight, drill-and-screw, shelf-load, whats-in-your-wall, pick-wall-plug]
+related: [cut-list, saw-straight, drill-and-screw, shelf-load, whats-in-your-wall, pick-wall-plug]
 sources:
   - "Steps follow general woodworking and DIY practice (brackets set in from the ends, screws into the board shorter than its thickness, fixings chosen for the wall, level checked with a spirit level). Drawings are fibub's own."
   - "Bracket spacing and load figures are rough guides; the bracket and wall-fixing makers' ratings come first."

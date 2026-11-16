@@ -13,7 +13,7 @@ order: 3012
 icon: scale
 works: offline
 updated: 2026-11-16
-related: [build-simple-shelf, drill-and-screw, beam-calculator]
+related: [build-simple-shelf, drill-and-screw, beam-calculator, cut-list]
 sources:
   - "Physics: a bracket tips about its bottom edge, so the top screws resist the turning effect of the load, F = W × lever arm ÷ the height between the top and bottom screws; every screw also carries its share of the weight downwards (shear). fibub's own working of standard statics; a rough guide that ignores the bracket bending and the screw's angle."
   - "Weights per metre of shelf (books about 25 kg, plates and dishes about 30 kg, plants in pots about 15 kg, light ornaments about 8 kg) are fibub's rough estimates; weigh yours if in doubt."
