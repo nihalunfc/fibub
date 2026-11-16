@@ -1,0 +1,123 @@
+---
+// #L344 Ripple tank. Maths: src/lib/learn/curr-physics.ts (checks in tests/curr-physics.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn rt">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">GCSE / Grade 11</button></div>
+    <p class="ax-help">A straight dipper at the top makes waves that travel down the tank, seen from above. Bright and dark bands are crests and troughs. Drag across the picture to measure with the ruler.</p>
+    <div class="ax-seg rt-modes" role="group" aria-label="Set-up"><button type="button" data-s="plain" aria-pressed="true">Open water</button><button type="button" data-s="shallow" aria-pressed="false">Shallow region</button><button type="button" data-s="gap" aria-pressed="false">Gap in barrier</button></div>
+    <canvas class="lrn-cv rt-cv" aria-label="Top view of a ripple tank with waves coming from a straight dipper at the top. Drag to draw a ruler." style="margin-top:8px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span>Frequency: <b class="rt-fv">8</b> Hz</span> <input class="rt-f" type="range" min="4" max="12" step="1" value="8" /></label>
+      <label class="lrn-sl"><span>Water depth: <b class="rt-dv">6</b> mm (speed <b class="rt-sv"></b> m/s)</span> <input class="rt-d" type="range" min="3" max="10" step="1" value="6" /></label>
+      <label class="lrn-sl rt-gapl" hidden><span>Gap width: <b class="rt-gv">4</b> cm</span> <input class="rt-g" type="range" min="1" max="12" step="0.5" value="4" /></label>
+      <label class="lrn-sl"><span>Wavefronts the ruler spans: <b class="rt-nv">3</b></span> <input class="rt-n" type="range" min="1" max="10" step="1" value="3" /></label>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+      <button type="button" class="btn rt-strobe" aria-pressed="false">Strobe: freeze</button>
+      <button type="button" class="btn secondary rt-play">Pause</button>
+      <button type="button" class="btn secondary rt-clear">Clear ruler</button>
+    </div>
+    <p class="ax-big rt-out" aria-live="polite"></p>
+    <p class="ax-help rt-sub"></p>
+    <p class="ax-help" data-only="11" hidden>GCSE / Grade 11: v = fλ holds for every wave. Frequency is set by the dipper and never changes, so when the water gets shallower the speed falls and the wavelength shortens in proportion; the waves also bend towards the normal. Diffraction is strongest when the gap is about one wavelength; for a wide gap the waves go straight on with only the edges curling. Depth-to-speed uses v = √(gh), a simple approximation for shallow ripples. The picture is slowed down so you can see the waves.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Press Strobe: freeze, then drag the ruler across 3 wavefronts. Divide by 3 for λ, then multiply by f to get v. Compare with the speed shown.</li><li>Raise the frequency. What happens to the wavelength? Does the speed change?</li><li>Choose Shallow region. Why are the waves closer together there and why do they bend?</li><li>Choose Gap in barrier and shrink the gap towards the wavelength. How do the waves spread?</li></ul>
+  </div>
+  <div class="ax-card rt-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .rt .lrn-cv { width: 100%; cursor: crosshair; }
+  .rt .rt-modes button { min-height: 40px; }
+  .rt .rt-strobe[aria-pressed=true] { background: var(--accent2, #c26a00); }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { speedFromDepth, wavelength, refractedAngle, spreadAngle } from '../../lib/learn/curr-physics';
+  const root = document.querySelector('.rt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.rt-cv'), out = $('.rt-out');
+  const fIn = $<HTMLInputElement>('.rt-f'), dIn = $<HTMLInputElement>('.rt-d'), gIn = $<HTMLInputElement>('.rt-g'), nIn = $<HTMLInputElement>('.rt-n');
+  const TANK_CM = 24, SLOW = 0.25, CELL = 3, SHALLOW_MM = 2, ANGLE = (30 * Math.PI) / 180;
+  let setup = 'plain', time = 0, frozen = false, ruler: { x0: number; y0: number; x1: number; y1: number } | null = null, drag = false;
+  const hex = (c: string) => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(c); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [0, 0, 0]; };
+  const off = document.createElement('canvas');
+  const P = () => {
+    const f = +fIn.value, v = speedFromDepth(+dIn.value), lam = wavelength(v, f) * 100; // cm
+    const v2 = speedFromDepth(SHALLOW_MM), lam2 = (v2 / f) * 100, th2 = refractedAngle(30, v, v2), a = +gIn.value;
+    return { f, v, lam, v2, lam2, th2, a };
+  };
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, 300), pal = pagePalette(), p = P(), ppc = W / TANK_CM, Hc = H / ppc, k = (2 * Math.PI) / p.lam, wt = 2 * Math.PI * p.f * time * SLOW;
+    const cw = Math.ceil(W / CELL), ch = Math.ceil(H / CELL); off.width = cw; off.height = ch;
+    const oc = off.getContext('2d')!, img = oc.createImageData(cw, ch), bg = hex(pal.bg), ac = hex(pal.accent), ink = hex(pal.ink);
+    const yb = Hc * 0.35, py = Hc * 0.45, px = TANK_CM / 2;
+    const m = [-Math.sin(ANGLE), Math.cos(ANGLE)], d = [Math.cos(ANGLE), Math.sin(ANGLE)];
+    const t2 = ((p.th2 ?? 90) * Math.PI) / 180, k2 = (2 * Math.PI) / p.lam2, n2 = [Math.sin(t2) * d[0] + Math.cos(t2) * m[0], Math.sin(t2) * d[1] + Math.cos(t2) * m[1]];
+    const dx = Math.min(p.lam / 4, 0.4), nSrc = Math.max(3, Math.ceil(p.a / dx)), sp = p.a / nSrc, srcs: number[] = []; for (let j = 0; j < nSrc; j++) srcs.push(px - p.a / 2 + sp * (j + 0.5));
+    for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) {
+      const X = ((i + 0.5) * CELL) / ppc, Y = ((j + 0.5) * CELL) / ppc;
+      let u = 0, solid = false;
+      if (setup === 'plain') u = Math.cos(k * Y - wt);
+      else if (setup === 'shallow') { const s = (X - px) * m[0] + (Y - py) * m[1]; u = s > 0 ? Math.cos(k * py + k2 * (n2[0] * (X - px) + n2[1] * (Y - py)) - wt) : Math.cos(k * Y - wt); }
+      else if (Math.abs(Y - yb) < 0.3) { if (Math.abs(X - px) >= p.a / 2) solid = true; else u = Math.cos(k * Y - wt); }
+      else if (Y < yb) u = Math.cos(k * Y - wt);
+      else { let re = 0, im = 0; for (const xs of srcs) { const rr = Math.hypot(X - xs, Y - yb), w = (sp / Math.sqrt(p.lam * rr)) * (1 + (Y - yb) / rr) / 2 * 2, ph = k * rr - Math.PI / 4; re += w * Math.cos(ph); im += w * Math.sin(ph); } const a0 = k * yb - wt; u = re * Math.cos(a0) - im * Math.sin(a0); u = Math.max(-1.6, Math.min(1.6, u)); }
+      const o = (j * cw + i) * 4, b = Math.max(0, Math.min(1, (u + 1) / 2));
+      const c = solid ? ink : [bg[0] + (ac[0] - bg[0]) * b, bg[1] + (ac[1] - bg[1]) * b, bg[2] + (ac[2] - bg[2]) * b];
+      img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+    }
+    oc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, 0, 0, cw * CELL, ch * CELL);
+    ctx.fillStyle = pal.ink; ctx.fillRect(0, 0, W, 4); ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.fillText('dipper', 6, 18);
+    if (setup === 'shallow') { ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); const x0 = 0, x1 = W, y0 = py * ppc + (x0 - px * ppc) * Math.tan(ANGLE), y1 = py * ppc + (x1 - px * ppc) * Math.tan(ANGLE); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = pal.accent2; ctx.fillText(`shallow (${SHALLOW_MM} mm) below the line`, 6, H - 8); }
+    if (setup === 'gap') { ctx.fillStyle = pal.ink; ctx.fillText('barrier', 6, yb * ppc - 8); }
+    if (frozen) { ctx.fillStyle = pal.accent2; ctx.textAlign = 'right'; ctx.fillText('strobe: frozen', W - 6, 18); }
+    if (ruler) { ctx.strokeStyle = pal.bad; ctx.fillStyle = pal.bad; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ruler.x0, ruler.y0); ctx.lineTo(ruler.x1, ruler.y1); ctx.stroke(); for (const [x, y] of [[ruler.x0, ruler.y0], [ruler.x1, ruler.y1]]) { ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); } const len = Math.hypot(ruler.x1 - ruler.x0, ruler.y1 - ruler.y0) / ppc; ctx.font = 'bold 13px system-ui,sans-serif'; ctx.textAlign = 'center'; const tx = Math.max(30, Math.min(W - 30, (ruler.x0 + ruler.x1) / 2)); ctx.lineWidth = 4; ctx.strokeStyle = pal.bg; ctx.strokeText(`${len.toFixed(1)} cm`, tx, (ruler.y0 + ruler.y1) / 2 - 10); ctx.fillText(`${len.toFixed(1)} cm`, tx, (ruler.y0 + ruler.y1) / 2 - 10); }
+  };
+  const show = () => {
+    const p = P(), n = +nIn.value, ppc = (cv.clientWidth || 340) / TANK_CM, len = ruler ? Math.hypot(ruler.x1 - ruler.x0, ruler.y1 - ruler.y0) / ppc : 0;
+    $('.rt-fv').textContent = String(p.f); $('.rt-dv').textContent = dIn.value; $('.rt-sv').textContent = p.v.toFixed(2); $('.rt-gv').textContent = gIn.value; $('.rt-nv').textContent = String(n);
+    $('.rt-gapl').hidden = setup !== 'gap';
+    root.querySelectorAll<HTMLElement>('.rt-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === setup)));
+    const lm = len / n, vm = (p.f * lm) / 100;
+    out.textContent = ruler ? `Ruler ${len.toFixed(1)} cm ÷ ${n} = λ ${lm.toFixed(2)} cm, so v = fλ = ${p.f} × ${lm.toFixed(2)} cm = ${vm.toFixed(2)} m/s` : `Wavelength is ${p.lam.toFixed(2)} cm: v = fλ = ${p.f} × ${(p.lam / 100).toFixed(4)} = ${p.v.toFixed(2)} m/s`;
+    Object.assign(out.dataset, { f: String(p.f), v: p.v.toFixed(4), lambda: p.lam.toFixed(3), ruler: len.toFixed(2), vmeas: ruler ? vm.toFixed(4) : '', setup, frozen: String(frozen), theta2: p.th2 === null ? '' : p.th2.toFixed(3), lambda2: p.lam2.toFixed(3), spread: spreadAngle(p.lam, p.a).toFixed(2), gap: String(p.a) });
+    $('.rt-sub').textContent = (ruler ? `True speed from the depth: ${p.v.toFixed(2)} m/s (true wavelength ${p.lam.toFixed(2)} cm). ` : 'Drag across the picture over a few wavefronts to measure the wavelength yourself. ') +
+      (setup === 'shallow' ? `In the shallow region (${SHALLOW_MM} mm) the speed drops to ${p.v2.toFixed(2)} m/s, the frequency stays ${p.f} Hz, so λ shortens to ${p.lam2.toFixed(2)} cm. The waves bend ${p.th2 === null ? '(total reflection)' : `from 30° to ${p.th2.toFixed(1)}° from the normal`}.` : '') +
+      (setup === 'gap' ? `Gap ${p.a} cm is ${(p.a / p.lam).toFixed(1)} wavelengths. ${p.a <= p.lam * 1.2 ? 'The gap is about one wavelength or less: the waves spread out in semicircles.' : `The waves mostly go straight on, spreading by about ${spreadAngle(p.lam, p.a).toFixed(0)}° either side of straight on.`}` : '');
+    draw();
+  };
+  const lp = loop((dt) => { if (!frozen && dt > 0) { time += dt; draw(); } }, $<HTMLButtonElement>('.rt-play'));
+  const pos = (e: PointerEvent) => { const b = cv.getBoundingClientRect(); return { x: Math.max(0, Math.min(b.width, e.clientX - b.left)), y: Math.max(0, Math.min(b.height, e.clientY - b.top)) }; };
+  cv.addEventListener('pointerdown', (e) => { drag = true; cv.setPointerCapture(e.pointerId); const q = pos(e); ruler = { x0: q.x, y0: q.y, x1: q.x, y1: q.y }; show(); });
+  cv.addEventListener('pointermove', (e) => { if (!drag || !ruler) return; const q = pos(e); ruler.x1 = q.x; ruler.y1 = q.y; show(); });
+  const up = () => { drag = false; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  root.querySelectorAll<HTMLElement>('.rt-modes button').forEach((b) => b.addEventListener('click', () => { setup = b.dataset.s!; show(); }));
+  [fIn, dIn, gIn, nIn].forEach((e) => e.addEventListener('input', show));
+  $('.rt-strobe').addEventListener('click', () => { frozen = !frozen; $('.rt-strobe').setAttribute('aria-pressed', String(frozen)); show(); });
+  $('.rt-clear').addEventListener('click', () => { ruler = null; show(); });
+  addEventListener('resize', show);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.rt-quiz'), () => {
+    const f = pick(4, 12), lc = pick(15, 45, 5) / 10, v = (f * lc) / 100, a = pick(2, 8) * 5;
+    return [
+      { q: `A ripple tank has waves of frequency ${f} Hz and wavelength ${lc} cm. What is the wave speed in m/s?`, ans: v, unit: 'm/s', work: `λ = ${lc} cm = ${lc / 100} m. v = fλ = ${f} × ${lc / 100} = ${r(v)} m/s.` },
+      { q: `Waves travel at ${r(v)} m/s with frequency ${f} Hz. What is the wavelength in cm?`, ans: lc, unit: 'cm', work: `λ = v ÷ f = ${r(v)} ÷ ${f} = ${r(v / f, 3)} m = ${lc} cm.` },
+      { q: 'Waves go from deep water into a shallow region. What happens to the frequency and wavelength?', choices: ['Frequency same, wavelength shorter', 'Frequency lower, wavelength same', 'Both stay the same', 'Frequency same, wavelength longer'], ans: 0, work: 'The dipper sets the frequency, so it cannot change. Shallow water is slower, and v = fλ means λ gets shorter.' },
+      one([
+        { q: `A gap ${a} cm wide is in the path of waves with a wavelength of ${a / 10} cm. Which statement is best?`, choices: ['Waves pass straight through with little spreading', 'Waves spread out strongly'], ans: 0, work: `The gap is ${r(a / (a / 10))} wavelengths wide, much bigger than λ, so there is little spreading.` },
+        { q: 'When is diffraction through a gap most noticeable?', choices: ['Gap about the same as the wavelength', 'Gap much larger than the wavelength', 'It does not depend on the gap'], ans: 0, work: 'Diffraction is greatest when the gap is about one wavelength wide or narrower.' },
+      ]),
+    ];
+  });
+</script>

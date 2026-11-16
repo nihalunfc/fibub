@@ -1,0 +1,129 @@
+---
+// #L352 Circle theorems. Drag points on a circle; live angle values for eight theorems. Maths: src/lib/learn/curr-geo.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ct">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE and Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Why it works</button></div>
+    <p class="ax-help">Pick a theorem, then drag the labelled dots round the circle (or drag the outside point). The angles update as you move, and the pair that the theorem says are linked stay linked.</p>
+    <label>Theorem <select class="ct-thm" aria-label="Theorem"></select></label>
+    <p class="lrn-eq ct-say"></p>
+    <canvas class="lrn-cv ct-cv" aria-label="A circle with draggable points and live angle values" style="height:300px"></canvas>
+    <p class="ax-big ct-out" aria-live="polite"></p>
+    <p class="ax-help ct-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Why it works: radii of the same circle are equal, so triangles with two radii are isosceles. Their base angles are equal, and the angles of a triangle add to 180°. Joining those facts proves most of these theorems. For the centre theorem, draw the radius OP; the two isosceles triangles OAP and OBP give APB = ½ AOB.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>In "Angle at the centre", drag P all the way round. When does the angle at the centre become a reflex angle (over 180°)?</li><li>In "Same segment", can you make the two angles different?</li><li>In "Cyclic quadrilateral", drag the dots into a very thin shape. Do the opposite angles still add to 180°?</li></ul>
+  </div>
+  <div class="ax-card ct-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ct select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .ct .ct-cv { width: 100%; cursor: grab; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { onCircle, angleAt, centreVsCircumference, cyclicQuad, tangentsFrom, tangentPoint, alternateSegment, chordFoot, dist, type Pt } from '../../lib/learn/curr-geo';
+  const root = document.querySelector('.ct') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.ct-cv'), sel = $<HTMLSelectElement>('.ct-thm'), out = $('.ct-out');
+  const THMS: [string, string, string][] = [
+    ['centre', 'Angle at the centre', 'The angle at the centre is twice the angle at the circumference, when both stand on the same arc.'],
+    ['same', 'Angles in the same segment', 'Angles at the circumference that stand on the same chord and are on the same side are equal.'],
+    ['semi', 'Angle in a semicircle', 'The angle in a semicircle (standing on a diameter) is always 90°.'],
+    ['quad', 'Cyclic quadrilateral', 'Opposite angles of a quadrilateral with all four corners on a circle add up to 180°.'],
+    ['tangent', 'Tangent and radius', 'A tangent touches the circle at one point and is at 90° to the radius at that point.'],
+    ['twotan', 'Two tangents from a point', 'Two tangents drawn from the same outside point are equal in length.'],
+    ['alt', 'Alternate segment', 'The angle between a tangent and a chord equals the angle in the alternate segment (on the other side of the chord).'],
+    ['chord', 'Chord bisector', 'A line from the centre at 90° to a chord cuts the chord exactly in half.'],
+  ];
+  THMS.forEach(([id, n]) => { const o = document.createElement('option'); o.value = id; o.textContent = n; sel.append(o); });
+  const ST: Record<string, Record<string, number>> = { centre: { A: 200, B: 340, P: 100 }, same: { A: 200, B: 340, P: 80, Q: 140 }, semi: { A: 200, P: 70 }, quad: { A: 20, B: 110, C: 200, D: 300 }, tangent: { T: 40 }, twotan: { x: 2, y: 0.6 }, alt: { A: 30, B: 140, P: 260 }, chord: { A: 30, B: 150 } };
+  const deg = (v: number) => v.toFixed(1) + '°';
+  let R = 110, cx = 170, cy = 150;
+  const S = (p: Pt) => ({ x: cx + p.x * R, y: cy - p.y * R });
+  const fromS = (x: number, y: number): Pt => ({ x: (x - cx) / R, y: -(y - cy) / R });
+
+  // model: points by name, lines, angle marks and the pair of values
+  type Mark = { v: Pt; a: Pt; b: Pt; label: string; long?: boolean; col: string; right?: boolean };
+  function model(id: string) {
+    const s = ST[id], P = (k: string) => onCircle(s[k]), O: Pt = { x: 0, y: 0 };
+    const m: { pts: Record<string, Pt>; lines: [Pt, Pt][]; marks: Mark[]; handles: string[]; v1: number; v2: number; say: string; sub: string; tang?: [Pt, Pt]; ext?: boolean; ok: boolean } = { pts: {}, lines: [], marks: [], handles: [], v1: 0, v2: 0, say: '', sub: '', ok: true };
+    if (id === 'centre') { const A = P('A'), B = P('B'), Pp = P('P'), t = centreVsCircumference(A, B, Pp); m.pts = { A, B, P: Pp, O }; m.handles = ['A', 'B', 'P']; m.lines = [[A, Pp], [B, Pp], [O, A], [O, B]]; m.marks = [{ v: O, a: A, b: B, label: deg(t.centre), long: t.centre > 180.0001, col: 'bad' }, { v: Pp, a: A, b: B, label: deg(t.inscribed), col: 'accent' }]; m.v1 = t.centre; m.v2 = t.inscribed; m.say = `Angle at centre ${deg(t.centre)} = 2 × ${deg(t.inscribed)}`; m.sub = 'Move A, B or P: the centre angle is always double.'; }
+    else if (id === 'same') { const A = P('A'), B = P('B'), Pp = P('P'), Q = P('Q'); m.pts = { A, B, P: Pp, Q }; m.handles = ['A', 'B', 'P', 'Q']; m.lines = [[A, Pp], [B, Pp], [A, Q], [B, Q], [A, B]]; const a1 = angleAt(Pp, A, B), a2 = angleAt(Q, A, B); m.marks = [{ v: Pp, a: A, b: B, label: deg(a1), col: 'accent' }, { v: Q, a: A, b: B, label: deg(a2), col: 'bad' }]; m.v1 = a1; m.v2 = a2; m.say = `Angle APB = ${deg(a1)}, angle AQB = ${deg(a2)}`; m.sub = Math.abs(a1 - a2) < 0.05 ? 'Equal, because P and Q are on the same side of AB.' : 'Not equal: P and Q are on opposite sides of AB. Drag one across to the same side.'; m.ok = Math.abs(a1 - a2) < 0.05; }
+    else if (id === 'semi') { const A = P('A'), B = onCircle(s.A + 180), Pp = P('P'), a = angleAt(Pp, A, B); m.pts = { A, B, P: Pp, O }; m.handles = ['A', 'P']; m.lines = [[A, B], [A, Pp], [B, Pp]]; m.marks = [{ v: Pp, a: A, b: B, label: deg(a), col: 'accent', right: Math.abs(a - 90) < 0.5 }]; m.v1 = a; m.v2 = 90; m.say = `Angle APB = ${deg(a)}`; m.sub = 'AB is a diameter (it passes through the centre), so the angle at P is a right angle.'; }
+    else if (id === 'quad') { const th = ['A', 'B', 'C', 'D'].map((k) => s[k]), q = cyclicQuad(th), pts = th.map((t) => onCircle(t)), order = th.map((t, i) => ({ t, i })).sort((a, b) => ((a.t % 360) + 360) % 360 - (((b.t % 360) + 360) % 360)); const o = order.map((x) => pts[x.i]); m.pts = { A: o[0], B: o[1], C: o[2], D: o[3] }; m.handles = ['A', 'B', 'C', 'D']; m.lines = [[o[0], o[1]], [o[1], o[2]], [o[2], o[3]], [o[3], o[0]]]; m.marks = o.map((v, i) => ({ v, a: o[(i + 3) % 4], b: o[(i + 1) % 4], label: deg(q.angles[i]), col: i % 2 ? 'bad' : 'accent' })); m.v1 = q.sumAC; m.v2 = q.sumBD; m.say = `A + C = ${deg(q.sumAC)}, B + D = ${deg(q.sumBD)}`; m.sub = 'Each pair of opposite angles adds to 180°.'; }
+    else if (id === 'tangent') { const T = P('T'), X = tangentPoint(T, 1.2), Y = tangentPoint(T, -1.2); m.pts = { T, O }; m.handles = ['T']; m.lines = [[O, T]]; m.tang = [Y, X]; const a = angleAt(T, O, X); m.marks = [{ v: T, a: O, b: X, label: deg(a), col: 'accent', right: true }]; m.v1 = a; m.v2 = 90; m.say = `Angle between radius and tangent = ${deg(a)}`; m.sub = 'Drag T round the circle: the tangent turns with it and stays at a right angle to the radius.'; }
+    else if (id === 'twotan') { const Pp = { x: s.x, y: s.y }, t = tangentsFrom(Pp); m.pts = { P: Pp, A: t.T1, B: t.T2, O }; m.handles = ['P']; m.ext = true; m.lines = [[Pp, t.T1], [Pp, t.T2], [O, t.T1], [O, t.T2]]; m.marks = [{ v: Pp, a: t.T1, b: t.T2, label: deg(angleAt(Pp, t.T1, t.T2)), col: 'accent' }]; m.v1 = t.len1 * 10; m.v2 = t.len2 * 10; m.say = `PA = ${(t.len1 * 10).toFixed(1)} units, PB = ${(t.len2 * 10).toFixed(1)} units`; m.sub = 'Radius = 10 units. The two tangent lengths match, and the angles at A and B are both 90°.'; }
+    else if (id === 'alt') { const A = P('A'), B = P('B'), Pp = P('P'), t = alternateSegment(A, B, Pp); let X = tangentPoint(A, 1.3); const sd = (p: Pt, q: Pt, z: Pt) => Math.sign((q.x - p.x) * (z.y - p.y) - (q.y - p.y) * (z.x - p.x)); if (sd(A, B, X) === sd(A, B, Pp)) X = tangentPoint(A, -1.3); const Y = tangentPoint(A, sd(A, B, X) === sd(A, B, tangentPoint(A, 1.3)) ? -1.3 : 1.3); m.pts = { A, B, P: Pp }; m.handles = ['A', 'B', 'P']; m.tang = [Y, X]; m.lines = [[A, B], [A, Pp], [B, Pp]]; m.marks = [{ v: A, a: B, b: X, label: deg(t.tangentChord), col: 'bad' }, { v: Pp, a: A, b: B, label: deg(t.inscribed), col: 'accent' }]; m.v1 = t.tangentChord; m.v2 = t.inscribed; m.say = `Tangent-chord angle ${deg(t.tangentChord)} = angle at P ${deg(t.inscribed)}`; m.sub = 'The tangent is drawn at A. P is in the alternate segment, on the other side of AB from the marked tangent angle.'; }
+    else { const A = P('A'), B = P('B'), c = chordFoot(A, B), len = dist(A, c.foot) * 10, len2 = dist(B, c.foot) * 10; m.pts = { A, B, M: c.foot, O }; m.handles = ['A', 'B']; m.lines = [[A, B], [O, c.foot]]; m.marks = [{ v: c.foot, a: O, b: B, label: '90°', col: 'accent', right: true }]; m.v1 = len; m.v2 = len2; m.say = `AM = ${len.toFixed(1)} units, MB = ${len2.toFixed(1)} units`; m.sub = 'Radius = 10 units. M is where the perpendicular from the centre meets the chord, and it is the midpoint.'; }
+    return m;
+  }
+
+  const draw = () => {
+    const id = sel.value, th = THMS.find((t) => t[0] === id)!, m = model(id), { ctx, W, H } = fitCanvas(cv, 300), pal = pagePalette();
+    R = Math.min(W / 2 - 26, 118); if (id === 'twotan') R = Math.min(R, (W / 2 - 12) / 2.3); cx = W / 2; cy = H / 2 + 4;
+    const colr = (c: string) => (pal as any)[c];
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke();
+    ctx.lineWidth = 1.5;
+    if (m.tang) { const a = S(m.tang[0]), b = S(m.tang[1]); const dx = b.x - a.x, dy = b.y - a.y; ctx.strokeStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(a.x - dx, a.y - dy); ctx.lineTo(b.x + dx, b.y + dy); ctx.stroke(); }
+    if (id === 'twotan') { for (const k of ['A', 'B']) { const a = S(m.pts.P), b = S(m.pts[k]), dx = b.x - a.x, dy = b.y - a.y; ctx.strokeStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x + dx * 0.15, b.y + dy * 0.15); ctx.stroke(); } }
+    ctx.strokeStyle = pal.ink;
+    m.lines.forEach(([a, b]) => { const p = S(a), q = S(b); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
+    m.marks.forEach((mk) => {
+      const v = S(mk.v), a = S(mk.a), b = S(mk.b), a1 = Math.atan2(a.y - v.y, a.x - v.x), a2 = Math.atan2(b.y - v.y, b.x - v.x);
+      let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d <= -Math.PI) d += 2 * Math.PI;
+      const ccw = mk.long ? d > 0 : d < 0, rad = mk.right ? 12 : 20 + (mk.long ? 0 : 0);
+      ctx.strokeStyle = colr(mk.col); ctx.fillStyle = colr(mk.col); ctx.lineWidth = 2;
+      if (mk.right) { const u = { x: Math.cos(a1), y: Math.sin(a1) }, w = { x: Math.cos(a2), y: Math.sin(a2) }; ctx.beginPath(); ctx.moveTo(v.x + u.x * 11, v.y + u.y * 11); ctx.lineTo(v.x + (u.x + w.x) * 11, v.y + (u.y + w.y) * 11); ctx.lineTo(v.x + w.x * 11, v.y + w.y * 11); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(v.x, v.y, rad, a1, a2, ccw); ctx.stroke(); }
+      let mid = a1 + (mk.long ? (d > 0 ? d - 2 * Math.PI : d + 2 * Math.PI) : d) / 2; const lr = mk.right ? 30 : rad + 22;
+      ctx.textAlign = 'center'; ctx.font = 'bold 12px system-ui,sans-serif'; ctx.fillText(mk.label, v.x + Math.cos(mid) * lr, v.y + Math.sin(mid) * lr + 4); ctx.font = '12px system-ui,sans-serif';
+    });
+    Object.entries(m.pts).forEach(([k, p]) => {
+      const q = S(p), h = m.handles.includes(k); ctx.fillStyle = h ? pal.accent : pal.ink; ctx.beginPath(); ctx.arc(q.x, q.y, h ? 7 : 3.5, 0, 7); ctx.fill();
+      if (h) { ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.stroke(); }
+      const dx = q.x - cx, dy = q.y - cy, L = Math.hypot(dx, dy) || 1, off = k === 'O' ? 14 : 14; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(k, q.x + (k === 'O' ? 10 : (dx / L) * off), q.y + (k === 'O' ? 14 : (dy / L) * off) + 4);
+    });
+    $('.ct-say').textContent = th[2]; out.textContent = m.say; $('.ct-sub').textContent = m.sub;
+    out.dataset.thm = id; out.dataset.v1 = m.v1.toFixed(3); out.dataset.v2 = m.v2.toFixed(3); out.dataset.equal = String(Math.abs(m.v1 - m.v2) < 0.05 || (id === 'quad' && Math.abs(m.v1 - 180) < 0.05 && Math.abs(m.v2 - 180) < 0.05));
+  };
+  (cv as any).setPoint = (k: string, v: number, y?: number) => { ST[sel.value][k] = v; if (y !== undefined) ST[sel.value].y = y; draw(); };
+
+  let held = '';
+  const pointer = (e: PointerEvent) => { const rc = cv.getBoundingClientRect(); return { x: e.clientX - rc.left, y: e.clientY - rc.top }; };
+  cv.addEventListener('pointerdown', (e) => {
+    const m = model(sel.value), q = pointer(e); let best = '', bd = 34;
+    for (const k of m.handles) { const s = S(m.pts[k]), d = Math.hypot(s.x - q.x, s.y - q.y); if (d < bd) { bd = d; best = k; } }
+    if (!best) return; held = best; cv.setPointerCapture(e.pointerId); move(e);
+  });
+  const move = (e: PointerEvent) => {
+    if (!held) return; const q = pointer(e), u = fromS(q.x, q.y), st = ST[sel.value];
+    if (sel.value === 'twotan') { const d = Math.hypot(u.x, u.y) || 1, k = Math.min(2.6, Math.max(1.15, d)) / d; st.x = u.x * k; st.y = u.y * k; }
+    else st[held] = ((Math.atan2(u.y, u.x) / Math.PI) * 180 + 360) % 360;
+    draw();
+  };
+  cv.addEventListener('pointermove', move); cv.addEventListener('pointerup', () => { held = ''; });
+  sel.addEventListener('input', draw); addEventListener('resize', draw);
+  wireLevel(root, () => {}); draw();
+
+  mountQuiz($('.ct-quiz'), () => {
+    const x = pick(20, 80, 5), c = pick(60, 120, 10), y = pick(25, 65, 5), tri = one([[5, 3, 4], [10, 6, 8], [13, 5, 12], [17, 8, 15], [25, 7, 24]]);
+    const q2 = one([0, 1]), q3 = one([0, 1]);
+    return [
+      { q: `A chord AB makes an angle of ${x}° at the circumference. What angle does it make at the centre (same arc)?`, ans: 2 * x, unit: '°', work: `Angle at the centre = 2 × angle at the circumference = 2 × ${x}° = ${2 * x}°.` },
+      q2 ? { q: `AB is a diameter and P is on the circle. Angle PAB = ${y}°. Find angle PBA.`, ans: 90 - y, unit: '°', work: `Angle APB is in a semicircle, so it is 90°. The angles of the triangle add to 180°: 180 − 90 − ${y} = ${90 - y}°.` } : { q: `ABCD is a cyclic quadrilateral. Angle A = ${c}°. Find the opposite angle C.`, ans: 180 - c, unit: '°', work: `Opposite angles of a cyclic quadrilateral add to 180°: 180 − ${c} = ${180 - c}°.` },
+      q3 ? { q: `A tangent touches a circle at T. A point P is on the tangent and O is the centre. Angle TPO = ${y}°. Find angle TOP.`, ans: 90 - y, unit: '°', work: `The tangent meets the radius at 90°, so triangle OTP has a right angle at T: 180 − 90 − ${y} = ${90 - y}°.` } : { q: `The angle between a tangent and a chord is ${c}°. What is the angle in the alternate segment?`, ans: c, unit: '°', work: `Alternate segment theorem: the two angles are equal, so ${c}°.` },
+      { q: `A circle has radius ${tri[0]} cm. A chord is ${tri[1]} cm from the centre. How long is the chord?`, ans: 2 * tri[2], unit: 'cm', work: `The perpendicular from the centre bisects the chord. Half the chord = √(${tri[0]}² − ${tri[1]}²) = ${tri[2]} cm, so the chord is ${2 * tri[2]} cm.` },
+    ];
+  });
+</script>

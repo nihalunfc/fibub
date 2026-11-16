@@ -1,0 +1,102 @@
+---
+// #L353 Triangle congruence. Set the given parts; every triangle that fits is drawn overlaid. Maths: src/lib/learn/curr-geo.ts and triangle.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn tc">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 8 to 10</button><button type="button" data-level="11" aria-pressed="false">Why it works</button></div>
+    <p class="ax-help">Two triangles are congruent if one fits exactly on the other. You do not need all six measurements to know that. Choose which three parts you are given and see how many different triangles can be drawn from them.</p>
+    <label>Given parts <select class="tc-cond" aria-label="Given parts"></select></label>
+    <p class="ax-help tc-what"></p>
+    <canvas class="lrn-cv tc-cv" aria-label="Every triangle that fits the given parts, drawn on top of each other" style="height:250px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span class="tc-l0"></span>: <b class="tc-v0"></b> <input class="tc-i0" type="range" /></label>
+      <label class="lrn-sl"><span class="tc-l1"></span>: <b class="tc-v1"></b> <input class="tc-i1" type="range" /></label>
+      <label class="lrn-sl"><span class="tc-l2"></span>: <b class="tc-v2"></b> <input class="tc-i2" type="range" /></label>
+    </div>
+    <p><button type="button" class="btn secondary small tc-play">Pause</button></p>
+    <p class="ax-big tc-out" aria-live="polite"></p>
+    <p class="ax-help tc-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Why it works: if a set of three parts allows only one triangle, any two triangles with those parts can be moved on top of each other with a slide, turn or flip (a rigid motion), so they are congruent. If two or more shapes fit, the parts do not pin the triangle down. For SSA, the swinging side of length a can reach the base line in two places whenever b sin A &lt; a &lt; b. If A is 90° (RHS) it works, because the swing meets the base in only one place.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Choose SSA. Set a below b sin A, then equal to it, then between b sin A and b, then longer than b. How many triangles each time?</li><li>Choose AAA and change the size slider. Do the triangles stay the same shape?</li><li>Choose SAS and move the angle. Is there ever more than one triangle?</li></ul>
+  </div>
+  <div class="ax-card tc-quiz">
+    <h2>Prove it</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .tc select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .tc .tc-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { CONDS, cond, construct, corners, swingHeight, proveCase, TESTS, type Cond } from '../../lib/learn/curr-geo';
+  const root = document.querySelector('.tc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.tc-cv'), sel = $<HTMLSelectElement>('.tc-cond'), out = $('.tc-out');
+  const inp = [0, 1, 2].map((i) => $<HTMLInputElement>('.tc-i' + i));
+  CONDS.forEach((c) => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.id === 'AAA' || c.id === 'SSA' ? `${c.id} (a trap: does not prove congruence)` : `${c.id}${c.id === 'RHS' ? ' (right angle, hypotenuse, side)' : ''}`; sel.append(o); });
+  const WHAT: Record<Cond, string> = { SSS: 'Three sides.', SAS: 'Two sides and the angle between them.', ASA: 'Two angles and the side between them.', AAS: 'Two angles and a side that is not between them.', RHS: 'A right angle, the hypotenuse and one other side.', AAA: 'Three angles only. No sides given.', SSA: 'Two sides and an angle that is not between them.' };
+  const GIVEN: Record<Cond, { sides: string[]; angles: string[] }> = { SSS: { sides: ['a', 'b', 'c'], angles: [] }, SAS: { sides: ['b', 'c'], angles: ['A'] }, ASA: { sides: ['c'], angles: ['A', 'B'] }, AAS: { sides: ['a'], angles: ['A', 'B'] }, RHS: { sides: ['c', 'a'], angles: ['C'] }, AAA: { sides: [], angles: ['A', 'B'] }, SSA: { sides: ['a', 'b'], angles: ['A'] } };
+  const vals = () => inp.map((i) => +i.value) as [number, number, number];
+  const setCond = () => { const c = cond(sel.value); inp.forEach((i, k) => { i.min = String(c.ranges[k][0]); i.max = String(c.ranges[k][1]); i.step = c.labels[k].includes('°') ? '1' : '0.5'; i.value = String(c.start[k]); i.disabled = c.ranges[k][0] === c.ranges[k][1]; $('.tc-l' + k).textContent = c.labels[k]; }); $('.tc-what').textContent = WHAT[c.id]; };
+  let phase = 0;
+  const fmt = (x: number) => String(+x.toFixed(2));
+  const draw = () => {
+    const c = cond(sel.value), v = vals(), b = construct(c.id, v[0], v[1], v[2]), { ctx, W, H } = fitCanvas(cv, 250), pal = pagePalette(), g = GIVEN[c.id];
+    inp.forEach((_, k) => { $('.tc-v' + k).textContent = fmt(v[k]); });
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    out.dataset.count = b.infinite ? 'inf' : String(b.count); out.dataset.cond = c.id; out.dataset.congruent = String(c.works && b.count === 1); out.dataset.error = b.error ?? '';
+    out.textContent = b.error ? b.error : b.infinite ? 'Infinitely many triangles fit.' : b.count === 1 ? 'Exactly one triangle fits.' : `${b.count} different triangles fit.`;
+    $('.tc-sub').textContent = b.verdict + (c.works ? '' : c.id === 'SSA' && b.count === 1 ? '' : '');
+    if (!b.tris.length) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText('No triangle can be drawn with these parts.', W / 2, H / 2); return; }
+    const all = b.tris.flatMap((t) => corners(t)), apex = b.tris[0], extra = c.id === 'SSA' ? [{ x: apex.b * Math.cos(apex.A * Math.PI / 180) + v[0], y: 0 }, { x: Math.max(...b.tris.map((t) => t.c)) + 0.5, y: 0 }, { x: apex.b * Math.cos(apex.A * Math.PI / 180) - v[0], y: 0 }] : [];
+    const xs = [...all, ...extra].map((p) => p.x), ys = all.map((p) => p.y), x0 = Math.min(0, ...xs), x1 = Math.max(...xs), y1 = Math.max(...ys), bw = x1 - x0, bh = y1 || 1, sc = Math.min((W - 60) / bw, (H - 70) / bh), ox = (W - bw * sc) / 2 - x0 * sc, oy = H - 34;
+    const T = (p: { x: number; y: number }) => ({ x: ox + p.x * sc, y: oy - p.y * sc });
+    const cols = [pal.accent, pal.accent2, pal.good];
+    // base line
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.max(4, ox + x0 * sc - 10), oy); ctx.lineTo(Math.min(W - 4, ox + x1 * sc + 10), oy); ctx.stroke();
+    if (c.id === 'SSA') {
+      const C = T(corners(apex)[2]), rad = v[0] * sc; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(C.x, C.y, rad, 0.05, Math.PI - 0.05); ctx.stroke(); ctx.setLineDash([]);
+      const sw = (Math.sin(phase) * 0.5 + 0.5), ang = 0.1 + sw * (Math.PI - 0.2), tip = { x: C.x + rad * Math.cos(ang), y: C.y + rad * Math.sin(ang) };
+      ctx.strokeStyle = pal.warn; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(C.x, C.y); ctx.lineTo(tip.x, tip.y); ctx.stroke(); ctx.fillStyle = pal.warn; ctx.beginPath(); ctx.arc(tip.x, tip.y, 3.5, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`a swings: meets the base ${b.count} time${b.count === 1 ? '' : 's'} (b sin A = ${fmt(swingHeight(v[1], v[2]))})`, 8, 14);
+    }
+    b.tris.forEach((t, k) => {
+      const [A, B, C] = corners(t).map(T), col = cols[k % 3];
+      ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.lineTo(C.x, C.y); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      const side = (p: { x: number; y: number }, q: { x: number; y: number }, key: string, len: number) => { const on = k === 0 || c.id === 'AAA' ? g.sides.includes(key) : g.sides.includes(key); ctx.strokeStyle = col; ctx.lineWidth = on ? 4 : 1.5; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); if (k === 0 || b.count > 1 && k < 2) { ctx.fillStyle = col; ctx.textAlign = 'center'; const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2; ctx.fillText(`${key} ${fmt(len)}`, mx + (key === 'c' ? 0 : key === 'b' ? -22 : 22), my + (key === 'c' ? 16 : -2)); } };
+      side(A, B, 'c', t.c); side(A, C, 'b', t.b); side(B, C, 'a', t.a);
+      const angs: [string, typeof A, typeof A, typeof A, number][] = [['A', A, B, C, t.A], ['B', B, A, C, t.B], ['C', C, A, B, t.C]];
+      angs.forEach(([key, vtx, p, q, val]) => {
+        const a1 = Math.atan2(p.y - vtx.y, p.x - vtx.x), a2 = Math.atan2(q.y - vtx.y, q.x - vtx.x); let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d <= -Math.PI) d += 2 * Math.PI;
+        const on = g.angles.includes(key); ctx.strokeStyle = col; ctx.lineWidth = on ? 3 : 1; ctx.beginPath(); ctx.arc(vtx.x, vtx.y, 14 + k * 4, a1, a2, d < 0); ctx.stroke();
+        if ((k === 0 || b.count > 1 && k < 2) && (on || k === 0)) { ctx.fillStyle = col; ctx.textAlign = 'center'; const mid = a1 + d / 2; ctx.fillText(`${fmt(val)}°`, vtx.x + Math.cos(mid) * 34, vtx.y + Math.sin(mid) * 34 + 4); }
+      });
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; if (k === 0) { ctx.fillText('A', A.x - 10, A.y + 14); ctx.fillText('C', C.x, C.y - 8); }
+      ctx.fillText(b.count > 1 && !b.infinite ? `B${k + 1}` : k === 0 ? 'B' : '', B.x + 2, B.y + 15);
+    });
+  };
+  const lp = loop((dt) => { phase += dt * 1.4; draw(); }, $<HTMLButtonElement>('.tc-play'));
+  sel.addEventListener('input', () => { setCond(); lp.redraw(); });
+  inp.forEach((i) => i.addEventListener('input', () => lp.redraw()));
+  addEventListener('resize', () => lp.redraw());
+  wireLevel(root, () => {}); setCond(); lp.redraw();
+
+  const NAME: Record<string, string> = { SSS: 'SSS', SAS: 'SAS', ASA: 'ASA', AAS: 'AAS', RHS: 'RHS' };
+  mountQuiz($('.tc-quiz'), () => {
+    const kinds: Cond[] = ['SSS', 'SAS', 'ASA', 'AAS', 'RHS', 'AAA', 'SSA'];
+    const good = ['SSS', 'SAS', 'ASA', 'AAS', 'RHS'] as Cond[], k1 = one(good), k2 = one(['AAA', 'SSA'] as Cond[]), k3 = one(kinds.filter((k) => k !== k1 && k !== k2));
+    const mk = (k: Cond) => { const s1 = k === 'RHS' ? pick(6, 10) : pick(4, 9), a1 = pick(30, 80, 5), a2 = pick(40, 70, 5); return proveCase(k, { s1, s2: k === 'RHS' ? pick(3, 5) : pick(4, 9), s3: pick(5, 9), a1, a2 }); };
+    const item = (k: Cond) => { const c = mk(k); return { q: `Triangles ABC and PQR have these equal parts: ${c.marks.join('; ')}. Which test proves they are congruent?`, choices: [...TESTS], ans: TESTS.indexOf(c.answer), work: c.answer === 'Cannot tell' ? `${k === 'AAA' ? 'Three equal angles only fix the shape, not the size' : 'The equal angle is not between the two equal sides (SSA), so two different triangles can fit'}. The triangles may not be congruent.` : `${c.answer}: ${NAME[c.answer]} matches these parts, so the triangles are congruent.` }; };
+    const A = pick(30, 80, 5), B = pick(40, 70, 5);
+    return [item(k1), item(k2), item(k3), { q: `Triangle 1 has angles ${A}° and ${B}°. Triangle 2 is congruent to it. What is the third angle of triangle 2?`, ans: 180 - A - B, unit: '°', work: `Angles in a triangle add to 180°: 180 − ${A} − ${B} = ${180 - A - B}°. Congruent triangles have the same angles.` }];
+  });
+</script>

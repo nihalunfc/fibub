@@ -1,0 +1,173 @@
+---
+// #L357 Surds. Simplify square roots with square tiles, add, multiply, expand and rationalise, every step shown, with a number line to check the decimal. Maths: src/lib/learn/curr-maths.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn su">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">GCSE</button><button type="button" data-level="11" aria-pressed="false">A-level</button></div>
+    <p class="ax-help">A surd is a square root that is not a whole number, like √2 or √7. We keep it as a root because that is exact. Pick what to do, type your numbers, and read the steps. The number line checks the decimal.</p>
+    <label>What do you want to do? <select class="su-op" aria-label="Operation"></select></label>
+    <div class="ax-grid su-inputs" style="margin-top:8px">
+      <label class="su-la"><span></span> <input class="su-a" type="number" inputmode="numeric" step="1" aria-label="First number" /></label>
+      <label class="su-lb"><span></span> <input class="su-b" type="number" inputmode="numeric" step="1" aria-label="Second number" /></label>
+      <label class="su-lc"><span></span> <input class="su-c" type="number" inputmode="numeric" step="1" aria-label="Third number" /></label>
+      <label class="su-ld"><span></span> <input class="su-d" type="number" inputmode="numeric" step="1" aria-label="Fourth number" /></label>
+      <label class="su-ls">Sign <select class="su-s" aria-label="Plus or minus"><option value="1">+</option><option value="-1">−</option></select></label>
+    </div>
+    <p class="ax-help su-err" role="alert" hidden></p>
+    <p class="lrn-eq su-expr"></p>
+    <canvas class="lrn-cv su-tiles" aria-label="Square tiles: the number of unit squares grouped into blocks that are perfect squares" style="margin-top:8px"></canvas>
+    <ol class="su-steps lrn-try" aria-live="polite"></ol>
+    <p class="ax-big su-out" aria-live="polite"></p>
+    <canvas class="lrn-cv su-nl" aria-label="Number line marking the decimal value of the answer"></canvas>
+    <p class="ax-help su-chk"></p>
+    <p class="ax-help" data-only="11" hidden>A-level: rationalising means removing the root from the bottom of a fraction. For 1/√a multiply top and bottom by √a. For 1/(p + √q) multiply by the conjugate (p − √q), because (p + √q)(p − √q) = p² − q has no root left.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Simplify √72, then √50 and √48. Look at the tiles: how many square blocks fit, and what is the side of each?</li><li>Add 3√8 + 2√2. Why do you have to simplify first?</li><li>Rationalise 1/(3 + √2), then change the sign. What happens to the bottom of the fraction?</li><li>Check the number line each time: the decimal of the answer must match the decimal of the question.</li></ul>
+  </div>
+  <div class="ax-card su-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .su [hidden] { display: none !important; }
+  .su .su-tiles, .su .su-nl { width: 100%; }
+  .su select, .su input[type=number] { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .su .su-inputs label { display: grid; gap: 2px; font-size: 14px; color: var(--muted); }
+  .su .su-steps { margin: 8px 0; font-size: 15px; display: grid; gap: 4px; color: var(--ink); overflow-wrap: anywhere; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { simplifySqrt, wSimplify, wAdd, wMul, wExpand, wRat1, wRat2, fmtSurd, fmtSum, sumAnswers, term, add, type Worked } from '../../lib/learn/curr-maths';
+  const root = document.querySelector('.su') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = (k: string) => $<HTMLInputElement>('.su-' + k);
+  const opSel = $<HTMLSelectElement>('.su-op'), out = $('.su-out'), tiles = $<HTMLCanvasElement>('.su-tiles'), nl = $<HTMLCanvasElement>('.su-nl');
+  type Op = { id: string; name: string; lvl: number; fields: [string, number][]; sign?: boolean; def: number[] };
+  const OPS: Op[] = [
+    { id: 'simplify', name: 'Simplify √n', lvl: 10, fields: [['n =', 1]], def: [72] },
+    { id: 'add', name: 'Add or subtract: a√b ± c√d', lvl: 10, fields: [['a', 1], ['b (under √)', 1], ['c', 1], ['d (under √)', 1]], sign: true, def: [3, 8, 2, 2] },
+    { id: 'mul', name: 'Multiply: a√b × c√d', lvl: 10, fields: [['a', 1], ['b (under √)', 1], ['c', 1], ['d (under √)', 1]], def: [2, 3, 4, 6] },
+    { id: 'expand', name: 'Expand: (a + √b)(c + √d)', lvl: 11, fields: [['a', 1], ['b (under √)', 1], ['c', 1], ['d (under √)', 1]], def: [2, 3, 4, 3] },
+    { id: 'rat1', name: 'Rationalise k ÷ √b', lvl: 11, fields: [['k (top)', 1], ['b (under √)', 1]], def: [1, 2] },
+    { id: 'rat2', name: 'Rationalise k ÷ (p ± √q)', lvl: 11, fields: [['k (top)', 1], ['p', 1], ['q (under √)', 1]], sign: true, def: [1, 3, 2] },
+  ];
+  let level = '10';
+  const fillOps = () => {
+    const keep = opSel.value; opSel.replaceChildren();
+    OPS.filter((o) => o.lvl <= +level - (level === '10' ? 0 : 0) || level === '11').forEach((o) => { const e = document.createElement('option'); e.value = o.id; e.textContent = o.name; opSel.append(e); });
+    if ([...opSel.options].some((o) => o.value === keep)) opSel.value = keep;
+  };
+  const useOp = () => {
+    const o = OPS.find((x) => x.id === opSel.value)!;
+    ['a', 'b', 'c', 'd'].forEach((k, i) => {
+      const lab = $('.su-l' + k), has = i < o.fields.length; lab.hidden = !has;
+      if (has) { lab.querySelector('span')!.textContent = o.fields[i][0]; inp(k).value = String(o.def[i]); }
+    });
+    $('.su-ls').hidden = !o.sign;
+    run();
+  };
+  const val = (k: string) => parseInt(inp(k).value, 10);
+  const value = (w: Worked | null) => w ? w.value : NaN;
+  const run = () => {
+    const o = OPS.find((x) => x.id === opSel.value)!, [a, b, c, d] = ['a', 'b', 'c', 'd'].map(val), s = (+$<HTMLSelectElement>('.su-s').value) as 1 | -1;
+    const need = o.fields.map((_, i) => [a, b, c, d][i]);
+    const err = $('.su-err'); let bad = '';
+    if (need.some((v) => !Number.isInteger(v))) bad = 'Type whole numbers in every box.';
+    else {
+      const rad = (o.id === 'rat2' ? [need[2]] : o.id === 'simplify' ? [need[0]] : o.id === 'rat1' ? [need[1]] : [need[1], need[3]]);
+      if (rad.some((v) => v < 1 || v > 999)) bad = 'The number under a root must be a whole number from 1 to 999.';
+      else if (o.id === 'rat2' && need[1] * need[1] === need[2]) bad = 'p² equals q, so the bottom would be 0. Choose other numbers.';
+      else if (need.some((v) => Math.abs(v) > 999)) bad = 'Keep the numbers below 1000.';
+      else if (['add', 'mul'].includes(o.id) && (need[0] < 1 || need[2] < 1)) bad = 'Use positive numbers for a and c (use the sign box to subtract).';
+      else if (o.id === 'rat1' && need[0] === 0) bad = 'k cannot be 0.';
+    }
+    err.hidden = !bad; err.textContent = bad;
+    if (bad) { out.textContent = ''; out.dataset.error = '1'; return; }
+    delete out.dataset.error;
+    let w: Worked | null = null, expr = '', orig = NaN;
+    const sg = s === 1 ? '+' : '−';
+    if (o.id === 'simplify') { w = wSimplify(a); expr = `√${a}`; orig = Math.sqrt(a); }
+    else if (o.id === 'add') { w = wAdd(a, b, c, d, s); expr = `${a}√${b} ${sg} ${c}√${d}`; orig = a * Math.sqrt(b) + s * c * Math.sqrt(d); }
+    else if (o.id === 'mul') { w = wMul(a, b, c, d); expr = `${a}√${b} × ${c}√${d}`; orig = a * Math.sqrt(b) * c * Math.sqrt(d); }
+    else if (o.id === 'expand') { w = wExpand(a, b, c, d); expr = `(${a} + √${b})(${c} + √${d})`; orig = (a + Math.sqrt(b)) * (c + Math.sqrt(d)); }
+    else if (o.id === 'rat1') { w = wRat1(a, b); expr = `${a} ÷ √${b}`; orig = a / Math.sqrt(b); }
+    else { w = wRat2(a, b, c, s); expr = `${a} ÷ (${b} ${sg} √${c})`; orig = a / (b + s * Math.sqrt(c)); }
+    $('.su-expr').textContent = w ? expr : '';
+    if (!w) { $('.su-err').hidden = false; $('.su-err').textContent = 'The bottom of the fraction would be 0. Choose other numbers.'; return; }
+    const steps = $('.su-steps'); steps.replaceChildren(); w.steps.forEach((t) => { const li = document.createElement('li'); li.textContent = t; steps.append(li); });
+    out.textContent = `${expr} = ${w.result}`;
+    out.dataset.result = w.result; out.dataset.value = value(w).toFixed(6); out.dataset.op = o.id;
+    $('.su-chk').textContent = `Check with decimals: the question is about ${orig.toFixed(5)} and the answer is ${w.value.toFixed(5)}. ${Math.abs(orig - w.value) < 1e-9 ? 'They match.' : 'They differ!'}`;
+    tiles.hidden = o.id !== 'simplify';
+    if (o.id === 'simplify') drawTiles(a);
+    drawLine(w.value);
+  };
+
+  const drawTiles = (n: number) => {
+    const { k, m } = simplifySqrt(n), pal = pagePalette(), W0 = Math.max(220, tiles.clientWidth || 340);
+    if (n > 250) { const { ctx, W, H } = fitCanvas(tiles, 40); ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.muted; ctx.font = '13px system-ui,sans-serif'; ctx.fillText(`${n} tiles are too many to draw. Try n up to 250.`, 8, 24); return; }
+    const gap = 10, blocks = k === 1 ? 1 : m, bk = k === 1 ? Math.min(n, 10) : k;
+    let cs = 16, rows = 1, per = 1;
+    const layout = () => { const bw = (k === 1 ? bk : k) * cs; per = Math.max(1, Math.floor((W0 - 16 + gap) / (bw + gap))); rows = Math.ceil(blocks / per); return rows * (k === 1 ? Math.ceil(n / 10) * cs + gap : bw + gap); };
+    while (cs > 4 && layout() > 190) cs--;
+    const hh = layout() + 34, { ctx, W, H } = fitCanvas(tiles, Math.max(60, hh));
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif';
+    if (k === 1) {
+      ctx.fillStyle = pal.accent;
+      for (let i = 0; i < n; i++) ctx.fillRect(8 + (i % 10) * cs, 8 + Math.floor(i / 10) * cs, cs - 1.5, cs - 1.5);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`${n} tiles: no square block bigger than 1 × 1 fits in every group, so √${n} stays as it is.`, 8, H - 8);
+      return;
+    }
+    const bw = k * cs;
+    for (let i = 0; i < m; i++) {
+      const bx = 8 + (i % per) * (bw + gap), by = 8 + Math.floor(i / per) * (bw + gap);
+      ctx.fillStyle = i % 2 ? pal.accent2 : pal.accent; ctx.fillRect(bx, by, bw, bw);
+      ctx.strokeStyle = pal.bg; ctx.lineWidth = 1;
+      for (let j = 1; j < k; j++) { ctx.beginPath(); ctx.moveTo(bx + j * cs, by); ctx.lineTo(bx + j * cs, by + bw); ctx.moveTo(bx, by + j * cs); ctx.lineTo(bx + bw, by + j * cs); ctx.stroke(); }
+    }
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left';
+    ctx.fillText(`${n} tiles = ${m} block${m > 1 ? 's' : ''} of ${k * k} (${k} × ${k}). Side ${k}, so √${n} = ${fmtSurd(1, n)}.`, 8, H - 8);
+  };
+  const drawLine = (v: number) => {
+    const { ctx, W, H } = fitCanvas(nl, 70), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    let lo = Math.min(0, Math.floor(v) - 1), hi = Math.max(1, Math.ceil(v) + 1); if (hi - lo > 40) { lo = Math.min(0, Math.floor(v - 5)); hi = Math.ceil(v + 5); }
+    const step = hi - lo > 24 ? 5 : hi - lo > 12 ? 2 : 1, X = (x: number) => 14 + ((x - lo) / (hi - lo)) * (W - 28), y = 36;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(W - 10, y); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) { ctx.beginPath(); ctx.moveTo(X(t), y - 5); ctx.lineTo(X(t), y + 5); ctx.stroke(); ctx.fillText(String(t), X(t), y + 19); }
+    ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(v), y, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.textAlign = X(v) > W - 60 ? 'right' : X(v) < 60 ? 'left' : 'center'; ctx.font = 'bold 12px system-ui,sans-serif'; ctx.fillText(v.toFixed(4), X(v), y - 14);
+  };
+
+  opSel.addEventListener('input', useOp);
+  root.querySelectorAll('input, .su-s').forEach((e) => e.addEventListener('input', run));
+  addEventListener('resize', run);
+  wireLevel(root, (l) => { level = l; fillOps(); useOp(); });
+
+  const texts = (w: { sum?: import('../../lib/learn/curr-maths').Sum }) => sumAnswers(w.sum!);
+  mountQuiz($('.su-quiz'), () => {
+    const k1 = pick(2, 9), m1 = one([2, 3, 5, 6, 7, 10, 11]), n1 = k1 * k1 * m1;
+    const k2 = pick(2, 6), k3 = pick(2, 6), m2 = one([2, 3, 5, 7]), w2 = add(term(1, k2 * k2 * m2), term(1, k3 * k3 * m2));
+    const a = pick(1, 5), c = pick(1, 5), b = one([2, 3, 5]), d = one([2, 3, 5]), w3 = wExpand(a, b, c, d);
+    const q = one([2, 3, 5, 6, 7]), p = pick(2, 5), dd = p * p - q;
+    const useR1 = Math.random() < 0.5 || dd <= 0, bb = one([2, 3, 5, 7]), kk = pick(1, 4) * bb;
+    const mm = pick(1, 3), kq = dd * mm, w4 = useR1 ? wRat1(kk, bb) : wRat2(kq, p, q, 1)!;
+    const form = 'Write it like 3√2 (or 3sqrt(2)).';
+    return [
+      { q: `Simplify √${n1}.`, text: sumAnswers(term(1, n1)), hint: form, work: `${n1} = ${k1 * k1} × ${m1}, so √${n1} = ${k1}√${m1}${m1 === 1 ? '' : ''}.` },
+      { q: `Simplify √${k2 * k2 * m2} + √${k3 * k3 * m2}.`, text: sumAnswers(w2), hint: form, work: `√${k2 * k2 * m2} = ${k2}√${m2} and √${k3 * k3 * m2} = ${k3}√${m2}. Like surds, so add the numbers in front: ${fmtSum(w2)}.` },
+      { q: `Expand and simplify (${a} + √${b})(${c} + √${d}).`, text: texts(w3), hint: 'Write like 5 + 2√3.', work: w3.steps.slice(1).join(' ') },
+      useR1
+        ? { q: `Rationalise the denominator of ${kk}/√${bb}.`, text: texts(w4), hint: form, work: w4.steps.slice(1).join(' ') }
+        : { q: `Rationalise the denominator of ${kq}/(${p} + √${q}).`, text: texts(w4), hint: 'Write like 3 − √2.', work: w4.steps.slice(1).join(' ') },
+    ];
+  });
+</script>

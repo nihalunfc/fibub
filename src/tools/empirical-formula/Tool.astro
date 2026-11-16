@@ -1,0 +1,182 @@
+---
+// #L349 Empirical formula. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths: src/lib/learn/curr-chem.ts, checked in tests/curr-chem.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ef">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 11 to 12</button></div>
+    <div class="ax-seg" role="group" aria-label="Mode" style="margin-top:8px"><button type="button" class="ef-mode" data-mode="calc" aria-pressed="true">Calculate</button><button type="button" class="ef-mode" data-mode="mgo" aria-pressed="false">Magnesium oxide experiment</button></div>
+    <div class="ef-calc">
+      <p class="ax-help">The empirical formula is the simplest whole-number ratio of atoms in a compound. Enter the masses (or percentages) of each element, and the page works out the moles, divides by the smallest and rounds to whole numbers.</p>
+      <div class="ax-grid">
+        <label>Example <select class="ef-ex" aria-label="Example"></select></label>
+        <label>Elements <select class="ef-count" aria-label="Number of elements"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+        <label>Amounts are in <select class="ef-unit" aria-label="Units"><option value="g">grams (g)</option><option value="%">percent (%)</option></select></label>
+      </div>
+      <div class="ef-rows" style="margin-top:8px"></div>
+      <label style="display:block;margin-top:8px">Relative formula mass Mr (optional, for the molecular formula) <input class="ef-mr" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 180" /></label>
+      <div class="ef-tw" style="overflow-x:auto;margin-top:10px"><table class="ef-tab"></table></div>
+      <canvas class="lrn-cv ef-cv" aria-label="Bars showing the mole ratio of each element after dividing by the smallest" style="margin-top:8px"></canvas>
+      <p class="ax-big ef-out" aria-live="polite"></p>
+      <p class="ax-help ef-why"></p>
+      <p class="ax-help ef-mol" aria-live="polite"></p>
+      <p class="ax-help" data-only="11" hidden>Grade 11 to 12: experimental ratios are rarely exact. A ratio within about 0.1 of a whole number is treated as that whole number; 1.5, 1.33 or 1.25 mean multiply every ratio by 2, 3 or 4. If no multiplier up to 6 works, check the data. The empirical formula mass is then compared with Mr to find the molecular formula.</p>
+    </div>
+    <div class="ef-mgo" hidden>
+      <p class="ax-help">Burn magnesium ribbon in a crucible with a lid raised a little so air gets in. Weigh the crucible, then with the ribbon, then after burning. The gain in mass is the oxygen that joined the magnesium.</p>
+      <label class="lrn-sl">Mass of magnesium ribbon: <b class="ef-mv"></b> g <input class="ef-m" type="range" min="0.2" max="1" step="0.05" value="0.4" /></label>
+      <canvas class="lrn-cv ef-cx" aria-label="A crucible with magnesium ribbon being heated and turning into white magnesium oxide, with balance readings" style="margin-top:8px"></canvas>
+      <p><button type="button" class="btn small ef-burn">Burn the magnesium</button> <button type="button" class="btn secondary small ef-use">Use these numbers in the calculator</button></p>
+      <table class="ef-data"></table>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Pick the iron(III) oxide example. Why is the ratio 1 : 1.5 turned into 2 : 3?</li><li>Run the magnesium experiment with different masses. Does the ratio of magnesium to oxygen change?</li><li>Try the glucose example and enter Mr = 180 to find the molecular formula.</li></ul>
+  </div>
+  <div class="ax-card ef-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ef .ef-cv, .ef .ef-cx { width: 100%; }
+  .ef select, .ef input[type=number] { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .ef .ef-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+  .ef .ef-row input { width: 7em; }
+  .ef table { border-collapse: collapse; font-size: 13px; width: 100%; font-variant-numeric: tabular-nums; }
+  .ef th, .ef td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+  .ef th:first-child, .ef td:first-child { text-align: left; }
+  .ef .ax-seg button { min-height: 44px; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { AR, empirical, molecular, mgoExperiment, sub, type Row } from '../../lib/learn/curr-chem';
+  const root = document.querySelector('.ef') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rowsEl = $('.ef-rows'), out = $('.ef-out'), exSel = $<HTMLSelectElement>('.ef-ex'), cnt = $<HTMLSelectElement>('.ef-count'), unit = $<HTMLSelectElement>('.ef-unit'), cv = $<HTMLCanvasElement>('.ef-cv'), cx = $<HTMLCanvasElement>('.ef-cx');
+  const EL = Object.keys(AR);
+  const EX: { name: string; unit: string; rows: [string, number][]; mr?: number }[] = [
+    { name: 'Magnesium oxide (0.24 g Mg, 0.16 g O)', unit: 'g', rows: [['Mg', 0.24], ['O', 0.16]] },
+    { name: 'Iron(III) oxide (69.9 % Fe, 30.1 % O)', unit: '%', rows: [['Fe', 69.9], ['O', 30.1]] },
+    { name: 'Aluminium oxide (52.9 % Al, 47.1 % O)', unit: '%', rows: [['Al', 52.9], ['O', 47.1]] },
+    { name: 'Phosphorus oxide (43.6 % P, 56.4 % O)', unit: '%', rows: [['P', 43.6], ['O', 56.4]], mr: 284 },
+    { name: 'Ethane (80 % C, 20 % H)', unit: '%', rows: [['C', 80], ['H', 20]], mr: 30 },
+    { name: 'Glucose (40 % C, 6.7 % H, 53.3 % O)', unit: '%', rows: [['C', 40], ['H', 6.7], ['O', 53.3]], mr: 180 },
+    { name: 'Copper(II) oxide (1.27 g Cu, 0.32 g O)', unit: 'g', rows: [['Cu', 1.27], ['O', 0.32]] },
+  ];
+  EX.forEach((e, i) => exSel.append(new Option(e.name, String(i))));
+  type RowUi = { sel: HTMLSelectElement; inp: HTMLInputElement };
+  let ui: RowUi[] = [];
+  const build = (n: number, keep?: [string, number][]) => {
+    rowsEl.replaceChildren(); ui = [];
+    for (let i = 0; i < n; i++) {
+      const row = document.createElement('div'); row.className = 'ef-row';
+      const s = document.createElement('select'); s.setAttribute('aria-label', `Element ${i + 1}`); EL.forEach((e) => s.append(new Option(e, e)));
+      const inp = document.createElement('input'); inp.type = 'number'; inp.inputMode = 'decimal'; inp.min = '0'; inp.step = 'any'; inp.setAttribute('aria-label', `Amount of element ${i + 1}`);
+      const prev = keep?.[i] ?? [['Mg', 0.24], ['O', 0.16], ['H', 1]][i] ?? ['Cl', 1];
+      s.value = prev[0]; inp.value = String(prev[1]); const u = document.createElement('span'); u.className = 'ef-u'; u.textContent = unit.value;
+      row.append(s, inp, u); rowsEl.append(row); ui.push({ sel: s, inp });
+      s.addEventListener('input', calc); inp.addEventListener('input', calc);
+    }
+  };
+  const readRows = () => ui.map((u) => [u.sel.value, parseFloat(u.inp.value)] as [string, number]);
+  const cell = (tag: string, t: string) => { const c = document.createElement(tag); c.textContent = t; return c; };
+  const calc = () => {
+    rowsEl.querySelectorAll('.ef-u').forEach((u) => { u.textContent = unit.value; });
+    const data = readRows(), tab = $('.ef-tab'), why = $('.ef-why'), mol = $('.ef-mol'), mrV = parseFloat($<HTMLInputElement>('.ef-mr').value);
+    tab.replaceChildren(); mol.textContent = ''; delete out.dataset.formula;
+    const bad = data.some(([, v]) => !(v > 0)) || new Set(data.map((d) => d[0])).size < data.length;
+    if (bad) { out.textContent = 'Enter an amount above 0 for each element, and use each element once.'; why.textContent = ''; drawBars(null); return; }
+    const rows: Row[] = data.map(([sym, amount]) => ({ sym, amount })), e = empirical(rows);
+    const head = document.createElement('tr'); ['Element', unit.value === 'g' ? 'Mass (g)' : 'Percent', 'Ar', 'Moles', '÷ smallest', e.k > 1 ? `× ${e.k}` : 'Whole'].forEach((h) => head.append(cell('th', h))); tab.append(head);
+    rows.forEach((rw, i) => { const tr = document.createElement('tr'); [rw.sym, String(rw.amount), String(AR[rw.sym]), r(e.moles[i], 3), r(e.ratio[i], 3), e.k > 1 ? r(e.ratio[i] * e.k, 3) : String(e.whole[i])].forEach((t) => tr.append(cell('td', t))); if (e.k > 1) tr.append(cell('td', String(e.whole[i]))); tab.append(tr); });
+    if (e.k > 1) { const h = tab.querySelector('tr')!; h.append(cell('th', 'Whole')); }
+    out.textContent = `Empirical formula: ${e.formula}`; out.dataset.formula = e.formula; out.dataset.k = String(e.k); out.dataset.ratio = e.ratio.map((x) => x.toFixed(3)).join(','); out.dataset.whole = e.whole.join(','); out.dataset.moles = e.moles.map((x) => x.toFixed(5)).join(',');
+    why.textContent = !e.clean ? 'The ratios are not close to whole numbers even after multiplying, so check the data (or the units).' : e.k > 1 ? `Some ratios are not whole numbers, so every ratio is multiplied by ${e.k} to make them whole (the ×2, ×3, ×4 rule: .5 → ×2, .33 or .67 → ×3, .25 or .75 → ×4).` : 'Dividing by the smallest number of moles gives ratios that are already (close to) whole numbers.';
+    if (mrV > 0) { const m = molecular(rows, e.whole, mrV); mol.textContent = `Empirical formula mass = ${r(m.empMass, 4)}. Mr ÷ empirical mass = ${r(mrV / m.empMass, 3)}, so n = ${m.n}. Molecular formula: ${m.formula}${m.exact ? '' : ' (Mr is not a whole multiple: check it)'}.`; out.dataset.molecular = m.formula; out.dataset.n = String(m.n); } else delete out.dataset.molecular;
+    drawBars(e);
+  };
+  const drawBars = (e: ReturnType<typeof empirical> | null) => {
+    const { ctx, W, H } = fitCanvas(cv, 30 + ui.length * 34), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif'; if (!e) return;
+    const mx = Math.max(...e.ratio, 1) * 1.1, l = 44, bw = W - l - 20, cols = [pal.accent, pal.accent2, pal.good, pal.warn];
+    e.ratio.forEach((v, i) => {
+      const y = 8 + i * 34; ctx.fillStyle = cols[i % 4]; ctx.fillRect(l, y, (v / mx) * bw, 22);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(ui[i].sel.value, l - 6, y + 16); ctx.textAlign = 'left'; ctx.fillText(`${r(v, 3)}${e.k > 1 ? ` × ${e.k} = ${r(v * e.k, 3)}` : ''}`, l + (v / mx) * bw + 6, y + 16);
+    });
+  };
+  const applyEx = (i: number) => { const x = EX[i]; unit.value = x.unit; cnt.value = String(x.rows.length); build(x.rows.length, x.rows); $<HTMLInputElement>('.ef-mr').value = x.mr ? String(x.mr) : ''; calc(); };
+  exSel.addEventListener('input', () => applyEx(+exSel.value));
+  cnt.addEventListener('input', () => { const keep = readRows().map(([s, v]) => [s, v] as [string, number]); build(+cnt.value, keep); calc(); });
+  unit.addEventListener('input', calc); $('.ef-mr').addEventListener('input', calc);
+  // magnesium oxide experiment
+  let p = 0, burning = false;
+  const mgo = () => mgoExperiment(+$<HTMLInputElement>('.ef-m').value);
+  const drawMgo = () => {
+    const d = mgo(), { ctx, W, H } = fitCanvas(cx, 230), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif';
+    const x = W * 0.34, y0 = 110;
+    // tripod and gauze
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 50, y0 + 38); ctx.lineTo(x + 50, y0 + 38); ctx.moveTo(x - 44, y0 + 38); ctx.lineTo(x - 54, y0 + 100); ctx.moveTo(x + 44, y0 + 38); ctx.lineTo(x + 54, y0 + 100); ctx.stroke();
+    // bunsen and flame
+    ctx.fillStyle = pal.muted; ctx.fillRect(x - 6, y0 + 74, 12, 40);
+    if (burning || (p > 0 && p < 1)) { ctx.fillStyle = '#4a8bff'; ctx.beginPath(); ctx.moveTo(x - 8, y0 + 74); ctx.quadraticCurveTo(x, y0 + 30 + Math.sin(p * 60) * 3, x + 8, y0 + 74); ctx.fill(); }
+    // crucible
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.moveTo(x - 34, y0); ctx.lineTo(x + 34, y0); ctx.lineTo(x + 22, y0 + 36); ctx.lineTo(x - 22, y0 + 36); ctx.closePath(); ctx.fill(); ctx.strokeStyle = pal.ink; ctx.stroke();
+    // contents
+    const ox = Math.min(1, p * 1.2);
+    ctx.fillStyle = '#e8e8e8'; ctx.globalAlpha = ox; ctx.beginPath(); ctx.ellipse(x, y0 + 30, 18, 5 + 4 * ox, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#9aa0a8'; ctx.lineWidth = 3; ctx.globalAlpha = 1 - ox; ctx.beginPath(); ctx.moveTo(x - 16, y0 + 30); ctx.quadraticCurveTo(x - 6, y0 + 16, x, y0 + 30); ctx.quadraticCurveTo(x + 8, y0 + 18, x + 16, y0 + 30); ctx.stroke(); ctx.globalAlpha = 1;
+    if (p > 0.1 && p < 0.9) { ctx.fillStyle = '#fff6c0'; ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + p * 8; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * 14, y0 + 20 + Math.sin(a) * 14); ctx.lineTo(x + Math.cos(a) * 28, y0 + 20 + Math.sin(a) * 28); ctx.stroke(); } ctx.beginPath(); ctx.arc(x, y0 + 20, 9, 0, 7); ctx.fill(); }
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(p === 0 ? 'Magnesium ribbon (silver)' : p < 1 ? 'Burns with a bright white flame' : 'White magnesium oxide', x, 20);
+    // balance readouts
+    const bx = W * 0.62, bw = W - bx - 8;
+    const read = (y: number, label: string, v: string) => { ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillRect(bx, y, bw, 42); ctx.strokeRect(bx, y, bw, 42); ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = '11px system-ui,sans-serif'; ctx.fillText(label, bx + 6, y + 14); ctx.fillStyle = pal.ink; ctx.font = '16px ui-monospace,monospace'; ctx.fillText(v, bx + 6, y + 34); };
+    read(14, 'Crucible + lid', `${d.crucible.toFixed(2)} g`); read(66, 'With magnesium', `${d.before.toFixed(2)} g`); read(118, 'After burning', p >= 1 ? `${d.after.toFixed(2)} g` : '...');
+    const t = $('.ef-data'); t.replaceChildren();
+    const add = (a: string, b: string) => { const tr = document.createElement('tr'); tr.append(cell('td', a), cell('td', b)); t.append(tr); };
+    add('Mass of magnesium', `${d.mg.toFixed(2)} g`); add('Mass of oxygen gained', p >= 1 ? `${d.oxygen.toFixed(2)} g` : 'burn first');
+    $('.ef-mv').textContent = d.mg.toFixed(2);
+    out.dataset.mg = d.mg.toFixed(2); out.dataset.o = p >= 1 ? d.oxygen.toFixed(2) : '';
+    const bb = $('.ef-burn'); bb.dataset.mg = d.mg.toFixed(2); bb.dataset.o = p >= 1 ? d.oxygen.toFixed(2) : '';
+  };
+  const burn = () => {
+    if (burning) return; p = 0;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { p = 1; drawMgo(); return; }
+    burning = true; let last = 0;
+    const tick = (now: number) => { const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now; p = Math.min(1, p + dt * 0.3); drawMgo(); if (p < 1) requestAnimationFrame(tick); else burning = false; };
+    requestAnimationFrame(tick);
+  };
+  $('.ef-burn').addEventListener('click', burn);
+  $('.ef-m').addEventListener('input', () => { p = 0; burning = false; drawMgo(); });
+  const setMode = (m: string) => { root.querySelectorAll('.ef-mode').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.mode === m))); $('.ef-calc').hidden = m !== 'calc'; $('.ef-mgo').hidden = m !== 'mgo'; if (m === 'mgo') drawMgo(); else calc(); };
+  root.querySelectorAll<HTMLButtonElement>('.ef-mode').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+  $('.ef-use').addEventListener('click', () => { const d = mgo(); if (p < 1) { p = 1; drawMgo(); } unit.value = 'g'; cnt.value = '2'; build(2, [['Mg', d.mg], ['O', d.oxygen]]); $<HTMLInputElement>('.ef-mr').value = ''; setMode('calc'); });
+  addEventListener('resize', () => { if (!$('.ef-mgo').hidden) drawMgo(); else calc(); });
+  wireLevel(root, () => {});
+  applyEx(0);
+  // quiz
+  const COMPOUNDS: { rows: [string, number][]; f: string }[] = [
+    { rows: [['Fe', 2], ['O', 3]], f: 'Fe2O3' }, { rows: [['Al', 2], ['O', 3]], f: 'Al2O3' }, { rows: [['Cu', 1], ['O', 1]], f: 'CuO' }, { rows: [['P', 2], ['O', 5]], f: 'P2O5' },
+    { rows: [['Na', 2], ['S', 1], ['O', 4]], f: 'Na2SO4' }, { rows: [['Ca', 1], ['C', 1], ['O', 3]], f: 'CaCO3' }, { rows: [['Mg', 3], ['N', 2]], f: 'Mg3N2' }, { rows: [['C', 3], ['H', 8]], f: 'C3H8' },
+  ];
+  mountQuiz($('.ef-quiz'), () => {
+    let cmp = one(COMPOUNDS), masses: Row[] = [];
+    for (let tries = 0; tries < 20; tries++) { cmp = one(COMPOUNDS); const s = pick(5, 20) / 10; masses = cmp.rows.map(([sym, n]) => ({ sym, amount: Math.round(n * AR[sym] * s * 100) / 100 })); if (empirical(masses).formula === empirical(cmp.rows.map(([sym, n]) => ({ sym, amount: n * AR[sym] }))).formula) break; }
+    const e = empirical(masses), plain = cmp.f;
+    const mgM = pick(12, 60, 6) / 100, nMg = mgM / AR.Mg;
+    const unitsN = pick(2, 6), emp = one([{ f: 'CH₂', c: 1, m: AR.C + 2 * AR.H }, { f: 'CH₂O', c: 1, m: AR.C + 2 * AR.H + AR.O }, { f: 'C₂H₅', c: 2, m: 2 * AR.C + 5 * AR.H }]), mr = Math.round(unitsN * emp.m);
+    const rt = one([[1.5, 2], [1.33, 3], [1.25, 4], [1.67, 3], [2.5, 2], [1.2, 5]]) as [number, number];
+    const ch = [2, 3, 4, 5];
+    return [
+      { q: `A compound contains ${masses.map((m) => `${m.amount} g of ${m.sym}`).join(', ')}. What is its empirical formula? (Type it like Fe2O3 or C3H8.)`, text: [plain, e.formula], work: `Moles: ${masses.map((m, i) => `${m.sym} ${m.amount} ÷ ${AR[m.sym]} = ${r(e.moles[i])}`).join('; ')}. Divide by the smallest (${r(Math.min(...e.moles))}): ratio ${e.ratio.map((x) => r(x, 3)).join(' : ')}${e.k > 1 ? `, multiply by ${e.k}` : ''} gives ${e.whole.join(' : ')}. Formula: ${e.formula}.`, hint: 'Elements in the order given.' },
+      { q: `How many moles of magnesium are in ${mgM} g? (Ar of Mg = 24.305)`, ans: nMg, unit: 'mol', tol: 0.02, work: `Moles = mass ÷ Ar = ${mgM} ÷ 24.305 = ${r(nMg)} mol.` },
+      { q: `A compound has empirical formula ${emp.f} and Mr = ${mr}. How many carbon atoms are in one molecule?`, ans: Math.round(mr / emp.m) * emp.c, work: `Empirical formula mass = ${r(emp.m, 4)}. ${mr} ÷ ${r(emp.m, 4)} = ${r(mr / emp.m, 3)} ≈ ${Math.round(mr / emp.m)}. So the molecule is ${Math.round(mr / emp.m)} times the empirical formula, with ${Math.round(mr / emp.m) * emp.c} carbon atoms.` },
+      { q: `After dividing by the smallest, the ratio is 1 : ${rt[0]}. What whole number do you multiply both by?`, choices: ch.map(String), ans: ch.indexOf(rt[1]), work: `${rt[0]} × ${rt[1]} = ${r(rt[0] * rt[1], 3)} is (close to) a whole number, so multiply both by ${rt[1]}.` },
+    ];
+  });
+</script>
