@@ -1,7 +1,9 @@
 ---
-// Shared page for #T967 Video compressor, #T968 Rotate video and #T969 Mute video. Engine: src/lib/video/convert.ts
-// (Mediabunny + the browser's WebCodecs encoder). The video never leaves the device.
-interface Props { mode: 'compress' | 'rotate' | 'mute' }
+// Shared page for #T967 Video compressor, #T968 Rotate video, #T969 Mute video, #T975 Video speed, #T976 Video converter
+// and #T978 Crop video. Engines: src/lib/video/convert.ts and compose.ts (Mediabunny + the browser's WebCodecs encoder).
+// The video never leaves the device.
+interface Props { mode: 'compress' | 'rotate' | 'mute' | 'speed' | 'convert' | 'crop' }
+const LABEL = { compress: 'Compress', rotate: 'Turn the video', mute: 'Remove the sound', speed: 'Change the speed', convert: 'Convert', crop: 'Crop the video' };
 const { mode } = Astro.props;
 ---
 <div class="tool-ui vj" data-mode={mode}>
@@ -16,7 +18,10 @@ const { mode } = Astro.props;
   </section>
 
   <section class="panel vj-set" hidden>
-    <video class="vj-video" controls playsinline preload="metadata" muted></video>
+    <div class="vj-stage">
+      <video class="vj-video" controls={mode !== 'crop'} playsinline preload="metadata" muted></video>
+      {mode === 'crop' && <div class="vj-box" tabindex="0" aria-label="Crop area: drag to move, or use the arrow keys"></div>}
+    </div>
     {mode === 'compress' && (
       <div class="vj-grid">
         <label>Make it
@@ -44,9 +49,49 @@ const { mode } = Astro.props;
       </div>
     )}
     {mode === 'mute' && <p class="vj-fine">The picture is copied exactly as it is, so this takes seconds and loses nothing.</p>}
+    {mode === 'speed' && (
+      <div class="vj-grid">
+        <label>Speed
+          <select class="vj-speed">
+            <option value="0.25">0.25× (very slow motion)</option><option value="0.5">0.5× (slow motion)</option><option value="0.75">0.75×</option>
+            <option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2" selected>2× (double speed)</option>
+            <option value="4">4×</option><option value="8">8× (time-lapse)</option><option value="16">16× (time-lapse)</option><option value="custom">Other…</option>
+          </select>
+        </label>
+        <label class="vj-sc-l" hidden>Speed (0.1 to 32) <input class="vj-sc" type="number" min="0.1" max="32" step="0.05" value="3" inputmode="decimal" /></label>
+        <label class="vj-check"><input class="vj-keep" type="checkbox" checked /> Keep voices at their normal pitch</label>
+        <label class="vj-check"><input class="vj-mute" type="checkbox" /> Remove the sound</label>
+      </div>
+    )}
+    {mode === 'convert' && (
+      <div class="vj-grid">
+        <label>Convert to
+          <select class="vj-to">
+            <option value="mp4">MP4 (plays on everything)</option><option value="webm">WebM (web pages)</option>
+            <option value="mov">MOV (Apple, iMovie, Final Cut)</option><option value="mkv">MKV (keeps every stream as it is)</option>
+          </select>
+        </label>
+        <label class="vj-check"><input class="vj-mute" type="checkbox" /> Remove the sound</label>
+      </div>
+    )}
+    {mode === 'crop' && (
+      <div class="vj-grid">
+        <label>Shape
+          <select class="vj-ar">
+            <option value="free">Free (type the size)</option><option value="1" selected>Square 1:1 (Instagram)</option><option value="0.5625">Tall 9:16 (Reels, Shorts, TikTok)</option>
+            <option value="0.8">Portrait 4:5 (Instagram feed)</option><option value="1.7778">Wide 16:9 (YouTube)</option><option value="1.3333">4:3</option>
+          </select>
+        </label>
+        <label>Size (% of the most that fits) <input class="vj-pct" type="range" min="20" max="100" step="1" value="100" /></label>
+        <label>Left (px) <input class="vj-cx" type="number" min="0" step="2" value="0" inputmode="numeric" /></label>
+        <label>Top (px) <input class="vj-cy" type="number" min="0" step="2" value="0" inputmode="numeric" /></label>
+        <label>Width (px) <input class="vj-cw" type="number" min="16" step="2" value="16" inputmode="numeric" /></label>
+        <label>Height (px) <input class="vj-ch" type="number" min="16" step="2" value="16" inputmode="numeric" /></label>
+      </div>
+    )}
     <p class="vj-plan" aria-live="polite"></p>
     <div class="vj-row">
-      <button type="button" class="btn vj-go">{mode === 'compress' ? 'Compress' : mode === 'rotate' ? 'Turn the video' : 'Remove the sound'}</button>
+      <button type="button" class="btn vj-go">{LABEL[mode]}</button>
       <button type="button" class="btn secondary vj-cancel" hidden>Cancel</button>
     </div>
     <progress class="vj-prog" max="1" value="0" hidden></progress>
@@ -67,7 +112,10 @@ const { mode } = Astro.props;
   .vj-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
   .vj-drop.over { border-color: var(--accent); }
   .vj-name, .vj-fine, .vj-plan, .vj-res { color: var(--muted); font-size: 14px; margin: 0; }
-  .vj-video, .vj-result { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; }
+  .vj-video, .vj-result { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; display: block; }
+  .vj-stage { position: relative; touch-action: none; }
+  .vj-box { position: absolute; border: 2px solid #fff; outline: 1px solid #000; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .55); cursor: move; }
+  .vj-stage:has(.vj-box) { overflow: hidden; border-radius: 10px; }
   .vj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
   .vj label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .vj label.vj-check { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
@@ -82,15 +130,61 @@ const { mode } = Astro.props;
   import type { VideoJob, JobResult } from '../../lib/video/convert.ts';
   const root = document.querySelector('.vj') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T | null;
-  const mode = root.dataset.mode as 'compress' | 'rotate' | 'mute';
+  const mode = root.dataset.mode as 'compress' | 'rotate' | 'mute' | 'speed' | 'convert' | 'crop';
   const input = $<HTMLInputElement>('.vj-file')!, video = $<HTMLVideoElement>('.vj-video')!, err = $('.vj-err')!, plan = $('.vj-plan')!;
   const go = $<HTMLButtonElement>('.vj-go')!, cancelB = $<HTMLButtonElement>('.vj-cancel')!, prog = $<HTMLProgressElement>('.vj-prog')!;
-  if (typeof (window as any).VideoEncoder === 'undefined' && mode !== 'mute') { $('.vj-none')!.hidden = false; }
+  if (typeof (window as any).VideoEncoder === 'undefined' && mode !== 'mute' && mode !== 'convert') { $('.vj-none')!.hidden = false; }
+  const crop = { left: 0, top: 0, width: 0, height: 0 };
+  const num = (s: string) => $<HTMLInputElement>(s)!;
+  const speedV = () => { const v = $<HTMLSelectElement>('.vj-speed')!.value; return Math.min(32, Math.max(0.1, v === 'custom' ? +num('.vj-sc').value || 1 : +v)); };
+  // Crop: the largest box of the chosen shape, scaled, kept centred on where it was; then shown over the preview.
+  const W = () => video.videoWidth || 0, H = () => video.videoHeight || 0;
+  const clampCrop = () => {
+    crop.width = Math.max(16, Math.min(W(), Math.round(crop.width / 2) * 2)); crop.height = Math.max(16, Math.min(H(), Math.round(crop.height / 2) * 2));
+    crop.left = Math.max(0, Math.min(W() - crop.width, Math.round(crop.left / 2) * 2)); crop.top = Math.max(0, Math.min(H() - crop.height, Math.round(crop.top / 2) * 2));
+    num('.vj-cx').value = String(crop.left); num('.vj-cy').value = String(crop.top); num('.vj-cw').value = String(crop.width); num('.vj-ch').value = String(crop.height);
+    drawBox();
+  };
+  const shapeCrop = () => {
+    const ar = $<HTMLSelectElement>('.vj-ar')!.value; if (ar === 'free' || !W()) return;
+    const r = +ar, pct = +num('.vj-pct').value / 100, cx = crop.width ? crop.left + crop.width / 2 : W() / 2, cy = crop.height ? crop.top + crop.height / 2 : H() / 2;
+    let w = W(), h = w / r; if (h > H()) { h = H(); w = h * r; }
+    crop.width = w * pct; crop.height = h * pct; crop.left = cx - crop.width / 2; crop.top = cy - crop.height / 2; clampCrop();
+  };
+  const drawBox = () => {
+    const box = root.querySelector('.vj-box') as HTMLElement | null; if (!box || !W()) return;
+    const ew = video.clientWidth, eh = video.clientHeight, sc = Math.min(ew / W(), eh / H()), ox = (ew - W() * sc) / 2, oy = (eh - H() * sc) / 2;
+    Object.assign(box.style, { left: `${ox + crop.left * sc}px`, top: `${oy + crop.top * sc}px`, width: `${crop.width * sc}px`, height: `${crop.height * sc}px` });
+  };
+  if (mode === 'crop') {
+    const box = root.querySelector('.vj-box') as HTMLElement;
+    let drag: { x: number; y: number; l: number; t: number } | null = null;
+    box.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, l: crop.left, t: crop.top }; box.setPointerCapture(e.pointerId); e.preventDefault(); });
+    box.addEventListener('pointermove', (e) => {
+      if (!drag) return; const sc = Math.min(video.clientWidth / W(), video.clientHeight / H());
+      crop.left = drag.l + (e.clientX - drag.x) / sc; crop.top = drag.t + (e.clientY - drag.y) / sc; clampCrop(); update();
+    });
+    box.addEventListener('pointerup', () => (drag = null));
+    box.addEventListener('keydown', (e) => {
+      const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key]; if (!d) return;
+      e.preventDefault(); const step = Math.max(2, Math.round(W() / 50)); crop.left += d[0] * step; crop.top += d[1] * step; clampCrop(); update();
+    });
+    new ResizeObserver(drawBox).observe(video);
+    for (const s of ['.vj-cx', '.vj-cy', '.vj-cw', '.vj-ch']) num(s).addEventListener('change', () => {
+      crop.left = +num('.vj-cx').value; crop.top = +num('.vj-cy').value; crop.width = +num('.vj-cw').value; crop.height = +num('.vj-ch').value;
+      if (s === '.vj-cw' || s === '.vj-ch') $<HTMLSelectElement>('.vj-ar')!.value = 'free';
+      clampCrop(); update();
+    });
+    $('.vj-ar')!.addEventListener('change', shapeCrop); num('.vj-pct').addEventListener('input', shapeCrop);
+  }
   let file: File | null = null, dur = 0, url = '', outUrl = '', result: JobResult | null = null, base = 'video';
   const sig: { cancel?: () => void } = {};
 
   const job = (): VideoJob => {
     if (mode === 'mute') return { mute: true };
+    if (mode === 'convert') return { to: $<HTMLSelectElement>('.vj-to')!.value as 'mp4', mute: num('.vj-mute').checked };
+    if (mode === 'crop') return { crop: { ...crop } };
+    if (mode === 'speed') return { mute: num('.vj-mute').checked };
     if (mode === 'rotate') return { rotate: +$<HTMLSelectElement>('.vj-rot')!.value as 0 | 90 | 180 | 270, flip: $<HTMLInputElement>('.vj-flip')!.checked, reencode: $<HTMLInputElement>('.vj-bake')!.checked };
     const how = $<HTMLSelectElement>('.vj-how')!.value, mute = $<HTMLInputElement>('.vj-mute')!.checked, h = +$<HTMLSelectElement>('.vj-h')!.value;
     const height = h && video.videoHeight && h < Math.min(video.videoWidth, video.videoHeight) ? h : 0;
@@ -112,6 +206,14 @@ const { mode } = Astro.props;
     } else if (mode === 'rotate') {
       const j = job();
       plan!.textContent = j.reencode ? 'The picture will be encoded again, which takes about as long as playing it, or less.' : 'The video keeps every pixel and gets a "turn" flag that phones, browsers and most players follow. It takes seconds.';
+    } else if (mode === 'speed') {
+      const s = speedV(); $('.vj-sc-l')!.hidden = $<HTMLSelectElement>('.vj-speed')!.value !== 'custom';
+      plan!.textContent = `${dur.toFixed(1)} s becomes ${(dur / s).toFixed(1)} s at ${s}×.` + (s < 0.25 || s > 4 ? ' The sound is left out at this speed.' : num('.vj-keep').checked ? ' Voices keep their pitch.' : ` Sound goes ${s > 1 ? 'higher' : 'lower'}, like a fast or slow record.`) + ' The picture is encoded again.';
+    } else if (mode === 'convert') {
+      const to = $<HTMLSelectElement>('.vj-to')!.value;
+      plan!.textContent = `Now ${sizeText(file.size)} ${(file.name.match(/\.([^.]+)$/)?.[1] ?? '').toUpperCase()}. ` + (to === 'webm' ? 'WebM uses VP9 and Opus: anything else is encoded again.' : to === 'mkv' ? 'MKV can hold almost anything, so the streams are usually copied as they are.' : 'H.264 video and AAC sound are copied as they are (seconds, no loss); anything else is encoded again.');
+    } else if (mode === 'crop') {
+      plan!.textContent = `Keeps ${crop.width} × ${crop.height} of ${W()} × ${H()}, from ${crop.left} px left and ${crop.top} px down. Drag the box to move it.`;
     } else plan!.textContent = `Now ${sizeText(file.size)}.`;
   };
   const open = (f: File) => {
@@ -123,6 +225,7 @@ const { mode } = Astro.props;
   };
   video.addEventListener('loadedmetadata', () => {
     dur = video.duration; $('.vj-set')!.hidden = false;
+    if (mode === 'crop') { crop.width = 0; crop.height = 0; if ($<HTMLSelectElement>('.vj-ar')!.value === 'free') { crop.left = 0; crop.top = 0; crop.width = W(); crop.height = H(); clampCrop(); } else shapeCrop(); requestAnimationFrame(drawBox); }
     $('.vj-name')!.textContent = `${file?.name}: ${dur.toFixed(1)} s, ${video.videoWidth} × ${video.videoHeight}, ${sizeText(file?.size ?? 0)}.`;
     update();
   });
@@ -132,26 +235,34 @@ const { mode } = Astro.props;
     err.hidden = true; go.disabled = true; cancelB.hidden = false; prog.hidden = false; prog.value = 0;
     const t0 = performance.now();
     try {
-      const { runJob } = await import('../../lib/video/convert.ts');
-      result = await runJob(file, job(), (p) => (prog.value = p), sig);
+      if (mode === 'speed') {
+        const { speedVideo } = await import('../../lib/video/compose.ts');
+        const c: { cancel?: () => void } = {}; sig.cancel = () => c.cancel?.();
+        result = await speedVideo(file, { speed: speedV(), keepPitch: num('.vj-keep').checked, mute: num('.vj-mute').checked }, (p) => (prog.value = p), c);
+      } else {
+        const { runJob } = await import('../../lib/video/convert.ts');
+        result = await runJob(file, job(), (p) => (prog.value = p), sig);
+      }
       if (outUrl) URL.revokeObjectURL(outUrl);
       outUrl = URL.createObjectURL(new Blob([result.bytes], { type: result.mime }));
       $<HTMLVideoElement>('.vj-result')!.src = outUrl;
       const pct = Math.round((1 - result.bytes.length / file.size) * 100);
       $('.vj-res')!.textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${sizeText(result.bytes.length)} ${result.ext.toUpperCase()}` +
-        (mode === 'compress' ? (pct > 0 ? `, ${pct}% smaller than the original.` : ', no smaller than the original: try a lower setting or a smaller picture.') : '.') + (result.note.length ? ' ' + result.note.join(' ') : '');
+        (mode === 'compress' ? (pct > 0 ? `, ${pct}% smaller than the original.` : ', no smaller than the original: try a lower setting or a smaller picture.') : mode === 'convert' ? (result.copied ? ', picture copied without loss.' : ', picture encoded again.') : '.') + (result.note.length ? ' ' + result.note.join(' ') : '');
       $('.vj-out')!.hidden = false;
     } catch (e) {
       const m = (e as Error)?.name === 'ConversionCanceledError' || /cancel/i.test(String((e as Error)?.message)) ? 'Cancelled.'
         : (e as Error)?.message === 'no-video' ? 'There is no video picture in this file.'
+        : (e as Error)?.message === 'no-audio-encoder' ? 'This browser cannot encode sound for this video. Tick "Remove the sound", or try Chrome or Edge.'
         : 'This browser could not convert this video. Try Chrome or Edge, or another file.';
       err.textContent = m; err.hidden = false;
     }
     go.disabled = false; cancelB.hidden = true; prog.hidden = true;
   });
   cancelB.addEventListener('click', () => sig.cancel?.());
-  $('.vj-dl')!.addEventListener('click', () => { if (result) saveBytes(new Blob([result.bytes], { type: result.mime }), `${base}-${mode === 'compress' ? 'small' : mode === 'rotate' ? 'turned' : 'no-sound'}.${result.ext}`); });
+  $('.vj-dl')!.addEventListener('click', () => { if (result) saveBytes(new Blob([result.bytes], { type: result.mime }), `${base}${mode === 'convert' ? '' : '-' + (mode === 'speed' ? `${speedV()}x` : { compress: 'small', rotate: 'turned', mute: 'no-sound', crop: 'cropped' }[mode])}.${result.ext}`); });
   root.querySelectorAll('select, input:not([type=file])').forEach((el) => el.addEventListener('input', update));
+  if (mode === 'crop') { video.addEventListener('loadeddata', drawBox); video.addEventListener('loadedmetadata', () => { video.currentTime = Math.min(1, dur / 2); }); }
   $('.vj-open')!.addEventListener('click', () => input.click());
   input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); });
   const drop = $('.vj-drop')!;
