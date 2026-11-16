@@ -11,4 +11,11 @@ export default async ({ page, check, BASE }) => {
   // exp in the past: {"exp":1700000000}
   await page.fill(R + '.jd-in', 'eyJhbGciOiJub25lIn0.eyJleHAiOjE3MDAwMDAwMDB9.'); await page.waitForTimeout(80);
   check((await txt('.jd-times')).includes('Expired') && (await txt('.jd-alg')).includes('none'), 'jwt: old exp says expired');
+  await page.fill(R + '.jd-in', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6IkFubiJ9.U6lgUZTuOM5okVwgofVMGSS-VcFtCJXs0rPl8HWzZUY");
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.jd-secret', 'secret'); await page.waitForTimeout(200);
+  check((await txt('.jd-vres')).startsWith('Signature is valid'), 'jwt: HS256 signature verified with secret');
+  await page.fill(R + '.jd-secret', 'wrong'); await page.waitForTimeout(200);
+  check((await txt('.jd-vres')).startsWith('Signature does not match'), 'jwt: wrong secret fails');
+  check((await txt('.jd-claims')).includes('subject'), 'jwt: claims explained');
 };

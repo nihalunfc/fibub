@@ -45,3 +45,19 @@ export function resp(a: RespIn): RespOut {
   }
   return { rows, put, cesg, acesg, clb, balance: bal, capYear, noGrant, capped };
 }
+
+/** Value in today's dollars after `years` of inflation at `inflation` percent a year. */
+export const todaysDollars = (amount: number, inflation: number, years: number) => amount / Math.pow(1 + inflation / 100, Math.max(0, years));
+
+/**
+ * The smallest yearly amount (to the nearest $50) that earns as much grant as any larger amount would, with the
+ * same start. Looks up to $5,000 a year: $1,000 a year of CESG (the yearly most, with catch-up) needs $5,000.
+ * Returns null if no grant is possible (for example a 16 or 17 year old with no earlier savings).
+ */
+export function amountForFullGrant(a: RespIn): { perYear: number; grant: number } | null {
+  const grantOf = (p: number) => { const r = resp({ ...a, perYear: p }); return r.cesg + r.acesg; };
+  let best = 0; for (let p = 0; p <= 5000; p += 50) best = Math.max(best, grantOf(p));
+  if (best <= 0) return null;
+  for (let p = 0; p <= 5000; p += 50) if (grantOf(p) >= best - 0.005) return { perYear: p, grant: best };
+  return null;
+}

@@ -45,6 +45,8 @@ This calculator takes the weight and the fineness (how much of it is pure metal)
 - **Your price**: replaces today's spot price for that metal. Tick **Remember my prices** to keep it on this device; **Clear my prices** removes it.
 - **Weight** and unit: grams, troy ounces, grains, pennyweight, tola or kilograms.
 - **Fineness**: parts of pure metal per thousand. 999 is fine, 925 is sterling, 900 is old coin silver, 916.7 is 22 karat gold.
+- **More options, dealer payout**: type the percentage of melt a dealer or jeweller quotes you to see what you would actually receive. Leave it empty if you don't know it; no figure is assumed.
+- **More options, what if**: type +10 or -10 to see the total if every metal price moved by that much. The pure gold total is also shown in tola.
 - **Remember my list**: keeps your list of pieces in this browser only. Untick it to delete it.
 
 ## Worked example

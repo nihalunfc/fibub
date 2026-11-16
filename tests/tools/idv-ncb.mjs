@@ -19,4 +19,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.idn-pay-zd')).includes('23,000'), 'idv-ncb: payout with add-on 23,000 (' + (await txt('.idn-pay-zd')) + ')');
   await set('months', '70'); await page.waitForTimeout(100);
   check((await txt('.idn-s-idv')).includes('agreed with the insurer'), 'idv-ncb: over 5 years the IDV is agreed');
+  await page.reload(); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('price', '800000'); await set('months', '30'); await set('cc', '1200'); await set('free', '3'); await set('labour', '5000');
+  await page.fill('.idn [data-r="cost"]', '20000'); await set('od', '20000'); await page.waitForTimeout(100);
+  check((await page.$$('.idn .idn-slab tr')).length === 6, 'idv-ncb: NCB slab table has 6 rows');
+  const dd = await txt('.idn-decide');
+  check(dd.includes('21,000') && dd.includes('35%') && dd.includes('7,000') && dd.includes('14,000 ahead'), 'idv-ncb: payout 17,000 + 5,000 - 1,000 = 21,000 vs 7,000 lost = 14,000 ahead (' + dd + ')');
 };

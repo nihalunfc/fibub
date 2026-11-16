@@ -46,6 +46,10 @@ It follows the chance of future claims too, so a discount you may lose again is 
 
 Premium 10,000 before discount, India table, level 5 (50%), no future claims, 3 years. If you claim you pay 10,000, 8,000 and 7,500; if you do not, you pay 5,000 each year. Extra premiums are 10,500. A repair of 8,000 with a deductible of 1,000 pays you 7,000, so paying yourself costs less.
 
+## Break-even repair size
+
+The **Break-even repair cost** panel gives the repair size above which claiming pays, which is the deductible plus the value today of the extra premiums. A small table shows the result for a quarter, half, one, two and four times your repair cost, so you can see how quickly the answer flips. The extra premiums do not depend on the size of the repair, only on whether you claim. This is general information, not advice, and the discount table is only as good as the one you enter: check the official source or your insurer's schedule.
+
 ## FAQs
 
 **Does a claim always reset the discount?** In the India table yes. Some insurers elsewhere drop you only a few levels, or offer discount protection.

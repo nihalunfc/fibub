@@ -47,6 +47,10 @@ This tool shows what a claim would pay, the share of the loss paid, what you wou
 
 Rebuild cost 800,000 and contents 200,000 make a value of 1,000,000. The sum insured is 600,000 and the clause is 80%, so the policy asks for 800,000. You hold 600,000 ÷ 800,000 = 75%. A loss of 200,000 pays 150,000, less a deductible of 1,000: 149,000. Insuring for 800,000 would have paid the loss in full.
 
+## Compare sums insured
+
+The table **Same loss, different sums insured** repeats your loss and deductible at 50, 70, 80, 90 and 100 percent of the cover the clause asks for. Look for the row where "You pay" stops shrinking: that sum insured is the one that avoids the cut. For the worked example, a 200,000 loss on a home and contents of 1,000,000 with an 80 percent clause needs 800,000 of cover; at 50 percent (400,000 insured) the insurer pays half of the loss, less the deductible. This is general information, not advice: clauses differ, so check your policy wording and the official source.
+
 ## FAQs
 
 **Does every policy have a clause?** No. Many have none, and some use other rules. Read your wording.

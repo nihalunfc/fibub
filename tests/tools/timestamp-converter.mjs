@@ -13,4 +13,14 @@ export default async ({ page, check, BASE }) => {
   check((await cell('.tc-back', 'Unix seconds')) === String(1700000000 - 19800) && (await cell('.tc-res', 'Asia/Kolkata')).includes('2023-11-15 03:43:20 (UTC+05:30)'), 'timestamp-converter: Kolkata zone both ways');
   await page.fill(R + '.tc-ts', 'abc'); await page.waitForTimeout(100);
   check((await page.$eval(R + '.tc-note', (e) => e.classList.contains('err'))), 'timestamp-converter: bad input shows error');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption(R + '.tc-unit', 'auto'); await page.fill(R + '.tc-ts', '1700000000000000'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.tc-note')).startsWith('Read as microseconds') && (await cell('.tc-res', 'Unix seconds')) === '1700000000', 'timestamp-converter: 16 digits read as microseconds');
+  await page.fill(R + '.tc-ts', '1700000000'); await page.waitForTimeout(100);
+  check((await cell('.tc-res', 'Day of year / ISO week')) === 'day 318, week 46 (UTC)', 'timestamp-converter: day 318 week 46');
+  check((await cell('.tc-res', 'Excel / Sheets serial (UTC)')) === '45244.925926', 'timestamp-converter: Excel serial');
+  await page.click(R + '.tc-presets'); await page.waitForTimeout(100);
+  check((await cell('.tc-multi', 'Asia/Kolkata')).includes('2023-11-15 03:43:20'), 'timestamp-converter: many zones table');
+  await page.fill(R + '.tc-text', '2023-11-14T22:13:20Z'); await page.waitForTimeout(100);
+  check((await cell('.tc-textres', 'Unix seconds')) === '1700000000', 'timestamp-converter: date text to timestamp');
 };

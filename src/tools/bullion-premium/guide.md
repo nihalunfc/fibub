@@ -42,6 +42,8 @@ Add the products you are comparing, each with its weight, fineness and the price
 - **Weight and unit**: the weight of the coin or bar. Use the pure-metal weight stated by the mint or dealer.
 - **Fineness**: parts of pure metal per thousand (999.9 for most gold bars, 916.7 for 22 karat coins, 999 for silver).
 - **Price asked**: the total price for one piece, in the chosen currency.
+- **Over spot per oz**: the extra you pay for each pure troy ounce, in money rather than per cent.
+- **More options, break-even spot**: type the percentage of spot your dealer would pay when buying back. The tool shows the spot price per troy ounce the metal needs to reach before selling back returns what you paid. Leave it empty to assume 100%; no buy-back figure is assumed for you.
 
 ## Worked example
 

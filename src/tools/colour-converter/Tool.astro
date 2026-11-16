@@ -27,6 +27,17 @@
     <div class="cc-con"></div>
     <p class="cc-note">AA needs 4.5:1 for normal text and 3:1 for large text (24 px, or 19 px bold). AAA needs 7:1 and 4.5:1.</p>
   </section>
+  <details class="panel cc-more">
+    <summary>More options: check against your own background, matching colours</summary>
+    <h3 class="cc-h">Contrast against another colour</h3>
+    <label class="cc-lab">Background colour (any format)
+      <input class="cc-bg" data-k="bg" type="text" value="#ffffff" spellcheck="false" autocomplete="off" autocapitalize="off" />
+    </label>
+    <div class="cc-custom" aria-live="polite"></div>
+    <h3 class="cc-h">Matching colours</h3>
+    <p class="cc-note">Colours that sit well with your colour, by turning the hue wheel. Tap one to use it.</p>
+    <div class="cc-harm"></div>
+  </details>
   <p class="cc-note">Nothing you type leaves this page.</p>
 </div>
 
@@ -56,6 +67,11 @@
   .cc-box b { display: block; font-size: 20px; }
   .cc-box span { font-size: 14px; }
   .cc-meta { background: var(--surface); color: var(--ink); padding: 8px 10px; font-size: 13px; border-radius: 0 0 10px 10px; margin: 8px -12px -12px; }
+  .cc-more summary { cursor: pointer; font-weight: 600; }
+  .cc-more .cc-h { margin-top: 12px; }
+  .cc-harm { display: grid; gap: 8px; }
+  .cc-harm div { display: grid; grid-template-columns: 7.5em repeat(3, 1fr); gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .cc-harm button { height: 40px; padding: 0; font-size: 11px; font-family: ui-monospace, monospace; border-radius: 8px; }
   @media (max-width: 480px) {
     .cc-top { grid-template-columns: 1fr auto; }
     .cc-top .cc-lab:first-child { grid-column: 1 / -1; }
@@ -206,8 +222,37 @@
       box.append(meta); con.append(box);
     }
   };
+  const bgIn = root.querySelector('.cc-bg') as HTMLInputElement, custom = root.querySelector('.cc-custom') as HTMLElement, harm = root.querySelector('.cc-harm') as HTMLElement;
+  const rot = (c: RGB, d: number) => { const [h, s, l] = rgbToHsl(c); return hslToRgb(h + d, s, l); };
+  const extras = () => {
+    const c = parse(inp.value), bg = parse(bgIn.value);
+    custom.textContent = ''; harm.textContent = '';
+    if (!c) return;
+    if (!bg) { custom.textContent = 'Could not read the background colour.'; }
+    else {
+      const r = ratio(c, bg), g = (x: number) => (r >= x ? 'pass' : 'fail');
+      const box = document.createElement('div'); box.className = 'cc-box'; box.style.background = toHex(bg); box.style.color = toHex(c);
+      box.innerHTML = '<b></b><span>Sample text</span>'; (box.firstChild as HTMLElement).textContent = (Math.floor(r * 100) / 100).toFixed(2) + ':1';
+      const meta = document.createElement('div'); meta.className = 'cc-meta';
+      meta.textContent = `Normal text: AA ${g(4.5)}, AAA ${g(7)} · Large text: AA ${g(3)}, AAA ${g(4.5)}`;
+      box.append(meta); custom.append(box);
+    }
+    for (const [lab, ds] of [['Complementary', [180]], ['Analogous', [-30, 30]], ['Triadic', [120, 240]], ['Split-complementary', [150, 210]], ['Square', [90, 180, 270]]] as [string, number[]][]) {
+      const row = document.createElement('div'); row.dataset.h = lab; row.append(lab);
+      for (const d of ds) {
+        const m = rot(c, d), hx = toHex(m);
+        const b = document.createElement('button'); b.type = 'button'; b.style.background = hx; b.style.color = textOn(m); b.textContent = hx;
+        b.addEventListener('click', () => { inp.value = hx; render(); });
+        row.append(b);
+      }
+      harm.append(row);
+    }
+  };
+  inp.addEventListener('input', extras); bgIn.addEventListener('input', extras); pick.addEventListener('input', extras);
+  root.querySelector('.cc-reset')!.addEventListener('click', extras);
+  root.addEventListener('click', () => setTimeout(extras, 0));
   inp.addEventListener('input', render);
   pick.addEventListener('input', () => { inp.value = pick.value; render(); });
   root.querySelector('.cc-reset')!.addEventListener('click', () => { inp.value = '#1e90ff'; render(); });
-  render();
+  render(); extras();
 </script>

@@ -13,4 +13,14 @@ export default async ({ page, check, BASE }) => {
   check((await t('.ac .ac-net')).includes('840.00'), `auction-costs: seller 1,000 - 15% - 10 = 840 (${await t('.ac .ac-net')})`);
   await page.fill('.ac .ac-sf', '0'); await page.waitForTimeout(100);
   check((await t('.ac .ac-net')).includes('850.00'), 'auction-costs: removing fixed fees raises the net');
+  await page.evaluate(() => document.querySelectorAll('.ac details').forEach((d) => (d.open = true)));
+  await page.fill('.ac .ac-sf', '10'); await page.fill('.ac .ac-want', '840'); await page.waitForTimeout(100);
+  check((await t('.ac .ac-need')).includes('1000.00'), `auction-costs: to net 840 after 15% and 10 fees, hammer 1,000 (${await t('.ac .ac-need')})`);
+  await page.click('.ac .ac-m[data-m=buy]');
+  await page.fill('.ac .ac-bp', '20'); await page.selectOption('.ac .ac-on', 'prem');
+  check((await page.locator('.ac .ac-lad tbody tr').count()) === 5, 'auction-costs: bid ladder has five rows');
+  check((await t('.ac .ac-lad tr.ac-now')).includes('1241.00'), `auction-costs: ladder middle row is the current total (${await t('.ac .ac-lad tr.ac-now')})`);
+  await page.fill('.ac .ac-th', '500'); await page.fill('.ac .ac-up', '10'); await page.waitForTimeout(100);
+  // premium = 500*20% + 500*10% = 150; tax 13% of 150 = 19.5; total 1000 + 150 + 19.5 + 15 = 1184.50
+  check((await t('.ac .ac-total')).includes('1184.50'), `auction-costs: tiered premium total 1,184.50 (${await t('.ac .ac-total')})`);
 };

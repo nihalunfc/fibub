@@ -47,6 +47,10 @@ It also marks the moratorium, the point after 60 months of continuous cover when
 
 Start 2026-01-01. A 30-day wait ends 2026-01-31. A 36-month wait ends 2029-01-01. If you ported with 12 months served, the 36-month wait ends 2028-01-01.
 
+## Check a date and add reminders
+
+**If I need care on a date** lets you pick a day and see which waiting periods are over by then and which are still running. **Remind me** downloads a calendar (.ics) file with an all-day event on the day each waiting period ends, ready to open in any calendar app. The file is built on your device and nothing is sent anywhere. Dates follow the rules written in the tool, so check your policy wording and the official source.
+
 ## FAQs
 
 **Do waits apply to accidents?** The initial 30-day wait does not apply to accidents.

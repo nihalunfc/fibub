@@ -12,7 +12,7 @@ ads: true
 order: 1786
 icon: piggy
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [rrsp-tfsa, us-paycheck, retirement-planner]
 sources:
   - "2026 limits: 401(k) $24,500, catch-up $8,000 (50+) and $11,250 (60-63); IRA $7,500, catch-up $1,100; Roth IRA phase-out $153,000-$168,000 single and $242,000-$252,000 joint: IRS IR-2025-111, https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500 (checked 2026-11-10)"
@@ -46,6 +46,11 @@ Work out today's tax rate from your pay with the [[us-paycheck|US paycheck calcu
 ## Worked example
 
 Maria puts $6,000 a year into her 401(k) for 30 years at 6%. Her tax rate is 22% now and she expects 12% in retirement. The traditional pot grows to $502,810; after 12% tax she keeps **$442,473**. The Roth version costs the same take-home pay, so $4,680 goes in each year and grows to **$392,192**, tax-free. Traditional wins by $50,281. With the same 22% rate later, they tie exactly.
+
+## More options
+
+- **Sliders** for the tax rate now and the tax rate in retirement sit next to the typed boxes, so you can slide the rate and watch the winner change; the table of rates below follows.
+- **A chart** shows the after-tax value of both accounts for every year, so you can see how far apart they are along the way and at the end.
 
 ## FAQs
 

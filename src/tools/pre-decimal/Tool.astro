@@ -31,6 +31,14 @@ import '../../styles/collect.css';
       </div>
       <p class="ax-help pd-back-out"></p>
     </div>
+    <details class="ax-card pd-sumbox">
+      <summary><strong>More options</strong>: add up several amounts, or start from decimal pounds</summary>
+      <label style="margin-top:10px">One amount per line <textarea class="pd-list" data-k="list" rows="4" spellcheck="false" placeholder="£2 5s 6d&#10;10/-&#10;3 4 9&#10;6d"></textarea></label>
+      <p class="ax-help">Write £ s d any way you like: <b>£2 5s 6d</b>, <b>2/5/6</b>, <b>2 5 6</b>, <b>10/-</b> (ten shillings) or <b>6d</b>.</p>
+      <p class="ax-big pd-sum-out" aria-live="polite"></p>
+      <label style="margin-top:10px">Decimal pounds to old money <input class="pd-dec" data-k="dec" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 1.25" /></label>
+      <p class="ax-help pd-dec-out"></p>
+    </details>
     <div class="ax-card">
       <h2>Coins in old pence</h2>
       <div class="ax-scroll"><table><thead><tr><th>Coin</th><th class="r">Old pence</th><th class="r">New pence</th></tr></thead><tbody class="pd-coins"></tbody></table></div>
@@ -63,10 +71,11 @@ import '../../styles/collect.css';
 
 <style is:inline>
   .pd .pd-back, .pd .pd-back2 { max-width: 200px; }
+  .pd .pd-list { width: 100%; box-sizing: border-box; font-family: ui-monospace, monospace; font-size: 16px; }
 </style>
 
 <script>
-  import { lsdToPence, penceToLsd, oldToNewPence, rapToPies, piesToRupees } from '../../lib/collect/maths';
+  import { lsdToPence, penceToLsd, oldToNewPence, rapToPies, piesToRupees, sumLsd } from '../../lib/collect/maths';
 
   const root = document.querySelector('.pd') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -86,6 +95,12 @@ import '../../styles/collect.css';
     const b = parseFloat(q<HTMLInputElement>('.pd-back').value);
     q('.pd-back-out').textContent = Number.isFinite(b) && b >= 0 ? `${trim(b)} old pence = ${lsd(b)} = ${trim(oldToNewPence(b))} new pence.` : '';
   };
+  const sumUi = () => {
+    const lines = q<HTMLTextAreaElement>('.pd-list').value.split('\n'), r = sumLsd(lines);
+    q('.pd-sum-out').textContent = !r.ok && !r.bad.length ? '' : `${r.ok} amount${r.ok === 1 ? '' : 's'} add up to ${lsd(r.total)} = ${trim(r.total)}d = ${trim(oldToNewPence(r.total))} new pence (£${trim(r.total / 240, 4)})` + (r.bad.length ? `. Could not read line ${r.bad.join(', ')}.` : '');
+    const dv = parseFloat(q<HTMLInputElement>('.pd-dec').value);
+    q('.pd-dec-out').textContent = Number.isFinite(dv) && dv >= 0 ? `£${trim(dv)} is ${trim(dv * 240)} old pence = ${lsd(dv * 240)}.` : '';
+  };
   const ind = () => {
     const pies = rapToPies(num('.pd-r'), num('.pd-a'), num('.pd-p'), num('.pd-pie'));
     const r = piesToRupees(pies);
@@ -101,7 +116,7 @@ import '../../styles/collect.css';
     root.querySelectorAll('.pd-m').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     q('.pd-gb').hidden = b.dataset.m !== 'gb'; q('.pd-in').hidden = b.dataset.m !== 'in';
   }));
-  root.addEventListener('input', () => { gb(); ind(); });
-  root.addEventListener('change', () => { gb(); ind(); });
-  gb(); ind();
+  root.addEventListener('input', () => { gb(); ind(); sumUi(); });
+  root.addEventListener('change', () => { gb(); ind(); sumUi(); });
+  gb(); ind(); sumUi();
 </script>

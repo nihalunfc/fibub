@@ -8,6 +8,13 @@
     <label class="lc-switch"><input type="checkbox" class="lc-aff" checked /> Also remove affiliate and referral tags</label>
     <button type="button" class="btn secondary lc-paste">Paste</button>
   </div>
+  <details class="lc-more">
+    <summary>More options</summary>
+    <label class="lc-switch"><input type="checkbox" class="lc-all" /> Remove every <code>?parameter</code> (keeps only the page address)</label>
+    <label class="lc-label" for="lc-keep">Keep these parameters (names separated by commas; <code>utm_*</code> works as a wildcard)</label>
+    <input id="lc-keep" class="lc-keep" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. utm_source, ref" />
+    <p class="lc-hint">Handy when a site needs one of them to work, such as a coupon or a tab.</p>
+  </details>
   <div class="lc-result" hidden>
     <p class="lc-summary" role="status" aria-live="polite"></p>
     <div class="lc-outwrap">
@@ -27,6 +34,7 @@
   .lc-switch { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; }
   .lc-switch input { width: 18px; height: 18px; accent-color: var(--accent); }
   .lc-paste { padding: 8px 14px; }
+  .lc-more { display: grid; gap: 8px; } .lc-more summary { cursor: pointer; font-weight: 600; } .lc-more .lc-keep { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); font: 14px ui-monospace, monospace; margin-top: 8px; } .lc-hint { margin: 0; font-size: 13px; color: var(--muted); }
   .lc-result { display: grid; gap: 12px; }
   .lc-summary { margin: 0; font-weight: 600; color: var(--good); }
   .lc-summary.none { color: var(--muted); }
@@ -45,11 +53,12 @@
 </style>
 
 <script>
-  import { cleanText } from '../../lib/linkclean';
+  import { cleanText, parseKeep } from '../../lib/linkclean';
 
   const root = document.querySelector<HTMLElement>('.lc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const input = q<HTMLTextAreaElement>('.lc-in'), out = q<HTMLTextAreaElement>('.lc-out'), aff = q<HTMLInputElement>('.lc-aff');
+  const keepIn = q<HTMLInputElement>('.lc-keep'), allIn = q<HTMLInputElement>('.lc-all');
   const result = q('.lc-result'), list = q('.lc-list'), summary = q('.lc-summary');
 
   async function copy(text: string, btn: HTMLElement) {
@@ -62,7 +71,7 @@
 
   function run() {
     const text = input.value;
-    const { text: clean, results } = cleanText(text, { affiliate: aff.checked });
+    const { text: clean, results } = cleanText(text, { affiliate: aff.checked, keep: parseKeep(keepIn.value), all: allIn.checked });
     result.hidden = text.trim() === '';
     if (result.hidden) return;
     out.value = clean;
@@ -97,7 +106,7 @@
   }
 
   input.addEventListener('input', run);
-  aff.addEventListener('change', run);
+  aff.addEventListener('change', run); allIn.addEventListener('change', run); keepIn.addEventListener('input', run);
   q('.lc-copy').addEventListener('click', (e) => copy(out.value, e.currentTarget as HTMLElement));
   const paste = q<HTMLButtonElement>('.lc-paste');
   if (!navigator.clipboard?.readText) paste.hidden = true;

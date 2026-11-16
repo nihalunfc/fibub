@@ -36,6 +36,10 @@ It only counts days. Once you have the numbers, estimate the tax with the [[cana
 4. Read the table of days and markers, and the US test below it.
 5. For the Indian financial year, answer the few questions under **Indian residency status** to see whether you are resident, resident but not ordinarily resident (RNOR) or non-resident.
 
+## Paste trips, find gaps, print
+
+Under "More options: paste a list of trips" you can paste one trip per line (country, arrived, left) copied from a spreadsheet or your passport stamps list. Dates can be 2025-03-31 or 31/03/2025; lines that cannot be read are skipped and counted. Below the year choice, the tool tells you how many days of the period no trip covers, so you can fill gaps (time at home counts too), and under the table it names the country where you spent the most days. "Print this summary" prints just the results.
+
 ## What each setting does
 
 - **Year type:** sets the start and end dates of the period counted.

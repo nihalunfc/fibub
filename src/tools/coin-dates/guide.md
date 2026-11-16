@@ -46,6 +46,10 @@ Most of these calendars begin part way through our year, so a coin year usually 
 
 AH 1300 begins on about 12 November 1882 and ends in 1883, so it is 1882/83 CE. Vikram Samvat 1976 is 1919/20, and Kollam 1100 is 1924/25. Thai Buddhist Era 2500 is 1957, one year only, because the Thai year starts on 1 January.
 
+## More options
+
+You can type the year in the digits printed on the coin (Arabic-Indic or Devanagari) and the tool reads them. Each result now says roughly how many years ago it was, counted to this year. Open **More options** for a Roman numeral converter: type MDCCCLXXXII to get 1882, or a number from 1 to 3999 to get the numerals. The tool does not look up which years a mint struck a coin; that needs a catalogue for your coin type.
+
 ## FAQs
 
 **Why two years?** The calendar's new year does not line up with 1 January. Which of the two years a coin belongs to depends on the month it was struck, which most coins do not show.

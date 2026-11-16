@@ -26,6 +26,14 @@ import '../../styles/collect.css';
     <h2>3. Metal value</h2>
     <p class="ax-big mv-total" aria-live="polite">…</p>
     <dl class="ax-facts mv-facts"></dl>
+    <details class="mv-more" style="margin-top:10px"><summary>More options: dealer payout and what if the price moves</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>A dealer pays me this % of melt <input class="mv-pay" type="number" min="0" max="200" step="any" inputmode="decimal" placeholder="e.g. 90" /></label>
+        <label>What if the metal price changes by (%) <input class="mv-what" type="number" min="-90" max="500" step="any" inputmode="decimal" placeholder="e.g. 10 or -10" /></label>
+      </div>
+      <p class="ax-help">Type the percentage your dealer or jeweller quotes. Nothing is assumed: leave it empty to skip. The what-if line shows the total if every metal price moved by that much.</p>
+      <dl class="ax-facts mv-extra" aria-live="polite"></dl>
+    </details>
     <p class="ax-help">Melt value is what the pure metal is worth at the spot price. A dealer buying it will usually pay less, and many coins sell for more than melt because collectors want them.</p>
   </div>
 </div>
@@ -95,9 +103,16 @@ import '../../styles/collect.css';
     (root.querySelector('.mv-total') as HTMLElement).textContent = money(total, ps.cur);
     (root.querySelector('.mv-facts') as HTMLElement).innerHTML = Object.entries(totals).map(([m, t]) =>
       `<div><dt>Pure ${m}</dt><dd>${t.g.toFixed(t.g < 10 ? 3 : 2)} g<small>${(t.g / UNITS.ozt.g).toFixed(4)} troy oz · ${money(t.v, ps!.cur)}${ps!.isOwn(m as Metal) ? ' · your price' : ''}</small></dd></div>`).join('');
+    const num = (c: string) => parseFloat((root.querySelector(c) as HTMLInputElement).value);
+    const pay = num('.mv-pay'), what = num('.mv-what'), ex: string[] = [];
+    if (pay >= 0) ex.push(`<div><dt>At ${pay}% payout</dt><dd class="mv-payout">${money(total * pay / 100, ps.cur)}<small>${money(total * (1 - pay / 100), ps.cur)} below melt</small></dd></div>`);
+    if (Number.isFinite(what) && what > -100) ex.push(`<div><dt>If prices move ${what > 0 ? '+' : ''}${what}%</dt><dd class="mv-whatif">${money(total * (1 + what / 100), ps.cur)}<small>${what >= 0 ? '+' : '-'}${money(Math.abs(total * what / 100), ps.cur)} against now</small></dd></div>`);
+    const gold = totals.gold; if (gold) ex.push(`<div><dt>Pure gold in tola</dt><dd>${(gold.g / UNITS.tola.g).toFixed(3)} tola<small>${(gold.g / 10).toFixed(3)} x 10 g</small></dd></div>`);
+    (root.querySelector('.mv-extra') as HTMLElement).innerHTML = ex.join('');
     save();
   };
   const save = keepOnDevice(root.querySelector('.mv-remember') as HTMLInputElement, 'fibub-melt-list-v1', () => rows, (d) => { if (Array.isArray(d) && d.length) rows = d; });
+  root.querySelectorAll('.mv-pay, .mv-what').forEach((i) => i.addEventListener('input', calc));
   body.addEventListener('input', (e) => {
     const el = e.target as HTMLInputElement, tr = el.closest('tr') as HTMLElement, r = rows[+tr.dataset.i!] as any, k = el.dataset.k!;
     r[k] = k === 'name' || k === 'metal' || k === 'unit' ? el.value : parseFloat(el.value);

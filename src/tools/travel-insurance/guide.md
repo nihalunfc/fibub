@@ -24,6 +24,10 @@ flow:
   - { icon: check, label: "Verdict" }
 ---
 
+## More options
+
+"More options" holds a second-policy comparison: type policy B's price and deductible and the tool shows the expected cost and the worst-case cost for both, using your same risk rows. It also has a checklist of questions to ask before you buy, which you can tick and print. We have not added a "minimum cover by country" list, because no single official figure exists and travel rules change; check your own government's travel advice and the official source. This is general information, not insurance advice.
+
 ## What it does
 
 Travel insurance bundles several risks: a medical emergency abroad, a cancelled trip you can't get refunded, lost bags. This tool takes each risk with your own guess of its chance and cost, takes off cover you already have (a credit card, an employer, a health plan), and compares the total with the policy's price.

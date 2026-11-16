@@ -135,3 +135,11 @@ export function affordability(region: 'ca' | 'us', income: number, debts: number
   const i = region === 'ca' ? Math.pow(1 + ratePct / 200, 1 / 6) - 1 : ratePct / 1200;
   return { maxPay, limitedBy: byFront <= byBack ? 'housing ratio' : 'total debt ratio', loan: presentValue(maxPay, i, Math.round(years * 12)) };
 }
+
+/** Room under a target debt-to-income percentage. `room` is the extra monthly payment that still fits (negative = over by that much). */
+export function dtiHeadroom(income: number, debts: number, housing: number, targetPct: number) {
+  if (!(income > 0) || !(targetPct > 0)) return null;
+  const allowed = (income * targetPct) / 100;
+  const used = Math.max(0, debts) + Math.max(0, housing);
+  return { allowed, used, room: allowed - used, frontPct: (Math.max(0, housing) / income) * 100 };
+}

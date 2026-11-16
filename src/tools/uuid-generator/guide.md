@@ -46,6 +46,8 @@ This page makes them with your browser's secure random number generator and chec
 
 Make 10 v4 UUIDs: all 10 are different, each has 4 as the first digit of its third group and 8, 9, a or b as the first digit of its fourth. Switch to v7: the third group now starts with 7 and the list is already in sorted order. Paste `f47ac10b-58cc-4372-a567-0e02b2c3d479` into the checker: it says "Valid: version 4 (random)".
 
+**Output format** (under More options): write the list one per line, in {braces}, in "quotes" with commas, as a JSON array, on one comma-separated line, as SQL values ready to paste into an INSERT, or as a short 22-character form using letters and digits (the same 128 bits, shorter in URLs). The short form is not a standard UUID, so convert it back before using it where a UUID is expected.
+
 ## FAQs
 
 **Can two UUIDs ever be the same?** In theory yes; in practice no. You would need to make billions of v4 UUIDs before a repeat became even slightly likely.

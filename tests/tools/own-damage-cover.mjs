@@ -19,4 +19,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.odc .odc-chart svg')).length === 1, 'own-damage-cover: chart drawn');
   await set('lambda', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.odc .odc-err'), 'own-damage-cover: no claims shows a message');
+  await set('lambda', '0.1'); await page.waitForTimeout(100);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.odc [data-k="q1"]', '500'); await page.waitForTimeout(100);
+  const ex = await page.$$eval('.odc .odc-cmp tr .e', (c) => c.map((x) => parseFloat(x.textContent.replace(/[^\d.]/g, ''))));
+  check(ex.length === 3 && ex[0] > ex[1] && ex[1] > ex[2], 'own-damage-cover: higher deductible lowers expected payout (' + ex.join(',') + ')');
+  check(!(await page.textContent('.odc .odc-cmp tr .n')).includes('Enter'), 'own-damage-cover: premium typed gives a net figure');
 };

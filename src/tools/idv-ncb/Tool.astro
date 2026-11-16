@@ -27,6 +27,13 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Compulsory deductible</span><b class="idn-s-ded"></b></div>
     </div>
     <p class="idn-quote"></p>
+    <details class="panel idn-more">
+      <summary>More options: NCB slab table, and claim or not</summary>
+      <div class="idn-wrap"><table><thead><tr><th>Claim-free years</th><th>NCB on own-damage premium</th></tr></thead><tbody class="idn-slab"></tbody></table></div>
+      <p class="idn-hint">A claim in the year sends the bonus back to 0% at the next renewal. Some insurers sell an NCB protection add-on: read your policy.</p>
+      <div class="idn-grid"><label>Own-damage premium before any NCB (optional) <input data-k="od" inputmode="decimal" /></label></div>
+      <p class="idn-decide" aria-live="polite"></p>
+    </details>
   </section>
   <section class="panel idn-claim">
     <h2>If you claim for repairs</h2>
@@ -66,10 +73,15 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   .idn-row button { padding: 9px 0; }
   .idn-lab, .idn-out { margin-top: 12px; }
   .idn-err { margin: 10px 0 0; }
+  .idn-wrap { overflow-x: auto; }
+  .idn table { border-collapse: collapse; width: 100%; font-size: 14px; margin-bottom: 10px; }
+  .idn th, .idn td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .idn th:first-child, .idn td:first-child { text-align: left; }
+  .idn tr.idn-now td { font-weight: 700; }
 </style>
 
 <script>
-  import { idv, idvDep, partDep, compulsoryDeductible, NCB_IN, type PartKind } from '../../lib/money/insurance';
+  import { idv, idvDep, partDep, compulsoryDeductible, NCB_IN, ncbAt, claimOrNot, type PartKind } from '../../lib/money/insurance';
   import { money, num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.idn')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -77,7 +89,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   const $ = (n: number) => money(n, 'INR', 0);
   const KINDS: [PartKind, string][] = [['metal', 'Metal'], ['plastic', 'Plastic, rubber, nylon'], ['fibreglass', 'Fibreglass'], ['glass', 'Glass']];
   const d = new Date(); d.setMonth(d.getMonth() - 30);
-  const def: Record<string, string> = { price: '8,00,000', acc: '0', date: d.toISOString().slice(0, 10), months: '', cc: '1200', free: '3', quoted: '', labour: '5,000' };
+  const def: Record<string, string> = { price: '8,00,000', acc: '0', date: d.toISOString().slice(0, 10), months: '', cc: '1200', free: '3', quoted: '', od: '', labour: '5,000' };
   for (const k in def) f(k).value = def[k];
   const rows = q('.idn-rows');
   function addRow(kind: PartKind, cost: string) {
@@ -104,6 +116,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     const ref = v ?? 0;
     q('.idn-quote').textContent = quoted > 0 && v !== null ? (quoted < v ? `A quote with an IDV of ${$(quoted)} would pay ${$(v - quoted)} less than the table IDV at a total loss.` : `A quote with an IDV of ${$(quoted)} pays ${$(quoted - v)} more than the table IDV at a total loss; a higher IDV usually means a higher premium.`) : quoted > 0 ? `Over 5 years the IDV is agreed with the insurer: your quote of ${$(quoted)} is that agreement.` : '';
     void ref;
+    q('.idn-slab').innerHTML = NCB_IN.map((n, i) => `<tr class="${i === Math.min(free, 5) ? 'idn-now' : ''}"><td>${i === 5 ? '5 or more' : i}${i === Math.min(free, 5) ? ' (you)' : ''}</td><td>${n}%</td></tr>`).join('');
     let withDep = 0, noDep = 0;
     rows.querySelectorAll<HTMLElement>('.idn-row').forEach((r) => {
       const kind = (r.querySelector('[data-r="kind"]') as HTMLSelectElement).value as PartKind;
@@ -114,6 +127,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     });
     const lab = num(f('labour').value);
     const no = Math.max(0, withDep + lab - ded), zd = Math.max(0, noDep + lab - ded);
+    const od = num(f('od').value);
+    const dec = q('.idn-decide');
+    if (od > 0) { const c = claimOrNot(no, od, free); dec.innerHTML = `The repair payout is about <b>${$(no)}</b>. Claiming would cost you the ${ncbAt(free)}% bonus, about <b>${$(c.lost)}</b> extra at the next renewal. ${c.claimWins ? `On this one renewal, claiming leaves you about ${$(c.net)} ahead.` : `On this one renewal, paying the repair yourself saves about ${$(-c.net)}.`} The bonus also grows again only one step a year, so check the longer view in the Claim or pay tool.`; }
+    else dec.textContent = '';
     q('.idn-pay-no').textContent = $(no); q('.idn-pay-zd').textContent = $(zd); q('.idn-pay-diff').textContent = $(zd - no);
   }
   root.addEventListener('input', run); root.addEventListener('change', run);

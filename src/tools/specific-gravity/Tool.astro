@@ -13,6 +13,15 @@ import '../../styles/collect.css';
       <label>What it is meant to be <select class="sg-alloy"></select></label>
     </div>
     <p class="ax-help">The temperature matters a little: water is slightly lighter when warm. Pick the metal it is meant to be to see how close you are.</p>
+    <details style="margin-top:10px"><summary>More options: allowed difference, and no water? Use size instead</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Allowed difference for "Close" (%) <input class="sg-tol" type="number" min="0" max="20" step="any" inputmode="decimal" value="1.5" /></label>
+        <label>Diameter (mm) <input class="sg-dia" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 40" /></label>
+        <label>Thickness (mm) <input class="sg-thk" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 3" /></label>
+      </div>
+      <p class="ax-help">A flat, round, plain coin only: with the weight in air above, the diameter and the thickness give a rough density with no water. Edges, rims and designs make this less exact than weighing in water, so allow a few per cent.</p>
+      <p class="ax-big sg-disc" aria-live="polite"></p>
+    </details>
     <details style="margin-top:10px"><summary>How to weigh in water</summary>
       <ol>
         <li>Put a cup of water on the scale and set it to zero (tare). Use clean, room-temperature water.</li>
@@ -42,7 +51,7 @@ import '../../styles/collect.css';
 </style>
 
 <script>
-  import { specificGravity, ALLOYS, alloyDensity, shareFromDensity } from '../../lib/collect/maths';
+  import { densityFromDisc, expectedWaterWeight, specificGravity, ALLOYS, alloyDensity, shareFromDensity } from '../../lib/collect/maths';
 
   const root = document.querySelector('.sg') as HTMLElement;
   const $ = (c: string) => root.querySelector(c) as HTMLInputElement;
@@ -57,6 +66,11 @@ import '../../styles/collect.css';
     if (!(air > 0) || !(wat >= 0) || wat >= air) {
       out.textContent = 'Type a weight in air, and a smaller weight in water.'; facts.innerHTML = ''; tb.innerHTML = ''; return;
     }
+    const dia = parseFloat($('.sg-dia').value), thk = parseFloat($('.sg-thk').value), disc = $('.sg-disc');
+    if (dia > 0 && thk > 0) {
+      const dd = densityFromDisc(air, dia, thk), near = list.map((m) => ({ ...m, pct: ((dd - m.d) / m.d) * 100 })).sort((a, b) => Math.abs(a.pct) - Math.abs(b.pct))[0];
+      disc.textContent = `Size gives about ${dd.toFixed(2)} g/cm³, nearest ${near.name} (${sgn(near.pct, 1)}%)`;
+    } else disc.textContent = '';
     const r = specificGravity(air, wat, Number.isFinite(t) ? t : 20);
     const sorted = list.map((m) => ({ ...m, pct: ((r.density - m.d) / m.d) * 100 })).sort((a, b) => Math.abs(a.pct) - Math.abs(b.pct));
     out.textContent = `Specific gravity ${r.sg.toFixed(2)} · closest: ${sorted[0].name}`;
@@ -66,8 +80,8 @@ import '../../styles/collect.css';
     ];
     const st = list.find((m) => m.k === alloySel.value);
     if (st) {
-      const p = ((r.density - st.d) / st.d) * 100, ok = Math.abs(p) <= 1.5;
-      f.push(`<div><dt>Against ${st.name}</dt><dd class="sg-vs">${sgn(p, 1)}%<small>expected ${st.d.toFixed(2)} g/cm³</small><span class="ax-pill ${ok ? 'good' : 'warn'}">${ok ? 'Close' : 'Not close'}</span></dd></div>`);
+      const p = ((r.density - st.d) / st.d) * 100, tol = parseFloat($('.sg-tol').value), ok = Math.abs(p) <= (tol >= 0 ? tol : 1.5);
+      f.push(`<div><dt>Against ${st.name}</dt><dd class="sg-vs">${sgn(p, 1)}%<small>expected ${st.d.toFixed(2)} g/cm³</small><span class="sg-expw">should read ${expectedWaterWeight(air, st.d, Number.isFinite(t) ? t : 20).toFixed(2)} g in water</span> <span class="ax-pill ${ok ? 'good' : 'warn'}">${ok ? 'Close' : 'Not close'}</span></dd></div>`);
     }
     for (const [b, label] of [['copper', 'copper'], ['silver', 'silver']]) {
       const w = shareFromDensity(r.density, 'gold', b);

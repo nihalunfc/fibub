@@ -41,6 +41,10 @@ To plan a team's shifts rather than your own week, use the [[shift-scheduler]]; 
 
 **Download image** saves what you're looking at (the week or the month) as a crisp landscape PNG, ready to set as a phone wallpaper, share in a chat or print. **Download PDF** saves the same picture on an A4 landscape page. The download always uses a light, print-friendly design, even if your screen is in dark mode. In **Settings** you can add a title to the download (for example "Exam week") and choose whether weeks start on Monday, Sunday or Saturday.
 
+## Print it
+
+**Print** sends only the week or month you are looking at (with its heading) to your printer, without the buttons and menus, so you can stick it on the fridge. For a cleaner picture with a title, use the image or PDF download above.
+
 ## Worked example
 
 Sam is planning a busy week. In the quick-add box Sam types `Gym 7am mon`, `Gym 7am wed`, `Gym 7am fri`, `Client call 10-11am tue`, `Groceries sat` and `Movie night 8pm sat`, pressing Enter after each. Sam clicks "Client call" and makes it violet so work stands out, sets the title to "Week 45", and presses **Download image**. The PNG goes to the family group chat. On Wednesday, Sam ticks off the gym session.

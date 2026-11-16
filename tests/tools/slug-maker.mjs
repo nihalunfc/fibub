@@ -15,4 +15,10 @@ export default async ({ page, check, BASE }) => {
   check((await out()) === 'report-q3-final.pdf\nthe-art-of-war', `slug: file names, many lines (${await out()})`);
   await page.check('.sm [data-k="stop"]'); await page.waitForTimeout(100);
   check((await out()).split('\n')[1] === 'art-war', 'slug: drop little words');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.uncheck('.sm [data-k="stop"]'); await page.selectOption('.sm [data-k="kind"]', 'url');
+  await page.fill('.sm .sm-in', 'Big News\nBig news'); await page.check('.sm [data-k="uniq"]'); await page.fill('.sm [data-k="pre"]', '/blog/'); await page.waitForTimeout(100);
+  check((await out()) === '/blog/big-news\n/blog/big-news-2', `slug: prefix and unique (${await out()})`);
+  await page.uncheck('.sm [data-k="uniq"]'); await page.fill('.sm [data-k="pre"]', ''); await page.selectOption('.sm [data-k="sep"]', 'camel'); await page.fill('.sm .sm-in', 'hello big world'); await page.waitForTimeout(100);
+  check((await out()) === 'helloBigWorld', `slug: camelCase (${await out()})`);
 };

@@ -15,4 +15,10 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.be-whatout')).includes('400 units'), 'price +10% gives 400 units (' + (await txt('.be-whatout')) + ')');
   await set('var', '60'); await page.waitForTimeout(100);
   check(await page.isVisible('.be .be-err'), 'price below cost shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  const bt = async (c) => (await page.textContent(`.be ${c}`)).trim();
+  await page.fill('.be [data-k="fixed"]', '10000'); await page.fill('.be [data-k="price"]', '50'); await page.fill('.be [data-k="var"]', '30'); await page.fill('.be [data-k="exp"]', '800'); await page.waitForTimeout(100);
+  check((await bt('.be-mos')).includes('37.5%') && (await bt('.be-mos')).includes('6,000'), 'break-even: 800 units gives profit 6,000 and 37.5% safety');
+  await page.fill('.be [data-k="exp"]', '400'); await page.waitForTimeout(100);
+  check((await bt('.be-mos')).includes('2,000') && (await bt('.be-mos')).includes('short'), 'break-even: 400 units is 100 short, loss 2,000');
 };

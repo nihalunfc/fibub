@@ -35,6 +35,10 @@ It also shows "10 times income" but only as a comparison, because a rule of thum
 3. Add debts, goals such as education, funeral costs, savings and any cover you already have.
 4. Compare the three results and read the line about why they differ.
 
+## More options
+
+Open "More options" under the results to see where the needs figure comes from, piece by piece (income your family would miss, debts, goals, final costs, minus savings and existing cover). A small table shows the cover needed for 10, 15, 20, 25 and 30 years of support, so you can see how much the number moves, and a slider changes the years of support while you watch the results. This is general information, not advice; check the official source for tax rules.
+
 ## What each setting does
 
 - **Share you spend on yourself:** this part of your income would not be missed by the family.

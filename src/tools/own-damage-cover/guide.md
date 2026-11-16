@@ -47,6 +47,10 @@ It marks the first year when the expected payout falls below the premium. That i
 
 With a car worth a huge amount (so the cap never bites), no deductible, 0.1 claims a year, a typical claim of 1,000 and 1 claim in 10 above 1,898, the expected payout in year 1 is 113.31. A premium of 100 is then paid back 1.13 times; a premium of 500 only 0.23 times.
 
+## Compare deductibles
+
+The **Compare deductibles** table lets you try three deductibles side by side. Type the premium your insurer quotes for each; the tool works out the year-1 expected payout at that deductible from your claim figures and shows the payout minus the premium. No premiums are built in, because they differ by insurer and car. A higher deductible always lowers the expected payout, so the choice comes down to whether the premium saving is bigger than the payout you give up and whether you could pay the deductible from savings. General information, not advice.
+
 ## FAQs
 
 **Should I drop the cover when the payout is below the premium?** Not automatically. A total loss or theft can be large and rare. Compare the worst case with your savings, and see [[should-i-insure]].

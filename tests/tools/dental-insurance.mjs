@@ -16,4 +16,10 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.dnt-s-tot')).includes('7,400'), 'dental-insurance: monthly premium is multiplied by 12');
   await set('wb', '0'); await set('wm', '0'); await set('max', '300'); await page.waitForTimeout(100);
   check((await txt('.dnt-body')).includes('annual maximum'), 'dental-insurance: annual maximum reached is shown');
+  await page.waitForTimeout(100);
+  const sc = await page.$$eval('.dnt .dnt-scale tr', (r) => r.map((x) => x.textContent));
+  check(sc.length === 5, 'dental-insurance: five scale rows (' + sc.length + ')');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.dnt [data-k="oon"]', '25'); await page.waitForTimeout(100);
+  check(await page.isVisible('.dnt .dnt-oonp') && (await page.textContent('.dnt .dnt-oon-words')).includes('25%'), 'dental-insurance: out-of-network panel shows');
 };

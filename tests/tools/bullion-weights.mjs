@@ -12,4 +12,8 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.bw .bw-out')).includes('troy oz'), 'bullion-weights: headline shows grams and troy oz');
   await page.fill('.bw .bw-in', '0'); await page.waitForTimeout(50);
   check((await cell('ozt')) === '0', `bullion-weights: zero stays zero (${await cell('ozt')})`);
+  await page.selectOption('.bw .bw-unit', 'tola'); await page.evaluate(() => document.querySelectorAll('.bw details').forEach((d) => (d.open = true)));
+  await page.fill('.bw .bw-price', '1000'); await page.waitForTimeout(50);
+  check((await page.textContent('.bw tr[data-u="g"] .bw-p')).startsWith('85.7'), `bullion-weights: 1000 per tola = about 85.7 per gram (${await page.textContent('.bw tr[data-u="g"] .bw-p')})`);
+  check((await page.textContent('.bw tr[data-u="tola"] .bw-p')).startsWith('1000'), 'bullion-weights: price per the same unit is unchanged');
 };

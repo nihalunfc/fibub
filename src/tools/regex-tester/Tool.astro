@@ -20,6 +20,9 @@
     <label>Replace with (optional; $1, $2, $&lt;name&gt;, $&amp;)
       <input class="rt-rep" data-k="rep" spellcheck="false" autocomplete="off" value="$2" />
     </label>
+    <label>Common patterns
+      <select class="rt-preset"><option value="">Choose a ready-made pattern...</option></select>
+    </label>
     <div class="rt-btns"><button type="button" class="rt-clear">Clear</button><button type="button" class="rt-example">Example</button></div>
   </section>
   <p class="rt-out" aria-live="polite"></p>
@@ -35,6 +38,13 @@
     <h3>Replace preview</h3>
     <pre class="rt-repout"></pre>
   </section>
+  <details class="panel rt-more">
+    <summary>More: explain my pattern, split preview</summary>
+    <h3>What each part of the pattern means</h3>
+    <ul class="rt-explain"></ul>
+    <h3>Split the text on this pattern</h3>
+    <pre class="rt-split"></pre>
+  </details>
   <details class="panel rt-cheat">
     <summary>Cheat sheet</summary>
     <dl>
@@ -80,6 +90,12 @@
   .rt-list { border-collapse: collapse; width: 100%; font-size: 14px; }
   .rt-list th, .rt-list td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
   .rt-list td:nth-child(2), .rt-list td:nth-child(4) { font-family: ui-monospace, monospace; }
+  .rt-more summary { cursor: pointer; font-weight: 600; }
+  .rt-more h3 { margin-top: 12px; }
+  .rt-explain { margin: 0; padding: 0; list-style: none; font-size: 14px; display: grid; gap: 4px; }
+  .rt-explain li { display: grid; grid-template-columns: minmax(0, 9em) 1fr; gap: 12px; }
+  .rt-explain code { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .rt-split { font-family: ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 14px; }
   .rt-cheat summary { cursor: pointer; font-weight: 600; }
   .rt-cheat dl { display: grid; grid-template-columns: minmax(0, 9em) 1fr; gap: 6px 12px; margin: 12px 0 0; font-size: 14px; }
   .rt-cheat dt { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
@@ -100,7 +116,64 @@
   const MAX = 1000;
   const show = (s: string) => (s === undefined ? '(not matched)' : JSON.stringify(s));
 
+  const PRESETS: [string, string, string][] = [
+    ['Email address', '[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+', 'write to ann@example.com or bob.smith@mail.co.uk'],
+    ['Web address (http/https)', 'https?://[^\\s/$.?#][^\\s]*', 'see https://fibub.com/tools/ and http://example.org'],
+    ['Phone number (simple)', '\\+?\\d[\\d\\s().-]{7,}\\d', 'call +1 (416) 555-1234 or 555-9876'],
+    ['Date YYYY-MM-DD', '\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])', 'from 2024-03-05 to 2024-12-31'],
+    ['IPv4 address', '\\b(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\b', 'server 192.168.1.10 and 10.0.0.255'],
+    ['Hex colour', '#(?:[0-9a-fA-F]{3}){1,2}\\b', 'use #fff, #1a2b3c and #xyz'],
+    ['Canadian postal code', '[A-Za-z]\\d[A-Za-z][ -]?\\d[A-Za-z]\\d', 'M5V 3L9 and k1a0b1'],
+    ['Whole numbers', '-?\\d+', 'a1, 22 and -333'],
+    ['Extra spaces (2 or more)', ' {2,}', 'too   many    spaces'],
+    ['Hashtag', '#\\w+', 'love #fibub and #freetools'],
+  ];
+  const preset = root.querySelector('.rt-preset') as HTMLSelectElement;
+  PRESETS.forEach((p, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = p[0]; preset.append(o); });
+  preset.addEventListener('change', () => {
+    const p = PRESETS[+preset.value]; if (!p) return;
+    pat.value = p[1]; text.value = p[2]; rep.value = ''; flagBoxes.forEach((b) => (b.checked = b.dataset.f === 'g')); update();
+  });
+  const explainEl = root.querySelector('.rt-explain') as HTMLElement, splitEl = root.querySelector('.rt-split') as HTMLElement;
+  const TOK: [RegExp, (m: RegExpMatchArray) => string][] = [
+    [/^\\[dDwWsSbB]/, (m) => ({ d: 'a digit', D: 'not a digit', w: 'a letter, digit or _', W: 'not a word character', s: 'white space', S: 'not white space', b: 'a word boundary', B: 'not a word boundary' } as Record<string, string>)[m[0][1]]],
+    [/^\\[nrt]/, (m) => ({ n: 'a new line', r: 'a carriage return', t: 'a tab' } as Record<string, string>)[m[0][1]]],
+    [/^\\[1-9]/, (m) => `the same text as group ${m[0][1]}`],
+    [/^\\./, (m) => `the character ${m[0][1]}`],
+    [/^\\[\s\S]/, (m) => `the character ${m[0][1]}`],
+    [/^\(\?<([A-Za-z_]\w*)>/, (m) => `start of named group "${m[1]}"`],
+    [/^\(\?:/, () => 'start of a group that is not captured'],
+    [/^\(\?=/, () => 'followed by (look-ahead)'],
+    [/^\(\?!/, () => 'not followed by (look-ahead)'],
+    [/^\(\?<=/, () => 'preceded by (look-behind)'],
+    [/^\(\?<!/, () => 'not preceded by (look-behind)'],
+    [/^\(/, () => 'start of a numbered group'],
+    [/^\)/, () => 'end of group'],
+    [/^\[\^?(?:\\.|[^\]\\])*\]/, (m) => (m[0][1] === '^' ? 'any one character except ' : 'any one of ') + m[0].replace(/^\[\^?|\]$/g, '')],
+    [/^\{\d+(?:,\d*)?\}\??/, (m) => { const a = m[0].replace(/[{}?]/g, '').split(','); return (a.length === 1 ? `exactly ${a[0]} times` : a[1] === '' ? `${a[0]} or more times` : `${a[0]} to ${a[1]} times`) + (m[0].endsWith('?') ? ', as few as possible' : ''); }],
+    [/^[*+?]\??/, (m) => ({ '*': '0 or more times', '+': '1 or more times', '?': '0 or 1 time' } as Record<string, string>)[m[0][0]] + (m[0].length > 1 ? ', as few as possible' : '')],
+    [/^\|/, () => 'or'],
+    [/^\^/, () => 'start of the text (or line with m)'],
+    [/^\$/, () => 'end of the text (or line with m)'],
+    [/^\./, () => 'any character'],
+    [/^[\s\S]/, (m) => `the character "${m[0]}"`],
+  ];
+  const explain = (src: string) => {
+    const r: [string, string][] = []; let rest = src;
+    while (rest && r.length < 60) {
+      for (const [re, f] of TOK) { const m = rest.match(re); if (m) { r.push([m[0], f(m)]); rest = rest.slice(m[0].length); break; } }
+    }
+    return r;
+  };
   const update = () => {
+    explainEl.textContent = ''; splitEl.textContent = '';
+    if (pat.value) {
+      for (const [t, d] of explain(pat.value)) { const li = document.createElement('li'); const c = document.createElement('code'); c.textContent = t; const sp = document.createElement('span'); sp.textContent = d; li.append(c, sp); explainEl.append(li); }
+      try { splitEl.textContent = text.value.split(new RegExp(pat.value, flagBoxes.filter((b) => b.checked && b.dataset.f !== 'g').map((b) => b.dataset.f).join(''))).map((x, i) => `${i + 1}: ${JSON.stringify(x)}`).join('\n'); } catch { /* shown above */ }
+    }
+    main();
+  };
+  const main = () => {
     hl.textContent = ''; tbody.textContent = ''; repout.textContent = '';
     out.classList.remove('err');
     const flags = flagBoxes.filter((b) => b.checked).map((b) => b.dataset.f).join('');

@@ -13,4 +13,8 @@ export default async ({ page, check, BASE }) => {
   check((await t('.dv-s-last')).includes('300.00'), 'dividend-calculator: without DRIP year 2 income stays 300');
   await set('shares', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.dv .dv-err'), 'dividend-calculator: zero shares shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('shares', '100'); await set('goal', '500'); await page.waitForTimeout(100);
+  check((await t('.dv-goalout')).includes('2,000 shares') && (await t('.dv-goalout')).includes('200,000'), 'dividend-calculator: 500 a month at 3 a share needs 2,000 shares, 200,000');
+  check((await t('.dv-cmp')).includes('DRIP'), 'dividend-calculator: DRIP comparison line shown');
 };

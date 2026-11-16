@@ -13,6 +13,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$(R + '.ec-body tr')).length === 3, 'electricity: adding an appliance');
   await page.click(R + '.ec-body .x'); await page.waitForTimeout(100);
   check((await page.$$(R + '.ec-body tr')).length === 2, 'electricity: removing an appliance');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await page.textContent(R + '.ec-top')).includes('Fridge') || (await page.textContent(R + '.ec-top')).includes('Television'), 'electricity: biggest spenders listed');
+  await page.selectOption(R + '[data-k="mode"]', 'flat'); await page.fill(R + '[data-k="cut"]', '50'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '[data-k="save"]')).includes('fewer hours saves'), `electricity: what-if text (${await page.textContent(R + '[data-k="save"]')})`);
   await page.selectOption(R + '[data-k="mode"]', 'slab'); await page.waitForTimeout(100);
   const sv = (i, c, v) => page.fill(R + `.ec-sb tr:nth-child(${i}) .${c}`, v);
   await sv(1, 'sf', '0'); await sv(1, 'st', '30'); await sv(1, 'sr', '0.10'); await sv(2, 'sf', '30'); await sv(2, 'st', '200'); await sv(2, 'sr', '0.20'); await sv(3, 'sf', '');

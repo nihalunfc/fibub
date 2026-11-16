@@ -50,6 +50,10 @@ It adds up what you paid and your own values, and works out the metal (melt) val
 
 Press **Fill in an example**. The list gets a 1921 Morgan dollar, three 1919 Indian silver rupees, a 1911 sovereign and a 10 rupee note with a solid serial. Paid in total: 40 + 30 + 600 + 5 = 675. Your values: 45 + 36 + 650 + 15 = 746, so the list is up 71. The melt value line adds up the silver and gold in the three coins at today's prices.
 
+## More options
+
+Use the type filter beside the search box to show only coins, banknotes or any other kind. Open **More options** under Totals to see counts, what you paid and your value grouped by type, country, metal or grade. **Import CSV** reads back a file made by **Download CSV** (or any sheet with a Name column and headings such as Type, Country, Year, Grade, Qty, Paid and Value) and adds its rows to your list. Your list is kept in this browser only if you tick the box, and **Clear all** deletes it.
+
 ## FAQs
 
 **Is my collection uploaded anywhere?** No. There are no accounts and no servers involved. The list lives in this page, and in this browser's storage only if you tick the box. Clearing your browser data deletes it, so export a copy.

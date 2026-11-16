@@ -28,7 +28,7 @@ import DataFile from '../../components/DataFile.astro';
     <p class="ax-err sh-shift-err" hidden></p>
   </div>
 
-  <div class="ax-card">
+  <div class="ax-card sh-pcard">
     <h2>3. Schedule</h2>
     <div class="sh-bar">
       <div class="ax-seg sh-period" role="group" aria-label="Period">
@@ -54,6 +54,13 @@ import DataFile from '../../components/DataFile.astro';
     <div class="ax-scroll sh-box"><table class="sh-grid"></table></div>
     <p class="ax-help">Tap a cell to pick a shift. Letters are the shift codes; grey “off” marks someone's day off.</p>
     <ul class="sh-warn" aria-live="polite"></ul>
+    <div class="ax-row sh-noprint" style="margin-top:10px"><button type="button" class="btn secondary small sh-print">Print this schedule</button></div>
+    <details class="sh-fair sh-noprint">
+      <summary><b>More options: fairness check</b></summary>
+      <p class="ax-help sh-fair-line" aria-live="polite"></p>
+      <div class="ax-scroll"><table class="sh-fair-t"><thead><tr><th>Person</th><th>Hours</th><th>Shifts</th><th>Weekend</th><th>Late</th><th>Vs average</th></tr></thead><tbody></tbody></table></div>
+      <p class="ax-help">Late means a shift that ends after 22:00 or past midnight. Weekend means Saturday or Sunday. People shown are those in the current view and period.</p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -108,6 +115,17 @@ import DataFile from '../../components/DataFile.astro';
   @media (min-width: 720px) { .shs .sh-shift { grid-template-columns: minmax(0, 1.2fr) 60px 264px minmax(0, 1fr) 40px 40px; grid-template-areas: "n c t d k x"; } }
   .shs .sh-k, .shs .sh-x { width: 40px; height: 38px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font: inherit; }
   .shs .sh-x { background: var(--bg); color: var(--ink); font-size: 20px; }
+  .shs .sh-fair-t { border-collapse: collapse; font-size: 14px; width: 100%; margin-top: 6px; }
+  .shs .sh-fair-t th, .shs .sh-fair-t td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+  .shs .sh-fair-t th:first-child, .shs .sh-fair-t td:first-child { text-align: left; }
+  .shs .sh-fair-t td.hi { font-weight: 700; }
+  @media print {
+    body.sh-printing * { visibility: hidden !important; }
+    body.sh-printing .sh-pcard, body.sh-printing .sh-pcard * { visibility: visible !important; }
+    body.sh-printing .sh-pcard { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    body.sh-printing .sh-noprint, body.sh-printing .sh-noprint * { display: none !important; }
+    .shs .sh-grid select { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
   .shs .sh-grid { width: auto; font-size: 13px; }
   .shs .sh-grid th, .shs .sh-grid td { padding: 3px; border: 1px solid var(--line); text-align: center; vertical-align: middle; }
   .shs .sh-grid th { font-size: 12px; }
@@ -134,7 +152,7 @@ import DataFile from '../../components/DataFile.astro';
 </style>
 
 <script>
-  import { parseStaff, autoFill, problems, totals, coverage, periodDays, periodTitle, dayLabel, weekday, addDays, key, exampleTeam, codeFor, parseNeed, needText, needFor, shiftHours, minutes, fmtTime, buildTable, PALETTE, type Shift, type Staff, type Grid, type Period, type Size, type CellText } from '../../lib/roster';
+  import { fairness, parseStaff, autoFill, problems, totals, coverage, periodDays, periodTitle, dayLabel, weekday, addDays, key, exampleTeam, codeFor, parseNeed, needText, needFor, shiftHours, minutes, fmtTime, buildTable, PALETTE, type Shift, type Staff, type Grid, type Period, type Size, type CellText } from '../../lib/roster';
   import { drawSheets, type Sheet } from '../../lib/rosterExport';
   import { save, fileSafe } from '../../lib/report';
 
@@ -340,9 +358,13 @@ import DataFile from '../../components/DataFile.astro';
     const all = [...pr, ...short];
     for (const m of all.slice(0, 12)) { const li = document.createElement('li'); li.textContent = m; warn.append(li); }
     if (all.length > 12) { const li = document.createElement('li'); li.textContent = `And ${all.length - 12} more.`; warn.append(li); }
+    const fr = fairness(ppl, st.shifts, ds, st.grid), fb = q('.sh-fair-t tbody'); fb.textContent = '';
+    for (const x of fr.rows) { const tr = document.createElement('tr'); const tol = Math.max(4, fr.avg * 0.15); [x.name, String(+x.hours.toFixed(2)), String(x.shifts), String(x.weekend), String(x.late), (x.diff > 0 ? '+' : '') + x.diff].forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i === 5 && Math.abs(x.diff) > tol) td.className = 'hi'; tr.append(td); }); fb.append(tr); }
+    q('.sh-fair-line').textContent = fr.rows.length && fr.max > 0 ? `Average ${+fr.avg.toFixed(1)} hours each; the most is ${+fr.max.toFixed(1)} and the least ${+fr.min.toFixed(1)} (a gap of ${+fr.spread.toFixed(1)}). Bold numbers are more than 15% (or 4 hours) from the average. Part-time limits and days off can make a gap fair, so use this as a prompt, not a verdict.` : 'Fill the schedule to see how evenly hours, weekends and late shifts are shared.';
     renderPreview();
     persist();
   }
+  q('.sh-print').addEventListener('click', () => { document.body.classList.add('sh-printing'); const done = () => { document.body.classList.remove('sh-printing'); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); window.print(); });
   q('.sh-grid').addEventListener('change', (e) => {
     const s = e.target as HTMLSelectElement; if (!s.dataset.k) return;
     if (s.value) st.grid[s.dataset.k] = s.value; else delete st.grid[s.dataset.k];

@@ -15,6 +15,16 @@
       <label>How often it repeats <select data-k="freq"><option value="0">One time</option><option value="5">Every day</option><option value="1" selected>Every week</option><option value="0.5">Every two weeks</option><option value="0.23">Every month</option></select></label>
       <label class="mc-wk">Weeks held a year <span class="mc-suf"><input data-k="weeks" inputmode="decimal" /><i>weeks</i></span></label>
     </div>
+    <details class="mc-more"><summary>More options: different roles and a shorter meeting</summary>
+      <p class="mc-help">Different pay in the room? Fill in the roles instead. The pay uses the same hourly or yearly choice as above, and these rows replace People and Amount when any has people in it.</p>
+      <div class="mc-roles">
+        <div class="mc-role"><input data-k="r1n" aria-label="Role 1" placeholder="Role, e.g. Managers" /><input data-k="r1c" inputmode="numeric" aria-label="People in role 1" placeholder="People" /><input data-k="r1p" inputmode="decimal" aria-label="Pay of role 1" placeholder="Pay" /></div>
+        <div class="mc-role"><input data-k="r2n" aria-label="Role 2" placeholder="Role" /><input data-k="r2c" inputmode="numeric" aria-label="People in role 2" placeholder="People" /><input data-k="r2p" inputmode="decimal" aria-label="Pay of role 2" placeholder="Pay" /></div>
+        <div class="mc-role"><input data-k="r3n" aria-label="Role 3" placeholder="Role" /><input data-k="r3c" inputmode="numeric" aria-label="People in role 3" placeholder="People" /><input data-k="r3p" inputmode="decimal" aria-label="Pay of role 3" placeholder="Pay" /></div>
+      </div>
+      <label>What if it were shorter by <span class="mc-suf"><input data-k="cut" inputmode="decimal" value="15" /><i>minutes</i></span></label>
+      <p class="mc-line" data-k="cuttext" aria-live="polite"></p>
+    </details>
     <p class="note bad mc-err" role="alert" hidden></p>
   </section>
   <section class="mc-res" aria-live="polite">
@@ -62,10 +72,14 @@
   .mc-help, .mc-fine { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
   .mc-err { margin: 10px 0 0; }
   @media (max-width: 720px) { .mc-stats { grid-template-columns: 1fr 1fr; } }
+  .mc-more { margin-top: 12px; font-size: 14px; } .mc-more summary { cursor: pointer; color: var(--accent); }
+  .mc-role { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); gap: 6px; margin-bottom: 6px; }
+  .mc-role input, .mc-more label input { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); width: 100%; min-width: 0; }
 </style>
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { rolesAverage, shorterSaves } from '../../lib/money/meeting-cost';
   const root = document.querySelector<HTMLElement>('.mc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -79,7 +93,8 @@
     q('.mc-t').textContent = fmtT(s); q('.mc-tc').textContent = $((perMin / 60) * s, 2);
   }
   function run() {
-    const n = num(f('n').value), min = num(f('min').value), amt = num(f('amt').value), hy = num(f('hy').value), oh = num(f('oh').value), per = num(f('freq').value), weeks = num(f('weeks').value);
+    const roleAvg = rolesAverage([1, 2, 3].map((i) => ({ count: num(f('r' + i + 'c').value), pay: num(f('r' + i + 'p').value) })));
+    const n = roleAvg ? roleAvg.people : num(f('n').value), min = num(f('min').value), amt = roleAvg ? roleAvg.avgPay : num(f('amt').value), hy = num(f('hy').value), oh = num(f('oh').value), per = num(f('freq').value), weeks = num(f('weeks').value);
     const year = f('unit').value === 'year';
     q('.mc-hy').hidden = !year; q('.mc-wk').hidden = per === 0;
     const bad = !(n >= 1) ? 'Enter how many people are in the meeting.' : !(min > 0) ? 'Enter the length in minutes.' : !(amt > 0) ? 'Enter their average pay.' : year && !(hy > 0) ? 'Enter the working hours in a year.' : oh < 0 ? 'The extra cannot be negative.' : per > 0 && !(weeks > 0 && weeks <= 52) ? 'Weeks held a year must be from 1 to 52.' : '';
@@ -95,6 +110,8 @@
     q('.mc-s-yl').textContent = per > 0 ? 'Per year' : 'Per year (one time)';
     q('.mc-s-year').textContent = per > 0 ? $(yearly) : '-';
     q('.mc-line').textContent = per > 0 ? `Held ${Math.round(times * 10) / 10} times a year, this meeting costs ${$(yearly)} in time, or ${Math.round((n * min * times) / 60)} person-hours.` : '';
+    const sv = shorterSaves(perMin, num(f('cut').value), min, times);
+    q('[data-k="cuttext"]').textContent = sv.perMeeting > 0 ? `Cutting ${Math.min(num(f('cut').value), min)} minutes saves ${$(sv.perMeeting, 2)} each time${per > 0 ? `, about ${$(sv.perYear)} a year` : ''}.` : '';
     meter();
   }
   q('.mc-go').addEventListener('click', () => {

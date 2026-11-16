@@ -15,6 +15,11 @@
       <label>Years <input data-k="years" inputmode="decimal" /></label>
     </div>
     <label class="chk" style="margin-top:12px"><input type="checkbox" data-k="drip" checked /> Reinvest dividends (DRIP) in more shares at the year-end price</label>
+    <details class="dv-more"><summary>More options</summary>
+      <div class="dv-grid" style="margin-top:10px">
+        <label>Monthly dividend income you want (optional) <input data-k="goal" inputmode="decimal" placeholder="e.g. 500" /></label>
+      </div>
+    </details>
     <p class="note bad dv-err" role="alert" hidden></p>
   </section>
   <section class="dv-res" aria-live="polite">
@@ -26,6 +31,8 @@
       <div><span>Value at the end</span><b class="dv-s-val"></b></div>
       <div><span>Total dividends received</span><b class="dv-s-tot"></b></div>
     </div>
+    <p class="dv-fine dv-goalout" hidden></p>
+    <p class="dv-fine dv-cmp"></p>
     <div class="panel dv-wrap"><table>
       <thead><tr><th>Year</th><th>Dividend per share</th><th>Income</th><th>Shares</th><th>Value</th></tr></thead>
       <tbody class="dv-body"></tbody>
@@ -65,7 +72,7 @@
 </style>
 
 <script>
-  import { dividends, type DivYear } from '../../lib/money/investing';
+  import { dividends, sharesForIncome, type DivYear } from '../../lib/money/investing';
   import { csv } from '../../lib/money/growth';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.dv')!;
@@ -89,6 +96,12 @@
     q('.dv-s-last').textContent = $(last.income);
     q('.dv-s-val').textContent = $(last.value);
     q('.dv-s-tot').textContent = $(rows.reduce((s, r) => s + r.income, 0));
+    const alt = dividends({ shares, cost, price, dps, divGrowth: dg, priceGrowth: pg, years, drip: !f('drip').checked });
+    const [withD, noD] = f('drip').checked ? [rows, alt] : [alt, rows];
+    q('.dv-cmp').textContent = `Reinvesting vs taking the cash: with DRIP your holding is worth ${$(withD[withD.length - 1].value)} and pays ${$(withD[withD.length - 1].income)} in year ${years}. Without it, the shares are worth ${$(noD[noD.length - 1].value)} and pay ${$(noD[noD.length - 1].income)}, and you have received ${$(noD.reduce((s, r) => s + r.income, 0))} in cash.`;
+    const goal = num(f('goal').value), g = sharesForIncome(goal, dps, price), gl = q('.dv-goalout');
+    gl.hidden = !(goal > 0);
+    if (goal > 0) gl.textContent = Number.isFinite(g.shares) ? `To receive ${$(goal)} a month (${$(goal * 12)} a year) at ${$(dps)} per share per year you need about ${Math.ceil(g.shares).toLocaleString()} shares, which is ${$(g.capital)} at today's price. You hold ${shares.toLocaleString()}.` : 'Enter a dividend per share above 0 to work out the shares needed.';
     q('.dv-body').innerHTML = rows.map((r) => `<tr><td>${r.year}</td><td>${$(r.dps)}</td><td>${$(r.income)}</td><td>${Math.round(r.shares * 1000) / 1000}</td><td>${$(r.value)}</td></tr>`).join('');
   }
   q('.dv-csv').addEventListener('click', () => csv('dividends.csv', ['Year', 'Dividend per share', 'Income', 'Shares at year end', 'Value at year end'], rows.map((r) => [r.year, r.dps, r.income, r.shares, r.value])));

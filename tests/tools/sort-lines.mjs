@@ -16,4 +16,14 @@ export default async ({ page, check, BASE }) => {
   check((await cnt()).startsWith('4 lines in, 2 lines out: 2 blank lines removed'), `sort-lines: blank lines counted (${await cnt()})`);
   await page.check(R + '[data-k="num"]'); await page.waitForTimeout(100);
   check((await out()) === '1. x\n2. y', 'sort-lines: line numbers');
+  await page.uncheck(R + '[data-k="num"]'); await page.uncheck(R + '[data-k="dedupe"]'); await page.uncheck(R + '[data-k="nocase"]');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.sl-in', 'a\nb\na\nc'); await page.selectOption(R + '[data-k="order"]', 'none'); await page.check(R + '[data-k="counts"]'); await page.waitForTimeout(100);
+  check((await out()) === '2 x a\n1 x b\n1 x c', `sort-lines: counts (${await out()})`);
+  await page.uncheck(R + '[data-k="counts"]'); await page.check(R + '[data-k="onlydup"]'); await page.waitForTimeout(100);
+  check((await out()) === 'a', 'sort-lines: only duplicated lines');
+  await page.uncheck(R + '[data-k="onlydup"]'); await page.fill(R + '[data-k="join"]', ', '); await page.fill(R + '[data-k="drop"]', 'b'); await page.waitForTimeout(100);
+  check((await out()) === 'a, a, c', `sort-lines: drop and join (${await out()})`);
+  await page.fill(R + '[data-k="join"]', ''); await page.fill(R + '[data-k="drop"]', ''); await page.fill(R + '.sl-in', '$12 lunch\n$9.50 coffee\nnone'); await page.selectOption(R + '[data-k="order"]', 'numv'); await page.waitForTimeout(100);
+  check((await out()) === '$9.50 coffee\n$12 lunch\nnone', `sort-lines: numeric by value (${await out()})`);
 };

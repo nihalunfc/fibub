@@ -35,6 +35,19 @@ export function electricity(list: Appliance[], t: Tariff) {
   return { rows, rate, kwh, month, day: (month * 12) / 365, year: month * 12 };
 }
 
+/** Appliances ranked by monthly cost, each with its share (0 to 1) of the appliance total. */
+export function topSpenders(rows: { name: string; cost: number }[]) {
+  const total = rows.reduce((a, r) => a + (r.cost > 0 ? r.cost : 0), 0);
+  return rows.map((r) => ({ name: r.name, cost: r.cost, share: total > 0 ? Math.max(0, r.cost) / total : 0 })).sort((a, b) => b.cost - a.cost);
+}
+/** Monthly bill if every appliance ran `cutPct` percent fewer hours (standby unchanged). cutPct is clamped to 0 to 100. */
+export function whatIfCut(list: Appliance[], t: Tariff, cutPct: number) {
+  const k = 1 - Math.min(100, Math.max(0, Number.isFinite(cutPct) ? cutPct : 0)) / 100;
+  const cut = electricity(list.map((a) => ({ ...a, hoursPerDay: a.hoursPerDay * k })), t);
+  const now = electricity(list, t);
+  return { month: cut.month, saveMonth: now.month - cut.month, saveYear: (now.month - cut.month) * 12 };
+}
+
 // ---------- EV vs petrol ----------
 export interface Veh { price: number; incentive: number; perYearEnergy: number; maintenance: number; insurance: number; resalePct: number }
 export function tco(v: Veh, years: number) {
@@ -99,6 +112,14 @@ export function driver(o: { fares: number; tips: number; hours: number; km: numb
   return { gross, fee, fuel, maint, costs, net, perHour: o.hours > 0 ? net / o.hours : 0, perKm: o.km > 0 ? net / o.km : 0, grossPerHour: o.hours > 0 ? gross / o.hours : 0, setAside: (Math.max(0, net) * o.setAside) / 100, keep: net - (Math.max(0, net) * o.setAside) / 100 };
 }
 
+/** Fares needed in the period to make `targetPerHour` after costs, other inputs unchanged. Null when it cannot be worked out. */
+export function faresForTarget(o: Parameters<typeof driver>[0], targetPerHour: number) {
+  if (!(o.hours > 0) || !(targetPerHour > 0) || o.feePct >= 100) return null;
+  const other = ((o.km * o.l100) / 100) * o.fuelPrice + o.km * o.maintPerKm + o.insurance + o.phone;
+  const fares = (targetPerHour * o.hours + other - o.tips) / (1 - o.feePct / 100);
+  return { fares: Math.max(0, fares), faresPerHour: Math.max(0, fares) / o.hours };
+}
+
 // ---------- Mileage ----------
 export type MRegion = 'ca' | 'us' | 'uk' | 'in';
 export interface MRate { unit: 'km' | 'mi'; cur: string; first: number; after: number; limit: number }
@@ -117,6 +138,19 @@ export function mileage(trips: Trip[], r: { first: number; after: number; limit:
   const personal = trips.filter((t) => !t.business).reduce((s, t) => s + t.dist, 0);
   return { business, personal, total: business + personal, allowance: allowance(business, r), pctBusiness: business + personal ? (business / (business + personal)) * 100 : 0 };
 }
+/** Business and personal distance per month (key YYYY-MM, from the trip date; trips with no date go under "No date"). */
+export function monthlyTotals(trips: Trip[]) {
+  const m = new Map<string, { month: string; business: number; personal: number }>();
+  for (const t of trips) {
+    const k = /^\d{4}-\d{2}/.test(t.date) ? t.date.slice(0, 7) : 'No date';
+    const r = m.get(k) || { month: k, business: 0, personal: 0 };
+    if (t.business) r.business += t.dist; else r.personal += t.dist;
+    m.set(k, r);
+  }
+  return [...m.values()].sort((a, b) => a.month.localeCompare(b.month));
+}
+/** Claim by business share: the year's actual vehicle costs times the share of distance driven for business. */
+export const shareClaim = (yearCosts: number, pctBusiness: number) => Math.max(0, Number.isFinite(yearCosts) ? yearCosts : 0) * Math.min(100, Math.max(0, pctBusiness)) / 100;
 const q = (s: string) => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 export const tripsCsv = (trips: Trip[], unit: string) =>
   ['Date,From,To,Purpose,Distance (' + unit + '),Type', ...trips.map((t) => [t.date, q(t.from), q(t.to), q(t.purpose), t.dist, t.business ? 'Business' : 'Personal'].join(','))].join('\n');

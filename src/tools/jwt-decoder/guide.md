@@ -25,14 +25,16 @@ flow:
 
 A JSON Web Token (JWT) is the long string of letters with two dots that many apps use to say who is logged in. It has three parts: a header (which algorithm signed it), a payload (the claims, such as a user id and expiry time) and a signature. The first two are only Base64url-encoded JSON, so anyone can read them. This page decodes them as you paste and turns the time claims into dates.
 
-The signature is shown but **not verified**. Checking it needs the secret or public key, and a decoder should never ask for that. The token is never sent anywhere. To decode other Base64 text use the [[base64-converter]]; to compare a fingerprint of a file use the [[hash-checker]].
+By default the signature is shown but **not verified**, because checking it needs the secret. If you want, you can type the shared secret of an HS256, HS384 or HS512 token under **Check the signature** and the page tells you whether it matches; the secret stays on this page. The token is never sent anywhere. To decode other Base64 text use the [[base64-converter]]; to compare a fingerprint of a file use the [[hash-checker]].
 
 ## How to use it
 
 1. Paste the token in **Token (JWT)**. A leading "Bearer " is ignored.
 2. Read the header and payload below, laid out as JSON.
 3. Check the times: each one is shown in UTC and in your own time.
-4. Press **Clear** to remove the token from the page.
+4. Read **What the claims mean**: each claim in the payload with a plain description (issuer, subject, audience, scope and so on; unknown names are marked as custom claims).
+5. Optionally open **Check the signature** and type the secret to see whether the token was signed with it. RS256 and ES256 tokens need a public key and cannot be checked here.
+6. Press **Clear** to remove the token from the page.
 
 ## What each part shows
 

@@ -14,6 +14,11 @@
       <label>CESG already received <span class="re-suf"><input data-k="got" inputmode="decimal" value="0" /><i>$</i></span></label>
       <label class="re-check"><input type="checkbox" data-k="clb" /> Eligible for the Canada Learning Bond (lower-income family, child born 2004 or later)</label>
     </div>
+    <details class="re-more">
+      <summary>More options</summary>
+      <label>Yearly price rise, to show today's dollars <span class="re-suf"><input data-k="infl" inputmode="decimal" value="0" /><i>%</i></span></label>
+      <p class="re-hint">0 hides the today's-dollars line. A common planning guess is 2 to 3.</p>
+    </details>
     <p class="note bad re-err" role="alert" hidden></p>
   </section>
   <section class="re-res" aria-live="polite">
@@ -24,6 +29,13 @@
       <div><span>Learning Bond</span><b class="re-s-clb"></b></div>
     </div>
     <p class="re-line"></p>
+    <p class="re-full"></p>
+    <p class="re-real" hidden></p>
+    <div class="panel re-ch">
+      <h2>What the pot is made of</h2>
+      <svg class="re-svg" viewBox="0 0 320 150" role="img" aria-label="Stacked bars by year: what you put in, grants and Learning Bond, and growth"></svg>
+      <p class="re-key"><span class="k1"></span> You put in <span class="k2"></span> Grants and Bond <span class="k3"></span> Growth</p>
+    </div>
     <p class="note warn re-note" hidden></p>
     <details class="panel" open>
       <summary>Year by year</summary>
@@ -63,13 +75,17 @@
   .re th:first-child, .re td:first-child { text-align: left; }
   .re th { font-size: 12px; color: var(--muted); font-weight: 600; }
   .re details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .re-more summary { cursor: pointer; font-weight: 600; margin: 12px 0 8px; } .re-hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .re-full, .re-real { margin: 0; font-size: 15px; }
+  .re-svg { width: 100%; height: auto; display: block; }
+  .re-key { font-size: 13px; color: var(--muted); margin: 6px 0 0; } .re-key span { display: inline-block; width: 12px; height: 12px; margin: 0 4px -1px 8px; } .re-key .k1 { background: var(--muted); } .re-key .k2 { background: var(--accent); } .re-key .k3 { background: var(--ink); }
   .re-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .re-err { margin: 10px 0 0; }
   @media (max-width: 720px) { .re-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
-  import { resp } from '../../lib/money/resp-calculator';
+  import { resp, amountForFullGrant, todaysDollars } from '../../lib/money/resp-calculator';
   import { num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.re')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -87,6 +103,20 @@
     q('.re-s-clb').textContent = f('clb').checked ? $(r.clb) : 'Not eligible';
     const total = got + r.cesg + r.acesg;
     q('.re-line').textContent = r.capYear !== null ? `The $7,200 lifetime grant is reached in the year the child turns ${r.capYear}.` : `Grants come to ${$(total)} of the $7,200 lifetime limit${got ? ', counting what you already received' : ''}. ${total < 7200 - 0.5 ? 'Put in more, or start earlier, to get the rest.' : ''}`;
+    const per = num(f('per').value), inp = { age, until, perYear: per, lump: num(f('lump').value), rate, band: f('band').value as 'low' | 'mid' | 'high', clb: f('clb').checked, received: got };
+    const full = amountForFullGrant(inp);
+    q('.re-full').textContent = !full ? 'No CESG can be earned from this start.' : per >= full.perYear - 0.5 ? `You are putting in enough to collect the most grant possible from this start (${$(full.grant)}). That is about ${$(per / 12)} a month.` : `To collect the most grant possible from this start (${$(full.grant)}), put in about ${$(full.perYear)} a year (${$(full.perYear / 12)} a month). You are at ${$(per)} a year, ${$(per / 12)} a month.`;
+    const infl = num(f('infl').value), yrs = until - age;
+    q('.re-real').hidden = !(infl > 0 && infl <= 20);
+    q('.re-real').textContent = `In today's dollars (prices rising ${infl}% a year), the RESP at the end is worth about ${$(todaysDollars(r.balance, infl, yrs))}.`;
+    // Stacked bars: you put in, grants and bond, growth.
+    let cp = 0, cg = 0; const W = 320, H = 150, B = 16, n = r.rows.length, bw = (W - 12) / n, top = Math.max(...r.rows.map((x) => x.balance), 1);
+    q('.re-svg').innerHTML = r.rows.map((x, i) => {
+      cp += x.put; cg += x.cesg + x.acesg + x.clb;
+      const hh = (v: number) => (Math.max(0, v) / top) * (H - B - 8), grow = Math.max(0, x.balance - cp - cg);
+      const X = 6 + i * bw; let y = H - B; const seg = (v: number, c: string) => { const h = hh(v); y -= h; return `<rect x="${X.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1, bw - 1).toFixed(1)}" height="${h.toFixed(1)}" fill="${c}"/>`; };
+      return seg(cp, 'var(--muted)') + seg(cg, 'var(--accent)') + seg(grow, 'var(--ink)');
+    }).join('') + `<text x="6" y="${H - 3}" font-size="10" fill="var(--muted)">Age ${age}</text><text x="${W - 6}" y="${H - 3}" font-size="10" text-anchor="end" fill="var(--muted)">Age ${until}</text>`;
     const notes: string[] = [];
     if (r.noGrant) notes.push('At 16 and 17, a child gets CESG only if at least $2,000 went in before the end of the year they turned 15, or at least $100 a year in any 4 earlier years. Enter any CESG already received if this applies.');
     if (r.capped) notes.push('Contributions stop at the $50,000 lifetime limit for one child.');

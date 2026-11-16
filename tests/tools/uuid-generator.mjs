@@ -17,4 +17,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.ug-verdict')).includes('version 4'), 'uuid-generator: example validates as version 4');
   await page.fill(R + '.ug-check', 'not-a-uuid'); await page.waitForTimeout(100);
   check((await page.textContent(R + '.ug-verdict')).startsWith('Not a UUID'), 'uuid-generator: rejects a bad UUID');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption(R + '[data-k="wrap"]', 'json'); await page.waitForTimeout(100);
+  check(Array.isArray(JSON.parse(await page.inputValue(R + '.ug-out'))), 'uuid-generator: JSON array output');
+  await page.selectOption(R + '[data-k="wrap"]', 'short'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.ug-out')).split('\n').every((x) => /^[0-9A-Za-z]{22}$/.test(x)), 'uuid-generator: short form is 22 characters');
 };

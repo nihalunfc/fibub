@@ -15,4 +15,11 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.di .di-max')).includes('324,000'), 'debt-to-income: UK 6,000 x 12 x 4.5 = 324,000');
   await set('housing', '2400');
   check((await page.textContent('.di .di-rows')).includes('40.0%'), 'debt-to-income: housing 2,400 adds to 40%');
+  await set('housing', '0'); await set('debts', '1500');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  // 36% of 6,000 = 2,160 - 1,500 = 660
+  check((await page.textContent('.di .di-head')).includes('add about 660'), `debt-to-income: headroom 660 (${await page.textContent('.di .di-head')})`);
+  await page.selectOption('.di [data-k="target"]', '28'); await page.waitForTimeout(100);
+  // 28% = 1,680 - 1,500 = 180
+  check((await page.textContent('.di .di-head')).includes('add about 180'), 'debt-to-income: headroom at 28% = 180');
 };

@@ -18,4 +18,10 @@ export default async ({ page, check, BASE }) => {
   check((await cell(1, 2)).includes('1,800.00'), 'units of production year 1 = 1,800 (' + (await cell(1, 2)) + ')');
   await set('salv', '20000'); await page.waitForTimeout(100);
   check(await page.isVisible('.dp .dp-err'), 'salvage above cost shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.dp [data-k="method"]', 'sl');
+  await page.fill('.dp [data-k="cost"]', '10000'); await page.fill('.dp [data-k="salv"]', '1000'); await page.fill('.dp [data-k="life"]', '5');
+  await page.fill('.dp [data-k="sy"]', '2'); await page.fill('.dp [data-k="sp"]', '7000'); await page.waitForTimeout(100);
+  check((await page.textContent('.dp-sale')).includes('600.00') && (await page.textContent('.dp-sale')).includes('gain'), 'depreciation: sold at 7,000 after year 2 (book 6,400) gains 600');
+  check((await page.locator('.dp-cmp tr').count()) === 3, 'depreciation: three methods compared');
 };

@@ -17,4 +17,14 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$(R + '.ml-body tr')).length === 1, 'mileage: delete a trip');
   await page.click(R + '[data-k="clear"]'); await page.waitForTimeout(100);
   check((await page.$$(R + '.ml-body tr')).length === 0, 'mileage: clear all');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.check(R + '[data-k="round"]');
+  await add('10', 'b');
+  await page.uncheck(R + '[data-k="round"]');
+  check((await page.textContent(R + '.ml-rows')).includes('20.0 '), 'mileage: round trip counts twice');
+  check((await page.textContent(R + '.ml-months')).includes('20.0'), 'mileage: monthly totals');
+  await add('20', 'p');
+  await page.fill(R + '[data-k="costs"]', '1000'); await page.waitForTimeout(100);
+  // business 20 of 40 = 50% of 1000 = 500.00
+  check((await page.textContent(R + '[data-k="claim"]')).includes('500.00'), `mileage: actual-cost share (${await page.textContent(R + '[data-k="claim"]')})`);
 };

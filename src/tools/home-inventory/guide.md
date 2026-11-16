@@ -37,6 +37,8 @@ Photos stay on your device and are never uploaded. If you find a gap, work out w
 
 ## What each setting does
 
+- **Category**: optional (electronics, furniture, jewellery...). The "By category" table totals each one, largest first, so you can see where most of the value sits and which items may need a single-item limit check in your policy.
+- **Claim readiness line**: counts items with no replacement cost or no photo, so you know what to fill in before you print.
 - **Replacement cost**: buying the item new today. Policies paying this are "replacement cost" policies.
 - **Years of life**: straight-line wear: an item of 10 years bought 5 years ago is valued at half.
 - **Keep this list in this browser**: off by default; saves the text of your list on this device only, never photos.

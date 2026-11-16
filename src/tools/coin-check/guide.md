@@ -46,6 +46,10 @@ It never says a coin is real or fake. Worn coins lose weight, cleaned or damaged
 
 A Morgan dollar should weigh 26.73 g and be 38.10 mm wide. Yours weighs 26.20 g and measures 38.10 mm. The weight is 0.53 g lighter, which is -1.98%, outside the 1% allowance. The width is exactly right (0.00%). A worn coin can easily lose that much, but far off means ask an expert.
 
+## More options
+
+Open **More options** under the measurements for three extras. Choose the unit you weighed in (grams, grains, pennyweight, troy ounces or ounces) and the tool converts it to grams for you. Type several weighings, one per line, and the average replaces the single weight, with the lowest, highest and spread shown, so you can see whether your scale repeats. You can also set the thickness allowance (3% to start). The official figures in the list come from each mint's own page, so check the official source for your coin; this tool does not say whether a coin is real.
+
 ## FAQs
 
 **Why is my old coin lighter?** Wear removes metal. Many circulated coins sit a little under the official weight.

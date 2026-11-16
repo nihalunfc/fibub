@@ -131,3 +131,35 @@ export function score(i: Input): Score {
 
   return { age, edu, first, second, cdnWork, offer, lmi, core, sEdu, sLang, sWork, spouse, tEduLang, tEduWork, tEdu, tForLang, tForWork, tFor, tCert, transfer, aSibling, aFrench, aStudy, aNom, additional, total: core + spouse + transfer + additional };
 }
+
+export type Suggestion = { label: string; gain: number; total: number };
+
+/** "What would raise my score": re-scores the same profile with one change at a time. Skips changes that add nothing or do not apply. */
+export function suggestions(i: Input): Suggestion[] {
+  const base = score(i).total;
+  const out: Suggestion[] = [];
+  const add = (label: string, mod: Partial<Input> | null) => {
+    if (!mod) return;
+    const t = score({ ...i, ...mod }).total;
+    out.push({ label, gain: t - base, total: t });
+  };
+  const bump = (a: number[]) => a.map((c) => Math.min(10, c + 1));
+  const lowest = Math.min(...i.first);
+  add('One more CLB level in every first-language skill', Math.min(...i.first) >= 10 ? null : { first: bump(i.first) });
+  add('Lift your weakest first-language skill by one CLB level', lowest >= 10 ? null : { first: i.first.map((c, n) => (n === i.first.indexOf(lowest) ? c + 1 : c)) });
+  add('CLB 9 in all four first-language skills', lowest >= 9 ? null : { first: i.first.map((c) => Math.max(c, 9)) });
+  add('CLB 7 or more in all four skills of your second language (add a second-language test)', i.second && Math.min(...i.second) >= 7 ? null : { second: (i.second ?? [0, 0, 0, 0]).map((c) => Math.max(c, 7)) });
+  add('NCLC 7 in all four French skills (with English CLB 5 or more)', i.firstIsFrench || (i.second && Math.min(...i.second) >= 7) ? null : { second: (i.second ?? [0, 0, 0, 0]).map((c) => Math.max(c, 7)) });
+  if (i.cdnYears < 5) add('One more year of skilled work in Canada', { cdnYears: i.cdnYears + 1 });
+  if (i.foreignYears < 3) add('3 years or more of skilled foreign work', { foreignYears: 3 });
+  if (!i.certificate) add('A Canadian certificate of qualification in a trade', { certificate: true });
+  if (i.study !== 'long') add('A Canadian post-secondary credential of 3 years or longer', { study: 'long' });
+  if (!i.sibling) add('A brother or sister in Canada (citizen or PR, 18 or older)', { sibling: true });
+  if (!i.nomination) add('A provincial or territorial nomination', { nomination: true });
+  if (i.offer === 'none') add('A valid job offer in a high-wage occupation (2 times the median wage)', { offer: '2' });
+  const ed = EDUCATION.findIndex((x) => x.id === i.edu);
+  if (ed >= 0 && ed < EDUCATION.length - 1 && i.edu !== 'none') add('The next education level up', { edu: EDUCATION[ed + 1].id });
+  // Waiting a year: you get a year older and a year more of Canadian work, if any.
+  add('A year from now: one year older and one more year of Canadian work', { age: i.age + 1, cdnYears: Math.min(5, i.cdnYears + 1) });
+  return out.filter((s) => s.gain !== 0).sort((a, b) => b.gain - a.gain);
+}

@@ -47,6 +47,10 @@ Enter the cost, the value you expect at the end (salvage), the life in years and
 
 A machine costs 10,000, will be worth 1,000 and lasts 5 years. Straight line gives (10,000 - 1,000) / 5 = 1,800 a year. Double declining uses 40%: 4,000 in year 1, then 2,400, 1,440 and 864, and the last year is trimmed so book value ends at 1,000. Sum of the years' digits (15) gives 3,000 in year 1.
 
+## Sale and comparison
+
+The table "Compare the methods" puts straight line, declining balance and sum of the years' digits side by side for the same asset. In **More options**, enter a year and a selling price to see the book value at that point and the gain or loss on sale. Tax treatment of a sale differs by country, so check the official source.
+
 ## FAQs
 
 **Which method should I use?** Your accountant or tax rules decide. Straight line is the simplest.

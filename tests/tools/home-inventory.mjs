@@ -18,4 +18,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.inputValue('.hi .hi-row [data-f="item"]')) === 'Sofa-test', 'home-inventory: ticked box keeps the list');
   await page.click('.hi .hi-clear'); await page.reload(); await page.waitForTimeout(300);
   check((await page.inputValue('.hi .hi-row [data-f="item"]')) !== 'Sofa-test', 'home-inventory: Clear removes the saved list');
+  // category totals: after earlier steps there are 2 rows, Electronics 1000 and Appliances 500 (example rows)
+  await page.goto(`${BASE}/money/home-inventory/`); await page.waitForTimeout(300);
+  await page.locator('.hi .hi-row [data-f="repl"]').nth(0).fill('1000'); await page.locator('.hi .hi-row [data-f="repl"]').nth(1).fill('500'); await page.waitForTimeout(100);
+  const cats = (await txt('.hi-cats')).replace(/\s+/g, ' ');
+  check(cats.includes('Electronics') && cats.includes('1,000') && cats.includes('Appliances'), 'home-inventory: by-category table (' + cats + ')');
+  check((await txt('.hi-checks')).includes('without a photo'), 'home-inventory: claim readiness line');
 };

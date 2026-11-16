@@ -43,6 +43,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <figcaption>Value over time: <span class="sk-leg"></span></figcaption>
       <div class="sk-svg"></div>
     </figure>
+    <details class="panel sk-more">
+      <summary>More options: three ways side by side, at different returns elsewhere</summary>
+      <p class="sk-hint">Value at the last benefit year of each choice, if the money you free up (or the benefits you receive) earns the rate shown.</p>
+      <div class="sk-wrap"><table><thead><tr><th>Rate elsewhere</th><th>Keep and continue</th><th>Surrender and invest</th><th>Paid-up</th><th>Best</th></tr></thead><tbody class="sk-rates"></tbody></table></div>
+    </details>
     <details class="panel" open>
       <summary>Year by year</summary>
       <div class="sk-wrap"><table>
@@ -89,7 +94,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { keepReturn, surrenderInvest, irr } from '../../lib/money/insurance';
+  import { keepReturn, surrenderInvest, irr, grownPayment } from '../../lib/money/insurance';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.sk')!;
@@ -129,6 +134,13 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.sk-s-term').textContent = term > 0 && termy > 0 ? $(term * termy) + ' over ' + termy + ' years' : 'not used';
     const higher = sur > keep ? 'Surrendering and investing ends higher' : 'Keeping the policy ends higher';
     q('.sk-words').innerHTML = `Keeping returns about <b>${pct(kr.irr)}</b> a year from today. At ${rate}% a year, ${higher.toLowerCase()} in year ${last}: ${$(sur)} against ${$(keep)}. ${Number.isFinite(kr.irr) ? `If you can earn more than <b>${pct(kr.irr)}</b> elsewhere, surrendering comes out ahead; if less, keeping does.` : ''}${pu > 0 && Number.isFinite(puIrr) ? ` The paid-up option returns ${pct(puIrr)} a year.` : ''} Surrender charges and tax are not counted: check the policy.`;
+    const rateList = [...new Set([3, 5, 7, 9, 11, rate])].sort((a, b) => a - b);
+    q('.sk-rates').innerHTML = rateList.map((rt) => {
+      const k2 = grown(bens, rt, last), s2 = surrenderInvest(sv, prem, left, rt, last), p2 = pu > 0 ? grownPayment(pu, puy, rt, last) : NaN;
+      const opts: [string, number][] = [['Keep', k2], ['Surrender', s2]]; if (pu > 0) opts.push(['Paid-up', p2]);
+      const best = opts.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+      return `<tr><td>${rt}%${rt === rate ? ' (yours)' : ''}</td><td>${$(k2)}</td><td>${$(s2)}</td><td>${pu > 0 ? $(p2) : 'not used'}</td><td>${best}</td></tr>`;
+    }).join('');
     const xs: number[] = [], sv2: number[] = [], kv: number[] = [];
     let body = '';
     for (let y = 0; y <= last; y++) {

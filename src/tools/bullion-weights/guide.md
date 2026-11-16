@@ -39,6 +39,7 @@ It is built for gold, silver, platinum and coins, so it includes the troy ounce 
 ## What each setting does
 
 - **Amount**: the weight you have. Decimals are fine.
+- **More options, convert a price per unit**: type a price for one of the chosen unit (for example gold per tola) and the table adds a column with the same price per gram, per troy ounce and per every other unit.
 - **Unit**: gram, kilogram, troy ounce, ounce, grain, pennyweight, tola, masha, ratti, sovereign (pavan), baht or tael.
 
 ## Worked example

@@ -10,6 +10,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <label>Country <select class="it-region"><option value="">All</option><option value="IN">India</option><option value="CA">Canada</option><option value="US">United States</option><option value="UK">United Kingdom</option></select></label>
       <label>Type of cover <select class="it-kind"><option value="">All</option><option value="health">Health</option><option value="dental">Dental</option><option value="car">Car</option><option value="life">Life</option><option value="home">Home</option><option value="general">General</option></select></label>
     </div>
+    <div class="it-letters" role="group" aria-label="Show terms starting with a letter"></div>
     <p class="it-count" aria-live="polite"></p>
   </section>
   <div class="it-list"></div>
@@ -18,6 +19,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </div>
 
 <style is:inline>
+  .it-letters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; } .it-letters button { font: inherit; font-size: 14px; min-width: 36px; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; } .it-letters button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
   .it { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .it > * { min-width: 0; }
   .it .panel { padding: 16px; }
@@ -88,16 +90,32 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     { t: 'Whole life', k: [L], r: ['US', 'CA', 'UK'], m: 'Cover for your whole life, usually with a cash value, at a higher price than term.', e: 'A permanent policy paying 200,000 whenever you die.' },
     { t: 'HSA and HDHP', a: 'health savings account high deductible', k: [H], r: ['US'], m: 'A high-deductible health plan pairs with a tax-advantaged health savings account for medical costs.', e: 'Put 3,000 in the HSA to pay your first 3,000 of bills.' },
     { t: 'Provincial plan', a: 'medicare', k: [H], r: ['CA'], m: 'Each Canadian province runs public cover for basic hospital and doctor care. Private plans add extras like dental and drugs.', e: 'Public pays a doctor visit; a private plan may pay 80% of glasses.' },
+    { t: 'Claim', k: [G], r: [], m: 'Your request to the insurer to pay for a loss that the policy covers.', e: 'A 4,000 repair bill sent to the insurer with the form and photos is a claim.' },
+    { t: 'Policyholder and insured', k: [G], r: [], m: 'The policyholder buys and owns the policy. The insured is the person or thing the cover protects. They are often the same person, but not always.', e: 'A parent buys a health policy (policyholder) for a child (insured).' },
+    { t: 'Indemnity', k: [G], r: [], m: 'The idea that insurance puts you back where you were after a loss, not better off. You are paid the loss, not a profit.', e: 'A 300 phone that broke pays about 300 or less, never 600.' },
+    { t: 'Endorsement', a: 'rider add-on', k: [G, C, O], r: ['IN', 'US', 'CA', 'UK'], m: 'A written change to the policy, such as a new address, an extra driver or a bigger cover.', e: 'An endorsement adds a second driver from 1 March.' },
+    { t: 'Floater policy', a: 'family floater', k: [H], r: ['IN'], m: 'One sum insured shared by everyone named on the policy. If one person uses most of it, less is left for the others.', e: 'Sum insured 500,000 for 4 people: one claim of 300,000 leaves 200,000 for the rest of the year.' },
+    { t: 'Top-up and super top-up', k: [H], r: ['IN'], m: 'Extra health cover that starts after a deductible. A top-up looks at each claim alone, a super top-up adds up all claims in the year.', e: 'Deductible 300,000: a 100,000 claim does not reach it on its own.' },
+    { t: 'Peril', k: [O, G], r: [], m: 'A cause of loss, such as fire, flood or theft. A policy lists which perils it covers.', e: 'A policy covering fire but not flood pays nothing for a flooded floor.' },
+    { t: 'Lapse', k: [L, H, C], r: [], m: 'The policy ends because a payment was missed and the grace period passed. Reviving it may need a form, a fee or a health check.', e: 'Premium unpaid 45 days after the due date: the policy may have lapsed.' },
+    { t: 'Pro-rata', k: [G], r: [], m: 'In proportion to time or share. A refund when you cancel early is often pro-rata, less a fee.', e: 'Cancel a 1,200 policy after 3 months: about 900 back before any fee.' },
+    { t: 'Insurable interest', k: [L, O, G], r: [], m: 'You must stand to lose something if the insured event happens, or you cannot buy the cover.', e: 'You can insure your own home, not a stranger\'s.' },
+    { t: 'Cooling-off period', a: 'free look', k: [L, H], r: ['UK', 'CA', 'US'], m: 'A short time after buying when you can cancel for a refund. See also free-look period.', e: 'Cancel in the first 14 days and get the premium back, less small charges.' },
   ];
   const root = document.querySelector('.it') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const KIND: Record<string, string> = { health: 'Health', dental: 'Dental', car: 'Car', life: 'Life', home: 'Home', general: 'General' };
   const RN: Record<string, string> = { IN: 'India', CA: 'Canada', US: 'US', UK: 'UK' };
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  let letter = '';
+  const letters = [...new Set(TERMS.map((x) => x.t[0].toUpperCase()))].sort();
+  const lbox = q('.it-letters');
+  lbox.innerHTML = ['All', ...letters].map((l) => `<button type="button" data-l="${l === 'All' ? '' : l}" aria-pressed="${l === 'All'}">${l}</button>`).join('');
+  lbox.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; letter = b.dataset.l || ''; lbox.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String((x.dataset.l || '') === letter))); run(); });
   function run() {
     const text = q<HTMLInputElement>('.it-q').value.trim().toLowerCase();
     const rg = q<HTMLSelectElement>('.it-region').value, kd = q<HTMLSelectElement>('.it-kind').value;
-    const hits = TERMS.filter((x) => (!rg || !x.r.length || x.r.includes(rg)) && (!kd || x.k.includes(kd)) && (!text || x.t.toLowerCase().includes(text) || (x.a || '').toLowerCase().includes(text) || x.m.toLowerCase().includes(text)));
+    const hits = TERMS.filter((x) => (!letter || x.t[0].toUpperCase() === letter) && (!rg || !x.r.length || x.r.includes(rg)) && (!kd || x.k.includes(kd)) && (!text || x.t.toLowerCase().includes(text) || (x.a || '').toLowerCase().includes(text) || x.m.toLowerCase().includes(text))).sort((a, b) => a.t.localeCompare(b.t));
     q('.it-list').innerHTML = hits.map((x) => `<article class="it-card"><h3>${esc(x.t)}</h3><p>${esc(x.m)}</p><p class="it-eg">Example: ${esc(x.e)}</p><div class="it-tags">${x.r.length && x.r.length < 4 ? x.r.map((r) => `<span class="it-rg">${RN[r]}</span>`).join('') : ''}${x.k.map((k) => `<span>${KIND[k]}</span>`).join('')}</div></article>`).join('');
     q('.it-none').hidden = hits.length > 0;
     q('.it-count').textContent = `${hits.length} of ${TERMS.length} terms`;

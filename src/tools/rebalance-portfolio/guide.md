@@ -45,6 +45,10 @@ If you would rather not sell (selling can create a taxable gain), tick **Buy onl
 
 You hold 6,000 in a shares fund and 4,000 in a bond fund, with a 50/50 target and no new cash. The total is 10,000, so each should be 5,000: sell 1,000 of the shares fund and buy 1,000 of the bond fund. With 2,000 of new cash and Buy only ticked, the whole 2,000 goes to the bond fund, giving 6,000 and 6,000.
 
+## Tolerance band
+
+The "Only act if a holding is off target by more than" box sets a band in percentage points. The table shows how far each holding is from its target, and a note says whether any holding is outside the band. This helps you avoid trading (and paying fees or tax) over small drifts. Leave it blank to always see the full plan.
+
 ## FAQs
 
 **Does it round to whole shares?** No. It gives amounts of money; round to what your broker allows.

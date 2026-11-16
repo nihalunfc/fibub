@@ -160,3 +160,20 @@ export function summarize(sales: Sale[], inclPct: number, taxFree = 0, ratePct: 
   const total: GainYear = { ...mk('All', sales), taxable: years.reduce((s, y) => s + y.taxable, 0), estTax: ratePct === null || !(ratePct >= 0) ? null : years.reduce((s, y) => s + (y.estTax || 0), 0) };
   return { years, total };
 }
+
+// ---- upgrade additions (2026-11-16) ----
+/** Shares and money needed to receive `monthly` income from dividends of `dps` a share a year. */
+export function sharesForIncome(monthly: number, dps: number, price: number) {
+  if (!(monthly > 0) || !(dps > 0)) return { shares: NaN, capital: NaN };
+  const shares = (monthly * 12) / dps;
+  return { shares, capital: shares * price };
+}
+/** End value that gives a yearly return `rate` (%) over `years`. */
+export const endForReturn = (start: number, rate: number, years: number) => (start > 0 && years > 0 && rate > -100 ? start * Math.pow(1 + rate / 100, years) : NaN);
+/** Years to grow from start to end at `rate` % a year. */
+export const yearsToReach = (start: number, end: number, rate: number) => (start > 0 && end > 0 && rate > -100 && rate !== 0 && end / start > 0 ? Math.log(end / start) / Math.log(1 + rate / 100) : NaN);
+/** Drift of each holding from its target, in percentage points, and whether it is outside the band. */
+export function drift(trades: Trade[], band: number) {
+  const total = trades.reduce((s, x) => s + x.value, 0) || 1;
+  return trades.map((x) => { const d = (x.value / total) * 100 - x.target; return { name: x.name, drift: d, outside: Math.abs(d) > band + 1e-9 }; });
+}

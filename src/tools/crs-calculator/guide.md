@@ -11,7 +11,7 @@ ads: false
 order: 2048
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [citizenship-days, passport-photo, canada-income-tax]
 sources:
   - "IRCC, Express Entry: Comprehensive Ranking System (CRS) criteria, https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/check-score/crs-criteria.html (page modified 2026-11-03, checked 2026-11-10)."
@@ -46,6 +46,11 @@ It runs in your browser and never asks for a passport, UCI or other ID number. A
 ## Worked example
 
 Single, 29, master's degree, CLB 9 in all four skills, no Canadian work and no second language: age 110, education 135, language 124, so core 369. Master's with CLB 9 adds 50 for skill transferability: **419**. With a spouse coming along (no points of their own) it drops to 392. A provincial nomination on the single case makes it 1,019.
+
+## More options
+
+- **What would raise my score?** Below the breakdown, a list re-scores your profile with one change at a time (one more CLB level, CLB 9 in every skill, a second-language test, French at NCLC 7, another year of Canadian work, three years of foreign work, a trade certificate, Canadian study, a sibling, a nomination, a job offer, the next education level, or simply a year from now) and shows the points gained and the new total, biggest first. It is for planning only.
+- **Compare with a cut-off score**: type the lowest score of a recent round from IRCC's Express Entry rounds of invitations page and see how many points you are above or below it. fibub does not list draw results, because they change every round and we only show figures we can source and date; the cut-off is always a number you type.
 
 ## FAQs
 

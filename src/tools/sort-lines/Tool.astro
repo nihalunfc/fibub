@@ -20,6 +20,8 @@ apple</textarea>
         <option value="za">Z to A</option>
         <option value="nat" selected>Natural (numbers by value)</option>
         <option value="natd">Natural, reversed</option>
+        <option value="numv">Numbers by value (first number in each line)</option>
+        <option value="last">By last word</option>
         <option value="short">Shortest first</option>
         <option value="long">Longest first</option>
         <option value="rev">Reverse the order</option>
@@ -33,6 +35,20 @@ apple</textarea>
       <label><input type="checkbox" data-k="nocase" /> Duplicates ignore case</label>
       <label><input type="checkbox" data-k="num" /> Add line numbers</label>
     </div>
+    <details class="sl-more">
+      <summary>More options: filter, count, prefix, join</summary>
+      <div class="sl-mgrid">
+        <label>Keep only lines containing <input data-k="keep" spellcheck="false" autocomplete="off" /></label>
+        <label>Remove lines containing <input data-k="drop" spellcheck="false" autocomplete="off" /></label>
+        <label>Add before each line <input data-k="pre" spellcheck="false" autocomplete="off" /></label>
+        <label>Add after each line <input data-k="suf" spellcheck="false" autocomplete="off" /></label>
+        <label>Join all lines into one, with <input data-k="join" spellcheck="false" autocomplete="off" placeholder="e.g. , " /></label>
+      </div>
+      <div class="sl-checks">
+        <label><input type="checkbox" data-k="onlydup" /> Keep only lines that appear more than once</label>
+        <label><input type="checkbox" data-k="counts" /> Show how many times each line appears</label>
+      </div>
+    </details>
   </section>
   <p class="sl-count" aria-live="polite"></p>
   <label class="sl-lab">Result
@@ -62,6 +78,10 @@ apple</textarea>
   .sl button:hover { border-color: var(--accent); }
   .sl button[hidden] { display: none; }
   .sl-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .sl-more summary { cursor: pointer; font-weight: 600; margin-top: 8px; }
+  .sl-mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px; margin: 10px 0; }
+  .sl-mgrid label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sl-mgrid input { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
 </style>
 
 <script>
@@ -91,8 +111,24 @@ apple</textarea>
       lines = lines.filter((l) => { const k = nc ? l.toLocaleLowerCase() : l; if (seen.has(k)) return false; seen.add(k); return true; });
       dupes = n - lines.length;
     }
+    const val = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`).value;
+    const keep = val('keep'), drop = val('drop'), nc2 = box('nocase').checked;
+    const has = (l: string, t: string) => (nc2 ? l.toLocaleLowerCase().includes(t.toLocaleLowerCase()) : l.includes(t));
+    if (keep) lines = lines.filter((l) => has(l, keep));
+    if (drop) lines = lines.filter((l) => !has(l, drop));
     const o = order.value;
-    if (o === 'az') lines.sort(plain.compare);
+    let tally: Map<string, number> | null = null;
+    if (box('onlydup').checked || box('counts').checked) {
+      const m = new Map<string, number>(), key = (l: string) => (nc2 ? l.toLocaleLowerCase() : l);
+      for (const l of lines) m.set(key(l), (m.get(key(l)) || 0) + 1);
+      if (box('onlydup').checked) { const shown = new Set<string>(); lines = lines.filter((l) => { const k = key(l); if ((m.get(k) || 0) < 2 || shown.has(k)) return false; shown.add(k); return true; }); }
+      if (box('counts').checked) { tally = m; if (!box('onlydup').checked) { const shown = new Set<string>(); lines = lines.filter((l) => { const k = key(l); if (shown.has(k)) return false; shown.add(k); return true; }); } }
+    }
+    const firstNum = (l: string) => { const m = l.match(/-?\d+(?:[.,]\d+)?/); return m ? parseFloat(m[0].replace(',', '.')) : Infinity; };
+    const lastWord = (l: string) => l.trim().split(/\s+/).pop() || '';
+    if (o === 'numv') lines.sort((a, b) => firstNum(a) - firstNum(b) || natural.compare(a, b));
+    else if (o === 'last') lines.sort((a, b) => natural.compare(lastWord(a), lastWord(b)) || natural.compare(a, b));
+    else if (o === 'az') lines.sort(plain.compare);
     else if (o === 'za') lines.sort((a, b) => plain.compare(b, a));
     else if (o === 'nat') lines.sort(natural.compare);
     else if (o === 'natd') lines.sort((a, b) => natural.compare(b, a));
@@ -100,8 +136,11 @@ apple</textarea>
     else if (o === 'long') lines.sort((a, b) => [...b].length - [...a].length);
     else if (o === 'rev') lines.reverse();
     else if (o === 'shuf') shuffle(lines);
+    if (tally) { const tl = tally, nc3 = nc2; lines = lines.map((l) => `${tl.get(nc3 ? l.toLocaleLowerCase() : l)} x ${l}`); }
+    const pre = val('pre'), suf = val('suf'), jn = val('join');
+    if (pre || suf) lines = lines.map((l) => pre + l + suf);
     if (box('num').checked) lines = lines.map((l, i) => `${i + 1}. ${l}`);
-    out.value = lines.join('\n');
+    out.value = jn ? lines.join(jn) : lines.join('\n');
     const gone: string[] = [];
     if (box('blank').checked) gone.push(`${plural(blanks, 'blank line')} removed`);
     if (box('dedupe').checked) gone.push(`${plural(dupes, 'duplicate')} removed`);
@@ -110,6 +149,7 @@ apple</textarea>
   inp.addEventListener('input', update);
   order.addEventListener('change', update);
   root.querySelectorAll('input[type=checkbox]').forEach((b) => b.addEventListener('change', update));
+  root.querySelectorAll('.sl-mgrid input').forEach((b) => b.addEventListener('input', update));
   again.addEventListener('click', update);
   q<HTMLElement>('.sl-copy').addEventListener('click', async () => {
     if (!out.value) return;

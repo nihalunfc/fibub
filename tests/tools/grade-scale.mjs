@@ -13,4 +13,12 @@ export default async ({ page, check, BASE }) => {
   await page.fill('.gs .gs-range', '15'); await page.waitForTimeout(100);
   check((await page.inputValue('.gs .gs-num')) === '50', 'grade-scale: slider moves the number');
   check((await page.locator('.gs .gs-tab tbody tr').count()) === 10 && (await page.locator('.gs .gs-notes tbody tr').count()) === 8, 'grade-scale: tables list all bands and banknote terms');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.gs .gs-find', 'sup'); await page.waitForTimeout(100);
+  check(/EF \/ XF/.test(await page.textContent('.gs .gs-hits')), 'grade-scale: finding by the French word SUP gives the EF / XF band');
+  await page.click('.gs .gs-hits button'); await page.waitForTimeout(100);
+  check((await page.inputValue('.gs .gs-num')) === '40', 'grade-scale: clicking a match jumps to its first number (40)');
+  await page.selectOption('.gs .gs-ca', '20'); await page.selectOption('.gs .gs-cb', '65'); await page.waitForTimeout(100);
+  const c = await page.textContent('.gs .gs-cmp');
+  check(/65 \(Mint State/.test(c) && /by 45 points/.test(c) && /3 word bands apart/.test(c), `grade-scale: compare 20 and 65 (${c})`);
 };

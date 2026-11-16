@@ -51,7 +51,12 @@ const match = (list: string[], key: string) => list.some((p) => (p.endsWith('*')
 
 export interface Cleaned { input: string; output: string; removed: string[]; unwrapped: boolean; short: boolean; changed: boolean }
 
-export function cleanUrl(raw: string, opts = { affiliate: true }): Cleaned {
+export interface CleanOpts { affiliate: boolean; keep?: string[]; all?: boolean }
+
+/** Turn "gclid, utm_*" into a lower-case keep-list. */
+export function parseKeep(s: string): string[] { return s.toLowerCase().split(/[\s,;]+/).filter(Boolean); }
+
+export function cleanUrl(raw: string, opts: CleanOpts = { affiliate: true }): Cleaned {
   const removed: string[] = [];
   let unwrapped = false;
   let url: URL;
@@ -70,6 +75,8 @@ export function cleanUrl(raw: string, opts = { affiliate: true }): Cleaned {
   for (const key of [...new Set(url.searchParams.keys())]) {
     const k = key.toLowerCase();
     if (k === 'ref' && KEEP_REF.test(host)) continue;
+    if (opts.keep && match(opts.keep, k)) continue;
+    if (opts.all) { url.searchParams.delete(key); removed.push(key); continue; }
     if (match(TRACKING, k) || match(site, k) || (opts.affiliate && (match(AFFILIATE, k) || match(siteAff, k)))) {
       // Keep YouTube's t (start time) and v (video); only these sites use the bare names above.
       if ((/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(host)) && (k === 'v' || k === 't' || k === 'list')) continue;
@@ -103,7 +110,7 @@ export function findLinks(text: string): { start: number; end: number; url: stri
   return out;
 }
 
-export function cleanText(text: string, opts = { affiliate: true }) {
+export function cleanText(text: string, opts: CleanOpts = { affiliate: true }) {
   const links = findLinks(text);
   const results = links.map((l) => cleanUrl(l.url, opts));
   let out = '', at = 0;

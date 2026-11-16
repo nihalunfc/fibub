@@ -18,4 +18,8 @@ export default async ({ page, check, BASE }) => {
   const rows = await page.$$eval(R + '.ct-laps tbody tr', (r) => r.map((x) => x.textContent));
   await page.click(R + '.ct-go'); await page.click(R + '.ct-reset'); await page.waitForTimeout(100);
   check(rows.length === 2 && (await big()) === '0:00.00' && (await page.$$(R + '.ct-laps tbody tr')).length === 0, `classroom-timer: stopwatch laps listed, then reset (${rows.join(' / ')})`);
+  await page.click(R + '.ct-tabs [data-m="down"]'); await page.waitForTimeout(100);
+  await page.click('.ct [data-min="45"]'); await page.waitForTimeout(100);
+  check((await page.textContent('.ct .ct-big')) === '45:00', 'classroom-timer: 45 min preset shows 45:00');
+  check((await page.getAttribute('.ct .ct-bar', 'aria-valuenow')) === '0', 'classroom-timer: progress bar starts empty');
 };

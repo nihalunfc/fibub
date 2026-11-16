@@ -15,6 +15,12 @@
     <p class="note bad rd-err" role="alert" hidden></p>
     <div class="rd-wrap"><table class="rd-trips"><thead><tr><th>Country</th><th>Arrived</th><th>Left</th><th></th></tr></thead><tbody class="rd-tbody"></tbody></table></div>
     <p class="rd-empty">No trips yet.</p>
+    <details class="rd-paste">
+      <summary>More options: paste a list of trips</summary>
+      <p class="rd-help">One trip per line: country, arrived, left. Dates as 2025-03-31 or 31/03/2025. A line with one date is a one-day stay. Copy rows from a spreadsheet and paste them here.</p>
+      <textarea class="rd-ta" rows="5" placeholder="Canada, 2025-01-01, 2025-03-31&#10;United States, 2025-04-01, 2025-07-09" aria-label="Trips to paste"></textarea>
+      <div class="rd-actions"><button type="button" class="btn secondary rd-pastebtn">Add these trips</button></div>
+    </details>
     <div class="rd-actions"><button type="button" class="btn secondary rd-clear">Clear all trips</button></div>
     <label class="rd-keep"><input type="checkbox" data-k="keep" /> Keep my trips on this device (in this browser only, never sent anywhere)</label>
   </section>
@@ -26,12 +32,15 @@
       <label>Day counting <select data-k="counting"><option value="both">Arrival and departure days both count</option><option value="midnight">Count days present at midnight (UK style)</option></select></label>
     </div>
     <p class="rd-help rd-period"></p>
+    <p class="rd-help rd-gap" aria-live="polite"></p>
   </section>
   <section class="rd-res" aria-live="polite">
     <div class="panel rd-wrap"><table>
       <thead><tr><th>Country</th><th>Days</th><th>Markers</th></tr></thead>
       <tbody class="rd-body"></tbody>
     </table></div>
+    <p class="rd-line rd-top" aria-live="polite"></p>
+    <div class="rd-actions rd-noprint"><button type="button" class="btn secondary rd-print">Print this summary</button></div>
     <div class="panel rd-in" hidden>
       <h2>Indian residency status</h2>
       <p class="rd-help">For the Indian tax year chosen above, under section 6 of the Income-tax Act, 2025 (tax years from 1 April 2026; earlier years follow section 6 of the 1961 Act, with the same tests). Days in India come from your trips.</p>
@@ -85,6 +94,8 @@
   .rd-line { margin: 10px 0 0; font-size: 15px; }
   .rd-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .rd-err { margin: 10px 0 0; }
+  .rd-ta { font: inherit; width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); box-sizing: border-box; }
+  @media print { body.rd-printing * { visibility: hidden !important; } body.rd-printing .rd-res, body.rd-printing .rd-res *, body.rd-printing .rd-period { visibility: visible !important; } body.rd-printing .rd-res { position: absolute; left: 0; top: 40px; width: 100%; } body.rd-printing .rd-period { position: absolute; left: 0; top: 0; } body.rd-printing .rd-noprint { display: none !important; } }
   .rd .rm { padding: 4px 10px; }
   .rd-ticks { display: grid; gap: 8px; margin-top: 12px; }
   .rd-ticks label { display: flex; align-items: center; gap: 8px; }
@@ -93,7 +104,7 @@
 
 <script>
   import { indianResidence, STATUS_NAME } from '../../lib/money/india-residence';
-  import { dayNum, period, daysByCountry, usDays, substantialPresence, markers, isoOf, type Trip, type Region, type Counting } from '../../lib/money/residency';
+  import { dayNum, period, daysByCountry, usDays, substantialPresence, markers, isoOf, parseTrips, unaccountedDays, type Trip, type Region, type Counting } from '../../lib/money/residency';
   const root = document.querySelector<HTMLElement>('.rd')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -109,10 +120,13 @@
     q('.rd-tbody').innerHTML = trips.map((t, i) => `<tr><td>${esc(t.country)}</td><td>${t.from}</td><td>${t.to}</td><td><button type="button" class="btn secondary small rm" data-rm="${i}" aria-label="Remove trip to ${esc(t.country)}">Remove</button></td></tr>`).join('');
     q('.rd-empty').hidden = trips.length > 0;
     q<HTMLElement>('.rd-trips').hidden = !trips.length;
-    if (!(year >= 1900 && year <= 2200)) { q('.rd-period').textContent = 'Enter a year such as 2026.'; q('.rd-body').innerHTML = ''; q('.rd-spt-body').innerHTML = ''; q('.rd-spt-out').textContent = ''; return; }
+    if (!(year >= 1900 && year <= 2200)) { q('.rd-period').textContent = 'Enter a year such as 2026.'; q('.rd-gap').textContent = ''; q('.rd-top').textContent = ''; q('.rd-body').innerHTML = ''; q('.rd-spt-body').innerHTML = ''; q('.rd-spt-out').textContent = ''; return; }
     const p = period(region, year);
     q('.rd-period').textContent = `Counting ${p.label}.`;
     const by = [...daysByCountry(trips, p.from, p.to, counting).values()].sort((a, b) => b.days - a.days);
+    const gap = unaccountedDays(trips, p.from, p.to, counting), total = p.to - p.from + 1;
+    q('.rd-gap').textContent = trips.length ? (gap ? `${gap} of ${total} days in this period are not covered by any trip. Add them (including time at home) so the counts are complete.` : `Every day of this period is covered by a trip.`) : '';
+    q('.rd-top').textContent = by.length ? `You spent the most days in ${by[0].name}: ${by[0].days} of ${total}.` : '';
     q('.rd-body').innerHTML = by.length ? by.map((c) => {
       const mk = markers(region, c.name).map((m) => c.days >= m.at ? `Reached ${m.text}` : `${m.at - c.days} more days to ${m.at}: ${m.text}`).join('<br>');
       return `<tr><td>${esc(c.name)}</td><td class="n"><b>${c.days}</b></td><td>${mk}</td></tr>`;
@@ -145,6 +159,14 @@
   });
   q('.rd-tbody').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-rm]') as HTMLElement | null; if (b) { trips.splice(+b.dataset.rm!, 1); persist(); render(); } });
   q('.rd-clear').addEventListener('click', () => { trips = []; persist(); render(); });
+  q('.rd-pastebtn').addEventListener('click', () => {
+    const ta = q<HTMLTextAreaElement>('.rd-ta'), r = parseTrips(ta.value), err = q('.rd-err');
+    if (!r.trips.length) { err.hidden = false; err.textContent = 'No trips were found. Use one line per trip: country, arrived, left.'; return; }
+    trips.push(...r.trips); trips.sort((a, b) => a.from.localeCompare(b.from)); ta.value = '';
+    err.hidden = !r.skipped; err.textContent = r.skipped ? `Added ${r.trips.length} trips. ${r.skipped} line${r.skipped > 1 ? 's' : ''} could not be read and ${r.skipped > 1 ? 'were' : 'was'} skipped.` : '';
+    persist(); render();
+  });
+  q('.rd-print').addEventListener('click', () => { document.body.classList.add('rd-printing'); const done = () => { document.body.classList.remove('rd-printing'); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); window.print(); });
   f('keep').addEventListener('change', persist);
   f('region').addEventListener('change', () => { setCounting(); render(); });
   for (const k of ['year', 'counting', 'in-nat', 'in-sit', 'in-prior', 'in-15', 'in-else', 'in-9', 'in-729']) { f(k).addEventListener('input', render); f(k).addEventListener('change', render); }

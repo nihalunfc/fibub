@@ -263,3 +263,19 @@ export function moneyFmt(code: string) {
   const c = CURRENCIES[code] ?? CURRENCIES.CAD;
   return (n: number) => c.sym + n.toLocaleString(c.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+// ---------- Medical expense tax helper extras ----------
+/** Costs after insurance per person (blank names grouped as "Not named"), largest first. */
+export function byPerson(list: Expense[]): { person: string; total: number; count: number }[] {
+  const m = new Map<string, { person: string; total: number; count: number }>();
+  for (const e of list) {
+    const key = e.person.trim() || 'Not named';
+    const o = m.get(key.toLowerCase()) || { person: key, total: 0, count: 0 };
+    o.total = round2(o.total + net(e)); o.count++; m.set(key.toLowerCase(), o);
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total);
+}
+/** Costs after insurance dated within one calendar year. */
+export function calendarYearTotal(list: Expense[], year: number): number {
+  return round2(list.filter((e) => e.date >= `${year}-01-01` && e.date <= `${year}-12-31`).reduce((s, e) => s + net(e), 0));
+}

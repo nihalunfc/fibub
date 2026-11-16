@@ -14,4 +14,9 @@ export default async ({ page, check, BASE }) => {
   await set('rev', '12000'); await page.waitForTimeout(100);
   check((await txt('.cr-s-months')).includes('Not running out'), 'revenue above costs never runs out');
   check((await page.locator('.cr-rows tr').count()) > 0, 'month table has rows');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.cr [data-k="mode"]', 'burn'); await set('cash', '120000'); await set('burn', '10000'); await set('bg', '0'); await set('want', '24'); await page.waitForTimeout(100);
+  check((await page.textContent('.cr-sc tr:nth-child(2) td:nth-child(2)')).trim() === '15.0', 'cash-runway: 20% lower costs = 15.0 months');
+  check((await page.textContent('.cr-sc tr:nth-child(6) td:nth-child(2)')).trim() === '10.0', 'cash-runway: 20% higher costs = 10.0 months');
+  check((await page.textContent('.cr-need')).includes('5,000'), 'cash-runway: 24 months needs a burn of 5,000');
 };

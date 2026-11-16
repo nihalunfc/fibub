@@ -35,6 +35,10 @@ It uses the JavaScript regex engine built into your browser, so what works here 
 3. Paste or type your test text. Matches are marked as you type.
 4. Optionally type a replacement to see the result in "Replace preview".
 
+Not sure where to start? Pick a ready-made pattern under **Common patterns** (email address, web address, phone number, date, IPv4 address, hex colour, Canadian postal code, whole numbers, extra spaces, hashtag). It fills in the pattern and some sample text for you to change. These are simple patterns for everyday searching, not strict validators.
+
+Open **More: explain my pattern, split preview** to see your pattern broken into parts, each with a plain-English meaning (for example `\d` is "a digit" and `{4}` is "exactly 4 times"), and to see what the text becomes when it is split on the pattern.
+
 **Clear** empties everything; **Example** brings back the phone number example.
 
 ## What each setting does

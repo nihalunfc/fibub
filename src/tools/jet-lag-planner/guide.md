@@ -11,7 +11,7 @@ ads: false
 order: 2052
 icon: moon
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [time-zone-planner, sleep-calculator, date-calculator]
 sources:
   - "Eastman C.I., Burgess H.J. (2009), How to travel the world without jet lag, Sleep Medicine Clinics 4(2): moving sleep about 1 hour a day before the trip, with timed bright light (checked 2026-11-10)."
@@ -46,6 +46,12 @@ Light is the body clock's strongest signal, so each day says when to get bright 
 ## Worked example
 
 Toronto to London on 20 November 2026: London is 5 hours ahead. With a usual 23:00 to 07:00, bedtimes before the flight are 22:00, 21:00 and 20:00 Toronto time. Three days before, get bright light from 06:00 to 09:00, keep lights dim from 19:00 to 22:00 and have the last caffeine by 16:00. In London, day 1 bed is 00:00 and day 2 is back to 23:00. Flying home the other way, bedtimes move later instead: 00:00, 01:00 and 02:00 London time.
+
+## More options
+
+- **Days I can shift before the flight**: 3, 2, 1 or none. With none, the whole shift happens after landing, so the plan runs longer.
+- **Days to show after landing**: 3, 5 or 7, for large time differences that take more than three days to close.
+- **I land in the**: morning, afternoon, evening or night (local time) gives a short tip on naps and light for the first day. It is general guidance, not medical advice.
 
 ## FAQs
 

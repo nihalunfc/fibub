@@ -43,7 +43,7 @@ import '../../styles/collect.css';
 </style>
 
 <script>
-  import { centring } from '../../lib/collect/maths';
+  import { centring, centringLean, centringShift, worstCentring } from '../../lib/collect/maths';
 
   const root = document.querySelector('.cd') as HTMLElement;
   const v = (c: string) => { const e = root.querySelector(c) as HTMLInputElement; return e.value.trim() === '' ? NaN : parseFloat(e.value); };
@@ -65,11 +65,17 @@ import '../../styles/collect.css';
     const u = (root.querySelector('.cd-u') as HTMLSelectElement).value;
     const sides = [side('f', 'Front'), side('b', 'Back')].filter(Boolean) as NonNullable<ReturnType<typeof side>>[];
     if (!sides.length) { out.textContent = 'Type the border widths.'; facts.innerHTML = ''; figs.innerHTML = ''; return; }
+    const lean = (a: number, b: number, n: [string, string]) => {
+      const r = centringLean(a, b, n); if (!Number.isFinite(r.offset)) return '';
+      return r.toward ? `Picture sits toward the ${r.toward}, ${r.offset.toFixed(1)}% off centre. Moving it ${+centringShift(a, b).toFixed(2)} ${u} would centre it.` : 'Perfectly centred.';
+    };
+    const pairs = sides.flatMap((s) => [[s.l, s.r], [s.t, s.b]] as [number, number][]).filter(([a, b]) => a >= 0 && b >= 0 && a + b > 0);
+    const worst = worstCentring(...pairs);
     out.textContent = sides.map((s) => `${s.name} ${s.lr.label || '–'} left/right, ${s.tb.label || '–'} top/bottom`).join(' · ');
     facts.innerHTML = sides.flatMap((s) => [
-      `<div><dt>${s.name}, left / right</dt><dd class="cd-${s.p}-lr">${s.lr.label || '–'}<small>${Number.isFinite(s.l) ? s.l : '?'} ${u} and ${Number.isFinite(s.r) ? s.r : '?'} ${u}</small></dd></div>`,
-      `<div><dt>${s.name}, top / bottom</dt><dd class="cd-${s.p}-tb">${s.tb.label || '–'}<small>${Number.isFinite(s.t) ? s.t : '?'} ${u} and ${Number.isFinite(s.b) ? s.b : '?'} ${u}</small></dd></div>`,
-    ]).join('');
+      `<div><dt>${s.name}, left / right</dt><dd class="cd-${s.p}-lr">${s.lr.label || '–'}<small>${Number.isFinite(s.l) ? s.l : '?'} ${u} and ${Number.isFinite(s.r) ? s.r : '?'} ${u}. ${lean(s.l, s.r, ['left', 'right'])}</small></dd></div>`,
+      `<div><dt>${s.name}, top / bottom</dt><dd class="cd-${s.p}-tb">${s.tb.label || '–'}<small>${Number.isFinite(s.t) ? s.t : '?'} ${u} and ${Number.isFinite(s.b) ? s.b : '?'} ${u}. ${lean(s.t, s.b, ['top', 'bottom'])}</small></dd></div>`,
+    ]).join('') + (worst ? `<div><dt>Weakest of all the splits</dt><dd class="cd-worst">${worst.label}<small>The most lopsided pair you measured${sides.length > 1 ? ', front or back' : ''}.</small></dd></div>` : '');
     figs.innerHTML = sides.map((s) => `<figure>${svg(...pair(s.l, s.r), ...pair(s.t, s.b))}<figcaption>${s.name}. Larger side shown first in the split; borders drawn bigger than life.</figcaption></figure>`).join('');
   };
   root.addEventListener('input', calc);

@@ -17,4 +17,11 @@ export default async ({ page, check, BASE }) => {
   await page.click('.cc .cc-m[data-mode=hand]'); await page.waitForTimeout(50);
   await page.fill('.cc .cc-hand tr[data-i="6"] input[data-k=qty]', '3'); await page.waitForTimeout(50);
   check((await page.textContent('.cc .cc-out')).includes('£3.00'), `coin-counter: 3 x £1 by hand = £3.00 (${await page.textContent('.cc .cc-out')})`);
+  await page.selectOption('.cc .cc-preset', 'us'); await page.waitForTimeout(50);
+  await page.click('.cc .cc-m[data-mode=hand]'); await page.waitForTimeout(50);
+  check((await page.inputValue('.cc .cc-hand tr[data-i="3"] input[data-k=per]')) === '40', 'coin-counter: US quarter roll is 40 coins');
+  await page.fill('.cc .cc-hand tr[data-i="3"] input[data-k=rolls]', '3');
+  await page.fill('.cc .cc-hand tr[data-i="3"] input[data-k=qty]', '5'); await page.waitForTimeout(50);
+  check((await page.textContent('.cc .cc-hand tr[data-i="3"] .cc-n')) === '125', 'coin-counter: 3 rolls of 40 plus 5 loose = 125 coins');
+  check((await page.textContent('.cc .cc-out')).includes('$31.25'), `coin-counter: 125 quarters = $31.25 (${await page.textContent('.cc .cc-out')})`);
 };

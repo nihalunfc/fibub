@@ -22,6 +22,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   <section class="wtp-res" aria-live="polite">
     <div class="panel"><h2>Timeline</h2><div class="wtp-svg"></div></div>
     <div class="panel"><h2>When each one ends</h2><ul class="wtp-list"></ul></div>
+    <div class="panel"><h2>If I need care on a date</h2>
+      <label class="wtp-care">Date <input type="date" data-k="care" /></label>
+      <p class="wtp-careout"></p>
+    </div>
+    <div class="panel"><h2>Remind me</h2>
+      <p class="wtp-hint">Download a calendar file with one all-day event for each end date. It is made on this page and goes nowhere else.</p>
+      <button type="button" class="wtp-ics">Download calendar file (.ics)</button>
+    </div>
     <p class="wtp-src"></p>
   </section>
   <p class="wtp-fine">How it is worked out: each waiting period ends at the start date plus its months or days. If you ported, the months already served are taken off first and a period never ends before the start date. Months count on the calendar, and the last day of a short month is used when needed. Today's date comes from your device. Check your policy wording for the exact date. Nothing you type leaves this page.</p>
@@ -94,6 +102,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   function load(mode: string) { box.innerHTML = ''; PRESETS[mode].forEach(addRow); }
   f('start').value = iso(new Date(Date.UTC(new Date().getFullYear(), 0, 1)));
   load('in');
+  let lastOut: { label: string; end: Date }[] = [];
+  q('.wtp-ics').addEventListener('click', () => {
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    const fmt = (d: Date) => iso(d).replace(/-/g, '');
+    const ev = lastOut.map((r, i) => ['BEGIN:VEVENT', `UID:wtp-${i}-${fmt(r.end)}@fibub.com`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${fmt(r.end)}`, `DTEND;VALUE=DATE:${fmt(addDays(r.end, 1))}`, `SUMMARY:${r.label.replace(/[,;\\\n]/g, ' ')} ends`, 'END:VEVENT'].join('\r\n'));
+    const text = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fibub//waiting periods//EN', ...ev, 'END:VCALENDAR'].join('\r\n') + '\r\n';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar' })); a.download = 'waiting-periods.ics'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
   q('.wtp-add').addEventListener('click', () => { addRow({ label: 'Another wait', n: '12', unit: 'months' }); run(); });
   box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.wtp-del'); if (b) { b.parentElement!.remove(); run(); } });
   f('mode').addEventListener('change', () => { load(f('mode').value); });
@@ -141,6 +157,9 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     }
     if (now >= start) g += `<line x1="${x(now)}" x2="${x(now)}" y1="${top}" y2="${axisY}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/><text x="${Math.min(x(now), W - 24)}" y="${axisY + 28}" font-size="11" text-anchor="middle" fill="var(--ink)">Today</text>`;
     q('.wtp-svg').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Timeline of waiting periods from the policy start date; amber is the wait, green is after it ends" style="width:100%;height:auto;display:block">${g}</svg><p class="wtp-hint">Amber: waiting. Green: after the wait. Dashed line: today.</p>`;
+    lastOut = out.map((r) => ({ label: r.label, end: r.end }));
+    const careD = fromIso(f('care').value);
+    q('.wtp-careout').innerHTML = !careD ? 'Pick a date to see which waits are over by then.' : out.map((r) => `<b class="${r.end <= careD ? 'ok' : 'wait'}">${esc(r.label)}</b>: ${r.end <= careD ? 'over by then' : `still running (ends ${nice(r.end)})`}`).join('<br>');
     q('.wtp-list').innerHTML = out.map((r) => {
       const days = dayDiff(now, r.end);
       const mor = r.kind === 'moratorium';
