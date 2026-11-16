@@ -9,6 +9,7 @@ import { CLASSES, type SchoolClass } from './ncert';
 import { UK_LEVELS } from './uk';
 import { ONTARIO_CLASSES } from './ontario';
 import { USA_GRADES } from './usa';
+import { SKILL_COURSES } from './skill-courses';
 
 export type Curriculum = {
   id: string;
@@ -36,6 +37,8 @@ export type Course = { id: string; name: string; text: string; status: 'live' | 
 
 // Short free courses (see /learn/courses/). Mark one 'live' with its page address when it is published.
 export const COURSES: Course[] = [
+  // Home skills (nihal, 2026-11-16): src/data/skill-courses.ts, pages at /learn/courses/<id>/.
+  ...SKILL_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/` })),
   { id: 'coding-data', name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.', status: 'planned' },
   { id: 'how-ai-works', name: 'How AI works', text: 'What a model is, how it learns from examples, and where it goes wrong, with small things to try.', status: 'planned' },
   { id: 'space-sky', name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.', status: 'planned' },

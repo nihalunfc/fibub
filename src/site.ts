@@ -356,6 +356,7 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'school-biology', name: 'Biology' },
     { id: 'school-maths', name: 'Maths' },
     { id: 'school-earth', name: 'Earth and space' },
+    { id: 'home-skills', name: 'Home skills' },
   ],
 };
 
