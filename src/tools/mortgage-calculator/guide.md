@@ -36,6 +36,13 @@ Turn on **Canada mode** and it compounds the rate twice a year, the way Canadian
 3. Pick how often you pay. Add **extra** money with each payment, once a year, or both.
 4. Read the payment and totals, open **Year by year**, or download the table as CSV for Excel.
 
+## More options
+
+- **Rate slider**: drag it to try rates from 0.5% to 15%; it stays in step with the typed rate.
+- **More costs and compare** (tucked away): add property tax (% of price a year), home insurance, an HOA or condo fee and PMI (US mortgage insurance, counted only under 20% down). The line under the payment then shows the all-in monthly cost.
+- **Compare with another rate**: type a second rate to see the payment and total interest difference at a glance.
+- **Last payment around**: the month and year you would be mortgage-free if you started now.
+
 ## What each setting does
 
 - **Accelerated** options pay half (every 2 weeks) or a quarter (weekly) of the monthly payment. That adds up to one extra monthly payment a year, so you finish sooner.
@@ -52,4 +59,4 @@ A 500,000 home with 20% down borrows 400,000. At 5% over 25 years paid monthly, 
 
 **Does the rate stay the same for the whole time?** The calculator assumes it does. In reality most mortgages reset every few years, so run it again with the new rate.
 
-**Does it include property tax or insurance?** No. See the rent or buy tool to compare the full cost of owning with renting.
+**Does it include property tax or insurance?** Not unless you add them under More costs. Those figures are your own estimates, so check your tax bill and quote. See the rent or buy tool to compare the full cost of owning with renting.

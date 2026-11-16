@@ -47,6 +47,12 @@ When you leave a job, the [[gratuity-calculator]] works out the other lump sum y
 - **PF is worked out on:** many employers cap PF at the ceiling; others use your full Basic + DA.
 - **In EPS:** untick if you are not an EPS member (for example, you joined after September 2014 earning above the ceiling then); all the employer's 12% then goes to EPF.
 
+## More options
+
+- **Extra voluntary PF (VPF):** a percent of your wages you add on top of the usual 12%. It goes into EPF and earns the same interest as the rest, and it is included in the totals and year table.
+- **Inflation:** shows the balance at retirement in today's money.
+- **Years you have already worked:** used with the years to retirement to estimate the monthly EPS pension. The estimate is wages up to the ceiling multiplied by years of service and divided by 70, and it needs at least 10 years of service. It shows only when the pension box is ticked. The real pension uses the average of your last 60 months of wages, so treat it as a guide and check the official source.
+
 ## Worked example
 
 Basic + DA of ₹20,000 a month: you pay ₹2,400, the employer pays ₹2,400, of which ₹1,666 goes to EPS and ₹734 to EPF. So ₹3,134 a month goes in. Over one year at 8.25%, that is ₹37,608 paid in plus about ₹1,681 of interest: ₹39,289.

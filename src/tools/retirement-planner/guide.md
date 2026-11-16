@@ -41,6 +41,14 @@ You get the age your money lasts until, the pot you will have at retirement, and
 - **Inflation:** prices rising each year. Your saving and spending keep their buying power.
 - **Pension or other income:** subtracted from spending, so only the difference comes from savings.
 
+## More options and what they tell you
+
+- **Fix it lines:** if you are short, the page says how much more to save each month, the earliest age you could retire instead, and the monthly spending your pot could support. If you are fine, it shows how early you could retire and how much more you could spend.
+- **Pension starting later:** under More options, set the age a state or company pension begins. Until then your savings pay the full spending.
+- **Today's money or future money:** amounts are in today's money by default. Switch to future money to see the same plan with inflation added on, which gives bigger numbers that buy the same things.
+- **Quick presets:** cautious, typical and hopeful buttons fill the return and inflation boxes, and you can still edit them.
+- **Year by year:** a table under the chart lists your savings at each age.
+
 ## Worked example
 
 You are 60, retire at 65 and plan to 85. You have 100,000, save 1,000 a month, expect no growth or inflation, and spend 2,000 a month with no pension. By 65 you have 160,000. That pays 80 months, so it lasts until about age 71 and 8 months. To reach 85 you need 480,000, so you are short by 320,000.
@@ -50,6 +58,8 @@ You are 60, retire at 65 and plan to 85. You have 100,000, save 1,000 a month, e
 **What can I change if I am short?** Retire later, save more, spend less, or plan for some work income. Try each one.
 
 **Why are the returns lower than I see advertised?** Returns here are before inflation and are only an estimate. Use cautious figures.
+
+**What if I am short?** Use the lines under the results: save more, retire later or spend less. Change one box at a time.
 
 **Does it include tax?** No. Not financial or tax advice.
 

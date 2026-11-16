@@ -3,6 +3,16 @@
 ---
 <div class="tool-ui rb">
   <section class="panel">
+    <label class="rb-preset">Start from typical numbers for
+      <select data-k="preset">
+        <option value="">my own numbers</option>
+        <option value="ca">Canada</option>
+        <option value="us">United States</option>
+        <option value="uk">United Kingdom</option>
+        <option value="in">India</option>
+      </select>
+    </label>
+    <p class="rb-small">These are rough starting guesses, not official figures. Change any box. Rates, taxes and fees vary by place, so check local sources.</p>
     <h2 class="rb-h">Renting</h2>
     <div class="rb-grid">
       <label>Rent a month today <input data-k="rent" inputmode="decimal" value="2000" /></label>
@@ -24,14 +34,24 @@
     </div>
     <label class="rb-check"><input type="checkbox" data-k="canada" /> Canadian mortgage (rate compounds twice a year)</label>
     <label class="rb-years">Look this many years ahead <input data-k="yrs" inputmode="numeric" value="30" /></label>
+    <details class="rb-more"><summary>More options</summary>
+      <label class="rb-years">Inflation (to show today's money) <span class="rb-suf"><input data-k="infl" inputmode="decimal" placeholder="e.g. 2.5" /><i>%</i></span></label>
+    </details>
   </section>
   <section class="panel" aria-live="polite">
     <p class="rb-big"></p>
     <p class="rb-sub"></p>
+    <p class="rb-small rb-real" hidden></p>
+    <div class="rb-scroll"><table class="rb-tab rb-monthly"><thead><tr><th>Each month in year 1</th><th>Buying</th><th>Renting</th></tr></thead><tbody></tbody></table></div>
+    <p class="rb-small rb-rule"></p>
     <div class="rb-chart"></div>
     <p class="rb-leg"></p>
     <details><summary>Year by year</summary>
-      <div class="rb-scroll"><table class="rb-tab"><thead><tr><th>Year</th><th>Buying: net worth</th><th>Renting: net worth</th><th>Home value</th><th>Mortgage left</th></tr></thead><tbody></tbody></table></div>
+      <div class="rb-scroll"><table class="rb-tab rb-yt"><thead><tr><th>Year</th><th>Buying: net worth</th><th>Renting: net worth</th><th>Home value</th><th>Mortgage left</th></tr></thead><tbody></tbody></table></div>
+    </details>
+    <details><summary>What if home prices grow differently?</summary>
+      <div class="rb-scroll"><table class="rb-tab rb-sens"><thead><tr><th>Home price grows</th><th>Buying pulls ahead</th></tr></thead><tbody></tbody></table></div>
+      <p class="rb-small">Everything else stays as you entered it.</p>
     </details>
     <button type="button" class="btn secondary rb-csv">Download the table (CSV)</button>
   </section>
@@ -50,6 +70,11 @@
   .rb-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
   .rb label.rb-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 14px; }
   .rb input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .rb-small { font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+  .rb-preset { max-width: 320px; }
+  .rb select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rb-more { margin-top: 12px; }
+  .rb-monthly td:first-child { white-space: normal; }
   .rb-years { max-width: 220px; margin-top: 12px; }
   .rb-big { font-size: 24px; font-weight: 700; margin: 0 0 6px; }
   .rb-sub { color: var(--muted); margin: 0 0 12px; }
@@ -63,26 +88,44 @@
 </style>
 
 <script>
-  import { rentVsBuy } from '../../lib/money/homes';
+  import { rentVsBuy, rvbMonthly, priceToRent, rvbSensitivity, rvbTodays } from '../../lib/money/homes';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.rb') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const n = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
   const m0 = (v: number) => Math.round(v).toLocaleString('en-US');
+  const PRESETS: Record<string, Record<string, string>> = {
+    ca: { rate: '5', my: '25', tax: '1', maint: '1', ins: '1200', bc: '3', sc: '5' },
+    us: { rate: '6.5', my: '30', tax: '1.1', maint: '1', ins: '1800', bc: '3', sc: '6' },
+    uk: { rate: '4.5', my: '25', tax: '0.6', maint: '1', ins: '400', bc: '3', sc: '2' },
+    in: { rate: '8.5', my: '20', tax: '0.2', maint: '1', ins: '8000', bc: '7', sc: '2' },
+  };
+  q('preset').addEventListener('change', () => { const p = PRESETS[q('preset').value]; if (!p) return; for (const [k, v] of Object.entries(p)) q(k).value = v; q('canada').checked = q('preset').value === 'ca'; calc(); });
   let last: ReturnType<typeof rentVsBuy> | null = null;
   const calc = () => {
     const v = { rent: n('rent'), rentGrowth: n('rg'), price: n('price'), downPct: n('down'), ratePct: n('rate'), mortYears: n('my'), years: Math.round(n('yrs')), taxPct: n('tax'), maintPct: n('maint'), insurance: n('ins'), homeGrowth: n('hg'), investReturn: n('inv'), buyCostPct: n('bc'), sellCostPct: n('sc'), canada: q('canada').checked };
-    const bad = Object.entries(v).some(([k, x]) => k !== 'canada' && !(Number.isFinite(x as number) && (x as number) >= 0)) || !(v.price > 0) || !(v.mortYears >= 1 && v.mortYears <= 40) || !(v.years >= 1 && v.years <= 60) || v.downPct >= 100 || !(v.rent > 0);
-    if (bad) { $('.rb-big').textContent = 'Fill in every box with a number (price and rent above zero, down payment under 100%, 1 to 60 years).'; $('.rb-sub').textContent = ''; $('.rb-chart').innerHTML = ''; $('.rb-leg').innerHTML = ''; $('.rb-tab tbody').innerHTML = ''; last = null; return; }
+    const blank = Object.entries(v).some(([k, x]) => k !== 'canada' && !Number.isFinite(x as number));
+    const bad = blank ? 'Fill in every box with a number.' : Object.entries(v).some(([k, x]) => k !== 'canada' && (x as number) < 0) ? 'Numbers cannot be negative.' : !(v.rent > 0) ? 'Enter the rent you pay (above zero).' : !(v.price > 0) ? 'Enter the home price (above zero).' : v.downPct >= 100 ? 'The down payment must be under 100%.' : !(v.mortYears >= 1 && v.mortYears <= 40) ? 'The mortgage length must be 1 to 40 years.' : !(v.years >= 1 && v.years <= 60) ? 'Look ahead 1 to 60 years.' : v.ratePct > 40 || v.homeGrowth > 40 || v.investReturn > 40 || v.rentGrowth > 40 ? 'Rates above 40% are not supported; check the boxes.' : '';
+    if (bad) { $('.rb-big').textContent = bad; $('.rb-sub').textContent = ''; $('.rb-chart').innerHTML = ''; $('.rb-leg').innerHTML = ''; $('.rb-yt tbody').innerHTML = ''; $('.rb-monthly tbody').innerHTML = ''; $('.rb-sens tbody').innerHTML = ''; $('.rb-rule').textContent = ''; $('.rb-real').hidden = true; last = null; return; }
     const r = rentVsBuy(v); last = r;
     const be = r.breakEven, end = r.rows[r.rows.length - 1];
     $('.rb-big').textContent = be === null ? `Renting stays ahead for all ${v.years} years` : be === 1 ? 'Buying is ahead from year 1' : `Buying pulls ahead in year ${be}`;
     $('.rb-sub').textContent = `After ${v.years} years: buying ${m0(end.buy)}, renting ${m0(end.rent)}. Monthly mortgage payment ${m0(r.payment)}; down payment and buying costs ${m0(r.down + (v.price * v.buyCostPct) / 100)}.`;
+    const mo = rvbMonthly(v);
+    const row = (a: string, b: string, c: string) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td></tr>`;
+    $('.rb-monthly tbody').innerHTML = row('Mortgage payment', m0(mo.mortgage), '') + row('Property tax and upkeep', m0(mo.taxMaint), '') + row('Insurance', m0(mo.insurance), '') + row('Rent', '', m0(mo.rent)) + `<tr><td><b>Total a month</b></td><td><b>${m0(mo.owning)}</b></td><td><b>${m0(mo.rent)}</b></td></tr>`;
+    const pr = priceToRent(v.price, v.rent);
+    $('.rb-rule').textContent = `Price-to-rent ratio: ${pr.ratio.toFixed(1)} (the home costs ${pr.ratio.toFixed(1)} years of today's rent). Your rent is ${pr.rentPct.toFixed(1)}% of the price a year; a common rule of thumb says renting tends to win when it is under 5%, though it ignores your costs and growth.`;
+    const inf = n('infl'), rl = $('.rb-real');
+    rl.hidden = !(inf > 0 && inf < 50);
+    if (!rl.hidden) rl.textContent = `In today's money after ${v.years} years at ${inf}% inflation: buying ${m0(rvbTodays(end.buy, inf, v.years))}, renting ${m0(rvbTodays(end.rent, inf, v.years))}.`;
+    const gs = [...new Set([0, 2, 4, 6, v.homeGrowth])].sort((x, y) => x - y);
+    $('.rb-sens tbody').innerHTML = rvbSensitivity(v, gs).map((x) => `<tr><td>${x.growth}% a year${x.growth === v.homeGrowth ? ' (yours)' : ''}</td><td>${x.breakEven === null ? 'not within ' + v.years + ' years' : 'year ' + x.breakEven}</td></tr>`).join('');
     const s = [{ label: 'Buying', ys: r.rows.map((x) => x.buy), color: 'var(--accent)' }, { label: 'Renting', ys: r.rows.map((x) => x.rent), color: 'var(--warn)', dash: true }];
     $('.rb-chart').innerHTML = lineSvg(s, r.rows.map((x) => x.year), 'Net worth buying and renting by year');
     $('.rb-leg').innerHTML = legend(s) + '<span class="lg">Horizontal axis: years</span>';
-    $('.rb-tab tbody').innerHTML = r.rows.map((x) => `<tr><td>${x.year}</td><td>${m0(x.buy)}</td><td>${m0(x.rent)}</td><td>${m0(x.homeValue)}</td><td>${m0(x.owed)}</td></tr>`).join('');
+    $('.rb-yt tbody').innerHTML = r.rows.map((x) => `<tr><td>${x.year}</td><td>${m0(x.buy)}</td><td>${m0(x.rent)}</td><td>${m0(x.homeValue)}</td><td>${m0(x.owed)}</td></tr>`).join('');
   };
   $('.rb-csv').addEventListener('click', () => {
     if (!last) return;

@@ -23,7 +23,7 @@ flow:
 
 ## What it does
 
-Percentages turn up everywhere: sale prices, price rises, pay changes, tax, commission and profit. This page has six small calculators in tabs, each with an example already filled in, so you can see what to type. It answers instantly and shows the sum in words, so you can check it makes sense.
+Percentages turn up everywhere: sale prices, price rises, pay changes, tax, commission and profit. This page has nine small calculators in tabs, each with an example already filled in, so you can see what to type. It answers instantly and shows the sum in words, so you can check it makes sense.
 
 Everything runs in your browser and nothing is sent anywhere. When you are planning what to spend, the [[budget-calculator|budget planner]] is a good next step.
 
@@ -40,7 +40,12 @@ Everything runs in your browser and nothing is sent anywhere. When you are plann
 - **% change**: from an old value to a new one, shown as an increase or a decrease.
 - **Add or remove %**: adds a percent (tax, tip), takes one off (a discount), or works back to the original price when the amount already includes the percent.
 - **Stacked discounts**: two or three discounts one after another. They are not added: 30% off then 10% off is 37% off, not 40%, because the second discount applies to the smaller price.
-- **Markup and margin**: markup is profit as a share of what it cost you; margin is profit as a share of what you sell it for.
+- **Sale price**: the price after a percent off, how much you save, and optionally the total once sales tax is added on top.
+- **X is Y% of what?**: works back to the whole. If 12 is 15% of something, that something is 80.
+- **% difference**: compares two values with neither as the "old" one, using their average as the base. For before and after, use % change.
+- **Markup and margin**: markup is profit as a share of what it cost you; margin is profit as a share of what you sell it for. Fill in the optional wanted margin to get the selling price that reaches it.
+
+You can type numbers with commas, such as 1,200. A blank box or a divide-by-zero case shows a plain message.
 
 ## Worked example
 

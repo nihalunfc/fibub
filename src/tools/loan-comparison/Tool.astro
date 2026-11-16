@@ -3,22 +3,27 @@
 ---
 <div class="tool-ui lc">
   <section class="panel">
-    <label class="lc-n">How many offers? <select class="lc-count"><option>2</option><option>3</option><option>4</option></select></label>
+    <label class="lc-n">How many offers? <select class="lc-count" data-k="count"><option>2</option><option>3</option><option>4</option></select></label>
+    <label class="lc-check"><input type="checkbox" data-k="same" /> Same amount and years for every offer (type them once, in Offer A)</label>
     <div class="lc-offers"></div>
     <p class="lc-fine">Upfront fees are paid at the start (arrangement, processing, valuation). A monthly fee is added to every payment.</p>
   </section>
   <section class="panel" aria-live="polite">
     <h2 class="lc-h">Side by side</h2>
+    <p class="lc-big lc-ans"></p>
+    <p class="lc-fine lc-ans2"></p>
     <div class="lc-scroll"><table class="lc-tab"><thead></thead><tbody></tbody></table></div>
     <p class="lc-warn" role="alert"></p>
+    <div class="lc-bars" aria-label="Total cost of borrowing for each offer"></div>
     <p class="lc-fine">APR is the yearly rate that includes the fees, so it is the fair way to compare. It is above the stated rate whenever there are fees.</p>
   </section>
   <section class="panel">
     <h2 class="lc-h">Flat rate to reducing rate</h2>
     <p class="lc-fine" style="margin-top:0">Some lenders in India and the Gulf quote a flat rate: interest on the full amount for every year. Here is what that really costs on a normal reducing balance.</p>
     <div class="lc-grid">
-      <label>Flat rate a year <input class="lc-flat" inputmode="decimal" value="10" /></label>
-      <label>Years <input class="lc-fy" inputmode="decimal" value="3" /></label>
+      <label>I have a <select class="lc-dir" data-k="dir"><option value="f2r">flat rate: show the reducing rate</option><option value="r2f">reducing rate: show the flat rate</option></select></label>
+      <label><span class="lc-ratel">Flat rate a year (%)</span> <input class="lc-flat" data-k="flat" inputmode="decimal" value="10" /></label>
+      <label>Years <input class="lc-fy" data-k="fy" inputmode="decimal" value="3" /></label>
     </div>
     <p class="lc-big lc-conv" aria-live="polite"></p>
     <p class="lc-fine lc-conv2"></p>
@@ -33,9 +38,12 @@
   .lc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .lc input:not([type=checkbox]), .lc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .lc input:focus, .lc select:focus { border-color: var(--accent); outline: none; }
-  .lc label.lc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .lc label.lc-check, .lc .lc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
   .lc input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
-  .lc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .lc-big { font-size: 22px; font-weight: 700; margin: 0 0 6px; } .lc-big:empty { display: none; }
+  .lc-bars { display: grid; gap: 6px; margin-top: 12px; } .lc-bar { display: grid; grid-template-columns: 60px 1fr auto; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+  .lc-bar i { display: block; height: 12px; border-radius: 6px; background: var(--muted); opacity: .55; min-width: 2px; } .lc-bar.best i { background: var(--good); opacity: 1; } .lc-bar span:last-child { color: var(--ink); font-weight: 600; }
+  .lc-offer input:disabled { opacity: .55; }
   .lc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .lc-rows dt { color: var(--muted); } .lc-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .lc-warn { color: var(--bad); margin: 10px 0 0; } .lc-warn:empty { display: none; }
@@ -56,7 +64,7 @@
 </style>
 
 <script>
-  import { evalOffer, flatToReducing, type Offer } from '../../lib/money/borrowing';
+  import { evalOffer, flatToReducing, reducingToFlat, type Offer } from '../../lib/money/borrowing';
   const root = document.querySelector('.lc') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const defaults = [
@@ -69,31 +77,63 @@
   $('.lc-offers').innerHTML = defaults.map((d, n) => `<div class="lc-offer" data-n="${n}"><h3>Offer ${String.fromCharCode(65 + n)}</h3>${f.map(([k, t]) => `<label>${t} <input data-k="${k}" inputmode="decimal" value="${(d as any)[k]}" /></label>`).join('')}</div>`).join('');
   const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const val = (n: number, k: string) => parseFloat((root.querySelector(`.lc-offer[data-n="${n}"] [data-k="${k}"]`) as HTMLInputElement).value.replace(/,/g, ''));
+  const ltr = (n: number) => String.fromCharCode(65 + n);
+  const setv = (n: number, k: string, v: string) => ((root.querySelector(`.lc-offer[data-n="${n}"] [data-k="${k}"]`) as HTMLInputElement).value = v);
   const calc = () => {
     const cnt = parseInt(($('.lc-count') as HTMLSelectElement).value);
+    const same = (root.querySelector('[data-k="same"]') as HTMLInputElement).checked;
+    for (let n = 1; n < 4; n++) for (const k of ['amount', 'years']) {
+      const el = root.querySelector(`.lc-offer[data-n="${n}"] [data-k="${k}"]`) as HTMLInputElement;
+      el.disabled = same; if (same) el.value = (root.querySelector(`.lc-offer[data-n="0"] [data-k="${k}"]`) as HTMLInputElement).value;
+    }
     root.querySelectorAll('.lc-offer').forEach((e, n) => ((e as HTMLElement).hidden = n >= cnt));
     const res: (ReturnType<typeof evalOffer> | null)[] = [];
+    const yrs: number[] = [];
     for (let n = 0; n < cnt; n++) {
       const o: Offer = { amount: val(n, 'amount'), ratePct: val(n, 'rate'), years: val(n, 'years'), upfront: val(n, 'upfront') || 0, monthlyFee: val(n, 'fee') || 0 };
-      res.push(o.amount > 0 && o.ratePct >= 0 && o.years > 0 && o.years <= 40 && o.upfront < o.amount ? evalOffer(o) : null);
+      yrs.push(o.years);
+      res.push(o.amount > 0 && o.ratePct >= 0 && o.ratePct <= 100 && o.years > 0 && o.years <= 40 && o.upfront >= 0 && o.monthlyFee >= 0 && o.upfront < o.amount ? evalOffer(o) : null);
     }
     const ok = res.filter(Boolean) as ReturnType<typeof evalOffer>[];
     const best = ok.length ? Math.min(...ok.map((r) => r.totalCost)) : 0;
-    const head = '<tr><th></th>' + res.map((_, n) => `<th>Offer ${String.fromCharCode(65 + n)}</th>`).join('') + '</tr>';
+    const head = '<tr><th></th>' + res.map((_, n) => `<th>Offer ${ltr(n)}</th>`).join('') + '</tr>';
     const row = (name: string, g: (r: ReturnType<typeof evalOffer>) => string) => `<tr><td>${name}</td>${res.map((r) => `<td>${r ? g(r) : '-'}</td>`).join('')}</tr>`;
     $('.lc-tab thead').innerHTML = head;
     $('.lc-tab tbody').innerHTML =
       row('Payment each month (with monthly fee)', (r) => m2(r.monthly)) + row('Total you pay back', (r) => m2(r.totalPaid)) +
       row('Total cost of borrowing (interest + fees)', (r) => m2(r.totalCost)) + row('APR (rate including fees)', (r) => r.aprPct.toFixed(2) + '%') +
       row('Verdict', (r) => (ok.length > 1 && Math.abs(r.totalCost - best) < 0.005 ? '<strong class="lc-best">Lowest cost</strong>' : ok.length > 1 ? '+' + m2(r.totalCost - best) : ''));
-    $('.lc-warn').textContent = res.some((r) => !r) ? 'Fill in every box on each offer (fees must be smaller than the amount, years 1 to 40).' : '';
+    $('.lc-warn').textContent = res.some((r) => !r) ? 'Fill in every box on each offer (rate 0 to 100, fees smaller than the amount and not negative, years 1 to 40).' : '';
+    // One plain sentence on top, then the bars.
+    const idx = res.map((r, n) => (r ? n : -1)).filter((n) => n >= 0);
+    let ans = '', ans2 = '';
+    if (idx.length > 1) {
+      const by = (g: (r: ReturnType<typeof evalOffer>) => number) => idx.reduce((a, b) => (g(res[b]!) < g(res[a]!) - 1e-9 ? b : a));
+      const c = by((r) => r.totalCost), p = by((r) => r.monthly), a = by((r) => r.aprPct);
+      const worst = Math.max(...idx.map((n) => res[n]!.totalCost));
+      ans = Math.abs(worst - best) < 0.005 ? 'All the offers cost the same.' : `Offer ${ltr(c)} is cheapest overall: it costs ${m2(worst - best)} less than the dearest offer.`;
+      const parts = [`lowest APR: Offer ${ltr(a)} (${res[a]!.aprPct.toFixed(2)}%)`, `lowest monthly payment: Offer ${ltr(p)} (${m2(res[p]!.monthly)})`];
+      ans2 = parts.join(' · ');
+      if (new Set(idx.map((n) => yrs[n])).size > 1) ans2 += '. The offers run for different years, so a shorter loan can look cheaper just because it ends sooner.';
+    } else if (idx.length === 1) ans = `Offer ${ltr(idx[0])}: ${m2(res[idx[0]]!.monthly)} a month, APR ${res[idx[0]]!.aprPct.toFixed(2)}%.`;
+    $('.lc-ans').textContent = ans; $('.lc-ans2').textContent = ans2;
+    const top = Math.max(1, ...idx.map((n) => res[n]!.totalCost));
+    $('.lc-bars').innerHTML = idx.map((n) => `<div class="lc-bar${Math.abs(res[n]!.totalCost - best) < 0.005 && idx.length > 1 ? ' best' : ''}"><span>Offer ${ltr(n)}</span><i style="width:${Math.max(1, (res[n]!.totalCost / top) * 100).toFixed(1)}%"></i><span>${m2(res[n]!.totalCost)}</span></div>`).join('');
   };
   const conv = () => {
+    const r2f = ($('.lc-dir') as HTMLSelectElement).value === 'r2f';
+    $('.lc-ratel').textContent = r2f ? 'Reducing rate a year (%)' : 'Flat rate a year (%)';
     const fl = parseFloat((($('.lc-flat') as HTMLInputElement).value).replace(/,/g, '')), y = parseFloat((($('.lc-fy') as HTMLInputElement).value).replace(/,/g, ''));
-    if (!(fl >= 0 && y > 0 && y <= 40)) { $('.lc-conv').textContent = ''; $('.lc-conv2').textContent = ''; return; }
+    if (!(fl >= 0 && fl <= 100 && y > 0 && y <= 40)) { $('.lc-conv').textContent = 'Type a rate from 0 to 100 and years from 1 to 40.'; $('.lc-conv2').textContent = ''; return; }
+    if (r2f) {
+      const flat = reducingToFlat(fl, y), c = flatToReducing(flat, y);
+      $('.lc-conv').textContent = `${flat.toFixed(2)}% flat`;
+      $('.lc-conv2').textContent = `The same total interest as ${fl}% on a reducing balance. Every 1,000 borrowed costs ${m2(c.monthly * 1000)} a month. Working: total interest per 1 borrowed = ${(flat * y / 100).toFixed(4)}.`;
+      return;
+    }
     const c = flatToReducing(fl, y);
     $('.lc-conv').textContent = `${c.reducingPct.toFixed(2)}% on a reducing balance`;
-    $('.lc-conv2').textContent = `Every 1,000 borrowed costs ${m2(c.monthly * 1000)} a month. That is ${(c.reducingPct / fl).toFixed(2)} times the flat rate.`;
+    $('.lc-conv2').textContent = `Every 1,000 borrowed costs ${m2(c.monthly * 1000)} a month. That is ${fl > 0 ? (c.reducingPct / fl).toFixed(2) : '1.00'} times the flat rate. Working: interest = amount x ${fl}% x ${y} years, spread over ${Math.round(y * 12)} equal payments.`;
   };
   root.addEventListener('input', () => { calc(); conv(); }); root.addEventListener('change', () => { calc(); conv(); });
   calc(); conv();

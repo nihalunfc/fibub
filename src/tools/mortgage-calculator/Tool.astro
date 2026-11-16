@@ -9,12 +9,23 @@
         <span class="mc-row"><input data-k="down" inputmode="decimal" value="20" />
         <select data-k="dmode" aria-label="Down payment as"><option value="pct">%</option><option value="amt">amount</option></select></span>
       </label>
-      <label>Interest rate a year <span class="mc-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
+      <label>Interest rate a year <span class="mc-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span>
+        <input type="range" data-k="rateslide" min="0.5" max="15" step="0.05" value="5" aria-label="Interest rate slider" /></label>
       <label>Amortisation (years) <input data-k="years" inputmode="decimal" value="25" /></label>
       <label>How often you pay <select data-k="freq"></select></label>
       <label>Extra with every payment <input data-k="extra" inputmode="decimal" value="0" /></label>
       <label>Extra once a year <input data-k="extray" inputmode="decimal" value="0" /></label>
     </div>
+    <details class="mc-more"><summary>More costs and compare (property tax, insurance, another rate)</summary>
+      <div class="mc-grid">
+        <label>Property tax a year (% of price) <input data-k="tax" inputmode="decimal" placeholder="e.g. 1.1" /></label>
+        <label>Home insurance a year <input data-k="ins" inputmode="decimal" placeholder="e.g. 1500" /></label>
+        <label>HOA or condo fee a month <input data-k="hoa" inputmode="decimal" placeholder="0" /></label>
+        <label>Mortgage insurance (PMI) % a year <input data-k="pmi" inputmode="decimal" placeholder="e.g. 0.5" /></label>
+        <label>Compare with another rate (%) <input data-k="rate2" inputmode="decimal" placeholder="e.g. 4" /></label>
+      </div>
+      <p class="mc-fine">PMI counts only while you put down less than 20%. Typical US property tax is about 0.3% to 2% of the price a year. These are your own guesses; check your bill.</p>
+    </details>
     <label class="mc-check"><input type="checkbox" data-k="canada" /> Canada mode (rate compounds twice a year, CMHC insurance)</label>
     <div class="mc-ca" hidden>
       <label class="mc-check"><input type="checkbox" data-k="addprem" checked /> Add the insurance premium to the mortgage (the usual way)</label>
@@ -23,6 +34,7 @@
   </section>
   <section class="panel" aria-live="polite">
     <p class="mc-big"></p>
+    <p class="mc-total"></p>
     <dl class="mc-rows"></dl>
     <p class="mc-warn" role="alert"></p>
   </section>
@@ -54,6 +66,9 @@
   .mc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
   .mc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .mc-rows dt { color: var(--muted); } .mc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .mc-total { margin: -4px 0 10px; color: var(--muted); } .mc-total:empty { display: none; }
+  .mc input[type=range] { padding: 0; border: 0; accent-color: var(--accent); }
+  .mc-more { margin-top: 12px; }
   .mc-warn { color: var(--bad); margin: 10px 0 0; } .mc-warn:empty { display: none; }
   .mc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .mc-h { font-size: 16px; margin: 0 0 8px; }
@@ -66,7 +81,7 @@
 </style>
 
 <script>
-  import { mortgage, FREQS, cmhcRate, type Freq } from '../../lib/money/homes';
+  import { mortgage, FREQS, cmhcRate, homeCostsMonthly, payoffDate, type Freq } from '../../lib/money/homes';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.mc') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -77,24 +92,37 @@
   const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
   let last: ReturnType<typeof mortgage> | null = null;
+  const optNum = (k: string) => { const v = num(k); return isFinite(v) && v > 0 ? v : 0; };
+  let fromSlider = false;
   const calc = () => {
+    if (fromSlider) { fromSlider = false; } else { const rv = num('rate'); if (rv >= 0.5 && rv <= 15) q('rateslide').value = String(rv); }
     const canada = q('canada').checked;
     ($('.mc-ca') as HTMLElement).hidden = !canada;
     const price = num('price'), rate = num('rate'), years = num('years');
     const dv = num('down'), down = (q('dmode') as unknown as HTMLSelectElement).value === 'pct' ? (price * dv) / 100 : dv;
     const out = $('.mc-big'), rows = $('.mc-rows'), warn = $('.mc-warn');
     if (!(price > 0) || !(down >= 0) || down >= price || !(rate >= 0) || !(years > 0 && years <= 40)) {
-      out.textContent = ''; rows.innerHTML = ''; warn.textContent = 'Type a price, a down payment smaller than the price, a rate and 1 to 40 years.'; last = null; return;
+      out.textContent = ''; $('.mc-total').textContent = ''; rows.innerHTML = ''; warn.textContent = 'Type a price, a down payment smaller than the price, a rate and 1 to 40 years.'; last = null; return;
     }
     const r = mortgage({ price, down, ratePct: rate, years, freq: fr.value as Freq, canada, extraPerPayment: num('extra') || 0, extraYearly: num('extray') || 0, addPremium: q('addprem').checked });
     last = r;
     const f = FREQS.find((x) => x.id === fr.value)!;
     out.textContent = `${m2(r.payment)} ${f.id === 'monthly' ? 'a month' : f.id.includes('weekly') && !f.id.includes('bi') ? 'a week' : f.id === 'semimonthly' ? 'twice a month' : 'every 2 weeks'}`;
+    const c = homeCostsMonthly({ price, loan: r.loan, downPct: r.downPct, taxPctYear: optNum('tax'), insuranceYear: optNum('ins'), hoaMonth: optNum('hoa'), pmiPctYear: optNum('pmi') });
+    const monthlyPay = r.payment * r.ppy / 12;
+    $('.mc-total').textContent = c.total > 0 ? `All in about ${m2(monthlyPay + c.total)} a month with tax, insurance${c.hoa ? ', fees' : ''}${c.pmi ? ' and PMI' : ''} (${m2(monthlyPay)} mortgage + ${m2(c.total)} other).` : '';
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
     let h = line('Amount borrowed', m0(r.loan));
     if (canada && r.premium > 0) h += line(`CMHC premium (${r.premiumPct.toFixed(2)}%)`, m0(r.premium));
     h += line('Down payment', `${m0(down)} (${r.downPct.toFixed(1)}%)`);
     h += line('Total interest', m0(r.totalInterest)) + line('Total you pay back', m0(r.totalPaid)) + line('Mortgage-free after', `${r.years.toFixed(1)} years`);
+    if (isFinite(r.years)) h += line('Last payment around', payoffDate(new Date(), r.years).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+    const r2 = num('rate2');
+    if (isFinite(r2) && r2 >= 0 && r2 <= 30 && r2 !== rate) {
+      const alt = mortgage({ price, down, ratePct: r2, years, freq: fr.value as Freq, canada, extraPerPayment: num('extra') || 0, extraYearly: num('extray') || 0, addPremium: q('addprem').checked });
+      const dp = alt.payment - r.payment, di = alt.totalInterest - r.totalInterest;
+      h += line(`At ${r2}% instead`, `${m2(alt.payment)} per payment`) + line('Payment difference', `${dp <= 0 ? 'save ' : 'pay '}${m2(Math.abs(dp))} each time`) + line('Total interest difference', `${di <= 0 ? 'save ' : 'pay '}${m0(Math.abs(di))}`);
+    }
     if (r.interestSaved > 1) h += line('Interest saved by your extra payments', m0(r.interestSaved)) + line('Years saved', (r.basePayments / r.ppy - r.years).toFixed(1));
     rows.innerHTML = h;
     let w = '';
@@ -111,6 +139,7 @@
     if (!last) return;
     downloadCsv('mortgage-by-year.csv', [['Year', 'Principal paid', 'Interest paid', 'Still owed'], ...last.rows.map((y) => [y.year, y.principal.toFixed(2), y.interest.toFixed(2), y.balance.toFixed(2)])]);
   });
+  q('rateslide').addEventListener('input', () => { q('rate').value = q('rateslide').value; fromSlider = true; calc(); });
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
 </script>

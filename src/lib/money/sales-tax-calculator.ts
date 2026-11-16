@@ -17,6 +17,15 @@ export function split(amount: number, parts: Part[], mode: 'add' | 'remove') {
   return { net, tax, gross: net + tax, rate, lines };
 }
 
+/** Amount to run through the tax: price times quantity, less a percent discount taken before tax. Bad input counts as 0 (quantity defaults to 1). */
+export function basket(price: number, qty: number, discountPct: number) {
+  const ok = (x: number) => (isFinite(x) ? x : 0);
+  const q = isFinite(qty) && qty > 0 ? qty : 1;
+  const d = Math.min(100, Math.max(0, ok(discountPct)));
+  const before = ok(price) * q;
+  return { before, discount: (before * d) / 100, amount: before - (before * d) / 100 };
+}
+
 export const CANADA: Record<string, { name: string; parts: Part[] }> = {
   AB: { name: 'Alberta', parts: [{ name: 'GST', rate: 5 }] },
   BC: { name: 'British Columbia', parts: [{ name: 'GST', rate: 5 }, { name: 'PST', rate: 7 }] },

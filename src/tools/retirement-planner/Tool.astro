@@ -17,20 +17,41 @@
       <label>Spending a month in retirement <input data-k="spend" inputmode="decimal" /></label>
       <label>Pension or other income a month <input data-k="other" inputmode="decimal" /></label>
     </div>
+    <details class="rp-more">
+      <summary>More options</summary>
+      <div class="rp-grid">
+        <label>Pension or other income starts at age (blank = when you retire) <input data-k="otherfrom" inputmode="decimal" /></label>
+        <label>Show amounts in <select data-k="basis"><option value="today">today's money (default)</option><option value="future">future money (not adjusted for inflation)</option></select></label>
+      </div>
+      <p class="rp-hint">Quick return and inflation guesses (you can still edit the boxes):</p>
+      <div class="rp-presets">
+        <button type="button" class="btn secondary" data-k="preset-cautious">Cautious 4 / 3 / 3</button>
+        <button type="button" class="btn secondary" data-k="preset-typical">Typical 7 / 4 / 3</button>
+        <button type="button" class="btn secondary" data-k="preset-hopeful">Hopeful 9 / 5 / 2.5</button>
+      </div>
+    </details>
     <p class="rp-hint">Enter spending and pension in today's prices. Results are in today's money too, so they are easy to judge. Your monthly saving is assumed to rise with prices.</p>
     <p class="note bad rp-err" role="alert" hidden></p>
   </section>
   <section class="rp-res" aria-live="polite">
+    <p class="rp-line rp-msg rp-answer"></p>
     <div class="rp-stats">
       <div><span>Money lasts until age</span><b class="rp-until"></b></div>
       <div><span>Pot when you retire</span><b class="rp-pot"></b></div>
       <div class="rp-gapbox"><span class="rp-gapl"></span><b class="rp-gap"></b></div>
     </div>
-    <p class="rp-line rp-msg"></p>
+    <ul class="rp-fix"></ul>
     <figure class="rp-chart panel">
-      <figcaption>Your savings by age (today's money) <span class="rp-leg"></span></figcaption>
+      <figcaption>Your savings by age <span class="rp-leg"></span></figcaption>
       <div class="rp-svg"></div>
     </figure>
+    <details class="panel">
+      <summary>Year by year</summary>
+      <div class="rp-wrap"><table>
+        <thead><tr><th>Age</th><th>Savings</th></tr></thead>
+        <tbody class="rp-body"></tbody>
+      </table></div>
+    </details>
   </section>
   <p class="rp-fine">An estimate with fixed returns, taken month by month; real life varies year to year. Withdrawals are taken at the end of each month. Tax, fees and changes in spending with age are not included. Not financial or tax advice. Nothing you type leaves this page.</p>
 </div>
@@ -55,7 +76,12 @@
   .rp-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
   .rp-stats .good b { color: var(--good); }
   .rp-stats .bad b { color: var(--bad); }
-  .rp-line { margin: 0; font-size: 15px; }
+  .rp-line { margin: 0; font-size: 16px; font-weight: 600; }
+  .rp-more summary, .rp-res details summary { cursor: pointer; font-weight: 600; }
+  .rp-more { margin-top: 12px; } .rp-more .rp-hint { margin-top: 10px; }
+  .rp-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .rp-fix { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+  .rp-fix:empty { display: none; }
   .rp-line:empty { display: none; }
   .rp-chart { margin: 0; }
   .rp-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; }
@@ -72,7 +98,7 @@
 </style>
 
 <script>
-  import { retirement } from '../../lib/money/goals';
+  import { retirement, retirementExtras, futureFactor } from '../../lib/money/goals';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.rp')!;
@@ -86,25 +112,44 @@
   f('before').value = '7'; f('after').value = '4'; f('infl').value = '3';
   f('spend').value = india ? '60,000' : '2,500'; f('other').value = india ? '10,000' : '600';
   const $ = (n: number) => money(n, f('cur').value, 0);
+  const PRESETS: Record<string, [string, string, string]> = { cautious: ['4', '3', '3'], typical: ['7', '4', '3'], hopeful: ['9', '5', '2.5'] };
+  for (const k of Object.keys(PRESETS)) f('preset-' + k).addEventListener('click', () => { [f('before').value, f('after').value, f('infl').value] = PRESETS[k]; run(); });
   const ageText = (a: number) => { const y = Math.floor(a + 1e-9), m = Math.floor((a - y) * 12 + 1e-9); return m ? `${y} and ${m} month${m > 1 ? 's' : ''}` : String(y); };
   function run() {
-    const a = { now: num(f('now').value), retire: num(f('retire').value), planTo: num(f('planto').value), savings: num(f('saved').value), monthly: num(f('monthly').value), before: num(f('before').value), after: num(f('after').value), inflation: num(f('infl').value), spend: num(f('spend').value), other: num(f('other').value) };
-    const bad = !(a.now >= 16 && a.now < a.retire && a.retire < a.planTo && a.planTo <= 120) ? 'Check the ages: now, then retirement, then the age you plan to live until (up to 120).' : a.savings < 0 || a.monthly < 0 || a.spend < 0 || a.other < 0 ? 'Amounts cannot be negative.' : [a.before, a.after, a.inflation].some((v) => v < -10 || v > 30) ? 'Enter returns and inflation between -10 and 30.' : '';
+    const a = { now: num(f('now').value), retire: num(f('retire').value), planTo: num(f('planto').value), savings: num(f('saved').value), monthly: num(f('monthly').value), before: num(f('before').value), after: num(f('after').value), inflation: num(f('infl').value), spend: num(f('spend').value), other: num(f('other').value), otherFrom: num(f('otherfrom').value) };
+    const bad = [f('now'), f('retire'), f('planto')].some((e) => e.value.trim() === '') ? 'Fill in your ages to see the plan.' : !(a.now >= 16 && a.now < a.retire && a.retire < a.planTo && a.planTo <= 120) ? 'Check the ages: now, then retirement, then the age you plan to live until (up to 120).' : a.savings < 0 || a.monthly < 0 || a.spend < 0 || a.other < 0 ? 'Amounts cannot be negative.' : a.otherFrom && (a.otherFrom < a.retire || a.otherFrom > a.planTo) ? 'The pension start age must be between your retirement age and the age you plan to live until (or leave it blank).' : [a.before, a.after, a.inflation].some((v) => v < -10 || v > 30) ? 'Enter returns and inflation between -10 and 30.' : '';
     q('.rp-err').hidden = !bad; q('.rp-err').textContent = bad; q('.rp-res').hidden = !!bad;
     if (bad) return;
     const r = retirement(a);
+    const x = retirementExtras(a, r);
+    const fut = f('basis').value === 'future';
+    const ff = (age: number) => (fut ? futureFactor(a.inflation, age - a.now) : 1);
+    const $r = (n: number) => $(n * ff(a.retire));
     const ok = r.lastsUntil === null;
     q('.rp-until').textContent = ok ? `${a.planTo}+` : ageText(r.lastsUntil!);
-    q('.rp-pot').textContent = $(r.potAtRetire);
+    q('.rp-pot').textContent = $r(r.potAtRetire);
     q('.rp-gapl').textContent = r.gap >= 0 ? 'Spare at retirement' : 'Short at retirement';
-    q('.rp-gap').textContent = $(Math.abs(r.gap));
+    q('.rp-gap').textContent = $r(Math.abs(r.gap));
     q('.rp-gapbox').classList.toggle('good', r.gap >= 0); q('.rp-gapbox').classList.toggle('bad', r.gap < 0);
+    const unit = fut ? ' (in future money)' : '';
     q('.rp-msg').textContent = ok
-      ? `Your money lasts to age ${a.planTo}. You would have about ${$(r.endBalance)} left then, and ${$(r.gap)} more than you need at ${a.retire}.`
-      : `Your money runs out at about age ${ageText(r.lastsUntil!)}, before age ${a.planTo}. To last, you need ${$(r.needed)} at ${a.retire} and have ${$(r.potAtRetire)}, so you are short by ${$(-r.gap)}.`;
-    const series = [{ label: 'Savings', ys: r.balance, color: 'var(--accent)' }];
-    q('.rp-svg').innerHTML = lineSvg(series, r.ages.map((x) => Math.round(x)), 'Savings by age in today\'s money');
+      ? `Your money lasts to age ${a.planTo}. You would have about ${$(r.endBalance * ff(a.planTo))} left then, and ${$r(r.gap)} more than you need at ${a.retire}${unit}.`
+      : `Your money runs out at about age ${ageText(r.lastsUntil!)}, before age ${a.planTo}. To last, you need ${$r(r.needed)} at ${a.retire} and have ${$r(r.potAtRetire)}, so you are short by ${$r(-r.gap)}${unit}.`;
+    const fix: string[] = [];
+    if (!ok) {
+      fix.push(`Save about <b>${$(x.extraMonthly)} more a month</b> (today's money) until ${a.retire}.`);
+      if (x.earliest !== null) fix.push(`Or retire at <b>${ageText(x.earliest)}</b> instead (same saving and spending).`);
+      fix.push(`Or spend about <b>${$(x.affordableSpend)} a month</b> (today's money) in retirement instead of ${$(a.spend)}.`);
+    } else {
+      if (x.earliest !== null && x.earliest < a.retire) fix.push(`You could retire as early as <b>${ageText(x.earliest)}</b> and still last to ${a.planTo}.`);
+      fix.push(`You could spend up to about <b>${$(x.affordableSpend)} a month</b> (today's money) and still last to ${a.planTo}.`);
+    }
+    q('.rp-fix').innerHTML = fix.map((t) => `<li>${t}</li>`).join('');
+    const ys = r.balance.map((v, k) => v * ff(r.ages[k]));
+    const series = [{ label: fut ? 'Savings (future money)' : 'Savings', ys, color: 'var(--accent)' }];
+    q('.rp-svg').innerHTML = lineSvg(series, r.ages.map((v) => Math.round(v)), fut ? 'Savings by age in future money' : 'Savings by age in today\'s money');
     q('.rp-leg').innerHTML = legend(series);
+    q('.rp-body').innerHTML = r.ages.map((age, k) => `<tr><td>${Math.round(age)}</td><td>${$(ys[k])}</td></tr>`).join('');
   }
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();

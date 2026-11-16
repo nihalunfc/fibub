@@ -16,16 +16,24 @@
       <label>Monthly payment (EMI) <input data-k="pay" inputmode="decimal" placeholder="worked out for you" /></label>
     </div>
     <p class="ln-base" aria-live="polite"></p>
+    <p class="ln-work"></p>
     <p class="note bad ln-err" role="alert" hidden></p>
   </section>
 
   <section class="panel ln-what">
     <h2>What does one extra payment do?</h2>
     <div class="ln-what-row">
-      <label>If I pay an extra <input class="ln-once" inputmode="decimal" /></label>
+      <label>If I pay an extra <input class="ln-once" data-k="once" inputmode="decimal" /></label>
       <span>once, next month…</span>
     </div>
     <p class="ln-what-out" aria-live="polite"></p>
+    <div class="ln-what-row ln-mo-row">
+      <label>Or an extra <input class="ln-mo" data-k="moextra" inputmode="decimal" /></label>
+      <span>every month, from next month…</span>
+    </div>
+    <label class="ln-slide">Drag to try other monthly extras <input type="range" class="ln-mor" data-k="moextrar" min="0" max="1000" step="1" aria-label="Extra payment every month slider" /></label>
+    <p class="ln-what-out ln-mo-out" aria-live="polite"></p>
+    <button type="button" class="btn secondary ln-mo-add" hidden>Add this to my plan</button>
   </section>
 
   <section class="panel">
@@ -50,6 +58,7 @@
   </section>
 
   <section class="ln-result" aria-live="polite">
+    <p class="ln-ans"></p>
     <div class="ln-stats">
       <div class="good"><span>Interest saved</span><b class="ln-s-int"></b></div>
       <div class="good"><span class="ln-s-time-l">Debt-free sooner by</span><b class="ln-s-time"></b></div>
@@ -121,6 +130,10 @@
   .ln-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
   .ln-stats .good b { color: var(--good); }
   .ln-ratio { margin: 0; font-size: 15px; }
+  .ln-ans { margin: 0; font-size: 18px; font-weight: 700; } .ln-ans:empty, .ln-work:empty { display: none; }
+  .ln-work { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+  .ln-slide { margin-top: 12px; } .ln-slide input { padding: 0; accent-color: var(--accent); }
+  .ln-mo-row { margin-top: 14px; } .ln-mo-add { margin-top: 10px; }
   .ln-ratio:empty { display: none; }
   .ln-chart { margin: 0; }
   .ln-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
@@ -151,7 +164,7 @@
 </style>
 
 <script>
-  import { simulate, presets, byYear, span, monthsFor, type Prepay, type Result } from '../../lib/loan';
+  import { simulate, presets, byYear, span, monthsFor, firstPaymentSplit, monthlyExtraSaving, type Prepay, type Result } from '../../lib/loan';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
 
   const root = document.querySelector<HTMLElement>('.ln')!;
@@ -169,6 +182,7 @@
   const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   f('first').value = ym(nextMonth);
   q<HTMLInputElement>('.ln-once').value = india ? '1,00,000' : '10,000';
+  q<HTMLInputElement>('.ln-mo').value = india ? '5,000' : '100';
 
   const firstMonth = () => { const [y, m] = (f('first').value || ym(nextMonth)).split('-').map(Number); return new Date(y, m - 1, 1); };
   const monthDate = (i: number) => { const d = firstMonth(); return new Date(d.getFullYear(), d.getMonth() + i - 1, 1); };
@@ -241,6 +255,18 @@
       q('.ln-what-out').innerHTML = `You'd save <b class="good-t">${$(base.interest - w.interest)}</b> in interest and finish <b>${span(base.months - w.months)}</b> sooner. Every ${$(1)} you prepay saves about <b>${money((base.interest - w.interest) / once, q<HTMLSelectElement>('.ln-cur').value, 2)}</b> in interest.`;
     } else q('.ln-what-out').textContent = '';
 
+    q('.ln-work').textContent = `Working for the first payment: interest = ${$(p)} x ${rate}% / 12 = ${$(firstPaymentSplit(p, rate, base.emi).interest)}; the other ${$(firstPaymentSplit(p, rate, base.emi).principal)} of your ${$(base.emi)} payment repays the loan.`;
+
+    // An extra amount every month, with a slider.
+    const mo = q<HTMLInputElement>('.ln-mo'), mor = q<HTMLInputElement>('.ln-mor');
+    mor.max = String(Math.max(100, Math.round(base.emi))); mor.value = String(Math.min(num(mo.value), +mor.max));
+    const moAmt = num(mo.value);
+    q('.ln-mo-add').hidden = !(moAmt > 0);
+    if (moAmt > 0) {
+      const w = monthlyExtraSaving(p, rate, term, moAmt, pay || undefined);
+      q('.ln-mo-out').innerHTML = `Paying ${$(moAmt)} extra every month saves <b class="good-t">${$(w.interestSaved)}</b> in interest and finishes <b>${span(w.monthsSaved)}</b> sooner (last payment ${label(w.withExtra.months)}).`;
+    } else q('.ln-mo-out').textContent = '';
+
     // Ready-made plans.
     q('.ln-presets tbody').innerHTML = presets(base.emi, p).map((x, i) => {
       const r = simulate(p, rate, term, x.plan, 'tenure', pay || undefined);
@@ -261,6 +287,9 @@
       q('.ln-s-time').textContent = $(plan.lastEmi);
     }
     q('.ln-s-end').textContent = label(plan.months);
+    q('.ln-ans').textContent = plan.extra > 0
+      ? `With your plan you are debt-free in ${label(plan.months)}${mode === 'tenure' ? `, ${span(base.months - plan.months)} sooner,` : ''} and save ${$(base.interest - plan.interest)} in interest.`
+      : `With no extra payments you are debt-free in ${label(base.months)} and pay ${$(base.interest)} in interest.`;
     q('.ln-s-extra').textContent = $(plan.extra);
     q('.ln-ratio').innerHTML = plan.extra > 0
       ? `Your ${$(plan.extra)} of prepayments cut your total interest from ${$(base.interest)} to ${$(plan.interest)}, a ${pct((1 - plan.interest / base.interest) * 100)} saving.`
@@ -287,8 +316,8 @@
     document.body.append(a); a.click(); a.remove();
   });
 
-  root.addEventListener('input', (e) => { const row = (e.target as HTMLElement).closest<HTMLElement>('.ln-row'); if (row) syncRow(row); run(); });
-  root.addEventListener('change', run);
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('ln-mor')) return; const row = (e.target as HTMLElement).closest<HTMLElement>('.ln-row'); if (row) syncRow(row); run(); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).classList.contains('ln-mor')) return; run(); });
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
     if (el.closest('.ln-x')) { el.closest('.ln-row')!.remove(); run(); }
@@ -302,6 +331,8 @@
       q('.ln-planbox').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('ln-mor')) { q<HTMLInputElement>('.ln-mo').value = q<HTMLInputElement>('.ln-mor').value; run(); } });
+  q('.ln-mo-add').addEventListener('click', () => { addRow({ amount: num(q<HTMLInputElement>('.ln-mo').value), every: 1, start: 1 }); run(); });
   q('.ln-addrow').addEventListener('click', () => { addRow(); (q('.ln-rows').lastElementChild!.querySelector('input') as HTMLInputElement).focus(); });
   addRow({ amount: india ? 100000 : 5000, every: 12, start: 12 });
   run();

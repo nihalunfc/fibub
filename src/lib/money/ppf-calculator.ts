@@ -36,3 +36,13 @@ export function ppf(a: PpfIn): PpfRow[] {
   }
   return rows;
 }
+
+/** Balance in today's money after `years` of yearly inflation (percent). */
+export const ppfReal = (balance: number, inflation: number, years: number) => balance / Math.pow(1 + inflation / 100, years);
+/** Maturity balance at several interest rates, to show what a rate change would do. */
+export const ppfAtRates = (a: PpfIn, rates: number[]) => rates.map((rate) => ({ rate, balance: ppf({ ...a, rate }).at(-1)!.balance }));
+/** Financial year label such as 2026-27 for a year the account opened (the year starts 1 April). */
+export const fyLabel = (y: number) => `${y}-${String((y + 1) % 100).padStart(2, '0')}`;
+/** The financial year in which the account matures. PPF matures 15 financial years after the end of the year it was opened in:
+ *  opened in FY 2026-27 (April 2026) it matures at the end of FY 2041-42, on 31 March 2042. */
+export const maturityFy = (open: number, years: number) => fyLabel(open + years);

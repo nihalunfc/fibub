@@ -26,10 +26,18 @@
       <label data-for="gulf" hidden>Country <select class="stc-gulf"></select></label>
       <label data-for="any" hidden>Tax rate % <input class="stc-rate" inputmode="decimal" value="10" /></label>
     </div>
+    <details class="stc-more"><summary>More options (quantity, discount, rate chips)</summary>
+      <div class="stc-grid">
+        <label>Number of items <input class="stc-qty" inputmode="numeric" value="1" /></label>
+        <label>Discount % taken off before tax <input class="stc-disc" inputmode="decimal" placeholder="0" /></label>
+      </div>
+      <p class="stc-chips" data-for="any" hidden>Quick rates: <button type="button" data-rate="5">5%</button><button type="button" data-rate="7">7%</button><button type="button" data-rate="8.25">8.25%</button><button type="button" data-rate="10">10%</button><button type="button" data-rate="15">15%</button><button type="button" data-rate="20">20%</button></p>
+    </details>
     <p class="stc-hint"></p>
   </section>
 
   <section class="stc-res" aria-live="polite">
+    <p class="stc-say"></p>
     <div class="stc-stats">
       <div><span>Before tax</span><b class="stc-net"></b></div>
       <div><span class="stc-taxl">Tax</span><b class="stc-tax"></b></div>
@@ -54,6 +62,11 @@
   .stc-mode legend { color: var(--muted); padding: 0; margin-bottom: 4px; }
   .stc input:not([type=checkbox]):not([type=radio]), .stc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .stc-hint, .stc-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .stc-more { margin-top: 12px; } .stc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .stc-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+  .stc-chips[hidden] { display: none; }
+  .stc-chips button { font: inherit; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .stc-say { margin: 0; font-size: 18px; font-weight: 600; } .stc-say:empty { display: none; }
   .stc-res { display: grid; gap: 12px; min-width: 0; }
   .stc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .stc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); min-width: 0; }
@@ -69,7 +82,7 @@
 </style>
 
 <script>
-  import { split, CANADA, US_STATES, UK_VAT, INDIA_GST, GULF_VAT, indiaParts, type Part } from '../../lib/money/sales-tax-calculator.ts';
+  import { split, basket, CANADA, US_STATES, UK_VAT, INDIA_GST, GULF_VAT, indiaParts, type Part } from '../../lib/money/sales-tax-calculator.ts';
   const root = document.querySelector('.stc') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const num = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -107,7 +120,8 @@
 
   const update = () => {
     const mode = (root.querySelector('input[name=stc-mode]:checked') as HTMLInputElement).value as 'add' | 'remove';
-    const r = split(num('.stc-amt'), parts(), mode);
+    const bk = basket(num('.stc-amt'), num('.stc-qty'), num('.stc-disc'));
+    const r = split(bk.amount, parts(), mode);
     q('.stc-net').textContent = fmt(r.net);
     q('.stc-tax').textContent = fmt(r.tax);
     q('.stc-taxl').textContent = `Tax (${p(r.rate)})`;
@@ -115,6 +129,10 @@
     q('.stc-body').innerHTML = `<tr><td>Price before tax</td><td>${fmt(r.net)}</td></tr>`
       + r.lines.map((l) => `<tr><td>${l.name} ${p(l.rate)}</td><td>${fmt(l.tax)}</td></tr>`).join('')
       + `<tr class="tot"><td>Total</td><td>${fmt(r.gross)}</td></tr>`;
+    q('.stc-say').textContent = mode === 'add'
+      ? `${fmt(r.net)} plus ${p(r.rate)} tax (${fmt(r.tax)}) = ${fmt(r.gross)} in total.`
+      : `${fmt(r.gross)} with ${p(r.rate)} tax included is ${fmt(r.net)} before tax and ${fmt(r.tax)} of tax.`;
+    if (bk.discount > 0 || num('.stc-qty') > 1) q('.stc-say').textContent += ` (${fmt(bk.before)} for ${Math.max(1, num('.stc-qty'))} item(s)${bk.discount > 0 ? `, less ${fmt(bk.discount)} discount` : ''}.)`;
     q('.stc-hint').textContent = HINT[reg];
   };
   root.querySelectorAll<HTMLButtonElement>('.stc-tabs button').forEach((b) => b.addEventListener('click', () => {
@@ -123,6 +141,7 @@
     root.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== reg; });
     update();
   }));
+  root.querySelectorAll<HTMLButtonElement>('.stc-chips button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.stc-rate').value = b.dataset.rate!; update(); }));
   root.addEventListener('input', update);
   root.addEventListener('change', update);
   update();

@@ -83,6 +83,27 @@ export function mortgage(o: MortgageIn): MortgageOut {
   };
 }
 
+// ---------- Extras for the mortgage calculator ----------
+export interface HomeCostsIn { price: number; loan: number; downPct: number; taxPctYear: number; insuranceYear: number; hoaMonth: number; pmiPctYear: number }
+/** Monthly costs of owning on top of the mortgage payment. PMI only counts while the down payment is under 20%. */
+export function homeCostsMonthly(o: HomeCostsIn) {
+  const pos = (x: number) => (isFinite(x) && x > 0 ? x : 0);
+  const tax = (o.price * pos(o.taxPctYear)) / 100 / 12;
+  const insurance = pos(o.insuranceYear) / 12;
+  const hoa = pos(o.hoaMonth);
+  const pmi = o.downPct < 20 ? (o.loan * pos(o.pmiPctYear)) / 100 / 12 : 0;
+  return { tax, insurance, hoa, pmi, total: tax + insurance + hoa + pmi };
+}
+/** Date the mortgage is paid off, given a start date and the number of years (can be fractional). */
+export function payoffDate(start: Date, years: number) {
+  const d = new Date(start.getTime());
+  d.setMonth(d.getMonth() + Math.ceil(years * 12 - 1e-9));
+  return d;
+}
+/** Monthly payment for a bare loan at a rate, used for quick "what if the rate were..." comparisons. */
+export const quickMonthly = (loan: number, ratePct: number, years: number, canada: boolean) =>
+  levelPayment(loan, periodRate(ratePct, 12, canada), years * 12);
+
 // ---------- Rent or buy ----------
 export interface RvbIn {
   rent: number; rentGrowth: number; price: number; downPct: number; ratePct: number; mortYears: number; years: number;
@@ -116,6 +137,26 @@ export function rentVsBuy(o: RvbIn) {
   }
   return { rows, breakEven, payment: pay, down, loan };
 }
+
+/** What a month costs in year 1: mortgage payment, property tax and upkeep, insurance, against the rent. */
+export function rvbMonthly(o: RvbIn) {
+  const down = (o.price * o.downPct) / 100, loan = o.price - down;
+  const pay = levelPayment(loan, periodRate(o.ratePct, 12, o.canada), o.mortYears * 12);
+  const taxMaint = (o.price * (o.taxPct + o.maintPct)) / 100 / 12, ins = o.insurance / 12;
+  const owning = pay + taxMaint + ins;
+  return { mortgage: pay, taxMaint, insurance: ins, owning, rent: o.rent, diff: owning - o.rent };
+}
+
+/** The "5% rule" yardstick: rent a year as a share of the price, and the price-to-rent ratio. */
+export const priceToRent = (price: number, rentMonthly: number) => ({ ratio: rentMonthly > 0 ? price / (rentMonthly * 12) : 0, rentPct: price > 0 ? ((rentMonthly * 12) / price) * 100 : 0 });
+
+/** Break-even year (or null) if the home price grew at each of the given rates instead. */
+export function rvbSensitivity(o: RvbIn, growths: number[]) {
+  return growths.map((hg) => ({ growth: hg, breakEven: rentVsBuy({ ...o, homeGrowth: hg }).breakEven }));
+}
+
+/** An amount `years` ahead in today's money at `inflation`% a year. */
+export const rvbTodays = (v: number, inflation: number, years: number) => v / Math.pow(1 + inflation / 100, Math.max(0, years));
 
 // ---------- Debt payoff ----------
 export interface Debt { name: string; balance: number; apr: number; min: number }

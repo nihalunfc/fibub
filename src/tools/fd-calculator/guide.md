@@ -34,12 +34,19 @@ Interest can be compounded monthly, quarterly, every six months or yearly, or pa
 2. Enter the amount, the yearly rate and the length in months, days or years.
 3. Choose how interest is compounded. Ask your bank if you are unsure.
 4. Optionally pick a ladder of 2 to 5 terms and read the table.
+5. Open **More options** for the extras below. Each one adds a short line under the result and changes nothing if you leave it blank.
 
 ## What each setting does
 
 - **Compounded:** how often interest is added to the balance. More often means slightly more.
 - **Simple, paid at the end:** interest is not added to the balance along the way.
 - **Ladder:** the amount is split equally; deposit one has your length, deposit two twice that, and so on.
+
+- **Senior citizen:** ticking it adds the extra rate (0.50% by default, which you can change to your bank's figure) to the yearly rate.
+- **Your income tax rate:** shows the interest and the final amount after tax at your slab. Interest is taxed as income, so use the rate you pay on your top slab.
+- **Inflation:** shows the maturity amount in today's money.
+- **Start date:** shows the approximate maturity date.
+- **TDS note:** for INR deposits the page warns when a year's interest passes Rs 40,000 (Rs 50,000 for senior citizens), the limit from 1 April 2025 above which a bank may deduct 10% tax at source. Rules change, so check the official source.
 
 ## Worked example
 

@@ -36,3 +36,30 @@ export function hbp(balance: number, taxRate: number) {
   const tax = taxed * taxRate / 100;
   return { free, taxed, tax, cash: balance - tax, repayYear: free / HBP_REPAY_YEARS };
 }
+
+/** Refunds (arriving at the end of the year they are earned) grown at the same return to the end of the plan. */
+export function refundsGrown(rows: FhsaRow[], rate: number): number {
+  const g = 1 + rate / 100, n = rows.length;
+  return rows.reduce((t, r, k) => t + r.refund * Math.pow(g, n - 1 - k), 0);
+}
+
+/** First year (1-based) in which the FHSA balance reaches `target`, or null. */
+export function yearReached(rows: FhsaRow[], target: number): number | null {
+  const r = rows.find((x) => x.balance >= target - 0.005);
+  return target > 0 && r ? r.year : null;
+}
+
+/** Smallest yearly amount (to the nearest dollar) that reaches `target` by the end of the plan, within the limits.
+ *  null when even the most you are allowed to put in falls short. */
+export function perYearForTarget(a: Omit<FhsaIn, 'perYear'>, target: number): number | null {
+  const reach = (p: number) => fhsa({ ...a, perYear: p }).balance >= target - 0.005;
+  const cap = FHSA_YEAR + FHSA_CARRY; // no year can take more than this
+  if (!(target > 0)) return 0;
+  if (!reach(cap)) return null;
+  let lo = 0, hi = cap;
+  while (hi - lo > 1) { const mid = Math.floor((lo + hi) / 2); if (reach(mid)) hi = mid; else lo = mid; }
+  return hi;
+}
+
+/** Turn an amount `years` ahead into today's money at `inflation`% a year. */
+export const todaysMoney = (v: number, inflation: number, years: number) => v / Math.pow(1 + inflation / 100, Math.max(0, years));

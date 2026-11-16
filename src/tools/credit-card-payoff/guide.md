@@ -25,7 +25,7 @@ flow:
 
 ## What it does
 
-Type your balance and APR and see two ways to pay: only the minimum each month, or a fixed amount you choose. For each you get the time to pay off, the total interest and the total you pay. A chart shows both balances shrinking.
+Type your balance and APR and see two ways to pay: only the minimum each month, or a fixed amount you choose. For each you get the time to pay off, the total interest and the total you pay. A plain sentence at the top gives your debt-free month and the interest, and a chart shows both balances shrinking.
 
 A **balance transfer** switch shows what happens if you move the balance to a card with a low promo rate, including the transfer fee. With several cards, the [[debt-snowball]] helps you pick an order, and the [[loan-payoff-planner]] and [[budget-calculator]] help find the money to pay more.
 
@@ -34,12 +34,18 @@ A **balance transfer** switch shows what happens if you move the balance to a ca
 1. Enter the balance and the APR from your statement.
 2. Enter your card's minimum rule (a percent of the balance and a smallest amount).
 3. Enter the fixed payment you could make.
-4. Optionally turn on the balance transfer and enter its fee, promo rate and months.
+4. Drag the **slider** to try other payments and watch the answer change.
+5. Open **More options** to set how your card works out its minimum, add an extra amount on top of the minimum, or type the number of months you want to be debt-free in to see the payment you would need.
+6. Optionally turn on the balance transfer and enter its fee, promo rate and months.
 
 ## What each setting does
 
 - **Minimum is a percent of the balance**: the payment shrinks as the balance shrinks, so it takes very long.
 - **Never less than**: the card's floor amount.
+- **Minimum rule**: some cards ask for a percent of the balance; others ask for the month's interest plus a percent (often 1%). Pick the one on your statement.
+- **Extra on top of the minimum**: a small fixed amount added to the minimum every month, which shows up in the first column.
+- **Debt-free in**: the monthly payment that clears the card in the months you choose.
+- **Debt-free date and working**: the table shows the month you finish, and a line shows how month one's interest is worked out (balance x APR / 12).
 - **Fixed payment**: the same amount every month. It must be higher than the first month's interest.
 - **Transfer fee**: added to the balance. After the promo months the normal APR applies to what is left.
 

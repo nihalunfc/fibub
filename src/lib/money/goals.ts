@@ -1,30 +1,43 @@
 // Maths for savings-goal, fire-calculator, retirement-planner and fd-calculator. Plain TypeScript, no DOM.
 
-/** Monthly deposit (paid at the end of each month) that grows start to target in n months. */
-export function monthlyNeeded(target: number, start: number, annualRate: number, months: number): number {
+/** Monthly deposit (paid at the end of each month, or the start when `due`) that grows start to target in n months. */
+export function monthlyNeeded(target: number, start: number, annualRate: number, months: number, due = false): number {
   const i = annualRate / 1200;
   if (months <= 0) return Math.max(0, target - start);
   if (i === 0) return Math.max(0, (target - start) / months);
   const g = Math.pow(1 + i, months);
-  return Math.max(0, ((target - start * g) * i) / (g - 1));
+  return Math.max(0, (((target - start * g) * i) / (g - 1)) / (due ? 1 + i : 1));
 }
 
-/** Months to reach target with a fixed monthly deposit (end of month). Infinity if it never gets there. */
-export function monthsToReach(target: number, start: number, annualRate: number, monthly: number): number {
+/** Months to reach target with a fixed monthly deposit. Infinity if it never gets there. */
+export function monthsToReach(target: number, start: number, annualRate: number, monthly: number, due = false): number {
   if (start >= target) return 0;
   const i = annualRate / 1200;
+  if (due) monthly *= 1 + i;
   if (i === 0) return monthly > 0 ? (target - start) / monthly : Infinity;
   const top = target * i + monthly, bottom = start * i + monthly;
   if (bottom <= 0 || top <= 0) return Infinity;
   return Math.log(top / bottom) / Math.log(1 + i);
 }
 
-/** Balance after n months (end-of-month deposits). */
-export function balanceAfter(start: number, annualRate: number, monthly: number, months: number): number {
+/** Balance after n months. */
+export function balanceAfter(start: number, annualRate: number, monthly: number, months: number, due = false): number {
   const i = annualRate / 1200;
   if (i === 0) return start + monthly * months;
   const g = Math.pow(1 + i, months);
-  return start * g + (monthly * (g - 1)) / i;
+  return start * g + ((monthly * (g - 1)) / i) * (due ? 1 + i : 1);
+}
+
+/** What a goal costs in future money when prices rise `inflationPct` a year. */
+export const inflate = (amount: number, inflationPct: number, months: number) => amount * Math.pow(1 + inflationPct / 100, months / 12);
+
+/** "What if I saved more or less?": for each multiple of `monthly`, the months to the goal and the interest earned. */
+export function whatIfMonthly(target: number, start: number, rate: number, monthly: number, factors: number[], due = false) {
+  return factors.map((x) => {
+    const m = monthsToReach(target, start, rate, monthly * x, due), n = Math.ceil(m - 1e-9);
+    const interest = isFinite(m) ? Math.max(0, balanceAfter(start, rate, monthly * x, n, due) - start - monthly * x * n) : 0;
+    return { factor: x, monthly: monthly * x, months: m, n, interest };
+  });
 }
 
 /** Years to reach `target` from `start` saving `perYear` a year at real return r% (yearly steps). */
@@ -40,6 +53,8 @@ export function yearsToTarget(target: number, start: number, perYear: number, r:
 export type RetireIn = {
   now: number; retire: number; planTo: number; savings: number; monthly: number;
   before: number; after: number; inflation: number; spend: number; other: number;
+  /** Age the pension or other income starts (blank or 0 = at retirement). */
+  otherFrom?: number;
 };
 export type RetireOut = {
   potAtRetire: number; needed: number; gap: number; lastsUntil: number | null;
@@ -51,6 +66,8 @@ export function retirement(a: RetireIn): RetireOut {
   const rb = Math.pow((1 + a.before / 100) / (1 + a.inflation / 100), 1 / 12) - 1;
   const ra = Math.pow((1 + a.after / 100) / (1 + a.inflation / 100), 1 / 12) - 1;
   const need = Math.max(0, a.spend - a.other);
+  const later = a.otherFrom && a.otherFrom > a.retire ? a.otherFrom : 0;
+  const needAt = (m: number) => (later && a.retire + (m - 1) / 12 < later ? Math.max(0, a.spend) : need);
   const workMonths = Math.round((a.retire - a.now) * 12), retMonths = Math.round((a.planTo - a.retire) * 12);
   let bal = a.savings;
   const ages = [a.now], balance = [bal];
@@ -61,18 +78,42 @@ export function retirement(a: RetireIn): RetireOut {
   const potAtRetire = bal;
   let lastsUntil: number | null = null;
   for (let m = 1; m <= retMonths; m++) {
-    const next = bal * (1 + ra) - need;
+    const nd = needAt(m);
+    const next = bal * (1 + ra) - nd;
     if (next < 0 && lastsUntil === null) {
       // the pot runs out part-way through this month
-      lastsUntil = a.retire + (m - 1 + Math.max(0, bal * (1 + ra)) / need) / 12;
+      lastsUntil = a.retire + (m - 1 + Math.max(0, bal * (1 + ra)) / nd) / 12;
       bal = 0;
     } else bal = lastsUntil === null ? next : 0;
     if (m % 12 === 0) { ages.push(a.retire + m / 12); balance.push(Math.max(0, bal)); }
   }
   // pot needed at retirement to pay `need` a month for retMonths (paid at month end)
-  const needed = ra === 0 ? need * retMonths : (need * (1 - Math.pow(1 + ra, -retMonths))) / ra;
+  let needed = ra === 0 ? need * retMonths : (need * (1 - Math.pow(1 + ra, -retMonths))) / ra;
+  if (later) { needed = 0; for (let m = 1; m <= retMonths; m++) needed += needAt(m) / Math.pow(1 + ra, m); }
   return { potAtRetire, needed, gap: potAtRetire - needed, lastsUntil, ages, balance, endBalance: bal };
 }
+
+/** Extra things worth knowing, all in today's money. */
+export function retirementExtras(a: RetireIn, r: RetireOut) {
+  const rb = Math.pow((1 + a.before / 100) / (1 + a.inflation / 100), 1 / 12) - 1;
+  const ra = Math.pow((1 + a.after / 100) / (1 + a.inflation / 100), 1 / 12) - 1;
+  const workMonths = Math.round((a.retire - a.now) * 12), retMonths = Math.round((a.planTo - a.retire) * 12);
+  // extra monthly saving that closes a shortfall (deposits at the end of each month)
+  const grow = rb === 0 ? workMonths : (Math.pow(1 + rb, workMonths) - 1) / rb;
+  const extraMonthly = r.gap < 0 && grow > 0 ? -r.gap / grow : 0;
+  // monthly spending the pot could pay until planTo (pension counted, when it starts at retirement)
+  const annuity = retMonths <= 0 ? 0 : ra === 0 ? retMonths : (1 - Math.pow(1 + ra, -retMonths)) / ra;
+  const affordableSpend = annuity > 0 ? r.potAtRetire / annuity + (a.otherFrom && a.otherFrom > a.retire ? 0 : a.other) : 0;
+  // earliest retirement age (quarter-year steps) at which the money lasts to planTo
+  let earliest: number | null = null;
+  for (let x = Math.ceil((a.now + 0.25) * 4) / 4; x <= a.planTo - 0.25 + 1e-9; x += 0.25) {
+    if (retirement({ ...a, retire: x }).lastsUntil === null) { earliest = x; break; }
+  }
+  return { extraMonthly, affordableSpend, earliest };
+}
+
+/** Multiply a today's-money amount by this to show it as future (not inflation-adjusted) money. */
+export const futureFactor = (inflationPct: number, years: number) => Math.pow(1 + inflationPct / 100, Math.max(0, years));
 
 export type Comp = 'm' | 'q' | 'h' | 'y' | 's';
 export const COMP_PER_YEAR: Record<string, number> = { m: 12, q: 4, h: 2, y: 1 };
@@ -97,3 +138,12 @@ export function rdMaturity(d: number, rate: number, months: number, comp: Comp):
   for (let j = 1; j <= months; j++) total += Math.pow(g, j);
   return d * total;
 }
+
+/** Interest left after tax at a slab rate (percent). Negative interest is not taxed. */
+export const afterTax = (interest: number, taxPct: number) => interest - Math.max(0, interest) * Math.min(100, Math.max(0, taxPct)) / 100;
+/** Value in today's money after `years` of yearly inflation (percent). */
+export const todaysMoney = (amount: number, inflation: number, years: number) => amount / Math.pow(1 + inflation / 100, years);
+/** Interest an FD earns in each full or part year (for the 10% TDS check, which looks at one bank and one year). First-year figure for a plain deposit. */
+export const firstYearInterest = (p: number, rate: number, comp: Comp) => fdMaturity(p, rate, 1, comp) - p;
+/** Bank TDS (10%) applies once a year's interest passes the limit: Rs 40,000, or Rs 50,000 for senior citizens (from 1 April 2025). */
+export const tdsLimit = (senior: boolean) => (senior ? 50000 : 40000);

@@ -1,7 +1,8 @@
 // #1735 FD calculator
+import { afterTax, todaysMoney, firstYearInterest, tdsLimit } from '../../src/lib/money/goals.ts';
 export const path = '/money/fd-calculator/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/fd-calculator/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/money/fd-calculator/`); await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); /* OPEN-DETAILS */ const __op = () => page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); for (const m of ['fill', 'selectOption', 'check', 'uncheck', 'click']) { const o = page[m].bind(page); page[m] = async (...a) => { await __op(); return o(...a); }; } /* WRAP-OPEN */  await page.waitForTimeout(300);
   const set = async (k, v) => { await page.fill(`.fd [data-k="${k}"]`, v); await page.waitForTimeout(80); };
   const t = async (c) => (await page.textContent(`.fd ${c}`));
   await page.selectOption('.fd [data-k="cur"]', 'INR');
@@ -20,4 +21,15 @@ export default async ({ page, check, BASE }) => {
   check((await t('.fd-put')).includes('12,000'), 'fd-calculator: RD puts in 12,000');
   await set('rate', '-1');
   check(await page.isVisible('.fd .fd-err'), 'fd-calculator: bad rate shows a message');
+  check(afterTax(7186, 30) === 7186 * 0.7 && afterTax(-5, 30) === -5 && Math.abs(todaysMoney(106000, 6, 1) - 100000) < 1e-6, 'fd-calculator: lib tax and inflation');
+  check(tdsLimit(true) === 50000 && tdsLimit(false) === 40000 && Math.abs(firstYearInterest(100000, 7, 'q') - 7185.9) < 1, 'fd-calculator: lib TDS limits');
+  await page.selectOption('.fd [data-k="type"]', 'fd'); await set('amt', '100000'); await set('rate', '7'); await set('len', '12');
+  await page.check('.fd [data-k="senior"]'); await page.waitForTimeout(100);
+  check((await t('.fd-mat')).includes('1,07,71'), 'fd-calculator: senior extra 0.5% raises the maturity (' + (await t('.fd-mat')) + ')');
+  check((await t('.fd-extra')).includes('7.5%'), 'fd-calculator: senior rate shown');
+  await page.uncheck('.fd [data-k="senior"]');
+  await set('tax', '30'); await set('infl', '6'); await page.fill('.fd [data-k="start"]', '2026-01-01'); await page.waitForTimeout(100);
+  check((await t('.fd-extra')).includes('1,05,030') && (await t('.fd-extra')).includes('today'), 'fd-calculator: after-tax and inflation lines (' + (await t('.fd-extra')) + ')');
+  await set('amt', '1000000'); await page.waitForTimeout(100);
+  check((await t('.fd-extra')).includes('TDS'), 'fd-calculator: TDS note above the limit');
 };

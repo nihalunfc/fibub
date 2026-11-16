@@ -27,6 +27,15 @@
       </div>
       <label class="ec-check"><input type="checkbox" data-k="eps" checked /> I am in the pension scheme (EPS): 8.33% of wages up to the ceiling goes to pension</label>
     </details>
+    <details class="ec-more">
+      <summary>More options</summary>
+      <div class="ec-grid">
+        <label>Extra voluntary PF (VPF, optional) <span class="ec-suf"><input data-k="vpf" inputmode="decimal" value="0" /><i>% of wages</i></span></label>
+        <label>Inflation (optional, shows today's money) <span class="ec-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label>
+        <label>Years you have already worked (for the pension estimate) <input data-k="served" inputmode="decimal" value="0" /></label>
+      </div>
+      <p class="ec-hint">VPF is extra money you choose to add from your own pay. It goes into EPF and earns the same interest. EPF withdrawals after 5 years of service are tax-free; check the official source for the current rules.</p>
+    </details>
     <p class="ec-src">8.25% is the EPF rate for 2025-26 (EPFO Central Board of Trustees, 2 March 2026). The wage ceiling went from ₹15,000 to ₹25,000 a month on 17 September 2026. Check the official source and change them if needed.</p>
     <p class="note bad ec-err" role="alert" hidden></p>
   </section>
@@ -38,6 +47,8 @@
       <div><span>Sent to pension (EPS)</span><b class="ec-s-eps"></b></div>
     </div>
     <p class="ec-line ec-words"></p>
+    <p class="ec-line ec-real"></p>
+    <p class="ec-line ec-pen"></p>
     <figure class="ec-chart panel">
       <figcaption>EPF balance by year <span><i class="k-a"></i>Balance</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
       <svg class="ec-svg" viewBox="0 0 640 220" role="img" aria-label="EPF balance and money paid in, year by year"></svg>
@@ -97,10 +108,13 @@
   .ec-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .ec-err { margin: 10px 0 0; }
   @media (max-width: 720px) { .ec-stats { grid-template-columns: 1fr 1fr; } }
+  .ec-more { margin-top: 12px; }
+  .ec-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .ec-hint { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 </style>
 
 <script>
-  import { epf, epfMonth, type EpfRow } from '../../lib/money/epf-calculator';
+  import { epf, epfMonth, epfReal, epsPension, type EpfRow } from '../../lib/money/epf-calculator';
   import { chartSvg, csv } from '../../lib/money/growth';
   import { money, num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.ec')!;
@@ -112,8 +126,9 @@
   function run() {
     const basic = num(f('basic').value), rate = num(f('rate').value), retire = num(f('retire').value);
     age = num(f('age').value);
-    const a = { basic, employee: num(f('emp').value), employer: num(f('boss').value), ceiling: num(f('ceil').value), inEps: f('eps').checked, capWages: f('cap').value === '1', raise: num(f('raise').value), rate, ageNow: age, retireAge: retire, opening: num(f('open').value) };
-    const bad = !(basic > 0) ? 'Enter your monthly Basic + DA.' : !(age >= 14 && age < 75) ? 'Enter your age now.' : !(retire > age && retire <= 75) ? 'Retirement age must be after your age now.' : !(rate >= 0 && rate <= 20) ? 'Enter the EPF rate, for example 8.25.' : !(a.ceiling > 0) ? 'Enter the EPS wage ceiling, for example 25,000.' : a.raise < 0 || a.raise > 50 ? 'Enter a pay rise between 0 and 50%.' : a.employee < 0 || a.employee > 100 || a.employer < 0 || a.employer > 100 ? 'Shares are a percent of wages, 0 to 100.' : '';
+    const a = { basic, employee: num(f('emp').value), employer: num(f('boss').value), ceiling: num(f('ceil').value), inEps: f('eps').checked, capWages: f('cap').value === '1', raise: num(f('raise').value), rate, ageNow: age, retireAge: retire, opening: num(f('open').value), vpf: num(f('vpf').value) };
+    const infl = num(f('infl').value), served = num(f('served').value);
+    const bad = !(basic > 0) ? 'Enter your monthly Basic + DA.' : !(age >= 14 && age < 75) ? 'Enter your age now.' : !(retire > age && retire <= 75) ? 'Retirement age must be after your age now.' : !(rate >= 0 && rate <= 20) ? 'Enter the EPF rate, for example 8.25.' : !(a.ceiling > 0) ? 'Enter the EPS wage ceiling, for example 25,000.' : (a.vpf || 0) < 0 || (a.vpf || 0) > 100 ? 'Enter extra voluntary PF as a percent of wages, 0 to 100.' : num(f('infl').value) < 0 || num(f('infl').value) > 50 ? 'Enter inflation between 0 and 50, for example 6.' : num(f('served').value) < 0 || num(f('served').value) > 60 ? 'Enter the years you have already worked, 0 to 60.' : a.raise < 0 || a.raise > 50 ? 'Enter a pay rise between 0 and 50%.' : a.employee < 0 || a.employee > 100 || a.employer < 0 || a.employer > 100 ? 'Shares are a percent of wages, 0 to 100.' : '';
     q('.ec-err').hidden = !bad; q('.ec-err').textContent = bad; q('.ec-res').hidden = !!bad;
     if (bad) return;
     rows = epf(a);
@@ -123,6 +138,11 @@
     q('.ec-s-int').textContent = $(last.interest);
     q('.ec-s-eps').textContent = $(last.eps);
     q('.ec-words').innerHTML = `This month: you pay <b>${$(m.you)}</b> and your employer pays <b>${$(m.boss + m.eps)}</b>, of which <b>${$(m.eps)}</b> goes to pension (EPS) and <b>${$(m.boss)}</b> to your EPF. So <b>${$(m.you + m.boss)}</b> a month goes into EPF.`;
+    q('.ec-real').textContent = infl > 0 ? `With ${infl}% inflation, that is worth about ${$(epfReal(last.balance, infl, last.year))} in today's money.` : '';
+    if (a.inEps) {
+      const lastBasic = rows[rows.length - 1].basic, p = epsPension(lastBasic, a.ceiling, served + last.year);
+      q('.ec-pen').textContent = p.eligible ? `Pension estimate (EPS): about ${$(p.monthly)} a month, from wages up to the ceiling x ${Math.round(served + last.year)} years of service / 70. Check the official source.` : `EPS pension needs at least 10 years of service; you would have ${Math.round(served + last.year)}.`;
+    } else q('.ec-pen').textContent = '';
     q('.ec-svg').innerHTML = chartSvg(rows, short);
     q('.ec-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${age + r.year}</td><td>${$(r.basic)}</td><td>${$(r.you)}</td><td>${$(r.boss)}</td><td>${$(r.earned)}</td><td>${$(r.balance)}</td></tr>`).join('');
   }

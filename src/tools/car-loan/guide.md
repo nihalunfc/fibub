@@ -34,12 +34,16 @@ It works the same for a car, a bike, a scooter or a truck. To compare offers fro
 1. Type the price, trade-in and down payment.
 2. Enter the sales tax percent and fees, and say whether tax is on the price minus the trade-in.
 3. Enter the rate and the number of months. Add a balloon if your finance has one.
-4. Read the payment and totals.
+4. Tap a length button (3 to 7 years) to try another term; the table under the result compares all five lengths side by side.
+5. Read the payment and totals. A line under them shows the working: price, tax and fees minus trade-in and down payment gives the amount borrowed, and it gives the month of your last payment.
+6. Open **More options** to add an extra amount each month (see the interest and time saved) or to type the monthly payment you can afford and see the highest price it covers.
 
 ## What each setting does
 
 - **Tax on price minus trade-in**: the trade-in lowers the taxed amount when ticked. Untick if you are taxed on the full price.
 - **Add the fees to the loan**: financed fees are charged interest; unticked, you pay them in cash.
+- **Extra every month**: paid on top of the normal payment, it goes straight to the loan, so you finish earlier and pay less interest. Not shown with a balloon.
+- **What can I afford**: works backwards from a monthly payment, using your trade-in, down payment, tax, fees, rate and length, to the highest vehicle price.
 - **Balloon**: a lump sum due at the end, as a percent of the price. It lowers the payment, but you still owe it.
 
 ## Worked example

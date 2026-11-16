@@ -7,11 +7,19 @@
     <div class="sp-grid">
       <label>Currency <select class="sp-cur" data-k="cur"></select></label>
       <label>Monthly SIP <input data-k="sip" inputmode="decimal" /></label>
-      <label>Expected return <span class="sp-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
-      <label>Years <span class="sp-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span></label>
+      <label>Expected return <span class="sp-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span><input type="range" data-k="rate-r" min="1" max="30" step="0.5" aria-label="Expected return slider" /></label>
+      <label>Years <span class="sp-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span><input type="range" data-k="years-r" min="1" max="40" step="1" aria-label="Years slider" /></label>
       <label>Raise the SIP every year by (optional) <span class="sp-suf"><input data-k="step" inputmode="decimal" /><i>% a year</i></span></label>
       <label>Lumpsum at the start (optional) <input data-k="lump" inputmode="decimal" /></label>
     </div>
+    <div class="sp-chips" role="group" aria-label="Return presets">Try a return: <button type="button" class="btn secondary" data-pre="8">8%</button><button type="button" class="btn secondary" data-pre="10">10%</button><button type="button" class="btn secondary" data-pre="12">12%</button><button type="button" class="btn secondary" data-pre="15">15%</button></div>
+    <details class="sp-more">
+      <summary>More options</summary>
+      <div class="sp-grid">
+        <label>Inflation (optional, shows the value in today's money) <span class="sp-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label>
+        <label>Goal: the amount you want (optional, finds the SIP you need) <input data-k="goal" inputmode="decimal" /></label>
+      </div>
+    </details>
     <p class="note bad sp-err" role="alert" hidden></p>
   </section>
   <section class="sp-res" aria-live="polite">
@@ -21,6 +29,8 @@
       <div class="good"><span>Estimated gains</span><b class="sp-s-gain"></b></div>
       <div><span>Gains as a share</span><b class="sp-s-share"></b></div>
     </div>
+    <p class="sp-line sp-real" hidden></p>
+    <p class="sp-line sp-goal" hidden></p>
     <p class="sp-line sp-words"></p>
     <figure class="sp-chart panel">
       <figcaption>Growth over time <span><i class="k-a"></i>Value</span> <span><i class="k-b"></i>Money invested</span></figcaption>
@@ -75,35 +85,52 @@
   .sp details .btn { margin-top: 12px; }
   .sp-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .sp-err { margin: 10px 0 0; }
+  .sp-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .sp-chips .btn { padding: 4px 12px; min-height: 0; }
+  .sp input[type=range] { padding: 0; border: 0; margin-top: 6px; }
+  .sp-more { margin-top: 12px; }
+  .sp-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
   @media (max-width: 720px) { .sp-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
-  import { sip, chartSvg, csv, type Year } from '../../lib/money/growth';
+  import { sip, sipNeeded, chartSvg, csv, type Year } from '../../lib/money/growth';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.sp')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency();
   q('.sp-cur').innerHTML = currencyOptions(cur);
-  f('sip').value = cur === 'INR' ? '10,000' : '500'; f('rate').value = '12'; f('years').value = '10'; f('step').value = '0'; f('lump').value = '0';
+  f('sip').value = cur === 'INR' ? '10,000' : '500'; f('rate').value = '12'; f('years').value = '10'; f('step').value = '0'; f('lump').value = '0'; f('infl').value = ''; f('goal').value = '';
   const $ = (n: number) => money(n, f('cur').value, 0);
   let rows: Year[] = [];
   function run() {
-    const years = num(f('years').value), rate = num(f('rate').value), step = num(f('step').value);
-    const bad = num(f('sip').value) < 0 || num(f('lump').value) < 0 || num(f('sip').value) + num(f('lump').value) <= 0 ? 'Enter a monthly SIP or a lumpsum.' : !(years > 0 && years <= 60) ? 'Enter the number of years, from 1 to 60.' : rate < 0 || rate > 60 ? 'Enter the expected yearly return, for example 12.' : step < 0 || step > 100 ? 'Enter a yearly raise between 0 and 100.' : '';
+    const years = num(f('years').value), rate = num(f('rate').value), step = num(f('step').value), infl = num(f('infl').value), goal = num(f('goal').value);
+    if (document.activeElement !== f('rate-r')) f('rate-r').value = String(rate);
+    if (document.activeElement !== f('years-r')) f('years-r').value = String(years);
+    const bad = num(f('sip').value) < 0 || num(f('lump').value) < 0 || num(f('sip').value) + num(f('lump').value) <= 0 ? 'Enter a monthly SIP or a lumpsum.' : !(years > 0 && years <= 60) ? 'Enter the number of years, from 1 to 60.' : rate < 0 || rate > 60 ? 'Enter the expected yearly return, for example 12.' : step < 0 || step > 100 ? 'Enter a yearly raise between 0 and 100.' : infl < 0 || infl > 50 ? 'Enter inflation between 0 and 50, for example 6.' : goal < 0 ? 'The goal cannot be negative.' : '';
     q('.sp-err').hidden = !bad; q('.sp-err').textContent = bad; q('.sp-res').hidden = !!bad;
     if (bad) return;
-    rows = sip({ sip: num(f('sip').value), rate, years, stepUp: step, lump: num(f('lump').value) });
+    rows = sip({ sip: num(f('sip').value), rate, years, stepUp: step, lump: num(f('lump').value), inflation: infl });
     const last = rows[rows.length - 1];
     q('.sp-s-fv').textContent = $(last.balance);
     q('.sp-s-put').textContent = $(last.deposits);
     q('.sp-s-gain').textContent = $(last.interest);
     q('.sp-s-share').textContent = `${Math.round((last.interest / last.balance) * 100)}%`;
     q('.sp-words').innerHTML = `Investing <b>${$(last.deposits)}</b> over ${years} years could grow to about <b>${$(last.balance)}</b> at ${rate}% a year, if the return were steady.`;
+    const realEl = q('.sp-real'); realEl.hidden = !(infl > 0);
+    if (infl > 0) realEl.innerHTML = `With ${infl}% inflation, that is worth about <b>${$(last.real)}</b> in today's money.`;
+    const goalEl = q('.sp-goal'); goalEl.hidden = !(goal > 0);
+    if (goal > 0) {
+      const need = sipNeeded(goal, { rate, years, stepUp: step, lump: num(f('lump').value) });
+      goalEl.innerHTML = need === 0 ? `Your lumpsum alone reaches <b>${$(goal)}</b>, so no SIP is needed.` : isFinite(need) ? `To reach <b>${$(goal)}</b> in ${years} years you would need a SIP of about <b>${$(need)}</b> a month${step > 0 ? ' (rising ' + step + '% a year)' : ''}.` : '';
+    }
     q('.sp-svg').innerHTML = chartSvg(rows, (v) => new Intl.NumberFormat(f('cur').value === 'INR' ? 'en-IN' : undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v));
     q('.sp-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${Math.round(r.year * 100) / 100}</td><td>${$(r.deposits)}</td><td>${$(r.interest)}</td><td>${$(r.balance)}</td></tr>`).join('');
   }
+  root.querySelectorAll<HTMLElement>('[data-pre]').forEach((b) => b.addEventListener('click', () => { f('rate').value = b.dataset.pre!; run(); }));
+  f('rate-r').addEventListener('input', () => { f('rate').value = f('rate-r').value; });
+  f('years-r').addEventListener('input', () => { f('years').value = f('years-r').value; });
   q('.sp-csv').addEventListener('click', () => csv('sip-growth.csv', ['Year', 'Invested', 'Gains', 'Value'], rows.map((r) => [r.year, r.deposits, r.interest, r.balance])));
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();

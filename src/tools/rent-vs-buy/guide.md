@@ -42,6 +42,14 @@ The mortgage payment comes from the [[mortgage-calculator]]. Check that you can 
 - **Net worth renting** is the investments: the down payment and buying costs you did not spend, plus every month's saving when owning costs more than rent.
 - **Break-even** is the first year buying is ahead.
 
+## More options
+
+- **Typical numbers:** pick Canada, the United States, the United Kingdom or India to fill the mortgage, tax, insurance and buying and selling cost boxes with rough starting guesses. They are not official figures, so change them to fit your place.
+- **Each month in year 1:** a small table puts the mortgage, property tax and upkeep and insurance next to your rent, so you can see what the gap is that the renter would invest.
+- **Price-to-rent ratio:** shows how many years of rent the home costs, and your rent as a share of the price, against the common 5% rule of thumb.
+- **What if home prices grow differently:** a table shows the break-even year at 0%, 2%, 4% and 6% growth and at your own number.
+- **Inflation:** type a rate to see both end values in today's money.
+
 ## Worked example
 
 Rent 2,000 a month, rising 3% a year, against a 500,000 home with 20% down, a 5% mortgage over 25 years, 1% tax, 1% upkeep, 1,200 insurance, 3% growth, 5% investment return, 3% to buy and 5% to sell. Buying pulls ahead in year 16. Before that, renting and investing wins, because the costs of buying take years to earn back.

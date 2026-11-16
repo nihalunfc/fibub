@@ -34,6 +34,8 @@ To find the money for extra payments, use the [[budget-calculator|budget planner
 4. **Your prepayment plan:** add as many prepayments as you like. Each one has an amount, how often it happens (once, every month, every 3, 6 or 12 months, or every so many months you choose), the month it starts, and an optional month it stops. For example, a yearly bonus every December plus a small extra amount every month.
 5. Choose what happens **after each prepayment**. **Finish sooner** keeps your monthly payment the same, so the loan ends earlier and you save the most interest. **Lower my EMI** keeps the end date and reduces your monthly payment instead.
 
+**Extra every month.** Under the one-time box there is a second what-if: type an amount, or drag the slider, to see how much interest and time a regular monthly extra saves, and press **Add this to my plan** to keep it. Under your loan, a short line shows the working for the first payment (balance x rate / 12 is the interest; the rest repays the loan). At the top of the results one plain sentence gives your debt-free month and what you save.
+
 The results show the interest you save, how much sooner you're debt-free (or your new monthly payment), your last payment date, and the total you prepay. The chart compares what you still owe with and without your plan. The **Year by year** table shows the interest you'd pay each year with and without the plan, what you save each year, the running total, and what's left to pay. You can download the full month-by-month schedule as a CSV file for Excel or Google Sheets.
 
 ## Worked example

@@ -5,7 +5,7 @@
   <section class="panel">
     <h2>Your FHSA plan</h2>
     <div class="fh-grid">
-      <label>Put in each year <span class="fh-suf"><input data-k="per" inputmode="decimal" value="8,000" /><i>$</i></span></label>
+      <label>Put in each year <span class="fh-suf"><input data-k="per" inputmode="decimal" value="8,000" /><i>$</i></span><button type="button" class="fh-max" data-k="max">Use the most allowed ($8,000)</button></label>
       <label>Years until you buy (1 to 15) <input data-k="years" inputmode="decimal" value="5" /></label>
       <label>Yearly return <span class="fh-suf"><input data-k="rate" inputmode="decimal" value="5" /><i>%</i></span></label>
       <label>Your tax rate (marginal) <span class="fh-suf"><input data-k="tax" inputmode="decimal" value="30" /><i>%</i></span></label>
@@ -13,6 +13,14 @@
       <label>Contributed so far (lifetime) <span class="fh-suf"><input data-k="done" inputmode="decimal" value="0" /><i>$</i></span></label>
       <label>Unused room carried into this year <span class="fh-suf"><input data-k="carry" inputmode="decimal" value="0" /><i>$</i></span></label>
     </div>
+    <details class="fh-more">
+      <summary>More options: a savings goal, refunds, inflation</summary>
+      <div class="fh-grid">
+        <label>Down payment goal (optional) <span class="fh-suf"><input data-k="goal" inputmode="decimal" placeholder="e.g. 40,000" /><i>$</i></span></label>
+        <label>Inflation (to show today's money) <span class="fh-suf"><input data-k="infl" inputmode="decimal" placeholder="e.g. 2.5" /><i>%</i></span></label>
+      </div>
+      <label class="fh-check"><input type="checkbox" data-k="reinvest" /> I will invest each tax refund too (in a TFSA or similar, same return)</label>
+    </details>
     <p class="note bad fh-err" role="alert" hidden></p>
   </section>
   <section class="fh-res" aria-live="polite">
@@ -22,6 +30,8 @@
       <div><span>Tax refunds</span><b class="fh-s-ref"></b></div>
       <div><span>Growth</span><b class="fh-s-gro"></b></div>
     </div>
+    <p class="fh-line fh-goal" hidden></p>
+    <p class="fh-small fh-real" hidden></p>
     <p class="note warn fh-cap" hidden></p>
     <details class="panel" open>
       <summary>Year by year</summary>
@@ -58,6 +68,12 @@
   .fh-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
   .fh-stats .good b { color: var(--good); }
   .fh-cap { margin: 0; }
+  .fh-more { margin-top: 12px; } .fh details summary { cursor: pointer; font-weight: 600; }
+  .fh .fh-more > .fh-grid { margin-top: 10px; }
+  .fh label.fh-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .fh input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .fh-max { font: inherit; font-size: 12px; margin-top: 4px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; justify-self: start; }
+  .fh-line { margin: 0; font-size: 15px; font-weight: 600; }
   .fh-wrap { overflow-x: auto; }
   .fh table { border-collapse: collapse; width: 100%; font-size: 14px; }
   .fh th, .fh td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -72,13 +88,14 @@
 </style>
 
 <script>
-  import { fhsa, hbp, FHSA_LIFE } from '../../lib/money/fhsa-calculator';
+  import { fhsa, hbp, FHSA_LIFE, FHSA_YEAR, refundsGrown, yearReached, perYearForTarget, todaysMoney } from '../../lib/money/fhsa-calculator';
   import { num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.fh')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-CA');
   const row = (a: string, b: string) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+  f('max').addEventListener('click', () => { f('per').value = '8,000'; run(); });
   function run() {
     const years = num(f('years').value), rate = num(f('rate').value), tax = num(f('tax').value), done = num(f('done').value);
     const bad = !(years >= 1) ? 'Enter the years until you buy, from 1.' : years > 15 ? 'An FHSA can stay open for at most 15 years after you open it, so enter 15 or fewer.' : rate < -10 || rate > 30 ? 'Enter a yearly return between -10 and 30.' : tax < 0 || tax >= 100 ? 'Enter a tax rate from 0 to 99.' : done > FHSA_LIFE ? 'Lifetime contributions cannot be above $40,000.' : num(f('per').value) < 0 ? 'Amounts cannot be negative.' : '';
@@ -92,6 +109,19 @@
     q('.fh-cap').hidden = !r.capped;
     q('.fh-cap').textContent = r.capped ? `Some years are held to the limit: at most $8,000 a year plus up to $8,000 carried forward, and $40,000 in total. You put in ${$(r.put)} instead of ${$(num(f('per').value) * Math.round(years))}.` : '';
     q('.fh-body').innerHTML = r.rows.map((y) => `<tr><td>${y.year}</td><td>${$(y.room)}</td><td>${$(y.put)}</td><td>${$(y.refund)}</td><td>${$(y.balance)}</td></tr>`).join('');
+    const bal0 = num(f('bal').value), goal = num(f('goal').value), inf = num(f('infl').value);
+    const reinvest = (f('reinvest') as HTMLInputElement).checked;
+    const rg = reinvest ? refundsGrown(r.rows, rate) : 0;
+    const total = r.balance + rg;
+    q('.fh-real').hidden = !((inf > 0 && inf < 50) || reinvest);
+    q('.fh-real').textContent = [reinvest ? `Refunds invested at ${rate}% grow to ${$(rg)}; FHSA plus refunds come to ${$(total)}.` : '', inf > 0 && inf < 50 ? `In today's money after ${Math.round(years)} years at ${inf}% inflation, the FHSA is worth ${$(todaysMoney(r.balance, inf, Math.round(years)))}.` : ''].filter(Boolean).join(' ');
+    const gl = q('.fh-goal');
+    gl.hidden = !(goal > 0);
+    if (goal > 0) {
+      const yr = yearReached(r.rows, goal);
+      const need = perYearForTarget({ years, rate, taxRate: tax, balance: bal0, contributed: done, carry: num(f('carry').value) }, goal);
+      gl.textContent = yr ? `You reach your ${$(goal)} goal in year ${yr} of ${Math.round(years)}.` : need === null ? `You would be ${$(goal - r.balance)} short of your ${$(goal)} goal, and even the most the FHSA allows would not reach it in ${Math.round(years)} years. Try more years or a lower goal.` : `You would be ${$(goal - r.balance)} short of your ${$(goal)} goal. Putting in about ${$(need)} a year would reach it${need > FHSA_YEAR ? ' (this needs carried-forward room)' : ''}.`;
+    }
     const h = hbp(r.balance, tax);
     q('.fh-hbp').innerHTML = row('Same refunds and growth in an RRSP', $(r.balance)) + row('Taken out tax-free under the HBP (up to $60,000)', $(h.free)) + (h.taxed ? row(`Above $60,000, taxed at ${tax}%`, '-' + $(h.tax)) : '') + row('Cash for the home', $(h.cash)) + row('Must be paid back into the RRSP each year, for 15 years', $(h.repayYear)) + row('FHSA: cash for the home, nothing to pay back', $(r.balance));
   }

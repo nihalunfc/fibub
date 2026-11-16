@@ -35,7 +35,8 @@ To compare PPF with a market-linked monthly plan, try the [[sip-calculator]]; to
 1. Enter how much you pay in each financial year (₹500 to ₹1,50,000).
 2. Check the interest rate. It starts at 7.1%, the rate for October to December 2026.
 3. Choose when you pay in, and whether to extend the account after 15 years.
-4. Read the maturity value, then the chart and the year-by-year table. Download the table as CSV if you like.
+4. Tap a **Quick amounts** button (the maximum, or a monthly figure times 12) to fill the deposit in one go.
+5. Read the maturity value, then the chart and the year-by-year table. Download the table as CSV if you like.
 
 ## What each setting does
 
@@ -44,6 +45,14 @@ To compare PPF with a market-linked monthly plan, try the [[sip-calculator]]; to
 - **When you pay in:** paying by 5 April earns interest for all 12 months; paying monthly by the 5th earns a little less; paying in March earns nothing that year.
 - **Already in the account:** a balance you have today, if the account is already open.
 - **Extend after 15 years:** keeps the account open in 5-year blocks, with or without new deposits.
+
+Under **More options**:
+
+- **Inflation:** shows the maturity value in today's money.
+- **Account opened in the year starting April:** type the year you opened (for example 2026) to see the financial year in which the account matures. PPF matures 15 financial years after the end of the year you opened in, so April 2026 gives 31 March 2042.
+- **Tax note:** deposits up to 1,50,000 a year can count under section 80C in the old tax regime, and the interest and maturity amount are tax-free. Check the official source.
+
+Below the result, **If the rate changes** shows the same plan at 6%, 6.5%, 7%, 7.5% and 8% (and your own rate), because the government resets the rate every quarter.
 
 ## Worked example
 
