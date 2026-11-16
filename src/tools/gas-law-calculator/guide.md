@@ -11,12 +11,13 @@ ads: true
 order: 6
 icon: calculator
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [molar-mass-calculator, equation-balancer, psychrometric-calculator, solution-calculator, reaction-kinetics-fitter]
 sources:
   - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
   - "van der Waals constants: common values for 13 gases from the CRC Handbook, which you can type over."
   - "Physical constants: CODATA recommended values (NIST)."
+  - "Standard conditions: the definitions of STP (0 °C with 1 atm or, since 1982, 1 bar) and SATP (25 °C and 1 bar) from IUPAC, rounded to the values above; check the official source for your course."
 flow:
   - { icon: pencil, label: "3 values" }
   - { icon: calculator, label: "PV = nRT" }
@@ -41,6 +42,12 @@ For moist air and dew point, use the [[psychrometric-calculator]]; to convert a 
 2. Choose the gas if you know it. "Any gas (ideal)" works for everything except grams.
 3. Read the answer, its value in other units, the density and the real-gas check.
 4. For a change of state, fill in the start and two of the end values below.
+
+## More options
+
+- **Find buttons.** Press Pressure, Volume, Amount or Temperature to choose which one is worked out. The last answer moves into its box, and the one you chose is emptied.
+- **Show the working.** Under the answer, one line shows the formula with the numbers in SI units, for example V = nRT / P = 1 × 8.3145 × 273.15 / 101325 = 0.022414 m³.
+- **Usual conditions.** Under "More options", buttons fill pressure and temperature for STP (0 °C and 1 atm, the older definition), STP as IUPAC now defines it (0 °C and 1 bar), SATP (25 °C and 1 bar) and room conditions (20 °C and 1 atm). Books differ about "standard", so check which one your question means.
 
 ## Worked examples
 

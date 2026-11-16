@@ -8,12 +8,12 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Bolt and thread</h2>
     <div class="ax-grid">
-      <label>Thread system <select class="bt-sys"><option value="iso" selected>ISO metric (mm, kN, N·m)</option><option value="un">Unified inch, UNC/UNF (in, lbf, lbf·ft)</option></select></label>
-      <label><span>Nominal diameter d (<span class="bt-lu">mm</span>)</span> <input class="bt-d" type="text" inputmode="decimal" value="10" /></label>
-      <label class="bt-pbox">Pitch (mm) <input class="bt-p" type="text" inputmode="decimal" value="1.5" /></label>
-      <label class="bt-nbox" hidden>Threads per inch <input class="bt-n" type="text" inputmode="decimal" value="13" /></label>
-      <label><span>Proof strength (<span class="bt-su">MPa</span>)</span> <input class="bt-sp" type="text" inputmode="decimal" value="600" /></label>
-      <label class="bt-fbox">Preload, % of proof load <input class="bt-frac" type="text" inputmode="decimal" value="75" /></label>
+      <label>Thread system <select data-k="sys" class="bt-sys"><option value="iso" selected>ISO metric (mm, kN, N·m)</option><option value="un">Unified inch, UNC/UNF (in, lbf, lbf·ft)</option></select></label>
+      <label><span>Nominal diameter d (<span class="bt-lu">mm</span>)</span> <input data-k="d" class="bt-d" type="text" inputmode="decimal" value="10" /></label>
+      <label class="bt-pbox">Pitch (mm) <input data-k="p" class="bt-p" type="text" inputmode="decimal" value="1.5" /></label>
+      <label class="bt-nbox" hidden>Threads per inch <input data-k="n" class="bt-n" type="text" inputmode="decimal" value="13" /></label>
+      <label><span>Proof strength (<span class="bt-su">MPa</span>)</span> <input data-k="sp" class="bt-sp" type="text" inputmode="decimal" value="600" /></label>
+      <label class="bt-fbox">Preload, % of proof load <input data-k="frac" class="bt-frac" type="text" inputmode="decimal" value="75" /></label>
       <label class="bt-pcbox">Property class (optional, e.g. 8.8) <input class="bt-pc" type="text" inputmode="text" value="" /></label>
     </div>
     <p class="ax-help">Proof strength is the stress the bolt must carry without permanent stretch; take it from your bolt's grade standard (600 MPa here is just an example). A preload of about 75 % of the proof load is a common choice for joints that are taken apart again, and about 90 % for permanent ones. Example thread: M10 coarse has a 1.5 mm pitch; 1/2-13 UNC has 13 threads per inch.</p>
@@ -23,10 +23,10 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Tightening</h2>
     <div class="ax-grid">
-      <label>Find <select class="bt-mode"><option value="T" selected>Torque for this preload</option><option value="F">Preload from a torque</option></select></label>
-      <label class="bt-tbox" hidden><span>Torque (<span class="bt-tu">N·m</span>)</span> <input class="bt-T" type="text" inputmode="decimal" value="50" /></label>
-      <label>Method <select class="bt-meth"><option value="K" selected>Nut factor K (T = K F d)</option><option value="mu">Thread and under-head friction</option></select></label>
-      <label class="bt-kbox">Nut factor K <input class="bt-K" type="text" inputmode="decimal" value="0.2" /></label>
+      <label>Find <select data-k="mode" class="bt-mode"><option value="T" selected>Torque for this preload</option><option value="F">Preload from a torque</option></select></label>
+      <label class="bt-tbox" hidden><span>Torque (<span class="bt-tu">N·m</span>)</span> <input data-k="T" class="bt-T" type="text" inputmode="decimal" value="50" /></label>
+      <label>Method <select data-k="meth" class="bt-meth"><option value="K" selected>Nut factor K (T = K F d)</option><option value="mu">Thread and under-head friction</option></select></label>
+      <label class="bt-kbox">Nut factor K <input data-k="K" class="bt-K" type="text" inputmode="decimal" value="0.2" /></label>
       <label class="bt-kbox">Typical K (example) <select class="bt-Kpick">
         <option value="">Pick to fill in K…</option>
         <option value="0.2">0.20 plain steel, as received (example)</option>
@@ -34,10 +34,10 @@ import Downloads from '../../components/Downloads.astro';
         <option value="0.12">0.12 with anti-seize or wax (example)</option>
         <option value="0.25">0.25 dry or zinc plated (example)</option>
       </select></label>
-      <label class="bt-mbox" hidden>Thread friction μt <input class="bt-mut" type="text" inputmode="decimal" value="0.12" /></label>
-      <label class="bt-mbox" hidden>Under-head friction μb <input class="bt-mub" type="text" inputmode="decimal" value="0.12" /></label>
-      <label class="bt-mbox" hidden><span>Bearing face outside diameter (<span class="bt-lu">mm</span>, empty = 1.5 d)</span> <input class="bt-dw" type="text" inputmode="decimal" value="" /></label>
-      <label class="bt-mbox" hidden><span>Hole diameter (<span class="bt-lu">mm</span>, empty = 1.1 d)</span> <input class="bt-dh" type="text" inputmode="decimal" value="" /></label>
+      <label class="bt-mbox" hidden>Thread friction μt <input data-k="mut" class="bt-mut" type="text" inputmode="decimal" value="0.12" /></label>
+      <label class="bt-mbox" hidden>Under-head friction μb <input data-k="mub" class="bt-mub" type="text" inputmode="decimal" value="0.12" /></label>
+      <label class="bt-mbox" hidden><span>Bearing face outside diameter (<span class="bt-lu">mm</span>, empty = 1.5 d)</span> <input data-k="dw" class="bt-dw" type="text" inputmode="decimal" value="" /></label>
+      <label class="bt-mbox" hidden><span>Hole diameter (<span class="bt-lu">mm</span>, empty = 1.1 d)</span> <input data-k="dh" class="bt-dh" type="text" inputmode="decimal" value="" /></label>
     </div>
     <p class="ax-help">K lumps all the friction into one number and is the biggest uncertainty: the same torque can give 25 % more or less clamp force. The typical values are rounded examples; a test on your own parts is best. The friction method splits the torque into stretching the bolt, thread friction and friction under the head or nut.</p>
   </div>
@@ -45,11 +45,11 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Joint</h2>
     <div class="ax-grid">
-      <label><span>Grip length, total clamped thickness (<span class="bt-lu">mm</span>)</span> <input class="bt-grip" type="text" inputmode="decimal" value="30" /></label>
-      <label><span>Plain (unthreaded) shank inside the grip (<span class="bt-lu">mm</span>)</span> <input class="bt-shank" type="text" inputmode="decimal" value="10" /></label>
-      <label><span>Bolt E (<span class="bt-eu">GPa</span>)</span> <input class="bt-E" type="text" inputmode="decimal" value="200" /></label>
-      <label><span>Clamped parts E (<span class="bt-eu">GPa</span>)</span> <input class="bt-Em" type="text" inputmode="decimal" value="200" /></label>
-      <label><span>Tensile load per bolt (<span class="bt-fu">kN</span>)</span> <input class="bt-load" type="text" inputmode="decimal" value="10" /></label>
+      <label><span>Grip length, total clamped thickness (<span class="bt-lu">mm</span>)</span> <input data-k="grip" class="bt-grip" type="text" inputmode="decimal" value="30" /></label>
+      <label><span>Plain (unthreaded) shank inside the grip (<span class="bt-lu">mm</span>)</span> <input data-k="shank" class="bt-shank" type="text" inputmode="decimal" value="10" /></label>
+      <label><span>Bolt E (<span class="bt-eu">GPa</span>)</span> <input data-k="E" class="bt-E" type="text" inputmode="decimal" value="200" /></label>
+      <label><span>Clamped parts E (<span class="bt-eu">GPa</span>)</span> <input data-k="Em" class="bt-Em" type="text" inputmode="decimal" value="200" /></label>
+      <label><span>Tensile load per bolt (<span class="bt-fu">kN</span>)</span> <input data-k="load" class="bt-load" type="text" inputmode="decimal" value="10" /></label>
     </div>
     <p class="ax-help">The clamped parts are treated as one material, squeezed in 30° cones spreading from a washer face 1.5 d wide. The external load pulls the joint apart along the bolt axis (no shear, no bending).</p>
     <p class="ax-err bt-err" hidden></p>
@@ -57,17 +57,25 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card bt-out">
     <h2>Results</h2>
-    <p class="ax-big bt-big"></p>
+    <p class="ax-big bt-big" aria-live="polite"></p>
     <dl class="ax-facts bt-facts"></dl>
     <p class="ax-help bt-warn" hidden></p>
     <canvas class="ax-fig bt-fig"></canvas>
+    <details class="bt-more"><summary>More options: torque chart for every common size</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label class="bt-fbox2" hidden>Thread series <select data-k="tser" class="bt-tser"><option value="unc" selected>Coarse (UNC)</option><option value="unf">Fine (UNF)</option></select></label>
+      </div>
+      <p class="ax-help bt-chnote"></p>
+      <div class="ax-scroll"><table class="bt-tab"></table></div>
+      <p class="ax-help">The same proof strength, preload share and friction as above are used for every size, so pick a strength that suits the bolt grade; the real proof strength of a grade can differ a little with size, so check the bolt standard. Sizes are the common coarse metric series and the UNC and UNF inch series.</p>
+    </details>
     <p class="ax-help">For study and planning, not a substitute for professional judgement. Torque only roughly sets preload; critical joints are tightened by angle, stretch or load-indicating washers.</p>
     <Downloads />
   </div>
 </div>
 
 <script>
-  import { stressArea, torqueK, torqueFriction, joint, propertyClass } from '../../lib/sci/eng-bolt';
+  import { stressArea, torqueK, torqueFriction, joint, propertyClass, torqueChart, ISO_COARSE, UNC, UNF } from '../../lib/sci/eng-bolt';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
@@ -150,7 +158,18 @@ import Downloads from '../../components/Downloads.astro';
       ...(load > 0 ? [{ name: 'External load', x: [(db + dl) * sc, (db + dl) * sc], y: [j.Fm / U.F, j.Fb / U.F], mode: 'both' as const, width: 2 }] : []),
     ] }, 'Joint diagram: bolt and clamped-part stiffness lines crossing at the preload');
     paint(q<HTMLCanvasElement>('.bt-fig'), fig);
-    report = [{ title: q('.bt-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note: 'For study and planning, not a substitute for professional judgement.' }];
+    // Torque chart for the common sizes, with the same strength, preload share and friction.
+    q('.bt-fbox2').hidden = iso;
+    const fine = !iso && sel('.bt-tser') === 'unf';
+    const kOf = (z: { d: number; P: number }) => (meth === 'K' ? K : torqueFriction(1, z.d, z.P, val('.bt-mut'), val('.bt-mub'), 1.5 * z.d, 1.1 * z.d).K);
+    const ch = frac > 0 && frac <= 1 ? torqueChart(iso ? ISO_COARSE : fine ? UNF : UNC, sys, Sp, frac, kOf) : [];
+    const chHead = ['Size', `Stress area (${U.au})`, `Preload (${U.fu})`, `Torque (${U.tu})`];
+    const chRows = ch.map((z) => [z.name, sg(z.As, 4), sg(z.Fi / U.F, 4), sg(z.T / U.T, 3)]);
+    const tab = q<HTMLTableElement>('.bt-tab'), hr = document.createElement('tr');
+    chHead.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    tab.replaceChildren(hr, ...chRows.map((r0) => { const tr = document.createElement('tr'); r0.forEach((c, k) => { const td = document.createElement('td'); td.textContent = c; if (k) td.style.textAlign = 'right'; tr.append(td); }); return tr; }));
+    q('.bt-chnote').textContent = ch.length ? `At ${sg(frac * 100, 3)} % of the proof load with a proof strength of ${sg(Sp / U.S, 4)} ${U.su} and ${meth === 'K' ? `K = ${sg(K, 3)}` : 'the friction values above'}. Tighten to these torques only for the bolt grade and lubrication you entered.` : 'Give a preload percentage (up to 100) to see the chart.';
+    report = [{ title: q('.bt-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note: 'For study and planning, not a substitute for professional judgement.' }, ...(ch.length ? [{ title: 'Torque chart', text: [q('.bt-chnote').textContent!], table: { head: chHead, rows: chRows } }] : [])];
   }
 
   q('.bt-Kpick').addEventListener('change', () => { const v = sel('.bt-Kpick'); if (v) q<HTMLInputElement>('.bt-K').value = v; q<HTMLSelectElement>('.bt-Kpick').value = ''; run(); });
@@ -162,4 +181,5 @@ import Downloads from '../../components/Downloads.astro';
 
 <style is:inline>
   .btq select, .btq input { max-width: 100%; }
+  .btq .bt-tab td { white-space: nowrap; }
 </style>

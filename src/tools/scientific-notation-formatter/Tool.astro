@@ -9,7 +9,7 @@ import DataFile from '../../components/DataFile.astro';
   <div class="ax-card">
     <h2>Numbers</h2>
     <label>One per line: a number, or a value and its uncertainty
-      <textarea class="snf-in" rows="5" spellcheck="false" autocapitalize="off" wrap="off"></textarea>
+      <textarea class="snf-in" data-k="numbers" rows="5" spellcheck="false" autocapitalize="off" wrap="off"></textarea>
     </label>
     <p class="ax-help">Write 0.000123 or 1.23e-4, and an uncertainty as 0.0123 ± 0.0004, 12.3 +/- 0.4, 1.234(12) or two columns pasted from a spreadsheet. A unit after the numbers is kept.</p>
     <DataFile target=".snf-in" maxMB={2} maxCols={2} maxRows={5000} />
@@ -18,15 +18,15 @@ import DataFile from '../../components/DataFile.astro';
       <button type="button" class="btn secondary small snf-clear">Clear</button>
     </div>
     <div class="ax-grid" style="margin-top:12px">
-      <label>Write as <select class="snf-not">
+      <label>Write as <select class="snf-not" data-k="notation">
         <option value="sci" selected>Scientific (1.23 × 10⁻⁴)</option>
         <option value="eng">Engineering (123 × 10⁻⁶)</option>
         <option value="si">SI prefix (123 µm)</option>
         <option value="plain">Plain decimal (0.000123)</option>
       </select></label>
-      <label>Unit (optional) <input class="snf-unit" type="text" placeholder="m, g, Hz, °C" autocapitalize="off" /></label>
-      <label>Significant figures <input class="snf-sig" type="number" min="0" max="20" step="1" value="3" inputmode="numeric" /></label>
-      <label>Uncertainty keeps <select class="snf-rule">
+      <label>Unit (optional) <input class="snf-unit" data-k="unit" type="text" placeholder="m, g, Hz, °C" autocapitalize="off" /></label>
+      <label>Significant figures <input class="snf-sig" data-k="sigfigs" type="number" min="0" max="20" step="1" value="3" inputmode="numeric" /></label>
+      <label>Uncertainty keeps <select class="snf-rule" data-k="rule">
         <option value="pdg" selected>1 or 2 figures, PDG rule</option>
         <option value="lead12">2 figures if it starts with 1 or 2, else 1</option>
         <option value="two">Always 2 figures</option>
@@ -39,14 +39,15 @@ import DataFile from '../../components/DataFile.astro';
 
   <div class="ax-card snf-out" hidden>
     <h2>Result</h2>
-    <p class="ax-big snf-big"></p>
+    <p class="ax-big snf-big" aria-live="polite"></p>
     <p class="ax-help snf-note" hidden></p>
+    <p class="ax-help snf-work"></p>
     <div class="snf-forms"></div>
     <h3 class="snf-th">All lines</h3>
     <div class="ax-scroll"><table class="snf-tab"></table></div>
     <div class="ax-row" style="margin-top:10px">
       <label class="snf-colsel">Copy a column <select class="snf-col">
-        <option value="unicode">Unicode</option><option value="plain">Plain text</option><option value="latex">LaTeX</option><option value="siunitx">siunitx</option><option value="concise">Concise</option><option value="e">Value and uncertainty (for Excel)</option>
+        <option value="unicode">Unicode</option><option value="plain">Plain text</option><option value="latex">LaTeX</option><option value="siunitx">siunitx</option><option value="concise">Concise</option><option value="e">Value and uncertainty (for Excel)</option><option value="E">Calculator E notation (1.23E-4)</option>
       </select></label>
       <button type="button" class="btn secondary small snf-copycol">Copy column</button>
       <button type="button" class="btn secondary small snf-csv">Download CSV</button>
@@ -69,7 +70,7 @@ import DataFile from '../../components/DataFile.astro';
 </style>
 
 <script>
-  import { parseLine, format, type Formatted, type Opts } from '../../lib/sci/scinote';
+  import { parseLine, format, working, type Formatted, type Opts, type Parsed } from '../../lib/sci/scinote';
   import { save } from '../../lib/report';
   import { csv } from '../../lib/sci/num';
 
@@ -112,6 +113,7 @@ import DataFile from '../../components/DataFile.astro';
     q('.snf-out').hidden = false;
     const f = first.f!;
     q('.snf-big').textContent = f.unicode;
+    q('.snf-work').textContent = working(parseLine(first.src) as Parsed, f);
     q('.snf-note').textContent = f.note; q('.snf-note').hidden = !f.note;
     const box = q('.snf-forms'); box.replaceChildren();
     for (const [k, name] of FORMS) {
@@ -148,7 +150,7 @@ import DataFile from '../../components/DataFile.astro';
   q('.snf-clear').addEventListener('click', () => { input.value = ''; run(); input.focus(); });
   q('.snf-copycol').addEventListener('click', async () => {
     const k = q<HTMLSelectElement>('.snf-col').value;
-    const text = rows.map((r) => (r.f ? (k === 'e' ? `${r.f.eValue}\t${r.f.eUnc}` : String(r.f[k as keyof Formatted])) : '')).join('\n');
+    const text = rows.map((r) => (r.f ? (k === 'e' ? `${r.f.eValue}\t${r.f.eUnc}` : k === 'E' ? r.f.eValue.replace('e', 'E') : String(r.f[k as keyof Formatted])) : '')).join('\n');
     q('.snf-done').textContent = (await copy(text)) ? `Copied ${rows.length} line${rows.length === 1 ? '' : 's'}.` : 'Your browser blocked copying.';
   });
   q('.snf-csv').addEventListener('click', () => {

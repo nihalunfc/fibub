@@ -14,6 +14,7 @@ works: offline
 updated: 2026-11-08
 related: [buffer-recipe-calculator, solution-calculator, pcr-master-mix, hemocytometer]
 sources:
+  - "Speed and force tables are computed with the same RCF formula, not looked up. Check the official source (your rotor manual) for rotor limits."
   - "RCF and k-factor: standard physics of circular motion and sedimentation (RCF = ω²r/g; k = ln(rmax/rmin)·10¹³ / (3600·ω²))."
   - "Standard gravity 9.80665 m/s²: an exact defined value (CGPM)."
   - "Sedimentation coefficients: rough, rounded orientation values; ribosome names are their S values by definition."
@@ -39,7 +40,7 @@ Make up the buffers for the run with the [[buffer-recipe-calculator]], and count
 
 ## How to use it
 
-1. **rpm and × g.** Enter the radius and choose its unit. Type a speed to get the force, or type a force to get the speed. Use the maximum radius (to the tube bottom) unless a protocol names another. The facts show the speed that gives the same force on a 7 cm and a 15 cm rotor.
+1. **rpm and × g.** Enter the radius and choose its unit. Type a speed to get the force, or type a force to get the speed. Use the maximum radius (to the tube bottom) unless a protocol names another. The facts show the speed that gives the same force on a 7 cm and a 15 cm rotor. The chart follows your radius and marks your speed. Open **Speed and force tables at this radius** for a ready list of rpm against × g and the other way round, and **Show the working** for the formula with your numbers. If your rotor manual gives a diameter, open **More options** and switch the box to diameter: it is halved for you.
 2. **Rotor k-factor.** Enter the minimum and maximum radius of the rotor (the rotor manual lists both), the speed, and a sedimentation coefficient, or pick a particle from the list. You get the k-factor, the force at the minimum, average and maximum radius, the time to pellet, and a chart of pelleting time against speed.
 3. **Same run in another rotor.** Enter the protocol time and its rotor's k-factor, then your rotor's radii and speed. The k-factor from the card above is filled in until you type your own.
 

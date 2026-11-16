@@ -33,7 +33,8 @@ To turn the spectrum into magnitudes, use the [[magnitude-flux-converter]]; to s
 
 1. Pick an **example**, or choose what you know: a **temperature** in kelvin, a star's **B − V colour**, or the **peak wavelength**.
 2. Optionally type a second temperature under **Compare with** to draw both spectra on one chart.
-3. For a star, type its **radius** in solar radii and, if you like, its **distance** in parsecs.
+3. Drag the **temperature slider** (a log scale from 3 K to 50,000 K) to watch the spectrum move; it stays in step with the typed temperature. Under **More options** type a **wavelength** to get the spectral radiance there (per metre and per nanometre, plus the value per unit frequency), or a **band** to get the share and the power per square metre between two wavelengths: the Sun's 400 to 700 nm band holds 36.6 % of its power. **Show the working** lists Wien's law, Stefan-Boltzmann and Planck's law with your numbers.
+4. For a star, type its **radius** in solar radii and, if you like, its **distance** in parsecs.
 
 ## What each result means
 

@@ -14,6 +14,7 @@ works: offline
 updated: 2026-11-09
 related: [hypothesis-tests, sample-size, reliability-analysis, uncertainty-calculator, bootstrap-permutation, meta-analysis, effect-size-learning-gain, odds-risk-ratio, bayesian-ab-test]
 sources:
+  - "Pooled SD and Glass's delta: Glass (1976, Educational Researcher 5:3) and Borenstein et al. (2009), chapter 4."
   - "Formulas: Borenstein, Hedges, Higgins and Rothstein (2009), Introduction to Meta-Analysis; Lakens (2013), Frontiers in Psychology 4:863; McGraw and Wong (1992) for the common-language effect size."
 flow:
   - { icon: pencil, label: "Your value" }
@@ -29,12 +30,14 @@ Get the test result first from the [[hypothesis-tests|hypothesis test chooser]],
 
 ## How to use it
 
-1. Pick what you are starting from in **Start from**.
+1. Pick what you are starting from in **Start from**. The first choice, **Two means and standard deviations**, is the usual Cohen's d calculator: type each group's mean, SD and size from a results table. It uses the pooled SD and also gives Hedges' g and Glass's delta (the difference divided by the SD of group 2, taken as the control).
 2. Type its value and the boxes that appear. Group sizes give intervals and make the conversions exact; a paired t test needs the number of pairs; an F test needs both degrees of freedom; a chi-square needs the total N.
-3. Read the table. Each row shows the value, its interval, a size label and how it was worked out. Download the table as a CSV, or the report as an image, PDF or Word file.
+3. A plain sentence under the headline says what the effect means: how much of the other group the average person in the higher-scoring group beats, and the chance a random person from it scores higher. Open **Show the working** to see each formula with your numbers filled in.
+4. Read the table. Each row shows the value, its interval, a size label and how it was worked out. Download the table as a CSV, or the report as an image, PDF or Word file.
 
 ## The conversions
 
+- **From means and SDs:** pooled SD = √(((n1 − 1) SD1² + (n2 − 1) SD2²) / (n1 + n2 − 2)), d = (M1 − M2) / pooled SD, and Glass's delta = (M1 − M2) / SD2 (Glass 1976; Borenstein et al. 2009).
 - **From t:** d = t √(1/n1 + 1/n2) for two separate groups; dz = t / √n for paired data (the change measured against the spread of the changes, which is not the same scale as d).
 - **d and r:** r = d / √(d² + a). With group sizes, a = N(N − 2)/(n1 n2), so r is exactly the point-biserial correlation t / √(t² + df); without them a = 4, the value for equal groups.
 - **d and odds ratios:** ln OR = d π / √3, the logistic approximation (Hasselblad and Hedges). It assumes the yes/no outcome comes from cutting a continuous, roughly logistic scale.

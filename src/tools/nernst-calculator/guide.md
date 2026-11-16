@@ -14,6 +14,7 @@ works: offline
 updated: 2026-11-08
 related: [cyclic-voltammetry, equilibrium-solver, thermochemistry-calculator, titration-curve]
 sources:
+  - "Ion (membrane) potential: E = (RT/zF) ln(out/in) with CODATA R and F. The example ion concentrations are rounded, typical mammalian-cell textbook figures for illustration only; they vary between cells and tissues, so check a physiology source for real work."
   - "Atomic weights: IUPAC/CIAAW standard atomic weights (abridged values)."
   - "Standard reduction potentials: the CRC Handbook electrochemical series and Bard, Parsons and Jordan, Standard Potentials in Aqueous Solution, which you can type over."
   - "Physical constants: CODATA recommended values (NIST)."
@@ -46,7 +47,9 @@ To compare with a measured voltammogram, use the [[cyclic-voltammetry]]; for the
 1. Choose the half-reactions from the lists. Each is written as a reduction with its standard potential at 25 °C. For a couple that is not in the table, choose "Your own half-reaction" and type E°, the number of electrons and Q.
 2. Type the concentrations in the table that appears: ions in mol/L, gases in bar, and H⁺ or OH⁻ as a pH. Solids, liquids and water have an activity of 1 and do not need a value.
 3. Change the temperature if you need to. The Nernst slope follows the temperature; E° stays at its 25 °C value.
-4. Read the result, check the plot, and download a PNG, PDF or Word report.
+4. Read the result, check the plot, open **Show the working** to see the equation with your numbers, and download a PNG, PDF or Word report.
+5. For nerve and muscle cells, use the **Ion (membrane) potential** card: pick an ion example or type the charge, the concentration outside and inside and the temperature (37 °C by default) to get E = (RT/zF) ln(out/in) in millivolts. The example concentrations are rounded textbook figures for a typical mammalian cell, so use your own values for real work.
+6. To work backwards, the **Find Q or a concentration from a measured potential** card turns a measured voltage, E° and n into Q, and 1/Q for a couple such as Cu²⁺ + 2e⁻ → Cu(s).
 
 ## Worked example: a Daniell cell
 

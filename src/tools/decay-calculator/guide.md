@@ -59,6 +59,10 @@ A vial holds 370 MBq (10 mCi) of F-18 at 08:00. The half-life is 109.77 minutes.
 
 For C-14 (half-life 5,700 years) the carrier-free molar activity is **62.7 mCi/mmol**, and for tritium **29.0 Ci/mmol**, the familiar upper limits for labelled compounds. A sample of a C-14 compound with 50 mCi/mmol is therefore about 80 % labelled.
 
+## Half-life calculator: solve for any variable
+
+The second card solves N = N₀ × 2^(−t / T½) for whichever of the four quantities you leave empty: the starting amount N₀, the amount left N, the time passed t, or the half-life T½. Fill three boxes; the fourth fills itself, with the working written out, the number of half-lives, the fraction left, the decay constant λ and the mean life. Use the same unit for t and T½ (seconds to years). Example: 100 g with a half-life of 5 years, after 10 years, leaves 25 g; to get down to 12.5 g takes 15 years. **Use the nuclide's half-life above** copies the half-life of the nuclide chosen in the first card.
+
 ## Questions
 
 **Which half-life values are used?** The recommended values of the US National Nuclear Data Center and the Decay Data Evaluation Project, rounded as shown in the list. A year here is 365.25 days.

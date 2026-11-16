@@ -62,3 +62,23 @@ export const fagan = {
   mid: (lr: number) => Math.log(lr) / 2,
   right: (p: number) => logit(p),
 };
+
+/** PPV and NPV (0 to 1) across prevalence 0 to 1, for a test with the given sensitivity and specificity. */
+export function prevalenceCurve(sens: number, spec: number, n = 101) {
+  const x: number[] = [], ppv: number[] = [], npv: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = i / (n - 1), tp = sens * p, fp = (1 - spec) * (1 - p), fn = (1 - sens) * p, tn = spec * (1 - p);
+    x.push(p * 100);
+    ppv.push(tp + fp > 0 ? (tp / (tp + fp)) * 100 : NaN);
+    npv.push(tn + fn > 0 ? (tn / (tn + fn)) * 100 : NaN);
+  }
+  return { x, ppv, npv };
+}
+
+/** Prevalence (0 to 1) at which the positive predictive value reaches `target` (0 to 1), or NaN when it cannot. */
+export function prevalenceForPPV(sens: number, spec: number, target: number) {
+  const lr = sens / (1 - spec);
+  if (!(target > 0 && target < 1) || !Number.isFinite(lr) || lr <= 1) return NaN;
+  const o = target / (1 - target) / lr; // pre-test odds needed
+  return o / (1 + o);
+}

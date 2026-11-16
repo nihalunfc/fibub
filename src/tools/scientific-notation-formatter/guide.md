@@ -51,6 +51,10 @@ An uncertainty is itself only known roughly, so it is quoted to one or two signi
 
 Press *Use the example*. The first line, 0.000123456 ± 0.0000356 m, has an uncertainty starting 356, so it keeps one figure, 0.00004, and the value is rounded to the same place: **(1.2 ± 0.4) × 10⁻⁴ m**. With *SI prefix* the same line reads (120 ± 40) µm and `\qty{120(40)}{\micro m}`. The third line, 9.80665 ± 0.0951, starts 951, so the uncertainty rounds up to 0.10 and the result is 9.81 ± 0.10. The Avogadro constant, 6.02214076e23 to three figures, is 6.02 × 10²³.
 
+## Working shown, and calculator form
+
+Under the result, one plain sentence says how the power of ten was found: for 0.000123 it reads "The decimal point moves 4 places to the right, so the power of ten is −4", and it tells you how many figures you typed. **Copy a column** also offers **Calculator E notation**, such as 1.23E-4, the form a calculator or spreadsheet cell accepts.
+
 ## FAQ
 
 **Why is 1.005 rounded to 1.01, when my spreadsheet says 1.00?** The page rounds the number as you typed it, digit by digit, so a final 5 always rounds up (away from zero). Programs that store numbers in binary see 1.005 as 1.00499999… and round down.

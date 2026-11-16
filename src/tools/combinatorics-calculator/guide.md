@@ -53,6 +53,10 @@ Special numbers for n = 10: p(10) = 42 partitions, B(10) = 115 975 ways to group
 
 Triangles: S(5, 2) = 15 ways to split 5 people into 2 teams, and row 5 adds up to the Bell number 52.
 
+## Working, odds and the actual list
+
+On the *Choose and arrange* tab, the line under the results writes the working out: 10P3 = 10 × 9 × 8 = 720, then 10C3 = 720 ÷ 3! = 720 ÷ 6 = 120. A line **Chance of one exact pick** gives the odds, such as 1 in 120. Under *More options: list the actual picks*, type items such as names or letters (A, B, C, D), set k, and tick *Order matters* to see every combination or permutation, up to 200 rows. For 4 items and k = 2 you get 6 combinations or 12 permutations.
+
 ## Frequently asked questions
 
 **How big can n be?** Up to 5000 for most counts, 400 for the triangles and Bell numbers, and 20 000 for partitions. C(5000, 2500) has 1504 digits and appears at once.

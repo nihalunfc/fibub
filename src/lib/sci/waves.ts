@@ -69,3 +69,37 @@ export function iribarren(slope: number, H0: number, L0: number) {
   const xi = slope / Math.sqrt(H0 / L0);
   return { xi, type: xi < 0.5 ? 'spilling' : xi < 3.3 ? 'plunging' : 'surging or collapsing' };
 }
+
+// Wavelength, frequency and speed of any wave (v = f λ), with light and sound helpers.
+/** Speed of light in vacuum (exact, SI definition), m/s. */
+export const C0 = 299792458;
+/** Planck constant (exact, SI 2019), J s, and the electronvolt in joules (exact). */
+export const H_PLANCK = 6.62607015e-34;
+export const EV = 1.602176634e-19;
+/** Speed of sound in dry air (m/s) at temperature tC (°C): the common approximation 331.3 √(1 + T/273.15). */
+export const soundAir = (tC: number) => 331.3 * Math.sqrt(1 + tC / 273.15);
+/** Photon energy in joules for a frequency in hertz. */
+export const photonEnergy = (f: number) => H_PLANCK * f;
+/** Fill in whichever of f, λ and v is missing from the other two (exactly one missing). */
+export function solveFLV(f: number, lam: number, v: number): { f: number; lam: number; v: number } {
+  const miss = [f, lam, v].filter((x) => !Number.isFinite(x)).length;
+  if (miss !== 1) throw new Error('Give exactly two of frequency, wavelength and speed.');
+  if (!Number.isFinite(v)) return { f, lam, v: f * lam };
+  if (!Number.isFinite(f)) return { f: v / lam, lam, v };
+  return { f, lam: v / f, v };
+}
+/** Rough name of the electromagnetic band from the vacuum wavelength in metres (the boundaries are conventions). */
+export function emBand(lamVac: number): string {
+  if (lamVac >= 1) return 'radio waves';
+  if (lamVac >= 1e-3) return 'microwaves';
+  if (lamVac >= 750e-9) return 'infrared';
+  if (lamVac >= 380e-9) return 'visible light';
+  if (lamVac >= 10e-9) return 'ultraviolet';
+  if (lamVac >= 10e-12) return 'X-rays';
+  return 'gamma rays';
+}
+/** Rough colour name for a visible vacuum wavelength in nm (textbook ranges, with blurred edges). */
+export function colourName(nm: number): string {
+  if (nm < 380 || nm > 750) return '';
+  return nm < 450 ? 'violet' : nm < 495 ? 'blue' : nm < 570 ? 'green' : nm < 590 ? 'yellow' : nm < 620 ? 'orange' : 'red';
+}

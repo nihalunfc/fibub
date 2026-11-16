@@ -63,3 +63,9 @@ export const osmoticKPa = (mOsmL: number, tC: number) => (mOsmL * R_GAS * (tC + 
 
 export type Compare = 'hypo' | 'iso' | 'hyper';
 export const compare = (v: number, ref: number, tol: number): Compare => (v < ref - tol ? 'hypo' : v > ref + tol ? 'hyper' : 'iso');
+
+/** Grams of one solute (molar mass M, g/mol) to dissolve to a final volume (L) for a target osmolarity (mOsm/L): target ÷ (i·φ) mmol/L. */
+export function gramsForOsmolarity(targetMOsmL: number, i: number, phi: number, M: number, litres: number): number {
+  if (!(targetMOsmL >= 0) || !(i >= 1) || !(phi > 0) || !(M > 0) || !(litres >= 0)) return NaN;
+  return ((targetMOsmL / (i * phi)) * M * litres) / 1000;
+}

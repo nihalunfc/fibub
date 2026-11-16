@@ -7,8 +7,8 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>LEDs and supply</h2>
     <div class="ax-grid">
-      <label>Supply voltage (V) <input class="lr-vs" type="text" inputmode="decimal" value="12" /></label>
-      <label>LED type (rough typical values) <select class="lr-type">
+      <label>Supply voltage (V) <input data-k="vs" class="lr-vs" type="text" inputmode="decimal" value="12" /></label>
+      <label>LED type (rough typical values) <select data-k="type" class="lr-type">
         <option value="">Pick to fill in…</option>
         <option value="2.0,20">Red, about 2.0 V at 20 mA</option>
         <option value="2.1,20">Yellow or orange, about 2.1 V</option>
@@ -16,21 +16,31 @@ import Downloads from '../../components/Downloads.astro';
         <option value="3.0,20">Blue or white, about 3.0 V</option>
         <option value="1.3,50">Infrared, about 1.3 V</option>
       </select></label>
-      <label>LED forward voltage Vf (V) <input class="lr-vf" type="text" inputmode="decimal" value="3" /></label>
-      <label>LED current (mA) <input class="lr-i" type="text" inputmode="decimal" value="20" /></label>
-      <label>LEDs in series per string <input class="lr-n" type="text" inputmode="numeric" value="3" /></label>
-      <label>Strings in parallel (each with its own resistor) <input class="lr-p" type="text" inputmode="numeric" value="4" /></label>
-      <label>Resistor series <select class="lr-ser"><option value="12">E12</option><option value="24" selected>E24</option><option value="96">E96</option></select></label>
-      <label>Vf spread between parts (± V) <input class="lr-dvf" type="text" inputmode="decimal" value="0.1" /></label>
-      <label>Supply tolerance (± %) <input class="lr-dvs" type="text" inputmode="decimal" value="5" /></label>
+      <label>LED forward voltage Vf (V) <input data-k="vf" class="lr-vf" type="text" inputmode="decimal" value="3" /></label>
+      <label>LED current (mA) <input data-k="i" class="lr-i" type="text" inputmode="decimal" value="20" /></label>
+      <label>LEDs in series per string <input data-k="n" class="lr-n" type="text" inputmode="numeric" value="3" /></label>
+      <label>Strings in parallel (each with its own resistor) <input data-k="p" class="lr-p" type="text" inputmode="numeric" value="4" /></label>
+      <label>Resistor series <select data-k="ser" class="lr-ser"><option value="12">E12</option><option value="24" selected>E24</option><option value="96">E96</option></select></label>
+      <label>Vf spread between parts (± V) <input data-k="dvf" class="lr-dvf" type="text" inputmode="decimal" value="0.1" /></label>
+      <label>Supply tolerance (± %) <input data-k="dvs" class="lr-dvs" type="text" inputmode="decimal" value="5" /></label>
     </div>
+    <p class="lr-presets" aria-label="Common supplies">Common supplies: <button type="button" class="btn secondary small" data-v="3.3">3.3 V</button> <button type="button" class="btn secondary small" data-v="5">5 V</button> <button type="button" class="btn secondary small" data-v="9">9 V</button> <button type="button" class="btn secondary small" data-v="12">12 V</button> <button type="button" class="btn secondary small" data-v="24">24 V</button></p>
+    <details class="lr-more"><summary>More options: check a resistor I already have</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Resistor I have (Ω, such as 330 or 4.7k) <input data-k="have" class="lr-have" type="text" value="" /></label>
+      </div>
+      <p class="ax-help">Leave empty to skip. It shows the current, the heat and the brightness you would get from that resistor with the LEDs and supply above (one string).</p>
+      <p class="ax-big lr-hbig" aria-live="polite"></p>
+      <dl class="ax-facts lr-hfacts"></dl>
+    </details>
     <p class="ax-help">Use the forward voltage and current from your LED's data sheet; the typical values in the list are rough, rounded guides only. Each parallel string needs its own resistor: LEDs straight in parallel share current badly. The example values are made up.</p>
     <p class="ax-err lr-err" hidden></p>
   </div>
 
   <div class="ax-card lr-out">
     <h2>Resistor and power</h2>
-    <p class="ax-big lr-big"></p>
+    <p class="ax-big lr-big" aria-live="polite"></p>
+    <p class="ax-help lr-work"></p>
     <dl class="ax-facts lr-facts"></dl>
     <canvas class="ax-fig lr-fig"></canvas>
   </div>
@@ -38,7 +48,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Array planner</h2>
     <div class="ax-grid">
-      <label>Total number of LEDs <input class="lr-tot" type="text" inputmode="numeric" value="10" /></label>
+      <label>Total number of LEDs <input data-k="tot" class="lr-tot" type="text" inputmode="numeric" value="10" /></label>
     </div>
     <p class="ax-help">Uses the supply, Vf and current above. Puts as many LEDs in each string as fit while leaving at least 10 % of the supply for the resistor, then splits them into even strings.</p>
     <p class="ax-big lr-big2"></p>
@@ -51,8 +61,8 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { design, currentWith, pick, rating, maxPerString, layout, spread } from '../../lib/sci/eng-led';
-  import { ohmText } from '../../lib/sci/eng-resistor';
+  import { design, currentWith, pick, rating, maxPerString, layout, spread, checkResistor } from '../../lib/sci/eng-led';
+  import { ohmText, parseOhms } from '../../lib/sci/eng-resistor';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
@@ -73,7 +83,7 @@ import Downloads from '../../components/Downloads.astro';
   function main() {
     const err = q('.lr-err'), out = q('.lr-out');
     const vs = val('.lr-vs'), vf = val('.lr-vf'), i = val('.lr-i') / 1000, n = val('.lr-n'), p = val('.lr-p'), ser = +sel('.lr-ser'), dvf = val('.lr-dvf'), dvs = val('.lr-dvs');
-    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sec[0] = null; };
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sec[0] = null; q('.lr-hbig').textContent = ''; q('.lr-hfacts').replaceChildren(); };
     if (!(vs > 0)) return fail('Give the supply voltage.');
     if (!(vf > 0 && vf < 50)) return fail('Give the LED forward voltage in volts (about 1.3 to 3.6).');
     if (!(i > 0 && i < 50)) return fail('Give the LED current in milliamps.');
@@ -95,6 +105,8 @@ import Downloads from '../../components/Downloads.astro';
     ];
     if (d.headroom < 0.1 * vs || s.hi > 1.3 * i || s.lo < 0.7 * i) facts.push(fact('Warning', 'the current depends strongly on Vf and the supply', 'leave more voltage across the resistor (fewer LEDs per string) or use a constant-current driver'));
     q('.lr-facts').replaceChildren(...facts);
+    q('.lr-work').textContent = `Working: R = (${g3(vs)} − ${n} × ${g3(vf)}) ÷ ${g3(i)} A = ${g3(d.headroom)} V ÷ ${g3(i)} A = ${ohmText(+d.r.toPrecision(4))}; heat in the resistor P = I² × R = ${W(i * i * d.r)} at the target current.`;
+    haveCheck(vs, vf, i, n);
     const xs: number[] = []; for (let k = 0; k <= 60; k++) xs.push(n * vf * 0.9 + ((vs * 1.3 - n * vf * 0.9) * k) / 60);
     fig = chartFigure({ w: 380, h: 220, xLabel: 'Supply voltage (V)', yLabel: 'String current (mA)', yMin: 0, legend: 'below', series: [
       { name: `Vf ${g3(vf - dvf)} V`, x: xs, y: xs.map((v) => currentWith(v, vf - dvf, n, r) * 1000), mode: 'line', width: 1.5, dash: [4, 3] },
@@ -103,6 +115,20 @@ import Downloads from '../../components/Downloads.astro';
     ], marks: [{ kind: 'vline', at: vs, dash: [3, 3], label: `${g3(vs)} V` }, { kind: 'hline', at: i * 1000, dash: [3, 3] }] }, `String current against supply voltage with ${ohmText(r)}`);
     paint(q<HTMLCanvasElement>('.lr-fig'), fig);
     sec[0] = { title: q('.lr-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig };
+  }
+
+  function haveCheck(vs: number, vf: number, i: number, n: number) {
+    const big = q('.lr-hbig'), box = q('.lr-hfacts'), t = q<HTMLInputElement>('.lr-have').value.trim();
+    if (!t) { big.textContent = ''; box.replaceChildren(); return; }
+    const r = parseOhms(t);
+    if (!(r > 0)) { big.textContent = 'Give the resistor in ohms, for example 330 or 4.7k.'; box.replaceChildren(); return; }
+    const c = checkResistor(vs, vf, n, r, i);
+    if (!c.lit) { big.textContent = `With ${n} LED${n > 1 ? 's' : ''} in series the ${g3(vs)} V supply cannot light them: they need ${g3(n * vf)} V.`; box.replaceChildren(); return; }
+    big.textContent = `${ohmText(r)} gives ${mA(c.i)} (${sig(c.pct, 3)} % of your ${mA(i)} target): ${c.verdict}`;
+    box.replaceChildren(
+      fact('Heat in the resistor', W(c.p), `use a ${rt(rating(c.p))} part or bigger`),
+      fact('Per LED', `${mA(c.i)}, ${W(c.i * vf)}`, c.pct > 100 ? 'above the target: the LED runs hotter and ages faster' : 'at or below the target: a little dimmer, cooler and longer-lived'),
+    );
   }
 
   function plan() {
@@ -130,6 +156,7 @@ import Downloads from '../../components/Downloads.astro';
     sec[1] = { title: `${tot} LEDs: ${q('.lr-big2').textContent}`, text: [q('.lr-sum').textContent!], table: { head, rows } };
   }
 
+  root.querySelectorAll<HTMLButtonElement>('.lr-presets button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.lr-vs').value = b.dataset.v!; main(); plan(); }));
   q('.lr-type').addEventListener('change', () => { const v = sel('.lr-type'); if (v) { const [a, b] = v.split(','); q<HTMLInputElement>('.lr-vf').value = a; q<HTMLInputElement>('.lr-i').value = b; } q<HTMLSelectElement>('.lr-type').value = ''; main(); plan(); });
   root.querySelectorAll('input, select:not(.lr-type)').forEach((x) => { x.addEventListener('input', () => { main(); plan(); }); x.addEventListener('change', () => { main(); plan(); }); });
   document.addEventListener('fibub:theme', () => { if (fig && !q('.lr-out').hidden) paint(q<HTMLCanvasElement>('.lr-fig'), fig); });
@@ -140,4 +167,6 @@ import Downloads from '../../components/Downloads.astro';
 <style is:inline>
   .ledr select, .ledr input { max-width: 100%; }
   .ledr .lr-tab td { white-space: nowrap; }
+  .ledr .lr-presets { margin: 8px 0 0; font-size: .9rem; }
+  .ledr .lr-presets button { margin: 2px 2px 2px 0; }
 </style>

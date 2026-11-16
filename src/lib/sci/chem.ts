@@ -369,3 +369,16 @@ export function pretty(s: string): string {
     .replace(/\[(\d+)([A-Z][a-z]?)\]/g, (_, n, el) => n.replace(/\d/g, (d: string) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]) + el)
     .replace(/(?<=[A-Za-z₀-₉)\]}])([+-]+)$/, (m) => m.replace(/\+/g, '⁺').replace(/-/g, '⁻'));
 }
+
+/** The sum behind a molar mass, e.g. "63.546 (Cu) + 32.06 (S) + 9 × 15.999 (O) + 10 × 1.008 (H) = 249.677 g/mol". */
+export function workingLine(f: Formula): string {
+  const rows = composition(f), g = (x: number) => String(+x.toPrecision(7));
+  const parts = rows.map((r) => { const w = r.mass / r.count; return `${r.count === 1 ? '' : `${g(r.count)} × `}${g(+w.toFixed(5))} (${r.symbol})`; });
+  return `${parts.join(' + ')} = ${molarMass(f).toFixed(3)} g/mol`;
+}
+
+/** Grams of a compound to weigh for a solution of the given concentration (mol/L) and volume (L); purity is a fraction 0 to 1. */
+export function gramsForSolution(M: number, molPerL: number, litres: number, purity = 1): number {
+  if (!(M > 0) || !(molPerL >= 0) || !(litres >= 0) || !(purity > 0 && purity <= 1)) return NaN;
+  return (M * molPerL * litres) / purity;
+}

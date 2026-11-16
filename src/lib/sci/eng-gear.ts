@@ -71,3 +71,29 @@ export function beltCentre(D: number, d: number, L: number, crossed: boolean): n
   for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (belt(D, d, m, crossed).L < L) lo = m; else hi = m; }
   return (lo + hi) / 2;
 }
+
+// Finding tooth counts for a wanted ratio. The ratio is driven teeth / driver teeth (above 1 slows the output).
+export type RatioHit = { teeth: number[]; ratio: number; err: number };
+/** The best tooth combinations for a target ratio with one pair or two pairs in series (a, b then c, d), each count from lo to hi.
+ * err is the error in %. Sorted by closeness, then by fewest total teeth. A target below 1 (a speed-up) is solved as its
+ * inverse with each pair turned round. */
+export function findRatios(target: number, lo: number, hi: number, stages: 1 | 2, limit = 5): RatioHit[] {
+  if (!(target > 0) || !Number.isInteger(lo) || !Number.isInteger(hi) || lo < 1 || hi < lo) return [];
+  if (stages === 2 && target < 1) return findRatios(1 / target, lo, hi, 2, limit).map((h) => ({ teeth: [h.teeth[1], h.teeth[0], h.teeth[3], h.teeth[2]], ratio: 1 / h.ratio, err: (1 / h.ratio / target - 1) * 100 }));
+  type H = { teeth: number[]; ratio: number; rel: number };
+  const hits: H[] = [], tot = (h: H) => h.teeth.reduce((s, x) => s + x, 0);
+  const better = (a: H, b: H) => (Math.abs(a.rel - b.rel) > 1e-12 ? a.rel - b.rel : tot(a) - tot(b));
+  const keep = (teeth: number[], r: number) => {
+    const rel = Math.abs(r / target - 1);
+    if (hits.length >= limit && rel > hits[hits.length - 1].rel + 1e-12) return;
+    hits.push({ teeth, ratio: r, rel }); hits.sort(better); if (hits.length > limit) hits.pop();
+  };
+  if (stages === 1) {
+    for (let a = lo; a <= hi; a++) for (let b = lo; b <= hi; b++) keep([a, b], b / a);
+  } else {
+    const pairs: { a: number; b: number; r: number }[] = [];
+    for (let a = lo; a <= hi; a++) for (let b = a; b <= hi; b++) pairs.push({ a, b, r: b / a });
+    for (let i = 0; i < pairs.length; i++) for (let j = i; j < pairs.length; j++) keep([pairs[i].a, pairs[i].b, pairs[j].a, pairs[j].b], pairs[i].r * pairs[j].r);
+  }
+  return hits.map((h) => ({ teeth: h.teeth, ratio: h.ratio, err: (h.ratio / target - 1) * 100 }));
+}

@@ -77,4 +77,17 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check(await page.isVisible(R + '.dl'), 'conc: report downloads offered');
   await page.selectOption(R + '.cc-ex', 'nacl'); await wait();
   check((await big()) === '0.5 mol/L (M, molarity) = 0.504653 mol/kg (molality)', 'conc: example restored');
+  // Extras: dilution and weighed mass (inside a closed details, so open it first).
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.cc-d2', '0.1'); await page.fill(R + '.cc-dv', '100'); await wait();
+  check((await txt('.cc-dres')) === 'Take 20 mL of the stock and add 80 mL of solvent to make 100 mL.', `conc: dilution (${await txt('.cc-dres')})`);
+  await page.fill(R + '.cc-d2', '1'); await wait();
+  check((await txt('.cc-dres')).includes('only lower'), 'conc: dilution above the stock is explained');
+  await page.fill(R + '.cc-wm', '5.844'); await page.fill(R + '.cc-wv', '100'); await wait();
+  check((await txt('.cc-wres')) === '0.1 mol/L (58.44 g/L)' || (await txt('.cc-wres')) === '1 mol/L (58.44 g/L)', `conc: mass and volume (${await txt('.cc-wres')})`);
+  check((await txt('.cc-wres')) === '1 mol/L (58.44 g/L)', 'conc: 5.844 g in 100 mL of NaCl is 1 mol/L');
+  await page.click(R + '.cc-wuse'); await wait();
+  check((await big()).startsWith('1 mol/L (M, molarity) ='), 'conc: mass result used as the value');
+  await page.fill(R + '.cc-wv', '0'); await wait();
+  check((await txt('.cc-wres')).includes('above zero') && !(await txt('.cc-wres')).includes('NaN'), 'conc: zero volume message');
 };
