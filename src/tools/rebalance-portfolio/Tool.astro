@@ -7,6 +7,7 @@
     <div class="rb-grid">
       <label>Currency <select class="rb-cur" data-k="cur"></select></label>
       <label>New cash to add <input data-k="cash" inputmode="decimal" /></label>
+      <label>Only act if a holding is off target by more than (points) <input data-k="band" inputmode="decimal" placeholder="0 = always" /></label>
     </div>
     <label class="chk" style="margin-top:12px"><input type="checkbox" data-k="buyonly" /> Buy only (never sell; spend the new cash on what is furthest below target)</label>
     <div class="rb-wrap" style="margin-top:12px"><table>
@@ -23,7 +24,7 @@
       <div><span>Total to sell</span><b class="rb-s-sell"></b></div>
     </div>
     <div class="panel rb-wrap"><table>
-      <thead><tr><th>Name</th><th>Now</th><th>Target</th><th>Buy / sell</th><th>After</th><th>After %</th></tr></thead>
+      <thead><tr><th>Name</th><th>Now</th><th>Target</th><th>Off by</th><th>Buy / sell</th><th>After</th><th>After %</th></tr></thead>
       <tbody class="rb-out"></tbody>
     </table></div>
     <p class="rb-fine rb-note"></p>
@@ -62,7 +63,7 @@
 </style>
 
 <script>
-  import { rebalance, type Trade } from '../../lib/money/investing';
+  import { rebalance, drift, type Trade } from '../../lib/money/investing';
   import { csv } from '../../lib/money/growth';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.rb')!;
@@ -90,8 +91,9 @@
     q('.rb-s-tot').textContent = $(total);
     q('.rb-s-buy').textContent = $(plan.reduce((s, x) => s + Math.max(0, x.trade), 0));
     q('.rb-s-sell').textContent = $(-plan.reduce((s, x) => s + Math.min(0, x.trade), 0));
-    q('.rb-out').innerHTML = plan.map((x) => `<tr><td>${x.name.replace(/[<&]/g, '')}</td><td>${$(x.value)}</td><td>${Math.round(x.target * 100) / 100}%</td><td><b>${Math.abs(x.trade) < 0.005 ? 'Hold' : (x.trade > 0 ? 'Buy ' : 'Sell ') + $(Math.abs(x.trade))}</b></td><td>${$(x.after)}</td><td>${(Math.round((x.after / total) * 10000) / 100)}%</td></tr>`).join('');
-    q('.rb-note').textContent = (Math.abs(sumT - 100) > 0.01 ? `Your targets add up to ${Math.round(sumT * 100) / 100}%, so they were scaled to 100%. ` : '') + (f('buyonly').checked ? 'Buy only: the new cash goes to the holdings furthest below target, so they may not reach it exactly.' : '');
+    const band = Math.max(0, num(f('band').value)), dr = drift(plan, band), anyOut = dr.some((d) => d.outside);
+    q('.rb-out').innerHTML = plan.map((x, i) => `<tr><td>${x.name.replace(/[<&]/g, '')}</td><td>${$(x.value)}</td><td>${Math.round(x.target * 100) / 100}%</td><td>${(dr[i].drift > 0 ? '+' : '') + Math.round(dr[i].drift * 10) / 10} pts</td><td><b>${Math.abs(x.trade) < 0.005 ? 'Hold' : (x.trade > 0 ? 'Buy ' : 'Sell ') + $(Math.abs(x.trade))}</b></td><td>${$(x.after)}</td><td>${(Math.round((x.after / total) * 10000) / 100)}%</td></tr>`).join('');
+    q('.rb-note').textContent = (Math.abs(sumT - 100) > 0.01 ? `Your targets add up to ${Math.round(sumT * 100) / 100}%, so they were scaled to 100%. ` : '') + (band > 0 ? (anyOut ? `At least one holding is more than ${band} points off target, so rebalancing is worth doing. ` : `Every holding is within ${band} points of its target, so you could leave things as they are. `) : '') + (f('buyonly').checked ? 'Buy only: the new cash goes to the holdings furthest below target, so they may not reach it exactly.' : '');
   }
   q('.rb-add').addEventListener('click', () => { addRow(); run(); });
   body.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.x'); if (b) { b.closest('tr')!.remove(); run(); } });

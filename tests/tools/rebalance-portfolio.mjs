@@ -11,4 +11,10 @@ export default async ({ page, check, BASE }) => {
   check(r[0].includes('Hold') && r[1].includes('Buy $2,000.00'), 'rebalance-portfolio: buy only puts 2,000 cash into the bond fund');
   await page.click('.rb .rb-add'); await page.waitForTimeout(100);
   check((await rows()).length === 3, 'rebalance-portfolio: Add a row adds a holding');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.rb [data-k="band"]', '15'); await page.waitForTimeout(100);
+  check((await page.textContent('.rb-note')).includes('within 15 points'), 'rebalance: 10 points off is within a 15-point band');
+  check((await page.textContent('.rb-out tr:nth-child(1) td:nth-child(4)')).includes('+10 pts'), 'rebalance: shares fund shows +10 pts');
+  await page.fill('.rb [data-k="band"]', '5'); await page.waitForTimeout(100);
+  check((await page.textContent('.rb-note')).includes('worth doing'), 'rebalance: outside a 5-point band says rebalance');
 };

@@ -46,6 +46,10 @@ Enter the take-home pay you want in a year, your business costs, the share you s
 
 You want 60,000 a year to take home, with 6,000 of business costs and 20% set aside for tax. You need to bill 60,000 / 0.8 + 6,000 = 81,000. With 4 weeks off you work 48 weeks, and at 30 billable hours that is 1,440 hours. The hourly rate is 81,000 / 1,440 = 56.25, and a 6-hour billable day is 337.50. Percentages are easy to check with the [[percentage-calculator]], and the [[budget-calculator]] helps you decide what take-home you need.
 
+## More options
+
+Under the results, a line turns the yearly billing into a monthly figure to invoice. In **More options**, enter the hours a project will take and a buffer for the unexpected to get a fixed-price quote at your hourly rate. Enter the salary you could earn as an employee to see how your rate compares with an hourly wage on a 40-hour week; the gap pays for unbilled time, time off, tax and costs.
+
 ## FAQs
 
 **Why is my rate so much higher than a salary equivalent?** You pay for your own holidays, tools, tax and unbillable time.

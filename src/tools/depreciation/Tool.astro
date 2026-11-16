@@ -15,6 +15,12 @@
       <label class="dp-un">Total units in its life <input data-k="tot" inputmode="decimal" /></label>
       <label class="dp-un">Units used each year (separate with commas) <input data-k="uy" /></label>
     </div>
+    <details class="dp-more"><summary>More options</summary>
+      <div class="dp-grid" style="margin-top:10px">
+        <label>If you sell it, after year <input data-k="sy" inputmode="numeric" placeholder="e.g. 3" /></label>
+        <label>Selling price <input data-k="sp" inputmode="decimal" placeholder="e.g. 5,000" /></label>
+      </div>
+    </details>
     <p class="note bad dp-err" role="alert" hidden></p>
   </section>
   <section class="dp-res" aria-live="polite">
@@ -24,6 +30,11 @@
       <div><span>Book value at the end</span><b class="dp-s-end"></b></div>
     </div>
     <p class="dp-line dp-words"></p>
+    <p class="dp-line dp-sale" hidden></p>
+    <div class="panel dp-wrap"><h2>Compare the methods</h2><table>
+      <thead><tr><th>Method</th><th>Year 1</th><th>Year 2</th><th>Total</th></tr></thead>
+      <tbody class="dp-cmp"></tbody>
+    </table></div>
     <figure class="dp-chart panel">
       <figcaption>Book value by year</figcaption>
       <svg class="dp-svg" viewBox="0 0 640 220" role="img" aria-label="Book value falling year by year"></svg>
@@ -74,7 +85,7 @@
 </style>
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { depreciation, type DepIn, type DepRow } from '../../lib/money/business';
+  import { depreciation, saleGain, type DepIn, type DepRow } from '../../lib/money/business';
   import { csv } from '../../lib/money/growth';
   const root = document.querySelector<HTMLElement>('.dp')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -105,6 +116,11 @@
     const names = { sl: 'Straight line', db: 'Declining balance', syd: "Sum of the years' digits", units: 'Units of production' };
     q('.dp-words').innerHTML = `${names[method]} over <b>${rows.length}</b> years takes <b>${$(tot)}</b> off the cost of ${$(cost, 0)}, leaving a book value of <b>${$(rows[rows.length - 1].book)}</b>.`;
     q('.dp-rows').innerHTML = rows.map((r) => `<tr><td>${r.year}</td><td>${$(r.dep)}</td><td>${$(r.accumulated)}</td><td>${$(r.book)}</td></tr>`).join('');
+    const sy = Math.round(num(f('sy').value)), sp = f('sp').value.trim() === '' ? NaN : num(f('sp').value), sl = q('.dp-sale');
+    sl.hidden = !(sy >= 1 && sp >= 0);
+    if (sy >= 1 && sp >= 0) { const sg = saleGain(rows, cost, sy, sp); sl.textContent = `Sold after year ${Math.min(sy, rows.length)} for ${$(sp)}: book value is ${$(sg.book)}, so the ${sg.gain >= 0 ? 'gain' : 'loss'} on sale is ${$(Math.abs(sg.gain))}${sg.gain > 0 ? ' (some tax systems call part of this depreciation recapture)' : ''}.`; }
+    if (method === 'units') q('.dp-cmp').innerHTML = '<tr><td colspan="4">Pick a life-based method to compare.</td></tr>';
+    else q('.dp-cmp').innerHTML = (['sl', 'db', 'syd'] as const).map((m) => { const r = depreciation({ cost, salvage, life, method: m, rate: m === 'db' ? rate : undefined, finish: f('fin').checked }); return `<tr><td>${names[m]}</td><td>${$(r[0].dep)}</td><td>${r[1] ? $(r[1].dep) : '-'}</td><td>${$(r[r.length - 1].accumulated)}</td></tr>`; }).join('');
     const W = 640, H = 220, L = 56, R = 10, T = 10, B = 26, n = rows.length;
     const x = (i: number) => L + (i / n) * (W - L - R), y = (v: number) => T + (1 - v / cost) * (H - T - B);
     const short = (v: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v);

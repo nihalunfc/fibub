@@ -49,6 +49,10 @@ From December 2025, All Citizen and corporate subscribers need to put only 20% i
 
 ₹5,000 a month for one year at 10% grows to about ₹63,351. With 20% for an annuity at 6%, ₹12,670 buys about ₹63 a month and ₹50,681 is the lump sum. At ₹5,000 a month from age 30 to 60 at 10%, the corpus is about ₹1.14 crore.
 
+## More options
+
+The table "If the return is different" shows the corpus, lump sum and pension at returns 3 and 2 points lower and higher than yours, because NPS returns follow the markets. A line shows the pension in today's money using the inflation you enter. To work backwards, type the monthly pension you want in future money and the tool shows the monthly contribution to start with (with your yearly raise, if any).
+
 ## FAQs
 
 **Is the lump sum taxed?** Up to 60% of the corpus is tax-free at exit; how the extra 20% is taxed should be checked with the Income Tax Department. The pension is taxed as income.

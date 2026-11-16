@@ -13,4 +13,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.fr-s-hour')).includes('112.50'), 'half the hours doubles the rate');
   await set('off', '60'); await page.waitForTimeout(100);
   check(await page.isVisible('.fr .fr-err'), 'too many weeks off shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  const ft = async (c) => (await page.textContent(`.fr ${c}`)).trim();
+  await page.fill('.fr [data-k="take"]', '60000'); await page.fill('.fr [data-k="exp"]', '6000'); await page.fill('.fr [data-k="tax"]', '20'); await page.fill('.fr [data-k="off"]', '4'); await page.fill('.fr [data-k="hrs"]', '30');
+  await page.fill('.fr [data-k="proj"]', '40'); await page.fill('.fr [data-k="buf"]', '0'); await page.fill('.fr [data-k="sal"]', '52000'); await page.waitForTimeout(100);
+  check((await ft('.fr-month')).includes('6,750'), 'freelance-rate: 81,000 a year is 6,750 a month to invoice');
+  check((await ft('.fr-quote')).includes('2,250'), 'freelance-rate: 40 hours at 56.25 = 2,250');
+  check((await ft('.fr-emp')).includes('25.00'), 'freelance-rate: 52,000 as employee = 25.00 an hour');
 };

@@ -20,6 +20,12 @@
       <label>Share used for the annuity <span class="nc-suf"><input data-k="ann" inputmode="decimal" value="20" /><i>%</i></span></label>
       <label>Annuity rate <span class="nc-suf"><input data-k="annrate" inputmode="decimal" value="6" /><i>% a year</i></span></label>
     </div>
+    <details class="nc-more"><summary>More options</summary>
+      <div class="nc-grid" style="margin-top:10px">
+        <label>Inflation, to show the pension in today's money <span class="nc-suf"><input data-k="infl" inputmode="decimal" value="6" /><i>% a year</i></span></label>
+        <label>Monthly pension you want, in future money (optional) <input data-k="want" inputmode="decimal" placeholder="e.g. 50,000" /></label>
+      </div>
+    </details>
     <p class="nc-src">At exit at 60, at least 20% (All Citizen and corporate) or 40% (government) must buy an annuity (PFRDA, 19 December 2025). The return and annuity rate are estimates; check the official source.</p>
     <p class="note bad nc-err" role="alert" hidden></p>
   </section>
@@ -32,6 +38,12 @@
     </div>
     <p class="nc-line nc-words"></p>
     <p class="note nc-rule"></p>
+    <p class="nc-line nc-real"></p>
+    <p class="nc-line nc-need" hidden></p>
+    <div class="panel nc-wrap"><h2>If the return is different</h2><table>
+      <thead><tr><th>Return a year</th><th>Corpus</th><th>Lump sum</th><th>Pension a month</th></tr></thead>
+      <tbody class="nc-sc"></tbody>
+    </table></div>
     <figure class="nc-chart panel">
       <figcaption>Corpus over time <span><i class="k-a"></i>Corpus</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
       <svg class="nc-svg" viewBox="0 0 640 220" role="img" aria-label="NPS corpus and money paid in, year by year"></svg>
@@ -90,7 +102,7 @@
 </style>
 
 <script>
-  import { nps, NPS_MIN_ANNUITY, NPS_SMALL, NPS_MID, NPS_MID_LUMP } from '../../lib/money/nps-calculator';
+  import { nps, npsScenarios, npsMonthlyForPension, todaysMoney, NPS_MIN_ANNUITY, NPS_SMALL, NPS_MID, NPS_MID_LUMP } from '../../lib/money/nps-calculator';
   import { chartSvg, csv, type Year } from '../../lib/money/growth';
   import { money, num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.nc')!;
@@ -116,6 +128,12 @@
     q('.nc-s-pen').textContent = $(o.pension);
     q('.nc-words').innerHTML = `You pay in <b>${$(o.invested)}</b> by age ${exit}; at ${rate}% a year it could grow to <b>${$(o.corpus)}</b>. Using ${ann}% for an annuity at ${annRate}% gives about <b>${$(o.pension)}</b> a month for life, before tax.`;
     q('.nc-rule').textContent = o.corpus <= NPS_SMALL ? 'With a corpus of ₹8 lakh or less, you may take it all as a lump sum or in instalments instead.' : sector === 'citizen' && o.corpus <= NPS_MID ? `With a corpus between ₹8 and ₹12 lakh, the lump sum is limited to ${$(NPS_MID_LUMP)}; the rest is paid in instalments over at least 6 years or buys an annuity.` : '';
+    const infl = num(f('infl').value), yrs = exit - age, want = num(f('want').value);
+    const inp = { monthly: pay, stepUp: step, rate, ageNow: age, exitAge: exit, opening: open, annuityShare: ann, annuityRate: annRate };
+    q('.nc-real').textContent = infl >= 0 && infl < 100 ? `In today's money, after ${infl}% inflation over ${yrs} years, that pension is worth about ${$(todaysMoney(o.pension, infl, yrs))} a month and the corpus about ${$(todaysMoney(o.corpus, infl, yrs))}.` : '';
+    const nd = q('.nc-need'); nd.hidden = !(want > 0);
+    if (want > 0) { const m = npsMonthlyForPension(inp, want); nd.textContent = Number.isFinite(m) ? `To get ${$(want)} a month at exit with these settings you would start with about ${$(m)} a month${step > 0 ? ' (rising ' + step + '% a year)' : ''}.` : 'This plan cannot reach that pension.'; }
+    q('.nc-sc').innerHTML = npsScenarios(inp, [-3, -2, 0, 2, 3]).map((s) => `<tr><td>${Math.round(s.rate * 10) / 10}%${s.rate === rate ? ' (yours)' : ''}</td><td>${$(s.corpus)}</td><td>${$(s.lump)}</td><td>${$(s.pension)}</td></tr>`).join('');
     q('.nc-svg').innerHTML = chartSvg(rows, short);
     q('.nc-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${Math.round((age + r.year) * 100) / 100}</td><td>${$(r.deposits)}</td><td>${$(r.interest)}</td><td>${$(r.balance)}</td></tr>`).join('');
   }

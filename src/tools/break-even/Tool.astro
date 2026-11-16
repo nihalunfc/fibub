@@ -10,6 +10,7 @@
       <label>Selling price per unit <input data-k="price" inputmode="decimal" /></label>
       <label>Variable cost per unit <input data-k="var" inputmode="decimal" /></label>
       <label>Profit you want (optional) <input data-k="target" inputmode="decimal" /></label>
+      <label>Units you expect to sell (optional) <input data-k="exp" inputmode="decimal" placeholder="e.g. 800" /></label>
       <label>What if the price changes by <span class="be-suf"><input data-k="chg" inputmode="decimal" /><i>%</i></span></label>
     </div>
     <p class="note bad be-err" role="alert" hidden></p>
@@ -22,6 +23,7 @@
       <div><span>Units for your target</span><b class="be-s-tgt"></b></div>
     </div>
     <p class="be-line be-words"></p>
+    <p class="be-line be-mos" hidden></p>
     <figure class="be-chart panel">
       <figcaption>Sales and costs <span><i class="k-a"></i>Sales</span> <span><i class="k-b"></i>Total costs</span></figcaption>
       <svg class="be-svg" viewBox="0 0 640 220" role="img" aria-label="Sales and total costs by units sold, crossing at the break-even point"></svg>
@@ -73,6 +75,7 @@
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { marginOfSafety } from '../../lib/money/business';
   const root = document.querySelector<HTMLElement>('.be')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -91,7 +94,13 @@
     q('.be-s-cm').textContent = $(cm, 2);
     q('.be-s-tgt').textContent = target > 0 ? units(fixed, price, v, target).toLocaleString() : 'Add a target';
     q('.be-words').innerHTML = `Each unit leaves <b>${$(cm, 2)}</b> (${Math.round((cm / price) * 1000) / 10}% of the price) after its own costs. You need ${n.toLocaleString()} units to cover <b>${$(fixed)}</b> of fixed costs.${target > 0 ? ` To also make ${$(target)} profit, sell ${units(fixed, price, v, target).toLocaleString()} units (${$(units(fixed, price, v, target) * price)} in sales).` : ''}`;
-    const max = Math.max(n * 2, 10), W = 640, H = 220, L = 56, R = 10, T = 10, B = 26, top = max * price;
+    const exp = num(f('exp').value), mos = q('.be-mos');
+    mos.hidden = !(exp > 0);
+    if (exp > 0) {
+      const m = marginOfSafety(exp, n, price, v, fixed);
+      mos.innerHTML = exp >= n ? `Selling ${exp.toLocaleString()} units gives a profit of <b>${$(m.profit)}</b>. Your margin of safety is <b>${Math.round(m.pct * 1000) / 10}%</b>: sales can fall by that much before you start losing money.` : `Selling ${exp.toLocaleString()} units is ${(n - exp).toLocaleString()} short of break-even, a loss of <b>${$(-m.profit)}</b>. You need ${Math.round(((n - exp) / exp) * 1000) / 10}% more sales.`;
+    }
+    const max = Math.max(n * 2, exp, 10), W = 640, H = 220, L = 56, R = 10, T = 10, B = 26, top = max * price;
     const x = (u: number) => L + (u / max) * (W - L - R), y = (val: number) => T + (1 - val / top) * (H - T - B);
     const short = (val: number) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(val);
     let t = '';
