@@ -1,0 +1,166 @@
+---
+// #T1011 Cut list: packs pieces onto the fewest stock boards. Packer: src/lib/home/cutlist.ts (tests/tools/cut-list.mjs).
+import '../../styles/astro.css';
+---
+<div class="tool-ui ax cl">
+  <div class="ax-seg cl-units" role="group" aria-label="Units"><button type="button" data-u="mm" aria-pressed="true">Millimetres</button><button type="button" data-u="in" aria-pressed="false">Inches</button></div>
+  <div class="ax-card">
+    <h2>Boards you can buy</h2>
+    <div class="ax-grid">
+      <label><span>Board length (<span class="cl-u">mm</span>)</span> <input class="cl-stock" type="text" inputmode="decimal" /></label>
+      <label><span>Board width, optional (<span class="cl-u">mm</span>)</span> <input class="cl-width" type="text" inputmode="decimal" /></label>
+      <label><span>Saw kerf (<span class="cl-u">mm</span>)</span> <input class="cl-kerf" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Kerf is the width of wood the saw blade turns to dust in each cut: about 3 mm (1/8 in) for most hand saws and circular saws. Width is only used to label your shopping list.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Pieces you need</h2>
+    <div class="cl-head" aria-hidden="true"><span>Name</span><span>Length</span><span>How many</span><span></span></div>
+    <div class="cl-rows"></div>
+    <div class="ax-row cl-btns"><button type="button" class="btn secondary small cl-add">Add a piece</button><button type="button" class="btn secondary small cl-ex">Example</button><button type="button" class="btn secondary small cl-clear">Clear all</button></div>
+    <p class="ax-help cl-inhelp" hidden>Type inches as decimals or fractions: 31.5, 31 1/2 or 31-1/2.</p>
+  </div>
+  <div class="ax-card cl-result" aria-live="polite">
+    <h2>Cut plan</h2>
+    <p class="ax-big cl-big"></p>
+    <dl class="ax-facts cl-facts"></dl>
+    <p class="ax-err cl-err" hidden></p>
+    <div class="cl-boards"></div>
+    <p class="ax-help cl-note"></p>
+    <pre class="cl-text"></pre>
+    <div class="ax-row"><button type="button" class="btn small cl-copy">Copy cut list</button><button type="button" class="btn secondary small cl-print">Print</button><span class="ax-help cl-copied" aria-live="polite"></span></div>
+  </div>
+  <p class="ax-help">Everything is worked out on this page. Nothing you type is stored or sent anywhere.</p>
+</div>
+
+<style is:inline>
+  .cl-units { justify-self: start; }
+  .cl-head, .cl-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px 64px 40px; gap: 6px; align-items: center; }
+  .cl-head { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .cl-rows { display: grid; gap: 6px; }
+  .cl-row .cl-del { width: 40px; height: 38px; font: inherit; font-size: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .cl-btns { margin-top: 10px; }
+  .cl-facts { margin-top: 6px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); }
+  .cl-boards { display: grid; gap: 10px; margin-top: 14px; }
+  .cl-board svg { width: 100%; height: auto; display: block; color: var(--ink); }
+  .cl-board p { margin: 0 0 3px; font-size: 14px; font-weight: 600; }
+  .cl-board .pc { fill: var(--accent-soft, var(--bg)); stroke: var(--accent); }
+  .cl-board .off { fill: none; stroke: currentColor; stroke-dasharray: 4 3; }
+  .cl-board text { fill: currentColor; font: 11px system-ui, sans-serif; }
+  .cl-text { white-space: pre-wrap; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 12px 0 10px; overflow-wrap: anywhere; }
+  @media print {
+    html.cl-printing body * { visibility: hidden; }
+    html.cl-printing .cl-result, html.cl-printing .cl-result * { visibility: visible; }
+    html.cl-printing .cl-result { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    html.cl-printing .cl-result .ax-row { display: none; }
+  }
+</style>
+
+<script>
+  import { packCuts, type Piece } from '../../lib/home/cutlist';
+  import { readLength, formatInches } from '../../lib/home/measure';
+  const root = document.querySelector('.cl') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rows = q('.cl-rows');
+  let units: 'mm' | 'in' = 'mm';
+  const EX = {
+    mm: { stock: '2400', width: '140', kerf: '3', pieces: [['Side', '1200', '2'], ['Shelf', '764', '4'], ['Top', '800', '1']] },
+    in: { stock: '96', width: '5 1/2', kerf: '1/8', pieces: [['Side', '48', '2'], ['Shelf', '30 1/8', '4'], ['Top', '31 1/2', '1']] },
+  };
+  const fmt = (v: number) => (units === 'mm' ? `${+v.toFixed(1)}` : formatInches(v, 16));
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+  const u = () => (units === 'mm' ? ' mm' : ' in');
+
+  const addRow = (label = '', len = '', qty = '1') => {
+    const r = document.createElement('div'); r.className = 'cl-row';
+    const mk = (cls: string, v: string, mode: string, aria: string) => { const i = document.createElement('input'); i.className = cls; i.value = v; i.type = 'text'; i.inputMode = mode; i.setAttribute('aria-label', aria); i.addEventListener('input', calc); return i; };
+    const n = rows.children.length + 1;
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'cl-del'; del.textContent = '×'; del.setAttribute('aria-label', `Remove piece ${n}`);
+    del.addEventListener('click', () => { r.remove(); calc(); });
+    r.append(mk('cl-label', label, 'text', `Piece ${n} name`), mk('cl-len', len, 'decimal', `Piece ${n} length`), mk('cl-qty', qty, 'numeric', `Piece ${n} how many`), del);
+    rows.append(r); return r;
+  };
+  const fill = () => {
+    const e = EX[units]; q<HTMLInputElement>('.cl-stock').value = e.stock; q<HTMLInputElement>('.cl-width').value = e.width; q<HTMLInputElement>('.cl-kerf').value = e.kerf;
+    rows.replaceChildren(); e.pieces.forEach((p) => addRow(...(p as [string, string, string]))); calc();
+  };
+
+  const svgBoard = (b: { cuts: { label: string; len: number }[]; offcut: number }, stock: number, kerf: number) => {
+    const W = 340, H = 44, s = (W - 2) / stock; let x = 1, out = `<rect x="1" y="4" width="${W - 2}" height="${H - 8}" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" />`;
+    b.cuts.forEach((c, i) => {
+      const w = c.len * s;
+      const label = w > 34 ? `<text x="${(x + w / 2).toFixed(1)}" y="${H / 2 + 4}" text-anchor="middle">${w > 70 ? esc(c.label) + ' ' : ''}${fmt(c.len)}</text>` : '';
+      out += `<rect class="pc" x="${x.toFixed(1)}" y="8" width="${Math.max(1, w).toFixed(1)}" height="${H - 16}" rx="2" stroke-width="1.5" />${label}`;
+      x += w + (i < b.cuts.length - 1 || b.offcut > 0 ? kerf * s : 0);
+    });
+    if (b.offcut > 0) {
+      const w = b.offcut * s;
+      out += `<rect class="off" x="${x.toFixed(1)}" y="8" width="${Math.max(1, w - 1).toFixed(1)}" height="${H - 16}" rx="2" stroke-width="1.2" />`;
+      if (w > 40) out += `<text x="${(x + w / 2).toFixed(1)}" y="${H / 2 + 4}" text-anchor="middle">${w > 90 ? 'offcut ' : ''}${fmt(b.offcut)}</text>`;
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Board: ${b.cuts.map((c) => `${esc(c.label)} ${fmt(c.len)}`).join(', ')}${b.offcut > 0 ? `, offcut ${fmt(b.offcut)}` : ''}">${out}</svg>`;
+  };
+
+  let lastText = '';
+  function calc() {
+    const err = q('.cl-err'); err.hidden = true;
+    const stock = readLength(q<HTMLInputElement>('.cl-stock').value), kerfT = q<HTMLInputElement>('.cl-kerf').value.trim();
+    const kerf = kerfT === '' ? 0 : readLength(kerfT), width = q<HTMLInputElement>('.cl-width').value.trim();
+    const pieces: Piece[] = [], bad: string[] = [];
+    [...rows.children].forEach((r, i) => {
+      const lt = (r.querySelector('.cl-len') as HTMLInputElement).value.trim(), qt = (r.querySelector('.cl-qty') as HTMLInputElement).value.trim();
+      if (!lt) return;
+      const len = readLength(lt), qty = qt === '' ? 1 : Number(qt);
+      if (!(len > 0) || !Number.isInteger(qty) || qty < 0 || qty > 500) { bad.push(String(i + 1)); return; }
+      pieces.push({ label: (r.querySelector('.cl-label') as HTMLInputElement).value.trim() || `Piece ${i + 1}`, len, qty });
+    });
+    const clear = (msg: string, isErr = false) => {
+      q('.cl-big').textContent = ''; q('.cl-facts').replaceChildren(); q('.cl-boards').replaceChildren(); q('.cl-text').textContent = ''; lastText = '';
+      q('.cl-note').textContent = isErr ? '' : msg; if (isErr) { err.textContent = msg; err.hidden = false; }
+    };
+    if (!(stock > 0)) return clear('Type the length of the boards you can buy.');
+    if (!(kerf >= 0) || kerf > stock / 4) return clear('The kerf should be a small width, like 3 mm or 1/8 in.', true);
+    if (bad.length) return clear(`Check piece ${bad.join(', ')}: lengths must be more than 0 and how many a whole number up to 500.`, true);
+    if (!pieces.length) return clear('Add the pieces you need, with their lengths.');
+    const plan = packCuts(stock, kerf, pieces);
+    const size = `${fmt(stock)}${width ? ` × ${width}` : ''}${u()}`;
+    q('.cl-big').textContent = `${plan.boards.length} board${plan.boards.length === 1 ? '' : 's'} of ${size}`;
+    const longest = Math.max(0, ...plan.boards.map((b) => b.offcut));
+    const facts: [string, string, string?][] = [
+      ['Pieces', String(plan.pieces)],
+      ['Wood in pieces', fmt(plan.wood) + u(), `of ${fmt(plan.bought)}${u()} bought`],
+      ['Waste', `${plan.waste.toFixed(1)}%`, 'saw dust and offcuts'],
+      ['Longest offcut', fmt(longest) + u()],
+    ];
+    q('.cl-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; }));
+    if (plan.tooLong.length) { err.textContent = `${plan.tooLong.length} piece${plan.tooLong.length === 1 ? ' is' : 's are'} longer than the board and left out: ${[...new Set(plan.tooLong.map((c) => `${c.label} ${fmt(c.len)}${u()}`))].join(', ')}. Join two pieces or buy longer boards.`; err.hidden = false; }
+    q('.cl-boards').innerHTML = plan.boards.map((b, i) => `<div class="cl-board"><p>Board ${i + 1}</p>${svgBoard(b, stock, kerf)}</div>`).join('');
+    q('.cl-note').textContent = plan.optimal
+      ? `This is the fewest boards possible for these pieces with a ${fmt(kerf)}${u()} kerf. Buy one spare in case of a knot, split or wrong cut.`
+      : `Packed longest first. No plan can use fewer than ${plan.lowerBound} boards; this one may be close to that. Buy one spare in case of a knot, split or wrong cut.`;
+    const lines = [`Cut list: ${plan.boards.length} board${plan.boards.length === 1 ? '' : 's'} of ${size}, kerf ${fmt(kerf)}${u()}`, ''];
+    plan.boards.forEach((b, i) => lines.push(`Board ${i + 1}: ${b.cuts.map((c) => `${c.label} ${fmt(c.len)}`).join(', ')}${b.offcut > 0 ? `; offcut ${fmt(b.offcut)}` : ''}`));
+    lines.push('', `Waste ${plan.waste.toFixed(1)}%. Made with fibub.com/everyday/cut-list/`);
+    lastText = lines.join('\n'); q('.cl-text').textContent = lastText;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.cl-units button').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.u === units) return;
+    units = b.dataset.u as 'mm' | 'in';
+    root.querySelectorAll('.cl-units button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll('.cl-u').forEach((x) => (x.textContent = units === 'mm' ? 'mm' : 'in'));
+    q('.cl-inhelp').hidden = units === 'mm';
+    fill();
+  }));
+  ['.cl-stock', '.cl-width', '.cl-kerf'].forEach((s) => q(s).addEventListener('input', calc));
+  q('.cl-add').addEventListener('click', () => { (addRow().querySelector('.cl-label') as HTMLInputElement).focus(); });
+  q('.cl-ex').addEventListener('click', fill);
+  q('.cl-clear').addEventListener('click', () => { rows.replaceChildren(); addRow(); calc(); });
+  q('.cl-copy').addEventListener('click', async () => {
+    if (!lastText) return;
+    try { await navigator.clipboard.writeText(lastText); q('.cl-copied').textContent = 'Copied.'; } catch { q('.cl-copied').textContent = 'Select the list above and copy it.'; }
+  });
+  q('.cl-print').addEventListener('click', () => { document.documentElement.classList.add('cl-printing'); window.print(); });
+  window.addEventListener('afterprint', () => document.documentElement.classList.remove('cl-printing'));
+  fill();
+</script>

@@ -1,0 +1,37 @@
+---
+// One Home skills course: its lessons in order, then the tools that go with it (src/data/skill-courses.ts).
+import Base from '../../../layouts/Base.astro';
+import ToolCard from '../../../components/ToolCard.astro';
+import { allTools } from '../../../lib/tools';
+import { SKILL_COURSES, type SkillCourse } from '../../../data/skill-courses';
+import '../../../styles/area.css';
+export function getStaticPaths() { return SKILL_COURSES.map((c) => ({ params: { course: c.id }, props: { c } })); }
+const { c } = Astro.props as { c: SkillCourse };
+const all = await allTools();
+const live = (id: string) => all.find((t) => t.id === id && t.data.status === 'live');
+const lessons = c.lessons.map(live).filter((t) => !!t);
+const tools = c.tools.map(live).filter((t) => !!t);
+---
+<Base title={`${c.name}: free course`} description={c.text}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / {c.name}</div>
+  <div class="ar-head">
+    <h1>{c.name}</h1>
+    <p class="lead">{c.text}</p>
+  </div>
+  <p class="note warn"><strong>Stay safe.</strong> {c.safety}</p>
+  <h2 class="ar-h">Lessons, in order</h2>
+  <ol class="skc-list">
+    {lessons.map((t) => <li><a href={`/learn/${t!.id}/`}><strong>{t!.data.name}</strong></a> <span class="skc-code">#{t!.data.code}</span><br /><span>{t!.data.summary}</span></li>)}
+  </ol>
+  {tools.length > 0 && <>
+    <h2 class="ar-h">Tools for this course</h2>
+    <div class="grid">{tools.map((t) => <ToolCard tool={t!} />)}</div>
+  </>}
+  <p class="ar-note">Each lesson has pictures for every step, a tick list you can print, something to try, and a short quiz. The lessons teach the basics: always follow the maker's instructions for your own car, tools and fixings, and call a professional when the lesson says so. Like every fibub page, it runs in your browser: no sign-up, nothing about you is saved.</p>
+</Base>
+<style>
+  .skc-list { display: grid; gap: 10px; padding-left: 22px; margin: 0 0 24px; }
+  .skc-list li { line-height: 1.5; }
+  .skc-list li span { color: var(--muted); font-size: 15px; }
+  .skc-code { font-size: 13px; }
+</style>

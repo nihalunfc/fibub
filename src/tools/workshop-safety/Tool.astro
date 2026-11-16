@@ -1,0 +1,143 @@
+---
+// #L374 Workshop safety. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk wks">
+  <CourseNav id="workshop-safety" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Safety glasses on for anything that cuts, drills, grinds or hammers. Eyes do not heal like skin.</li>
+      <li>Never wear gloves, loose sleeves, a tie, jewellery or loose long hair near a drill or any spinning tool. They get caught and pull your hand in.</li>
+      <li>Unplug a power tool, or take its battery out, before you change a bit or blade or clear a jam.</li>
+      <li>If you are tired, rushed or unsure, stop. Most accidents happen at the end of the day.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Safety glasses</li><li>Ear defenders or plugs</li><li>Dust mask (FFP2 or N95)</li><li>Work gloves (hand tools only)</li><li>Sturdy closed shoes</li><li>Two G-clamps</li><li>First aid kit</li><li>Good light</li></ul>
+  </div>
+  <div class="ax-card wks-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A face wearing safety glasses and ear defenders" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="100" cy="56" r="34" /><path class="hl" d="M70 48h60v14a8 8 0 0 1 -8 8h-14l-8 -6-8 6H78a8 8 0 0 1 -8 -8z" /><path class="hl" d="M66 22c0 -12 68 -12 68 0" /><rect class="hl" x="56" y="40" width="12" height="30" rx="5" /><rect class="hl" x="132" y="40" width="12" height="30" rx="5" /><path d="M88 80c8 5 16 5 24 0" />
+        </svg>
+        <div class="sk-txt"><h3>Protect your eyes and ears</h3><p>Safety glasses (marked to a standard such as EN 166 or ANSI Z87.1) for cutting, drilling, hammering and any job that makes chips or dust. Ordinary glasses are not enough. Ear defenders for loud tools such as a hammer drill, circular saw or grinder.</p><p class="sk-tip">If you have to raise your voice to be heard an arm's length away, it is loud enough to need ear protection.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A gloved hand holding rough timber with a tick, and a gloved hand near a spinning drill bit with a cross" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 70h60v14H20z" /><path d="M30 70V48a6 6 0 0 1 12 0v22M42 50a6 6 0 0 1 12 0v20M54 54a6 6 0 0 1 12 0v16" /><path class="hl" d="M32 96l8 8 16 -16" />
+          <path d="M120 30h44a8 8 0 0 1 0 16h-44z" /><path d="M164 38h20" /><path d="M176 34l4 8-4 0 4 8" stroke-width="1.5" /><path d="M150 76V60a6 6 0 0 1 12 0v16M162 62a6 6 0 0 1 12 0v14" /><path class="hl" d="M140 90l16 16M156 90l-16 16" />
+        </svg>
+        <div class="sk-txt"><h3>Gloves: yes for rough work, no near spinning tools</h3><p>Wear gloves to carry rough timber, sheet metal or rubble. Take them off to use a drill, a lathe, a grinder or any tool that spins: the glove can be caught and wind your hand in.</p><p class="sk-tip">The same goes for loose sleeves, rings, watches, ties and long hair. Roll, remove or tie them back.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A tidy floor with a cable run along the wall instead of across the walkway" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 96h180M10 20v76" /><path d="M10 40h20" /><path class="hl" d="M30 40h4c4 0 6 2 6 6v46c0 2 2 4 4 4h110" /><path d="M150 92h30v-12h-30z" /><path d="M60 60h40v36M140 60h-30v36" stroke-width="1.5" stroke-dasharray="4 4" />
+        </svg>
+        <div class="sk-txt"><h3>Keep the space tidy</h3><p>Clear off-cuts and tools off the floor as you go. Run extension leads along the wall, not across where you walk, and unwind a cable reel fully so it does not overheat. Keep children and pets out while you work.</p><p class="sk-tip">Good light matters: you cannot cut to a line you cannot see.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A board clamped to a bench with two clamps while a saw cuts it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 70h180v10H10M24 80v24M176 80v24" /><path d="M20 60h160v10H20" /><path class="hl" d="M40 54V46H24v40h16M34 86v-12M28 92h12" /><path class="hl" d="M160 54V46h16v40h-16M166 86v-12M160 92h12" /><path d="M110 60V20" stroke-width="1.5" stroke-dasharray="3 3" /><path d="M96 14l30 10-2 6-30 -10z" />
+        </svg>
+        <div class="sk-txt"><h3>Clamp the work</h3><p>Hold the work in a vice or with two clamps, so it cannot spin or slide and both your hands are free. Never hold a small piece in your fingers while you drill it.</p><p class="sk-tip">A drill bit that catches can spin a loose piece round like a blade.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A knife cutting along a straight edge with the arrow pointing away from the body and the free hand behind the blade" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 76h180" /><path d="M20 62h170" stroke-width="4" /><circle cx="34" cy="50" r="9" /><path d="M70 40l50 10-4 8-50 -10z" /><path d="M120 50l12 5-16 3" /><path class="hl" d="M140 34h40M172 26l8 8-8 8" />
+        </svg>
+        <div class="sk-txt"><h3>Cut away from your body, keep blades sharp</h3><p>Push or pull a blade so that if it slips, it goes away from you and your other hand. Keep the hand that holds the work behind the blade, never in front of it. A sharp blade is safer than a blunt one: it needs less force, so it slips less.</p><p class="sk-tip">Retract or cover the blade every time you put a knife down.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A ladder against a wall at the 1 in 4 angle: 4 units up for every 1 unit out at the foot" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180M150 6v94" /><path d="M126 100l22 -92M114 100l22 -92" /><path d="M118 84h12M122 68h12M126 52h12M130 36h12M134 20h12" stroke-width="1.5" />
+          <path class="hl" d="M114 104h36" /><path class="hl" d="M162 8v92" stroke-dasharray="3 3" />
+          <g font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none"><text x="106" y="109" text-anchor="middle">1</text><text x="168" y="58">4</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Ladders: 1 in 4, three points of contact</h3><p>Set a leaning ladder at about 75°: 1 unit out at the foot for every 4 units up. On firm, level ground, with the top resting on something solid. Keep three points of contact (two feet and a hand) and your belt buckle between the stiles.</p><p class="sk-tip">Move the ladder rather than leaning out. Do not stand on the top three rungs.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A dust mask over the nose and mouth and an open window letting fumes out" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="60" cy="54" r="34" /><path class="hl" d="M38 54c8 -6 36 -6 44 0v14c-8 12 -36 12 -44 0z" /><path class="hl" d="M38 58L28 50M82 58l10 -8" /><circle cx="50" cy="42" r="2" fill="currentColor" /><circle cx="70" cy="42" r="2" fill="currentColor" />
+          <path d="M120 20h60v70h-60zM150 20v70M120 55h30" /><path class="hl" d="M154 40c8 -4 12 4 20 0M154 60c8 -4 12 4 20 0" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Dust and fumes</h3><p>Sanding, cutting MDF and sweeping make fine dust. Wear a dust mask rated FFP2 or N95 (a thin paper mask does little), vacuum rather than sweep, and work with a window open or outdoors. Paints, glues and solvents need fresh air too: read the tin.</p><p class="sk-tip">In an older house, sanding or scraping old paint can release lead. Test first and check your local advice.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A finger with a plaster on it, beside a tap running water" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 100V40a12 12 0 0 1 24 0v60" /><rect class="hl" x="36" y="50" width="32" height="18" rx="5" /><path d="M46 56v6M52 56v6M58 56v6" stroke-width="1.5" />
+          <path d="M120 20h40v12h-16v12" /><path class="hl" d="M144 54v14M150 58v14M138 58v14" stroke-width="1.5" /><path d="M110 100h70" />
+        </svg>
+        <div class="sk-txt"><h3>First aid for small cuts</h3><p>Rinse a small cut under clean running water, press on it with a clean cloth until it stops bleeding, then cover it with a plaster. Keep a first aid kit where you work.</p><p class="sk-tip">Get medical help for a deep cut, one that will not stop bleeding after 10 minutes of firm pressure, anything in the eye, or a cut from a dirty or rusty object if your tetanus jabs are not up to date.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A stop sign beside a clock showing late in the day" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path class="hl" d="M44 14h32l22 22v32L76 90H44L22 68V36z" /><text x="60" y="58" font-family="system-ui,sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">STOP</text>
+          <circle cx="150" cy="52" r="34" /><path d="M150 52V30M150 52l16 10" />
+        </svg>
+        <div class="sk-txt"><h3>Know when to stop</h3><p>Stop when you are tired, rushed, cold, or have had a drink. Stop when a tool behaves oddly: smoke, a burning smell, a damaged lead or a blade that binds. Stop and ask when you are not sure how to do the next step.</p><p class="sk-tip">A job left until tomorrow is better than a trip to hospital tonight.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label wks-label">
+    <h2>Spot the hazards</h2>
+    <p class="ax-help">This workshop has seven things wrong with it. Tap each one to see what is wrong and how to fix it, then press Test me.</p>
+    <svg viewBox="0 0 360 240" role="group" aria-label="A home workshop with a person drilling at a bench, a ladder, a child and a cable reel" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 228h356M352 10v218" stroke-width="1.5" />
+      <path d="M20 140h210v10H20zM32 150v78M218 150v78" />
+      <path d="M100 82v58M100 140l-8 88M100 140l8 88" />
+      <path d="M100 96l-34 32" />
+      <path d="M150 96h34a9 9 0 0 1 0 18h-34z" /><path d="M156 114v16" /><path d="M184 105h14" /><path d="M198 92h16v48h-16z" />
+      <g data-part="eyes" data-name="No safety glasses" data-note="drilling throws chips at your face. Put safety glasses on before you start."><circle cx="100" cy="64" r="16" /><circle cx="94" cy="62" r="2" fill="currentColor" /><circle cx="106" cy="62" r="2" fill="currentColor" /></g>
+      <g data-part="sleeve" data-name="Loose sleeve near the drill" data-note="a spinning chuck can catch a loose cuff and pull your arm in. Roll sleeves up, no gloves."><path d="M100 96l40 18" /><path d="M132 104l14 2 4 14-14 0z" /><path d="M146 120l6 8M140 120l2 9" stroke-width="1.5" /></g>
+      <g data-part="knife" data-name="Knife cutting towards the hand" data-note="if the blade slips it goes into your hand. Cut away from yourself, with your hand behind the blade."><circle cx="62" cy="130" r="7" /><path d="M14 126h14v7H14z" /><path d="M28 126h18l-18 7z" /><path d="M44 120l8 4-8 4" stroke-width="1.5" /></g>
+      <g data-part="lead" data-name="Trailing lead across the floor" data-note="a lead across the walkway trips people and can pull tools off the bench. Run it along the wall."><path d="M156 130c0 30 -20 60 10 84c20 14 50 -4 64 2" /><circle cx="252" cy="214" r="13" /><circle cx="252" cy="214" r="4" /></g>
+      <g data-part="offcuts" data-name="Off-cuts on the floor" data-note="bits of wood underfoot make you slip or trip, often while holding a tool. Clear them as you go."><path d="M42 216l22 -6 2 6-22 6zM60 224l18 -2v5l-18 1z" /><path d="M120 220l22 0v6h-22z" /></g>
+      <g data-part="child" data-name="Child in the workshop" data-note="children and pets can grab tools or walk under a ladder. Keep them out while you work."><circle cx="286" cy="164" r="9" /><path d="M286 173v28M286 201l-8 26M286 201l8 26M286 182l-10 12M286 182l10 12" /></g>
+      <g data-part="ladder" data-name="Ladder too steep" data-note="almost upright, it can tip backwards. Set it 1 out for every 4 up, about 75°."><path d="M322 228l18 -210M334 228l16 -206" /><path d="M326 190h12M329 150h12M333 110h12M336 70h12M340 34h10" stroke-width="1.5" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order wks-order">
+    <h2>Before you start a job: put it in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The job needs electrical wiring, gas or more than a simple plumbing fix: call an electrician, gas engineer or plumber.</li>
+      <li>You need to work at height beyond a short stepladder, or on a roof.</li>
+      <li>You suspect asbestos (some older boards, floor tiles and textured ceilings): do not drill, cut or sand it; get it tested.</li>
+      <li>Someone is badly hurt: call emergency services (999, 911, 112 or your local number).</li>
+    </ul>
+  </div>
+  <div class="ax-card wks-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.wks') as HTMLElement;
+  mountSteps(root.querySelector('.wks-steps') as HTMLElement, 'workshop-safety');
+  mountLabels(root.querySelector('.wks-label') as HTMLElement);
+  mountOrder(root.querySelector('.wks-order') as HTMLElement, ['Clear the floor and light the space', 'Check tools, leads and blades', 'Tie hair back, roll up sleeves', 'Put on glasses, ears and mask', 'Clamp the work', 'Make the cut, away from you', 'Unplug, then tidy up']);
+  const bank = [
+    () => choice('You are about to use a drill. Should you wear gloves?', 'No: they can catch in the spinning chuck', ['Yes, always', 'Only thick leather ones'], 'Gloves, loose sleeves and jewellery can wind into a spinning tool and drag your hand in. Wear gloves for carrying rough material, not for drilling.'),
+    () => choice('A ladder is 4 m up the wall. How far out should its foot be?', 'About 1 m', ['About 2 m', 'Right against the wall'], 'The 1 in 4 rule: 1 unit out for every 4 units up, about 75°.'),
+    () => choice('Which is safer: a sharp blade or a blunt one?', 'A sharp blade', ['A blunt blade', 'No difference'], 'A blunt blade needs more force, so it is more likely to skid off the work and into you.'),
+    () => choice('What does "three points of contact" on a ladder mean?', 'Two feet and one hand on the ladder at all times', ['Three people holding it', 'Three rungs from the top'], 'Moving one limb at a time keeps you steady.'),
+    () => choice('You need to drill a hole in a small piece of wood. How do you hold it?', 'Clamp it to the bench', ['Hold it in your fingers', 'Stand on it'], 'If the bit catches, a loose piece spins round. A clamp holds it and keeps your hands clear.'),
+    () => choice('Which mask is right for sanding?', 'An FFP2 or N95 dust mask', ['A thin paper or cloth mask', 'No mask if the window is open'], 'Fine dust gets past thin masks. A rated mask with a good seal stops most of it.'),
+    () => choice('You get a small cut from a clean blade. What first?', 'Rinse it, press on it, then cover it', ['Ignore it and carry on', 'Put butter on it'], 'Clean water, firm pressure with a clean cloth until it stops, then a plaster. Seek help if it will not stop after 10 minutes.'),
+    () => choice('You need to change the bit on a corded drill. What do you do first?', 'Unplug it', ['Hold the trigger lock', 'Nothing, just be quick'], 'An accidental press of the trigger with your fingers in the chuck can break bones.'),
+    () => choice('Where should an extension lead run?', 'Along the wall, out of the walkway', ['Straight across the floor', 'Under a rug'], 'Leads across walkways trip people. Under a rug they get damaged and overheat out of sight.'),
+    () => choice('It is late, you are tired and the last cut is fiddly. What is the safest choice?', 'Stop and finish tomorrow', ['Rush it to get it done', 'Take the guard off to see better'], 'Tiredness and rushing are behind many workshop injuries.'),
+  ];
+  mountQuiz(root.querySelector('.wks-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

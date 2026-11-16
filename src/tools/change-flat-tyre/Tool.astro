@@ -1,0 +1,128 @@
+---
+// #L370 Change a flat tyre. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk cft">
+  <CourseNav id="change-flat-tyre" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Only change a tyre on firm, flat ground well away from traffic. On a motorway, highway or busy road, get everyone out on the side away from traffic, stand behind a barrier and call for roadside help.</li>
+      <li>Never put any part of your body under the car while it is on the jack. The jack is for lifting, not for holding the car up while you work under it.</li>
+      <li>Hazard lights on, parking brake on, engine off, in Park (automatic) or first gear (manual). Passengers out.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Spare wheel</li><li>Jack</li><li>Wheel brace</li><li>Locking nut key (if fitted)</li><li>Car handbook</li><li>Gloves</li><li>Wheel chock or a brick</li><li>Torch at night</li></ul>
+  </div>
+  <div class="ax-card cft-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A car parked on flat ground with hazard lights and a chock behind a wheel" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 78h160M30 78V60l20-18h70l25 18h20a8 8 0 0 1 8 8v10" /><circle cx="60" cy="80" r="13" /><circle cx="148" cy="80" r="13" />
+          <path class="hl" d="M168 60l8-6M168 66h10M168 72l8 6M28 56l-8-6M26 62h-10" /><path class="hl" d="M126 93l8-12h8l-4 12z" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Get safe</h3><p>Pull over on firm, flat ground, away from traffic. Hazard lights on, parking brake on, in Park or first gear, engine off. Put a chock or brick behind the wheel diagonally opposite the flat one.</p><p class="sk-tip">Soft ground or a slope? Do not jack. Call for help.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Open boot with the spare wheel, jack and wheel brace" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 90h160M30 90V40h140v50" /><circle cx="75" cy="65" r="20" /><circle cx="75" cy="65" r="8" /><path class="hl" d="M115 82h30l-6-14h-18zM130 68V54" /><path class="hl" d="M150 45v35M150 45h14" />
+        </svg>
+        <div class="sk-txt"><h3>Get the kit out</h3><p>Take out the spare wheel, jack, wheel brace and the locking nut key if your car has one. Look up the jacking points in the handbook.</p><p class="sk-tip">Lay the spare flat near the flat tyre so it is ready.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Wheel brace on a wheel nut, turning anticlockwise, with the tyre still on the ground" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><circle cx="80" cy="60" r="38" /><circle cx="80" cy="60" r="22" /><circle cx="80" cy="46" r="3" /><circle cx="93" cy="56" r="3" /><circle cx="88" cy="72" r="3" /><circle cx="72" cy="72" r="3" /><circle cx="67" cy="56" r="3" />
+          <path class="hl" d="M80 46l70 -20M150 26l10 10" /><path class="hl" d="M150 60a30 30 0 0 0 -8 -26M142 34l-6 2M142 34l2 6" />
+        </svg>
+        <div class="sk-txt"><h3>Loosen the nuts first</h3><p>With the tyre still on the ground, turn each nut a quarter to half a turn anticlockwise. Do not take them off yet.</p><p class="sk-tip">Stuck? Push down on the brace with your foot, keeping your weight over it. Never jump on it.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Jack under the marked jacking point on the sill, lifting the flat wheel off the ground" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><path d="M20 30h150l15 20v14H20z" /><circle cx="50" cy="72" r="20" /><circle cx="50" cy="72" r="8" /><circle cx="155" cy="80" r="20" /><path d="M50 92v6" stroke-dasharray="2 3" />
+          <path class="hl" d="M95 64l-12 18 12 18M95 64l12 18-12 18M80 100h30M88 64h14" /><path class="hl" d="M95 56l-4-6h8z" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Jack at the jacking point</h3><p>Place the jack under the marked jacking point nearest the flat (a notch or arrow on the sill). Wind it up until the flat tyre is about 3 to 5 cm off the ground.</p><p class="sk-tip">Remember: the spare is fully inflated, so it needs more room than the flat.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Wheel nuts in a cap and the flat wheel sliding off the studs" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><path d="M60 40v40M50 50h20M50 70h20" /><ellipse cx="120" cy="60" rx="14" ry="36" /><path class="hl" d="M80 60h20M94 54l6 6-6 6" /><path d="M150 92h30l-4 8h-22z" /><circle cx="160" cy="88" r="3" /><circle cx="170" cy="88" r="3" />
+        </svg>
+        <div class="sk-txt"><h3>Take the wheel off</h3><p>Undo the nuts the rest of the way and keep them together (in the hub cap or your pocket). Pull the wheel straight towards you and lay it flat, ideally slid under the sill as a backstop.</p><p class="sk-tip">Wheels are heavy. Lift with your legs, keep your back straight.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Spare wheel on the studs with nut numbers 1 to 5 in a star order" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="100" cy="55" r="50" /><circle cx="100" cy="55" r="38" />
+          <path class="hl" d="M100 25L117.6 79.3L71.5 45.7L128.5 45.7L82.4 79.3Z" stroke-width="1.5" stroke-dasharray="3 3" />
+          <g font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle"><circle cx="100" cy="25" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.5" /><text x="100" y="29">1</text><circle cx="128.5" cy="45.7" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.5" /><text x="128.5" y="49.7">2</text><circle cx="117.6" cy="79.3" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.5" /><text x="117.6" y="83.3">3</text><circle cx="82.4" cy="79.3" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.5" /><text x="82.4" y="83.3">4</text><circle cx="71.5" cy="45.7" r="8" fill="var(--bg)" stroke="currentColor" stroke-width="1.5" /><text x="71.5" y="49.7">5</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Fit the spare, nuts by hand</h3><p>Line up the holes, push the spare onto the studs and do up every nut by hand, tapered side towards the wheel. Then snug them with the brace in a star order: 1, 3, 5, 2, 4 for five nuts.</p><p class="sk-tip">The star order pulls the wheel on evenly so it sits flat.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Car lowered to the ground and the brace tightening the nuts clockwise" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><circle cx="80" cy="60" r="38" /><circle cx="80" cy="60" r="22" /><path class="hl" d="M80 46l70 -20M150 26l10 10" /><path class="hl" d="M142 34a30 30 0 0 1 8 26M150 60l-6-2M150 60l3-6" />
+        </svg>
+        <div class="sk-txt"><h3>Lower and tighten</h3><p>Lower the car until the tyre takes the weight, remove the jack, then tighten each nut firmly clockwise in the same star order. Use a torque wrench set to the handbook figure when you can.</p><p class="sk-tip">Work out the push you need with the <a href="/vehicles/wheel-nut-torque/">wheel nut torque</a> tool.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Pressure gauge on the valve and a speed sign showing 80" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="60" cy="55" r="30" /><path d="M60 55l14-12" /><path d="M60 85v15" /><circle class="hl" cx="145" cy="50" r="28" /><text x="145" y="57" font-family="system-ui,sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">80</text>
+        </svg>
+        <div class="sk-txt"><h3>Check and finish</h3><p>Pack the flat and the tools away. Check the spare's pressure soon. A thin space-saver spare usually means no more than 80 km/h (50 mph). Check the nuts are still tight after 50 to 100 km, and get the flat repaired or replaced.</p><p class="sk-tip">Next: can your flat be mended? See <a href="/learn/plug-tyre-puncture/">Plug a tyre puncture</a>.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label cft-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="A wheel on a car with its parts, and the jack and wheel brace" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="sill" data-name="Jacking point" data-note="a strong, marked spot on the sill under the door. Only jack here."><path d="M10 40h300" stroke-width="10" /><path d="M150 46l6 8 6-8" /></g>
+      <g data-part="tyre" data-name="Tyre" data-note="the rubber part that holds the air and grips the road."><circle cx="120" cy="120" r="70" stroke-width="16" /></g>
+      <g data-part="rim" data-name="Wheel rim" data-note="the metal wheel the tyre sits on."><circle cx="120" cy="120" r="54" /><circle cx="120" cy="120" r="44" stroke-width="2" /></g>
+      <g data-part="hub" data-name="Hub" data-note="the centre the wheel bolts onto; it turns with the axle."><circle cx="120" cy="120" r="12" /></g>
+      <g data-part="nuts" data-name="Wheel nuts" data-note="hold the wheel on the studs. Loosen anticlockwise, tighten in a star order."><circle cx="120" cy="100" r="6" fill="currentColor" /><circle cx="139" cy="114" r="6" fill="currentColor" /><circle cx="132" cy="136" r="6" fill="currentColor" /><circle cx="108" cy="136" r="6" fill="currentColor" /><circle cx="101" cy="114" r="6" fill="currentColor" /></g>
+      <g data-part="valve" data-name="Valve" data-note="where air goes in. Check pressure here with a gauge."><path d="M120 168v14" stroke-width="5" /></g>
+      <g data-part="jack" data-name="Jack" data-note="lifts the car at a jacking point. Never go under a car held only by a jack."><path d="M250 50l-16 34 16 34M250 50l16 34-16 34M226 120h48M240 50h20" /><path d="M266 84h30" stroke-width="2" /></g>
+      <g data-part="brace" data-name="Wheel brace" data-note="the spanner for the wheel nuts. A longer handle needs less push."><path d="M210 190l90-40M300 150l8 16" stroke-width="6" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order cft-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>You are on a motorway, highway hard shoulder, a bend or any busy road: call roadside assistance or the police.</li>
+      <li>A nut will not move, a stud is broken or the locking nut key is missing.</li>
+      <li>The ground is soft or sloping, the jack slips, or the car has an unusual jacking system.</li>
+      <li>The wheel was damaged (a bent rim, a bulge or a cut in the sidewall) or the car drives strangely after the change.</li>
+    </ul>
+  </div>
+  <div class="ax-card cft-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.cft') as HTMLElement;
+  mountSteps(root.querySelector('.cft-steps') as HTMLElement, 'change-flat-tyre');
+  mountLabels(root.querySelector('.cft-label') as HTMLElement);
+  mountOrder(root.querySelector('.cft-order') as HTMLElement, ['Hazard lights, brake, chock', 'Get the spare and tools out', 'Loosen nuts on the ground', 'Jack at the jacking point', 'Take the flat wheel off', 'Fit the spare, nuts by hand', 'Lower, tighten in a star', 'Check pressure and nuts later']);
+  const bank = [
+    () => choice('When do you loosen the wheel nuts?', 'Before jacking, with the tyre on the ground', ['After the car is up', 'Only once the spare is out'], 'On the ground, friction stops the wheel spinning while you push. In the air it would just turn, and pushing hard could rock the car off the jack.'),
+    () => choice('Where should the jack go?', 'Under the marked jacking point on the sill', ['Under the engine', 'Anywhere under the door', 'Under the bumper'], 'Jacking points are made strong enough to lift the car. Other places can bend or crack and let the car fall.'),
+    () => choice('In what order do you tighten five wheel nuts?', 'A star pattern: 1, 3, 5, 2, 4', ['Round the circle: 1, 2, 3, 4, 5', 'Any order, as tight as possible'], 'Going across the wheel pulls it on evenly so it sits flat against the hub.'),
+    () => choice('Which way undoes a normal wheel nut?', 'Anticlockwise', ['Clockwise'], '"Lefty loosey, righty tighty", looking at the nut.'),
+    () => choice('A car is on a jack. Is it safe to reach under it?', 'No, never', ['Yes, if quick', 'Yes, if the jack is new'], 'Jacks can slip or sink. Only axle stands or a ramp, used properly, make a car safe to work under.'),
+    () => choice('You get a flat on a busy highway. What do you do?', 'Get everyone out on the safe side and call for help', ['Change it fast on the traffic side', 'Drive home on the flat'], 'Traffic is the biggest danger at the roadside. Changing a tyre next to fast traffic is not worth the risk.'),
+    () => choice('How fast is a space-saver spare usually rated for?', 'About 80 km/h (50 mph)', ['Any speed', '30 km/h'], 'The limit is printed on the spare. It is for getting to a tyre shop, not for a long trip.'),
+    () => choice('When should you re-check the wheel nuts after a change?', 'After 50 to 100 km', ['Never', 'After a year'], 'Nuts can settle as the wheel beds in. A quick check with a torque wrench catches it.'),
+  ];
+  mountQuiz(root.querySelector('.cft-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>
