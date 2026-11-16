@@ -11,11 +11,12 @@ ads: false
 order: 1432
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [pn-junction, logic-simplifier, rectifier-lab, venn-diagram]
 sources:
   - "The gates, truth tables, Boolean expressions and the NAND/NOR constructions are standard digital electronics. Every table and construction is checked in the tests for all inputs."
   - "Gate symbols are drawn by fibub in the usual distinctive-shape style. Nothing you enter is stored or sent anywhere."
+  - "Truth-table generator: expressions are parsed and evaluated for every input combination; precedence NOT, AND, XOR, OR; simplification by Quine-McCluskey, checked against sympy in the logic-simplifier tests."
 flow:
   - { icon: pointer, label: "Tap inputs" }
   - { icon: eye, label: "Output" }
@@ -32,6 +33,10 @@ Computers think in two states: 1 (on, high voltage) and 0 (off, low voltage). A 
 - **Two gates in a row.** Feed the output of one gate (G1) into a second (G2) with a third input C. You get a three-input circuit and its eight-row truth table, with the working for the current inputs.
 
 Logic gates were part of **Class 12 Physics: semiconductor electronics** and are still taught in many schools and in computer science; this page is an extension of that chapter and of **Class 11 maths: sets** (AND is like intersection, OR like union). It follows on from the diodes in the [[pn-junction]] tool. To simplify a bigger logic expression with a Karnaugh map, use the [[logic-simplifier]]; to see AND and OR as overlapping sets, try the [[venn-diagram]].
+
+## Truth table for your expression
+
+The first card is a truth table generator. Type a Boolean expression from your problem, such as `A AND NOT B`, `(A + B)'` or `A'B + AB'`, and it builds the whole table with **one column for every step**, so you can see how each part is worked out, and highlights the rows where the output is 1. Write the gates as words (AND, OR, NOT, XOR, NAND, NOR) or in textbook symbols (A', A+B, A·B, AB, A^B). Letters are the inputs; up to six are allowed. Under the table you get a plain sentence (for example "the same as a NOR gate", "always 1" or "always 0"), the simplest sum-of-products and product-of-sums forms, and the row numbers that give 1. A mistyped bracket or symbol gets a friendly message, not an empty table. Six one-tap examples are included. For bigger expressions with Karnaugh maps, use the [[logic-simplifier]].
 
 ## How to use it
 
@@ -56,6 +61,10 @@ Two gates in a row with G1 = AND, G2 = OR and A = 1, B = 0, C = 1: G1 = AND(1, 0
 - XOR adds two bits without the carry: 1 ⊕ 1 = 0. That is the heart of an adder circuit.
 
 ## FAQ
+
+**How do I make a truth table for an expression?** Type it in the first card: it lists every combination of the inputs, works out each part and shows the output column.
+
+**What goes first, AND or OR?** NOT first, then AND, then OR, so A + B C means A OR (B AND C); use brackets when unsure.
 
 **Why are NAND and NOR called universal?** Because NOT, AND and OR can each be built from them, and every logic circuit can be built from NOT, AND and OR.
 

@@ -74,3 +74,25 @@ export function drivenStep(x: number, v: number, t: number, dt: number, m: numbe
   const k4x = v + dt * k3v, k4v = a(t + dt, x + dt * k3x, v + dt * k3v);
   return { x: x + (dt / 6) * (k1x + 2 * k2x + 2 * k3x + k4x), v: v + (dt / 6) * (k1v + 2 * k2v + 2 * k3v + k4v) };
 }
+
+// ---- Solve my numbers for the pendulum (added 2026-11-16) ------------------------------------------------------
+export type PendUnknown = 'T' | 'L' | 'g';
+export type PendSolved = { ok: true; value: number; unit: string; steps: string[] } | { ok: false; msg: string };
+const pf = (x: number) => { const a = Math.abs(x); const d = a === 0 ? 0 : Math.max(0, 3 - Math.floor(Math.log10(a))); return Number(x.toFixed(Math.min(d, 8))).toString().replace('-', '−'); };
+/** Solve T = 2π√(L/g) for the one unknown. L in metres, T in seconds for ONE swing, g in m/s². Small-swing formula. */
+export function solvePendulum(unknown: PendUnknown, L: number, T: number, g: number): PendSolved {
+  const bad = (x: number, name: string) => (!Number.isFinite(x) ? `${name} is missing or not a number.` : x <= 0 ? `${name} must be more than zero.` : '');
+  const need: [PendUnknown, number, string][] = [['L', L, 'The length L'], ['T', T, 'The period T'], ['g', g, 'Gravity g']];
+  for (const [k, x, name] of need) if (k !== unknown) { const m = bad(x, name); if (m) return { ok: false, msg: m }; }
+  const tp = '4π²';
+  if (unknown === 'T') {
+    const v = smallPeriod(L, g);
+    return { ok: true, value: v, unit: 's', steps: ['T = 2π√(L ÷ g)', `T = 2π × √(${pf(L)} m ÷ ${pf(g)} m/s²)`, `T = 2π × ${pf(Math.sqrt(L / g))} = ${pf(v)} s`] };
+  }
+  if (unknown === 'L') {
+    const v = lengthFor(T, g);
+    return { ok: true, value: v, unit: 'm', steps: ['T = 2π√(L ÷ g), so L = g T² ÷ 4π²', `L = ${pf(g)} × ${pf(T)}² ÷ ${tp} = ${pf(g)} × ${pf(T * T)} ÷ ${pf(4 * Math.PI * Math.PI)}`, `L = ${pf(v)} m = ${pf(v * 100)} cm`] };
+  }
+  const v = gFrom(L, T);
+  return { ok: true, value: v, unit: 'm/s²', steps: ['T = 2π√(L ÷ g), so g = 4π² L ÷ T²', `g = ${pf(4 * Math.PI * Math.PI)} × ${pf(L)} ÷ ${pf(T)}² = ${pf(4 * Math.PI * Math.PI * L)} ÷ ${pf(T * T)}`, `g = ${pf(v)} m/s²`] };
+}

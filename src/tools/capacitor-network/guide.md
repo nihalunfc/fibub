@@ -11,11 +11,12 @@ ads: false
 order: 1403
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [capacitor-lab, series-parallel, potential-map, capacitor-inductor-calculator]
 sources:
   - "Capacitors in parallel: C = C₁ + C₂ + …; in series: 1/C = 1/C₁ + 1/C₂ + …; Q = CV and U = ½CV². Standard physics results."
   - "Checked against an independent Python script using exact fractions for every network, and by checking that the energies add up to ½CV² for the whole network."
+  - "Typed-number calculator: same formulas as above, with the unknown-capacitor case solved by rearranging them (checked by hand and by code against the reducer's own examples)."
 flow:
   - { icon: sliders, label: "Set values" }
   - { icon: sigma, label: "Reduce" }
@@ -33,6 +34,10 @@ Many textbook problems give a network of capacitors joined to a battery and ask 
 This page does it with you, one step at a time. The circuit diagram colours the group being reduced, and each step is written out with the numbers. When the network is down to one capacitor, a table gives the charge, voltage and stored energy on every capacitor.
 
 It follows the electrostatic potential and capacitance chapter of Class 12 Physics (combination of capacitors in series and in parallel, energy stored in a capacitor). Try a single capacitor with a dielectric first in the [[capacitor-lab]], compare with resistors in [[series-parallel]], and for capacitors of real shapes use the [[capacitor-inductor-calculator]].
+
+## Solve your own numbers
+
+The first card is a quick calculator for the numbers in your own problem. Choose how the capacitors are joined (all in series, all in parallel, C₁ in series with a parallel pair, or C₁ in parallel with a series pair), type C₁, C₂ and optionally C₃, and pick the unit for each (µF, nF, pF, mF or F). The answer sits at the top in one sentence, with the working under it: the reciprocals or the sum, then the result. Type a **battery voltage** as well and it adds the charge, voltage and energy on every capacitor, with the check that series capacitors hold equal charge and parallel ones share one voltage. Switch **Find** to *Unknown capacitor C₁* to work backwards from a given total. Six worked examples can be chosen from the Example list. For bigger networks, such as the ladder, use the step-by-step reducer below.
 
 ## How to use it
 
@@ -57,6 +62,10 @@ The battery supplies Q = 2.67 × 12 = 32 µC. C₁ carries all of it, so V₁ = 
 - Always reduce the innermost group first, just like brackets in arithmetic.
 
 ## FAQ
+
+**What is the equivalent capacitance of two capacitors in series?** C = C₁C₂ / (C₁ + C₂), always smaller than the smallest; in parallel it is simply C₁ + C₂.
+
+**What is the most common mistake?** Using the resistor rules: for capacitors the series rule needs reciprocals, and the parallel rule is the plain sum. Also check that µF, nF and pF are converted (1 µF = 10⁻⁶ F).
 
 **What about networks that are neither series nor parallel?** Some, like a bridge, cannot be reduced this way. They need Kirchhoff's rules (or a symmetry trick) and are not covered here.
 

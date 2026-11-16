@@ -2,8 +2,15 @@
 // Capacitor network reducer: pick a network, set each capacitor and the battery, then reduce series and parallel
 // groups one step at a time to a single capacitor and share the charge back out. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax cnw">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the capacitors from your problem, choose how they are joined, and get the equivalent capacitance with the working. Add a battery voltage to see the charge, voltage and energy on each one. The step-by-step reducer below handles bigger networks.</p>
+    <div class="cnw-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Capacitor network</h2>
     <div class="ax-row">
@@ -79,6 +86,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { CAP_SPEC } from '../../lib/sci/solve-capacitors';
   import { ceq, steps, share, leaves, questions, type Net } from '../../lib/sci/capacitor-network';
   import { n3 } from '../../lib/sci/em-p34';
   import { pagePalette } from '../../lib/report';
@@ -179,4 +188,5 @@ import '../../styles/astro.css';
   onTheme(draw);
   at = steps(net).length; capsUi(); all();
   quiz(q('.cnw-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.cnw-solve')!, CAP_SPEC, 'cp');
 </script>

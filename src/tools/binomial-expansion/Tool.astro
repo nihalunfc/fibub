@@ -9,13 +9,15 @@ import SmQuiz from '../../components/SmQuiz.astro';
   <div class="ax-card">
     <h2>Expand (ax + b)ⁿ</h2>
     <div class="ax-grid">
-      <label>a <input class="bn-a" type="text" inputmode="numeric" value="2" /></label>
-      <label>b <input class="bn-b" type="text" inputmode="numeric" value="-3" /></label>
-      <label>n <input class="bn-n" type="range" min="0" max="12" value="5" /></label>
+      <label>a <input class="bn-a" data-k="a" type="text" inputmode="numeric" value="2" /></label>
+      <label>b <input class="bn-b" data-k="b" type="text" inputmode="numeric" value="-3" /></label>
+      <label>n <input class="bn-nt" data-k="n" type="text" inputmode="numeric" value="5" /></label>
     </div>
+    <label class="bn-nsl">n (the power), slide or type above <input class="bn-n" type="range" min="0" max="20" value="5" /></label>
+    <div class="ax-row bn-pre" role="group" aria-label="Examples"><button type="button" class="btn secondary small" data-p="1,1,6,1,-1,0">(x + 1/x)⁶</button><button type="button" class="btn secondary small" data-p="1,-1,6,2,-1,0">(x² − 1/x)⁶</button><button type="button" class="btn secondary small" data-p="2,-3,5,1,0,2">(2x − 3)⁵</button><button type="button" class="btn secondary small" data-p="1,1,10,1,0,3">(x + 1)¹⁰</button></div>
     <p class="ax-err bn-err" hidden></p>
     <p class="bn-head"></p>
-    <p class="bn-exp"></p>
+    <p class="bn-exp" aria-live="polite"></p>
   </div>
 
   <div class="ax-card">
@@ -29,6 +31,16 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <label class="bn-sl">r = <b class="bn-rv"></b><input class="bn-r" type="range" min="0" max="5" value="2" /></label>
     <p class="bn-gen"></p>
     <dl class="ax-facts bn-facts"></dl>
+    <details class="bn-find"><summary>More options: find the coefficient of xᵏ, or the term without x</summary>
+      <p class="ax-help">For (a·xᵖ + b·x^q)ⁿ, with a, b and n from above. For a plain (ax + b)ⁿ keep p = 1 and q = 0.</p>
+      <div class="ax-grid">
+        <label>p <input class="bn-p" data-k="p" type="text" inputmode="numeric" value="1" /></label>
+        <label>q <input class="bn-q" data-k="q" type="text" inputmode="numeric" value="0" /></label>
+        <label>k (the power you want) <input class="bn-k" data-k="k" type="text" inputmode="numeric" value="2" /></label>
+      </div>
+      <p class="bn-fans" aria-live="polite"></p>
+      <p class="ax-help">The term without x has k = 0. Common mistakes: using the wrong sign for b, and counting terms from 1 when the formula counts r from 0 (T(r+1) is the term with r).</p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -53,7 +65,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { pascal, C, expand, term, middle, galton } from '../../lib/sci/school-binomial';
+  import { pascal, C, expand, term, middle, galton, findTerm } from '../../lib/sci/school-binomial';
   import { paint, type Palette } from '../../lib/report';
   import { FONT, fmt } from '../../lib/sm-graph';
   import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
@@ -78,6 +90,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
     err.hidden = true;
     const rIn = q<HTMLInputElement>('.bn-r'); rIn.max = String(n); if (+rIn.value > n) rIn.value = String(n);
     const r = +rIn.value; q('.bn-rv').textContent = String(r);
+    { const nt = q<HTMLInputElement>('.bn-nt'); if (document.activeElement !== nt) nt.value = String(n); }
+    findRun(a, b, n);
     const sb = b < 0 ? `− ${-b}` : `+ ${b}`, base = `(${a === 1 ? '' : a === -1 ? '−' : a}x ${sb})`;
     q('.bn-head').textContent = `${base}${sup(n)} =`;
     q('.bn-exp').textContent = expand(a, b, n).text;
@@ -101,6 +115,19 @@ import SmQuiz from '../../components/SmQuiz.astro';
       fact('Term with no x', T.power === 0 ? T.text : term(a, b, n, n).text, `T${sub(n + 1)}, the last term`),
     );
     galtonDraw();
+  }
+
+  function findRun(a: number, b: number, n: number) {
+    const out = q('.bn-fans'), rd = (c: string) => { const t = q<HTMLInputElement>(c).value.replace('−', '-').trim(); return t === '' ? NaN : Number(t); };
+    const p = rd('.bn-p'), qq = rd('.bn-q'), k = rd('.bn-k');
+    if (![p, qq, k].every((v) => Number.isInteger(v)) || Math.abs(p) > 20 || Math.abs(qq) > 20 || Math.abs(k) > 400) { out.textContent = 'Use whole numbers for p, q and k (p and q between −20 and 20).'; return; }
+    const SUPD = '⁰¹²³⁴⁵⁶⁷⁸⁹', pw = (e: number) => (e === 0 ? '' : e === 1 ? 'x' : 'x' + (e < 0 ? '⁻' : '') + String(Math.abs(e)).split('').map((d) => SUPD[+d]).join(''));
+    const A = pw(p) === '' ? String(a) : a === 1 ? '' : a === -1 ? '−' : String(a), B = pw(qq) === '' ? String(Math.abs(b)) : Math.abs(b) === 1 ? '' : String(Math.abs(b));
+    const f = findTerm(a, b, n, p, qq, k), shape = `(${A}${pw(p)} ${b < 0 ? '−' : '+'} ${B}${pw(qq)})${sup(n)}`.replace(/-/g, '−');
+    const kk = k === 0 ? 'the term without x' : `the coefficient of ${pw(k) || 'x⁰'}`;
+    if (!f.ok) { out.textContent = `In ${shape}, there is no term with ${k === 0 ? 'x⁰ (no x)' : pw(k)} (r would not be a whole number from 0 to ${n}), so ${kk} is 0.`; return; }
+    const rr = f.r, gen = `T${sub(rr + 1)} = C(${n}, ${rr}) (${a})${sup(n - rr)} (${b})${sup(rr)}`;
+    out.textContent = mn(p === qq ? `Every term has the same power of x, x^${p * n}, so they add up: ${kk} is (${a} + ${b})${sup(n)} = ${f.coef}.` : `In ${shape}, ${kk} is ${f.coef}. It is ${gen} = ${C(n, rr)} × ${BigInt(a) ** BigInt(n - rr)} × ${BigInt(b) ** BigInt(rr)} = ${f.coef}, found from p(n − r) + q·r = ${k}, so r = ${rr}.`);
   }
 
   function galtonDraw() {
@@ -137,7 +164,17 @@ import SmQuiz from '../../components/SmQuiz.astro';
   q('.bn-d1000').addEventListener('click', () => drop(1000));
   q('.bn-clear').addEventListener('click', () => { clearInterval(timer); bins = []; galtonDraw(); });
   q('.bn-n').addEventListener('input', () => { clearInterval(timer); bins = []; run(); });
-  root.querySelectorAll('.bn-a, .bn-b, .bn-r').forEach((e) => e.addEventListener('input', run));
+  q('.bn-nt').addEventListener('input', () => {
+    const t = q<HTMLInputElement>('.bn-nt').value.trim(), v = Number(t), err = q('.bn-err');
+    if (t === '' || !Number.isInteger(v) || v < 0 || v > 20) { err.textContent = 'n must be a whole number from 0 to 20.'; err.hidden = false; return; }
+    err.hidden = true; const sl = q<HTMLInputElement>('.bn-n'); sl.value = String(v); sl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  root.querySelectorAll<HTMLButtonElement>('.bn-pre button').forEach((btn) => btn.addEventListener('click', () => {
+    const [a, b, n, p, qq, k] = btn.dataset.p!.split(',');
+    q<HTMLInputElement>('.bn-a').value = a; q<HTMLInputElement>('.bn-b').value = b; q<HTMLInputElement>('.bn-p').value = p; q<HTMLInputElement>('.bn-q').value = qq; q<HTMLInputElement>('.bn-k').value = k;
+    const sl = q<HTMLInputElement>('.bn-n'); sl.value = n; sl.dispatchEvent(new Event('input', { bubbles: true }));
+  }));
+  root.querySelectorAll('.bn-a, .bn-b, .bn-r, .bn-p, .bn-q, .bn-k').forEach((e) => e.addEventListener('input', run));
   document.addEventListener('fibub:theme', run);
   run();
 
@@ -156,6 +193,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 <style is:inline>
   .bnx .bn-sl, .bnx label:has(.bn-n) { color: var(--ink); }
   .bnx input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .bnx .bn-nsl { display: grid; gap: 4px; color: var(--ink); margin-top: 8px; } .bnx .bn-pre { gap: 6px; } .bnx details { margin-top: 12px; } .bnx summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-weight: 600; } .bnx .bn-fans { font-weight: 600; overflow-wrap: anywhere; }
   .bnx .bn-head { margin: 12px 0 0; color: var(--muted); }
   .bnx .bn-exp { font-size: 20px; font-weight: 650; overflow-wrap: anywhere; margin: 4px 0 0; font-variant-numeric: tabular-nums; }
   .bnx .bn-gen { overflow-wrap: anywhere; }

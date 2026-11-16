@@ -4,8 +4,15 @@
 // The shape of the current curve is a simple teaching model; the stopping potential follows Einstein's equation.
 import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax lrn pel">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Einstein's photoelectric equation for the numbers in your problem: photon energy, the largest kinetic energy and stopping potential, the work function, or the threshold frequency and wavelength. Give the light as a wavelength or a frequency.</p>
+    <div class="pe-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Shine light on a metal</h2>
     <canvas class="lrn-cv pe-cv" aria-label="Light falling on a metal plate in a vacuum tube, with electrons flying to the collector"></canvas>
@@ -58,6 +65,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { PHOTO_SPEC } from '../../lib/sci/solve-photo';
   import { METALS, photonEV, kmaxEV, stoppingV, thresholdFreq, thresholdNm, current, lineFit, nmFromFreq, nmToRgb, freqFromNm, H, E_CHARGE } from '../../lib/sci/learnphoto';
   import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -174,4 +183,5 @@ import '../../styles/learnquiz-d.css';
       { q: 'Red light gives no photoelectrons from a metal. What happens if you make the red light much brighter?', ans: 2, choices: ['Electrons come out', 'Faster electrons come out', 'Still no electrons'], work: 'Each photon of red light has too little energy (hf < φ). Brighter light means more photons, but none has enough energy, so still no electrons.' },
     ];
   });
+  mountSolver(q('.pe-solve'), PHOTO_SPEC);
 </script>

@@ -63,4 +63,23 @@ export default async ({ page, check, BASE, OUT }) => {
     }
     await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   }
+  // Solve my numbers
+  const sAns = () => page.textContent(R + '[data-k="answer"]'), K = (k) => R + `[data-k="${k}"]`, sWork = () => page.textContent(R + '.lrds-work');
+  check((await sAns()) === 'v = 30 cm. The image is 30 cm from the lens, on the far side: real, inverted, same size.' && (await sWork()).includes('1/v = 1/15 + 1/(−30) = 0.03333'), 'lens solve: f 15, u 30 gives v = 30 cm');
+  await page.click(K('preset-1')); await page.waitForTimeout(150);
+  check((await sAns()) === 'v = −6.667 cm. The image is 6.667 cm from the lens, on the same side as the object: virtual, upright, enlarged.', 'lens solve: magnifier v = −6.667');
+  await page.click(K('preset-2')); await page.waitForTimeout(150);
+  check((await sAns()).startsWith('v = −12 cm.') && (await sAns()).endsWith('virtual, upright, diminished.'), 'lens solve: concave f 20, u 30: v = −12');
+  await page.click(K('preset-3')); await page.waitForTimeout(150);
+  check((await sAns()) === 'f = 24 cm: a convex lens (power 4.167 D). The image is real, inverted, enlarged.', 'lens solve: find f = 24 cm, 4.167 D');
+  await page.click(K('preset-4')); await page.waitForTimeout(150);
+  check((await sAns()) === 'u = −18 cm: the object is 18 cm in front of the lens. The image is real, inverted, enlarged.', 'lens solve: find u = −18 cm');
+  await page.click(K('preset-0')); await page.selectOption(K('unit'), '100'); await page.fill(K('solve-u'), '0.3'); await page.fill(K('solve-f'), '0.15'); await page.waitForTimeout(150);
+  check((await sAns()).startsWith('v = 0.3 m.') && (await sWork()).includes('u = 0.3 m = 30 cm'), 'lens solve: metres in, metres out');
+  await page.selectOption(K('unit'), '1'); await page.fill(K('solve-u'), '15'); await page.fill(K('solve-f'), '15'); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.lrds-err')).includes('at the focus') && (await sAns()) === '', 'lens solve: object at focus is a friendly message');
+  await page.fill(K('solve-u'), '0'); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.lrds-err')).includes('cannot be 0'), 'lens solve: zero gives a message');
+  await page.fill(K('solve-u'), ''); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.lrds-err')).includes('as a number'), 'lens solve: blank gives a message');
 };

@@ -4,17 +4,21 @@
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
 import { CATIONS, ANIONS } from '../../lib/sci/formulawriter';
+const chips: [string, string, string][] = [['Na', 'Cl', 'Table salt'], ['Ca', 'CO3', 'Limestone'], ['Mg', 'OH', 'Milk of magnesia'], ['Al', 'O', 'Alumina'], ['Fe3', 'O', 'Rust'], ['NH4', 'SO4', 'Fertiliser'], ['Cu2', 'SO4', 'Blue vitriol'], ['Ca', 'SO4', 'Gypsum']];
 const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
 const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸⁹'[v]) + s;
 ---
 <div class="ax fw">
   <div class="ax-card">
+    <label>Or type the name <input class="fw-name-in" data-k="name" placeholder="calcium nitrate, iron(III) oxide ..." autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-help fw-name-msg" aria-live="polite"></p>
+    <div class="fw-chips" role="group" aria-label="Common compounds">{chips.map((c) => <button type="button" class="fw-chip" data-c={c[0]} data-a={c[1]}>{c[2]}</button>)}</div>
     <div class="ax-grid">
-      <label>Positive ion (cation) <select class="fw-cat">{CATIONS.map((c) => <option value={c.id} selected={c.id === 'Al'}>{sub(c.f)}{sup(c.v, '⁺')}  {c.name} (valency {c.v})</option>)}</select></label>
-      <label>Negative ion (anion) <select class="fw-an">{ANIONS.map((a) => <option value={a.id} selected={a.id === 'SO4'}>{sub(a.f)}{sup(a.v, '⁻')}  {a.name} (valency {a.v})</option>)}</select></label>
+      <label>Positive ion (cation) <select class="fw-cat" data-k="cation">{CATIONS.map((c) => <option value={c.id} selected={c.id === 'Al'}>{sub(c.f)}{sup(c.v, '⁺')}  {c.name} (valency {c.v})</option>)}</select></label>
+      <label>Negative ion (anion) <select class="fw-an" data-k="anion">{ANIONS.map((a) => <option value={a.id} selected={a.id === 'SO4'}>{sub(a.f)}{sup(a.v, '⁻')}  {a.name} (valency {a.v})</option>)}</select></label>
     </div>
     <svg class="fw-svg" viewBox="0 0 320 150" role="img" aria-label="Criss-cross picture"></svg>
-    <p class="ax-big fw-big" style="margin:8px 0 2px"></p>
+    <p class="ax-big fw-big" data-k="answer" aria-live="polite" style="margin:8px 0 2px"></p>
     <p class="fw-name" style="margin:0 0 8px"></p>
     <ol class="fw-steps"></ol>
     <h3 style="margin:14px 0 6px">Charges balance</h3>
@@ -27,6 +31,16 @@ const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸�
     <div class="ax-seg fw-lvl" role="group" aria-label="Atomic masses"><button type="button" data-l="9" aria-pressed="true">Class 9: rounded masses</button><button type="button" data-l="11" aria-pressed="false">Class 11: IUPAC weights</button></div>
     <div class="ax-scroll" style="margin-top:10px"><table class="fw-tab"></table></div>
     <p class="lx-eq fw-eq"></p>
+    <h3 style="margin:14px 0 6px">Grams and moles</h3>
+    <div class="ax-grid">
+      <label>Find <select class="fw-mm" data-k="mode"><option value="g">moles from a mass</option><option value="m">mass from moles</option></select></label>
+      <label><span class="fw-vl">Mass</span> <input class="fw-mv" data-k="amount" type="number" inputmode="decimal" min="0" step="any" value="10" /></label>
+      <label class="fw-ul"><span class="fw-ult">Mass unit</span> <select class="fw-mu" data-k="unit"><option value="1">g</option><option value="1000">kg</option><option value="0.001">mg</option></select></label>
+    </div>
+    <p class="ax-err fw-merr" hidden></p>
+    <p class="ax-big fw-mans" data-k="moles" aria-live="polite" style="font-size:1.1rem"></p>
+    <p class="lx-eq fw-mwork"></p>
+    <p class="ax-help">Common mistake: using the mass of one atom instead of the whole formula unit, or forgetting that the bracketed group is multiplied by the number outside the bracket.</p>
     <p class="ax-help">Rounded masses (H 1, C 12, O 16, Na 23, Cl 35.5 …) are the ones school books use. IUPAC standard atomic weights are more exact. The mass of one formula unit in u is the same number as the mass of one mole in grams.</p>
   </div>
 
@@ -49,6 +63,9 @@ const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸�
 </div>
 
 <style is:inline>
+  .fw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .fw-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .fw input[type=number], .fw .fw-name-in { font-size: 16px; min-height: 44px; width: 100%; }
   .fw select { font-size: 16px; }
   .fw-svg, .fw-bal { display: block; width: 100%; max-width: 440px; margin: 12px auto 0; }
   .fw-steps { margin: 6px 0 0; padding-left: 22px; display: grid; gap: 4px; }
@@ -67,7 +84,7 @@ const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸�
 </style>
 
 <script>
-  import { CATIONS, ANIONS, crissCross, formulaMass, atomsIn, type Compound } from '../../lib/sci/formulawriter';
+  import { CATIONS, ANIONS, crissCross, formulaMass, atomsIn, percentComposition, findByName, molesFromGrams, type Compound } from '../../lib/sci/formulawriter';
   import { mountQuiz, near, pickOne, type Question } from '../../lib/chemquiz';
 
   const root = document.querySelector<HTMLElement>('.fw')!;
@@ -123,13 +140,45 @@ const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸�
     root.querySelectorAll<HTMLButtonElement>('.fw-lvl button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.l) === level)));
     const m = formulaMass(c.formula, level === 9);
     const tb = q<HTMLTableElement>('.fw-tab'); tb.replaceChildren();
-    const hr = tb.createTHead().insertRow(); for (const h of ['Element', 'Atoms', 'Atomic mass (u)', 'Subtotal (u)']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const hr = tb.createTHead().insertRow(); for (const h of ['Element', 'Atoms', 'Atomic mass (u)', 'Subtotal (u)', '% by mass']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
     const bd = tb.createTBody();
     const fx = (x: number) => (level === 9 ? String(Math.round(x * 10) / 10) : x.toFixed(3));
-    for (const r of m.rows) { const tr = bd.insertRow(); [`${r.name} (${r.symbol})`, String(r.count), fx(r.mass), fx(r.subtotal)].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); }
+    const pc = percentComposition(c.formula, level === 9).rows;
+    for (const r of m.rows) { const tr = bd.insertRow(); [`${r.name} (${r.symbol})`, String(r.count), fx(r.mass), fx(r.subtotal), `${pc.find((p) => p.symbol === r.symbol)!.percent.toFixed(1)} %`].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); }
     q('.fw-eq').textContent = `${subs(c.formula)} = ${m.rows.map((r) => `${r.count} × ${fx(r.mass)}`).join(' + ')} = ${fx(m.total)} u`;
+    moles(c, m.total);
+  }
+  const sf = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1e5 || Math.abs(x) < 1e-3 ? x.toExponential(2).replace('e+', ' × 10^').replace('e-', ' × 10^−') : String(+x.toPrecision(3)));
+  function moles(c: Compound, molar: number) {
+    const mode = q<HTMLSelectElement>('.fw-mm').value, raw = q<HTMLInputElement>('.fw-mv').value.trim(), v = Number(raw), uf = Number(q<HTMLSelectElement>('.fw-mu').value);
+    const uName = q<HTMLSelectElement>('.fw-mu').selectedOptions[0].textContent!;
+    q('.fw-vl').textContent = mode === 'g' ? 'Mass' : 'Moles (mol)'; q('.fw-ult').textContent = mode === 'g' ? 'Mass unit' : 'Show mass in';
+    const er = q('.fw-merr'), bad = (t: string) => { er.hidden = false; er.textContent = t; q('.fw-mans').textContent = ''; q('.fw-mwork').textContent = ''; };
+    if (raw === '' || !Number.isFinite(v)) return bad('Type a number for the amount.');
+    if (v < 0) return bad('An amount cannot be negative.');
+    er.hidden = true;
+    const f = subs(c.formula), M = `${sf(molar)} g/mol`;
+    if (mode === 'g') {
+      const g = v * uf, r = molesFromGrams(g, molar);
+      q('.fw-mans').textContent = `${sf(v)} ${uName} of ${f} is ${sf(r.mol)} mol, about ${sf(r.units)} formula units.`;
+      q('.fw-mwork').textContent = `Molar mass of ${f} = ${M} (the formula unit mass in grams). moles = mass ÷ molar mass = ${sf(g)} g ÷ ${sf(molar)} g/mol = ${sf(r.mol)} mol. Formula units = ${sf(r.mol)} × 6.022 × 10^23 = ${sf(r.units)}.`;
+    } else {
+      const g = v * molar, out = g / uf;
+      q('.fw-mans').textContent = `${sf(v)} mol of ${f} has a mass of ${sf(out)} ${uName}.`;
+      q('.fw-mwork').textContent = `Molar mass of ${f} = ${M}. mass = moles × molar mass = ${sf(v)} mol × ${sf(molar)} g/mol = ${sf(g)} g${uf === 1 ? '' : ` = ${sf(out)} ${uName}`}.`;
+    }
   }
   q('.fw-cat').addEventListener('change', update); q('.fw-an').addEventListener('change', update);
+  for (const c of ['.fw-mm', '.fw-mu']) q(c).addEventListener('change', update);
+  q('.fw-mv').addEventListener('input', update);
+  root.querySelectorAll<HTMLButtonElement>('.fw-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLSelectElement>('.fw-cat').value = b.dataset.c!; q<HTMLSelectElement>('.fw-an').value = b.dataset.a!; q('.fw-name-msg').textContent = ''; update(); }));
+  q('.fw-name-in').addEventListener('input', () => {
+    const t = q<HTMLInputElement>('.fw-name-in').value, msg = q('.fw-name-msg');
+    if (!t.trim()) { msg.textContent = ''; return; }
+    const r = findByName(t);
+    if (!r) { msg.textContent = 'Name not recognised. Write a positive ion then a negative ion, like "calcium nitrate" or "iron(III) oxide", or pick them below.'; return; }
+    q<HTMLSelectElement>('.fw-cat').value = r.cat.id; q<HTMLSelectElement>('.fw-an').value = r.an.id; msg.textContent = `Found ${r.cat.name} and ${r.an.name}.`; update();
+  });
   root.querySelectorAll<HTMLButtonElement>('.fw-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); update(); }));
   update();
 

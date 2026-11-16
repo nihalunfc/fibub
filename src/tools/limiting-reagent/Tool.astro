@@ -1,26 +1,43 @@
 ---
-// #L336 Limiting reagent. Grams of two reactants, moles, which one runs out, the most product and what is left over. Maths: src/lib/learn/usa-math.ts (molar masses to 3 decimals).
+// #L336 Limiting reagent. Type or slide the amount of two reactants (g, mg, kg or mol), pick one of ten reactions or type your own, and see which runs out, the theoretical yield, the leftover and the percent yield with the working. Maths: src/lib/sci/limitingreagent.ts. Quiz: src/lib/learn/usa-math.ts.
 import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="tool-ui ax lrn lr">
   <div class="ax-card">
     <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
-    <p class="ax-help">Like making sandwiches: whichever ingredient runs out first decides how many you can make. Pick a reaction and set how much of each reactant you have.</p>
-    <label>Reaction <select class="lr-rx" aria-label="Reaction"></select></label>
+    <p class="ax-help">Like making sandwiches: whichever ingredient runs out first decides how many you can make. Pick a reaction (or type your own) and enter how much of each reactant you have.</p>
+    <label>Reaction <select class="lr-rx" data-k="reaction" aria-label="Reaction"></select></label>
     <p class="lrn-eq lr-eq"></p>
-    <canvas class="lrn-cv lr-cv" aria-label="Two bars showing how many reaction batches each reactant can supply; the shorter bar is the limiting reagent" style="margin-top:8px"></canvas>
-    <div class="ax-grid" style="margin-top:10px">
-      <label class="lrn-sl"><span class="lr-an">A</span>: <b class="lr-av"></b> g <input class="lr-a" type="range" min="1" max="100" step="1" value="10" /></label>
-      <label class="lrn-sl"><span class="lr-bn">B</span>: <b class="lr-bv"></b> g <input class="lr-b" type="range" min="1" max="100" step="1" value="50" /></label>
+    <div class="lr-custom" hidden>
+      <div class="lr-crow"><label>Reactant A <input class="lr-cf" data-k="a-formula" value="Fe" autocomplete="off" spellcheck="false" /></label><label>Coefficient <input class="lr-cc" data-k="a-coef" value="1" inputmode="numeric" /></label></div>
+      <div class="lr-crow"><label>Reactant B <input class="lr-cf" data-k="b-formula" value="S" autocomplete="off" spellcheck="false" /></label><label>Coefficient <input class="lr-cc" data-k="b-coef" value="1" inputmode="numeric" /></label></div>
+      <div class="lr-crow"><label>Product <input class="lr-cf" data-k="p-formula" value="FeS" autocomplete="off" spellcheck="false" /></label><label>Coefficient <input class="lr-cc" data-k="p-coef" value="1" inputmode="numeric" /></label></div>
+      <p class="ax-help">Write formulas like H2O or CaCO3 and the numbers from your balanced equation. Balance it first with the equation balancer if you need to.</p>
     </div>
+    <label class="lr-prodl" hidden>Product to find <select class="lr-prod" data-k="product" aria-label="Product"></select></label>
+    <div class="lr-amt">
+      <div class="lr-arow"><span class="lr-an lr-lab">A</span><input class="lr-ta" data-k="a-amount" inputmode="decimal" value="10" aria-label="Amount of reactant A" /><select class="lr-ua" data-k="a-unit" aria-label="Unit for A"><option value="g">g</option><option value="mg">mg</option><option value="kg">kg</option><option value="mol">mol</option></select></div>
+      <input class="lr-a" type="range" min="1" max="100" step="1" value="10" aria-label="Slide the amount of A" />
+      <div class="lr-arow"><span class="lr-bn lr-lab">B</span><input class="lr-tb" data-k="b-amount" inputmode="decimal" value="50" aria-label="Amount of reactant B" /><select class="lr-ub" data-k="b-unit" aria-label="Unit for B"><option value="g">g</option><option value="mg">mg</option><option value="kg">kg</option><option value="mol">mol</option></select></div>
+      <input class="lr-b" type="range" min="1" max="100" step="1" value="50" aria-label="Slide the amount of B" />
+    </div>
+    <p class="ax-err lr-err" role="alert" hidden></p>
     <p class="ax-big lr-out" aria-live="polite"></p>
     <p class="ax-help lr-sub"></p>
+    <canvas class="lrn-cv lr-cv" aria-label="Two bars showing how many reaction batches each reactant can supply; the shorter bar is the limiting reagent" style="margin-top:8px"></canvas>
+    <details class="lr-work" open><summary>Show the working</summary><ol class="lr-steps"></ol></details>
+    <details class="lr-more"><summary>More options</summary>
+      <label>Actual yield you collected (g), for percent yield <input class="lr-act" data-k="actual" inputmode="decimal" placeholder="optional" /></label>
+      <p class="ax-help lr-pyl"></p>
+      <label class="lr-chk"><input type="checkbox" class="lr-school" data-k="school" /> Use rounded school masses (H 1, C 12, O 16, ...) instead of exact atomic weights</label>
+    </details>
+    <p class="ax-help">Common mistakes: comparing grams instead of moles; forgetting to divide by the coefficient; using the amount of the reactant left over instead of the limiting one for the yield.</p>
     <p class="ax-help" data-only="11" hidden>Grade 11 to 12: divide each amount in moles by its coefficient in the balanced equation. The smaller result is the limiting reagent. Theoretical yield = limiting moles × (product coefficient ÷ reactant coefficient) × molar mass of the product. Percent yield = actual ÷ theoretical × 100.</p>
   </div>
   <div class="ax-card">
     <h2>Try this</h2>
-    <ul class="lrn-try"><li>Keep A fixed and raise B. After a point the product stops growing. Why?</li><li>Find amounts where both run out together (no leftover). What is the mass ratio then?</li><li>Switch reaction and check that the leftover is always the reactant that is not limiting.</li></ul>
+    <ul class="lrn-try"><li>Keep A fixed and raise B. After a point the product stops growing. Why?</li><li>Find amounts where both run out together (no leftover). What is the mass ratio then?</li><li>Switch reaction and check that the leftover is always the reactant that is not limiting.</li><li>Choose "My own reaction" and type the equation from your homework.</li></ul>
   </div>
   <div class="ax-card lr-quiz">
     <h2>Check yourself</h2>
@@ -29,45 +46,103 @@ import '../../styles/learnquiz-d.css';
 
 <style is:inline>
   .lr .lr-cv { width: 100%; }
-  .lr select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .lr select, .lr input[inputmode] { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .lr .lr-amt { display: grid; gap: 4px; margin-top: 10px; }
+  .lr .lr-arow { display: grid; grid-template-columns: 56px 1fr 84px; gap: 8px; align-items: center; margin-top: 6px; }
+  .lr .lr-lab { font-weight: 700; font-size: 17px; }
+  .lr input[type=range] { width: 100%; height: 30px; accent-color: var(--accent); }
+  .lr .lr-crow { display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-top: 6px; }
+  .lr .lr-custom [hidden], .lr [hidden] { display: none !important; }
+  .lr .lr-steps { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 4px; }
+  .lr .lr-more, .lr .lr-work { margin-top: 10px; }
+  .lr .lr-chk { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 </style>
 
 <script>
-  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { mountQuiz, pick, r, readNumber } from '../../lib/learn/quiz';
   import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
   import { REACTIONS, MOLAR, limiting } from '../../lib/learn/usa-math';
+  import { RXS, solveLimiting, subs, eqText, type Unit, type Sp } from '../../lib/sci/limitingreagent';
   const root = document.querySelector('.lr') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
-  const cv = $<HTMLCanvasElement>('.lr-cv'), out = $('.lr-out'), sel = $<HTMLSelectElement>('.lr-rx');
-  const FORMULA: Record<string, string> = { H2: 'H₂', O2: 'O₂', H2O: 'H₂O', N2: 'N₂', NH3: 'NH₃', CH4: 'CH₄', CO2: 'CO₂', Mg: 'Mg', MgO: 'MgO' };
-  REACTIONS.forEach((rx, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${rx.name}: ${rx.eq}`; sel.append(o); });
-  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const cv = $<HTMLCanvasElement>('.lr-cv'), out = $('.lr-out'), sel = $<HTMLSelectElement>('.lr-rx'), prod = $<HTMLSelectElement>('.lr-prod');
+  RXS.forEach((rx, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${rx.name}: ${eqText({ a: rx.a, b: rx.b, p: rx.p })}`; sel.append(o); });
+  { const o = document.createElement('option'); o.value = 'custom'; o.textContent = 'My own reaction (type the formulas)'; sel.append(o); }
+  const sliderA = $<HTMLInputElement>('.lr-a'), sliderB = $<HTMLInputElement>('.lr-b'), tA = $<HTMLInputElement>('.lr-ta'), tB = $<HTMLInputElement>('.lr-tb');
+  const val = (s: string) => $<HTMLInputElement>(s).value;
+  type Last = { A?: number; B?: number; ea: number; eb: number; lim: string; names: [string, string] } | null;
+  let last: Last = null;
+
+  function fillProducts() {
+    const i = sel.value;
+    const rx = i === 'custom' ? null : RXS[+i];
+    const keep = prod.value;
+    prod.replaceChildren();
+    if (rx) rx.p.forEach((p, j) => { const o = document.createElement('option'); o.value = String(j); o.textContent = subs(p.f); prod.append(o); });
+    if (rx && +keep < rx.p.length) prod.value = keep;
+    $('.lr-prodl').hidden = !rx || rx.p.length < 2;
+    $('.lr-custom').hidden = !!rx;
+  }
+  const coef = (v: string) => { const n = readNumber(v); return n; };
+  function current() {
+    if (sel.value === 'custom') {
+      const a: Sp = { f: val('[data-k="a-formula"]').trim(), c: coef(val('[data-k="a-coef"]')) }, b: Sp = { f: val('[data-k="b-formula"]').trim(), c: coef(val('[data-k="b-coef"]')) }, p: Sp = { f: val('[data-k="p-formula"]').trim(), c: coef(val('[data-k="p-coef"]')) };
+      if (!a.f || !b.f || !p.f) throw new Error('Type a formula for A, B and the product.');
+      return { a, b, p };
+    }
+    const rx = RXS[+sel.value];
+    return { a: rx.a, b: rx.b, p: rx.p[+prod.value || 0] };
+  }
+  const fmt = (x: number) => r(x, 4);
   const draw = () => {
-    const rx = REACTIONS[+sel.value], res = limiting(rx, val('.lr-a'), val('.lr-b'));
+    if (!last) { const { ctx, W, H } = fitCanvas(cv, 130); ctx.clearRect(0, 0, W, H); return; }
     const { ctx, W, H } = fitCanvas(cv, 130), pal = pagePalette();
     ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif';
-    const ea = res.nA / rx.ca, eb = res.nB / rx.cb, mx = Math.max(ea, eb), bar = (y: number, v: number, name: string, lim: boolean) => {
+    const { ea, eb } = last, mx = Math.max(ea, eb);
+    const bar = (y: number, v: number, name: string, lim: boolean) => {
       const w = (v / mx) * (W - 150);
       ctx.fillStyle = lim ? pal.accent2 : pal.accent; ctx.fillRect(110, y, Math.max(2, w), 30);
       ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(name, 104, y + 20);
       ctx.textAlign = 'left'; ctx.fillText(`${r(v, 3)} batches${lim ? ' (limiting)' : ''}`, 114 + Math.max(2, w), y + 20);
     };
-    bar(18, ea, FORMULA[rx.a], res.limiter === rx.a); bar(66, eb, FORMULA[rx.b], res.limiter === rx.b);
+    bar(18, ea, last.names[0], last.lim === 'a' || last.lim === 'both'); bar(66, eb, last.names[1], last.lim === 'b' || last.lim === 'both');
   };
   const show = () => {
-    const rx = REACTIONS[+sel.value], A = val('.lr-a'), B = val('.lr-b'), res = limiting(rx, A, B);
-    $('.lr-eq').textContent = rx.eq; $('.lr-an').textContent = FORMULA[rx.a]; $('.lr-bn').textContent = FORMULA[rx.b];
-    $('.lr-av').textContent = String(A); $('.lr-bv').textContent = String(B);
-    out.textContent = `${FORMULA[res.limiter]} runs out first. Most ${FORMULA[rx.p]}: ${r(res.productG)} g.`;
-    out.dataset.limiter = res.limiter; out.dataset.prod = res.productG.toFixed(4); out.dataset.left = res.leftoverG.toFixed(4);
-    $('.lr-sub').textContent = `${FORMULA[rx.a]}: ${r(res.nA)} mol (molar mass ${MOLAR[rx.a]} g/mol). ${FORMULA[rx.b]}: ${r(res.nB)} mol (${MOLAR[rx.b]} g/mol). Left over: ${r(res.leftoverG)} g of ${FORMULA[res.leftSpecies]}.`;
+    const err = $('.lr-err'), steps = $('.lr-steps'), sub = $('.lr-sub'), py = $('.lr-pyl');
+    err.hidden = true; steps.replaceChildren(); py.textContent = '';
+    delete out.dataset.limiter; delete out.dataset.prod; delete out.dataset.left;
+    let rx;
+    try { rx = current(); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.textContent = ''; sub.textContent = ''; last = null; draw(); return; }
+    $('.lr-eq').textContent = eqText(rx);
+    $('.lr-an').textContent = subs(rx.a.f); $('.lr-bn').textContent = subs(rx.b.f);
+    const A = readNumber(tA.value), B = readNumber(tB.value);
+    try {
+      const actual = val('.lr-act').trim() ? readNumber(val('.lr-act')) : NaN;
+      if (val('.lr-act').trim() && !(actual > 0)) py.textContent = 'Type the actual yield as a number above zero.';
+      const res = solveLimiting(rx, { value: A, unit: $<HTMLSelectElement>('.lr-ua').value as Unit }, { value: B, unit: $<HTMLSelectElement>('.lr-ub').value as Unit }, $<HTMLInputElement>('.lr-school').checked, actual);
+      const names: [string, string] = [subs(rx.a.f), subs(rx.b.f)];
+      out.textContent = res.limiter === 'both' ? `Both run out together. Most ${subs(rx.p.f)}: ${fmt(res.productG)} g.` : `${names[res.limiter === 'a' ? 0 : 1]} runs out first. Most ${subs(rx.p.f)}: ${fmt(res.productG)} g.`;
+      out.dataset.limiter = res.limiter === 'both' ? 'both' : res.limiter === 'a' ? rx.a.f : rx.b.f; out.dataset.prod = res.productG.toFixed(4); out.dataset.left = res.leftG.toFixed(4);
+      sub.textContent = res.leftSpecies ? `Left over: ${fmt(res.leftG)} g of ${subs((res.leftSpecies === 'a' ? rx.a : rx.b).f)} (${fmt(res.leftMol)} mol).` : 'Nothing is left over: both reactants are used up exactly.';
+      res.steps.forEach((t) => { const li = document.createElement('li'); li.textContent = t; steps.append(li); });
+      if (res.percentYield !== null) py.textContent = `Percent yield: ${r(res.percentYield, 3)} %.`;
+      last = { ea: res.xA, eb: res.xB, lim: res.limiter, names };
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.textContent = ''; sub.textContent = ''; last = null; }
     draw();
   };
-  sel.addEventListener('input', show);
-  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', show));
+  const syncFromSlider = (sl: HTMLInputElement, t: HTMLInputElement) => { t.value = sl.value; show(); };
+  const syncFromText = (t: HTMLInputElement, sl: HTMLInputElement) => { const n = readNumber(t.value); if (Number.isFinite(n)) sl.value = String(Math.max(+sl.min, Math.min(+sl.max, n))); show(); };
+  sliderA.addEventListener('input', () => syncFromSlider(sliderA, tA)); sliderB.addEventListener('input', () => syncFromSlider(sliderB, tB));
+  tA.addEventListener('input', () => syncFromText(tA, sliderA)); tB.addEventListener('input', () => syncFromText(tB, sliderB));
+  sel.addEventListener('input', () => { fillProducts(); show(); });
+  prod.addEventListener('input', show);
+  root.querySelectorAll('.lr-custom input, .lr-ua, .lr-ub, .lr-act, .lr-school').forEach((i) => i.addEventListener('input', show));
+  root.querySelectorAll('.lr-ua, .lr-ub, .lr-school').forEach((i) => i.addEventListener('change', show));
   addEventListener('resize', draw);
   wireLevel(root, () => {});
+  fillProducts();
   show();
+  const FORMULA: Record<string, string> = { H2: 'H₂', O2: 'O₂', H2O: 'H₂O', N2: 'N₂', NH3: 'NH₃', CH4: 'CH₄', CO2: 'CO₂', Mg: 'Mg', MgO: 'MgO' };
   mountQuiz($('.lr-quiz'), () => {
     const gH = pick(2, 10), gO = pick(20, 80, 5), res = limiting(REACTIONS[0], gH, gO), gMg = pick(6, 24, 2), gO2 = pick(8, 32, 4), res2 = limiting(REACTIONS[3], gMg, gO2);
     return [

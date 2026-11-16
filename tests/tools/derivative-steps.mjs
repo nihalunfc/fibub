@@ -40,4 +40,21 @@ export default async ({ page, check, BASE }) => {
   check((await t('.smq-q:nth-child(1) .smq-out')) === 'Right!', `steps: quiz answer accepted (${ans})`);
   await page.fill(R + '.smq-q:nth-child(2) .smq-in', '1'); await page.click(R + '.smq-q:nth-child(2) .smq-check');
   check((await t('.smq-q:nth-child(2) .smq-out')).startsWith('Not quite'), 'steps: wrong answer caught');
+  // Solve-my-numbers additions (2026-11-16).
+  await page.fill(R + '.dt-in', 'x^2 sin(x)');
+  await page.fill(R + '.dt-at', '2'); await page.waitForTimeout(50);
+  check((await t('.dt-sub')).includes('f′(2) = (2)²·cos(2) + 2(2)·sin(2) ≈ 1.9726'), `steps: typed point a = 2 (${await t('.dt-sub')})`);
+  check((await page.inputValue(R + '.dt-a')) === '2', 'steps: slider follows the typed number');
+  await page.fill(R + '.dt-at', '1/2'); await page.waitForTimeout(50);
+  check((await t('.dt-sub')).includes('f′(0.5)'), `steps: fraction accepted for a (${await t('.dt-sub')})`);
+  await page.fill(R + '.dt-at', 'abc'); await page.waitForTimeout(50);
+  check((await t('.dt-sub')).includes('Type a number'), 'steps: bad a gives a message');
+  await page.evaluate(() => document.querySelectorAll('.dst details').forEach((d) => { d.open = true; }));
+  { const h = await t('.dt-hi'); check(h.includes('f″(x) = −x²·sin(x) + 4x·cos(x) + 2sin(x)') && h.includes('f‴(x) = −x²·cos(x) − 6x·sin(x) + 6cos(x)'), `steps: higher derivatives (${h})`); }
+  await page.fill(R + '.dt-in', '1/x'); await page.fill(R + '.dt-at', '0'); await page.waitForTimeout(50);
+  check((await t('.dt-sub')).includes('not defined') && !(await t('.dt-sub')).includes('NaN') && !(await t('.dt-sub')).includes('Infinity'), `steps: undefined point is friendly (${await t('.dt-sub')})`);
+  await page.click(R + '.dt-chip[data-src="x^2 ln(x)"]');
+  check((await t('.dt-d')) === 'f′(x) = 2x·ln(x) + x', `steps: new preset x² ln x (${await t('.dt-d')})`);
+  await page.click(R + '.dt-chip[data-src="e^x/x^2"]');
+  check((await t('.dt-d')).includes('e^x/x²'), `steps: new preset eˣ/x² (${await t('.dt-d')})`);
 };

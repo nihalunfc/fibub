@@ -42,4 +42,31 @@ export default async ({ page, check, BASE, OUT }) => {
     }
     await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   }
+  // Solve your own numbers.
+  await page.evaluate(() => document.querySelectorAll('.dsl details').forEach((d) => (d.open = true)));
+  const S = (k) => `${R}.dsl-solve [data-k="young-${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'The fringe width is 2.4 mm.' && (await wk()).includes('β = λ D / d') && (await wk()).includes('Convert the wavelength: 600 nm = 6 × 10⁻⁷ m'), `slits solve: 600 nm, 0.25 mm, 1 m (${await ans()})`);
+  await page.selectOption(S('example'), '1'); await page.waitForTimeout(50);
+  check((await ans()) === 'The fringe width is 2.36 mm.', `slits solve: sodium light (${await ans()})`);
+  await page.selectOption(S('example'), '2'); await page.waitForTimeout(50);
+  check((await ans()) === 'The wavelength is 600 nm (visible light).', `slits solve: find the wavelength (${await ans()})`);
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(50);
+  check((await ans()) === 'The 4th bright fringe is 15 mm from the centre.' && (await wk()).includes('4 λ = 2000 nm'), `slits solve: 4th bright fringe (${await ans()})`);
+  await page.selectOption(S('example'), '4'); await page.waitForTimeout(50);
+  check((await ans()) === 'The 2nd dark fringe is 1.95 mm from the centre.' && (await wk()).includes('Path difference there: 1.5 λ = 975 nm'), `slits solve: 2nd dark fringe (${await ans()})`);
+  await page.selectOption(S('find'), 'd'); await page.fill(S('beta'), '2.4'); await page.selectOption(S('lam-unit'), 'µm'); await page.fill(S('lam'), '0.6'); await page.fill(S('D'), '1'); await page.waitForTimeout(50);
+  check((await ans()) === 'The slit separation is 0.25 mm.', `slits solve: find d, wavelength in µm (${await ans()})`);
+  await page.selectOption(S('find'), 'D'); await page.fill(S('d'), '0'); await page.waitForTimeout(50);
+  check((await ans()).includes('must be above zero') && !/NaN|Infinity/.test(await ans()), 'slits solve: zero separation message');
+  await page.selectOption(S('find'), 'xn'); await page.fill(S('d'), '0.25'); await page.fill(S('n'), '1.5'); await page.waitForTimeout(50);
+  check((await ans()).includes('whole number'), 'slits solve: fringe number must be whole');
+  // Single slit
+  const T = (k) => `${R}.dsl-solve1 [data-k="single-${k}"]`, tans = () => page.textContent(T('answer'));
+  check((await tans()) === 'The central bright band is 24 mm wide.', `slits solve: single slit 24 mm (${await tans()})`);
+  await page.selectOption(T('example'), '2'); await page.waitForTimeout(50);
+  check((await tans()) === 'The wavelength is 600 nm.', `slits solve: single slit wavelength (${await tans()})`);
+  await page.selectOption(T('example'), '3'); await page.waitForTimeout(50);
+  check((await tans()) === 'The 2nd dark minimum is 19.5 mm from the centre.', `slits solve: 2nd minimum (${await tans()})`);
+  await page.selectOption(T('find'), 'W'); await page.fill(T('a'), '0.3'); await page.selectOption(T('a-unit'), 'µm'); await page.fill(T('lam'), '600'); await page.fill(T('D'), '1'); await page.waitForTimeout(50);
+  check((await tans()).includes('no first minimum'), `slits solve: slit narrower than the wavelength (${await tans()})`);
 };

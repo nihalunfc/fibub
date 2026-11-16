@@ -11,7 +11,7 @@ ads: false
 order: 1351
 icon: clock
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [shm-circle, pendulum-analyser, equations-of-motion, kepler-orbits]
 sources:
   - "Simple pendulum: T₀ = 2π√(L/g) for small swings; the exact period T = T₀ / AGM(1, cos(θ₀/2)) (complete elliptic integral of the first kind written with the arithmetic–geometric mean): standard mechanics."
@@ -42,6 +42,10 @@ It serves Class 7 Science (motion and time: the simple pendulum and its time per
 4. **Gravity g**: Earth, Moon, Mars or Jupiter.
 5. **Time it yourself**: press **Start** when the bob is at one end, count 10 returns to that end, press **Stop**. Check **Swings timed** and **Length used**, then **Add to my readings**. You can also type or paste readings, one "length, time" pair per line.
 
+## Solve my numbers
+
+Under the pendulum, **Solve my numbers** answers a textbook question. Choose what to **find** (the period T, the length L, or gravity g), type the other values, and read the answer in one line, with the formula, your numbers put in, and the result below it. Length can be typed in cm or m, and if your time was for several swings (say 36 s for 20 swings) put that number in **Swings that time was for** and the page divides for you. Four examples fill the boxes (a seconds pendulum, a lab bench pendulum, finding g, and the Moon); they use round numbers of our own. A zero, blank or negative value gives a plain message rather than a wrong answer. It uses the small-swing formula; for a big swing use the Class 11 level above.
+
 ## Worked example
 
 As the page opens, a 1 m pendulum on Earth: T = 2π√(1 / 9.8) = **2.007 s**, so 10 swings take about **20.07 s** and it makes about 29.9 swings a minute. At Class 11, letting go from 60° gives an exact period of 2.154 s, **7.32 % longer**; from 10° it is only 0.19 % longer.
@@ -52,6 +56,13 @@ The practice readings (lengths 0.2 to 1.0 m, times for 10 swings 9.0 to 20.1 s) 
 
 Five fresh questions: a period from a length, the length for a given period, g from a timing, what a longer string does, and what changes the period. Answers are checked on the page and the working is shown. Nothing is saved.
 
+## Common mistakes
+
+- Putting the length in centimetres into T = 2π√(L/g), which needs metres.
+- Using the time for 10 or 20 swings as if it were one swing.
+- Measuring L to the top of the bob, not to its middle.
+- Using the formula for a big swing: above about 15° the real period is longer.
+
 ## Tips
 
 - Time 10 or 20 swings, not one. Your reaction time (about 0.2 s) is then shared out over all of them.
@@ -60,6 +71,8 @@ Five fresh questions: a period from a length, the length for a given period, g f
 - Keep swings small (under about 10°) for the formula to hold.
 
 ## FAQ
+
+**How do I find the length of a pendulum for a given period?** Choose Find: the length L, type the period (and g, 9.8 on Earth); L = gT² ÷ 4π², so a 2 s period needs about 0.993 m.
 
 **Why plot T² and not T?** T² = (4π²/g) L is a straight line through the origin, so its slope gives g directly. A line also shows at once if one reading is off.
 

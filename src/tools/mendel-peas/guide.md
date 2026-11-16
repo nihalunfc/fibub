@@ -11,7 +11,7 @@ ads: false
 order: 1124
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [punnett-square, mendelian-chi-square, cell-explorer, hardy-weinberg-tester]
 sources:
   - "Mendel's laws of segregation and independent assortment, incomplete dominance and ABO codominance are standard genetics; the crosses are written by fibub and checked in the tests against a brute-force Python enumeration with exact fractions."
@@ -34,6 +34,14 @@ Gregor Mendel crossed pea plants and counted their children, and found that trai
 
 Pick two parents, choose how many children to grow, and the page draws them, counts each kind, and shows the ratio you would expect. Each child gets one allele from each parent at random, so your counts wobble around the expected ratio, just as Mendel's did. It fits **Class 10 Science: heredity** (Mendel's experiments, dominant and recessive traits, monohybrid and dihybrid crosses) and **Class 12 Biology: principles of inheritance and variation** (incomplete dominance, codominance, multiple alleles and testing ratios). Draw any cross up to four genes with [[punnett-square]], test your own counts with [[mendelian-chi-square]], see where the genes sit in the [[cell-explorer]], and follow alleles in a whole population with [[hardy-weinberg-tester]].
 
+## Punnett square calculator
+
+The first card is a calculator for your own genotypes. Type the two parents, for example **Aa** and **Aa**, or **AaBb** and **aabb**, and it draws the Punnett square, lists the gametes each parent makes, and gives the genotype and phenotype ratios as ratios, fractions and percentages. One gene makes a monohybrid cross (4 boxes), two genes a dihybrid cross (16 boxes); three genes give the ratios only. Use a capital letter for the dominant allele and the same letter in small form for the recessive one. You can also type both parents in one box with a cross sign, such as *Tt x Tt*. Under **More options**, switch to incomplete dominance or codominance, where Aa looks different from AA and aa (red × white snapdragons make pink).
+
+Worked example: Aa × Aa gives AA, Aa, Aa and aa, so the genotype ratio is **1 : 2 : 1** and the phenotype ratio is **3 : 1** (three show the dominant trait, one the recessive). AaBb × AaBb gives **9 : 3 : 3 : 1**, and a dihybrid test cross AaBb × aabb gives **1 : 1 : 1 : 1**. Mismatched letters, a missing letter or two genes against one get a plain message.
+
+Common mistakes: mixing up the genotype ratio and the phenotype ratio; writing a gamete with both alleles of one gene (a gamete carries just one of each gene: AaBb makes AB, Ab, aB and ab); and using the same letter for two different genes. Only autosomal genes are covered, not sex-linked ones.
+
 ## How to use it
 
 1. **Pick the level and the cross.**
@@ -55,6 +63,10 @@ Tap *Pure tall × pure short* (TT × tt): every child is **Tt** and tall. Now ta
 - A test cross with tt shows what a tall plant hides: if any child is short, the tall parent was Tt.
 
 ## FAQ
+
+**How do I make a Punnett square?** Write one parent's gametes down the side and the other's across the top, then fill each box with the two alleles that meet there; Aa × Aa gives AA, Aa, Aa, aa.
+
+**What does 9 : 3 : 3 : 1 mean?** In a cross of two parents that are heterozygous for two genes (AaBb × AaBb), 9 of 16 children show both dominant traits, 3 the first dominant and second recessive, 3 the reverse, and 1 both recessive.
 
 **Why does F1 show only one parent's trait?** The dominant allele hides the recessive one in Tt. The recessive trait comes back in the F2 when a child gets t from both parents.
 

@@ -11,11 +11,12 @@ ads: false
 order: 1162
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [linear-pair-solver, quadratic-explorer, number-theory-toolkit]
 sources:
   - "Standard results for arithmetic progressions: aₙ = a + (n − 1)d and Sₙ = n/2 [2a + (n − 1)d] = n/2 (a + l), with the classic story of Gauss adding 1 to 100. Written for fibub."
   - "Checked against direct addition of the terms for 500 random progressions and against Python's sum(range(1, 101)) = 5050."
+  - "Arithmetic progression formulas (nth term, sum, number of terms) are standard school results; the new solver rearranges them and was checked by hand on worked examples. Written for fibub."
 flow:
   - { icon: sliders, label: "Set a and d" }
   - { icon: chart, label: "Staircase" }
@@ -60,6 +61,17 @@ The page starts with 3, 7, 11, ... (a = 3, d = 4) and n = 10.
 - If you know two terms, subtract them to find d: the 10th term minus the 5th term is 5d.
 - A term number must be a whole number of 1 or more; if the formula gives anything else, the value is not in the progression.
 
+## Solve my problem
+
+The staircase answers "what are the terms?" but exam questions usually give clues. The **Solve my problem** box handles the four most common kinds:
+
+- **Two terms are known** (for example the 3rd term is 12 and the 8th is 37): it subtracts the two equations to get d, then finds a, and gives the nth term as dn + (a − d).
+- **First term, d and a total**: how many terms make the sum? It solves the quadratic dn² + (2a − d)n − 2S = 0 and keeps only whole numbers of 1 or more. When d is negative both roots can be valid (24, 21, 18, ... reaches 78 after 4 terms and again after 13), and the page says so.
+- **First term, last term and number of terms**: finds d and the sum n/2 (a + l).
+- **First term, last term and d**: finds how many terms, or tells you plainly that the last term is not in the list.
+
+Each answer comes with the working, and a button loads a, d and n into the staircase above. Four example buttons fill in typical problems. **Common mistakes** are listed too: using n instead of n − 1, getting the sign of d wrong, and not checking a second value of n.
+
 ## Check yourself
 
 Four fresh questions each time: an nth term, a sum, which term a number is, and 1 + 2 + ... + m. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -69,3 +81,5 @@ Four fresh questions each time: an nth term, a sum, which term a number is, and 
 **Why does Gauss's picture switch off for negative terms?** Stacking bars only makes a clean rectangle when they all stand on the line. The formulas work for any AP.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own examples and pictures. fibub is not part of NCERT.
+
+**How do I find the nth term of an AP?** Use aₙ = a + (n − 1)d. If you only know two terms, use "Solve my problem" to find a and d first.

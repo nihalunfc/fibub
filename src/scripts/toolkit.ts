@@ -1,9 +1,11 @@
-// Shared helpers for money, everyday and vehicle tools: "Copy link with my numbers" and "Copy result".
+// Shared helpers for money, everyday, vehicle, collecting and Learn tools: "Copy link with my numbers" and "Copy result".
 // The link keeps the tool's own settings in the part after # of the address, which the browser never sends
 // to any server. Opening such a link fills the same numbers in again. Nothing is stored, and nothing leaves
 // the device. Text boxes, passwords and files are never put in a link. A tool can opt out with data-nokit.
 
-const SHELVES = ['money', 'everyday', 'vehicles', 'collecting'];
+const SHELVES = ['money', 'everyday', 'vehicles', 'collecting', 'learn'];
+// Practice questions are fresh each visit, so their answer boxes and marks never go in a link or a copied result.
+const QUIZ = '[data-nokit], [class*="quiz"], [class*="lq-"], [class^="lq"]';
 const shelf = document.documentElement.dataset.shelf || '';
 const ui = document.querySelector<HTMLElement>('.tool-ui');
 
@@ -11,7 +13,7 @@ type Field = HTMLInputElement | HTMLSelectElement;
 
 function fields(root: HTMLElement): Field[] {
   return [...root.querySelectorAll<Field>('input, select')].filter((f) => {
-    if (f.closest('[data-nokit]')) return false;
+    if (f.closest(QUIZ)) return false;
     if (f instanceof HTMLInputElement && ['file', 'password', 'button', 'submit', 'reset', 'hidden', 'image'].includes(f.type)) return false;
     return true;
   });
@@ -49,7 +51,7 @@ function load(list: Field[], hash: string): number {
 }
 
 function resultText(root: HTMLElement): string {
-  const live = [...root.querySelectorAll<HTMLElement>('[aria-live]')].filter((e) => e.textContent?.trim());
+  const live = [...root.querySelectorAll<HTMLElement>('[aria-live]')].filter((e) => e.textContent?.trim() && !e.closest(QUIZ));
   const src = live.length ? live : [];
   return src.map((e) => e.innerText.replace(/\n{3,}/g, '\n\n').trim()).join('\n');
 }
@@ -89,7 +91,8 @@ if (ui && SHELVES.includes(shelf) && !ui.querySelector('[data-nokit-all]')) {
       const t = resultText(ui);
       say(t ? ((await copy(t)) ? 'Result copied.' : 'Could not copy.') : 'Nothing to copy yet.');
     });
-    if (!ui.querySelector('[aria-live]')) resBtn.hidden = true;
+    if (![...ui.querySelectorAll('[aria-live]')].some((e) => !e.closest(QUIZ))) resBtn.hidden = true;
+    if (shelf === 'learn') bar.querySelector('.kit-link')!.textContent = 'Copy link to this setup';
     const st = document.createElement('style');
     st.textContent = '.kit-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-18px 0 24px}.kit-bar button{font:inherit;font-size:14px;padding:8px 12px;min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}.kit-bar button:hover{border-color:var(--accent);color:var(--accent)}.kit-msg{font-size:13px;color:var(--muted)}@media print{.kit-bar{display:none}}';
     document.head.append(st);

@@ -37,4 +37,18 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.ko .sq-q', (e) => e.dataset.ans);
   await page.fill('.ko .sq-q .sq-in', ans); await page.click('.ko .sq-q .sq-check');
   check((await page.textContent('.ko .sq-q .sq-res')) === 'Right!', 'kepler-orbits: quiz');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/kepler-orbits/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Mars year'); check((await psAns()).includes('The period is 687 days'), 'kepler-orbits: example Mars year: The period is 687 days');
+  await psPre('Jupiter distance'); check((await psAns()).includes('The semi-major axis is 5.2 AU'), 'kepler-orbits: example Jupiter distance: The semi-major axis is 5.2 AU');
+  await psPre('Orbit 9 times as far'); check((await psAns()).includes('The second period is 27 years'), 'kepler-orbits: example Orbit 9 times as far: The second period is 27 years');
+  await psPre('Space station speed'); check((await psAns()).includes('The orbital speed is 7.67 km/s'), 'kepler-orbits: example Space station speed: The orbital speed is 7.67 km/s');
+  await psPre('Comet far away'); check((await psAns()).includes('The speed at the far point is 0.92 km/s; the orbit has e = 0.967'), 'kepler-orbits: example Comet far away: The speed at the far point is 0.92 km/s; the orbit');
+  await psSet('vv', {'vv-r': '5', 'vv-a': '1.5'}); check((await psAns()).includes('not on the orbit'), 'kepler-orbits: vv not on the orbit');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'kepler-orbits: working shown, no NaN');
 };

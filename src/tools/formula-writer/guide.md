@@ -11,7 +11,7 @@ ads: false
 order: 1084
 icon: pencil
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [build-an-atom, mole-bridge, equation-balancer]
 sources:
   - "Ion valencies and names: general chemistry facts (IUPAC naming with Roman numerals for iron, copper and lead), written fresh for fibub."
@@ -31,6 +31,9 @@ An ionic compound is made of positive ions (cations) and negative ions (anions) 
 - The picture shows the valencies crossing over. Below it, the formula appears with its name and four short steps: write the valencies, cross them over, divide out any common factor, add brackets round groups that repeat.
 - **Charges balance** draws every positive and negative charge as a block, so you can see that, for example, two Al³⁺ (+6) exactly match three SO₄²⁻ (−6).
 - **Formula unit mass** adds up the atoms. The Class 9 setting uses rounded masses (H 1, O 16, Na 23, Cl 35.5 …); the Class 11 setting uses the exact IUPAC atomic weights.
+- **Type the name instead.** Write "calcium nitrate" or "iron(III) oxide" in the box at the top and the two ions are picked for you (sulphate and aluminum spellings work too). Tap a common compound such as table salt, limestone or gypsum to load it.
+- **% by mass** is added to the mass table: each element's share of the formula unit mass, for composition questions.
+- **Grams and moles** turns a mass into moles (and formula units) or moles into a mass, in g, kg or mg, with the working: moles = mass ÷ molar mass.
 
 It follows Class 9 Science (atoms and molecules: ions, valency, writing chemical formulae, molecular mass and formula unit mass) and supports Class 10 and 11 Chemistry. See where the valencies come from in [[build-an-atom]], then use your formulas in the [[equation-balancer]] or turn them into moles with the [[mole-bridge]].
 
@@ -57,13 +60,21 @@ Formula unit mass with rounded masses: 2 × 27 + 3 × 32 + 12 × 16 = 54 + 96 + 
 
 Now pick magnesium (2) and oxide (2). Crossing gives Mg₂O₂, and dividing by 2 gives **MgO**. That is why step 3 matters.
 
+## Worked example: grams to moles
+
+How many moles are in 10 g of aluminium sulfate? With rounded masses the molar mass is 342 g/mol, so moles = 10 ÷ 342 = 0.0292 mol, which is about 1.76 × 10²² formula units (0.0292 × 6.022 × 10²³). The mass table also shows that aluminium is 15.8 % of the compound by mass (54 ÷ 342).
+
 ## Tips
+
+- Common mistake: using the mass of one atom instead of the whole formula unit, or forgetting that a bracketed group is multiplied by the number outside the bracket (in Ca(OH)₂ there are two O and two H).
 
 - Brackets only go round groups of atoms (polyatomic ions such as OH, NO₃, SO₄, CO₃, PO₄, NH₄), and only when there is more than one of them. Calcium chloride is CaCl₂, not Ca(Cl)₂.
 - Iron, copper and lead can have more than one valency. The Roman numeral in the name, as in iron(III) oxide, tells you which.
 - Formula unit mass is used for ionic compounds; molecular mass is the same sum for molecules such as H₂O or CO₂.
 
 ## FAQ
+
+**How do I write the formula of an ionic compound?** Write the symbols with their valencies, cross the valencies over, divide by any common factor and put brackets round repeated groups; the page does each step for any pair you choose.
 
 **Why does hydrogen with hydroxide give water?** H⁺ and OH⁻ join to make H₂O, so the page shows water instead of "HOH".
 

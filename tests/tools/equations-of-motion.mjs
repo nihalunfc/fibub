@@ -28,6 +28,23 @@ export default async ({ page, check, BASE }) => {
   // solve
   await page.click('.em .em-mode [data-m="solve"]'); await page.waitForTimeout(150);
   { const s = await page.textContent('.em .em-sol'); check(s.includes('a = 2 m/s², s = 100 m, t = 10 s'), 'equations-of-motion: solve u 0, v 20, s 100 → a 2, t 10'); }
+  // new: one-line answer, units, presets, working
+  check((await page.textContent('.em [data-k="answer"]')) === 'a = 2 m/s² and t = 10 s.', 'equations-of-motion: plain one-line answer');
+  check((await page.textContent('.em .em-wl')).includes('2 × 100 ÷ (0 + 20) = 10 s') && (await page.textContent('.em .em-wl')).includes('(20² − 0²) ÷ (2 × 100) = 2 m/s²') && (await page.textContent('.em .em-wl')).includes('Sign convention'), 'equations-of-motion: exam-style working');
+  await page.selectOption('.em [data-k="s-unit"]', 'km'); await page.fill('.em [data-k="s"]', '0.1'); await page.selectOption('.em [data-k="t-unit"]', 'min'); await page.waitForTimeout(150);
+  check((await page.textContent('.em [data-k="answer"]')) === 'a = 2 m/s² and t = 0.167 min.', 'equations-of-motion: 0.1 km, answer in minutes');
+  check((await page.textContent('.em .em-wl')).includes('s = 0.1 km = 100 m'), 'equations-of-motion: unit conversion shown');
+  await page.selectOption('.em [data-k="s-unit"]', 'm'); await page.selectOption('.em [data-k="t-unit"]', 's');
+  await page.click('.em [data-k="preset-0"]'); await page.waitForTimeout(150);
+  check((await page.textContent('.em [data-k="answer"]')) === 'a = 2 m/s² and s = 100 m.', 'equations-of-motion: preset car 72 km/h in 10 s');
+  await page.click('.em [data-k="preset-1"]'); await page.waitForTimeout(150);
+  check((await page.textContent('.em [data-k="answer"]')) === 'a = −1 m/s² and t = 20 s.', 'equations-of-motion: preset train brakes');
+  await page.click('.em [data-k="preset-2"]'); await page.waitForTimeout(150);
+  check((await page.textContent('.em [data-k="answer"]')) === 's = 11.48 m and t = 1.531 s.', 'equations-of-motion: preset ball thrown up');
+  await page.click('.em [data-k="preset-4"]'); await page.waitForTimeout(150);
+  check((await page.textContent('.em [data-k="answer"]')).startsWith('Two answers: v = 10 m/s and t = 1 s, or v = −10 m/s and t = 3 s'), 'equations-of-motion: preset with two answers');
+  await page.fill('.em [data-k="u"]', ''); await page.fill('.em [data-k="a"]', ''); await page.fill('.em [data-k="s"]', ''); await page.fill('.em [data-k="v"]', ''); await page.waitForTimeout(150);
+  check((await page.textContent('.em .em-err')).includes('you gave 0') && (await page.textContent('.em [data-k="answer"]')) === '', 'equations-of-motion: blank boxes give a friendly message');
   await page.fill('.em .em-su', '20'); await page.fill('.em .em-sv', ''); await page.fill('.em .em-sa', '-10'); await page.fill('.em .em-ss', '15'); await page.waitForTimeout(150);
   { const s = await page.textContent('.em .em-sol'); check(s.includes('Answer 1') && s.includes('t = 1 s') && s.includes('t = 3 s') && s.includes('v = −10 m/s'), 'equations-of-motion: two answers for a ball thrown up'); }
   await page.fill('.em .em-ss', '25'); await page.waitForTimeout(150);

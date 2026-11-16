@@ -11,7 +11,7 @@ ads: false
 order: 1157
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [polynomial-zeros, quadratic-explorer, matrix-calculator]
 sources:
   - "Standard school algebra: graphs of linear equations, the ratio test a1/a2, b1/b2, c1/c2, and the substitution and elimination methods. Written for fibub."
@@ -55,6 +55,16 @@ Write the equations as a1x + b1y = c1 and a2x + b2y = c2.
 
 (Textbooks often write a1x + b1y + c1 = 0. That flips the sign of every c, which does not change c1/c2.)
 
+## Your numbers, a check, and word problems
+
+The answer is the first thing under the graph, in one line: `x = 3, y = 2` (exact fractions when your numbers are whole), or a plain sentence when the lines are parallel (no solution) or the same line (infinitely many). Below the two worked methods you get **Check your answer**, which puts x and y back into both equations the way an exam asks, and, under *More options*, a third method, **cross-multiplication**, with x = (c1 b2 − c2 b1)/(a1 b2 − a2 b1) and y = (a1 c2 − a2 c1)/(a1 b2 − a2 b1) filled in with your numbers.
+
+**Word problems** (two numbers, pens and books, ages, a taxi fare) load a made-up example in one tap and say what x and y stand for, so you can see how a story turns into two equations. Change any number and the story hides.
+
+**Find k** (under the ratio test, in *More options*): equation (1) is as typed. Choose whether k is a2, b2 or c2 in equation (2); what you typed in that box is ignored. The page gives the k that makes the lines parallel or the same line, says which of the two it is for your other numbers, and notes that every other k gives exactly one solution. If c2 is the unknown and the lines are not parallel in direction, it tells you that c2 cannot change the result.
+
+Common mistakes: changing the sign of only one side when you move a term, forgetting to multiply the right-hand side when you scale an equation, and swapping the two sides of the ratio a1/a2 = b1/b2.
+
 ## A worked example
 
 The page starts with 2x + 3y = 12 and x − y = 1.
@@ -71,6 +81,8 @@ Try **Fractions** (3x − 5y = −4 and 9x + 2y = 7): the answer is x = 9/17, y 
 Four fresh questions each time: solve a pair, find k for parallel lines, read a point on a line and a sum-and-difference word problem. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
 
 ## FAQ
+
+**How do I solve two linear equations in two variables?** Type the six numbers (or tap an example or word problem): the answer line gives x and y, with substitution, elimination and cross-multiplication worked out below it.
 
 **Why does the graph only go from −10 to 10?** So the grid stays readable on a phone. If the lines cross outside it, the page still gives the crossing point.
 

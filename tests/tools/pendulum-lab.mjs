@@ -47,6 +47,19 @@ export default async ({ page, check, BASE }) => {
   check(await page.isHidden(R + '.pd-ferr') && (await t('.pd-feq')).includes('time ÷ 20'), 'pendulum: 20 swings per reading');
   await page.fill(R + '.pd-N', '0'); await page.waitForTimeout(100);
   check((await t('.pd-ferr')).includes('whole number'), 'pendulum: bad swing count');
+  // Solve my numbers
+  const sAns = () => t('[data-k="answer"]'), K = (k) => R + `[data-k="${k}"]`;
+  check((await sAns()) === 'The period is 1.606 s.' && (await t('.ps-work')).includes('Length in metres: 64 cm ÷ 100 = 0.64 m') && (await t('.ps-work')).includes('T = 2π × 0.2556 = 1.606 s'), 'pendulum: solve 64 cm → T = 1.606 s with working');
+  await page.click(K('preset-0')); await page.waitForTimeout(150);
+  check((await sAns()) === 'The length is 0.993 m (99.3 cm).', 'pendulum: seconds pendulum 0.993 m');
+  await page.click(K('preset-2')); await page.waitForTimeout(150);
+  check((await sAns()) === 'Gravity is 9.748 m/s².' && (await t('.ps-work')).includes('T = 36 s ÷ 20 = 1.8 s'), 'pendulum: 20 swings in 36 s on 0.8 m gives g = 9.748');
+  await page.click(K('preset-3')); await page.waitForTimeout(150);
+  check((await sAns()) === 'The period is 4.937 s.', 'pendulum: Moon preset 4.937 s');
+  await page.selectOption(K('unknown'), 'L'); await page.fill(K('solve-T'), '0'); await page.waitForTimeout(150);
+  check((await t('.ps-err')).includes('more than zero') && (await sAns()) === '', 'pendulum: zero period is a friendly message');
+  await page.fill(K('solve-T'), ''); await page.waitForTimeout(150);
+  check((await t('.ps-err')).includes('missing'), 'pendulum: blank period is a friendly message');
   const items = await page.$$(R + '.lq-item');
   check(items.length === 5, 'pendulum: five questions');
   const ans = await items[1].getAttribute('data-ans');

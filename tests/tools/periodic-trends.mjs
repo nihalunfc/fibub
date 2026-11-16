@@ -6,6 +6,20 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.ptr .ptr-cell')).length === 72, 'periodic-trends: 72 cells (periods 1 to 6, no f-block)');
   { const f = await facts(); check(f.includes('about 75 pm') && f.includes('1086 kJ/mol') && f.includes('11.26 eV') && f.includes('2.55') && (await page.textContent('.ptr .ptr-h')).startsWith('Carbon'), 'periodic-trends: carbon facts'); }
   check((await flags()).includes('radius falls across period 2'), 'periodic-trends: radius falls across period 2');
+  // new options: the numbers, compare or rank
+  await page.evaluate(() => document.querySelectorAll('.ptr details').forEach((d) => (d.open = true)));
+  check((await page.$$('.ptr .ptr-tab tbody tr')).length === 8 && (await page.textContent('.ptr .ptr-tab')).includes('C (Carbon)75') && (await page.textContent('.ptr .ptr-tab')).includes('Ne (Neon)–'), 'periodic-trends: numbers table for period 2');
+  const cb = () => page.textContent('.ptr .ptr-cb'), cw = () => page.textContent('.ptr .ptr-cw');
+  check((await cb()) === 'Smallest to largest: Al < Mg < Na.' && (await page.textContent('.ptr .ptr-cv')).includes('Al 120 pm') && (await cw()).includes('period 3'), 'periodic-trends: rank Na, Mg, Al by radius');
+  await page.selectOption('.ptr [data-k="order"]', 'down'); check((await cb()) === 'Largest to smallest: Na > Mg > Al.', 'periodic-trends: largest first');
+  await page.fill('.ptr [data-k="elements"]', 'N O'); await page.selectOption('.ptr [data-k="property"]', 'ie'); await page.selectOption('.ptr [data-k="order"]', 'up');
+  check((await cb()) === 'Lowest to highest ionisation energy: O < N.' && (await cw()).includes('half-full') && (await cw()).includes('Nitrogen has the higher first ionisation energy'), 'periodic-trends: N and O exception explained ' + (await cb()));
+  await page.fill('.ptr [data-k="elements"]', 'lithium, 55'); await page.selectOption('.ptr [data-k="property"]', 'en');
+  check((await cb()) === 'Least to most electronegative: Cs < Li.' && (await cw()).includes('same group'), 'periodic-trends: names and atomic numbers accepted');
+  await page.fill('.ptr [data-k="elements"]', 'Ne, Na'); await page.selectOption('.ptr [data-k="property"]', 'radius');
+  check((await cb()).startsWith('Only Sodium') && (await cw()).includes('No value shown for Ne'), 'periodic-trends: element with no radius');
+  await page.fill('.ptr [data-k="elements"]', 'zzz Na'); check((await page.textContent('.ptr .ptr-ce')).includes('I do not know'), 'periodic-trends: unknown element');
+  await page.fill('.ptr [data-k="elements"]', 'Na'); check((await cb()).includes('at least two'), 'periodic-trends: one element only');
   check((await page.$eval('.ptr .ptr-c', (c) => c.getAttribute('aria-label'))).includes('Li 130, Be 95, B 85, C 75, N 70, O 65, F 55, Ne none'), 'periodic-trends: period 2 radii graphed');
   check(await page.$eval('.ptr .ptr-c', (c) => { const x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < x.length; i += 4) if (x[i] < 100) n++; return n > 100; }), 'periodic-trends: graph drawn');
   await page.click('.ptr .ptr-prop [data-v="ie"]'); await page.waitForTimeout(100);

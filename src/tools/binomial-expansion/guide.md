@@ -11,7 +11,7 @@ ads: false
 order: 1192
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [combinatorics-calculator, distribution-explorer, probability-tree]
 sources:
   - "Standard binomial theorem: (x + y)ⁿ = Σ C(n, r) xⁿ⁻ʳ yʳ, Pascal's rule C(n, r) = C(n − 1, r − 1) + C(n − 1, r), and the binomial distribution C(n, k)/2ⁿ for a fair Galton board. Written for fibub; no textbook text, figures or exercises are used."
@@ -41,6 +41,16 @@ It follows the binomial theorem in Class 11 maths, which builds on permutations 
 4. Read the facts: number of terms, the middle term(s), the sum of the coefficients and the term with no x.
 5. Press **Drop 100 balls** or **Drop 1000**, and **Empty** to start again. The orange lines are the expected shares C(n, k)/2ⁿ.
 
+## Find a coefficient or the term without x
+
+Textbook questions often ask for the coefficient of xᵏ, or the term independent of x, in an expansion such as (x + 1/x)⁶ or (x² − 1/x)⁶. Open *More options* under the general term and give the powers: the first term is a·xᵖ and the second b·x^q, so (x + 1/x)⁶ has a = 1, b = 1, p = 1, q = −1. Type the power k you want (k = 0 is the term without x). The page solves p(n − r) + q·r = k for r, tells you which term T(r+1) it is, shows C(n, r) × aⁿ⁻ʳ × bʳ with the numbers in, and gives the coefficient. If no whole r from 0 to n fits, it says there is no such term, so the coefficient is 0.
+
+You can type n (0 to 20) as well as slide it, and four example buttons set up (x + 1/x)⁶, (x² − 1/x)⁶, (2x − 3)⁵ and (x + 1)¹⁰.
+
+Common mistakes: forgetting the sign of b (a minus makes every other term negative), counting terms from 1 when the formula counts r from 0 (T(r+1) is the term with r), and forgetting that a and b are raised to powers too, so (2x)³ is 8x³, not 2x³.
+
+Left out for now: fractional coefficients such as (x/2 + 2/x)⁶ (the page needs whole numbers for a and b; multiply through by a common denominator first).
+
 ## Worked example
 
 Expand (2x − 3)⁵. Row 5 of Pascal's triangle is 1, 5, 10, 10, 5, 1. Term by term: 1 × 32x⁵, 5 × 16x⁴ × (−3) = −240x⁴, 10 × 8x³ × 9 = 720x³, 10 × 4x² × (−27) = −1080x², 5 × 2x × 81 = 810x and 1 × (−243). So
@@ -58,6 +68,8 @@ Each ball meets n pegs and goes left or right with equal chance. To land in slot
 Five questions with fresh numbers: a value of C(n, r), a coefficient from the general term, the middle term, the sum of the coefficients and a Galton-board chance. Nothing is saved.
 
 ## FAQ
+
+**How do I find the term independent of x in a binomial expansion?** Set k = 0 under *Find the coefficient*; the page solves for r and gives the term, for example 20 for (x + 1/x)⁶.
 
 **Why does a negative b make the signs alternate?** The term with bʳ is negative when r is odd and positive when r is even.
 

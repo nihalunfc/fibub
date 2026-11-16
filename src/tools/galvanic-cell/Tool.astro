@@ -5,17 +5,19 @@ import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
 import { CELL_IDS, halfCell, ionOf, electrodeOf } from '../../lib/sci/galvanic';
 const sup = (f: string) => f.replace(/\^(\d*)([+-])/, (_, d, s) => (d ? d.replace(/\d/g, (x: string) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+x]) : '') + (s === '+' ? '⁺' : '⁻'));
+const presets: [string, string, string][] = [['Zn', 'Cu2', 'Daniell: Zn | Cu'], ['Zn', 'Ag', 'Zn | Ag'], ['Fe', 'Cu2', 'Fe | Cu'], ['Mg', 'Ag', 'Mg | Ag'], ['H2', 'Zn', 'H₂ | Zn']];
 const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: `${electrodeOf(h)} | ${sup(ionOf(h))}  (E° ${h.E >= 0 ? '+' : '−'}${Math.abs(h.E).toFixed(2)} V)` }; });
 ---
 <div class="ax gc">
   <div class="ax-card">
+    <div class="gc-chips" role="group" aria-label="Example cells">{presets.map((p) => <button type="button" class="gc-chip" data-a={p[0]} data-b={p[1]}>{p[2]}</button>)}</div>
     <div class="ax-grid">
-      <label>Left half-cell <select class="gc-a">{opts.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}</select></label>
-      <label>Right half-cell <select class="gc-b">{opts.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}</select></label>
+      <label>Left half-cell <select class="gc-a" data-k="left">{opts.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}</select></label>
+      <label>Right half-cell <select class="gc-b" data-k="right">{opts.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}</select></label>
     </div>
     <p class="ax-err gc-err" hidden></p>
     <svg class="gc-svg" viewBox="0 0 340 250" role="img" aria-label="Galvanic cell"></svg>
-    <p class="ax-big gc-big" style="margin:6px 0 2px"></p>
+    <p class="ax-big gc-big" data-k="answer" aria-live="polite" style="margin:6px 0 2px"></p>
     <p class="gc-sub" style="margin:0 0 10px"></p>
     <dl class="ax-facts gc-facts"></dl>
     <p class="lx-eq gc-eq"></p>
@@ -23,10 +25,30 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
 
   <div class="ax-card">
     <h2>Change the concentrations (Nernst)</h2>
-    <label class="gc-rl"><span class="gc-la">Left ion</span> <input type="range" class="gc-ca" min="-3" max="0.3" step="0.1" value="0" /><output class="gc-oa">1 M</output></label>
-    <label class="gc-rl"><span class="gc-lb">Right ion</span> <input type="range" class="gc-cb" min="-3" max="0.3" step="0.1" value="0" /><output class="gc-ob">1 M</output></label>
+    <p class="ax-help" style="margin-top:0">Type the concentrations from your problem (in mol/L), or use the sliders.</p>
+    <div class="ax-grid">
+      <label><span class="gc-la">Left ion</span> (M) <input type="number" class="gc-ta" data-k="conc-left" inputmode="decimal" min="0" step="any" value="1" /></label>
+      <label><span class="gc-lb">Right ion</span> (M) <input type="number" class="gc-tb" data-k="conc-right" inputmode="decimal" min="0" step="any" value="1" /></label>
+    </div>
+    <label class="gc-rl"><span>Left</span> <input type="range" class="gc-ca" min="-3" max="0.3" step="0.1" value="0" aria-label="Left ion concentration slider" /><output class="gc-oa">1 M</output></label>
+    <label class="gc-rl"><span>Right</span> <input type="range" class="gc-cb" min="-3" max="0.3" step="0.1" value="0" aria-label="Right ion concentration slider" /><output class="gc-ob">1 M</output></label>
     <p class="lx-eq gc-neq"></p>
     <p class="ax-help">25 °C. Concentration stands in for activity, which is close enough below about 0.1 M for this purpose. Standard potentials are rounded textbook values (25 °C, 1 bar, against the standard hydrogen electrode).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Use your own E° values</h2>
+    <p class="ax-help" style="margin-top:0">For problems that give you the potentials. Cathode is the half-cell with the higher E°.</p>
+    <div class="ax-grid">
+      <label>E° cathode (V) <input type="number" class="gc-oc" data-k="e-cathode" inputmode="decimal" step="any" value="0.34" /></label>
+      <label>E° anode (V) <input type="number" class="gc-oa2" data-k="e-anode" inputmode="decimal" step="any" value="-0.76" /></label>
+      <label>Electrons n <input type="number" class="gc-on" data-k="n" inputmode="numeric" min="1" step="1" value="2" /></label>
+      <label>Q (optional) <input type="number" class="gc-oq" data-k="q" inputmode="decimal" min="0" step="any" value="1" /></label>
+    </div>
+    <p class="ax-err gc-oerr" hidden></p>
+    <p class="ax-big gc-oans" data-k="own-answer" aria-live="polite" style="font-size:1.1rem"></p>
+    <p class="lx-eq gc-owork"></p>
+    <p class="ax-help">Uses 0.0592 V at 25 °C (exactly RT/F × ln 10 = 0.05916 V), so your book's 0.059 may differ in the third figure. Common mistakes: subtracting in the wrong order (always cathode minus anode), doubling E° when you double the equation (E° does not change, n and ΔG° do), and forgetting to multiply by 1000 to go from J to kJ.</p>
   </div>
 
   <div class="ax-card">
@@ -48,6 +70,9 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
 </div>
 
 <style is:inline>
+  .gc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .gc-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .gc input[type=number] { font-size: 16px; min-height: 44px; width: 100%; }
   .gc select { font-size: 16px; min-height: 44px; }
   .gc-svg { display: block; width: 100%; max-width: 480px; margin: 12px auto 0; }
   .gc-rl { display: grid !important; grid-template-columns: minmax(70px, auto) 1fr 64px; align-items: center; gap: 10px !important; margin-top: 8px; color: var(--ink) !important; }
@@ -71,7 +96,7 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
 </style>
 
 <script>
-  import { build, ionOf, electrodeOf, cellNotation, halfText, halfCell, CELL_IDS, type Cell } from '../../lib/sci/galvanic';
+  import { build, ownCell, ionOf, electrodeOf, cellNotation, halfText, halfCell, CELL_IDS, type Cell } from '../../lib/sci/galvanic';
   import { pretty } from '../../lib/sci/chem';
   import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
 
@@ -118,11 +143,11 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
 
   function update() {
     const a = q<HTMLSelectElement>('.gc-a').value, b = q<HTMLSelectElement>('.gc-b').value;
-    const va = Number(q<HTMLInputElement>('.gc-ca').value), vb = Number(q<HTMLInputElement>('.gc-cb').value), ca = conc(va), cb = conc(vb);
-    q('.gc-oa').textContent = cTxt(ca); q('.gc-ob').textContent = cTxt(cb);
+    const ca = Number(q<HTMLInputElement>('.gc-ta').value), cb = Number(q<HTMLInputElement>('.gc-tb').value);
+    q('.gc-oa').textContent = cTxt(Number.isFinite(ca) ? Number(ca.toPrecision(2)) : 0); q('.gc-ob').textContent = cTxt(Number.isFinite(cb) ? Number(cb.toPrecision(2)) : 0);
     q('.gc-la').textContent = `[${nice(ionOf(halfCell(a)))}] left`; q('.gc-lb').textContent = `[${nice(ionOf(halfCell(b)))}] right`;
     let c: Cell;
-    try { c = build(a, b, ca, cb); } catch (e) { const er = q('.gc-err'); er.hidden = false; er.textContent = (e as Error).message; q('.gc-svg').replaceChildren(); q('.gc-big').textContent = ''; q('.gc-sub').textContent = ''; q('.gc-facts').replaceChildren(); q('.gc-eq').textContent = ''; q('.gc-neq').textContent = ''; return; }
+    try { if (!(ca > 0) || !(cb > 0)) throw new Error('Type a concentration above zero for both ions.'); c = build(a, b, ca, cb); } catch (e) { const er = q('.gc-err'); er.hidden = false; er.textContent = (e as Error).message; q('.gc-svg').replaceChildren(); q('.gc-big').textContent = ''; q('.gc-sub').textContent = ''; q('.gc-facts').replaceChildren(); q('.gc-eq').textContent = ''; q('.gc-neq').textContent = ''; return; }
     q('.gc-err').hidden = true;
     const leftIsAnode = c.anode.id === a;
     draw(c, leftIsAnode);
@@ -156,8 +181,29 @@ const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: 
     nl.forEach((t, i) => { if (i) ne.append(document.createElement('br')); ne.append(t); });
   }
   ['.gc-a', '.gc-b'].forEach((s) => q(s).addEventListener('change', update));
-  ['.gc-ca', '.gc-cb'].forEach((s) => q(s).addEventListener('input', update));
-  update();
+  // sliders and typed concentrations stay in step; the typed number is what the maths uses
+  [['.gc-ca', '.gc-ta'], ['.gc-cb', '.gc-tb']].forEach(([sl, ty]) => {
+    q(sl).addEventListener('input', () => { q<HTMLInputElement>(ty).value = String(conc(Number(q<HTMLInputElement>(sl).value))); update(); });
+    q(ty).addEventListener('input', () => { const x = Number(q<HTMLInputElement>(ty).value); if (x > 0 && Number.isFinite(x)) q<HTMLInputElement>(sl).value = String(Math.max(-3, Math.min(0.3, Math.log10(x)))); update(); });
+  });
+  root.querySelectorAll<HTMLButtonElement>('.gc-chip').forEach((b) => b.addEventListener('click', () => {
+    q<HTMLSelectElement>('.gc-a').value = b.dataset.a!; q<HTMLSelectElement>('.gc-b').value = b.dataset.b!;
+    for (const [sl, ty] of [['.gc-ca', '.gc-ta'], ['.gc-cb', '.gc-tb']]) { q<HTMLInputElement>(sl).value = '0'; q<HTMLInputElement>(ty).value = '1'; }
+    update();
+  }));
+  function own() {
+    const v = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t === '' ? NaN : Number(t); };
+    const er = q('.gc-oerr'), clear = () => { q('.gc-oans').textContent = ''; q('.gc-owork').textContent = ''; };
+    try {
+      const Ec = v('.gc-oc'), Ea = v('.gc-oa2'), n = v('.gc-on'), Qt = q<HTMLInputElement>('.gc-oq').value.trim(), Q = Qt === '' ? 1 : Number(Qt);
+      const r = ownCell(Ec, Ea, n, Q); er.hidden = true;
+      const f = (x: number, d = 3) => (x < 0 ? '−' : '') + Math.abs(x).toFixed(d), lk = r.logK;
+      q('.gc-oans').textContent = r.spontaneous ? `E°cell = ${f(r.E0, 2)} V, so the reaction runs by itself as written.` : r.E0 === 0 ? 'E°cell = 0 V: the cell is at equilibrium and gives no voltage.' : `E°cell = ${f(r.E0, 2)} V is negative: the reaction does not run by itself as written. Swap the anode and cathode.`;
+      q('.gc-owork').textContent = `E°cell = E°cathode − E°anode = ${f(Ec, 2)} − (${f(Ea, 2)}) = ${f(r.E0, 2)} V. ΔG° = −nFE° = −${n} × 96 485 × ${f(r.E0, 2)} = ${f(r.dG0, 1)} kJ/mol. log K = nE° ÷ ${r.slope.toFixed(4)} = ${f(lk, 1)}, so K = 10^${f(lk, 1)}.${Q !== 1 ? ` Nernst: Ecell = ${f(r.E0, 3)} − (${r.slope.toFixed(4)} ÷ ${n}) × log ${Number(Q.toPrecision(3))} = ${f(r.E, 3)} V.` : ''}`;
+    } catch (e) { er.hidden = false; er.textContent = (e as Error).message; clear(); }
+  }
+  ['.gc-oc', '.gc-oa2', '.gc-on', '.gc-oq'].forEach((s) => q(s).addEventListener('input', own));
+  update(); own();
 
   // Check yourself
   const METALS = CELL_IDS.filter((x) => x !== 'H2');

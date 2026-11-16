@@ -11,11 +11,12 @@ ads: false
 order: 1027
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [two-body-orbit, orbit-elements, energy-track]
 sources:
   - "Newton's law of gravitation, Kepler's three laws, escape speed √(2GM/r) and g = g₀R²/r² outside and g₀r/R inside a uniform sphere: standard school physics found in any textbook. Planet distances and periods are rounded general values; 1 AU/yr = 4.7405 km/s from the IAU astronomical unit and the Julian year."
   - "Positions from Kepler's equation were checked against an independent velocity-Verlet integration of Newton's gravity; the swept areas by summing small triangles; g and escape speed against hand-worked values."
+  - "Kepler's third law T = 2π√(a³/GM), circular speed √(GM/r), vis-viva v² = GM(2/r − 1/a) and v r constant at the nearest and farthest points: standard school physics found in any textbook. GM (Sun 1.32712440018 × 10²⁰ m³/s², IAU 2015 nominal; Earth 3.986004418 × 10¹⁴; Moon 4.9028 × 10¹²; Mars 4.282837 × 10¹³; Jupiter 1.26686534 × 10¹⁷), 1 AU = 1.495978707 × 10¹¹ m (IAU 2012), Julian year 365.25 days."
 flow:
   - { icon: pointer, label: "Launch" }
   - { icon: orbit, label: "Ellipse" }
@@ -46,6 +47,9 @@ Slow it to **25 km/s**: it is now launched at its farthest point and falls inwar
 
 In g above and below, one Earth radius up (**6,371 km**) the page shows **g = 2.45 m/s²**, a quarter of 9.8, and a 50 kg student weighs 122.5 N instead of 490 N. The escape speed from the surface is **11.2 km/s**.
 
+## Solve my numbers
+The card at the top works out the orbit questions students are set, from numbers you type. Choose the period from the size of the orbit, the size of the orbit from the period, a comparison of two orbits with T² ∝ a³, the speed in a circular orbit, the speed at a given distance on an ellipse, or the speed at the far point from the speed at the near point (equal areas in equal times). Pick the body being orbited: the Sun, the Earth, the Moon, Mars or Jupiter. Distances can be AU, km or m; periods years, days, hours, minutes or seconds, so you do not convert by hand. The answer is a sentence at the top, then the formula, the numbers in metres and seconds, and a check with T² = a³ when the Sun is the centre. A line below names the common slip, such as measuring the radius from the surface instead of the centre or squaring the radius instead of the period. Tap an example for the Mars year, Jupiter's distance, an orbit nine times as far, a space-station speed or a comet. Impossible inputs, like a point beyond 2a, give a message.
+
 ## Tips
 
 - A planet in an ellipse is fastest at its closest point and slowest at its farthest, because the line to the star sweeps equal areas in equal times.
@@ -59,3 +63,5 @@ In g above and below, one Earth radius up (**6,371 km**) the page shows **g = 2.
 **Is the inside of the Earth really like this?** No. The model treats the Earth as a uniform ball. The real Earth has a dense core, so g actually rises a little as you go down at first.
 
 **Is anything stored?** No. Everything is worked out in your browser.
+
+**How do I find the period of a planet from its distance?** For the Sun, T² = a³ with a in AU and T in years; the card does it and shows the working.

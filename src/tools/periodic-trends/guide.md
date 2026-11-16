@@ -11,7 +11,7 @@ ads: false
 order: 1356
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [periodic-table, electron-configuration, element-temp-name, mendeleev-predictor]
 sources:
   - "First ionisation energies: NIST Atomic Spectra Database values (public domain), rounded to 0.01 eV and converted with 1 eV per atom = 96.485 kJ/mol. Electronegativities: the Pauling scale values most textbooks print, rounded. Both from the site's periodic table data (src/lib/sci/ptable.ts)."
@@ -31,6 +31,10 @@ The periodic table is not just a list: its rows (**periods**) and columns (**gro
 Trends have exceptions, and exam questions love them. Where a value breaks the usual direction, its bar turns red and a short reason appears underneath: why boron is easier to ionise than beryllium, why oxygen is easier than nitrogen, and why gallium is no bigger than aluminium.
 
 It follows the school topics on the modern periodic table and periodic trends in properties (Class 11 Chemistry, classification of elements and periodicity), and the periodic table in Class 10. For every element's full data see [[periodic-table]], for how electrons fill the shells behind these trends [[electron-configuration]], and for how the table was first built [[mendeleev-predictor]].
+
+## Compare or put in order
+
+Exam questions ask which of two elements is bigger, or to arrange Na, Mg and Al in order of increasing atomic radius. The **Compare or put in order** card answers them. Type two or more elements as symbols, names or atomic numbers, pick the property and the order, and you get one sentence (Al, then Mg, then Na), the values behind it, and the reason from where the elements sit: same period, same group, or different. For neighbours such as Be and B, or N and O, the exception in ionisation energy is explained too. An element with no value (the noble gases have no radius here) is named, not guessed. **Show the numbers** under the graph lists the radius, ionisation energy and electronegativity of every element in the period or group on screen, which is handy for copying into homework.
 
 ## How to use it
 
@@ -54,6 +58,8 @@ Tap **aluminium**, choose **Down the group** with atomic radius: gallium (about 
 - Exceptions to ionisation energy come at half-full and full subshells.
 
 ## FAQ
+
+**What is the trend in atomic radius?** It falls from left to right across a period and grows down a group.
 
 **Why are some radii missing?** Radii are shown only for the s- and p-block elements, where the trend is clearest and the values agree best between sources. Noble gases are left out on purpose.
 

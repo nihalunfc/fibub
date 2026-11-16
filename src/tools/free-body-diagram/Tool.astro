@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax fb">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the masses, force and angle from your problem and get the acceleration, tension or normal force with the working.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <label class="fb-setrow">Set-up <select class="fb-set">
       <option value="floor" selected>Pulling a box along the floor</option>
@@ -232,6 +233,12 @@ import '../../styles/astro.css';
   mountQuiz(q('.fb-quiz'), () => questions());
   draw();
   keepDrawn(q('.fb-scene'), draw);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { FBD } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, FBD);
 </script>
 
 <style is:inline>

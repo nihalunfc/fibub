@@ -23,4 +23,32 @@ export default async ({ page, check, BASE }) => {
   const q1 = (await t('.smq-q:nth-child(1) .smq-text')).match(/\d+(?:\.\d+)?/g).map(Number);
   await page.fill(R + '.smq-q:nth-child(1) .smq-in', String(q1[0] * q1[1])); await page.click(R + '.smq-q:nth-child(1) .smq-check');
   check((await t('.smq-q:nth-child(1) .smq-out')) === 'Right!', 'tree: quiz answer');
+  // Solve-my-numbers additions (2026-11-16).
+  await page.goto(`${BASE}/learn/probability-tree/`); await page.waitForTimeout(500);
+  await page.evaluate(() => document.querySelectorAll('.ptr details').forEach((d) => { d.open = true; }));
+  check((await t('.pt-ans')) === 'P(A ∩ B) = 0.009,  P(B) = 0.0585,  P(A | B) = 0.1538 (15.38 %).', `tree: one-line answer (${await t('.pt-ans')})`);
+  check((await t('.pt-wl')).includes('P(A | B) = P(A ∩ B) / P(B) = 0.009 / 0.0585 = 0.1538') && (await t('.pt-wl')).includes('0.99 × 0.05 = 0.0495'), `tree: working (${await t('.pt-wl')})`);
+  await page.fill(R + '.pt-at', '20%'); await page.waitForTimeout(50);
+  check((await t('.pt-facts')).includes('P(A | B)0.8182') && (await page.inputValue(R + '.pt-a')) === '0.2', `tree: typed 20 % (${await t('.pt-facts')})`);
+  await page.fill(R + '.pt-bnt', '1/20'); await page.waitForTimeout(50);
+  check((await t('.pt-facts')).includes('P(A | B)0.8182'), 'tree: fraction 1/20 equals 0.05');
+  await page.fill(R + '.pt-bat', '2'); await page.waitForTimeout(50);
+  check(await page.isVisible(R + '.pt-err') && (await t('.pt-err')).includes('0 to 1') && !(await t('.pt-facts')).includes('NaN'), 'tree: chance above 1 is explained');
+  await page.fill(R + '.pt-bat', ''); await page.waitForTimeout(50);
+  check((await t('.pt-err')).includes('Type a chance'), 'tree: blank chance message');
+  await page.fill(R + '.pt-bat', '0.9'); await page.waitForTimeout(50);
+  check(await page.isHidden(R + '.pt-err'), 'tree: message clears');
+  // Marbles from a bag.
+  await page.fill(R + '.pt-red', '3'); await page.fill(R + '.pt-blue', '2'); await page.click(R + '.pt-usebag'); await page.waitForTimeout(50);
+  { const f = await t('.pt-facts'); check(f.includes('P(A ∩ B)0.3') && f.includes('P(B)0.6') && f.includes('P(A | B)0.5') && f.includes('Independent?No'), `tree: 3 red 2 blue without putting back (${f})`); }
+  check((await t('.pt-bagtxt')).includes('P(red second | red first) = 2/4') && (await t('.pt-bayes')).includes('"second marble is red"'), `tree: bag text (${await t('.pt-bagtxt')})`);
+  await page.check(R + '.pt-rep'); await page.click(R + '.pt-usebag'); await page.waitForTimeout(50);
+  check((await t('.pt-facts')).includes('Independent?Yes') && (await t('.pt-facts')).includes('P(A | B)0.6'), 'tree: with putting back the draws are independent');
+  await page.fill(R + '.pt-red', '0'); await page.fill(R + '.pt-blue', '0'); await page.click(R + '.pt-usebag');
+  check((await t('.pt-bagtxt')).includes('empty'), 'tree: empty bag message');
+  await page.fill(R + '.pt-red', 'x'); await page.click(R + '.pt-usebag');
+  check((await t('.pt-bagtxt')).includes('whole numbers'), 'tree: bad marbles message');
+  // New story.
+  await page.selectOption(R + '.pt-st', 'factory'); await page.waitForTimeout(50);
+  check((await t('.pt-facts')).includes('P(B)0.024') && (await t('.pt-facts')).includes('P(A | B)0.5'), `tree: factory story (${await t('.pt-facts')})`);
 };

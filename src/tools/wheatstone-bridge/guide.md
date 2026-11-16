@@ -11,11 +11,12 @@ ads: false
 order: 1048
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [series-parallel, ohms-law-lab, circuit-simulator]
 sources:
   - "Wheatstone bridge balance P/Q = R/S, the metre bridge X/R = l/(100 − l), and Kirchhoff's junction and loop rules: standard school physics results."
   - "Checked against an independent NumPy mesh-current solve of the full bridge (with the cell's internal resistance and the galvanometer's resistance) and the balance condition. The cell, wire and galvanometer values are made-up teaching values."
+  - "Typed-number calculator: metre bridge X = R l / (100 − l) and Wheatstone balance P/Q = R/S, standard results; examples checked by hand."
 flow:
   - { icon: pointer, label: "Slide jockey" }
   - { icon: target, label: "Find null" }
@@ -30,6 +31,10 @@ A **Wheatstone bridge** is four resistors in a diamond with a galvanometer acros
 This page gives you a metre bridge with a **mystery resistor X** in the left gap and a known resistor R in the right gap. Drag the jockey along the wire, or use the fine buttons, and watch the galvanometer needle. When it reads zero, the balance length l gives X = R l / (100 − l). Tap **Show the answer** to check yourself, or **New mystery resistor** for another one.
 
 Under it, every current in the bridge is listed, worked out from Kirchhoff's rules, and the junction and loop rules are written out with the live numbers. It follows the Class 12 Physics chapter on current electricity (Kirchhoff's rules, the Wheatstone bridge, the metre bridge). If series and parallel resistors are new to you, start with the [[series-parallel]] builder; for Ohm's law itself see the [[ohms-law-lab]].
+
+## Solve your own numbers
+
+The first card works out the numbers from your own experiment or textbook problem. **Metre bridge: unknown X** takes the known resistance R and the balance length l and returns X = R l / (100 − l), with the working and the lengths on each side of the jockey. Say whether X is in the left or right gap, because that swaps the formula, and change the wire length if your bridge is not 100 cm. **Metre bridge: balance length** goes the other way and tells you where the jockey should settle for a given X and R. **Wheatstone bridge: one arm** finds any one of P, Q, R or S from the other three using P/Q = R/S, or checks whether four given resistors are balanced. Units (Ω, kΩ, cm, m) are converted for you, and a balance point near 0 or 100 cm gets a friendly warning instead of a silly number. Five worked examples are ready in the Example list.
 
 ## How to use it
 
@@ -50,6 +55,10 @@ The page starts with X = 6 Ω (hidden) and R = 10 Ω. With the jockey at 20 cm t
 - The balance does not depend on the cell's voltage or the galvanometer's resistance: only the ratio of the arms matters.
 
 ## FAQ
+
+**How do I find the unknown resistance on a metre bridge?** X = R l / (100 − l), with l the balance length from the end where X sits.
+
+**Which way round does the Wheatstone ratio go?** P/Q = R/S, with P above R and Q above S; equivalently P × S = Q × R.
 
 **Why does a balanced bridge not care about the galvanometer?** At balance its two ends are at the same voltage, so no current flows through it whatever its resistance.
 

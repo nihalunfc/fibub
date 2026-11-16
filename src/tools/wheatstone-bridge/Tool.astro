@@ -2,8 +2,15 @@
 // Metre bridge and Wheatstone bridge: slide the jockey to the null point and find a mystery resistance; every
 // current from Kirchhoff's rules. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax wsb">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the readings from your experiment or problem: find the unknown resistance on a metre bridge, the balance length, or the missing arm of a Wheatstone bridge.</p>
+    <div class="wsb-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Metre bridge</h2>
     <div class="ax-row">
@@ -68,6 +75,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { BRIDGE_SPEC } from '../../lib/sci/solve-wheatstone';
   import { metre, balanceL, unknownFrom, questions } from '../../lib/sci/wheatstone';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -155,4 +164,5 @@ import '../../styles/astro.css';
   new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   all();
   quiz(q('.wsb-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.wsb-solve')!, BRIDGE_SPEC, 'br');
 </script>

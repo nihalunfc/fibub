@@ -9,13 +9,16 @@ summary: "Model radioactive decay with dice or coins: throw them all, remove eve
 status: live
 ads: false
 order: 1071
+seoTitle: "Half-life calculator and radioactive decay dice"
+seoDescription: "Free half-life calculator: find the amount left, the time or the half-life with the working, then throw dice to see decay happen."
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [binding-energy, decay-calculator, decay-chain, counting-statistics]
 sources:
   - "Radioactive decay law N = N₀ e^(−λt), half-life t½ = ln 2 / λ, and the dice model of decay (each die is removed with chance p per throw, so λ = −ln(1 − p)): standard physics."
   - "Checked against an independent Python calculation and against the average of 400 simulated runs, written for the tests."
+  - "Half-life calculator: N = N₀ × 2^(−t/T), t = T log₂(N₀/N), λ = ln 2 / T, mean life = 1/λ: standard results; the carbon-14 half-life of 5730 years is the commonly quoted textbook value."
 flow:
   - { icon: target, label: "Throw" }
   - { icon: scissors, label: "Remove" }
@@ -28,6 +31,10 @@ flow:
 An unstable nucleus can decay at any moment, and nothing about its past tells you when. Each one is like a die: at every throw it has the same chance of showing a six. This page gives you hundreds of dice. Each **throw**, every die that shows a six is removed (it has "decayed"). The number left falls by about one sixth each time, so it halves again and again at a steady rate: a **half-life** appears out of pure chance. The page plots your counts against the smooth law **N = N₀ e^(−λt)**, measures the half-life from your own throws, and lets you change the number of dice and the chance of removal (coins, ordinary dice, 10-sided and 20-sided dice).
 
 It follows the school topic Class 12 Physics, Nuclei (radioactivity, the law of radioactive decay, decay constant, half-life and mean life). Next, [[binding-energy]] explains why some nuclei are unstable, [[decay-calculator]] works with real half-lives, [[decay-chain]] follows one nucleus decaying into the next, and [[counting-statistics]] handles the randomness of real counts.
+
+## Half-life calculator
+
+The first card is a half-life calculator for the numbers in your own problem. Choose what to find: the **amount left** after a time, the **time** needed to fall to a given amount, the **half-life** itself, or the **starting amount**. Type the others, with times in seconds, minutes, hours, days or years (a year is taken as 365.25 days), and the amount in any unit you like, because only the ratio matters. The answer is one plain sentence with the working under it: the number of half-lives n = t / T, then N = N₀ × (½)ⁿ, with logs used when n is not a whole number. It also gives the decay constant λ = ln 2 / T and the mean life. Impossible inputs, such as more left than you started with or a time below zero, get a clear message. Five worked examples are ready in the Example list; the dice below show why it works.
 
 ## How to use it
 
@@ -54,6 +61,10 @@ Five questions, fresh each time: the number left after a few half-lives, the hal
 - The mean life (average time a die lasts) is 1/λ, about 5.5 throws for a die: longer than the half-life.
 
 ## FAQ
+
+**How do I calculate how much is left after a number of half-lives?** Divide the time by the half-life to get n, then multiply the start by (½)ⁿ: after 3 half-lives, one eighth is left.
+
+**What if t is not a whole number of half-lives?** The same formula works with any n: N = N₀ × 2^(−t/T).
 
 **Why is λ not exactly 1/6?** The throws are separate steps. The exact link is (1 − p) = e^(−λ), so λ = −ln(1 − p) = 0.1823; for small p it is very close to p.
 

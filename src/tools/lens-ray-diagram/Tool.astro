@@ -47,6 +47,26 @@ import '../../styles/astro.css';
     <pre class="lrd-formula lrd-combo"></pre>
   </div>
 
+  <div class="ax-card lrds">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help" style="margin-top:0">Got a textbook question? Pick what to find, type the other two values in the unit your question uses, and get the answer with the working, signs included.</p>
+    <div class="lrds-pre" role="group" aria-label="Worked examples"></div>
+    <p class="ax-help lrds-note"></p>
+    <div class="ax-grid">
+      <label>Find <select class="lrds-un" data-k="unknown"><option value="v">Image distance v</option><option value="u">Object distance u</option><option value="f">Focal length f</option></select></label>
+      <label class="lrds-fk">Lens type <select class="lrds-kind" data-k="kind"><option value="convex">Convex</option><option value="concave">Concave</option></select></label>
+      <label>Unit <select class="lrds-unit" data-k="unit"><option value="1">cm</option><option value="100">m</option><option value="0.1">mm</option></select></label>
+      <label class="lrds-fu">Object distance u (size only) <input type="text" inputmode="decimal" class="lrds-u" data-k="solve-u" value="30" /></label>
+      <label class="lrds-fv">Image distance v (with its sign) <input type="text" inputmode="decimal" class="lrds-v" data-k="solve-v" value="" /></label>
+      <label class="lrds-ff">Focal length f (size only) <input type="text" inputmode="decimal" class="lrds-f" data-k="solve-f" value="15" /></label>
+    </div>
+    <p class="ax-help">Lens signs (New Cartesian): u and f are typed as plain sizes and the page makes u negative and f positive for a convex lens, negative for a concave one. Type v with its sign: positive if the image is on the far side of the lens (real), negative if on the object’s side (virtual).</p>
+    <p class="ax-err lrds-err" hidden></p>
+    <p class="ax-big lrds-ans" data-k="answer" aria-live="polite"></p>
+    <pre class="lrd-formula lrds-work"></pre>
+    <p class="ax-help">Common mistakes: dropping the minus sign of u; leaving cm in a power calculation (power needs metres); using the mirror formula (1/v + 1/u = 1/f) for a lens.</p>
+  </div>
+
   <div class="ax-card">
     <h2>Where is the image?</h2>
     <div class="ax-scroll"><table class="lrd-table"><thead><tr><th>Object</th><th>Image</th><th>Size</th><th>Nature</th></tr></thead><tbody></tbody></table></div>
@@ -82,10 +102,14 @@ import '../../styles/astro.css';
   .lrd-table tr.on td { background: var(--bg); font-weight: 700; }
   .lrd-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   .lrd .ax-seg button { min-height: 40px; }
+  .lrds .lrds-pre { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .lrds label[hidden] { display: none; }
+  .lrds .lrds-ans { overflow-wrap: anywhere; font-size: 17px; }
+  .lrds .lrds-ans:empty { display: none; }
 </style>
 
 <script>
-  import { lensImage, position, imageTable, power, inContact, type LensKind, type Position } from '../../lib/sci/school-optics';
+  import { solveThin, type ThinUnknown, lensImage, position, imageTable, power, inContact, type LensKind, type Position } from '../../lib/sci/school-optics';
   import { benchFigure, worldX, type BenchOpts } from '../../lib/school-optics-draw';
   import { paint } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
@@ -221,4 +245,48 @@ import '../../styles/astro.css';
   mountQuiz(q('.lrd-quiz'), make, 4);
 
   posButtons(); sync(); draw();
+  // Solve my numbers
+  const LENS = true as boolean;
+  const PRE: { name: string; un: ThinUnknown; kind: string; unit?: string; u?: string; v?: string; f?: string; note: string }[] = [
+    { name: 'Real image', un: 'v', kind: 'convex', u: '30', f: '15', note: 'A convex lens with f = 15 cm and an object 30 cm away. Find v.' },
+    { name: 'Magnifier', un: 'v', kind: 'convex', u: '4', f: '10', note: 'An object 4 cm from a convex lens of f = 10 cm: inside the focus.' },
+    { name: 'Concave lens', un: 'v', kind: 'concave', u: '30', f: '20', note: 'A concave lens with f = 20 cm and an object 30 cm away.' },
+    { name: 'Find f', un: 'f', kind: 'convex', u: '40', v: '60', note: 'A real image forms 60 cm behind a lens for an object 40 cm away. Find f.' },
+    { name: 'Find u', un: 'u', kind: 'convex', v: '36', f: '12', note: 'A convex lens with f = 12 cm makes a real image 36 cm away. Where is the object?' },
+  ];
+  const sx = (c: string) => q<HTMLInputElement>('.lrds ' + c);
+  const sgz = (x: number, n = 4) => sig(x, n).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  function solveNow() {
+    const un = sx('.lrds-un').value as ThinUnknown, err = q('.lrds-err'), ans = q('.lrds-ans'), wk = q('.lrds-work');
+    const unit = Number(sx('.lrds-unit').value), uname = ({ 1: 'cm', 100: 'm', 0.1: 'mm' } as Record<number, string>)[unit] ?? 'cm';
+    q('.lrds-fu').hidden = un === 'u'; q('.lrds-fv').hidden = un === 'v'; q('.lrds-ff').hidden = un === 'f'; q('.lrds-fk').hidden = un === 'f';
+    const kind = sx('.lrds-kind').value, fSign = kind === 'convex' ? 1 : -1;
+    const bad = (m: string) => { err.textContent = m; err.hidden = false; ans.textContent = ''; wk.textContent = ''; };
+    const raw = (c: string) => num(sx(c).value) * unit;
+    const uIn = raw('.lrds-u'), vIn = raw('.lrds-v'), fIn = raw('.lrds-f');
+    const u = Number.isFinite(uIn) ? -Math.abs(uIn) : uIn, f = Number.isFinite(fIn) ? fSign * Math.abs(fIn) : fIn;
+    const r = solveThin('lens', un, u, vIn, f);
+    if (!r.ok) return bad(r.msg);
+    err.hidden = true;
+    const out = r.value / unit, S = (x: number) => sgz(x, 4);
+    const el = LENS ? 'lens' : 'mirror';
+    if (un === 'v') ans.textContent = `v = ${S(out)} ${uname}. The image is ${S(Math.abs(out))} ${uname} from the ${el}, ${(LENS ? out > 0 : out < 0) ? (LENS ? 'on the far side' : 'in front of it') : (LENS ? 'on the same side as the object' : 'behind it')}: ${r.nature}.`;
+    else if (un === 'u') ans.textContent = `u = ${S(out)} ${uname}: the object is ${S(Math.abs(out))} ${uname} in front of the ${el}. The image is ${r.nature}.`;
+    else ans.textContent = `f = ${S(out)} ${uname}: a ${(LENS ? out > 0 : out < 0) ? 'convex' : 'concave'} ${el}${LENS ? ` (power ${S(100 / r.value)} D)` : ''}. The image is ${r.nature}.`;
+    const head: string[] = [];
+    if (uname !== 'cm') head.push(`Changed to cm first: ${[un !== 'u' ? `u = ${S(Math.abs(uIn) / unit)} ${uname} = ${S(Math.abs(uIn))} cm` : '', un !== 'v' ? `v = ${S(vIn / unit)} ${uname} = ${S(vIn)} cm` : '', un !== 'f' ? `f = ${S(Math.abs(fIn) / unit)} ${uname} = ${S(Math.abs(fIn))} cm` : ''].filter(Boolean).join(', ')}.`);
+    head.push(`Signs: u = ${S(u)} cm (object in front); ${un !== 'f' ? `f = ${S(f)} cm (${kind})` : 'f follows from the formula'}${un === 'u' ? `; v = ${S(vIn)} cm` : ''}.`);
+    wk.textContent = [...head, ...r.steps].join('\n');
+  }
+  PRE.forEach((p, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = p.name; b.dataset.k = `preset-${i}`;
+    b.addEventListener('click', () => {
+      sx('.lrds-un').value = p.un; sx('.lrds-kind').value = p.kind; sx('.lrds-unit').value = p.unit ?? '1';
+      sx('.lrds-u').value = p.u ?? ''; sx('.lrds-v').value = p.v ?? ''; sx('.lrds-f').value = p.f ?? '';
+      q('.lrds-note').textContent = p.note; solveNow();
+    });
+    q('.lrds-pre').append(b);
+  });
+  q('.lrds').querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', solveNow); e.addEventListener('change', solveNow); });
+  solveNow();
 </script>

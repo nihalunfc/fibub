@@ -11,7 +11,7 @@ ads: false
 order: 1022
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [motion-graphs, projectile-drag, video-motion-tracker]
 sources:
   - "The equations of motion for uniform acceleration in a straight line and their derivation from the area and slope of the velocity-time graph: standard school physics found in any textbook."
@@ -39,6 +39,10 @@ It follows the school topics on motion: equations of motion by the graphical met
 4. In **Solve a problem**, type three values and leave two boxes empty. The page says which equations it used. If the object passes the same point twice (a ball thrown up), you get both answers.
 5. In **Stopping distance**, set the speed, the reaction time and the road. The rectangle is the **thinking distance** and the triangle is the **braking distance**.
 
+## Solve my numbers
+
+In **Solve a problem**, type the values from your question and pick the unit each one is in: m/s or km/h for u and v, m/s² or g for a, m, km or cm for s, and s, min or h for t. The page changes everything to metres and seconds, finds the two empty values, and says the answer in one line at the top, in the units of the boxes you left empty. Under it, **Working, as an exam would want it** shows the formula, then the numbers put in with their units, then the result, with the sign convention stated first. Five **worked examples** (a car speeding up, a train braking, a ball thrown up, a dropped stone and a two-answer case) fill the boxes for you; they are in our own words and made-up round numbers.
+
 ## Worked example
 
 Open the page: u = 2 m/s, a = 1.5 m/s², t = 4 s. The page shows **v = 8 m/s** (2 + 1.5 × 4). The rectangle is 2 × 4 = 8 m and the triangle ½ × 1.5 × 4² = 12 m, so **s = 20 m**. The third equation checks: 8² = 64 and 2² + 2 × 1.5 × 20 = 64.
@@ -47,6 +51,13 @@ In Solve, the starting values are u = 0, v = 20 m/s and s = 100 m. The page find
 
 In Stopping distance at **54 km/h** (15 m/s) with a 1 s reaction on the dry road (7 m/s²), the thinking distance is **15 m**, the braking distance 15² ÷ 14 = **16.1 m**, and the stopping distance **31.1 m**. At 108 km/h it is **94.3 m**: thinking doubles to 30 m, braking goes up four times to 64.3 m.
 
+## Common mistakes
+
+- Leaving km/h in a formula that wants m/s. Divide km/h by 3.6 (the page does it when you pick km/h).
+- Forgetting the sign: if u is positive and the object slows down, a is **negative**.
+- Using minutes with m/s²; time must be in seconds unless you pick the unit.
+- Mixing up s (displacement, with a sign) and the distance travelled.
+
 ## Tips
 
 - Pick the equation that leaves out the value you neither know nor need: no t → v² = u² + 2as; no v → s = ut + ½at²; no s → v = u + at.
@@ -54,6 +65,8 @@ In Stopping distance at **54 km/h** (15 m/s) with a 1 s reaction on the dry road
 - s is the displacement, not the distance. If the velocity changes sign, the page also shows the distance travelled.
 
 ## FAQ
+
+**How do I find acceleration, time or distance from my numbers?** Open Solve a problem, type any three of u, v, a, s and t, and the page gives the other two with the working.
 
 **Why can there be two answers?** A ball thrown upwards passes a given height twice, once going up and once coming down, so the time (and the velocity) has two values.
 

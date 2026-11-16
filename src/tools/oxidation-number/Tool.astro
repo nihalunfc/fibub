@@ -5,17 +5,18 @@ import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
 import { COUPLES, halfReaction, pretty } from '../../lib/sci/oxidation';
 const chips = ['K2Cr2O7', 'KMnO4', 'H2SO4', 'NH4+', 'H2O2', 'NaH', 'Fe3O4', 'OF2', 'S2O3^2-', 'CH4'];
+const spots = [['KMnO4', 'Mn^2+', 'Mn'], ['H2O2', 'H2O', 'O'], ['Fe2O3', 'Fe', 'Fe'], ['Zn', 'Zn^2+', 'Zn'], ['NH3', 'NO', 'N'], ['SO2', 'SO4^2-', 'S']];
 const kinds = COUPLES.map((c) => ({ ...c, kind: halfReaction(c.from, c.to, 'acid').kind }));
 const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c) => c.kind === 'reduction');
 ---
 <div class="ax ox">
   <div class="ax-card">
     <h2>Oxidation numbers</h2>
-    <label>Formula <input class="ox-f" value="K2Cr2O7" autocomplete="off" spellcheck="false" /></label>
+    <label>Formula <input class="ox-f" data-k="formula" value="K2Cr2O7" autocomplete="off" spellcheck="false" /></label>
     <p class="ax-help">Write charges with ^, like SO4^2- or Fe^3+ (MnO4- and NH4+ also work).</p>
     <div class="ox-chips" role="group" aria-label="Examples">{chips.map((c) => <button type="button" class="ox-chip" data-f={c}>{pretty(c)}</button>)}</div>
     <p class="ax-err ox-err" hidden></p>
-    <div class="ox-show" aria-live="polite"></div>
+    <div class="ox-show" data-k="answer-on" aria-live="polite"></div>
     <div class="ax-scroll"><table class="ox-tab"></table></div>
     <p class="lx-eq ox-sum"></p>
     <p class="ax-help ox-note"></p>
@@ -33,10 +34,34 @@ const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c)
     <div class="ox-halves"></div>
     <p class="ax-big ox-final" style="margin:12px 0 4px"></p>
     <p class="lx-eq ox-check"></p>
+    <p class="ox-agents" data-k="agents" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card ox-ch-card">
+    <h2>Did it change? Spot oxidation or reduction</h2>
+    <p class="ax-help" style="margin-top:0">Type one reactant, one product that contains the same element, and the element. Good for "is this a redox reaction?" questions.</p>
+    <div class="ax-grid">
+      <label>Reactant <input class="ox-ra" data-k="react" value="KMnO4" autocomplete="off" spellcheck="false" /></label>
+      <label>Product <input class="ox-rb" data-k="prod" value="Mn^2+" autocomplete="off" spellcheck="false" /></label>
+      <label>Element <input class="ox-re" data-k="element" value="Mn" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <div class="ox-chips" role="group" aria-label="Examples">{spots.map((s) => <button type="button" class="ox-chip" data-ra={s[0]} data-rb={s[1]} data-re={s[2]}>{pretty(s[0])} → {pretty(s[1])}</button>)}</div>
+    <p class="ax-err ox-cerr" hidden></p>
+    <p class="ax-big ox-cans" data-k="answer" aria-live="polite"></p>
+    <p class="lx-eq ox-cwork"></p>
   </div>
 
   <div class="ax-card">
     <h2>Try this</h2>
+    <details class="ox-mist"><summary>Common mistakes</summary>
+      <ul class="lx-try">
+        <li>Giving oxygen −2 in a peroxide such as H₂O₂ (it is −1) or in OF₂ (oxygen is +2 there, because fluorine always wins).</li>
+        <li>Forgetting the charge of an ion: the numbers must add up to the ion's charge, not to zero (SO₄²⁻ adds up to −2).</li>
+        <li>Mixing up the agents: the reducing agent is the one that is oxidised (its number goes up); the oxidising agent is reduced.</li>
+        <li>Writing the number as 6 instead of +6, or as 6+ (the sign comes first for an oxidation number; an ion's charge puts it last).</li>
+        <li>Balancing only atoms: a redox equation must also balance in charge and in electrons lost and gained.</li>
+      </ul>
+    </details>
     <ul class="lx-try">
       <li>Find oxygen's oxidation number in H₂O, H₂O₂ and OF₂. Which rule changes each time?</li>
       <li>Compare hydrogen in NH₃ and in NaH.</li>
@@ -64,13 +89,16 @@ const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c)
   .ox-show .ox-ch { font-size: 22px; font-weight: 700; align-self: end; }
   .ox-rl { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 4px; }
   .ox-rl li.used { font-weight: 650; }
+  .ox-agents { margin: 4px 0 0; font-size: 15px; }
+  .ox-mist { margin-bottom: 10px; }
+  .ox-mist summary { cursor: pointer; font-weight: 650; }
   .ox-halves { display: grid; gap: 10px; margin-top: 12px; }
   .ox-halves h3 { margin: 0 0 4px; font-size: 15px; }
   .ox-halves ol { margin: 0; padding-left: 22px; display: grid; gap: 3px; font-size: 15px; }
 </style>
 
 <script>
-  import { oxidationNumbers, onText, RULES, halfReaction, combine, eqText, tally, COUPLES, pretty, readFormula } from '../../lib/sci/oxidation';
+  import { oxidationNumbers, changeOf, onText, RULES, halfReaction, combine, eqText, tally, COUPLES, pretty, readFormula } from '../../lib/sci/oxidation';
   import { mountQuiz, same, near, pickOne, type Question } from '../../lib/chemquiz';
 
   const root = document.querySelector<HTMLElement>('.ox')!;
@@ -110,7 +138,7 @@ const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c)
     const box = q('.ox-halves'); box.replaceChildren();
     let o, r, c;
     try { o = halfReaction(co.from, co.to, medium); r = halfReaction(cr.from, cr.to, medium); c = combine(o, r); }
-    catch (e) { err('.ox-berr', (e as Error).message); q('.ox-final').textContent = ''; q('.ox-check').textContent = ''; return; }
+    catch (e) { err('.ox-berr', (e as Error).message); q('.ox-agents').textContent = ''; q('.ox-final').textContent = ''; q('.ox-check').textContent = ''; return; }
     err('.ox-berr', null);
     for (const [h, title, m] of [[o, 'Oxidation half', c.mOx], [r, 'Reduction half', c.mRed]] as const) {
       const d = document.createElement('div'); const h3 = document.createElement('h3');
@@ -122,14 +150,27 @@ const oxs = kinds.filter((c) => c.kind === 'oxidation'), reds = kinds.filter((c)
     q('.ox-final').textContent = eqText(c.left, c.right);
     const L = tally(c.left), R = tally(c.right);
     const atoms = [...L.atoms].map(([e, n]) => `${e} ${n}`).join(', ');
+    q('.ox-agents').textContent = `${pretty(co.from)} is the reducing agent: ${o.key} goes from ${onText(o.from)} to ${onText(o.to)}, so it is oxidised. ${pretty(cr.from)} is the oxidising agent: ${r.key} goes from ${onText(r.from)} to ${onText(r.to)}, so it is reduced.`;
     q('.ox-check').textContent = `Add the halves and cancel what appears on both sides. Check: atoms ${atoms} on each side; charge ${L.charge > 0 ? '+' : L.charge < 0 ? '−' : ''}${Math.abs(L.charge)} on each side${[...L.atoms].every(([e, n]) => R.atoms.get(e) === n) && L.charge === R.charge ? '' : ' (does not balance)'}.`;
   }
 
   q('.ox-f').addEventListener('input', updON);
-  root.querySelectorAll<HTMLButtonElement>('.ox-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ox-f').value = b.dataset.f!; updON(); }));
+  root.querySelectorAll<HTMLButtonElement>('.ox-chip[data-f]').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ox-f').value = b.dataset.f!; updON(); }));
   q('.ox-o').addEventListener('change', updRedox); q('.ox-r').addEventListener('change', updRedox);
   root.querySelectorAll<HTMLButtonElement>('.ox-med button').forEach((b) => b.addEventListener('click', () => { medium = b.dataset.m as 'acid' | 'base'; updRedox(); }));
-  updON(); updRedox();
+  function updChange() {
+    const a = q<HTMLInputElement>('.ox-ra').value, b = q<HTMLInputElement>('.ox-rb').value, e = q<HTMLInputElement>('.ox-re').value;
+    try {
+      const c = changeOf(a, b, e), per = (n: number) => (n > 1 ? ` (in a formula with ${n} ${c.element} atoms the totals are ${n} times as big)` : '');
+      err('.ox-cerr', null);
+      const word = c.kind === 'unchanged' ? `${c.element} is neither oxidised nor reduced here` : c.kind === 'oxidised' ? `${c.element} is oxidised (loses ${c.electrons} electron${c.electrons === 1 ? '' : 's'} per atom)` : `${c.element} is reduced (gains ${c.electrons} electron${c.electrons === 1 ? '' : 's'} per atom)`;
+      q('.ox-cans').textContent = `${word}: ${onText(c.from)} → ${onText(c.to)}.`;
+      q('.ox-cwork').textContent = `${c.element} in ${a.trim()} is ${onText(c.from)}${per(c.fromPer)}; in ${b.trim()} it is ${onText(c.to)}. Change = (${onText(c.to)}) − (${onText(c.from)}) = ${onText(c.change)}. ${c.kind === 'unchanged' ? 'No change, so this element is not part of a redox step.' : c.kind === 'oxidised' ? 'The number went up: oxidation, so the reactant is the reducing agent.' : 'The number went down: reduction, so the reactant is the oxidising agent.'}`;
+    } catch (x) { err('.ox-cerr', (x as Error).message || 'Check the formulas.'); q('.ox-cans').textContent = ''; q('.ox-cwork').textContent = ''; }
+  }
+  for (const c of ['.ox-ra', '.ox-rb', '.ox-re']) q(c).addEventListener('input', updChange);
+  root.querySelectorAll<HTMLButtonElement>('.ox-ch-card .ox-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ox-ra').value = b.dataset.ra!; q<HTMLInputElement>('.ox-rb').value = b.dataset.rb!; q<HTMLInputElement>('.ox-re').value = b.dataset.re!; updChange(); }));
+  updON(); updRedox(); updChange();
 
   // Check yourself
   const ASK: [string, string][] = [['K2Cr2O7', 'Cr'], ['KMnO4', 'Mn'], ['H2SO4', 'S'], ['HNO3', 'N'], ['NH3', 'N'], ['SO2', 'S'], ['H2O2', 'O'], ['NaH', 'H'], ['Cl2O7', 'Cl'], ['HClO', 'Cl'], ['SO4^2-', 'S'], ['NH4+', 'N'], ['CO3^2-', 'C'], ['PO4^3-', 'P'], ['MnO2', 'Mn'], ['Fe2O3', 'Fe'], ['CrO4^2-', 'Cr'], ['N2O', 'N'], ['NO2', 'N'], ['OF2', 'O'], ['P4', 'P'], ['CH4', 'C']];

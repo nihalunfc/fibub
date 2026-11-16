@@ -11,7 +11,7 @@ ads: false
 order: 1151
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [function-grapher, symbolic-algebra]
 sources:
   - "Standard school algebra: the quadratic formula, the discriminant b² − 4ac, the vertex at x = −b/2a, completing the square and splitting the middle term. Written for fibub; not taken from any textbook."
@@ -58,6 +58,18 @@ Start with the page's first example, x² − 5x + 6 = 0.
 
 Now press **Touches** (x² − 4x + 4): D = 0 and the vertex sits on the axis at x = 2. Press **Misses** (x² + 2x + 5): D = −16, so there is no real root; switch to Class 11 to see −1 ± 2i.
 
+## Solve my equation
+
+The sentence under the equation gives the answer in one line, for example "x² − 5x + 6 = 0 has roots x = 2 and x = 3". When the roots are not whole numbers it adds the exact form, such as x = (−3 ± √65) / 4, as most exam answers want.
+
+Open **More options** for three things:
+
+- **Word problems**: four situations in our own words (a rectangle with a given area, two numbers with a given sum and product, a stone thrown up, and an equation with roots that are not whole). Each one fills in a, b and c and explains what the answer means, including which root to throw away.
+- **Number on the right of the = sign**: for equations like x² + 2x = 15. The page moves the number across for you, so c becomes c − 15 and you read the roots of x² + 2x − 15 = 0.
+- **Build an equation from its roots**: type the two roots and you get (x − r₁)(x − r₂) = 0 expanded, with the sum and product link to b and c. Load it into the explorer to see the graph.
+
+If a = 0 the page says it is a straight line and, when b is not 0, gives the single solution x = −c/b. Common mistakes are listed under the practice questions: not moving everything to one side first, losing the sign of b, forgetting the ± and keeping a root that makes no sense in the story.
+
 ## Check yourself
 
 The last card gives four fresh questions each time: solve a quadratic, find a discriminant, find a vertex and build a quadratic from its roots. Type your answer and press **Check**. If it is wrong you can try again or open the worked answer. Nothing you type is saved or sent.
@@ -69,3 +81,5 @@ The last card gives four fresh questions each time: solve a quadratic, find a di
 **Why does splitting the middle term sometimes fail?** It only works when the roots are rational, which happens when D is a perfect square. Otherwise use the quadratic formula.
 
 **Is this the same as the NCERT book?** It covers the same topics but is written by fibub. It is not part of NCERT. Use it next to your textbook.
+
+**How do I solve a quadratic equation?** Write it as ax² + bx + c = 0, then use x = (−b ± √(b² − 4ac)) / 2a; the page shows the answer, the discriminant and the steps.

@@ -64,4 +64,23 @@ export default async ({ page, check, BASE, OUT }) => {
     }
     await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   }
+  // Solve my numbers
+  { const sAns = () => page.textContent(R + '[data-k="answer"]'), K = (k) => R + `[data-k="${k}"]`, sWork = () => page.textContent(R + '.snls-work');
+  check((await sAns()) === 'r = 19.47°. The ray bends towards the normal.' && (await sWork()).includes('sin r = 1 × sin 30° ÷ 1.5 = 0.3333'), 'snell solve: air to glass at 30° gives r = 19.47°');
+  await page.click(K('preset-1')); await page.waitForTimeout(150);
+  check((await sAns()) === 'n₂ = 1.506.', 'snell solve: 45° to 28° gives n = 1.506');
+  await page.click(K('preset-2')); await page.waitForTimeout(150);
+  check((await sAns()) === 'i = 40.63°.', 'snell solve: water to air r = 60° gives i = 40.63°');
+  await page.click(K('preset-3')); await page.waitForTimeout(150);
+  check((await sAns()).startsWith('The critical angle is 48.75°.'), 'snell solve: critical angle water 48.75°');
+  await page.click(K('preset-4')); await page.waitForTimeout(150);
+  check((await sAns()) === 'No refracted ray: this is total internal reflection, because 50° is more than the critical angle 41.81°.', 'snell solve: total internal reflection message');
+  await page.click(K('preset-0')); await page.selectOption(K('angle-unit'), 'rad'); await page.fill(K('solve-i'), '0.5236'); await page.waitForTimeout(150);
+  check((await sAns()) === 'r = 0.3398 rad. The ray bends towards the normal.' && (await sWork()).includes('rad ='), 'snell solve: radians in and out');
+  await page.selectOption(K('angle-unit'), 'deg'); await page.fill(K('solve-i'), '90'); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.snls-err')).includes('(not including) 90°'), 'snell solve: 90° gives a message');
+  await page.selectOption(K('unknown'), 'speed'); await page.fill(K('solve-n2'), '1.33'); await page.waitForTimeout(150);
+  check((await sAns()).startsWith('Light travels at 2.254 × 10⁸ m/s'), 'snell solve: speed in water 2.254 × 10⁸ m/s');
+  await page.fill(K('solve-n2'), ''); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.snls-err')).includes('from 1 to 4'), 'snell solve: blank index gives a message'); }
 };

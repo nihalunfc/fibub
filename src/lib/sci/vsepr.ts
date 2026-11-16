@@ -174,3 +174,41 @@ export function pickQuiz(n: number, rand: () => number = Math.random): Example[]
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a.slice(0, n);
 }
+
+const SUPD = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const SUBD = '₀₁₂₃₄₅₆₇₈₉';
+/** Read a simple formula such as SF4, XeF2, NH4+, SO4^2-, H2O or I3- into a central atom, outer atoms and charge.
+ *  Only one kind of outer atom is allowed. Returns a friendly message when it cannot be read. */
+export function parseSimple(text: string): { central: string; outer: { el: string; n: number }[]; charge: number } | string {
+  let t = text.trim().replace(/[−–]/g, '-').replace(/[₀-₉]/g, (c) => String(SUBD.indexOf(c))).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => '^' + SUPD.indexOf(c)).replace(/⁺/g, '+').replace(/⁻/g, '-').replace(/\^(\d)\^(\d)/g, '^$1$2');
+  if (!t) return 'Type a formula such as SF4, NH4+ or SO4^2-.';
+  let charge = 0;
+  const m = /^(.*?)(?:\s*\^\s*(\d)?|\s+(\d))?([+-])$/.exec(t);
+  const plain = /^(.*[A-Za-z]\d*?)(\d)([+-])$/.exec(t);
+  if (m && /[\^\s]/.test(t.slice(m[1].length))) { charge = (Number(m[2] ?? m[3] ?? 1)) * (m[4] === '+' ? 1 : -1); t = m[1]; }
+  else if (plain && /\d$/.test(plain[1])) { charge = Number(plain[2]) * (plain[3] === '+' ? 1 : -1); t = plain[1]; }
+  else if (/[+-]$/.test(t)) { charge = t.endsWith('+') ? 1 : -1; t = t.slice(0, -1); }
+  t = t.replace(/\s+/g, '');
+  const counts = new Map<string, number>();
+  const re = /([A-Z][a-z]?)(\d*)/g; let used = 0, g: RegExpExecArray | null;
+  while ((g = re.exec(t))) { if (g.index !== used) break; used += g[0].length; counts.set(g[1], (counts.get(g[1]) ?? 0) + (g[2] ? Number(g[2]) : 1)); }
+  if (!t || used !== t.length) return `Could not read "${text.trim()}". Use plain letters and numbers, like SF4, NH4+ or SO4^2- (no brackets).`;
+  const els = [...counts.keys()];
+  if (els.length === 1) {
+    const e = els[0], n = counts.get(e)!;
+    if (n < 3) return 'Type a molecule with one central atom, such as SF4.';
+    return { central: e, outer: [{ el: e, n: n - 1 }], charge };
+  }
+  if (els.length !== 2) return 'This page reads one central atom with one kind of outer atom (SF4, NH4+, SO4^2-). For others, use the steppers above.';
+  const single = els.filter((e) => counts.get(e) === 1 && e !== 'H');
+  const central = single.length === 1 ? single[0] : single.length === 2 ? els.find((e) => VALENCE[e] !== undefined && VALENCE[e] < (VALENCE[els.find((x) => x !== e)!] ?? 9)) ?? single[0] : '';
+  if (!central) return 'Could not tell which atom is in the centre. This page expects one central atom with several of the same outer atom.';
+  const other = els.find((e) => e !== central)!;
+  return { central, outer: [{ el: other, n: counts.get(other)! }], charge };
+}
+
+/** All the common shapes in one table: bonded atoms, lone pairs, shape, angle and an example. */
+export const SHAPE_TABLE: { b: number; l: number; ex: string }[] = [
+  { b: 2, l: 0, ex: 'CO₂' }, { b: 3, l: 0, ex: 'BF₃' }, { b: 2, l: 1, ex: 'SO₂' }, { b: 4, l: 0, ex: 'CH₄' }, { b: 3, l: 1, ex: 'NH₃' }, { b: 2, l: 2, ex: 'H₂O' },
+  { b: 5, l: 0, ex: 'PCl₅' }, { b: 4, l: 1, ex: 'SF₄' }, { b: 3, l: 2, ex: 'ClF₃' }, { b: 2, l: 3, ex: 'XeF₂' }, { b: 6, l: 0, ex: 'SF₆' }, { b: 5, l: 1, ex: 'BrF₅' }, { b: 4, l: 2, ex: 'XeF₄' },
+];

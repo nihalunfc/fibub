@@ -7,6 +7,7 @@ import '../../styles/smath.css';
 <div class="ax sm tr">
   <div class="ax-card">
     <h2>Drag the angle</h2>
+    <p class="ax-big tr-sum" aria-live="polite" style="margin:6px 0 10px;min-height:4.2em"></p>
     <div class="ax-row">
       <span class="ax-help" style="margin:0">Level</span>
       <div class="ax-seg tr-level" role="group" aria-label="Level">
@@ -29,6 +30,63 @@ import '../../styles/smath.css';
     </div>
     <p class="tr-quad" aria-live="polite"></p>
     <div class="ax-scroll"><table class="tr-tab"></table></div>
+  </div>
+
+  <div class="ax-card tr-solve">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help">Type the numbers from your problem. You get the answer in one line, then the working the way an exam marks it.</p>
+    <div class="ax-row tr-sp">
+      <span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small" data-sp="as,65,hyp,6,m">Ladder against a wall</button>
+      <button type="button" class="btn secondary small" data-sp="ts,opp-adj,1.2,5,m">Ramp angle</button>
+      <button type="button" class="btn secondary small" data-sp="ra,sin,0.6">sin θ = 0.6</button>
+      <button type="button" class="btn secondary small" data-sp="as,40,adj,8,cm">Adjacent side known</button>
+    </div>
+    <label>What do you know?
+      <select class="tr-s-mode" data-k="mode">
+        <option value="as">An angle and one side: find the other sides</option>
+        <option value="ts">Two sides: find the angle and the third side</option>
+        <option value="ra">A ratio (like sin θ = 0.6): find the angle</option>
+      </select>
+    </label>
+    <div class="ax-grid tr-s-as" style="margin-top:10px">
+      <label>Angle θ <input type="number" step="any" data-k="s-angle" value="65" inputmode="decimal" /></label>
+      <label>Angle unit <select data-k="s-aunit"><option value="deg">degrees</option><option value="rad">radians</option></select></label>
+      <label>The side you know <select data-k="s-side"><option value="opp">opposite θ</option><option value="adj">adjacent to θ</option><option value="hyp" selected>hypotenuse</option></select></label>
+      <label>Its length <input type="number" step="any" data-k="s-len" value="6" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-grid tr-s-ts" style="margin-top:10px" hidden>
+      <label>Which two sides? <select data-k="s-pair"><option value="opp-adj">opposite and adjacent</option><option value="opp-hyp">opposite and hypotenuse</option><option value="adj-hyp">adjacent and hypotenuse</option></select></label>
+      <label><span class="tr-s-l1">Opposite</span> <input type="number" step="any" data-k="s-x" value="1.2" inputmode="decimal" /></label>
+      <label><span class="tr-s-l2">Adjacent</span> <input type="number" step="any" data-k="s-y" value="5" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-grid tr-s-ra" style="margin-top:10px" hidden>
+      <label>Ratio <select data-k="s-fn"><option>sin</option><option>cos</option><option>tan</option><option>cosec</option><option>sec</option><option>cot</option></select></label>
+      <label>Its value <input type="text" data-k="s-val" value="0.6" inputmode="decimal" aria-label="Value of the ratio, a decimal or a fraction like 3/5" /></label>
+    </div>
+    <label style="margin-top:10px">Length unit (only shown in the answer) <select data-k="s-lunit"><option value="">none</option><option value="cm">cm</option><option value="m" selected>m</option><option value="km">km</option><option value="ft">ft</option><option value="in">in</option></select></label>
+    <p class="ax-err tr-s-err" hidden></p>
+    <p class="ax-big tr-s-ans" aria-live="polite" data-k="s-answer"></p>
+    <ol class="sm-steps tr-s-steps"></ol>
+    <div class="ax-row"><button type="button" class="btn secondary small tr-s-show" hidden>Show this angle in the triangle above</button></div>
+    <details>
+      <summary>Common mistakes</summary>
+      <ul class="sm-try">
+        <li>Calculator in the wrong mode: with the angle in degrees, the calculator must be in DEG, not RAD. Here, pick the angle unit and the page does it for you.</li>
+        <li>Naming the sides from the wrong angle: "opposite" and "adjacent" depend on which angle θ you are using. The hypotenuse never changes.</li>
+        <li>Using sin when you need cos: SOH-CAH-TOA. Sin = Opposite / Hypotenuse, Cos = Adjacent / Hypotenuse, Tan = Opposite / Adjacent.</li>
+        <li>The hypotenuse must be the longest side. If you get a leg longer than the hypotenuse, a side is in the wrong box.</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <details class="tr-tabd">
+      <summary><strong>Trigonometric table</strong> (sin, cos, tan from 0° to 90°)</summary>
+      <div class="ax-row" style="margin-top:8px"><label>Rows every <select class="tr-tabstep"><option value="1">1°</option><option value="5">5°</option><option value="15">15°</option></select></label></div>
+      <div class="ax-scroll"><table class="tr-tabfull"></table></div>
+      <p class="ax-help">Values to 4 decimal places. tan 90° is not defined. The row for your angle above is highlighted.</p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -68,12 +126,15 @@ import '../../styles/smath.css';
   .tr svg .tr-hyp { stroke: var(--ink); stroke-width: 4; }
   .tr .tr-ex td.on, .tr .tr-ex th.on { background: var(--accent-soft); font-weight: 700; }
   .tr .tr-special .btn { min-width: 3.2em; }
+  .tr .tr-tabfull tr.on td { background: var(--accent-soft); font-weight: 700; }
+  .tr .tr-solve label { display: block; }
 </style>
 
 <script>
-  import { ratios, EXACT, quadrant, POSITIVE, identities, rad, deg, type Ratios } from '../../lib/sci/trig-school';
+  import { ratios, EXACT, quadrant, POSITIVE, identities, rad, deg, sig, fromAngleSide, fromTwoSides, fromRatio, tableRows, SIDE_NAME, type Ratios, type Side } from '../../lib/sci/trig-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+  import { readNum } from '../../lib/sci/smath';
 
   const root = document.querySelector<HTMLElement>('.tr')!;
   const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
@@ -81,6 +142,8 @@ import '../../styles/smath.css';
   const T = q<HTMLInputElement>('.tr-t'), Rb = q<HTMLInputElement>('.tr-r'), Tr = q<HTMLInputElement>('.tr-tr');
   const setT = pair(Tr, T, draw), setR = pair(q('.tr-rr'), Rb, draw);
   let level = 10;
+  const tabSel = q<HTMLSelectElement>('.tr-tabstep'), tabEl = q<HTMLTableElement>('.tr-tabfull');
+  let tabBuilt = false;
   const cx = 170, cy = 170, RAD = 140;
   const NAMES: (keyof Ratios)[] = ['sin', 'cos', 'tan', 'cosec', 'sec', 'cot'];
   const f3 = (x: number) => (Number.isNaN(x) ? 'not defined' : fmt(x, 4));
@@ -121,6 +184,8 @@ import '../../styles/smath.css';
     S('circle', { cx: px, cy: py, r: 10, class: 'sm-handle tr-h' }, fig);
 
     const quad = quadrant(th);
+    q('.tr-sum').textContent = `At θ = ${fmt(th, 2)}° (${fmt(rad(th), 4)} rad): sin θ = ${f3(R.sin)}, cos θ = ${f3(R.cos)}, tan θ = ${f3(R.tan)}.`;
+    markTable(th);
     q('.tr-quad').textContent = level10 ? `opposite = ${fmt(opp, 3)}, adjacent = ${fmt(adj, 3)}, hypotenuse = ${fmt(r, 3)}` : quad ? `Quadrant ${['I', 'II', 'III', 'IV'][quad - 1]}: ${POSITIVE[quad]} positive. In radians θ = ${fmt(rad(th), 4)}.` : `On an axis. In radians θ = ${fmt(rad(th), 4)}.`;
     const tab = q<HTMLTableElement>('.tr-tab'); tab.replaceChildren();
     const h = tab.insertRow(); for (const x of ['Ratio', 'Sides', 'Value']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
@@ -171,6 +236,76 @@ import '../../styles/smath.css';
     draw();
   }));
   draw();
+
+  // ---- Solve my numbers ----
+  const sk = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement & HTMLSelectElement;
+  const sAns = q('.tr-s-ans'), sSteps = q('.tr-s-steps'), sErr = q('.tr-s-err'), sShow = q<HTMLButtonElement>('.tr-s-show');
+  let shownAngle: number | null = null;
+  const num = (k: string) => { const v = sk(k).value.trim(); return v === '' ? NaN : Number.isFinite(Number(v)) ? Number(v) : readNum(v); };
+  function solve() {
+    const mode = sk('mode').value, u = sk('s-lunit').value, L = (x: number) => sig(x) + (u ? ' ' + u : '');
+    q('.tr-s-as').hidden = mode !== 'as'; q('.tr-s-ts').hidden = mode !== 'ts'; q('.tr-s-ra').hidden = mode !== 'ra';
+    const pairV = sk('s-pair').value; const names = pairV.split('-').map((p) => SIDE_NAME[p as Side]);
+    q('.tr-s-l1').textContent = names[0][0].toUpperCase() + names[0].slice(1); q('.tr-s-l2').textContent = names[1][0].toUpperCase() + names[1].slice(1);
+    let lines: string[] = [], err = '', ans = '';
+    shownAngle = null;
+    if (mode === 'as') {
+      const raw = num('s-angle'), a = sk('s-aunit').value === 'rad' ? deg(raw) : raw;
+      const r = fromAngleSide(a, sk('s-side').value as Side, num('s-len'));
+      err = r.error ?? '';
+      if (!err) {
+        lines = r.steps;
+        if (sk('s-aunit').value === 'rad') lines = [`${sig(raw, 6)} rad × 180/π = ${sig(a, 6)}°.`, ...lines];
+        ans = `Opposite = ${L(r.opp)}, adjacent = ${L(r.adj)}, hypotenuse = ${L(r.hyp)} (θ = ${sig(a, 6)}°, other angle ${sig(r.other, 6)}°).`; shownAngle = a;
+      }
+    } else if (mode === 'ts') {
+      const r = fromTwoSides(pairV as 'opp-adj', num('s-x'), num('s-y'));
+      err = r.error ?? '';
+      if (!err) { lines = r.steps; ans = `θ = ${sig(r.angle, 5)}° (${sig(rad(r.angle), 4)} rad). Opposite = ${L(r.opp)}, adjacent = ${L(r.adj)}, hypotenuse = ${L(r.hyp)}.`; shownAngle = r.angle; }
+    } else {
+      const fn = sk('s-fn').value as 'sin', v = num('s-val'), r = fromRatio(fn, v);
+      err = r.error ?? '';
+      if (!err && r.acute !== null) {
+        lines = r.steps;
+        ans = `θ = ${sig(r.all.length ? r.all[0] : r.acute, 5)}° (${sig(rad(r.all[0]), 4)} rad)` + (r.all.length > 1 ? `; the circle also has ${r.all.slice(1).map((x) => sig(x, 5) + '°').join(' and ')} between 0° and 360°.` : '.');
+        lines = [...lines, `Between 0° and 360° the angles with ${fn} θ = ${sig(v)} are ${r.all.map((x) => sig(x, 5) + '°').join(' and ')}.`];
+        shownAngle = r.all[0] <= 90 ? r.all[0] : null;
+      }
+    }
+    sErr.hidden = !err; sErr.textContent = err;
+    sAns.textContent = err ? '' : ans;
+    sSteps.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    sShow.hidden = shownAngle === null;
+  }
+  root.querySelectorAll<HTMLElement>('.tr-solve [data-k]').forEach((e) => { e.addEventListener('input', solve); e.addEventListener('change', solve); });
+  sShow.addEventListener('click', () => { if (shownAngle === null) return; setT(Math.round(shownAngle * 100) / 100); draw(); root.querySelector('.tr-fig')!.scrollIntoView({ block: 'center' }); });
+  root.querySelectorAll<HTMLButtonElement>('.tr-sp button').forEach((b) => b.addEventListener('click', () => {
+    const p = b.dataset.sp!.split(',');
+    sk('mode').value = p[0];
+    if (p[0] === 'as') { sk('s-angle').value = p[1]; sk('s-aunit').value = 'deg'; sk('s-side').value = p[2]; sk('s-len').value = p[3]; sk('s-lunit').value = p[4]; }
+    else if (p[0] === 'ts') { sk('s-pair').value = p[1]; sk('s-x').value = p[2]; sk('s-y').value = p[3]; sk('s-lunit').value = p[4]; }
+    else { sk('s-fn').value = p[1]; sk('s-val').value = p[2]; }
+    solve();
+  }));
+  solve();
+
+  // ---- Trigonometric table ----
+  function buildTable() {
+    tabEl.replaceChildren();
+    const h = tabEl.insertRow(); for (const x of ['θ (°)', 'radians', 'sin', 'cos', 'tan']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    for (const r of tableRows(Number(tabSel.value))) {
+      const tr = tabEl.insertRow(); tr.dataset.d = String(r.deg);
+      [String(r.deg), fmt(r.rad, 4), fmt(r.sin, 4), fmt(r.cos, 4), Number.isNaN(r.tan) ? '—' : fmt(r.tan, 4)].forEach((t, i) => { const c = tr.insertCell(); c.textContent = t; if (i) c.className = 'r'; });
+    }
+    tabBuilt = true; markTable(angle());
+  }
+  function markTable(th: number) {
+    if (!tabBuilt) return;
+    tabEl.querySelectorAll('tr.on').forEach((r) => r.classList.remove('on'));
+    const row = tabEl.querySelector(`tr[data-d="${Math.round(th * 1e6) / 1e6}"]`); row?.classList.add('on');
+  }
+  q('.tr-tabd').addEventListener('toggle', () => { if ((q('.tr-tabd') as HTMLDetailsElement).open && !tabBuilt) buildTable(); });
+  tabSel.addEventListener('change', buildTable);
 
   quiz(q('.tr-quiz'), () => {
     const out: Question[] = [];

@@ -111,3 +111,72 @@ export function questions(level: 9 | 11, rng: () => number = Math.random): Quest
   }
   return qs;
 }
+
+// ---- Solve my numbers: units, exam-style working, presets (added 2026-11-16) -------------------------------
+export type Key = 'u' | 'v' | 'a' | 's' | 't';
+/** Units the solver accepts per quantity: factor to SI (m/s, m/s², m, s). g is 9.8 m/s². */
+export const UNITS: Record<Key, Record<string, number>> = {
+  u: { 'm/s': 1, 'km/h': 1 / 3.6 },
+  v: { 'm/s': 1, 'km/h': 1 / 3.6 },
+  a: { 'm/s²': 1, 'g': 9.8 },
+  s: { m: 1, km: 1000, cm: 0.01 },
+  t: { s: 1, min: 60, h: 3600 },
+};
+export const toSI = (k: Key, unit: string, x: number) => x * (UNITS[k][unit] ?? 1);
+export const fromSI = (k: Key, unit: string, x: number) => x / (UNITS[k][unit] ?? 1);
+
+const fm = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+const pr = (x: number) => (x < 0 ? `(${fm(x)})` : fm(x));
+
+/** Exam-style steps (formula, then substitution with units, then result) for the case that was solved. `k` is the three known keys; c is one answer. */
+export function working(k: Key[], c: Full): string[] {
+  const { u, v, a, s, t } = c, L: string[] = [];
+  const key = k.slice().sort().join('');
+  const step = (what: string, formula: string, sub: string, res: string) => L.push(`${what}: ${formula} → ${sub} = ${res}`);
+  const sq = (x: number) => `${pr(x)}²`;
+  switch (key) {
+    case 'auv': // a u v
+      step('Time', 't = (v − u) ÷ a', `(${pr(v)} − ${pr(u)}) ÷ ${pr(a)}`, `${fm(t)} s`);
+      step('Displacement', 's = (v² − u²) ÷ 2a', `(${sq(v)} − ${sq(u)}) ÷ (2 × ${pr(a)})`, `${fm(s)} m`); break;
+    case 'suv':
+      step('Time', 't = 2s ÷ (u + v)', `2 × ${pr(s)} ÷ (${pr(u)} + ${pr(v)})`, `${fm(t)} s`);
+      step('Acceleration', 'a = (v² − u²) ÷ 2s', `(${sq(v)} − ${sq(u)}) ÷ (2 × ${pr(s)})`, `${fm(a)} m/s²`); break;
+    case 'tuv':
+      step('Acceleration', 'a = (v − u) ÷ t', `(${pr(v)} − ${pr(u)}) ÷ ${pr(t)}`, `${fm(a)} m/s²`);
+      step('Displacement', 's = ½(u + v)t', `½ × (${pr(u)} + ${pr(v)}) × ${pr(t)}`, `${fm(s)} m`); break;
+    case 'atu':
+      step('Final velocity', 'v = u + at', `${pr(u)} + ${pr(a)} × ${pr(t)}`, `${fm(v)} m/s`);
+      step('Displacement', 's = ut + ½at²', `${pr(u)} × ${pr(t)} + ½ × ${pr(a)} × ${sq(t)}`, `${fm(s)} m`); break;
+    case 'asu':
+      step('Final velocity', 'v² = u² + 2as, so v = ±√(u² + 2as)', `±√(${sq(u)} + 2 × ${pr(a)} × ${pr(s)})`, `${fm(v)} m/s`);
+      if (Math.abs(a) < 1e-12) step('Time', 't = s ÷ u', `${pr(s)} ÷ ${pr(u)}`, `${fm(t)} s`);
+      else step('Time', 't = (v − u) ÷ a', `(${pr(v)} − ${pr(u)}) ÷ ${pr(a)}`, `${fm(t)} s`); break;
+    case 'stu':
+      step('Acceleration', 'a = 2(s − ut) ÷ t²', `2 × (${pr(s)} − ${pr(u)} × ${pr(t)}) ÷ ${sq(t)}`, `${fm(a)} m/s²`);
+      step('Final velocity', 'v = 2s ÷ t − u', `2 × ${pr(s)} ÷ ${pr(t)} − ${pr(u)}`, `${fm(v)} m/s`); break;
+    case 'asv':
+      step('Starting velocity', 'u² = v² − 2as, so u = ±√(v² − 2as)', `±√(${sq(v)} − 2 × ${pr(a)} × ${pr(s)})`, `${fm(u)} m/s`);
+      if (Math.abs(a) < 1e-12) step('Time', 't = s ÷ v', `${pr(s)} ÷ ${pr(v)}`, `${fm(t)} s`);
+      else step('Time', 't = (v − u) ÷ a', `(${pr(v)} − ${pr(u)}) ÷ ${pr(a)}`, `${fm(t)} s`); break;
+    case 'atv':
+      step('Starting velocity', 'u = v − at', `${pr(v)} − ${pr(a)} × ${pr(t)}`, `${fm(u)} m/s`);
+      step('Displacement', 's = vt − ½at²', `${pr(v)} × ${pr(t)} − ½ × ${pr(a)} × ${sq(t)}`, `${fm(s)} m`); break;
+    case 'stv':
+      step('Starting velocity', 'u = 2s ÷ t − v', `2 × ${pr(s)} ÷ ${pr(t)} − ${pr(v)}`, `${fm(u)} m/s`);
+      step('Acceleration', 'a = (v − u) ÷ t', `(${pr(v)} − ${pr(u)}) ÷ ${pr(t)}`, `${fm(a)} m/s²`); break;
+    default: // a s t
+      step('Starting velocity', 'u = s ÷ t − ½at', `${pr(s)} ÷ ${pr(t)} − ½ × ${pr(a)} × ${pr(t)}`, `${fm(u)} m/s`);
+      step('Final velocity', 'v = u + at', `${pr(u)} + ${pr(a)} × ${pr(t)}`, `${fm(v)} m/s`);
+  }
+  return L;
+}
+
+export type Preset = { name: string; vals: Partial<Record<Key, string>>; units?: Partial<Record<Key, string>>; note: string };
+/** Worked-example presets in our own words (values are round numbers, not from any book). */
+export const PRESETS: Preset[] = [
+  { name: 'Car speeds up', vals: { u: '0', v: '72', t: '10' }, units: { u: 'm/s', v: 'km/h', t: 's' }, note: 'A car starts from rest and reaches 72 km/h in 10 s. Find a and s.' },
+  { name: 'Train brakes', vals: { u: '20', v: '0', s: '200' }, note: 'A train at 20 m/s brakes to a stop in 200 m. Find a and t.' },
+  { name: 'Ball thrown up', vals: { u: '15', a: '-9.8', v: '0' }, note: 'A ball goes up at 15 m/s and slows at 9.8 m/s². Find the time to the top and the height.' },
+  { name: 'Dropped stone', vals: { u: '0', a: '9.8', t: '3' }, note: 'A stone is dropped and falls for 3 s. Find v and the drop s.' },
+  { name: 'Two answers', vals: { u: '20', a: '-10', s: '15' }, note: 'Thrown up at 20 m/s, a = −10 m/s²: it is 15 m up twice.' },
+];

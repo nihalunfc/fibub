@@ -36,4 +36,26 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'coulomb: right answer accepted');
   await page.fill(R + '.eq-q:nth-child(2) .eq-in', '12345'); await page.click(R + '.eq-q:nth-child(2) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Not quite'), 'coulomb: wrong answer flagged');
+  // Solve your own numbers.
+  const S = (k) => `${R}.cfz-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'The force is 599 mN, attractive.' && (await wk()).includes('Convert the distance: 30 cm = 0.3 m') && (await wk()).includes('unlike charges pull'), `coulomb solve: +2 µC, −3 µC, 30 cm (${await ans()})`);
+  await page.selectOption(S('example'), '1'); await page.waitForTimeout(50);
+  check((await ans()) === 'The force is 562 µN, repulsive.', `coulomb solve: two 5 nC charges (${await ans()})`);
+  await page.selectOption(S('example'), '2'); await page.waitForTimeout(50);
+  check((await ans()) === 'The force is 82.1 nN, attractive.', `coulomb solve: hydrogen atom, electron charges and Å (${await ans()})`);
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The charges are 300 mm apart (30 cm).'), `coulomb solve: find r (${await ans()})`);
+  await page.selectOption(S('example'), '4'); await page.waitForTimeout(50);
+  check((await ans()) === 'The charge is −3 µC.' && (await wk()).includes('q₂ is negative'), `coulomb solve: find q2, attractive gives a negative charge (${await ans()})`);
+  await page.selectOption(S('nature'), 'rep'); await page.waitForTimeout(50);
+  check((await ans()) === 'The charge is +3 µC.', 'coulomb solve: repulsive gives the same sign');
+  await page.selectOption(S('find'), 'F'); await page.fill(S('q2'), '-3'); await page.fill(S('r'), '30'); await page.selectOption(S('r-unit'), 'cm');
+  await page.selectOption(S('med'), 'water'); await page.waitForTimeout(50);
+  check((await ans()).includes('The force is 11.2 mN, attractive.') && (await ans()).includes('80 times smaller'), `coulomb solve: in water (${await ans()})`);
+  await page.selectOption(S('med'), 'custom'); await page.fill(S('er'), '0.5'); await page.waitForTimeout(50);
+  check((await ans()).includes('εr of a medium is 1 or more'), 'coulomb solve: bad permittivity message');
+  await page.selectOption(S('med'), 'air'); await page.fill(S('r'), '0'); await page.waitForTimeout(50);
+  check((await ans()).includes('distance must be above zero') && !/NaN|Infinity/.test(await ans()), 'coulomb solve: zero distance message');
+  await page.fill(S('r'), '30'); await page.fill(S('q1'), '0'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The force is 0 N'), 'coulomb solve: zero charge gives zero force');
 };

@@ -65,4 +65,41 @@ export default async ({ page, check, BASE }) => {
   let changed = false;
   for (let k = 0; k < 5 && !changed; k++) { await page.click(R + '.eq-new'); changed = (await page.textContent(R + '.eq-list')) !== q1 && (await page.textContent(R + '.eq-q:nth-child(1) .eq-res')) === ''; }
   check(changed, 'ohm: new questions');
+  // Solve your own numbers (typed numbers, units, working, edge cases).
+  await page.evaluate(() => document.querySelectorAll('.ohl details').forEach((d) => (d.open = true)));
+  const S = (k) => `${R}.ohl-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'The resistance is 24 Ω.' && (await wk()).includes('R = 12 V ÷ 0.5 A = 24 Ω') && (await wk()).includes('P = V I = 12 × 0.5 = 6 W'), `ohm solve: 12 V, 0.5 A gives 24 Ω with working (${await ans()})`);
+  check((await page.getAttribute(S('answer'), 'aria-live')) === 'polite', 'ohm solve: answer is a polite live region');
+  await page.fill(S('I'), '0'); await page.waitForTimeout(50);
+  check((await ans()).includes('open circuit') && !/NaN|Infinity/.test(await ans()), `ohm solve: 0 A is a friendly message (${await ans()})`);
+  await page.fill(S('I'), '250'); await page.selectOption(S('I-unit'), 'mA'); await page.waitForTimeout(50);
+  check((await ans()) === 'The resistance is 48 Ω.' && (await wk()).includes('Convert the current: 250 mA = 0.25 A'), `ohm solve: mA converted (${await ans()})`);
+  await page.selectOption(S('find'), 'V'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('Fill in'), 'ohm solve: blank resistance asks for it');
+  await page.fill(S('R'), '40'); await page.waitForTimeout(50);
+  check((await ans()) === 'The voltage is 10 V.' && (await wk()).includes('V = 0.25 A × 40 Ω = 10 V'), `ohm solve: V = IR (${await ans()})`);
+  await page.selectOption(S('find'), 'I'); await page.fill(S('V'), '12'); await page.waitForTimeout(50);
+  check((await ans()) === 'The current is 300 mA.', `ohm solve: 12 V over 40 Ω is 300 mA (${await ans()})`);
+  await page.fill(S('R'), '0'); await page.waitForTimeout(50);
+  check((await ans()).includes('short circuit'), 'ohm solve: 0 Ω is a short circuit message');
+  await page.fill(S('R'), '-5'); await page.waitForTimeout(50);
+  check((await ans()).includes('positive numbers'), 'ohm solve: negative refused');
+  await page.fill(S('R'), 'abc'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('I cannot read Resistance R'), 'ohm solve: unreadable text message');
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(50);
+  check((await ans()) === 'The current is 1.06 mA.' && (await wk()).includes('Energy in 2 h') && (await wk()).includes('= 38.3 J'), `ohm solve: example with time gives energy (${await wk()})`);
+  await page.click(`${R}.ohl-solve .sv-clear`); await page.waitForTimeout(50);
+  check((await ans()).startsWith('Fill in'), 'ohm solve: clear empties the boxes');
+  // Wire calculator
+  const W = (k) => `${R}.ohl-wsolve [data-k="wire-${k}"]`, wans = () => page.textContent(W('answer'));
+  await page.selectOption(W('example'), '0'); await page.waitForTimeout(50);
+  check((await wans()) === 'The resistance of the wire is 15.6 Ω.' && (await page.textContent(W('working'))).includes('A = π d² / 4'), `ohm wire: nichrome 1 m 0.3 mm = 15.6 Ω (${await wans()})`);
+  await page.selectOption(W('example'), '1'); await page.waitForTimeout(50);
+  check((await wans()) === 'The resistance of the wire is 1.08 Ω.', `ohm wire: 50 m of 1 mm copper = 1.08 Ω (${await wans()})`);
+  await page.selectOption(W('example'), '2'); await page.waitForTimeout(50);
+  check((await wans()) === 'The resistivity is 8.5 × 10⁻⁷ Ω m.' && (await page.textContent(W('working'))).includes('Convert the area: 0.5 mm² = 5 × 10⁻⁷ m²'), `ohm wire: resistivity from R, L, A (${await wans()})`);
+  await page.selectOption(W('example'), '3'); await page.waitForTimeout(50);
+  check((await wans()) === 'The wire must be 37.2 m long.', `ohm wire: length from R (${await wans()})`);
+  await page.fill(W('d'), '0'); await page.waitForTimeout(50);
+  check((await wans()).includes('must be above zero'), 'ohm wire: zero diameter message');
 };

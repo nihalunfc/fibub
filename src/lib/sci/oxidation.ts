@@ -183,3 +183,18 @@ export const COUPLES: Couple[] = [
   { id: 'SO3-SO4', from: 'SO3^2-', to: 'SO4^2-' },
   { id: 'Zn-Zn2', from: 'Zn', to: 'Zn^2+' },
 ];
+
+export type ONChange = { element: string; from: number; to: number; change: number; kind: 'oxidised' | 'reduced' | 'unchanged'; electrons: number; fromPer: number; toPer: number };
+/** How one element's oxidation number changes between a reactant and a product formula (per atom). Throws a friendly message. */
+export function changeOf(reactant: string, product: string, element: string): ONChange {
+  const el = element.trim();
+  if (!el) throw new Error('Type the element symbol, such as Mn.');
+  const find = (f: string, side: string) => {
+    const r = oxidationNumbers(f).rows.find((x) => x.symbol.toLowerCase() === el.toLowerCase());
+    if (!r) throw new Error(`${el} is not in the ${side} (${f.trim()}). Check the symbol and the formula.`);
+    return r;
+  };
+  const a = find(reactant, 'reactant'), b = find(product, 'product');
+  const change = Math.round((b.on - a.on) * 1e9) / 1e9;
+  return { element: a.symbol, from: a.on, to: b.on, change, kind: change > 0 ? 'oxidised' : change < 0 ? 'reduced' : 'unchanged', electrons: Math.abs(change), fromPer: a.count, toPer: b.count };
+}

@@ -35,6 +35,21 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.hd-ans')) === 'Height ≈ 34.64 m' && (await txt('.hd-steps')).includes('= 20 m') && (await txt('.hd-steps')).includes('60 m away'), 'heights: opposite sides 60°, 30°, 80 m');
   await page.click(R + '.hd-mode button[data-m="down"]'); await page.waitForTimeout(100);
   check((await txt('.hd-ans')) === 'Distance ≈ 129.9 m' && (await page.$$(R + '.hd-obj')).length === 1 && await page.isHidden(R + '.hd-findrow'), 'heights: looking down from 75 m at 30°');
+  // Examples, units and the tower-on-a-building problem.
+  const pre = async (s) => { await page.click(R + `.hd-pre button[data-hp^="${s}"]`); await page.waitForTimeout(150); };
+  await pre('one,height,40'); check((await txt('.hd-ans')) === 'Height ≈ 23.09 m', `heights: example 40 m at 30° (${await txt('.hd-ans')})`);
+  await pre('one,distance'); check((await txt('.hd-ans')) === 'Distance ≈ 41.57 m', 'heights: example 24 m tower at 30°');
+  await pre('one,angle'); check((await txt('.hd-ans')) === 'Angle ≈ 36.9°', 'heights: example 12 m up, 16 m away');
+  await pre('one,height,25'); check((await txt('.hd-ans')) === 'Height ≈ 31.39 m' && (await txt('.hd-steps')).includes('Add the eye height'), 'heights: example 1.6 m observer');
+  await pre('same'); check((await txt('.hd-ans')) === 'Height ≈ 68.3 m', 'heights: example two people same side 45°, 30°, 50 m');
+  await pre('stack');
+  check((await txt('.hd-ans')) === 'Tower ≈ 46.19 m (building 23.09 m, together 69.28 m)' && (await txt('.hd-steps')).includes('Tower = total − building'), `heights: tower on a building (${await txt('.hd-ans')})`);
+  check(await page.isHidden(R + '.hd-findrow') && await page.isHidden(R + '.hd-row[data-v="h"]') && await page.isVisible(R + '.hd-row[data-v="b"]'), 'heights: building mode shows d, θ, φ only');
+  await page.selectOption(R + '.hd-unit', 'ft'); await page.waitForTimeout(100);
+  check((await txt('.hd-ans')) === 'Tower ≈ 46.19 ft (building 23.09 ft, together 69.28 ft)' && (await txt('.hd-steps')).includes('46.188 ft') && (await txt('.hd-fig')).includes('tower 46.19 ft'), `heights: feet (${await txt('.hd-ans')})`);
+  await page.selectOption(R + '.hd-unit', 'm');
+  await page.fill(R + '.hd-a', '30'); await page.fill(R + '.hd-b', '45'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.hd-err') && (await txt('.hd-err')).includes('bigger than φ') && (await txt('.hd-ans')) === '', 'heights: tower top lower than building top gives a message');
   // Quiz.
   check((await page.$$(R + '.sm-q')).length === 4, 'heights: four questions');
   await page.click(R + '.sm-q:nth-child(1) .sm-qshow');

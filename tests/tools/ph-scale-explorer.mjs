@@ -27,6 +27,24 @@ export default async ({ page, check, BASE }) => {
   await page.locator('.phx .phx-range').fill('8.5');
   check((await big()).startsWith('pH 8.5') && (await colour('phenolphthalein')) === 'light pink', 'ph: slider');
   await page.click('.phx .phx-lvl [data-l="10"]'); check(!(await facts()).includes('pOH'), 'ph: back to Class 10');
+  // Solve my numbers
+  const sbig = () => page.textContent('.phx .phx-sbig');
+  await page.locator('.phx .phx-solve').scrollIntoViewIfNeeded();
+  check((await sbig()).startsWith('pH = 3.5'), 'ph solve: default pH 3.5 ' + (await sbig()));
+  await page.click('.phx .phx-ex[data-known="strongBase"]');
+  check((await sbig()).startsWith('pH = 12:') && (await page.textContent('.phx .phx-seq')).includes('2 × 0.005 = 0.01'), 'ph solve: 0.005 M Ca(OH)2 is pH 12');
+  await page.click('.phx .phx-ex[data-known="weakAcid"]');
+  check((await sbig()).startsWith('pH = 2.88') && (await page.textContent('.phx .phx-seq')).includes('1.33 % ionised'), 'ph solve: 0.1 M weak acid ' + (await sbig()));
+  await page.click('.phx .phx-ex[data-known="H"]');
+  check((await sbig()).startsWith('pH = 3.6:'), 'ph solve: [H+] 2.5e-4 gives 3.6');
+  await page.selectOption('.phx [data-k="known"]', 'strongAcid'); await page.fill('.phx [data-k="value"]', '10'); await page.selectOption('.phx [data-k="unit"]', '0.001');
+  check((await sbig()).startsWith('pH = 2:'), 'ph solve: 10 mmol/L strong acid is pH 2');
+  await page.selectOption('.phx [data-k="unit"]', '1'); await page.fill('.phx [data-k="value"]', '1e-8');
+  check((await sbig()).startsWith('pH = 6.98'), 'ph solve: very dilute acid stays near 7 ' + (await sbig()));
+  await page.selectOption('.phx [data-k="known"]', 'H'); await page.fill('.phx [data-k="value"]', '0');
+  check((await page.textContent('.phx .phx-serr')).includes('above zero') && !(await sbig()).includes('NaN'), 'ph solve: zero gives a friendly message');
+  await page.fill('.phx [data-k="value"]', '');
+  check((await sbig()).includes('Type a value'), 'ph solve: blank');
   const items = page.locator('.phx .cq-item'); const n = await items.count(); let right = 0;
   for (let i = 0; i < n; i++) {
     const it = items.nth(i); await it.locator('.cq-show').scrollIntoViewIfNeeded(); await it.locator('.cq-show').click();

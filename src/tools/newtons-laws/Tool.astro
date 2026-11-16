@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax nl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (force, mass, speed, time) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row nl-top">
       <span class="nl-lab">Level</span>
@@ -318,6 +319,12 @@ import '../../styles/astro.css';
   draw();
   document.addEventListener('fibub:theme', draw);
   let rw = 0; new ResizeObserver(() => { const w = q('.nl-scene').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.nl-scene'));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { NEWTON } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, NEWTON);
 </script>
 
 <style is:inline>

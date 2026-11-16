@@ -11,7 +11,7 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
 <div class="ax icc">
   <div class="ax-card">
     <h2>What do you want to integrate?</h2>
-    <label class="ic-inl"><span>∫</span><input class="ic-in" type="text" value="x e^x" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Integrand" /><span>dx</span></label>
+    <label class="ic-inl"><span>∫</span><input class="ic-in" data-k="f" type="text" value="x e^x" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Integrand" /><span>dx</span></label>
     <p class="ax-help">Use ^ for powers, brackets after sin, cos, tan, ln, sqrt, atan, and e^(…). 2x and x ln(x) mean multiply.</p>
     {groups.map((g) => (
       <div class="ic-grp"><span class="ax-help">{g}</span>
@@ -25,9 +25,15 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
     <p class="ic-method"></p>
     <p class="ic-why"></p>
     <ol class="ic-steps"></ol>
-    <p class="ic-ans"></p>
+    <p class="ic-ans" aria-live="polite"></p>
     <p class="ic-check"></p>
     <div class="ic-parts"></div>
+    <details class="ic-def"><summary>Definite integral: put in limits</summary>
+      <div class="ax-row ic-lims"><label>from a = <input class="ic-lo" data-k="lower" type="text" inputmode="decimal" value="0" /></label><label>to b = <input class="ic-hi" data-k="upper" type="text" inputmode="decimal" value="1" /></label></div>
+      <p class="ic-dans" aria-live="polite"></p>
+      <p class="ax-help">The working is F(b) − F(a). The page also checks it numerically (Simpson's rule). Swapping the limits flips the sign. If f is undefined between the limits (like 1/x across 0) you get a message, not a number. The + C cancels, so leave it out. Common mistake: putting the limits into only part of F.</p>
+    </details>
+    <p class="ax-help">Common mistakes: leaving out + C on an indefinite integral; not changing dx when you substitute (u = x² means du = 2x dx); choosing u for parts by guesswork instead of ILATE.</p>
   </div>
 
   <div class="ax-card ic-pic">
@@ -54,11 +60,11 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
 </div>
 
 <script>
-  import { coach, value, type Coach } from '../../lib/sci/integration-coach';
+  import { coach, value, definite, type Coach } from '../../lib/sci/integration-coach';
   import { show, evaluate } from '../../lib/sci/cas';
   import { paint, pagePalette } from '../../lib/report';
   import { view, axes, curve, line, dot, fmt } from '../../lib/sm-graph';
-  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+  import { quiz, rint, pick, readAnswer, type Question } from '../../lib/sm-quiz';
 
   const root = document.querySelector<HTMLElement>('.icc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -85,7 +91,19 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
       s.textContent = `∫ ${show(p.f)} dx: ${p.title}`; ol.append(...p.steps.map(li)); d.append(s, ol); return d;
     }));
     q('.ic-pic').hidden = !res.F;
+    defin();
     graph();
+  }
+
+  function defin() {
+    const out = q('.ic-dans');
+    if (!res) { out.textContent = ''; return; }
+    const rd = (sel: string) => { const t = q<HTMLInputElement>(sel).value.replace('−', '-').replace(/π/g, 'pi').trim(); return t === '' ? NaN : readAnswer(t); };
+    const a = rd('.ic-lo'), b = rd('.ic-hi'), d = definite(res, a, b);
+    if (!d.ok) { out.textContent = d.message; return; }
+    if (d.message) { out.textContent = d.message; return; }
+    const n = (x: number) => fmt(x, 4), FF = show(res.F!);
+    out.textContent = `∫ from ${n(a)} to ${n(b)} of ${show(res.f)} dx = [${FF}] from ${n(a)} to ${n(b)} = F(${n(b)}) − F(${n(a)}) = ${n(d.Fb!)} − ${d.Fa! < 0 ? `(${n(d.Fa!)})` : n(d.Fa!)} = ${n(d.value!)}${b < a ? ' (the limits are the wrong way round, so the sign is flipped)' : ''}.`;
   }
 
   function graph() {
@@ -107,6 +125,7 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
 
   root.querySelectorAll<HTMLButtonElement>('.ic-chip').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.src!; run(); }));
   inp.addEventListener('input', run);
+  q('.ic-lo').addEventListener('input', defin); q('.ic-hi').addEventListener('input', defin);
   xIn.addEventListener('input', graph); cIn.addEventListener('input', graph);
   document.addEventListener('fibub:theme', graph);
   run();
@@ -140,6 +159,9 @@ const groups = [...new Set(EXAMPLES.map((e) => e.group))];
   .icc .ic-check.ok { color: var(--good); font-weight: 600; }
   .icc .ic-check.no { color: var(--bad); font-weight: 600; }
   .icc .ic-parts summary { cursor: pointer; min-height: 36px; overflow-wrap: anywhere; }
+  .icc .ic-def { margin: 10px 0; } .icc .ic-def summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-weight: 600; }
+  .icc .ic-lims label { display: flex; align-items: center; gap: 6px; color: var(--ink); } .icc .ic-lims input { width: 6em; min-height: 40px; }
+  .icc .ic-dans { font-weight: 600; overflow-wrap: anywhere; }
   .icc .ic-sl { display: block; margin: 8px 0; color: var(--ink); }
   .icc .ic-sl input { width: 100%; height: 32px; accent-color: var(--accent); }
   .icc .ic-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

@@ -36,3 +36,26 @@ export function expand(a: number, b: number, n: number): { terms: Term[]; text: 
 export const middle = (n: number) => (n % 2 === 0 ? [n / 2] : [(n - 1) / 2, (n + 1) / 2]);
 /** Chance a Galton-board ball ends in slot k after n rows: C(n, k)/2ⁿ. */
 export const galton = (n: number, k: number) => Number(C(n, k)) / 2 ** n;
+
+// ---- Solve-my-numbers helpers (added 2026-11-16) ----
+
+export type TermFind =
+  | { ok: true; r: number; coef: bigint; power: number; count: number }
+  | { ok: false; reason: 'none' | 'same' | 'bad' };
+/**
+ * In (a·xᵖ + b·x^q)ⁿ, the term with xᵏ: T(r+1) = C(n, r) aⁿ⁻ʳ bʳ x^(p(n−r) + q·r).
+ * Needs p(n − r) + q·r = k, so r = (p·n − k)/(p − q); it must be a whole number from 0 to n.
+ * When p = q every term has the same power, so there is one power only (count = n + 1 terms add up).
+ */
+export function findTerm(a: number, b: number, n: number, p: number, q: number, k: number): TermFind {
+  if (![a, b, n, p, q, k].every(Number.isInteger) || n < 0 || n > 60) return { ok: false, reason: 'bad' };
+  if (p === q) {
+    if (k !== p * n) return { ok: false, reason: 'none' };
+    return { ok: true, r: 0, coef: (BigInt(a) + BigInt(b)) ** BigInt(n), power: k, count: n + 1 };
+  }
+  const num = p * n - k, den = p - q;
+  if (num % den !== 0) return { ok: false, reason: 'none' };
+  const r = num / den;
+  if (r < 0 || r > n) return { ok: false, reason: 'none' };
+  return { ok: true, r, coef: C(n, r) * BigInt(a) ** BigInt(n - r) * BigInt(b) ** BigInt(r), power: p * (n - r) + q * r, count: 1 };
+}
