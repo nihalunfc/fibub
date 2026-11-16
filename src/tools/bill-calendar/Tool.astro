@@ -52,6 +52,7 @@ import Downloads from '../../components/Downloads.astro';
       <button type="button" class="btn secondary small s-backup">Download backup</button>
       <label class="btn secondary small" style="cursor:pointer">Restore backup<input type="file" class="s-restore" accept=".json,application/json" hidden /></label>
       <button type="button" class="btn secondary small s-csv">Bills as CSV</button>
+      <button type="button" class="btn secondary small s-ics">Add to my calendar (.ics)</button>
       <button type="button" class="btn secondary small s-clear">Delete everything</button>
     </div>
     <p class="ax-help s-msg" role="status" aria-live="polite"></p>
@@ -132,6 +133,7 @@ import Downloads from '../../components/Downloads.astro';
 <script>
   import { CATS, INCOME, REPEATS, catOf, occurrences, inRange, balances, monthTotals, uid, sample, itemsCsv, fromBackup, type Item, type State, type Repeat } from '../../lib/bills';
   import { iso, fromIso, addDays, monthDays } from '../../lib/planner';
+  import { itemsIcs } from '../../lib/bills-ics';
   import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
   import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
 
@@ -319,6 +321,7 @@ import Downloads from '../../components/Downloads.astro';
     catch { msg('That file is not a bill calendar backup. Backups locked with a passcode in the old expense calendar must be unlocked there first.'); }
   });
   q('.s-csv').addEventListener('click', () => save(new Blob(['﻿' + itemsCsv(S.items)], { type: 'text/csv' }), 'bills-and-income.csv', 'text/csv'));
+  q('.s-ics').addEventListener('click', () => { if (!S.items.length) { msg('Add a bill first.'); return; } save(new Blob([itemsIcs(S.items, (n) => money(n, S.currency), new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z')], { type: 'text/calendar' }), 'bills.ics', 'text/calendar'); msg('Saved bills.ics. Open it to add every bill, with repeats and a reminder the day before, to Google, Apple or Outlook calendar.'); });
   q('.s-clear').addEventListener('click', () => { if (!confirm('Delete every bill and income item? Download a backup first if you might want them back.')) return; S = { ...blank(), currency: S.currency }; q<HTMLInputElement>('.s-start').value = ''; q<HTMLInputElement>('.s-date').value = ''; render(); msg('Everything deleted.'); });
 
   // ---- Download ----

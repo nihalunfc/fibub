@@ -18,4 +18,11 @@ export default async ({ page, check, BASE }) => {
   check(await page.isVisible('.rd .rd-empty'), 'clear removes all trips');
   await add('', '2025-01-01', '2025-01-02');
   check(await page.isVisible('.rd .rd-err'), 'missing country shows a message');
+  // paste: 2025-01-01..2025-01-31 = 31 days, 2025-02-01 = 1 day; the year has 365 days
+  await page.selectOption('.rd [data-k="region"]', 'calendar'); await page.fill('.rd [data-k="year"]', '2025');
+  await page.evaluate(() => document.querySelectorAll('.rd details').forEach((d) => (d.open = true)));
+  await page.fill('.rd .rd-ta', 'Spain, 2025-01-01, 2025-01-31\nSpain; 01/02/2025\nnonsense'); await page.click('.rd .rd-pastebtn'); await page.waitForTimeout(100);
+  check((await txt('.rd-body')).replace(/\s+/g, ' ').includes('Spain32'), 'residency: pasted trips give Spain 32 days (' + (await txt('.rd-body')).slice(0, 60) + ')');
+  check((await txt('.rd-gap')).includes('333 of 365'), 'residency: 333 uncovered days (' + (await txt('.rd-gap')) + ')');
+  check((await txt('.rd-top')).includes('Spain: 32 of 365'), 'residency: most days line');
 };

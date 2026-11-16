@@ -38,6 +38,10 @@ For your own week and month rather than a team's, use the [[planner|weekly and m
 
 Fill only touches empty cells, so anything you set by hand stays. For each day, department and shift it picks the free person with the fewest hours so far, which shares the work out. It never puts someone on a day off, never goes over their hours for the week, never gives anyone two shifts on one day, and always leaves at least 11 hours between the end of one shift and the start of the next. When nobody is free, the cell stays empty and a note under the schedule says which day and shift is short, so you can call someone in or change a limit. Eleven hours of rest is a common default, but labour rules differ by country, province and state, so check the official source for your area.
 
+## Fairness check and printing
+
+Below the grid, "More options: fairness check" lists each person's hours, number of shifts, weekend shifts and late shifts (ending after 22:00 or past midnight) for the period on screen, and how far their hours are from the team average. Differences of more than 15% (or 4 hours) are shown in bold. Part-time limits and days off can make a gap fair, so treat it as a prompt. "Print this schedule" prints just the grid, so you can pin it on a notice board; the image, PDF, Excel and Word downloads are further down.
+
 ## Choosing what the download shows
 
 Under **Download** you choose the columns: department, hours, number of shifts, an extra empty column such as *Signature*, and the "people per shift" rows at the bottom that show coverage. Untick days you're closed to drop them. Cells can show the shift name, its code or its times, with or without colours. The preview updates as you change these, and every download matches it. The Excel file has a sheet per department with names and days frozen in place, so you can keep editing it; the Word file and PDF are landscape A4 with a page per department.

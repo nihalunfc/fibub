@@ -35,6 +35,10 @@ It only counts days. Once you have the numbers, estimate the tax with the [[cana
 3. Check how day counting works for your country. Most countries count both the arrival and departure day; the UK counts days you are there at midnight.
 4. Read the table of days and markers, and the US test below it.
 
+## Paste trips, find gaps, print
+
+Under "More options: paste a list of trips" you can paste one trip per line (country, arrived, left) copied from a spreadsheet or your passport stamps list. Dates can be 2025-03-31 or 31/03/2025; lines that cannot be read are skipped and counted. Below the year choice, the tool tells you how many days of the period no trip covers, so you can fill gaps (time at home counts too), and under the table it names the country where you spent the most days. "Print this summary" prints just the results.
+
 ## What each setting does
 
 - **Year type:** sets the start and end dates of the period counted.
