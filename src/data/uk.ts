@@ -9,7 +9,7 @@ const c = (n: number, title: string, topics: string, tools: string[] = []): Chap
 
 export const UK_LEVELS: SchoolClass[] = [
   {
-    id: 'ks3', n: 9, name: 'Key Stage 3', blurb: 'Years 7 to 9: science and maths.',
+    id: 'uk-ks3', n: 9, name: 'UK Key Stage 3', blurb: 'Years 7 to 9: science and maths.',
     subjects: [
       { id: 'science', name: 'Science', chapters: [
         c(1, 'Working scientifically', 'Fair tests, measuring, graphs, uncertainty', ['fair-test-planner', 'plot-maker', 'sig-fig-checker', 'si-unit-converter']),
@@ -45,7 +45,7 @@ export const UK_LEVELS: SchoolClass[] = [
     ],
   },
   {
-    id: 'gcse', n: 11, name: 'GCSE', blurb: 'Years 10 and 11: combined and separate sciences, and maths.',
+    id: 'uk-gcse', n: 11, name: 'UK GCSE', blurb: 'Years 10 and 11: combined and separate sciences, and maths.',
     subjects: [
       { id: 'physics', name: 'Physics', chapters: [
         c(1, 'Energy', 'Energy stores, conservation, efficiency, power', ['energy-stores', 'energy-track', 'spring-energy', 'power-bill']),
@@ -91,7 +91,7 @@ export const UK_LEVELS: SchoolClass[] = [
     ],
   },
   {
-    id: 'a-level', n: 13, name: 'A-level', blurb: 'Years 12 and 13: physics, chemistry, biology and maths.',
+    id: 'uk-a-level', n: 13, name: 'UK A-level', blurb: 'Years 12 and 13: physics, chemistry, biology and maths.',
     subjects: [
       { id: 'physics', name: 'Physics', chapters: [
         c(1, 'Measurements and errors', 'Units, uncertainties, vectors, scalars', ['uncertainty-calculator', 'dimensional-analysis', 'vector-lab-3d', 'sig-fig-checker']),
@@ -138,12 +138,3 @@ export const UK_LEVELS: SchoolClass[] = [
     ],
   },
 ];
-
-export const ukLevelById = (id: string) => UK_LEVELS.find((k) => k.id === id);
-/** Every UK level and topic that lists a tool, for "In the school syllabus" on the tool's page. */
-export function ukTopicsFor(toolId: string) {
-  const out: { cls: SchoolClass; subject: SchoolClass['subjects'][number]; chapter: Chapter }[] = [];
-  for (const cls of UK_LEVELS) for (const subject of cls.subjects) for (const chapter of subject.chapters)
-    if (chapter.tools.includes(toolId)) out.push({ cls, subject, chapter });
-  return out;
-}

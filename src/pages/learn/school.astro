@@ -1,6 +1,7 @@
 ---
 import LearnPage from '../../components/LearnPage.astro';
 import { CLASSES } from '../../data/ncert';
+import { CURRICULA } from '../../data/curricula';
 import { SECTIONS } from '../../site';
 import { allTools, toolUrl } from '../../lib/tools';
 const all = await allTools();
@@ -12,11 +13,22 @@ const cards = CLASSES.map((k) => {
 });
 // The Learn shelf's own tools, by school subject, as a short list of names (hundreds are planned, and full cards
 // would push this page past the 120 KB limit; the class pages show each chapter's tools).
+// Other countries' curricula (Canada first), as one list of grade links each.
+const others = CURRICULA.filter((c) => c.status === 'live' && c.id !== 'ncert').map((c) => ({
+  name: c.name, grades: c.grades,
+  links: c.classes.map((k) => ({ name: k.name, href: `/learn/${k.id}/`, blurb: k.blurb })),
+}));
 const groups = (SECTIONS.learn ?? []).map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
 ---
 <LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, chapter by chapter, following the NCERT topics. Free, in your browser."
   lead="Pick your class to see every chapter with tools to try. Each tool lets you change the numbers and watch what happens, and many have a level switch so one tool serves several classes."
   cardsTitle="Classes" cards={cards}>
+  {others.map((o) => (
+    <section id={o.name.toLowerCase().replace(/[^a-z]+/g, '-')}>
+      <h2 class="ar-h">{o.name}: {o.grades}</h2>
+      <ul class="ls-list">{o.links.map((l) => <li><a href={l.href}>{l.name}</a> <small>{l.blurb}</small></li>)}</ul>
+    </section>
+  ))}
   {groups.map((g) => (
     <section id={g.id}>
       <h2 class="ar-h">{g.name}</h2>

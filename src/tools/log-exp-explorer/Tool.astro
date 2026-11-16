@@ -1,0 +1,96 @@
+---
+// #L325 Log explorer. y = b^x and its inverse y = log_b(x) on one graph, a growth and decay model, and the
+// laws of logarithms checked with real numbers. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn lgx">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="11" aria-pressed="true">Grade 11</button><button type="button" data-level="12" aria-pressed="false">Grade 12</button></div>
+    <h2>An exponential and its inverse</h2>
+    <canvas class="lrn-cv lgx-cv" aria-label="Graph of y equals b to the power x, and its inverse y equals log base b of x, mirrored in the line y equals x"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Base b: <b class="lgx-bv">2</b> <input class="lgx-b" type="range" min="0.2" max="10" step="0.1" value="2" /></label>
+      <label>x: <b class="lgx-xv">3</b> <input class="lgx-x" type="range" min="-3" max="5" step="0.5" value="3" /></label>
+    </div>
+    <p class="ax-big lgx-out" aria-live="polite"></p>
+    <p class="ax-help">The blue curve is y = b<sup>x</sup>. The orange curve is its inverse, y = log<sub>b</sub> x: the same curve mirrored in the dashed line y = x. A base between 0 and 1 gives decay; a base above 1 gives growth.</p>
+  </div>
+  <div class="ax-card" data-only="12" hidden>
+    <h2>Laws of logarithms, checked</h2>
+    <div class="ax-grid">
+      <label>m <input class="lgx-m" type="number" min="0.01" step="any" value="8" inputmode="decimal" /></label>
+      <label>n <input class="lgx-n" type="number" min="0.01" step="any" value="32" inputmode="decimal" /></label>
+    </div>
+    <dl class="ax-facts lgx-laws" aria-live="polite"></dl>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Set b = 2 and x = 3. Then 2³ = 8 and log₂ 8 = 3: the two curves swap their inputs and outputs.</li><li>Slide b below 1. The exponential falls (decay), and the log curve falls too.</li><li>In Grade 12, check that log(mn) = log m + log n, and that log(m/n) = log m − log n, with your own numbers.</li></ul>
+  </div>
+  <div class="ax-card lgx-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .lgx .lgx-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.lgx') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const bIn = q('.lgx-b') as HTMLInputElement, xIn = q('.lgx-x') as HTMLInputElement, cv = q('.lgx-cv') as HTMLCanvasElement;
+  const mIn = q('.lgx-m') as HTMLInputElement, nIn = q('.lgx-n') as HTMLInputElement;
+  let level = '11';
+  const g = (x: number) => String(+x.toPrecision(4));
+  const draw = () => {
+    const b = +bIn.value, x = +xIn.value;
+    const { ctx, W, H } = fitCanvas(cv, 260), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H);
+    const lo = -4, hi = 8, s = Math.min(W, H) / (hi - lo) * 0.95, ox = W / 2 - s * 2, oy = H / 2 + s * 2;
+    const X = (v: number) => ox + v * s, Y = (v: number) => oy - v * s;
+    ctx.lineWidth = 1; ctx.strokeStyle = pal.grid;
+    for (let k = lo; k <= hi; k++) { ctx.beginPath(); ctx.moveTo(X(k), 0); ctx.lineTo(X(k), H); ctx.moveTo(0, Y(k)); ctx.lineTo(W, Y(k)); ctx.stroke(); }
+    ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(-10), Y(-10)); ctx.lineTo(X(20), Y(20)); ctx.stroke(); ctx.setLineDash([]);
+    const curve = (f: (t: number) => number, from: number, to: number, col: string) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); let on = false;
+      for (let i = 0; i <= 300; i++) { const t = from + (to - from) * i / 300, y = f(t), px = X(t), py = Y(y);
+        if (!Number.isFinite(y) || py < -400 || py > H + 400 || px < -400 || px > W + 400) { on = false; continue; }
+        if (on) ctx.lineTo(px, py); else ctx.moveTo(px, py); on = true; }
+      ctx.stroke();
+    };
+    curve((t) => Math.pow(b, t), -6, 10, pal.accent);
+    curve((t) => Math.log(t) / Math.log(b), 0.0005, 40, pal.accent2);
+    const y = Math.pow(b, x);
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(y), Y(x), 5, 0, 7); ctx.fill();
+    (q('.lgx-bv')).textContent = g(b); (q('.lgx-xv')).textContent = g(x);
+    q('.lgx-out').textContent = `${g(b)}^${g(x)} = ${g(y)}, so log base ${g(b)} of ${g(y)} = ${g(x)}`;
+  };
+  const laws = () => {
+    const m = +mIn.value, n = +nIn.value, L = (v: number) => Math.log10(v);
+    if (!(m > 0 && n > 0)) { q('.lgx-laws').innerHTML = '<div><dt>Note</dt><dd>m and n must be positive</dd></div>'; return; }
+    const row = (k: string, v: string) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+    q('.lgx-laws').innerHTML = row('log m + log n', g(L(m) + L(n))) + row('log (mn)', g(L(m * n))) + row('log m − log n', g(L(m) - L(n))) + row('log (m/n)', g(L(m / n))) + row('3 log m', g(3 * L(m))) + row('log (m³)', g(L(m ** 3)));
+  };
+  [bIn, xIn].forEach((i) => i.addEventListener('input', draw));
+  [mIn, nIn].forEach((i) => i.addEventListener('input', laws));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  laws();
+  mountQuiz(q('.lgx-quiz'), () => {
+    const k = pick(0, level === '12' ? 3 : 1);
+    if (k === 0) { const b = pick(2, 5), e = pick(2, 5);
+      return [{ q: `Evaluate log base ${b} of ${b ** e}.`, ans: e, work: `${b}^${e} = ${b ** e}, so log base ${b} of ${b ** e} = ${e}` }]; }
+    if (k === 1) { const P = pick(1000, 5000, 500), y = pick(2, 6), P2 = P * 2 ** y;
+      return [{ q: `A population doubles every year. It starts at ${P}. How many people after ${y} years?`, ans: P2, work: `${P} × 2^${y} = ${r(P2)}` }]; }
+    if (k === 2) { const [m, n, e] = one([[2, 5, 1], [4, 25, 2], [8, 125, 3], [20, 5, 2]]);
+      return [{ q: `Evaluate log ${m} + log ${n} (base 10).`, ans: e, work: `log m + log n = log(mn) = log ${m * n} = ${e}` }]; }
+    const b = pick(2, 4), e = pick(2, 4);
+    return [{ q: `Solve ${b}^x = ${b ** e}. What is x?`, ans: e, work: `${b ** e} = ${b}^${e}, so x = ${e}` }];
+  });
+</script>
