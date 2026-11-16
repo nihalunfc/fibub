@@ -11,7 +11,7 @@ ads: false
 order: 1733
 icon: target
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [compound-interest, savings-goal, retirement-planner, return-calculator]
 sources:
   - "FIRE number = yearly spending / withdrawal rate. The 4% rule of thumb comes from the 1998 Trinity study of US stocks and bonds over 30-year periods; it is a guide, not a guarantee. Years to target use the standard growth formula with yearly steps."
@@ -41,6 +41,19 @@ The saving-rate table shows the big lever: the more of your income you save, the
 - **Return after inflation:** growth minus price rises, so all numbers stay in today's money.
 - **Safe withdrawal rate:** the share of the pot you take out each year. Lower is safer and needs a bigger pot.
 - **Saving rate table:** the same income saved at 10% up to 70%.
+
+## More options
+
+At the top of the results one sentence says how many years you need, and a line underneath shows the working: spending divided by the withdrawal rate.
+
+- **Saving rate slider:** drag it, or type a percent, and your spending changes to match; change your spending and the slider follows. The chart and table below show how much a higher saving rate shortens the road.
+- **Years by saving rate:** a chart of years to independence for saving rates from 5% to 90%.
+- **Age and retirement spending:** add your age to see roughly how old you would be, and set a different retirement spending if you expect it to be higher or lower than now.
+- **Lean, fat, coast and barista FIRE:** lean uses 70% of your retirement spending and fat uses 150%. Barista subtracts part-time or pension income. Coast shows what you need now so that growth alone reaches the full number by your retirement age.
+- **Withdrawal rates side by side:** the FIRE number and years at 3, 3.5, 4 and 5%.
+- **Download year by year** gives a CSV of your savings against the FIRE number.
+
+Blank, zero, negative or huge numbers show a plain message instead of a result.
 
 ## Worked example
 

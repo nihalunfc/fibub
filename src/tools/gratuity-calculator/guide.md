@@ -12,7 +12,7 @@ ads: true
 order: 1729
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [india-income-tax, budget-calculator, hourly-salary]
 sources:
   - "India formula (15/26 x last basic + DA x years, part year over 6 months counts as a year), not-covered formula and Rs 20 lakh exemption: Income Tax Department, Taxability of Retirement Benefits (as amended by Finance Act, 2025), https://incometaxindia.gov.in/tutorials/77.taxability-of-retirement-benefits.pdf (checked 2026-11-10)"
@@ -38,6 +38,8 @@ See what the taxable part costs you with the [[india-income-tax|India tax calcul
 1. Pick the **country** whose law covers your job.
 2. Type your **last monthly pay**: basic plus dearness allowance (India), basic salary (UAE) or your full wage (Saudi Arabia).
 3. Type your **years and months** of service.
+
+**More options:** enter your date of joining and last working day and the years, months and extra days are filled in for you (the last day counts as worked; the UAE also uses the extra days). A table under the result shows the gratuity for 1 to 30 whole years of service with the same pay, so you can see what an extra year is worth. A line at the top gives the answer in one sentence, or tells you what is missing.
 
 ## The rules
 

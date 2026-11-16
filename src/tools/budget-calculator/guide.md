@@ -11,7 +11,7 @@ ads: false
 order: 10
 icon: calculator
 works: offline
-updated: 2026-11-07
+updated: 2026-11-16
 flow:
   - { icon: wallet, label: "Add costs" }
   - { icon: calculator, label: "See totals" }
@@ -43,6 +43,19 @@ You'll see the total cost, what's still to save, and how much to set aside each 
 3. Not sure where to start? **Fill in an example** shows a typical budget you can then change.
 
 The results show what comes in and goes out each month, what's left to save, and your saving rate. **Needs, wants and savings** compares your split with the popular 50/30/20 guide. **Set aside for bills that aren't monthly** lists your quarterly and yearly bills and the monthly amount to put aside so they never catch you out. **Trim your wants** shows what cutting your wants by a chosen percentage frees up each month and year. **Watch your savings grow** shows what your monthly savings become after 1, 3, 5 and 10 years at the growth rate you choose, and when you'll reach a goal such as an emergency fund.
+
+## More options
+
+Both planners have a plain one-line answer at the top, so you can read the result without looking at the numbers below it. Each also has a **More options** box that stays closed until you want it.
+
+- **Trip or project, People sharing the cost:** enter how many people split the bill to see each person's share of the total and of the monthly saving. **Download this plan** saves the costs and totals as a CSV file.
+- **Monthly budget, Compare with this guide:** choose 50 / 30 / 20 (the default), 60 / 20 / 20 for higher living costs, 70 / 20 / 10 for a tight month, or 50 / 20 / 30 if you are saving hard. The bars and marks in **Needs, wants and savings** follow your choice.
+- **I want to save ...% of my income:** drag the slider or type a percent. The tool tells you how much more you would need to save each month and how much to trim your wants to get there, or says plainly when the wants alone cannot cover it.
+- **Per week, month and year:** the same money in, money out and left over in each period.
+- **Your biggest costs:** the five largest costs as a monthly amount and a share of your income.
+- **Download my budget:** a CSV of every income and cost with its monthly amount and share of income, for a spreadsheet.
+
+Blank, zero or negative amounts never break anything: the answer line tells you what to add, and negative amounts are not counted.
 
 ## Worked example
 

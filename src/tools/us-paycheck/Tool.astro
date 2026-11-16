@@ -5,36 +5,47 @@
   <section class="panel">
     <h2>Your pay in 2026</h2>
     <div class="upc-grid">
-      <label>Pay before anything comes off <span class="upc-suf"><input class="upc-pay" inputmode="decimal" value="75,000" /><select class="upc-unit" aria-label="Pay per year or per hour"><option value="year" selected>a year</option><option value="hour">an hour</option></select></span></label>
-      <label class="upc-hrs-l" hidden>Hours a week <input class="upc-hrs" inputmode="decimal" value="40" /></label>
-      <label>How often you are paid <select class="upc-freq">
+      <label>Pay before anything comes off <span class="upc-suf"><input class="upc-pay" data-k="pay" inputmode="decimal" value="75,000" /><select class="upc-unit" data-k="unit" aria-label="Pay per year or per hour"><option value="year" selected>a year</option><option value="hour">an hour</option></select></span></label>
+      <label class="upc-hrs-l" hidden>Hours a week <input class="upc-hrs" data-k="hours" inputmode="decimal" value="40" /></label>
+      <label>How often you are paid <select class="upc-freq" data-k="freq">
         <option value="weekly">Weekly (52 a year)</option>
         <option value="biweekly" selected>Every two weeks (26)</option>
         <option value="semimonthly">Twice a month (24)</option>
         <option value="monthly">Monthly (12)</option>
       </select></label>
-      <label>Filing status <select class="upc-status">
+      <label>Filing status <select class="upc-status" data-k="status">
         <option value="single" selected>Single</option>
         <option value="mfj">Married filing jointly</option>
         <option value="hoh">Head of household</option>
         <option value="mfs">Married filing separately</option>
       </select></label>
-      <label>Children under 17 <input class="upc-kids" inputmode="numeric" value="0" /></label>
-      <label>State you work in <select class="upc-state"></select></label>
-      <label class="upc-rate-l" hidden><span class="upc-rate-t">State tax rate</span> <span class="upc-suf"><input class="upc-rate" inputmode="decimal" value="4" /><i>%</i></span></label>
+      <label>Children under 17 <input class="upc-kids" data-k="kids" inputmode="numeric" value="0" /></label>
+      <label>State you work in <select class="upc-state" data-k="state"></select></label>
+      <label class="upc-rate-l" hidden><span class="upc-rate-t">State tax rate</span> <span class="upc-suf"><input class="upc-rate" data-k="rate" inputmode="decimal" value="4" /><i>%</i></span></label>
     </div>
     <p class="upc-snote"></p>
     <h3>Before-tax deductions</h3>
     <div class="upc-grid">
-      <label>401(k) <span class="upc-suf"><input class="upc-k" inputmode="decimal" value="5" /><select class="upc-kunit" aria-label="Percent of pay or dollars a year"><option value="pct" selected>% of pay</option><option value="usd">$ a year</option></select></span></label>
-      <label>401(k) type <select class="upc-ktype"><option value="trad" selected>Traditional (before tax)</option><option value="roth">Roth (after tax)</option></select></label>
-      <label>Your age at the end of 2026 <input class="upc-age" inputmode="numeric" value="35" /></label>
-      <label>HSA through payroll, $ a year <input class="upc-hsa" inputmode="decimal" value="0" /></label>
-      <label>Health, dental and vision premiums, $ a year <input class="upc-pre" inputmode="decimal" value="0" /></label>
+      <label>401(k) <span class="upc-suf"><input class="upc-k" data-k="k401" inputmode="decimal" value="5" /><select class="upc-kunit" data-k="k401unit" aria-label="Percent of pay or dollars a year"><option value="pct" selected>% of pay</option><option value="usd">$ a year</option></select></span></label>
+      <label>401(k) type <select class="upc-ktype" data-k="k401type"><option value="trad" selected>Traditional (before tax)</option><option value="roth">Roth (after tax)</option></select></label>
+      <label>Your age at the end of 2026 <input class="upc-age" data-k="age" inputmode="numeric" value="35" /></label>
+      <label>HSA through payroll, $ a year <input class="upc-hsa" data-k="hsa" inputmode="decimal" value="0" /></label>
+      <label>Health, dental and vision premiums, $ a year <input class="upc-pre" data-k="premiums" inputmode="decimal" value="0" /></label>
     </div>
+    <details class="upc-more">
+      <summary>More options</summary>
+      <div class="upc-grid">
+        <label>What if I earned more? <b class="upc-morev">+$0</b>
+          <input type="range" class="upc-more-r" data-k="more" min="0" max="50000" step="1000" value="0" aria-label="Extra pay a year" /></label>
+        <label>Compare with another yearly pay <input class="upc-cmp" data-k="compare" inputmode="decimal" placeholder="e.g. 95,000" /></label>
+      </div>
+      <p class="upc-snote">The slider adds to your yearly pay (an hourly wage is turned into a year first). The 401(k) stays the same share of pay.</p>
+    </details>
   </section>
 
   <section class="upc-res" aria-live="polite">
+    <p class="upc-line"></p>
+    <p class="upc-next"></p>
     <div class="upc-stats">
       <div class="good"><span>Take-home a paycheck</span><b class="upc-per"></b></div>
       <div><span>Take-home a year</span><b class="upc-year"></b></div>
@@ -42,6 +53,7 @@
       <div><span>Federal tax bracket</span><b class="upc-brk"></b></div>
     </div>
     <p class="upc-note"></p>
+    <p class="upc-cmpout panel" hidden></p>
     <figure class="panel upc-fig">
       <figcaption>Where each dollar goes</figcaption>
       <div class="upc-bar" role="img"></div>
@@ -72,6 +84,12 @@
   .upc-suf select { width: auto; }
   .upc-suf i { font-style: normal; color: var(--muted); }
   .upc-snote { margin: 10px 0 0; font-size: 14px; }
+  .upc-line { margin: 0; font-size: 17px; font-weight: 600; }
+  .upc-next, .upc-cmpout { margin: 0; font-size: 14px; }
+  .upc-line:empty, .upc-next:empty { display: none; }
+  .upc-more { margin-top: 14px; }
+  .upc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+  .upc-more input[type=range] { padding: 0; }
   .upc-snote:empty, .upc-note:empty { display: none; }
   .upc-res { display: grid; gap: 12px; }
   .upc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -97,7 +115,7 @@
 </style>
 
 <script>
-  import { paycheck, STATES, PERIODS, LIMITS, k401Limit, type Status } from '../../lib/money/us-paycheck.ts';
+  import { paycheck, STATES, PERIODS, LIMITS, k401Limit, nextExtra, taxShare, hourlyToYear, type Status } from '../../lib/money/us-paycheck.ts';
   import { num } from '../../lib/money';
   const root = document.querySelector('.upc') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -112,7 +130,10 @@
   const update = () => {
     const hourly = q<HTMLSelectElement>('.upc-unit').value === 'hour';
     q('.upc-hrs-l').hidden = !hourly;
-    const gross = hourly ? v('.upc-pay') * v('.upc-hrs') * 52 : v('.upc-pay');
+    const extra = v('.upc-more-r');
+    q('.upc-morev').textContent = `+${$(extra).replace(/\.00$/, '')}`;
+    const base = Math.max(0, hourly ? hourlyToYear(v('.upc-pay'), v('.upc-hrs')) : v('.upc-pay'));
+    const gross = base + extra;
     const [fname, n] = PERIODS[q<HTMLSelectElement>('.upc-freq').value];
     const code = sel.value, st = STATES[code];
     const rateBox = q<HTMLInputElement>('.upc-rate');
@@ -128,10 +149,24 @@
       : st.kind === 'az' ? 'Arizona: employers withhold the percentage of wages you pick on form A-4 (0.5% to 3.5%; 2% if you never filled one in). The tax rate itself is 2.5% of Arizona taxable income; any difference is settled on your return.'
       : `${st.name} is not worked out exactly here: type your effective state rate (state tax divided by wages, from last year's return or a payslip). The starting value ${st.start === 4 ? 'is a rough middle guess' : `is ${st.name.replace(/ \(.*/, '')}'s 2026 flat rate, before its deductions, so your real rate is lower`}: estimate, check the official source.`;
     const kv = v('.upc-k');
-    const k401 = q<HTMLSelectElement>('.upc-kunit').value === 'pct' ? gross * kv / 100 : kv;
+    const pctMode = q<HTMLSelectElement>('.upc-kunit').value === 'pct';
+    const k401 = pctMode ? gross * kv / 100 : kv;
     const roth = q<HTMLSelectElement>('.upc-ktype').value === 'roth';
     const kids = v('.upc-kids'), age = v('.upc-age');
-    const r = paycheck({ gross, status: q<HTMLSelectElement>('.upc-status').value as Status, children: kids, k401, roth, hsa: v('.upc-hsa'), pretax: v('.upc-pre'), state: code, stateRate: v('.upc-rate') });
+    const inp = { gross, status: q<HTMLSelectElement>('.upc-status').value as Status, children: kids, k401, roth, hsa: v('.upc-hsa'), pretax: v('.upc-pre'), state: code, stateRate: v('.upc-rate') };
+    const r = paycheck(inp);
+    const empty = r.gross <= 0, huge = r.gross > 1e9;
+    q('.upc-line').textContent = empty ? 'Type your pay above to see your take-home pay.'
+      : huge ? 'That is a very large number. Check for an extra zero.'
+      : `On ${$(r.gross)} a year in ${st.name} you take home ${$(r.takeHome / n)} a paycheck (${$(r.takeHome)} a year). Taxes take ${pct(taxShare(r))} of your pay.`;
+    q('.upc-next').textContent = empty || huge ? '' : (() => { const x = nextExtra(inp, 1000, pctMode ? kv : undefined); return `Your next $1,000 of pay: you keep ${$(x.keep)} and ${$(x.taken)} goes to tax. Your federal bracket is ${pct(r.marginalFed)}, and Social Security and Medicare add 7.65% (to $184,500 of pay).`; })();
+    const cbox = q<HTMLInputElement>('.upc-cmp'), cout = q('.upc-cmpout'), cv = num(cbox.value);
+    cout.hidden = !(cbox.value.trim() && cv > 0 && !empty);
+    if (!cout.hidden) {
+      const c = paycheck({ ...inp, gross: cv, k401: pctMode ? cv * kv / 100 : kv });
+      const d = c.takeHome - r.takeHome;
+      cout.textContent = `At ${$(cv)} a year you would take home ${$(c.takeHome / n)} a paycheck (${$(c.takeHome)} a year), ${$(Math.abs(d))} a year ${d >= 0 ? 'more' : 'less'} than now.`;
+    }
     q('.upc-per').textContent = $(r.takeHome / n);
     q('.upc-year').textContent = $(r.takeHome);
     q('.upc-month').textContent = $(r.takeHome / 12);

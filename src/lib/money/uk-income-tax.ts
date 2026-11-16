@@ -89,3 +89,20 @@ export function ukTax(inp: Input): Result {
     marginal: ((up.tax + up.ni + up.loans) - (c.tax + c.ni + c.loans)) / 100,
   };
 }
+
+// ---- Extras: pay periods, hourly pay, "next £1,000", comparing two salaries ----
+export const PERIODS: Record<string, [string, number]> = {
+  weekly: ['Every week', 52], fourweekly: ['Every four weeks', 13], monthly: ['Every month', 12], daily: ['Each working day (260 a year)', 260],
+};
+/** Yearly pay from an hourly wage (52 weeks). Never negative or NaN. */
+export const hourlyToYear = (rate: number, hoursPerWeek: number) => r2(pos(rate || 0) * pos(hoursPerWeek || 0) * 52);
+/** Pension from a percentage or a pounds amount; never above salary. */
+export const pensionAmount = (salary: number, value: number, pct: boolean) => pos(pct ? (pos(salary) * pos(value)) / 100 : value);
+/** What an extra amount of salary does to take-home pay; a percentage pension grows with the salary when pct is given. */
+export function nextExtra(inp: Input, extra = 1000, pensionPct?: number) {
+  const a = ukTax(inp);
+  const s = pos(inp.salary) + extra;
+  const b = ukTax({ ...inp, salary: s, pension: pensionPct === undefined ? inp.pension : (s * pensionPct) / 100 });
+  const keep = r2(b.takeHome - a.takeHome);
+  return { keep, taken: r2(extra - keep), share: extra > 0 ? keep / extra : 0 };
+}

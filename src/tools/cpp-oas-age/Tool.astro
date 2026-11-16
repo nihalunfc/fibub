@@ -12,6 +12,16 @@
       <label>Plan to age <input data-k="life" inputmode="decimal" value="90" /></label>
       <label>Net income a year in retirement <span class="co-suf"><input data-k="inc" inputmode="decimal" value="60,000" /><i>$</i></span></label>
     </div>
+    <details class="co-more"><summary>More options: months, birth date, maximum CPP</summary>
+      <div class="co-grid" style="margin-top:10px">
+        <label>CPP start: plus months <select data-k="cmo"></select></label>
+        <label>OAS start: plus months <select data-k="omo"></select></label>
+        <label>Date of birth (to see the start months) <input type="date" data-k="dob" /></label>
+        <label>Quick fill for CPP at 65 <button type="button" class="btn secondary co-max">Use the 2026 maximum ($1,507.65)</button></label>
+      </div>
+      <p class="co-fine">Months fine-tune the start age (CPP 0.6% less per month early, 0.7% more per month late; OAS 0.6% more per month late; both stop at 70). The maximum is what someone who paid in the most for years gets at 65; most people get less, so use your own statement if you have it. The start month is usually the month after your birthday: check the official source.</p>
+      <p class="co-fine co-dates"></p>
+    </details>
     <p class="note bad co-err" role="alert" hidden></p>
   </section>
   <section class="co-res" aria-live="polite">
@@ -21,7 +31,15 @@
       <div><span>Both, a year</span><b class="co-s-yr"></b></div>
       <div><span>OAS clawback a year</span><b class="co-s-claw"></b></div>
     </div>
-    <p class="co-line"></p>
+    <p class="co-line co-main" aria-live="polite"></p>
+    <div class="panel">
+      <h2>Total received by age</h2>
+      <div class="co-wrap"><table>
+        <thead><tr><th>CPP start</th><th class="co-a1"></th><th class="co-a2"></th><th class="co-a3"></th><th class="co-a4"></th></tr></thead>
+        <tbody class="co-tt"></tbody>
+      </table></div>
+      <p class="co-fine">CPP and OAS together, if you start OAS at the age chosen above. In today's dollars, before tax.</p>
+    </div>
     <div class="panel">
       <h2>CPP by start age</h2>
       <div class="co-wrap"><table>
@@ -70,7 +88,7 @@
 </style>
 
 <script>
-  import { cppFactor, oasFactor, breakEven, breakEvenOas, totalTo, clawback, OAS_MAX_65 } from '../../lib/money/cpp-oas-age';
+  import { cppFactor, oasFactor, breakEven, breakEvenOas, totalTo, clawback, OAS_MAX_65, CPP_MAX_65, ageYM, monthAtAge, totalsAt } from '../../lib/money/cpp-oas-age';
   import { num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.co')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -78,11 +96,14 @@
   const $ = (n: number, d = 0) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: d, maximumFractionDigits: d });
   const ages = (a: number) => Array.from({ length: 71 - a }, (_, i) => a + i);
   q('[data-k="cage"]').innerHTML = ages(60).map((a) => `<option${a === 65 ? ' selected' : ''}>${a}</option>`).join('');
+  q('[data-k="cmo"]').innerHTML = q('[data-k="omo"]').innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i}">${i}</option>`).join('');
+  q('.co-max').addEventListener('click', () => { f('cpp').value = String(CPP_MAX_65); run(); });
   q('[data-k="oage"]').innerHTML = ages(65).map((a) => `<option${a === 65 ? ' selected' : ''}>${a}</option>`).join('');
   const be = (a: number, fa: number, b: number, fb: number, oas = false) => { const x = oas ? breakEvenOas(a, fa, b, fb) : breakEven(a, fa, b, fb); return x === null ? '-' : `age ${x.toFixed(1)}`; };
   function run() {
     const cpp = num(f('cpp').value), res = num(f('res').value), life = num(f('life').value), inc = num(f('inc').value);
-    const cage = +f('cage').value, oage = +f('oage').value;
+    const cage0 = +f('cage').value, oage0 = +f('oage').value;
+    const cage = ageYM(cage0, +f('cmo').value, 60), oage = ageYM(oage0, +f('omo').value, 65);
     const bad = !(cpp > 0 && cpp < 5000) ? 'Enter your CPP at 65 as a monthly amount, for example 1,000.' : !(res >= 10 && res <= 60) ? 'OAS needs at least 10 years in Canada after 18; enter 10 to 40 or more.' : !(life > 65 && life <= 110) ? 'Enter an age to plan to, from 66 to 110.' : inc < 0 ? 'Income cannot be negative.' : '';
     q('.co-err').hidden = !bad; q('.co-err').textContent = bad; q('.co-res').hidden = !!bad;
     if (bad) return;
@@ -95,9 +116,15 @@
     q('.co-s-claw').textContent = claw > 0 ? $(claw) : 'None';
     const tot = `Total by ${Math.round(life * 10) / 10}`;
     root.querySelectorAll('.co-tot-h').forEach((h) => (h.textContent = tot));
-    q('.co-line').textContent = (claw > 0 ? `With ${$(inc)} of net income, ${$(claw)} of your OAS is paid back each year (15% of income above $95,323). ` : '') + (cage > 65 ? `Waiting until ${cage} pays more in total than starting at 65 if you live past ${be(65, 1, cage, cppFactor(cage)).replace('age ', '')}.` : cage < 65 ? `Starting at ${cage} pays more in total than waiting until 65 unless you live past ${be(cage, cppFactor(cage), 65, 1).replace('age ', '')}.` : 'Change the start ages to compare.');
-    q('.co-cpp').innerHTML = ages(60).map((a) => { const k = cppFactor(a); return `<tr${a === cage ? ' class="on"' : ''}><td>${a}</td><td>${$(cpp * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : a > 65 ? be(65, 1, a, k) : be(a, k, 65, 1)}</td><td>${$(totalTo(cpp * k, a, life))}</td></tr>`; }).join('');
-    q('.co-oas').innerHTML = ages(65).map((a) => { const k = oasFactor(a); return `<tr${a === oage ? ' class="on"' : ''}><td>${a}</td><td>${$(oas65 * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : be(65, 1, a, k, true)}</td><td>${$(totalTo(oas65 * k, a, life, true))}</td></tr>`; }).join('');
+    q('.co-main').textContent = (claw > 0 ? `With ${$(inc)} of net income, ${$(claw)} of your OAS is paid back each year (15% of income above $95,323). ` : '') + (cage > 65 ? `Waiting until ${cage} pays more in total than starting at 65 if you live past ${be(65, 1, cage, cppFactor(cage)).replace('age ', '')}.` : cage < 65 ? `Starting at ${cage} pays more in total than waiting until 65 unless you live past ${be(cage, cppFactor(cage), 65, 1).replace('age ', '')}.` : 'Change the start ages to compare.');
+    const ts = [60, 65, 70, cage].filter((a, i, arr) => arr.indexOf(a) === i).sort((x, y) => x - y);
+    const ats = [70, 75, 80, 90];
+    q('.co-a1').textContent = 'By 70'; q('.co-a2').textContent = 'By 75'; q('.co-a3').textContent = 'By 80'; q('.co-a4').textContent = 'By 90';
+    q('.co-tt').innerHTML = ts.map((a) => { const c = totalsAt(cpp * cppFactor(a), a, ats), o = totalsAt(oasM, oage, ats, true); return `<tr${a === cage ? ' class="on"' : ''}><td>${Math.round(a * 100) / 100}</td>${c.map((x, i) => `<td>${$(x.total + o[i].total)}</td>`).join('')}</tr>`; }).join('');
+    const dob = f('dob').value, mc = monthAtAge(dob, cage), mo = monthAtAge(dob, oage);
+    q('.co-dates').textContent = mc && mo ? `With your birth date, the earliest months are about ${mc} for CPP and ${mo} for OAS (the month after the birthday; check the official source).` : '';
+    q('.co-cpp').innerHTML = ages(60).map((a) => { const k = cppFactor(a); return `<tr${a === cage0 ? ' class="on"' : ''}><td>${a}</td><td>${$(cpp * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : a > 65 ? be(65, 1, a, k) : be(a, k, 65, 1)}</td><td>${$(totalTo(cpp * k, a, life))}</td></tr>`; }).join('');
+    q('.co-oas').innerHTML = ages(65).map((a) => { const k = oasFactor(a); return `<tr${a === oage0 ? ' class="on"' : ''}><td>${a}</td><td>${$(oas65 * k, 2)}</td><td>${Math.round(k * 1000) / 10}%</td><td>${a === 65 ? '-' : be(65, 1, a, k, true)}</td><td>${$(totalTo(oas65 * k, a, life, true))}</td></tr>`; }).join('');
   }
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();

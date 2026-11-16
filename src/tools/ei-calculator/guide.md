@@ -13,12 +13,13 @@ ads: false
 order: 1973
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [canada-income-tax, hourly-salary, budget-calculator, cpp-oas-age, tax-residency-days]
 sources:
   - "Hours needed by regional unemployment rate, qualifying period, job-separation reasons and violation table: ESDC, EI regular benefits: Do you qualify, https://www.canada.ca/en/services/benefits/ei/ei-regular-benefit/eligibility.html (page modified 2026-10-15, checked 2026-11-10)"
   - "Benefit rate 55%, maximum insurable earnings $68,900 and maximum weekly benefit $729 for 2026, best weeks (14 to 22), Family Supplement: ESDC, EI regular benefits: How much you could receive, https://www.canada.ca/en/services/benefits/ei/ei-regular-benefit/benefit-amount.html (page modified 2026-10-19, checked 2026-11-10)"
   - "Weeks of benefits (14 to 45): Employment Insurance Act, Schedule I, Table of Weeks of Benefits, https://laws.justice.gc.ca/eng/acts/E-5.6/ (current to 2026-10-19, checked 2026-11-10)"
+  - "Working while on claim (keep 50 cents of benefit per dollar earned, up to 90% of the weekly insurable earnings your rate is based on, then dollar for dollar): ESDC, EI regular benefits: While on EI, https://www.canada.ca/en/services/benefits/ei/ei-regular-benefit/while-receiving.html (modified 2026-10-19, checked 2026-11-16); check the official source"
   - "Regional unemployment rates for 8 November to 5 December 2026, 62 EI economic regions: ESDC, https://srv129.services.gc.ca/rbin/eng/rates_cur.aspx (checked 2026-11-10)"
   - "Temporary measures (no waiting week, separation money not counted, most recent separation only, 20 extra weeks for long-tenured workers): Service Canada, https://www.canada.ca/en/services/benefits/ei/temporary-measures-for-major-economic-conditions.html (modified 2026-10-06), and Pilot Project No. 25, Canada Gazette Part II, SOR/2026-203, https://gazette.gc.ca/rp-pr/p2/2026/2026-10-07/html/sor-dors203-eng.html (checked 2026-11-10)"
   - "Seasonal workers pilot (up to 5 extra weeks in 13 regions, claims to 24 October 2026): Service Canada, https://www.canada.ca/en/employment-social-development/corporate/portfolio/service-canada/ei-seasonal-workers.html (modified 2024-12-05, checked 2026-11-10)"
@@ -65,6 +66,10 @@ EI is for anyone who worked in insurable employment in Canada: citizens, permane
 - **Waiting week**: normally one unpaid week. It is waived for claims starting 30 March 2025 to 9 October 2027.
 - **Type of work**: seasonal workers in 13 regions may get up to 5 extra weeks; teachers usually cannot claim during the summer break; self-employed fishers qualify on fishing earnings; other self-employed people can get only special benefits.
 - **Change the rules**: every rate, threshold, table row and date can be edited, so the tool still works when the rules change before we update it.
+
+## More options
+
+Under the result, open **More options** for three extras that follow your numbers. First, how EI is paid: every two weeks, so about twice the weekly benefit each time, plus a rough monthly figure and the dates your benefits would run from your claim date. Second, **working while on EI**: type what you would earn in a week and see the benefit you would still get, using the rule on canada.ca (you keep 50 cents of benefit per dollar earned, up to 90% of the weekly insurable earnings your rate is based on, then dollar for dollar; check the official source and always report your earnings). Third, two **what-if tables**: weeks of benefits at different insurable hours for your region's rate, and the weekly benefit at different weekly pay. If the hours box is blank, the result asks for it instead of showing a number.
 
 ## Worked example
 

@@ -1,5 +1,5 @@
 // #1725 Canada tax
-import { canadaTax } from '../../src/lib/money/canada-income-tax.ts';
+import { canadaTax, nextExtra, compareIncome, rrspSaving, hourlyToYear } from '../../src/lib/money/canada-income-tax.ts';
 export const path = '/money/canada-income-tax/';
 export default async ({ page, check, BASE }) => {
   // Hand-worked cases (2026 figures from CRA T4127 and canada.ca, worked out by hand in the builder's notes).
@@ -19,4 +19,24 @@ export default async ({ page, check, BASE }) => {
   await page.fill('.cit-emp', '100000');
   await page.waitForTimeout(100);
   check((await page.textContent('.cit-body')).includes('6,470.38'), 'canada-income-tax: switching to Alberta 100k updates the table');
+
+  // More options: next $1,000, comparison, RRSP saving, hourly pay, pay periods, slider, blank input.
+  const nx = nextExtra({ prov: 'ON', employment: 60000, other: 0, rrsp: 0 }, 1000);
+  check(near(nx.keep + nx.taken, 1000) && nx.keep > 600 && nx.keep < 700, `canada-income-tax: next $1,000 keeps about 64% in Ontario at 60k (got ${nx.keep})`);
+  const cm = compareIncome({ prov: 'ON', employment: 60000, other: 0, rrsp: 0 }, 70000);
+  check(cm.takeHomeDiff > 0 && cm.takeHomeDiff < 10000 && near(cm.grossDiff, 10000), 'canada-income-tax: comparing 70k with 60k keeps less than the 10k raise');
+  check(rrspSaving({ prov: 'ON', employment: 60000, other: 0, rrsp: 5000 }) > 1000 && hourlyToYear(30, 40) === 62400 && hourlyToYear(-5, 40) === 0, 'canada-income-tax: RRSP saving, hourly to year, negative hourly gives 0');
+  check(!Number.isNaN(canadaTax({ prov: 'ON', employment: NaN, other: -5, rrsp: 0 }).takeHome), 'canada-income-tax: blank or negative input never gives NaN');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.selectOption('.cit-prov', 'ON');
+  await page.fill('.cit-emp', '60000'); await page.waitForTimeout(100);
+  check((await page.textContent('.cit-line')).includes('47,339.75') && (await page.textContent('.cit-next')).includes('next $1,000'), 'canada-income-tax: plain sentence and next $1,000 line show');
+  await page.selectOption('.cit-per', 'monthly'); await page.waitForTimeout(100);
+  check((await page.textContent('.cit-per-t')).includes('month') && (await page.textContent('.cit-bi')).includes('3,944.98'), 'canada-income-tax: pay period switch shows the monthly amount');
+  await page.fill('.cit-cmp', '70000'); await page.waitForTimeout(100);
+  check(await page.isVisible('.cit-cmpout'), 'canada-income-tax: compare box shows a sentence');
+  await page.selectOption('.cit-unit', 'hour'); await page.fill('.cit-hrate', '30'); await page.waitForTimeout(100);
+  check((await page.textContent('.cit-line')).includes('62,400'), 'canada-income-tax: hourly wage 30 x 40 hours = 62,400 a year');
+  await page.selectOption('.cit-unit', 'year'); await page.fill('.cit-emp', ''); await page.waitForTimeout(100);
+  check((await page.textContent('.cit-line')).includes('Type your pay') && !(await page.textContent('.cit-res')).includes('NaN'), 'canada-income-tax: blank pay gives a friendly message, no NaN');
 };

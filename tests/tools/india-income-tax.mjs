@@ -1,5 +1,5 @@
 // #1726 India tax
-import { indiaTax } from '../../src/lib/money/india-income-tax.ts';
+import { indiaTax, breakEven, yearly, nextExtra } from '../../src/lib/money/india-income-tax.ts';
 export const path = '/money/india-income-tax/';
 export default async ({ page, check, BASE }) => {
   // Hand-worked cases, FY 2026-27 slabs (Income Tax Department tax rates; PIB Budget 2025 and 2026 releases).
@@ -18,4 +18,21 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.iit-col[data-reg=old] .iit-tot')).includes('2,02,800'), 'india-income-tax: page shows old regime 2,02,800');
   await page.fill('.iit-sal', '1275000'); await page.waitForTimeout(100);
   check((await page.textContent('.iit-col[data-reg=new] .iit-tot')).trim() === '₹0', 'india-income-tax: typing 12,75,000 gives zero new-regime tax');
+
+  // More options.
+  const en = indiaTax({ ...b, salary: 1500000, employerNps: 100000, basic: 600000 });
+  check(en.new.taxable === 1341000 && en.old.taxable === 1390000, `india-income-tax: employer NPS capped at 14% (new) and 10% (old) of basic (got ${en.new.taxable}, ${en.old.taxable})`);
+  check(breakEven({ ...b, salary: 1500000, c80: 150000, d80: 25000 }) === 369000 && breakEven({ ...b, salary: 0 }) === 0, 'india-income-tax: break-even deductions for the 15 lakh example is 3,69,000');
+  const tta = indiaTax({ ...b, salary: 1000000, other: 30000, savingsInterest: 30000 });
+  const e80 = indiaTax({ ...b, salary: 1000000, eduLoan: 100000 });
+  check(tta.old.deductions.some((d) => d.label.includes('80TTA') && d.amount === 10000) && e80.old.deductions.some((d) => d.label.includes('80E') && d.amount === 100000), 'india-income-tax: 80TTA capped at 10,000, 80E uncapped');
+  check(yearly(125000) === 1500000 && yearly(NaN) === 0 && nextExtra({ ...b, salary: 1500000 }, 100000).new === 15600, 'india-income-tax: monthly to yearly and next 1,00,000');
+  check(!Number.isNaN(indiaTax({ ...b, salary: NaN, other: -4 }).new.total), 'india-income-tax: blank salary never gives NaN');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.fill('.iit-sal', '1500000'); await page.fill('.iit-80c', '150000'); await page.fill('.iit-80d', '25000'); await page.waitForTimeout(100);
+  check((await page.textContent('.iit-be')).includes('3,69,000'), 'india-income-tax: page shows the break-even deductions');
+  await page.selectOption('.iit-unit', 'month'); await page.fill('.iit-sal', '125000'); await page.waitForTimeout(100);
+  check((await page.textContent('.iit-col[data-reg=new] .iit-tot')).includes('97,500'), 'india-income-tax: monthly 1,25,000 equals yearly 15 lakh');
+  await page.selectOption('.iit-unit', 'year'); await page.fill('.iit-sal', ''); await page.waitForTimeout(100);
+  check((await page.textContent('.iit-verdict')).includes('Type your salary') && !(await page.textContent('.iit-res')).includes('NaN'), 'india-income-tax: blank salary gives a friendly message, no NaN');
 };

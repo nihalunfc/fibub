@@ -8,13 +8,21 @@
       <textarea data-k="tx" spellcheck="false"></textarea></label>
     <div class="cg-grid" style="margin-top:12px">
       <label>Currency <select class="cg-cur" data-k="cur"></select></label>
-      <label>Cost method <select data-k="method"><option value="average">Average cost (Canada ACB)</option><option value="fifo">First in, first out (FIFO)</option></select></label>
+      <label>Cost method <select data-k="method"><option value="average">Average cost (Canada ACB)</option><option value="fifo">First in, first out (FIFO)</option><option value="lifo">Last in, first out (LIFO)</option><option value="hifo">Highest cost first (HIFO)</option></select></label>
       <label>Taxable share of a gain (%) <input data-k="incl" inputmode="decimal" /></label>
     </div>
     <p class="cg-fine">The taxable share is the part of a gain that counts as income. Canada's capital gains inclusion rate is 50% (see <a href="https://www.canada.ca/en/revenue-agency/services/tax/individuals/topics/about-your-tax-return/tax-return/completing-a-tax-return/personal-income/line-12700-capital-gains.html" rel="noopener">canada.ca, capital gains</a>); rules change, so check the official source and edit the number if needed. Set it to 100 to see the plain gain.</p>
+    <details class="cg-more"><summary>More options: yearly tax-free amount, tax rate, long and short term</summary>
+      <div class="cg-grid" style="margin-top:10px">
+        <label>Yearly tax-free amount (optional) <input data-k="free" inputmode="decimal" placeholder="0" /></label>
+        <label>Your tax rate on the taxable part, % (optional) <input data-k="rate" inputmode="decimal" placeholder="leave blank to skip" /></label>
+      </div>
+      <p class="cg-fine">A tax-free amount (some countries give one each year) is taken off a year's net gain before the taxable share. The tax rate is yours to type; the tool knows no rates, so check the official source for your country and year. With FIFO, LIFO or HIFO each gain is also split into units held more than a year and a year or less, because some countries tax those differently.</p>
+    </details>
     <p class="note bad cg-err" role="alert" hidden></p>
   </section>
-  <section class="cg-res" aria-live="polite">
+  <section class="cg-res">
+    <p class="cg-answer" aria-live="polite"></p>
     <div class="cg-stats">
       <div><span>Total proceeds</span><b class="cg-s-p"></b></div>
       <div><span>Total cost</span><b class="cg-s-c"></b></div>
@@ -22,11 +30,11 @@
       <div><span>Taxable part</span><b class="cg-s-t"></b></div>
     </div>
     <div class="panel cg-wrap"><h2>Each sale</h2><table>
-      <thead><tr><th>Date</th><th>Name</th><th>Quantity</th><th>Proceeds</th><th>Cost</th><th>Gain or loss</th></tr></thead>
+      <thead><tr><th>Date</th><th>Name</th><th>Quantity</th><th>Proceeds</th><th>Cost</th><th>Cost per unit</th><th>Gain or loss</th></tr></thead>
       <tbody class="cg-body"></tbody>
     </table></div>
     <div class="panel cg-wrap"><h2>By year</h2><table>
-      <thead><tr><th>Year</th><th>Proceeds</th><th>Cost</th><th>Gain or loss</th><th>Taxable part</th></tr></thead>
+      <thead><tr><th>Year</th><th>Proceeds</th><th>Cost</th><th>Gain or loss</th><th class="cg-lt">Over a year</th><th class="cg-lt">Year or less</th><th>Taxable part</th><th class="cg-tx">Estimated tax</th></tr></thead>
       <tbody class="cg-years"></tbody>
     </table></div>
     <button type="button" class="btn secondary cg-csv">Download the sales (CSV)</button>
@@ -58,13 +66,15 @@
   .cg th:first-child, .cg td:first-child { text-align: left; }
   .cg th { font-size: 12px; color: var(--muted); font-weight: 600; }
   .cg td input { padding: 6px 8px; }
+  .cg-answer { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .cg-more summary { cursor: pointer; font-size: 14px; color: var(--muted); }
   .cg-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .cg-err { margin: 10px 0 0; }
   .cg .btn { justify-self: start; }
 </style>
 
 <script>
-  import { parseTx, gains, type Sale } from '../../lib/money/investing';
+  import { parseTx, gains, summarize, type Sale, type CostMethod } from '../../lib/money/investing';
   import { csv } from '../../lib/money/growth';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.cg')!;
@@ -74,26 +84,34 @@
   f('incl').value = '50';
   f('tx').value = '2022-01-10, ABC, buy, 100, 10, 0\n2023-03-05, ABC, buy, 100, 20, 0\n2024-06-20, ABC, sell, 100, 25, 0';
   let sales: Sale[] = [];
+  const esc = (t: string) => t.replace(/[<>&"]/g, '');
   function run() {
     const $ = (n: number) => money(n, f('cur').value, 2), incl = num(f('incl').value);
+    const free = f('free').value.trim() === '' ? 0 : num(f('free').value), rateTxt = f('rate').value.trim(), rate = rateTxt === '' ? null : num(rateTxt);
+    const method = f('method').value as CostMethod;
     const p = parseTx(f('tx').value);
     let bad = p.error;
     if (!bad && !p.tx.length) bad = 'Type or paste your trades.';
     if (!bad && !(incl >= 0 && incl <= 100)) bad = 'The taxable share should be between 0 and 100.';
+    if (!bad && !(free >= 0 && Number.isFinite(free))) bad = 'The tax-free amount should be 0 or more, or blank.';
+    if (!bad && rate !== null && !(rate >= 0 && rate <= 100)) bad = 'The tax rate should be between 0 and 100, or blank.';
     let g = { sales: [] as Sale[], error: '' };
-    if (!bad) { g = gains(p.tx, f('method').value as 'average' | 'fifo'); bad = g.error; }
+    if (!bad) { g = gains(p.tx, method); bad = g.error; }
     if (!bad && !g.sales.length) bad = 'No sales yet: add a line with sell to see a gain.';
     q('.cg-err').hidden = !bad; q('.cg-err').textContent = bad; q('.cg-res').hidden = !!bad;
     if (bad) return;
     sales = g.sales;
-    const sum = (a: Sale[], k: 'proceeds' | 'cost' | 'gain') => a.reduce((s, x) => s + x[k], 0);
-    q('.cg-s-p').textContent = $(sum(sales, 'proceeds')); q('.cg-s-c').textContent = $(sum(sales, 'cost'));
-    q('.cg-s-g').textContent = $(sum(sales, 'gain')); q('.cg-s-t').textContent = $((sum(sales, 'gain') * incl) / 100);
-    q('.cg-body').innerHTML = sales.map((s) => `<tr><td>${s.date}</td><td>${s.symbol.replace(/[<&]/g, '')}</td><td>${Math.round(s.qty * 1e6) / 1e6}</td><td>${$(s.proceeds)}</td><td>${$(s.cost)}</td><td>${$(s.gain)}</td></tr>`).join('');
-    const years = [...new Set(sales.map((s) => s.date.slice(0, 4)))];
-    q('.cg-years').innerHTML = years.map((y) => { const a = sales.filter((s) => s.date.startsWith(y)); return `<tr><td>${y}</td><td>${$(sum(a, 'proceeds'))}</td><td>${$(sum(a, 'cost'))}</td><td>${$(sum(a, 'gain'))}</td><td>${$((sum(a, 'gain') * incl) / 100)}</td></tr>`; }).join('');
+    const { years, total } = summarize(sales, incl, free, rate);
+    const lots = method !== 'average';
+    q('.cg-s-p').textContent = $(total.proceeds); q('.cg-s-c').textContent = $(total.cost);
+    q('.cg-s-g').textContent = $(total.gain); q('.cg-s-t').textContent = $(total.taxable);
+    q('.cg-answer').textContent = `${total.gain < 0 ? 'Net loss' : 'Net gain'} of ${$(Math.abs(total.gain))} on ${sales.length} sale${sales.length === 1 ? '' : 's'}; taxable part ${$(total.taxable)}` + (total.estTax !== null ? `; estimated tax ${$(total.estTax)}` : '') + (total.gain < 0 ? '. A loss has no taxable part here, but many countries let you use it against other gains.' : '.');
+    q('.cg-body').innerHTML = sales.map((s) => `<tr><td>${s.date}</td><td>${esc(s.symbol)}</td><td>${Math.round(s.qty * 1e6) / 1e6}</td><td>${$(s.proceeds)}</td><td>${$(s.cost)}</td><td>${$(s.unitCost || 0)}</td><td>${$(s.gain)}</td></tr>`).join('');
+    root.querySelectorAll<HTMLElement>('.cg-lt').forEach((e) => (e.hidden = !lots));
+    q('.cg-tx').hidden = rate === null;
+    q('.cg-years').innerHTML = years.map((y) => `<tr><td>${y.year}</td><td>${$(y.proceeds)}</td><td>${$(y.cost)}</td><td>${$(y.gain)}</td>${lots ? `<td>${$(y.longGain || 0)}</td><td>${$(y.shortGain || 0)}</td>` : ''}<td>${$(y.taxable)}</td>${rate === null ? '' : `<td>${$(y.estTax || 0)}</td>`}</tr>`).join('');
   }
-  q('.cg-csv').addEventListener('click', () => csv('capital-gains.csv', ['Date', 'Name', 'Quantity', 'Proceeds', 'Cost', 'Gain'], sales.map((s) => [s.date, s.symbol, s.qty, s.proceeds, s.cost, s.gain])));
+  q('.cg-csv').addEventListener('click', () => csv('capital-gains.csv', ['Date', 'Name', 'Quantity', 'Proceeds', 'Cost', 'Cost per unit', 'Gain'], sales.map((s) => [s.date, s.symbol, s.qty, s.proceeds, s.cost, s.unitCost || 0, s.gain])));
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();
 </script>

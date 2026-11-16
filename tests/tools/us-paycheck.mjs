@@ -1,5 +1,5 @@
 // #1785 US paycheck
-import { paycheck } from '../../src/lib/money/us-paycheck.ts';
+import { paycheck, nextExtra, taxShare, hourlyToYear } from '../../src/lib/money/us-paycheck.ts';
 export const path = '/money/us-paycheck/';
 export default async ({ page, check, BASE }) => {
   // Hand-worked with IRS Rev. Proc. 2025-32 and SSA 2026 figures.
@@ -20,4 +20,18 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.upc-per')).includes('2,256.44'), 'us-paycheck: Texas has no state tax');
   await page.selectOption('.upc-state', 'CA'); await page.waitForTimeout(100);
   check(await page.isVisible('.upc-rate') && (await page.textContent('.upc-snote')).includes('estimate'), 'us-paycheck: other states show an editable effective rate marked as an estimate');
+
+  // More options.
+  const tx = { ...b, k401: 0, state: 'TX' };
+  const nx = nextExtra(tx, 1000);
+  check(near(nx.keep, 703.5) && near(nx.taken, 296.5), `us-paycheck: next 1,000 at 75k single Texas keeps 703.50 (22% + 7.65%) (got ${nx.keep})`);
+  check(Math.abs(taxShare(paycheck(tx)) - 0.178767) < 0.0001 && hourlyToYear(25, 40) === 52000 && hourlyToYear(-1, 40) === 0, 'us-paycheck: tax share and hourly to year');
+  check(!Number.isNaN(paycheck({ ...b, gross: NaN, children: -2 }).takeHome), 'us-paycheck: blank pay never gives NaN');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.selectOption('.upc-state', 'TX'); await page.fill('.upc-pay', '75000'); await page.fill('.upc-k', '0'); await page.waitForTimeout(100);
+  check((await page.textContent('.upc-line')).includes('Taxes take 17.9%') && (await page.textContent('.upc-next')).includes('703.50'), 'us-paycheck: plain sentence and next $1,000 line');
+  await page.fill('.upc-cmp', '95000'); await page.waitForTimeout(100);
+  check(await page.isVisible('.upc-cmpout'), 'us-paycheck: compare box shows a sentence');
+  await page.fill('.upc-pay', ''); await page.waitForTimeout(100);
+  check((await page.textContent('.upc-line')).includes('Type your pay') && !(await page.textContent('.upc-res')).includes('NaN'), 'us-paycheck: blank pay gives a friendly message, no NaN');
 };

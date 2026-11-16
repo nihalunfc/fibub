@@ -12,7 +12,7 @@ ads: true
 order: 1727
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [canada-income-tax, budget-calculator, loan-payoff-planner]
 sources:
   - "Personal allowance, Income Tax bands for England, Northern Ireland, Wales and Scotland, Class 1 NI thresholds and rates, student and postgraduate loan thresholds and rates for 2026/27: GOV.UK, Rates and thresholds for employers 2026 to 2027, https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027 (checked 2026-11-10)"
@@ -36,6 +36,8 @@ When you know your take-home pay, plan it with the [[budget-calculator|budget pl
 2. Type your **salary** before anything comes off, and any **other taxable income** such as rent profit or a pension. Other income pays tax but no NI.
 3. Pick your **pension** type and how much goes into your pot, as a percentage of salary or pounds a year.
 4. Tick any **student loans** you repay.
+
+Under **More options** you can type an **hourly wage** and hours a week instead of a salary, choose whether the third box shows take-home **each week, four weeks, month or working day**, drag the **"What if I earned more?"** slider to add up to £50,000 of salary, or type **another salary** to see what you would really keep. A plain sentence at the top gives your take-home and the share taken by tax, NI and any loan, and a second line shows what you keep from your **next £1,000**; around £100,000 you will see why it is so little. An empty salary box gets a friendly prompt, never a row of zeros.
 
 ## What each option does
 

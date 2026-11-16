@@ -11,7 +11,7 @@ ads: true
 order: 1791
 icon: currency
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [trip-splitter, sales-tax-calculator, unit-price, tip-calculator]
 sources:
   - "Daily rates: the free exchange-api by Fawaz Ahmed (github.com/fawazahmed0/exchange-api, CC0 public domain). fibub's own server fetches it a few times a day; your browser only asks fibub.com."
@@ -44,6 +44,16 @@ It also answers the question people really have when sending money home or buyin
 - **Fee**: a fixed fee in the From currency and/or a percent of the amount, as on the offer.
 - **Use my own rate for the whole page**: replaces today's rate with yours, for an old receipt or when you are offline and know the rate.
 
+## More options
+
+- **Working:** under the answer, one line shows the sum behind it (amount × rate), so you can check it by hand or copy it into a note.
+- **Their markup % instead of a rate:** if all you know is that a card or exchange adds about 2.5%, type that instead of a rate and the tool works out the rate and what you would get.
+- **I need them to receive:** type the amount that must arrive in the To currency, for example a fee abroad. The tool says how much to send, fee included.
+- **Choose the table:** show all 22 currencies, only the popular ones, the Gulf states or South Asia, and download the table as a CSV file.
+- **Last saved rates:** when the daily rates load, your browser keeps that public rate file. If you open the page offline or the feed is down, it shows those saved rates with their date instead of rough built-in ones. Only the public rates are kept, never anything you type.
+
+An empty, zero or negative amount gets a plain message, never a broken number.
+
 ## Where the rates come from
 
 When the page opens, your browser asks **fibub.com itself** for the rates (`/api/prices`). fibub's server collects one public rate file a few times a day and passes it on, so the rate provider never sees you, and fibub sends nothing about you. The page checks every rate is a sensible number before using it. If the rates can't be loaded (no internet, or the feed is down), the page says so clearly and uses built-in rough values, which you can replace with your own rate.
@@ -64,4 +74,4 @@ A transfer service offers 61.50 INR per CAD with a 5 CAD fee. You get (1,000 −
 
 **Does it work offline?** Yes, once the page is open. If the page was opened offline, it uses the rough built-in rates and tells you; type a current rate in "Use my own rate" for a correct answer.
 
-**Is anything stored?** No. Amounts and rates you type stay on the page and disappear when you close it.
+**Is anything stored?** Nothing you type. Amounts and rates you enter stay on the page and disappear when you close it. The only thing kept is the latest public rate file, so the page has real rates when offline.

@@ -127,6 +127,19 @@
       <table><tbody class="ec-body"></tbody></table>
     </div>
     <ul class="ec-notes"></ul>
+    <details class="panel ec-wi">
+      <summary><b>More options: payments, working while on EI, what-if tables</b></summary>
+      <p class="ec-wi-pay ec-hint"></p>
+      <h3>Working while on EI</h3>
+      <label>Earnings in a week of work while on a claim (before tax) <input data-k="wwc" class="ec-wwc" inputmode="decimal" value="200" /></label>
+      <p class="ec-wwc-out ec-hint"></p>
+      <p class="ec-hint">Rule from canada.ca (While on EI, checked 2026-11-10): you keep 50 cents of your benefit for each dollar you earn, up to 90% of the weekly insurable earnings your rate is based on; above that it is deducted dollar for dollar. You must still report all earnings. Check the official source.</p>
+      <h3>Weeks of benefits at different hours (your region's rate)</h3>
+      <div class="ec-tw"><table><thead><tr><th>Insurable hours</th><th>Weeks</th></tr></thead><tbody class="ec-t-hours"></tbody></table></div>
+      <h3>Weekly benefit at different weekly pay</h3>
+      <div class="ec-tw"><table><thead><tr><th>Average weekly pay</th><th>Weekly benefit</th></tr></thead><tbody class="ec-t-pay"></tbody></table></div>
+      <p class="ec-hint">Both tables use the rates and rules above, including any custom values.</p>
+    </details>
   </section>
 
   <details class="panel ec-custom">
@@ -208,7 +221,7 @@
 
 <script>
   import { DEFAULTS, BANDS, REASONS, VIOLATION_NAMES, REGIONS, RATES_PERIOD, SEASONAL_REGIONS, PROVINCE_NAMES, CHECKED, PERIODS, ROE_CODES,
-    ei, band, fromStubs, readDocText, type Rules, type Reason, type Stub } from '../../lib/money/ei.ts';
+    ei, band, fromStubs, readDocText, workingWhileOnClaim, claimDates, weeksByHours, benefitByPay, type Rules, type Reason, type Stub } from '../../lib/money/ei.ts';
   const root = document.querySelector('.ec') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const qa = <T extends HTMLElement = HTMLElement>(s: string) => [...root.querySelectorAll(s)] as T[];
@@ -380,6 +393,7 @@
     q('.ec-rnote').textContent = REASONS[reason].note + (r.lastSepOnly && REASONS[reason].ok ? ' For claims from 11 October 2026 to 9 October 2027, only your most recent job loss is looked at, so an earlier quit does not stop the claim.' : '');
 
     const v = q('.ec-verdict');
+    const blank = !(hours > 0) && work !== 'fisher';
     const why: string[] = [];
     if (work === 'self') why.push('self-employed people cannot get regular benefits');
     if (!r.hoursOk) why.push(work === 'fisher' ? `you need ${$(r.fishingNeeded)} of fishing earnings` : `you need ${r.needed.toLocaleString('en-CA')} insurable hours and have ${Math.round(hours).toLocaleString('en-CA')}`);
@@ -390,7 +404,8 @@
       : r.eligible === null ? 'You may qualify, if Service Canada accepts that you had just cause to leave. The numbers below assume it does.'
       : `You are unlikely to qualify right now: ${why.join('; ')}.`;
 
-    const show = r.eligible !== false;
+    if (blank) v.textContent = 'Type your insurable hours (the paid hours on your ROE) to see the result.';
+    const show = r.eligible !== false && !blank;
     q('.ec-weekly').textContent = show ? $(r.weekly) : '–';
     q('.ec-weeks').textContent = show ? String(r.weeks) : '–';
     q('.ec-total').textContent = show ? $(r.total) : '–';
@@ -416,6 +431,12 @@
     notes.push('Low income with children? The Family Supplement can raise the rate up to 80% if your net family income is $25,921 or less and you get the Canada Child Benefit.');
     notes.push('While on EI you can work part-time: you keep 50 cents of each dollar you earn, until you reach 90% of your previous weekly earnings.');
     notes.push('Severance, vacation pay and pay in lieu of notice do not delay or reduce benefits for claims starting by 9 October 2027 (temporary measure).');
+    const cd = show ? claimDates(date, r.waiting, r.weeks) : null;
+    q('.ec-wi-pay').textContent = show && r.weekly > 0 ? `EI is paid every two weeks: about ${$(r.weekly * 2)} each time, roughly ${$((r.weekly * 52) / 12)} a month, before tax.` + (cd ? ` With your claim date, benefits would be paid from ${fmtDate(cd.firstPaid)} to about ${fmtDate(cd.last)} if you use every week.` : '') : 'Fill in the details above to see your payments.';
+    const ww = workingWhileOnClaim(r.weekly, r.avgWeekly, num(q<HTMLInputElement>('.ec-wwc').value));
+    q('.ec-wwc-out').textContent = show && r.weekly > 0 ? `Earning ${$(num(q<HTMLInputElement>('.ec-wwc').value))} in a week: your benefit that week is ${$(ww.paid)} (${$(ww.deduction)} deducted), so you take home ${$(ww.combined)} before tax.` : '';
+    q('.ec-t-hours').innerHTML = weeksByHours(r0, [420, 600, 800, 1000, 1200, 1400, 1600, 1820, 2000], r.extra, r.longApplies ? rules.longMax : rules.maxWeeks).map((x) => `<tr><td>${x.hours.toLocaleString('en-CA')}</td><td>${x.weeks}</td></tr>`).join('');
+    q('.ec-t-pay').innerHTML = benefitByPay([400, 600, 800, 1000, 1200, 1400, 1650], rules).map((x) => `<tr><td>${$(x.pay)}</td><td>${$(x.weekly)}</td></tr>`).join('');
     q('.ec-notes').innerHTML = notes.map((n) => `<li>${esc(n)}</li>`).join('');
   }
   root.addEventListener('input', update);

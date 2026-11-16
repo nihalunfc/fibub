@@ -7,7 +7,7 @@
       <button type="button" role="tab" data-tab="plan" aria-selected="true">Trip or project</button>
       <button type="button" role="tab" data-tab="month" aria-selected="false">Monthly budget</button>
     </div>
-    <label class="bg-curl">Currency <select class="bg-cur"></select></label>
+    <label class="bg-curl">Currency <select class="bg-cur" data-k="cur"></select></label>
   </div>
 
   <!-- One-off plan -->
@@ -21,16 +21,24 @@
         <button type="button" data-tpl="purchase">Big purchase</button>
         <button type="button" data-tpl="blank">Blank</button>
       </div>
-      <label class="bg-name">Plan name <input class="p-name" type="text" maxlength="60" /></label>
+      <label class="bg-name">Plan name <input class="p-name" data-k="name" type="text" maxlength="60" /></label>
       <div class="bg-lines p-lines"></div>
       <button type="button" class="btn secondary p-add">+ Add a cost</button>
       <div class="bg-grid">
-        <label>Extra for surprises <span class="bg-suf"><input class="p-buffer" inputmode="decimal" value="10" /><i>%</i></span></label>
-        <label>Already saved <input class="p-saved" inputmode="decimal" placeholder="0" /></label>
-        <label>I want it ready by <input class="p-date" type="month" /></label>
+        <label>Extra for surprises <span class="bg-suf"><input class="p-buffer" data-k="buffer" inputmode="decimal" value="10" /><i>%</i></span></label>
+        <label>Already saved <input class="p-saved" data-k="saved" inputmode="decimal" placeholder="0" /></label>
+        <label>I want it ready by <input class="p-date" data-k="date" type="month" /></label>
       </div>
+      <details class="bg-more">
+        <summary>More options</summary>
+        <div class="bg-grid">
+          <label>People sharing the cost <input class="p-people" data-k="people" inputmode="numeric" value="1" /></label>
+        </div>
+        <button type="button" class="btn secondary p-csv">Download this plan (CSV)</button>
+      </details>
     </div>
     <div class="bg-out">
+      <p class="bg-answer p-answer" aria-live="polite"></p>
       <div class="bg-stats">
         <div><span>Total cost</span><b class="p-total"></b></div>
         <div><span>Still to save</span><b class="p-left"></b></div>
@@ -40,7 +48,7 @@
       <div class="bg-bar p-bar" aria-hidden="true"></div>
       <ul class="bg-legend p-legend"></ul>
       <div class="panel bg-alt">
-        <label>Or: I can save <input class="p-can" inputmode="decimal" placeholder="amount" /> a month</label>
+        <label>Or: I can save <input class="p-can" data-k="can" inputmode="decimal" placeholder="amount" /> a month</label>
         <p class="p-ready"></p>
       </div>
     </div>
@@ -59,6 +67,7 @@
       <button type="button" class="bg-link m-example">Fill in an example</button>
     </div>
     <div class="bg-out">
+      <p class="bg-answer m-answer" aria-live="polite"></p>
       <div class="bg-stats">
         <div><span>Money in / month</span><b class="m-inc"></b></div>
         <div><span>Money out / month</span><b class="m-exp"></b></div>
@@ -67,7 +76,7 @@
       </div>
       <div class="panel">
         <h3>Needs, wants and savings</h3>
-        <p class="bg-hint">A common guide is 50% needs, 30% wants and 20% savings. Yours:</p>
+        <p class="bg-hint m-guide">A common guide is 50% needs, 30% wants and 20% savings. Yours:</p>
         <div class="bg-split m-split"></div>
       </div>
       <div class="panel m-yearly-box">
@@ -77,19 +86,37 @@
       </div>
       <div class="panel">
         <h3>Trim your wants</h3>
-        <label class="bg-range">Cut wants by <b class="m-cutv">20%</b><input class="m-cut" type="range" min="0" max="100" step="5" value="20" /></label>
+        <label class="bg-range">Cut wants by <b class="m-cutv">20%</b><input class="m-cut" data-k="cut" type="range" min="0" max="100" step="5" value="20" /></label>
         <p class="m-cutout"></p>
       </div>
       <div class="panel">
         <h3>Watch your savings grow</h3>
         <div class="bg-grid">
-          <label>Save each month <input class="m-save" inputmode="decimal" /></label>
-          <label>Interest or growth <span class="bg-suf"><input class="m-growth" inputmode="decimal" value="4" /><i>% a year</i></span></label>
-          <label>Savings goal (optional) <input class="m-goal" inputmode="decimal" placeholder="e.g. emergency fund" /></label>
+          <label>Save each month <input class="m-save" data-k="save" inputmode="decimal" /></label>
+          <label>Interest or growth <span class="bg-suf"><input class="m-growth" data-k="growth" inputmode="decimal" value="4" /><i>% a year</i></span></label>
+          <label>Savings goal (optional) <input class="m-goal" data-k="goal" inputmode="decimal" placeholder="e.g. emergency fund" /></label>
         </div>
         <div class="bg-grow m-grow"></div>
         <p class="m-goalout"></p>
       </div>
+      <details class="panel bg-more">
+        <summary>More options</summary>
+        <div class="bg-grid">
+          <label>Compare with this guide
+            <select class="m-rule" data-k="rule"><option value="50-30-20">50 / 30 / 20 (needs, wants, savings)</option><option value="60-20-20">60 / 20 / 20 (higher living costs)</option><option value="70-20-10">70 / 20 / 10 (tight budget)</option><option value="50-20-30">50 / 20 / 30 (saving hard)</option></select>
+          </label>
+          <label class="bg-range2">I want to save <b class="m-trv">20%</b> of my income
+            <input class="m-tr-s" data-k="target-s" type="range" min="0" max="60" step="1" value="20" aria-label="Saving rate target" />
+            <span class="bg-suf"><input class="m-tr" data-k="target" inputmode="decimal" value="20" aria-label="Saving rate target in percent" /><i>%</i></span>
+          </label>
+        </div>
+        <p class="m-trout"></p>
+        <h3 class="bg-sub">Per week, month and year</h3>
+        <table class="bg-tab2"><thead><tr><th></th><th>Week</th><th>Month</th><th>Year</th></tr></thead><tbody class="m-per"></tbody></table>
+        <h3 class="bg-sub">Your biggest costs</h3>
+        <ul class="bg-list m-top"></ul>
+        <button type="button" class="btn secondary m-csv">Download my budget (CSV)</button>
+      </details>
     </div>
   </section>
 
@@ -166,6 +193,17 @@
   .bg-grow b { font-size: clamp(15px, 3vw, 20px); overflow-wrap: anywhere; }
   .bg-keep { display: flex !important; gap: 8px; align-items: center; color: var(--ink) !important; font-size: 15px !important; cursor: pointer; }
   .bg-keep input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .bg-answer { margin: 0; font-size: 17px; font-weight: 600; }
+  .bg-more { margin-top: 12px; }
+  .bg-more > summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .bg-more > .btn { margin-top: 12px; }
+  .bg-sub { margin: 16px 0 6px !important; font-size: 15px !important; }
+  .bg-range2 { display: grid; gap: 6px; color: var(--ink) !important; }
+  .bg-range2 > input[type=range] { padding: 0; accent-color: var(--accent); border: 0; background: none; }
+  .bg-tab2 { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .bg-tab2 th, .bg-tab2 td { text-align: right; padding: 6px 6px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .bg-tab2 th:first-child, .bg-tab2 td:first-child { text-align: left; }
+  .bg-tab2 th { font-size: 12px; color: var(--muted); font-weight: 600; }
   .bg-fine { margin: 0; color: var(--muted); font-size: 13px; }
   @media (max-width: 720px) {
     .bg-stats, .bg-grow { grid-template-columns: 1fr 1fr; }
@@ -185,7 +223,8 @@
 </style>
 
 <script>
-  import { FREQ, type Freq, monthly, grow, monthsTo, monthsUntil, TEMPLATES, INCOME_DEFAULT, EXPENSE_DEFAULT } from '../../lib/budget';
+  import { FREQ, type Freq, monthly, grow, monthsTo, monthsUntil, TEMPLATES, INCOME_DEFAULT, EXPENSE_DEFAULT, RULES, savingTarget, perPeriod, perPerson, costShares } from '../../lib/budget';
+  import { downloadCsv } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
 
   const KEY = 'fibub-budget-v1';
@@ -238,6 +277,14 @@
     const total = sub + buffer;
     const left = Math.max(0, total - num(val(q('.p-saved'))));
     const months = monthsUntil(val(q('.p-date')) || nextYear());
+    const people = Math.max(1, Math.floor(num(val(q('.p-people'))) || 1));
+    const rawMonths = (() => { const [y, m] = (val(q('.p-date')) || nextYear()).split('-').map(Number); const n = new Date(); return (y - n.getFullYear()) * 12 + (m - 1 - n.getMonth()); })();
+    const per = left / months;
+    q('.p-answer').textContent = !(total > 0) ? 'Type an amount next to at least one cost to see what your plan comes to.'
+      : !isFinite(total) || total > 1e13 ? 'Those numbers are too large to work with. Check the amounts.'
+      : (left === 0 ? `Your plan costs ${$(total)} and you already have it all saved.` : `Your plan costs ${$(total)}. Save ${$(per)} a month for ${months} month${months === 1 ? '' : 's'} to have the rest.`)
+        + (people > 1 ? ` That is ${$(perPerson(total, people))} each for ${people} people${left > 0 ? `, or ${$(perPerson(per, people))} a month each` : ''}.` : '')
+        + (rawMonths < 1 ? ' (The month you picked is not in the future, so this is worked out over one month.)' : '');
     q('.p-total').textContent = $(total);
     q('.p-left').textContent = $(left);
     q('.p-month').textContent = $(left / months);
@@ -254,18 +301,34 @@
   const nextYear = () => { const d = new Date(); d.setMonth(d.getMonth() + 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
   // ---------- monthly budget ----------
+  function csvRows() {
+    const lines = rows('.m-in').filter((l) => l.amount > 0), outs = rows('.m-out').filter((l) => l.amount > 0);
+    const inc = lines.reduce((s, l) => s + monthly(l.amount, l.f), 0);
+    const r: (string | number)[][] = [['Type', 'Name', 'Amount', 'How often', 'Per month', '% of income']];
+    lines.forEach((l) => r.push(['Income', l.name, l.amount, FREQ[l.f].label, +monthly(l.amount, l.f).toFixed(2), '']));
+    outs.forEach((l) => { const m = monthly(l.amount, l.f); r.push([l.kind === 'want' ? 'Want' : 'Need', l.name, l.amount, FREQ[l.f].label, +m.toFixed(2), inc > 0 ? +((m / inc) * 100).toFixed(1) : '']); });
+    const out = outs.reduce((s, l) => s + monthly(l.amount, l.f), 0);
+    r.push(['Total in', '', '', '', +inc.toFixed(2), ''], ['Total out', '', '', '', +out.toFixed(2), ''], ['Left to save', '', '', '', +(inc - out).toFixed(2), inc > 0 ? +(((inc - out) / inc) * 100).toFixed(1) : '']);
+    return r;
+  }
   function runMonth() {
     const inc = rows('.m-in').reduce((s, l) => s + monthly(l.amount, l.f), 0);
     const exps = rows('.m-out').filter((l) => l.amount > 0);
     const need = exps.filter((l) => l.kind === 'need').reduce((s, l) => s + monthly(l.amount, l.f), 0);
     const want = exps.filter((l) => l.kind === 'want').reduce((s, l) => s + monthly(l.amount, l.f), 0);
     const out = need + want, left = inc - out;
+    q('.m-answer').textContent = !(inc > 0) && !(out > 0) ? 'Add your income and your costs to see what is left to save each month.'
+      : !(inc > 0) ? `You have ${$(out)} a month going out. Add your income to see what is left.`
+      : left >= 0 ? `You have ${$(left)} left each month, ${Math.round((left / inc) * 100)}% of your income, after ${$(out)} of costs.`
+      : `You spend ${$(-left)} a month more than comes in. Start with the wants below.`;
     q('.m-inc').textContent = $(inc);
     q('.m-exp').textContent = $(out);
     const lb = q('.m-left'); lb.textContent = $(left); lb.classList.toggle('neg', left < 0);
     q('.m-rate').textContent = inc ? `${Math.round((left / inc) * 100)}%` : '–';
     const pc = (x: number) => (inc ? (x / inc) * 100 : 0);
-    const bars: [string, number, number, string][] = [['Needs', need, 50, '#2f6fde'], ['Wants', want, 30, '#e0457b'], ['Savings', Math.max(0, left), 20, '#0e8f84']];
+    const rule = RULES[val(q('.m-rule'))] ?? RULES['50-30-20'];
+    q('.m-guide').textContent = `A common guide is ${rule.needs}% needs, ${rule.wants}% wants and ${rule.save}% savings. Yours:`;
+    const bars: [string, number, number, string][] = [['Needs', need, rule.needs, '#2f6fde'], ['Wants', want, rule.wants, '#e0457b'], ['Savings', Math.max(0, left), rule.save, '#0e8f84']];
     q('.m-split').innerHTML = bars.map(([n, v, g, c]) => `<div class="row"><span>${n}</span><div class="track" style="--c:${c}"><div class="fill" style="width:${Math.min(100, pc(v))}%"></div><div class="mark" style="left:${g}%" title="Guide: ${g}%"></div></div><b>${Math.round(pc(v))}% <small>(guide ${g}%)</small></b></div>`).join('')
       + (left < 0 ? `<p class="note bad" style="margin:0">You're spending ${$(-left)} a month more than comes in. Start with the wants below.</p>` : '');
     const odd = exps.filter((l) => ['quarter', 'half', 'year'].includes(l.f));
@@ -275,6 +338,15 @@
     q('.m-cutv').textContent = `${cut}%`;
     const freed = (want * cut) / 100;
     q('.m-cutout').innerHTML = want ? `Spending ${cut}% less on wants frees <b>${$(freed)}</b> a month, <b>${$(freed * 12)}</b> a year.` : 'Mark some costs as "want" to see what trimming them would free up.';
+    const tp = Math.min(100, Math.max(0, num(val(q('.m-tr')))));
+    q('.m-trv').textContent = `${Math.round(tp)}%`;
+    const st = savingTarget(inc, out, want, tp);
+    q('.m-trout').textContent = !(inc > 0) ? 'Add your income to see what a saving target would take.'
+      : st.met ? `Saving ${Math.round(tp)}% is ${$(st.goal)} a month. You are already there.`
+      : `Saving ${Math.round(tp)}% is ${$(st.goal)} a month, which is ${$(st.gap)} more than now. ` + (st.cutPct === null ? 'Mark some costs as wants to see how much trimming could help.' : st.wantsEnough ? `Cutting your wants by about ${Math.ceil(st.cutPct)}% would do it.` : `Even cutting every want leaves you ${$(st.stillShort)} short, so look at the needs too.`);
+    q('.m-per').innerHTML = [['Money in', inc], ['Money out', out], ['Left to save', left]].map(([n, v]) => { const p = perPeriod(v as number); return `<tr><td>${n}</td><td>${$(p.week)}</td><td>${$(p.month)}</td><td>${$(p.year)}</td></tr>`; }).join('');
+    const shares = costShares(rows('.m-out'), inc).slice(0, 5);
+    q('.m-top').innerHTML = shares.length ? shares.map((c) => `<li><span>${esc(c.name || 'Cost')} <small>(${c.kind})</small></span><b>${$(c.month)}${inc > 0 ? ` · ${Math.round(c.pct)}%` : ''}</b></li>`).join('') : '<li><span>Enter some costs to see the biggest ones.</span></li>';
     const saveEl = q<HTMLInputElement>('.m-save');
     if (!saveEl.dataset.touched) saveEl.value = nf(Math.max(0, left + freed));
     const s = num(saveEl.value), g = num(val(q('.m-growth')));
@@ -323,7 +395,14 @@
     EXPENSE_DEFAULT.forEach(([n, f, k]) => expLine(n, 0, f, k));
   }
 
-  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.m-save')) (e.target as HTMLElement).dataset.touched = '1'; run(); });
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.matches('.m-save')) t.dataset.touched = '1';
+    // the target slider and its typed box stay in step; run() never rewrites either of them
+    if (t.matches('.m-tr-s')) { const box = q<HTMLInputElement>('.m-tr'); if (+t.value !== Math.min(60, Math.max(0, num(box.value)))) box.value = t.value; }
+    else if (t.matches('.m-tr')) q<HTMLInputElement>('.m-tr-s').value = String(Math.min(60, Math.max(0, num(t.value))));
+    run();
+  });
   root.addEventListener('change', run);
   root.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
@@ -345,6 +424,11 @@
     delete q('.m-save').dataset.touched;
     run();
   });
+  q('.p-csv').addEventListener('click', () => {
+    const lines = rows('.p-lines').filter((l) => l.amount > 0), sub = lines.reduce((s, l) => s + l.amount, 0), buf = sub * (num(val(q('.p-buffer'))) / 100);
+    downloadCsv('budget-plan.csv', [['Cost', 'Amount'], ...lines.map((l) => [l.name, l.amount]), ['Extra for surprises', +buf.toFixed(2)], ['Total', +(sub + buf).toFixed(2)], ['Already saved', num(val(q('.p-saved')))], ['Save each month', q('.p-month').textContent || '']]);
+  });
+  q('.m-csv').addEventListener('click', () => downloadCsv('monthly-budget.csv', csvRows()));
   q('.bg-remember').addEventListener('change', () => { try { if (!remember()) localStorage.removeItem(KEY); } catch {} store(); });
   run();
 </script>

@@ -16,14 +16,15 @@ export interface IndiaIn {
   covered: boolean; // employer covered by the Payment of Gratuity Act
   fixedTerm: boolean; // fixed-term employee (1-year rule from 21 Nov 2025)
   received?: number; // gratuity actually paid, for the tax split (0 = use the worked-out amount)
+  days?: number; // extra days on top of months: with exactly 6 months, any extra day is 'more than 6 months'
 }
 
 export function indiaGratuity(i: IndiaIn) {
   const salary = clamp(i.salary), y = Math.floor(clamp(i.years)), m = Math.min(11, Math.floor(clamp(i.months)));
-  const total = y + m / 12;
+  const total = y + m / 12 + clamp(i.days || 0) / 365;
   // Covered: completed years, plus one if the part year is more than 6 months. Not covered: completed years only,
   // half a month's average salary per year.
-  const countYears = i.covered ? y + (m > 6 ? 1 : 0) : y;
+  const countYears = i.covered ? y + (m > 6 || (m === 6 && clamp(i.days || 0) > 0) ? 1 : 0) : y;
   const amount = i.covered ? (15 / 26) * salary * countYears : 0.5 * salary * countYears;
   const minYears = i.fixedTerm ? 1 : 5;
   const eligible = total >= minYears;
@@ -60,4 +61,28 @@ export function saudiGratuity(i: SaudiIn) {
   let share = 1;
   if (i.resigned) share = service < 2 ? 0 : service <= 5 ? 1 / 3 : service < 10 ? 2 / 3 : 1;
   return { service, full, share, amount: full * share };
+}
+
+/** Service from the joining date to the last working day (counted as a worked day), as whole years, months and days.
+ *  Dates are 'YYYY-MM-DD'. Returns ok=false if a date is missing or the last day is before the joining date. */
+export function serviceBetween(join: string, last: string): { ok: boolean; years: number; months: number; days: number } {
+  const re = /^(\d{4})-(\d{2})-(\d{2})$/, a = re.exec(join || ''), b = re.exec(last || '');
+  const none = { ok: false, years: 0, months: 0, days: 0 };
+  if (!a || !b) return none;
+  const d1 = new Date(Date.UTC(+a[1], +a[2] - 1, +a[3])), d2 = new Date(Date.UTC(+b[1], +b[2] - 1, +b[3] + 1)); // +1: last day counts
+  if (isNaN(+d1) || isNaN(+d2) || d2 <= d1) return none;
+  let months = (d2.getUTCFullYear() - d1.getUTCFullYear()) * 12 + d2.getUTCMonth() - d1.getUTCMonth();
+  if (d2.getUTCDate() < d1.getUTCDate()) months -= 1;
+  const mid = new Date(Date.UTC(d1.getUTCFullYear(), d1.getUTCMonth() + months, d1.getUTCDate()));
+  const days = Math.round((+d2 - +mid) / 86400000);
+  return { ok: true, years: Math.floor(months / 12), months: months % 12, days };
+}
+
+/** Amount by years of service for a quick comparison table (whole years, 0 months). */
+export function byYears(country: 'in' | 'ae' | 'sa', pay: number, opts: { covered?: boolean; fixedTerm?: boolean; resigned?: boolean } = {}, years = [1, 3, 5, 7, 10, 15, 20, 25, 30]): { years: number; amount: number }[] {
+  return years.map((y) => {
+    if (country === 'in') return { years: y, amount: indiaGratuity({ salary: pay, years: y, months: 0, covered: opts.covered !== false, fixedTerm: !!opts.fixedTerm }).payable };
+    if (country === 'ae') return { years: y, amount: uaeGratuity({ basic: pay, years: y, months: 0 }).amount };
+    return { years: y, amount: saudiGratuity({ wage: pay, years: y, months: 0, resigned: !!opts.resigned }).amount };
+  });
 }

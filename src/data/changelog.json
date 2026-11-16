@@ -1,5 +1,33 @@
 [
  {
+  "sha": "640b9e5f52c2",
+  "date": "2026-11-16T17:35:25+00:00",
+  "title": "Make 20 money tools more useful and add a shared Copy link / Copy result bar",
+  "tools": [
+   "car-loan",
+   "compound-interest",
+   "credit-card-payoff",
+   "epf-calculator",
+   "fd-calculator",
+   "fhsa-calculator",
+   "hourly-salary",
+   "loan-comparison",
+   "loan-payoff-planner",
+   "mortgage-calculator",
+   "percentage-calculator",
+   "ppf-calculator",
+   "rent-vs-buy",
+   "retirement-planner",
+   "rrsp-tfsa",
+   "sales-tax-calculator",
+   "savings-goal",
+   "sip-calculator",
+   "tip-calculator",
+   "unit-price"
+  ],
+  "site": true
+ },
+ {
   "sha": "a410e92cc5b5",
   "date": "2026-11-16T07:56:18+00:00",
   "title": "Renumber UK tools to L327-L329, L338, L339 (gapless)",

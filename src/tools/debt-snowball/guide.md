@@ -11,7 +11,7 @@ ads: false
 order: 1722
 icon: target
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [loan-payoff-planner, budget-calculator, bill-calendar]
 sources:
   - "Standard monthly compounding: each month's interest is balance x APR / 12. The snowball and avalanche methods are common, widely taught payoff orders."
@@ -39,6 +39,15 @@ For a single loan with lump sums, use the [[loan-payoff-planner]]. To find the e
 - **Snowball:** extra goes to the smallest balance first.
 - **Avalanche:** extra goes to the highest APR first.
 - **Minimums only:** you pay only the minimums and nothing rolls over, to show the minimum-payment trap.
+
+## More options
+
+- **A plain answer at the top** says which plan wins, when you would be debt-free (month and year) and how much interest it saves, compared with snowball, avalanche and minimums only.
+- **Extra slider:** drag the slider or type the extra amount; they stay in step. The results change as you move it.
+- **Payoff date for every debt** is shown next to its month number in each column, along with the total paid.
+- **One-off payment now:** under More options, add a bonus or refund. It goes to the first debt in each plan before month 1.
+- **What would a different extra amount do?** A table runs the avalanche plan with 0, 50, 100, 250 and 500 extra (and yours) to show the months, date and interest saved.
+- **Warnings:** if a minimum is no more than a month of interest, the tool tells you which debt it is. Blank, negative or unreasonable numbers get a message that names the debt.
 
 ## Worked example
 

@@ -12,7 +12,7 @@ ads: true
 order: 1743
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [india-income-tax, gratuity-calculator, rent-vs-buy]
 sources:
   - "Least of three rule (actual HRA, rent paid minus 10% of salary, 50% of salary in metro cities or 40% elsewhere; salary = Basic + DA forming part of retirement benefits + commission as a % of turnover): Income-tax Act, 1961 section 10(13A) with Rule 2A, carried into the Income-tax Act, 2025 and Income-tax Rules, 2026. Estimate, check the official source: https://www.incometax.gov.in"
@@ -36,6 +36,8 @@ From FY 2026-27, Bengaluru, Hyderabad, Pune and Ahmedabad get the 50% limit too,
 2. Choose the city where you rent and the tax year.
 3. If you rented for only part of the year, enter the number of months.
 4. Read the tax-free and taxable HRA, and the three limits below them.
+
+Under **More options** you can enter yearly amounts instead of monthly ones, pick your **income tax slab** so the page shows roughly how much tax the exemption saves (the slab rate plus 4% cess, ignoring surcharge), and type a **different rent** to see what it would do to your tax-free HRA. A plain sentence above the three limits gives the answer for the whole year. If your rent is over Rs 1,00,000 a year, the page reminds you that your employer will ask for your landlord's PAN. Blank or zero boxes get a short message, never a row of zeros.
 
 ## What each setting does
 

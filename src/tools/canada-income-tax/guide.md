@@ -12,7 +12,7 @@ ads: true
 order: 1725
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [uk-income-tax, budget-calculator, loan-payoff-planner, india-income-tax]
 sources:
   - "Federal, provincial and territorial brackets for 2026: CRA, Tax rates and brackets, current year, https://www.canada.ca/en/revenue-agency/services/tax/individuals/tax-rates-brackets/current-year.html (checked 2026-11-10)"
@@ -41,6 +41,8 @@ Once you know your take-home pay, plan where it goes with the [[budget-calculato
 2. Type your **employment income**: salary, wages and bonuses before anything is taken off.
 3. Add **other income** such as interest, rental profit or a pension. It is taxed, but no CPP or EI is paid on it.
 4. Type any **RRSP deduction** you will claim. It lowers your taxable income.
+
+Open **More options** for extras: type an **hourly wage** and hours a week instead of a salary, choose whether the third box shows take-home **each week, two weeks, half month or month**, drag the **"What if I earned more?"** slider to add up to $50,000 of employment income, or type **another salary** to see how much more you would really keep. A plain sentence above the numbers gives your take-home and the share taken by tax, CPP and EI, and a second line shows what you keep from your **next $1,000**. If you enter an RRSP deduction, the page also says how much income tax it saves.
 
 ## What each part means
 

@@ -5,20 +5,37 @@
   <section class="panel">
     <h2>Your income in 2026</h2>
     <div class="cit-grid">
-      <label>Province or territory <select class="cit-prov"></select></label>
-      <label>Employment income (salary, wages) <input class="cit-emp" inputmode="decimal" value="60,000" /></label>
-      <label>Other income (interest, rent profit, pension) <input class="cit-oth" inputmode="decimal" value="0" /></label>
-      <label>RRSP deduction <input class="cit-rrsp" inputmode="decimal" value="0" /></label>
+      <label>Province or territory <select class="cit-prov" data-k="prov"></select></label>
+      <label>Employment income (salary, wages) <input class="cit-emp" data-k="emp" inputmode="decimal" value="60,000" /></label>
+      <label>Other income (interest, rent profit, pension) <input class="cit-oth" data-k="other" inputmode="decimal" value="0" /></label>
+      <label>RRSP deduction <input class="cit-rrsp" data-k="rrsp" inputmode="decimal" value="0" /></label>
     </div>
     <p class="cit-hint">Amounts are for the whole year, in Canadian dollars. Other income pays tax but no CPP or EI.</p>
     <p class="note warn cit-est" hidden></p>
+    <details class="cit-more">
+      <summary>More options</summary>
+      <div class="cit-grid">
+        <label>I know my pay as <select class="cit-unit" data-k="unit"><option value="year" selected>a yearly salary</option><option value="hour">an hourly wage</option></select></label>
+        <label class="cit-hrs-l" hidden>Hourly wage ($) <input class="cit-hrate" data-k="rate" inputmode="decimal" value="30" /></label>
+        <label class="cit-hrs-l" hidden>Hours a week <input class="cit-hrs" data-k="hours" inputmode="decimal" value="40" /></label>
+        <label>Show take-home for each <select class="cit-per" data-k="period">
+          <option value="weekly">Week</option><option value="biweekly" selected>Two weeks</option><option value="semimonthly">Half month (24 a year)</option><option value="monthly">Month</option>
+        </select></label>
+        <label>What if I earned more? <b class="cit-morev">+$0</b>
+          <input type="range" class="cit-more-r" data-k="more" min="0" max="50000" step="1000" value="0" aria-label="Extra employment income a year" /></label>
+        <label>Compare with another salary (a year) <input class="cit-cmp" data-k="compare" inputmode="decimal" placeholder="e.g. 80,000" /></label>
+      </div>
+      <p class="cit-hint">The hourly wage replaces the employment income box (52 weeks a year). The slider adds to your employment income and the result above shows the new total.</p>
+    </details>
   </section>
 
   <section class="cit-res" aria-live="polite">
+    <p class="cit-line"></p>
+    <p class="cit-next"></p>
     <div class="cit-stats">
       <div class="good"><span>Take-home a year</span><b class="cit-year"></b></div>
       <div><span>A month</span><b class="cit-month"></b></div>
-      <div><span>Every two weeks</span><b class="cit-bi"></b></div>
+      <div><span class="cit-per-t">Every two weeks</span><b class="cit-bi"></b></div>
       <div><span>Marginal / average rate</span><b class="cit-rates"></b></div>
     </div>
     <figure class="panel cit-fig">
@@ -26,6 +43,7 @@
       <div class="cit-bar" role="img"></div>
       <ul class="cit-key"></ul>
     </figure>
+    <p class="cit-cmpout panel" hidden></p>
     <div class="panel cit-tw">
       <table>
         <thead><tr><th>Item</th><th>A year</th><th>A month</th></tr></thead>
@@ -43,6 +61,14 @@
   .cit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 12px; }
   .cit label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .cit input, .cit select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cit-line { margin: 0; font-size: 17px; font-weight: 600; }
+  .cit-next, .cit-rr { margin: 0; font-size: 14px; }
+  .cit-line:empty, .cit-next:empty { display: none; }
+  .cit-more { margin-top: 12px; }
+  .cit-more summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+  .cit label[hidden] { display: none; }
+  .cit-cmpout { margin: 0; font-size: 14px; }
+  .cit-more input[type=range] { padding: 0; }
   .cit-hint, .cit-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
   .cit-res { display: grid; gap: 12px; min-width: 0; }
   .cit-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -66,7 +92,7 @@
 </style>
 
 <script>
-  import { canadaTax, PROVINCES } from '../../lib/money/canada-income-tax.ts';
+  import { canadaTax, PROVINCES, PERIODS, hourlyToYear, nextExtra, compareIncome, rrspSaving } from '../../lib/money/canada-income-tax.ts';
   const root = document.querySelector('.cit') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const prov = q<HTMLSelectElement>('.cit-prov');
@@ -77,11 +103,36 @@
   const pct = (n: number) => `${(Math.round(n * 1000) / 10).toFixed(1)}%`;
 
   const update = () => {
-    const r = canadaTax({ prov: prov.value, employment: num(q<HTMLInputElement>('.cit-emp').value), other: num(q<HTMLInputElement>('.cit-oth').value), rrsp: num(q<HTMLInputElement>('.cit-rrsp').value) });
+    const hourly = q<HTMLSelectElement>('.cit-unit').value === 'hour';
+    root.querySelectorAll<HTMLElement>('.cit-hrs-l').forEach((e) => { e.hidden = !hourly; });
+    q<HTMLInputElement>('.cit-emp').disabled = hourly;
+    const extra = num(q<HTMLInputElement>('.cit-more-r').value);
+    q('.cit-morev').textContent = `+${$(extra).replace(/\.00$/, '')}`;
+    const baseEmp = hourly ? hourlyToYear(num(q<HTMLInputElement>('.cit-hrate').value), num(q<HTMLInputElement>('.cit-hrs').value)) : num(q<HTMLInputElement>('.cit-emp').value);
+    const inp = { prov: prov.value, employment: Math.max(0, baseEmp) + extra, other: num(q<HTMLInputElement>('.cit-oth').value), rrsp: num(q<HTMLInputElement>('.cit-rrsp').value) };
+    const r = canadaTax(inp);
+    const [pname, pn] = PERIODS[q<HTMLSelectElement>('.cit-per').value];
+    q('.cit-per-t').textContent = pname;
+    const empty = r.gross <= 0, huge = r.gross > 1e9;
+    q('.cit-line').textContent = empty ? 'Type your pay above to see your take-home pay.'
+      : huge ? 'That is a very large number. Check for an extra zero.'
+      : `On ${$(r.gross)} in ${PROVINCES[prov.value].name} you keep ${$(r.takeHome)} a year (${$(r.takeHome / 12)} a month). Income tax, ${prov.value === 'QC' ? 'QPP' : 'CPP'} and EI take ${pct(r.gross ? r.deductions / r.gross : 0)}.`;
+    if (!empty && !huge) {
+      const n = nextExtra(inp, 1000);
+      const rs = rrspSaving(inp);
+      q('.cit-next').textContent = `Your next $1,000 of pay: you keep ${$(n.keep)} and ${$(n.taken)} goes to tax, ${prov.value === 'QC' ? 'QPP' : 'CPP'} and EI.` + (rs > 0 ? ` Your RRSP deduction saves ${$(rs)} of income tax.` : '');
+    } else q('.cit-next').textContent = '';
+    const cmpBox = q<HTMLInputElement>('.cit-cmp'), cmpOut = q('.cit-cmpout');
+    const cv = num(cmpBox.value);
+    cmpOut.hidden = !(cmpBox.value.trim() && cv > 0 && !empty);
+    if (!cmpOut.hidden) {
+      const c = compareIncome(inp, cv);
+      cmpOut.textContent = `At ${$(cv)} of employment income you would keep ${$(c.b.takeHome)} a year, which is ${$(Math.abs(c.takeHomeDiff))} ${c.takeHomeDiff >= 0 ? 'more' : 'less'} than now. The pay differs by ${$(Math.abs(c.grossDiff))} and ${$(Math.abs(c.taxDiff))} of that difference goes to tax and deductions.`;
+    }
     const qc = prov.value === 'QC', name = PROVINCES[prov.value].name;
     q('.cit-year').textContent = $(r.takeHome);
     q('.cit-month').textContent = $(r.takeHome / 12);
-    q('.cit-bi').textContent = $(r.takeHome / 26);
+    q('.cit-bi').textContent = $(r.takeHome / pn);
     q('.cit-rates').textContent = `${pct(r.marginal)} / ${pct(r.average)}`;
     const est = q('.cit-est');
     est.hidden = !r.estimate;

@@ -15,10 +15,21 @@
     <div class="bs-bills"></div>
     <button type="button" class="bs-btn bs-addb">Add a bill</button>
   </section>
+  <details class="panel bs-more">
+    <summary>More options: tax, tip and who paid</summary>
+    <p class="bs-help">Tax and tip are added on top of <b>every</b> bill above, so use them for a meal or shop, not for rent. Say who paid each bill to get a settle-up list.</p>
+    <div class="bs-extra">
+      <label>Tax <span class="bs-suf"><input data-k="tax" inputmode="decimal" aria-label="Tax percent" /><i>%</i></span></label>
+      <label>Tip <span class="bs-suf"><input data-k="tip" inputmode="decimal" aria-label="Tip percent" /><i>%</i></span></label>
+    </div>
+    <div class="bs-payers"></div>
+  </details>
   <section class="panel" aria-live="polite">
     <h2>Who pays what</h2>
+    <p class="bs-answer"></p>
     <div class="bs-scroll"><table class="bs-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
     <p class="bs-note"></p>
+    <div class="bs-settle-box" hidden><h3>Settle up</h3><ul class="bs-settle"></ul></div>
     <button type="button" class="bs-btn bs-csv">Download CSV</button>
   </section>
   <section class="panel bs-keep">
@@ -41,6 +52,14 @@
   .bs input:focus, .bs select:focus { border-color: var(--accent); outline: none; }
   .bs-btn { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; margin-top: 6px; }
   .bs-x { font: inherit; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .bs-answer { margin: 0 0 10px; font-size: 17px; font-weight: 600; }
+  .bs h3 { font-size: 15px; margin: 14px 0 6px; }
+  .bs-more > summary { cursor: pointer; font-weight: 600; }
+  .bs-extra { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .bs-extra label, .bs-payer-row { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .bs-suf { position: relative; display: block; } .bs-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); pointer-events: none; }
+  .bs-payers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .bs-settle { margin: 0; padding-left: 20px; font-size: 15px; }
   .bs-link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
   .bs-scroll { overflow-x: auto; }
   .bs-table { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -52,7 +71,7 @@
 </style>
 
 <script>
-  import { splitBills, type SplitBy } from '../../lib/money/splitting';
+  import { splitBills, settleUp, type SplitBy } from '../../lib/money/splitting';
   import { downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.bs') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -61,35 +80,63 @@
   const f = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const BY: [SplitBy, string][] = [['equal', 'Equally'], ['share', 'By share %'], ['room', 'By room size'], ['income', 'By income']];
   const ppl = q('.bs-people'), bills = q('.bs-bills');
+  let pid = 0;
   const addP = (name = '', share = '', room = '', income = '') => {
     const d = document.createElement('div'); d.className = 'bs-row bs-prow bs-p';
     d.innerHTML = `<input data-f="name" aria-label="Name" value="${esc(name)}" /><input data-f="share" inputmode="decimal" aria-label="Share percent" value="${share}" /><input data-f="room" inputmode="decimal" aria-label="Room size" value="${room}" /><input data-f="income" inputmode="decimal" aria-label="Monthly income" value="${income}" /><button type="button" class="bs-x" aria-label="Remove person">×</button>`;
+    d.dataset.id = String(++pid);
     ppl.append(d);
   };
   const addB = (name = '', amount = '', by: SplitBy = 'equal') => {
-    const d = document.createElement('div'); d.className = 'bs-row bs-brow bs-b';
+    const d = document.createElement('div'); d.className = 'bs-row bs-brow bs-b'; d.dataset.payer = '';
     d.innerHTML = `<input data-f="name" aria-label="Bill name" value="${esc(name)}" /><input data-f="amount" inputmode="decimal" aria-label="Amount" value="${amount}" /><select data-f="by" aria-label="Split">${BY.map(([v, l]) => `<option value="${v}"${v === by ? ' selected' : ''}>${l}</option>`).join('')}</select><button type="button" class="bs-x" aria-label="Remove bill">×</button>`;
     bills.append(d);
   };
   const val = (r: Element, f: string) => (r.querySelector(`[data-f="${f}"]`) as HTMLInputElement).value;
   const numv = (s: string) => { const v = parseFloat(s.replace(/[^\d.-]/g, '')); return Number.isFinite(v) ? v : 0; };
   const read = () => ({
-    people: [...ppl.children].map((r, i) => ({ name: val(r, 'name').trim() || `Person ${i + 1}`, share: numv(val(r, 'share')), room: numv(val(r, 'room')), income: numv(val(r, 'income')), raw: ['share', 'room', 'income'].map((k) => val(r, k)) })),
-    bills: [...bills.children].map((r, i) => ({ name: val(r, 'name').trim() || `Bill ${i + 1}`, amount: numv(val(r, 'amount')), by: val(r, 'by') as SplitBy })),
+    people: [...ppl.children].map((r, i) => ({ id: (r as HTMLElement).dataset.id || '', name: val(r, 'name').trim() || `Person ${i + 1}`, share: numv(val(r, 'share')), room: numv(val(r, 'room')), income: numv(val(r, 'income')), raw: ['share', 'room', 'income'].map((k) => val(r, k)) })),
+    bills: [...bills.children].map((r, i) => ({ name: val(r, 'name').trim() || `Bill ${i + 1}`, amount: numv(val(r, 'amount')), by: val(r, 'by') as SplitBy, payer: (r as HTMLElement).dataset.payer || '' })),
   });
-  let last: { head: string[]; body: string[][]; foot: string[] } | null = null;
+  const pct = (k: string) => Math.min(100, Math.max(0, numv((root.querySelector(`[data-k="${k}"]`) as HTMLInputElement).value)));
+  let last: { head: string[]; body: string[][]; foot: string[]; pay: string[] } | null = null;
+  let sig = '';
   const run = () => {
-    const { people, bills: bl } = read();
-    const r = splitBills(people, bl);
+    // remember who paid each bill (the payer boxes are rebuilt only when names change)
+    root.querySelectorAll<HTMLSelectElement>('.bs-payer').forEach((sel) => { const row = bills.children[+sel.dataset.i!] as HTMLElement | undefined; if (row) row.dataset.payer = sel.value; });
+    const { people, bills: raw } = read();
+    const neg = raw.some((b) => b.amount < 0), huge = raw.some((b) => b.amount > 1e9);
+    const bl = raw.map((b) => ({ ...b, amount: Math.min(1e9, Math.max(0, b.amount)) }));
+    const tax = pct('tax'), tip = pct('tip');
+    const r = splitBills(people, bl, { tax, tip });
     const head = ['Bill', 'Amount', ...people.map((p) => p.name)];
-    const body = bl.map((b, i) => [b.name, f(Math.round(b.amount * 100)), ...r.rows[i].map(f)]);
+    const body = bl.map((b, i) => [b.name, f(r.billCents[i]), ...r.rows[i].map(f)]);
     const foot = ['Total', f(r.grand), ...r.totals.map(f)];
-    last = { head, body, foot };
     q('.bs-table thead').innerHTML = '<tr>' + head.map((h) => `<th>${esc(h)}</th>`).join('') + '</tr>';
     q('.bs-table tbody').innerHTML = body.map((row) => '<tr>' + row.map((c, k) => `<td>${k === 0 ? esc(c) : c}</td>`).join('') + '</tr>').join('');
     q('.bs-table tfoot').innerHTML = '<tr>' + foot.map((c, k) => `<td>${k === 0 ? 'Total' : c}</td>`).join('') + '</tr>';
-    const miss = bl.filter((b) => b.by !== 'equal' && !people.some((p) => (b.by === 'share' ? p.share : b.by === 'room' ? p.room : p.income) > 0)).map((b) => b.name);
-    q('.bs-note').textContent = miss.length ? `Nothing is shared yet for ${miss.join(', ')}: fill in that column for at least one person.` : '';
+    const miss = bl.filter((b) => b.by !== 'equal' && b.amount > 0 && !people.some((p) => (b.by === 'share' ? p.share : b.by === 'room' ? p.room : p.income) > 0)).map((b) => b.name);
+    const notes: string[] = [];
+    if (miss.length) notes.push(`Nothing is shared yet for ${miss.join(', ')}: fill in that column for at least one person.`);
+    if (neg) notes.push('A negative amount was counted as 0.');
+    if (huge) notes.push('Amounts above 1,000,000,000 were cut to that figure.');
+    if (tax || tip) notes.push(`Amounts include ${[tax ? tax + '% tax' : '', tip ? tip + '% tip' : ''].filter(Boolean).join(' and ')}.`);
+    q('.bs-note').textContent = notes.join(' ');
+    q('.bs-answer').textContent = !(r.grand > 0) ? 'Type an amount on at least one bill to see who pays what.'
+      : people.length <= 4 ? `${people.map((p, i) => `${p.name} pays ${f(r.totals[i])}`).join(', ')}: ${f(r.grand)} in all.`
+      : `${f(r.grand)} shared between ${people.length} people, from ${f(Math.min(...r.totals))} to ${f(Math.max(...r.totals))} each.`;
+    // who paid -> settle up
+    const nextSig = people.map((p) => p.id + ':' + p.name).join('|') + '#' + bl.map((b) => b.name).join('|');
+    if (nextSig !== sig) {
+      sig = nextSig;
+      q('.bs-payers').innerHTML = bl.map((b, i) => `<label class="bs-payer-row">Paid by: ${esc(b.name)}<select class="bs-payer" data-i="${i}" aria-label="Who paid ${esc(b.name)}"><option value="">Not tracked</option>${people.map((p) => `<option value="${p.id}"${p.id === b.payer ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>`).join('');
+    }
+    const payers = bl.map((b) => people.findIndex((p) => p.id === b.payer));
+    const su = settleUp(people.length, r.rows, payers);
+    const lines = su.transfers.map((t) => `${people[t.from].name} pays ${people[t.to].name} ${f(t.cents)}`);
+    q('.bs-settle-box').hidden = !payers.some((x) => x >= 0);
+    q('.bs-settle').innerHTML = lines.length ? lines.map((l) => `<li>${esc(l)}</li>`).join('') : '<li>Everyone is square. Nobody owes anything.</li>';
+    last = { head, body, foot, pay: lines };
     store();
   };
   const store = () => { try { if (q<HTMLInputElement>('.bs-remember').checked) { const { people, bills: bl } = read(); localStorage.setItem(KEY, JSON.stringify({ p: people.map((p) => [p.name, ...p.raw]), b: bl.map((b) => [b.name, b.amount || '', b.by]) })); } } catch {} };
@@ -104,7 +151,7 @@
   });
   q('.bs-addp').addEventListener('click', () => { addP(); run(); });
   q('.bs-addb').addEventListener('click', () => { addB(); run(); });
-  q('.bs-csv').addEventListener('click', () => { if (last) downloadCsv('bill-split.csv', [last.head, ...last.body, last.foot]); });
+  q('.bs-csv').addEventListener('click', () => { if (last) downloadCsv('bill-split.csv', [last.head, ...last.body, last.foot, ...(last.pay.length ? [[], ['Settle up'], ...last.pay.map((l) => [l])] : [])]); });
   q('.bs-remember').addEventListener('change', () => { if (!q<HTMLInputElement>('.bs-remember').checked) { try { localStorage.removeItem(KEY); } catch {} } store(); });
   q('.bs-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.bs-remember').checked = false; });
   run();

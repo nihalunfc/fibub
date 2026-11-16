@@ -20,7 +20,7 @@ export const OLD_REBATE = { limit: 500000, max: 12500 };
 export const NEW_SURCHARGE: Band[] = [[5000000, 0], [10000000, 0.10], [20000000, 0.15], [I, 0.25]];
 export const OLD_SURCHARGE: Band[] = [[5000000, 0], [10000000, 0.10], [20000000, 0.15], [50000000, 0.25], [I, 0.37]];
 export const CESS = 0.04;
-export const CAPS = { c80: 150000, d80self: 25000, d80selfSenior: 50000, d80parents: 25000, d80parentsSenior: 50000, home24b: 200000, nps: 50000 };
+export const CAPS = { d80ttaCap: 10000, d80ttbCap: 50000, employerNpsNew: 0.14, employerNpsOld: 0.10, c80: 150000, d80self: 25000, d80selfSenior: 50000, d80parents: 25000, d80parentsSenior: 50000, home24b: 200000, nps: 50000 };
 
 export type Age = 'under60' | '60to79' | '80plus';
 
@@ -35,6 +35,11 @@ export interface Input {
   parentsSenior: boolean;
   home: number; // home loan interest, self-occupied, section 24(b)
   nps: number; // own NPS contribution, 80CCD(1B)
+  employerNps?: number; // employer NPS contribution, 80CCD(2): in both regimes, capped at a share of basic + DA (already part of gross salary)
+  basic?: number; // yearly basic + DA, for the employer NPS cap
+  eduLoan?: number; // education loan interest, 80E (old regime, no cap)
+  savingsInterest?: number; // savings-account interest already in other income, 80TTA (80TTB for seniors), old regime
+  extraDed?: number; // extra old-regime deduction, used to find the break-even
 }
 
 export interface Side {
@@ -89,7 +94,8 @@ function compute(inp: Input, regime: 'new' | 'old'): Omit<Side, 'marginal'> {
   const salary = clamp(inp.salary), other = clamp(inp.other);
   const gross = salary + other;
   if (regime === 'new') {
-    return side(gross, [{ label: 'Standard deduction', amount: Math.min(NEW_STD, salary) }], NEW_BANDS, NEW_REBATE, NEW_SURCHARGE, true);
+    const ne = Math.min(clamp(inp.employerNps ?? 0), CAPS.employerNpsNew * clamp(inp.basic ?? 0));
+    return side(gross, [{ label: 'Standard deduction', amount: Math.min(NEW_STD, salary) }, ...(ne > 0 ? [{ label: 'Employer NPS 80CCD(2)', amount: ne }] : [])], NEW_BANDS, NEW_REBATE, NEW_SURCHARGE, true);
   }
   const senior = inp.age !== 'under60';
   const d: { label: string; amount: number }[] = [
@@ -100,6 +106,10 @@ function compute(inp: Input, regime: 'new' | 'old'): Omit<Side, 'marginal'> {
     { label: '80D (parents)', amount: Math.min(clamp(inp.d80parents), inp.parentsSenior ? CAPS.d80parentsSenior : CAPS.d80parents) },
     { label: 'Home loan interest 24(b)', amount: Math.min(clamp(inp.home), CAPS.home24b) },
     { label: 'NPS 80CCD(1B)', amount: Math.min(clamp(inp.nps), CAPS.nps) },
+    { label: 'Employer NPS 80CCD(2)', amount: Math.min(clamp(inp.employerNps ?? 0), CAPS.employerNpsOld * clamp(inp.basic ?? 0)) },
+    { label: 'Education loan interest 80E', amount: clamp(inp.eduLoan ?? 0) },
+    { label: senior ? 'Deposit interest 80TTB' : 'Savings interest 80TTA', amount: Math.min(clamp(inp.savingsInterest ?? 0), clamp(inp.other), senior ? CAPS.d80ttbCap : CAPS.d80ttaCap) },
+    { label: 'Other deductions', amount: clamp(inp.extraDed ?? 0) },
   ].filter((x) => x.amount > 0);
   return side(gross, d, OLD_BANDS[inp.age] || OLD_BANDS.under60, OLD_REBATE, OLD_SURCHARGE, false);
 }
@@ -113,4 +123,25 @@ export function indiaTax(inp: Input) {
   }
   const better = out.new.total <= out.old.total ? 'new' : 'old';
   return { ...out, better, saving: Math.abs(out.new.total - out.old.total) };
+}
+
+// ---- Extras: break-even, what-if and monthly view ----
+/** Extra old-regime deductions (on top of what is entered) that would make the old regime cost the same as the new one.
+ *  0 when the old regime already wins; null when no amount of deduction gets there. */
+export function breakEven(inp: Input): number | null {
+  const base = indiaTax(inp);
+  if (base.old.total <= base.new.total) return 0;
+  const gross = clamp(inp.salary) + clamp(inp.other);
+  const f = (x: number) => compute({ ...inp, extraDed: clamp(inp.extraDed ?? 0) + x }, 'old').total;
+  if (f(gross) > base.new.total) return null;
+  let lo = 0, hi = gross;
+  for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (f(mid) > base.new.total) lo = mid; else hi = mid; }
+  return Math.ceil(hi / 1000) * 1000;
+}
+/** Yearly amount from a monthly one, never negative or NaN. */
+export const yearly = (monthly: number) => clamp(monthly) * 12;
+/** Tax change for an extra salary amount in each regime. */
+export function nextExtra(inp: Input, extra = 100000) {
+  const a = indiaTax(inp), b = indiaTax({ ...inp, salary: clamp(inp.salary) + extra });
+  return { new: b.new.total - a.new.total, old: b.old.total - a.old.total };
 }
