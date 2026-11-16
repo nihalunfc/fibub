@@ -1,0 +1,229 @@
+---
+// #L375 Measure and mark. Home skills engine: src/lib/learn/skill.ts (steps) + quiz.ts. Tape and 3-4-5 maths:
+// src/lib/home/measure.ts (checked in tests/tools/measure-and-mark.mjs).
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk mam">
+  <CourseNav id="measure-and-mark" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Let a tape blade wind back slowly with your hand on it. A fast tape can snap back and cut fingers.</li>
+      <li>Keep pencils and knives sharp, and cover the knife blade when you put it down.</li>
+      <li>Before you mark a wall for drilling, check for hidden cables and pipes. If unsure, call an electrician or plumber.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Tape measure</li><li>Sharp pencil</li><li>Combination square</li><li>Spirit level</li><li>Utility knife (for fine marks)</li><li>Straight edge or long level</li></ul>
+  </div>
+  <div class="ax-card mam-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A metric tape from 12 to 14 centimetres with millimetre marks and a pointer at 127 millimetres" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="20" width="188" height="56" rx="3" /><path d="M10 20v20M90 20v20M170 20v20" /><path d="M18 20v8M26 20v8M34 20v8M42 20v8M58 20v8M66 20v8M74 20v8M82 20v8M98 20v8M106 20v8M114 20v8M122 20v8M138 20v8M146 20v8M154 20v8M162 20v8" stroke-width="1.2" /><path d="M50 20v14M130 20v14" stroke-width="1.5" />
+          <g font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="currentColor" stroke="none"><text x="13" y="56">12</text><text x="93" y="56">13</text><text x="173" y="56">14</text></g>
+          <path class="hl" d="M66 10v76M60 94l6 -8 6 8" /><text x="66" y="108" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle" fill="currentColor" stroke="none">127 mm</text>
+        </svg>
+        <div class="sk-txt"><h3>Read a metric tape</h3><p>The big numbers are centimetres. Each small mark is 1 millimetre, and the longer mark halfway is 5 mm. Read the last number, times 10, then count the small marks past it: 12 cm and 7 marks is 127 mm.</p><p class="sk-tip">Work in millimetres for woodwork. "1270 mm" is clearer than "1.27 m" or "127 cm".</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="One inch of tape divided into halves, quarters, eighths and sixteenths, the marks getting shorter" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="14" width="188" height="60" rx="3" /><path d="M20 14v40M180 14v40" /><path class="hl" d="M100 14v30" /><path d="M60 14v22M140 14v22" /><path d="M40 14v14M80 14v14M120 14v14M160 14v14" stroke-width="2" /><path d="M30 14v8M50 14v8M70 14v8M90 14v8M110 14v8M130 14v8M150 14v8M170 14v8" stroke-width="1.2" />
+          <g font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle"><text x="20" y="68" font-weight="700" font-size="13">5</text><text x="180" y="68" font-weight="700" font-size="13">6</text><text x="100" y="58">1/2</text><text x="60" y="50">1/4</text><text x="140" y="50">3/4</text><text x="80" y="92">1/8 marks</text><text x="150" y="92">1/16 marks</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Read inch fractions</h3><p>Each inch is cut in half, then quarters, eighths and sixteenths. The longer the mark, the bigger the fraction: the longest is 1/2, then 1/4 and 3/4, then the eighths, and the shortest are sixteenths. Count sixteenths past the last inch and simplify: 6/16 is 3/8.</p><p class="sk-tip">Halve the top and bottom while both are even: 12/16 = 6/8 = 3/4.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The tape hook pulled out over an edge on the left and pushed in against a wall on the right, moving by its own thickness" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h30v30H10" /><path d="M40 54h50" /><path class="hl" d="M40 48v12" stroke-width="4" /><path d="M48 54v4M58 54v4M68 54v4" stroke-width="1.2" />
+          <path d="M190 20v70" stroke-width="4" /><path d="M110 54h76" /><path class="hl" d="M186 48v12" stroke-width="4" /><path d="M120 54v4M130 54v4M140 54v4" stroke-width="1.2" />
+          <g font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none" text-anchor="middle"><text x="60" y="30">hooked: pulls out</text><text x="150" y="30">pushed: slides in</text></g>
+        </svg>
+        <div class="sk-txt"><h3>The loose hook is meant to move</h3><p>The hook on the end slides by exactly its own thickness (about 1 mm). Hooked over an edge it pulls out; pushed against a wall it slides in. That way both readings start at true zero.</p><p class="sk-tip">Never bend the hook to "tighten" it. Keep it clean so it slides freely.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A board measured twice with two tapes showing the same number, with a tick" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 50h180v20H10z" /><path d="M10 34h120M10 86h120" /><path d="M130 28v12M130 80v12" /><path class="hl" d="M130 44v32" stroke-dasharray="3 3" /><path class="hl" d="M150 22l8 8 16 -16" />
+          <g font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none"><text x="40" y="28">650</text><text x="40" y="102">650</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Measure twice, cut once</h3><p>Measure, mark, then measure again from the same end before you cut. Say the number out loud or write it on the wood. Where you can, hold the piece in place and mark it straight from the job instead of using numbers at all.</p><p class="sk-tip">Use the same tape for the whole job. Two tapes can differ by a millimetre or two.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A V mark on a board with its point exactly on the measurement, and a cross on the waste side of the line" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 40h180v50H10z" /><path d="M10 30h96" stroke-width="1.5" /><path d="M106 24v12" stroke-width="1.5" /><path class="hl" d="M98 50l8 12 8 -12" /><path d="M106 62v28" stroke-dasharray="3 3" /><path d="M140 58l14 14M154 58l-14 14" /><text x="147" y="86" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="currentColor" stroke="none">waste</text>
+        </svg>
+        <div class="sk-txt"><h3>Mark with a V</h3><p>A single dash is hard to find again and can be read from either side. Draw a small V (a "crow's foot") with its point exactly on the measurement. Use a sharp pencil, or a knife for fine work.</p><p class="sk-tip">Put a cross on the waste side, then cut on the waste side of the line so the piece keeps its full length.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A combination square held against the edge of a board with a pencil drawing a line across at 90 degrees" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 30h170v66H20" /><path d="M8 20h18v44H8z" /><path d="M26 26h110v10H26" /><path class="hl" d="M90 36v60" /><path d="M96 70l14 -26 6 3-14 26z" /><path class="hl" d="M26 64v6h6" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Draw a square line</h3><p>Press the square's stock (the heavy part) firmly against a straight, smooth edge of the board. Put the pencil point on your V, slide the blade up to touch it, and draw along the blade.</p><p class="sk-tip">Carry the line round all the faces you will see, so the saw has a guide on every side.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A corner with 3 marked on one side, 4 on the other and 5 across the diagonal" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 96V14M40 96h140" /><path d="M40 86h10v10" stroke-width="1.5" /><path class="hl" d="M40 36L160 96" stroke-dasharray="5 4" /><circle cx="40" cy="36" r="4" fill="currentColor" /><circle cx="160" cy="96" r="4" fill="currentColor" />
+          <g font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="currentColor" stroke="none"><text x="22" y="70">3</text><text x="96" y="108">4</text><text x="106" y="58">5</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Check a corner with 3-4-5</h3><p>For a big corner (a frame, a deck, a shed base), measure 3 units along one side and 4 along the other, and mark both. If the corner is square, the diagonal between the marks is exactly 5. Use 300, 400, 500 mm or 3, 4, 5 ft, or double it for more accuracy.</p><p class="sk-tip">On a rectangle, the two diagonals should also be equal. Try the checker below.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A spirit level on a shelf, then turned end for end, the bubble in the same place both times" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 56h180" /><rect x="40" y="36" width="120" height="18" rx="3" /><rect x="86" y="39" width="28" height="12" rx="6" /><circle class="hl" cx="100" cy="45" r="3.5" fill="currentColor" /><path d="M94 39v12M106 39v12" stroke-width="1" /><path class="hl" d="M60 80a40 16 0 0 0 80 0M140 80l-6 -6M140 80l-8 2" />
+        </svg>
+        <div class="sk-txt"><h3>Use and check a level</h3><p>The bubble between the two lines means level (or plumb, held upright). To check the level itself, read it, turn it end for end on the same spot and read again. If the bubble moves, the level is out: do not trust it.</p><p class="sk-tip">For long runs, rest the level on a straight board to span bumps.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card mam-tape">
+    <h2>Read the tape</h2>
+    <div class="ax-row">
+      <div class="ax-seg mam-units" role="group" aria-label="Tape units"><button type="button" data-u="mm" aria-pressed="true">Metric (mm)</button><button type="button" data-u="in" aria-pressed="false">Imperial (inches)</button></div>
+    </div>
+    <svg class="mam-svg" viewBox="0 0 340 120" role="img" aria-label="A tape measure with a marked reading" fill="none" stroke="currentColor" stroke-linecap="round"></svg>
+    <div class="ax-row mam-ans">
+      <label>Where is the pencil mark? <input class="mam-in" type="text" inputmode="decimal" autocomplete="off" /></label>
+      <span class="mam-unit">mm</span>
+      <button type="button" class="sk-btn mam-check">Check</button>
+      <button type="button" class="sk-btn mam-new">New length</button>
+    </div>
+    <p class="ax-help mam-hint">Type the reading in whole millimetres, for example 127.</p>
+    <p class="mam-out" aria-live="polite"></p>
+    <p class="ax-help mam-score"></p>
+  </div>
+  <div class="ax-card mam-sq">
+    <h2>3-4-5 square checker</h2>
+    <p class="ax-help">Measure along both sides of the corner, mark, then measure the diagonal between the marks. Use any one unit for all three.</p>
+    <div class="ax-grid">
+      <label>Side A <input class="mam-a" type="text" inputmode="decimal" value="300" /></label>
+      <label>Side B <input class="mam-b" type="text" inputmode="decimal" value="400" /></label>
+      <label>Diagonal you measured <input class="mam-d" type="text" inputmode="decimal" value="503" /></label>
+    </div>
+    <p class="mam-sqout" aria-live="polite"></p>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>You are marking holes in a wall and are not sure where cables or pipes run: call an electrician or plumber to check.</li>
+      <li>You are setting out foundations, a building or anything that needs planning permission: a surveyor or builder sets it out.</li>
+      <li>Floors, walls or door frames are far out of square or level, which can point to movement in the building.</li>
+    </ul>
+  </div>
+  <div class="ax-card mam-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .mam-svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 12px auto 4px; color: var(--ink); }
+  .mam-svg .hl { color: var(--accent); }
+  .mam-ans { align-items: end; }
+  .mam-ans label { flex: 1 1 160px; }
+  .mam-unit { padding-bottom: 10px; }
+  .mam-out, .mam-sqout { margin: 8px 0 0; font-size: 15px; min-height: 1.5em; }
+  .mam-out.ok, .mam-sqout.ok { color: var(--good); }
+  .mam-out.no, .mam-sqout.no { color: var(--bad); }
+  .mam-out span, .mam-sqout span { color: var(--ink); }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, choice, some } from '../../lib/learn/skill';
+  import { readLength, formatInches, squareCheck, randomReading, metricWork, inchWork } from '../../lib/home/measure';
+  const root = document.querySelector('.mam') as HTMLElement;
+  const q = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as unknown as T;
+  mountSteps(q('.mam-steps'), 'measure-and-mark');
+
+  // Tape reader: a window of the tape with a pencil mark at a random reading.
+  const svg = q<SVGSVGElement>('.mam-svg'), inp = q<HTMLInputElement>('.mam-in'), out = q('.mam-out');
+  let units: 'mm' | 'in' = 'mm', reading = 0, right = 0, tries = 0, answered = false;
+  const L = 10, W = 320; // tape drawn from x = 10 to 330
+  const draw = () => {
+    let s: string, span: number, parts: string[] = [];
+    if (units === 'mm') {
+      span = 60; const start = Math.max(0, Math.floor((reading - 8 - Math.random() * 38) / 10) * 10);
+      s = String(start); const px = W / span;
+      for (let m = 0; m <= span; m++) {
+        const v = start + m, x = L + m * px, len = v % 10 === 0 ? 30 : v % 5 === 0 ? 18 : 10;
+        parts.push(`<path d="M${x.toFixed(1)} 20v${len}" stroke-width="${v % 10 === 0 ? 2 : 1.1}" />`);
+        if (v % 10 === 0 && x < L + W - 16) parts.push(`<text x="${(x + 3).toFixed(1)}" y="66" font-size="15" font-weight="700">${v / 10}</text>`);
+      }
+      svg.dataset.start = s;
+      const x = L + (reading - start) * px;
+      parts.push(`<g class="hl"><path d="M${x.toFixed(1)} 8v84" stroke-width="2.5" /><path d="M${(x - 7).toFixed(1)} 104l7 -10 7 10" stroke-width="2.5" /></g>`);
+    } else {
+      span = 4; let start = Math.max(0, Math.floor(reading - 0.4 - Math.random() * 2.8)); if (reading - start > 3.8) start++;
+      svg.dataset.start = String(start); const px = W / (span * 16);
+      for (let k = 0; k <= span * 16; k++) {
+        const x = L + k * px, len = k % 16 === 0 ? 38 : k % 8 === 0 ? 28 : k % 4 === 0 ? 20 : k % 2 === 0 ? 14 : 8;
+        parts.push(`<path d="M${x.toFixed(1)} 20v${len}" stroke-width="${k % 16 === 0 ? 2 : 1.1}" />`);
+        if (k % 16 === 0 && x < L + W - 16) parts.push(`<text x="${(x + 3).toFixed(1)}" y="74" font-size="16" font-weight="700">${start + k / 16}</text>`);
+      }
+      const x = L + (reading - start) * 16 * px;
+      parts.push(`<g class="hl"><path d="M${x.toFixed(1)} 8v84" stroke-width="2.5" /><path d="M${(x - 7).toFixed(1)} 104l7 -10 7 10" stroke-width="2.5" /></g>`);
+    }
+    svg.dataset.reading = String(reading);
+    svg.innerHTML = `<rect x="4" y="20" width="332" height="62" rx="3" stroke-width="2" />` + parts.filter((p) => !p.startsWith('<text')).join('')
+      + `<g fill="currentColor" stroke="none" font-family="system-ui,sans-serif">${parts.filter((p) => p.startsWith('<text')).join('')}</g>`;
+    svg.setAttribute('aria-label', `A ${units === 'mm' ? 'metric' : 'inch'} tape with a pencil mark. Read where the mark is.`);
+  };
+  const fresh = () => { reading = randomReading(units); answered = false; inp.value = ''; out.textContent = ''; out.className = 'mam-out'; draw(); };
+  const score = () => { q('.mam-score').textContent = tries ? `${right} of ${tries} right first time.` : ''; };
+  const check = () => {
+    const v = readLength(inp.value);
+    if (!Number.isFinite(v)) { out.className = 'mam-out no'; out.textContent = units === 'mm' ? 'Type a number of millimetres, like 127.' : 'Type inches like 5 3/8 or 5.375.'; return; }
+    const ok = units === 'mm' ? Math.abs(v - reading) < 0.5 : Math.abs(v - reading) < 1 / 64;
+    if (!answered) { tries++; if (ok) right++; answered = true; score(); }
+    const work = units === 'mm' ? metricWork(reading) : inchWork(reading);
+    out.className = 'mam-out ' + (ok ? 'ok' : 'no');
+    out.innerHTML = `${ok ? 'Right.' : `Not quite: it reads ${units === 'mm' ? reading + ' mm' : formatInches(reading) + ' in'}.`} <span></span>`;
+    (out.querySelector('span') as HTMLElement).textContent = work;
+  };
+  root.querySelectorAll<HTMLButtonElement>('.mam-units button').forEach((b) => b.addEventListener('click', () => {
+    units = b.dataset.u as 'mm' | 'in';
+    root.querySelectorAll('.mam-units button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.mam-unit').textContent = units === 'mm' ? 'mm' : 'in';
+    q('.mam-hint').textContent = units === 'mm' ? 'Type the reading in whole millimetres, for example 127.' : 'Type the reading to the nearest 1/16 in, as a fraction like 5 3/8 or a decimal like 5.375.';
+    inp.inputMode = units === 'mm' ? 'decimal' : 'text';
+    fresh();
+  }));
+  q('.mam-check').addEventListener('click', check);
+  q('.mam-new').addEventListener('click', fresh);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') check(); });
+  fresh();
+
+  // 3-4-5 checker.
+  const sq = () => {
+    const a = readLength(q<HTMLInputElement>('.mam-a').value), b = readLength(q<HTMLInputElement>('.mam-b').value), d = readLength(q<HTMLInputElement>('.mam-d').value);
+    const o = q('.mam-sqout');
+    if (![a, b, d].every((x) => Number.isFinite(x) && x > 0)) { o.className = 'mam-sqout'; o.textContent = 'Type all three lengths.'; return; }
+    if (d >= a + b || d <= Math.abs(a - b)) { o.className = 'mam-sqout no'; o.textContent = 'Those three lengths cannot make a triangle. Measure again.'; return; }
+    const r = squareCheck(a, b, d), n = (x: number) => +x.toFixed(2);
+    const near = Math.abs(r.off) <= Math.max(1e-9, r.want * 0.002);
+    o.className = 'mam-sqout ' + (near ? 'ok' : 'no');
+    o.innerHTML = '<strong></strong> <span></span>';
+    (o.querySelector('strong') as HTMLElement).textContent = near ? 'Square.' : r.off > 0 ? 'Not square: the corner is open (more than 90°).' : 'Not square: the corner is closed (less than 90°).';
+    (o.querySelector('span') as HTMLElement).textContent = `For a right angle the diagonal should be √(${n(a)}² + ${n(b)}²) = ${n(r.want)}. Yours is ${n(Math.abs(r.off))} ${r.off >= 0 ? 'longer' : 'shorter'}, so the angle is about ${r.angle.toFixed(1)}°.${near ? '' : ` Push the ends ${r.off > 0 ? 'closer together' : 'further apart'} until the diagonal reads ${n(r.want)}.`}`;
+  };
+  root.querySelectorAll('.mam-sq input').forEach((x) => x.addEventListener('input', sq));
+  sq();
+
+  const bank = [
+    () => choice('On a metric tape, the mark is 7 small marks past the number 12. What is the reading?', '127 mm', ['12.7 mm', '1270 mm', '19 mm'], 'The numbers are centimetres: 12 cm = 120 mm, plus 7 mm = 127 mm.'),
+    () => choice('On an inch tape, the mark is 12 sixteenths past 3. What is the reading?', '3 3/4 in', ['3 12 in', '3 1/2 in', '4 1/4 in'], '12/16 = 6/8 = 3/4, so 3 3/4 in.'),
+    () => choice('Why does the hook on the end of a tape wobble?', 'It slides by its own thickness so inside and outside readings are both right', ['It is worn out and needs bending tight', 'It is loose so it can be replaced'], 'Pulled, it moves out; pushed, it moves in, by exactly the hook\'s thickness.'),
+    () => choice('A corner has sides of 600 mm and 800 mm. What should the diagonal be if it is square?', '1000 mm', ['1400 mm', '700 mm', '1200 mm'], '600, 800, 1000 is 3, 4, 5 times 200. √(600² + 800²) = 1000.'),
+    () => choice('Your 3-4-5 diagonal reads longer than 5. What does that mean?', 'The corner is more than 90°', ['The corner is less than 90°', 'The corner is square'], 'A wider-open corner stretches the diagonal. Push the ends closer together.'),
+    () => choice('Why mark a measurement with a V instead of a dash?', 'The point shows exactly where, and it is easy to find again', ['It uses less pencil', 'It looks neater'], 'A V\'s point is one exact spot; a dash can be read from either end.'),
+    () => choice('Which side of the line should the saw cut on?', 'The waste side', ['Right down the middle', 'The side of the piece you keep'], 'The saw removes a few millimetres. Cutting on the waste side keeps the piece its full length.'),
+    () => choice('How do you check that a spirit level is accurate?', 'Read it, turn it end for end on the same spot, read again', ['Shake it', 'Look at it on a slope'], 'If the bubble sits differently after turning it round, the level is out.'),
+    () => choice('Which tool draws a line at exactly 90° to the edge of a board?', 'Combination square', ['Spirit level', 'Tape measure'], 'Hold the stock tight to the edge and draw along the blade.'),
+    () => choice('Which is the longest mark between two inch numbers?', 'The 1/2 inch mark', ['The 1/16 inch marks', 'The 1/8 inch marks'], 'Marks get shorter as the fractions get smaller: 1/2, then 1/4, 1/8 and 1/16.'),
+  ];
+  mountQuiz(q('.mam-quiz'), () => some(bank, 5).map((f) => f()));
+</script>

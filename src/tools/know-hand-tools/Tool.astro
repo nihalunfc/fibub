@@ -1,0 +1,143 @@
+---
+// #L373 Know your hand tools. Home skills engine: src/lib/learn/skill.ts (steps, labels) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk kht">
+  <CourseNav id="know-hand-tools" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Wear safety glasses for anything that cuts, drills or hammers. Bits of metal and wood fly further than you think.</li>
+      <li>Keep blades sharp and covered when not in use, and store tools out of reach of children.</li>
+      <li>Hold the work in a clamp or vice, not in your hand, when you saw, drill or chisel.</li>
+      <li>No tool in this kit is for electrical wiring. Leave that to an electrician.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>A basic home tool kit</h2>
+    <ul class="sk-kit"><li>Claw hammer</li><li>Flat screwdriver</li><li>Phillips and Pozidriv screwdrivers</li><li>Tape measure</li><li>Combination square</li><li>Spirit level</li><li>Utility knife</li><li>Combination pliers</li><li>Adjustable spanner</li><li>Hand saw</li><li>Two G-clamps</li><li>Cordless drill</li><li>Stud finder</li><li>Safety glasses</li></ul>
+    <p class="ax-help">You do not need it all at once. A hammer, two screwdrivers, a tape measure and a knife cover most small jobs.</p>
+  </div>
+  <div class="ax-card kht-steps">
+    <h2>Tool cards</h2>
+    <p class="ax-help">Each card says what the tool is for, how to hold it, and one common mistake. Tick a card when you have the tool or know how to use it.</p>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A claw hammer held near the end of the handle, driving a nail, with the claw pulling another nail" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 98h180" /><path d="M30 70h80" stroke-width="8" /><path d="M110 50v40M110 50h10v40h-10" /><path class="hl" d="M120 54c10 -2 16 -8 18 -16" /><path d="M115 92v6" /><path class="hl" d="M150 98v-24M146 74h8" /><path d="M36 64v12" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Claw hammer</h3><p><strong>For:</strong> driving nails and pulling them out with the claw. <strong>Hold:</strong> near the end of the handle and let the weight of the head do the work. Start a nail with light taps, fingers holding it low down.</p><p class="sk-tip">Common mistake: holding the hammer by the neck. You lose power and hit your fingers more.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Three screwdriver tips: flat, Phillips cross and Pozidriv cross with extra lines" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="40" cy="45" r="22" /><path class="hl" d="M24 45h32" stroke-width="5" /><circle cx="100" cy="45" r="22" /><path class="hl" d="M86 45h28M100 31v28" stroke-width="5" /><circle cx="160" cy="45" r="22" /><path class="hl" d="M146 45h28M160 31v28" stroke-width="5" /><path d="M152 37l16 16M168 37l-16 16" stroke-width="1.5" />
+          <g font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle"><text x="40" y="88">Flat</text><text x="100" y="88">Phillips</text><text x="160" y="88">Pozidriv</text></g>
+        </svg>
+        <div class="sk-txt"><h3>Screwdrivers</h3><p><strong>For:</strong> turning screws. Match the tip to the head: flat, Phillips (a plain cross) or Pozidriv (a cross with four small extra lines, common in Europe and the UK). <strong>Hold:</strong> push in hard and turn; most of the effort is the push.</p><p class="sk-tip">Common mistake: a Phillips driver in a Pozidriv screw. It slips out and chews the head.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A tape measure with its blade out and the metal hook on the end of a board" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="120" y="40" width="50" height="50" rx="10" /><circle cx="145" cy="65" r="8" /><path d="M120 76H30" /><path d="M40 76v-4M60 76v-6M80 76v-4M100 76v-6" stroke-width="1.5" /><path class="hl" d="M30 70v12h-4" stroke-width="3.5" /><path d="M10 82h22v14H10" />
+        </svg>
+        <div class="sk-txt"><h3>Tape measure</h3><p><strong>For:</strong> measuring lengths. A 5 m (16 ft) tape is a good size. <strong>Hold:</strong> hook the end over the edge, pull the blade straight and read where it meets the mark.</p><p class="sk-tip">Common mistake: letting the blade sag or bend round a corner. It reads long. The Measure and mark lesson shows how to read it.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A combination square on the edge of a board drawing a square line, and a spirit level with a centred bubble" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 30h80v60H10" /><path d="M24 18h14v30H24z" /><path d="M38 24h50v8H38" /><path class="hl" d="M60 32v58" stroke-dasharray="4 3" />
+          <rect x="110" y="52" width="84" height="18" rx="3" /><rect x="140" y="55" width="24" height="12" rx="6" /><circle class="hl" cx="152" cy="61" r="3.5" fill="currentColor" /><path d="M146 55v12M158 55v12" stroke-width="1" />
+        </svg>
+        <div class="sk-txt"><h3>Combination square and spirit level</h3><p><strong>Square:</strong> press its stock against a straight edge and draw along the blade for a line at exactly 90° (it also does 45°). <strong>Level:</strong> the bubble sits between the lines when a surface is level (or plumb, held upright).</p><p class="sk-tip">Common mistake: trusting a cheap level. Check it: read it, turn it end for end, read again. Both should match.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A utility knife cutting along a straight edge, blade moving away from the other hand" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 80h180" /><path d="M20 66h170" stroke-width="4" /><path d="M60 40l60 12-4 8-60 -12z" /><path class="hl" d="M120 52l14 6-18 2" /><path class="hl" d="M150 40h30M174 34l6 6-6 6" /><circle cx="36" cy="56" r="8" />
+        </svg>
+        <div class="sk-txt"><h3>Utility knife</h3><p><strong>For:</strong> scoring plasterboard, cutting carpet, card and string, and marking wood. <strong>Hold:</strong> like a pen for light cuts, firm in the fist for heavy ones; cut along a straight edge with your other hand behind the blade.</p><p class="sk-tip">Common mistake: pushing hard with a blunt blade. Snap off or change the blade; a sharp blade needs less force and slips less.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Combination pliers gripping a nut on the left, and an adjustable spanner on a nut on the right" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 30l40 20M14 70l40 -20" stroke-width="5" /><circle cx="56" cy="50" r="4" /><path class="hl" d="M58 48l24 -6M58 52l24 6" />
+          <path d="M114 94l44 -42" stroke-width="9" /><path d="M181 36.5A16 16 0 1 1 171.5 27" stroke-width="5" /><path class="hl" d="M159 38l7 -4 7 4v8l-7 4-7 -4z" />
+        </svg>
+        <div class="sk-txt"><h3>Pliers and adjustable spanner</h3><p><strong>Pliers:</strong> grip, bend and cut wire or hold small parts. <strong>Spanner:</strong> turns nuts and bolts. Close the jaws tight on the flats and pull so the fixed jaw takes the load.</p><p class="sk-tip">Common mistake: using pliers on a nut. They round its corners. Use a spanner that fits.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A hand saw at a low angle cutting a board held down on a bench" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 80h180M30 80v20M170 80v20" /><path d="M40 70h120v10H40" /><path d="M20 22h24v22H20z" /><path d="M44 26l90 30 4 10-94 -26z" /><path class="hl" d="M44 40l94 26" stroke-dasharray="3 3" /><path class="hl" d="M150 40l20 8M164 42l6 6-8 2" />
+        </svg>
+        <div class="sk-txt"><h3>Hand saw</h3><p><strong>For:</strong> cutting wood to length. <strong>Hold:</strong> index finger pointing along the handle, arm, shoulder and saw in one line. Start with a few short pull strokes, then use the full blade at about 45°.</p><p class="sk-tip">Common mistake: forcing it. Let the saw's weight cut; pushing hard makes it wander off the line.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two G-clamps holding a board down to the edge of a bench" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180v10H10" /><path d="M40 50h120v10H40" />
+          <path class="hl" d="M60 44V36H40v50h20" /><path class="hl" d="M54 86v-16M48 92h12" /><path class="hl" d="M150 44V36h20v50h-20" /><path class="hl" d="M156 86v-16M150 92h12" />
+        </svg>
+        <div class="sk-txt"><h3>G-clamps</h3><p><strong>For:</strong> holding work still while you saw, drill or glue, so both hands are free and safe. <strong>Use:</strong> two clamps, with scraps of wood under the pads so they do not dent the work.</p><p class="sk-tip">Common mistake: holding the work with one hand and sawing with the other. That is how most cuts to the hand happen.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A cordless drill with its battery, and a stud finder on a wall showing a stud behind it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 30h60a10 10 0 0 1 0 20H56l-8 30H32l6 -30H20z" /><path d="M90 34h10v12H90" /><path class="hl" d="M100 40h22" /><path d="M24 80h34v14H24z" />
+          <path d="M140 10v90M190 10v90" stroke-width="1.5" stroke-dasharray="4 4" /><rect x="146" y="36" width="38" height="50" rx="8" /><path class="hl" d="M158 46h14v8h-14z" /><path d="M165 66v8" />
+        </svg>
+        <div class="sk-txt"><h3>Cordless drill and stud finder</h3><p><strong>Drill:</strong> makes holes and drives screws. Set the clutch (the numbered ring) low for screws so it slips before the screw head breaks. <strong>Stud finder:</strong> finds the wooden or metal studs behind a hollow wall. Many also warn of live cables, but none is a guarantee.</p><p class="sk-tip">Common mistake: changing a bit with the battery on. Take the battery out first.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label kht-label">
+    <h2>Name the tools</h2>
+    <svg viewBox="0 0 360 256" role="group" aria-label="A tool wall with thirteen hand tools" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6h352M4 250h352" stroke-width="1.5" stroke-dasharray="2 6" />
+      <g data-part="saw" data-name="Hand saw" data-note="cuts wood to length. Let its weight do the work and keep your arm in line with the blade."><path d="M12 20h30v40H12z" /><path d="M20 30h14v20H20z" stroke-width="1.5" /><path d="M42 24L158 40V60H42z" /><path d="M46 60l4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5" stroke-width="1.5" /></g>
+      <g data-part="level" data-name="Spirit level" data-note="the bubble sits between the lines when a surface is level, or plumb when held upright."><rect x="176" y="16" width="174" height="22" rx="3" /><rect x="250" y="20" width="28" height="14" rx="7" /><circle cx="264" cy="27" r="3.5" fill="currentColor" /><path d="M258 20v14M270 20v14" stroke-width="1" /></g>
+      <g data-part="square" data-name="Combination square" data-note="draws lines at 90° and 45° to an edge and checks corners are square."><path d="M176 48h24v50h-24z" /><path d="M200 54h100v10H200z" /><path d="M206 64v-4M216 64v-6M226 64v-4M236 64v-6M246 64v-4M256 64v-6M266 64v-4M276 64v-6M286 64v-4" stroke-width="1" /></g>
+      <g data-part="tape" data-name="Tape measure" data-note="measures lengths. The hook slides a little so inside and outside readings both come out right."><rect x="312" y="48" width="40" height="40" rx="9" /><circle cx="332" cy="68" r="7" /><path d="M318 88v10h-6" stroke-width="3" /></g>
+      <g data-part="hammer" data-name="Claw hammer" data-note="drives nails and pulls them out with the claw. Hold it near the end of the handle."><path d="M14 124h92" stroke-width="9" /><path d="M106 104h14v42h-14z" /><path d="M120 108c10 -2 16 -8 18 -16" /></g>
+      <g data-part="flat" data-name="Flat screwdriver" data-note="for slotted screws. The tip should fill the slot, no wider than the screw head."><rect x="146" y="106" width="40" height="14" rx="6" /><path d="M186 113h50" /><path d="M236 108v10" stroke-width="5" /></g>
+      <g data-part="cross" data-name="Phillips or Pozidriv screwdriver" data-note="for cross-head screws. Match Phillips to Phillips and Pozidriv (extra small lines) to Pozidriv."><rect x="146" y="130" width="40" height="14" rx="6" /><path d="M186 137h46" /><path d="M232 131v12M226 137h12" stroke-width="3" /></g>
+      <g data-part="knife" data-name="Utility knife" data-note="cuts card, carpet, string and plasterboard, and marks wood. Change the blade when it drags."><path d="M262 108h62l10 8-10 8h-62z" /><path d="M334 116l14 2-14 4" /><path d="M276 112v8M286 112v8" stroke-width="1.5" /></g>
+      <g data-part="pliers" data-name="Combination pliers" data-note="grip, bend and cut wire, and hold small parts. Not for nuts: they round the corners."><path d="M264 142l50 14M264 172l50 -14" stroke-width="5" /><circle cx="316" cy="157" r="4" /><path d="M318 155l30 -6M318 159l30 6" stroke-width="3.5" /></g>
+      <g data-part="clamp" data-name="G-clamp" data-note="holds work still on the bench so both hands are free. Use scrap wood under the pads."><path d="M60 182H22v58h38" stroke-width="5" /><path d="M54 244v-36M44 244h20M46 208h16" stroke-width="3" /><path d="M54 182v8h8" /></g>
+      <g data-part="spanner" data-name="Adjustable spanner" data-note="turns nuts and bolts of many sizes. Close the jaws tight on the flats."><path d="M92 242l58 -36" stroke-width="10" /><path d="M175 194.5A16 16 0 1 1 165.5 185" stroke-width="5" /><path d="M154 192l6 -4 6 4v7l-6 4-6 -4z" stroke-width="1.5" /></g>
+      <g data-part="drill" data-name="Cordless drill" data-note="drills holes and drives screws. Use the clutch for screws and take the battery out to change bits."><path d="M206 184h50a10 10 0 0 1 0 20H234l-8 28h-18l6 -28h-8a10 10 0 0 1 0 -20z" /><path d="M266 188h10v12h-10z" /><path d="M276 194h16" /><path d="M200 232h40v14h-40z" /></g>
+      <g data-part="finder" data-name="Stud finder" data-note="finds studs behind a hollow wall. Many warn of cables too, but always check other ways as well."><rect x="306" y="186" width="44" height="58" rx="10" /><rect x="316" y="196" width="24" height="12" rx="2" /><circle cx="318" cy="222" r="2.5" fill="currentColor" /><circle cx="328" cy="222" r="2.5" fill="currentColor" /><circle cx="338" cy="222" r="2.5" fill="currentColor" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The job involves electrical wiring, sockets or lights: call an electrician.</li>
+      <li>It involves gas or water pipes beyond a simple tap washer: call a gas engineer or plumber.</li>
+      <li>You need a tool you have never used that could hurt you badly, such as a chainsaw or a table saw, and nobody can show you how.</li>
+      <li>The job is structural, such as removing a wall or cutting a joist.</li>
+    </ul>
+  </div>
+  <div class="ax-card kht-quiz">
+    <h2>Check yourself: which tool for the job?</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.kht') as HTMLElement;
+  mountSteps(root.querySelector('.kht-steps') as HTMLElement, 'know-hand-tools');
+  mountLabels(root.querySelector('.kht-label') as HTMLElement);
+  const bank = [
+    () => choice('You need to pull a bent nail out of a board. Which tool?', 'Claw hammer', ['Combination pliers', 'Flat screwdriver'], 'The claw slides under the nail head, and the handle gives you leverage. Put a scrap of wood under the head to protect the surface.'),
+    () => choice('A shelf must be perfectly horizontal. Which tool checks it?', 'Spirit level', ['Combination square', 'Tape measure'], 'A level shows level (horizontal) and plumb (upright). A square checks a corner, not whether the whole shelf is level.'),
+    () => choice('You need to draw a line straight across a board at 90° to its edge. Which tool?', 'Combination square', ['Spirit level', 'Utility knife'], 'Press the square\'s stock against the edge and draw along the blade.'),
+    () => choice('A nut on a bike or a garden chair needs tightening. Which tool?', 'Adjustable spanner', ['Combination pliers', 'Claw hammer'], 'A spanner grips the flats of the nut. Pliers slip and round the corners.'),
+    () => choice('A screw head has a cross with four small extra lines between the arms. Which screwdriver?', 'Pozidriv', ['Phillips', 'Flat'], 'Those little lines mark a Pozidriv screw. A Pozidriv driver fits it snugly; a Phillips driver slips.'),
+    () => choice('You want to hold a board still on the bench while you saw it. What do you use?', 'Two G-clamps', ['Your other hand', 'A spirit level'], 'Clamps hold the work so neither hand is near the blade.'),
+    () => choice('You need to find where the wooden studs are behind a plasterboard wall. Which tool?', 'Stud finder', ['Spirit level', 'Tape measure'], 'A stud finder senses the change in the wall behind the surface. Check its reading by tapping or with a small test hole.'),
+    () => choice('You need to cut a sheet of plasterboard to size. Which tool?', 'Utility knife', ['Claw hammer', 'Adjustable spanner'], 'Score the paper face along a straight edge, snap the board along the line, then cut the paper on the back.'),
+    () => choice('You need to cut a length of wood for a shelf. Which tool?', 'Hand saw', ['Utility knife', 'Combination pliers'], 'A hand saw cuts across the grain. Mark the line with a square first, and clamp the wood.'),
+    () => choice('You want to drive 20 screws into a deck board quickly. Which tool?', 'Cordless drill with a driver bit', ['Claw hammer', 'Adjustable spanner'], 'Set the clutch low so it slips before the screw sinks too deep or snaps.'),
+    () => choice('You need to bend and cut a piece of garden wire. Which tool?', 'Combination pliers', ['Adjustable spanner', 'Spirit level'], 'Pliers have gripping jaws and a cutter near the pivot.'),
+    () => choice('Where should you hold a claw hammer?', 'Near the end of the handle', ['Right under the head', 'In the middle, both hands'], 'The longer the swing, the more the head\'s weight does the work for you.'),
+  ];
+  mountQuiz(root.querySelector('.kht-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>
