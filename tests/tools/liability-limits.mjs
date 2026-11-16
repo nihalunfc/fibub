@@ -21,4 +21,6 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.ll .ll-person')).length === 2, 'liability-limits: remove a person');
   await set('nw', '200000'); await page.waitForTimeout(100);
   check(await page.isVisible('.ll .ll-nw'), 'liability-limits: net worth line shows');
+  await page.fill('.ll [data-k="nw"]', '500000'); await page.waitForTimeout(100);
+  check(await page.isVisible('.ll .ll-umb') && (await page.textContent('.ll .ll-umb')).includes('umbrella'), 'liability-limits: net worth above limit mentions an umbrella policy');
 };

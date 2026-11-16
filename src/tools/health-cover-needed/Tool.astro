@@ -29,6 +29,17 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span class="hcn-lab-end">Gap if employer cover ends</span><b class="hcn-s-end"></b></div>
     </div>
     <p class="hcn-words"></p>
+    <div class="panel hcn-extra"><h2>More checks</h2>
+      <details><summary>More options</summary>
+        <p class="hcn-hint">Compare a different city: type what the same stay costs there, and see the cover needed.</p>
+        <div class="hcn-grid">
+          <label>Same stay in another city (optional) <input data-k="stay2" inputmode="decimal" /></label>
+          <label>Room rent cap per day (optional) <input data-k="cap" inputmode="decimal" /></label>
+          <label>Room you would choose, per day <input data-k="room" inputmode="decimal" /></label>
+        </div>
+        <p class="hcn-city"></p><p class="hcn-roomout"></p>
+      </details>
+    </div>
     <div class="panel"><h2>Need and cover over the years</h2><div class="hcn-svg"></div><div class="hcn-leg"></div></div>
   </section>
   <p class="hcn-fine">How it is worked out: cover needed = cost of one stay × number of stays × (1 + price rise)^years. The gap is the need minus your cover, or nothing if you are covered. Your cover is held flat here, so the chart shows how a growing need outruns it. A floater shares one sum insured between family members, which is why more stays in a bad year make sense for a bigger family. It ignores co-pay, room-rent limits and items a policy does not cover. Nothing you type leaves this page.</p>
@@ -59,6 +70,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
+  import { roomRentCheck } from '../../lib/money/insurance';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.hcn')!;
@@ -89,6 +101,9 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.hcn-s-end').textContent = gapEnd > 0 ? $(gapEnd) : 'None';
     const famNote = fam > 1 ? ` On a floater for ${fam} people one sum insured is shared, so make sure the stays above cover the bad year you worry about.` : '';
     q('.hcn-words').innerHTML = `${gapNow > 0 ? `Your cover of <b>${$(cover)}</b> is <b>${$(gapNow)}</b> short of the <b>${$(now)}</b> needed today.` : `Your cover of <b>${$(cover)}</b> meets the <b>${$(now)}</b> needed today.`}${ends ? ` If the employer cover ends, your own <b>${$(own)}</b> leaves a gap of <b>${$(gapEnd)}</b>.` : ''}${years > 0 ? ` In ${years} year${years === 1 ? '' : 's'} the need is <b>${$(fut)}</b>, a gap of <b>${$(gapFut)}</b> with today's cover${ends ? ` (<b>${$(gapFutEnd)}</b> on your own cover alone)` : ''}.` : ''}${famNote}`;
+    const stay2 = num(f('stay2').value), cap = num(f('cap').value), room = num(f('room').value);
+    q('.hcn-city').textContent = stay2 > 0 ? `In the other city one stay costs ${$(stay2)}, so you would need ${$(stay2 * stays)} today and ${$(stay2 * stays * Math.pow(1 + g / 100, years))} in ${years} year${years === 1 ? '' : 's'}, against ${$(now)} and ${$(fut)} in your first city.` : '';
+    if (cap > 0 && room > 0) { const rr = roomRentCheck(cap, room); q('.hcn-roomout').textContent = rr.ok ? `A cap of ${$(cap)} a day covers a room of ${$(room)}, so room-linked bills would not be cut.` : `A room of ${$(room)} a day is above the cap of ${$(cap)}, so room-linked charges may be paid at only ${Math.round(rr.ratio * 100)}% (the room-rent cap tool shows the working). Check your policy wording.`; } else q('.hcn-roomout').textContent = '';
     const n = Math.max(years, 5);
     const xs = Array.from({ length: n + 1 }, (_, k) => k);
     const series = [

@@ -32,6 +32,12 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Most it is worth paying for you</span><b class="si-s-max"></b></div>
     </div>
     <p class="si-verdict"></p>
+    <div class="panel si-more">
+      <h2>Could you afford the worst case?</h2>
+      <p class="si-afford"></p>
+      <h2>Or put the price aside yourself</h2>
+      <p class="si-fund"></p>
+    </div>
     <p class="note warn si-ruin" hidden>The loss is more than your savings, so it could leave you with nothing to fall back on. Weigh this alongside the numbers.</p>
   </section>
   <p class="si-fine">How it is worked out: expected loss = chance x loss. Fair price = chance x (loss - deductible). The most worth paying is the price where your expected utility with cover equals that without it, using a standard risk-aversion curve. The chance is your own estimate. Nothing you type leaves this page.</p>
@@ -59,13 +65,15 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   .si-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
   .si-verdict { margin: 0; font-size: 15px; }
   .si-ruin { margin: 0; }
+  .si-more { padding: 16px; }
+  .si-more p { margin: 0 0 12px; font-size: 15px; }
   .si-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .si-err { margin: 10px 0 0; }
   @media (max-width: 720px) { .si-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
-  import { shouldInsure } from '../../lib/money/insurance';
+  import { shouldInsure, worstCase, selfInsureFund } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.si')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -99,6 +107,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       ? `The price of <b>${$(prem)}</b> is at or below the most this is worth to you (${$(r.maxPremium)}), so on these numbers the cover costs less than the worry it removes.`
       : `The price of <b>${$(prem)}</b> is above the most this is worth to you (${$(r.maxPremium)}), so on these numbers you may do as well keeping the risk. This depends on the chance you guessed.`;
     q('.si-ruin').hidden = !r.ruin;
+    const w = worstCase(wealth, loss, ded), pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
+    q('.si-afford').innerHTML = w.canAfford
+      ? `Without cover, the worst case (<b>${$(loss)}</b>) would take <b>${pct(w.lossShare)}</b> of your savings and leave <b>${$(w.leftUninsured)}</b>. With cover you would pay at most the deductible, <b>${$(Math.min(ded, loss))}</b> (${pct(w.dedShare)} of savings). If you could pay the loss and carry on, the cover is optional; if it would hurt badly, cover is protecting you from that.`
+      : `Without cover, the worst case (<b>${$(loss)}</b>) is <b>more than the savings you listed</b> (${$(wealth)}). With cover you would pay at most the deductible, <b>${$(Math.min(ded, loss))}</b>. A loss you could not pay is the main reason people insure.`;
+    const sf = selfInsureFund(loss, prem, p);
+    q('.si-fund').innerHTML = prem > 0
+      ? `If you saved <b>${$(prem)}</b> a year instead, it would take about <b>${Math.round(sf.years * 10) / 10} years</b> to build up ${$(loss)} (no interest counted). The chance the loss happens before then is about <b>${pct(sf.chanceLossFirst)}</b> on your estimate. Saving yourself works best for small losses you could pay from savings today.`
+      : 'Enter a cover price above 0 to compare with saving it yourself.';
   }
   root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => fill(b.dataset.ex!)));
   root.addEventListener('input', run); root.addEventListener('change', run);

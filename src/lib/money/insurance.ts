@@ -366,3 +366,65 @@ export function claimOrNot(payout: number, odPremium: number, freeYears: number)
   const lost = (odPremium * ncbAt(freeYears)) / 100;
   return { lost, net: payout - lost, claimWins: payout > lost };
 }
+
+// ---------- Upgrade batch D additions (new functions only) ----------
+/** Can I afford the worst case? What a total loss does to savings with no cover, and what the deductible does with cover. */
+export function worstCase(wealth: number, loss: number, deductible: number) {
+  const w = Math.max(0, wealth);
+  return {
+    lossShare: w > 0 ? loss / w : Infinity, dedShare: w > 0 ? Math.min(deductible, loss) / w : Infinity,
+    leftUninsured: w - loss, leftInsured: w - Math.min(deductible, loss), canAfford: loss <= w,
+  };
+}
+/** Self-insure fund: put the cover price aside every year instead. Years to build up the loss (no interest) and the chance the loss comes first. */
+export function selfInsureFund(loss: number, premium: number, p: number) {
+  const years = premium > 0 ? loss / premium : Infinity;
+  const whole = Number.isFinite(years) ? Math.max(1, Math.ceil(years)) : Infinity;
+  return { years, chanceLossFirst: Number.isFinite(whole) ? 1 - Math.pow(1 - p, whole) : 1, fundAfter5: premium * 5 };
+}
+/** Break-even repair cost for a no-claim bonus decision: the claim pays repair - deductible, so it wins above lostValue + deductible. */
+export const claimBreakEven = (pvExtra: number, deductible: number) => pvExtra + Math.max(0, deductible);
+/** What-if table: the claim's net result for several repair costs (same extra premiums, since the discount lost does not depend on the repair size). */
+export function claimWhatIf(pvExtra: number, deductible: number, repairs: number[]) {
+  return repairs.map((r) => { const pay = Math.max(0, r - deductible); return { repair: r, pay, net: pay - pvExtra, claimWins: pay > pvExtra }; });
+}
+/** Average clause at several sums insured (as shares of the required cover). */
+export function averageSweep(loss: number, value: number, required: number, deductible: number, shares: number[]) {
+  const need = required * value;
+  return shares.map((s) => { const si = need * s; const r = averageClause(loss, si, value, required, deductible); return { share: s, sumInsured: si, payout: r.payout, youPay: r.youPay }; });
+}
+/** Dental year with an out-of-network dentist: the plan works on the "allowed" amount (fee / (1 + extra)), and you pay the balance as well. */
+export function dentalOutOfNetwork(a: DentalIn, extraPct: number) {
+  const k = 1 + Math.max(0, extraPct) / 100;
+  const r = dentalYear({ ...a, items: a.items.map((i) => ({ ...i, cost: i.cost / k })) });
+  const fees = a.items.reduce((s, i) => s + i.cost, 0);
+  const youPay = fees - r.planPays;
+  return { planPays: r.planPays, youPay, total: a.premium + youPay, fees, balanceBilled: fees - r.cost };
+}
+/** What the plan pays if the year's treatment came to `scales` times the entered amounts (shows where the annual maximum bites). */
+export function dentalScaleTable(a: DentalIn, scales: number[]) {
+  return scales.map((s) => { const r = dentalYear({ ...a, items: a.items.map((i) => ({ ...i, cost: i.cost * s })) }); return { scale: s, cost: r.cost, planPays: r.planPays, youPay: r.youPay, total: a.premium + r.youPay }; });
+}
+/** If death came in year `year` (1 based): creditor cover pays the balance to the lender, term pays its level cover to the family. */
+export function deathAtYear(balances: number[], cover: number, year: number) {
+  const b = balances[Math.min(Math.max(1, Math.round(year)), balances.length) - 1] ?? 0;
+  return { balance: b, toLender: b, toFamily: cover, familyExtraVsCreditor: cover - b };
+}
+/** Own-damage year 1 expected payout for several deductible/premium choices. A premium of 0 or less means "not entered". */
+export function odDeductibleTable(a: OdIn, choices: { deductible: number; premium: number }[]) {
+  const { mu, s } = lognormal(a.median, a.p90);
+  return choices.map((c) => { const expected = odPayout(a.value, c.deductible, a.lambda, mu, s); return { ...c, expected, net: c.premium > 0 ? expected - c.premium : null }; });
+}
+/** Net worth against a liability limit. */
+export function limitGap(limit: number, netWorth: number) {
+  return { gap: Math.max(0, netWorth - limit), covered: limit >= netWorth, ratio: netWorth > 0 ? limit / netWorth : Infinity };
+}
+/** Health cover check: the plan's daily room rent cap against the room you would choose, and the share of linked bills that would be cut. */
+export function roomRentCheck(capPerDay: number, roomPerDay: number) {
+  const ratio = capPerDay > 0 && roomPerDay > 0 ? Math.min(1, capPerDay / roomPerDay) : 1;
+  return { ratio, cutShare: 1 - ratio, ok: ratio >= 1 };
+}
+/** Need for a family: stays are per family, and city cost multiplier is the person's own figure (no rates built in). */
+export function familyNeed(stay: number, stays: number, cityFactor: number, growthPct: number, years: number) {
+  return stay * cityFactor * stays * Math.pow(1 + growthPct / 100, years);
+}

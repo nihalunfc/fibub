@@ -44,6 +44,10 @@ It gives a neutral verdict, not a recommendation. To choose between two deductib
 
 Savings 100,000, loss 50,000, chance 1%, price 600, no deductible. The expected loss is 500 a year. At attitude 0 the most worth paying is 500, so 600 is 20% above the fair price. At attitude 1 it is about 690.8, so 600 is below that.
 
+## Two more checks
+
+Under the main result the tool asks **could you afford the worst case?** It shows what the full loss would take from your savings with no cover, and the most you would pay with cover (the deductible). It then shows the **put the price aside yourself** option: how many years of saving the cover price it takes to build up the loss (no interest counted) and the chance the loss happens before then. These are general information, not advice, and the chance is your own estimate.
+
 ## FAQs
 
 **What is the loading?** How much of the price is above the fair price (the expected payout).

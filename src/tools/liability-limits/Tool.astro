@@ -45,6 +45,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div class="ll-bars"></div>
     </div>
     <p class="note warn ll-nw" hidden></p>
+    <p class="note ll-umb" hidden></p>
   </section>
   <section class="panel ll-regions">
     <h2>Rules by region</h2>
@@ -91,6 +92,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  import { limitGap } from '../../lib/money/insurance';
   const root = document.querySelector<HTMLElement>('.ll')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -140,6 +142,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.ll-s-tot').textContent = $(tot); q('.ll-s-you').textContent = $(you);
     q('.ll-words').innerHTML = you <= 0.005 ? 'In this accident the policy covers everything you typed.' : `The policy pays <b>${$(tot)}</b> of <b>${$(all)}</b>. The other <b>${$(you)}</b> is a bill you could be asked to pay yourself.`;
     q('.ll-bars').innerHTML = rows.map((r) => bar(r[0], r[1], r[2])).join('') + bar('All together', tot, you);
+    const umb = q('.ll-umb');
+    const topLimit = single ? csl : pa + prop;
+    umb.hidden = !(nw > 0);
+    if (nw > 0) { const g = limitGap(topLimit, nw); umb.textContent = g.covered ? `Your total limit (${$(topLimit)}) is at least your net worth of ${$(nw)}, so a very large claim would be paid from the policy first.` : `Your net worth (${$(nw)}) is ${$(g.gap)} above your total limit (${$(topLimit)}). That gap is what a very large claim could reach. Some people close it with an umbrella (excess liability) policy, a separate cover that starts when the basic limits run out. Ask an insurer or broker whether one is sold in your country; it is general information, not advice.`; }
     const nwEl = q('.ll-nw');
     nwEl.hidden = !(nw > 0);
     if (nw > 0) nwEl.textContent = you > 0 ? `That ${$(you)} is ${Math.round((you / nw) * 1000) / 10}% of your net worth of ${$(nw)}. Costs above your limits can be claimed from what you own, depending on local law.` : `Here nothing is left over, but a worse accident could be: your net worth of ${$(nw)} is what sits behind any gap.`;

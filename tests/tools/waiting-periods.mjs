@@ -18,4 +18,8 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.wtp .wtp-list li')).length === 3, 'waiting-periods: dental mode has three rows');
   await set('[data-k="start"]', '');
   check(await page.isVisible('.wtp .wtp-err'), 'waiting-periods: missing date shows a message');
+  await set('[data-k="start"]', '2026-01-01'); await set('[data-k="care"]', '2026-03-01');
+  const co = await page.textContent('.wtp .wtp-careout');
+  check(co.includes('over by then') && co.includes('still running'), 'waiting-periods: care date splits over and running waits (' + co.slice(0, 80) + ')');
+  check(await page.isVisible('.wtp .wtp-ics'), 'waiting-periods: calendar download button shown');
 };

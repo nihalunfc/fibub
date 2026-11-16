@@ -19,4 +19,7 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.clm .clm-level option')).length === 3, 'claim-or-pay: own table has three levels');
   await set('base', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.clm .clm-err'), 'claim-or-pay: no premium shows a message');
+  await page.waitForTimeout(100);
+  const be = await page.textContent('.clm .clm-be');
+  check(/about\s*\S*\d/.test(be) && (await page.$$('.clm .clm-whatif tr')).length === 5, 'claim-or-pay: break-even line and five what-if rows (' + be + ')');
 };
