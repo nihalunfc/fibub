@@ -1,0 +1,114 @@
+---
+// #T959 Voice recorder: record from the microphone in the browser and save WAV, the browser's own compressed file, or u-law.
+// Kit: src/lib/audio/. The recording stays in this tab's memory; nothing is uploaded.
+---
+<div class="tool-ui vr">
+  <p class="note bad vr-none" hidden>This browser cannot record sound. Try a recent Chrome, Edge, Firefox or Safari.</p>
+  <section class="panel">
+    <div class="vr-meter" aria-hidden="true"><span class="vr-level"></span></div>
+    <p class="vr-time" aria-live="off">0:00</p>
+    <div class="vr-row">
+      <button type="button" class="btn vr-start">Start recording</button>
+      <button type="button" class="btn secondary vr-pause" hidden>Pause</button>
+      <button type="button" class="btn secondary vr-stop" hidden>Stop</button>
+    </div>
+    <label class="vr-check"><input class="vr-clean" type="checkbox" checked /> Clean up the sound: the browser's noise and echo reduction (untick for music)</label>
+    <p class="note bad vr-err" hidden></p>
+    <p class="vr-fine">Your browser will ask to use the microphone. The recording stays in this tab: save it before you close the page.</p>
+  </section>
+
+  <section class="panel vr-done" hidden>
+    <audio class="vr-audio" controls preload="metadata"></audio>
+    <p class="vr-info" aria-live="polite"></p>
+    <div class="vr-row">
+      <button type="button" class="btn vr-wav">Download WAV</button>
+      <button type="button" class="btn secondary vr-orig">Download smaller file</button>
+      <button type="button" class="btn secondary vr-ulaw">Download for a phone system (.ulaw)</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .vr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vr .panel { display: grid; gap: 12px; padding: 16px; }
+  .vr [hidden] { display: none !important; }
+  .vr-meter { height: 14px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--bg); }
+  .vr-level { display: block; height: 100%; width: 0; background: var(--accent); transition: width 60ms linear; }
+  .vr-level.hot { background: var(--bad, #b00020); }
+  .vr-time { font-size: 32px; font-variant-numeric: tabular-nums; margin: 0; }
+  .vr-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vr-check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+  .vr-check input { margin-top: 3px; }
+  .vr-fine, .vr-info { color: var(--muted); font-size: 14px; margin: 0; }
+  .vr-audio { width: 100%; }
+</style>
+
+<script>
+  import { writeWav, toPhone, phoneFile, type Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, saveBytes, sizeText, secs } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.vr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const startB = $<HTMLButtonElement>('.vr-start'), pauseB = $<HTMLButtonElement>('.vr-pause'), stopB = $<HTMLButtonElement>('.vr-stop');
+  const err = $('.vr-err'), time = $('.vr-time'), level = $('.vr-level'), audio = $<HTMLAudioElement>('.vr-audio'), info = $('.vr-info');
+  const ok = !!(navigator.mediaDevices?.getUserMedia && 'MediaRecorder' in window);
+  if (!ok) { $('.vr-none').hidden = false; startB.disabled = true; }
+
+  let rec: MediaRecorder | null = null, stream: MediaStream | null = null, ac: AudioContext | null = null, raf = 0;
+  let chunks: Blob[] = [], blob: Blob | null = null, snd: Sound | null = null, url = '', started = 0, banked = 0;
+  const stamp = () => new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const elapsed = () => banked + (rec?.state === 'recording' ? (performance.now() - started) / 1000 : 0);
+  const ext = (t: string) => (t.includes('ogg') ? 'ogg' : t.includes('mp4') || t.includes('aac') ? 'm4a' : 'webm');
+
+  const tick = (an: AnalyserNode, buf: Float32Array) => {
+    an.getFloatTimeDomainData(buf);
+    let p = 0; for (let i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i]));
+    const db = 20 * Math.log10(p || 1e-6), w = Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+    level.style.width = w + '%'; level.classList.toggle('hot', p > 0.98);
+    time.textContent = fmtTime(elapsed());
+    raf = requestAnimationFrame(() => tick(an, buf));
+  };
+  const cleanup = () => { cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); stream = null; ac?.close(); ac = null; level.style.width = '0'; };
+
+  startB.addEventListener('click', async () => {
+    err.hidden = true;
+    const clean = $<HTMLInputElement>('.vr-clean').checked;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: clean, noiseSuppression: clean, autoGainControl: clean } }); }
+    catch (e) {
+      err.textContent = (e as Error).name === 'NotAllowedError' ? 'The microphone was blocked. Allow it in the address bar (the lock or microphone icon) and try again.' : 'No microphone was found, or another app is using it.';
+      err.hidden = false; return;
+    }
+    ac = new AudioContext(); const an = ac.createAnalyser(); an.fftSize = 2048; ac.createMediaStreamSource(stream).connect(an);
+    chunks = []; rec = new MediaRecorder(stream);
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = finish;
+    rec.start(1000); started = performance.now(); banked = 0;
+    tick(an, new Float32Array(an.fftSize));
+    startB.hidden = true; pauseB.hidden = stopB.hidden = false; pauseB.textContent = 'Pause';
+  });
+  pauseB.addEventListener('click', () => {
+    if (!rec) return;
+    if (rec.state === 'recording') { banked = elapsed(); rec.pause(); pauseB.textContent = 'Carry on'; }
+    else { rec.resume(); started = performance.now(); pauseB.textContent = 'Pause'; }
+  });
+  stopB.addEventListener('click', () => { if (rec && rec.state !== 'inactive') { banked = elapsed(); rec.stop(); } });
+
+  async function finish() {
+    cleanup(); startB.hidden = false; startB.textContent = 'Record again'; pauseB.hidden = stopB.hidden = true;
+    blob = new Blob(chunks, { type: rec?.mimeType || chunks[0]?.type || 'audio/webm' });
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(blob); audio.src = url;
+    $('.vr-done').hidden = false; info.textContent = 'Getting the recording ready…';
+    try { snd = await decodeFile(await blob.arrayBuffer()); }
+    catch { snd = null; }
+    const wavBytes = snd ? 44 + snd.chans[0].length * 2 : 0;
+    info.textContent = snd
+      ? `${secs(snd.chans[0].length / snd.rate)} recorded. WAV ${sizeText(wavBytes)} (16-bit, mono, ${snd.rate.toLocaleString('en-US')} Hz); smaller file ${sizeText(blob.size)} (${ext(blob.type).toUpperCase()}, compressed by the browser).`
+      : `Recorded ${sizeText(blob.size)}. This browser could not turn it into WAV, but you can save the recording as it is.`;
+    $<HTMLButtonElement>('.vr-wav').disabled = $<HTMLButtonElement>('.vr-ulaw').disabled = !snd;
+  }
+  const mono = () => { const c = snd!.chans; if (c.length === 1) return c[0]; const m = new Float32Array(c[0].length); for (const x of c) for (let i = 0; i < m.length; i++) m[i] += x[i] / c.length; return m; };
+  $('.vr-wav').addEventListener('click', () => snd && saveBytes(writeWav([mono()], snd.rate), `recording-${stamp()}.wav`, 'audio/wav'));
+  $('.vr-orig').addEventListener('click', () => blob && saveBytes(blob, `recording-${stamp()}.${ext(blob.type)}`));
+  $('.vr-ulaw').addEventListener('click', () => snd && saveBytes(phoneFile(toPhone(snd, { normaliseDb: -3 }), 'ulaw'), `recording-${stamp()}.ulaw`, 'audio/basic'));
+</script>
