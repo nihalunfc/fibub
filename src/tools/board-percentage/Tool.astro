@@ -1,0 +1,92 @@
+---
+// #T995 Board marks
+const subs = [1, 2, 3, 4, 5, 6, 7];
+const grades = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'E'];
+---
+<div class="tool-ui bp">
+  <section class="panel">
+    <label>Board and result <select data-k="mode"><option value="cbse">CBSE marks (Class 10 or 12)</option><option value="kerala">Kerala SSLC / Higher Secondary grades</option></select></label>
+    <div class="bp-cbse">
+      <h2>Your marks</h2>
+      <div class="bp-rows">
+        {subs.map((n) => <div class="bp-row"><input class="bp-name" data-n={n} placeholder={'Subject ' + n} aria-label={'Subject ' + n + ' name'} /><input class="bp-got" data-n={n} inputmode="decimal" placeholder="Marks" aria-label={'Subject ' + n + ' marks obtained'} /><span>out of</span><input class="bp-max" data-n={n} inputmode="decimal" value="100" aria-label={'Subject ' + n + ' maximum marks'} /></div>)}
+      </div>
+    </div>
+    <div class="bp-kerala" hidden>
+      <h2>Your grades</h2>
+      <div class="bp-rows">
+        {subs.map((n) => <div class="bp-row"><input class="bp-kname" placeholder={'Subject ' + n} aria-label={'Subject ' + n + ' name'} /><select class="bp-g" aria-label={'Subject ' + n + ' grade'}><option value="">No grade</option>{grades.map((g) => <option value={g}>{g}</option>)}</select></div>)}
+      </div>
+    </div>
+    <p class="note bad bp-err" role="alert" hidden></p>
+  </section>
+  <section class="panel bp-res" aria-live="polite" hidden>
+    <p class="bp-lead"></p>
+    <div class="bp-stats"></div>
+    <p class="bp-work"></p>
+  </section>
+  <p class="bp-fine">CBSE does not officially compute an aggregate percentage; best five is how many schools and colleges do it, so ask the one you apply to. Kerala bands are the commonly published ones (A+ 90-100, A 80-89, B+ 70-79, B 60-69, C+ 50-59, C 40-49, D+ 30-39, D 20-29, E below 20; points 9 down to 1): check the official source (keralapareekshabhavan.in, dhsekerala.gov.in), checked 2026-11-16. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .bp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .bp > * { min-width: 0; }
+  .bp h2 { margin: 14px 0 10px; font-size: 18px; }
+  .bp .panel { padding: 16px; }
+  .bp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .bp input, .bp select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); min-width: 0; box-sizing: border-box; }
+  .bp-rows { display: grid; gap: 8px; }
+  .bp-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto minmax(0, .8fr); gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+  .bp-kerala .bp-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  .bp-row input, .bp-row select { width: 100%; }
+  .bp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 10px 0; }
+  .bp-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .bp-stats span { font-size: 13px; color: var(--muted); }
+  .bp-stats b { font-size: 22px; }
+  .bp-lead { margin: 0; font-size: 15px; }
+  .bp-work, .bp-fine { margin: 0; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  const BANDS: Record<string, [number, number, number]> = { 'A+': [90, 100, 9], A: [80, 89, 8], 'B+': [70, 79, 7], B: [60, 69, 6], 'C+': [50, 59, 5], C: [40, 49, 4], 'D+': [30, 39, 3], D: [20, 29, 2], E: [0, 19, 1] };
+  const root = document.querySelector<HTMLElement>('.bp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const all = (c: string) => [...root.querySelectorAll<HTMLInputElement>(c)];
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const stat = (l: string, v: string) => `<div><span>${l}</span><b>${v}</b></div>`;
+  function show(err: string, lead = '', stats = '', work = '') {
+    q('.bp-err').hidden = !err; q('.bp-err').textContent = err;
+    q('.bp-res').hidden = !!err || !stats;
+    q('.bp-lead').textContent = lead; q('.bp-stats').innerHTML = stats; q('.bp-work').textContent = work;
+  }
+  function run() {
+    const kerala = q<HTMLSelectElement>('[data-k="mode"]').value === 'kerala';
+    q('.bp-cbse').hidden = kerala; q('.bp-kerala').hidden = !kerala;
+    if (kerala) {
+      const gs = all('.bp-g').map((s) => s.value).filter(Boolean);
+      if (!gs.length) return show('');
+      const lo = gs.reduce((s, g) => s + BANDS[g][0], 0) / gs.length, hi = gs.reduce((s, g) => s + BANDS[g][1], 0) / gs.length, gp = gs.reduce((s, g) => s + BANDS[g][2], 0) / gs.length;
+      return show('', `${gs.length} subjects: your percentage is between ${r2(lo)}% and ${r2(hi)}%.`,
+        stat('Lowest', r2(lo) + '%') + stat('Midpoint', r2((lo + hi) / 2) + '%') + stat('Highest', r2(hi) + '%') + stat('Grade point average', r2(gp).toString()),
+        'Working: the bands of your grades (' + gs.map((g) => `${g} ${BANDS[g][0]}-${BANDS[g][1]}`).join(', ') + ') are averaged. Check the official source.');
+    }
+    const rows: { got: number; max: number }[] = [];
+    for (const n of [1, 2, 3, 4, 5, 6, 7]) {
+      const g = root.querySelector<HTMLInputElement>(`.bp-got[data-n="${n}"]`)!.value.trim(), m = root.querySelector<HTMLInputElement>(`.bp-max[data-n="${n}"]`)!.value.trim();
+      if (!g) continue;
+      const got = Number(g), max = Number(m);
+      if (!(got >= 0) || !(max > 0) || got > max) return show(`Subject ${n}: marks must be a number from 0 to the maximum.`);
+      rows.push({ got, max });
+    }
+    if (!rows.length) return show('');
+    const sum = (a: { got: number; max: number }[]) => [a.reduce((s, x) => s + x.got, 0), a.reduce((s, x) => s + x.max, 0)];
+    const [tg, tm] = sum(rows);
+    const best = [...rows].sort((a, b) => b.got / b.max - a.got / a.max).slice(0, 5);
+    const [bg, bm] = sum(best);
+    const lead = rows.length < 5 ? `Enter at least five subjects for the best-five figure. All ${rows.length} subjects: ${r2(tg / tm * 100)}%.` : `Best five: ${r2(bg / bm * 100)}%. All ${rows.length} subjects: ${r2(tg / tm * 100)}%.`;
+    show('', lead, (rows.length >= 5 ? stat('Best five', r2(bg / bm * 100) + '%') : '') + stat('All subjects', r2(tg / tm * 100) + '%') + stat('Total marks', `${tg} / ${tm}`),
+      (rows.length >= 5 ? `Working: best five ${bg} / ${bm} = ${r2(bg / bm * 100)}%. ` : '') + `All: ${tg} / ${tm} = ${r2(tg / tm * 100)}%. CBSE does not officially compute an aggregate.`);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

@@ -32,6 +32,24 @@
       <thead><tr><th>Country</th><th>Days</th><th>Markers</th></tr></thead>
       <tbody class="rd-body"></tbody>
     </table></div>
+    <div class="panel rd-in" hidden>
+      <h2>Indian residency status</h2>
+      <p class="rd-help">For the Indian tax year chosen above, under section 6 of the Income-tax Act, 2025 (tax years from 1 April 2026; earlier years follow section 6 of the 1961 Act, with the same tests). Days in India come from your trips.</p>
+      <div class="rd-grid">
+        <label>You are <select data-k="in-nat"><option value="citizen">An Indian citizen</option><option value="pio">A person of Indian origin (not a citizen)</option><option value="other">Neither</option></select></label>
+        <label>This year you <select data-k="in-sit"><option value="visit">Live abroad and came to India on a visit</option><option value="job">Left India for a job abroad (or as ship crew)</option><option value="none">Neither of these</option></select></label>
+        <label>Days in India in the 4 earlier years <input data-k="in-prior" inputmode="numeric" placeholder="Blank: count from trips" /></label>
+      </div>
+      <div class="rd-ticks">
+        <label><input type="checkbox" data-k="in-15" /> Income in India (not counting foreign income) over ₹15 lakh</label>
+        <label><input type="checkbox" data-k="in-else" checked /> Liable to tax in another country because you live there</label>
+        <label><input type="checkbox" data-k="in-9" /> Non-resident in 9 of the 10 earlier years</label>
+        <label><input type="checkbox" data-k="in-729" /> 729 days or fewer in India in the 7 earlier years</label>
+      </div>
+      <p class="rd-line rd-in-out"></p>
+      <p class="rd-help rd-in-why"></p>
+      <p class="rd-help">Estimate, not legal or tax advice. Source: Income Tax Department, Non-resident FAQs (incometax.gov.in), Income-tax Act, 2025 section 6(2) to 6(7) and 6(13); checked 2026-11-16. Check the official source.</p>
+    </div>
     <div class="panel rd-spt">
       <h2>United States substantial presence test</h2>
       <p class="rd-help">Uses calendar years: days this year + one third of last year + one sixth of the year before, and at least 31 days this year. Count of US days comes from your trips.</p>
@@ -68,9 +86,13 @@
   .rd-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .rd-err { margin: 10px 0 0; }
   .rd .rm { padding: 4px 10px; }
+  .rd-ticks { display: grid; gap: 8px; margin-top: 12px; }
+  .rd-ticks label { display: flex; align-items: center; gap: 8px; }
+  .rd-in-out { font-weight: 600; }
 </style>
 
 <script>
+  import { indianResidence, STATUS_NAME } from '../../lib/money/india-residence';
   import { dayNum, period, daysByCountry, usDays, substantialPresence, markers, isoOf, type Trip, type Region, type Counting } from '../../lib/money/residency';
   const root = document.querySelector<HTMLElement>('.rd')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -98,6 +120,16 @@
     const d = [usDays(trips, year, counting), usDays(trips, year - 1, counting), usDays(trips, year - 2, counting)];
     const sp = substantialPresence(d[0], d[1], d[2]);
     q('.rd-spt-body').innerHTML = [[year, d[0], '1', d[0]], [year - 1, d[1], '1/3', d[1] / 3], [year - 2, d[2], '1/6', d[2] / 6]].map((r) => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td>${r[2]}</td><td class="n">${fmt(r[3] as number)}</td></tr>`).join('') + `<tr><td><b>Total</b></td><td></td><td></td><td class="n"><b>${fmt(sp.weighted)}</b></td></tr>`;
+    q('.rd-in').hidden = region !== 'india';
+    if (region === 'india') {
+      const inDays = (y: number) => { const pp = period('india', y); return daysByCountry(trips, pp.from, pp.to, counting).get('india')?.days ?? 0; };
+      const days = inDays(year), typed = f('in-prior').value.trim();
+      const prior4 = typed !== '' ? Math.max(0, +typed || 0) : inDays(year - 1) + inDays(year - 2) + inDays(year - 3) + inDays(year - 4);
+      const nat = f('in-nat').value, sit = f('in-sit').value, on = (k: string) => f(k).checked;
+      const res = indianResidence({ days, prior4, citizen: nat === 'citizen', pio: nat === 'pio', visiting: sit === 'visit', leftForJob: sit === 'job', income15: on('in-15'), taxedElsewhere: on('in-else'), nr9of10: on('in-9'), le729: on('in-729') });
+      q('.rd-in-out').textContent = `${STATUS_NAME[res.status]} for ${p.label}: ${days} days in India this year, ${prior4} in the 4 earlier years.`;
+      q('.rd-in-why').textContent = `Why: ${res.rule}.`;
+    }
     q('.rd-spt-out').textContent = sp.resident ? `Weighted total ${fmt(sp.weighted)} is 183 or more and you have ${d[0]} days this year (31 needed): you meet the substantial presence test. Exceptions, the closer connection rule and tax treaties may still apply.` : `You do not meet the substantial presence test on these trips: ${d[0]} days this year (31 needed) and a weighted total of ${fmt(sp.weighted)} (183 needed). Include trips for the two years before so the weighting is right.`;
   }
   const setCounting = () => { f('counting').value = f('region').value === 'uk' ? 'midnight' : 'both'; };
@@ -115,7 +147,7 @@
   q('.rd-clear').addEventListener('click', () => { trips = []; persist(); render(); });
   f('keep').addEventListener('change', persist);
   f('region').addEventListener('change', () => { setCounting(); render(); });
-  for (const k of ['year', 'counting']) { f(k).addEventListener('input', render); f(k).addEventListener('change', render); }
+  for (const k of ['year', 'counting', 'in-nat', 'in-sit', 'in-prior', 'in-15', 'in-else', 'in-9', 'in-729']) { f(k).addEventListener('input', render); f(k).addEventListener('change', render); }
   void isoOf;
   render();
 </script>
