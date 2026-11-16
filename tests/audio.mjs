@@ -3,7 +3,7 @@
 import { linearToUlaw, ulawToLinear, linearToAlaw, alawToLinear } from '../src/lib/audio/g711.ts';
 import { writeWav, readWav, readRaw, resample, toPhone, phoneFile, normalise, peakOf, wavInfo } from '../src/lib/audio/pcm.ts';
 import { tone as synthTone, sweep, noise, dtmf, signal, goertzel, DTMF, beatPlan, clickTrack, tempoName } from '../src/lib/audio/synth.ts';
-import { readAu, guessRaw } from '../src/lib/audio/pcm.ts';
+import { readAu, guessRaw, joinSounds } from '../src/lib/audio/pcm.ts';
 import { kWeighting, measure, planGain } from '../src/lib/audio/loudness.ts';
 import { yin, nearestNote } from '../src/lib/audio/pitch.ts';
 import { execFileSync } from 'node:child_process';
@@ -147,6 +147,27 @@ check(Math.abs(yin(e2, 48000).hz - 82.41) < 0.1, `YIN: low E 82.41 Hz (${yin(e2,
 check(yin(new Float32Array(4096), 48000).hz === 0, 'YIN: silence has no pitch');
 const nn = nearestNote(445);
 check(nn.name === 'A' && nn.octave === 4 && Math.abs(nn.cents - 19.56) < 0.05 && nearestNote(261.63).name === 'C' && nearestNote(261.63).octave === 4, `notes: 445 Hz = A4 +19.6 cents (${nn.cents.toFixed(2)})`);
+
+// Joining: 1 s mono 8 kHz + 0.5 s stereo 16 kHz with a 0.25 s gap -> stereo 16 kHz, 1.75 s; crossfade 0.2 s -> 1.3 s.
+{
+  const a = { rate: 8000, chans: [new Float32Array(8000).fill(0.5)] }, b = { rate: 16000, chans: [new Float32Array(8000).fill(-0.5), new Float32Array(8000).fill(-0.25)] };
+  const j = joinSounds([a, b], 0.25);
+  check(j.rate === 16000 && j.chans.length === 2 && j.chans[0].length === 28000 && j.chans[1][18000] === 0 && j.chans[1][27000] === -0.25 && Math.abs(j.chans[0][8000] - 0.5) < 0.01, 'join: rates and channels matched, gap of silence');
+  const x = joinSounds([a, b], 0, 0.2);
+  check(x.chans[0].length === 20800 && Math.abs(x.chans[0][16000 - 3200 + 1600]) < 0.01 && x.chans[0][20000] === -0.5, 'join: crossfade overlaps the ends');
+}
+// MP3 (LAME via lamejs): a 3 s stereo tone at 192 kbps; ffprobe reads it back when installed.
+{
+  const { encodeAs, estimateBytes } = await import('../src/lib/audio/encode.ts');
+  const r = 44100, l = new Float32Array(r * 3).map((_, i) => 0.5 * Math.sin(2 * Math.PI * 440 * i / r));
+  const mp3 = await encodeAs({ rate: r, chans: [l, l] }, 'mp3-192');
+  check(Math.abs(mp3.length - estimateBytes(3, r, 2, 'mp3-192')) < 3000 && mp3[0] === 0xff && (mp3[1] & 0xe0) === 0xe0, `MP3: 3 s at 192 kbps is about 72 KB and starts with a frame header (${mp3.length})`);
+  if (ff) {
+    const d = mkdtempSync(tmpdir() + '/fibub-mp3-'); writeFileSync(d + '/t.mp3', mp3);
+    const p = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_name,sample_rate,channels,bit_rate', '-of', 'csv=p=0', d + '/t.mp3']).toString().trim();
+    check(p === 'mp3,44100,2,192000', `ffprobe reads the MP3 (${p})`);
+  }
+}
 
 console.log(fails ? `audio: ${fails} check(s) failed` : 'audio: all checks passed');
 process.exit(fails ? 1 : 0);

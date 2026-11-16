@@ -1,0 +1,134 @@
+---
+// Shared converter for #T963 Audio converter and #T965 Extract audio: any sound or video file the browser can read
+// to MP3, WAV or u-law, one by one or as a ZIP. Kit: src/lib/audio/ (encode.ts, checks in tests/audio.mjs). Nothing is uploaded.
+import { OUT_FORMATS } from '../../lib/audio/encode.ts';
+interface Props { button: string; hint: string; accept: string; base: string }
+const { button, hint, accept, base } = Astro.props;
+---
+<div class="tool-ui acv" data-base={base}>
+  <section class="panel">
+    <div class="acv-drop">
+      <button type="button" class="btn acv-open">{button}</button>
+      <input class="acv-file" type="file" multiple accept={accept} hidden />
+      <span class="acv-hint">{hint}</span>
+    </div>
+    <p class="note bad acv-err" hidden></p>
+  </section>
+
+  <section class="panel">
+    <div class="acv-grid">
+      <label>Save as
+        <select class="acv-fmt">{Object.entries(OUT_FORMATS).map(([k, f]) => <option value={k}>{f.label}</option>)}</select>
+      </label>
+      <label>Sample rate
+        <select class="acv-rate"><option value="0">Keep as it is</option><option value="48000">48,000 Hz (video)</option><option value="44100">44,100 Hz (CD, music)</option><option value="22050">22,050 Hz (speech, smaller)</option></select>
+      </label>
+      <label>Channels
+        <select class="acv-ch"><option value="keep">Keep as it is</option><option value="mono">Mix to mono</option></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="panel acv-out" hidden>
+    <ol class="acv-list"></ol>
+    <div class="acv-row">
+      <button type="button" class="btn acv-all">Download all</button>
+      <button type="button" class="btn secondary acv-clear">Clear the list</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .acv { display: grid; gap: 14px; margin-bottom: 32px; }
+  .acv .panel { display: grid; gap: 12px; padding: 16px; }
+  .acv [hidden] { display: none !important; }
+  .acv-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .acv-drop.over { border-color: var(--accent); }
+  .acv-hint { color: var(--muted); font-size: 14px; }
+  .acv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .acv label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .acv select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .acv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .acv-list li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .acv-list .nm { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+  .acv-list .st { color: var(--muted); font-size: 14px; flex: 1 1 100%; }
+  .acv-list .st.bad { color: var(--bad, #b00020); }
+  .acv-row { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+
+<script>
+  import { OUT_FORMATS, encodeAs, estimateBytes, type OutFormat } from '../../lib/audio/encode.ts';
+  import { resample, toMono, type Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, baseName, sizeText, secs, saveBytes, saveZip, player } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.acv') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.acv-file'), fmtSel = $<HTMLSelectElement>('.acv-fmt'), rateSel = $<HTMLSelectElement>('.acv-rate'), chSel = $<HTMLSelectElement>('.acv-ch');
+  const list = $('.acv-list'), err = $('.acv-err'), all = $<HTMLButtonElement>('.acv-all');
+  type Item = { name: string; li: HTMLElement; snd?: Sound; error?: string };
+  let items: Item[] = [];
+  const play = player();
+  const fmt = () => fmtSel.value as OutFormat;
+  const outName = (it: Item) => `${baseName(it.name, root.dataset.base)}.${OUT_FORMATS[fmt()].ext}`;
+  const shaped = (s: Sound): Sound => {
+    let chans = chSel.value === 'mono' ? [toMono(s.chans)] : s.chans, rate = s.rate;
+    const to = +rateSel.value;
+    if (to && to !== rate) { chans = chans.map((c) => resample(c, rate, to)); rate = to; }
+    return { rate, chans };
+  };
+  const outRate = (s: Sound) => +rateSel.value || s.rate;
+  const outCh = (s: Sound) => (chSel.value === 'mono' ? 1 : s.chans.length);
+
+  const render = (it: Item) => {
+    const li = it.li; li.replaceChildren();
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = it.name; li.append(nm);
+    const s = it.snd;
+    if (s) {
+      const p = document.createElement('button'); p.type = 'button'; p.className = 'btn secondary acv-play'; p.textContent = 'Play';
+      p.addEventListener('click', () => {
+        if (p.textContent === 'Stop') { play.stop(); p.textContent = 'Play'; return; }
+        list.querySelectorAll('.acv-play').forEach((b) => (b.textContent = 'Play'));
+        p.textContent = 'Stop'; play.play(s.chans, s.rate, () => (p.textContent = 'Play'));
+      });
+      const d = document.createElement('button'); d.type = 'button'; d.className = 'btn acv-save'; d.textContent = 'Download';
+      d.addEventListener('click', async () => { d.disabled = true; d.textContent = 'Making…'; try { saveBytes(await encodeAs(shaped(s), fmt()), outName(it), OUT_FORMATS[fmt()].mime); } finally { d.disabled = false; d.textContent = 'Download'; } });
+      li.append(p, d);
+    }
+    const st = document.createElement('span'); st.className = 'st' + (it.error ? ' bad' : '');
+    const dur = s ? s.chans[0].length / s.rate : 0;
+    st.textContent = it.error ?? (s ? `${secs(dur)}, ${s.chans.length === 1 ? 'mono' : s.chans.length === 2 ? 'stereo' : s.chans.length + ' channels'}, ${s.rate.toLocaleString('en-US')} Hz → ${outName(it)}, about ${sizeText(estimateBytes(dur, outRate(s), outCh(s), fmt()))}` : 'Reading…');
+    li.append(st);
+  };
+  const summary = () => {
+    const ok = items.filter((i) => i.snd);
+    $('.acv-out').hidden = !items.length; all.hidden = ok.length < 2; all.textContent = `Download all ${ok.length} as a ZIP`;
+  };
+  const add = async (files: File[]) => {
+    err.hidden = true;
+    const room = Math.max(0, 30 - items.length);
+    if (files.length > room) { err.textContent = `Only 30 files at a time: ${files.length - room} were left out.`; err.hidden = false; files = files.slice(0, room); }
+    const fresh = files.map((f) => { const li = document.createElement('li'); list.append(li); const it: Item = { name: f.name, li }; items.push(it); render(it); return [it, f] as const; });
+    summary();
+    for (const [it, f] of fresh) {
+      if (f.size > 500e6) it.error = 'Too big: files up to 500 MB.';
+      else try { it.snd = await decodeFile(f); if (!it.snd.chans[0]?.length) { it.snd = undefined; it.error = 'There is no sound in this file.'; } }
+      catch { it.error = 'This browser cannot read the sound in this file (or it has none). Chrome and Edge read the most kinds.'; }
+      render(it); summary();
+    }
+  };
+  $('.acv-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.length) add([...input.files]); input.value = ''; });
+  const drop = $('.acv-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]); });
+  for (const s of [fmtSel, rateSel, chSel]) s.addEventListener('change', () => items.forEach(render));
+  all.addEventListener('click', async () => {
+    all.disabled = true; const label = all.textContent; all.textContent = 'Making the ZIP…';
+    try {
+      const files: { name: string; bytes: Uint8Array }[] = [];
+      for (const it of items) if (it.snd) files.push({ name: outName(it), bytes: await encodeAs(shaped(it.snd), fmt()) });
+      await saveZip(files, `${root.dataset.base}-${OUT_FORMATS[fmt()].ext}.zip`);
+    } finally { all.disabled = false; all.textContent = label; }
+  });
+  $('.acv-clear').addEventListener('click', () => { play.stop(); items = []; list.replaceChildren(); summary(); });
+</script>
