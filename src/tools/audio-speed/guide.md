@@ -1,6 +1,6 @@
 ---
 name: Audio speed
-num: 2264
+num: 2401
 shelf: everyday
 code: T971
 section: video-audio
@@ -10,7 +10,7 @@ seoDescription: "Speed up or slow down a song, podcast or voice note from 0.25×
 summary: "Speed up or slow down a song, podcast, lecture or voice note from 0.25× to 4×. Keep the pitch so voices sound natural, or let it change like a record. Nothing is uploaded."
 status: live
 ads: false
-order: 2264
+order: 2401
 icon: sliders
 works: offline
 updated: 2026-11-16

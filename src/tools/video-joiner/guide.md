@@ -1,6 +1,6 @@
 ---
 name: Video joiner
-num: 2266
+num: 2403
 shelf: everyday
 code: T973
 section: video-audio
@@ -9,7 +9,7 @@ seoTitle: "Join videos: merge clips into one, free online tool"
 summary: "Put video clips in order and join them into one MP4, with their sound kept in step. Clips of different sizes are fitted into one frame. Nothing is uploaded."
 status: live
 ads: false
-order: 2266
+order: 2403
 icon: link
 works: offline
 updated: 2026-11-16

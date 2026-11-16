@@ -1,6 +1,6 @@
 ---
 name: Crop video
-num: 2271
+num: 2408
 shelf: everyday
 code: T978
 section: video-audio
@@ -9,7 +9,7 @@ seoTitle: "Crop video to square, 9:16 or any size, free online tool"
 summary: "Crop a video to a square, 9:16 for Reels and Shorts, 4:5, 16:9 or any size: drag the box to choose what stays. Nothing is uploaded."
 status: live
 ads: false
-order: 2271
+order: 2408
 icon: crop
 works: offline
 updated: 2026-11-16

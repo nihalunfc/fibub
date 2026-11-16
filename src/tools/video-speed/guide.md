@@ -1,6 +1,6 @@
 ---
 name: Video speed
-num: 2268
+num: 2405
 shelf: everyday
 code: T975
 section: video-audio
@@ -9,7 +9,7 @@ seoTitle: "Change video speed: speed up or slow down, free online tool"
 summary: "Make a video play faster (1.25× to 32×, time-lapse) or slower (down to 0.1×, slow motion). Voices can keep their pitch. Nothing is uploaded."
 status: live
 ads: false
-order: 2268
+order: 2405
 icon: clock
 works: offline
 updated: 2026-11-16
