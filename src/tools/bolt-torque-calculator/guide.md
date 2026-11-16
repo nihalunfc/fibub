@@ -11,7 +11,7 @@ ads: true
 order: 642
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [beam-calculator, uncertainty-calculator, tolerance-stackup, spring-designer, fatigue-sn-calculator, thermal-mismatch-stress, stress-strain-analyser]
 sources:
   - "Tensile stress area from the mean of the pitch and minor diameters of the basic 60° thread profile, as defined for ISO metric threads (ISO 898-1) and unified inch threads (ASME B1.1); formulas only, no size tables."
@@ -19,6 +19,7 @@ sources:
   - "Bolt stiffness (shank and threaded length in series) and clamped-member stiffness from 30° pressure-cone frustums, joint constant, separation load and load factors: Shigley's Mechanical Engineering Design, chapter on bolted joints (equations only)."
   - "Nut factor, friction coefficients, proof strength and preload percentages are rounded example values chosen by fibub and labelled as examples, not copied from any table. The example joint is made up."
   - "Checked against an independent NumPy/SciPy calculation: stress areas from the thread geometry, and the cone stiffness by numerical integration of dx/(E·A(x))."
+  - "Thread sizes in the chart (metric coarse pitches M5 to M30 from ISO 261 and ISO 724, and the UNC and UNF threads per inch from ASME B1.1) are thread geometry only; the strengths and friction values are the ones you enter, not table values."
 flow:
   - { icon: target, label: "Thread" }
   - { icon: sliders, label: "Preload" }
@@ -37,6 +38,10 @@ A bolt holds a joint together by being stretched like a stiff spring. That stret
 - the **separation load** that would open the joint, the bolt load and remaining clamp under your load, and safety factors.
 
 Check how the joined parts fit together with the [[tolerance-stackup|tolerance stack-up]], and see how a bolt copes with repeated loads in the [[fatigue-sn-calculator]].
+
+## Torque chart for common sizes
+
+Under **More options** the tool lists the torque for every common size at once, which is what people often look for in a "bolt torque chart": metric M5 to M30 (coarse pitch), or inch sizes from 1/4 to 1 in in the coarse (UNC) or fine (UNF) series. Each row shows the stress area, the preload and the torque, worked out from the proof strength, preload percentage and friction you entered above, so the chart matches your bolt grade and lubrication. It is not a table copied from a standard: the real proof strength of a grade can differ slightly with size, so check the bolt standard and your own test data for important joints.
 
 ## How to use it
 

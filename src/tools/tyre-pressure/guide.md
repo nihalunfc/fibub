@@ -11,10 +11,11 @@ ads: false
 order: 1809
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [stopping-distance, unit-converter, fuel-cost]
 sources:
   - "Conversions: 1 psi = 6.894757 kPa, 1 bar = 100 kPa. Temperature change: absolute pressure (gauge plus 101.325 kPa) is proportional to temperature in kelvin, with the tyre volume treated as fixed. Real tyres flex and leak a little, so this is an estimate. Always use the pressure on your vehicle's own label or manual. Drawings are fibub's own."
+  - "The pressure on the vehicle's door-jamb placard or in the manual is the source of truth; this page does not recommend a pressure. Fahrenheit and Celsius: F = C x 9/5 + 32. Sidewall maximum: the limit moulded on the tyre, never a pressure to run. Checked 2026-11-16."
 flow:
   - { icon: sliders, label: "Pressure" }
   - { icon: curve, label: "Temperature" }
@@ -39,6 +40,10 @@ Gauges show pressure above the outside air, but the physics works on absolute pr
 - **Gauge pressure**: what a normal tyre gauge shows, not absolute pressure.
 - **Temperature measured at / new temperature**: the air temperature in the tyre, in °C.
 - **Fill to**: the pressure to put in today, with cold tyres, so that it comes out right at the other temperature.
+
+## More options
+
+The page starts with a reminder that the pressure on your vehicle's door-jamb placard or in the manual, set with cold tyres, is the number to use; this tool converts it and corrects it for the weather. A switch shows temperatures in degrees Celsius or Fahrenheit and converts the boxes for you. Under "Temperature change" a table shows the same tyre at -20, -10, 0, 10, 20, 30 and 40 degrees Celsius (or the same temperatures in Fahrenheit), with the change in pressure. In the fill-to section you can type the maximum pressure moulded on the tyre's sidewall, and the page warns you if the fill-to figure goes above it. It is a limit, not a pressure to run.
 
 ## Worked example
 

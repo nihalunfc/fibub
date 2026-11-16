@@ -2,6 +2,10 @@
 // #T899 Tyre pressure
 ---
 <div class="tool-ui tp">
+  <section class="panel tp-top">
+    <p class="tp-fine tp-first"><b>Which pressure to use?</b> The one on your vehicle's door-jamb placard or in the manual, set with cold tyres. That is the source of truth: this page converts it and corrects it for the weather, it does not pick a pressure for you.</p>
+    <label>Show temperatures in <select data-k="tu"><option value="c">°C</option><option value="f">°F</option></select></label>
+  </section>
   <section class="panel">
     <h2 class="tp-h">Convert pressure</h2>
     <div class="tp-grid">
@@ -16,11 +20,13 @@
     <div class="tp-grid">
       <label>Gauge pressure <input data-k="p1" inputmode="decimal" value="35" /></label>
       <label>Unit <select data-k="u1"><option value="psi">psi</option><option value="bar">bar</option><option value="kpa">kPa</option></select></label>
-      <label>Air temperature when measured (°C) <input data-k="t1" inputmode="decimal" value="20" /></label>
-      <label>New temperature (°C) <input data-k="t2" inputmode="decimal" value="-10" /></label>
+      <label>Air temperature when measured (<span data-o="tun">°C</span>) <input data-k="t1" inputmode="decimal" value="20" /></label>
+      <label>New temperature (<span data-o="tun">°C</span>) <input data-k="t2" inputmode="decimal" value="-10" /></label>
     </div>
     <p class="tp-big" data-o="change" aria-live="polite"></p>
     <p class="tp-line" data-o="rule"></p>
+    <h3 class="tp-h3">The same tyre at other temperatures</h3>
+    <table class="tp-tab"><thead><tr><th data-o="thT">Temperature</th><th data-o="thP">Pressure</th><th>Change</th></tr></thead><tbody></tbody></table>
   </section>
   <section class="panel">
     <h2 class="tp-h">Set cold pressure for another day</h2>
@@ -28,10 +34,14 @@
     <div class="tp-grid">
       <label>Wanted pressure (gauge) <input data-k="p3" inputmode="decimal" value="35" /></label>
       <label>Unit <select data-k="u3"><option value="psi">psi</option><option value="bar">bar</option><option value="kpa">kPa</option></select></label>
-      <label>Temperature it is wanted at (°C) <input data-k="t3" inputmode="decimal" value="20" /></label>
-      <label>Temperature now, tyres cold (°C) <input data-k="t4" inputmode="decimal" value="5" /></label>
+      <label>Temperature it is wanted at (<span data-o="tun">°C</span>) <input data-k="t3" inputmode="decimal" value="20" /></label>
+      <label>Temperature now, tyres cold (<span data-o="tun">°C</span>) <input data-k="t4" inputmode="decimal" value="5" /></label>
     </div>
     <p class="tp-big" data-o="fill" aria-live="polite"></p>
+    <details class="tp-limit"><summary>More options: check against the tyre's maximum</summary>
+      <label>Maximum pressure moulded on the tyre sidewall (in the unit chosen for "Wanted pressure") <input data-k="mx" inputmode="decimal" placeholder="e.g. 51" /></label>
+      <p class="tp-fine">Never fill above the sidewall maximum. The sidewall number is a limit, not the pressure to run.</p>
+    </details>
     <p class="tp-warn" role="alert"></p>
   </section>
   <p class="tp-fine">Use the pressure on your vehicle's door-jamb or manual label, set with cold tyres (driven less than about 2 km). A tyre warms by roughly 0.3 to 0.5 bar (4 to 7 psi) after a long drive: do not let air out of hot tyres. Rough physics, not a safety guarantee; always check with a gauge you trust. Nothing you type leaves this page.</p>
@@ -48,33 +58,63 @@
   .tp-big { font-size: 24px; font-weight: 700; margin: 12px 0 0; }
   .tp-line { margin: 10px 0 0; font-weight: 600; }
   .tp-warn { color: var(--bad); margin: 8px 0 0; } .tp-warn:empty { display: none; }
+  .tp-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .tp-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tp-tab th, .tp-tab td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .tp-limit summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .tp-limit label { margin-top: 8px; }
   .tp-fine { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
   .tp > .tp-fine { margin: 0; }
 </style>
 
 <script>
-  import { toKpa, fromKpa, gaugeAtTemp, type PUnit } from '../../lib/money/vehicle-physics';
+  import { toKpa, fromKpa, gaugeAtTemp, pressureAtTemps, cToF, fToC, type PUnit } from '../../lib/money/vehicle-physics';
   const root = document.querySelector('.tp') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
   const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
   const fmt = (v: number, u: PUnit) => v.toLocaleString('en-US', { minimumFractionDigits: u === 'bar' ? 2 : 1, maximumFractionDigits: u === 'bar' ? 2 : 1 });
   const all = (k: number) => `${fmt(fromKpa(k, 'psi'), 'psi')} psi = ${fmt(fromKpa(k, 'bar'), 'bar')} bar = ${fmt(k, 'kpa')} kPa`;
+  let tuPrev = 'c';
+  const T = () => q('tu').value === 'f';
+  const tc = (v: number) => (T() ? fToC(v) : v);
+  const tUnit = () => (T() ? '°F' : '°C');
+  const syncTemp = () => {
+    const now = q('tu').value;
+    if (now !== tuPrev) {
+      (['t1', 't2', 't3', 't4'] as const).forEach((k) => { const v = num(k); if (isFinite(v)) q(k).value = String(Math.round((now === 'f' ? cToF(v) : fToC(v)) * 10) / 10); });
+      tuPrev = now;
+    }
+    root.querySelectorAll('[data-o="tun"]').forEach((e) => (e.textContent = tUnit()));
+  };
   const calc = () => {
+    syncTemp();
     const cv = num('cv');
     o('conv').textContent = isFinite(cv) ? all(toKpa(cv, q('cu').value as PUnit)) : '';
     const warn = root.querySelector('.tp-warn') as HTMLElement; warn.textContent = '';
-    const p1 = num('p1'), t1 = num('t1'), t2 = num('t2'), u1 = q('u1').value as PUnit;
+    const p1 = num('p1'), t1 = tc(num('t1')), t2 = tc(num('t2')), u1 = q('u1').value as PUnit;
     if (isFinite(p1) && isFinite(t1) && isFinite(t2) && t1 > -273 && t2 > -273) {
       const k = gaugeAtTemp(toKpa(p1, u1), t1, t2);
-      o('change').textContent = `${fmt(fromKpa(k, u1), u1)} ${u1 === 'kpa' ? 'kPa' : u1} at ${t2} °C`;
+      o('change').textContent = `${fmt(fromKpa(k, u1), u1)} ${u1 === 'kpa' ? 'kPa' : u1} at ${num('t2')} ${tUnit()}`;
       o('rule').textContent = all(k) + `. That is ${fmt(Math.abs(fromKpa(k - toKpa(p1, u1), u1)), u1)} ${u1 === 'kpa' ? 'kPa' : u1} ${k < toKpa(p1, u1) ? 'lower' : 'higher'}.`;
     } else { o('change').textContent = ''; o('rule').textContent = 'Type a pressure and two temperatures.'; }
-    const p3 = num('p3'), t3 = num('t3'), t4 = num('t4'), u3 = q('u3').value as PUnit;
+    const tb = root.querySelector('.tp-tab tbody') as HTMLElement;
+    if (isFinite(p1) && isFinite(t1) && t1 > -273) {
+      const temps = [-20, -10, 0, 10, 20, 30, 40];
+      const k0 = toKpa(p1, u1);
+      (o('thT')).textContent = `Temperature (${tUnit()})`; (o('thP')).textContent = `Pressure (${u1 === 'kpa' ? 'kPa' : u1})`;
+      tb.innerHTML = pressureAtTemps(k0, t1, temps).map((r) => {
+        const d = fromKpa(r.kpa - k0, u1);
+        return `<tr><td>${T() ? Math.round(cToF(r.t)) : r.t}</td><td>${fmt(fromKpa(r.kpa, u1), u1)}</td><td>${d >= 0 ? '+' : '-'}${fmt(Math.abs(d), u1)}</td></tr>`;
+      }).join('');
+    } else tb.innerHTML = '';
+    const p3 = num('p3'), t3 = tc(num('t3')), t4 = tc(num('t4')), u3 = q('u3').value as PUnit;
     if (isFinite(p3) && isFinite(t3) && isFinite(t4) && t3 > -273 && t4 > -273) {
       const k = gaugeAtTemp(toKpa(p3, u3), t3, t4);
       o('fill').textContent = `Fill to ${fmt(fromKpa(k, u3), u3)} ${u3 === 'kpa' ? 'kPa' : u3} now`;
       if (k < 0) warn.textContent = 'That would need less than no pressure: check the numbers.';
+      const mx = num('mx');
+      if (q('mx').value.trim() !== '' && mx > 0 && fromKpa(k, u3) > mx) warn.textContent = `Stop: ${fmt(fromKpa(k, u3), u3)} is above the ${fmt(mx, u3)} maximum on the sidewall. Do not fill that high; check the placard pressure.`;
     } else o('fill').textContent = '';
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);

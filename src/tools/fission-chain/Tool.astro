@@ -1,0 +1,111 @@
+---
+// #L341 Fission chain reaction. Maths: src/lib/learn/curr-physics.ts (seeded random numbers, checks in tests/curr-physics.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn fc">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 12</button></div>
+    <p class="ax-help">Each square is a nucleus. Blue squares are uranium-235, which can split. Fire one neutron and watch what happens. Each split sets free 2 or 3 more neutrons.</p>
+    <canvas class="lrn-cv fc-cv" aria-label="Grid of nuclei with neutron paths. Blue squares are U-235, grey squares have split, dark columns are control rods" style="margin-top:8px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span>Fraction of U-235 (enrichment): <b class="fc-ev">60</b> %</span> <input class="fc-e" type="range" min="5" max="100" step="5" value="60" /></label>
+      <label class="lrn-sl"><span>Control rods in: <b class="fc-rv">0</b></span> <input class="fc-r" type="range" min="0" max="6" step="1" value="0" /></label>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:15px;min-height:44px"><input class="fc-m" type="checkbox" /> Moderator (slows neutrons so they split U-235 more often)</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+      <button type="button" class="btn fc-fire">Fire a neutron</button>
+      <button type="button" class="btn secondary fc-next">Next generation</button>
+      <button type="button" class="btn secondary fc-run">Run it through</button>
+      <button type="button" class="btn secondary fc-play">Pause</button>
+    </div>
+    <p class="ax-big fc-out" aria-live="polite"></p>
+    <p class="ax-help fc-sub"></p>
+    <canvas class="lrn-cv fc-bars" aria-label="Bar chart of the number of neutrons in each generation" style="margin-top:6px"></canvas>
+    <p class="ax-help" data-only="11" hidden>A-level / Grade 12: k = neutrons in one generation ÷ neutrons in the one before. k &lt; 1 dies away (subcritical), k = 1 is steady (critical, a power reactor), k &gt; 1 grows exponentially (supercritical). Natural uranium is only 0.7 % U-235, which is why real fuel is enriched to about 3 to 5 % and uses a moderator, and why a bomb needs far more. This is a small model with made-up chances, not a reactor simulation.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Set 60 % U-235 with no rods. Does the chain grow? What is k?</li><li>Lower U-235 until k drops below 1. What happens to the chain?</li><li>Add control rods to a supercritical set-up until k is close to 1.</li><li>Tick the moderator on a low enrichment. Why does k rise?</li></ul>
+  </div>
+  <div class="ax-card fc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .fc .lrn-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { makeReactor, stepGeneration, kFromHistory, estimateK, regime, GRID, type Reactor, type Path } from '../../lib/learn/curr-physics';
+  const root = document.querySelector('.fc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.fc-cv'), bars = $<HTMLCanvasElement>('.fc-bars'), out = $('.fc-out');
+  const MAXGEN = 30;
+  let rx: Reactor, fired = false, fires = 0, paths: Path[] = [], prog = 1, kEst = 0;
+  const params = () => ({ enrich: +$<HTMLInputElement>('.fc-e').value / 100, rods: +$<HTMLInputElement>('.fc-r').value, moderator: $<HTMLInputElement>('.fc-m').checked });
+  const finished = () => !rx.neutrons.length || rx.gen >= MAXGEN || rx.capped;
+  const reset = (seed = 1000) => { rx = makeReactor(params(), seed); fired = false; paths = []; prog = 1; show(); };
+  const refresh = () => {
+    const p = params(); $('.fc-ev').textContent = String(Math.round(p.enrich * 100)); $('.fc-rv').textContent = String(p.rods);
+    kEst = estimateK(p, 99, 300); reset(1000 + fires);
+  };
+
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, Math.min(380, Math.round((cv.clientWidth || 340))) ), pal = pagePalette(), c = W / GRID;
+    ctx.clearRect(0, 0, W, H);
+    for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++) {
+      const v = rx.cells[y * GRID + x];
+      ctx.fillStyle = v === 1 ? pal.accent : v === 2 ? pal.muted : pal.grid;
+      const s = v === 0 ? c * 0.5 : c * 0.86; ctx.fillRect(x * c + (c - s) / 2, y * c + (c - s) / 2, s, s);
+    }
+    ctx.fillStyle = pal.ink; for (const col of rx.rodCols) ctx.fillRect(col * c + c * 0.2, 0, c * 0.6, H);
+    ctx.lineWidth = 1.5;
+    for (const p of paths) {
+      const n = Math.max(1, Math.floor((p.pts.length - 1) * Math.min(1, prog))), colr = p.end === 'fission' ? pal.good : p.end === 'rod' ? pal.bad : pal.accent2;
+      ctx.strokeStyle = colr; ctx.beginPath(); ctx.moveTo(p.pts[0][0] * c, p.pts[0][1] * c); for (let i = 1; i <= n && i < p.pts.length; i++) ctx.lineTo(p.pts[i][0] * c, p.pts[i][1] * c); ctx.stroke();
+      if (prog >= 1 && p.end === 'fission') { const e = p.pts[p.pts.length - 1]; ctx.fillStyle = pal.good; ctx.beginPath(); ctx.arc(e[0] * c, e[1] * c, 3, 0, 7); ctx.fill(); }
+    }
+    if (!fired) { ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(GRID * c / 2, GRID * c / 2, 5, 0, 7); ctx.fill(); }
+    const b = fitCanvas(bars, 110), h = rx.history, mx = Math.max(10, ...h), bw = Math.min(26, (b.W - 40) / Math.max(h.length, 8));
+    b.ctx.clearRect(0, 0, b.W, 110); b.ctx.font = '11px system-ui,sans-serif';
+    h.forEach((n, i) => { const bh = (n / mx) * 70; b.ctx.fillStyle = pal.accent; b.ctx.fillRect(30 + i * bw, 88 - bh, bw - 2, bh); b.ctx.fillStyle = pal.muted; b.ctx.textAlign = 'center'; if (bw > 14 || i % 5 === 0) b.ctx.fillText(String(i), 30 + i * bw + bw / 2 - 1, 102); });
+    b.ctx.fillStyle = pal.ink; b.ctx.textAlign = 'left'; b.ctx.fillText('Neutrons in each generation (0 is your first neutron)', 4, 12);
+    b.ctx.textAlign = 'right'; b.ctx.fillStyle = pal.muted; b.ctx.fillText(String(mx), 26, 24);
+  };
+  function show() {
+    const h = rx.history, k = kFromHistory(h), reg = fired && h.length > 1 ? regime(k) : null, last = h[h.length - 1];
+    out.textContent = fired ? `Generation ${rx.gen}: ${last} neutron${last === 1 ? '' : 's'}${reg ? `, k ≈ ${r(k, 2)} (${reg})` : ''}` : 'Press "Fire a neutron" to start.';
+    out.dataset.gen = String(rx.gen); out.dataset.neutrons = String(last); out.dataset.history = h.join(','); out.dataset.k = k.toFixed(3); out.dataset.regime = reg ?? ''; out.dataset.kest = kEst.toFixed(3); out.dataset.capped = String(rx.capped);
+    $('.fc-sub').textContent = `Estimate of k for these settings (many neutrons, fresh fuel): ${r(kEst, 2)}, which is ${regime(kEst)}.` + (rx.capped ? ' The chain grew past the model limit, so it was stopped: a runaway.' : !last && fired ? ' The chain has died out.' : '');
+    draw();
+  }
+  const advance = () => { if (finished()) return; const s = stepGeneration(rx); paths = s.paths; prog = 0; show(); };
+  const lp = loop((dt) => {
+    if (prog < 1) { prog = Math.min(1, prog + dt / 0.6); draw(); }
+    else if (fired && lp_playing() && !finished() && dt > 0) advance();
+  }, $<HTMLButtonElement>('.fc-play'));
+  const lp_playing = () => lp.playing;
+  $('.fc-fire').addEventListener('click', () => { fires++; rx = makeReactor(params(), 1000 + (fires - 1)); fired = true; paths = []; prog = 1; show(); });
+  $('.fc-next').addEventListener('click', () => { if (!fired) $('.fc-fire').click(); else advance(); });
+  $('.fc-run').addEventListener('click', () => { if (!fired) $('.fc-fire').click(); while (!finished()) { const s = stepGeneration(rx); paths = s.paths; } prog = 1; show(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', refresh));
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  refresh();
+  mountQuiz($('.fc-quiz'), () => {
+    const n = pick(10, 40, 2), kk = one([0.5, 0.8, 1.5, 2, 2.5]), m = Math.round(n * kk), g = pick(3, 6), kb = one([0.7, 1, 1.4]);
+    return [
+      { q: `One generation has ${n} neutrons and the next has ${m}. What is k?`, ans: m / n, tol: 0.03, work: `k = ${m} ÷ ${n} = ${r(m / n, 3)}.` },
+      { q: `A reactor has k = ${kb}. Is it subcritical, critical or supercritical?`, choices: ['subcritical', 'critical', 'supercritical'], ans: kb < 1 ? 0 : kb === 1 ? 1 : 2, work: `k below 1 dies away, k = 1 is steady and k above 1 grows. Here k = ${kb}.` },
+      { q: `Each neutron causes exactly 2 more (k = 2), starting from 1 neutron. How many neutrons are in generation ${g}?`, ans: 2 ** g, work: `The number doubles each time: 2^${g} = ${2 ** g}.` },
+      one([
+        { q: 'What do control rods do?', choices: ['Absorb neutrons', 'Slow neutrons down', 'Make more U-235'], ans: 0, work: 'Rods (boron or cadmium) absorb neutrons, so fewer cause fission and k falls.' },
+        { q: 'What does a moderator do?', choices: ['Absorbs neutrons', 'Slows neutrons down', 'Cools the fuel only'], ans: 1, work: 'A moderator (water or graphite) slows fast neutrons. Slow neutrons are much more likely to split U-235.' },
+      ]),
+    ];
+  });
+</script>

@@ -11,4 +11,12 @@ export default async ({ page, check, BASE }) => {
   check((await big()).includes('5.00 mpg') && (await tab()).includes('owe 90.00'), `ifta-calculator: more fuel used changes the tax (${await tab()})`);
   await page.fill('.ift [data-k="dist"]', '12000'); await page.waitForTimeout(100);
   check((await page.textContent('.ift .ift-warn')).includes('add up to 10,000'), 'ifta-calculator: warns when jurisdictions miss distance');
+  await page.goto(`${BASE}/vehicles/ifta-calculator/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach(d => d.open = true));
+  await page.fill('.ift [data-k="paste"]', 'TX, 3200, 410, 0.20\nOK, 1800, 150, 0.19');
+  await page.click('.ift .ift-import'); await page.click('.ift .ift-sum');
+  await page.fill('.ift [data-k="fuel"]', '1000'); await page.waitForTimeout(100);
+  // 5,000 / 1,000 = 5.00; TX 640 taxable, 410 bought: 230 x 0.20 = 46.00; OK 360 - 150 = 210 x 0.19 = 39.90
+  check((await tab()).includes('owe 46.00') && (await tab()).includes('owe 39.90'), `ifta-calculator: pasted rows work (${await tab()})`);
+  check((await net()).includes('85.90'), `ifta-calculator: net 85.90 (${await net()})`);
 };

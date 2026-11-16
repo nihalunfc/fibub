@@ -19,4 +19,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.hc')).includes('Never leave a child'), 'hot-car: safety message shown');
   await page.goto(`${BASE}/vehicles/hot-car/?c=usa`); await page.waitForTimeout(300);
   check((await page.inputValue('.hc [data-k="unit"]')) === 'f', 'hot-car: ?c=usa opens in Fahrenheit');
+  await page.goto(`${BASE}/vehicles/hot-car/`); await page.waitForTimeout(300);
+  const wh = await page.textContent('.hc [data-o="when"]'); // 30 C, sun: 40 C at -22 ln(1 - 10/24) = 11.9 min; 50 C at -22 ln(1 - 20/24) = 39.4 min
+  check(wh.includes('about 12 minutes') && wh.includes('about 39 minutes'), `hot-car: minutes to 40 and 50 (${wh})`);
+  const tb = await page.textContent('.hc [data-o="tab"]');
+  check(tb.includes('39 °C') && tb.includes('52 °C'), `hot-car: table at 10 and 60 minutes (${tb})`);
 };

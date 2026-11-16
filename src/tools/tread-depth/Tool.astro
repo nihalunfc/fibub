@@ -18,6 +18,21 @@
       <label>Tread depth <input data-k="depth" inputmode="decimal" value="3" /></label>
     </div>
     <p class="td-err" role="alert"></p>
+    <details class="td-more"><summary>More options: wear across the tyre, how long it will last</summary>
+      <p class="td-fine">Measure the inner, middle and outer groove, in the unit above. The lowest one counts, and a big difference points to a cause.</p>
+      <div class="td-grid">
+        <label>Inner groove <input data-k="din" inputmode="decimal" /></label>
+        <label>Middle groove <input data-k="dmid" inputmode="decimal" /></label>
+        <label>Outer groove <input data-k="dout" inputmode="decimal" /></label>
+      </div>
+      <p class="td-fine">To estimate the distance left, type the depth when new and the distance driven on this tyre.</p>
+      <div class="td-grid">
+        <label>Depth when new <input data-k="dnew" inputmode="decimal" placeholder="about 8 mm" /></label>
+        <label>Distance driven (<span class="u-km">km</span>) <input data-k="ddist" inputmode="decimal" /></label>
+        <label>Distance in <select data-k="dunit"><option value="km">km</option><option value="mi">miles</option></select></label>
+      </div>
+      <p class="td-extra" aria-live="polite"></p>
+    </details>
   </section>
   <section class="panel td-res" hidden>
     <p class="td-pill"></p>
@@ -73,6 +88,8 @@
   .td label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .td input, .td select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
   .td input:focus, .td select:focus { border-color: var(--accent); outline: none; }
+  .td-more { margin-top: 12px; } .td-more summary { cursor: pointer; font-size: 14px; color: var(--accent); margin-bottom: 8px; }
+  .td-extra { margin: 10px 0 0; font-weight: 600; } .td-extra:empty { display: none; }
   .td-err { color: var(--bad); margin: 8px 0 0; } .td-err:empty { display: none; }
   .td-pill { display: inline-block; margin: 0; padding: 6px 16px; border-radius: 999px; font-weight: 700; font-size: 22px; }
   .td-pill.good { background: var(--good-soft); color: var(--good); }
@@ -92,14 +109,23 @@
 </style>
 
 <script>
-  import { judgeTread, wetStopNote, to32nds, from32nds, type Region, type Vehicle } from '../../lib/vehicles/tyre-checks';
+  import { judgeTread, wetStopNote, treadLife, unevenWear, to32nds, from32nds, type Region, type Vehicle } from '../../lib/vehicles/tyre-checks';
   import { presetCountry } from '../../lib/vehicles/country';
   const root = document.querySelector('.td') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement & HTMLSelectElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const fmt = (v: number) => (Math.round(v * 10) / 10).toString();
   const calc = () => {
-    const raw = parseFloat(q('depth').value.replace(/,/g, '.'));
+    const u0 = q('unit').value === '32', toMm = (v: number) => (u0 ? from32nds(v) : v);
+    const val = (k: string) => { const t = q(k).value.trim(); const v = parseFloat(t.replace(/,/g, '.')); return t && isFinite(v) && v >= 0 ? toMm(v) : null; };
+    const rd = [val('din'), val('dmid'), val('dout')];
+    let extra = '';
+    let raw = parseFloat(q('depth').value.replace(/,/g, '.'));
+    if (rd.every((x) => x != null)) {
+      const w = unevenWear(rd[0]!, rd[1]!, rd[2]!);
+      raw = u0 ? to32nds(w.lowest) : w.lowest;
+      extra += `Lowest of the three readings: ${fmt(w.lowest)} mm (used above). ` + (w.cause ? `Difference ${fmt(w.spread)} mm. ${w.cause} ` : 'The wear is even. ');
+    }
     const res = $('.td-res'), err = $('.td-err');
     if (!isFinite(raw) || raw < 0 || raw > (q('unit').value === '32' ? 40 : 20)) { res.hidden = true; err.textContent = q('depth').value.trim() ? 'Type a tread depth, from 0 up (new tyres are about 8 mm or 10/32 inch).' : ''; return; }
     err.textContent = '';
@@ -111,11 +137,21 @@
     $('.td-big').textContent = `${fmt(mm)} mm (${fmt(to32nds(mm))}/32 inch). ${j.text}`;
     $('.td-wet').textContent = wetStopNote(mm);
     $('.td-note').textContent = `${j.note} As checked November 2026; check the official source.`;
+    const nw = val('dnew'), dd = parseFloat(q('ddist').value.replace(/,/g, ''));
+    if (nw != null && dd > 0) {
+      const km = q('dunit').value === 'km', life = treadLife(nw, mm, dd, [j.limitMm, 3]);
+      if (life) {
+        const un = km ? 'km' : 'miles', r = (v: number) => Math.round(v / 100) * 100;
+        extra += `Wear so far: ${fmt(life.rate * 10000)} mm every 10,000 ${un}. About ${r(life.left[0]).toLocaleString('en-US')} ${un} to the legal minimum, ${r(life.left[1]).toLocaleString('en-US')} ${un} to 3 mm (a straight-line guess).`;
+      } else extra += 'The depth when new must be above today\'s depth to estimate the wear.';
+    }
+    $('.td-extra').textContent = extra.trim();
     const x = (v: number) => 10 + 280 * Math.min(Math.max(v, 0), 8) / 8;
     $('.td-fill').setAttribute('width', String(x(mm) - 10));
     const l = $('.td-lim'); l.setAttribute('x1', String(x(j.limitMm))); l.setAttribute('x2', String(x(j.limitMm)));
     $('.td-limt').setAttribute('x', String(x(j.limitMm) + 12));
   };
+  q('dunit').addEventListener('change', () => root.querySelectorAll('.u-km').forEach((e) => (e.textContent = q('dunit').value === 'km' ? 'km' : 'miles')));
   const setUnitFor = () => { q('unit').value = q('region').value === 'usa' ? '32' : 'mm'; };
   q('region').addEventListener('change', () => { const was = q('unit').value; setUnitFor(); if (was !== q('unit').value) q('depth').value = q('unit').value === '32' ? '5' : '3'; });
   q('unit').addEventListener('change', (e) => {

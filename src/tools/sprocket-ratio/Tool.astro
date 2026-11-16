@@ -19,9 +19,25 @@
   </section>
   <section class="panel" aria-live="polite">
     <p class="sr-big"></p>
-    <div class="sr-scroll"><table class="sr-tab"><thead><tr><th>Gear</th><th>Overall ratio</th><th>km/h at rpm</th><th>New km/h</th><th>Change</th></tr></thead><tbody></tbody></table></div>
+    <div class="sr-scroll"><table class="sr-tab"><thead><tr><th>Gear</th><th>Overall ratio</th><th><span data-o="su1">km/h</span> at rpm</th><th>New <span data-o="su2">km/h</span></th><th>Change</th><th>rpm at cruise</th></tr></thead><tbody></tbody></table></div>
     <p class="sr-warn" role="alert"></p>
   </section>
+  <details class="panel sr-more">
+    <summary>More options: mph, cruising rpm, find the right sprocket</summary>
+    <div class="sr-grid">
+      <label>Show speeds in <select data-k="su"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+      <label>Cruising speed (in that unit) <input data-k="cruise" inputmode="decimal" placeholder="e.g. 100" /></label>
+    </div>
+    <p class="sr-fine">With a cruising speed typed, the last column of the table shows the rpm the engine turns in each gear at that speed (with your current sprockets).</p>
+    <h2 class="sr-h">What rear sprocket gives the speed I want?</h2>
+    <div class="sr-grid">
+      <label>Wanted speed at the rpm above, in top gear <input data-k="want" inputmode="decimal" placeholder="e.g. 120" /></label>
+    </div>
+    <p class="sr-find" data-o="find" aria-live="polite"></p>
+    <h2 class="sr-h">Rear sprockets side by side</h2>
+    <p class="sr-fine">Top-gear speed at the rpm above, with your current front sprocket, for rear sprockets near the current one.</p>
+    <div class="sr-scroll"><table class="sr-tab sr-near"><thead><tr><th>Rear teeth</th><th>Final drive</th><th>Top-gear speed</th><th>Change</th></tr></thead><tbody></tbody></table></div>
+  </details>
   <section class="panel">
     <h2 class="sr-h">Try different sprockets</h2>
     <div class="sr-grid">
@@ -56,11 +72,14 @@
   .sr-tab th:first-child, .sr-tab td:first-child { text-align: left; }
   .sr-line { font-weight: 600; margin: 10px 0 0; }
   .sr-warn { color: var(--bad); margin: 10px 0 0; } .sr-warn:empty { display: none; }
+  .sr-more summary { cursor: pointer; font-weight: 600; }
+  .sr-find { margin: 8px 0 0; font-weight: 600; } .sr-find:empty { display: none; }
+  .sr-tab tr.on td { font-weight: 700; }
   .sr-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { sprocketSpeed, circFromTyre } from '../../lib/money/vehicle-physics';
+  import { sprocketSpeed, circFromTyre, kmhToMph, mphToKmh, rpmAtSpeed, rearForSpeed } from '../../lib/money/vehicle-physics';
   const root = document.querySelector('.sr') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -71,20 +90,37 @@
     const size = q('mode').value === 'size';
     root.querySelectorAll('.sr-size').forEach((e) => ((e as HTMLElement).hidden = !size));
     root.querySelectorAll('.sr-circ').forEach((e) => ((e as HTMLElement).hidden = size));
+    const mph = q('su').value === 'mph', U = mph ? 'mph' : 'km/h', sp = (v: number) => (mph ? kmhToMph(v) : v);
+    root.querySelectorAll('[data-o="su1"], [data-o="su2"]').forEach((e) => (e.textContent = U));
     const front = num('front'), rear = num('rear'), prim = num('prim'), rpm = num('rpm');
     const gears = q('gears').value.split(/[,\s]+/).map(parseFloat).filter((g) => g > 0);
     const circ = size ? circFromTyre(num('tw'), num('ta'), num('tr')) : num('circ');
-    const tb = root.querySelector('tbody') as HTMLElement;
-    if (!(front > 0) || !(rear > 0) || !(prim > 0) || !(rpm > 0) || !(circ > 0) || !gears.length) { tb.innerHTML = ''; $('.sr-big').textContent = ''; $('.sr-line').textContent = ''; $('.sr-warn').textContent = 'Type the teeth, a primary ratio, gear ratios, rpm and a wheel size.'; return; }
+    const tb = root.querySelector('tbody') as HTMLElement, nb2 = root.querySelector('.sr-near tbody') as HTMLElement;
+    if (!(front > 0) || !(rear > 0) || !(prim > 0) || !(rpm > 0) || !(circ > 0) || !gears.length) { tb.innerHTML = ''; nb2.innerHTML = ''; $('[data-o="find"]').textContent = ''; $('.sr-big').textContent = ''; $('.sr-line').textContent = ''; $('.sr-warn').textContent = 'Type the teeth, a primary ratio, gear ratios, rpm and a wheel size.'; return; }
     $('.sr-warn').textContent = '';
     const f2 = num('f2'), r2 = num('r2'), has2 = f2 > 0 && r2 > 0;
     $('.sr-big').textContent = `Final drive ${f(rear / front, 2)} : 1 (${rear}/${front}), wheel ${f(circ, 0)} mm round`;
     tb.innerHTML = gears.map((g, i) => {
       const a = sprocketSpeed({ front, rear, primary: prim, gear: g, circMm: circ, rpm });
       let nb = '<td>-</td><td>-</td>';
-      if (has2) { const b = sprocketSpeed({ front: f2, rear: r2, primary: prim, gear: g, circMm: circ, rpm }); nb = `<td>${f(b.kmh)}</td><td>${b.kmh >= a.kmh ? '+' : ''}${f((b.kmh / a.kmh - 1) * 100)}%</td>`; }
-      return `<tr><td>${ord(i + 1)}</td><td>${f(a.total, 2)}</td><td>${f(a.kmh)}</td>${nb}</tr>`;
+      if (has2) { const b = sprocketSpeed({ front: f2, rear: r2, primary: prim, gear: g, circMm: circ, rpm }); nb = `<td>${f(sp(b.kmh))}</td><td>${b.kmh >= a.kmh ? '+' : ''}${f((b.kmh / a.kmh - 1) * 100)}%</td>`; }
+      const cr = num('cruise');
+      const cruise = q('cruise').value.trim() === '' ? '<td>-</td>' : cr > 0 ? `<td>${f(rpmAtSpeed({ front, rear, primary: prim, gear: g, circMm: circ, kmh: mph ? mphToKmh(cr) : cr }), 0)}</td>` : '<td>-</td>';
+      return `<tr><td>${ord(i + 1)}</td><td>${f(a.total, 2)}</td><td>${f(sp(a.kmh))}</td>${nb}${cruise}</tr>`;
     }).join('');
+    // Wanted speed: rear teeth for the top gear
+    const top = gears[gears.length - 1], wantEl = $('[data-o="find"]'), wv = num('want');
+    if (q('want').value.trim() === '') wantEl.textContent = '';
+    else if (!(wv > 0)) wantEl.textContent = 'Type a wanted speed above 0.';
+    else {
+      const t = rearForSpeed({ front, primary: prim, gear: top, circMm: circ, rpm, kmh: mph ? mphToKmh(wv) : wv });
+      const lo = Math.floor(t), hi = Math.ceil(t);
+      const at = (n: number) => f(sp(sprocketSpeed({ front, rear: n, primary: prim, gear: top, circMm: circ, rpm }).kmh));
+      wantEl.textContent = lo === hi ? `${lo} teeth gives exactly ${f(wv)} ${U} in top gear.` : `About ${f(t, 1)} teeth. ${lo} teeth gives ${at(lo)} ${U}, ${hi} teeth gives ${at(hi)} ${U}, in top gear at ${f(rpm, 0)} rpm.`;
+    }
+    const base = sprocketSpeed({ front, rear, primary: prim, gear: top, circMm: circ, rpm }).kmh;
+    const ns: number[] = []; for (let n = Math.max(1, Math.round(rear) - 3); n <= Math.round(rear) + 3; n++) ns.push(n);
+    nb2.innerHTML = ns.map((n) => { const v = sprocketSpeed({ front, rear: n, primary: prim, gear: top, circMm: circ, rpm }).kmh; return `<tr class="${n === rear ? 'on' : ''}"><td>${n}</td><td>${f(n / front, 2)}</td><td>${f(sp(v))} ${U}</td><td>${n === rear ? '-' : `${v >= base ? '+' : ''}${f((v / base - 1) * 100)}%`}</td></tr>`; }).join('');
     const p = num('pitch'), c = num('cd'), line = $('.sr-line');
     if (c > 0) {
       const links = (n: number, m: number) => { const raw = (2 * c) / p + (n + m) / 2 + (Math.pow(m - n, 2) / (4 * Math.PI * Math.PI)) * (p / c); return { raw, even: Math.ceil(raw / 2) * 2 }; };

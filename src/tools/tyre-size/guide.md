@@ -73,3 +73,7 @@ A scooter tyre **90/90-12 54J** reads as a bias-ply tyre that carries up to 212 
 **What is the date code?** A separate 4-digit number on the sidewall, the week and year the tyre was made. 2325 means week 23 of 2025.
 
 **Does anything get sent?** No. Everything is worked out on this page and nothing is saved.
+
+## More options
+
+Under **Pick the numbers from lists** you can choose the width, sidewall percentage and wheel size from drop-downs instead of typing; the size box above updates. **Other sizes that fit about as well** lists common sizes whose overall height is within 1, 2 or 3 percent of yours, optionally on the same wheel size, and one tap sends a size to the comparison. The comparison now also shows a small table of what the speedometer reads against the true speed at three speeds. Sizes are worked out from height only, so a different width can still rub or need another rim: check with a tyre shop.

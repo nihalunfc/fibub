@@ -11,7 +11,7 @@ ads: false
 order: 1821
 icon: check
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [vin-check, car-loan, car-depreciation]
 sources:
   - "General inspection points commonly given by consumer-advice and motoring bodies; written by fibub, not copied. It is not a mechanic's inspection and not legal advice. Check the official source for the papers, tax and roadworthiness rules where you live (checked 2026-11-10)."
@@ -39,6 +39,10 @@ Check the number with [[vin-check]] first, work out what you can afford with [[c
 - **OK / Problem / Not checked**: only OK and Problem count in the score. Not checked is left out, so you can skip what you cannot test.
 - **Red flag items**: marked on the list. A Problem on one of them (odometer doubts, flood signs, frame damage, papers mismatch) shows in the red flag list whatever the score is.
 - **Clear all**: wipes every mark and note. Nothing is saved on your device or sent anywhere.
+
+- **Plain answer**: a line under the score says what to do next, for example to keep checking, to ask for a lower price, or that a red flag needs an explanation first.
+- **Repair cost and asking price**: when you mark an item Problem, a box appears for what it would cost to fix. Type the seller's asking price and the tool shows the most worth offering after the repairs, and warns if repairs cost as much as the vehicle.
+- **Show**: filter the list to items not checked yet, or to problems only, which is handy on a phone while you walk round the vehicle. The PDF and print include the repair costs and the answer.
 
 ## Worked example
 

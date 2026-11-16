@@ -37,12 +37,14 @@ for (const id of only.length ? only : articles) {
   if (kind === 'guides' && !tools.length) bad.push(`src/blog/${id}.md: a guide needs tools: [<the tool it explains>, ...]`);
   if (kind === 'discoveries' && !/^paper:/m.test(fm)) bad.push(`src/blog/${id}.md: a discovery needs paper: (title, authors, journal, year, url, licence, reviewed)`);
   for (const t of tools) if (!live.has(t)) bad.push(`src/blog/${id}.md: tools lists "${t}", which is not a live tool`);
+  // Every plot carries the fibub.com mark (nihal, 2026-11-16); chart() in scripts/blog-figures/svg.mjs adds it.
+  for (const m of body.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)) if (!/data-no-mark/.test(m[0].slice(0, m[0].indexOf('>'))) && !m[0].includes('class="fibub-mark"')) bad.push(`src/blog/${id}.md: a figure has no fibub.com mark; draw it with chart() from scripts/blog-figures/svg.mjs, or add watermark(W, H) (data-no-mark only for diagrams that are not plots)`);
   for (const m of body.replace(/`[^`\n]*`/g, '').matchAll(/\[\[(blog:[a-z0-9-]+\/[a-z0-9-]+|[a-z0-9-]+)(?:\|[^\]]+)?\]\]/g)) {
     if (m[1].startsWith('blog:') ? !articles.has(m[1].slice(5)) : !live.has(m[1])) bad.push(`src/blog/${id}.md: [[${m[1]}]] is not a ${m[1].startsWith('blog:') ? 'Blog article' : 'live tool'}`);
   }
 }
 if (bad.length) {
-  console.error(`check-links: ${bad.length} link(s) to tools that are not live. Link a live tool instead, or remove the link.\n` + bad.join('\n'));
+  console.error(`check-links: ${bad.length} problem(s) in Blog articles (links to tools that are not live, or figures without the fibub.com mark).\n` + bad.join('\n'));
   process.exit(1);
 }
 console.log(`check-links: every [[...]] link points to one of ${live.size} live tools or ${articles.size} Blog articles`);

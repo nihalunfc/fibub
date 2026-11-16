@@ -59,3 +59,28 @@ export function patientNNT(baseline: number, rrr: number, rrrCI: CI, outcome: 'b
   const lims = [s * baseline * rrrCI[0], s * baseline * rrrCI[1]].sort((a, b) => a - b) as CI;
   return { ben, ...nntFrom(ben, lims) };
 }
+
+/** The same measures from two risks (0 to 1) when no counts are known. No intervals can be given without group sizes. */
+export function fromRisks(p1: number, p2: number, outcome: 'bad' | 'good' = 'bad') {
+  const rd = p1 - p2, rr = p1 / p2, ben = (outcome === 'bad' ? -1 : 1) * rd, nan: CI = [NaN, NaN];
+  return {
+    p1, p2, p1CI: nan, p2CI: nan, rd, rdCI: nan, rr, rrCI: nan, rrr: 1 - rr, rrrCI: nan,
+    or: (p1 * (1 - p2)) / (p2 * (1 - p1)), orCI: nan, ben, benCI: nan,
+    nnt: { ...nntFrom(ben, [ben, ben]), ci: { kind: 'benefit', lo: NaN, hi: NaN } as NNTInterval },
+    chi2: NaN, p: NaN,
+  };
+}
+
+/** NNT across baseline risks (0 to 1) for a fixed relative risk reduction; NaN where the risk change is zero. */
+export function nntCurve(rrr: number, n = 100) {
+  const x: number[] = [], y: number[] = [];
+  for (let i = 1; i <= n; i++) { const b = i / n, d = Math.abs(b * rrr); x.push(b * 100); y.push(d > 1e-12 ? 1 / d : NaN); }
+  return { x, y };
+}
+
+/** People out of 100 for an icon chart: events in both groups, extra benefit or harm, and no event. */
+export function iconCounts(p1: number, p2: number, outcome: 'bad' | 'good' = 'bad') {
+  const a = Math.round(p1 * 100), b = Math.round(p2 * 100), common = Math.min(a, b), diff = Math.abs(a - b);
+  const benefit = outcome === 'bad' ? a < b : a > b;
+  return { common, diff, benefit, rest: 100 - common - diff, treated: a, control: b };
+}

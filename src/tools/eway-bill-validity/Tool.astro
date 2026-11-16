@@ -15,6 +15,7 @@
   <section class="panel" aria-live="polite">
     <p class="ew-big"></p>
     <dl class="ew-rows"></dl>
+    <p class="ew-today"></p>
     <p class="ew-need"></p>
     <p class="ew-warn" role="alert"></p>
   </section>
@@ -31,13 +32,14 @@
   .ew-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
   .ew-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .ew-rows dt { color: var(--muted); } .ew-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ew-today { margin: 12px 0 0; font-weight: 600; } .ew-today:empty { display: none; }
   .ew-need { margin: 12px 0 0; }
   .ew-warn { color: var(--bad); margin: 10px 0 0; } .ew-warn:empty { display: none; }
   .ew-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { ewayDays, ewayExpiry, EWB_LIMIT } from '../../lib/money/vehicle-india';
+  import { ewayDays, ewayExpiry, ewayMaxKm, ewayDaysLeft, EWB_LIMIT } from '../../lib/money/vehicle-india';
   const root = document.querySelector('.ew') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -51,13 +53,19 @@
       ? `A consignment over ${EWB_LIMIT.toLocaleString('en-IN')} rupees needs an e-way bill${intra ? ', unless your state has set a higher limit for movement within the state (many have: check your state GST website)' : ''}.`
       : `At ${value.toLocaleString('en-IN')} rupees an e-way bill is usually not required (the limit is over ${EWB_LIMIT.toLocaleString('en-IN')}), but some cases need one whatever the value, such as job work sent to another state and handicraft goods.`;
     $('.ew-need').textContent = need;
-    if (!(km > 0) || !(y > 0)) { $('.ew-big').textContent = ''; $('.ew-rows').innerHTML = ''; $('.ew-warn').textContent = 'Type the distance in km and the date.'; return; }
+    if (!(km > 0) || !(y > 0)) { $('.ew-today').textContent = ''; $('.ew-big').textContent = ''; $('.ew-rows').innerHTML = ''; $('.ew-warn').textContent = 'Type the distance in km and the date.'; return; }
     const days = ewayDays(km, odc), last = ewayExpiry(y, m, d, days);
+    const now = new Date(), left = ewayDaysLeft([now.getFullYear(), now.getMonth() + 1, now.getDate()], last), starts = ewayDaysLeft([y, m, d], [now.getFullYear(), now.getMonth() + 1, now.getDate()]);
+    $('.ew-today').textContent = starts < 0 ? 'Part B is dated in the future: this bill has not started yet.'
+      : left < 0 ? `Expired ${-left} day${left === -1 ? '' : 's'} ago (counting from today, ${show([now.getFullYear(), now.getMonth() + 1, now.getDate()])}). An expired bill is not valid for the move: check the official source on extending it or making a new one.`
+      : left === 0 ? 'Today is the last valid day: it ends at midnight tonight.'
+      : `Still valid today: ${left} more day${left === 1 ? '' : 's'} after today.`;
     $('.ew-warn').textContent = km > 4000 ? 'The portal accepts distances up to 4,000 km.' : '';
     $('.ew-big').textContent = `${days} day${days === 1 ? '' : 's'} valid`;
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
     $('.ew-rows').innerHTML = line('Rule used', odc ? '1 day per 20 km or part' : '1 day per 200 km or part') +
       line('Day 1 ends', `midnight at the end of ${show(ewayExpiry(y, m, d, 1))}`) +
+      line(`Longest distance for ${days} day${days === 1 ? '' : 's'}`, `${ewayMaxKm(days, odc).toLocaleString('en-IN')} km`) +
       line('Valid until', `midnight at the end of ${show(last)}`) +
       line('Extension can be asked', `from 4 pm on ${show(last)} to 8 am on ${show(ewayExpiry(y, m, d, days + 1))}`);
   };

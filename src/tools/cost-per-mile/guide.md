@@ -54,3 +54,7 @@ Fixed costs 4,000 a month (2,200 + 1,000 + 300 + 500), 10,000 miles, fuel 4.00 a
 **Does it include empty miles?** Only if you count them in the distance. Use total miles driven, loaded and empty, and see [[load-profit]] for a single load with empty return miles.
 
 **Is it tax advice?** No. Check the figures with your own accountant.
+
+## More options
+
+A coloured bar under the result shows how much of the cost is fixed, fuel, driver and the rest. Under **More options** you get a table of the rate you need for margins from 0 to 25 percent, with the profit per mile or km at each, and a slider that shows what a rise or fall in fuel price does to your cost per mile and your month.

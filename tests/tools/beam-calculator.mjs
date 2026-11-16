@@ -8,6 +8,25 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check(await page.isVisible(`${R} .bm-sk`) && await page.isVisible(`${R} .bm-mf`) && await page.isVisible(`${R} .bm-df`) && await page.isVisible(`${R} .bm-vf`), 'beam: sketch and three diagrams');
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`${R} .bm-csv`)]); const f = OUT + 'beam.csv'; await d.saveAs(f); const rows = readFileSync(f, 'utf8').trim().split('\n'); check(rows[0] === 'x_m,shear_kN,moment_kNm,deflection_mm,slope_rad' && rows.length > 240 && rows[1].startsWith('0,21.66'), 'beam: diagram CSV'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`${R} .dl button[data-f=pdf]`)]); check((await d.suggestedFilename()) === 'beam.pdf', 'beam: PDF report'); }
+  // Deflection limit, US units, common cases.
+  { const f = await facts(); check(f.includes('Deflection limit span / 36016.7 mm: OK') && f.includes('0.319 in deflection') && f.includes('kip·ft moment') && f.includes('ksi'), `beam: limit check and US units (${f.slice(0, 80)})`); }
+  check((await page.getAttribute(`${R} .bm-big`, 'aria-live')) === 'polite', 'beam: live result');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.selectOption(`${R} .bm-case`, 'c-p'); await page.waitForTimeout(150);
+  check((await big()) === 'Largest deflection 47.4 mm down at 6 m' && (await facts()).includes('exceeded') && (await facts()).includes('2.85 times the limit') && (await page.$$(`${R} .bm-row`)).length === 1, `beam: cantilever case (${await big()})`);
+  await page.selectOption(`${R} .bm-lim`, '0'); await page.waitForTimeout(100);
+  check(!(await facts()).includes('Deflection limit'), 'beam: limit check can be switched off');
+  await page.selectOption(`${R} .bm-case`, 'ss-u'); await page.waitForTimeout(150);
+  check((await big()).includes('5.56 mm down') && (await facts()).includes('15 kN up'), `beam: simply supported even load (${await big()})`);
+  await page.selectOption(`${R} .bm-case`, 'ff-u'); await page.waitForTimeout(150);
+  check((await big()).includes('1.11 mm down') && (await facts()).includes('15 kN·m') && (await facts()).includes('7.5 kN·m'), `beam: fixed both ends even load (${await big()})`);
+  await page.selectOption(`${R} .bm-case`, 'ss-2'); await page.waitForTimeout(150);
+  check((await big()).includes('5.05 mm down') && (await page.$$(`${R} .bm-row`)).length === 2 && (await facts()).includes('10 kN up'), `beam: two loads at the third points (${await big()})`);
+  await page.selectOption(`${R} .bm-case`, 'ss-p'); await page.selectOption(`${R} .bm-lim`, '360'); await page.waitForTimeout(150);
+  check((await big()).includes('2.96 mm down'), `beam: central load (${await big()})`);
+  // Rebuild the example loads (an even 5 kN/m and a 10 kN point load at 2 m) for the checks below.
+  await page.selectOption(`${R} .bm-case`, 'ss-u'); await page.click(`${R} .bm-add`); await page.fill(`${R} .bm-row:nth-child(2) .bm-lv`, '10'); await page.fill(`${R} .bm-row:nth-child(2) .bm-lx`, '2'); await page.waitForTimeout(150);
+  check((await big()) === 'Largest deflection 8.09 mm down at 2.925 m', `beam: example rebuilt by hand (${await big()})`);
   // Cantilever with only a 10 kN tip load: PL³/3EI.
   await page.click(`${R} .bm-row:first-child .bm-del`);
   await page.selectOption(`${R} .bm-sup`, 'cant'); await page.fill(`${R} .bm-row .bm-lx`, '6'); await page.waitForTimeout(150);

@@ -14,14 +14,25 @@
       <label>Interest rate a year (%) <input data-k="rate" inputmode="decimal" value="7" /></label>
       <label>Running costs a month (fuel, insurance, upkeep) <input data-k="run" inputmode="decimal" value="150" /></label>
     </div>
+    <details class="ca-more"><summary>More options</summary>
+      <div class="ca-grid">
+        <label>Sales tax on the car (%) <input data-k="tax" inputmode="decimal" value="0" /></label>
+        <label>A car you are looking at: price you would pay in total <input data-k="cprice" inputmode="decimal" value="" placeholder="e.g. 30000" /></label>
+      </div>
+      <p class="ca-fine">Sales tax: the answer then shows the sticker price before tax as well. The car you are looking at is checked against your budget with the same down payment, rate and loan length.</p>
+    </details>
     <p class="ca-fine">The 20/4/10 rule of thumb: put down 20%, borrow for no more than 4 years, and keep all your car costs (loan payment plus running costs) under 10% of your gross income. It is a guide, not a law: change any number.</p>
   </section>
   <section class="panel" aria-live="polite">
     <p class="ca-big"></p>
     <dl class="ca-rows"></dl>
+    <p class="ca-look"></p>
     <p class="ca-warn" role="alert"></p>
+    <h3 class="ca-h">Same budget, different loan lengths</h3>
+    <div class="ca-scroll"><table class="ca-tab"><thead><tr><th>Loan</th><th>Most you can spend</th><th>Payment</th><th>Interest</th></tr></thead><tbody></tbody></table></div>
+    <p class="ca-fine">A longer loan lets you spend more but you pay more interest. Check this table before you stretch the term.</p>
   </section>
-  <p class="ca-fine">Not financial advice. Prices do not include sales tax, fees or the trade-in, so use <a href="/vehicles/car-loan/">Car loan</a> to check a real offer. Nothing you type leaves this page.</p>
+  <p class="ca-fine">Not financial advice. Unless you add a sales tax above, prices do not include tax, fees or the trade-in, so use <a href="/vehicles/car-loan/">Car loan</a> to check a real offer. Nothing you type leaves this page.</p>
 </div>
 
 <style is:inline>
@@ -35,11 +46,20 @@
   .ca-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .ca-rows dt { color: var(--muted); } .ca-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .ca-warn { color: var(--bad); margin: 10px 0 0; } .ca-warn:empty { display: none; }
+  .ca-more { margin-top: 12px; } .ca-more summary { cursor: pointer; color: var(--accent); }
+  .ca-more .ca-grid { margin-top: 10px; }
+  .ca-look { margin: 12px 0 0; font-weight: 600; } .ca-look:empty { display: none; }
+  .ca-h { font-size: 16px; margin: 16px 0 6px; }
+  .ca-scroll { overflow-x: auto; }
+  .ca-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ca-tab th, .ca-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ca-tab th:first-child, .ca-tab td:first-child { text-align: left; }
+  .ca-tab tr.cur td { font-weight: 700; }
   .ca-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { afford } from '../../lib/money/vehicles';
+  import { afford, affordByTerm, carPayment } from '../../lib/money/vehicles';
   const root = document.querySelector('.ca') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -48,11 +68,21 @@
   const calc = () => {
     const inc = num('inc'), months = Math.round(num('months'));
     if (!(inc > 0) || !(months >= 1 && months <= 120) || num('rate') < 0 || !(num('pct') > 0) || num('down') < 0 || num('down') >= 100 || num('run') < 0) {
-      $('.ca-big').textContent = ''; $('.ca-rows').innerHTML = ''; $('.ca-warn').textContent = 'Type an income, 1 to 120 months, a rate, a share of income above 0 and a down payment under 100%.'; return;
+      $('.ca-big').textContent = ''; $('.ca-rows').innerHTML = ''; $('.ca-look').textContent = ''; $('.ca-tab tbody').innerHTML = ''; $('.ca-warn').textContent = 'Type an income, 1 to 120 months, a rate, a share of income above 0 and a down payment under 100%.'; return;
     }
-    const r = afford({ grossMonthly: num('per') === 12 ? inc : inc / 12, totalPct: num('pct'), running: num('run'), ratePct: num('rate'), months, downPct: num('down') });
+    const gm = num('per') === 12 ? inc : inc / 12, tax = Math.max(0, num('tax'));
+    const inp = { grossMonthly: gm, totalPct: num('pct'), running: num('run'), ratePct: num('rate'), months, downPct: num('down') };
+    const r = afford(inp);
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
     $('.ca-big').textContent = r.payment > 0 ? `Up to ${m2(r.price)} for the car` : 'No room for a payment';
+    if (r.payment > 0 && tax > 0) $('.ca-big').textContent += ` (${m2(r.price / (1 + tax / 100))} before ${tax}% tax)`;
+    const cp = num('cprice');
+    if (cp > 0) {
+      const c = carPayment(cp, num('down'), num('rate'), months), tot = c.payment + num('run');
+      $('.ca-look').textContent = `A ${m2(cp)} car: payment ${m2(c.payment)} a month, ${m2(tot)} with running costs = ${((tot / gm) * 100).toFixed(1)}% of your gross income. ` + (c.payment <= r.payment + 0.005 ? 'That fits your budget.' : `That is ${m2(c.payment - r.payment)} a month over your budget.`);
+    } else $('.ca-look').textContent = '';
+    $('.ca-tab tbody').innerHTML = affordByTerm(inp, [...new Set([36, 48, 60, 72, 84, months])].sort((a, b) => a - b), tax)
+      .map((t) => `<tr${t.months === months ? ' class="cur"' : ''}><td>${t.months} months</td><td>${m2(t.price)}</td><td>${m2(t.payment)}</td><td>${m2(t.interest)}</td></tr>`).join('');
     $('.ca-rows').innerHTML = line('Total car budget a month', m2(r.budget)) + line('Minus running costs', m2(num('run'))) + line('Loan payment a month', m2(r.payment)) +
       line('Loan you can carry', m2(r.loan)) + line('Down payment', m2(r.downAmount)) + line('Interest over the loan', m2(r.interest));
     $('.ca-warn').textContent = r.payment <= 0 ? 'Your running costs already use the whole budget. Raise the share of income, or lower the running costs.' : months > 60 ? 'Loans over 5 years cost a lot of interest and can leave you owing more than the car is worth.' : '';

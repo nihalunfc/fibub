@@ -44,7 +44,10 @@ To choose the cut-off behind the test, draw a [[roc-curve|ROC curve]]; to turn a
 2. Pick the **interval method**. *Exact (Clopper-Pearson)* intervals come from the binomial distribution and never cover less than the stated level, so they suit small counts. *Wilson score* intervals are a little narrower and are close to the stated level on average. Likelihood ratios and the diagnostic odds ratio always use the log method.
 3. Pick the **confidence level**: 90, 95 or 99 %.
 4. Under **Pre-test to post-test probability**, type how likely the condition is before testing in your setting. Leave it blank to use the prevalence.
-5. Download the table as CSV, the nomogram as PNG, or a full report as an image, PDF or Word file.
+5. Not sure where to start? **Try an example** fills in made-up numbers: a study of 400 people, a small study, a good test for a rare condition, a screening test for a common one, and a test no better than a coin toss. A plain sentence under the headline says what the numbers mean for 100 people.
+6. Drag the **pre-test probability slider** (it moves together with the typed box) and watch the post-test probabilities and the chart under the nomogram follow. The chart shows PPV and NPV at every prevalence from 0 to 100 %, with a line at yours, and says at what prevalence a positive result becomes right more often than wrong.
+7. Open **Show the working** to see each formula with your numbers filled in, including the Bayes step from pre-test odds to post-test odds.
+8. Download the table as CSV, the nomogram as PNG, or a full report as an image, PDF or Word file.
 
 ## The formulas
 

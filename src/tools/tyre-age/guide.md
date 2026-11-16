@@ -54,3 +54,7 @@ You type 2423. That is week 24 of 2023, about 11 to 17 June 2023. On 12 November
 **Is it legal to drive on an old tyre?** Rules differ and most places have no age limit for cars. Safety advice is stronger than the law here: check the official source for your area.
 
 Not safety advice. When in doubt, ask a tyre shop.
+
+## More options
+
+Under the result you now see milestone dates: when the tyre turns 5, 6 and 10 years old. **Check a whole set** takes up to four date codes, names the oldest tyre and warns when the oldest and newest are more than two years apart, since mixed ages on one axle grip differently.

@@ -43,6 +43,10 @@ Once the data are in, put error bars on the results with the [[uncertainty-calcu
 
 The **power curves** show power against sample size for your effect, and for effects 25 % smaller and larger.
 
+## More options: power, smallest effect, one-sided
+
+Under *More options* you can turn the question around. **The power you get with a sample size** answers "I can only recruit 64 per group, what power is that?" (80.1 % for d = 0.5 at α = 0.05). **The smallest difference I can detect** works out the effect that your sample size can find at the chosen power (about 4.99 units when the SD is 10 and n is 64 per group); it is for means only. For a survey, the same switch gives the margin of error you get from a number of responses (± 4.99 % for 385 responses at 95 % confidence). A **one-sided** test, used only when the direction is fixed in advance, needs fewer subjects: 51 per group instead of 64 in the example (R's power.t.test gives 50.15).
+
 ## The methods
 
 Means use the exact noncentral t distribution for a two-sided test, the same method as R's power.t.test and G*Power. Proportions use the normal approximation of R's power.prop.test. Surveys use n = z²p(1 − p)/E², with the finite population correction when you give a population size. Results are rounded up to whole subjects.

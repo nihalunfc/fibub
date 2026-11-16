@@ -11,7 +11,7 @@ ads: false
 order: 1780
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, car-loan, electricity-cost]
 sources:
   - "Total cost of ownership = price minus incentive, plus yearly energy, upkeep and insurance for each year, minus the resale value at the end. Loan interest is not included."
@@ -42,6 +42,10 @@ It also finds the break-even point, the number of years of driving after which t
 - **Litres per 100 km / kWh per 100 km**: from the sticker. Real use is higher in winter.
 - **Resale value**: the share of the price you expect to get back at the end.
 - **Grid CO2**: how much CO2 your electricity makes per kWh; the tailpipe figure for petrol is fixed.
+
+- **Cost per 100 km**: a row in the table showing what each vehicle spends on energy per 100 km, which is easy to compare with the price on a pump or a charger.
+- **Distance line**: under the result, the tool says how many km a year you must drive before the electric car costs less in total than the petrol one, and says so when it is ahead at any distance or never.
+- **More options, units**: type petrol or hybrid economy as litres per 100 km, km per litre or miles per US or UK gallon, and electric use as kWh per 100 km, km per kWh or miles per kWh. Switching converts what you typed.
 
 ## Worked example
 

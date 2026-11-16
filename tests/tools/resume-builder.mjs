@@ -15,4 +15,15 @@ export default async ({ page, check, BASE }) => {
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.click('.rb-pdf')]);
   check(fs.readFileSync(await pdf.path()).subarray(0, 4).toString() === '%PDF', 'resume: PDF with look options');
   check(!(await page.evaluate(() => !!document.querySelector('[data-kit]'))), 'resume: no data-kit on a personal-data tool');
+  // extra fields some regions expect: off by default, in the preview and files only when ticked
+  check(!(await page.textContent('.rb-doc')).includes('Nationality'), 'resume: extra fields are off by default');
+  await page.check('[data-p="extraOn"]'); await page.waitForTimeout(200);
+  await page.fill('[data-p="nationality"]', 'Canadian'); await page.fill('[data-p="notice"]', '1 month'); await page.fill('[data-p="licence"]', 'Class 5'); await page.waitForTimeout(400);
+  const ptxt = await page.textContent('.rb-doc');
+  check(ptxt.includes('Nationality: Canadian') && ptxt.includes('Notice period: 1 month') && ptxt.includes('Driving licence: Class 5'), 'resume: ticked extra fields show in the preview');
+  const [dx2] = await Promise.all([page.waitForEvent('download'), page.click('.rb-docx')]);
+  const zip = fs.readFileSync(await dx2.path());
+  check(zip.subarray(0, 2).toString() === 'PK', 'resume: Word file made with extra fields');
+  await page.uncheck('[data-p="extraOn"]'); await page.waitForTimeout(400);
+  check(!(await page.textContent('.rb-doc')).includes('Nationality'), 'resume: unticking the box removes the extra fields from the resume');
 };

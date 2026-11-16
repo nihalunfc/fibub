@@ -21,4 +21,16 @@ export default async ({ page, check, BASE }) => {
   check(txt.includes('<gpx version="1.1"') && (txt.match(/<trkseg>/g) || []).length === 2, 'trip-tracker: the GPX has a segment break at the gap');
   check(await page.isVisible('.tt .tt-keepopen') && (await page.textContent('.tt .tt-saved-n')).includes('No saved trips'), 'trip-tracker: nothing is saved unless ticked');
   check(await page.evaluate(() => localStorage.getItem('fibub-trips-v1') === null), 'trip-tracker: nothing in storage without the box ticked');
+  // Cost options (units are miles at this point; the sample distance is shown in the text)
+  await page.selectOption('.tt .tt-units', 'km'); await page.waitForTimeout(150);
+  await page.evaluate(() => document.querySelectorAll('.tt details').forEach((d) => (d.open = true)));
+  check(/Type your fuel economy/.test(await page.textContent('.tt .tt-fuelout')) && (await page.textContent('.tt .tt-claimout')) === '', 'trip-tracker: blank cost inputs give a hint, not NaN');
+  await page.fill('.tt [data-k="eco"]', '8'); await page.fill('.tt [data-k="price"]', '2'); await page.fill('.tt [data-k="rate"]', '0.5'); await page.waitForTimeout(100);
+  const fo = await page.textContent('.tt .tt-fuelout'), co = await page.textContent('.tt .tt-claimout');
+  const km = parseFloat(fo.match(/for ([\d.]+) km/)[1]);
+  const lit = parseFloat(fo.match(/about ([\d.]+) L \(/)[1]), cost = parseFloat(fo.match(/costing about ([\d.]+)/)[1]), claim = parseFloat(co.match(/is ([\d.]+)\./)[1]);
+  // 8 L per 100 km: litres = km x 0.08, cost = litres x 2, claim = km x 0.5 (km is rounded to 2 places, so allow 0.01)
+  check(km >= 2.84 && Math.abs(lit - km * 0.08) < 0.02 && Math.abs(cost - lit * 2) < 0.02 && Math.abs(claim - km * 0.5) < 0.01, `trip-tracker: fuel and claim maths (${fo} ${co})`);
+  await page.fill('.tt [data-k="eco"]', '-3'); await page.waitForTimeout(100);
+  check(/Type your fuel economy/.test(await page.textContent('.tt .tt-fuelout')), 'trip-tracker: negative economy is friendly');
 };

@@ -29,6 +29,13 @@
       <label>Minutes per fuel stop <input data-k="smin" inputmode="decimal" value="10" /></label>
       <label>Tolls you will pay (total) <input data-k="tolls" inputmode="decimal" value="0" /></label>
     </div>
+    <details class="rt-more"><summary>More options: round trip, share the cost, arrive by</summary>
+      <label class="rt-check"><input type="checkbox" data-k="round" /> Round trip (distance, time, fuel and tolls are all doubled; add any overnight stay yourself)</label>
+      <div class="rt-grid">
+        <label>People sharing the cost <input data-k="people" inputmode="decimal" value="1" /></label>
+        <label>I must arrive by (optional) <input data-k="by" type="datetime-local" value="" /></label>
+      </div>
+    </details>
     <p class="rt-fine">Fuel stops assume you start with a full tank and refill when only the reserve is left. A fuel stop that you make during a break still adds the minutes here, so lower them to zero if you refuel on your break. For the cost of one drive see <a href="/vehicles/fuel-cost/">Fuel cost</a>.</p>
   </section>
   <section class="panel" aria-live="polite">
@@ -54,11 +61,14 @@
   .rt-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .rt-rows dt { color: var(--muted); } .rt-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .rt-warn { color: var(--bad); margin: 10px 0 0; } .rt-warn:empty { display: none; }
+  .rt-more { margin-top: 14px; } .rt-more summary { cursor: pointer; color: var(--accent); }
+  .rt label.rt-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 10px; }
+  .rt input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
   .rt-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 </style>
 
 <script>
-  import { trip, hm, KM_PER_MI, L_PER_USGAL, L_PER_UKGAL } from '../../lib/money/vehicles';
+  import { trip, hm, doubleTrip, splitCost, economyAll, KM_PER_MI, L_PER_USGAL, L_PER_UKGAL } from '../../lib/money/vehicles';
   const root = document.querySelector('.rt') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -80,17 +90,28 @@
     if (!ls.some((l) => l.dist > 0 && l.speed > 0) || !(l100 > 0)) {
       $('.rt-big').textContent = ''; $('.rt-rows').innerHTML = ''; warn.textContent = 'Type a distance and an average speed for at least one leg, and your fuel economy.'; return;
     }
-    const t = trip({ legs: ls, distUnit: unit, breakEveryH: num('every'), breakMin: num('bmin'), litresPer100km: l100, tankL: num('tank') * lv, reservePct: Math.min(99, num('res')), stopMin: num('smin'), pricePerL: num('price') / lv, tolls: num('tolls') });
+    const one = trip({ legs: ls, distUnit: unit, breakEveryH: num('every'), breakMin: num('bmin'), litresPer100km: l100, tankL: num('tank') * lv, reservePct: Math.min(99, num('res')), stopMin: num('smin'), pricePerL: num('price') / lv, tolls: num('tolls') });
+    const rtrip = q('round').checked;
+    const t = rtrip ? doubleTrip({ ...one, totalCost: one.fuelCost + num('tolls') }) : one;
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
-    $('.rt-big').textContent = `Total time ${hm(t.totalH)}`;
+    $('.rt-big').textContent = `Total time ${hm(t.totalH)}${rtrip ? ' there and back' : ''}`;
     let h = line('Distance', `${m2(t.dist)} ${unit}`) + line('Driving time', hm(t.driveH)) + line('Breaks', `${t.breaks} x ${num('bmin')} min = ${hm(t.breakH)}`) +
       line('Fuel stops', `${t.fuelStops}${t.fuelStops ? ` (${hm(t.stopH)})` : ''}`) + line('Fuel needed', `${m2(t.fuelL / lv)} ${eco === 'us' ? 'US gal' : eco === 'uk' ? 'UK gal' : 'L'}`) + line('Fuel cost', m2(t.fuelCost));
-    if (num('tolls') > 0) h += line('Tolls', m2(num('tolls')));
+    if (num('tolls') > 0) h += line('Tolls', m2(num('tolls') * (rtrip ? 2 : 1)));
     h += line('Total cost (fuel + tolls)', m2(t.totalCost));
+    const ppl = Math.max(1, Math.floor(num('people')));
+    if (ppl > 1) h += line(`Each of ${ppl} people pays`, m2(splitCost(t.totalCost, ppl)));
+    const ec = economyAll(l100);
+    h += line('Your economy in other units', `${m2(ec.kmPerL)} km/L, ${m2(ec.mpgUS)} mpg US, ${m2(ec.mpgUK)} mpg UK`);
     const sv = q('start').value, m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(sv);
     if (m) {
       const a = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + Math.round(t.totalH * 3600000));
       h += line('Arrive', `${DAYS[a.getUTCDay()]} ${a.getUTCDate()} ${MON[a.getUTCMonth()]}, ${p2(a.getUTCHours())}:${p2(a.getUTCMinutes())}`);
+    }
+    const bm = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(q('by').value);
+    if (bm) {
+      const l = new Date(Date.UTC(+bm[1], +bm[2] - 1, +bm[3], +bm[4], +bm[5]) - Math.round(t.totalH * 3600000));
+      h += line('Leave by (to arrive on time)', `${DAYS[l.getUTCDay()]} ${l.getUTCDate()} ${MON[l.getUTCMonth()]}, ${p2(l.getUTCHours())}:${p2(l.getUTCMinutes())}`);
     }
     $('.rt-rows').innerHTML = h;
     warn.textContent = num('every') > 0 && num('every') < 0.5 ? 'A break every half hour or less makes for a very long trip.' : '';

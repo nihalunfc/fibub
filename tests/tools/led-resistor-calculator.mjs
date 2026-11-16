@@ -20,5 +20,17 @@ export default async ({ page, check, BASE }) => {
   check((await t('.lr-err2')).includes('whole number of LEDs'), 'led: planner bad total');
   await page.fill(R + '.lr-tot', '7'); await page.waitForTimeout(100);
   check((await t('.lr-big2')) === '4 strings (up to 2 LEDs each)', `led: planner on 5 V (${await t('.lr-big2')})`);
+  // Supply presets, working line and "a resistor I already have".
+  await page.click(R + '.lr-presets [data-v="9"]'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.lr-vs')) === '9' && (await t('.lr-big')).endsWith('use 820 Ω (E12)'), `led: supply preset 9 V (${await t('.lr-big')})`);
+  check((await t('.lr-work')).includes('(9 − 1 × 2.1) ÷ 0.01 A') && (await page.getAttribute(R + '.lr-big', 'aria-live')) === 'polite', 'led: working line');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+  await page.fill(R + '.lr-have', '330'); await page.waitForTimeout(100);
+  check((await t('.lr-hbig')).includes('20.9 mA') && (await t('.lr-hbig')).includes('209 %') && (await t('.lr-hbig')).includes('too much current') && (await t('.lr-hfacts')).includes('144 mW'), `led: own resistor too small (${await t('.lr-hbig')})`);
+  await page.fill(R + '.lr-have', '1k'); await page.waitForTimeout(100);
+  check((await t('.lr-hbig')).includes('6.90 mA') && (await t('.lr-hbig')).includes('dim'), `led: own resistor 1k (${await t('.lr-hbig')})`);
+  await page.fill(R + '.lr-have', 'x'); await page.waitForTimeout(100);
+  check((await t('.lr-hbig')).includes('Give the resistor in ohms'), 'led: bad own resistor');
+  await page.fill(R + '.lr-have', '');
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.dl [data-f=pdf]')]); check((await d.suggestedFilename()).endsWith('.pdf'), 'led: PDF download'); }
 };

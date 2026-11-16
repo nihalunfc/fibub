@@ -205,3 +205,13 @@ export const EXAMPLE_SERIES = `100\t2.391\t2.377
 72900\t0.068\t0.064
 218700\t0.055\t0.051`;
 export const EXAMPLE_BLANKS = '0.052 0.048 0.061 0.055 0.046 0.058';
+
+export const COMMON_DILUTIONS = [100, 200, 250, 500, 1000, 2000, 5000, 10000];
+/** Stock and diluent volumes (µL) and the final µg/mL for a list of 1:N dilutions of one final volume. */
+export function commonTable(finalUl: number, stockMgMl?: number, factors: number[] = COMMON_DILUTIONS): { factor: number; stockUl: number; diluentUl: number; ugMl: number }[] {
+  if (!(finalUl > 0) || !Number.isFinite(finalUl)) return [];
+  return factors.map((factor) => {
+    const stockUl = finalUl / factor;
+    return { factor, stockUl, diluentUl: finalUl - stockUl, ugMl: stockMgMl && stockMgMl > 0 ? (stockMgMl * 1000) / factor : NaN };
+  });
+}

@@ -17,6 +17,12 @@
     <p class="ift-fine">Distance driven there, tax-paid fuel bought there, and its rate per <b class="u-f1">gallon</b> for the quarter from the <a href="https://www.iftach.org/taxmatrix4/Taxmatrix.php" rel="noopener">IFTA tax rate matrix</a> (include any surcharge in the rate, or add it as its own row with no fuel).</p>
     <div class="ift-rows"></div>
     <button type="button" class="btn ift-add">Add a jurisdiction</button>
+    <details class="ift-more"><summary>More options: paste rows, use row totals, copy as CSV</summary>
+      <label>Paste lines (name, distance, fuel bought, rate), for example from a spreadsheet
+        <textarea data-k="paste" rows="4" placeholder="TX, 3200, 410, 0.20&#10;OK, 1800, 150, 0.19"></textarea></label>
+      <div class="ift-btns"><button type="button" class="btn ift-import">Replace the rows with these</button><button type="button" class="btn ift-sum">Set fleet distance to the rows' total</button><button type="button" class="btn ift-csv">Copy the return as CSV</button></div>
+      <p class="ift-fine ift-msg" role="status"></p>
+    </details>
   </section>
   <section class="panel" aria-live="polite">
     <p class="ift-big"></p>
@@ -36,6 +42,9 @@
   .ift input, .ift select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .ift input:focus, .ift select:focus { border-color: var(--accent); outline: none; }
   .ift .btn { margin-top: 12px; }
+  .ift-more { margin-top: 12px; } .ift-more summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+  .ift-more textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; margin-top: 4px; }
+  .ift-btns { display: flex; flex-wrap: wrap; gap: 8px; } .ift-btns .btn { margin-top: 8px; }
   .ift-h { font-size: 16px; margin: 0 0 6px; }
   .ift-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 40px; gap: 8px; margin-top: 10px; align-items: end; }
   .ift-row label { font-size: 12px; }
@@ -53,7 +62,7 @@
 </style>
 
 <script>
-  import { ifta } from '../../lib/money/trucking-rules';
+  import { ifta, parseJuris, iftaCsv } from '../../lib/money/trucking-rules';
   const root = document.querySelector('.ift') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -90,6 +99,20 @@
     $('.ift-warn').textContent = warn.join(' ');
   };
   addRow('State A', '4000', '500', '0.30'); addRow('State B', '6000', '1100', '0.25');
+  const read = () => [...root.querySelectorAll('.ift-row')].map((r) => { const g = (k: string) => (r.querySelector(`[data-j="${k}"]`) as HTMLInputElement).value; return { name: g('name').trim() || 'Unnamed', distance: n(g('d')), fuel: n(g('f')), rate: n(g('r')) }; });
+  const msg = (t: string) => { $('.ift-msg').textContent = t; };
+  $('.ift-import').onclick = () => {
+    const rows = parseJuris(q('paste').value);
+    if (!rows.length) { msg('No usable lines found. Use one jurisdiction a line: name, distance, fuel bought, rate.'); return; }
+    root.querySelectorAll('.ift-row').forEach((r) => r.remove());
+    rows.forEach((r) => addRow(r.name, String(r.distance), String(r.fuel), String(r.rate)));
+    msg(`${rows.length} jurisdiction${rows.length === 1 ? '' : 's'} added.`); calc();
+  };
+  $('.ift-sum').onclick = () => { const t = read().reduce((a, r) => a + r.distance, 0); q('dist').value = String(Math.round(t * 100) / 100); msg(`Fleet distance set to ${w(t)}.`); calc(); };
+  $('.ift-csv').onclick = async () => {
+    const r = ifta(n(q('dist').value), n(q('fuel').value), read());
+    try { await navigator.clipboard.writeText(iftaCsv(r)); msg('Copied. Paste it into a spreadsheet.'); } catch { (q('paste') as HTMLInputElement).value = iftaCsv(r); msg('Copy was blocked, so the CSV is in the box above. Select it and copy.'); }
+  };
   $('.ift-add').onclick = () => { addRow('', '0', '0', '0'); calc(); };
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();

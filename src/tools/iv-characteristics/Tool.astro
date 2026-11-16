@@ -1,0 +1,125 @@
+---
+// #L340 I-V characteristics. Maths: src/lib/learn/curr-physics.ts (checks in tests/curr-physics.mjs).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn ic">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Pick a component, slide the supply voltage from −6 V to +6 V and press Record reading to build its I-V graph one point at a time.</p>
+    <label>Component <select class="ic-comp" aria-label="Component"></select></label>
+    <canvas class="lrn-cv ic-circ" aria-label="Circuit: variable supply, ammeter in series with the component, voltmeter across it" style="margin-top:8px"></canvas>
+    <label class="lrn-sl" style="margin-top:8px"><span>Supply voltage: <b class="ic-vv">0.0</b> V</span> <input class="ic-v" type="range" min="-6" max="6" step="0.1" value="0" aria-label="Supply voltage in volts" /></label>
+    <p class="ax-big ic-out" aria-live="polite"></p>
+    <p class="ax-help ic-sub"></p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0">
+      <button type="button" class="btn ic-rec">Record reading</button>
+      <button type="button" class="btn secondary ic-sweep">Record every volt</button>
+      <button type="button" class="btn secondary ic-clear">Clear points</button>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;min-height:36px"><input class="ic-full" type="checkbox" /> Show the full curve</label>
+    <canvas class="lrn-cv ic-graph" aria-label="Graph of current against voltage with the readings you have recorded" style="margin-top:8px"></canvas>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: R = V ÷ I is the resistance at one point, the slope of the line from the origin. It is not the same as the slope of the curve. For a diode the gradient is almost zero below about 0.6 V, then rises steeply, and the reverse current is only nanoamps. The lamp model here is R = R₀(1 + I ÷ I₁), a simple stand-in for a hot filament, not real lamp data.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Record the fixed resistor from −6 V to +6 V. Is the graph a straight line through the origin?</li><li>Switch to the filament lamp and watch R = V ÷ I grow as the current rises. Why does the filament get more resistive?</li><li>Reverse the diode (negative V; its graph is zoomed to 50 mA, so the steep part runs off the top). How big is the current compared with forward?</li><li>Compare the thermistor at 20 °C and 60 °C, then the LDR in light and dark.</li></ul>
+  </div>
+  <div class="ax-card ic-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ic .lrn-cv { width: 100%; }
+  .ic select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { ivCurrent, resistanceAt, type Comp } from '../../lib/learn/curr-physics';
+  const root = document.querySelector('.ic') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const NAMES: [Comp, string][] = [['resistor', 'Fixed resistor (100 Ω)'], ['lamp', 'Filament lamp'], ['diode', 'Diode'], ['thermistor-cold', 'Thermistor at 20 °C'], ['thermistor-hot', 'Thermistor at 60 °C'], ['ldr-light', 'LDR in light'], ['ldr-dark', 'LDR in the dark']];
+  const sel = $<HTMLSelectElement>('.ic-comp'), vin = $<HTMLInputElement>('.ic-v'), out = $('.ic-out'), full = $<HTMLInputElement>('.ic-full');
+  NAMES.forEach(([id, n]) => { const o = document.createElement('option'); o.value = id; o.textContent = n; sel.append(o); });
+  let pts: { v: number; i: number }[] = [];
+  const comp = () => sel.value as Comp;
+  const fmtI = (i: number) => { const a = Math.abs(i); return a < 1e-6 ? `${(i * 1e9).toFixed(2)} nA` : a < 1e-3 ? `${(i * 1e6).toFixed(1)} µA` : `${(i * 1e3).toFixed(1)} mA`; };
+  const fmtR = (x: number | null) => (x === null ? 'not defined at 0 V' : x >= 1e6 ? `${(x / 1e6).toFixed(1)} MΩ` : x >= 1e4 ? `${(x / 1e3).toFixed(0)} kΩ` : `${x.toFixed(x < 100 ? 1 : 0)} Ω`);
+  const yMax = () => { if (comp() === 'diode') return 50; const m = Math.max(Math.abs(ivCurrent(comp(), 6)), Math.abs(ivCurrent(comp(), -6))) * 1000 * 1.1; const e = 10 ** Math.floor(Math.log10(m)); return Math.ceil(m / e) * e; };
+
+  const symbol = (ctx: CanvasRenderingContext2D, c: Comp, x: number, y: number, pal: ReturnType<typeof pagePalette>) => {
+    ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.bg; ctx.lineWidth = 2;
+    if (c === 'lamp') { ctx.beginPath(); ctx.arc(x, y, 15, 0, 7); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 10.6, y - 10.6); ctx.lineTo(x + 10.6, y + 10.6); ctx.moveTo(x + 10.6, y - 10.6); ctx.lineTo(x - 10.6, y + 10.6); ctx.stroke(); }
+    else if (c === 'diode') { ctx.beginPath(); ctx.moveTo(x - 10, y - 13); ctx.lineTo(x - 10, y + 13); ctx.lineTo(x + 10, y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x + 10, y - 13); ctx.lineTo(x + 10, y + 13); ctx.stroke(); }
+    else {
+      ctx.fillRect(x - 24, y - 10, 48, 20); ctx.strokeRect(x - 24, y - 10, 48, 20);
+      if (c.startsWith('thermistor')) { ctx.beginPath(); ctx.moveTo(x - 22, y + 20); ctx.lineTo(x - 8, y + 20); ctx.lineTo(x + 20, y - 20); ctx.stroke(); }
+      if (c.startsWith('ldr')) { ctx.beginPath(); ctx.arc(x, y, 20, 0, 7); ctx.stroke(); for (const dx of [-8, 4]) { ctx.beginPath(); ctx.moveTo(x + dx - 12, y - 28); ctx.lineTo(x + dx - 4, y - 14); ctx.stroke(); } }
+    }
+  };
+  const drawCircuit = () => {
+    const { ctx, W, H } = fitCanvas($<HTMLCanvasElement>('.ic-circ'), 170), pal = pagePalette(), v = +vin.value, I = ivCurrent(comp(), v);
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink;
+    const L = 20, R = W - 20, T = 44, B = 148, ax = L + 62, cx = R - 62, bx = (L + R) / 2, vy = 98;
+    const meter = (x: number, y: number, label: string, txt: string, ty: number) => { ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y, 16, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = 'bold 14px system-ui,sans-serif'; ctx.fillText(label, x, y + 5); ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = pal.accent; ctx.fillText(txt, x, ty); ctx.fillStyle = pal.ink; };
+    const line = (...p: number[]) => { ctx.beginPath(); ctx.moveTo(p[0], p[1]); for (let k = 2; k < p.length; k += 2) ctx.lineTo(p[k], p[k + 1]); ctx.stroke(); };
+    line(ax - 16, T, L, T, L, B, bx - 8, B); line(bx + 8, B, R, B, R, T, cx + 24, T); line(cx - 24, T, ax + 16, T);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; line(bx - 8, B - 11, bx - 8, B + 11); ctx.lineWidth = 4; line(bx + 8, B - 6, bx + 8, B + 6); ctx.lineWidth = 2;
+    ctx.fillStyle = pal.ink; ctx.fillText(`Supply ${v.toFixed(1)} V`, bx, B - 14);
+    meter(ax, T, 'A', fmtI(I), T - 24);
+    symbol(ctx, comp(), cx, T, pal);
+    const vx1 = cx - 36, vx2 = cx + 36; line(vx1, T, vx1, vy, cx - 16, vy); line(vx2, T, vx2, vy, cx + 16, vy);
+    ctx.beginPath(); ctx.arc(vx1, T, 3, 0, 7); ctx.arc(vx2, T, 3, 0, 7); ctx.fill();
+    meter(cx, vy, 'V', `${v.toFixed(1)} V`, vy + 32);
+  };
+  const drawGraph = () => {
+    const { ctx, W, H } = fitCanvas($<HTMLCanvasElement>('.ic-graph'), 280), pal = pagePalette(), ym = yMax(), v = +vin.value;
+    const x0 = 46, x1 = W - 12, y0 = 14, y1 = H - 34, X = (a: number) => x0 + ((a + 6) / 12) * (x1 - x0), Y = (a: number) => y1 - ((a + ym) / (2 * ym)) * (y1 - y0);
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif'; ctx.lineWidth = 1;
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted;
+    ctx.textAlign = 'center'; for (let a = -6; a <= 6; a += 2) { ctx.beginPath(); ctx.moveTo(X(a), y0); ctx.lineTo(X(a), y1); ctx.stroke(); ctx.fillText(String(a), X(a), y1 + 14); }
+    ctx.textAlign = 'right'; for (const f of [-1, -0.5, 0, 0.5, 1]) { const a = f * ym; ctx.beginPath(); ctx.moveTo(x0, Y(a)); ctx.lineTo(x1, Y(a)); ctx.stroke(); ctx.fillText(String(+a.toPrecision(3)), x0 - 4, Y(a) + 4); }
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(X(0), y0); ctx.lineTo(X(0), y1); ctx.moveTo(x0, Y(0)); ctx.lineTo(x1, Y(0)); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText('Voltage V (volts)', (x0 + x1) / 2, H - 6);
+    ctx.save(); ctx.translate(10, (y0 + y1) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Current I (mA)', 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.clip();
+    if (full.checked) { ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); for (let a = -6; a <= 6.001; a += 0.1) { const px = X(a), py = Y(ivCurrent(comp(), a) * 1000); a < -5.99 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); } ctx.stroke(); ctx.setLineDash([]); }
+    const sorted = [...pts].sort((a, b) => a.v - b.v);
+    if (sorted.length > 1) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); sorted.forEach((p, k) => (k ? ctx.lineTo(X(p.v), Y(p.i * 1000)) : ctx.moveTo(X(p.v), Y(p.i * 1000)))); ctx.stroke(); }
+    ctx.fillStyle = pal.accent; for (const p of pts) { ctx.beginPath(); ctx.arc(X(p.v), Y(p.i * 1000), 4, 0, 7); ctx.fill(); }
+    ctx.restore();
+    ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(v), Y(ivCurrent(comp(), v) * 1000), 7, 0, 7); ctx.stroke();
+  };
+  const show = () => {
+    const v = +vin.value, I = ivCurrent(comp(), v), R = resistanceAt(comp(), v);
+    $('.ic-vv').textContent = v.toFixed(1);
+    out.textContent = `V = ${v.toFixed(1)} V, I = ${fmtI(I)}`;
+    out.dataset.v = String(v); out.dataset.i = String(I); out.dataset.r = R === null ? '' : String(R); out.dataset.n = String(pts.length);
+    $('.ic-sub').textContent = `R = V ÷ I = ${fmtR(R)}. Readings recorded: ${pts.length}.`;
+    drawCircuit(); drawGraph();
+  };
+  const rec = (v: number) => { const i = ivCurrent(comp(), v); if (!pts.some((p) => Math.abs(p.v - v) < 0.05)) pts.push({ v, i }); };
+  $('.ic-rec').addEventListener('click', () => { rec(+vin.value); show(); });
+  $('.ic-sweep').addEventListener('click', () => { for (let v = -6; v <= 6; v++) rec(v); show(); });
+  $('.ic-clear').addEventListener('click', () => { pts = []; show(); });
+  sel.addEventListener('input', () => { pts = []; show(); });
+  vin.addEventListener('input', show); full.addEventListener('input', show);
+  addEventListener('resize', show);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.ic-quiz'), () => {
+    const R = pick(20, 200, 10), V = pick(2, 6), vv = pick(2, 6), ii = pick(10, 60, 5), I = (V / R) * 1000;
+    return [
+      { q: `A fixed resistor of ${R} Ω has ${V} V across it. What current flows, in mA?`, ans: I, unit: 'mA', work: `I = V ÷ R = ${V} ÷ ${R} = ${r(V / R, 3)} A = ${r(I)} mA.` },
+      { q: `A lamp has ${vv} V across it and ${ii} mA flowing. What is its resistance at this point, in ohms?`, ans: (vv / ii) * 1000, unit: 'Ω', work: `R = V ÷ I = ${vv} ÷ ${ii / 1000} = ${r((vv / ii) * 1000)} Ω.` },
+      { q: 'Which component gives a straight line through the origin on an I-V graph?', choices: ['Filament lamp', 'Diode', 'Fixed resistor'], ans: 2, work: 'A fixed resistor obeys Ohm’s law: I is proportional to V while the temperature stays steady.' },
+      one([
+        { q: 'As the current through a filament lamp rises, its resistance...', choices: ['falls', 'rises', 'stays the same'], ans: 1, work: 'The filament heats up. Its ions vibrate more, so electrons collide more often and the resistance rises. The I-V line bends.' },
+        { q: 'A diode is connected the wrong way round (reverse bias). The current is...', choices: ['very small', 'the same as forward', 'very large'], ans: 0, work: 'A diode lets current through in one direction only. In reverse the current is a tiny leakage, nanoamps here.' },
+      ]),
+    ];
+  });
+</script>

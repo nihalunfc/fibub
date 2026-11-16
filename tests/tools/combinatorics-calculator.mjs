@@ -11,6 +11,14 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.goto(`${BASE}/science/combinatorics-calculator/`); await page.waitForTimeout(600);
   check((await big()) === 'C(10, 3) = 120', 'comb: example C(10, 3)');
   { const f = await facts(); check(f['Permutations nPk = n!/(n − k)!'] === '720' && f['With repetition, order matters n^k'] === '1 000' && f['With repetition, unordered C(n + k − 1, k)'] === '220' && f['n!'] === '3 628 800', 'comb: nPk, n^k, multiset, n!'); }
+  check((await page.textContent(P + '.cmb-work')).startsWith('10P3 = 10 × 9 × 8 = 720. 10C3 = 10P3 ÷ 3! = 720 ÷ 6 = 120'), `comb: working line (${await page.textContent(P + '.cmb-work')})`);
+  check((await facts())['Chance of one exact pick (order not counted)'] === '1 in 120', 'comb: one-in line');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await type('.cmb-items', 'A, B, C, D'); await type('.cmb-k', '2');
+  check((await page.$$(P + '.cmb-list tbody tr')).length === 7 && (await page.textContent(P + '.cmb-list')).includes('A, B') && (await page.textContent(P + '.cmb-list')).includes('6 in all'), 'comb: lists 6 combinations of 2 from 4');
+  await page.check(P + '.cmb-ord'); await page.waitForTimeout(450);
+  check((await page.$$(P + '.cmb-list tbody tr')).length === 13 && (await page.textContent(P + '.cmb-list')).includes('12 in all'), 'comb: lists 12 permutations');
+  await page.uncheck(P + '.cmb-ord'); await type('.cmb-items', ''); await type('.cmb-k', '3');
   { const rows = await csv('cmb-c.csv'); check(rows[1] === 'order matters,720,1000' && rows[2] === 'order does not matter,120,220', 'comb: 2 × 2 table CSV'); }
   await type('.cmb-n', '52'); await type('.cmb-k', '5');
   check((await big()) === 'C(52, 5) = 2 598 960', 'comb: poker hands');

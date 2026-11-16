@@ -13,6 +13,8 @@ export interface Resume {
   order: SectionId[]; style: 'sans' | 'serif'; paper: 'letter' | 'a4';
   /** Optional look settings (older saved resumes lack them): name and contacts centred or left, normal or compact text. */
   header?: 'center' | 'left'; density?: 'normal' | 'compact';
+  /** Extra fields some regions expect. Used only while extraOn is true. photo is a small JPEG data URL, kept in memory only (never saved to storage or the backup file). */
+  extraOn?: boolean; nationality?: string; visa?: string; notice?: string; licence?: string; photo?: string;
 }
 
 export const SECTION_TITLES: Record<SectionId, string> = {
@@ -85,6 +87,10 @@ export function blocks(r: Resume): Block[] {
   if (r.headline.trim()) out.push({ t: 'headline', text: r.headline.trim() });
   const contact = join([r.location, r.phone, r.email, ...r.links.split(/[,\n]/)]);
   if (contact) out.push({ t: 'contact', text: contact });
+  if (r.extraOn) {
+    const more = join([r.nationality ? `Nationality: ${r.nationality.trim()}` : '', r.visa ? `Visa or residence status: ${r.visa.trim()}` : '', r.notice ? `Notice period: ${r.notice.trim()}` : '', r.licence ? `Driving licence: ${r.licence.trim()}` : ''].filter((x) => !/: $/.test(x)));
+    if (more) out.push({ t: 'contact', text: more });
+  }
   for (const id of r.order) {
     const sec: Block[] = [];
     if (id === 'summary') lines(r.summary).forEach((text) => sec.push({ t: 'para', text }));

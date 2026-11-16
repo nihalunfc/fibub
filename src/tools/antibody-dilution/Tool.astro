@@ -15,30 +15,39 @@ import Downloads from '../../components/Downloads.astro';
       <button type="button" class="btn secondary small ab-ex">Use the example</button>
     </div>
     <div class="ax-grid">
-      <label>Stock (mg/mL) <input class="ab-stock" type="text" inputmode="decimal" value="0.8" /></label>
-      <label class="ab-l-ratio">Dilution 1: <input class="ab-ratio" type="text" inputmode="decimal" value="2000" /></label>
-      <label class="ab-l-target" hidden>Target (µg/mL) <input class="ab-target" type="text" inputmode="decimal" value="0.5" /></label>
-      <label>Final volume <input class="ab-vol" type="text" inputmode="decimal" value="10" /></label>
-      <label>Unit <select class="ab-vunit"><option value="1000" selected>mL</option><option value="1">µL</option></select></label>
+      <label>Stock (mg/mL) <input class="ab-stock" data-k="stock" type="text" inputmode="decimal" value="0.8" /></label>
+      <label class="ab-l-ratio">Dilution 1: <input class="ab-ratio" data-k="ratio" type="text" inputmode="decimal" value="2000" /></label>
+      <label class="ab-l-target" hidden>Target (µg/mL) <input class="ab-target" data-k="target" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Final volume <input class="ab-vol" data-k="volume" type="text" inputmode="decimal" value="10" /></label>
+      <label>Unit <select class="ab-vunit" data-k="volunit"><option value="1000" selected>mL</option><option value="1">µL</option></select></label>
     </div>
     <p class="ax-help">The stock concentration is on the vial or data sheet; leave it empty if it is not given (only 1:N then works). <b>1:N</b> means 1 part antibody in N parts in total, so 1:1000 is 1 µL in 1 mL.</p>
+    <div class="ax-row ab-pre" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Usual dilutions</span>
+      <button type="button" class="btn secondary small" data-r="100">1:100</button><button type="button" class="btn secondary small" data-r="500">1:500</button><button type="button" class="btn secondary small" data-r="1000">1:1000</button><button type="button" class="btn secondary small" data-r="5000">1:5000</button><button type="button" class="btn secondary small" data-r="10000">1:10,000</button>
+    </div>
     <p class="ax-err ab-werr" hidden></p>
     <div class="ab-wout">
-      <p class="ax-big ab-wbig"></p>
+      <p class="ax-big ab-wbig" aria-live="polite"></p>
       <dl class="ax-facts ab-wfacts"></dl>
       <p class="ab-inter" hidden></p>
       <ul class="ab-warn ab-wwarn" hidden></ul>
+      <details style="margin-top:12px">
+        <summary>More options: every usual dilution at this volume</summary>
+        <div class="ax-scroll"><table class="ab-ctab" style="margin-top:8px"></table></div>
+        <p class="ax-help">Uses the final volume above. Good for choosing a dilution at the bench: the volumes for each ratio side by side.</p>
+      </details>
     </div>
   </div>
 
   <div class="ax-card">
     <h2>2. Serial dilution for titration</h2>
     <div class="ax-grid">
-      <label>First tube 1: <input class="ab-start" type="text" inputmode="decimal" value="100" /></label>
-      <label>Each step <select class="ab-fold"><option value="2" selected>2-fold</option><option value="3">3-fold</option><option value="4">4-fold</option><option value="5">5-fold</option><option value="10">10-fold</option><option value="custom">Custom</option></select></label>
+      <label>First tube 1: <input class="ab-start" data-k="start" type="text" inputmode="decimal" value="100" /></label>
+      <label>Each step <select class="ab-fold" data-k="fold"><option value="2" selected>2-fold</option><option value="3">3-fold</option><option value="4">4-fold</option><option value="5">5-fold</option><option value="10">10-fold</option><option value="custom">Custom</option></select></label>
       <label class="ab-l-cfold" hidden>Custom fold <input class="ab-cfold" type="text" inputmode="decimal" value="1.5" /></label>
-      <label>Tubes <input class="ab-tubes" type="number" min="2" max="48" step="1" value="8" inputmode="numeric" /></label>
-      <label>Volume in each tube (µL) <input class="ab-svol" type="text" inputmode="decimal" value="100" /></label>
+      <label>Tubes <input class="ab-tubes" data-k="tubes" type="number" min="2" max="48" step="1" value="8" inputmode="numeric" /></label>
+      <label>Volume in each tube (µL) <input class="ab-svol" data-k="tubevol" type="text" inputmode="decimal" value="100" /></label>
     </div>
     <p class="ax-help">Tube 1 is made from the stock. Every other tube gets the diluent first, then a transfer from the tube before; mix well and change tips each time. The concentrations use the stock above.</p>
     <p class="ax-err ab-serr" hidden></p>
@@ -75,12 +84,12 @@ import Downloads from '../../components/Downloads.astro';
     <h2>4. Antibody for a run of blots or plates</h2>
     <div class="ax-grid">
       <label>For <select class="ab-kind"><option value="blot" selected>Blots</option><option value="plate">Plates</option></select></label>
-      <label><span class="ab-nl">How many blots</span> <input class="ab-n" type="number" min="1" step="1" value="6" inputmode="numeric" /></label>
+      <label><span class="ab-nl">How many blots</span> <input class="ab-n" data-k="count" type="number" min="1" step="1" value="6" inputmode="numeric" /></label>
       <label class="ab-l-ml">mL per blot <input class="ab-ml" type="text" inputmode="decimal" value="10" /></label>
       <label class="ab-l-wells" hidden>Wells per plate <input class="ab-wells" type="number" min="1" step="1" value="96" inputmode="numeric" /></label>
       <label class="ab-l-well" hidden>µL per well <input class="ab-well" type="text" inputmode="decimal" value="100" /></label>
-      <label>Dilution 1: <input class="ab-nratio" type="text" inputmode="decimal" value="2000" /></label>
-      <label>Spare (%) <input class="ab-spare" type="text" inputmode="decimal" value="10" /></label>
+      <label>Dilution 1: <input class="ab-nratio" data-k="runratio" type="text" inputmode="decimal" value="2000" /></label>
+      <label>Spare (%) <input class="ab-spare" data-k="spare" type="text" inputmode="decimal" value="10" /></label>
       <label>Vial (µL, optional) <input class="ab-vial" type="text" inputmode="decimal" value="100" /></label>
     </div>
     <p class="ax-help"><b>Spare</b> makes a little extra so the last blot or plate is not short. The µg use the stock concentration in part 1.</p>
@@ -105,7 +114,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { working, serial, cutoff, titre, readSeries, needed, factorFor, fmtUl, fmtConc, EXAMPLE_SERIES, EXAMPLE_BLANKS, type Cut, type Titre, type Serial, type Working, type Need, type Cutoff } from '../../lib/sci/antibody';
+  import { commonTable, working, serial, cutoff, titre, readSeries, needed, factorFor, fmtUl, fmtConc, EXAMPLE_SERIES, EXAMPLE_BLANKS, type Cut, type Titre, type Serial, type Working, type Need, type Cutoff } from '../../lib/sci/antibody';
   import { num, csv } from '../../lib/sci/num';
   import { chartFigure } from '../../lib/sci/plot';
   import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
@@ -148,6 +157,9 @@ import Downloads from '../../components/Downloads.astro';
       const it = q('.ab-inter');
       if (W.inter) { it.textContent = `Easier: first mix ${fmtUl(W.inter.stockUl)} of stock with ${fmtUl(W.inter.totalUl - W.inter.stockUl)} of diluent (1:${W.inter.factor}), then take ${fmtUl(W.inter.useUl)} of that + ${fmtUl(W.inter.diluentUl)} of diluent.`; it.hidden = false; } else it.hidden = true;
       warns(q('.ab-wwarn'), W.warn);
+      const ct = commonTable(W.finalUl, stock());
+      const hasU = ct.some((r) => Number.isFinite(r.ugMl));
+      table(q('.ab-ctab'), ['Dilution', 'Stock', 'Diluent', ...(hasU ? ['Final conc.'] : [])], ct.map((r) => [ratio(r.factor), fmtUl(r.stockUl), fmtUl(r.diluentUl), ...(hasU ? [fmtConc(r.ugMl)] : [])]), [true, true, true, ...(hasU ? [true] : [])]);
     } catch (e) { fail('.ab-werr', '.ab-wout', e); }
   }
 
@@ -231,6 +243,10 @@ import Downloads from '../../components/Downloads.astro';
     runWorking();
   });
   q('.ab-stock').addEventListener('input', () => later(all));
+  q('.ab-pre').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-r]'); if (!b) return;
+    q<HTMLButtonElement>('.ab-mode button[data-m="ratio"]').click(); q<HTMLInputElement>('.ab-ratio').value = b.dataset.r!; runWorking();
+  });
   for (const c of ['.ab-ratio', '.ab-target', '.ab-vol']) q(c).addEventListener('input', () => later(runWorking));
   q('.ab-vunit').addEventListener('change', runWorking);
   q('.ab-fold').addEventListener('change', () => { q('.ab-l-cfold').hidden = q<HTMLSelectElement>('.ab-fold').value !== 'custom'; runSerial(); });

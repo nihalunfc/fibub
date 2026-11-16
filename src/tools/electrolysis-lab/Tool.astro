@@ -1,0 +1,155 @@
+---
+// #L345 Electrolysis lab. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths: src/lib/learn/curr-chem.ts, checked in tests/curr-chem.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn el">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">GCSE / Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">A-level / Grade 11 to 12</button></div>
+    <p class="ax-help">An electric current splits a liquid that conducts. Pick an electrolyte and watch the ions move: positive ions go to the negative electrode (cathode), negative ions go to the positive electrode (anode).</p>
+    <label>Electrolyte <select class="el-sel" aria-label="Electrolyte"></select></label>
+    <canvas class="lrn-cv el-cv" aria-label="A beaker with two electrodes. Ions drift to the electrodes and bubbles or metal form on them." style="margin-top:8px"></canvas>
+    <p><button type="button" class="btn secondary small el-play">Pause</button></p>
+    <div class="el-res" aria-live="polite">
+      <p class="ax-big el-out"></p>
+      <p class="ax-help el-rule"></p>
+      <p class="ax-help el-left"></p>
+    </div>
+    <div class="el-half" data-only="11" hidden>
+      <p class="lrn-eq">Cathode (reduction): <b class="el-hc"></b></p>
+      <p class="lrn-eq">Anode (oxidation): <b class="el-ha"></b></p>
+      <p class="ax-help">Half-equations show electrons. Reduction is gain of electrons (at the cathode); oxidation is loss of electrons (at the anode). Remember OIL RIG.</p>
+    </div>
+  </div>
+  <div class="ax-card" data-only="11" hidden>
+    <h2>Faraday mode: how much is made?</h2>
+    <p class="ax-help">Charge Q = current × time. One mole of electrons carries 96 485 C (the Faraday constant). The half-equation tells how many moles of electrons make one mole of product.</p>
+    <div class="ax-grid">
+      <label class="lrn-sl">Current: <b class="el-iv"></b> A <input class="el-i" type="range" min="0.1" max="5" step="0.1" value="2" /></label>
+      <label class="lrn-sl">Time: <b class="el-tv"></b> s <input class="el-t" type="range" min="60" max="3600" step="60" value="900" /></label>
+    </div>
+    <p class="ax-big el-fout" aria-live="polite"></p>
+    <p class="ax-help el-fsub"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Compare brine with molten sodium chloride. Why does sodium form in one and hydrogen in the other?</li><li>Switch copper(II) sulfate from inert to copper electrodes. What happens at the anode, and why does the blue colour stay?</li><li>In Faraday mode, double the time. What happens to the mass of copper? Double the current instead.</li></ul>
+  </div>
+  <div class="ax-card el-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .el .el-cv { width: 100%; }
+  .el select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
+  import { ELECTROLYTES, electrolyse, faraday, FARADAY } from '../../lib/learn/curr-chem';
+  const root = document.querySelector('.el') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.el-cv'), sel = $<HTMLSelectElement>('.el-sel'), out = $('.el-out'), fout = $('.el-fout');
+  ELECTROLYTES.forEach((e, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = e.name; sel.append(o); });
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const sup = (n: number) => (n === 1 ? '' : '²³'[n - 2]);
+  type P = { x: number; y: number };
+  let cats: P[] = [], ans: P[] = [], bubC: { x: number; y: number; r: number }[] = [], bubA: { x: number; y: number; r: number }[] = [], dep = 0, cur = ELECTROLYTES[0];
+  const reset = () => {
+    cur = ELECTROLYTES[+sel.value]; dep = 0; bubC = []; bubA = [];
+    const mk = () => ({ x: Math.random(), y: Math.random() });
+    cats = Array.from({ length: 6 }, mk); ans = Array.from({ length: 6 }, mk);
+  };
+  const info = () => {
+    const e = ELECTROLYTES[+sel.value], res = electrolyse(e);
+    out.textContent = `Cathode (−): ${res.cathode.label}. Anode (+): ${res.anode.label}.`;
+    out.dataset.cathode = res.cathode.formula; out.dataset.anode = res.anode.formula; out.dataset.akind = res.anode.kind;
+    $('.el-rule').textContent = `Cathode: ${res.cathode.rule} Anode: ${res.anode.rule}`;
+    $('.el-left').textContent = res.left;
+    $('.el-hc').textContent = res.cathode.eq; $('.el-ha').textContent = res.anode.eq;
+    const A = val('.el-i'), T = val('.el-t');
+    $('.el-iv').textContent = String(A); $('.el-tv').textContent = String(T);
+    const fc = faraday(A, T, res.cathode.z, res.cathode.formula, res.cathode.kind === 'gas'), fa = faraday(A, T, res.anode.z, res.anode.formula, res.anode.kind === 'gas');
+    fout.textContent = `Q = ${A} × ${T} = ${r(fc.q)} C, so ${r(fc.ne, 3)} mol of electrons.`;
+    fout.dataset.q = fc.q.toFixed(1); fout.dataset.ne = fc.ne.toFixed(5); fout.dataset.mass = fc.mass.toFixed(4); fout.dataset.vol = fc.volume.toFixed(4); fout.dataset.amass = fa.mass.toFixed(4);
+    const what = (h: typeof res.cathode, f: typeof fc) => h.kind === 'gas' ? `${r(f.mol)} mol of ${h.formula} = ${r(f.mass)} g (${r(f.volume * 1000)} cm³ at room temperature)` : h.kind === 'dissolves' ? `${r(f.mol)} mol of Cu lost = ${r(f.mass)} g` : `${r(f.mol)} mol of ${h.formula} = ${r(f.mass)} g`;
+    $('.el-fsub').textContent = `Cathode: ${fc.ne.toPrecision(3)} ÷ ${res.cathode.z} = ${what(res.cathode, fc)}. Anode: ${fa.ne.toPrecision(3)} ÷ ${res.anode.z} = ${what(res.anode, fa)}.`;
+  };
+  const step = (dt: number) => {
+    const res = electrolyse(cur), { ctx, W, H } = fitCanvas(cv, 270), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif'; ctx.lineWidth = 2;
+    const bl = 14, br = W - 14, top = 110, bot = 220, cx = W * 0.3, ax = W * 0.7, ew = 12;
+    // liquid
+    const tint = cur.medium === 'molten' ? 'rgba(220,130,40,0.30)' : cur.cation === 'Cu' ? 'rgba(60,130,230,0.30)' : 'rgba(120,170,230,0.16)';
+    ctx.fillStyle = tint; ctx.fillRect(bl, top, br - bl, bot - top);
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(bl, 70); ctx.lineTo(bl, bot); ctx.lineTo(br, bot); ctx.lineTo(br, 70); ctx.stroke();
+    // wires and battery
+    ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(cx, 40); ctx.lineTo(cx, 14); ctx.lineTo(W / 2 - 12, 14); ctx.moveTo(ax, 40); ctx.lineTo(ax, 14); ctx.lineTo(W / 2 + 12, 14); ctx.stroke();
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(W / 2 - 12, 6); ctx.lineTo(W / 2 - 12, 22); ctx.moveTo(W / 2 + 12, 1); ctx.lineTo(W / 2 + 12, 27); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText('−', W / 2 - 22, 12); ctx.fillText('+', W / 2 + 22, 12);
+    // electrodes (cathode left, anode right)
+    const grow = Math.min(14, dep);
+    ctx.fillStyle = cur.anode === 'copper' ? '#b87333' : '#555b66';
+    ctx.fillRect(cx - ew / 2, 40, ew, bot - 50);
+    const aw = cur.anode === 'copper' ? ew - Math.min(4, dep * 0.25) : ew;
+    ctx.fillRect(ax - aw / 2, 40, aw, bot - 50);
+    if (res.cathode.kind === 'metal') { ctx.fillStyle = res.cathode.colour; ctx.fillRect(cx - ew / 2 - grow * 0.5, top + 6, grow * 0.5, bot - top - 16); ctx.fillRect(cx + ew / 2, top + 6, grow * 0.5, bot - top - 16); }
+    // ions drift
+    const lo = cx + ew / 2 + 14 + grow * 0.5, hi = ax - ew / 2 - 14;
+    const cr = 9;
+    const drift = (p: P, dir: number) => {
+      p.x += dir * dt * 0.09; p.y += (Math.random() - 0.5) * dt * 0.4;
+      if (p.y < 0) p.y = 0; if (p.y > 1) p.y = 1;
+      if (p.x < 0 || p.x > 1) p.x = dir < 0 ? 0.85 + Math.random() * 0.15 : Math.random() * 0.15;
+    };
+    cats.forEach((p) => drift(p, -1)); ans.forEach((p) => drift(p, 1));
+    const ion = (p: P, label: string, pos: boolean) => {
+      const x = lo + p.x * (hi - lo), y = top + 14 + p.y * (bot - top - 28);
+      ctx.fillStyle = pos ? pal.accent2 : pal.accent; ctx.beginPath(); ctx.arc(x, y, cr, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.bg; ctx.fillText(label, x, y + 4);
+    };
+    cats.forEach((p) => ion(p, '+', true)); ans.forEach((p) => ion(p, '−', false));
+    // products
+    if (dt > 0) {
+      const mkB = (arr: typeof bubC, x0: number, rate: number) => { if (Math.random() < dt * rate && arr.length < 24) arr.push({ x: x0 + (Math.random() - 0.5) * 8, y: bot - 14, r: 2 + Math.random() * 2 }); arr.forEach((b) => { b.y -= dt * 55; }); for (let i = arr.length - 1; i >= 0; i--) if (arr[i].y < top - 4) arr.splice(i, 1); };
+      if (res.cathode.kind === 'gas') mkB(bubC, cx, res.cathode.formula === 'H₂' && res.anode.formula === 'O₂' ? 16 : 9);
+      if (res.anode.kind === 'gas' || res.anode.kind === 'halogen') mkB(bubA, ax, res.anode.formula === 'O₂' ? 8 : 9);
+      if (res.cathode.kind === 'metal') dep += dt * 1.2;
+      if (res.anode.kind === 'dissolves') dep += dt * 1.2;
+    }
+    const bub = (arr: typeof bubC, col: string) => { ctx.fillStyle = col; ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; arr.forEach((b) => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); ctx.stroke(); }); };
+    bub(bubC, res.cathode.colour); bub(bubA, res.anode.colour);
+    // labels
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+    ctx.fillText('Cathode (−)', cx, bot + 18); ctx.fillText('Anode (+)', ax, bot + 18);
+    ctx.fillStyle = pal.muted; ctx.fillText(res.cathode.formula, cx, bot + 34); ctx.fillText(res.anode.kind === 'dissolves' ? 'Cu dissolves' : res.anode.formula, ax, bot + 34);
+    const cn = cur.cation === 'H' ? 'H' + '⁺' : cur.cation + sup(cur.charge) + '⁺', an = cur.anion.replace('SO4', 'SO₄') + (cur.anion === 'SO4' ? '²⁻' : '⁻');
+    ctx.textAlign = 'left'; ctx.fillStyle = pal.accent2; ctx.fillText(`+ ${cn}`, 10, 56); ctx.fillStyle = pal.accent; ctx.fillText(`− ${an}`, 10, 72);
+  };
+  const lp = loop(step, $<HTMLButtonElement>('.el-play'));
+  const refresh = () => { info(); lp.redraw(); };
+  sel.addEventListener('input', () => { reset(); refresh(); });
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', refresh));
+  addEventListener('resize', refresh);
+  wireLevel(root, () => {});
+  reset(); refresh();
+  const FAR = FARADAY;
+  mountQuiz($('.el-quiz'), () => {
+    const aq = ELECTROLYTES.filter((e) => ['nacl-aq', 'ki', 'cucl2', 'cuso4-i'].includes(e.id)), e1 = one(aq), r1 = electrolyse(e1);
+    const e2 = one(ELECTROLYTES.filter((e) => e.id !== e1.id && e.anode === 'inert')), r2 = electrolyse(e2);
+    const I = pick(2, 6) / 2, tm = pick(5, 30, 5), I2 = pick(1, 4), t2 = pick(10, 40, 10);
+    const q = I * tm * 60, mCu = (q / FAR / 2) * 63.546, Q2 = I2 * t2 * 60, vH = (Q2 / FAR / 2) * 24;
+    const QN: Record<string, string> = { 'nacl-aq': 'brine (concentrated sodium chloride solution)', ki: 'potassium iodide solution', cucl2: 'copper(II) chloride solution', 'cuso4-i': 'copper(II) sulfate solution' };
+    const cAns = r1.cathode.kind === 'metal' ? 1 : 0;
+    const items = [
+      { q: `Which product forms at the cathode when ${QN[e1.id]} is electrolysed with inert electrodes?`, choices: ['Hydrogen gas', 'The metal'], ans: cAns, work: `${r1.cathode.rule} So the cathode gives ${r1.cathode.label}.` },
+      { q: `What forms at the anode when this is electrolysed: ${e2.name}?`, choices: ['Oxygen', 'A halogen (Cl₂, Br₂ or I₂)'], ans: r2.anode.formula === 'O₂' ? 0 : 1, work: `${r2.anode.rule} Product: ${r2.anode.label}.` },
+      { q: `A current of ${I} A flows for ${tm} minutes. How much charge passes, in coulombs?`, ans: q, unit: 'C', work: `Q = I × t = ${I} × ${tm * 60} s = ${r(q)} C.` },
+      { q: `Copper(II) sulfate solution is electrolysed with ${I} A for ${tm} minutes. What mass of copper is deposited? (F = 96 485 C/mol, Cu = 63.5)`, ans: mCu, unit: 'g', tol: 0.03, work: `Q = ${r(q)} C. Moles of electrons = ${r(q)} ÷ 96 485 = ${r(q / FAR)}. Cu²⁺ + 2e⁻ → Cu so moles of Cu = ${r(q / FAR)} ÷ 2 = ${r(q / FAR / 2)}. Mass = ${r(q / FAR / 2)} × 63.5 = ${r(mCu)} g.` },
+      { q: `Dilute sulfuric acid is electrolysed with ${I2} A for ${t2} minutes. What volume of hydrogen forms at the cathode in cm³? (24 dm³ per mole)`, ans: vH * 1000, unit: 'cm³', tol: 0.03, work: `Q = ${r(Q2)} C, moles of e⁻ = ${r(Q2 / FAR)}. 2H⁺ + 2e⁻ → H₂, so moles of H₂ = ${r(Q2 / FAR / 2)}. Volume = ${r(Q2 / FAR / 2)} × 24 000 cm³ = ${r(vH * 1000)} cm³.` },
+    ];
+    return [items[0], items[1], ...items.slice(2).sort(() => Math.random() - 0.5).slice(0, 2)];
+  });
+</script>

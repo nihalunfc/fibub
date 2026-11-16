@@ -13,10 +13,16 @@ import Downloads from '../../components/Downloads.astro';
     </div>
     <div class="cmb-p" data-p="c" style="margin-top:12px">
       <div class="ax-grid">
-        <label>n, things to pick from <input class="cmb-n" inputmode="numeric" value="10" /></label>
-        <label>k, how many you pick <input class="cmb-k" inputmode="numeric" value="3" /></label>
+        <label>n, things to pick from <input class="cmb-n" data-k="n" inputmode="numeric" value="10" /></label>
+        <label>k, how many you pick <input class="cmb-k" data-k="k" inputmode="numeric" value="3" /></label>
       </div>
       <p class="ax-help">n and k up to 5000.</p>
+      <details class="cmb-more" style="margin-top:8px"><summary>More options: list the actual picks</summary>
+        <label style="margin-top:8px">Items, separated by commas (leave blank to skip) <input class="cmb-items" data-k="items" value="" placeholder="A, B, C, D" autocomplete="off" /></label>
+        <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="cmb-ord" data-k="ordered" /> Order matters (list permutations)</label>
+        <p class="ax-help">Lists the ways to pick k of these items, up to 200. n is taken from the number of items.</p>
+        <div class="ax-scroll"><table class="cmb-list"></table></div>
+      </details>
     </div>
     <div class="cmb-p" data-p="m" style="margin-top:12px" hidden>
       <label>Group sizes, separated by commas <input class="cmb-ks" value="1, 4, 4, 2" autocomplete="off" /></label>
@@ -47,8 +53,9 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card cmb-out">
     <h2 class="cmb-h">Result</h2>
-    <p class="ax-big cmb-big"></p>
+    <p class="ax-big cmb-big" aria-live="polite"></p>
     <dl class="ax-facts cmb-facts"></dl>
+    <p class="ax-help cmb-work" aria-live="polite"></p>
     <div class="cmb-tw" hidden>
       <h3 class="cmb-th" style="margin:16px 0 6px;font-size:16px"></h3>
       <div class="ax-scroll"><table class="cmb-tab"></table></div>
@@ -92,7 +99,21 @@ import Downloads from '../../components/Downloads.astro';
       csv: [['', 'no repeats', 'repeats allowed'], ['order matters', p.toString(), pw.toString()], ['order does not matter', c.toString(), m.toString()]],
       note: `Order matters with no repeats: a podium of ${k} from ${n} runners. Repeats allowed: a ${k}-digit code from ${n} symbols. Order does not matter: a hand of ${k} cards from ${n}, or (with repeats) ${k} scoops from ${n} flavours.`,
     };
-    return [['Combinations C(n, k)', withSci(c)], ['Permutations nPk = n!/(n − k)!', withSci(p)], ['With repetition, order matters n^k', withSci(pw)], ['With repetition, unordered C(n + k − 1, k)', withSci(m)], ['n!', withSci(C.factorial(n))]];
+    const w = C.working(n, k);
+    q('.cmb-work').textContent = `${w.perm}. ${w.comb}.`;
+    return [['Chance of one exact pick (order not counted)', C.oneIn(c)], ['Combinations C(n, k)', withSci(c)], ['Permutations nPk = n!/(n − k)!', withSci(p)], ['With repetition, order matters n^k', withSci(pw)], ['With repetition, unordered C(n + k − 1, k)', withSci(m)], ['n!', withSci(C.factorial(n))]];
+  }
+
+  function itemsList() {
+    const t = q<HTMLTableElement>('.cmb-list'); t.replaceChildren();
+    const raw = q<HTMLInputElement>('.cmb-items').value, items = raw.split(',').map((x) => x.trim()).filter(Boolean);
+    if (!items.length) return;
+    const k = int('.cmb-k', 'k');
+    const r = C.listPicks(items, k, q<HTMLInputElement>('.cmb-ord').checked, 200);
+    const hr = t.createTHead().insertRow(); ['#', `Pick of ${k}`].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = t.createTBody();
+    r.rows.forEach((row, i) => { const tr = tb.insertRow(); tr.insertCell().textContent = String(i + 1); tr.insertCell().textContent = row.join(', '); });
+    const tr = tb.insertRow(); const td = tr.insertCell(); td.colSpan = 2; td.textContent = r.cut ? `Showing the first ${r.rows.length} of ${C.shortNum(r.total)}.` : `${C.shortNum(r.total)} in all.`;
   }
 
   function multiMode(): [string, string][] {
@@ -147,6 +168,7 @@ import Downloads from '../../components/Downloads.astro';
   function render() {
     const err = q('.cmb-err');
     try {
+      if (mode === 'c') itemsList(); else q('.cmb-list').replaceChildren();
       const facts = mode === 'c' ? chooseMode() : mode === 'm' ? multiMode() : mode === 's' ? specialMode() : triangleMode();
       err.hidden = true; q('.cmb-out').hidden = false;
       q('.cmb-h').textContent = { c: 'Choose and arrange', m: 'Multinomial coefficient', s: 'Special numbers', t: 'Triangle' }[mode]!;

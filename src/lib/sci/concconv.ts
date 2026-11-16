@@ -192,3 +192,17 @@ export function readMolarMass(text: string): { M: number; formula: boolean } | s
   try { return { M: molarMass(parseFormula(t)), formula: true }; }
   catch (e) { return e instanceof FormulaError ? e.message : 'That is not a formula or a number.'; }
 }
+
+/** Concentration from a weighed mass (g) dissolved to a final volume (L): g/L, and mol/L when the molar mass (g/mol) is known. */
+export function fromMassVolume(massG: number, litres: number, M?: number): { gL: number; molL?: number } | null {
+  if (!(massG >= 0) || !(litres > 0) || !Number.isFinite(massG) || !Number.isFinite(litres)) return null;
+  const gL = massG / litres;
+  return { gL, ...(M && M > 0 ? { molL: gL / M } : {}) };
+}
+
+/** C1·V1 = C2·V2: the volume V1 of the stronger solution (same unit as V2) for a final C2 and V2, and the solvent to add. */
+export function dilutionVolume(c1: number, c2: number, v2: number): { v1: number; solvent: number } | null {
+  if (!(c1 > 0) || !(c2 >= 0) || !(v2 >= 0) || c2 > c1 || ![c1, c2, v2].every(Number.isFinite)) return null;
+  const v1 = (c2 * v2) / c1;
+  return { v1, solvent: v2 - v1 };
+}
