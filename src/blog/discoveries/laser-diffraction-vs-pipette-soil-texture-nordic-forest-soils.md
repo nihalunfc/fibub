@@ -1,0 +1,90 @@
+---
+title: "Laser diffraction against sieve and pipette for soil texture"
+summary: "Nordic and Baltic forest soils measured by laser diffraction show less clay and more silt than by sieving and settling, enough to change texture class. We place the samples on fibub's soil texture triangle."
+tools: [soil-texture-triangle, grain-size-stats, soil-classification]
+updated: 2026-11-16
+sources:
+  - "Callesen, I., Palviainen, M., Armolaitis, K., Rasmussen, C. and Kjønaas, O. J. (2023), Soil texture analysis by laser diffraction and sedimentation and sieving: method and instrument comparison with a focus on Nordic and Baltic forest soils, Frontiers in Forests and Global Change 6, 1144845, doi:10.3389/ffgc.2023.1144845. Licence CC BY 4.0, checked 2026-11-16. Values used here: forest soils from Denmark, Norway and Lithuania; three laser instruments (Beckman Coulter LS230, Sympatec HELOS, Malvern Mastersizer 2000) against sieving and sedimentation; clay below 2 µm, silt 2-20 µm and sand 20-2000 µm in the comparison; clay, silt and sand percentages of four Danish samples (DK1882, DK1892, DK1900, DK2042) by each method; laser clay lower by -0.5 to 22.3 percentage points; between instruments clay differed by 1.9-5.3 and silt by 6.2-8.1 points; texture class changed for three of the four Danish samples in the paper's system."
+  - "USDA texture classes: Soil Survey Staff, Soil Survey Manual, USDA Handbook 18 (2017), the rules the Soil texture triangle uses."
+paper:
+  title: "Soil texture analysis by laser diffraction and sedimentation and sieving: method and instrument comparison with a focus on Nordic and Baltic forest soils"
+  authors: "Callesen I, Palviainen M, Armolaitis K, Rasmussen C, Kjønaas OJ"
+  journal: "Frontiers in Forests and Global Change"
+  year: 2023
+  doi: "10.3389/ffgc.2023.1144845"
+  url: "https://www.frontiersin.org/journals/forests-and-global-change/articles/10.3389/ffgc.2023.1144845/full"
+  licence: "CC BY 4.0"
+  reviewed: true
+---
+
+A soil's **texture**, its share of sand, silt and clay, decides how much water it holds, how fast water drains through it, how well it stores carbon and how it behaves under a forest machine. The classic way to measure it is slow: sieve the sand, then let the fine part settle in water and time how fast it falls (the **pipette** or **hydrometer** method). **Laser diffraction** is far quicker: a laser shines through a stirred suspension and the pattern of scattered light gives the sizes. A Nordic and Baltic team asked whether the two give the same answer for forest soils. This article places their samples on the [[soil-texture-triangle]] to show what the difference means; to summarise a full size curve see [[grain-size-stats]], and for engineering classes [[soil-classification]].
+
+## The paper in brief
+
+The authors measured forest soils from Denmark, Norway and Lithuania by sieving and sedimentation and by laser diffraction on three instruments in three labs (Coulter, HELOS and Malvern). The result was clear in direction: **laser diffraction finds less clay and more silt**. The clay difference ran from about zero to 22 percentage points. Laser instruments also disagreed with each other, by 2 to 5 points of clay and 6 to 8 points of silt. Shaking samples with ultrasound before measuring moved more material into the fine sizes, by up to 25 points.
+
+Why? Laser diffraction treats every grain as a sphere. Clay minerals are flat plates, which settle slowly in water (so sedimentation calls them clay) but scatter light like larger grains (so the laser calls them silt). Earlier studies found the laser's "2 µm" matches sedimentation's 2 µm only at about 4 to 9 µm on the laser scale.
+
+## Checked with the tools
+
+We took the paper's four Danish samples, averaged the three laser instruments for each (our own averaging, rounded to whole per cent) and put both results into the Soil texture triangle's USDA rules.
+
+**One caution first.** The paper splits silt from sand at 20 µm, as some European systems do; the USDA triangle splits at 50 µm. So the USDA class of these numbers is only approximate. The **clay** boundary (2 µm) is the same in both, and clay is where the methods disagree most.
+
+| Sample | Sieve and settle (clay / silt / sand %) | USDA class | Laser average | USDA class |
+|---|---|---|---|---|
+| DK1882 | 38 / 37 / 25 | Clay loam | 16 / 62 / 23 | Silt loam |
+| DK1892 | 10 / 13 / 77 | Sandy loam | 5 / 17 / 77 | Loamy sand |
+| DK1900 | 22 / 18 / 60 | Sandy clay loam | 9 / 28 / 63 | Sandy loam |
+| DK2042 | 15 / 11 / 74 | Sandy loam | 5 / 16 / 79 | Loamy sand |
+
+On the USDA triangle **all four** samples change class; in the paper's own system three of four do. Figure 1 shows the pattern: every sample slides down (less clay) and towards silt.
+
+<!-- fig:tri -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 348" role="img" aria-label="On the USDA texture triangle (clay at the top, sand bottom left, silt bottom right) every sample moves down and to the right from the sieve-and-settle result to the laser result: clay is lost and silt gained. All four cross into another USDA class (three of four in the paper's own size system)." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>Four Danish forest soils: sieve and settle (dots) against laser (ends)</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">Four Danish forest soils: sieve and settle (dots) against laser (ends)</text><line x1="58" x2="546" y1="302" y2="302" style="stroke:var(--muted)"/><text x="302" y="340" text-anchor="middle" style="fill:var(--ink)"></text><text transform="translate(14 176) rotate(-90)" text-anchor="middle" style="fill:var(--ink)"></text><path d="M58 302L82.4 277.8L131.2 302L58 302" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M82.4 277.8L94.6 265.6L204.4 302L131.2 302L82.4 277.8" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M94.6 265.6L106.8 253.5L243.4 253.5L275.2 285L319.1 285L302 302L204.4 302L94.6 265.6" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M275.2 285L243.4 253.5L260.5 236.5L367.9 236.5L319.1 285L275.2 285" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M302 302L319.1 285L367.9 236.5L480.1 236.5L516.7 272.9L477.7 272.9L448.4 302L302 302" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M448.4 302L477.7 272.9L516.7 272.9L546 302L448.4 302" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M106.8 253.5L143.4 217.1L241 217.1L260.5 236.5L243.4 253.5L106.8 253.5" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M260.5 236.5L241 217.1L228.8 205L350.8 205L382.5 236.5L260.5 236.5" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M382.5 236.5L350.8 205L448.4 205L480.1 236.5L382.5 236.5" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M143.4 217.1L192.2 168.6L241 217.1L143.4 217.1" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M350.8 205L399.6 156.5L448.4 205L350.8 205" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M228.8 205L192.2 168.6L302 59.5L399.6 156.5L350.8 205L228.8 205" style="fill:none;stroke:var(--line);stroke-width:2;stroke-linejoin:round"/><path d="M331.3 209.9L396.2 263.6" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/><path d="M145.8 277.8L154.1 289.8" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/><path d="M199.5 248.7L216.6 280.2" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/><path d="M148.3 265.6L148.3 289.9" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/><circle cx="331.3" cy="209.9" r="4.5" style="fill:var(--c-blog);opacity:1"/><circle cx="145.8" cy="277.8" r="4.5" style="fill:var(--c-blog);opacity:1"/><circle cx="199.5" cy="248.7" r="4.5" style="fill:var(--c-blog);opacity:1"/><circle cx="148.3" cy="265.6" r="4.5" style="fill:var(--c-blog);opacity:1"/><circle cx="396.2" cy="263.6" r="3.5" style="fill:var(--c-tools);opacity:1"/><circle cx="154.1" cy="289.8" r="3.5" style="fill:var(--c-tools);opacity:1"/><circle cx="216.6" cy="280.2" r="3.5" style="fill:var(--c-tools);opacity:1"/><circle cx="148.3" cy="289.9" r="3.5" style="fill:var(--c-tools);opacity:1"/><circle cx="302" cy="59.5" r="0.1" style="fill:var(--ink);opacity:1"/><text x="310" y="63.5" text-anchor="start" style="fill:var(--ink)">100 % clay</text><circle cx="58" cy="302" r="0.1" style="fill:var(--muted);opacity:1"/><text x="60" y="294" text-anchor="start" style="fill:var(--ink)">100 % sand</text><circle cx="546" cy="302" r="0.1" style="fill:var(--c-blog);opacity:1"/><text x="476" y="294" text-anchor="start" style="fill:var(--ink)">100 % silt</text><circle cx="331.3" cy="209.9" r="0.1" style="fill:var(--c-tools);opacity:1"/><text x="337.3" y="203.9" text-anchor="start" style="fill:var(--ink)">DK1882</text><circle cx="145.8" cy="277.8" r="0.1" style="fill:var(--ink);opacity:1"/><text x="151.8" y="271.8" text-anchor="start" style="fill:var(--ink)">DK1892</text><circle cx="199.5" cy="248.7" r="0.1" style="fill:var(--muted);opacity:1"/><text x="205.5" y="242.7" text-anchor="start" style="fill:var(--ink)">DK1900</text><circle cx="148.3" cy="265.6" r="0.1" style="fill:var(--c-blog);opacity:1"/><text x="154.3" y="259.6" text-anchor="start" style="fill:var(--ink)">DK2042</text><circle cx="63" cy="36" r="4" style="fill:var(--c-blog)"/><text x="74" y="40" style="fill:var(--muted)">Sieving and sedimentation</text><circle cx="269" cy="36" r="4" style="fill:var(--c-tools)"/><text x="280" y="40" style="fill:var(--muted)">Laser diffraction (average of 3)</text></svg><figcaption>Figure 1. The four Danish samples placed on the USDA texture triangle with the Soil texture triangle's own class edges: the sieving-and-sedimentation result (dot) joined to our average of the three laser instruments (smaller dot). Percentages from the paper; the averaging and the classes are ours.</figcaption></figure>
+<!-- /fig:tri -->
+
+**How close to an edge?** We moved clay into silt in 0.1-point steps from each sieve-and-settle result until the USDA class changed. DK1900 changes after only **2.1 points**, DK1892 after **3.0**, while DK1882 and DK2042 hold for **11.1 points**. Since the instruments alone disagree by 2 to 5 points of clay, a soil near an edge can land in different classes depending on which laser measured it.
+
+Figure 2 shows that the clay gap grows with clay content: a few points for sandy soils, 20 to 25 points for the clay-rich DK1882. A single fixed correction will not fit all soils.
+
+<!-- fig:clay -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 308" role="img" aria-label="Every laser clay value lies below the 1:1 line; the gap grows with clay content, from about 3 to 6 points at 10 % clay to 20 to 25 points at 38 %." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>Clay by sieve and settle against clay by laser</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">Clay by sieve and settle against clay by laser</text><line x1="58" x2="546" y1="262" y2="262" style="stroke:var(--line)"/><text x="52" y="266" text-anchor="end" style="fill:var(--muted)">0</text><line x1="58" x2="546" y1="209" y2="209" style="stroke:var(--line)"/><text x="52" y="213" text-anchor="end" style="fill:var(--muted)">10</text><line x1="58" x2="546" y1="156" y2="156" style="stroke:var(--line)"/><text x="52" y="160" text-anchor="end" style="fill:var(--muted)">20</text><line x1="58" x2="546" y1="103" y2="103" style="stroke:var(--line)"/><text x="52" y="107" text-anchor="end" style="fill:var(--muted)">30</text><line x1="58" x2="546" y1="50" y2="50" style="stroke:var(--line)"/><text x="52" y="54" text-anchor="end" style="fill:var(--muted)">40</text><line x1="58" x2="58" y1="262" y2="266" style="stroke:var(--muted)"/><text x="58" y="279" text-anchor="middle" style="fill:var(--muted)">0</text><line x1="180" x2="180" y1="262" y2="266" style="stroke:var(--muted)"/><text x="180" y="279" text-anchor="middle" style="fill:var(--muted)">10</text><line x1="302" x2="302" y1="262" y2="266" style="stroke:var(--muted)"/><text x="302" y="279" text-anchor="middle" style="fill:var(--muted)">20</text><line x1="424" x2="424" y1="262" y2="266" style="stroke:var(--muted)"/><text x="424" y="279" text-anchor="middle" style="fill:var(--muted)">30</text><line x1="546" x2="546" y1="262" y2="266" style="stroke:var(--muted)"/><text x="546" y="279" text-anchor="middle" style="fill:var(--muted)">40</text><line x1="58" x2="546" y1="262" y2="262" style="stroke:var(--muted)"/><text x="302" y="300" text-anchor="middle" style="fill:var(--ink)">Clay by sieving and sedimentation (%)</text><text transform="translate(14 156) rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Clay by laser diffraction (%)</text><path d="M58 262L546 50" style="fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round;stroke-dasharray:4 3"/><circle cx="521.6" cy="164.5" r="4" style="fill:var(--c-tools);opacity:1"/><circle cx="180" cy="238.2" r="4" style="fill:var(--c-tools);opacity:1"/><circle cx="326.4" cy="211.7" r="4" style="fill:var(--c-tools);opacity:1"/><circle cx="241" cy="238.2" r="4" style="fill:var(--c-tools);opacity:1"/><circle cx="521.6" cy="179.9" r="4" style="fill:var(--ink);opacity:1"/><circle cx="180" cy="225.4" r="4" style="fill:var(--ink);opacity:1"/><circle cx="326.4" cy="205.3" r="4" style="fill:var(--ink);opacity:1"/><circle cx="241" cy="229.1" r="4" style="fill:var(--ink);opacity:1"/><circle cx="521.6" cy="192.6" r="4" style="fill:var(--muted);opacity:1"/><circle cx="180" cy="235.5" r="4" style="fill:var(--muted);opacity:1"/><circle cx="326.4" cy="222.3" r="4" style="fill:var(--muted);opacity:1"/><circle cx="241" cy="239.2" r="4" style="fill:var(--muted);opacity:1"/><line x1="58" x2="70" y1="36" y2="36" style="stroke:var(--muted);stroke-width:2;stroke-dasharray:4 3"/><text x="74" y="40" style="fill:var(--muted)">1 : 1</text><circle cx="125" cy="36" r="4" style="fill:var(--c-tools)"/><text x="136" y="40" style="fill:var(--muted)">Coulter</text><circle cx="201.4" cy="36" r="4" style="fill:var(--ink)"/><text x="212.4" y="40" style="fill:var(--muted)">HELOS</text><circle cx="263.4" cy="36" r="4" style="fill:var(--muted)"/><text x="274.4" y="40" style="fill:var(--muted)">Malvern</text></svg><figcaption>Figure 2. Clay (under 2 µm) by each laser instrument against sieving and sedimentation for the same four samples, as reported in the paper, with the 1:1 line.</figcaption></figure>
+<!-- /fig:clay -->
+
+These are **recomputations** with the paper's published percentages; the classes, the averaging and the edge distances are our own work with the tool's rules.
+
+## How we made the graphs
+
+The charts and numbers come from `scripts/blog-figures/laser-diffraction-vs-pipette-soil-texture-nordic-forest-soils.mjs` in fibub's public code. It calls `usdaClass` (the class from sand, silt and clay), `POLYGONS` (the class edges) and `triXY` (the position on the triangle) from `src/lib/sci/soiltexture.ts`, the maths behind the [[soil-texture-triangle]]. The percentages are the paper's; averaging the three lasers, rounding to whole per cent (rescaled to add up to 100) and the clay-to-silt shift are our choices.
+
+## How we test the maths
+
+On every change to fibub, `tests/sci-tools/soil-texture-triangle.mjs` (run by `tests/sci.mjs`) checks the tool:
+
+- **5,050 points** on a 1 % grid must get the same class as an independent Python script that writes out the full NRCS rules, and the drawn class polygons must agree with the rules at every point.
+- Points exactly on boundaries must fall where the USDA puts them: 40 % sand, 40 % silt, 20 % clay is **Loam**; 45 % sand, 20 % silt, 35 % clay is **Clay loam**.
+- New with this article: the eight results in the table above must get the classes shown (for example 77 % sand, 17 % silt, 5 % clay is **Loamy sand**, because silt plus twice the clay is under 30).
+
+## Check it yourself
+
+On the [[soil-texture-triangle]]:
+
+1. Type **25** in *Sand (%)*, **37** in *Silt (%)* and **38** in *Clay (%)*: the class reads **Clay loam**.
+2. Now type the laser average, **23**, **62** and **16**: it reads **Silt loam**.
+3. Try DK1900: **60**, **18**, **22** reads **Sandy clay loam**; change to **60**, **21**, **19** (three points of clay moved to silt) and it reads **Sandy loam**.
+4. In *A row per sample*, paste the eight rows of the table as `name, sand, silt, clay` (for example `DK1882 sieve, 25, 37, 38`). Keep *When the three do not add up to 100* on **Rescale if within 2 %**. The triangle shows all eight points, and the summary counts them by class.
+
+## What researchers can use it for
+
+- **Classify hundreds of samples at once** from a lab sheet, with points on the triangle and a CSV of classes, using the [[soil-texture-triangle]].
+- **See how close a sample sits to a class edge** before reporting a class from a method with known bias.
+- **Compare two methods or two labs** by pasting both sets and looking at how the points move.
+- **Summarise a full laser size curve** (median, sorting, skewness) with [[grain-size-stats]] before splitting it into sand, silt and clay.
+- **Teach** why grain shape matters: plates settle like small grains but scatter light like large ones.
+
+## The fine print
+
+- The USDA silt-sand limit is 50 µm, not the paper's 20 µm, so our USDA classes are approximate; the direction of the shift does not depend on it.
+- Averaging three instruments hides their disagreement, which the paper shows is itself a few points.
+- Four samples cannot set a conversion rule; the paper's wider set from Norway and Lithuania shows how much soils vary.

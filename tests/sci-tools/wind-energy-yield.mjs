@@ -24,4 +24,7 @@ export default async (check) => {
   { const z = fitWeibull([0, 0, ...d.slice(0, 98)]); check('wind: calms counted, not fitted', z.calm === 2 && z.n === 98); }
   check('wind: AEP with a calm share scales down', rel(aep(cur, 2, 8, 1.225, 1.225, 0.1).kWh, aep(cur, 2, 8).kWh * 0.9, 1e-12));
   check('wind: power curve reader', readPowerCurve('speed,kW\n3,0\n4,50\n5,120').curve.v.length === 3 && !!readPowerCurve('3,0\n5,2\n4,1').error);
+  // From a mean speed and a power density back to Weibull k and c (Shambira et al. 2025, Processes 13, 1344: 3.88 m/s
+  // and 67.29 W/m² at 10 m with ρ 1.225): k 2.0312 and c 4.3792 m/s must give both numbers back.
+  check('wind: k 2.0312, c 4.3792 m/s give a mean of 3.88 m/s and 67.29 W/m² at 1.225 kg/m³', rel(weibullMean(2.0312092, 4.3792176), 3.88, 1e-6) && rel(powerDensity(2.0312092, 4.3792176), 67.29, 1e-5));
 };

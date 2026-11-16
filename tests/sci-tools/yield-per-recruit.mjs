@@ -9,6 +9,10 @@ export default async (check) => {
   check('yield per recruit: infinite lifespan', near(ypr(0.5, { ...p, tl: Infinity }), 283.493537463033));
   const rp = refPoints(p);
   check('yield per recruit: Fmax and F0.1', near(rp.Fmax, 1.0743668353910227, 1e-5) && near(rp.yMax, 297.3907983557577) && near(rp.F01, 0.3318174867401941, 1e-5) && near(rp.y01, 260.39019139439284, 1e-6));
+  // Common pandora (Theocharis et al. 2025, Fishes 10: 160): M 0.321, K 0.16, t0 -1.53, first capture 2.63 years,
+  // recruitment at 1 year and tλ 17 years. Regression values from this code; F at E = 0.5 is M, as the paper says.
+  const pp = { M: 0.321, K: 0.16, t0: -1.53, Winf: 1000, tr: 1, tc: 2.63, tl: 17 }, prp = refPoints(pp);
+  check('yield per recruit: common pandora F0.1 0.3103, Fmax 1.075, Y/R at F 0.2 = 54.63', near(prp.F01, 0.3103406834402601, 1e-4) && near(prp.Fmax, 1.0750021683575808, 1e-4) && near(ypr(0.2, pp), 54.63122068986989, 1e-8));
   check('surplus production: MSY formulas', near(msy('schaefer', 0.4, 1000).MSY, 100) && near(msy('fox', 0.4, 1000).BMSY, 1000 / Math.E) && msy('fox', 0.4, 1000).FMSY === 0.4);
   const C = [200, 300, 450, 600, 800, 1000, 1100, 1200, 1250, 1200, 1150, 1000, 900, 800, 700, 650, 600, 600, 550, 550];
   const I = [5.095, 4.65, 4.595, 3.639, 5.36, 4.781, 3.887, 4.086, 3.651, 3.157, 3.508, 2.975, 2.944, 2.836, 3.29, 3.228, 3.579, 3.318, 3.688, 3.441];
