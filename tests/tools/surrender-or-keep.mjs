@@ -15,4 +15,13 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.sk-words')).includes('keeping the policy ends higher'), 'surrender-or-keep: low rate favours keeping');
   await set('sv', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.sk .sk-err'), 'surrender-or-keep: no surrender value shows a message');
+  await page.reload(); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.sk [data-k="cur"]', 'USD');
+  await set('sv', '1000'); await set('prem', '0'); await set('left', '0'); await set('rate', '10');
+  await page.fill('.sk .sk-by', '1'); await page.fill('.sk .sk-ba', '1100'); await page.waitForTimeout(100);
+  const rt = await page.$$eval('.sk .sk-rates tr', (r) => r.map((x) => x.textContent));
+  check(rt.length === 6, 'surrender-or-keep: rate table has 6 rows');
+  check(rt[0].startsWith('3%') && rt[0].endsWith('Keep'), 'surrender-or-keep: at 3% keeping 1,100 beats 1,030');
+  check(rt[rt.length - 1].startsWith('11%') && rt[rt.length - 1].endsWith('Surrender'), 'surrender-or-keep: at 11% surrendering (1,110) beats 1,100');
 };

@@ -45,6 +45,10 @@ You give it your fixed costs (what you pay however much you sell), your selling 
 
 Fixed costs are 10,000, the price is 50 and each unit costs 30 to make. Each sale leaves 20, so you need 10,000 / 20 = 500 units, which is 25,000 in sales. To make 5,000 profit you need 750 units. Raise the price by 10% to 55 and each sale leaves 25, so you break even at 400 units.
 
+## Units you expect to sell
+
+Type the units you expect to sell to see your profit or loss at that volume and your margin of safety: the share of expected sales that can disappear before you reach break-even. If you expect to sell less than break-even, the tool shows the loss and how much more you would need to sell.
+
 ## FAQs
 
 **What if my costs are mixed?** Put costs that do not change with sales in fixed costs, and costs per sale in variable cost.

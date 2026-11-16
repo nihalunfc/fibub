@@ -286,3 +286,144 @@ export const maxBid = (budget: number, bp: number, tax: number, ship = 0, taxOnA
 // ---------- Coin counting by weight ----------
 /** How many coins from a total weight, given the weight of one (and of the empty container). */
 export const coinsFromWeight = (totalG: number, eachG: number, tareG = 0) => (totalG - tareG) / eachG;
+
+// ---------- Upgrade additions (batch D) ----------
+/** Buyer's premium with a higher (or lower) rate on the part of the hammer price above a threshold. Rates as fractions. */
+export const tieredPremium = (hammer: number, baseRate: number, threshold = 0, upperRate = baseRate) =>
+  !(threshold > 0) || hammer <= threshold ? hammer * baseRate : threshold * baseRate + (hammer - threshold) * upperRate;
+/** Hammer price a seller needs so that, after commission, its tax and fixed fees, they receive `net`. */
+export const hammerForNet = (net: number, commission: number, fees = 0, taxOnCommission = 0) =>
+  (net + fees) / (1 - commission * (1 + taxOnCommission));
+/** Spot price (per troy ounce of pure metal) at which selling back at `payout` (a fraction of melt) just returns what you paid. */
+export const breakEvenSpot = (pricePaid: number, pureOzt: number, payout = 1) => pricePaid / (pureOzt * payout);
+/** Value of the pure metal in a piece, from its weight in grams, fineness and a price per gram of pure metal. */
+export const pieceValue = (weightG: number, fineness: number, pricePerPureGram: number) => (weightG * fineness / 1000) * pricePerPureGram;
+/** Weight a solid piece of a given density should show hanging in water (grams), from its weight in air. */
+export const expectedWaterWeight = (airG: number, density: number, tC = 20) => airG * (1 - waterDensity(tC) / density);
+/** Density from weight and a measured disc (diameter and thickness in mm). */
+export const densityFromDisc = (weightG: number, diaMm: number, thickMm: number) => weightG / discVolume(diaMm, thickMm);
+
+// ---------- Upgrades: grade words, serial extras, old-money lists, dates, centring, catalogue (added 2026-11-16) ----------
+const plainText = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+/** Grades whose US word, abbreviation, UK, French or German term contains the typed text (case and accent blind). */
+export function gradesByWord(text: string) {
+  const t = plainText(text.trim());
+  if (!t) return [];
+  return GRADES.filter((g) => [g.us, g.abbr, g.uk, g.fr, g.de].some((w) => plainText(w).includes(t)));
+}
+/** Compare two numbers on the scale: the bands they fall in and how far apart they are. */
+export function compareGrades(a: number, b: number) {
+  const ga = gradeFor(a), gb = gradeFor(b);
+  const na = SHELDON.indexOf(a), nb = SHELDON.indexOf(b);
+  return { ga, gb, sameBand: ga === gb, bandsApart: Math.abs(GRADES.indexOf(ga) - GRADES.indexOf(gb)), stepsApart: na >= 0 && nb >= 0 ? Math.abs(na - nb) : NaN, numberGap: Math.abs(a - b), higher: a === b ? '' : a > b ? 'a' : 'b' };
+}
+
+/** Split pasted serial numbers on new lines, commas, semicolons or tabs. */
+export const splitSerials = (text: string) => text.split(/[\n,;\t]+/).map((s) => s.trim()).filter(Boolean);
+/** More patterns on top of serialPatterns: near solid, rotator, four in a row, part ladder, date-like. Digits only. */
+export function serialExtras(serial: string): SerialHit[] {
+  const d = serial.replace(/\D/g, '');
+  const hits: SerialHit[] = [];
+  if (d.length < 5) return hits;
+  const add = (id: string, name: string) => hits.push({ id, name });
+  const counts: Record<string, number> = {};
+  for (const c of d) counts[c] = (counts[c] || 0) + 1;
+  if (d.length >= 6 && Math.max(...Object.values(counts)) === d.length - 1) add('near-solid', 'Near solid: all but one digit the same');
+  const flip: Record<string, string> = { '0': '0', '1': '1', '6': '9', '8': '8', '9': '6' };
+  if ([...d].every((c) => flip[c]) && d === [...d].reverse().map((c) => flip[c]).join('') && !/^(\d)\1+$/.test(d)) add('rotator', 'Rotator: reads the same turned upside down');
+  if (/(\d)\1{3,}/.test(d) && !/^(\d)\1+$/.test(d)) add('four-run', 'Four or more of one digit in a row');
+  const up = '01234567890', dn = '98765432109';
+  if (!(up.includes(d) || dn.includes(d))) {
+    for (let i = 0; i + 5 <= d.length; i++) {
+      const w = d.slice(i, i + 5);
+      if (up.includes(w) || dn.includes(w)) { add('part-ladder', `Part ladder: ${w} counts ${up.includes(w) ? 'up' : 'down'}`); break; }
+    }
+  }
+  if (d.length === 8) {
+    const dd = +d.slice(0, 2), mm = +d.slice(2, 4), yy = +d.slice(4);
+    if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12 && yy >= 1900 && yy <= 2100) add('date', `Looks like a date: ${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`);
+  }
+  return hits;
+}
+
+/** Read an old British amount into old pence: "2 5 6", "2/5/6", "£2 5s 6d", "5s 6d", "10/-", "6d". NaN if unreadable. */
+export function parseLsd(text: string): number {
+  let t = text.toLowerCase().trim().replace(/£\s*(\d+(?:\.\d+)?)/, '$1l').replace(/\s+/g, ' ');
+  if (!t) return NaN;
+  if (/[lsd]/.test(t)) {
+    const re = /(\d+(?:\.\d+)?)\s*([lsd])\b\s*/y; let p = 0, tot = 0, seen = '';
+    while (p < t.length) {
+      re.lastIndex = p; const m = re.exec(t); if (!m || seen.includes(m[2])) return NaN;
+      seen += m[2]; tot += +m[1] * (m[2] === 'l' ? 240 : m[2] === 's' ? 12 : 1); p = re.lastIndex;
+    }
+    return tot;
+  }
+  if (t.includes('/')) {
+    const parts = t.split('/').map((x) => x.trim());
+    if (parts.length > 3 || parts.some((x) => !(x === '-' || /^\d+(\.\d+)?$/.test(x)))) return NaN;
+    const n = parts.map((x) => (x === '-' ? 0 : +x));
+    return n.length === 3 ? lsdToPence(n[0], n[1], n[2]) : lsdToPence(0, n[0], n[1]);
+  }
+  const three = t.match(/^(\d+) (\d+) (\d+(?:\.\d+)?)$/);
+  return three ? lsdToPence(+three[1], +three[2], +three[3]) : NaN;
+}
+/** Total old pence of several lines (blank lines skipped) and the line numbers that could not be read. */
+export function sumLsd(lines: string[]) {
+  let total = 0, ok = 0; const bad: number[] = [];
+  lines.forEach((l, i) => { if (!l.trim()) return; const p = parseLsd(l); if (Number.isFinite(p)) { total += p; ok++; } else bad.push(i + 1); });
+  return { total, ok, bad };
+}
+
+/** Turn typed Arabic-Indic or Devanagari digits into 0-9, so a year can be copied off a coin. */
+export function westernDigits(s: string) {
+  return s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x6f0)).replace(/[०-९]/g, (c) => String(c.charCodeAt(0) - 0x966));
+}
+/** Whole years between a coin's common-era year and a given year (never negative). */
+export const yearsSince = (ce: number, now: number) => Math.max(0, now - ce);
+
+/** Which way a pair of borders leans: offset from centre in per cent of the total, and the side the picture sits toward. */
+export function centringLean(a: number, b: number, names: [string, string] = ['left', 'right']) {
+  const t = a + b; if (!(t > 0) || a < 0 || b < 0) return { offset: NaN, toward: '' };
+  return { offset: (Math.abs(a - b) / t) * 100, toward: a === b ? '' : a > b ? names[1] : names[0] };
+}
+/** How far to move the picture to centre it (half the difference between the two borders). */
+export const centringShift = (a: number, b: number) => Math.abs(a - b) / 2;
+/** The weakest split of several border pairs. */
+export function worstCentring(...pairs: [number, number][]) {
+  const rs = pairs.map(([a, b]) => centring(a, b)).filter((r) => r.label);
+  return rs.length ? rs.reduce((w, r) => (r.big > w.big ? r : w)) : null;
+}
+
+/** Average and spread of several readings of one weight (separated by lines, spaces or commas). */
+export function readings(text: string) {
+  const xs = text.split(/[\s,;]+/).map(parseFloat).filter((x) => Number.isFinite(x) && x > 0);
+  const s = stats(xs);
+  return { n: s.n, mean: s.mean, sd: s.sd, min: s.min, max: s.max };
+}
+
+/** Minimal CSV reader (quotes, commas, new lines) for reading a list back in. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = []; let row: string[] = [], cell = '', q = false;
+  const t = text.replace(/^﻿/, '');
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(cell); cell = ''; if (row.some((x) => x.trim())) rows.push(row); row = []; }
+    else cell += c;
+  }
+  row.push(cell); if (row.some((x) => x.trim())) rows.push(row);
+  return rows;
+}
+/** Group items by a key and add up entries, count, paid and value (missing values count as 0). */
+export function totalsBy<T extends { qty?: number; cost?: number; value?: number }>(items: T[], key: (i: T) => string | undefined) {
+  const m = new Map<string, { key: string; entries: number; count: number; cost: number; value: number }>();
+  for (const i of items) {
+    const k = key(i) || 'Not set';
+    const r = m.get(k) ?? { key: k, entries: 0, count: 0, cost: 0, value: 0 };
+    r.entries++; r.count += i.qty ?? 1; r.cost += Number.isFinite(i.cost) ? (i.cost as number) : 0; r.value += Number.isFinite(i.value) ? (i.value as number) : 0;
+    m.set(k, r);
+  }
+  return [...m.values()].sort((a, b) => b.value - a.value || b.count - a.count);
+}

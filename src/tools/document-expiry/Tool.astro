@@ -18,6 +18,15 @@
         <tbody class="de-rows" aria-live="polite"></tbody>
       </table>
     </div>
+    <details class="de-trip">
+      <summary>More options: check against a trip</summary>
+      <p class="de-fine">Many countries want a passport to be valid for several months after you arrive or leave. Enter your trip date and the months the country asks for (check the official source for that country).</p>
+      <div class="de-item">
+        <label>Trip date<input class="de-tdate" type="date" /></label>
+        <label>Must still be valid for (months after)<input class="de-tmonths" type="number" inputmode="numeric" min="0" max="36" value="6" /></label>
+      </div>
+      <p class="de-tsay" aria-live="polite"></p>
+    </details>
     <p class="de-say"></p>
     <div class="de-row">
       <button type="button" class="de-ics">Download reminders (.ics)</button>
@@ -114,6 +123,14 @@
     const ex = rs.filter((r) => r.k === 'expired').length, now = rs.filter((r) => r.k === 'now').length;
     q('.de-say').textContent = !rs.length ? 'Add a document with an expiry date to see it here.' :
       `${rs.length} document${rs.length === 1 ? '' : 's'}: ${ex} expired, ${now} inside the reminder time, ${rs.length - ex - now} fine for now.`;
+    const td = parse(q<HTMLInputElement>('.de-tdate').value), tm = Math.floor(Number(q<HTMLInputElement>('.de-tmonths').value));
+    const ts = q('.de-tsay');
+    if (!Number.isFinite(td)) ts.textContent = '';
+    else if (!(tm >= 0 && tm <= 36)) ts.textContent = 'Type a whole number of months from 0 to 36.';
+    else {
+      const need = minusMonths(td, -tm), short = rs.filter((r) => r.exp < need);
+      ts.textContent = `Needs to be valid until ${nice(need)}. ` + (!rs.length ? 'Add a document first.' : short.length ? `Too soon, renew first: ${short.map((r) => `${label(r.it)} (expires ${nice(r.exp)})`).join('; ')}.` : 'All your documents are valid long enough.');
+    }
     store();
   };
   const ics = () => {
@@ -139,6 +156,7 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics()], { type: 'text/calendar' })); a.download = 'expiry-reminders.ics';
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
+  q('.de-tdate').addEventListener('input', calc); q('.de-tmonths').addEventListener('input', calc);
   q('.de-add').addEventListener('click', () => { items.push({ kind: 'other', name: '', exp: '', lead: 1 }); drawItems(); calc(); (q('.de-item:last-child select') as HTMLSelectElement).focus(); });
   q('.de-reset').addEventListener('click', () => { items = []; drawItems(); calc(); });
   remember.addEventListener('change', () => {

@@ -16,6 +16,11 @@
       <label class="cr-m-rc">Revenue grows by <span class="cr-suf"><input data-k="rg" inputmode="decimal" /><i>% a month</i></span></label>
       <label class="cr-m-rc">Costs grow by <span class="cr-suf"><input data-k="cg" inputmode="decimal" /><i>% a month</i></span></label>
     </div>
+    <details class="cr-more"><summary>More options</summary>
+      <div class="cr-grid" style="margin-top:10px">
+        <label>Months you want the cash to last (optional) <input data-k="want" inputmode="decimal" placeholder="e.g. 18" /></label>
+      </div>
+    </details>
     <p class="note bad cr-err" role="alert" hidden></p>
   </section>
   <section class="cr-res" aria-live="polite">
@@ -25,6 +30,11 @@
       <div><span>Burn in month 1</span><b class="cr-s-burn"></b></div>
     </div>
     <p class="cr-line cr-words"></p>
+    <p class="cr-line cr-need" hidden></p>
+    <div class="panel cr-wrap"><h2>If your costs change</h2><table>
+      <thead><tr><th>Monthly costs</th><th>Months left</th></tr></thead>
+      <tbody class="cr-sc"></tbody>
+    </table></div>
     <figure class="cr-chart panel">
       <figcaption>Cash left each month</figcaption>
       <svg class="cr-svg" viewBox="0 0 640 220" role="img" aria-label="Cash left each month falling towards zero"></svg>
@@ -74,7 +84,7 @@
 </style>
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { runway } from '../../lib/money/business';
+  import { runway, runwayScenarios, burnForMonths } from '../../lib/money/business';
   import { csv } from '../../lib/money/growth';
   const root = document.querySelector<HTMLElement>('.cr')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -110,6 +120,10 @@
       q('.cr-s-date').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
       q('.cr-words').innerHTML = `With <b>${$(cash)}</b> in the bank and a first-month burn of <b>${$(net1)}</b>, your cash lasts <b>${m.toFixed(1)} months</b>, until about <b>${q('.cr-s-date').textContent}</b>.`;
     }
+    q('.cr-sc').innerHTML = runwayScenarios(a, [-30, -20, -10, 0, 10, 20]).map((s) => `<tr><td>${s.change > 0 ? '+' : ''}${s.change}%${s.change === 0 ? ' (now)' : ''}</td><td>${s.months === null ? 'Not running out' : (Math.round(s.months * 10) / 10).toFixed(1)}</td></tr>`).join('');
+    const want = num(f('want').value), nd = q('.cr-need');
+    nd.hidden = !(want > 0);
+    if (want > 0) { const b = burnForMonths(cash, want); nd.textContent = net1 <= 0 ? `You are not burning cash, so it already lasts beyond ${want} months.` : `To make ${$(cash)} last ${want} months at a flat rate you can burn at most ${$(b)} a month. You now burn ${$(net1)}, so ${net1 > b ? 'you would need to cut ' + $(net1 - b) + ' a month (' + Math.round((1 - b / net1) * 100) + '%)' : 'you are already within that'}.`; }
     const W = 640, H = 220, L = 56, R = 10, T = 10, B = 26;
     const pts = [{ month: 0, cash }, ...r.rows.map((x) => ({ month: x.month, cash: x.cash }))];
     const mx = Math.max(1, pts[pts.length - 1].month), top = Math.max(cash, 1);

@@ -41,7 +41,9 @@ This tool turns your two weighings into the specific gravity and density, ranks 
 - **Weight in air**: the normal weight in grams.
 - **Weight in water**: the weight when fully dipped on a thread. Always lower than in air.
 - **Water temperature**: corrects for warm water being a little lighter.
-- **What it is meant to be**: shows how far your density is from that alloy's.
+- **What it is meant to be**: shows how far your density is from that alloy's, and the weight a solid piece of that alloy should read in water.
+- **More options, allowed difference**: how many per cent away still counts as "Close" (1.5 by default; real coins vary a little).
+- **More options, diameter and thickness**: with no water to hand, a plain flat round coin's weight, diameter and thickness give a rough density. It is less exact than weighing in water.
 
 ## Worked example
 

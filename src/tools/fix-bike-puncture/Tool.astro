@@ -1,0 +1,141 @@
+---
+// #L372 Fix a bike puncture. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk fbp">
+  <CourseNav id="fix-bike-puncture" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Get off the road or cycle path first. Turn the bike upside down on its saddle and bars, or hang it up, somewhere out of the way.</li>
+      <li>Feel inside the tyre slowly with your fingertips: the thorn or glass that caused the puncture may still be there and is sharp.</li>
+      <li>Before you ride again, check the wheel is done up tight and the brakes work. A loose quick release can let a wheel fall out.</li>
+      <li>Puncture glue gives off fumes: use it in fresh air, put the lid back on and keep it away from flames.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Puncture repair kit (patches, glue, sandpaper)</li><li>2 or 3 tyre levers</li><li>Pump that fits your valve</li><li>Spanner (15 mm) if the wheel has nuts</li><li>Chalk or a pen</li><li>Bowl of water (helpful)</li><li>Spare inner tube (optional)</li></ul>
+  </div>
+  <div class="ax-card fbp-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Bike wheel with the quick release lever being opened" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="70" cy="55" r="48" /><circle cx="70" cy="55" r="40" stroke-width="1.5" /><circle cx="70" cy="55" r="6" />
+          <path d="M70 15v80M30 55h80M42 27l56 56M98 27L42 83" stroke-width="1" /><path class="hl" d="M70 55l50-26" stroke-width="5" /><path class="hl" d="M150 20a30 30 0 0 1 10 30M160 50l-7-2M160 50l3-7" />
+        </svg>
+        <div class="sk-txt"><h3>Take the wheel off</h3><p>For a back wheel, change to the smallest rear sprocket first. Open the rim brake if it has a quick release. Then open the wheel's quick release lever (or undo the axle nuts, or unscrew a thru-axle) and lift the wheel out.</p><p class="sk-tip">Back wheel: pull the derailleur back a little so the chain lets go of the sprocket.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Presta and Schrader valves, with air coming out as the valve is pressed" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 100V40M34 40h12M38 30h4v10h-4zM40 22v8" /><path d="M34 70h12" /><path class="hl" d="M50 26c8-4 12-4 18 0M52 18c8-4 14-4 20 0" />
+          <path d="M140 100V40M130 40h20v10h-20z" /><path class="hl" d="M152 30c8-4 12-4 18 0M154 22c8-4 14-4 20 0" />
+          <text x="40" y="108" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">Presta</text><text x="140" y="108" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">Schrader</text>
+        </svg>
+        <div class="sk-txt"><h3>Let the rest of the air out</h3><p>Presta (thin) valve: unscrew the little tip, then press it. Schrader (car-type) valve: press the pin in the middle. Squeeze the tyre all round so its edges drop into the dip in the middle of the rim.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two tyre levers hooked under the tyre edge, one clipped to a spoke" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 70c60-30 120-30 180 0" stroke-width="10" /><path d="M10 82c60-30 120-30 180 0" stroke-width="3" /><path d="M70 100l10-40M130 100l-10-40" stroke-width="1.5" />
+          <path class="hl" d="M80 54l-14-46M66 8l-6 4" stroke-width="5" /><path class="hl" d="M120 54l14-46M134 8l6 4" stroke-width="5" />
+        </svg>
+        <div class="sk-txt"><h3>Lever one side off</h3><p>Opposite the valve, hook a tyre lever under the tyre's edge and pull it down; clip it to a spoke. Put a second lever in about 10 cm (4 in) away and pull. Then slide it round the rim until one side of the tyre is off.</p><p class="sk-tip">Never use a screwdriver: it can cut the tube and scratch the rim.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Inner tube held in a bowl of water with bubbles rising from the hole" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 50h160l-14 50H34z" /><path d="M30 50c20-10 120-10 140 0" stroke-width="1.5" /><path d="M50 70c30-10 70-10 100 0" stroke-width="8" />
+          <circle class="hl" cx="100" cy="56" r="3" /><circle class="hl" cx="104" cy="44" r="4" /><circle class="hl" cx="98" cy="30" r="5" />
+        </svg>
+        <div class="sk-txt"><h3>Find the hole</h3><p>Pull the tube out, leaving the valve till last. Pump a little air in and listen and feel for a hiss, or pass it slowly through a bowl of water and look for bubbles. Mark the hole with chalk or pen.</p><p class="sk-tip">Two small holes side by side (a "snake bite") mean the tube was pinched: pump harder next time.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Fingers feeling slowly round the inside of the tyre and finding a thorn" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 70c50 30 110 30 160 0" stroke-width="10" /><path class="hl" d="M110 86l6-14 4 14" fill="currentColor" />
+          <path d="M60 40c10 0 18 8 26 20M60 52c10 0 16 6 22 16M70 30c10 0 18 10 24 24" /><path d="M140 30h40M170 22l10 8-10 8" />
+        </svg>
+        <div class="sk-txt"><h3>Find what caused it</h3><p>Hold the tube against the tyre, with the valve at the valve hole, to see where the hole lines up. Feel slowly round the inside of the tyre there and pull out any thorn, glass or wire. Check the outside too.</p><p class="sk-tip">Skip this and the new patch will be punctured again within minutes.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Sandpaper roughening the tube round the hole, then a thin layer of glue spread wider than the patch" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180M10 84h180" /><circle cx="60" cy="72" r="2" fill="currentColor" /><path d="M40 40h40v12H40z" /><path d="M44 46h32" stroke-dasharray="2 3" stroke-width="1.5" />
+          <ellipse class="hl" cx="140" cy="72" rx="28" ry="10" stroke-dasharray="3 3" /><path d="M150 40l-6 20M146 34h14l-4 10h-8z" />
+        </svg>
+        <div class="sk-txt"><h3>Roughen and glue</h3><p>Rub the tube round the hole with the sandpaper, over an area a bit bigger than the patch, until it looks dull. Spread a thin layer of glue over that area. Wait until the glue goes from shiny to dull and tacky, usually 3 to 5 minutes.</p><p class="sk-tip">Self-adhesive (glueless) patches skip the glue but still need the roughening.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Thumb pressing a patch firmly onto the tube from the middle out" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180M10 84h180" /><path class="hl" d="M80 62h40v20H80z" /><path d="M86 30c0-12 28-12 28 0v26H86z" />
+          <path d="M70 72h-20M50 72l6-4M50 72l6 4M130 72h20M150 72l-6-4M150 72l-6 4" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Stick the patch on</h3><p>Peel the foil off the patch without touching its sticky side. Press it onto the glue, centred on the hole, and squeeze hard from the middle outwards for a minute. Leave the thin clear film on top if your kit says so.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Thumbs pushing the last part of the tyre onto the rim at the valve" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 90c50-50 110-50 160 0" stroke-width="10" /><path d="M100 46v-20" stroke-width="5" /><path class="hl" d="M70 30c-6-12 4-22 14-16l8 14M130 30c6-12-4-22-14-16l-8 14" />
+        </svg>
+        <div class="sk-txt"><h3>Put it back without pinching</h3><p>Pump just enough air in to give the tube its shape. Push the valve through the rim, tuck the tube into the tyre all round, then push the tyre's edge back on with your thumbs, finishing at the valve. Try not to use levers here.</p><p class="sk-tip">Push the valve up into the tyre and back out, and look all round: no tube should show under the tyre edge.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Tyre sidewall with the pressure range printed on it and a pump with a gauge" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 40c60-20 120-20 180 0M10 60c60-20 120-20 180 0" /><text class="hl" x="100" y="40" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">50-85 PSI</text>
+          <path d="M150 70v36M140 106h20M150 70h-8v-6h16v6z" /><circle cx="120" cy="88" r="10" /><path d="M120 88l5-5" />
+        </svg>
+        <div class="sk-txt"><h3>Pump up and refit</h3><p>Pump to a pressure inside the range printed on the tyre's side. Refit the wheel, close the quick release firmly (or tighten the nuts), close the brake and spin the wheel to check it runs straight and the brakes work.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label fbp-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="A bike wheel with its parts, an inner tube with a patch and valve, and a tyre lever" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="tyre" data-name="Tyre" data-note="the rubber outer case that grips the road. Its side shows the size and the pressure range."><circle cx="105" cy="100" r="86" stroke-width="12" /></g>
+      <g data-part="rim" data-name="Rim" data-note="the metal hoop the tyre sits on. Rim brakes squeeze its sides."><circle cx="105" cy="100" r="72" stroke-width="5" /></g>
+      <g data-part="spokes" data-name="Spokes" data-note="thin wires that hold the rim true and carry your weight to the hub."><path d="M105 34v52M105 114v52M39 100h52M119 100h52M58 53l37 37M115 110l37 37M152 53l-37 37M95 110l-37 37M80 39l20 49M130 161l-20-49M71 157l26-46M139 43l-26 46" stroke-width="2" /></g>
+      <g data-part="hub" data-name="Hub" data-note="the middle of the wheel. It spins on bearings round the axle."><circle cx="105" cy="100" r="12" stroke-width="4" /></g>
+      <g data-part="qr" data-name="Quick release" data-note="a lever that clamps the wheel in the frame. Open it to take the wheel out; close it firmly before riding."><path d="M105 100l26-40" stroke-width="6" /><circle cx="131" cy="60" r="5" fill="currentColor" /></g>
+      <g data-part="tube" data-name="Inner tube" data-note="the rubber ring inside the tyre that holds the air. This is what you patch."><circle cx="262" cy="80" r="40" stroke-width="7" /></g>
+      <g data-part="patch" data-name="Patch" data-note="a rubber patch glued over the hole on a roughened, dull area."><rect x="250" y="33" width="24" height="14" rx="3" fill="var(--bg)" stroke-width="2.5" /></g>
+      <g data-part="valve" data-name="Valve" data-note="lets air in. Presta valves are thin with a tip to unscrew; Schrader valves are the wider car-type ones."><path d="M262 124v20" stroke-width="6" /><path d="M256 146h12" stroke-width="3" /></g>
+      <g data-part="lever" data-name="Tyre lever" data-note="a flat plastic lever that lifts the tyre's edge off the rim without cutting the tube."><path d="M212 188l90-20" stroke-width="7" /><path d="M302 168l6 10" stroke-width="5" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order fbp-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The hole is next to the valve, is a long split, or the valve itself leaks: fit a new tube instead.</li>
+      <li>The tyre has a cut you can see the tube through, or the tyre edge or rim is damaged: a bike shop can advise.</li>
+      <li>The bike has hydraulic disc brakes and you squeezed the lever with the wheel out, or the gears or brakes do not work properly after refitting.</li>
+      <li>It is a tubeless or e-bike hub-motor wheel and you are not sure how it comes out.</li>
+    </ul>
+  </div>
+  <div class="ax-card fbp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.fbp') as HTMLElement;
+  mountSteps(root.querySelector('.fbp-steps') as HTMLElement, 'fix-bike-puncture');
+  mountLabels(root.querySelector('.fbp-label') as HTMLElement);
+  mountOrder(root.querySelector('.fbp-order') as HTMLElement, ['Take the wheel off', 'Let the air out', 'Lever one side of the tyre off', 'Find the hole in the tube', 'Find the thorn in the tyre', 'Roughen, glue, wait until tacky', 'Press the patch on', 'Refit without pinching, pump up']);
+  const bank = [
+    () => choice('What should you do before sticking on a patch?', 'Roughen the tube and wait for the glue to go tacky', ['Wet the tube', 'Put the patch on wet glue straight away'], 'Rough rubber and tacky glue make the patch bond. On wet glue it slides and peels.'),
+    () => choice('Why feel round the inside of the tyre?', 'To find and remove the thorn or glass', ['To check the tyre size', 'To warm the rubber'], 'Whatever caused the hole is often still stuck in the tyre and will puncture the tube again.'),
+    () => choice('What should you use to get the tyre off the rim?', 'Plastic tyre levers', ['A screwdriver', 'A knife'], 'Tyre levers are smooth and rounded so they do not cut the tube or scratch the rim.'),
+    () => choice('Two small holes side by side usually mean...', 'A pinch puncture: the tyre was too soft', ['A thorn', 'An old valve'], 'Hitting a kerb or pothole with a soft tyre pinches the tube against the rim: a "snake bite".'),
+    () => choice('Which pressure do you pump a bike tyre to?', 'Inside the range printed on the tyre side', ['As hard as you can', 'The same as a car tyre'], 'The tyre side shows a range, such as 50 to 85 psi. Lower in the range is comfier and grips better; higher rolls easier.'),
+    () => choice('Which valve has a small tip you unscrew before pumping?', 'Presta', ['Schrader', 'Both'], 'Presta valves are thin with a little locknut at the tip. Schrader valves are like car valves.'),
+    () => choice('How do you stop pinching the new tube when refitting?', 'Put a little air in it and push the tyre on with thumbs', ['Pump it fully first', 'Use a screwdriver to lever the tyre on'], 'A little air gives the tube shape so it stays out from under the tyre edge, and thumbs cannot pinch it like a lever can.'),
+    () => choice('What do you check before riding off?', 'The wheel is tight and the brakes work', ['Nothing, it is fixed', 'Only the tyre pressure'], 'A loose quick release or an open brake is dangerous. Spin the wheel and squeeze the brakes.'),
+    () => choice('Before taking out a back wheel with gears, you should...', 'Change to the smallest rear sprocket', ['Change to the biggest sprocket', 'Take the chain off the bike'], 'On the smallest sprocket the chain is slack, so the wheel comes out and goes back in much more easily.'),
+  ];
+  mountQuiz(root.querySelector('.fbp-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

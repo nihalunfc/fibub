@@ -17,4 +17,9 @@ export default async ({ page, check, BASE }) => {
   await page.setInputFiles(R + '.bc-file', { name: 'a.txt', mimeType: 'text/plain', buffer: Buffer.from('hi') });
   await page.check(R + '.bc-data'); await page.waitForTimeout(150);
   check((await page.inputValue(R + '.bc-fout')) === 'data:text/plain;base64,aGk=', 'base64: file to data: URL');
+  await page.fill(R + '.bc-text', 'a'.repeat(100)); await page.check(R + '.bc-wrap'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.bc-b64')).split('\n').map((l) => l.length).join(',') === '76,58', 'base64: wraps at 76 (URL-safe, no padding)');
+  await page.uncheck(R + '.bc-wrap');
+  await page.fill(R + '.bc-b64', 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.bc-prev'), 'base64: image preview shows for a PNG');
 };

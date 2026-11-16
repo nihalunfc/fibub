@@ -45,6 +45,10 @@ It also shows the **simple** yearly average, which is the total return divided b
 
 You turn 1,000 into 2,000 in 10 years. The total return is 100%, the simple average is 10% a year, but the annualised return (CAGR) is 7.18%. For XIRR: put in 1,000 on 2021-01-01 and have 1,210 on 2023-01-01. The return is 10.00% a year.
 
+## More options
+
+In the start, end and years mode, **More options** lets you enter a yearly return you are aiming for. The tool then shows the end value you would need to reach it, and how many years it would take at that rate to get from your start value to your end value. You can also type a second end value to compare it with the first over the same start and years; the result shows which is better, by how many percentage points, and the gap in money.
+
 ## FAQs
 
 **Why can I not enter a negative end value?** CAGR needs positive start and end values. If you lost everything, the return is -100%.

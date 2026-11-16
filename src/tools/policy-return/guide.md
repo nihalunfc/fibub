@@ -22,6 +22,10 @@ flow:
   - { icon: check, label: "Compare" }
 ---
 
+## More options
+
+"More options" shows the money multiple (total you get back divided by total you pay in) and the return after inflation, using an inflation figure you choose (5% a year as an example, not a forecast). A policy that returns 5% a year when prices rise 5% has not grown your buying power at all. The policy return itself is still the internal rate of return of your premiums and payouts. General information, not financial advice; check the official source and the seller's illustration.
+
 ## What it does
 
 Savings-type life policies (endowment, money-back, ULIP) mix life cover with a payout later, so the price is hard to judge. This tool takes what you pay and what the policy says it will pay back, and works out one number: the yearly return (IRR) you actually earn on your premiums.

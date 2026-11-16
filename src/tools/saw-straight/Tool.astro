@@ -1,0 +1,205 @@
+---
+// #L376 Saw a straight cut. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts; kerf maths in src/lib/home/carpentry.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk sws">
+  <CourseNav id="saw-straight" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Wear safety glasses. Sawdust and splinters fly up towards your face.</li>
+      <li>Clamp the wood to a bench or trestle. Never hold it on your knee or in your hand while you saw.</li>
+      <li>Keep your free hand behind the saw and out of its path, and use your thumb as a guide only for the first few slow strokes.</li>
+      <li>Hang a saw up or put a guard on the teeth when you finish, and keep children away from the bench.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Handsaw (cross-cut or pull saw)</li><li>Tape measure</li><li>Pencil</li><li>Try square or speed square</li><li>Clamps</li><li>Bench or trestles</li><li>Safety glasses</li><li>Sandpaper</li></ul>
+  </div>
+  <div class="ax-card sws-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A tape measure hooked on the end of a board with a small V mark at the measured length" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 50h180v30H10z" /><path d="M10 44h120M10 40v8" /><path d="M30 44v-4M50 44v-4M70 44v-4M90 44v-4M110 44v-4" stroke-width="1.5" />
+          <path class="hl" d="M124 50l6 10 6-10" /><text x="130" y="36" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">600</text>
+        </svg>
+        <div class="sk-txt"><h3>Measure and mark</h3><p>Check one end is square first. Hook the tape on that end, measure your length and make a small V mark with the point exactly at the length.</p><p class="sk-tip">A V mark is easier to find again than a dot or a dash.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A try square held against the edge of the board and a pencil drawing a line across" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 30h180v60H10z" /><path d="M106 18v14h10V18z" /><path d="M116 30v60" stroke-width="5" />
+          <path class="hl" d="M120 30v60" /><path class="hl" d="M120 92l10-20 6 3-10 20z" />
+        </svg>
+        <div class="sk-txt"><h3>Square a line across</h3><p>Hold the square's thick stock tight against the edge, slide it to the V and draw the line along the blade. Carry the line onto the edge too, so you can see the saw from the side.</p><p class="sk-tip">Use a sharp pencil. A fat line is hard to cut to.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The board with the cut line and a cross drawn on the waste side" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 30h180v50H10z" /><path d="M120 30v50" /><path class="hl" d="M142 44l16 22M158 44l-16 22" />
+          <text x="60" y="100" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle" fill="currentColor" stroke="none">keep</text><text x="150" y="100" font-family="system-ui,sans-serif" font-size="12" text-anchor="middle" fill="currentColor" stroke="none">waste</text>
+        </svg>
+        <div class="sk-txt"><h3>Mark the waste side</h3><p>Put a cross on the side of the line you will throw away. You will saw on that side, with the line just left showing on your piece.</p><p class="sk-tip">The saw cuts a slot (the kerf). Cut on the waste side and the slot comes out of the waste, not your piece.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The board clamped to a bench with the cut line just past the bench end" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 66h130v10H10zM22 76v30M128 76v30" /><path d="M20 52h160v14H20z" /><path d="M150 46v26" stroke-dasharray="3 3" />
+          <path class="hl" d="M50 40h18v44H50M59 40V30M52 30h14" />
+        </svg>
+        <div class="sk-txt"><h3>Clamp the work</h3><p>Clamp the board to the bench with the line just past the end, about 2 to 5 cm out, on the waste side. The wood should not move or bounce when you push on it.</p><p class="sk-tip">Too far out and the end vibrates. Too close and you saw into the bench.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A thumb resting against the side of the saw blade, just on the waste side of the line, with short pulling strokes" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 70h180v24H10z" /><path d="M100 70v24" stroke-dasharray="3 3" /><path d="M104 74L160 18M110 80l56-56" />
+          <path class="hl" d="M90 66c-10-4-14-14-8-20s14 2 16 10" /><path class="hl" d="M150 40l18-18M168 22h-8M168 22v8" />
+        </svg>
+        <div class="sk-txt"><h3>Start the cut</h3><p>Rest the blade on the waste side of the line, against the side of your thumb knuckle. Make two or three short, light pull strokes to cut a small notch. Then move your thumb well away.</p><p class="sk-tip">Do not push to start. The teeth bounce and jump out.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The saw at about 45 degrees to the board, with long strokes" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 70h180v24H10z" /><path d="M100 70l70-70M112 70l64-64" />
+          <path class="hl" d="M100 70h44" /><path class="hl" d="M130 70a30 30 0 0 0 -9-21" /><text x="148" y="60" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="currentColor" stroke="none">45°</text>
+        </svg>
+        <div class="sk-txt"><h3>Saw with long, light strokes</h3><p>Hold a cross-cut handsaw at about 45 degrees to the wood. Use the whole length of the blade and let its weight do the cutting. Keep your eye, arm and the saw in one straight line.</p><p class="sk-tip">If it drifts, twist the blade very gently back towards the line over a few strokes.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A hand holding the offcut up while the last strokes go through" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h106v24H10z" /><path class="hl" d="M122 60h68v24h-68z" /><path d="M118 56v32" stroke-dasharray="3 3" />
+          <path class="hl" d="M150 84c0 10 6 16 16 16s16-6 16-16" />
+        </svg>
+        <div class="sk-txt"><h3>Support the offcut</h3><p>Near the end, slow down and hold up the waste piece (or have a helper hold it). If it drops, it tears a splinter off the bottom edge of your piece.</p><p class="sk-tip">Short, gentle strokes for the last 1 cm.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A try square held against the cut end to check it is square" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 40h120v40H20z" /><path class="hl" d="M140 26v68" /><path d="M140 94h40v-10h-30" stroke-width="4" /><path d="M160 30l10 10 18-22" />
+        </svg>
+        <div class="sk-txt"><h3>Check it is square</h3><p>Hold the square against the face and then the edge of the cut end. No light under the blade means it is square. Sand off the fuzzy edges (the arris) with a sanding block.</p><p class="sk-tip">A little out? Sand or plane the high side. A lot out? Cut again a little further along.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sws-kerf">
+    <h2>Kerf sim: which side of the line?</h2>
+    <p class="sk-small">A saw cuts a slot, the kerf, as wide as its teeth are set. Pick which side of your pencil line the saw runs and see what you get.</p>
+    <div class="ax-grid">
+      <label>Marked at (mm)<input data-k="mark" inputmode="decimal" value="600" /></label>
+      <label>Kerf, width of the cut (mm)<select data-k="kerf"><option value="1">1 mm: fine pull saw</option><option value="2" selected>2 mm: handsaw</option><option value="3">3 mm: circular saw</option><option value="4">4 mm: coarse or worn saw</option></select></label>
+    </div>
+    <div class="ax-seg sws-side" role="group" aria-label="Which side of the line">
+      <button type="button" data-side="keep" aria-pressed="false">Keep side</button><button type="button" data-side="centre" aria-pressed="true">On the line</button><button type="button" data-side="waste" aria-pressed="false">Waste side</button>
+    </div>
+    <svg class="sws-zoom" viewBox="0 0 300 100" role="img" aria-label="Close-up of the cut: your piece on the left, the kerf, and the waste on the right" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></svg>
+    <p class="ax-big sws-out" aria-live="polite"></p>
+    <p class="sws-why"></p>
+    <h3>How many pieces from one board?</h3>
+    <div class="ax-grid">
+      <label>Board length (mm)<input data-k="board" inputmode="decimal" value="2400" /></label>
+      <label>Piece length (mm)<input data-k="piece" inputmode="decimal" value="600" /></label>
+    </div>
+    <p class="sws-pieces" aria-live="polite"></p>
+  </div>
+  <div class="ax-card sk-label sws-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="A board clamped to a bench with the waste end sticking out and a handsaw starting the cut" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="bench" data-name="Bench" data-note="a firm surface to clamp to. Trestles or a sawhorse work too."><path d="M10 130h210v14H10zM28 144v48M200 144v48" /></g>
+      <g data-part="keep" data-name="Your piece" data-note="the side you keep. The pencil line stays on it, just showing."><path d="M40 106h188v24H40z" /></g>
+      <g data-part="line" data-name="Square line" data-note="drawn against a square at 90 degrees to the edge. Saw just beside it."><path d="M232 96v44" stroke-width="2" stroke-dasharray="4 3" /><path d="M226 96v44h12V96z" stroke="none" /></g>
+      <g data-part="waste" data-name="Waste side" data-note="marked with a cross. The saw runs on this side so the kerf comes out of the waste."><path d="M238 106h66v24h-66z" /><path d="M262 110l12 16M274 110l-12 16" stroke-width="2" /></g>
+      <g data-part="clamp" data-name="Clamp" data-note="holds the wood still so both your hands are free and away from the blade."><path d="M84 94h26v56H84" /><path d="M97 94V80M89 80h16" /></g>
+      <g data-part="handle" data-name="Saw handle" data-note="hold it lightly, index finger pointing along the blade, so you steer rather than force."><g transform="translate(165 4) rotate(40)"><path d="M28 -6H8Q0 -6 0 4V22Q0 32 10 32H28Z" /><path d="M9 6h12v14H9z" stroke-width="2" /></g></g>
+      <g data-part="blade" data-name="Blade" data-note="thin steel. Keep it in line with your arm so it does not bend or bind."><g transform="translate(165 4) rotate(40)"><path d="M32 -4L108 4L108 22L32 22Z" /></g></g>
+      <g data-part="teeth" data-name="Teeth" data-note="cut on the push (Western saw) or the pull (Japanese saw). Their set makes the kerf."><g transform="translate(165 4) rotate(40)"><path d="M34 27l4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5 4 5 4-5" stroke-width="2" /></g></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order sws-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>You need many long, dead straight cuts in sheets (plywood, worktops): a timber yard or DIY store can often cut boards to size for you.</li>
+      <li>The wood has nails, screws or old paint that may contain lead: remove metal first, and ask about safe handling of old painted wood.</li>
+      <li>You want to use a power saw for the first time: get someone experienced to show you, and read the manual and its guard rules.</li>
+      <li>The job is structural (stairs, floor joists, roof timbers): talk to a carpenter or builder.</li>
+    </ul>
+  </div>
+  <div class="ax-card sws-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .sws-side { margin: 12px 0 6px; }
+  .sws-zoom { width: 100%; max-width: 420px; height: auto; display: block; margin: 8px auto; color: var(--ink); }
+  .sws-zoom .hl { color: var(--accent); }
+  .sws-why, .sws-pieces { margin: 6px 0 0; font-size: 15px; }
+  .sws-kerf h3 { margin: 16px 0 8px; font-size: 16px; }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  import { keptLength, piecesFromBoard, type SawSide } from '../../lib/home/carpentry';
+  const root = document.querySelector('.sws') as HTMLElement;
+  mountSteps(root.querySelector('.sws-steps') as HTMLElement, 'saw-straight');
+  mountLabels(root.querySelector('.sws-label') as HTMLElement);
+  mountOrder(root.querySelector('.sws-order') as HTMLElement, ['Measure and make a V mark', 'Square a line across', 'Put a cross on the waste side', 'Clamp the wood', 'Start with short pull strokes', 'Saw with long, light strokes', 'Hold the offcut at the end', 'Check the end is square']);
+
+  // Kerf sim
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const zoom = root.querySelector('.sws-zoom') as SVGSVGElement;
+  const out = root.querySelector('.sws-out') as HTMLElement, why = root.querySelector('.sws-why') as HTMLElement, pcs = root.querySelector('.sws-pieces') as HTMLElement;
+  let side: SawSide = 'centre';
+  const fmt = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  const WHY: Record<SawSide, string> = {
+    waste: 'The kerf comes out of the waste, so your piece keeps its full length, with the pencil line just showing on it.',
+    centre: 'Half the kerf comes out of your piece. Small, but cut two shelves like this and they may not match the mark.',
+    keep: 'The whole kerf comes out of your piece. This is the classic mistake: the piece is short and you cannot add wood back.',
+  };
+  function drawZoom(kerf: number) {
+    const S = 12, L = 150, w = kerf * S;
+    const x0 = side === 'waste' ? L : side === 'centre' ? L - w / 2 : L - w, x1 = x0 + w;
+    zoom.innerHTML = `<path d="M10 30H${x0}V70H10" /><path d="M${x1} 30H290M${x1} 70H290M${x1} 30V70" />`
+      + `<path d="M265 38l14 24M279 38l-14 24" stroke-width="1.5" />`
+      + `<rect class="hl" x="${x0}" y="24" width="${w}" height="52" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="1.5" />`
+      + `<path d="M${L} 14V86" stroke-width="2" stroke-dasharray="3 3" />`
+      + `<g font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle"><text x="70" y="55">your piece</text><text x="${L}" y="98">pencil line</text><text x="${(x0 + x1) / 2}" y="12" class="hl">kerf ${fmt(kerf)} mm</text><text x="230" y="55">waste</text></g>`;
+  }
+  function calc() {
+    const mark = parseFloat(k('mark').value), kerf = parseFloat(k('kerf').value);
+    drawZoom(kerf);
+    if (!(mark > 0)) { out.textContent = ''; why.textContent = 'Type the length you marked, in mm.'; }
+    else {
+      const got = keptLength(mark, kerf, side), short = mark - got;
+      out.textContent = short < 1e-9 ? `Your piece: ${fmt(got)} mm. Right length.` : `Your piece: ${fmt(got)} mm, ${fmt(short)} mm short.`;
+      why.textContent = WHY[side];
+    }
+    const board = parseFloat(k('board').value), piece = parseFloat(k('piece').value);
+    if (board > 0 && piece > 0) {
+      const r = piecesFromBoard(board, piece, kerf), noKerf = Math.floor(board / piece + 1e-9);
+      pcs.textContent = `${r.n} piece${r.n === 1 ? '' : 's'} of ${fmt(piece)} mm, offcut ${fmt(r.offcut)} mm.` + (r.n < noKerf ? ` Without the kerf you might expect ${noKerf}, but every cut eats ${fmt(kerf)} mm.` : '');
+    } else pcs.textContent = 'Type the board and piece lengths in mm.';
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sws-side button').forEach((b) => b.addEventListener('click', () => {
+    side = b.dataset.side as SawSide;
+    root.querySelectorAll('.sws-side button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    calc();
+  }));
+  ['mark', 'kerf', 'board', 'piece'].forEach((n) => k(n).addEventListener('input', calc));
+  calc();
+
+  const bank = [
+    () => choice('Which side of the pencil line do you saw on?', 'The waste side, leaving the line showing', ['Right down the middle', 'The side you keep'], 'The saw removes a slot of wood (the kerf). On the waste side, that slot comes out of the piece you throw away.'),
+    () => choice('What is the kerf?', 'The slot of wood the saw removes', ['The handle of the saw', 'The pencil mark', 'A type of clamp'], 'Kerf is the width of the cut, about 1 to 2 mm for a handsaw and 3 mm for a circular saw.'),
+    () => choice('How do you start a cut?', 'A few short, light pull strokes with the thumb as a guide', ['Hard, fast push strokes', 'Push down on the middle of the blade'], 'Pulling lightly cuts a small notch for the blade to sit in. Pushing hard makes the teeth jump.'),
+    () => choice('About what angle suits a cross-cut handsaw?', 'About 45 degrees to the wood', ['Flat, about 10 degrees', 'Straight up, 90 degrees'], 'Around 45 degrees gives a long enough cutting edge to stay straight without binding.'),
+    () => choice('Why hold the offcut near the end of the cut?', 'So it does not drop and tear a splinter off', ['To make the saw go faster', 'It does not matter'], 'A falling offcut pulls the last fibres out and leaves a ragged edge on your piece.'),
+    () => choice('Where should you hold the wood while you saw?', 'Clamped to a bench or trestle', ['On your knee', 'In your free hand'], 'A clamp keeps the work still and your hands away from the blade.'),
+    () => choice('The saw keeps drifting off the line. What helps most?', 'Lighter, longer strokes with arm and saw in line', ['Pushing harder', 'Sawing faster'], 'Forcing the saw makes it twist. Let its weight do the work and keep everything in one line.'),
+    () => choice('You cut four 600 mm pieces from a 2400 mm board with a 3 mm kerf. What happens?', 'You only get three full pieces', ['You get four exactly', 'You get five'], 'Each cut eats 3 mm, so four pieces would need 2409 mm. Plan cuts with the kerf in mind.'),
+    () => choice('How do you check a cut end is square?', 'Hold a try square against it and look for light under the blade', ['Look at it from across the room', 'Measure the length again'], 'A square shows any gap at once. Sand or plane the high side if it is a little out.'),
+  ];
+  mountQuiz(root.querySelector('.sws-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

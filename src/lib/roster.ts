@@ -235,3 +235,26 @@ export function codeFor(name: string, used: string[]) {
   if (!used.includes(base)) return base;
   for (let i = 2; ; i++) if (!used.includes(`${base}${i}`)) return `${base}${i}`;
 }
+
+// ---------- Fairness summary ----------
+export type FairRow = { name: string; hours: number; shifts: number; weekend: number; late: number; diff: number };
+/** Hours, weekend shifts and late shifts (ending after 22:00 or past midnight) per person, and how far each is from the average hours. */
+export function fairness(staff: Staff[], shifts: Shift[], days: string[], grid: Grid): { rows: FairRow[]; avg: number; min: number; max: number; spread: number } {
+  const byId = new Map(shifts.map((s) => [s.id, s]));
+  const rows: FairRow[] = staff.map((p) => {
+    let hours = 0, n = 0, weekend = 0, late = 0;
+    for (const d of days) {
+      const s = byId.get(grid[key(p.name, d)]); if (!s) continue;
+      const h = shiftHours(s); if (!Number.isFinite(h)) continue;
+      hours += h; n++;
+      const wd = weekday(d); if (wd === 0 || wd === 6) weekend++;
+      const e = minutes(s.end), b = minutes(s.start);
+      if (e > 22 * 60 || e <= b) late++;
+    }
+    return { name: p.name, hours: Math.round(hours * 100) / 100, shifts: n, weekend, late, diff: 0 };
+  });
+  const hs = rows.map((r) => r.hours), avg = hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : 0;
+  for (const r of rows) r.diff = Math.round((r.hours - avg) * 100) / 100;
+  const min = hs.length ? Math.min(...hs) : 0, max = hs.length ? Math.max(...hs) : 0;
+  return { rows, avg: Math.round(avg * 100) / 100, min, max, spread: Math.round((max - min) * 100) / 100 };
+}

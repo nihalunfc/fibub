@@ -24,6 +24,7 @@ import Downloads from '../../components/Downloads.astro';
     <label>Or open a CSV (columns: date, person, what, amount, reimbursed) <input class="mt-file" type="file" accept=".csv,.tsv,.txt,.xlsx" /></label>
     <div class="mt-row"><button type="button" class="btn secondary small mt-ex">Use an example</button><button type="button" class="btn secondary small mt-clear">Clear all</button></div>
     <p class="mt-msg" role="status" aria-live="polite"></p>
+    <p class="mt-help mt-people"></p>
     <div class="mt-scroll"><table class="mt-list"><thead><tr><th>Date</th><th>Person</th><th>What</th><th>Paid</th><th>Back</th><th></th></tr></thead><tbody></tbody></table></div>
   </div>
   <div class="mt-box mt-out" hidden>
@@ -36,6 +37,10 @@ import Downloads from '../../components/Downloads.astro';
         <label>Fixed threshold <input class="mt-th" inputmode="decimal" value="2834" /></label>
         <label>Federal credit rate (%) <input class="mt-cr" inputmode="decimal" value="14.5" /></label>
       </div>
+      <details><summary>More options: who should claim, spouse or partner</summary>
+        <div class="mt-row"><label>Spouse or partner net income (to compare) <input class="mt-sni" inputmode="decimal" placeholder="optional" /></label></div>
+        <p class="mt-help">In Canada either spouse or partner may claim the family's costs. The 3% reduction depends on net income, so the person with the lower income often gets the bigger claim. Fill this in to see both.</p>
+      </details>
       <p class="mt-help">The threshold of $2,834 is the figure on canada.ca for the 2025 tax year. It is not confirmed for 2026, so it stays editable: check canada.ca. The credit rate is the lowest federal rate for the year; provinces have their own credits.</p>
     </div>
     <div class="mt-in mt-in-US" hidden>
@@ -75,7 +80,7 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { parseExpenses, bestWindow, canadaMetc, usDeduction, indiaDdb, net, toIso, toNum, round2, type Expense, type DateOrder } from '../../lib/money/medical';
+  import { parseExpenses, bestWindow, canadaMetc, byPerson, calendarYearTotal, usDeduction, indiaDdb, net, toIso, toNum, round2, type Expense, type DateOrder } from '../../lib/money/medical';
   import { wireDownloads, save, type Section } from '../../lib/report';
   const root = document.querySelector('.mt') as HTMLElement;
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
@@ -104,6 +109,8 @@ import Downloads from '../../components/Downloads.astro';
     $<HTMLElement>('.mt-out').hidden = c !== 'UK' && !list.length;
     $('.mt-src').textContent = SRC[c];
     drawList();
+    const bp = byPerson(list);
+    $<HTMLElement>('.mt-people').textContent = bp.length > 1 ? 'After insurance, by person: ' + bp.map((p) => `${p.person} ${fmt(p.total, c === 'UK' ? 'CA' : c)} (${p.count})`).join('; ') : '';
     const res = $<HTMLElement>('.mt-result'); res.textContent = '';
     const add = (t: string, cls = '') => { const p = document.createElement('p'); p.style.margin = '0'; if (cls) p.className = cls; p.textContent = t; res.appendChild(p); return p; };
     const facts: [string, string][] = [], text: string[] = [];
@@ -126,6 +133,10 @@ import Downloads from '../../components/Downloads.astro';
       add(`Less the lesser of 3% of net income or the threshold: ${fmt(r.reduce, c)}`);
       add(`Amount for the claim: ${fmt(r.claim, c)}`);
       add(`Federal credit at ${val('.mt-cr')}%: ${fmt(r.credit, c)}`, 'big');
+      const cal = calendarYearTotal(list, yr), gain = round2(w.total - cal);
+      if (gain > 0) { const rc = canadaMetc(cal, toNum(val('.mt-ni')) || 0, { creditRate: (toNum(val('.mt-cr')) || 0) / 100, threshold: toNum(val('.mt-th')) || 0 }); add(`Picking this 12 months instead of the calendar year ${yr} adds ${fmt(gain, c)} of costs and about ${fmt(round2(r.credit - rc.credit), c)} of federal credit.`); facts.push(['Gain over calendar year', fmt(gain, c)]); }
+      const sni = toNum(val('.mt-sni'));
+      if (val('.mt-sni').trim() && sni >= 0) { const rs = canadaMetc(w.total, sni, { creditRate: (toNum(val('.mt-cr')) || 0) / 100, threshold: toNum(val('.mt-th')) || 0 }); add(`If your spouse or partner claims instead (net income ${fmt(sni, c)}): credit ${fmt(rs.credit, c)}, which is ${rs.credit > r.credit ? fmt(round2(rs.credit - r.credit), c) + ' more' : rs.credit < r.credit ? fmt(round2(r.credit - rs.credit), c) + ' less' : 'the same'}.`); facts.push(['Credit if spouse claims', fmt(rs.credit, c)]); }
       if (val('.mt-who') === 'dep') add('For another dependant, the claim is separate and the reduction uses that person\'s net income. Check the CRA page for any other limits.');
       facts.push(['Period', `${w.start} to ${w.end}`], ['Costs after insurance', fmt(w.total, c)], ['Reduction', fmt(r.reduce, c)], ['Amount for the claim', fmt(r.claim, c)], ['Federal credit', fmt(r.credit, c)]);
       text.push('Canada medical expense tax credit, worked out from the figures typed in. Check canada.ca.');
@@ -146,7 +157,7 @@ import Downloads from '../../components/Downloads.astro';
     }
     report = { rows: rows.map((e) => [e.date, e.person, e.what, fmt(e.amount, c), fmt(e.reimbursed, c)]), facts, text };
   }
-  ['.mt-cty', '.mt-yr', '.mt-who', '.mt-ni', '.mt-th', '.mt-cr', '.mt-agi', '.mt-sen', '.mt-dord'].forEach((s) => $(s).addEventListener('input', run));
+  ['.mt-cty', '.mt-yr', '.mt-who', '.mt-ni', '.mt-sni', '.mt-th', '.mt-cr', '.mt-agi', '.mt-sen', '.mt-dord'].forEach((s) => $(s).addEventListener('input', run));
   $('.mt-yr').addEventListener('change', () => { const y = val('.mt-yr'); $<HTMLInputElement>('.mt-cr').value = y === '2025' ? '14.5' : '14'; run(); });
   $('.mt-add').addEventListener('click', () => {
     const date = val('.mt-d'), a = toNum(val('.mt-a'));

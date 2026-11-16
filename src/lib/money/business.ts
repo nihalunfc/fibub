@@ -52,3 +52,22 @@ export function depreciation(a: DepIn): DepRow[] {
   }
   return rows;
 }
+
+// ---- upgrade additions (2026-11-16) ----
+/** Fixed-price quote: hours x rate plus a buffer (%) for the unexpected. */
+export const quote = (hours: number, rate: number, bufferPct: number) => hours * (1 + bufferPct / 100) * rate;
+/** Margin of safety: how far sales can fall (as a share of expected units) before reaching break-even. */
+export function marginOfSafety(expected: number, breakEven: number, price: number, variable: number, fixed: number) {
+  return { pct: expected > 0 ? (expected - breakEven) / expected : NaN, profit: expected * (price - variable) - fixed };
+}
+/** Months of cash left under different burn changes (e.g. -20, 0, +20 % of the monthly cost). */
+export function runwayScenarios(a: RunwayIn, changes: number[]) {
+  return changes.map((c) => ({ change: c, months: runway({ ...a, costs: a.costs * (1 + c / 100) }).months }));
+}
+/** Monthly burn that makes `cash` last `months` months, when burn stays flat. */
+export const burnForMonths = (cash: number, months: number) => (months > 0 ? cash / months : NaN);
+/** Gain or loss on selling an asset at the end of year `year` (0 = bought and sold at cost) for `price`. */
+export function saleGain(rows: DepRow[], cost: number, year: number, price: number) {
+  const book = year <= 0 ? cost : rows[Math.min(year, rows.length) - 1].book;
+  return { book, gain: price - book };
+}

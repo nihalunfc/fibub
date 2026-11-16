@@ -16,4 +16,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.pr-s-inv')).replace(/[^\d]/g, '') === '0', 'policy-return: term premium equal to premium leaves nothing to invest');
   await set('[data-k="prem"]', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.pr .pr-err'), 'policy-return: no premium shows a message');
+  await page.reload(); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.pr [data-k="cur"]', 'USD');
+  await set('[data-k="prem"]', '100'); await set('[data-k="pay"]', '2'); await set('.pr-by', '2'); await set('.pr-ba', '231'); await set('[data-k="infl"]', '10'); await page.waitForTimeout(100);
+  const rl = await txt('.pr-real');
+  check(rl.includes('1.1'), 'policy-return: 231 back on 200 paid = 1.16 times (' + rl + ')');
+  check(rl.includes('0.00%'), 'policy-return: 10% return with 10% inflation is 0.00% real');
 };

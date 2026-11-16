@@ -35,6 +35,8 @@ Files are read on your device and never uploaded, so it also works with large or
 3. A green **Match** names the kind of hash that matched; otherwise you see **No match**.
 4. Use **Copy** next to any hash, or **Clear** to start again.
 
+Under **More options** you can type a secret key to also get HMAC-SHA-1, -256, -384 and -512 (a hash that mixes in a key, used to sign API requests and webhooks), and choose to show hashes in lower-case hex, UPPER-CASE hex or Base64. A checksum pasted in Base64 is matched too.
+
 ## What each part does
 
 - **SHA-256**: the usual choice today, 64 hex characters.

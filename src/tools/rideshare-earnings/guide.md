@@ -28,6 +28,11 @@ Gross earnings look good on the app but the car, fuel and platform take a lot. E
 
 It counts all the kilometres you drive, including the empty ones between rides, because you pay for them. Fuel for one trip is in [[fuel-cost]], a salaried comparison in [[hourly-salary]], and the tax records you need in [[mileage-log]].
 
+## More options
+
+- **Electric car**: switch "Your car runs on" to electricity and enter kWh per 100 km and your price per kWh. Fuel is replaced by electricity in the costs.
+- **Hourly goal**: type what you want to earn per hour after costs, and see roughly how much in fares you would need for the same hours and kilometres.
+
 ## How to use it
 
 1. Type fares and tips for the period, and the hours you were logged in.

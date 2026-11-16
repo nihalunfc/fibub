@@ -32,6 +32,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     <div class="panel"><h2>Year by year</h2>
       <div class="odc-wrap"><table><thead><tr><th>Year</th><th>Car value</th><th>Premium</th><th>Expected payout</th><th>Payout per 1 of premium</th></tr></thead><tbody class="odc-body"></tbody></table></div>
     </div>
+    <div class="panel"><h2>Compare deductibles</h2>
+      <p class="odc-hint">Ask your insurer for the premium at each deductible and type it in. The expected payout is worked out for you, for year 1. A higher deductible lowers the payout and usually the premium.</p>
+      <div class="odc-wrap"><table><thead><tr><th>Deductible</th><th>Premium (yours)</th><th>Expected payout</th><th>Payout minus premium</th></tr></thead><tbody class="odc-cmp">
+        <tr><td><input data-k="d1" inputmode="decimal" aria-label="Deductible 1" /></td><td><input data-k="q1" inputmode="decimal" aria-label="Premium 1" /></td><td class="e"></td><td class="n"></td></tr>
+        <tr><td><input data-k="d2" inputmode="decimal" aria-label="Deductible 2" /></td><td><input data-k="q2" inputmode="decimal" aria-label="Premium 2" /></td><td class="e"></td><td class="n"></td></tr>
+        <tr><td><input data-k="d3" inputmode="decimal" aria-label="Deductible 3" /></td><td><input data-k="q3" inputmode="decimal" aria-label="Premium 3" /></td><td class="e"></td><td class="n"></td></tr>
+      </tbody></table></div>
+    </div>
     <div class="panel"><h2>Premium against expected payout</h2>
       <div class="odc-legend"></div>
       <div class="odc-chart"></div>
@@ -42,6 +50,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </div>
 
 <style is:inline>
+  .odc-cmp input { font: inherit; color: var(--ink); padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 110px; min-width: 0; } .odc-cmp td, .odc-cmp th { white-space: nowrap; }
   .odc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .odc > *, .odc-res > * { min-width: 0; }
   .odc h2 { margin: 0 0 12px; font-size: 18px; }
@@ -72,14 +81,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { ownDamage } from '../../lib/money/insurance';
+  import { ownDamage, odDeductibleTable } from '../../lib/money/insurance';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.odc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   q('.odc-cur').innerHTML = currencyOptions(defaultCurrency());
-  const def: Record<string, string> = { value: '8,000', dep: '12', prem: '500', pc: '-5', ded: '300', lambda: '0.1', median: '1,500', p90: '4,000', years: '8' };
+  const def: Record<string, string> = { value: '8,000', dep: '12', prem: '500', pc: '-5', ded: '300', lambda: '0.1', median: '1,500', p90: '4,000', years: '8', d1: '300', d2: '600', d3: '1,000', q1: '', q2: '', q3: '' };
   for (const k in def) f(k).value = def[k];
   const $ = (n: number) => money(n, f('cur').value, 0);
   const $2 = (n: number) => money(n, f('cur').value, 2);
@@ -100,6 +109,9 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     if (r.firstLosing && r.firstLosing > 1) q('.odc-words').innerHTML += ` From <b>year ${r.firstLosing}</b> the expected payout drops below the premium.`;
     if (!r.firstLosing) q('.odc-words').innerHTML += ' The expected payout stays above the premium for all the years shown.';
     q('.odc-words').innerHTML += ' Paying small repairs yourself and keeping savings for a total loss is the other choice.';
+    const ch = [1, 2, 3].map((i) => ({ deductible: num(f('d' + i).value), premium: num(f('q' + i).value) }));
+    const tab = odDeductibleTable(a, ch);
+    [...q('.odc-cmp').children].forEach((tr, i) => { const t = tab[i]; (tr.querySelector('.e') as HTMLElement).textContent = $2(t.expected); (tr.querySelector('.n') as HTMLElement).textContent = t.net === null ? 'Enter a premium' : (t.net >= 0 ? '+' : '-') + $2(Math.abs(t.net)); });
     q('.odc-body').innerHTML = r.rows.map((x) => `<tr><td>${x.year}</td><td>${$(x.value)}</td><td>${$2(x.premium)}</td><td>${$2(x.expected)}</td><td>${x.payBack.toFixed(2)}</td></tr>`).join('');
     const S = [{ label: 'Premium', ys: r.rows.map((x) => x.premium), color: 'var(--accent)' }, { label: 'Expected payout', ys: r.rows.map((x) => x.expected), color: '#d97706', dash: true }];
     q('.odc-legend').innerHTML = legend(S);

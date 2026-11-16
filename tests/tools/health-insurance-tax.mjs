@@ -14,4 +14,9 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.hit-s3')).includes('1,524.60'), 'health-insurance-tax: US tax saved 1,524.60 (' + (await txt('.hit-s3')) + ')');
   await set('emp', '1000'); await page.waitForTimeout(100);
   check((await txt('.hit-s2')).includes('3,400') && !(await page.isHidden('.hit .hit-warn')), 'health-insurance-tax: employer amount uses up the limit and warns');
+  check((await txt('.hit-room')).includes('Room left this year: $0'), 'health-insurance-tax: US room left is 0 (' + (await txt('.hit-room')) + ')');
+  await set('mine', '1000'); await set('emp', '0'); await page.waitForTimeout(100);
+  check((await txt('.hit-room')).includes('3,400'), 'health-insurance-tax: US room left 3,400 (' + (await txt('.hit-room')) + ')');
+  await page.selectOption('.hit [data-k="region"]', 'in'); await page.waitForTimeout(100);
+  check((await txt('.hit-room')).includes('Room left under the limit'), 'health-insurance-tax: India room left line');
 };

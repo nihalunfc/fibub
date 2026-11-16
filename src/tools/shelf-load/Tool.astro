@@ -1,0 +1,134 @@
+---
+// #T1012 Shelf load: pull-out and shear per wall screw for a bracketed shelf. Maths in src/lib/home/carpentry.ts (shelfLoad, allowedKg).
+import '../../styles/astro.css';
+---
+<div class="tool-ui ax shl">
+  <div class="ax-card">
+    <h2>What's on it</h2>
+    <div class="ax-grid">
+      <label>Load<select data-k="what">
+        <option value="25" selected>Books (about 25 kg per metre)</option>
+        <option value="30">Plates and dishes (about 30 kg per metre)</option>
+        <option value="15">Plants in pots (about 15 kg per metre)</option>
+        <option value="8">Ornaments, light things (about 8 kg per metre)</option>
+        <option value="kg">Type a weight</option>
+      </select></label>
+      <label class="shl-len">Shelf length (mm)<input data-k="len" inputmode="decimal" value="800" /></label>
+      <label class="shl-kg">Weight on the shelf (kg)<input data-k="kg" inputmode="decimal" value="20" /></label>
+      <label>Board and brackets (kg)<input data-k="self" inputmode="decimal" value="2" /></label>
+      <label>Where the weight sits<select data-k="front"><option value="0">Spread evenly (half the depth)</option><option value="1">At the front edge</option></select></label>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Shelf and brackets</h2>
+    <div class="ax-grid">
+      <label>Shelf depth from the wall (mm)<input data-k="depth" inputmode="decimal" value="250" /></label>
+      <label>Number of brackets<input data-k="n" inputmode="numeric" value="2" /></label>
+      <label>Top to bottom wall screw (mm)<input data-k="h" inputmode="decimal" value="200" /></label>
+      <label>Wall screws per bracket<input data-k="s" inputmode="numeric" value="2" /></label>
+    </div>
+    <p class="shl-fine">Measure the height between the centres of the top and bottom screw holes on the bracket's upright arm.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Your fixing</h2>
+    <div class="ax-grid">
+      <label>Rating per fixing (kg)<input data-k="rate" inputmode="decimal" value="25" /></label>
+      <label>That figure is<select data-k="kind"><option value="ultimate">A failure (ultimate) load</option><option value="safe">A safe working load</option></select></label>
+      <label class="shl-sf">Safety factor<select data-k="sf"><option value="2">2: light, solid wall or stud</option><option value="3" selected>3: everyday shelf</option><option value="4">4: over people, or unsure</option></select></label>
+    </div>
+  </div>
+  <div class="ax-card">
+    <h2>Per screw</h2>
+    <p class="ax-big shl-big" aria-live="polite"></p>
+    <p class="shl-verdict" aria-live="polite"></p>
+    <svg class="shl-fig" viewBox="0 0 320 250" role="img" aria-label="Side view of the shelf on its bracket with the load arrow, the top screw being pulled out and the bottom of the bracket pushing into the wall" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+    <ul class="shl-lines"></ul>
+  </div>
+  <p class="shl-note">A rough guide from simple statics: it ignores the bracket bending, screws at an angle and how sound the wall is. The fixing maker's rating always wins. Put heavy loads into studs or solid masonry, never plasterboard alone, and check for cables and pipes before you drill. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .shl-big { margin: 0; }
+  .shl-verdict { margin: 6px 0 0; font-weight: 600; }
+  .shl-verdict.ok { color: var(--good); } .shl-verdict.near { color: var(--warn); } .shl-verdict.over { color: var(--bad); }
+  .shl-fig { width: 100%; max-width: 440px; height: auto; display: block; margin: 12px auto 4px; color: var(--ink); }
+  .shl-fig .hl { color: var(--accent); }
+  .shl-fig .pull { color: var(--bad); }
+  .shl-lines { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 15px; }
+  .shl-note, .shl-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .shl-fine { margin-top: 8px; }
+  .shl [hidden] { display: none; }
+</style>
+
+<script>
+  import { shelfLoad, allowedKg, G } from '../../lib/home/carpentry';
+  const root = document.querySelector('.shl') as HTMLElement;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const num = (n: string) => parseFloat(k(n).value.replace(/,/g, ''));
+  const big = root.querySelector('.shl-big') as HTMLElement, verdict = root.querySelector('.shl-verdict') as HTMLElement;
+  const lines = root.querySelector('.shl-lines') as HTMLElement, fig = root.querySelector('.shl-fig') as SVGSVGElement;
+  const f = (v: number, d = 1) => v.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const N = (v: number) => `${Math.round(v).toLocaleString('en-US')} N`;
+  const arrow = (x1: number, y1: number, x2: number, y2: number, cls: string) => {
+    const a = Math.atan2(y2 - y1, x2 - x1), h = 8;
+    const p = (s: number) => `${x2 - h * Math.cos(a + s)} ${y2 - h * Math.sin(a + s)}`;
+    return `<g class="${cls}" stroke-width="3"><path d="M${x1} ${y1}L${x2} ${y2}" /><path d="M${p(0.5)}L${x2} ${y2}L${p(-0.5)}" /></g>`;
+  };
+  const T = (x: number, y: number, s: string, anchor = 'start', cls = '') => `<text x="${x}" y="${y}" text-anchor="${anchor}"${cls ? ` class="${cls}"` : ''}>${s}</text>`;
+  function draw(depth: number, h: number, arm: number, pullKg: number, Wkg: number) {
+    const s = Math.min(200 / depth, 150 / h), X = 52, top = 60, D = depth * s, H = h * s;
+    const yTop = top + 14, yBot = yTop + H, xW = X + arm * s;
+    let g = `<path d="M30 10V${yBot + 30}M${X - 2} 10V${yBot + 30}" /><path d="M30 20l20 -10M30 50l20 -10M30 80l20 -10M30 110l20 -10M30 140l20 -10M30 170l20 -10M30 200l20 -10M30 230l20 -10" stroke-width="1" />`;
+    g += `<path d="M${X} ${top - 12}h${D}v12H${X}z" />`;
+    g += `<path d="M${X} ${top}h${D * 0.9}M${X} ${top}V${yBot + 10}M${X} ${yBot - 4}L${X + D * 0.6} ${top}" stroke-width="3" />`;
+    g += `<path d="M${X - 18} ${yTop}h20M${X - 18} ${yBot}h20" stroke-width="3" />`;
+    g += arrow(xW, 4, xW, top - 14, 'hl');
+    const len = Math.max(24, Math.min(90, 18 + pullKg * 4));
+    g += arrow(X + 4, yTop, X + 4 + len, yTop, 'pull');
+    g += arrow(X + 4 + len, yBot + 8, X + 4, yBot + 8, '');
+    g += `<path d="M18 ${yTop}V${yBot}M14 ${yTop}h8M14 ${yBot}h8" stroke-width="1.5" />`;
+    g += `<path d="M${X} ${yBot + 24}H${xW}M${X} ${yBot + 20}v8M${xW} ${yBot + 20}v8" stroke-width="1.5" />`;
+    g += `<g font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none">`
+      + T(xW + 6, 18, `W ${f(Wkg)} kg`, 'start', 'hl')
+      + T(X + 10 + len, yTop + 4, `pull ${f(pullKg)} kg`, 'start', 'pull')
+      + T(X + 10 + len, yBot + 12, 'pushes on wall')
+      + T(12, (yTop + yBot) / 2 + 4, `h`, 'end')
+      + T((X + xW) / 2, yBot + 40, `lever ${Math.round(arm)} mm`, 'middle')
+      + `</g>`;
+    fig.setAttribute('viewBox', `0 0 320 ${Math.max(200, yBot + 50)}`);
+    fig.innerHTML = g;
+  }
+  function calc() {
+    const what = k('what').value, perM = what === 'kg' ? NaN : Number(what);
+    (root.querySelector('.shl-len') as HTMLElement).hidden = what === 'kg';
+    const kgIn = root.querySelector('.shl-kg input') as HTMLInputElement;
+    kgIn.readOnly = what !== 'kg';
+    if (what !== 'kg') { const L = num('len'); kgIn.value = L > 0 ? String(Math.round(perM * L / 100) / 10) : ''; }
+    const ultimate = k('kind').value === 'ultimate';
+    (root.querySelector('.shl-sf') as HTMLElement).hidden = !ultimate;
+    const load = num('kg'), self = num('self') || 0, depth = num('depth'), n = Math.round(num('n')), h = num('h'), sc = Math.round(num('s'));
+    if (!(load >= 0) || !(depth > 0) || !(n >= 1) || !(h > 0) || !(sc >= 1) || self < 0) {
+      big.textContent = ''; verdict.textContent = ''; fig.innerHTML = ''; lines.innerHTML = '<li>Fill in the weight, depth, brackets, bracket height and screws (numbers above zero).</li>'; return;
+    }
+    const kg = load + self, r = shelfLoad({ kg, depth, brackets: n, h, screws: sc, front: k('front').value === '1' });
+    big.textContent = `Top screw pulled out with ${f(r.pullKg)} kg (${N(r.pull)})`;
+    const rate = num('rate'), sf = Number(k('sf').value);
+    if (rate > 0) {
+      const allow = allowedKg(rate, ultimate ? 'ultimate' : 'safe', sf), worst = Math.max(r.pullKg, r.shearKg), use = worst / allow;
+      verdict.className = 'shl-verdict ' + (use <= 0.8 ? 'ok' : use <= 1 ? 'near' : 'over');
+      verdict.textContent = (use <= 0.8 ? 'Within the rating' : use <= 1 ? 'Close to the limit' : 'Over the rating')
+        + `: ${f(worst)} kg on the busiest screw against ${f(allow)} kg allowed per fixing${ultimate ? ` (${rate} kg ÷ safety factor ${sf})` : ''}.`
+        + (use > 1 ? ' Use more or stronger fixings, taller brackets, a shallower shelf, or fix into studs or masonry.' : '');
+    } else { verdict.className = 'shl-verdict'; verdict.textContent = 'Type the fixing rating to compare.'; }
+    lines.innerHTML = [
+      `Total weight: ${f(load)} + ${f(self)} = ${f(kg)} kg, W = ${f(kg)} × 9.81 = ${N(r.W)}.`,
+      `Lever arm: ${Math.round(r.arm)} mm from the wall (${k('front').value === '1' ? 'front edge' : 'half the depth'}).`,
+      `Pull on all top screws: W × ${Math.round(r.arm)} ÷ ${f(h, 0)} = ${N(r.pullTotal)}, shared by ${r.tops} top screw${r.tops === 1 ? '' : 's'}: <strong>${N(r.pull)} = ${f(r.pullKg)} kg each</strong>.`,
+      `Down (shear) per screw: ${N(r.W)} ÷ ${r.all} screws = <strong>${N(r.shear)} = ${f(r.shearKg)} kg</strong>.`,
+      `Combined on a top screw: ${N(r.both)} = ${f(r.both / G)} kg.`,
+    ].map((s) => `<li>${s}</li>`).join('');
+    draw(depth, h, r.arm, r.pullKg, kg);
+  }
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', calc));
+  calc();
+</script>

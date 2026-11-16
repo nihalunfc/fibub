@@ -30,6 +30,10 @@ Your debt-to-income ratio (DTI) is the share of your gross monthly income that g
 
 The second part shows the **typical lender limits** for a home loan in Canada, the United States and the United Kingdom, and turns them into the most monthly payment and the biggest loan at your rate. To see the real payment on a loan, use the [[mortgage-calculator]], to bring the ratio down the [[loan-payoff-planner]], and to check the payment fits your life the [[budget-calculator]].
 
+## More options
+
+Open **More options** to pick a target ratio (28%, 36% or 43%). The tool then shows how much more monthly payment you could add and stay at that ratio, or how much you would need to pay off, or earn extra, if you are already over it. With a housing payment entered it also shows the front-end ratio (housing alone as a share of income). These targets are typical lender figures from the sources below; check the official source and your own lender.
+
 ## How to use it
 
 1. Type your gross monthly income (before tax) and the total of your monthly debt payments.

@@ -5,6 +5,10 @@
   <section class="panel nw-sum" aria-live="polite">
     <p class="nw-big"></p>
     <dl class="nw-rows"><dt>Assets (what you own)</dt><dd class="nw-a"></dd><dt>Debts (what you owe)</dt><dd class="nw-d"></dd></dl>
+    <details class="nw-more"><summary>More options</summary>
+      <label class="nw-sym">Currency symbol (just shown before numbers) <input class="nw-s" data-k="symbol" maxlength="4" placeholder="$" /></label>
+      <ul class="nw-ratios"></ul>
+    </details>
   </section>
   <section class="panel">
     <h2>Assets</h2>
@@ -60,18 +64,24 @@
   .nw-table { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 10px; }
   .nw-table th, .nw-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; }
   .nw-table th:first-child, .nw-table td:first-child { text-align: left; }
+  .nw-more { margin-top: 10px; font-size: 14px; }
+  .nw-more summary { cursor: pointer; color: var(--accent); }
+  .nw-sym { display: grid; gap: 4px; max-width: 260px; margin: 8px 0; color: var(--muted); }
+  .nw-sym input { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  .nw-ratios { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
   .nw-chart { margin-top: 10px; }
 </style>
 
 <script>
-  import { netWorth, type NwItem } from '../../lib/money/splitting';
+  import { netWorth, nwRatios, sinceSnapshot, type NwItem } from '../../lib/money/splitting';
   import { lineSvg } from '../../lib/money/chart';
   const root = document.querySelector('.nw') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const KEY = 'fibub-net-worth-v1';
   const CATS = { asset: ['Cash and bank', 'Savings and investments', 'Retirement accounts', 'Property', 'Vehicle', 'Other'], debt: ['Mortgage', 'Loans', 'Credit cards', 'Other'] };
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-  const f = (v: number) => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const sym = () => q<HTMLInputElement>('.nw-s').value.trim();
+  const f = (v: number) => (v < 0 ? '-' : '') + sym() + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
   const numv = (s: string) => { const v = parseFloat(s.replace(/[^\d.-]/g, '')); return Number.isFinite(v) ? v : 0; };
   interface Snap { date: string; assets: number; debts: number }
   let snaps: Snap[] = [];
@@ -88,6 +98,12 @@
   const draw = () => {
     const it = items(), r = netWorth(it);
     q('.nw-big').textContent = `Net worth ${f(r.net)}`;
+    const ra = nwRatios(it), sn = sinceSnapshot(r.net, snaps), pc = (x: number) => Math.round(x * 100) + '%';
+    q('.nw-ratios').innerHTML = [
+      ra.debtToAsset === null ? 'Add some assets to see your debt-to-asset ratio.' : `Debt-to-asset ratio: <b>${pc(ra.debtToAsset)}</b>. You owe ${pc(ra.debtToAsset)} of what you own; lower is safer.`,
+      ra.liquidShare === null ? '' : `Cash and savings are <b>${pc(ra.liquidShare)}</b> of your assets (${f(ra.liquid)}). That is ${ra.liquidMinusDebts >= 0 ? 'enough to clear all your debts' : 'less than your debts'}.`,
+      sn ? `Since your snapshot on ${sn.date}: <b>${sn.change >= 0 ? '+' : ''}${f(sn.change)}</b>${sn.pct === null ? '' : ' (' + (sn.pct >= 0 ? '+' : '') + sn.pct.toFixed(1) + '%)'}.` : 'Save a snapshot (box ticked) to see your change next time.',
+    ].filter(Boolean).map((t) => `<li>${t}</li>`).join('');
     q('.nw-a').textContent = f(r.assets); q('.nw-d').textContent = f(r.debts);
     const max = Math.max(1, ...r.byCat.values());
     q('.nw-bars').innerHTML = [...r.byCat.entries()].filter(([, v]) => v > 0).map(([k, v]) => { const [kind, c] = k.split(':'); return `<div class="nw-bar"><span>${esc(c)}${kind === 'debt' ? ' (debt)' : ''}</span><i class="${kind === 'debt' ? 'd' : 'a'}" style="width:${(v / max) * 100}%"></i><b>${f(v)}</b></div>`; }).join('') || '<p class="nw-help">Add amounts to see the chart.</p>';

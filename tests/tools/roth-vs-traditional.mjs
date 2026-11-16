@@ -17,4 +17,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.rvt-win')).includes('Roth'), 'roth-vs-traditional: a higher rate later makes Roth win');
   await page.selectOption('.rvt-basis', 'same'); await page.waitForTimeout(100);
   check(await page.isVisible('.rvt-side'), 'roth-vs-traditional: same-dollars mode shows the side-account tax box');
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  await page.fill('.rvt-later', '22'); await page.waitForTimeout(100);
+  check((await page.inputValue('.rvt-s-later')) === '22', 'roth-vs-traditional: typing the rate moves its slider');
+  await page.$eval('.rvt-s-later', (e) => { e.value = '32'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await page.inputValue('.rvt-later')) === '32' && (await page.textContent('.rvt-win')).includes('Roth'), 'roth-vs-traditional: the slider sets the rate and Roth wins at 32%');
+  check((await page.$$('.rvt-svg polyline')).length === 2, 'roth-vs-traditional: chart has two lines');
 };

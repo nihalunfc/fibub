@@ -44,6 +44,10 @@ It marks any treatment that fell in a waiting period or hit the annual maximum. 
 
 Premium 400, deductible 50 (not on preventive), maximum 1,500, plan pays 100/80/50%, waits 0/3/12 months. Treatments: preventive 200 in month 0, basic 500 in month 1, basic 300 in month 4, major 2,000 in month 6. The month 1 and month 6 items are in waiting periods. The plan pays 200 + (300 - 50) x 80% = 400, you pay 2,600, and with the premium 3,000, the same as 3,000 in cash.
 
+## Yearly maximum and out-of-network
+
+**Where the yearly maximum bites** shows the same plan if the year's treatment came to half, double, three times or five times the amounts you entered. It is the quickest way to see that a plan with a low maximum stops helping once a crown or implant arrives. Under **More options**, **Out-of-network dentist** treats your costs as the dentist's fees, works out the plan's share on the lower allowed amount and adds the balance to what you pay. Get the allowed amount from your plan booklet. This is general information, not advice.
+
 ## FAQs
 
 **Why can cash win?** The premium and waiting periods can eat the plan's payout in a year with little work.

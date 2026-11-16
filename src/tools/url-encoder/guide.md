@@ -40,6 +40,8 @@ Everything runs in your browser and nothing is sent anywhere. To strip tracking 
 - **A whole address (encodeURI)**: leaves : / ? # & = alone so the address still works, and only encodes spaces and other unsafe characters.
 - **Spaces as +**: writes spaces as + the way HTML forms do, and reads + as a space when decoding.
 
+**Build a query string** turns a list of `key=value` lines into a correctly encoded query string, optionally after a web address you type (it adds ? or & for you). Spaces, ampersands and accents inside values are encoded so the address cannot break. When decoded text still holds %XX codes, the page tells you it may have been encoded twice.
+
 ## Worked example
 
 Encoding **a b&c=d** as a part gives **a%20b%26c%3Dd**: the space becomes %20, & becomes %26 and = becomes %3D. Paste h%C3%A9llo%20world in Encoded and you get héllo world. As a whole address, a b&c=d becomes a%20b&c=d instead, because & and = have a meaning there.

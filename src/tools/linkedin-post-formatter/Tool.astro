@@ -21,6 +21,14 @@
     <span class="lf-count">0 / 3,000</span>
     <button type="button" class="btn lf-copy">Copy post</button>
   </div>
+  <p class="lf-stats" aria-live="polite"></p>
+  <details class="lf-opts">
+    <summary>More options</summary>
+    <label>Bullet style for the List button
+      <select class="lf-bullet"><option value="•">• dot</option><option value="–">– dash</option><option value="▪">▪ square</option><option value="✓">✓ tick</option><option value="➤">➤ arrow</option><option value="→">→ arrow</option></select>
+    </label>
+    <label class="lf-chk"><input type="checkbox" class="lf-spaced" /> Put a blank line between list items</label>
+  </details>
   <p class="note warn lf-warn" hidden>A lot of this post uses styled letters. Screen readers read them letter by letter and LinkedIn search can't find them, so keep them to a few key words.</p>
   <div class="lf-preview-wrap">
     <span class="lf-ptitle">Feed preview</span>
@@ -56,6 +64,7 @@
   .lf-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.45; }
   .lf-text:empty::before { content: 'Your post appears here.'; color: var(--muted); }
   .lf-more { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+  .lf-stats { margin: 0; font-size: 14px; color: var(--muted); } .lf-opts { display: grid; gap: 8px; } .lf-opts summary { cursor: pointer; font-weight: 600; } .lf-opts select { margin-left: 8px; font: inherit; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); } .lf-chk { display: flex; gap: 8px; align-items: center; }
   .lf-pnote { color: var(--muted); }
 </style>
 
@@ -66,6 +75,7 @@
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const ta = q<HTMLTextAreaElement>('.lf-in'), hint = q('.lf-hint'), count = q('.lf-count');
   const text = q('.lf-text'), more = q<HTMLButtonElement>('.lf-more'), warn = q('.lf-warn');
+  const bsel = q<HTMLSelectElement>('.lf-bullet'), spaced = q<HTMLInputElement>('.lf-spaced'), stats = q('.lf-stats');
   const LIMIT = 3000, FOLD = 210;
   let expanded = false;
 
@@ -97,7 +107,7 @@
     underline: () => replaceSelection((s) => mark(s, 'underline')),
     strike: () => replaceSelection((s) => mark(s, 'strike')),
     plain: () => replaceSelection(plain),
-    bullets: () => replaceSelection((s) => s.split('\n').map((l) => (l.trim() ? `• ${l.replace(/^(\s*)(•|\d+\.)\s+/, '')}` : l)).join('\n'), true),
+    bullets: () => replaceSelection((s) => { const out = s.split('\n').map((l) => (l.trim() ? `${bsel.value} ${l.replace(/^(\s*)([•–▪✓➤→-]|\d+\.)\s+/, '')}` : l)); return (spaced.checked ? out.filter((l) => l.trim()) : out).join(spaced.checked ? '\n\n' : '\n'); }, true),
     numbers: () => replaceSelection((s) => { let n = 0; return s.split('\n').map((l) => (l.trim() ? `${++n}. ${l.replace(/^(\s*)(•|\d+\.)\s+/, '')}` : l)).join('\n'); }, true),
     markdown: () => { ta.select(); replaceSelection(fromMarkdown); },
   };
@@ -117,6 +127,8 @@
     const folded = !expanded && v.length > cut;
     text.textContent = folded ? v.slice(0, cut).trimEnd() : v;
     more.hidden = !folded;
+    const words = (v.match(/\S+/g) || []).length, tags = (v.match(/(^|\s)#[\p{L}\p{N}_]+/gu) || []).length;
+    stats.textContent = `${words} word${words === 1 ? '' : 's'} · ${tags} hashtag${tags === 1 ? '' : 's'} · ${lines.length} line${lines.length === 1 ? '' : 's'} · ${Math.max(0, FOLD - n)} characters until the "see more" cut`.replace(/ · 0 characters until the "see more" cut/, ' · past the "see more" cut');
     const styled = [...v].filter((c) => hasStyled(c)).length;
     warn.hidden = !(styled > 40 && styled / Math.max(1, [...v].length) > 0.3);
   }

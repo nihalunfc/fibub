@@ -1,0 +1,167 @@
+---
+// #L380 Pick the right wall plug. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+// The picker's rules are in src/lib/learn/wall-fixings.ts (pickFixing), checked in tests/tools/pick-wall-plug.mjs.
+import CourseNav from '../../components/CourseNav.astro';
+import { WALLS } from '../../lib/learn/wall-fixings';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk pwp">
+  <CourseNav id="pick-wall-plug" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Check for hidden cables and pipes before every hole, and never drill in line with a switch or socket.</li>
+      <li>Wear safety glasses. Masonry dust and bits of plaster fly out of the hole.</li>
+      <li>Anything people pull on or lean on (grab rails, handrails, stair gates) or that could fall on someone (TVs, wall cupboards, heavy mirrors) must follow the maker's fixing instructions.</li>
+      <li>Unplug or remove the battery before changing a drill bit.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Drill (hammer setting for masonry)</li><li>Masonry, wood and tile bits</li><li>The right plugs or anchors</li><li>Screws to suit</li><li>Screwdriver</li><li>Pencil and masking tape</li><li>Cable and pipe detector</li><li>Bathroom scales</li><li>Safety glasses</li></ul>
+  </div>
+  <div class="ax-card pwp-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Three wall sections side by side: hollow board on a stud, brick, and concrete" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 20h50v70h-50zM30 20v70" /><path class="hl" d="M40 20h14v70h-14z" />
+          <path d="M80 20h50v70h-50zM80 37h50M80 54h50M80 71h50M105 20v17M92 37v17M118 37v17M105 54v17M92 71v19M118 71v19" stroke-width="1.5" />
+          <path d="M146 20h50v70h-50z" /><circle cx="160" cy="36" r="2" fill="currentColor" /><circle cx="180" cy="50" r="2" fill="currentColor" /><circle cx="165" cy="70" r="2" fill="currentColor" /><circle cx="186" cy="80" r="2" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Know your wall</h3><p>Find out if the wall is hollow (drywall, plasterboard, lath and plaster) or solid (brick, block, concrete), and where the studs are. The lesson before this one shows how.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Bathroom scales with a person holding a mirror, and the reading minus the person's weight" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="40" y="80" width="70" height="18" rx="4" /><circle cx="75" cy="20" r="8" /><path d="M75 28v30M75 58l-10 22M75 58l10 22M75 36l18 8" />
+          <rect class="hl" x="90" y="30" width="26" height="36" rx="2" /><text x="160" y="58" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">78 − 70</text><text x="160" y="76" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">= 8 kg</text>
+        </svg>
+        <div class="sk-txt"><h3>Weigh what you are hanging</h3><p>Stand on bathroom scales holding the item, then take away your own weight. For a shelf or cupboard, add what will go on it: books are heavy, about 20 kg (45 lb) per metre of shelf.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A screw going through the board into a wooden stud behind it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M90 10v90M100 10v90" /><path class="hl" d="M100 30h40v60h-40z" /><path d="M30 60h90M30 50v20M120 60l12 0" /><path d="M50 56l4 8M62 56l4 8M74 56l4 8M86 56l4 8M98 56l4 8M110 56l4 8" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Use a stud if you can</h3><p>A plain wood screw into a stud is stronger and simpler than any hollow-wall anchor. If the item can move a little to hit a stud, move it.</p><p class="sk-tip">For a shelf between studs, screw a timber batten across two studs, then fix the shelf to the batten.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A fixings packet with the weight rating and drill bit size printed on it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="50" y="10" width="100" height="90" rx="6" /><circle cx="100" cy="22" r="4" />
+          <path d="M66 42h20l6 6-6 6h-20z" /><path class="hl" d="M110 40h28M110 52h20" stroke-width="3" />
+          <text x="100" y="84" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">max 10 kg · 6 mm</text>
+        </svg>
+        <div class="sk-txt"><h3>Choose the fixing, read the packet</h3><p>Use the picker below to see what usually fits your wall and weight. Then read the packet: it gives the drill bit size, the screw size and how much each fixing holds in each wall. The packet's rating wins.</p><p class="sk-tip">Use at least two fixings, so each one carries half or less.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A drill bit with tape marking the depth, drilling into a wall through masking tape with a cross" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M150 10v90M150 10h40M150 100h40" /><path d="M20 45h60v20h-60zM80 55h70" /><path class="hl" d="M120 55v-16h12v16" fill="currentColor" stroke-width="1.5" />
+          <path d="M146 44h8v22h-8z" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Drill the right hole</h3><p>Use the bit size on the packet. Mark the depth with tape: the plug's length plus about 5 mm. Hammer setting on only for brick, block and concrete; off for board, plaster and tiles. Keep the drill straight and level.</p><p class="sk-tip">Drilling through masking tape stops the bit skidding and the plaster chipping.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A plastic plug tapped in flush with the wall surface" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M120 10v90M120 10h70M120 100h70" /><path class="hl" d="M116 48h50l6 7-6 7h-50z" /><path d="M130 48v14M142 48v14M154 48v14" stroke-width="1.5" />
+          <path d="M40 40h40v30h-40zM80 50h20v10h-20z" />
+        </svg>
+        <div class="sk-txt"><h3>Clean out and fit the plug</h3><p>Blow or vacuum the dust out of the hole. Push or tap the plug in until it sits flush with the wall. A plug sticking out will split; a plug pushed in too deep will not grip the surface.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A screw through a bracket into the plug, with a hand giving a firm pull" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M120 10v90M120 10h70M120 100h70" /><path d="M110 30v50M100 30h10M100 80h10" /><path class="hl" d="M80 55h90M80 47v16" />
+          <path d="M40 70l30-14M40 70l-8-6M40 70l-6 8" stroke-width="2" />
+        </svg>
+        <div class="sk-txt"><h3>Screw in and test</h3><p>Drive the screw through the item or bracket into the plug until it is snug, then stop: too tight and the plug spins or the board crumbles. Give the item a firm pull down before you trust it.</p><p class="sk-tip">If a plug spins, take it out and use the next size up, or a different fixing.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card pwp-pick">
+    <h2>Fixing picker</h2>
+    <div class="ax-grid">
+      <label>Wall <select class="pw-wall">{Object.entries(WALLS).map(([v, t]) => <option value={v} selected={v === 'drywall'}>{t}</option>)}</select></label>
+      <label>Weight (with contents) <input class="pw-kg" type="text" inputmode="decimal" value="8" /></label>
+      <label>Units <select class="pw-unit"><option value="kg" selected>kg</option><option value="lb">lb</option></select></label>
+      <label>What it is <select class="pw-item"><option value="flat" selected>Hangs flat: picture, mirror, clock</option><option value="shelf">Sticks out: shelf, cupboard, TV bracket</option><option value="grab">People pull on it: grab rail, handrail</option></select></label>
+    </div>
+    <p><label class="ax-check"><input type="checkbox" class="pw-tile" /> Tiles over the wall</label></p>
+    <div class="pw-out" aria-live="polite">
+      <p class="ax-big pw-fix"></p>
+      <dl class="ax-facts"><div><dt>Drill bit</dt><dd class="pw-bit"></dd></div><div><dt>Why</dt><dd class="pw-why"></dd></div></dl>
+      <ul class="pw-notes"></ul>
+    </div>
+    <p class="ax-help">These are cautious rules of thumb, not product ratings. The weight limit printed on the packet, for your wall type, is the one to follow.</p>
+  </div>
+  <div class="ax-card sk-label pwp-label">
+    <h2>Name the fixings</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="Six wall fixings: a plastic plug, a self-drill drywall anchor, a metal hollow-wall anchor, a spring toggle, a snap toggle and a masonry screw" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="plug" data-name="Plastic wall plug" data-note="for solid walls. The screw spreads it so it grips the hole."><path d="M14 36v20M18 38h62l8 8-8 8h-62z" /><path d="M32 38v16M46 38v16M60 38v16" stroke-width="1.5" /></g>
+      <g data-part="self" data-name="Self-drill drywall anchor" data-note="screws straight into drywall with no drill hole, for light items."><path d="M120 30v32M124 34h14l40 12-40 12h-14z" /><path d="M136 34l8 24M148 37l8 18M160 41l6 10" stroke-width="1.5" /></g>
+      <g data-part="metal" data-name="Metal hollow-wall anchor" data-note="its sleeve squashes into wings behind the board as you tighten it."><path d="M226 32v28M230 40h70v12h-70z" /><path d="M244 40v12M262 40l8 12M270 40l-8 12M282 40v12" stroke-width="1.5" /></g>
+      <g data-part="spring" data-name="Spring toggle" data-note="its wings spring open behind a hollow wall or lath and plaster."><path d="M14 140h60M14 132v16" /><path d="M74 140l18-22M74 140l18 22M92 118l6 4M92 162l6-4" /><path d="M24 136l4 8M34 136l4 8M44 136l4 8M54 136l4 8" stroke-width="1.5" /></g>
+      <g data-part="snap" data-name="Snap toggle" data-note="a steel bar flips flat behind the board and spreads a heavy load."><path d="M134 116h40" stroke-width="6" /><path d="M148 116v44M160 116v44M144 160h20" /><path d="M140 176h28M154 170v14" stroke-width="2" /></g>
+      <g data-part="masonry" data-name="Masonry screw" data-note="cuts its own thread in brick or concrete, for heavier loads, no plug."><path d="M226 132l8-8v24l-8-8zM234 136h70l6 4-6 4h-70" /><path d="M246 134l4 12M258 134l4 12M270 134l4 12M282 134l4 12M294 134l4 12" stroke-width="1.5" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order pwp-order">
+    <h2>Fit a plastic plug: put it in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>You are fixing a TV, large mirror or wall cupboard over a bed, sofa or where children play, and you are not sure the wall will hold it.</li>
+      <li>The item is very heavy (over 50 kg or 110 lb), or the wall crumbles, cracks or the plugs keep spinning.</li>
+      <li>You hit a cable or pipe: stop, switch off at the main switch or stop tap, and call an electrician or plumber.</li>
+      <li>You need a grab rail for someone who relies on it: a fitter or occupational therapist can advise.</li>
+    </ul>
+  </div>
+  <div class="ax-card pwp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .pwp .pw-fix { margin: 12px 0 8px; font-size: clamp(19px, 4.5vw, 24px); }
+  .pwp .pw-why { font-size: 15px; font-weight: 400; }
+  .pwp .pw-notes { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  import { pickFixing, type Wall, type Item } from '../../lib/learn/wall-fixings';
+  const root = document.querySelector('.pwp') as HTMLElement;
+  mountSteps(root.querySelector('.pwp-steps') as HTMLElement, 'pick-wall-plug');
+  mountLabels(root.querySelector('.pwp-label') as HTMLElement);
+  mountOrder(root.querySelector('.pwp-order') as HTMLElement, ['Check for cables and pipes', 'Mark the spot on masking tape', 'Drill with the bit on the packet', 'Clear the dust out of the hole', 'Tap the plug in flush', 'Screw through the item until snug']);
+
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as unknown as T;
+  const wall = $<HTMLSelectElement>('.pw-wall'), kgIn = $<HTMLInputElement>('.pw-kg'), unit = $<HTMLSelectElement>('.pw-unit');
+  const item = $<HTMLSelectElement>('.pw-item'), tile = $<HTMLInputElement>('.pw-tile');
+  const out = { fix: $<HTMLElement>('.pw-fix'), bit: $<HTMLElement>('.pw-bit'), why: $<HTMLElement>('.pw-why'), notes: $<HTMLElement>('.pw-notes') };
+  const run = () => {
+    const n = parseFloat(kgIn.value.replace(',', '.'));
+    if (!(n > 0)) { out.fix.textContent = 'Type the weight above.'; out.bit.textContent = out.why.textContent = ''; out.notes.replaceChildren(); return; }
+    const kg = unit.value === 'lb' ? n * 0.4536 : n;
+    const p = pickFixing(wall.value as Wall, kg, item.value as Item, tile.checked);
+    out.fix.textContent = p.fixing; out.bit.textContent = p.bit; out.why.textContent = p.why;
+    out.notes.replaceChildren(...p.notes.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    root.dataset.kind = p.kind;
+  };
+  [wall, unit, item, tile].forEach((e) => e.addEventListener('change', run)); kgIn.addEventListener('input', run);
+  run();
+
+  const bank = [
+    () => choice('What is the strongest simple way to hang things on a stud wall?', 'A wood screw into a stud', ['A plastic plug in the board', 'Strong glue'], 'Solid wood holds a screw far better than thin board. Use a stud whenever you can.'),
+    () => choice('The picker and the packet disagree. Which wins?', 'The rating on the packet', ['The picker', 'Whichever is bigger'], 'The maker tested that fixing in that wall. Rules of thumb are only a starting point.'),
+    () => choice('Which fixing suits a 6 kg mirror in hollow drywall between studs?', 'A self-drill drywall anchor or a metal hollow-wall anchor', ['A plain plastic plug', 'A masonry screw'], 'A plain plug has nothing to grip in hollow board. Hollow-wall anchors spread out or bite into the board.'),
+    () => choice('When should the drill be on the hammer setting?', 'Brick, block and concrete only', ['Always', 'Drywall and tiles'], 'Hammer action breaks up hard masonry. On board, plaster or tiles it just cracks and crumbles them.'),
+    () => choice('Why count a shelf as heavier than a picture of the same weight?', 'It sticks out and levers the top fixings out of the wall', ['Shelves are always heavier', 'It is not, they are the same'], 'The further a load sticks out, the harder it pulls the top screws outwards.'),
+    () => choice('How deep should you drill for a plastic plug?', 'The plug length plus about 5 mm', ['Exactly the plug length', 'As deep as the bit goes'], 'A little extra room stops the screw tip bottoming out and lets the dust settle.'),
+    () => choice('The plug spins when you tighten the screw. What now?', 'Take it out and use a bigger plug or a different fixing', ['Tighten harder', 'Leave it, it will hold'], 'A spinning plug is not gripping, so it will not hold the load.'),
+    () => choice('Which fixing is made for soft lightweight aircrete block?', 'An aircrete plug with big fins or a spiral', ['A snap toggle', 'A self-drill drywall anchor'], 'Ordinary plugs spin in soft block. Aircrete plugs have big fins that bite into it.'),
+    () => choice('Where should a grab rail go on a hollow wall?', 'Into studs or a timber noggin', ['Into self-drill anchors', 'Into the board with glue'], 'People put their weight on grab rails suddenly. Only solid wood or masonry fixings are safe.'),
+  ];
+  mountQuiz(root.querySelector('.pwp-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

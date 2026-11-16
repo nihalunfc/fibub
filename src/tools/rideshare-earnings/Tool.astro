@@ -10,8 +10,10 @@
       <label>Hours worked (logged in, including waiting) <input data-k="hours" inputmode="decimal" value="35" /></label>
       <label>Kilometres driven (including empty driving) <input data-k="km" inputmode="decimal" value="900" /></label>
       <label>Platform fee (% of fares) <input data-k="fee" inputmode="decimal" value="25" /></label>
-      <label>Litres per 100 km <input data-k="l100" inputmode="decimal" value="8" /></label>
-      <label>Fuel price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label class="re-l">Litres per 100 km <input data-k="l100" inputmode="decimal" value="8" /></label>
+      <label class="re-l">Fuel price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label class="re-e" hidden>kWh per 100 km <input data-k="kwh100" inputmode="decimal" value="18" /></label>
+      <label class="re-e" hidden>Electricity price per kWh <input data-k="kwhp" inputmode="decimal" value="0.15" /></label>
       <label>Maintenance and tyres per km <input data-k="maint" inputmode="decimal" value="0.08" /></label>
       <label>Insurance for the period <input data-k="ins" inputmode="decimal" value="45" /></label>
       <label>Phone and data for the period <input data-k="phone" inputmode="decimal" value="10" /></label>
@@ -22,6 +24,13 @@
   <section class="panel" aria-live="polite">
     <p class="re-big"></p>
     <dl class="re-rows"></dl>
+    <details class="re-more"><summary>More options: electric car and hourly goal</summary>
+      <div class="re-grid">
+        <label>Your car runs on <select data-k="power"><option value="fuel">Petrol or diesel</option><option value="ev">Electricity</option></select></label>
+        <label>Hourly goal after costs <input data-k="goal" inputmode="decimal" placeholder="e.g. 20" /></label>
+      </div>
+      <p class="re-goal" data-k="goaltext" aria-live="polite"></p>
+    </details>
   </section>
   <p class="re-fine">Not financial or tax advice. The tax set-aside is a rough guess; self-employed drivers usually owe income tax and social contributions or CPP, and may need to register for sales tax. Check the official source for your country. Nothing you type leaves this page.</p>
 </div>
@@ -47,18 +56,26 @@
   .re-tab td input, .re-tab td select { padding: 6px 8px; min-width: 70px; }
   .re button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
   .re button.re-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .re-more { margin-top: 12px; font-size: 14px; } .re-more summary { cursor: pointer; color: var(--accent); margin-bottom: 8px; } .re-goal { font-weight: 600; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { driver } from '../../lib/money/household';
+  import { driver, faresForTarget } from '../../lib/money/household';
   import { fmt, num, rowsHtml } from '../../lib/money/ui';
   const root = document.querySelector('.re') as HTMLElement;
   const big = root.querySelector('.re-big') as HTMLElement, rows = root.querySelector('.re-rows') as HTMLElement;
   const calc = () => {
-    const r = driver({ fares: num(root, 'fares'), tips: num(root, 'tips'), hours: num(root, 'hours'), km: num(root, 'km'), feePct: num(root, 'fee'), l100: num(root, 'l100'), fuelPrice: num(root, 'fuel'),
-      maintPerKm: num(root, 'maint'), insurance: num(root, 'ins'), phone: num(root, 'phone'), setAside: num(root, 'tax') });
+    const ev = (root.querySelector('[data-k="power"]') as HTMLSelectElement).value === 'ev';
+    root.querySelectorAll('.re-l').forEach((e) => ((e as HTMLElement).hidden = ev));
+    root.querySelectorAll('.re-e').forEach((e) => ((e as HTMLElement).hidden = !ev));
+    // Electricity works the same sum: kWh per 100 km times a price per kWh.
+    const inp = { fares: num(root, 'fares'), tips: num(root, 'tips'), hours: num(root, 'hours'), km: num(root, 'km'), feePct: num(root, 'fee'), l100: ev ? num(root, 'kwh100') : num(root, 'l100'), fuelPrice: ev ? num(root, 'kwhp') : num(root, 'fuel'),
+      maintPerKm: num(root, 'maint'), insurance: num(root, 'ins'), phone: num(root, 'phone'), setAside: num(root, 'tax') };
+    const r = driver(inp);
+    const goal = num(root, 'goal'), need = faresForTarget(inp, goal);
+    (root.querySelector('[data-k="goaltext"]') as HTMLElement).textContent = need ? `To net ${fmt(goal)} an hour you would need about ${fmt(need.fares)} in fares for this period (${fmt(need.faresPerHour)} an hour), against ${fmt(inp.fares)} now.` : 'Type an hourly goal to see the fares you would need.';
     big.textContent = `${fmt(r.perHour)} an hour after costs`;
-    rows.innerHTML = rowsHtml([['Fares plus tips', fmt(r.gross)], ['Platform fee', '-' + fmt(r.fee)], ['Fuel', '-' + fmt(r.fuel)], ['Maintenance and tyres', '-' + fmt(r.maint)],
+    rows.innerHTML = rowsHtml([['Fares plus tips', fmt(r.gross)], ['Platform fee', '-' + fmt(r.fee)], [ev ? 'Electricity' : 'Fuel', '-' + fmt(r.fuel)], ['Maintenance and tyres', '-' + fmt(r.maint)],
       ['Insurance and phone', '-' + fmt(num(root, 'ins') + num(root, 'phone'))], ['Net before tax', fmt(r.net)], ['Net per hour', fmt(r.perHour)], ['Net per km', fmt(r.perKm, 3)],
       ['Before costs, per hour', fmt(r.grossPerHour)], ['Tax to set aside', fmt(r.setAside)], ['What you keep after the set-aside', fmt(r.keep)]]);
   };

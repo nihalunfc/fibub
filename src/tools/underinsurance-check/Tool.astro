@@ -42,11 +42,16 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <figcaption>The loss and what is paid</figcaption>
       <svg class="ui-svg" viewBox="0 0 640 120" role="img" aria-label="Bars for the loss, what the insurer pays and what you pay"></svg>
     </figure>
+    <div class="panel"><h2>Same loss, different sums insured</h2>
+      <p class="ui-hint">What would be paid for this loss if you had insured for a share of what the clause asks for.</p>
+      <div class="ui-tw"><table><thead><tr><th>Insured for</th><th>Sum insured</th><th>Insurer pays</th><th>You pay</th></tr></thead><tbody class="ui-sweep"></tbody></table></div>
+    </div>
   </section>
   <p class="ui-fine">How it is worked out: payout = loss × the smaller of 1 and (sum insured ÷ (clause share × true value)), less the deductible, never above the sum insured. Clauses differ by country and policy: India's average clause uses the full value, and many US and Canadian policies use 80%. Check your policy wording and the official source (checked 2026-11-10). Nothing you type leaves this page.</p>
 </div>
 
 <style is:inline>
+  .ui-tw { overflow-x: auto; } .ui-tw table { border-collapse: collapse; width: 100%; font-size: 14px; } .ui-tw th, .ui-tw td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; } .ui-tw th:first-child, .ui-tw td:first-child { text-align: left; }
   .ui { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .ui > *, .ui-res > * { min-width: 0; }
   .ui h2 { margin: 0 0 10px; font-size: 18px; }
@@ -74,7 +79,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { averageClause } from '../../lib/money/insurance';
+  import { averageClause, averageSweep } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.ui')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -110,6 +115,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.ui-words').innerHTML = r.factor < 1
       ? `Your sum insured covers <b>${Math.round(r.factor * 100)}%</b> of what the clause asks for (${$(req * value)}), so the insurer pays only that share of the loss, then takes off the deductible. Insuring for <b>${$(req * value)}</b> would avoid the cut: it would have paid ${$(r.fullPayout)}.`
       : `Your sum insured meets what the clause asks for, so the loss is paid in full (up to the sum insured), less the deductible.`;
+    q('.ui-sweep').innerHTML = req > 0 ? averageSweep(loss, value, req, ded, [0.5, 0.7, 0.8, 0.9, 1]).map((x) => `<tr><td>${Math.round(x.share * 100)}% of required</td><td>${$(x.sumInsured)}</td><td>${$(x.payout)}</td><td>${$(x.youPay)}</td></tr>`).join('') : '<tr><td colspan="4">No clause: the loss is paid up to the sum insured.</td></tr>';
     const W = 560, vals = [loss, r.payout, r.youPay], names = ['Loss', 'Insurer pays', 'You pay'];
     q('.ui-svg').innerHTML = vals.map((v, i) => `<rect x="90" y="${8 + i * 36}" width="${Math.max(2, (v / loss) * W * 0.8).toFixed(1)}" height="24" rx="4" fill="${BARS[i]}"/><text x="84" y="${25 + i * 36}" text-anchor="end">${names[i]}</text><text x="${(90 + Math.max(2, (v / loss) * W * 0.8) + 6).toFixed(1)}" y="${25 + i * 36}">${$(v)}</text>`).join('');
   }

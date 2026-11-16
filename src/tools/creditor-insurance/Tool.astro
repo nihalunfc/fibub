@@ -41,6 +41,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     <div class="panel"><h2>Year by year</h2>
       <div class="ci-wrap"><table><thead><tr><th>Year</th><th>Balance (creditor cover)</th><th>Creditor premium</th><th>Term cover</th><th>Term premium</th></tr></thead><tbody class="ci-body"></tbody></table></div>
     </div>
+    <div class="panel"><h2>If the worst happened in year...</h2>
+      <label class="ci-yr">Year <input data-k="dyear" inputmode="decimal" /></label>
+      <p class="ci-line ci-death"></p>
+    </div>
     <div class="panel"><h2>How they differ</h2>
       <ul class="ci-diff">
         <li><b>Who is paid:</b> creditor insurance pays the lender; term pays your family (or whoever you name), who may use it for the loan or anything else.</li>
@@ -55,6 +59,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </div>
 
 <style is:inline>
+  .ci-yr { display: grid; gap: 4px; max-width: 160px; font-size: 14px; color: var(--muted); margin-bottom: 8px; } .ci-yr input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; }
   .ci { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .ci > *, .ci-res > * { min-width: 0; }
   .ci h2 { margin: 0 0 12px; font-size: 18px; }
@@ -87,7 +92,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { loanBalances, creditorVsTerm } from '../../lib/money/insurance';
+  import { loanBalances, creditorVsTerm, deathAtYear } from '../../lib/money/insurance';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.ci')!;
@@ -95,7 +100,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency(), big = cur === 'INR';
   q('.ci-cur').innerHTML = currencyOptions(cur);
-  const def: Record<string, string> = { loan: big ? '50,00,000' : '300,000', rate: '6', years: '20', cred: big ? '1,500' : '60', term: big ? '1,200' : '40', cover: big ? '50,00,000' : '300,000' };
+  const def: Record<string, string> = { loan: big ? '50,00,000' : '300,000', rate: '6', years: '20', cred: big ? '1,500' : '60', dyear: '5', term: big ? '1,200' : '40', cover: big ? '50,00,000' : '300,000' };
   for (const k in def) f(k).value = def[k];
   const $ = (n: number) => money(n, f('cur').value, 0);
   const $2 = (n: number) => money(n, f('cur').value, 2);
@@ -116,6 +121,8 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.ci-s-ca').textContent = $(r.credCover);
     const cheaper = r.credPer1000 < r.termPer1000 ? 'creditor insurance' : r.credPer1000 > r.termPer1000 ? 'term insurance' : '';
     q('.ci-words').innerHTML = `Creditor cover averages <b>${$(r.credCover)}</b> over the loan and costs <b>${$2(r.credPer1000)}</b> a year per 1,000 of cover; term costs <b>${$2(r.termPer1000)}</b> per 1,000. ${cheaper ? `In these numbers ${cheaper} costs less per 1,000, but the two pay different people and are not the same product.` : 'They cost the same per 1,000.'}`;
+    const dy = Math.round(num(f('dyear').value));
+    if (dy >= 1 && dy <= years) { const d = deathAtYear(balances, cover, dy); q('.ci-death').innerHTML = `At the start of year ${dy} the loan balance is <b>${$(d.balance)}</b>. Creditor insurance would pay that to the lender. The term policy would pay <b>${$(d.toFamily)}</b> to your family, ${d.familyExtraVsCreditor >= 0 ? `<b>${$(d.familyExtraVsCreditor)}</b> more than the balance, which they could use for the loan or anything else` : `<b>${$(-d.familyExtraVsCreditor)}</b> less than the balance`}.`; } else q('.ci-death').textContent = `Enter a year from 1 to ${years}.`;
     q('.ci-body').innerHTML = balances.map((b, k) => `<tr><td>${k + 1}</td><td>${$(b)}</td><td>${$(credYearly[k])}</td><td>${$(cover)}</td><td>${$(term * 12)}</td></tr>`).join('');
     const xs = balances.map((_, k) => k + 1);
     const series = [{ label: 'Creditor cover (the balance)', ys: balances, color: 'var(--accent)' }, { label: 'Term cover', ys: balances.map(() => cover), color: 'var(--muted)', dash: true }];

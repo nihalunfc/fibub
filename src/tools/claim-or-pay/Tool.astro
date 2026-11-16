@@ -36,6 +36,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Claiming leaves you</span><b class="clm-s-net"></b></div>
     </div>
     <p class="clm-line clm-words"></p>
+    <div class="panel"><h2>Break-even repair cost</h2>
+      <p class="clm-line clm-be"></p>
+      <div class="clm-wrap"><table><thead><tr><th>Repair cost</th><th>Claim pays</th><th>Claiming leaves you</th></tr></thead><tbody class="clm-whatif"></tbody></table></div>
+    </div>
     <div class="panel"><h2>Year by year</h2>
       <div class="clm-wrap"><table><thead><tr><th>Year</th><th>If you claim</th><th>If you pay yourself</th><th>Extra</th></tr></thead><tbody class="clm-body"></tbody></table></div>
     </div>
@@ -70,7 +74,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { claimCost, NCB_IN } from '../../lib/money/insurance';
+  import { claimCost, NCB_IN, claimBreakEven, claimWhatIf } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.clm')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -108,6 +112,9 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.clm-s-pv').textContent = $(r.pv);
     q('.clm-s-net').textContent = (net >= 0 ? 'ahead by ' : 'behind by ') + $(Math.abs(net));
     q('.clm-words').innerHTML = pay <= 0 ? `The repair (${$(repair)}) is not above your deductible (${$(ded)}), so a claim would pay <b>nothing</b>: paying yourself costs less.` : net >= 0 ? `The claim pays you <b>${$(pay)}</b>, more than the <b>${$(r.pv)}</b> (today's value) of extra premiums, so claiming costs less in these numbers.` : `The claim pays you <b>${$(pay)}</b> but raises later premiums by <b>${$(r.pv)}</b> (today's value), so paying the repair yourself costs less in these numbers.`;
+    const be = claimBreakEven(r.pv, ded);
+    q('.clm-be').innerHTML = `Claim only if the repair is above about <b>${$(be)}</b> (the deductible ${$(ded)} plus ${$(r.pv)} of extra premiums in today's value). Below that, paying yourself costs less in these numbers.`;
+    q('.clm-whatif').innerHTML = claimWhatIf(r.pv, ded, [0.25, 0.5, 1, 2, 4].map((m) => Math.round(repair * m))).map((x) => `<tr><td>${$(x.repair)}</td><td>${$(x.pay)}</td><td>${x.net >= 0 ? 'ahead ' : 'behind '}${$(Math.abs(x.net))}</td></tr>`).join('');
     q('.clm-body').innerHTML = r.claim.map((c, k) => `<tr><td>${k + 1}</td><td>${$(c)}</td><td>${$(r.keep[k])}</td><td>${$(r.extra[k])}</td></tr>`).join('');
   }
   root.addEventListener('input', run); root.addEventListener('change', run);

@@ -29,6 +29,11 @@ Pick the appliances you use, say how many hours a day and days a month they run,
 
 You can use one flat price per kWh, or a time-of-use plan like Ontario's, where on-peak, mid-peak and off-peak hours cost different amounts. If you are thinking of solar, [[solar-pv-yield]] shows what panels could produce, [[budget-calculator|the budget planner]] puts the bill in your month, and [[fuel-cost]] does the same sum for driving.
 
+## More options
+
+- **Biggest spenders**: under the total, the three appliances that cost most, with their share of the appliance cost, so you know where to cut first.
+- **What if I use less?**: open "More options", type a percentage (or drag the slider) and see what you would save per month and per year if every appliance ran that much less. Standby power is not reduced.
+
 There is also a slab (stepped) tariff option, for utilities that charge a higher price once your monthly kWh passes a set level, as many do for summer air-conditioning. Type up to six slabs (from kWh, to kWh, price) straight from your bill, plus an optional fixed charge, fuel surcharge per kWh and VAT or tax percentage. The page shows the bill split by slab and the cost of your last kWh, so you can see what one more hour of air conditioning really costs. No tariffs are filled in for you; your utility changes them, so check the official source.
 
 ## How to use it

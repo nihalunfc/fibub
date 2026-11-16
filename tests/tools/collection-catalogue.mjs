@@ -22,4 +22,12 @@ export default async ({ page, check, BASE }) => {
   check(await page.evaluate(() => !localStorage.getItem('fibub-collection-v1')), 'catalogue: unticking deletes it');
   const [d] = await Promise.all([page.waitForEvent('download'), page.click('.cc .cc-csv')]);
   check(d.suggestedFilename() === 'my-collection.csv', 'catalogue: CSV download');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.cc .cc-kindf', 'note'); await page.waitForTimeout(100);
+  check((await page.locator('.cc .cc-tab tbody tr').count()) === 1, 'catalogue: type filter shows only banknotes');
+  await page.selectOption('.cc .cc-kindf', '');
+  await page.selectOption('.cc .cc-by', 'country'); await page.waitForTimeout(100);
+  check((await page.locator('.cc .cc-bytab tbody tr').count()) === 3 && /India/.test(await page.textContent('.cc .cc-bytab tbody')), 'catalogue: totals by country has 3 groups');
+  await page.setInputFiles('.cc .cc-importcsv', { name: 'x.csv', mimeType: 'text/csv', buffer: Buffer.from('Type,Name,Country,Qty,Paid,Value\ncoin,Test,Peru,2,10,20\n') }); await page.waitForTimeout(200);
+  check((await page.locator('.cc .cc-tab tbody tr').count()) === 5, 'catalogue: CSV import adds a row');
 };

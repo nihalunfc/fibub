@@ -326,6 +326,7 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'building', subject: 'home-diy', name: 'Concrete, decks and stairs' },
     { id: 'yard', subject: 'home-diy', name: 'Yard and landscaping' },
     { id: 'heating-cooling', subject: 'home-diy', name: 'Heating and cooling' },
+    { id: 'woodwork', subject: 'home-diy', name: 'Woodwork and fixings' },
     { id: 'measures', subject: 'kitchen', name: 'Measures and temperatures' },
     { id: 'recipes', subject: 'kitchen', name: 'Recipes and meals' },
     { id: 'running', subject: 'fitness', name: 'Running and training' },
@@ -356,6 +357,7 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'school-biology', name: 'Biology' },
     { id: 'school-maths', name: 'Maths' },
     { id: 'school-earth', name: 'Earth and space' },
+    { id: 'home-skills', name: 'Home skills' },
   ],
 };
 

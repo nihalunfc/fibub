@@ -40,6 +40,9 @@ On the buying side it gives the total you will pay and the highest bid that keep
 - **Buyer's premium %**: the fee added to the winning bid.
 - **Tax %**: VAT, GST or sales tax. Choose whether it applies to the premium only, or to the hammer price plus premium.
 - **Shipping and insurance**: a flat amount added to the total.
+- **More options, a different premium above a price**: some houses charge another rate on the part of the hammer price above a limit. Type the limit and the rate for that part; leave both empty for one flat rate. The bid ladder and the most-you-can-bid result follow it.
+- **If you bid a little more or less**: a table of five hammer prices (20% and 10% lower or higher) with the premium, tax and all-in total.
+- **More options, what hammer price do I need?** (selling): type what you want to receive and see the hammer price that gives it after commission, tax on the commission and fixed fees.
 - **Seller's commission %**: the share of the hammer price the house keeps.
 - **Fixed fees**: listing, photo or insurance charges taken from the sale.
 

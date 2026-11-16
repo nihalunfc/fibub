@@ -13,6 +13,13 @@
       <label>Billable hours per week <input data-k="hrs" inputmode="decimal" /></label>
       <label>Days you work per week <input data-k="days" inputmode="decimal" /></label>
     </div>
+    <details class="fr-more"><summary>More options</summary>
+      <div class="fr-grid" style="margin-top:10px">
+        <label>Hours the project will take (for a quote) <input data-k="proj" inputmode="decimal" placeholder="e.g. 40" /></label>
+        <label>Buffer for the unexpected <span class="fr-suf"><input data-k="buf" inputmode="decimal" value="15" /><i>%</i></span></label>
+        <label>Salary you could earn as an employee (before tax) <input data-k="sal" inputmode="decimal" placeholder="optional" /></label>
+      </div>
+    </details>
     <p class="note bad fr-err" role="alert" hidden></p>
   </section>
   <section class="fr-res" aria-live="polite">
@@ -23,6 +30,9 @@
       <div><span>Billable hours a year</span><b class="fr-s-hours"></b></div>
     </div>
     <p class="fr-line fr-words"></p>
+    <p class="fr-line fr-month"></p>
+    <p class="fr-line fr-quote" hidden></p>
+    <p class="fr-line fr-emp" hidden></p>
     <div class="fr-what panel"><h2>How your rate changes</h2>
       <div class="fr-wrap"><table><thead><tr><th>Billable hours a week</th><th>Hourly rate</th><th>Day rate</th></tr></thead><tbody class="fr-rows"></tbody></table></div>
     </div>
@@ -60,7 +70,7 @@
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { freelanceRate } from '../../lib/money/business';
+  import { freelanceRate, quote } from '../../lib/money/business';
   const root = document.querySelector<HTMLElement>('.fr')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -77,6 +87,12 @@
     q('.fr-s-hour').textContent = $(r.hourly); q('.fr-s-day').textContent = $(r.day);
     q('.fr-s-gross').textContent = $(r.gross, 0); q('.fr-s-hours').textContent = Math.round(r.hours).toLocaleString();
     q('.fr-words').innerHTML = `To take home <b>${$(a.take, 0)}</b> after ${a.tax}% tax and ${$(a.exp, 0)} of costs you need to bill <b>${$(r.gross, 0)}</b> over <b>${r.weeks}</b> working weeks. At ${a.hrs} billable hours a week that is <b>${$(r.hourly)}</b> an hour, or <b>${$(r.day)}</b> for a ${Math.round((a.hrs / a.days) * 10) / 10}-hour billable day.`;
+    q('.fr-month').textContent = `That is about ${$(r.gross / 12, 0)} to invoice each month, or ${$(a.take / 12, 0)} a month you keep after tax and costs.`;
+    const proj = num(f('proj').value), buf = num(f('buf').value), sal = num(f('sal').value);
+    q('.fr-quote').hidden = !(proj > 0);
+    if (proj > 0) q('.fr-quote').textContent = `Quote for a ${proj}-hour project with a ${buf}% buffer: ${$(quote(proj, r.hourly, buf), 0)} (${Math.round(proj * (1 + buf / 100) * 100) / 100} hours at ${$(r.hourly)}).`;
+    q('.fr-emp').hidden = !(sal > 0);
+    if (sal > 0) q('.fr-emp').textContent = `As an employee, ${$(sal, 0)} a year is about ${$(sal / (52 * 40))} an hour over a 40-hour week, so your freelance rate is ${Math.round((r.hourly / (sal / (52 * 40))) * 100) / 100} times that. The gap pays for unbilled time, time off, tax and costs that an employer would normally cover.`;
     const set = [a.hrs - 10, a.hrs - 5, a.hrs, a.hrs + 5, a.hrs + 10].filter((h) => h > 0 && h <= 100);
     q('.fr-rows').innerHTML = set.map((h) => { const x = freelanceRate({ ...a, hrs: h }); return `<tr><td>${h}${h === a.hrs ? ' (yours)' : ''}</td><td>${$(x.hourly)}</td><td>${$(x.day)}</td></tr>`; }).join('');
   }

@@ -46,6 +46,12 @@ It works out numbers from what you type. It does not say whether a cost qualifie
 - **AGI (US)**: your adjusted gross income. The deduction only helps if you itemise.
 - **Age 60 or older (India)**: uses the higher limit.
 
+## Extra checks for Canada and families
+
+- **Best 12 months versus the calendar year:** below the result, the tool says how much more the best 12-month period gives than simply using January to December, in costs and in federal credit.
+- **Spouse or partner:** under "More options", type their net income to compare the credit if they claim instead. The reduction (the lesser of 3% of net income or the threshold) depends on income, so the lower earner often gets more. It is a comparison of the same costs, not advice on who should claim.
+- **By person:** with more than one person in your list, a line shows each person's costs after insurance.
+
 ## Worked example
 
 US: costs of 10,000 and AGI of 60,000. 7.5% of AGI is 4,500, so the itemised amount is 5,500. India, age 60 or older: costs of 1,20,000 less 20,000 from insurance is 1,00,000, which equals the limit.

@@ -48,6 +48,10 @@ You see a line for each plan, the spends where two plans cost the same, and a ta
 - **Copays**: fixed fees you expect, such as visits, added as they are.
 - **Employer HSA money** (US): money that lowers your total.
 
+## More options
+
+Under the table, a one-line answer names the cheapest plan for a typical year. The table has a "Worst possible year" row (premium plus the most you can pay out of pocket plus copays; it says "No ceiling" when a plan has no out-of-pocket maximum or has a yearly cap you could pass). In "More options" you can type your own guess of how likely a low, typical or bad year is, and an "Average year" row shows each plan's cost weighted by those guesses. The chances are yours, not statistics. General information, not insurance advice; check the official source.
+
 ## Worked example
 
 Plan A: premium 5,000, deductible 1,000, you pay 10% after that, out-of-pocket maximum 3,000. Plan B: premium 2,000, deductible 4,000, you pay 30%, maximum 8,000. With 10,000 of care, A costs 5,000 + 1,000 + 900 = 6,900 and B costs 2,000 + 4,000 + 1,800 = 7,800. The plans cost the same at 5,500 of care: below that B costs less, above it A costs less.

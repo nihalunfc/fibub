@@ -22,6 +22,10 @@ flow:
   - { icon: check, label: "You pay" }
 ---
 
+## More options
+
+"More options" lists what different room rents would do with the same bill lines: the room at your limit, 1.25, 1.5, 2 and 3 times the limit, and your own room. For each it shows the share paid, what the insurer counts and the cut. This is a simplified view because a dearer room usually also raises the room charge itself. General information, not insurance advice; check the official source and your policy wording.
+
 ## What it does
 
 Many Indian health policies limit the room rent per day, often to 1% of the sum insured for a normal room and 2% for ICU. If you choose a room that costs more, the insurer may pay the room, nursing, doctor and operation theatre lines only in proportion. That is called proportionate deduction, and it can cut a bill by far more than the extra room rent.

@@ -11,4 +11,7 @@ export default async ({ page, check, BASE }) => {
   check(await page.isVisible(R + '.ue-err'), 'url: bad % shows an error');
   await page.fill(R + '.ue-plain', 'a b&c=d'); await page.selectOption(R + '.ue-mode', 'uri'); await page.waitForTimeout(80);
   check((await page.inputValue(R + '.ue-enc')) === 'a%20b&c=d' && (await page.isHidden(R + '.ue-err')), 'url: whole-address mode keeps & and =');
+  check((await page.inputValue('.ue .ue-built')) === 'https://example.com/search?q=fibub%20tools&lang=en%26fr', `url-encoder: built query string (${await page.inputValue('.ue .ue-built')})`);
+  await page.fill('.ue .ue-kv', 'a=b c'); await page.fill('.ue .ue-base', ''); await page.waitForTimeout(100);
+  check((await page.inputValue('.ue .ue-built')) === 'a=b%20c', 'url-encoder: query string without a base');
 };

@@ -11,6 +11,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <label>Currency <select class="hi-cur" data-k="cur"></select></label>
       <label>Contents sum insured <input data-k="si" inputmode="decimal" /></label>
     </div>
+    <datalist id="hi-cats"><option>Electronics</option><option>Furniture</option><option>Appliances</option><option>Clothing</option><option>Jewellery and valuables</option><option>Kitchenware</option><option>Sports and hobby</option><option>Tools</option><option>Books and media</option></datalist>
     <div class="hi-rows"></div>
     <button type="button" class="btn secondary hi-add">Add an item</button>
     <p class="note bad hi-err" role="alert" hidden></p>
@@ -26,6 +27,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     <div class="panel"><h2>By room</h2>
       <div class="hi-wrap"><table><thead><tr><th>Room</th><th>Items</th><th>Replacement</th><th>Depreciated</th></tr></thead><tbody class="hi-rooms"></tbody></table></div>
     </div>
+    <div class="panel"><h2>By category</h2>
+      <div class="hi-wrap"><table><thead><tr><th>Category</th><th>Items</th><th>Replacement</th><th>Depreciated</th></tr></thead><tbody class="hi-cats"></tbody></table></div>
+      <p class="hi-hint hi-checks" style="margin:8px 0 0"></p>
+    </div>
     <div class="panel"><h2>Replacement cost or actual cash value?</h2>
       <p class="hi-hint" style="margin:0">A replacement cost policy pays what the item costs new today; an actual cash value policy pays that less wear, close to the depreciated total above. The wording of your policy says which. To see what a claim would pay if your sum insured is too low, use <a href="/money/underinsurance-check/">the underinsurance check</a>.</p>
     </div>
@@ -39,7 +44,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   <section class="hi-pa" aria-hidden="true">
     <h2>Home contents inventory</h2>
     <p class="hi-pmeta"></p>
-    <table><thead><tr><th>Room</th><th>Item</th><th>Qty</th><th>Bought</th><th>Paid</th><th>Replacement (each)</th><th>Replacement (total)</th><th>Depreciated</th><th>Photo</th></tr></thead><tbody class="hi-pbody"></tbody></table>
+    <table><thead><tr><th>Room</th><th>Category</th><th>Item</th><th>Qty</th><th>Bought</th><th>Paid</th><th>Replacement (each)</th><th>Replacement (total)</th><th>Depreciated</th><th>Photo</th></tr></thead><tbody class="hi-pbody"></tbody></table>
   </section>
   <p class="hi-fine hi-noprint">How it is worked out: replacement total = quantity × replacement cost for each item; depreciated value = replacement × (1 − age ÷ years of life), never below 0, with age as this year minus the year bought; shortfall = replacement total − sum insured. Your policy may pay differently: check the wording and the official source. Nothing you type leaves this page.</p>
 </div>
@@ -85,7 +90,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 <script>
   import { downloadCsv } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  type Item = { room: string; item: string; qty: string; year: string; paid: string; repl: string; life: string; photo: string };
+  type Item = { cat?: string; room: string; item: string; qty: string; year: string; paid: string; repl: string; life: string; photo: string };
   const KEY = 'fibub-home-inventory-v1';
   const root = document.querySelector<HTMLElement>('.hi')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -95,17 +100,17 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   f('si').value = big ? '5,00,000' : '20,000';
   const yr = new Date().getFullYear();
   let items: Item[] = [
-    { room: 'Living room', item: 'Television', qty: '1', year: String(yr - 4), paid: big ? '60,000' : '800', repl: big ? '70,000' : '900', life: '8', photo: '' },
-    { room: 'Kitchen', item: 'Microwave', qty: '1', year: String(yr - 6), paid: big ? '12,000' : '150', repl: big ? '15,000' : '200', life: '10', photo: '' },
+    { cat: 'Electronics', room: 'Living room', item: 'Television', qty: '1', year: String(yr - 4), paid: big ? '60,000' : '800', repl: big ? '70,000' : '900', life: '8', photo: '' },
+    { cat: 'Appliances', room: 'Kitchen', item: 'Microwave', qty: '1', year: String(yr - 6), paid: big ? '12,000' : '150', repl: big ? '15,000' : '200', life: '10', photo: '' },
   ];
   let loaded = false;
-  try { const s = localStorage.getItem(KEY); if (s) { const o = JSON.parse(s); if (Array.isArray(o.items) && o.items.length) { items = o.items.map((i: Item) => ({ ...i, photo: '' })); if (o.si) f('si').value = o.si; if (o.cur) f('cur').value = o.cur; loaded = true; } } } catch {}
+  try { const s = localStorage.getItem(KEY); if (s) { const o = JSON.parse(s); if (Array.isArray(o.items) && o.items.length) { items = o.items.map((i: Item) => ({ cat: '', ...i, photo: '' })); if (o.si) f('si').value = o.si; if (o.cur) f('cur').value = o.cur; loaded = true; } } } catch {}
   q<HTMLInputElement>('.hi-keepbox').checked = loaded;
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const rowsEl = q('.hi-rows');
-  const flds: [keyof Item, string, string][] = [['room', 'Room', 'hi-wide'], ['item', 'Item', 'hi-wide'], ['qty', 'Quantity', ''], ['year', 'Year bought', ''], ['paid', 'Price paid', ''], ['repl', 'Replacement cost today (one)', ''], ['life', 'Years of life (0 = none)', '']];
+  const flds: [keyof Item, string, string][] = [['room', 'Room', 'hi-wide'], ['cat', 'Category (Electronics, Furniture, Jewellery...)', 'hi-wide'], ['item', 'Item', 'hi-wide'], ['qty', 'Quantity', ''], ['year', 'Year bought', ''], ['paid', 'Price paid', ''], ['repl', 'Replacement cost today (one)', ''], ['life', 'Years of life (0 = none)', '']];
   function drawRows() {
-    rowsEl.innerHTML = items.map((it, i) => `<div class="hi-row" data-i="${i}">${flds.map(([k, lab, cls]) => `<label class="${cls}">${lab} <input data-f="${k}" inputmode="${k === 'room' || k === 'item' ? 'text' : 'decimal'}" value="${esc(it[k])}" /></label>`).join('')}<label class="hi-wide">Photo (optional) <input type="file" accept="image/*" class="hi-file" /></label><div>${it.photo ? `<img class="hi-thumb" alt="Photo of ${esc(it.item)}" src="${it.photo}" />` : ''}</div><button type="button" class="btn secondary hi-del" aria-label="Remove ${esc(it.item) || 'this item'}">Remove</button></div>`).join('');
+    rowsEl.innerHTML = items.map((it, i) => `<div class="hi-row" data-i="${i}">${flds.map(([k, lab, cls]) => `<label class="${cls}">${lab} <input data-f="${k}" inputmode="${k === 'room' || k === 'item' ? 'text' : 'decimal'}" value="${esc(it[k] ?? '')}"${k === 'cat' ? ' list="hi-cats"' : ''} /></label>`).join('')}<label class="hi-wide">Photo (optional) <input type="file" accept="image/*" class="hi-file" /></label><div>${it.photo ? `<img class="hi-thumb" alt="Photo of ${esc(it.item)}" src="${it.photo}" />` : ''}</div><button type="button" class="btn secondary hi-del" aria-label="Remove ${esc(it.item) || 'this item'}">Remove</button></div>`).join('');
   }
   const $ = (n: number) => money(n, f('cur').value, 0);
   const val = (it: Item) => { const rc = num(it.qty) * num(it.repl); const life = num(it.life), age = Math.max(0, yr - num(it.year)); return { rc, dep: life > 0 ? rc * Math.max(0, 1 - age / life) : rc }; };
@@ -118,15 +123,18 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     const bad = si < 0 ? 'Sum insured cannot be negative.' : items.some((i) => num(i.qty) < 0 || num(i.repl) < 0 || num(i.paid) < 0) ? 'Quantities and amounts cannot be negative.' : '';
     q('.hi-err').hidden = !bad; q('.hi-err').textContent = bad; q('.hi-res').hidden = !!bad;
     if (bad) return;
-    let rep = 0, dep = 0; const rooms = new Map<string, { n: number; rc: number; dep: number }>();
-    for (const it of items) { const v = val(it); rep += v.rc; dep += v.dep; const r = it.room.trim() || 'No room'; const o = rooms.get(r) || { n: 0, rc: 0, dep: 0 }; o.n += num(it.qty); o.rc += v.rc; o.dep += v.dep; rooms.set(r, o); }
+    let rep = 0, dep = 0; const rooms = new Map<string, { n: number; rc: number; dep: number }>(), cats = new Map<string, { n: number; rc: number; dep: number }>();
+    for (const it of items) { const v = val(it); rep += v.rc; dep += v.dep; const r = it.room.trim() || 'No room'; const o = rooms.get(r) || { n: 0, rc: 0, dep: 0 }; o.n += num(it.qty); o.rc += v.rc; o.dep += v.dep; rooms.set(r, o); const c = (it.cat || '').trim() || 'No category'; const oc = cats.get(c) || { n: 0, rc: 0, dep: 0 }; oc.n += num(it.qty); oc.rc += v.rc; oc.dep += v.dep; cats.set(c, oc); }
     const gap = rep - si;
     q('.hi-s-rep').textContent = $(rep); q('.hi-s-dep').textContent = $(dep); q('.hi-s-si').textContent = $(si);
     q('.hi-s-gap').textContent = gap > 0 ? $(gap) : 'none';
     q('.hi-words').innerHTML = gap > 0 ? `Your list would cost <b>${$(rep)}</b> to replace but the contents sum insured is <b>${$(si)}</b>: a shortfall of <b>${$(gap)}</b>. Check how your policy treats this (see the underinsurance check).` : `Your sum insured covers the replacement cost of what you have listed, with <b>${$(-gap)}</b> to spare. Items you have not listed still count, so keep adding.`;
     q('.hi-rooms').innerHTML = [...rooms].map(([r, o]) => `<tr><td>${esc(r)}</td><td>${o.n}</td><td>${$(o.rc)}</td><td>${$(o.dep)}</td></tr>`).join('');
+    q('.hi-cats').innerHTML = [...cats].sort((a, b) => b[1].rc - a[1].rc).map(([r, o]) => `<tr><td>${esc(r)}</td><td>${o.n}</td><td>${$(o.rc)}</td><td>${$(o.dep)}</td></tr>`).join('');
+    const noPrice = items.filter((i) => !(num(i.repl) > 0)).length, noPhoto = items.filter((i) => !i.photo).length;
+    q('.hi-checks').textContent = `Claim readiness: ${noPrice ? noPrice + ' item' + (noPrice > 1 ? 's' : '') + ' without a replacement cost. ' : 'every item has a replacement cost. '}${noPhoto ? noPhoto + ' without a photo (photos are not kept when you reload, so add them just before you print).' : 'every item has a photo.'}`;
     q('.hi-pmeta').textContent = `Printed ${new Date().toLocaleDateString()}. Replacement total ${$(rep)}; depreciated total ${$(dep)}; sum insured ${$(si)}.`;
-    q('.hi-pbody').innerHTML = items.map((it) => { const v = val(it); return `<tr><td>${esc(it.room)}</td><td>${esc(it.item)}</td><td>${esc(it.qty)}</td><td>${esc(it.year)}</td><td>${$(num(it.paid))}</td><td>${$(num(it.repl))}</td><td>${$(v.rc)}</td><td>${$(v.dep)}</td><td>${it.photo ? `<img alt="" src="${it.photo}" />` : ''}</td></tr>`; }).join('');
+    q('.hi-pbody').innerHTML = items.map((it) => { const v = val(it); return `<tr><td>${esc(it.room)}</td><td>${esc(it.cat || '')}</td><td>${esc(it.item)}</td><td>${esc(it.qty)}</td><td>${esc(it.year)}</td><td>${$(num(it.paid))}</td><td>${$(num(it.repl))}</td><td>${$(v.rc)}</td><td>${$(v.dep)}</td><td>${it.photo ? `<img alt="" src="${it.photo}" />` : ''}</td></tr>`; }).join('');
     save();
   }
   rowsEl.addEventListener('input', (e) => { const t = e.target as HTMLInputElement; const row = t.closest<HTMLElement>('.hi-row'); const k = t.dataset.f as keyof Item | undefined; if (row && k) { items[+row.dataset.i!][k] = t.value; run(); } });
@@ -137,11 +145,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     items[i].photo = URL.createObjectURL(file); drawRows(); run();
   });
   rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.hi-del'); if (!b) return; const i = +b.closest<HTMLElement>('.hi-row')!.dataset.i!; items.splice(i, 1); drawRows(); run(); });
-  q('.hi-add').addEventListener('click', () => { items.push({ room: items.length ? items[items.length - 1].room : '', item: '', qty: '1', year: String(yr), paid: '0', repl: '0', life: '0', photo: '' }); drawRows(); run(); });
+  q('.hi-add').addEventListener('click', () => { items.push({ cat: '', room: items.length ? items[items.length - 1].room : '', item: '', qty: '1', year: String(yr), paid: '0', repl: '0', life: '0', photo: '' }); drawRows(); run(); });
   f('si').addEventListener('input', run); f('cur').addEventListener('change', run);
   q('.hi-keepbox').addEventListener('change', run);
   q('.hi-clear').addEventListener('click', () => { q<HTMLInputElement>('.hi-keepbox').checked = false; try { localStorage.removeItem(KEY); } catch {} q('.hi-saved').textContent = 'Saved copy removed.'; });
   q('.hi-print').addEventListener('click', () => window.print());
-  q('.hi-csv').addEventListener('click', () => downloadCsv('home-inventory.csv', [['Room', 'Item', 'Quantity', 'Year bought', 'Price paid', 'Replacement cost (each)', 'Replacement cost (total)', 'Years of life', 'Depreciated value'], ...items.map((it) => { const v = val(it); return [it.room, it.item, num(it.qty), it.year, num(it.paid), num(it.repl), v.rc, num(it.life), Math.round(v.dep)]; })]));
+  q('.hi-csv').addEventListener('click', () => downloadCsv('home-inventory.csv', [['Room', 'Category', 'Item', 'Quantity', 'Year bought', 'Price paid', 'Replacement cost (each)', 'Replacement cost (total)', 'Years of life', 'Depreciated value'], ...items.map((it) => { const v = val(it); return [it.room, it.cat || '', it.item, num(it.qty), it.year, num(it.paid), num(it.repl), v.rc, num(it.life), Math.round(v.dep)]; })]));
   drawRows(); run();
 </script>

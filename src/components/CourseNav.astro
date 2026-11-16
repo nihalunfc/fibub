@@ -1,0 +1,11 @@
+---
+// "Lesson 2 of 3 in Tyres and punctures, Next →" for a Home skills lesson (src/data/skill-courses.ts).
+import { courseOf } from '../data/skill-courses';
+interface Props { id: string }
+const at = courseOf(Astro.props.id);
+const next = at && at.course.lessons[at.i + 1], prev = at && at.course.lessons[at.i - 1];
+---
+{at && <nav class="sk-course" aria-label="Course">
+  <span>Lesson {at.i + 1} of {at.course.lessons.length} in <a href={`/learn/courses/${at.course.id}/`}>{at.course.name}</a></span>
+  <span>{prev && <a href={`/learn/${prev}/`}>← Previous</a>}{prev && next && ' · '}{next ? <a href={`/learn/${next}/`}>Next lesson →</a> : <a href={`/learn/courses/${at.course.id}/`}>Course page →</a>}</span>
+</nav>}

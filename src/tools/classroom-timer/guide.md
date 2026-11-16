@@ -21,6 +21,8 @@ flow:
   - { icon: check, label: "Time is up" }
 ---
 
+A bar under the digits fills as time passes (and turns amber, then red), so a class can see the time without reading numbers. Quick times run from 1 to 60 minutes.
+
 ## What it does
 
 A timer you can put on a projector or whiteboard: big digits, quick buttons for 1, 2, 5, 10 and 15 minutes, or any time you type. The digits turn amber near the end so the room can see time is running out, then red with a beep when time is up. A second tab is a stopwatch with laps, for races, experiments or timed reading.

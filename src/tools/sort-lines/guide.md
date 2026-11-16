@@ -37,11 +37,13 @@ Before sorting, the [[text-cleaner]] can strip odd spaces and line breaks from p
 
 - **A to Z / Z to A**: dictionary order. Upper and lower case sort together; on a tie, the lower case line comes first. Digits are compared as text, so 10 comes before 9.
 - **Natural (numbers by value)**: like A to Z, but a run of digits is read as a number, so "item 9" comes before "item 10". Numbers come before letters. **Natural, reversed** is the same order backwards.
+- **Numbers by value**: sorts by the first number found in each line, including decimals, so "$9.50 coffee" comes before "$12 lunch". Lines with no number go last. **By last word** sorts on the final word of each line, handy for surnames.
 - **Shortest first / Longest first**: by number of characters. Lines of equal length keep their order.
 - **Reverse the order**: flips the list without sorting it.
 - **Shuffle**: a random order from your browser's secure random generator. **Shuffle again** makes a new one.
 - **Trim spaces**: removes spaces and tabs at the start and end of each line.
 - **Remove blank lines**: drops empty lines and lines of only spaces.
+- **More options**: keep only lines containing some text, or remove lines containing it; add text before or after every line (for quotes or commas); join everything into one line with a separator you choose; keep only lines that appear more than once; or show how many times each line appears (like "2 x apple").
 - **Remove duplicates**: keeps the first copy of each line. With **Duplicates ignore case**, "Apple" and "apple" count as the same.
 - **Add line numbers**: puts "1. ", "2. " and so on in front, after sorting.
 

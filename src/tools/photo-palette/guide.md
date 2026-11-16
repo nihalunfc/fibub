@@ -21,6 +21,8 @@ flow:
   - { icon: copy, label: "Copy" }
 ---
 
+Choose **Copy colours as** HEX, RGB or HSL. The Copy buttons, the CSS variables and **Copy all colours** (one colour per line) all follow that choice.
+
 ## What it does
 
 This page finds the main colours in a picture, such as the sky, the walls or the brand colours of a logo. Choose a photo and you get between 5 and 10 colours, each with its HEX and RGB code and the share of the picture it covers. You can copy any colour, copy the whole set as CSS variables, or download a PNG strip of swatches.

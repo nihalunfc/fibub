@@ -16,4 +16,8 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption('.fm [data-k="shape"]', 'circle'); await page.waitForTimeout(100);
   const corner = await page.evaluate(() => document.querySelector('.fm canvas[data-size="48"]').getContext('2d').getImageData(0, 0, 1, 1).data[3]);
   check(corner === 0, 'favicon: circle leaves the corner transparent');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  const mf = await page.inputValue('.fm .fm-manifest');
+  check(mf.includes('192x192') && mf.includes('512x512'), 'favicon-maker: webmanifest snippet shown');
+  check((await page.$$('.fm .fm-tab img')).length === 2, 'favicon-maker: light and dark tab previews');
 };

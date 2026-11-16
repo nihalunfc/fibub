@@ -20,6 +20,8 @@ flow:
   - { icon: copy, label: "Copy, paste" }
 ---
 
+Under **More options** you can pick the bullet style (dot, dash, square, tick or arrow) and add a blank line between list items. A line under the post counts words, hashtags and lines, and shows how many characters are left before the "see more" cut.
+
 ## How to format a LinkedIn post
 
 1. Write or paste your post in the box.

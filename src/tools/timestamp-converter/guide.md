@@ -35,13 +35,15 @@ It uses your device's clock and the time zone rules built into your browser, and
 
 **Clear** empties both boxes.
 
+Under **More options: many time zones at once** you can add as many zones as you like, or press **Add a few big cities**, and see the same moment in each. Under **Date text to timestamp** you can paste a date written as text, such as `2024-03-05T10:00:00+05:30`; if it has no zone it is read in your own time zone.
+
 ## What each setting does
 
-- **Unit**: **Auto** reads 11 digits or fewer as seconds and 12 or more as milliseconds (today's times are 10 digits in seconds, 13 in milliseconds). Choose **Seconds** or **Milliseconds** to override it. Spaces and commas are ignored; negative numbers are before 1970.
+- **Unit**: **Auto** reads 11 digits or fewer as seconds, 12 to 14 as milliseconds, 15 to 17 as microseconds and 18 or more as nanoseconds (today's times are 10 digits in seconds, 13 in milliseconds). Choose a unit yourself to override it. Spaces and commas are ignored; negative numbers are before 1970.
 - **Also show in**: any IANA time zone your browser knows, such as Asia/Kolkata or America/Toronto. The table shows the wall time there and its offset from UTC, including daylight saving.
 - **This time is in**: whether the date you picked is UTC, your own zone, or the zone chosen above.
 
-The table gives Unix seconds and milliseconds, ISO 8601 in UTC, RFC 2822 (the email date format), the time in UTC, in your zone and in the chosen zone, and a relative time such as "3 days ago". Months in the relative time count as 30.4 days.
+The table gives Unix seconds and milliseconds, ISO 8601 in UTC, RFC 2822 (the email date format), the time in UTC, in your zone and in the chosen zone, RFC 3339, the day of the year and ISO week, the Excel or Google Sheets date serial, and a relative time such as "3 days ago". Months in the relative time count as 30.4 days.
 
 ## Worked example
 

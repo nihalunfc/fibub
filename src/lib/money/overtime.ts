@@ -67,3 +67,6 @@ export function whatIf(total: number, r: Pick<OtRule, 'daily' | 'weekly' | 'dail
 }
 /** If every week is like this one: two weeks, a month (52/12 weeks) and a year (52 weeks). */
 export const projectPay = (week: number) => ({ biweekly: week * 2, monthly: (week * 52) / 12, yearly: week * 52 });
+
+/** Hours you can still work this week before the weekly overtime line (0 if no weekly line or already past it). */
+export const hoursToOvertime = (total: number, weekly: number) => (weekly > 0 ? Math.max(0, weekly - Math.max(0, total)) : 0);

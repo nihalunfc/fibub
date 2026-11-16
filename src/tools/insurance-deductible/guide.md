@@ -22,6 +22,10 @@ flow:
   - { icon: check, label: "Result" }
 ---
 
+## More options
+
+"More options" turns the average into plain single-year numbers. One table shows what each quote costs you in a year with 0, 1, 2 or 3 claims of the size you choose (blank means the typical claim), and which is cheaper. Another shows one claim of several sizes, from small ones up to four times the typical claim, with each deductible marked in the list. Because each claim costs you the smaller of the claim and the deductible, small claims cost the same under both quotes and big ones cost the difference. General information, not insurance advice; check the official source for how your policy treats claims.
+
 ## What it does
 
 A higher deductible (called excess in the UK) lowers your premium, but you pay more of each claim yourself. Whether that is a good trade depends on how often you claim and how big the claims are. This tool compares two quotes and shows the saving, the break-even and the range of outcomes.

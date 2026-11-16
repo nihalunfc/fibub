@@ -13,6 +13,7 @@ import '../../styles/collect.css';
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn small cc-export">Export (.json)</button>
       <label class="btn small cc-importlab">Import<input type="file" accept=".json,application/json" class="cc-import" hidden /></label>
+      <label class="btn small cc-importlab">Import CSV<input type="file" accept=".csv,text/csv" class="cc-importcsv" hidden /></label>
       <button type="button" class="btn small cc-csv">Download CSV</button>
       <button type="button" class="btn small cc-print">Print list</button>
       <button type="button" class="btn small cc-example">Fill in an example</button>
@@ -49,11 +50,16 @@ import '../../styles/collect.css';
   <div class="ax-card">
     <h2>Totals</h2>
     <dl class="ax-facts cc-totals"></dl>
+    <details class="cc-bydet" style="margin-top:12px"><summary><strong>More options</strong>: totals by type, country or metal</summary>
+      <label style="margin-top:10px">Group by <select class="cc-by" data-k="by"><option value="kind">Type</option><option value="country">Country</option><option value="metal">Metal</option><option value="grade">Grade</option></select></label>
+      <div class="ax-scroll" style="margin-top:8px"><table class="cc-bytab"><thead><tr><th>Group</th><th class="r">Items</th><th class="r">Paid</th><th class="r">Value</th></tr></thead><tbody></tbody></table></div>
+    </details>
     <details class="cc-pdet" style="margin-top:12px"><summary>Currency and metal prices used for melt value</summary><div class="cc-prices" style="margin-top:10px"></div></details>
   </div>
 
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between"><h2 style="margin:0">Items</h2>
+      <label class="cc-kindlab"><span class="visually-hidden">Show one type</span><select class="cc-kindf" data-k="kind"><option value="">All types</option><option value="coin">Coins</option><option value="note">Banknotes</option><option value="bullion">Bullion</option><option value="medal">Medals and tokens</option><option value="stamp">Stamps</option><option value="card">Cards</option><option value="other">Other</option></select></label>
       <label class="cc-searchlab"><span class="visually-hidden">Search your items</span><input type="search" class="cc-search" placeholder="Search name, country, year…" /></label></div>
     <div class="ax-scroll" style="margin-top:10px">
       <table class="cc-tab">
@@ -69,14 +75,16 @@ import '../../styles/collect.css';
   .cc .cc-tab th button { border: 0; background: none; color: inherit; font: inherit; padding: 0; cursor: pointer; text-decoration: underline dotted; }
   .cc .cc-tab td button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 3px 8px; cursor: pointer; font: inherit; font-size: 13px; }
   .cc .cc-importlab { cursor: pointer; }
+  .cc .cc-kindf { max-width: 170px; }
+  .cc .cc-searchlab, .cc .cc-kindlab { display: inline-block; }
   .cc .cc-search { min-width: 0; width: 100%; max-width: 260px; }
   @media print {
-    header.site, footer.site, nav, .tabbar, .cc-form, .cc .ax-card:first-child, .cc-pdet, .cc-searchlab, .cc .cc-tab td:last-child, .cc .cc-tab th:last-child, .tool-guide, .tool-top, .rel { display: none !important; }
+    header.site, footer.site, nav, .tabbar, .cc-form, .cc .ax-card:first-child, .cc-pdet, .cc-searchlab, .cc .cc-tab td:last-child, .cc .cc-tab th:last-child, .cc-bydet, .cc-kindlab, .tool-guide, .tool-top, .rel { display: none !important; }
   }
 </style>
 
 <script>
-  import { ALLOYS, melt } from '../../lib/collect/maths';
+  import { ALLOYS, melt, parseCsv, totalsBy } from '../../lib/collect/maths';
   import { mountPrices, money, type Metal, type PriceState } from '../../lib/collect/prices';
   import { loadCollection, saveCollection, downloadJson, downloadCsv, readCollectionFile, newId, empty, type Collection, type Item } from '../../lib/collect/store';
 
@@ -102,10 +110,14 @@ import '../../styles/collect.css';
   const store = () => { col.cur = cur(); if (keep.checked) saveCollection(col); };
   const render = () => {
     const term = q<HTMLInputElement>('.cc-search').value.trim().toLowerCase();
-    let items = col.items.filter((i) => !term || [i.name, i.country, i.year, i.grade, i.ref, i.notes, i.place].join(' ').toLowerCase().includes(term));
+    const kf = q<HTMLSelectElement>('.cc-kindf').value;
+    let items = col.items.filter((i) => (!kf || i.kind === kf) && (!term || [i.name, i.country, i.year, i.grade, i.ref, i.notes, i.place].join(' ').toLowerCase().includes(term)));
     if (sortKey) items = [...items].sort((a: any, b: any) => (typeof a[sortKey] === 'number' || typeof b[sortKey] === 'number' ? ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) : String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true })) * sortDir);
     body.innerHTML = items.map((i) => `<tr data-id="${i.id}"><td>${esc(i.name)}${i.ref ? `<br><small>${esc(i.ref)}</small>` : ''}</td><td>${esc(i.country)}</td><td>${esc(i.year)}</td><td>${esc(i.grade)}</td><td class="r">${i.qty ?? 1}</td><td class="r">${fm(i.cost)}</td><td class="r">${fm(i.value)}</td><td class="r">${fm(meltOf(i))}</td><td><button type="button" data-act="edit">Edit</button> <button type="button" data-act="del" aria-label="Delete ${esc(i.name)}">✕</button></td></tr>`).join('');
     q('.cc-empty').hidden = col.items.length > 0;
+    const by = q<HTMLSelectElement>('.cc-by').value, KIND: Record<string, string> = { coin: 'Coins', note: 'Banknotes', bullion: 'Bullion', medal: 'Medals and tokens', stamp: 'Stamps', card: 'Cards', other: 'Other' };
+    const keyOf = (i: Item) => by === 'kind' ? KIND[i.kind] : by === 'metal' ? (i.metal ? ALLOYS[i.metal]?.name ?? i.metal : '') : by === 'grade' ? (i.grade ?? '').split(' ')[0] : (i[by as 'country'] ?? '').trim();
+    q('.cc-bytab tbody').innerHTML = totalsBy(col.items, keyOf).map((r) => `<tr><td>${esc(r.key)}</td><td class="r">${r.count}</td><td class="r">${fm(r.cost)}</td><td class="r">${fm(r.value)}</td></tr>`).join('') || '<tr><td colspan="4">Nothing yet.</td></tr>';
     const sum = (f: (i: Item) => number) => col.items.reduce((s, i) => s + (Number.isFinite(f(i)) ? f(i) : 0), 0);
     const cost = sum((i) => i.cost ?? NaN), value = sum((i) => i.value ?? NaN), mel = sum(meltOf), count = sum((i) => i.qty ?? 1);
     q('.cc-totals').innerHTML = `<div><dt>Items</dt><dd class="cc-count">${count}<small>${col.items.length} entries</small></dd></div>
@@ -144,6 +156,29 @@ import '../../styles/collect.css';
     sortDir = sortKey === b.dataset.sort ? -sortDir : 1; sortKey = b.dataset.sort!; render();
   });
   q('.cc-search').addEventListener('input', render);
+  q('.cc-kindf').addEventListener('change', render); q('.cc-by').addEventListener('change', render);
+  q<HTMLInputElement>('.cc-importcsv').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    const err = q('.cc-err');
+    try {
+      const rows = parseCsv(await f.text()); if (rows.length < 2) throw new Error('No rows found under the headings.');
+      const head = rows[0].map((h) => h.trim().toLowerCase()), col_ = (n: string) => head.indexOf(n);
+      if (col_('name') < 0) throw new Error('There is no "Name" column.');
+      const get = (r: string[], n: string) => { const i = col_(n); return i < 0 ? undefined : (r[i] ?? '').trim() || undefined; };
+      const nm = (r: string[], n: string) => { const v = parseFloat(get(r, n) ?? ''); return Number.isFinite(v) ? v : undefined; };
+      const kinds = ['coin', 'note', 'bullion', 'medal', 'card', 'stamp', 'other'];
+      let added = 0;
+      for (const r of rows.slice(1)) {
+        const name = get(r, 'name'); if (!name) continue;
+        const k = (get(r, 'type') ?? 'coin').toLowerCase(), mt = get(r, 'metal');
+        const mkey = mt ? Object.entries(ALLOYS).find(([key, a]) => key === mt || a.name.toLowerCase() === mt.toLowerCase())?.[0] ?? mt : undefined;
+        col.items.push({ id: newId(), kind: (kinds.includes(k) ? k : 'coin') as Item['kind'], name, country: get(r, 'country'), year: get(r, 'year'), metal: mkey, weight: nm(r, 'weight g'), diameter: nm(r, 'diameter mm'), grade: get(r, 'grade'), ref: get(r, 'reference'), serial: get(r, 'serial'), qty: nm(r, 'qty') ?? 1, cost: nm(r, 'paid'), value: nm(r, 'value'), place: get(r, 'kept where'), notes: get(r, 'notes') });
+        added++;
+      }
+      err.hidden = true; if (!added) throw new Error('No rows with a name.'); changed();
+    } catch (x) { err.textContent = `Could not read that file: ${(x as Error).message}`; err.hidden = false; }
+    (e.target as HTMLInputElement).value = '';
+  });
   keep.addEventListener('change', () => { if (keep.checked) store(); else saveCollection(null); });
   q('.cc-export').addEventListener('click', () => downloadJson('my-collection.json', col));
   q('.cc-csv').addEventListener('click', () => downloadCsv('my-collection.csv', [

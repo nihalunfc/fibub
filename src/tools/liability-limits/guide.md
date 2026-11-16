@@ -47,6 +47,10 @@ This tool takes your limits and an accident you describe, and shows what the pol
 
 Limits 25/50/25, two injured people costing 30,000 and 15,000, and 10,000 of property damage. The first person is paid 25,000 (the per-person limit), the second 15,000, so injuries are 40,000, under the 50,000 accident limit. Property is paid 10,000. You owe the remaining 5,000.
 
+## Net worth against your limit
+
+If you type your **net worth**, the tool also compares it with your total limit (the single limit, or injury per accident plus property). When your net worth is higher, it shows the gap and says that some people close it with an umbrella (excess liability) policy. It does not quote any price or recommend a limit: ask an insurer or broker what is sold where you live. General information, not advice.
+
 ## FAQs
 
 **What if the policy limit is lower than the bill?** The rest can be claimed from you. This tool shows the gap; it does not give legal advice.

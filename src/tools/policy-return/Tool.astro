@@ -32,6 +32,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Break-even return</span><b class="pr-s-be"></b></div>
     </div>
     <p class="pr-line pr-words"></p>
+    <details class="panel pr-more">
+      <summary>More options: return after inflation, and money multiple</summary>
+      <div class="pr-grid"><label>Inflation you expect <span class="pr-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label></div>
+      <p class="pr-line pr-real" aria-live="polite"></p>
+    </details>
     <figure class="pr-chart panel">
       <figcaption>Value over time: <span class="pr-leg"></span></figcaption>
       <div class="pr-svg"></div>
@@ -85,7 +90,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { policyFlows, irr, investDifference } from '../../lib/money/insurance';
+  import { policyFlows, irr, investDifference, realReturn, moneyMultiple } from '../../lib/money/insurance';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.pr')!;
@@ -95,7 +100,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   q('.pr-cur').innerHTML = currencyOptions(cur);
   const big = cur === 'INR';
   f('prem').value = big ? '1,00,000' : '5,000'; f('pay').value = '10'; f('sa').value = big ? '10,00,000' : '50,000';
-  f('term').value = big ? '8,000' : '400'; f('rate').value = '8';
+  f('term').value = big ? '8,000' : '400'; f('rate').value = '8'; f('infl').value = '5';
   const rowsEl = q('.pr-rows');
   function addRow(year: string, amount: string) {
     const d = document.createElement('div'); d.className = 'pr-row';
@@ -130,6 +135,8 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.pr-s-inv').textContent = $(inv);
     q('.pr-s-pol').textContent = $(pol);
     q('.pr-s-be').textContent = Number.isFinite(be) ? be.toFixed(2) + '% a year' : 'none in range';
+    const mm = moneyMultiple(flows), inf = num(f('infl').value);
+    q('.pr-real').innerHTML = `You pay in ${$(mm.paid)} and get back ${$(mm.got)}, which is <b>${mm.multiple.toFixed(2)} times</b> what you paid. ${Number.isFinite(r) && inf > -50 && inf < 100 ? `After inflation of ${inf}% a year, the return of ${pct(r)} is about <b>${pct(realReturn(r, inf))}</b> a year in today's buying power.` : ''}`;
     const winner = inv > pol ? 'Term and invest ends higher' : 'The policy ends higher';
     q('.pr-words').innerHTML = `The policy returns about <b>${pct(r)}</b> a year on what you pay in. At ${rate}% a year, ${winner.toLowerCase()} in year ${last}: ${$(inv)} against ${$(pol)}. ${Number.isFinite(be) ? `The two are equal if investing earns <b>${be.toFixed(2)}%</b> a year.` : ''} The policy also gives life cover of ${$(num(f('sa').value))}, which this return does not count.`;
     const xs: number[] = [], pv: number[] = [], iv: number[] = [];

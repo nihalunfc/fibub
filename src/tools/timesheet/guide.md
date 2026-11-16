@@ -28,6 +28,12 @@ A timesheet turns a week of start and end times into hours you can pay or be pai
 
 Keep the same page for each week and download the result as a CSV for a spreadsheet, or print it to sign. To check your rate, try the [[hourly-salary|salary converter]]; to test the overtime rules on their own, use the [[overtime-calculator]]; to plan who works when, see the [[shift-scheduler]].
 
+## More options
+
+- **Copy Monday's times**: type your usual shift once and copy it to Tuesday through Friday, then change the odd day.
+- **Hours before overtime**: how many more hours you can work this week before the weekly overtime line.
+- **What a year looks like**: your pay for this week turned into every two weeks, a month and a year, if every week were the same. A rough guide, before tax.
+
 ## How to use it
 
 1. Pick the first day of your week (optional) and type your hourly pay.

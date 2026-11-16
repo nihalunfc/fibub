@@ -45,6 +45,10 @@ Enter the cash you have and either a single monthly burn or your monthly revenue
 
 You have 120,000 and spend 10,000 a month more than you earn. With no growth, 120,000 / 10,000 = 12 months. If your costs rise 2% each month the cash lasts about 10.9 months instead, because each month burns a little more. If revenue of 4,000 grows 10% a month against costs of 10,000, the gap closes and the cash may last much longer. Use [[invoice-maker]] to bill customers faster.
 
+## More options
+
+The table "If your costs change" shows how many months of cash you would have if monthly costs were 30, 20 or 10 percent lower, or 10 or 20 percent higher. In **More options**, enter how many months you want the cash to last to see the highest flat monthly burn that allows it, and how much you would need to cut.
+
 ## FAQs
 
 **Why does the date not match 30-day months?** The date adds the months at an average of 30.44 days.

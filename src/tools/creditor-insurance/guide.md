@@ -47,6 +47,10 @@ Both prices are typed by you from real quotes; the numbers shown are examples: c
 
 A loan of 100 over 2 years at 0% has balances 100 and 50 at the start of years 1 and 2. Creditor premium 10 a year, term premium 8 a year for 100 of cover. Average creditor cover is 75, so it costs 133.33 per 1,000; term costs 80 per 1,000.
 
+## If the worst happened in year N
+
+The panel **If the worst happened in year...** takes any year of the loan and shows what each product would pay then. Creditor insurance pays the balance to the lender, so the cover falls every year. A term policy pays its fixed amount to your family, so later in the loan it leaves more than the balance. The first panels already give the cost per 1,000 of cover for each. This is general information, not advice: ask both insurers about health questions, exclusions and what happens if you change lender.
+
 ## FAQs
 
 **Is the cheaper one better?** Not always. Creditor insurance pays the lender, not your family, and some products check your health only when you claim. Check the policy for exclusions.

@@ -17,4 +17,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.si-eg')).includes('Example') && (await page.inputValue('.si [data-k="loss"]')) === '300', 'should-i-insure: example button fills and labels the numbers');
   await set('p', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.si .si-err'), 'should-i-insure: zero chance shows a message');
+  await set('wealth', '100000'); await set('loss', '50000'); await set('p', '1'); await set('prem', '600'); await set('ded', '1000'); await page.waitForTimeout(100);
+  const af = await txt('.si-afford');
+  check(af.includes('50%') && af.includes('1,000'), 'should-i-insure: worst case takes 50% of savings, deductible 1,000 (' + af + ')');
+  const fd = await txt('.si-fund');
+  check(fd.includes('83.3 years') && fd.includes('57%'), 'should-i-insure: fund takes 83.3 years, 57% chance first (' + fd + ')');
+  await set('loss', '150000'); await page.waitForTimeout(100);
+  check((await txt('.si-afford')).includes('more than the savings'), 'should-i-insure: loss above savings says so');
 };

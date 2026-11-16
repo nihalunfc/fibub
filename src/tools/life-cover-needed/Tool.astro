@@ -30,6 +30,13 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>10 times income (comparison only)</span><b class="lc-s-mult"></b></div>
     </div>
     <p class="lc-line lc-words"></p>
+    <details class="lc-more">
+      <summary>More options: where the number comes from, and what if the years change</summary>
+      <table><thead><tr><th>Piece</th><th>Amount</th></tr></thead><tbody class="lc-bd"></tbody></table>
+      <p class="lc-hint">Cover needed if your family needs support for a different number of years (other inputs unchanged):</p>
+      <div class="lc-wrap"><table><thead><tr><th>Years of support</th><th>Needs approach</th></tr></thead><tbody class="lc-yrs"></tbody></table></div>
+      <label>Years of support (slider) <input type="range" data-k="yrslide" min="1" max="40" step="1" value="20" /></label>
+    </details>
     <p class="lc-line">Why they differ: the needs approach starts from the future income your family would miss and then takes off what you already have. Human life value is only that future income in today's money. DIME adds up debt, income for the years, mortgage and education without discounting, so it is usually higher when the years are many. The "10 times income" rule ignores your family's situation.</p>
   </section>
   <p class="lc-fine">How it is worked out: the family's yearly amount is income x (1 - your own share). Its present value is the sum over each year of amount x (1+growth)^t / (1+discount)^t. Needs = that + debts + goals + final costs - savings - existing cover (never below 0). DIME = debts + final costs + income x years + goals - existing cover. Tax, inflation beyond your growth figure and the cover's own cost are left out. Not financial or insurance advice. Nothing you type leaves this page.</p>
@@ -65,7 +72,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { lifeNeed } from '../../lib/money/insurance';
+  import { lifeNeed, needBreakdown, needsByYears } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.lc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -82,12 +89,21 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.lc-err').hidden = !bad; q('.lc-err').textContent = bad; q('.lc-res').hidden = !!bad;
     if (bad) return;
     const r = lifeNeed({ income: v('income'), ownShare: v('own'), years: Math.round(v('years')), growth: v('growth'), discount: v('disc'), debts: v('debts'), goals: v('goals'), assets: v('assets'), existing: v('existing'), funeral: v('funeral') });
+    const inp = { income: v('income'), ownShare: v('own'), years: Math.round(v('years')), growth: v('growth'), discount: v('disc'), debts: v('debts'), goals: v('goals'), assets: v('assets'), existing: v('existing'), funeral: v('funeral') };
+    const b = needBreakdown(inp);
+    const rows: [string, number][] = [['Income your family would miss (today\'s money)', b.income], ['Debts', b.debts], ['Goals', b.goals], ['Final costs', b.funeral], ['Minus savings', b.assets], ['Minus existing cover', b.existing]];
+    q('.lc-bd').innerHTML = rows.map(([n, a]) => `<tr><td>${n}</td><td>${$(a)}</td></tr>`).join('') + `<tr><td><b>Cover to look for${b.shortfallBeforeFloor < 0 ? ' (you are already covered)' : ''}</b></td><td><b>${$(b.needs)}</b></td></tr>`;
+    q('.lc-yrs').innerHTML = needsByYears(inp, [10, 15, 20, 25, 30]).map((x) => `<tr><td>${x.years} years</td><td>${$(x.needs)}</td></tr>`).join('');
     q('.lc-s-needs').textContent = $(r.needs);
     q('.lc-s-hlv').textContent = $(r.hlv);
     q('.lc-s-dime').textContent = $(r.dime);
     q('.lc-s-mult').textContent = $(r.multiple);
     q('.lc-words').innerHTML = `Your family would miss about <b>${$(r.familyYearly)}</b> a year. After debts, goals, final costs, your savings and existing cover, the needs approach gives <b>${$(r.needs)}</b>.`;
   }
-  root.addEventListener('input', run); root.addEventListener('change', run);
+  const sl = f('yrslide');
+  sl.addEventListener('input', () => { f('years').value = sl.value; run(); });
+  f('years').addEventListener('input', () => { const n = Math.round(num(f('years').value)); if (n >= 1 && n <= 40) sl.value = String(n); });
+  root.addEventListener('input', (e) => { if (e.target !== sl) run(); });
+  root.addEventListener('change', (e) => { if (e.target !== sl) run(); });
   run();
 </script>
