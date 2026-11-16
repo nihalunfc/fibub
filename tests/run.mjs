@@ -875,7 +875,7 @@ try {
     await page.setInputFiles('.zc-input', OUT + 'stored.zip');
     await page.waitForSelector('.zc-report:not([hidden])');
     check(/Can be \d+% smaller/.test(await page.textContent('.zc-verdict')), `zip checker: stored ZIP -> "${(await page.textContent('.zc-verdict b')).trim()}"`);
-    check(/could shrink/.test(await page.textContent('.zc-table')), 'zip checker: flags the uncompressed CSV');
+    check(/could shrink/.test(await page.textContent('.zc-table:not(.zc-typetable)')), 'zip checker: flags the uncompressed CSV');
     await page.setViewportSize({ width: 1100, height: 1300 });
     await page.screenshot({ path: OUT + 'zip-checker.png' });
     await page.setViewportSize({ width: 1280, height: 720 });
