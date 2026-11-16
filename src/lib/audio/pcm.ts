@@ -17,9 +17,9 @@ export const PHONE_FORMATS: Record<PhoneFormat, { ext: string; label: string; mi
 
 const tag = (v: DataView, o: number) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
 
-/** A WAV file. format: 1 PCM 16-bit, 6 A-law, 7 mu-law (both 8-bit). */
-export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 = 1): Uint8Array {
-  const nc = chans.length, len = chans[0]?.length ?? 0, bps = format === 1 ? 2 : 1, data = len * nc * bps;
+/** A WAV file. format: 1 PCM (16 or 24-bit), 6 A-law, 7 mu-law (both 8-bit). */
+export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 = 1, bits: 16 | 24 = 16): Uint8Array {
+  const nc = chans.length, len = chans[0]?.length ?? 0, bps = format === 1 ? bits / 8 : 1, data = len * nc * bps;
   const extra = format === 1 ? 0 : 2 + 12; // cbSize, then a fact chunk (required for non-PCM)
   const head = 44 + extra, pad = data & 1, b = new ArrayBuffer(head + data + pad), v = new DataView(b), u8 = new Uint8Array(b);
   const str = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
@@ -29,7 +29,12 @@ export function writeWav(chans: Float32Array[], rate: number, format: 1 | 6 | 7 
   let o = 36;
   if (format !== 1) { v.setUint16(o, 0, true); o += 2; str(o, 'fact'); v.setUint32(o + 4, 4, true); v.setUint32(o + 8, len, true); o += 12; }
   str(o, 'data'); v.setUint32(o + 4, data, true); o += 8;
-  if (format === 1) {
+  if (format === 1 && bps === 3) {
+    for (let i = 0; i < len; i++) for (let c = 0; c < nc; c++) {
+      const x = Math.max(-1, Math.min(1, chans[c][i])), q = Math.round(x < 0 ? x * 8388608 : x * 8388607);
+      u8[o] = q & 0xff; u8[o + 1] = (q >> 8) & 0xff; u8[o + 2] = (q >> 16) & 0xff; o += 3;
+    }
+  } else if (format === 1) {
     for (let i = 0; i < len; i++) for (let c = 0; c < nc; c++) { v.setInt16(o, toInt16(chans[c][i]), true); o += 2; }
   } else {
     const law = format === 7 ? 'ulaw' : 'alaw';

@@ -1,0 +1,146 @@
+---
+// #T961 Metronome: steady clicks from the Web Audio clock, tap tempo, time signatures, subdivisions and a click-track download.
+// Sound and timing maths in src/lib/audio/synth.ts (checks in tests/audio.mjs).
+---
+<div class="tool-ui mt">
+  <section class="panel">
+    <div class="mt-big"><span class="mt-bpm-out">100</span> <small>BPM</small> <span class="mt-name">Andante</span></div>
+    <input class="mt-bpm" type="range" min="20" max="300" step="1" value="100" aria-label="Beats per minute" />
+    <div class="mt-row">
+      <button type="button" class="btn secondary mt-down" aria-label="1 beat per minute slower">−1</button>
+      <label class="mt-num">BPM <input class="mt-bpm-n" type="number" min="20" max="300" step="1" value="100" inputmode="numeric" /></label>
+      <button type="button" class="btn secondary mt-up" aria-label="1 beat per minute faster">+1</button>
+      <button type="button" class="btn secondary mt-tap">Tap tempo</button>
+    </div>
+    <div class="mt-dots" aria-hidden="true"></div>
+    <button type="button" class="btn mt-go">Start</button>
+    <p class="mt-fine">Space bar starts and stops. Keep this tab open: browsers slow down hidden tabs.</p>
+  </section>
+  <section class="panel">
+    <div class="mt-grid">
+      <label>Beats in a bar
+        <select class="mt-beats">{[1, 2, 3, 4, 5, 6, 7, 9, 12].map((n) => <option value={n} selected={n === 4}>{n}</option>)}</select>
+      </label>
+      <label>Clicks per beat
+        <select class="mt-sub"><option value="1">1 (beats only)</option><option value="2">2 (eighths)</option><option value="3">3 (triplets)</option><option value="4">4 (sixteenths)</option></select>
+      </label>
+      <label>Sound
+        <select class="mt-sound"><option value="beep">Beep</option><option value="wood">Woodblock</option></select>
+      </label>
+      <label>Volume <input class="mt-vol" type="range" min="0" max="100" value="70" /></label>
+    </div>
+    <label class="mt-check"><input class="mt-acc" type="checkbox" checked /> Higher click on the first beat of each bar</label>
+  </section>
+  <section class="panel">
+    <div class="mt-row">
+      <label class="mt-num">Bars <input class="mt-bars" type="number" min="1" max="500" step="1" value="16" inputmode="numeric" /></label>
+      <button type="button" class="btn secondary mt-save">Download click track (WAV)</button>
+    </div>
+    <p class="mt-fine mt-len" aria-live="polite"></p>
+  </section>
+</div>
+
+<style is:inline>
+  .mt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mt .panel { display: grid; gap: 12px; padding: 16px; }
+  .mt-big { font-size: 48px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .mt-big small { font-size: 18px; color: var(--muted); }
+  .mt-name { font-size: 18px; color: var(--muted); margin-left: 8px; }
+  .mt-bpm { width: 100%; }
+  .mt-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .mt-num { display: grid; gap: 4px; font-size: 14px; color: var(--muted); width: 96px; }
+  .mt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .mt label:not(.mt-check) { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mt input[type=number], .mt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .mt-check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .mt-dots { display: flex; flex-wrap: wrap; gap: 10px; min-height: 28px; }
+  .mt-dots span { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); }
+  .mt-dots span.first { border-color: var(--ink); }
+  .mt-dots span.on { background: var(--accent); border-color: var(--accent); }
+  .mt-go { font-size: 20px; padding: 14px; }
+  .mt-fine { color: var(--muted); font-size: 14px; margin: 0; }
+</style>
+
+<script>
+  import { click, clickTrack, tempoName } from '../../lib/audio/synth.ts';
+  import { writeWav } from '../../lib/audio/pcm.ts';
+  import { saveBytes, sizeText } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.mt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const slider = $<HTMLInputElement>('.mt-bpm'), num = $<HTMLInputElement>('.mt-bpm-n'), go = $<HTMLButtonElement>('.mt-go'), dots = $('.mt-dots');
+  const beatsSel = $<HTMLSelectElement>('.mt-beats'), subSel = $<HTMLSelectElement>('.mt-sub'), soundSel = $<HTMLSelectElement>('.mt-sound');
+  const vol = $<HTMLInputElement>('.mt-vol'), acc = $<HTMLInputElement>('.mt-acc'), bars = $<HTMLInputElement>('.mt-bars');
+  let bpm = 100, ac: AudioContext | null = null, gain: GainNode | null = null, bufs: AudioBuffer[] = [], timer = 0, next = 0, idx = 0;
+  const queue: { t: number; beat: number }[] = [];
+
+  const beats = () => +beatsSel.value, sub = () => +subSel.value;
+  const setBpm = (v: number) => {
+    bpm = Math.max(20, Math.min(300, Math.round(v) || 100));
+    slider.value = num.value = String(bpm); $('.mt-bpm-out').textContent = String(bpm); $('.mt-name').textContent = tempoName(bpm);
+    lenInfo();
+  };
+  const drawDots = () => { dots.replaceChildren(...Array.from({ length: beats() }, (_, i) => { const s = document.createElement('span'); if (i === 0 && acc.checked) s.className = 'first'; return s; })); };
+  const makeBufs = () => {
+    if (!ac) return;
+    bufs = ([0, 1, 2] as const).map((a) => { const x = click(ac!.sampleRate, a, soundSel.value as 'beep' | 'wood'), b = ac!.createBuffer(1, x.length, ac!.sampleRate); b.copyToChannel(x, 0); return b; });
+  };
+  // Look-ahead scheduler: every 25 ms, book the clicks that fall in the next 120 ms on the audio clock.
+  const schedule = () => {
+    const step = 60 / bpm / sub();
+    while (next < ac!.currentTime + 0.12) {
+      const inBar = idx % (beats() * sub()), accent = inBar % sub() ? 0 : inBar === 0 && acc.checked ? 2 : 1;
+      const s = ac!.createBufferSource(); s.buffer = bufs[accent]; s.connect(gain!); s.start(next);
+      if (accent) queue.push({ t: next, beat: inBar / sub() });
+      next += step; idx++;
+    }
+  };
+  const paint = () => {
+    if (!ac || !timer) return;
+    while (queue.length && queue[0].t <= ac.currentTime) {
+      const q = queue.shift()!;
+      dots.querySelectorAll('span').forEach((d, i) => d.classList.toggle('on', i === q.beat));
+    }
+    requestAnimationFrame(paint);
+  };
+  const start = async () => {
+    ac ??= new AudioContext(); await ac.resume();
+    if (!gain) { gain = ac.createGain(); gain.connect(ac.destination); }
+    gain.gain.value = (+vol.value / 100) ** 2; makeBufs();
+    next = ac.currentTime + 0.06; idx = 0; queue.length = 0;
+    timer = window.setInterval(schedule, 25); schedule(); requestAnimationFrame(paint);
+    go.textContent = 'Stop'; root.dataset.running = '1';
+  };
+  const stop = () => { clearInterval(timer); timer = 0; go.textContent = 'Start'; delete root.dataset.running; dots.querySelectorAll('span').forEach((d) => d.classList.remove('on')); };
+  go.addEventListener('click', () => (timer ? stop() : start()));
+  document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || (e.target as HTMLElement).closest('input, select, textarea, button')) return;
+    e.preventDefault(); timer ? stop() : start();
+  });
+  slider.addEventListener('input', () => setBpm(+slider.value));
+  num.addEventListener('change', () => setBpm(+num.value));
+  $('.mt-down').addEventListener('click', () => setBpm(bpm - 1));
+  $('.mt-up').addEventListener('click', () => setBpm(bpm + 1));
+  let taps: number[] = [];
+  $('.mt-tap').addEventListener('click', () => {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now); taps = taps.slice(-8);
+    if (taps.length >= 2) setBpm((60000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0]));
+  });
+  beatsSel.addEventListener('change', () => { drawDots(); lenInfo(); });
+  acc.addEventListener('change', drawDots);
+  subSel.addEventListener('change', lenInfo);
+  soundSel.addEventListener('change', makeBufs);
+  vol.addEventListener('input', () => { if (gain) gain.gain.value = (+vol.value / 100) ** 2; });
+  function lenInfo() {
+    const b = Math.max(1, Math.min(500, Math.round(+bars.value) || 1)), s = (b * beats() * 60) / bpm;
+    $('.mt-len').textContent = `${b} bars of ${beats()} at ${bpm} BPM = ${s >= 60 ? Math.floor(s / 60) + ' min ' + (s % 60).toFixed(1) + ' s' : s.toFixed(1) + ' s'}. WAV (48,000 Hz, mono) about ${sizeText(44 + Math.round(s * 48000) * 2)}.`;
+  }
+  bars.addEventListener('input', lenInfo);
+  $('.mt-save').addEventListener('click', () => {
+    const b = Math.max(1, Math.min(500, Math.round(+bars.value) || 1));
+    const x = clickTrack(bpm, beats(), sub(), b, 48000, soundSel.value as 'beep' | 'wood', acc.checked);
+    saveBytes(writeWav([x], 48000), `click-${bpm}bpm-${beats()}beats-${b}bars.wav`, 'audio/wav');
+  });
+  drawDots(); setBpm(100);
+</script>

@@ -114,3 +114,34 @@ export function goertzel(x: Float32Array, freq: number, rate: number): number {
   for (let i = 0; i < x.length; i++) { const s0 = x[i] + c * s1 - s2; s2 = s1; s1 = s0; }
   return (2 * Math.sqrt(Math.max(0, s1 * s1 + s2 * s2 - c * s1 * s2))) / x.length;
 }
+
+/** One metronome click: a short decaying tone. accent: 2 = first beat of the bar, 1 = beat, 0 = subdivision. */
+export function click(rate: number, accent: 0 | 1 | 2, sound: 'beep' | 'wood' = 'beep', amp = 0.6): Float32Array {
+  const n = Math.round(rate * 0.05), out = new Float32Array(n);
+  const f = sound === 'wood' ? [1800, 1500, 1200][2 - accent] : [1500, 1000, 800][2 - accent], a = amp * [0.45, 0.8, 1][accent];
+  const tau = sound === 'wood' ? 0.006 : 0.012;
+  for (let i = 0; i < n; i++) { const t = i / rate; out[i] = a * Math.sin(TAU * f * t) * Math.exp(-t / tau) * Math.min(1, i / (rate * 0.0005)); }
+  return out;
+}
+
+/** The time (s) and kind of every click in `bars` bars. sub: clicks per beat (1 = beats only). */
+export function beatPlan(bpm: number, beats: number, sub: number, bars: number, accentFirst = true): { t: number; accent: 0 | 1 | 2 }[] {
+  const out: { t: number; accent: 0 | 1 | 2 }[] = [], step = 60 / bpm / sub;
+  for (let i = 0; i < bars * beats * sub; i++) out.push({ t: i * step, accent: i % sub ? 0 : i % (beats * sub) === 0 && accentFirst ? 2 : 1 });
+  return out;
+}
+
+/** A click track as samples. */
+export function clickTrack(bpm: number, beats: number, sub: number, bars: number, rate: number, sound: 'beep' | 'wood' = 'beep', accentFirst = true): Float32Array {
+  const plan = beatPlan(bpm, beats, sub, bars, accentFirst), out = new Float32Array(Math.round(((bars * beats * 60) / bpm) * rate));
+  const c = [click(rate, 0, sound), click(rate, 1, sound), click(rate, 2, sound)];
+  for (const p of plan) { const at = Math.round(p.t * rate), k = c[p.accent]; for (let i = 0; i < k.length && at + i < out.length; i++) out[at + i] += k[i]; }
+  return out;
+}
+
+/** The Italian tempo word for a speed (common ranges; books differ by a few BPM). */
+export function tempoName(bpm: number): string {
+  const T: [number, string][] = [[40, 'Grave'], [60, 'Largo'], [66, 'Larghetto'], [76, 'Adagio'], [108, 'Andante'], [120, 'Moderato'], [156, 'Allegro'], [176, 'Vivace'], [200, 'Presto']];
+  for (const [max, n] of T) if (bpm < max) return n;
+  return 'Prestissimo';
+}
