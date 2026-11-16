@@ -17,4 +17,11 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.lm .lm-count')).includes('2 pages'), 'label-maker: 21-up needs 2 pages for 31');
   await page.fill('.lm .lm-copies', '2'); await page.waitForTimeout(100);
   check((await page.textContent('.lm .lm-count')).includes('3 pages'), 'label-maker: 2 copies = 62 labels = 3 pages on 21-up');
+  await page.goto(`${BASE}/documents/label-maker/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.lm .lm-sheet', 'l30');
+  await page.fill('.lm .lm-text', 'Box {n}'); await page.fill('.lm .lm-copies', '35'); await page.fill('.lm .lm-start', '101'); await page.waitForTimeout(150);
+  check((await page.textContent('.lm .lm-count')).includes('35 labels') && (await page.textContent('.lm .lm-count')).includes('2 pages'), 'label-maker: numbered series counts 35 labels');
+  const g = await saved(page, () => page.click('.lm .lm-pdf'));
+  check((await text(g.buf))[1].includes('Box 135'), 'label-maker: numbering reaches Box 135');
 };

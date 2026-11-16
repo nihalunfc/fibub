@@ -24,7 +24,7 @@ flow:
 
 ## What it does
 
-Pick the kind of letter you need: a formal letter, a complaint, a request, a resignation, a reference or a leave request. The tool sets out your address, the date, the person you are writing to, a subject line, a greeting, the body and a sign-off in the usual order. The body starts as plain example text with [square brackets] where your own facts go. You edit it, watch the preview change, and download Word, PDF or plain text.
+Pick the kind of letter you need: a formal letter, a complaint, a request, a resignation, a reference, a leave request, a thank-you, an apology, a notice to your landlord, a job offer acceptance or an absence note. The tool sets out your address, the date, the person you are writing to, a subject line, a greeting, the body and a sign-off in the usual order. The body starts as plain example text with [square brackets] where your own facts go. You edit it, watch the preview change, and download Word, PDF or plain text.
 
 Nothing is uploaded and nothing is kept: close the page and the letter is gone, so download it first. Applying for a job instead? Use [[cover-letter]]. Sending the same letter to many people? Try [[mail-merge]], and check the files you send with [[send-check]].
 
@@ -40,6 +40,7 @@ Nothing is uploaded and nothing is kept: close the page and the letter is gone, 
 
 - **Letter type**: swaps in the matching example text. If you have already changed the subject or body, your words stay.
 - **Greeting**: type your own, such as "Dear Ms Jones,". "Yours faithfully" goes with "Dear Sir or Madam"; "Yours sincerely" goes with a named person.
+- **Jump to the next [blank]**: selects the next bracketed spot in the body, so you can type straight over it.
 - **Paper**: US Letter or A4. **Font**: sans-serif or serif.
 - **Download**: Word to keep editing, PDF to send, text to paste into an email.
 

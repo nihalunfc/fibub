@@ -1,6 +1,6 @@
 ---
 name: I-V characteristics
-num: 2254
+num: 2264
 shelf: learn
 code: L340
 section: school-physics
@@ -8,7 +8,7 @@ title: "I-V characteristics: plot current against voltage for a resistor, lamp, 
 summary: "Choose a component, sweep the supply from -6 V to +6 V and record readings one at a time to build its current-voltage graph, with R = V/I at every point."
 status: live
 ads: false
-order: 2254
+order: 2264
 icon: sliders
 works: offline
 updated: 2026-11-16

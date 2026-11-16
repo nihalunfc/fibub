@@ -17,4 +17,16 @@ export default async ({ page, check, BASE }) => {
   check(await page.isVisible('.fnr .fnr-err'), 'fnr: bad pattern message');
   await page.uncheck('.fnr .fnr-re'); await page.fill('.fnr .fnr-in', 'a b'); await page.click('.fnr .fnr-add'); await page.waitForTimeout(100);
   check((await page.locator('.fnr .fnr-pair').count()) === 2, 'fnr: add pair');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.fnr .fnr-in', 'a   b    c'); await page.click('.fnr .fnr-preset[data-id=spaces]'); await page.waitForTimeout(100);
+  check((await out()) === 'a b c', `fnr: preset many spaces (${await out()})`);
+  await page.fill('.fnr .fnr-in', '31/12/2026'); await page.click('.fnr .fnr-preset[data-id=dates]'); await page.waitForTimeout(100);
+  check((await out()) === '2026-12-31', `fnr: preset dates (${await out()})`);
+  await page.fill('.fnr .fnr-in', 'Smith, John'); await page.click('.fnr .fnr-preset[data-id=surname]'); await page.waitForTimeout(100);
+  check((await out()) === 'John Smith', 'fnr: preset surname');
+  await page.fill('.fnr .fnr-in', 'a,b'); await page.click('.fnr .fnr-preset[data-id=tab]'); await page.waitForTimeout(100);
+  check((await out()) === 'a\tb', 'fnr: new line and tab escapes');
+  await page.fill('.fnr .fnr-in', 'x  \ny \nz'); await page.click('.fnr .fnr-preset[data-id=trail]'); await page.waitForTimeout(100);
+  check((await out()) === 'x\ny\nz', `fnr: trim line ends (${JSON.stringify(await out())})`);
+  check(await page.isVisible('.kit-bar'), 'fnr: copy link bar present');
 };

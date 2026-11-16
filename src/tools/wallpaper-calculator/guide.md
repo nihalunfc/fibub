@@ -11,7 +11,7 @@ ads: false
 order: 2021
 icon: ruler
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [paint-calculator, tile-calculator, drywall-calculator]
 sources:
   - "Strip-by-strip roll count: fibub's own working. Default roll sizes (0.53 x 10.05 m, common in Europe and the UK; 20.5 in x 33 ft, common in the US) are typical; check the label."
@@ -41,6 +41,12 @@ For the walls you are painting instead, the [[paint-calculator]] works out the l
 - **Pattern match**: a straight match lines up side by side; a half-drop match shifts every other strip by half a repeat, so half a repeat is added to each strip.
 - **Trim allowance**: extra length per strip for trimming at the ceiling and skirting. Many decorators add 5 to 10 cm (2 to 4 in); it is 0 in the example.
 - **Doors and windows**: the total width you will not paper full height. Strips above and below still need paper, so only take off wide openings.
+
+## More options
+
+Open **More options** to type the price of one roll. The page then shows an estimated cost, with a tick box for including the spare roll we suggest you keep from the same batch. Paste, tax and delivery are not included.
+
+A scaled sketch under the result draws the strips across the walls you chose, shaded in alternate stripes, with the number of strips on the label. It is a quick way to see that the width and roll size you typed make sense. Blank or zero sizes give a friendly message instead of a result.
 
 ## Worked example
 

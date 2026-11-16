@@ -37,6 +37,10 @@ It does not judge your numbers or add ranges, and nothing leaves your device. Us
 
 ## What each option does
 
+- **Change line**: for the test you picked, the first and latest result, the change and the percentage, and how many results were outside the range printed on their own report. Plain arithmetic on your numbers; not medical advice.
+- **Compared with range**: each row says below, inside or above the range printed on that report (blank if none was printed).
+- **Print this test** prints the chart and table for the picked test.
+
 - **Printed low / high**: the range printed on that report, if any. Leave blank when none was printed.
 - **Dates like 03/04/2026 mean**: tells the tool whether that is 3 April or March 4.
 - **Keep my results in this browser**: off by default. When ticked, the rows you added are kept on this device only.

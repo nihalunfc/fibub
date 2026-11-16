@@ -11,7 +11,7 @@ ads: false
 order: 2035
 icon: moon
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [water-intake, due-date-calculator, ovulation-calendar]
 sources:
   - "Paruthi S. et al. (2016), Recommended Amount of Sleep for Pediatric Populations, American Academy of Sleep Medicine consensus, J Clin Sleep Med 12(6) (checked 2026-11-10)."
@@ -43,6 +43,10 @@ It is a planning aid, not medical advice. If you are planning around a pregnancy
 - **Cycle length**: 90 minutes by default. Real cycles run from about 70 to 120 minutes, so adjust it if a time works better for you.
 - **Clock**: shows times in 24-hour or 12-hour (AM/PM) style.
 - **Reset**: back to the example.
+
+## More options
+
+Open "More options" and choose who the sleep is for (from 4 months to 65 and over). The list then shows only the whole-cycle counts that fit the recommended hours for that age, and the matching row in the age table is highlighted. For babies and young children that can mean 8, 9 or 10 cycles. Or type the exact hours of sleep you want, such as 8, and an extra row gives the exact bedtime or wake-up time for that length. These are guides from sleep medicine groups; check the official source for your country, and talk to a doctor about sleep problems.
 
 ## Worked example
 

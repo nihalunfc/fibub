@@ -11,12 +11,13 @@ ads: false
 order: 2036
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [ovulation-calendar, sleep-calculator, water-intake]
 sources:
   - "Naegele's rule (first day of last period + 280 days), with the cycle-length adjustment used in obstetric practice; conception + 266 days (checked 2026-11-10)."
   - "American College of Obstetricians and Gynecologists, Committee Opinion 700 (2017), Methods for Estimating the Due Date: ultrasound in the first trimester is the most accurate method; IVF due date = transfer + 266 - embryo age, giving +263 for day-3 and +261 for day-5 embryos (checked 2026-11-10)."
   - "ACOG Committee Opinion 579 (2013), Definition of Term Pregnancy: early term from 37 weeks, post-term from 42 weeks (checked 2026-11-10)."
+  - "ACOG: full term is 39 weeks 0 days to 40 weeks 6 days (Committee Opinion 579). Scan dating: due date = scan date + (280 days minus the age on the scan), the method in Committee Opinion 700; whether to change a period-based date after a scan is a clinical decision (cited from memory, not re-checked; confirm at the source)."
 flow:
   - { icon: calendar, label: "Pick a date" }
   - { icon: calculator, label: "Add days" }
@@ -43,6 +44,10 @@ It is an estimate, not medical advice. Your dating scan is more accurate, so go 
 - **Reset**: back to the example.
 
 Weeks are always counted from two weeks before conception, the way doctors and midwives count them, whichever method you use.
+
+## More options
+
+You can now date a pregnancy from an ultrasound scan: choose "Ultrasound scan", type the scan date and the weeks and days on the report, and the due date is the scan date plus the days left to 40 weeks. A bar shows how far through the 40 weeks you are on the chosen day, and a line gives the likely conception date and the full-term window (39 weeks to 40 weeks 6 days). Open "Every week from 4 to 42" for a full table of week start dates you can print. If a scan and a period date differ, your care team decides which one to use; check the official source (ACOG, NHS or your own clinic).
 
 ## Worked example
 

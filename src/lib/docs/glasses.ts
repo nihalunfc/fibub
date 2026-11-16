@@ -64,3 +64,27 @@ export function describeSph(sph: number): string {
     ? 'A minus number: on this paper it is the kind of lens power used for short-sightedness (near-sightedness).'
     : 'A plus number: on this paper it is the kind of lens power used for long-sightedness (far-sightedness).';
 }
+
+/** Plain one-line summary of one eye, description only. */
+export function summarise(label: string, e: Eye): string {
+  const parts: string[] = [];
+  if (e.sph !== null && round2(e.sph) !== 0) parts.push(e.sph < 0 ? 'short-sighted lens power' : 'long-sighted lens power');
+  else if (e.sph !== null) parts.push('no spherical power');
+  if (e.cyl !== null && round2(e.cyl) !== 0) parts.push('with a cylinder for astigmatism');
+  if (e.add !== null && e.add !== 0) parts.push('with a near add');
+  if (e.prism) parts.push('with prism');
+  return parts.length ? `${label}: ${parts.join(', ')}.` : '';
+}
+
+/** Change from an older prescription to the new one, for the numbers both have. Arithmetic only. */
+export function difference(a: Eye, b: Eye): string[] {
+  const out: string[] = [];
+  const d = (name: string, x: number | null, y: number | null) => {
+    if (x === null && y === null) return;
+    const v = round2((y ?? 0) - (x ?? 0));
+    out.push(`${name}: ${fmtD(x ?? 0)} to ${fmtD(y ?? 0)} (${v === 0 ? 'no change' : (v > 0 ? 'up ' : 'down ') + Math.abs(v).toFixed(2)})`);
+  };
+  d('SPH', a.sph, b.sph); d('CYL', a.cyl, b.cyl); d('ADD', a.add, b.add);
+  if ((a.axis ?? 0) !== (b.axis ?? 0)) out.push(`AXIS: ${a.axis ?? 'none'} to ${b.axis ?? 'none'}`);
+  return out;
+}

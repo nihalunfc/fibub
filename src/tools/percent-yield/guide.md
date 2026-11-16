@@ -1,6 +1,6 @@
 ---
 name: Yield and atom economy
-num: 2262
+num: 2272
 shelf: learn
 code: L348
 section: school-chemistry
@@ -8,7 +8,7 @@ title: "Percentage yield and atom economy calculator"
 summary: "Choose a reaction, set the mass of reactant and the mass of product you actually got, and see the theoretical yield, the percentage yield and the atom economy as two bars."
 status: live
 ads: false
-order: 2262
+order: 2272
 icon: flask
 works: offline
 updated: 2026-11-16

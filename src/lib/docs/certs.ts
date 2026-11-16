@@ -7,6 +7,16 @@ export type Cert = {
 };
 export const COLOURS: Record<string, [number, number, number]> = { navy: [0.12, 0.2, 0.45], green: [0.1, 0.4, 0.28], maroon: [0.5, 0.12, 0.17], black: [0.1, 0.1, 0.1] };
 
+/** Wording presets: pick one and the title, line above the name and text under it are filled in (all still editable). */
+export const PRESETS: { id: string; name: string; title: string; intro: string; text: string }[] = [
+  { id: 'achievement', name: 'Achievement', title: 'Certificate of Achievement', intro: 'This certificate is proudly presented to', text: 'in recognition of outstanding effort and commitment.' },
+  { id: 'completion', name: 'Course completion', title: 'Certificate of Completion', intro: 'This is to certify that', text: 'has successfully completed the course [course name].' },
+  { id: 'participation', name: 'Participation', title: 'Certificate of Participation', intro: 'This certificate is awarded to', text: 'for taking part in [event name] and for their enthusiasm.' },
+  { id: 'appreciation', name: 'Appreciation', title: 'Certificate of Appreciation', intro: 'With sincere thanks, this is presented to', text: 'for their time, hard work and generous support.' },
+  { id: 'attendance', name: 'Attendance', title: 'Certificate of Attendance', intro: 'This is to certify that', text: 'attended [workshop or event name] and took part in all sessions.' },
+  { id: 'excellence', name: 'Excellence', title: 'Award of Excellence', intro: 'Awarded to', text: 'for outstanding performance in [subject or area].' },
+];
+
 /** Names from typed lines or CSV: the first column of each row; a heading row called Name/Names is skipped. */
 export function parseNames(text: string): string[] {
   const rows = text.replace(/\r\n?/g, '\n').split('\n').map((l) => parseCsvLine(l)[0]?.trim() ?? '').filter(Boolean);

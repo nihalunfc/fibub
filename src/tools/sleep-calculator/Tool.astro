@@ -10,18 +10,35 @@
   <section class="panel">
     <div class="sc-grid">
       <label class="sc-tl"><span class="sc-tlab">Wake-up time</span>
-        <input class="sc-time" type="time" value="07:00" />
+        <input class="sc-time" data-k="time" type="time" value="07:00" />
       </label>
       <label>Minutes to fall asleep
-        <input class="sc-fall" type="number" inputmode="decimal" min="0" max="120" step="5" value="15" />
+        <input class="sc-fall" data-k="fall" type="number" inputmode="decimal" min="0" max="120" step="5" value="15" />
       </label>
       <label>Cycle length (minutes)
-        <input class="sc-cyc" type="number" inputmode="decimal" min="60" max="120" step="5" value="90" />
+        <input class="sc-cyc" data-k="cycle" type="number" inputmode="decimal" min="60" max="120" step="5" value="90" />
       </label>
       <label>Clock
-        <select class="sc-clock"><option value="24">24-hour</option><option value="12">12-hour (AM/PM)</option></select>
+        <select class="sc-clock" data-k="clock"><option value="24">24-hour</option><option value="12">12-hour (AM/PM)</option></select>
       </label>
     </div>
+    <details class="sc-more">
+      <summary>More options</summary>
+      <div class="sc-grid">
+        <label>Who is it for?
+          <select class="sc-age" data-k="age">
+            <option value="">Not set (show 4 to 6 cycles)</option>
+            <option value="inf">4 to 12 months</option><option value="tod">1 to 2 years</option><option value="pre">3 to 5 years</option>
+            <option value="sch">6 to 12 years</option><option value="teen">13 to 18 years</option>
+            <option value="adult">Adult 18 to 64</option><option value="senior">65 and over</option>
+          </select>
+        </label>
+        <label>Or exact hours of sleep
+          <input class="sc-hours" data-k="hours" type="number" inputmode="decimal" min="1" max="16" step="0.25" placeholder="e.g. 8" />
+        </label>
+      </div>
+      <p class="sc-age-say" aria-live="polite"></p>
+    </details>
     <p class="sc-big" aria-live="polite"></p>
     <ul class="sc-list" aria-live="polite"></ul>
     <p class="sc-say"></p>
@@ -33,13 +50,13 @@
       <table class="sc-tbl">
         <thead><tr><th>Age</th><th>Recommended (hours a day)</th></tr></thead>
         <tbody>
-          <tr><td>4 to 12 months</td><td>12 to 16 (with naps)</td></tr>
-          <tr><td>1 to 2 years</td><td>11 to 14 (with naps)</td></tr>
-          <tr><td>3 to 5 years</td><td>10 to 13 (with naps)</td></tr>
-          <tr><td>6 to 12 years</td><td>9 to 12</td></tr>
-          <tr><td>13 to 18 years</td><td>8 to 10</td></tr>
-          <tr><td>Adults 18 to 64</td><td>7 to 9</td></tr>
-          <tr><td>65 and over</td><td>7 to 8</td></tr>
+          <tr data-a="inf"><td>4 to 12 months</td><td>12 to 16 (with naps)</td></tr>
+          <tr data-a="tod"><td>1 to 2 years</td><td>11 to 14 (with naps)</td></tr>
+          <tr data-a="pre"><td>3 to 5 years</td><td>10 to 13 (with naps)</td></tr>
+          <tr data-a="sch"><td>6 to 12 years</td><td>9 to 12</td></tr>
+          <tr data-a="teen"><td>13 to 18 years</td><td>8 to 10</td></tr>
+          <tr data-a="adult"><td>Adults 18 to 64</td><td>7 to 9</td></tr>
+          <tr data-a="senior"><td>65 and over</td><td>7 to 8</td></tr>
         </tbody>
       </table>
     </div>
@@ -65,6 +82,12 @@
   .sc-list li.best { border-color: var(--accent); }
   .sc-list b { font-size: 22px; min-width: 6ch; }
   .sc-list span { color: var(--muted); font-size: 14px; }
+  .sc-more { margin-top: 12px; }
+  .sc-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .sc-age-say { color: var(--muted); font-size: 14.5px; margin: 10px 0 0; }
+  .sc-age-say:empty { display: none; }
+  .sc-tbl tr.me td { font-weight: 700; background: var(--accent-soft); }
+  .sc-list li.fit { border-width: 2px; }
   .sc-say { color: var(--muted); font-size: 15px; margin: 10px 0; }
   .sc-scroll { overflow-x: auto; }
   .sc-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -74,6 +97,7 @@
 </style>
 
 <script>
+  import { sleepTime, cyclesFor, AGES } from '../../lib/everyday/cycle';
   const root = document.querySelector('.sc') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const time = q<HTMLInputElement>('.sc-time'), fall = q<HTMLInputElement>('.sc-fall'), cyc = q<HTMLInputElement>('.sc-cyc'), clock = q<HTMLSelectElement>('.sc-clock');
@@ -86,6 +110,7 @@
   };
   const hrs = (m: number) => { const h = Math.floor(m / 60), r = Math.round(m % 60); return r ? `${h} h ${r} min` : `${h} h`; };
   const val = (el: HTMLInputElement, d: number) => { const v = parseFloat(el.value); return Number.isFinite(v) && v >= 0 ? v : d; };
+  const age = q<HTMLSelectElement>('.sc-age'), hours = q<HTMLInputElement>('.sc-hours');
   const calc = () => {
     const f = val(fall, 15), c = Math.max(30, val(cyc, 90));
     let t: number;
@@ -93,10 +118,18 @@
     else { const [h, m] = (time.value || '').split(':').map(Number); if (!Number.isFinite(h) || !Number.isFinite(m)) { q('.sc-big').textContent = 'Pick a time above.'; q('.sc-list').innerHTML = ''; return; } t = h * 60 + m; }
     const back = mode === 'wake';
     q('.sc-big').textContent = back ? `To wake at ${fmt(t)}, go to bed at:` : `${mode === 'now' ? 'Going to bed now (' + fmt(t) + ')' : 'Going to bed at ' + fmt(t)}, set your alarm for:`;
-    q('.sc-list').innerHTML = [6, 5, 4].map((n) => {
-      const at = back ? t - n * c - f : t + f + n * c;
-      return `<li data-c="${n}"${n >= 5 ? ' class="best"' : ''}><b>${fmt(at)}</b><span>${n} cycles, ${hrs(n * c)} of sleep${n === 5 ? ' (good for most adults)' : n === 6 ? ' (good if you need more)' : ' (short night)'}</span></li>`;
-    }).join('');
+    const a = AGES[age.value], hh = parseFloat(hours.value);
+    q('.sc-tbl').querySelectorAll('tr').forEach((r) => r.classList.toggle('me', !!age.value && (r as HTMLElement).dataset.a === age.value));
+    let ns = [6, 5, 4], note = '';
+    if (a) { ns = cyclesFor(a[1], a[2], c); note = `${a[0]}: ${a[1]} to ${a[2]} hours of sleep a day are recommended. Rows with a thick border fit.`; }
+    const li = (n: number, cls: string, txt: string) => `<li data-c="${n}"${cls ? ` class="${cls}"` : ''}><b>${fmt(sleepTime(t, n, c, f, back))}</b><span>${n} cycles, ${hrs(n * c)} of sleep${txt}</span></li>`;
+    let rows = ns.map((n) => li(n, a ? 'fit' + (n === ns[Math.floor((ns.length - 1) / 2)] ? ' best' : '') : n >= 5 ? 'best' : '', a ? '' : n === 5 ? ' (good for most adults)' : n === 6 ? ' (good if you need more)' : ' (short night)')).join('');
+    if (hh > 0 && hh <= 16) {
+      const mins = hh * 60, at = back ? t - mins - f : t + f + mins;
+      rows = `<li data-c="exact" class="best"><b>${fmt(at)}</b><span>exactly ${hrs(mins)} of sleep (${+(mins / c).toFixed(1)} cycles)</span></li>` + rows;
+    }
+    q('.sc-list').innerHTML = rows;
+    q('.sc-age-say').textContent = note;
     q('.sc-say').textContent = `Each cycle is ${c} minutes, plus ${f} minutes to fall asleep. Waking at the end of a cycle, when sleep is light, can feel easier than waking in the middle of one.`;
   };
   const show = (m: string) => {
@@ -109,7 +142,7 @@
     calc();
   };
   root.querySelectorAll('.sc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
-  [time, fall, cyc, clock].forEach((el) => el.addEventListener('input', calc));
-  q('.sc-reset').addEventListener('click', () => { time.value = '07:00'; fall.value = '15'; cyc.value = '90'; clock.value = '24'; show('wake'); });
+  [time, fall, cyc, clock, age, hours].forEach((el) => el.addEventListener('input', calc));
+  q('.sc-reset').addEventListener('click', () => { time.value = '07:00'; fall.value = '15'; cyc.value = '90'; clock.value = '24'; age.value = ''; hours.value = ''; show('wake'); });
   show('wake');
 </script>

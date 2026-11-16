@@ -1,6 +1,6 @@
 ---
 name: Plate boundaries
-num: 2264
+num: 2274
 shelf: learn
 code: L350
 section: school-earth
@@ -8,7 +8,7 @@ title: "Plate boundaries: divergent, convergent and transform"
 summary: "See how tectonic plates pull apart, collide or slide past each other. Set the speed in cm per year and the time in millions of years, and watch the earthquakes, volcanoes, mountains and magnetic stripes appear."
 status: live
 ads: false
-order: 2264
+order: 2274
 icon: mountain
 works: offline
 updated: 2026-11-16

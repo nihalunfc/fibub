@@ -105,6 +105,45 @@ One thing the fitter also showed: when the planet crosses near the centre, *b* o
 
 To go further, the [[radial-velocity-fitter]] fits star wobbles like the NEID data, and the [[period-finder]] looks for a repeating pattern in transit times, which is how timing wobbles like the six-hour shifts are usually studied.
 
+## How we made the graphs
+
+Every chart above comes from one script, `scripts/blog-figures/toi-2535b-vanishing-transits.mjs` in fibub's public code. It does not draw anything by hand: it calls the same functions that run inside the tools.
+
+- `semiMajor`, `minMass` and `semiAmplitude` from `src/lib/sci/rvmass.ts`, the maths behind the [[exoplanet-mass-calculator]], turn the paper's wobble (100 m/s), period and star mass into the planet's mass and the size of its orbit.
+- `fluxAt`, `durations` and `blocked` from `src/lib/sci/transit.ts`, the model inside the [[transit-light-curve-fitter]], draw each year's dip, its length and its depth.
+- `fitTransit` from the same file is the fitter itself. We fed it simulated, noisy light curves and let it find the transit without being told the answer.
+
+Each input carries a label in the script saying where it came from: the paper's Table 1 or Table 2, the TESS catalogue, or our own choice. Run `node scripts/blog-figures/toi-2535b-vanishing-transits.mjs` and it prints every number quoted in this article and redraws the charts.
+
+## How we test the maths
+
+The same functions are checked against published results every time fibub's code changes (`tests/sci.mjs`, about 18,600 checks in all). For the tools used here:
+
+- The planet mass maths must give Jupiter's pull on the Sun as 12.47 m/s, and the classic hot Jupiter 51 Pegasi b (a wobble of 55.94 m/s over 4.23 days) as 0.477 Jupiter masses at 0.053 au, matching the published values.
+- The transit model must give HD 209458 b, the first transiting planet found, a transit length of 3.07 hours from its published orbit.
+- The fitter must find the middle of a simulated transit within three of its own error bars.
+
+If any of these fail, the change is not published.
+
+## Check it yourself
+
+You can repeat Step 1 in a minute on the [[exoplanet-mass-calculator]]:
+
+1. Open the calculator and choose **Mass from the wobble**.
+2. Type **0.864** in *Star mass (Suns)*, **8.236** in *Orbital period (days)* and **0** in *Eccentricity*.
+3. Type **100** in *Velocity semi-amplitude K (m/s)*.
+4. The planet mass reads about **0.90 Jupiters** (at least; type 90 in *Inclination* since it transits).
+5. To get the planet's size, type **0.877** in *Star radius (Suns)* and **1.06** in *Transit depth (%)* (the depth of a planet 0.103 times the star's width). The radius reads about **0.88 Jupiter radii**.
+
+To try the fitter on a real-looking transit, open the [[transit-light-curve-fitter]], press **Load the example**, choose **Near infrared or TESS band** under *Limb darkening*, and compare the fitted transit length with the length you get after changing the impact parameter in your own data.
+
+## What researchers can use it for
+
+- **Sanity-check a planet table:** type a paper's K, period and star mass into the [[exoplanet-mass-calculator]] and see whether the quoted planet mass follows.
+- **Plan follow-up:** the transit model shows how fast a grazing transit will fade, which tells you how soon to observe.
+- **Teach transit shapes:** the fitter's example data and the impact parameter make a ready class exercise on why grazing transits look V-shaped.
+- **Fit your own photometry:** paste time and brightness from a small telescope into the [[transit-light-curve-fitter]]; it runs in the browser, so the data never leave your computer.
+
 ## The fine print
 
 - The star's mass and radius, the wobble and the seven impact parameters are the paper's values; the planet radius is the TESS catalogue value; limb darkening is our choice. Small changes in the planet radius move our end date by a month or two.

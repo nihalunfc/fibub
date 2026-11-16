@@ -1,6 +1,6 @@
 ---
 name: Bearings
-num: 2268
+num: 2278
 shelf: learn
 code: L354
 section: school-maths
@@ -8,7 +8,7 @@ title: "Bearings: three-figure bearings, back bearings and journeys"
 summary: "Drag two points on a map to see the three-figure bearing of B from A, the back bearing and the distance, then walk a journey of legs and find the bearing and distance back to the start."
 status: live
 ads: false
-order: 2268
+order: 2278
 icon: compass
 works: offline
 updated: 2026-11-16

@@ -1,6 +1,6 @@
 ---
 name: Crude oil fractions
-num: 2261
+num: 2271
 shelf: learn
 code: L347
 section: school-chemistry
@@ -8,7 +8,7 @@ title: "Crude oil fractions: fractional distillation and cracking"
 summary: "See how a fractionating column splits crude oil into refinery gases, petrol, kerosene, diesel, fuel oil and bitumen, how chain length changes boiling point and thickness, and how cracking turns long alkanes into shorter ones."
 status: live
 ads: false
-order: 2261
+order: 2271
 icon: flask
 works: offline
 updated: 2026-11-16

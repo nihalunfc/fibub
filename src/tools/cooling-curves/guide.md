@@ -1,6 +1,6 @@
 ---
 name: Cooling and insulation
-num: 2257
+num: 2267
 shelf: learn
 code: L343
 section: school-physics
@@ -8,7 +8,7 @@ title: "Cooling and insulation: Leslie cube emission and cooling curves of wrapp
 summary: "Point an infrared detector at the four faces of a Leslie cube, then watch beakers of hot water wrapped in newspaper, bubble wrap and foam cool along their temperature-time graphs."
 status: live
 ads: false
-order: 2257
+order: 2267
 icon: curve
 works: offline
 updated: 2026-11-16

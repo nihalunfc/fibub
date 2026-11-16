@@ -1,6 +1,6 @@
 ---
 name: Triangle congruence
-num: 2267
+num: 2277
 shelf: learn
 code: L353
 section: school-maths
@@ -8,7 +8,7 @@ title: "Triangle congruence: SSS, SAS, ASA, AAS and RHS"
 summary: "Choose which three parts of a triangle are given and see every triangle that fits. One triangle means the test proves congruence; two or many means it does not, as in the SSA and AAA traps."
 status: live
 ads: false
-order: 2267
+order: 2277
 icon: ruler
 works: offline
 updated: 2026-11-16

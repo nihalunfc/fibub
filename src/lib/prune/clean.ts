@@ -56,3 +56,26 @@ export function repeatedLines(pages: string[][], minShare = 0.5): Set<string> {
   }
   return new Set([...seen].filter(([, n]) => n >= Math.max(3, pages.length * minShare)).map(([s]) => s));
 }
+
+/** Split Markdown into parts of at most about `max` tokens, breaking between paragraphs (then lines, then words) so no part ends mid-sentence where it can be avoided. */
+export function splitByTokens(md: string, max: number): string[] {
+  const limit = Math.max(50, Math.floor(max));
+  if (tokens(md) <= limit) return [md];
+  const pieces: string[] = [];
+  const push = (t: string) => {
+    if (tokens(t) <= limit) { pieces.push(t); return; }
+    const lines = t.split('\n');
+    if (lines.length > 1) { let cur = ''; for (const l of lines) { if (cur && tokens(cur + '\n' + l) > limit) { push(cur); cur = l; } else cur = cur ? cur + '\n' + l : l; } if (cur) push(cur); return; }
+    const words = t.split(' '); let cur = '';
+    for (const w of words) {
+      if (w.length > limit * 4) { if (cur) { pieces.push(cur); cur = ''; } for (let i = 0; i < w.length; i += limit * 4) pieces.push(w.slice(i, i + limit * 4)); continue; }
+      if (cur && tokens(cur + ' ' + w) > limit) { pieces.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w;
+    }
+    if (cur) pieces.push(cur);
+  };
+  md.split(/\n{2,}/).forEach((p) => p && push(p));
+  const parts: string[] = []; let cur = '';
+  for (const p of pieces) { if (cur && tokens(cur + '\n\n' + p) > limit) { parts.push(cur); cur = p; } else cur = cur ? cur + '\n\n' + p : p; }
+  if (cur) parts.push(cur);
+  return parts;
+}

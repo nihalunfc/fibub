@@ -1,6 +1,6 @@
 ---
 name: Cumulative frequency
-num: 2269
+num: 2279
 shelf: learn
 code: L355
 section: school-maths
@@ -8,7 +8,7 @@ title: "Cumulative frequency: curve, median, quartiles and box plot"
 summary: "Enter class intervals and frequencies, build the cumulative frequency table, plot the curve and read off the median, quartiles, IQR and percentiles, with the matching box plot underneath."
 status: live
 ads: false
-order: 2269
+order: 2279
 icon: chart
 works: offline
 updated: 2026-11-16

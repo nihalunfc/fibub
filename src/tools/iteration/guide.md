@@ -1,6 +1,6 @@
 ---
 name: Iteration
-num: 2270
+num: 2280
 shelf: learn
 code: L356
 section: school-maths
@@ -8,7 +8,7 @@ title: "Iteration: solving equations with x = g(x), cobweb and staircase diagram
 summary: "Rearrange an equation to x = g(x), pick a start value and step the iteration one press at a time with a table to six decimal places and a cobweb diagram that shows whether it converges or diverges."
 status: live
 ads: false
-order: 2270
+order: 2280
 icon: curve
 works: offline
 updated: 2026-11-16

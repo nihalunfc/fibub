@@ -15,6 +15,7 @@ updated: 2026-11-10
 related: [stair-calculator, deck-calculator, gravel-calculator]
 sources:
   - "Pitch conversions and the pitch factor √(1 + (rise ÷ run)²) are standard trigonometry; fibub's own working."
+  - "Rafter and ridge measurements use the same slope trigonometry on the footprint with overhang. They are plain geometry for a rectangular roof, not a framing plan. Shingle-maker minimum-pitch rules vary: check the instructions for your product."
   - "A roofing square is 100 sq ft. Three bundles per square is typical for standard asphalt shingles, but the wrapper gives the true coverage."
 flow:
   - { icon: compass, label: "Pitch" }
@@ -31,10 +32,10 @@ It works in feet or metres and runs entirely in your browser. To plan the steps 
 
 ## How to use it
 
-1. Type the pitch in any one of the three boxes. The other two update.
+1. Tap a common pitch (3:12 to 12:12), drag the slider, or type the pitch in any one of the three boxes. The others update, and a side view of the roof redraws.
 2. Choose Imperial (feet) or Metric (metres). Switching converts the sizes you typed.
 3. Type the building's length and width at the walls and the overhang on each side.
-4. Read the roof area, squares and bundles. **Reset example** brings the example back; **Clear** empties the sizes.
+4. Read the roof area, squares and bundles at the top. Under them are the rafter length, ridge height and ridge, eave and rake lengths for framing and trim. **Reset example** brings the example back; **Clear** empties the sizes.
 
 ## What each setting does
 
@@ -42,9 +43,10 @@ It works in feet or metres and runs entirely in your browser. To plan the steps 
 - **Degrees** and **Percent**: the same slope as an angle, and as rise ÷ run × 100.
 - **Pitch factor**: √(1 + (rise ÷ run)²), how much bigger the sloped roof is than the flat area under it.
 - **Overhang**: added on all four sides, so the footprint grows by twice the overhang each way.
-- **Roof shape**: a gable and a hip roof of the same pitch over the same footprint have the same area, so the same factor is used. A hip roof needs more cutting, so allow more waste.
-- **Extra for waste**: 10% by default for cuts and mistakes; more for roofs with many valleys.
-- **Bundles per square**: 3 by default for standard shingles. One square is 100 sq ft.
+- **Roof shape**: gable (two slopes), hip (four) and shed (one) of the same pitch over the same footprint have the same area, so the same factor is used. A hip roof needs more cutting, so allow more waste. The shape changes the ridge and edge lengths: a hip ridge is the length minus the width.
+- **Rafter length**: the run (half the width including overhang, or the whole width for a shed) times the pitch factor. **Ridge height** is the run times rise ÷ run.
+- **More options**: extra for waste (10% by default for cuts and mistakes; more for roofs with many valleys), bundles per square (3 by default for standard shingles; one square is 100 sq ft), extra roof area already measured on the slope (a dormer or porch), and a price per bundle to get a cost.
+- **Pitch note**: a plain one-line comment on the slope. Many shingle makers want at least 4:12 for normal installation and special underlayment between 2:12 and 4:12, so check the maker's instructions.
 
 ## Worked example
 
@@ -52,6 +54,6 @@ A 6:12 pitch is 26.57° and 50%, with a pitch factor of 1.118. A house 30 × 40 
 
 ## FAQs
 
-**Does it count ridge caps and starter strips?** No. Buy those by the length of the ridges, hips and eaves.
+**Does it count ridge caps and starter strips?** No. Buy those by the length of the ridge and eaves, which the page shows (hip rafters along the corners are not measured).
 
 **Why round only the bundles?** Rounding the squares first would add a bundle or more you may not need.

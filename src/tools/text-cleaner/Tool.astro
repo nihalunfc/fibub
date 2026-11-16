@@ -11,10 +11,15 @@ const OPTS: [string, string, string, boolean][] = [
   ['smartQuotes', 'Make quotes curly', 'Changes plain quotes into curly ones. Ignored if straight quotes is on.', false],
   ['emojis', 'Remove emojis', 'Deletes emoji pictures.', false],
   ['invisible', 'Remove hidden characters', 'Deletes zero-width and control characters and turns non-breaking spaces into normal ones.', true],
+  ['markdown', 'Remove Markdown marks', 'Strips # headings, **bold**, *italic*, `code` and > quotes that chat tools and notes leave behind. Links become "text (address)".', false],
+  ['htmlTags', 'Remove HTML tags', 'Deletes tags such as <b> and <p> and keeps the words.', false],
+  ['dashes', 'Replace long dashes', 'Changes " — " into a comma and " – " into a hyphen.', false],
+  ['dedupe', 'Remove repeated lines', 'Keeps the first copy of every line and drops the repeats.', false],
+  ['sortLines', 'Sort lines A to Z', 'Puts the lines in alphabetical order (numbers in number order).', false],
   ['trim', 'Trim the ends', 'Removes spaces and blank lines at the very start and end.', true],
 ];
 ---
-<div class="tool-ui tcl">
+<div class="tool-ui tcl" data-kit>
   <div class="tcl-card">
     <label>Paste your text
       <textarea class="tcl-in" placeholder="Paste text copied from a PDF, a web page or an email"></textarea>
@@ -23,12 +28,18 @@ const OPTS: [string, string, string, boolean][] = [
   </div>
   <div class="tcl-card">
     <h2>What to fix</h2>
-    {OPTS.map(([k, n, h, on]) => <label class="tcl-chk"><input type="checkbox" data-o={k} checked={on} /> <span>{n}<small>{h}</small></span></label>)}
+    <div class="tcl-row" role="group" aria-label="Quick settings">
+      <button type="button" class="btn tcl-pre-b" data-p="pdf">From a PDF</button>
+      <button type="button" class="btn tcl-pre-b" data-p="ai">From an AI chat</button>
+      <button type="button" class="btn tcl-pre-b" data-p="list">Tidy a list</button>
+    </div>
+    <p class="tcl-hint">A quick setting only ticks the boxes below; you can still change any of them.</p>
+    {OPTS.map(([k, n, h, on]) => <label class="tcl-chk"><input type="checkbox" data-o={k} data-k={k} checked={on} /> <span>{n}<small>{h}</small></span></label>)}
   </div>
   <div class="tcl-card">
     <h2>Clean text</h2>
-    <pre class="tcl-pre tcl-out" aria-live="polite"></pre>
-    <p class="tcl-hint tcl-stat"></p>
+    <pre class="tcl-pre tcl-out"></pre>
+    <p class="tcl-hint tcl-stat" aria-live="polite"></p>
     <div class="tcl-row"><button type="button" class="btn tcl-copy">Copy the clean text</button><button type="button" class="btn tcl-use">Use as my text</button></div>
   </div>
 </div>
@@ -57,6 +68,16 @@ const OPTS: [string, string, string, boolean][] = [
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const inp = q<HTMLTextAreaElement>('.tcl-in'), out = q('.tcl-out');
   const boxes = [...root.querySelectorAll<HTMLInputElement>('input[data-o]')];
+  const PRESETS: Record<string, string[]> = {
+    pdf: ['joinLines', 'hyphenation', 'spaces', 'blankLines', 'bullets', 'invisible', 'trim'],
+    ai: ['markdown', 'dashes', 'emojis', 'spaces', 'blankLines', 'invisible', 'trim'],
+    list: ['bullets', 'numbering', 'spaces', 'dedupe', 'sortLines', 'invisible', 'trim'],
+  };
+  root.querySelectorAll<HTMLElement>('.tcl-pre-b').forEach((b) => b.addEventListener('click', () => {
+    const on = PRESETS[b.dataset.p || ''] || [];
+    boxes.forEach((x) => (x.checked = on.includes(x.dataset.o!)));
+    update();
+  }));
   const update = () => {
     const o: Record<string, boolean> = {};
     boxes.forEach((b) => (o[b.dataset.o!] = b.checked));

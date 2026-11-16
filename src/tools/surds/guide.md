@@ -1,6 +1,6 @@
 ---
 name: Surds
-num: 2271
+num: 2281
 shelf: learn
 code: L357
 section: school-maths
@@ -8,7 +8,7 @@ title: "Surds: simplify, add, multiply, expand and rationalise"
 summary: "Simplify square roots with square tiles, add and multiply surds, expand brackets and rationalise denominators with the conjugate, with every step shown and a number line to check the decimal."
 status: live
 ads: false
-order: 2271
+order: 2281
 icon: sigma
 works: offline
 updated: 2026-11-16

@@ -18,4 +18,6 @@ export default async ({ page, check, BASE }) => {
   await page.fill('.cm .cm-names', '');
   const e = await saved(page, () => page.click('.cm .cm-pdf'));
   check((await pages(e.buf)) === 1, 'certificate-maker: no names = 1 blank page');
+  await page.selectOption('.cm .cm-preset', 'completion');
+  check((await page.inputValue('.cm .cm-title')) === 'Certificate of Completion' && (await page.inputValue('.cm .cm-text')).includes('successfully completed'), 'certificate-maker: wording preset fills the text');
 };

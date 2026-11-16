@@ -1,6 +1,6 @@
 ---
 name: Circle theorems
-num: 2266
+num: 2276
 shelf: learn
 code: L352
 section: school-maths
@@ -8,7 +8,7 @@ title: "Circle theorems: angles, tangents and chords"
 summary: "Drag points round a circle and watch eight circle theorems stay true: angle at the centre, same segment, semicircle, cyclic quadrilateral, tangent and radius, two tangents, alternate segment and chord bisector."
 status: live
 ads: false
-order: 2266
+order: 2276
 icon: compass
 works: offline
 updated: 2026-11-16

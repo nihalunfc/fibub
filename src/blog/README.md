@@ -62,6 +62,13 @@ Every article has a section `## Checked with the tools` with at least one plot o
 - Say plainly what was checked and how: a recomputation from the paper's stated values, a fit to simulated data, or a fit to the real public data. Never present a simulation as the paper's data. Give a short table of "paper says / tool gives" where it helps.
 - Older articles get the section when they are next edited.
 
+## Research articles: the tools come first (nihal, 2026-11-16)
+A discovery article introduces the paper briefly, but is mainly about what fibub tools can do for a researcher. After `## Checked with the tools` (the results and charts), add:
+- `## How we made the graphs`: the script (`scripts/blog-figures/<slug>.mjs`), the `src/lib/sci/` functions it calls and which tool they power, and where every input number came from (paper, catalogue or our assumption).
+- `## How we test the maths`: the checks in `tests/sci.mjs` or `tests/sci-tools/<id>.mjs` that pin the tool against published results (name two or three, with their numbers), and that they run on every change.
+- `## Check it yourself`: numbered steps on the real tool page, using its actual field and button names, with the values to type and the answer the reader should see.
+- `## What researchers can use it for`: 3 to 5 concrete jobs (planning observations, sanity-checking a table, teaching), each with the tool that does it.
+
 ## House rules
 - Plain, friendly English. Short sentences. Explain every term the first time.
 - Science only: nothing religious, astrological or pseudo-scientific.

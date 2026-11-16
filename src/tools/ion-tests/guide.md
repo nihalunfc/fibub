@@ -1,6 +1,6 @@
 ---
 name: Ion tests
-num: 2260
+num: 2270
 shelf: learn
 code: L346
 section: school-chemistry
@@ -8,7 +8,7 @@ title: "Ion tests: flame tests, precipitates and mystery salts"
 summary: "Run flame, sodium hydroxide, acid, silver nitrate and barium chloride tests on a virtual bench, then identify the cation and anion of a mystery salt from your results."
 status: live
 ads: false
-order: 2260
+order: 2270
 icon: flask
 works: offline
 updated: 2026-11-16

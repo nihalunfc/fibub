@@ -32,11 +32,14 @@ Nothing is sent anywhere and it works offline. To make blank pages in a size you
 1. Choose "Size one" and "Size two".
 2. Pick the unit, and the dpi if you need pixels.
 3. Read the scale lines under the picture, or browse the full table by group.
+4. Under More options, type the size of your item to see which standard sheets hold it, and see how many pieces of size one fit on a sheet of size two.
 
 ## What each setting does
 
 - **Show in**: millimetres, centimetres or inches.
 - **Pixels at (dpi)**: the pixel size of a page for a given print resolution. 300 dpi is normal for print.
+- **My item is ... by ...**: in the unit chosen above. Lists the smallest standard sheets that hold it either way round, and the closest size by shape.
+- **Gap**: space in millimetres between pieces and round the edge, used for the "how many fit" line, which tries the piece upright and turned sideways.
 - **Fit**: the scale that makes all of page one visible on page two.
 - **Fill**: the scale that covers page two completely, cutting some off.
 

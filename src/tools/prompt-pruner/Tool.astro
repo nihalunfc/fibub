@@ -30,6 +30,12 @@
     </div>
     <p class="pp-note"></p>
     <textarea class="pp-out" rows="14" readonly aria-label="Clean Markdown"></textarea>
+    <details class="pp-split">
+      <summary><b>More options</b>: split a long result into parts</summary>
+      <label>Size of each part <select class="pp-size" data-k="size"><option value="0">Do not split</option><option value="3000">About 3,000 tokens</option><option value="6000">About 6,000 tokens</option><option value="12000">About 12,000 tokens</option><option value="24000">About 24,000 tokens</option><option value="60000">About 60,000 tokens</option></select></label>
+      <p class="pp-hint">Chats have a limit on how much you can paste at once. Pick a size under it, then copy the parts one by one. Each part starts with a "Part 1 of 3" line so the chat knows to wait.</p>
+      <div class="pp-parts"></div>
+    </details>
     <div class="pp-actions">
       <button type="button" class="btn pp-copy">Copy Markdown</button>
       <a class="btn secondary pp-dl" download="clean.md">Download .md</a>
@@ -65,11 +71,13 @@
   .pp-note { margin: 0; color: var(--muted); font-size: 14px; }
   .pp-note:empty { display: none; }
   .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pp-split label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); } .pp-split select { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .pp-hint { margin: 6px 0; font-size: 13px; color: var(--muted); } .pp-parts { display: flex; flex-wrap: wrap; gap: 8px; }
   .pp-fine { color: var(--muted); }
 </style>
 
 <script>
-  import { DEFAULTS, type PruneOptions, type PruneResult } from '../../lib/prune/clean';
+  import { DEFAULTS, splitByTokens, tokens, type PruneOptions, type PruneResult } from '../../lib/prune/clean';
   import { sizeLimit } from '../../lib/compress/detect';
   import { formatBytes } from '../../lib/compress/format';
 
@@ -103,8 +111,25 @@
     url = URL.createObjectURL(new Blob([r.markdown], { type: 'text/markdown' }));
     dl.href = url;
     dl.download = `${name.replace(/\.[^.]+$/, '') || 'clean'}-clean.md`;
-    result.hidden = false;
+    result.hidden = false; parts();
   }
+  function parts() {
+    const box = q('.pp-parts'), n = +q<HTMLSelectElement>('.pp-size').value; box.replaceChildren();
+    if (!n || !out.value) return;
+    const list = splitByTokens(out.value, n);
+    if (list.length < 2) { box.textContent = 'It already fits in one part.'; return; }
+    list.forEach((t, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary';
+      b.textContent = `Copy part ${i + 1} of ${list.length} (${fmt(tokens(t))} tokens)`;
+      b.addEventListener('click', async () => {
+        const text = `[Part ${i + 1} of ${list.length}]\n\n${t}`;
+        try { await navigator.clipboard.writeText(text); b.textContent = `Copied part ${i + 1} ✓`; } catch { out.value = text; out.select(); document.execCommand('copy'); b.textContent = `Copied part ${i + 1} ✓`; out.value = list.join('\n\n'); }
+        setTimeout(() => (b.textContent = `Copy part ${i + 1} of ${list.length} (${fmt(tokens(t))} tokens)`), 1500);
+      });
+      box.append(b);
+    });
+  }
+  q('.pp-size').addEventListener('change', parts);
 
   async function run() {
     if (!last) return;

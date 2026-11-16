@@ -1,6 +1,6 @@
 ---
 name: Fission chain reaction
-num: 2255
+num: 2265
 shelf: learn
 code: L341
 section: school-physics
@@ -8,7 +8,7 @@ title: "Fission chain reaction: enrichment, control rods, moderator and the mult
 summary: "Fire one neutron into a grid of uranium-235 nuclei and watch the chain grow or die out as you change enrichment, control rods and moderator, with k and generation counts shown."
 status: live
 ads: false
-order: 2255
+order: 2265
 icon: orbit
 works: offline
 updated: 2026-11-16

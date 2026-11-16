@@ -1,6 +1,6 @@
 ---
 name: Magnification
-num: 2265
+num: 2275
 shelf: learn
 code: L351
 section: school-biology
@@ -8,7 +8,7 @@ title: "Microscope magnification: image size, actual size and field of view"
 summary: "Look through a virtual light microscope, pick a specimen and lens, measure the image with a ruler and work out the real size of the cell, then compare light and electron microscope resolution."
 status: live
 ads: false
-order: 2265
+order: 2275
 icon: eye
 works: offline
 updated: 2026-11-16

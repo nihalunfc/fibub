@@ -29,6 +29,12 @@ export default async ({ page, check, BASE }) => {
   await page.check('.stc .stc-tidy'); await page.waitForTimeout(100);
   const r2 = await page.$$eval('.stc .stc-table tr', (trs) => trs.map((t) => [...t.children].map((c) => c.textContent)));
   check(r2[3].join('|') === '2026-01-03|Rent January|950|' + '|2045.5', `statement-to-csv: tidy dates and amounts (${r2[3]})`);
+  const tot = await page.textContent('.stc .stc-totals');
+  check(tot.includes('Debit: 1,036.65 in 3 rows') && tot.includes('Credit: 2,000.00 in 1 row') && tot.includes('all 3 lines follow'), `statement-to-csv: totals and balance check (${tot})`);
+  await page.selectOption('.stc .stc-datefmt', 'dmy'); await page.waitForTimeout(100);
+  const r3 = await page.$$eval('.stc .stc-table tr', (trs) => trs.map((t) => [...t.children].map((c) => c.textContent)));
+  check(r3[3][0] === '03/01/2026', `statement-to-csv: day-first dates (${r3[3][0]})`);
+  await page.selectOption('.stc .stc-datefmt', 'iso');
   await page.uncheck('.stc .stc-dated'); await page.waitForTimeout(100);
   check((await page.$$('.stc .stc-table tr')).length > 5, 'statement-to-csv: all lines when date filter off');
   await page.setInputFiles('.stc .stc-file', { name: 'x.pdf', mimeType: 'application/pdf', buffer: Buffer.from('hello') }); await page.waitForTimeout(300);

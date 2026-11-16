@@ -1,6 +1,6 @@
 ---
 name: Ripple tank
-num: 2258
+num: 2268
 shelf: learn
 code: L344
 section: school-physics
@@ -8,7 +8,7 @@ title: "Ripple tank: measure wavelength, wave speed, refraction and diffraction"
 summary: "Watch straight waves from a dipper, freeze them with a strobe, measure the wavelength with a ruler to find v = f x wavelength, then see refraction in a shallow region and diffraction through a gap."
 status: live
 ads: false
-order: 2258
+order: 2268
 icon: wave
 works: offline
 updated: 2026-11-16

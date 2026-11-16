@@ -48,6 +48,10 @@ Everything runs on your device. Your customers' details and your items are never
 
 Two hours of design at 1,500 and one item at 499.99, in rupees with India GST at 18% on the first and 5% on the second and a 10% discount: subtotal Rs. 3,499.99, discount Rs. 350.00, CGST and SGST 9% on 2,700.00 are Rs. 243.00 each, CGST and SGST 2.5% on 449.99 are Rs. 11.25 each, total Rs. 3,658.49.
 
+## Payment terms, numbering and tax presets
+
+Choose **Payment terms** (due on receipt, or net 7, 14, 30 or 60 days) and the due date is worked out from the invoice date and follows it if you change the date; typing your own due date switches the terms back to manual. **Use the next number** raises the last digits of the number and keeps the zeros, so INV-0099 becomes INV-0100. Under **One tax**, press a preset (Canada GST 5%, Ontario HST 13%, UK VAT 20%, UAE VAT 5%, Saudi VAT 15%) to fill the tax name and rate. These are common standard rates, not live-checked (last reviewed 2026-11-16), so check the official source for your goods and region.
+
 ## FAQs
 
 **Is it legal to use as a tax invoice?** It shows the usual fields, but rules differ by country and business. Check with your tax office or accountant.

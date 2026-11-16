@@ -1,6 +1,6 @@
 ---
 name: Electrolysis lab
-num: 2259
+num: 2269
 shelf: learn
 code: L345
 section: school-chemistry
@@ -8,7 +8,7 @@ title: "Electrolysis lab: products at the cathode and anode"
 summary: "Pick a molten or dissolved electrolyte and watch ions drift to the electrodes. See what forms at the cathode and anode, the rule that decides it, the half-equations and how much is made."
 status: live
 ads: false
-order: 2259
+order: 2269
 icon: flask
 works: offline
 updated: 2026-11-16

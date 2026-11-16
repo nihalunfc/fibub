@@ -1,0 +1,92 @@
+---
+// #T999 Deposit compare: NRE fixed deposit vs NRO fixed deposit vs FCNR(B) deposit, after tax and exchange-rate change.
+---
+<div class="tool-ui dc">
+  <section class="panel">
+    <h2>Your money</h2>
+    <div class="dc-grid">
+      <label>Currency it is in now <select data-k="cur"></select></label>
+      <label>Amount <input data-k="amt" inputmode="decimal" /></label>
+      <label>Today's rate: rupees for 1 unit <span class="dc-suf"><input data-k="fx" inputmode="decimal" /><i>₹</i></span></label>
+      <label>Years <span class="dc-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span></label>
+      <label>Interest added <select data-k="m"><option value="4">Quarterly</option><option value="2">Half-yearly</option><option value="12">Monthly</option><option value="1">Yearly</option></select></label>
+      <label>Expected rupee fall a year <span class="dc-suf"><input data-k="drift" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+    <p class="dc-help">Rupee fall: how much more rupees one unit of your currency is expected to buy each year. Use a minus sign if you expect the rupee to gain.</p>
+  </section>
+  <section class="panel">
+    <h2>Rates your bank offers</h2>
+    <div class="dc-grid">
+      <label>NRE fixed deposit rate <span class="dc-suf"><input data-k="nre" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>NRO fixed deposit rate <span class="dc-suf"><input data-k="nro" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>FCNR(B) deposit rate (in your currency) <span class="dc-suf"><input data-k="fcnr" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Tax on NRO interest <span class="dc-suf"><input data-k="tax" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+    <div class="dc-chips" role="group" aria-label="NRO tax presets">NRO tax: <button type="button" class="btn secondary" data-t="31.2">TDS 31.2%</button><button type="button" class="btn secondary" data-t="15">Treaty 15%</button><button type="button" class="btn secondary" data-t="10">Treaty 10%</button></div>
+    <p class="dc-help">For a non-resident, the bank cuts tax at 30% plus 4% cess (31.2%) from NRO interest, more with surcharge on large incomes. A tax treaty can lower it if you give the bank a tax residency certificate and Form 10F. Put the tax you will finally pay.</p>
+    <p class="note bad dc-err" role="alert" hidden></p>
+  </section>
+  <section class="dc-res" aria-live="polite">
+    <p class="dc-line dc-lead"></p>
+    <div class="panel dc-wrap"><table>
+      <thead><tr><th>Deposit</th><th>At the end, <span class="dc-cn"></span></th><th>At the end, ₹</th><th>Return a year in <span class="dc-cn"></span></th></tr></thead>
+      <tbody class="dc-body"></tbody>
+    </table></div>
+    <p class="dc-line dc-note"></p>
+  </section>
+  <p class="dc-fine">Estimate, not legal or tax advice. NRE interest is tax-free in India for a person resident outside India under FEMA (section 10(4)(ii) of the 1961 Act; kept in Schedule IV of the Income-tax Act, 2025 from 1 April 2026). FCNR(B) interest is tax-free in India while you are non-resident or not ordinarily resident (section 10(15)(iv)(fa) of the 1961 Act). NRO interest is taxed; tax is cut at source (section 195 of the 1961 Act, section 393 of the 2025 Act). Your home country may tax all of it. Exchange rates do not move in a straight line. Checked 2026-11-16: check with your bank; rates and rules change. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .dc > *, .dc-res > * { min-width: 0; }
+  .dc h2 { margin: 0 0 12px; font-size: 18px; }
+  .dc .panel { padding: 16px; }
+  .dc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .dc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dc input, .dc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dc input:focus, .dc select:focus { border-color: var(--accent); outline: none; }
+  .dc-suf { position: relative; display: block; }
+  .dc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .dc-suf input { padding-right: 76px; }
+  .dc-help { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .dc-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .dc-chips .btn { padding: 4px 12px; min-height: 0; }
+  .dc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dc-line { margin: 0; font-size: 15px; }
+  .dc-line:empty { display: none; }
+  .dc-wrap { overflow-x: auto; }
+  .dc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .dc th, .dc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dc th:first-child, .dc td:first-child { text-align: left; }
+  .dc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .dc tr.best td { font-weight: 700; color: var(--good); }
+  .dc-note { color: var(--muted); font-size: 13px; }
+  .dc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .dc-err { margin: 10px 0 0; }
+</style>
+
+<script>
+  import { compareDeposits } from '../../lib/money/deposit-compare';
+  import { money, num, CURRENCIES } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.dc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  f('cur').innerHTML = CURRENCIES.filter(([c]) => c !== 'INR').map(([c, n]) => `<option value="${c}">${n}</option>`).join('');
+  const D: Record<string, string> = { amt: '10000', fx: '88', years: '3', drift: '2', nre: '6.5', nro: '6.5', fcnr: '4', tax: '31.2' };
+  for (const k in D) f(k).value = D[k];
+  function run() {
+    const cur = f('cur').value, amount = num(f('amt').value), fx = num(f('fx').value), years = num(f('years').value), tax = num(f('tax').value);
+    const bad = !(amount > 0) ? 'Enter the amount.' : !(fx > 0) ? "Enter today's rate: how many rupees one unit buys." : !(years > 0 && years <= 30) ? 'Enter years, from a few months (such as 0.5) to 30.' : !(tax >= 0 && tax < 100) ? 'Tax on NRO interest is a percent from 0 to 99.' : '';
+    q('.dc-err').hidden = !bad; q('.dc-err').textContent = bad; q('.dc-res').hidden = !!bad;
+    if (bad) return;
+    const r = compareDeposits({ amount, fx, years, perYear: +f('m').value, drift: num(f('drift').value), nre: num(f('nre').value), nro: num(f('nro').value), fcnr: num(f('fcnr').value), nroTax: tax });
+    root.querySelectorAll('.dc-cn').forEach((e) => (e.textContent = cur));
+    q('.dc-body').innerHTML = r.rows.map((x) => `<tr class="${x === r.best ? 'best' : ''}"><td>${x.name}</td><td>${money(x.fx, cur, 0)}</td><td>${money(x.inr, 'INR', 0)}</td><td>${x.yearly.toFixed(2)}%</td></tr>`).join('');
+    q('.dc-lead').innerHTML = `The <b>${r.best.name}</b> leaves the most: about <b>${money(r.best.fx, cur, 0)}</b> after ${years} years, ${r.best.yearly.toFixed(2)}% a year in ${cur} after Indian tax.`;
+    q('.dc-note').textContent = `Rate assumed at the end: ₹${r.fxEnd.toFixed(2)} for 1 ${cur} (from ₹${fx}). Indian tax on the NRO interest over the term: about ${money(r.nroTaxPaid, 'INR', 0)}. NRE and NRO deposits are in rupees, so a falling rupee cuts what they are worth in ${cur}; FCNR(B) stays in ${cur} (terms of 1 to 5 years).`;
+  }
+  root.querySelectorAll<HTMLElement>('[data-t]').forEach((b) => b.addEventListener('click', () => { f('tax').value = b.dataset.t!; run(); }));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

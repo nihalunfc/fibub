@@ -22,16 +22,30 @@
       </label>
     </div>
     <div class="pz-quick" aria-label="Race distances">
-      <button type="button" data-d="5">5 km</button><button type="button" data-d="10">10 km</button><button type="button" data-d="21.0975">Half marathon</button><button type="button" data-d="42.195">Marathon</button>
+      <button type="button" data-d="1.609344">1 mile</button><button type="button" data-d="5">5 km</button><button type="button" data-d="10">10 km</button><button type="button" data-d="21.0975">Half marathon</button><button type="button" data-d="42.195">Marathon</button>
     </div>
     <p class="pz-big" aria-live="polite"></p>
     <p class="pz-say" aria-live="polite"></p>
+    <details class="pz-more">
+      <summary>More options (even, negative or positive splits; pace chart)</summary>
+      <div class="pz-fields">
+        <label>Split plan
+          <select data-k="plan"><option value="even">Even pace</option><option value="neg">Negative split (second half faster)</option><option value="pos">Positive split (second half slower)</option></select>
+        </label>
+        <label>Difference, seconds per <span class="pz-su">km</span>
+          <input data-k="shift" inputmode="decimal" value="5" />
+        </label>
+      </div>
+      <p class="pz-fine">The first half and the second half are each run at a steady pace; the two paces average out to the pace above, so the finish time stays the same. Use it with the Splits table below.</p>
+      <h3>Pace chart</h3>
+      <div class="pz-scroll"><table class="pz-chart"><thead><tr><th>Pace <span class="pz-cu">/km</span></th><th>km/h</th><th>5 km</th><th>10 km</th><th>Half</th><th>Marathon</th></tr></thead><tbody></tbody></table></div>
+    </details>
     <button type="button" class="pz-reset">Reset</button>
   </section>
 
   <section class="panel">
     <h3>Splits</h3>
-    <p class="pz-fine">Even pace, one row per <span class="pz-su">km</span>. The last row is the part left over.</p>
+    <p class="pz-fine"><span class="pz-plan">Even pace</span>, one row per <span class="pz-su">km</span>. The last row is the part left over.</p>
     <div class="pz-scroll"><table class="pz-splits"><thead><tr><th><span class="pz-su">km</span></th><th>Split</th><th>Total time</th></tr></thead><tbody></tbody></table></div>
   </section>
 
@@ -39,6 +53,7 @@
     <h3>Race time predictor</h3>
     <p class="pz-fine">Riegel's formula: T2 = T1 × (D2 / D1)<sup>k</sup>, from the distance and time above.</p>
     <label class="pz-k">Fatigue exponent k <input data-k="k" inputmode="decimal" value="1.06" /></label>
+    <p class="pz-fine pz-pw" role="status"></p>
     <div class="pz-scroll"><table class="pz-pred"><thead><tr><th>Race</th><th>Predicted time</th><th>Pace /km</th><th>Pace /mi</th></tr></thead><tbody></tbody></table></div>
   </section>
   <p class="pz-fine">Nothing you type leaves this page.</p>
@@ -61,6 +76,9 @@
   .pz button:hover { border-color: var(--accent); }
   .pz-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
   .pz-say { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+  .pz-more { margin-top: 12px; }
+  .pz-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .pz-more h3 { margin-top: 14px; }
   .pz-k { max-width: 220px; margin: 8px 0; }
   .pz-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
   .pz table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
@@ -70,12 +88,12 @@
 </style>
 
 <script>
+  import { cumTime, riegel, MI } from '../../lib/everyday/body';
   const root = document.querySelector('.pz') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const big = root.querySelector('.pz-big') as HTMLElement;
   const say = root.querySelector('.pz-say') as HTMLElement;
-  const MI = 1.609344;
-  const DEF: Record<string, string> = { find: 'pace', dist: '10', du: 'km', time: '50:00', pace: '5:00', pu: 'km', k: '1.06' };
+  const DEF: Record<string, string> = { find: 'pace', dist: '10', du: 'km', time: '50:00', pace: '5:00', pu: 'km', k: '1.06', plan: 'even', shift: '5' };
   // "h:mm:ss", "mm:ss" or plain minutes -> seconds
   const parseT = (s: string) => {
     const p = s.trim().split(':').map((x) => x.trim());
@@ -113,28 +131,45 @@
     say.textContent = `${dShow} in ${fmt(t)} is a pace of ${fmt(pk)} per km (${fmt(pm)} per mile), a speed of ${num(kmh)} km/h (${num(kmh / MI)} mph).`;
     splits(km, t, du);
     predict(km, t);
+    chart(pu);
   };
   const fail = (m: string) => { big.textContent = ''; say.textContent = m; (root.querySelector('.pz-splits tbody') as HTMLElement).innerHTML = ''; (root.querySelector('.pz-pred tbody') as HTMLElement).innerHTML = ''; };
   const splits = (km: number, t: number, du: string) => {
     const unit = du === 'mi' ? MI : 1, d = km / unit, per = t / d;
+    const plan = el('plan').value, dl = Math.abs(parseFloat(el('shift').value) || 0);
+    const shift = plan === 'neg' ? dl : plan === 'pos' ? -dl : 0;
+    const sh = per - dl > 0 ? shift : 0;
+    (root.querySelector('.pz-plan') as HTMLElement).textContent = plan === 'even' || !sh ? 'Even pace' : plan === 'neg' ? `Negative split: first half ${fmt(per + dl)}, second half ${fmt(per - dl)} per ${du === 'mi' ? 'mile' : 'km'}` : `Positive split: first half ${fmt(per - dl)}, second half ${fmt(per + dl)} per ${du === 'mi' ? 'mile' : 'km'}`;
     root.querySelectorAll('.pz-su').forEach((s) => (s.textContent = du === 'mi' ? 'mile' : 'km'));
     const tb = root.querySelector('.pz-splits tbody') as HTMLElement; tb.innerHTML = '';
     const n = Math.min(Math.ceil(d - 1e-9), 200);
     for (let i = 1; i <= n; i++) {
       const at = Math.min(i, d), part = at - (i - 1);
       const tr = document.createElement('tr');
-      for (const c of [num(at, 2), fmt(per * part), fmt(per * at)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      const cum = cumTime(at, d, per, sh), prev = cumTime(i - 1, d, per, sh);
+      for (const c of [num(at, 2), fmt(cum - prev), fmt(cum)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
       tb.append(tr);
     }
   };
   const predict = (km: number, t: number) => {
     const k = parseFloat(el('k').value);
+    (root.querySelector('.pz-pw') as HTMLElement).textContent = km < 1.5 || km > 50 ? 'Predictions are less reliable when the distance you typed is under 1.5 km or over 50 km. Use a recent race of 5 km to a half marathon if you can.' : '';
     const tb = root.querySelector('.pz-pred tbody') as HTMLElement; tb.innerHTML = '';
     if (!Number.isFinite(k) || k <= 0) return;
     for (const [name, d] of RACES) {
-      const t2 = t * Math.pow(d / km, k);
+      const t2 = riegel(t, km, d, k);
       const tr = document.createElement('tr'); tr.dataset.race = name;
       for (const c of [name, fmt(t2), fmt(t2 / d), fmt((t2 / d) * MI)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tb.append(tr);
+    }
+  };
+  const chart = (pu: string) => {
+    root.querySelectorAll('.pz-cu').forEach((c) => (c.textContent = pu === 'mi' ? '/mile' : '/km'));
+    const tb = root.querySelector('.pz-chart tbody') as HTMLElement; tb.innerHTML = '';
+    const unit = pu === 'mi' ? MI : 1;
+    for (let s = pu === 'mi' ? 300 : 180; s <= (pu === 'mi' ? 900 : 600); s += 30) {
+      const pk = s / unit, tr = document.createElement('tr'); tr.dataset.p = fmt(s);
+      for (const c of [fmt(s), num(3600 / pk, 1), fmt(pk * 5), fmt(pk * 10), fmt(pk * 21.0975), fmt(pk * 42.195)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
       tb.append(tr);
     }
   };

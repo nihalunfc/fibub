@@ -1,6 +1,6 @@
 ---
 name: Density lab
-num: 2256
+num: 2266
 shelf: learn
 code: L342
 section: school-physics
@@ -8,7 +8,7 @@ title: "Density lab: measure density of blocks, stones and liquids and test if t
 summary: "Measure a block with a ruler, a stone by displacement or a liquid in a cylinder, work out density in g/cm3 and kg/m3, then drop the object in water, oil or syrup to see if it floats."
 status: live
 ads: false
-order: 2256
+order: 2266
 icon: scale
 works: offline
 updated: 2026-11-16

@@ -40,6 +40,8 @@ Your statement is read on your own device. It is not uploaded, and nothing is ke
 - **Join a description that wraps onto the next line**: when a long description continues on a second line, it is joined to the line above.
 - **Tidy dates and amounts**: writes dates as 2026-01-31 and amounts as plain numbers such as -1234.56, which sorts and adds up correctly.
 - **Put the first kept line as column headings**: only changes how the table is shown.
+- **Dates in the CSV**: with Tidy ticked, choose year first (2026-01-31), day first (31/01/2026) or month first (01/31/2026). Day first and month first are read from the dates themselves.
+- **Totals check**: under the options you get the total of each Debit/Credit (or Amount) column and a balance check that tells you whether every line follows from the balance above it. If it says lines do not follow, a column start is probably in the wrong place or a line is missing.
 
 ## Worked example
 

@@ -1,6 +1,6 @@
 ---
 name: Empirical formula
-num: 2263
+num: 2273
 shelf: learn
 code: L349
 section: school-chemistry
@@ -8,7 +8,7 @@ title: "Empirical formula calculator: from masses or percentages"
 summary: "Enter the masses or percentages of two to four elements and follow every step to the empirical formula, then use Mr for the molecular formula, or run a magnesium oxide burning experiment to get your own data."
 status: live
 ads: false
-order: 2263
+order: 2273
 icon: flask
 works: offline
 updated: 2026-11-16

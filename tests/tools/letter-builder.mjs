@@ -22,4 +22,11 @@ export default async ({ page, check, BASE }) => {
   check(pd.buf.subarray(0, 4).toString() === '%PDF' && t.includes('Priya Sharma') && t.includes('Dear Alex Chen'), 'letters: PDF has the text');
   const tx = await saved(page, () => page.click('.lb .lb-txt'));
   check(tx.buf.toString('utf8').includes('Re: Resignation: Analyst'), 'letters: text file has the subject line');
+  await page.goto(`${BASE}/documents/letter-builder/`); await page.waitForTimeout(400);
+  await page.check('.lb input[value=landlord]'); await page.waitForTimeout(100);
+  check((await page.textContent('.lb .lb-prev')).includes('give notice that I will move out'), 'letters: landlord notice template');
+  await page.check('.lb input[value=absence]'); await page.waitForTimeout(100);
+  check((await page.textContent('.lb .lb-prev')).includes('Please excuse'), 'letters: absence note template');
+  await page.click('.lb .lb-next');
+  check(await page.evaluate(() => { const t = document.querySelector('.lb [data-k=body]'); return t.value.slice(t.selectionStart, t.selectionEnd).startsWith('['); }), 'letters: next blank is selected');
 };

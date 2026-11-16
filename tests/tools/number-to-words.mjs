@@ -16,4 +16,15 @@ export default async ({ page, check, BASE }) => {
   check((await out()) === 'DIRHAMS FIFTY FILS ONLY', `ntw: dirhams and upper case (${await out()})`);
   await page.fill('.ntw .ntw-in', 'abc'); await page.waitForTimeout(100);
   check(await page.isVisible('.ntw .ntw-err'), 'ntw: bad input message');
+  await page.selectOption('.ntw .ntw-mode', 'plain'); await page.selectOption('.ntw .ntw-sys', 'intl'); await page.selectOption('.ntw .ntw-case', 'title');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.ntw .ntw-in', '1205'); await page.check('.ntw .ntw-and'); await page.waitForTimeout(80);
+  check((await out()) === 'One Thousand Two Hundred and Five', `ntw: British and (${await out()})`);
+  await page.uncheck('.ntw .ntw-and'); await page.fill('.ntw .ntw-in', '21'); await page.check('.ntw .ntw-ord'); await page.waitForTimeout(80);
+  check((await out()) === 'Twenty-First', `ntw: ordinal (${await out()})`);
+  await page.fill('.ntw .ntw-in', '12'); await page.waitForTimeout(80);
+  check((await out()) === 'Twelfth', 'ntw: twelfth');
+  await page.fill('.ntw .ntw-in', '12.5'); await page.waitForTimeout(80);
+  check((await out()) === 'Twelve point Five', 'ntw: decimals stay cardinal');
+  check(await page.isVisible('.kit-bar'), 'ntw: copy link bar present');
 };

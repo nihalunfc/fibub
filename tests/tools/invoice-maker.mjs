@@ -32,4 +32,12 @@ export default async ({ page, check, BASE }) => {
   check((await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))).includes('Acme') && !(await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))).includes('Asha'), 'invoice: remembers only own details when ticked');
   await page.click(`${T} .im-clear`);
   check(!(await page.evaluate(() => localStorage.getItem('fibub-invoice-v1'))), 'invoice: clear removes it');
+  await page.goto(`${BASE}/documents/invoice-maker/`); await page.waitForTimeout(400);
+  await page.fill(`${T} [data-k=date]`, '2026-01-30');
+  await page.selectOption(`${T} .im-terms`, '30'); await page.waitForTimeout(100);
+  check((await page.inputValue(`${T} [data-k=due]`)) === '2026-03-01', 'invoice: net 30 from 30 Jan is 1 Mar');
+  await page.fill(`${T} [data-k=number]`, 'INV-0099'); await page.click(`${T} .im-next`);
+  check((await page.inputValue(`${T} [data-k=number]`)) === 'INV-0100', 'invoice: next number keeps zeros');
+  await page.selectOption(`${T} [data-k=taxMode]`, 'one'); await page.click(`${T} [data-preset="HST|13"]`); await page.waitForTimeout(100);
+  check((await page.inputValue(`${T} [data-k=taxRate]`)) === '13' && (await page.inputValue(`${T} [data-k=taxName]`)) === 'HST', 'invoice: tax preset fills name and rate');
 };

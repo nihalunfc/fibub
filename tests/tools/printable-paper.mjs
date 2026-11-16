@@ -16,4 +16,10 @@ export default async ({ page, check, BASE }) => {
   check(px > 500, 'printable-paper: preview is drawn');
   await page.selectOption('.pp .pp-unit', 'in');
   check(Math.abs(parseFloat(await page.inputValue('.pp [data-t=graph] .pp-spacing')) - 0.197) < 0.001, 'printable-paper: 5 mm shows as 0.197 in');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.pp .pp-size', 'a3'); await page.selectOption('.pp .pp-weight', 'bold'); await page.waitForTimeout(100);
+  const dims = await page.evaluate(() => { const c = document.querySelector('.pp-canvas'); return [c.width, c.height]; });
+  check(dims[0] === 891 && dims[1] === 1260, `printable-paper: A3 preview is 297 x 420 mm at 3 px per mm (${dims})`);
+  f = await saved(page, () => page.click('.pp .pp-pdf'));
+  check((await pages(f.buf)) === 12, 'printable-paper: A3 bold still makes the PDF');
 };
