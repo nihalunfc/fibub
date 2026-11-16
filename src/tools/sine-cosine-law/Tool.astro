@@ -1,0 +1,116 @@
+---
+// #L324 Sine cosine law. Draws a triangle from three known values and finds the rest with the sine law or the
+// cosine law. Maths in src/lib/learn/triangle.ts. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn scl">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Grade 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11</button></div>
+    <h2>Solve a triangle</h2>
+    <label>What do you know?
+      <select class="scl-case">
+        <option value="AAS">Two angles and a side (sine law)</option>
+        <option value="SAS">Two sides and the angle between them (cosine law)</option>
+        <option value="SSS">All three sides (cosine law)</option>
+        <option value="SSA" data-only-opt="11">Two sides and an angle not between them (ambiguous case)</option>
+      </select>
+    </label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="scl-l1">Angle A (°)</span> <input class="scl-in" type="number" step="any" min="0" value="40" inputmode="decimal" /></label>
+      <label><span class="scl-l2">Angle B (°)</span> <input class="scl-in" type="number" step="any" min="0" value="65" inputmode="decimal" /></label>
+      <label><span class="scl-l3">Side a</span> <input class="scl-in" type="number" step="any" min="0" value="10" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err scl-err" hidden></p>
+    <canvas class="lrn-cv scl-cv" aria-label="The triangle, drawn to scale with its sides and angles labelled"></canvas>
+    <div class="ax-row scl-pick" hidden><span class="ax-help" style="margin:0">Two triangles fit:</span><button type="button" class="btn secondary small" data-i="0" aria-pressed="true">First</button><button type="button" class="btn secondary small" data-i="1" aria-pressed="false">Second</button></div>
+    <p class="ax-help scl-law"></p>
+    <dl class="ax-facts scl-facts" aria-live="polite"></dl>
+    <p class="ax-help" data-only="11" hidden>Grade 11 adds the ambiguous case: with two sides and an angle opposite one of them, there can be no triangle, one, or two.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Choose "all three sides" and enter 3, 4 and 5. Angle C comes out as exactly 90°, so the cosine law contains Pythagoras.</li><li>Try sides 2, 3 and 6. There is no triangle: the two short sides cannot reach each other.</li><li>In Grade 11, try the ambiguous case with a = 8, b = 10 and A = 40°. Two different triangles fit; switch between them.</li></ul>
+  </div>
+  <div class="ax-card scl-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .scl .scl-cv { width: 100%; margin-top: 10px; }
+  .scl select { width: 100%; max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { solveTriangle, type Case, type Tri } from '../../lib/learn/triangle';
+  const root = document.querySelector('.scl') as HTMLElement;
+  const sel = root.querySelector('.scl-case') as HTMLSelectElement;
+  const ins = [...root.querySelectorAll<HTMLInputElement>('.scl-in')];
+  const cv = root.querySelector('.scl-cv') as HTMLCanvasElement;
+  const err = root.querySelector('.scl-err') as HTMLElement;
+  const facts = root.querySelector('.scl-facts') as HTMLElement;
+  const lawEl = root.querySelector('.scl-law') as HTMLElement;
+  const pickRow = root.querySelector('.scl-pick') as HTMLElement;
+  const LAB: Record<Case, [string, string, string]> = {
+    AAS: ['Angle A (°)', 'Angle B (°)', 'Side a'], SAS: ['Side b', 'Side c', 'Angle A between them (°)'],
+    SSS: ['Side a', 'Side b', 'Side c'], SSA: ['Side a', 'Side b', 'Angle A opposite a (°)'] };
+  const DEF: Record<Case, number[]> = { AAS: [40, 65, 10], SAS: [7, 9, 50], SSS: [3, 4, 5], SSA: [8, 10, 40] };
+  let tris: Tri[] = [], which = 0, level = '10';
+  const f = (x: number) => String(+x.toFixed(2));
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, 230), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H);
+    const t = tris[which]; if (!t) return;
+    const rad = Math.PI / 180, Bx = t.c, Cx = t.b * Math.cos(t.A * rad), Cy = t.b * Math.sin(t.A * rad);
+    const minX = Math.min(0, Cx), maxX = Math.max(Bx, Cx), s = Math.min((W - 90) / (maxX - minX), (H - 70) / Cy);
+    const ox = (W - s * (maxX - minX)) / 2 - s * minX, oy = H - 30;
+    const P = (x: number, y: number): [number, number] => [ox + x * s, oy - y * s];
+    const A = P(0, 0), B = P(Bx, 0), C = P(Cx, Cy);
+    ctx.lineWidth = 2; ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.grid;
+    ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.lineTo(...C); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+    const mid = (p: [number, number], q: [number, number], dx: number, dy: number) => [(p[0] + q[0]) / 2 + dx, (p[1] + q[1]) / 2 + dy];
+    const la = mid(B, C, 14, 0), lb = mid(A, C, -14, 0), lc = mid(A, B, 0, 18);
+    ctx.fillText('a = ' + f(t.a), la[0], la[1]); ctx.fillText('b = ' + f(t.b), lb[0], lb[1]); ctx.fillText('c = ' + f(t.c), lc[0], lc[1]);
+    ctx.fillStyle = pal.accent2;
+    ctx.fillText('A ' + f(t.A) + '°', A[0] + 6, A[1] - 8); ctx.fillText('B ' + f(t.B) + '°', B[0] - 6, B[1] - 8); ctx.fillText('C ' + f(t.C) + '°', C[0], C[1] - 10);
+  };
+  const run = () => {
+    const kind = sel.value as Case;
+    const res = solveTriangle(kind, +ins[0].value, +ins[1].value, +ins[2].value);
+    tris = res.tris; if (which >= tris.length) which = 0;
+    err.hidden = !res.error; err.textContent = res.error ?? '';
+    lawEl.textContent = res.law;
+    pickRow.hidden = tris.length < 2;
+    pickRow.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.i! === which)));
+    const t = tris[which];
+    facts.innerHTML = t ? [['Side a', f(t.a)], ['Side b', f(t.b)], ['Side c', f(t.c)], ['Angle A', f(t.A) + '°'], ['Angle B', f(t.B) + '°'], ['Angle C', f(t.C) + '°']].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('') : '';
+    cv.hidden = !t; draw();
+  };
+  const setCase = (reset: boolean) => {
+    const kind = sel.value as Case;
+    ['.scl-l1', '.scl-l2', '.scl-l3'].forEach((q, i) => { root.querySelector(q)!.textContent = LAB[kind][i]; if (reset) ins[i].value = String(DEF[kind][i]); });
+    which = 0; run();
+  };
+  sel.addEventListener('change', () => setCase(true));
+  ins.forEach((i) => i.addEventListener('input', () => { which = 0; run(); }));
+  pickRow.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { which = +b.dataset.i!; run(); }));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => {
+    level = l;
+    const opt = sel.querySelector('[data-only-opt]') as HTMLOptionElement; opt.hidden = opt.disabled = l !== '11';
+    if (l !== '11' && sel.value === 'SSA') { sel.value = 'AAS'; setCase(true); }
+  });
+  setCase(false);
+  mountQuiz(root.querySelector('.scl-quiz') as HTMLElement, () => {
+    const D = Math.PI / 180, k = pick(0, level === '11' ? 2 : 1);
+    if (k === 0) { const A = pick(35, 70, 5), B = pick(40, 80, 5), a = pick(8, 20), b = a * Math.sin(B * D) / Math.sin(A * D);
+      return [{ q: `In triangle ABC, A = ${A}°, B = ${B}° and a = ${a} cm. Find side b (cm).`, ans: b, unit: 'cm', work: `Sine law: b = a sin B / sin A = ${a} × sin ${B}° / sin ${A}° = ${r(b)} cm` }]; }
+    if (k === 1) { const b = pick(5, 12), c = pick(6, 14), A = pick(40, 100, 5), a = Math.sqrt(b * b + c * c - 2 * b * c * Math.cos(A * D));
+      return [{ q: `In triangle ABC, b = ${b} cm, c = ${c} cm and the angle between them is A = ${A}°. Find side a (cm).`, ans: a, unit: 'cm', work: `Cosine law: a² = ${b}² + ${c}² − 2(${b})(${c}) cos ${A}° = ${r(a * a)}, so a = ${r(a)} cm` }]; }
+    return [{ q: 'With two sides and an angle opposite one of them (SSA), how many triangles can fit at most?', ans: 2, work: 'Up to two: sin B = b sin A / a gives B and also 180° − B, and both can work when a is shorter than b.' }];
+  });
+</script>

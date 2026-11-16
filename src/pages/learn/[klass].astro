@@ -3,25 +3,27 @@
 // order, with the fibub tools that let students explore it. Chapters come from src/data/ncert.ts; a tool
 // listed there shows only once it is live, so the page fills up as tools are built.
 import Base from '../../layouts/Base.astro';
-import { CLASSES, type SchoolClass } from '../../data/ncert';
+import { allClasses, type Curriculum } from '../../data/curricula';
+import type { SchoolClass } from '../../data/ncert';
 import { allTools, toolUrl } from '../../lib/tools';
 import { collectionLd } from '../../lib/seo';
 import '../../styles/area.css';
 export function getStaticPaths() {
-  return CLASSES.map((k) => ({ params: { klass: k.id }, props: { cls: k } }));
+  return allClasses().map(({ cur, cls }) => ({ params: { klass: cls.id }, props: { cls, cur } }));
 }
-const { cls } = Astro.props as { cls: SchoolClass };
+const { cls, cur } = Astro.props as { cls: SchoolClass; cur: Curriculum };
 const all = await allTools();
 const live = new Map(all.filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
 const subjects = cls.subjects.map((s) => ({ ...s, chapters: s.chapters.map((ch) => ({ ...ch, live: ch.tools.map((id) => live.get(id)).filter((t) => !!t) })) }));
 const count = new Set(subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.live.map((t) => t!.id)))).size;
 const names = cls.subjects.map((s) => s.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1');
 const title = `Learn: ${cls.name}`;
-const desc = `Interactive ${names} tools for ${cls.name}, chapter by chapter, following the NCERT topics. Free, in your browser, no sign-up.`;
-const others = CLASSES.filter((k) => k.id !== cls.id);
+const desc = `Interactive ${names} tools for ${cls.name}, chapter by chapter, following the ${cur.name} topics. Free, in your browser, no sign-up.`;
+const others = cur.classes.filter((k) => k.id !== cls.id);
+const range = cur.id === 'ncert' ? 'Class 8 to 12' : `${cur.name}, ${cur.grades}`;
 ---
-<Base title={title} docTitle={`${cls.name} science and maths tools by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Class 8 to 12', url: '/learn/school/' }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
-  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/school/">Class 8 to 12</a> / {cls.name}</div>
+<Base title={title} docTitle={`${cls.name} science and maths tools by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: range, url: '/learn/school/' }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/school/">{range}</a> / {cls.name}</div>
   <div class="ar-head">
     <h1>{cls.name}: {names}</h1>
     <p class="lead">Every chapter, with tools to try: change a number, drag a point, run an experiment and see what happens. {count} tools so far, and more are on the way.</p>
@@ -45,8 +47,8 @@ const others = CLASSES.filter((k) => k.id !== cls.id);
       </ol>
     </section>
   ))}
-  <p class="lc-other">Other classes: {others.map((k, i) => <>{i > 0 && ' · '}<a href={`/learn/${k.id}/`}>{k.name}</a></>)}</p>
-  <p class="ar-note">Chapters follow the topics of the NCERT books used in 2026-27 (the new books for Class 8 and 9, the 2023 rationalised books for Class 10 to 12). fibub is an independent free site, not part of NCERT, and copies no textbook text or pictures. Every tool runs in your browser: no sign-up, nothing about you is saved.</p>
+  <p class="lc-other">Other grades and classes: {others.map((k, i) => <>{i > 0 && ' · '}<a href={`/learn/${k.id}/`}>{k.name}</a></>)}</p>
+  <p class="ar-note">{cur.note} Every tool runs in your browser: no sign-up, nothing about you is saved.</p>
 </Base>
 <style is:inline>
   .lc-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
