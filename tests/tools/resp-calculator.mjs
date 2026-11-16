@@ -16,4 +16,12 @@ export default async ({ page, check, BASE }) => {
   check((await t('.re-s-clb')).includes('2,000'), 'resp: Learning Bond up to 2,000');
   await set('age', '20');
   check(await page.isVisible('.re .re-err'), 'resp: age above 18 shows a message');
+  await set('age', '0'); await set('per', '2500'); await page.selectOption('.re [data-k="band"]', 'high'); await page.waitForTimeout(80);
+  check((await t('.re-full')).includes('enough to collect the most grant'), 'resp: 2,500 a year is enough for the full grant from birth');
+  await set('per', '1000');
+  check((await t('.re-full')).includes('about $2,000 a year') && (await t('.re-full')).includes('$167 a month'), `resp: 1,000 a year is short, full grant needs about 2,000 (${await t('.re-full')})`);
+  check((await page.$$('.re .re-svg rect')).length === 54, 'resp: stacked bars, 3 per year for 18 years');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); await page.waitForTimeout(80);
+  await set('infl', '2'); await set('per', '2500');
+  check((await t('.re-real')).includes("today's dollars") && (await page.isVisible('.re .re-real')), 'resp: today\'s dollars line shows');
 };

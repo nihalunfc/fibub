@@ -26,6 +26,28 @@ export default async ({ page, check, BASE }) => {
     await page.mouse.move(sx, sy); await page.mouse.down(); await page.mouse.move(ex, ey, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(150);
     check((await txt('.sf-area')).includes('collinear'), `section: collinear points have area 0 (${await txt('.sf-area')})`); }
   await page.setViewportSize({ width: 1280, height: 720 });
+  // Solve with your numbers (typed).
+  { const K = (k) => `${R}[data-k="${k}"]`, ans = () => txt('.sf-ans'), work = () => txt('.sf-work');
+    check((await ans()).includes('ratio 1 : 2 at P = (4, 0)'), `section solve: default 1 : 2 gives (4, 0) (${await ans()})`);
+    await page.selectOption(K('mode'), 'ext'); await page.fill(K('m'), '3'); await page.fill(K('n'), '1');
+    check((await ans()).includes('externally') && (await ans()).includes('P = (11, 10.5)'), `section solve: external 3 : 1 gives (11, 10.5) (${await ans()})`);
+    await page.fill(K('n'), '3');
+    check(await page.isVisible(R + '.sf-serr') && (await txt('.sf-serr')).includes('different') && (await ans()) === '', 'section solve: external m = n message');
+    await page.fill(K('m'), '-1'); check((await txt('.sf-serr')).includes('above 0'), 'section solve: negative m message');
+    await page.selectOption(K('preset'), '1'); check((await ans()).includes('M = (1, 3)') && (await page.inputValue(K('mode'))) === 'mid', `section solve: midpoint preset (${await ans()})`);
+    await page.selectOption(K('preset'), '2'); check((await ans()).includes('is 10') && (await work()).includes('√100 = 10'), `section solve: distance preset (${await ans()})`);
+    await page.selectOption(K('unit'), 'cm'); check((await ans()).includes('10 cm'), 'section solve: unit shown');
+    await page.selectOption(K('preset'), '3'); check((await ans()).includes('internally in the ratio 2 : 7'), `section solve: ratio preset (${await ans()})`);
+    await page.fill(K('py'), '5'); check((await txt('.sf-serr')).includes('not on the line'), 'section solve: P off the line');
+    await page.fill(K('py'), '22'); await page.fill(K('px'), '-9'); check((await ans()).includes('externally in the ratio 2 : 5'), `section solve: outside point is external (${await ans()})`);
+    await page.selectOption(K('preset'), '4'); check((await ans()).includes('ratio 1 : 2 at (3, 0)'), `section solve: x axis cut (${await ans()})`);
+    await page.selectOption(K('axis'), 'y'); check((await ans()).includes('externally') && (await ans()).includes('2 : 5'), `section solve: y axis cut externally 2 : 5 (${await ans()})`);
+    await page.selectOption(K('preset'), '5'); check((await ans()).includes('G = (4, 4)') && (await ans()).includes('area = 18'), `section solve: triangle preset (${await ans()})`);
+    check((await work()).includes('6.7082'), 'section solve: side lengths');
+    await page.fill(K('ax'), ''); check((await txt('.sf-serr')).includes('x of A') && (await ans()) === '', 'section solve: blank gives a message');
+    await page.fill(K('ax'), '1/2'); await page.fill(K('ay'), '0.5'); await page.selectOption(K('mode'), 'mid'); await page.fill(K('bx'), '3/2'); await page.fill(K('by'), '1.5');
+    check((await ans()).includes('M = (1, 1)'), `section solve: fractions and decimals (${await ans()})`);
+  }
   // Quiz.
   check((await page.$$(R + '.sm-q')).length === 4, 'section: four questions');
   for (const [i, re] of [[1, /= (\d+)\.$/], [2, /= \((\S+), (\S+)\)\.$/], [3, /= \((\S+), (\S+)\)\.$/], [4, /= \((\S+), (\S+)\)\.$/]]) {

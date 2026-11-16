@@ -16,4 +16,7 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.ui-s-pay')).includes('149,000'), 'underinsurance-check: area x cost per area gives the same value');
   await set('si', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.ui .ui-err'), 'underinsurance-check: no sum insured shows a message');
+  await page.waitForTimeout(100);
+  const rows = await page.$$eval('.ui .ui-sweep tr', (r) => r.map((x) => x.textContent));
+  check(rows.length === 5 && rows[4].includes('100%'), 'underinsurance-check: five sum-insured rows (' + rows.length + ')');
 };

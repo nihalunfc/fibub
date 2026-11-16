@@ -47,6 +47,13 @@ Why full bars can still be slow, good Wi-Fi dBm values and where to put a router
 - **Signal your device shows**: optional; bars or a dBm number. Used only to flag mismatches.
 - **Keep my spots on this device**: off by default; when on, spots stay in this browser until you clear them.
 
+## More options
+
+- **Quick names**: tap Living room, Kitchen, Bedroom, Home office or Garden instead of typing.
+- **I need this spot for**: pick web, HD or 4K video, video calls, online games or big uploads and the table adds an "Enough?" column (Yes, Mostly or No) for every spot, using the same thresholds as the Speed Test.
+- **Next steps**: when one spot is far behind another, the page suggests plain things to try, such as moving the router, or a mesh system or wired access point instead of a plug-in extender. They are suggestions, not promises.
+- **Test the weakest spot again**: after you change something, one tap re-tests the weakest spot and replaces its old result.
+
 ## Worked example
 
 The sample house has five spots. The living room scores highest (210 Mbps, ping 14 ms). The back porch shows full bars but only 4 Mbps and 120 ms ping, so the page says the router or a busy channel is the problem there, not distance: an extender would not help, but changing the router's channel might. The basement, with one bar and 2.4 Mbps, needs a mesh point or a wired access point.

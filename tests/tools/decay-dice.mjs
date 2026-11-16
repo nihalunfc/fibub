@@ -33,4 +33,41 @@ export default async ({ page, check, BASE }) => {
   for (const i of [0, 1, 2, 3]) { const ans = await items[i].getAttribute('data-ans'); await (await items[i].$('.lq-in')).fill(String(+(+ans).toPrecision(4))); await (await items[i].$('.lq-check')).click(); }
   { const a = +(await items[4].getAttribute('data-ans')); await (await items[4].$$('.lq-choice'))[a].click(); }
   check((await t('.lq-score')).startsWith('5 of 5'), 'dice: all five answered right');
+
+  // "Solve my numbers" card helpers
+  const sv = (ns, root = '') => ({
+    ans: () => page.textContent(`${root}[data-k="${ns}-answer"]`),
+    work: () => page.textContent(`${root}[data-k="${ns}-working"]`),
+    find: (v) => page.selectOption(`${root}[data-k="${ns}-find"]`, v),
+    ex: (i) => page.selectOption(`${root}[data-k="${ns}-example"]`, String(i)),
+    ch: (k, v) => page.selectOption(`${root}[data-k="${ns}-${k}"]`, v),
+    set: async (k, v, u) => { await page.fill(`${root}[data-k="${ns}-${k}"]`, v); if (u) await page.selectOption(`${root}[data-k="${ns}-${k}-unit"]`, u); },
+    clear: () => page.click(`${root}.sv-clear`),
+  });
+  {
+    const h = sv('hl');
+    await page.locator('[data-k="hl-answer"]').scrollIntoViewIfNeeded();
+    const a0 = await h.ans();
+    check(a0.includes('The amount left is 10 ') && a0.includes('12.5% of the start'), `half-life: first example (${a0})`);
+    check((await h.work()).includes('n = t ÷ T = 15 days ÷ 5 days = 3'), 'half-life: working shows n = 3');
+    await h.ex(1); check((await h.ans()).startsWith('The time needed is 36 h') && (await h.ans()).includes('3 half-lives'), `half-life: find time (${await h.ans()})`);
+    await h.ex(2); check((await h.ans()) === 'The half-life is 5 min.', `half-life: find half-life (${await h.ans()})`);
+    await h.ex(3); check((await h.ans()).startsWith('The starting amount was 100 '), `half-life: find start (${await h.ans()})`);
+    await h.ex(4); check((await h.ans()).startsWith('The amount left is 25 '), `half-life: carbon-14 (${await h.ans()})`);
+    // Mixed units: 100 left after 2 days with T = 12 h is 4 half-lives: 6.25
+    await h.clear(); await h.find('N'); await h.set('N0', '100'); await h.set('t', '2', 'days'); await h.set('T', '12', 'h');
+    check((await h.ans()).startsWith('The amount left is 6.25 '), `half-life: days against hours (${await h.ans()})`);
+    check((await h.work()).includes('Put t and T in one unit'), 'half-life: mixed units explained');
+    // Not a whole number of half-lives: 100 after 1 half-life-and-a-half = 100 * 2^-1.5 = 35.4
+    await h.set('t', '18', 'h'); check((await h.ans()).startsWith('The amount left is 35.4 '), `half-life: fractional n (${await h.ans()})`);
+    // Edge cases
+    await h.find('t'); await h.clear(); await h.set('N0', '100'); await h.set('N', '200'); await h.set('T', '5', 'days');
+    check((await h.ans()).includes('bigger than the start'), `half-life: more left than start (${await h.ans()})`);
+    await h.set('N', '0'); check((await h.ans()).includes('never reaches exactly zero'), 'half-life: zero left');
+    await h.find('N'); await h.clear(); await h.set('N0', '100'); await h.set('t', '-1', 'days'); await h.set('T', '5', 'days');
+    check((await h.ans()).includes('Time cannot be negative'), 'half-life: negative time');
+    await h.set('t', '1', 'days'); await h.set('T', '0', 'days'); check((await h.ans()).includes('half-life must be above zero'), 'half-life: zero half-life');
+    await h.clear(); check((await h.ans()).startsWith('Fill in'), 'half-life: blank asks for numbers');
+    check(!/NaN|Infinity/.test(await page.textContent('.dd-solve')), 'half-life: never NaN or Infinity');
+  }
 };

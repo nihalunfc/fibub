@@ -11,13 +11,14 @@ ads: false
 order: 1406
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ohms-law-lab, series-parallel, wheatstone-bridge]
 sources:
   - "Drift speed v_d = I / (n e A), n = z ρ N_A / M, relaxation time τ = m / (n e² ρ), mobility μ = v_d / E = e τ / m and the classical thermal speed √(3kT/m): standard results of the free-electron model."
   - "e = 1.602176634 × 10⁻¹⁹ C, N_A = 6.02214076 × 10²³ mol⁻¹ and k = 1.380649 × 10⁻²³ J/K (exact SI values); mₑ = 9.1093837139 × 10⁻³¹ kg (CODATA 2022)."
   - "Densities, molar masses and resistivities of copper, aluminium and silver are rounded general values at about 20 °C."
   - "Checked against an independent Python calculation (copper, 1 A in 1 mm²: n = 8.49 × 10²⁸ m⁻³, v_d = 7.35 × 10⁻⁵ m/s, τ = 2.49 × 10⁻¹⁴ s) and the identity e E τ / m = I / (n e A)."
+  - "I = n e A v_d, n = zρN_A/M, τ = m/(n e² ρ) and μ = eτ/m: standard school physics. e = 1.602176634 × 10⁻¹⁹ C and N_A = 6.02214076 × 10²³ mol⁻¹ (exact SI values), mₑ = 9.1093837139 × 10⁻³¹ kg (CODATA 2022). The Solve my numbers card was hand-checked against the copper example."
 flow:
   - { icon: sliders, label: "Set current" }
   - { icon: eye, label: "Watch drift" }
@@ -32,6 +33,12 @@ A metal wire is full of free electrons. Even with no battery they dash about at 
 This page shows the crowd moving. One electron is coloured so you can follow its zig-zag path and see the slow drift hidden inside the random motion. Below the picture you get the real drift speed from **I = n e A v_d** with your numbers, how long an electron takes to drift one metre, and how its drift compares with its random speed. The **Advanced** level adds the field inside the wire (E = ρJ), the relaxation time τ (the average time between collisions) and the mobility.
 
 It follows the Class 12 Physics chapter on current electricity (drift of electrons and the origin of resistivity, mobility). Before this, see current and resistance with the [[ohms-law-lab]]; afterwards, combine resistors with [[series-parallel]] or balance a bridge with the [[wheatstone-bridge]].
+
+## Solve my numbers
+
+The card at the top answers the usual drift-velocity questions with your own numbers. **Drift speed from the current** (v_d = I / (n e A)), the same **from the wire's diameter** (it works out the area for you), **current from the drift speed** (I = n e A v_d), the **free electron density** of a metal from its density and molar mass (n = z ρ N_A / M), the **time an electron takes to travel along a wire**, and the **relaxation time and mobility** from the resistivity. Pick units where you need them (mm² or m², mA or A, mm/s or m/s, g/cm³ or kg/m³) and the answer is one plain sentence with the working under it. Five worked examples are ready, for example 1 A in a 1 mm² copper wire, which gives about 7.35 × 10⁻⁵ m/s, so an electron needs nearly four hours to cover one metre.
+
+Common mistakes: using mm² as if it were 10⁻³ m² (it is 10⁻⁶), squaring the diameter without the π/4, and mixing g/cm³ with kg/m³. Zero or blank values are caught with a friendly message.
 
 ## How to use it
 
@@ -58,6 +65,8 @@ which the page shows as **0.0735 mm/s**. To drift one metre takes about 13 600 s
 - A thin wire carrying the same current as a thick one has faster electrons, not more of them.
 
 ## FAQ
+
+**How do I calculate drift velocity?** v_d = I / (n e A): divide the current by the free-electron density, the electron charge and the cross-section area, all in SI units.
 
 **If electrons are so slow, why does a lamp light at once?** The field is set up along the whole wire at nearly the speed of light, so electrons everywhere start drifting at the same moment. The ones in the lamp's filament are already there.
 

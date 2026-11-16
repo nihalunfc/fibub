@@ -11,7 +11,7 @@ ads: false
 order: 1186
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [logic-simplifier, combinatorics-calculator, distribution-explorer]
 sources:
   - "Standard set theory: union, intersection, complement, difference and symmetric difference, De Morgan's laws, the distributive laws and the inclusion–exclusion principle. Written for fibub; no textbook text, figures or exercises are used, and the example sets are made up."
@@ -39,6 +39,8 @@ It follows sets in Class 11 maths (operations on sets, complements, Venn diagram
 4. **Compare**: type a second expression. The page says whether the two are equal and, if not, which regions differ. The buttons fill in De Morgan's two laws and the distributive law.
 5. **Use my own elements**: tick the box and type U, A, B (and C) as lists such as `1-12` or `2, 4, 6`. Each region shows its elements, the result is written out in roster form, and the counting facts fill in with your numbers.
 
+6. **Solve a counting problem** (no lists needed): type the counts from your question, such as n(U) = 60, n(A) = 35, n(B) = 28 and n(A ∩ B) = 10, and the sentence gives n(A ∪ B) = 53 and how many are in neither. Leave one box empty to find it (for example the overlap), or tick *Everyone is in at least one set*. For three sets, leave n(A ∩ B ∩ C) empty and give n(A ∪ B ∪ C) to find the middle. The working shows each inclusion–exclusion step, the diagram shows the count in every region, and impossible numbers give a plain message.
+
 ## Order of the signs
 
 The complement ′ is applied first, then ∩, then ∪, − and Δ from left to right, so A ∪ B ∩ C means A ∪ (B ∩ C). When in doubt, use brackets; the page shows how it read your expression in the heading above the diagram.
@@ -55,7 +57,15 @@ Take U = {1, 2, …, 12}, A = {1, 2, 3, 4, 5, 6}, B = the even numbers and C = t
 
 Five questions with fresh numbers: n(A ∪ B), a "neither" problem, De Morgan, three-set inclusion–exclusion and n(A − B). Nothing is saved.
 
+## Common mistakes
+
+- Adding n(A) + n(B) and forgetting to take off n(A ∩ B): the overlap is counted twice.
+- Giving the pair counts as "only in two sets": n(A ∩ B) includes the people who are in all three.
+- Forgetting the people outside every circle: neither = n(U) − n(A ∪ B).
+
 ## FAQ
+
+**How do I find how many are in neither set?** Use Solve a counting problem: n(U) minus n(A ∪ B), where n(A ∪ B) = n(A) + n(B) − n(A ∩ B).
 
 **Why is my answer the empty set?** Some expressions cover no region, such as A ∩ A′. The page says so and shades nothing.
 

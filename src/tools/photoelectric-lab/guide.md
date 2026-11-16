@@ -11,13 +11,14 @@ ads: false
 order: 1067
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [kinetic-theory, spectral-line-identifier, hydrogen-orbitals]
 sources:
   - "Einstein's photoelectric equation K_max = hf − φ = eV₀, threshold frequency f₀ = φ/h, photon energy E = hc/λ: standard physics."
   - "Planck constant h = 6.62607015 × 10⁻³⁴ J s, elementary charge e = 1.602176634 × 10⁻¹⁹ C, speed of light c = 299,792,458 m/s (SI, exact); electron mass 9.1093837 × 10⁻³¹ kg (CODATA 2018)."
   - "Work functions are typical rounded values (caesium 2.1, potassium 2.3, sodium 2.4, zinc 4.3, copper 4.7, platinum 5.6 eV); measured values vary with the surface. The shape of the current curve is a simple teaching model written for this page."
   - "Checked against an independent Python calculation written for the tests."
+  - "The calculator uses hc ≈ 1240 eV nm as a side check only; the answers use the exact SI values of h, e and c. Checked by hand: 400 nm on caesium (φ = 2.1 eV) gives hf = 3.10 eV and K_max = 1.00 eV; the threshold of sodium (2.4 eV) is 5.80 × 10¹⁴ Hz or 517 nm."
 flow:
   - { icon: sliders, label: "Light" }
   - { icon: chart, label: "I–V curve" }
@@ -56,6 +57,14 @@ Five questions, fresh each time: the energy of a photon, the largest kinetic ene
 - A handy shortcut: photon energy in eV ≈ 1240 / wavelength in nm.
 - Zinc, copper and platinum need ultraviolet light; that is why early experiments used ultraviolet lamps on zinc.
 
+## Solve your own numbers
+
+The first card is a calculator for photoelectric problems. Give the light as a wavelength (nm, Å, µm or m) or as a frequency (× 10¹⁴ Hz, THz or Hz), pick the metal from the list (or type your own work function in eV or joules) and choose what to find: the largest kinetic energy with the stopping potential and the fastest speed, the work function from a measured K_max or stopping potential, the threshold frequency and wavelength, or just the photon energy.
+
+The working is written like an exam answer: E = hf or hc/λ (with the 1240 eV nm shortcut shown next to it), then K_max = hf − φ, the stopping potential V₀ = K_max/e, and the speed from ½mv². If the photon energy is less than the work function, the answer says plainly that no electrons come out and that brighter light will not help, which is the point most questions are testing. A stopping potential of V₀ volts means K_max = V₀ eV, so you can type it in directly.
+
+The examples include 400 nm light on caesium, ultraviolet on zinc, red light on potassium (no emission) and the threshold of sodium. Common mistakes are given under the answer: mixing eV and joules, and thinking that brightness changes the energy of each electron.
+
 ## FAQ
 
 **Why does a negative voltage not stop all the electrons at once?** Electrons come out with a spread of energies, from zero up to K_max. A small negative voltage stops only the slow ones; at −V₀ even the fastest are turned back.
@@ -63,3 +72,7 @@ Five questions, fresh each time: the energy of a photon, the largest kinetic ene
 **Why is the line the same slope for every metal?** The slope is h/e, which is a constant of nature. Only the work function, and so the crossing points, change from metal to metal.
 
 **Is this from NCERT?** No. It is an independent study aid that follows the same school topics, with its own pictures and numbers.
+
+**How do I find the stopping potential in the photoelectric effect?** V₀ = (hf − φ)/e: the photon energy minus the work function, in eV, equals the stopping potential in volts; the calculator at the top shows each step.
+
+**How do I find the threshold wavelength?** λ₀ = hc/φ, which is about 1240 divided by φ in eV, giving nanometres.

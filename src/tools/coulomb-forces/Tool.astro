@@ -2,8 +2,15 @@
 // Coulomb's law and superposition: drag up to four point charges on a board, pick one, and see the force from
 // each of the others and their vector sum. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax cfz">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Coulomb's law for two point charges: type the numbers from your problem, pick what to find (force, a charge or the distance) and get the answer with the working. Charges can be in µC, nC or electron charges, distances in cm, m or Å.</p>
+    <div class="cfz-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Charges on a board</h2>
     <div class="ax-row">
@@ -73,6 +80,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { COULOMB_SPEC } from '../../lib/sci/solve-coulomb';
   import { netForce, deg360, questions, type Charge } from '../../lib/sci/coulomb-forces';
   import { pagePalette } from '../../lib/report';
   import { setup, arrow, sg, sci3, onTheme, quiz } from '../../lib/school-p34';
@@ -170,4 +179,5 @@ import '../../styles/astro.css';
   onTheme(draw);
   load('three'); all();
   quiz(q('.cfz-quiz'), () => questions());
+  mountSolver(q('.cfz-solve'), COULOMB_SPEC);
 </script>

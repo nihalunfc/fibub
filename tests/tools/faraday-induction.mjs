@@ -47,4 +47,21 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [N, p0, p1, dt] = q1.match(/a (\d+)-turn coil changes from ([\d.]+) mWb to ([\d.]+) mWb in ([\d.]+) s/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((N * (p1 - p0) * 1e-3) / dt)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'faraday: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("200 turns, flux rises"); check((await psAns()).includes("The average induced emf is 4 V"), "faraday-induction: example 200 turns, flux rises: The average induced emf is 4 V");
+  await psPre("Flux through a tilted coil"); check((await psAns()).includes("The flux is 500 \u00b5Wb"), "faraday-induction: example Flux through a tilted coil: The flux is 500 \u00b5Wb");
+  await psPre("Field falls to 0.1 T"); check((await psAns()).includes("The average induced emf is 200 mV"), "faraday-induction: example Field falls to 0.1 T: The average induced emf is 200 mV");
+  await psPre("Simple 50 Hz generator"); check((await psAns()).includes("The peak emf is 31.4 V (rms 22.2 V)"), "faraday-induction: example Simple 50 Hz generator: The peak emf is 31.4 V (rms 22.2 V)");
+  await psPre("Current and charge"); check((await psAns()).includes("The average current is 100 mA and the charge that flows is 50 mC"), "faraday-induction: example Current and charge: The average current is 100 mA and the charge that flows is 50 mC");
+  await psSet("field", {"N": "100", "A": "100", "b1": "0", "b2": "2", "t": "1"}, {}); check((await psAns()).includes("The average induced emf is 2 V."), "faraday-induction: typed numbers: The average induced emf is 2 V.");
+  await psSet("emf", {"t": "0"}, {}); check((await psAns()).includes("must be more than 0"), "faraday-induction: friendly message: must be more than 0");
+  await psSet("emf", {"p1": "3", "p2": "3", "t": "1"}, {}); check((await psAns()).includes("The flux does not change"), "faraday-induction: friendly message: The flux does not change");
+  await psSet("flux", {"th": "200"}, {}); check((await psAns()).includes("cannot be more than 180"), "faraday-induction: friendly message: cannot be more than 180");
+  await psPre("200 turns"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "faraday-induction: working shown, no NaN");
 };

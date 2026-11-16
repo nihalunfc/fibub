@@ -11,7 +11,7 @@ ads: false
 order: 1165
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [combinatorics-calculator, distribution-explorer, grouped-data-stats]
 sources:
   - "Classical probability (favourable outcomes over equally likely outcomes) and relative frequency are standard school mathematics. Written for fibub; the simulation uses the public-domain mulberry32 generator."
@@ -43,6 +43,9 @@ To count outcomes when listing them is too long, try [[combinatorics-calculator]
 4. Read P(E) under the grid. Shaded cells are the favourable outcomes.
 5. Press **100 times**, **1 000 times** or **10 000 times**. The blue line is the running relative frequency; the dashed line is the probability.
 
+6. Open **Compare with a second event** to pick an event B on the same experiment. The grid outlines B (dashed) while A stays shaded, and the page works out P(A or B) = P(A) + P(B) − P(A and B), the conditional probabilities P(A given B) and P(B given A), and says whether the events are mutually exclusive or independent.
+7. For a problem that only gives counts, use **Probability from my numbers**: type the favourable and total outcomes and read the fraction in lowest terms, the decimal, the percentage, P(not E) and the odds. A total of 0, a negative count or more favourable than total gives a plain message.
+
 ## A worked example
 
 Two dice are thrown. What is the probability that the sum is 7?
@@ -59,11 +62,20 @@ Run it 10 000 times and the relative frequency usually lands within about 0.01 o
 - P(E) is always between 0 (impossible) and 1 (certain), and P(E) + P(not E) = 1.
 - More trials do not force the frequency to equal the probability; they only make big gaps rarer.
 
+## Common mistakes
+
+- Counting (2, 5) and (5, 2) as one outcome with two dice: they are two outcomes.
+- Using the favourable count as the total: 4 red and 6 blue marbles gives 10 outcomes, not 6.
+- Adding P(A) + P(B) for "A or B" without taking off P(A and B).
+- Treating "mutually exclusive" and "independent" as the same: exclusive events cannot both happen, independent events do not affect each other.
+
 ## Check yourself
 
 Four fresh questions each time: a dice sum, a number of heads, a card event and a "does not happen" question. Fractions such as 1/6 are accepted. Nothing is saved.
 
 ## FAQ
+
+**How do I find the probability of an event?** Count the favourable outcomes and divide by the total number of equally likely outcomes: pick the event above, or type the counts under Probability from my numbers.
 
 **Why is a sum of 7 the most likely?** It has the most ways to happen: six, one for each value of the first die.
 

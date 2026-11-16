@@ -59,3 +59,22 @@ export function rank(M: number[][]): number {
   }
   return rk;
 }
+
+// ---- Added 2026-11-16: fractions and decimals in a system, and 2 × 2 systems. ----
+import { rat, gcd as gcdN } from './smath.ts';
+
+/** Multiply a row of simple fractions or decimals by the smallest number that makes every entry a whole number. Null if an entry is not a simple fraction. */
+export function clearFractions(row: number[]): { row: number[]; k: number } | null {
+  let k = 1;
+  for (const v of row) { const r = rat(v, 1000); if (!r) return null; k = (k * r[1]) / (gcdN(k, r[1]) || 1); if (k > 1e6) return null; }
+  const out = row.map((v) => Math.round(v * k));
+  if (out.some((v, i) => Math.abs(v - row[i] * k) > 1e-6)) return null;
+  return { row: out.map((v) => v + 0), k };
+}
+
+/** Solve ax + by = e, cx + dy = f with whole-number entries: unique solution as fractions, or none / many. */
+export function solve2(a: number, b: number, c: number, d: number, e: number, f: number): { det: number; kind: 'unique' | 'none' | 'many'; x: Q | null; y: Q | null; nx: number; ny: number } {
+  const det = a * d - b * c, nx = e * d - b * f, ny = a * f - e * c;
+  if (det !== 0) return { det, kind: 'unique', x: q(nx, det), y: q(ny, det), nx, ny };
+  return { det, kind: rank([[a, b, e], [c, d, f]]) === rank([[a, b], [c, d]]) ? 'many' : 'none', x: null, y: null, nx, ny };
+}

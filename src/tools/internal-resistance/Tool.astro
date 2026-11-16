@@ -3,8 +3,15 @@
 // ammeter and voltmeter; V against I graph, power against R (maximum power transfer), and a reading table that
 // finds E and r by a straight-line fit. Everything runs in the browser; nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax irs">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem and pick what to find: the current and terminal voltage, the emf, the internal resistance, E and r from two readings, or the load for maximum power.</p>
+    <div class="irs-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>The cell and the load</h2>
     <label class="irs-sl">Emf of the cell E: <b class="irs-ev"></b><input type="range" class="irs-e" min="1" max="12" step="0.5" value="1.5" aria-label="Emf in volts" /></label>
@@ -74,6 +81,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { INTERNAL_SPEC } from '../../lib/sci/solve-internal-resistance';
   import { circuit, maxPower, fitLine, questions } from '../../lib/sci/internal-resistance';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -187,4 +196,5 @@ import '../../styles/astro.css';
   onTheme(() => { draw(); drawGraph(); });
   all(); table();
   quiz(q('.irs-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.irs-solve')!, INTERNAL_SPEC, 'ir');
 </script>

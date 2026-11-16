@@ -38,6 +38,7 @@
   </section>
   <section class="panel" aria-live="polite">
     <p class="ax-big"></p>
+    <p class="ax-adv"></p>
     <svg class="ax-fig" viewBox="0 0 480 170" role="img" aria-label="Side view of the truck with the weight on each axle group"></svg>
     <dl class="ax-out"></dl>
     <p class="ax-warn" role="alert"></p>
@@ -71,12 +72,13 @@
   .ax-out dt { color: var(--muted); } .ax-out dd { margin: 0; text-align: right; font-weight: 600; }
   .ax-out .over { color: var(--bad); }
   .ax-warn { color: var(--warn); margin: 10px 0 0; } .ax-warn:empty { display: none; }
+  .ax-adv { margin: 0 0 8px; font-size: 14px; } .ax-adv:empty { display: none; }
   .ax-bres { font-weight: 700; margin: 10px 0 0; }
   .ax-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 </style>
 
 <script>
-  import { axleLoads, bridge } from '../../lib/money/trucking-rules';
+  import { axleLoads, bridge, maxLoad, legalRange } from '../../lib/money/trucking-rules';
   const root = document.querySelector('.ax') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -139,6 +141,9 @@
     $('.ax-big').className = 'ax-big ' + (over.length ? 'bad' : 'ok');
     $('.ax-out').innerHTML = all.map(([n, v, l]) => `<dt>${n}</dt><dd class="${l > 0 && v > l ? 'over' : ''}">${w0(v)} / ${l > 0 ? w0(l) : '-'} ${wu}</dd>`).join('') +
       `<dt>Load on the kingpin</dt><dd>${w0(r.kingpin)} ${wu}</dd>`;
+    const ml = maxLoad(rig, lim), lr = legalRange(rig, lim), f1 = (v: number) => (+v.toFixed(1)).toString();
+    $('.ax-adv').textContent = (ml ? `With the load where it is, the most you can carry is ${w0(ml.max)} ${wu} (${ml.limiting} runs out first). ` : '') +
+      (lr ? `With this weight, the load's centre can sit ${f1(lr.from)} to ${f1(lr.to)} ${lu} behind the kingpin and stay inside the four limits above.` : 'With this weight no position along the trailer keeps every limit, so lighten the load or move the fifth wheel.');
     $('.ax-warn').textContent = r.outside ? `The load's centre is outside the kingpin to trailer-axle span (0 to ${rig.kpToTrailer} ${lu}); it has been kept at the nearer end.` : '';
     // Side view
     const span = lastT + rig.wb * 0.35 + 2, sx = 440 / span, X = (p: number) => 20 + (p + rig.wb * 0.25) * sx, gy = 120;

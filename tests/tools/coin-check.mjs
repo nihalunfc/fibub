@@ -11,4 +11,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.cc .cc-d')).includes('+2.36%'), `coin-check: 39 mm is +2.36% (${await page.textContent('.cc .cc-d')})`);
   await page.selectOption('.cc .cc-preset', '5'); await page.waitForTimeout(100);
   check((await page.textContent('.cc .cc-w')).includes('7.988'), 'coin-check: choosing the sovereign loads its weight');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.cc .cc-preset', '0'); await page.fill('.cc .cc-rd', '26.18\n26.22'); await page.waitForTimeout(100);
+  check((await page.textContent('.cc .cc-w')).includes('-1.98%') && /spread 0\.040/.test(await page.textContent('.cc .cc-rdout')), 'coin-check: average of two weighings (26.20) and spread 0.040');
+  await page.fill('.cc .cc-rd', ''); await page.selectOption('.cc .cc-preset', '2'); await page.selectOption('.cc .cc-unit', 'ozt'); await page.fill('.cc .cc-mw', '1'); await page.waitForTimeout(100);
+  check((await page.textContent('.cc .cc-w')).includes('+0.00%'), 'coin-check: 1 troy ounce against the Silver Eagle is +0.00%');
 };

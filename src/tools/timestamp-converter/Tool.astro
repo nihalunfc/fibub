@@ -13,6 +13,8 @@
           <option value="auto">Auto (by length)</option>
           <option value="s">Seconds</option>
           <option value="ms">Milliseconds</option>
+          <option value="us">Microseconds</option>
+          <option value="ns">Nanoseconds</option>
         </select>
       </label>
       <label>Also show in
@@ -22,6 +24,23 @@
     <div class="tc-btns"><button type="button" class="tc-now">Now</button><button type="button" class="tc-clear">Clear</button></div>
     <p class="tc-note" aria-live="polite"></p>
     <div class="tc-wrap"><table class="tc-res"><tbody></tbody></table></div>
+    <details class="tc-more">
+      <summary>More options: many time zones at once</summary>
+      <p class="tc-note">Pick any zones to see the same moment in each.</p>
+      <div class="tc-fields">
+        <label>Add a zone <select class="tc-addz"></select></label>
+      </div>
+      <div class="tc-btns"><button type="button" class="tc-presets">Add a few big cities</button><button type="button" class="tc-zclear">Remove all</button></div>
+      <div class="tc-wrap"><table class="tc-multi"><tbody></tbody></table></div>
+    </details>
+  </section>
+  <section class="panel tc-box">
+    <h3>Date text to timestamp</h3>
+    <label>Paste a date such as 2024-03-05T10:00:00+05:30 or 5 Mar 2024 10:00 UTC
+      <input class="tc-text" spellcheck="false" autocomplete="off" placeholder="2024-03-05T10:00:00Z" />
+    </label>
+    <p class="tc-note tc-textnote" aria-live="polite"></p>
+    <div class="tc-wrap"><table class="tc-textres"><tbody></tbody></table></div>
   </section>
   <section class="panel tc-box">
     <h3>Date to timestamp</h3>
@@ -114,10 +133,13 @@
     if (raw === '') { note.textContent = 'Type a Unix timestamp, or press Now.'; rows(res, []); return; }
     if (!/^-?\d+(\.\d+)?$/.test(raw)) { note.classList.add('err'); note.textContent = 'A Unix timestamp is a whole number of seconds or milliseconds, such as 1700000000.'; rows(res, []); return; }
     const digits = raw.replace(/^-/, '').split('.')[0].replace(/^0+/, '').length;
-    const isMs = unit.value === 'ms' || (unit.value === 'auto' && digits >= 12);
-    const t = isMs ? Math.round(+raw) : Math.round(+raw * 1000);
+    const u = unit.value === 'auto' ? (digits >= 18 ? 'ns' : digits >= 15 ? 'us' : digits >= 12 ? 'ms' : 's') : unit.value;
+    const isMs = u === 'ms';
+    const div = u === 'ns' ? 1e6 : u === 'us' ? 1e3 : 1;
+    const t = u === 's' ? Math.round(+raw * 1000) : Math.round(+raw / div);
+    const uname = { s: 'seconds', ms: 'milliseconds', us: 'microseconds', ns: 'nanoseconds' }[u];
     if (!Number.isFinite(t) || Math.abs(t) > MAXMS) { note.classList.add('err'); note.textContent = 'That is outside the range dates can show (about 270,000 years either side of 1970).'; rows(res, []); return; }
-    note.textContent = unit.value === 'auto' ? `Read as ${isMs ? 'milliseconds' : 'seconds'} (${digits} digit${digits === 1 ? '' : 's'}; 12 or more means milliseconds).` : `Read as ${isMs ? 'milliseconds' : 'seconds'}.`;
+    note.textContent = unit.value === 'auto' ? `Read as ${uname} (${digits} digit${digits === 1 ? '' : 's'}; 12 or more is milliseconds, 15 or more microseconds, 18 or more nanoseconds).` : `Read as ${uname}.`;
     rows(res, [
       ['Unix seconds', String(Math.floor(t / 1000)) + (t % 1000 ? ` (+${((t % 1000) + 1000) % 1000} ms)` : '')],
       ['Unix milliseconds', String(t)],
@@ -126,9 +148,49 @@
       ['UTC', wallStr(t, 'UTC')],
       [`Your time (${LOCAL.replace(/_/g, ' ')})`, wallStr(t, LOCAL)],
       [zone.value.replace(/_/g, ' '), wallStr(t, zone.value)],
+      ['RFC 3339', iso(t).replace(/Z$/, '+00:00').replace(/Z/, '')],
+      ['Day of year / ISO week', dayInfo(t)],
+      ['Excel / Sheets serial (UTC)', String(+((t / 86400000) + 25569).toFixed(6))],
       ['Relative to now', relative(t)],
     ]);
+    lastT = t; multi();
   };
+  let lastT: number | null = null;
+  const dayInfo = (t: number) => {
+    const d = new Date(t); const y = d.getUTCFullYear();
+    const doy = Math.floor((Date.UTC(y, d.getUTCMonth(), d.getUTCDate()) - Date.UTC(y, 0, 0)) / 864e5);
+    const th = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate())); const dn = th.getUTCDay() || 7; th.setUTCDate(th.getUTCDate() + 4 - dn);
+    const wk = Math.ceil(((+th - Date.UTC(th.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+    return `day ${doy}, week ${wk} (UTC)`;
+  };
+  // many zones at once
+  let picked: string[] = [];
+  const addz = q<HTMLSelectElement>('.tc-addz'), multiTb = q<HTMLElement>('.tc-multi tbody');
+  for (const z of zones) { const o = document.createElement('option'); o.value = z; o.textContent = z.replace(/_/g, ' '); addz.append(o); }
+  addz.value = 'UTC';
+  const multi = () => {
+    if (lastT === null || !picked.length) { rows(multiTb, picked.length ? [['', 'Enter a timestamp above.']] : []); return; }
+    rows(multiTb, picked.map((z) => [z.replace(/_/g, ' '), wallStr(lastT as number, z)] as [string, string]));
+  };
+  addz.addEventListener('change', () => { if (!picked.includes(addz.value)) picked.push(addz.value); multi(); });
+  q<HTMLElement>('.tc-presets').addEventListener('click', () => {
+    for (const z of ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Tokyo']) if (zones.includes(z) && !picked.includes(z)) picked.push(z);
+    multi();
+  });
+  q<HTMLElement>('.tc-zclear').addEventListener('click', () => { picked = []; multi(); });
+  // date text
+  const txt = q<HTMLInputElement>('.tc-text'), txtNote = q<HTMLElement>('.tc-textnote'), txtRes = q<HTMLElement>('.tc-textres tbody');
+  const fromText = () => {
+    txtNote.classList.remove('err');
+    const v = txt.value.trim();
+    if (!v) { txtNote.textContent = 'Type or paste a date. Without a zone it is read as your time.'; rows(txtRes, []); return; }
+    const t = Date.parse(v);
+    if (!Number.isFinite(t)) { txtNote.classList.add('err'); txtNote.textContent = 'That date could not be read. Try 2024-03-05T10:00:00Z.'; rows(txtRes, []); return; }
+    txtNote.textContent = /(Z|[+-]\d\d:?\d\d|UTC|GMT)\s*$/i.test(v) ? 'Zone found in the text.' : 'No zone in the text, so it is read as your time zone (' + LOCAL.replace(/_/g, ' ') + ').';
+    rows(txtRes, [['Unix seconds', String(Math.floor(t / 1000))], ['Unix milliseconds', String(t)], ['ISO 8601 (UTC)', iso(t)]]);
+  };
+  txt.addEventListener('input', fromText);
+  fromText();
   const toStamp = () => {
     const m = date.value.match(/^(\d{4,})-(\d\d)-(\d\d)T(\d\d):(\d\d)(?::(\d\d))?/);
     if (!m) { rows(back, [['Result', 'Pick a date and time.']]); return; }

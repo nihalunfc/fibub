@@ -30,7 +30,24 @@ export default async ({ page, check, BASE }) => {
   { const f = await t('.lz-facts'); check(f.includes('−∞') && f.includes('Infinite break'), `limits: 1/x (${f})`); }
   await page.selectOption(R + '.lz-ex', 'wobble');
   check((await t('.lz-facts')).includes('No limit (wobbles)'), 'limits: sin(1/x)');
+  // answer sentence, working, infinity
+  await page.selectOption(R + '.lz-ex', 'quad');
+  check((await t('.lz-ans')) === 'lim (x → 2) of (x² − 4)/(x − 2) = 4.' && (await t('.lz-work')).includes('is undefined'), `limits: answer + working (${await t('.lz-ans')})`);
+  await page.selectOption(R + '.lz-ex', 'sign');
+  check((await t('.lz-ans')).includes('does not exist: from the left it heads to −1 and from the right to 1'), `limits: jump sentence (${await t('.lz-ans')})`);
   await page.selectOption(R + '.lz-ex', 'own'); await page.waitForTimeout(50);
+  await page.selectOption(R + '[data-k="preset"]', '(2x + 1)/(x - 3)|inf'); await page.waitForTimeout(50);
+  check((await t('.lz-ians')) === 'lim (x → ∞) of (2x + 1)/(x - 3) = 2.' && await page.isHidden(R + '.lz-out') && (await page.$$eval(R + '.lz-itab tbody tr', (r) => r.length)) === 6, `limits: infinity (${await t('.lz-ians')})`);
+  await page.fill(R + '[data-k="f"]', 'x^2'); await page.waitForTimeout(50);
+  check((await t('.lz-ians')).includes('= ∞: the values grow'), `limits: x² to infinity (${await t('.lz-ians')})`);
+  await page.fill(R + '[data-k="f"]', 'sin(x)'); await page.waitForTimeout(50);
+  check((await t('.lz-ians')).includes('does not exist'), 'limits: sin x at infinity has no limit');
+  await page.fill(R + '[data-k="a"]', '-inf'); await page.fill(R + '[data-k="f"]', '(3x^2 + 1)/(x^2 - 4)'); await page.waitForTimeout(50);
+  check((await t('.lz-ians')).includes('x → −∞') && (await t('.lz-ians')).endsWith('= 3.'), `limits: minus infinity (${await t('.lz-ians')})`);
+  await page.selectOption(R + '[data-k="preset"]', '(sqrt(x + 1) - 1)/x|0'); await page.waitForTimeout(50);
+  check((await t('.lz-ans')) === 'lim (x → 0) of (sqrt(x + 1) - 1)/x = 0.5.' && await page.isHidden(R + '.lz-inf'), `limits: sqrt preset (${await t('.lz-ans')})`);
+  await page.selectOption(R + '.lz-ex', 'own'); await page.waitForTimeout(50);
+  await page.fill(R + '.lz-f', '(x^3 - 1)/(x - 1)'); await page.fill(R + '.lz-a', '1'); await page.waitForTimeout(50);
   { const f = await t('.lz-facts'); check(f.includes('Limit3') && (await t('.lz-title')).includes('near x = 1'), `limits: own (x³ − 1)/(x − 1) (${f})`); }
   await page.fill(R + '.lz-a', 'q'); await page.waitForTimeout(50);
   check((await t('.lz-err')).includes('point a') && await page.isHidden(R + '.lz-out'), 'limits: bad point message');

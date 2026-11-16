@@ -84,3 +84,109 @@ export function trip(i: TripInput) {
 }
 export const hm = (h: number) => { const m = Math.round(h * 60); return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} m`; };
 export const TYPICAL_TANKS_L: Record<string, number> = { car: 45, bike: 12, truck: 300 };
+
+/* ---------- added 2026-11-16: more options for the vehicle tools ---------- */
+export type EconUnit = 'l100' | 'kml' | 'mpgus' | 'mpguk';
+/** Any fuel-economy figure to litres per 100 km. 0 for a blank, zero or negative figure. */
+export function toL100(v: number, unit: EconUnit): number {
+  if (!(v > 0) || !isFinite(v)) return 0;
+  if (unit === 'l100') return v;
+  if (unit === 'kml') return 100 / v;
+  const gal = unit === 'mpgus' ? L_PER_USGAL : L_PER_UKGAL;
+  return (100 * gal) / (KM_PER_MI * v);
+}
+/** The same economy in every common unit. */
+export function economyAll(l100: number) {
+  if (!(l100 > 0)) return { l100: 0, kmPerL: 0, mpgUS: 0, mpgUK: 0 };
+  return { l100, kmPerL: 100 / l100, mpgUS: (100 * L_PER_USGAL) / (KM_PER_MI * l100), mpgUK: (100 * L_PER_UKGAL) / (KM_PER_MI * l100) };
+}
+/** Litres in one unit of the economy's fuel measure (a litre, a US gallon or a UK gallon). */
+export const litresPerUnit = (unit: EconUnit) => (unit === 'mpgus' ? L_PER_USGAL : unit === 'mpguk' ? L_PER_UKGAL : 1);
+
+// car-affordability
+/** A loan for a car: price is what you pay in total (tax included), downPct is a share of it. */
+export function carPayment(price: number, downPct: number, ratePct: number, months: number) {
+  const p = price > 0 ? price : 0, d = Math.min(100, Math.max(0, downPct));
+  const loan = p * (1 - d / 100);
+  const payment = months > 0 ? (ratePct > 0 ? loan * (ratePct / 1200) / (1 - Math.pow(1 + ratePct / 1200, -months)) : loan / months) : 0;
+  return { loan, down: p - loan, payment, interest: payment * months - loan, totalPaid: payment * months + (p - loan) };
+}
+/** Same budget, different loan lengths: biggest total price, payment and interest for each. */
+export function affordByTerm(i: AffordInput, terms: number[], taxPct = 0) {
+  return terms.map((months) => {
+    const r = afford({ ...i, months });
+    const sticker = r.price / (1 + Math.max(0, taxPct) / 100);
+    return { months, price: r.price, sticker, payment: r.payment, interest: r.interest };
+  });
+}
+
+// car-depreciation
+/** The yearly percent a car has lost so far: paid X, worth Y after `years`. Null if it cannot be worked out. */
+export function impliedRate(paid: number, now: number, years: number): number | null {
+  if (!(paid > 0) || !(now >= 0) || !(years > 0)) return null;
+  return (1 - Math.pow(now / paid, 1 / years)) * 100;
+}
+
+// real-mileage
+export function mileageStats(segments: { kmPerL: number }[]) {
+  if (!segments.length) return null;
+  const v = segments.map((s) => s.kmPerL);
+  const best = Math.max(...v), worst = Math.min(...v);
+  const last3 = v.slice(-3), recent = last3.reduce((a, b) => a + b, 0) / last3.length;
+  return { best, worst, recent, bestIdx: v.indexOf(best) + 1, worstIdx: v.indexOf(worst) + 1 };
+}
+/** Real use against the maker's claim, both in litres (or kWh) per 100 km. Positive = real use is higher (worse). */
+export const vsClaimed = (realPer100: number, claimedPer100: number) => (realPer100 > 0 && claimedPer100 > 0 ? ((realPer100 - claimedPer100) / claimedPer100) * 100 : null);
+export const tripFuel = (distKm: number, kmPerL: number, pricePerL: number) => {
+  const l = distKm > 0 && kmPerL > 0 ? distKm / kmPerL : 0;
+  return { litres: l, cost: l * (pricePerL > 0 ? pricePerL : 0) };
+};
+
+// road-trip
+export function doubleTrip<T extends ReturnType<typeof trip>>(t: T): T {
+  const o = { ...t } as Record<string, number>;
+  for (const k of ['dist', 'km', 'driveH', 'breaks', 'breakH', 'fuelL', 'fuelStops', 'stopH', 'totalH', 'fuelCost', 'totalCost']) o[k] = (t as unknown as Record<string, number>)[k] * 2;
+  return o as unknown as T;
+}
+export const splitCost = (total: number, people: number) => (people >= 1 ? total / Math.floor(people) : total);
+
+// commute-cost
+/** Car share when people ride together: the money cost is divided; the time value stays. */
+export function sharedCar<T extends { year: number; month: number; day: number; timeYear: number; withTime: number }>(row: T, people: number): T {
+  const n = people >= 1 ? Math.floor(people) : 1;
+  if (n === 1) return row;
+  return { ...row, year: row.year / n, month: row.month / n, day: row.day / n, withTime: row.year / n + row.timeYear };
+}
+/** Commuting days a month at which a monthly pass costs the same as driving (null if driving is never dearer per day). */
+export function passBreakEvenDays(carPerDay: number, passMonthly: number, extraPerDay: number): number | null {
+  const gap = carPerDay - extraPerDay;
+  return gap > 0 && passMonthly >= 0 ? passMonthly / gap : null;
+}
+
+// ev-vs-petrol
+/** Yearly km above which vehicle A (dearer to buy, cheaper per km) costs less in total than B. 0 = A is ahead at any distance, null = never. */
+export function breakEvenKmPerYear(fixedA: number, perKmA: number, fixedB: number, perKmB: number, years: number): number | null {
+  if (!(years > 0)) return null;
+  if (fixedA <= fixedB && perKmA <= perKmB) return 0;
+  if (perKmA >= perKmB) return fixedA <= fixedB ? 0 : null;
+  const km = (fixedA - fixedB) / (years * (perKmB - perKmA));
+  return km < 0 ? 0 : km;
+}
+export const costPer100 = (energyPerYear: number, kmPerYear: number) => (kmPerYear > 0 ? (energyPerYear / kmPerYear) * 100 : 0);
+/** Electric use to kWh per 100 km from kWh/100 km, km/kWh or miles/kWh. */
+export function toKwh100(v: number, unit: 'kwh100' | 'kmkwh' | 'mikwh'): number {
+  if (!(v > 0)) return 0;
+  return unit === 'kwh100' ? v : unit === 'kmkwh' ? 100 / v : 100 / (v * KM_PER_MI);
+}
+
+// lease-vs-buy
+/** Car value at the end at which buying and leasing cost the same. */
+export const tieValue = (buyNet: number, resale: number, leaseTotal: number) => resale + (buyNet - leaseTotal);
+
+// on-road-price
+export function emi(loan: number, ratePct: number, months: number) {
+  if (!(loan > 0) || !(months >= 1)) return { payment: 0, interest: 0, total: 0 };
+  const r = ratePct / 1200;
+  const payment = r > 0 ? (loan * r) / (1 - Math.pow(1 + r, -months)) : loan / months;
+  return { payment, interest: payment * months - loan, total: payment * months };
+}

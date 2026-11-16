@@ -11,7 +11,7 @@ ads: false
 order: 1332
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [vector-adder, equations-of-motion, projectile-drag, motion-graphs]
 sources:
   - "Projectile motion with constant g: R = v² sin 2θ / g, H = v² sin²θ / 2g, T = 2v sin θ / g, and the launch-from-height case: standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
@@ -40,6 +40,12 @@ It follows Class 11 Physics, motion in a plane (projectile motion, the equation 
 3. Press **Launch** to watch the ball fly. The numbers update as soon as you move a slider.
 4. Read the working under **The flight**: the speed split into parts, then the time, range and height.
 
+## Solve my numbers
+
+Type the numbers from your question straight into the boxes next to the sliders: **launch speed** (m/s or km/h), **launch angle** (degrees or radians) and **launch height** (m, cm or ft). The page changes them to m/s, degrees and metres, says the result in one line at the top (where it lands, how long it takes and the highest point), and shows the working under **The flight**, with the unit conversions stated first. Speeds above 150 m/s, angles outside 0° to 90°, a zero speed or a blank box give a plain message and not a strange number. Five **worked examples** fill the boxes for you (a kick, a stone off a cliff, a cricket throw at 72 km/h, a basketball shot and the longest throw); they use round numbers of our own.
+
+Under **More options** you can **find the launch angle for a target range**: type how far you want the ball to land and, with your speed and height and no air, the page gives both angles (a flat throw and a high lob; from the ground they add up to 90°), or says the target is out of reach and how far the furthest throw goes. **Try** buttons put an answer into the launcher.
+
 ## Worked example
 
 Open the page: **20 m/s** at **30°** from the ground. The sideways speed is 20 cos 30° = 17.32 m/s and the upward speed 20 sin 30° = 10 m/s.
@@ -50,6 +56,13 @@ Open the page: **20 m/s** at **30°** from the ground. The sideways speed is 20 
 
 The dashed path at 60° lands at the same 35.35 m, but climbs three times as high and takes longer. The best angle from the ground is **45°**, which throws 40.82 m. Raise the launch height to 10 m and the best angle drops below 45°, because a flatter throw has more time to travel forward while it falls.
 
+## Common mistakes
+
+- Using km/h in the formulas: divide by 3.6 to get m/s.
+- Having a calculator in radian mode for a degree angle (or the other way round).
+- Mixing up the parts: the sideways part uses cos θ, the upward part uses sin θ.
+- Forgetting the launch height, which adds time in the air and range.
+
 ## Tips
 
 - At the top, the ball is still moving sideways; only its upward speed is zero.
@@ -57,6 +70,8 @@ The dashed path at 60° lands at the same 35.35 m, but climbs three times as hig
 - With drag, the best angle for distance is less than 45°.
 
 ## FAQ
+
+**How do I find the range of a projectile from my numbers?** Type the speed, angle and height in the boxes; with no air the range is v² sin 2θ ÷ g from the ground (g = 9.8 m/s²), and the page shows it with the working.
 
 **Why do 30° and 60° land at the same place?** The range depends on sin 2θ, and sin 60° = sin 120°. One throw spends less time in the air but moves sideways faster; the other the other way round, and the two exactly balance.
 

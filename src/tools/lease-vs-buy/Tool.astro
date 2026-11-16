@@ -9,9 +9,10 @@
       <label>Paid at signing (down payment) <input data-k="ld" inputmode="decimal" value="2000" /></label>
       <label>Term (months) <input data-k="term" inputmode="decimal" value="36" /></label>
       <label>Fees (acquisition, disposition) <input data-k="lf" inputmode="decimal" value="800" /></label>
-      <label>Kilometre limit a year <input data-k="lim" inputmode="decimal" value="20000" /></label>
-      <label>Charge per extra km <input data-k="ex" inputmode="decimal" value="0.20" /></label>
-      <label>Kilometres you will drive a year <input data-k="kmy" inputmode="decimal" value="25000" /></label>
+      <label>Distance in <select data-k="du"><option value="km">Kilometres</option><option value="mi">Miles</option></select></label>
+      <label><span class="lb-u">Kilometre</span> limit a year <input data-k="lim" inputmode="decimal" value="20000" /></label>
+      <label>Charge per extra <span class="lb-u1">km</span> <input data-k="ex" inputmode="decimal" value="0.20" /></label>
+      <label><span class="lb-u">Kilometres</span> you will drive a year <input data-k="kmy" inputmode="decimal" value="25000" /></label>
     </div>
   </section>
   <section class="panel">
@@ -28,6 +29,9 @@
   <section class="panel" aria-live="polite">
     <p class="lb-big"></p>
     <dl class="lb-rows"></dl>
+    <p class="lb-tie"></p>
+    <h3 class="lb-h">What if the car is worth more or less?</h3>
+    <div class="lb-scroll"><table class="lb-tab lb-sens"><thead><tr><th>Car value at the end</th><th>Buying costs</th><th>Better</th></tr></thead><tbody></tbody></table></div>
   </section>
   <p class="lb-fine">Not financial advice. Insurance, repairs and tax treatment (for example business use) can differ; this compares the payments and the value left. Nothing you type leaves this page.</p>
 </div>
@@ -45,6 +49,8 @@
   .lb-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
   .lb-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .lb-rows dt { color: var(--muted); } .lb-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .lb-tie { margin: 12px 0 0; font-weight: 600; } .lb-tie:empty { display: none; }
+  .lb-h { font-size: 16px; margin: 16px 0 6px; }
   .lb-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .lb-scroll { overflow-x: auto; }
   .lb-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -57,20 +63,32 @@
 
 <script>
   import { leaseVsBuy } from '../../lib/money/household';
-  import { fmt, num, rowsHtml } from '../../lib/money/ui';
+  import { fmt, num, rowsHtml, val } from '../../lib/money/ui';
+  import { tieValue } from '../../lib/money/vehicles';
   const root = document.querySelector('.lb') as HTMLElement;
   const big = root.querySelector('.lb-big') as HTMLElement, rows = root.querySelector('.lb-rows') as HTMLElement;
   const calc = () => {
+    const mi = val(root, 'du') === 'mi';
+    root.querySelectorAll('.lb-u').forEach((e, i) => { e.textContent = mi ? (i ? 'Miles' : 'Mile') : (i ? 'Kilometres' : 'Kilometre'); });
+    (root.querySelector('.lb-u1') as HTMLElement).textContent = mi ? 'mile' : 'km';
     const term = num(root, 'term');
-    if (term < 1 || num(root, 'loan') < 1) { big.textContent = 'Enter the lease term and the loan length.'; rows.innerHTML = ''; return; }
-    const r = leaseVsBuy({ leasePay: num(root, 'lp'), leaseDown: num(root, 'ld'), term, leaseFees: num(root, 'lf'), kmLimit: num(root, 'lim'), kmYear: num(root, 'kmy'), excess: num(root, 'ex'),
-      price: num(root, 'price'), down: num(root, 'bd'), ratePct: num(root, 'rate'), loanMonths: num(root, 'loan'), resale: num(root, 'res') });
+    if (term < 1 || num(root, 'loan') < 1) { big.textContent = 'Enter the lease term and the loan length.'; rows.innerHTML = ''; (root.querySelector('.lb-tie') as HTMLElement).textContent = ''; (root.querySelector('.lb-sens tbody') as HTMLElement).innerHTML = ''; return; }
+    const inp = { leasePay: num(root, 'lp'), leaseDown: num(root, 'ld'), term, leaseFees: num(root, 'lf'), kmLimit: num(root, 'lim'), kmYear: num(root, 'kmy'), excess: num(root, 'ex'),
+      price: num(root, 'price'), down: num(root, 'bd'), ratePct: num(root, 'rate'), loanMonths: num(root, 'loan'), resale: num(root, 'res') };
+    const r = leaseVsBuy(inp);
     big.textContent = r.diff > 0 ? `Buying costs ${fmt(r.diff, 0)} less over ${fmt(term, 0)} months` : r.diff < 0 ? `Leasing costs ${fmt(-r.diff, 0)} less over ${fmt(term, 0)} months` : 'Both cost the same';
     rows.innerHTML = rowsHtml([
-      ['Lease: paid in total', fmt(r.leaseTotal, 0)], ['Lease: excess km charge', fmt(r.excessCost, 0) + ` (${fmt(r.excessKm, 0)} km)`], ['Lease: net cost a month', fmt(r.leaseMonthly)],
+      ['Lease: paid in total', fmt(r.leaseTotal, 0)], ['Lease: excess km charge', fmt(r.excessCost, 0) + ` (${fmt(r.excessKm, 0)} ${mi ? 'mi' : 'km'})`], ['Lease: net cost a month', fmt(r.leaseMonthly)],
       ['Loan payment a month', fmt(r.pay)], ['Buy: still owed at the end', fmt(r.balance, 0)], ['Buy: interest paid in the period', fmt(r.interest, 0)],
       ['Buy: net cost (paid + owed - car value)', fmt(r.buyNet, 0)], ['Buy: net cost a month', fmt(r.buyMonthly)]]);
+    const tie = tieValue(r.buyNet, inp.resale, r.leaseTotal);
+    (root.querySelector('.lb-tie') as HTMLElement).textContent = `Buying and leasing cost the same if the car is worth ${fmt(tie, 0)} after ${fmt(term, 0)} months` + (tie > inp.resale ? ` (you guessed ${fmt(inp.resale, 0)}, so leasing wins).` : tie < inp.resale ? ` (you guessed ${fmt(inp.resale, 0)}, so buying wins).` : '.');
+    const base = inp.resale > 0 ? inp.resale : inp.price;
+    (root.querySelector('.lb-sens tbody') as HTMLElement).innerHTML = [-0.2, -0.1, 0, 0.1, 0.2].map((f) => {
+      const x = leaseVsBuy({ ...inp, resale: base * (1 + f) });
+      return `<tr><td>${fmt(base * (1 + f), 0)} (${f > 0 ? '+' : ''}${f * 100}%)</td><td>${fmt(x.buyNet, 0)}</td><td>${x.diff > 0 ? 'Buy' : x.diff < 0 ? 'Lease' : 'Same'}</td></tr>`;
+    }).join('');
   };
-  root.addEventListener('input', calc);
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
   calc();
 </script>

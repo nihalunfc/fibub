@@ -28,6 +28,7 @@ import { COLOURS, COLOUR_NAMES } from '../../lib/planner';
     <div class="pl-dl">
       <button type="button" class="btn pl-png">Download image</button>
       <button type="button" class="btn secondary pl-pdf">Download PDF</button>
+      <button type="button" class="btn secondary pl-print">Print</button>
     </div>
     <details class="pl-set">
       <summary>Settings</summary>
@@ -94,6 +95,13 @@ import { COLOURS, COLOUR_NAMES } from '../../lib/planner';
   .pl-it.done span { text-decoration: line-through; color: var(--muted); }
   .pl-tick { width: 16px; height: 16px; margin: 1px 0 0; border-radius: 50%; border: 1.5px solid var(--c); background: none; padding: 0; cursor: pointer; }
   .pl-it.done .pl-tick { background: var(--c); }
+  @media print {
+    body.pl-printing * { visibility: hidden !important; }
+    body.pl-printing .pl-week, body.pl-printing .pl-week *, body.pl-printing .pl-month, body.pl-printing .pl-month *, body.pl-printing .pl-label { visibility: visible !important; }
+    body.pl-printing .pl-week, body.pl-printing .pl-month { position: absolute; left: 0; top: 40px; width: 100%; }
+    body.pl-printing .pl-label { position: absolute; left: 0; top: 0; }
+    body.pl-printing .pl-add { display: none !important; }
+  }
   .pl-add { margin-top: auto; border: 1px dashed var(--line) !important; background: none; border-radius: 8px; padding: 6px; color: var(--muted) !important; cursor: pointer; font-size: 14px !important; }
   .pl-add:hover { color: var(--accent) !important; border-color: var(--accent) !important; }
 
@@ -259,6 +267,7 @@ import { COLOURS, COLOUR_NAMES } from '../../lib/planner';
   q('.pl-prev').addEventListener('click', () => step(-1));
   q('.pl-next').addEventListener('click', () => step(1));
   q('.pl-today').addEventListener('click', () => { cursor = new Date(); render(); });
+  q<HTMLElement>('.pl-print').addEventListener('click', () => { document.body.classList.add('pl-printing'); const done = () => { document.body.classList.remove('pl-printing'); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); window.print(); });
   q<HTMLSelectElement>('.pl-start').addEventListener('change', (e) => { st.weekStart = +(e.target as HTMLSelectElement).value; save(); render(); });
   q<HTMLInputElement>('.pl-title').addEventListener('input', (e) => { st.title = (e.target as HTMLInputElement).value; save(); });
   q('.pl-clear').addEventListener('click', () => {

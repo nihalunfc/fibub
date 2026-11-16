@@ -2,8 +2,19 @@
 // Ohm's law lab: slide the voltage, read the ammeter and voltmeter, record readings and plot V against I.
 // A resistor, a filament bulb (a teaching model) or a length of wire. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax ohl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem, pick what to find, and get the answer with the working. Units can be mA, kΩ and so on.</p>
+    <div class="ohl-solve"></div>
+    <details style="margin-top:12px">
+      <summary>Resistance of a wire (R = ρL/A)</summary>
+      <div class="ohl-wsolve" style="margin-top:10px"></div>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>Set up the circuit</h2>
     <div class="ax-row">
@@ -97,6 +108,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { OHM_SPEC, WIRE_SPEC } from '../../lib/sci/solve-ohm';
   import { MATERIALS, N_COPPER, bulbR, area, wireR, drift, current, fit, meter, questions, type Part } from '../../lib/sci/ohms-lab';
   import { pagePalette, type Palette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -290,4 +303,6 @@ import '../../styles/astro.css';
   all();
   if (reduce) drawCircuit(0); else raf = requestAnimationFrame(tick);
   void raf;
+  mountSolver(q('.ohl-solve'), OHM_SPEC);
+  mountSolver(q('.ohl-wsolve'), WIRE_SPEC, 'wire');
 </script>

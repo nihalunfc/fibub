@@ -30,23 +30,36 @@ Pick a reaction, set the grams of each reactant, and the page turns grams into m
 
 ## How to use it
 
-1. Choose a reaction from the menu.
-2. Set the grams of the first and second reactant with the sliders.
-3. Read which reactant runs out and the most product.
-4. Look at the line below for moles and leftover grams.
-5. Answer the quiz questions, which use new amounts each time.
+1. Choose a reaction from the menu, or "My own reaction" to type the formulas and coefficients from your homework.
+2. Type the amount of each reactant (or use the slider) and pick its unit: g, mg, kg or mol.
+3. Read the sentence at the top: which reactant runs out and the most product.
+4. Open **Show the working** for the exam-style steps: molar masses, moles, divide by the coefficients, theoretical yield and leftover.
+5. Under **More options**, type the actual yield you collected to get the percent yield, or switch to rounded school masses (H 1, C 12, O 16).
+6. Answer the quiz questions, which use new amounts each time.
 
 ## What each setting does
 
-- **Reaction:** the balanced equation. Coefficients tell the mole ratios.
-- **Grams of A and B:** how much of each reactant you start with.
+- **Reaction:** ten ready-made balanced equations (water, ammonia, methane, propane, magnesium, aluminium, iron and sulfur, zinc, limestone, sodium) or your own. Where a reaction has several products, a menu lets you choose which one to find.
+- **Amounts of A and B:** how much of each reactant you start with, in g, mg, kg or mol. Typing a number and sliding it stay in step.
+- **Actual yield:** optional. The percent yield is actual ÷ theoretical × 100.
+- **Rounded school masses:** uses whole-number atomic masses where books do (H 1, O 16, Cl 35.5) so your answer matches the book. By default exact atomic weights are used.
 - **Bars:** how many "batches" of the reaction each reactant could supply.
 
 ## Worked example
 
 Take 2 H₂ + O₂ → 2 H₂O with 4 g of H₂ and 32 g of O₂. That is 1.984 mol of H₂ (divide by 2 to get 0.992 batches) and 1.000 mol of O₂ (1.000 batches). H₂ runs out first and makes 1.984 mol of water, 35.7 g. About 0.26 g of O₂ is left over.
 
+## Common mistakes
+
+- Comparing the grams of the two reactants. The one with fewer grams is not necessarily the limiting one: compare moles divided by coefficients.
+- Forgetting the coefficient. In 2 H₂ + O₂ the hydrogen moles are divided by 2.
+- Finding the yield from the reactant that is in excess. Always use the limiting reagent.
+- Mixing mg, g and kg. Pick the unit in the box next to the number.
+
 ## FAQs
+
+**How do I find the limiting reagent?** Turn each mass into moles, divide each by its coefficient in the balanced equation, and the smaller result is the limiting reagent.
+
 
 **Why divide by the coefficient?** The coefficient is how many moles one batch of the reaction uses.
 

@@ -28,6 +28,11 @@ A one-hour meeting with six people is six hours of work, and those hours have a 
 
 It is not a reason to cancel every meeting. It helps you ask whether a regular meeting is worth the time, or whether fewer people or a shorter slot would do. To see where an hourly figure comes from, use the [[hourly-salary|salary converter]]; to price your own time, see the [[freelance-rate]] calculator.
 
+## More options
+
+- **Different roles**: if people in the room are paid differently, fill in up to three roles (a name, how many people, their pay). The tool uses the total head count and the weighted average pay instead of the single People and Amount boxes.
+- **What if it were shorter**: shows what cutting some minutes saves each time, and over a year for a repeating meeting.
+
 ## How to use it
 
 1. Type the number of people and the length in minutes.

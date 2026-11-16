@@ -5,12 +5,17 @@
   <section class="panel">
     <h2>From your Social Security statement</h2>
     <div class="ssa-grid">
-      <label>Benefit at full retirement age (PIA), a month <span class="ssa-suf"><input class="ssa-pia" inputmode="decimal" value="2,000" /><i>$</i></span></label>
-      <label>Year you were born <input class="ssa-yr" inputmode="numeric" value="1964" /></label>
-      <label>Start benefits at <select class="ssa-start"></select></label>
-      <label>Plan to age <input class="ssa-life" inputmode="decimal" value="85" /></label>
+      <label>Benefit at full retirement age (PIA), a month <span class="ssa-suf"><input class="ssa-pia" data-k="pia" inputmode="decimal" value="2,000" /><i>$</i></span></label>
+      <label>Year you were born <input class="ssa-yr" data-k="birth-year" inputmode="numeric" value="1964" /></label>
+      <label>Start benefits at <select class="ssa-start" data-k="start"></select></label>
+      <label>Plan to age <input class="ssa-life" data-k="plan-age" inputmode="decimal" value="85" /></label>
     </div>
     <label class="ssa-chk"><input type="checkbox" class="ssa-jan1" /> I was born on 1 January (SSA then uses the year before)</label>
+    <details class="ssa-more">
+      <summary>More options</summary>
+      <label>Yearly cost-of-living increase (COLA), a guess <span class="ssa-suf"><input class="ssa-cola" data-k="cola" inputmode="decimal" value="0" /><i>%</i></span></label>
+      <p class="ssa-hint">0 keeps everything in today's dollars. Type 2 to 3 to see totals with future raises; it is your guess, not a forecast, and it applies from the year you turn 62.</p>
+    </details>
     <p class="note bad ssa-err" role="alert" hidden></p>
   </section>
 
@@ -22,6 +27,12 @@
       <div><span>Total by your plan-to age</span><b class="ssa-tot"></b></div>
     </div>
     <p class="ssa-line"></p>
+    <div class="panel ssa-ch">
+      <h2>Total received by each age</h2>
+      <svg class="ssa-svg" viewBox="0 0 320 160" role="img" aria-label="Line chart of total benefits received by age for starting at 62, full retirement age and 70"></svg>
+      <p class="ssa-key"><span class="k1"></span> Start at 62 <span class="k2"></span> Full age <span class="k3"></span> Start at 70</p>
+      <p class="ssa-cross"></p>
+    </div>
     <div class="panel ssa-tw">
       <h2>Benefit by start age</h2>
       <table>
@@ -61,12 +72,16 @@
   .ssa th:first-child, .ssa td:first-child { text-align: left; }
   .ssa th { font-size: 12px; color: var(--muted); white-space: normal; }
   .ssa tr.on td { font-weight: 700; background: var(--surface); }
+  .ssa-more summary { cursor: pointer; font-weight: 600; margin: 12px 0 8px; } .ssa-hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .ssa-svg { width: 100%; height: auto; display: block; }
+  .ssa-key { font-size: 13px; color: var(--muted); margin: 6px 0 0; } .ssa-key span { display: inline-block; width: 18px; height: 3px; margin: 0 4px 3px 8px; vertical-align: middle; } .ssa-key .k1 { background: var(--muted); } .ssa-key .k2 { background: var(--accent); } .ssa-key .k3 { background: var(--ink); }
+  .ssa-cross { font-size: 14px; margin: 8px 0 0; }
   .ssa-fine { color: var(--muted); font-size: 13px; margin: 0; }
   @media (max-width: 640px) { .ssa-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
-  import { fraMonths, fraLabel, factor, benefit, breakEven, totalTo } from '../../lib/money/social-security-age.ts';
+  import { fraMonths, fraLabel, factor, benefit, breakEven, totalToCola, cumulativeByAge, breakEvenCola } from '../../lib/money/social-security-age.ts';
   import { num } from '../../lib/money';
   const root = document.querySelector('.ssa') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -93,15 +108,28 @@
     const fra = fraMonths(yr, q<HTMLInputElement>('.ssa-jan1').checked);
     if (fra !== lastFra) fill(fra);
     const start = +sel.value;
+    const cola = Math.max(0, Math.min(0.1, v('.ssa-cola') / 100));
+    const totalTo = (p: number, s0: number, u: number, f: number) => totalToCola(p, s0, u, f, cola);
+    const bex = (a: number, b: number) => breakEvenCola(pia, a, b, fra, cola);
     q('.ssa-fra').textContent = fraLabel(fra);
     q('.ssa-m').textContent = $(benefit(pia, start, fra));
     q('.ssa-pct').textContent = `${(factor(start, fra) * 100).toFixed(1)}%`;
     q('.ssa-tot').textContent = $(totalTo(pia, start, life, fra));
     q('.ssa-tot-h').textContent = `Total by ${life}`;
-    const be = (a: number, b: number) => { const x = breakEven(pia, a, b, fra); return x === null ? '-' : `age ${x.toFixed(1)}`; };
+    const be = (a: number, b: number) => { const x = cola > 0 ? bex(a, b) : breakEven(pia, a, b, fra); return x === null ? '-' : `age ${x.toFixed(1)}`; };
     q('.ssa-line').textContent = start === fra ? 'Pick another start age to see when waiting pays off.'
       : start < fra ? `Starting at ${ageText(start)} pays ${$(benefit(pia, start, fra))} a month instead of ${$(benefit(pia, fra, fra))}. It pays more in total than waiting for your full age unless you live past ${be(start, fra).replace('age ', '')}.`
       : `Waiting until ${ageText(start)} pays ${$(benefit(pia, start, fra))} a month instead of ${$(benefit(pia, fra, fra))}. It pays more in total than starting at your full age if you live past ${be(fra, start).replace('age ', '')}.`;
+    // Chart: totals by age for 62, full age and 70.
+    const maxAge = Math.max(90, Math.min(100, Math.ceil(life) + 3));
+    const starts = [744, fra, 840].filter((m, i, a) => a.indexOf(m) === i);
+    const series = starts.map((m) => cumulativeByAge(pia, m, fra, cola, maxAge));
+    const top = Math.max(...series.map((s) => s[s.length - 1]), 1), W = 320, H = 160, L = 6, B = 16;
+    const X = (i: number) => (L + (i / (maxAge - 62)) * (W - L - 6)).toFixed(1), Y = (y: number) => (H - B - (y / top) * (H - B - 8)).toFixed(1);
+    const colour = (m: number) => (m === 744 ? 'var(--muted)' : m === 840 ? 'var(--ink)' : 'var(--accent)');
+    q('.ssa-svg').innerHTML = `<line x1="${L}" y1="${H - B}" x2="${W - 6}" y2="${H - B}" stroke="var(--line)"/>` + starts.map((m, k) => `<polyline fill="none" stroke="${colour(m)}" stroke-width="2" points="${series[k].map((y, i) => `${X(i)},${Y(y)}`).join(' ')}"/>`).join('') + `<text x="${L}" y="${H - 3}" font-size="10" fill="var(--muted)">Age 62</text><text x="${W - 6}" y="${H - 3}" font-size="10" text-anchor="end" fill="var(--muted)">Age ${maxAge}: ${$(series[starts.indexOf(840)][series[0].length - 1])} if you start at 70</text>`;
+    const x1 = starts.length > 2 ? (cola > 0 ? bex(744, 840) : breakEven(pia, 744, 840, fra)) : null;
+    q('.ssa-cross').textContent = x1 === null ? '' : `Waiting until 70 overtakes starting at 62 at about age ${x1.toFixed(1)}${cola > 0 ? ` (with ${Math.round(cola * 1000) / 10}% a year raises)` : ''}.`;
     q('.ssa-body').innerHTML = [...sel.options].map((o) => {
       const m = +o.value;
       return `<tr${m === start ? ' class="on"' : ''}><td>${ageText(m)}</td><td>${$(benefit(pia, m, fra))}</td><td>${(factor(m, fra) * 100).toFixed(1)}%</td><td>${m === 744 ? '-' : be(744, m)}</td><td>${m === fra ? '-' : m < fra ? be(m, fra) : be(fra, m)}</td><td>${$(totalTo(pia, m, life, fra))}</td></tr>`;

@@ -16,6 +16,7 @@ updated: 2026-11-10
 related: [melt-value, bullion-weights]
 sources:
   - "Number of coins = (total weight − container weight) ÷ weight of one coin, rounded to the nearest whole coin. Plain arithmetic."
+  - "Roll sizes (US cent 50, nickel 40, dime 50, quarter 40) are the usual bank roll counts; banks differ, so check the official source (your bank or the US Mint), checked 2026-11-16."
   - "Preset coin weights are the issuing mints' published specifications (US Mint, Royal Canadian Mint, Royal Mint). Coins wear and specifications change over the years, so check the weight of your own coins."
 flow:
   - { icon: coin, label: "Pick coin" }
@@ -43,6 +44,7 @@ You can also count by hand: pick the coin, type how many you have, and get the v
 - **One coin (g)**: the weight of one coin in grams.
 - **Total weighed (g)**: the weight of everything on the scale.
 - **Container (g)**: the empty jar or bag, taken off the total.
+- **Count by hand: full rolls or bags, coins in each, loose coins**: type how many full rolls you have, how many coins are in each, and any loose coins. Choosing US coins fills in the usual bank roll sizes (cent 50, nickel 40, dime 50, quarter 40); change them if your bank wraps differently.
 - **Currency symbol**: shown in front of the totals only.
 
 ## Worked example

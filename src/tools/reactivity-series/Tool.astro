@@ -2,12 +2,23 @@
 // Reactivity series lab: drop a metal strip into a salt solution (or dilute acid) and see whether it displaces the
 // metal; results fill a grid and give a series; tap any metal for its reactions and how it is extracted.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/chemquiz.css';
 import { SERIES, SOLUTIONS, STRIPS } from '../../lib/sci/reactivity';
 const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
 const name = (s: string) => SERIES.find((m) => m.sym === s)!.name;
 ---
 <div class="ax rx">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Choose a metal and a solution to see whether it displaces, compare two metals, or look up how a metal is extracted. The working names the rule and the equation.</p>
+    <div class="rx-solve"></div>
+    <details style="margin-top:12px"><summary>Put metals in order of reactivity</summary>
+      <label style="margin-top:10px">Metals (symbols or names, any order)<input type="text" class="rx-ord-in" data-k="rx-order" placeholder="e.g. Cu Zn Mg Ag" autocomplete="off" aria-label="Metals to put in order" /></label>
+      <p class="ax-big rx-ord-out" aria-live="polite" style="margin:10px 0 0"></p>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>The lab</h2>
     <label>Metal strip <select class="rx-m">{STRIPS.map((s) => <option value={s} selected={s === 'Fe'}>{s}: {name(s)}</option>)}</select></label>
@@ -79,6 +90,18 @@ const name = (s: string) => SERIES.find((m) => m.sym === s)!.name;
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { REACT_SPEC, orderMetals } from '../../lib/sci/solve-reactivity';
+  mountSolver(document.querySelector<HTMLElement>('.rx-solve')!, REACT_SPEC, 'sv');
+  {
+    const oin = document.querySelector<HTMLInputElement>('.rx-ord-in')!, oout = document.querySelector<HTMLElement>('.rx-ord-out')!;
+    oin.addEventListener('input', () => {
+      const r = orderMetals(oin.value);
+      if (!oin.value.trim()) { oout.textContent = ''; return; }
+      if (r.ordered.length < 2) { oout.textContent = r.unknown.length ? `I do not know "${r.unknown.join('", "')}". Try symbols like Mg or names like zinc.` : 'Type at least two metals.'; return; }
+      oout.textContent = `Most reactive first: ${r.ordered.join(' > ')}.${r.unknown.length ? ` (Not recognised: ${r.unknown.join(', ')}.)` : ''}`;
+    });
+  }
   import { SERIES, SOLUTIONS, STRIPS, METAL, rank, test, seriesFrom, pretty, type Result } from '../../lib/sci/reactivity';
   import { mountQuiz, same, pickOne, type Question } from '../../lib/chemquiz';
 

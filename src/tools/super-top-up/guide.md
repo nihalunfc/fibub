@@ -22,6 +22,10 @@ flow:
   - { icon: check, label: "You pay" }
 ---
 
+## More options
+
+"More options" has a table of ready-made scenarios. For a year total of half, one, one and a half, two and three times your base sum insured, it shows who pays when the total comes as one big bill and when it comes as three equal bills: the base policy, a plain top-up, a super top-up, and what is left for you. It makes the main difference easy to see: a plain top-up needs one bill above the deductible, while a super top-up counts the whole year. General information, not insurance advice; check the official source and your policy wording.
+
 ## What it does
 
 A top-up and a super top-up both sit on top of your base health policy and start paying after a threshold, called the deductible. The difference is how they count. A plain top-up looks at each hospital bill on its own, so it pays nothing unless one bill is bigger than the deductible. A super top-up adds all the year's bills together and pays once the total passes the deductible.

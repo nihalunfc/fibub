@@ -18,4 +18,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.ssa-fra')).includes('66 and 6 months'), 'social-security-age: 1957 gives 66 and 6 months');
   await page.fill('.ssa-pia', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.ssa-err'), 'social-security-age: missing PIA shows a message');
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  check((await page.$$('.ssa-svg polyline')).length === 3 && (await page.textContent('.ssa-cross')).includes('80.4'), 'social-security-age: chart has 3 lines, 70 overtakes 62 at about 80.4');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); await page.waitForTimeout(80);
+  await page.fill('.ssa-cola', '2.5'); await page.waitForTimeout(100);
+  check((await page.textContent('.ssa-cross')).includes('78.5') && (await page.textContent('.ssa-cross')).includes('2.5%'), 'social-security-age: with 2.5% COLA the break-even is about 78.5');
 };

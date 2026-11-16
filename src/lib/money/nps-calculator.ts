@@ -30,3 +30,15 @@ export function nps(a: NpsIn): NpsOut {
   const annuity = bal * a.annuityShare / 100;
   return { rows, corpus: bal, invested: put, annuity, lump: bal - annuity, pension: annuity * a.annuityRate / 1200 };
 }
+
+// ---- upgrade additions (2026-11-16) ----
+/** Monthly contribution that gives `target` monthly pension (the result is linear in the contribution). */
+export function npsMonthlyForPension(a: NpsIn, target: number): number {
+  const base = nps({ ...a, monthly: 0 }).pension, one = nps({ ...a, monthly: 1 }).pension - base;
+  if (!(one > 0)) return NaN;
+  return Math.max(0, (target - base) / one);
+}
+/** Same plan at lower and higher returns (e.g. -2, 0, +2 points). */
+export const npsScenarios = (a: NpsIn, deltas: number[]) => deltas.filter((d) => a.rate + d >= 0).map((d) => ({ rate: a.rate + d, ...nps({ ...a, rate: a.rate + d }) }));
+/** Value today of a future amount after `years` of inflation (%). */
+export const todaysMoney = (v: number, inflationPct: number, years: number) => v / Math.pow(1 + inflationPct / 100, years);

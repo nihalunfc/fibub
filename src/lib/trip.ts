@@ -345,3 +345,22 @@ export function sampleTrip(): Trip {
   t.name = 'Sample trip (made up)';
   return t;
 }
+
+// ---------- what a trip cost ----------
+export type EconomyKind = 'l100' | 'kmpl' | 'mpgus' | 'mpguk';
+const L_PER_USGAL = 3.785411784, L_PER_UKGAL = 4.54609;
+/** Fuel used and its cost for `metres`, from a fuel economy and a price per litre (l100, kmpl) or per gallon (mpgus, mpguk).
+ *  Null when the economy or price is blank, zero or negative, so the page never shows NaN. */
+export function fuelCost(metres: number, kind: EconomyKind, economy: number, price: number) {
+  if (!(metres > 0) || !(economy > 0) || !(price >= 0) || !isFinite(economy) || !isFinite(price)) return null;
+  const km = metres / 1000, mi = metres / 1609.344;
+  const fuel = kind === 'l100' ? (km * economy) / 100 : kind === 'kmpl' ? km / economy : mi / economy; // litres, or gallons for mpg
+  const unit = kind === 'mpgus' ? 'US gal' : kind === 'mpguk' ? 'UK gal' : 'L';
+  const litres = kind === 'mpgus' ? fuel * L_PER_USGAL : kind === 'mpguk' ? fuel * L_PER_UKGAL : fuel;
+  return { fuel, unit, litres, cost: fuel * price };
+}
+/** Distance claim at a rate you type per km or per mile (your tax authority or employer sets it). */
+export function claimAmount(metres: number, units: Units, rate: number) {
+  if (!(metres > 0) || !(rate >= 0) || !isFinite(rate)) return null;
+  return (metres / unitInfo(units).d) * rate;
+}

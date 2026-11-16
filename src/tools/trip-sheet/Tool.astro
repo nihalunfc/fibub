@@ -27,6 +27,12 @@
     <h2 class="ts-h">Diesel fills</h2>
     <div class="ts-fills"></div>
     <p><button type="button" data-a="addfill">Add a fill</button></p>
+    <details class="ts-more"><summary>More options: expected mileage</summary>
+      <div class="ts-grid">
+        <label>Expected km per litre for this truck <input data-k="expkmpl" inputmode="decimal" value="" placeholder="e.g. 5" /></label>
+      </div>
+      <p class="ts-fine">Compares the diesel you bought with what the km run should have used. Leave it empty to skip.</p>
+    </details>
     <fieldset class="ts-paid"><legend>Paid by the driver out of the advance</legend>
       <label class="ts-check"><input type="checkbox" data-k="pd" /> Diesel</label>
       <label class="ts-check"><input type="checkbox" data-k="pt" checked /> Tolls</label>
@@ -57,6 +63,7 @@
   .ts-fill { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
   .ts button { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
   .ts button:hover { border-color: var(--accent); }
+  .ts-more { margin: 8px 0 12px; } .ts-more summary { cursor: pointer; color: var(--accent); } .ts-more .ts-grid { margin-top: 10px; }
   .ts-paid { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
   .ts-paid legend { font-size: 14px; color: var(--muted); padding: 0 4px; }
   .ts label.ts-check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
@@ -79,16 +86,16 @@
 </style>
 
 <script>
-  import { tripTotals, type Trip } from '../../lib/money/vehicle-india';
+  import { tripTotals, tripExtras, type Trip } from '../../lib/money/vehicle-india';
   const KEY = 'fibub-tripsheet-v1';
   const root = document.querySelector('.ts') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const n = (v: string) => parseFloat(v.replace(/,/g, '')) || 0;
   const num = (k: string) => n(q(k).value);
-  const fmt = (v: number, d = 0) => v.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: 2 });
+  const fmt = (v: number, d = 0) => v.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d || 2 });
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-  const FIELDS = ['veh', 'driver', 'from', 'to', 'd1', 'd2', 'odo1', 'odo2', 'freight', 'adv', 'tolls', 'bata', 'days', 'load', 'oth'];
+  const FIELDS = ['expkmpl', 'veh', 'driver', 'from', 'to', 'd1', 'd2', 'odo1', 'odo2', 'freight', 'adv', 'tolls', 'bata', 'days', 'load', 'oth'];
   const BOXES = ['pd', 'pt', 'pl', 'po'];
 
   const addFill = (l = '', p = '') => {
@@ -100,13 +107,17 @@
   const trip = (): Trip => ({ odoStart: num('odo1'), odoEnd: num('odo2'), freight: num('freight'), advance: num('adv'), fills: fills(), tolls: num('tolls'), bataPerDay: num('bata'), days: num('days'), loading: num('load'), other: num('oth'), driverPays: { diesel: q('pd').checked, tolls: q('pt').checked, loading: q('pl').checked, other: q('po').checked } });
 
   const rowsOf = () => {
-    const t = trip(), r = tripTotals(t);
+    const t = trip(), r = tripTotals(t), x = tripExtras(t, num('expkmpl'));
     const bal = r.driverBalance >= 0 ? ['Balance due to the driver', fmt(r.driverBalance)] : ['Driver gives back', fmt(-r.driverBalance)];
     return { r, list: [
       ['Km run', fmt(r.km)], ['Diesel', `${fmt(r.litres)} L, ${fmt(r.diesel)}`], ['Km per litre', r.kmpl ? fmt(Math.round(r.kmpl * 100) / 100, 2) : '-'],
       ['Tolls', fmt(t.tolls)], ['Driver bata', `${fmt(t.days)} days × ${fmt(t.bataPerDay)} = ${fmt(r.bata)}`], ['Loading and unloading', fmt(t.loading)], ['Other', fmt(t.other)],
       ['Total cost', fmt(r.cost)], ['Freight', fmt(t.freight)], [r.profit >= 0 ? 'Profit' : 'Loss', fmt(Math.abs(r.profit))], ['Advance to driver', fmt(t.advance)], bal,
-    ] };
+      ...(r.km > 0 ? [['Cost per km', fmt(x.costPerKm, 2)], ['Freight per km', fmt(x.freightPerKm, 2)], [x.profitPerKm >= 0 ? 'Profit per km' : 'Loss per km', fmt(Math.abs(x.profitPerKm), 2)]] : []),
+      ...(t.freight > 0 ? [['Margin on freight', `${x.marginPct}%`]] : []),
+      ...(r.litres > 0 ? [['Average diesel price per litre', fmt(x.avgPrice, 2)]] : []),
+      ...(x.expectedL > 0 ? [['Diesel expected for this km', `${fmt(x.expectedL, 1)} L`], [x.litreGap > 0 ? 'Extra diesel used' : 'Diesel saved', `${fmt(Math.abs(x.litreGap), 1)} L (${fmt(Math.abs(x.gapValue))})`]] : []),
+    ] as string[][] };
   };
   const save = () => { try { if (q('keep').checked) localStorage.setItem(KEY, JSON.stringify({ f: Object.fromEntries(FIELDS.map((k) => [k, q(k).value])), b: BOXES.map((k) => q(k).checked), fills: fills() })); } catch {} };
   const calc = () => {

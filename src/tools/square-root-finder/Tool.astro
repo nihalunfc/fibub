@@ -4,8 +4,15 @@
 // method), and the long division method. A square of that area shows the answer as its side. Nothing is stored.
 import '../../styles/astro.css';
 import '../../styles/smath.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax sm sr">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem and get the answer in one sentence, with the working written the way an exam marks it. Choose what to find: a square root to the decimal places you need, the side of a square from its area, or the smallest number that makes a perfect square.</p>
+    <div class="sr-solve"></div>
+  </div>
+
   <div class="ax-card">
     <label>Number <input type="text" class="sr-n" value="7056" inputmode="decimal" aria-label="Number to find the square root of" /></label>
     <div class="ax-row sr-gap">
@@ -71,6 +78,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SQRT_SPEC } from '../../lib/sci/solve-sqrt';
   import { pairUp, oddSubtract, between, heron, longDivision } from '../../lib/sci/sqrt-j2';
   import { S, quiz, type Question } from '../../lib/smath-ui';
   import { randInt } from '../../lib/sci/smath';
@@ -153,6 +162,7 @@ import '../../styles/smath.css';
   root.querySelectorAll<HTMLButtonElement>('.sr-pre').forEach((b) => b.addEventListener('click', () => { NB.value = b.dataset.n!; draw(); }));
   NB.addEventListener('input', draw);
   draw();
+  mountSolver(q('.sr-solve'), SQRT_SPEC, 'sq');
 
   quiz(q('.sr-quiz'), () => {
     const out: Question[] = [];

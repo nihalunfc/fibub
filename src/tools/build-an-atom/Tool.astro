@@ -2,6 +2,7 @@
 // Build an atom: tap + and − to add protons, neutrons and electrons; the element, mass number, charge, isotope,
 // Bohr shells (2, 8, 8, 2) and valency update live. Ends with a "Check yourself" block of fresh questions.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/chemquiz.css';
 import { ELEMENTS } from '../../lib/sci/chem';
 const first20 = ELEMENTS.slice(0, 20);
@@ -12,6 +13,12 @@ const parts = [
 ];
 ---
 <div class="ax bat">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the atomic number, mass number and charge from your question to get the protons, neutrons, electrons and shells, or work out an average atomic mass from isotope abundances.</p>
+    <div class="bat-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Your atom</h2>
     <svg class="bat-svg" viewBox="-180 -180 360 360" role="img" aria-label="Picture of the atom: nucleus in the middle, electrons on shells"></svg>
@@ -73,6 +80,9 @@ const parts = [
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { ATOM_SPEC } from '../../lib/sci/solve-atom';
+  mountSolver(document.querySelector<HTMLElement>('.bat-solve')!, ATOM_SPEC, 'sv');
   import { build, describe, shells, valency, SHELL_NAMES, MAX_P, MAX_N, MAX_E, type Atom } from '../../lib/sci/atom';
   import { ELEMENTS } from '../../lib/sci/chem';
   import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';

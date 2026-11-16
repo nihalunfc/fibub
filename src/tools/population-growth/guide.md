@@ -11,7 +11,7 @@ ads: false
 order: 1452
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [population-growth-models, predator-prey, population-pyramid, food-web-builder]
 sources:
   - "Standard population ecology: exponential growth N = N₀e^(rt), logistic (Verhulst-Pearl) growth dN/dt = rN(1 − N/K), doubling time ln 2 / r, and age pyramids. Written for fibub; no textbook text, figures or exercises are used."
@@ -40,6 +40,19 @@ It fits **Class 12 Biology: organisms and populations** (population attributes, 
 4. Look at the **dN/dt** graph: the dot shows how fast the logistic population is growing right now.
 5. Tap **Expanding**, **Stable** or **Declining** to compare age pyramids.
 
+## Solve your own numbers
+
+The card at the top takes the numbers from your question and answers in one sentence, with the working underneath. Choose what to find:
+
+- **Size after a time.** Exponential N = N₀e^(rt) or logistic N = K ÷ (1 + ((K − N₀) ÷ N₀)e^(−rt)); the logistic answer also says how close it is to K.
+- **Growth rate r** from a starting size, a later size and the time.
+- **Doubling time**, ln 2 ÷ r (or the halving time when r is negative).
+- **Time to reach a size** for either model, with a friendly message when it never gets there.
+- **Growth per unit time (dN/dt)** at a given size: rN, or rN(1 − N/K) for logistic, with the fastest rate rK/4 at K/2.
+- **Births, deaths, immigration, emigration:** N(t+1) = N + (B + I) − (D + E), with r = (B − D) ÷ N.
+
+Seven worked-example presets fill the card. Blank, negative, zero or impossible entries (for example a size above K for the logistic time) give a friendly message. Common mistakes: using a percentage as r (5% is 0.05), mixing time units, and using the exponential formula near K. For age-structured projections use [[population-growth-models]].
+
 ## Worked example
 
 Bacteria story: N₀ = 10, r = 0.5 per hour, K = 1000. After t = 10 hours:
@@ -60,6 +73,8 @@ Bacteria story: N₀ = 10, r = 0.5 per hour, K = 1000. After t = 10 hours:
 Five fresh questions: exponential growth after a time, logistic dN/dt, where growth is fastest, a doubling time, and naming a pyramid shape. Nothing is saved.
 
 ## FAQ
+
+**How do I calculate population growth?** For exponential growth use N = N₀e^(rt); for a population limited by K use the logistic formula, or simply N(t+1) = N + (B + I) − (D + E) for one step.
 
 **Why do real populations not grow exponentially for long?** Food, space, water and nesting places run out, and disease and predators increase. These limits are what K stands for.
 

@@ -5,6 +5,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax sst">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (load, wire length and diameter, extension) and get stress, strain or Young's modulus with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <div class="ax-seg sst-mode" role="group" aria-label="What to do">
@@ -81,6 +82,8 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { STRESS } from '../../lib/learn/phys-d';
   import { G, material, mystery, stressAt, wireStrain, permanentSet, yieldStrain, area, breakingLoad, slopeThroughOrigin, youngFromSlope, questions, type Material } from '../../lib/sci/wiretest';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -244,6 +247,7 @@ import '../../styles/astro.css';
   mountQuiz(q('.sst-quiz'), () => questions());
   resetWire(); draw();
   keepDrawn(q<HTMLCanvasElement>('.sst-c'), draw);
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, STRESS);
 </script>
 
 <style is:inline>

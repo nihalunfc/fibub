@@ -2,9 +2,16 @@
 // Cell division: step through mitosis and meiosis with a small set of chromosomes, see chromosome number and DNA
 // per cell at each stage, and count dividing cells in a virtual onion root tip. Teaching drawings, not micrographs.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax cdv">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem: how many chromosomes, chromatids and how much DNA a cell has at a stage of mitosis or meiosis, how many different gametes a cell can make, or the mitotic index from your root tip counts.</p>
+    <div class="cdv-solve"></div>
+  </div>
+
   <p class="ax-help cdv-note">Simple teaching drawings with a few chromosomes. Real cells have many more, and they look less tidy under a microscope.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="cdv-lab">Level</span>
@@ -62,6 +69,8 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { CELL_SPEC } from '../../lib/sci/solve-celldiv';
   import { MITOSIS, MEIOSIS, gameteTypes, mitoticIndex, phaseHours, field, tally, rng, PHASES, SHARE, CYCLE_H, type Phase, type Stage } from '../../lib/sci/celldiv';
   import { csv } from '../../lib/sci/num';
   import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
@@ -333,6 +342,8 @@ import Downloads from '../../components/Downloads.astro';
       ...(cells.length ? [{ title: 'Onion root tip counts', text: [q('.cdv-mi').textContent ?? ''], figure: fieldFig, table: { head: ['Stage', 'Cells', 'Share', 'Your estimate', 'Model'], rows: countRows(), align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
     ] as Section[],
   }));
+
+  mountSolver(document.querySelector<HTMLElement>('.cdv-solve')!, CELL_SPEC, 'cs');
 </script>
 
 <style is:inline>

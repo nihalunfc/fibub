@@ -20,6 +20,29 @@ import '../../styles/smath.css';
     <div class="ss-grid" aria-label="All outcomes; the ones in the event are shaded"></div>
     <p class="ax-big ss-p" aria-live="polite"></p>
     <p class="sm-f ss-why"></p>
+    <details class="ss-two">
+      <summary>Compare with a second event (or, and, given)</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Second event B <select class="ss-ev2" data-k="event2"></select></label>
+        <label class="ss-krow2">Number <input type="number" class="ss-k2" data-k="k2" step="1" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-help">Event A is shaded blue; event B has a dashed border; outcomes in both have both.</p>
+      <p class="ax-big ss-two-ans" aria-live="polite"></p>
+      <ol class="ss-two-lines"></ol>
+    </details>
+  </div>
+
+  <div class="ax-card ss-counts">
+    <h2>Probability from my numbers</h2>
+    <p class="ax-help">For a problem that gives the counts, such as "a bag has 4 red and 6 blue marbles": favourable outcomes ÷ total outcomes.</p>
+    <div class="ax-grid">
+      <label>Favourable outcomes <input type="number" class="ss-fav" data-k="fav" min="0" step="1" inputmode="numeric" value="4" /></label>
+      <label>Total outcomes <input type="number" class="ss-tot" data-k="total" min="1" step="1" inputmode="numeric" value="10" /></label>
+    </div>
+    <p class="ax-err ss-cerr" hidden></p>
+    <p class="ax-big ss-cans" aria-live="polite"></p>
+    <ol class="ss-clines"></ol>
+    <p class="ax-help">Common mistake: using the favourable outcomes as the total. Total means every equally likely outcome, so 4 red and 6 blue gives 10, not 6.</p>
   </div>
 
   <div class="ax-card">
@@ -55,6 +78,8 @@ import '../../styles/smath.css';
   .ss .ss-grid { display: grid; gap: 3px; margin-top: 12px; font-variant-numeric: tabular-nums; }
   .ss .ss-grid span { display: grid; place-items: center; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: var(--surface); }
   .ss .ss-grid span.in { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+  .ss .ss-grid span.inb { border: 2px dashed var(--ink); }
+  .ss .ss-two-lines, .ss .ss-clines { padding-left: 20px; display: grid; gap: 4px; overflow-wrap: anywhere; }
   .ss .ss-grid span.red { color: var(--bad); }
   .ss .ss-grid span.hd { border: 0; background: none; color: var(--muted); font-weight: 700; }
   .ss .ss-grid.cards span { min-height: 30px; font-size: 11px; overflow: hidden; letter-spacing: -0.3px; }
@@ -63,7 +88,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { space, EVENTS, probability, simulate, rng, SUITS, RANKS } from '../../lib/sci/sample-school';
+  import { space, EVENTS, probability, simulate, rng, twoEvents, fromCounts, SUITS, RANKS } from '../../lib/sci/sample-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';
 
@@ -77,27 +102,39 @@ import '../../styles/smath.css';
     const e = EVENTS[kind][0]; if (e.k) K.value = String(e.k[2]);
     q('.ss-crow').hidden = kind !== 'coins';
   }
+  const ev2 = q<HTMLSelectElement>('.ss-ev2'), K2 = q<HTMLInputElement>('.ss-k2'), two = q<HTMLDetailsElement>('.ss-two');
+  function fillEvents2() { ev2.replaceChildren(...EVENTS[kind].map((e) => new Option(e.text(e.k ? e.k[2] : 0).replace(/\d+/, 'k').replace(/^(\w)/, (c) => c.toUpperCase()), e.id))); const e = EVENTS[kind][Math.min(1, EVENTS[kind].length - 1)]; ev2.value = e.id; if (e.k) K2.value = String(e.k[2]); }
+  const cur2 = () => EVENTS[kind].find((e) => e.id === ev2.value)!;
+  function kval2() { const e = cur2(); if (!e.k) return 0; const v = Math.round(Number(K2.value)); const max = kind === 'coins' ? Number(Nc.value) : e.k[1]; return Number.isFinite(v) ? Math.max(e.k[0], Math.min(max, v)) : e.k[2]; }
   const cur = () => EVENTS[kind].find((e) => e.id === ev.value)!;
   function kval() { const e = cur(); if (!e.k) return 0; const v = Math.round(Number(K.value)); const max = kind === 'coins' ? Number(Nc.value) : e.k[1]; return Number.isFinite(v) ? Math.max(e.k[0], Math.min(max, v)) : e.k[2]; }
 
   function draw() {
     const e = cur(), k = kval(), outs = space(kind, Number(Nc.value)), test = (v: number[]) => e.test(v, k);
     q('.ss-krow').hidden = !e.k;
+    const twoOn = two.open, e2 = cur2(), k2 = kval2(), testB = (v: number[]) => twoOn && e2.test(v, k2);
+    q('.ss-krow2').hidden = !e2.k; if (e2.k) { K2.min = String(e2.k[0]); K2.max = String(kind === 'coins' ? Nc.value : e2.k[1]); }
+    const cls = (v: number[], extra = '') => [test(v) ? 'in' : '', testB(v) ? 'inb' : '', extra].filter(Boolean).join(' ');
     if (e.k) { K.min = String(e.k[0]); K.max = String(kind === 'coins' ? Nc.value : e.k[1]); }
     const g = q('.ss-grid'); g.replaceChildren(); g.className = 'ss-grid' + (kind === 'cards' ? ' cards' : '');
     const cell = (t: string, cls = '') => { const s = document.createElement('span'); s.textContent = t; if (cls) s.className = cls; g.append(s); };
     if (kind === 'dice') {
       g.style.gridTemplateColumns = 'repeat(7, 1fr)'; cell('', 'hd'); for (let j = 1; j <= 6; j++) cell(String(j), 'hd');
-      for (let i = 1; i <= 6; i++) { cell(String(i), 'hd'); for (let j = 1; j <= 6; j++) cell(`${i},${j}`, test([i, j]) ? 'in' : ''); }
+      for (let i = 1; i <= 6; i++) { cell(String(i), 'hd'); for (let j = 1; j <= 6; j++) cell(`${i},${j}`, cls([i, j])); }
     } else if (kind === 'coins') {
-      g.style.gridTemplateColumns = `repeat(${Math.min(4, outs.length)}, 1fr)`; for (const o of outs) cell(o.label, test(o.v) ? 'in' : '');
+      g.style.gridTemplateColumns = `repeat(${Math.min(4, outs.length)}, 1fr)`; for (const o of outs) cell(o.label, cls(o.v));
     } else {
       g.style.gridTemplateColumns = 'repeat(13, minmax(0, 1fr))';
-      for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) cell(`${RANKS[r - 1]}${SUITS[s]}`, [test([r, s]) ? 'in' : '', s === 1 || s === 2 ? 'red' : ''].filter(Boolean).join(' '));
+      for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) cell(`${RANKS[r - 1]}${SUITS[s]}`, cls([r, s], s === 1 || s === 2 ? 'red' : ''));
     }
     const P = probability(outs, test);
     q('.ss-p').textContent = `P(${e.text(k)}) = ${P.fav}/${P.n}${P.text !== `${P.fav}/${P.n}` ? ` = ${P.text}` : ''} ≈ ${fmt(P.p, 4)}`;
     q('.ss-why').textContent = `There are ${P.n} equally likely outcomes and ${P.fav} of them are in the event (shaded). Probability = favourable / total. ${P.fav === 0 ? 'None fit, so the event is impossible.' : P.fav === P.n ? 'All fit, so the event is certain.' : `The chance it does not happen is 1 − ${P.text} = ${P.n - P.fav}/${P.n}.`}`;
+    if (twoOn) {
+      const t2 = twoEvents(outs, test, (v) => e2.test(v, k2), `A`, `B`);
+      q('.ss-two-ans').textContent = `P(A or B) = ${t2.either}/${t2.n}, P(A and B) = ${t2.both}/${t2.n}.`;
+      q('.ss-two-lines').replaceChildren(...[`A: ${e.text(k)}. B: ${e2.text(k2)}.`, ...t2.lines].map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    } else { q('.ss-two-ans').textContent = ''; q('.ss-two-lines').replaceChildren(); }
     q('.ss-fig').replaceChildren(); q('.ss-sim').textContent = 'Press a button to run the experiment.';
   }
 
@@ -115,12 +152,20 @@ import '../../styles/smath.css';
   }
 
   root.querySelectorAll<HTMLButtonElement>('.ss-kind button').forEach((b) => b.addEventListener('click', () => {
-    kind = b.dataset.k as typeof kind; root.querySelectorAll('.ss-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fillEvents(); draw();
+    kind = b.dataset.k as typeof kind; root.querySelectorAll('.ss-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fillEvents(); fillEvents2(); draw();
   }));
   ev.addEventListener('change', () => { const e = cur(); if (e.k) K.value = String(Math.min(e.k[2], kind === 'coins' ? Number(Nc.value) : e.k[1])); draw(); });
   K.addEventListener('input', draw); Nc.addEventListener('change', draw);
+  ev2.addEventListener('change', () => { const e = cur2(); if (e.k) K2.value = String(Math.min(e.k[2], kind === 'coins' ? Number(Nc.value) : e.k[1])); draw(); });
+  K2.addEventListener('input', draw); two.addEventListener('toggle', draw);
+  const counts = () => {
+    const f = q<HTMLInputElement>('.ss-fav').value.trim(), t = q<HTMLInputElement>('.ss-tot').value.trim(), r = fromCounts(f === '' ? NaN : Number(f), t === '' ? NaN : Number(t)), er = q('.ss-cerr');
+    er.hidden = !r.error; er.textContent = r.error ?? ''; q('.ss-cans').textContent = r.error ? '' : r.text;
+    q('.ss-clines').replaceChildren(...r.lines.map((x) => Object.assign(document.createElement('li'), { textContent: x })));
+  };
+  q('.ss-fav').addEventListener('input', counts); q('.ss-tot').addEventListener('input', counts);
   root.querySelectorAll<HTMLButtonElement>('.ss-run').forEach((b) => b.addEventListener('click', () => run(Number(b.dataset.n))));
-  fillEvents(); draw();
+  fillEvents(); fillEvents2(); draw(); counts();
 
   quiz(q('.ss-quiz'), () => {
     const out: Question[] = [];

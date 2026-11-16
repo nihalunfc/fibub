@@ -11,7 +11,7 @@ ads: false
 order: 1089
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [nernst-calculator, reactivity-series, oxidation-number]
 sources:
   - "Standard reduction potentials (25 °C, 1 bar, against the standard hydrogen electrode): rounded values from the CRC Handbook electrochemical series and Bard, Parsons and Jordan, as in fibub's Nernst calculator."
@@ -30,6 +30,9 @@ A galvanic (voltaic) cell turns a redox reaction into electricity by keeping the
 - **The picture.** Two beakers, each with an electrode in a solution of its ions (or the standard hydrogen electrode, platinum in acid with hydrogen gas). The page marks the anode (−, where oxidation happens) and the cathode (+, where reduction happens). Electrons move through the wire from the anode to the cathode; in the salt bridge, negative ions drift towards the anode and positive ions towards the cathode. The voltmeter shows the cell voltage.
 - **The numbers.** E°cell = E°cathode − E°anode, the balanced cell reaction, the cell notation (anode | anode ion ‖ cathode ion | cathode), the electrons transferred n, ΔG° = −nFE°cell and the equilibrium constant K.
 - **Nernst.** Sliders set each ion's concentration from 0.001 M to 2 M. The cell voltage follows the Nernst equation, Ecell = E°cell − (0.0592 / n) log Q, with every number shown.
+- **Quick cells.** Tap Daniell (Zn | Cu), Zn | Ag, Fe | Cu, Mg | Ag or H₂ | Zn to load a classic cell.
+- **Type your concentrations.** Each ion has a number box (mol/L) paired with its slider. Type 0.05 and the slider and the Nernst working follow; zero or blank gets a friendly message instead of a wrong answer.
+- **Use your own E° values.** For problems that give the potentials, type E° of the cathode and the anode, n and (optionally) Q. You get E°cell, ΔG° in kJ/mol, K and the Nernst voltage, with the working, and a clear message if E°cell is negative (swap the electrodes).
 
 It follows Class 12 Chemistry (electrochemistry: galvanic cells, the Daniell cell, standard electrode potentials, the Nernst equation, equilibrium constant from the Nernst equation, and the relation between Gibbs energy and cell voltage). The order of the metals matches the [[reactivity-series]]; for any half-reaction, pH or temperature use the [[nernst-calculator]]; to see where the electrons come from, try the [[oxidation-number]] finder.
 
@@ -54,11 +57,17 @@ Now set [Cu²⁺] to 0.01 M with [Zn²⁺] at 1 M. Q = [Zn²⁺]/[Cu²⁺] = 100
 
 ## Tips
 
+- Common mistakes: subtracting the wrong way round (always cathode minus anode), doubling E° when you double the equation (E° stays the same; n and ΔG° double), and forgetting to turn J into kJ in ΔG°.
+
 - A positive E°cell means the cell works as drawn; the page always puts the anode where E° is lower, so E°cell is always positive here.
 - The zinc electrode gets thinner and the copper one thicker as the cell runs.
 - The salt bridge is usually a gel or paper soaked in KNO₃ or KCl. Without it, charge builds up and the current stops.
 
 ## FAQ
+
+**How do I calculate the EMF of a cell?** E°cell = E°cathode − E°anode, where the cathode is the half-cell with the higher reduction potential; use the box above to try your own values, and add Q for a non-standard cell.
+
+**Which 0.059 does the page use?** The exact value RT/F × ln 10 = 0.05916 V at 25 °C, shown as 0.0592; a book using 0.059 may differ in the third figure.
 
 **Why are the potentials slightly different from my book?** Books round them differently (for example −0.76 or −0.763 V for zinc). The page uses rounded handbook values.
 

@@ -43,6 +43,25 @@ const MEDIA = [['Air', '1.00'], ['Water', '1.33'], ['Ice', '1.31'], ['Kerosene',
     <pre class="snl-formula"></pre>
   </div>
 
+  <div class="ax-card snls">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help" style="margin-top:0">Got a textbook question? Choose what to find, type the other values, and get the answer with the working. Angles are measured from the normal (the line at right angles to the surface), not from the surface.</p>
+    <div class="snls-pre" role="group" aria-label="Worked examples"></div>
+    <p class="ax-help snls-note"></p>
+    <div class="ax-grid">
+      <label>Find <select class="snls-un" data-k="unknown"><option value="r">Angle of refraction r</option><option value="i">Angle of incidence i</option><option value="n2">Refractive index n₂</option><option value="n1">Refractive index n₁</option><option value="C">Critical angle C</option><option value="speed">Speed of light in a medium</option></select></label>
+      <label>Angles in <select class="snls-au" data-k="angle-unit"><option value="deg">degrees</option><option value="rad">radians</option></select></label>
+      <label class="snls-f1"><span class="snls-n1t">n₁, first medium</span> <input type="text" inputmode="decimal" class="snls-n1" data-k="solve-n1" value="1" /></label>
+      <label class="snls-f2"><span class="snls-n2t">n₂, second medium</span> <input type="text" inputmode="decimal" class="snls-n2" data-k="solve-n2" value="1.5" /></label>
+      <label class="snls-fi">Angle of incidence i <input type="text" inputmode="decimal" class="snls-i" data-k="solve-i" value="30" /></label>
+      <label class="snls-fr">Angle of refraction r <input type="text" inputmode="decimal" class="snls-r" data-k="solve-r" value="" /></label>
+    </div>
+    <p class="ax-err snls-err" hidden></p>
+    <p class="ax-big snls-ans" data-k="answer" aria-live="polite"></p>
+    <pre class="snl-formula snls-work"></pre>
+    <p class="ax-help">Common mistakes: measuring the angle from the surface instead of from the normal; putting n₁ and n₂ the wrong way round (n₁ belongs to the side the light comes from, with angle i); a sine above 1 means total internal reflection, not an error in your calculator.</p>
+  </div>
+
   <div class="ax-card">
     <h2>Try this</h2>
     <ul class="snl-try">
@@ -67,10 +86,14 @@ const MEDIA = [['Air', '1.00'], ['Water', '1.33'], ['Ice', '1.31'], ['Kerosene',
   .snl-fig { touch-action: pan-y; cursor: crosshair; border: 1px solid var(--line); margin: 4px auto; max-width: 480px; }
   .snl-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
   .snl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .snls .snls-pre { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .snls label[hidden] { display: none; }
+  .snls .snls-ans { overflow-wrap: anywhere; font-size: 17px; }
+  .snls .snls-ans:empty { display: none; }
 </style>
 
 <script>
-  import { refractAngle, criticalAngle, slabShift, apparentDepth, speedIn, rad } from '../../lib/sci/school-optics';
+  import { refractAngle, criticalAngle, slabShift, apparentDepth, speedIn, rad, solveSnell, type SnellUnknown } from '../../lib/sci/school-optics';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
   import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
@@ -254,4 +277,48 @@ const MEDIA = [['Air', '1.00'], ['Water', '1.33'], ['Ice', '1.31'], ['Kerosene',
   };
   mountQuiz(q('.snl-quiz'), make, 4);
   draw();
+  // Solve my numbers
+  const PRE: { name: string; un: SnellUnknown; n1?: string; n2?: string; i?: string; r?: string; note: string }[] = [
+    { name: 'Air into glass', un: 'r', n1: '1', n2: '1.5', i: '30', note: 'A ray in air hits glass (n = 1.5) at 30° to the normal. Find r.' },
+    { name: 'Find n of a block', un: 'n2', n1: '1', i: '45', r: '28', note: 'A ray in air at 45° bends to 28° inside a clear block. What is its refractive index?' },
+    { name: 'Water to air', un: 'i', n1: '1.33', n2: '1', r: '60', note: 'Light leaves water into air at 60° to the normal. What was the angle of incidence?' },
+    { name: 'Critical angle', un: 'C', n1: '1.33', n2: '1', note: 'The critical angle for water to air.' },
+    { name: 'Total reflection', un: 'r', n1: '1.5', n2: '1', i: '50', note: 'Glass to air at 50°: more than the critical angle.' },
+  ];
+  const sn = (c: string) => q<HTMLInputElement>('.snls ' + c);
+  const sgz = (x: number, n = 4) => sig(x, n).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  function solveNow() {
+    const un = sn('.snls-un').value as SnellUnknown, err = q('.snls-err'), ans = q('.snls-ans'), wk = q('.snls-work'), rad_ = sn('.snls-au').value === 'rad';
+    const show = (c: string, on: boolean) => { q(c).hidden = !on; };
+    show('.snls-f1', un !== 'n1' && un !== 'speed'); show('.snls-f2', un !== 'n2'); show('.snls-fi', un === 'r' || un === 'n1' || un === 'n2'); show('.snls-fr', un === 'i' || un === 'n1' || un === 'n2');
+    show('.snls-f1', un !== 'n1' && un !== 'speed');
+    q('.snls-n2t').textContent = un === 'speed' ? 'n of the medium' : 'n₂, second medium';
+    const toDeg = (x: number) => (rad_ ? (x * 180) / Math.PI : x);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; ans.textContent = ''; wk.textContent = ''; };
+    const nI = toDeg(num(sn('.snls-i').value)), nR = toDeg(num(sn('.snls-r').value));
+    const res = solveSnell(un, num(sn('.snls-n1').value), num(sn('.snls-n2').value), nI, nR);
+    if (!res.ok) return fail(res.msg);
+    err.hidden = true;
+    const A = (d: number) => (rad_ ? `${sgz((d * Math.PI) / 180, 4)} rad` : `${sgz(d, 4)}°`);
+    const head: string[] = [];
+    if (rad_) head.push(`Angles changed to degrees first: ${[un === 'r' || un === 'n1' || un === 'n2' ? `i = ${sgz(num(sn('.snls-i').value), 4)} rad = ${sgz(nI, 4)}°` : '', un === 'i' || un === 'n1' || un === 'n2' ? `r = ${sgz(num(sn('.snls-r').value), 4)} rad = ${sgz(nR, 4)}°` : ''].filter(Boolean).join(', ')}.`);
+    if (un === 'r') {
+      if (res.tir) { const C = criticalAngle(num(sn('.snls-n1').value), num(sn('.snls-n2').value)); ans.textContent = `No refracted ray: this is total internal reflection${C !== null ? `, because ${A(nI)} is more than the critical angle ${A(C)}` : ''}.`; }
+      else { const n1v = num(sn('.snls-n1').value), n2v = num(sn('.snls-n2').value); ans.textContent = `r = ${A(res.value)}. The ray ${nI === 0 ? 'goes straight on' : n2v > n1v ? 'bends towards the normal' : n2v < n1v ? 'bends away from the normal' : 'goes straight on'}.`; }
+    } else if (un === 'i') ans.textContent = `i = ${A(res.value)}.`;
+    else if (un === 'C') ans.textContent = `The critical angle is ${A(res.value)}. Beyond it, light cannot get out and is totally reflected.`;
+    else if (un === 'speed') ans.textContent = `Light travels at ${sgz(res.value, 4)} × 10⁸ m/s in this medium (c = 2.998 × 10⁸ m/s in a vacuum).`;
+    else ans.textContent = `${un === 'n2' ? 'n₂' : 'n₁'} = ${sgz(res.value, 4)}.`;
+    wk.textContent = [...head, ...res.steps].join('\n');
+  }
+  PRE.forEach((p, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = p.name; b.dataset.k = `preset-${i}`;
+    b.addEventListener('click', () => {
+      sn('.snls-un').value = p.un; sn('.snls-au').value = 'deg'; sn('.snls-n1').value = p.n1 ?? ''; sn('.snls-n2').value = p.n2 ?? ''; sn('.snls-i').value = p.i ?? ''; sn('.snls-r').value = p.r ?? '';
+      q('.snls-note').textContent = p.note; solveNow();
+    });
+    q('.snls-pre').append(b);
+  });
+  q('.snls').querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', solveNow); e.addEventListener('change', solveNow); });
+  solveNow();
 </script>

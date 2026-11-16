@@ -58,3 +58,7 @@ The fleet drove 10,000 miles on 1,600 gallons, an average of 6.25 mpg. In State 
 **Are interest and penalties included?** No. Late returns carry interest and a penalty of the greater of 50 or 10% of the tax.
 
 Not tax advice.
+
+## More options
+
+Under **More options** you can paste lines from a spreadsheet (name, distance, fuel bought, rate) to fill every jurisdiction at once, set the fleet distance to the rows' total, and copy the finished return as CSV for your records or your accountant. The method is unchanged and the rates are still typed by you from the IFTA matrix.

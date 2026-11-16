@@ -11,11 +11,12 @@ ads: false
 order: 1822
 icon: ruler
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, unit-converter]
 sources:
   - "Size bands (XS 52-54.9, S 55-56.9, M 57-58.9, L 59-60.9, XL 61-62.9, XXL 63-64.9 cm): a common table; makers differ, so these are estimates. Always check the maker's own chart."
   - "India: BIS standard IS 4151 (ISI mark), Bureau of Indian Standards, bis.gov.in. USA: FMVSS 218 (DOT mark), NHTSA, nhtsa.gov. Europe and many other countries: UN Regulation 22 (ECE 22.06 label). Canada: provinces generally accept DOT or ECE labels; check your province. Checked 2026-11-10; check the official source."
+  - "Helmet age: common maker guidance of about 5 years from first use (some makers allow up to 7 years from manufacture) and replacement after any crash. This is not a legal rule and varies by maker; checked 2026-11-16, check the official source and your maker's own advice."
 flow:
   - { icon: ruler, label: "Measure" }
   - { icon: pencil, label: "Type it" }
@@ -38,6 +39,10 @@ The size table is a common one, and makers differ by a size either way, so treat
 
 - **Unit**: cm or inches. Inches are converted at 2.54 cm per inch.
 - **Size**: the band your measurement falls in. Near the edge of a band you are told to also try the next size.
+
+## More options
+
+Below the size table there is a no-tape-measure tip (a string or a cable and a ruler), and a note about head shape: the same size can feel different in a round or long-oval helmet, so try another model before going up a size. This page does not guess your shape, because there is no standard test. The fit checks are tick boxes, and the page tells you how many pass: a helmet should pass all five. "Is my helmet too old?" takes the year printed on the label inside and says how old it is. Many makers advise replacing a helmet about 5 years after you start using it, and some allow up to 7 years from manufacture, and always after a crash. That is common maker guidance, not a law: check your maker's advice.
 
 ## Worked example
 

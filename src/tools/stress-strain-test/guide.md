@@ -11,7 +11,7 @@ ads: false
 order: 1340
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [stress-strain-analyser, simple-machines, newtons-laws, hydraulic-lift]
 sources:
   - "Stress = F/A, strain = ΔL/L, Hooke's law (stress = Y × strain), the shape of a ductile metal's stress-strain curve (elastic limit, strain hardening, necking and fracture), unloading along a line of slope Y (permanent set), rubber's curve (the simple neo-Hookean model) and Searle's method Y = g L/(A × slope): standard school physics found in any textbook."
@@ -39,6 +39,10 @@ It follows the school topics on the mechanical properties of solids: stress, str
 3. In Pull a wire, drag the **load**. The dot on the curve and the facts show the stress, the strain, the stretch, and what happens if you take the load off. "Zoom on the start" shows the straight Hooke's law part, which is too small to see on the whole curve. "New wire" gives you a fresh one after a break.
 4. In Searle's experiment, tap **Add 0.5 kg** and **Take 0.5 kg off** to take readings, and read Young's modulus from your slope. "Start again" clears the table.
 
+## Solve my numbers
+
+The **Solve my numbers** box at the top is for your own problem. Type the numbers and read the answer in one sentence, then the working like a marked answer. It can find the stress from a load and a wire diameter (σ = F/A with A = πd²/4), the strain from an extension and a length, Young's modulus from a Searle-style measurement, the extension from a load or from a hanging mass (ΔL = FL/AY), the largest safe load from a breaking stress and a safety factor, whether the stress stays below the yield strength, and the elastic energy stored, U = ½FΔL. Lengths can be in mm, cm or m, loads in N or kN, and moduli in GPa, MPa or Pa; the unit box converts. Every answer shows the area step, because the slip that costs most marks is using the radius instead of the diameter, or mm² as m². Typical values for steel, copper and aluminium appear as hints, rounded general figures, so use the number your textbook gives. A zero or negative diameter gets a plain message.
+
 ## Worked example
 
 Open the page: a **steel** wire 2 m long and 1 mm thick with **10 kg** hanging on it. The area is π × (0.0005 m)² = 7.854 × 10⁻⁷ m², the force 10 × 9.8 = 98 N, so the stress is 98 ÷ 7.854 × 10⁻⁷ = **124.78 MPa**. With Young's modulus 200 GPa the strain is 124.78 × 10⁶ ÷ 200 × 10⁹ = **6.24 × 10⁻⁴** and the stretch is 6.24 × 10⁻⁴ × 2 m = **1.248 mm**. That is inside the elastic limit (250 MPa, about 20 kg here), so the wire springs back.
@@ -60,3 +64,5 @@ Now raise the load to **25 kg**: the stress is 311.94 MPa, past the elastic limi
 **Are these real values?** They are rounded teaching numbers that behave like each material. Real metals vary with how they were made.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**How do I calculate Young's modulus from a wire experiment?** Divide stress by strain: Y = (F/A) ÷ (ΔL/L) = FL/(AΔL), with A = πd²/4; for 100 N, 2 m, 1 mm and 1.27 mm the result is about 201 GPa.

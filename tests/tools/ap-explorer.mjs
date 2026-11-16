@@ -23,6 +23,29 @@ export default async ({ page, check, BASE }) => {
   check(await page.isHidden(R + '.ap-err'), 'ap: message clears');
   await page.locator(R + '.ap-dr').fill('-2'); await page.waitForTimeout(100);
   check((await page.inputValue(R + '.ap-d')) === '-2' && (await txt('.ap-seq')).startsWith('500, 498'), 'ap: slider changes d');
+  // Solve my problem.
+  const sa = () => txt('.ap-s-ans'), sk = (k) => `${R}[data-k="${k}"]`;
+  check((await sa()) === 'a = 0 and d = 5. The nth term is 5n − 5.', `ap: 5th term 20, 10th term 45 (${await sa()})`);
+  await page.click(R + '.ap-solve [data-sp^="two"]'); await page.waitForTimeout(100);
+  check((await sa()) === 'a = 2 and d = 5. The nth term is 5n − 3.' && (await txt('.ap-s-steps')).includes('d = 25 / 5 = 5'), `ap: 3rd term 12, 8th term 37 (${await sa()})`);
+  await page.fill(sk('s3'), '3'); await page.waitForTimeout(100);
+  check((await txt('.ap-s-err')).includes('must be different'), 'ap: same term number twice');
+  await page.click(R + '.ap-solve [data-sp^="sum"]'); await page.waitForTimeout(100);
+  check((await sa()) === 'n = 4 or 13 terms (both work).' && (await txt('.ap-s-steps')).includes('−3n² + 51n − 156 = 0'), `ap: sum 78 gives n = 4 or 13 (${await sa()})`);
+  await page.fill(sk('s3'), '5'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.ap-s-err') && (await sa()) === '', 'ap: a total that is never reached');
+  await page.click(R + '.ap-solve [data-sp^="fl"]'); await page.waitForTimeout(100);
+  check((await sa()) === 'd = 3 and the sum of the 32 terms is 1712.', `ap: first 7, last 100, 32 terms (${await sa()})`);
+  await page.click(R + '.ap-s-load'); await page.waitForTimeout(150);
+  check((await txt('.ap-seq')).startsWith('7, 10, 13') && (await page.inputValue(R + '.ap-n')) === '32', 'ap: load into the staircase');
+  await page.click(R + '.ap-solve [data-sp^="cnt"]'); await page.waitForTimeout(100);
+  check((await sa()) === '32 terms, with sum 1648.', `ap: 5 to 98 step 3 (${await sa()})`);
+  await page.fill(sk('s2'), '99'); await page.waitForTimeout(100);
+  check((await txt('.ap-s-err')).includes('is not a term') && (await sa()) === '', 'ap: last term not in the list');
+  await page.fill(sk('s3'), '0'); await page.waitForTimeout(100);
+  check((await txt('.ap-s-err')).includes('d = 0'), 'ap: d = 0 message');
+  await page.fill(sk('s1'), ''); await page.waitForTimeout(100);
+  check((await txt('.ap-s-err')).includes('Type every number'), 'ap: blank clue');
   // Quiz.
   check((await page.$$(R + '.sm-q')).length === 4, 'ap: four questions');
   for (const [i, re] of [[1, /= (\S+)\.$/], [2, /= (\d+)\.$/], [3, /n = (\d+)\.$/], [4, /= (\d+)\.$/]]) {

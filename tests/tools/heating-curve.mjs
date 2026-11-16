@@ -42,4 +42,33 @@ export default async ({ page, check, BASE }) => {
   check(items.length === 5, 'heat: five questions');
   for (const i of [0, 1, 2, 3]) { const ans = await items[i].getAttribute('data-ans'); await (await items[i].$('.lq-in')).fill(String(+(+ans).toPrecision(4))); await (await items[i].$('.lq-check')).click(); }
   check((await t('.lq-score')).startsWith('4 of 5'), 'heat: four numeric answers accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  {
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, units = {}) => {
+    await page.selectOption('.ps-host [data-k="prob"]', id);
+    for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${id}-${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); else await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); }
+    for (const [k, u] of Object.entries(units)) await page.selectOption(`.ps-host [data-k="${id}-${k}-u"]`, u);
+    await page.waitForTimeout(80);
+  };
+  const T = (cond, msg) => check(cond, `heating-curve: ${msg}`);
+  await psPre('Heat 2 kg water'); T((await psAns()).includes('It needs 420 kJ of heat.'), 'example Heat 2 kg water');
+  await psPre('Ice to steam'); T((await psAns()).includes('The total heat is 1.55 MJ, which takes 25.8 minutes at 1000 W.'), 'example Ice to steam');
+  await psPre('Kettle'); T((await psAns()).includes('It takes 4.67 minutes (280 s).'), 'example Kettle');
+  await psPre('Hot iron in water'); T((await psAns()).includes('The final temperature is 23.3 °C.'), 'example Hot iron in water');
+  await psPre('Ice in a drink'); T((await psAns()).includes('All the ice melts and the final temperature is 22.9 °C.'), 'example Ice in a drink');
+  await psPre('Find c of a metal'); T((await psAns()).includes('560 J/(kg·K)'), 'example Find c of a metal');
+  await psSet('Q', {'m': '2000', 'c': '4.2', 'T1': '20', 'T2': '70'}, {'m': 'g', 'c': 'kJ/(kg·K)'}); T((await psAns()).includes('It needs 420 kJ of heat.'), 'g and kJ/(kg K) units give 420 kJ');
+  await psSet('QL', {'m': '250', 'L': '80'}, {'m': 'g', 'L': 'cal/g'}); T((await psAns()).includes('It needs 83.7 kJ of heat to change state'), 'cal/g unit gives 83.7 kJ');
+  await psSet('ice', {'mw': '0.1', 'Tw': '20', 'mi': '0.1', 'c': '4200', 'L': '334000'}, {}); T((await psAns()).includes('Not all the ice melts: the final temperature is 0 °C, with 25.1 g melted and 74.9 g of ice left.'), 'small warm water leaves ice');
+  await psSet('full', {'m': '0.5', 'T0': '-20', 'Tf': '100', 'P': '1000'}, {}); T((await psAns()).includes('The total heat is 398 kJ'), 'ice at -20 to water at 100 is 398 kJ');
+  await psSet('full', {'m': '0.5', 'T0': '-20', 'Tf': '0', 'P': '1000'}, {}); T((await psAns()).includes('The total heat is 21 kJ, which takes 21 s'), 'ice warmed to 0 C is 21 kJ');
+  await psSet('cal', {'m1': '0.1', 'T1': '100', 'm2': '0.2', 'T2': '20', 'Tf': '120', 'cw': '4200'}); T((await psAns()).includes('must be between'), 'final above metal gives a friendly message');
+  await psSet('full', {'m': '0.5', 'T0': '-20', 'Tf': '-30', 'P': '1000'}); T((await psAns()).includes('must be above the starting'), 'final below start gives a friendly message');
+  await psPre('Find c of a metal');
+  await psPre('Heat 2 kg water'); T((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'working shown, no NaN');
+  }
 };

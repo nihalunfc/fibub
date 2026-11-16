@@ -19,4 +19,13 @@ export default async ({ page, check, BASE }) => {
   check((await total()) === 603, `crs: 3 years Canada high-wage 2x + 3 years foreign -> 603 (${await total()})`);
   await page.click(R + '.crs-reset'); await page.waitForTimeout(80); await sel('cdn', '3'); await sel('offer', '2');
   check((await cell('Job offer')) === 100 && (await total()) === 519, `crs: job offer 100 beats 3 years Canada (64), not both -> 519 (${await total()})`);
+  await page.click(R + '.crs-reset'); await page.waitForTimeout(80);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); await page.waitForTimeout(80);
+  const sug = await page.$$eval(R + '.crs-sug li', (l) => l.map((x) => x.textContent));
+  check(sug.length > 3 && sug[0].startsWith('A provincial or territorial nomination') && sug[0].includes('+600 (1019)'), `crs: suggestions list starts with the nomination +600 (${sug[0]})`);
+  check(sug.some((x) => x.includes('job offer') && x.includes('+100 (519)')), 'crs: job offer suggestion +100 -> 519');
+  await page.fill(R + '[data-k="cut"]', '500'); await page.waitForTimeout(80);
+  check((await page.textContent(R + '.crs-cmp')).includes('81 points below 500'), 'crs: 419 is 81 points below a 500 cut-off');
+  await page.fill(R + '[data-k="cut"]', '400'); await page.waitForTimeout(80);
+  check((await page.textContent(R + '.crs-cmp')).includes('19 points above 400'), 'crs: 419 is 19 points above 400');
 };

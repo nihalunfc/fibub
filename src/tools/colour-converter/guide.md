@@ -34,6 +34,7 @@ It also gives six tints (mixed with white) and six shades (mixed with black), an
 1. Type a colour in the box, for example `#1e90ff`, `rgb(30, 144, 255)`, `hsl(210, 100%, 56%)`, `cmyk(88%, 44%, 0%, 0%)` or `tomato`. Or tap the colour square to pick one.
 2. Read the HEX, RGB, HSL, CMYK and Name rows, and press Copy next to the one you need.
 3. Tap a tint or shade to make it the current colour. Reset goes back to the example.
+4. Open **More options** to check your colour against any background colour you choose (the ratio and AA/AAA result for text), and to see matching colours: complementary, analogous, triadic, split-complementary and square. Tap one to use it.
 
 ## What each part does
 

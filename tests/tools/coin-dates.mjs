@@ -13,4 +13,12 @@ export default async ({ page, check, BASE }) => {
   check(/= 1957 CE/.test(await page.textContent('.cd .cd-out')), 'coin-dates: Thai BE 2500 = 1957 (single year)');
   await page.click('.cd .cd-m[data-m=ce]'); await page.fill('.cd .cd-year', '1882'); await page.waitForTimeout(100);
   check(/1299 and 1300/.test(await page.textContent('.cd .cd-more')), 'coin-dates: 1882 CE falls in AH 1299 and 1300');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.click('.cd .cd-m[data-m=era]'); await page.fill('.cd .cd-year', '١٣٠٠'); await page.waitForTimeout(100);
+  check(/AH 1300 = 1882\/83 CE/.test(await page.textContent('.cd .cd-out')), 'coin-dates: Arabic-Indic digits are read');
+  check(/years before/.test(await page.textContent('.cd .cd-age')), 'coin-dates: shows years ago');
+  await page.fill('.cd .cd-rom', 'MDCCCLXXXII'); await page.waitForTimeout(100);
+  check(/= 1882/.test(await page.textContent('.cd .cd-roman-out')), 'coin-dates: MDCCCLXXXII = 1882');
+  await page.fill('.cd .cd-romn', '1882'); await page.waitForTimeout(100);
+  check(/MDCCCLXXXII/.test(await page.textContent('.cd .cd-roman-out')), 'coin-dates: 1882 in Roman numerals');
 };

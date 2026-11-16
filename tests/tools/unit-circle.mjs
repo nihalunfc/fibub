@@ -18,7 +18,7 @@ export default async ({ page, check, BASE }) => {
   check((await t('.uc-err')).includes('radians'), 'circle: bad angle message');
   await page.click(R + '.uc-unit button[data-u="deg"]');
   await page.fill(R + '.uc-deg', '800'); await page.waitForTimeout(50);
-  check((await t('.uc-err')).includes('0° to 720°'), 'circle: too big message');
+  check(await page.isHidden(R + '.uc-err') && (await t('.uc-note')).includes('800° is the same position on the circle as 440°'), `circle: 800° reduces to 440° (${await t('.uc-note')})`);
   await page.fill(R + '.uc-deg', '20'); await page.waitForTimeout(50);
   check(await page.isHidden(R + '.uc-err') && (await t('.uc-facts')).includes('0.342'), 'circle: 20° decimal values');
   // Drag the point to the left of the circle (180°).
@@ -51,4 +51,24 @@ export default async ({ page, check, BASE }) => {
   const q2 = await t('.smq-q:nth-child(2) .smq-text'); const d2 = +q2.match(/Write (\d+)°/)[1];
   await page.fill(R + '.smq-q:nth-child(2) .smq-in', `${d2}*pi/180`); await page.click(R + '.smq-q:nth-child(2) .smq-check');
   check((await t('.smq-q:nth-child(2) .smq-out')) === 'Right!', 'circle: radians answer as an expression');
+  // Solve-my-numbers additions (2026-11-16).
+  await page.click(R + '.uc-mode button[data-m="circle"]'); await page.click(R + '.uc-unit button[data-u="deg"]');
+  await page.fill(R + '.uc-deg', '150'); await page.waitForTimeout(50);
+  check((await t('.uc-ans')) === 'sin 150° = 1/2,  cos 150° = −√3/2,  tan 150° = −1/√3.', `circle: one-line answer (${await t('.uc-ans')})`);
+  await page.click(R + '.uc-pre button[data-d="-45"]'); await page.waitForTimeout(50);
+  check((await t('.uc-note')).includes('315°') && (await t('.uc-ans')).includes('sin −45° = −1/√2'), `circle: negative angle (${await t('.uc-ans')})`);
+  await page.click(R + '.uc-pre button[data-d="210"]'); await page.waitForTimeout(50);
+  await page.evaluate(() => document.querySelectorAll('.ucl details').forEach((d) => { d.open = true; }));
+  { const w = await t('.uc-wl'); check(w.includes('quadrant 3') && w.includes('Reference angle = 210° − 180° = 30°') && w.includes('So sin 210° = −1/2 ≈ −0.5.'), `circle: working for sin 210° (${w})`); }
+  await page.click(R + '.uc-wf button[data-f="tan"]');
+  check((await t('.uc-wl')).includes('So tan 210° = 1/√3'), `circle: working switches to tan (${await t('.uc-wl')})`);
+  await page.fill(R + '.uc-fv', '1/2');
+  check((await t('.uc-fans')).includes('30° (π/6 rad) and 150° (5π/6 rad)'), `circle: find sin θ = 1/2 (${await t('.uc-fans')})`);
+  await page.click(R + '.uc-ff button[data-f="cos"]'); await page.fill(R + '.uc-fv', '-0.5');
+  check((await t('.uc-fans')).includes('120° (2π/3 rad) and 240° (4π/3 rad)'), `circle: find cos θ = −0.5 (${await t('.uc-fans')})`);
+  await page.fill(R + '.uc-fv', '2');
+  check((await t('.uc-fans')).includes('No angle has cos'), 'circle: impossible value message');
+  await page.click(R + '.uc-ff button[data-f="tan"]'); await page.fill(R + '.uc-fv', '1');
+  check((await t('.uc-fans')).includes('45° (π/4 rad) and 225° (5π/4 rad)'), 'circle: find tan θ = 1');
+  check((await page.$$eval(R + '.uc-table tbody tr', (e) => e.length)) === 11, 'circle: special angle table');
 };

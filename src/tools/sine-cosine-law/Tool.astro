@@ -9,28 +9,59 @@ import '../../styles/learnquiz-d.css';
     <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Grade 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11</button></div>
     <h2>Solve a triangle</h2>
     <label>What do you know?
-      <select class="scl-case">
+      <select class="scl-case" data-k="case">
         <option value="AAS">Two angles and a side (sine law)</option>
         <option value="SAS">Two sides and the angle between them (cosine law)</option>
         <option value="SSS">All three sides (cosine law)</option>
         <option value="SSA" data-only-opt="11">Two sides and an angle not between them (ambiguous case)</option>
       </select>
     </label>
-    <div class="ax-grid" style="margin-top:10px">
-      <label><span class="scl-l1">Angle A (°)</span> <input class="scl-in" type="number" step="any" min="0" value="40" inputmode="decimal" /></label>
-      <label><span class="scl-l2">Angle B (°)</span> <input class="scl-in" type="number" step="any" min="0" value="65" inputmode="decimal" /></label>
-      <label><span class="scl-l3">Side a</span> <input class="scl-in" type="number" step="any" min="0" value="10" inputmode="decimal" /></label>
+    <div class="ax-row scl-pre" style="margin-top:10px"><span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small" data-sp="AAS,52,71,120,m">Across a river</button>
+      <button type="button" class="btn secondary small" data-sp="SAS,8,12,65,km">Two ships</button>
+      <button type="button" class="btn secondary small" data-sp="SSS,45,60,80,m">Triangular plot</button>
+      <button type="button" class="btn secondary small" data-sp="SSA,8,10,40,cm" data-only="11" hidden>Ambiguous case</button>
     </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="scl-l1">Angle A (°)</span> <input class="scl-in" data-k="v1" type="number" step="any" min="0" value="40" inputmode="decimal" /></label>
+      <label><span class="scl-l2">Angle B (°)</span> <input class="scl-in" data-k="v2" type="number" step="any" min="0" value="65" inputmode="decimal" /></label>
+      <label><span class="scl-l3">Side a</span> <input class="scl-in" data-k="v3" type="number" step="any" min="0" value="10" inputmode="decimal" /></label>
+    </div>
+    <details>
+      <summary>More options: units</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Angles are in <select class="scl-au" data-k="aunit"><option value="deg">degrees</option><option value="rad">radians</option></select></label>
+        <label>Lengths are in <select class="scl-lu" data-k="lunit"><option value="">no unit</option><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="km">km</option><option value="ft">ft</option></select></label>
+      </div>
+      <p class="ax-help">Only labels change for lengths. Angles you type are converted, and the answers are shown in the same unit.</p>
+    </details>
     <p class="ax-err scl-err" hidden></p>
     <canvas class="lrn-cv scl-cv" aria-label="The triangle, drawn to scale with its sides and angles labelled"></canvas>
     <div class="ax-row scl-pick" hidden><span class="ax-help" style="margin:0">Two triangles fit:</span><button type="button" class="btn secondary small" data-i="0" aria-pressed="true">First</button><button type="button" class="btn secondary small" data-i="1" aria-pressed="false">Second</button></div>
     <p class="ax-help scl-law"></p>
-    <dl class="ax-facts scl-facts" aria-live="polite"></dl>
+    <p class="ax-big scl-ans" aria-live="polite" data-k="answer"></p>
+    <dl class="ax-facts scl-facts"></dl>
+    <h3 style="font-size:15px;margin:14px 0 4px">The working</h3>
+    <ol class="scl-work"></ol>
+    <details>
+      <summary>More: area, perimeter and kind of triangle</summary>
+      <dl class="ax-facts scl-extra" style="margin-top:8px"></dl>
+    </details>
     <p class="ax-help" data-only="11" hidden>Grade 11 adds the ambiguous case: with two sides and an angle opposite one of them, there can be no triangle, one, or two.</p>
   </div>
   <div class="ax-card">
     <h2>Try this</h2>
     <ul><li>Choose "all three sides" and enter 3, 4 and 5. Angle C comes out as exactly 90°, so the cosine law contains Pythagoras.</li><li>Try sides 2, 3 and 6. There is no triangle: the two short sides cannot reach each other.</li><li>In Grade 11, try the ambiguous case with a = 8, b = 10 and A = 40°. Two different triangles fit; switch between them.</li></ul>
+  </div>
+  <div class="ax-card">
+    <h2>Common mistakes</h2>
+    <ul>
+      <li>Calculator in the wrong mode: set it to degrees for angles in degrees. If your answer looks tiny or odd, check DEG or RAD.</li>
+      <li>Using the sine law for two sides and the angle between them. That case needs the cosine law first.</li>
+      <li>Matching a side with the wrong angle: side a sits opposite angle A, side b opposite B, side c opposite C.</li>
+      <li>Missing the second triangle in the ambiguous case (two sides and an angle not between them): check whether 180° minus your angle also fits.</li>
+      <li>The longest side is opposite the largest angle. Use it to check your answer.</li>
+    </ul>
   </div>
   <div class="ax-card scl-quiz">
     <h2>Check yourself</h2>
@@ -40,12 +71,13 @@ import '../../styles/learnquiz-d.css';
 <style is:inline>
   .scl .scl-cv { width: 100%; margin-top: 10px; }
   .scl select { width: 100%; max-width: 100%; }
+  .scl .scl-work { padding-left: 1.3em; margin: 0; } .scl .scl-work li { margin: 0 0 6px; }
 </style>
 
 <script>
   import { mountQuiz, pick, r } from '../../lib/learn/quiz';
   import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
-  import { solveTriangle, type Case, type Tri } from '../../lib/learn/triangle';
+  import { solveTriangle, working, describe, type Case, type Tri } from '../../lib/learn/triangle';
   const root = document.querySelector('.scl') as HTMLElement;
   const sel = root.querySelector('.scl-case') as HTMLSelectElement;
   const ins = [...root.querySelectorAll<HTMLInputElement>('.scl-in')];
@@ -78,24 +110,47 @@ import '../../styles/learnquiz-d.css';
     ctx.fillStyle = pal.accent2;
     ctx.fillText('A ' + f(t.A) + '°', A[0] + 6, A[1] - 8); ctx.fillText('B ' + f(t.B) + '°', B[0] - 6, B[1] - 8); ctx.fillText('C ' + f(t.C) + '°', C[0], C[1] - 10);
   };
+  const ANG: Record<Case, number[]> = { AAS: [0, 1], SAS: [2], SSS: [], SSA: [2] };
+  const au = root.querySelector('.scl-au') as HTMLSelectElement, lu = root.querySelector('.scl-lu') as HTMLSelectElement;
+  const ansEl = root.querySelector('.scl-ans') as HTMLElement, workEl = root.querySelector('.scl-work') as HTMLElement, extra = root.querySelector('.scl-extra') as HTMLElement;
+  const unitLabel = (t: string) => (au.value === 'rad' ? t.replace('(°)', '(rad)') : t);
+  const setLabels = (kind: Case) => ['.scl-l1', '.scl-l2', '.scl-l3'].forEach((q, i) => { root.querySelector(q)!.textContent = unitLabel(LAB[kind][i]); });
   const run = () => {
-    const kind = sel.value as Case;
-    const res = solveTriangle(kind, +ins[0].value, +ins[1].value, +ins[2].value);
+    const kind = sel.value as Case, rad = au.value === 'rad', U = lu.value ? ' ' + lu.value : '';
+    const typed = ins.map((i) => i.value.trim());
+    const v = typed.map((t, i) => (rad && ANG[kind].includes(i) ? (+t * 180) / Math.PI : +t));
+    const blank = typed.some((t) => t === '');
+    const res = blank ? { tris: [] as Tri[], law: '', error: 'Type all three numbers to get an answer.' } : solveTriangle(kind, v[0], v[1], v[2]);
     tris = res.tris; if (which >= tris.length) which = 0;
     err.hidden = !res.error; err.textContent = res.error ?? '';
     lawEl.textContent = res.law;
     pickRow.hidden = tris.length < 2;
     pickRow.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.i! === which)));
     const t = tris[which];
-    facts.innerHTML = t ? [['Side a', f(t.a)], ['Side b', f(t.b)], ['Side c', f(t.c)], ['Angle A', f(t.A) + '°'], ['Angle B', f(t.B) + '°'], ['Angle C', f(t.C) + '°']].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('') : '';
+    const ang = (x: number) => (rad ? f((x * Math.PI) / 180) + ' rad' : f(x) + '°');
+    facts.innerHTML = t ? [['Side a', f(t.a) + U], ['Side b', f(t.b) + U], ['Side c', f(t.c) + U], ['Angle A', ang(t.A)], ['Angle B', ang(t.B)], ['Angle C', ang(t.C)]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join('') : '';
+    ansEl.textContent = t ? `${tris.length > 1 ? `Triangle ${which + 1} of 2: ` : ''}a = ${f(t.a)}, b = ${f(t.b)}, c = ${f(t.c)}${U}; A = ${ang(t.A)}, B = ${ang(t.B)}, C = ${ang(t.C)}.` : '';
+    workEl.replaceChildren(...(t ? working(kind, v[0], v[1], v[2], t, which) : []).map((x) => Object.assign(document.createElement('li'), { textContent: x })));
+    if (t) { const d = describe(t); extra.innerHTML = [['Area (½ bc sin A)', f(d.area) + (U ? U + '²' : '')], ['Perimeter', f(d.perimeter) + U], ['Kind', `${d.type}, ${d.sides}`]].map(([k, x]) => `<div><dt>${k}</dt><dd>${x}</dd></div>`).join(''); } else extra.innerHTML = '';
     cv.hidden = !t; draw();
   };
   const setCase = (reset: boolean) => {
     const kind = sel.value as Case;
-    ['.scl-l1', '.scl-l2', '.scl-l3'].forEach((q, i) => { root.querySelector(q)!.textContent = LAB[kind][i]; if (reset) ins[i].value = String(DEF[kind][i]); });
+    setLabels(kind);
+    if (reset) ins.forEach((x, i) => { x.value = String(DEF[kind][i]); });
     which = 0; run();
   };
   sel.addEventListener('change', () => setCase(true));
+  au.addEventListener('change', () => {
+    const kind = sel.value as Case, toRad = au.value === 'rad';
+    ANG[kind].forEach((i) => { const x = +ins[i].value; if (ins[i].value.trim() !== '' && Number.isFinite(x)) ins[i].value = String(+(toRad ? (x * Math.PI) / 180 : (x * 180) / Math.PI).toFixed(6)); });
+    setLabels(kind); which = 0; run();
+  });
+  lu.addEventListener('change', run);
+  root.querySelectorAll<HTMLButtonElement>('.scl-pre button').forEach((b) => b.addEventListener('click', () => {
+    const [k, a, b2, c, u] = b.dataset.sp!.split(','); au.value = 'deg'; lu.value = u; sel.value = k; setLabels(k as Case);
+    [a, b2, c].forEach((x, i) => { ins[i].value = x; }); which = 0; run();
+  }));
   ins.forEach((i) => i.addEventListener('input', () => { which = 0; run(); }));
   pickRow.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { which = +b.dataset.i!; run(); }));
   addEventListener('resize', draw);

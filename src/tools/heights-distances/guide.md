@@ -11,7 +11,7 @@ ads: false
 order: 1154
 icon: mountain
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [trig-ratios, pythagoras-proofs, tree-height-basal-area]
 sources:
   - "Standard right-triangle trigonometry (tan θ = opposite / adjacent) applied to heights and distances. Problems and pictures written for fibub."
@@ -63,6 +63,16 @@ Switch to **Two, same side**. The nearer person sees the top at 60°, the farthe
 - The angle of depression is measured **down from the level line**, not from the vertical.
 - In two-observer problems, write two equations for the same h and solve them together.
 
+## Examples, units and the new building problem
+
+The first card now has a row of **Examples** (a tower 40 m away at 30°, finding the distance to a 24 m tower, finding an angle, a 1.6 m tall observer, two people on the same side, and a tower on a building). Each one fills in the mode and the numbers so you can compare with your own working.
+
+**Tower on a building** is the extra problem type many exam papers use. You stand d away on level ground; the top of the tower is seen at θ and the top of the building at φ. The building is d × tan φ, the tower and building together are d × tan θ, and the tower alone is the difference. The picture shows both sight lines.
+
+The **Length unit** select (metres, feet, kilometres, centimetres) changes the labels in the answer, the working and the picture; the sums are the same in every unit, so keep all your lengths in one unit. The answer line stays at the top of the "Solve it" card and is read out by screen readers when it changes.
+
+The **Common mistakes** list covers measuring the angle of depression from the vertical, leaving out the eye height, picking sin or cos instead of tan, and mixing units. If the eye height is above the tower, or the angles are impossible for two observers, you get a plain message instead of a number.
+
 ## Check yourself
 
 Four fresh questions each time, using the special angles 30°, 45° and 60°. Use √3 ≈ 1.732. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -72,3 +82,5 @@ Four fresh questions each time, using the special angles 30°, 45° and 60°. Us
 **Why does the picture change scale?** It zooms so the whole scene always fits your screen; while you drag, it stays still.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own problems and pictures. fibub is not part of NCERT.
+
+**How do I find the height of a tower from the angle of elevation?** Height = distance × tan θ (plus your eye height), so a tower seen at 30° from 40 m away is 40 × tan 30° ≈ 23.09 m tall.

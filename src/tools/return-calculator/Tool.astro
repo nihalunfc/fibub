@@ -15,6 +15,12 @@
       <label>One line per cash flow: date, amount. Money you put in is negative; money you take out, and the value today, is positive.
         <textarea data-k="flows" spellcheck="false"></textarea></label>
     </div>
+    <details class="rc-more rc-m-cagr2"><summary>More options</summary>
+      <div class="rc-grid" style="margin-top:10px">
+        <label>Yearly return you are aiming for (%) <input data-k="aim" inputmode="decimal" placeholder="e.g. 8" /></label>
+        <label>Compare with another: end value <input data-k="end2" inputmode="decimal" placeholder="same start and years" /></label>
+      </div>
+    </details>
     <p class="note bad rc-err" role="alert" hidden></p>
   </section>
   <section class="rc-res" aria-live="polite">
@@ -25,6 +31,7 @@
       <div><span>Gain or loss</span><b class="rc-s-g"></b></div>
     </div>
     <p class="rc-fine rc-note"></p>
+    <p class="rc-fine rc-extra" hidden></p>
   </section>
   <p class="rc-fine">Annualised means the steady yearly rate that would give the same result with compounding. Simple divides the total return by the years, which ignores compounding. Past results do not predict future ones. Not financial or tax advice. Nothing you type leaves this page.</p>
 </div>
@@ -59,7 +66,7 @@
 </style>
 
 <script>
-  import { cagr, xirr, parseFlows } from '../../lib/money/investing';
+  import { cagr, xirr, parseFlows, endForReturn, yearsToReach } from '../../lib/money/investing';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.rc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -70,7 +77,7 @@
   const pct = (v: number) => (Number.isFinite(v) ? (Math.round(v * 10000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 }) + '%' : 'n/a');
   function run() {
     const mode = f('mode').value, $ = (n: number) => money(n, f('cur').value, Math.abs(n) < 10000 ? 2 : 0);
-    q('.rc-m-cagr').hidden = mode !== 'cagr'; q('.rc-m-xirr').hidden = mode !== 'xirr';
+    q('.rc-m-cagr').hidden = mode !== 'cagr'; q('.rc-m-xirr').hidden = mode !== 'xirr'; q('.rc-m-cagr2').hidden = mode !== 'cagr';
     let bad = '', ann = NaN, total = NaN, years = 0, gain = NaN, note = '';
     if (mode === 'cagr') {
       const s = num(f('start').value), e = num(f('end').value); years = num(f('years').value);
@@ -94,6 +101,17 @@
     q('.rc-s-s').textContent = years > 0 ? pct(total / years) : 'n/a';
     q('.rc-s-g').textContent = mode === 'cagr' ? $(gain) : money(gain, f('cur').value, 2);
     q('.rc-note').textContent = note;
+    const ex = q('.rc-extra'), parts: string[] = [];
+    if (mode === 'cagr') {
+      const s = num(f('start').value), e = num(f('end').value), aim = f('aim').value.trim() === '' ? NaN : num(f('aim').value), e2 = num(f('end2').value);
+      if (Number.isFinite(aim)) {
+        const need = endForReturn(s, aim, years), yrs = yearsToReach(s, e, aim);
+        if (Number.isFinite(need)) parts.push(`To earn ${aim}% a year for ${years} years, ${$(s)} must grow to ${$(need)}. ${e >= need ? 'Yours beats that.' : 'Yours falls short by ' + $(need - e) + '.'}`);
+        if (Number.isFinite(yrs) && yrs > 0) parts.push(`At ${aim}% a year it would take about ${Math.round(yrs * 10) / 10} years to get from ${$(s)} to ${$(e)}.`);
+      }
+      if (e2 > 0) { const a2 = cagr(s, e2, years), diff = ann - a2; parts.push(`Compared: your first result returns ${pct(ann)} a year and the other ${pct(a2)} a year, so the first is ${Math.abs(Math.round(diff * 10000) / 100)} points ${diff >= 0 ? 'better' : 'worse'}, a gap of ${$(Math.abs(e - e2))} at the end.`); }
+    }
+    ex.hidden = !parts.length; ex.textContent = parts.join(' ');
   }
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();

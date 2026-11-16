@@ -3,10 +3,17 @@
 // product Q with Ksp, see whether a solid forms and how much; then the molar solubility in water and with a
 // common ion. Class 11 chemistry, equilibrium (ionic equilibrium).
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 import { SALTS } from '../../lib/sci/ksp-precipitation';
 ---
 <div class="ax kpx">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem. Find out whether a solid forms when two solutions mix, the solubility from Ksp (with or without a common ion), Ksp from a measured solubility, or the ion level that starts a solid. The working is shown like an exam answer. For any other equilibrium constant use the <a href="/science/equilibrium-solver/">equilibrium solver</a>.</p>
+    <div class="kp-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg kp-mode" role="group" aria-label="What to do">
       <button type="button" data-m="mix" aria-pressed="true">Mix solutions</button><button type="button" data-m="sol" aria-pressed="false">Solubility</button>
@@ -56,6 +63,8 @@ import { SALTS } from '../../lib/sci/ksp-precipitation';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { KSP_SPEC } from '../../lib/sci/solve-ksp';
   import { SALTS, mix, ionicProduct, precipitate, solubility, type Salt } from '../../lib/sci/ksp-precipitation';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { fmt } from '../../lib/sm-graph';
@@ -168,6 +177,7 @@ import { SALTS } from '../../lib/sci/ksp-precipitation';
   root.querySelectorAll('input, .kp-ci').forEach((e) => e.addEventListener('input', run));
   q('.kp-ci').addEventListener('change', run);
   root.querySelectorAll<HTMLButtonElement>('.kp-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.kp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  mountSolver(q('.kp-solve'), KSP_SPEC);
   document.addEventListener('fibub:theme', run);
   loadSalt();
 

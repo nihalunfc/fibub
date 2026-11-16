@@ -23,6 +23,10 @@ flow:
   - { icon: check, label: "Compare" }
 ---
 
+## More options
+
+"More options" puts the three choices side by side at the last benefit year: keep paying, surrender and invest, or make the policy paid-up (if you typed a paid-up amount). It repeats the comparison at 3, 5, 7, 9 and 11% a year, plus your own rate, and names the best choice at each, so you can see how sure the answer is. Where the best choice changes is close to the "return of keeping" figure. Surrender charges and tax are not counted. General information, not financial or insurance advice; check the official source and your policy papers.
+
 ## What it does
 
 If your insurer offers a surrender value, you can take it now and stop the policy, or keep paying and wait for the later benefits. This tool treats the surrender value as the money you give up by keeping the policy, and works out the yearly return you earn from today by waiting (an IRR). It then compares that with surrendering and investing the surrender value, plus the premiums you stop paying, at a rate you type.

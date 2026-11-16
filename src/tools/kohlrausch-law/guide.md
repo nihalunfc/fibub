@@ -11,7 +11,7 @@ ads: false
 order: 1433
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [galvanic-cell, nernst-calculator, ph-scale-explorer, electroplating-calculator]
 sources:
   - "Kohlrausch's law of independent migration, Λm = Λ°m − A√c for strong electrolytes, Ostwald's dilution law K = cα²/(1 − α) and κ = Λm c / 1000 are standard physical chemistry."
@@ -52,6 +52,18 @@ Ethanoic acid at 0.01 mol/L: from 1.8 × 10⁻⁵ = 0.01 α² / (1 − α), α =
 
 Kohlrausch: Λ°(HCl) + Λ°(CH₃COONa) − Λ°(NaCl) = 426 + 91 − 126 = 391, the same as H⁺ + CH₃COO⁻.
 
+## Solve your own numbers
+
+The first card works the numbers from your own problem, with the working shown. Choose what to find:
+
+- **Molar conductivity Λm** = 1000 κ ÷ c, or **conductivity κ** = Λm c ÷ 1000.
+- **κ from a cell constant and a measured resistance**: κ = G* ÷ R.
+- **Degree of dissociation α** = Λm ÷ Λ°m for a weak electrolyte, and, if you type the concentration, **Ka** from Ostwald's law c α² ÷ (1 − α).
+- **Λ°m from ion values**, with the numbers of each ion (1 Mg²⁺ and 2 Cl⁻ for MgCl₂), by Kohlrausch's law.
+- **Λ° of a weak acid from three strong electrolytes**: Λ°(HA) = Λ°(HCl) + Λ°(NaA) − Λ°(NaCl).
+
+Units can be S cm⁻¹ or S m⁻¹, mol/L or mol/m³, S cm² mol⁻¹ or S m² mol⁻¹, and the card shows each conversion (1 S m² mol⁻¹ = 10⁴ S cm² mol⁻¹). A concentration of zero, or a Λm bigger than Λ°m, gives a friendly message.
+
 ## Tips
 
 - H⁺ and OH⁻ have unusually high values because they hop along chains of water molecules instead of pushing through them.
@@ -65,3 +77,5 @@ Kohlrausch: Λ°(HCl) + Λ°(CH₃COONa) − Λ°(NaCl) = 426 + 91 − 126 = 391
 **Is anything saved?** No. Everything runs in your browser and nothing is stored or sent.
 
 **Is this an official textbook tool?** No. It is an independent practice page that follows the same school topics.
+
+**How do I find molar conductivity from conductivity?** Use Λm = 1000 κ ÷ c, with κ in S cm⁻¹ and c in mol/L, giving S cm² mol⁻¹. Type your own κ and c into the first card to see the working.

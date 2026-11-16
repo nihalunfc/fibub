@@ -42,6 +42,10 @@ It estimates a saving; it cannot confirm that you qualify. To see which plan sui
 - **Employer contribution**: uses up part of your HSA limit.
 - **Paycheque or on your own**: paycheque contributions also skip 7.65% FICA.
 
+## Room left and limits at a glance
+
+Under the results, a line shows how much room is left under each limit and what using it would save at your rate (India: for self and parents separately; US: for the year). Under "More options", a small table lists the limits by age: India 80D Rs 25,000 or Rs 50,000 for seniors per group, and the 2026 US HSA limits. The figures and dates are in the sources above: check the official source before you file.
+
 ## Worked example
 
 India, old regime, 30% slab: you pay 30,000 for your own cover (under 60, limit 25,000, so 25,000 counts) and 40,000 for parents who are seniors (limit 50,000, so 40,000 counts). Deduction 65,000; tax saved 65,000 x 31.2% = 20,280. US: self-only, under 55, 4,400 by paycheque, 22% federal and 5% state: 4,400 x 34.65% = 1,524.60.

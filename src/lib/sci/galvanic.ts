@@ -31,3 +31,14 @@ export function build(aId: string, bId: string, cA: number, cB: number, T = 298.
 }
 
 export { cellNotation, halfText, F, R };
+
+/** Cell figures from E° values typed by the student: E°cell = E°cathode − E°anode, ΔG° = −nFE° (kJ/mol), log K at 25 °C,
+ *  and the Nernst voltage when the reaction quotient Q is given. */
+export function ownCell(Ecathode: number, Eanode: number, n: number, Q = 1) {
+  if (![Ecathode, Eanode, n, Q].every(Number.isFinite)) throw new Error('Type a number in every box.');
+  if (!(n >= 1) || !Number.isInteger(n)) throw new Error('n is the number of electrons: a whole number, 1 or more.');
+  if (!(Q > 0)) throw new Error('Q must be above zero.');
+  const T = 298.15, k = (R * T) / F, E0 = Ecathode - Eanode, dG0 = (-n * F * E0) / 1000, logK = (n * E0) / (k * Math.LN10);
+  const E = E0 - (k / n) * Math.log(Q);
+  return { E0, dG0, logK, K: 10 ** logK, E, slope: k * Math.LN10, spontaneous: E0 > 0 };
+}

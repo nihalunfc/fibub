@@ -78,3 +78,21 @@ export function limiting(r: Reaction, molA: number, molB: number) {
   const lim: 'a' | 'b' | 'both' = Math.abs(extentA - extentB) <= 1e-12 * Math.max(extentA, extentB, 1) ? 'both' : extentA < extentB ? 'a' : 'b';
   return { extent, lim, leftA: molA - extent * r.a[0], leftB: molB - extent * r.b[0], products: r.p.map(([c, f]) => ({ f, mol: extent * c })) };
 }
+
+// ---- Added 2026-11-16: percent composition, molarity, limiting reactant from masses ----------------------------------
+
+/** Mass percent of each element in a compound, from the rows that molar() returns. */
+export function percentComposition(rows: { symbol: string; subtotal: number }[], M: number) {
+  if (!(M > 0)) throw new Error('Molar mass must be above zero.');
+  return rows.map((r) => ({ symbol: r.symbol, pct: (100 * r.subtotal) / M }));
+}
+
+/** Molarity: any two of moles, litres and mol/L give the third. Pass NaN for the unknown. */
+export function molarity(mol: number, litres: number, conc: number): { mol: number; litres: number; conc: number; solved: 'mol' | 'litres' | 'conc' } {
+  const known = [mol, litres, conc].filter((x) => Number.isFinite(x)).length;
+  if (known !== 2) throw new Error('Give exactly two of the three: moles, volume, concentration.');
+  for (const [name, x] of [['moles', mol], ['volume', litres], ['concentration', conc]] as const) if (Number.isFinite(x) && !(x > 0)) throw new Error(`The ${name} must be above zero.`);
+  if (!Number.isFinite(conc)) return { mol, litres, conc: mol / litres, solved: 'conc' };
+  if (!Number.isFinite(mol)) return { mol: conc * litres, litres, conc, solved: 'mol' };
+  return { mol, litres: mol / conc, conc, solved: 'litres' };
+}

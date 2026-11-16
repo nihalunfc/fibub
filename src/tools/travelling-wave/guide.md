@@ -11,7 +11,7 @@ ads: false
 order: 1063
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [shm-circle, standing-waves, doppler-beats, sound-wave-visualiser]
 sources:
   - "Travelling waves y = A sin(kx ∓ ωt), k = 2π/λ, ω = 2π/T, v = ω/k = λ/T, the principle of superposition, standing waves 2A sin kx cos ωt with nodes λ/2 apart, interference of two waves going the same way, and beats |f₁ − f₂|: standard physics."
@@ -37,6 +37,10 @@ It follows the school topic of waves: Class 11 Physics, Waves (transverse and lo
 4. **Beats**: set two tones a few hertz apart. The picture shows one second of sound at one place, with the loud–soft envelope. Press **Play the beats** to hear them (nothing plays until you press).
 5. **Pause** stops the picture so you can study one moment.
 
+## Solve my numbers
+
+Have a problem from your book? The **Solve my numbers** box at the top takes your own numbers and shows the answer in one sentence, then the working the way an exam marks it (formula, substitution with units, result). Choose what you want to find: the wave speed from f and λ (v = f λ) or from the period (v = λ/T), the wavelength or frequency, the full wave equation y = A sin(kx ∓ ωt) with k, ω and the speed filled in, the displacement and velocity of one particle at a chosen x and t, the beat frequency of two tones, the harmonics of a string fixed at both ends (with nodes and antinodes counted) and the wave speed on a stretched string, v = √(F/μ). Boxes take common units (cm, m, km/h, kHz, MHz, g/m); a unit box converts for you and the converted line is shown. Tap a worked example to fill the numbers, change them, and the answer follows. The page tells you the common slip for each problem, such as using 1/λ instead of 2π/λ for k, or calculator in degrees instead of radians. Zero, negative or impossible entries (a harmonic that is not a whole number) give a plain message, never NaN.
+
 ## Worked example
 
 With the page as it opens: A = 5 cm, λ = 2 m, T = 1 s, moving right. The wave number is k = 2π / 2 = 3.142 rad/m and the angular frequency is ω = 2π / 1 = 6.283 rad/s, so y(x, t) = 5 sin(3.142 x − 6.283 t) cm. The wave speed is v = ω / k = 2 m/s, but the orange particle never moves sideways: its top speed up and down is Aω = 31.42 cm/s.
@@ -60,3 +64,5 @@ Five questions with fresh numbers: the speed and wavelength from an equation y =
 **What does the phase slider do?** It shifts the second wave along by part of a wavelength. Going the same way, a phase of 180° makes equal waves cancel; going opposite ways it slides the nodes along.
 
 **Is this from NCERT?** No. It is an independent study aid that follows the same school topics, with its own pictures and numbers.
+
+**What is the wave speed if I know the frequency and wavelength?** Multiply them: v = f λ, for example 256 Hz × 1.3 m = 333 m/s; type your own numbers into Solve my numbers for the working.

@@ -55,4 +55,21 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.nl .sq-q', (e) => e.dataset.ans);
   await page.fill('.nl .sq-q .sq-in', ans); await page.press('.nl .sq-q .sq-in', 'Enter');
   check((await page.textContent('.nl .sq-q .sq-res')) === 'Right!', 'newtons-laws: quiz answer with Enter');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/newtons-laws/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Box on carpet'); check((await psAns()).includes('It speeds up at 1.3 m/s²'), 'newtons-laws: example Box on carpet: It speeds up at 1.3 m/s²');
+  await psPre('Cricket catch'); check((await psAns()).includes('The average force is 40 N'), 'newtons-laws: example Cricket catch: The average force is 40 N');
+  await psPre('Car stopping'); check((await psAns()).includes('The average force is 4000 N'), 'newtons-laws: example Car stopping: The average force is 4000 N');
+  await psPre('Gun recoil'); check((await psAns()).includes('The recoil speed is 3.75 m/s'), 'newtons-laws: example Gun recoil: The recoil speed is 3.75 m/s');
+  await psSet('a', {'a-F': '12', 'a-m': '4'}); check((await psAns()).includes('The acceleration is 3 m/s²'), 'newtons-laws: F The acceleration is 3 m/s²');
+  await psSet('W', {'W-m': '60', 'W-g': '1.6'}); check((await psAns()).includes('The weight is 96 N'), 'newtons-laws: W The weight is 96 N');
+  await psSet('p', {'p-m': '1200', 'p-v': '54'}); check((await psAns()).includes('The momentum is 18000 kg m/s'), 'newtons-laws: p The momentum is 18000 kg m/s');
+  await psSet('m', {'m-F': '-5', 'm-a': '2'}); check((await psAns()).includes('above 0 N'), 'newtons-laws: m above 0 N');
+  await psSet('a', {'a-F': '12', 'a-m': '0'}); check((await psAns()).includes('must be more than 0'), 'newtons-laws: a must be more than 0');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'newtons-laws: working shown, no NaN');
 };

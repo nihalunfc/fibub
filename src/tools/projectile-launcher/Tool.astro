@@ -13,12 +13,21 @@ import '../../styles/astro.css';
       </div>
     </div>
     <canvas class="pl-c" aria-label="The path of the ball"></canvas>
-    <p class="pl-state"><span class="ax-pill pl-pill"></span></p>
+    <p class="pl-state" aria-live="polite"><span class="ax-pill pl-pill" data-k="answer"></span></p>
     <div class="ax-row"><button type="button" class="btn small pl-go">Launch</button><span class="ax-help pl-key"></span></div>
     <div class="pl-ctl">
-      <label>Launch speed v: <b class="pl-vv"></b><input class="pl-v" type="range" min="5" max="40" step="1" value="20" /></label>
-      <label>Launch angle θ: <b class="pl-av"></b><input class="pl-a" type="range" min="0" max="90" step="1" value="30" /></label>
-      <label>Launch height h: <b class="pl-hv"></b><input class="pl-h" type="range" min="0" max="30" step="1" value="0" /></label>
+      <div class="pl-pre" role="group" aria-label="Worked examples"></div>
+      <p class="ax-help pl-prenote"></p>
+      <label>Launch speed v: <b class="pl-vv"></b>
+        <span class="pl-fr"><input class="pl-vn" data-k="v" type="text" inputmode="decimal" value="20" aria-label="Launch speed" /><select class="pl-vu" data-k="v-unit" aria-label="Speed unit"><option value="1">m/s</option><option value="0.2777777777777778">km/h</option></select></span>
+        <input class="pl-v" type="range" min="5" max="40" step="1" value="20" aria-label="Launch speed slider (m/s)" /></label>
+      <label>Launch angle θ: <b class="pl-av"></b>
+        <span class="pl-fr"><input class="pl-an" data-k="a" type="text" inputmode="decimal" value="30" aria-label="Launch angle" /><select class="pl-au" data-k="a-unit" aria-label="Angle unit"><option value="1">degrees</option><option value="57.29577951308232">radians</option></select></span>
+        <input class="pl-a" type="range" min="0" max="90" step="1" value="30" aria-label="Launch angle slider (degrees)" /></label>
+      <label>Launch height h: <b class="pl-hv"></b>
+        <span class="pl-fr"><input class="pl-hn" data-k="h" type="text" inputmode="decimal" value="0" aria-label="Launch height" /><select class="pl-hu" data-k="h-unit" aria-label="Height unit"><option value="1">m</option><option value="0.01">cm</option><option value="0.3048">ft</option></select></span>
+        <input class="pl-h" type="range" min="0" max="30" step="1" value="0" aria-label="Launch height slider (metres)" /></label>
+      <p class="ax-err pl-err" hidden></p>
       <label class="pl-ballrow" hidden>Ball <select class="pl-ball">
         <option value="cricket" selected>Cricket ball (160 g, 7.2 cm)</option>
         <option value="foot">Football (430 g, 22 cm)</option>
@@ -26,6 +35,13 @@ import '../../styles/astro.css';
         <option value="shot">Shot put (4 kg, 11 cm)</option>
       </select></label>
       <p class="ax-help pl-help"></p>
+      <details class="pl-find">
+        <summary>More options: find the launch angle for a target range</summary>
+        <p class="ax-help">With the speed and height above and no air, which angle(s) land the ball at a given distance?</p>
+        <label>Target range <span class="pl-fr"><input class="pl-tr" data-k="target" type="text" inputmode="decimal" value="30" aria-label="Target range in metres" /><span class="pl-m">m</span></span></label>
+        <p class="pl-fa" data-k="answer-angle" aria-live="polite"></p>
+        <div class="pl-fbtn"></div>
+      </details>
     </div>
   </div>
 
@@ -33,6 +49,7 @@ import '../../styles/astro.css';
     <h2>The flight</h2>
     <dl class="ax-facts pl-facts"></dl>
     <div class="pl-eq"></div>
+    <p class="ax-help">Common mistakes: using km/h where the formulas need m/s (divide by 3.6); having a calculator in radian mode for a degree angle; using sin θ for the sideways part (it is cos θ) or cos θ for the upward part (it is sin θ); forgetting the launch height.</p>
   </div>
 
   <div class="ax-card">
@@ -52,9 +69,10 @@ import '../../styles/astro.css';
 </div>
 
 <script>
-  import { vacuum, withDrag, dragK, bestAngle, questions, type Flight } from '../../lib/sci/projectile-launcher';
+  import { vacuum, withDrag, dragK, bestAngle, questions, anglesForRange, type Flight } from '../../lib/sci/projectile-launcher';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { setupCanvas, text, f, fact, para, seg, keepDrawn } from '../../lib/school-n';
+  import { num } from '../../lib/sci/num';
 
   const root = document.querySelector<HTMLElement>('.pl')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -64,7 +82,21 @@ import '../../styles/astro.css';
   const H = 280;
   let level = '11', anim = -1, raf = 0;
 
-  const params = () => ({ v: val('.pl-v'), a: val('.pl-a'), h: val('.pl-h') });
+  const unitOf = (c: string) => Number(q<HTMLSelectElement>(c).value);
+  let bad = '';
+  // The typed boxes (with their units) are the truth; the sliders follow them in m/s, degrees and metres.
+  const params = () => {
+    const v = num(q<HTMLInputElement>('.pl-vn').value) * unitOf('.pl-vu'), a = num(q<HTMLInputElement>('.pl-an').value) * unitOf('.pl-au'), h = num(q<HTMLInputElement>('.pl-hn').value) * unitOf('.pl-hu');
+    bad = !(v > 0) ? 'Give a launch speed above zero.' : v > 150 ? 'Speeds above 150 m/s (540 km/h) are not drawn here.' : !(a >= 0 && a <= 90) ? 'Give a launch angle from 0° to 90° (above the horizontal).' : !(h >= 0) ? 'Give a launch height of zero or more.' : h > 500 ? 'Heights above 500 m are not drawn here.' : '';
+    const r6 = (x: number) => Math.round(x * 1e6) / 1e6;
+    return bad ? { v: val('.pl-v'), a: val('.pl-a'), h: val('.pl-h') } : { v: r6(v), a: r6(a), h: r6(h) };
+  };
+  const roundTo = (x: number, d = 3) => String(Math.round(x * 10 ** d) / 10 ** d);
+  const typedFromSlider = () => {
+    q<HTMLInputElement>('.pl-vn').value = roundTo(val('.pl-v') / unitOf('.pl-vu')); q<HTMLInputElement>('.pl-an').value = roundTo(val('.pl-a') / unitOf('.pl-au'));
+    q<HTMLInputElement>('.pl-hn').value = roundTo(val('.pl-h') / unitOf('.pl-hu'));
+  };
+  const sliderFromTyped = () => { const p = params(); if (bad) return; q<HTMLInputElement>('.pl-v').value = String(p.v); q<HTMLInputElement>('.pl-a').value = String(p.a); q<HTMLInputElement>('.pl-h').value = String(p.h); };
   const kNow = () => { const b = BALLS[q<HTMLSelectElement>('.pl-ball').value]; return level === 'air' ? dragK(b[0], b[1], b[2]) : 0; };
 
   function scene(main: Flight, other: Flight | null, t: number) {
@@ -100,17 +132,20 @@ import '../../styles/astro.css';
   }
 
   function draw() {
-    const p = params(), k = kNow(), main = withDrag(p.v, p.a, p.h, k);
+    const p = params(); const errEl = q('.pl-err');
+    if (bad) { errEl.textContent = bad; errEl.hidden = false; q('.pl-pill').textContent = bad; q('.pl-pill').className = 'ax-pill pl-pill'; return; }
+    errEl.hidden = true;
+    const k = kNow(), main = withDrag(p.v, p.a, p.h, k);
     const comp = level === '11' ? (p.h === 0 && p.a !== 45 && p.a > 0 && p.a < 90 ? vacuum(p.v, 90 - p.a, 0) : null) : vacuum(p.v, p.a, p.h);
     q('.pl-ballrow').hidden = level !== 'air';
-    q('.pl-vv').textContent = `${p.v} m/s`; q('.pl-av').textContent = `${p.a}°`; q('.pl-hv').textContent = `${p.h} m`;
+    q('.pl-vv').textContent = `${f(p.v, 2)} m/s`; q('.pl-av').textContent = `${f(p.a, 2)}°`; q('.pl-hv').textContent = `${f(p.h, 2)} m`;
     q('.pl-key').textContent = level === '11' ? (comp ? `Dashed: the path at ${90 - p.a}°, which lands at the same place.` : '') : 'Dashed: the same throw with no air.';
     const b = BALLS[q<HTMLSelectElement>('.pl-ball').value];
     q('.pl-help').textContent = level === '11' ? 'No air: only gravity acts, g = 9.8 m/s² straight down.' : `Air pushes back on the ${b[3]} with a force that grows as speed squared. Mass, size and drag coefficient (${b[2]}) are rounded teaching values; air density 1.2 kg/m³.`;
     scene(main, comp, anim);
     const vx = p.v * Math.cos((p.a * Math.PI) / 180), vy = p.v * Math.sin((p.a * Math.PI) / 180);
     const best = bestAngle(p.v, p.h, k);
-    q('.pl-pill').textContent = `Lands ${f(main.range, 1)} m away after ${f(main.tFlight, 2)} s`;
+    q('.pl-pill').textContent = `Lands ${f(main.range, 1)} m away after ${f(main.tFlight, 2)} s, highest point ${f(main.hmax, 1)} m`;
     q('.pl-pill').className = 'ax-pill good pl-pill';
     const facts = [
       fact('Range', `${f(main.range, 2)} m`, 'how far it lands'),
@@ -122,7 +157,12 @@ import '../../styles/astro.css';
     ];
     if (level === 'air') { const vac = vacuum(p.v, p.a, p.h); facts.push(fact('Range with no air', `${f(vac.range, 2)} m`, `air costs ${f(vac.range - main.range, 2)} m`)); }
     q('.pl-facts').replaceChildren(...facts);
-    const eq: HTMLElement[] = [para([['Split the launch: '], `horizontal ux = v cos θ = ${p.v} × cos ${p.a}° = ${f(vx, 2)} m/s; vertical uy = v sin θ = ${f(vy, 2)} m/s.`])];
+    const notes: string[] = [];
+    if (unitOf('.pl-vu') !== 1) notes.push(`v = ${q<HTMLInputElement>('.pl-vn').value} km/h = ${f(p.v, 3)} m/s`);
+    if (unitOf('.pl-au') !== 1) notes.push(`θ = ${q<HTMLInputElement>('.pl-an').value} rad = ${f(p.a, 2)}°`);
+    if (unitOf('.pl-hu') !== 1) notes.push(`h = ${q<HTMLInputElement>('.pl-hn').value} ${unitOf('.pl-hu') === 0.01 ? 'cm' : 'ft'} = ${f(p.h, 3)} m`);
+    const eq: HTMLElement[] = notes.length ? [para([['Units: '], `changed to m, m/s and degrees first: ${notes.join('; ')}.`])] : [];
+    eq.push(para([['Split the launch: '], `horizontal ux = v cos θ = ${p.v} × cos ${p.a}° = ${f(vx, 2)} m/s; vertical uy = v sin θ = ${f(vy, 2)} m/s.`]));
     if (level === '11') {
       if (p.h === 0) {
         eq.push(para([['Time of flight: '], `T = 2uy ÷ g = 2 × ${f(vy, 2)} ÷ 9.8 = ${f(main.tFlight, 2)} s.`]));
@@ -140,12 +180,47 @@ import '../../styles/astro.css';
 
   q('.pl-go').addEventListener('click', () => {
     cancelAnimationFrame(raf);
-    const p = params(), fl = withDrag(p.v, p.a, p.h, kNow()), n = fl.pts.length, dur = Math.max(0.6, Math.min(4, fl.tFlight)) * 1000, t0 = performance.now();
+    const p = params(); if (bad) return; const fl = withDrag(p.v, p.a, p.h, kNow()), n = fl.pts.length, dur = Math.max(0.6, Math.min(4, fl.tFlight)) * 1000, t0 = performance.now();
     const tick = (now: number) => { const fr = Math.min(1, (now - t0) / dur); anim = Math.round(fr * (n - 1)); if (fr >= 1) { anim = -1; draw(); return; } draw(); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick);
   });
   seg(q('.pl-level'), (v) => { level = v; draw(); });
-  root.querySelectorAll('.pl-ctl input, .pl-ctl select').forEach((i) => { i.addEventListener('input', () => { cancelAnimationFrame(raf); anim = -1; draw(); }); });
+  const stop = () => { cancelAnimationFrame(raf); anim = -1; };
+  root.querySelectorAll('.pl-ctl input[type=range]').forEach((i) => i.addEventListener('input', () => { stop(); typedFromSlider(); draw(); }));
+  root.querySelectorAll('.pl-ctl input[type=text], .pl-ctl .pl-fr select').forEach((i) => { i.addEventListener('input', () => { stop(); sliderFromTyped(); draw(); }); i.addEventListener('change', () => { stop(); sliderFromTyped(); draw(); }); });
+  root.querySelectorAll('.pl-ball').forEach((i) => i.addEventListener('input', () => { stop(); draw(); }));
+  // worked examples
+  const PRE: { name: string; v: string; vu?: string; a: string; h: string; note: string }[] = [
+    { name: 'Kick from the ground', v: '20', a: '30', h: '0', note: 'A ball is kicked at 20 m/s, 30° above the ground.' },
+    { name: 'Off a cliff', v: '15', a: '0', h: '20', note: 'A stone is thrown sideways at 15 m/s from a 20 m cliff.' },
+    { name: 'Cricket throw', v: '72', vu: '0.2777777777777778', a: '45', h: '1.8', note: 'A fielder throws at 72 km/h (20 m/s), 45°, releasing 1.8 m above the ground.' },
+    { name: 'Basketball shot', v: '7.5', a: '50', h: '2', note: 'A shot is released at 7.5 m/s and 50° from 2 m up.' },
+    { name: 'Longest throw', v: '25', a: '45', h: '0', note: '25 m/s at 45° from the ground gives the longest range for that speed.' },
+  ];
+  PRE.forEach((p, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = p.name; b.dataset.k = `preset-${i}`;
+    b.addEventListener('click', () => {
+      stop(); q<HTMLSelectElement>('.pl-vu').value = p.vu ?? '1'; q<HTMLSelectElement>('.pl-au').value = '1'; q<HTMLSelectElement>('.pl-hu').value = '1';
+      q<HTMLInputElement>('.pl-vn').value = p.v; q<HTMLInputElement>('.pl-an').value = p.a; q<HTMLInputElement>('.pl-hn').value = p.h;
+      q('.pl-prenote').textContent = p.note; q<HTMLButtonElement>('.pl-level [data-v="11"]').click(); sliderFromTyped(); draw();
+    });
+    q('.pl-pre').append(b);
+  });
+  // find the launch angle for a target range
+  function findAngle() {
+    const out = q('.pl-fa'), btns = q('.pl-fbtn'); btns.replaceChildren();
+    const p = params(), R = num(q<HTMLInputElement>('.pl-tr').value);
+    if (bad) { out.textContent = bad; return; }
+    if (!(R > 0)) { out.textContent = 'Give a target range above zero (in metres).'; return; }
+    const r = anglesForRange(p.v, R, p.h);
+    if (!r.angles.length) { out.textContent = `Out of reach: with ${f(p.v, 2)} m/s and no air, the furthest throw lands ${f(r.maxRange, 2)} m away. Try a higher speed or a shorter target.`; return; }
+    out.textContent = r.angles.length === 1 ? `Launch at ${f(r.angles[0], 2)}° to land ${f(R, 2)} m away.` : `Two angles land ${f(R, 2)} m away: ${f(r.angles[0], 2)}° (a flat, quick throw) or ${f(r.angles[1], 2)}° (a high lob). ${p.h === 0 ? 'They add up to 90°.' : ''}`;
+    r.angles.forEach((a) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = `Try ${f(a, 2)}°`; b.addEventListener('click', () => { q<HTMLSelectElement>('.pl-au').value = '1'; q<HTMLInputElement>('.pl-an').value = String(f(a, 2)); sliderFromTyped(); stop(); draw(); }); btns.append(b); });
+  }
+  q('.pl-tr').addEventListener('input', findAngle);
+  root.querySelectorAll('.pl-ctl input, .pl-ctl select').forEach((i) => i.addEventListener('input', findAngle));
+  root.querySelectorAll('.pl-ctl .pl-fr select').forEach((i) => i.addEventListener('change', findAngle));
+  findAngle();
   mountQuiz(q('.pl-quiz'), () => questions());
   draw();
   keepDrawn(q('.pl-c'), draw);
@@ -155,6 +230,13 @@ import '../../styles/astro.css';
   .pl .pl-top { margin-bottom: 10px; }
   .pl .pl-lab { font-size: 14px; color: var(--muted); }
   .pl .ax-seg button { min-height: 44px; }
+  .pl .pl-fr { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .pl .pl-fr input { flex: 1 1 auto; min-width: 0; }
+  .pl .pl-fr select { flex: 0 0 6.5em; }
+  .pl .pl-pre { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pl .pl-fa { margin: 8px 0 0; font-weight: 650; overflow-wrap: anywhere; }
+  .pl .pl-fbtn { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .pl details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
   .pl canvas { display: block; width: 100%; }
   .pl .pl-state { margin: 8px 0; }
   .pl .pl-pill { font-size: 14px; white-space: normal; }

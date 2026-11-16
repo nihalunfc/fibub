@@ -18,4 +18,7 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.st-phase')) === 'Short break' && (await txt('.st-time')) === '5:00', 'study-timer: Skip goes to a 5:00 short break');
   await page.selectOption(R + '[data-k="every"]', '2'); await page.click(R + '.st-reset'); await page.waitForTimeout(100);
   check((await list()).startsWith('Focus|Short break|Focus|Long break') && (await txt('.st-time')) === '1:00', `study-timer: long break every 2 and reset (${await list()})`);
+  await page.click(R + '[data-pre="50,10,20"]'); await page.waitForTimeout(100);
+  check((await txt('.st-time')) === '50:00', `study-timer: 50/10 preset sets 50:00 (${await txt('.st-time')})`);
+  check((await page.inputValue(R + '[data-k="short"]')) === '10' && (await page.inputValue(R + '[data-k="long"]')) === '20', 'study-timer: preset fills break lengths');
 };

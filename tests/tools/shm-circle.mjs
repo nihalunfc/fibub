@@ -45,4 +45,33 @@ export default async ({ page, check, BASE }) => {
   check((await (await items[4].$('.lq-fb')).textContent()).startsWith('Not quite'), 'shm: wrong choice');
   await ch[right].click();
   check((await (await items[4].$('.lq-fb')).textContent()) === 'Right.' && await (await items[4].$('.lq-work')).isVisible(), 'shm: right choice shows working');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  {
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, units = {}) => {
+    await page.selectOption('.ps-host [data-k="prob"]', id);
+    for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${id}-${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); else await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); }
+    for (const [k, u] of Object.entries(units)) await page.selectOption(`.ps-host [data-k="${id}-${k}-u"]`, u);
+    await page.waitForTimeout(80);
+  };
+  const T = (cond, msg) => check(cond, `shm-circle: ${msg}`);
+  await psPre('Mains 50 Hz'); T((await psAns()).includes('The period is 0.02 s and ω = 314 rad/s'), 'example Mains 50 Hz');
+  await psPre('Spring at 0.25 s'); T((await psAns()).includes('x = 7.07 cm, v = 0.222 m/s and a = −0.698 m/s²'), 'example Spring at 0.25 s');
+  await psPre('Speed at 6 cm'); T((await psAns()).includes('the speed is 0.251 m/s and the acceleration is 0.592 m/s²'), 'example Speed at 6 cm');
+  await psPre('Mass on a spring'); T((await psAns()).includes('The period is 0.993 s'), 'example Mass on a spring');
+  await psPre('Pendulum 1 m'); T((await psAns()).includes('The period is 2.01 s'), 'example Pendulum 1 m');
+  await psPre('Lab: find g'); T((await psAns()).includes('g = 9.64 m/s²'), 'example Lab: find g');
+  await psPre('Energy split'); T((await psAns()).includes('0.16 J is kinetic and 0.09 J is potential'), 'example Energy split');
+  await psSet('Lp', {'T': '2', 'g': '9.8'}, {}); T((await psAns()).includes('The pendulum must be 0.993 m (99.3 cm) long.'), 'seconds pendulum is 0.993 m');
+  await psSet('k', {'m': '0.2', 'T': '0.8'}, {}); T((await psAns()).includes('The spring constant is 12.3 N/m.'), 'k = 4 pi^2 m / T^2 = 12.3 N/m');
+  await psSet('spring', {'m': '500', 'k': '0.2'}, {'m': 'g', 'k': 'N/cm'}); T((await psAns()).includes('The period is 0.993 s'), 'grams and N/cm units give 0.993 s');
+  await psSet('x', {'A': '10', 'T': '2', 'p': '1.5707963267949', 't': '0'}, {'p': 'rad'}); T((await psAns()).includes('x = 10 cm, v = 0 m/s'), 'phase pi/2 in radians puts it at the end');
+  await psSet('vx', {'A': '10', 'T': '2', 'x': '12'}); T((await psAns()).includes('cannot be more than the amplitude'), 'x beyond A gives a friendly message');
+  await psSet('w', {'T': '0'}); T((await psAns()).includes('must be more than 0'), 'T = 0 gives a friendly message');
+  await psPre('Mass on a spring');
+  await psPre('Mains 50 Hz'); T((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'working shown, no NaN');
+  }
 };

@@ -53,4 +53,29 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'sp: right answer accepted');
   await page.fill(R + '.eq-q:nth-child(2) .eq-in', '0.001'); await page.click(R + '.eq-q:nth-child(2) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Not quite'), 'sp: wrong answer flagged');
+  // Solve your own numbers: any list of resistors.
+  const S = (k) => `${R}.spc-solve [data-k="quick-${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  await page.selectOption(S('example'), '1'); await page.waitForTimeout(50);
+  check((await ans()) === 'The total resistance is 2 Ω.' && (await wk()).includes('1/R = 1/6 + 1/3 = 0.5 per Ω') && (await wk()).includes('(R1 × R2) ÷ (R1 + R2) = 18 ÷ 9 = 2 Ω'), `sp solve: 6 and 3 in parallel (${await ans()})`);
+  await page.selectOption(S('example'), '0'); await page.waitForTimeout(50);
+  check((await ans()) === 'The total resistance is 36.7 Ω.' && (await wk()).includes('R = 4.7 + 10 + 22 = 36.7 Ω'), `sp solve: three in series (${await ans()})`);
+  await page.selectOption(S('example'), '2'); await page.waitForTimeout(50);
+  check((await ans()) === 'The total resistance is 5 Ω, and the battery current is 2.4 A.' && (await wk()).includes('R1: 1.2 A, R2: 800 mA, R3: 400 mA'), `sp solve: three in parallel on 12 V (${await ans()})`);
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(50);
+  check((await ans()) === 'The total resistance is 3.2 kΩ, and the battery current is 2.81 mA.' && (await wk()).includes('Convert to ohms'), `sp solve: kΩ converted (${await ans()})`);
+  await page.selectOption(S('example'), '4'); await page.waitForTimeout(50);
+  check((await ans()) === 'The missing resistor is 3 Ω.', `sp solve: missing parallel resistor (${await ans()})`);
+  await page.selectOption(S('example'), '5'); await page.waitForTimeout(50);
+  check((await ans()) === 'The missing resistor is 67 Ω.', `sp solve: missing series resistor (${await ans()})`);
+  await page.fill(S('RT'), '20'); await page.waitForTimeout(50);
+  check((await ans()).includes('must be bigger than every part'), `sp solve: impossible series total (${await ans()})`);
+  await page.selectOption(S('find'), 'total'); await page.selectOption(S('how'), 'par'); await page.fill(S('Rs'), '0, 5'); await page.waitForTimeout(50);
+  check((await ans()).includes('above 0 Ω') && !/NaN|Infinity/.test(await ans()), 'sp solve: zero resistor message');
+  await page.fill(S('Rs'), '6; 12; 4'); await page.waitForTimeout(50);
+  check((await ans()) === 'The total resistance is 2 Ω.', `sp solve: semicolons accepted, 1/6+1/12+1/4 = 1/2 (${await ans()})`);
+  // Builder examples.
+  await page.selectOption(R + '.spc-ex', 'mixed'); await page.waitForTimeout(100);
+  check((await txt('.spc-big')) === 'R = 6 Ω,  I = 2 A', `sp: example series plus parallel (${await txt('.spc-big')})`);
+  await page.selectOption(R + '.spc-ex', 'house'); await page.waitForTimeout(100);
+  check((await txt('.spc-big')).startsWith('R = 28.6 Ω'), `sp: example house wiring, 50 ∥ 100 ∥ 200 = 28.6 Ω (${await txt('.spc-big')})`);
 };

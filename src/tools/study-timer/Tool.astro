@@ -14,6 +14,7 @@
     <p class="st-done"></p>
   </section>
   <section class="panel">
+    <p class="st-presets" role="group" aria-label="Presets"><button type="button" class="btn secondary small" data-pre="25,5,15">25 / 5 Pomodoro</button> <button type="button" class="btn secondary small" data-pre="50,10,20">50 / 10</button> <button type="button" class="btn secondary small" data-pre="90,20,30">90 / 20 deep work</button></p>
     <div class="st-fields">
       <label>Focus (minutes)<input data-k="focus" type="number" inputmode="numeric" min="1" max="180" step="1" value="25" /></label>
       <label>Short break (minutes)<input data-k="short" type="number" inputmode="numeric" min="1" max="180" step="1" value="5" /></label>
@@ -45,6 +46,7 @@
   .st input:focus, .st select:focus { border-color: var(--accent); outline: none; }
   .st-err { color: var(--bad); font-size: 14px; margin: 8px 0 0; }
   .st-err:empty { display: none; }
+  .st-presets { margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 6px; }
   .st-h { font-size: 15px; margin: 14px 0 6px; }
   .st-next { margin: 0; padding-left: 22px; font-size: 14px; color: var(--muted); }
   .st-next li:first-child { color: var(--ink); font-weight: 600; }
@@ -93,7 +95,7 @@
     timeEl.textContent = fmt(ms);
     go.textContent = running ? 'Pause' : fresh ? 'Start' : 'Resume';
     document.title = fresh && !running ? baseTitle : `${fmt(ms)} ${NAMES[k]}${running ? '' : ' (paused)'} · Study timer`;
-    doneEl.textContent = `Focus sessions finished: ${done}`;
+    { const tot = done * (mins('focus') || 0); doneEl.textContent = `Focus sessions finished: ${done}` + (done && tot ? ` (about ${tot >= 60 ? `${Math.floor(tot / 60)} h ${tot % 60} min` : `${tot} min`} of focus)` : ''); }
     next.innerHTML = '';
     for (let i = idx; i < idx + 8; i++) { const kk = kindAt(i, every()); const li = document.createElement('li'); li.textContent = `${NAMES[kk]}, ${mins(kk) || 1} min`; next.append(li); }
   };
@@ -132,6 +134,10 @@
     draw();
   };
 
+  root.querySelectorAll<HTMLElement>('[data-pre]').forEach((b) => b.addEventListener('click', () => {
+    const [f, sh, lg] = b.dataset.pre!.split(',');
+    inp('focus').value = f; inp('short').value = sh; inp('long').value = lg; settings();
+  }));
   go.addEventListener('click', toggle);
   q('.st-skip').addEventListener('click', () => advance(false));
   q('.st-reset').addEventListener('click', () => { running = false; clearInterval(timer); idx = 0; fresh = true; left = lenMs('focus'); say.textContent = ''; draw(); });

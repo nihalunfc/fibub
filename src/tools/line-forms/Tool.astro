@@ -6,6 +6,45 @@ import '../../styles/astro.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm lf">
+  <div class="ax-card lf-solve">
+    <h2>Find the equation of my line</h2>
+    <p class="ax-help">Type what your question gives (decimals and fractions like 3/2 are fine). You get the equation in every form, with the working.</p>
+    <div class="ax-grid">
+      <label>I know <select data-k="mode" class="lf-mode">
+        <option value="two">Two points on the line</option>
+        <option value="ps">A point and the slope</option>
+        <option value="si">The slope and the y-intercept</option>
+        <option value="ic">The x-intercept and y-intercept</option>
+        <option value="par">A point, and a parallel line Ax + By + C = 0</option>
+        <option value="perp">A point, and a perpendicular line Ax + By + C = 0</option>
+        <option value="gen">The equation Ax + By + C = 0 (show every form)</option>
+      </select></label>
+      <label>Or start from an example <select data-k="preset" class="lf-pre"><option value="">My own numbers</option></select></label>
+    </div>
+    <div class="lf-in">
+      <div class="lf-pair" data-need="two ps par perp"><b class="lf-p1l">Point 1</b><input data-k="x1" inputmode="decimal" value="2" aria-label="x of point 1" /><input data-k="y1" inputmode="decimal" value="3" aria-label="y of point 1" /></div>
+      <div class="lf-pair" data-need="two"><b>Point 2</b><input data-k="x2" inputmode="decimal" value="6" aria-label="x of point 2" /><input data-k="y2" inputmode="decimal" value="11" aria-label="y of point 2" /></div>
+      <label data-need="ps si"><span>Slope m</span><input data-k="m" inputmode="decimal" value="2" /></label>
+      <label data-need="si"><span>y-intercept c</span><input data-k="c" inputmode="decimal" value="-1" /></label>
+      <div class="lf-pair" data-need="ic"><b>Intercepts</b><input data-k="ia" inputmode="decimal" value="3" aria-label="x-intercept" /><input data-k="ib" inputmode="decimal" value="-4" aria-label="y-intercept" /></div>
+      <div class="lf-abc" data-need="par perp gen"><b class="lf-abcl">Line</b><input data-k="A" inputmode="decimal" value="3" aria-label="A" /><input data-k="B" inputmode="decimal" value="-4" aria-label="B" /><input data-k="C" inputmode="decimal" value="12" aria-label="C" /></div>
+    </div>
+    <p class="ax-err lf-serr" hidden></p>
+    <p class="ax-big lf-ans" aria-live="polite"></p>
+    <ol class="sm-steps lf-work"></ol>
+    <dl class="lf-srows"></dl>
+    <p class="ax-help lf-tip"></p>
+    <details class="lf-opt">
+      <summary>More options: distance from a point, angle with another line</summary>
+      <div class="lf-in" style="margin-top:8px">
+        <div class="lf-pair"><b>Point P</b><input data-k="qx" inputmode="decimal" placeholder="x" aria-label="x of P" /><input data-k="qy" inputmode="decimal" placeholder="y" aria-label="y of P" /></div>
+        <div class="lf-abc"><b>Other line</b><input data-k="A2" inputmode="decimal" placeholder="A" aria-label="A of the other line" /><input data-k="B2" inputmode="decimal" placeholder="B" aria-label="B of the other line" /><input data-k="C2" inputmode="decimal" placeholder="C" aria-label="C of the other line" /></div>
+      </div>
+      <p class="sm-f lf-sdist"></p>
+      <p class="sm-f lf-sang"></p>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>Drag the points</h2>
     <svg class="sm-fig lf-fig" viewBox="0 0 340 340" role="img" aria-label="Grid with the line through A and B, its intercepts, and optionally a second line and a point"></svg>
@@ -45,10 +84,18 @@ import '../../styles/smath.css';
 </div>
 
 <style is:inline>
-  .lf .lf-forms { display: grid; gap: 8px; margin: 8px 0 0; }
-  .lf .lf-forms div { border-left: 3px solid var(--accent); padding: 2px 0 2px 10px; }
-  .lf .lf-forms dt { font-size: 13px; color: var(--muted); }
-  .lf .lf-forms dd { margin: 0; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .lf .lf-in { display: grid; gap: 8px; margin: 10px 0; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+  .lf .lf-pair, .lf .lf-abc { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 8px; align-items: center; grid-column: 1 / -1; }
+  .lf .lf-abc { grid-template-columns: 70px 1fr 1fr 1fr; }
+  .lf .lf-in input { min-height: 44px; width: 100%; text-align: center; font-size: 17px; }
+  .lf .lf-in label { display: grid; gap: 4px; }
+  .lf .lf-ans { margin: 12px 0 6px; overflow-wrap: anywhere; }
+  .lf .lf-work { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .lf .lf-opt summary { cursor: pointer; padding: 8px 0; font-weight: 600; }
+  .lf .lf-forms, .lf .lf-srows { display: grid; gap: 8px; margin: 8px 0 0; }
+  .lf .lf-forms div, .lf .lf-srows div { border-left: 3px solid var(--accent); padding: 2px 0 2px 10px; }
+  .lf .lf-forms dt, .lf .lf-srows dt { font-size: 13px; color: var(--muted); }
+  .lf .lf-forms dd, .lf .lf-srows dd { margin: 0; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .lf svg .lf-l1 { stroke: var(--accent); stroke-width: 2.5; }
   .lf svg .lf-l2 { stroke: var(--warn); stroke-width: 2.5; }
   .lf svg .lf-int { fill: var(--good); }
@@ -58,8 +105,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { through, slope, yIntercept, xIntercept, inclination, normalForm, angleBetween, parallel, perpendicular, distance, foot, meet, type Pt, type Line } from '../../lib/sci/line-forms';
-  import { fmt, randInt, fracText, gcd } from '../../lib/sci/smath';
+  import { through, slope, yIntercept, xIntercept, inclination, normalForm, angleBetween, parallel, perpendicular, distance, foot, meet, fromPointSlope, fromSlopeIntercept, fromIntercepts, parallelThrough, perpendicularThrough, tidy, lineRows, generalText, slopeInterceptText, type Pt, type Line } from '../../lib/sci/line-forms';
+  import { fmt, randInt, fracText, gcd, readNum, numText } from '../../lib/sci/smath';
   import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.lf')!;
@@ -174,6 +221,107 @@ import '../../styles/smath.css';
   }, (id, x, y) => { pts[id] = [Math.round(Math.max(W0, Math.min(W1, ux(x)))), Math.round(Math.max(W0, Math.min(W1, uy(y))))]; draw(); });
   more.addEventListener('change', draw);
   draw();
+
+  // ---- Find the equation of my line: typed numbers, seven ways in, every form out. ----
+  const lk = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const lsel = (k: string) => q<HTMLSelectElement>(`[data-k="${k}"]`);
+  const LF = ['x1', 'y1', 'x2', 'y2', 'm', 'c', 'ia', 'ib', 'A', 'B', 'C'];
+  const PRE: { name: string; mode: string; v: Record<string, string> }[] = [
+    { name: 'Through (2, 3) and (6, 11)', mode: 'two', v: { x1: '2', y1: '3', x2: '6', y2: '11' } },
+    { name: 'Through (−1, 4) with slope 3/2', mode: 'ps', v: { x1: '-1', y1: '4', m: '3/2' } },
+    { name: 'Slope −2 and y-intercept 5', mode: 'si', v: { m: '-2', c: '5' } },
+    { name: 'Intercepts 3 and −4', mode: 'ic', v: { ia: '3', ib: '-4' } },
+    { name: 'Through (2, 1), parallel to 3x − y + 4 = 0', mode: 'par', v: { x1: '2', y1: '1', A: '3', B: '-1', C: '4' } },
+    { name: 'Through (2, 1), perpendicular to 3x − y + 4 = 0', mode: 'perp', v: { x1: '2', y1: '1', A: '3', B: '-1', C: '4' } },
+    { name: 'Show every form of 3x − 4y + 12 = 0', mode: 'gen', v: { A: '3', B: '-4', C: '12' } },
+  ];
+  lsel('preset').append(...PRE.map((p, i) => new Option(p.name, String(i))));
+  const nt = (x: number) => numText(x);
+  const pr = (x: number) => (x < 0 || nt(x).includes('/') ? `(${nt(x)})` : nt(x));
+  /** "x − 2" or "x + 1" for a variable v and a value n. */
+  const sub = (v: string, n: number) => (n < 0 ? `${v} + ${nt(-n)}` : n === 0 ? v : `${v} − ${nt(n)}`);
+  function solveLine() {
+    const mode = lsel('mode').value;
+    q('.lf-solve').querySelectorAll<HTMLElement>('[data-need]').forEach((e) => { e.hidden = !e.dataset.need!.split(' ').includes(mode); });
+    q('.lf-p1l').textContent = mode === 'two' ? 'Point 1' : 'Point';
+    q('.lf-abcl').textContent = mode === 'gen' ? 'Your line' : 'Given line';
+    const v: Record<string, number> = {}; for (const k of LF) v[k] = readNum(lk(k).value);
+    const err = q('.lf-serr'), ans = q('.lf-ans'), work = q('.lf-work'), rows = q('.lf-srows'), tip = q('.lf-tip');
+    const stop = (m: string) => { err.textContent = m; err.hidden = !m; ans.textContent = ''; work.replaceChildren(); rows.replaceChildren(); tip.textContent = ''; q('.lf-sdist').textContent = ''; q('.lf-sang').textContent = ''; };
+    const need: Record<string, string[]> = { two: ['x1', 'y1', 'x2', 'y2'], ps: ['x1', 'y1', 'm'], si: ['m', 'c'], ic: ['ia', 'ib'], par: ['x1', 'y1', 'A', 'B', 'C'], perp: ['x1', 'y1', 'A', 'B', 'C'], gen: ['A', 'B', 'C'] };
+    const nm: Record<string, string> = { x1: 'x of the point', y1: 'y of the point', x2: 'x of point 2', y2: 'y of point 2', m: 'the slope m', c: 'the y-intercept c', ia: 'the x-intercept', ib: 'the y-intercept', A: 'A', B: 'B', C: 'C' };
+    const bad = need[mode].find((k) => !Number.isFinite(v[k]));
+    if (bad) return stop(`Type a number for ${nm[bad]} (a whole number, decimal or fraction like 3/2). Use 0 if it is zero.`);
+    if (need[mode].some((k) => Math.abs(v[k]) > 1e9)) return stop('Please keep the numbers below a billion.');
+    err.hidden = true;
+    const P: Pt = [v.x1, v.y1], lines: string[] = [];
+    let l: Line | null = null, mist = '';
+    if (mode === 'two') {
+      const Q: Pt = [v.x2, v.y2], dx = Q[0] - P[0], dy = Q[1] - P[1];
+      if (dx === 0 && dy === 0) return stop('The two points are the same, so they do not fix a line. Change one of them.');
+      l = through(P, Q) && tidy(through(P, Q)!);
+      lines.push(`Slope m = (y₂ − y₁)/(x₂ − x₁) = (${pr(Q[1])} − ${pr(P[1])})/(${pr(Q[0])} − ${pr(P[0])}) = ${nt(dy)}/${nt(dx)}${dx === 0 ? ': division by 0, so the line is vertical' : ` = ${nt(dy / dx)}`}.`);
+      lines.push(dx === 0 ? `Both points have x = ${nt(P[0])}, so the line is x = ${nt(P[0])}.` : `Point-slope form with point 1: ${sub('y', P[1])} = ${pr(dy / dx)}(${sub('x', P[0])}).`);
+      mist = 'Subtract the coordinates in the same order on top and bottom: (y₂ − y₁)/(x₂ − x₁). Mixing the order flips the sign of the slope.';
+    } else if (mode === 'ps') {
+      l = fromPointSlope(P, v.m);
+      lines.push(`Point-slope form: y − y₁ = m(x − x₁): ${sub('y', P[1])} = ${pr(v.m)}(${sub('x', P[0])}).`);
+      lines.push(`Expand: y = ${pr(v.m)}x + (${pr(P[1])} − ${pr(v.m)}×${pr(P[0])}) = ${pr(v.m)}x + ${nt(P[1] - v.m * P[0])}.`);
+      mist = 'x − x₁ means subtract the point’s x: through (−1, 4) it is (x + 1), not (x − 1).';
+    } else if (mode === 'si') {
+      l = fromSlopeIntercept(v.m, v.c);
+      lines.push(`Slope-intercept form: y = mx + c = ${pr(v.m)}x + ${pr(v.c)}.`, 'Move everything to one side: mx − y + c = 0.');
+      mist = 'c is where the line cuts the y axis (x = 0), and m is the rise for a run of 1.';
+    } else if (mode === 'ic') {
+      if (v.ia === 0 || v.ib === 0) return stop('Both intercepts must be above or below 0. (A line with an intercept of 0 passes through the origin, so the intercept form does not apply.)');
+      l = fromIntercepts(v.ia, v.ib);
+      lines.push(`Intercept form: x/a + y/b = 1: x/${pr(v.ia)} + y/${pr(v.ib)} = 1.`, `Multiply by a b = ${nt(v.ia * v.ib)}: ${nt(v.ib)}x + ${pr(v.ia)}y = ${nt(v.ia * v.ib)}.`);
+      mist = 'The x-intercept is a (under x) and the y-intercept is b (under y). Keep their signs.';
+    } else if (mode === 'par' || mode === 'perp') {
+      if (v.A === 0 && v.B === 0) return stop('A and B cannot both be 0: that is not a line.');
+      const g: Line = { a: v.A, b: v.B, c: v.C };
+      l = mode === 'par' ? parallelThrough(g, P) : perpendicularThrough(g, P);
+      lines.push(`The given line ${generalText({ a: v.A, b: v.B, c: v.C })} has ${v.B === 0 ? 'no slope (it is vertical)' : `slope −A/B = ${nt(-v.A / v.B)}`}.`);
+      if (mode === 'par') lines.push('A parallel line has the same A and B and only the constant changes: Ax + By + k = 0.', `Put the point ${`(${nt(P[0])}, ${nt(P[1])})`} in: k = −(A x₁ + B y₁) = −(${pr(v.A)}×${pr(P[0])} + ${pr(v.B)}×${pr(P[1])}) = ${nt(-(v.A * P[0] + v.B * P[1]))}.`);
+      else lines.push('A perpendicular line swaps A and B and changes one sign: Bx − Ay + k = 0 (the slopes multiply to −1).', `Put the point ${`(${nt(P[0])}, ${nt(P[1])})`} in: k = −(B x₁ − A y₁) = −(${pr(v.B)}×${pr(P[0])} − ${pr(v.A)}×${pr(P[1])}) = ${nt(-(v.B * P[0] - v.A * P[1]))}.`);
+      mist = mode === 'par' ? 'The constant changes, not A and B. Check by putting the point back into your answer: it must give 0.' : 'Perpendicular means the slopes multiply to −1 (m₂ = −1/m₁). A vertical line is perpendicular to a horizontal one.';
+    } else {
+      if (v.A === 0 && v.B === 0) return stop('A and B cannot both be 0: that is not a line.');
+      l = tidy({ a: v.A, b: v.B, c: v.C });
+      lines.push(`The line ${generalText({ a: v.A, b: v.B, c: v.C })} written in every form is listed below.`);
+      mist = 'To find the x-intercept put y = 0; for the y-intercept put x = 0.';
+    }
+    if (!l) return stop('Those numbers do not make a line.');
+    ans.textContent = `The line is ${l.b === 0 ? `x = ${nt(-l.c / l.a)}` : slopeText(l)}, or ${generalText(l)}.`.replace(/-/g, '−');
+    work.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t.replace(/-(?=\d)/g, '−') })));
+    rows.replaceChildren(...lineRows(l).map((r) => { const div = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = r.name; dd.textContent = r.text.replace(/-(?=\d)/g, '−'); div.append(dt, dd); return div; }));
+    tip.textContent = `Common mistake: ${mist}`;
+    // Optional: distance from P and the angle with another line.
+    const qx = readNum(lk('qx').value), qy = readNum(lk('qy').value), dEl = q('.lf-sdist'), aEl = q('.lf-sang');
+    if (lk('qx').value.trim() === '' && lk('qy').value.trim() === '') dEl.textContent = '';
+    else if (!Number.isFinite(qx) || !Number.isFinite(qy)) dEl.textContent = 'Type both numbers for the point P to get its distance from the line.';
+    else { const num = Math.abs(l.a * qx + l.b * qy + l.c), den = Math.hypot(l.a, l.b); dEl.textContent = `Distance from P(${nt(qx)}, ${nt(qy)}) to the line = |Ax₀ + By₀ + C|/√(A² + B²) = |${pr(l.a)}×${pr(qx)} + ${pr(l.b)}×${pr(qy)} + ${pr(l.c)}|/√${nt(l.a * l.a + l.b * l.b)} = ${nt(num)}/${fmt(den, 4)} = ${fmt(num / den, 4)}${num === 0 ? ' (P is on the line)' : ''}.`.replace(/-(?=\d)/g, '−'); }
+    const a2 = ['A2', 'B2', 'C2'].map((k) => readNum(lk(k).value));
+    if (['A2', 'B2', 'C2'].every((k) => lk(k).value.trim() === '')) aEl.textContent = '';
+    else if (!a2.every(Number.isFinite)) aEl.textContent = 'Type A, B and C of the other line (0 if a number is missing).';
+    else if (a2[0] === 0 && a2[1] === 0) aEl.textContent = 'A and B of the other line cannot both be 0.';
+    else {
+      const l2: Line = { a: a2[0], b: a2[1], c: a2[2] }, th = angleBetween(l, l2), M = meet(l, l2);
+      const pt2: Pt = l2.a !== 0 ? [-l2.c / l2.a, 0] : [0, -l2.c / l2.b], dd = distance(l, pt2);
+      aEl.textContent = (parallel(l, l2) ? (dd < 1e-9 ? 'The two equations describe the same line.' : `The two lines are parallel (the angle between them is 0°) and never meet. The distance between them is ${fmt(dd, 4)}.`) : `${perpendicular(l, l2) ? 'The lines are perpendicular: ' : ''}The acute angle between the lines is ${fmt(th, 2)}° (the other angle is ${fmt(180 - th, 2)}°). They meet at ${M ? `(${nt(M[0])}, ${nt(M[1])})` : 'no point'}.`).replace(/-(?=\d)/g, '−');
+    }
+  }
+  const slopeText = (l: Line) => (l.b === 0 ? '' : slopeInterceptText(-l.a / l.b, -l.c / l.b));
+  const lroot = q('.lf-solve');
+  lroot.addEventListener('input', (e) => { const k = (e.target as HTMLElement).dataset.k; if (k === 'preset') return; if (k !== 'mode' && LF.includes(k!)) lsel('preset').value = ''; solveLine(); });
+  lroot.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).dataset.k === 'preset') {
+      const p = PRE[Number(lsel('preset').value)]; if (!p) return;
+      lsel('mode').value = p.mode; for (const k of LF) if (p.v[k] !== undefined) lk(k).value = p.v[k];
+    }
+    solveLine();
+  });
+  solveLine();
 
   quiz(q('.lf-quiz'), () => {
     const out: Question[] = [];

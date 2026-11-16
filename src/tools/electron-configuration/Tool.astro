@@ -8,7 +8,24 @@ import { ELEMENTS } from '../../lib/sci/chem';
 const els = ELEMENTS.slice(0, 36);
 ---
 <div class="ax ecf">
+  <div class="ax-card ecf-look">
+    <h2>Look up any element or ion</h2>
+    <div class="ax-grid">
+      <label>Element (symbol, name or atomic number) <input data-k="el" class="ecf-lq" value="Fe" autocomplete="off" spellcheck="false" aria-label="Element" /></label>
+      <label>Charge <select data-k="charge" class="ecf-lc"><option value="4">+4</option><option value="3">+3</option><option value="2">+2</option><option value="1">+1</option><option value="0" selected>0 (neutral atom)</option><option value="-1">−1</option><option value="-2">−2</option><option value="-3">−3</option></select></label>
+    </div>
+    <div class="ecf-lchips" role="group" aria-label="Examples">
+      <button type="button" data-el="Fe" data-c="0">Fe</button><button type="button" data-el="Fe" data-c="3">Fe³⁺</button><button type="button" data-el="Cu" data-c="1">Cu⁺</button><button type="button" data-el="Cl" data-c="-1">Cl⁻</button><button type="button" data-el="Mg" data-c="2">Mg²⁺</button><button type="button" data-el="Ag" data-c="0">Ag</button>
+    </div>
+    <p class="ax-err ecf-lerr" role="alert" hidden></p>
+    <p class="ax-big ecf-lbig" aria-live="polite" style="margin:12px 0 4px"></p>
+    <dl class="ax-facts ecf-lfacts"></dl>
+    <p class="lx-eq ecf-lbox"></p>
+    <p class="ax-help ecf-lnote"></p>
+  </div>
+
   <div class="ax-card">
+    <h2>Watch it fill</h2>
     <div class="ax-seg ecf-mode" role="group" aria-label="Mode"><button type="button" data-m="watch" aria-pressed="true">Watch it fill</button><button type="button" data-m="self" aria-pressed="false">Fill it yourself</button></div>
     <div class="ax-row" style="margin-top:12px">
       <label style="flex:1 1 180px">Element <select class="ecf-el">{els.map((e) => <option value={e.z} selected={e.z === 8}>{e.z} {e.name} ({e.symbol})</option>)}</select></label>
@@ -48,6 +65,9 @@ const els = ELEMENTS.slice(0, 36);
 </div>
 
 <style is:inline>
+  .ecf-lchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .ecf-lchips button { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ecf-lbox { font-family: ui-monospace, monospace; line-height: 1.8; }
   .ecf-step { display: grid; grid-template-columns: 48px 52px 48px; align-items: center; gap: 6px; align-self: end; }
   .ecf-b { height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 26px; line-height: 1; cursor: pointer; touch-action: manipulation; }
   .ecf-b:disabled { opacity: 0.35; cursor: default; }
@@ -70,7 +90,7 @@ const els = ELEMENTS.slice(0, 36);
 
 <script>
   import { ORDER, boxesFor, electrons, quantum, msText, signed, forAtom, emptyBoxes, place, toConfig, total, parseConfig, halfOrFull, configText, nobleGas, unpaired, label, cap, MAX_Z, type Boxes } from '../../lib/sci/econfig';
-  import { aufbau, configuration } from '../../lib/sci/ptable';
+  import { aufbau, configuration, findElement, ionConfiguration, type Subshell } from '../../lib/sci/ptable';
   import { ELEMENTS } from '../../lib/sci/chem';
   import { mountQuiz, near, rint, pickOne, type Question } from '../../lib/chemquiz';
 
@@ -211,6 +231,51 @@ const els = ELEMENTS.slice(0, 36);
   });
   q('.ecf-clear').addEventListener('click', () => { mine = emptyBoxes(); history.length = 0; sel = null; msg(`Place ${target} electrons for ${name(target)}. Tap a box to add one.`); update(); });
   update();
+
+  // Look up any element or ion
+  const sup2 = (x: number) => (x === 0 ? '' : (Math.abs(x) === 1 ? '' : String(Math.abs(x))).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]) + (x > 0 ? '⁺' : '⁻'));
+  const boxRow = (sh: Subshell) => {
+    const m = 2 * sh.l + 1, up = Math.min(sh.e, m), down = Math.max(0, sh.e - m);
+    return Array.from({ length: m }, (_, i) => `[${i < up ? '↑' : ' '}${i < down ? '↓' : ' '}]`).join('');
+  };
+  function look() {
+    const big = q('.ecf-lbig'), err = q('.ecf-lerr'), f = q('.ecf-lfacts'), bx = q('.ecf-lbox'), nt = q('.ecf-lnote');
+    f.replaceChildren(); bx.replaceChildren(); nt.textContent = ''; err.hidden = true; big.textContent = '';
+    const raw = q<HTMLInputElement>('.ecf-lq').value.trim();
+    if (!raw) { big.textContent = 'Type an element such as Fe, iron or 26.'; return; }
+    const el = findElement(raw);
+    if (!el) { err.textContent = `"${raw}" is not an element I know. Use a symbol (Fe), a name (iron) or an atomic number from 1 to 118.`; err.hidden = false; return; }
+    const ch = Number(q<HTMLSelectElement>('.ecf-lc').value);
+    let cfg: Subshell[], core = false;
+    try { const r = ionConfiguration(el.z, ch); cfg = r.config; core = r.intoCore; } catch { err.textContent = `${el.name} has only ${el.z} electron${el.z === 1 ? '' : 's'}, so it cannot lose ${ch}.`; err.hidden = false; return; }
+    const total = el.z - ch;
+    const sym = el.symbol + sup2(ch);
+    if (total === 0) { big.textContent = `${sym}: no electrons left (just the nucleus).`; return; }
+    big.textContent = `${sym}: ${configText(cfg, { sup: true })}`;
+    const mx = Math.max(...cfg.map((s) => s.n)), val = cfg.filter((s) => s.n === mx).reduce((a, s) => a + s.e, 0);
+    const up = unpaired(cfg);
+    f.append(
+      fact('Short form', nobleGas(cfg, { sup: true, ion: ch !== 0 }), 'noble-gas core in brackets'),
+      fact('Electrons', String(total), ch === 0 ? `${el.name}, atomic number ${el.z}` : `${el.z} protons, charge ${ch > 0 ? '+' : '−'}${Math.abs(ch)}`),
+      fact('Unpaired electrons', String(up), up ? 'paramagnetic (attracted to a magnet)' : 'diamagnetic (all paired)'),
+      fact('Outer shell', `n = ${mx}`, `${val} electron${val === 1 ? '' : 's'} in it`),
+      fact('Position', `period ${el.period}${el.group ? `, group ${el.group}` : ''}, ${el.block}-block`, ch === 0 ? '' : 'of the neutral atom'),
+    );
+    const lines = [...cfg].sort((a, b) => a.n - b.n || a.l - b.l).filter((s) => s.n >= Math.max(1, mx - 1) || s.l >= 2 || cfg.length <= 6);
+    lines.forEach((s, i) => { if (i) bx.append(document.createElement('br')); bx.append(`${s.n}${'spdf'[s.l] ?? '?'}  ${boxRow(s)}`); });
+    const notes: string[] = [];
+    if (ch > 0 && el.block === 'd') notes.push('A transition metal loses its outer s electrons first, then d ones, so the ion has no 4s (or 5s) electrons left over from the atom.');
+    if (ch !== 0 && total === nobleCount(total)) notes.push(`This ion has the same configuration as the noble gas with ${total} electrons (isoelectronic).`);
+    if (ch !== 0 && el.exception && ch < 0) notes.push('Added electrons fill by the plain Aufbau order.');
+    if (ch === 0 && el.exception) notes.push(`${el.name} is one of the atoms that breaks the simple filling order (measured ground state).`);
+    if (el.predicted) notes.push('Predicted, not measured: atoms this heavy are made only a few at a time. Check the official source.');
+    if (core) notes.push('Electrons here come from inside the noble-gas core, which is very unusual.');
+    nt.textContent = notes.join(' ');
+  }
+  const nobleCount = (t: number) => ([2, 10, 18, 36, 54, 86, 118].includes(t) ? t : -1);
+  q('.ecf-lq').addEventListener('input', look); q('.ecf-lc').addEventListener('change', look);
+  root.querySelectorAll<HTMLButtonElement>('.ecf-lchips button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ecf-lq').value = b.dataset.el!; q<HTMLSelectElement>('.ecf-lc').value = b.dataset.c!; look(); }));
+  look();
 
   // Check yourself
   const SUBS = ['1s', '2s', '2p', '3s', '3p', '3d', '4s', '4p', '4d', '4f', '5s', '5p'];

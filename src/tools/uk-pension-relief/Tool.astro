@@ -5,14 +5,19 @@
   <section class="panel">
     <h2>Your income and pension in 2026/27</h2>
     <div class="upr-grid">
-      <label>Where you live <select class="upr-reg">
+      <label>Where you live <select class="upr-reg" data-k="region">
         <option value="ruk" selected>England, Wales or Northern Ireland</option>
         <option value="scot">Scotland</option>
       </select></label>
-      <label>Salary a year (before pension) <input class="upr-sal" inputmode="decimal" value="60,000" /></label>
-      <label>Other taxable income (rent profit, a pension) <input class="upr-oth" inputmode="decimal" value="0" /></label>
-      <label>Into your pot a year, including tax relief <input class="upr-g" inputmode="decimal" value="5,000" /></label>
-      <label>Your employer puts in a year <input class="upr-e" inputmode="decimal" value="0" /></label>
+      <label>Salary a year (before pension) <input class="upr-sal" data-k="salary" inputmode="decimal" value="60,000" /></label>
+      <label>Other taxable income (rent profit, a pension) <input class="upr-oth" data-k="other-income" inputmode="decimal" value="0" /></label>
+      <label>How you enter your contribution <select class="upr-mode" data-k="mode">
+        <option value="gross" selected>Total into my pot, including tax relief</option>
+        <option value="paid">What I pay from my take-home pay (relief at source)</option>
+        <option value="pct">A percentage of my salary</option>
+      </select></label>
+      <label><span class="upr-gl">Into your pot a year, including tax relief</span> <input class="upr-g" data-k="contribution" inputmode="decimal" value="5,000" /></label>
+      <label>Your employer puts in a year <input class="upr-e" data-k="employer" inputmode="decimal" value="0" /></label>
     </div>
   </section>
 
@@ -24,6 +29,15 @@
       <div><span>Relief rate</span><b class="upr-rate"></b></div>
     </div>
     <p class="upr-line"></p>
+    <p class="upr-trap" hidden></p>
+    <div class="panel upr-tw">
+      <h2>What if you paid in more or less?</h2>
+      <p class="upr-hint">Same income, relief at source, different totals into the pot.</p>
+      <table>
+        <thead><tr><th>Into the pot</th><th>Real cost</th><th>Relief</th><th>Claim back</th></tr></thead>
+        <tbody class="upr-wi"></tbody>
+      </table>
+    </div>
     <div class="panel upr-tw">
       <h2>How your scheme gives relief</h2>
       <table>
@@ -76,6 +90,7 @@
   .upr-stats span { font-size: 13px; color: var(--muted); }
   .upr-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
   .upr-stats .good b { color: var(--good); }
+  .upr-trap { margin: 0; font-size: 15px; font-weight: 600; }
   .upr-line { margin: 0; font-size: 15px; }
   .upr-tw { overflow-x: auto; }
   .upr table { border-collapse: collapse; width: 100%; font-size: 14px; }
@@ -83,12 +98,13 @@
   .upr td { white-space: nowrap; }
   .upr th:first-child, .upr td:first-child { text-align: left; white-space: normal; }
   .upr th { font-size: 12px; color: var(--muted); }
+  .upr tr.on td { font-weight: 700; background: var(--surface); }
   .upr-fine { color: var(--muted); font-size: 13px; margin: 0; }
   @media (max-width: 640px) { .upr-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
-  import { relief, statePensionAge, AA } from '../../lib/money/uk-pension-relief.ts';
+  import { relief, statePensionAge, AA, grossFromPaid, grossFromPercent, whatIf } from '../../lib/money/uk-pension-relief.ts';
   import { num } from '../../lib/money';
   const root = document.querySelector('.upr') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -97,11 +113,21 @@
   const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
 
   const update = () => {
-    const G = v('.upr-g');
-    const r = relief({
+    const mode = q<HTMLSelectElement>('.upr-mode').value;
+    q('.upr-gl').textContent = mode === 'paid' ? 'You pay from your take-home pay, a year' : mode === 'pct' ? 'Percent of your salary' : 'Into your pot a year, including tax relief';
+    const raw = v('.upr-g');
+    const G = mode === 'paid' ? grossFromPaid(raw) : mode === 'pct' ? grossFromPercent(v('.upr-sal'), raw) : raw;
+    const inp = {
       region: q<HTMLSelectElement>('.upr-reg').value as 'ruk' | 'scot', salary: v('.upr-sal'), other: v('.upr-oth'), gross: G, employer: v('.upr-e'),
       unused: [v('.upr-u0'), v('.upr-u1'), v('.upr-u2')], flexi: q<HTMLInputElement>('.upr-flexi').checked,
-    });
+    };
+    const r = relief(inp);
+    const trap = q('.upr-trap'); const taxable = inp.salary + inp.other;
+    trap.hidden = !(r.ras.rate > 0.4001 && taxable >= 100000 && taxable <= 125140 + G && G > 0 && inp.region === 'ruk');
+    trap.textContent = 'Your income is in the band where the personal allowance is being withdrawn, so each pound in a pension can win relief above 40%. Check the official source (GOV.UK) for how the allowance is reduced.';
+    const base = G > 0 ? G : 5000;
+    const steps = [...new Set([Math.round(base / 2), base, base * 2, 10000, 20000, 40000].map((x) => Math.round(x / 100) * 100).filter((x) => x > 0))].sort((a, b) => a - b);
+    q('.upr-wi').innerHTML = whatIf(inp, steps).map((x) => `<tr${Math.abs(x.gross - G) < 50 ? ' class="on"' : ''}><td>${$(x.gross)}${x.over ? ' (over the allowance)' : ''}</td><td>${$(x.cost)}</td><td>${$(x.relief)} (${pct(x.rate)})</td><td>${x.claim > 0 ? $(x.claim) : '-'}</td></tr>`).join('');
     q('.upr-rel').textContent = $(r.ras.relief);
     q('.upr-cost').textContent = $(r.ras.cost);
     q('.upr-claim').textContent = r.ras.claim > 0 ? $(r.ras.claim) : 'None';

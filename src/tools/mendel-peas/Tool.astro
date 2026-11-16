@@ -5,6 +5,29 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax mdp">
+  <div class="ax-card pc">
+    <h2>Punnett square calculator</h2>
+    <p class="ax-help" style="margin-top:0">Type the two parents' genotypes (one capital letter for the dominant allele, a small one for the recessive): Aa, AaBb, tt ... Monohybrid and dihybrid crosses both work.</p>
+    <div class="pc-in">
+      <label>Parent 1 <input class="pc-p1" data-k="parent1" value="Aa" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Parent 1 genotype" /></label>
+      <span class="pc-x" aria-hidden="true">×</span>
+      <label>Parent 2 <input class="pc-p2" data-k="parent2" value="Aa" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Parent 2 genotype" /></label>
+    </div>
+    <div class="pc-chips" role="group" aria-label="Examples"></div>
+    <details class="pc-more"><summary>More options</summary>
+      <label>Dominance <select class="pc-dom" data-k="dominance"><option value="complete">Complete: the capital allele hides the small one</option><option value="incomplete">Incomplete or codominant: Aa looks different from AA and aa</option></select></label>
+    </details>
+    <p class="ax-err pc-err" role="alert" hidden></p>
+    <p class="ax-big pc-big" aria-live="polite" style="margin:12px 0 4px"></p>
+    <p class="pc-gam"></p>
+    <div class="ax-scroll"><table class="pc-sq" aria-label="Punnett square"></table></div>
+    <p class="ax-help pc-sqnote"></p>
+    <div class="ax-scroll"><table class="pc-geno"></table></div>
+    <div class="ax-scroll"><table class="pc-pheno"></table></div>
+    <p class="ax-help pc-note"></p>
+    <p class="ax-help">Common mistakes: writing a gamete with both alleles of one gene (a gamete carries one of each gene: AaBb makes AB, Ab, aB and ab); reading the genotype ratio as the phenotype ratio (Aa × Aa is 1 : 2 : 1 for genotypes but 3 : 1 for how they look). Autosomal genes only; sex-linked crosses are not covered here.</p>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row"><span class="mdp-lab">Level</span>
       <div class="ax-seg mdp-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></div></div>
@@ -61,7 +84,7 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { GENES, cross, child, phenoOf, ratio, chiSquare, genotypesOf, type Gene } from '../../lib/sci/peagarden';
+  import { GENES, cross, child, phenoOf, ratio, chiSquare, genotypesOf, punnett, type Gene } from '../../lib/sci/peagarden';
   import { csv } from '../../lib/sci/num';
   import { paint, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
 
@@ -190,6 +213,43 @@ import Downloads from '../../components/Downloads.astro';
     });
   }
 
+  // ---------- Punnett square calculator ----------
+  const pcq = <T extends HTMLElement = HTMLElement>(c: string) => q<T>('.pc ' + c);
+  const PC_EX: [string, string, string, boolean][] = [['Aa × Aa', 'Aa', 'Aa', false], ['Aa × aa', 'Aa', 'aa', false], ['AA × aa', 'AA', 'aa', false], ['AaBb × AaBb', 'AaBb', 'AaBb', false], ['AaBb × aabb', 'AaBb', 'aabb', false], ['Pink × pink', 'Aa', 'Aa', true]];
+  const cell = (tr: HTMLTableRowElement, t: string, tag: 'td' | 'th' = 'td', cls = '') => { const c = document.createElement(tag); c.textContent = t; if (cls) c.className = cls; tr.append(c); return c; };
+  const classTable = (tb: HTMLTableElement, title: string, rows: { label: string; fraction: string; percent: number; count: number }[], boxes: number) => {
+    tb.replaceChildren();
+    const h = tb.createTHead().insertRow(); [title, 'Fraction', 'Percent', `Boxes (of ${boxes})`].forEach((t, i) => cell(h, t, 'th', i ? 'r' : ''));
+    const b = tb.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); cell(tr, r.label); cell(tr, r.fraction, 'td', 'r'); cell(tr, `${r.percent} %`, 'td', 'r'); cell(tr, String(r.count), 'td', 'r'); });
+  };
+  function punnettUI() {
+    const err = pcq('.pc-err'), big = pcq('.pc-big'); err.hidden = true;
+    let t1 = pcq<HTMLInputElement>('.pc-p1').value, t2 = pcq<HTMLInputElement>('.pc-p2').value;
+    const m = t1.match(/^(.+?)\s*(?:×|\s[xX]\s)\s*(.+)$/); if (m) { t1 = m[1]; t2 = m[2]; pcq<HTMLInputElement>('.pc-p1').value = t1; pcq<HTMLInputElement>('.pc-p2').value = t2; }
+    ['.pc-sq', '.pc-geno', '.pc-pheno'].forEach((c) => pcq(c).replaceChildren()); pcq('.pc-gam').textContent = ''; pcq('.pc-note').textContent = ''; pcq('.pc-sqnote').textContent = '';
+    try {
+      const inc = pcq<HTMLSelectElement>('.pc-dom').value === 'incomplete';
+      const r = punnett(t1, t2, inc);
+      const lbl = (xs: { label: string }[]) => xs.map((x) => x.label);
+      const phen = r.phenotypes;
+      big.textContent = `${r.mum.join('')} × ${r.dad.join('')}: genotypes ${r.genotypes.length === 1 ? `all ${r.genotypes[0].label}` : r.genoRatio}, phenotypes ${phen.length === 1 ? `all ${phen[0].label}` : r.phenoRatio}.`;
+      pcq('.pc-gam').textContent = `Gametes: parent 1 makes ${r.gametesMum.join(', ')}; parent 2 makes ${r.gametesDad.join(', ')}.`;
+      const sq = pcq<HTMLTableElement>('.pc-sq');
+      if (r.letters.length <= 2) {
+        const h = sq.createTHead().insertRow(); cell(h, '♀ \\ ♂', 'th'); r.gametesDad.forEach((g) => cell(h, g, 'th'));
+        const b = sq.createTBody(); r.gametesMum.forEach((g, i) => { const tr = b.insertRow(); cell(tr, g, 'th'); r.cells[i].forEach((x) => cell(tr, x)); });
+        pcq('.pc-sqnote').textContent = `Each of the ${r.boxes} boxes is one equally likely child. Parent 1's gametes go down the side, parent 2's across the top.`;
+      } else pcq('.pc-sqnote').textContent = `${r.boxes} boxes is too many to draw usefully: the ratios below were worked out from all of them.`;
+      classTable(pcq<HTMLTableElement>('.pc-geno'), 'Genotype', r.genotypes, r.boxes);
+      classTable(pcq<HTMLTableElement>('.pc-pheno'), 'Phenotype', phen, r.boxes);
+      pcq('.pc-note').textContent = inc ? 'Incomplete dominance: AA, Aa and aa each look different, so the phenotype ratio is the genotype ratio.' : `In a phenotype, ${r.letters[0]}_ means ${r.letters[0]}${r.letters[0]} or ${r.letters[0]}${r.letters[0].toLowerCase()} (it shows the dominant trait) and ${r.letters[0].toLowerCase()}${r.letters[0].toLowerCase()} shows the recessive trait.`;
+      void lbl;
+    } catch (e) { big.textContent = ''; err.textContent = (e as Error).message; err.hidden = false; }
+  }
+  { const box = pcq('.pc-chips'); PC_EX.forEach(([name, a, b, inc]) => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small'; btn.textContent = name; btn.addEventListener('click', () => { pcq<HTMLInputElement>('.pc-p1').value = a; pcq<HTMLInputElement>('.pc-p2').value = b; pcq<HTMLSelectElement>('.pc-dom').value = inc ? 'incomplete' : 'complete'; if (inc) pcq<HTMLDetailsElement>('.pc-more').open = true; punnettUI(); }); box.append(btn); }); }
+  ['.pc-p1', '.pc-p2'].forEach((c) => pcq(c).addEventListener('input', punnettUI)); pcq('.pc-dom').addEventListener('change', punnettUI);
+  punnettUI();
+
   // ---------- Check yourself ----------
   type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
   let qs: Qn[] = [];
@@ -263,6 +323,14 @@ import Downloads from '../../components/Downloads.astro';
 </script>
 
 <style is:inline>
+  .mdp .pc-in { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; margin-top: 10px; }
+  .mdp .pc-in input { width: 100%; min-height: 44px; font-size: 18px; font-family: ui-monospace, monospace; }
+  .mdp .pc-x { padding-bottom: 10px; font-size: 20px; color: var(--muted); }
+  .mdp .pc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .mdp .pc-more { margin-top: 10px; }
+  .mdp .pc-gam { margin: 6px 0; }
+  .mdp .pc-sq th, .mdp .pc-sq td { text-align: center; border: 1px solid var(--line); padding: 6px 8px; font-family: ui-monospace, monospace; }
+  .mdp .pc-geno, .mdp .pc-pheno { margin-top: 10px; }
   .mdp .mdp-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
   .mdp .mdp-gap { margin-top: 12px; }
   .mdp .ax-seg button { min-height: 44px; padding: 8px 12px; }

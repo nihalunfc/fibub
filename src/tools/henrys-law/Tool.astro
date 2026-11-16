@@ -3,8 +3,15 @@
 // nitrogen in a diver's body water or oxygen for a climber.
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax hl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem (pressures in bar, atm, kPa or mmHg) and solve p = KH x for the mole fraction, the pressure or KH, or find how much gas dissolves in a litre of water, with the working.</p>
+    <div class="hl-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>A bottle of soda</h2>
     <label class="hl-rl"><span>p</span><input type="range" class="hl-p" min="0.5" max="5" step="0.1" value="2.5" aria-label="CO2 pressure in the bottle" /><output class="hl-op"></output></label>
@@ -76,6 +83,8 @@ import '../../styles/chemquiz.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { HENRY_SPEC } from '../../lib/sci/solve-henry';
   import { AIR, GASES, altitudePressure, depthPressure, dissolved, gasVolume, kh } from '../../lib/sci/henry';
   import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
 
@@ -160,4 +169,6 @@ import '../../styles/chemquiz.css';
       { q: `What partial pressure (in bar) of a gas with KH = ${K5} kbar gives x = ${x5.toFixed(4)}?`, hint: 'a number', answer: String(Number(p5.toPrecision(3))), ok: near(p5, 0.01), worked: `p = KH × x = ${K5 * 1000} × ${x5.toFixed(4)} = ${Number(p5.toPrecision(3))} bar.` },
     ];
   });
+
+  mountSolver(document.querySelector<HTMLElement>('.hl-solve')!, HENRY_SPEC, 'hs');
 </script>

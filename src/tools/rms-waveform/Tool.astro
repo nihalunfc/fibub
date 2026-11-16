@@ -2,8 +2,15 @@
 // RMS from a waveform: pick a waveform and its peak, see v and v² over a cycle, the mean of v², and the rms value
 // that heats a resistor like a steady voltage. Why 230 V mains has a 325 V peak.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax rms">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Pick the waveform and type the peak, rms or peak-to-peak value from your question to get the others, with the heating power in a resistor if you give one.</p>
+    <div class="rms-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Waveform</h2>
     <span class="ax-seg rms-wave" role="group" aria-label="Waveform">
@@ -58,6 +65,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { RMS_SPEC } from '../../lib/sci/solve-rms';
   import { shape, measure, EXACT, questions, type Wave } from '../../lib/sci/rms-waveform';
   import { pagePalette } from '../../lib/report';
   import { setup, sci3, fact, seg, onTheme, quiz } from '../../lib/school-p34';
@@ -108,4 +117,5 @@ import '../../styles/astro.css';
   onTheme(draw);
   all();
   quiz(q('.rms-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.rms-solve')!, RMS_SPEC);
 </script>

@@ -2,9 +2,16 @@
 // Binding energy per nucleon (Learn): the curve from the liquid drop formula with real nuclei marked, a mass defect
 // calculator from atomic masses, and fission and fusion shown as moves up the curve.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn bne">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the masses from your question: get the mass defect, binding energy, energy per nucleon or the energy of a reaction, with the working. Masses can be in u, kg or g.</p>
+    <div class="bne-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Binding energy per nucleon</h2>
     <canvas class="lrn-cv be-cv" aria-label="Graph of binding energy per nucleon against mass number, rising steeply, peaking near iron and falling slowly"></canvas>
@@ -54,6 +61,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { BINDING_SPEC } from '../../lib/sci/solve-binding';
   import { NUCLEI, massDefect, bindingMeV, semf, stableZ, qValue, M_H, M_N, U_MEV } from '../../lib/sci/learnbinding';
   import { mountQuiz, pick, one, r, fitCanvas } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -145,4 +154,5 @@ import '../../styles/learnquiz-d.css';
       { q: 'Why do both fission of uranium and fusion of hydrogen give out energy?', ans: 0, choices: ['The products have more binding energy per nucleon', 'The products have more mass', 'Neutrons are created from nothing'], work: 'Both move towards the peak of the curve near iron. The products are more tightly bound, so a little mass is lost and comes out as energy (E = mc²).' },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.bne-solve')!, BINDING_SPEC);
 </script>

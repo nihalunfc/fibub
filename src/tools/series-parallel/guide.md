@@ -11,12 +11,13 @@ ads: false
 order: 1042
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ohms-law-lab, circuit-simulator, resistor-colour-code]
 sources:
   - "Resistors in series (R = R₁ + R₂ + ...) and in parallel (1/R = 1/R₁ + 1/R₂ + ...), P = VI = I²R, energy in kWh, and Kirchhoff's junction and loop rules with a battery's internal resistance: standard school physics results."
   - "The price per kWh is a made-up example that you can change; no tariff data is used."
   - "Checked against an independent Python script (fractions for exact parallel sums, then the currents, voltages and powers) and hand-worked examples such as 6 Ω ∥ 3 Ω = 2 Ω."
+  - "The quick calculator uses the same series and parallel formulas as the builder; typed values in kΩ and MΩ are multiplied by 10³ and 10⁶. Checked by hand: 6 Ω ∥ 3 Ω = 2 Ω, 10 ∥ 15 ∥ 30 Ω = 5 Ω, and 4.7 + 10 + 22 = 36.7 Ω."
 flow:
   - { icon: pointer, label: "Drag" }
   - { icon: calculator, label: "Work out" }
@@ -56,6 +57,14 @@ The page starts with R1 = 10 Ω on the top wire, R2 = 10 Ω and R3 = 15 Ω in th
 - For two resistors in parallel, product over sum is a quick shortcut: 6 × 3 / (6 + 3) = 2 Ω.
 - If nothing is in the circuit the page warns about a short circuit, which is what a fuse protects a house from.
 
+## Solve your own numbers
+
+The first card works out the total for any list of resistors, not only four. Type the values separated by commas (for example 4.7, 10, 22), choose **Series** or **Parallel**, and pick ohms, kilo-ohms or mega-ohms. You get the total in one sentence and the working underneath: R = R1 + R2 + ... for series, and 1/R = 1/R1 + 1/R2 + ... followed by the flip for parallel. For two resistors in parallel it also shows the product-over-sum shortcut, and it checks the result: a parallel total must be smaller than the smallest resistor and a series total bigger than the biggest, which is a quick way to catch a slip in an exam.
+
+Add a battery voltage and the card also gives the battery current, the voltage across each resistor in series or the current in each branch in parallel, and the power. Choose **A missing resistor** to solve the usual textbook question "R in parallel with 6 Ω gives 2 Ω, find R", or the same for series. Impossible numbers (a parallel total bigger than a resistor, or a series total smaller than the known parts) get a plain message.
+
+The builder below also has an **Example** list: two equal resistors in parallel, three in series, a series-plus-parallel mix and house wiring at 230 V. Pick one, then drag the resistors to see how the picture changes.
+
 ## FAQ
 
 **Why are houses wired in parallel?** Each appliance gets the full 230 V and can be switched on or off without affecting the others. In series, one switched-off lamp would turn everything off.
@@ -63,3 +72,7 @@ The page starts with R1 = 10 Ω on the top wire, R2 = 10 Ω and R3 = 15 Ω in th
 **Is the price per unit real?** No, ₹7 is only a starting example. Type the rate from your own bill.
 
 **Is anything saved?** No. The circuit and your answers stay on this page and are gone when you close it.
+
+**How do I find the total resistance of resistors in parallel?** Add the reciprocals, 1/R = 1/R1 + 1/R2 + ..., then flip the result; the calculator at the top does it for any number of resistors and shows the steps.
+
+**How do I add resistors in series?** Just add them: R = R1 + R2 + R3.

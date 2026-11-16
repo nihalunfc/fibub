@@ -11,7 +11,7 @@ ads: false
 order: 1804
 icon: chart
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, mileage-log, ev-vs-petrol]
 sources:
   - "Full-tank method: distance between two full fill-ups divided by the fuel added at the second one. Conversions: 1 mile = 1.609344 km, 1 US gallon = 3.785411784 L, 1 UK (imperial) gallon = 4.54609 L. Tank sizes are typical round numbers you can change. Drawings are fibub's own."
@@ -40,6 +40,10 @@ It works for a car, a two-wheeler or a truck, and for electric vehicles if you c
 - **Distance in** and **Fuel in**: the units your odometer and pump use. All results are shown in the common units as well.
 - **Tank or battery size** and **Tank level now**: used for the range left, which is the tank level times your average km per litre.
 - **Keep my log on this device**: off by default. When ticked, your rows are stored in this browser only; "Clear saved log" removes them.
+
+- **More options, maker's claimed figure**: type the litres (or kWh) per 100 km from the spec sheet and the tool shows how far your real use is above or below it, as a percent.
+- **More options, planned trip distance**: type a distance and see the fuel needed and its cost at your real figure and the average price you paid.
+- **Best tank, worst tank, last three tanks**: shown once you have two or three full fill-ups, so you can see whether a bad tank was a one-off.
 
 ## Worked example
 

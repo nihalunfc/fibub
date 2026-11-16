@@ -46,6 +46,10 @@ It then compares the need with your own cover and, separately, with your own cov
 
 A stay of 5,00,000, one stay, no price rise, today, with cover of 3,00,000: the gap is 2,00,000. With a 10% rise for 2 years the need grows to 6,05,000.
 
+## City and room rent
+
+Under **More options** you can compare **another city**: type what the same stay costs there (no city figures are built in, so use a hospital estimate) and read the cover needed today and later. You can also enter a **room rent cap** and the **room you would choose** to see whether the room-linked bills would be cut; the [[room-rent-cap]] tool shows the full working. General information, not advice.
+
 ## FAQs
 
 **Is this what I should buy?** No, it is a way to size the number. Policies differ in limits and exclusions.

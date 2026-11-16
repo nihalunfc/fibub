@@ -47,6 +47,28 @@ import SmQuiz from '../../components/SmQuiz.astro';
     </div>
   </div>
 
+  <div class="ax-card vn-cp">
+    <h2>Solve a counting problem</h2>
+    <p class="ax-help">For "In a class of 60, 35 play cricket, 28 play football, 10 play both. How many play neither?" (2 sets) or a three-set survey. Type what you know and leave one box empty to find it. Uses the 2 or 3 sets chosen at the top.</p>
+    <div class="ax-grid vn-cpf">
+      <label>n(U) everyone <input data-k="cU" class="vn-cU" type="number" inputmode="numeric" min="0" step="1" value="100" /></label>
+      <label>n(A) <input data-k="cA" class="vn-cA" type="number" inputmode="numeric" min="0" step="1" value="45" /></label>
+      <label>n(B) <input data-k="cB" class="vn-cB" type="number" inputmode="numeric" min="0" step="1" value="40" /></label>
+      <label class="vn-c3">n(C) <input data-k="cC" class="vn-cC" type="number" inputmode="numeric" min="0" step="1" value="30" /></label>
+      <label>n(A ∩ B) <input data-k="cAB" class="vn-cAB" type="number" inputmode="numeric" min="0" step="1" value="15" /></label>
+      <label class="vn-c3">n(B ∩ C) <input data-k="cBC" class="vn-cBC" type="number" inputmode="numeric" min="0" step="1" value="10" /></label>
+      <label class="vn-c3">n(A ∩ C) <input data-k="cAC" class="vn-cAC" type="number" inputmode="numeric" min="0" step="1" value="12" /></label>
+      <label class="vn-c3">n(A ∩ B ∩ C) <input data-k="cABC" class="vn-cABC" type="number" inputmode="numeric" min="0" step="1" value="5" /></label>
+      <label>n(union) <input data-k="cUnion" class="vn-cUn" type="number" inputmode="numeric" min="0" step="1" /></label>
+    </div>
+    <label class="ax-check"><input type="checkbox" data-k="cAll" class="vn-cAll" /> Everyone is in at least one set</label>
+    <p class="ax-err vn-cerr" hidden></p>
+    <p class="ax-big vn-cans" aria-live="polite"></p>
+    <canvas class="ax-fig vn-cfig" role="img" hidden></canvas>
+    <ol class="vn-csteps"></ol>
+    <p class="ax-help">Common mistake: adding n(A) + n(B) without taking off n(A ∩ B), which counts the overlap twice.</p>
+  </div>
+
   <div class="ax-card">
     <h2>Try this</h2>
     <ul class="vn-try">
@@ -61,7 +83,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { parseSet, regions, sameRegions, regionName, inRegion, parseList, applySets, union2, union3, show, type SetNode } from '../../lib/sci/school-sets';
+  import { parseSet, regions, sameRegions, regionName, inRegion, parseList, applySets, union2, union3, show, countProblem, type CountInput, type SetNode } from '../../lib/sci/school-sets';
   import { paint, pagePalette, type Figure, type Palette } from '../../lib/report';
   import { FONT } from '../../lib/sm-graph';
   import { quiz, rint, type Question } from '../../lib/sm-quiz';
@@ -115,6 +137,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }
 
   function run() {
+    counting();
     const err = q('.vn-err'), out = q('.vn-out'); err.hidden = true;
     root.querySelectorAll<HTMLElement>('.vn-kc, .vn-Cl').forEach((e) => { e.hidden = n === 2; });
     let node: SetNode;
@@ -152,6 +175,17 @@ import SmQuiz from '../../components/SmQuiz.astro';
     paint(f2, venn(n2, show(n2), null));
   }
 
+  function counting() {
+    root.querySelectorAll<HTMLElement>('.vn-c3').forEach((e) => { e.hidden = n === 2; });
+    const rd = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t === '' ? undefined : Number(t); };
+    const v: CountInput = { U: rd('.vn-cU'), A: rd('.vn-cA'), B: rd('.vn-cB'), C: n === 3 ? rd('.vn-cC') : undefined, AB: rd('.vn-cAB'), BC: n === 3 ? rd('.vn-cBC') : undefined, AC: n === 3 ? rd('.vn-cAC') : undefined, ABC: n === 3 ? rd('.vn-cABC') : undefined, union: rd('.vn-cUn'), allIn: q<HTMLInputElement>('.vn-cAll').checked };
+    const r = countProblem(n, v), err = q('.vn-cerr'), cv = q<HTMLCanvasElement>('.vn-cfig');
+    err.hidden = !r.error; err.textContent = r.error ?? ''; q('.vn-cans').textContent = r.error ? '' : r.sentence;
+    q('.vn-csteps').replaceChildren(...r.steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    cv.hidden = !r.regions;
+    if (r.regions) { const node = parseSet(n === 2 ? 'A ∪ B' : 'A ∪ B ∪ C', n); paint(cv, venn(node, `A ∪ B${n === 3 ? ' ∪ C' : ''} with counts`, r.regions.map((x) => [String(x)]))); }
+  }
+  root.querySelectorAll('.vn-cpf input, .vn-cAll').forEach((e) => { e.addEventListener('input', counting); e.addEventListener('change', counting); });
   const inp = q<HTMLInputElement>('.vn-e');
   root.querySelectorAll<HTMLButtonElement>('.vn-keys button').forEach((b) => b.addEventListener('click', () => {
     if (b.classList.contains('vn-del')) inp.value = inp.value.trimEnd().slice(0, -1);
@@ -160,6 +194,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }));
   root.querySelectorAll<HTMLButtonElement>('.vn-n button').forEach((b) => b.addEventListener('click', () => {
     n = +b.dataset.n! as 2 | 3; root.querySelectorAll('.vn-n button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const dv = n === 2 ? { cU: '60', cA: '35', cB: '28', cC: '', cAB: '10', cBC: '', cAC: '', cABC: '' } : { cU: '100', cA: '45', cB: '40', cC: '30', cAB: '15', cBC: '10', cAC: '12', cABC: '5' };
+    Object.entries(dv).forEach(([k, val]) => { q<HTMLInputElement>(`[data-k="${k}"]`).value = val; }); q<HTMLInputElement>('.vn-cUn').value = ''; q<HTMLInputElement>('.vn-cAll').checked = false;
     if (n === 2 && /c/i.test(inp.value)) inp.value = '(A ∪ B)′';
     if (n === 2 && /c/i.test(q<HTMLInputElement>('.vn-c').value)) q<HTMLInputElement>('.vn-c').value = 'A′ ∩ B′';
     run();
@@ -189,6 +225,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 
 <style is:inline>
   .vnd .vn-el { margin-top: 10px; }
+  .vnd .vn-cpf { margin: 10px 0; }
+  .vnd .vn-cpf input { max-width: 100%; }
+  .vnd .vn-csteps { padding-left: 20px; display: grid; gap: 4px; overflow-wrap: anywhere; }
   .vnd .vn-e, .vnd .vn-c { font-size: 18px !important; }
   .vnd .vn-keys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .vnd .vn-keys button { min-width: 44px; min-height: 44px; font: inherit; font-size: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }

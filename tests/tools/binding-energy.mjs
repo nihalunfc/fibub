@@ -32,4 +32,28 @@ export default async ({ page, check, BASE }) => {
   for (const i of [0, 1, 2]) { const ans = await items[i].getAttribute('data-ans'); await (await items[i].$('.lq-in')).fill(String(+(+ans).toPrecision(4))); await (await items[i].$('.lq-check')).click(); }
   for (const i of [3, 4]) { const a = +(await items[i].getAttribute('data-ans')); await (await items[i].$$('.lq-choice'))[a].click(); }
   check((await t('.lq-score')).startsWith('5 of 5'), 'bind: all five answered right');
+  // ---- Solve your own numbers (the card at the top) ----
+  const S = (k) => `${R}.sv [data-k="${k}"]`;
+  const ans = () => page.textContent(S('answer'));
+  const fillS = async (k, v) => { await page.fill(S(k), v); await page.waitForTimeout(80); };
+  const selS = async (k, v) => { await page.selectOption(S(k), v); await page.waitForTimeout(80); };
+  const clearBad = async (what) => check(!/NaN|Infinity|undefined/.test(await ans() + await page.textContent(S('working'))), `solve: no NaN for ${what}`);
+  check((await ans()).includes('0.0304 u') && (await ans()).includes('28.3 MeV') && (await ans()).includes('7.07 MeV per nucleon'), `solve: helium-4 (${await ans()})`);
+  await selS('example', '1');
+  check((await ans()).includes('2.224 MeV') && (await ans()).includes('1.11 MeV per nucleon'), `solve: deuteron nuclear mass (${await ans()})`);
+  await selS('example', '2');
+  check((await ans()).includes('28.32 MeV'), `solve: energy from 0.0304 u (${await ans()})`);
+  await fillS('dm', '5.048e-29'); await selS('dm-unit', 'kg');
+  check((await ans()).includes('28.3'), `solve: mass in kg (${await ans()})`);
+  await selS('example', '3');
+  check((await ans()).includes('8.79 MeV'), `solve: per nucleon 8.79 (${await ans()})`);
+  await selS('example', '4');
+  check((await ans()).includes('17.59 MeV') && (await ans()).includes('gives out'), `solve: D-T fusion (${await ans()})`);
+  await fillS('mi', '1'); await fillS('mo', '2');
+  check((await ans()).includes('needs 931.5 MeV'), `solve: products heavier (${await ans()})`);
+  await selS('find', 'B'); await fillS('Z', '5'); await fillS('A', '4'); await fillS('M', '4.0026');
+  check((await ans()).includes('cannot be bigger'), 'solve: Z above A');
+  await fillS('Z', '2'); await fillS('M', '7');
+  check((await ans()).includes('close to A'), 'solve: mass far from A');
+  await clearBad('binding');
 };

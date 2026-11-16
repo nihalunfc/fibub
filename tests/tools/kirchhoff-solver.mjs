@@ -50,4 +50,21 @@ export default async ({ page, check, BASE }) => {
   const q2 = await page.textContent(R + '.eq-q:nth-child(2) p'), [a, b] = q2.match(/([\d.]+) A flows in.*?([\d.]+) A flows out/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(2) .eq-in', String(a - b)); await page.click(R + '.eq-q:nth-child(2) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Right'), 'kirchhoff: right answer accepted');
+  // Solve a two-loop problem: the form redraws the circuit.
+  await page.evaluate(() => document.querySelectorAll('.kch details').forEach((d) => (d.open = true)));
+  const S = (k) => `${R}.kch-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  await page.selectOption(R + '.kch-preset', 'twoloop');
+  await page.selectOption(S('example'), '0'); await page.waitForTimeout(100);
+  check((await ans()).startsWith('I₁ = 818 mA, I₂ = −90.9 mA, I₃ = 727 mA.') && (await ans()).includes('charges it'), `kirchhoff solve: textbook example (${await ans()})`);
+  check((await wk()).includes('I₃ = I₁ + I₂') && (await wk()).includes('6 − 2 I₁ − 6 I₃ = 0') && (await wk()).includes('V = (E₁/R₁ + E₂/R₂)'), 'kirchhoff solve: junction and loop equations with numbers');
+  check((await txt('.kch-big')).includes('I₄ = 0.727 A'), `kirchhoff solve: grid agrees (${await txt('.kch-big')})`);
+  await page.selectOption(S('example'), '1'); await page.waitForTimeout(100);
+  check((await ans()) === 'I₁ = 1.09 A, I₂ = 1.09 A, I₃ = 2.18 A.', `kirchhoff solve: two 12 V cells (${await ans()})`);
+  check((await txt('.kch-tab')).includes('2.18 A') || (await txt('.kch-big')).includes('2.18 A'), `kirchhoff solve: circuit redrawn with the numbers (${await txt('.kch-big')})`);
+  await page.fill(S('R3'), '0'); await page.waitForTimeout(100);
+  check((await ans()).includes('above 0 Ω') && !/NaN|Infinity/.test(await ans()), 'kirchhoff solve: zero resistor message');
+  await page.fill(S('R3'), '5'); await page.selectOption(S('R1-unit'), 'kΩ'); await page.fill(S('R1'), '0.001'); await page.waitForTimeout(100);
+  check((await ans()) === 'I₁ = 1.09 A, I₂ = 1.09 A, I₃ = 2.18 A.', `kirchhoff solve: kΩ unit converted (${await ans()})`);
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(100);
+  check((await ans()).startsWith('I₁ = 2.73 A, I₂ = −1.55 A, I₃ = 1.18 A.'), `kirchhoff solve: weak cell charged (${await ans()})`);
 };

@@ -24,4 +24,19 @@ export default async ({ page, check, BASE }) => {
   const q3 = await page.textContent(R + '.eq-q:nth-child(3) p'), [M, r] = q3.match(/inductance of ([\d.]+) H\. The current in one changes at (\d+) A\/s/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(3) .eq-in', String(M * r)); await page.click(R + '.eq-q:nth-child(3) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(3) .eq-res')).startsWith('Right'), 'inductance: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("500-turn air solenoid"); check((await psAns()).includes("The self-inductance is 503 \u00b5H"), "inductance-lab: example 500-turn air solenoid: The self-inductance is 503 \u00b5H");
+  await psPre("Same solenoid with iron"); check((await psAns()).includes("The self-inductance is 503 mH"), "inductance-lab: example Same solenoid with iron: The self-inductance is 503 mH");
+  await psPre("Two coaxial coils"); check((await psAns()).includes("The mutual inductance is 25.1 \u00b5H"), "inductance-lab: example Two coaxial coils: The mutual inductance is 25.1 \u00b5H");
+  await psPre("Current drops quickly"); check((await psAns()).includes("The induced emf is 10 V, opposing the fall in current"), "inductance-lab: example Current drops quickly: The induced emf is 10 V, opposing the fall in current");
+  await psPre("Energy in a 0.2 H coil"); check((await psAns()).includes("The stored energy is 900 mJ"), "inductance-lab: example Energy in a 0.2 H coil: The stored energy is 900 mJ");
+  await psSet("tau", {"L": "0.5", "R": "25"}, {}); check((await psAns()).includes("The time constant is 20 ms"), "inductance-lab: typed numbers: The time constant is 20 ms");
+  await psSet("L", {"N": "0"}, {}); check((await psAns()).includes("must be more than 0"), "inductance-lab: friendly message: must be more than 0");
+  await psPre("500-turn air solenoid"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "inductance-lab: working shown, no NaN");
 };

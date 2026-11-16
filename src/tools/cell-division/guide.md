@@ -11,7 +11,7 @@ ads: false
 order: 1132
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [cell-explorer, mendel-peas, central-dogma]
 sources:
   - "Stages of mitosis and meiosis, chromosome numbers (2n and n), DNA amounts (C values) and 2^n gamete types from independent assortment: standard textbook ideas, written by fibub."
@@ -51,6 +51,16 @@ Take a cell with 2n = 4 through meiosis. After interphase it still has 4 chromos
 
 In the root tip, if 20 of 200 cells are dividing, the mitotic index is 10 %. If 10 of the 200 are in prophase and the cycle takes 24 hours, prophase lasts about 10 ÷ 200 × 24 = 1.2 hours.
 
+## Solve your own numbers
+
+The first card answers the number questions that come with this topic, with the working shown. Choose what to find:
+
+- **Chromosomes and DNA at a stage.** Type 2n, pick mitosis or meiosis and a stage. It gives the chromosomes per cell, the chromatids, the DNA in C units (1C is a gamete's DNA) and how many cells there are at the end of the stage. A human cell (2n = 46) in metaphase has 46 chromosomes and 92 chromatids; in anaphase it counts 92 chromosomes for a moment.
+- **Number of different gametes.** From 2n it works out the pairs, then 2ⁿ gametes (8,388,608 for a human) and the (2ⁿ)² chromosome mixes in a child, before crossing over adds more.
+- **Mitotic index from counts.** Type the cells counted and the cells that are dividing (prophase to telophase) to get the mitotic index. Add the cells in one stage, and the cycle length if it is not 24 hours, to estimate how long that stage lasts.
+
+An odd chromosome number, zero cells or more dividing cells than counted gives a friendly message. Each answer ends with a common mistake, such as counting chromatids as chromosomes.
+
 ## Where this fits in school
 
 Class 10 science (how organisms reproduce) explains why gametes need half the chromosome number. Class 11 biology (cell cycle and cell division) covers interphase, the stages of mitosis and meiosis, crossing over and the significance of each division, and the root tip practical. This page is an independent learning aid. It is not made by or connected with NCERT, and it does not copy any textbook.
@@ -62,3 +72,5 @@ Class 10 science (how organisms reproduce) explains why gametes need half the ch
 **Why does the chromosome number double in anaphase?** It is a counting rule: a chromosome is counted by its centromeres. Once the chromatids separate, each has its own centromere.
 
 **Is anything saved?** No. The counts stay on this page until you leave it.
+
+**What is the mitotic index and how do I work it out?** It is the number of dividing cells divided by all the cells counted, times 100 for a percent: 20 dividing out of 200 is 10%. The first card does it from your own counts.

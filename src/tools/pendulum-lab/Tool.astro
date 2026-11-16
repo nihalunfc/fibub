@@ -25,6 +25,24 @@ import '../../styles/learnquiz-d.css';
     <dl class="ax-facts pd-facts" style="margin-top:10px"></dl>
   </div>
 
+  <div class="ax-card ps">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help" style="margin-top:0">Got a textbook question? Choose what you want to find, type the other two values, and get the answer with the working. This uses the small-swing formula T = 2π√(L/g).</p>
+    <div class="ax-row ps-pre" role="group" aria-label="Worked examples"></div>
+    <p class="ax-help ps-note"></p>
+    <label>Find <select class="ps-un" data-k="unknown"><option value="T">The period T</option><option value="L">The length L</option><option value="g">Gravity g</option></select></label>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="ps-fL">Length L <span class="ps-fr"><input type="text" inputmode="decimal" class="ps-L" data-k="solve-L" value="64" aria-label="Length" /><select class="ps-Lu" data-k="solve-L-unit" aria-label="Length unit"><option>cm</option><option>m</option></select></span></label>
+      <label class="ps-fT">Time T <span class="ps-fr"><input type="text" inputmode="decimal" class="ps-T" data-k="solve-T" value="" aria-label="Time" /><span class="ps-s">s</span></span></label>
+      <label class="ps-fN">Swings that time was for<input type="text" inputmode="numeric" class="ps-N" data-k="solve-N" value="1" aria-label="Number of swings the time was for" /></label>
+      <label class="ps-fg">Gravity g <span class="ps-fr"><input type="text" inputmode="decimal" class="ps-g" data-k="solve-g" value="9.8" aria-label="Gravity in metres per second squared" /><select class="ps-gs" aria-label="Pick a place"><option value="9.8">Earth</option><option value="1.62">Moon</option><option value="3.71">Mars</option><option value="24.8">Jupiter</option><option value="">Own value</option></select></span></label>
+    </div>
+    <p class="ax-err ps-err" hidden></p>
+    <p class="ps-ans" data-k="answer" aria-live="polite"></p>
+    <div class="ps-work lrn-eq"></div>
+    <p class="ax-help">Common mistakes: using centimetres in the formula (change to metres first, or pick cm here); using the time for 20 swings as if it were one swing (type 20 in "Swings that time was for"); measuring L to the top of the bob instead of its middle.</p>
+  </div>
+
   <div class="ax-card" data-only="11" hidden>
     <h2>How big a swing is too big?</h2>
     <p class="ax-help" style="margin-top:0">2π√(L/g) assumes sin θ ≈ θ, true only for small swings. The curve shows how much longer the real period is at each release angle; the dot is your swing.</p>
@@ -73,7 +91,7 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
-  import { smallPeriod, exactPeriod, largeAngleExcess, pendulumStep, lengthFor, gFrom, fitG } from '../../lib/sci/n2-osc';
+  import { smallPeriod, exactPeriod, largeAngleExcess, pendulumStep, lengthFor, gFrom, fitG, solvePendulum, type PendUnknown } from '../../lib/sci/n2-osc';
   import { mountQuiz, pick, one, r, fitCanvas, loop, wireLevel } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -195,6 +213,43 @@ import '../../styles/learnquiz-d.css';
   addEventListener('resize', () => { update(); fit(); });
   release(); update(); fit();
 
+
+  // Solve my numbers
+  const PS: { name: string; un: PendUnknown; L?: string; Lu?: string; T?: string; N?: string; g?: string; note: string }[] = [
+    { name: 'Seconds pendulum', un: 'L', T: '2', N: '1', g: '9.8', note: 'A pendulum swings there and back in 2 s on Earth. How long is it?' },
+    { name: 'Lab bench', un: 'T', L: '64', Lu: 'cm', g: '9.8', note: 'A 64 cm pendulum on Earth. Find its period.' },
+    { name: 'Find g', un: 'g', L: '0.8', Lu: 'm', T: '36', N: '20', g: '', note: '20 swings of a 0.8 m pendulum take 36 s. What g does that give?' },
+    { name: 'On the Moon', un: 'T', L: '1', Lu: 'm', g: '1.62', note: 'The same 1 m pendulum taken to the Moon.' },
+  ];
+  const ps = (c: string) => q<HTMLInputElement>('.ps ' + c);
+  const sgz = (x: number, n = 4) => sig(x, n).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  function solveNow() {
+    const un = ps('.ps-un').value as PendUnknown, err = q('.ps-err'), ans = q('.ps-ans'), wk = q('.ps-work');
+    q('.ps-fL').hidden = un === 'L'; q('.ps-fT').hidden = un === 'T'; q('.ps-fg').hidden = un === 'g'; q('.ps-fN').hidden = un === 'T';
+    const Lraw = num(ps('.ps-L').value) * (ps('.ps-Lu').value === 'cm' ? 0.01 : 1), Nn = num(ps('.ps-N').value) || 1, Traw = num(ps('.ps-T').value) / Nn, gg = num(ps('.ps-g').value);
+    if (un !== 'T' && !(Nn >= 1 && Number.isInteger(Nn))) { err.hidden = false; err.textContent = 'Swings must be a whole number, 1 or more.'; ans.textContent = ''; wk.textContent = ''; return; }
+    const r = solvePendulum(un, Lraw, Traw, gg);
+    if (!r.ok) { err.hidden = false; err.textContent = r.msg; ans.textContent = ''; wk.textContent = ''; return; }
+    err.hidden = true;
+    const word = { T: 'The period', L: 'The length', g: 'Gravity' }[un];
+    ans.textContent = un === 'L' ? `${word} is ${sgz(r.value, 3)} m (${sgz(r.value * 100, 3)} cm).` : `${word} is ${sgz(r.value, 4)} ${r.unit}.`;
+    const lines = [...r.steps];
+    if (un !== 'T' && Nn > 1) lines.unshift(`Period of one swing: T = ${sgz(num(ps('.ps-T').value), 4)} s ÷ ${Nn} = ${sgz(Traw, 4)} s`);
+    if (un !== 'L' && ps('.ps-Lu').value === 'cm') lines.unshift(`Length in metres: ${sgz(num(ps('.ps-L').value), 4)} cm ÷ 100 = ${sgz(Lraw, 4)} m`);
+    wk.replaceChildren(...lines.map((t) => { const p = document.createElement('p'); p.style.margin = '4px 0 0'; p.textContent = t; return p; }));
+  }
+  PS.forEach((p, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = p.name; b.dataset.k = `preset-${i}`;
+    b.addEventListener('click', () => {
+      ps('.ps-un').value = p.un; ps('.ps-L').value = p.L ?? ''; ps('.ps-Lu').value = p.Lu ?? 'cm'; ps('.ps-T').value = p.T ?? ''; ps('.ps-N').value = p.N ?? '1'; ps('.ps-g').value = p.g ?? ''; ps('.ps-gs').value = p.g === '1.62' ? '1.62' : p.g === '9.8' ? '9.8' : '';
+      q('.ps-note').textContent = p.note; solveNow();
+    });
+    q('.ps-pre').append(b);
+  });
+  q('.ps-gs').addEventListener('change', () => { const v = ps('.ps-gs').value; if (v) ps('.ps-g').value = v; solveNow(); });
+  q('.ps').querySelectorAll('input, select').forEach((e) => { if (!e.classList.contains('ps-gs')) e.addEventListener('input', solveNow); e.addEventListener('change', solveNow); });
+  solveNow();
+
   mountQuiz(q('.pd-quiz'), () => {
     const L = pick(2, 25) / 10, T = pick(10, 30) / 10, L2 = pick(5, 15) / 10, n = one([10, 20]), tt = +(n * smallPeriod(L2, 9.8) * (1 + (Math.random() - 0.5) * 0.02)).toFixed(1);
     const k = one([4, 9]);
@@ -207,3 +262,13 @@ import '../../styles/learnquiz-d.css';
     ];
   });
 </script>
+
+<style is:inline>
+  .pdl .ps-fr { display: flex; gap: 6px; align-items: center; }
+  .pdl .ps-fr input { flex: 1 1 auto; min-width: 0; }
+  .pdl .ps-fr select { flex: 0 0 5.5em; min-height: 44px; }
+  .pdl .ps-pre { flex-wrap: wrap; gap: 6px; }
+  .pdl .ps-ans { margin: 8px 0 0; font-size: 18px; font-weight: 650; overflow-wrap: anywhere; }
+  .pdl .ps-ans:empty { display: none; }
+  .pdl .ps label[hidden] { display: none; }
+</style>

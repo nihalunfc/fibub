@@ -3,8 +3,15 @@
 // from small current elements and graphed along the axis; plus Ampère's law round a loop among long wires.
 // Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax bsv">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the current, distance, turns or radius from your question and get the magnetic field of a wire, coil or solenoid, the force between two wires, or the current from a field, with the working.</p>
+    <div class="bsv-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Choose a current</h2>
     <span class="ax-seg bsv-mode" role="group" aria-label="Shape"><button type="button" data-v="wire" aria-pressed="true">Straight wire</button><button type="button" data-v="loop" aria-pressed="false">Circular loop</button><button type="button" data-v="sol" aria-pressed="false">Solenoid</button><button type="button" data-v="amp" aria-pressed="false">Ampère's law</button></span>
@@ -77,6 +84,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { BIOT_SPEC } from '../../lib/sci/solve-biot';
   import { wirePieces, loopPieces, sumPieces, element, wireExact, longWire, loopAxis, solenoidAxis, solenoidIdeal, fieldOfWires, ampereLoop, norm, questions, type V3, type Wire } from '../../lib/sci/biot-savart';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -272,4 +281,5 @@ import '../../styles/astro.css';
   onTheme(draw);
   all();
   quiz(q('.bsv-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.bsv-solve')!, BIOT_SPEC);
 </script>

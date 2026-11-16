@@ -32,4 +32,19 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'drift: right answer accepted');
   await page.fill(R + '.eq-q:nth-child(2) .eq-in', '999'); await page.click(R + '.eq-q:nth-child(2) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Not quite'), 'drift: wrong answer flagged');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("Copper, 1 A in 1 mm\u00b2"); check((await psAns()).includes("The drift speed is 7.35 \u00d7 10^-5 m/s"), "drift-velocity: example Copper, 1 A in 1 mm\u00b2: The drift speed is 7.35 \u00d7 10^-5 m/s");
+  await psPre("2 A in a 1.5 mm wire"); check((await psAns()).includes("The drift speed is 8.32 \u00d7 10^-5 m/s"), "drift-velocity: example 2 A in a 1.5 mm wire: The drift speed is 8.32 \u00d7 10^-5 m/s");
+  await psPre("Electron density of copper"); check((await psAns()).includes("8.50 \u00d7 10^28"), "drift-velocity: example Electron density of copper: 8.50 \u00d7 10^28");
+  await psPre("1 metre of copper wire"); check((await psAns()).includes("takes 3.78 hours"), "drift-velocity: example 1 metre of copper wire: takes 3.78 hours");
+  await psPre("Relaxation time of copper"); check((await psAns()).includes("The relaxation time is 2.49 \u00d7 10^-14 s"), "drift-velocity: example Relaxation time of copper: The relaxation time is 2.49 \u00d7 10^-14 s");
+  await psSet("I", {"n": "5", "A": "1", "v": "1000"}, {}); check((await psAns()).includes("The current is 8.01 kA."), "drift-velocity: typed numbers: The current is 8.01 kA.");
+  await psSet("vd", {"A": "0"}, {}); check((await psAns()).includes("must be more than 0"), "drift-velocity: friendly message: must be more than 0");
+  await psPre("Copper, 1 A"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "drift-velocity: working shown, no NaN");
 };

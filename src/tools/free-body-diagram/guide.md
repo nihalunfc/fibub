@@ -11,11 +11,12 @@ ads: false
 order: 1333
 icon: pointer
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [newtons-laws, friction-ramp, vector-adder, simple-machines]
 sources:
   - "Newton's second and third laws applied body by body, with friction up to μN, for standard set-ups: Atwood machine a = (m₂ − m₁)g/(m₁ + m₂), T = 2m₁m₂g/(m₁ + m₂); apparent weight in a lift N = m(g + a). Standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
   - "Checked by adding every body's forces as x-y vectors on 3000 random set-ups (they must equal m a in the direction of motion) and against hand-worked examples."
+  - "Newton's second law applied to each body, Atwood machine a = (M − m)g/(M + m) and T = 2Mmg/(M + m), apparent weight N = m(g + a) in a lift: standard school physics found in any textbook (g = 9.8 m/s², rounded). The card was hand-checked against worked examples."
 flow:
   - { icon: sliders, label: "Set-up" }
   - { icon: check, label: "Tick forces" }
@@ -49,6 +50,9 @@ Up and down: N + 30 sin 30° = 49, so **N = 34 N** (less than the weight, becaus
 
 Switch to the **Atwood machine** with 3 kg and 5 kg: a = (5 − 3) × 9.8 ÷ 8 = **2.45 m/s²** and T = 2 × 3 × 5 × 9.8 ÷ 8 = **36.75 N**, between the two weights (29.4 N and 49 N), as it must be.
 
+## Solve my numbers
+Under the diagram practice, the card at the top gives the numbers for the set-ups students are asked about, from values you type. Choose two masses over a pulley (acceleration and tension), the reading of scales in a lift (up is positive, so accelerating up gives a bigger reading and free fall gives zero), a block on a table pulled by a hanging mass with friction, two blocks pushed together (acceleration and the contact force between them), or a box pulled by a rope at an angle (the normal force, whether it moves and how fast). Masses can be kg or g, forces N or kN, angles degrees or radians, and g can be changed for the Moon or Mars. The answer is in one sentence, followed by one equation per body, the sum that gives a, and each number worked with its unit. A line under it names the common slip, for example forgetting that the tension is the same on both sides, or that a rope pulling upwards makes the normal force smaller than mg. Tap an example to fill in a typical problem. Impossible numbers, such as a force too small to move the block, show what is happening instead of a negative acceleration.
+
 ## Tips
 
 - Only two kinds of force act: gravity (at a distance) and contact forces (from anything touching the body: a surface, a string, your hand).
@@ -62,3 +66,5 @@ Switch to the **Atwood machine** with 3 kg and 5 kg: a = (5 − 3) × 9.8 ÷ 8 =
 **Why is the tension in an Atwood machine not equal to either weight?** If it equalled the lighter weight, nothing would lift it; if it equalled the heavier, nothing would pull it down. It has to be in between for both to accelerate.
 
 **Is anything stored?** No. Everything is worked out in your browser and nothing is saved or sent.
+
+**How do I find the tension in an Atwood machine?** T = 2 m₁ m₂ g ÷ (m₁ + m₂); type the two masses under Solve my numbers and the working is shown.

@@ -26,4 +26,19 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.gh .sq-q', (e) => e.dataset.ans);
   await page.fill('.gh .sq-q .sq-in', ans); await page.click('.gh .sq-q .sq-check');
   check((await page.textContent('.gh .sq-q .sq-res')) === 'Right!' && (await page.$$('.gh .sq-q')).length === 4, 'gravity-height-depth: quiz');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/gravity-height-depth/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Space station height'); check((await psAns()).includes('g at 400 km up is 8.69 m/s²'), 'gravity-height-depth: example Space station height: g at 400 km up is 8.69 m/s²');
+  await psPre('Mine 1000 km down'); check((await psAns()).includes('g at 1000 km down is 8.28 m/s²'), 'gravity-height-depth: example Mine 1000 km down: g at 1000 km down is 8.28 m/s²');
+  await psPre('Low satellite'); check((await psAns()).includes('Speed 7.67 km/s, period 92.4 minutes'), 'gravity-height-depth: example Low satellite: Speed 7.67 km/s, period 92.4 minutes');
+  await psPre('Escape from Mars'); check((await psAns()).includes('The escape speed is 5.03 km/s'), 'gravity-height-depth: example Escape from Mars: The escape speed is 5.03 km/s');
+  await psPre('Weight on the Moon'); check((await psAns()).includes('Weight: 97.5 N'), 'gravity-height-depth: example Weight on the Moon: Weight: 97.5 N');
+  await psSet('d', {'d-d': '9000'}); check((await psAns()).includes('cannot be more than the radius'), 'gravity-height-depth: d cannot be more than the radius');
+  await psSet('frac', {'frac-k': '4'}); check((await psAns()).includes('6370 km above the surface'), 'gravity-height-depth: frac 6370 km above the surface');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'gravity-height-depth: working shown, no NaN');
 };

@@ -35,6 +35,8 @@ If you want to watch it grow, save a dated snapshot each month and see the line.
 
 ## What each option does
 
+- **More options, ratios**: the debt-to-asset ratio (debts divided by assets), how much of your assets is cash and savings, and the change since your last saved snapshot. These are rough guides, not advice.
+- **More options, currency symbol**: type a symbol such as $ or ₹ and it shows before every number.
 - **Remember my list and snapshots**: off by default. When ticked, your list is kept in this browser only and is never sent anywhere. Untick it, or press **Clear saved data**, to remove it.
 - **Save a snapshot**: records today's assets, debts and net worth. Saving twice on one day replaces that day.
 - **Export / Import JSON**: save your list and snapshots as a file, or load one back, for example on another device.

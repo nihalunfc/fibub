@@ -29,6 +29,15 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     <p class="note bad dnt-err" role="alert" hidden></p>
   </section>
   <section class="panel">
+    <h2>Out-of-network dentist (optional)</h2>
+    <details><summary>More options</summary>
+    <p class="dnt-hint">Some plans pay a percentage of an "allowed" amount, and an out-of-network dentist may charge more than that. Type how much more than the allowed amount your dentist charges and the costs above are treated as the dentist's fees. Your plan's booklet says what it allows.</p>
+    <div class="dnt-grid">
+      <label>Dentist charges more than allowed by <span class="dnt-suf"><input data-k="oon" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+    </details>
+  </section>
+  <section class="panel">
     <h2>Compare with a discount plan (optional)</h2>
     <p class="dnt-hint">A discount plan has a fee and takes a percentage off each bill: it is not insurance. Type the fee and the discount from its own price list.</p>
     <div class="dnt-grid">
@@ -45,6 +54,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div class="dnt-disc" hidden><span>Discount plan</span><b class="dnt-s-disc"></b></div>
     </div>
     <p class="dnt-line dnt-words"></p>
+    <div class="panel dnt-oonp" hidden><h2>With an out-of-network dentist</h2><p class="dnt-line dnt-oon-words"></p></div>
+    <div class="panel"><h2>Where the yearly maximum bites</h2>
+      <p class="dnt-hint">The same plan if the year's treatment cost a multiple of what you entered.</p>
+      <div class="dnt-wrap"><table><thead><tr><th>Treatment total</th><th>Plan pays</th><th>You pay</th><th>With the premium</th></tr></thead><tbody class="dnt-scale"></tbody></table></div>
+    </div>
     <div class="panel"><h2>Treatment by treatment</h2>
       <div class="dnt-wrap"><table><thead><tr><th>Type</th><th>Month</th><th>Cost</th><th>Plan pays</th><th>Note</th></tr></thead><tbody class="dnt-body"></tbody></table></div>
     </div>
@@ -89,14 +103,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { dentalYear, type DentalClass } from '../../lib/money/insurance';
+  import { dentalYear, dentalOutOfNetwork, dentalScaleTable, type DentalClass } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.dnt')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency();
   q('.dnt-cur').innerHTML = currencyOptions(cur);
-  const def: Record<string, string> = { prem: '400', ded: '50', max: '1,500', pp: '100', pb: '80', pm: '50', wp: '0', wb: '3', wm: '12', fee: '0', off: '20' };
+  const def: Record<string, string> = { prem: '400', ded: '50', max: '1,500', pp: '100', pb: '80', pm: '50', wp: '0', wb: '3', wm: '12', fee: '0', off: '20', oon: '0' };
   for (const k in def) f(k).value = def[k];
   const $ = (n: number) => money(n, (q('.dnt-cur') as HTMLSelectElement).value, 0);
   const rows = q('.dnt-rows');
@@ -117,6 +131,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.dnt-err').hidden = !bad; q('.dnt-err').textContent = bad; q('.dnt-res').hidden = !!bad;
     if (bad) return;
     const r = dentalYear({ premium: prem, deductible: p('ded'), annualMax: p('max'), pays: { preventive: p('pp') / 100, basic: p('pb') / 100, major: p('pm') / 100 }, wait: { preventive: p('wp'), basic: p('wb'), major: p('wm') }, deductibleOnPreventive: f('dp').checked, items });
+    const din = { premium: prem, deductible: p('ded'), annualMax: p('max'), pays: { preventive: p('pp') / 100, basic: p('pb') / 100, major: p('pm') / 100 }, wait: { preventive: p('wp'), basic: p('wb'), major: p('wm') }, deductibleOnPreventive: f('dp').checked, items };
+    q('.dnt-scale').innerHTML = dentalScaleTable(din, [0.5, 1, 2, 3, 5]).map((x) => `<tr><td>${$(x.cost)}</td><td>${$(x.planPays)}</td><td>${$(x.youPay)}</td><td>${$(x.total)}</td></tr>`).join('');
+    q('.dnt-oonp').hidden = !(p('oon') > 0);
+    if (p('oon') > 0) { const o = dentalOutOfNetwork(din, p('oon')); q('.dnt-oon-words').innerHTML = `If the dentist charges ${p('oon')}% above the allowed amount, the plan pays <b>${$(o.planPays)}</b> and you pay <b>${$(o.youPay)}</b>, which is ${$(o.balanceBilled)} of balance bills on top. With the premium that is <b>${$(o.total)}</b>.`; }
     const disc = p('fee') > 0 ? p('fee') + r.cashOnly * (1 - p('off') / 100) : 0;
     q('.dnt-s-plan').textContent = $(r.planPays); q('.dnt-s-you').textContent = $(r.youPay);
     q('.dnt-s-tot').textContent = $(r.total); q('.dnt-s-cash').textContent = $(r.cashOnly);

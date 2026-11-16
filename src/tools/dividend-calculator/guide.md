@@ -45,6 +45,10 @@ Dividends can be cut or stopped, so treat the growth rates as tests, not promise
 
 100 shares at a price of 100, paying 3 a share a year, bought at an average cost of 50. Yield is 3%, yield on cost is 6%, and income is 300 a year. With no growth and DRIP on, 300 buys 3 more shares, so year 2 income is 103 x 3 = 309.
 
+## More options
+
+Open **More options** and type the monthly dividend income you want. The tool works out how many shares you need at your dividend per share, and what they cost at today's price. Below the results, a line compares reinvesting dividends (DRIP) with taking the cash: it shows the final value and the income in the last year both ways, plus the cash you would have received without reinvesting.
+
 ## FAQs
 
 **Is the dividend guaranteed?** No. Companies can change or stop it.

@@ -49,4 +49,24 @@ export default async ({ page, check, BASE }) => {
   check((await (await items[0].$('.lq-fb')).textContent()) === 'Right.', 'temp: C to F answer accepted');
   await (await items[1].$('.lq-in')).fill('9999'); await (await items[1].$('.lq-check')).click();
   check((await (await items[1].$('.lq-fb')).textContent()).startsWith('Not quite'), 'temp: wrong answer marked');
+
+  // ---- Solve my numbers ----
+  {
+    await page.goto(BASE + path); await page.waitForTimeout(500);
+    const ans = () => page.textContent('.ps-host .ps-ans'), work = () => page.textContent('.ps-host .ps-work');
+    const pre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+    const set = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { if (v[0] === '#') await page.selectOption(`.ps-host [data-k="${k}"]`, v.slice(1)); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+    const ok = async (s, m) => check((await ans()).includes(s), `${'temperature-scales'}: ${m} (${await ans()})`);
+    await pre('Body 98.6'); await ok('37 °C = 98.6 °F = 310.15 K = 558.27 °R', '98.6 °F');
+    await pre('Room 25'); await ok('25 °C = 77 °F = 298.15 K', '25 °C');
+    await pre('Liquid nitrogen'); await ok('−196.15 °C = −321.07 °F = 77 K', '77 K');
+    await pre('Own scale'); await ok('reads 70', '20 + 200·25/100');
+    await pre('Gas to 100'); await ok('137 kPa', '100·373.15/273.15');
+    await set('conv', { 'conv-v': '-300', 'conv-s': '#0' }); await ok('below absolute zero', '-300 °C impossible');
+    await set('conv', { 'conv-v': '-40', 'conv-s': '#0' }); await ok('−40 °C = −40 °F', '−40 is the same on both');
+    await set('agree', { 'agree-L': '20', 'agree-H': '220' }); await ok('Both read −20 at −20 °C', 'scales agree at −20');
+    await set('diff', { 'diff-d': '10', 'diff-s': '#2' }); await ok('is 10 °C = 10 K = 18 °F', '10 K change = 18 °F');
+    await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+    check((await work()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), `temperature-scales: working shown, no NaN`);
+  }
 };

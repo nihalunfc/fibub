@@ -12,6 +12,29 @@ import SmQuiz from '../../components/SmQuiz.astro';
     </div>
   </div>
 
+  <div class="ax-card cn-solve">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help">Type the numbers from your textbook equation and get the centre, foci, eccentricity and latus rectum with the working. The curve is drawn below.</p>
+    <label>My equation looks like
+      <select data-k="form" class="cn-form">
+        <option value="ellipse">x²/A + y²/B = 1 (ellipse)</option>
+        <option value="hyperbola-x">x²/A − y²/B = 1 (hyperbola)</option>
+        <option value="hyperbola-y">y²/A − x²/B = 1 (hyperbola)</option>
+        <option value="parabola-x">y² = L·x (parabola)</option>
+        <option value="parabola-y">x² = L·y (parabola)</option>
+        <option value="circle-general">x² + y² + Dx + Ey + F = 0 (circle)</option>
+      </select>
+    </label>
+    <div class="cn-nums">
+      <label class="cn-n1"><span class="cn-l1">A =</span> <input data-k="n1" class="cn-in1" type="number" inputmode="decimal" step="any" value="25" /></label>
+      <label class="cn-n2"><span class="cn-l2">B =</span> <input data-k="n2" class="cn-in2" type="number" inputmode="decimal" step="any" value="9" /></label>
+      <label class="cn-n3" hidden><span class="cn-l3">F =</span> <input data-k="n3" class="cn-in3" type="number" inputmode="decimal" step="any" value="-4" /></label>
+    </div>
+    <p class="cn-ans" aria-live="polite"></p>
+    <ol class="cn-steps"></ol>
+    <p class="cn-tip ax-help"></p>
+  </div>
+
   <div class="ax-card cn-main">
     <h2 class="cn-eq"></h2>
     <canvas class="ax-fig cn-fig" role="img"></canvas>
@@ -54,7 +77,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { circle, ellipse, parabola, hyperbola, dist, toLine, slice, type Conic, type Pt } from '../../lib/sci/school-conics';
+  import { circle, ellipse, parabola, hyperbola, dist, toLine, slice, solveConic, type ConicForm, type Conic, type Pt } from '../../lib/sci/school-conics';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { view, axes, line, dot, label, px, py, fmt, type View } from '../../lib/sm-graph';
   import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
@@ -78,7 +101,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }
   const tOf = (C: Conic) => { const u = val('.cn-t') / 1000; return C.kind === 'hyperbola' ? -2 + 4 * u : C.kind === 'parabola' ? -3 + 6 * u : 2 * Math.PI * u; };
 
+  let custom: Conic | null = null;
   function make(): Conic {
+    if (custom) return custom;
     if (kind === 'circle') return circle(val('.cn-h'), val('.cn-kk'), val('.cn-r'));
     if (kind === 'ellipse') return ellipse(val('.cn-a'), val('.cn-b'));
     if (kind === 'parabola') return parabola(val('.cn-p'), q<HTMLSelectElement>('.cn-dir').value as 'right');
@@ -91,7 +116,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
     q('.cn-av').textContent = fmt(val('.cn-a')); q('.cn-bv').textContent = fmt(val('.cn-b')); q('.cn-pv').textContent = fmt(val('.cn-p'));
     const C = make(), p = C.point(tOf(C));
     q('.cn-eq').textContent = C.equation;
-    const span = Math.max(7, ...C.foci.map((f) => Math.abs(f[0]) + 1.5), ...C.foci.map((f) => Math.abs(f[1]) + 1.5));
+    const reach = custom ? (C.kind === 'circle' ? Math.max(Math.abs(C.foci[0][0]), Math.abs(C.foci[0][1])) + C.a + 1 : C.kind === 'parabola' ? 0 : Math.max(C.a, C.b || 0) + 1.5) : 0;
+    const span = Math.max(7, reach, ...C.foci.map((f) => Math.abs(f[0]) + 1.5), ...C.foci.map((f) => Math.abs(f[1]) + 1.5));
     const ext = Math.min(14, span), v = view(-ext, ext, (-ext * (H - 34)) / (W - 44), (ext * (H - 34)) / (W - 44), W, H);
     const fig: Figure = { w: W, h: H, alt: `${C.equation}: foci ${C.foci.map(P).join(' and ')}, eccentricity ${fmt(C.e, 3)}`, draw: (ctx, w, h, pl: Palette) => {
       axes(ctx, v, pl, { xName: 'x', yName: 'y' });
@@ -159,10 +185,26 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }
 
   const run = () => { q('.cn-main').hidden = kind === 'slice'; q('.cn-slice').hidden = kind !== 'slice'; if (kind === 'slice') cone(); else main(); };
-  root.querySelectorAll<HTMLButtonElement>('.cn-k button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.k!; root.querySelectorAll('.cn-k button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
-  root.querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', run); e.addEventListener('change', run); });
+  const setKind = (k: string) => { kind = k; root.querySelectorAll('.cn-k button').forEach((x) => x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.k === k))); };
+  root.querySelectorAll<HTMLButtonElement>('.cn-k button').forEach((b) => b.addEventListener('click', () => { custom = null; setKind(b.dataset.k!); run(); }));
+  root.querySelectorAll('.cn-sls input, .cn-sls select, .cn-slice input').forEach((e) => { const f = () => { if (e.closest('.cn-sls') && !(e as HTMLElement).classList.contains('cn-t')) custom = null; run(); }; e.addEventListener('input', f); e.addEventListener('change', f); });
+  const LABELS: Record<string, [string, string, string]> = { ellipse: ['A = (under x²)', 'B = (under y²)', ''], 'hyperbola-x': ['A = (under x²)', 'B = (under y²)', ''], 'hyperbola-y': ['A = (under y²)', 'B = (under x²)', ''], 'parabola-x': ['L =', '', ''], 'parabola-y': ['L =', '', ''], 'circle-general': ['D =', 'E =', 'F ='] };
+  const DEFAULTS: Record<string, number[]> = { ellipse: [25, 9], 'hyperbola-x': [9, 16], 'hyperbola-y': [9, 16], 'parabola-x': [12], 'parabola-y': [8], 'circle-general': [-2, 4, -4] };
+  const solve = () => {
+    const form = q<HTMLSelectElement>('.cn-form').value as ConicForm, lab = LABELS[form];
+    [1, 2, 3].forEach((i) => { q(`.cn-n${i}`).hidden = !lab[i - 1]; q(`.cn-l${i}`).textContent = lab[i - 1]; });
+    const vals = [1, 2, 3].filter((i) => lab[i - 1]).map((i) => { const t = q<HTMLInputElement>(`.cn-in${i}`).value.trim(); return t === '' ? NaN : +t; });
+    const r = solveConic(form, vals);
+    q('.cn-ans').textContent = r.sentence; q('.cn-steps').replaceChildren(...r.steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; })); q('.cn-tip').textContent = r.tip;
+    custom = r.conic ?? null;
+    if (custom) setKind(custom.kind);
+    run();
+  };
+  q<HTMLSelectElement>('.cn-form').addEventListener('change', () => { const d = DEFAULTS[q<HTMLSelectElement>('.cn-form').value]; [1, 2, 3].forEach((i) => { if (d[i - 1] !== undefined) q<HTMLInputElement>(`.cn-in${i}`).value = String(d[i - 1]); }); solve(); });
+  root.querySelectorAll('.cn-nums input').forEach((e) => e.addEventListener('input', solve));
   document.addEventListener('fibub:theme', run);
   run();
+  solve();
 
   quiz(q('.cn-quiz'), (): Question[] => {
     const [a, b, c] = pick([[5, 3, 4], [5, 4, 3], [13, 12, 5], [10, 6, 8], [10, 8, 6]]);
@@ -187,5 +229,10 @@ import SmQuiz from '../../components/SmQuiz.astro';
   .cnx .cn-sls select { max-width: 320px; }
   .cnx .cn-pnote, .cnx .cn-snote { overflow-wrap: anywhere; margin: 10px 0; }
   .cnx .cn-eq { font-size: 20px; }
+  .cnx .cn-nums { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+  .cnx .cn-nums label { display: grid; gap: 4px; }
+  .cnx .cn-nums input { width: 8em; max-width: 100%; }
+  .cnx .cn-ans { font-weight: 600; margin: 8px 0; overflow-wrap: anywhere; }
+  .cnx .cn-steps { padding-left: 20px; display: grid; gap: 4px; margin: 0 0 8px; overflow-wrap: anywhere; }
   .cnx .cn-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
 </style>

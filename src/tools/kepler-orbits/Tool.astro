@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax ko">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the orbit size, period or distance from your problem and get the answer with the working. Check units: AU, km, m and years, days.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row ko-top">
       <span class="ko-lab">Level</span>
@@ -267,6 +268,12 @@ import '../../styles/astro.css';
   draw();
   document.addEventListener('fibub:theme', draw);
   let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { KEPLER } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, KEPLER);
 </script>
 
 <style is:inline>

@@ -7,11 +7,11 @@ import '../../styles/smath.css';
 <div class="ax sm ap">
   <div class="ax-card">
     <h2>The staircase</h2>
-    <p class="ax-big ap-seq" aria-live="polite" style="margin:4px 0 8px"></p>
+    <p class="ax-big ap-seq" aria-live="polite" data-k="answer" style="margin:4px 0 8px"></p>
     <svg class="sm-fig ap-fig" viewBox="0 0 340 260" role="img" aria-label="Terms of the progression drawn as bars"></svg>
-    <div class="sm-sl"><b>a</b><input type="range" class="ap-ar" min="-20" max="20" step="1" value="3" aria-label="First term slider" /><input type="number" class="ap-a" step="1" value="3" inputmode="decimal" aria-label="First term a" /></div>
-    <div class="sm-sl"><b>d</b><input type="range" class="ap-dr" min="-10" max="10" step="0.5" value="4" aria-label="Common difference slider" /><input type="number" class="ap-d" step="0.5" value="4" inputmode="decimal" aria-label="Common difference d" /></div>
-    <div class="sm-sl"><b>n</b><input type="range" class="ap-nr" min="1" max="40" step="1" value="10" aria-label="Number of terms slider" /><input type="number" class="ap-n" min="1" max="500" step="1" value="10" inputmode="numeric" aria-label="Number of terms n" /></div>
+    <div class="sm-sl"><b>a</b><input type="range" class="ap-ar" min="-20" max="20" step="1" value="3" aria-label="First term slider" /><input type="number" class="ap-a" data-k="a" step="1" value="3" inputmode="decimal" aria-label="First term a" /></div>
+    <div class="sm-sl"><b>d</b><input type="range" class="ap-dr" min="-10" max="10" step="0.5" value="4" aria-label="Common difference slider" /><input type="number" class="ap-d" data-k="d" step="0.5" value="4" inputmode="decimal" aria-label="Common difference d" /></div>
+    <div class="sm-sl"><b>n</b><input type="range" class="ap-nr" min="1" max="40" step="1" value="10" aria-label="Number of terms slider" /><input type="number" class="ap-n" data-k="n" min="1" max="500" step="1" value="10" inputmode="numeric" aria-label="Number of terms n" /></div>
     <div class="ax-row">
       <button type="button" class="btn secondary small ap-pre" data-p="3,4,10">3, 7, 11, ...</button>
       <button type="button" class="btn secondary small ap-pre" data-p="1,1,100">1 to 100</button>
@@ -29,6 +29,44 @@ import '../../styles/smath.css';
       <label>Which term is <input type="number" class="ap-v" step="any" value="39" inputmode="decimal" /></label>
     </div>
     <p class="sm-f ap-which"></p>
+  </div>
+
+  <div class="ax-card ap-solve">
+    <h2>Solve my problem</h2>
+    <p class="ax-help">Type the clues from your question. The page finds a, d, n or the sum and shows the working.</p>
+    <div class="ax-row"><span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small" data-sp="two,3,12,8,37">3rd term 12, 8th term 37</button>
+      <button type="button" class="btn secondary small" data-sp="sum,24,-3,78,">How many terms make 78?</button>
+      <button type="button" class="btn secondary small" data-sp="fl,7,100,32,">First 7, last 100, 32 terms</button>
+      <button type="button" class="btn secondary small" data-sp="cnt,5,98,3,">How many terms from 5 to 98?</button>
+    </div>
+    <label>What do you know?
+      <select class="ap-s-mode" data-k="s-mode">
+        <option value="two">Two terms (like the 5th and the 10th): find a and d</option>
+        <option value="sum">First term, d and a total: how many terms?</option>
+        <option value="fl">First term, last term and how many terms: find d and the sum</option>
+        <option value="cnt">First term, last term and d: how many terms?</option>
+      </select>
+    </label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="ap-s-l1">Term number p</span> <input type="number" step="any" data-k="s1" value="5" inputmode="decimal" /></label>
+      <label><span class="ap-s-l2">Its value</span> <input type="number" step="any" data-k="s2" value="20" inputmode="decimal" /></label>
+      <label class="ap-s-3"><span class="ap-s-l3">Term number q</span> <input type="number" step="any" data-k="s3" value="10" inputmode="decimal" /></label>
+      <label class="ap-s-4"><span class="ap-s-l4">Its value</span> <input type="number" step="any" data-k="s4" value="45" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err ap-s-err" hidden></p>
+    <p class="ax-big ap-s-ans" aria-live="polite" data-k="s-answer"></p>
+    <ol class="sm-steps ap-s-steps"></ol>
+    <div class="ax-row"><button type="button" class="btn secondary small ap-s-load" hidden>Show this in the staircase above</button></div>
+    <details>
+      <summary>Common mistakes</summary>
+      <ul class="sm-try">
+        <li>Using n instead of n − 1: the 10th term is a + 9d, not a + 10d.</li>
+        <li>Getting d the wrong way round: d = (later term) − (earlier term), so a falling list has a negative d.</li>
+        <li>Calling a list an AP without checking: the gaps must all be equal.</li>
+        <li>When a sum gives two values of n, check both: if d is negative the later terms cancel the earlier ones, so two different n can give the same total.</li>
+      </ul>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -55,8 +93,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { nth, terms, sum, whichTerm } from '../../lib/sci/ap-school';
-  import { fmt, randInt } from '../../lib/sci/smath';
+  import { nth, terms, sum, whichTerm, fromTwoTerms, countTerms, fromFirstLast, termsForSum } from '../../lib/sci/ap-school';
+  import { fmt, sgn, randInt } from '../../lib/sci/smath';
   import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.ap')!;
@@ -97,6 +135,77 @@ import '../../styles/smath.css';
     q('.ap-which').textContent = q<HTMLInputElement>('.ap-v').value.trim() === '' ? 'Type a value to find which term it is.' : w2 ? `${fmt(v, 3)} = ${fmt(a, 3)} + (n − 1) × ${fmt(d, 3)} gives n = ${w2}: it is term number ${w2}.` : `(${fmt(v, 3)} − ${fmt(a, 3)}) / ${fmt(d, 3)} + 1 is not a whole number of 1 or more, so ${fmt(v, 3)} is not a term of this progression.`;
   }
   root.querySelectorAll<HTMLButtonElement>('.ap-pre').forEach((b) => b.addEventListener('click', () => { const [a, d, n] = b.dataset.p!.split(',').map(Number); setA(a); setD(d); setN(n); draw(); }));
+
+  // ---- Solve my problem ----
+  const sk = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement & HTMLSelectElement;
+  const LAB: Record<string, string[]> = {
+    two: ['Term number p', 'Its value', 'Term number q', 'Its value'], sum: ['First term a', 'Common difference d', 'Total S', ''],
+    fl: ['First term a', 'Last term l', 'Number of terms n', ''], cnt: ['First term a', 'Last term l', 'Common difference d', ''],
+  };
+  let loaded: { a: number; d: number; n?: number } | null = null;
+  const sErr = q('.ap-s-err'), sAns = q('.ap-s-ans'), sSteps = q('.ap-s-steps'), sLoad = q<HTMLButtonElement>('.ap-s-load');
+  const sv = (k: string) => { const t = sk(k).value.trim(); return t === '' ? NaN : Number(t); };
+  function solve() {
+    const mode = sk('s-mode').value, L = LAB[mode], v = [sv('s1'), sv('s2'), sv('s3'), sv('s4')];
+    L.forEach((t, i) => { q(`.ap-s-l${i + 1}`).textContent = t; });
+    q('.ap-s-3').hidden = !L[2]; q('.ap-s-4').hidden = !L[3];
+    const need = L[3] ? 4 : 3;
+    let err = '', ans = '', lines: string[] = []; loaded = null;
+    if (v.slice(0, need).some((x) => !Number.isFinite(x))) err = 'Type every number to get an answer.';
+    else if (mode === 'two') {
+      const [p, x, qq, y] = v, r = fromTwoTerms(p, x, qq, y);
+      if (!r) err = p === qq ? 'The two term numbers must be different.' : 'Term numbers must be whole numbers of 1 or more.';
+      else {
+        ans = `a = ${fmt(r.a, 3)} and d = ${fmt(r.d, 3)}. The nth term is ${fmt(r.d, 3)}n ${sgn(r.a - r.d, 3)}.`;
+        lines = [`aₚ = a + (p − 1)d, so a + ${p - 1}d = ${fmt(x, 3)}, and a + ${qq - 1}d = ${fmt(y, 3)}.`,
+          `Subtract the first from the second: (${qq - 1} − ${p - 1})d = ${fmt(y, 3)} − ${fmt(x, 3)}, so d = ${fmt(y - x, 3)} / ${fmt(qq - p, 3)} = ${fmt(r.d, 3)}.`,
+          `Put d back: a = ${fmt(x, 3)} − ${p - 1} × ${fmt(r.d, 3)} = ${fmt(r.a, 3)}.`];
+        loaded = { a: r.a, d: r.d };
+      }
+    } else if (mode === 'sum') {
+      const [a, d, S] = v, r = termsForSum(a, d, S);
+      if (!r.ns.length) err = 'No whole number of terms gives that total. Check the numbers (a negative total, or a total the list never reaches, has no answer).';
+      else {
+        ans = r.ns.length === 1 ? `n = ${r.ns[0]} terms.` : `n = ${r.ns.join(' or ')} terms (both work).`;
+        lines = [`Sₙ = n/2 [2a + (n − 1)d], so ${fmt(S, 3)} = n/2 [${fmt(2 * a, 3)} + (n − 1) × ${fmt(d, 3)}].`,
+          d === 0 ? `With d = 0 every term is ${fmt(a, 3)}, so n = ${fmt(S, 3)} / ${fmt(a, 3)} = ${r.ns[0]}.` : `Multiply out: ${fmt(d, 3)}n² ${sgn(2 * a - d, 3)}n − ${fmt(2 * S, 3)} = 0.`,
+          ...(d === 0 ? [] : [`Solving this quadratic gives n = ${[...r.other, ...r.ns].sort((m, o) => m - o).map((m) => fmt(m, 3)).join(' or ')}.`]),
+          ...(r.other.length ? [`n = ${r.other.map((m) => fmt(m, 3)).join(' or ')} is left out: n must be a whole number of 1 or more.`] : []),
+          ...(r.ns.length === 2 ? [`Both fit because d is negative: after some point the terms are negative and take away what was added.`] : [])];
+        loaded = { a, d, n: r.ns[0] };
+      }
+    } else if (mode === 'fl') {
+      const [a, l, n] = v, r = fromFirstLast(a, l, n);
+      if (!r) err = 'The number of terms must be a whole number, 2 or more.';
+      else {
+        ans = `d = ${fmt(r.d, 3)} and the sum of the ${n} terms is ${fmt(r.sum, 3)}.`;
+        lines = [`l = a + (n − 1)d, so d = (l − a) / (n − 1) = (${fmt(l, 3)} − ${fmt(a, 3)}) / ${n - 1} = ${fmt(r.d, 3)}.`,
+          `Sₙ = n/2 (a + l) = ${n}/2 × (${fmt(a, 3)} + ${fmt(l, 3)}) = ${fmt(r.sum, 3)}.`];
+        loaded = n <= 500 ? { a, d: r.d, n } : null;
+      }
+    } else {
+      const [a, l, d] = v, r = countTerms(a, l, d);
+      if (d === 0) err = 'With d = 0 every term is the same, so the number of terms cannot be found from the last term.';
+      else if (!r) err = `${fmt(l, 3)} is not a term: (${fmt(l, 3)} − ${fmt(a, 3)}) / ${fmt(d, 3)} + 1 = ${fmt((l - a) / d + 1, 3)} is not a whole number of 1 or more.`;
+      else {
+        ans = `${r.n} terms, with sum ${fmt(r.sum, 3)}.`;
+        lines = [`l = a + (n − 1)d, so n − 1 = (l − a) / d = (${fmt(l, 3)} − ${fmt(a, 3)}) / ${fmt(d, 3)} = ${r.n - 1}, and n = ${r.n}.`,
+          `Sₙ = n/2 (a + l) = ${r.n}/2 × (${fmt(a, 3)} + ${fmt(l, 3)}) = ${fmt(r.sum, 3)}.`];
+        loaded = r.n <= 500 ? { a, d, n: r.n } : null;
+      }
+    }
+    sErr.hidden = !err; sErr.textContent = err; sAns.textContent = err ? '' : ans;
+    sSteps.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    sLoad.hidden = !loaded;
+  }
+  root.querySelectorAll<HTMLElement>('.ap-solve [data-k]').forEach((e) => { e.addEventListener('input', solve); e.addEventListener('change', solve); });
+  sLoad.addEventListener('click', () => { if (!loaded) return; setA(loaded.a); setD(loaded.d); if (loaded.n) setN(loaded.n); draw(); q('.ap-fig').scrollIntoView({ block: 'center' }); });
+  root.querySelectorAll<HTMLButtonElement>('.ap-solve [data-sp]').forEach((b) => b.addEventListener('click', () => {
+    const [m, ...rest] = b.dataset.sp!.split(','); sk('s-mode').value = m;
+    rest.forEach((x, i) => { if (x !== '' || i < 4) sk(`s${i + 1}`).value = x; });
+    solve();
+  }));
+  solve();
   draw();
 
   quiz(q('.ap-quiz'), () => {

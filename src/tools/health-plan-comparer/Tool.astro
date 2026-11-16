@@ -34,6 +34,16 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
         <tbody class="hp-body"></tbody>
       </table></div>
       <p class="hp-line hp-be"></p>
+      <p class="hp-line hp-pick"></p>
+      <details class="hp-more">
+        <summary>More options: how likely is each kind of year?</summary>
+        <p class="hp-hint">Type your own guess of how likely each year is (any numbers, for example 60, 30, 10). We then show the average yearly cost of each plan. Leave blank to skip.</p>
+        <div class="hp-top">
+          <label>Low year chance, % <input data-k="w0" inputmode="decimal" /></label>
+          <label>Typical year chance, % <input data-k="w1" inputmode="decimal" /></label>
+          <label>Bad year chance, % <input data-k="w2" inputmode="decimal" /></label>
+        </div>
+      </details>
     </div>
     <figure class="panel hp-chart">
       <figcaption>Total yearly cost against care spent <span class="hp-lg"></span></figcaption>
@@ -75,7 +85,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { planCost, breakEvens, type Plan } from '../../lib/money/insurance';
+  import { planCost, breakEvens, worstYear, weightedCost, type Plan } from '../../lib/money/insurance';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.hp')!;
@@ -143,6 +153,15 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       table.push([`${labels[k]} (${Math.round(s)})`, ...tot.map((t) => Math.round(t))]);
       return `<tr><td>${labels[k]}: ${$(s)}</td>${tot.map((t) => `<td class="${t - lo < 0.005 ? 'low' : ''}">${$(t)}${t - lo < 0.005 && n > 1 ? ' (lowest)' : ''}</td>`).join('')}</tr>`;
     }).join('');
+    const worst = plans.map((p) => worstYear(p));
+    q('.hp-body').innerHTML += `<tr class="hp-worst"><td>Worst possible year</td>${worst.map((w) => `<td>${w === null ? 'No ceiling' : $(w)}</td>`).join('')}</tr>`;
+    const ws = [num(f('w0').value), num(f('w1').value), num(f('w2').value)];
+    const exp = plans.map((p) => weightedCost(p, sp, ws));
+    if (exp[0] !== null) {
+      q('.hp-body').innerHTML += `<tr class="hp-exp"><td>Average year (your chances)</td>${exp.map((x) => `<td>${$(x as number)}</td>`).join('')}</tr>`;
+    }
+    const typ = plans.map((p) => planCost(p, sp[1]).total), bi = typ.indexOf(Math.min(...typ));
+    q('.hp-pick').innerHTML = `In a typical year (${$(sp[1])} of care), <b>${names[bi].replace(/</g, '&lt;')}</b> costs least at <b>${$(typ[bi])}</b>.${worst[bi] !== null ? ` Its worst possible year is ${$(worst[bi] as number)}.` : ''}`;
     // break-evens for every pair
     const parts: string[] = [];
     for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {

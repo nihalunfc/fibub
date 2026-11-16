@@ -12,7 +12,11 @@ import '../../styles/collect.css';
 77777777</textarea>
     </label>
     <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sc-star" /> My note has a star or replacement mark (I set this myself)</label>
-    <p class="ax-help">Replacement and star notes are marked by the printer in ways that differ by country. This tool cannot tell, so you tick the box yourself.</p>
+    <p class="ax-help">Replacement and star notes are marked by the printer in ways that differ by country. This tool cannot tell, so you tick the box yourself. A star (* or ★) typed in a line is also taken as a star note.</p>
+    <details style="margin-top:8px"><summary>More options</summary>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="sc-only" data-k="only" /> Show only serials with a pattern</label>
+      <p class="ax-help">You can also separate serials with commas, not only new lines.</p>
+    </details>
   </div>
   <div class="ax-card">
     <h2>2. Patterns found</h2>
@@ -37,6 +41,12 @@ import '../../styles/collect.css';
       <li><strong>Two digits only</strong>: just two different digits, such as 33533533.</li>
       <li><strong>Low number</strong>: 100 or under (or 1000 or under). Early numbers in a series.</li>
       <li><strong>Round number</strong>: one digit then all zeros, such as 50000000.</li>
+      <li><strong>Near solid</strong>: all but one digit the same, such as 88888889.</li>
+      <li><strong>Rotator</strong>: reads the same when the note is turned upside down (digits 0, 1, 8, 6 and 9 only), such as 109601.</li>
+      <li><strong>Four in a row</strong>: four or more of one digit together anywhere, such as 12777704.</li>
+      <li><strong>Part ladder</strong>: five digits in a row count up or down, such as 90123456.</li>
+      <li><strong>Looks like a date</strong>: eight digits that read as day, month and year, such as 25122024.</li>
+      <li><strong>Star note</strong>: a replacement for a misprinted note. How it is marked depends on the country, so tick the box or type a star.</li>
       <li><strong>Run</strong>: starts with four or more of the same digit, such as 77770123.</li>
     </ul>
   </div>
@@ -51,26 +61,27 @@ import '../../styles/collect.css';
 </style>
 
 <script>
-  import { serialPatterns } from '../../lib/collect/maths';
+  import { serialPatterns, serialExtras, splitSerials } from '../../lib/collect/maths';
 
   const root = document.querySelector('.sc') as HTMLElement;
   const input = root.querySelector('.sc-in') as HTMLTextAreaElement;
   const star = root.querySelector('.sc-star') as HTMLInputElement;
   const body = root.querySelector('.sc-tab tbody') as HTMLElement;
   const sum = root.querySelector('.sc-sum') as HTMLElement;
+  const only = root.querySelector('.sc-only') as HTMLInputElement;
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
   const update = () => {
-    const lines = input.value.split('\n').map((l) => l.trim()).filter(Boolean);
+    const lines = splitSerials(input.value).filter((l) => !only.checked || serialPatterns(l).length + serialExtras(l).length > 0);
     const counts: Record<string, number> = {};
     let withPattern = 0, rows = '';
     for (const l of lines) {
-      const hits = serialPatterns(l);
+      const hits = [...serialPatterns(l), ...serialExtras(l)];
       if (hits.length) withPattern++;
       hits.forEach((h) => { const n = h.name.split(':')[0]; counts[n] = (counts[n] || 0) + 1; });
       let cell = hits.length ? hits.map((h) => `<span class="ax-pill good">${esc(h.name)}</span>`).join('') : '<span class="ax-pill">No pattern found</span>';
       if (l.replace(/\D/g, '').length < 4) cell = '<span class="ax-pill warn">Needs at least 4 digits</span>';
-      if (star.checked) cell += '<span class="ax-pill warn">Star or replacement (your note)</span>';
+      if (star.checked || /[*★]/.test(l)) cell += '<span class="ax-pill warn">Star or replacement (your note)</span>';
       rows += `<tr><td>${esc(l)}</td><td>${cell}</td></tr>`;
     }
     body.innerHTML = rows || '<tr><td colspan="2">Type or paste a serial number above.</td></tr>';
@@ -78,6 +89,6 @@ import '../../styles/collect.css';
     sum.textContent = lines.length ? `${withPattern} of ${lines.length} with a pattern${parts.length ? ': ' + parts.join(', ') : ''}` : '';
   };
   input.addEventListener('input', update);
-  star.addEventListener('change', update);
+  star.addEventListener('change', update); only.addEventListener('change', update);
   update();
 </script>

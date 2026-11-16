@@ -1,9 +1,9 @@
 ---
 import LearnPage from '../../components/LearnPage.astro';
 import { COURSES } from '../../data/curricula';
-const cards = COURSES.map((c) => ({ name: c.name, text: c.text, href: c.status === 'live' ? c.href : undefined }));
+const cards = COURSES.map((c) => ({ name: c.name, text: c.text, href: c.status === 'live' ? c.href : undefined, live: c.status === 'live' }));
 ---
-<LearnPage title="Learn: Courses" description="Short free courses for young learners on new and advanced topics: coding, AI, space, climate, money and science skills."
-  lead="Short free courses on new and advanced topics, written for young learners. Every lesson is short and has something to try."
-  cardsTitle="Planned courses" cards={cards}
+<LearnPage title="Learn: Courses" description="Free short courses: home skills such as changing a tyre, fixing a puncture, hand tools, light carpentry and wall fixings, plus coding, AI, space and science."
+  lead="Short free courses with pictures for every step. Start with home skills: tyres and punctures, hand tools, light carpentry, wall fixings and how machines work. More topics are on the way."
+  cardsTitle="Courses" cards={cards}
   toolsTitle="Tools the courses will use" tools={['sky-tonight', 'plot-maker', 'sql-playground', 'budget-calculator', 'tree-carbon', 'sample-size']} />

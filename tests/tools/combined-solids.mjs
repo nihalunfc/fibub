@@ -31,4 +31,19 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `solids: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/combined-solids/`); await page.waitForTimeout(600);
+  {
+  const S = '.cb-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'The total surface area is 214.5 cm².' && (await work()).includes('l = √(r² + H²) = √(3.5² + 12²) = 12.5 cm'), `combined solve: cone on hemisphere (${await ans()})`);
+  await pre(1); check((await ans()) === 'The total surface area is 308 mm².' && (await work()).includes('= 14 − 2 × 3.5 = 7 mm'), `combined solve: capsule (${await ans()})`);
+  await pre(2); check((await ans()) === 'The volume is 4312 cm³ (4.312 litres, since 1000 cm³ = 1 litre).', `combined solve: rocket volume (${await ans()})`);
+  await pre(3); check((await ans()).startsWith('The volume is 2875 cm³'), `combined solve: dome volume (${await ans()})`);
+  await pre(4); check((await ans()) === 'About 22.5, so 22 whole spheres can be made.', `combined solve: melted into spheres (${await ans()})`);
+  await pre(0); await page.fill(S + '[data-k="sv-rate"]', '2'); check((await ans()) === 'The total surface area is 214.5 cm², so the cost is 429.', `combined solve: painting cost (${await ans()})`);
+  await page.fill(S + '[data-k="sv-r"]', '0'); check((await ans()) === 'The radius must be more than 0.', `combined solve: zero radius (${await ans()})`);
+  await pre(1); await page.fill(S + '[data-k="sv-T"]', '5'); check((await ans()).includes('total height is too small'), `combined solve: total too small (${await ans()})`);
+  }
 };

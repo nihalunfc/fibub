@@ -1,0 +1,54 @@
+/* Home skills lessons (src/lib/learn/skill.ts). Uses the site colours, so dark and red night mode follow. */
+.sk-safe { border-left: 4px solid var(--bad); background: var(--bad-soft); }
+.sk-pro { border-left: 4px solid var(--warn); background: var(--warn-soft); }
+.sk-safe > h2, .sk-pro > h2 { display: flex; gap: 8px; align-items: center; }
+.sk-safe ul, .sk-pro ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.sk-kit { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+.sk-kit li { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 14px; background: var(--bg); }
+.sk-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; counter-reset: sk; }
+.sk-step { counter-increment: sk; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--bg); }
+@media (min-width: 640px) { .sk-step { grid-template-columns: 220px minmax(0, 1fr); } .sk-step .sk-done { grid-column: 2; } }
+.sk-step.is-done { border-color: var(--good); background: var(--good-soft); }
+.sk-step h3 { margin: 0 0 4px; font-size: 16px; }
+.sk-step h3::before { content: counter(sk) ". "; color: var(--muted); }
+.sk-step p { margin: 0 0 6px; font-size: 15px; line-height: 1.5; }
+.sk-step .sk-tip { font-size: 14px; color: var(--muted); }
+.sk-fig { width: 100%; max-width: 320px; height: auto; color: var(--ink); justify-self: center; }
+.sk-fig .hl, .sk-label .hl { color: var(--accent); }
+.ax .sk-done, .sk-done { display: inline-flex; flex-direction: row; gap: 8px; align-items: center; font-size: 15px; font-weight: 600; cursor: pointer; color: var(--ink); }
+.sk-done input { width: 22px; height: 22px; accent-color: var(--good); }
+.sk-progress { margin: 0 0 6px; font-weight: 600; }
+.sk-meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-bottom: 12px; }
+.sk-meter span { display: block; height: 100%; width: 0; background: var(--good); transition: width .2s; }
+.sk-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 12px; }
+.ax .sk-remember, .sk-remember { display: inline-flex; flex-direction: row; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+.sk-btn { font: inherit; font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; min-height: 40px; }
+.sk-btn:hover { border-color: var(--accent); }
+.sk-btn[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.sk-btn:disabled { opacity: .35; cursor: default; }
+.sk-small { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.sk-label svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 10px auto 0; color: var(--ink); touch-action: manipulation; }
+.sk-part { cursor: pointer; outline: none; pointer-events: all; }
+.sk-part:hover, .sk-part:focus-visible { color: var(--accent); }
+.sk-part.sk-on { color: var(--accent); }
+.sk-part.sk-right { color: var(--good); }
+.sk-part.sk-wrong { color: var(--bad); }
+.sk-label-out, .sk-order-out { min-height: 2.6em; margin: 10px 0 0; font-size: 15px; }
+.sk-order-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; counter-reset: so; }
+.sk-order-list li { counter-increment: so; display: grid; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 6px 10px; background: var(--bg); }
+.sk-order-list li::before { content: none; }
+.sk-order-t::before { content: counter(so) ". "; color: var(--muted); }
+.sk-order-list .sk-btn { padding: 6px 0; min-width: 44px; }
+.sk-order-list li.sk-right { border-color: var(--good); background: var(--good-soft); }
+.sk-order-list li.sk-right .sk-order-t::after { content: " ✓"; color: var(--good); font-weight: 700; }
+.sk-order-list li.sk-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.sk-order-list li.sk-wrong .sk-order-t::after { content: " ✗"; color: var(--bad); font-weight: 700; }
+.sk-course { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: space-between; font-size: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--surface); }
+.sk-course a { font-weight: 600; }
+@media print {
+  html.sk-printing body * { visibility: hidden; }
+  html.sk-printing .sk-printable, html.sk-printing .sk-printable * { visibility: visible; }
+  html.sk-printing .sk-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+  html.sk-printing .sk-printable .sk-bar, html.sk-printing .sk-printable .sk-small, html.sk-printing .sk-printable .sk-meter { display: none; }
+  html.sk-printing .sk-step { break-inside: avoid; grid-template-columns: 160px 1fr; }
+}

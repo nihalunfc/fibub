@@ -37,3 +37,15 @@ export const depression = (H: number, angle: number) => H / tan(angle);
 
 /** Values students use: tan 30° = 1/√3, tan 45° = 1, tan 60° = √3 (√3 ≈ 1.732). */
 export const TAN_TEXT: Record<number, string> = { 30: '1/√3', 45: '1', 60: '√3' };
+
+/**
+ * A tower (or flagstaff, pole) standing on top of a building, seen from a point on the ground `d` away from the foot.
+ * `top` is the angle of elevation of the top of the tower, `base` the angle of elevation of the top of the building
+ * (the bottom of the tower); top must be bigger than base. Returns the building, the tower and the total height.
+ * Added 2026-11-16.
+ */
+export function towerOnBuilding(d: number, top: number, base: number) {
+  if (!(top > base)) return null;
+  const building = d * tan(base), total = d * tan(top);
+  return { building, tower: total - building, total };
+}

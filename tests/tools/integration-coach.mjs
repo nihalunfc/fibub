@@ -47,4 +47,23 @@ export default async ({ page, check, BASE }) => {
   check((await t('.smq-q:nth-child(4) .smq-out')) === 'Right!', 'coach: ∫ x eˣ from 0 to 1 = 1');
   await page.fill(R + '.smq-q:nth-child(5) .smq-in', '2'); await page.click(R + '.smq-q:nth-child(5) .smq-check');
   check((await t('.smq-q:nth-child(5) .smq-out')).startsWith('Not quite'), 'coach: wrong answer caught');
+  // Solve-my-numbers additions (2026-11-16).
+  await page.fill(R + '.ic-in', 'x e^x');
+  await page.evaluate(() => document.querySelectorAll('.icc details').forEach((d) => { d.open = true; }));
+  await page.fill(R + '.ic-lo', '0'); await page.fill(R + '.ic-hi', '1');
+  check((await t('.ic-dans')).endsWith('= 0 − (−1) = 1.') && (await t('.ic-dans')).includes('from 0 to 1'), `coach: definite x eˣ from 0 to 1 (${await t('.ic-dans')})`);
+  await page.fill(R + '.ic-in', 'x^2'); await page.fill(R + '.ic-hi', '3');
+  check((await t('.ic-dans')).endsWith('= 9 − 0 = 9.'), `coach: x² from 0 to 3 (${await t('.ic-dans')})`);
+  await page.fill(R + '.ic-lo', '3'); await page.fill(R + '.ic-hi', '0');
+  check((await t('.ic-dans')).includes('= 0 − 9 = −9') && (await t('.ic-dans')).includes('wrong way round'), `coach: swapped limits (${await t('.ic-dans')})`);
+  await page.fill(R + '.ic-in', '1/x'); await page.fill(R + '.ic-lo', '1'); await page.fill(R + '.ic-hi', '2');
+  check((await t('.ic-dans')).includes('= 0.6931'), `coach: 1/x from 1 to 2 is ln 2 (${await t('.ic-dans')})`);
+  await page.fill(R + '.ic-lo', '-1'); await page.fill(R + '.ic-hi', '1');
+  check((await t('.ic-dans')).includes('improper') && !(await t('.ic-dans')).includes('NaN'), `coach: 1/x across 0 is flagged (${await t('.ic-dans')})`);
+  await page.fill(R + '.ic-hi', 'abc');
+  check((await t('.ic-dans')).includes('numbers'), 'coach: bad limit message');
+  await page.fill(R + '.ic-in', 'sin(x)'); await page.fill(R + '.ic-lo', '0'); await page.fill(R + '.ic-hi', 'pi');
+  check((await t('.ic-dans')).endsWith('= 1 − (−1) = 2.') || (await t('.ic-dans')).includes('= 2.'), `coach: sin from 0 to π is 2 (${await t('.ic-dans')})`);
+  await chip('sec(x)^2');
+  check((await t('.ic-ans')) === '∫ sec²(x) dx = tan(x) + C' || (await t('.ic-ans')).includes('tan(x) + C'), `coach: sec² preset (${await t('.ic-ans')})`);
 };

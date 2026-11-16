@@ -11,7 +11,7 @@ ads: false
 order: 1316
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [circle-sector, pythagoras-proofs, herons-formula]
 sources:
   - "Standard mensuration formulas: curved surface of a cylinder 2πrh, of a cone πrl with l = √(r² + h²), of a hemisphere 2πr²; volumes πr²h, ⅓πr²h, ⅔πr³ and a³. Written for fibub."
@@ -63,6 +63,10 @@ The first shape starts with r = 3.5 cm and H = 12 cm, with π = 22/7. The slant 
 - Check your units: areas in cm², volumes in cm³.
 - Make the capsule's h = 0 and you get a sphere, a good check on the formulas.
 
+## Solve your own numbers
+
+The card at the top works out your own solid. Choose one of the five shapes, say whether you know a part height (the cone or cylinder) or the **total height or length** (the usual capsule wording), and type the radius and sizes in cm, m or mm. You get the **total surface area** with the hidden joins left out, or the **volume** part by part, with the slant height shown as √(r² + H²). Add a cost per square unit to get a painting cost. **Melt it into small spheres** divides the volume by one sphere's volume and tells you how many whole spheres you get. Choose π as 22/7, 3.14 or exact. A radius of zero, a total height that is too small, or a dome that does not fit the cube all give a plain message.
+
 ## FAQ
 
 **Why is the cube's total not 6a² + 2πr²?** The dome sits on part of the top face, which is now covered. You add the dome's curved surface (2πr²) and take away the covered circle (πr²).
@@ -72,3 +76,5 @@ The first shape starts with r = 3.5 cm and H = 12 cm, with π = 22/7. The slant 
 **Is this from the textbook?** No. The shapes and numbers are made up for practice and follow the topics of the Class 10 syllabus; fibub is not part of NCERT.
 
 **Is anything saved?** No. Everything is worked out in your browser and nothing is stored or sent.
+
+**How do I find the surface area of a combined solid?** Add the curved surfaces you can see and leave out the flat faces where the parts are joined. The card above lists each part and the hidden joins.

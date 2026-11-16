@@ -73,6 +73,47 @@ export function tripBalances(n: number, expenses: TripExpense[]) {
   return { bal, spent };
 }
 
+export interface TripExpenseW extends TripExpense { rate?: number }
+
+/**
+ * Like tripBalances, but each person has a share weight (1 = one adult, 2 = a couple, 0.5 = a child)
+ * and an expense can be in another currency: `rate` is how many base-currency units one unit of it is worth.
+ * Everything is converted to base-currency cents first, then split by weight, so balances still add to zero.
+ */
+export function tripBalancesW(n: number, expenses: TripExpenseW[], weights: number[] = []) {
+  const bal = new Array(n).fill(0);
+  const spent = new Array(n).fill(0);
+  for (const e of expenses) {
+    const rate = typeof e.rate === 'number' && e.rate > 0 && Number.isFinite(e.rate) ? e.rate : 1;
+    const c = Math.round(toCents(e.amount) * rate);
+    const who = e.forWho.filter((i) => i >= 0 && i < n);
+    if (!(c > 0) || !who.length || e.payer < 0 || e.payer >= n) continue;
+    bal[e.payer] += c;
+    spent[e.payer] += c;
+    let w = who.map((i) => (weights[i] > 0 && Number.isFinite(weights[i]) ? weights[i] : weights[i] === undefined ? 1 : 0));
+    if (!w.some((x) => x > 0)) w = who.map(() => 1);
+    splitCents(c, w).forEach((s, k) => (bal[who[k]] -= s));
+  }
+  return { bal, spent };
+}
+
+/** Parse lines like "EUR 1.08" or "EUR=1.08" into a code to rate map. Bad lines are skipped. */
+export function parseRates(text: string): { code: string; rate: number }[] {
+  const out: { code: string; rate: number }[] = [];
+  for (const line of text.split(/\n|;/)) {
+    const m = line.trim().match(/^([A-Za-z$€£₹]{1,6})\s*[=:\s]\s*([0-9]*\.?[0-9]+)$/);
+    if (m && +m[2] > 0 && !out.some((o) => o.code === m[1].toUpperCase())) out.push({ code: m[1].toUpperCase(), rate: +m[2] });
+  }
+  return out;
+}
+
+/** Plain-text summary to paste into a group chat. */
+export function settleText(names: string[], pays: { from: number; to: number; cents: number }[], cur = ''): string {
+  const f = (c: number) => (c / 100).toFixed(2) + (cur ? ' ' + cur : '');
+  if (!pays.length) return 'Everyone is square. Nobody owes anything.';
+  return ['To settle up:', ...pays.map((p) => `- ${names[p.from]} pays ${names[p.to]} ${f(p.cents)}`)].join('\n');
+}
+
 /** Fewest-practical transfers: biggest debtor pays biggest creditor until all are square (at most people - 1). */
 export function settle(bal: number[]) {
   const b = bal.slice();
@@ -98,4 +139,24 @@ export function netWorth(items: NwItem[]) {
     byCat.set(it.kind + ':' + it.cat, (byCat.get(it.kind + ':' + it.cat) || 0) + a);
   }
   return { assets, debts, net: assets - debts, byCat };
+}
+
+/** Simple balance-sheet ratios. Ratios are null when there is nothing to divide by. */
+export function nwRatios(items: NwItem[]) {
+  const r = netWorth(items);
+  const liquid = items.filter((i) => i.kind === 'asset' && (i.cat === 'Cash and bank' || i.cat === 'Savings and investments')).reduce((a, i) => a + (Math.abs(i.amount) || 0), 0);
+  return {
+    debtToAsset: r.assets > 0 ? r.debts / r.assets : null,
+    liquidShare: r.assets > 0 ? liquid / r.assets : null,
+    liquid,
+    liquidMinusDebts: liquid - r.debts,
+  };
+}
+
+/** Change between the newest saved snapshot and today's net worth. Null when no snapshot. */
+export function sinceSnapshot(net: number, snaps: { date: string; assets: number; debts: number }[]) {
+  if (!snaps.length) return null;
+  const last = snaps[snaps.length - 1];
+  const before = last.assets - last.debts;
+  return { date: last.date, change: net - before, pct: before !== 0 ? ((net - before) / Math.abs(before)) * 100 : null };
 }

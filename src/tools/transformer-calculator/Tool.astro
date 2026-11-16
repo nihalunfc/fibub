@@ -2,8 +2,19 @@
 // Transformer: turns ratio, voltages and currents with a load and an efficiency; then why power is sent over long
 // lines at high voltage: the I²R loss for the same power at 230 V, 11 kV, 33 kV, 132 kV, 220 kV and 400 kV.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax tfm">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem, pick what to find (a voltage, a number of turns or a current) and get the answer with the working. Leave efficiency blank for an ideal transformer.</p>
+    <div class="tfm-solve"></div>
+    <details style="margin-top:12px">
+      <summary>Power line loss (I²R)</summary>
+      <div class="tfm-lsolve" style="margin-top:10px"></div>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>Transformer</h2>
     <canvas class="ax-fig tfm-fig" aria-label="A transformer: two coils on an iron core"></canvas>
@@ -64,6 +75,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { TRANSFORMER_SPEC, LINE_SPEC } from '../../lib/sci/solve-transformer';
   import { transformer, line, questions } from '../../lib/sci/transformer-calculator';
   import { pagePalette } from '../../lib/report';
   import { setup, sci3, si, fact, onTheme, quiz } from '../../lib/school-p34';
@@ -122,4 +135,6 @@ import '../../styles/astro.css';
   onTheme(all);
   all();
   quiz(q('.tfm-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.tfm-solve')!, TRANSFORMER_SPEC, 'tr');
+  mountSolver(document.querySelector<HTMLElement>('.tfm-lsolve')!, LINE_SPEC, 'ln');
 </script>

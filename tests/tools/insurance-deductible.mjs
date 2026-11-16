@@ -17,4 +17,11 @@ export default async ({ page, check, BASE }) => {
   check(parseInt((await txt('.ded-s-win')), 10) > 50, 'insurance-deductible: rarer claims favour the high deductible');
   await set('db', '500'); await page.waitForTimeout(100);
   check(await page.isVisible('.ded .ded-err'), 'insurance-deductible: equal deductibles show a message');
+  await page.reload(); await page.waitForTimeout(500);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('size', '10000'); await page.waitForTimeout(100);
+  const yr = await page.$$eval('.ded .ded-yr tr', (r) => r.map((x) => x.textContent));
+  check(yr.length === 4 && yr[1].includes('1,700') && yr[1].includes('3,500'), 'insurance-deductible: one 10,000 claim costs A 1,200+500 and B 1,000+2,500 (' + yr[1] + ')');
+  check(yr[0].includes('Quote B'), 'insurance-deductible: with no claims quote B (cheaper premium) wins');
+  check(yr[1].includes('Quote A'), 'insurance-deductible: with one big claim quote A wins');
 };

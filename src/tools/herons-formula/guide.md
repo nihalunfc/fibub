@@ -11,7 +11,7 @@ ads: false
 order: 1164
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [pythagoras-proofs, similar-triangles, trig-ratios]
 sources:
   - "Heron's formula, the triangle inequality and ½ × base × height are standard geometry. The numerically stable ordering of the formula follows W. Kahan's well-known note on triangle areas. Written for fibub."
@@ -61,6 +61,14 @@ Try 10, 10, 10: s = 15 and the area is √(15 × 5 × 5 × 5) ≈ 43.30, the sam
 - Always check the triangle rule first: each side must be shorter than the sum of the other two.
 - With whole-number sides, the product under the square root is often a perfect square in textbook questions. Factorise it to take the root without a calculator.
 
+## Your numbers, units and more
+
+The three side boxes take any lengths, not only the slider range, and you can pick an **example** (3-4-5, 13-14-15, an equilateral triangle, 5-5-6, or a triangular park measured in metres) to see a worked case at once. The **length unit** selector (cm, m, mm, km, inches, feet) puts the right unit on the answer, so you read "Area ≈ 84 cm²". The three sides must all be in the same unit, so convert first; the page reminds you of that under the working.
+
+If a side is blank, zero or negative, or the three sides break the triangle rule, you get a plain message and the steps explain which condition failed. Nothing ever shows as NaN.
+
+Open **More options** to see the perimeter, the three angles (from the cosine rule), the three heights, the radius of the circle inside the triangle (area ÷ s) and of the circle through its corners (abc ÷ 4 × area), each with its numbers. Two optional boxes turn the area into a cost (price per square unit) and the perimeter into a fencing cost; use one currency throughout.
+
 ## Check yourself
 
 Four fresh questions each time: an area from three sides, an equilateral triangle, sides in a ratio with a given perimeter, and whether three lengths make a triangle. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -70,3 +78,7 @@ Four fresh questions each time: an area from three sides, an equilateral triangl
 **Who was Heron?** Heron of Alexandria, a Greek mathematician and engineer of the first century, wrote the formula down in his book *Metrica*.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own examples. fibub is not part of NCERT.
+
+**What is Heron's formula for the area of a triangle?** With s = (a + b + c)/2, the area is √[s(s − a)(s − b)(s − c)], so you only need the three side lengths and no height.
+
+**Why does my answer say these sides cannot make a triangle?** Each side must be shorter than the other two added together; when one side is as long as or longer than the other two combined, the triangle flattens and has no area.

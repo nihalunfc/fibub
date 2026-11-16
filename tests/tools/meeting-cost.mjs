@@ -18,4 +18,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.mc-t')) === '0:00', 'reset sets the meter to 0:00');
   await set('n', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.mc .mc-err'), 'zero people shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.mc [data-k="unit"]', 'hour'); await set('n', '6'); await set('amt', '50'); await set('oh', '0'); await set('min', '60');
+  // roles: 2 x 100/h + 4 x 25/h = 300/h for 1 h
+  await set('r1c', '2'); await set('r1p', '100'); await set('r2c', '4'); await set('r2p', '25'); await page.waitForTimeout(100);
+  check((await txt('.mc-s-hr')).includes('300.00'), 'roles: 2x100 + 4x25 = 300 an hour (' + (await txt('.mc-s-hr')) + ')');
+  // cut 15 of 60 min: 300/60*15 = 75.00 each time
+  check((await txt('[data-k="cuttext"]')).includes('75.00'), 'cut 15 minutes saves 75 (' + (await txt('[data-k="cuttext"]')) + ')');
 };

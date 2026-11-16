@@ -41,6 +41,8 @@ Writing a post to share the clean link? The [[linkedin-post-formatter]] adds bol
 
 Settings that a page needs are kept: a YouTube video id and start time, a search query, a page number, a GitHub branch.
 
+Under **More options** you can type a keep-list (for example `utm_source, ref`; `utm_*` works as a wildcard) so those parts stay, or tick **Remove every parameter** to cut each link back to its plain page address. The red chips under each link show exactly which parts were removed.
+
 ## Example
 
 `https://www.amazon.ca/Ceramic-Mug/dp/B0ABCDEFGH/ref=sr_1_3?crid=XYZ&keywords=mug&qid=1&sr=8-3&tag=someone-20`

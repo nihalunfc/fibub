@@ -58,4 +58,25 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   }
   await tap('.cdv-new');
   check((await page.textContent(R + '.cdv-score')) === '', 'division: new questions');
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.cdv-solve [data-k="cs-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.cdv-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'cs solve: answer is a polite live region');
+  check((await ans()) === 'Metaphase of mitosis in a cell with 2n = 46: 46 chromosomes in the cell, 4C of DNA, 1 cell at the end of this stage.' && (await wk()).includes('Chromatids in the cell: 4 × 23 = 92'), `cs solve: opens with a human cell in metaphase (${await ans()})`);
+  await ex(1, 5); check((await ans()).startsWith('Anaphase of mitosis in a cell with 2n = 46: 92 chromosomes in the cell, 4C'), `cs solve: anaphase doubles (${await ans()})`);
+  await ex(2, 5); check((await ans()) === 'Telophase I of meiosis in a cell with 2n = 14: 7 chromosomes in each of the 2 cells, 2C of DNA, 2 cells at the end of this stage.', `cs solve: end of meiosis I (${await ans()})`);
+  await ex(0, 5); await page.selectOption(SV('div'), 'meiosis'); await page.selectOption(SV('stageI'), 'ana2'); await page.waitForTimeout(60);
+  check((await ans()).startsWith('Anaphase II of meiosis in a cell with 2n = 46: 46 chromosomes in each of the 2 cells, 2C of DNA'), `cs solve: choose a meiosis stage (${await ans()})`);
+  await ex(3, 5); check((await ans()) === 'With 2n = 46 there are 23 chromosome pairs, giving 2^23 = 8,388,608 different gametes from independent assortment alone.' && (await wk()).includes('70,368,744,177,664'), `cs solve: gametes (${await ans()})`);
+  await ex(4, 5); check((await ans()) === 'The mitotic index is 10% (20 of 200 cells dividing). A stage with 10 cells lasts about 1.2 h of a 24 h cycle.', `cs solve: mitotic index (${await ans()})`);
+  await fill('dv', '300');
+  check((await ans()).includes('more dividing cells than cells counted'), 'cs solve: more dividing than counted');
+  await ex(3, 5); await fill('n2', '45');
+  check((await ans()).includes('even whole number') && !/NaN|Infinity/.test(await ans()), 'cs solve: odd chromosome number');
+  await fill('n2', '0');
+  check((await ans()).includes('even whole number'), 'cs solve: zero chromosomes');
+  await ex(0, 5);
+  check((await ans()).startsWith('Metaphase of mitosis'), 'cs solve: preset again after errors');
 };

@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax gvm">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (coil resistance, full-scale current, range wanted) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Your galvanometer</h2>
     <span class="ax-seg gvm-mode" role="group" aria-label="Make"><button type="button" data-v="A" aria-pressed="true">Make an ammeter</button><button type="button" data-v="V" aria-pressed="false">Make a voltmeter</button></span>
@@ -135,4 +136,10 @@ import '../../styles/astro.css';
   onTheme(draw);
   all();
   quiz(q('.gvm-quiz'), () => questions());
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { GALVO } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, GALVO);
 </script>

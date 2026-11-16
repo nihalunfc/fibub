@@ -11,7 +11,7 @@ ads: false
 order: 1444
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [mendel-peas, punnett-square, pedigree-drawing-tool, natural-selection]
 sources:
   - "Pedigree symbols and the rules of autosomal, X-linked and Y-linked inheritance with full penetrance are standard genetics. The verdicts come from trying every genotype for every person; this was checked in the tests against an independent Python brute force on 40 random families, and the one-line reasons were checked against it on 5000 more."
@@ -32,6 +32,8 @@ A **pedigree** is a family tree that shows who has a trait. Squares are males, c
 - **Why not?** A ruled-out pattern names the family that breaks it, for example "II-5 is affected but neither parent is: a dominant trait cannot skip a generation".
 - **Carriers.** Tap a pattern that fits and a dot appears inside everyone who must be a carrier under it. When several patterns fit, the note counts how many unrelated carriers each would need to marry in: for a rare trait, fewer is more likely.
 
+- **Chance for the next child.** Once the pattern is known, pick it in the second card, choose the mother's and father's genotypes (such as carrier or affected) and read the odds for an affected son and daughter in one sentence, with the working. For example, two carriers of an autosomal recessive trait have a 25% (1/4) chance with each child, and a carrier mother with an unaffected father has a 50% chance for a son and 0% for a daughter if the trait is X-linked recessive. Each pattern shows its own genotype names, and the Y-linked case greys out the mother.
+
 This fits **Class 12 Biology: principles of inheritance and variation** (pedigree analysis, sex-linked inheritance, Mendelian disorders) and builds on **Class 10 Science: heredity**. Start with dominant and recessive alleles in [[mendel-peas]]; work out exact odds for any cross with the [[punnett-square]]; and to draw a real-size family tree of your own, use the [[pedigree-drawing-tool]].
 
 ## How to use it
@@ -50,12 +52,16 @@ This fits **Class 12 Biology: principles of inheritance and variation** (pedigre
 
 ## Tips
 
+- Common mistakes: forgetting that every daughter gets her father's X, expecting the sons of an affected father to inherit an X-linked trait (they get his Y), and thinking earlier children change the odds for the next one (they do not).
+
 - Affected children of unaffected parents: recessive. Unaffected children of two affected parents: dominant.
 - Mostly males affected, passed through unaffected daughters: think X-linked recessive.
 - An affected father whose daughters are all affected and sons all unaffected: think X-linked dominant.
 - Father to every son, never to daughters: Y-linked.
 
 ## FAQ
+
+**How do I tell autosomal recessive from X-linked recessive in a pedigree?** An affected daughter of an unaffected father rules out X-linked recessive, while mostly affected boys with the trait passing through unaffected mothers points to X-linked; tap your family in the page above and it shows which patterns fit and why the others are ruled out.
 
 **Why can several patterns fit?** Small families often don't contain the one mating that would rule a pattern out. Real geneticists look at many families and at how rare the trait is.
 

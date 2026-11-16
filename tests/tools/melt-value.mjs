@@ -16,4 +16,10 @@ export default async ({ page, check, BASE }) => {
   await page.click('.mv .cp-clear'); await page.waitForTimeout(100);
   check((await page.textContent('.mv .mv-total')).includes('38.67'), `melt-value: Clear my prices goes back to the built-in price ($50) = $38.67 (${await page.textContent('.mv .mv-total')})`);
   check(await page.evaluate(() => !localStorage.getItem('fibub-melt-list-v1') && !localStorage.getItem('fibub-my-prices-v1')), 'melt-value: nothing kept on the device unless ticked');
+  await page.fill('.mv tr[data-m=silver] .cp-own', '30');
+  await page.evaluate(() => document.querySelectorAll('.mv details').forEach((d) => (d.open = true)));
+  await page.fill('.mv .mv-pay', '90'); await page.waitForTimeout(100);
+  check((await page.textContent('.mv .mv-payout')).includes('20.88'), `melt-value: 90% of $23.20 = $20.88 (${await page.textContent('.mv .mv-payout')})`);
+  await page.fill('.mv .mv-what', '10'); await page.waitForTimeout(100);
+  check((await page.textContent('.mv .mv-whatif')).includes('25.52'), `melt-value: +10% = $25.52 (${await page.textContent('.mv .mv-whatif')})`);
 };

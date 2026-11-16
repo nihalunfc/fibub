@@ -3,8 +3,15 @@
 // see why going up p% and down p% does not land back at the start. Fresh practice questions. Nothing is stored.
 import '../../styles/astro.css';
 import '../../styles/smath.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax sm pb">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem and get the answer in one sentence, with the working an exam marks. Choose what to find: a percent of a number, what percent one number is of another, the whole from a part, a price after a rise or fall, a percent change, or the original before a change.</p>
+    <div class="pb-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Percent of a whole</h2>
     <div class="ax-grid">
@@ -67,6 +74,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { PCT_SPEC } from '../../lib/sci/solve-pctbar';
   import { percentOf, changeBy, overall, original, whatPercent } from '../../lib/sci/percentage-bar';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, dragOn, pair, val, type Question } from '../../lib/smath-ui';
@@ -159,4 +168,6 @@ import '../../styles/smath.css';
       work: `New = old × ${fmt(1 + p5 / 100, 2)}, so old = ${fmt(a5, 2)} ÷ ${fmt(1 + p5 / 100, 2)} = ${fmt(original(a5, p5), 2)}. (Taking ${p5}% off ${fmt(a5, 2)} would be wrong.)` });
     return out;
   });
+
+  mountSolver(document.querySelector<HTMLElement>('.pb-solve')!, PCT_SPEC, 'pc');
 </script>

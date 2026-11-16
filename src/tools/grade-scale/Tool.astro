@@ -17,6 +17,17 @@ import '../../styles/collect.css';
     <p class="gs-desc"></p>
     <p class="ax-help">Words differ a little between countries and grading firms, so the matches are close, not exact. Ask a dealer or a collectors' club if a grade matters for a sale.</p>
   </div>
+  <details class="ax-card gs-more">
+    <summary><strong>More options</strong>: find a number from a word, or compare two grades</summary>
+    <label style="margin-top:10px">Find by word or letters <input class="gs-find" type="search" data-k="find" placeholder="e.g. fine, XF, SUP, vorzüglich" autocomplete="off" /></label>
+    <ul class="gs-hits" aria-live="polite"></ul>
+    <h3 style="font-size:15px;margin:14px 0 6px">Compare two grades</h3>
+    <div class="ax-grid">
+      <label>First <select class="gs-ca" data-k="a"></select></label>
+      <label>Second <select class="gs-cb" data-k="b"></select></label>
+    </div>
+    <p class="gs-cmp" aria-live="polite"></p>
+  </details>
   <div class="ax-card">
     <h2>3. All coin bands</h2>
     <div class="ax-scroll"><table class="gs-tab"><thead><tr><th>Numbers</th><th>US</th><th>UK</th><th>French</th><th>German</th><th>In plain words</th></tr></thead><tbody></tbody></table></div>
@@ -33,10 +44,11 @@ import '../../styles/collect.css';
   .gs .gs-range { width: 100%; margin-top: 10px; }
   .gs tr.gs-on td { font-weight: 700; }
   .gs td, .gs th { vertical-align: top; }
+  .gs .gs-hits { padding-left: 18px; font-size: 14px; } .gs .gs-hits li { margin: 4px 0; } .gs .gs-find { width: 100%; box-sizing: border-box; }
 </style>
 
 <script>
-  import { GRADES, gradeFor, SHELDON } from '../../lib/collect/maths';
+  import { GRADES, gradeFor, SHELDON, gradesByWord, compareGrades } from '../../lib/collect/maths';
 
   // fibub's own one-line descriptions, by the abbreviation used in GRADES.
   const DESC: Record<string, string> = {
@@ -81,5 +93,22 @@ import '../../styles/collect.css';
   };
   sel.addEventListener('change', show);
   range.addEventListener('input', () => { sel.value = String(SHELDON[+range.value]); show(); });
-  sel.value = '45'; show();
+  const ca = root.querySelector('.gs-ca') as HTMLSelectElement, cb = root.querySelector('.gs-cb') as HTMLSelectElement;
+  ca.innerHTML = cb.innerHTML = sel.innerHTML;
+  ca.value = '20'; cb.value = '65';
+  const cmp = () => {
+    const a = +ca.value, b = +cb.value, c = compareGrades(a, b);
+    const el = root.querySelector('.gs-cmp') as HTMLElement;
+    if (a === b) { el.textContent = `Both are ${a}: ${c.ga.us} (${c.ga.abbr}).`; return; }
+    const hi = c.higher === 'a' ? a : b, lo = c.higher === 'a' ? b : a;
+    el.textContent = `${hi} (${gradeFor(hi).us}) is better than ${lo} (${gradeFor(lo).us}) by ${c.numberGap} points. ` + (c.sameBand ? 'Both fall in the same word band, so a dealer may use the same word for both.' : `They are ${c.bandsApart} word band${c.bandsApart === 1 ? '' : 's'} apart.`);
+  };
+  ca.addEventListener('change', cmp); cb.addEventListener('change', cmp);
+  const find = root.querySelector('.gs-find') as HTMLInputElement, hits = root.querySelector('.gs-hits') as HTMLElement;
+  find.addEventListener('input', () => {
+    const r = gradesByWord(find.value);
+    hits.innerHTML = !find.value.trim() ? '' : r.length ? r.map((g) => `<li><button type="button" data-n="${SHELDON.filter((n) => n >= g.lo && n <= g.hi)[0]}">${rangeText(g)}</button>: ${g.us} (${g.abbr}), UK ${g.uk}, French ${g.fr}, German ${g.de}</li>`).join('') : '<li>No match. Try a shorter word.</li>';
+  });
+  hits.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) { sel.value = b.dataset.n!; show(); sel.scrollIntoView({ block: 'center' }); } });
+  sel.value = '45'; show(); cmp();
 </script>

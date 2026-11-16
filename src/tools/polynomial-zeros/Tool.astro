@@ -5,6 +5,36 @@ import '../../styles/astro.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm pz">
+  <div class="ax-card pz-solve">
+    <h2>Find the zeros of your polynomial</h2>
+    <p class="ax-help">Type the numbers from your question (decimals and fractions like 3/2 are fine) and read the zeros with the working.</p>
+    <div class="ax-grid">
+      <label>Kind <select data-k="deg" class="pz-sdeg"><option value="2">Quadratic: ax² + bx + c</option><option value="3">Cubic: ax³ + bx² + cx + d</option><option value="1">Linear: ax + b</option></select></label>
+      <label>Or start from an example <select data-k="preset" class="pz-pre"><option value="">My own numbers</option></select></label>
+    </div>
+    <div class="pz-co">
+      <label><span class="pz-cl">x²</span><input data-k="ca" inputmode="decimal" value="1" aria-label="a" /></label>
+      <label><span class="pz-cl">x</span><input data-k="cb" inputmode="decimal" value="-5" aria-label="b" /></label>
+      <label><span class="pz-cl">number</span><input data-k="cc" inputmode="decimal" value="6" aria-label="c" /></label>
+      <label hidden><span class="pz-cl">number</span><input data-k="cd" inputmode="decimal" value="0" aria-label="d" /></label>
+    </div>
+    <p class="ax-err pz-serr" hidden></p>
+    <p class="ax-big pz-ans" aria-live="polite"></p>
+    <ol class="sm-steps pz-work"></ol>
+    <p class="ax-help pz-tip"></p>
+    <button type="button" class="btn small secondary pz-show">Draw it on the graph below</button>
+    <details class="pz-more">
+      <summary>More options: is k a zero? divide by (x − k); build from sum and product</summary>
+      <div class="ax-grid" style="margin-top:8px"><label>k (try this value of x) <input data-k="k" inputmode="decimal" value="2" /></label></div>
+      <p class="sm-f pz-k"></p>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Sum of zeros <input data-k="sum" inputmode="decimal" value="5" /></label>
+        <label>Product of zeros <input data-k="prod" inputmode="decimal" value="6" /></label>
+      </div>
+      <p class="sm-f pz-build"></p>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>Zeros on the graph</h2>
     <div class="ax-seg pz-deg" role="group" aria-label="Degree">
@@ -45,9 +75,17 @@ import '../../styles/smath.css';
   </div>
 </div>
 
+<style is:inline>
+  .pz .pz-co { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; margin: 10px 0; }
+  .pz .pz-co input { min-height: 44px; width: 100%; text-align: center; font-size: 17px; }
+  .pz .pz-ans { margin: 12px 0 6px; overflow-wrap: anywhere; }
+  .pz .pz-work { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .pz .pz-more summary { cursor: pointer; padding: 8px 0; font-weight: 600; }
+</style>
+
 <script>
-  import { realZeros, fromZeros, relations, polyText, evalPoly } from '../../lib/sci/polyzeros-school';
-  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { realZeros, fromZeros, relations, polyText, evalPoly, solveQuadratic, synthetic, allZeros, rationalZero } from '../../lib/sci/polyzeros-school';
+  import { fmt, randInt, fracText, readNum, numText } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.pz')!;
@@ -142,6 +180,120 @@ import '../../styles/smath.css';
     draw();
   }));
   draw();
+
+  // ---- Find the zeros of typed coefficients, with the working. ----
+  const sg = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const ssel = (k: string) => q<HTMLSelectElement>(`[data-k="${k}"]`);
+  const PRE: { name: string; co: string[] }[] = [
+    { name: 'x² − 5x + 6', co: ['1', '-5', '6'] },
+    { name: '2x² − 7x + 3 (a fraction zero)', co: ['2', '-7', '3'] },
+    { name: 'x² − 6x + 9 (equal zeros)', co: ['1', '-6', '9'] },
+    { name: 'x² − 4x + 1 (zeros with a root sign)', co: ['1', '-4', '1'] },
+    { name: 'x² + 2x + 5 (no real zeros)', co: ['1', '2', '5'] },
+    { name: 'x³ − 6x² + 11x − 6', co: ['1', '-6', '11', '-6'] },
+    { name: '2x³ − 3x² − 3x + 2', co: ['2', '-3', '-3', '2'] },
+    { name: 'x³ − 1 (one real zero)', co: ['1', '0', '0', '-1'] },
+  ];
+  ssel('preset').append(...PRE.map((p, i) => new Option(p.name, String(i))));
+  const tf = (x: number) => fmt(x, 4), par = (x: number) => (x < 0 ? `(${tf(x)})` : tf(x));
+  const sumOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  const isSq = (n: number) => Number.isInteger(n) && n >= 0 && Number.isInteger(Math.sqrt(n));
+  const cx = (re: number, im: number) => `${numText(re)} ± ${numText(im)}i`;
+  /** (−b ± √D)/2a with the root simplified: D = 12 gives 2 ± √3. */
+  function surd(a: number, b: number, D: number): string {
+    let k = 1, d = D; for (let f = 2; f * f <= d; f++) while (d % (f * f) === 0) { d /= f * f; k *= f; }
+    const g = Math.abs(gcdI(gcdI(b, k), 2 * a)) || 1, p = -b / g, rt = k / g, den = (2 * a) / g, root = `${rt === 1 ? '' : rt}√${d}`;
+    const sgn = den < 0 ? -1 : 1, P = p * sgn, Dn = Math.abs(den);
+    if (Dn === 1) return P === 0 ? `±${root}` : `${P} ± ${root}`;
+    return P === 0 ? `±${root}/${Dn}` : `(${P} ± ${root})/${Dn}`;
+  }
+  const gcdI = (x: number, y: number): number => (y ? gcdI(y, x % y) : Math.abs(x));
+  /** The zeros as a sentence and the working lines for a quadratic. */
+  function quadWork(a: number, b: number, c: number, lines: string[]) {
+    const sq = solveQuadratic(a, b, c), D = sq.D;
+    lines.push(`Discriminant D = b² − 4ac = ${par(b)}² − 4×${par(a)}×${par(c)} = ${tf(b * b)} − ${tf(4 * a * c)} = ${tf(D)}.`);
+    if (sq.kind === 'complex') { lines.push(`D < 0, so there are no real zeros (the parabola never meets the x axis). The zeros are complex: x = (−b ± √D)/2a = ${cx(sq.re, sq.im)}.`); return { text: `No real zeros. The complex zeros are x = ${cx(sq.re, sq.im)}.`, real: [] as number[] }; }
+    const ints = [a, b, c].every(Number.isInteger);
+    lines.push(`D ${sq.kind === 'equal' ? '= 0, so the two zeros are equal' : '> 0, so there are two different real zeros'}. x = (−b ± √D)/(2a) = (${tf(-b)} ± √${tf(D)})/${tf(2 * a)}.`);
+    if (sq.kind === 'two' && ints && !isSq(D)) lines.push(`Exactly: x = ${surd(a, b, D)}. As decimals: ${tf(sq.real[0])} and ${tf(sq.real[1])}.`);
+    const [r1, r2] = sq.real;
+    lines.push(`Check: sum of zeros = −b/a = ${numText(-b / a)} and the zeros add to ${numText(r1 + r2)}; product = c/a = ${numText(c / a)} and the zeros multiply to ${numText(r1 * r2)}.`);
+    if (ints && sq.kind !== 'complex') { const f = (r: number) => (r === 0 ? 'x' : `(x ${r < 0 ? '+' : '−'} ${numText(Math.abs(r))})`); if (isSq(D)) lines.push(`Factorised: ${a === 1 ? '' : `${a}`}${f(r1)}${sq.kind === 'equal' ? '²' : f(r2)}.`.replace('xx', 'x²')); }
+    return { text: sq.kind === 'equal' ? `The zero is x = ${numText(r1)} (it occurs twice).` : `The zeros are x = ${numText(r1)} and x = ${numText(r2)}.`, real: sq.real };
+  }
+  function solveZeros() {
+    const deg = Number(ssel('deg').value), ids = ['ca', 'cb', 'cc', 'cd'];
+    const names = deg === 1 ? ['x', 'number'] : deg === 2 ? ['x²', 'x', 'number'] : ['x³', 'x²', 'x', 'number'];
+    ids.forEach((id, i) => { const lab = sg(id).closest('label')!; lab.hidden = i > deg; if (i <= deg) lab.querySelector('.pz-cl')!.textContent = names[i]; });
+    const err = q('.pz-serr'), ans = q('.pz-ans'), work = q('.pz-work'), tip = q('.pz-tip'), kk = q('.pz-k');
+    const co = ids.slice(0, deg + 1).map((id) => readNum(sg(id).value));
+    const stop = (m: string) => { err.textContent = m; err.hidden = false; ans.textContent = ''; work.replaceChildren(); tip.textContent = ''; kk.textContent = ''; };
+    const bad = co.findIndex((x) => !Number.isFinite(x));
+    if (bad >= 0) return stop(`Type a number for the ${names[bad]} box (0 is fine; use a fraction like 3/2 if you need one).`);
+    if (co.some((x) => Math.abs(x) > 1e6)) return stop('Please keep the numbers between −1,000,000 and 1,000,000.');
+    err.hidden = true;
+    const lines: string[] = [], what = `p(x) = ${polyText(co, 4)}`;
+    let text = '', zeros: number[] = [];
+    const [a, b] = co;
+    if (a === 0) {
+      const lower = co.slice(1);
+      if (lower.every((x) => x === 0)) { ans.textContent = 'Every number is a zero: all the coefficients are 0.'; work.replaceChildren(); tip.textContent = ''; return; }
+      return stop(`The first number (${names[0]}) is 0, so this is not a ${deg === 2 ? 'quadratic' : deg === 3 ? 'cubic' : 'linear'} any more. Type a number other than 0 there, or pick a lower kind.`);
+    }
+    lines.push(`${what}. Its zeros are the x values where p(x) = 0.`);
+    if (deg === 1) { zeros = [-b / a]; lines.push(`ax + b = 0, so x = −b/a = ${tf(-b)}/${tf(a)} = ${numText(zeros[0])}.`); text = `The zero is x = ${numText(zeros[0])}.`; }
+    else if (deg === 2) { const r = quadWork(a, b, co[2], lines); text = r.text; zeros = r.real; }
+    else {
+      const [, , c, d] = co, ints = co.every(Number.isInteger), rz = ints ? rationalZero(co) : null;
+      let done = false;
+      if (rz) {
+        const r = rz[0] / rz[1], sy = synthetic(co, r);
+        lines.push(`Try the rational zero test: a whole-number or fraction zero p/q has p dividing ${d} and q dividing ${a}. x = ${numText(r)} works: p(${numText(r)}) = ${tf(evalPoly(co, r))}, so (x ${r < 0 ? '+' : '−'} ${numText(Math.abs(r))}) is a factor.`);
+        lines.push(`Divide (synthetic division, k = ${numText(r)}): ${sy.rows.map(tf).join(', ')}. The quotient is ${polyText(sy.quotient, 4)} and the remainder is ${tf(sy.remainder)}.`);
+        const sub: string[] = []; const r2 = quadWork(sy.quotient[0], sy.quotient[1], sy.quotient[2], sub); lines.push(...sub.map((t, i) => (i === 0 ? `Now solve the quotient. ${t}` : t)));
+        zeros = [r, ...r2.real].sort((x, y) => x - y);
+        const cp = solveQuadratic(sy.quotient[0], sy.quotient[1], sy.quotient[2]);
+        text = cp.kind === 'complex' ? `One real zero: x = ${numText(r)}. The other two are complex: x = ${cx(cp.re, cp.im)}.` : `The zeros are ${zeros.map((z) => `x = ${numText(z)}`).join(', ')}${new Set(zeros.map((z) => tf(z))).size < 3 ? ' (one repeats)' : ''}.`;
+        done = true;
+      }
+      if (!done) {
+        const az = allZeros(co); zeros = az.real;
+        lines.push('No simple whole-number or fraction zero was found, so the zeros are found by the cubic formula (worked out by the page) and rounded.');
+        text = az.complex ? `One real zero: x ≈ ${tf(az.real[0])}. The other two are complex: x ≈ ${tf(az.complex.re)} ± ${tf(az.complex.im)}i.` : `The zeros are ${az.real.map((z) => `x ≈ ${tf(z)}`).join(', ')}.`;
+      }
+      const all = zeros.length === 3;
+      lines.push(`Check with the relations: α + β + γ = −b/a = ${numText(-b / a)}${all ? `, zeros add to ${numText(sumOf(zeros))}` : ''}; αβ + βγ + γα = c/a = ${numText(c / a)}${all ? `, zeros give ${numText(zeros[0] * zeros[1] + zeros[1] * zeros[2] + zeros[0] * zeros[2])}` : ''}; αβγ = −d/a = ${numText(-d / a)}${all ? `, zeros multiply to ${numText(zeros[0] * zeros[1] * zeros[2])}` : ''}.`);
+    }
+    ans.textContent = text;
+    work.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t.replace(/-(?=\d)/g, '−') })));
+    tip.textContent = deg === 1 ? 'Common mistake: the zero is −b/a, not b/a. Check by putting it back into p(x).' : 'Common mistake: write the equation as p(x) = 0 first (everything on one side) and keep the signs of b and c when you substitute them.';
+    // k: remainder theorem.
+    const k = readNum(sg('k').value);
+    if (!Number.isFinite(k)) kk.textContent = 'Type a number for k to test it as a zero.';
+    else { const v = evalPoly(co, k), sy = synthetic(co, k), isZ = Math.abs(v) < 1e-9 * Math.max(1, ...co.map(Math.abs)); kk.textContent = `p(${numText(k)}) = ${tf(v)}${isZ ? `, so k = ${numText(k)} is a zero and (x ${k < 0 ? '+' : '−'} ${numText(Math.abs(k))}) is a factor.` : `, which is not 0, so ${numText(k)} is not a zero. By the remainder theorem, dividing by (x ${k < 0 ? '+' : '−'} ${numText(Math.abs(k))}) leaves remainder ${tf(v)}.`} Quotient: ${polyText(sy.quotient, 4)}, remainder ${tf(sy.remainder)}.`.replace(/-(?=\d)/g, '−'); }
+    // Build from sum and product.
+    const S = readNum(sg('sum').value), P = readNum(sg('prod').value), bl = q('.pz-build');
+    if (!Number.isFinite(S) || !Number.isFinite(P)) bl.textContent = 'Type the sum and the product to build the quadratic.';
+    else { const Dd = S * S - 4 * P; bl.textContent = `x² − (sum)x + (product) = ${polyText([1, -S, P], 4)}. Its zeros are ${Dd < 0 ? `not real (D = ${tf(Dd)} is below 0)` : Dd === 0 ? `equal: x = ${numText(S / 2)}` : `x = ${numText((S - Math.sqrt(Dd)) / 2)} and x = ${numText((S + Math.sqrt(Dd)) / 2)}`}. Any a × this polynomial has the same zeros.`.replace(/-(?=\d)/g, '−'); }
+  }
+  const sroot = q('.pz-solve');
+  sroot.addEventListener('input', (e) => { const k = (e.target as HTMLElement).dataset.k; if (k === 'preset') return; if (['ca', 'cb', 'cc', 'cd'].includes(k!)) ssel('preset').value = ''; solveZeros(); });
+  sroot.addEventListener('change', (e) => {
+    const k = (e.target as HTMLElement).dataset.k;
+    if (k === 'preset') {
+      const p = PRE[Number(ssel('preset').value)]; if (!p) return;
+      ssel('deg').value = String(p.co.length - 1); ['ca', 'cb', 'cc', 'cd'].forEach((id, i) => { sg(id).value = p.co[i] ?? '0'; });
+    } else if (k === 'deg') ssel('preset').value = '';
+    solveZeros();
+  });
+  q('.pz-show').addEventListener('click', () => {
+    const d = Number(ssel('deg').value), co = ['ca', 'cb', 'cc', 'cd'].slice(0, d + 1).map((id) => readNum(sg(id).value));
+    if (!co.every(Number.isFinite) || !co[0]) { solveZeros(); return; }
+    root.querySelector<HTMLButtonElement>(`.pz-deg button[data-d="${d}"]`)!.click();
+    co.forEach((c, i) => sets[i](Math.max(-1000, Math.min(1000, c)))); draw();
+    q('.pz-fig').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+  solveZeros();
 
   quiz(q('.pz-quiz'), () => {
     const out: Question[] = [];

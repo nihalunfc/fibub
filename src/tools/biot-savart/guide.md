@@ -11,12 +11,13 @@ ads: false
 order: 1409
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [magnetic-field-mapper, lorentz-motion, electromagnet-builder, faraday-induction]
 sources:
   - "Biot–Savart law dB = (μ₀/4π) I dl × r̂ / r², and its results for a straight wire of finite length, a circular loop on its axis and a solenoid on its axis (as a continuous current sheet); Ampère's circuital law ∮B·dl = μ₀ I_enclosed with the field μ₀I/(2πr) of a long straight wire: standard physics results."
   - "μ₀ = 1.25663706127 × 10⁻⁶ N/A² (CODATA 2022)."
   - "Checked against an independent numpy Biot–Savart sum with 200 000 elements (5 A loop of radius 10 cm at 7 cm along the axis: 17.273 µT; 20 cm wire, P 5 cm away and 3 cm up: 17.471 µT into the page) and by summing the loop formula over 200 separate turns for the solenoid."
+  - "The solve card uses μ₀ = 4π × 10⁻⁷ T m/A (the textbook value, equal to CODATA to better than one part in 10⁹), and the standard results B = μ₀I/2πd, B = (μ₀I/4πd)(sin α₁ + sin α₂), B = μ₀NI/2R, B = μ₀NIR²/2(R² + x²)^{3/2}, B = μ₀nI and F/L = μ₀I₁I₂/2πd. The Earth's field of about 50 µT is a rounded typical surface value. Checked by hand: 20 µT at 5 cm from 5 A, 1.26 mT for the 100-turn coil, 7.54 mT for 2000 turns per metre at 3 A, 1 mN/m between 10 A and 20 A at 4 cm."
 flow:
   - { icon: sliders, label: "Pick shape" }
   - { icon: pencil, label: "Add pieces" }
@@ -43,6 +44,12 @@ It follows the Class 12 Physics chapter on moving charges and magnetism (the Bio
 3. For the wire and loop, slide **Pieces of wire added**, or press **Add the pieces one by one** to watch the total grow.
 4. In Ampère's law, set each wire's current (positive is out of the page) and move the loop with the sliders or by dragging it on the picture.
 
+## Solve your own numbers
+
+The first card gives the answer for the numbers in your question. Choose the **field of a long straight wire** (B = μ₀I/2πd), the **field of a wire of length L** at a point opposite its middle, the **field of a circular coil** (at the centre, or on the axis at a distance x, with N turns), the **field of a solenoid** (turns and length give n; inside or at one end), the **force between two parallel wires** (per metre, with attract or repel), or the **current from a measured field** (field in T, mT, µT or gauss). Distances can be in cm, m or mm and currents in mA, A or kA. The working shows the formula, the numbers with units, the result and the right-hand-rule direction, and compares the answer with the Earth's field of about 50 µT so the size makes sense.
+
+Common mistakes it points out: leaving the distance in cm, using the diameter for the radius, forgetting N, and using the total turns instead of turns per metre in a solenoid.
+
 ## Worked example
 
 A straight wire 20 cm long carries 5 A. At P, 5 cm from the middle of the wire, sin α₁ = sin α₂ = 10/√(5² + 10²) = 0.894, so B = μ₀I/(4πd) × (0.894 + 0.894) = 10⁻⁷ × 5 / 0.05 × 1.789 = **17.9 µT**, into the page. Adding the 24 pieces gives the same to within 0.02%. A very long wire would give μ₀I/(2πd) = 20.0 µT, so this short wire gives 89.4% of that.
@@ -58,6 +65,8 @@ In Ampère's law, a loop round wire A (5 A out of the page) gives ∮B·dl = μ�
 - Ampère's law is easiest to use where the field is the same all round the loop (a long wire, a long solenoid).
 
 ## FAQ
+
+**What is the magnetic field at the centre of a circular coil?** B = μ₀ N I / (2R), with R in metres; for 100 turns of radius 10 cm carrying 2 A that is 1.26 mT.
 
 **Why is the 24-piece loop a little low?** The pieces are short straight chords, so the polygon is slightly smaller than the circle. More pieces would close the gap.
 

@@ -4,10 +4,10 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node scripts/changelog.mjs && astro dev",
     "build": "node scripts/check-ids.mjs && node scripts/check-links.mjs && node scripts/changelog.mjs && node --max-old-space-size=6144 node_modules/astro/astro.js build && node scripts/list-pages.mjs && node scripts/make-sw.mjs",
     "preview": "astro preview",
-    "test": "node tests/everyday.mjs && node tests/sci.mjs && node tests/audio.mjs && node tests/cells.mjs && node tests/ats-parse.mjs && node tests/views.mjs && node tests/pwa.mjs && node tests/run.mjs",
+    "test": "node tests/everyday.mjs && node tests/sci.mjs && node tests/curr-physics.mjs && node tests/curr-chem.mjs && node tests/curr-geo.mjs && node tests/curr-maths.mjs && node tests/audio.mjs && node tests/cells.mjs && node tests/ats-parse.mjs && node tests/views.mjs && node tests/pwa.mjs && node tests/run.mjs",
     "images": "node scripts/make-images.mjs",
     "changelog": "node scripts/changelog.mjs",
     "new-tool": "node scripts/new-tool.mjs"

@@ -18,11 +18,19 @@
     <p class="cd-hint">The day you left and the day you came back count as days in Canada, so a trip from 1 to 6 July is 4 days away. Add planned trips too.</p>
     <div class="cd-trips"></div>
     <button type="button" class="cd-add">Add a trip</button>
+    <details class="cd-more">
+      <summary>Paste many trips at once</summary>
+      <p class="cd-hint">One trip per line, as two dates: <code>2024-07-01 to 2024-07-06</code> (year-month-day; a comma or a space works too). Lines that are not two valid dates are skipped.</p>
+      <textarea data-k="paste" rows="4" placeholder="2024-07-01 to 2024-07-06"></textarea>
+      <button type="button" class="cd-addall">Add these trips</button>
+      <p class="cd-pnote"></p>
+    </details>
   </section>
 
   <section class="panel" aria-live="polite">
     <p class="cd-big"></p>
     <p class="cd-say"></p>
+    <div class="cd-bar" role="progressbar" aria-label="Days towards 1,095" aria-valuemin="0" aria-valuemax="1095"><i></i></div>
     <table class="cd-tab"><tbody></tbody></table>
     <button type="button" class="cd-reset">Reset to the example</button>
   </section>
@@ -48,6 +56,9 @@
   .cd-tab td { padding: 5px 4px; border-bottom: 1px solid var(--line); }
   .cd-tab td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
   .cd-tab tr:first-child td { font-weight: 700; }
+  .cd-bar { height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; margin: 0 0 12px; } .cd-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .cd textarea { font: inherit; width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  .cd-more summary { cursor: pointer; font-weight: 600; margin: 10px 0 4px; } .cd-pnote { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
   .cd-reset { margin-top: 12px; }
 </style>
 
@@ -103,7 +114,13 @@
     q<HTMLElement>('.cd-tab').dataset.total = String(c.total);
     q<HTMLElement>('.cd-tab').dataset.credit = String(c.credit);
     tr([`Total on ${fromDay(c.sign)} (needs ${n(NEED)})`, n(c.total)]);
-    tr([`Counted from ${fromDay(c.from)} to the day before`, '']);
+    tr([`Five-year window: ${fromDay(c.from)} to the day before`, '']);
+    const bar = q<HTMLElement>('.cd-bar'); const pct = Math.max(0, Math.min(100, (c.total / NEED) * 100));
+    bar.setAttribute('aria-valuenow', String(Math.round(Math.min(NEED, c.total)))); (bar.firstElementChild as HTMLElement).style.width = `${pct}%`;
+    q<HTMLElement>('.cd-tab').dataset.spare = String(Math.max(0, Math.floor(c.total - NEED)));
+    q<HTMLElement>('.cd-tab').dataset.short = String(Math.max(0, Math.ceil(NEED - c.total)));
+    tr([c.total >= NEED ? 'Spare days (you could still be away this long)' : 'Days still needed', n(c.total >= NEED ? Math.floor(c.total - NEED) : Math.ceil(NEED - c.total))]);
+    tr(['Trips listed, full days away in total', n(ts.reduce((a, t) => a + tripDays(t), 0))]);
     tr(['Days in Canada as a PR', n(c.prDays)]);
     tr(['Full days away since becoming a PR (not counted)', n(c.prAway)]);
     if (trStart !== null) {
@@ -115,6 +132,17 @@
     el('pr').value = '2023-01-01'; el('tr').value = ''; el('on').value = new Date().toISOString().slice(0, 10);
     list.innerHTML = ''; calc();
   };
+  q<HTMLButtonElement>('.cd-addall').addEventListener('click', () => {
+    const ta = el('paste'); let ok = 0, skip = 0;
+    for (const line of ta.value.split(/\n/)) {
+      if (!line.trim()) continue;
+      const m = line.match(/\d{4}-\d{2}-\d{2}/g);
+      if (m && m.length === 2 && !Number.isNaN(toDay(m[0])) && !Number.isNaN(toDay(m[1])) && toDay(m[1]) >= toDay(m[0])) { addTrip(m[0], m[1]); ok++; } else skip++;
+    }
+    q<HTMLElement>('.cd-pnote').textContent = `${ok} trip${ok === 1 ? '' : 's'} added${skip ? `, ${skip} line${skip === 1 ? '' : 's'} skipped` : ''}.`;
+    if (ok) ta.value = '';
+    calc();
+  });
   root.addEventListener('input', calc); root.addEventListener('change', calc);
   q<HTMLButtonElement>('.cd-add').addEventListener('click', () => { addTrip(); calc(); });
   q<HTMLButtonElement>('.cd-reset').addEventListener('click', reset);

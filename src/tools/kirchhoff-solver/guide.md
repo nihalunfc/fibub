@@ -11,12 +11,13 @@ ads: false
 order: 1407
 icon: link
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [series-parallel, wheatstone-bridge, drift-velocity, ohms-law-lab]
 sources:
   - "Kirchhoff's junction rule (current in = current out) and loop rule (the emfs round a closed loop equal the sum of the I R drops): standard circuit theory. One junction equation per junction except one in each connected part, and one loop equation per branch outside a spanning tree, give as many equations as branch currents."
   - "Equations solved by Gaussian elimination with partial pivoting."
   - "Checked against the closed-form two-cell circuit (6 V with 2 Ω and 4 V with 4 Ω across 6 Ω: 0.818, −0.0909 and 0.727 A, worked by hand with the node voltage V = (E₁/R₁ + E₂/R₂)/(1/R₁ + 1/R₂ + 1/R₃)), series and parallel combinations worked by hand, and two cells in parallel (12 V with 1 Ω and 10 V with 2 Ω on 5 Ω: 2 A, 0 A)."
+  - "The two-loop card uses the closed form V = (E₁/R₁ + E₂/R₂)/(1/R₁ + 1/R₂ + 1/R₃) and checks it against the junction rule. Checked by hand: 10 V and 6 V cells with 3, 2 and 6 Ω give 1.22 A, −0.167 A and 1.06 A."
 flow:
   - { icon: pencil, label: "Draw" }
   - { icon: sliders, label: "Set values" }
@@ -59,6 +60,14 @@ Solving gives I₁ = 0.818 A through the 2 Ω resistor, I₄ = 0.727 A down thro
 - With N junctions and B branches you need N − 1 junction equations and B − N + 1 loop equations.
 - Ideal cells (no internal resistance) in parallel with different emfs, or a cell shorted by plain wire, have no sensible answer; the page tells you when that happens.
 
+## Solve a two-loop problem
+
+The first card is for the circuit almost every textbook uses: two cells, each with a resistor in its branch, and a third resistor in the middle where the branches meet. Type the two emfs (volts or millivolts) and the three resistances (ohms or kilo-ohms) and the page shows the answer at once: I₁, I₂ and I₃ in one line. Under it are the working steps: the junction rule I₃ = I₁ + I₂, the two loop equations with your numbers put in, the voltage across the middle resistor, and each current worked out and checked at the junction.
+
+The circuit in the grid below is redrawn with your numbers, so you can see the arrows and the full table of voltages and powers, and then change it further by hand. A negative current is not a mistake: it means that branch really carries current the other way. When the second cell has the smaller emf, its current comes out negative and the page says it is being charged. To turn a cell round, type its emf with a minus sign.
+
+The examples list has four problems in made-up numbers, including one where the weak cell is charged. If a resistance is zero you get a short message instead of a wrong answer: add a cell's internal resistance to the resistor next to it.
+
 ## FAQ
 
 **Why do some junction equations look like I₂ = I₅?** At a dot where only two branches meet, the rule just says the current is the same all along a series path.
@@ -66,3 +75,7 @@ Solving gives I₁ = 0.818 A through the 2 Ω resistor, I₄ = 0.727 A down thro
 **Why is one junction left out?** Its equation follows from the others, so it adds nothing new.
 
 **Is this an official NCERT resource?** No. fibub is independent; the page follows the topics in the syllabus in its own words.
+
+**How do I solve a Kirchhoff's law problem with two loops?** Write the junction equation I₃ = I₁ + I₂ and one loop equation for each loop, then solve; type your numbers into the card at the top and it shows exactly these steps and the three currents.
+
+**Why is my current negative?** It only means the current flows opposite to the direction you assumed.

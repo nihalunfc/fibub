@@ -18,4 +18,10 @@ export default async ({ page, check, BASE }) => {
   check(await page.evaluate(() => !!localStorage.getItem('fibub-net-worth-v1')), 'net-worth: saved when ticked');
   await page.click(R + '.nw-clear'); await page.waitForTimeout(100);
   check(await page.evaluate(() => localStorage.getItem('fibub-net-worth-v1')) === null, 'net-worth: Clear removes it');
+  // ratios and symbol (reload to the default rows: assets 25,000, debt 1,500)
+  await page.goto(`${BASE}/money/net-worth/`); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await page.textContent(R + '.nw-ratios')).includes('6%'), 'net-worth: debt-to-asset 1,500/25,000 = 6%');
+  await page.fill(R + '.nw-s', '$'); await page.waitForTimeout(100);
+  check((await big()) === 'Net worth $23,500', `net-worth: symbol (${await big()})`);
 };

@@ -17,4 +17,8 @@ export default async ({ page, check, BASE, OUT }) => {
     const n = (s) => t.split(s).length - 1;
     check(t.startsWith('BEGIN:VCALENDAR') && n('BEGIN:VEVENT') === 3 && n('BEGIN:VALARM') === 3 && t.includes('DTSTART;VALUE=DATE:20270301') && t.includes('TRIGGER:-P180DT15H'), `expiry: .ics has 3 events with alarms (${n('BEGIN:VEVENT')}, ${n('BEGIN:VALARM')})`);
   }
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.de .de-tdate', '2027-01-01'); await page.fill('.de .de-tmonths', '6'); await page.waitForTimeout(100);
+  const ts = await page.textContent('.de .de-tsay');
+  check(/Needs to be valid until 1 Jul 2027/.test(ts) && /Too soon/.test(ts), `document-expiry: trip check flags short validity (${ts})`);
 };

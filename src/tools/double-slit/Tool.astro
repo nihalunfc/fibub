@@ -3,8 +3,19 @@
 // coloured strip, the intensity graph, fringe width β = λD/d, the central maximum 2λD/a, the path difference at a
 // chosen point and white-light fringes. Maths in src/lib/sci/q-slits.ts.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax dsl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Young's double slit: type the numbers from your problem, pick what to find (fringe width, wavelength, slit gap, screen distance, or where the nth bright or dark fringe is) and get the answer with the working.</p>
+    <div class="dsl-solve"></div>
+    <details style="margin-top:12px">
+      <summary>Single slit (central maximum 2λD/a)</summary>
+      <div class="dsl-solve1" style="margin-top:10px"></div>
+    </details>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row dsl-top">
       <div class="ax-seg dsl-kind" role="group" aria-label="Slits">
@@ -61,6 +72,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { YOUNG_SPEC, SINGLE_SPEC } from '../../lib/sci/solve-slit';
   import { fringeWidth, brightAt, darkAt, angularWidth, singleMin, centralWidth, pathDiff, intensity, wavelengthRGB } from '../../lib/sci/q-slits';
   import { paint, type Figure } from '../../lib/report';
   import { chartFigure } from '../../lib/sci/plot';
@@ -166,4 +179,6 @@ import '../../styles/astro.css';
   };
   mountQuiz(q('.dsl-quiz'), make, 4);
   draw();
+  mountSolver(q('.dsl-solve'), YOUNG_SPEC, 'young');
+  mountSolver(q('.dsl-solve1'), SINGLE_SPEC, 'single');
 </script>

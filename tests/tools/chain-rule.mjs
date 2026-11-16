@@ -14,6 +14,15 @@ export default async ({ page, check, BASE }) => {
   check(px > 50, `chain: x gear drawn in orange (${px} px)`);
   await setX(1);
   check((await t('.cr-formula')).endsWith('(−0.99) × 3 = −2.97'), `chain: x = 1 (${await t('.cr-formula')})`);
+  // typed x, answer sentence, working, presets
+  await page.fill(R + '[data-k="x"]', '10'); await page.waitForTimeout(50);
+  check((await t('.cr-ans')) === 'dy/dx = cos(3x) × 3. At x = 10 the slope is 0.4628.', `chain: typed x = 10 beyond the slider (${await t('.cr-ans')})`);
+  check((await t('.cr-work')).includes('Name the layers: u = 3x, y = sin u') && (await t('.cr-work')).includes('At x = 10: 0.15425 × 3 = 0.46275'), `chain: working (${await t('.cr-work')})`);
+  await page.selectOption(R + '[data-k="preset"]', '2|sq exp'); await page.fill(R + '[data-k="x"]', '1'); await page.waitForTimeout(50);
+  check((await t('.cr-fx')) === 'y = e^(x²)' && (await t('.cr-ans')).includes('the slope is 5.4366'), `chain: e^(x²) preset (${await t('.cr-fx')} ${await t('.cr-ans')})`);
+  await page.selectOption(R + '[data-k="preset"]', '3|k2 sin sq'); await page.fill(R + '[data-k="x"]', '0.3'); await page.waitForTimeout(50);
+  check((await t('.cr-fx')).includes('sin') && (await t('.cr-ans')).includes('1.8641'), `chain: three-link preset (${await t('.cr-fx')} ${await t('.cr-ans')})`);
+  await page.selectOption(R + '[data-k="preset"]', '2|k3 sin'); await page.click(R + '.cr-lv button[data-lv="2"]'); await setX(1);
   // Inner link x², outer sin.
   await page.selectOption(R + '.cr-l0 .cr-fn', 'sq'); await page.waitForTimeout(50);
   check((await t('.cr-fx')) === 'y = sin(x²)' && await page.isHidden(R + '.cr-l0 .cr-kl'), 'chain: inner x², k hidden');

@@ -62,3 +62,50 @@ export const backAgain = (k: Inv, deg: number) => {
   const r = deg * D, x = k === 'asin' ? Math.sin(r) : k === 'acos' ? Math.cos(r) : Math.tan(r);
   return principal(k, x);
 };
+
+// ---- Solve-my-numbers helpers (added 2026-11-16) ----
+
+/** The acute angle between the terminal side and the x-axis, in degrees (0 on an axis). */
+export function refAngle(deg: number): number {
+  const a = norm360(deg);
+  return a <= 90 ? a : a <= 180 ? 180 - a : a <= 270 ? a - 180 : 360 - a;
+}
+
+const fmtN = (x: number, d = 4) => { const v = Math.abs(x) < 5e-10 ? 0 : x; return String(parseFloat(v.toFixed(d))).replace('-', '−'); };
+
+/** Exam-style working for sin, cos or tan of an angle: reduce, quadrant, reference angle, sign, value. */
+export function workingLines(deg: number, f: 'sin' | 'cos' | 'tan'): string[] {
+  const a = norm360(deg), out: string[] = [];
+  const turns = Math.round((deg - a) / 360);
+  if (turns !== 0) out.push(`${fmtN(deg, 4)}° is ${Math.abs(turns)} full turn${Math.abs(turns) === 1 ? '' : 's'} ${turns > 0 ? 'past' : 'before'} ${fmtN(a, 4)}° (add or take away 360°), so ${f} ${fmtN(deg, 4)}° = ${f} ${fmtN(a, 4)}°.`);
+  const Q = quadrant(a), ref = refAngle(a), rad = a * D;
+  if (Q.q === 0) {
+    const v = f === 'sin' ? Math.sin(rad) : f === 'cos' ? Math.cos(rad) : (a % 180 === 90 ? NaN : Math.tan(rad));
+    out.push(`${fmtN(a, 4)}° lies on an axis, so read the point (cos θ, sin θ) straight off the circle: (${fmtN(Math.cos(rad), 0)}, ${fmtN(Math.sin(rad), 0)}).`);
+    out.push(Number.isFinite(v) ? `${f} ${fmtN(a, 4)}° = ${fmtN(v, 0)}.` : `tan ${fmtN(a, 4)}° = sin/cos = ${fmtN(Math.sin(rad), 0)}/0, which is undefined.`);
+    return out;
+  }
+  const sign = f === 'sin' ? (a < 180 ? 1 : -1) : f === 'cos' ? (a < 90 || a > 270 ? 1 : -1) : ((a < 90 || (a > 180 && a < 270)) ? 1 : -1);
+  out.push(`${fmtN(a, 4)}° is in quadrant ${Q.q}, where ${['all ratios are', 'only sin is', 'only tan is', 'only cos is'][Q.q - 1]} positive (ASTC), so ${f} is ${sign > 0 ? 'positive' : 'negative'}.`);
+  out.push(`Reference angle = ${Q.q === 1 ? `${fmtN(a, 4)}°` : Q.q === 2 ? `180° − ${fmtN(a, 4)}° = ${fmtN(ref, 4)}°` : Q.q === 3 ? `${fmtN(a, 4)}° − 180° = ${fmtN(ref, 4)}°` : `360° − ${fmtN(a, 4)}° = ${fmtN(ref, 4)}°`}.`);
+  const ex = exact(ref), rv = f === 'sin' ? Math.sin(ref * D) : f === 'cos' ? Math.cos(ref * D) : Math.tan(ref * D);
+  const exs = ex ? (f === 'sin' ? ex.sin : f === 'cos' ? ex.cos : ex.tan) : null;
+  out.push(`${f} ${fmtN(ref, 4)}° = ${exs && exs !== fmtN(rv, 4) ? `${exs} ≈ ${fmtN(rv, 4)}` : fmtN(rv, 4)} (the size, ignoring the sign).`);
+  const sn = sign < 0 ? '−' : '';
+  out.push(`So ${f} ${fmtN(a, 4)}° = ${sn}${exs ?? fmtN(rv, 4)}${exs && exs !== fmtN(rv, 4) ? ` ≈ ${sn}${fmtN(rv, 4)}` : ''}.`);
+  return out;
+}
+
+/** Every angle in 0° ≤ θ < 360° with sin, cos or tan equal to v, as degrees; null when no angle has that value. */
+export function anglesFor(f: 'sin' | 'cos' | 'tan', v: number): { principal: number; angles: number[] } | null {
+  if (!Number.isFinite(v)) return null;
+  if ((f === 'sin' || f === 'cos') && Math.abs(v) > 1 + 1e-12) return null;
+  const c = Math.max(-1, Math.min(1, v));
+  const r = (x: number) => { const n = norm360(x); return Math.abs(n - 360) < 1e-9 ? 0 : Math.round(n * 1e9) / 1e9; };
+  let list: number[], p: number;
+  if (f === 'sin') { p = Math.asin(c) / D; list = [p, 180 - p]; }
+  else if (f === 'cos') { p = Math.acos(c) / D; list = [p, -p]; }
+  else { p = Math.atan(v) / D; list = [p, p + 180]; }
+  const angles = [...new Set(list.map(r))].sort((x, y) => x - y);
+  return { principal: p, angles };
+}

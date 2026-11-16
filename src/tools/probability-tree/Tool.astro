@@ -10,15 +10,25 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <h2>Set up the tree</h2>
     <div class="ax-grid">
       <label>Story <select class="pt-st">
-        <option value="bags">Two bags of marbles</option><option value="rain">Rain and a late bus</option><option value="test" selected>A screening test (teaching model)</option><option value="coin">Two coin tosses (independent)</option><option value="own">My own names</option>
+        <option value="bags">Two bags of marbles</option><option value="rain">Rain and a late bus</option><option value="test" selected>A screening test (teaching model)</option><option value="coin">Two coin tosses (independent)</option><option value="factory">Two machines, one defective part</option><option value="own">My own names</option>
       </select></label>
       <label class="pt-ownl" hidden>A is <input class="pt-na" type="text" value="A" maxlength="24" /></label>
       <label class="pt-ownl" hidden>B is <input class="pt-nb" type="text" value="B" maxlength="24" /></label>
     </div>
-    <label class="pt-sl">P(A) = <b class="pt-av"></b><input class="pt-a" type="range" min="0" max="1" step="0.005" value="0.01" /></label>
-    <label class="pt-sl">P(B | A) = <b class="pt-bav"></b><input class="pt-ba" type="range" min="0" max="1" step="0.01" value="0.9" /></label>
-    <label class="pt-sl">P(B | A′) = <b class="pt-bnv"></b><input class="pt-bn" type="range" min="0" max="1" step="0.005" value="0.05" /></label>
+    <p class="ax-help">Type each chance as a decimal (0.25), a percentage (25%) or a fraction (1/4), or use the slider.</p>
+    <div class="pt-row"><label>P(A) <input class="pt-at" data-k="pA" type="text" inputmode="decimal" value="0.01" /></label><input class="pt-a" aria-label="P(A) slider" type="range" min="0" max="1" step="0.005" value="0.01" /></div>
+    <div class="pt-row"><label>P(B | A) <input class="pt-bat" data-k="pBgA" type="text" inputmode="decimal" value="0.9" /></label><input class="pt-ba" aria-label="P(B given A) slider" type="range" min="0" max="1" step="0.01" value="0.9" /></div>
+    <div class="pt-row"><label>P(B | A′) <input class="pt-bnt" data-k="pBgNA" type="text" inputmode="decimal" value="0.05" /></label><input class="pt-bn" aria-label="P(B given not A) slider" type="range" min="0" max="1" step="0.005" value="0.05" /></div>
+    <p class="ax-err pt-err" hidden></p>
+    <p class="pt-ans" aria-live="polite"></p>
     <p class="ax-help pt-story"></p>
+    <details class="pt-bag"><summary>More options: draws from a bag of marbles</summary>
+      <p class="ax-help">Two draws of one marble each. A = the first marble is red, B = the second is red. This fills in the three chances above.</p>
+      <div class="ax-grid"><label>Red <input class="pt-red" data-k="red" type="text" inputmode="numeric" value="3" /></label><label>Blue <input class="pt-blue" data-k="blue" type="text" inputmode="numeric" value="2" /></label></div>
+      <label class="ax-check"><input type="checkbox" class="pt-rep" data-k="replace" /> Put the first marble back before the second draw</label>
+      <div class="ax-row"><button type="button" class="btn small pt-usebag">Use these marbles</button></div>
+      <p class="pt-bagtxt" aria-live="polite"></p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -27,6 +37,10 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <p class="ax-help">Multiply along a path to get the chance of both. Add the paths that end in B to get P(B). Highlighted: the paths that end in B.</p>
     <dl class="ax-facts pt-facts"></dl>
     <p class="pt-bayes"></p>
+    <details class="pt-work"><summary>Show the working</summary>
+      <ol class="pt-wl"></ol>
+      <p class="ax-help">Common mistakes: mixing up P(A | B) with P(B | A), which are usually very different; and forgetting that the two branches leaving one point must add to 1.</p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -50,7 +64,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { tree, counts } from '../../lib/sci/school-prob';
+  import { tree, counts, readChance, bagTree, bayesWorking } from '../../lib/sci/school-prob';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { fmt, FONT } from '../../lib/sm-graph';
   import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
@@ -62,20 +76,24 @@ import SmQuiz from '../../components/SmQuiz.astro';
     bags: { a: 'bag 1 picked', b: 'red marble', v: [0.5, 0.6, 0.3], note: 'Toss a coin to pick bag 1 or bag 2, then draw a marble. Bag 1 has 6 red out of 10, bag 2 has 3 red out of 10 (made-up numbers).' },
     rain: { a: 'it rains', b: 'the bus is late', v: [0.3, 0.8, 0.25], note: 'Made-up numbers: rain on 30 % of days; the bus is late on 80 % of rainy days and 25 % of dry ones.' },
     test: { a: 'has the condition', b: 'tests positive', v: [0.01, 0.9, 0.05], note: 'A teaching model with made-up numbers, not medical advice: 1 % have the condition, the test catches 90 % of them, and wrongly flags 5 % of the others.' },
+    factory: { a: 'part from machine 1', b: 'part is defective', v: [0.6, 0.02, 0.03], note: 'Made-up numbers: machine 1 makes 60 % of the parts and machine 2 the rest; 2 % of machine 1\'s parts and 3 % of machine 2\'s are defective. P(A | B) is the chance a defective part came from machine 1.' },
     coin: { a: 'first toss heads', b: 'second toss heads', v: [0.5, 0.5, 0.5], note: 'Two fair coin tosses: the second does not depend on the first.' },
   };
   const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
   const p4 = (x: number) => fmt(x, 4);
   const pct = (x: number) => `${fmt(x * 100, 2)} %`;
   let names = { a: 'A', b: 'B' };
+  const V = { a: 0.01, ba: 0.9, bn: 0.05 };
+  const sl = { a: q<HTMLInputElement>('.pt-a'), ba: q<HTMLInputElement>('.pt-ba'), bn: q<HTMLInputElement>('.pt-bn') };
+  const tx = { a: q<HTMLInputElement>('.pt-at'), ba: q<HTMLInputElement>('.pt-bat'), bn: q<HTMLInputElement>('.pt-bnt') };
+  const setV = (a: number, ba: number, bn: number) => { V.a = a; V.ba = ba; V.bn = bn; (['a', 'ba', 'bn'] as const).forEach((k) => { sl[k].value = String(V[k]); tx[k].value = String(parseFloat(V[k].toFixed(6))); }); };
 
   function run() {
     const st = q<HTMLSelectElement>('.pt-st').value;
     root.querySelectorAll<HTMLElement>('.pt-ownl').forEach((e) => { e.hidden = st !== 'own'; });
     names = st === 'own' ? { a: q<HTMLInputElement>('.pt-na').value.trim() || 'A', b: q<HTMLInputElement>('.pt-nb').value.trim() || 'B' } : { a: STORIES[st].a, b: STORIES[st].b };
     q('.pt-story').textContent = st === 'own' ? 'Name the two events and set the three chances.' : `A = ${names.a}, B = ${names.b}. ${STORIES[st].note}`;
-    const pA = +q<HTMLInputElement>('.pt-a').value, bA = +q<HTMLInputElement>('.pt-ba').value, bN = +q<HTMLInputElement>('.pt-bn').value;
-    q('.pt-av').textContent = p4(pA); q('.pt-bav').textContent = p4(bA); q('.pt-bnv').textContent = p4(bN);
+    const pA = V.a, bA = V.ba, bN = V.bn;
     const r = tree(pA, bA, bN);
     const H = 280;
     const fig: Figure = { w: W, h: H, alt: `Tree: P(A) ${p4(pA)}, P(B|A) ${p4(bA)}, P(B|A′) ${p4(bN)}; P(B) ${p4(r.pB)}`, draw: (ctx, w, h, pl: Palette) => {
@@ -103,6 +121,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
       fact('P(A | B′)', Number.isNaN(r.pAgNB) ? 'undefined' : p4(r.pAgNB), 'P(A ∩ B′) / P(B′)'),
       fact('Independent?', r.independent ? 'Yes' : 'No', r.independent ? 'P(B|A) = P(B|A′) = P(B), and P(A ∩ B) = P(A)P(B)' : `P(A)P(B) = ${p4(pA * r.pB)}, but P(A ∩ B) = ${p4(r.AB)}`),
     );
+    q('.pt-ans').textContent = Number.isNaN(r.pAgB) ? `P(B) = ${p4(r.pB)}; P(A | B) is undefined because B never happens.` : `P(A ∩ B) = ${p4(r.AB)},  P(B) = ${p4(r.pB)},  P(A | B) = ${p4(r.pAgB)} (${pct(r.pAgB)}).`;
+    q('.pt-wl').replaceChildren(...bayesWorking(pA, bA, bN).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
     q('.pt-bayes').textContent = Number.isNaN(r.pAgB) ? `B never happens here, so P(A | B) has no meaning.` : `Knowing that "${names.b}" happened, the chance that "${names.a}" is ${pct(r.pAgB)} (it was ${pct(pA)} before we knew).`;
     // 1000 dots: 40 across, 25 down.
     const n = counts([r.AB, r.ANB, r.NAB, r.NANB]);
@@ -124,10 +144,26 @@ import SmQuiz from '../../components/SmQuiz.astro';
 
   q('.pt-st').addEventListener('change', () => {
     const st = q<HTMLSelectElement>('.pt-st').value;
-    if (st !== 'own') { const [a, b, c] = STORIES[st].v; q<HTMLInputElement>('.pt-a').value = String(a); q<HTMLInputElement>('.pt-ba').value = String(b); q<HTMLInputElement>('.pt-bn').value = String(c); }
+    if (st !== 'own') { const [a, b, c] = STORIES[st].v; setV(a, b, c); q('.pt-err').hidden = true; }
     run();
   });
-  root.querySelectorAll('.pt-a, .pt-ba, .pt-bn, .pt-na, .pt-nb').forEach((e) => e.addEventListener('input', run));
+  (['a', 'ba', 'bn'] as const).forEach((k) => {
+    sl[k].addEventListener('input', () => { V[k] = +sl[k].value; tx[k].value = String(parseFloat(V[k].toFixed(6))); q('.pt-err').hidden = true; run(); });
+    tx[k].addEventListener('input', () => {
+      const v = readChance(tx[k].value), err = q('.pt-err');
+      if (Number.isNaN(v)) { err.textContent = tx[k].value.trim() === '' ? 'Type a chance from 0 to 1 (or 0% to 100%).' : 'A chance must be a number from 0 to 1: try 0.25, 25% or 1/4.'; err.hidden = false; return; }
+      err.hidden = true; V[k] = v; sl[k].value = String(v); run();
+    });
+  });
+  root.querySelectorAll('.pt-na, .pt-nb').forEach((e) => e.addEventListener('input', run));
+  q('.pt-usebag').addEventListener('click', () => {
+    const rd = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t === '' ? NaN : Number(t); };
+    const r = bagTree(rd('.pt-red'), rd('.pt-blue'), q<HTMLInputElement>('.pt-rep').checked), out = q('.pt-bagtxt');
+    if (!r.ok) { out.textContent = r.why; return; }
+    out.textContent = r.text;
+    q<HTMLSelectElement>('.pt-st').value = 'own'; q<HTMLInputElement>('.pt-na').value = 'first marble is red'; q<HTMLInputElement>('.pt-nb').value = 'second marble is red';
+    setV(r.pA, r.pBgA, r.pBgNA); q('.pt-err').hidden = true; run();
+  });
   document.addEventListener('fibub:theme', run);
   run();
 
@@ -147,6 +183,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </script>
 
 <style is:inline>
+  .ptr .pt-row { display: grid; grid-template-columns: minmax(0, 9em) 1fr; gap: 10px; align-items: end; margin-top: 10px; } .ptr .pt-row label { display: grid; gap: 4px; color: var(--ink); font-size: 15px; } .ptr .pt-row input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ptr .pt-ans { font-weight: 650; overflow-wrap: anywhere; margin: 10px 0 0; } .ptr details { margin-top: 12px; } .ptr summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-weight: 600; } .ptr .pt-wl { padding-left: 20px; display: grid; gap: 6px; overflow-wrap: anywhere; } .ptr .pt-bagtxt { overflow-wrap: anywhere; }
   .ptr .pt-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
   .ptr .pt-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
   .ptr .pt-bayes, .ptr .pt-dnote { margin: 10px 0 0; font-weight: 600; }

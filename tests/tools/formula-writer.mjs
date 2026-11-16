@@ -18,6 +18,22 @@ export default async ({ page, check, BASE }) => {
   await pick('NH4', 'SO4'); check((await big()) === '(NH₄)₂SO₄' && (await eq()).endsWith('= 132 u'), 'formula: ammonium sulfate');
   await pick('Fe3', 'O'); check((await big()) === 'Fe₂O₃' && (await page.textContent('.fw .fw-name')) === 'Iron(III) oxide', 'formula: iron(III) oxide');
   await pick('H', 'OH'); check((await big()) === 'H₂O' && (await page.textContent('.fw .fw-name')).startsWith('Water'), 'formula: water');
+  // percent composition, grams and moles, name finder, presets
+  await pick('Al', 'SO4');
+  { const tb = await page.textContent('.fw .fw-tab'); check(tb.includes('% by mass') && tb.includes('15.8 %') && tb.includes('28.1 %') && tb.includes('56.1 %'), 'formula: percent by mass ' + tb); }
+  check((await page.textContent('.fw .fw-mans')) === '10 g of Al₂(SO₄)₃ is 0.0292 mol, about 1.76 × 10^22 formula units.', 'formula: 10 g to moles ' + (await page.textContent('.fw .fw-mans')));
+  check((await page.textContent('.fw .fw-mwork')).includes('10 g ÷ 342 g/mol'), 'formula: moles working');
+  await page.fill('.fw [data-k=amount]', '0.5'); await page.selectOption('.fw [data-k=mode]', 'm');
+  check((await page.textContent('.fw .fw-mans')) === '0.5 mol of Al₂(SO₄)₃ has a mass of 171 g.', 'formula: moles to mass ' + (await page.textContent('.fw .fw-mans')));
+  await page.selectOption('.fw [data-k=unit]', '1000'); await page.fill('.fw [data-k=amount]', '2');
+  check((await page.textContent('.fw .fw-mans')) === '2 mol of Al₂(SO₄)₃ has a mass of 0.684 kg.', 'formula: kg output ' + (await page.textContent('.fw .fw-mans')));
+  await page.fill('.fw [data-k=amount]', '-1'); check(await page.isVisible('.fw .fw-merr') && (await page.textContent('.fw .fw-mans')) === '', 'formula: negative amount message');
+  await page.fill('.fw [data-k=amount]', ''); check(await page.isVisible('.fw .fw-merr'), 'formula: blank amount message');
+  await page.fill('.fw [data-k=name]', 'calcium nitrate');
+  check((await big()) === 'Ca(NO₃)₂' && (await eq()).endsWith('= 164 u') && (await page.textContent('.fw .fw-name-msg')).includes('Found calcium and nitrate'), 'formula: type a name ' + (await big()));
+  await page.fill('.fw [data-k=name]', 'iron(III) oxide'); check((await big()) === 'Fe₂O₃', 'formula: typed iron(III) oxide');
+  await page.fill('.fw [data-k=name]', 'blah'); check((await page.textContent('.fw .fw-name-msg')).includes('not recognised'), 'formula: unknown name message');
+  await page.click('.fw .fw-chip[data-c="Ca"][data-a="CO3"]'); check((await big()) === 'CaCO₃' && (await eq()).endsWith('= 100 u'), 'formula: preset limestone');
   const items = page.locator('.fw .cq-item'); const n = await items.count(); let right = 0;
   for (let i = 0; i < n; i++) {
     const it = items.nth(i); await it.locator('.cq-show').scrollIntoViewIfNeeded(); await it.locator('.cq-show').click();

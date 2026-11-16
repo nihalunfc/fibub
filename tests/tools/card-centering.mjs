@@ -11,4 +11,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.locator('.cd .cd-figs svg').count()) === 1, 'card-centering: one drawing for the front');
   await page.fill('.cd .cd-bl', '2'); await page.fill('.cd .cd-br', '3'); await page.waitForTimeout(100);
   check((await page.textContent('.cd .cd-b-lr')).includes('60/40') && (await page.locator('.cd .cd-figs svg').count()) === 2, 'card-centering: back side adds a second result and drawing');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.cd .cd-fr', '2'); await page.fill('.cd .cd-ft', '2.5'); await page.fill('.cd .cd-fb', '2.5'); await page.waitForTimeout(100);
+  const l = await page.textContent('.cd .cd-f-lr');
+  check(/toward the right/.test(l) && /20\.0% off centre/.test(l) && /0\.5 mm/.test(l), `card-centering: 3 and 2 leans right, 20% off, move 0.5 mm (${l})`);
+  check((await page.textContent('.cd .cd-worst')).includes('60/40'), 'card-centering: weakest split is 60/40');
 };

@@ -16,7 +16,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <p class="ax-help lp-story"></p>
     <div class="ax-row lp-obj">
       <div class="ax-seg lp-goal" role="group" aria-label="Maximise or minimise"><button type="button" data-g="max" aria-pressed="true">Maximise</button><button type="button" data-g="min" aria-pressed="false">Minimise</button></div>
-      <span>Z =</span><input class="lp-p" type="number" step="any" value="50" aria-label="Coefficient of x in Z" /><span>x +</span><input class="lp-q" type="number" step="any" value="30" aria-label="Coefficient of y in Z" /><span>y</span>
+      <span>Z =</span><input class="lp-p" data-k="p" type="number" step="any" value="50" aria-label="Coefficient of x in Z" /><span>x +</span><input class="lp-q" data-k="q" type="number" step="any" value="30" aria-label="Coefficient of y in Z" /><span>y</span>
     </div>
     <p class="ax-help">Subject to x ≥ 0, y ≥ 0 and:</p>
     <ol class="lp-cons"></ol>
@@ -32,7 +32,17 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <p class="ax-help">Shaded: every (x, y) that meets all the constraints. Dashed: the line Z = k; sliding it keeps the same tilt. The last point it touches as it leaves the region is the optimum.</p>
     <div class="ax-scroll"><table class="lp-tab"><thead><tr><th>Corner</th><th class="r">x</th><th class="r">y</th><th class="r">Z</th></tr></thead><tbody></tbody></table></div>
     <p class="ax-big lp-ans"></p>
-    <p class="lp-say"></p>
+    <p class="lp-say" aria-live="polite"></p>
+    <details class="lp-wk" open>
+      <summary>Show the working</summary>
+      <p class="ax-help lp-cl"></p>
+      <ol class="lp-work"></ol>
+    </details>
+    <details class="lp-pt">
+      <summary>Is my point feasible?</summary>
+      <div class="ax-row"><span>x =</span><input data-k="px" class="lp-px" type="number" step="any" aria-label="x of your point" /><span>y =</span><input data-k="py" class="lp-py" type="number" step="any" aria-label="y of your point" /></div>
+      <p class="lp-ptans" aria-live="polite"></p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -49,7 +59,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { solve, type Con, type LppResult } from '../../lib/sci/school-r-lpp';
+  import { solve, lppWorking, conText, checkPoint, type Con, type LppResult } from '../../lib/sci/school-r-lpp';
   import { paint, type Palette } from '../../lib/report';
   import { view, px, py, axes, line, dot, label, fmt, type View } from '../../lib/sm-graph';
   import { quiz, rint, type Question } from '../../lib/sm-quiz';
@@ -78,6 +88,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
       const num = (v: number, lab: string) => { const e = document.createElement('input'); e.type = 'number'; e.step = 'any'; e.value = String(v); e.setAttribute('aria-label', lab); return e; };
       const a = num(k.a, `Constraint ${i + 1}: x coefficient`), b = num(k.b, `Constraint ${i + 1}: y coefficient`), c = num(k.c, `Constraint ${i + 1}: right side`);
       const op = document.createElement('select'); op.innerHTML = '<option value="<=">≤</option><option value=">=">≥</option>'; op.value = k.op; op.setAttribute('aria-label', `Constraint ${i + 1}: sign`);
+      a.dataset.k = `a${i + 1}`; b.dataset.k = `b${i + 1}`; c.dataset.k = `c${i + 1}`; op.dataset.k = `op${i + 1}`;
       const del = document.createElement('button'); del.type = 'button'; del.className = 'btn small secondary lp-del'; del.textContent = '✕'; del.setAttribute('aria-label', `Remove constraint ${i + 1}`);
       const sp = (t: string) => { const s = document.createElement('span'); s.textContent = t; return s; };
       li.append(a, sp('x +'), b, sp('y'), op, c, del);
@@ -116,10 +127,22 @@ import SmQuiz from '../../components/SmQuiz.astro';
     draw();
   }
 
+  function work() {
+    const p = Number(q<HTMLInputElement>('.lp-p').value), qq = Number(q<HTMLInputElement>('.lp-q').value);
+    q('.lp-cl').textContent = `Z = ${p}x + ${qq}y, ${goal === 'max' ? 'maximise' : 'minimise'}, with x ≥ 0, y ≥ 0 and ${cons.map((k, i) => `line ${i + 1}: ${conText(k)}`).join('; ')}.`;
+    q('.lp-work').replaceChildren(...(R ? lppWorking(cons, p, qq, goal, R) : []).map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    pointCheck();
+  }
+  function pointCheck() {
+    const xs = q<HTMLInputElement>('.lp-px').value.trim(), ys = q<HTMLInputElement>('.lp-py').value.trim(), out = q('.lp-ptans');
+    if (!xs || !ys) { out.textContent = 'Type x and y to test a point against every constraint.'; return; }
+    const p = Number(q<HTMLInputElement>('.lp-p').value), qq = Number(q<HTMLInputElement>('.lp-q').value), c = checkPoint(cons, Number(xs), Number(ys), p, qq);
+    out.textContent = Number.isNaN(c.z) ? 'Type a number in both boxes.' : c.ok ? `Yes, (${xs}, ${ys}) is feasible. Z = ${fmt(c.z, 3)} there.` : `No. It breaks: ${c.broken.join('; ')}.`;
+  }
   const letter = (i: number) => String.fromCharCode(65 + i);
   function draw() {
     const tb = q('.lp-tab tbody'), ans = q('.lp-ans'), say = q('.lp-say');
-    if (!R) { tb.replaceChildren(); ans.textContent = ''; say.textContent = ''; return; }
+    if (!R) { tb.replaceChildren(); ans.textContent = ''; say.textContent = ''; q('.lp-work').replaceChildren(); return; }
     const r = R, p = Number(q<HTMLInputElement>('.lp-p').value), qq = Number(q<HTMLInputElement>('.lp-q').value), k = +kIn.value;
     q('.lp-kv').textContent = fmt(k, 2);
     paint(q<HTMLCanvasElement>('.lp-fig'), { w: W, h: H, alt: `Feasible region with ${r.corners.length} corners; ${r.status}`, draw: (ctx, w, h, pl: Palette) => {
@@ -153,6 +176,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
       return tr;
     }));
     const word = goal === 'max' ? 'maximum' : 'minimum';
+    work();
     if (r.status === 'infeasible') { ans.textContent = 'No feasible point'; say.textContent = 'No (x, y) meets every constraint at once, so the problem has no solution. Check the ≤ and ≥ signs.'; return; }
     if (r.status === 'unbounded') { ans.textContent = `No ${word}`; say.textContent = `The region is unbounded and Z can be made as ${goal === 'max' ? 'large' : 'small'} as you like inside it: the open half-plane Z ${goal === 'max' ? '>' : '<'} (best corner value) still meets the region.`; return; }
     const bests = r.corners.map((c, i) => [c, i] as const).filter(([c]) => c.best);
@@ -167,6 +191,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
   ['.lp-p', '.lp-q'].forEach((s) => q(s).addEventListener('input', () => run()));
   q('.lp-add').addEventListener('click', () => { if (cons.length < 5) { cons.push({ a: 1, b: 1, op: '<=', c: 10 }); consRows(); run(); } });
   kIn.addEventListener('input', draw);
+  ['.lp-px', '.lp-py'].forEach((c) => q(c).addEventListener('input', pointCheck));
   let anim = 0;
   q('.lp-go').addEventListener('click', () => {
     if (!R || R.status !== 'optimal') return;
@@ -195,6 +220,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 <style is:inline>
   .lpp.ax .lp-obj input:not([type=range]), .lpp.ax .lp-con input:not([type=range]) { width: 68px; min-height: 40px; padding: 6px 8px; }
   .lpp.ax .lp-con select { width: 56px; }
+  .lpp .lp-work { padding-left: 22px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+  .lpp .lp-wk, .lpp .lp-pt { margin-top: 10px; }
+  .lpp .lp-pt input { width: 80px; min-height: 40px; padding: 6px 8px; }
   .lpp .lp-obj { margin: 10px 0 4px; }
   .lpp .lp-cons { padding-left: 22px; display: grid; gap: 8px; margin: 6px 0 10px; }
   .lpp .lp-con { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

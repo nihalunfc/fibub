@@ -14,6 +14,10 @@
     <p class="di-big"></p>
     <dl class="di-rows"></dl>
     <p class="di-warn" role="alert"></p>
+    <details class="di-more"><summary>More options: how much more could I take on?</summary>
+      <div class="di-grid"><label>Target ratio (%) <select data-k="target"><option value="36">36% (comfortable for most)</option><option value="43">43% (upper limit many lenders use)</option><option value="28">28% (cautious)</option></select></label></div>
+      <p class="di-big di-head" style="font-size:18px" aria-live="polite"></p>
+    </details>
   </section>
   <section class="panel">
     <h2 class="di-h">How much home payment could you get approved for?</h2>
@@ -45,6 +49,7 @@
   .di-rows dt { color: var(--muted); } .di-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .di-warn { color: var(--bad); margin: 10px 0 0; } .di-warn:empty { display: none; }
   .di-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .di-more { margin-top: 12px; font-size: 14px; } .di-more summary { cursor: pointer; color: var(--accent); } .di-head { margin-top: 10px; }
   .di-h { font-size: 16px; margin: 0 0 8px; }
   .di-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
   .di-scroll { overflow-x: auto; }
@@ -55,7 +60,7 @@
 </style>
 
 <script>
-  import { dti, affordability, payment } from '../../lib/money/borrowing';
+  import { dti, dtiHeadroom, affordability, payment } from '../../lib/money/borrowing';
   const root = document.querySelector('.di') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -70,11 +75,16 @@
   const calc = () => {
     const income = num('income'), debts = num('debts'), housing = num('housing');
     const big = $('.di-big'), rows = $('.di-rows'), warn = $('.di-warn');
-    if (!(income > 0) || debts < 0 || housing < 0) { big.textContent = ''; rows.innerHTML = ''; $('.di-max').textContent = ''; $('.di-rows2').innerHTML = ''; warn.textContent = 'Type your monthly income and debts.'; return; }
+    if (!(income > 0) || debts < 0 || housing < 0) { big.textContent = ''; rows.innerHTML = ''; $('.di-head').textContent = ''; $('.di-max').textContent = ''; $('.di-rows2').innerHTML = ''; warn.textContent = 'Type your monthly income and debts.'; return; }
     const d = dti({ income, debts, housing });
     big.textContent = `Debt-to-income: ${d.debtPct.toFixed(1)}%`;
     rows.innerHTML = line('Debts as a share of income', d.debtPct.toFixed(1) + '%') + (housing > 0 ? line('Debts plus housing payment', d.totalPct.toFixed(1) + '%') : '') + line('Left each month after debts and housing', m0(income - debts - housing));
     const t = housing > 0 ? d.totalPct : d.debtPct;
+    const tg = num('target') || 36, hd = dtiHeadroom(income, debts, housing, tg);
+    if (hd) {
+      const fr = housing > 0 ? ` Your housing payment alone is ${hd.frontPct.toFixed(1)}% of income (the front-end ratio).` : '';
+      $('.di-head').textContent = (hd.room >= 0 ? `You could add about ${m0(hd.room)} a month of payments and stay at ${tg}%.` : `You are ${m0(-hd.room)} a month over ${tg}%. Pay that much off, or earn ${m0(-hd.room / (tg / 100))} more a month, to get back under.`) + fr;
+    }
     warn.textContent = '';
     const msg = t <= 36 ? 'Most lenders see 36% or less as comfortable.' : t <= 43 ? 'Between 36% and 43%: many lenders still lend, but with less room.' : 'Above 43%: harder to get approved. Paying down debt or raising income will help.';
     warn.style.color = t <= 36 ? 'var(--ink)' : ''; warn.textContent = msg;

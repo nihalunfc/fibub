@@ -2,14 +2,24 @@
 // Series and parallel circuit builder: drag four resistors into the series part, the parallel bank or the tray, and
 // see the equivalent resistance worked out, the current split shown with moving dots, power and the energy bill.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax spc">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type any number of resistors, choose series or parallel, and get the total with the working. Add a battery voltage to get the current and the share in each resistor.</p>
+    <div class="spc-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Build the circuit</h2>
     <div class="ax-row">
       <span class="ax-seg spc-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
       <label>Battery <select class="spc-v" style="width:auto">
         <option value="1.5">1.5 V</option><option value="3">3 V</option><option value="4.5">4.5 V</option><option value="6" selected>6 V</option><option value="9">9 V</option><option value="12">12 V</option><option value="230">230 V (mains)</option>
+      </select></label>
+      <label>Example <select class="spc-ex" data-k="example" data-nokit="1" style="width:auto">
+        <option value="">Choose...</option><option value="twoeq">Two equal in parallel</option><option value="three">Three in series</option><option value="mixed">Series plus parallel</option><option value="house">House wiring, 230 V</option>
       </select></label>
       <button type="button" class="btn secondary small spc-reset">Start again</button>
     </div>
@@ -80,6 +90,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SP_SPEC } from '../../lib/sci/solve-sp';
   import { solve, kWh, questions, type Res, type Place } from '../../lib/sci/series-parallel';
   import { pagePalette } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
@@ -261,10 +273,21 @@ import '../../styles/astro.css';
   q('.spc-r').addEventListener('input', () => { q('.spc-rv').textContent = `${(+q<HTMLInputElement>('.spc-r').value).toFixed(1)} Ω`; all(); });
   for (const c of ['.spc-v']) q(c).addEventListener('change', all);
   for (const c of ['.spc-h', '.spc-d', '.spc-rate']) q(c).addEventListener('input', all);
-  q('.spc-reset').addEventListener('click', () => { res = START.map((r) => ({ ...r })); table(); readTable(); all(); });
+  const EXAMPLES: Record<string, { v: string; res: Res[] }> = {
+    twoeq: { v: '6', res: [{ R: 10, place: 'parallel' }, { R: 10, place: 'parallel' }, { R: 20, place: 'out' }, { R: 20, place: 'out' }] },
+    three: { v: '9', res: [{ R: 5, place: 'series' }, { R: 10, place: 'series' }, { R: 15, place: 'series' }, { R: 20, place: 'out' }] },
+    mixed: { v: '12', res: [{ R: 4, place: 'series' }, { R: 6, place: 'parallel' }, { R: 3, place: 'parallel' }, { R: 10, place: 'out' }] },
+    house: { v: '230', res: [{ R: 50, place: 'parallel' }, { R: 100, place: 'parallel' }, { R: 200, place: 'parallel' }, { R: 25, place: 'out' }] },
+  };
+  q('.spc-ex').addEventListener('change', () => {
+    const sel = q<HTMLSelectElement>('.spc-ex'), ex = EXAMPLES[sel.value]; if (!ex) return;
+    res = ex.res.map((r) => ({ ...r })); q<HTMLSelectElement>('.spc-v').value = ex.v; table(); readTable(); all();
+  });
+  q('.spc-reset').addEventListener('click', () => { q<HTMLSelectElement>('.spc-ex').value = ''; res = START.map((r) => ({ ...r })); table(); readTable(); all(); });
   new MutationObserver(() => draw(performance.now())).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
 
   table(); readTable(); all();
+  mountSolver(q('.spc-solve'), SP_SPEC, 'quick');
   quiz(q('.spc-quiz'), () => questions());
   if (!reduce) { const tick = (t: number) => { draw(t); requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
 </script>

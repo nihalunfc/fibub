@@ -46,6 +46,10 @@ The British side takes pounds, shillings, pence and farthings and gives the tota
 
 £2 2s 6d is 2 × 240 + 2 × 12 + 6 = 510 old pence. That is £2.125 in decimal, or 212.5 new pence. For India, 1 rupee 8 annas is 192 + 96 = 288 pies, which is 1.5 rupees or 150 naye paise.
 
+## More options
+
+Open **More options** to add up a list of old British amounts, one per line, written as £2 5s 6d, 2/5/6, 2 5 6, 10/- or 6d. You get the total in £ s d, in old pence and in new pence, and the tool names any line it could not read. You can also start from decimal pounds and see them as old money (£1.25 is 300 old pence, £1 5s 0d). The tool converts units only and gives no "worth today" figure, because that needs an inflation series for the year and place from an official source.
+
 ## FAQs
 
 **What would this buy today?** That needs an inflation figure for the year and place. This tool converts units only.

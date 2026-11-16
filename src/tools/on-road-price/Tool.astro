@@ -44,11 +44,20 @@ import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
     <div class="or-grid">
       <label>Down payment <input data-k="down" inputmode="decimal" value="0" /></label>
     </div>
+    <details class="or-more"><summary>More options: monthly payment on the loan</summary>
+      <div class="or-grid">
+        <label>Loan interest rate a year (%) <input data-k="rate" inputmode="decimal" value="9" /></label>
+        <label>Loan length (months) <input data-k="months" inputmode="decimal" value="60" /></label>
+      </div>
+      <p class="or-fine">Type your own bank's rate: 9% is only a placeholder, not a quote. The payment appears under the total when there is a loan.</p>
+    </details>
   </section>
   <section class="panel" aria-live="polite">
     <p class="or-big"></p>
     <dl class="or-rows"></dl>
+    <p class="or-extra"></p>
     <p class="or-loan"></p>
+    <p class="or-emi"></p>
     <p class="or-warn" role="alert"></p>
   </section>
   <p class="or-fine">Not tax advice. Rates checked 2026-11-10; check the official source and the dealer's written quote before you pay. Nothing you type leaves this page.</p>
@@ -68,13 +77,15 @@ import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
   .or-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .or-rows dt { color: var(--muted); } .or-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .or-rows .tot { color: var(--ink); font-weight: 700; border-top: 1px solid var(--line); padding-top: 6px; }
+  .or-more { margin-top: 4px; } .or-more summary { cursor: pointer; color: var(--accent); } .or-more .or-grid { margin-top: 10px; }
+  .or-extra, .or-emi { margin: 8px 0 0; } .or-extra:empty, .or-emi:empty { display: none; }
   .or-loan { margin: 12px 0 0; }
   .or-warn { color: var(--bad); margin: 10px 0 0; } .or-warn:empty, .or-canote:empty { display: none; }
   .or-fine { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
 </style>
 
 <script>
-  import { onRoadIndia, onRoadCanada, onRoadUS } from '../../lib/money/vehicle-india';
+  import { onRoadIndia, onRoadCanada, onRoadUS, emiOf, extrasOver } from '../../lib/money/vehicle-india';
   const root = document.querySelector('.or') as HTMLElement;
   const q = <T extends HTMLElement = HTMLInputElement>(k: string) => root.querySelector(`[data-k="${k}"]`) as unknown as T;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -93,10 +104,14 @@ import { IN_STATES, CA_PROV } from '../../lib/money/vehicle-india';
       ? onRoadCanada({ price: num('caprice'), freight: num('freight'), fees: num('cafees'), gstPct: num('gst'), pstPct: num('pst'), plates: num('plates'), down })
       : onRoadUS({ price: num('usprice'), docFee: num('doc'), taxPct: num('ustax'), taxDoc: q('taxdoc').checked, title: num('title'), trade: num('trade'), taxNet: q('taxnet').checked, down });
     const word = r === 'in' ? 'on-road price' : 'out-the-door price';
-    if (!(p.total > 0)) { $('.or-big').textContent = ''; $('.or-rows').innerHTML = ''; $('.or-loan').textContent = ''; $('.or-warn').textContent = 'Type the price of the vehicle.'; return; }
+    if (!(p.total > 0)) { $('.or-big').textContent = ''; $('.or-rows').innerHTML = ''; $('.or-loan').textContent = ''; $('.or-extra').textContent = ''; $('.or-emi').textContent = ''; $('.or-warn').textContent = 'Type the price of the vehicle.'; return; }
     $('.or-warn').textContent = '';
     $('.or-big').textContent = `${fmt(p.total)} ${word}`;
     $('.or-rows').innerHTML = p.lines.map((l) => `<dt>${l.label}</dt><dd>${fmt(l.amount)}</dd>`).join('') + `<dt class="tot">Total ${word}</dt><dd class="tot">${fmt(p.total)}</dd>`;
+    const ex = extrasOver(p.total, p.lines[0]?.amount ?? 0);
+    $('.or-extra').textContent = ex.amount > 0 ? `Taxes, fees and extras add ${fmt(ex.amount)} on top of the price (${ex.pct.toFixed(1)}% more than the sticker price).` : '';
+    const mo = Math.round(num('months')), e = emiOf(p.loan, num('rate'), mo);
+    $('.or-emi').textContent = p.loan > 0 && mo >= 1 && mo <= 120 ? `Loan payment about ${fmt(e.payment)} a month for ${mo} months at ${num('rate')}% (interest in total ${fmt(e.interest)}).` : '';
     const loan = $('.or-loan'); loan.textContent = '';
     if (down > 0 || p.loan > 0) {
       loan.append(`After a down payment of ${fmt(down)}, you would borrow ${fmt(p.loan)}. `);

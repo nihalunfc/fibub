@@ -47,4 +47,34 @@ export default async ({ page, check, BASE }) => {
   check((await (await items[0].$('.lq-fb')).textContent()) === 'Right.' && (await (await items[3].$('.lq-fb')).textContent()) === 'Right.', 'wave: speed and beats answers accepted');
   await (await items[1].$('.lq-in')).fill('x'); await (await items[1].$('.lq-check')).click();
   check((await (await items[1].$('.lq-fb')).textContent()).startsWith('Type a number'), 'wave: not-a-number message');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  {
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, units = {}) => {
+    await page.selectOption('.ps-host [data-k="prob"]', id);
+    for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${id}-${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); else await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); }
+    for (const [k, u] of Object.entries(units)) await page.selectOption(`.ps-host [data-k="${id}-${k}-u"]`, u);
+    await page.waitForTimeout(80);
+  };
+  const T = (cond, msg) => check(cond, `travelling-wave: ${msg}`);
+  await psPre('Sound in a hall'); T((await psAns()).includes('The wave speed is 333 m/s.'), 'example Sound in a hall');
+  await psPre('Wave equation'); T((await psAns()).includes('y = 0.05 sin(3.14 x − 6.28 t)'), 'example Wave equation');
+  await psPre('Particle on the wave'); T((await psAns()).includes('moving down at 31.4 cm/s'), 'example Particle on the wave');
+  await psPre('Beats on a guitar'); T((await psAns()).includes('You hear 4 beats per second'), 'example Beats on a guitar');
+  await psPre('Guitar string'); T((await psAns()).includes('The wave speed on the string is 400 m/s and harmonic 1 is 400 Hz'), 'example Guitar string');
+  await psPre('Third harmonic'); T((await psAns()).includes('Harmonic 3 has frequency 600 Hz'), 'example Third harmonic');
+  await psSet('l', {'v': '340', 'f': '512'}, {}); T((await psAns()).includes('The wavelength is 66.4 cm.'), 'typed v = 340, f = 512 gives 66.4 cm');
+  await psSet('f', {'v': '3e8', 'l': '3'}, {}); T((await psAns()).includes('The frequency is 100 MHz'), 'radio 3 m at 3e8 gives 100 MHz');
+  await psSet('v', {'f': '0.256', 'l': '130'}, {'f': 'kHz', 'l': 'cm'}); T((await psAns()).includes('The wave speed is 333 m/s.'), 'kHz and cm units give 333 m/s');
+  await psSet('vT', {'l': '2', 'T': '0.5'}, {'l': 'm', 'T': 's'}); T((await psAns()).includes('The wave speed is 4 m/s'), 'v = lambda / T = 4 m/s');
+  await psSet('yp', {'A': '5', 'l': '2', 'T': '1', 'x': '0.5', 't': '0', 'd': '1'}, {}); T((await psAns()).includes('y = 5 cm, momentarily at rest'), 'left-moving particle at crest is at rest');
+  await psSet('stand', {'L': '0.65', 'v': '260', 'n': '2.5'}); T((await psAns()).includes('must be a whole number'), 'n = 2.5 gives a friendly message');
+  await psSet('beat', {'a': '440', 'b': '440'}); T((await psAns()).includes('No beats'), 'equal tones give no beats');
+  await psSet('v', {'f': '256', 'l': '0'}); T((await psAns()).includes('must be more than 0'), 'lambda 0 gives a friendly message');
+  await psPre('Sound in a hall');
+  await psPre('Sound in a hall'); T((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'working shown, no NaN');
+  }
 };

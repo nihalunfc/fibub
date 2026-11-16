@@ -42,6 +42,8 @@ It also lists the common karats from 24 down to 9, and works out what the gold i
 - **Fineness**: parts per thousand, as stamped on hallmarks (750, 916, 999).
 - **Per cent**: the same figure as a percentage.
 - **Currency and Price per**: the currency and whether you think in troy ounces or grams.
+- **What is my piece worth**: type a weight (grams, tola, troy ounce, pavan or pennyweight) to get the value of the pure gold in it at the purity from step 1.
+- **More options, stamps**: a short table of common hallmark numbers (375, 417, 585, 750, 916, 958, 999) with their karat and percentage. These are plain conversions; which stamps are legal differs by country, so check the official source.
 - **Your price**: replaces today's price. Tick Remember to keep it on this device only.
 
 ## Worked example

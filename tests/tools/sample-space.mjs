@@ -24,6 +24,24 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.ss-p')).includes('= 39/52 = 3/4') && (await shaded()) === 39, 'sample: not a heart 3/4');
   await page.selectOption(R + '.ss-ev', 'redface'); await page.waitForTimeout(100);
   check((await txt('.ss-p')).includes('= 6/52 = 3/26'), 'sample: red face card 3/26');
+  // Probability from counts
+  check((await txt('.ss-cans')) === 'P(E) = 2/5 ≈ 0.4 (40%).' && (await txt('.ss-clines')).includes('Odds in favour: 2 to 3 (about 1 in 2.5)'), `sample: counts 4 of 10 (${await txt('.ss-cans')})`);
+  await page.fill(R + '[data-k="fav"]', '11'); check((await txt('.ss-cerr')).includes('more than the total'), 'sample: favourable above total message');
+  await page.fill(R + '[data-k="total"]', '0'); check((await txt('.ss-cerr')).includes('1 or more'), 'sample: zero total message');
+  await page.fill(R + '[data-k="fav"]', '0'); await page.fill(R + '[data-k="total"]', '8'); check((await txt('.ss-cans')) === 'P(E) = 0: the event is impossible.', 'sample: zero favourable');
+  await page.fill(R + '[data-k="fav"]', '2.5'); check((await txt('.ss-cerr')).includes('whole numbers'), 'sample: fractional count message');
+  // Two events (two dice, A = sum 7)
+  await page.click(R + '.ss-kind button[data-k="dice"]'); await page.waitForTimeout(100);
+  await page.evaluate(() => { document.querySelector('.ss .ss-two').open = true; }); await page.waitForTimeout(100);
+  check((await txt('.ss-two-ans')) === 'P(A or B) = 12/36, P(A and B) = 0/36.' && (await txt('.ss-two-lines')).includes('mutually exclusive'), `sample: default two events (${await txt('.ss-two-ans')})`);
+  await page.selectOption(R + '[data-k="event2"]', 'prodeven'); await page.waitForTimeout(100);
+  check((await txt('.ss-two-ans')) === 'P(A or B) = 27/36, P(A and B) = 6/36.' && (await txt('.ss-two-lines')).includes('P(A given B) = P(both) / P(B) = 6/27 = 2/9 ≈ 0.2222.') && (await txt('.ss-two-lines')).includes('Not independent'), `sample: sum 7 vs even product (${await txt('.ss-two-lines')})`);
+  check((await page.$$(R + '.ss-grid span.inb')).length === 27, 'sample: second event outlined on 27 cells');
+  await page.click(R + '.ss-kind button[data-k="cards"]'); await page.waitForTimeout(100);
+  check((await txt('.ss-two-lines')).includes('Independent') && (await txt('.ss-two-ans')) === 'P(A or B) = 32/52, P(A and B) = 6/52.', `sample: red and face are independent (${await txt('.ss-two-ans')})`);
+  await page.evaluate(() => { document.querySelector('.ss .ss-two').open = false; }); await page.waitForTimeout(100);
+  check((await page.$$(R + '.ss-grid span.inb')).length === 0, 'sample: closing the panel clears the outline');
+  await page.click(R + '.ss-kind button[data-k="dice"]'); await page.waitForTimeout(100);
   // Simulation on two dice, sum 7.
   await page.click(R + '.ss-kind button[data-k="dice"]'); await page.waitForTimeout(100);
   await page.click(R + '.ss-run[data-n="10000"]'); await page.waitForTimeout(300);

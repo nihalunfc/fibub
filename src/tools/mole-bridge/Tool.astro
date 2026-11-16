@@ -12,15 +12,36 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
     <div class="ax-seg mb-lvl" role="group" aria-label="Level"><button type="button" data-l="9" aria-pressed="true">Class 9</button><button type="button" data-l="11" aria-pressed="false">Class 11</button></div>
     <p class="ax-help mb-lvlhelp"></p>
     <div class="ax-grid" style="margin-top:10px">
-      <label>Substance (formula) <input class="mb-f" value="H2O" autocomplete="off" spellcheck="false" /></label>
-      <label>Amount <input class="mb-v" inputmode="decimal" value="36" /></label>
-      <label>Unit <select class="mb-u"><option value="g" selected>grams (g)</option><option value="mol">moles (mol)</option><option value="N">particles</option><option value="L">litres of gas at STP</option></select></label>
+      <label>Substance (formula) <input class="mb-f" data-k="formula" value="H2O" autocomplete="off" spellcheck="false" /></label>
+      <label>Amount <input class="mb-v" data-k="amount" inputmode="decimal" value="36" /></label>
+      <label>Unit <select class="mb-u" data-k="unit"><option value="g" selected>grams (g)</option><option value="mg">milligrams (mg)</option><option value="kg">kilograms (kg)</option><option value="mol">moles (mol)</option><option value="mmol">millimoles (mmol)</option><option value="N">particles</option><option value="L">litres of gas at STP</option></select></label>
     </div>
     <div class="mb-chips" role="group" aria-label="Examples">{chips.map((c) => <button type="button" class="mb-chip" data-f={c}>{sub(c)}</button>)}</div>
+    <details class="mb-more"><summary>More options</summary>
+      <label>Use my own molar mass instead (g/mol) <input class="mb-om" data-k="molar-mass" inputmode="decimal" placeholder="e.g. 18.015 (leave blank to work it out)" /></label>
+      <p class="ax-help">Handy when the question gives you the molar mass or the formula is not one this page can read.</p>
+    </details>
     <p class="ax-err mb-err" hidden></p>
+    <p class="ax-big mb-ans" aria-live="polite" style="margin:10px 0 0"></p>
     <svg class="mb-svg" viewBox="0 0 320 230" role="img" aria-label="The mole bridge"></svg>
     <ol class="mb-steps"></ol>
+    <p class="mb-pc" hidden></p>
     <p class="ax-help">One mole is 6.022 × 10²³ particles (Avogadro's number). Counting one particle a second, a mole would take about 1.9 × 10¹⁶ years, over a million times the age of the universe. The gas volume only makes sense for a gas, treated as an ideal gas at 0 °C.</p>
+  </div>
+
+  <div class="ax-card mb-mol">
+    <h2>Molarity: moles, litres and mol/L</h2>
+    <p class="ax-help" style="margin-top:0">Fill in any two boxes; the empty one is worked out. Uses the substance above for the mass.</p>
+    <div class="ax-grid">
+      <label>Moles (mol) <input class="mb-mn" data-k="mol-n" inputmode="decimal" /></label>
+      <label>Volume <input class="mb-mv" data-k="mol-v" inputmode="decimal" /></label>
+      <label>Volume unit <select class="mb-mu" data-k="mol-vu"><option value="1">litres (L)</option><option value="0.001">millilitres (mL)</option><option value="1000">cubic metres (m³)</option></select></label>
+      <label>Concentration (mol/L) <input class="mb-mc" data-k="mol-c" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err mb-merr" hidden></p>
+    <p class="ax-big mb-mbig" aria-live="polite" style="margin:10px 0 4px"></p>
+    <p class="lx-eq mb-meq"></p>
+    <p class="ax-help">Common mistake: forgetting to turn mL into L before dividing (250 mL is 0.250 L).</p>
   </div>
 
   <div class="ax-card">
@@ -35,10 +56,11 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
 
   <div class="ax-card">
     <h2>Which runs out first?</h2>
-    <label>Reaction <select class="mb-rx">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}</select></label>
+    <label>Reaction <select class="mb-rx" data-k="reaction">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}</select></label>
     <div class="ax-grid" style="margin-top:8px">
-      <label class="mb-la">A (mol) <input class="mb-a" inputmode="decimal" value="5" /></label>
-      <label class="mb-lb">B (mol) <input class="mb-b" inputmode="decimal" value="2" /></label>
+      <label class="mb-la">A (mol) <input class="mb-a" data-k="lim-a" inputmode="decimal" value="5" /></label>
+      <label class="mb-lb">B (mol) <input class="mb-b" data-k="lim-b" inputmode="decimal" value="2" /></label>
+      <label>Amounts are in <select class="mb-lu" data-k="lim-unit"><option value="mol">moles</option><option value="g">grams</option></select></label>
     </div>
     <p class="ax-err mb-lerr" hidden></p>
     <svg class="mb-lsvg" viewBox="0 0 320 120" role="img" aria-label="Particles before and after"></svg>
@@ -65,6 +87,8 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
 </div>
 
 <style is:inline>
+  .mb-pc { margin: 10px 0 0; font-size: 14px; }
+  .mb-more { margin-top: 10px; }
   .mb-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .mb-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
   .mb-svg, .mb-lsvg { display: block; width: 100%; max-width: 460px; margin: 12px auto 0; }
@@ -87,7 +111,7 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
 </style>
 
 <script>
-  import { molar, bridge, empirical, molecular, limiting, REACTIONS, VM, NA, type Unit } from '../../lib/sci/molebridge';
+  import { molar, bridge, empirical, molecular, limiting, percentComposition, molarity, REACTIONS, VM, NA, type Unit } from '../../lib/sci/molebridge';
   import { num } from '../../lib/sci/num';
   import { mountQuiz, near, rint, pickOne, type Question } from '../../lib/chemquiz';
 
@@ -141,24 +165,65 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
   function updBridge() {
     root.querySelectorAll<HTMLButtonElement>('.mb-lvl button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.l) === level)));
     q('.mb-lvlhelp').textContent = level === 9 ? 'Class 9: rounded atomic masses (H 1, C 12, O 16 …) and 22.4 L per mole of gas at 0 °C and 1 atm.' : 'Class 11: IUPAC atomic weights and 22.7 L per mole of gas at STP (0 °C and 1 bar).';
-    const f = q<HTMLInputElement>('.mb-f').value.trim(), u = q<HTMLSelectElement>('.mb-u').value as Unit, v = num(q<HTMLInputElement>('.mb-v').value);
-    const steps = q('.mb-steps');
-    let m;
-    try { m = molar(f, level === 9); } catch (e) { err('.mb-err', (e as Error).message || 'Type a formula such as H2O.'); steps.replaceChildren(); q('.mb-svg').replaceChildren(); return; }
-    if (!Number.isFinite(v) || v < 0) { err('.mb-err', 'Type an amount of zero or more.'); return; }
+    const f = q<HTMLInputElement>('.mb-f').value.trim(), uSel = q<HTMLSelectElement>('.mb-u').value;
+    const SC: Record<string, [Unit, number]> = { g: ['g', 1], mg: ['g', 1e-3], kg: ['g', 1e3], mol: ['mol', 1], mmol: ['mol', 1e-3], N: ['N', 1], L: ['L', 1] };
+    const [u, scale] = SC[uSel] ?? ['g', 1];
+    const vRaw = num(q<HTMLInputElement>('.mb-v').value), v = vRaw * scale;
+    const steps = q('.mb-steps'), ans = q('.mb-ans'), pc = q('.mb-pc');
+    pc.hidden = true; ans.textContent = '';
+    const omRaw = q<HTMLInputElement>('.mb-om').value.trim(), om = omRaw ? num(omRaw) : NaN;
+    if (omRaw && !(om > 0)) { err('.mb-err', 'Type your own molar mass as a number above zero, or clear the box.'); steps.replaceChildren(); return; }
+    let m: { rows: { symbol: string; count: number; mass: number; subtotal: number; school: boolean }[]; M: number };
+    try { m = molar(f, level === 9); } catch (e) {
+      if (om > 0) m = { rows: [], M: om };
+      else { err('.mb-err', (e as Error).message || 'Type a formula such as H2O.'); steps.replaceChildren(); q('.mb-svg').replaceChildren(); return; }
+    }
+    if (om > 0) m = { rows: m.rows, M: om };
+    if (!Number.isFinite(vRaw) || vRaw < 0) { err('.mb-err', 'Type an amount of zero or more.'); return; }
     err('.mb-err', null);
     const a = bridge(u, v, m.M, vmUse());
     drawBridge(u, a, m.M, f);
     steps.replaceChildren();
     const li = (t: string) => { const l = document.createElement('li'); l.textContent = t; steps.append(l); };
     const F = subs(f);
-    li(`Molar mass of ${F}: ${m.rows.map((r) => `${r.count} × ${fmt(r.mass)}`).join(' + ')} = ${fmt(m.M)} g/mol${m.rows.some((r) => level === 9 && !r.school) ? ' (exact weights where there is no rounded school value)' : ''}.`);
+    ans.textContent = `${fmt(vRaw)} ${uSel === 'N' ? 'particles' : uSel === 'L' ? 'L of gas' : uSel} of ${F || 'the substance'} is ${u === 'mol' ? '' : `${fmt(a.mol)} mol, `}${u === 'g' ? '' : `${fmt(a.g)} g, `}${u === 'N' ? '' : `${fmt(a.N, 4)} particles, `}${u === 'L' ? '' : `${fmt(a.L)} L as a gas at STP`}`.replace(/, $/, '') + '.';
+    if (scale !== 1) li(`Change the unit first: ${fmt(vRaw)} ${uSel} = ${fmt(v)} ${u}.`);
+    if (om > 0) li(`Molar mass (the value you typed) = ${fmt(m.M)} g/mol.`);
+    else li(`Molar mass of ${F}: ${m.rows.map((r) => `${r.count} × ${fmt(r.mass)}`).join(' + ')} = ${fmt(m.M)} g/mol${m.rows.some((r) => level === 9 && !r.school) ? ' (exact weights where there is no rounded school value)' : ''}.`);
     if (u === 'g') li(`Moles = mass ÷ molar mass = ${fmt(v)} ÷ ${fmt(m.M)} = ${fmt(a.mol)} mol.`);
     if (u === 'N') li(`Moles = particles ÷ Nₐ = ${fmt(v, 4)} ÷ 6.022 × 10²³ = ${fmt(a.mol)} mol.`);
     if (u === 'L') li(`Moles = volume ÷ ${vmTxt()} L/mol = ${fmt(v)} ÷ ${vmTxt()} = ${fmt(a.mol)} mol.`);
     if (u !== 'g') li(`Mass = moles × molar mass = ${fmt(a.mol)} × ${fmt(m.M)} = ${fmt(a.g)} g.`);
     if (u !== 'N') li(`Particles = moles × Nₐ = ${fmt(a.mol)} × 6.022 × 10²³ = ${fmt(a.N, 4)} ${m.rows.length === 1 && m.rows[0].count === 1 ? 'atoms' : 'molecules or formula units'}.`);
     if (u !== 'L') li(`Gas volume at STP = moles × ${vmTxt()} L = ${fmt(a.mol)} × ${vmTxt()} = ${fmt(a.L)} L (only if ${F} is a gas).`);
+    if (!(om > 0) && m.rows.length > 1) {
+      pc.hidden = false;
+      pc.textContent = 'Percent composition by mass: ' + percentComposition(m.rows, m.M).map((r) => `${r.symbol} ${(Math.round(r.pct * 100) / 100).toFixed(2)} %`).join(', ') + '. (each element\'s mass in one mole ÷ molar mass × 100)';
+    }
+    updMolarity();
+  }
+
+  // Molarity
+  function updMolarity() {
+    const M = (() => { try { const om = num(q<HTMLInputElement>('.mb-om').value); if (om > 0) return om; return molar(q<HTMLInputElement>('.mb-f').value.trim(), level === 9).M; } catch { return NaN; } })();
+    const rd = (sel: string) => { const t = q<HTMLInputElement>(sel).value.trim(); return t === '' ? NaN : num(t); };
+    const big = q('.mb-mbig'), eq = q('.mb-meq'); eq.replaceChildren(); big.textContent = '';
+    const nRaw = rd('.mb-mn'), vRaw = rd('.mb-mv'), cRaw = rd('.mb-mc'), vu = Number(q<HTMLSelectElement>('.mb-mu').value);
+    const filled = [nRaw, vRaw, cRaw].filter((x) => Number.isFinite(x)).length;
+    if (filled < 2) { err('.mb-merr', null); big.textContent = 'Fill in two of the three boxes.'; return; }
+    try {
+      const r = molarity(nRaw, vRaw * vu, cRaw);
+      err('.mb-merr', null);
+      const f = subs(q<HTMLInputElement>('.mb-f').value.trim() || 'the substance');
+      const vShow = fmt(r.litres / vu);
+      const lines: string[] = [];
+      if (vu !== 1 && Number.isFinite(vRaw)) lines.push(`Volume in litres = ${fmt(vRaw)} × ${vu} = ${fmt(vRaw * vu)} L.`);
+      if (r.solved === 'conc') { big.textContent = `Concentration = ${fmt(r.conc)} mol/L`; lines.push(`c = n ÷ V = ${fmt(r.mol)} ÷ ${fmt(r.litres)} = ${fmt(r.conc)} mol/L.`); }
+      if (r.solved === 'mol') { big.textContent = `Moles = ${fmt(r.mol)} mol`; lines.push(`n = c × V = ${fmt(r.conc)} × ${fmt(r.litres)} = ${fmt(r.mol)} mol.`); }
+      if (r.solved === 'litres') { big.textContent = `Volume = ${vShow} ${vu === 1 ? 'L' : vu === 0.001 ? 'mL' : 'm³'}`; lines.push(`V = n ÷ c = ${fmt(r.mol)} ÷ ${fmt(r.conc)} = ${fmt(r.litres)} L.`); }
+      if (Number.isFinite(M)) lines.push(`Mass of ${f} needed or present = ${fmt(r.mol)} mol × ${fmt(M)} g/mol = ${fmt(r.mol * M)} g.`);
+      lines.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+    } catch (e) { err('.mb-merr', (e as Error).message); }
   }
 
   // Empirical formula
@@ -196,8 +261,11 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
   // Limiting reactant
   function updLim() {
     const r = REACTIONS.find((x) => x.id === q<HTMLSelectElement>('.mb-rx').value)!;
-    q('.mb-la').firstChild!.textContent = `${subs(r.a[1])} (mol) `; q('.mb-lb').firstChild!.textContent = `${subs(r.b[1])} (mol) `;
-    const A = num(q<HTMLInputElement>('.mb-a').value), Bv = num(q<HTMLInputElement>('.mb-b').value);
+    const grams = q<HTMLSelectElement>('.mb-lu').value === 'g';
+    q('.mb-la').firstChild!.textContent = `${subs(r.a[1])} (${grams ? 'g' : 'mol'}) `; q('.mb-lb').firstChild!.textContent = `${subs(r.b[1])} (${grams ? 'g' : 'mol'}) `;
+    const MA = molar(r.a[1], level === 9).M, MB = molar(r.b[1], level === 9).M;
+    const Ain = num(q<HTMLInputElement>('.mb-a').value), Bin = num(q<HTMLInputElement>('.mb-b').value);
+    const A = grams ? Ain / MA : Ain, Bv = grams ? Bin / MB : Bin;
     const svg = q<SVGSVGElement>('.mb-lsvg'); svg.replaceChildren();
     if (!(A >= 0 && Bv >= 0)) { err('.mb-lerr', 'Type amounts of zero or more.'); q('.mb-lbig').textContent = ''; q('.mb-leq').textContent = ''; return; }
     err('.mb-lerr', null);
@@ -218,14 +286,18 @@ const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈�
       `Product: ${L.products.map((p) => `${fmt(p.mol)} mol ${subs(p.f)}`).join(' and ')}.`,
       `Left over: ${fmt(L.leftA)} mol ${subs(r.a[1])} and ${fmt(L.leftB)} mol ${subs(r.b[1])}.`,
     ];
+    if (grams) {
+      lines.unshift(`Grams to moles first: ${subs(r.a[1])} ${fmt(Ain)} ÷ ${fmt(MA)} = ${fmt(A)} mol; ${subs(r.b[1])} ${fmt(Bin)} ÷ ${fmt(MB)} = ${fmt(Bv)} mol.`);
+      lines.push(`In grams: ${L.products.map((p) => `${fmt(p.mol * molar(p.f, level === 9).M)} g ${subs(p.f)}`).join(' and ')} formed; ${fmt(L.leftA * MA)} g ${subs(r.a[1])} and ${fmt(L.leftB * MB)} g ${subs(r.b[1])} left over.`);
+    }
     const eq = q('.mb-leq'); eq.replaceChildren(); lines.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
   }
 
   const all = () => { updBridge(); updEmp(); updLim(); };
   root.querySelectorAll<HTMLButtonElement>('.mb-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); all(); }));
-  ['.mb-f', '.mb-v'].forEach((s) => q(s).addEventListener('input', updBridge)); q('.mb-u').addEventListener('change', updBridge);
+  ['.mb-f', '.mb-v', '.mb-om'].forEach((s) => q(s).addEventListener('input', updBridge)); ['.mb-mn', '.mb-mv', '.mb-mc'].forEach((s) => q(s).addEventListener('input', updMolarity)); q('.mb-mu').addEventListener('change', updMolarity); q('.mb-u').addEventListener('change', updBridge);
   root.querySelectorAll<HTMLButtonElement>('.mb-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.mb-f').value = b.dataset.f!; updBridge(); }));
-  q('.mb-rx').addEventListener('change', updLim); ['.mb-a', '.mb-b'].forEach((s) => q(s).addEventListener('input', updLim));
+  q('.mb-rx').addEventListener('change', updLim); q('.mb-lu').addEventListener('change', updLim); ['.mb-a', '.mb-b'].forEach((s) => q(s).addEventListener('input', updLim));
   all();
 
   // Check yourself (rounded school masses so the numbers come out neatly)

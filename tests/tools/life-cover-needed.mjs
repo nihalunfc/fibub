@@ -17,4 +17,8 @@ export default async ({ page, check, BASE }) => {
   check(digits(await txt('.lc-s-hlv')) === '250000', 'life-cover-needed: own share halves the family amount');
   await set('income', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.lc .lc-err'), 'life-cover-needed: no income shows a message');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('income', '100000'); await set('own', '0'); await set('debts', '0'); await set('existing', '0'); await page.waitForTimeout(100);
+  check((await page.textContent('.lc .lc-yrs')).replace(/[^\d]/g, '').includes('1000000'), 'life-cover-needed: years table shows 10 years = 1,000,000 at 0 growth and 0 discount? (uses current growth/discount)');
+  check((await page.textContent('.lc .lc-bd')).includes('Cover to look for'), 'life-cover-needed: breakdown shown');
 };

@@ -45,3 +45,39 @@ export function yearsTo(p: number, rate: number, target: number): number {
   const k = Math.log(target / p) / Math.log(r);
   return Math.ceil(k - 1e-9);
 }
+
+/** Read a list of terms as a GP: the common ratio, or null if the terms are not a GP (needs 2 terms, a first term of 0 is not allowed). */
+export function ratioOfList(xs: number[]): number | null {
+  if (xs.length < 2 || xs[0] === 0) return null;
+  const r = xs[1] / xs[0];
+  return xs.every((x, i) => i === 0 || Math.abs(x - xs[i - 1] * r) <= 1e-9 * Math.max(1, Math.abs(x))) ? r : null;
+}
+
+/** First term and ratio(s) when the pth term is x and the qth term is y (p ≠ q). Two ratios (±) when q − p is even. */
+export function fromTwoTerms(p: number, x: number, q: number, y: number): { ratios: number[]; a: number[] } | null {
+  if (p === q || x === 0 || y === 0) return null;
+  const gap = q - p, ratio = y / x;
+  let rs: number[];
+  if (Math.abs(gap) % 2 === 0) { if (ratio < 0) return null; const m = ratio ** (1 / gap); rs = [m, -m]; }
+  else rs = [Math.sign(ratio) * Math.abs(ratio) ** (1 / gap)];
+  return { ratios: rs, a: rs.map((r) => x / r ** (p - 1)) };
+}
+
+/** Which term of the GP equals t? The position n (a whole number or not), NaN if t is never reached. */
+export function termNumber(a: number, r: number, t: number): number {
+  if (a === 0 || r === 0 || r === 1 || t === 0) return NaN;
+  const ratio = t / a;
+  if (r > 0) return ratio > 0 ? 1 + Math.log(ratio) / Math.log(r) : NaN;
+  // Negative ratio: terms alternate in sign, so only |t/a| matters and the parity must fit.
+  if (ratio === 0) return NaN;
+  const n = 1 + Math.log(Math.abs(ratio)) / Math.log(Math.abs(r));
+  const k = Math.round(n);
+  return Math.abs(n - k) < 1e-9 && (k % 2 === 1) === (ratio > 0) ? k : NaN;
+}
+
+/** How many terms are needed for the sum to reach s (|r| ≠ 1): the smallest whole n with Sn ≥ s (or ≤ s when s is negative), Infinity if never. */
+export function termsForSum(a: number, r: number, s: number, cap = 100000): number {
+  let sum = 0, t = a;
+  for (let n = 1; n <= cap; n++) { sum += t; t *= r; if (s >= 0 ? sum >= s - 1e-12 : sum <= s + 1e-12) return n; if (!Number.isFinite(sum)) return Infinity; }
+  return Infinity;
+}

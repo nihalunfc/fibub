@@ -137,3 +137,40 @@ export function dayGroup(d: Date): 'mf' | 'sa' | 'su' {
   const { day } = clock(d);
   return day === 5 ? 'sa' : day === 6 ? 'su' : 'mf';
 }
+
+/** Longest stay in minutes from an OpenStreetMap or City of Ottawa max-stay text ("2 hours", "30 min", "1:30", "90 minutes").
+ *  Null when it cannot be read for sure, and for "unlimited". */
+export function maxStayMinutes(text: string | undefined | null): number | null {
+  const t = (text || '').trim().toLowerCase();
+  if (!t || /unlimited|none|no limit/.test(t)) return null;
+  let m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) return +m[1] * 60 + +m[2];
+  m = t.match(/^(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)\b/);
+  if (m) return Math.round(+m[1] * 60);
+  m = t.match(/^(\d+)\s*(m|min|mins|minute|minutes)\b/);
+  if (m) return +m[1];
+  return null;
+}
+
+/** A price like "$3.00", "$3" or "3.5" as a number; null if there is no number. */
+export function parseRate(text: string | undefined | null): number | null {
+  const m = (text || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+  return m ? +m[1] : null;
+}
+
+/** Estimated cost of a stay at City of Ottawa style pay data `{ mf: [hours, rate], sa: [...], su: [...] }`,
+ *  counting each 15-minute slice that falls inside the paid hours. Null when no rate is known or the stay is not positive.
+ *  Real machines may round up or have different rules: this is an estimate only. */
+export function stayCost(pay: Record<string, [string, string]> | undefined, start: Date, stayMin: number): number | null {
+  if (!pay || !(stayMin > 0) || !isFinite(stayMin)) return null;
+  let total = 0, any = false;
+  for (let t = 0; t < stayMin; t += 15) {
+    const len = Math.min(15, stayMin - t);
+    const mid = new Date(start.getTime() + (t + len / 2) * 60000);
+    const [hrs, rate] = pay[dayGroup(mid)] || ['', ''];
+    const r = parseRate(rate);
+    if (hrs && r != null) { any = true; if (inAmPm(hrs, mid) === true) total += (r * len) / 60; }
+    else if (hrs) return null;
+  }
+  return any || total > 0 ? Math.round(total * 100) / 100 : 0;
+}

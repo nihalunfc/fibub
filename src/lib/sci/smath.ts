@@ -68,3 +68,24 @@ export function answerMatches(typed: string, want: number[], tol = 0.01, anyOrde
 export function randInt(lo: number, hi: number, nonZero = false, rnd = Math.random): number {
   for (;;) { const v = lo + Math.floor(rnd() * (hi - lo + 1)); if (!nonZero || v !== 0) return v; }
 }
+
+/** The nearest simple fraction [numerator, denominator] to x (denominator up to maxDen), or null if x is not close to one. */
+export function rat(x: number, maxDen = 1000): [number, number] | null {
+  if (!Number.isFinite(x)) return null;
+  if (Number.isInteger(x)) return [x, 1];
+  let h1 = 1, h0 = 0, k1 = 0, k0 = 1, y = Math.abs(x);
+  for (let i = 0; i < 40; i++) {
+    const a = Math.floor(y), h2 = a * h1 + h0, k2 = a * k1 + k0;
+    if (k2 > maxDen) return null;
+    h0 = h1; h1 = h2; k0 = k1; k1 = k2;
+    if (Math.abs(h1 / k1 - Math.abs(x)) <= 1e-9 * Math.max(1, Math.abs(x))) return [x < 0 ? -h1 : h1, k1];
+    const f = y - a; if (f < 1e-12) break; y = 1 / f;
+  }
+  return null;
+}
+
+/** A number as text: a simple fraction when it is one (0.75 -> "3/4"), otherwise up to `dp` decimals. */
+export function numText(x: number, dp = 4): string {
+  const r = rat(x, 100);
+  return r && r[1] > 1 ? fracText(r[0], r[1]) : fmt(x, dp);
+}

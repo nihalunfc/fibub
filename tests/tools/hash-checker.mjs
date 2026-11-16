@@ -13,4 +13,10 @@ export default async ({ page, check, BASE }) => {
   await page.click(R + '.hc-tabs button[data-m="file"]');
   await page.setInputFiles(R + '.hc-file', { name: 'a.txt', mimeType: 'text/plain', buffer: Buffer.from('abc') }); await page.waitForTimeout(300);
   check((await val('MD5')) === '900150983cd24fb0d6963f7d28e17f72' && (await page.textContent(R + '.hc-info')).includes('a.txt'), 'hash: file input works');
+  await page.click(R + '.hc-tabs button[data-m="text"]');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.hc-text', 'The quick brown fox jumps over the lazy dog'); await page.fill(R + '.hc-key', 'key'); await page.waitForTimeout(300);
+  check((await val('HMAC-SHA-256')) === 'f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8', 'hash: HMAC-SHA-256 known value');
+  await page.selectOption(R + '.hc-fmt', 'HEX'); await page.waitForTimeout(100);
+  check((await val('HMAC-SHA-256')) === 'F7BC83F430538424B13298E6AA6FB143EF4D59A14946175997479DBC2D1A3CD8', 'hash: upper-case format');
 };

@@ -23,6 +23,8 @@ flow:
   - { icon: download, label: "Calendar" }
 ---
 
+Under **More options** you can enter a trip date and how many months a country wants your document to stay valid after it. The page lists any document that would expire too soon, so you can renew first. Check the official source of the country you are visiting for the exact rule.
+
 ## What it does
 
 Passports, permits, licences, cards and insurance policies all run out, often at a bad moment. This page keeps them in one list, sorted with the soonest expiry first, and shows the days left, the date to start renewing and a status: **OK**, **Renew now** (the reminder date has passed) or **Expired**.

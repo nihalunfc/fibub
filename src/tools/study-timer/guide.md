@@ -21,6 +21,8 @@ flow:
   - { icon: check, label: "Break" }
 ---
 
+Three presets sit above the boxes: 25 / 5 (classic Pomodoro), 50 / 10 and 90 / 20 for deep work. They only fill in the minutes, so you can still change any number. The counter also adds up your focus time for the session.
+
 ## What it does
 
 This timer splits study time into focus sessions and breaks, the way the Pomodoro Technique does: 25 minutes of work, a 5-minute break, and after every four focus sessions a longer break. It beeps at the end of each part and shows the time left in the tab title.

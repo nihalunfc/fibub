@@ -21,6 +21,13 @@ import '../../styles/collect.css';
         <label>Shipping and insurance <input class="ac-ship" type="number" min="0" step="any" inputmode="decimal" value="15" /></label>
         <label>Tax is charged on <select class="ac-on"><option value="prem">The premium only</option><option value="all">Hammer plus premium</option></select></label>
       </div>
+      <details class="ac-more"><summary>More options: a different premium above a price</summary>
+        <div class="ax-grid" style="margin-top:8px">
+          <label>Above this hammer price <input class="ac-th" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 500" /></label>
+          <label>The premium on the part above it, % <input class="ac-up" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 15" /></label>
+        </div>
+        <p class="ax-help">Some houses charge a lower rate on the part of the price above a limit. Leave both empty for one flat rate. Both are your own figures: read the house's terms.</p>
+      </details>
       <p class="ax-help">The premium is the fee added to the winning bid. Rates differ by auction house and country, so read their terms.</p>
     </div>
     <div class="ax-card">
@@ -29,7 +36,11 @@ import '../../styles/collect.css';
       <dl class="ax-facts ac-facts"></dl>
     </div>
     <div class="ax-card">
-      <h2>3. Most you can bid</h2>
+      <h2>3. If you bid a little more or less</h2>
+      <div class="ax-scroll"><table class="ac-lad"><thead><tr><th class="r">Hammer</th><th class="r">Premium</th><th class="r">Tax</th><th class="r">All-in total</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="ax-card">
+      <h2>4. Most you can bid</h2>
       <label>My budget (all costs included) <input class="ac-budget" type="number" min="0" step="any" inputmode="decimal" value="1241" /></label>
       <p class="ax-big ac-max" aria-live="polite">…</p>
       <p class="ax-help">Uses the premium, tax and shipping above. Bid up to this and the total stays within your budget.</p>
@@ -45,6 +56,11 @@ import '../../styles/collect.css';
         <label>Tax on the commission % <input class="ac-st" type="number" min="0" step="any" inputmode="decimal" value="0" /></label>
         <label>Fixed fees (listing, photos, insurance) <input class="ac-sf" type="number" min="0" step="any" inputmode="decimal" value="10" /></label>
       </div>
+      <details><summary>More options: what hammer price do I need?</summary>
+        <label style="margin-top:8px">I want to receive <input class="ac-want" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 1000" /></label>
+        <p class="ax-big ac-need" aria-live="polite"></p>
+        <p class="ax-help">Uses the commission, tax and fixed fees above. Set your reserve at or above this.</p>
+      </details>
       <p class="ax-help">Commission and fees differ by auction house and country. Read their terms, and note that you may owe income or capital gains tax on a sale.</p>
     </div>
     <div class="ax-card">
@@ -61,7 +77,7 @@ import '../../styles/collect.css';
 </style>
 
 <script>
-  import { buyerTotal, maxBid, sellerNet } from '../../lib/collect/maths';
+  import { buyerTotal, maxBid, sellerNet, tieredPremium, hammerForNet } from '../../lib/collect/maths';
 
   const root = document.querySelector('.ac') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -72,13 +88,26 @@ import '../../styles/collect.css';
   const calc = () => {
     const all = q<HTMLSelectElement>('.ac-on').value === 'all';
     const bp = num('.ac-bp') / 100, tax = num('.ac-tax') / 100, ship = num('.ac-ship');
-    const b = buyerTotal(num('.ac-h'), bp, tax, ship, all);
+    const th = num('.ac-th'), upRaw = q<HTMLInputElement>('.ac-up').value, up = upRaw === '' ? bp : num('.ac-up') / 100;
+    const tiered = th > 0 && upRaw !== '';
+    // Total for a given hammer: the premium may be tiered, so work from the premium amount.
+    const total = (h: number) => { const prem = tiered ? tieredPremium(h, bp, th, up) : h * bp, t = (all ? h + prem : prem) * tax; return { prem, t, total: h + prem + t + ship }; };
+    const hh = num('.ac-h'), b0 = total(hh), b = { premium: b0.prem, tax: b0.t, total: b0.total };
+    q('.ac-lad tbody').innerHTML = [-20, -10, 0, 10, 20].map((p) => { const h = Math.round(hh * (1 + p / 100) * 100) / 100, r = total(h);
+      return `<tr class="${p === 0 ? 'ac-now' : ''}"><td class="r">${f(h)}${p ? ` <small>(${p > 0 ? '+' : ''}${p}%)</small>` : ''}</td><td class="r">${f(r.prem)}</td><td class="r">${f(r.t)}</td><td class="r"><b>${f(r.total)}</b></td></tr>`; }).join('');
     q('.ac-total').textContent = f(b.total);
     q('.ac-facts').innerHTML = dd('Hammer price', f(num('.ac-h'))) + dd("Buyer's premium", f(b.premium)) + dd('Tax', f(b.tax)) + dd('Shipping', f(ship));
-    const m = maxBid(num('.ac-budget'), bp, tax, ship, all);
+    let m = maxBid(num('.ac-budget'), bp, tax, ship, all);
+    if (tiered) { // find the highest hammer whose total stays within budget (total rises with the hammer)
+      let lo = 0, hi = Math.max(num('.ac-budget'), 1);
+      for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (total(mid).total <= num('.ac-budget')) lo = mid; else hi = mid; }
+      m = total(0).total <= num('.ac-budget') ? lo : -1;
+    }
     q('.ac-max').textContent = m > 0 ? f(m) : 'Budget does not cover the costs';
     const s = sellerNet(num('.ac-sh'), num('.ac-sc') / 100, num('.ac-sf'), num('.ac-st') / 100);
     q('.ac-net').textContent = f(s.net);
+    const want = parseFloat(q<HTMLInputElement>('.ac-want').value);
+    q('.ac-need').textContent = want > 0 ? (num('.ac-sc') < 100 ? `Hammer price of ${f(hammerForNet(want, num('.ac-sc') / 100, num('.ac-sf'), num('.ac-st') / 100))}` : 'Commission must be under 100%') : '';
     q('.ac-sfacts').innerHTML = dd('Hammer price', f(num('.ac-sh'))) + dd('Commission', '-' + f(s.commission)) + dd('Tax on commission', '-' + f(s.tax)) + dd('Fixed fees', '-' + f(num('.ac-sf')));
   };
   root.querySelectorAll<HTMLButtonElement>('.ac-m').forEach((b) => b.addEventListener('click', () => {

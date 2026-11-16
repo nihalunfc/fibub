@@ -2,9 +2,16 @@
 // Enzyme activity lab: digest starch (amylase) or egg white (pepsin, trypsin) at different temperatures, pH values,
 // substrate amounts and inhibitors, and time it with a spot tile. Teaching model with made-up round numbers.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax enz">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your practical or problem: a rate from a time, the new rate at another temperature (Q10), the Michaelis-Menten rate or substrate concentration, or the rate with an inhibitor, each with the working.</p>
+    <div class="enz-solve"></div>
+  </div>
+
   <p class="ax-help enz-note">A teaching model: the enzymes' numbers are made-up round values, so a real practical will give different times.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="enz-lab">Level</span>
@@ -70,6 +77,8 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { ENZ_SPEC } from '../../lib/sci/solve-enzyme';
   import { ENZYMES, tempFactor, pHFactor, rate, bestTemp, starchLeft, spotTime, apparent, type Inhibitor } from '../../lib/sci/enzlab';
   import { chartFigure } from '../../lib/sci/plot';
   import { csv } from '../../lib/sci/num';
@@ -279,6 +288,8 @@ import Downloads from '../../components/Downloads.astro';
       { title: 'Rate graph', figure: graph ?? undefined, ...(runs.length ? { table: { head: HEAD, rows: runs.map(row), align: ['l', 'r', 'r', 'r', 'l', 'l', 'r', 'r'] as ('l' | 'r')[] } } : {}) },
     ] as Section[],
   }));
+
+  mountSolver(document.querySelector<HTMLElement>('.enz-solve')!, ENZ_SPEC, 'es');
 </script>
 
 <style is:inline>

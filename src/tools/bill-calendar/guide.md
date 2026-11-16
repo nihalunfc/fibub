@@ -48,6 +48,10 @@ A bill on the 31st falls on the last day of shorter months, so it never vanishes
 
 Say you have $1,800 in your account on the 1st. You are paid $2,100 every two weeks, starting on the 1st. Rent is $1,450 on the 1st, the transit pass $156 on the 1st, groceries about $95 every week, the phone $55 on the 8th and the credit card $200 on the 25th. On the 1st your balance goes from $1,800 to $2,294 after pay, rent and the pass. The calendar then counts down day by day, jumps back up on the next pay day on the 15th, and shows you whether the credit card on the 25th is safe. If a day turns red, you know to move a payment or keep some money back.
 
+## Put your bills in your phone's calendar
+
+Under "Balance, currency and your data", press "Add to my calendar (.ics)". The file holds every bill and pay day as an all-day event, repeating ones as repeating events (skipped dates left out), with a reminder the day before. Open it on your phone or computer and it imports into Google, Apple or Outlook calendar. It is a copy: changing a bill here later means saving a new file.
+
 ## Your data stays with you
 
 Everything is worked out in your browser. Nothing is uploaded, and the page works offline once it has loaded. By default your calendar is kept only while this tab is open. Tick **Remember my calendar on this device** to keep it in this browser between visits; untick it, or press **Delete everything**, to remove it. **Download backup** saves a file you can restore later or on another device, and **Bills as CSV** opens in Excel or Google Sheets.

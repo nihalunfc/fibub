@@ -18,4 +18,25 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.kl .kl-weq')).includes('= 426 + 91 − 126 = 391'), 'kohl: weak acid from three strong ' + (await page.textContent('.kl .kl-weq')));
   await page.click('.kl .kl-w [data-w="nh4oh"]'); check((await page.textContent('.kl .kl-weq')).includes('= 150 + 249 − 126 = 273'), 'kohl: NH4OH ' + (await page.textContent('.kl .kl-weq')));
   await quiz(page, check, '.kl', 'kohl');
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.kl-solve [data-k="ks-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.kl-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'ks solve: answer is a polite live region');
+  check((await ans()) === 'The molar conductivity is Λm = 140 S cm² mol⁻¹ (= 0.014 S m² mol⁻¹).' && (await wk()).includes('1000 × 0.0028 ÷ 0.02 = 140'), `ks solve: opens with Λm from κ (${await ans()})`);
+  await ex(1, 6); check((await ans()) === 'The conductivity is κ = 0.0014 S cm⁻¹ (= 0.14 S m⁻¹).', `ks solve: κ from Λm (${await ans()})`);
+  await ex(2, 6); check((await ans()) === 'The conductivity is κ = 0.002 S cm⁻¹ (= 0.2 S m⁻¹).', `ks solve: κ from cell constant (${await ans()})`);
+  await ex(3, 6); check((await ans()) === 'The degree of dissociation is α = 0.04143 (4.14% ionised). Ka = 1.79 × 10⁻⁵.', `ks solve: α and Ka (${await ans()})`);
+  await ex(4, 6); check((await ans()) === 'Λ°m = 258 S cm² mol⁻¹ (= 0.0258 S m² mol⁻¹).', `ks solve: Λ°m of MgCl₂ (${await ans()})`);
+  await ex(5, 6); check((await ans()) === 'Λ°m of the weak acid is 391 S cm² mol⁻¹ (= 0.0391 S m² mol⁻¹).', `ks solve: weak acid from three strong (${await ans()})`);
+  await ex(0, 6);
+  await page.selectOption(SV('k-unit'), 'S m⁻¹'); await fill('k', '0.28'); await page.selectOption(SV('c-unit'), 'mol/m³'); await fill('c', '20');
+  check((await ans()).startsWith('The molar conductivity is Λm = 140 S cm²') && (await wk()).includes('Convert κ: 0.28 S m⁻¹ = 0.0028 S cm⁻¹'), `ks solve: SI units converted (${await ans()})`);
+  await fill('c', '0');
+  check((await ans()).includes('concentration c must be more than 0') && !/NaN|Infinity/.test(await ans()), 'ks solve: zero concentration');
+  await ex(3, 6); await fill('L', '500');
+  check((await ans()).includes('bigger than Λ°m'), 'ks solve: Λm above Λ°m refused');
+  await ex(0, 6);
+  check((await ans()).startsWith('The molar conductivity is Λm = 140'), 'ks solve: preset again after errors');
 };

@@ -11,13 +11,14 @@ ads: false
 order: 1419
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [em-wave-3d, hydrogen-spectrum, photoelectric-lab, prism-dispersion]
 sources:
   - "f = c/λ and E = hf = hc/λ, with c = 299 792 458 m/s, h = 6.62607015 × 10⁻³⁴ J s and e = 1.602176634 × 10⁻¹⁹ C, all exact in the SI (NIST)."
   - "Band edges (gamma below 1 pm, X-rays 1 pm to 1 nm, ultraviolet to 400 nm, visible to 700 nm, infrared to 1 mm, microwaves to 1 m, radio above) are the usual school-book conventions; real bands overlap and other books draw the edges a little differently."
   - "Everyday examples use typical rounded values (2.45 GHz microwave ovens, 5 GHz Wi-Fi, 1.8 GHz mobile phones, 100 MHz FM, 1 MHz AM, 940 nm remote controls, 254 nm germicidal lamps, the 1.17 MeV cobalt-60 gamma line). The on-screen colours of visible light are an approximation."
   - "Checked against an independent Python script."
+  - "The Solve my numbers card uses the same exact constants (c, h and e) and the same band edges as the explorer above, hand-checked (500 nm gives 2.48 eV; 650 nm at 5 mW gives about 1.6 × 10¹⁶ photons per second)."
 flow:
   - { icon: sliders, label: "Wavelength" }
   - { icon: eye, label: "Band, uses" }
@@ -55,6 +56,10 @@ Jump to **FM radio (100 MHz)**: λ = 3 m, and each photon carries only 4.13 × 1
 - Whether radiation can harm cells depends on the energy per photon, not just on how bright it is. Photons above a few eV (UV, X-rays, gamma) can break chemical bonds.
 - Our eyes see only 400 to 700 nm, roughly a single doubling of wavelength out of the whole spectrum.
 
+## Solve my numbers
+
+Solve my numbers answers the common spectrum questions. Start from a wavelength (pm to km), a frequency (Hz to THz) or a photon energy (eV to MeV) and you get the other two, the band it belongs to (and the colour if it is visible), and the energy in joules and electronvolts. A fourth option counts how many photons a lamp or laser of a given power gives out each second. The working shows c = fλ and E = hf = hc/λ with the numbers put in. Common mistakes are mixing up MHz and GHz, or leaving a wavelength in nanometres when the formula needs metres, which the unit boxes do for you. Band edges follow the usual school books and differ slightly between them, so check your own. Tap an example such as the microwave oven or the red laser pointer to fill the boxes.
+
 ## FAQ
 
 **Why do books give different band edges?** The bands are named by how they are made and used, and they overlap. For example, X-rays and gamma rays of the same energy are the same; the name tells you whether it came from electrons or from a nucleus.
@@ -62,3 +67,5 @@ Jump to **FM radio (100 MHz)**: λ = 3 m, and each photon carries only 4.13 × 1
 **Is the colour exact?** No. Screens cannot show pure spectral colours, so the swatch is a close match.
 
 **Is anything saved?** No. Everything is worked out on this page and nothing leaves your device.
+
+**How do you find the energy of a photon from its wavelength?** E = hc/λ, or E in eV ≈ 1240 ÷ λ in nm, found under Solve my numbers.

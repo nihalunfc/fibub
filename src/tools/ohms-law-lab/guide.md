@@ -11,13 +11,14 @@ ads: false
 order: 1041
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [circuit-simulator, resistor-colour-code, led-resistor-calculator]
 sources:
   - "Ohm's law V = IR, R = ρL/A, current density J = I/A = σE and drift speed v = I/(neA): standard school physics results."
   - "Resistivities at about 20 °C rounded to two figures (copper 1.7 × 10⁻⁸ Ω m, nichrome 1.1 × 10⁻⁶ Ω m and so on) and one free electron per copper atom (8.5 × 10²⁸ per m³): general textbook values, rounded."
   - "The filament bulb is a made-up teaching model (2 Ω cold, 12 Ω at 6 V), not data for a real bulb."
   - "Checked against an independent NumPy script (np.polyfit for the best line, the wire and drift-speed formulas) and the textbook drift speed of 1.1 × 10⁻⁴ m/s for 1.5 A in 1 mm² of copper."
+  - "Calculator inputs accept mV, kV, mA, µA, kΩ and MΩ by simple multiplication by powers of ten; the result is rounded to three significant figures. Checked by hand: 12 V ÷ 0.5 A = 24 Ω, and a 1.0 mm copper wire 50 m long (ρ = 1.7 × 10⁻⁸ Ω m) is 1.08 Ω."
 flow:
   - { icon: sliders, label: "Set volts" }
   - { icon: eye, label: "Read meters" }
@@ -57,6 +58,14 @@ With the bulb, 6 readings give V/I from about 6 Ω at 2 V up to about 19 Ω at 1
 - Changing the part, the resistance or the wire clears the readings, so one graph is always one part.
 - A copper wire has so little resistance that the current gets huge. A real cell could not supply it, and the page warns you.
 
+## Solve your own numbers
+
+The first card is a calculator for the numbers in your own problem, so you can use the page the night before a test as well as for experiments. Choose what to find (resistance, current or voltage), type the other two values and pick their units: volts or millivolts, amperes, milliamperes or microamperes, ohms, kilo-ohms or mega-ohms. The answer appears at the top in one sentence, and under it the working like an exam answer: the formula, the numbers put in with their units, and the result. If you typed milliamperes or kilo-ohms, a line shows the conversion first. The power P = VI is worked out as well, and if you add a time (seconds, minutes or hours) you also get the energy in joules and in kWh.
+
+Open **Resistance of a wire** for R = ρL/A. Pick the metal (or type your own resistivity), give the thickness as a diameter or as a cross-section area, and find the resistance, the length, the thickness or the resistivity itself. The working shows the area A = πd²/4 with the diameter turned into metres. Both calculators have example problems in the **Example** list, a **Clear** button, and friendly messages instead of nonsense: a current of 0 A has no resistance to find, a resistance of 0 Ω would be a short circuit, and negative values are refused.
+
+The most common mistake is leaving a reading in milliamperes. Ohm's law needs amperes, so 250 mA is 0.25 A. The calculator shows that conversion so you can copy it into your answer.
+
 ## FAQ
 
 **Why does the bulb not obey Ohm's law?** Ohm's law needs the temperature to stay the same. A filament gets white hot, and the resistance of a metal rises with temperature, so V/I is bigger at higher voltages.
@@ -64,3 +73,7 @@ With the bulb, 6 readings give V/I from about 6 Ω at 2 V up to about 19 Ω at 1
 **Is the bulb a real one?** No. It is a simple teaching model (2 Ω cold, 12 Ω at 6 V) chosen to show the shape of the curve.
 
 **Is anything saved?** No. Your readings and answers stay on this page and are gone when you close it.
+
+**What is the formula for Ohm's law and how do I use it?** V = I R: type any two of voltage, current and resistance in the calculator at the top and it gives the third with the working.
+
+**How do I find the resistance of a wire from its length and thickness?** Use R = ρL/A with A = πd²/4; the wire calculator does it and shows each step.

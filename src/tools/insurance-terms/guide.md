@@ -43,6 +43,10 @@ Cards carry a badge where a word means something different in India, Canada, the
 
 A health plan has a deductible of 1,000 and a claim of 5,000. You pay the first 1,000 and the plan pays 4,000. If the plan also has 20% coinsurance, you pay 20% of the remaining 4,000 (800), so you pay 1,800 in all.
 
+## A to Z and new words
+
+A row of **letter buttons** shows only the terms that start with that letter, and the list is now in alphabetical order, so you can browse like a dictionary as well as search. The glossary also gained everyday words such as claim, policyholder, indemnity, endorsement, floater policy, top-up, peril, lapse, pro-rata, insurable interest and cooling-off period. The examples use made-up numbers, and your policy wording decides what applies to you.
+
 ## FAQs
 
 **Is this the wording of my policy?** No. Your policy document decides what is covered. This only explains common words.

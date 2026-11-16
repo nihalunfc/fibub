@@ -56,3 +56,31 @@ export function markers(region: Region, country: string): Marker[] {
   if (c === 'canada') return [{ at: 183, text: '183 days in a year: deemed resident (a sojourner)' }];
   return [{ at: 183, text: '183 days: a common marker, not the rule everywhere' }];
 }
+
+/** Parse pasted lines like "Canada, 2025-01-01, 2025-03-31" (also tabs or semicolons; dates as yyyy-mm-dd or dd/mm/yyyy; one date = a one-day stay). */
+export function parseTrips(text: string): { trips: Trip[]; skipped: number } {
+  const trips: Trip[] = []; let skipped = 0;
+  const toIso = (s: string) => { s = s.trim(); const m = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(s); const v = m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : s; return Number.isFinite(dayNum(v)) ? v : ''; };
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const p = line.split(/\t|;|,/).map((x) => x.trim()).filter((x, i) => i === 0 || x);
+    const from = toIso(p[1] ?? ''), to = p[2] ? toIso(p[2]) : from;
+    if (!p[0] || !from || !to || dayNum(to) < dayNum(from)) { skipped++; continue; }
+    trips.push({ country: p[0], from, to });
+  }
+  return { trips, skipped };
+}
+
+/** Days in [from, to] that no trip covers (counting rule applied), so gaps in the list show up. */
+export function unaccountedDays(trips: Trip[], from: number, to: number, counting: Counting): number {
+  const seen = new Set<number>();
+  for (const t of trips) {
+    const a = dayNum(t.from); let b = dayNum(t.to);
+    if (!Number.isFinite(a) || !t.country.trim()) continue;
+    if (!Number.isFinite(b)) b = a;
+    if (b < a) continue;
+    const last = counting === 'midnight' && b > a ? b - 1 : b;
+    for (let d = Math.max(a, from); d <= Math.min(last, to); d++) seen.add(d);
+  }
+  return Math.max(0, to - from + 1 - seen.size);
+}

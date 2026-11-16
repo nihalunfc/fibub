@@ -11,12 +11,13 @@ ads: false
 order: 1430
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [energy-bands, rectifier-lab, solar-cell-iv, ohms-law-lab]
 sources:
   - "The diode equation I = Is (e^(V/ηV_T) − 1), V_T = kT/e (CODATA k/e = 8.617 × 10⁻⁵ V/K), Zener breakdown and the Zener regulator are standard physics. Barrier potentials of about 0.7 V (silicon) and 0.3 V (germanium) are the usual school values."
   - "The saturation currents (10⁻¹⁴ A and 10⁻⁸ A), the 0.5 µm zero-bias depletion width, the 5.1 V Zener with 5 Ω slope resistance and the regulator parts are made-up teaching values, not data for any real part. The maths was checked in the tests against an independent Python version."
   - "Drawings are fibub's own. Nothing you enter is stored or sent anywhere."
+  - "Series resistor R = (V_s − V_f)/I, the Zener regulator currents, V_T = kT/e (k/e = 8.617 × 10⁻⁵ V/K) and I = I_s(e^(V/ηV_T) − 1) are standard physics; the Solve my numbers card was hand-checked (5 V, 2 V, 10 mA gives 300 Ω; 0.7 V in silicon with I_s = 10⁻¹⁴ A gives about 5.75 mA)."
 flow:
   - { icon: sliders, label: "Bias" }
   - { icon: eye, label: "Junction" }
@@ -57,6 +58,10 @@ Regulator: Vin = 12 V, R = 220 Ω, RL = 1000 Ω. I_R = (12 − 5.1)/220 = 31.4 m
 - Real reverse currents are larger than this ideal model (nanoamps for silicon, microamps for germanium) because of surface leakage and heat.
 - A Zener diode is always used in reverse bias.
 
+## Solve my numbers
+
+Solve my numbers covers the calculations that come with diodes. Choose the series resistor for an LED or diode, a Zener voltage regulator (output, Zener and load currents, and a warning when the load is too heavy for it to regulate), the thermal voltage kT/e, the current in a diode at a given voltage from the diode equation, or the dynamic resistance in forward bias. Units for currents run from fA to A, and temperatures are in kelvin (add 273 to °C). The working shows each formula with the numbers put in. A common mistake is leaving the current in mA when the formula needs amperes. A supply smaller than the diode voltage gives a clear message. Tap an example such as the LED on 5 V or the 5.1 V Zener to fill the boxes.
+
 ## FAQ
 
 **Why does the depletion layer change width?** Forward bias pushes electrons and holes toward the joint and partly refills it; reverse bias pulls them away and uncovers more ions.
@@ -66,3 +71,5 @@ Regulator: Vin = 12 V, R = 220 Ω, RL = 1000 Ω. I_R = (12 − 5.1)/220 = 31.4 m
 **Is anything saved?** No. Everything runs in your browser and nothing is stored or sent.
 
 **Is this an official textbook tool?** No. It is an independent practice page that follows the same school topics.
+
+**How do you find the resistor for an LED?** R = (supply voltage − LED voltage) ÷ current, found under Solve my numbers.

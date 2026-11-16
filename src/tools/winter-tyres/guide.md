@@ -57,3 +57,7 @@ Snowflake mark, 6 mm tread, made 3 years ago and pressure checked: Ready. The sa
 **Do I need four winter tyres?** Fit all four. Two winter and two summer tyres can make the car slide.
 
 Not safety advice. When in doubt, ask a tyre shop.
+
+## More options
+
+Under **More options** you can tick that the same winter tyres are on all four wheels, and type the usual morning temperature. A summer tyre at 7 C or below gets a clear warning, and a winter tyre in warm weather gets a note to swap back, because it wears faster and feels soft. Fitting winter tyres on only one axle is flagged, since the other end may slide first.

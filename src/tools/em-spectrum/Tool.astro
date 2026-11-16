@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax ems">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (wavelength, frequency or photon energy) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Wavelength</h2>
     <canvas class="ax-fig ems-fig" aria-label="The electromagnetic spectrum with a marker at the chosen wavelength"></canvas>
@@ -53,6 +54,9 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { EMSPEC } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, EMSPEC);
   import { BANDS, EXAMPLES, bandOf, photon, visibleRGB, questions } from '../../lib/sci/em-spectrum';
   import { pagePalette } from '../../lib/report';
   import { setup, sci3, si, fact, onTheme, quiz } from '../../lib/school-p34';

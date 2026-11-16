@@ -40,4 +40,28 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `pb: quiz question ${i} (${w})`);
   }
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.pb-solve [data-k="pc-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.pb-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'pc solve: answer is a polite live region');
+  check((await ans()) === '35% of 240 is 84.' && (await wk()).includes('0.35 × 240 = 84'), `pc solve: opens with 35% of 240 (${await ans()})`);
+  await ex(1, 6); check((await ans()) === '84 is 35% of 240.', `pc solve: what percent (${await ans()})`);
+  await ex(2, 6); check((await ans()) === 'The whole is 240.' && (await wk()).includes('1% of the whole is 84 ÷ 35 = 2.4'), `pc solve: whole from a part (${await ans()})`);
+  await ex(3, 6); check((await ans()) === 'After a 20% rise, the new value is 600.' && (await wk()).includes('500 × 1.2 = 600'), `pc solve: rise (${await ans()})`);
+  await page.selectOption(SV('dir'), 'down'); await page.waitForTimeout(60);
+  check((await ans()) === 'After a 20% fall, the new value is 400.', `pc solve: fall (${await ans()})`);
+  await ex(4, 6); check((await ans()) === 'The value fell by 15%.' && (await wk()).includes('(680 − 800) ÷ 800 × 100 = −120 ÷ 800 × 100 = −15%'), `pc solve: percent change (${await wk()})`);
+  await ex(5, 6); check((await ans()) === 'Before the 25% rise, the value was 120.', `pc solve: reverse percentage (${await ans()})`);
+  await page.selectOption(SV('dir'), 'down'); await page.waitForTimeout(60);
+  check((await ans()) === 'Before the 25% fall, the value was 200.', 'pc solve: reverse after a fall');
+  await ex(1, 6); await fill('b', '0');
+  check((await ans()).includes('cannot be 0') && !/NaN|Infinity/.test(await ans()), 'pc solve: whole of 0 is a friendly message');
+  await ex(0, 6); await fill('p', '-5');
+  check((await ans()).includes('positive numbers'), 'pc solve: negative refused');
+  await fill('p', '');
+  check((await ans()).startsWith('Fill in'), 'pc solve: blank asks for the percent');
+  await ex(0, 6);
+  check((await ans()) === '35% of 240 is 84.', 'pc solve: preset again after errors');
 };

@@ -11,7 +11,7 @@ ads: false
 order: 1062
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [pendulum-analyser, coupled-oscillators, sound-wave-visualiser]
 sources:
   - "Simple harmonic motion as the projection of uniform circular motion, x = A cos(ωt + φ), v = −Aω sin(ωt + φ), a = −ω²x, energy ½kA² with k = mω², spring-mass period 2π√(m/k), small-swing pendulum period 2π√(L/g): standard physics."
@@ -39,6 +39,10 @@ It follows the school topic of oscillations: Class 11 Physics, Oscillations (per
 5. The **mass** also sets the energy: E = ½ k A², with k = mω².
 6. **Pause**, **Back to t = 0** and **Slow motion** help you stop at a moment and read x, v and a in the line under the picture.
 
+## Solve my numbers
+
+The **Solve my numbers** box at the top takes the numbers from your problem and gives the answer in one sentence with the marked working under it. Pick what you want: frequency and ω from the period or the period from the frequency; the position, velocity and acceleration at a time t for x = A sin(ωt + φ) (the phase can be in degrees or radians); the speed and acceleration at a given displacement, v = ω√(A² − x²); the largest speed and acceleration; a spring's period T = 2π√(m/k) or its constant k from a measured period; a pendulum's period, the length for a wanted period (a seconds pendulum), and g from a pendulum experiment (g = 4π²L/T²); and the kinetic and potential energy at a displacement. Amplitudes and lengths can be typed in cm, mm or m, masses in g or kg, and a unit box converts. A displacement bigger than the amplitude gets a friendly message. Each problem ends with the usual mistake to avoid, such as forgetting to put the calculator in radian mode or timing one swing instead of twenty.
+
 ## Worked example
 
 With the page as it opens (Circle, A = 10 cm, T = 2 s, φ = 0°, m = 0.5 kg): ω = 2π / 2 = 3.142 rad/s. The top speed is Aω = 10 × 3.142 = 31.42 cm/s, in the middle. The biggest acceleration is Aω² = 0.1 × 3.142² = 0.987 m/s², at the ends. The spring constant that gives this motion is k = mω² = 4.935 N/m and the total energy is ½ k A² = 0.02467 J.
@@ -62,3 +66,5 @@ Five questions with fresh numbers: a spring's period, a pendulum's period, the g
 **Why is velocity ahead of position?** The velocity curve reaches its peak a quarter of a period before the position does: −sin θ = cos(θ + 90°).
 
 **Is this from NCERT?** No. It is an independent study aid that follows the same school topics, with its own pictures and numbers.
+
+**What is the formula for the period of a simple pendulum?** T = 2π√(L/g), so a 1 m pendulum on Earth swings in about 2.01 s; the Solve my numbers box works it out for any length.

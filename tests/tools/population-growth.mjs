@@ -22,4 +22,18 @@ export default async ({ page, check, BASE }) => {
   const q3 = (await t('.smq-q:nth-child(3) .smq-text')).match(/\d+(?:\.\d+)?/g).map(Number);
   await page.fill(R + '.smq-q:nth-child(3) .smq-in', String(q3[1] / 2)); await page.click(R + '.smq-q:nth-child(3) .smq-check');
   check((await t('.smq-q:nth-child(3) .smq-out')) === 'Right!', `pop: quiz K/2 (${q3})`);
+  // Solve my numbers card
+  const S = (k) => `${R}.pg-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'After 10 time units the population is about 1218.' && (await wk()).includes('100 × e^(0.25 × 10) = 1218'), `pop solve: exponential (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()) === 'After 10 time units the population is about 887.' && (await wk()).includes('88.7% of K'), `pop solve: logistic (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()) === 'r = 0.277 per unit time.', `pop solve: r (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()) === 'The doubling time is 19.8 (in the time unit of r).', `pop solve: doubling (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()) === 'It takes 23 time units to reach 5000.', `pop solve: time (${await ans()})`);
+  await page.selectOption(S('example'), '5'); check((await ans()).startsWith('The population is changing by 100 individuals per unit time at N = 500') && (await wk()).includes('rK/4 = 100'), `pop solve: dN/dt (${await ans()})`);
+  await page.selectOption(S('example'), '6'); check((await ans()) === 'The population becomes 1025 (a change of +25).' && (await wk()).includes('r = (B − D) ÷ N = (120 − 80) ÷ 1000 = 0.04'), `pop solve: births and deaths (${await ans()})`);
+  await page.fill(S('D'), '5000'); check((await ans()).includes('more are leaving or dying than exist'), 'pop solve: deaths above the population');
+  await page.selectOption(S('find'), 'td'); await page.fill(S('r'), '0'); check((await ans()).includes('no doubling time'), 'pop solve: r = 0 has no doubling time');
+  await page.fill(S('r'), '-0.1'); check((await ans()).includes('halves every 6.93'), `pop solve: negative r halves (${await ans()})`);
+  await page.selectOption(S('find'), 'time'); await page.selectOption(S('model'), 'exp'); await page.fill(S('N0'), '500'); await page.fill(S('N'), '5000'); check((await ans()).includes('never reaches'), `pop solve: shrinking never reaches (${await ans()})`);
+  await page.selectOption(S('model'), 'log'); await page.fill(S('K'), '1000'); await page.fill(S('r'), '0.3'); check((await ans()).includes('below K'), 'pop solve: logistic target above K');
 };

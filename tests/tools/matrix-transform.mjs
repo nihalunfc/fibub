@@ -25,7 +25,35 @@ export default async ({ page, check, BASE }) => {
   { const s = await t('.mt-steps'); check(s.includes('= −21') && s.includes('x = 5, y = 3, z = −2') && s.includes('9/7'), `matrix: 3 × 3 solve (${s.slice(0, 200)})`); }
   await page.click(R + '.mt-ex2'); check((await t('.mt-steps')).includes('no solution'), 'matrix: inconsistent system');
   await page.click(R + '.mt-ex3'); check((await t('.mt-steps')).includes('infinitely many'), 'matrix: many solutions');
-  await page.fill(R + '.mt-s00', '1.5'); await page.waitForTimeout(50); check((await t('.mt-serr')).includes('whole numbers'), 'matrix: whole numbers only');
+  // New: fractions and decimals, 2 × 2 systems, typed matrices, answer lines.
+  await page.click(R + '.mt-ex1'); check((await t('.mt-sans')) === 'x = 5, y = 3, z = −2.', `matrix: answer line (${await t('.mt-sans')})`);
+  await page.fill(R + '.mt-s00', '1.5'); await page.waitForTimeout(50);
+  check((await t('.mt-steps')).includes('Equation 1 was multiplied by 2') && (await t('.mt-steps')).includes('3, 2, 2, 12') && (await t('.mt-sans')).startsWith('x = ') && await page.isHidden(R + '.mt-serr'), `matrix: decimals are scaled (${await t('.mt-sans')})`);
+  await page.fill(R + '.mt-s00', '1/2'); await page.fill(R + '.mt-s01', '1/3'); await page.waitForTimeout(50);
+  check((await t('.mt-steps')).includes('multiplied by 6') && (await t('.mt-steps')).includes('3, 2, 6, 36'), 'matrix: fractions are scaled');
+  await page.fill(R + '.mt-s00', 'x'); await page.waitForTimeout(50); check((await t('.mt-serr')).includes('Type a number in every box') && (await t('.mt-sans')) === '', 'matrix: bad entry message');
+  await page.fill(R + '.mt-s00', ''); await page.waitForTimeout(50); check((await t('.mt-serr')).includes('Type a number in every box'), 'matrix: blank entry message');
+  await page.click(R + '.mt-ex1');
+  await page.selectOption(R + '.mt-dim', '2'); await page.waitForTimeout(50);
+  check((await t('.mt-sans')) === 'x = 9/5, y = 14/5.' && (await t('.mt-steps')).includes('|A| = ad − bc = (2)(−1) − (3)(1) = −5'), `matrix: 2 × 2 system (${await t('.mt-sans')})`);
+  await page.click(R + '.mt-ex5'); check((await t('.mt-sans')).startsWith('No solution') && (await t('.mt-steps')).includes('parallel lines'), 'matrix: 2 × 2 no solution');
+  await page.click(R + '.mt-ex6'); check((await t('.mt-sans')).startsWith('Infinitely many') && (await t('.mt-steps')).includes('same line'), 'matrix: 2 × 2 many solutions');
+  await page.fill(R + '.mt-u00', '0.5'); await page.fill(R + '.mt-u01', '1'); await page.fill(R + '.mt-u02', '3'); await page.fill(R + '.mt-u10', '1'); await page.fill(R + '.mt-u11', '-1'); await page.fill(R + '.mt-u12', '0'); await page.waitForTimeout(50);
+  check((await t('.mt-sans')) === 'x = 2, y = 2.' && (await t('.mt-steps')).includes('multiplied by 2'), `matrix: 2 × 2 with a decimal (${await t('.mt-sans')})`);
+  await page.selectOption(R + '.mt-dim', '3'); await page.click(R + '.mt-ex1');
+  await page.click(R + '.mt-mode button[data-m="one"]');
+  for (const [k, v] of [['a', '2'], ['b', '1'], ['c', '0'], ['d', '1']]) await page.fill(R + '.mt-' + k, v);
+  await page.waitForTimeout(50);
+  check((await t('.mt-ans')).startsWith('det A = 2×1 − 1×0 = 2: areas are multiplied by 2.') && (await t('.mt-ans')).includes('A⁻¹ = [0.5 −0.5; 0 1]'), `matrix: one-line answer (${await t('.mt-ans')})`);
+  await page.selectOption(R + '.mt-pre', 'proj'); check((await t('.mt-ans')).includes('no inverse'), 'matrix: one-line answer for a squash');
+    await page.click(R + '.mt-mode button[data-m="two"]');
+  await page.selectOption(R + '.mt-A', 'own'); await page.selectOption(R + '.mt-B', 'own'); await page.waitForTimeout(50);
+  await page.fill(R + '[data-k="a1"]', '1'); await page.fill(R + '[data-k="a2"]', '2'); await page.fill(R + '[data-k="a3"]', '0'); await page.fill(R + '[data-k="a4"]', '1');
+  await page.fill(R + '[data-k="b1"]', '0'); await page.fill(R + '[data-k="b2"]', '-1'); await page.fill(R + '[data-k="b3"]', '1'); await page.fill(R + '[data-k="b4"]', '0'); await page.waitForTimeout(50);
+  { const f = await t('.mt-facts2'); check(f.includes('BA (A first)[0 −1; 1 2]') && f.includes('AB (B first)[2 −1; 1 0]') && (await t('.mt-two-note')).includes('AB ≠ BA'), `matrix: typed A and B (${f})`); }
+  await page.fill(R + '[data-k="a1"]', 'x'); await page.waitForTimeout(50); check((await t('.mt-err2')).includes('from −10 to 10'), 'matrix: bad typed matrix message');
+  await page.fill(R + '[data-k="a1"]', '1'); await page.selectOption(R + '.mt-A', 'shear'); await page.selectOption(R + '.mt-B', 'rot');
+  await page.click(R + '.mt-mode button[data-m="solve"]');
   await page.click(R + '.mt-ex1');
   check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'matrix: five quiz questions');
   const q1 = await t('.smq-q:nth-child(1) .smq-text'); const [a, b, c, d] = q1.replace(/−/g, '-').match(/-?\d+/g).map(Number);

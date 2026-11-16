@@ -38,7 +38,13 @@
   <section class="panel" aria-live="polite">
     <p class="cp-big"></p>
     <dl class="cp-rows"></dl>
+    <div class="cp-bar" role="img" aria-label="Share of each cost in the total"></div>
     <p class="cp-warn" role="alert"></p>
+    <details class="cp-more"><summary>More options: rates for other margins, what if fuel changes</summary>
+      <table class="cp-tab"></table>
+      <label class="cp-fuelwhat">What if fuel price changes by <input data-k="fuelchg" type="range" min="-30" max="50" step="5" value="10" /> <b class="cp-fc">+10%</b></label>
+      <p class="cp-fw" aria-live="polite"></p>
+    </details>
   </section>
   <p class="cp-fine">Costs are in whatever money you use. Enter every figure from your own books; nothing here is a tax or legal rule. Nothing you type leaves this page.</p>
 </div>
@@ -56,12 +62,17 @@
   .cp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .cp-rows dt { color: var(--muted); } .cp-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .cp-rows .tot { border-top: 1px solid var(--line); padding-top: 6px; color: var(--ink); }
+  .cp-bar { display: flex; height: 18px; border-radius: 9px; overflow: hidden; margin: 12px 0 0; border: 1px solid var(--line); }
+  .cp-bar span { display: block; height: 100%; } .cp-bar:empty { display: none; }
+  .cp-more { margin-top: 12px; } .cp-more summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+  .cp-tab { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0; } .cp-tab th, .cp-tab td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); } .cp-tab th:first-child, .cp-tab td:first-child { text-align: left; }
+  .cp-fuelwhat { display: grid; gap: 4px; } .cp-fuelwhat input { padding: 0; } .cp-fw { margin: 6px 0 0; font-weight: 600; }
   .cp-warn { color: var(--bad); margin: 10px 0 0; } .cp-warn:empty { display: none; }
   .cp-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { costPerMile } from '../../lib/money/trucking';
+  import { costPerMile, marginRates, withFuelChange } from '../../lib/money/trucking';
   const root = document.querySelector('.cp') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -87,6 +98,14 @@
       line(`Cost for every ${d}`, m2(r.total), 'tot') + line('Cost for the month', m2(r.monthCost)) +
       line(`Break-even rate (per ${d})`, m2(r.breakEven)) + line(`Rate for a ${num('margin')}% margin (per ${d})`, m2(r.targetRate)) +
       (r.perTonne > 0 ? line(`Cost per tonne-${d}`, m2(r.perTonne)) + line(`Rate for the margin, per tonne-${d}`, m2(r.targetRate / num('tonnes'))) : '');
+    const parts: [string, number, string][] = [['Fixed', r.fixed, 'var(--accent)'], ['Fuel', r.fuel, 'var(--warn)'], ['Driver', r.driver, 'var(--good)'], ['Maintenance, tyres and tolls', r.maint + r.tyres + r.tolls, 'var(--muted)']];
+    $('.cp-bar').innerHTML = parts.filter((p) => p[1] > 0).map((p) => `<span style="width:${(p[1] / r.total * 100).toFixed(1)}%;background:${p[2]}" title="${p[0]} ${m2(p[1])}"></span>`).join('');
+    $('.cp-bar').setAttribute('aria-label', parts.filter((p) => p[1] > 0).map((p) => `${p[0]} ${Math.round(p[1] / r.total * 100)}%`).join(', '));
+    $('.cp-tab').innerHTML = `<tr><th>Margin</th><th>Rate per ${d}</th><th>Profit per ${d}</th></tr>` + marginRates(r.total, [0, 5, 10, 15, 20, 25]).map((x) => `<tr><td>${x.margin}%</td><td>${m2(x.rate)}</td><td>${m2(x.rate - r.total)}</td></tr>`).join('');
+    const pc = num('fuelchg') || parseFloat(q('fuelchg').value) || 0;
+    $('.cp-fc').textContent = `${pc >= 0 ? '+' : ''}${pc}%`;
+    const nt = withFuelChange(r.fuel, r.total, pc);
+    $('.cp-fw').textContent = `Cost per ${d} would be ${m2(nt)} (${nt >= r.total ? '+' : '-'}${m2(Math.abs(nt - r.total))}), or ${m2(Math.abs(nt - r.total) * num('dist'))} ${nt >= r.total ? 'more' : 'less'} a month.`;
     $('.cp-warn').textContent = r.fixed > r.total / 2 ? 'Fixed costs are a big share. Driving more distance a month spreads them thinner.' : '';
   };
   root.addEventListener('input', calc); root.addEventListener('change', calc);

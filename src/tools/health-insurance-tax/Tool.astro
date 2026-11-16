@@ -60,7 +60,19 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     </div>
     <p class="hit-line hit-words"></p>
     <p class="note warn hit-warn" hidden></p>
+    <p class="hit-line hit-room"></p>
   </section>
+  <details class="panel hit-limits">
+    <summary><b>More options: limits at a glance</b></summary>
+    <div style="overflow-x:auto"><table class="hit-tbl"><thead><tr><th>Who</th><th>Under 60</th><th>60 or older</th></tr></thead><tbody>
+      <tr><td>India 80D: self, spouse, children</td><td>Rs 25,000</td><td>Rs 50,000 (you or spouse)</td></tr>
+      <tr><td>India 80D: parents (extra)</td><td>Rs 25,000</td><td>Rs 50,000</td></tr>
+      <tr><td>India 80D: most possible in one year</td><td>Rs 50,000</td><td>Rs 1,00,000</td></tr>
+      <tr><td>US HSA 2026, self-only</td><td>$4,400</td><td>$5,400 (55 or older)</td></tr>
+      <tr><td>US HSA 2026, family</td><td>$8,750</td><td>$9,750 (55 or older)</td></tr>
+    </tbody></table></div>
+    <p class="hit-hint">Sources and dates are under each section above and in the guide (checked 2026-11-10). Check the official source before you file. Cash premiums never count in India, and this is not tax advice.</p>
+  </details>
   <p class="hit-fine">How it's worked out: India, each group: allowed = the smaller of the limit and (premium not paid in cash + check-up up to 5,000 + medical bills if senior); tax saved = total allowed × slab × 1.04 (4% cess). US: allowed = limit (+1,000 at 55 or older) − employer amount, tax saved = your allowed contribution × (federal + state + 7.65% if by paycheque). It estimates a saving only and cannot check that you qualify. Nothing you type leaves this page.</p>
 </div>
 
@@ -84,6 +96,9 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   .hit-stats span { font-size: 13px; color: var(--muted); }
   .hit-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
   .hit-line { margin: 0; font-size: 15px; }
+  .hit-tbl { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 8px; }
+  .hit-tbl th, .hit-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .hit-room { color: var(--muted); font-size: 14px; }
   .hit-hint, .hit-src, .hit-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
 </style>
 
@@ -119,6 +134,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       t('.hit-l2', 'Slab incl. 4% cess'); t('.hit-s2', (slab * 1.04).toFixed(1) + '%');
       t('.hit-s3', $(saved));
       q('.hit-words').innerHTML = `Self, spouse and children: <b>${$(a.ok)}</b> of a ${$(a.limit)} limit. Parents: <b>${$(b.ok)}</b> of a ${$(b.limit)} limit. Total deduction <b>${$(ded)}</b>; at ${slab}% plus 4% cess you save about <b>${$(saved)}</b>, and only if you file under the old regime.`;
+      t('.hit-room', `Room left under the limit: ${$(a.limit - a.ok)} for self, spouse and children, ${$(b.limit - b.ok)} for parents. Spending that room on premiums or check-ups (not in cash) would save about ${$((a.limit - a.ok + b.limit - b.ok) * (slab / 100) * 1.04)} more at your slab.`);
       const over = a.raw > a.limit || b.raw > b.limit;
       const cash = num(f('x1').value) + num(f('x2').value) > 0;
       if (over || cash) { warn.hidden = false; warn.textContent = (over ? 'Some of what you entered is above the limit and earns nothing extra. ' : '') + (cash ? 'Premium paid in cash is not allowed and was left out; pay by bank, card or cheque.' : ''); }
@@ -133,6 +149,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       t('.hit-l2', 'Your allowed contribution'); t('.hit-s2', $(ok));
       t('.hit-s3', $(ok * rate / 100));
       q('.hit-words').innerHTML = `The 2026 limit is <b>${$(limit)}</b> in all${age >= 55 ? ' (includes the $1,000 catch-up at 55 or older)' : ''}; with ${$(emp)} from your employer you can add <b>${$(room)}</b>. Adding <b>${$(ok)}</b> at ${rate.toFixed(2)}% combined saves about <b>${$(ok * rate / 100)}</b>.`;
+      t('.hit-room', `Room left this year: ${$(Math.max(0, room - ok))}. Adding it would save about ${$(Math.max(0, room - ok) * rate / 100)} more.`);
       if (mine > room) { warn.hidden = false; warn.textContent = `Over the limit by ${$(mine - room)}: the extra is taxed and may carry a 6% excise tax a year until removed. Only ${$(ok)} was counted.`; }
     }
   }

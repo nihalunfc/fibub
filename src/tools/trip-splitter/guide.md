@@ -39,6 +39,9 @@ Not everyone has to be in every expense: a dinner can be for three out of four p
 - **For**: the people who share that cost equally. Untick someone who did not take part.
 - **Balance**: what a person paid minus their share. Positive means they are owed money.
 - **Settle up**: the payments that bring every balance to zero.
+- **More options, unequal shares**: give each person a weight (1 for an adult, 2 for a couple, 0.5 for a child) and shared costs are split in that proportion instead of equally.
+- **More options, other currencies**: type one line per currency, such as `EUR 1.08`, meaning one euro is worth 1.08 of your main currency. Each expense then gets a currency choice and is converted before splitting. You type the rates yourself, so use the rate you actually paid.
+- **Show as text to paste**: a short "Ben pays Ana 10.00" list you can paste into a group chat. The CSV is still there for a spreadsheet.
 - **Remember on this device**: off by default. If ticked, the trip is kept in this browser only; Clear removes it.
 
 ## Worked example

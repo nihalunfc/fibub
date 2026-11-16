@@ -45,6 +45,10 @@ Type the four border widths for the front, and optionally the back. The tool giv
 
 Left 3 and right 2: the borders add to 5, and 3 ÷ 5 = 60%, so the split is 60/40. Top 2.5 and bottom 2.5 gives 50/50, perfectly centred up and down.
 
+## More options
+
+Each result now says which way the picture sits (toward the left, right, top or bottom), how many per cent off centre it is, and how far to move it to centre it. A line at the bottom shows the weakest split of everything you measured, front or back. Grading companies publish their own centring limits and change them, so this tool does not turn a split into a grade; check the official source of the company you plan to use.
+
 ## FAQs
 
 **Which side goes first in 60/40?** The larger border always comes first, whichever side it is on. Check the drawing to see which way the picture leans.

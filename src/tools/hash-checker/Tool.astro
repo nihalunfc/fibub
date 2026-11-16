@@ -12,6 +12,13 @@
     <p class="hc-info" aria-live="polite"></p>
     <label>Expected hash (optional: paste one to compare)<input class="hc-exp" type="text" spellcheck="false" autocomplete="off" /></label>
     <p class="hc-cmp" aria-live="polite" hidden></p>
+    <details class="hc-more">
+      <summary>More options: HMAC with a secret key, output format</summary>
+      <label>Secret key for HMAC (optional)<input class="hc-key" type="text" spellcheck="false" autocomplete="off" /></label>
+      <label>Show hashes as
+        <select class="hc-fmt"><option value="hex">hex, lower case</option><option value="HEX">hex, UPPER CASE</option><option value="b64">Base64</option></select>
+      </label>
+    </details>
     <div class="hc-btns"><button type="button" class="btn secondary hc-clear">Clear</button></div>
   </section>
   <section class="panel">
@@ -41,6 +48,9 @@
   .hc-name small { font-weight: 400; color: var(--muted); }
   .hc-name button { font: inherit; font-size: 13px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; }
   .hc-val { font: 13px ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; word-break: break-all; margin: 0; }
+  .hc-more summary { cursor: pointer; font-weight: 600; }
+  .hc-more label { margin-top: 8px; }
+  .hc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; box-sizing: border-box; }
   .hc-list li.hit .hc-val { color: var(--good); font-weight: 700; }
 </style>
 
@@ -80,29 +90,34 @@
     return out;
   };
   const hex = (u: Uint8Array) => Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('');
-  const ALGS: [string, string, string][] = [['SHA-256', 'SHA-256', 'the usual choice'], ['SHA-512', 'SHA-512', ''], ['SHA-384', 'SHA-384', ''], ['SHA-1', 'SHA-1', 'old, not secure'], ['MD5', 'MD5', 'old, not secure']];
+  const ALGS0: [string, string, string][] = [['SHA-256', 'SHA-256', 'the usual choice'], ['SHA-512', 'SHA-512', ''], ['SHA-384', 'SHA-384', ''], ['SHA-1', 'SHA-1', 'old, not secure'], ['MD5', 'MD5', 'old, not secure']];
+  const key = $<HTMLInputElement>('.hc-key'), fmt = $<HTMLSelectElement>('.hc-fmt');
+  const toB64 = (h: string) => btoa(h.match(/../g)!.map((x) => String.fromCharCode(parseInt(x, 16))).join(''));
+  const show = (h: string) => (!h ? '…' : fmt.value === 'HEX' ? h.toUpperCase() : fmt.value === 'b64' ? toB64(h) : h);
+  const ALGS = () => (key.value ? [...ALGS0, ...ALGS0.filter((a) => a[0].startsWith('SHA')).map((a) => ['HMAC-' + a[0], 'HMAC-' + a[0], ''] as [string, string, string])] : ALGS0);
   let results: Record<string, string> = {}, job = 0, mode = 'text', bytes: Uint8Array | null = null;
 
   const compare = () => {
     const e = exp.value.trim().toLowerCase().replace(/^(sha-?\d+|md5)[:=\s]+/, '').replace(/\s+/g, '');
-    list.querySelectorAll('li').forEach((li) => li.classList.toggle('hit', !!e && results[(li as HTMLElement).dataset.a!] === e));
+    list.querySelectorAll('li').forEach((li) => li.classList.toggle('hit', !!e && !!results[(li as HTMLElement).dataset.a!] && (results[(li as HTMLElement).dataset.a!] === e || toB64(results[(li as HTMLElement).dataset.a!]).replace(/=+$/, '') === exp.value.trim().replace(/\s+/g, '').replace(/=+$/, ''))));
     if (!e) { cmp.hidden = true; return; }
-    const hit = Object.keys(results).find((k) => results[k] === e);
+    const e2 = exp.value.trim().replace(/^(sha-?\d+|md5|hmac-sha-?\d+)[:=\s]+/i, '').replace(/\s+/g, '');
+    const hit = Object.keys(results).find((k) => results[k] === e || (results[k] && toB64(results[k]).replace(/=+$/, '') === e2.replace(/=+$/, '')));
     cmp.hidden = false; cmp.className = 'hc-cmp ' + (hit ? 'ok' : 'no');
     cmp.textContent = hit ? `Match: this is the ${hit} hash.` : Object.keys(results).length ? 'No match with any of the hashes below. The text or file is not the same, or it is a different kind of hash.' : 'Add text or a file first.';
   };
   const draw = () => {
     list.innerHTML = '';
     if (!bytes) return;
-    for (const [a, label, note] of ALGS) {
+    for (const [a, label, note] of ALGS()) {
       const li = document.createElement('li'); li.dataset.a = a;
       const top = document.createElement('div'); top.className = 'hc-name';
       const nm = document.createElement('span'); nm.textContent = label + ' ';
       if (note) { const sm = document.createElement('small'); sm.textContent = `(${note})`; nm.append(sm); }
       const cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'Copy';
-      cp.addEventListener('click', () => navigator.clipboard?.writeText(results[a] || '').then(() => { cp.textContent = 'Copied'; setTimeout(() => (cp.textContent = 'Copy'), 1200); }, () => {}));
+      cp.addEventListener('click', () => navigator.clipboard?.writeText(results[a] ? show(results[a]) : '').then(() => { cp.textContent = 'Copied'; setTimeout(() => (cp.textContent = 'Copy'), 1200); }, () => {}));
       top.append(nm, cp);
-      const v = document.createElement('p'); v.className = 'hc-val'; v.textContent = results[a] || '…';
+      const v = document.createElement('p'); v.className = 'hc-val'; v.textContent = show(results[a] || '');
       li.append(top, v); list.append(li);
     }
     compare();
@@ -114,7 +129,13 @@
     if (!bytes) { info.textContent = mode === 'file' ? 'Choose a file to hash it.' : ''; draw(); compare(); return; }
     const u = bytes;
     const r: Record<string, string> = {};
-    for (const [a] of ALGS) r[a] = a === 'MD5' ? hex(md5(u)) : hex(new Uint8Array(await crypto.subtle.digest(a, u)));
+    const enc = new TextEncoder().encode(key.value);
+    for (const [a] of ALGS()) {
+      if (a.startsWith('HMAC-')) {
+        const n = a.slice(5), k = await crypto.subtle.importKey('raw', enc, { name: 'HMAC', hash: n }, false, ['sign']);
+        r[a] = hex(new Uint8Array(await crypto.subtle.sign('HMAC', k, u)));
+      } else r[a] = a === 'MD5' ? hex(md5(u)) : hex(new Uint8Array(await crypto.subtle.digest(a, u)));
+    }
     if (my !== job) return;
     results = r; draw();
   };
@@ -128,6 +149,8 @@
     run();
   });
   exp.addEventListener('input', compare);
+  key.addEventListener('input', run);
+  fmt.addEventListener('change', draw);
   root.querySelectorAll('.hc-tabs button').forEach((b) => b.addEventListener('click', () => {
     mode = (b as HTMLElement).dataset.m!;
     root.querySelectorAll('.hc-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));

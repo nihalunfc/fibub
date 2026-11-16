@@ -11,7 +11,7 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
     <div class="ax-row dt-lv"><span class="ax-help">Level</span>
       <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="11" aria-pressed="false">Class 11</button><button type="button" data-lv="12" aria-pressed="true">Class 12</button></div>
     </div>
-    <label class="dt-inl">f(x) = <input class="dt-in" type="text" value="x^2 sin(x)" autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
+    <label class="dt-inl">f(x) = <input class="dt-in" data-k="f" type="text" value="x^2 sin(x)" autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
     <p class="ax-help">Use ^ for powers, brackets after sin, cos, tan, ln, sqrt, asin, acos, atan, and e^(…) for eˣ. 2x and x sin(x) mean multiply.</p>
     <div class="dt-ex">
       {EXAMPLES.map((e) => <button type="button" class="dt-chip" data-cls={e.cls} data-src={e.src}>{e.label}</button>)}
@@ -22,7 +22,7 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
   <div class="ax-card dt-out">
     <h2>The answer</h2>
     <p class="dt-f"></p>
-    <p class="dt-d"></p>
+    <p class="dt-d" aria-live="polite"></p>
     <h3>Step by step (inside out)</h3>
     <ol class="dt-steps"></ol>
   </div>
@@ -31,8 +31,15 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
     <h2>See f and f′ together</h2>
     <canvas class="ax-fig dt-fig" role="img"></canvas>
     <p class="ax-help">Black: f(x). Orange: f′(x). Dashed blue: the tangent at x = a. Where f′ crosses 0, f has a flat tangent.</p>
+    <div class="ax-row dt-arow"><label class="dt-an">Find the slope at x = <input class="dt-at" data-k="a" type="text" inputmode="decimal" value="1" /></label><span class="ax-help">type your own number or use the slider</span></div>
     <label class="dt-al">a = <b class="dt-av"></b><input class="dt-a" type="range" min="-4" max="4" step="0.05" value="1" /></label>
+    <p class="dt-sub" aria-live="polite"></p>
     <dl class="ax-facts dt-facts"></dl>
+    <details class="dt-hi"><summary>More options: f″(x) and f‴(x)</summary>
+      <p class="dt-h2"></p><p class="dt-h3"></p>
+      <p class="ax-help">The second derivative f″ is the derivative of f′: it tells you whether the slope is growing (curve bending up) or shrinking.</p>
+    </details>
+    <p class="ax-help">Common mistakes: forgetting the chain rule's inside derivative (the derivative of sin(x²) is 2x·cos(x²), not cos(x²)); using the product rule as u′v′ instead of u′v + uv′; losing a minus sign in the quotient rule's numerator.</p>
   </div>
 
   <div class="ax-card">
@@ -50,16 +57,17 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
 </div>
 
 <script>
-  import { differentiate, at, type Result } from '../../lib/sci/derivative-steps';
+  import { differentiate, at, higher, substituted, type Result } from '../../lib/sci/derivative-steps';
   import { paint, pagePalette } from '../../lib/report';
   import { view, axes, curve, line, dot, fmt } from '../../lib/sm-graph';
-  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+  import { quiz, rint, pick, readAnswer, type Question } from '../../lib/sm-quiz';
 
   const root = document.querySelector<HTMLElement>('.dst')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const W = 380, H = 260;
   const inp = q<HTMLInputElement>('.dt-in'), aIn = q<HTMLInputElement>('.dt-a');
-  let res: Result | null = null, level = '12';
+  let res: Result | null = null, level = '12', aVal = 1;
+  const aTxt = q<HTMLInputElement>('.dt-at');
   const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
 
   function run() {
@@ -72,13 +80,15 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
       const li = document.createElement('li'), b = document.createElement('b'), p = document.createElement('span');
       b.textContent = s.rule; p.textContent = s.text; li.append(b, document.createElement('br'), p); return li;
     }));
+    try { const h = higher(res.f, 3); q('.dt-h2').textContent = `f″(x) = ${h[1]}`; q('.dt-h3').textContent = `f‴(x) = ${h[2]}`; } catch { q('.dt-h2').textContent = 'The second derivative is too long to show for this function.'; q('.dt-h3').textContent = ''; }
     graph();
   }
 
   function graph() {
     if (!res) return;
-    const r = res, a = +aIn.value, f = (x: number) => at(r.f, x), d = (x: number) => at(r.d, x);
+    const r = res, a = aVal, f = (x: number) => at(r.f, x), d = (x: number) => at(r.d, x);
     q('.dt-av').textContent = fmt(a, 2);
+    if (document.activeElement !== aTxt) aTxt.value = fmt(a, 4).replace('−', '-');
     const ys: number[] = [];
     for (let i = 0; i <= 160; i++) { const x = -4 + i / 20; for (const y of [f(x), d(x)]) if (Number.isFinite(y)) ys.push(y); }
     ys.sort((u, w) => u - w);
@@ -91,6 +101,7 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
       if (Number.isFinite(fa) && Number.isFinite(m)) { line(ctx, v, -4, fa + m * (-4 - a), 4, fa + m * (4 - a), pl.accent, 1.6, [6, 4]); dot(ctx, v, a, fa, pl.accent, 5); dot(ctx, v, a, m, pl.accent2, 4.5, true, pl.bg); }
     } }, pagePalette());
     const c = fa - m * a;
+    q('.dt-sub').textContent = !Number.isFinite(a) ? 'Type a number for x, such as 2, -1.5 or 1/3.' : !Number.isFinite(m) ? `At x = ${fmt(a, 4)} the derivative is not defined (the function or its slope breaks down there).` : `f′(${fmt(a, 4)}) = ${substituted(r.dText, a)} ≈ ${fmt(m, 4)}.`;
     q('.dt-facts').replaceChildren(
       fact('f(a)', fmt(fa, 4)), fact('f′(a), the slope', fmt(m, 4), m > 1e-9 ? 'f is rising here' : m < -1e-9 ? 'f is falling here' : 'a flat tangent'),
       fact('Tangent at a', Number.isFinite(m) && Number.isFinite(fa) ? `y = ${fmt(m, 3)}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c), 3)}` : 'none', 'y − f(a) = f′(a)(x − a)'),
@@ -105,7 +116,12 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
   root.querySelectorAll<HTMLButtonElement>('.dt-lv button').forEach((b) => b.addEventListener('click', () => setLevel(b.dataset.lv!)));
   root.querySelectorAll<HTMLButtonElement>('.dt-chip').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.src!; run(); }));
   inp.addEventListener('input', run);
-  aIn.addEventListener('input', graph);
+  aIn.addEventListener('input', () => { aVal = +aIn.value; aTxt.value = fmt(aVal, 4).replace('−', '-'); graph(); });
+  aTxt.addEventListener('input', () => {
+    const v = readAnswer(aTxt.value.replace('−', '-').replace(/π/g, 'pi'));
+    if (aTxt.value.trim() === '' || !Number.isFinite(v)) { aVal = NaN; q('.dt-sub').textContent = 'Type a number for x, such as 2, -1.5 or 1/3.'; return; }
+    aVal = v; aIn.value = String(Math.max(-4, Math.min(4, v))); graph();
+  });
   document.addEventListener('fibub:theme', graph);
   setLevel(level); run();
 
@@ -138,6 +154,8 @@ import { EXAMPLES } from '../../lib/sci/derivative-steps';
   .dst .dt-d { font-size: 20px; font-weight: 700; margin: 4px 0 12px; overflow-wrap: anywhere; }
   .dst .dt-steps { padding-left: 22px; display: grid; gap: 10px; overflow-wrap: anywhere; }
   .dst .dt-steps b { color: var(--accent); }
+  .dst .dt-an { display: flex; align-items: center; gap: 6px; color: var(--ink); } .dst .dt-at { width: 6em; min-height: 40px; }
+  .dst .dt-sub { font-weight: 600; overflow-wrap: anywhere; margin: 6px 0; } .dst details { margin: 10px 0; } .dst summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-weight: 600; } .dst .dt-hi p { overflow-wrap: anywhere; }
   .dst .dt-al { display: block; margin: 10px 0; color: var(--ink); }
   .dst .dt-al input { width: 100%; height: 32px; accent-color: var(--accent); }
   .dst .dt-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

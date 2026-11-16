@@ -11,7 +11,7 @@ ads: false
 order: 1081
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [periodic-table, electron-configuration, formula-writer]
 sources:
   - "Element names, symbols and natural isotope abundances: IUPAC/CIAAW values, from fibub's shared element data (as in the periodic table and molar mass calculator)."
@@ -65,6 +65,10 @@ Atoms combine so that their outer shell ends up full (8 electrons, or 2 for the 
 - Mass number is a whole number count of particles. The atomic mass on the periodic table (such as 35.45 for chlorine) is an average over the natural isotopes.
 - If you add many neutrons the page says that nucleus is not found in nature. Real nuclei need a balance of protons and neutrons to hold together.
 
+## Solve your own numbers
+
+The card at the top works with the numbers in your question. Type the **atomic number Z**, the **mass number A** and the **charge** (leave it blank for a neutral atom) and it gives the protons, neutrons and electrons, the shells (2, 8, 8, 2) and the valency, with the working: neutrons = A − Z, and electrons = protons − charge. Switch **Find** to *Average atomic mass* to enter isotope masses and their abundances (percent or fractions) and get the weighted average, or to *Isotope abundance* to find the percentages of two isotopes from the average mass (the boron-10 and boron-11 type of question). Impossible numbers, such as A smaller than Z or abundances that do not add up to 100, get a plain message. Hydrogen to calcium show their shells; heavier atoms still give the three particle counts.
+
 ## FAQ
 
 **Why do electrons not count in the mass number?** An electron has about 1/1836 of the mass of a proton, so it hardly changes the mass.
@@ -74,3 +78,5 @@ Atoms combine so that their outer shell ends up full (8 electrons, or 2 for the 
 **Is anything saved?** No. Everything happens in your browser and nothing is stored or sent. Questions are made fresh each time.
 
 **Is this an official textbook tool?** No. It is an independent practice page that follows the same school topics.
+
+**How do I find the number of neutrons?** Subtract the atomic number from the mass number: neutrons = A − Z. For sodium-23, 23 − 11 = 12 neutrons.

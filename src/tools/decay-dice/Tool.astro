@@ -2,9 +2,16 @@
 // Radioactive decay dice (Learn): throw hundreds of dice, remove every six, and watch a half-life appear; compare
 // the counts with N₀(1 − p)ᵗ = N₀ e^(−λt). Each die is a model of one unstable nucleus.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn dcd">
+  <div class="ax-card">
+    <h2>Half-life calculator</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem and pick what to find: the amount left, the time, the half-life or the starting amount. You get the answer with the working. Then use the dice below to see why it works.</p>
+    <div class="dd-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Throw the dice</h2>
     <canvas class="lrn-cv dd-cv" aria-label="A grid of dice; the ones that have been removed are faded"></canvas>
@@ -45,6 +52,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { HALFLIFE_SPEC } from '../../lib/sci/solve-halflife';
   import { lambdaOf, halfLife, expected, throwAll, measuredHalfLife } from '../../lib/sci/learndecay';
   import { mountQuiz, pick, one, r, fitCanvas } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -121,4 +130,5 @@ import '../../styles/learnquiz-d.css';
       { q: 'Can you predict which die will be removed on the next throw?', ans: 1, choices: ['Yes, the ones that have been there longest', 'No, every die has the same chance each throw', 'Yes, the ones in the middle'], work: 'Each die has the same 1 in 6 chance every throw, however long it has lasted. Radioactive decay is random in the same way.' },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.dd-solve')!, HALFLIFE_SPEC, 'hl');
 </script>

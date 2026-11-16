@@ -37,6 +37,8 @@ Text is turned into UTF-8 bytes first, so accents, other scripts and emoji survi
 ## What each setting does
 
 - **URL-safe**: uses - and _ instead of + and /, and drops the = padding at the end (RFC 4648 section 5).
+- **Break into lines of 76 characters**: the layout email (MIME) and PEM files use; decoding ignores the line breaks, so it round-trips.
+- **Image preview**: paste Base64 (or a data: URL) of a PNG, JPEG, GIF or WebP picture and it shows underneath "Base64 to file", so you can see what it is before saving.
 - **Add the data: URL start**: puts `data:<file type>;base64,` in front, so you can paste it straight into an HTML `src` or CSS `url()`.
 - **File name**: the name the downloaded file gets.
 

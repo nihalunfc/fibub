@@ -36,6 +36,29 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <p class="ax-help gb-src"></p>
   </div>
 
+  <div class="ax-card gs">
+    <h2>Solve my numbers</h2>
+    <p class="ax-help" style="margin-top:0">Pick what the question asks for, fill in the other three, and the answer comes with the working. Units are converted for you.</p>
+    <div class="gs-chips" role="group" aria-label="Example problems">
+      <button type="button" class="gs-chip" data-p="boil">Boiling point of water</button>
+      <button type="button" class="gs-chip" data-p="dg">Find ΔG at 300 K</button>
+      <button type="button" class="gs-chip" data-p="ds">Find ΔS from ΔG</button>
+      <button type="button" class="gs-chip" data-p="nh3">Ammonia, ΔG = 0</button>
+    </div>
+    <label>Find <select class="gs-u" data-k="unknown"><option value="dG">ΔG (Gibbs energy change)</option><option value="T">T (temperature)</option><option value="dH">ΔH (enthalpy change)</option><option value="dS">ΔS (entropy change)</option></select></label>
+    <div class="gs-grid">
+      <label class="gs-f" data-f="dH">ΔH <span class="gs-row"><input class="gs-in" data-k="dH" inputmode="decimal" value="-92.2" /><select class="gs-un" data-k="dH-unit"><option value="1">kJ/mol</option><option value="0.001">J/mol</option></select></span></label>
+      <label class="gs-f" data-f="dS">ΔS <span class="gs-row"><input class="gs-in" data-k="dS" inputmode="decimal" value="-198.7" /><select class="gs-un" data-k="dS-unit"><option value="1">J/(K·mol)</option><option value="1000">kJ/(K·mol)</option></select></span></label>
+      <label class="gs-f" data-f="T">T <span class="gs-row"><input class="gs-in" data-k="T" inputmode="decimal" value="298" /><select class="gs-un" data-k="T-unit"><option value="K">K</option><option value="C">°C</option></select></span></label>
+      <label class="gs-f" data-f="dG">ΔG <span class="gs-row"><input class="gs-in" data-k="dG" inputmode="decimal" value="0" /><select class="gs-un" data-k="dG-unit"><option value="1">kJ/mol</option><option value="0.001">J/mol</option></select></span></label>
+    </div>
+    <p class="ax-err gs-err" hidden></p>
+    <p class="ax-big gs-ans" data-k="answer" aria-live="polite" style="font-size:1.1rem"></p>
+    <ol class="gs-work"></ol>
+    <button type="button" class="btn secondary small gs-show">Show this on the graph above</button>
+    <p class="ax-help">Common mistakes: using ΔS in J while ΔH is in kJ (divide ΔS by 1000 first, or let the unit boxes do it), and using °C instead of kelvin (add 273.15). A negative T means the numbers cannot work at any real temperature.</p>
+  </div>
+
   <div class="ax-card">
     <h2>The four sign cases</h2>
     <div class="ax-scroll"><table class="gb-cases">
@@ -65,7 +88,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { gibbs, crossover, caseOf, kFromG, verdict, R } from '../../lib/sci/gibbs-explorer';
+  import { gibbs, crossover, caseOf, kFromG, verdict, solveGibbs, type GUnknown, R } from '../../lib/sci/gibbs-explorer';
   import { paint, type Figure } from '../../lib/report';
   import { view, axes, line, dot, label, px, py, fmt } from '../../lib/sm-graph';
   import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
@@ -142,6 +165,51 @@ import SmQuiz from '../../components/SmQuiz.astro';
   q('.gb-pre').addEventListener('change', preset);
   q('.gb-n').addEventListener('change', run);
   root.querySelectorAll<HTMLButtonElement>('.gb-lv button').forEach((b) => b.addEventListener('click', () => { lv = b.dataset.l!; root.querySelectorAll('.gb-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); q('.gb-for12').hidden = lv !== '12'; run(); }));
+  // Solve my numbers
+  const GS: Record<string, { u: GUnknown; v: Record<string, string>; units?: Record<string, string> }> = {
+    boil: { u: 'T', v: { dH: '40.7', dS: '109', dG: '0', T: '373' } },
+    dg: { u: 'dG', v: { dH: '-40', dS: '-100', T: '300', dG: '0' } },
+    ds: { u: 'dS', v: { dH: '-50', dG: '-20', T: '300', dS: '0' } },
+    nh3: { u: 'T', v: { dH: '-92.2', dS: '-198.7', dG: '0', T: '298' } },
+  };
+  const gsv = (k: string) => q<HTMLInputElement>(`.gs-in[data-k=${k}]`);
+  const gsu = (k: string) => q<HTMLSelectElement>(`.gs-un[data-k=${k}-unit]`);
+  let gsRes: { dH: number; dS: number; T: number } | null = null;
+  function solveMine() {
+    const u = q<HTMLSelectElement>('.gs-u').value as GUnknown, err = q('.gs-err'), ans = q('.gs-ans'), work = q('.gs-work');
+    root.querySelectorAll<HTMLElement>('.gs-f').forEach((f) => { const off = f.dataset.f === u; f.classList.toggle('gs-off', off); f.querySelector('input')!.disabled = off; });
+    const val: Record<string, number | undefined> = {}, notes: string[] = [];
+    for (const k of ['dH', 'dS', 'T', 'dG'] as const) {
+      if (k === u) continue;
+      const raw = gsv(k).value.trim().replace('−', '-'), x = raw === '' ? NaN : Number(raw), un = gsu(k).value;
+      if (!Number.isFinite(x)) { val[k] = undefined; continue; }
+      if (k === 'T') val[k] = un === 'C' ? x + 273.15 : x; else val[k] = x * Number(un);
+      if (k === 'T' && un === 'C') notes.push(`T = ${x} °C + 273.15 = ${+(x + 273.15).toFixed(2)} K.`);
+      else if (k !== 'T' && Number(un) !== 1) notes.push(`${k === 'dH' ? 'ΔH' : k === 'dS' ? 'ΔS' : 'ΔG'} = ${x} ${k === 'dS' ? 'kJ/(K·mol)' : 'J/mol'} = ${+(x * Number(un)).toPrecision(8)} ${k === 'dS' ? 'J/(K·mol)' : 'kJ/mol'}.`);
+    }
+    gsRes = null;
+    const r = solveGibbs(u, val);
+    if ('error' in r) { err.hidden = false; err.textContent = r.error; ans.textContent = ''; work.replaceChildren(); return; }
+    err.hidden = true; ans.textContent = r.sentence;
+    work.replaceChildren(...[...notes, ...r.steps].map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    const all = { ...val, [u]: r.value } as Record<string, number>;
+    if (Number.isFinite(all.dH) && Number.isFinite(all.dS) && Number.isFinite(all.T)) gsRes = { dH: all.dH, dS: all.dS, T: all.T };
+    q<HTMLButtonElement>('.gs-show').disabled = !gsRes;
+  }
+  root.querySelectorAll('.gs-in, .gs-un, .gs-u').forEach((e) => e.addEventListener('input', solveMine));
+  root.querySelectorAll<HTMLButtonElement>('.gs-chip').forEach((b) => b.addEventListener('click', () => {
+    const p = GS[b.dataset.p!]; q<HTMLSelectElement>('.gs-u').value = p.u;
+    for (const k of ['dH', 'dS', 'T', 'dG']) { gsv(k).value = p.v[k]; gsu(k).selectedIndex = 0; }
+    solveMine();
+  }));
+  q('.gs-show').addEventListener('click', () => {
+    if (!gsRes) return;
+    const lim = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+    setv(0, lim(+gsRes.dH.toFixed(2), -300, 300)); setv(1, lim(+gsRes.dS.toFixed(1), -400, 400)); setv(2, lim(Math.round(gsRes.T), 1, 1500));
+    q<HTMLSelectElement>('.gb-pre').value = 'own'; q('.gb-src').textContent = 'Your own numbers from "Solve my numbers" (values beyond the slider range are held at its edge).'; run();
+    q('.gb-fig').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+  solveMine();
   q('.gb-for12').hidden = true;
   document.addEventListener('fibub:theme', run);
   preset();
@@ -161,6 +229,13 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </script>
 
 <style is:inline>
+  .gs-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .gs-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .gs-grid { display: grid; gap: 10px; margin: 10px 0; }
+  .gs-row { display: grid; grid-template-columns: 1fr 120px; gap: 8px; margin-top: 2px; }
+  .gs input, .gs select { font-size: 16px; min-height: 44px; }
+  .gs-f.gs-off input { background: var(--surface); color: var(--muted); }
+  .gs-work { margin: 6px 0 10px; padding-left: 22px; display: grid; gap: 3px; font-size: 15px; }
   .gbx .gb-sls { display: grid; gap: 6px; margin-top: 8px; }
   .gbx .gb-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; }
   .gbx .gb-sl > span { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }

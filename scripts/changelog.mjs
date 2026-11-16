@@ -2,7 +2,8 @@
 // its time, its one-line description (the commit title), the tools it touched and a link to it on
 // GitHub. Runs before every build (npm run build). Cloudflare's build clones only the latest commit,
 // so on a shallow clone it first downloads the rest of the history. If that fails (no network, or
-// not a git checkout) it keeps the committed file instead of writing a short one.
+// not a git checkout) it keeps any existing file, or writes an empty list. The file is in .gitignore:
+// never commit it, since every parallel PR used to conflict on it.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
 

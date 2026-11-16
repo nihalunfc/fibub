@@ -11,7 +11,7 @@ ads: false
 order: 1101
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [point-group-finder, molecule-viewer, hydrogen-orbitals]
 sources:
   - "VSEPR rules (pairs spread as far apart as possible; lone pair repulsion greater than bond pair repulsion; lone pairs equatorial in a trigonal bipyramid) and the shape names are general chemistry, written fresh for fibub."
@@ -36,7 +36,9 @@ It follows the Class 11 Chemistry chapter on chemical bonding and molecular stru
 2. Read the shape name, the arrangement of the electron pairs, the ideal **bond angle** and the **hybridisation** under the picture.
 3. Untick **Show lone pairs** to see only the atoms: that is what the shape name describes.
 4. In **Count the pairs from a formula**, choose a central atom, the outer atom, how many there are and the charge. The tool counts the electrons left on the central atom, step by step, and **Show this shape above** draws it.
-5. In **Check yourself**, choose the shape of four molecules or ions and press **Check** for the worked answers.
+5. Quicker: in **Type a formula**, write SF4, XeF2, NH4+ or SO4^2- (or tap an example) and the page names the shape in one sentence, counts the pairs step by step, gives the angle and hybridisation, and says whether the bond dipoles cancel. It reads one central atom with one kind of outer atom, and tells you plainly when it cannot read a formula or when the central atom runs out of electrons. **Show this shape above** turns it in 3D.
+6. Open **All the shapes in one table** for a revision sheet (13 shapes with angle, hybridisation and an example) and tap a row to see it above.
+7. In **Check yourself**, choose the shape of four molecules or ions and press **Check** for the worked answers.
 
 ## Worked example: ammonia, NH₃
 
@@ -58,7 +60,16 @@ Nitrogen has 5 valence electrons. Three single bonds to hydrogen use 3 of them, 
 - **Lone pairs in a trigonal bipyramid go round the middle** (equatorial), where they have fewer close neighbours. That is why SF₄ is a see-saw and XeF₂ is linear.
 - **Polar or not?** If all the outer atoms are the same and the shape is symmetric (linear, trigonal planar, tetrahedral, square planar, octahedral), the bond dipoles cancel.
 
+## Common mistakes
+
+- Naming the shape from all the electron pairs instead of only the atoms: NH₃ has four pairs (tetrahedral) but is trigonal pyramidal.
+- Forgetting the charge when counting electrons: add one for each negative charge, take one away for each positive charge.
+- Putting lone pairs in the axial positions of a trigonal bipyramid instead of the middle belt.
+- Calling every molecule with polar bonds polar: CO₂ and CCl₄ are non-polar because the shape cancels the dipoles.
+
 ## FAQ
+
+**How do I find the shape of a molecule using VSEPR?** Count the valence electrons on the central atom, subtract the ones used in bonds to find the lone pairs, add bonded atoms and lone pairs to get the number of electron pairs, then name the shape from where the atoms sit; typing the formula into the page above does these steps for you.
 
 **Why does the counter treat O as using 2 electrons?** Oxygen usually forms a double bond to the central atom, so the central atom spends 2 electrons on it. Hydrogen and the halogens use 1, nitrogen 3.
 

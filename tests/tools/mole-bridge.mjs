@@ -32,6 +32,24 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption('.mb .mb-rx', 'ammonia'); await page.fill('.mb .mb-a', '1'); await page.fill('.mb .mb-b', '3');
   check((await page.textContent('.mb .mb-lbig')) === 'Both run out together' && (await page.textContent('.mb .mb-leq')).includes('2 mol NH₃'), 'mole: ammonia exact amounts');
   await page.fill('.mb .mb-b', 'x'); check(await page.isVisible('.mb .mb-lerr'), 'mole: bad amount');
+  // new options
+  const open = () => page.evaluate(() => document.querySelectorAll('.mb details').forEach((d) => (d.open = true)));
+  await open();
+  await page.fill('.mb .mb-f', 'H2O'); await page.selectOption('.mb .mb-u', 'kg'); await page.fill('.mb .mb-v', '1');
+  check((await page.textContent('.mb .mb-ans')).startsWith('1 kg of H₂O is 55.56 mol') && (await steps()).includes('1 kg = 1000 g'), 'mole: kilograms ' + (await page.textContent('.mb .mb-ans')));
+  check((await page.textContent('.mb .mb-pc')).includes('H 11.11 %') && (await page.textContent('.mb .mb-pc')).includes('O 88.89 %'), 'mole: percent composition of water');
+  await page.selectOption('.mb .mb-u', 'mg'); await page.fill('.mb .mb-f', 'NaCl'); await page.fill('.mb .mb-v', '250');
+  check((await steps()).includes('0.004274 mol'), 'mole: 250 mg NaCl is 0.004274 mol');
+  await page.fill('.mb .mb-f', 'H2Q'); await page.selectOption('.mb .mb-u', 'g'); await page.fill('.mb .mb-v', '50'); await page.fill('.mb .mb-om', '100');
+  check(!(await page.isVisible('.mb .mb-err')) && (await steps()).includes('50 ÷ 100 = 0.5 mol'), 'mole: own molar mass 100');
+  await page.fill('.mb .mb-om', ''); await page.fill('.mb .mb-f', 'NaCl');
+  await page.fill('.mb .mb-mn', '0.5'); await page.fill('.mb .mb-mv', '250'); await page.selectOption('.mb .mb-mu', '0.001');
+  check((await page.textContent('.mb .mb-mbig')) === 'Concentration = 2 mol/L' && (await page.textContent('.mb .mb-meq')).includes('29.25 g'), 'mole: molarity 0.5 mol in 250 mL ' + (await page.textContent('.mb .mb-mbig')));
+  await page.fill('.mb .mb-mv', ''); await page.selectOption('.mb .mb-mu', '1'); await page.fill('.mb .mb-mn', '0.1'); await page.fill('.mb .mb-mc', '0.5');
+  check((await page.textContent('.mb .mb-mbig')) === 'Volume = 0.2 L', 'mole: volume from moles and concentration');
+  await page.fill('.mb .mb-mc', '0'); check((await page.textContent('.mb .mb-merr')).includes('above zero'), 'mole: zero concentration refused');
+  await page.selectOption('.mb .mb-rx', 'water'); await page.selectOption('.mb .mb-lu', 'g'); await page.fill('.mb .mb-a', '4'); await page.fill('.mb .mb-b', '16');
+  check((await page.textContent('.mb .mb-lbig')) === 'O₂ runs out first' && (await page.textContent('.mb .mb-leq')).includes('18 g H₂O') && (await page.textContent('.mb .mb-leq')).includes('2 g H₂'), 'mole: limiting reactant from grams ' + (await page.textContent('.mb .mb-leq')));
   const items = page.locator('.mb .cq-item'); const n = await items.count(); let right = 0;
   for (let i = 0; i < n; i++) {
     const it = items.nth(i); await it.locator('.cq-show').scrollIntoViewIfNeeded(); await it.locator('.cq-show').click();

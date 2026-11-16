@@ -11,7 +11,7 @@ ads: false
 order: 1121
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [diffusion-calculator, colligative-properties, osmolarity-calculator]
 sources:
   - "Water potential ψ = ψs + ψp and ψs = −iCRT (van 't Hoff), with R = 8.314462618 J/(mol·K) (CODATA 2018). Written by fibub from these standard formulas."
@@ -34,6 +34,19 @@ Osmosis is water moving through a membrane that lets water pass but holds back d
 - **Red blood cell**: an animal cell with no wall, so in plain water it swells and bursts, and in strong salt it shrinks and crinkles.
 
 The picture shows the beaker, an arrow for the way water moves and one cell zoomed in. It fits **Class 9 Science: the fundamental unit of life** (cell membrane, cell wall, osmosis, plasmolysis) and **Class 11 Biology: cell, the unit of life**, with water potential (ψ) at the Class 11 level. This is a teaching model with made-up round numbers, not real measurements. To go further, see [[diffusion-calculator]] for how fast things spread, [[colligative-properties]] for osmotic pressure in chemistry and [[osmolarity-calculator]] for counting dissolved particles.
+
+## Solve your own numbers
+
+The card at the top takes the numbers from your question and answers in one sentence, with the working underneath. Choose what to find:
+
+- **Osmotic pressure π.** Pick the solute (sugar or glucose i = 1, salt i = 2, CaCl₂ i = 3, or type your own i), the concentration and the temperature (°C or K) for π = iCRT. The answer is in MPa with bar, atm and kPa beside it.
+- **Concentration from π.** The same formula the other way round, with π typed in MPa, kPa, Pa, bar or atm.
+- **Water potential ψ.** ψs = −iCRT, then ψ = ψs + ψp, with the pressure potential ψp optional.
+- **Which way does water move?** Type the water potential of A and B (units can differ, for example MPa and bar); water moves from the higher (less negative) to the lower.
+- **% change in mass.** Type the mass before and after (g or mg) and read the percentage change with the words hypotonic, isotonic or hypertonic.
+- **Isotonic concentration from 2 readings.** Type the % change at two concentrations, one gain and one loss, and the card reads off where the straight line crosses 0.
+
+Seven worked-example presets fill the card, for example 0.5 mol/L sugar at 25 °C gives about 1.24 MPa and 0.15 mol/L salt at 37 °C about 0.774 MPa. Blank, negative or impossible entries (a temperature below absolute zero, two readings on the same side of zero) give a friendly message. Common mistakes: using °C in RT, forgetting i for salt, and dividing by the final mass instead of the starting mass. R = 0.008314 MPa·L/(mol·K) is the CODATA value. For other solutions use the [[colligative-properties]] calculator.
 
 ## How to use it
 
@@ -61,6 +74,8 @@ Start with the potato in plain water, time at the end. The page shows **Hypotoni
 - A plant cell does not burst because its wall pushes back: in the model that push is ψp, and it stops water coming in once ψ inside equals ψ outside.
 
 ## FAQ
+
+**Which way does water move in osmosis?** From the region with the higher water potential (weaker solution, less negative ψ) to the lower (stronger solution, more negative ψ).
 
 **Why does the potato only gain 8 % in plain water but lose 35 % in strong sugar?** The wall stops it swelling much, but nothing stops it shrinking.
 

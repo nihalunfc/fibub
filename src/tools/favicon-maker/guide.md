@@ -22,6 +22,8 @@ flow:
   - { icon: download, label: "Zip" }
 ---
 
+Above the sizes, two small browser tabs (one light, one dark) show how your icon looks at tab size, so you can check it is readable on both. Under **More options** you can copy the `site.webmanifest` text for an installable web app.
+
 ## What it does
 
 A favicon is the small icon in a browser tab, a bookmark or a phone's home screen. Each place wants a different size, so this page makes them all at once: PNG files at 16, 32, 48, 180 (Apple touch icon), 192 and 512 pixels, and a favicon.ico that holds the 16, 32 and 48 px versions in one file. You also get the HTML lines to paste into your page and a site.webmanifest for Android.

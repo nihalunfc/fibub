@@ -25,4 +25,23 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.vc .sq-q', (e) => e.dataset.ans);
   await page.fill('.vc .sq-q .sq-in', ans); await page.click('.vc .sq-q .sq-check');
   check((await page.textContent('.vc .sq-q .sq-res')) === 'Right!', 'vertical-circle: quiz');
+
+  // ---- Solve my numbers ----
+  {
+    await page.goto(BASE + path); await page.waitForTimeout(500);
+    const ans = () => page.textContent('.ps-host .ps-ans'), work = () => page.textContent('.ps-host .ps-work');
+    const pre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+    const set = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { if (v[0] === '#') await page.selectOption(`.ps-host [data-k="${k}"]`, v.slice(1)); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+    const ok = async (s, m) => check((await ans()).includes(s), `${'vertical-circle'}: ${m} (${await ans()})`);
+    await pre('Stone on a string'); await ok('20 m/s² towards the centre, so the force needed is 10 N', 'v²/r = 20, F = 10 N');
+    await pre('Merry-go-round'); await ok('3.77 m/s', '12 rpm at 3 m: 3.77 m/s');
+    await pre('Least loop speeds'); await ok('at least 2.8 m/s; at the bottom at least 6.26 m/s', '√(gr), √(5gr) for r = 0.8');
+    await pre('Bucket of water'); await ok('tension at the top is 0.4 N', '2·9/0.9 − 19.6 = 0.4 N');
+    await pre('Too slow'); await ok('does not reach the top', '5 m/s < √(5·9.8·1) = 7');
+    await set('bot', { 'bot-m': '0.5', 'bot-v': '6', 'bot-r': '0.8' }); await ok('27.4 N', 'bottom tension 22.5 + 4.9');
+    await set('top', { 'top-m': '2', 'top-v': '1', 'top-r': '0.9' }); await ok('string goes slack', 'slow at the top: slack');
+    await set('ac', { 'ac-r': '0' }); await ok('must be more than 0', 'zero radius refused');
+    await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+    check((await work()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), `vertical-circle: working shown, no NaN`);
+  }
 };

@@ -16,4 +16,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.inputValue('.nc [data-k="ann"]')) === '40', 'nps-calculator: government sector sets the annuity share to 40%');
   await set('ann', '30'); await page.waitForTimeout(100);
   check(await page.isVisible('.nc .nc-err'), 'nps-calculator: annuity below the minimum shows a message');
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.nc [data-k="pay"]', '5000'); await page.fill('.nc [data-k="want"]', '11,397'); await page.waitForTimeout(100);
+  check((await page.locator('.nc-sc tr').count()) === 5, 'nps: five return scenarios');
+  check((await page.textContent('.nc-need')).includes('5,000'), 'nps: 11,397 pension needs about 5,000 a month');
+  check((await page.textContent('.nc-real')).includes('today'), 'nps: shows today\'s money line');
 };

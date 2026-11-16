@@ -2,6 +2,7 @@
 // Carbon chain builder and namer: build a chain up to C10, tap carbons to add branches, add a double or triple
 // bond and one functional group; IUPAC name with steps, molecular formula, homologous series; Check yourself.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax ccn">
   <div class="ax-card">
@@ -23,6 +24,12 @@ import '../../styles/astro.css';
     <h3 class="cc-h3">How the name is built</h3>
     <ol class="cc-steps"></ol>
     <button type="button" class="btn secondary small cc-reset">Start again</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Name it from the numbers</h2>
+    <p class="ax-help" style="margin-top:0">Describe a chain in words (carbons, family, where the bond or group sits, an optional methyl or ethyl branch) and get its IUPAC name, formula and molar mass with the steps. Or type a formula like C₃H₆O to see which family it can belong to. To draw a molecule and tap on branches, use the builder above.</p>
+    <div class="cc-solve"></div>
   </div>
 
   <div class="ax-card">
@@ -79,6 +86,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { CHAIN_SPEC } from '../../lib/sci/solve-chain';
   import { nameOf, blank, check, toGraph, type Build, type NameResult, type Group } from '../../lib/sci/chainname';
 
   const root = document.querySelector<HTMLElement>('.ccn')!;
@@ -302,4 +311,5 @@ import '../../styles/astro.css';
   q('.cc-new').addEventListener('click', newQuiz);
 
   fillSelects(); update(); newQuiz();
+  mountSolver(q('.cc-solve'), CHAIN_SPEC);
 </script>

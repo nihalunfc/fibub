@@ -21,6 +21,15 @@
       <p class="cd-fine">Percent of the value lost in each year. These are rough typical shapes (estimate, not data from any maker); change any of them. After year 10 the last figure repeats.</p>
       <div class="cd-cgrid"></div>
     </div>
+    <details class="cd-more"><summary>More options: already own one?</summary>
+      <div class="cd-grid">
+        <label>What you paid <input data-k="paid" inputmode="decimal" value="" placeholder="e.g. 20000" /></label>
+        <label>Worth now <input data-k="now" inputmode="decimal" value="" placeholder="e.g. 14000" /></label>
+        <label>Years you have owned it <input data-k="owned" inputmode="decimal" value="" placeholder="e.g. 2" /></label>
+      </div>
+      <p class="cd-own cd-fine" aria-live="polite"></p>
+      <button type="button" class="cd-use" hidden>Use this rate above</button>
+    </details>
     <p class="cd-fine">Depreciation is how much value a vehicle loses. It is usually your biggest cost of owning one and it is biggest in the first year. Leave "Km you drive a year" empty to ignore mileage.</p>
   </section>
   <section class="panel" aria-live="polite">
@@ -29,7 +38,7 @@
     <p class="cd-warn" role="alert"></p>
     <div class="cd-leg"></div>
     <div class="cd-chart"></div>
-    <div class="cd-scroll"><table class="cd-tab"><thead><tr><th>Year</th><th>Loss that year</th><th>Value at end</th><th>Lost so far</th></tr></thead><tbody></tbody></table></div>
+    <div class="cd-scroll"><table class="cd-tab"><thead><tr><th>Year</th><th>Loss that year</th><th>Value at end</th><th>Lost so far</th><th>Left (% of price)</th></tr></thead><tbody></tbody></table></div>
   </section>
   <p class="cd-fine">Estimates only. Real resale values depend on condition, demand and the market, so compare with ads for the same model. Nothing you type leaves this page.</p>
 </div>
@@ -46,6 +55,8 @@
   .cd-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .cd-rows dt { color: var(--muted); } .cd-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .cd-warn { color: var(--bad); margin: 10px 0 0; } .cd-warn:empty { display: none; }
+  .cd-more { margin-top: 12px; } .cd-more summary { cursor: pointer; color: var(--accent); } .cd-more .cd-grid { margin-top: 10px; }
+  .cd-use { font: inherit; margin-top: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
   .cd-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
   .cd-leg { margin-top: 12px; font-size: 13px; color: var(--muted); }
   .cd-scroll { overflow-x: auto; margin-top: 12px; }
@@ -55,7 +66,7 @@
 </style>
 
 <script>
-  import { depreciation, TYPICAL_CURVES } from '../../lib/money/vehicles';
+  import { depreciation, impliedRate, TYPICAL_CURVES } from '../../lib/money/vehicles';
   import { lineSvg, legend } from '../../lib/money/chart';
   const root = document.querySelector('.cd') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -89,8 +100,17 @@
     const s = [{ label: 'Value', ys: values, color: 'var(--accent)' }];
     $('.cd-chart').innerHTML = lineSvg(s, values.map((_, i) => i), 'Vehicle value by year');
     $('.cd-leg').innerHTML = legend(s) + ' years from today on the bottom';
-    $('.cd-tab tbody').innerHTML = values.map((v, i) => `<tr><td>${i}</td><td>${i ? ratesUsed[i - 1].toFixed(1) + '% (' + m2(values[i - 1] - v) + ')' : '-'}</td><td>${m2(v)}</td><td>${m2(price - v)}</td></tr>`).join('');
+    $('.cd-tab tbody').innerHTML = values.map((v, i) => `<tr><td>${i}</td><td>${i ? ratesUsed[i - 1].toFixed(1) + '% (' + m2(values[i - 1] - v) + ')' : '-'}</td><td>${m2(v)}</td><td>${m2(price - v)}</td><td>${((v / price) * 100).toFixed(1)}%</td></tr>`).join('');
   };
+  const own = () => {
+    const r = impliedRate(num('paid'), num('now'), num('owned'));
+    const t = $('.cd-own'), b = $('.cd-use') as HTMLButtonElement;
+    if (r === null) { t.textContent = num('paid') || num('now') || num('owned') ? 'Type what you paid, what it is worth now (0 or more) and the years owned (more than 0).' : ''; b.hidden = true; return; }
+    t.textContent = r >= 0 ? `It has lost about ${r.toFixed(1)}% a year (${m2(num('paid') - num('now'))} in ${num('owned')} years).` : `It is worth more than you paid, so there is no loss to measure.`;
+    b.hidden = !(r >= 0 && r <= 95); b.dataset.r = r.toFixed(1);
+  };
+  $('.cd-use').addEventListener('click', (e) => { q('mode').value = 'declining'; q('rate').value = (e.currentTarget as HTMLElement).dataset.r || '15'; calc(); });
+  root.addEventListener('input', own);
   q('vehicle').addEventListener('change', fillCurve);
   fillCurve();
   root.addEventListener('input', calc); root.addEventListener('change', calc);

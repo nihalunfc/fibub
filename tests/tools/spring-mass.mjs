@@ -28,4 +28,23 @@ export default async ({ page, check, BASE }) => {
   const a4 = await items[4].getAttribute('data-ans');
   await (await items[4].$('.lq-in')).fill(String(+a4 / 2)); await (await items[4].$('.lq-check')).click();
   check((await (await items[4].$('.lq-fb')).textContent()).startsWith('Not quite'), 'springs: wrong cut-spring answer');
+
+  // ---- Solve my numbers ----
+  {
+    await page.goto(BASE + path); await page.waitForTimeout(500);
+    const ans = () => page.textContent('.ps-host .ps-ans'), work = () => page.textContent('.ps-host .ps-work');
+    const pre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+    const set = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { if (v[0] === '#') await page.selectOption(`.ps-host [data-k="${k}"]`, v.slice(1)); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+    const ok = async (s, m) => check((await ans()).includes(s), `${'spring-mass'}: ${m} (${await ans()})`);
+    await pre('Stretch 5 cm'); await ok('The force is 2 N', '40 N/m × 0.05 m');
+    await pre('Hang 300 g'); await ok('7.35 cm', '0.3·9.8/40 = 7.35 cm');
+    await pre('Series vs parallel'); await ok('Series 20 N/m, parallel 90 N/m', '30 and 60');
+    await pre('Period of 500 g'); await ok('0.628 s', '2π√(0.5/50)');
+    await pre('Measured T'); await ok('20.1 N/m', '4π²·0.25/0.49');
+    await set('T', { 'T-m': '0.5', 'T-k': '30', 'T-k2': '60', 'T-mode': '#1' }); await ok('0.993 s', 'series 30 and 60 = 20 N/m: 2π√(0.5/20)');
+    await set('E', { 'E-k': '40', 'E-x': '0.1' }); await ok('0.2 J', '½·40·0.1²');
+    await set('F', { 'F-k': '0' }); await ok('must be more than 0', 'zero k refused');
+    await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+    check((await work()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), `spring-mass: working shown, no NaN`);
+  }
 };

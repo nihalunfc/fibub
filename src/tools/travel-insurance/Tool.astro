@@ -47,6 +47,26 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div class="ti-wrap"><table><thead><tr><th>Risk</th><th>Loss after your cover</th><th>Expected loss</th><th>Fair price</th><th>Most worth paying</th></tr></thead><tbody class="ti-body"></tbody></table></div>
     </div>
   </section>
+  <details class="panel ti-more">
+    <summary><b>More options: compare a second policy, and a checklist to print</b></summary>
+    <p class="ti-hint">Policy B uses the same risks above. Leave the price blank to hide the comparison.</p>
+    <div class="ti-grid">
+      <label>Policy B price <input data-k="priceB" inputmode="decimal" /></label>
+      <label>Policy B deductible <input data-k="dedB" inputmode="decimal" /></label>
+    </div>
+    <p class="ti-cmp" aria-live="polite"></p>
+    <h3 style="font-size:16px;margin:14px 0 6px">Before you buy: checklist</h3>
+    <ul class="ti-check">
+      <li><label><input type="checkbox" /> Does the policy cover medical care, emergency transport home and trip cancellation, and what are the limits for each?</label></li>
+      <li><label><input type="checkbox" /> Is the country and the days you travel covered, including any activities such as skiing or diving?</label></li>
+      <li><label><input type="checkbox" /> Does it cover conditions you already have, and what must you tell the insurer?</label></li>
+      <li><label><input type="checkbox" /> What is the deductible, and do you pay first and claim later?</label></li>
+      <li><label><input type="checkbox" /> What do your credit card, employer or home health plan already cover?</label></li>
+      <li><label><input type="checkbox" /> Where are the 24 hour phone number and the policy number kept, offline?</label></li>
+      <li><label><input type="checkbox" /> What documents do you need to keep for a claim (receipts, reports)?</label></li>
+    </ul>
+    <button type="button" class="btn secondary ti-print">Print this page</button>
+  </details>
   <p class="ti-fine">How it's worked out: for each risk, expected loss = chance x loss after your existing cover, fair price = chance x (loss after cover - policy deductible), and the most worth paying is the price at which your expected utility with the policy equals that without it (the same method as the "Should I insure this?" tool), added up across risks. Chances are your own estimates, and a policy's real wording may exclude things: read it. Nothing you type leaves this page.</p>
 </div>
 
@@ -57,6 +77,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   .ti .panel { padding: 16px; }
   .ti-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
   .ti label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .ti-check { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
+  .ti-check label { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink); }
+  .ti-check input { width: auto; margin-top: 3px; }
+  @media print { .ti-more .btn { display: none; } }
   .ti small { font-size: 12px; }
   .ti input, .ti select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .ti input:focus, .ti select:focus { border-color: var(--accent); outline: none; }
@@ -106,9 +130,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     const bad = !rs.length ? 'Add at least one risk.' : rs.some((r) => !(r.p > 0 && r.p < 1)) ? 'Each risk needs a chance between 0 and 100 (for example 1).' : rs.some((r) => !(r.loss > 0) || r.card < 0) ? 'Each risk needs a cost above 0, and cover you already have of 0 or more.' : !(price >= 0) ? 'Enter the policy price.' : ded < 0 ? 'The deductible must be 0 or more.' : !(wealth > 0) ? 'Enter the savings you could use (more than 0).' : !(gamma >= 0 && gamma <= 4) ? 'Enter a risk attitude from 0 to 4.' : '';
     q('.ti-err').hidden = !bad; q('.ti-err').textContent = bad; q('.ti-res').hidden = !!bad;
     if (bad) return;
+    const nets: number[] = [];
     let exp = 0, fair = 0, max = 0, lg0 = 0, lg1 = 0, ruin = false, withDed = 0;
     const body = rs.map((r) => {
-      const net = Math.max(0, r.loss - r.card);
+      const net = Math.max(0, r.loss - r.card); nets.push(net);
       const d = Math.min(ded, net);
       if (net <= 0) return `<tr><td>${esc(r.label)}</td><td>${$(0)}</td><td>${$(0)}</td><td>${$(0)}</td><td>${$(0)}</td></tr>`;
       const s = shouldInsure({ wealth, loss: net, p: r.p, premium: price, deductible: d, gamma });
@@ -127,9 +152,18 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       ? `The price of <b>${$(price)}</b> is at or below the most the cover is worth to you (${$(max)}), so on these numbers it costs less than the worry it removes.`
       : `The price of <b>${$(price)}</b> is above the most the cover is worth to you (${$(max)}), so on these numbers you may do as well carrying the risk yourself.`)
       + ` The price is ${price > fair ? Math.round((price / Math.max(fair, 1e-9) - 1) * 100) + '% above' : 'at or below'} the fair price of ${$(fair)}. This depends on the chances you guessed.`;
+    const pB = f('priceB').value.trim() === '' ? NaN : num(f('priceB').value), dB = num(f('dedB').value);
+    const cmp = q('.ti-cmp');
+    if (Number.isFinite(pB) && pB >= 0 && dB >= 0) {
+      const expB = pB + rs.reduce((t, r, i) => t + r.p * Math.min(dB, nets[i]), 0);
+      const worstB = pB + Math.max(0, ...nets.map((n) => Math.min(dB, n)));
+      const worstA = price + lg1;
+      cmp.innerHTML = `Expected cost with policy A: <b>${$(withCost)}</b>, with policy B: <b>${$(expB)}</b>. If the worst risk happens, you pay about <b>${$(worstA)}</b> with A and <b>${$(worstB)}</b> with B. ${expB < withCost ? 'B costs less on average.' : expB > withCost ? 'A costs less on average.' : 'They cost the same on average.'} This ignores differences in what each policy covers: read both.`;
+    } else cmp.textContent = '';
     q('.ti-ruin').hidden = !ruin;
     q('.ti-ruin').textContent = ruin ? `At least one loss is as big as your savings of ${$(wealth)}, so without cover it could leave you with nothing to fall back on. Weigh this alongside the numbers.` : '';
   }
+  q('.ti-print').addEventListener('click', () => window.print());
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();
 </script>

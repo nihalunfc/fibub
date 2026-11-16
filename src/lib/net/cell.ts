@@ -103,3 +103,41 @@ export const COUNTRIES_CELL: Record<string, { official: Item[]; networks: Item[]
     tip: 'Prepaid brands ride on one of the three big networks, so pick the brand by which network is strongest where you are.',
   },
 };
+
+// ASU is the whole-number scale Android shows next to dBm. Android's own formulas:
+// LTE and 5G: dBm = ASU - 140; 3G (WCDMA, RSCP per 3GPP TS 27.007): dBm = ASU - 120; 2G (GSM): dBm = 2 x ASU - 113.
+export const asuToDbm = (tech: Tech, asu: number) => {
+  if (!isFinite(asu)) return NaN;
+  return tech === 'gsm' ? 2 * asu - 113 : tech === 'umts' ? asu - 120 : asu - 140;
+};
+
+// What a signal level is likely to be like for everyday things: a rule of thumb for the bands above, not a measurement.
+export const signalUses = (label: string): { what: string; ok: 'good' | 'warn' | 'bad' }[] => {
+  const t = label === 'Excellent' || label === 'Good' ? ['good', 'good', 'good'] : label === 'Fair' ? ['good', 'warn', 'warn'] : label === 'Poor' ? ['warn', 'bad', 'bad'] : ['bad', 'bad', 'bad'];
+  return [
+    { what: 'Calls and texts', ok: t[0] as 'good' | 'warn' | 'bad' },
+    { what: 'Maps and web pages', ok: t[1] as 'good' | 'warn' | 'bad' },
+    { what: 'Video streaming and calls', ok: t[2] as 'good' | 'warn' | 'bad' },
+  ];
+};
+export const poorSignalTips = (label: string): string[] =>
+  label === 'Poor' || label === 'Very poor'
+    ? ['Try Wi-Fi calling (in the phone settings) if your plan supports it: calls and texts then use your Wi-Fi.', 'Move near a window or to a higher floor and test again.', 'Compare another network in the same spot with the log below before you switch.']
+    : [];
+
+/** Best network at each place from log rows (dBm already worked out; bars rows can pass a converted value).
+ *  Ties go to the network listed first. Places and networks are matched without regard to case. */
+export const bestPerPlace = (rows: { place: string; net: string; dbm: number | null }[]) => {
+  const by = new Map<string, { place: string; nets: Map<string, { net: string; sum: number; n: number }> }>();
+  for (const r of rows) {
+    if (r.dbm == null || !isFinite(r.dbm)) continue;
+    const pk = (r.place.trim() || 'Unnamed place').toLowerCase(), nk = (r.net.trim() || 'Unknown').toLowerCase();
+    const p = by.get(pk) ?? { place: r.place.trim() || 'Unnamed place', nets: new Map() };
+    const n = p.nets.get(nk) ?? { net: r.net.trim() || 'Unknown', sum: 0, n: 0 };
+    n.sum += r.dbm; n.n++; p.nets.set(nk, n); by.set(pk, p);
+  }
+  return [...by.values()].map((p) => {
+    const list = [...p.nets.values()].map((x) => ({ net: x.net, avg: x.sum / x.n })).sort((a, b) => b.avg - a.avg);
+    return { place: p.place, best: list[0], others: list.slice(1), gap: list.length > 1 ? list[0].avg - list[1].avg : null };
+  });
+};

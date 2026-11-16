@@ -33,6 +33,22 @@ export default async ({ page, check, BASE }) => {
     for (let i = 0; i < 4; i++) { await page.click(R + '.fs-rand'); await page.waitForTimeout(40); if (!(await txt('.fs-num')).includes('They agree')) check(false, `factor: random ${m} agrees (${await txt('.fs-expr')})`); }
   }
   check((await txt('.fs-num')).includes('They agree'), 'factor: random examples all factorise and check');
+  // roots and cubic
+  await page.click(R + '.fs-mode button[data-m="q"]'); await set(6, -5, -6);
+  check((await txt('.fs-roots')) === '6x² − 5x − 6 = 0 gives x = 3/2 or x = −2/3.', `factor: roots (${await txt('.fs-roots')})`);
+  await set(1, 1, 1); check((await txt('.fs-roots')).includes('no real roots'), 'factor: no real roots message');
+  await set(1, 2, -1); check((await txt('.fs-roots')).includes('√8') && (await txt('.fs-roots')).includes('0.4142'), `factor: surd roots (${await txt('.fs-roots')})`);
+  await page.click(R + '.fs-mode button[data-m="d"]'); await page.fill(R + '.fs-dp', '49'); await page.fill(R + '.fs-dq', '16'); await page.waitForTimeout(80);
+  check((await txt('.fs-roots')) === '49x² − 16 = 0 gives x = 4/7 or x = −4/7.', `factor: roots of 49x² − 16 (${await txt('.fs-roots')})`);
+  await page.click(R + '.fs-mode button[data-m="k"]'); await page.waitForTimeout(80);
+  check((await txt('.fs-expr')) === '2x³ − 3x² − 3x + 2' && (await txt('.fs-ans')) === '= (x + 1)(2x − 1)(x − 2)' && (await txt('.fs-num')).includes('They agree'), `factor: cubic (${await txt('.fs-ans')})`);
+  check((await txt('.fs-steps')).includes('Try x = 1/2') && (await txt('.fs-roots')).includes('x = −1, x = 1/2, x = 2'), `factor: cubic steps and roots (${await txt('.fs-roots')})`);
+  const setk = async (a, b, c, d) => { await page.fill(R + '.fs-ka', String(a)); await page.fill(R + '.fs-kb', String(b)); await page.fill(R + '.fs-kc', String(c)); await page.fill(R + '.fs-kd', String(d)); await page.waitForTimeout(80); };
+  await setk(1, 0, 0, -8); check((await txt('.fs-ans')) === '= (x − 2)(x² + 2x + 4)' && (await txt('.fs-roots')).includes('x = 2'), `factor: x³ − 8 (${await txt('.fs-ans')})`);
+  await setk(1, 1, 1, 2); check((await txt('.fs-ans')).startsWith('Does not factorise') && (await txt('.fs-steps')).includes('None of the possible roots'), 'factor: cubic with no rational root');
+  await setk(0, 1, 1, 1); check(await page.isVisible(R + '.fs-err'), 'factor: cubic a = 0 rejected');
+  for (let i = 0; i < 4; i++) { await page.click(R + '.fs-rand'); await page.waitForTimeout(60); if (!(await txt('.fs-num')).includes('They agree')) check(false, `factor: random cubic agrees (${await txt('.fs-expr')})`); }
+  await page.click(R + '.fs-mode button[data-m="q"]');
   check((await page.$$(R + '.sm-q')).length === 4, 'factor: four questions');
   for (let i = 1; i <= 4; i++) {
     await page.click(`${R}.sm-q:nth-child(${i}) .sm-qshow`);

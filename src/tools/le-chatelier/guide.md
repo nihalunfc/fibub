@@ -11,7 +11,7 @@ ads: false
 order: 1087
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [equilibrium-solver, ph-scale-explorer, thermochemistry-calculator]
 sources:
   - "Le Chatelier's principle, the equilibrium constant Kc, the reaction quotient Q and the van 't Hoff equation: general chemistry facts, written fresh for fibub. Gas constant R from CODATA (NIST)."
@@ -33,6 +33,16 @@ At equilibrium a reaction still runs both ways, at the same rate, so the amounts
 - **ICE table.** Initial concentrations just after the change, the change written as multiples of x, and the new equilibrium, with Kc worked out from them.
 
 It follows Class 11 Chemistry (equilibrium: law of chemical equilibrium and the equilibrium constant, the reaction quotient, factors that affect equilibria: concentration, pressure, temperature and a catalyst, Le Chatelier's principle). Solve your own ICE problems with the [[equilibrium-solver]]; ionic equilibrium and pH continue in the [[ph-scale-explorer]].
+
+## Solve your own numbers
+
+The card at the top answers the questions exams ask, without picking one of the four reactions. Choose what to find:
+
+- **Which way does it shift?** Pick the change (add or remove a reactant or product, raise or lower the pressure, heat, cool, add a catalyst, add an inert gas at constant volume or at constant pressure). For pressure changes type the moles of gas on each side, for example 4 and 2 for N₂ + 3H₂ ⇌ 2NH₃; for temperature say whether the forward reaction is exothermic or endothermic. You get the direction in one sentence, the reason underneath, and what happens to K (only a change of temperature changes it).
+- **Q against K.** Type Q and K and see which way the net reaction goes.
+- **K at a new temperature.** Type ΔH (kJ/mol), K at one temperature and the new temperature (K or °C) to get the new K from the van 't Hoff equation, with the working.
+
+Seven worked-example presets fill the card. Impossible entries (negative K, equal temperatures, a temperature below absolute zero, a fraction of a mole of gas) give a friendly message. Common mistakes: believing a catalyst moves the equilibrium, counting solids or liquids as gas moles, and believing pressure changes K. For a full ICE table with your own reaction use the [[equilibrium-solver]].
 
 ## How to use it
 
@@ -60,6 +70,8 @@ Adding, removing and squeezing change Q while K stays the same. Changing the tem
 - Factories make ammonia at a moderate temperature even though cooler would give more at equilibrium: at low temperature it is far too slow.
 
 ## FAQ
+
+**Which way does the equilibrium shift?** It moves to undo the change: adding a reactant pushes it right, higher pressure favours the side with fewer gas moles, and heating favours the endothermic direction.
 
 **Are the K values real?** No. They are chosen so the shifts are easy to see. The directions and the effect of temperature follow the real reactions.
 

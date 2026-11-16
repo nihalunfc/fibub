@@ -23,4 +23,12 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.upr-aa')).includes('tapered') && await page.isVisible('.upr-aa .bad'), 'uk-pension-relief: high earner sees the taper and a charge');
   await page.fill('.upr-dob', '1960-09-20'); await page.waitForTimeout(100);
   check((await page.textContent('.upr-spa')).includes('66 and 6 months'), 'uk-pension-relief: date of birth gives the State Pension age');
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  await page.selectOption('.upr-mode', 'paid'); await page.fill('.upr-g', '4,000'); await page.waitForTimeout(100);
+  check((await page.textContent('.upr-line')).includes('£4,000') && (await page.textContent('.upr-body')).includes('£5,000'), 'uk-pension-relief: paying £4,000 from take-home puts £5,000 in the pot');
+  await page.selectOption('.upr-mode', 'pct'); await page.fill('.upr-g', '10'); await page.waitForTimeout(100);
+  check((await page.textContent('.upr-body')).includes('£6,000'), 'uk-pension-relief: 10% of £60,000 is £6,000');
+  check((await page.$$('.upr-wi tr')).length >= 4, 'uk-pension-relief: what-if table has rows');
+  await page.selectOption('.upr-mode', 'gross'); await page.fill('.upr-g', '5,000'); await page.fill('.upr-sal', '110,000'); await page.waitForTimeout(100);
+  check(await page.isVisible('.upr-trap') && (await page.textContent('.upr-rate')).includes('60%'), 'uk-pension-relief: 110k income shows the 60% relief note');
 };

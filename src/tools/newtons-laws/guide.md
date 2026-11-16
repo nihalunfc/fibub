@@ -11,11 +11,12 @@ ads: false
 order: 1023
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [equations-of-motion, motion-graphs, collision-calculator]
 sources:
   - "Newton's three laws of motion, friction (static up to μs N, kinetic μk N), momentum p = mv and impulse = change in momentum: standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
   - "The time-stepped trolley was checked against the closed-form results v = (F − μmg)t/m and coasting distance v²/2μg; the push-apart and catch results against hand-worked examples. The friction coefficients and ball sizes are made-up, rounded teaching values."
+  - "Newton's second law F = ma, W = mg, p = mv, impulse F t = m(v − u) and momentum conservation for recoil: standard school physics found in any textbook (g = 9.8 m/s², rounded). The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: sliders, label: "Set force" }
   - { icon: pointer, label: "Push" }
@@ -50,6 +51,9 @@ In Action and reaction, A (50 kg) and B (25 kg) push with **100 N** for 0.5 s. A
 
 Catching a **160 g** ball at **25 m/s** in **0.1 s**: change in momentum 4 kg m/s, so the average force is **40 N**. Take 0.4 s instead and it drops to 10 N.
 
+## Solve my numbers
+Type the numbers from your own problem into the card at the top. Choose what you want to find: force from F = ma, acceleration, mass, a push against friction (does it move, and how fast), weight W = mg, momentum p = mv, the average force while something slows down or speeds up, or the recoil of a gun or trolley. Each box has a unit choice (kg or g, N or kN, m/s or km/h, s or ms) so you do not have to convert first; the working shows any conversion it made. The answer comes in one sentence at the top, then the working an exam marks: the formula, the numbers with units, and the result to three significant figures. One line under it names the common mistake for that type of problem, such as using the push instead of the net force, or forgetting g in friction. Tap a worked example (a trolley, a braking car, a cricket catch, a box on carpet, gun recoil) to fill in the numbers; they are our own round numbers, not taken from any book. Zero, negative or missing numbers give a short message instead of a wrong answer. The link button copies your setup so a friend sees the same numbers.
+
 ## Tips
 
 - Mass is how hard it is to change an object's motion (its inertia). Weight is the pull of gravity on it, mass × g.
@@ -63,3 +67,5 @@ Catching a **160 g** ball at **25 m/s** in **0.1 s**: change in momentum 4 kg m/
 **Why does a heavier trolley need a bigger push to start?** Friction grows with the weight pressing on the floor, and a bigger mass also needs more force for the same acceleration.
 
 **Is anything stored?** No. The questions are made fresh in your browser and nothing is saved or sent.
+
+**What is the formula for the force on something that is stopping?** Average force F = m(v − u) ÷ t: the change in momentum divided by the time, found under Solve my numbers.

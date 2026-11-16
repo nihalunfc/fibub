@@ -46,6 +46,14 @@ The sine law says each side divided by the sine of its opposite angle is the sam
 
 Angle A = 40°, angle B = 65° and side a = 10 cm. Angle C = 180° − 40° − 65° = 75°. By the sine law, b = 10 × sin 65° / sin 40° ≈ 14.1 cm and c = 10 × sin 75° / sin 40° ≈ 15.03 cm. These are the numbers the tool shows when it opens.
 
+## Working, units and examples
+
+Under the six answers there is a **working** list written the way an exam marks it: the angles add to 180°, then the sine law or cosine law with your numbers substituted and the result. In the ambiguous case each of the two triangles gets its own working.
+
+The answer is also given in one sentence at the top of the results, for example a = 10, b = 14.1, c = 15.03 (A = 40°, B = 65°, C = 75°). Open **More options: units** to type angles in radians instead of degrees and to add a length unit (mm, cm, m, km or ft). **More: area, perimeter and kind of triangle** gives the area ½ bc sin A, the perimeter, and whether the triangle is acute, right-angled or obtuse.
+
+Example buttons load a typical problem for each case: measuring across a river (two angles and a side), two ships leaving a port (two sides and the angle between them), a triangular plot (three sides), and the ambiguous case at Grade 11. A box lists the common mistakes: calculator in the wrong mode, using the sine law when the cosine law is needed, and matching sides with the wrong angles. Blank, zero or negative entries give a plain message.
+
 ## FAQs
 
 **Why can SSA give two triangles?** Swing side a like a gate around vertex C: if it is shorter than b but long enough to reach the base, it can touch the base in two places. That is why sin B = b sin A / a gives two angles, B and 180° − B.
@@ -55,3 +63,5 @@ Angle A = 40°, angle B = 65° and side a = 10 cm. Angle C = 180° − 40° − 
 **Why does my triangle not fit?** The two shorter sides must add up to more than the longest side, and two angles must add up to less than 180°.
 
 **Are my numbers saved?** No. Everything is worked out in your browser and nothing is stored or sent.
+
+**How do I know whether to use the sine law or the cosine law?** Use the cosine law when you know three sides, or two sides and the angle between them; use the sine law when you know two angles and a side, or two sides and an angle opposite one of them.

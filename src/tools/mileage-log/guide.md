@@ -30,6 +30,12 @@ Tax offices want a record of business driving: the date, where you went, why and
 
 It is useful for employees paid a per-km allowance, self-employed people who track their business share, and drivers working out their costs. See [[rideshare-earnings]] for net pay as a driver and [[fuel-cost]] for what a journey uses in fuel.
 
+## More options
+
+- **Round trip**: tick it and the distance you type is counted twice (there and back).
+- **Monthly totals**: business and personal distance for each month, from the trip dates.
+- **Actual-cost method**: type the year's real vehicle costs and the tool shows your business share of them next to the per-distance allowance, so you can see which is higher. Which method you may use depends on your tax rules; check the official source.
+
 ## How to use it
 
 1. Pick your country. The rates are filled in, and you can overwrite them.

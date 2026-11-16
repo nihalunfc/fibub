@@ -11,11 +11,12 @@ ads: false
 order: 1046
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [faraday-induction, circuit-simulator, capacitor-inductor-calculator]
 sources:
   - "Series LCR circuit: X_L = 2πfL, X_C = 1/(2πfC), Z = √(R² + (X_L − X_C)²), tan φ = (X_L − X_C)/R, P = V I cos φ, f₀ = 1/(2π√LC), Q = (1/R)√(L/C), half-power frequencies from the exact quadratic, rms = peak/√2: standard physics results."
   - "Checked against an independent NumPy script using complex impedance, and a brute-force frequency scan for the half-power points."
+  - "The solve card uses X_L = 2πfL, X_C = 1/2πfC, Z = √(R² + (X_L − X_C)²), tan φ = (X_L − X_C)/R, P = V I cos φ, f₀ = 1/(2π√LC), Q = (1/R)√(L/C) and C = 1/(4π²f₀²L): standard results. Checked by hand: 288 Ω and 34.8 mA for the opening example, f₀ = 159 Hz and Q = 20 for 200 mH, 5 µF, 10 Ω, and 101 pF to tune 250 µH to 1 MHz."
 flow:
   - { icon: sliders, label: "Set R, L, C" }
   - { icon: orbit, label: "Phasors" }
@@ -39,6 +40,12 @@ It follows the alternating current chapter of Class 12 Physics (AC through R, L 
 4. Tap **Go to resonance** to jump to f₀, and **Pause** or **Play** to stop the phasors turning.
 5. Read the line under the phasors: the current, and whether it leads or lags the supply voltage.
 
+## Solve your own numbers
+
+The first card works out the numbers from a question. For **impedance, current and phase**, type R, L, C and the frequency, plus the supply voltage if you want the current and power; leave L or C blank for an RL or RC circuit. You get X_L, X_C, Z, the phase angle (positive means the voltage leads, so the circuit is inductive), the power factor, the current, the average power and the voltage across each part. Other choices find the **resonant frequency and Q** (give R to get Q and the bandwidth), the **reactance of a coil or capacitor**, and the **capacitor or inductor needed to tune to a frequency**. Units can be H, mH or µH; F, µF, nF or pF; Hz, kHz or MHz. Five examples are one tap away.
+
+Common mistakes it points out: adding R, X_L and X_C directly instead of using Z = √(R² + X²), leaving mH or µF unconverted, and forgetting to square f when tuning.
+
 ## Worked example
 
 The page starts with R = 20 Ω, L = 100 mH, C = 10 µF on a 10 V rms supply at 50 Hz.
@@ -55,6 +62,8 @@ The page starts with R = 20 Ω, L = 100 mH, C = 10 µF on a 10 V rms supply at 5
 - A low resistance gives a high Q and a sharp peak. Tuning circuits in radios use this.
 
 ## FAQ
+
+**How do I find the impedance of a series LCR circuit?** Z = √(R² + (X_L − X_C)²), where X_L = 2πfL and X_C = 1/(2πfC); the card above shows each step.
 
 **Are the values rms or peak?** The voltages and currents shown are rms values, as AC meters read. The peak current is √2 times the rms current and is shown too.
 

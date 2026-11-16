@@ -52,3 +52,7 @@ Canada, car, lows below -10 C, snow for weeks, city and highway roads: the pick 
 **Can I mix types?** Fit four of the same type where you can. Mixed grip makes the car handle unpredictably.
 
 **Do I need winter tyres in the UK?** There is no law, but they help below about 7 C. Check the official source.
+
+## More options
+
+Open **Compare the car and SUV types side by side** for a small table that rates summer, all-season, all-weather, winter, all-terrain and mud-terrain tyres out of 3 for grip, snow, life and noise, with your best pick highlighted. These are general guide ratings, not test results. **Take this to the tyre shop** writes one plain sentence you can say or show: the type, the second choice, the snowflake mark if you get snow, a recent date code and a matching set.

@@ -1,0 +1,147 @@
+---
+// #L356 Iteration. Step x(n+1) = g(x(n)) one press at a time, with a table and a cobweb diagram, and compare with Newton-Raphson. Maths: src/lib/learn/curr-maths.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn it">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">GCSE</button><button type="button" data-level="11" aria-pressed="false">A-level</button></div>
+    <p class="ax-help">Some equations cannot be solved with a formula. Rearrange to x = g(x), guess a start value x₀, then feed each answer back in: x₁ = g(x₀), x₂ = g(x₁), and so on. If the numbers settle down, you have a root.</p>
+    <label>Equation and rearrangement <select class="it-pre" aria-label="Equation and rearrangement"></select></label>
+    <div class="it-custom" hidden>
+      <label>g(x) = <input class="it-g" type="text" value="(x^2 + 3)/5" aria-label="Your g of x" autocomplete="off" spellcheck="false" /></label>
+      <p class="ax-help">Use x, + − * / ^ and sqrt(), cbrt(), cos(), sin(), ln(), exp(). Write 5*x, not 5x.</p>
+      <p class="ax-help it-gerr" role="alert" hidden></p>
+    </div>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Start value x₀ <input class="it-x0" type="number" inputmode="decimal" step="any" value="0" aria-label="Start value x zero" /></label>
+    </div>
+    <div class="it-row"><button type="button" class="btn small it-step">Step</button><button type="button" class="btn secondary small it-run">Run 10</button><button type="button" class="btn secondary small it-reset">Reset</button></div>
+    <canvas class="lrn-cv it-cv" aria-label="Cobweb diagram: the line y equals x, the curve y equals g of x, and the steps of the iteration drawn between them" style="margin-top:4px"></canvas>
+    <p class="ax-big it-out" aria-live="polite"></p>
+    <p class="ax-help it-sub"></p>
+    <p class="ax-help it-adv" data-only="11" hidden></p>
+    <div class="it-scroll"><table class="it-tab" aria-label="Iteration table"><thead><tr><th>n</th><th>xₙ</th><th>g(xₙ) = xₙ₊₁</th><th data-only="11" hidden>Newton xₙ</th></tr></thead><tbody class="it-body"></tbody></table></div>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Pick x³ + 4x − 1 = 0 with x = (1 − x³)/4 and press Step. How many steps until the 6th decimal place stops changing?</li><li>Now pick the same equation with x = ∛(1 − 4x). Why does it fly away from the root?</li><li>For x² − 5x + 3 = 0, try both rearrangements. Each finds a different root. Which, and why?</li><li>Look at the diagram: a staircase means the slope of g is between 0 and 1, a spiral means it is between −1 and 0.</li></ul>
+  </div>
+  <div class="ax-card it-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .it .it-cv { width: 100%; }
+  .it select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .it input[type=text], .it input[type=number] { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .it .it-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .it .it-scroll { max-height: 260px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  .it .it-tab { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .it .it-tab th, .it .it-tab td { padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .it .it-tab th { position: sticky; top: 0; background: var(--bg); }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { PRESETS, readG, iterate, newton, rootOf, slopeAt, status, stepsTo, type GFn } from '../../lib/learn/curr-maths';
+  const root = document.querySelector('.it') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.it-cv'), out = $('.it-out'), sel = $<HTMLSelectElement>('.it-pre'), x0in = $<HTMLInputElement>('.it-x0'), body = $('.it-body');
+  const STARTS: Record<string, number> = { 'cubic-a': 0, 'cubic-b': 0, 'quad-a': 2, 'quad-b': 1, 'cubic-c': 1 };
+  PRESETS.forEach((p, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = p.label; sel.append(o); });
+  { const o = document.createElement('option'); o.value = 'custom'; o.textContent = 'Type my own g(x)'; sel.append(o); }
+  let g: GFn = PRESETS[0].gf, f: GFn = PRESETS[0].f, eq = PRESETS[0].eq, level = '10';
+  let xs: number[] = [0];
+  const f6 = (v: number) => (!Number.isFinite(v) ? 'undefined' : Math.abs(v) >= 1e7 ? v.toExponential(3) : v.toFixed(6).replace('-', '−'));
+
+  const setup = () => {
+    if (sel.value === 'custom') {
+      $('.it-custom').hidden = false;
+      const res = readG($<HTMLInputElement>('.it-g').value), e = $('.it-gerr');
+      if ('error' in res) { e.hidden = false; e.textContent = res.error; return false; }
+      e.hidden = true; g = res.g; f = (x) => g(x) - x; eq = 'x = g(x)';
+    } else { $('.it-custom').hidden = true; const p = PRESETS[+sel.value]; g = p.gf; f = p.f; eq = p.eq; }
+    return true;
+  };
+  const reset = () => { const v = parseFloat(x0in.value); xs = [Number.isFinite(v) ? v : 0]; show(); };
+  const step = (k: number) => { for (let i = 0; i < k; i++) xs.push(Number.isFinite(xs[xs.length - 1]) ? g(xs[xs.length - 1]) : NaN); show(); };
+
+  const draw = (rt: number) => {
+    const W0 = Math.max(220, cv.clientWidth || 340), h = Math.min(360, Math.round(W0 * 0.9));
+    const { ctx, W, H } = fitCanvas(cv, h), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '11px system-ui,sans-serif';
+    const pts = [xs[0]]; if (Number.isFinite(rt)) pts.push(rt);
+    let lo = Math.min(...pts), hi = Math.max(...pts); const base = Math.max(hi - lo, 1);
+    xs.forEach((v) => { if (Number.isFinite(v) && v >= lo - 2 * base && v <= hi + 2 * base) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    const span = Math.max(hi - lo, 1), c = (hi + lo) / 2; lo = c - span * 0.62; hi = c + span * 0.62;
+    const m = 28, side = Math.min(W - 2 * m, H - 2 * m), ox = (W - side) / 2, oy = (H - side) / 2 + side;
+    const X = (v: number) => ox + ((v - lo) / (hi - lo)) * side, Y = (v: number) => oy - ((v - lo) / (hi - lo)) * side;
+    ctx.save(); ctx.beginPath(); ctx.rect(ox, oy - side, side, side); ctx.clip();
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    const tk = (() => { const raw = (hi - lo) / 5, p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 5, 10].map((k) => k * p).find((k) => k >= raw) ?? raw; })();
+    for (let v = Math.ceil(lo / tk) * tk; v <= hi; v += tk) { ctx.beginPath(); ctx.moveTo(X(v), oy); ctx.lineTo(X(v), oy - side); ctx.moveTo(ox, Y(v)); ctx.lineTo(ox + side, Y(v)); ctx.stroke(); }
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(lo), Y(lo)); ctx.lineTo(X(hi), Y(hi)); ctx.stroke();
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); let pen = false;
+    for (let k = 0; k <= 240; k++) { const x = lo + ((hi - lo) * k) / 240, y = g(x); if (!Number.isFinite(y) || Math.abs(y) > 1e6) { pen = false; continue; } pen ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); pen = true; }
+    ctx.stroke();
+    ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(xs[0]), Y(lo));
+    for (let i = 0; i + 1 < xs.length; i++) { const a = xs[i], b = xs[i + 1]; if (!Number.isFinite(a) || !Number.isFinite(b)) break; ctx.lineTo(X(a), Y(b)); ctx.lineTo(X(b), Y(b)); }
+    ctx.stroke(); ctx.restore();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.strokeRect(ox, oy - side, side, side);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    for (let v = Math.ceil(lo / tk) * tk; v <= hi; v += tk) { ctx.fillText(String(+v.toPrecision(4)), X(v), oy + 13); ctx.textAlign = 'right'; ctx.fillText(String(+v.toPrecision(4)), ox - 3, Y(v) + 4); ctx.textAlign = 'center'; }
+    ctx.textAlign = 'left'; ctx.fillStyle = pal.muted; ctx.fillText('y = x', ox + 4, oy - side + 12); ctx.fillStyle = pal.accent; ctx.fillText('y = g(x)', ox + 50, oy - side + 12);
+    if (Number.isFinite(rt) && rt > lo && rt < hi) { ctx.fillStyle = pal.good; ctx.beginPath(); ctx.arc(X(rt), Y(rt), 4.5, 0, 7); ctx.fill(); }
+    const last = xs[xs.length - 1]; if (Number.isFinite(last) && last > lo && last < hi && xs.length > 1) { ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(last), Y(last), 4, 0, 7); ctx.fill(); }
+  };
+
+  const show = () => {
+    const st = xs.length < 3 ? 'start' : status(xs), rt = rootOf(f, xs[0]), steps = xs.length - 1, last = xs[steps];
+    const msg: Record<string, string> = { start: 'Press Step to begin.', converging: 'Converging: the values are settling down.', diverging: 'Diverging: the values are running away from the root.', undefined: 'Stopped: g(x) is not defined for this value (for example a square root of a negative number).', wandering: 'Not settled yet. Keep stepping.' };
+    out.textContent = `x${steps === 0 ? '₀' : String(steps).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d])} = ${f6(last)}. ${msg[st]}`;
+    const sl = Number.isFinite(rt) ? Math.abs(slopeAt(g, rt)) : NaN;
+    const nw = newton(f, xs[0], 40), it = iterate(g, xs[0], 200);
+    const nSteps = Number.isFinite(rt) ? stepsTo(nw, rt) : -1, iSteps = Number.isFinite(rt) ? stepsTo(it, rt) : -1;
+    Object.assign(out.dataset, { n: String(steps), x: Number.isFinite(last) ? last.toFixed(6) : 'NaN', status: st, root: Number.isFinite(rt) ? rt.toFixed(6) : 'NaN', slope: Number.isFinite(sl) ? sl.toFixed(4) : 'NaN', newtonSteps: String(nSteps), iterSteps: String(iSteps) });
+    $('.it-sub').textContent = `Solving ${eq}. ${Number.isFinite(rt) ? `A root near your start is ${f6(rt)}.` : 'No root found near your start value.'}`;
+    $('.it-adv').textContent = Number.isFinite(sl)
+      ? `Level A: near the root the error shrinks by about |g′(root)| each step. Here |g′(${f6(rt)})| = ${sl.toFixed(4)}, which is ${sl < 1 ? 'less than 1, so this rearrangement converges to that root' + (sl < 0.1 ? ' quickly' : '') : 'at least 1, so it does not converge to that root'}. Newton–Raphson, xₙ₊₁ = xₙ − f(xₙ) ÷ f′(xₙ), ${nSteps >= 0 ? `reaches 6 d.p. in ${nSteps} step${nSteps === 1 ? '' : 's'}` : 'does not settle from this start'}; the iteration x = g(x) ${iSteps >= 0 ? `needs ${iSteps}` : 'never gets there'}.`
+      : 'Level A: with no root near the start, there is no slope to check. Try another start value.';
+    body.replaceChildren();
+    const from = Math.max(0, xs.length - 30);
+    for (let i = from; i < xs.length; i++) {
+      const tr = document.createElement('tr');
+      [String(i), f6(xs[i]), f6(i + 1 < xs.length ? xs[i + 1] : g(xs[i])), f6(nw[i] ?? NaN)].forEach((t, k) => { const td = document.createElement('td'); td.textContent = t; if (k === 3) { td.setAttribute('data-only', '11'); td.hidden = level !== '11'; } tr.append(td); });
+      body.append(tr);
+    }
+    (body.parentElement!.parentElement as HTMLElement).scrollTop = 1e6;
+    draw(rt);
+  };
+
+  sel.addEventListener('input', () => { if (sel.value !== 'custom') x0in.value = String(STARTS[PRESETS[+sel.value].id] ?? 1); if (setup()) reset(); });
+  $('.it-g').addEventListener('input', () => { if (setup()) reset(); });
+  x0in.addEventListener('input', reset);
+  $('.it-step').addEventListener('click', () => step(1));
+  $('.it-run').addEventListener('click', () => step(10));
+  $('.it-reset').addEventListener('click', reset);
+  addEventListener('resize', () => draw(rootOf(f, xs[0])));
+  wireLevel(root, (l) => { level = l; if (xs.length) show(); });
+  setup(); reset();
+
+  mountQuiz($('.it-quiz'), () => {
+    const a = pick(2, 4), p = PRESETS[2].gf, x1 = p(a), x2 = p(x1);
+    const c = one([0, 0.25, 0.5]), q = PRESETS[0].gf, y2 = q(q(c));
+    const s0 = one([0.5, 1, 1.5, 2, 6]), run = iterate(PRESETS[3].gf, s0, 60), fin = run[60];
+    const choiceAns = Math.abs(fin) > 1e6 || !Number.isFinite(fin) ? 2 : fin < 2 ? 0 : 1;
+    const k = one([2, 6, 12, 20]), rootK = (1 + Math.sqrt(1 + 4 * k)) / 2;
+    return [
+      { q: `For x² − 5x + 3 = 0 use x₍ₙ₊₁₎ = √(5xₙ − 3) with x₀ = ${a}. Find x₂ to 4 decimal places.`, ans: x2, tol: 0.0005, work: `x₁ = √(5 × ${a} − 3) = √${5 * a - 3} = ${r(x1, 6)}. x₂ = √(5 × ${r(x1, 6)} − 3) = ${r(x2, 5)}.` },
+      { q: `For x³ + 4x − 1 = 0 use x₍ₙ₊₁₎ = (1 − xₙ³) ÷ 4 with x₀ = ${c}. Find x₂ to 4 decimal places.`, ans: y2, tol: 0.001, work: `x₁ = (1 − ${c}³) ÷ 4 = ${r(q(c), 6)}. x₂ = (1 − ${r(q(c), 6)}³) ÷ 4 = ${r(y2, 5)}.` },
+      { q: `Use x₍ₙ₊₁₎ = (xₙ² + 3) ÷ 5 (a rearrangement of x² − 5x + 3 = 0) starting at x₀ = ${s0}. What happens?`, choices: ['Settles near 0.70', 'Settles near 4.30', 'Gets bigger and bigger'], ans: choiceAns, work: `The roots are 0.697 and 4.303. g′(x) = 2x ÷ 5 is 0.28 at the first root (less than 1, so it is attracting) and 1.72 at the second (more than 1, so it repels). ${s0 > 4.303 ? `Starting at ${s0}, above 4.303, it runs away.` : `Starting at ${s0}, below 4.303, it settles on 0.697.`}` },
+      { q: `x₍ₙ₊₁₎ = √(xₙ + ${k}) settles on one number. What is it? (Solve x = √(x + ${k}).)`, ans: rootK, tol: 0.001, work: `At the fixed point x = √(x + ${k}), so x² = x + ${k}, x² − x − ${k} = 0. That gives x = ${rootK}.` },
+    ];
+  });
+</script>

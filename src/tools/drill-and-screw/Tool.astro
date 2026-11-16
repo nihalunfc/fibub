@@ -1,0 +1,206 @@
+---
+// #L377 Drill and screw wood. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts; screw picker maths in src/lib/home/carpentry.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+import { SCREW_TABLE } from '../../lib/home/carpentry';
+const rows = SCREW_TABLE.map((r, i) => ({ ...r, from: i ? SCREW_TABLE[i - 1].upTo + 1 : 0 }));
+---
+<div class="tool-ui ax sk dsw">
+  <CourseNav id="drill-and-screw" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Wear safety glasses. Drills throw out chips and a snapped bit can fly.</li>
+      <li>Clamp small pieces. If a bit catches, the drill can spin the wood round and hit your hand.</li>
+      <li>Take out the battery or unplug the drill before you change a bit. Tie back long hair and loose sleeves.</li>
+      <li>Never drill into a wall here without checking for cables and pipes first: see the Wall fixings course.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Drill driver</li><li>Wood drill bits</li><li>Countersink bit</li><li>Screwdriver bits (PZ2, PH2, Torx)</li><li>Wood screws</li><li>Clamps</li><li>Pencil and square</li><li>Safety glasses</li><li>Masking tape</li></ul>
+  </div>
+  <div class="ax-card dsw-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A screw held beside the two pieces: about two and a half times as long as the top piece is thick" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 30h90v20H20zM20 52h90v40H20z" /><path class="hl" d="M140 30h16l-8 8zM148 38v62" /><path d="M144 56l8-3M144 64l8-3M144 72l8-3M144 80l8-3M144 88l8-3" stroke-width="1.5" />
+          <path d="M170 30v20M166 30h8M166 50h8" stroke-width="1.5" /><text x="178" y="44" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none">1</text><text x="160" y="104" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none">2.5×</text>
+        </svg>
+        <div class="sk-txt"><h3>Pick the screw</h3><p>A good length is about 2.5 times the thickness of the piece you are fixing, as long as the tip stays inside the base. Use the screw picker below.</p><p class="sk-tip">At least half the screw should end up in the base.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Pencil crosses marking screw positions, kept away from the end of the board" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 30h180v50H10z" /><path class="hl" d="M44 48l8 8M52 48l-8 8M140 48l8 8M148 48l-8 8" /><path d="M10 92h38M10 88v8M48 88v8" stroke-width="1.5" />
+          <text x="30" y="106" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">25 mm+</text>
+        </svg>
+        <div class="sk-txt"><h3>Mark and clamp</h3><p>Mark each screw with a small cross, at least 25 mm (1 in) from an end and 10 mm from an edge. Clamp the two pieces together exactly where they will go.</p><p class="sk-tip">Closer to the end splits the wood, pilot hole or not.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A drill bit making a wide clearance hole through the top piece only" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 50h160v20H20zM20 72h160v30H20z" /><path class="hl" d="M94 50v20M106 50v20" /><path d="M100 4v40M95 20l10-6M95 30l10-6M95 40l10-6" /><path d="M96 4h8" />
+        </svg>
+        <div class="sk-txt"><h3>Drill the clearance hole</h3><p>Through the top piece only, drill a hole as wide as the screw's smooth shank. The screw slips through it, so the head can pull the top piece down tight.</p><p class="sk-tip">No clearance hole? The thread grips both pieces and can hold a gap open.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A thinner bit making the pilot hole in the base, with tape on the bit marking the depth" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 50h160v20H20zM20 72h160v30H20z" /><path d="M94 50v20M106 50v20" /><path class="hl" d="M97 72v24M103 72v24" /><path d="M100 4v40" /><path class="hl" d="M95 24h10v6H95z" fill="currentColor" />
+        </svg>
+        <div class="sk-txt"><h3>Drill the pilot hole</h3><p>Change to a thinner bit, about as wide as the screw's core. Drill into the base as deep as the screw will go. A flag of masking tape on the bit marks the depth.</p><p class="sk-tip">Hardwood needs a slightly bigger pilot than softwood.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A countersink bit cutting a cone shape at the top of the hole" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 60h160v40H20z" /><path class="hl" d="M88 60l12 12 12-12" /><path d="M94 72v28M106 72v28" /><path d="M100 10v26M88 36h24l-12 14z" />
+        </svg>
+        <div class="sk-txt"><h3>Countersink</h3><p>For flat (countersunk) heads, cut a shallow cone at the top of the clearance hole so the head sits flush. Go a little at a time and try a screw in it.</p><p class="sk-tip">Many screws have nibs under the head that countersink softwood on their own.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Three screw heads, Pozidriv, Phillips and Torx, and the drill's clutch ring with numbers" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="30" cy="40" r="18" /><path d="M30 28v24M18 40h24M23 33l3 3M37 33l-3 3M23 47l3-3M37 47l-3-3" stroke-width="1.5" /><circle cx="80" cy="40" r="18" /><path d="M80 28v24M68 40h24" /><circle cx="130" cy="40" r="18" /><path d="M130 30l3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1z" stroke-width="1.5" />
+          <g font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none"><text x="30" y="72">PZ</text><text x="80" y="72">PH</text><text x="130" y="72">Torx</text></g>
+          <path class="hl" d="M162 30h28v50h-28z" /><path class="hl" d="M168 42h16M168 54h16M168 66h16" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Match the bit, set the clutch</h3><p>Use the bit that fits the head exactly: PZ2 for most Pozidriv screws, PH2 for Phillips, or the right Torx or square size. Set the clutch low and go up a step if the screw stops short.</p><p class="sk-tip">A worn or wrong bit slips and chews the head (cam-out).</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A drill held straight in line with the screw, pressing down firmly" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 76h160v26H20z" /><path class="hl" d="M100 60v36" /><path d="M90 6h20v40H90zM96 46h8v14h-8zM110 22h30v14h-30z" /><path class="hl" d="M80 30v30M76 54l4 6 4-6" />
+        </svg>
+        <div class="sk-txt"><h3>Drive it straight</h3><p>Hold the drill in line with the screw and press firmly so the bit stays in the head. Start slow, then steady. Stop when the head is flush.</p><p class="sk-tip">Look from the side as well as the front to check it is straight.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Two pieces pulled tight together with the screw head flush and no gap" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 40h160v24H20zM20 64h160v36H20z" /><path class="hl" d="M90 40l10 8 10-8M100 48v42" /><path d="M150 18l10 10 20-24" />
+        </svg>
+        <div class="sk-txt"><h3>Check the joint</h3><p>The pieces should be pulled tight with no gap and the head flush or just below the surface. Do not keep turning once it is home: that strips the hole.</p><p class="sk-tip">Stripped? Use a slightly longer or thicker screw, or move along a little.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card dsw-pick">
+    <h2>Screw picker</h2>
+    <p class="sk-small">Type the two thicknesses. The screw goes through the top piece and into the base.</p>
+    <div class="ax-grid">
+      <label>Top piece, the one you fix (mm)<input data-k="top" inputmode="decimal" value="18" /></label>
+      <label>Base, the one it goes into (mm)<input data-k="base" inputmode="decimal" value="45" /></label>
+      <label>Wood<select data-k="wood"><option value="soft">Softwood (pine, spruce, fir)</option><option value="hard">Hardwood (oak, beech, ash)</option></select></label>
+    </div>
+    <svg class="dsw-fig" viewBox="0 0 300 150" role="img" aria-label="Cut-away of the two pieces with the suggested screw drawn to scale" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+    <p class="ax-big dsw-out" aria-live="polite"></p>
+    <ul class="dsw-lines"></ul>
+    <details class="dsw-table">
+      <summary>Drill sizes table</summary>
+      <table>
+        <thead><tr><th>Screw length</th><th>Diameter</th><th>Gauge</th><th class="r">Clearance</th><th class="r">Pilot, softwood</th><th class="r">Pilot, hardwood</th></tr></thead>
+        <tbody>{rows.map((r) => <tr><td>{r.upTo === Infinity ? `over ${r.from - 1} mm` : `${r.from || 'up to '}${r.from ? ' to ' : ''}${r.upTo} mm`}</td><td>{r.d.toFixed(1)} mm</td><td>{r.gauge}</td><td class="r">{r.clear.toFixed(1)} mm</td><td class="r">{r.soft.toFixed(1)} mm</td><td class="r">{r.hard.toFixed(1)} mm</td></tr>)}</tbody>
+      </table>
+      <p class="sk-small">General woodworking guidance rounded to common drill sizes. Screw makers' charts differ a little: if the box gives sizes, use those.</p>
+    </details>
+  </div>
+  <div class="ax-card sk-label dsw-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="Cut-away of two pieces of wood: on the left the drilled holes, on the right a screw driven in, with a screwdriver bit above" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="toppiece" data-name="Top piece" data-note="the piece you are fixing. The screw passes through it."><path d="M10 70h300v34H10z" /></g>
+      <g data-part="base" data-name="Base" data-note="the piece the screw grips. At least half the screw length should be in here."><path d="M10 108h300v72H10z" /></g>
+      <g data-part="countersink" data-name="Countersink" data-note="a cone cut at the top so a flat head sits flush."><path d="M72 70l14 12 14-12" /><path d="M70 66h32v6H70z" stroke="none" /></g>
+      <g data-part="clearance" data-name="Clearance hole" data-note="as wide as the smooth shank, in the top piece only, so the head pulls the joint tight."><path d="M80 84v20M92 84v20" /><path d="M78 84h16v20H78z" stroke="none" /></g>
+      <g data-part="pilot" data-name="Pilot hole" data-note="about as wide as the screw's core, in the base. Stops the wood splitting and guides the screw."><path d="M83 110v52M89 110v52" stroke-width="2.5" /><path d="M80 110h12v52H80z" stroke="none" /></g>
+      <g data-part="head" data-name="Countersunk head" data-note="flat on top, cone underneath. It sits in the countersink, flush with the surface."><path d="M210 70h28l-14 12z" /></g>
+      <g data-part="shank" data-name="Shank" data-note="the smooth part under the head. It turns freely in the clearance hole."><path d="M220 84v20M228 84v20" /><path d="M218 84h12v20h-12z" stroke="none" /></g>
+      <g data-part="thread" data-name="Thread" data-note="the spiral that bites into the base and pulls the head down."><path d="M224 108v54" stroke-width="2" /><path d="M216 112l16 4M216 122l16 4M216 132l16 4M216 142l16 4M216 152l16 4M220 162l4 8 4-8" stroke-width="2.5" /></g>
+      <g data-part="bit" data-name="Screwdriver bit" data-note="must match the head: PZ2, PH2 or the right Torx. The wrong one slips."><path d="M218 10h12v34h-12zM220 44l4 14 4-14" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order dsw-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The screws hold up something heavy over people (a high cabinet, a handrail, a child's bed or a swing): ask a carpenter to check the fixing.</li>
+      <li>You are fixing into a wall and are not sure what is behind it: check for cables and pipes, and call an electrician or plumber if you hit one.</li>
+      <li>A screw has snapped off flush with valuable or antique wood: a joiner can extract it cleanly.</li>
+      <li>The job is structural (decks, stairs, floors, roofs): use the screws and spacing the design or building rules say.</li>
+    </ul>
+  </div>
+  <div class="ax-card dsw-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .dsw-fig { width: 100%; max-width: 420px; height: auto; display: block; margin: 12px auto 4px; color: var(--ink); }
+  .dsw-fig .hl { color: var(--accent); }
+  .dsw-lines { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 15px; }
+  .dsw-warn { color: var(--bad); }
+  .dsw-table { margin-top: 12px; overflow-x: auto; }
+  .dsw-table summary { cursor: pointer; font-weight: 600; }
+  .dsw-table table { margin-top: 8px; min-width: 460px; }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  import { pickScrew } from '../../lib/home/carpentry';
+  const root = document.querySelector('.dsw') as HTMLElement;
+  mountSteps(root.querySelector('.dsw-steps') as HTMLElement, 'drill-and-screw');
+  mountLabels(root.querySelector('.dsw-label') as HTMLElement);
+  mountOrder(root.querySelector('.dsw-order') as HTMLElement, ['Pick the screw length', 'Mark, then clamp the pieces', 'Drill the clearance hole', 'Drill the pilot hole', 'Countersink the top', 'Fit the right bit, set clutch', 'Drive the screw in straight']);
+
+  // Screw picker
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const fig = root.querySelector('.dsw-fig') as SVGSVGElement, out = root.querySelector('.dsw-out') as HTMLElement, lines = root.querySelector('.dsw-lines') as HTMLElement;
+  const f = (v: number, d = 1) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const QUARTERS = ['', '¼', '½', '¾'];
+  const inch = (mm: number) => { const q = Math.round(mm / 25.4 * 4), w = Math.floor(q / 4), r = q % 4; return `${w || ''}${QUARTERS[r]}${!w && !r ? '0' : ''} in`; };
+  const li = (html: string, cls = '') => `<li${cls ? ` class="${cls}"` : ''}>${html}</li>`;
+  function draw(top: number, base: number, len: number, d: number) {
+    const total = top + base, s = Math.min(110 / total, 4), y0 = 20, x0 = 30, W = 240;
+    const yT = y0 + top * s, yB = yT + base * s, cx = 150, hw = Math.max(3, (d * s) / 2), headW = Math.max(7, hw * 2);
+    let g = `<path d="M${x0} ${y0}h${W}V${yT}H${x0}z" /><path d="M${x0} ${yT + 2}h${W}V${yB}H${x0}z" />`;
+    if (len > 0) {
+      const tip = y0 + len * s;
+      g += `<g class="hl"><path d="M${cx - headW} ${y0}h${headW * 2}l${-headW + hw} ${headW - hw}h${-hw * 2}z" /><path d="M${cx - hw} ${y0 + headW - hw}V${tip - 6}l${hw} 6 ${hw}-6V${y0 + headW - hw}" />`;
+      for (let y = yT + 6; y < tip - 8; y += 7) g += `<path d="M${cx - hw - 2} ${y}l${hw * 2 + 4} 3" stroke-width="1.5" />`;
+      g += `</g>`;
+    }
+    g += `<g font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none"><text x="${x0 + 6}" y="${(y0 + yT) / 2 + 4}">top ${f(top)} mm</text><text x="${x0 + 6}" y="${(yT + yB) / 2 + 4}">base ${f(base)} mm</text></g>`;
+    fig.innerHTML = g;
+  }
+  function calc() {
+    const top = parseFloat(k('top').value), base = parseFloat(k('base').value), wood = k('wood').value as 'soft' | 'hard';
+    const r = pickScrew(top, base, wood);
+    if (!r) { out.textContent = ''; lines.innerHTML = li('Type both thicknesses in mm.'); fig.innerHTML = ''; return; }
+    draw(top, base, r.len, r.d);
+    if (!r.len || r.len <= top) {
+      out.textContent = 'No screw fits well';
+      lines.innerHTML = li(`The base is too thin to hold a screw through a ${f(top)} mm piece. Screw from the other side (through the base into the thicker piece), glue it, or use a thicker base.`, 'dsw-warn');
+      return;
+    }
+    out.textContent = `${r.len} × ${f(r.d)} mm screw (${r.gauge}, about ${inch(r.len)})`;
+    lines.innerHTML = [
+      li(`Aim: 2.5 × ${f(top)} mm = ${f(r.aim)} mm. Longest that keeps the tip 5 mm inside the base: ${f(top)} + ${f(base)} − 5 = ${f(r.max)} mm. Nearest stock length: <strong>${r.len} mm</strong>.`),
+      li(`Clearance hole in the top piece: <strong>${f(r.clear)} mm</strong>.`),
+      li(`Pilot hole in the base (${wood === 'hard' ? 'hardwood' : 'softwood'}): <strong>${f(r.pilot)} mm</strong>, about ${f(r.bite)} mm deep.`),
+      li(`Into the base: ${f(r.bite)} mm, ${Math.round(r.biteShare * 100)}% of the screw.` + (r.weak ? ' That is under half, so the grip is weak: use more screws, add glue, or screw from the other side.' : ' Over half, so it grips well.'), r.weak ? 'dsw-warn' : ''),
+      li('Countersink for a flat head. Keep screws 25 mm (1 in) from ends.'),
+    ].join('');
+  }
+  ['top', 'base', 'wood'].forEach((n) => k(n).addEventListener('input', calc));
+  calc();
+
+  const bank = [
+    () => choice('What does a pilot hole do?', 'Makes room so the wood does not split, and guides the screw', ['Makes the screw hold less', 'Lets the head sit flush'], 'A pilot is about as wide as the screw\'s core. Without it, the screw wedges the fibres apart.'),
+    () => choice('Where does the clearance hole go?', 'Through the top piece only', ['Into the base only', 'Through both pieces'], 'The screw slides freely through the top piece, so the head can clamp it down onto the base.'),
+    () => choice('Rule of thumb for screw length?', 'About 2.5 times the thickness of the piece you fix', ['Same as the top piece', 'As long as you can find'], 'That puts more than half the screw into the base, where the grip is, without poking out.'),
+    () => choice('Hardwood or softwood: which needs a bigger pilot hole?', 'Hardwood', ['Softwood', 'They are the same'], 'Hard fibres do not squash out of the way, so the screw needs more room or it snaps or splits the wood.'),
+    () => choice('What is a countersink for?', 'Letting a flat head sit flush with the surface', ['Making the screw longer', 'Stopping rust'], 'A countersink is a cone the shape of the underside of the head.'),
+    () => choice('You use a PH bit in a PZ screw. What happens?', 'It slips and chews the head', ['It works better', 'Nothing, they are the same'], 'Pozidriv heads have extra lines and a different shape. Match the bit to the head.'),
+    () => choice('What does the clutch on a drill driver do?', 'Slips at a set twist so you do not overdrive the screw', ['Changes the speed', 'Locks the bit in'], 'Start low and go up a step at a time until the head is just flush.'),
+    () => choice('How close to the end of a board can you safely screw?', 'Keep about 25 mm (1 in) away, with a pilot hole', ['Right at the very end', 'Anywhere if you push hard'], 'End grain splits easily. Distance and a pilot hole both help.'),
+    () => choice('The two pieces have a gap the screw will not close. Why?', 'There is no clearance hole, so the thread grips both', ['The screw is too short', 'The drill is too slow'], 'With the thread biting the top piece too, the screw cannot pull it down.'),
+  ];
+  mountQuiz(root.querySelector('.dsw-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

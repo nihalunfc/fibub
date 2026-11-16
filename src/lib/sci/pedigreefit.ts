@@ -106,3 +106,17 @@ export const PRESETS: { id: string; label: string; affected: string[]; sex?: Rec
 export function family(affected: string[], sex: Record<string, Sex> = {}): Person[] {
   return LAYOUT.map((p) => ({ id: p.id, sex: sex[p.id] ?? p.sex, father: p.father, mother: p.mother, affected: affected.includes(p.id) }));
 }
+
+/** Chance that the next son and the next daughter are affected, from the parents' copies of the trait allele
+ *  (autosomal: 0, 1 or 2 for each parent; X-linked: mother 0, 1 or 2, father 0 or 1; Y-linked: father 0 or 1). */
+export function childChance(mode: Mode, motherK: number, fatherK: number): { son: number; daughter: number } {
+  const split = (k: number) => (k === 0 ? [[0, 1]] : k === 1 ? [[0, 0.5], [1, 0.5]] : [[1, 1]]) as [number, number][];
+  const P = (xs: [number, number][], f: (k: number) => boolean) => xs.reduce((s, [k, p]) => s + (f(k) ? p : 0), 0);
+  if (mode === 'Y') return { son: fatherK === 1 ? 1 : 0, daughter: 0 };
+  if (mode === 'AD' || mode === 'AR') {
+    const kids: [number, number][] = []; for (const [a, pa] of split(motherK)) for (const [b, pb] of split(fatherK)) kids.push([a + b, pa * pb]);
+    const p = P(kids, (k) => affectedBy(mode, 'M', k)); return { son: p, daughter: p };
+  }
+  // X-linked: a son gets his mother's X only; a daughter gets her father's X plus one of her mother's
+  return { son: P(split(motherK), (k) => affectedBy(mode, 'M', k)), daughter: P(split(motherK), (k) => affectedBy(mode, 'F', k + fatherK)) };
+}

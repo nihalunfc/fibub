@@ -42,3 +42,41 @@ export function solveTriangle(kind: Case, x: number, y: number, z: number): { tr
   if (!out.length) return { tris: [], law, error: 'No triangle: the angles would add up to more than 180°.' };
   return { tris: out, law };
 }
+
+// ---- Added 2026-11-16: the working as an exam answer, plus area and perimeter ----
+const n4 = (v: number) => String(+v.toPrecision(4)).replace('-', '−');
+const sinD = (d: number) => Math.sin(d * D), cosD = (d: number) => Math.cos(d * D);
+
+/** The solution written step by step. `x, y, z` are the three typed numbers (angles in degrees); `t` is the chosen triangle, `which` 0 or 1 for the ambiguous case. */
+export function working(kind: Case, x: number, y: number, z: number, t: Tri, which = 0): string[] {
+  const L: string[] = [];
+  if (kind === 'AAS') {
+    L.push(`Angles add to 180°: C = 180° − ${n4(t.A)}° − ${n4(t.B)}° = ${n4(t.C)}°.`);
+    L.push(`Sine law: a / sin A = b / sin B, so b = a sin B / sin A = ${n4(t.a)} × sin ${n4(t.B)}° / sin ${n4(t.A)}° = ${n4(t.a)} × ${n4(sinD(t.B))} / ${n4(sinD(t.A))} = ${n4(t.b)}.`);
+    L.push(`Again: c = a sin C / sin A = ${n4(t.a)} × sin ${n4(t.C)}° / sin ${n4(t.A)}° = ${n4(t.a)} × ${n4(sinD(t.C))} / ${n4(sinD(t.A))} = ${n4(t.c)}.`);
+  } else if (kind === 'SAS') {
+    const sq = t.b * t.b + t.c * t.c - 2 * t.b * t.c * cosD(t.A);
+    L.push(`Cosine law: a² = b² + c² − 2bc cos A = ${n4(t.b)}² + ${n4(t.c)}² − 2(${n4(t.b)})(${n4(t.c)}) cos ${n4(t.A)}° = ${n4(sq)}, so a = ${n4(t.a)}.`);
+    L.push(`Cosine law again: cos B = (a² + c² − b²) / 2ac = (${n4(t.a * t.a)} + ${n4(t.c * t.c)} − ${n4(t.b * t.b)}) / (2 × ${n4(t.a)} × ${n4(t.c)}) = ${n4(cosD(t.B))}, so B = ${n4(t.B)}°.`);
+    L.push(`Angles add to 180°: C = 180° − ${n4(t.A)}° − ${n4(t.B)}° = ${n4(t.C)}°.`);
+  } else if (kind === 'SSS') {
+    L.push(`Cosine law: cos A = (b² + c² − a²) / 2bc = (${n4(t.b * t.b)} + ${n4(t.c * t.c)} − ${n4(t.a * t.a)}) / (2 × ${n4(t.b)} × ${n4(t.c)}) = ${n4(cosD(t.A))}, so A = ${n4(t.A)}°.`);
+    L.push(`cos B = (a² + c² − b²) / 2ac = (${n4(t.a * t.a)} + ${n4(t.c * t.c)} − ${n4(t.b * t.b)}) / (2 × ${n4(t.a)} × ${n4(t.c)}) = ${n4(cosD(t.B))}, so B = ${n4(t.B)}°.`);
+    L.push(`Angles add to 180°: C = 180° − ${n4(t.A)}° − ${n4(t.B)}° = ${n4(t.C)}°.`);
+  } else {
+    const s = (t.b * sinD(t.A)) / t.a;
+    L.push(`Sine law: sin B = b sin A / a = ${n4(t.b)} × sin ${n4(t.A)}° / ${n4(t.a)} = ${n4(s)}.`);
+    L.push(`B = sin⁻¹(${n4(s)}) = ${n4(Math.asin(Math.min(1, s)) / D)}°${which === 1 ? `, or the other angle with the same sine: 180° − ${n4(Math.asin(Math.min(1, s)) / D)}° = ${n4(t.B)}° (second triangle).` : '. (When a is shorter than b, 180° minus this angle also has the same sine: see the second triangle.)'}`);
+    L.push(`C = 180° − ${n4(t.A)}° − ${n4(t.B)}° = ${n4(t.C)}°, and c = a sin C / sin A = ${n4(t.a)} × ${n4(sinD(t.C))} / ${n4(sinD(t.A))} = ${n4(t.c)}.`);
+  }
+  return L;
+}
+
+/** Area ½ bc sin A, perimeter, and the kind of triangle. */
+export function describe(t: Tri) {
+  const area = 0.5 * t.b * t.c * sinD(t.A), perimeter = t.a + t.b + t.c, big = Math.max(t.A, t.B, t.C);
+  const type = Math.abs(big - 90) < 1e-6 ? 'right-angled' : big > 90 ? 'obtuse' : 'acute';
+  const eq = (u: number, v: number) => Math.abs(u - v) < 1e-6 * Math.max(1, u, v);
+  const sides = eq(t.a, t.b) && eq(t.b, t.c) ? 'equilateral' : eq(t.a, t.b) || eq(t.b, t.c) || eq(t.a, t.c) ? 'isosceles' : 'scalene';
+  return { area, perimeter, type, sides };
+}

@@ -16,4 +16,10 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.hcn .hcn-svg svg')).length === 1, 'health-cover-needed: chart drawn');
   await set('stay', '0');
   check(await page.isVisible('.hcn .hcn-err'), 'health-cover-needed: no stay cost shows a message');
+  await set('stay', '500000'); await page.waitForTimeout(80);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.hcn [data-k="cap"]', '5000'); await page.fill('.hcn [data-k="room"]', '10000'); await page.waitForTimeout(100);
+  check((await page.textContent('.hcn .hcn-roomout')).includes('50%'), 'health-cover-needed: cap half the room pays 50%');
+  await page.fill('.hcn [data-k="stay2"]', '800000'); await page.waitForTimeout(100);
+  check((await page.textContent('.hcn .hcn-city')).includes('other city'), 'health-cover-needed: other-city line shows');
 };

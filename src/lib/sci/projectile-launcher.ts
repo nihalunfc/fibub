@@ -65,3 +65,17 @@ export function questions(rng: () => number = Math.random): Question[] {
     qs.push({ text: `A ball rolls off the edge of a ${h} m high cliff, flying out sideways at ${u} m/s. How far from the foot of the cliff does it land? (g = 9.8 m/s²)`, ans: x, unit: 'm', work: `Fall time t = √(2h ÷ g) = √(${2 * h} ÷ 9.8) = ${n(t)} s. Distance = ${u} × ${n(t)} = ${n(x)} m.` }); }
   return qs;
 }
+
+/**
+ * Launch angles (degrees, 0 to 90) that land at a given range with no air, from speed v and launch height h (g = 9.8).
+ * Solves A tan²θ − R tanθ + (A − h) = 0 with A = gR²/2v². Returns [] when out of reach; one angle when it is the furthest throw.
+ */
+export function anglesForRange(v: number, R: number, h = 0, g = G): { angles: number[]; maxRange: number } {
+  const maxRange = v > 0 ? (v / g) * Math.sqrt(v * v + 2 * g * h) : 0;
+  if (!(v > 0) || !(R > 0)) return { angles: [], maxRange };
+  const A = (g * R * R) / (2 * v * v), disc = R * R - 4 * A * (A - h);
+  if (disc < -1e-9) return { angles: [], maxRange };
+  const sq = Math.sqrt(Math.max(0, disc)), out = new Set<number>();
+  for (const T of [(R - sq) / (2 * A), (R + sq) / (2 * A)]) if (T >= 0) out.add(Math.round(Math.atan(T) / RAD * 1e6) / 1e6);
+  return { angles: [...out].sort((a, b) => a - b), maxRange };
+}

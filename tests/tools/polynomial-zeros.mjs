@@ -28,6 +28,34 @@ export default async ({ page, check, BASE }) => {
   // Linear.
   await page.click(R + '.pz-deg button[data-d="1"]'); await page.waitForTimeout(100);
   check((await txt('.pz-eq')) === 'p(x) = 2x − 3' && (await txt('.pz-rel')).includes('= 1.5') && await page.isHidden(`${R}.pz-row[data-k="2"]`), 'zeros: linear 2x − 3');
+  // Find the zeros of typed numbers.
+  { const K = (k) => `${R}[data-k="${k}"]`, ans = () => txt('.pz-ans'), work = () => txt('.pz-work');
+    await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+    check((await ans()) === 'The zeros are x = 2 and x = 3.' && (await work()).includes('= 25 − 24 = 1') && (await work()).includes('(x − 2)(x − 3)'), `zeros solve: default x² − 5x + 6 (${await ans()})`);
+    await page.selectOption(K('preset'), '1'); check((await ans()) === 'The zeros are x = 1/2 and x = 3.' && (await work()).includes('= 49 − 24 = 25'), `zeros solve: fraction zero (${await ans()})`);
+    await page.selectOption(K('preset'), '2'); check((await ans()).includes('x = 3 (it occurs twice)') && (await work()).includes('D = 0'), 'zeros solve: equal zeros');
+    await page.selectOption(K('preset'), '3'); check((await ans()).includes('x = 0.2679 and x = 3.7321') && (await work()).includes('Exactly: x = 2 ± √3'), `zeros solve: surd zeros (${await work()})`);
+    await page.selectOption(K('preset'), '4'); check((await ans()) === 'No real zeros. The complex zeros are x = −1 ± 2i.' && (await work()).includes('= 4 − 20 = −16'), `zeros solve: complex zeros (${await ans()})`);
+    await page.selectOption(K('preset'), '5'); check((await ans()) === 'The zeros are x = 1, x = 2, x = 3.' && (await work()).includes('1, −5, 6, 0') && (await work()).includes('αβγ = −d/a = 6'), `zeros solve: cubic 1, 2, 3 (${await ans()})`);
+    await page.selectOption(K('preset'), '6'); check((await ans()) === 'The zeros are x = −1, x = 1/2, x = 2.' && (await work()).includes('2, −5, 2, 0'), `zeros solve: cubic with a fraction zero (${await ans()})`);
+    await page.selectOption(K('preset'), '7'); check((await ans()).startsWith('One real zero: x = 1.') && (await ans()).includes('complex'), `zeros solve: x³ − 1 (${await ans()})`);
+    await page.selectOption(K('deg'), '3'); await page.fill(K('ca'), '1'); await page.fill(K('cb'), '0'); await page.fill(K('cc'), '0'); await page.fill(K('cd'), '-2');
+    check((await ans()).includes('x ≈ 1.2599') && (await work()).includes('No simple whole-number'), `zeros solve: cubic with no simple zero (${await ans()})`);
+    await page.selectOption(K('deg'), '2'); await page.fill(K('cb'), '1'); await page.fill(K('cc'), '1'); await page.fill(K('ca'), '0'); check(await page.isVisible(R + '.pz-serr') && (await txt('.pz-serr')).includes('not a quadratic') && (await ans()) === '', 'zeros solve: a = 0 message');
+    await page.fill(K('ca'), ''); check((await txt('.pz-serr')).includes('Type a number'), 'zeros solve: blank message');
+    await page.fill(K('ca'), '1/2'); await page.fill(K('cb'), '-3/2'); await page.fill(K('cc'), '1');
+    check((await ans()) === 'The zeros are x = 1 and x = 2.', `zeros solve: fractions typed (${await ans()})`);
+    await page.selectOption(K('deg'), '1'); await page.fill(K('ca'), '4'); await page.fill(K('cb'), '-6');
+    check((await ans()) === 'The zero is x = 3/2.', `zeros solve: linear 4x − 6 (${await ans()})`);
+    await page.selectOption(K('preset'), '0'); await page.fill(K('k'), '2');
+    check((await txt('.pz-k')).includes('p(2) = 0, so k = 2 is a zero'), `zeros solve: k = 2 is a zero (${await txt('.pz-k')})`);
+    await page.fill(K('k'), '1');
+    check((await txt('.pz-k')).includes('p(1) = 2') && (await txt('.pz-k')).includes('not a zero') && (await txt('.pz-k')).includes('Quotient: x − 4, remainder 2'), `zeros solve: remainder theorem (${await txt('.pz-k')})`);
+    check((await txt('.pz-build')).includes('x² − 5x + 6') && (await txt('.pz-build')).includes('x = 2 and x = 3'), 'zeros solve: build from sum 5 and product 6');
+    await page.fill(K('sum'), '2'); await page.fill(K('prod'), '5'); check((await txt('.pz-build')).includes('not real'), 'zeros solve: sum 2 product 5 has no real zeros');
+    await page.click(R + '.pz-show'); await page.waitForTimeout(150);
+    check((await txt('.pz-eq')) === 'p(x) = x² − 5x + 6' && (await txt('.pz-zeros')).startsWith('Real zeros: 2, 3.'), `zeros solve: draw on the graph (${await txt('.pz-eq')})`);
+  }
   // Quiz.
   check((await page.$$(R + '.sm-q')).length === 4, 'zeros: four questions');
   await page.click(R + '.sm-q:nth-child(3) .sm-qshow');

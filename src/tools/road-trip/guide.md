@@ -11,7 +11,7 @@ ads: false
 order: 1807
 icon: compass
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [fuel-cost, trip-splitter, vehicle-routing]
 sources:
   - "Driving time = distance / average speed for each leg. A break is added after every full block of driving hours (none at the very end). Fuel = distance x economy; conversions: 1 mile = 1.609344 km, 1 US gallon = 3.785411784 L, 1 UK gallon = 4.54609 L. Drawings are fibub's own."
@@ -40,6 +40,11 @@ You get the total time, the fuel stops, the fuel and toll cost, and the time you
 - **Break every / Break length**: a break is added after each full block of driving. A trip of exactly 6 hours with a break every 2 hours has 2 breaks, not 3, because you are already there.
 - **Tank size and Keep in reserve**: the tool assumes you start with a full tank and refuel when only the reserve is left. The number of stops is how many refills the trip needs.
 - **Minutes per fuel stop**: added to the total time for each stop. Set it to 0 if you refuel during a break.
+
+- **More options, round trip**: tick it and distance, driving time, breaks, fuel and tolls are all doubled. It treats each way as its own drive; add any overnight stay yourself.
+- **People sharing the cost**: shows what each person pays for fuel and tolls.
+- **I must arrive by**: type the time you need to be there and the tool says when to leave, using the total time with breaks and fuel stops.
+- **Other units**: the result also shows your fuel economy as km per litre, miles per US gallon and miles per UK gallon, so you can check the number you typed.
 
 ## Worked example
 

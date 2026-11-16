@@ -12,7 +12,7 @@ ads: true
 order: 1788
 icon: piggy
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [uk-income-tax, retirement-planner]
 sources:
   - "Relief at source, net pay, higher and additional rate claims, Scottish rates (1% at 21%, 22% at 42%, 25% at 45%, 28% at 48%), relief on up to 100% of earnings and £2,880 net with no earnings: GOV.UK, https://www.gov.uk/tax-on-your-private-pension/pension-tax-relief (checked 2026-11-10)"
@@ -48,6 +48,12 @@ See your whole payslip with the [[uk-income-tax|UK tax calculator]], then plan h
 ## Worked example
 
 Priya lives in England, earns £60,000 and puts £5,000 gross into a personal pension. She pays £4,000; her provider adds £1,000. £5,000 of her income was taxed at 40%, so she claims another £1,000 back: the **real cost is £3,000** and the relief **£2,000 (40%)**. Through salary sacrifice it would cost £2,900, as she also saves £100 of NI. In Scotland on £50,000, £4,000 gross gets 42% relief: £800 added and £880 to claim.
+
+## More options
+
+- **How you enter your contribution**: as the total going into your pot (default), as what you actually pay from take-home pay under relief at source (the page works out the total, because your provider adds the 20% basic-rate relief), or as a percentage of your salary.
+- **What if you paid in more or less?** A table shows the real cost, relief and claim-back for several totals, and flags any that go over the annual allowance.
+- **Personal allowance band**: for England, Wales and Northern Ireland, an income between £100,000 and £125,140 gets a note, because pension payments there can win relief above 40%.
 
 ## FAQs
 

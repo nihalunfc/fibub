@@ -38,6 +38,15 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Chance it does not</span><b class="tf-s-none"></b></div>
     </div>
     <p class="tf-line tf-words"></p>
+    <details class="tf-more">
+      <summary>More options: compare up to 3 quotes and see cost per cover</summary>
+      <div class="tf-grid">
+        <label>Second quote, per year <input data-k="quote2" inputmode="decimal" /></label>
+        <label>Third quote, per year <input data-k="quote3" inputmode="decimal" /></label>
+      </div>
+      <div class="tf-wrap"><table><thead><tr><th>Quote</th><th class="tf-unit">Per 1,000 cover</th><th>Times fair</th><th>Total over term</th></tr></thead><tbody class="tf-cmp"></tbody></table></div>
+      <p class="tf-hint">Total over term is the quote times the number of years if you stay to the end. Cost per 1,000 of cover lets you compare policies of different sizes.</p>
+    </details>
     <p class="tf-line">Insured people die less often than the whole population in the first years, because they pass medical checks. So the fair price for an insured person is lower than shown here, and the true loading on your quote is higher than the figure above.</p>
   </section>
   <p class="tf-fine">How it is worked out: the fair price P is paid at the start of each year while you are alive and equals the expected death benefit, paid at the end of the year of death: P = SA x sum of v^(k+1) x (chance alive at k) x q(k) divided by the sum of v^k x (chance alive at k), with v = 1 / (1 + interest). Insurer costs, profit, tax and medical selection are left out. Not financial or insurance advice. Nothing you type leaves this page.</p>
@@ -74,7 +83,7 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { gompertz, fairTerm } from '../../lib/money/insurance';
+  import { gompertz, fairTerm, quoteCompare } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.tf')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -111,6 +120,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.tf-s-fair').textContent = $(r.premium, 2);
     q('.tf-s-claim').textContent = pc(r.chanceOfClaim);
     q('.tf-s-none').textContent = pc(r.survive);
+    const per = f('cur').value === 'INR' ? 100000 : 1000;
+    q('.tf-unit').textContent = per === 100000 ? 'Per lakh of cover' : 'Per 1,000 cover';
+    const qsList = [quote, num(f('quote2').value), num(f('quote3').value)];
+    const rows = quoteCompare([r.premium, ...qsList.filter((x) => x > 0)], r.premium, sa, qs.length, per);
+    q('.tf-cmp').innerHTML = rows.map((x, i) => `<tr><td>${i === 0 ? 'Fair price' : 'Quote ' + i}</td><td>${$(x.perUnit, 2)}</td><td>${x.timesFair.toFixed(2)}</td><td>${$(x.total)}</td></tr>`).join('');
     const ld = q('.tf-ld'); ld.hidden = !(quote > 0);
     q('.tf-s-load').textContent = quote > 0 ? (quote / r.premium).toFixed(2) + ' times' : '';
     q('.tf-words').innerHTML = `If the whole population were insured, a fair price for ${$(sa)} over ${qs.length} years is about <b>${$(r.premium, 2)}</b> a year. ${quote > 0 ? `Your quote of ${$(quote)} is ${(quote / r.premium).toFixed(2)} times that${quote > r.premium ? `, so about ${Math.round((1 - r.premium / quote) * 100)}% of it is above the fair price (costs, profit and tax are part of this).` : '.'}` : ''}`;

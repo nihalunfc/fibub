@@ -43,6 +43,11 @@ import { PRESETS } from '../../lib/money/household';
   <section class="panel" aria-live="polite">
     <p class="ec-big"></p>
     <dl class="ec-rows"></dl>
+    <ul class="ec-top"></ul>
+    <details class="ec-more"><summary>More options: what if I use less?</summary>
+      <div class="ec-cutrow"><label>Cut every appliance's hours by (%) <input data-k="cut" inputmode="decimal" value="0" /></label><input type="range" data-k="cutr" min="0" max="100" step="5" value="0" aria-label="Cut hours slider" /></div>
+      <p class="ec-save" data-k="save"></p>
+    </details>
   </section>
   <p class="ec-fine">Estimates only. Not financial advice. Nothing you type leaves this page.</p>
 </div>
@@ -71,11 +76,15 @@ import { PRESETS } from '../../lib/money/household';
   .ec button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
   .ec button.ec-main { background: var(--accent); color: #fff; border-color: var(--accent); }
   .ec-add { display: flex; gap: 10px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; } .ec-add label { flex: 1; min-width: 200px; }
+  .ec-top { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+  .ec-more { margin-top: 12px; font-size: 14px; } .ec-more summary { cursor: pointer; color: var(--accent); }
+  .ec-cutrow { display: grid; gap: 8px; margin-top: 8px; max-width: 320px; }
+  .ec-save { font-weight: 600; margin: 8px 0 0; }
   .ec-tab td:first-child { white-space: normal; min-width: 130px; }
 </style>
 
 <script>
-  import { PRESETS, electricity, type Appliance } from '../../lib/money/household';
+  import { PRESETS, electricity, topSpenders, whatIfCut, type Appliance, type Tariff } from '../../lib/money/household';
   import { fmt, num, val, rowsHtml, esc } from '../../lib/money/ui';
   const root = document.querySelector('.ec') as HTMLElement;
   const body = root.querySelector('.ec-body') as HTMLElement;
@@ -110,14 +119,25 @@ import { PRESETS } from '../../lib/money/household';
     let sbill: ReturnType<typeof slabBill> | null = null;
     if (slabMode) { const k0 = electricity(list, { mode: 'flat', flat: 0, on: 0, mid: 0, off: 0, onShare: 0, midShare: 0, fixed: 0 }).kwh; sbill = slabBill(k0); }
     const avg = sbill && sbill.covered > 0 ? (sbill.energy + sbill.fuelCost) * (1 + num(root, 'vat') / 100) / sbill.covered : 0;
-    const r = electricity(list, slabMode ? { mode: 'flat', flat: avg, on: 0, mid: 0, off: 0, onShare: 0, midShare: 0, fixed: 0 } : { mode, flat: num(root, 'flat'), on: num(root, 'on'), mid: num(root, 'mid'), off: num(root, 'off'), onShare: num(root, 'onShare'), midShare: num(root, 'midShare'), fixed: num(root, 'fixed') });
+    const tar: Tariff = slabMode ? { mode: 'flat', flat: avg, on: 0, mid: 0, off: 0, onShare: 0, midShare: 0, fixed: 0 } : { mode, flat: num(root, 'flat'), on: num(root, 'on'), mid: num(root, 'mid'), off: num(root, 'off'), onShare: num(root, 'onShare'), midShare: num(root, 'midShare'), fixed: num(root, 'fixed') };
+    const r = electricity(list, tar);
     trs.forEach((tr, i) => { (tr.querySelector('.k') as HTMLElement).textContent = fmt(r.rows[i].kwh, 1); (tr.querySelector('.c') as HTMLElement).textContent = fmt(r.rows[i].cost); });
     if (sbill) { const m = sbill.total; r.month = m; r.day = m * 12 / 365; r.year = m * 12; r.rate = r.kwh ? m / r.kwh : 0; }
     big.textContent = list.length ? `${fmt(r.month)} a month` : 'Add an appliance to start';
     slabOut.innerHTML = sbill && list.length ? '<h3>Your bill by slab</h3>' + `<dl class="ec-rows">` + sbill.parts.map((p, i) => `<dt>Slab ${i + 1}: ${fmt(p.k, 1)} kWh at ${fmt(p.rate, 4)}</dt><dd>${fmt(p.cost)}</dd>`).join('') + (sbill.fuelCost ? `<dt>Fuel surcharge</dt><dd>${fmt(sbill.fuelCost)}</dd>` : '') + (sbill.fixed ? `<dt>Fixed monthly charge</dt><dd>${fmt(sbill.fixed)}</dd>` : '') + (sbill.tax ? `<dt>VAT or tax</dt><dd>${fmt(sbill.tax)}</dd>` : '') + `<dt>Cost of your last kWh (marginal, with surcharge and tax)</dt><dd>${fmt(sbill.marginal, 4)}</dd></dl>` + (sbill.covered < r.kwh - 0.001 ? '<p class="ec-fine">Your use is higher than the top of your last slab, so the extra kWh are not priced. Raise or empty the last "To".</p>' : '') : '';
     rows.innerHTML = list.length ? rowsHtml([['Per day', fmt(r.day)], ['Per month', fmt(r.month)], ['Per year', fmt(r.year)], ['Energy a month', fmt(r.kwh, 1) + ' kWh'], [slabMode ? 'Average price per kWh (all in)' : 'Price used per kWh', fmt(r.rate, 4)]]) : '';
+    (root.querySelector('.ec-top') as HTMLElement).innerHTML = list.length > 1 && r.month > 0 ? topSpenders(r.rows).slice(0, 3).map((t) => `<li><b>${esc(t.name || 'Appliance')}</b>: ${fmt(t.cost)} a month, ${Math.round(t.share * 100)}% of the appliance cost</li>`).join('') : '';
+    const cutEl = root.querySelector('[data-k="cut"]') as HTMLInputElement, cutPct = Math.min(100, Math.max(0, parseFloat(cutEl.value) || 0));
+    const w = whatIfCut(list, tar, cutPct);
+    (root.querySelector('[data-k="save"]') as HTMLElement).textContent = list.length && cutPct > 0 ? `Using ${cutPct}% fewer hours saves ${fmt(w.saveMonth)} a month, ${fmt(w.saveYear)} a year.` : 'Set a percentage to see what you would save.';
   };
-  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.dataset.k === 'cutr') (root.querySelector('[data-k="cut"]') as HTMLInputElement).value = t.value;
+    else if (t.dataset.k === 'cut') (root.querySelector('[data-k="cutr"]') as HTMLInputElement).value = String(Math.min(100, Math.max(0, parseFloat(t.value) || 0)));
+    calc();
+  });
+  root.addEventListener('change', calc);
   root.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     if (t.matches('.x')) { t.closest('tr')?.remove(); calc(); }

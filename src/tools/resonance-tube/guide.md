@@ -11,12 +11,13 @@ ads: false
 order: 1355
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [standing-waves, beats-lab, sound-wave-visualiser, travelling-wave]
 sources:
   - "Resonance of an air column closed at one end (L + e = λ/4, 3λ/4, ...), the end correction e ≈ 0.3 × the tube's width (0.6 × its radius), v = fλ = 2f(L₂ − L₁) and the speed of sound in dry air 331.3 √(1 + T/273.15) m/s: standard school physics found in any textbook."
   - "The loudness curve is a simple teaching model of a resonance with light damping, not a measured response."
   - "Checked by hand (512 Hz at 25 °C in a 4 cm tube: λ = 67.6 cm, L₁ = 15.70 cm, L₂ = 49.50 cm) and by putting exact resonance lengths back in: v and e come back exactly."
+  - "v = 2f(L₂ − L₁), e = (L₂ − 3L₁)/2, λ = 4(L₁ + 0.3 d) and v = 331.3√(1 + T/273.15) are the standard school formulas, checked against the 346 m/s and 1.2 cm example."
 flow:
   - { icon: sliders, label: "Water level" }
   - { icon: target, label: "Loudest" }
@@ -52,6 +53,10 @@ Record those two: the wavelength is 2 × (49.5 − 15.7) = **67.6 cm**, the spee
 - Strike the fork on a rubber pad, never on the table, and hold it level over the tube.
 - Sound speeds up by about 0.6 m/s for each degree Celsius, so note the room temperature.
 
+## Solve my numbers
+
+Solve my numbers turns the readings from your own practical into answers. Choose the speed of sound from two resonance lengths (the end correction comes out too), the speed from one length and the tube width, the fork frequency from the first resonance, the lengths where a tube will resonate for a given fork, or the speed of sound at a temperature. Lengths can be in cm, mm or m. The working shows λ = 2(L₂ − L₁), v = fλ and e = (L₂ − 3L₁)/2 with every number put in, and warns if the end correction comes out negative, which means a reading needs re-checking. The common mistake is leaving out the end correction 0.3 d, which makes the speed too low. A second length shorter than the first gives a clear message. Tap an example such as the 512 Hz fork to fill the boxes.
+
 ## FAQ
 
 **Why is the air column a little shorter than λ/4?** The antinode is not exactly at the open end but a little above it; that extra bit is the end correction.
@@ -59,3 +64,5 @@ Record those two: the wavelength is 2 × (49.5 − 15.7) = **67.6 cm**, the spee
 **Why does the sound get loud only at certain lengths?** Only then do the reflected waves line up with the fork's waves and build up, like pushing a swing in time.
 
 **Is anything stored or recorded?** No. The tool only plays a tone; it never uses the microphone, and nothing leaves your browser.
+
+**How do I find the speed of sound with a resonance tube?** v = 2 f (L₂ − L₁), twice the fork frequency times the distance between the first two resonances, found under Solve my numbers.

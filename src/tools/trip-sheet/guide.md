@@ -12,7 +12,7 @@ ads: true
 order: 1803
 icon: table
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [eway-bill-validity, fuel-cost, mileage-log]
 sources:
   - "Sums only: cost = diesel + tolls + bata + loading and unloading + other; profit = freight - cost; balance due to the driver = bata + expenses the driver paid - advance. The sheet layout is fibub's own."
@@ -44,6 +44,9 @@ When it is done, print it for the driver and owner to sign, or download a PDF fo
 - **Driver bata**: the daily allowance for food and stay. The dates fill in the number of days (both ends counted); change it if you agreed otherwise.
 - **Paid by the driver**: ticked expenses came out of the advance, so they count towards what the driver has used. Diesel is often paid by card or on the pump's credit, so it starts unticked.
 - **Keep this trip sheet**: off by default. When ticked, the sheet stays in this browser only; Clear removes it.
+
+- **Per-km lines**: cost per km, freight per km and profit per km, so you can compare trips of different lengths, plus the margin on freight and the average diesel price per litre.
+- **More options, expected mileage**: type the km per litre you expect from this truck and the sheet shows how much diesel the run should have used and how many litres, and how much money, were saved or used extra.
 
 ## Worked example
 

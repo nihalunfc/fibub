@@ -69,3 +69,51 @@ export function angleText(t: number): string {
   return String(+t.toFixed(4)).replace('-', '−');
 }
 export const degrees = (t: number) => (t * 180) / PI;
+
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
+/** x as a fraction p/q (q ≤ 1000) when it is one, else null. */
+export function asFraction(x: number): [number, number] | null {
+  if (!Number.isFinite(x)) return null;
+  for (let q = 1; q <= 1000; q++) { const p = Math.round(x * q); if (Math.abs(x - p / q) < 1e-12 * Math.max(1, Math.abs(x))) { const g = gcd(p, q) || 1; return [p / g, q / g]; } }
+  return null;
+}
+const sqrtTok = (n: number) => { const s = Math.round(Math.sqrt(n)); return s * s === n ? String(s) : `√${n}`; };
+const over = (a: string, b: string, sign = 1) => {
+  const na = Number(a), nb = Number(b);
+  if (Number.isInteger(na) && Number.isInteger(nb)) { const g = gcd(na, nb) || 1, t = na / g, u = nb / g, s = (t < 0) !== (u < 0) ? -1 : 1; return `${s < 0 ? '−' : ''}${Math.abs(t)}${Math.abs(u) === 1 ? '' : `/${Math.abs(u)}`}`; }
+  return `${sign < 0 ? '−' : ''}${a}/${b}`;
+};
+const num5 = (v: number) => String(+v.toPrecision(5)).replace('-', '−');
+
+export type Composition = { value: number; exact: string; steps: string[]; error?: string };
+/** outer(inner⁻¹(x)) for outer, inner in sin, cos, tan: the value, an exact form when x is a fraction, and the working. */
+export function compose(outer: 'sin' | 'cos' | 'tan', inner: 'sin' | 'cos' | 'tan', x: number): Composition {
+  const fail = (error: string): Composition => ({ value: NaN, exact: '', steps: [], error });
+  if (!Number.isFinite(x)) return fail('Type a number or a fraction such as 3/5.');
+  const th = principal(inner, x);
+  if (Number.isNaN(th)) return fail(`${inner}⁻¹(${num5(x)}) is not defined: x must be in ${DOMAIN[inner]}.`);
+  const value = ratio(outer, th);
+  if (!Number.isFinite(value)) return fail(`${outer}(${inner}⁻¹(${num5(x)})) is not defined: ${inner}⁻¹(${num5(x)}) = ${angleText(th)}, where ${outer} has no value.`);
+  const steps = [`Let θ = ${inner}⁻¹(${num5(x)}). Then ${inner} θ = ${num5(x)}, and θ is in ${RANGE[inner]}.`];
+  const fr = asFraction(x);
+  let exact = '', rule = '';
+  if (outer === inner) { rule = `${outer}(${outer}⁻¹x) = x for every x in the domain, so the answer is x itself.`; exact = fr ? over(String(fr[0]), String(fr[1])) : num5(x); }
+  else {
+    const pair = `${outer}/${inner}`;
+    rule = ({ 'sin/cos': 'sin θ = √(1 − cos²θ), with + because θ is in [0, π], where sine is never negative.', 'cos/sin': 'cos θ = √(1 − sin²θ), with + because θ is in [−π/2, π/2], where cosine is never negative.',
+      'sin/tan': 'sin θ = tan θ / √(1 + tan²θ) (cos θ is positive for θ in (−π/2, π/2)).', 'cos/tan': 'cos θ = 1 / √(1 + tan²θ) (cos θ is positive for θ in (−π/2, π/2)).',
+      'tan/sin': 'tan θ = sin θ / cos θ = sin θ / √(1 − sin²θ).', 'tan/cos': 'tan θ = sin θ / cos θ = √(1 − cos²θ) / cos θ.' } as Record<string, string>)[pair];
+    if (fr) {
+      const [p, q] = fr, m = q * q - p * p, s = q * q + p * p;
+      exact = pair === 'sin/cos' || pair === 'cos/sin' ? over(sqrtTok(m), String(q)) : pair === 'sin/tan' ? over(String(p), sqrtTok(s)) : pair === 'cos/tan' ? over(String(q), sqrtTok(s)) : pair === 'tan/sin' ? over(String(p), sqrtTok(m)) : over(sqrtTok(m), String(p));
+      const sub = pair === 'sin/cos' || pair === 'cos/sin' ? `√(1 − (${p}/${q})²) = √(${m}/${q * q})` : pair === 'sin/tan' || pair === 'cos/tan' ? `${pair === 'sin/tan' ? `(${p}/${q})` : '1'} / √(1 + (${p}/${q})²) = ${pair === 'sin/tan' ? `(${p}/${q})` : '1'} / √(${s}/${q * q})` : pair === 'tan/sin' ? `(${p}/${q}) / √(1 − (${p}/${q})²) = (${p}/${q}) / √(${m}/${q * q})` : `√(1 − (${p}/${q})²) / (${p}/${q}) = √(${m}/${q * q}) / (${p}/${q})`;
+      steps.push(rule, `Put x = ${p}/${q} in: ${sub}.`);
+    } else steps.push(rule, `Put x = ${num5(x)} in.`);
+  }
+  if (outer === inner) steps.push(rule);
+  steps.push(`${outer}(${inner}⁻¹(${num5(x)})) = ${exact ? `${exact} = ` : ''}${num5(value)}.`);
+  return { value, exact, steps: steps.map((t) => t.replace(/-(?=\d)/g, '−')), };
+}
+
+/** The angle typed for the trap, in degrees or radians (radians may be pi/6 style): returns radians. */
+export const toRadians = (v: number, unit: 'deg' | 'rad') => (unit === 'deg' ? (v * PI) / 180 : v);

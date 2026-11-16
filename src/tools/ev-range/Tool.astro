@@ -5,7 +5,7 @@
   <section class="panel">
     <div class="ev-grid">
       <label>Usable battery (kWh) <input data-k="kwh" inputmode="decimal" value="60" /></label>
-      <label>Rated consumption (kWh per 100 km) <input data-k="per" inputmode="decimal" value="16" /></label>
+      <label>Rated consumption (kWh per 100 km; other units under More options) <input data-k="per" inputmode="decimal" value="16" /></label>
       <label>Speed (km/h) <input data-k="speed" inputmode="decimal" value="80" /></label>
       <label>Outside temperature (°C) <input data-k="temp" inputmode="decimal" value="20" /></label>
     </div>
@@ -24,7 +24,34 @@
     <p class="ev-big"></p>
     <dl class="ev-rows"></dl>
     <p class="ev-warn" role="alert"></p>
+    <h2 class="ev-h">Range at other speeds</h2>
+    <p class="ev-fine">Same battery, temperature, heater and load; only the speed changes.</p>
+    <table class="ev-tab"><thead><tr><th>Speed</th><th>Range</th><th></th></tr></thead><tbody></tbody></table>
   </section>
+  <details class="panel ev-more">
+    <summary>More options: trip check, running cost, other units</summary>
+    <h2 class="ev-h">Will I make this trip?</h2>
+    <div class="ev-grid">
+      <label>Trip distance (in the unit chosen below) <input data-k="dist" inputmode="decimal" placeholder="e.g. 250" /></label>
+      <label>Battery at the start (%) <input data-k="start" inputmode="decimal" value="100" /></label>
+      <label>Keep in reserve (%) <input data-k="reserve" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ev-big ev-trip" aria-live="polite"></p>
+    <h2 class="ev-h">Running cost against petrol</h2>
+    <div class="ev-grid">
+      <label>Electricity price per kWh <input data-k="ep" inputmode="decimal" placeholder="e.g. 0.20" /></label>
+      <label>Petrol car (L per 100 km) <input data-k="pl" inputmode="decimal" placeholder="e.g. 7" /></label>
+      <label>Petrol price per litre <input data-k="pp" inputmode="decimal" placeholder="e.g. 1.60" /></label>
+    </div>
+    <p class="ev-big ev-cost" aria-live="polite"></p>
+    <p class="ev-fine">Uses the real consumption above. Home and public charging prices differ, so try both.</p>
+    <h2 class="ev-h">Other units</h2>
+    <div class="ev-grid">
+      <label>Rated consumption is in <select data-k="cu"><option value="kwh100">kWh per 100 km</option><option value="whkm">Wh per km</option><option value="whmi">Wh per mile</option><option value="mikwh">miles per kWh</option><option value="kmkwh">km per kWh</option></select></label>
+      <label>Show distances in <select data-k="du"><option value="km">km</option><option value="mi">miles</option></select></label>
+    </div>
+  </details>
+
   <section class="panel">
     <h2 class="ev-h">Charging time</h2>
     <div class="ev-grid">
@@ -52,15 +79,23 @@
   .ev-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
   .ev-rows dt { color: var(--muted); } .ev-rows dd { margin: 0; text-align: right; font-weight: 600; }
   .ev-warn { color: var(--bad); margin: 10px 0 0; } .ev-warn:empty { display: none; }
+  .ev-more summary { cursor: pointer; font-weight: 600; }
+  .ev-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ev-tab th, .ev-tab td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .ev-tab td.bar { width: 40%; } .ev-tab td.bar div { height: 10px; background: var(--accent); border-radius: 3px; min-width: 2px; }
+  .ev-tab tr.on td { font-weight: 700; }
+  .ev-trip, .ev-cost { font-size: 18px; margin: 12px 0 0; }
+  .ev select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .ev-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
 </style>
 
 <script>
-  import { evRange, EV_FACTORS } from '../../lib/money/vehicle-physics';
+  import { evRange, EV_FACTORS, evSpeedTable, evTrip, consToKwh100, evCost100, petrolCost100, KM_PER_MI, type ConsUnit } from '../../lib/money/vehicle-physics';
   const root = document.querySelector('.ev') as HTMLElement;
   const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const blank = (k: string) => q(k).value.trim() === '';
   const f0 = (v: number) => Math.round(v).toLocaleString('en-US');
   const f2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const preset = (k: string) => {
@@ -70,15 +105,37 @@
     if (k === 'load') q('fl').value = q('load').checked ? String(EV_FACTORS.load) : '1';
   };
   const calc = () => {
-    const kwh = num('kwh'), per = num('per'), fac = ['fs', 'ft', 'fh', 'fl'].map(num);
+    const kwh = num('kwh'), per = consToKwh100(num('per'), q('cu').value as ConsUnit), fac = ['fs', 'ft', 'fh', 'fl'].map(num);
     if (!(kwh > 0) || !(per > 0) || fac.some((f) => !(f > 0))) { $('.ev-big').textContent = ''; $('.ev-rows').innerHTML = ''; $('.ev-warn').textContent = 'Type a battery size, a consumption above 0 and factors above 0.'; return; }
     $('.ev-warn').textContent = '';
     const r = evRange({ kwh, per100: per, factors: fac });
     const base = evRange({ kwh, per100: per, factors: [] });
-    $('.ev-big').textContent = `About ${f0(r.km)} km`;
+    const mi = q('du').value === 'mi', U = mi ? 'miles' : 'km', k = mi ? 1 / KM_PER_MI : 1;
+    $('.ev-big').textContent = `About ${f0(r.km * k)} ${U}`;
     const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
-    $('.ev-rows').innerHTML = line('Rated range (no factors)', `${f0(base.km)} km`) + line('Speed', `x ${f2(fac[0])}`) + line('Temperature', `x ${f2(fac[1])}`) + line('Heater or AC', `x ${f2(fac[2])}`) + line('Load', `x ${f2(fac[3])}`) +
-      line('Real consumption', `${f2(r.per100)} kWh per 100 km`) + line('Range lost', `${f0(base.km - r.km)} km (${f0((1 - r.km / base.km) * 100)}%)`);
+    $('.ev-rows').innerHTML = line('Rated range (no factors)', `${f0(base.km * k)} ${U}`) + line('Speed', `x ${f2(fac[0])}`) + line('Temperature', `x ${f2(fac[1])}`) + line('Heater or AC', `x ${f2(fac[2])}`) + line('Load', `x ${f2(fac[3])}`) +
+      line('Real consumption', `${f2(r.per100)} kWh per 100 km`) + line('Range lost', `${f0((base.km - r.km) * k)} ${U} (${f0((1 - r.km / base.km) * 100)}%)`);
+    const spd = evSpeedTable({ kwh, per100: per, otherFactors: [fac[1], fac[2], fac[3]], speeds: [50, 70, 80, 90, 100, 110, 120, 130] }), mx = Math.max(...spd.map((x) => x.km));
+    const cur = num('speed');
+    $('.ev-tab tbody').innerHTML = spd.map((x) => `<tr class="${cur === x.kmh ? 'on' : ''}"><td>${f0(x.kmh)} km/h</td><td>${f0(x.km * k)} ${U}</td><td class="bar"><div style="width:${Math.round((x.km / mx) * 100)}%"></div></td></tr>`).join('');
+    const tripEl = $('.ev-trip'), costEl = $('.ev-cost');
+    if (blank('dist')) tripEl.textContent = '';
+    else {
+      const d = num('dist') * (mi ? KM_PER_MI : 1), st = num('start'), rs = num('reserve');
+      if (!(d > 0) || !(st > 0 && st <= 100) || !(rs >= 0 && rs < st)) tripEl.textContent = 'Type a distance above 0, a start between 1 and 100% and a reserve below the start.';
+      else {
+        const t = evTrip({ kwh, per100: per, mult: r.mult, distKm: d, startPct: st, reservePct: rs });
+        tripEl.textContent = t.ok ? `Yes: you arrive with about ${f0(t.arrivePct)}% (${f0(t.use)} kWh used).` : `Not on one charge: you would need about ${f0(t.needKwh)} kWh more, so plan a stop. With ${f0(rs)}% kept back you can drive about ${f0(t.rangeKm * k)} ${U}.`;
+      }
+    }
+    if (blank('ep') || (blank('pl') && blank('pp'))) costEl.textContent = '';
+    else if (!(num('ep') >= 0)) costEl.textContent = 'Type an electricity price of 0 or more.';
+    else {
+      const e = evCost100(r.per100, num('ep'));
+      const base2 = `Electric: ${f2(e)} per 100 km, ${f2(e / 100)} per km.`;
+      if (num('pl') > 0 && num('pp') >= 0) { const p = petrolCost100(num('pl'), num('pp')); const dd = p - e; costEl.textContent = `${base2} Petrol: ${f2(p)} per 100 km. ${Math.abs(dd) < 0.005 ? 'The same.' : `Electric is ${f2(Math.abs(dd))} ${dd > 0 ? 'cheaper' : 'dearer'} per 100 km, ${f0(Math.abs(dd) * 100)} over 10,000 km.`}`; }
+      else costEl.textContent = base2;
+    }
     const kw = num('kw'), from = num('from'), to = num('to');
     const c = $('.ev-charge');
     if (kw > 0 && from >= 0 && to > from && to <= 100) {

@@ -65,3 +65,43 @@ export function polyText(co: number[], dp = 2): string {
 }
 
 export { sgn };
+
+/** Solve ax² + bx + c = 0 completely: discriminant, kind, real zeros (smaller first) or the complex pair re ± im i. a must not be 0. */
+export function solveQuadratic(a: number, b: number, c: number) {
+  const D = b * b - 4 * a * c, eps = 1e-12 * Math.max(1, b * b, Math.abs(4 * a * c));
+  if (Math.abs(D) <= eps) return { D: 0, kind: 'equal' as const, real: [-b / (2 * a), -b / (2 * a)], re: -b / (2 * a), im: 0 };
+  if (D > 0) return { D, kind: 'two' as const, real: realZeros([a, b, c]), re: -b / (2 * a), im: 0 };
+  return { D, kind: 'complex' as const, real: [] as number[], re: -b / (2 * a), im: Math.sqrt(-D) / (2 * Math.abs(a)) };
+}
+
+/** Divide by (x − k): the quotient (highest power first) and the remainder, which is p(k). */
+export function synthetic(co: number[], k: number): { quotient: number[]; remainder: number; rows: number[] } {
+  const rows = [co[0]];
+  for (let i = 1; i < co.length; i++) rows.push(co[i] + k * rows[i - 1]);
+  return { quotient: rows.slice(0, -1), remainder: rows[rows.length - 1], rows };
+}
+
+/** Every zero of a linear, quadratic or cubic: the real ones and the complex pair (re ± im i, im > 0), if any. */
+export function allZeros(co: number[]): { real: number[]; complex: { re: number; im: number } | null } {
+  if (co.length === 2) return { real: [-co[1] / co[0]], complex: null };
+  if (co.length === 3) { const s = solveQuadratic(co[0], co[1], co[2]); return { real: s.real, complex: s.kind === 'complex' ? { re: s.re, im: s.im } : null }; }
+  const zs = realZeros(co);
+  if (zs.length === 3) return { real: zs, complex: null };
+  const r = zs[0], { quotient } = synthetic(co, r), s = solveQuadratic(quotient[0], quotient[1], quotient[2]);
+  return { real: [r], complex: { re: s.re, im: s.im } };
+}
+
+/** A whole-number or simple-fraction zero p/q of a polynomial with whole-number coefficients (rational root test); null if none. */
+export function rationalZero(co: number[]): [number, number] | null {
+  if (!co.every((c) => Number.isInteger(c))) return null;
+  let lo = 0; while (lo < co.length - 1 && co[co.length - 1 - lo] === 0) lo++;
+  if (lo > 0) return [0, 1];
+  const last = Math.abs(co[co.length - 1]), first = Math.abs(co[0]);
+  if (last > 1e6 || first > 1e6) return null;
+  const divs = (n: number) => { const d: number[] = []; for (let i = 1; i * i <= n; i++) if (n % i === 0) { d.push(i); if (i * i !== n) d.push(n / i); } return d.sort((x, y) => x - y); };
+  for (const q of divs(first)) for (const p of divs(last)) for (const s of [1, -1]) {
+    const x = (s * p) / q;
+    if (Math.abs(evalPoly(co, x)) < 1e-9 * Math.max(1, ...co.map(Math.abs))) return [s * p, q];
+  }
+  return null;
+}
