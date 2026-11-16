@@ -1,6 +1,6 @@
 ---
 // #1711 Invoice maker. Sums and wording in src/lib/docs/invoice.ts, PDF in src/lib/docs/invoicepdf.ts.
-import { CURRENCY_LIST } from '../../lib/docs/invoice';
+import { CURRENCY_LIST, TAX_PRESETS } from '../../lib/docs/invoice';
 ---
 <div class="tool-ui im">
   <div class="im-seg" role="group" aria-label="What to make">
@@ -32,8 +32,11 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
       <fieldset class="im-card">
         <legend>Details</legend>
         <div class="im-grid">
-          <label><span class="im-num-l">Number</span> <input type="text" data-k="number" /></label>
+          <label><span class="im-num-l">Number</span> <input type="text" data-k="number" /><button type="button" class="im-link im-next">Use the next number</button></label>
           <label>Date <input type="date" data-k="date" /></label>
+          <label data-for="invoice"><span>Payment terms</span>
+            <select class="im-terms"><option value="">Pick a due date myself</option><option value="0">Due on receipt</option><option value="7">Net 7 days</option><option value="14">Net 14 days</option><option value="30">Net 30 days</option><option value="60">Net 60 days</option></select>
+          </label>
           <label data-for="invoice quote"><span class="im-due-l">Due date</span> <input type="date" data-k="due" /></label>
           <label data-for="invoice quote">PO or reference <input type="text" data-k="po" /></label>
           <label data-for="receipt rent">Paid by <input type="text" data-k="pay" placeholder="Cash, UPI, bank transfer" /></label>
@@ -80,6 +83,8 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
           <label>Discount value <input type="text" inputmode="decimal" data-k="disc" /></label>
           <label class="im-chk"><input type="checkbox" data-k="roundOff" /> Round the total to a whole number</label>
         </div>
+        <div class="im-chips" data-tax="one">{TAX_PRESETS.map((t) => <button type="button" class="im-link" data-preset={`${t.name}|${t.rate}`}>{t.label}</button>)}</div>
+        <p class="im-hint" data-tax="one">Common standard rates, not live-checked (last reviewed 2026-11-16). Some goods are zero-rated or taxed differently, and US sales tax depends on the state. Check the official source (CRA, HMRC, the UAE Federal Tax Authority or ZATCA).</p>
         <p class="im-hint">Each item can have its own tax rate; leave it empty to use the usual rate. Check the rate with your tax office.</p>
       </fieldset>
 
@@ -108,6 +113,7 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
 </div>
 
 <style is:inline>
+  .im-chips { display: flex; flex-wrap: wrap; gap: 4px 14px; }
   .im { display: grid; gap: 14px; margin-bottom: 32px; }
   .im-seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--bg); width: fit-content; max-width: 100%; }
   .im-seg button { font: inherit; font-weight: 600; font-size: 14px; border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 9px; cursor: pointer; }
@@ -161,7 +167,7 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
 </style>
 
 <script>
-  import { calc, docTitle, emptyInv, emptyItem, fmt, rentReceipts, type Inv } from '../../lib/docs/invoice';
+  import { addDays, nextNumber, calc, docTitle, emptyInv, emptyItem, fmt, rentReceipts, type Inv } from '../../lib/docs/invoice';
   import { fmtDate } from '../../lib/docs/invoicepdf';
   const root = document.querySelector('.im') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -254,10 +260,15 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
   };
   const refresh = (items = false) => { showFor(); if (items) renderItems(); preview(); save(); };
 
+  const terms = q<HTMLSelectElement>('.im-terms');
+  const applyTerms = () => { if (terms.value !== '') { V.due = addDays(V.date, +terms.value); bind(); } };
+  terms.addEventListener('change', () => { applyTerms(); preview(); });
   root.addEventListener('input', (e) => {
     const el = e.target as HTMLInputElement;
     if (el.dataset.k) {
+      if (el.dataset.k === 'due') terms.value = '';
       set(el.dataset.k, el.type === 'checkbox' ? el.checked : el.value);
+      if (el.dataset.k === 'date') applyTerms();
       refresh(['taxMode', 'taxRate'].includes(el.dataset.k) && el.dataset.k === 'taxMode');
       if (el.dataset.k === 'taxRate') root.querySelectorAll<HTMLInputElement>('[data-f=tax]').forEach((t) => (t.placeholder = V.taxRate || '0'));
     } else if (el.dataset.f) {
@@ -273,6 +284,8 @@ import { CURRENCY_LIST } from '../../lib/docs/invoice';
   root.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('button');
     if (!b) return;
+    if (b.dataset.preset) { const [n, r] = b.dataset.preset.split('|'); V.taxMode = 'one'; V.taxName = n; V.taxRate = r; bind(); refresh(true); return; }
+    if (b.classList.contains('im-next')) { V.number = nextNumber(V.number); bind(); preview(); return; }
     if (b.dataset.m) { V.mode = b.dataset.m as any; refresh(); return; }
     if (b.dataset.del) { V.items.splice(+b.dataset.del, 1); refresh(true); }
   });

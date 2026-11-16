@@ -23,6 +23,11 @@ export default async (check) => {
   check('release: Korsmeyer-Peppas uses the 6 points up to 60 %', by.kp.n === 6 && rel(by.kp.r2adj, 0.9924866276098677));
   check('release: best model is Weibull (lowest AIC among full fits)', r.best.id === 'weibull');
   check('release: Peppas n meaning by shape', D.peppasMechanism(0.664, 'sphere').startsWith('Anomalous') && D.peppasMechanism(0.45, 'cylinder') === 'Fickian diffusion' && D.peppasMechanism(0.5, 'film') === 'Fickian diffusion' && D.peppasMechanism(1.0, 'film').startsWith('Case II') && D.peppasMechanism(0.95, 'sphere') === 'Super case II transport' && D.peppasMechanism(0.3, 'film').startsWith('n below'));
+  // 95 % range of n: n = 1.029 ± 0.050 (SE) on 8 degrees of freedom spans 0.914 to 1.144 (t = 2.306), which for a film
+  // crosses the Case II value of 1, so both Case II and super case II are allowed; a tight n far from a limit adds nothing.
+  { const g = D.peppasRange(1.029, 0.050, 8, 'film');
+    check('release: Peppas n range crosses Case II', rel(g.lo, 1.029 - 2.306004 * 0.05, 1e-6) && rel(g.hi, 1.029 + 2.306004 * 0.05, 1e-6) && g.others.some((m) => m.startsWith('Case II')) && g.others.some((m) => m.startsWith('Anomalous')));
+    check('release: tight n adds no other mechanism', D.peppasRange(0.7, 0.01, 10, 'film').others.length === 0); }
   // Exact recoveries from noise-free curves.
   { const tt = [1, 2, 4, 6, 8, 12]; const z = D.zeroOrder(tt, tt.map((x) => 3 * x)), h = D.higuchi(tt, tt.map((x) => 20 * Math.sqrt(x))), f1 = D.firstOrder(tt, tt.map((x) => 100 * (1 - Math.exp(-0.15 * x))));
     const w = D.weibull(tt, tt.map((x) => 100 * (1 - Math.exp(-((x / 3) ** 1.4))))), kp = D.korsmeyerPeppas(tt, tt.map((x) => 9 * x ** 0.7), 100);

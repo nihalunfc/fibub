@@ -22,6 +22,7 @@ import Downloads from '../../components/Downloads.astro';
       <label>Response name <input class="cc-yu" value="Signal" /></label>
       <label>Weighting <select class="cc-w"><option value="none">None (equal)</option><option value="1/x">1/x</option><option value="1/x2">1/x²</option></select></label>
       <label>LOD and LOQ from <select class="cc-lb"><option value="residual">Residual SD (s y/x)</option><option value="intercept">SD of the intercept</option></select></label>
+      <label>LOD rule <select class="cc-k"><option value="3.3">3.3 σ / slope (ICH Q2)</option><option value="3">3 σ / slope (common in sensor papers)</option></select></label>
     </div>
     <p class="ax-help">Weighting: use 1/x or 1/x² when the scatter grows with concentration (common over wide ranges, for example LC-MS). With weighting, every standard must be above zero.</p>
     <p class="ax-err cc-err" hidden></p>
@@ -89,7 +90,7 @@ Sample C: 23.0</textarea></label>
       return;
     }
     root.querySelectorAll<HTMLElement>('.cc-out').forEach((o) => (o.hidden = false));
-    const c = cal, lim = limits(c, q<HTMLSelectElement>('.cc-lb').value as 'residual' | 'intercept');
+    const c = cal, lim = limits(c, q<HTMLSelectElement>('.cc-lb').value as 'residual' | 'intercept', +q<HTMLSelectElement>('.cc-k').value);
     const sign = c.intercept < 0 ? '−' : '+';
     q('.cc-eq').textContent = `y = ${sig(c.slope, 5)} x ${sign} ${sig(Math.abs(c.intercept), 4)}`;
     const pIntercept = c.seIntercept > 0 ? tTwoSided(c.intercept / c.seIntercept, c.df) : 1;
@@ -98,7 +99,7 @@ Sample C: 23.0</textarea></label>
       ['Intercept', `${sig(c.intercept, 4)} ± ${sig(c.t * c.seIntercept, 2)}`, pIntercept < 0.05 ? `differs from zero (p = ${sig(pIntercept, 2)}): check your blank` : `not different from zero (p = ${sig(pIntercept, 2)})`],
       ['R²', c.r2.toFixed(5), `r = ${c.r.toFixed(5)}`],
       ['Residual SD (s y/x)', sig(c.syx, 4), `${c.n} standards, ${c.df} degrees of freedom`],
-      ['LOD', `${sig(lim.lod, 3)}${unit}`, `3.3 σ / slope (ICH Q2), σ = ${sig(lim.sigma, 3)}`],
+      ['LOD', `${sig(lim.lod, 3)}${unit}`, `${lim.k} σ / slope (${lim.k === 3 ? '3σ rule' : 'ICH Q2'}), σ = ${sig(lim.sigma, 3)}`],
       ['LOQ', `${sig(lim.loq, 3)}${unit}`, '10 σ / slope (ICH Q2)'],
       ['Range', `${sig(c.xmin, 4)} to ${sig(c.xmax, 4)}${unit}`, 'read unknowns only inside it'],
     ];

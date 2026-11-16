@@ -25,4 +25,14 @@ export default async ({ page, check, BASE }) => {
   const [w, h] = jpegSize(uk.buf), px = await page.evaluate(() => { const c = document.querySelector('.pp-cv'); return [...c.getContext('2d').getImageData(3, 3, 1, 1).data]; });
   check(w === 413 && h === 531, 'passport-photo: UK photo is 413x531 (' + w + 'x' + h + ')');
   check(px[0] > 245 && px[1] > 245 && px[2] > 245, 'passport-photo: white background option whitens the wall ' + px);
+  // more options: size cap and turning
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.pp-country', 'ca');
+  await page.check('.pp-cap-on'); await page.fill('.pp-cap', '20');
+  const small = await saved(page, () => page.click('.pp-one'));
+  check(small.buf.length <= 20 * 1024 && jpegSize(small.buf).join('x') === '591x827', 'passport-photo: size cap keeps the photo under 20 KB (' + small.buf.length + ')');
+  check(/KB/.test(await page.textContent('.pp-msg')), 'passport-photo: says the saved size');
+  await page.click('.pp-rotr'); await page.waitForTimeout(200);
+  const rot = await saved(page, () => page.click('.pp-one'));
+  check(jpegSize(rot.buf).join('x') === '591x827', 'passport-photo: still the right size after turning');
 };

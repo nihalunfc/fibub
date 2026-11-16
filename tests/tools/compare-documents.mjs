@@ -29,4 +29,14 @@ export default async ({ page, check, BASE }) => {
   check(p.name === 'comparison.pdf' && t.includes('1 change') && t.includes('100') && t.includes('120'), 'compare-documents: redline PDF has both numbers and the count');
   await page.fill('.cd-ta', ''); await page.fill('.cd-tb', ''); await page.click('.cd-go');
   check((await page.textContent('.cd-msg')).includes('both versions'), 'compare-documents: empty input explained');
+  await page.fill('.cd-ta', 'Hello, world. Bye'); await page.fill('.cd-tb', 'Hello world Bye'); await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === '1 change', `compare-documents: punctuation counts by default (${await page.textContent('.cd-count')})`);
+  await page.check('.cd-punct'); await page.click('.cd-go');
+  check((await page.textContent('.cd-count')) === 'No differences', 'compare-documents: ignore commas and full stops');
+  await page.fill('.cd-ta', 'The cat sat on the mat'); await page.fill('.cd-tb', 'The dog sat on the mat'); await page.click('.cd-go');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await page.textContent('.cd-list li')) === '"cat" became "dog"', `compare-documents: change list (${await page.textContent('.cd-list li')})`);
+  await page.click('.cd-swap');
+  check((await page.inputValue('.cd-ta')) === 'The dog sat on the mat' && (await page.textContent('.cd-list li')) === '"dog" became "cat"', 'compare-documents: swap reverses the comparison');
+  check(await page.isVisible('.kit-bar'), 'compare-documents: copy link bar present');
 };

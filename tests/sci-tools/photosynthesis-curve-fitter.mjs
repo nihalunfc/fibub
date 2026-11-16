@@ -19,6 +19,12 @@ export default async (check) => {
   check('photosynthesis: A/Ci standard errors match scipy curve_fit', [0.9982158690579434, 1.03203957251206, 0.1943928237793052].every((v, i) => rel(a.se[i], v, 1e-5)));
   check('photosynthesis: transition Ci 464.5 and 7 Rubisco-limited points', rel(a.ciTransition, 464.5376867797563, 1e-8) && a.nRubisco === 7 && a.consistent);
   check('photosynthesis: Jmax from J (PPFD 1500, α 0.3, θ 0.7) matches brentq', rel(jmaxFromJ(a.j, 1500, 0.3, 0.7), 143.99283475398582, 1e-8) && Number.isNaN(jmaxFromJ(500, 1000, 0.3, 0.7)));
+  // Rice, seventh leaf from the top (values from Guo and Lv 2025, Agronomy 15: 125; θ 0.7 our assumption): net A at the
+  // paper's 19 light steps from Amax 17.80, φ 0.0385, Rd 0.46, rounded to 0.01. The fit must give them back.
+  const rP = [0, 30, 50, 70, 100, 150, 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 1900, 1950, 2000];
+  const rA = [-0.46, 0.67, 1.4, 2.11, 3.12, 4.69, 6.09, 8.43, 10.19, 12.44, 13.72, 14.49, 15.01, 15.37, 15.63, 15.84, 15.92, 15.96, 16];
+  const r = fitLight(rP, rA);
+  check('photosynthesis: rice leaf curve recovered (Amax 17.80, φ 0.0385, θ 0.70, Rd 0.46, compensation 12.0, 90 % saturation 1576)', Math.abs(r.amax - 17.8) < 0.02 && Math.abs(r.phi - 0.0385) < 0.0002 && Math.abs(r.theta - 0.7) < 0.003 && Math.abs(r.rd - 0.46) < 0.005 && Math.abs(r.lcp - 12.03) < 0.05 && Math.abs(r.isat - 1576) < 5);
   const b = fitAci(Ci, B, { ...BERNACCHI_25, jA: 4.5, jB: 10.5 });
   check('photosynthesis: A/Ci with 4.5/10.5 electron requirement matches scipy', rel(b.vcmax, 68.59549591727425, 1e-7) && rel(b.j, 146.54551072155434, 1e-7) && rel(b.rd, 1.129301947330444, 1e-6));
   check('photosynthesis: a split set by Ci gives the same fit here', fitAci(Ci, B, BERNACCHI_25, 500).nRubisco === 7);

@@ -13,4 +13,5 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.mt-az-list dt')).length > 0, 'medical-terms: A to Z lists words');
   await page.fill('.mt-in', 'A lesion was seen.');
   check((await page.textContent('.mt-found')).includes('Your doctor can explain'), 'medical-terms: a frightening-sounding word stays neutral with the doctor sentence');
+  check(await page.isVisible('.mt-copy') && await page.isVisible('.mt-print'), 'medical-terms: copy and print buttons for the words found');
 };

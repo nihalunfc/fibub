@@ -40,6 +40,7 @@ Everything is made on your device. Your list is not uploaded or kept. If your li
 - **Skip used labels**: leaves the first few spots empty, to use up a part-used sheet.
 - **Copies of each**: prints every label several times, for a return address.
 - **Text size**: the largest size to try; longer text shrinks until it fits.
+- **Numbered labels**: open the box, then write {n} in a label (for example "Box {n}"). Each copy gets the next number from your start value, with optional leading zeros, so 35 copies from 101 give Box 101 to Box 135.
 - **Draw outlines**: boxes around each label, handy for a test print on plain paper held up to a sheet of labels.
 
 ## Worked example

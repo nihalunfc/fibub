@@ -123,3 +123,21 @@ export function groupDigits(raw: string, system: System): string {
   else g = i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + i.slice(-3);
   return `${a.negative ? '-' : ''}${g}${raw.includes('.') ? '.' + a.frac : ''}`;
 }
+
+/** British style: "and" after hundreds and before the last tens and ones ("One Thousand and Five", "Two Hundred and Five"). */
+export function withAnd(words: string): string {
+  const w = words.replace(/Hundred (?!Thousand|Lakh|Crore|Million|Billion|Trillion)(?=[A-Z])/g, 'Hundred and ');
+  // before the last small group when a bigger group came before it and no "and" is there yet
+  return w.replace(/((?:Thousand|Million|Billion|Trillion|Lakh|Crore)) (?!and )((?:(?:Twenty|Thirty|Forty|Fifty|Sixty|Seventy|Eighty|Ninety)(?:-\w+)?|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|Fourteen|Fifteen|Sixteen|Seventeen|Eighteen|Nineteen))$/, '$1 and $2');
+}
+
+const ORD_IRR: Record<string, string> = { one: 'first', two: 'second', three: 'third', five: 'fifth', eight: 'eighth', nine: 'ninth', twelve: 'twelfth' };
+/** "Twenty-One" to "Twenty-First", "One Hundred" to "One Hundredth" (for whole numbers; any other text is left alone). */
+export function toOrdinal(words: string): string {
+  const m = words.match(/^(.*?)([A-Za-z]+)$/);
+  if (!m) return words;
+  const last = m[2], low = last.toLowerCase();
+  let o = ORD_IRR[low] ?? (low.endsWith('y') ? low.slice(0, -1) + 'ieth' : low + 'th');
+  if (last[0] === last[0].toUpperCase()) o = o[0].toUpperCase() + o.slice(1);
+  return m[1] + o;
+}

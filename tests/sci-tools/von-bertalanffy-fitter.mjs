@@ -11,5 +11,9 @@ export default async (check) => {
   check("von Bertalanffy: growth performance phi'", near(f.phi, 2.8957792770359747) && near(fitVB(D.map((r) => r[0]), D.map((r) => r[1] * 10), 0.1).phi, 2.8957792770359747));
   const w = fordWalford(D.map((r) => r[0]), D.map((r) => r[1]));
   check('von Bertalanffy: Ford-Walford line, K and Linf', w.pairs.length === 9 && near(w.b, 0.7998250666156381) && near(w.a, 12.096613597232349) && near(w.K, 0.22336224195571736) && near(w.Linf, 60.430211678928245));
+  // Large-eye dentex (Klaoudatos et al. 2025, Fishes 10: 500): mean lengths at ages 1 to 8 worked out from the paper's
+  // L∞ 25.97 cm, K 0.16, t0 -2.69 and rounded to 0.01 cm; the fit must give the parameters back, and φ' = 2.033.
+  const dA = [1, 2, 3, 4, 5, 6, 7, 8], dL = [11.58, 13.71, 15.52, 17.07, 18.38, 19.5, 20.46, 21.27], d = fitVB(dA, dL);
+  check("von Bertalanffy: dentex curve recovered (L∞ 25.95, K 0.1604, t0 -2.687, φ' 2.033)", Math.abs(d.p[0] - 25.97) < 0.05 && Math.abs(d.p[1] - 0.16) < 0.001 && Math.abs(d.p[2] + 2.69) < 0.01 && Math.abs(d.phi - 2.0332) < 0.001);
   check('von Bertalanffy: model at t0 is 0', vb(-0.5, [50, 0.3, -0.5]) === 0);
 };

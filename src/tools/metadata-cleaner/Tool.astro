@@ -4,6 +4,7 @@
 <div class="tool-ui mc">
   <label class="mc-drop">Add PDF, Word, Excel, PowerPoint, JPG or PNG files <input class="mc-file" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" multiple /></label>
   <p class="mc-msg" role="status" aria-live="polite"></p>
+  <p class="mc-sum" hidden></p>
   <div class="mc-list"></div>
   <div class="mc-row" hidden>
     <button class="btn mc-clean" type="button">Clean and download</button>
@@ -16,6 +17,9 @@
   .mc-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
   .mc-msg { margin: 0; min-height: 1.3em; } .mc-msg.err { color: var(--warn); }
   .mc-card { border: 1px solid var(--line); border-radius: 10px; padding: .6rem .8rem; background: var(--surface); }
+  .mc-sum { margin: 0; padding: .5rem .75rem; border-left: 4px solid var(--warn); background: var(--surface); } .mc-sum[hidden] { display: none; } .mc-sum.ok { border-color: var(--good); }
+  .mc-rm { float: right; font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 4px; }
+  .mc.over .mc-drop { border-color: var(--accent); background: var(--accent-soft); }
   .mc-card h3 { margin: 0 0 .3rem; font-size: 1rem; overflow-wrap: anywhere; }
   .mc-card dl { margin: 0; display: grid; grid-template-columns: minmax(7rem, auto) 1fr; gap: .15rem .8rem; font-size: 14px; }
   .mc-card dd { margin: 0; overflow-wrap: anywhere; }
@@ -39,6 +43,9 @@
     list.textContent = '';
     for (const e of entries) {
       const card = document.createElement('div'); card.className = 'mc-card';
+      const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'mc-rm'; rm.textContent = 'Remove'; rm.setAttribute('aria-label', `Remove ${e.name}`);
+      rm.onclick = () => { entries.splice(entries.indexOf(e), 1); draw(); };
+      card.appendChild(rm);
       const h = document.createElement('h3'); h.textContent = `${e.name} (${KIND_NAMES[e.kind]})`; card.appendChild(h);
       if (!e.meta.length) { const p = document.createElement('p'); p.className = 'none'; p.textContent = 'No hidden details found.'; card.appendChild(p); }
       else {
@@ -53,11 +60,15 @@
       list.appendChild(card);
     }
     row.hidden = !entries.length;
+    const sum = $<HTMLElement>('.mc-sum'), risky = entries.filter((e) => e.meta.some((m) => m.risk)).length, any = entries.filter((e) => e.meta.length).length;
+    sum.hidden = !entries.length;
+    sum.classList.toggle('ok', !any);
+    sum.textContent = !any ? 'No hidden details found in these files.' : `${any} of ${entries.length} file${entries.length === 1 ? '' : 's'} carry hidden details${risky ? `, and ${risky} of them may identify you (marked in bold)` : ''}. Clean them before you share.`;
   }
-  $<HTMLInputElement>('.mc-file').addEventListener('change', async (ev) => {
-    const input = ev.target as HTMLInputElement, files = [...(input.files || [])]; input.value = '';
+  async function addFiles(files: File[]) {
     for (const f of files) {
       try {
+        if (!f.size) { say(`${f.name} is empty.`, true); continue; }
         const bytes = new Uint8Array(await f.arrayBuffer()), kind = detectKind(bytes);
         if (!kind) { say(`${f.name} is not a type this tool can clean. Use PDF, Word, Excel, PowerPoint, JPG or PNG.`, true); continue; }
         entries.push({ name: f.name, kind, bytes, meta: await readMetadata(kind, bytes) });
@@ -65,7 +76,11 @@
       } catch { say(`${f.name} could not be read. It may be damaged or locked with a password.`, true); }
     }
     draw();
-  });
+  }
+  $<HTMLInputElement>('.mc-file').addEventListener('change', (ev) => { const input = ev.target as HTMLInputElement, files = [...(input.files || [])]; input.value = ''; addFiles(files); });
+  root.addEventListener('dragover', (e) => { e.preventDefault(); root.classList.add('over'); });
+  root.addEventListener('dragleave', () => root.classList.remove('over'));
+  root.addEventListener('drop', (e) => { e.preventDefault(); root.classList.remove('over'); addFiles([...(e.dataTransfer?.files ?? [])]); });
   $('.mc-clear').addEventListener('click', () => { entries.length = 0; say(''); draw(); });
   $('.mc-clean').addEventListener('click', async () => {
     try {
@@ -77,7 +92,9 @@
         for (const o of out) { let n = o.name, i = 2; while (seen.has(n)) n = `${i++}-${o.name}`; seen.add(n); files[n] = o.bytes; }
         download(zipSync(files, { level: 0 }), 'clean-files.zip', 'application/zip');
       }
-      say(`Cleaned ${out.length} file${out.length === 1 ? '' : 's'}.`);
+      let left = 0;
+      for (const [i, o] of out.entries()) { const k = detectKind(o.bytes); left += k ? (await readMetadata(k, o.bytes)).filter((m) => m.risk).length : 0; void i; }
+      say(`Cleaned ${out.length} file${out.length === 1 ? '' : 's'}. We read the cleaned ${out.length === 1 ? 'file' : 'files'} again: ${left ? `${left} identifying detail${left === 1 ? '' : 's'} still found` : 'no author, owner or location details left'}.`);
     } catch (err: any) { say(err.message || 'Something went wrong.', true); }
   });
 </script>

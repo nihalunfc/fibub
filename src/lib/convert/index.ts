@@ -42,14 +42,14 @@ async function bitmap(f: File) {
 function canvasBlob(c: HTMLCanvasElement, mime: string, q = 0.92) {
   return new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('ENCODE'))), mime, q));
 }
-async function drawImage(f: File, mime: string) {
+async function drawImage(f: File, mime: string, quality = 0.92) {
   const bmp = await bitmap(f);
   const c = document.createElement('canvas');
   c.width = bmp.width; c.height = bmp.height;
   const ctx = c.getContext('2d')!;
   if (mime === 'image/jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); } // JPG has no transparency
   ctx.drawImage(bmp, 0, 0); bmp.close();
-  const b = await canvasBlob(c, mime);
+  const b = await canvasBlob(c, mime, quality);
   c.width = c.height = 0;
   return b;
 }
@@ -76,8 +76,38 @@ function mdToHtml(md: string, title: string) {
   return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title></head><body>\n${out.join('\n')}\n</body></html>\n`;
 }
 
-export async function convert(files: File[], target: Target, onProgress: Progress): Promise<Converted> {
+export type PageSize = 'fit' | 'a4' | 'letter';
+export interface ConvertOptions { quality?: number; page?: PageSize }
+export const PAGE_POINTS: Record<Exclude<PageSize, 'fit'>, [number, number]> = { a4: [595.28, 841.89], letter: [612, 792] };
+
+/** Where a picture goes on a page: scaled to fit inside a margin, centred, and the page turned to suit the picture. */
+export function placeOnPage(imgW: number, imgH: number, page: PageSize, margin = 28): { pageW: number; pageH: number; x: number; y: number; w: number; h: number } {
+  if (page === 'fit') { const w = imgW * 0.75, h = imgH * 0.75; return { pageW: w, pageH: h, x: 0, y: 0, w, h }; }
+  let [pw, ph] = PAGE_POINTS[page];
+  if (imgW > imgH) [pw, ph] = [ph, pw];
+  const k = Math.min((pw - 2 * margin) / imgW, (ph - 2 * margin) / imgH);
+  const w = imgW * k, h = imgH * k;
+  return { pageW: pw, pageH: ph, x: (pw - w) / 2, y: (ph - h) / 2, w, h };
+}
+
+/** A few files of one kind (several CSVs, PDFs...) are converted one by one and returned in one ZIP. */
+async function convertEach(files: File[], target: Target, onProgress: Progress, opts: ConvertOptions): Promise<Converted> {
+  const used = new Set<string>(); const outs: { name: string; data: Uint8Array }[] = [];
+  for (const [i, f] of files.entries()) {
+    onProgress(`File ${i + 1} of ${files.length}…`);
+    const r = await convert([f], target, () => {}, opts);
+    const data = new Uint8Array(await r.blob.arrayBuffer());
+    let nm = r.name, k = 2;
+    while (used.has(nm)) nm = r.name.replace(/(\.[^.]*)?$/, `-${k++}$1`);
+    used.add(nm); outs.push({ name: nm, data });
+  }
+  const z = await zipAsync(Object.fromEntries(outs.map((o) => [o.name, o.data])), { level: 0 });
+  return { name: `converted-${target.ext}.zip`, blob: new Blob([z as Uint8Array<ArrayBuffer>], { type: MIME.zip }), note: `${files.length} files, each converted, in one ZIP.` };
+}
+
+export async function convert(files: File[], target: Target, onProgress: Progress, opts: ConvertOptions = {}): Promise<Converted> {
   const kind = kindOf(files[0])!;
+  if (files.length > 1 && kind !== 'image') return convertEach(files, target, onProgress, opts);
   const name = base(files[0].name);
   const blobOf = (s: string | Uint8Array, ext: string) => new Blob([s as any], { type: MIME[ext] });
 
@@ -90,8 +120,8 @@ export async function convert(files: File[], target: Target, onProgress: Progres
       const isJpg = f.type === 'image/jpeg' || /\.jpe?g$/i.test(f.name);
       const bytes = isPng || isJpg ? new Uint8Array(await f.arrayBuffer()) : new Uint8Array(await (await drawImage(f, 'image/jpeg')).arrayBuffer());
       const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-      const w = img.width * 0.75, h = img.height * 0.75; // 96 pixels per inch -> points
-      doc.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
+      const g = placeOnPage(img.width, img.height, opts.page ?? 'fit'); // 'fit': 96 pixels per inch -> points
+      doc.addPage([g.pageW, g.pageH]).drawImage(img, { x: g.x, y: g.y, width: g.w, height: g.h });
     }
     const out = await doc.save();
     return { name: `${files.length > 1 ? 'pictures' : name}.pdf`, blob: blobOf(out, 'pdf'), note: `${files.length} picture${files.length === 1 ? '' : 's'}, one per page.` };
@@ -100,7 +130,7 @@ export async function convert(files: File[], target: Target, onProgress: Progres
     const outs = [];
     for (const [i, f] of files.entries()) {
       onProgress(`Converting picture ${i + 1} of ${files.length}…`);
-      outs.push({ name: `${base(f.name)}.${target.ext}`, data: new Uint8Array(await (await drawImage(f, target.id)).arrayBuffer()) });
+      outs.push({ name: `${base(f.name)}.${target.ext}`, data: new Uint8Array(await (await drawImage(f, target.id, opts.quality ?? 0.92)).arrayBuffer()) });
     }
     const r = await many(outs, `pictures-${target.ext}.zip`, target.id);
     return { ...r, note: files.length > 1 ? `${files.length} pictures in one ZIP.` : '' };

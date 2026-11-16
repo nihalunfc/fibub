@@ -67,6 +67,32 @@ The last column measures how far apart neighbours are compared with the reach of
 
 To go further, the [[exoplanet-mass-calculator]] turns a star's wobble into a planet's minimum mass, the method used to find these four planets.
 
+## How we made the graphs
+
+Both charts come from `scripts/blog-figures/barnards-star-broken-resonant-chain-merger.mjs` in fibub's public code. It uses `auForPeriod`, `periodDays`, `tEq` and `habitableZone` from `src/lib/sci/habitable.ts`, the maths behind the [[habitable-zone-calculator]]: Kepler's third law in both directions, the equilibrium temperature, and the Kopparapu habitable zone limits. The period ratios, Hill spacings and the merger line are a few lines of arithmetic on top. The periods and star mass are labelled in the script with their source; the typical planet mass of 0.3 Earth masses is our choice.
+
+## How we test the maths
+
+On every change to fibub, `tests/sci.mjs` checks this maths against known answers:
+
+- Earth must come out at 254 K for an albedo of 0.306, and a tidally locked planet that keeps its heat on the day side must be exactly 2^¼ times warmer.
+- The Sun's habitable zone must come out at 0.95 to 1.68 au (conservative) and 0.75 to 1.77 au (optimistic), as Kopparapu and colleagues published; it must move inward for a heavier planet, and the tool must warn when a star is too cool for those formulas.
+
+## Check it yourself
+
+1. Open the [[habitable-zone-calculator]]. Under *Star*, type **3200** in *Temperature (K)*, **0.0035** in *Luminosity (Suns)* and **0.16** in *Mass (Suns)*. The habitable zone appears: about **0.06 to 0.12 AU** (conservative) and **0.05 to 0.13 AU** (optimistic).
+2. Under *Planet*, leave the distance empty and type **4.12** in *or orbital period (days)* for planet c, and **0.3** in *Albedo*.
+3. The distance reads about **0.027 AU** and the equilibrium temperature about **375 K**, well inside the inner edge of the habitable zone.
+4. Try **2.34**, **3.15** and **6.74** days for the other three planets, then a period of about **20 days** to see what a habitable-zone planet here would need.
+5. For the period ratios, divide neighbouring periods: 3.15 ÷ 2.34 = 1.346, close to 4 ÷ 3 = 1.333.
+
+## What researchers can use it for
+
+- **Place new planets quickly:** turn a list of periods into distances and temperatures in a minute.
+- **Spot resonances:** divide neighbouring periods and compare with simple ratios, as in Step 2.
+- **Check habitable zone claims** in a paper or press release against the Kopparapu limits.
+- **Teach Kepler's third law** with real, nearby planets: the [[kepler-orbits]] activity does it for school classes.
+
 ## The fine print
 
 - This is a **preprint, not yet peer-reviewed**. The merger is a proposed history that fits the data, not an observation.

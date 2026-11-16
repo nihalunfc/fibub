@@ -22,8 +22,8 @@ export type Curriculum = {
 };
 
 export const CURRICULA: Curriculum[] = [
-  { id: 'ncert', name: 'NCERT (India)', country: 'India', grades: 'Class 8 to 12', status: 'live', classes: CLASSES,
-    note: 'Chapters follow the topics of the NCERT books used in 2026-27 (the new books for Class 8 and 9, the 2023 rationalised books for Class 10 to 12). fibub is an independent free site, not part of NCERT, and copies no textbook text or pictures.' },
+  { id: 'ncert', name: 'NCERT and CBSE (India)', country: 'India', grades: 'Class 8 to 12', status: 'live', classes: CLASSES,
+    note: 'CBSE schools use the NCERT books for science and maths, so these pages fit CBSE students too. Chapters follow the topics of the NCERT books used in 2026-27 (the new books for Class 8 and 9, the 2023 rationalised books for Class 10 to 12). fibub is an independent free site, not part of NCERT or CBSE, and copies no textbook text or pictures.' },
   { id: 'canada', name: 'Canada (Ontario)', country: 'Canada', grades: 'Grade 8 to 12', status: 'live', classes: ONTARIO_CLASSES, unit: 'strand',
     note: 'Education in Canada is set by each province, so this starts with Ontario, the largest. Strands follow the Ontario Ministry of Education course outlines (course codes such as SNC1W, MPM2D and SPH3U); courses are revised from time to time, so check the official Ontario curriculum for the current wording. fibub is an independent free site, not part of the Ontario government, and copies no curriculum or textbook text. British Columbia and Alberta may follow.' },
   { id: 'usa', name: 'United States', country: 'United States', grades: 'Grade 8 to 12', status: 'live', classes: USA_GRADES, unit: 'topic',

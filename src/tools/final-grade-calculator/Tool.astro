@@ -8,19 +8,31 @@
       <label>Final exam weight (%)<input data-k="w" inputmode="decimal" value="30" /></label>
       <label>Target grade (%)<input data-k="t" inputmode="decimal" value="85" /></label>
     </div>
+    <label class="fg-slide" data-nokit>Target grade slider (50 to 100)<input type="range" data-k="tslide" min="50" max="100" step="0.5" value="85" /></label>
     <p class="fg-big" aria-live="polite"></p>
     <p class="fg-say" aria-live="polite"></p>
+    <p class="fg-work" aria-live="polite"></p>
+    <details class="fg-more">
+      <summary>More options: what if I score ..., exam points</summary>
+      <div class="fg-fields">
+        <label>If I score this on the final (%)<input data-k="exam" inputmode="decimal" placeholder="e.g. 78" /></label>
+        <label>Final is out of (points, optional)<input data-k="pts" inputmode="decimal" placeholder="e.g. 120" /></label>
+      </div>
+      <p class="fg-if" aria-live="polite"></p>
+    </details>
+  </section>
+  <section class="panel">
+    <h3 class="fg-h">Course grade for each final score</h3>
+    <svg class="fg-svg" viewBox="0 0 240 130" role="img" aria-label="Course grade for each possible final exam score, with your target"></svg>
   </section>
   <section class="panel">
     <h3 class="fg-h">Score needed for each grade</h3>
+    <label>Letter scale
+      <select data-k="scale"><option value="simple">Simple A to D (90, 80, 70, 60)</option><option value="plusminus">Plus and minus (A 93, A- 90, B+ 87 ...)</option><option value="uk">UK degree classes (70, 60, 50, 40)</option></select>
+    </label>
     <table class="fg-table"><thead><tr><th>Grade</th><th>Course grade</th><th>Final exam score</th></tr></thead><tbody></tbody></table>
-    <p class="fg-note">Letter cut-offs (lowest percent for each). Change them to your school's scale.</p>
-    <div class="fg-cuts">
-      <label>A<input data-c="A" inputmode="decimal" value="90" /></label>
-      <label>B<input data-c="B" inputmode="decimal" value="80" /></label>
-      <label>C<input data-c="C" inputmode="decimal" value="70" /></label>
-      <label>D<input data-c="D" inputmode="decimal" value="60" /></label>
-    </div>
+    <p class="fg-note">Letter cut-offs (lowest percent for each) are common defaults. Change them to your school's scale.</p>
+    <div class="fg-cuts"></div>
   </section>
   <p><button type="button" class="btn secondary small fg-reset">Reset to the example</button></p>
   <p class="fg-fine">Needed = (target − current × (1 − weight)) ÷ weight. Nothing you type leaves this page.</p>
@@ -30,7 +42,7 @@
   .fg { display: grid; gap: 14px; margin-bottom: 32px; }
   .fg .panel { padding: 16px; }
   .fg-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
-  .fg-cuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .fg-cuts { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-top: 8px; }
   .fg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .fg input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .fg input:focus { border-color: var(--accent); outline: none; }
@@ -42,37 +54,88 @@
   .fg-table td.no { color: var(--bad); }
   .fg-table td.ok { color: var(--good); }
   .fg-note, .fg-fine { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  .fg select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fg input[type="range"] { padding: 0; border: 0; background: transparent; accent-color: var(--accent); }
+  .fg-work { margin: 8px 0 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+  .fg-if { margin: 8px 0 0; font-size: 15px; }
+  .fg-more { margin-top: 12px; }
+  .fg-more summary { cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+  .fg-svg { width: 100%; max-width: 420px; height: auto; display: block; margin-top: 12px; }
+  .fg-svg .ln { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fg-svg .tg { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+  .fg-svg .mk { stroke: var(--accent); stroke-width: 1; }
+  .fg-svg text { fill: var(--muted); font-size: 9px; }
+  .fg-svg circle { fill: var(--accent); }
 </style>
 
 <script>
+  import { SCALES, neededOnFinal, afterFinal, letterFor } from '../../lib/everyday/grades';
   const root = document.querySelector('.fg') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
-  const big = q('.fg-big'), say = q('.fg-say'), body = q('.fg-table tbody');
+  const k = (s: string) => q<HTMLInputElement>(`[data-k="${s}"]`);
+  const big = q('.fg-big'), say = q('.fg-say'), body = q('.fg-table tbody'), work = q('.fg-work'), ifEl = q('.fg-if'), svg = q('.fg-svg'), cutsEl = q('.fg-cuts');
   const num = (s: string) => (s.trim() === '' ? NaN : Number(s.replace(',', '.')));
   const f1 = (v: number) => v.toFixed(1);
-  const need = (cur: number, w: number, t: number) => (t - cur * (1 - w / 100)) / (w / 100);
-  const words = (n: number) => n > 100 ? `${f1(n)}%: over 100%, so not possible with a normal final.` : n <= 0 ? 'Already safe: even 0% on the final keeps it.' : `${f1(n)}%`;
-  const calc = () => {
-    const cur = num(q<HTMLInputElement>('[data-k="cur"]').value), w = num(q<HTMLInputElement>('[data-k="w"]').value), t = num(q<HTMLInputElement>('[data-k="t"]').value);
-    body.innerHTML = '';
-    if (![cur, w, t].every(Number.isFinite)) { big.textContent = ''; say.textContent = 'Type the three numbers above.'; return; }
-    if (w <= 0) { big.textContent = ''; say.textContent = 'With a final weight of 0 the final cannot change your grade: it stays at ' + f1(cur) + '%.'; return; }
-    if (w > 100) { big.textContent = ''; say.textContent = 'The final exam weight cannot be more than 100%.'; return; }
-    const n = need(cur, w, t);
-    big.textContent = n > 100 ? `${f1(n)}% needed` : n <= 0 ? '0% needed' : `${f1(n)}% needed`;
-    say.textContent = n > 100 ? `That is over 100%, so a ${f1(t)}% course grade cannot be reached with a normal final. The best you can get with 100% is ${f1(cur * (1 - w / 100) + w)}%.`
-      : n <= 0 ? `You keep at least ${f1(t)}% even with 0% on the final (you would end on ${f1(cur * (1 - w / 100))}%).`
-      : `Score ${f1(n)}% on a final worth ${f1(w)}% to move from ${f1(cur)}% to ${f1(t)}%.`;
-    for (const g of ['A', 'B', 'C', 'D']) {
-      const c = num(q<HTMLInputElement>(`[data-c="${g}"]`).value); if (!Number.isFinite(c)) continue;
-      const v = need(cur, w, c), tr = document.createElement('tr');
-      const cells = [g, f1(c) + '%', words(v)];
-      cells.forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (i === 2) td.className = v > 100 ? 'no' : v <= 0 ? 'ok' : ''; tr.append(td); });
-      body.append(tr);
+  const need = neededOnFinal;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string>, text?: string) => { const e = document.createElementNS(SVGNS, tag); for (const [a, v] of Object.entries(attrs)) e.setAttribute(a, v); if (text) e.textContent = text; svg.append(e); };
+  const words = (v: number, pts: number) => {
+    if (v > 100) return `${f1(v)}%: over 100%, so not possible with a normal final.`;
+    if (v <= 0) return 'Already safe: even 0% on the final keeps it.';
+    return `${f1(v)}%` + (pts > 0 ? ` (${(Math.ceil(v * pts / 100 * 10 - 1e-9) / 10).toFixed(1)} of ${pts} points)` : '');
+  };
+  const cuts = (): [string, number][] => [...cutsEl.querySelectorAll<HTMLInputElement>('[data-c]')].map((i) => [i.dataset.c!, num(i.value)]);
+  const below = () => SCALES[k('scale').value].below;
+
+  const buildCuts = () => {
+    const sc = SCALES[k('scale').value]; cutsEl.innerHTML = '';
+    for (const [g, c] of sc.cuts) {
+      const l = document.createElement('label'); l.append(g);
+      const i = document.createElement('input'); i.dataset.c = g; i.dataset.k = 'c-' + g; i.inputMode = 'decimal'; i.value = String(c); i.setAttribute('aria-label', `Lowest percent for ${g}`);
+      i.addEventListener('input', calc); l.append(i); cutsEl.append(l);
     }
   };
-  const defaults: Record<string, string> = { cur: '82', w: '30', t: '85', A: '90', B: '80', C: '70', D: '60' };
-  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
-  q('.fg-reset').addEventListener('click', () => { root.querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.value = defaults[i.dataset.k || i.dataset.c || ''] ?? ''; }); calc(); });
-  calc();
+  const chart = (cur: number, w: number, t: number, n: number) => {
+    svg.innerHTML = '';
+    const lo = afterFinal(cur, w, 0), hi = afterFinal(cur, w, 100);
+    const y0 = Math.min(lo, t) - 3, y1 = Math.max(hi, t) + 3, X = (s: number) => 28 + (s / 100) * 200, Y = (g: number) => 108 - ((g - y0) / (y1 - y0)) * 96;
+    sv('polyline', { class: 'ln', points: `${X(0)},${Y(lo)} ${X(100)},${Y(hi)}` });
+    sv('line', { class: 'tg', x1: '28', x2: '228', y1: String(Y(t)), y2: String(Y(t)) });
+    sv('text', { x: '30', y: String(Math.max(10, Y(t) - 3)) }, `target ${f1(t)}%`);
+    sv('text', { x: '28', y: '122' }, 'final 0%'); sv('text', { x: '228', y: '122', 'text-anchor': 'end' }, '100%');
+    sv('text', { x: '2', y: String(Y(lo) + 3) }, f1(lo)); sv('text', { x: '238', y: String(Y(hi) + (Y(hi) < 14 ? 10 : -2)), 'text-anchor': 'end' }, f1(hi));
+    if (n > 0 && n <= 100) { sv('line', { class: 'mk', x1: String(X(n)), x2: String(X(n)), y1: String(Y(t)), y2: '108' }); sv('circle', { cx: String(X(n)), cy: String(Y(t)), r: '3.5' }); sv('text', { x: String(Math.min(200, X(n) + 4)), y: '100' }, `need ${f1(n)}%`); }
+  };
+  const calc = () => {
+    const cur = num(k('cur').value), w = num(k('w').value), t = num(k('t').value), pts = num(k('pts').value);
+    body.innerHTML = ''; svg.innerHTML = ''; work.textContent = ''; ifEl.textContent = '';
+    if (![cur, w, t].every(Number.isFinite)) { big.textContent = ''; say.textContent = 'Type the three numbers above.'; return; }
+    if (cur < 0 || t < 0 || w < 0) { big.textContent = ''; say.textContent = 'Grades and weights cannot be negative.'; return; }
+    if (cur > 200 || t > 200) { big.textContent = ''; say.textContent = 'That grade is far above 100%: check the number.'; return; }
+    if (w === 0) { big.textContent = ''; say.textContent = 'With a final weight of 0 the final cannot change your grade: it stays at ' + f1(cur) + '%.'; return; }
+    if (w > 100) { big.textContent = ''; say.textContent = 'The final exam weight cannot be more than 100%.'; return; }
+    const sl = k('tslide'); if (t >= 50 && t <= 100) sl.value = String(t);
+    const n = need(cur, w, t), ptsN = pts > 0 ? pts : 0;
+    big.textContent = `${f1(Math.max(n, 0))}% needed`;
+    say.textContent = n > 100 ? `That is over 100%, so a ${f1(t)}% course grade cannot be reached with a normal final. The best you can get with 100% is ${f1(afterFinal(cur, w, 100))}%.`
+      : n <= 0 ? `You keep at least ${f1(t)}% even with 0% on the final (you would end on ${f1(afterFinal(cur, w, 0))}%).`
+      : `Score ${f1(n)}% on a final worth ${f1(w)}% to move from ${f1(cur)}% to ${f1(t)}%.` + (ptsN && n > 0 ? ` That is ${(Math.ceil(n * ptsN / 100 * 10 - 1e-9) / 10).toFixed(1)} of ${ptsN} points.` : '');
+    work.textContent = `Working: (${f1(t)} − ${f1(cur)} × ${(1 - w / 100).toFixed(2)}) ÷ ${(w / 100).toFixed(2)} = ${f1(n)}`;
+    const e = num(k('exam').value);
+    if (Number.isFinite(e) && e >= 0) { const g = afterFinal(cur, w, e); ifEl.textContent = `Scoring ${f1(e)}% on the final gives ${f1(g)}% for the course (${letterFor(g, cuts(), below())}).`; }
+    else ifEl.textContent = 'Type a score above to see the course grade it would give.';
+    for (const [g, c] of cuts()) {
+      if (!Number.isFinite(c)) continue;
+      const v = need(cur, w, c), tr = document.createElement('tr');
+      [g, f1(c) + '%', words(v, ptsN)].forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (i === 2) td.className = v > 100 ? 'no' : v <= 0 ? 'ok' : ''; tr.append(td); });
+      body.append(tr);
+    }
+    chart(cur, w, t, n);
+  };
+  const defaults: Record<string, string> = { cur: '82', w: '30', t: '85', exam: '', pts: '' };
+  [...root.querySelectorAll<HTMLInputElement>('input:not([type="range"])')].forEach((i) => i.addEventListener('input', calc));
+  k('scale').addEventListener('change', () => { buildCuts(); calc(); });
+  k('tslide').addEventListener('input', () => { k('t').value = k('tslide').value; calc(); });
+  q('.fg-reset').addEventListener('click', () => { for (const [d, v] of Object.entries(defaults)) k(d).value = v; k('scale').value = 'simple'; buildCuts(); calc(); });
+  buildCuts(); calc();
 </script>

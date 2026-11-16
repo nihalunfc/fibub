@@ -57,7 +57,35 @@ export function visibleTable(s: Sheet, skipHidden: boolean): Table {
   return s.table.filter((_, r) => !s.hiddenRows.has(r)).map((r) => cols.map((c) => r[c] ?? ''));
 }
 
-export const sheetCsv = (s: Sheet, skipHidden: boolean) => toCsv(visibleTable(s, skipHidden));
+/** Which rows to show: those containing the search words (every word, any column), sorted by a column (numbers as numbers).
+ *  The header row (row 0) stays first when `header` is true. Returns 0-based row numbers of the sheet. */
+export function viewRows(s: Sheet, o: { query?: string; sortCol?: number; dir?: 1 | -1; header?: boolean; showHidden?: boolean }): number[] {
+  const words = (o.query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+  const head = !!o.header && s.table.length > 0;
+  let idx = s.table.map((_, i) => i).filter((i) => (o.showHidden ?? true) || !s.hiddenRows.has(i));
+  const first = head && idx[0] === 0 ? [0] : [];
+  idx = idx.filter((i) => !(head && i === 0));
+  if (words.length) idx = idx.filter((i) => { const t = s.table[i].join(' ').toLowerCase(); return words.every((w) => t.includes(w)); });
+  const c = o.sortCol;
+  if (c !== undefined && c >= 0) {
+    const d = o.dir ?? 1;
+    const num = (v: string) => { const t = (v ?? '').replace(/[,\s$£€₹%]/g, ''); return t !== '' && /^-?\d*\.?\d+(e[+-]?\d+)?$/i.test(t) ? parseFloat(t) : NaN; };
+    idx = idx.map((i, k) => [i, k] as const).sort(([a, ka], [b, kb]) => {
+      const va = s.table[a][c] ?? '', vb = s.table[b][c] ?? '';
+      if (va === '' && vb !== '') return 1; if (vb === '' && va !== '') return -1; // blanks always last
+      const na = num(va), nb = num(vb);
+      const r = !isNaN(na) && !isNaN(nb) ? na - nb : va.localeCompare(vb, undefined, { numeric: true, sensitivity: 'base' });
+      return r * d || ka - kb;
+    }).map(([i]) => i);
+  }
+  return [...first, ...idx];
+}
+
+export const sheetCsv = (s: Sheet, skipHidden: boolean, rows?: number[]) => {
+  if (!rows) return toCsv(visibleTable(s, skipHidden));
+  const cols = (s.table[0] ?? []).map((_, i) => i).filter((i) => !skipHidden || !s.hiddenCols.has(i));
+  return toCsv(rows.filter((r) => !skipHidden || !s.hiddenRows.has(r)).map((r) => cols.map((c) => s.table[r][c] ?? '')));
+};
 
 /** A PDF of the sheet: landscape pages, columns scaled to fit the width, the header row repeated on every page. */
 export async function sheetPdf(s: Sheet, skipHidden: boolean, paper: 'a4' | 'letter', headerRow: boolean): Promise<{ bytes: Uint8Array; pages: number; lost: string[]; scale: number }> {

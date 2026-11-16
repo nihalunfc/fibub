@@ -1,0 +1,111 @@
+---
+// #T991 Salary split: basic vs allowances and what basic drives.
+---
+<div class="tool-ui sb">
+  <section class="panel">
+    <h2>Your package</h2>
+    <div class="sb-grid">
+      <label>Currency <select data-k="cur"></select></label>
+      <label>I will type <select data-k="mode"><option value="amt">amounts</option><option value="pct">percent of the total</option></select></label>
+      <label class="sb-pct">Total a month <input inputmode="decimal" data-k="total" value="15000" /></label>
+      <label>Basic <span class="sb-suf"><input inputmode="decimal" data-k="basic" value="9000" /><i class="sb-u">a month</i></span></label>
+      <label>Housing <span class="sb-suf"><input inputmode="decimal" data-k="housing" value="4000" /><i class="sb-u">a month</i></span></label>
+      <label>Transport <span class="sb-suf"><input inputmode="decimal" data-k="transport" value="1000" /><i class="sb-u">a month</i></span></label>
+      <label class="sb-amt">Other allowances <span class="sb-suf"><input inputmode="decimal" data-k="other" value="1000" /><i>a month</i></span></label>
+    </div>
+    <p class="note bad sb-err" role="alert" hidden></p>
+  </section>
+  <section class="sb-res" aria-live="polite">
+    <p class="sb-lead"></p>
+    <div class="panel sb-wrap"><table>
+      <thead><tr><th>Part</th><th>Per month</th><th>Share</th></tr></thead>
+      <tbody class="sb-body"></tbody>
+    </table></div>
+    <div class="sb-stats">
+      <div><span>Daily basic (basic / 30)</span><b class="sb-d30"></b></div>
+      <div><span>Daily basic (basic x 12 / 365)</span><b class="sb-d365"></b></div>
+      <div><span>Overtime hourly base</span><b class="sb-ot"></b></div>
+      <div class="good"><span>End-of-service a year</span><b class="sb-eos"></b></div>
+    </div>
+    <p class="sb-fine">End-of-service uses 21 days of basic per year: example rate, UAE first 5 years; rules differ, use the <a href="/money/gratuity-calculator/">gratuity calculator</a>.</p>
+  </section>
+  <section class="panel">
+    <h2>Compare: same total, different basic</h2>
+    <label>Try a basic share of <span class="sb-suf"><input inputmode="decimal" data-k="alt" value="40" /><i>%</i></span></label>
+    <p class="sb-cmp"></p>
+  </section>
+  <p class="sb-fine">An estimate, not legal advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .sb > *, .sb-res > * { min-width: 0; }
+  .sb h2 { margin: 0 0 12px; font-size: 18px; }
+  .sb .panel { padding: 16px; }
+  .sb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .sb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sb input, .sb select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sb input:focus, .sb select:focus { border-color: var(--accent); outline: none; }
+  .sb-suf { position: relative; display: block; }
+  .sb-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .sb-suf input { padding-right: 80px; }
+  .sb-res { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  .sb-lead, .sb-cmp, .sb-fine { margin: 0; font-size: 15px; }
+  .sb-fine { color: var(--muted); font-size: 13px; }
+  .sb-cmp { margin-top: 10px; }
+  .sb-wrap { overflow-x: auto; }
+  .sb table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sb th, .sb td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .sb th:first-child, .sb td:first-child { text-align: left; }
+  .sb th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .sb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sb-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .sb-stats span { font-size: 13px; color: var(--muted); }
+  .sb-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .sb-stats .good b { color: var(--good); }
+  @media (max-width: 720px) { .sb-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.sb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('[data-k="cur"]').innerHTML = currencyOptions(defaultCurrency());
+  const EOS_DAYS = 21;
+  function run() {
+    const pct = f('mode').value === 'pct';
+    root.querySelectorAll<HTMLElement>('.sb-u').forEach((u) => (u.textContent = pct ? '% of total' : 'a month'));
+    q('.sb-pct').style.display = pct ? '' : 'none';
+    q('.sb-amt').style.display = pct ? 'none' : '';
+    const $ = (n: number, d = 0) => money(n, f('cur').value, d);
+    let total: number, basic: number, housing: number, transport: number, other: number;
+    if (pct) {
+      total = num(f('total').value);
+      basic = (total * num(f('basic').value)) / 100; housing = (total * num(f('housing').value)) / 100; transport = (total * num(f('transport').value)) / 100;
+      other = total - basic - housing - transport;
+    } else {
+      basic = num(f('basic').value); housing = num(f('housing').value); transport = num(f('transport').value); other = num(f('other').value);
+      total = basic + housing + transport + other;
+    }
+    const bad = !(total > 0) || !(basic > 0) ? 'Enter a total and a basic pay above zero.' : other < -0.005 || basic < 0 || housing < 0 || transport < 0 ? 'The parts add up to more than the total, or one is negative.' : '';
+    q('.sb-err').hidden = !bad; q('.sb-err').textContent = bad; q('.sb-res').hidden = !!bad;
+    if (bad) { q('.sb-cmp').textContent = ''; return; }
+    other = Math.max(other, 0);
+    const share = (v: number) => ((v / total) * 100).toFixed(1) + '%';
+    q('.sb-body').innerHTML = [['Basic', basic], ['Housing', housing], ['Transport', transport], ['Other', other], ['Total', total]].map(([n, v]) => `<tr><td>${n}</td><td>${$(v as number)}</td><td>${share(v as number)}</td></tr>`).join('');
+    q('.sb-lead').innerHTML = `Basic is <b>${share(basic)}</b> of your package. Overtime, leave pay and end-of-service are often worked on basic only.`;
+    q('.sb-d30').textContent = $(basic / 30, 2);
+    q('.sb-d365').textContent = $((basic * 12) / 365, 2);
+    q('.sb-ot').textContent = $(basic / 30 / 8, 2);
+    const eos = (b: number) => (b / 30) * EOS_DAYS;
+    q('.sb-eos').textContent = $(eos(basic));
+    const alt = num(f('alt').value);
+    if (alt > 0 && alt <= 100) {
+      const ab = (total * alt) / 100, d = eos(ab) - eos(basic);
+      q('.sb-cmp').textContent = `At ${alt}% basic (${$(ab)} of ${$(total)}), the end-of-service estimate is ${$(eos(ab))} a year, ${d === 0 ? 'the same' : $(Math.abs(d)) + (d < 0 ? ' less' : ' more')} than now.`;
+    } else q('.sb-cmp').textContent = 'Type a share between 1 and 100.';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

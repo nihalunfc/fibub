@@ -32,7 +32,7 @@ Add as many pages as you need and save them as one PDF. Everything runs in your 
 
 1. Press **Take a photo** on a phone, or **Add images** to pick files. Put the page on a darker table for the best edge finding.
 2. Drag the four round corners onto the corners of the page. **Find page edges** tries again by itself; **Use whole photo** skips straightening.
-3. Pick a look and a page size. Add more pages the same way; use the arrows to reorder and the cross to delete.
+3. Pick a look and a page size. Open **More options** to choose a Small, Standard or High file size (Small suits email and upload limits; the size of your PDF is shown after you save). You can also drop photos onto the tool. Add more pages the same way; use the arrows to reorder and the cross to delete.
 4. Press **Download PDF**.
 
 ## What each setting does

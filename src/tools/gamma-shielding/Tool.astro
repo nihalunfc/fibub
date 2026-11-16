@@ -89,7 +89,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
     if (i0s && !(I0 > 0)) return fail('The incoming intensity must be above zero, or leave it blank.');
     err.hidden = true; out.hidden = false;
     const mu = mr * rho, lu = q<HTMLSelectElement>('.gs-xu').selectedOptions[0].text, L = (cm: number) => `${sig(cm / U, 3)} ${lu}`;
-    const name = sel('.gs-mat') ? MATERIALS[sel('.gs-mat')].name.toLowerCase() : 'shield';
+    const name = typed ? 'your material' : sel('.gs-mat') ? MATERIALS[sel('.gs-mat')].name.toLowerCase() : 'shield'; // a typed μ/ρ is not the listed material
     const T0 = transmission(mu, x), TB = transmission(mu, x, B), need = thicknessFor(mu, want, B);
     q('.gs-big').textContent = `${L(x)} of ${name} lets through ${pct(B.kind === 'none' ? T0 : TB)} of ${sig(E, 3)} MeV gamma rays${B.kind === 'none' ? '' : ' (with buildup)'}`;
     // Where the μ/ρ in use came from, and what the built-in estimate is made of.

@@ -12,7 +12,10 @@
     <div class="zc-verdict note"></div>
     <div class="zc-actions"></div>
     <div class="zc-kpis"></div>
+    <div class="zc-warn note warn" hidden></div>
+    <details class="zc-types"><summary><b>More options</b>: totals by file type</summary><div class="zc-tablewrap"><table class="zc-table zc-typetable"><thead><tr><th>Type</th><th>Files</th><th>Size</th><th>In the ZIP</th></tr></thead><tbody></tbody></table></div></details>
     <h3>What's inside</h3>
+    <label class="zc-find">Find a file name <input type="search" class="zc-q" placeholder="Part of a name" autocomplete="off" /></label>
     <div class="zc-tablewrap"><table class="zc-table">
       <thead><tr><th>File</th><th>Size</th><th>In the ZIP</th><th>Saved</th><th>Packing</th></tr></thead>
       <tbody></tbody>
@@ -46,13 +49,15 @@
   .zc-table th, .zc-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   .zc-table td:first-child { white-space: normal; word-break: break-all; min-width: 140px; }
   .zc-table .flag { color: var(--warn); font-weight: 600; }
+  .zc-warn { font-size: 15px; } .zc-warn ul { margin: 6px 0 0; padding-left: 20px; }
+  .zc-find { display: grid; gap: 4px; font-size: 14px; color: var(--muted); } .zc-find input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); max-width: 100%; box-sizing: border-box; }
   .zc-more { margin: 0; color: var(--muted); font-size: 14px; }
   .zc-more:empty { display: none; }
   .zc-again { justify-self: start; }
 </style>
 
 <script>
-  import { readZipInfo, METHOD_NAMES, ALREADY_COMPRESSED } from '../../lib/zipinfo';
+  import { readZipInfo, zipWarnings, byType, METHOD_NAMES, ALREADY_COMPRESSED } from '../../lib/zipinfo';
   import { formatBytes } from '../../lib/compress/format';
   import { handOff } from '../../lib/handoff';
 
@@ -69,6 +74,8 @@
   const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const pct = (a: number, b: number) => (b > 0 ? Math.round((1 - a / b) * 100) : 0);
 
+  let showList = () => {};
+  q('.zc-q').addEventListener('input', () => showList());
   function reset() {
     root.dataset.state = 'empty'; input.value = ''; status.textContent = '';
     q('.zc-report').hidden = true; err.hidden = true;
@@ -135,12 +142,20 @@
     ].map(([k, val]) => `<div><span>${k}</span><b>${val}</b></div>`).join('') +
       (stored.length ? `<div><span>Not compressed</span><b>${stored.length} file${stored.length === 1 ? '' : 's'}</b></div>` : '');
 
-    const top = files.slice().sort((a, b) => b.size - a.size).slice(0, 50);
-    q('.zc-table tbody').innerHTML = top.map((e) => {
-      const flag = e.method === 0 && e.size > 1024 && !ALREADY_COMPRESSED.test(e.name);
-      return `<tr><td>${esc(e.name)}</td><td>${formatBytes(e.size)}</td><td>${formatBytes(e.packed)}</td><td>${Math.max(0, pct(e.packed, e.size))}%</td><td class="${flag ? 'flag' : ''}">${e.encrypted ? 'Locked' : esc(METHOD_NAMES[e.method] ?? `Method ${e.method}`)}${flag ? ' · could shrink' : ''}</td></tr>`;
-    }).join('');
-    q('.zc-more').textContent = files.length > 50 ? `Showing the 50 largest of ${files.length.toLocaleString('en')} files.` : '';
+    const warns = zipWarnings(info.entries), wb = q('.zc-warn');
+    wb.hidden = !warns.length; wb.innerHTML = warns.length ? `<b>Worth a look before you open it</b><ul>${warns.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : '';
+    q('.zc-typetable tbody').innerHTML = byType(info.entries).slice(0, 20).map((t) => `<tr><td>${esc(t.type)}</td><td>${t.count.toLocaleString('en')}</td><td>${formatBytes(t.size)}</td><td>${formatBytes(t.packed)}</td></tr>`).join('');
+    const sorted = files.slice().sort((a, b) => b.size - a.size);
+    const list = () => {
+      const f = q<HTMLInputElement>('.zc-q').value.trim().toLowerCase();
+      const hit = f ? sorted.filter((e) => e.name.toLowerCase().includes(f)) : sorted, top = hit.slice(0, 50);
+      q('.zc-table:not(.zc-typetable) tbody').innerHTML = top.map((e) => {
+        const flag = e.method === 0 && e.size > 1024 && !ALREADY_COMPRESSED.test(e.name);
+        return `<tr><td>${esc(e.name)}</td><td>${formatBytes(e.size)}</td><td>${formatBytes(e.packed)}</td><td>${Math.max(0, pct(e.packed, e.size))}%</td><td class="${flag ? 'flag' : ''}">${e.encrypted ? 'Locked' : esc(METHOD_NAMES[e.method] ?? `Method ${e.method}`)}${flag ? ' · could shrink' : ''}</td></tr>`;
+      }).join('');
+      q('.zc-more').textContent = f && !hit.length ? `No file name contains "${f}".` : hit.length > 50 ? `Showing the 50 largest of ${hit.length.toLocaleString('en')} ${f ? 'matching ' : ''}files.` : '';
+    };
+    showList = list; q<HTMLInputElement>('.zc-q').value = ''; list();
     q('.zc-report').hidden = false;
     root.dataset.state = 'done';
   }

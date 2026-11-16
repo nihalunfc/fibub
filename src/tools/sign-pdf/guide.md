@@ -36,7 +36,8 @@ To fill in the form fields first, use [[fill-pdf]]; to make the signed file smal
 2. Make your signature. **Draw** it with a finger, stylus or mouse; **Type** your name and pick one of three writing styles; or **Upload** a photo of a signature on white paper.
 3. Press **Add signature**, then tap the page. Drag the box to move it, pull the square corner to resize it, and press the **x** to remove it. Arrow keys nudge the selected box.
 4. Add the **date**, your **initials** or any short **text** the same way. Tick "Put my initials on every page" to repeat the first initials in the same spot on all pages.
-5. Press **Download signed PDF** and open it to check.
+5. Under **Ink and pen options** choose black, blue ballpoint, purple or dark red ink and the thickness of a drawn line.
+6. Press **Download signed PDF** and open it to check.
 
 ## What each setting does
 

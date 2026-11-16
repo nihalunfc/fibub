@@ -23,6 +23,8 @@ flow:
 ---
 
 ## What it does
+New: drag a page card onto another to reorder it (or use the arrows), pick pages by number, select odd or even pages, then rotate, duplicate or delete the selection in one go. You can also add a blank page, reverse the order, and save only the pages you list, such as 1-3,5. After saving, the page count and file size are shown.
+
 
 Organise PDF is a small page desk. Add one PDF or several, and every page shows as a picture. Move pages, turn them, delete the ones you do not want, then save everything as one PDF, split it into parts, or pull out only the pages you picked.
 

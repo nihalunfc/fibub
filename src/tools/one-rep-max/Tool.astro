@@ -20,13 +20,34 @@
       <div><dt>Average</dt><dd class="rm-av"></dd></div>
     </dl>
     <p class="rm-warn" role="status"></p>
-    <p class="rm-say"></p>
+    <p class="rm-say" aria-live="polite"></p>
+    <details class="rm-more">
+      <summary>More options (all formulas, reps for a weight, plates)</summary>
+      <h3>All formulas</h3>
+      <div class="rm-scroll"><table class="rm-all"><thead><tr><th>Formula</th><th>1RM</th></tr></thead><tbody></tbody></table></div>
+      <p class="rm-range"></p>
+      <h3>What can I lift for a number of reps?</h3>
+      <label>Reps wanted
+        <input data-k="tr" inputmode="numeric" value="8" />
+      </label>
+      <p class="rm-tr" aria-live="polite"></p>
+      <h3>Plates for the bar</h3>
+      <div class="rm-fields">
+        <label>Load the bar to (<span class="rm-pu">kg</span>)
+          <input data-k="load" inputmode="decimal" value="" placeholder="same as weight lifted" />
+        </label>
+        <label>Empty bar (<span class="rm-pu">kg</span>)
+          <input data-k="bar" inputmode="decimal" value="20" />
+        </label>
+      </div>
+      <p class="rm-plates" aria-live="polite"></p>
+    </details>
     <button type="button" class="rm-reset">Reset</button>
   </section>
   <section class="panel">
     <h3>Percentage table</h3>
     <p class="rm-fine">Percent of the average one-rep max, and about how many reps that weight allows (Epley turned around).</p>
-    <div class="rm-scroll"><table><thead><tr><th>% of 1RM</th><th>Weight</th><th>About reps</th></tr></thead><tbody></tbody></table></div>
+    <div class="rm-scroll"><table class="rm-pct"><thead><tr><th>% of 1RM</th><th>Weight</th><th>About reps</th></tr></thead><tbody></tbody></table></div>
   </section>
   <p class="rm-fine">An estimate for planning training, not a test. Nothing you type leaves this page.</p>
 </div>
@@ -53,29 +74,44 @@
   .rm table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
   .rm th, .rm td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
   .rm th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .rm-more { margin-top: 12px; }
+  .rm-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .rm-more h3 { margin-top: 14px; }
+  .rm-range, .rm-tr, .rm-plates { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
   .rm-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { epley, brzycki, FORMULAS, weightForReps, platesPerSide, LB } from '../../lib/everyday/body';
   const root = document.querySelector('.rm') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const q = (c: string) => root.querySelector(c) as HTMLElement;
-  const LB = 0.45359237;
-  const DEF: Record<string, string> = { w: '100', u: 'kg', r: '5', step: '2.5' };
+  const DEF: Record<string, string> = { w: '100', u: 'kg', r: '5', step: '2.5', tr: '8', load: '', bar: '20' };
   const n1 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const epley = (w: number, r: number) => (r === 1 ? w : w * (1 + r / 30));
-  const brzycki = (w: number, r: number) => (r >= 37 ? NaN : r === 1 ? w : (w * 36) / (37 - r));
   let unit = 'kg';
   const calc = () => {
     const w = parseFloat(el('w').value), r = Math.round(parseFloat(el('r').value)), u = el('u').value;
-    const tb = q('tbody'); tb.innerHTML = '';
-    if (!(w > 0) || !(r >= 1)) { ['.rm-ep', '.rm-br', '.rm-av'].forEach((c) => (q(c).textContent = '–')); q('.rm-warn').textContent = ''; q('.rm-say').textContent = 'Type the weight and the reps (1 or more).'; return; }
+    const tb = q('.rm-pct tbody'); tb.innerHTML = '';
+    root.querySelectorAll('.rm-pu').forEach((x) => (x.textContent = u));
+    if (!(w > 0) || !(r >= 1)) { ['.rm-ep', '.rm-br', '.rm-av'].forEach((c) => (q(c).textContent = '–')); q('.rm-all tbody').innerHTML = ''; q('.rm-range').textContent = ''; q('.rm-tr').textContent = ''; q('.rm-plates').textContent = ''; q('.rm-warn').textContent = ''; q('.rm-say').textContent = 'Type the weight and the reps (1 or more).'; return; }
     const e = epley(w, r), b = brzycki(w, r), avg = Number.isFinite(b) ? (e + b) / 2 : e;
     q('.rm-ep').textContent = `${n1(e)} ${u}`;
     q('.rm-br').textContent = Number.isFinite(b) ? `${n1(b)} ${u}` : 'n/a';
     q('.rm-av').textContent = `${n1(avg)} ${u}`;
     q('.rm-warn').textContent = r > 12 ? `With more than 12 reps these formulas are less reliable; a set of 3 to 10 reps gives a better estimate.` : '';
     q('.rm-say').textContent = `${n1(w)} ${u} for ${r} rep${r === 1 ? '' : 's'}: Epley w × (1 + r/30), Brzycki w × 36 / (37 − r).`;
+    const vals = FORMULAS.map(([n, f]) => [n, f(w, r)] as [string, number]).filter(([, v]) => Number.isFinite(v));
+    q('.rm-all tbody').innerHTML = vals.map(([n, v]) => `<tr data-f="${n}"><td>${n}</td><td>${n1(v)} ${u}</td></tr>`).join('');
+    const lo = Math.min(...vals.map((v) => v[1])), hi = Math.max(...vals.map((v) => v[1]));
+    q('.rm-range').textContent = `The ${vals.length} formulas give ${n1(lo)} to ${n1(hi)} ${u}. Their spread shows how much an estimate can differ; the real figure depends on you and the lift.`;
+    const tr = Math.round(parseFloat(el('tr').value));
+    q('.rm-tr').textContent = tr >= 1 ? `About ${n1(weightForReps(avg, tr))} ${u} for ${tr} rep${tr === 1 ? '' : 's'} (from the average 1RM, Epley turned round).` : 'Type reps of 1 or more.';
+    const ld = parseFloat(el('load').value) > 0 ? parseFloat(el('load').value) : w, bar = parseFloat(el('bar').value);
+    if (!(bar >= 0)) q('.rm-plates').textContent = 'Type the weight of the empty bar.';
+    else {
+      const P = platesPerSide(ld, bar, u === 'kg' ? [25, 20, 15, 10, 5, 2.5, 1.25] : [45, 35, 25, 10, 5, 2.5]);
+      q('.rm-plates').textContent = !Number.isFinite(P.left) ? `${n1(ld)} ${u} is lighter than the empty bar.` : (P.plates.length ? `${n1(ld)} ${u}: each side ${P.plates.map(([p, n]) => `${n} × ${p}`).join(' + ')} ${u}` : `${n1(ld)} ${u} is just the bar`) + (P.left > 0 ? ` (${+(P.left * 2).toFixed(2)} ${u} short of the target with these plates)` : '') + '.';
+    }
     const step = parseFloat(el('step').value);
     for (let p = 100; p >= 50; p -= 5) {
       let x = (avg * p) / 100; if (step > 0) x = Math.round(x / step) * step;
@@ -88,6 +124,8 @@
   el('u').addEventListener('change', () => {
     const w = parseFloat(el('w').value), u = el('u').value;
     if (w > 0 && u !== unit) el('w').value = String(+(u === 'lb' ? w / LB : w * LB).toFixed(1));
+    const ld = parseFloat(el('load').value); if (ld > 0 && u !== unit) el('load').value = String(+(u === 'lb' ? ld / LB : ld * LB).toFixed(1));
+    { const b = parseFloat(el('bar').value); if (u !== unit && b >= 0) el('bar').value = u === 'lb' ? (b === 20 ? '45' : String(+(b / LB).toFixed(1))) : (b === 45 ? '20' : String(+(b * LB).toFixed(1))); }
     unit = u; calc();
   });
   root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));

@@ -34,7 +34,9 @@ const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${
   <div class="ax-card">
     <h2>Isochron</h2>
     <div class="ax-grid">
-      <label>Decay system <select class="ra-isys">{sysOpts.map((o) => <option value={o.v}>{o.t}</option>)}</select></label>
+      <label>Decay system <select class="ra-isys">{sysOpts.map((o) => <option value={o.v}>{o.t}</option>)}<option value="arar">⁴⁰Ar/³⁹Ar: ⁴⁰K → ⁴⁰Ar (needs J)</option></select></label>
+      <label class="ra-ij" hidden>J factor <input class="ra-ijv" type="number" step="any" value="0.0025" inputmode="decimal" /></label>
+      <label class="ra-ij" hidden>J error, % (1σ, optional) <input class="ra-ijs" type="number" step="any" value="0.2" inputmode="decimal" /></label>
       <label>Errors are <select class="ra-et"><option value="abs">absolute, 1σ</option><option value="pct">percent, 1σ</option><option value="abs2">absolute, 2σ</option></select></label>
     </div>
     <label>x, σx, y, σy and optional error correlation r, one row per sample <textarea class="ra-data" rows="8" spellcheck="false">{demo}</textarea></label>
@@ -68,7 +70,7 @@ const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${
 </div>
 
 <script>
-  import { SYSTEMS, K40, ageFromRatio, kArAge, k40PerGram, jFromStandard, arArAge, york, isochronAge, uPbAges, concordia, fmtAge, type Pt } from '../../lib/sci/geochron';
+  import { SYSTEMS, K40, ageFromRatio, kArAge, k40PerGram, jFromStandard, arArAge, york, isochronAge, arArIsochronAge, uPbAges, concordia, fmtAge, type Pt } from '../../lib/sci/geochron';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
   import { num, parseTable } from '../../lib/sci/num';
@@ -119,7 +121,9 @@ const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${
   }
 
   function iso() {
-    const s = sys(q<HTMLSelectElement>('.ra-isys').value), et = q<HTMLSelectElement>('.ra-et').value;
+    const sv = q<HTMLSelectElement>('.ra-isys').value, isAr = sv === 'arar', et = q<HTMLSelectElement>('.ra-et').value;
+    const s = isAr ? { name: '⁴⁰Ar/³⁹Ar', x: '³⁹Ar/³⁶Ar', y: '⁴⁰Ar/³⁶Ar', lambda: K40.lambda } : sys(sv);
+    root.querySelectorAll<HTMLElement>('.ra-ij').forEach((l) => (l.hidden = !isAr));
     q('.ra-ihelp').textContent = `Columns: ${s.x}, its error, ${s.y}, its error, and (optional) r, the correlation of the two errors. The slope gives the age and the intercept the initial ${s.y}.`;
     const err = q('.ra-err2'), out = q('.ra-iout');
     const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; };
@@ -131,14 +135,16 @@ const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${
     if (pts.some((p) => !(Math.abs(p.r!) < 1))) return fail('The error correlation r must be between −1 and 1.');
     let f: ReturnType<typeof york>;
     try { f = york(pts); } catch (e) { return fail((e as Error).message); }
-    if (!(f.b > -1)) return fail('The slope is −1 or less, which gives no age; check the columns.');
+    const J = isAr ? val('.ra-ijv') : 1, sJ = isAr ? (J * (opt('.ra-ijs') || 0)) / 100 : 0;
+    if (isAr && !(J > 0)) return fail('Enter the J factor (above zero) from your irradiation monitor; the single-age card above works it out from a standard.');
+    if (!(J * f.b > -1)) return fail('The slope is −1 or less, which gives no age; check the columns.');
     err.hidden = true; out.hidden = false;
-    const a = isochronAge(f, s.lambda), scaled = f.mswd > 1;
+    const a = isAr ? arArIsochronAge(f, J, sJ) : isochronAge(f, s.lambda), scaled = f.mswd > 1;
     q('.ra-big2').textContent = `Isochron age: ${fmtAge(a.t, scaled ? a.sScaled : a.s)}${f.b < 0 ? ' (negative slope: no meaningful age)' : ''}`;
     const dec = Math.max(4, 1 - Math.floor(Math.log10(scaled ? a.sInitialScaled : a.sInitial)));
     q('.ra-f2').replaceChildren(
       fact(`Initial ${s.y}`, `${a.initial.toFixed(dec)} ± ${(scaled ? a.sInitialScaled : a.sInitial).toFixed(dec)}`, 'the intercept: the ratio when the samples formed'),
-      fact('Slope', `${f.b.toPrecision(6)} ± ${(scaled ? f.sb * Math.sqrt(f.mswd) : f.sb).toPrecision(2)}`, `with λ = ${s.lambda} per year`),
+      fact('Slope', `${f.b.toPrecision(6)} ± ${(scaled ? f.sb * Math.sqrt(f.mswd) : f.sb).toPrecision(2)}`, isAr ? `⁴⁰Ar*/³⁹Ar; age = ln(1 + J × slope)/λ, λ = ${s.lambda} per year for ⁴⁰K` : `with λ = ${s.lambda} per year`),
       fact('MSWD', `${f.mswd.toFixed(2)} (${rows.length} points)`, f.p < 0.05 ? `probability of fit ${f.p.toFixed(3)}: more scatter than the errors explain, so the errors above are scaled by √MSWD (an errorchron)` : `probability of fit ${f.p.toFixed(2)}: the scatter matches the errors`),
       fact('Errors', '1σ', scaled ? 'scaled by √MSWD because MSWD is above 1' : 'from the analytical errors alone'),
     );
@@ -174,7 +180,7 @@ const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${
 
   q('.ra-sys').addEventListener('change', () => { q<HTMLInputElement>('.ra-l').value = String(sys(q<HTMLSelectElement>('.ra-sys').value).lambda); one(); });
   root.querySelectorAll('.ra-m, .ra-l, .ra-r, .ra-rs, .ra-k, .ra-ar, .ra-ts, .ra-rstd, .ra-js, .ra-rx, .ra-rxs').forEach((i) => { i.addEventListener('input', one); i.addEventListener('change', one); });
-  root.querySelectorAll('.ra-isys, .ra-et, .ra-data').forEach((i) => { i.addEventListener('input', iso); i.addEventListener('change', iso); });
+  root.querySelectorAll('.ra-isys, .ra-et, .ra-data, .ra-ijv, .ra-ijs').forEach((i) => { i.addEventListener('input', iso); i.addEventListener('change', iso); });
   root.querySelectorAll('.ra-68, .ra-68s, .ra-75, .ra-75s').forEach((i) => i.addEventListener('input', upb));
   document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ra-fig'), fig); if (cfig) paint(q<HTMLCanvasElement>('.ra-cfig'), cfig); });
   one(); iso(); upb();

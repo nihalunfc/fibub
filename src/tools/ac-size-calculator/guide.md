@@ -15,6 +15,7 @@ updated: 2026-11-10
 related: [electricity-cost, gravel-calculator, hvac-room-load]
 sources:
   - "ENERGY STAR, Properly Sized Room Air Conditioners (energystar.gov, checked 2026-11-10): area bands from 100 to 2,500 sq ft, 10% less for a heavily shaded room, 10% more for a very sunny one, 600 BTU/h for each person over two and 4,000 BTU/h for a kitchen. Check the official source."
+  - "Running cost is fibub's own arithmetic: input kW = BTU/h ÷ EER ÷ 1000, times hours, times your price. EER is a label figure that varies by unit; the 10 shown is an example, not a standard."
   - "Ceiling scaling above 8 ft, the ±10% for insulation, the common unit sizes and the 100 W/m² heating rule are rounded rules of thumb chosen by fibub, all editable or labelled. 1 W = 3.41214 BTU/h; 1 ton = 12,000 BTU/h."
 flow:
   - { icon: ruler, label: "Room" }
@@ -32,8 +33,8 @@ It is an approximation for one room, not a full load calculation. Nothing you ty
 ## How to use it
 
 1. Choose feet or metres; type the floor area and ceiling height.
-2. Set the sun, insulation, number of people and whether it is a kitchen.
-3. Read the BTU/h figure and the next common unit size. "Reset" brings back the example.
+2. Set the sun and insulation. Under More options you can type the room's length and width instead of the area, set the number of people and whether it is a kitchen, and add an efficiency, hours and electricity price for a running-cost estimate.
+3. Read the BTU/h figure, the next common unit size (with the size below and how far short it falls) and the row of common sizes with your pick highlighted. A folding table shows the whole ENERGY STAR chart with your band marked. "Reset" brings back the example.
 
 ## What each setting does
 
@@ -43,6 +44,9 @@ It is an approximation for one room, not a full load calculation. Nothing you ty
 - **Insulation**: fibub's rule of thumb, 10% more for poor and 10% less for good.
 - **People**: ENERGY STAR adds 600 BTU/h for each person over two who regularly uses the room.
 - **Kitchen**: ENERGY STAR adds 4,000 BTU/h. Both figures are editable.
+- **Length and width**: multiply to fill in the room area for you.
+- **Efficiency (EER)**: BTU/h of cooling per watt of electricity; it is on the unit's label (10 is only a round example). Input power is BTU/h ÷ EER.
+- **Hours and price**: with a price per kWh the page shows kW, kWh a day, and cost per day and per 30 days, as if the unit ran flat out. Real units cycle, so treat it as an upper estimate.
 - **Watts per m²**: a rough heating rule, 100 W/m² for average insulation.
 
 ## Worked example

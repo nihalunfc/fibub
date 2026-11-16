@@ -11,7 +11,7 @@ ads: false
 order: 2030
 icon: clock
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [steps-to-distance, calorie-calculator, heart-rate-zones, one-rep-max]
 sources:
   - "Riegel PS (1981). Athletic records and human endurance. American Scientist 69(3): 285–290 (the T2 = T1 × (D2/D1)^1.06 formula)."
@@ -44,6 +44,10 @@ The race buttons (5 km, 10 km, half marathon, marathon) fill in the distance for
 - **Pace** and **per km / per mile**: the time for each unit of distance.
 - **Fatigue exponent k**: how much you slow down as races get longer. Riegel's 1981 paper gives 1.06; some runners suit 1.07 or 1.08 for the marathon.
 - **Reset**: brings back the example.
+
+## More options
+
+Open "More options" to plan splits. "Negative split" runs the first half slower and the second half faster by the seconds per km (or per mile) you set, keeping the same finish time; "positive split" does the opposite. The Splits table follows your choice. A pace chart below lists paces from 3:00 to 10:00 per km (or 5:00 to 15:00 per mile) with the speed and the 5 km, 10 km, half marathon and marathon times at that pace, handy to print or screenshot. The 1 mile button fills a mile. Predictions from Riegel's formula get less reliable under 1.5 km or over 50 km, and the page says so.
 
 ## Worked example
 

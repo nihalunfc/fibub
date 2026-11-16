@@ -2,7 +2,7 @@
 // #1768 Word counter. Maths in src/lib/docs/textutil.ts.
 import { LIMITS } from '../../lib/docs/textutil';
 ---
-<div class="tool-ui wdc">
+<div class="tool-ui wdc" data-kit>
   <div class="wdc-card">
     <label>Your text
       <textarea class="wdc-in" placeholder="Type or paste your text here" spellcheck="true"></textarea>
@@ -21,19 +21,32 @@ import { LIMITS } from '../../lib/docs/textutil';
       <div><dt>Reading time</dt><dd class="wdc-read">0 sec</dd></div>
       <div><dt>Speaking time</dt><dd class="wdc-speak">0 sec</dd></div>
     </dl>
+    <p class="wdc-sum" aria-live="polite"></p>
+    <details><summary>More numbers</summary>
+      <dl class="wdc-stats wdc-more">
+        <div><dt>Different words</dt><dd class="wdc-uniq">0</dd></div>
+        <div><dt>Average word length</dt><dd class="wdc-awl">0</dd></div>
+        <div><dt>Words per sentence</dt><dd class="wdc-aws">0</dd></div>
+        <div><dt>Longest word</dt><dd class="wdc-long">-</dd></div>
+        <div><dt>Lines</dt><dd class="wdc-lines">0</dd></div>
+        <div><dt>Handwriting time</dt><dd class="wdc-hand">0 sec</dd></div>
+      </dl>
+      <p class="wdc-hint">Handwriting uses 20 words a minute, a typical pace for neat writing.</p>
+    </details>
     <p class="wdc-hint">Reading time uses 238 words a minute, speaking time 150 words a minute. Both are averages.</p>
   </div>
   <div class="wdc-card">
     <h2>Check a limit</h2>
     <div class="wdc-grid">
       <label>Preset
-        <select class="wdc-preset"><option value="">No limit</option>{LIMITS.map((l) => <option value={l.id}>{l.label}</option>)}<option value="custom">My own limit</option></select>
+        <select class="wdc-preset" data-k="limit"><option value="">No limit</option>{LIMITS.map((l) => <option value={l.id}>{l.label}</option>)}<option value="custom">My own limit</option></select>
       </label>
       <label class="wdc-cust" hidden>Limit
-        <span class="wdc-grid"><input class="wdc-n" type="number" min="1" value="100" inputmode="numeric" aria-label="Limit number" /><select class="wdc-unit" aria-label="Limit unit"><option value="words">words</option><option value="chars">characters</option></select></span>
+        <span class="wdc-grid"><input class="wdc-n" data-k="n" type="number" min="1" value="100" inputmode="numeric" aria-label="Limit number" /><select class="wdc-unit" data-k="unit" aria-label="Limit unit"><option value="words">words</option><option value="chars">characters</option></select></span>
       </label>
     </div>
     <p class="wdc-lim" aria-live="polite"></p>
+    <div class="wdc-bar" role="progressbar" aria-label="Share of the limit used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span></span></div>
     <div class="wdc-over" hidden>
       <p class="wdc-hint">The part over the limit:</p>
       <pre class="wdc-pre wdc-over-t"></pre>
@@ -41,7 +54,7 @@ import { LIMITS } from '../../lib/docs/textutil';
   </div>
   <div class="wdc-card">
     <h2>Most used words</h2>
-    <label class="wdc-chk"><input type="checkbox" class="wdc-skip" checked /> <span>Leave out common words (the, and, of ...)<small>Turn this off to count every word.</small></span></label>
+    <label class="wdc-chk"><input type="checkbox" class="wdc-skip" data-k="skip" checked /> <span>Leave out common words (the, and, of ...)<small>Turn this off to count every word.</small></span></label>
     <table class="wdc-kw"><thead><tr><th>Word</th><th>Times</th><th>Share</th></tr></thead><tbody></tbody></table>
     <p class="wdc-hint wdc-kw-empty">Type some text to see the words you use most.</p>
   </div>
@@ -67,6 +80,13 @@ import { LIMITS } from '../../lib/docs/textutil';
   .wdc-stats div { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
   .wdc-stats dt { font-size: 13px; color: var(--muted); }
   .wdc-stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .wdc-bar { height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
+  .wdc-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .wdc-bar.warn span { background: var(--warn, #b45309); }
+  .wdc-bar.bad span { background: var(--bad); }
+  .wdc-more { margin-top: 10px; }
+  .wdc-sum { margin: 0; font-weight: 600; }
+  .wdc details summary { cursor: pointer; font-size: 14px; padding: 6px 0; }
   .wdc-lim { margin: 0; font-weight: 600; }
   .wdc-lim.bad { color: var(--bad); }
   .wdc-kw { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
@@ -74,7 +94,7 @@ import { LIMITS } from '../../lib/docs/textutil';
 </style>
 
 <script>
-  import { countText, fmtMinutes, keywordDensity, overLimitIndex, LIMITS } from '../../lib/docs/textutil';
+  import { countText, fmtMinutes, keywordDensity, overLimitIndex, moreStats, limitShare, LIMITS } from '../../lib/docs/textutil';
   const root = document.querySelector('.wdc') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const inp = q<HTMLTextAreaElement>('.wdc-in'), preset = q<HTMLSelectElement>('.wdc-preset'), num = q<HTMLInputElement>('.wdc-n'),
@@ -85,16 +105,24 @@ import { LIMITS } from '../../lib/docs/textutil';
     q('.wdc-words').textContent = fmt(c.words); q('.wdc-chars').textContent = fmt(c.chars); q('.wdc-nosp').textContent = fmt(c.charsNoSpaces);
     q('.wdc-sent').textContent = fmt(c.sentences); q('.wdc-para').textContent = fmt(c.paragraphs);
     q('.wdc-read').textContent = fmtMinutes(c.readMin); q('.wdc-speak').textContent = fmtMinutes(c.speakMin);
+    const ms = moreStats(t);
+    q('.wdc-uniq').textContent = fmt(ms.unique); q('.wdc-awl').textContent = ms.avgWordLen ? ms.avgWordLen.toFixed(1) : '0';
+    q('.wdc-aws').textContent = ms.avgSentenceWords ? ms.avgSentenceWords.toFixed(1) : '0'; q('.wdc-long').textContent = ms.longest || '-';
+    q('.wdc-lines').textContent = fmt(ms.lines); q('.wdc-hand').textContent = fmtMinutes(ms.handMin);
+    q('.wdc-sum').textContent = c.words ? `${fmt(c.words)} word${c.words === 1 ? '' : 's'}, ${fmt(c.chars)} characters (${fmt(c.charsNoSpaces)} without spaces), ${fmt(c.sentences)} sentence${c.sentences === 1 ? '' : 's'}, ${fmt(c.paragraphs)} paragraph${c.paragraphs === 1 ? '' : 's'}. Reading time ${fmtMinutes(c.readMin)}.` : 'Type or paste text to count it.';
     // limit
     q('.wdc-cust').hidden = preset.value !== 'custom';
     let unit: 'words' | 'chars' = unitSel.value as 'words' | 'chars', limit = Number(num.value);
     const p = LIMITS.find((l) => l.id === preset.value);
     if (p) { unit = p.unit; limit = p.n; }
     const lim = q('.wdc-lim'), over = q('.wdc-over');
-    if (!preset.value || !(limit > 0)) { lim.textContent = ''; lim.classList.remove('bad'); over.hidden = true; }
+    const bar = q('.wdc-bar');
+    if (!preset.value || !(limit > 0)) { lim.textContent = ''; lim.classList.remove('bad'); over.hidden = true; bar.hidden = true; }
     else {
       const used = unit === 'words' ? c.words : c.chars, name = unit === 'words' ? 'words' : 'characters';
-      const i = overLimitIndex(t, unit, limit);
+      const i = overLimitIndex(t, unit, limit), share = limitShare(used, limit);
+      bar.hidden = false; (bar.firstElementChild as HTMLElement).style.width = Math.round(share * 100) + '%'; bar.setAttribute('aria-valuenow', String(Math.round(share * 100)));
+      bar.classList.toggle('bad', i >= 0); bar.classList.toggle('warn', i < 0 && share >= 0.9);
       if (i < 0) { lim.textContent = `${fmt(used)} of ${fmt(limit)} ${name}. ${fmt(limit - used)} left.`; lim.classList.remove('bad'); over.hidden = true; }
       else { lim.textContent = `${fmt(used)} of ${fmt(limit)} ${name}. ${fmt(used - limit)} over.`; lim.classList.add('bad'); over.hidden = false; q('.wdc-over-t').innerHTML = ''; const m = document.createElement('mark'); m.textContent = t.slice(i); q('.wdc-over-t').append(m); }
     }

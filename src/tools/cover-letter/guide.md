@@ -47,6 +47,10 @@ The page uses a single column with standard fonts and no tables, columns or pict
 
 Press **Fill in an example** to see a complete letter for an Operations Analyst role. It is 85 words in its paragraphs, a short sample; most real letters run 250 to 400 words.
 
+## Matching the job ad
+
+Under the word count, open **Match it to the job ad** and paste the advert. The tool lists its key terms and ticks the ones your letter already uses, so you can see which important words are missing. The ad is only read in your browser to do the matching; it is never stored or sent anywhere. Work missing terms in only where they are true.
+
 ## FAQs
 
 **How long should a cover letter be?** About 250 to 400 words, on one page.

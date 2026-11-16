@@ -8,20 +8,31 @@
   </div>
   <section class="panel">
     <div class="st-fields">
-      <label><span data-l="rise">Total rise, floor to floor</span> <input data-k="rise" inputmode="decimal" /></label>
-      <label><span data-l="target">Target riser height</span> <input data-k="target" inputmode="decimal" /></label>
-      <label><span data-l="tread">Tread depth</span> <input data-k="tread" inputmode="decimal" /></label>
-      <label><span data-l="run">Total run (optional)</span> <input data-k="run" inputmode="decimal" placeholder="Leave blank to use the tread" /></label>
-      <label><span data-l="head">Headroom you have (optional)</span> <input data-k="head" inputmode="decimal" /></label>
+      <label><span data-l="rise">Total rise, floor to floor</span> <input data-k="rise" inputmode="text" /></label>
+      <label><span data-l="target">Target riser height</span> <input data-k="target" inputmode="text" /></label>
+      <label><span data-l="tread">Tread depth</span> <input data-k="tread" inputmode="text" /></label>
+      <label><span data-l="run">Total run (optional)</span> <input data-k="run" inputmode="text" placeholder="Leave blank to use the tread" /></label>
+      <label><span data-l="head">Headroom you have (optional)</span> <input data-k="head" inputmode="text" /></label>
     </div>
+    <p class="st-hint" data-hint="i">You can type inches (108, 6 3/4) or feet and inches (9' 0", 9 ft 6 in).</p>
+    <label class="st-slide" data-nokit><span>Target riser height: slide to see more or fewer steps</span> <input type="range" data-k="tslide" min="5" max="8.5" step="0.125" value="7.5" /></label>
+    <details class="st-det">
+      <summary>More options: number of steps, width, stringers</summary>
+      <div class="st-fields">
+        <label><span>Or choose the number of risers</span> <input data-k="count" inputmode="numeric" placeholder="Leave blank to calculate" /></label>
+        <label><span data-l="width">Stair width</span> <input data-k="width" inputmode="text" /></label>
+        <label><span data-l="spacing">Stringer spacing (centre to centre)</span> <input data-k="spacing" inputmode="text" /></label>
+      </div>
+      <p class="st-small">Choosing a number of risers splits the rise evenly across that many. Stringer spacing of 16 in (400 mm) is a common choice, not a code rule: ask your tread supplier.</p>
+    </details>
     <details class="st-lim">
       <summary>Limits to check against (editable)</summary>
       <div class="st-fields">
-        <label><span data-l="maxr">Highest riser</span> <input data-k="maxr" inputmode="decimal" /></label>
-        <label><span data-l="mint">Shallowest tread</span> <input data-k="mint" inputmode="decimal" /></label>
-        <label><span data-l="minh">Least headroom</span> <input data-k="minh" inputmode="decimal" /></label>
-        <label><span data-l="clo">Comfort 2R + T from</span> <input data-k="clo" inputmode="decimal" /></label>
-        <label><span data-l="chi">Comfort 2R + T to</span> <input data-k="chi" inputmode="decimal" /></label>
+        <label><span data-l="maxr">Highest riser</span> <input data-k="maxr" inputmode="text" /></label>
+        <label><span data-l="mint">Shallowest tread</span> <input data-k="mint" inputmode="text" /></label>
+        <label><span data-l="minh">Least headroom</span> <input data-k="minh" inputmode="text" /></label>
+        <label><span data-l="clo">Comfort 2R + T from</span> <input data-k="clo" inputmode="text" /></label>
+        <label><span data-l="chi">Comfort 2R + T to</span> <input data-k="chi" inputmode="text" /></label>
       </div>
       <p class="st-small">Defaults: 2021 International Residential Code R311.7 (riser at most 7¾ in, tread at least 10 in, headroom at least 6 ft 8 in) and the 2R + T comfort rule. Codes differ by place: check yours.</p>
     </details>
@@ -36,8 +47,14 @@
       <dt>Stringer</dt><dd class="st-str"></dd>
       <dt>Angle</dt><dd class="st-ang"></dd>
     </dl>
+    <svg class="st-svg" viewBox="0 0 240 110" role="img" aria-label="Side view of the stairs"><polyline points="" /></svg>
     <ul class="st-checks"></ul>
+    <p class="st-buy"></p>
   </section>
+  <details class="panel st-steps">
+    <summary>Step-by-step heights (for marking the stringer)</summary>
+    <table class="st-tbl"><thead><tr><th>Riser</th><th>Top of riser, above lower floor</th><th>Distance from first riser</th></tr></thead><tbody></tbody></table>
+  </details>
   <p class="st-fine">Codes differ by place: check yours before you build. Nothing you type leaves this page.</p>
 </div>
 
@@ -62,17 +79,31 @@
   .st-checks { margin: 12px 0 0; padding-left: 20px; font-size: 15px; display: grid; gap: 4px; }
   .st-checks .bad { color: var(--bad); font-weight: 600; }
   .st-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .st input[type="range"] { padding: 0; border: 0; background: transparent; accent-color: var(--accent); }
+  .st-slide { margin-top: 12px; }
+  .st-hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .st-svg { width: 100%; max-width: 420px; height: auto; display: block; margin-top: 12px; }
+  .st-svg polyline { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .st-tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+  .st-tbl th, .st-tbl td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .st-buy { margin: 12px 0 0; font-size: 15px; }
+  .st-det { margin-top: 12px; }
+  .st-det summary { cursor: pointer; font-size: 14px; }
 </style>
 
 <script>
-  const EX = { i: { rise: '108', target: '7.5', tread: '10', run: '', head: '' }, m: { rise: '2700', target: '180', tread: '260', run: '', head: '' } };
+  import { parseLength, risersFor, stepTable, stringers, sidePath } from '../../lib/everyday/stairs';
+  const EX = { i: { rise: '108', target: '7.5', tread: '10', run: '', head: '', count: '', width: '36', spacing: '16' }, m: { rise: '2700', target: '180', tread: '260', run: '', head: '', count: '', width: '900', spacing: '400' } };
   const LIM = { i: { maxr: '7.75', mint: '10', minh: '80', clo: '24', chi: '25' }, m: { maxr: '196', mint: '254', minh: '2032', clo: '600', chi: '640' } };
-  const BASE: Record<string, string> = { rise: 'Total rise, floor to floor', target: 'Target riser height', tread: 'Tread depth', run: 'Total run (optional)', head: 'Headroom you have (optional)', maxr: 'Highest riser', mint: 'Shallowest tread', minh: 'Least headroom', clo: 'Comfort 2R + T from', chi: 'Comfort 2R + T to' };
+  const BASE: Record<string, string> = { rise: 'Total rise, floor to floor', target: 'Target riser height', tread: 'Tread depth', run: 'Total run (optional)', head: 'Headroom you have (optional)', maxr: 'Highest riser', mint: 'Shallowest tread', minh: 'Least headroom', clo: 'Comfort 2R + T from', chi: 'Comfort 2R + T to', width: 'Stair width', spacing: 'Stringer spacing (centre to centre)' };
+  const LEN = ['rise', 'target', 'tread', 'run', 'head', 'maxr', 'mint', 'minh', 'clo', 'chi', 'width', 'spacing'];
   const root = document.querySelector('.st') as HTMLElement;
   const q = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (s: string) => root.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
   let units: 'i' | 'm' = 'i';
   const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const P = (s: string) => parseLength(k(s).value, units === 'm');
+  const blank = (s: string) => k(s).value.trim() === '';
   // Inches also as the nearest 1/16, the way a tape measure reads.
   const frac = (v: number) => {
     let w = Math.floor(v), s = Math.round((v - w) * 16);
@@ -82,25 +113,32 @@
     return `${w ? w + ' ' : ''}${s}/${d}`;
   };
   const len = (v: number) => (units === 'i' ? `${n(v)} in (${frac(v)}″)` : `${n(v, 0)} mm`);
-  const clearOut = (msg: string) => { q('.st-big').textContent = ''; for (const c of ['risers', 'treads', 'run', 'str', 'ang']) q('.st-' + c).textContent = '–'; q('.st-checks').innerHTML = ''; const li = document.createElement('li'); li.textContent = msg; q('.st-checks').append(li); };
+  const clearOut = (msg: string) => {
+    q('.st-big').textContent = ''; for (const c of ['risers', 'treads', 'run', 'str', 'ang']) q('.st-' + c).textContent = '–';
+    q('.st-svg polyline').setAttribute('points', ''); q('.st-buy').textContent = ''; q('.st-steps tbody').innerHTML = '';
+    q('.st-checks').innerHTML = ''; const li = document.createElement('li'); li.textContent = msg; q('.st-checks').append(li);
+  };
 
   const calc = () => {
     const v: Record<string, number> = {};
-    for (const s of ['rise', 'target', 'tread', 'maxr', 'mint', 'minh', 'clo', 'chi']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] <= 0) return clearOut('Type the rise, target riser and tread (more than 0).'); }
-    const runT = k('run').value.trim(), headT = k('head').value.trim();
-    // Round up so no riser is taller than the target.
-    const risers = Math.max(1, Math.ceil(v.rise / v.target - 1e-9));
+    for (const s of ['rise', 'target', 'tread', 'maxr', 'mint', 'minh', 'clo', 'chi']) { v[s] = P(s); if (!Number.isFinite(v[s]) || v[s] <= 0) return clearOut('Type the rise, target riser and tread as numbers more than 0 (such as 108, or 9\' 0").'); }
+    if (v.rise > (units === 'i' ? 1200 : 30000)) return clearOut('That rise is very large: check the number and the unit.');
+    const forced = blank('count') ? undefined : Math.floor(+k('count').value);
+    if (forced !== undefined && !(forced >= 1 && forced <= 200)) return clearOut('Number of risers: type a whole number from 1 to 200, or leave it blank.');
+    const runT = P('run'), headT = P('head');
+    const risers = risersFor(v.rise, v.target, forced);
     const R = v.rise / risers, treads = risers - 1;
-    const T = runT !== '' && +runT > 0 && treads > 0 ? +runT / treads : v.tread;
+    const T = !blank('run') && runT > 0 && treads > 0 ? runT / treads : v.tread;
     const run = treads * T;
     const str = Math.hypot(v.rise, run);
     const ang = (Math.atan2(R, T) * 180) / Math.PI;
     q('.st-big').textContent = `${risers} risers of ${units === 'i' ? n(R) + ' in' : n(R, 1) + ' mm'}`;
-    q('.st-risers').textContent = `${risers} of ${len(R)}`;
-    q('.st-treads').textContent = `${treads} of ${len(T)}${runT !== '' && +runT > 0 ? ' (run ÷ treads)' : ''}`;
+    q('.st-risers').textContent = `${risers} of ${len(R)}${forced ? ' (your number)' : ''}`;
+    q('.st-treads').textContent = `${treads} of ${len(T)}${!blank('run') && runT > 0 ? ' (run ÷ treads)' : ''}`;
     q('.st-run').textContent = len(run);
     q('.st-str').textContent = `${len(str)}: the diagonal from the floor to the top (√(rise² + run²)); buy longer stock`;
     q('.st-ang').textContent = `${n(ang, 1)}° (riser ÷ tread)`;
+    q('.st-svg polyline').setAttribute('points', sidePath(risers, R, T, 240, 110));
     const U = units === 'i' ? ' in' : ' mm';
     const two = 2 * R + T;
     const rows: [boolean, string][] = [
@@ -108,24 +146,42 @@
       [T >= v.mint - 1e-9, `Tread ${n(T)}${U}: ${T >= v.mint - 1e-9 ? 'meets' : 'under'} the ${n(v.mint)}${U} minimum`],
       [two >= v.clo - 1e-9 && two <= v.chi + 1e-9, `2R + T = ${n(two)}${U}: ${two < v.clo - 1e-9 ? 'below' : two > v.chi + 1e-9 ? 'above' : 'inside'} the ${n(v.clo)} to ${n(v.chi)}${U} comfort range`],
     ];
-    if (headT !== '' && Number.isFinite(+headT)) rows.push([+headT >= v.minh - 1e-9, `Headroom ${n(+headT)}${U}: ${+headT >= v.minh - 1e-9 ? 'meets' : 'under'} the ${n(v.minh)}${U} minimum`]);
+    if (!blank('head') && Number.isFinite(headT)) rows.push([headT >= v.minh - 1e-9, `Headroom ${n(headT)}${U}: ${headT >= v.minh - 1e-9 ? 'meets' : 'under'} the ${n(v.minh)}${U} minimum`]);
     else rows.push([true, `Headroom: keep at least ${n(v.minh)}${U} clear above the tread nosings`]);
     const ul = q('.st-checks'); ul.innerHTML = '';
     for (const [ok, t] of rows) { const li = document.createElement('li'); li.className = ok ? 'ok' : 'bad'; li.textContent = (ok ? 'OK: ' : 'Check: ') + t; ul.append(li); }
+    // Shopping list
+    const w = P('width'), sp = P('spacing'), ns = stringers(w, sp);
+    q('.st-buy').textContent = `Shopping list: ${risers} risers, ${treads} treads` + (Number.isFinite(ns) ? ` (each ${len(w)} wide), ${ns} stringers at least ${len(str)} long (one at each edge, one every ${len(sp)}).` : '. Add a stair width in More options to count stringers.');
+    // Step table (capped at 60 rows so a huge number stays quick)
+    const tb = q('.st-steps tbody'); tb.innerHTML = '';
+    for (const r of stepTable(Math.min(risers, 60), R, T)) {
+      const tr = document.createElement('tr');
+      for (const c of [String(r.n), len(r.height), r.run ? len(r.run) : '0']) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tb.append(tr);
+    }
   };
-  const labels = () => { for (const [s, t] of Object.entries(BASE)) q(`[data-l="${s}"]`).textContent = `${t} (${units === 'i' ? 'in' : 'mm'})`; };
-  const fill = () => { for (const [s, t] of Object.entries({ ...EX[units], ...LIM[units] })) k(s).value = t; labels(); calc(); };
+  const labels = () => {
+    for (const [s, t] of Object.entries(BASE)) q(`[data-l="${s}"]`).textContent = `${t} (${units === 'i' ? 'in' : 'mm'})`;
+    const sl = k('tslide'); sl.min = units === 'i' ? '5' : '125'; sl.max = units === 'i' ? '8.5' : '215'; sl.step = units === 'i' ? '0.125' : '1';
+    for (const s of LEN) k(s).inputMode = units === 'i' ? 'text' : 'decimal';
+    q('.st-hint').hidden = units !== 'i';
+  };
+  const slideFromTarget = () => { const t = P('target'); if (Number.isFinite(t)) k('tslide').value = String(t); };
+  const fill = () => { for (const [s, t] of Object.entries({ ...EX[units], ...LIM[units] })) k(s).value = t; labels(); slideFromTarget(); calc(); };
   root.querySelectorAll('.st-units button').forEach((b) => b.addEventListener('click', () => {
     const u = (b as HTMLElement).dataset.u as 'i' | 'm';
     if (u === units) return;
     // Convert what was typed; the limits switch to that system's own defaults.
-    for (const s of Object.keys(EX.i)) { const t = k(s).value.trim(); if (t === '' || !Number.isFinite(+t)) continue; k(s).value = String(u === 'm' ? Math.round(+t * 25.4) : +(+t / 25.4).toFixed(2)); }
+    for (const s of ['rise', 'target', 'tread', 'run', 'head', 'width', 'spacing']) { const t = P(s); if (!Number.isFinite(t)) continue; k(s).value = String(u === 'm' ? Math.round(t * 25.4) : +(t / 25.4).toFixed(2)); }
     units = u;
     for (const [s, t] of Object.entries(LIM[u])) k(s).value = t;
     root.querySelectorAll('.st-units button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-    labels(); calc();
+    labels(); slideFromTarget(); calc();
   }));
-  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  // The slider sets the target riser; typing a target moves the slider. The slider is skipped in the general handler.
+  k('tslide').addEventListener('input', () => { k('target').value = k('tslide').value; calc(); });
+  root.querySelectorAll('input:not([type="range"])').forEach((i) => i.addEventListener('input', () => { if (i === k('target')) slideFromTarget(); calc(); }));
   q('.st-reset').addEventListener('click', fill);
   q('.st-clear').addEventListener('click', () => { for (const s of Object.keys(EX.i)) k(s).value = ''; calc(); });
   fill();

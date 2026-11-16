@@ -11,7 +11,7 @@ ads: false
 order: 1712
 icon: pencil
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [invoice-maker]
 sources:
   - "Number names follow standard English usage. Indian grouping (thousand, lakh, crore) is the Indian numbering system. Cheque wording follows common banking practice; ask your bank if it needs a different form."
@@ -42,6 +42,10 @@ It also shows the same number with Indian commas (12,34,56,789) and with interna
 - **A plain number**: reads decimals digit by digit, so 12.05 is "Twelve point Zero Five".
 
 Amounts are rounded to two decimals (half up) for money.
+
+## More options (added 2026-11-16)
+
+Open **More options** for two extras on plain numbers. **Add "and" the British way** writes "One Thousand Two Hundred and Five". **Say it as a position** writes whole numbers as ordinals, such as "Twenty-First" for 21. Cheque style for dollars and pounds and the Indian or international grouping were already there.
 
 ## Worked example
 

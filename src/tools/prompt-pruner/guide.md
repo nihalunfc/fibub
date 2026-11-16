@@ -30,6 +30,10 @@ Everything happens in your browser. Your document is never uploaded, and the pag
 
 To get the text out of a PDF or Word file first, use the [[file-converter]]; to make a file small enough to upload, the [[compress-file|file compressor]].
 
+## Too long to paste?
+
+Under More options, pick a part size (about 3,000 to 60,000 tokens). The result is cut between paragraphs into parts, and you get a button to copy each one. Every copied part starts with a "Part 1 of 3" line, so you can tell the chat to wait for all parts before answering. Token counts are estimates (four characters per token); stay a little under your chat's limit.
+
 ## Why this saves tokens
 
 AI chats charge, and limit you, by tokens: roughly four characters of text each. A long PDF wastes many of them on things that carry no meaning: the same header and footer on every page, page numbers, copyright lines, "confidential" notices and runs of spaces. Many chats also read each uploaded PDF page as an image, which costs far more than its text. Pasting clean Markdown instead keeps the meaning and drops the rest, so you can fit more into one conversation and hit usage limits later.

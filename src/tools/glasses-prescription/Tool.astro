@@ -38,6 +38,7 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
   <div class="gp-out" hidden>
     <div class="gp-result" id="gp-print">
       <h2>Your prescription, explained</h2>
+      <p class="gp-sum" role="status" aria-live="polite"></p>
       <div class="gp-eyes"></div>
       <p class="gp-pdline"></p>
       <p class="gp-ctl note">This page explains glasses prescriptions. A contact lens prescription is different (it also has a base curve and diameter, and the power can differ), and it needs a fitting by an eye-care professional, so there is no conversion to or from it here.</p>
@@ -45,6 +46,16 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
     <div class="gp-btns"><button type="button" class="btn secondary gp-print">Print</button></div>
     <Downloads label="Download the explained prescription" />
   </div>
+
+  <details class="panel gp-cmp">
+    <summary><b>More options: compare with an older prescription</b></summary>
+    <p class="gp-hint">Type SPH, CYL, AXIS and ADD from your older paper to see how each number changed. This is subtraction only. It does not say whether a change matters; ask your optician.</p>
+    <div class="gp-scroll"><table class="gp-grid">
+      <thead><tr><th scope="col"><span class="gp-sr">Eye</span></th><th scope="col">SPH</th><th scope="col">CYL</th><th scope="col">AXIS</th><th scope="col">ADD</th></tr></thead>
+      <tbody>{eyes.map(([k, l]) => (<tr><th scope="row">{l} (older)</th>{['sph','cyl','axis','add'].map((c) => <td><input class={`gp-in gp-old-${k}-${c}`} inputmode="decimal" autocomplete="off" aria-label={`Older ${l} ${c.toUpperCase()}`} placeholder="0.00" /></td>)}</tr>))}</tbody>
+    </table></div>
+    <ul class="gp-diff"></ul>
+  </details>
 
   <div class="panel gp-legend">
     <h2>What each box means</h2>
@@ -89,6 +100,9 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
   .gp-eye dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
   .gp-eye dd b { font-variant-numeric: tabular-nums; }
   .gp-eye dd small { display: block; color: var(--muted); font-size: 13px; }
+  .gp-sum { margin: 0 0 10px; font-weight: 600; }
+  .gp-cmp summary { cursor: pointer; }
+  .gp-diff { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
   .gp-legend dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 14px; }
   .gp-legend dt { font-weight: 700; }
   .gp-legend dd { margin: 0; }
@@ -101,7 +115,7 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
 </style>
 
 <script>
-  import { readNum, checkEye, checkPd, transpose, sphericalEquivalent, fmt, fmtD, round2, describeSph, type Eye } from '../../lib/docs/glasses';
+  import { summarise, difference, readNum, checkEye, checkPd, transpose, sphericalEquivalent, fmt, fmtD, round2, describeSph, type Eye } from '../../lib/docs/glasses';
   import { wireDownloads, type Section } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.gp')!;
@@ -145,6 +159,10 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
     return { title: LABEL[eye], lines };
   }
 
+  function oldEye(eye: string): Eye {
+    const g = (c: string) => val(q<HTMLInputElement>(`.gp-old-${eye}-${c}`).value);
+    return { sph: g('sph'), cyl: g('cyl'), axis: g('axis'), add: g('add'), prism: null, base: '' };
+  }
   function run() {
     const errs: string[] = [], blocks: { eye: string; rows: Rows }[] = [];
     for (const eye of ['od', 'os']) {
@@ -166,6 +184,12 @@ const cols = [['sph', 'SPH', 'sphere'], ['cyl', 'CYL', 'cylinder'], ['axis', 'AX
     })();
     q('.gp-out').hidden = !blocks.length && !pdText;
     q('.gp-eyes').innerHTML = blocks.map((b) => `<section class="gp-eye" data-eye="${b.eye}"><h3>${b.rows.title}</h3><dl>${b.rows.lines.map(([t, v, d]) => `<div><dt>${esc(t)}</dt><dd><b>${esc(v)}</b><small>${esc(d)}</small></dd></div>`).join('')}</dl></section>`).join('');
+    q('.gp-sum').textContent = blocks.map((b) => summarise(SHORT[b.eye], eyeOf(raw(b.eye)))).filter(Boolean).join(' ');
+    q('.gp-diff').innerHTML = ['od', 'os'].flatMap((eye) => {
+      const o = oldEye(eye);
+      if (![o.sph, o.cyl, o.axis, o.add].some((x) => x !== null)) return [];
+      return [`<li><b>${SHORT[eye]}</b> ${esc(difference(o, eyeOf(raw(eye))).join('; ') || 'nothing to compare')}</li>`];
+    }).join('');
     q('.gp-pdline').textContent = pdText;
     q('.gp-pdline').hidden = !pdText;
     const when = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });

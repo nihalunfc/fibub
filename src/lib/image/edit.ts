@@ -106,3 +106,16 @@ export async function renderUnder(
   }
   return null;
 }
+
+/** Plan for one more image in a batch: centre-crop to exactly outW x outH ('cover') or shrink to fit inside it ('fit', never enlarged). */
+export function planBatch(w: number, h: number, outW: number, outH: number, mode: 'fit' | 'cover'): { crop: Rect; outW: number; outH: number } {
+  if (mode === 'cover') {
+    const r = outW / outH;
+    let cw = w, ch = h;
+    if (w / h > r) cw = h * r; else ch = w / r;
+    cw = Math.max(1, Math.round(cw)); ch = Math.max(1, Math.round(ch));
+    return { crop: { x: Math.round((w - cw) / 2), y: Math.round((h - ch) / 2), w: cw, h: ch }, outW, outH };
+  }
+  const s = Math.min(outW / w, outH / h, 1);
+  return { crop: { x: 0, y: 0, w, h }, outW: Math.max(1, Math.round(w * s)), outH: Math.max(1, Math.round(h * s)) };
+}
