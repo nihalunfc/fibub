@@ -11,7 +11,7 @@ ads: false
 order: 1344
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [stokes-terminal-velocity, buoyancy-lab, transpiration-lab, bernoulli-flow]
 sources:
   - "Surface tension, the contact angle, the pressure step 2T/R across a curved surface and the capillary rise h = 2T cos θ/(rρg) (Jurin's law): standard school physics found in any textbook. g = 9.8 m/s²."
@@ -39,6 +39,10 @@ It follows the school topics on surface tension, the angle of contact and capill
 3. Set how far the **tube sticks out** above the liquid. If it is shorter than the rise, the liquid stops at the top.
 4. Read the height, the meniscus radius, the pressure step and the forces under the picture.
 
+## Solve my numbers
+
+The **Solve my numbers** box at the top takes the numbers from your problem. Choose what to find: the rise or fall h = 2T cos θ/(rρg), the tube radius for a wanted rise, the surface tension from a measured rise, the contact angle, or how the rise changes in a different tube (h ∝ 1/r). Type the surface tension in N/m or mN/m, the angle in degrees or radians, the radius in mm, cm or m, and the density in kg/m³ or g/cm³. The answer is one sentence, such as "The liquid rises by 2.98 cm", with the working under it. A negative h is explained as a liquid pushed down (mercury, contact angle above 90°). Exactly 90° gives "stays level"; an impossible cos θ (above 1) or a height and angle that disagree in sign gives a plain message, never NaN. The common mistake is shown each time: using the diameter instead of the radius, or forgetting to convert mm to m.
+
 ## Worked example
 
 Open the page: **water** (T = 0.073 N/m, contact angle 0°) in a tube of radius **0.5 mm**. The rise is h = 2 × 0.073 × cos 0° ÷ (0.0005 × 1000 × 9.8) = **2.98 cm**. The surface is half a sphere of radius **0.5 mm**, so the pressure just under it is 2 × 0.073 ÷ 0.0005 = **292 Pa** below the air, exactly ρ g h. The surface pulls up with 2π × 0.0005 × 0.073 = **0.229 mN**, the weight of the column.
@@ -58,3 +62,5 @@ Halve the radius to **0.25 mm** and the water climbs **5.96 cm**. Switch to soap
 **Why does mercury go down?** Its atoms pull on each other much more than on glass, so the contact angle is about 140° and cos θ is negative.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**How high does water rise in a capillary tube?** h = 2T cos θ/(rρg); for water in a 0.5 mm radius clean glass tube it is about 3 cm (2.98 cm).

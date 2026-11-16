@@ -6,6 +6,40 @@ import '../../styles/astro.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm gp">
+  <div class="ax-card gp-solve">
+    <h2>Solve my GP question</h2>
+    <p class="ax-help">Type the numbers from your question (fractions like 1/3 and decimals are fine). The answer comes first, then the working.</p>
+    <div class="ax-grid">
+      <label>I want to <select data-k="mode" class="gp-mode">
+        <option value="nth">Find a term and a sum (I know a, r and n)</option>
+        <option value="list">Read a list of terms, like 3, 6, 12</option>
+        <option value="two">Find a and r from two terms</option>
+        <option value="which">Find which term equals a number</option>
+        <option value="sumn">Find how many terms make a sum</option>
+        <option value="gm">Insert geometric means between two numbers</option>
+      </select></label>
+      <label>Or start from an example <select data-k="preset" class="gp-pre"><option value="">My own numbers</option></select></label>
+    </div>
+    <div class="gp-in">
+      <label data-need="nth which sumn gm"><span class="gp-l1">First term a</span><input data-k="a" inputmode="decimal" value="3" /></label>
+      <label data-need="nth which sumn"><span>Common ratio r</span><input data-k="r" inputmode="decimal" value="2" /></label>
+      <label data-need="nth"><span>Number of terms n</span><input data-k="n" inputmode="numeric" value="10" /></label>
+      <label data-need="list" class="gp-wide"><span>Terms, separated by commas</span><input data-k="list" value="5, 15, 45" /></label>
+      <label data-need="two"><span>Term number p</span><input data-k="p" inputmode="numeric" value="3" /></label>
+      <label data-need="two"><span>Value of term p</span><input data-k="x" inputmode="decimal" value="12" /></label>
+      <label data-need="two"><span>Term number q</span><input data-k="q" inputmode="numeric" value="6" /></label>
+      <label data-need="two"><span>Value of term q</span><input data-k="y" inputmode="decimal" value="96" /></label>
+      <label data-need="which sumn"><span class="gp-lt">Number to find</span><input data-k="t" inputmode="decimal" value="1536" /></label>
+      <label data-need="gm"><span>Last number b</span><input data-k="b" inputmode="decimal" value="48" /></label>
+      <label data-need="gm"><span>How many means m</span><input data-k="m" inputmode="numeric" value="3" /></label>
+    </div>
+    <p class="ax-err gp-serr" hidden></p>
+    <p class="ax-big gp-ans" aria-live="polite"></p>
+    <ol class="sm-steps gp-work"></ol>
+    <p class="ax-help gp-tip"></p>
+    <button type="button" class="btn small secondary gp-show" hidden>Draw this on the graph below</button>
+  </div>
+
   <div class="ax-card">
     <h2>Terms and sums</h2>
     <svg class="sm-fig gp-fig" viewBox="0 0 340 240" role="img" aria-label="Bars for the terms of the progression, a line for the running sum, and a dashed line at the sum to infinity"></svg>
@@ -70,6 +104,11 @@ import '../../styles/smath.css';
 </div>
 
 <style is:inline>
+  .gp .gp-in { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px 12px; margin: 10px 0; }
+  .gp .gp-in input { min-height: 44px; width: 100%; font-size: 17px; }
+  .gp .gp-wide { grid-column: 1 / -1; }
+  .gp .gp-ans { margin: 12px 0 6px; overflow-wrap: anywhere; }
+  .gp .gp-work { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
   .gp .gp-key { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
   .gp .gp-k1 { background: var(--accent); }
   .gp .gp-k2 { background: var(--ink); height: 3px; }
@@ -86,8 +125,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { terms, sumN, sumInf, am, gm, hm, yearly, yearsTo } from '../../lib/sci/gp-explorer';
-  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { terms, sumN, sumInf, am, gm, hm, yearly, yearsTo, ratioOfList, fromTwoTerms, termNumber, termsForSum } from '../../lib/sci/gp-explorer';
+  import { fmt, randInt, fracText, readNum, numText } from '../../lib/sci/smath';
   import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.gp')!;
@@ -175,6 +214,153 @@ import '../../styles/smath.css';
     q('.gp-pd').textContent = i === 0 ? 'At 0 % nothing changes: r = 1.' : `It ${way === 'grow' ? 'doubles' : 'halves'} for the first time after ${yd} years${way === 'grow' ? ` (the rule of 72 guesses 72 ÷ ${fmt(i)} ≈ ${fmt(72 / i, 1)})` : ''}.`;
   }
   drawGP(); drawMeans(); drawMoney();
+
+  // ---- Solve my GP question: typed numbers, six kinds of question, with the working. ----
+  const gk = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const gsel = (k: string) => q<HTMLSelectElement>(`[data-k="${k}"]`);
+  const FIELDS = ['a', 'r', 'n', 'list', 'p', 'x', 'q', 'y', 't', 'b', 'm'];
+  const PRE: { name: string; mode: string; v: Record<string, string> }[] = [
+    { name: '10th term and S₁₀ of 3, 6, 12, …', mode: 'nth', v: { a: '3', r: '2', n: '10' } },
+    { name: 'Sum to infinity of 18 + 6 + 2 + …', mode: 'nth', v: { a: '18', r: '1/3', n: '5' } },
+    { name: 'Is 5, 15, 45 a GP?', mode: 'list', v: { list: '5, 15, 45' } },
+    { name: '3rd term is 12 and 6th term is 96', mode: 'two', v: { p: '3', x: '12', q: '6', y: '96' } },
+    { name: 'Which term of 2, 6, 18, … is 486?', mode: 'which', v: { a: '2', r: '3', t: '486' } },
+    { name: 'How many terms of 1, 2, 4, … make 1000?', mode: 'sumn', v: { a: '1', r: '2', t: '1000' } },
+    { name: 'Insert 3 geometric means between 3 and 48', mode: 'gm', v: { a: '3', b: '48', m: '3' } },
+  ];
+  gsel('preset').append(...PRE.map((p, i) => new Option(p.name, String(i))));
+  /** A number for the working: fractions where simple, exponent form when huge. */
+  const big = (x: number): string => {
+    if (!Number.isFinite(x)) return 'too large to show';
+    if (x === 0) return '0';
+    if (Math.abs(x) >= 1e12 || Math.abs(x) < 1e-6) return x.toExponential(4).replace(/\.?0+e/, 'e').replace('e+', ' × 10^').replace('e', ' × 10^').replace('-', '−');
+    return numText(x, 4);
+  };
+  const bp = (x: number) => (x < 0 || big(x).includes('/') || big(x).includes('×') ? `(${big(x)})` : big(x));
+  function solveGP() {
+    const mode = gsel('mode').value;
+    q('.gp-solve').querySelectorAll<HTMLElement>('[data-need]').forEach((e) => { e.hidden = !e.dataset.need!.split(' ').includes(mode); });
+    q('.gp-lt').textContent = mode === 'which' ? 'Term to find (the number)' : 'Sum to reach';
+    const v: Record<string, number> = {}; for (const k of FIELDS) if (k !== 'list') v[k] = readNum(gk(k).value);
+    const err = q('.gp-serr'), ans = q('.gp-ans'), work = q('.gp-work'), tip = q('.gp-tip'), show = q<HTMLButtonElement>('.gp-show');
+    const stop = (m: string) => { err.textContent = m; err.hidden = false; ans.textContent = ''; work.replaceChildren(); tip.textContent = ''; show.hidden = true; };
+    const needs: Record<string, string[]> = { nth: ['a', 'r', 'n'], list: [], two: ['p', 'x', 'q', 'y'], which: ['a', 'r', 't'], sumn: ['a', 'r', 't'], gm: ['a', 'b', 'm'] };
+    const nm: Record<string, string> = { a: 'the first term a', r: 'the common ratio r', n: 'the number of terms n', p: 'term number p', x: 'the value of term p', q: 'term number q', y: 'the value of term q', t: 'the number to find', b: 'the last number b', m: 'how many means m' };
+    const bad = needs[mode].find((k) => !Number.isFinite(v[k]));
+    if (bad) return stop(`Type a number for ${nm[bad]} (a whole number, decimal or fraction like 1/3).`);
+    if (needs[mode].some((k) => Math.abs(v[k]) > 1e12)) return stop('Please keep the numbers below a trillion.');
+    const whole = (k: string, lo: number, hi: number, label: string) => !Number.isInteger(v[k]) || v[k] < lo || v[k] > hi ? `${label} must be a whole number from ${lo} to ${hi.toLocaleString('en')}.` : '';
+    err.hidden = true; show.hidden = true;
+    const lines: string[] = []; let answer = '', mist = '';
+    if (mode === 'nth') {
+      const e = whole('n', 1, 100000, 'n'); if (e) return stop(e);
+      const { a, r, n } = v, t = a * r ** (n - 1), S = sumN(a, r, n), inf = sumInf(a, r);
+      if (!Number.isFinite(t) || !Number.isFinite(S)) return stop('These numbers make a result too large for a calculator (over 10^300). Try a smaller n or r.');
+      lines.push(`nth term: aₙ = a rⁿ⁻¹ = ${bp(a)} × ${bp(r)}^${n - 1} = ${big(t)}.`);
+      lines.push(r === 1 ? `Sum: r = 1, so every term is ${big(a)} and Sₙ = n a = ${n} × ${bp(a)} = ${big(S)}.` : `Sum of n terms: Sₙ = a(rⁿ − 1)/(r − 1) = ${bp(a)} × (${bp(r)}^${n} − 1)/(${bp(r)} − 1) = ${big(S)}.`);
+      lines.push(a === 0 ? 'Every term is 0.' : Math.abs(r) < 1 ? `Since |r| < 1, the sum to infinity exists: S∞ = a/(1 − r) = ${bp(a)}/(1 − ${bp(r)}) = ${big(inf)}.` : `|r| = ${big(Math.abs(r))} is not below 1, so there is no sum to infinity.`);
+      answer = `Term ${n} is ${big(t)} and the sum of the first ${n} terms is ${big(S)}${Number.isFinite(inf) && a !== 0 ? `; the sum to infinity is ${big(inf)}` : ''}.`;
+      mist = 'The nth term uses the power n − 1, not n: the first term is a × r⁰. And S∞ only exists when −1 < r < 1.';
+      if (r !== 0 && n <= 15 && Math.abs(r) <= 2 && Math.abs(a) <= 10) { gk2(a, r, n); show.hidden = false; }
+    } else if (mode === 'list') {
+      const raw = gk('list').value.trim();
+      if (!raw) return stop('Type the terms separated by commas, like 5, 15, 45.');
+      const parts = raw.split(/[,;]+|\s+(?=[-−+]?\d)/).map((x) => x.trim()).filter(Boolean);
+      if (parts.length < 2 || parts.some((x) => !Number.isFinite(readNum(x)))) return stop('Type at least two numbers separated by commas, like 5, 15, 45 (fractions such as 1/2 are fine).');
+      const t = parts.map(readNum), r = ratioOfList(t);
+      if (t.length > 30) return stop('Please give at most 30 terms.');
+      if (t[0] === 0) return stop('The first term is 0, so the ratios 0/0 are not defined. A GP cannot start with 0.');
+      if (r === null) {
+        const ratios = t.slice(1).map((x, i) => x / t[i]), diffs = t.slice(1).map((x, i) => x - t[i]);
+        const ap = diffs.every((d) => Math.abs(d - diffs[0]) < 1e-9 * Math.max(1, Math.abs(d)));
+        lines.push(`Ratios of neighbouring terms: ${ratios.map((x) => big(x)).join(', ')}. They are not all equal.`);
+        lines.push(ap ? `The differences are all ${big(diffs[0])}, so this is an arithmetic progression (AP) instead.` : 'The differences are not all equal either, so this is neither a GP nor an AP.');
+        answer = 'This is not a geometric progression.' + (ap ? ` It is an AP with common difference ${big(diffs[0])}.` : '');
+        mist = 'In a GP you divide a term by the one before it, and the answer is the same every time. Subtracting tests an AP.';
+      } else {
+        const a = t[0], n = t.length;
+        lines.push(`Ratios: ${t.slice(1).map((x, i) => `${bp(x)}/${bp(t[i])}`).join(', ')} = ${big(r)} each time, so it is a GP with a = ${big(a)} and r = ${big(r)}.`);
+        lines.push(`nth term: aₙ = ${bp(a)} × ${bp(r)}ⁿ⁻¹. The next three terms are ${[0, 1, 2].map((k) => big(a * r ** (n + k))).join(', ')}.`);
+        lines.push(`Sum of these ${n} terms: Sₙ = ${big(sumN(a, r, n))}.`);
+        lines.push(Math.abs(r) < 1 ? `Since |r| < 1, S∞ = a/(1 − r) = ${big(sumInf(a, r))}.` : 'Since |r| is not below 1, there is no sum to infinity.');
+        answer = `Yes, it is a GP with first term ${big(a)} and common ratio ${big(r)}.`;
+        mist = 'r is the second term divided by the first, not the difference between them.';
+        if (Math.abs(r) <= 2 && Math.abs(a) <= 10) { gk2(a, r, Math.min(n, 15)); show.hidden = false; }
+      }
+    } else if (mode === 'two') {
+      const e = whole('p', 1, 100000, 'p') || whole('q', 1, 100000, 'q'); if (e) return stop(e);
+      if (v.p === v.q) return stop('Term numbers p and q must be different.');
+      if (v.x === 0 || v.y === 0) return stop('A GP term is never 0 (unless every term is), so type values other than 0.');
+      const r = fromTwoTerms(v.p, v.x, v.q, v.y);
+      if (!r) return stop(`No real ratio fits: terms ${v.p} and ${v.q} have different signs but are an even number of steps apart, and r^${Math.abs(v.q - v.p)} cannot be negative.`);
+      const gap = v.q - v.p;
+      lines.push(`aₚ = a r^${v.p - 1} = ${bp(v.x)} and a_q = a r^${v.q - 1} = ${bp(v.y)}. Divide: r^${Math.abs(gap)} = ${gap > 0 ? `${bp(v.y)}/${bp(v.x)}` : `${bp(v.x)}/${bp(v.y)}`} = ${big(gap > 0 ? v.y / v.x : v.x / v.y)}.`);
+      lines.push(r.ratios.length === 2 ? `The power is even, so r = ±${big(r.ratios[0])}.` : `So r = ${big(r.ratios[0])}.`);
+      r.ratios.forEach((rr, i) => lines.push(`With r = ${big(rr)}: a = aₚ / r^${v.p - 1} = ${bp(v.x)} / ${bp(rr)}^${v.p - 1} = ${big(r.a[i])}. The GP is ${[0, 1, 2].map((k) => big(r.a[i] * rr ** k)).join(', ')}, …`));
+      answer = r.ratios.length === 2 ? `Two GPs fit: a = ${big(r.a[0])}, r = ${big(r.ratios[0])}; or a = ${big(r.a[1])}, r = ${big(r.ratios[1])}.` : `The first term is a = ${big(r.a[0])} and the common ratio is r = ${big(r.ratios[0])}.`;
+      mist = 'If the two terms are an even number of steps apart, r can be positive or negative: say so unless the question gives more information.';
+    } else if (mode === 'which') {
+      const { a, r, t } = v;
+      if (a === 0 || r === 0) return stop('a and r must not be 0 for this question.');
+      if (r === 1) return stop(a === t ? 'r = 1, so every term equals a: the number is every term.' : 'r = 1, so every term equals a. The number is not in the list.');
+      const n = termNumber(a, r, t);
+      lines.push(`aₙ = a rⁿ⁻¹, so ${bp(t)} = ${bp(a)} × ${bp(r)}^(n − 1) and ${bp(r)}^(n − 1) = ${big(t / a)}.`);
+      if (Number.isFinite(n) && Math.abs(n - Math.round(n)) < 1e-9 && n >= 1) { lines.push(`n − 1 = log(${big(t / a)}) / log(${big(Math.abs(r))}) = ${big(n - 1)}, so n = ${Math.round(n)}.`); answer = `${big(t)} is term number ${Math.round(n)}.`; }
+      else {
+        lines.push(Number.isFinite(n) ? `n − 1 = log(${big(t / a)}) / log(${big(r)}) = ${big(n - 1)}, so n = ${big(n)}, which is not a whole number.` : 'No power of r gives that value (the signs or the size do not fit).');
+        answer = `${big(t)} is not a term of this GP.`;
+      }
+      mist = 'n must be a whole number 1, 2, 3, … If it is a fraction, the number is not a term of the progression.';
+    } else if (mode === 'sumn') {
+      const { a, r, t } = v;
+      if (a === 0) return stop('a must not be 0.');
+      if (r === 0) return stop('With r = 0 only the first term counts; try another ratio.');
+      const inf = sumInf(a, r);
+      if (Number.isFinite(inf) && (t >= 0 ? inf < t - 1e-12 : inf > t + 1e-12) && Math.abs(inf - t) > 1e-12) { lines.push(`|r| < 1, so the sum can never go beyond S∞ = a/(1 − r) = ${big(inf)}.`); answer = `The sum never reaches ${big(t)}: it stays below ${big(inf)}.`; }
+      else {
+        const n = termsForSum(a, r, t);
+        if (!Number.isFinite(n)) { lines.push('The running sum never gets to that number (within 100,000 terms).'); answer = `The sum does not reach ${big(t)}.`; }
+        else {
+          lines.push(r === 1 ? `r = 1, so Sₙ = n a. Need n × ${bp(a)} ≥ ${bp(t)}.` : `Sₙ = a(rⁿ − 1)/(r − 1) ≥ ${bp(t)} gives rⁿ ≥ 1 + ${bp(t)}(r − 1)/a = ${big(1 + (t * (r - 1)) / a)}, so n ≥ log(${big(1 + (t * (r - 1)) / a)})/log(${bp(r)}) = ${big(Math.log(1 + (t * (r - 1)) / a) / Math.log(r))} (round up to a whole number).`);
+          lines.push(`Check: S${n} = ${big(sumN(a, r, n))}${n > 1 ? ` and S${n - 1} = ${big(sumN(a, r, n - 1))}` : ''}.`);
+          answer = `${n} term${n > 1 ? 's are' : ' is'} needed: S${n} = ${big(sumN(a, r, n))}.`;
+        }
+      }
+      mist = 'Round n up, never down: the sum of 9 terms may still be below the target while 10 terms pass it.';
+    } else {
+      const e = whole('m', 1, 200, 'm'); if (e) return stop(e);
+      const { a, b, m } = v;
+      if (a === 0 || b === 0) return stop('Neither number can be 0 for geometric means.');
+      const r = fromTwoTerms(1, a, m + 2, b);
+      if (!r) return stop('There is no real set of geometric means for these two numbers: they have different signs but m + 1 is even.');
+      lines.push(`With m means there are m + 2 terms, so b = a r^(m + 1): ${bp(b)} = ${bp(a)} × r^${m + 1}, giving r^${m + 1} = ${big(b / a)}.`);
+      r.ratios.forEach((rr) => lines.push(`r = ${big(rr)}: the means are ${Array.from({ length: m }, (_, i) => big(a * rr ** (i + 1))).join(', ')}.`));
+      answer = r.ratios.length === 2 ? `Two answers: r = ${big(r.ratios[0])} gives ${a}, ${Array.from({ length: Math.min(m, 6) }, (_, i) => big(a * r.ratios[0] ** (i + 1))).join(', ')}${m > 6 ? ', …' : ''}, ${b}; r = ${big(r.ratios[1])} gives the other set.` : `The ${m} mean${m > 1 ? 's are' : ' is'} ${Array.from({ length: Math.min(m, 8) }, (_, i) => big(a * r.ratios[0] ** (i + 1))).join(', ')}${m > 8 ? ', …' : ''} (r = ${big(r.ratios[0])}).`;
+      mist = 'There are m + 2 terms in all, so the power on r is m + 1, not m.';
+    }
+    ans.textContent = answer.replace(/-/g, '−');
+    work.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t.replace(/-(?=\d)/g, '−') })));
+    tip.textContent = mist ? `Common mistake: ${mist}` : '';
+  }
+  /** Remember what the "Draw this" button should put on the graph. */
+  let toDraw: [number, number, number] | null = null;
+  const gk2 = (a: number, r: number, n: number) => { toDraw = [a, r, n]; };
+  q('.gp-show').addEventListener('click', () => {
+    if (!toDraw) return;
+    const [a, r, n] = toDraw; A.value = String(a); Rb.value = String(r); Nb.value = String(Math.min(15, Math.max(1, n)));
+    q<HTMLInputElement>('.gp-ar').value = String(a); q<HTMLInputElement>('.gp-rr').value = String(r); q<HTMLInputElement>('.gp-nr').value = Nb.value;
+    drawGP(); q('.gp-fig').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+  const groot = q('.gp-solve');
+  groot.addEventListener('input', (e) => { const k = (e.target as HTMLElement).dataset.k; if (k === 'preset') return; if (k !== 'mode') gsel('preset').value = ''; toDraw = null; solveGP(); });
+  groot.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).dataset.k === 'preset') {
+      const p = PRE[Number(gsel('preset').value)]; if (!p) return;
+      gsel('mode').value = p.mode; for (const k of FIELDS) if (p.v[k] !== undefined) gk(k).value = p.v[k];
+    }
+    toDraw = null; solveGP();
+  });
+  solveGP();
 
   quiz(q('.gp-quiz'), () => {
     const out: Question[] = [];

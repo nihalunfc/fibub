@@ -11,7 +11,7 @@ ads: false
 order: 1161
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [trig-ratios, pythagoras-proofs, geometry-construction]
 sources:
   - "Standard results: sector area (θ/360)πr², arc length (θ/360)2πr, segment = sector − triangle, the tangent is perpendicular to the radius and the two tangents from a point are equal. Written for fibub."
@@ -65,8 +65,14 @@ For the tangents: with a radius of 4 cm and P 5 cm from the centre, PT = √(25 
 
 Four fresh questions each time: a sector area, an arc length, a tangent length and an angle between radii. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
 
+## Solve your own numbers
+
+The card at the top takes the numbers from your question. Enter the radius and angle (degrees or radians) for the **sector area**, **arc length** and **segment area**, each with the formula, the substitution and the perimeter. Choose π as 22/7, 3.14 or the calculator value, since many books specify one. The other options go backwards: the **angle** from an arc length or an area, the **radius** from an arc length or an area, the **length of a tangent** from a point at a given distance from the centre, and the **area swept by a clock hand** in a number of minutes (6 degrees a minute for the minute hand, 0.5 for the hour hand). Angles over 360 degrees, zero radii and points inside the circle get a plain message.
+
 ## FAQ
 
 **Why do answers differ slightly between 22/7 and 3.14?** Both are approximations of π (3.14159...). 22/7 ≈ 3.1429 and 3.14 is a little smaller.
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do I find the area of a sector?** Multiply the fraction of the circle, angle ÷ 360, by πr². Type the radius and angle in the card above to see it worked out.

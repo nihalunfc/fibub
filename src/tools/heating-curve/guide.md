@@ -11,12 +11,13 @@ ads: false
 order: 1065
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [states-of-matter, phase-diagram-calculator, heat-engine-cycles]
 sources:
   - "Heat for a temperature change Q = mcΔT, latent heat Q = mL, power P = Q/t, and the principle of calorimetry (heat lost = heat gained): standard physics."
   - "Rounded school values: specific heat of ice 2,100, water 4,200 and steam 2,000 J/(kg K); latent heat of fusion 3.34 × 10⁵ J/kg and of vaporisation 2.26 × 10⁶ J/kg; metals iron about 450, copper about 385 and aluminium about 900 J/(kg K)."
   - "Checked against hand working in Python written for the tests."
+  - "1 calorie = 4.1868 J (international steam table calorie), used for the cal/g and cal/(g·°C) unit boxes."
 flow:
   - { icon: sliders, label: "Set heater" }
   - { icon: chart, label: "Curve" }
@@ -36,6 +37,10 @@ It follows the school topics on heat: Class 9 Science, Matter in Our Surrounding
 2. Watch the curve draw itself (the whole heating plays in about 24 seconds). **Pause** to stop at a moment; **Start again** goes back to the start.
 3. Read the **table**: the heat each stage needs and how long it takes at your heater power, with the formula used.
 4. In the **mixer**, choose what you drop in, its mass and temperature, and the mass and temperature of the water in the cup. The final temperature is shown with the working.
+
+## Solve my numbers
+
+The **Solve my numbers** box at the top is for textbook numbers. Choose: the heat for a temperature change (Q = mcΔT, a cooling gives heat out); the heat for melting or boiling (Q = mL); the whole journey from ice at a cold temperature to water or steam, with each stage's heat and the time at a given heater power; the heating time for a kettle with the heater's efficiency; the final temperature when two things mix (hot iron in water); ice dropped into warm water, including the case where not all the ice melts; and the specific heat of a metal by the method of mixtures. Specific heat can be typed in J/(kg·K), kJ/(kg·K) or cal/(g·°C), latent heat in J/kg, kJ/kg or cal/g, mass in g or kg. The answer is one sentence with the marked working; impossible orders of temperature give a plain message. Rounded school values are used for ice, water and steam (2100, 4200, 2000 J/(kg·K); 3.34 × 10⁵ and 2.26 × 10⁶ J/kg), so a book that uses 4186 will differ in the third digit.
 
 ## Worked example
 
@@ -66,3 +71,5 @@ Five questions with fresh numbers: heat to warm water, heat to melt ice, how lon
 **Why does the mixer stop at 0 °C sometimes?** If the warm water cannot supply enough heat to melt all the ice, the mixture stays at 0 °C with ice left over.
 
 **Is this from NCERT?** No. It is an independent study aid that follows the same school topics, with its own pictures and numbers.
+
+**How much heat does it take to turn ice into steam?** Add the five stages: warming the ice, melting, warming the water, boiling and warming the steam; for 0.5 kg from −20 °C to steam at 120 °C it is about 1.55 MJ.

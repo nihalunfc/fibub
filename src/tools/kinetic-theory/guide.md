@@ -11,12 +11,13 @@ ads: false
 order: 1066
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [states-of-matter, heating-curve, real-gas-calculator, random-walk-diffusion]
 sources:
   - "Kinetic theory of an ideal gas: pressure from molecular collisions, PV = nRT, average kinetic energy (3/2)kT, v_rms = √(3RT/M), mean speed √(8RT/πM), most probable speed √(2RT/M), the Maxwell distribution and its two-dimensional (Rayleigh) form, hard-disc second virial coefficient πσ²/2: standard physics."
   - "R = 8.314462618 J/(mol K) and k = 1.380649 × 10⁻²³ J/K (SI, exact); molar masses from standard atomic weights."
   - "Checked against an independent Python calculation; the disc model is tested for energy conservation, its counted wall pressure against the 2D gas law with the hard-disc correction (within 3%), and its speeds against the 2D Maxwell shape."
+  - "Boltzmann constant k = 1.380649 × 10⁻²³ J/K, Avogadro constant N_A = 6.02214076 × 10²³ /mol and electron-volt 1.602176634 × 10⁻¹⁹ J are exact SI values (2019 redefinition); R = 8.314462618 J/(mol K)."
 flow:
   - { icon: sliders, label: "Heat, squash" }
   - { icon: eye, label: "Watch hits" }
@@ -37,6 +38,10 @@ It follows the school topics on gases: Class 11 Physics, Kinetic Theory (molecul
 3. Read the **pressure from wall hits** (averaged over the last few seconds) and the **ideal-gas value**, both relative to the starting box (300 K, 60 particles, full width). Give the count a few seconds to settle after a change.
 4. Watch the **speed histogram**. **Start again** gives every particle the same speed so you can watch the spread grow.
 5. In the second card, pick a **gas** to see its rms, average and most likely speeds and the average energy per molecule at the same temperature.
+
+## Solve my numbers
+
+The **Solve my numbers** box at the top takes your own numbers. Choose what to find: the rms (and mean and most probable) speed of molecules, v = √(3RT/M), from a temperature in K or °C and a molar mass in g/mol; the average kinetic energy ³⁄₂kT of a molecule (in joules and electronvolts) and of a mole; the temperature from a molecule speed; how much faster a light gas is than a heavy one at the same temperature (Graham's √(M₂/M₁)); the pressure P = ⅓ρv²; the speed from a pressure and density; and the ideal-gas pressure and molecule count from n, T and V. Hints give molar masses of H₂, He, N₂, O₂ and CO₂. Answers come as one sentence with the working below. A temperature at or below absolute zero gives a plain message. The common slips are listed: grams per mole instead of kilograms per mole, using °C, and forgetting to square v.
 
 ## Worked example
 
@@ -61,3 +66,5 @@ Five questions, fresh each time: the rms speed of a gas, how the rms speed chang
 **Why is pressure ∝ T and not √T?** Faster particles hit the walls both harder and more often; each is ∝ √T, so together ∝ T.
 
 **Is this from NCERT?** No. It is an independent study aid that follows the same school topics, with its own pictures and numbers.
+
+**How do I find the speed of gas molecules at a given temperature?** v_rms = √(3RT/M) with T in kelvin and M in kg/mol; for nitrogen at 27 °C this is about 517 m/s.

@@ -10,8 +10,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <h2>Pick a function and a point</h2>
     <div class="ax-grid">
       <label>Example <select class="lz-ex"></select></label>
-      <label class="lz-own" hidden>Type f(x) <input class="lz-f" type="text" value="(x^3 - 1)/(x - 1)" autocomplete="off" spellcheck="false" /></label>
-      <label class="lz-own" hidden>Near x = a <input class="lz-a" type="text" inputmode="decimal" value="1" /></label>
+      <label class="lz-own" hidden>Textbook-style examples <select class="lz-pre" data-k="preset"><option value="">Choose one to fill the boxes…</option><option value="(x^3 - 1)/(x - 1)|1">(x³ − 1)/(x − 1) as x → 1</option><option value="(sqrt(x + 1) - 1)/x|0">(√(x + 1) − 1)/x as x → 0</option><option value="tan(x)/x|0">tan x / x as x → 0</option><option value="(2x + 1)/(x - 3)|inf">(2x + 1)/(x − 3) as x → ∞</option><option value="(3x^2 + 1)/(x^2 - 4)|-inf">(3x² + 1)/(x² − 4) as x → −∞</option><option value="(1 + 1/x)^x|inf">(1 + 1/x)ˣ as x → ∞</option></select></label>
+      <label class="lz-own" hidden>Type f(x) <input data-k="f" class="lz-f" type="text" value="(x^3 - 1)/(x - 1)" autocomplete="off" spellcheck="false" /></label>
+      <label class="lz-own" hidden>Near x = a (or type inf, -inf) <input data-k="a" class="lz-a" type="text" inputmode="decimal" value="1" /></label>
     </div>
     <p class="ax-err lz-err" hidden></p>
     <div class="ax-row lz-lv"><span class="ax-help">Level</span>
@@ -21,16 +22,26 @@ import SmQuiz from '../../components/SmQuiz.astro';
 
   <div class="ax-card lz-out">
     <h2 class="lz-title"></h2>
+    <p class="ax-big lz-ans" aria-live="polite"></p>
     <canvas class="ax-fig lz-fig" role="img"></canvas>
     <label class="lz-sl">Zoom: window x = a ± <b class="lz-wv"></b><input class="lz-z" type="range" min="0" max="1000" value="0" /></label>
     <div class="ax-row"><button type="button" class="btn small lz-go">Zoom in</button><button type="button" class="btn small secondary lz-reset">Zoom out</button></div>
     <p class="lz-note"></p>
     <dl class="ax-facts lz-facts"></dl>
+    <details class="lz-wk" open><summary>Show the working</summary><ol class="lz-work"></ol><p class="ax-help">Common mistake: a limit is about where f heads, not what f is at a. A hole or a different value at a does not change the limit.</p></details>
     <h3>Close in from both sides</h3>
     <div class="lz-tabs">
       <div class="ax-scroll"><table class="lz-tl"><thead><tr><th class="r">x (from the left)</th><th class="r">f(x)</th></tr></thead><tbody></tbody></table></div>
       <div class="ax-scroll"><table class="lz-tr"><thead><tr><th class="r">x (from the right)</th><th class="r">f(x)</th></tr></thead><tbody></tbody></table></div>
     </div>
+  </div>
+
+  <div class="ax-card lz-inf" hidden>
+    <h2 class="lz-ititle"></h2>
+    <p class="ax-big lz-ians" aria-live="polite"></p>
+    <p class="ax-help">As x gets huge, where does f(x) head? Each row is ten times further out.</p>
+    <div class="ax-scroll"><table class="lz-itab"><thead><tr><th class="r">x</th><th class="r">f(x)</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help lz-itip"></p>
   </div>
 
   <div class="ax-card lz-sector" hidden>
@@ -55,7 +66,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { EXAMPLES, examine, table, type Kind } from '../../lib/sci/school-limits';
+  import { EXAMPLES, examine, table, readPoint, atInfinity, tableInf, limitSentence, infSentence, limitWorking, type Kind } from '../../lib/sci/school-limits';
   import { readFn, type Fn } from '../../lib/sci/school-calculus';
   import { paint, pagePalette, type Figure } from '../../lib/report';
   import { view, axes, curve, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';
@@ -85,16 +96,22 @@ import SmQuiz from '../../components/SmQuiz.astro';
     let f: Fn, a: number, name: string, note = '';
     if (id === 'own') {
       try { f = readFn(q<HTMLInputElement>('.lz-f').value); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; return; }
-      a = num(q<HTMLInputElement>('.lz-a').value);
-      if (!Number.isFinite(a) || Math.abs(a) > 1000) { err.textContent = 'Type the point a as a number (up to 1000).'; err.hidden = false; out.hidden = true; return; }
       name = q<HTMLInputElement>('.lz-f').value.trim();
-    } else { const e = EXAMPLES.find((k) => k.id === id)!; f = e.f; a = e.a; name = e.label.replace(/ at .*$/, ''); note = e.note; }
+      const pt = readPoint(q<HTMLInputElement>('.lz-a').value);
+      if (Math.abs(pt) === Infinity) { out.hidden = true; q('.lz-sector').hidden = true; infinity(f, name, pt > 0 ? 1 : -1); return; }
+      q<HTMLElement>('.lz-inf').hidden = true;
+      a = num(q<HTMLInputElement>('.lz-a').value);
+      if (!Number.isFinite(a) || Math.abs(a) > 1000) { err.textContent = 'Type the point a as a number (up to 1000), or inf or -inf for infinity.'; err.hidden = false; out.hidden = true; return; }
+      name = q<HTMLInputElement>('.lz-f').value.trim();
+    } else { q<HTMLElement>('.lz-inf').hidden = true; const e = EXAMPLES.find((k) => k.id === id)!; f = e.f; a = e.a; name = e.label.replace(/ at .*$/, ''); note = e.note; }
     out.hidden = false;
     q('.lz-sector').hidden = id !== 'sinx';
     const r = examine(f, a);
     const w = 4 * Math.pow(10, -(+q<HTMLInputElement>('.lz-z').value) / 250);
     q('.lz-wv').textContent = fmt(w, w < 0.01 ? 4 : 3);
     q('.lz-title').textContent = `${name} near x = ${fmt(a)}`;
+    q('.lz-ans').textContent = limitSentence(id === 'own' ? name : name, a, r);
+    q('.lz-work').replaceChildren(...limitWorking(a, r).map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
     // y window: centred on the limit (or the value) when there is one, else on what is seen.
     const ys: number[] = []; for (let i = 0; i <= 200; i++) { const y = f(a - w + (2 * w * i) / 200); if (Number.isFinite(y)) ys.push(y); }
     ys.sort((p, s) => p - s);
@@ -130,6 +147,15 @@ import SmQuiz from '../../components/SmQuiz.astro';
     if (id === 'sinx') sector();
   }
 
+  function infinity(f: Fn, name: string, sign: 1 | -1) {
+    const r = atInfinity(f, sign);
+    q('.lz-inf').hidden = false;
+    q('.lz-ititle').textContent = `${name} as x → ${sign > 0 ? '∞' : '−∞'}`;
+    q('.lz-ians').textContent = infSentence(name, sign, r);
+    q('.lz-itab tbody').replaceChildren(...tableInf(f, sign).map((p) => { const tr = document.createElement('tr'); [p.x.toLocaleString('en').replace('-', '−'), Number.isFinite(p.y) ? fmt(p.y, 6) : 'undefined'].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
+    q('.lz-itip').textContent = r.kind === 'finite' ? `Exact method: divide the top and bottom by the highest power of x, then let 1/x → 0. The table says ${fmt(r.limit, 5)}.` : r.kind === 'infinite' ? 'The values keep growing, so the limit is infinite (it does not exist as a number).' : 'The values do not settle on one number, so there is no limit.';
+  }
+
   function sector() {
     const x = +q<HTMLInputElement>('.lz-x').value, s = Math.sin(x), c = Math.cos(x), t = Math.tan(x);
     q('.lz-xv').textContent = fmt(x, 2);
@@ -153,6 +179,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
   sel.addEventListener('change', () => { q<HTMLInputElement>('.lz-z').value = '0'; run(); });
   root.querySelectorAll('.lz-f, .lz-a, .lz-z').forEach((e) => e.addEventListener('input', () => { if (e.classList.contains('lz-z')) cancelAnimationFrame(anim); run(); }));
   q('.lz-x').addEventListener('input', sector);
+  q<HTMLSelectElement>('.lz-pre').addEventListener('change', (e) => { const v = (e.target as HTMLSelectElement).value; if (!v) return; const [fn, at] = v.split('|'); q<HTMLInputElement>('.lz-f').value = fn; q<HTMLInputElement>('.lz-a').value = at; run(); });
   q('.lz-go').addEventListener('click', () => { cancelAnimationFrame(anim); const z = q<HTMLInputElement>('.lz-z'), z0 = +z.value, t0 = performance.now(); const st = (t: number) => { const k = Math.min(1, (t - t0) / 2000); z.value = String(Math.round(z0 + (1000 - z0) * k)); run(); if (k < 1) anim = requestAnimationFrame(st); }; anim = requestAnimationFrame(st); });
   q('.lz-reset').addEventListener('click', () => { cancelAnimationFrame(anim); q<HTMLInputElement>('.lz-z').value = '0'; run(); });
   root.querySelectorAll<HTMLButtonElement>('.lz-lv button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.lv!; root.querySelectorAll('.lz-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));

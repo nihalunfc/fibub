@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn shc">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (amplitude, period, spring constant, pendulum length) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">The circle and its shadow</h2>
@@ -54,6 +55,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { SHM } from '../../lib/learn/phys-d';
   import { omegaFromPeriod, springPeriod, pendulumPeriod, shmState, shmEnergy } from '../../lib/sci/learnshm';
   import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -167,4 +170,5 @@ import '../../styles/learnquiz-d.css';
       { q: `Where in SHM is the ${['speed', 'acceleration', 'potential energy'][at]} greatest?`, ans: at === 0 ? 0 : 1, choices: ['At the middle (x = 0)', 'At the ends (x = ±A)', 'The same everywhere'], work: at === 0 ? 'v = ω√(A² − x²) is largest when x = 0, the middle.' : at === 1 ? 'a = −ω² x is largest in size where x is largest: at the ends.' : 'PE = ½ k x² is largest where x is largest: at the ends.' },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, SHM);
 </script>

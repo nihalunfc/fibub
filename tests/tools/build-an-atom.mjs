@@ -36,4 +36,19 @@ export default async ({ page, check, BASE }) => {
   const q0 = await items.nth(0).locator('.cq-q').textContent(); let changed = false;
   for (let k = 0; k < 5 && !changed; k++) { await page.click('.bat .cq-new'); changed = (await items.nth(0).locator('.cq-q').textContent()) !== q0 || (await items.nth(2).locator('.cq-q').textContent()) !== q0; }
   check(changed && (await items.nth(0).locator('.cq-res').isHidden()), 'atom: new questions');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/build-an-atom/`); await page.waitForTimeout(600);
+  {
+  const S = '.bat-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'Sodium atom: 11 protons, 12 neutrons, 11 electrons.' && (await work()).includes('Neutrons = A − Z = 23 − 11 = 12') && (await work()).includes('2, 8, 1'), `atom solve: sodium (${await ans()})`);
+  await pre(1); check((await ans()) === 'Chlorine negative ion (anion): 17 protons, 18 neutrons, 18 electrons.', `atom solve: chloride (${await ans()})`);
+  await pre(2); check((await ans()) === 'Magnesium positive ion (cation): 12 protons, 12 neutrons, 10 electrons.', `atom solve: magnesium ion (${await ans()})`);
+  await pre(3); check((await ans()) === 'The average atomic mass is 35.5 u.' && (await work()).includes('3550 ÷ 100 = 35.5'), `atom solve: chlorine average (${await ans()})`);
+  await pre(4); check((await ans()) === 'The isotope of mass 10 is 20 % and the one of mass 11 is 80 %.', `atom solve: boron abundance (${await ans()})`);
+  await pre(0); await page.fill(S + '[data-k="sv-A"]', '5'); check((await ans()).includes('cannot be smaller than the atomic number'), `atom solve: A below Z (${await ans()})`);
+  await page.fill(S + '[data-k="sv-Z"]', '0'); await page.fill(S + '[data-k="sv-A"]', '1'); check((await ans()).includes('1 to 118'), `atom solve: Z of 0 (${await ans()})`);
+  await pre(3); await page.fill(S + '[data-k="sv-ab"]', '50 20'); check((await ans()).includes('add up to 70'), `atom solve: abundances must add to 100 (${await ans()})`);
+  }
 };

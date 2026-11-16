@@ -38,4 +38,28 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'random variable: five quiz questions');
   await page.fill(R + '.smq-q:nth-child(5) .smq-in', '0.5'); await page.click(R + '.smq-q:nth-child(5) .smq-check');
   check((await t('.smq-q:nth-child(5) .smq-out')) === 'Right!', 'random variable: quiz answer');
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.rv-solve [data-k="rs-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.rv-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'rs solve: answer is a polite live region');
+  check((await ans()) === 'P(X = 2) = 0.375 (37.5%).' && (await wk()).includes('3 × 0.5^2 × 0.5^1 = 0.375'), `rs solve: opens with 2 heads in 3 tosses (${await ans()})`);
+  await ex(1, 6); check((await ans()) === 'P(X ≥ 1) = 0.5177 (51.8%).' && (await wk()).includes('1 − 0.4823 = 0.5177'), `rs solve: at least one six (${await ans()})`);
+  await ex(2, 6); check((await ans()) === 'P(X ≤ 2) = 0.9298 (93%).', `rs solve: at most 2 (${await ans()})`);
+  await ex(3, 6); check((await ans()) === 'P(3 ≤ X ≤ 5) = 0.7109 (71.1%).', `rs solve: between (${await ans()})`);
+  await ex(4, 6); check((await ans()) === 'The mean is np = 3, the variance is npq = 2.25 and the standard deviation is 1.5.', `rs solve: binomial mean and variance (${await ans()})`);
+  await ex(5, 6); check((await ans()) === 'The mean is μ = 1.5, the variance is 0.75 and the standard deviation is 0.866.' && (await wk()).includes('E(X²) = Σ x² P(x)'), `rs solve: table mean and variance (${await ans()})`);
+  await fill('ps', '1/8, 3/8, 3/8, 1/4');
+  check((await ans()).includes('add up to 1.125'), `rs solve: probabilities that do not add to 1 (${await ans()})`);
+  await fill('ps', '1/2');
+  check((await ans()).includes('4 values of X but 1 probabilities'), 'rs solve: lists of different length');
+  await ex(0, 6); await fill('p', '1.5');
+  check((await ans()).includes('between 0 and 1') && !/NaN|Infinity/.test(await ans()), 'rs solve: p above 1');
+  await ex(0, 6); await fill('r', '5');
+  check((await ans()).includes('0 to 3'), 'rs solve: r above n');
+  await ex(0, 6); await fill('n', '0');
+  check((await ans()).includes('whole number of 1 or more'), 'rs solve: zero trials');
+  await ex(0, 6);
+  check((await ans()) === 'P(X = 2) = 0.375 (37.5%).', 'rs solve: preset again after errors');
 };

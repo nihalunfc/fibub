@@ -37,4 +37,19 @@ export default async ({ page, check, BASE }) => {
   { const w = await txt('.sm-q:nth-child(4) .sm-qwork'); const m = /q = (\d+) and r = (\d+)/.exec(w); await page.fill(R + '.sm-q:nth-child(4) .sm-qin', `${m[1]}, ${m[2]}`); await page.click(R + '.sm-q:nth-child(4) .sm-qcheck');
     check((await txt('.sm-q:nth-child(4) .sm-qres')) === 'Right!', 'hcf: Euclid step q, r'); }
   check((await txt('.sm-qscore')).includes('4 of 4'), 'hcf: score 4 of 4');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/hcf-lcm-venn/`); await page.waitForTimeout(600);
+  {
+  const S = '.hl-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'HCF = 12 and LCM = 1260.' && (await work()).includes('36 = 2² × 3²') && (await work()).includes('2² × 3² × 5 × 7 = 1260'), `hcf solve: 36, 60, 84 (${await ans()})`);
+  await pre(1); check((await ans()) === 'HCF = 4 and LCM = 9696.' && (await work()).includes('4 × 9696 = 38784'), `hcf solve: 96 and 404 (${await ans()})`);
+  await pre(2); check((await ans()) === 'The largest number is 12.' && (await work()).includes('137 − 5 = 132'), `hcf solve: remainders (${await ans()})`);
+  await pre(3); check((await ans()) === 'The smallest number is 125.' && (await work()).includes('LCM of 8, 12, 15 = 120'), `hcf solve: smallest with remainder (${await ans()})`);
+  await pre(4); check((await ans()) === 'The other number is 30.', `hcf solve: missing number (${await ans()})`);
+  await page.fill(S + '[data-k="sv-h"]', '7'); check((await ans()).includes('must divide the LCM'), `hcf solve: HCF not dividing LCM (${await ans()})`);
+  await pre(0); await page.fill(S + '[data-k="sv-nums"]', '7 7.5'); check((await ans()).includes('whole numbers'), `hcf solve: decimals refused (${await ans()})`);
+  await page.fill(S + '[data-k="sv-nums"]', '17 23'); check((await ans()) === 'HCF = 1 and LCM = 391.' && (await work()).includes('co-prime'), `hcf solve: co-prime (${await ans()})`);
+  }
 };

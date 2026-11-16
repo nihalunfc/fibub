@@ -21,4 +21,26 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), v = Number(q1.match(/supply is (\d+) V rms/)[1]);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(v * Math.SQRT2)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'rms: right answer accepted');
+  // ---- Solve your own numbers (the card at the top) ----
+  const S = (k) => `${R}.sv [data-k="${k}"]`;
+  const ans = () => page.textContent(S('answer'));
+  const fillS = async (k, v) => { await page.fill(S(k), v); await page.waitForTimeout(80); };
+  const selS = async (k, v) => { await page.selectOption(S(k), v); await page.waitForTimeout(80); };
+  const clearBad = async (what) => check(!/NaN|Infinity|undefined/.test(await ans() + await page.textContent(S('working'))), `solve: no NaN for ${what}`);
+  check((await ans()).includes('325 V') && (await ans()).includes('peak-to-peak 651 V'), `solve: 230 V mains peak (${await ans()})`);
+  await selS('example', '1');
+  check((await ans()).includes('230 V'), `solve: 325 V peak is 230 V rms (${await ans()})`);
+  await selS('example', '2');
+  check((await ans()).includes('4.24 V') && (await ans()).includes('peak 6 V'), `solve: scope 12 V peak-to-peak (${await ans()})`);
+  await selS('example', '3');
+  check((await ans()).includes('5 V') && (await ans()).includes('250 mW'), `solve: square wave power (${await ans()})`);
+  await selS('example', '4');
+  check((await ans()).includes('rms value is 5 V'), `solve: half-wave (${await ans()})`);
+  await selS('wave', 'triangle'); await fillS('v0', '6');
+  check((await ans()).includes('3.46 V'), `solve: triangle rms 3.46 (${await ans()})`);
+  await selS('kind', 'I'); await selS('wave', 'sine'); await fillS('v0', '2'); await fillS('R', '10');
+  check((await ans()).includes('1.41 A') && (await ans()).includes('20 W'), `solve: current and power (${await ans()})`);
+  await fillS('v0', '0');
+  check((await ans()).includes('above zero'), 'solve: zero peak message');
+  await clearBad('rms');
 };

@@ -11,12 +11,13 @@ ads: false
 order: 1341
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [simple-machines, bernoulli-flow, buoyancy-lab, stress-strain-test]
 sources:
   - "Pressure p = F/A, Pascal's law (an extra pressure applied to an enclosed liquid reaches every part of it), F₂/F₁ = A₂/A₁ for a hydraulic lift and A₁x₁ = A₂x₂ for an incompressible liquid: standard school physics found in any textbook. g = 9.8 m/s²; 1 atmosphere = 101 325 Pa."
   - "The preset sizes and loads are made-up, round examples, not the specification of any real lift, jack or press."
   - "Checked by hand: 1200 kg on a 40 cm piston needs 117.6 N on a 4 cm piston at 93.58 kPa; work in equals work out to 1 part in 10⁹ on 500 random cases."
+  - "The Solve my numbers formulas (F₂/F₁ = A₂/A₁, A₁x₁ = A₂x₂, p = F/A) are the standard school ones, checked against the 117.6 N example."
 flow:
   - { icon: pointer, label: "Push" }
   - { icon: sliders, label: "Pistons" }
@@ -51,6 +52,10 @@ Push the small piston down **20 cm** and the car goes up only 20 ÷ 100 = **2 mm
 - Real oil squashes a tiny bit and the seals rub, so a real lift gives a little less than this.
 - Car brakes use the same idea to carry the push of your foot to all four wheels.
 
+## Solve my numbers
+
+Solve my numbers works out hydraulic problems from the numbers in your question. Choose the force on the big piston (from piston diameters, or from areas), the effort needed to lift a load such as a car, how far the load rises, how many pumps it takes to raise it, or the pressure in the oil. Diameters can be in cm, mm or m, areas in cm² or m², forces in N or kN and masses in kg, g or tonnes. The working shows Pascal's law, the numbers put in and the answer, with the area ratio explained. The classic mistake is using the ratio of diameters instead of its square; another is forgetting to change cm² into m² (× 10⁻⁴). Tap an example such as the garage jack or the 1200 kg car to fill the boxes. Zero or negative sizes give a friendly message.
+
 ## FAQ
 
 **Why oil and not air?** Air squashes, so pushing the small piston would mostly squeeze the air instead of lifting the load.
@@ -58,3 +63,5 @@ Push the small piston down **20 cm** and the car goes up only 20 ÷ 100 = **2 mm
 **Does the shape of the pipe matter?** No. Pascal's law says the extra pressure is the same everywhere in the liquid, whatever the shape.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**What is the formula for a hydraulic lift?** F₂ = F₁ × A₂ ÷ A₁: the force on the big piston is the force on the small one times the ratio of the areas, found under Solve my numbers.

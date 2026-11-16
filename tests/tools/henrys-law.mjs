@@ -19,4 +19,24 @@ export default async ({ page, check, BASE }) => {
   await page.click('.hl .hl-who [data-w="climb"]');
   check((await page.textContent('.hl .hl-oh')) === '5000 m up' && (await page.textContent('.hl .hl-pbig')) === '0.535 × the oxygen at sea level' && (await page.textContent('.hl .hl-psub')).includes('altitude sickness'), 'henry: climber at 5000 m');
   await quiz(page, check, '.hl', 'henry');
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.hl-solve [data-k="hs-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.hl-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'hs solve: answer is a polite live region');
+  check((await ans()) === 'About 81.8 mmol (3.6 g) of gas dissolves in each litre of water.' && (await wk()).includes('x = 2.5 ÷ 1700 = 0.00147'), `hs solve: opens with CO₂ at 2.5 bar (${await ans()})`);
+  check(await page.isHidden(SV('KH')), 'hs solve: KH hidden when a gas is chosen');
+  await ex(1, 5); check((await ans()) === 'The mole fraction of the gas in the water is x = 5 × 10⁻⁶.' && (await wk()).includes('Convert KH: 40 kbar = 40000 bar'), `hs solve: x from p and KH (${await ans()})`);
+  await ex(2, 5); check((await ans()) === 'The mole fraction of the gas in the water is x = 6.08 × 10⁻⁶.' && (await wk()).includes('Convert the pressure: 0.21 atm = 0.2128 bar'), `hs solve: oxygen at 0.21 atm (${await ans()})`);
+  await ex(3, 5); check((await ans()) === 'The partial pressure is 0.34 bar (0.336 atm).', `hs solve: p from x and KH (${await ans()})`);
+  await ex(4, 5); check((await ans()) === 'KH is 62.5 kbar (62500 bar).', `hs solve: KH (${await ans()})`);
+  await ex(1, 5); await fill('p', '50000');
+  check((await ans()).includes('more gas than water') && !/NaN|Infinity/.test(await ans()), `hs solve: huge pressure is a friendly message (${await ans()})`);
+  await fill('p', '-1');
+  check((await ans()).includes('cannot be negative'), 'hs solve: negative pressure');
+  await ex(1, 5); await page.selectOption(SV('p-unit'), 'kPa'); await fill('p', '20');
+  check((await ans()) === 'The mole fraction of the gas in the water is x = 5 × 10⁻⁶.', `hs solve: kPa converted (${await ans()})`);
+  await ex(1, 5);
+  check((await ans()).includes('x = 5 × 10⁻⁶'), 'hs solve: preset again after errors');
 };

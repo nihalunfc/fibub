@@ -71,7 +71,7 @@ export function mountSolver(host: HTMLElement, set: SolverSet) {
       if (f.min !== undefined && v < f.min - 1e-12) { if (!msg) msg = `"${f.label}" cannot be less than ${sg(f.min)}.`; continue; }
       if (f.max !== undefined && v > f.max + 1e-12) { if (!msg) msg = `"${f.label}" cannot be more than ${sg(f.max)}.`; continue; }
       vals[f.k] = v;
-      if (un && fac !== 1) conv.push(`${sg(raw)} ${un[0]} = ${sg(v)} ${f.units![0][0]}`);
+      if (un && fac !== 1) conv.push(`${sg(raw)} ${un[0]} = ${sg(v)} ${(f.units!.find((q) => q[1] === 1) ?? ['SI units'])[0]}`);
     }
     tip.replaceChildren(); work.replaceChildren();
     if (msg) { ans.textContent = msg; ans.className = 'ps-ans ps-wait'; return; }

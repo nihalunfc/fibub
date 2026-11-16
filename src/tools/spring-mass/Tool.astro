@@ -5,6 +5,12 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn spm">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type your spring numbers: force and stretch, hanging mass, series and parallel springs, period and energy, with the working.</p><div class="ps-host" data-ps="SPRING"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { SPRING } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, SPRING);
+  </script>
   <div class="ax-card">
     <h2>Hang a mass on springs</h2>
     <div class="ax-seg sp-mode" role="group" aria-label="How the springs are joined"><button type="button" data-m="one" aria-pressed="true">One spring</button><button type="button" data-m="series" aria-pressed="false">Series</button><button type="button" data-m="parallel" aria-pressed="false">Parallel</button></div>

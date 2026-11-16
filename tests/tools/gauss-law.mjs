@@ -34,4 +34,21 @@ export default async ({ page, check, BASE }) => {
   const q2 = await page.textContent(R + '.eq-q:nth-child(2) p'), [lam, r] = q2.match(/carries (\d+) µC per metre\. What is the field (\d+) cm/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(2) .eq-in', String((lam * 1e-6) / (2 * Math.PI * 8.8541878188e-12 * r / 100))); await page.click(R + '.eq-q:nth-child(2) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Right'), 'gauss: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("1 \u00b5C inside a surface"); check((await psAns()).includes("113000 N m\u00b2/C"), "gauss-law: example 1 \u00b5C inside a surface: 113000 N m\u00b2/C");
+  await psPre("Charge from the flux"); check((await psAns()).includes("The charge inside is 443 nC"), "gauss-law: example Charge from the flux: The charge inside is 443 nC");
+  await psPre("Outside a 5 nC shell"); check((await psAns()).includes("The field at 30 cm is 499 N/C"), "gauss-law: example Outside a 5 nC shell: The field at 30 cm is 499 N/C");
+  await psPre("Inside a hollow shell"); check((await psAns()).includes("The field inside is 0 N/C"), "gauss-law: example Inside a hollow shell: The field inside is 0 N/C");
+  await psPre("Long charged wire"); check((await psAns()).includes("The field is 71900 N/C"), "gauss-law: example Long charged wire: The field is 71900 N/C");
+  await psPre("Large charged sheet"); check((await psAns()).includes("565000 N/C"), "gauss-law: example Large charged sheet: 565000 N/C");
+  await psSet("shell", {"Q": "9", "R": "10", "r": "5"}, {"type": "1"}); check((await psAns()).includes("inside the solid sphere at 5 cm is 4040 N/C"), "gauss-law: typed numbers: inside the solid sphere at 5 cm is 4040 N/C");
+  await psSet("shell", {"r": "0"}, {}); check((await psAns()).includes("must be more than 0"), "gauss-law: friendly message: must be more than 0");
+  await psSet("sheet", {"s": "10"}, {"type": "1"}); check((await psAns()).includes("1.13 \u00d7 10^6 N/C"), "gauss-law: friendly message: 1.13 \u00d7 10^6 N/C");
+  await psPre("Long charged wire"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "gauss-law: working shown, no NaN");
 };

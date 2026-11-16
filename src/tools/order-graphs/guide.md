@@ -11,7 +11,7 @@ ads: false
 order: 1090
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [reaction-kinetics-fitter, le-chatelier, thermochemistry-calculator]
 sources:
   - "Integrated rate laws, half-lives and the Arrhenius equation: general chemistry facts, written fresh for fibub. Gas constant R from CODATA (NIST)."
@@ -33,6 +33,17 @@ How fast a reaction goes depends on how much reactant is left, and the way it de
 - **Temperature and catalysts.** Set an activation energy Ea and a temperature T. The page shows k from the Arrhenius equation, how many times faster the reaction is 10 K warmer, the fraction of collisions with enough energy, and an energy profile. Tick the catalyst and a second, lower hump appears: Ea drops, ΔH does not change, and k goes up.
 
 It follows Class 12 Chemistry (chemical kinetics: rate of a reaction, rate law and order, integrated rate equations for zero and first order reactions, half-life, temperature dependence and the Arrhenius equation, the effect of a catalyst, collision theory). To find the order and k from your own measurements, use the [[reaction-kinetics-fitter]]; to see how a catalyst leaves an equilibrium unchanged, try the [[le-chatelier]] sandbox.
+
+## Solve your own numbers
+
+The card at the top takes the numbers from your question and answers in one sentence, with the working underneath. Choose what to find:
+
+- **[A] after a time, time to reach [A], half-life, rate constant k.** Pick zero, first or second order and the time unit (seconds, minutes or hours), then type [A]₀ (mol/L or mmol/L) and the other numbers. The half-life for that order is shown as well.
+- **Order from a table of data.** Type the times and the concentrations. The card tests [A], ln[A] and 1/[A] against t, gives R² for each, names the straight one and gives k from the slope.
+- **Order from initial rates.** Type the concentration and rate of two experiments and get n from rate₂/rate₁ = ([A]₂/[A]₁)ⁿ.
+- **Activation energy and k at a new temperature.** Type k at two temperatures (in K or °C) for Ea in kJ/mol, or Ea and one k to get k at another temperature.
+
+Eight worked-example presets fill the card. Blank, zero, negative or impossible entries (for example [A] bigger than [A]₀, or two equal temperatures) give a friendly message. Common mistakes: using °C instead of kelvin, mixing minutes and seconds, and using the wrong integrated law. Use the [[reaction-kinetics-fitter]] for a fit with uncertainties.
 
 ## How to use it
 
@@ -61,6 +72,8 @@ Arrhenius: with Ea = 75 kJ/mol at 300 K, going to 310 K makes the reaction about
 - The "doubles every 10 K" rule only holds for Ea near 50 kJ/mol around room temperature.
 
 ## FAQ
+
+**How do I find the order of a reaction?** Plot [A], ln[A] and 1/[A] against time: the one that is a straight line gives the order (zero, first or second), or compare how the rate changes when you change the concentration.
 
 **Can a real reaction be zero order?** Yes, for example a reaction on a metal surface that is fully covered: adding more gas does not speed it up.
 

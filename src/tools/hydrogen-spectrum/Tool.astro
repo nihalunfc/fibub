@@ -2,9 +2,16 @@
 // Hydrogen spectrum and Bohr levels (Learn): tap two energy levels to make a jump; the photon's energy, wavelength,
 // colour and series (Lyman, Balmer, Paschen ...) with the Rydberg formula filled in; the spectrum of the series.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn hys">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the level numbers or a wavelength from your question and get the photon, the level energy, the series limit or the jump that gives a wavelength, with the working.</p>
+    <div class="hys-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">Energy levels of hydrogen</h2>
@@ -44,6 +51,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { HYDROGEN_SPEC } from '../../lib/sci/solve-hydrogen';
   import { energyEV, wavelengthNm, photonEV, seriesName, region, radiusNm, speed, RY_EV, R_H } from '../../lib/sci/learnhydrogen';
   import { nmToRgb } from '../../lib/sci/learnphoto';
   import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
@@ -148,4 +157,5 @@ import '../../styles/learnquiz-d.css';
       { q: `A line belongs to the ${seriesName(ser)} series. Which level does the electron end on?`, ans: ser - 1, choices: ['n = 1', 'n = 2', 'n = 3'], work: `Lyman lines end on n = 1, Balmer on n = 2 and Paschen on n = 3. ${seriesName(ser)} → n = ${ser}.` },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.hys-solve')!, HYDROGEN_SPEC);
 </script>

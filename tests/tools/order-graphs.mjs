@@ -27,4 +27,19 @@ export default async ({ page, check, BASE }) => {
     if ((await it.locator('.cq-res').textContent()) === 'Right!') right++;
   }
   check(n === 5 && right === n, `orders: every worked answer accepted (${right}/${n})`);
+  // Solve my numbers card
+  const S = (k) => `.og .og-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'After 60 min, [A] = 0.2 mol/L (25% of the start).' && (await wk()).includes('t½ = 0.693 ÷ k = 30 min'), `order solve: first order [A] (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()) === 'It takes 400 s for [A] to fall from 0.5 to 0.1 mol/L.' && (await wk()).includes('= 100 s'), `order solve: second order time (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()) === 'The half-life is 40 s.', `order solve: zero order half-life (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()) === 'k = 0.0347 min⁻¹.', `order solve: k (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()).startsWith('It is first order: ln[A] against t is the straight line') && (await wk()).includes('straightest'), `order solve: order from data (${await ans()})`);
+  await page.selectOption(S('example'), '5'); check((await ans()).startsWith('The order with respect to this reactant is 2'), `order solve: initial rates (${await ans()})`);
+  await page.selectOption(S('example'), '6'); check((await ans()) === 'The activation energy is 53.6 kJ/mol.', `order solve: Ea (${await ans()})`);
+  await page.selectOption(S('example'), '7'); check((await ans()).startsWith('At the new temperature k = 0.00385 (1.92 times'), `order solve: k at 35 C (${await ans()})`);
+  await page.fill(S('T2'), '25'); check((await ans()).includes('must be different'), 'order solve: equal temperatures');
+  await page.fill(S('T2'), '-300'); check((await ans()).includes('above absolute zero'), 'order solve: below absolute zero');
+  await page.selectOption(S('find'), 'order'); await page.fill(S('tl'), '0 10 20 30 40'); await page.fill(S('Al'), '1 0.5'); check((await ans()).includes('You typed 5 times but 2'), `order solve: unequal lists (${await ans()})`);
+  await page.fill(S('Al'), '1 0.5 0 0.1 0.1'); check((await ans()).includes('more than 0'), 'order solve: zero concentration refused');
+  await page.selectOption(S('find'), 't'); await page.selectOption(S('example'), '1'); await page.fill(S('A'), '0.9'); check((await ans()).includes('must be less than [A]₀'), 'order solve: [A] above [A]0');
 };

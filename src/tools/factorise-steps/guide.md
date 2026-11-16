@@ -11,7 +11,7 @@ ads: false
 order: 1284
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [identity-tiles, polynomial-zeros, quadratic-explorer, symbolic-algebra]
 sources:
   - "Algebraic identities ((a ± b)², a² − b², a³ ± b³) and factorising by splitting the middle term are standard school algebra. Written for fibub; the examples are fibub's own."
@@ -43,7 +43,9 @@ See the identities as pictures with sliders in [[identity-tiles]]; once a quadra
 2. Type whole numbers. The expression and its factorised form appear at the top.
 3. Read **Step by step**. If it cannot be factorised with whole numbers, the last step says why.
 4. **New example** makes a fresh one that does factorise.
-5. For a quadratic, **As an area** shows the rectangle: its width and height are the brackets, and the four parts are the terms you get when you expand.
+5. Under the answer, the **roots line** solves the expression = 0 from the factors (for example 6x² − 5x − 6 = 0 gives x = 3/2 or x = −2/3). When the quadratic does not split into whole-number brackets, it uses the discriminant and gives the roots as surds and decimals, or says there are no real roots. Open *How the roots were found* for the working.
+6. **Cubic** factorises ax³ + bx² + cx + d with the factor theorem: it tries the possible roots p/q (p divides d, q divides a), shows the tries, divides out the bracket it finds, and factorises the quadratic left over. If no whole-number or fraction root exists, it says so.
+7. For a quadratic, **As an area** shows the rectangle: its width and height are the brackets, and the four parts are the terms you get when you expand.
 
 ## A worked example
 
@@ -56,6 +58,13 @@ The page starts with **6x² − 5x − 6**.
 
 For **49x² − 16**: 49x² = (7x)² and 16 = 4², so it is (7x + 4)(7x − 4). For **8x³ + 27**: 8x³ = (2x)³ and 27 = 3³, so it is (2x + 3)(4x² − 6x + 9).
 
+## Common mistakes
+
+- Forgetting the common factor: 2x² + 10x + 12 is 2(x + 2)(x + 3), not (2x + 4)(x + 3) left half-done.
+- Splitting with the wrong signs: the two numbers must multiply to a × c and add to b, so check the sign of both.
+- Reading a bracket (x − 3) as a root of −3: the root is x = 3.
+- Stopping at one root of a cubic: after finding one factor, factorise the quadratic that remains.
+
 ## Tips
 
 - Always take out a common factor first: 3x² + 6x + 3 = 3(x² + 2x + 1) = 3(x + 1)².
@@ -67,6 +76,8 @@ For **49x² − 16**: 49x² = (7x)² and 16 = 4², so it is (7x + 4)(7x − 4). 
 Four fresh questions each time: find the two numbers for a quadratic, and use identities to work out squares, a difference of squares and a cube bracket. For two numbers, type them with a comma between. Nothing is saved.
 
 ## FAQ
+
+**How do I factorise a quadratic like 6x² − 5x − 6?** Choose ax² + bx + c, type 6, −5 and −6: the answer is (2x − 3)(3x + 2), with each step shown.
 
 **Why only whole numbers?** That is how factorising is taught at school. Quadratics with other roots are solved with the quadratic formula, as in the [[quadratic-explorer]].
 

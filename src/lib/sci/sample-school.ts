@@ -55,3 +55,38 @@ export function simulate(outs: Outcome[], test: (v: number[]) => boolean, trials
   for (let i = 1; i <= trials; i++) { if (test(outs[Math.floor(rand() * outs.length)].v)) hits++; if (i % every === 0 || i === trials) path.push([i, hits / i]); }
   return { hits, freq: hits / trials, path };
 }
+
+const fr = (a: number, b: number) => { if (b === 0) return '0'; if (a === 0) return '0'; if (a === b) return '1'; const g = gcd(a, b) || 1; return `${a / g}/${b / g}`; };
+const d4 = (x: number) => String(+x.toFixed(4));
+
+export type TwoEvents = { n: number; a: number; b: number; both: number; either: number; neither: number; aOnly: number; bOnly: number; lines: string[]; independent: boolean; exclusive: boolean };
+/** Two events on the same sample space: counts, P(A or B), P(A and B), P(A | B), P(B | A), independence and the working. */
+export function twoEvents(outs: Outcome[], tA: (v: number[]) => boolean, tB: (v: number[]) => boolean, nameA = 'A', nameB = 'B'): TwoEvents {
+  const n = outs.length;
+  let a = 0, b = 0, both = 0;
+  for (const o of outs) { const x = tA(o.v), y = tB(o.v); if (x) a++; if (y) b++; if (x && y) both++; }
+  const either = a + b - both, lines: string[] = [];
+  lines.push(`P(${nameA}) = ${a}/${n} = ${fr(a, n)}, P(${nameB}) = ${b}/${n} = ${fr(b, n)}.`);
+  lines.push(`P(${nameA} and ${nameB}) = ${both}/${n} = ${fr(both, n)} (the outcomes in both).`);
+  lines.push(`P(${nameA} or ${nameB}) = P(${nameA}) + P(${nameB}) − P(${nameA} and ${nameB}) = ${a}/${n} + ${b}/${n} − ${both}/${n} = ${either}/${n} = ${fr(either, n)}.`);
+  lines.push(b === 0 ? `P(${nameA} given ${nameB}) is not defined because ${nameB} never happens.` : `P(${nameA} given ${nameB}) = P(both) / P(${nameB}) = ${both}/${b} = ${fr(both, b)} ≈ ${d4(both / b)}.`);
+  lines.push(a === 0 ? `P(${nameB} given ${nameA}) is not defined because ${nameA} never happens.` : `P(${nameB} given ${nameA}) = ${both}/${a} = ${fr(both, a)} ≈ ${d4(both / a)}.`);
+  const independent = a * b === both * n, exclusive = both === 0;
+  lines.push(exclusive ? `${nameA} and ${nameB} are mutually exclusive: they never happen together.` : independent ? `Independent: P(${nameA}) × P(${nameB}) = ${fr(a * b, n * n)} equals P(${nameA} and ${nameB}) = ${fr(both, n)}.` : `Not independent: P(${nameA}) × P(${nameB}) = ${fr(a * b, n * n)} but P(${nameA} and ${nameB}) = ${fr(both, n)}.`);
+  return { n, a, b, both, either, neither: n - either, aOnly: a - both, bOnly: b - both, lines, independent, exclusive };
+}
+
+export type CountProb = { text: string; lines: string[]; error?: string };
+/** Probability from counts: favourable out of total as a fraction, decimal, percent, complement, odds. */
+export function fromCounts(fav: number, total: number): CountProb {
+  const bad = (error: string): CountProb => ({ text: error, lines: [], error });
+  if (!Number.isFinite(fav) || !Number.isFinite(total)) return bad('Type both numbers.');
+  if (!Number.isInteger(fav) || !Number.isInteger(total)) return bad('Counts are whole numbers (you cannot have half an outcome).');
+  if (total <= 0) return bad('The total number of outcomes must be 1 or more.');
+  if (fav < 0) return bad('The number of favourable outcomes cannot be negative.');
+  if (fav > total) return bad('Favourable outcomes cannot be more than the total, since a probability is never above 1.');
+  const p = fav / total, f = fr(fav, total), c = total - fav;
+  const lines = [`P(E) = favourable ÷ total = ${fav}/${total}${f !== `${fav}/${total}` ? ` = ${f}` : ''}.`, `As a decimal: ${d4(p)}. As a percentage: ${+(p * 100).toFixed(2)}%.`, `P(not E) = 1 − P(E) = ${c}/${total}${fr(c, total) !== `${c}/${total}` ? ` = ${fr(c, total)}` : ''} ≈ ${d4(1 - p)}.`];
+  if (fav > 0) lines.push(`Odds in favour: ${fav / (gcd(fav, c) || 1)} to ${c / (gcd(fav, c) || 1)}${c > 0 ? ` (about 1 in ${d4(total / fav)})` : ''}.`);
+  return { text: fav === 0 ? 'P(E) = 0: the event is impossible.' : fav === total ? 'P(E) = 1: the event is certain.' : `P(E) = ${f} ≈ ${d4(p)} (${+(p * 100).toFixed(2)}%).`, lines };
+}

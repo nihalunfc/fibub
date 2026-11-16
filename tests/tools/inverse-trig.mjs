@@ -21,6 +21,19 @@ export default async ({ page, check, BASE }) => {
   check((await t('.it-trapsay')).includes('sin⁻¹(sin 5π/6) = π/6, not θ'), `inverse trig: trap at 5π/6 (${await t('.it-trapsay')})`);
   await page.$eval(R + '.it-th', (e) => { e.value = '30'; e.dispatchEvent(new Event('input', { bubbles: true })); });
   check((await t('.it-trapsay')).includes('sin⁻¹(sin π/6) = π/6 = θ'), `inverse trig: trap on the branch (${await t('.it-trapsay')})`);
+  // compositions and typed theta
+  check((await t('.it-cans')) === 'sin(cos⁻¹(0.6)) = 4/5 = 0.8' && (await t('.it-csteps')).includes('Put x = 3/5 in'), `inverse trig: sin(cos⁻¹ 3/5) (${await t('.it-cans')})`);
+  await page.selectOption(R + '[data-k="outer"]', 'tan'); await page.selectOption(R + '[data-k="inner"]', 'sin'); await page.fill(R + '[data-k="cx"]', '-3/5');
+  check((await t('.it-cans')) === 'tan(sin⁻¹(−0.6)) = −3/4 = −0.75', `inverse trig: tan(sin⁻¹ −3/5) (${await t('.it-cans')})`);
+  await page.selectOption(R + '[data-k="outer"]', 'sin'); await page.selectOption(R + '[data-k="inner"]', 'tan'); await page.fill(R + '[data-k="cx"]', '3/4');
+  check((await t('.it-cans')) === 'sin(tan⁻¹(0.75)) = 3/5 = 0.6', `inverse trig: sin(tan⁻¹ 3/4) (${await t('.it-cans')})`);
+  await page.selectOption(R + '[data-k="outer"]', 'tan'); await page.selectOption(R + '[data-k="inner"]', 'cos'); await page.fill(R + '[data-k="cx"]', '0');
+  check(!(await page.$eval(R + '.it-cerr', (e) => e.hidden)) && (await t('.it-cerr')).includes('not defined'), 'inverse trig: tan(cos⁻¹ 0) message');
+  await page.fill(R + '[data-k="cx"]', '2'); check((await t('.it-cerr')).includes('x must be in [−1, 1]'), 'inverse trig: out of domain message');
+  await page.fill(R + '[data-k="theta"]', '210');
+  check((await t('.it-trapsay')).includes('sin⁻¹(sin 7π/6) = −π/6, not θ'), `inverse trig: typed 210 degrees (${await t('.it-trapsay')})`);
+  await page.selectOption(R + '[data-k="unit"]', 'rad'); await page.fill(R + '[data-k="theta"]', 'pi/3');
+  check((await t('.it-trapsay')).includes('sin⁻¹(sin π/3) = π/3 = θ'), `inverse trig: typed pi/3 radians (${await t('.it-trapsay')})`);
   await page.check(R + '.it-whole'); await page.$eval(R + '.it-t', (e) => { e.value = '0'; e.dispatchEvent(new Event('input', { bubbles: true })); });
   check((await t('.it-fnote')).includes('Red dashed') && (await t('.it-tv')) === 'not yet', 'inverse trig: whole graph and slider');
   await page.click(R + '.it-play'); await page.waitForTimeout(2400);

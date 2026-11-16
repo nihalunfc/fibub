@@ -40,4 +40,20 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `circle: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/circle-sector/`); await page.waitForTimeout(600);
+  {
+  const S = '.cs-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'The sector area is 102.7 cm².' && (await work()).includes('= 14.67 cm'), `sector solve: area (${await ans()})`);
+  await pre(1); check((await ans()) === 'The arc length is 44 cm.', `sector solve: arc (${await ans()})`);
+  await pre(2); check((await ans()) === 'The segment area is 28.5 cm².' && (await work()).includes('= 50 cm²'), `sector solve: segment (${await ans()})`);
+  await pre(3); check((await ans()) === 'The angle is 90° (1.571 radians).', `sector solve: angle from arc (${await ans()})`);
+  await pre(4); check((await ans()) === 'The tangent from the point is 12 cm long.', `sector solve: tangent (${await ans()})`);
+  await pre(5); check((await ans()) === 'The hand sweeps an area of 51.33 cm².', `sector solve: clock hand (${await ans()})`);
+  await pre(0); await page.fill(S + '[data-k="sv-th"]', '400'); check((await ans()).includes('at most 360'), `sector solve: angle over 360 (${await ans()})`);
+  await page.selectOption(S + '[data-k="sv-th-unit"]', 'radians'); await page.fill(S + '[data-k="sv-th"]', '1.0471976'); check((await ans()) === 'The sector area is 102.7 cm².', `sector solve: radians (${await ans()})`);
+  await pre(4); await page.fill(S + '[data-k="sv-d"]', '5'); check((await ans()).includes('on the circle'), `sector solve: point on the circle (${await ans()})`);
+  }
 };

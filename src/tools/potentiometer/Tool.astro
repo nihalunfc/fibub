@@ -3,8 +3,15 @@
 // emfs, or find a cell's internal resistance with a resistance box. Hidden cells to find. Everything runs in the
 // browser; nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax ptm">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the balance lengths or voltages from your question: compare two emfs, find a cell's internal resistance, the potential gradient or the balance length, with the working. Lengths can be in cm or m.</p>
+    <div class="ptm-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Set up</h2>
     <span class="ax-seg ptm-mode" role="group" aria-label="Experiment"><button type="button" data-v="emf" aria-pressed="true">Compare two emfs</button><button type="button" data-v="ir" aria-pressed="false">Internal resistance</button></span>
@@ -74,6 +81,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { POT_SPEC } from '../../lib/sci/solve-potentiometer';
   import { DEFAULT, gradient, galvo, balance, emfRatio, internalR, questions, type Branch } from '../../lib/sci/potentiometer';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -168,4 +177,5 @@ import '../../styles/astro.css';
   onTheme(draw);
   all(); results();
   quiz(q('.ptm-quiz'), () => questions());
+  mountSolver(document.querySelector<HTMLElement>('.ptm-solve')!, POT_SPEC);
 </script>

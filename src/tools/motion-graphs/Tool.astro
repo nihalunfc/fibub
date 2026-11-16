@@ -4,6 +4,12 @@
 import '../../styles/astro.css';
 ---
 <div class="ax mg">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the distances, speeds and times from your graph question and get the slope, area or equation answer with the working an exam marks.</p><div class="ps-host" data-ps="MOTION"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { MOTION } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, MOTION);
+  </script>
   <div class="ax-card">
     <div class="ax-row mg-top">
       <span class="mg-lab">Level</span>

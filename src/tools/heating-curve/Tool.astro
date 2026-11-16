@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn htc">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (mass, specific heat, temperatures, power) and get the heat, time or final temperature with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Heat the ice</h2>
     <canvas class="lrn-cv hc-cv" aria-label="A beaker of ice being heated and the graph of its temperature against time"></canvas>
@@ -56,6 +57,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { HEAT } from '../../lib/learn/phys-d';
   import { heatingStages, tempAt, mixTemp, iceIntoWater, C_WATER, L_FUSION, type Stage } from '../../lib/sci/learnheat';
   import { mountQuiz, pick, r, fitCanvas, loop } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -159,4 +162,5 @@ import '../../styles/learnquiz-d.css';
       { q: 'While ice is melting on a steady heater, its temperature…', ans: 0, choices: ['Stays the same', 'Rises slowly', 'Falls'], work: 'The heat goes into breaking the solid apart (latent heat), so the temperature stays at 0 °C until all the ice has melted.' },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, HEAT);
 </script>

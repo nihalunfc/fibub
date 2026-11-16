@@ -11,7 +11,7 @@ ads: false
 order: 1159
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [pythagoras-proofs, heights-distances, geometry-construction]
 sources:
   - "The basic proportionality (Thales) theorem, the AA, SSS and SAS similarity criteria and the area ratio of similar triangles are standard geometry. Pictures and wording are fibub's own."
@@ -59,8 +59,14 @@ Shadows: a 1.5 m stick casts a 2 m shadow, and the tree's shadow is 12 m. Then 1
 
 Four fresh questions each time: a missing length with the basic proportionality theorem, a side of a similar triangle, a shadow problem and an area ratio. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
 
+## Solve your own numbers
+
+The card at the top answers questions about your own triangles. Pick **A missing side** and type one pair of matching sides and another side to scale. Pick one of the **parallel line** options to use the basic proportionality theorem: enter three of AD, DB, AE and EC and get the fourth, from AD ÷ DB = AE ÷ EC. **Area of a similar triangle** squares the side ratio. **Height from a shadow** takes an object, its shadow and the shadow of the thing you want. The last two options test whether two triangles are similar from three sides each (SSS, sorted shortest to longest) or two angles each (AA). Lengths can be in cm, m or mm (feet for shadows) and are converted for you. Zero lengths and impossible triangles give a plain message.
+
 ## FAQ
 
 **Are congruent triangles similar?** Yes, with scale factor 1.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do I find a missing side of similar triangles?** Divide the known side of one triangle by its matching side in the other to get the scale factor, then multiply the other side by it. The card above does this with the working.

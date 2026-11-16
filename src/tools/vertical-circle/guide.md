@@ -13,7 +13,7 @@ ads: false
 order: 1338
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [banked-curve, energy-track, shm-circle, river-crossing]
 sources:
   - "Uniform circular motion (a = v²/r = ω²r towards the centre), and motion in a vertical circle from energy conservation (v² = u² − 2gh) and the radial force T = mv²/r + mg cos θ, with the least speeds √(gr) at the top and √(5gr) at the bottom: standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
@@ -42,6 +42,10 @@ It follows Class 11 Physics, motion in a plane (uniform circular motion, centrip
 3. Stone: press **Let go** to release it; **Start again** puts it back on the string.
 4. Vertical circle: watch it go round, or swing, or fall when the string goes slack; read the tension graph (red where the string would be slack).
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top answers the Class 11 questions: centripetal acceleration and force (v²/r, mv²/r), speed and acceleration from revolutions per minute, the least speeds to loop (√(gr) at the top, √(5gr) at the bottom), the tension at the top (mv²/r − mg) or at the bottom (mv²/r + mg), and the speed at the top from the speed at the bottom (v² = u² − 4gr). When the string would go slack, or the mass cannot reach the top, the card says so in a sentence. Radius can be typed in cm or m, speed in km/h or m/s. Common mistake: forgetting that weight helps at the top and adds to the tension at the bottom.
+
 ## Worked example
 
 Open the page: a **0.5 kg** stone on a **1 m** string at **5 m/s**. Its acceleration is 5² ÷ 1 = **25 m/s²** towards the centre, so the string pulls with 0.5 × 25 = **12.5 N**, and one turn takes 2π × 1 ÷ 5 = 1.257 s.
@@ -61,3 +65,5 @@ Switch to the **vertical circle** with the same mass and string at **8 m/s** at 
 **Why does the string go slack above the side and not below?** Below the side, the weight pulls the mass away from the centre, so the string must be tight. Above it, the weight pulls towards the centre and can supply all the centripetal force by itself.
 
 **Is anything stored?** No. Everything is worked out in your browser and nothing is saved or sent.
+
+**What is the minimum speed at the top of a vertical circle?** √(gr), where r is the radius; at the bottom the least speed is √(5gr).

@@ -2,9 +2,16 @@
 // HCF and LCM: prime factor trees grow for two numbers, their primes sort into a Venn picture (shared primes in the
 // middle give the HCF, all of them the LCM), Euclid's division steps, and the HCF × LCM check. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm hl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own numbers (two to five) for the HCF and LCM by prime factors, or solve the usual word problems: remainders, bells ringing together, a missing number.</p>
+    <div class="hl-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick two numbers</h2>
     <div class="ax-grid">
@@ -76,6 +83,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { HCF_SPEC } from '../../lib/sci/solve-hcf';
+  mountSolver(document.querySelector<HTMLElement>('.hl-solve')!, HCF_SPEC, 'sv');
   import { factorTree, powerText, venn, euclid, type TreeNode } from '../../lib/sci/hcf-school';
   import { randInt, gcd } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';

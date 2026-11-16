@@ -3,8 +3,15 @@
 // degree of dissociation, and the law of independent migration of ions (including Λ° of a weak acid).
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax kl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem (units such as S m⁻¹ and mol/m³ are fine) and find molar conductivity, conductivity (also from a cell constant and resistance), the degree of dissociation and Ka, or Λ°m from ion values, with the working.</p>
+    <div class="kl-solve"></div>
+  </div>
+
   <div class="ax-card">
     <label class="kl-pick">Electrolyte <select class="kl-e" aria-label="Electrolyte"></select></label>
     <label class="kl-rl"><span>c</span><input type="range" class="kl-c" min="-4" max="-1" step="0.05" value="-2" aria-label="Concentration (log scale)" /><output class="kl-oc"></output></label>
@@ -64,6 +71,8 @@ import '../../styles/chemquiz.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { KOHL_SPEC } from '../../lib/sci/solve-kohl';
   import { ELECTROLYTES, IONS, alphaOstwald, fitLine, kappa, limiting, molarConductivity, slopeA, stoich } from '../../lib/sci/kohlrausch';
   import { mountQuiz, near, pickOne, rint, type Question } from '../../lib/chemquiz';
 
@@ -156,4 +165,6 @@ import '../../styles/chemquiz.css';
       { q: `Λ°(HCl) = ${a5}, Λ°(CH₃COONa) = ${b5} and Λ°(NaCl) = ${c5} S cm² mol⁻¹. What is Λ°(CH₃COOH)?`, hint: 'a number', answer: String(L5), ok: near(L5, 0.001), worked: `Λ°(CH₃COOH) = Λ°(HCl) + Λ°(CH₃COONa) − Λ°(NaCl) = ${a5} + ${b5} − ${c5} = ${L5} S cm² mol⁻¹.` },
     ];
   });
+
+  mountSolver(document.querySelector<HTMLElement>('.kl-solve')!, KOHL_SPEC, 'ks');
 </script>

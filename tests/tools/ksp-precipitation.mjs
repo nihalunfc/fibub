@@ -27,4 +27,19 @@ export default async ({ page, check, BASE }) => {
   const k = +m[1] * 10 ** +[...m[2]].map((c) => sup[c]).join('');
   await page.fill(R + '.smq-q:nth-child(2) .smq-in', String(Math.sqrt(k))); await page.click(R + '.smq-q:nth-child(2) .smq-check');
   check((await t('.smq-q:nth-child(2) .smq-out')) === 'Right!', 'ksp: quiz answer');
+  // Solve my numbers card
+  const S = (k) => `${R}.kp-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  const setv = async (k, v) => { await page.fill(S(k), v); };
+  check((await ans()).startsWith('Q = 2.5 × 10⁻⁹ is bigger than Ksp = 1.8 × 10⁻¹⁰') && (await wk()).includes('3.66 × 10⁻⁵ mol/L'), `ksp solve: first example (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()).includes('smaller than Ksp') && (await wk()).includes('2.5 × 10⁻¹¹'), `ksp solve: dilute chloride (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()).startsWith('Q = 5 × 10⁻⁷') && (await wk()).includes('[A][B]² = 0.005 × 0.01² = 5 × 10⁻⁷'), `ksp solve: PbI2 mixing (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()) === 'The molar solubility is 0.000214 mol/L.' && (await wk()).includes('4s³'), `ksp solve: CaF2 (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()).includes('falls to 1.8 × 10⁻⁸ mol/L'), `ksp solve: common ion (${await ans()})`);
+  await page.selectOption(S('example'), '5'); check((await ans()) === 'Ksp = 1.75 × 10⁻¹⁰.' && (await wk()).includes('143.5 g/mol'), `ksp solve: Ksp from g/L (${await ans()})`);
+  await page.selectOption(S('find'), 'cmin'); await page.selectOption(S('example'), '6'); check((await ans()).includes('[B] reaches 1.8 × 10⁻⁸ mol/L'), `ksp solve: ion level (${await ans()})`);
+  await page.selectOption(S('find'), 'mix'); await page.selectOption(S('example'), '0');
+  await setv('v1', '0'); check((await ans()).includes('more than 0 mL'), 'ksp solve: zero volume message');
+  await setv('v1', '10'); await setv('c1', '-1'); check((await ans()).includes('cannot be negative'), 'ksp solve: negative concentration');
+  await setv('c1', '1e-4'); await setv('ksp', '5'); check((await ans()).includes('Ksp must be'), 'ksp solve: Ksp too big');
+  await setv('ksp', ''); check((await ans()).startsWith('Fill in'), 'ksp solve: blank asks for numbers');
 };

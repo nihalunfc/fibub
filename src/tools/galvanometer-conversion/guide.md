@@ -11,11 +11,12 @@ ads: false
 order: 1413
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ohms-law-lab, wheatstone-bridge, internal-resistance, biot-savart]
 sources:
   - "Shunt S = Ig G / (I₀ − Ig), series resistance R = V₀ / Ig − G, meter resistances G S / (G + S) and G + R, and the current divider I S / (G + S): standard circuit results."
   - "Checked by hand (G = 50 Ω, Ig = 1 mA: a 2 A ammeter needs S = 25.0 mΩ; a 10 V voltmeter needs R = 9950 Ω) and by checking that the full range always drives exactly Ig through the coil."
+  - "Shunt S = Ig G/(I − Ig), series R = V/Ig − G, ammeter resistance GS/(G + S), voltmeter resistance G + R, range from a shunt I = Ig(1 + G/S): standard school physics. The Solve my numbers card was hand-checked (G = 50 Ω, Ig = 1 mA: 2 A needs S = 25.0 mΩ; 10 V needs R = 9950 Ω)."
 flow:
   - { icon: sliders, label: "Coil G, Ig" }
   - { icon: target, label: "Pick range" }
@@ -33,6 +34,12 @@ A **moving-coil galvanometer** is a very sensitive meter: a coil in a magnetic f
 This page works out S or R with your numbers, shows the meter's own resistance (an ammeter should be tiny, a voltmeter huge), and redraws the meter face with the new scale outside and the coil current inside. Move the **Test it** slider to put a current or voltage through it and watch the needle and the current split.
 
 It follows the Class 12 Physics chapter on moving charges and magnetism (the moving-coil galvanometer and its conversion into an ammeter and a voltmeter) and the matching practical. Meters are used in the [[ohms-law-lab]]; a galvanometer finds the balance in the [[wheatstone-bridge]], and [[biot-savart]] shows where the coil's turning force comes from.
+
+## Solve my numbers
+
+The card at the top solves your own conversion problems. **Make an ammeter** finds the shunt S = Ig G / (I − Ig) and the ammeter's own resistance; **make a voltmeter** finds the series resistance R = V / Ig − G and the voltmeter's resistance; **find the ammeter range from a shunt** and **find the voltmeter range from a series resistance** run the question the other way. Type the coil resistance G, the full-scale current Ig (mA, µA or A) and the range you want (A or mA, V or mV), and the answer comes as one sentence with the formula, your numbers and the result below it. Five worked examples fill the card, including the 50 Ω, 1 mA coil that becomes a 2 A ammeter (shunt about 25 mΩ) or a 10 V voltmeter (9.95 kΩ in series).
+
+Common mistakes: using I instead of I − Ig for the current in the shunt, and forgetting to subtract G when finding R. If the range you ask for is smaller than the galvanometer already reads, the card says so instead of giving a negative resistance.
 
 ## How to use it
 
@@ -55,6 +62,8 @@ To read up to 10 V instead, R = 10 / 0.001 − 50 = **9950 Ω**, so the voltmete
 - Shunts for big ranges are tiny, often a short thick strip of metal.
 
 ## FAQ
+
+**How do I convert a galvanometer into an ammeter?** Connect a small shunt S = Ig G / (I − Ig) in parallel with the coil, where I is the largest current you want to read.
 
 **Why can the range not be smaller than Ig (or Ig G)?** The galvanometer already reaches full scale there; a shunt or series resistor can only extend the range.
 

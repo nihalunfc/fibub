@@ -26,7 +26,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
   <div class="ax-card">
     <h2>Principal value</h2>
     <div class="ax-grid">
-      <label><span class="it-lab">sin⁻¹</span> of x = <input class="it-x" type="text" value="1/2" inputmode="decimal" autocomplete="off" spellcheck="false" /></label>
+      <label><span class="it-lab">sin⁻¹</span> of x = <input class="it-x" data-k="x" type="text" value="1/2" inputmode="decimal" autocomplete="off" spellcheck="false" /></label>
     </div>
     <p class="ax-help">Type a number, a fraction like −1/2, or something like sqrt(3)/2.</p>
     <p class="ax-err it-err" hidden></p>
@@ -35,10 +35,26 @@ import SmQuiz from '../../components/SmQuiz.astro';
     <p class="it-all"></p>
   </div>
 
+  <div class="ax-card it-comp">
+    <h2>Evaluate sin(cos⁻¹ x) and friends</h2>
+    <p class="ax-help">For problems like "find sin(cos⁻¹ 3/5)": pick the outer ratio and the inverse, then type x.</p>
+    <div class="ax-row">
+      <label>Outer <select data-k="outer" class="it-o"><option>sin</option><option>cos</option><option>tan</option></select></label>
+      <label>Inverse <select data-k="inner" class="it-i"><option value="sin">sin⁻¹</option><option value="cos" selected>cos⁻¹</option><option value="tan">tan⁻¹</option></select></label>
+      <label>x = <input data-k="cx" class="it-cx" type="text" value="3/5" inputmode="decimal" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err it-cerr" hidden></p>
+    <p class="ax-big it-cans" aria-live="polite"></p>
+    <ol class="it-csteps"></ol>
+  </div>
+
   <div class="ax-card">
     <h2>The trap: <span class="it-trapt">sin⁻¹(sin θ)</span></h2>
     <canvas class="ax-fig it-trap" role="img"></canvas>
     <label class="it-sl">θ = <b class="it-thv"></b><input class="it-th" type="range" min="-360" max="360" step="5" value="150" /></label>
+    <div class="ax-row it-own"><label>Or type your θ <input data-k="theta" class="it-thx" type="text" inputmode="decimal" placeholder="e.g. 210 or 7pi/6" autocomplete="off" spellcheck="false" /></label>
+      <label>in <select data-k="unit" class="it-un"><option value="deg">degrees</option><option value="rad">radians</option></select></label></div>
+    <p class="ax-help">Typing here overrides the slider until you move the slider again.</p>
     <p class="it-trapsay"></p>
   </div>
 
@@ -56,7 +72,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { ratio, principal, allAngles, undo, angleText, degrees, DOMAIN, RANGE, BRANCH, type Trig } from '../../lib/sci/school-r-invtrig';
+  import { compose, toRadians, ratio, principal, allAngles, undo, angleText, degrees, DOMAIN, RANGE, BRANCH, type Trig } from '../../lib/sci/school-r-invtrig';
   import { parse, compile } from '../../lib/sci/expr';
   import { paint, type Palette } from '../../lib/report';
   import { view, px, py, axes, curve, line, dot, label, fmt } from '../../lib/sm-graph';
@@ -135,8 +151,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }
 
   function trap() {
-    const deg = +q<HTMLInputElement>('.it-th').value, th = (deg * PI) / 180, u = undo(f, th);
-    q('.it-thv').textContent = `${angleText(th)} (${deg}°)`;
+    const typed = q<HTMLInputElement>('.it-thx').value.trim(), unit = q<HTMLSelectElement>('.it-un').value as 'deg' | 'rad', tv = typed ? readX(typed) : NaN;
+    const useTyped = typed !== '' && Number.isFinite(tv), th = useTyped ? toRadians(tv, unit) : (+q<HTMLInputElement>('.it-th').value * PI) / 180, u = undo(f, th), deg = Math.round((th * 180) / PI * 1e6) / 1e6;
+    q('.it-thv').textContent = `${angleText(th)} (${deg}°)${typed && !useTyped ? ' (your θ could not be read, so the slider is used)' : ''}`;
     q('.it-trapt').textContent = `${f}${SUP}(${f} θ)`;
     const TV = view(-2 * PI - 0.2, 2 * PI + 0.2, -3.6, 3.6, W, 260);
     paint(q<HTMLCanvasElement>('.it-trap'), { w: W, h: 260, alt: `Graph of ${f}⁻¹(${f} θ) against θ, with θ = ${angleText(th)}`, draw: (ctx, w, h, pl: Palette) => {
@@ -159,7 +176,14 @@ import SmQuiz from '../../components/SmQuiz.astro';
   q('.it-x').addEventListener('input', calc);
   q('.it-t').addEventListener('input', drawMain);
   q('.it-whole').addEventListener('change', drawMain);
-  q('.it-th').addEventListener('input', trap);
+  q('.it-th').addEventListener('input', () => { q<HTMLInputElement>('.it-thx').value = ''; trap(); });
+  q('.it-thx').addEventListener('input', trap); q('.it-un').addEventListener('change', trap);
+  const comp = () => {
+    const x = readX(q<HTMLInputElement>('.it-cx').value), r = compose(q<HTMLSelectElement>('.it-o').value as 'sin', q<HTMLSelectElement>('.it-i').value as 'sin', x), e = q('.it-cerr');
+    e.hidden = !r.error; e.textContent = r.error ?? ''; q('.it-cans').textContent = r.error ? '' : `${q<HTMLSelectElement>('.it-o').value}(${q<HTMLSelectElement>('.it-i').value}${SUP}(${fmt(x, 4)})) = ${r.exact ? r.exact + ' = ' : ''}${fmt(r.value, 5)}`;
+    q('.it-csteps').replaceChildren(...r.steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+  };
+  ['.it-o', '.it-i'].forEach((c) => q(c).addEventListener('change', comp)); q('.it-cx').addEventListener('input', comp);
   let anim = 0;
   q('.it-play').addEventListener('click', () => {
     cancelAnimationFrame(anim); const t0 = performance.now(), inp = q<HTMLInputElement>('.it-t');
@@ -167,7 +191,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
     anim = requestAnimationFrame(step);
   });
   document.addEventListener('fibub:theme', () => { drawMain(); trap(); });
-  calc(); trap();
+  calc(); trap(); comp();
 
   quiz(q('.it-quiz'), (): Question[] => {
     const std: [Trig, string, number][] = [['sin', '1/2', 1 / 2], ['sin', '−√3/2', -Math.sqrt(3) / 2], ['sin', '−1', -1], ['cos', '−1/2', -1 / 2], ['cos', '√3/2', Math.sqrt(3) / 2], ['cos', '−1/√2', -1 / Math.SQRT2], ['tan', '−1', -1], ['tan', '√3', Math.sqrt(3)], ['tan', '−1/√3', -1 / Math.sqrt(3)]];
@@ -190,6 +214,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
   .itg .it-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
   .itg .ax-seg button { min-height: 44px; min-width: 52px; }
   .itg .it-x { max-width: 180px; }
+  .itg .it-comp select, .itg .it-own select { max-width: 120px; }
+  .itg .it-cx, .itg .it-thx { max-width: 150px; }
+  .itg .it-csteps { padding-left: 20px; display: grid; gap: 4px; overflow-wrap: anywhere; }
   .itg .it-pv { margin: 10px 0; overflow-wrap: anywhere; }
   .itg .it-all, .itg .it-trapsay { margin: 10px 0 0; font-weight: 600; overflow-wrap: anywhere; }
   .itg .it-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }

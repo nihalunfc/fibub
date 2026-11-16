@@ -2,9 +2,16 @@
 // Similar triangles: the basic proportionality theorem with a draggable parallel line, AA / SSS / SAS similarity
 // checks with both triangles drawn, and the shadow method for heights. Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm st">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Find a missing side, use the basic proportionality theorem, compare areas, get a height from a shadow, or test two triangles for similarity, with the working.</p>
+    <div class="st-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>A line parallel to one side</h2>
     <svg class="sm-fig st-fig" viewBox="0 0 340 300" role="img" aria-label="Triangle ABC with a line DE parallel to BC"></svg>
@@ -75,6 +82,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SIMILAR_SPEC } from '../../lib/sci/solve-similar';
+  mountSolver(document.querySelector<HTMLElement>('.st-solve')!, SIMILAR_SPEC, 'sv');
   import { bpt, triangle, anglesFromSides, sss, aa, sas, shadowHeight, type P } from '../../lib/sci/similar-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, dragOn, val, quiz, type Question } from '../../lib/smath-ui';

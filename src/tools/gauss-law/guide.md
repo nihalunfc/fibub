@@ -11,11 +11,12 @@ ads: false
 order: 1400
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [coulomb-forces, field-line-plotter, potential-map, electrostatics-solver]
 sources:
   - "Gauss's law Φ = q_enclosed / ε₀ and its standard results: E = λ/(2πε₀r) for a long wire, E = σ/(2ε₀) for a large sheet, E = 0 inside and Q/(4πε₀r²) outside a thin spherical shell. ε₀ = 8.8541878188 × 10⁻¹² F/m, the CODATA 2022 recommended value (NIST)."
   - "The line counts were checked with an independent NumPy script that walks each ray in small steps and counts every time it enters or leaves the surface."
+  - "Φ = q/ε₀, E = kQ/r² outside and 0 inside a shell, E = kQr/R³ inside a uniform solid sphere, E = λ/(2πε₀r), E = σ/(2ε₀) and σ/ε₀ at a conductor: standard school physics found in any textbook (ε₀ = 8.8541878188 × 10⁻¹² F/m, CODATA 2022). The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: pointer, label: "Drag" }
   - { icon: target, label: "Count lines" }
@@ -32,6 +33,12 @@ The first part of this page shows why, by counting field lines. Each charge gets
 The second part uses the law the way the textbook does: pick a surface that fits the symmetry, and the field drops out. It covers a **long straight wire**, a **large flat sheet** and a **thin spherical shell**, with the working and a graph of E against distance.
 
 It follows the electric charges and fields chapter of Class 12 Physics (electric flux, Gauss's law and its applications). Start with forces between charges in [[coulomb-forces]], see real curved field lines in the [[field-line-plotter]], and go on to potential in the [[potential-map]].
+
+## Solve my numbers
+
+The card at the top handles the usual textbook problems. **Flux through a closed surface** gives Φ = q / ε₀ from the charge inside; **charge from a flux** goes the other way. **Charged sphere** gives the field inside or outside a hollow shell (or metal sphere) or a solid, evenly charged sphere, and tells you when the answer is zero. **Long charged wire** gives E = λ / (2π ε₀ r), and **large flat sheet** gives σ / 2ε₀ for a thin sheet or σ / ε₀ next to a conductor. Type the charge in C, mC, µC or nC and distances in cm or m, and read the answer in one sentence with the working below. Six worked-example buttons fill it in for you, such as 1 µC inside a surface (about 1.13 × 10⁵ N m²/C) or the field 30 cm from a 5 nC shell (about 499 N/C).
+
+Common mistakes: counting charges outside the surface, using 1/r² for a wire (it is 1/r), and forgetting that the field inside a hollow shell is zero. A radius or distance of zero gets a friendly message, not an error.
 
 ## How to use it
 
@@ -58,6 +65,8 @@ In the second card, a wire with λ = 2 µC/m at r = 20 cm gives E = λ / (2πε�
 - Gauss's law is always true, but it only gives the field easily when the field has the same size all over the chosen surface.
 
 ## FAQ
+
+**What does Gauss's law say?** The net electric flux through any closed surface equals the charge inside it divided by ε₀, so only the enclosed charge counts.
 
 **Why are the lines straight?** Each charge's own field is straight out from it. The real field lines of several charges together curve (see the field line plotter), but adding each charge's flux separately gives the same total.
 

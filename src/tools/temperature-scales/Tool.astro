@@ -5,6 +5,12 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn tsc">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type a temperature and its scale to convert between Celsius, Fahrenheit, kelvin and Rankine with the working, or work out a scale of your own or a gas pressure.</p><div class="ps-host" data-ps="TEMP"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { TEMP } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, TEMP);
+  </script>
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">One temperature, three scales</h2>

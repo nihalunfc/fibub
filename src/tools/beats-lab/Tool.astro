@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax bt">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (two frequencies, or beats counted with a fork) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <div class="ax-seg bt-mode" role="group" aria-label="What to do">
@@ -59,6 +60,9 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { BEATS } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, BEATS);
   import { wave, sum, envelope, beats, forkPuzzle, questions } from '../../lib/sci/beats';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';

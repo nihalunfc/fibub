@@ -5,8 +5,41 @@ import '../../styles/astro.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm sf">
+  <div class="ax-card sf-solve">
+    <h2>Solve with your numbers</h2>
+    <p class="ax-help">Type the numbers from your question (fractions like 3/2 and decimals are fine), pick what you want, and read the answer with its working.</p>
+    <div class="ax-grid">
+      <label>Find <select data-k="mode" class="sf-mode">
+        <option value="section">The point dividing AB in the ratio m : n</option>
+        <option value="ext">The point dividing AB externally in m : n</option>
+        <option value="mid">The midpoint of AB</option>
+        <option value="dist">The distance AB</option>
+        <option value="ratio">The ratio in which P divides AB</option>
+        <option value="axis">The ratio in which an axis cuts AB</option>
+        <option value="tri">Triangle ABC: centroid, area, sides</option>
+      </select></label>
+      <label>Or start from an example <select data-k="preset" class="sf-pre"><option value="">My own numbers</option></select></label>
+    </div>
+    <div class="sf-in">
+      <div class="sf-pair"><b>A</b><input data-k="ax" inputmode="decimal" value="2" aria-label="x of A" /><input data-k="ay" inputmode="decimal" value="-3" aria-label="y of A" /></div>
+      <div class="sf-pair"><b>B</b><input data-k="bx" inputmode="decimal" value="8" aria-label="x of B" /><input data-k="by" inputmode="decimal" value="6" aria-label="y of B" /></div>
+      <div class="sf-pair" data-need="section ext"><b>m : n</b><input data-k="m" inputmode="decimal" value="1" aria-label="m" /><input data-k="n" inputmode="decimal" value="2" aria-label="n" /></div>
+      <div class="sf-pair" data-need="ratio"><b>P</b><input data-k="px" inputmode="decimal" value="4" aria-label="x of P" /><input data-k="py" inputmode="decimal" value="0" aria-label="y of P" /></div>
+      <div class="sf-pair" data-need="tri"><b>C</b><input data-k="cx" inputmode="decimal" value="0" aria-label="x of C" /><input data-k="cy" inputmode="decimal" value="0" aria-label="y of C" /></div>
+    </div>
+    <div class="ax-grid">
+      <label data-need="axis">Axis <select data-k="axis"><option value="x">x axis (y = 0)</option><option value="y">y axis (x = 0)</option></select></label>
+      <label>Length unit <select data-k="unit"><option value="">no unit</option><option value="cm">cm</option><option value="m">m</option><option value="km">km</option></select></label>
+    </div>
+    <button type="button" class="btn small secondary sf-copy">Use the points from the graph below</button>
+    <p class="ax-err sf-serr" hidden></p>
+    <p class="ax-big sf-ans" aria-live="polite"></p>
+    <ol class="sm-steps sf-work"></ol>
+    <p class="ax-help sf-tip"></p>
+  </div>
+
   <div class="ax-card">
-    <h2>Drag the points</h2>
+    <h2>See it on the graph</h2>
     <svg class="sm-fig sf-fig" viewBox="0 0 340 340" role="img" aria-label="Grid with points A and B, the point P dividing AB, and the midpoint"></svg>
     <p class="ax-help">Drag A and B (and C when the triangle is on). Points snap to whole numbers.</p>
     <div class="sm-sl"><b>m</b><input type="range" class="sf-mr" min="1" max="9" step="1" value="2" aria-label="m slider" /><input type="number" class="sf-m" min="0.1" step="1" value="2" inputmode="decimal" aria-label="m" /></div>
@@ -45,6 +78,12 @@ import '../../styles/smath.css';
 </div>
 
 <style is:inline>
+  .sf .sf-in { display: grid; gap: 8px; margin: 10px 0; }
+  .sf .sf-pair { display: grid; grid-template-columns: 56px 1fr 1fr; gap: 8px; align-items: center; }
+  .sf .sf-pair b { font-size: 16px; }
+  .sf .sf-pair input { min-height: 44px; width: 100%; text-align: center; font-size: 17px; }
+  .sf .sf-ans { margin: 12px 0 6px; overflow-wrap: anywhere; }
+  .sf .sf-work { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
   .sf svg .sf-ab { stroke: var(--ink); stroke-width: 2.5; }
   .sf svg .sf-tri { fill: var(--accent-soft); fill-opacity: 0.5; stroke: var(--accent); stroke-width: 1.5; }
   .sf svg .sf-med { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
@@ -54,8 +93,8 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { distance, section, midpoint, centroid, triArea, ratioOnXAxis, type Pt } from '../../lib/sci/coord-school';
-  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { distance, section, midpoint, centroid, triArea, ratioOnXAxis, ratioDividing, axisCut, type Pt } from '../../lib/sci/coord-school';
+  import { fmt, randInt, fracText, readNum, rat } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.sf')!;
@@ -117,6 +156,109 @@ import '../../styles/smath.css';
   }, (id, x, y) => { pts[id] = [Math.round(Math.max(W0, Math.min(W1, ux(x)))), Math.round(Math.max(W0, Math.min(W1, uy(y))))]; draw(); });
   for (const c of ['.sf-ext', '.sf-tri']) q(c).addEventListener('change', draw);
   draw();
+
+  // ---- Solve with your numbers: typed coordinates, any of the standard questions, with the working. ----
+  const g = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const sel = (k: string) => q<HTMLSelectElement>(`[data-k="${k}"]`);
+  const FIELDS = ['ax', 'ay', 'bx', 'by', 'm', 'n', 'px', 'py', 'cx', 'cy'];
+  const PRESETS: { name: string; mode: string; v: Record<string, string>; axis?: string }[] = [
+    { name: 'Divide (2, −3) and (8, 6) in 1 : 2', mode: 'section', v: { ax: '2', ay: '-3', bx: '8', by: '6', m: '1', n: '2' } },
+    { name: 'Midpoint of (−4, 7) and (6, −1)', mode: 'mid', v: { ax: '-4', ay: '7', bx: '6', by: '-1' } },
+    { name: 'Distance from (1, 2) to (7, 10)', mode: 'dist', v: { ax: '1', ay: '2', bx: '7', by: '10' } },
+    { name: 'Ratio in which (−1, 6) divides (−3, 10) and (6, −8)', mode: 'ratio', v: { ax: '-3', ay: '10', bx: '6', by: '-8', px: '-1', py: '6' } },
+    { name: 'Where the x axis cuts (2, −3) and (5, 6)', mode: 'axis', axis: 'x', v: { ax: '2', ay: '-3', bx: '5', by: '6' } },
+    { name: 'Triangle (1, 2), (7, 2), (4, 8)', mode: 'tri', v: { ax: '1', ay: '2', bx: '7', by: '2', cx: '4', cy: '8' } },
+  ];
+  sel('preset').append(...PRESETS.map((p, i) => new Option(p.name, String(i))));
+  const T = (x: number) => fmt(x, 4);
+  const par = (x: number) => (x < 0 ? `(${T(x)})` : T(x));
+  const ratioText = (m: number, n: number) => { if (n < 1e-12) return '1 : 0'; const r = rat(m / n, 1000); return r ? `${Math.abs(r[0])} : ${Math.abs(r[1])}` : `${T(m / n)} : 1`; };
+  function solveMine() {
+    const mode = sel('mode').value, unit = sel('unit').value, u = unit ? ` ${unit}` : '', u2 = unit ? ` ${unit}²` : '';
+    q('.sf-solve').querySelectorAll<HTMLElement>('[data-need]').forEach((e) => { e.hidden = !e.dataset.need!.split(' ').includes(mode); });
+    const need: Record<string, string[]> = { section: ['ax', 'ay', 'bx', 'by', 'm', 'n'], ext: ['ax', 'ay', 'bx', 'by', 'm', 'n'], mid: ['ax', 'ay', 'bx', 'by'], dist: ['ax', 'ay', 'bx', 'by'], ratio: ['ax', 'ay', 'bx', 'by', 'px', 'py'], axis: ['ax', 'ay', 'bx', 'by'], tri: ['ax', 'ay', 'bx', 'by', 'cx', 'cy'] };
+    const v: Record<string, number> = {}; for (const k of FIELDS) v[k] = readNum(g(k).value);
+    const err = q('.sf-serr'), ans = q('.sf-ans'), work = q('.sf-work'), tip = q('.sf-tip');
+    const say = (m: string) => { err.textContent = m; err.hidden = !m; };
+    const stop = (m: string) => { say(m); ans.textContent = ''; work.replaceChildren(); tip.textContent = ''; };
+    const label: Record<string, string> = { ax: 'x of A', ay: 'y of A', bx: 'x of B', by: 'y of B', m: 'm', n: 'n', px: 'x of P', py: 'y of P', cx: 'x of C', cy: 'y of C' };
+    const bad = need[mode].find((k) => !Number.isFinite(v[k]));
+    if (bad) return stop(`Type a number for ${label[bad]} (a whole number, decimal or fraction like 3/2).`);
+    if (need[mode].some((k) => Math.abs(v[k]) > 1e9)) return stop('Please keep the numbers below a billion.');
+    say('');
+    const A: Pt = [v.ax, v.ay], B: Pt = [v.bx, v.by], Cc: Pt = [v.cx, v.cy], Pp: Pt = [v.px, v.py], m = v.m, n = v.n;
+    const lines: string[] = []; let answer = '', mist = '';
+    const pt = (p: Pt) => `(${T(p[0])}, ${T(p[1])})`;
+    const dist = (a: Pt, b: Pt) => `√[(${par(b[0])} − ${par(a[0])})² + (${par(b[1])} − ${par(a[1])})²] = √[${T((b[0] - a[0]) ** 2)} + ${T((b[1] - a[1]) ** 2)}] = √${T((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)} = ${T(distance(a, b))}`;
+    if (mode === 'section' || mode === 'ext') {
+      const ext = mode === 'ext';
+      if (!(m > 0 && n > 0)) return stop('m and n must both be above 0. (For a point outside AB, choose the external option.)');
+      if (ext && m === n) return stop('For external division m and n must be different: with m = n there is no point outside AB.');
+      const P = section(A, B, m, n, ext), d = ext ? m - n : m + n, s = ext ? '−' : '+';
+      lines.push(`Formula: P = ((m x₂ ${s} n x₁)/(m ${s} n), (m y₂ ${s} n y₁)/(m ${s} n)), with A = (x₁, y₁), B = (x₂, y₂).`);
+      lines.push(`x = (${T(m)}×${par(B[0])} ${s} ${T(n)}×${par(A[0])})/${T(d)} = ${T(m * B[0] + (ext ? -1 : 1) * n * A[0])}/${T(d)} = ${T(P[0])}`);
+      lines.push(`y = (${T(m)}×${par(B[1])} ${s} ${T(n)}×${par(A[1])})/${T(d)} = ${T(m * B[1] + (ext ? -1 : 1) * n * A[1])}/${T(d)} = ${T(P[1])}`);
+      lines.push(`Check: AP : PB = ${T(distance(A, P))} : ${T(distance(P, B))}${distance(A, B) === 0 ? ' (A and B are the same point, so every point of AB is A)' : ''}.`);
+      answer = `P divides AB ${ext ? 'externally ' : ''}in the ratio ${T(m)} : ${T(n)} at P = ${pt(P)}.`;
+      mist = 'm goes with B and n with A: the point is nearer the end with the larger share. Swapping m and n gives the mirror point.';
+    } else if (mode === 'mid') {
+      const M = midpoint(A, B);
+      lines.push('Formula: M = ((x₁ + x₂)/2, (y₁ + y₂)/2).');
+      lines.push(`x = (${par(A[0])} + ${par(B[0])})/2 = ${T(A[0] + B[0])}/2 = ${T(M[0])}`, `y = (${par(A[1])} + ${par(B[1])})/2 = ${T(A[1] + B[1])}/2 = ${T(M[1])}`);
+      answer = `The midpoint of AB is M = ${pt(M)}.`;
+      mist = 'Add the x values and halve, add the y values and halve. Do not subtract: subtracting gives the vector from A to B, not the midpoint.';
+    } else if (mode === 'dist') {
+      lines.push('Formula: AB = √[(x₂ − x₁)² + (y₂ − y₁)²].', `AB = ${dist(A, B)}`);
+      answer = `The distance AB is ${T(distance(A, B))}${u}${distance(A, B) === 0 ? ' (A and B are the same point)' : ''}.`;
+      mist = 'Put brackets round negative coordinates before squaring: (−3)² is 9, not −9.';
+    } else if (mode === 'ratio') {
+      const r = ratioDividing(A, B, Pp);
+      if ('error' in r) return stop(r.error === 'same' ? 'A and B are the same point, so there is no line to divide. Change one of them.' : 'P is not on the line through A and B, so it does not divide AB in any ratio. Check the numbers.');
+      const t = Math.abs(B[0] - A[0]) >= Math.abs(B[1] - A[1]) ? 'x' : 'y', i = t === 'x' ? 0 : 1;
+      lines.push(`Let P divide AB in the ratio k : 1. Then P = ((k x₂ + x₁)/(k + 1), (k y₂ + y₁)/(k + 1)).`);
+      lines.push(`Use the ${t} values: ${T(Pp[i])} = (k×${par(B[i])} + ${par(A[i])})/(k + 1), so k = (${par(Pp[i])} − ${par(A[i])})/(${par(B[i])} − ${par(Pp[i])}) = ${T(Pp[i] - A[i])}/${T(B[i] - Pp[i])}.`);
+      if (r.n < 1e-12) answer = 'P is the same point as B, so it is the end of the segment (ratio 1 : 0).';
+      else if (r.m < 1e-12) answer = 'P is the same point as A, so it is the end of the segment (ratio 0 : 1).';
+      else { const rt = ratioText(r.m, r.n); answer = `P divides AB ${r.external ? 'externally' : 'internally'} in the ratio ${rt}.`; lines.push(`So AP : PB = ${rt}${r.external ? ' (k is negative, so P is outside the segment AB)' : ' (k is positive, so P is between A and B)'}.`); }
+      mist = 'Check P is on the line: the same k must work for both the x values and the y values.';
+    } else if (mode === 'axis') {
+      const ax = sel('axis').value as 'x' | 'y', name = ax === 'x' ? 'x axis (y = 0)' : 'y axis (x = 0)', i = ax === 'x' ? 1 : 0, c = ax === 'x' ? 'y' : 'x';
+      const r = axisCut(A, B, ax);
+      if (!r) return stop(A[i] === B[i] && A[i] === 0 ? `AB lies along the ${name}, so it is not cut at one point.` : `AB is parallel to the ${name}, so it never meets it.`);
+      lines.push(`On the ${name} every point has ${c} = 0. Let it divide AB in the ratio k : 1, so ${c} = (k×${par(B[i])} + ${par(A[i])})/(k + 1) = 0.`);
+      if (!Number.isFinite(r.k)) answer = `B is on the ${name}, so the axis meets AB at B = ${pt(B)}.`;
+      else {
+        lines.push(`So k = −${par(A[i])}/${par(B[i])} = ${T(r.k)}. The point is ${pt(r.P)}.`);
+        const rt = ratioText(Math.abs(r.k), 1);
+        answer = `The ${name} cuts AB ${r.k > 0 ? 'internally' : 'externally'} in the ratio ${rt} at ${pt(r.P)}.`;
+        if (r.k < 0) lines.push('k is negative, so the axis meets the line AB outside the segment (both points are on the same side).');
+      }
+      mist = 'A positive k means A and B are on opposite sides of the axis; if k comes out negative, both are on the same side.';
+    } else {
+      const G = centroid(A, B, Cc), ar = triArea(A, B, Cc);
+      lines.push('Centroid G = ((x₁ + x₂ + x₃)/3, (y₁ + y₂ + y₃)/3).', `x = (${par(A[0])} + ${par(B[0])} + ${par(Cc[0])})/3 = ${T(G[0])}, y = (${par(A[1])} + ${par(B[1])} + ${par(Cc[1])})/3 = ${T(G[1])}`);
+      lines.push(`Area = ½ |x₁(y₂ − y₃) + x₂(y₃ − y₁) + x₃(y₁ − y₂)| = ½ |${T(A[0] * (B[1] - Cc[1]))} + ${T(B[0] * (Cc[1] - A[1]))} + ${T(Cc[0] * (A[1] - B[1]))}| = ${T(ar)}`);
+      lines.push(`Sides: AB = ${T(distance(A, B))}, BC = ${T(distance(B, Cc))}, CA = ${T(distance(Cc, A))}.`);
+      answer = ar === 0 ? `A, B and C are on one straight line (area 0), so they do not make a triangle. The centroid of the three points is ${pt(G)}.` : `Centroid G = ${pt(G)}, area = ${T(ar)}${u2}.`;
+      mist = 'Take the absolute value: the area is never negative. An area of 0 means the three points are collinear.';
+    }
+    ans.textContent = answer.replace(/-/g, '−');
+    work.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t.replace(/-(?=\d)/g, '−') })));
+    tip.textContent = mist ? `Common mistake: ${mist}` : '';
+  }
+  const solveRoot = q('.sf-solve');
+  solveRoot.addEventListener('input', (e) => { if ((e.target as HTMLElement).dataset.k === 'preset') return; if ((e.target as HTMLElement).dataset.k !== 'mode') sel('preset').value = ''; solveMine(); });
+  solveRoot.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.dataset.k === 'preset') {
+      const p = PRESETS[Number(sel('preset').value)]; if (!p) return;
+      sel('mode').value = p.mode; if (p.axis) sel('axis').value = p.axis;
+      for (const k of FIELDS) g(k).value = p.v[k] ?? g(k).value;
+    }
+    solveMine();
+  });
+  q('.sf-copy').addEventListener('click', () => { g('ax').value = String(pts.A[0]); g('ay').value = String(pts.A[1]); g('bx').value = String(pts.B[0]); g('by').value = String(pts.B[1]); g('cx').value = String(pts.C[0]); g('cy').value = String(pts.C[1]); sel('preset').value = ''; solveMine(); });
+  solveMine();
 
   quiz(q('.sf-quiz'), () => {
     const out: Question[] = [];

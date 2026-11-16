@@ -28,4 +28,19 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [r, qn] = q1.match(/potential (\d+) cm from a \+(\d+) nC/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((8.98755e9 * qn * 1e-9) / (r / 100))); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'potential: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("5 nC at 10 cm"); check((await psAns()).includes("The potential is 449 V"), "potential-map: example 5 nC at 10 cm: The potential is 449 V");
+  await psPre("Two opposite charges"); check((await psAns()).includes("The potential at that point is 479 V"), "potential-map: example Two opposite charges: The potential at that point is 479 V");
+  await psPre("Work to bring a charge closer"); check((await psAns()).includes("The field does \u2212449 nJ of work"), "potential-map: example Work to bring a charge closer: The field does \u2212449 nJ of work");
+  await psPre("Field between plates"); check((await psAns()).includes("The field is 5000 V/m"), "potential-map: example Field between plates: The field is 5000 V/m");
+  await psPre("Electron through 100 V"); check((await psAns()).includes("5.93 \u00d7 10^6 m/s"), "potential-map: example Electron through 100 V: 5.93 \u00d7 10^6 m/s");
+  await psSet("V", {"q": "-2", "r": "30"}, {}); check((await psAns()).includes("The potential is \u221259.9 V."), "potential-map: typed numbers: The potential is \u221259.9 V.");
+  await psSet("e", {"V": "60"}, {"__u:V": "kV"}); check((await psAns()).includes("Above about 50 kV"), "potential-map: friendly message: Above about 50 kV");
+  await psPre("Electron through"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "potential-map: working shown, no NaN");
 };

@@ -58,4 +58,24 @@ export default async ({ page, check, BASE }) => {
   const before = await page.$$eval('.mg .sq-text', (l) => l.map((e) => e.textContent).join('|'));
   await page.click('.mg .sq-new'); await page.waitForTimeout(100);
   check(before !== await page.$$eval('.mg .sq-text', (l) => l.map((e) => e.textContent).join('|')), 'motion-graphs: new questions');
+
+  // ---- Solve my numbers ----
+  {
+    await page.goto(BASE + path); await page.waitForTimeout(500);
+    const ans = () => page.textContent('.ps-host .ps-ans'), work = () => page.textContent('.ps-host .ps-work');
+    const pre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+    const set = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { if (v[0] === '#') await page.selectOption(`.ps-host [data-k="${k}"]`, v.slice(1)); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+    const ok = async (s, m) => check((await ans()).includes(s), `${'motion-graphs'}: ${m} (${await ans()})`);
+    await pre('Braking car'); await ok('The distance is 50 m', 'braking 72 km/h at -4: 50 m');
+    await pre('Slope of a line'); await ok('The acceleration is 2 m/s²', 'slope (20-4)/8 = 2');
+    await pre('Area, turning back'); await ok('displacement is 10 m, but the distance travelled is 26 m', 'area with sign change: 10 m and 26 m');
+    await pre('Two-leg trip'); await ok('average speed is 40 km/h', '120 km in 3 h = 40 km/h');
+    await pre('Dropped stone'); await ok('displacement is 44.1 m', '½·9.8·9 = 44.1 m');
+    await set('slopeX', { 'slopeX-dx': '120', 'slopeX-dt': '8' }); await ok('The velocity is 15 m/s (54 km/h)', '120 m in 8 s = 15 m/s');
+    await set('v', { 'v-u': '5', 'v-a': '2', 'v-t': '6' }); await ok('final velocity is 17 m/s', 'v = 5 + 2·6');
+    await set('v2', { 'v2-u': '20', 'v2-v': '0', 'v2-a': '0' }); await ok('a = 0', 'zero acceleration friendly message');
+    await set('slopeX', { 'slopeX-dt': '0' }); await ok('must be more than 0', 'zero time refused');
+    await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+    check((await work()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), `motion-graphs: working shown, no NaN`);
+  }
 };

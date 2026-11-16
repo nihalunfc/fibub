@@ -2,10 +2,17 @@
 // Bond enthalpy estimator: pick a reaction or count the bonds yourself; energy in to break bonds, energy out
 // when new bonds form, and ΔH ≈ broken − made on an energy ladder. Class 11 chemistry, thermodynamics.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 import { BONDS, REACTIONS } from '../../lib/sci/bond-enthalpy';
 ---
 <div class="ax bex">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the bonds broken and made, with the energy of each bond, to get ΔH; or find one unknown bond energy from a given ΔH. Energies can be kJ/mol or kcal/mol.</p>
+    <div class="bex-solve"></div>
+  </div>
+
   <div class="ax-card">
     <label>Reaction
       <select class="be-rx">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}<option value="own">My own: count the bonds below</option></select>
@@ -42,6 +49,9 @@ import { BONDS, REACTIONS } from '../../lib/sci/bond-enthalpy';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { BOND_SPEC } from '../../lib/sci/solve-bond';
+  mountSolver(document.querySelector<HTMLElement>('.bex-solve')!, BOND_SPEC, 'sv');
   import { BONDS, REACTIONS, estimate, type Counts } from '../../lib/sci/bond-enthalpy';
   import { paint, type Figure } from '../../lib/report';
   import { fmt } from '../../lib/sm-graph';

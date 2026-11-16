@@ -11,7 +11,7 @@ ads: false
 order: 1345
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [hydraulic-lift, capillary-rise, stokes-terminal-velocity, bernoulli-flow]
 sources:
   - "Archimedes' principle (the upthrust equals the weight of the fluid displaced), the law of flotation (a floating body displaces its own weight of liquid, so the fraction under is ρ_body/ρ_liquid), apparent weight and relative density: standard school physics found in any textbook. g = 9.8 m/s²."
@@ -39,6 +39,10 @@ It follows the school topics on thrust, pressure and buoyancy, Archimedes' princ
 3. For a floating block, drag it down in the picture or use the **push** slider to hold more of it under, and read the extra push needed.
 4. For a sinking block, read the spring balance, the loss of weight and the relative density.
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top handles the usual textbook questions: upthrust on a sunk object (ρVg), apparent weight in a liquid, whether an object floats and what share sits under the surface, relative density from two spring-balance readings, the volume of liquid a floating ship displaces, and how much extra load a floating block carries before it sinks. Pick kg/m³ or g/cm³, cm³, litres or m³, and the answer is shown first in one sentence with the formula, the substitution and the result below. If the object is light enough to float, the card says so instead of giving a negative apparent weight. Common mistake: using the density of the object instead of the liquid in the upthrust formula.
+
 ## Worked example
 
 Open the page: a **10 cm** cube of **pine** (500 kg/m³) in **fresh water**. Its volume is 0.001 m³, its mass 0.5 kg and its weight **4.9 N**. It floats with 500 ÷ 1000 = **50 %** under the surface, pushing aside **500 mL** of water, whose weight is 4.9 N: the upthrust equals the weight. Push it right under and the upthrust becomes 9.8 N, so you need a push of **4.9 N** to hold it there.
@@ -58,3 +62,5 @@ Pick **iron** (7900 kg/m³): the cube weighs **77.42 N** in air. Fully under wat
 **Is the relative density the same as density?** It is the density divided by the density of water, so it has no unit.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**How do I find relative density with a spring balance?** Divide the weight in air by the loss of weight in water: 2.7 N in air and 1.7 N in water gives 2.7 ÷ 1.0 = 2.7.

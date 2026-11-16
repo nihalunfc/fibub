@@ -11,13 +11,14 @@ ads: false
 order: 1347
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [temperature-scales, heating-curve, stress-strain-analyser, thermal-mismatch-stress]
 sources:
   - "Linear expansion ΔL = α L ΔT, area β ≈ 2α and volume γ ≈ 3α, thermal stress σ = Y α ΔT: standard physics."
   - "Expansion coefficients (steel and concrete about 12×10⁻⁶ /°C, aluminium 23×10⁻⁶, copper 17×10⁻⁶, brass 19×10⁻⁶, ordinary glass 9×10⁻⁶, invar about 1.2×10⁻⁶) and Young's moduli are rounded typical values for teaching, not data for design."
   - "A rail cross-section of about 77 cm² is a rounded illustrative size."
   - "Checked against an independent Python calculation, including an exact circular-arc solution for the bowed rail."
+  - "The Solve my numbers formulas (new length L(1 + αΔT), α = ΔL/(LΔT), gap = αL(T_hot − T_laid), stress = Y α ΔT) are the standard school ones, hand-checked against the worked examples."
 flow:
   - { icon: sliders, label: "Warm it" }
   - { icon: ruler, label: "Gap shrinks" }
@@ -61,6 +62,10 @@ Five fresh questions: the growth of a rail, the gap for a bridge joint, the new 
 - α is tiny (millionths per degree), so write it as 12 × 10⁻⁶ /°C and keep the powers of ten straight.
 - A change of 1 °C is a change of 1 K, so α per °C and per K are the same number.
 
+## Solve my numbers
+
+Solve my numbers lets you type the figures from your problem. Choose what you want: the change in length ΔL = α L ΔT, the new length, α from a measurement, the gap to leave between rails or slabs, the temperature at which a gap closes, or the stress in a rail that cannot expand. Each unit box takes metres, centimetres, millimetres or kilometres, α in ×10⁻⁶ per °C or plain per °C, and a rise in °C, K or °F, and the answer comes with the formula, the numbers put in and the result, as an exam marks it. The most common mistake is using the temperature instead of the change in temperature; a temperature change in °F is converted for you. If ΔT is zero when finding α, you get a friendly message instead of a wrong number. Tap a worked example such as the steel rail or the bridge joint to fill the boxes.
+
 ## FAQ
 
 **Why do modern railways have no gaps?** Long welded rails are laid at a chosen "neutral" temperature and clamped to heavy sleepers. They are not allowed to grow, so they carry the thermal stress instead. On very hot days tracks are watched for buckling.
@@ -68,3 +73,5 @@ Five fresh questions: the growth of a rail, the gap for a bridge joint, the new 
 **Why is the bowing so large?** Fixed ends turn a tiny extra length into a much larger sideways bend: a 13 m rail only 1 mm too long would rise by about 7 cm if it bent into an arc.
 
 **Does anything shrink when it warms?** Water between 0 °C and 4 °C does, which is why ice forms on top of ponds.
+
+**What is the formula for thermal expansion of a rod?** ΔL = α L ΔT: the coefficient times the original length times the change in temperature, found under Solve my numbers.

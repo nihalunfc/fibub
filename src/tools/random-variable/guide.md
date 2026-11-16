@@ -11,7 +11,7 @@ ads: false
 order: 1476
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [probability-tree, sample-space, binomial-expansion, distribution-explorer]
 sources:
   - "Standard school mathematics: discrete random variables, probability distributions, mean (expectation), variance and standard deviation, Bernoulli trials and the binomial distribution. Written for fibub; no textbook text, figures or exercises are used, and the story numbers are made up."
@@ -47,6 +47,16 @@ Heads in 3 tosses of a fair coin: X = 0, 1, 2, 3 with probabilities 1/8, 3/8, 3/
 
 For the sum of two dice the page gives μ = **7** and variance **5.8333**. For the faulty bulbs (a draw without replacement, so not binomial), P(X = 0) = P(X = 1) = 56/120 and P(X = 2) = 8/120, giving μ = **0.6**.
 
+## Solve your own numbers
+
+The first card works out the numbers from your own problem, with the working shown the way an exam marks it. Choose what to find:
+
+- **Binomial P(X = r)**, **P(X ≤ r)**, **P(X ≥ r)** (the "at least" questions, done as 1 minus the chances below r) or **P(r ≤ X ≤ s)** from n and p. Type p as a decimal or a fraction such as 1/6.
+- **Binomial mean and variance**: np, npq and the standard deviation.
+- **Mean and variance of a table**: type the values of X and their probabilities, separated by commas (fractions like 1/8 are fine). It checks they add up to 1, then shows μ = Σ x P(x), E(X²) and Var(X) = E(X²) − μ².
+
+Bad input gives a friendly message: p outside 0 to 1, r bigger than n, probabilities that do not add to 1 (it tells you the total), or lists of different lengths. Each answer ends with the usual slip, such as reading "at least one" as exactly one.
+
 ## Tips
 
 - The mean need not be a value X can take: 1.5 heads never happens, but it is the average over many tries.
@@ -64,3 +74,5 @@ Five fresh questions: a mean from a table, a binomial probability, a binomial va
 **Why is the simulated average not exactly μ?** Chance. With 10 runs it can be far off; with 10 000 it is usually within a few hundredths.
 
 **Is this from my textbook?** It covers the standard school topic with its own examples. It is an independent study aid and is not part of NCERT.
+
+**How do I find the probability of at least one success in n trials?** Use 1 − P(X = 0) = 1 − qⁿ. For at least one six in 4 throws of a die, 1 − (5/6)⁴ = 0.5177; the first card does this for any n and p.

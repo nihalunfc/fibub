@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax hl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (forces, piston sizes, load) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row hl-presets">
       <button type="button" class="btn secondary small" data-p="garage">Garage car lift</button>
@@ -41,6 +42,9 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { HYDRAULIC } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, HYDRAULIC);
   import { lift, strokes, PRESETS, questions } from '../../lib/sci/hydraulic';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -105,7 +109,7 @@ import '../../styles/astro.css';
     ]));
   }
 
-  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  root.querySelectorAll('input:not(.ps-host input)').forEach((i) => i.addEventListener('input', draw));
   root.querySelectorAll<HTMLButtonElement>('.hl-presets [data-p]').forEach((b) => b.addEventListener('click', () => {
     const p = PRESETS.find((x) => x.id === b.dataset.p)!;
     inp('.hl-d1').value = String(p.d1 * 100); inp('.hl-d2').value = String(p.d2 * 100); inp('.hl-m').value = String(p.mass); draw();

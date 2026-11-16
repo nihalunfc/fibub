@@ -26,4 +26,20 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [G, Ig, I0] = q1.match(/coil of (\d+) Ω .*? at (\d+) mA.*?up to (\d+) A/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((Ig / 1000 * G) / (I0 - Ig / 1000))); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'galv: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("2 A ammeter"); check((await psAns()).includes("Connect a shunt of 25 m\u03a9 in parallel"), "galvanometer-conversion: example 2 A ammeter: Connect a shunt of 25 m\u03a9 in parallel");
+  await psPre("0 to 1 A ammeter"); check((await psAns()).includes("Connect a shunt of 50 m\u03a9 in parallel"), "galvanometer-conversion: example 0 to 1 A ammeter: Connect a shunt of 50 m\u03a9 in parallel");
+  await psPre("10 V voltmeter"); check((await psAns()).includes("Connect 9.95 k\u03a9 in series"), "galvanometer-conversion: example 10 V voltmeter: Connect 9.95 k\u03a9 in series");
+  await psPre("3 V voltmeter, 100"); check((await psAns()).includes("Connect 29.8 k\u03a9 in series"), "galvanometer-conversion: example 3 V voltmeter, 100: Connect 29.8 k\u03a9 in series");
+  await psPre("What does this shunt give"); check((await psAns()).includes("The ammeter reads up to 2 A"), "galvanometer-conversion: example What does this shunt give: The ammeter reads up to 2 A");
+  await psSet("series", {"G": "100", "Ig": "2", "V0": "5"}, {"__u:Ig": "mA"}); check((await psAns()).includes("Connect 2.4 k\u03a9 in series"), "galvanometer-conversion: typed numbers: Connect 2.4 k\u03a9 in series");
+  await psSet("series", {"V0": "0.05"}, {"__u:Ig": "mA"}); check((await psAns()).includes("That range is too small"), "galvanometer-conversion: friendly message: That range is too small");
+  await psSet("shunt", {"I0": "0.0005"}, {}); check((await psAns()).includes("must be bigger than the full-scale current"), "galvanometer-conversion: friendly message: must be bigger than the full-scale current");
+  await psPre("10 V voltmeter"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "galvanometer-conversion: working shown, no NaN");
 };

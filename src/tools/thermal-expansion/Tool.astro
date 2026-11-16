@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn txp">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (temperature rise, length, α) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">Rails and bridges in the sun</h2>
@@ -55,6 +56,9 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { THERMAL } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, THERMAL);
   import { deltaL, thermalStress, areaVolume, gapNeeded, bowRise } from '../../lib/sci/n2-thermal';
   import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -139,7 +143,7 @@ import '../../styles/learnquiz-d.css';
     else { L.max = '40'; L.value = '13'; g.max = '20'; g.value = '5'; q<HTMLSelectElement>('.tx-mat').value = 'steel'; }
     update();
   }));
-  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  root.querySelectorAll('input:not(.ps-host input), select:not(.ps-host select)').forEach((e) => e.addEventListener('input', update));
   addEventListener('resize', draw);
   update();
 

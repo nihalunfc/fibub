@@ -53,3 +53,41 @@ export function solve(cons: Con[], p: number, q: number, goal: 'max' | 'min'): L
   const corners = real.map((v) => ({ p: v, z: Z(v), best: status === 'optimal' && Math.abs(sgn * Z(v) - bestReal) <= tol }));
   return { status, region: poly, corners, bounded, best: status === 'optimal' ? sgn * bestReal : NaN, many: corners.filter((c) => c.best).length > 1 };
 }
+
+const f3 = (v: number) => String(+(Math.abs(v) < 1e-9 ? 0 : v).toPrecision(6)).replace('-', '−');
+const term = (c: number, s: string) => (c === 1 ? s : c === -1 ? `−${s}` : `${f3(c)}${s}`);
+/** A constraint as text: "2x + y ≤ 20". */
+export function conText(k: Con): string {
+  const parts: string[] = [];
+  if (k.a !== 0) parts.push(term(k.a, 'x'));
+  if (k.b !== 0) parts.push(`${parts.length ? (k.b < 0 ? '− ' : '+ ') : ''}${term(parts.length ? Math.abs(k.b) : k.b, 'y')}`);
+  return `${parts.join(' ')} ${k.op === '<=' ? '≤' : '≥'} ${f3(k.c)}`;
+}
+/** Which boundary lines pass through a corner: "x = 0", "y = 0", or "line 2". */
+export function binding(cons: Con[], p: Pt): string[] {
+  const out: string[] = [];
+  if (Math.abs(p[0]) < 1e-7) out.push('x = 0');
+  if (Math.abs(p[1]) < 1e-7) out.push('y = 0');
+  cons.forEach((k, i) => { if (Math.abs(k.a * p[0] + k.b * p[1] - k.c) < 1e-7 * Math.max(1, Math.abs(k.c))) out.push(`line ${i + 1}`); });
+  return out;
+}
+/** The working of the corner point method, one line per corner, ending with the comparison. */
+export function lppWorking(cons: Con[], p: number, q: number, goal: 'max' | 'min', r: LppResult, names = ' ABCDEFGHIJKLMNOP'): string[] {
+  if (r.status === 'infeasible') return ['No corner exists: the constraints cannot all be true together.'];
+  const lines = r.corners.map((c, i) => {
+    const b = binding(cons, c.p), x = f3(c.p[0]), y = f3(c.p[1]);
+    return `${names[i + 1]} (${x}, ${y}) is where ${b.slice(0, 2).join(' meets ') || 'the lines meet'}. Z = ${f3(p)}(${x}) + ${f3(q)}(${y}) = ${f3(c.z)}.`;
+  });
+  if (r.status === 'unbounded') lines.push(`The region is open (unbounded). Z can be pushed ${goal === 'max' ? 'higher' : 'lower'} without limit, so there is no ${goal === 'max' ? 'maximum' : 'minimum'}.`);
+  else lines.push(`The ${goal === 'max' ? 'largest' : 'smallest'} Z is ${f3(r.best)}, so that is the ${goal === 'max' ? 'maximum' : 'minimum'}.${r.many ? ' It happens at more than one corner, so every point between them is also optimal.' : ''}`);
+  return lines;
+}
+/** Does the point (x, y) meet every constraint? Lists the ones it breaks, and its Z. */
+export function checkPoint(cons: Con[], x: number, y: number, p: number, q: number): { ok: boolean; broken: string[]; z: number } {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, broken: [], z: NaN };
+  const broken: string[] = [];
+  if (x < 0) broken.push('x ≥ 0');
+  if (y < 0) broken.push('y ≥ 0');
+  cons.forEach((k, i) => { const v = k.a * x + k.b * y, ok = k.op === '<=' ? v <= k.c + 1e-9 : v >= k.c - 1e-9; if (!ok) broken.push(`line ${i + 1} (${conText(k)}): the left side is ${f3(v)}`); });
+  return { ok: broken.length === 0, broken, z: p * x + q * y };
+}

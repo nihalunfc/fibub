@@ -41,4 +41,26 @@ export default async ({ page, check, BASE }) => {
   const ch = await items[4].$$('.lq-choice'), right = +(await items[4].getAttribute('data-ans'));
   await ch[right].click();
   check((await (await items[4].$('.lq-fb')).textContent()) === 'Right.', 'expansion: choice question');
+
+  // ---- Solve my numbers (thermal-expansion) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Steel rail"); check((await psAns()).includes("grows by 3.9 mm"), "thermal-expansion: example Steel rail");
+  await psPre("Aluminium rod"); check((await psAns()).includes("The new length is 2.0023 m"), "thermal-expansion: example Aluminium rod");
+  await psPre("Measure α"); check((await psAns()).includes("α = 12 × 10⁻⁶ /°C"), "thermal-expansion: example Measure α");
+  await psPre("Bridge joint"); check((await psAns()).includes("gap of at least 19.2 mm"), "thermal-expansion: example Bridge joint");
+  await psPre("Welded rail"); check((await psAns()).includes("The stress is 60 MPa (compression"), "thermal-expansion: example Welded rail");
+  await psSet("close", {"close-a": "12", "close-L": "13", "close-g": "5", "close-t0": "20"});
+  check((await psAns()).includes("closes at 52.05 °C"), "thermal-expansion: typed numbers close closes at 52.05 °C");
+  await psSet("dL", {"dL-a": "0.000012", "dL-L": "1300", "dL-dT": "25"});
+  await page.selectOption('.ps-host [data-k="dL-a-u"]', "/°C"); await page.waitForTimeout(80);
+  await page.selectOption('.ps-host [data-k="dL-L-u"]', "cm"); await page.waitForTimeout(80);
+  check((await psAns()).includes("grows by 3.9 mm"), "thermal-expansion: typed numbers dL grows by 3.9 mm");
+  await psSet("alpha", {"alpha-dT": "0"}); check((await psAns()).includes("ΔT cannot be 0"), "thermal-expansion: friendly message: ΔT cannot be 0");
+  await psSet("dL", {"dL-L": "0"}); check((await psAns()).includes("must be more than 0"), "thermal-expansion: friendly message: must be more than 0");
+  await psPre("Measure α"); { const w = await psWork(); check(w.includes("1.8 mm = 0.0018 m") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "thermal-expansion: working shown, no NaN"); }
+  }
 };

@@ -11,7 +11,7 @@ ads: false
 order: 1352
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [shm-circle, pendulum-lab, coupled-oscillators, newtons-laws]
 sources:
   - "Hooke's law F = kx, springs in series 1/k = 1/k₁ + 1/k₂ and in parallel k = k₁ + k₂, period of a mass on a light spring T = 2π√(m/k), static stretch x = mg/k, energy ½kA²: standard mechanics."
@@ -40,6 +40,10 @@ It serves Class 11 Physics, Oscillations (the spring-mass system, springs in ser
 4. The dashed lines mark the spring's **natural length** and the **rest** position, where the weight is balanced. The picture's stretch is scaled to fit.
 5. **Series or parallel?** compares both ways of joining the same two springs.
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top works the usual spring problems: force from stretch (F = kx), the spring constant from a measurement, the stretch of a hanging mass (mg ÷ k), two springs in series and parallel, the period and frequency of a mass on one spring or on two joined ones, k from a measured period, and the stored energy ½kx². Pick N/m or N/cm, and cm, mm or m for the stretch: the card converts for you and shows each step. For more on stored energy see [[spring-energy]]. Common mistake: using the whole length of the spring instead of the stretch beyond its natural length.
+
 ## Worked example
 
 As the page opens: one spring with k = 20 N/m and a 0.5 kg mass. T = 2π√(0.5 / 20) = **0.9935 s**, and at rest the spring is stretched x = 0.5 × 9.8 / 20 = **24.5 cm**. Pulled down 5 cm, it bobs with energy ½ × 20 × 0.05² = 0.025 J and a top speed of 31.6 cm/s.
@@ -63,3 +67,5 @@ Five fresh questions: a series pair, a parallel pair, a period, a resting stretc
 **Why is a cut spring stiffer?** Half a spring stretches half as much under the same force (it is one of two equal springs in series), so its k is doubled.
 
 **What about the mass of the spring?** Real springs have mass, which makes the period a little longer (roughly as if a third of the spring's mass were added to the load). This page treats the springs as light.
+
+**What is the period of a mass on a spring?** T = 2π√(m ÷ k), so 0.5 kg on 50 N/m gives 0.628 s.

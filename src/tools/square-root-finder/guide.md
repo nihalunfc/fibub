@@ -11,7 +11,7 @@ ads: false
 order: 1232
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [square-cube-builder, hcf-lcm-venn, identity-tiles, pythagoras-proofs]
 sources:
   - "Square roots by prime factorisation, by repeated subtraction of odd numbers, by estimation between squares, by Heron's (Babylonian) method x → (x + n/x)/2 and by the long division method are standard school arithmetic. Wording, pictures and examples are fibub's own."
@@ -50,6 +50,17 @@ The page opens with **7056**.
 
 Now try **40**: it lies between 36 = 6² and 49 = 7², so the first guess is 6 + 4 ÷ 13 = 6.3077. One improving step gives 6.324573 and the next 6.324555, already right to six decimal places. And **72** = (2 × 2) × (3 × 3) × 2: the last 2 has no partner, so √72 = 2 × 3 × √2 = 6√2 ≈ 8.4853.
 
+## Solve your own numbers
+
+The first card takes the numbers from your own problem. Pick what to find, type the number, and the answer comes back in one sentence with the working underneath.
+
+- **Square root of a number**, to the number of decimal places you choose (0 to 4). A perfect square gives the exact root; anything else gives the two whole numbers it lies between, the root to your decimal places, and a check that squaring the answer gets back close to the number.
+- **Side of a square from its area**, with the unit (m², cm², mm², km²) written back as the plain unit: a plot of 1296 m² has a side of 36 m.
+- **Smallest number to make a perfect square.** This Class 8 favourite pairs the prime factors and tells you both the number to multiply by and the number to divide by. For 1800 = 2 × 2 × 2 × 3 × 3 × 5 × 5 the lone 2 means: multiply by 2 to get 3600 = 60², or divide by 2 to get 900 = 30².
+- **Area of a square from its side.**
+
+Choose a worked example from the list if you want to see how the card works. A negative number, zero, a blank box or text that is not a number gives a friendly message, never NaN. Under each answer is a line about the usual slip, such as writing the root of a sum as the sum of the roots, or forgetting that an area is in square units while its side is in plain units.
+
 ## Check yourself
 
 Five fresh questions: the root of a perfect square, the number of odd-number steps, a simplest surd form, the two whole numbers a root lies between, and the root of a decimal. Nothing is saved.
@@ -61,3 +72,5 @@ Five fresh questions: the root of a perfect square, the number of odd-number ste
 **Which method should I use in an exam?** Prime factors for perfect squares you can factor; long division for big numbers and decimals; estimation to check that an answer is sensible.
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**What is the square root of a number, fast?** Type it into the first card: it answers in one sentence, gives the exact root for a perfect square and the root to the decimal places you choose otherwise, and shows the working.

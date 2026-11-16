@@ -3,8 +3,15 @@
 // straight), half-lives marked, and an Arrhenius card with an energy profile and a catalyst.
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax og">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem. Find [A] after a time, the time to reach a concentration, the half-life or k for a zero, first or second order reaction; the order from a table of readings or from initial rates; or the activation energy and k at a new temperature. The working is shown like an exam answer. For a statistical fit with uncertainties use the <a href="/science/reaction-kinetics-fitter/">reaction kinetics fitter</a>.</p>
+    <div class="og-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg og-n" role="group" aria-label="Order"><button type="button" data-n="0" aria-pressed="false">Zero order</button><button type="button" data-n="1" aria-pressed="true">First order</button><button type="button" data-n="2" aria-pressed="false">Second order</button></div>
     <label class="og-rl"><span>[A]₀</span><input type="range" class="og-a0" min="0.2" max="2" step="0.1" value="1" /><output class="og-oa0"></output></label>
@@ -70,6 +77,8 @@ import '../../styles/chemquiz.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { ORDER_SPEC } from '../../lib/sci/solve-order';
   import { conc, halfLife, kUnits, straight, r2, arrhenius, ratio, fraction, timeTo, type Order } from '../../lib/sci/ordergraphs';
   import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
 
@@ -157,6 +166,7 @@ import '../../styles/chemquiz.css';
   ['.og-a0', '.og-k'].forEach((s) => q(s).addEventListener('input', update));
   ['.og-ea', '.og-t'].forEach((s) => q(s).addEventListener('input', updA)); q('.og-cat').addEventListener('change', updA);
   update();
+  mountSolver(q('.og-solve'), ORDER_SPEC);
 
   // Check yourself
   mountQuiz(q('.cq'), (): Question[] => {

@@ -11,12 +11,13 @@ ads: false
 order: 1421
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [snell-law, prism-dispersion, fibre-optic-calculator]
 sources:
   - "Snell's law, critical angle sin C = n₂/n₁, numerical aperture NA = √(n₁² − n₂²) and acceptance angle sin θa = NA (from air): standard school and first-year optics, as taught in Class 12 physics (ray optics)."
   - "The fibre in the picture is a made-up teaching shape (core 20 units wide, one 90° bend), not to scale. Index values are rounded examples you can change."
   - "Checked against an independent Python calculation: math.asin for the angles, the bounce count x = a/tan r + 2k·a/tan r for a straight fibre, and a small-step marching ray tracer for the bent fibre."
+  - "The Solve my numbers formulas (sin C = n₂/n₁, NA = √(n₁² − n₂²), sin θ_a = NA/n₀ and the step-index pulse spread Δt = (L n₁/c)(n₁/n₂ − 1)) are the standard ones, hand-checked for n₁ = 1.50, n₂ = 1.45 (C = 75.16°, NA = 0.384, θ_a = 22.6°)."
 flow:
   - { icon: pointer, label: "Aim light" }
   - { icon: sliders, label: "Bend it" }
@@ -54,6 +55,10 @@ Now drop the bend radius to 60 and θ to 10°: the ray hits the outside of the b
 
 Four questions with fresh numbers: the critical angle into air, the critical angle at a core-cladding boundary, the refractive index from a critical angle, and a numerical aperture. **Show working** shows the steps. Nothing is saved or sent anywhere.
 
+## Solve my numbers
+
+Solve my numbers works out the figures for your fibre problem. Choose the critical angle, the numerical aperture and acceptance angle (from air or another medium), whether a ray entering from outside at a given angle is trapped, or the most a pulse can spread over a length of fibre. Type the core and cladding indices, and angles in degrees or radians. The working shows sin C = n₂/n₁, NA = √(n₁² − n₂²) and every step of the refraction at the end face. The common mistakes are measuring angles from the wall instead of from the normal, and using a cladding index that is higher than the core: you then get a clear message that light cannot be trapped. Tap an example such as the 1.50 / 1.45 glass fibre to fill the boxes.
+
 ## FAQ
 
 **Why have a cladding at all? Glass in air traps even more light.** The cladding protects the surface: scratches, dust or a finger on bare glass would let light out. It also keeps rays at shallow angles, so pulses do not spread out as much.
@@ -61,3 +66,5 @@ Four questions with fresh numbers: the critical angle into air, the critical ang
 **Is any light lost at a total internal reflection?** In the ideal case none at all, which is why it beats a mirror. Real fibres lose a little to absorption and scattering in the glass.
 
 **Why does the picture look so fat?** A real core is a few to about 50 micrometres across and bends are centimetres wide. The picture squeezes this so you can see each bounce.
+
+**How do you find the critical angle of an optical fibre?** sin C = n₂ ÷ n₁, the cladding index over the core index, found under Solve my numbers.

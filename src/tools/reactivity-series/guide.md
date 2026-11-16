@@ -11,7 +11,7 @@ ads: false
 order: 1086
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [formula-writer, galvanic-cell, equation-balancer]
 sources:
   - "Order of the reactivity series, reactions with water and dilute acid, and extraction methods: general chemistry facts as taught in school, written fresh for fibub."
@@ -57,6 +57,10 @@ Test zinc, iron and copper in every solution. Zinc pushes out iron, lead, hydrog
 - Potassium, sodium and calcium react with the water in the solution before anything else, so they are never used for displacement tests.
 - Aluminium is high in the series but often looks unreactive: a thin, tough oxide layer covers it.
 
+## Solve your own numbers
+
+The card at the top answers the usual exam questions straight away. Choose a metal and a solution to see whether it **displaces** the other metal (or hydrogen from an acid), with the balanced equation and what you would see. Switch **Find** to compare any two metals and see which is more reactive, to look up **how a metal is extracted** and why (electrolysis, heating with carbon, or heat alone), or to read how it reacts with water and acid. Below it, **Put metals in order of reactivity** takes a list such as `Cu zinc Mg silver` (symbols or names, any order) and sorts it, most reactive first. Metals that react with water before they can displace anything (potassium, sodium, calcium) are flagged instead of being tested.
+
 ## FAQ
 
 **Why does lead react so slowly with acid?** It sits just above hydrogen, and a layer of insoluble lead chloride forms on it.
@@ -64,3 +68,5 @@ Test zinc, iron and copper in every solution. Zinc pushes out iron, lead, hydrog
 **Is anything saved?** No. Everything runs in your browser and nothing is stored or sent.
 
 **Is this an official textbook tool?** No. It is an independent practice page that follows the same school topics.
+
+**Which metal displaces which?** The more reactive metal, the one higher in the series, displaces the less reactive one from a solution of its salt: zinc displaces copper, but copper does not displace zinc. Use the card above to check any pair.

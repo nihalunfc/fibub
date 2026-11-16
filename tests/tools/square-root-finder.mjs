@@ -35,4 +35,34 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m.slice(1).join(', ') : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await t(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `sqrt: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (typed numbers, working, units, edge cases).
+  const SV = (k) => `.sr-solve [data-k="sq-${k}"]`, ans = () => page.textContent(SV('answer')), wk = () => page.textContent(SV('working'));
+  const ex = async (i, n) => { await page.selectOption(SV('example'), String((i + 1) % n)); await page.selectOption(SV('example'), String(i)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(SV(k), v); await page.waitForTimeout(60); };
+  await page.locator('.sr-solve').scrollIntoViewIfNeeded();
+  check((await page.getAttribute(SV('answer'), 'aria-live')) === 'polite', 'sq solve: answer is a polite live region');
+  check((await ans()) === '√7,056 = 84 exactly.' && (await wk()).includes('84 × 84 = 7,056'), `sq solve: opens with 7056 (${await ans()})`);
+  await ex(1, 6);
+  check((await ans()) === '√40 ≈ 6.325 (to 3 decimal places).' && (await wk()).includes('between 6 and 7'), `sq solve: √40 to 3 dp (${await ans()})`);
+  await page.selectOption(SV('dp'), '1'); await page.waitForTimeout(60);
+  check((await ans()) === '√40 ≈ 6.3 (to 1 decimal place).', 'sq solve: decimal places select');
+  await ex(2, 6);
+  check((await ans()) === 'The side of the square is 36 m.' && (await wk()).includes('36 × 36 = 1,296'), `sq solve: side from area (${await ans()})`);
+  await ex(3, 6);
+  check((await ans()) === 'Multiply 1,800 by 2 to get the perfect square 3,600 (root 60), or divide by 2 to get 900 (root 30).', `sq solve: smallest multiplier for 1800 (${await ans()})`);
+  await ex(4, 6);
+  check((await ans()).startsWith('Multiply 252 by 7 to get the perfect square 1,764 (root 42), or divide by 7 to get 36 (root 6)'), 'sq solve: 252');
+  await ex(5, 6);
+  check((await ans()) === 'The area of the square is 156.25 cm².', `sq solve: area from side (${await ans()})`);
+  await ex(0, 6); await page.selectOption(SV('find'), 'root'); await page.waitForTimeout(60);
+  await fill('n', '-4');
+  check((await ans()).includes('no real square root') && !/NaN|Infinity/.test(await ans()), 'sq solve: negative gives a friendly message');
+  await fill('n', '0');
+  check((await ans()) === '√0 = 0.', 'sq solve: zero');
+  await fill('n', 'abc');
+  check((await ans()).startsWith('I cannot read The number'), 'sq solve: unreadable text');
+  await fill('n', '');
+  check((await ans()).startsWith('Fill in'), 'sq solve: blank asks for the number');
+  await ex(0, 6);
+  check((await ans()) === '√7,056 = 84 exactly.', 'sq solve: preset again after errors');
 };

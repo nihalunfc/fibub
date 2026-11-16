@@ -14,6 +14,24 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.hf-big')) === 'Area ≈ 6 square units' && (await txt('.hf-kind')).includes('right'), 'heron: 3-4-5 right, area 6');
   await page.fill(R + '.hf-c', '9'); await page.waitForTimeout(100);
   check((await txt('.hf-kind')).includes('Not a triangle') && (await txt('.hf-fig')).includes("can't make a triangle") && (await txt('.hf-big')) === '' && (await txt('.hf-steps')).includes('no area'), 'heron: 3, 4, 9 is not a triangle');
+  // New options: presets, units, blank input, angles / heights / circles, cost.
+  { const K = (k) => `${R}[data-k="${k}"]`;
+    await page.selectOption(R + '.hf-pre', '4'); await page.waitForTimeout(100);
+    check((await txt('.hf-big')) === 'Area ≈ 1452.37 m²' && (await page.inputValue(K('a'))) === '120', `heron: park preset in metres (${await txt('.hf-big')})`);
+    await page.selectOption(R + '.hf-pre', '3'); await page.waitForTimeout(100);
+    check((await txt('.hf-big')) === 'Area ≈ 12 square units' && (await page.inputValue(R + '.hf-unit')) === '', 'heron: 5, 5, 6 preset gives 12 and resets the unit');
+    await page.fill(K('a'), '13'); await page.fill(K('b'), '15'); await page.fill(K('c'), '14'); await page.selectOption(R + '.hf-unit', 'cm'); await page.waitForTimeout(100);
+    check((await txt('.hf-big')) === 'Area ≈ 84 cm²' && (await txt('.hf-check')) !== '', 'heron: unit cm gives cm²');
+    await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => { d.open = true; }));
+    { const f = await txt('.hf-facts'); check(f.includes('Perimeter = a + b + c = 42 cm') && f.includes('A = 53.13°, B = 67.38°, C = 59.49°') && f.includes('= 84 / 21 = 4 cm') && f.includes('= 2730 / 336 = 8.125 cm') && f.includes('on c = 12 cm'), `heron: more options (${f})`); }
+    await page.fill(K('price'), '2'); await page.fill(K('fence'), '3'); await page.waitForTimeout(100);
+    { const c = await txt('.hf-cost'); check(c.includes('84 × 2 = 168') && c.includes('42 × 3 = 126'), `heron: cost (${c})`); }
+    await page.fill(K('a'), ''); await page.waitForTimeout(100);
+    check((await txt('.hf-kind')).includes('side a') && (await txt('.hf-big')) === '', 'heron: blank side gives a message');
+    await page.fill(K('a'), '-4'); await page.waitForTimeout(100);
+    check((await txt('.hf-kind')).includes('above 0') && (await txt('.hf-steps')) === '', 'heron: negative side gives a message');
+    await page.fill(K('a'), '13'); await page.selectOption(R + '.hf-unit', ''); await page.fill(K('price'), ''); await page.fill(K('fence'), '');
+  }
   await page.fill(R + '.hf-a', '13'); await page.fill(R + '.hf-b', '15'); await page.fill(R + '.hf-c', '14'); await page.waitForTimeout(100);
   // Drag C straight sideways: the height (12) stays, so the area stays 84.
   const fig = page.locator(R + '.hf-fig'); await page.setViewportSize({ width: 1280, height: 1600 }); await fig.scrollIntoViewIfNeeded();

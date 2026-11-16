@@ -11,7 +11,7 @@ ads: false
 order: 1346
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [heating-curve, kinetic-theory, gas-law-calculator, unit-converter]
 sources:
   - "Celsius, Fahrenheit, kelvin and Rankine relations: F = 9/5 C + 32, K = C + 273.15, °R = 9/5 K; 0 K = −273.15 °C by the definition of the kelvin (SI Brochure, BIPM)."
@@ -41,6 +41,10 @@ It serves Class 7 and 8 Science (heat and measuring temperature), Class 9 (matte
 4. On the gas graph, the **Gas in the flask** slider changes how much gas is trapped (its pressure at 0 °C). The three lines are half, the same and one and a half times that amount.
 5. At Class 11, type the **ice point** and **steam point** of your own scale. The page gives the reading on your scale and the one temperature where it agrees with Celsius.
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top converts a temperature between Celsius, Fahrenheit, kelvin and Rankine and shows the working a teacher marks (for a plain converter with many other units see [[unit-converter]]). It also converts a temperature difference (no 32, no 273.15), finds the reading on a scale of your own from its two fixed points, finds where that scale agrees with Celsius, and finds the new pressure of a gas at constant volume using kelvin. Anything below absolute zero gets a friendly message. Common mistake: forgetting to subtract 32 before multiplying by 5/9, or using 273 instead of 273.15.
+
 ## Worked example
 
 The page opens at 25 °C. Then F = 1.8 × 25 + 32 = **77 °F** and K = 25 + 273.15 = **298.15 K**. With 100 kPa of gas in the flask at 0 °C, the pressure at 25 °C is 100 × 298.15 / 273.15 = **109.2 kPa**.
@@ -66,3 +70,5 @@ Five fresh questions each time: Celsius to Fahrenheit, Fahrenheit to Celsius, ke
 **Why does the gas line stop being solid below −50 °C?** Real gases turn liquid before they get that cold, so the dashed part is the line carried on (extrapolated), not a measurement.
 
 **Why 9/5?** Between melting ice and boiling water there are 100 Celsius degrees but 180 Fahrenheit degrees (32 to 212), and 180/100 = 9/5.
+
+**How do I convert Fahrenheit to Celsius?** Subtract 32, then multiply by 5/9: 98.6 °F gives (98.6 − 32) × 5/9 = 37 °C.

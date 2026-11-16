@@ -4,6 +4,12 @@
 import '../../styles/astro.css';
 ---
 <div class="ax et">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the mass, speed, height or friction from your problem and get kinetic energy, potential energy or the speed at the bottom, with the working.</p><div class="ps-host" data-ps="ENERGY"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { ENERGY } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, ENERGY);
+  </script>
   <div class="ax-card">
     <div class="ax-row et-top">
       <span class="et-lab">Level</span>

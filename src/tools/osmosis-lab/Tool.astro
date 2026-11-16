@@ -2,10 +2,17 @@
 // Osmosis lab: a potato, raisin, onion cell or red blood cell in sugar or salt water. Water moves, the cell swells
 // or shrinks, the % mass change graph and a virtual practical. Teaching model with made-up round cell values.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax osl">
   <p class="ax-help osl-note">A teaching model: the cell values are made-up round numbers, so real potatoes and cells will differ a little.</p>
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem. Find osmotic pressure or concentration (π = iCRT), the water potential ψ = ψs + ψp, which way water moves between two cells, the % change in mass of a potato piece, or the isotonic concentration from two readings. The working is shown like an exam answer. For colligative properties of other solutions use the <a href="/science/colligative-properties/">colligative properties calculator</a>.</p>
+    <div class="osl-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row"><span class="osl-lab">Level</span>
       <div class="ax-seg osl-level" role="group" aria-label="Level"><button type="button" data-v="9" aria-pressed="true">Class 9</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
@@ -61,6 +68,8 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { OSMOSIS_SPEC } from '../../lib/sci/solve-osmosis';
   import { SPECIMENS, SOLUTES, equilibrium, volumeAt, isotonicConc, practical, crossZero, rng, RT, type Specimen, type Solute } from '../../lib/sci/osmosis';
   import { chartFigure } from '../../lib/sci/plot';
   import { csv } from '../../lib/sci/num';
@@ -326,6 +335,7 @@ import Downloads from '../../components/Downloads.astro';
       { title: '% change against concentration', figure: graph ?? undefined, ...(runRows.length ? { table: { head: ['Solution (M)', 'Start', 'End', '% change'], rows: runRows.map((r) => [fx(r.c), fx(r.m0), fx(r.m1), sgn(r.change)]), align: ['r', 'r', 'r', 'r'] as ('l' | 'r')[] }, note: q('.osl-est').textContent ?? '' } : {}) },
     ],
   }));
+  mountSolver(q('.osl-solve'), OSMOSIS_SPEC);
 </script>
 
 <style is:inline>

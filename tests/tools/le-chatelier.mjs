@@ -29,4 +29,19 @@ export default async ({ page, check, BASE }) => {
     if ((await it.locator('.cq-res').textContent()) === 'Right!') right++;
   }
   check(n === 5 && right === n, `lechatelier: every worked answer accepted (${right}/${n})`);
+  // Solve my numbers card
+  const S = (k) => `.lc .lc-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'The equilibrium shifts to the right, towards the products.' && (await wk()).includes('left = 4, right = 2'), `lc solve: pressure on ammonia (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()) === 'The equilibrium shifts to the left, towards the reactants.' && (await wk()).includes('K decreases'), `lc solve: cooling endothermic (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()).startsWith('No shift: equal moles of gas'), `lc solve: equal moles (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()).startsWith('No shift') && (await wk()).includes('constant volume'), `lc solve: inert gas (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()).includes('to the right') && (await wk()).includes('Q falls below K'), `lc solve: add reactant (${await ans()})`);
+  await page.selectOption(S('change'), 'catalyst'); check((await ans()).startsWith('No shift: a catalyst'), `lc solve: catalyst (${await ans()})`);
+  await page.selectOption(S('change'), 'inertP'); await page.fill(S('nr'), '1'); await page.fill(S('np'), '2'); check((await ans()).includes('to the right'), `lc solve: inert gas at constant pressure (${await ans()})`);
+  await page.fill(S('np'), '1.5'); check((await ans()).includes('whole numbers'), 'lc solve: fractional moles refused');
+  await page.selectOption(S('find'), 'qk'); await page.selectOption(S('example'), '5'); check((await ans()) === 'Q > K, so the reaction shifts to the left (reverse) until Q = K.', `lc solve: Q vs K (${await ans()})`);
+  await page.fill(S('Q'), '0.5'); check((await ans()).startsWith('Q equals K'), 'lc solve: Q equals K');
+  await page.fill(S('K'), '0'); check((await ans()).includes('more than 0'), 'lc solve: K zero refused');
+  await page.selectOption(S('find'), 'vh'); await page.selectOption(S('example'), '6'); check((await ans()) === 'K at the new temperature is 0.328 (bigger than before).' && (await wk()).includes('= 1.19'), `lc solve: van 't Hoff (${await ans()})`);
+  await page.fill(S('T2'), '330'); check((await ans()).includes('must be different'), 'lc solve: equal temperatures');
 };

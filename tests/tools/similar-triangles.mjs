@@ -48,4 +48,21 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `similar: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/similar-triangles/`); await page.waitForTimeout(600);
+  {
+  const S = '.st-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'The matching side in the second triangle is 12 cm.' && (await work()).includes('k = 9 cm ÷ 6 cm = 1.5'), `sim solve: scale factor (${await ans()})`);
+  await pre(1); check((await ans()) === 'EC = 7.5 cm.' && (await work()).includes('5 × 4.5 ÷ 3'), `sim solve: BPT (${await ans()})`);
+  await pre(2); check((await ans()) === 'The area of the second triangle is 54 cm²; the areas are in the ratio 2.25 : 1.', `sim solve: areas (${await ans()})`);
+  await pre(3); check((await ans()) === 'The height is 9 m.', `sim solve: shadow (${await ans()})`);
+  await pre(4); check((await ans()).startsWith('Yes, the triangles are similar (SSS)'), `sim solve: SSS (${await ans()})`);
+  await pre(5); check((await ans()) === 'Yes, the triangles are similar (AA).', `sim solve: AA (${await ans()})`);
+  await pre(4); await page.fill(S + '[data-k="sv-l1"]', '1 2 5'); check((await ans()).includes('cannot make a triangle'), `sim solve: impossible triangle (${await ans()})`);
+  await pre(0); await page.selectOption(S + '[data-k="sv-s2-unit"]', 'm'); await page.fill(S + '[data-k="sv-s2"]', '0.09'); await page.selectOption(S + '[data-k="sv-t1-unit"]', 'cm');
+  check((await ans()) === 'The matching side in the second triangle is 0.12 m.', `sim solve: mixed units (${await ans()})`);
+  await pre(0); await page.fill(S + '[data-k="sv-s1"]', '0'); check((await ans()).includes('more than 0'), `sim solve: zero side (${await ans()})`);
+  }
 };

@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax pmp">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (charge, distance, voltage) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Equipotential map</h2>
     <div class="ax-row">
@@ -206,4 +207,10 @@ import '../../styles/astro.css';
   onTheme(all);
   load('dipole'); all();
   quiz(q('.pmp-quiz'), () => questions());
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { POTENTIAL } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, POTENTIAL);
 </script>

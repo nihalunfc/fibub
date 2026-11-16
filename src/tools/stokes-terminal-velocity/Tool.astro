@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax sk">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (ball radius, densities, viscosity) and get the terminal velocity or viscosity with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <span>Ball</span>
@@ -59,6 +60,8 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { STOKES } from '../../lib/learn/phys-d';
   import { BALLS, LIQUIDS, fall, speedAt, distanceAt, timeToFall, etaFromSpeed, questions } from '../../lib/sci/stokes';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -163,6 +166,7 @@ import '../../styles/astro.css';
   mountQuiz(q('.sk-quiz'), () => questions());
   reset();
   keepDrawn(q<HTMLCanvasElement>('.sk-c'), draw);
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, STOKES);
 </script>
 
 <style is:inline>

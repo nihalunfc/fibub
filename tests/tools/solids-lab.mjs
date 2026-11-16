@@ -54,4 +54,21 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, a); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `solids: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/solids-lab/`); await page.waitForTimeout(600);
+  {
+  const S = '.sl-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'The volume is 1540 cm³ (1.54 litres).' && (await work()).includes('= 22/7 × 7² × 10 = 1540 cm³'), `solids solve: cylinder volume (${await ans()})`);
+  await pre(1); check((await ans()) === 'The total surface area is 301.4 cm².' && (await work()).includes('h = √(l² − r²) = √(10² − 6²) = 8 cm'), `solids solve: cone with slant height (${await ans()})`);
+  await pre(2); check((await ans()) === 'The total surface area is 154 cm².', `solids solve: sphere (${await ans()})`);
+  await pre(3); check((await ans()) === 'The lateral surface area is 104 cm².', `solids solve: cuboid lateral (${await ans()})`);
+  await pre(4); check((await ans()) === 'The radius is 7 cm.', `solids solve: radius from volume (${await ans()})`);
+  await pre(5); check((await ans()) === 'The height is 9.554 cm.' && (await work()).includes('3 litre = 3000 cm³'), `solids solve: height from litres (${await ans()})`);
+  await pre(1); await page.fill(S + '[data-k="sv-sl"]', '5'); check((await ans()).includes('longer than the radius'), `solids solve: slant below radius (${await ans()})`);
+  await page.selectOption(S + '[data-k="sv-shape"]', 'cuboid'); await page.selectOption(S + '[data-k="sv-find"]', 'diag');
+  await page.fill(S + '[data-k="sv-l"]', '3'); await page.fill(S + '[data-k="sv-b"]', '4'); await page.fill(S + '[data-k="sv-h"]', '12'); check((await ans()) === 'The longest diagonal is 13 cm.', `solids solve: box diagonal (${await ans()})`);
+  await page.selectOption(S + '[data-k="sv-find"]', 'hvol'); await page.selectOption(S + '[data-k="sv-shape"]', 'sphere'); await page.fill(S + '[data-k="sv-V"]', '10'); check((await ans()).includes('no separate height'), `solids solve: sphere has no height (${await ans()})`);
+  }
 };
