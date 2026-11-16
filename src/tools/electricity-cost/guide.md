@@ -29,6 +29,11 @@ Pick the appliances you use, say how many hours a day and days a month they run,
 
 You can use one flat price per kWh, or a time-of-use plan like Ontario's, where on-peak, mid-peak and off-peak hours cost different amounts. If you are thinking of solar, [[solar-pv-yield]] shows what panels could produce, [[budget-calculator|the budget planner]] puts the bill in your month, and [[fuel-cost]] does the same sum for driving.
 
+## More options
+
+- **Biggest spenders**: under the total, the three appliances that cost most, with their share of the appliance cost, so you know where to cut first.
+- **What if I use less?**: open "More options", type a percentage (or drag the slider) and see what you would save per month and per year if every appliance ran that much less. Standby power is not reduced.
+
 ## How to use it
 
 1. Choose an appliance from the list and press **Add**. Add as many as you like, or pick "My own" and type its watts.

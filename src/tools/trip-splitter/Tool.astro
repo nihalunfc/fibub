@@ -6,6 +6,12 @@
     <h2>Who is on the trip</h2>
     <div class="ts-people"></div>
     <button type="button" class="ts-btn ts-addp">Add a person</button>
+    <details class="ts-more">
+      <summary>More options</summary>
+      <label class="ts-wtog"><input type="checkbox" class="ts-wt" data-k="weights" /> Unequal shares (a couple counts as 2, a child as 0.5)</label>
+      <label class="ts-cur">Other currencies: one per line, how much of your main currency one unit is worth, e.g. "EUR 1.08"<textarea class="ts-rates" data-k="rates" rows="3" placeholder="EUR 1.08&#10;GBP 1.27"></textarea></label>
+      <p class="ts-fine">Rates are typed by you; nothing is looked up. Each expense can then be set to one of these currencies.</p>
+    </details>
     <label class="ts-cur">Currency label (just for display) <input class="ts-c" value="" placeholder="e.g. USD, CAD, INR" maxlength="6" /></label>
   </section>
   <section class="panel">
@@ -20,6 +26,8 @@
     <h2>Settle up</h2>
     <ul class="ts-pay"></ul>
     <button type="button" class="ts-btn ts-csv">Download CSV</button>
+    <button type="button" class="ts-btn ts-txt">Show as text to paste</button>
+    <textarea class="ts-out" rows="5" readonly hidden aria-label="Settle-up text"></textarea>
   </section>
   <section class="panel ts-keep">
     <label><input type="checkbox" class="ts-remember" /> Remember this trip on this device</label>
@@ -50,11 +58,18 @@
   .ts-table { border-collapse: collapse; width: 100%; font-size: 14px; }
   .ts-table th, .ts-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; }
   .ts-table th:first-child, .ts-table td:first-child { text-align: left; }
+  .ts-more { margin-top: 12px; font-size: 14px; }
+  .ts-more summary { cursor: pointer; color: var(--accent); }
+  .ts-wtog { display: flex; gap: 6px; align-items: center; margin-top: 8px; cursor: pointer; }
+  .ts textarea { font: inherit; color: var(--ink); padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; box-sizing: border-box; }
+  .ts-w { display: none; }
+  .ts.ts-wton .ts-p { grid-template-columns: minmax(0, 1fr) 70px 34px; }
+  .ts.ts-wton .ts-w { display: block; }
   .ts-pay { padding-left: 20px; margin: 0 0 8px; display: grid; gap: 4px; }
 </style>
 
 <script>
-  import { tripBalances, settle, toCents } from '../../lib/money/splitting';
+  import { tripBalancesW, settle, toCents, parseRates, settleText } from '../../lib/money/splitting';
   import { downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.ts') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -63,25 +78,29 @@
   const f = (c: number) => (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const peopleEl = q('.ts-people'), expsEl = q('.ts-exps');
   const names = () => [...peopleEl.children].map((r, i) => (r.querySelector('input') as HTMLInputElement).value.trim() || `Person ${i + 1}`);
-  const addP = (name = '') => {
+  const weights = () => [...peopleEl.children].map((r) => { const v = parseFloat((r.querySelector('.ts-w') as HTMLInputElement).value); return root.classList.contains('ts-wton') && v >= 0 ? v : 1; });
+  const rates = () => parseRates(q<HTMLTextAreaElement>('.ts-rates').value);
+  const addP = (name = '', w = '1') => {
     const d = document.createElement('div'); d.className = 'ts-p';
-    d.innerHTML = `<input aria-label="Name" value="${esc(name)}" /><button type="button" class="ts-x" aria-label="Remove person">×</button>`;
+    d.innerHTML = `<input aria-label="Name" value="${esc(name)}" /><input class="ts-w" inputmode="decimal" aria-label="Share weight" title="Share weight" value="${esc(w)}" /><button type="button" class="ts-x" aria-label="Remove person">×</button>`;
     peopleEl.append(d);
   };
   // Expense rows hold payer index and for-flags; rebuilt when people change.
-  interface Ex { what: string; payer: number; amount: string; forWho: boolean[] }
+  interface Ex { what: string; payer: number; amount: string; forWho: boolean[]; cur?: string }
   const readEx = (): Ex[] => [...expsEl.children].map((r) => ({
     what: (r.querySelector('[data-f="what"]') as HTMLInputElement).value,
     payer: +(r.querySelector('[data-f="payer"]') as HTMLSelectElement).value,
     amount: (r.querySelector('[data-f="amount"]') as HTMLInputElement).value,
+    cur: (r.querySelector('[data-f="cur"]') as HTMLSelectElement | null)?.value || '',
     forWho: [...r.querySelectorAll('.ts-for input')].map((c) => (c as HTMLInputElement).checked),
   }));
   const drawEx = (list: Ex[]) => {
-    const n = names();
+    const n = names(), rt = rates();
     expsEl.innerHTML = '';
     list.forEach((e) => {
       const d = document.createElement('div'); d.className = 'ts-e';
       d.innerHTML = `<div class="ts-erow"><input data-f="what" aria-label="What was it" placeholder="What was it" value="${esc(e.what)}" /><input data-f="amount" inputmode="decimal" aria-label="Amount" placeholder="Amount" value="${esc(e.amount)}" /><button type="button" class="ts-x" aria-label="Remove expense">×</button></div>
+        ${rt.length ? `<select data-f="cur" aria-label="Currency of this expense"><option value="">Main currency</option>${rt.map((r) => `<option value="${esc(r.code)}"${r.code === e.cur ? ' selected' : ''}>${esc(r.code)} (1 = ${r.rate})</option>`).join('')}</select>` : ''}
         <select data-f="payer" aria-label="Paid by">${n.map((nm, i) => `<option value="${i}"${i === e.payer ? ' selected' : ''}>Paid by ${esc(nm)}</option>`).join('')}</select>
         <div class="ts-for" role="group" aria-label="Shared by">${n.map((nm, i) => `<label><input type="checkbox" data-i="${i}"${e.forWho[i] !== false ? ' checked' : ''} /> ${esc(nm)}</label>`).join('')}</div>`;
       expsEl.append(d);
@@ -89,25 +108,32 @@
   };
   let last: any = null;
   const run = () => {
-    const n = names(), ex = readEx();
-    const list = ex.map((e) => ({ what: e.what, payer: e.payer, amount: parseFloat(e.amount.replace(/[^\d.-]/g, '')) || 0, forWho: e.forWho.map((on, i) => (on ? i : -1)).filter((i) => i >= 0) }));
-    const { bal, spent } = tripBalances(n.length, list);
+    const n = names(), ex = readEx(), rt = rates();
+    const list = ex.map((e) => ({ what: e.what, payer: e.payer, amount: parseFloat(e.amount.replace(/[^\d.-]/g, '')) || 0, forWho: e.forWho.map((on, i) => (on ? i : -1)).filter((i) => i >= 0), rate: rt.find((r) => r.code === e.cur)?.rate ?? 1 }));
+    const { bal, spent } = tripBalancesW(n.length, list, weights());
     q('.ts-bal').innerHTML = n.map((nm, i) => `<tr><td>${esc(nm)}</td><td>${f(spent[i])}</td><td data-b="${i}">${bal[i] > 0 ? '+' : ''}${f(bal[i])}</td></tr>`).join('');
     const pays = settle(bal);
     const cur = q<HTMLInputElement>('.ts-c').value.trim();
     q('.ts-pay').innerHTML = pays.length ? pays.map((p) => `<li><b>${esc(n[p.from])}</b> pays <b>${esc(n[p.to])}</b> ${f(p.cents)} ${esc(cur)}</li>`).join('') : '<li style="list-style:none;margin-left:-20px">Nobody owes anything yet.</li>';
-    last = { n, bal, spent, pays, list };
-    try { if (q<HTMLInputElement>('.ts-remember').checked) localStorage.setItem(KEY, JSON.stringify({ n, cur, ex })); } catch {}
+    last = { n, bal, spent, pays, list, cur };
+    const out = q<HTMLTextAreaElement>('.ts-out'); if (!out.hidden) out.value = settleText(n, pays, cur);
+    try { if (q<HTMLInputElement>('.ts-remember').checked) localStorage.setItem(KEY, JSON.stringify({ n, cur, ex, w: weights(), wton: root.classList.contains('ts-wton'), rates: q<HTMLTextAreaElement>('.ts-rates').value })); } catch {}
   };
   const rebuild = () => { const ex = readEx(); const n = names().length; ex.forEach((e) => { while (e.forWho.length < n) e.forWho.push(true); if (e.payer >= n) e.payer = 0; }); drawEx(ex); };
   let saved: any = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
-  if (saved?.n?.length) { q<HTMLInputElement>('.ts-remember').checked = true; saved.n.forEach(addP); q<HTMLInputElement>('.ts-c').value = saved.cur || ''; drawEx(saved.ex || []); }
+  if (saved?.n?.length) { q<HTMLInputElement>('.ts-remember').checked = true; saved.n.forEach((nm: string, i: number) => addP(nm, String(saved.w?.[i] ?? 1))); q<HTMLTextAreaElement>('.ts-rates').value = saved.rates || ''; if (saved.wton) { q<HTMLInputElement>('.ts-wt').checked = true; root.classList.add('ts-wton'); } q<HTMLInputElement>('.ts-c').value = saved.cur || ''; drawEx(saved.ex || []); }
   else { ['Ana', 'Ben', 'Cy'].forEach(addP); drawEx([{ what: 'Hotel', payer: 0, amount: '90', forWho: [true, true, true] }, { what: 'Taxi', payer: 1, amount: '30', forWho: [true, true, true] }]); }
   root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ts-people')) { rebuildKeep(); } run(); });
   // Keep expense choices when a name is edited: just relabel instead of redrawing while typing.
   function rebuildKeep() { const n = names(); expsEl.querySelectorAll('select[data-f="payer"] option').forEach((o, k) => { (o as HTMLOptionElement).textContent = 'Paid by ' + n[k % n.length]; }); expsEl.querySelectorAll('.ts-for label').forEach((l, k) => { const t = l.lastChild as Text; t.textContent = ' ' + n[k % n.length]; }); }
-  root.addEventListener('change', run);
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.classList.contains('ts-wt')) root.classList.toggle('ts-wton', (t as HTMLInputElement).checked);
+    if (t.classList.contains('ts-rates')) drawEx(readEx());
+    run();
+  });
+  q('.ts-txt').addEventListener('click', () => { const o = q<HTMLTextAreaElement>('.ts-out'); o.hidden = false; run(); o.select(); try { navigator.clipboard?.writeText(o.value); } catch {} });
   root.addEventListener('click', (e) => {
     const t = e.target as HTMLElement;
     if (!t.classList.contains('ts-x')) return;
@@ -119,8 +145,8 @@
   q('.ts-adde').addEventListener('click', () => { const ex = readEx(); ex.push({ what: '', payer: 0, amount: '', forWho: names().map(() => true) }); drawEx(ex); run(); });
   q('.ts-csv').addEventListener('click', () => {
     if (!last) return;
-    const rows: (string | number)[][] = [['Expense', 'Paid by', 'Amount', 'Shared by']];
-    last.list.forEach((e: any) => rows.push([e.what, last.n[e.payer] ?? '', toCents(e.amount) / 100, e.forWho.map((i: number) => last.n[i]).join(' / ')]));
+    const rows: (string | number)[][] = [['Expense', 'Paid by', 'Amount (main currency)', 'Shared by']];
+    last.list.forEach((e: any) => rows.push([e.what, last.n[e.payer] ?? '', Math.round(toCents(e.amount) * (e.rate || 1)) / 100, e.forWho.map((i: number) => last.n[i]).join(' / ')]));
     rows.push([], ['Person', 'Paid', 'Balance']);
     last.n.forEach((nm: string, i: number) => rows.push([nm, last.spent[i] / 100, last.bal[i] / 100]));
     rows.push([], ['From', 'To', 'Amount']);

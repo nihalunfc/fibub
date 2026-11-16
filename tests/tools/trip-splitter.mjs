@@ -24,4 +24,20 @@ export default async ({ page, check, BASE }) => {
   check(await page.evaluate(() => !!localStorage.getItem('fibub-trip-splitter-v1')), 'trip-splitter: saved when ticked');
   await page.click(R + '.ts-clear'); await page.waitForTimeout(100);
   check(await page.evaluate(() => localStorage.getItem('fibub-trip-splitter-v1')) === null, 'trip-splitter: Clear removes it');
+  // unequal shares: Cy weight 2 on hotel only (90 for 1+1+2 = 22.5/22.5/45)
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.ts-e:nth-child(1) [data-f="amount"]', '90');
+  await page.fill(R + '.ts-e:nth-child(2) [data-f="amount"]', '0');
+  await page.check(R + '.ts-wt');
+  await page.fill(R + '.ts-p:nth-child(3) .ts-w', '2'); await page.waitForTimeout(100);
+  b = await bals();
+  check(b.join('|') === '+67.50|-22.50|-45.00', `trip-splitter: weighted shares (${b})`);
+  // other currency: second expense 10 EUR at 2.0 = 20 main, paid by Ben, for all
+  await page.fill(R + '.ts-rates', 'EUR 2'); await page.dispatchEvent(R + '.ts-rates', 'change'); await page.waitForTimeout(150);
+  await page.selectOption(R + '.ts-e:nth-child(2) [data-f="cur"]', 'EUR');
+  await page.fill(R + '.ts-e:nth-child(2) [data-f="amount"]', '10'); await page.waitForTimeout(100);
+  b = await bals();
+  check(b.join('|') === '+62.50|-7.50|-55.00', `trip-splitter: currency conversion (${b})`);
+  await page.click(R + '.ts-txt'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.ts-out')).includes('pays'), 'trip-splitter: text summary');
 };

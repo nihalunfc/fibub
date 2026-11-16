@@ -10,4 +10,12 @@ export default async ({ page, check, BASE }) => {
   check((await rows()).includes('153.84'), 'driver: 30% set-aside of 512.80');
   await page.fill(R + '[data-k="hours"]', '0'); await page.waitForTimeout(100);
   check(!(await big()).includes('NaN') && !(await big()).includes('Infinity'), 'driver: zero hours is safe');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '[data-k="tax"]', '20'); await page.fill(R + '[data-k="hours"]', '35');
+  // EV: 900 km x 18/100 x 0.15 = 24.30 instead of fuel 115.20 -> net 512.80 + 90.90 = 603.70
+  await page.selectOption(R + '[data-k="power"]', 'ev'); await page.waitForTimeout(100);
+  check((await rows()).includes('603.70'), `driver: EV net 603.70 (${await rows()})`);
+  // goal 20/h: 700 net needed; costs other than fee = 24.30+72+45+10 = 151.30; fares = (700+151.30-80)/0.75 = 1028.40
+  await page.fill(R + '[data-k="goal"]', '20'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '[data-k="goaltext"]')).includes('1,028.40'), `driver: fares for goal (${await page.textContent(R + '[data-k="goaltext"]')})`);
 };

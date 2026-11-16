@@ -37,6 +37,11 @@
       <div class="good"><span>Pay before tax</span><b class="ts-s-pay"></b></div>
     </div>
     <p class="ts-line"></p>
+    <details class="ts-more"><summary>More options: quick fill and what a year looks like</summary>
+      <p><button type="button" class="btn secondary ts-fill">Copy Monday's times to Tuesday to Friday</button></p>
+      <p class="ts-line" data-k="left" aria-live="polite"></p>
+      <p class="ts-line" data-k="proj" aria-live="polite"></p>
+    </details>
     <div class="ts-actions"><button type="button" class="btn ts-csv">Download CSV</button> <button type="button" class="btn secondary ts-print">Print</button></div>
   </section>
   <p class="ts-fine">Pay is before tax and deductions. Overtime rules differ by place, job and contract; the rules listed here are summaries, so check the official source and your contract. Not legal, payroll or tax advice. Nothing you type leaves this page.</p>
@@ -72,11 +77,12 @@
   .ts-actions { display: flex; flex-wrap: wrap; gap: 8px; }
   @media (max-width: 720px) { .ts-stats { grid-template-columns: 1fr 1fr; } }
   @media print { .ts-actions, .ts-grid label:has(select), .ts-fine { display: none; } .ts input, .ts select { border: none; padding: 0; background: none; } }
+  .ts-more { margin-top: 12px; font-size: 14px; } .ts-more summary { cursor: pointer; color: var(--accent); }
 </style>
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { OT_RULES, ruleById, splitHours, payFor, hm } from '../../lib/money/overtime';
+  import { OT_RULES, ruleById, splitHours, payFor, hm, projectPay, hoursToOvertime } from '../../lib/money/overtime';
   import { csv } from '../../lib/sci/num';
   import { save } from '../../lib/report';
   const root = document.querySelector<HTMLElement>('.ts')!;
@@ -119,6 +125,10 @@
     q('.ts-s-ot').textContent = (sp.ot1 + sp.ot2).toFixed(2);
     q('.ts-s-pay').textContent = money(pay, cur, 2);
     q('.ts-line').textContent = sp.total ? `${sp.regular.toFixed(2)} regular hours at ${money(rate, cur, 2)}` + (sp.ot1 ? `, ${sp.ot1.toFixed(2)} overtime hours at ${m1} times` : '') + (sp.ot2 ? `, ${sp.ot2.toFixed(2)} double-time hours at ${m2} times` : '') + '.' : 'Enter start and end times to see your hours.';
+    const left = hoursToOvertime(sp.total, weekly);
+    q('[data-k="left"]').textContent = weekly > 0 && sp.total > 0 ? (left > 0 ? `You can work ${left.toFixed(2)} more hours this week before overtime starts.` : 'You are already over the weekly overtime line.') : '';
+    const pr = projectPay(pay);
+    q('[data-k="proj"]').textContent = pay > 0 ? `If every week were like this: ${money(pr.biweekly, cur, 0)} every two weeks, ${money(pr.monthly, cur, 0)} a month, ${money(pr.yearly, cur, 0)} a year (before tax).` : '';
     (root as any)._csv = () => {
       const rows: (string | number)[][] = [['Day', 'Start', 'End', 'Break (min)', 'Hours']];
       root.querySelectorAll<HTMLElement>('.ts-body tr').forEach((tr, i) => rows.push([dayName(i), (tr.querySelector('[data-d="s"]') as HTMLInputElement).value, (tr.querySelector('[data-d="e"]') as HTMLInputElement).value, (tr.querySelector('[data-d="b"]') as HTMLInputElement).value, hours[i].toFixed(2)]));
@@ -130,6 +140,12 @@
   f('rule').addEventListener('change', () => { fillRule(); run(); });
   root.addEventListener('change', run);
   q('.ts-csv').addEventListener('click', () => save(new TextEncoder().encode((root as any)._csv()), 'timesheet.csv', 'text/csv'));
+  q('.ts-fill').addEventListener('click', () => {
+    const rows = [...root.querySelectorAll<HTMLElement>('.ts-body tr')];
+    const get = (tr: HTMLElement, k: string) => (tr.querySelector(`[data-d="${k}"]`) as HTMLInputElement).value;
+    for (let i = 1; i < 5; i++) ['s', 'e', 'b'].forEach((k) => { (rows[i].querySelector(`[data-d="${k}"]`) as HTMLInputElement).value = get(rows[0], k); });
+    run();
+  });
   q('.ts-print').addEventListener('click', () => window.print());
   run();
 </script>

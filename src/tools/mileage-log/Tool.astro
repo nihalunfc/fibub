@@ -24,12 +24,19 @@
       <label>Distance (<span class="ml-u">km</span>) <input data-k="dist" inputmode="decimal" /></label>
       <label>Type <select data-k="type"><option value="b">Business</option><option value="p">Personal</option></select></label>
     </div>
+    <label class="ml-check"><input type="checkbox" data-k="round" /> Round trip (counts the distance twice)</label>
     <p><button type="button" class="ml-main" data-k="add">Add trip</button></p>
   </section>
   <section class="panel" aria-live="polite">
     <p class="ml-big"></p>
     <dl class="ml-rows"></dl>
     <div class="ml-scroll"><table class="ml-tab"><thead><tr><th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Distance</th><th>Type</th><th></th></tr></thead><tbody class="ml-body"></tbody></table></div>
+    <details class="ml-more"><summary>More options: monthly totals and the actual-cost method</summary>
+      <table class="ml-tab ml-mtab"><thead><tr><th>Month</th><th>Business</th><th>Personal</th></tr></thead><tbody class="ml-months"></tbody></table>
+      <label>Whole year's vehicle costs (fuel, insurance, repairs, lease or depreciation) <input data-k="costs" inputmode="decimal" placeholder="e.g. 9000" /></label>
+      <p class="ml-claim" data-k="claim" aria-live="polite"></p>
+      <p class="ml-fine">Some tax systems let you claim your business share of real costs instead of a per-distance rate (for example self-employed people in Canada). Ask your tax office which applies to you.</p>
+    </details>
     <p><button type="button" data-k="csv">Download CSV</button> <button type="button" data-k="clear">Clear all trips</button></p>
     <label class="ml-check"><input type="checkbox" data-k="keep" /> Keep my trips in this browser so they are here next time</label>
     <p class="ml-fine">Off by default. When ticked, your trips are saved on this device only, never sent anywhere. Untick it, or press Clear all trips, to delete them. Keep your own records safe: tax offices expect a log with date, destination, purpose and distance.</p>
@@ -60,10 +67,11 @@
   .ml button.ml-main { background: var(--accent); color: #fff; border-color: var(--accent); }
   .ml-body td:nth-child(2), .ml-body td:nth-child(3), .ml-body td:nth-child(4) { text-align: left; white-space: normal; }
   .ml-check { grid-template-columns: auto 1fr; } .ml-check input { width: 18px; height: 18px; }
+  .ml-more { margin: 12px 0; font-size: 14px; } .ml-more summary { cursor: pointer; color: var(--accent); } .ml-more label { display: grid; gap: 4px; margin-top: 10px; color: var(--muted); max-width: 360px; } .ml-claim { font-weight: 600; }
 </style>
 
 <script>
-  import { RATES, mileage, tripsCsv, type MRegion, type Trip } from '../../lib/money/household';
+  import { RATES, mileage, tripsCsv, monthlyTotals, shareClaim, type MRegion, type Trip } from '../../lib/money/household';
   import { fmt, num, val, on, rowsHtml, esc } from '../../lib/money/ui';
   const root = document.querySelector('.ml') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
@@ -91,6 +99,9 @@
     const m = mileage(trips, { first: num(root, 'r1'), after: num(root, 'r2'), limit });
     big.textContent = `${fmt(m.allowance)} allowance on ${fmt(m.business, 1)} business ${rg.unit}`;
     rows.innerHTML = rowsHtml([['Trips', String(trips.length)], ['Business distance', fmt(m.business, 1) + ' ' + rg.unit], ['Personal distance', fmt(m.personal, 1) + ' ' + rg.unit], ['Total distance', fmt(m.total, 1) + ' ' + rg.unit], ['Business share', fmt(m.pctBusiness, 1) + '%'], ['Allowance at your rate', fmt(m.allowance)]]);
+    root.querySelector('.ml-months')!.innerHTML = monthlyTotals(trips).map((r) => `<tr><td>${esc(r.month)}</td><td>${fmt(r.business, 1)}</td><td>${fmt(r.personal, 1)}</td></tr>`).join('');
+    const costs = num(root, 'costs');
+    root.querySelector('[data-k="claim"]')!.textContent = costs > 0 && m.total > 0 ? `${fmt(m.pctBusiness, 1)}% business of ${fmt(costs)} actual costs = ${fmt(shareClaim(costs, m.pctBusiness))}. Compare with ${fmt(m.allowance)} at the per-${rg.unit} rate.` : 'Type the year\'s vehicle costs to compare.';
     body.innerHTML = trips.map((t, i) => `<tr><td>${esc(t.date)}</td><td>${esc(t.from)}</td><td>${esc(t.to)}</td><td>${esc(t.purpose)}</td><td>${fmt(t.dist, 1)}</td><td>${t.business ? 'Business' : 'Personal'}</td><td><button type="button" data-del="${i}" aria-label="Delete trip">x</button></td></tr>`).join('');
   };
   root.addEventListener('input', render);
@@ -101,7 +112,7 @@
     if (del !== null) { trips.splice(+del, 1); save(); render(); return; }
     const k = t.getAttribute('data-k');
     if (k === 'add') {
-      const d = num(root, 'dist'); if (!(d > 0)) return;
+      const d = num(root, 'dist') * (el('round').checked ? 2 : 1); if (!(d > 0)) return;
       trips.push({ date: val(root, 'date'), from: val(root, 'from'), to: val(root, 'to'), purpose: val(root, 'purpose'), dist: d, business: val(root, 'type') === 'b' });
       el('dist').value = ''; save(); render();
     }
