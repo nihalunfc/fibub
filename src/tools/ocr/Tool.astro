@@ -10,8 +10,9 @@ import { OCR_LANGS } from '../../lib/ocr';
   <div class="ocr-row">
     <label>Language <select class="ocr-lang">{OCR_LANGS.map((l) => <option value={l.id}>{l.name} ({l.mb} MB)</option>)}</select></label>
     <label class="ocr-chk"><input class="ocr-clean" type="checkbox" checked /> Clean up first</label>
+    <label class="ocr-chk"><input class="ocr-join" type="checkbox" /> Join broken lines into paragraphs</label>
   </div>
-  <p class="ocr-help">Clean up first turns the picture grey and evens out shadows, which helps with phone photos. Untick it for clear screenshots. You can also paste a picture (Ctrl+V or ⌘+V).</p>
+  <p class="ocr-help">Clean up first turns the picture grey and evens out shadows, which helps with phone photos. Untick it for clear screenshots. You can also drop pictures on this box or paste one (Ctrl+V or ⌘+V). PDFs are read up to <b>30 pages</b> at a time.</p>
   <p class="ocr-msg" role="status" aria-live="polite">Add a picture with text in it. Nothing is uploaded: the reader runs in your browser.</p>
   <progress class="ocr-bar" max="1" value="0" hidden></progress>
   <div class="ocr-out" hidden>
@@ -34,6 +35,7 @@ import { OCR_LANGS } from '../../lib/ocr';
   .ocr-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
   .ocr-pick { position: relative; overflow: hidden; cursor: pointer; }
   .ocr-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .ocr.over { outline: 2px dashed var(--accent); outline-offset: 4px; }
   .ocr-chk { display: inline-flex; gap: .35rem; align-items: center; }
   .ocr-help, .ocr-msg, .ocr-note { margin: 0; } .ocr-help, .ocr-note { font-size: .9rem; color: var(--muted); }
   .ocr-msg.err { color: var(--warn); }
@@ -47,13 +49,13 @@ import { OCR_LANGS } from '../../lib/ocr';
 </style>
 
 <script>
-  import { recognise, preload, OCR_LANGS, type OcrWord } from '../../lib/ocr';
+  import { recognise, preload, tidyLines, OCR_LANGS, type OcrWord } from '../../lib/ocr';
   import { loadPdfJs } from '../../lib/compress/pdf';
   const root = document.querySelector('.ocr') as HTMLElement;
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const msg = $<HTMLElement>('.ocr-msg'), bar = $<HTMLProgressElement>('.ocr-bar'), out = $<HTMLElement>('.ocr-out');
   const prev = $<HTMLCanvasElement>('.ocr-prev'), ta = $<HTMLTextAreaElement>('.ocr-text'), langSel = $<HTMLSelectElement>('.ocr-lang');
-  const clean = $<HTMLInputElement>('.ocr-clean'), boxes = $<HTMLInputElement>('.ocr-boxes');
+  const join = $<HTMLInputElement>('.ocr-join'), clean = $<HTMLInputElement>('.ocr-clean'), boxes = $<HTMLInputElement>('.ocr-boxes');
   interface Pg { c: HTMLCanvasElement; words: OcrWord[]; text: string; conf: number }
   let pages: Pg[] = [], cur = 0, running = false;
   const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
@@ -94,15 +96,17 @@ import { OCR_LANGS } from '../../lib/ocr';
       try {
         if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
           const pdfjs = await loadPdfJs(), doc = await pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
-          for (let i = 1; i <= doc.numPages; i++) {
-            say(`Opening page ${i} of ${doc.numPages}...`);
+          const nPages = Math.min(doc.numPages, 30);
+          if (doc.numPages > 30) say(`This PDF has ${doc.numPages} pages. Only the first 30 are read; split it with Organise PDF for the rest.`);
+          for (let i = 1; i <= nPages; i++) {
+            say(`Opening page ${i} of ${nPages}...`);
             const pg = await doc.getPage(i), v1 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(3, 2400 / Math.max(v1.width, v1.height)) });
             const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
             const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
             await pg.render({ canvasContext: x, viewport: vp }).promise; list.push(c);
           }
         } else { const bmp = await createImageBitmap(f); list.push(fit(bmp, bmp.width, bmp.height)); bmp.close(); }
-      } catch { say(`${f.name} could not be opened as a picture or PDF.`, true); }
+      } catch (e: any) { say(e?.name === 'PasswordException' ? `${f.name} is password-protected. Save a copy without a password, then try again.` : `${f.name} could not be opened as a picture or PDF.`, true); }
     }
     return list;
   }
@@ -130,7 +134,8 @@ import { OCR_LANGS } from '../../lib/ocr';
   function show() {
     out.hidden = !pages.length; if (!pages.length) return;
     const rtl = OCR_LANGS.find((l) => l.id === langSel.value)?.rtl; ta.dir = rtl ? 'rtl' : 'ltr';
-    ta.value = pages.length === 1 ? pages[0].text : pages.map((p, i) => `--- Page ${i + 1} ---\n${p.text}`).join('\n\n');
+    const tx = (p: Pg) => (join.checked ? tidyLines(p.text) : p.text);
+    ta.value = pages.length === 1 ? tx(pages[0]) : pages.map((p, i) => `--- Page ${i + 1} ---\n${tx(p)}`).join('\n\n');
     ($('.ocr-nav') as HTMLElement).hidden = pages.length < 2; $('.ocr-pt').textContent = String(pages.length);
     draw();
   }
@@ -153,6 +158,10 @@ import { OCR_LANGS } from '../../lib/ocr';
   langSel.addEventListener('change', () => { preload(langSel.value as any).catch(() => {}); if (pages.length) readAll(pages.map((p) => p.c)); });
   clean.addEventListener('change', () => { if (pages.length) readAll(pages.map((p) => p.c)); });
   boxes.addEventListener('change', draw);
+  join.addEventListener('change', () => { if (pages.length) show(); });
+  root.addEventListener('dragover', (e) => { e.preventDefault(); root.classList.add('over'); });
+  root.addEventListener('dragleave', () => root.classList.remove('over'));
+  root.addEventListener('drop', (e) => { e.preventDefault(); root.classList.remove('over'); const fs = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/') || f.type === 'application/pdf' || /\.pdf$/i.test(f.name)); if (fs.length) take(fs); else say('Drop a picture (JPG, PNG, WebP) or a PDF.', true); });
   $('.ocr-rot').addEventListener('click', () => { if (pages[cur]) { const list = pages.map((p) => p.c); list[cur] = turn(list[cur]); readAll(list); } });
   $('.ocr-prevpg').addEventListener('click', () => { if (cur > 0) { cur--; draw(); } });
   $('.ocr-nextpg').addEventListener('click', () => { if (cur < pages.length - 1) { cur++; draw(); } });

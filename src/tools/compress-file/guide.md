@@ -24,7 +24,9 @@ flow:
 
 1. Choose a file, or drop it on the box above.
 2. fibub works out what kind of file it is and suggests the best way to compress it. You can pick another way if you prefer.
-3. Press **Compress**, pop a few bubbles while it works, then download the smaller file.
+3. Press **Compress**, pop a few bubbles while it works, then download the smaller file. The result shows the size before and after.
+4. To meet an upload limit such as 200 KB, switch on **Fit an upload limit** and pick or type the size.
+5. Have many files? Choose or drop several at once. Each is compressed in the way that suits it (PDFs and pictures follow your level and limit; other types are kept as they are), and you get a list with before and after sizes and one ZIP of everything.
 
 Everything happens inside your browser, on your own computer or phone. Your file is never sent anywhere, so it is safe for bank statements, IDs, contracts and other private documents. Once the page has loaded, it even works with your internet switched off.
 

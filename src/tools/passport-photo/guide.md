@@ -38,7 +38,8 @@ Everything happens on your device and nothing is stored. The sizes come from the
 2. Choose the photo, then your country.
 3. Drag the photo until the top of your head touches the blue line and your chin falls between the two red lines. Use Zoom to make your head bigger or smaller.
 4. Tick **Make the background white** if the wall is not white.
-5. Press **Download photo** for one picture, or **Download print sheet** and print it at 100% size.
+5. Open **More options** to turn the photo left or right, or to keep the single photo under a size such as 240 KB for an online form (we lower the JPG quality until it fits).
+6. Press **Download photo** for one picture, or **Download print sheet** and print it at 100% size.
 
 ## What each setting does
 

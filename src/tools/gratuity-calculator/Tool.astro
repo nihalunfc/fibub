@@ -1,12 +1,15 @@
 ---
-// #1729 Gratuity: India (Payment of Gratuity Act), UAE private sector, Saudi Arabia end-of-service award.
+// #1729 Gratuity: Bahrain (SIO), India (Payment of Gratuity Act), Oman, Qatar, Saudi Arabia and UAE private sector end-of-service pay.
 ---
 <div class="tool-ui gc">
   <section class="panel">
     <div class="gc-tabs" role="tablist" aria-label="Country">
+      <button type="button" role="tab" data-c="bh" aria-selected="false">Bahrain</button>
       <button type="button" role="tab" data-c="in" aria-selected="true">India</button>
-      <button type="button" role="tab" data-c="ae" aria-selected="false">UAE</button>
+      <button type="button" role="tab" data-c="om" aria-selected="false">Oman</button>
+      <button type="button" role="tab" data-c="qa" aria-selected="false">Qatar</button>
       <button type="button" role="tab" data-c="sa" aria-selected="false">Saudi Arabia</button>
+      <button type="button" role="tab" data-c="ae" aria-selected="false">UAE</button>
     </div>
 
     <div class="gc-grid" data-for="in">
@@ -30,6 +33,26 @@
       <label>Years of service <input class="gc-sa-y" type="number" min="0" step="1" value="7" /></label>
       <label>Extra months <input class="gc-sa-m" type="number" min="0" max="11" step="1" value="0" /></label>
       <label class="gc-chk"><input type="checkbox" class="gc-sa-r" /> I resigned (not ended by the employer)</label>
+    </div>
+    <div class="gc-grid" data-for="bh" hidden>
+      <label>Last monthly basic + social allowance (BHD) <input class="gc-bh-b" inputmode="decimal" value="800" /></label>
+      <label>Years of service <input class="gc-bh-y" type="number" min="0" step="1" value="7" /></label>
+      <label>Extra months <input class="gc-bh-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label>Extra days <input class="gc-bh-d" type="number" min="0" max="364" step="1" value="0" /></label>
+    </div>
+
+    <div class="gc-grid" data-for="om" hidden>
+      <label>Last monthly basic wage (OMR) <input class="gc-om-b" inputmode="decimal" value="600" /></label>
+      <label>Years of service <input class="gc-om-y" type="number" min="0" step="1" value="7" /></label>
+      <label>Extra months <input class="gc-om-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label>Extra days <input class="gc-om-d" type="number" min="0" max="364" step="1" value="0" /></label>
+    </div>
+
+    <div class="gc-grid" data-for="qa" hidden>
+      <label>Last monthly basic wage (QAR) <input class="gc-qa-b" inputmode="decimal" value="10,000" /></label>
+      <label>Years of service <input class="gc-qa-y" type="number" min="0" step="1" value="7" /></label>
+      <label>Extra months <input class="gc-qa-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label>Extra days <input class="gc-qa-d" type="number" min="0" max="364" step="1" value="0" /></label>
     </div>
     <p class="gc-hint"></p>
     <details class="gc-more"><summary>More options: use joining and last working dates</summary>
@@ -86,27 +109,36 @@
 </style>
 
 <script>
-  import { indiaGratuity, uaeGratuity, saudiGratuity, serviceBetween, byYears, INDIA_TAX_FREE } from '../../lib/money/gratuity-calculator.ts';
+  import { indiaGratuity, uaeGratuity, saudiGratuity, qatarGratuity, omanGratuity, bahrainGratuity, serviceBetween, byYears, INDIA_TAX_FREE, type Country } from '../../lib/money/gratuity-calculator.ts';
   const root = document.querySelector('.gc') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const num = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
   const on = (s: string) => q<HTMLInputElement>(s).checked;
   const money = (cur: string, loc: string) => (n: number) => `${cur} ${Math.round(n).toLocaleString(loc)}`;
   const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
-  const aed = money('AED', 'en-US'), sar = money('SAR', 'en-US');
+  const aed = money('AED', 'en-US'), sar = money('SAR', 'en-US'), qar = money('QAR', 'en-US');
+  const money3 = (cur: string) => (n: number) => `${cur} ${(Math.round(n * 1000) / 1000).toLocaleString('en-US', { maximumFractionDigits: 3 })}`;
+  const omr = money3('OMR'), bhd = money3('BHD');
   const yrs = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('en-US')} years`;
   let c = 'in';
 
   const FINE: Record<string, string> = {
     in: 'Payment of Gratuity Act, 1972 and Income Tax Department rules, checked 10 Nov 2026. Central and state government employees: gratuity is fully tax-free. Under 5 years (1 year for fixed-term staff) gratuity is paid only on death or disablement. Not financial or tax advice: check the official source (labour.gov.in, incometax.gov.in) or your employer.',
-    ae: 'UAE private sector, Federal Decree-Law 33 of 2021, Art. 51, checked 10 Nov 2026. Basic salary only (no housing or transport allowance); unpaid leave days do not count. Daily wage taken as basic ÷ 30; some employers use basic × 12 ÷ 365, which gives a little less. UAE nationals are covered by pension law instead; free-zone (DIFC, ADGM) and government rules differ. Not legal advice: check the official source (u.ae, mohre.gov.ae).',
+    ae: 'UAE private sector, Federal Decree-Law 33 of 2021, Art. 51, checked 10 Nov 2026. Basic salary only (no housing or transport allowance); unpaid leave days do not count. Daily wage taken as basic ÷ 30; some employers use basic × 12 ÷ 365, which gives a little less. UAE nationals are covered by pension law instead; free-zone (DIFC, ADGM) and government rules differ. An employer may instead use the voluntary alternative savings scheme (Cabinet Resolution 96 of 2023). Not legal advice: check the official source (u.ae, mohre.gov.ae).',
     sa: 'Saudi Labor Law, Art. 84 and 85, checked 10 Nov 2026. The award uses your last wage, which the law defines as basic pay plus regular allowances (such as housing): estimate, check the official source (hrsd.gov.sa). Not legal advice.',
+    qa: 'Qatar Labour Law 14 of 2004, Art. 54 and 72, checked 16 Nov 2026. The law sets at least 3 weeks\' last basic wage a year after 1 year of service; a contract may give more. Daily wage taken as basic ÷ 30 (the law does not set the divisor). Estimate, not legal advice: check the official source (mol.gov.qa).',
+    om: 'Oman Labour Law, Royal Decree 53/2023, Art. 61, checked 16 Nov 2026. Applies to workers outside the Social Protection Law (in practice non-Omani workers) until the savings system under that law starts. Estimate, not legal advice: check the official source (mol.gov.om).',
+    bh: 'Bahrain, end-of-service gratuity for non-Bahrainis, paid by the Social Insurance Organization from contributions since 1 March 2024 (Labour Law 36 of 2012 for earlier service), checked 16 Nov 2026. Wage = basic salary plus social allowance, if any. Estimate, not legal advice: check the official source (sio.gov.bh).',
   };
   const HINT: Record<string, string> = {
     in: 'Use your last basic pay plus dearness allowance (DA) for one month. Bonus, HRA and other allowances do not count.',
     ae: 'Private-sector, full-time foreign workers. Use your last monthly basic salary.',
     sa: 'Use your last monthly wage, including regular allowances.',
+    qa: 'Use your last monthly basic wage (no allowances).',
+    om: 'Use your last monthly basic wage (no allowances).',
+    bh: 'Use your last monthly basic salary plus social allowance, if you get one.',
   };
+  const SIMPLE = ['ae', 'qa', 'om', 'bh'];
 
   const val = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`).value;
   const update = () => {
@@ -115,7 +147,7 @@
     const sv = serviceBetween(val('join'), val('last'));
     const hasDates = !!(val('join') && val('last'));
     q('.gc-svc').textContent = sv.ok ? `From your dates: ${sv.years} years, ${sv.months} months, ${sv.days} days of service, used below.` : hasDates ? 'The last working day should be on or after the joining date.' : 'Fill both dates and the years and months above are worked out for you (the last day counts as worked). Clear a date to type the years yourself.';
-    if (sv.ok) { for (const k of ['in', 'ae', 'sa']) { q<HTMLInputElement>(`.gc-${k}-y`).value = String(sv.years); q<HTMLInputElement>(`.gc-${k}-m`).value = String(sv.months); } q<HTMLInputElement>('.gc-ae-d').value = String(sv.days); }
+    if (sv.ok) { for (const k of ['in', 'ae', 'sa', 'qa', 'om', 'bh']) { q<HTMLInputElement>(`.gc-${k}-y`).value = String(sv.years); q<HTMLInputElement>(`.gc-${k}-m`).value = String(sv.months); } for (const k of SIMPLE) q<HTMLInputElement>(`.gc-${k}-d`).value = String(sv.days); }
     const extraDays = sv.ok ? sv.days : 0;
     let rows: [string, string, boolean?][] = [];
     if (c === 'in') {
@@ -146,6 +178,37 @@
         ['Cap: 2 years\' basic', aed(24 * num('.gc-ae-b'))],
         ['End-of-service gratuity', aed(r.amount), true],
       ];
+    } else if (c === 'qa') {
+      const r = qatarGratuity({ basic: num('.gc-qa-b'), years: num('.gc-qa-y'), months: num('.gc-qa-m'), days: num('.gc-qa-d') });
+      q('.gc-out').textContent = qar(r.amount);
+      q('.gc-l2').textContent = 'Daily basic wage'; q('.gc-o2').textContent = qar(r.daily);
+      q('.gc-l3').textContent = 'Service'; q('.gc-o3').textContent = yrs(r.service);
+      if (!r.eligible) { warn.hidden = false; warn.textContent = 'No gratuity under 1 year of service.'; }
+      rows = [
+        ['Rate: 3 weeks (21 days) a year', qar(21 * r.daily)],
+        ['Years counted (part years pro rata)', yrs(r.service)],
+        ['End-of-service gratuity (at least)', qar(r.amount), true],
+      ];
+    } else if (c === 'om') {
+      const r = omanGratuity({ basic: num('.gc-om-b'), years: num('.gc-om-y'), months: num('.gc-om-m'), days: num('.gc-om-d') });
+      q('.gc-out').textContent = omr(r.amount);
+      q('.gc-l2').textContent = 'Per year'; q('.gc-o2').textContent = omr(num('.gc-om-b'));
+      q('.gc-l3').textContent = 'Service'; q('.gc-o3').textContent = yrs(r.service);
+      rows = [
+        ['Rate: one month\'s basic wage a year', omr(num('.gc-om-b'))],
+        ['Years counted (part years pro rata)', yrs(r.service)],
+        ['End-of-service gratuity (at least)', omr(r.amount), true],
+      ];
+    } else if (c === 'bh') {
+      const r = bahrainGratuity({ wage: num('.gc-bh-b'), years: num('.gc-bh-y'), months: num('.gc-bh-m'), days: num('.gc-bh-d') });
+      q('.gc-out').textContent = bhd(r.amount);
+      q('.gc-l2').textContent = 'First 3 years'; q('.gc-o2').textContent = bhd(r.first);
+      q('.gc-l3').textContent = 'Service'; q('.gc-o3').textContent = yrs(r.service);
+      rows = [
+        ['First 3 years: half a month a year', bhd(r.first)],
+        ['After 3 years: a month a year', bhd(r.after)],
+        ['End-of-service gratuity', bhd(r.amount), true],
+      ];
     } else {
       const r = saudiGratuity({ wage: num('.gc-sa-w'), years: num('.gc-sa-y'), months: num('.gc-sa-m'), resigned: on('.gc-sa-r') });
       q('.gc-out').textContent = sar(r.amount);
@@ -159,11 +222,11 @@
         ['End-of-service award', sar(r.amount), true],
       ];
     }
-    const pay = c === 'in' ? num('.gc-in-sal') : c === 'ae' ? num('.gc-ae-b') : num('.gc-sa-w');
-    const cur = c === 'in' ? inr : c === 'ae' ? aed : sar;
+    const pay = c === 'in' ? num('.gc-in-sal') : c === 'sa' ? num('.gc-sa-w') : num(`.gc-${c}-b`);
+    const cur = ({ in: inr, ae: aed, sa: sar, qa: qar, om: omr, bh: bhd } as Record<string, (n: number) => string>)[c];
     const total = q('.gc-out').textContent || '';
     q('.gc-answer').textContent = !(pay > 0) ? 'Type your last monthly pay to see your gratuity.' : warn.hidden || !/needs|No gratuity|nothing is due/.test(warn.textContent || '') ? `Your gratuity is about ${total}.` : `${warn.textContent}`;
-    q('.gc-yrs').innerHTML = pay > 0 ? byYears(c as 'in' | 'ae' | 'sa', pay, { covered: on('.gc-in-cov'), fixedTerm: on('.gc-in-ft'), resigned: on('.gc-sa-r') }).map((r) => `<tr><td>${r.years} years</td><td>${cur(r.amount)}</td></tr>`).join('') : '';
+    q('.gc-yrs').innerHTML = pay > 0 ? byYears(c as Country, pay, { covered: on('.gc-in-cov'), fixedTerm: on('.gc-in-ft'), resigned: on('.gc-sa-r') }).map((r) => `<tr><td>${r.years} years</td><td>${cur(r.amount)}</td></tr>`).join('') : '';
     q('.gc-body').innerHTML = rows.map(([l, v, t]) => `<tr${t ? ' class="tot"' : ''}><td>${l}</td><td>${v}</td></tr>`).join('');
     q('.gc-hint').textContent = HINT[c];
     q('.gc-fine').textContent = FINE[c];

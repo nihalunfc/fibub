@@ -11,7 +11,7 @@ ads: false
 order: 1713
 icon: search
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [send-check, file-converter]
 sources:
   - "Word-level comparison uses the Myers shortest-edit method written for fibub. Word files are read with fflate, PDFs with PDF.js and pdf-lib. All open source."
@@ -39,6 +39,12 @@ Add a PDF, a Word file or a text file on each side, or paste text. Everything st
 - **Ignore capital letters**: "Agreement" and "agreement" count as the same word.
 - **One column**: shows removed and added words together in reading order.
 - **Side by side**: the original on the left with removals, the new version on the right with additions.
+
+## More options (added 2026-11-16)
+
+- **Ignore commas and full stops**: only word changes count, not punctuation next to a word.
+- **List of the changes**: open the box for a short list such as "cat" became "dog", with a button to copy it for an email.
+- **Swap the two**: switches the original and the new version and compares again, handy if you pasted them the wrong way round.
 
 ## Worked example
 

@@ -5,14 +5,16 @@
 // - modified average (growing degree days only): min and max are first clipped to the band [base, upper],
 //   then averaged; heating and cooling use the plain mean under this method;
 // - single sine (Baskerville and Emin 1969): one sine wave from the minimum to the maximum and back;
-// - single triangle: a straight rise from the minimum to the maximum over half the day and a straight fall back.
+// - single triangle: a straight rise from the minimum to the maximum over half the day and a straight fall back;
+// - UK Met Office (ukmo): the four-case rule of thumb from min and max used by the Met Office and CIBSE TM41
+//   (and by EURO-CORDEX degree-day studies such as Chervenkov and Slavov 2025), close to the sine method.
 // Above-base areas are worked out from the geometry of each curve; below-base (heating) areas follow from
 // below(B) = (B − mean) + above(B), because max(0, B − T) − max(0, T − B) = B − T and both curves average to the mean.
 // Growing degree days with an upper cutoff U use a horizontal cutoff: above(B) − above(U).
 import { readDate, addDays } from './degdays.ts';
 
 export { readDate, addDays };
-export type Method = 'mean' | 'modified' | 'sine' | 'triangle';
+export type Method = 'mean' | 'modified' | 'sine' | 'triangle' | 'ukmo';
 export type Day = { date: string; tmin: number; tmax: number; mean: number; filled?: boolean };
 
 const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
@@ -38,8 +40,28 @@ export function triangleAbove(tmin: number, tmax: number, B: number): number {
   return (tmax - B) ** 2 / (2 * (tmax - tmin));
 }
 
+/** UK Met Office day: cooling (above-base) degree days from min and max in four cases. */
+export function ukmoAbove(tmin: number, tmax: number, B: number): number {
+  if (tmin > tmax) [tmin, tmax] = [tmax, tmin];
+  const M = (tmin + tmax) / 2;
+  if (B <= tmin) return M - B;
+  if (B <= M) return (tmax - B) / 2 - (B - tmin) / 4;
+  if (B < tmax) return (tmax - B) / 4;
+  return 0;
+}
+
+/** UK Met Office day: heating (below-base) degree days from min and max in four cases. */
+export function ukmoBelow(tmin: number, tmax: number, B: number): number {
+  if (tmin > tmax) [tmin, tmax] = [tmax, tmin];
+  const M = (tmin + tmax) / 2;
+  if (B >= tmax) return B - M;
+  if (B >= M) return (B - tmin) / 2 - (tmax - B) / 4;
+  if (B > tmin) return (B - tmin) / 4;
+  return 0;
+}
+
 const above = (d: { tmin: number; tmax: number; mean: number }, B: number, method: Method) =>
-  method === 'sine' ? sineAbove(d.tmin, d.tmax, B) : method === 'triangle' ? triangleAbove(d.tmin, d.tmax, B) : Math.max(0, d.mean - B);
+  method === 'sine' ? sineAbove(d.tmin, d.tmax, B) : method === 'triangle' ? triangleAbove(d.tmin, d.tmax, B) : method === 'ukmo' ? ukmoAbove(d.tmin, d.tmax, B) : Math.max(0, d.mean - B);
 
 /** Cooling degree days for one day: time spent above the base, weighted by how far above. */
 export function cooling(d: { tmin: number; tmax: number; mean: number }, base: number, method: Method): number {
@@ -49,6 +71,7 @@ export function cooling(d: { tmin: number; tmax: number; mean: number }, base: n
 /** Heating degree days for one day: time spent below the base, weighted by how far below. */
 export function heating(d: { tmin: number; tmax: number; mean: number }, base: number, method: Method): number {
   if (method === 'mean' || method === 'modified') return Math.max(0, base - d.mean);
+  if (method === 'ukmo') return ukmoBelow(d.tmin, d.tmax, base);
   const curveMean = (d.tmin + d.tmax) / 2;
   return Math.max(0, base - curveMean + above(d, base, method));
 }

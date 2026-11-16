@@ -11,16 +11,18 @@ const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main
 export function resumeDocx(r: Resume, b: Block[]): Uint8Array {
   const serif = r.style === 'serif';
   const font = serif ? 'Times New Roman' : 'Calibri';
-  const size = serif ? 22 : 21; // half-points
+  const compact = r.density === 'compact', left = r.header === 'left';
+  const jc = left ? 'left' : 'center';
+  const size = (serif ? 22 : 21) - (compact ? 2 : 0); // half-points
   const page = r.paper === 'a4' ? { w: 11906, h: 16838 } : { w: 12240, h: 15840 };
-  const margin = 1080;
+  const margin = compact ? 800 : 1080;
   const text = page.w - margin * 2;
 
   const body = b.map((k) => {
     switch (k.t) {
       case 'name': return `<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>${run(k.text)}</w:p>`;
-      case 'headline': return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr>${run(k.text, `<w:color w:val="4D5466"/><w:sz w:val="${size + 2}"/>`)}</w:p>`;
-      case 'contact': return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>${run(k.text, `<w:color w:val="4D5466"/><w:sz w:val="${size - 2}"/>`)}</w:p>`;
+      case 'headline': return `<w:p><w:pPr><w:jc w:val="${jc}"/><w:spacing w:after="0"/></w:pPr>${run(k.text, `<w:color w:val="4D5466"/><w:sz w:val="${size + 2}"/>`)}</w:p>`;
+      case 'contact': return `<w:p><w:pPr><w:jc w:val="${jc}"/><w:spacing w:after="60"/></w:pPr>${run(k.text, `<w:color w:val="4D5466"/><w:sz w:val="${size - 2}"/>`)}</w:p>`;
       case 'heading': return `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>${run(k.text)}</w:p>`;
       case 'para': return `<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>${run(k.text)}</w:p>`;
       case 'entry': return `<w:p><w:pPr><w:keepNext/><w:tabs><w:tab w:val="right" w:pos="${text}"/></w:tabs><w:spacing w:before="80" w:after="0"/></w:pPr>${run(k.left, '<w:b/>')}${k.right ? `<w:r><w:tab/></w:r>${run(k.right)}` : ''}</w:p>`;
@@ -33,7 +35,7 @@ export function resumeDocx(r: Resume, b: Block[]): Uint8Array {
   const styles = `${XML}<w:styles ${W}>
 <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}" w:eastAsia="${font}"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/><w:color w:val="121826"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
-<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:jc w:val="center"/><w:spacing w:after="20"/></w:pPr><w:rPr><w:b/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:jc w:val="${jc}"/><w:spacing w:after="20"/></w:pPr><w:rPr><w:b/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="200" w:after="60"/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="4D5466"/></w:pBdr><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:caps/><w:sz w:val="${size + 2}"/><w:szCs w:val="${size + 2}"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:styleId="ListBullet"><w:name w:val="List Bullet"/><w:basedOn w:val="Normal"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr><w:spacing w:after="20"/><w:ind w:left="360" w:hanging="240"/></w:pPr></w:style>
 </w:styles>`;

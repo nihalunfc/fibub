@@ -25,17 +25,23 @@ flow:
 
 Type a password and this page estimates how many guesses an attacker would need to find it, and how long that would take at four attack speeds. It explains why: whether the password is on a list of passwords people use again and again, or contains a sequence like 123, a keyboard run like qwerty, a repeat, a year or a date.
 
-The check runs on this page only. The box is a password field with autocomplete off, and nothing you type is sent or saved. If the result is weak, make a new one with the [[password-generator]].
+The check runs on this page only. It does not look your password up in a breach list: that would mean sending something about it to another server, which this site never does. Use a password manager's breach check for that. The box is a password field with autocomplete off, and nothing you type is sent or saved. If the result is weak, make a new one with the [[password-generator]].
 
 ## How to use it
 
 1. Type or paste a password into the box.
-2. Read the rating, the guesses, the crack times and **Why**.
-3. Tick **Show the password** to check what you typed, and press **Clear** when you are done.
+2. Read the rating, the guesses, the character counts, the checklist (length, mix of characters, common passwords, patterns), the crack times, **Why** and the tip on how to improve it.
+3. Open **More options** to type words about you (a name, pet or birth year) that the password should not contain, or to compare a second password with the first.
+4. Tick **Show the password** to check what you typed, and press **Clear** when you are done.
 
 ## What the results mean
 
 - **Bits**: the estimate in bits; each extra bit doubles the guesses. Under 28 bits is very weak, under 40 weak, under 60 fair, under 80 strong, and 80 or more very strong. Any password found whole in the list is very weak.
+- **Checklist**: OK or Check lines for length (12 or more), mix of kinds of character (3 or more, or 16 or more characters), common passwords and patterns, plus your own words when you add them.
+- **Your personal words**: words of 3 or more letters or digits. If the password contains one, it counts as a small number of guesses, because someone who knows you would try it first. The words are never stored or put in a link.
+- **Compare**: the second password's bits against the first, and how many times more guesses the stronger one needs.
+- **Tip**: how many more random characters would reach 80 bits, which guessing attacks cannot reach today.
+- **Long passwords**: patterns are looked for in the first 256 characters; the rest count as random characters.
 - **Attack speeds**: online with the site limiting tries (100 guesses an hour), online with no limit (10 a second), offline after a leak with a slow password hash (10,000 a second) and with a fast hash on many graphics cards (10 billion a second).
 
 The times are for trying every guess; on average an attacker finds it in about half that time.

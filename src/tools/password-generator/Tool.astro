@@ -4,22 +4,57 @@
 <div class="tool-ui pg">
   <section class="panel">
     <div class="pg-fields">
-      <label>Length (8 to 128)<input data-k="len" type="number" inputmode="numeric" min="8" max="128" step="1" value="20" /></label>
+      <label>Kind
+        <select data-k="mode"><option value="chars">Random characters</option><option value="phrase">Passphrase (words)</option><option value="pin">PIN (digits only)</option></select>
+      </label>
       <label>How many<input data-k="count" type="number" inputmode="numeric" min="1" max="100" step="1" value="5" /></label>
     </div>
-    <fieldset class="pg-sets">
-      <legend>Use these characters</legend>
-      <label class="pg-check"><input type="checkbox" data-set="lower" checked /> Lower case a–z</label>
-      <label class="pg-check"><input type="checkbox" data-set="upper" checked /> Upper case A–Z</label>
-      <label class="pg-check"><input type="checkbox" data-set="digit" checked /> Digits 0–9</label>
-      <label class="pg-check"><input type="checkbox" data-set="symbol" checked /> Symbols <code>!@#$%^&amp;*()-_=+[]&#123;&#125;;:,.&lt;&gt;/?~</code></label>
-    </fieldset>
-    <label class="pg-check"><input type="checkbox" data-k="similar" /> Leave out look-alikes (0 O o 1 l I)</label>
-    <label class="pg-check"><input type="checkbox" data-k="each" checked /> At least one from each ticked set</label>
+    <div class="pg-chips" role="group" aria-label="Quick settings">
+      <button type="button" data-preset="wifi">Wi-Fi: 20 letters and digits</button><button type="button" data-preset="everyday">Everyday: 20, everything</button><button type="button" data-preset="long">Very long: 64</button>
+    </div>
+    <div class="pg-mode" data-mode="chars">
+      <div class="pg-fields">
+        <label>Length (8 to 128)<input data-k="len" type="number" inputmode="numeric" min="8" max="128" step="1" value="20" /></label>
+        <label data-nokit>Length slider<input data-k="lenslide" type="range" min="8" max="128" step="1" value="20" /></label>
+      </div>
+      <fieldset class="pg-sets">
+        <legend>Use these characters</legend>
+        <label class="pg-check"><input type="checkbox" data-set="lower" checked /> Lower case a–z</label>
+        <label class="pg-check"><input type="checkbox" data-set="upper" checked /> Upper case A–Z</label>
+        <label class="pg-check"><input type="checkbox" data-set="digit" checked /> Digits 0–9</label>
+        <label class="pg-check"><input type="checkbox" data-set="symbol" checked /> Symbols <code>!@#$%^&amp;*()-_=+[]&#123;&#125;;:,.&lt;&gt;/?~</code></label>
+      </fieldset>
+      <label class="pg-check"><input type="checkbox" data-k="similar" /> Leave out look-alikes (0 O o 1 l I)</label>
+      <label class="pg-check"><input type="checkbox" data-k="each" checked /> At least one from each ticked set</label>
+      <details class="pg-more">
+        <summary>More options: easier symbols, characters to avoid</summary>
+        <label class="pg-check"><input type="checkbox" data-k="easy" /> Use fewer symbols (<code>! @ # $ % &amp; * ? - _</code>), for sites that reject the rest</label>
+        <label>Leave out these characters (type them, no spaces)<input data-k="excl" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. {}[]" /></label>
+      </details>
+    </div>
+    <div class="pg-mode" data-mode="phrase" hidden>
+      <div class="pg-fields">
+        <label>Words (3 to 12)<input data-k="words" type="number" inputmode="numeric" min="3" max="12" step="1" value="9" /></label>
+        <label data-nokit>Words slider<input data-k="wslide" type="range" min="3" max="12" step="1" value="9" /></label>
+        <label>Between words
+          <select data-k="sep"><option value="-">Hyphen: word-word</option><option value=" ">Space</option><option value=".">Full stop</option><option value="_">Underscore</option><option value="">Nothing</option></select>
+        </label>
+      </div>
+      <label class="pg-check"><input type="checkbox" data-k="cap" /> Start each word with a capital</label>
+      <label class="pg-check"><input type="checkbox" data-k="dig" /> Add a random digit at the end</label>
+      <p class="pg-note">Words come from a plain list of <span class="pg-wn"></span> common words built into this page. Each word adds about <span class="pg-wb"></span> bits, so more words is stronger than any trick.</p>
+    </div>
+    <div class="pg-mode" data-mode="pin" hidden>
+      <div class="pg-fields">
+        <label>Digits (4 to 12)<input data-k="pinlen" type="number" inputmode="numeric" min="4" max="12" step="1" value="6" /></label>
+      </div>
+      <p class="pg-note">A PIN has few combinations. It is only safe where the app or card locks after a few wrong tries.</p>
+    </div>
     <p class="pg-err" aria-live="polite"></p>
   </section>
   <section class="panel">
     <p class="pg-bits" aria-live="polite"></p>
+    <p class="pg-time"></p>
     <ol class="pg-list"></ol>
     <p class="pg-btns">
       <button type="button" class="btn pg-new">Make new ones</button>
@@ -51,68 +86,66 @@
   .pg-btns { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .pg-copied { color: var(--good); font-size: 14px; }
   .pg-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .pg select, .pg input[type="text"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pg input[type="range"] { padding: 0; border: 0; background: transparent; accent-color: var(--accent); }
+  .pg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; }
+  .pg-chips button { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .pg-more { margin-top: 12px; }
+  .pg-more summary { cursor: pointer; font-size: 14px; margin-bottom: 8px; }
+  .pg-time { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .pg-note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+  .pg [hidden] { display: none; }
 </style>
 
 <script>
+  import { SETS, buildSets, makePassword, makePassphrase, bitsFor, phraseBits, pinBits, rate, timeText } from '../../lib/everyday/password';
+  import { WORDS } from '../../lib/everyday/words';
   const root = document.querySelector('.pg') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
-  const list = q('.pg-list'), bitsEl = q('.pg-bits'), err = q('.pg-err'), copied = q('.pg-copied');
-  const SETS: Record<string, string> = {
-    lower: 'abcdefghijklmnopqrstuvwxyz',
-    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    digit: '0123456789',
-    symbol: '!@#$%^&*()-_=+[]{};:,.<>/?~',
-  };
-  const SIMILAR = '0Oo1lI';
+  const k = (s: string) => q<HTMLInputElement>(`[data-k="${s}"]`);
+  const list = q('.pg-list'), bitsEl = q('.pg-bits'), err = q('.pg-err'), copied = q('.pg-copied'), timeEl = q('.pg-time');
   let made: string[] = [];
+  q('.pg-wn').textContent = String(WORDS.length); q('.pg-wb').textContent = Math.log2(WORDS.length).toFixed(1);
 
   // Uniform whole number in [0, n): reject values from the uneven top end of the 32-bit range.
   const buf = new Uint32Array(64); let bi = 64;
   const rand32 = () => { if (bi >= buf.length) { crypto.getRandomValues(buf); bi = 0; } return buf[bi++]; };
   const randInt = (n: number) => { const lim = Math.floor(0x100000000 / n) * n; let x: number; do x = rand32(); while (x >= lim); return x % n; };
 
-  // log2 of a big whole number, accurate to many decimals.
-  const log2Big = (b: bigint) => { const s = b.toString(2); const k = Math.min(53, s.length); return s.length - k + Math.log2(parseInt(s.slice(0, k), 2)); };
-  // How many passwords of length L are possible; with "each", count only those that use every set (inclusion-exclusion).
-  const bitsFor = (sizes: number[], L: number, each: boolean) => {
-    const P = sizes.reduce((a, b) => a + b, 0);
-    if (!each) return L * Math.log2(P);
-    let total = 0n;
-    for (let m = 0; m < 1 << sizes.length; m++) {
-      let left = P, odd = false;
-      sizes.forEach((s, i) => { if (m & (1 << i)) { left -= s; odd = !odd; } });
-      const t = BigInt(left) ** BigInt(L); total += odd ? -t : t;
-    }
-    return log2Big(total);
-  };
-
-  const rate = (b: number) => (b >= 100 ? 'very strong' : b >= 80 ? 'strong' : b >= 60 ? 'fair' : 'weak');
-
+  const whole = (s: string) => (s.trim() !== '' && Number.isInteger(+s) ? +s : NaN);
   const make = () => {
-    const len = Number((q<HTMLInputElement>('[data-k="len"]')).value);
-    const count = Number((q<HTMLInputElement>('[data-k="count"]')).value);
-    const similar = (q<HTMLInputElement>('[data-k="similar"]')).checked;
-    const each = (q<HTMLInputElement>('[data-k="each"]')).checked;
-    const sets = [...root.querySelectorAll<HTMLInputElement>('[data-set]')].filter((c) => c.checked)
-      .map((c) => [...SETS[c.dataset.set!]].filter((ch) => !similar || !SIMILAR.includes(ch)).join(''));
-    const bad = !Number.isInteger(len) || len < 8 || len > 128 ? 'Pick a length from 8 to 128.'
-      : !Number.isInteger(count) || count < 1 || count > 100 ? 'Make from 1 to 100 at a time.'
-      : !sets.length ? 'Tick at least one set of characters.' : '';
-    err.textContent = bad;
-    if (bad) { list.innerHTML = ''; bitsEl.textContent = ''; made = []; return; }
-    const pool = sets.join('');
+    const mode = k('mode').value, count = whole(k('count').value);
+    root.querySelectorAll<HTMLElement>('.pg-mode').forEach((m) => { m.hidden = m.dataset.mode !== mode; });
+    const fail = (m: string) => { err.textContent = m; list.innerHTML = ''; bitsEl.textContent = ''; timeEl.textContent = ''; made = []; };
+    if (!(count >= 1 && count <= 100)) return fail('Make from 1 to 100 at a time.');
+    let bits = 0, what = '';
     made = [];
-    for (let n = 0; n < count; n++) {
-      let pw: string;
-      // Draw the whole password again until it has every ticked set, so every allowed password is equally likely.
-      do { pw = ''; for (let i = 0; i < len; i++) pw += pool[randInt(pool.length)]; }
-      while (each && !sets.every((s) => [...pw].some((ch) => s.includes(ch))));
-      made.push(pw);
+    if (mode === 'chars') {
+      const len = whole(k('len').value), similar = k('similar').checked, each = k('each').checked;
+      const on = [...root.querySelectorAll<HTMLInputElement>('[data-set]')].filter((c) => c.checked).map((c) => c.dataset.set!);
+      const sets = buildSets(on, { similar, exclude: k('excl').value, easySymbols: k('easy').checked });
+      if (!(len >= 8 && len <= 128)) return fail('Pick a length from 8 to 128.');
+      if (!sets.length) return fail(on.length ? 'Every character in the ticked sets was left out: allow some of them.' : 'Tick at least one set of characters.');
+      if (each && sets.length > len) return fail('Length is too short for every set.');
+      const pool = sets.join('');
+      for (let n = 0; n < count; n++) made.push(makePassword(sets, len, each, randInt));
+      bits = bitsFor(sets.map((s) => s.length), len, each); what = `from ${pool.length} possible characters`;
+    } else if (mode === 'phrase') {
+      const w = whole(k('words').value);
+      if (!(w >= 3 && w <= 12)) return fail('Pick from 3 to 12 words.');
+      for (let n = 0; n < count; n++) made.push(makePassphrase(WORDS, w, k('sep').value, k('cap').checked, k('dig').checked, randInt));
+      bits = phraseBits(WORDS.length, w, k('dig').checked); what = `from ${w} random words out of ${WORDS.length}`;
+    } else {
+      const len = whole(k('pinlen').value);
+      if (!(len >= 4 && len <= 12)) return fail('Pick from 4 to 12 digits.');
+      for (let n = 0; n < count; n++) { let p = ''; for (let i = 0; i < len; i++) p += randInt(10); made.push(p); }
+      bits = pinBits(len); what = `from 10 possible digits`;
     }
-    const bits = bitsFor(sets.map((s) => s.length), len, each);
+    err.textContent = '';
     bitsEl.innerHTML = '';
     const b = document.createElement('strong'); b.className = 'pg-bitsn'; b.textContent = `${bits.toFixed(1)} bits`;
-    bitsEl.append('Each password: ', b, ` of randomness (${rate(bits)}), from ${pool.length} possible characters.`);
+    bitsEl.append('Each password: ', b, ` of randomness (${rate(bits)}), ${what}.`);
+    timeEl.textContent = `Example: at 10 billion guesses a second (a very fast attack on a stolen password file), trying every possibility takes ${timeText(bits, 1e10)}. Real attackers vary; sites that limit tries are much safer.`;
     list.innerHTML = '';
     for (const pw of made) {
       const li = document.createElement('li'); const row = document.createElement('div'); row.className = 'pg-row';
@@ -129,8 +162,21 @@
     catch { copied.textContent = 'Copy did not work here: select the text and copy it by hand.'; }
   };
 
+  // Sliders and number boxes share a value; sliders are skipped by the general handler so a re-render cannot reset them.
+  const pair = (num: string, sl: string) => {
+    k(sl).addEventListener('input', () => { k(num).value = k(sl).value; make(); });
+    k(num).addEventListener('input', () => { const v = +k(num).value; if (Number.isFinite(v)) k(sl).value = String(Math.min(+k(sl).max, Math.max(+k(sl).min, v))); });
+  };
+  pair('len', 'lenslide'); pair('words', 'wslide');
+  const setSets = (on: string[]) => root.querySelectorAll<HTMLInputElement>('[data-set]').forEach((c) => { c.checked = on.includes(c.dataset.set!); });
+  const PRESETS: Record<string, () => void> = {
+    wifi: () => { k('mode').value = 'chars'; k('len').value = '20'; setSets(['lower', 'upper', 'digit']); k('similar').checked = true; },
+    everyday: () => { k('mode').value = 'chars'; k('len').value = '20'; setSets(['lower', 'upper', 'digit', 'symbol']); k('similar').checked = false; },
+    long: () => { k('mode').value = 'chars'; k('len').value = '64'; setSets(['lower', 'upper', 'digit', 'symbol']); k('similar').checked = false; },
+  };
+  root.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => { PRESETS[(b as HTMLElement).dataset.preset!](); k('lenslide').value = k('len').value; make(); }));
   q('.pg-new').addEventListener('click', make);
   q('.pg-copyall').addEventListener('click', () => made.length && copy(made.join('\n'), `Copied ${made.length}.`));
-  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', make));
+  root.querySelectorAll('input:not([type="range"]), select').forEach((el) => el.addEventListener(el instanceof HTMLSelectElement ? 'change' : 'input', make));
   make();
 </script>

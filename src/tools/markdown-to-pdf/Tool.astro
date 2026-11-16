@@ -1,7 +1,7 @@
 ---
 // Markdown to PDF: write or paste Markdown, see the page, save as PDF with the browser's print or as HTML.
 ---
-<div class="tool-ui mtp">
+<div class="tool-ui mtp" data-kit>
   <div class="mtp-bar">
     <label>Page size
       <select class="mtp-size"><option value="A4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option><option value="A5">A5</option></select>
@@ -12,8 +12,22 @@
     <label>Margins
       <select class="mtp-margin"><option value="15mm">Narrow</option><option value="20mm" selected>Normal</option><option value="28mm">Wide</option></select>
     </label>
-    <label class="mtp-check"><input type="checkbox" class="mtp-toc"> Table of contents</label>
+    <label class="mtp-check"><input type="checkbox" class="mtp-toc" data-k="toc"> Table of contents</label>
+    <details class="mtp-more">
+      <summary>More options</summary>
+      <div class="mtp-bar">
+        <label>Orientation
+          <select class="mtp-orient" data-k="orient"><option value="">Portrait</option><option value="landscape">Landscape</option></select>
+        </label>
+        <label>Typeface
+          <select class="mtp-face" data-k="face"><option value="system-ui,sans-serif">Sans-serif</option><option value="Georgia,'Times New Roman',serif">Serif</option><option value="ui-monospace,Menlo,Consolas,monospace">Monospace</option></select>
+        </label>
+        <label class="mtp-check"><input type="checkbox" class="mtp-pn" data-k="pn"> Page numbers at the bottom</label>
+      </div>
+      <p class="note">Page numbers show in browsers that support them in print (Chrome, Edge). Others print without.</p>
+    </details>
   </div>
+  <p class="mtp-stats" aria-live="polite"></p>
   <div class="mtp-cols">
     <div>
       <label for="mtp-in"><b>Your Markdown</b></label>
@@ -41,6 +55,7 @@
   .mtp-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
   .mtp-bar label { display: grid; gap: 4px; font-size: 14px; }
   .mtp-check { display: flex !important; align-items: center; gap: 6px; }
+  .mtp-stats { margin: 0; font-size: 14px; color: var(--muted); }
   .mtp-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 900px) { .mtp-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
   .mtp-in { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; min-height: 300px; resize: vertical; }
@@ -80,6 +95,7 @@
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const input = $<HTMLTextAreaElement>('.mtp-in'), page = $<HTMLElement>('.mtp-page');
   const size = $<HTMLSelectElement>('.mtp-size'), font = $<HTMLSelectElement>('.mtp-font'), margin = $<HTMLSelectElement>('.mtp-margin'), toc = $<HTMLInputElement>('.mtp-toc');
+  const orient = $<HTMLSelectElement>('.mtp-orient'), face = $<HTMLSelectElement>('.mtp-face'), pn = $<HTMLInputElement>('.mtp-pn');
   const imgsNote = $<HTMLElement>('.mtp-imgs'), pageCss = document.head.appendChild(document.createElement('style')); pageCss.className = 'mtp-pagecss';
   const images: Record<string, string> = {};
   input.value = `# My document
@@ -111,12 +127,15 @@ code blocks keep
     const r = markdownToHtml(input.value, { images, toc: toc.checked });
     page.innerHTML = r.html;
     page.style.setProperty('--mtp-font', font.value);
-    pageCss.textContent = `@page { size: ${size.value}; margin: ${margin.value}; } .mtp-page { font-size: ${font.value}; }`;
+    const words = (input.value.match(/\S+/g) || []).length;
+    $('.mtp-stats').textContent = words ? `${words.toLocaleString('en')} word${words === 1 ? '' : 's'}, about ${Math.max(1, Math.ceil(words / 450))} page${words <= 450 ? '' : 's'} when printed.` : 'Nothing to print yet. Type or paste some Markdown.';
+    page.style.fontFamily = face.value;
+    pageCss.textContent = `@page { size: ${size.value} ${orient.value}; margin: ${margin.value};${pn.checked ? ' @bottom-center { content: counter(page); font-size: 9pt; }' : ''} } .mtp-page { font-size: ${font.value}; }`;
     imgsNote.hidden = !r.missingImages.length && !Object.keys(images).length;
     imgsNote.textContent = (Object.keys(images).length ? 'Pictures added: ' + Object.keys(images).join(', ') + '. ' : '') +
       (r.missingImages.length ? 'Still needed: ' + r.missingImages.join(', ') + ' (add pictures with the same file name). Web addresses are not loaded, to keep your page private.' : '');
   }
-  [input, size, font, margin, toc].forEach((e) => e.addEventListener('input', update));
+  [input, size, font, margin, toc, orient, face, pn].forEach((e) => e.addEventListener('input', update));
   const readText = (f: File) => new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(f); });
   const readUrl = (f: File) => new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsDataURL(f); });
   $<HTMLInputElement>('.mtp-md').addEventListener('change', async (e) => {
@@ -129,7 +148,7 @@ code blocks keep
   $('.mtp-print').addEventListener('click', () => { update(); window.print(); });
   $('.mtp-html').addEventListener('click', () => {
     update();
-    const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title><style>@page{size:${size.value};margin:${margin.value}}body{font-family:system-ui,sans-serif;max-width:48rem;margin:2rem auto;padding:0 1rem;line-height:1.5;font-size:${font.value}}pre{background:#f6f6f6;padding:.7em;overflow-x:auto;white-space:pre-wrap}code{background:#f1f1f1;padding:0 .25em}pre code{background:none}table{border-collapse:collapse}th,td{border:1px solid #999;padding:.3em .6em}th{background:#eee}blockquote{border-left:4px solid #bbb;margin-left:0;padding-left:1em}img{max-width:100%}.md-toc{border:1px solid #ccc;padding:.5em 1em}.md-toc ul{list-style:none;padding:0}.md-l1{padding-left:1.2em}.md-l2{padding-left:2.4em}</style></head><body>${page.innerHTML}</body></html>`;
+    const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title><style>@page{size:${size.value} ${orient.value};margin:${margin.value}${pn.checked ? ';@bottom-center{content:counter(page);font-size:9pt}' : ''}}body{font-family:${face.value.replace(/"/g, "'")};max-width:48rem;margin:2rem auto;padding:0 1rem;line-height:1.5;font-size:${font.value}}pre{background:#f6f6f6;padding:.7em;overflow-x:auto;white-space:pre-wrap}code{background:#f1f1f1;padding:0 .25em}pre code{background:none}table{border-collapse:collapse}th,td{border:1px solid #999;padding:.3em .6em}th{background:#eee}blockquote{border-left:4px solid #bbb;margin-left:0;padding-left:1em}img{max-width:100%}.md-toc{border:1px solid #ccc;padding:.5em 1em}.md-toc ul{list-style:none;padding:0}.md-l1{padding-left:1.2em}.md-l2{padding-left:2.4em}</style></head><body>${page.innerHTML}</body></html>`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' })); a.download = 'document.html'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });

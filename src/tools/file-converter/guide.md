@@ -22,9 +22,10 @@ flow:
 
 ## How to convert a file
 
-1. Choose a file, or drop it on the box. For pictures, you can choose several at once.
+1. Choose a file, or drop it on the box. You can choose several files of the same kind at once (pictures, PDFs, CSVs and so on); they come back in one ZIP, or as one PDF for pictures.
 2. Pick what to convert it to. Only the conversions that work for that file are shown.
-3. Press **Convert**, then **Download**.
+3. Press **Convert**, then **Download**. The result shows its size next to the size you started with.
+4. For pictures, open **More options** to set the quality of JPG, WebP and AVIF files (lower is smaller) and, for PDF, the page size: the same as the picture, A4 or US Letter with the picture centred.
 
 Your file is converted in your browser and never uploaded. The page keeps working with no internet once it is open.
 

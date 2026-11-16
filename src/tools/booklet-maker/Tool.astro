@@ -1,24 +1,24 @@
 ---
 // #1767 Booklet maker. Imposition code in src/lib/docs/booklet.ts.
 ---
-<div class="tool-ui bkl">
+<div class="tool-ui bkl" data-kit>
   <label class="bkl-drop">Choose a PDF <input class="bkl-file" type="file" accept="application/pdf,.pdf" /></label>
   <p class="bkl-msg" role="status" aria-live="polite"></p>
   <div class="bkl-main" hidden>
     <fieldset class="bkl-card">
       <legend>What do you want to print?</legend>
       <label class="bkl-opt"><input type="radio" name="bkl-mode" value="booklet" checked /> <span><b>Booklet</b> Two pages per side, in the right order to fold and staple in the middle.</span></label>
-      <label class="bkl-opt"><input type="radio" name="bkl-mode" value="nup" /> <span><b>Several pages per sheet</b> 2 or 4 pages on each sheet, in reading order, to save paper.</span></label>
+      <label class="bkl-opt"><input type="radio" name="bkl-mode" value="nup" /> <span><b>Several pages per sheet</b> 2, 4, 6 or 9 pages on each sheet, in reading order, to save paper.</span></label>
       <label class="bkl-opt"><input type="radio" name="bkl-mode" value="poster" /> <span><b>Poster</b> One page enlarged over several sheets that you tape together.</span></label>
     </fieldset>
     <fieldset class="bkl-card">
       <legend>Settings</legend>
       <div class="bkl-grid">
-        <label>Paper <select class="bkl-paper"><option value="a4">A4</option><option value="letter">US Letter</option></select></label>
+        <label>Paper <select class="bkl-paper" data-k="paper"><option value="a4">A4</option><option value="letter">US Letter</option></select></label>
         <label data-for="booklet">Double-sided printing flips on
-          <select class="bkl-flip"><option value="long">Long edge (most printers)</option><option value="short">Short edge</option></select>
+          <select class="bkl-flip" data-k="flip"><option value="long">Long edge (most printers)</option><option value="short">Short edge</option></select>
         </label>
-        <label data-for="nup">Pages per sheet <select class="bkl-per"><option value="2">2</option><option value="4">4</option></select></label>
+        <label data-for="nup">Pages per sheet <select class="bkl-per" data-k="per"><option value="2">2</option><option value="4">4</option><option value="6">6 (handout)</option><option value="9">9 (small thumbnails)</option></select></label>
         <label data-for="nup" class="bkl-chk"><input type="checkbox" class="bkl-border" checked /> Thin border round each page</label>
         <label data-for="poster">Page to enlarge <input type="number" class="bkl-pg" min="1" value="1" /></label>
         <label data-for="poster">Sheets across <input type="number" class="bkl-cols" min="1" max="8" value="2" /></label>
@@ -113,7 +113,7 @@
         const r = await lib.makeBooklet(bytes, { paper: paper(), flip: q<HTMLSelectElement>('.bkl-flip').value as 'long' });
         download(r.bytes, `${base}-booklet.pdf`);
       } else if (m === 'nup') {
-        const r = await lib.makeNup(bytes, { per: val('.bkl-per') as 2, paper: paper(), border: q<HTMLInputElement>('.bkl-border').checked });
+        const r = await lib.makeNup(bytes, { per: val('.bkl-per') as 2 | 4 | 6 | 9, paper: paper(), border: q<HTMLInputElement>('.bkl-border').checked });
         download(r.bytes, `${base}-${val('.bkl-per')}up.pdf`);
       } else {
         const r = await lib.makePoster(bytes, { page: val('.bkl-pg'), cols: val('.bkl-cols') || 1, rows: val('.bkl-rows') || 1, paper: paper(), overlapMm: val('.bkl-ov'), marks: q<HTMLInputElement>('.bkl-marks').checked, landscape: q<HTMLInputElement>('.bkl-land').checked });

@@ -140,3 +140,38 @@ export function sampleTemplate(): Uint8Array {
     'word/document.xml': strToU8(`${X}<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`),
   });
 }
+
+/** One PDF with each merged message starting on its own page (plain Helvetica text, wrapped, extra pages when a message is long). */
+export async function messagesPdf(messages: string[], paper: 'a4' | 'letter' = 'a4'): Promise<{ bytes: Uint8Array; pages: number; lost: string[] }> {
+  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const [W, H] = paper === 'letter' ? [612, 792] : [595.28, 841.89];
+  const M = 64, size = 11, lh = 15.5, lost = new Set<string>();
+  const safe = (t: string) => { let o = ''; for (const ch of t) { try { font.encodeText(ch); o += ch; } catch { lost.add(ch); o += '?'; } } return o; };
+  const wrap = (line: string): string[] => {
+    const out: string[] = []; let cur = '';
+    for (const w of line.split(' ')) {
+      let t = cur ? cur + ' ' + w : w;
+      if (font.widthOfTextAtSize(t, size) <= W - 2 * M) { cur = t; continue; }
+      if (cur) out.push(cur);
+      // a single word wider than the line is cut into pieces
+      cur = w;
+      while (font.widthOfTextAtSize(cur, size) > W - 2 * M && cur.length > 1) { let k = cur.length - 1; while (k > 1 && font.widthOfTextAtSize(cur.slice(0, k), size) > W - 2 * M) k--; out.push(cur.slice(0, k)); cur = cur.slice(k); }
+    }
+    out.push(cur);
+    return out;
+  };
+  for (const m of messages.length ? messages : ['']) {
+    let page = doc.addPage([W, H]), y = H - M;
+    for (const raw of safe(m.replace(/\r\n?/g, '\n').replace(/\t/g, '    ')).split('\n')) {
+      for (const l of raw.trim() === '' ? [''] : wrap(raw)) {
+        if (y < M) { page = doc.addPage([W, H]); y = H - M; }
+        if (l) page.drawText(l, { x: M, y: y - size, size, font, color: rgb(0.07, 0.09, 0.15) });
+        y -= lh;
+      }
+    }
+  }
+  doc.setCreator('fibub.com'); doc.setProducer('fibub.com');
+  return { bytes: await doc.save(), pages: doc.getPageCount(), lost: [...lost] };
+}

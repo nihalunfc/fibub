@@ -21,4 +21,8 @@ export default async ({ page, check, BASE }) => {
   check((await page.evaluate(() => localStorage.getItem('fibub-coverletter-v1'))).includes('Priya'), 'cover: kept when ticked');
   await page.click('.cl .cl-clear');
   check(!(await page.evaluate(() => localStorage.getItem('fibub-coverletter-v1'))), 'cover: clear');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.cl .cl-jdt', 'We need a data analyst. Analyst work with Kubernetes and Terraform. Kubernetes is key. Terraform is key.');
+  await page.waitForTimeout(400);
+  check((await page.textContent('.cl .cl-kw')).toLowerCase().includes('kubernetes'), 'cover: job ad keywords listed');
 };

@@ -208,6 +208,9 @@ check('sig figures', sig(0.0012345, 3) === '0.00123');
     near(`Miller x0 at ${y}`, u.x0, x, 0.005); near(`Miller s(x0) at ${y}`, u.se, s, 0.005);
   }
   near('LOD = 3.3 s/b', limits(c).lod, 3.3 * 0.4328 / 1.9304, 1e-3);
+  // 3σ rule (Miller & Miller example 5.7.1: LOD = a + 3 s(y/x) read back, 0.67 pg/mL); LOQ stays 10 s/b.
+  near('LOD = 3 s/b (Miller 0.67 pg/mL)', limits(c, 'residual', 3).lod, 0.67, 0.005);
+  near('LOQ unchanged by the LOD rule', limits(c, 'residual', 3).loq, limits(c).loq, 1e-12);
 }
 
 // ---- 4PL: ryegrass data (Inderjit et al. 2002, R package drc), drc LL.4: b 2.982, c 0.481, d 7.793, e 3.058.
@@ -1145,6 +1148,10 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const v = [0.025, 0.05, 0.1, 0.2, 0.4], st = CV.scanRateStudy(v, v.map((x) => CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, x)), 1, 0.0707, 1e-3);
   near('scan-rate D', st.D, 1e-5, 1e-12);
   near('log-log slope 0.5', st.logFit.slope, 0.5, 1e-9);
+  // Laviron: a slope of 0.0312 V per ln-unit of scan rate at 25 °C gives αn = RT/(F × 0.0312) = 0.8235.
+  const lvV = [0.07, 0.1, 0.2, 0.4], lv = CV.laviron(lvV, lvV.map((x) => 0.9 + 0.0312 * Math.log(x)));
+  near('Laviron αn from 31.2 mV slope', lv.alphaN, 0.8235, 5e-4);
+  near('Laviron, reduction (negative slope)', CV.laviron(lvV, lvV.map((x) => -0.2 - 0.0312 * Math.log(x))).alphaN, 0.8235, 5e-4);
 }
 {
   // TLC: Rf from distances or pixel rows (y grows downward in photos); lanes; column volumes.
@@ -1825,6 +1832,13 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('geochron: K-Ar round trip', kr.t, 1e8, 1e-3);
   const J = GC.jFromStandard(28.2e6, 12);
   near('geochron: Ar-Ar standard gives its own age', GC.arArAge(J, 12).t, 28.2e6, 1e-3);
+  // Ar-Ar isochron: points on a line of slope R = 40Ar*/39Ar through air 298.56 give the same age as the single-step formula.
+  const Jx = 0.0025, Rx = GC.arArAge.length && Math.expm1(GC.K40.lambda * 6.6e7) / Jx;
+  const arPts = [50, 120, 300, 600, 1000].map((x) => ({ x, sx: 0.01 * x, y: 298.56 + Rx * x, sy: 0.5 }));
+  const aiso = GC.arArIsochronAge(GC.york(arPts), Jx, 0);
+  near('geochron: Ar-Ar isochron age 66 Ma', aiso.t, 6.6e7, 10); near('geochron: Ar-Ar isochron trapped 40/36 = air', aiso.initial, 298.56, 1e-6);
+  near('geochron: Ar-Ar isochron = single-step age', aiso.t, GC.arArAge(Jx, Rx).t, 1);
+  check('geochron: Ar-Ar isochron J error widens the age error', GC.arArIsochronAge(GC.york(arPts), Jx, Jx * 0.01).s > aiso.s);
   // U-Pb: a point on concordia is concordant and all three ages agree.
   const c = GC.concordia(2.0e9), u = GC.uPbAges(c[1], c[0]);
   near('geochron: concordant 206/238', u.t68, 2e9, 1e-3); near('geochron: concordant 207/235', u.t75, 2e9, 1e-3); near('geochron: concordant 207/206', u.t76, 2e9, 1e-2);

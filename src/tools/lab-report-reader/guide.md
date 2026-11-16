@@ -38,6 +38,10 @@ It never adds a range of its own and never says what a result means for you. A r
 
 ## What each part does
 
+- **Count line**: above the table, how many tests were found and how many sit outside the range printed on your report. It only compares with that printed range; it is not a diagnosis and not medical advice.
+- **Show only the rows outside the printed range** hides the rest so you can see what to ask your doctor about.
+- **Print the table** prints just the results table.
+
 - **Range on report**: the text printed beside the result, like `13.0 - 17.0` or `< 200`. Edit it and the mark updates.
 - **Mark**: says whether your result is outside that printed range. Blank means inside it, or no range found.
 - **What it measures**: a short note on the test itself, such as what a haemoglobin test counts. It is about the test, not your result.

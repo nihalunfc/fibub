@@ -37,6 +37,8 @@ It explains words, not people. It never says what anything means for you, and fo
 
 ## What it knows
 
+- **Copy the list** and **Print the list** take the words found in your pasted text with their plain meanings, to share with a relative or bring to an appointment. This is not medical advice; ask your doctor or pharmacist.
+
 - **Prescription words**: timing and route shorthand such as od, bd, tds, prn, stat, po, sl, im, iv, ac and pc.
 - **Lab tests**: names and abbreviations such as CBC, Hb, WBC, HbA1c, TSH, ALT, eGFR and LDL.
 - **Report words**: terms like unremarkable, benign, bilateral, acute, chronic and follow-up.

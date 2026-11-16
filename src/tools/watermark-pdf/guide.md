@@ -32,7 +32,7 @@ It works on all pages or only the ones you list, like `1-3,5`. It also works on 
 
 1. Choose a PDF or picture.
 2. Pick **Text across the page** or **Stamp with date**.
-3. Set the words, size, angle, opacity and colour. Pictures show a live preview.
+3. Set the words, size, angle, opacity and colour. Choose **Repeated across the page** to tile the words over the whole page, which makes the mark harder to crop out. PDFs and pictures both show a live preview (page 1 for a PDF).
 4. For a PDF, type page ranges to mark only some pages, or leave it blank for all.
 5. Press **Add watermark and download**.
 

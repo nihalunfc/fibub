@@ -1,7 +1,8 @@
 ---
 // #1771 Find and replace. Maths in src/lib/docs/textutil.ts.
+import { FR_PRESETS } from '../../lib/docs/textutil';
 ---
-<div class="tool-ui fnr">
+<div class="tool-ui fnr" data-kit>
   <div class="fnr-card">
     <label>Your text
       <textarea class="fnr-in" placeholder="Paste your text here"></textarea>
@@ -13,9 +14,14 @@
     <p class="fnr-hint">Pairs run from the top down, each on the result of the one before.</p>
     <div class="fnr-pairs"></div>
     <div class="fnr-row"><button type="button" class="btn fnr-add">Add another pair</button></div>
-    <label class="fnr-chk"><input type="checkbox" class="fnr-case" /> <span>Match case<small>Off means "Cat" and "cat" both match.</small></span></label>
-    <label class="fnr-chk"><input type="checkbox" class="fnr-word" /> <span>Whole word only<small>"cat" will not match inside "concatenate".</small></span></label>
-    <label class="fnr-chk"><input type="checkbox" class="fnr-re" /> <span>Use patterns (regular expressions)<small>For experts. In "replace with" use $1, $2 for the groups you marked with brackets.</small></span></label>
+    <label class="fnr-chk"><input type="checkbox" class="fnr-case" data-k="case" /> <span>Match case<small>Off means "Cat" and "cat" both match.</small></span></label>
+    <label class="fnr-chk"><input type="checkbox" class="fnr-word" data-k="word" /> <span>Whole word only<small>"cat" will not match inside "concatenate".</small></span></label>
+    <label class="fnr-chk"><input type="checkbox" class="fnr-re" data-k="regex" /> <span>Use patterns (regular expressions)<small>For experts. In "replace with" use $1, $2 for the groups you marked with brackets.</small></span></label>
+    <label class="fnr-chk"><input type="checkbox" class="fnr-line" data-k="lines" /> <span>Treat each line on its own<small>For patterns: ^ and $ then mean the start and end of every line. Turn on "Use patterns" to use it.</small></span></label>
+    <details class="fnr-fix"><summary>Common fixes (ready-made patterns)</summary>
+      <div class="fnr-row">{FR_PRESETS.map((p) => <button type="button" class="btn fnr-preset" data-id={p.id}>{p.label}</button>)}</div>
+      <p class="fnr-hint fnr-fix-h">Pick one to fill in the first pair and turn on patterns. In "replace with", \n means a new line and \t a tab.</p>
+    </details>
     <p class="fnr-err" hidden></p>
   </div>
   <div class="fnr-card">
@@ -30,6 +36,8 @@
   </div>
 </div>
 <style is:inline>
+  .fnr details summary { cursor: pointer; font-size: 14px; padding: 6px 0; }
+  .fnr-fix .fnr-row { margin-top: 6px; }
   .fnr { display: grid; gap: 14px; margin-bottom: 28px; }
   .fnr-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
   .fnr-card h2 { margin: 0; font-size: 18px; }
@@ -53,11 +61,11 @@
 </style>
 
 <script>
-  import { findReplace, countText } from '../../lib/docs/textutil';
+  import { findReplace, countText, FR_PRESETS } from '../../lib/docs/textutil';
   const root = document.querySelector('.fnr') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const inp = q<HTMLTextAreaElement>('.fnr-in'), pairsEl = q('.fnr-pairs'), out = q('.fnr-out'), prev = q('.fnr-prev'),
-    cs = q<HTMLInputElement>('.fnr-case'), wd = q<HTMLInputElement>('.fnr-word'), re = q<HTMLInputElement>('.fnr-re');
+    cs = q<HTMLInputElement>('.fnr-case'), ln = q<HTMLInputElement>('.fnr-line'), wd = q<HTMLInputElement>('.fnr-word'), re = q<HTMLInputElement>('.fnr-re');
   const addPair = (f = '', r = '') => {
     const d = document.createElement('div'); d.className = 'fnr-pair';
     d.innerHTML = '<label>Find<input type="text" class="fnr-f" autocomplete="off" spellcheck="false"></label><label>Replace with<input type="text" class="fnr-r" autocomplete="off" spellcheck="false"></label><button type="button" class="btn fnr-x" aria-label="Remove this pair">Remove</button>';
@@ -67,7 +75,7 @@
   };
   const getPairs = () => [...pairsEl.querySelectorAll('.fnr-pair')].map((d) => ({ find: (d.querySelector('.fnr-f') as HTMLInputElement).value, replace: (d.querySelector('.fnr-r') as HTMLInputElement).value }));
   const update = () => {
-    const r = findReplace(inp.value, getPairs(), { regex: re.checked, matchCase: cs.checked, wholeWord: wd.checked });
+    const r = findReplace(inp.value, getPairs(), { regex: re.checked, matchCase: cs.checked, wholeWord: wd.checked, eachLine: ln.checked });
     const err = q('.fnr-err'); err.hidden = r.ok; err.textContent = r.error || '';
     out.textContent = r.text;
     prev.innerHTML = '';
@@ -75,11 +83,22 @@
     const hasFind = getPairs().some((p) => p.find);
     q('.fnr-count').textContent = !hasFind ? 'Type what to find above.' : r.ok ? `${r.total} ${r.total === 1 ? 'match' : 'matches'} replaced` + (r.counts.length > 1 ? ' (' + r.counts.join(' + ') + ').' : '.') : '';
   };
+  function import_presets() {
+    root.querySelectorAll<HTMLElement>('.fnr-preset').forEach((b) => b.addEventListener('click', () => {
+      const p = FR_PRESETS.find((x) => x.id === b.dataset.id); if (!p) return;
+      const first = pairsEl.querySelector('.fnr-pair') as HTMLElement;
+      (first.querySelector('.fnr-f') as HTMLInputElement).value = p.find; (first.querySelector('.fnr-r') as HTMLInputElement).value = p.replace;
+      [...pairsEl.children].slice(1).forEach((d) => d.remove());
+      re.checked = true; ln.checked = p.id === 'trail'; cs.checked = true; wd.checked = false;
+      q('.fnr-fix-h').textContent = p.hint; update();
+    }));
+  }
   q('.fnr-add').addEventListener('click', () => { addPair(); (pairsEl.lastElementChild!.querySelector('.fnr-f') as HTMLInputElement).focus(); });
-  [inp, cs, wd, re].forEach((e) => { e.addEventListener('input', update); e.addEventListener('change', update); });
+  [inp, cs, wd, re, ln].forEach((e) => { e.addEventListener('input', update); e.addEventListener('change', update); });
   pairsEl.addEventListener('input', update);
   const copy = q<HTMLButtonElement>('.fnr-copy');
   copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(out.textContent || ''); copy.textContent = 'Copied'; } catch { copy.textContent = 'Press Ctrl+C to copy'; } setTimeout(() => (copy.textContent = 'Copy the result'), 1800); });
   q('.fnr-use').addEventListener('click', () => { inp.value = out.textContent || ''; update(); });
+  import_presets();
   addPair(); update();
 </script>

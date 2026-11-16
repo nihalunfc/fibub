@@ -1,4 +1,5 @@
 // #1778 Residency days
+import { indianResidence } from '../../src/lib/money/india-residence.ts';
 export const path = '/money/tax-residency-days/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/tax-residency-days/`); await page.waitForTimeout(300);
@@ -25,4 +26,17 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.rd-body')).replace(/\s+/g, ' ').includes('Spain32'), 'residency: pasted trips give Spain 32 days (' + (await txt('.rd-body')).slice(0, 60) + ')');
   check((await txt('.rd-gap')).includes('333 of 365'), 'residency: 333 uncovered days (' + (await txt('.rd-gap')) + ')');
   check((await txt('.rd-top')).includes('Spain: 32 of 365'), 'residency: most days line');
+  // Indian residency status: 130 days in FY 2026-27 (1 Apr to 8 Aug 2026), 365 + 35 = 400 days in the 4 earlier years.
+  await page.click('.rd .rd-clear');
+  await page.selectOption('.rd [data-k="region"]', 'india'); await page.fill('.rd [data-k="year"]', '2026');
+  await add('India', '2026-04-01', '2026-08-08'); await add('India', '2024-04-01', '2025-05-05'); await page.waitForTimeout(100);
+  await page.check('.rd [data-k="in-15"]'); await page.waitForTimeout(100);
+  const inOut = async () => (await txt('.rd-in-out')).replace(/\s+/g, ' ');
+  check((await inOut()).includes('not ordinarily resident') && (await inOut()).includes('130 days') && (await inOut()).includes('400 in the 4'), 'India: visiting citizen, 130 days, 400 earlier, income over 15 lakh is RNOR (' + (await inOut()) + ')');
+  await page.uncheck('.rd [data-k="in-15"]'); await page.waitForTimeout(100);
+  check((await inOut()).startsWith('Non-resident'), 'India: same visitor with income under 15 lakh is non-resident (60 becomes 182)');
+  await page.selectOption('.rd [data-k="in-sit"]', 'none'); await page.waitForTimeout(100);
+  check((await inOut()).startsWith('Resident (ordinarily'), 'India: not a visitor, 60 + 365 days makes you resident');
+  const B = { days: 10, prior4: 0, citizen: true, pio: false, visiting: false, leftForJob: false, income15: true, taxedElsewhere: false, nr9of10: false, le729: false };
+  check(indianResidence(B).status === 'rnor' && indianResidence({ ...B, taxedElsewhere: true }).status === 'nonresident' && indianResidence({ ...B, days: 182 }).status === 'resident' && indianResidence({ ...B, days: 200, nr9of10: true }).status === 'rnor', 'India lib: deemed resident, 182 days, and 9 of 10 years');
 };

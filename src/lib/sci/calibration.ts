@@ -33,8 +33,9 @@ export function inverse(c: Calibration, responses: number[]) {
   return { y0, x0, se, lo: x0 - c.t * se, hi: x0 + c.t * se, m };
 }
 
-/** ICH Q2 limits: LOD = 3.3 σ / slope, LOQ = 10 σ / slope, with σ the residual SD or the SD of the intercept. */
-export function limits(c: Calibration, basis: 'residual' | 'intercept' = 'residual') {
+/** ICH Q2 limits: LOD = 3.3 σ / slope, LOQ = 10 σ / slope, with σ the residual SD or the SD of the intercept.
+ *  k sets the LOD factor: 3.3 (ICH Q2, the default) or 3 (the 3σ/b rule common in sensor papers); LOQ stays 10 σ / slope. */
+export function limits(c: Calibration, basis: 'residual' | 'intercept' = 'residual', k = 3.3) {
   const sigma = basis === 'residual' ? c.syx : c.seIntercept;
-  return { sigma, lod: (3.3 * sigma) / Math.abs(c.slope), loq: (10 * sigma) / Math.abs(c.slope) };
+  return { sigma, k, lod: (k * sigma) / Math.abs(c.slope), loq: (10 * sigma) / Math.abs(c.slope) };
 }

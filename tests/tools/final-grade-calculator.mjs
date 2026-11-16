@@ -14,4 +14,27 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.fg-table tbody tr:first-child')).includes('93.0%'), 'final-grade: cut-off edit changes table');
   await set('w', '0'); check((await big()) === '' && (await say()).includes('weight of 0'), 'final-grade: weight 0 gives a message');
   await page.click(R + '.fg-reset'); await page.waitForTimeout(80); check((await big()) === '92.0% needed', 'final-grade: reset');
+  // New options
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await page.textContent(R + '.fg-work')).includes('(85.0 − 82.0 × 0.70) ÷ 0.30 = 92.0'), 'final-grade: shows the working line');
+  check((await page.locator(R + '.fg-svg circle').count()) === 1 && (await page.locator(R + '.fg-svg polyline').count()) === 1, 'final-grade: chart has the line and the need marker');
+  await set('exam', '78');
+  check((await page.textContent(R + '.fg-if')).includes('gives 80.8% for the course (B)'), 'final-grade: 78% on the final gives 80.8%, B');
+  await set('pts', '120');
+  check((await say()).includes('110.4 of 120 points') && (await page.textContent(R + '.fg-table tbody tr:nth-child(2)')).includes('75.3% (90.4 of 120 points)'), 'final-grade: 92.0% of 120 = 110.4 points; B needs 75.3% = 90.4 points');
+  await set('pts', '');
+  await page.$eval(R + '[data-k="tslide"]', (e) => { e.value = '90'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  check((await page.inputValue(R + '[data-k="t"]')) === '90' && (await big()) === '108.7% needed', 'final-grade: slider 90 sets the target and needs 108.7%');
+  check((await page.locator(R + '.fg-svg circle').count()) === 0, 'final-grade: no marker when the target is out of reach');
+  await set('t', '85');
+  check((await page.inputValue(R + '[data-k="tslide"]')) === '85', 'final-grade: typed target moves the slider');
+  await page.selectOption(R + '[data-k="scale"]', 'plusminus');
+  check((await page.locator(R + '.fg-table tbody tr').count()) === 11 && (await page.textContent(R + '.fg-table tbody tr:first-child')).includes('118.7%') && (await page.textContent(R + '.fg-table tbody tr:last-child')).includes('8.7%'), 'final-grade: plus-minus scale has 11 rows, A needs 118.7%, D- needs 8.7%');
+  check((await page.textContent(R + '.fg-if')).includes('(B-)'), 'final-grade: 80.8% is B- on the plus-minus scale');
+  await page.selectOption(R + '[data-k="scale"]', 'uk');
+  check((await page.locator(R + '.fg-table tbody tr').count()) === 4 && (await page.textContent(R + '.fg-table tbody tr:first-child')).includes('42.0%') && (await page.textContent(R + '.fg-table tbody tr:last-child')).includes('Already safe') && (await page.textContent(R + '.fg-if')).includes('(First)'), 'final-grade: UK classes: First needs 42.0%, Third already safe');
+  await set('cur', '-5'); check((await say()).includes('cannot be negative') && !(await page.textContent(R)).includes('NaN'), 'final-grade: negative grade gives a message');
+  await set('cur', '500'); check((await say()).includes('far above 100%'), 'final-grade: 500% gives a message');
+  await page.click(R + '.fg-reset'); await page.waitForTimeout(80);
+  check((await page.inputValue(R + '[data-k="scale"]')) === 'simple' && (await page.locator(R + '.fg-table tbody tr').count()) === 4 && (await big()) === '92.0% needed', 'final-grade: reset restores the simple scale');
 };

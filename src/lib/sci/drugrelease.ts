@@ -3,6 +3,7 @@
 // remaining during degradation. Model forms as in Costa and Sousa Lobo (2001) and Zhang et al. (2010, DDSolver).
 // This fits release curves only; it gives no doses. No DOM.
 import { levenbergMarquardt } from './fit.ts';
+import { tInv } from './stats.ts';
 
 export type ModelId = 'zero' | 'first' | 'higuchi' | 'kp' | 'hc' | 'weibull';
 export type ModelFit = {
@@ -78,6 +79,19 @@ export function peppasMechanism(n: number, geom: Geometry) {
   return 'Super case II transport';
 }
 
+/** The 95 % range of n (n ± t·se) and the other mechanisms it reaches, so a label is not read more firmly than the data allow. */
+export function peppasRange(n: number, se: number, df: number, geom: Geometry) {
+  if (!(Number.isFinite(n) && Number.isFinite(se) && df > 0)) return null;
+  const h = tInv(0.975, df) * se, lo = n - h, hi = n + h, [a, b] = LIMITS[geom], here = peppasMechanism(n, geom);
+  const others = [...new Set([peppasMechanism(lo, geom), ...[a, b].filter((x) => x > lo && x < hi).map((x) => peppasMechanism(x, geom)), peppasMechanism(hi, geom)])].filter((m) => m !== here);
+  return { lo, hi, others };
+}
+const peppasRangeNote = (n: number, se: number, df: number, geom: Geometry) => {
+  const r = peppasRange(n, se, df, geom);
+  if (!r || !r.others.length) return '';
+  return `; n's 95 % range, ${r.lo.toFixed(2)} to ${r.hi.toFixed(2)}, also allows: ${r.others.map((m) => m.split(':')[0].split(' (')[0]).join('; ')}`;
+};
+
 /** Korsmeyer-Peppas F = k·tⁿ fitted to the points with 0 < F ≤ limit (and t > 0). */
 export function korsmeyerPeppas(t: number[], F: number[], limit = 60, geom: Geometry = 'film'): ModelFit {
   const idx = t.map((_, i) => i).filter((i) => t[i] > 0 && F[i] > 0 && F[i] <= limit);
@@ -86,7 +100,7 @@ export function korsmeyerPeppas(t: number[], F: number[], limit = 60, geom: Geom
   const l = line(ts.map(Math.log), Fs.map(Math.log));
   const r = levenbergMarquardt((x, p) => p[0] * x ** p[1], ts, Fs, [Math.exp(l.a), l.b]);
   const fit = finish('kp', 'Korsmeyer-Peppas', 'F = k_KP·tⁿ', ts, Fs, (x) => r.p[0] * Math.max(0, x) ** r.p[1], [{ name: 'k_KP', value: r.p[0], se: r.se[0], unit: '%/timeⁿ' }, { name: 'n', value: r.p[1], se: r.se[1], unit: '' }]);
-  fit.note = `${peppasMechanism(r.p[1], geom)}; fitted to ${ts.length} points up to ${limit} %`;
+  fit.note = `${peppasMechanism(r.p[1], geom)}; fitted to ${ts.length} points up to ${limit} %${peppasRangeNote(r.p[1], r.se[1], ts.length - 2, geom)}`;
   return fit;
 }
 

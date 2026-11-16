@@ -11,7 +11,7 @@ ads: false
 order: 2022
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [paint-calculator, tile-calculator, wallpaper-calculator]
 sources:
   - "Area and sheet count: fibub's own working. Screws (about 32 per 4 x 8 ft sheet, scaled by sheet area), joint tape (about 0.37 ft per sq ft, 1.2 m per m²) and compound (about 0.01 US gal per sq ft, 0.4 L per m²) are rules of thumb, fibub's own working; check the product labels."
@@ -42,6 +42,12 @@ Once the boards are up and filled, the [[paint-calculator]] works out the paint;
 - **Waste and offcuts**: added to the exact sheet count before rounding up once. 10% suits a plain room; use more for many corners and openings.
 - **Screws per sheet**: about 32 for a 4 × 8 ft sheet on walls, and set to match the sheet's area when you change the size. Ceilings and some codes need closer spacing, so raise it if needed.
 - **Joint tape and compound**: amounts per unit of board area. They are rules of thumb; product labels give their own coverage.
+
+## More options
+
+Open **More options** to board several identical rooms: type how many and the sheets, screws, tape and compound all scale up, and the working shows the one-room area first. Type the price of one sheet and the page shows the estimated cost of the sheets (screws, tape, compound, tax and delivery are not included).
+
+A scaled plan of the room's floor sits under the result as a check on the length and width you typed. A blank room count counts as one, and a missing or negative price shows no cost.
 
 ## Worked example
 

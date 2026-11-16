@@ -10,9 +10,9 @@ const { accept = '', what = 'a file' } = Astro.props;
 <div class="cmp panel" data-state="empty">
 
   <label class="drop">
-    <input class="cmp-input visually-hidden" type="file" accept={accept || undefined} />
+    <input class="cmp-input visually-hidden" type="file" accept={accept || undefined} multiple />
     <strong>Choose {what}</strong>
-    <span>or drop it here</span>
+    <span>or drop it here. Several files at once work too.</span>
     <span class="limit">Up to <b class="cmp-limit">200 MB</b> on this device</span>
   </label>
 
@@ -89,6 +89,14 @@ const { accept = '', what = 'a file' } = Astro.props;
       <button type="button" class="btn secondary cmp-again">Compress another file</button>
     </div>
   </div>
+  <div class="cmp-batch" hidden>
+    <p class="cmp-bsum"></p>
+    <ul class="cmp-blist"></ul>
+    <div class="actions">
+      <a class="btn cmp-bzip" download="compressed-files.zip" hidden>Download all as ZIP</a>
+      <button type="button" class="btn secondary cmp-bagain">Compress other files</button>
+    </div>
+  </div>
   <p class="note bad cmp-error" role="alert" hidden></p>
 </div>
 
@@ -153,6 +161,8 @@ const { accept = '', what = 'a file' } = Astro.props;
   .meter { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
   .meter span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.8s ease; width: 100%; }
   .cmp-note { margin: 0; color: var(--muted); }
+  .cmp-blist { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; font-size: 14px; word-break: break-all; }
+  .cmp-blist :global(li) { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
   .actions { display: flex; gap: 12px; flex-wrap: wrap; }
   .result, .working { animation: fade 0.25s ease; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
@@ -164,6 +174,7 @@ const { accept = '', what = 'a file' } = Astro.props;
   import { formatBytes } from '../lib/compress/format';
   import type { Level, Method } from '../lib/compress/types';
   import { receive } from '../lib/handoff';
+  import { batchTotals } from '../lib/compress/batch';
 
   // The compressors (about 1 MB) load in the background once the page is idle, so they are
   // ready when needed and keep working if the connection drops.
@@ -189,6 +200,8 @@ const { accept = '', what = 'a file' } = Astro.props;
     const limit = sizeLimit();
     q('.cmp-limit').textContent = formatBytes(limit);
     let file: File | null = null;
+    let files: File[] = [];            // two or more files: batch mode
+    const batch = () => files.length > 1;
     let url: string | null = null;
 
     const setState = (s: string) => (root.dataset.state = s);
@@ -205,6 +218,14 @@ const { accept = '', what = 'a file' } = Astro.props;
     const showError = (msg: string) => { error.textContent = msg; error.hidden = false; };
 
     function refreshOptions() {
+      if (batch()) {
+        fitBox.hidden = false; levelsBox.hidden = fitting(); pdfNote.hidden = true; methodsBox.hidden = true;
+        q('.cmp-light-blurb').textContent = 'PDFs keep their text. Pictures are re-saved at the same size.';
+        q('.cmp-rec-blurb').textContent = 'Best balance. PDFs may become images.';
+        q('.cmp-small-blurb').textContent = 'Smallest files; small text may look softer.';
+        go.textContent = `Compress all ${files.length} files`;
+        return;
+      }
       const m = method();
       fitBox.hidden = !(m === 'pdf' || m === 'image');
       levelsBox.hidden = m === 'zip' || m === 'repack' || fitting();
@@ -221,14 +242,32 @@ const { accept = '', what = 'a file' } = Astro.props;
 
     function reset() {
       clearResult();
-      file = null; input.value = '';
+      file = null; files = []; input.value = '';
+      q('.cmp-batch').hidden = true; q('.cmp-blist').innerHTML = ''; q('.cmp-bzip').hidden = true;
       for (const el of [q('.file'), methodsBox, levelsBox, pdfNote, go, working, fitBox]) el.hidden = true;
       q('.cmp-clear').hidden = false;
       setState('empty');
     }
 
+    function pickMany(list?: FileList | File[] | null) {
+      const all = Array.from(list ?? []);
+      if (all.length < 2) return pick(all[0]);
+      clearResult();
+      const ok = all.filter((f) => f.size > 0 && f.size <= limit);
+      if (ok.length < all.length) showError(`${all.length - ok.length} file(s) were skipped because they are empty or over ${formatBytes(limit)}.`);
+      if (ok.length < 2) return ok.length ? pick(ok[0]) : undefined;
+      files = ok; file = ok[0];
+      q('.cmp-name').textContent = `${ok.length} files`;
+      q('.cmp-size').textContent = formatBytes(ok.reduce((n, f) => n + f.size, 0));
+      q('.cmp-kind').textContent = 'Each file is compressed in the way that suits it. Files that cannot be made smaller are kept as they are.';
+      q('.file').hidden = false; go.hidden = false; go.disabled = false;
+      refreshOptions();
+      setState('ready');
+    }
+
     function pick(f?: File) {
       clearResult();
+      files = [];
       if (!f) return;
       if (f.size > limit) {
         showError(`This file is ${formatBytes(f.size)}. On this device the limit is ${formatBytes(limit)}, because your browser has to hold the whole file in memory. Try a computer for bigger files.`);
@@ -255,12 +294,13 @@ const { accept = '', what = 'a file' } = Astro.props;
       setState('ready');
     }
 
-    input.addEventListener('change', () => pick(input.files?.[0]));
+    input.addEventListener('change', () => pickMany(input.files));
     for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
     for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
-    drop.addEventListener('drop', (e) => { e.preventDefault(); pick((e as DragEvent).dataTransfer?.files?.[0]); });
+    drop.addEventListener('drop', (e) => { e.preventDefault(); pickMany((e as DragEvent).dataTransfer?.files); });
     q('.cmp-clear').addEventListener('click', reset);
     q('.cmp-again').addEventListener('click', reset);
+    q('.cmp-bagain').addEventListener('click', reset);
     root.querySelectorAll<HTMLInputElement>('input[name=cmp-level]').forEach((r) => r.addEventListener('change', () => { clearResult(); refreshOptions(); }));
 
     // --- the waiting screen: progress ring, timer and a small bubble game ---
@@ -299,8 +339,59 @@ const { accept = '', what = 'a file' } = Astro.props;
     go.addEventListener('click', () => run(false));
     q('.cmp-below').addEventListener('click', () => run(true));
 
+    async function runBatch() {
+      clearResult();
+      const lv = level();
+      const limit = fitting() ? Math.round(+fitKb.value * 1024) : undefined;
+      if (limit !== undefined && !(limit >= 10 * 1024)) { showError('Enter an upload limit of at least 10 KB.'); return; }
+      for (const el of [levelsBox, pdfNote, go, fitBox]) el.hidden = true;
+      q<HTMLButtonElement>('.cmp-clear').hidden = true;
+      setState('working'); startWaiting();
+      const list = q('.cmp-blist'); list.innerHTML = '';
+      const outs: { name: string; bytes: Uint8Array; before: number }[] = [];
+      const used = new Set<string>();
+      const { compressFile } = await engine();
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i], m = detect(f).methods[0];
+        const li = document.createElement('li');
+        const unique = (n: string) => { let nm = n, k = 2; while (used.has(nm)) nm = n.replace(/(\.[^.]*)?$/, `-${k++}$1`); used.add(nm); return nm; };
+        try {
+          if (m === 'zip') throw Object.assign(new Error('keep'), { name: 'KeepError' });
+          setProgress(i / files.length, `File ${i + 1} of ${files.length}: ${f.name}`);
+          let out;
+          try { out = await compressFile(f, m, lv, (p) => setProgress((i + (p.fraction ?? 0.5)) / files.length, `File ${i + 1} of ${files.length}: ${f.name}`), fitting() && (m === 'pdf' || m === 'image') ? limit : undefined, false); }
+          catch (e) { if ((e as Error)?.name !== 'NeedsLossError') throw e; out = (e as any).safe; li.dataset.over = '1'; }
+          const name = unique(out.name);
+          outs.push({ name, bytes: out.bytes, before: f.size });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([out.bytes as Uint8Array<ArrayBuffer>], { type: out.mime })); a.download = name; a.textContent = name;
+          const saved = Math.max(0, Math.round((1 - out.bytes.length / f.size) * 100));
+          li.append(a, ` · ${formatBytes(f.size)} to ${formatBytes(out.bytes.length)} (${saved}% smaller)`);
+          if (li.dataset.over) li.append(` · still above ${formatBytes(limit!)} without visible quality loss; compress it on its own to go lower`);
+        } catch (e) {
+          const n = (e as Error)?.name;
+          if (n === 'KeepError' || !n) { outs.push({ name: unique(f.name), bytes: new Uint8Array(await f.arrayBuffer()), before: f.size }); li.textContent = `${f.name}: this type cannot be made smaller here, kept as it is.`; }
+          else li.textContent = `${f.name}: ${n === 'EncryptedPdfError' ? 'password-protected PDF, skipped' : n === 'TooBigError' ? `could not get under ${formatBytes(limit!)}` : 'could not be read, skipped'}.`;
+        }
+        list.append(li);
+      }
+      const t = batchTotals(outs.map((o) => ({ before: o.before, after: o.bytes.length })));
+      q('.cmp-bsum').textContent = outs.length ? `${outs.length} of ${files.length} files done: ${formatBytes(t.before)} to ${formatBytes(t.after)} (${t.savedPct}% smaller in total).` : 'None of the files could be compressed.';
+      if (outs.length > 1) {
+        const { zipAsync } = await import('../lib/compress/zipper');
+        const z = await zipAsync(Object.fromEntries(outs.map((o) => [o.name, o.bytes])), { level: 0 });
+        const za = q<HTMLAnchorElement>('.cmp-bzip');
+        za.href = URL.createObjectURL(new Blob([z as Uint8Array<ArrayBuffer>], { type: 'application/zip' })); za.hidden = false;
+      }
+      stopWaiting();
+      q('.cmp-batch').hidden = false;
+      setState('done');
+      root.dispatchEvent(new CustomEvent('fibub:compressed', { bubbles: true, detail: { method: 'batch', level: lv, before: t.before, after: t.after, outcome: 'smaller', fitLimit: limit ?? null, allowLoss: false } }));
+    }
+
     async function run(allowLoss: boolean) {
       if (!file) return;
+      if (batch()) return runBatch();
       clearResult();
       const m = method(), lv = level();
       // "Go below anyway" reuses the limit from the run that offered it (the fit box is hidden by then).

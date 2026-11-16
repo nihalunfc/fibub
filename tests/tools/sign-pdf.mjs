@@ -16,9 +16,15 @@ export default async ({ page, check, BASE }) => {
   // Nothing made yet: asks for a signature first.
   await page.click('.sg-add[data-k="sig"]');
   check((await page.textContent('.sg-status')).includes('Make your signature first'), 'sign-pdf: asks for a signature first');
+  // Ink options: choose blue and check the preview pixels are blue.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.sg-ink', '#1b3a8a');
+  await page.fill('.sg-thick', '8');
   // Type a signature.
   await page.click('.sg-tab[data-t="type"]'); await page.fill('.sg-name', 'Asha Rao'); await page.waitForTimeout(150);
   check(!(await page.locator('.sg-prev').isHidden()) && (await page.inputValue('.sg-ini')) === 'AR', 'sign-pdf: typed signature preview and initials AR');
+  const blue = await page.evaluate(() => { const c = document.querySelector('.sg-prev'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 250) return [d[i], d[i + 1], d[i + 2]]; return null; });
+  check(blue && blue[2] > blue[0], 'sign-pdf: typed signature uses the chosen blue ink');
   // Draw one too and place it on page 2.
   await page.click('.sg-tab[data-t="draw"]');
   const pad = await page.locator('.sg-pad').boundingBox();

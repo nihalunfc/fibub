@@ -6,7 +6,7 @@
     <label class="btn stp-pick">Take a photo <input class="stp-cam" type="file" accept="image/*" capture="environment" /></label>
     <label class="btn secondary stp-pick">Add images <input class="stp-file" type="file" accept="image/*" multiple /></label>
   </div>
-  <p class="stp-msg" role="status" aria-live="polite">Take a photo of a page, or add pictures from your device. Nothing is uploaded.</p>
+  <p class="stp-msg" role="status" aria-live="polite">Take a photo of a page, or add pictures from your device (you can also drop them here). Nothing is uploaded.</p>
   <div class="stp-work" hidden>
     <p class="stp-hint">Drag the four round corners onto the corners of the page, then check the flattened page on the right.</p>
     <div class="stp-views">
@@ -22,6 +22,15 @@
       <label>Look <select class="stp-filter"><option value="original">Original</option><option value="grey">Grey</option><option value="bw">Black and white</option><option value="whiten" selected>Whiten background</option></select></label>
       <label>Page size <select class="stp-size"><option value="a4">A4</option><option value="letter">Letter</option><option value="fit">Fit the page</option></select></label>
     </div>
+    <details class="stp-more">
+      <summary>More options</summary>
+      <label>File size <select class="stp-quality">
+        <option value="std" selected>Standard: clear text, medium file</option>
+        <option value="small">Small: for email and upload limits</option>
+        <option value="high">High: sharpest, largest file</option>
+      </select></label>
+      <p class="stp-hint">Small keeps the long side of each page to about 1600 pixels at lower JPG quality. The finished size is shown after you download.</p>
+    </details>
     <div class="stp-pages"></div>
     <button class="btn stp-make" type="button">Download PDF</button>
   </div>
@@ -37,6 +46,8 @@
   .stp-views { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .75rem; }
   .stp-edit { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px; display: grid; place-items: center; }
   .stp-edit canvas { max-width: 100%; max-height: 60vh; touch-action: none; }
+  .stp.over { outline: 2px dashed var(--accent); outline-offset: 4px; }
+  .stp-more summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
   .stp-pages { display: flex; flex-wrap: wrap; gap: .5rem; }
   .stp-card { border: 2px solid var(--line); border-radius: 10px; padding: 4px; display: grid; gap: 4px; width: 104px; background: var(--surface); }
   .stp-card.cur { border-color: var(--accent); }
@@ -114,6 +125,9 @@
     }
     refresh();
   }
+  root.addEventListener('dragover', (e) => { e.preventDefault(); root.classList.add('over'); });
+  root.addEventListener('dragleave', () => root.classList.remove('over'));
+  root.addEventListener('drop', (e) => { e.preventDefault(); root.classList.remove('over'); const fs = [...(e.dataTransfer?.files ?? [])]; const imgs = fs.filter((f) => f.type.startsWith('image/')); if (fs.length && !imgs.length) say('Those are not pictures. Drop JPG, PNG or WebP photos of your pages.', true); else add(imgs); });
   for (const sel of ['.stp-file', '.stp-cam']) $<HTMLInputElement>(sel).addEventListener('change', (e) => { const i = e.target as HTMLInputElement, fs = [...(i.files || [])]; i.value = ''; add(fs); });
 
   const at = (e: PointerEvent) => { const r = srcC.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
@@ -140,7 +154,9 @@
     try {
       say('Making your PDF...'); const { PDFDocument } = await import('pdf-lib'), doc = await PDFDocument.create();
       for (const p of pages) {
-        const c = flat(p), blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), 'image/jpeg', 0.85));
+        const ql = $<HTMLSelectElement>('.stp-quality').value, c0 = flat(p), k0 = ql === 'small' ? Math.min(1, 1600 / Math.max(c0.width, c0.height)) : 1;
+        let c = c0; if (k0 < 1) { c = document.createElement('canvas'); c.width = Math.round(c0.width * k0); c.height = Math.round(c0.height * k0); c.getContext('2d')!.drawImage(c0, 0, 0, c.width, c.height); }
+        const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), 'image/jpeg', ql === 'small' ? 0.6 : ql === 'high' ? 0.93 : 0.85));
         const im = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer())), sz = sizeSel.value;
         if (sz === 'fit') { const w = im.width * 72 / 150, h = im.height * 72 / 150; doc.addPage([w, h]).drawImage(im, { x: 0, y: 0, width: w, height: h }); }
         else {
@@ -148,7 +164,7 @@
           pg.drawImage(im, { x: (W - im.width * k) / 2, y: (H - im.height * k) / 2, width: im.width * k, height: im.height * k });
         }
       }
-      download(await doc.save(), 'scan.pdf'); say(`Saved scan.pdf with ${pages.length} page${pages.length === 1 ? '' : 's'}.`);
+      const out = await doc.save(); download(out, 'scan.pdf'); say(`Saved scan.pdf with ${pages.length} page${pages.length === 1 ? '' : 's'}, ${out.length > 1048576 ? (out.length / 1048576).toFixed(1) + ' MB' : Math.round(out.length / 1024) + ' KB'}.`);
     } catch (e: any) { say(e.message || 'Something went wrong.', true); }
   });
 </script>

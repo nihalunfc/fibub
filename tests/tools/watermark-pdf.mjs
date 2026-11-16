@@ -23,4 +23,12 @@ export default async ({ page, check, BASE }) => {
   await page.setInputFiles('.wm-file', { name: 'q.pdf', mimeType: 'application/pdf', buffer: await makePdf(1) });
   await page.waitForTimeout(400); await page.selectOption('.wm-kind', 'text'); await page.fill('.wm-text', 'Привет'); await page.click('.wm-go');
   check((await page.textContent('.wm-msg')).includes('Latin'), 'watermark-pdf: non-Latin text explained');
+  // preview and tiled layout
+  await page.fill('.wm-text', 'COPY');
+  await page.setInputFiles('.wm-file', { name: 'q.pdf', mimeType: 'application/pdf', buffer: await makePdf(1) });
+  await page.waitForSelector('.wm-canvas:not([hidden])', { timeout: 10000 });
+  check(await page.isVisible('.wm-prevnote'), 'watermark-pdf: PDF shows a preview of page 1');
+  await page.fill('.wm-text', 'COPY'); await page.selectOption('.wm-layout', 'tile'); await page.fill('.wm-size', '30');
+  const tl = await text((await saved(page, () => page.click('.wm-go'))).buf);
+  check((tl[0].match(/COPY/g) || []).length > 3, `watermark-pdf: tiled layout repeats the words (${(tl[0].match(/COPY/g) || []).length})`);
 };

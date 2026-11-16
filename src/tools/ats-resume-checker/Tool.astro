@@ -7,6 +7,11 @@
     <strong>Choose your resume</strong>
     <span>PDF, Word (.docx), text or Markdown · it never leaves your device</span>
   </label>
+  <details class="ats-pastebox">
+    <summary>No file? Paste your resume text instead</summary>
+    <textarea class="ats-paste" rows="8" placeholder="Paste your whole resume here (plain text)…"></textarea>
+    <button type="button" class="btn secondary ats-pastego">Check pasted text</button>
+  </details>
   <details class="ats-jdbox">
     <summary>Add the job ad (optional, for a keyword match)</summary>
     <textarea class="ats-jd" rows="6" placeholder="Paste the full job description here…"></textarea>
@@ -32,6 +37,7 @@
       <h3>Job ad keywords <span class="ats-kwp"></span></h3>
       <p class="ats-kwhint">Add the missing ones only if you really have them, using the job ad's own words.</p>
       <div class="ats-chips"></div>
+      <button type="button" class="btn secondary ats-copymiss" hidden>Copy the missing keywords</button>
     </div>
     <h3 class="ats-todo-h">To fix</h3>
     <ul class="ats-checks ats-todo"></ul>
@@ -57,7 +63,9 @@
   .ats-drop span { color: var(--muted); font-size: 14px; }
   .ats-drop.over, .ats-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
   .ats-passed[open] { display: grid; gap: 8px; }
-  .ats-jdbox summary, .ats-seen summary, .ats-passed summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+  .ats-pastebox[open] { display: grid; gap: 8px; justify-items: start; }
+  .ats-paste { width: 100%; }
+  .ats-pastebox summary,.ats-jdbox summary, .ats-seen summary, .ats-passed summary { cursor: pointer; color: var(--accent); font-weight: 600; }
   .ats-jdbox[open], .ats-seen[open] { display: grid; gap: 8px; }
   .ats textarea { width: 100%; font: 14px/1.5 system-ui, sans-serif; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); resize: vertical; }
   .ats-text { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
@@ -136,6 +144,9 @@
       q('.ats-kwp').textContent = `${r.keywords.percent}% found`;
       q('.ats-chips').innerHTML = [...r.keywords.matched.map((k) => `<span>✓ ${esc(k)}</span>`), ...r.keywords.missing.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('');
     }
+    const cm = q<HTMLButtonElement>('.ats-copymiss');
+    cm.hidden = !r.keywords?.missing.length;
+    cm.dataset.words = (r.keywords?.missing ?? []).join(', ');
     q<HTMLTextAreaElement>('.ats-text').value = x.text.trim();
     if (last) last.score = r.score;
     q('.ats-fix').classList.toggle('done', r.score >= 90);
@@ -218,6 +229,20 @@
     } finally { btn.disabled = false; }
   });
 
+  // Pasted text is scored like a text file; it is named resume.docx only so the file-type check does not nag.
+  q('.ats-pastego').addEventListener('click', async () => {
+    const text = q<HTMLTextAreaElement>('.ats-paste').value;
+    err.hidden = true; result.hidden = true; file = null;
+    if (text.trim().length < 20) { err.hidden = false; err.textContent = 'Paste your resume text first (it looks empty).'; return; }
+    const [, s] = await engine();
+    last = { x: { text, kind: 'Text', oddChars: (text.match(/[\u{E000}-\u{F8FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) ?? []).length }, name: 'resume.docx', size: 0 };
+    show(s.score(last.x, last.name, 0, jd.value), last.x);
+  });
+  q('.ats-copymiss').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(b.dataset.words ?? ''); b.textContent = 'Copied'; } catch { b.textContent = b.dataset.words ?? ''; }
+    setTimeout(() => { b.textContent = 'Copy the missing keywords'; }, 2500);
+  });
   input.addEventListener('change', () => pick(input.files?.[0]));
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));

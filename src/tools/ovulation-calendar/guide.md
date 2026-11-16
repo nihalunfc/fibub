@@ -11,12 +11,13 @@ ads: false
 order: 2037
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [due-date-calculator, sleep-calculator, water-intake]
 sources:
   - "NHS, Periods and fertility in the menstrual cycle: ovulation is usually 10 to 16 days before the next period; sperm can live up to 7 days (checked 2026-11-10)."
   - "Wilcox A.J., Weinberg C.R., Baird D.D. (1995), Timing of sexual intercourse in relation to ovulation, New England Journal of Medicine 333: the fertile window is the 6 days ending on ovulation day (checked 2026-11-10)."
   - "Ovulation 14 days before the next period and a window of 5 days before to 1 day after are the common calendar-method estimates; fibub's own working."
+  - "Calendar (Knaus-Ogino) rhythm method: first fertile day = shortest cycle − 18, last fertile day = longest cycle − 11 (cited from memory, not re-checked; confirm at the source). The 10 to 16 day range for the time between ovulation and the next period follows the NHS page above. Not a method of contraception."
 flow:
   - { icon: calendar, label: "Last period" }
   - { icon: sliders, label: "Cycle" }
@@ -46,6 +47,10 @@ It is an estimate from your usual cycle, not medical advice and not a form of co
 - **Reset**: back to the example.
 
 On the calendar, P is a period day, F the fertile window and O the estimated ovulation day. The window runs from 5 days before ovulation to 1 day after, because sperm can live several days and the egg about a day.
+
+## More options
+
+Open "More options" to change the days from ovulation to your next period (14 by default; people vary between about 10 and 16). If your cycles vary, type the shortest and the longest of your recent cycles: the calendar then outlines a wider possible window marked W, using the old calendar method (first fertile day = shortest cycle minus 18, last = longest cycle minus 11, with the first day of your period as day 1). A line near the top says which day of the cycle today is and how far away the fertile window is. The fertile days, and especially the two days before ovulation and ovulation day, carry the highest chance of pregnancy, but this is an estimate and not contraception; check the official source (NHS or your doctor).
 
 ## Worked example
 

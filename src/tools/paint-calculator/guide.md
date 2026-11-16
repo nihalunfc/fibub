@@ -11,7 +11,7 @@ ads: false
 order: 2019
 icon: pencil
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [wallpaper-calculator, drywall-calculator, tile-calculator, ac-size-calculator]
 sources:
   - "Area and coverage arithmetic: fibub's own working. Default coverage (10 m² per litre, 400 sq ft per US gallon) and door and window sizes are typical figures, not a standard; check the tin."
@@ -43,6 +43,12 @@ Before painting new walls, the [[drywall-calculator]] counts the boards, and if 
 - **Paint the ceiling too**: in Whole room mode, adds length × width with the same coats.
 - **Primer**: adds one coat of primer over the same area, at its own coverage.
 - **Tins**: metric uses 5 L, 2.5 L and 1 L tins; imperial uses gallons and quarts. The rule is the fewest tins that hold enough, then the one with the least left over.
+
+## More options
+
+Open **More options** to paint several identical rooms at once (bedrooms in a flat, say): type the number of rooms and the paint, tins and primer scale up. Type the price per litre or US gallon and the page shows an estimated cost for the tins you would buy, not just the paint you would use, since you pay for whole tins. Primer, tax and delivery are not included.
+
+In whole-room mode a scaled plan of the floor sits under the result so you can check you typed the right length and width. A room count of zero or blank counts as one, and a missing or negative price simply shows no cost.
 
 ## Worked example
 

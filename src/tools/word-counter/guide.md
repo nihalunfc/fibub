@@ -11,10 +11,11 @@ ads: false
 order: 1768
 icon: pencil
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [abstract-word-counter, readability-checker, case-converter]
 sources:
   - "Reading time uses 238 words a minute (Brysbaert, 2019, silent reading of non-fiction) and speaking time 150 words a minute, a common speech rate. Limits are the usual published ones; check the exact limit of the place you submit to."
+  - "Added limits: YouTube title 100 characters, Instagram caption 2,200 characters and LinkedIn post 3,000 characters, as published in each platform's help pages; checked 2026-11-16. Platforms change these, so check the official source. Handwriting time uses 20 words a minute, a common figure for neat writing."
 flow:
   - { icon: pencil, label: "Paste" }
   - { icon: chart, label: "Count" }
@@ -39,6 +40,13 @@ You can pick a limit, such as a post on X (280 characters), a search page descri
 - **Preset**: a ready-made limit in words or characters. Different places count differently, so check the rules of the site or school you are sending to.
 - **My own limit**: type a number and choose words or characters.
 - **Leave out common words**: hides words like "the" and "and" from the most-used list. Turn it off to see every word.
+
+## More options (added 2026-11-16)
+
+- **Progress bar**: under a limit, a bar fills as you type, turns amber above 90 percent and red once you are over.
+- **More presets**: a YouTube title (100 characters), an Instagram caption (2,200) and a LinkedIn post (3,000), on top of the X post, search title, meta description, text message and essay presets. Platforms change these limits, so check the official source before you rely on one.
+- **More numbers**: open this box for the number of different words, average word length, words per sentence, the longest word, lines and handwriting time (20 words a minute).
+- **One-line summary**: the line under the counts is what "Copy result" copies. "Copy link with my settings" shares your limit and word-list choice, never your text.
 
 ## Worked example
 

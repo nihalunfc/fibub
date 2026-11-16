@@ -53,8 +53,8 @@ import DataFile from '../../components/DataFile.astro';
       <h2 style="margin:0">Scan-rate study</h2>
       <button type="button" class="btn secondary small cv-ssample">Example</button>
     </div>
-    <label style="margin-top:10px">Scan rate (mV/s) and peak current (µA), one pair per line <textarea class="cv-sr" rows="5" spellcheck="false" wrap="off" placeholder="25&#9;9.5&#10;50&#9;13.4"></textarea></label>
-    <DataFile target=".cv-sr" maxCols={2} label="Open a file (2 columns)" />
+    <label style="margin-top:10px">Scan rate (mV/s) and peak current (µA), one pair per line; a third column of peak potentials (V) adds a Laviron fit <textarea class="cv-sr" rows="5" spellcheck="false" wrap="off" placeholder="25&#9;9.5&#10;50&#9;13.4"></textarea></label>
+    <DataFile target=".cv-sr" maxCols={3} label="Open a file (2 or 3 columns)" />
     <p class="ax-err cv-serr" hidden></p>
     <div class="cv-sout" hidden>
       <p class="ax-big cv-sbig"></p>
@@ -67,7 +67,7 @@ import DataFile from '../../components/DataFile.astro';
 </div>
 
 <script>
-  import { analyseCV, randlesSevcik, diffusionFromPeak, concFromPeak, simulateCV, reversibleDeltaEp, scanRateStudy, RS, F, R } from '../../lib/sci/cv';
+  import { analyseCV, randlesSevcik, diffusionFromPeak, concFromPeak, simulateCV, reversibleDeltaEp, scanRateStudy, laviron, RS, F, R } from '../../lib/sci/cv';
   import { num, sig, numericColumns, fmtExp } from '../../lib/sci/num';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure } from '../../lib/report';
@@ -173,6 +173,8 @@ import DataFile from '../../components/DataFile.astro';
     if (s.D !== undefined) facts.push(fact('Diffusion coefficient', `${fmtExp(s.D, 3)} cm²/s`, `from the slope with n = ${n}, A = ${A} cm², C = ${C} mmol/L (Randles–Sevcik)`));
     else facts.push(fact('Diffusion coefficient', 'needs the area and concentration', 'fill them in above'));
     if (ls !== undefined) facts.push(fact('log ip against log v', `slope ${ls.toFixed(3)}`, '0.5 for a freely diffusing species, 1.0 for one adsorbed on the electrode'));
+    const eps = t.cols.length >= 3 ? t.cols[0].map((x, i) => [x, t.cols[2][i]]).filter(([a, b]) => a > 0 && Number.isFinite(b)) : [];
+    if (eps.length >= 3) { const lv = laviron(eps.map((p) => p[0] / 1000), eps.map((p) => p[1]), T); facts.push(fact('Laviron: Ep against ln v', `slope ${sig(lv.fit.slope * 1000, 4)} mV, αn = ${lv.alphaN.toFixed(3)}`, `αn = RT/(F × slope) for an irreversible wave; with α = 0.5, n ≈ ${(lv.alphaN / 0.5).toFixed(1)}`)); }
     q('.cv-sfacts').replaceChildren(...facts);
     const xs = pts.map((p) => Math.sqrt(p[0] / 1000)), xm = Math.max(...xs);
     sfig = chartFigure({ h: 280, xLabel: '√(scan rate / (V/s))', yLabel: 'Peak current (µA)', xMin: 0, yMin: 0, series: [{ name: 'Measured', x: xs, y: pts.map((p) => Math.abs(p[1])) }, { name: 'Straight line', x: [0, xm * 1.05], y: [s.sqrtFit.intercept * 1e6, (s.sqrtFit.intercept + s.sqrtFit.slope * xm * 1.05) * 1e6], mode: 'line', dash: [5, 4] }], legend: 'below' }, 'Peak current against the square root of scan rate');

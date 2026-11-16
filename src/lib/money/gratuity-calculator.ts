@@ -4,6 +4,8 @@
 // after 1 year under the Labour Codes from 21 Nov 2025 (PIB via labour.gov.in).
 // UAE: Federal Decree-Law 33 of 2021, Art. 51 (u.ae, end of service benefits in the private sector).
 // Saudi Arabia: Labor Law (Royal Decree M/51), Art. 84 and 85 (hrsd.gov.sa). Checked 2026-11-10.
+// Qatar: Labour Law 14 of 2004, Art. 54 and 72 (mol.gov.qa). Oman: Labour Law, Royal Decree 53/2023, Art. 61.
+// Bahrain: SIO end-of-service regulation for non-Bahrainis (sio.gov.bh), from 1 March 2024. Checked 2026-11-16.
 
 const clamp = (n: number) => Math.max(0, Number.isFinite(n) ? n : 0);
 
@@ -63,6 +65,32 @@ export function saudiGratuity(i: SaudiIn) {
   return { service, full, share, amount: full * share };
 }
 
+export interface ServiceIn { years: number; months: number; days?: number }
+const serviceOf = (i: ServiceIn) => Math.floor(clamp(i.years)) + Math.min(11, Math.floor(clamp(i.months))) / 12 + clamp(i.days || 0) / 365;
+
+// Qatar, Art. 54: at least 3 weeks' (21 days') last basic wage for each year, part years pro rata, after at least 1 year.
+// Daily basic wage taken as basic / 30 (the law does not set the divisor: fibub's assumption).
+export function qatarGratuity(i: ServiceIn & { basic: number }) {
+  const basic = clamp(i.basic), service = serviceOf(i), daily = basic / 30;
+  const eligible = service >= 1;
+  return { service, daily, eligible, amount: eligible ? service * 21 * daily : 0 };
+}
+
+// Oman, Art. 61 (workers outside the Social Protection Law): at least one month's last basic wage for each year,
+// part years pro rata; no minimum service in the article. Applies until the Social Protection Law savings system starts.
+export function omanGratuity(i: ServiceIn & { basic: number }) {
+  const basic = clamp(i.basic), service = serviceOf(i);
+  return { service, amount: service * basic };
+}
+
+// Bahrain, SIO regulation (non-Bahraini workers, paid by the SIO from 1 March 2024): half a month's wage for each of the
+// first 3 years, a month's wage for each later year, part years pro rata. Wage = basic + social allowance, if any.
+export function bahrainGratuity(i: ServiceIn & { wage: number }) {
+  const wage = clamp(i.wage), service = serviceOf(i);
+  const first = 0.5 * wage * Math.min(service, 3), after = wage * Math.max(service - 3, 0);
+  return { service, first, after, amount: first + after };
+}
+
 /** Service from the joining date to the last working day (counted as a worked day), as whole years, months and days.
  *  Dates are 'YYYY-MM-DD'. Returns ok=false if a date is missing or the last day is before the joining date. */
 export function serviceBetween(join: string, last: string): { ok: boolean; years: number; months: number; days: number } {
@@ -79,10 +107,14 @@ export function serviceBetween(join: string, last: string): { ok: boolean; years
 }
 
 /** Amount by years of service for a quick comparison table (whole years, 0 months). */
-export function byYears(country: 'in' | 'ae' | 'sa', pay: number, opts: { covered?: boolean; fixedTerm?: boolean; resigned?: boolean } = {}, years = [1, 3, 5, 7, 10, 15, 20, 25, 30]): { years: number; amount: number }[] {
+export type Country = 'bh' | 'in' | 'om' | 'qa' | 'sa' | 'ae';
+export function byYears(country: Country, pay: number, opts: { covered?: boolean; fixedTerm?: boolean; resigned?: boolean } = {}, years = [1, 3, 5, 7, 10, 15, 20, 25, 30]): { years: number; amount: number }[] {
   return years.map((y) => {
     if (country === 'in') return { years: y, amount: indiaGratuity({ salary: pay, years: y, months: 0, covered: opts.covered !== false, fixedTerm: !!opts.fixedTerm }).payable };
     if (country === 'ae') return { years: y, amount: uaeGratuity({ basic: pay, years: y, months: 0 }).amount };
+    if (country === 'qa') return { years: y, amount: qatarGratuity({ basic: pay, years: y, months: 0 }).amount };
+    if (country === 'om') return { years: y, amount: omanGratuity({ basic: pay, years: y, months: 0 }).amount };
+    if (country === 'bh') return { years: y, amount: bahrainGratuity({ wage: pay, years: y, months: 0 }).amount };
     return { years: y, amount: saudiGratuity({ wage: pay, years: y, months: 0, resigned: !!opts.resigned }).amount };
   });
 }
