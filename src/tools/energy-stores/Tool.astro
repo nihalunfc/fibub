@@ -1,0 +1,80 @@
+---
+// #L328 Energy stores. Engine: src/lib/learn/ (quiz.ts, sim.ts).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn es">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="ks3" aria-pressed="true">KS3</button><button type="button" data-level="gcse" aria-pressed="false">GCSE</button></div>
+    <h2>Follow the energy</h2>
+    <label>Device <select class="es-dev">
+      <option value="0.10" data-from="electrical" data-use="light">Filament lamp (about 10%)</option>
+      <option value="0.40" data-from="electrical" data-use="light">LED lamp (about 40%)</option>
+      <option value="0.90" selected data-from="electrical" data-use="thermal energy in the water">Electric kettle (about 90%)</option>
+      <option value="0.70" data-from="electrical" data-use="kinetic energy">Electric motor (about 70%)</option>
+      <option value="0.25" data-from="chemical" data-use="kinetic energy">Petrol car engine (about 25%)</option>
+      <option value="0.40" data-from="kinetic" data-use="electrical energy">Wind turbine (about 40%)</option>
+    </select></label>
+    <canvas class="lrn-cv es-cv" aria-label="Energy transfer diagram: energy in splits into useful output and wasted energy"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Energy in: <b class="es-ev"></b> <input class="es-e" type="range" min="100" max="5000" step="100" value="1000" /></label>
+      <label data-only="gcse" hidden>Time: <b class="es-tv"></b> <input class="es-t" type="range" min="1" max="60" step="1" value="2" /></label>
+    </div>
+    <p class="ax-big es-out" aria-live="polite"></p>
+    <p class="ax-help es-sub"></p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Compare a filament lamp with an LED for the same energy in. Which wastes more?</li><li>Raise the energy in. Does the efficiency change?</li><li>On GCSE, shorten the time. What happens to the power?</li></ul>
+  </div>
+  <div class="ax-card es-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .es .es-cv { width: 100%; }
+  .es select { max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.es') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const inp = (s: string) => q(s) as HTMLInputElement;
+  const cv = q('.es-cv') as HTMLCanvasElement;
+  const sel = q('.es-dev') as HTMLSelectElement;
+  let level = 'ks3';
+  const draw = () => {
+    const E = +inp('.es-e').value, t = +inp('.es-t').value, eff = +sel.value;
+    const opt = sel.selectedOptions[0], useful = E * eff, waste = E - useful;
+    q('.es-ev').textContent = E + ' J'; q('.es-tv').textContent = t + ' s';
+    q('.es-out').textContent = `Useful ${r(useful)} J, wasted ${r(waste)} J.` + (level === 'gcse' ? ` Efficiency ${r(eff * 100)}%.` : '');
+    q('.es-sub').textContent = `${opt.dataset.from} energy in, ${opt.dataset.use} out (useful). The rest is wasted as thermal energy in the surroundings.` + (level === 'gcse' ? ` Power in ${r(E / t)} W, useful power out ${r(useful / t)} W.` : '');
+    const { ctx, W, H } = fitCanvas(cv, 200), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const x0 = 20, x1 = W * 0.4, x2 = W - 20, bandH = 90, top = 50;
+    const uh = bandH * eff, wh = bandH - uh;
+    ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = pal.muted; ctx.fillRect(x0, top, x1 - x0, bandH);
+    ctx.fillStyle = pal.accent; ctx.fillRect(x1, top, x2 - x1, uh);
+    ctx.fillStyle = pal.warn; ctx.fillRect(x1, top + uh + 8, (x2 - x1) * 0.7, Math.max(wh, 1));
+    ctx.fillStyle = pal.ink;
+    ctx.fillText(`In: ${E} J`, x0, top - 10);
+    ctx.fillText(`Useful: ${r(useful)} J`, x1, top - 10);
+    ctx.fillText(`Wasted: ${r(waste)} J`, x1, top + bandH + 30);
+  };
+  root.querySelectorAll('input,select').forEach((i) => i.addEventListener('input', draw));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(q('.es-quiz'), () => {
+    const E = pick(2, 20) * 100, u = pick(2, 8) * 10, t = pick(2, 10);
+    const useful = (E * u) / 100;
+    return [
+      { q: `A device takes in ${E} J and gives out ${r(useful)} J of useful energy. What is its efficiency, as a percentage?`, ans: u, unit: '%', work: `efficiency = useful ÷ total = ${r(useful)} ÷ ${E} = ${r(u / 100)}, which is ${u}%.` },
+      { q: `A lamp takes in ${E} J and ${r(useful)} J is useful light. How much energy is wasted?`, ans: E - useful, unit: 'J', work: `wasted = ${E} − ${r(useful)} = ${r(E - useful)} J` },
+      { q: `A motor takes in ${E} J in ${t} s. What is the power going in?`, ans: E / t, unit: 'W', work: `power = energy ÷ time = ${E} ÷ ${t} = ${r(E / t)} W` },
+    ];
+  });
+</script>
