@@ -11,7 +11,7 @@ import { allTools, toolComponent, toolUrl, relatedTools, bySubject, toolPlace } 
 import { ICONS } from '../../lib/icons';
 import { toolSeoTitle, toolDescription, toolLd } from '../../lib/seo';
 import { SHELVES, SUBJECTS } from '../../site';
-import { chaptersFor } from '../../data/ncert';
+import { chaptersForAll } from '../../data/curricula';
 import { articlesFor, articleUrl } from '../../lib/blog';
 // Two kinds of page share this address pattern: a tool (/science/sky-tonight/) and, on shelves with
 // subjects, a subject (/science/physics/). The build fails if a tool id is also a subject id.
@@ -31,7 +31,7 @@ const Content = tool ? (await render(tool)).Content : null;
 const updated = tool?.data.updated.toISOString().slice(0, 10);
 const changes = tool ? changesFor(tool.id) : [];
 // School chapters (Learn > Class 8 to 12) that use this tool.
-const syllabus = tool ? chaptersFor(tool.id) : [];
+const syllabus = tool ? chaptersForAll(tool.id) : [];
 const secHref = (sh: string, sj: any, sec: any) => sh === 'learn' ? `/learn/school/#${sec.id}` : sj ? `/${sh}/${sj.id}/#${sec.id}` : `/${sh}/#${sec.id}`;
 const everyTool = tool ? await allTools() : [];
 // The tool's guide on the Blog, and other articles that mention it.
@@ -73,7 +73,7 @@ const CARDS = 12;
   {syllabus.length > 0 && (
     <nav class="also" aria-label="In the school syllabus">
       <span>In the school syllabus</span>
-      {syllabus.slice(0, 8).map((x) => <a href={`/learn/${x.cls.id}/#${x.subject.id}-${x.chapter.n}`}>{`${x.cls.name} ${x.subject.name}, chapter ${x.chapter.n}: ${x.chapter.title}`}</a>)}
+      {syllabus.slice(0, 12).map((x) => <a href={`/learn/${x.cls.id}/#${x.subject.id}-${x.chapter.n}`}>{`${x.cls.name} ${x.subject.name}, ${x.cur.unit ?? 'chapter'} ${x.chapter.n}: ${x.chapter.title}`}</a>)}
     </nav>
   )}
   <article class="prose">
