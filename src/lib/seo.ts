@@ -132,3 +132,17 @@ export function articleSeoTitle(title: string, seoTitle?: string) {
   const cut = head.slice(0, TITLE_MAX - tail.length + 1);
   return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:(–-]+$/, '')}${tail}`;
 }
+
+/** Fallback for pages with no structured data of their own (About, Contact, Terms, hubs): a WebPage
+ *  that says what the page is and where it sits on the site, so every page has some. */
+export const pageLd = (name: string, description: string, path: string) => {
+  const type = path === '/about/' ? 'AboutPage' : path === '/contact/' ? 'ContactPage' : 'WebPage';
+  const crumbs: Crumb[] = [{ name: 'Home', url: '/' }];
+  const segs = path.split('/').filter(Boolean);
+  if (segs.length > 1) crumbs.push({ name: segs[0][0].toUpperCase() + segs[0].slice(1), url: `/${segs[0]}/` });
+  crumbs.push({ name, url: path });
+  return [
+    { '@type': type, name, description, url: abs(path), inLanguage: 'en', isPartOf: { '@id': `${SITE.url}/#site` }, publisher: { '@id': ORG_ID } },
+    breadcrumbs(crumbs),
+  ];
+};

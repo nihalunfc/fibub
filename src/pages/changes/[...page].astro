@@ -9,7 +9,7 @@ export const getStaticPaths = (({ paginate }) => paginate(CHANGES, { pageSize: 5
 const { page } = Astro.props;
 const tools = await allTools();
 ---
-<Base title={page.currentPage > 1 ? `Change log, page ${page.currentPage}` : 'Change log'} description="Every change to fibub's tools and pages, newest first, with the time it went live.">
+<Base title={page.currentPage > 1 ? `Change log, page ${page.currentPage}` : 'Change log'} description={page.currentPage > 1 ? `Page ${page.currentPage} of fibub's change log: older changes to its tools and pages, newest first, with the time each went live.` : "Every change to fibub's tools and pages, newest first, with the time it went live."}>
   <div class="crumbs"><a href="/">Home</a> / Change log</div>
   <h1>Change log</h1>
   <p class="lead">Every change to fibub, newest first. Times are in UTC. fibub is open source, so each change links to its full details on <a href={REPO}>GitHub</a>.</p>

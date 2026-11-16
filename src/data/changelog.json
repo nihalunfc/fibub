@@ -1,5 +1,899 @@
 [
  {
+  "sha": "47d6ffd818e4",
+  "date": "2026-11-16T07:29:03+00:00",
+  "title": "Give non-detects a clean search description",
+  "tools": [
+   "non-detects"
+  ],
+  "site": false
+ },
+ {
+  "sha": "054ce994583d",
+  "date": "2026-11-15T03:20:05+00:00",
+  "title": "Fix the Organic reaction map quiz crash and the bottom-bar test",
+  "tools": [
+   "organic-reaction-map"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f894cd00eb0",
+  "date": "2026-11-15T01:52:58+00:00",
+  "title": "Search Console fixes: hemocytometer how-to, near-miss titles, footer tap size",
+  "tools": [
+   "doubling-power",
+   "floral-formula",
+   "hemocytometer",
+   "impact-crater-calculator",
+   "lab-unit-converter",
+   "nmr-impurity-checker",
+   "points-3d",
+   "porkchop-plot",
+   "race-track",
+   "river-crossing",
+   "vertical-circle",
+   "z-scheme"
+  ],
+  "site": true
+ },
+ {
+  "sha": "0566510873c9",
+  "date": "2026-11-14T17:03:27+00:00",
+  "title": "Fill PDF: fill fields on the page, no black boxes, any alphabet",
+  "tools": [
+   "fill-pdf",
+   "parking-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d9bde5e0648f",
+  "date": "2026-11-14T04:36:18+00:00",
+  "title": "Parking Finder: shorter choices for phones, scroll to results, clearer street names",
+  "tools": [
+   "parking-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "82cdaad57507",
+  "date": "2026-11-14T04:29:09+00:00",
+  "title": "Parking data: drop duplicate lots and street pieces, clearer Ottawa names, first place name only",
+  "tools": [
+   "parking-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "acd3aaad1da1",
+  "date": "2026-11-14T04:23:11+00:00",
+  "title": "Parking data: read Ottawa's paid hours from RATE_DESC, readable block names, smaller squares",
+  "tools": [
+   "parking-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "47a8dd8e6fa5",
+  "date": "2026-11-14T04:18:40+00:00",
+  "title": "Parking data: read Geofabrik's Ontario extract with osmium instead of Overpass",
+  "tools": [
+   "parking-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7a1ae6b02db3",
+  "date": "2026-11-14T04:04:21+00:00",
+  "title": "Parking Finder (#T954): parking lots, garages and street parking near any spot in Ontario",
+  "tools": [
+   "parking-finder"
+  ],
+  "site": true
+ },
+ {
+  "sha": "b283b5359f74",
+  "date": "2026-11-14T04:03:50+00:00",
+  "title": "Add Rent compare (#T953): rental homes by rent, bills and commute",
+  "tools": [
+   "rent-compare"
+  ],
+  "site": true
+ },
+ {
+  "sha": "7864f460b441",
+  "date": "2026-11-14T03:53:56+00:00",
+  "title": "Cell Signal: networks near you from open tower data",
+  "tools": [
+   "cell-signal-guide"
+  ],
+  "site": false
+ },
+ {
+  "sha": "62f75a8a70bc",
+  "date": "2026-11-14T01:46:45+00:00",
+  "title": "SEO: guides for the internet tools, one page per search",
+  "tools": [
+   "cell-signal-guide",
+   "internet-speed-test",
+   "wifi-spot-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a82cee012524",
+  "date": "2026-11-14T00:55:08+00:00",
+  "title": "Add Speed Test (#T950), Wi-Fi Finder (#T951) and Cell Signal (#T952)",
+  "tools": [
+   "cell-signal-guide",
+   "internet-speed-test",
+   "wifi-spot-finder"
+  ],
+  "site": true
+ },
+ {
+  "sha": "af77f0cb4a3e",
+  "date": "2026-11-13T17:09:23+00:00",
+  "title": "Make fibub installable as an app: manifest, offline service worker, Install buttons and /app/ page",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "005ecef7ab81",
+  "date": "2026-11-12T07:22:41+00:00",
+  "title": "Renumber the new tools after the Trip tracker (old-style numbers only)",
+  "tools": [
+   "cng-vs-petrol",
+   "ethanol-blend",
+   "hot-car",
+   "octane-guide",
+   "tread-depth",
+   "two-stroke-mix",
+   "tyre-age",
+   "tyre-size",
+   "tyre-type",
+   "winter-tyres"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8a018a7cbf7c",
+  "date": "2026-11-12T06:20:31+00:00",
+  "title": "Give the 10 new tools their own old-style numbers (2113-2122)",
+  "tools": [
+   "cng-vs-petrol",
+   "ethanol-blend",
+   "hot-car",
+   "octane-guide",
+   "tread-depth",
+   "two-stroke-mix",
+   "tyre-age",
+   "tyre-type",
+   "winter-tyres"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a7b21ce7d37",
+  "date": "2026-11-12T06:17:22+00:00",
+  "title": "Tyre size: cross-links, plain BIS wording",
+  "tools": [
+   "tyre-size"
+  ],
+  "site": false
+ },
+ {
+  "sha": "25561aaf4973",
+  "date": "2026-11-12T06:17:02+00:00",
+  "title": "Tyre size (#T940): read the code on a tyre in plain words, with pictures",
+  "tools": [
+   "tyre-size"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5699d6dbaf31",
+  "date": "2026-11-12T06:11:31+00:00",
+  "title": "Cross-link the new tyre tools",
+  "tools": [
+   "tyre-type",
+   "winter-tyres"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a22d4e8856b5",
+  "date": "2026-11-12T06:11:16+00:00",
+  "title": "Vehicles: tyre-age (T941), tread-depth (T942), winter-tyres (T943)",
+  "tools": [
+   "tread-depth",
+   "tyre-age",
+   "winter-tyres"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c4b4b82c8855",
+  "date": "2026-11-12T06:09:31+00:00",
+  "title": "Vehicles: octane-guide, ethanol-blend, cng-vs-petrol, two-stroke-mix (T946-T949)",
+  "tools": [
+   "cng-vs-petrol",
+   "ethanol-blend",
+   "octane-guide",
+   "two-stroke-mix"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3f04938c427a",
+  "date": "2026-11-12T06:06:23+00:00",
+  "title": "Vehicles: Tyre type (T944) and Hot car (T945)",
+  "tools": [
+   "hot-car",
+   "tyre-type"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1550e74b1e8b",
+  "date": "2026-11-12T06:03:50+00:00",
+  "title": "Vehicle tools open on a country's units from ?c=; quick builds skip articles about tools left out",
+  "tools": [
+   "cost-per-mile",
+   "fleet-fuel",
+   "fuel-cost",
+   "helmet-size",
+   "ifta-calculator",
+   "load-profit",
+   "on-road-price",
+   "pallet-planner",
+   "road-trip"
+  ],
+  "site": true
+ },
+ {
+  "sha": "33614889269a",
+  "date": "2026-11-12T06:02:46+00:00",
+  "title": "Quick builds (FIBUB_ONLY) skip the blog tool-id check",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "d38a363f6f10",
+  "date": "2026-11-12T06:00:30+00:00",
+  "title": "Vehicles: own shelf by vehicle type, country pages, ?c= country preset",
+  "tools": [
+   "axle-weights",
+   "car-affordability",
+   "car-depreciation",
+   "car-loan",
+   "commute-cost",
+   "cost-per-mile",
+   "driving-hours",
+   "engine-cc",
+   "ev-range",
+   "ev-vs-petrol",
+   "eway-bill-validity",
+   "fleet-fuel",
+   "fuel-cost",
+   "helmet-size",
+   "ifta-calculator",
+   "lease-vs-buy",
+   "load-profit",
+   "on-road-price",
+   "pallet-planner",
+   "real-mileage",
+   "road-trip",
+   "sprocket-ratio",
+   "stopping-distance",
+   "trip-sheet",
+   "tyre-pressure",
+   "used-car-checklist",
+   "vin-check"
+  ],
+  "site": true
+ },
+ {
+  "sha": "1caca5f211fa",
+  "date": "2026-11-12T05:39:56+00:00",
+  "title": "Add Trip Tracker (#T938): live GPS trip recording in the browser",
+  "tools": [
+   "trip-tracker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bb947a171b35",
+  "date": "2026-11-10T22:07:42+00:00",
+  "title": "Rectifier lab quiz: ripple answer to 3 significant figures (2 dp failed the 2% check on small ripples)",
+  "tools": [
+   "rectifier-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d405ac28c5b",
+  "date": "2026-11-10T21:28:13+00:00",
+  "title": "Usage page: smaller charts and tables, phone layout; research papers checked; guides count; new site map page with a network chart",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "b4c5f028b4c7",
+  "date": "2026-11-10T21:05:00+00:00",
+  "title": "Add blog RSS feed and blog lastmod in the sitemap for Search Console",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "9c45e0c9385e",
+  "date": "2026-11-10T20:57:53+00:00",
+  "title": "Blog lists: own class for the page count",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "32395ba08af4",
+  "date": "2026-11-10T20:53:39+00:00",
+  "title": "Blog: paginate the article lists and add search and filters (type, area, subject, topic)",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "8d822f2ab718",
+  "date": "2026-11-10T19:37:47+00:00",
+  "title": "Everyday PR 2: cross-links between builders' tools",
+  "tools": [
+   "calorie-calculator",
+   "citizenship-days",
+   "date-calculator",
+   "document-expiry",
+   "water-intake"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4003e29402d",
+  "date": "2026-11-10T19:37:29+00:00",
+  "title": "Jet lag planner (#T935): 3 days before and after, sleep moved 1 h a day, light windows and caffeine cut-off",
+  "tools": [
+   "jet-lag-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eb3a6d112e9f",
+  "date": "2026-11-10T19:37:28+00:00",
+  "title": "Expiry reminders (#T934): documents sorted by expiry with days left and status, one .ics with an alarm per item, opt-in remember",
+  "tools": [
+   "document-expiry"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ec06954aea05",
+  "date": "2026-11-10T19:37:28+00:00",
+  "title": "Date calculator (#T933): exact age and next birthday, days and weekdays between dates, add or subtract days to years",
+  "tools": [
+   "date-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "046b67cd8784",
+  "date": "2026-11-10T19:36:58+00:00",
+  "title": "Citizenship days (#T932): 1,095-day physical presence count and earliest apply date",
+  "tools": [
+   "citizenship-days"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ce60e46baceb",
+  "date": "2026-11-10T19:36:58+00:00",
+  "title": "CRS calculator (#T931): Express Entry score from IRCC's grid as of 2026-11-03",
+  "tools": [
+   "crs-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5e2657d4d412",
+  "date": "2026-11-10T19:36:26+00:00",
+  "title": "Password strength (#T937): own estimator with common list, patterns and crack times",
+  "tools": [
+   "password-strength"
+  ],
+  "site": false
+ },
+ {
+  "sha": "280f47facc2c",
+  "date": "2026-11-10T19:36:26+00:00",
+  "title": "Password generator (#T936): crypto random passwords with exact entropy; passphrases left out",
+  "tools": [
+   "password-generator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06cecf706b3a",
+  "date": "2026-11-10T19:36:26+00:00",
+  "title": "Countdown timer (#T930): full-screen countdown with presets, amber warning, beep and stopwatch laps",
+  "tools": [
+   "classroom-timer",
+   "group-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1b828e0db288",
+  "date": "2026-11-10T19:36:26+00:00",
+  "title": "Study timer (#T929): Pomodoro focus and break timer with tab-title countdown",
+  "tools": [
+   "study-timer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "22c9ec164111",
+  "date": "2026-11-10T19:33:01+00:00",
+  "title": "Screen recorder (#T924): getDisplayMedia to WebM with countdown, pause and timer",
+  "tools": [
+   "screen-recorder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "015c7643d5b0",
+  "date": "2026-11-10T19:33:01+00:00",
+  "title": "Audio trimmer (#T923): waveform, trim, fades, normalise, own WAV writer",
+  "tools": [
+   "audio-trimmer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c215200c9aa4",
+  "date": "2026-11-10T19:33:01+00:00",
+  "title": "Video trimmer (#T922): cut a clip to WebM in real time, optional mute",
+  "tools": [
+   "video-trimmer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "111a68eafd29",
+  "date": "2026-11-10T19:33:01+00:00",
+  "title": "Video to GIF (#T921): clip of your own video to an animated GIF, own GIF89a/LZW encoder",
+  "tools": [
+   "video-to-gif"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b593ae15c33",
+  "date": "2026-11-10T19:28:40+00:00",
+  "title": "Calorie calculator (#T916): Mifflin-St Jeor BMR, activity, weight goal and macro split",
+  "tools": [
+   "calorie-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "532433f7966b",
+  "date": "2026-11-10T19:28:40+00:00",
+  "title": "Steps to distance (#T915): steps to km or miles from height or measured stride, MET calories",
+  "tools": [
+   "steps-to-distance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3f12d33e00b1",
+  "date": "2026-11-10T19:28:39+00:00",
+  "title": "One-rep max (#T914): Epley and Brzycki 1RM, average and 50-100% table in kg or lb",
+  "tools": [
+   "one-rep-max"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5ee364db7c97",
+  "date": "2026-11-10T19:28:39+00:00",
+  "title": "Pace calculator (#T913): pace, time or distance from the other two, splits and Riegel race predictor",
+  "tools": [
+   "pace-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "85d99ee4f4e9",
+  "date": "2026-11-10T19:26:26+00:00",
+  "title": "Ovulation calendar (#T920): ovulation, fertile window and next 6 periods, month view and .ics",
+  "tools": [
+   "ovulation-calendar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "183cff576a70",
+  "date": "2026-11-10T19:26:25+00:00",
+  "title": "Due date (#T919): due date from last period, conception or IVF transfer, with week count and key weeks",
+  "tools": [
+   "due-date-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "112e6abd7c4e",
+  "date": "2026-11-10T19:26:25+00:00",
+  "title": "Sleep calculator (#T918): bedtimes and wake times in 90-minute cycles, sleep hours by age",
+  "tools": [
+   "sleep-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b1c5e475a2f3",
+  "date": "2026-11-10T19:26:25+00:00",
+  "title": "Water intake (#T917): daily fluid guide by EFSA and US National Academies, exercise add-on, glasses tracker",
+  "tools": [
+   "water-intake"
+  ],
+  "site": false
+ },
+ {
+  "sha": "20ae3408ab25",
+  "date": "2026-11-10T19:26:02+00:00",
+  "title": "Group maker (#T928): random balanced groups and no-repeat name picker",
+  "tools": [
+   "group-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a4c8924db3c2",
+  "date": "2026-11-10T19:26:02+00:00",
+  "title": "Weighted grade (#T927): weighted average with points, letter scale and what-if",
+  "tools": [
+   "weighted-grade-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fbacf211d609",
+  "date": "2026-11-10T19:26:01+00:00",
+  "title": "Final grade (#T926): score needed on the final, with a table per letter grade",
+  "tools": [
+   "final-grade-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e25e90ff6605",
+  "date": "2026-11-10T19:26:01+00:00",
+  "title": "Image compare (#T925): before/after slider, overlay and pixel difference view",
+  "tools": [
+   "image-compare"
+  ],
+  "site": false
+ },
+ {
+  "sha": "08f45a2eecba",
+  "date": "2026-11-10T19:16:18+00:00",
+  "title": "Everyday: drop the empty Cars category (PR #90 adds Cars, bikes and trucks)",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "f4e62d56d6a9",
+  "date": "2026-11-10T19:12:15+00:00",
+  "title": "Slug maker is #T912 (after the vehicle block)",
+  "tools": [
+   "slug-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "896af55b42f3",
+  "date": "2026-11-10T18:49:55+00:00",
+  "title": "Blog: add the How to kind (tab, collection, link checks, writer rules)",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "26084107865e",
+  "date": "2026-11-10T18:49:55+00:00",
+  "title": "Free fall: correct the drag comment (drag grows with speed squared)",
+  "tools": [
+   "free-fall"
+  ],
+  "site": false
+ },
+ {
+  "sha": "37799d7bc967",
+  "date": "2026-11-10T18:49:55+00:00",
+  "title": "Gaussian plume: fix the kg/h source-rate unit (was 1000 times too small)",
+  "tools": [
+   "gaussian-plume-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b1897de92bf5",
+  "date": "2026-11-10T18:42:00+00:00",
+  "title": "Everyday PR 1: codes after #T849 clash, cross-links between builders' tools",
+  "tools": [
+   "base64-converter",
+   "deck-calculator",
+   "hash-checker",
+   "jwt-decoder",
+   "paint-calculator",
+   "slug-maker",
+   "stair-calculator",
+   "tile-calculator",
+   "timestamp-converter",
+   "url-encoder",
+   "uuid-generator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7333e5818a47",
+  "date": "2026-11-10T18:40:44+00:00",
+  "title": "Meal planner (#T866): weekly meal grid with merged, grouped shopping list",
+  "tools": [
+   "meal-planner",
+   "recipe-scaler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "417971df3519",
+  "date": "2026-11-10T18:40:44+00:00",
+  "title": "Sort lines (#T856): sort, dedupe, trim, shuffle and number a list",
+  "tools": [
+   "sort-lines"
+  ],
+  "site": false
+ },
+ {
+  "sha": "23a043541442",
+  "date": "2026-11-10T18:40:44+00:00",
+  "title": "Timestamp converter (#T855): Unix seconds or ms to dates in any zone, and back",
+  "tools": [
+   "timestamp-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f7a790be1f9d",
+  "date": "2026-11-10T18:40:43+00:00",
+  "title": "Roast time (#T865): roasting time, rest, thaw and USDA/Health Canada safe temperatures",
+  "tools": [
+   "oven-temperature",
+   "roast-time"
+  ],
+  "site": false
+ },
+ {
+  "sha": "54604bbd8c50",
+  "date": "2026-11-10T18:40:43+00:00",
+  "title": "Ingredient swaps (#T864): searchable kitchen substitutions with amount scaling and diet filters",
+  "tools": [
+   "cups-to-grams",
+   "ingredient-swaps"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d0e2f2348de1",
+  "date": "2026-11-10T18:38:55+00:00",
+  "title": "Vehicle tools take codes T890-T911 (the block the coordinator gave this stream)",
+  "tools": [
+   "axle-weights",
+   "car-affordability",
+   "car-depreciation",
+   "cost-per-mile",
+   "driving-hours",
+   "engine-cc",
+   "ev-range",
+   "eway-bill-validity",
+   "fleet-fuel",
+   "helmet-size",
+   "ifta-calculator",
+   "load-profit",
+   "pallet-planner",
+   "real-mileage",
+   "road-trip",
+   "sprocket-ratio",
+   "stopping-distance",
+   "trip-sheet",
+   "tyre-pressure",
+   "used-car-checklist",
+   "vin-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e63e21b7809d",
+  "date": "2026-11-10T18:38:15+00:00",
+  "title": "Add #T905 axle-weights (lever rule and bridge formula)",
+  "tools": [
+   "axle-weights"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fd0b0cc11c2d",
+  "date": "2026-11-10T18:38:15+00:00",
+  "title": "Add #T904 ifta-calculator (quarterly fuel tax by jurisdiction)",
+  "tools": [
+   "ifta-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1e04302772ee",
+  "date": "2026-11-10T18:38:15+00:00",
+  "title": "Add #T903 driving-hours (US and Canada hours-of-service clocks)",
+  "tools": [
+   "driving-hours"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7cf6d1837bf3",
+  "date": "2026-11-10T18:38:01+00:00",
+  "title": "vin-check and used-car-checklist link to car-depreciation",
+  "tools": [
+   "used-car-checklist",
+   "vin-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3fbc395774d1",
+  "date": "2026-11-10T18:37:54+00:00",
+  "title": "AC size (#T876): room air conditioner size from the ENERGY STAR chart, with a rough heating size",
+  "tools": [
+   "ac-size-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "067210900a6c",
+  "date": "2026-11-10T18:37:33+00:00",
+  "title": "Add helmet size tool (#T912)",
+  "tools": [
+   "helmet-size"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0a32c3a18ff2",
+  "date": "2026-11-10T18:35:54+00:00",
+  "title": "Add used car checklist tool (#T911)",
+  "tools": [
+   "used-car-checklist"
+  ],
+  "site": false
+ },
+ {
+  "sha": "87e0877cb5b8",
+  "date": "2026-11-10T18:35:16+00:00",
+  "title": "UUID generator (#T854): v4 and v7 UUIDs in bulk, plus a validator",
+  "tools": [
+   "uuid-generator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a5883d53d02",
+  "date": "2026-11-10T18:35:16+00:00",
+  "title": "Regex tester (#T853): test a pattern with highlights, groups and a replace preview",
+  "tools": [
+   "regex-tester"
+  ],
+  "site": false
+ },
+ {
+  "sha": "292db6536805",
+  "date": "2026-11-10T18:35:02+00:00",
+  "title": "Gravel calculator (#T875): volume, tonnes and bags of gravel, sand, soil or mulch for several areas",
+  "tools": [
+   "concrete-calculator",
+   "gravel-calculator",
+   "roof-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d2ca1061cafd",
+  "date": "2026-11-10T18:33:50+00:00",
+  "title": "Add VIN check tool (#T910)",
+  "tools": [
+   "vin-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4d4534872c2",
+  "date": "2026-11-10T18:31:51+00:00",
+  "title": "Drywall calculator (#T870): sheets with waste, plus screws, joint tape and compound",
+  "tools": [
+   "drywall-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "57bea9512004",
+  "date": "2026-11-10T18:31:51+00:00",
+  "title": "Wallpaper calculator (#T869): rolls counted strip by strip, with pattern repeat and match",
+  "tools": [
+   "wallpaper-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f08a658031d5",
+  "date": "2026-11-10T18:31:51+00:00",
+  "title": "Tile calculator (#T868): tiles, boxes and grout for floors and walls, plus a planks mode",
+  "tools": [
+   "tile-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8bb4f151fa5f",
+  "date": "2026-11-10T18:30:53+00:00",
+  "title": "Add trucking tools: cost-per-mile, load-profit, pallet-planner, fleet-fuel",
+  "tools": [
+   "cost-per-mile",
+   "fleet-fuel",
+   "load-profit",
+   "pallet-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9c506f0e9121",
+  "date": "2026-11-10T18:29:38+00:00",
+  "title": "Roof calculator (#T874): pitch conversions, roof area, squares and bundles",
+  "tools": [
+   "roof-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "13b9631dc1c8",
+  "date": "2026-11-10T18:29:38+00:00",
+  "title": "Stair calculator (#T873): risers, treads, stringer and code checks",
+  "tools": [
+   "stair-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f234c6fcb14",
+  "date": "2026-11-10T18:29:38+00:00",
+  "title": "Deck calculator (#T872): boards, joists and screws or clips for a deck",
+  "tools": [
+   "deck-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "389371083c9a",
+  "date": "2026-11-10T18:29:38+00:00",
+  "title": "Concrete calculator (#T871): slab, footing, post hole and step volume with premix bags",
+  "tools": [
+   "concrete-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "91ab5d82a595",
   "date": "2026-11-10T18:29:24+00:00",
   "title": "Insurance batch 2: cross-links to batch 1 and share images",
@@ -19,6 +913,15 @@
   "site": false
  },
  {
+  "sha": "b5bc1c84fadd",
+  "date": "2026-11-10T18:28:35+00:00",
+  "title": "Trip sheet (#T893): truck trip costs, profit and driver balance, print and PDF",
+  "tools": [
+   "trip-sheet"
+  ],
+  "site": false
+ },
+ {
   "sha": "c3f4a58b2968",
   "date": "2026-11-10T18:26:39+00:00",
   "title": "Add health-cover-needed tool",
@@ -33,6 +936,90 @@
   "title": "Add waiting-periods tool",
   "tools": [
    "waiting-periods"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a9b75bb90d1f",
+  "date": "2026-11-10T18:26:38+00:00",
+  "title": "Paint calculator (#T867): paint for a room in litres or US gallons, with tins to buy",
+  "tools": [
+   "paint-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7fa13046eb87",
+  "date": "2026-11-10T18:26:23+00:00",
+  "title": "E-way bill validity (#T892): days by distance, expiry and extension window",
+  "tools": [
+   "eway-bill-validity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4f08e7513f49",
+  "date": "2026-11-10T18:25:25+00:00",
+  "title": "sprocket-ratio tool (Group VC)",
+  "tools": [
+   "sprocket-ratio"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fd78c96d8a2b",
+  "date": "2026-11-10T18:25:25+00:00",
+  "title": "engine-cc tool (Group VC)",
+  "tools": [
+   "engine-cc"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8fc808f7eca5",
+  "date": "2026-11-10T18:25:25+00:00",
+  "title": "ev-range tool (Group VC)",
+  "tools": [
+   "ev-range"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d4ddb5b5c971",
+  "date": "2026-11-10T18:25:25+00:00",
+  "title": "tyre-pressure tool (Group VC)",
+  "tools": [
+   "tyre-pressure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dde006ceae5f",
+  "date": "2026-11-10T18:25:25+00:00",
+  "title": "stopping-distance tool (Group VC)",
+  "tools": [
+   "stopping-distance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f95ec560df1a",
+  "date": "2026-11-10T18:24:33+00:00",
+  "title": "On-road price (#T890): India, Canada and US out-the-door price",
+  "tools": [
+   "on-road-price"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06296165aa23",
+  "date": "2026-11-10T18:24:10+00:00",
+  "title": "Add real-mileage, car-depreciation, car-affordability, road-trip tools",
+  "tools": [
+   "car-affordability",
+   "car-depreciation",
+   "real-mileage",
+   "road-trip"
   ],
   "site": false
  },
@@ -91,6 +1078,69 @@
   "site": false
  },
  {
+  "sha": "c74906dc9885",
+  "date": "2026-11-10T18:17:50+00:00",
+  "title": "Hash checker (#T852): SHA-256/1/384/512 and MD5 of text or file, compare",
+  "tools": [
+   "hash-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f2826b6af50f",
+  "date": "2026-11-10T18:17:50+00:00",
+  "title": "JWT decoder (#T851): header, payload and expiry dates, signature not verified",
+  "tools": [
+   "jwt-decoder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5a2144d6ec4a",
+  "date": "2026-11-10T18:17:50+00:00",
+  "title": "URL encoder (#T850): percent-encode and decode, query string table",
+  "tools": [
+   "url-encoder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "de5fd1b405a8",
+  "date": "2026-11-10T18:17:49+00:00",
+  "title": "Slug maker (#T877): titles to URL slugs and safe file names, many lines at once",
+  "tools": [
+   "slug-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8a9af4b00b8c",
+  "date": "2026-11-10T18:17:49+00:00",
+  "title": "Photo palette (#T859): main colours of a photo by seeded k-means, CSS and PNG strip",
+  "tools": [
+   "photo-palette"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2c813dff2bd2",
+  "date": "2026-11-10T18:17:49+00:00",
+  "title": "Favicon maker (#T858): favicon.ico and six PNG sizes from a letter or image, zipped with HTML",
+  "tools": [
+   "favicon-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a7971bc1b4bd",
+  "date": "2026-11-10T18:17:49+00:00",
+  "title": "Colour converter (#T857): HEX, RGB, HSL, CMYK and CSS names with tints, shades and WCAG contrast",
+  "tools": [
+   "colour-converter"
+  ],
+  "site": false
+ },
+ {
   "sha": "114036f0eb60",
   "date": "2026-11-10T18:17:40+00:00",
   "title": "Add travel-insurance insurance tool",
@@ -118,11 +1168,69 @@
   "site": false
  },
  {
+  "sha": "948638873feb",
+  "date": "2026-11-10T18:17:13+00:00",
+  "title": "Recipe scaler (#T863): scale an ingredient list by servings or factor, with fractions and grams",
+  "tools": [
+   "recipe-scaler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "71c4ab4606af",
+  "date": "2026-11-10T18:17:13+00:00",
+  "title": "Pan size converter (#T862): scale a recipe between round, square, loaf and bundt pans",
+  "tools": [
+   "pan-size-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0d7a41f8c755",
+  "date": "2026-11-10T18:17:12+00:00",
+  "title": "Oven temperature (#T861): °C, °F and gas mark with fan oven adjustment",
+  "tools": [
+   "oven-temperature"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0273b4fda9bf",
+  "date": "2026-11-10T18:17:03+00:00",
+  "title": "Money > Cars, bikes and trucks subject with five sections; car tools move into it",
+  "tools": [
+   "car-loan",
+   "commute-cost",
+   "ev-vs-petrol",
+   "fuel-cost",
+   "lease-vs-buy"
+  ],
+  "site": true
+ },
+ {
   "sha": "bfe0b3353162",
   "date": "2026-11-10T18:15:30+00:00",
   "title": "Add super-top-up tool (T878)",
   "tools": [
    "super-top-up"
+  ],
+  "site": false
+ },
+ {
+  "sha": "43980f0e76b0",
+  "date": "2026-11-10T18:11:18+00:00",
+  "title": "Cups to grams (#T860): convert cups, spoons and ml to grams for 42 ingredients",
+  "tools": [
+   "cups-to-grams"
+  ],
+  "site": false
+ },
+ {
+  "sha": "51096d09c3b6",
+  "date": "2026-11-10T18:10:07+00:00",
+  "title": "Base64 converter (#T849): text and file Base64 both ways, URL-safe option",
+  "tools": [
+   "base64-converter"
   ],
   "site": false
  },
@@ -134,6 +1242,20 @@
    "currency-converter"
   ],
   "site": false
+ },
+ {
+  "sha": "a13e9ff680d9",
+  "date": "2026-11-10T18:03:56+00:00",
+  "title": "Everyday categories and subcategories, like Science",
+  "tools": [
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "planner",
+   "qr-code-generator",
+   "shift-scheduler",
+   "time-zone-planner"
+  ],
+  "site": true
  },
  {
   "sha": "3965a4dd4527",

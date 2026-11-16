@@ -7,7 +7,7 @@ import { mark } from '../lib/brand';
 import { ICONS } from '../lib/icons';
 import { SUBJECTS, AREAS, areaOf } from '../site';
 import { allTools } from '../lib/tools';
-import { metaDescription } from '../lib/seo';
+import { metaDescription, pageLd } from '../lib/seo';
 // The header menu: on computers each shelf opens a panel listing its tools. A shelf with subjects
 // (Science) gets a two-level panel: subjects on the left; on the right, the chosen subject's sections,
 // each with its first few tools and a link to the rest, so the panel stays one screen tall however
@@ -22,7 +22,9 @@ const menus = SHELVES.map((s) => ({ shelf: s, hasSubjects: !!SUBJECTS[s.id], cou
 interface Props { title: string; docTitle?: string; description?: string; shelf?: string; noindex?: boolean; image?: string; tool?: string; ld?: object[] }
 const { title, docTitle, description: rawDescription = SITE.description, shelf, noindex = false, image = '/og/home.png', tool, ld } = Astro.props;
 const description = metaDescription(rawDescription);
-const ldJson = ld?.length ? JSON.stringify({ '@context': 'https://schema.org', '@graph': ld }).replace(/</g, '\\u003c') : null;
+const pagePath = Astro.url.pathname;
+const ldAuto = ld?.length || noindex || pagePath === '/' ? ld : pageLd(title, description, pagePath);
+const ldJson = ldAuto?.length ? JSON.stringify({ '@context': 'https://schema.org', '@graph': ldAuto }).replace(/</g, '\\u003c') : null;
 const imageUrl = new URL(image, SITE.url).href;
 const canonical = new URL(Astro.url.pathname, SITE.url).href;
 const path = Astro.url.pathname;
