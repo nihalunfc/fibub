@@ -43,6 +43,13 @@ The limits are applied for you: $8,000 a year, up to $8,000 of unused room carri
 - **Unused room carried in:** room you did not use last year, at most $8,000. It only builds after you open an account, so opening one early helps even with $0.
 - **Tax rate:** the refund is each contribution times this rate. You can also carry the deduction to a later, higher-income year.
 
+## More options
+
+- **Use the most allowed:** one button puts $8,000 a year in the box.
+- **Down payment goal:** type a target and the page says which year you reach it. If you are short, it works out the yearly amount that would get you there within the limits, or says that even the maximum would not.
+- **Invest the refunds:** tick the box to add the tax refunds, grown at the same return, to the picture. They are not part of the FHSA, so the FHSA figure itself does not change.
+- **Inflation:** type a rate to see the FHSA balance in today's money.
+
 ## Worked example
 
 You put in $8,000 a year for 5 years at 5% with a 30% tax rate. You reach the $40,000 lifetime limit, get $12,000 in refunds and have $46,415 to spend on the home, tax-free. In an RRSP the HBP lets you take that out too, but you must pay back $3,094 a year for 15 years. Ask for $10,000 a year and the tool holds each year to $8,000.

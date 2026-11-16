@@ -84,3 +84,16 @@ export const span = (months: number) => {
   const y = Math.floor(months / 12), m = months % 12;
   return [y ? `${y} year${y === 1 ? '' : 's'}` : '', m ? `${m} month${m === 1 ? '' : 's'}` : ''].filter(Boolean).join(' ') || '0 months';
 };
+
+/** Where this month's payment goes: the working behind the first payment. */
+export function firstPaymentSplit(p: number, annual: number, pay: number) {
+  const interest = (p * annual) / 1200;
+  return { interest, principal: Math.max(0, Math.min(pay - interest, p)), interestShare: pay > 0 ? Math.min(1, interest / pay) : 0 };
+}
+
+/** Add a fixed extra every month to a loan, from month 1: the interest and months it saves. */
+export function monthlyExtraSaving(p: number, annual: number, n: number, extra: number, pay?: number) {
+  const base = simulate(p, annual, n, [], 'tenure', pay);
+  const withExtra = simulate(p, annual, n, extra > 0 ? [{ amount: extra, every: 1, start: 1 }] : [], 'tenure', pay);
+  return { base, withExtra, interestSaved: base.interest - withExtra.interest, monthsSaved: base.months - withExtra.months };
+}

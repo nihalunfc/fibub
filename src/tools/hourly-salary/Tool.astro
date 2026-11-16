@@ -14,9 +14,20 @@
       <label>Overtime hours a week (optional) <span class="hs-suf"><input data-k="ot" inputmode="decimal" /><i>hours</i></span></label>
       <label>Overtime pays <span class="hs-suf"><input data-k="mult" inputmode="decimal" /><i>times</i></span></label>
     </div>
+    <div class="hs-chips" role="group" aria-label="Hours a week presets">Common weeks: <button type="button" class="btn secondary" data-h="35">35 h</button><button type="button" class="btn secondary" data-h="37.5">37.5 h</button><button type="button" class="btn secondary" data-h="40">40 h</button><button type="button" class="btn secondary" data-h="44">44 h</button><button type="button" class="btn secondary" data-h="48">48 h</button></div>
+    <details class="hs-more">
+      <summary>More options</summary>
+      <div class="hs-grid">
+        <label>Flat tax to take off (optional, for a take-home guess) <span class="hs-suf"><input data-k="tax" inputmode="decimal" /><i>%</i></span></label>
+        <label>Compare with another offer (optional) <input data-k="cmp" inputmode="decimal" /></label>
+        <label>The other offer is paid <select data-k="cmpunit"><option value="hour">per hour</option><option value="day">per day</option><option value="week">per week</option><option value="biweek">per two weeks</option><option value="month">per month</option><option value="year" selected>per year</option></select></label>
+        <label>Other offer: hours a week <span class="hs-suf"><input data-k="cmph" inputmode="decimal" /><i>hours</i></span></label>
+      </div>
+    </details>
     <p class="note bad hs-err" role="alert" hidden></p>
   </section>
   <section class="hs-res" aria-live="polite">
+    <p class="hs-line hs-lead"></p>
     <div class="hs-stats">
       <div><span>Hourly</span><b class="hs-s-hour"></b></div>
       <div><span>Monthly</span><b class="hs-s-month"></b></div>
@@ -28,6 +39,9 @@
       <tbody class="hs-body"></tbody>
     </table></div>
     <p class="hs-line hs-note"></p>
+    <p class="hs-line hs-net"></p>
+    <p class="hs-line hs-cmpout"></p>
+    <p class="hs-line hs-work"></p>
   </section>
   <p class="hs-fine">All amounts are before tax and deductions. Monthly is a twelfth of the year and biweekly is 26 pays a year; your employer may count differently. Set paid weeks below 52 for unpaid time off. Not financial or tax advice. Nothing you type leaves this page.</p>
 </div>
@@ -69,26 +83,33 @@
   .hs details .btn { margin-top: 12px; }
   .hs-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .hs-err { margin: 10px 0 0; }
+  .hs-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .hs-chips .btn { padding: 4px 12px; min-height: 0; }
+  .hs-more { margin-top: 12px; }
+  .hs-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .hs-work { color: var(--muted); font-size: 13px; }
   @media (max-width: 720px) { .hs-stats { grid-template-columns: 1fr 1fr; } }
 </style>
 
 <script>
+  import { toHourly, perUnits, afterFlatTax, type Unit } from '../../lib/money/salary';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.hs')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency();
   q('.hs-cur').innerHTML = currencyOptions(cur);
-  f('amt').value = '25'; f('hours').value = '40'; f('days').value = '5'; f('weeks').value = '52'; f('ot').value = '0'; f('mult').value = '1.5';
+  f('amt').value = '25'; f('hours').value = '40'; f('days').value = '5'; f('weeks').value = '52'; f('ot').value = '0'; f('mult').value = '1.5'; f('tax').value = ''; f('cmp').value = ''; f('cmph').value = '';
   const $ = (n: number, d = 2) => money(n, f('cur').value, d);
   function run() {
     const unit = f('unit').value, amt = num(f('amt').value), hours = num(f('hours').value), days = num(f('days').value), weeks = num(f('weeks').value), ot = num(f('ot').value), mult = num(f('mult').value);
     const bad = !(amt > 0) ? 'Enter how much you are paid.' : !(hours > 0 && hours <= 168) ? 'Enter hours a week, from 1 to 168.' : !(days > 0 && days <= 7) ? 'Enter working days a week, from 1 to 7.' : !(weeks > 0 && weeks <= 52) ? 'Enter paid weeks a year, from 1 to 52.' : ot < 0 || mult < 1 ? 'Overtime hours cannot be negative, and the overtime rate is at least 1 times.' : '';
     q('.hs-err').hidden = !bad; q('.hs-err').textContent = bad; q('.hs-res').hidden = !!bad;
     if (bad) return;
-    const hourly = unit === 'hour' ? amt : unit === 'day' ? (amt * days) / hours : unit === 'week' ? amt / hours : unit === 'biweek' ? amt / 2 / hours : unit === 'month' ? (amt * 12) / (weeks * hours) : amt / (weeks * hours);
+    const H = { hours, days, weeks };
+    const hourly = toHourly(unit as Unit, amt, H);
     const week = hourly * hours, otWeek = hourly * mult * ot, tw = week + otWeek;
-    const per = (w: number) => [['Hour', w / hours], ['Day', w / days], ['Week', w], ['Two weeks', w * 2], ['Month', (w * weeks) / 12], ['Year', w * weeks]] as [string, number][];
+    const per = (w: number) => { const p = perUnits(w, H); return [['Hour', p.hour], ['Day', p.day], ['Week', p.week], ['Two weeks', p.biweek], ['Month', p.month], ['Year', p.year]] as [string, number][]; };
     const a = per(week), b = per(tw);
     q('.hs-s-hour').textContent = $(hourly);
     q('.hs-s-month').textContent = $(a[4][1], 0);
@@ -96,8 +117,18 @@
     q('.hs-s-ot-l').textContent = ot > 0 ? 'Yearly with overtime' : 'Overtime';
     q('.hs-s-ot').textContent = ot > 0 ? $(b[5][1], 0) : 'None added';
     q('.hs-body').innerHTML = a.map(([n, v], i) => `<tr><td>${n}</td><td>${$(v, i === 0 || i === 1 ? 2 : 0)}</td><td>${ot > 0 ? $(b[i][1], i === 0 || i === 1 ? 2 : 0) : '-'}</td></tr>`).join('');
+    const tax = num(f('tax').value), cmp = num(f('cmp').value), cmph = num(f('cmph').value) || hours;
+    const gross = b[5][1];
+    q('.hs-lead').innerHTML = `<b>${$(hourly)}</b> an hour is about <b>${$(a[5][1], 0)}</b> a year before tax (${hours} hours a week, ${weeks} weeks).`;
+    q('.hs-net').textContent = tax > 0 && tax < 100 ? `After a flat ${tax}% tax, about ${$(afterFlatTax(gross, tax), 0)} a year, or ${$(afterFlatTax(gross, tax) / 12, 0)} a month. This is a rough guess, not your real take-home.` : '';
+    if (cmp > 0 && cmph > 0 && cmph <= 168) {
+      const oh = toHourly(f('cmpunit').value as Unit, cmp, { hours: cmph, days, weeks }), oy = oh * cmph * weeks, d = oy - a[5][1];
+      q('.hs-cmpout').textContent = `The other offer works out to ${$(oh)} an hour and ${$(oy, 0)} a year, ${d === 0 ? 'the same as' : $(Math.abs(d), 0) + (d > 0 ? ' more than' : ' less than')} your pay (without overtime).`;
+    } else q('.hs-cmpout').textContent = '';
+    q('.hs-work').textContent = `Working: ${$(hourly)} x ${hours} hours x ${weeks} weeks = ${$(hourly * hours * weeks, 0)} a year; monthly is that divided by 12.`;
     q('.hs-note').textContent = ot > 0 ? `Overtime adds ${$(otWeek * weeks, 0)} a year at ${mult} times your hourly pay.` : '';
   }
+  root.querySelectorAll<HTMLElement>('[data-h]').forEach((b) => b.addEventListener('click', () => { f('hours').value = b.dataset.h!; run(); }));
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();
 </script>

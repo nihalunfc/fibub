@@ -14,4 +14,15 @@ export default async ({ page, check, BASE }) => {
   await tab('stack'); check((await big()).startsWith('37 % off'), `percentage: 30 then 10 -> 37% (${await big()})`);
   await tab('mm'); await set('c', '80'); await set('p', '100'); check((await big()).includes('Markup 25%') && (await big()).includes('Margin 20%'), 'percentage: cost 80 price 100 -> markup 25, margin 20');
   await tab('of'); await set('y', '0'); check((await big()) === '0', 'percentage: zero amount is fine');
+  // new options
+  await tab('sale'); check((await big()) === '60', `percentage: 25% off 80 = 60 (${await big()})`);
+  await set('tax', '10'); check((await page.textContent(R + '.pc-say')).includes('total is 66'), 'percentage: sale price with tax on top');
+  await tab('whole'); check((await big()) === '80', 'percentage: 12 is 15% of 80');
+  await set('p', '0'); check((await page.textContent(R + '.pc-say')).includes('zero'), 'percentage: whole with 0% says divide by zero');
+  await tab('diff'); check((await big()) === '26.09%', `percentage: difference 50 vs 65 (${await big()})`);
+  await tab('mm'); await set('w', '20');
+  check((await page.textContent(R + '.pc-say')).includes('sell at 100'), 'percentage: price for wanted margin');
+  await tab('of'); await set('y', '1,200'); await set('x', '10'); check((await big()) === '120', 'percentage: commas allowed');
+  await set('x', '-10'); check((await big()) === '-120', 'percentage: negative percent works');
+  await set('x', ''); check((await big()) === '', 'percentage: blank shows no answer');
 };

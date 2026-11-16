@@ -44,6 +44,10 @@ You can add a yearly fee (many funds and accounts charge one) and a yearly infla
 - **Inflation:** the "In today's money" figure divides the final balance by the price rise over the years.
 - **Rule of 72:** 72 divided by your rate (after fees) is roughly the years needed to double your money.
 
+## More options
+
+Open **More options** for three extras. **Deposit rises each year** lets your regular deposit grow by a percent every year (for example a pay rise). **Savings goal** tells you the deposit you would need to reach that amount in your years, and how long your current deposit would take. **Compare with another rate** shows the final balance at a second rate, so you can see what a better account or a riskier fund might change.
+
 ## Worked example
 
 You put in 1,000 at 5% a year with no deposits. Interest added yearly, it becomes 1,628.89 after 10 years. Added monthly, it becomes 1,647.01. Now add 100 a month: you put in 13,000 in total, and the interest part grows much larger than from the start amount alone.

@@ -1,7 +1,7 @@
 // #1746 Card payoff
 export const path = '/money/credit-card-payoff/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/credit-card-payoff/`); await page.waitForTimeout(400);
+  await page.goto(`${BASE}/money/credit-card-payoff/`); await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); /* OPEN-DETAILS */ await page.waitForTimeout(400);
   const cells = () => page.$$eval('.cp .cp-tab tbody tr:first-child td', (t) => t.map((x) => x.textContent));
   const set = async (k, v) => { await page.fill(`.cp [data-k="${k}"]`, v); await page.waitForTimeout(100); };
   let c = await cells();
@@ -18,4 +18,23 @@ export default async ({ page, check, BASE }) => {
   await page.check('.cp [data-k="promo"]'); await page.waitForTimeout(100);
   const after = await fixedInterest();
   check(after < before && (await page.textContent('.cp .cp-tab')).includes('Transfer fee'), `card payoff: balance transfer cuts interest (${before} -> ${after})`);
+  // new options: plain answer, slider, goal, minimum rule, extra, working
+  await page.check('.cp [data-k="promo"]'); await page.uncheck('.cp [data-k="promo"]');
+  await set('apr', '20'); await set('fixed', '150');
+  check(/debt-free in 2 yr 1 mo/.test(await page.textContent('.cp .cp-ans')), `card payoff: plain answer line (${await page.textContent('.cp .cp-ans')})`);
+  check((await page.textContent('.cp .cp-work')).includes('50.00'), 'card payoff: shows the working for month 1 (3,000 x 20% / 12 = 50.00)');
+  await page.fill('.cp [data-k="fixedr"]', '350'); await page.dispatchEvent('.cp [data-k="fixedr"]', 'input'); await page.waitForTimeout(100);
+  check((await page.inputValue('.cp [data-k="fixed"]')) === '350' && (await cells())[2] === '10 mo', 'card payoff: slider sets the fixed payment');
+  await page.evaluate(() => document.querySelector('.cp .cp-more').open = true);
+  await set('goal', '12');
+  const g = await page.textContent('.cp .cp-goalout');
+  check(/pay about 27\d\.\d\d a month/.test(g), `card payoff: payment needed to be debt-free in 12 months (${g})`);
+  await set('goal', '');
+  const minOnly = (await cells())[1];
+  await page.selectOption('.cp [data-k="rule"]', 'int1'); await page.waitForTimeout(100);
+  check((await cells())[1] !== minOnly, 'card payoff: interest-plus-% minimum rule changes the result');
+  await set('extra', '50');
+  check((await page.textContent('.cp .cp-tab thead')).includes('Minimum + extra'), 'card payoff: extra on top of the minimum');
+  await set('bal', '');
+  check(!/NaN/.test(await page.textContent('.cp')) && (await page.textContent('.cp .cp-warn')).includes('balance'), 'card payoff: blank balance shows a friendly message');
 };

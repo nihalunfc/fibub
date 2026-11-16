@@ -48,7 +48,9 @@ For discounts and markups use the [[percentage-calculator]], and for a restauran
 - **UK**: VAT at 20% standard, 5% reduced or 0% zero rate.
 - **India**: GST at 5%, 18% or 40% since September 2025, plus 3% for gold. Within one state the tax is half CGST and half SGST; between states it is all IGST.
 - **Gulf**: VAT in the UAE (5%), Saudi Arabia (15%), Bahrain (10%) and Oman (5%).
-- **Any rate**: type your own.
+- **Any rate**: type your own, or tap a quick rate (5, 7, 8.25, 10, 15 or 20%).
+
+Under **More options** you can set a **number of items** (the amount is the price of one) and a **discount percent** taken off before tax. The plain sentence above the numbers sums it up, such as "100.00 plus 13% tax (13.00) = 113.00 in total." A blank amount shows zeros, never an error. Rates are as checked on 10 Nov 2026; check the official source before you rely on them.
 
 ## Worked example
 

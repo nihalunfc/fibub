@@ -18,4 +18,21 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.ci .ci-body tr')).length === 10, 'compound-interest: ten rows in the year table');
   await set('years', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.ci .ci-err'), 'compound-interest: bad years shows a message');
+  // new options
+  await page.evaluate(() => document.querySelectorAll('.ci-more').forEach((d) => (d.open = true)));
+  await set('years', '10'); await set('infl', '0'); await set('dep', '100');
+  await set('goal', '20000'); await page.waitForTimeout(100);
+  const goalTxt = await page.textContent('.ci .ci-goal');
+  check(/need to deposit about/.test(goalTxt) && /years \d+ months/.test(goalTxt), `compound-interest: savings goal explains deposit and time (${goalTxt})`);
+  await set('goal', '100'); await page.waitForTimeout(100);
+  check((await page.textContent('.ci .ci-goal')).includes('reach your goal'), 'compound-interest: goal already reached');
+  await set('goal', '');
+  const b1 = await page.textContent('.ci .ci-s-bal');
+  await set('step', '10'); await page.waitForTimeout(100);
+  check((await page.textContent('.ci .ci-s-put')).includes('20,1'), 'compound-interest: deposit rising 10% a year raises what you put in');
+  await set('step', '');
+  await set('rate2', '7'); await page.waitForTimeout(100);
+  check((await page.textContent('.ci .ci-cmp')).includes('At 7% instead'), 'compound-interest: compare another rate');
+  await set('start', ''); await set('dep', ''); await page.waitForTimeout(100);
+  check(!(await page.textContent('.ci')).includes('NaN'), 'compound-interest: blank amounts give no NaN');
 };

@@ -1,4 +1,5 @@
 // #1736 RRSP or TFSA: plain maths, no DOM. Limits checked on canada.ca 2026-11-10.
+import { canadaTax, PROVINCES } from './canada-income-tax.ts';
 // https://www.canada.ca/en/revenue-agency/services/tax/registered-plans-administrators/pspa/mp-rrsp-dpsp-tfsa-limits-ympe.html
 
 /** TFSA dollar limit by year (CRA table). */
@@ -59,3 +60,24 @@ export function rrspRoom(earned: number, pa = 0, unused = 0, year = YEAR): { new
   const n = Math.max(0, Math.min(raw, lim) - pa);
   return { new: n, total: n + Math.max(0, unused), capped: raw > lim };
 }
+
+/** The later tax rate (%) at which both accounts end equal: the same as today's rate when the refund is saved or
+ *  put in a TFSA, and 0 when the refund is spent. Below it the RRSP wins, above it the TFSA wins. */
+export const breakEvenLater = (taxNow: number, refund: Refund) => (refund === 'spend' ? 0 : taxNow);
+
+/** After-tax value of each account at the end of every year 1..years (as if you took it all out that year). */
+export function byYear(a: CompareIn): { year: number; tfsa: number; rrsp: number }[] {
+  const out: { year: number; tfsa: number; rrsp: number }[] = [];
+  for (let y = 1; y <= Math.round(a.years); y++) { const r = compare({ ...a, years: y }); out.push({ year: y, tfsa: r.tfsa, rrsp: r.rrspAfterTax }); }
+  return out;
+}
+
+/** Turn an amount from `years` ahead into today's money at `inflation`% a year. */
+export const inTodaysMoney = (v: number, inflation: number, years: number) => v / Math.pow(1 + inflation / 100, Math.max(0, years));
+
+/** Marginal income tax rate in % (federal + provincial, 2026) for employment income in a province; 0 for blank or negative. */
+export function marginalRate(prov: string, income: number): number {
+  if (!(income > 0) || !PROVINCES[prov]) return 0;
+  return Math.round(canadaTax({ prov, employment: income, other: 0, rrsp: 0 }).marginal * 1000) / 10;
+}
+export const PROVINCE_LIST: [string, string][] = Object.entries(PROVINCES).map(([k, v]) => [k, v.name]);

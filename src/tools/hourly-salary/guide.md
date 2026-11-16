@@ -33,7 +33,8 @@ Everything is before tax. To turn the result into spending, put it in the [[budg
 1. Choose what you know (hourly, daily, weekly, biweekly, monthly or yearly pay) and type the amount.
 2. Set **Hours a week**, **Working days a week** and **Paid weeks a year**.
 3. If you work overtime, enter the weekly overtime hours and what multiple of your pay they earn.
-4. Read the cards and the table of every period, with and without overtime.
+4. Read the plain answer at the top, then the cards and the table of every period, with and without overtime. A "Working" line underneath shows the sum. The 35, 37.5, 40, 44 and 48 hour buttons set a common work week in one tap.
+5. Under **More options**, enter a **flat tax** percent for a rough take-home figure, or type **another offer** (in any pay period, with its own weekly hours) to see the hourly rate, the yearly pay and the difference side by side.
 
 ## What each setting does
 

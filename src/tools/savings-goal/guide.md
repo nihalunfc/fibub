@@ -34,13 +34,18 @@ You can also turn it round: enter what you can afford each month and it tells yo
 2. Pick the goal type: an amount you choose, or an emergency fund.
 3. Enter the target (or your essential costs and the months to cover) and what you have saved so far.
 4. Enter the interest rate your account pays. Use 0 if you keep it as cash.
-5. Enter the months to go, or pick a target date. Or, in time mode, enter what you can save each month.
+5. Enter the months to go, or pick a target date. Or, in time mode, enter what you can save each month. The slider under the boxes lets you try other months, or other monthly amounts, and the answer updates as you drag.
+6. Open **More options** to say whether deposits go in at the start or the end of the month, and to allow for prices rising.
+7. Read the table **What if I save more or less?** (half to double your monthly amount) and, for goals longer than a year, the **Year by year** table.
 
 ## What each setting does
 
 - **Already saved:** a start amount that also earns interest.
 - **Interest rate:** a fixed yearly rate, added every month.
 - **Months to go / target date:** change one and the other follows.
+- **Deposits at the start or end of the month:** depositing at the start earns a month more interest on each deposit, so you need a little less each month.
+- **Prices rise:** your goal is treated as today's money. At 3% a year, a 10,000 goal in 5 years needs about 11,600 by then, and the answer says so.
+- **What if table:** shows the time and interest for saving half, three quarters, 1.25, 1.5 and 2 times your monthly amount, so you can see what a little extra buys.
 - **Emergency fund:** the target is your essential costs times the months you want covered.
 
 ## Worked example
@@ -51,8 +56,8 @@ You want 12,000 in 24 months, have nothing saved and your account pays 0%. You n
 
 **Why does it say I will not reach the goal?** With no saving each month and no interest, the balance never grows. Enter a monthly amount.
 
-**Are deposits at the start or the end of the month?** The end. Paying at the start of the month would earn slightly more.
+**Are deposits at the start or the end of the month?** The end, unless you choose the start under More options. Paying at the start earns slightly more.
 
-**Does it include tax or inflation?** No. If prices will rise before you spend the money, aim a little higher. Not financial or tax advice.
+**Does it include tax or inflation?** Inflation, yes, if you type a yearly price rise under More options. Tax, no. Not financial or tax advice.
 
 **How many months of costs should an emergency fund cover?** Many people aim for 3 to 6. A single income or an uncertain job suggests more.

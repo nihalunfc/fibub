@@ -6,6 +6,8 @@ export const PERIODS: Record<string, number> = { daily: 365, weekly: 52, monthly
 export type CompoundIn = {
   start: number; deposit: number; every: 'month' | 'year'; atStart: boolean;
   rate: number; perYear: number; years: number; fee: number; inflation: number;
+  /** Yearly rise of the regular deposit in percent (optional, default 0). */
+  stepUp?: number;
 };
 
 /** Steps month by month. The monthly growth factor is (1 + rate/m)^(m/12), so one year of growth
@@ -17,11 +19,13 @@ export function compound(a: CompoundIn): Year[] {
   let bal = a.start, put = a.start;
   const rows: Year[] = [{ year: 0, deposits: put, interest: 0, balance: bal, real: bal }];
   const months = Math.round(a.years * 12);
+  const step = 1 + (a.stepUp || 0) / 100;
   for (let m = 1; m <= months; m++) {
+    const dep = a.deposit * Math.pow(step, Math.floor((m - 1) / 12));
     const due = a.every === 'month' || (a.atStart ? m % 12 === 1 : m % 12 === 0);
-    if (due && a.atStart) { bal += a.deposit; put += a.deposit; }
+    if (due && a.atStart) { bal += dep; put += dep; }
     bal *= g * keep;
-    if (due && !a.atStart) { bal += a.deposit; put += a.deposit; }
+    if (due && !a.atStart) { bal += dep; put += dep; }
     if (m % 12 === 0 || m === months) {
       const y = m / 12;
       rows.push({ year: y, deposits: put, interest: bal - put, balance: bal, real: bal / Math.pow(infl, y) });
@@ -30,7 +34,33 @@ export function compound(a: CompoundIn): Year[] {
   return rows;
 }
 
-export type SipIn = { sip: number; rate: number; years: number; stepUp: number; lump: number };
+/** Final balance after the given years (0 if the input is unusable). */
+export const finalBalance = (a: CompoundIn) => { const r = compound(a); return r[r.length - 1].balance; };
+
+/** Regular deposit needed to reach `target` by the end of a.years. The balance is a straight line in the deposit, so two runs solve it.
+ *  Returns 0 when the start amount alone is already enough. */
+export function depositForGoal(a: CompoundIn, target: number) {
+  const b0 = finalBalance({ ...a, deposit: 0 }), b1 = finalBalance({ ...a, deposit: 1 });
+  if (!(b1 > b0)) return NaN;
+  return Math.max(0, (target - b0) / (b1 - b0));
+}
+
+/** Months until the balance first reaches `target`, or NaN if it takes more than maxYears. */
+export function monthsToGoal(a: CompoundIn, target: number, maxYears = 100) {
+  if (a.start >= target) return 0;
+  const rows = compound({ ...a, years: maxYears });
+  // rows are yearly (plus a final partial); find the first year at or above target, then refine by month.
+  const hit = rows.findIndex((r) => r.balance >= target);
+  if (hit < 0) return NaN;
+  const y0 = Math.max(0, hit - 1);
+  for (let m = y0 * 12 + 1; m <= hit * 12; m++) {
+    const r = compound({ ...a, years: m / 12 });
+    if (r[r.length - 1].balance >= target) return m;
+  }
+  return hit * 12;
+}
+
+export type SipIn = { sip: number; rate: number; years: number; stepUp: number; lump: number; inflation?: number };
 
 /** SIP with each instalment paid at the start of the month (annuity due), monthly rate = yearly / 12. */
 export function sip(a: SipIn): Year[] {
@@ -42,9 +72,18 @@ export function sip(a: SipIn): Year[] {
     if (m > 1 && (m - 1) % 12 === 0) pay *= 1 + a.stepUp / 100;
     bal += pay; put += pay;
     bal *= 1 + i;
-    if (m % 12 === 0 || m === months) rows.push({ year: m / 12, deposits: put, interest: bal - put, balance: bal, real: bal });
+    if (m % 12 === 0 || m === months) rows.push({ year: m / 12, deposits: put, interest: bal - put, balance: bal, real: bal / Math.pow(1 + (a.inflation || 0) / 100, m / 12) });
   }
   return rows;
+}
+
+/** Monthly SIP needed to reach a target value. The result is linear in the SIP, so one run with a SIP of 1 is enough.
+ *  Returns 0 when the lumpsum alone already reaches the target, and NaN when the plan cannot grow (no months). */
+export function sipNeeded(target: number, a: Omit<SipIn, 'sip'>): number {
+  const lumpOnly = sip({ ...a, sip: 0 }).at(-1)!.balance;
+  const unit = sip({ ...a, sip: 1, lump: 0 }).at(-1)!.balance;
+  if (!(unit > 0)) return NaN;
+  return Math.max(0, (target - lumpOnly) / unit);
 }
 
 /** Line chart as SVG: balance and money put in. */

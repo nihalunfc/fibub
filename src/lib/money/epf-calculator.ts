@@ -15,13 +15,14 @@ export type EpfIn = {
   rate: number;          // EPF interest, % a year
   ageNow: number; retireAge: number;
   opening: number;       // EPF balance today
+  vpf?: number;          // extra voluntary share, % of wages (goes to EPF, earns the same interest)
 };
 export type EpfRow = Year & { basic: number; you: number; boss: number; eps: number; earned: number };
 
 /** Monthly split for one wage. EPS is rounded to the rupee, as EPFO does (8.33% of 15,000 = 1,250). */
-export function epfMonth(basic: number, a: Pick<EpfIn, 'employee' | 'employer' | 'ceiling' | 'inEps' | 'capWages'>) {
+export function epfMonth(basic: number, a: Pick<EpfIn, 'employee' | 'employer' | 'ceiling' | 'inEps' | 'capWages' | 'vpf'>) {
   const pfWage = a.capWages ? Math.min(basic, a.ceiling) : basic;
-  const you = Math.round(pfWage * a.employee / 100);
+  const you = Math.round(pfWage * (a.employee + (a.vpf || 0)) / 100);
   const bossAll = Math.round(pfWage * a.employer / 100);
   const eps = a.inEps ? Math.min(bossAll, Math.round(Math.min(basic, a.ceiling) * 0.0833)) : 0;
   return { you, eps, boss: bossAll - eps };
@@ -42,3 +43,11 @@ export function epf(a: EpfIn): EpfRow[] {
   }
   return rows;
 }
+
+/** EPS monthly pension: pensionable salary (wages up to the ceiling) x years of service / 70. Needs 10 years of service. */
+export function epsPension(basic: number, ceiling: number, serviceYears: number) {
+  const service = Math.max(0, Math.round(serviceYears));
+  return { eligible: service >= 10, monthly: Math.round(Math.min(basic, ceiling) * service / 70) };
+}
+/** Balance in today's money after `years` of yearly inflation (percent). */
+export const epfReal = (balance: number, inflation: number, years: number) => balance / Math.pow(1 + inflation / 100, years);

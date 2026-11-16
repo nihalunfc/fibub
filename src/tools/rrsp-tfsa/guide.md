@@ -45,6 +45,14 @@ A second panel works out your 2026 room: TFSA room from the year you turned 18, 
 - **Refund spent:** shows what happens if the refund is not saved; the RRSP usually loses.
 - **Pension adjustment:** the box 52 amount on your T4 if you have a workplace pension; it reduces new RRSP room.
 
+## More options
+
+- **Find my tax rates:** under More options pick your province and type a yearly income now and in retirement. The page shows the marginal rate from 2026 federal and provincial tax and a button fills the two rate boxes for you.
+- **Break-even rate:** a line under the result says the RRSP wins when your tax rate on withdrawal is below your rate now, and the TFSA wins above it.
+- **Year by year:** a chart and table show the after-tax value of each account for every year, as if you took it all out that year.
+- **Inflation:** type a yearly inflation rate to see both results in today's money.
+- **Room explainer:** open "How room works" for the TFSA and RRSP rules in short, plus the yearly TFSA and RRSP limits. They come from canada.ca and were checked on 10 November 2026; check the official source.
+
 ## Worked example
 
 You save $5,000 a year for 25 years at 5%. Your tax rate is 30% now and 20% later. The TFSA ends at $250,567. The RRSP gets $7,143 a year (with the refund), grows to $357,953, and after 20% tax leaves $286,363, so the RRSP wins. Set both rates to 30% and the RRSP also leaves $250,567: equal rates give an equal outcome.

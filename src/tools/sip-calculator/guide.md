@@ -33,13 +33,19 @@ It is useful for any monthly investing habit, in any currency. For a lump sum wi
 1. Choose your currency and enter the **Monthly SIP**.
 2. Enter the **Expected return** per year and the number of **Years**.
 3. Optionally enter a **yearly raise** (step-up) and a **lumpsum** you invest on day one.
-4. Read the future value, the money invested and the estimated gains, then check the chart and the table. Download the table as CSV if you want it in a spreadsheet.
+4. Use the sliders beside **Expected return** and **Years** for quick what-ifs, or the 8%, 10%, 12% and 15% buttons to compare returns.
+5. Read the future value, the money invested and the estimated gains, then check the chart and the table. Download the table as CSV if you want it in a spreadsheet.
 
 ## What each setting does
 
 - **Expected return:** a yearly rate. It is divided by 12 to get the monthly rate, so 12% means 1% a month.
 - **Yearly raise (step-up):** the SIP goes up by this percent at the start of every year, for example when your pay rises.
 - **Lumpsum:** an amount invested once at the start that grows alongside the SIP.
+
+Under **More options**:
+
+- **Inflation:** shows the future value in today's money, because 50 lakh in 20 years buys less than it does now.
+- **Goal:** type the amount you want and the calculator works backwards to the monthly SIP you would need, using your return, years, step-up and lumpsum.
 
 The formula used is the annuity-due one: each instalment is paid at the start of the month, so it earns that month's return.
 

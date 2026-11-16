@@ -27,19 +27,22 @@ flow:
 
 Lenders quote the rate they like best. This page puts two, three or four offers next to each other and works out what each really costs: the monthly payment, the total you pay back, the cost of borrowing (interest plus fees), and the APR, which is the yearly rate once the fees are counted in. The cheapest offer is marked.
 
-At the bottom, a **flat rate converter** shows what a flat rate (common in India and the Gulf) means on a normal reducing balance. If you already have a loan, the [[loan-payoff-planner]] shows how extra payments help, and the [[mortgage-calculator]] and [[budget-calculator]] are the next steps for a home loan or for checking the payment fits.
+A plain sentence at the top says which offer is cheapest overall, which has the lowest APR and which has the lowest monthly payment, and small bars show each offer's total cost. At the bottom, a **flat rate converter** works both ways between a flat rate (common in India and the Gulf) and a normal reducing-balance rate. If you already have a loan, the [[loan-payoff-planner]] shows how extra payments help, and the [[mortgage-calculator]] and [[budget-calculator]] are the next steps for a home loan or for checking the payment fits.
 
 ## How to use it
 
 1. Choose how many offers you have.
 2. For each, type the amount, the yearly rate, the years, any upfront fee and any monthly fee.
-3. Read the table. The lowest total cost is marked, and the others show how much more they cost.
+3. Comparing the same loan from different lenders? Tick **Same amount and years for every offer** and type them once, in Offer A; then only the rate and fees change.
+4. Read the sentence at the top, then the table. The lowest total cost is marked, and the others show how much more they cost.
 
 ## What each setting does
 
 - **Upfront fees** are paid at the start, so you really receive less than you borrow. That raises the APR.
 - **Monthly fee** is added to every payment.
 - **APR** is the one number to compare. With no fees it equals the rate; with fees it is higher.
+- **Different years**: the tool tells you when offers run for different lengths, because a shorter loan looks cheaper only because it ends sooner. Tick the same-years box to compare fairly.
+- **Flat rate converter**: pick the direction. Flat to reducing shows the true yearly rate; reducing to flat shows the flat rate that would cost the same in total interest. The line under the answer shows the working.
 - **Flat rate**: interest is charged on the full amount for every year, even though you repay a little each month, so the real rate is much higher.
 
 ## Worked example

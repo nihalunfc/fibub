@@ -1,8 +1,9 @@
 // #1728 Salary converter
+import { toHourly, perUnits, afterFlatTax } from '../../src/lib/money/salary.ts';
 export const path = '/money/hourly-salary/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/hourly-salary/`); await page.waitForTimeout(300);
-  const set = async (k, v) => { await page.fill(`.hs [data-k="${k}"]`, v); };
+  const set = async (k, v) => { await page.evaluate(() => document.querySelectorAll('.hs details').forEach((d) => (d.open = true))); await page.fill(`.hs [data-k="${k}"]`, v); };
   const txt = async (c) => page.textContent(`.hs ${c}`);
   await page.selectOption('.hs [data-k="cur"]', 'USD');
   await set('amt', '25'); await set('hours', '40'); await set('weeks', '52'); await page.waitForTimeout(100);
@@ -16,4 +17,15 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.hs-s-year')).includes('40,000'), 'fewer paid weeks lowers the year');
   await set('hours', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.hs .hs-err'), 'bad hours shows a message');
+  const H = { hours: 40, days: 5, weeks: 52 };
+  check(toHourly('year', 52000, H) === 25 && Math.abs(toHourly('month', 4333.3333333, H) - 25) < 1e-4 && toHourly('biweek', 2000, H) === 25, 'hourly-salary: lib converts yearly, monthly and biweekly to 25 an hour');
+  check(perUnits(1000, H).day === 200 && afterFlatTax(52000, 20) === 41600 && afterFlatTax(100, 150) === 0, 'hourly-salary: lib day pay and flat tax');
+  await set('hours', '40'); await set('weeks', '52'); await set('amt', '25'); await set('ot', '0'); await page.waitForTimeout(100);
+  check((await txt('.hs-lead')).includes('52,000'), 'hourly-salary: plain answer at the top (' + (await txt('.hs-lead')) + ')');
+  await page.click('.hs [data-h="37.5"]'); await page.waitForTimeout(100);
+  check((await page.inputValue('.hs [data-k="hours"]')) === '37.5', 'hourly-salary: hours preset');
+  await set('hours', '40'); await set('tax', '20'); await page.waitForTimeout(100);
+  check((await txt('.hs-net')).includes('41,600'), 'hourly-salary: flat tax take-home (' + (await txt('.hs-net')) + ')');
+  await set('cmp', '60000'); await page.waitForTimeout(100);
+  check((await txt('.hs-cmpout')).includes('8,000 more'), 'hourly-salary: compare another offer (' + (await txt('.hs-cmpout')) + ')');
 };

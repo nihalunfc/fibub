@@ -1,5 +1,47 @@
 [
  {
+  "sha": "a410e92cc5b5",
+  "date": "2026-11-16T07:56:18+00:00",
+  "title": "Renumber UK tools to L327-L329, L338, L339 (gapless)",
+  "tools": [
+   "binomial-distribution-lab",
+   "energy-stores",
+   "moments-lab",
+   "normal-distribution-lab",
+   "rate-of-reaction-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3e8b1d051e4b",
+  "date": "2026-11-16T07:50:43+00:00",
+  "title": "Learn: USA curriculum pages, guides, tests and share images for 8 new tools",
+  "tools": [
+   "box-plot-lab",
+   "calorimetry-lab",
+   "earth-seasons",
+   "limiting-reagent",
+   "margin-of-error-sim",
+   "normal-curve-lab",
+   "rigid-motions",
+   "scatter-best-fit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f5943ed15db",
+  "date": "2026-11-16T07:50:43+00:00",
+  "title": "UK curriculum: England KS3, GCSE and A-level topic map, pages and 5 gap tools",
+  "tools": [
+   "binomial-distribution-lab",
+   "energy-stores",
+   "moments-lab",
+   "normal-distribution-lab",
+   "rate-of-reaction-lab"
+  ],
+  "site": true
+ },
+ {
   "sha": "8a5aa96314d2",
   "date": "2026-11-16T07:39:16+00:00",
   "title": "Learn: USA grade 8-12 curriculum map and 8 new tools (Common Core, NGSS)",
@@ -25,6 +67,15 @@
    "sine-cosine-law"
   ],
   "site": true
+ },
+ {
+  "sha": "47d6ffd818e4",
+  "date": "2026-11-16T07:29:03+00:00",
+  "title": "Give non-detects a clean search description",
+  "tools": [
+   "non-detects"
+  ],
+  "site": false
  },
  {
   "sha": "054ce994583d",

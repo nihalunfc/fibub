@@ -64,6 +64,10 @@ export function car(o: CarIn) {
 export interface CardIn {
   balance: number; aprPct: number; mode: 'min' | 'fixed'; minPct: number; floor: number; fixed: number;
   promo: boolean; feePct: number; promoRatePct: number; promoMonths: number;
+  /** 'pct' (default): minPct of the balance; 'int1': the month's interest plus minPct of the balance (often 1%). Both never below `floor`. */
+  minRule?: 'pct' | 'int1';
+  /** Extra added to the minimum payment every month (mode 'min' only). */
+  extra?: number;
 }
 export interface CardOut { months: number; interest: number; fee: number; paid: number; first: number; balances: number[]; never: boolean }
 /** Pay a card down month by month. With a balance transfer the fee is added up front and the promo rate applies for the promo months. */
@@ -74,7 +78,8 @@ export function card(o: CardIn): CardOut {
   while (bal > 0.005 && k < 1200) {
     const rate = (o.promo && k < o.promoMonths ? o.promoRatePct : o.aprPct) / 1200;
     const int = bal * rate;
-    const want = o.mode === 'fixed' ? o.fixed : Math.max((bal * o.minPct) / 100, o.floor);
+    const minDue = Math.max(o.minRule === 'int1' ? int + (bal * o.minPct) / 100 : (bal * o.minPct) / 100, o.floor);
+    const want = o.mode === 'fixed' ? o.fixed : minDue + Math.max(0, o.extra || 0);
     const pay = Math.min(bal + int, want);
     if (k === 0) first = pay;
     if (pay <= int && k > 0 && bal >= balances[k - 1] && k > 600) break;
@@ -83,6 +88,33 @@ export function card(o: CardIn): CardOut {
   }
   const never = bal > 0.005;
   return { months: k, interest, fee, paid: o.balance + fee + interest, first, balances, never };
+}
+
+/** The smallest whole-money monthly payment that clears the card in `months` months or fewer (NaN if it cannot be worked out). */
+export function paymentForMonths(o: CardIn, months: number): number {
+  if (!(months >= 1) || !(o.balance > 0)) return NaN;
+  const run = (pay: number) => card({ ...o, mode: 'fixed', fixed: pay });
+  let lo = 0, hi = o.balance * (1 + o.aprPct / 100) + (o.promo ? (o.balance * o.feePct) / 100 : 0) + 1;
+  for (let k = 0; k < 80; k++) {
+    const mid = (lo + hi) / 2, r = run(mid);
+    if (!r.never && r.months <= months) hi = mid; else lo = mid;
+  }
+  return Math.ceil(hi * 100) / 100;
+}
+
+/** The loan a monthly payment can carry: payment, rate per month, months, and a balloon left at the end. */
+export const loanForPayment = (pay: number, i: number, n: number, balloon = 0) =>
+  presentValue(pay, i, n) + balloon / Math.pow(1 + i, n);
+
+/** The highest vehicle price whose loan payment stays at or under `pay` a month (other inputs as in `car`; price is ignored). */
+export function priceForPayment(o: CarIn, pay: number): number {
+  let lo = 0, hi = 1e9;
+  for (let k = 0; k < 100; k++) {
+    const mid = (lo + hi) / 2;
+    const r = car({ ...o, price: mid });
+    if (r.payment <= pay) lo = mid; else hi = mid;
+  }
+  return lo;
 }
 
 export type Region = 'ca' | 'us' | 'uk';

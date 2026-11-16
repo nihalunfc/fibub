@@ -31,6 +31,15 @@
         </select>
       </label>
     </div>
+    <div class="pc-chips" role="group" aria-label="Deposit presets">Quick amounts: <button type="button" class="btn secondary" data-dep="150000">Maximum 1,50,000</button><button type="button" class="btn secondary" data-dep="100000">1,00,000</button><button type="button" class="btn secondary" data-dep="60000">5,000 a month (60,000)</button><button type="button" class="btn secondary" data-dep="12000">1,000 a month (12,000)</button></div>
+    <details class="pc-more">
+      <summary>More options</summary>
+      <div class="pc-grid">
+        <label>Inflation (optional, shows today's money) <span class="pc-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label>
+        <label>Account opened in the year starting April (optional) <input data-k="fy" inputmode="numeric" placeholder="for example 2026" /></label>
+      </div>
+      <p class="pc-hint">Tax: deposits up to 1,50,000 a year count under section 80C if you use the old tax regime; the interest and the maturity amount are tax-free. Check the official source for the current rules.</p>
+    </details>
     <p class="pc-src">7.1% is the rate for October to December 2026 (Ministry of Finance, 30 September 2026). The rate is reset every quarter, so check the official source and change it if needed.</p>
     <p class="note bad pc-err" role="alert" hidden></p>
   </section>
@@ -42,6 +51,13 @@
       <div><span>Matures after</span><b class="pc-s-yrs"></b></div>
     </div>
     <p class="pc-line pc-words"></p>
+    <p class="pc-line pc-real"></p>
+    <p class="pc-line pc-mat"></p>
+    <details class="pc-sc panel">
+      <summary>If the rate changes</summary>
+      <p class="pc-hint">PPF's rate is reset every quarter. This is your plan at other rates, using the same deposits.</p>
+      <div class="pc-wrap"><table><thead><tr><th>Rate</th><th>Maturity value</th><th>Interest</th></tr></thead><tbody class="pc-sc-body"></tbody></table></div>
+    </details>
     <figure class="pc-chart panel">
       <figcaption>Growth over time <span><i class="k-a"></i>Balance</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
       <svg class="pc-svg" viewBox="0 0 640 220" role="img" aria-label="PPF balance and money paid in, year by year"></svg>
@@ -98,10 +114,15 @@
   .pc-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .pc-err { margin: 10px 0 0; }
   @media (max-width: 720px) { .pc-stats { grid-template-columns: 1fr 1fr; } }
+  .pc-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .pc-chips .btn { padding: 4px 12px; min-height: 0; }
+  .pc-more { margin-top: 12px; }
+  .pc-more summary, .pc-sc summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .pc-hint { margin: 8px 0; font-size: 13px; color: var(--muted); }
 </style>
 
 <script>
-  import { ppf, PPF_MIN, PPF_MAX, PPF_YEARS, type PpfRow, type PpfTiming } from '../../lib/money/ppf-calculator';
+  import { ppf, ppfReal, ppfAtRates, maturityFy, PPF_MIN, PPF_MAX, PPF_YEARS, type PpfRow, type PpfTiming } from '../../lib/money/ppf-calculator';
   import { chartSvg, csv } from '../../lib/money/growth';
   import { money, num } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.pc')!;
@@ -112,10 +133,12 @@
   let rows: PpfRow[] = [];
   function run() {
     const dep = num(f('dep').value), rate = num(f('rate').value), open = num(f('open').value);
-    const bad = !(dep >= PPF_MIN && dep <= PPF_MAX) ? 'Enter a yearly deposit from Rs 500 to Rs 1,50,000 (the PPF limits).' : !(rate > 0 && rate <= 20) ? 'Enter the interest rate, for example 7.1.' : open < 0 ? 'The opening balance cannot be negative.' : '';
+    const infl = num(f('infl').value), fy = Math.round(num(f('fy').value));
+    const bad = !(dep >= PPF_MIN && dep <= PPF_MAX) ? 'Enter a yearly deposit from Rs 500 to Rs 1,50,000 (the PPF limits).' : !(rate > 0 && rate <= 20) ? 'Enter the interest rate, for example 7.1.' : open < 0 ? 'The opening balance cannot be negative.' : infl < 0 || infl > 50 ? 'Enter inflation between 0 and 50, for example 6.' : f('fy').value.trim() && !(fy >= 1968 && fy <= 2100) ? 'Enter the opening year as four digits, for example 2026.' : '';
     q('.pc-err').hidden = !bad; q('.pc-err').textContent = bad; q('.pc-res').hidden = !!bad;
     if (bad) return;
-    rows = ppf({ deposit: dep, rate, timing: f('when').value as PpfTiming, extensions: num(f('ext').value), extendDeposits: f('extdep').value === '1', opening: open });
+    const inp = { deposit: dep, rate, timing: f('when').value as PpfTiming, extensions: num(f('ext').value), extendDeposits: f('extdep').value === '1', opening: open };
+    rows = ppf(inp);
     const last = rows[rows.length - 1];
     q('.pc-s-fv').textContent = $(last.balance);
     q('.pc-s-put').textContent = $(last.deposits);
@@ -123,9 +146,13 @@
     q('.pc-s-yrs').textContent = `${last.year} years`;
     const at15 = rows[PPF_YEARS];
     q('.pc-words').innerHTML = `Paying <b>${$(dep)}</b> a year at ${rate}% grows to <b>${$(at15.balance)}</b> after 15 years` + (last.year > PPF_YEARS ? `, and to <b>${$(last.balance)}</b> after ${last.year} years.` : '.');
+    q('.pc-real').textContent = infl > 0 ? `With ${infl}% inflation, that is worth about ${$(ppfReal(last.balance, infl, last.year))} in today's money after ${last.year} years.` : '';
+    q('.pc-mat').textContent = f('fy').value.trim() ? `Opened in FY ${fy}-${String((fy + 1) % 100).padStart(2, '0')}, the account matures at the end of FY ${maturityFy(fy, last.year)} (31 March ${fy + last.year + 1}).` : '';
+    q('.pc-sc-body').innerHTML = ppfAtRates(inp, [...new Set([6, 6.5, 7, 7.1, 7.5, 8, rate])].sort((x, y) => x - y)).map((r) => `<tr${r.rate === rate ? ' class="pc-cur"' : ''}><td>${r.rate}%${r.rate === rate ? ' (yours)' : ''}</td><td>${$(r.balance)}</td><td>${$(r.balance - last.deposits)}</td></tr>`).join('');
     q('.pc-svg').innerHTML = chartSvg(rows, short);
     q('.pc-body').innerHTML = rows.slice(1).map((r) => `<tr${r.year > PPF_YEARS ? ' class="pc-ext"' : ''}><td>${r.year}</td><td>${$(r.paid)}</td><td>${$(r.earned)}</td><td>${$(r.balance)}</td></tr>`).join('');
   }
+  root.querySelectorAll<HTMLElement>('[data-dep]').forEach((b) => b.addEventListener('click', () => { f('dep').value = b.dataset.dep!; run(); }));
   q('.pc-csv').addEventListener('click', () => csv('ppf.csv', ['Year', 'Deposit', 'Interest', 'Balance'], rows.slice(1).map((r) => [r.year, r.paid, r.earned, r.balance])));
   root.addEventListener('input', run); root.addEventListener('change', run);
   run();

@@ -1,7 +1,8 @@
 // #1724 SIP calculator
+import { sip, sipNeeded } from '../../src/lib/money/growth.ts';
 export const path = '/money/sip-calculator/';
 export default async ({ page, check, BASE }) => {
-  await page.goto(`${BASE}/money/sip-calculator/`); await page.waitForTimeout(300);
+  await page.goto(`${BASE}/money/sip-calculator/`); await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); /* OPEN-DETAILS */ await page.waitForTimeout(300);
   const set = async (k, v) => { await page.fill(`.sp [data-k="${k}"]`, v); };
   const txt = async (c) => page.textContent(`.sp ${c}`);
   await page.selectOption('.sp [data-k="cur"]', 'INR');
@@ -16,4 +17,18 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.sp .sp-body tr')).length === 10, 'sip-calculator: ten rows in the year table');
   await set('sip', '0'); await set('lump', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.sp .sp-err'), 'sip-calculator: nothing to invest shows a message');
+  const base = { rate: 12, years: 10, stepUp: 0, lump: 0 };
+  const need = sipNeeded(2323391, base);
+  check(Math.abs(need - 10000) < 1, 'sip-calculator: goal 23,23,391 needs a SIP of 10,000 (got ' + need + ')');
+  check(sipNeeded(1, { ...base, lump: 100000 }) === 0, 'sip-calculator: a lumpsum that already beats the goal needs no SIP');
+  const r = sip({ ...base, sip: 10000, inflation: 6 }).at(-1);
+  check(Math.abs(r.real - r.balance / Math.pow(1.06, 10)) < 0.01, 'sip-calculator: real value divides by inflation');
+  await set('sip', '10000'); await set('lump', '0'); await set('infl', '6'); await page.waitForTimeout(100);
+  check((await txt('.sp-real')).includes('12,97'), 'sip-calculator: page shows inflation-adjusted value (' + (await txt('.sp-real')) + ')');
+  await set('goal', '2323391'); await page.waitForTimeout(100);
+  check((await txt('.sp-goal')).includes('10,000'), 'sip-calculator: page shows the SIP needed for the goal (' + (await txt('.sp-goal')) + ')');
+  await page.click('.sp [data-pre="8"]'); await page.waitForTimeout(100);
+  check((await page.inputValue('.sp [data-k="rate"]')) === '8', 'sip-calculator: preset sets the return');
+  await set('years', '20'); await page.waitForTimeout(100);
+  check((await page.inputValue('.sp [data-k="years-r"]')) === '20', 'sip-calculator: slider follows typed years');
 };

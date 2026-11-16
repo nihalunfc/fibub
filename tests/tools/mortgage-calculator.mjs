@@ -23,4 +23,17 @@ export default async ({ page, check, BASE }) => {
   check((await page.locator(R + '.mc-tab tbody tr').count()) >= 20, 'mortgage: year table has rows');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click(R + '.mc-csv')]);
   check(dl.suggestedFilename().endsWith('.csv'), 'mortgage: CSV downloads');
+  // new options
+  await page.selectOption(R + '[data-k="freq"]', 'monthly');
+  await page.evaluate(() => document.querySelectorAll('.mc-more').forEach((d) => (d.open = true)));
+  await set('tax', '1'); await set('ins', '1200'); await set('hoa', '100');
+  const tot = await page.textContent(R + '.mc-total');
+  check(tot.includes('2,955.03') && tot.includes('616.67'), `mortgage: all-in monthly with tax, insurance, HOA (${tot})`);
+  await set('rate2', '4');
+  check((await rows()).includes('At 4% instead') && (await rows()).includes('Payment difference'), 'mortgage: compare with another rate');
+  await page.fill(R + '[data-k="rateslide"]', '6'); await page.dispatchEvent(R + '[data-k="rateslide"]', 'input'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '[data-k="rate"]')) === '6', 'mortgage: slider sets the typed rate');
+  check((await rows()).includes('Last payment around'), 'mortgage: payoff date shown');
+  await set('rate', ''); 
+  check(!(await page.textContent(R)).includes('NaN'), 'mortgage: blank rate gives no NaN');
 };

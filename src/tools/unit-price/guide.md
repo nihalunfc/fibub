@@ -29,14 +29,21 @@ It converts weight (g, kg, oz, lb), liquids (ml, L, US fl oz), counts and sheets
 
 ## How to use it
 
-1. Type a name, the **price**, the **quantity** and the **unit** for each product. Two products are ready for you; add up to six.
+1. Type a name, the **price**, the **quantity** and the **unit** for each product. Two products are ready for you; add up to twelve.
 2. If a price is for a multi-pack, put the size of one item in **Quantity** and the number of items in **Packs**. Six 330 ml cans is 330 ml with 6 packs.
 3. Read the table and the sentence above it.
+
+## More options
+
+- **% off:** each row has an optional discount for a sale or coupon. The compared price uses the price after the discount.
+- **Compare per:** open More options to compare per 100 g, per kg, per lb or per oz; per litre, per 100 ml or per fl oz; per item, per 10 or per dozen; and per 100, 1 or 1,000 sheets. Only the kinds you are using show up.
+- **Best value:** the cheapest row is marked, and every other row says how many percent more than the best it costs.
+- **Messages:** blank, negative or zero quantities get a plain message instead of a wrong answer.
 
 ## What the columns mean
 
 - **Price**: what you pay for the whole pack.
-- **Compared**: the price per 100 g, per litre, per item or per 100 sheets, whichever fits the unit.
+- **Compared**: the price per 100 g, per litre, per item or per 100 sheets by default, or the unit you picked under More options.
 
 Weight, liquids and counts cannot be compared with each other, so the page asks you to keep to one kind.
 

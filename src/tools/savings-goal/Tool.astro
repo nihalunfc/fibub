@@ -17,6 +17,16 @@
       <label class="sg-d">Or the target date <input data-k="date" type="date" /></label>
       <label class="sg-t" hidden>I can save each month <input data-k="monthly" inputmode="decimal" /></label>
     </div>
+    <label class="sg-slide sg-m">Drag to try other months <input type="range" data-k="monthsr" min="1" max="120" step="1" aria-label="Months to go slider" /></label>
+    <label class="sg-slide sg-t" hidden>Drag to try other monthly amounts <input type="range" data-k="monthlyr" min="0" max="1000" step="1" aria-label="Monthly saving slider" /></label>
+    <details class="sg-more">
+      <summary>More options</summary>
+      <div class="sg-grid">
+        <label>Deposits go in <select data-k="due"><option value="end">At the end of each month</option><option value="start">At the start of each month</option></select></label>
+        <label>Prices rise <span class="sg-suf"><input data-k="infl" inputmode="decimal" value="0" /><i>% a year</i></span></label>
+      </div>
+      <p class="sg-hint">Prices rise: your goal is in today's money, so the amount you need grows by this much each year. Leave it at 0 to ignore inflation.</p>
+    </details>
     <p class="note bad sg-err" role="alert" hidden></p>
   </section>
   <section class="sg-res" aria-live="polite">
@@ -26,11 +36,19 @@
       <div class="good"><span>Interest earned</span><b class="sg-r3"></b></div>
     </div>
     <p class="sg-line sg-note"></p>
+    <section class="panel sg-if">
+      <h2>What if I save more or less?</h2>
+      <div class="sg-wrap"><table class="sg-iftab"><thead><tr><th>Each month</th><th>Time to goal</th><th>Interest</th></tr></thead><tbody></tbody></table></div>
+    </section>
     <figure class="sg-chart panel">
       <figcaption>Your savings month by month <span class="sg-leg"></span></figcaption>
       <div class="sg-svg"></div>
     </figure>
   </section>
+  <details class="sg-yr panel" hidden>
+    <summary>Year by year</summary>
+    <div class="sg-wrap"><table class="sg-ytab"><thead><tr><th>Year</th><th>You put in</th><th>Interest</th><th>Balance</th></tr></thead><tbody></tbody></table></div>
+  </details>
   <p class="sg-fine">An estimate with one fixed rate. Deposits go in at the end of each month and interest is added monthly. For an emergency fund, many advisers suggest 3 to 6 months of essential costs. Not financial or tax advice. Nothing you type leaves this page.</p>
 </div>
 
@@ -66,12 +84,14 @@
   .sg th { font-size: 12px; color: var(--muted); font-weight: 600; }
   .sg-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .sg-err { margin: 10px 0 0; }
+  .sg-slide { margin-top: 12px; } .sg-slide input { padding: 0; accent-color: var(--accent); }
+  .sg-more { margin-top: 12px; } .sg-more summary, .sg-yr summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; } .sg-if h2 { font-size: 16px; } .sg-iftab tr.cur td { font-weight: 700; }
   .sg-hint { margin: 0; font-size: 13px; color: var(--muted); }
   @media (max-width: 720px) { .sg-stats { grid-template-columns: 1fr; } }
 </style>
 
 <script>
-  import { monthlyNeeded, monthsToReach, balanceAfter } from '../../lib/money/goals';
+  import { monthlyNeeded, monthsToReach, balanceAfter, inflate, whatIfMonthly } from '../../lib/money/goals';
   import { lineSvg, legend } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.sg')!;
@@ -95,38 +115,59 @@
     f('months').value = String(Math.max(1, (d.getFullYear() - n.getFullYear()) * 12 + d.getMonth() - n.getMonth()));
   });
   function run() {
+    q('.sg-yr').hidden = true;
     const mode = f('mode').value, em = f('kind').value === 'emergency';
     root.querySelectorAll<HTMLElement>('.sg-amt').forEach((e) => (e.hidden = em));
     root.querySelectorAll<HTMLElement>('.sg-em').forEach((e) => (e.hidden = !em));
     root.querySelectorAll<HTMLElement>('.sg-m, .sg-d').forEach((e) => (e.hidden = mode !== 'monthly'));
     q('.sg-t').hidden = mode !== 'time';
-    const target = em ? num(f('ess').value) * num(f('mcover').value) : num(f('target').value);
+    const target0 = em ? num(f('ess').value) * num(f('mcover').value) : num(f('target').value);
+    const infl = num(f('infl').value), due = f('due').value === 'start';
     const start = num(f('start').value), rate = num(f('rate').value), months = Math.round(num(f('months').value)), monthly0 = num(f('monthly').value);
-    const bad = !(target > 0) ? (em ? 'Enter your essential costs and the months to cover.' : 'Enter the target amount.') : start < 0 || monthly0 < 0 ? 'Amounts cannot be negative.' : rate < 0 || rate > 100 ? 'Enter the yearly interest rate, for example 3.' : mode === 'monthly' && !(months >= 1 && months <= 1200) ? 'Enter the months to go, from 1 to 1,200.' : '';
+    const bad = !(target0 > 0) ? (em ? 'Enter your essential costs and the months to cover.' : 'Enter the target amount.') : start < 0 || monthly0 < 0 ? 'Amounts cannot be negative.' : infl < 0 || infl > 100 ? 'Enter the yearly price rise as a percent from 0 to 100, or 0.' : rate < 0 || rate > 100 ? 'Enter the yearly interest rate, for example 3.' : mode === 'monthly' && !(months >= 1 && months <= 1200) ? 'Enter the months to go, from 1 to 1,200.' : '';
     q('.sg-err').hidden = !bad; q('.sg-err').textContent = bad; q('.sg-res').hidden = !!bad;
     if (bad) return;
-    let monthly: number, n: number;
-    if (mode === 'monthly') { n = months; monthly = monthlyNeeded(target, start, rate, n); }
+    let monthly: number, n: number, target = target0;
+    if (mode === 'monthly') { n = months; target = inflate(target0, infl, n); monthly = monthlyNeeded(target, start, rate, n, due); }
     else {
-      const m = monthsToReach(target, start, rate, monthly0);
-      if (!isFinite(m)) { q('.sg-err').hidden = false; q('.sg-err').textContent = 'With nothing saved each month and no interest, you will not reach the goal. Enter a monthly amount.'; q('.sg-res').hidden = true; return; }
-      n = Math.ceil(m - 1e-9); monthly = monthly0;
+      let m = monthsToReach(target0, start, rate, monthly0, due);
+      for (let k = 0; k < 30 && isFinite(m) && infl > 0; k++) { const t = inflate(target0, infl, Math.ceil(m - 1e-9)); const m2 = monthsToReach(t, start, rate, monthly0, due); if (Math.abs(m2 - m) < 1e-6) break; m = m2; }
+      if (!isFinite(m) || m > 1200) { q('.sg-err').hidden = false; q('.sg-err').textContent = !isFinite(m) ? 'With nothing saved each month and no interest, you will not reach the goal. Enter a monthly amount.' : 'At that rate of saving the goal is more than 100 years away. Try saving more each month.'; q('.sg-res').hidden = true; return; }
+      n = Math.ceil(m - 1e-9); monthly = monthly0; target = inflate(target0, infl, n);
     }
-    const total = balanceAfter(start, rate, monthly, n);
+    // keep the sliders in step with the typed numbers
+    const mr = f('monthsr'), tr = f('monthlyr');
+    mr.value = String(Math.min(120, Math.max(1, months || 1)));
+    tr.max = String(Math.max(100, Math.ceil((monthly0 * 3) / 10) * 10)); tr.value = String(Math.min(monthly0, +tr.max));
+    const total = balanceAfter(start, rate, monthly, n, due);
     const put = start + monthly * n;
     q('.sg-l1').textContent = mode === 'monthly' ? 'Save each month' : 'Time to reach it';
     q('.sg-r1').textContent = mode === 'monthly' ? $(monthly) : fmtLen(n);
     q('.sg-r2').textContent = $(put);
     q('.sg-r3').textContent = $(Math.max(0, total - put));
-    q('.sg-note').textContent = `Goal: ${$(target)}${em ? ` (${num(f('mcover').value)} months of costs)` : ''}. ${mode === 'monthly' ? `You reach it in ${fmtLen(n)}, around ${addMonths(n).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.` : `You would reach it around ${addMonths(n).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.`}`;
+    q('.sg-note').textContent = `Goal: ${$(target0)}${infl > 0 ? ` in today's money, about ${$(target)} by then` : ''}${em ? ` (${num(f('mcover').value)} months of costs)` : ''}. ${mode === 'monthly' ? `You reach it in ${fmtLen(n)}, around ${addMonths(n).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.` : `You would reach it around ${addMonths(n).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}.`}`;
+    // what if
+    const base = monthly;
+    q('.sg-if').hidden = !(monthly > 0);
+    q('.sg-if tbody').innerHTML = whatIfMonthly(target, start, rate, base, [0.5, 0.75, 1, 1.25, 1.5, 2], due).map((x) => `<tr class="${x.factor === 1 ? 'cur' : ''}"><td>${$(x.monthly)}${x.factor === 1 ? ' (yours)' : ''}</td><td>${isFinite(x.months) && x.months <= 1200 ? fmtLen(x.months) : 'Not reached'}</td><td>${$(x.interest)}</td></tr>`).join('');
+    // year by year
+    const yrs = Math.ceil(n / 12);
+    q('.sg-yr').hidden = yrs < 2 || yrs > 60;
+    q('.sg-ytab tbody').innerHTML = Array.from({ length: Math.min(yrs, 60) }, (_, k) => { const m = Math.min(n, (k + 1) * 12), b = balanceAfter(start, rate, monthly, m, due), pi = start + monthly * m; return `<tr><td>Year ${k + 1}</td><td>${$(pi)}</td><td>${$(Math.max(0, b - pi))}</td><td>${$(b)}</td></tr>`; }).join('');
     const step = Math.max(1, Math.ceil(n / 12));
     const xs: number[] = [], bal: number[] = [], put2: number[] = [];
-    for (let m = 0; m <= n; m += step) { xs.push(m); bal.push(balanceAfter(start, rate, monthly, m)); put2.push(start + monthly * m); }
+    for (let m = 0; m <= n; m += step) { xs.push(m); bal.push(balanceAfter(start, rate, monthly, m, due)); put2.push(start + monthly * m); }
     if (xs[xs.length - 1] !== n) { xs.push(n); bal.push(total); put2.push(put); }
     const series = [{ label: 'Balance', ys: bal, color: 'var(--accent)' }, { label: 'Money you put in', ys: put2, color: 'var(--muted)', dash: true }];
     q('.sg-svg').innerHTML = lineSvg(series, xs, 'Balance and money put in, month by month');
     q('.sg-leg').innerHTML = legend(series);
   }
-  root.addEventListener('input', run); root.addEventListener('change', run);
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement;
+    if (t === f('monthsr')) { f('months').value = f('monthsr').value; setDate(); }
+    else if (t === f('monthlyr')) f('monthly').value = f('monthlyr').value;
+    run();
+  });
+  root.addEventListener('change', run);
   run();
 </script>

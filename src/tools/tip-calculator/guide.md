@@ -40,6 +40,13 @@ It works in any currency, because only the numbers matter. For other percentage 
 - **Service charge already included**: if the bill already has a service charge, the tip is left out so you do not pay twice.
 - **Round up what each person pays**: each person pays a whole number. The few pennies over simply become a slightly bigger tip, and the page tells you how much.
 
+## Extra options
+
+- **+ and - buttons** next to People change the group size without typing.
+- **25%** joins the quick tip buttons.
+- **Compare tip amounts** (a folded section) lists the tip, total and each person's share at 10%, 12%, 15%, 18%, 20%, 22% and 25% side by side; your chosen tip is highlighted.
+- You can type amounts with commas, such as 1,000. A negative bill or zero people shows a plain message, not a broken number.
+
 ## Worked example
 
 Four friends have a bill of 100, with no tax. At 15% the tip is 15, the total is 115, and each person pays 28.75. With a 10% tax on the bill and the tip worked out on the bill with tax, the 20% tip is 22, the total is 132, and each pays 33.
