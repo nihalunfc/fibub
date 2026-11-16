@@ -14,4 +14,12 @@ export default async ({ page, check, BASE }) => {
   check(/1\.5 rupees = 150 naye paise/.test(i), `pre-decimal: 1 rupee 8 annas = 150 naye paise (${i})`);
   await page.fill('.pd .pd-p', '2'); await page.waitForTimeout(100);
   check(/1\.5313 rupees/.test(await page.textContent('.pd .pd-in-out')), 'pre-decimal: adding pice changes the total');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.pd .pd-list', '£2 5s 6d\n10/-\n6d'); await page.waitForTimeout(100);
+  const s = await page.textContent('.pd .pd-sum-out');
+  check(/3 amounts add up to £2 16s 0d = 672d = 280 new pence/.test(s), `pre-decimal: list adds to 672d (${s})`);
+  await page.fill('.pd .pd-list', '2 5 6\nnonsense'); await page.waitForTimeout(100);
+  check(/Could not read line 2/.test(await page.textContent('.pd .pd-sum-out')), 'pre-decimal: unreadable line named');
+  await page.fill('.pd .pd-dec', '1.25'); await page.waitForTimeout(100);
+  check(/300 old pence = £1 5s 0d/.test(await page.textContent('.pd .pd-dec-out')), 'pre-decimal: £1.25 = 300d = £1 5s 0d');
 };

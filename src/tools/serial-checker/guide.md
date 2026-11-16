@@ -44,6 +44,10 @@ It works on a whole list at once, one serial per line, and counts how many of ea
 
 12345678 is a ladder, because the digits count up. 12344321 is a radar, because it reads the same both ways. 77777777 is both a solid (every digit the same) and a radar. Pasting all three shows "3 of 3 with a pattern: Ladder 1, Radar 2, Solid 1".
 
+## More options
+
+Besides solid, ladder, radar, repeater, binary, low and round numbers, the tool now spots near-solid serials (all but one digit the same), rotators (they read the same turned upside down), four or more of one digit in a row, part ladders (five digits counting up or down) and eight digits that look like a date. Paste serials separated by commas as well as new lines. Open **More options** to show only the serials that have a pattern. Type a star (* or ★) in a line and it is flagged as a star note. How star or replacement notes are marked depends on the country and printer, so check the official source for your note.
+
 ## FAQs
 
 **Is my note worth more now?** Maybe, maybe not. Patterns interest collectors, but price depends on country, condition and demand. If you think you have a good one, ask a dealer or a collectors' club.

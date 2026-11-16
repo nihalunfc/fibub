@@ -27,6 +27,14 @@ import '../../styles/collect.css';
       <label>Weight allowance (%) <input class="cc-tw" type="number" min="0" step="any" inputmode="decimal" value="1" /></label>
       <label>Diameter allowance (%) <input class="cc-td" type="number" min="0" step="any" inputmode="decimal" value="0.5" /></label>
     </div>
+    <details style="margin-top:10px" class="cc-more"><summary><strong>More options</strong>: weight unit, several weighings, thickness allowance</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Unit of your weighing <select class="cc-unit" data-k="unit"><option value="g">grams (g)</option><option value="gr">grains (gr)</option><option value="dwt">pennyweight (dwt)</option><option value="ozt">troy ounces</option><option value="oz">ounces</option></select></label>
+        <label>Thickness allowance (%) <input class="cc-tt" data-k="tt" type="number" min="0" step="any" inputmode="decimal" value="3" /></label>
+      </div>
+      <label style="margin-top:10px">Several weighings (optional, one per line) <textarea class="cc-rd" data-k="readings" rows="3" placeholder="26.18&#10;26.21&#10;26.20"></textarea></label>
+      <p class="ax-help">If you type two or more, their average replaces the weight above and the spread shows whether your scale repeats.</p>
+    </details>
     <p class="ax-help">How far off you will accept before it is flagged. Mints publish their own tolerances for new coins, and worn coins lose weight, so treat these as a guide.</p>
   </div>
   <div class="ax-card">
@@ -44,7 +52,7 @@ import '../../styles/collect.css';
 </style>
 
 <script>
-  import { tolerance, discVolume, alloyDensity, ALLOYS } from '../../lib/collect/maths';
+  import { tolerance, discVolume, alloyDensity, ALLOYS, convertWeight, readings } from '../../lib/collect/maths';
 
   type P = { name: string; w: number; d: number; t?: number; alloy: string };
   // Weights and sizes as published by the issuing mints (general facts).
@@ -74,12 +82,16 @@ import '../../styles/collect.css';
   };
   const calc = () => {
     const out = $('.cc-out'), facts = root.querySelector('.cc-facts') as HTMLElement;
-    const sw = num($('.cc-sw')), sd = num($('.cc-sd')), mw = num($('.cc-mw')), md = num($('.cc-md'));
+    const unit = (root.querySelector('.cc-unit') as HTMLSelectElement).value, rd = readings($('.cc-rd').value);
+    const sw = num($('.cc-sw')), sd = num($('.cc-sd')), md = num($('.cc-md'));
+    const rawW = rd.n >= 2 ? rd.mean : num($('.cc-mw'));
+    const mw = unit === 'g' ? rawW : convertWeight(rawW, unit, 'g');
     const lines: string[] = [];
+    if (rd.n >= 2) lines.push(`<div><dt>Your ${rd.n} weighings</dt><dd class="cc-rdout">${rd.mean.toFixed(3)} ${unit}<small>lowest ${rd.min}, highest ${rd.max}, spread ${(rd.max - rd.min).toFixed(3)}</small></dd></div>`);
     let bad = 0, n = 0;
     if (sw > 0 && mw > 0) {
       const r = tolerance(mw, sw, num($('.cc-tw')) || 0); n++; if (!r.within) bad++;
-      lines.push(`<div><dt>Weight</dt><dd class="cc-w">${sgn(r.pct, 2)}%<small>${sgn(r.diff, 2)} g · ${mw} g against ${sw} g</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
+      lines.push(`<div><dt>Weight</dt><dd class="cc-w">${sgn(r.pct, 2)}%<small>${sgn(r.diff, 2)} g · ${+mw.toFixed(3)} g against ${sw} g</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
     }
     if (sd > 0 && md > 0) {
       const r = tolerance(md, sd, num($('.cc-td')) || 0); n++; if (!r.within) bad++;
@@ -87,8 +99,8 @@ import '../../styles/collect.css';
     }
     const st = num($('.cc-st')), mt = num($('.cc-mt'));
     if (st > 0 && mt > 0) {
-      const r = tolerance(mt, st, 3); n++; if (!r.within) bad++;
-      lines.push(`<div><dt>Thickness</dt><dd class="cc-t">${sgn(r.pct, 1)}%<small>${sgn(r.diff, 2)} mm · allowance 3%</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
+      const r = tolerance(mt, st, Number.isFinite(num($('.cc-tt'))) ? num($('.cc-tt')) : 3); n++; if (!r.within) bad++;
+      lines.push(`<div><dt>Thickness</dt><dd class="cc-t">${sgn(r.pct, 1)}%<small>${sgn(r.diff, 2)} mm · allowance ${Number.isFinite(num($('.cc-tt'))) ? num($('.cc-tt')) : 3}%</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
     }
     const alloy = ALLOYS[metal.value];
     if (alloy && md > 0 && mt > 0 && mw > 0) {

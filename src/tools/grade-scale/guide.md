@@ -43,6 +43,10 @@ Below that is a table of every band and a table of banknote terms, which use wor
 
 Number 45 sits in the Extremely Fine band (EF / XF). A UK dealer says Extremely Fine, a French dealer says SUP (Superbe), and a German dealer says VZ (Vorzüglich). The coin shows light wear on its highest points only, and most fine detail is still sharp.
 
+## More options
+
+Open **More options** to work the other way round. Type a word or letters (fine, XF, SUP, vorzüglich) and see every band that matches, with a button that jumps to the first number in that band. Below it, pick two numbers to compare: you get the word for each, how many points apart they are, and whether a dealer would probably use the same word for both. Words and bands are approximate and differ by country and grading firm, so check with a dealer or club if a sale depends on it.
+
 ## FAQs
 
 **Is this an official grade?** No. It is a reference to the words and numbers. Only a person looking at the coin can grade it, and two people may differ by a step.
