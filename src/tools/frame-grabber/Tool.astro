@@ -1,0 +1,151 @@
+---
+// #T966 Frame grabber: save still images from your own video, one frame or one every few seconds, as PNG, JPG or WebP.
+// The video is drawn onto a canvas on this device; nothing is uploaded.
+---
+<div class="tool-ui fg">
+  <section class="panel">
+    <div class="fg-drop">
+      <button type="button" class="btn fg-open">Open a video</button>
+      <input class="fg-file" type="file" accept="video/*,.mp4,.mov,.webm,.mkv,.m4v" hidden />
+      <span class="fg-name">Or drop it here. MP4, MOV or WebM from your phone or computer. It stays on this device.</span>
+    </div>
+    <p class="note bad fg-err" hidden></p>
+  </section>
+
+  <section class="panel fg-stage" hidden>
+    <video class="fg-video" controls playsinline preload="auto" muted></video>
+    <div class="fg-grid">
+      <label>Save as
+        <select class="fg-fmt"><option value="image/png">PNG (exact, larger)</option><option value="image/jpeg">JPG (smaller)</option><option value="image/webp">WebP (smallest)</option></select>
+      </label>
+      <label>Quality (JPG and WebP) <input class="fg-q" type="number" min="10" max="100" step="5" value="92" inputmode="numeric" /></label>
+      <label>Size
+        <select class="fg-size"><option value="1">Full size</option><option value="0.5">Half size</option><option value="0.25">Quarter size</option></select>
+      </label>
+    </div>
+    <div class="fg-row">
+      <button type="button" class="btn fg-one">Save this frame</button>
+      <button type="button" class="btn secondary fg-back" aria-label="Back one frame">◀ Frame</button>
+      <button type="button" class="btn secondary fg-fwd" aria-label="Forward one frame">Frame ▶</button>
+    </div>
+    <p class="fg-pos" aria-live="polite"></p>
+
+    <h2 class="fg-h">Many frames</h2>
+    <div class="fg-grid">
+      <label>From (seconds) <input class="fg-s" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>To (seconds) <input class="fg-e" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>One frame every (seconds) <input class="fg-every" type="number" min="0.04" step="0.1" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="fg-plan" aria-live="polite"></p>
+    <div class="fg-row">
+      <button type="button" class="btn fg-many">Save the frames as a ZIP</button>
+      <button type="button" class="btn secondary fg-stop" hidden>Stop</button>
+    </div>
+    <progress class="fg-prog" max="1" value="0" hidden></progress>
+    <div class="fg-thumbs" aria-label="Frames saved"></div>
+  </section>
+  <p class="fg-fine">Frames are drawn by your browser on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .fg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .fg .panel { display: grid; gap: 12px; padding: 16px; }
+  .fg [hidden] { display: none !important; }
+  .fg-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .fg-drop.over { border-color: var(--accent); }
+  .fg-name, .fg-fine, .fg-pos, .fg-plan { color: var(--muted); font-size: 14px; margin: 0; }
+  .fg-video { width: 100%; max-height: 60vh; background: #000; border-radius: 10px; }
+  .fg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .fg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .fg input, .fg select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fg-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fg-h { font-size: 18px; margin: 8px 0 0; }
+  .fg-prog { width: 100%; }
+  .fg-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
+  .fg-thumbs img { width: 100%; border-radius: 6px; border: 1px solid var(--line); }
+</style>
+
+<script>
+  import { saveBytes, saveZip, sizeText } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.fg') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.fg-file'), video = $<HTMLVideoElement>('.fg-video'), err = $('.fg-err');
+  const fmt = $<HTMLSelectElement>('.fg-fmt'), q = $<HTMLInputElement>('.fg-q'), size = $<HTMLSelectElement>('.fg-size');
+  const sIn = $<HTMLInputElement>('.fg-s'), eIn = $<HTMLInputElement>('.fg-e'), every = $<HTMLInputElement>('.fg-every');
+  const plan = $('.fg-plan'), many = $<HTMLButtonElement>('.fg-many'), stopB = $<HTMLButtonElement>('.fg-stop'), prog = $<HTMLProgressElement>('.fg-prog'), thumbs = $('.fg-thumbs');
+  const MAX = 300, FPS = 30;
+  let url = '', base = 'video', stop = false, busy = false;
+  const ext = () => ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' })[fmt.value]!;
+  const stamp = (t: number) => { const m = Math.floor(t / 60), s = t - m * 60; return `${String(m).padStart(2, '0')}m${s.toFixed(2).padStart(5, '0')}s`; };
+
+  const grab = async (): Promise<Blob> => {
+    const k = +size.value, w = Math.max(1, Math.round(video.videoWidth * k)), h = Math.max(1, Math.round(video.videoHeight * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    c.getContext('2d')!.drawImage(video, 0, 0, w, h);
+    const b = await new Promise<Blob | null>((r) => c.toBlob(r, fmt.value, Math.max(0.1, Math.min(1, +q.value / 100))));
+    if (!b) throw new Error('no image');
+    return b;
+  };
+  const seek = (t: number) => new Promise<void>((r) => {
+    if (Math.abs(video.currentTime - t) < 1e-4 && video.readyState >= 2) return r();
+    const done = () => { video.removeEventListener('seeked', done); r(); };
+    video.addEventListener('seeked', done); video.currentTime = t;
+  });
+  const pos = () => { $('.fg-pos').textContent = video.duration ? `At ${video.currentTime.toFixed(2)} s of ${video.duration.toFixed(2)} s. Picture ${video.videoWidth} × ${video.videoHeight}.` : ''; };
+  const times = () => {
+    const d = video.duration || 0, s = Math.max(0, Math.min(d, +sIn.value || 0)), e = Math.max(0, Math.min(d, +eIn.value || 0)), st = Math.max(0.04, +every.value || 1);
+    const out: number[] = []; for (let t = s; t <= e + 1e-6 && out.length < MAX + 1; t += st) out.push(Math.min(t, Math.max(0, d - 0.001)));
+    return out;
+  };
+  const update = () => {
+    const t = times();
+    if (+eIn.value <= +sIn.value) { plan.textContent = 'The end must be after the start.'; many.disabled = true; return; }
+    many.disabled = busy || t.length > MAX;
+    plan.textContent = t.length > MAX ? `That is more than ${MAX} frames. Use a longer gap or a shorter part.` : `${t.length} frames, from ${(+sIn.value).toFixed(1)} s to ${(+eIn.value).toFixed(1)} s.`;
+  };
+  const open = (f: File) => {
+    err.hidden = true;
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(f); base = f.name.replace(/\.[^.]+$/, '') || 'video';
+    video.src = url; thumbs.replaceChildren();
+    $('.fg-name').textContent = `${f.name}: opening…`;
+  };
+  video.addEventListener('loadedmetadata', () => {
+    if (!video.videoWidth) { err.textContent = 'This video has no picture the browser can show. Try MP4 or WebM, or another browser.'; err.hidden = false; return; }
+    $('.fg-name').textContent = `${input.files?.[0]?.name ?? base}: ${video.duration.toFixed(1)} s, ${video.videoWidth} × ${video.videoHeight}.`;
+    sIn.value = '0'; eIn.value = video.duration.toFixed(1); every.value = video.duration > 120 ? '10' : video.duration > 20 ? '2' : '1';
+    $('.fg-stage').hidden = false; pos(); update();
+  });
+  video.addEventListener('error', () => { err.textContent = 'This browser cannot play that video. Try MP4 or WebM, or another browser.'; err.hidden = false; });
+  video.addEventListener('timeupdate', pos); video.addEventListener('seeked', pos);
+  $('.fg-one').addEventListener('click', async () => {
+    video.pause(); const b = await grab();
+    saveBytes(b, `${base}-${stamp(video.currentTime)}.${ext()}`);
+    const img = document.createElement('img'); img.alt = `Frame at ${video.currentTime.toFixed(2)} s`; img.src = URL.createObjectURL(b); thumbs.prepend(img);
+  });
+  $('.fg-back').addEventListener('click', () => { video.pause(); video.currentTime = Math.max(0, video.currentTime - 1 / FPS); });
+  $('.fg-fwd').addEventListener('click', () => { video.pause(); video.currentTime = Math.min(video.duration, video.currentTime + 1 / FPS); });
+  many.addEventListener('click', async () => {
+    const t = times(); if (!t.length || t.length > MAX) return;
+    busy = true; stop = false; video.pause(); many.disabled = true; stopB.hidden = false; prog.hidden = false; prog.value = 0;
+    const files: { name: string; bytes: Uint8Array }[] = []; let total = 0;
+    try {
+      for (let i = 0; i < t.length && !stop; i++) {
+        await seek(t[i]); const b = await grab(); total += b.size;
+        files.push({ name: `${base}-${String(i + 1).padStart(3, '0')}-${stamp(t[i])}.${ext()}`, bytes: new Uint8Array(await b.arrayBuffer()) });
+        prog.value = (i + 1) / t.length; plan.textContent = `Frame ${i + 1} of ${t.length}, ${sizeText(total)} so far…`;
+      }
+      if (files.length) await saveZip(files, `${base}-frames.zip`);
+      plan.textContent = `${files.length} frame${files.length === 1 ? '' : 's'} saved in a ZIP (${sizeText(total)}).${stop ? ' Stopped early.' : ''}`;
+    } catch { err.textContent = 'A frame could not be drawn. Try another browser.'; err.hidden = false; }
+    busy = false; many.disabled = false; stopB.hidden = true; prog.hidden = true;
+  });
+  stopB.addEventListener('click', () => (stop = true));
+  for (const el of [sIn, eIn, every]) el.addEventListener('input', update);
+  $('.fg-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); });
+  const drop = $('.fg-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>

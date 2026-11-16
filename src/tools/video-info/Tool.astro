@@ -1,0 +1,79 @@
+---
+// #T970 Video info: what is inside a video file (container, codecs, size, frame rate, bitrates, sound, tags).
+// Engine: src/lib/video/convert.ts (Mediabunny reads the file on the device; nothing is uploaded).
+---
+<div class="tool-ui vi">
+  <section class="panel">
+    <div class="vi-drop">
+      <button type="button" class="btn vi-open">Open a video</button>
+      <input class="vi-file" type="file" accept="video/*,audio/*,.mp4,.mov,.m4v,.webm,.mkv,.mp3,.m4a,.wav,.ogg,.flac" hidden />
+      <span class="vi-name">Or drop it here. MP4, MOV, WebM, MKV and sound files of any size. Only the parts needed are read, on this device.</span>
+    </div>
+    <p class="note bad vi-err" hidden></p>
+  </section>
+  <section class="panel vi-out" hidden>
+    <table class="vi-t"><tbody></tbody></table>
+    <div class="vi-row"><button type="button" class="btn secondary vi-copy">Copy as text</button></div>
+  </section>
+</div>
+
+<style is:inline>
+  .vi { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vi .panel { display: grid; gap: 12px; padding: 16px; }
+  .vi [hidden] { display: none !important; }
+  .vi-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .vi-drop.over { border-color: var(--accent); }
+  .vi-name { color: var(--muted); font-size: 14px; }
+  .vi-t { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .vi-t th { text-align: left; color: var(--muted); font-weight: normal; padding: 6px 10px 6px 0; vertical-align: top; width: 40%; }
+  .vi-t td { padding: 6px 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .vi-t tr + tr { border-top: 1px solid var(--line); }
+  .vi-t tr.sec th { color: var(--ink); font-weight: 600; padding-top: 14px; }
+  .vi-row { display: flex; gap: 8px; }
+</style>
+
+<script>
+  import { sizeText } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.vi') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.vi-file'), err = $('.vi-err'), body = root.querySelector('.vi-t tbody') as HTMLElement;
+  let rows: [string, string][] = [];
+  const CODEC: [RegExp, string][] = [[/^avc1|^avc3/, 'H.264 (AVC)'], [/^hvc1|^hev1/, 'H.265 (HEVC)'], [/^vp09|^vp9/, 'VP9'], [/^vp8/, 'VP8'], [/^av01/, 'AV1'], [/^mp4a\.40/, 'AAC'], [/^opus/, 'Opus'], [/^mp3|^mp4a\.6b|^mp4a\.69/, 'MP3'], [/^vorbis/, 'Vorbis'], [/^flac/, 'FLAC'], [/^ac-3/, 'Dolby Digital (AC-3)'], [/^ec-3/, 'Dolby Digital Plus'], [/^pcm|^ulaw|^alaw/, 'PCM (uncompressed)']];
+  const codec = (c: string) => { const n = CODEC.find(([r]) => r.test(c))?.[1]; return n ? `${n} (${c})` : c; };
+  const rate = (b: number) => (b >= 1e6 ? `${(b / 1e6).toFixed(2)} Mbit/s` : `${Math.round(b / 1e3)} kbit/s`);
+  const time = (s: number) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? `${h}:${String(m).padStart(2, '0')}` : `${m}`) + `:${x.toFixed(2).padStart(5, '0')} (${s.toFixed(2)} s)`; };
+  const show = () => {
+    body.replaceChildren(...rows.map(([k, v]) => { const tr = document.createElement('tr'); if (!v) tr.className = 'sec'; const th = document.createElement('th'); th.textContent = k; const td = document.createElement('td'); td.textContent = v; tr.append(th, td); return tr; }));
+    $('.vi-out').hidden = false;
+  };
+  const open = async (f: File) => {
+    err.hidden = true; $('.vi-out').hidden = true; $('.vi-name').textContent = `${f.name}: reading…`;
+    try {
+      const { readInfo } = await import('../../lib/video/convert.ts');
+      const i = await readInfo(f);
+      rows = [['File', ''], ['Name', f.name], ['Size', `${sizeText(i.size)} (${i.size.toLocaleString('en-US')} bytes)`], ['Container', `${i.format}${i.mime ? ' · ' + i.mime : ''}`], ['Length', time(i.duration)], ['Overall bitrate', i.duration ? rate((i.size * 8) / i.duration) : '—'], ['Tracks', String(i.tracks)]];
+      if (i.video) {
+        const v = i.video, g = (a: number, b: number): number => (b ? g(b, a % b) : a), d = g(v.width, v.height);
+        rows.push(['Video', ''], ['Codec', codec(v.codec)], ['Picture', `${v.width} × ${v.height} (${v.width / d}:${v.height / d})`], ['Frame rate', `${v.fps.toFixed(3).replace(/\.?0+$/, '')} frames a second`], ['Video bitrate', rate(v.bitrate)]);
+        if (v.rotation) rows.push(['Turn flag', `${v.rotation}° (players turn the picture)`]);
+      }
+      if (i.audio) {
+        const a = i.audio;
+        rows.push(['Sound', ''], ['Codec', codec(a.codec)], ['Sample rate', `${a.rate.toLocaleString('en-US')} Hz`], ['Channels', a.channels === 1 ? '1 (mono)' : a.channels === 2 ? '2 (stereo)' : String(a.channels)], ['Sound bitrate', rate(a.bitrate)]);
+      } else if (i.video) rows.push(['Sound', 'None']);
+      const tags = Object.entries(i.tags);
+      if (tags.length) { rows.push(['Tags', '']); for (const [k, v] of tags) rows.push([k[0].toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase(), v]); }
+      $('.vi-name').textContent = f.name; show();
+    } catch { err.textContent = 'This file could not be read. It may be damaged or a kind this page does not know.'; err.hidden = false; $('.vi-name').textContent = f.name; }
+  };
+  $('.vi-copy').addEventListener('click', async () => {
+    const text = rows.map(([k, v]) => (v ? `${k}: ${v}` : `\n${k}`)).join('\n').trim();
+    try { await navigator.clipboard.writeText(text); $<HTMLButtonElement>('.vi-copy').textContent = 'Copied'; setTimeout(() => ($<HTMLButtonElement>('.vi-copy').textContent = 'Copy as text'), 1500); } catch {}
+  });
+  $('.vi-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); });
+  const drop = $('.vi-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>
