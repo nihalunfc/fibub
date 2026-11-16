@@ -1,0 +1,255 @@
+---
+// #L382 Levers in everyday tools. How machines work, lesson 2. Maths: src/lib/sci/millwright.ts. Engine: src/lib/learn/skill.ts + quiz.ts + sim.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk lrn lvt">
+  <CourseNav id="levers-in-tools" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>This lesson explains the physics. Try things only with hand tools on scrap wood, never on a running machine.</li>
+      <li>A long bar multiplies your push. A bolt, nail or bar can snap or slip suddenly: keep your face and fingers out of the line it would fly in.</li>
+      <li>Never add a pipe to a spanner or wheel brace to "get more leverage" on a bolt with a set tightness. Use a torque wrench.</li>
+      <li>Lift a loaded wheelbarrow with your legs, back straight, and keep loads you cannot hold out of it.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>Things to look at</h2>
+    <ul class="sk-kit"><li>Claw hammer</li><li>Old nail in scrap wood</li><li>Pliers</li><li>Scissors</li><li>Bottle opener</li><li>Wheel brace or spanner</li><li>Wheelbarrow</li><li>Tape measure</li></ul>
+  </div>
+  <div class="ax-card lvt-steps">
+    <h2>The big ideas</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A beam balanced on a pivot: a big weight close to the pivot balances a small weight far away" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 60h160" /><path class="hl" d="M80 60l-10 20h20z" /><path d="M10 100h180" /><path d="M80 80v20" />
+          <rect x="50" y="34" width="22" height="26" /><rect x="164" y="48" width="12" height="12" /><path class="hl" d="M80 70h-19M80 70h86" stroke-width="1.5" stroke-dasharray="3 3" />
+          <text x="61" y="28" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle">big</text><text x="170" y="42" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle">small</text>
+        </svg>
+        <div class="sk-txt"><h3>Force × distance</h3><p>A lever turns about a pivot called the <strong>fulcrum</strong>. Its turning effect, the <strong>moment</strong>, is force × distance from the fulcrum. A lever balances when the moments match: effort × effort arm = load × load arm.</p><p class="sk-tip">So a small push far from the fulcrum can hold a big load close to it.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A claw hammer pulling a nail: the head rocks on the wood between the nail and the hand" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 92h180" /><path d="M52 92V60M44 58h16" stroke-width="3" /><path d="M80 86Q68 62 50 64" stroke-width="5" /><path d="M80 86L176 26" stroke-width="7" />
+          <circle class="hl" cx="80" cy="88" r="5" fill="currentColor" /><path class="hl" d="M176 14v26M170 34l6 8 6-8" />
+        </svg>
+        <div class="sk-txt"><h3>Class 1: fulcrum in the middle</h3><p>The fulcrum sits between the load and your effort. A claw hammer pulling a nail is one: the head rocks on the wood, the nail is a few centimetres one side, your hand is 30 cm the other side.</p><p class="sk-tip">Also class 1: crowbars, pliers, scissors, a seesaw.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A wheelbarrow: wheel at the front as the fulcrum, the load in the middle and the hands lifting at the back" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 100h180" /><circle class="hl" cx="40" cy="84" r="16" /><path d="M40 84l20-30h70l-14 26H60z" /><path d="M130 54l50-10" />
+          <path d="M80 30v18M74 42l6 8 6-8" /><path class="hl" d="M180 44V20M174 26l6-8 6 8" /><path d="M100 80l-4 20M60 80v20" />
+        </svg>
+        <div class="sk-txt"><h3>Class 2: load in the middle</h3><p>The fulcrum is at one end and the load sits between it and you. A wheelbarrow, a bottle opener and a nutcracker work this way. The effort arm is always longer than the load arm, so you always need less force than the load.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Tweezers: joined at one end, fingers pressing in the middle, tips gripping at the far end" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 55l160-22M20 55l160 22" /><circle class="hl" cx="20" cy="55" r="5" fill="currentColor" />
+          <path class="hl" d="M95 20v18M89 32l6 8 6-8M95 92V72M89 78l6-8 6 8" /><circle cx="186" cy="55" r="5" />
+        </svg>
+        <div class="sk-txt"><h3>Class 3: effort in the middle</h3><p>Your effort is between the fulcrum and the load, as with tweezers, a shovel, a broom or your own forearm. You push harder than the load, but the far end moves further and faster.</p><p class="sk-tip">Class 3 levers trade force for speed and reach.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A wheel brace on a nut: the same turning effect from a smaller push at the end of a longer arm" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M30 46l10-8h12l10 8-10 8H40z" /><path d="M46 46h140" stroke-width="5" /><path class="hl" d="M46 70h138" stroke-width="1.5" stroke-dasharray="3 3" /><path d="M46 64v12M184 64v12" stroke-width="1.5" />
+          <path class="hl" d="M184 52v32M178 78l6 8 6-8" /><text x="115" y="94" font-family="system-ui,sans-serif" font-size="12" fill="currentColor" stroke="none" text-anchor="middle">r</text>
+        </svg>
+        <div class="sk-txt"><h3>Longer handle, less push</h3><p>Spanners and wheel braces are levers that turn. The turning effect on the nut, the <strong>torque</strong>, is your push × the distance from the nut to your hand. Hold the end, not the middle, and you need half the push of holding halfway.</p><p class="sk-tip">That is also why a long bar can over-tighten or snap a bolt so easily.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A lever tilting: the load end rises a little while the effort end moves down a long way" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 50l170 30" stroke-dasharray="4 4" stroke-width="1.5" /><path d="M20 40l170 60" /><path d="M60 57l-10 20h20z" /><path d="M10 100h180" />
+          <path class="hl" d="M190 82v16M184 92l6 6 6-6" /><path class="hl" d="M20 50v-8M15 46l5-5 5 5" />
+        </svg>
+        <div class="sk-txt"><h3>No free work</h3><p>If the effort arm is 8 times the load arm, you push with an eighth of the force, but your hand moves 8 times as far. Work (force × distance) in equals work out, less a bit lost to friction.</p></div>
+      </li>
+    </ol>
+  </div>
+
+  <div class="ax-card lvt-sim">
+    <h2>Try it: how hard do you push?</h2>
+    <div class="ax-seg lvt-tool" role="group" aria-label="Tool">
+      <button type="button" data-t="hammer" aria-pressed="true">Claw hammer</button>
+      <button type="button" data-t="brace" aria-pressed="false">Wheel brace</button>
+      <button type="button" data-t="barrow" aria-pressed="false">Wheelbarrow</button>
+    </div>
+    <canvas class="lrn-cv lvt-cv" aria-label="The tool drawn as a lever, to scale, with the fulcrum, the load and your push as arrows" style="margin-top:10px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span><span class="lvt-hl">Hand distance from fulcrum</span>: <b class="lvt-hv"></b></span><input class="lvt-hand" type="range" /></label>
+      <label class="lrn-sl"><span><span class="lvt-ll">Load</span>: <b class="lvt-lv"></b></span><input class="lvt-load" type="range" /></label>
+    </div>
+    <p class="ax-big lvt-out" aria-live="polite"></p>
+    <p class="lrn-eq lvt-eq"></p>
+    <ul class="lrn-try" style="margin-top:8px"><li>Slide your hand to the end of the hammer handle, then halfway. How does the push change?</li><li>Wheel brace at 110 N·m: what length lets you do it with about 250 N, roughly a firm push with your body weight?</li><li>Wheelbarrow: why are the handles so long?</li></ul>
+  </div>
+
+  <div class="ax-card sk-label lvt-label">
+    <h2>Name the parts of a lever</h2>
+    <svg viewBox="0 0 320 170" role="group" aria-label="A claw hammer pulling a nail out of a plank, with the parts of the lever marked" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="wood" data-name="Plank (what the fulcrum rests on)" data-note="it pushes up on the hammer head; that push is what lets the lever work."><path d="M10 130h300v24H10z" stroke-width="2" /></g>
+      <g data-part="handle" data-name="Effort arm" data-note="from the fulcrum to your hand. The longer it is, the less you push."><path d="M92 120L268 30" stroke-width="9" /></g>
+      <g data-part="load" data-name="Load (the nail)" data-note="the nail grips the wood and pulls back down on the claw."><path d="M50 130V86M40 84h20" stroke-width="4" /></g>
+      <g data-part="claw" data-name="Claw" data-note="the split end that hooks under the nail head."><path d="M90 118Q78 88 54 90" stroke-width="6" /></g>
+      <g data-part="fulcrum" data-name="Fulcrum (pivot)" data-note="where the curved head rocks on the plank. Everything turns about this point."><circle cx="92" cy="124" r="7" fill="currentColor" /></g>
+      <g data-part="effort" data-name="Effort (your hand)" data-note="you pull the handle; the moment is your pull × the effort arm."><path d="M270 26l26 30M286 50l10 6-2-12" stroke-width="3" /><circle cx="270" cy="26" r="9" /></g>
+    </svg>
+  </div>
+
+  <div class="ax-card lvt-sort">
+    <h2>Which class of lever is it?</h2>
+    <p class="ax-help">Find the fulcrum first. In the middle: class 1. Load in the middle: class 2. Your effort in the middle: class 3.</p>
+    <ol class="lvt-sort-list"></ol>
+    <p class="sk-label-out lvt-sort-out" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card sk-pro">
+    <h2>Leave it to a qualified millwright or technician when</h2>
+    <ul>
+      <li>The lever is part of a machine: brake arms, clutch levers, tensioners, press linkages. These need lock-out and trade training.</li>
+      <li>A bolt has a set tightness (wheels, engines, structures): use a torque wrench to the maker's figure, not a longer bar.</li>
+      <li>A seized or rusted fastener will not move with normal force, or the tool starts to bend.</li>
+      <li>Lifting heavy machinery with bars or jacks: that is rigging work with its own rules.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card lvt-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .lvt .lvt-sort-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .lvt .lvt-sort-list li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); display: grid; gap: 6px; }
+  .lvt .lvt-sort-list li.sk-right { border-color: var(--good); background: var(--good-soft); }
+  .lvt .lvt-sort-list li.sk-wrong { border-color: var(--bad); background: var(--bad-soft); }
+  .lvt .lvt-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .lvt .lvt-row strong { flex: 1 1 140px; font-size: 15px; }
+  .lvt .lvt-why { margin: 0; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, choice, some } from '../../lib/learn/skill';
+  import { fitCanvas, pagePalette } from '../../lib/learn/sim';
+  import { leverEffort, braceForce, LEVER_TOOLS, G } from '../../lib/sci/millwright';
+  const root = document.querySelector('.lvt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  mountSteps($('.lvt-steps'), 'levers-in-tools');
+  mountLabels($('.lvt-label'));
+
+  // ---- Sim: three tools drawn as straight levers, to scale ----
+  type Tool = { hand: [number, number, number, number]; load: [number, number, number, number]; handLabel: string; loadLabel: string; loadArm: number; max: number };
+  const TOOLS: Record<string, Tool> = {
+    hammer: { hand: [0.08, 0.34, 0.01, 0.3], load: [400, 2500, 100, 1200], handLabel: 'Hand distance from the head', loadLabel: 'Nail grip (force to pull it)', loadArm: 0.04, max: 0.4 },
+    brace: { hand: [0.15, 0.6, 0.01, 0.4], load: [40, 250, 5, 110], handLabel: 'Hand distance from the nut', loadLabel: 'Torque the nut needs', loadArm: 0, max: 0.62 },
+    barrow: { hand: [0.6, 1.5, 0.05, 1.2], load: [10, 150, 5, 80], handLabel: 'Hands from the wheel axle', loadLabel: 'Load in the barrow', loadArm: 0.35, max: 1.55 },
+  };
+  let tool = 'hammer';
+  const cv = $<HTMLCanvasElement>('.lvt-cv'), hand = $<HTMLInputElement>('.lvt-hand'), load = $<HTMLInputElement>('.lvt-load'), out = $('.lvt-out'), eq = $('.lvt-eq');
+  const setRange = (inp: HTMLInputElement, [lo, hi, st, v]: number[]) => { inp.min = String(lo); inp.max = String(hi); inp.step = String(st); inp.value = String(v); };
+  const pickTool = (t: string) => {
+    tool = t; const T = TOOLS[t];
+    root.querySelectorAll<HTMLButtonElement>('.lvt-tool button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === t)));
+    setRange(hand, T.hand); setRange(load, T.load); $('.lvt-hl').textContent = T.handLabel; $('.lvt-ll').textContent = T.loadLabel; update();
+  };
+  const arrow = (ctx: CanvasRenderingContext2D, x: number, y0: number, y1: number) => {
+    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+    const d = y1 > y0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(x - 6, y1 - 8 * d); ctx.lineTo(x, y1); ctx.lineTo(x + 6, y1 - 8 * d); ctx.stroke();
+  };
+  const update = () => {
+    const T = TOOLS[tool], h = +hand.value, L = +load.value;
+    let effort = 0, loadN = 0, txtHand = `${Math.round(h * 100)} cm`, txtLoad = '';
+    if (tool === 'hammer') { loadN = L; effort = leverEffort(L, T.loadArm, h); txtLoad = `${L} N`; }
+    else if (tool === 'brace') { effort = braceForce(L, h); txtLoad = `${L} N·m`; }
+    else { loadN = L * G; effort = leverEffort(loadN, T.loadArm, h); txtLoad = `${L} kg (${r(loadN)} N)`; }
+    $('.lvt-hv').textContent = txtHand; $('.lvt-lv').textContent = txtLoad;
+    out.dataset.effort = String(effort);
+    out.textContent = `You push with ${r(effort)} N (like holding up ${r(effort / G, 2)} kg)`;
+    eq.textContent = tool === 'brace'
+      ? `push = torque ÷ distance = ${L} ÷ ${r(h)} = ${r(effort)} N. Turning effect: a wheel brace is a lever that turns about the nut.`
+      : `effort × ${r(h)} m = ${r(loadN)} N × ${T.loadArm} m, so effort = ${r(effort)} N. Mechanical advantage ${r(h / T.loadArm)}: your hand moves ${r(h / T.loadArm)} times as far as the load.`;
+    draw(effort, loadN, h);
+  };
+  const draw = (effort: number, loadN: number, h: number) => {
+    const { ctx, W, H } = fitCanvas(cv, 210), pal = pagePalette(), T = TOOLS[tool];
+    ctx.clearRect(0, 0, W, H); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.font = '12px system-ui,sans-serif';
+    const x0 = 34, s = (W - x0 - 24) / T.max, by = tool === 'hammer' ? 136 : 110, ink = pal.ink, gy = 165;
+    const fx = tool === 'hammer' ? x0 + T.loadArm * s : x0, lx = tool === 'hammer' ? x0 : x0 + T.loadArm * s, hx = fx + h * s;
+    const big = tool === 'brace' ? 400 : Math.max(effort, loadN), len = (f: number) => Math.max(8, (60 * f) / big);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, gy); ctx.lineTo(W - 8, gy); ctx.stroke();
+    // the lever
+    ctx.strokeStyle = ink; ctx.lineWidth = tool === 'barrow' ? 4 : 7;
+    ctx.beginPath(); ctx.moveTo(tool === 'brace' ? fx : x0 - 6, by); ctx.lineTo(fx + T.max * s * (tool === 'hammer' ? 0.88 : 0.97), by); ctx.stroke(); ctx.lineWidth = 2;
+    if (tool === 'hammer') { // head, claw and nail
+      ctx.beginPath(); ctx.moveTo(lx, by + 2); ctx.lineTo(lx, gy + 12); ctx.moveTo(lx - 7, by + 2); ctx.lineTo(lx + 7, by + 2); ctx.stroke();
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.moveTo(fx, by + 4); ctx.lineTo(fx - 11, gy); ctx.lineTo(fx + 11, gy); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('fulcrum: head on the wood', fx + 16, gy - 6);
+    } else if (tool === 'brace') {
+      ctx.fillStyle = pal.accent; ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = (i * Math.PI) / 3; ctx[i ? 'lineTo' : 'moveTo'](fx + 14 * Math.cos(a), by + 14 * Math.sin(a)); } ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = ink; ctx.beginPath(); ctx.arc(fx, by, 30, -1.2, 0.2); ctx.stroke();
+      ctx.fillStyle = ink; ctx.fillText('nut turns', fx + 6, by - 36);
+    } else { // wheel, tray, load
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(fx, gy - 26, 26, 0, 7); ctx.stroke(); ctx.lineWidth = 2; ctx.strokeStyle = ink;
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('fulcrum: wheel axle', fx + 32, gy - 6);
+      ctx.strokeRect(lx - 30, by - 34, 60, 34);
+    }
+    // arrows
+    ctx.lineWidth = 3;
+    if (loadN) { ctx.strokeStyle = pal.accent2; arrow(ctx, lx, by - 66, by - 66 + len(loadN)); ctx.fillStyle = pal.accent2; ctx.textAlign = 'center'; ctx.fillText(`load ${r(loadN)} N`, Math.max(40, lx), by - 72); }
+    const up = tool === 'barrow';
+    ctx.strokeStyle = pal.good; ctx.fillStyle = pal.good; ctx.textAlign = 'center';
+    if (up) { arrow(ctx, hx, by - 4, by - 4 - len(effort)); ctx.fillText(`push ${r(effort)} N`, Math.min(W - 40, hx), by - 12 - len(effort)); }
+    else { arrow(ctx, hx, by - 8 - len(effort), by - 8); ctx.fillText(`push ${r(effort)} N`, Math.min(W - 40, hx), by - 14 - len(effort)); }
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(hx, by, 5, 0, 7); ctx.fill();
+    // arm lengths
+    ctx.strokeStyle = pal.muted; ctx.fillStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(fx, 184); ctx.lineTo(hx, 184); ctx.stroke(); ctx.setLineDash([]);
+    ctx.textAlign = 'center'; ctx.fillText(`${Math.round(h * 100)} cm`, (fx + hx) / 2, 200);
+  };
+  root.querySelectorAll<HTMLButtonElement>('.lvt-tool button').forEach((b) => b.addEventListener('click', () => pickTool(b.dataset.t!)));
+  hand.addEventListener('input', update); load.addEventListener('input', update); addEventListener('resize', update);
+  pickTool('hammer');
+
+  // ---- Which class? ----
+  const list = $('.lvt-sort-list'), sortOut = $('.lvt-sort-out'); const done = new Map<string, boolean>();
+  const tally = () => { const right = [...done.values()].filter(Boolean).length; sortOut.textContent = `${right} of ${LEVER_TOOLS.length} right first time${done.size === LEVER_TOOLS.length ? '. All done.' : '.'}`; };
+  for (const t of [...LEVER_TOOLS].sort(() => Math.random() - 0.5)) {
+    const li = document.createElement('li'), row = document.createElement('div'), name = document.createElement('strong'), why = document.createElement('p');
+    li.dataset.id = t.id; li.dataset.cls = String(t.cls); row.className = 'lvt-row'; name.textContent = t.name; why.className = 'lvt-why'; why.hidden = true; row.append(name);
+    for (const c of [1, 2, 3]) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'sk-btn'; b.textContent = `Class ${c}`; b.dataset.c = String(c);
+      b.addEventListener('click', () => {
+        const ok = c === t.cls; if (!done.has(t.id)) done.set(t.id, ok);
+        li.className = ok ? 'sk-right' : 'sk-wrong'; why.hidden = false; why.textContent = (ok ? 'Yes. ' : 'Not quite. ') + t.why; tally();
+      });
+      row.append(b);
+    }
+    li.append(row, why); list.append(li);
+  }
+  tally();
+
+  // ---- Quiz ----
+  const bank = [
+    () => choice('Which class of lever is a wheelbarrow?', 'Class 2: load in the middle', ['Class 1: fulcrum in the middle', 'Class 3: effort in the middle'], 'The wheel is the fulcrum at one end, the load sits in the tray, you lift at the far end.'),
+    () => choice('Which class of lever is a pair of tweezers?', 'Class 3: effort in the middle', ['Class 1: fulcrum in the middle', 'Class 2: load in the middle'], 'Joined end = fulcrum, fingers press in the middle, the tips (load) are at the far end.'),
+    () => choice('Where is the fulcrum when a claw hammer pulls a nail?', 'Where the head rocks on the wood', ['At the nail', 'At your hand', 'In the middle of the handle'], 'The curved head rests on the wood and the hammer turns about that point.'),
+    () => choice('Why does a longer wheel brace make a nut easier to undo?', 'The same torque needs less force at a longer distance', ['It is heavier', 'It grips the nut tighter', 'It makes the nut smaller'], 'Torque = force × distance. Double the distance and you halve the force for the same torque.'),
+    () => choice('What do class 3 levers give you?', 'Speed and reach, for more effort', ['Less effort than the load', 'Free energy'], 'The effort is nearer the fulcrum than the load, so you push harder but the load end moves further and faster.'),
+    () => choice('A lever lets you push with 1/5 of the load. How far does your hand move?', '5 times as far as the load', ['1/5 as far', 'The same distance'], 'Work in = work out: a fifth of the force needs five times the distance.'),
+    () => choice('Which class of lever are pliers?', 'Class 1', ['Class 2', 'Class 3'], 'The pivot pin sits between the jaws and the handles.'),
+    () => choice('A bolt has a set tightness. What should you use?', 'A torque wrench set to the figure', ['A spanner with a pipe on it', 'As much force as you can'], 'Extra length multiplies your push and can stretch or snap the bolt.'),
+    () => choice('A lever balances when...', 'effort × effort arm = load × load arm', ['effort = load', 'effort arm = load arm'], 'That is the principle of moments.'),
+  ];
+  const nums = () => {
+    const F = pick(600, 2000, 100), a = pick(3, 6), b = pick(20, 35);
+    const T = pick(80, 140, 10), d = pick(30, 50, 5);
+    return [
+      { q: `A nail needs ${F} N to pull out. The nail is ${a} cm from the hammer's fulcrum and your hand is ${b} cm from it. What pull do you need?`, ans: leverEffort(F, a, b), unit: 'N', work: `effort = load × load arm ÷ effort arm = ${F} × ${a} ÷ ${b} = ${r(leverEffort(F, a, b))} N` },
+      { q: `A wheel nut needs ${T} N·m. You push at ${d} cm from the nut. What force is that?`, ans: braceForce(T, d / 100), unit: 'N', work: `force = torque ÷ distance = ${T} ÷ ${d / 100} = ${r(braceForce(T, d / 100))} N` },
+    ];
+  };
+  mountQuiz($('.lvt-quiz'), () => [...some(bank, 4).map((f) => f()), ...some(nums(), 2)]);
+</script>
