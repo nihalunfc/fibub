@@ -101,8 +101,9 @@ On every change to fibub, `tests/sci.mjs` checks the age maths against known ans
 400.53 1.200 745.37 2.229
 ```
 
-2. The card has no argon decay system, so ignore its *Isochron age* line: it uses the decay constant of the chosen system. Read *Slope* (**1.11103**), the trapped argon in the *Initial* line (**299.0484 ± 0.8917**) and *MSWD* (**1.27**).
-3. Go back to the ⁴⁰Ar/³⁹Ar method and type the slope, **1.11103**, as the sample ratio: about **2.630 million years**.
+2. Set *Decay system* to **⁴⁰Ar/³⁹Ar: ⁴⁰K → ⁴⁰Ar (needs J)**, type the J from Step 1, **0.00131289**, in *J factor*, and leave *J error* at 0.2 %.
+3. Read *Slope* (**1.11103**, the radiogenic ⁴⁰Ar*/³⁹Ar), the trapped argon in the *Initial* line (**299.0484 ± 1.0063**, with the error scaled up by √MSWD because MSWD is above 1) and *MSWD* (**1.27**). The *Isochron age* reads **2.630 ± 0.016 million years**, from age = ln(1 + J × slope)/λ.
+4. To check the age by hand, go back to the ⁴⁰Ar/³⁹Ar method in the first card and type the slope, **1.11103**, as the sample ratio: it gives the same **2.630 million years**.
 
 ## What researchers can use it for
 

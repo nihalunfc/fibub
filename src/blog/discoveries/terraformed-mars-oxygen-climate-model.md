@@ -78,12 +78,12 @@ The energy balance maths has its own checks (`tests/sci-tools/energy-balance-mod
 
 ## Check it yourself
 
-The [[energy-balance-model]]'s sunlight slider is set up for Earth-like planets (from 900 W/m²), so Mars, at 586 W/m², is below its range. The [[habitable-zone-calculator]] does Step 3's no-greenhouse temperature instead:
+You can do Step 3's no-greenhouse temperature and the one-layer limit for Mars on the [[energy-balance-model]]:
 
-1. Open the [[habitable-zone-calculator]]. Type **5772** in *Temperature (K)*, **1** in *Luminosity (Suns)* and **1** in *Mass (Suns)*: the Sun.
-2. Type **1.524** in *Distance from the star (AU)*, Mars's distance, and **0.25** in *Albedo*.
-3. The equilibrium temperature reads about **210 K**, the no-greenhouse temperature in Step 3.
-4. On the [[energy-balance-model]], move *Atmosphere long-wave emissivity εₐ* from 0 to 1 at Earth's settings to see the one-layer greenhouse limit: the surface can never be more than about 19% warmer (2^¼ times) than the no-greenhouse temperature, which is why one layer cannot warm Mars above freezing.
+1. Open the [[energy-balance-model]]. Type **586** in *Solar constant S (W/m²)*, Mars's sunlight, and **0.25** in *Albedo α (ice-free)*.
+2. In the one-layer greenhouse card, set *Atmosphere long-wave emissivity εₐ* to **0**. *No-atmosphere temperature* and *Surface temperature* both read about **−63.3 °C (209.8 K)**, the no-greenhouse temperature in Step 3.
+3. Move εₐ up to **1**, the thickest single layer. The surface reads about **−23.6 °C (249.5 K)**: 2^¼ times, or about 19 %, warmer than with no greenhouse, and still well below freezing. That is why one layer of ordinary air cannot warm Mars enough, and why the study adds a strong grey greenhouse gas.
+4. For a second opinion, open the [[habitable-zone-calculator]], type **5772** in *Temperature (K)*, **1** in *Luminosity (Suns)*, **1** in *Mass (Suns)*, **1.524** in *Distance from the star (AU)* and **0.25** in *Albedo*: the equilibrium temperature again reads about **210 K**.
 
 ## What researchers can use it for
 

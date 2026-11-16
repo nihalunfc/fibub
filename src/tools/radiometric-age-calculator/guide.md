@@ -11,7 +11,7 @@ ads: true
 order: 1
 icon: mountain
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [radiocarbon-calibration, decay-calculator, uncertainty-calculator, isotope-pattern-calculator]
 sources:
   - "Age equation, isochron method and Wetherill concordia: standard geochronology, written from the equations."
@@ -45,6 +45,7 @@ For organic material from the last 50,000 years, use [[radiocarbon-calibration]]
 - For **K-Ar**, enter potassium in weight percent and radiogenic ⁴⁰Ar in moles per gram.
 - For **⁴⁰Ar/³⁹Ar**, enter the standard's age and measured ratio (which set J), the error on J, and the sample's ratio.
 - For an **isochron**, paste or open rows of x, σx, y, σy and, if you have it, the error correlation r. Say whether errors are absolute 1σ, percent 1σ, or absolute 2σ.
+- For an **⁴⁰Ar/³⁹Ar isochron**, choose *⁴⁰Ar/³⁹Ar (needs J)*, type J (and its error), and paste ³⁹Ar/³⁶Ar and ⁴⁰Ar/³⁶Ar for each heating step. The slope is the radiogenic ⁴⁰Ar*/³⁹Ar, the age is ln(1 + J × slope)/λ, and the intercept is the trapped ⁴⁰Ar/³⁶Ar (air is about 298.6), so you can test for excess argon.
 - For **U-Pb**, enter the radiogenic ratios after common-lead correction.
 
 ## Reading the isochron
