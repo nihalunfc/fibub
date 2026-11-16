@@ -11,7 +11,7 @@ ads: false
 order: 1182
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [derivative-slope, function-grapher, symbolic-algebra, numerical-methods]
 sources:
   - "Standard calculus: Riemann sums, the trapezium rule, Simpson's rule, the fundamental theorem of calculus and the area between two curves. Written for fibub; no textbook text, figures or exercises are used."
@@ -56,7 +56,19 @@ For the area between y = 4 − x² and y = x, the curves cross at x ≈ −2.561
 
 Five questions with fresh numbers: a small left sum to do by hand, two definite integrals, an area between a parabola and a line, and which sum is exact for a straight line. Type an answer (3/4 or 8/3 is fine) and press Check; open the working to see each step. Nothing is saved.
 
+## Solve your own numbers
+
+The first card works on your own question. Choose what to find:
+
+- **Left, right, midpoint or trapezium sum**: pick f(x) from the list (a polynomial typed as coefficients, sin x, cos x, eˣ, 1/x, √x or ln x), the limits a and b and the number of strips n. You see Δx, the heights used, the sum, and the exact integral for comparison so you can see the error. Trig functions use radians.
+- **Integral of a polynomial**: the antiderivative with + C, and with limits F(b) − F(a) worked out.
+- **Area between two polynomial curves**: type f and g. The card finds where they cross, splits the area at every crossing and adds the positive parts, so nothing cancels by mistake. Leave a and b blank to use the outer crossings.
+
+A function that is not defined at one of the sample points (such as 1/x at 0), a start that is not below the end, or n outside 1 to 10 000 gives a friendly message.
+
 ## FAQ
+
+**How do I work out a Riemann sum?** Use the first card: choose the kind of sum, type f(x), a, b and n, and it shows the strip width, each height used and the total.
 
 **Why is my integral negative?** The part of the curve below the x-axis counts as negative area. The "area between curves" view always counts area as positive.
 

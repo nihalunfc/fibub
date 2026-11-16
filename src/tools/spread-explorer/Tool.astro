@@ -2,9 +2,15 @@
 // Spread explorer: drag the points of two data sets along a number line and watch the range, mean deviation,
 // variance, standard deviation and coefficient of variation change; deviations from the mean are drawn as bars.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax spx">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own numbers, or values with their frequencies, for the mean, variance, standard deviation and coefficient of variation with the working. Or compare two sets by CV.</p>
+    <div class="spx-solve"></div>
+  </div>
   <div class="ax-card">
     <h2>Pick or type the data</h2>
     <label>Example <select class="sp-pre"></select></label>
@@ -41,6 +47,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SPREAD_SPEC } from '../../lib/sci/solve-spread';
+  mountSolver(document.querySelector<HTMLElement>('.spx-solve')!, SPREAD_SPEC, 'sv');
   import { stats, readData, PRESETS, type Stats } from '../../lib/sci/school-spread';
   import { S, dragOn } from '../../lib/smath-ui';
   import { fmt } from '../../lib/sm-graph';

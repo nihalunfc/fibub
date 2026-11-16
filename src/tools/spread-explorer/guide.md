@@ -12,12 +12,13 @@ ads: false
 order: 1384
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [grouped-data-stats, event-algebra, distribution-explorer, sample-space]
 sources:
   - "Range, mean deviation, variance and standard deviation (dividing by n) and the coefficient of variation are standard descriptive statistics. Wording, pictures and examples are fibub's own; no textbook text, figures or exercises are used."
   - "The example data (two classes' marks, two batters' scores, heights and weights) are made up for teaching; they are not from any survey or book."
   - "Checked against numpy (mean, median, mean absolute deviation, var and std with ddof = 0) and Python's statistics.pstdev for every example."
+  - "Checked by hand: 4, 7, 8, 9, 12 has mean 8, variance 6.8 and σ = 2.608; 2, 4, 4, 4, 5, 5, 7, 9 has variance 4 (÷ n) or 4.571 (÷ n − 1); values 2, 4, 6, 8 with frequencies 3, 5, 4, 2 give mean 4.714 and σ = 1.943."
 flow:
   - { icon: table, label: "Data" }
   - { icon: pointer, label: "Drag" }
@@ -39,6 +40,12 @@ This page shows two data sets as dots on a number line. Drag any dot and every m
 Each distance from the mean is drawn as a bar, or as a block whose height grows with the squared distance, so you can see why one far-out point pushes the variance up so much.
 
 It fits the Class 11 maths chapter on statistics, building on the mean, median and mode of grouped data in Class 10 (see [[grouped-data-stats]]). For the shape of whole distributions, go on to the [[distribution-explorer]].
+
+## Solve your own numbers
+
+The first card works out the spread of **your own** data with the working an exam expects. Type your numbers (spaces or commas), or switch to **values and frequencies** for a table such as x = 2, 4, 6, 8 with f = 3, 5, 4, 2. You get the mean, variance and standard deviation in one sentence, then the working: the deviations, the sum of squares, the variance, its square root, the mean deviation about the mean, the median and range for a raw list, and the coefficient of variation. A third option compares two sets from their means and standard deviations by CV, to decide which is more consistent.
+
+School books divide by n. Under **More options** (the Divide by box) you can switch to n − 1, the sample version some courses use. Identical numbers give a standard deviation of 0, a mean of 0 says the CV is not defined, and a frequency list of the wrong length gets a clear message. For class intervals such as 10 to 20, use [[grouped-data-stats]].
 
 ## How to use it
 
@@ -75,3 +82,7 @@ The verdict says class B is more variable, so class A is more consistent. Open t
 **Why does the CV say "mean is 0"?** The CV divides by the mean, so it only makes sense for data whose mean is not zero (usually positive measurements).
 
 **Is my data saved?** No. Everything runs in your browser and nothing is stored or sent. fibub is not part of NCERT; the topics follow the syllabus, but the words, pictures and examples are our own.
+
+**How do I find the standard deviation by hand?** Find the mean, subtract it from every value, square each difference, add them up, divide by n to get the variance, then take the square root. The first card shows each of those steps for your numbers.
+
+**Which is more consistent, set A or set B?** The one with the smaller coefficient of variation (σ ÷ mean × 100), not the one with the smaller standard deviation.

@@ -2,9 +2,16 @@
 // Histogram builder: raw numbers grouped into equal classes; a width slider and a start slider redraw the
 // histogram and frequency polygon; mean, median, mode, grouped mean; combined mean of two groups. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm hb">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own numbers for the mean, median, mode and range, enter a grouped frequency table for its mean, median and mode by the textbook formulae, or combine the means of two groups.</p>
+    <div class="hb-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Your data</h2>
     <label>Numbers (commas, spaces or new lines)
@@ -86,6 +93,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { HIST_SPEC } from '../../lib/sci/solve-histogram';
+  mountSolver(document.querySelector<HTMLElement>('.hb-solve')!, HIST_SPEC, 'sv');
   import { parseData, group, polygon, mean, median, modes, groupedMean, modalClasses, niceStart, combinedMean, type Klass } from '../../lib/sci/histo-l2';
   import { randInt } from '../../lib/sci/smath';
   import { S, pair, quiz, type Question } from '../../lib/smath-ui';

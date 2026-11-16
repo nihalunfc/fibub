@@ -11,12 +11,13 @@ ads: false
 order: 1126
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [mendel-peas, hardy-weinberg-tester, allele-frequency-calculator, population-growth-models]
 sources:
   - "The selection model (dark allele dominant, survival 1 − s for the moth that does not match the bark, random mating) is standard population genetics, written by fibub and checked in the tests against a separate genotype-by-genotype Python version over 40 generations."
   - "The Hardy-Weinberg chi-square p-value (1 degree of freedom) was checked against Python's math.erfc."
   - "Survival numbers, start frequencies and the generation when soot arrives are made-up teaching values, not data from real moth studies. Drawings are fibub's own. Nothing you enter is stored or sent anywhere."
+  - "Solve my numbers uses allele frequency p = (2·AA + Aa)/2N, the Hardy-Weinberg equations p + q = 1 and p² + 2pq + q² = 1, and one generation of selection against the recessive homozygote q′ = (q − s q²)/(1 − s q²): standard population genetics."
 flow:
   - { icon: sliders, label: "Set up" }
   - { icon: eye, label: "Watch" }
@@ -58,7 +59,13 @@ Open the page: soot comes at generation 10, birds catch 30 % of the moths they c
 - Set the birds to 0 % and use 50 moths to see drift on its own.
 - Try *soot comes* with 500 or 50 moths and mutation off, and press **New run** a few times: often the dark allele is lost before the soot arrives, and the dark moths never come back.
 
+## Solve my numbers
+
+The first card is for the numbers in your own problem. Choose the allele frequencies from a count of AA, Aa and aa individuals, Hardy-Weinberg from the frequency of the recessive group (q²) or from an allele frequency (p), the number of carriers in a population, one generation of selection against the recessive form, or relative fitness and the selection coefficient. Type fractions or percentages (the unit box switches between them) and the answer appears at the top with the working below, including a check that the three genotype frequencies add to 1. A **common mistake** line follows, such as halving instead of square-rooting q². Impossible numbers (a frequency above 1, a recessive group bigger than the population) give a plain message.
+
 ## FAQ
+
+**How do I find p and q from the percentage who show a recessive trait?** Take the square root of the recessive frequency to get q, then p = 1 − q: if 4 % show the trait, q = 0.2 and p = 0.8. The Solve my numbers card does it with your numbers.
 
 **Is the dark colour caused by the soot?** No. The moths do not change colour. Dark moths are born dark because of the allele they inherit; soot only changes which moths the birds find.
 

@@ -6,6 +6,7 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax nsl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (genotype counts, frequencies, selection) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <p class="ax-help nsl-note">A teaching model: the survival numbers are made up, not measurements from real moth studies.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="nsl-lab">Level</span>
@@ -229,6 +230,12 @@ import Downloads from '../../components/Downloads.astro';
       { title: 'This generation', text: [q('.nsl-say').textContent ?? '', q('.nsl-formula').textContent ?? '', 'Teaching model with made-up survival numbers.'], facts: factList.map(([k, v, sm]) => [k, sm ? `${v} (${sm})` : v] as [string, string]), figure: fig ?? undefined },
       { title: 'Over the generations', figure: graph ?? undefined },
     ] as Section[] }));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { SELECT } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, SELECT);
 </script>
 
 <style is:inline>

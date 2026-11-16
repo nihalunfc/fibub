@@ -2,9 +2,16 @@
 // Maxima and minima: f, f′ and f″ stacked with the critical points, the first and second derivative
 // tests, absolute extremes on [a, b], and optimisation stories (open box, fence, can). Class 12 maths.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax mmx">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the coefficients of your own polynomial to find its maxima and minima (with working), or solve the open box, fence and can problems for your own numbers.</p>
+    <div class="mm-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg mm-mode" role="group" aria-label="What to show"><button type="button" data-m="find" aria-pressed="true">Turning points</button><button type="button" data-m="story" aria-pressed="false">Optimisation stories</button></div>
   </div>
@@ -68,6 +75,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { MAXMIN_SPEC } from '../../lib/sci/solve-maxmin';
+  mountSolver(document.querySelector<HTMLElement>('.mm-solve')!, MAXMIN_SPEC, 'sv');
   import { CURVES, criticalPoints, absolute, box, fence, can, type Critical, type Kind } from '../../lib/sci/school-extrema';
   import { readFn, deriv, deriv2, type Fn } from '../../lib/sci/school-calculus';
   import { paint, pagePalette, type Figure } from '../../lib/report';

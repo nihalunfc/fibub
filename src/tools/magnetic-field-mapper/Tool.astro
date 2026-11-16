@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax mfm">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (current, distance, turns, field) and get the field or force with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Pick a magnet or a current</h2>
     <div class="ax-row">
@@ -52,6 +53,12 @@ import '../../styles/astro.css';
     <div class="mfm-quiz"></div>
   </div>
 </div>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { MAGNET } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, MAGNET);
+</script>
 
 <style is:inline>
   .mfm .mfm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }

@@ -12,7 +12,7 @@ ads: false
 order: 1370
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [unit-circle, trig-ratios, radian-ruler, argand-plane]
 sources:
   - "The sum, difference and double angle formulae and their geometric proof by stacked right triangles are standard trigonometry. Wording, pictures and examples are fibub's own; no textbook text, figures or exercises are used."
@@ -58,7 +58,19 @@ With the starting angles A = 30° and B = 45°, the title reads sin(30° + 45°)
 
 Switch to cos(A + B): OR = cos 30° cos 45° = 0.6124 and NQ = sin 30° sin 45° = 0.3536, so cos 75° = 0.6124 − 0.3536 = 0.2588.
 
+## Solve your own numbers
+
+The first card works on your own question. Choose what to find:
+
+- **sin, cos or tan of A + B or A − B** from two angles (degrees or radians). For 0°, 30°, 45°, 60° and 90° the answer is exact: sin(45° + 30°) = (√2 + √6)/4 ≈ 0.9659, and tan(60° + 45°) = −2 − √3. Other angles give decimals. The working shows the formula, the substitution and a check against the direct value.
+- **From known ratios**: for example sin A = 3/5 and cos B = 12/13 with both angles in the first quadrant gives sin(A + B) = 56/65. Fractions such as 3/5 are accepted, and you pick the quadrant for the signs. A ratio that does not fit the quadrant is explained.
+- **Double angle** from one known ratio: sin 2A, cos 2A and tan 2A, with the alternative forms of cos 2A checked.
+
+tan 90° and a zero bottom in the tan formula give an explanation, not an error.
+
 ## FAQ
+
+**What is sin 75° in surds?** Write 75° = 45° + 30°, so sin 75° = sin 45° cos 30° + cos 45° sin 30° = (√6 + √2)/4 ≈ 0.9659; the first card does this for any two standard angles.
 
 **Does the proof only work for acute angles?** The picture is drawn for A and B up to 80°, but A + B can pass 90° (P then sits left of the y-axis and cos(A + B) is negative). The formulas hold for all angles; the unit circle definitions extend the proof.
 

@@ -11,11 +11,12 @@ ads: false
 order: 1285
 icon: clock
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ferris-wheel, unit-circle, linear-pair-solver]
 sources:
   - "Clock arithmetic (6° a minute for the minute hand, 0.5° a minute for the hour hand, |30h − 5.5m|) is standard school maths. Written for fibub."
   - "Checked by hand (3:30 → 75°, 9:45 → 22.5°) and against sympy: right angles 22 times in 12 hours, first at 16 4/11 minutes past 12; the hands overlap every 65 5/11 minutes."
+  - "Checked by hand: 3:40 gives 130°; 9:15 gives 172.5°; the hands meet at 21 9/11 minutes past 4; at right angles at 3:00 and 32 8/11 minutes past 3; opposite at 43 7/11 minutes past 2 (the minute hand gains 5.5° a minute on the hour hand)."
 flow:
   - { icon: pointer, label: "Drag hand" }
   - { icon: compass, label: "Angle" }
@@ -35,6 +36,12 @@ A clock is a good place to practise angles and turns. The minute hand goes round
 It goes with the Class 9 maths chapter on **angles, turns and rotation** and is a classic puzzle for competitive exams.
 
 For a turning wheel whose height makes a wave, try the [[ferris-wheel]]; for angles as points on a circle, see the [[unit-circle]]. The "when do the hands meet" question is two straight lines crossing, as in the [[linear-pair-solver]].
+
+## Solve your own numbers
+
+The first card answers the two classic clock questions with the working shown. **Angle between the hands**: type the hour and minutes. It shows the hour hand (30° an hour plus 0.5° a minute), the minute hand (6° a minute), the difference, the smaller angle (subtract from 360° when the difference is over 180°) and the shortcut |30h − 5.5m|. **When do the hands make an angle**: type an hour and an angle (0 for together, 90 for a right angle, 180 for opposite) and get the exact times after that hour, written as mixed numbers such as 21 9/11 minutes past 4 and also as hours:minutes:seconds. Angles can be typed in degrees or radians.
+
+Minutes of 60 or more, an angle over 180°, an hour that is not a whole number and hours outside 1 to 12 give a clear message.
 
 ## How to use it
 
@@ -67,3 +74,7 @@ Four fresh questions each time: whole hours, any time, and how far each hand tur
 **Does the clock show my time?** No. It is a model clock that you set; it does not read your device's clock.
 
 **Is this from the NCERT book?** It covers the same ideas with fibub's own examples. fibub is not part of NCERT.
+
+**How do you find the angle between the hands of a clock?** Work out each hand's angle from 12 (hour hand 30h + 0.5m, minute hand 6m), subtract, and if the result is over 180° take 360° minus it. At 3:40 that is |110 − 240| = 130°.
+
+**When do the hands of a clock meet?** They meet 11 times in 12 hours. After 4 o'clock they meet at 4:21 and 49 seconds, which is 21 9/11 minutes past 4.

@@ -42,4 +42,23 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1].replace(/,/g, '') : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `histogram: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/histogram-builder/`); await page.waitForTimeout(600);
+  {
+  const S = '.hb-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'Mean = 9, median = 8, mode = 7, range = 11.' && (await work()).includes('Median = the average of the 3rd and 4th values = 8'), `histogram solve: raw (${await ans()})`);
+  await fill('data', '3 3 5 5 9'); check((await ans()) === 'Mean = 5, median = 5, mode = 3 and 5, range = 6.', `histogram solve: two modes (${await ans()})`);
+  await fill('data', '1.5, 2.5, 3.5, 4.5'); check((await ans()) === 'Mean = 3, median = 3, mode = none, range = 3.', `histogram solve: decimals, no mode (${await ans()})`);
+  await fill('data', '4 x'); check((await ans()).includes('cannot read'), `histogram solve: bad number (${await ans()})`);
+  await pre(1); check((await ans()) === 'Mean ≈ 37, median ≈ 38, mode ≈ 40.91.' && (await work()).includes('Σf = N = 50 and Σfx = 1850') && (await work()).includes('Median = l + ((N/2 − cf) / f) × h = 30 + ((25 − 13) / 15) × 10 = 38'), `histogram solve: grouped (${await ans()})`);
+  await fill('freq', '5 8 15 16'); check((await ans()).includes('one frequency per class'), `histogram solve: count mismatch (${await ans()})`);
+  await fill('freq', '5 8 15 6 16'); check((await ans()) === 'Mean ≈ 39, median ≈ 38, mode ≈ 53.85.', `histogram solve: modal class last (${await ans()})`);
+  await fill('freq', '0 0 0 0 0'); check((await ans()).includes('add up to 0'), `histogram solve: zero frequencies (${await ans()})`);
+  await fill('edges', '10 5 30 40 50 60'); await fill('freq', '5 8 15 16 6'); check((await ans()).includes('must go up'), `histogram solve: boundaries not rising (${await ans()})`);
+  await pre(2); check((await ans()) === 'The combined mean is 65.2.', `histogram solve: combined mean (${await ans()})`);
+  await fill('n1', '0'); check((await ans()).includes('more than 0'), `histogram solve: empty group (${await ans()})`);
+  }
 };

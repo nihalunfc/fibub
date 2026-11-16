@@ -3,9 +3,15 @@
 // equal ratios give the same colour. Simplest form, share as a fraction and percent, cross-multiplying to compare,
 // scaling a mix up to any batch size, and fresh practice questions. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm rx">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Share an amount in a ratio, simplify a ratio (decimals too), find a missing term, find all the shares from one share, or join A : B and B : C. Type the ratio with spaces or colons, such as 2 3 5 or 2:3:5.</p>
+    <div class="rx-solve"></div>
+  </div>
   <div class="ax-card">
     <h2>What are you mixing?</h2>
     <div class="ax-seg rx-mode" role="group" aria-label="What to mix"><button type="button" data-m="paint" aria-pressed="true">Blue and yellow paint</button><button type="button" data-m="juice" aria-pressed="false">Lemonade</button></div>
@@ -82,6 +88,11 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { RATIO_SPEC } from '../../lib/sci/solve-ratio';
+  mountSolver(document.querySelector<HTMLElement>('.rx-solve')!, RATIO_SPEC, 'sv');
+  // Ratios are often typed with colons (2:3:5); the shared card reads spaces and commas, so swap colons for spaces as they are typed.
+  document.querySelector<HTMLElement>('.rx-solve')!.addEventListener('input', (e) => { const el = e.target as HTMLInputElement; if (el.dataset?.k && /^sv-(parts|r1|r2)$/.test(el.dataset.k) && el.value.includes(':')) el.value = el.value.replace(/\s*:\s*/g, ' '); }, true);
   import { simplify, share, compare, split, mixColour, type RGB } from '../../lib/sci/ratio-mixer';
   import { fmt, gcd, randInt } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';

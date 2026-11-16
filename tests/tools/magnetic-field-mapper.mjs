@@ -39,4 +39,34 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [I, r] = q1.match(/carries ([\d.]+) A\. How strong is its magnetic field ([\d.]+) cm/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(+((2e-7 * I) / (r / 100) * 1e6).toFixed(3))); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'mag: right answer accepted');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('wire', 'wire', { I: '10', r: '5' }, 'The field is 40 µT.', 'B = 4.00 × 10^-5 T = 40 µT');
+  await psCase('wire in m and mA', 'wire', { I: '10000', r: '0.05' }, 'The field is 40 µT.', 'Convert to base units', { I: 'mA', r: 'm' });
+  await psCase('loop', 'loop', { N: '1', I: '5', R: '10' }, 'The field at the centre is 31.4 µT.', 'B = 3.14 × 10^-5 T');
+  await psCase('50 turns', 'loop', { N: '50', I: '5', R: '10' }, 'The field at the centre is 1.57 mT.', null);
+  await psCase('solenoid', 'sol', { N: '500', L: '25', I: '2' }, 'The field inside is 5.03 mT.', 'n = N / L = 500 ÷ 0.25 = 2000 per m');
+  await psCase('force', 'force', { B: '0.2', I: '5', L: '30', th: '90' }, 'The force is 0.3 N.', 'F = 0.3 N');
+  await psCase('force at 30 degrees', 'force', { B: '0.2', I: '5', L: '30', th: '30' }, 'The force is 0.15 N.', null);
+  await psCase('force along the field', 'force', { B: '0.2', I: '5', L: '30', th: '0' }, 'The force is 0 N: the wire runs along the field, so it feels no push.', null);
+  await psCase('force with radians', 'force', { B: '0.2', I: '5', L: '30', th: 'pi/2' }, 'The force is 0.3 N.', null, { th: 'rad' });
+  await psCase('parallel wires', 'par', { I1: '10', I2: '10', d: '10' }, 'The force is 2.00 × 10^-4 N on each metre of wire.', 'F/L = 2.00 × 10^-4 N/m');
+  await psSolve('wire', { I: '10', r: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: distance 0 gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Solenoid")'); await page.waitForTimeout(80);
+  check((await psAns()) === 'The field inside is 5.03 mT.' && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Solenoid and tip');
 };

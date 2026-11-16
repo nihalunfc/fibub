@@ -11,11 +11,12 @@ ads: false
 order: 1331
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [vector-lab-3d, equations-of-motion, friction-ramp, newtons-laws]
 sources:
   - "Vector addition by components, the law of cosines R² = A² + B² + 2AB cos θ, tan α = B sin θ / (A + B cos θ) and Lami's theorem for three concurrent forces in equilibrium: standard school physics found in any textbook."
   - "Checked against an independent component sum on 1000 random pairs of vectors, and Lami's tensions against a direct horizontal and vertical force balance on 1000 random string angles."
+  - "Where a weight in kilograms is converted to newtons the card multiplies by g = 9.8 m/s², the usual school value. Check the value your own syllabus uses."
 flow:
   - { icon: pointer, label: "Drag A, B" }
   - { icon: compass, label: "Add" }
@@ -54,7 +55,21 @@ In the Lami card a **100 N** weight hangs from strings at **30°** and **60°** 
 - When A and B are at 90°, the law of cosines becomes Pythagoras' theorem, because cos 90° = 0.
 - In Lami's theorem each force goes with the sine of the angle between the **other two** forces. A steeper string carries more of the load.
 
+## Solve your own numbers
+
+The first card works with the numbers from your own problem. Choose what to find, type the numbers, and the answer comes first with the working below it. Directions are measured anticlockwise from the +x axis, and you can pick degrees or radians.
+
+- **Resultant of two vectors**: type each size and direction (for example 6 at 0° and 4 at 60° gives 8.718 at 23.41°). The working splits both into x and y parts, adds them and gives the size and the direction by quadrant.
+- **From the angle between them**: type two sizes and the angle, and the law of cosines R² = A² + B² + 2AB cos θ gives R and its angle from A.
+- **Components of one vector**: size and angle give the horizontal and vertical parts.
+- **Size and direction from components**: type x and y.
+- **Two strings holding a weight**: type the weight (in N, or in kg, multiplied by 9.8) and the two angles to the ceiling for the tensions by Lami's theorem, with a balance check.
+
+You can show the unit (N, m or m/s). Negative sizes, impossible angles and two vertical strings give a friendly message.
+
 ## FAQ
+
+**How do I find the resultant of two vectors?** In the first card choose *Resultant of two vectors*, type each size and direction, and the tool adds the x parts and the y parts, then gives R = √(Rx² + Ry²) and its direction.
 
 **Why does the triangle law give the same answer as the parallelogram law?** The far side of the parallelogram is just B moved, without turning it, to start at the tip of A. Moving a vector without turning it does not change it.
 

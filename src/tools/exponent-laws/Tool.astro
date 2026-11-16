@@ -2,9 +2,15 @@
 // Exponent laws with factor tiles: aᵐ × aⁿ, aᵐ ÷ aⁿ, (aᵐ)ⁿ and aᵐ × bᵐ drawn as rows of "× a" and "÷ a" tiles that
 // join, cancel or repeat; exact values check each law. A ladder shows why a⁰ = 1 and a⁻ⁿ = 1/aⁿ. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm el">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own base and exponents (negative ones too) for aᵐ × aⁿ, aᵐ ÷ aⁿ, (aᵐ)ⁿ and more, or find an unknown exponent, with the working.</p>
+    <div class="el-solve"></div>
+  </div>
   <div class="ax-card">
     <div class="ax-row">
       <span class="ax-help" style="margin:0">Level</span>
@@ -71,6 +77,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { EXPONENT_SPEC } from '../../lib/sci/solve-exponent';
+  mountSolver(document.querySelector<HTMLElement>('.el-solve')!, EXPONENT_SPEC, 'sv');
   import { powFrac, lawExponent, tiles, cancel, mulFrac, fracText, type Law } from '../../lib/sci/expo-j4';
   import { sup, nice } from '../../lib/sci/school-j4';
   import { randInt } from '../../lib/sci/smath';

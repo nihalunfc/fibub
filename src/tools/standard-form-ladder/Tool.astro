@@ -4,9 +4,15 @@
 // observable universe, and compare two sizes with the exponent laws. Class 11 adds significant figures and order
 // of magnitude. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm sf">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type a number to write it in standard form (rounded to any significant figures), turn a × 10ⁿ back into an ordinary number, or multiply, divide, add and subtract standard-form numbers.</p>
+    <div class="sf-solve"></div>
+  </div>
   <div class="ax-card">
     <div class="ax-row">
       <span class="ax-help" style="margin:0">Level</span>
@@ -89,6 +95,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { STDFORM_SPEC } from '../../lib/sci/solve-stdform';
+  mountSolver(document.querySelector<HTMLElement>('.sf-solve')!, STDFORM_SPEC, 'sv');
   import { parseStd, plain, orderOfMagnitude, THINGS, type Std } from '../../lib/sci/stdform-j4';
   import { stdForm, stdParts, sup, group3, nice } from '../../lib/sci/school-j4';
   import { randInt } from '../../lib/sci/smath';

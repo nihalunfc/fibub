@@ -11,11 +11,12 @@ ads: false
 order: 1236
 icon: sigma
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [doubling-power, identity-tiles, scientific-notation-formatter, standard-form-ladder]
 sources:
   - "The laws of exponents for integer and rational exponents are standard algebra. Pictures, wording and examples are fibub's own."
   - "Checked against Python's fractions.Fraction (exact a**m * a**n, a**m / a**n, (a**m)**n and a**m * b**m) for every base 2 to 10 and every exponent from −6 to 8."
+  - "Checked by hand: 2⁵ × 2³ = 2⁸ = 256; 5⁷ ÷ 5⁴ = 125; (3²)⁴ = 6,561; 2³ × 5³ = 10³; 4⁻² = 1/16; (−2)³ × (−2)² = −32."
 flow:
   - { icon: pointer, label: "Pick a law" }
   - { icon: sliders, label: "Set a, m, n" }
@@ -35,6 +36,12 @@ An exponent counts how many times you multiply by the base: 2³ = 2 × 2 × 2. T
 Exact values check that both sides agree. A ladder of a³, a², a¹, a⁰, a⁻¹ shows why a⁰ = 1 and a⁻ⁿ = 1/aⁿ. A **Level** switch allows negative exponents for Class 9.
 
 It fits Class 8 Mathematics, *power play* (laws of exponents). Next, see fast growth in [[doubling-power]], very large numbers in [[standard-form-ladder]], or another tile rule in [[identity-tiles]].
+
+## Solve your own numbers
+
+The first card works with the base and exponents from your own question, with the law named and the exponents combined step by step. Choose **aᵐ × aⁿ** (add the exponents), **aᵐ ÷ aⁿ** (subtract), **(aᵐ)ⁿ** (multiply), **aᵐ × bᵐ** (same exponent, join the bases), the **value of aᵐ** for a zero or negative exponent (reciprocal), an **unknown exponent x** in aˣ × aᵐ = aᵏ, or the **power x** that gives a number such as 3ˣ = 81 or 2ˣ = 0.125. Whole-number bases give exact values with a check by value; negative bases are bracketed, so (−2)³ and −2³ are not confused.
+
+Zero to the power zero, zero to a negative power, a decimal exponent or a result too large to show get a clear message instead of a wrong number.
 
 ## How to use it
 
@@ -65,3 +72,7 @@ Five fresh questions, one for each law and one negative exponent. Press **Check*
 **Why is a⁰ = 1?** Multiplying by nothing leaves 1. The ladder shows a¹ ÷ a = 1.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**What are the laws of exponents?** For the same base: aᵐ × aⁿ = aᵐ⁺ⁿ, aᵐ ÷ aⁿ = aᵐ⁻ⁿ and (aᵐ)ⁿ = aᵐⁿ; also a⁰ = 1 and a⁻ⁿ = 1/aⁿ. The first card applies them to your numbers.
+
+**What is a negative exponent?** It means the reciprocal: 4⁻² = 1/4² = 1/16. It does not make the number negative.

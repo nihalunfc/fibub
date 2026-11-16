@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax ccy">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (stroke volume, heart rate, heart volumes) and get the answer with the working an exam marks. School arithmetic only, not medical advice.</p><div class="ps-host"></div></div>
   <p class="ax-help ccy-note">A teaching model, not a medical tool: the trace is a smooth made-up ECG-like shape and the volumes are typical round resting values.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="ccy-lab">Level</span>
@@ -252,6 +253,12 @@ import Downloads from '../../components/Downloads.astro';
       { title: `Heart at ${hr()} beats a minute`, text: [q('.ccy-formula').textContent ?? '', 'Teaching model: the trace is a smooth ECG-like shape, not a medical recording.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: picture },
       ...(level === 11 ? [{ title: 'One beat, step by step', table: { head: ['Phase', 'Time (s)', 'AV valves', 'Semilunar', 'ECG'], rows: beatRows } }] : []),
     ] as Section[] }));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { HEART } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, HEART);
 </script>
 
 <style is:inline>

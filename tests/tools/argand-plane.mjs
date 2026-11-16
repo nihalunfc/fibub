@@ -37,4 +37,25 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'argand: five quiz questions');
   await page.fill(R + '.smq-q:nth-child(4) .smq-in', '135'); await page.click(R + '.smq-q:nth-child(4) .smq-check');
   check((await t('.smq-q:nth-child(4) .smq-out')) === 'Right!', 'argand: quiz answer');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/argand-plane/`); await page.waitForTimeout(600);
+  {
+  const S = '.ag-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'z × w = 1 + 7i.' && (await work()).includes('= (3×1 − 1×2) + (3×2 + 1×1)i'), `argand solve: product (${await ans()})`);
+  await pick('op', 'add'); check((await ans()) === 'z + w = 4 + 3i.', `argand solve: sum (${await ans()})`);
+  await pre(1); check((await ans()) === 'z ÷ w = 1 − i.' && (await work()).includes('Top: (3 + i) × (1 − 2i) = 5 − 5i'), `argand solve: quotient (${await ans()})`);
+  await pre(2); check((await ans()) === '|z| = 5 and arg z = 126.87° (2.214 rad).' && (await work()).includes('second quadrant'), `argand solve: modulus and argument (${await ans()})`);
+  await pre(3); check((await ans()) === 'z = 1 + 1.732i.', `argand solve: polar to rectangular (${await ans()})`);
+  await pick('th-unit', 'radians'); await fill('th', '1.0471975512'); check((await ans()) === 'z = 1 + 1.732i.', `argand solve: radians (${await ans()})`);
+  await pre(4); check((await ans()) === 'zⁿ = (1 + i)^8 = 16.' && (await work()).includes('360° (the same direction as 0°)'), `argand solve: (1 + i)^8 (${await ans()})`);
+  await pre(5); check((await ans()) === 'The roots are −1 + 2i and −1 − 2i.' && (await work()).includes('D = b² − 4ac = 2² − 4(1)(5) = −16'), `argand solve: complex roots (${await ans()})`);
+  await fill('qb', '-5'); await fill('qc', '6'); await fill('qa', '1'); check((await ans()) === 'The roots are real: x = 2 and x = 3.', `argand solve: real roots (${await ans()})`);
+  await fill('qa', '0'); check((await ans()).includes('not a quadratic'), `argand solve: a = 0 (${await ans()})`);
+  await pre(1); await fill('wa', '0'); await fill('wb', '0'); check((await ans()).includes('cannot divide by 0'), `argand solve: divide by 0 (${await ans()})`);
+  await pre(4); await fill('n', '2.5'); check((await ans()).includes('whole number'), `argand solve: fractional power (${await ans()})`);
+  await pre(2); await fill('za', '0'); await fill('zb', '0'); check((await ans()).includes('modulus 0'), `argand solve: zero modulus (${await ans()})`);
+  }
 };

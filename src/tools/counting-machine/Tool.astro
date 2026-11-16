@@ -2,9 +2,15 @@
 // Counting machine (Learn, Class 11 permutations and combinations): arrange letters, seat people or pick teams.
 // Every arrangement is listed for small cases; the formula takes over for big ones. Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm cm">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own n and r, or how often each letter of a word repeats, for the answer with the working: nPr, nCr, letters with repeats, a round table, people who sit together and committees.</p>
+    <div class="cm-solve"></div>
+  </div>
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">What are we counting?</h2>
@@ -77,6 +83,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { COUNTING_SPEC } from '../../lib/sci/solve-counting';
+  mountSolver(document.querySelector<HTMLElement>('.cm-solve')!, COUNTING_SPEC, 'sv');
   import { fact, nPr, nCr, arrangements, selections, letterCounts, wordArrangements, distinctWords, big } from '../../lib/sci/counting-machine';
   import { randInt } from '../../lib/sci/smath';
   import { S, pair, quiz, type Question } from '../../lib/smath-ui';

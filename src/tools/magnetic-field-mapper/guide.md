@@ -11,12 +11,13 @@ ads: false
 order: 1043
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ohms-law-lab, coil-field-designer, field-line-plotter, magnetic-circuit]
 sources:
   - "Field of a long straight wire B = μ₀I/(2πr), of a circular loop from the Biot-Savart law (exact form with complete elliptic integrals, as in standard electromagnetism texts), of a solenoid as a stack of loops, and a bar magnet modelled as a short solenoid (same field outside): standard physics results."
   - "μ₀ = 1.25663706127 × 10⁻⁶ N/A² (CODATA 2022 recommended value)."
   - "Checked against an independent NumPy script that adds up the Biot-Savart field of 200,000 short pieces of the loop, the textbook loop-centre value μ₀NI/2a, and the published values K(0.5) = 1.85407 and E(0.5) = 1.35064."
+  - "Solve my numbers uses μ₀ = 4π × 10⁻⁷ T m/A, the usual school value (it agrees with the CODATA value above to about 9 figures), with the standard formulas for a long wire, the centre of a circular coil B = μ₀NI/2R, a long solenoid B = μ₀NI/L, the force F = BIL sin θ and the force between two parallel wires F/L = μ₀I₁I₂/2πd."
 flow:
   - { icon: compass, label: "Pick source" }
   - { icon: curve, label: "Field lines" }
@@ -59,7 +60,13 @@ Now pick the loop with 10 turns and 5 A. The field at the centre is μ₀NI/(2a)
 - Where the lines crowd together the field is strong; where they spread out it is weak.
 - A solenoid with a current is an electromagnet: its right-hand end is north when the current goes anticlockwise as you look at that end.
 
+## Solve my numbers
+
+The first card is for your own problem. Choose what you want: the field of a long straight wire, at the centre of a circular coil, inside a solenoid, the force on a wire in a field, or the force between two parallel wires. Type the current, distance, turns or length, change the unit if it is in cm, mm or mA, and the answer appears at the top in tesla, mT or µT with the working under it: formula, numbers with units, result. A **common mistake** line follows each problem, for example using centimetres without converting, or using the diameter where the radius is wanted. Five worked-example buttons fill in typical numbers. Zero or negative lengths and currents give a plain message, not a wrong number.
+
 ## FAQ
+
+**How do I find the magnetic field near a wire?** Use B = μ₀ I / (2π r): a 10 A wire gives 40 µT at 5 cm. The Solve my numbers card does it with your numbers and shows the working.
 
 **Why does the bar magnet look like a solenoid?** The page treats the magnet as a short, fat solenoid. Outside, that gives the same field as a magnet; inside, it shows the lines running from S back to N, so every line is a closed loop.
 

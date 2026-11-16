@@ -50,4 +50,30 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `polygon: quiz question ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/polygon-angle-sum/`); await page.waitForTimeout(600);
+  {
+  const S = '.pa-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const sel = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const is = async (want, label) => check((await ans()) === want, `polygon solve: ${label} (${await ans()})`);
+  const has = async (want, label) => check((await ans()).includes(want), `polygon solve: ${label} (${await ans()})`);
+  const wk = async (want, label) => check((await work()).includes(want), `polygon solve working: ${label}`);
+  await pre(0); await is('The octagon (8 sides) has an angle sum of 1080°. If it is regular, each angle is 135°.', 'octagon'); await wk('8 × 5 ÷ 2 = 20', 'diagonals'); await wk('360° ÷ 8 = 45°', 'exterior');
+  await pre(1); await is('The polygon has 15 sides.', 'interior 156'); await wk('360° ÷ 24° = 15', 'interior working');
+  await pre(2); await is('The polygon has 15 sides.', 'exterior 24');
+  await pre(3); await is('The polygon has 11 sides.', 'sum 1620'); await wk('1620° ÷ 180° = 9', 'sum working');
+  await pre(4); await is('The missing angle is 105°.', 'hexagon missing'); await wk('720° − 615° = 105°', 'missing working');
+  await pre(5); await is('A decagon (10 sides) has 35 diagonals.', 'decagon diagonals');
+  await pre(0); await fill('n', '2'); await has('at least 3 sides', 'n of 2');
+  await fill('n', '3'); await is('The triangle (3 sides) has an angle sum of 180°. If it is regular, each angle is 60°.', 'triangle');
+  await pre(1); await fill('a', '100'); await has('4.5 sides', 'no regular polygon with 100°');
+  await fill('a', '200'); await has('less than 180°', 'angle over 180');
+  await sel('a-unit', 'radians'); await fill('a', '2.0944'); await is('The polygon has 6 sides (hexagon).', 'radians');
+  await pre(2); await fill('a', '7'); await has('not a whole number', 'exterior 7');
+  await pre(3); await fill('a', '1000'); await has('multiple of 180°', 'bad angle sum');
+  await pre(4); await fill('known', '300 300 300 300 300'); await has('already more than', 'known angles too big');
+  await fill('known', '90 100'); await is('Each of the other 4 angles is 132.5°.', 'equal remaining angles');
+  }
 };

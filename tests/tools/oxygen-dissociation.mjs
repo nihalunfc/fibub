@@ -35,4 +35,33 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.$$eval(R + '.odc-qs li', (lis) => lis.forEach((li) => { li.querySelector('.odc-ans').value = li.dataset.a; }));
   await tap('.odc-check');
   check((await page.textContent(R + '.odc-score')) === '4 of 4 right.', 'o2: quiz answers');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('oxygen content', 'content', { hb: '15', sat: '97.5', po2: '100' }, 'The blood carries 19.9 mL of oxygen per 100 mL.', 'Bound to haemoglobin = 1.34 × 15 × 0.975 = 19.6 mL per 100 mL');
+  await psCase('content with g/L', 'content', { hb: '150', sat: '97.5', po2: '100' }, 'The blood carries 19.9 mL of oxygen per 100 mL.', 'Convert to base units', { hb: 'g/L' });
+  await psCase('saturation at 40 mmHg', 'sat', { po2: '40' }, 'Haemoglobin is about 74.9 % saturated.', null);
+  await psCase('saturation in kPa', 'sat', { po2: '5.3329' }, 'Haemoglobin is about 74.9 % saturated.', 'Convert to base units', { po2: 'kPa' });
+  await psCase('oxygen unloaded', 'unload', { hb: '15', sa: '97', sv: '75' }, 'Each 100 mL of blood gives up 4.42 mL of oxygen, which is 22.7 % of the oxygen it carried.', 'Saturation drop = 97 − 75 = 22 %');
+  await psCase('swapped saturations', 'unload', { hb: '15', sa: '70', sv: '90' }, 'The blood coming back cannot hold more oxygen than the blood that left the lungs. Swap the two saturations.', null);
+  await psCase('oxygen delivery', 'deliv', { co: '5', hb: '15', sat: '97.5', po2: '100' }, 'About 995 mL of oxygen is delivered each minute.', 'content × 10 = 5 L/min × 19.9 × 10');
+  await psCase('partial pressure', 'po2', { pct: '21', P: '101.3' }, 'PO₂ is 21.3 kPa (160 mmHg).', 'PO₂ = 0.21 × 101.3 kPa = 21.3 kPa');
+  await psCase('saturation over 100', 'content', { hb: '15', sat: '120', po2: '100' }, '"Saturation of haemoglobin" cannot be more than 100.', null);
+  await psSolve('sat', { po2: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero PO2 gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Arterial blood")'); await page.waitForTimeout(80);
+  check((await psAns()) === 'The blood carries 19.9 mL of oxygen per 100 mL.' && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Arterial blood and tip');
 };

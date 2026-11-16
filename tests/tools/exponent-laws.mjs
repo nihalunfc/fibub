@@ -40,4 +40,31 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? fromSup(m[1]) : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `exp: quiz question ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/exponent-laws/`); await page.waitForTimeout(600);
+  {
+  const S = '.el-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const sel = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const is = async (want, label) => check((await ans()) === want, `exponent solve: ${label} (${await ans()})`);
+  const has = async (want, label) => check((await ans()).includes(want), `exponent solve: ${label} (${await ans()})`);
+  const wk = async (want, label) => check((await work()).includes(want), `exponent solve working: ${label}`);
+  await pre(0); await is('2⁵ × 2³ = 2⁸ = 256.', 'product'); await wk('32 × 8 = 256', 'product check');
+  await pre(1); await is('5⁷ ÷ 5⁴ = 5³ = 125.', 'quotient'); await wk('78,125 ÷ 625 = 125', 'quotient check');
+  await pre(2); await is('(3²)⁴ = 3⁸ = 6,561.', 'power of a power');
+  await pre(3); await is('2³ × 5³ = 10³ = 1,000.', 'same exponent');
+  await pre(4); await is('4⁻² = 1/16 = 0.0625.', 'negative exponent'); await wk('1 ÷ 4² = 1 ÷ 16', 'reciprocal');
+  await pre(5); await is('x = 6.', 'unknown exponent'); await wk('x + 3 = 9', 'unknown working');
+  await pre(6); await is('x = 4, because 3⁴ = 81.', 'power giving 81');
+  await pre(0); await fill('a', '0'); await fill('m', '0'); await fill('n', '0'); await has('not defined', '0⁰');
+  await fill('m', '1'); await fill('n', '-3'); await has('negative power', '0 to a negative power');
+  await fill('a', '-2'); await fill('m', '3'); await fill('n', '2'); await is('(−2)³ × (−2)² = (−2)⁵ = −32.', 'negative base');
+  await fill('m', '2.5'); await has('whole number', 'decimal exponent');
+  await fill('a', '2'); await fill('m', '900'); await fill('n', '900'); await has('too large', 'huge result');
+  await pre(6); await fill('a', '2'); await fill('N', '0.125'); await is('x = −3, because 2⁻³ = 0.125.', 'fraction as a power');
+  await fill('N', '10'); await has('never equals 10', 'not a whole power');
+  await fill('a', '1'); await has('not 1', 'base 1');
+  await pre(5); await fill('a', '1'); await has('must not be 0, 1 or', 'unknown with base 1');
+  }
 };

@@ -11,12 +11,14 @@ ads: false
 order: 1246
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ratio-mixer, proportion-grapher, similar-triangles]
 sources:
   - "Map scales written as ratios (1 : n), converting centimetres to kilometres, and scaling by a factor are standard school mathematics. Wording, pictures and examples are fibub's own."
   - "The town map and the recipe are made up for this page."
   - "Checked against hand-worked conversions (4 cm at 1 : 50 000 = 2 km; 6 km at 1 : 200 000 = 3 cm)."
+  - "An inch is exactly 2.54 cm and an international mile is exactly 1609.344 m (definitions used for conversions only; the page does not give a legal or survey standard)."
+  - "Checked by hand: 7.5 cm at 1 : 50 000 = 3.75 km; 12 km at 1 : 250 000 = 4.8 cm; 4 cm for 2 km = 1 : 50 000; 1 cm = 2 km is 1 : 200 000; 8 cm² at 1 : 25 000 = 50 hectares."
 flow:
   - { icon: pointer, label: "Drag pins" }
   - { icon: ruler, label: "Map cm" }
@@ -35,6 +37,12 @@ This page has three parts:
 - **Recipe scaler.** A lemon rice recipe for 4 people, scaled to any number of people by multiplying every amount by the same factor.
 
 It fits Class 8 Mathematics, proportional reasoning (scale drawings, maps and the unitary method), and links to geography map work. Mixes kept in the same ratio are shown in the [[ratio-mixer]]; a scale drawing and the real thing are [[similar-triangles|similar figures]], with every length in the same ratio.
+
+## Solve your own numbers
+
+The first card takes the numbers from your own map question. Choose **real distance from a map distance** (type the scale as the number N in 1 : N, and the map length in cm, mm, inches or metres), **map distance from a real distance** (km, m, miles or cm), the **scale from a map and a real distance** (units are made equal first), **"1 cm = 2 km" as a ratio 1 : N**, or a **map area as a real area** (areas grow with N squared, shown in m², hectares and km²). Every answer shows the working in centimetres, then converts to metres and kilometres, and distances also show miles.
+
+A scale of 0, a negative distance, or an enlargement scale (N less than 1) get a plain message or note.
 
 ## How to use it
 
@@ -68,3 +76,7 @@ Four fresh questions each time: map to real distance, real distance to map, find
 **Why is the measured distance shorter than the walk?** The pins measure a straight line. Roads bend, so the trip along them is longer.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do you find the real distance from a map?** Multiply the map distance by the scale number N, then change units: 7.5 cm at 1 : 50 000 is 375 000 cm, which is 3750 m or 3.75 km.
+
+**How do you work out the scale of a map?** Put the map distance and real distance in the same unit, then divide both by the map distance: 4 cm for 2 km (200 000 cm) gives 1 : 50 000.

@@ -62,4 +62,34 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
     await tap('.nsl-check');
     check((await page.textContent(R + '.nsl-score')) === `${n} of ${n} right.` && n === (lv === '12' ? 5 : 4), `moths: Class ${lv} quiz (${n})`);
   }
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('allele counts', 'cnt', { AA: '30', Aa: '50', aa: '20' }, 'The frequency of A is p = 0.55 and of a is q = 0.45.', 'p = (2 × 30 + 50) ÷ 200 = 0.55');
+  await psCase('no individuals', 'cnt', { AA: '0', Aa: '0', aa: '0' }, 'Enter at least one individual.', null);
+  await psCase('Hardy-Weinberg from q2', 'hwq', { q2: '0.04' }, 'q = 0.2, p = 0.8; carriers (Aa) make up 32 % of the population.', 'Check: 0.64 + 0.32 + 0.04 = 1');
+  await psCase('q2 as a percentage', 'hwq', { q2: '4' }, 'q = 0.2, p = 0.8; carriers (Aa) make up 32 % of the population.', 'Convert to base units', { q2: '%' });
+  await psCase('frequency above 1', 'hwq', { q2: '1.5' }, '"Frequency of the recessive phenotype (aa), q²" cannot be more than 1.', null);
+  await psCase('Hardy-Weinberg from p', 'hwp', { p: '0.7' }, 'q = 0.3; AA 49 %, Aa 42 %, aa 9 %.', 'Aa = 2pq = 2 × 0.7 × 0.3 = 0.42');
+  await psCase('carriers', 'car', { q2: '0.0004', N: '10000' }, 'About 392 carriers (4 with the trait).', 'Carrier frequency 2pq = 2 × 0.98 × 0.02 = 0.0392');
+  await psCase('selection', 'sel', { q: '0.5', s: '0.2' }, 'After one generation q falls from 0.5 to 0.474 (a change of −0.0263).', 'Mean fitness w̄ = 1 − s q² = 1 − 0.2 × 0.5² = 0.95');
+  await psCase('everyone dies', 'sel', { q: '1', s: '1' }, 'Everyone would die out with those numbers. Lower s.', null);
+  await psCase('relative fitness', 'fit', { o: '8', best: '10' }, 'Relative fitness w = 0.8, so s = 0.2.', 'w = 8 ÷ 10 = 0.8');
+  await psSolve('fit', { o: '8', best: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero fittest gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Selection")'); await page.waitForTimeout(80);
+  check((await psAns()).startsWith('After one generation q falls from 0.5 to 0.474') && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Selection and tip');
 };

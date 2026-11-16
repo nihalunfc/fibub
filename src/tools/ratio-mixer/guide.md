@@ -11,12 +11,13 @@ ads: false
 order: 1241
 icon: percent
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [hcf-lcm-venn, similar-triangles, media-recipe-scaler]
 sources:
   - "Ratios, equivalent ratios, the unitary method and comparing ratios by cross-multiplication are standard school arithmetic. Wording, pictures and examples are fibub's own."
   - "The paint colour is a simple model (a weighted geometric mean of the red, green and blue values), chosen so that blue and yellow make green. It shows the idea, not the exact shade of a real paint."
   - "Checked by hand-worked examples and by comparing every pair of mixes up to 12 parts with exact fractions."
+  - "Checked by hand: 1200 in 2 : 3 : 7 = 200, 300, 700; 24 : 36 : 60 = 2 : 3 : 5; 0.6 : 1.5 = 2 : 5; 3 : 5 = 12 : 20; 3 : 4 : 5 with second share 48 gives 36, 48, 60; 2 : 3 and 4 : 5 join to 8 : 12 : 15."
 flow:
   - { icon: sliders, label: "Add parts" }
   - { icon: eye, label: "See colour" }
@@ -33,6 +34,12 @@ The key idea: **the colour depends only on the ratio, not on how much you make.*
 The page also shows each ratio in **simplest form**, the share of the first ingredient as a fraction and a percentage, a **cross-multiplication** test that says which mix is bluer (or which lemonade is stronger), and how to **scale** a mix up to any amount.
 
 It fits Class 8 Mathematics, proportional reasoning (ratios, equivalent ratios and sharing in a ratio), and is good revision for any class that uses ratios. To find the common factor that simplifies a ratio, use [[hcf-lcm-venn]]; equal ratios come back in geometry as [[similar-triangles]].
+
+## Solve your own numbers
+
+The first card solves the standard ratio questions with the working shown. **Share an amount in a ratio** (total parts, one part, each share, and a check). **Simplify a ratio** of two or more terms, including decimals (it multiplies up first, then divides by the HCF, and also gives the 1 : n form for two terms). **Missing term of a proportion**, a : b = c : x, by cross-multiplying. **Shares from one known share**: say the second share of 3 : 4 : 5 is 48 and get all the shares and the total. **Join A : B and B : C** into A : B : C using the LCM of the shared term. You can type ratios with spaces, commas or colons (2:3:5).
+
+A zero or negative term, a single number, a negative amount and impossible shares get a friendly message.
 
 ## How to use it
 
@@ -69,3 +76,7 @@ Five fresh questions each time: simplest form, a missing term, sharing a total, 
 **Is the colour exactly what real paint would do?** No. Real paints mix in complicated ways. The jar uses a simple model that keeps the key fact true: the same ratio always gives the same colour.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do you divide an amount in a ratio?** Add the parts to get the total number of parts, divide the amount by that to get one part, then multiply by each term. Sharing 1200 in the ratio 2 : 3 : 7 gives 12 parts, 100 each, so 200, 300 and 700.
+
+**How do you simplify a ratio?** Divide every term by their highest common factor. If there are decimals, multiply every term by 10, 100 and so on first, and keep both terms in the same unit.

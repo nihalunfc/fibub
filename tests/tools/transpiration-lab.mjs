@@ -55,4 +55,31 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   }
   await tap('.trl-new');
   check((await page.textContent(R + '.trl-score')) === '', 'transpiration: new questions');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('potometer', 'pot', { r: '0.5', d: '30', t: '5' }, 'Water is taken up at 4.71 mm³ per minute (0.283 mL per hour).', 'V = π × 0.5² × 30 = 23.6 mm³');
+  await psCase('potometer in cm and s', 'pot', { r: '0.05', d: '3', t: '300' }, 'Water is taken up at 4.71 mm³ per minute (0.283 mL per hour).', 'Convert to base units', { r: 'cm', d: 'cm', t: 's' });
+  await psCase('per cm² of leaf', 'leaf', { v: '2.4', a: '120', t: '3' }, 'The rate is 0.00667 mL per cm² per hour.', 'rate = 2.4 mL ÷ (120 cm² × 3 h)');
+  await psCase('stomatal density', 'stoma', { n: '24', dia: '0.5' }, 'There are about 122 stomata per mm².', 'A = π × (0.5 ÷ 2)² = 0.196 mm²');
+  await psCase('stomata with µm', 'stoma', { n: '24', dia: '500' }, 'There are about 122 stomata per mm².', null, { dia: 'µm' });
+  await psCase('fan raises the rate', 'pct', { a: '5', b: '8' }, 'An increase of 60 %.', null);
+  await psCase('bubble distance', 'bub', { v: '20', r: '0.5' }, 'The bubble moves 25.5 mm.', 'distance = 20 ÷ (π × 0.5²)');
+  await psSolve('pot', { r: '0', d: '30', t: '5' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero radius gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Potometer")'); await page.waitForTimeout(80);
+  check((await psAns()).startsWith('Water is taken up at 4.71') && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Potometer and tip');
 };

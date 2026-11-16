@@ -11,11 +11,12 @@ ads: false
 order: 1376
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [binomial-expansion, sample-space, combinatorics-calculator, probability-tree]
 sources:
   - "Standard counting results: the fundamental principle of counting, n!, nPr = n!/(n − r)!, nCr = n!/(r!(n − r)!) and arrangements of n objects with repeats, n!/(p! q! …). Written for fibub."
   - "Checked against Python's math.perm, math.comb and itertools (every n up to 8 listed and counted) and the known count 34,650 for MISSISSIPPI."
+  - "Checked against Python's math.perm and math.comb, and by hand: 10P5 = 30,240; 12C4 = 495; MISSISSIPPI = 34,650; 7 people with 3 together = 5! × 3! = 720; 8 people round a table = 7! = 5,040."
 flow:
   - { icon: sliders, label: "Set n and r" }
   - { icon: table, label: "See them all" }
@@ -34,6 +35,12 @@ Counting problems are hard because it is easy to count something twice or miss a
 The page always shows nPr, nCr and r! together, with the link nPr = nCr × r! filled in. It follows the Class 11 chapter *permutations and combinations* and is handy for Class 12 probability, where counting outcomes comes first.
 
 The same nCr numbers build Pascal's triangle in [[binomial-expansion]], and counting outcomes is the first step of a probability in [[sample-space]] and [[probability-tree]].
+
+## Solve your own numbers
+
+The first card takes the numbers from your own question and gives the answer in one sentence, with the working written the way an exam marks it. Choose what to find: **nPr** (order matters), **nCr** (order does not matter), **letters with repeats** (type how often each repeated letter appears, such as 4 4 2 for MISSISSIPPI), **people round a table** (n − 1)!, **some people who must sit together** (glue them into one block, then multiply by the arrangements inside it), or a **committee from two groups** (nCr × nCr). There are six worked examples in the Example box. Big answers are exact, up to n = 100, and r larger than n or a decimal n gives a friendly message instead of a number.
+
+Each answer ends with a "common mistake" line, such as using nCr when the order matters or adding the two counts of a committee instead of multiplying.
 
 ## How to use it
 
@@ -67,3 +74,7 @@ Four fresh questions each time: a race finish (permutation), choosing books (com
 **Can I count bigger cases?** Yes, up to n = 30 here. For big numbers, Stirling numbers, partitions and more, use the [[combinatorics-calculator]].
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own examples. fibub is not part of NCERT.
+
+**What is the difference between permutation and combination?** In a permutation the order matters (AB and BA are different, like a race finish or a password); in a combination it does not (a team is the same whichever order you name it). Use the first card above and pick nPr or nCr to see both worked out.
+
+**How many ways can the letters of a word be arranged?** Divide n! by the factorial of every repeat count: for MISSISSIPPI, 11! ÷ (4! × 4! × 2!) = 34,650.

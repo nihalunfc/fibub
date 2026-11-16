@@ -11,12 +11,13 @@ ads: false
 order: 1061
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [standing-waves, doppler-beats, ultrasound-calculator]
 sources:
   - "Sound as a longitudinal wave, v = fλ, T = 1/f, speed of sound in an ideal gas v = √(γRT/M) (Laplace), pressure amplitude Δp₀ = ρvωs₀, intensity I = Δp₀²/(2ρv), sound level 10 log₁₀(I/10⁻¹² W/m²), echo and SONAR d = vt/2: standard physics."
   - "Gas constant R = 8.314462618 J/(mol K) (CODATA 2018, exact); molar mass of dry air 0.0289647 kg/mol; γ = 1.4. Speeds in water (about 1,480 m/s) and steel (about 5,900 m/s) are rounded general values."
   - "Checked against an independent Python calculation (math module) written for the tests."
+  - "Solve my numbers also uses the school rule of thumb v ≈ 331 + 0.6 T (T in °C) for the speed of sound in air, which agrees with the exact gas formula to within about 0.5 % between -20 and 50 °C, and v = 340 m/s in air and about 1,500 m/s in sea water as round school values."
 flow:
   - { icon: sliders, label: "Frequency" }
   - { icon: eye, label: "Watch" }
@@ -58,7 +59,13 @@ At the bottom are five short questions with fresh numbers each time: wavelength,
 - Sound needs a medium. In a vacuum there are no particles to push, so there is no sound.
 - The speed of sound depends on the medium and its temperature, not on the frequency or the loudness.
 
+## Solve my numbers
+
+The first card on the page is for the numbers in your own problem. Choose what you want to find: wave speed (v = f λ), frequency (f = v / λ), wavelength (λ = v / f), time period (T = 1 / f), the distance to a cliff from an echo (d = v t / 2), sea depth from SONAR, or the speed of sound at a temperature (v ≈ 331 + 0.6 T). Type your numbers, pick the unit if your problem uses kHz, cm, ms or km/h, and the answer appears at the top in one sentence with the working below it: the formula, the numbers put in with units, and the result. A short **common mistake** line follows, such as forgetting that the echo travels there and back. Five worked-example buttons fill in typical problems. A blank, zero or negative entry gives a plain message, never a wrong number.
+
 ## FAQ
+
+**What is the wavelength of a sound of 500 Hz?** In air at 340 m/s it is 340 ÷ 500 = 0.68 m (68 cm): use the Solve my numbers card with "Wavelength" to try your own numbers.
 
 **Why do the bunches move but the coloured particle does not travel?** A wave carries energy, not the air itself. Each particle passes the push on to the next one and then moves back.
 

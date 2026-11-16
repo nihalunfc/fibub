@@ -11,13 +11,14 @@ ads: false
 order: 1133
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [stomatal-density-counter, photosynthesis-lab, osmosis-lab]
 sources:
   - "Tetens' formula for saturation vapour pressure, vapour pressure deficit, and stomatal and boundary layer conductances in series: standard plant physiology ideas, written by fibub."
   - "The shoot's numbers (conductances, light response, 80 % of stomata on the lower surface, 0.5 mm capillary radius) are made-up round values for teaching."
   - "Rates were checked in the tests against a separate Python version of the model, and the vapour pressure against published saturation vapour pressure tables."
   - "Drawings are fibub's own simple shapes. Nothing you enter is stored or sent anywhere."
+  - "Solve my numbers uses the potometer volume V = π r² × distance (1 mm³ = 1 µL), rate per unit leaf area, stomatal density = count / (π (d/2)²) for a circular field of view, and percentage change: standard school practical arithmetic."
 flow:
   - { icon: sliders, label: "Set up" }
   - { icon: eye, label: "Watch" }
@@ -53,7 +54,13 @@ At 50 % light, 20 °C, 50 % humidity and still air, the vapour pressure deficit 
 
 Class 10 science (life processes) introduces transpiration and how water travels up through the xylem. Class 11 biology (transport in plants) covers the structure of stomata, the factors that affect transpiration, the transpiration pull and the potometer experiment. This page is an independent learning aid. It is not made by or connected with NCERT, and it does not copy any textbook.
 
+## Solve my numbers
+
+The first card is for the numbers from your own practical. Choose the potometer rate (tube radius, distance the bubble moved and time, giving mm³ per minute and mL per hour), the rate of water loss per cm² of leaf per hour, the stomatal density from a count and the diameter of the microscope field, the distance a bubble should move for a given volume, or a percentage change such as still air against a fan. Type the numbers, choose mm or cm, minutes or hours, and the answer appears at the top with the working below. A **common mistake** line reminds you to use the radius, not the diameter, in π r². Blank, zero or negative entries give a plain message.
+
 ## Questions
+
+**How do I work out the rate of transpiration from a potometer?** Find the volume the bubble swept, V = π r² × distance (0.5 mm radius, 30 mm gives 23.6 mm³), then divide by the time: over 5 minutes that is 4.71 mm³ per minute. The Solve my numbers card does it with your numbers.
 
 **Does a potometer measure water lost, or water taken up?** Water taken up. Nearly all of it is lost by transpiration, but a little is used by the plant, so the two are close but not equal.
 

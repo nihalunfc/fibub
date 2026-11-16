@@ -59,4 +59,35 @@ export default async ({ page, check, BASE }) => {
   check((await (await items[4].$('.lq-work')).textContent()).includes('1500 ×'), 'sound: show working');
   await page.click(R + '.lq-new');
   check((await t('.lq-score')).startsWith('0 of 5'), 'sound: new questions');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('wave speed', 'v', { f: '256', lam: '1.33' }, 'The speed of the wave is 340 m/s.', 'v = 256 Hz × 1.33 m');
+  await psCase('frequency', 'f', { v: '340', lam: '0.68' }, 'The frequency is 500 Hz.', 'Time period T = 1 / f = 2 ms');
+  await psCase('wavelength in cm', 'lam', { v: '340', f: '500' }, 'The wavelength is 68 cm.', 'λ = 0.68 m = 68 cm');
+  await psCase('wavelength with kHz', 'lam', { v: '340', f: '0.5' }, 'The wavelength is 68 cm.', 'Convert to base units: 0.5 kHz = 500 Hz', { f: 'kHz' });
+  await psCase('time period', 'T', { f: '250' }, 'The time period is 0.004 s (4 ms).', 'T = 1 ÷ 250 Hz');
+  await psCase('echo', 'echo', { v: '340', t: '1.5' }, 'The distance is 255 m.', 'd = v t / 2 = 340 × 1.5 ÷ 2');
+  await psCase('echo in ms is too quick', 'echo', { v: '340', t: '50' }, 'The distance is 8.5 m. (Echo too quick: under 0.1 s you cannot hear it as a separate sound.)', null, { t: 'ms' });
+  await psCase('sonar', 'sonar', { v: '1500', t: '2' }, 'The sea is 1500 m deep.', 'depth = 1500 m/s × 2 s ÷ 2');
+  await psCase('cold air', 'air', { T: '-10' }, 'The speed of sound is about 325 m/s.', 'v ≈ 331 + 0.6 × (-10)'.replace('(-10)', '(−10)'));
+  await psSolve('lam', { v: '340', f: '0' }); check((await psAns()).includes('must be more than 0'), 'solve: zero frequency gives a friendly message');
+  await psSolve('lam', { v: '340', f: '' }); check((await psAns()).startsWith('Type a number for'), 'solve: blank gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Sea depth")'); await page.waitForTimeout(80);
+  check((await psAns()) === 'The sea is 1500 m deep.', 'solve: preset Sea depth');
+  check((await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: common mistake line');
 };

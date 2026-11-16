@@ -40,4 +40,31 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m.slice(1).join(', ') : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `stdform: quiz question ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/standard-form-ladder/`); await page.waitForTimeout(600);
+  {
+  const S = '.sf-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const sel = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const is = async (want, label) => check((await ans()) === want, `stdform solve: ${label} (${await ans()})`);
+  const has = async (want, label) => check((await ans()).includes(want), `stdform solve: ${label} (${await ans()})`);
+  const wk = async (want, label) => check((await work()).includes(want), `stdform solve working: ${label}`);
+  await pre(0); await is('0.000045 = 4.5 × 10⁻⁵.', 'small number'); await wk('5 places to the right', 'direction');
+  await pre(1); await is('384 400 ≈ 3.84 × 10⁵.', '3 significant figures'); await wk('Rounded to 3 significant figures: 3.84', 'rounding line');
+  await fill('sig', ''); await is('384 400 = 3.844 × 10⁵.', 'no rounding');
+  await pre(2); await is('6.022 × 10²³ = 602 200 000 000 000 000 000 000.', 'back to ordinary');
+  await pre(3); await is('(3.2 × 10⁵) × (2.5 × 10³) = 8 × 10⁸.', 'multiply');
+  await pre(4); await is('(9.6 × 10⁷) ÷ (3 × 10⁻²) = 3.2 × 10⁹.', 'divide');
+  await pre(5); await is('(4.2 × 10⁵) + (3.1 × 10⁴) = 4.51 × 10⁵.', 'add'); await wk('0.31 × 10⁵', 'aligned powers');
+  await pre(0); await fill('x', '0'); await has('cannot be written', 'zero');
+  await fill('x', '-0.0072'); await is('−0.0072 = −7.2 × 10⁻³.', 'negative number');
+  await fill('x', '7'); await is('7 = 7 × 10⁰.', 'already standard');
+  await fill('x', '12 abc'); await has('cannot read', 'letters');
+  await pre(2); await fill('a', '45'); await fill('n', '-3'); await is('45 × 10⁻³ = 0.045.', 'a outside 1 to 10'); await wk('better written 4.5 × 10⁻²', 'normalise note');
+  await fill('a', '1.5'); await fill('n', '2.5'); await has('whole number', 'decimal power');
+  await pre(3); await fill('a1', '4'); await fill('n1', '3'); await fill('a2', '5'); await fill('n2', '2'); await is('(4 × 10³) × (5 × 10²) = 2 × 10⁶.', 'product above 10'); await wk('adjust', 'adjust line');
+  await sel('op', 'sub'); await fill('a1', '5'); await fill('n1', '3'); await fill('a2', '5'); await fill('n2', '3'); await is('The result is 0.', 'equal numbers subtract');
+  await sel('op', 'div'); await fill('a2', '0'); await has('divide by 0', 'divide by zero');
+  }
 };
