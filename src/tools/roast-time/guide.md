@@ -17,6 +17,7 @@ sources:
   - "Turkey roasting times at 325 °F, thawing (24 hours per 4 to 5 lb in the fridge, 30 minutes per lb in cold water) and 20 minute rest: USDA FSIS, Let's Talk Turkey roasting guide, checked 2026-11-10."
   - "Safe minimum internal temperatures: USDA FSIS Safe Minimum Internal Temperature Chart and Health Canada, Safe internal cooking temperatures, checked 2026-11-10. Check the official source."
   - "Minutes per kg for chicken, beef, pork and lamb, their oven temperatures and resting times, and the fan oven rule (about 20 °C lower): rules of thumb, fibub's own working."
+  - "The carve-time plan and the weights table use the same chart and rules above; resting minutes for planning are the longer end of the rest advice, fibub's own working, cited from memory, not re-checked."
 flow:
   - { icon: sliders, label: "Meat" }
   - { icon: scale, label: "Weight" }
@@ -44,6 +45,9 @@ Times are only a guide; the safe temperature is what matters, so the page shows 
 - **Stuffed** (turkey only): uses the USDA chart for stuffed birds, which takes longer.
 - **How done** (beef and lamb): medium-rare 63 °C, medium 71 °C or well done 77 °C, as Health Canada lists them.
 - **Minutes per kg, from and to** (not turkey): fibub's rule of thumb, filled in for you. Edit it if your recipe or oven differs.
+- **More options, I want to carve at**: pick the time you want to eat and the page works backwards: when to put the roast in (allowing the longest time in the range plus the rest), and when it should come out. Resting is 20 minutes for turkey and beef or lamb, 15 for chicken and pork, the longer end of the advice shown. A start before midnight is marked "the day before".
+- **More options, other weights**: a table of times for common weights, from the USDA chart for turkey and from the minutes-per-kg rule for the others, so you can see how a bigger or smaller joint changes things.
+- **Big or odd weights**: zero, blank or an impossible weight (over 40 kg or 90 lb) gets a short message instead of a time.
 - **Reset**: goes back to the 6 kg turkey example.
 
 ## Worked example

@@ -4,18 +4,31 @@
 <div class="tool-ui is">
   <section class="panel is-form">
     <label>What are you missing?
-      <input class="is-q" type="search" placeholder="e.g. buttermilk, egg, cornflour" autocomplete="off" />
+      <input class="is-q" data-k="search" type="search" placeholder="e.g. buttermilk, egg, cornflour" autocomplete="off" />
     </label>
     <label class="is-amt-l">How much the recipe asks for
-      <span class="is-amt-row"><input class="is-amt" inputmode="decimal" value="1" /> <span class="is-unit">× the unit on each card (cup, tbsp, egg...)</span></span>
+      <span class="is-amt-row"><input class="is-amt" data-k="amount" inputmode="decimal" value="1" /> <span class="is-unit">× the unit on each card (cup, tbsp, egg...)</span></span>
     </label>
+    <div class="is-chips" role="group" aria-label="Popular searches">
+      {['Buttermilk', 'Egg', 'Self-raising flour', 'Baking powder', 'Brown sugar', 'Butter', 'Heavy cream'].map((c) => <button type="button" class="btn secondary" data-q={c}>{c}</button>)}
+    </div>
     <fieldset class="is-filters">
       <legend>Show only swaps that are</legend>
-      <label><input type="checkbox" value="v" /> Vegan</label>
-      <label><input type="checkbox" value="d" /> Dairy-free</label>
-      <label><input type="checkbox" value="e" /> Egg-free</label>
-      <label><input type="checkbox" value="g" /> Gluten-free</label>
+      <label><input type="checkbox" data-k="vegan" value="v" /> Vegan</label>
+      <label><input type="checkbox" data-k="dairy-free" value="d" /> Dairy-free</label>
+      <label><input type="checkbox" data-k="egg-free" value="e" /> Egg-free</label>
+      <label><input type="checkbox" data-k="gluten-free" value="g" /> Gluten-free</label>
+      <label><input type="checkbox" data-k="nut-free" value="n" /> Nut-free</label>
+      <label><input type="checkbox" data-k="soy-free" value="s" /> Soy-free</label>
     </fieldset>
+    <details class="is-more">
+      <summary>More options</summary>
+      <label>I am typing the recipe amount in
+        <select class="is-mode" data-k="amount-in"><option value="unit">the card's unit (cups, tbsp, eggs...)</option><option value="metric">ml (or g for ounces)</option></select>
+      </label>
+      <label class="is-check"><input type="checkbox" class="is-ml" data-k="show-ml" /> Show ml (or g) beside cups, spoons and ounces</label>
+      <p class="is-note2">Nut-free and soy-free are worked out from the words in each swap (coconut counts as a nut to be safe); still read the label. ml uses 1 cup = 240 ml, 1 tbsp = 15 ml, 1 tsp = 5 ml, 1 oz = 28 g.</p>
+    </details>
     <div class="is-btns"><button type="button" class="btn secondary is-clear">Clear</button></div>
   </section>
   <p class="is-count" aria-live="polite"></p>
@@ -36,6 +49,14 @@
   .is-filters { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
   .is-filters legend { font-size: 14px; color: var(--muted); margin-bottom: 6px; padding: 0; }
   .is-filters label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; color: var(--ink); }
+  .is-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .is-chips .btn { padding: 4px 10px; font-size: 14px; }
+  .is-more summary { cursor: pointer; font-size: 15px; margin-bottom: 8px; }
+  .is-more label { margin-bottom: 8px; }
+  .is-more .is-check { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; color: var(--ink); }
+  .is input.is-ml, .is-more select { font: inherit; }
+  .is-more select { color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .is-note2 { margin: 0; color: var(--muted); font-size: 13px; }
   .is-btns .btn { padding: 8px 14px; }
   .is-count { margin: 0; color: var(--muted); font-size: 14px; }
   .is-list { display: grid; gap: 10px; }
@@ -51,18 +72,20 @@
 </style>
 
 <script>
-  import { ITEMS, amount } from './swaps';
+  import { ITEMS, amount, flagsOf, metricHint, toMultiplier } from './swaps';
   const root = document.querySelector('.is') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const q = $<HTMLInputElement>('.is-q'), amt = $<HTMLInputElement>('.is-amt'), list = $('.is-list'), count = $('.is-count');
   const boxes = [...root.querySelectorAll('.is-filters input')] as HTMLInputElement[];
-  const TAG: Record<string, string> = { v: 'vegan', d: 'dairy-free', e: 'egg-free', g: 'gluten-free' };
+  const TAG: Record<string, string> = { v: 'vegan', d: 'dairy-free', e: 'egg-free', g: 'gluten-free', n: 'nut-free', s: 'soy-free' };
+  const mode = $<HTMLSelectElement>('.is-mode'), showMl = $<HTMLInputElement>('.is-ml');
   const total = ITEMS.reduce((s, i) => s + i.swaps.length, 0);
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
   const el = (tag: string, cls: string, text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
   const calc = () => {
     const a = amt.value.trim() === '' ? 1 : +amt.value.replace(',', '.');
-    const k = Number.isFinite(a) && a > 0 ? a : 1;
+    const typed = Number.isFinite(a) && a > 0 && a <= 100000 ? a : 1;
+    const metric = mode.value === 'metric';
     const words = norm(q.value).split(' ').filter(Boolean);
     const need = boxes.filter((b) => b.checked).map((b) => b.value);
     list.innerHTML = '';
@@ -70,18 +93,19 @@
     for (const it of ITEMS) {
       const hay = norm(it.name + ' ' + (it.also || ''));
       if (!words.every((w) => hay.includes(w))) continue;
-      const ok = it.swaps.filter((s) => need.every((f) => s.f.includes(f)));
+      const ok = it.swaps.filter((s) => need.every((f) => flagsOf(s).includes(f)));
+      const k = toMultiplier(typed, it.per, metric);
       if (!ok.length) continue;
       items++; swaps += ok.length;
       const card = el('article', 'is-card');
-      const h = el('h3', '', it.name); h.append(el('span', 'is-for', ` · for ${amount(k, it.per)}`)); card.append(h);
+      const h = el('h3', '', it.name); h.append(el('span', 'is-for', ` · for ${amount(k, it.per)}${metric && metricHint(1, it.per) ? ` (${typed} ${it.per === 'oz' ? 'g' : 'ml'})` : ''}`)); card.append(h);
       const ul = el('ul', '');
       for (const s of ok) {
         const li = el('li', '');
-        li.append(el('span', 'is-swap', '= ' + s.parts.map((p) => amount(p[0] * k, p[1], p[2])).join(' + ')));
+        li.append(el('span', 'is-swap', '= ' + s.parts.map((p) => amount(p[0] * k, p[1], p[2]) + (showMl.checked && metricHint(p[0] * k, p[1]) ? ` (${metricHint(p[0] * k, p[1])})` : '')).join(' + ')));
         if (s.note) li.append(el('span', 'is-note', s.note));
         const tags = el('span', 'is-tags');
-        for (const f of s.f) tags.append(el('span', '', TAG[f]));
+        for (const f of flagsOf(s).split('').filter((x) => 'vdeg'.includes(x) || need.includes(x))) tags.append(el('span', '', TAG[f]));
         li.append(tags); ul.append(li);
       }
       card.append(ul); list.append(card);
@@ -91,6 +115,7 @@
       : 'No swap matches. Try another word, or untick a filter.';
   };
   root.addEventListener('input', calc);
-  $('.is-clear').addEventListener('click', () => { q.value = ''; amt.value = '1'; boxes.forEach((b) => (b.checked = false)); calc(); q.focus(); });
+  root.querySelectorAll('.is-chips [data-q]').forEach((b) => b.addEventListener('click', () => { q.value = (b as HTMLElement).dataset.q!; calc(); }));
+  $('.is-clear').addEventListener('click', () => { q.value = ''; amt.value = '1'; mode.value = 'unit'; showMl.checked = false; boxes.forEach((b) => (b.checked = false)); calc(); q.focus(); });
   calc();
 </script>

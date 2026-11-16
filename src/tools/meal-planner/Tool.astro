@@ -6,8 +6,19 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 <div class="tool-ui mp">
   <section class="panel mp-top">
     <p class="mp-help">Type a meal name in any slot, and its ingredients underneath, one per line with the amount first (200 g rice, 2 eggs, 1 can tomatoes). The shopping list adds up the same ingredients.</p>
-    <label class="mp-check"><input type="checkbox" class="mp-remember" /> Remember my plan on this device</label>
-    <p class="mp-store">Off by default. When ticked, the plan is kept only in this browser (never sent anywhere) until you untick it or press Clear.</p>
+    <label class="mp-check"><input type="checkbox" class="mp-remember" data-k="remember" /> Remember my plan on this device</label>
+    <p class="mp-store">Off by default. When ticked, the plan, the people numbers and the at-home list are kept only in this browser (never sent anywhere) until you untick it or press Clear.</p>
+    <details class="mp-more">
+      <summary>More options: number of people and what you already have</summary>
+      <div class="mp-ppl">
+        <label>Plan is written for (people) <input class="mp-from" data-k="planned-for" inputmode="decimal" placeholder="e.g. 2" /></label>
+        <label>I am shopping for (people) <input class="mp-to" data-k="shopping-for" inputmode="decimal" placeholder="e.g. 4" /></label>
+      </div>
+      <label class="mp-have-l">Already at home (one per line, names only)
+        <textarea class="mp-have" data-k="have" rows="3" spellcheck="false" placeholder="rice&#10;olive oil&#10;salt"></textarea>
+      </label>
+      <p class="mp-store">Leave the people boxes empty to use the amounts as typed. Eggs, cans and cloves round up to whole ones. Things you list as already at home are left off the shopping list.</p>
+    </details>
     <div class="mp-btns">
       <button type="button" class="btn secondary mp-example">Example</button>
       <button type="button" class="btn secondary mp-clear">Clear</button>
@@ -29,6 +40,7 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   <section class="panel mp-shop">
     <h3>Shopping list</h3>
     <p class="mp-sum" aria-live="polite"></p>
+    <p class="mp-left" aria-live="polite"></p>
     <div class="mp-list"></div>
     <div class="mp-btns">
       <button type="button" class="btn mp-print-b">Print or save as PDF</button>
@@ -36,7 +48,7 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
       <button type="button" class="btn secondary mp-copy">Copy list</button>
     </div>
   </section>
-  <p class="mp-fine">Amounts are added only when the unit is the same (200 g + 200 g = 400 g; 200 g and 1 cup stay apart). Groups are a best guess from the ingredient's name. Nothing you type leaves this page.</p>
+  <p class="mp-fine">Amounts are added only when the unit is the same (200 g + 200 g = 400 g; g with kg and ml with l are added; 200 g and 1 cup stay apart). Groups are a best guess from the ingredient's name. Nothing you type leaves this page.</p>
   <div class="mp-print" aria-hidden="true"></div>
 </div>
 
@@ -55,6 +67,14 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   .mp input[type="text"], .mp textarea { font: inherit; font-size: 15px; color: var(--ink); padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
   .mp textarea { resize: vertical; font-size: 14px; }
   .mp input:focus, .mp textarea:focus { border-color: var(--accent); outline: none; }
+  .mp-more summary { cursor: pointer; font-size: 15px; margin: 4px 0 8px; }
+  .mp-ppl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; margin-bottom: 8px; }
+  .mp-more label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .mp-more input, .mp-more textarea { font: inherit; font-size: 15px; color: var(--ink); padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .mp-list li label { display: inline-flex; gap: 8px; align-items: baseline; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .mp-list li.done span { text-decoration: line-through; color: var(--muted); }
+  .mp-list ul { list-style: none; padding-left: 0; }
+  .mp-left { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
   .mp-sum { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
   .mp-list h4 { margin: 10px 0 4px; font-size: 15px; }
   .mp-list ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; overflow-wrap: anywhere; }
@@ -70,11 +90,12 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 </style>
 
 <script>
-  import { merge, itemText, GROUPS } from './shop';
+  import { merge, itemText, GROUPS, scaleItems, removeHave, peopleFactor } from './shop';
   const KEY = 'fibub-meal-plan-v1';
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   type Cell = { n: string; i: string };
+  const ticked = new Set<string>();
   const EXAMPLE: Record<string, Cell> = {
     '0-0': { n: 'Porridge', i: '50 g oats\n250 ml milk\n1 banana' },
     '1-0': { n: 'Porridge', i: '50 g oats\n250 ml milk\n1 banana' },
@@ -88,6 +109,7 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
   const root = document.querySelector('.mp') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const slots = [...root.querySelectorAll('.mp-slot')] as HTMLElement[];
+  const from = $<HTMLInputElement>('.mp-from'), to = $<HTMLInputElement>('.mp-to'), have = $<HTMLTextAreaElement>('.mp-have'), left = $('.mp-left');
   const remember = $<HTMLInputElement>('.mp-remember'), list = $('.mp-list'), sum = $('.mp-sum'), printBox = $('.mp-print');
   const cellOf = (el: HTMLElement) => ({ name: el.querySelector('.mp-name') as HTMLInputElement, ing: el.querySelector('.mp-ing') as HTMLTextAreaElement });
   const read = (): Record<string, Cell> => {
@@ -96,25 +118,35 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
     return o;
   };
   const write = (o: Record<string, Cell>) => { for (const s of slots) { const c = cellOf(s), v = o[s.dataset.c!]; c.name.value = v?.n || ''; c.ing.value = v?.i || ''; } };
-  const save = () => { if (!remember.checked) return; try { localStorage.setItem(KEY, JSON.stringify({ cells: read() })); } catch {} };
+  const save = () => { if (!remember.checked) return; try { localStorage.setItem(KEY, JSON.stringify({ cells: read(), from: from.value, to: to.value, have: have.value })); } catch {} };
   const forget = () => { try { localStorage.removeItem(KEY); } catch {} };
   let shopping: { group: string; lines: string[] }[] = [];
   const update = () => {
     const cells = read();
-    const items = merge(Object.values(cells).flatMap((c) => c.i.split('\n')));
+    const k = peopleFactor(from.value, to.value);
+    let items = removeHave(merge(Object.values(cells).flatMap((c) => c.i.split('\n'))), have.value);
+    if (Number.isFinite(k)) items = scaleItems(items, k);
     const order = [...GROUPS.map((g) => g[0]).reverse(), 'Other'];
     shopping = order.map((g) => ({ group: g, lines: items.filter((it) => it.group === g).map(itemText) })).filter((g) => g.lines.length);
     list.innerHTML = '';
     for (const g of shopping) {
       const h = document.createElement('h4'); h.textContent = g.group;
       const ul = document.createElement('ul');
-      for (const l of g.lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); }
+      for (const l of g.lines) {
+        const li = document.createElement('li'), lab = document.createElement('label'), cb = document.createElement('input'), sp = document.createElement('span');
+        cb.type = 'checkbox'; cb.checked = ticked.has(l); sp.textContent = l; li.className = cb.checked ? 'done' : '';
+        cb.addEventListener('change', () => { if (cb.checked) ticked.add(l); else ticked.delete(l); li.className = cb.checked ? 'done' : ''; count(); });
+        lab.append(cb, sp); li.append(lab); ul.append(li);
+      }
       list.append(h, ul);
     }
     const meals = Object.values(cells).filter((c) => c.n.trim()).length;
+    if (!Number.isFinite(k)) left.textContent = 'The people numbers need to be above 0, so the amounts are shown as typed.';
     sum.textContent = items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'} for ${meals} planned ${meals === 1 ? 'meal' : 'meals'}.` : 'Add ingredients to a meal and the list appears here.';
+    if (Number.isFinite(k)) count();
     save();
   };
+  const count = () => { if (!Number.isFinite(peopleFactor(from.value, to.value))) return; const n = list.querySelectorAll('li').length, t = list.querySelectorAll('li.done').length; left.textContent = n ? `${t} of ${n} ticked off` : ''; };
   const planText = () => {
     const cells = read(), out: string[] = ['Meal plan', ''];
     DAYS.forEach((d, di) => {
@@ -139,9 +171,10 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
     for (const g of shopping) { const h4 = document.createElement('h4'); h4.textContent = g.group; const ul = document.createElement('ul'); for (const l of g.lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); } printBox.append(h4, ul); }
   };
   root.querySelector('.mp-week')!.addEventListener('input', update);
+  for (const el of [from, to, have]) el.addEventListener('input', update);
   remember.addEventListener('change', () => { if (remember.checked) save(); else forget(); });
   $('.mp-example').addEventListener('click', () => { write(EXAMPLE); update(); });
-  $('.mp-clear').addEventListener('click', () => { write({}); remember.checked = false; forget(); update(); });
+  $('.mp-clear').addEventListener('click', () => { write({}); from.value = to.value = have.value = ''; ticked.clear(); remember.checked = false; forget(); update(); });
   window.addEventListener('beforeprint', fillPrint);
   $('.mp-print-b').addEventListener('click', () => { fillPrint(); window.print(); });
   $('.mp-txt').addEventListener('click', () => {
@@ -156,7 +189,7 @@ const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
     setTimeout(() => (b.textContent = 'Copy list'), 1500);
   });
   let stored: Record<string, Cell> | null = null;
-  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s?.cells) stored = s.cells; } catch {}
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s?.cells) { stored = s.cells; from.value = s.from || ''; to.value = s.to || ''; have.value = s.have || ''; } } catch {}
   if (stored) { remember.checked = true; write(stored); } else write(EXAMPLE);
   update();
 </script>

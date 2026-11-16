@@ -11,7 +11,7 @@ ads: false
 order: 2034
 icon: flask
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [sleep-calculator, body-measures, heart-rate-zones, calorie-calculator]
 sources:
   - "EFSA Panel on Dietetic Products, Nutrition and Allergies (2010), Scientific Opinion on Dietary Reference Values for water, EFSA Journal 8(3):1459: adequate total water intake 2.0 L women, 2.5 L men, +0.3 L pregnancy, +0.7 L breastfeeding (checked 2026-11-10)."
@@ -47,6 +47,10 @@ These are estimates for healthy adults, not medical advice. If you also want a p
 - **Glass size**: for the glasses column and counter.
 - **Hot weather**: shows a reminder to drink more. It does not change the numbers; needs in heat vary too much.
 - **Remember today's count**: off by default. When ticked, only today's count is kept in this browser. **Clear** sets it to zero and deletes it.
+
+## More options
+
+Open "More options" to add your body weight: a row appears with a body-weight rule of thumb (30 mL per kg, editable). That figure is not from EFSA or the National Academies; it is a common rule of thumb, so treat it as one more guide. Pick a glass size from the presets (200 mL, 250 mL, 330 mL can or 500 mL bottle), and set your wake-up time and bedtime to get a list of times to drink the day's glasses at an even spacing. This is general advice for healthy adults, not medical advice; check the official source (EFSA, National Academies, your doctor) if you have a health condition.
 
 ## Worked example
 

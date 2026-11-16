@@ -11,7 +11,7 @@ ads: false
 order: 2032
 icon: ruler
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [pace-calculator, calorie-calculator, one-rep-max]
 sources:
   - "Stride ≈ 0.414 × height for walking and 0.65 × height for running: common rules of thumb, not a standard. A measured stride is better."
@@ -44,6 +44,10 @@ Everything runs in your browser and nothing is sent anywhere. To see how fast yo
 - **Measured stride**: walk 10 normal steps, measure the distance, divide by 10.
 - **MET value**: how hard the activity is compared with sitting still. The 2011 Compendium of Physical Activities lists about 3.5 for walking at a moderate pace and 8.3 for running at 5 mph.
 - **Reset**: brings back the example.
+
+## More options
+
+Open "More options" for a table of common daily step goals (5,000, 7,500, 10,000, 12,000 and 15,000 steps) with the distance, the minutes at your walking or running speed, and the calories from your MET value and weight. A line also says about how many steps you take per km and per mile. In imperial units you can type your height as 5'7 or 5 ft 7. Very large step counts show a message instead of a nonsense answer. Stride rules of thumb are rough: a measured stride is better.
 
 ## Worked example
 

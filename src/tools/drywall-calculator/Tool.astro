@@ -25,8 +25,17 @@
     <label>Joint compound <span data-u="mud"></span><input data-k="mud" inputmode="decimal" /></label>
   </section>
   <section class="panel">
+    <details class="dwc-more">
+      <summary>More options: several rooms and cost</summary>
+      <div class="dwc-grid">
+        <label>Number of identical rooms<input data-k="rooms" inputmode="numeric" /></label>
+        <label>Price per sheet (any currency)<input data-k="price" inputmode="decimal" placeholder="optional" /></label>
+      </div>
+    </details>
     <p class="dwc-big" aria-live="polite"></p>
+    <p class="dwc-cost" aria-live="polite"></p>
     <ul class="dwc-lines"></ul>
+    <div class="dwc-sk" aria-label="Scaled plan of the room"></div>
     <button type="button" class="dwc-btn dwc-reset">Reset to the example</button>
   </section>
   <p class="dwc-fine">Screws, tape and compound are rules of thumb: change them to match your boards and the product labels. Nothing you type leaves this page.</p>
@@ -44,17 +53,21 @@
   .dwc-btn:hover { border-color: var(--accent); }
   .dwc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
   .dwc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .dwc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .dwc-cost { margin: 0; font-weight: 600; }
+  .dwc-sk { max-width: 420px; }
   .dwc-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, rectSketch } from '../../lib/build-calc';
   const root = document.querySelector('.dwc') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
   const SQFT = 0.09290304;
   const EX: Record<string, Record<string, string>> = {
-    m: { L: '3.6', W: '3', H: '2.4', doors: '0', doorA: '1.9', wins: '0', winA: '1.5', sheet: 'mm', waste: '10', tape: '1.2', mud: '0.4' },
-    ft: { L: '12', W: '10', H: '8', doors: '0', doorA: '21', wins: '0', winA: '16', sheet: '32', waste: '10', tape: '0.37', mud: '0.01' },
+    m: { L: '3.6', W: '3', H: '2.4', doors: '0', doorA: '1.9', wins: '0', winA: '1.5', sheet: 'mm', waste: '10', tape: '1.2', mud: '0.4', rooms: '1' },
+    ft: { L: '12', W: '10', H: '8', doors: '0', doorA: '21', wins: '0', winA: '16', sheet: '32', waste: '10', tape: '0.37', mud: '0.01', rooms: '1' },
   };
   const U: Record<string, Record<string, string>> = {
     m: { len: '(m)', area: '(m²)', tape: '(m per m²)', mud: '(litres per m²)', a: 'm²', l: 'm', v: 'L' },
@@ -66,6 +79,7 @@
   const sheetSqft = () => (k('sheet').value === 'mm' ? 2.88 / SQFT : Number(k('sheet').value));
   // 32 screws for a 4 x 8 sheet, scaled by sheet area.
   const setScrews = () => { k('screws').value = String(Math.round(sheetSqft())); };
+  const costEl = $('.dwc-cost'), sk = $('.dwc-sk');
   const big = $('.dwc-big'), lines = $('.dwc-lines');
   function calc() {
     const u = k('units').value, un = U[u];
@@ -74,15 +88,19 @@
     const walls = 2 * (L + W) * H, ceil = k('ceil').checked ? L * W : 0;
     const open = num(k('doors').value || '0') * num(k('doorA').value || '0') + num(k('wins').value || '0') * num(k('winA').value || '0');
     const w = num(k('waste').value), per = num(k('screws').value || '0'), tape = num(k('tape').value || '0'), mud = num(k('mud').value || '0');
-    if (![walls, ceil, open, w, per, tape, mud].every(Number.isFinite) || walls < 0 || w < 0) { big.textContent = ''; lines.innerHTML = '<li>Type the sizes above (numbers only).</li>'; return; }
-    const area = Math.max(0, walls + ceil - open);
+    if (![walls, ceil, open, w, per, tape, mud].every(Number.isFinite) || walls < 0 || w < 0) { big.textContent = ''; costEl.textContent = ''; sk.innerHTML = ''; lines.innerHTML = '<li>Type the sizes above (numbers only).</li>'; return; }
+    const rn = num(k('rooms').value), rooms = Number.isFinite(rn) ? Math.max(1, Math.floor(rn)) : 1;
+    const area = Math.max(0, walls + ceil - open) * rooms;
     const sheetA = u === 'm' ? sheetSqft() * SQFT : sheetSqft();
     const exact = area / sheetA, sheets = Math.ceil(exact * (1 + w / 100) - 1e-9);
     big.textContent = `${sheets} sheet${sheets === 1 ? '' : 's'}`;
+    const price = pnum(k('price').value), cost = costOf(sheets, price);
+    costEl.textContent = cost !== null ? `Estimated cost: ${money(cost)} (${sheets} sheet${sheets === 1 ? '' : 's'} × ${money(price)}). Screws, tape, compound, tax and delivery not included.` : '';
+    sk.innerHTML = L > 0 && W > 0 ? rectSketch(L, W, `${f(L, 2)} ${un.l}`, `${f(W, 2)} ${un.l}`, undefined, 'Scaled plan of the room') : '';
     const name = k('sheet').selectedOptions[0].textContent;
     const li = [
-      `Walls ${f(walls, 2)} ${un.a}${ceil ? ` + ceiling ${f(ceil, 2)} ${un.a}` : ''}${open > 0 ? ` − openings ${f(open, 2)} ${un.a}` : ''} = ${f(area, 2)} ${un.a}.`,
-      `${f(area, 2)} ÷ ${f(sheetA, 2)} ${un.a} per ${name} sheet = ${f(exact, 2)} sheets; plus ${f(w, 0)}% = ${f(exact * (1 + w / 100), 2)}, rounded up to ${sheets}.`,
+      `${rooms > 1 ? 'One room: ' : ''}Walls ${f(walls, 2)} ${un.a}${ceil ? ` + ceiling ${f(ceil, 2)} ${un.a}` : ''}${open > 0 ? ` − openings ${f(open, 2)} ${un.a}` : ''} = ${f(area / rooms, 2)} ${un.a}.`,
+      `${rooms > 1 ? `${rooms} rooms: ` : ''}${f(area, 2)} ÷ ${f(sheetA, 2)} ${un.a} per ${name} sheet = ${f(exact, 2)} sheets; plus ${f(w, 0)}% = ${f(exact * (1 + w / 100), 2)}, rounded up to ${sheets}.`,
       `Screws: ${sheets} × ${f(per, 0)} = ${f(sheets * per, 0)}.`,
       `Joint tape: about ${f(area * tape, 0)} ${un.l}.`,
       `Joint compound: about ${f(area * mud, 1)} ${un.v}.`,
@@ -96,7 +114,7 @@
   k('units').addEventListener('change', () => load(k('units').value));
   k('sheet').addEventListener('change', () => { setScrews(); calc(); });
   k('ceil').addEventListener('change', calc);
-  for (const key of ['L', 'W', 'H', 'doors', 'doorA', 'wins', 'winA', 'waste', 'screws', 'tape', 'mud']) k(key).addEventListener('input', calc);
-  $('.dwc-reset').addEventListener('click', () => { k('units').value = 'm'; load('m'); });
+  for (const key of ['L', 'W', 'H', 'doors', 'doorA', 'wins', 'winA', 'waste', 'screws', 'tape', 'mud', 'rooms', 'price']) k(key).addEventListener('input', calc);
+  $('.dwc-reset').addEventListener('click', () => { k('price').value = ''; k('units').value = 'm'; load('m'); });
   load('m');
 </script>

@@ -11,12 +11,14 @@ ads: false
 order: 2033
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [body-measures, one-rep-max, pace-calculator, steps-to-distance, water-intake]
 sources:
   - "Mifflin MD, St Jeor ST et al. (1990). A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr 51(2): 241–247 (the BMR formula)."
   - "Activity factors 1.2 to 1.9 and about 7,700 kcal per kg of body weight are common rules of thumb; both are editable."
   - "Jäger R et al. (2017). ISSN position stand: protein and exercise. J Int Soc Sports Nutr 14: 20 (1.4 to 2.0 g/kg for active people). Institute of Medicine (2005), Dietary Reference Intakes for Energy and Macronutrients (fat 20 to 35% of energy)."
+  - "Roza AM, Shizgal HM (1984). The Harris Benedict equation reevaluated: resting energy requirements and the body cell mass. Am J Clin Nutr 40(1): 168–182 (revised Harris-Benedict; cited from memory, not re-checked)."
+  - "Katch-McArdle: BMR = 370 + 21.6 × lean body mass in kg, from McArdle WD, Katch FI, Katch VL, Exercise Physiology (cited from memory, not re-checked; confirm at the source). The 25/30/30/15% meal shares are an everyday example, not a guideline. Check the official source (for example your national dietary guidance) for health advice."
 flow:
   - { icon: pencil, label: "You" }
   - { icon: sliders, label: "Activity" }
@@ -44,6 +46,10 @@ It is an estimate, not medical advice, and everything runs in your browser. To c
 - **Lowest daily target**: a warning shows below this; it starts at 1,500 kcal for men and 1,200 for women, common minimums without medical supervision.
 - **Protein**: grams per kg (the default 1.6 sits in the 1.4 to 2.0 g/kg range for active people) or a percent.
 - **Fat**: percent of calories; 20 to 35% is the US adult range. Carbs get the rest.
+
+## More options
+
+Open "More options" to pick another BMR formula. Mifflin-St Jeor is the default. The revised Harris-Benedict formula often gives a slightly higher figure (for the example above, 1,854 kcal instead of 1,780). Katch-McArdle uses your lean body mass, so it needs a body fat percentage; use it only if you have a fair estimate, because a guess here moves the answer. Type an optional goal weight to see about how many weeks the chosen weekly rate takes (real progress is uneven, so treat it as a rough guide). A small table also splits the daily target into breakfast, lunch, dinner and snacks. At the top, one line states the daily target in plain words.
 
 ## Worked example
 
