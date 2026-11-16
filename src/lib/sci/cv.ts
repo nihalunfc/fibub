@@ -114,3 +114,10 @@ export function scanRateStudy(v: number[], ip: number[], n?: number, A?: number,
   if (n && A && C) { const k = RS * n * F * A * (C / 1000) * Math.sqrt((n * F) / (R * T)); D = (sqrtFit.slope / k) ** 2; }
   return { sqrtFit, logFit, D };
 }
+
+/** Laviron (1979) for an irreversible wave: Ep = const + (RT/αnF) ln v, so the slope of Ep against ln v gives
+ *  αn = RT/(F × slope) (an oxidation: positive slope; a reduction: negative, so its size is used). v in V/s, Ep in V. */
+export function laviron(v: number[], Ep: number[], T = 298.15) {
+  const fit = fitLine(v.map(Math.log), Ep);
+  return { fit, alphaN: (R * T) / (F * Math.abs(fit.slope)) };
+}

@@ -32,11 +32,14 @@ You can then save the sheet you are looking at as a CSV, or as a PDF that is sca
 
 1. Choose an .xlsx, .csv or .tsv file, or drop it on the box.
 2. Pick a sheet from the tabs. Hidden sheets are in italics and say "(hidden)".
+3. Type in "Find rows" to show only rows containing your words (every word must match, in any column), and click a column letter to sort by it: click again for biggest first, a third time to go back. Numbers sort as numbers.
 3. Scroll the grid. Press "Show more rows" for big sheets.
 4. Choose Save as CSV or Save as PDF.
 
 ## What each setting does
 
+- **Find rows**: filters the grid as you type; the header row always stays on top.
+- **Save only the rows I am seeing**: appears once you find or sort; the CSV then holds just those rows in that order.
 - **Show hidden rows and columns**: on, they are shown in grey and marked. Off, they disappear from the grid.
 - **First row is a header**: bolds it, and repeats it on each PDF page.
 - **Leave out hidden rows and columns**: applies to the CSV and PDF you save.

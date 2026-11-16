@@ -5,7 +5,7 @@ shelf: science
 code: T215
 section: climatology
 title: "Degree days calculator: heating, cooling and growing degree days from daily temperatures (free)"
-summary: "Paste or open daily minimum and maximum temperatures and get heating, cooling and growing degree days by the mean, modified average, single sine or single triangle method, with your own bases, an upper cutoff, missing-day filling, and daily, monthly and running totals. Runs in your browser."
+summary: "Paste or open daily minimum and maximum temperatures and get heating, cooling and growing degree days by the mean, modified average, single sine, single triangle or UK Met Office method, with your own bases, an upper cutoff, missing-day filling, and daily, monthly and running totals. Runs in your browser."
 seoDescription: "Heating, cooling and growing degree days from daily min and max temperatures: mean, modified average, single sine or triangle, monthly totals and CSV."
 status: live
 ads: true
@@ -45,6 +45,7 @@ This calculator reads daily minimum and maximum temperatures (or daily means), f
 - **Modified average**: for growing degree days, a minimum below the base is raised to the base and a maximum above the cutoff is lowered to the cutoff before averaging (the usual way for maize). Heating and cooling use the plain mean.
 - **Single sine**: each day is one sine wave from the minimum to the maximum and back; the tool counts the exact area between the curve and the base. A cool day with a warm afternoon then still adds some cooling.
 - **Single triangle**: the same idea with straight lines up and down. It gives a little less than the sine on days that cross the base.
+- **UK Met Office**: a four-case rule of thumb from the minimum and maximum (used by the Met Office, CIBSE TM41 and many climate-model studies). On a day that crosses the base it takes a half or a quarter of the gap to the base, so it lands close to the sine.
 - **Upper cutoff**: warmth above it counts as if it were at the cutoff, because most crops stop growing faster above a certain temperature.
 - **Missing days**: fill each with a straight line between the days either side, or leave it out so it adds nothing. The page says how many were missing and warns about long gaps.
 

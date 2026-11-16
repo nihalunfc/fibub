@@ -2387,6 +2387,16 @@ try {
     check((await page.textContent('.ra-big1')) === 'K-Ar age: 89.98 Ma', `geochron: K-Ar (${await page.textContent('.ra-big1')})`);
     await page.selectOption('.ra-m', 'arar');
     check((await page.textContent('.ra-big1')) === '⁴⁰Ar/³⁹Ar age: 69.69 ± 0.18 Ma', `geochron: Ar-Ar (${await page.textContent('.ra-big1')})`);
+    // Ar-Ar isochron: Christiana article data (39/36, error, 40/36, error) with J = 0.00131289.
+    await page.selectOption('.ra-et', 'abs'); await page.selectOption('.ra-isys', 'arar');
+    check(await page.isVisible('.ra-ijv'), 'geochron: Ar-Ar isochron shows the J box');
+    await page.fill('.ra-ijv', '0.00131289');
+    await page.fill('.ra-data', '39.51 0.120 344.52 1.029\n69.90 0.210 375.07 1.129\n109.92 0.330 420.29 1.262\n159.31 0.480 477.03 1.429\n220.79 0.660 542.76 1.629\n299.13 0.900 632.14 1.896\n400.53 1.200 745.37 2.229');
+    check(/^Isochron age: 2\.63\d* ± [\d.]+ Ma$/.test(await page.textContent('.ra-big2')) && /299\.0484 ± 1\.0063/.test(await page.textContent('.ra-f2')), `geochron: Ar-Ar isochron (${await page.textContent('.ra-big2')})`);
+    await page.fill('.ra-ijv', '0');
+    check(/J factor/.test(await page.textContent('.ra-err2')), 'geochron: Ar-Ar isochron needs J');
+    await page.selectOption('.ra-isys', 'rbsr');
+    check(await page.isHidden('.ra-ijv'), 'geochron: J box hides for other systems');
     await page.fill('.ra-data', '1 0.1 2 0.1');
     check(/at least three rows/.test(await page.textContent('.ra-err2')), 'geochron: too few isochron points');
 

@@ -32,6 +32,9 @@ To sign the file once it is redacted, use [[sign-pdf]].
 
 ## How to use it
 
+Under "More options" you can black out whole pages (for example 2,5-6) in one go, or remove every box and start again.
+
+
 1. Choose your PDF.
 2. Type the words to hide, one per line. Tick the kinds of numbers to hide too: email addresses, phone numbers, card numbers (checked with the Luhn test so random digits are skipped), US Social Security numbers, Canadian SIN, Aadhaar, PAN, and UK National Insurance numbers. Press **Find on all pages**.
 3. Check the list and the black boxes on the pages. Press **Keep this** on anything that should stay visible.

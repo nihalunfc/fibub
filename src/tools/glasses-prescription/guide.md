@@ -44,6 +44,8 @@ It describes the paper in front of you. It does not say what lenses you should b
 - **Spherical equivalent** is SPH + CYL ÷ 2.
 - **ADD** is the extra near power. SPH + ADD shows the sphere with it included.
 - **PRISM and BASE** give the prism power and which edge is thick.
+- **One-line summary** above the cards says in plain words what kind of power each eye has (short-sighted or long-sighted type, cylinder, add, prism). It describes the paper only.
+- **Compare with an older prescription** (under More options) takes your old SPH, CYL, AXIS and ADD and shows how each number changed, such as SPH −1.75 to −2.00 (down 0.25). It is subtraction only and does not say whether a change matters.
 
 ## Worked example
 

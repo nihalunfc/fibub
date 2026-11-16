@@ -16,4 +16,17 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.gc .gc-wres')).startsWith('GPA 3.64 out of 4.0 from 11 credits'), `gpa: weighted example (${await page.textContent('.gc .gc-wres')})`);
   await page.selectOption('.gc .gc-scale', 'ten'); await page.waitForTimeout(100);
   check((await page.textContent('.gc .gc-wres')).startsWith('Add a grade'), 'gpa: letters not read on a 10-point scale');
+  await page.selectOption('.gc .gc-rto', '4'); await page.waitForTimeout(50);
+  check((await page.textContent('.gc .gc-rres')) === '8.4 out of 10 (India CGPA) is 3.36 out of 4.0 (US)', `gpa: rescale 8.4/10 to 4.0 (${await page.textContent('.gc .gc-rres')})`);
+  await page.selectOption('.gc .gc-rto', '100'); await page.waitForTimeout(50);
+  check((await page.textContent('.gc .gc-rres')).endsWith('is 84.0%'), 'gpa: rescale to percentage');
+  await page.fill('.gc .gc-rv', '11'); await page.waitForTimeout(50);
+  check((await page.textContent('.gc .gc-rres')).startsWith('Type a grade from 0 to 10'), 'gpa: rescale out of range message');
+  await page.fill('.gc .gc-nc', '3.2'); await page.fill('.gc .gc-nd', '60'); await page.fill('.gc .gc-nl', '60'); await page.fill('.gc .gc-nt', '3.5');
+  check((await page.textContent('.gc .gc-nres')).startsWith('You need an average of 3.80 over your next 60 credits to finish on 3.50 overall (120 credits in all)'), `gpa: needed grade (${await page.textContent('.gc .gc-nres')})`);
+  await page.fill('.gc .gc-nt', '3.9');
+  check((await page.textContent('.gc .gc-nres')).startsWith('Not reachable: you would need 4.60') && (await page.textContent('.gc .gc-nres')).includes('3.60 overall'), `gpa: not reachable (${await page.textContent('.gc .gc-nres')})`);
+  await page.fill('.gc .gc-nt', '1.5');
+  check((await page.textContent('.gc .gc-nres')).startsWith('You already have enough'), 'gpa: already enough');
+  check(await page.isVisible('.kit-bar'), 'gpa: copy link bar present');
 };

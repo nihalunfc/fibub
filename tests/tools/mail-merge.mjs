@@ -23,4 +23,11 @@ export default async ({ page, check, BASE }) => {
   await page.click('.mm .mm-seg [data-m=text]');
   await page.fill('.mm .mm-subj', 'Hi {{name}}'); await page.fill('.mm .mm-body', 'From {{City}} {{Oops}}'); await page.waitForTimeout(150);
   check((await page.textContent('.mm .mm-prev-box')) === 'Subject: Hi Ben, Jr\n\nFrom Leeds {{Oops}}' && (await page.textContent('.mm .mm-warn')).includes('"Oops"'), 'mm: text mode with unknown field warning');
+  await page.fill('.mm .mm-body', 'Dear '); await page.focus('.mm .mm-body');
+  await page.evaluate(() => { const t = document.querySelector('.mm .mm-body'); t.setSelectionRange(5, 5); });
+  await page.click('.mm .mm-ins-btns [data-ins="0"]'); await page.waitForTimeout(100);
+  check((await page.inputValue('.mm .mm-body')) === 'Dear {{Name}}', 'mm: column button inserts the placeholder');
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.click('.mm .mm-all-pdf')]);
+  const fsx = await import('node:fs');
+  check(fsx.readFileSync(await pdf.path()).subarray(0, 4).toString() === '%PDF', 'mm: one PDF with a page per person');
 };

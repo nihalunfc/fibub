@@ -1,0 +1,136 @@
+---
+// #T997 Leave pay: annual leave days, leave salary and pay for unused days (Oman, Qatar, Saudi Arabia, UAE).
+---
+<div class="tool-ui lp">
+  <section class="panel">
+    <div class="lp-tabs" role="tablist" aria-label="Country">
+      <button type="button" role="tab" data-c="om" aria-selected="false">Oman</button>
+      <button type="button" role="tab" data-c="qa" aria-selected="false">Qatar</button>
+      <button type="button" role="tab" data-c="sa" aria-selected="false">Saudi Arabia</button>
+      <button type="button" role="tab" data-c="ae" aria-selected="true">UAE</button>
+    </div>
+    <div class="lp-grid">
+      <label>Completed years of service <input class="lp-y" type="number" min="0" step="1" value="3" /></label>
+      <label>Months since your last work anniversary <input class="lp-m" type="number" min="0" max="11" step="1" value="8" /></label>
+      <label>Monthly basic (<span class="lp-cur">AED</span>) <input class="lp-b" inputmode="decimal" value="6,000" /></label>
+      <label>Monthly allowances (<span class="lp-cur">AED</span>) <input class="lp-a" inputmode="decimal" value="3,000" /></label>
+      <label>Days already taken this leave year <input class="lp-t" type="number" min="0" step="0.5" value="5" /></label>
+      <label>Days carried over <input class="lp-c" type="number" min="0" step="0.5" value="4" /></label>
+      <label>Days of leave to price <input class="lp-p" type="number" min="0" step="1" value="10" /></label>
+      <label class="lp-chk"><input type="checkbox" class="lp-inc" checked /> Include allowances in leave salary</label>
+    </div>
+    <p class="lp-hint lp-law"></p>
+    <details class="lp-more"><summary>More options: use your start date</summary>
+      <div class="lp-grid" style="margin-top:10px">
+        <label>Start date <input type="date" data-k="start" /></label>
+        <label>As of <input type="date" data-k="asof" /></label>
+      </div>
+      <p class="lp-hint lp-svc">Fill the start date (and a date to count to, or leave it for today) and the years and months above are worked out for you.</p>
+    </details>
+  </section>
+
+  <section class="lp-res">
+    <p class="lp-answer" aria-live="polite"></p>
+    <div class="lp-stats">
+      <div><span>Earned this leave year</span><b class="lp-earned"></b></div>
+      <div class="good"><span>Days left</span><b class="lp-left"></b></div>
+      <div><span>Leave salary</span><b class="lp-sal"></b></div>
+      <div><span>Paid for unused days</span><b class="lp-lieu"></b></div>
+    </div>
+    <p class="note warn lp-warn" hidden></p>
+    <div class="panel lp-tw"><table><tbody class="lp-body"></tbody></table></div>
+  </section>
+  <p class="lp-fine"></p>
+</div>
+
+<style is:inline>
+  .lp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .lp .panel { padding: 16px; }
+  .lp-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .lp-tabs button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .lp-tabs button[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .lp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .lp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lp .lp-chk { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .lp input:not([type=checkbox]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .lp-more summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .lp-answer { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .lp-hint, .lp-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .lp-res { display: grid; gap: 12px; min-width: 0; }
+  .lp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .lp-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); min-width: 0; }
+  .lp-stats span { font-size: 13px; color: var(--muted); }
+  .lp-stats b { font-size: 20px; overflow-wrap: anywhere; }
+  .lp-stats .good b { color: var(--good); }
+  .lp-tw { overflow-x: auto; }
+  .lp table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .lp td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  .lp td:first-child { text-align: left; color: var(--muted); }
+  .lp tr.tot td { font-weight: 700; color: var(--ink); }
+  @media (max-width: 760px) { .lp-stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<script>
+  import { leavePay, RULES, type LeaveCountry } from '../../lib/money/leave-pay.ts';
+  import { serviceBetween } from '../../lib/money/gratuity-calculator.ts';
+  const root = document.querySelector('.lp') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+  const dd = (n: number) => `${(Math.round(n * 10) / 10).toLocaleString('en-US')} day${n === 1 ? '' : 's'}`;
+  let c: LeaveCountry = 'ae';
+  const money = (n: number) => `${RULES[c].cur} ${(Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+  const on = (k: 'wage' | 'basic') => (k === 'wage' ? 'wage (basic + allowances)' : 'basic wage only');
+
+  const FINE: Record<LeaveCountry, string> = {
+    om: 'Oman Labour Law, Royal Decree 53/2023, Art. 78 and 81, checked 16 Nov 2026: at least 30 days a year on the gross wage, not before 6 months of service, a balance of up to 30 days may be kept, and an unused balance is paid on the gross wage when service ends. Days earned pro rata by month is fibub\'s reading. Estimate, not legal advice: check the official source (mol.gov.om).',
+    qa: 'Qatar Labour Law 14 of 2004, Art. 72, 79, 80 and 81, checked 16 Nov 2026: at least 3 weeks a year under 5 years of service and 4 weeks from 5 years, due after one full year with part years pro rata, paid on the basic wage; up to half can be put off to the next year at your written request; unused days are paid in cash when service ends. Estimate, not legal advice: check the official source (mol.gov.qa).',
+    sa: 'Saudi Labor Law, Art. 2, 109, 110 and 111, checked 16 Nov 2026: at least 21 days a year, 30 days after 5 consecutive years with the same employer, paid on the wage (basic plus allowances); unused days and the part year worked are paid when service ends. Estimate, not legal advice: check the official source (hrsd.gov.sa).',
+    ae: 'UAE Federal Decree-Law 33 of 2021, Art. 1, 29 and 67, checked 16 Nov 2026: 2 days a month from 6 months to 1 year of service, then at least 30 days a year; leave is paid at the wage, and unused days at the end of service are paid on the basic wage. Carrying days over needs the employer\'s agreement. Estimate, not legal advice: check the official source (u.ae, mohre.gov.ae).',
+  };
+
+  const val = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`).value;
+  const today = () => new Date().toISOString().slice(0, 10);
+  const setDefaultInc = () => { q<HTMLInputElement>('.lp-inc').checked = RULES[c].leaveOn === 'wage'; };
+
+  const update = () => {
+    if (val('start')) {
+      const sv = serviceBetween(val('start'), val('asof') || today());
+      q('.lp-svc').textContent = sv.ok ? `From your dates: ${sv.years} years, ${sv.months} months, ${sv.days} days of service, used above.` : 'The date to count to should be on or after the start date.';
+      if (sv.ok) { q<HTMLInputElement>('.lp-y').value = String(sv.years); q<HTMLInputElement>('.lp-m').value = String(sv.months); }
+    }
+    const rule = RULES[c];
+    root.querySelectorAll('.lp-cur').forEach((e) => (e.textContent = rule.cur));
+    const r = leavePay({ country: c, years: num('.lp-y'), months: num('.lp-m'), basic: num('.lp-b'), allowances: num('.lp-a'), taken: num('.lp-t'), carried: num('.lp-c'), priceDays: num('.lp-p'), includeAllowances: q<HTMLInputElement>('.lp-inc').checked });
+    q('.lp-earned').textContent = dd(r.earned);
+    q('.lp-left').textContent = dd(r.left);
+    q('.lp-sal').textContent = money(r.leaveSalary);
+    q('.lp-lieu').textContent = money(r.inLieu);
+    const warn = q('.lp-warn');
+    const msgs = [r.note, r.overdrawn ? 'You have taken more days than earned plus carried over: the extra days may be unpaid or taken from next year.' : ''].filter(Boolean);
+    warn.hidden = !msgs.length; warn.textContent = msgs.join(' ');
+    q('.lp-answer').textContent = !(num('.lp-b') > 0) ? 'Type your monthly basic to see your leave pay.' : `You have about ${dd(r.left)} left; if the job ended now, the law sets about ${money(r.inLieu)} for them.`;
+    q('.lp-law').textContent = `${rule.name}: the law pays leave on the ${on(rule.leaveOn)} and unused days at the end of service on the ${on(rule.endOn)}. Use the box to choose what to include.`;
+    const rows: [string, string, boolean?][] = [
+      ['Leave days for a full year at this service', dd(r.yearDays)],
+      ['Earned so far this leave year', dd(r.earned)],
+      ['Carried over', dd(num('.lp-c'))],
+      ['Taken this leave year', dd(num('.lp-t'))],
+      ['Days left', dd(r.left), true],
+      ['Daily rate for leave salary', `${money(r.leaveDaily)} (${rule.divisor})`],
+      [`Leave salary for ${dd(num('.lp-p'))}`, money(r.leaveSalary), true],
+      ['Daily rate for unused days at the end', `${money(r.endDaily)}${c === 'ae' ? ' (basic ÷ 30, Art. 29)' : ''}`],
+      ['Paid for unused days if the job ends now', money(r.inLieu), true],
+    ];
+    q('.lp-body').innerHTML = rows.map(([l, v, t]) => `<tr${t ? ' class="tot"' : ''}><td>${l}</td><td>${v}</td></tr>`).join('');
+    q('.lp-fine').textContent = FINE[c];
+  };
+  root.querySelectorAll<HTMLButtonElement>('.lp-tabs button').forEach((b) => b.addEventListener('click', () => {
+    c = b.dataset.c as LeaveCountry;
+    root.querySelectorAll('.lp-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    setDefaultInc();
+    update();
+  }));
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

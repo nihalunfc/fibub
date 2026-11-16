@@ -17,6 +17,13 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.mtp-page .md-toc a')).length === 2, 'markdown-to-pdf: table of contents lists 2 headings');
   await page.selectOption('.mtp-size', 'letter'); await page.waitForTimeout(100);
   check(/size: letter/.test(await page.$eval('.mtp-pagecss', (e) => e.textContent)), 'markdown-to-pdf: page size reaches the print rule');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.mtp-orient', 'landscape'); await page.check('.mtp-pn'); await page.waitForTimeout(100);
+  const css = await page.$eval('.mtp-pagecss', (e) => e.textContent);
+  check(/size: letter landscape/.test(css) && /counter\(page\)/.test(css), 'markdown-to-pdf: landscape and page numbers reach the print rule');
+  await page.selectOption('.mtp-face', { index: 1 }); await page.waitForTimeout(100);
+  check(/serif/i.test(await page.$eval('.mtp-page', (e) => e.style.fontFamily)), 'markdown-to-pdf: typeface changes');
+  check(/word/.test(await page.textContent('.mtp-stats')), 'markdown-to-pdf: word count shown');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.mtp-html')]);
   check(/\.html$/.test(dl.suggestedFilename()), 'markdown-to-pdf: HTML download');
 };

@@ -1,0 +1,96 @@
+---
+// #T996 Heat stress
+---
+<div class="tool-ui hx">
+  <section class="panel">
+    <div class="hx-grid">
+      <label>Method <select data-k="mode"><option value="est">Estimate from air temperature and humidity</option><option value="meas">Measured: wet bulb, globe and air</option></select></label>
+      <label>Units <select data-k="unit"><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label class="hx-m" hidden>Where <select data-k="where"><option value="sun">Outdoors in sun</option><option value="shade">Indoors or shade</option></select></label>
+      <label class="hx-m" hidden>Natural wet bulb (Tnw) <input data-k="tnw" inputmode="decimal" value="25" /></label>
+      <label class="hx-m" hidden>Globe (Tg) <input data-k="tg" inputmode="decimal" value="40" /></label>
+      <label>Air temperature (Ta) <input data-k="ta" inputmode="decimal" value="30" /></label>
+      <label class="hx-e">Relative humidity % <input data-k="rh" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="note bad hx-err" role="alert" hidden></p>
+  </section>
+  <section class="hx-res" aria-live="polite">
+    <p class="hx-lead"></p>
+    <div class="hx-stats"></div>
+    <p class="hx-work"></p>
+  </section>
+  <section class="panel">
+    <h2>Heat flags</h2>
+    <div class="hx-wrap"><table><thead><tr><th>Flag</th><th>WBGT °C</th><th>WBGT °F</th></tr></thead>
+    <tbody><tr data-f="white"><td>White</td><td>under 27.8</td><td>under 82</td></tr><tr data-f="green"><td>Green</td><td>27.8 to 29.4</td><td>82 to 85</td></tr><tr data-f="yellow"><td>Yellow</td><td>29.4 to 31.1</td><td>85 to 88</td></tr><tr data-f="red"><td>Red</td><td>31.1 to 32.2</td><td>88 to 90</td></tr><tr data-f="black"><td>Black</td><td>32.2 and over</td><td>90 and over</td></tr></tbody></table></div>
+    <p class="hx-fine">Bands follow the US Army heat categories (TB MED 507); the work/rest and water table is in that document. Check the official source. Planning only, not medical advice; follow your local workplace rules. The estimate is for shade and does not include sun. Nothing you type leaves this page.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .hx { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .hx > *, .hx-res > * { min-width: 0; }
+  .hx h2 { margin: 0 0 10px; font-size: 18px; }
+  .hx .panel { padding: 16px; }
+  .hx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .hx label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hx label[hidden] { display: none; }
+  .hx input, .hx select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .hx-res { display: grid; gap: 10px; }
+  .hx-res[hidden] { display: none; }
+  .hx-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .hx-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .hx-stats span { font-size: 13px; color: var(--muted); }
+  .hx-stats b { font-size: 22px; }
+  .hx-lead { margin: 0; font-size: 15px; }
+  .hx-work, .hx-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .hx-fine { margin-top: 10px; }
+  .hx-wrap { overflow-x: auto; }
+  .hx table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .hx th, .hx td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .hx tr.on td { font-weight: 700; border-left: 0; background: var(--surface); }
+</style>
+
+<script>
+  import { wbgtOutdoor, wbgtIndoor, wbgtEstimate, vapourPressure, stullWetBulb, flagFor, cToF, fToC } from '../../lib/sci/wbgt';
+  const root = document.querySelector<HTMLElement>('.hx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  let unit = 'C';
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  const show = (c: number) => unit === 'F' ? `${r1(cToF(c))} °F` : `${r1(c)} °C`;
+  const stat = (l: string, v: string) => `<div><span>${l}</span><b>${v}</b></div>`;
+  const keys = ['tnw', 'tg', 'ta'];
+  function run() {
+    const meas = f('mode').value === 'meas';
+    root.querySelectorAll<HTMLElement>('.hx-m').forEach((e) => (e.hidden = !meas));
+    q('.hx-e').hidden = meas;
+    if (f('unit').value !== unit) {
+      const to = f('unit').value;
+      keys.forEach((k) => { const v = parseFloat(f(k).value); if (!isNaN(v)) f(k).value = String(r1(to === 'F' ? cToF(v) : fToC(v))); });
+      unit = to;
+    }
+    const cv = (k: string) => { const v = parseFloat(f(k).value.replace(',', '.')); return unit === 'F' ? fToC(v) : v; };
+    const ta = cv('ta'), rh = parseFloat(f('rh').value);
+    let err = '', w = NaN, work = '';
+    if (meas) {
+      const tnw = cv('tnw'), tg = cv('tg');
+      if ([tnw, tg, ta].some(isNaN)) err = 'Enter all three temperatures.';
+      else if (f('where').value === 'sun') { w = wbgtOutdoor(tnw, tg, ta); work = `Working (sun): 0.7 x ${r1(tnw)} + 0.2 x ${r1(tg)} + 0.1 x ${r1(ta)} = ${r1(w)} °C.`; }
+      else { w = wbgtIndoor(tnw, tg); work = `Working (shade): 0.7 x ${r1(tnw)} + 0.3 x ${r1(tg)} = ${r1(w)} °C.`; }
+    } else if (isNaN(ta) || !(rh >= 0 && rh <= 100)) err = 'Enter an air temperature and a humidity from 0 to 100.';
+    else { w = wbgtEstimate(ta, rh); work = `Working: e = ${vapourPressure(ta, rh).toFixed(2)} hPa; 0.567 x ${r1(ta)} + 0.393 x e + 3.94 = ${r1(w)} °C. Shade estimate, does not include sun.`; }
+    q('.hx-err').hidden = !err; q('.hx-err').textContent = err; q('.hx-res').hidden = !!err;
+    root.querySelectorAll('tr[data-f]').forEach((r) => r.classList.remove('on'));
+    if (err) return;
+    const flag = flagFor(w);
+    root.querySelector(`tr[data-f="${flag.id}"]`)!.classList.add('on');
+    q('.hx-lead').textContent = `WBGT ${show(w)}: ${flag.name} flag.`;
+    let html = stat('WBGT', show(w)) + stat('Heat flag', flag.name);
+    if (!isNaN(rh) && rh >= 5 && rh <= 99 && ta >= -20 && ta <= 50) html += stat('Wet-bulb (Stull)', show(stullWetBulb(ta, rh)));
+    q('.hx-stats').innerHTML = html;
+    q('.hx-work').textContent = work + ' For planning, not medical advice; follow your local workplace rules.';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

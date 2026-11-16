@@ -11,7 +11,7 @@ ads: false
 order: 2027
 icon: mountain
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [concrete-calculator, deck-calculator, roof-calculator]
 sources:
   - "Area and volume formulas and unit conversions (1 ft = 0.3048 m, 1 lb = 0.45359237 kg, 1 US ton = 2,000 lb): standard definitions, fibub's own working."
@@ -43,6 +43,12 @@ Everything runs in your browser and nothing is sent anywhere. If the job include
 - **Material**: fills in an approximate density: gravel, crushed stone and sand about 1.6 t/m³, topsoil 1.3, bark mulch 0.4.
 - **Density**: edit it if your supplier gives a figure.
 - **Bag size**: weight bags (25 kg, 20 kg, 50 lb, 40 lb) are counted from the weight; volume bags (1, 2 or 3 cu ft) from the volume. The count rounds up.
+
+## More options
+
+A line under the weight now tells you how far one tonne goes: **one tonne covers about** so many square metres (and square feet) at the depth and density you set. It helps when a supplier quotes by the tonne and you want to sanity-check the load.
+
+Open **More options** to type a price and say what it is per: tonne, US ton, cubic metre, cubic yard or bag. The page multiplies the matching quantity (including your extra for settling) by the price and shows an estimated cost; delivery and tax are not included. If the price box is empty or not a positive number, no cost is shown.
 
 ## Worked example
 

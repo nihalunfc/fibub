@@ -6,6 +6,10 @@
   <label class="sc-lim">Size limit (leave empty for none)
     <span class="sc-limrow"><input class="sc-limit" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 10" /><select class="sc-unit" aria-label="Unit"><option value="1048576">MB</option><option value="1024">KB</option></select></span>
   </label>
+  <label class="sc-lim">Or pick a common email limit
+    <select class="sc-preset" aria-label="Common limits"><option value="">Choose...</option><option value="25">Gmail attachments: 25 MB</option><option value="20">Outlook.com and Microsoft 365 (default): 20 MB</option><option value="10">A 10 MB form or portal limit</option><option value="5">A 5 MB form or portal limit</option><option value="2">A 2 MB form or portal limit</option></select>
+    <small>Limits change and an organisation can set its own: check the official source for yours.</small>
+  </label>
   <p class="sc-msg" role="status" aria-live="polite"></p>
   <div class="sc-sum" hidden></div>
   <ul class="sc-list"></ul>
@@ -60,5 +64,6 @@
     if (!kind) { say('That is not a type this tool can check. Use PDF, Word, Excel, PowerPoint, JPG or PNG.', true); return; }
     current = { name: f.name, bytes, kind }; await run();
   });
-  $('.sc-limit').addEventListener('input', run); $('.sc-unit').addEventListener('change', run);
+  $<HTMLSelectElement>('.sc-preset').addEventListener('change', (e) => { const v = (e.target as HTMLSelectElement).value; if (!v) return; $<HTMLInputElement>('.sc-limit').value = v; $<HTMLSelectElement>('.sc-unit').value = '1048576'; run(); });
+  $('.sc-limit').addEventListener('input', () => { $<HTMLSelectElement>('.sc-preset').value = ''; run(); }); $('.sc-unit').addEventListener('change', run);
 </script>

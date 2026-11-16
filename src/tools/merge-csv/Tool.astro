@@ -17,7 +17,13 @@
       <label class="mc-opt"><input type="checkbox" class="mc-src" checked /> <span>Add a column with the name of the file each row came from</span></label>
       <label class="mc-nm">Name of that column <input type="text" class="mc-srcname" value="source_file" /></label>
     </fieldset>
+    <details class="mc-card">
+      <summary><b>More options</b>: remove repeated rows</summary>
+      <label class="mc-opt"><input type="checkbox" class="mc-dedupe" data-k="dedupe" /> <span>Remove repeated rows (keeps the first copy of each)</span></label>
+      <label class="mc-opt"><input type="checkbox" class="mc-loose" data-k="loose" /> <span>Treat "Ann" and " ann " as the same (ignore capitals and spaces at the ends)</span></label>
+    </details>
     <p class="mc-sum" aria-live="polite"></p>
+    <div class="mc-prev" hidden><p class="mc-hint">Preview of the result (first 6 rows):</p><div class="mc-pw"><table class="mc-pt"></table></div></div>
     <p class="note bad mc-prob" role="alert" hidden></p>
     <div class="mc-row">
       <button type="button" class="btn mc-csv">Download merged CSV</button>
@@ -55,12 +61,17 @@
   .mc input[type=text], .mc select { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); max-width: 100%; box-sizing: border-box; }
   .mc-sum { margin: 0; font-weight: 600; }
   .mc-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .mc-list button { font: inherit; font-size: 13px; margin-left: 6px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .mc-pw { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .mc-pt { border-collapse: collapse; font-size: 13px; }
+  .mc-pt th, .mc-pt td { border: 1px solid var(--line); padding: 3px 8px; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .mc-pt th { background: var(--surface); }
   .mc-hint { margin: 0; font-size: 13px; color: var(--muted); }
   .mc [hidden] { display: none !important; }
 </style>
 
 <script>
-  import { readInput, mergeTables, splitBy, toCsv, type Input, type Merged } from '../../lib/docs/csvmerge';
+  import { readInput, mergeTables, dedupeRows, splitBy, toCsv, type Input, type Merged } from '../../lib/docs/csvmerge';
   import { download } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.mc') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
@@ -70,30 +81,39 @@
 
   function recompute() {
     merged = mergeTables(inputs, { mode: mode(), source: q<HTMLInputElement>('.mc-src').checked, sourceName: q<HTMLInputElement>('.mc-srcname').value });
+    let removed = 0;
+    if (!merged.problems.length && q<HTMLInputElement>('.mc-dedupe').checked) {
+      const d = dedupeRows(merged.table, { ignoreLast: q<HTMLInputElement>('.mc-src').checked, loose: q<HTMLInputElement>('.mc-loose').checked });
+      removed = d.removed; merged = { ...merged, table: d.table, rows: d.table.length - 1 };
+    }
     prob.hidden = !merged.problems.length; prob.textContent = merged.problems.join(' ');
     const ok = !merged.problems.length;
-    q('.mc-sum').textContent = ok ? `${inputs.length} files, ${merged.rows.toLocaleString('en')} rows and ${merged.table[0].length} columns in the result.` : '';
+    q('.mc-sum').textContent = ok ? `${inputs.length} files, ${merged.rows.toLocaleString('en')} rows and ${merged.table[0].length} columns in the result.` + (q<HTMLInputElement>('.mc-dedupe').checked ? ` ${removed.toLocaleString('en')} repeated row${removed === 1 ? '' : 's'} removed.` : '') : '';
+    const pv = q('.mc-prev'); pv.hidden = !ok;
+    if (ok) {
+      const t = merged.table.slice(0, 6), cell = (tag: string, r: string[]) => `<tr>${r.map((c) => `<${tag}>${(c ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</${tag}>`).join('')}</tr>`;
+      q('.mc-pt').innerHTML = cell('th', t[0]) + t.slice(1).map((r) => cell('td', r)).join('');
+    }
     ['.mc-csv', '.mc-xlsx', '.mc-split'].forEach((s) => (q<HTMLButtonElement>(s).disabled = !ok));
     const sel = q<HTMLSelectElement>('.mc-col'), old = sel.value;
     sel.replaceChildren(...(ok ? merged.table[0] : []).map((h, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = h || `Column ${i + 1}`; return o; }));
     if (old) sel.value = old;
   }
   async function pick(list: File[]) {
-    if (!list.length) return;
     err.hidden = true;
     try {
       const got: Input[] = [];
       for (const f of list) got.push(await readInput(f));
       inputs = [...inputs, ...got];
     } catch (e: any) { err.textContent = e.message; err.hidden = false; return; }
-    q('.mc-list').replaceChildren(...inputs.map((i) => { const li = document.createElement('li'); li.innerHTML = '<b></b> <small></small>'; li.querySelector('b')!.textContent = i.name; li.querySelector('small')!.textContent = `${i.table.length - 1} rows, ${i.table[0].length} columns${i.note ? ', ' + i.note : ''}`; return li; }));
-    q('.mc-main').hidden = false; recompute();
+    q('.mc-list').replaceChildren(...inputs.map((i) => { const li = document.createElement('li'); li.innerHTML = '<b></b> <small></small> <button type="button">Remove</button>'; li.querySelector('button')!.addEventListener('click', () => { inputs = inputs.filter((x) => x !== i); if (inputs.length) pick([]); else q('.mc-clear').click(); }); li.querySelector('b')!.textContent = i.name; li.querySelector('small')!.textContent = `${i.table.length - 1} rows, ${i.table[0].length} columns${i.note ? ', ' + i.note : ''}`; return li; }));
+    q('.mc-main').hidden = !inputs.length; if (inputs.length) recompute();
   }
-  input.addEventListener('change', () => { pick([...(input.files ?? [])]); input.value = ''; });
+  input.addEventListener('change', () => { if (input.files?.length) pick([...(input.files ?? [])]); input.value = ''; });
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick([...((e as DragEvent).dataTransfer?.files ?? [])]); });
-  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.matches('input[name=mc-mode], .mc-src')) recompute(); });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.matches('input[name=mc-mode], .mc-src, .mc-dedupe, .mc-loose')) recompute(); });
   q('.mc-srcname').addEventListener('input', recompute);
   q('.mc-clear').addEventListener('click', () => { inputs = []; q('.mc-main').hidden = true; err.hidden = true; q('.mc-splitnote').textContent = ''; });
   q('.mc-csv').addEventListener('click', () => download(new Blob(['﻿' + toCsv(merged.table)], { type: 'text/csv' }), 'merged.csv', 'text/csv'));

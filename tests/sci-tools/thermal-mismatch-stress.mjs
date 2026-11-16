@@ -28,4 +28,8 @@ export default async (check) => {
   { const b = constrainedBar(200000, { a0: 12e-6, a1: 0.01e-6 }, 20, 120, 1000, 0.5);
     check('thermal: bar with a gap: stress and closing temperature match scipy', near(b.sigma, -150, 1e-13) && near(b.closeT, 60.967364599085656, 1e-11)); }
   check('thermal: bar with a gap that does not close, or cooling away from the wall, is stress-free', constrainedBar(200000, { a0: 12e-6 }, 20, 50, 1000, 0.5).sigma === 0 && constrainedBar(200000, { a0: 12e-6 }, 50, 20, 1000, 0.5).sigma === 0);
+  // Thick coating on a steel bar (Li et al. 2025, Coatings 15, 913): 803.3 MPa in a 0.2 mm coating on 1 mm steel
+  // (E 200 GPa, nu 0.29) means kappa = 6 * 803.3 * 0.2 * 0.71 / (200000 * 1) = 0.003422058 /mm (radius 292 mm), and a
+  // bow of 2.104 mm over the 70 mm bar; the bow turned back into a stress gives 803.3 MPa again.
+  check('thermal: Stoney for a 0.2 mm coating on a 1 mm steel bar (radius 292 mm, bow 2.104 mm over 70 mm)', near(stoneyCurvature(200000, 0.29, 1, 0.2, 803.3), 0.003422058, 1e-9) && Math.abs(curvatureToBow(0.003422058, 70) - 2.1036) < 1e-4 && near(stoneyStress(200000, 0.29, 1, 0.2, bowToCurvature(2.1036, 70)), 803.3, 1e-4));
 };

@@ -28,6 +28,10 @@ flow:
 
 If the files inside could get smaller, the [[compress-file|file compressor]] can repack them.
 
+## A safety look before you unzip
+
+The report also lists things worth a look before you open a ZIP from someone you do not know: file paths that point outside the folder (a way to overwrite other files), programs and scripts such as .exe or .bat, files that pretend to be documents but are programs (report.pdf.exe), repeated names that overwrite each other, hidden Mac and Windows system files, and files that are packed over 1000 times smaller (a "zip bomb"). This is a quick check of the file names and sizes, not a virus scan. Under More options you get totals by file type, and the file list has a "Find a file name" box.
+
 ## What the report shows
 
 | Item | What it means |

@@ -47,4 +47,6 @@ export default async ({ page, check, BASE }) => {
   check(r['File size'].startsWith('red') && await page.isVisible('.sc-more'), 'send-check: size over limit is red and links to compress');
   await page.selectOption('.sc-unit', '1024'); await page.fill('.sc-limit', '500'); await page.waitForTimeout(300);
   check((await items())['File size'].startsWith('green'), 'send-check: size within limit is green');
+  await page.selectOption('.sc-preset', '25');
+  check((await page.inputValue('.sc-limit')) === '25' && (await page.inputValue('.sc-unit')) === '1048576', 'send-check: preset fills the limit with 25 MB');
 };

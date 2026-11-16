@@ -159,6 +159,9 @@
   .rb-doc .p { margin: 0 0 .3cqw; }
   .rb-doc .b { padding-left: 2cqw; position: relative; margin-bottom: .15cqw; }
   .rb-doc .b::before { content: '•'; position: absolute; left: .3cqw; }
+  .rb-doc.left .n, .rb-doc.left .hl, .rb-doc.left .ct { text-align: left; }
+  .rb-doc.compact { font-size: 1.55cqw; line-height: 1.24; padding: 6.5cqw; }
+  .rb-doc.compact.serif { font-size: 1.62cqw; }
   .rb-doc .empty { color: #9aa1b0; text-align: center; margin-top: 30cqw; font-size: 2.2cqw; }
   .rb-pages { margin: 0; font-size: 13px; color: var(--muted); }
   .rb-keep { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
@@ -271,6 +274,14 @@
           <label><input type="radio" name="rb-paper" value="letter"${R.paper === 'letter' ? ' checked' : ''} /><span>Letter (US, Canada)</span></label>
           <label><input type="radio" name="rb-paper" value="a4"${R.paper === 'a4' ? ' checked' : ''} /><span>A4</span></label></div></div>
       </div>
+      <div class="rb-grid">
+        <div><span class="rb-hint">Name and contacts</span><div class="rb-seg" role="radiogroup" aria-label="Header alignment">
+          <label><input type="radio" name="rb-header" value="center"${R.header !== 'left' ? ' checked' : ''} /><span>Centred</span></label>
+          <label><input type="radio" name="rb-header" value="left"${R.header === 'left' ? ' checked' : ''} /><span>Left</span></label></div></div>
+        <div><span class="rb-hint">Text size (compact fits more on one page)</span><div class="rb-seg" role="radiogroup" aria-label="Text size">
+          <label><input type="radio" name="rb-density" value="normal"${R.density !== 'compact' ? ' checked' : ''} /><span>Normal</span></label>
+          <label><input type="radio" name="rb-density" value="compact"${R.density === 'compact' ? ' checked' : ''} /><span>Compact</span></label></div></div>
+      </div>
       <p class="rb-hint">Section order. Put your strongest section near the top: Experience for most people, Education or Projects for students and new graduates.</p>
       <ol class="rb-order">${R.order.map((id, i) => `<li><span>${SECTION_TITLES[id]}</span><button type="button" class="rb-ib" data-order="${i}" data-d="-1" aria-label="Move ${SECTION_TITLES[id]} up"${i === 0 ? ' disabled' : ''}>↑</button><button type="button" class="rb-ib" data-order="${i}" data-d="1" aria-label="Move ${SECTION_TITLES[id]} down"${i === R.order.length - 1 ? ' disabled' : ''}>↓</button></li>`).join('')}</ol>`, openCards.has('layout')));
     q('.rb-cards').innerHTML = c.join('');
@@ -281,7 +292,7 @@
   function renderPreview() {
     current = blocks(R);
     const doc = q('.rb-doc');
-    doc.className = `rb-doc${R.style === 'serif' ? ' serif' : ''}`;
+    doc.className = `rb-doc${R.style === 'serif' ? ' serif' : ''}${R.header === 'left' ? ' left' : ''}${R.density === 'compact' ? ' compact' : ''}`;
     q('.rb-paper').classList.toggle('a4', R.paper === 'a4');
     doc.innerHTML = current.length ? current.map((k) => {
       switch (k.t) {
@@ -349,6 +360,8 @@
   root.addEventListener('change', (e) => {
     const el = e.target as HTMLInputElement;
     if (el.name === 'rb-style') { R.style = el.value as any; later(); }
+    if (el.name === 'rb-header') { R.header = el.value as any; later(); }
+    if (el.name === 'rb-density') { R.density = el.value as any; later(); }
     if (el.name === 'rb-paper') { R.paper = el.value as any; later(); }
   });
   const FRESH: Record<string, () => any> = { experience: emptyJob, education: emptyEdu, projects: emptyProject, extras: emptyExtra };

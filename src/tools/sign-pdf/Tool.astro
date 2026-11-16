@@ -28,6 +28,18 @@
         <label>A photo or scan of your signature <input class="sg-up" type="file" accept="image/*" /></label>
         <label class="sg-check"><input class="sg-white" type="checkbox" checked /> Make the white background clear</label>
       </div>
+      <details class="sg-more">
+        <summary>Ink and pen options</summary>
+        <div class="sg-row">
+          <label>Ink colour
+            <select class="sg-ink"><option value="#000000">Black</option><option value="#1b3a8a">Blue ballpoint</option><option value="#5a1a8a">Purple</option><option value="#8a1b1b">Dark red</option></select>
+          </label>
+          <label>Pen thickness (drawn signature)
+            <input class="sg-thick" type="range" min="2" max="12" value="5" />
+          </label>
+        </div>
+        <p class="sg-help">Colour applies to drawn and typed signatures and to your initials. A picture you upload keeps its own colour.</p>
+      </details>
       <canvas class="sg-prev" hidden></canvas>
       <label>Your initials <input class="sg-ini" type="text" maxlength="5" autocomplete="off" placeholder="e.g. AB" /></label>
     </section>
@@ -127,8 +139,16 @@
   const pad = $<HTMLCanvasElement>('.sg-pad'), pg = pad.getContext('2d')!;
   let drawn = false, pts: { x: number; y: number }[] = [];
   const padXY = (e: PointerEvent) => { const r = pad.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * pad.width, y: ((e.clientY - r.top) / r.height) * pad.height }; };
-  const initPad = () => { pg.clearRect(0, 0, pad.width, pad.height); pg.lineWidth = 5; pg.lineCap = 'round'; pg.lineJoin = 'round'; pg.strokeStyle = '#000'; drawn = false; };
+  const initPad = () => { pg.clearRect(0, 0, pad.width, pad.height); pg.lineWidth = Number($<HTMLInputElement>('.sg-thick')?.value || 5); pg.lineCap = 'round'; pg.lineJoin = 'round'; pg.strokeStyle = '#000'; drawn = false; };
   initPad();
+  $('.sg-thick').addEventListener('input', () => { pg.lineWidth = Number($<HTMLInputElement>('.sg-thick').value); });
+  $('.sg-ink').addEventListener('change', () => refreshPreview());
+  /** Paint every inked pixel of a canvas in the chosen colour (keeps the shape and softness of the edges). */
+  function tint(c: HTMLCanvasElement | null): HTMLCanvasElement | null {
+    if (!c) return c;
+    const g = c.getContext('2d')!; g.globalCompositeOperation = 'source-in'; g.fillStyle = $<HTMLSelectElement>('.sg-ink').value; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over';
+    return c;
+  }
   pad.addEventListener('pointerdown', (e) => { e.preventDefault(); pad.setPointerCapture(e.pointerId); pts = [padXY(e)]; pg.beginPath(); const p = pts[0]; pg.moveTo(p.x, p.y); pg.lineTo(p.x + 0.1, p.y + 0.1); pg.stroke(); drawn = true; });
   pad.addEventListener('pointermove', (e) => {
     if (!pts.length) return;
@@ -201,8 +221,8 @@
     return c;
   }
   function signatureCanvas(): HTMLCanvasElement | null {
-    if (tab === 'draw') return drawn ? cropToInk(pad) : null;
-    if (tab === 'type') return nameIn.value.trim() ? cropToInk(typedCanvas(nameIn.value.trim())) : null;
+    if (tab === 'draw') return drawn ? tint(cropToInk(pad)) : null;
+    if (tab === 'type') return nameIn.value.trim() ? tint(cropToInk(typedCanvas(nameIn.value.trim()))) : null;
     const u = uploadCanvas(); return u ? cropToInk(u) : null;
   }
   function refreshPreview() {
@@ -251,7 +271,7 @@
   });
   function initialsCanvas(): HTMLCanvasElement | null {
     const t = iniIn.value.trim(); if (!t) return null;
-    const keep = tab; const c = cropToInk(typedCanvas(t)); void keep; return c;
+    const keep = tab; const c = tint(cropToInk(typedCanvas(t))); void keep; return c;
   }
   function startPlacing(k: string) {
     if (k === 'sig' && !signatureCanvas()) { status('Make your signature first (draw, type or upload one above).'); return; }

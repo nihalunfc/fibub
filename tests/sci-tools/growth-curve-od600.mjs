@@ -73,4 +73,10 @@ export default async (check) => {
     /does not rise/.test(thrown(() => analyse('x', [0, 1, 2, 3], [0.8, 0.4, 0.2, 0.1], 0, { window: 3, minOd: 0.01, model: 'none' }))) &&
     /needs at least 3/.test(thrown(() => analyse('x', tt, oo, 0, { window: 3, minOd: 0.005, model: 'none', manual: [2, 2.5] }))) &&
     /at least 3 readings/.test(thrown(() => analyse('x', tt, oo, 0, { window: 2, minOd: 0.005, model: 'none' }))));
+  // Plate counts typed as CFU/mL ÷ 1e9: exact Gompertz counts (A 2.43 log10, µm 0.47 log10 per h, λ 7.61 h, sampled every 3 h,
+  // as in Ozcan et al. 2026, Fermentation 12: 534) must come back on the tool's ln scale: A = 2.43 ln 10 = 5.5953,
+  // µm = 0.47 ln 10 = 1.0822 per h (doubling time 0.640 h = log10 2 / 0.47), λ = 7.61 h.
+  const ts = [0, 3, 6, 9, 12, 15, 18, 21, 24], cfu = ts.map((x) => 10 ** (5.63 + zwietering('gompertz', x, 2.43, 0.47, 7.61)) / 1e9);
+  const gz = analyse('LA-5', ts, cfu, 0, { window: 3, minOd: 1e-4, model: 'gompertz' }).model;
+  check('growth: log10 Gompertz counts recovered in ln units (µm 1.0822 per h, Td 0.640 h, λ 7.610 h, A 5.5953)', gz && near(gz.mu, 0.47 * Math.LN10, 1e-4) && near(gz.td, Math.log10(2) / 0.47, 1e-4) && near(gz.lag, 7.61, 1e-3) && near(gz.A, 2.43 * Math.LN10, 1e-4));
 };

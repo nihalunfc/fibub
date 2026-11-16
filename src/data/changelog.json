@@ -1,5 +1,21 @@
 [
  {
+  "sha": "760f6a1a47aa",
+  "date": "2026-11-16T22:51:07+00:00",
+  "title": "Add 8 audio and video tools: audio speed, pitch shifter, video joiner, GIF to MP4, video speed, video converter, add audio, crop video (#T971-#T978)",
+  "tools": [
+   "add-audio-to-video",
+   "audio-speed",
+   "crop-video",
+   "gif-to-mp4",
+   "pitch-shifter",
+   "video-converter",
+   "video-joiner",
+   "video-speed"
+  ],
+  "site": true
+ },
+ {
   "sha": "eb16852b2bd6",
   "date": "2026-11-16T18:17:58+00:00",
   "title": "Add video tools: frame grabber, compressor, rotate, mute, video info (#T966-#T970)",

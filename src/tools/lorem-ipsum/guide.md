@@ -11,7 +11,7 @@ ads: false
 order: 1772
 icon: pencil
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [word-counter]
 sources:
   - "The classic filler is made from words of the traditional lorem ipsum text, which is derived from Cicero's De finibus (45 BC) and is in the public domain. Plain English filler is fibub's own."
@@ -41,6 +41,11 @@ Need the real text measured later? Paste it into [[word-counter]] to check it fi
 - **Plain English**: ordinary office words, easier to judge line lengths for English layouts.
 - **Start with "Lorem ipsum dolor sit amet"**: the usual opening line. It applies to the classic kind.
 - **Wrap in HTML paragraph tags**: puts each paragraph in a p tag, ready to paste into a web page.
+
+## More options (added 2026-11-16)
+
+- **Characters (at most)**: type a number to get filler that fits it, cut at a whole word, for a headline or a button label. The quick buttons give a 60-character headline or a 160-character description.
+- **List items**: short bullet lines, or a ready <ul> list when "Wrap in HTML" is on.
 
 ## Worked example
 

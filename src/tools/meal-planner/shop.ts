@@ -57,8 +57,10 @@ export function merge(lines: string[]): Item[] {
     }
     if (p.q !== null) {
       it.plain = false;
-      const a = it.amounts.find((x) => x[1] === p.unit);
-      if (a) a[0] += p.q; else it.amounts.push([p.q, p.unit]);
+      // kg, l and mg are added to g and ml so 500 g + 1 kg become one line (shown again as kg or l from 1000 up).
+      const [q, unit] = p.unit === 'kg' ? [p.q * 1000, 'g'] : p.unit === 'mg' ? [p.q / 1000, 'g'] : p.unit === 'l' ? [p.q * 1000, 'ml'] : [p.q, p.unit];
+      const a = it.amounts.find((x) => x[1] === unit);
+      if (a) a[0] += q; else it.amounts.push([q, unit]);
     }
   }
   return [...map.values()];
@@ -75,9 +77,34 @@ export function qty(q: number): string {
 /** "400 g rice", "4 cloves garlic", "2 onions", "rice: 400 g + 1 cup" style lines. */
 export function itemText(it: Item): string {
   if (!it.amounts.length) return it.name;
-  const parts = it.amounts.map(([q, u]) => (u ? `${qty(q)} ${q > 1 && PLURAL[u] ? PLURAL[u] : u}` : qty(q)));
+  const parts = it.amounts.map(([q0, u0]) => {
+    const [q, u] = u0 === 'g' && q0 >= 1000 ? [q0 / 1000, 'kg'] : u0 === 'ml' && q0 >= 1000 ? [q0 / 1000, 'l'] : [q0, u0];
+    return u ? `${qty(q)} ${q > 1 && PLURAL[u] ? PLURAL[u] : u}` : qty(q);
+  });
   let name = it.name;
   const n = it.amounts.length === 1 && !it.amounts[0][1] ? it.amounts[0][0] : 0;
   if (n > 1 && !/s$/i.test(name)) name += /o$/i.test(name) ? 'es' : 's';
   return `${parts.join(' + ')} ${name}`;
+}
+
+const MEASURES = new Set(['g', 'kg', 'mg', 'ml', 'l', 'cup', 'tbsp', 'tsp', 'oz', 'lb', 'pinch', 'handful']);
+
+/** Multiply every amount by k (people cooked for / people planned for). Whole things you buy by the piece (eggs, cans, cloves) round up. */
+export function scaleItems(items: Item[], k: number): Item[] {
+  if (!(k > 0) || !Number.isFinite(k) || Math.abs(k - 1) < 1e-9) return items;
+  return items.map((it) => ({ ...it, amounts: it.amounts.map(([q, u]) => [MEASURES.has(u) ? q * k : Math.ceil(q * k - 1e-9), u] as [number, string]) }));
+}
+
+/** Leave out things already at home. Matches on the name only, whole words, either way round ("oil" covers "olive oil"). */
+export function removeHave(items: Item[], have: string): Item[] {
+  const keys = have.split('\n').map((l) => parseLine(l)).filter((p): p is Line => !!p && !!p.name).map((p) => ' ' + key(p.name) + ' ');
+  if (!keys.length) return items;
+  return items.filter((it) => { const ik = ' ' + key(it.name) + ' '; return !keys.some((hk) => ik.includes(hk) || hk.includes(ik)); });
+}
+
+/** Factor for "planned for" and "shopping for" people; 1 when either is blank, and NaN when not a sensible number. */
+export function peopleFactor(planned: string, shopping: string): number {
+  if (planned.trim() === '' || shopping.trim() === '') return 1;
+  const a = +planned.replace(',', '.'), b = +shopping.replace(',', '.');
+  return a > 0 && b > 0 && Number.isFinite(a) && Number.isFinite(b) && a <= 1000 && b <= 1000 ? b / a : NaN;
 }

@@ -2,7 +2,7 @@
 // #1712 Number to words. Maths in src/lib/docs/numwords.ts.
 import { CURRENCIES } from '../../lib/docs/numwords';
 ---
-<div class="tool-ui ntw">
+<div class="tool-ui ntw" data-kit>
   <div class="ntw-card">
     <label>Number or amount
       <input class="ntw-in" type="text" inputmode="decimal" autocomplete="off" value="12550000" aria-describedby="ntw-h" />
@@ -10,29 +10,33 @@ import { CURRENCIES } from '../../lib/docs/numwords';
     <p id="ntw-h" class="ntw-hint">Commas and spaces are fine. Up to 15 digits before the point.</p>
     <div class="ntw-grid">
       <label>Write it as
-        <select class="ntw-mode">
+        <select class="ntw-mode" data-k="mode">
           <option value="money">An amount of money</option>
           <option value="plain">A plain number</option>
         </select>
       </label>
       <label class="ntw-cur-l">Currency
-        <select class="ntw-cur">{CURRENCIES.map((c) => <option value={c.code}>{c.name}</option>)}</select>
+        <select class="ntw-cur" data-k="cur">{CURRENCIES.map((c) => <option value={c.code}>{c.name}</option>)}</select>
       </label>
       <label>Number style
-        <select class="ntw-sys">
+        <select class="ntw-sys" data-k="sys">
           <option value="indian">Indian (lakh, crore)</option>
           <option value="intl">International (million, billion)</option>
         </select>
       </label>
       <label>Letters
-        <select class="ntw-case">
+        <select class="ntw-case" data-k="case">
           <option value="title">Title Case</option>
           <option value="upper">UPPER CASE</option>
           <option value="lower">lower case</option>
         </select>
       </label>
     </div>
-    <label class="ntw-chk ntw-fmt-l"><input class="ntw-fmt" type="checkbox" checked /> Cheque style for dollars and pounds ("and 50/100")</label>
+    <details class="ntw-more"><summary>More options</summary>
+      <label class="ntw-chk"><input class="ntw-and" data-k="and" type="checkbox" /> <span>Add "and" the British way<small>"One Hundred and Five" instead of "One Hundred Five". Plain numbers only.</small></span></label>
+      <label class="ntw-chk"><input class="ntw-ord" data-k="ordinal" type="checkbox" /> <span>Say it as a position<small>"Twenty-First" instead of "Twenty-One". Whole plain numbers only; good for dates, floors and anniversaries.</small></span></label>
+    </details>
+    <label class="ntw-chk ntw-fmt-l"><input class="ntw-fmt" data-k="cheque" type="checkbox" checked /> Cheque style for dollars and pounds ("and 50/100")</label>
   </div>
 
   <div class="ntw-card">
@@ -68,15 +72,16 @@ import { CURRENCIES } from '../../lib/docs/numwords';
   .ntw-grp { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
   .ntw-grp dt { color: var(--muted); }
   .ntw-grp dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .ntw details summary { cursor: pointer; font-size: 14px; padding: 6px 0; }
   @media (max-width: 480px) { .ntw-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 
 <script>
-  import { moneyWords, plainWords, groupDigits, parseAmount, currencyOf, type System } from '../../lib/docs/numwords';
+  import { moneyWords, plainWords, withAnd, toOrdinal, groupDigits, parseAmount, currencyOf, type System } from '../../lib/docs/numwords';
   const root = document.querySelector('.ntw') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const inp = q<HTMLInputElement>('.ntw-in'), mode = q<HTMLSelectElement>('.ntw-mode'), cur = q<HTMLSelectElement>('.ntw-cur'),
-    sys = q<HTMLSelectElement>('.ntw-sys'), cs = q<HTMLSelectElement>('.ntw-case'), fmt = q<HTMLInputElement>('.ntw-fmt'),
+    sys = q<HTMLSelectElement>('.ntw-sys'), cs = q<HTMLSelectElement>('.ntw-case'), fmt = q<HTMLInputElement>('.ntw-fmt'), andBox = q<HTMLInputElement>('.ntw-and'), ordBox = q<HTMLInputElement>('.ntw-ord'),
     out = q('.ntw-out'), err = q('.ntw-err');
   const update = () => {
     const money = mode.value === 'money';
@@ -89,14 +94,18 @@ import { CURRENCIES } from '../../lib/docs/numwords';
     q('.ntw-g-intl').textContent = a ? groupDigits(inp.value, 'intl') : '';
     let w = '';
     if (a) w = money ? moneyWords(inp.value, c.code, s, c.style === 'cheque' && !fmt.checked ? 'only' : undefined) : plainWords(inp.value, s);
+    if (a && !money) {
+      if (andBox.checked) w = withAnd(w);
+      if (ordBox.checked && !a.frac && !a.negative) w = toOrdinal(w);
+    }
     err.hidden = !!w || !inp.value.trim();
     err.textContent = w || !inp.value.trim() ? '' : 'Type digits only (for example 1,25,50,000 or 1234.50), up to 15 digits before the point.';
     if (cs.value === 'upper') w = w.toUpperCase(); else if (cs.value === 'lower') w = w.toLowerCase();
     out.textContent = w || (inp.value.trim() ? '' : 'Type a number above.');
   };
   cur.addEventListener('change', () => { sys.value = currencyOf(cur.value).indian ? 'indian' : 'intl'; update(); });
-  [inp, mode, sys, cs, fmt].forEach((e) => e.addEventListener('input', update));
-  [mode, sys, cs, fmt].forEach((e) => e.addEventListener('change', update));
+  [inp, mode, sys, cs, fmt, andBox, ordBox].forEach((e) => e.addEventListener('input', update));
+  [mode, sys, cs, fmt, andBox, ordBox].forEach((e) => e.addEventListener('change', update));
   q('.ntw-copy').addEventListener('click', async (e) => {
     const b = e.currentTarget as HTMLButtonElement, t = out.textContent || '';
     try { await navigator.clipboard.writeText(t); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C to copy'; const r = document.createRange(); r.selectNodeContents(out); getSelection()?.removeAllRanges(); getSelection()?.addRange(r); }
