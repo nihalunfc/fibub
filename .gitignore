@@ -6,3 +6,5 @@ tests/out-*/
 .wrangler/
 .astro-cache/
 node_modules
+# Made by scripts/changelog.mjs on every build; never committed (parallel PRs kept conflicting on it).
+src/data/changelog.json
