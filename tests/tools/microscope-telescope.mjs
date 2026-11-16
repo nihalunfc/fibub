@@ -47,4 +47,19 @@ export default async ({ page, check, BASE, OUT }) => {
     }
     await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   }
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("Magnifying glass, f = 5 cm"); check((await psAns()).includes("The magnifying power is 5\u00d7"), "microscope-telescope: example Magnifying glass, f = 5 cm: The magnifying power is 5\u00d7");
+  await psPre("Microscope, object at 1.1 cm"); check((await psAns()).includes("The total magnification is 50\u00d7 (image inverted), and the lenses are 16 cm apart"), "microscope-telescope: example Microscope, object at 1.1 cm: The total magnification is 50\u00d7 (image inverted), and the lenses are 16 cm apart");
+  await psPre("Microscope by tube length"); check((await psAns()).includes("about 60\u00d7"), "microscope-telescope: example Microscope by tube length: about 60\u00d7");
+  await psPre("Telescope 100 cm and 2 cm"); check((await psAns()).includes("is 50\u00d7 and the tube is 102 cm long"), "microscope-telescope: example Telescope 100 cm and 2 cm: is 50\u00d7 and the tube is 102 cm long");
+  await psPre("Eyepiece for 50\u00d7"); check((await psAns()).includes("focal length of 2 cm; the tube length is 102 cm"), "microscope-telescope: example Eyepiece for 50\u00d7: focal length of 2 cm; the tube length is 102 cm");
+  await psSet("tele", {"fo": "100", "fe": "2"}, {"mode": "1"}); check((await psAns()).includes("The angular magnification is 54\u00d7"), "microscope-telescope: typed numbers: The angular magnification is 54\u00d7");
+  await psSet("micro", {"uo": "0.9"}, {}); check((await psAns()).includes("must be farther"), "microscope-telescope: friendly message: must be farther");
+  await psPre("Microscope, object"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "microscope-telescope: working shown, no NaN");
 };

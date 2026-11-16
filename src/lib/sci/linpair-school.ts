@@ -72,3 +72,81 @@ export function elimination(l1: Line, l2: Line): string[] {
   out.push(`Put y into (1): ${fmt(l1.a, 4)}x = ${fmt(l1.c, 4)} − ${fmt(l1.b, 4)} × ${fmt(s.y!, 4)}, so x = ${q(l1.c * B - l1.b * C, l1.a * B, ex)}.`.replace(/− −/g, '+ '));
   return out;
 }
+
+// ---- Solve-my-numbers helpers (added 2026-11-16) ----
+
+/** "x = 3, y = 2" (exact fractions for whole-number inputs), or a plain sentence when there is no single answer. */
+export function answerLine(l1: Line, l2: Line): string {
+  const s = solve(l1, l2), ex = isInt(l1.a, l1.b, l1.c, l2.a, l2.b, l2.c);
+  if (s.kind === 'invalid') return 'Each equation needs an x or a y term.';
+  if (s.kind === 'parallel') return 'No solution: the lines are parallel, so no (x, y) fits both equations.';
+  if (s.kind === 'coincident') return 'Infinitely many solutions: both equations describe the same line.';
+  const nx = l1.c * l2.b - l2.c * l1.b, ny = l1.a * l2.c - l2.a * l1.c;
+  return `x = ${q(nx, s.D, ex)}, y = ${q(ny, s.D, ex)}`;
+}
+
+/** Put the answer back into both equations, the way an exam asks you to check it. */
+export function verify(l1: Line, l2: Line): string[] {
+  const s = solve(l1, l2);
+  if (s.kind !== 'unique') return [];
+  const X = s.x!, Y = s.y!, out: string[] = [];
+  [l1, l2].forEach((l, i) => {
+    const lhs = l.a * X + l.b * Y, ok = Math.abs(lhs - l.c) < 1e-9 * Math.max(1, Math.abs(l.c));
+    out.push(`(${i + 1}): ${fmt(l.a, 4)} × ${fmt(X, 4)} + ${fmt(l.b, 4)} × ${fmt(Y, 4)} = ${fmt(lhs, 4)}${ok ? ` = ${fmt(l.c, 4)}, so equation (${i + 1}) is satisfied.` : ` but the right side is ${fmt(l.c, 4)} (rounded answer, so a small gap is normal).`}`.replace(/\+ −/g, '− '));
+  });
+  return out;
+}
+
+/** Cross-multiplication (determinant) method for a1x + b1y = c1, a2x + b2y = c2. */
+export function crossMultiplication(l1: Line, l2: Line): string[] {
+  const s = solve(l1, l2);
+  if (s.kind !== 'unique') return [s.kind === 'invalid' ? 'Each equation needs an x or a y term.' : 'The bottom a1b2 − a2b1 is 0, so cross-multiplication cannot give one answer: use the ratio test.'];
+  const ex = isInt(l1.a, l1.b, l1.c, l2.a, l2.b, l2.c), n = (v: number) => fmt(v, 4), p = (v: number) => (v < 0 ? `(${n(v)})` : n(v));
+  const nx = l1.c * l2.b - l2.c * l1.b, ny = l1.a * l2.c - l2.a * l1.c;
+  return [
+    'Write each equation as a x + b y = c. For (1): a1 = ' + n(l1.a) + ', b1 = ' + n(l1.b) + ', c1 = ' + n(l1.c) + '. For (2): a2 = ' + n(l2.a) + ', b2 = ' + n(l2.b) + ', c2 = ' + n(l2.c) + '.',
+    `Bottom: a1 b2 − a2 b1 = ${p(l1.a)} × ${p(l2.b)} − ${p(l2.a)} × ${p(l1.b)} = ${n(s.D)}.`,
+    `x = (c1 b2 − c2 b1) / (a1 b2 − a2 b1) = (${p(l1.c)} × ${p(l2.b)} − ${p(l2.c)} × ${p(l1.b)}) / ${p(s.D)} = ${n(nx)} / ${p(s.D)} = ${q(nx, s.D, ex)}.`,
+    `y = (a1 c2 − a2 c1) / (a1 b2 − a2 b1) = (${p(l1.a)} × ${p(l2.c)} − ${p(l2.a)} × ${p(l1.c)}) / ${p(s.D)} = ${n(ny)} / ${p(s.D)} = ${q(ny, s.D, ex)}.`,
+  ];
+}
+
+export type KWhich = 'a2' | 'b2' | 'c2';
+/**
+ * Class 10 "find k": equation (1) is known, equation (2) has one unknown coefficient k (a2, b2 or c2).
+ * Returns the value of k that makes the lines parallel (no solution) and the one that makes them the same line
+ * (infinitely many), or a reason when that cannot happen.
+ */
+export function findK(l1: Line, l2: { a: number; b: number; c: number }, which: KWhich) {
+  const ok = [l1.a, l1.b, l1.c, l2.a, l2.b, l2.c].every(Number.isFinite);
+  const none = (why: string) => ({ ok: false as const, why });
+  if (!ok) return none('Fill in every box with a number.');
+  if (l1.a === 0 && l1.b === 0) return none('Equation (1) needs an x or a y term.');
+  const o = l2, A = l1.a, B = l1.b, Cc = l1.c;
+  // Parallel or coincident needs a1 b2 = a2 b1. Solve that for k when k is a2 or b2; for c2, use a2 and b2 as given.
+  if (which === 'a2') {
+    if (B === 0) return none('When b1 = 0 the first line is vertical, and a2 can be any value for the second to be vertical too, so there is no single k. Try k in b2 instead.');
+    const k = (A * o.b) / B;
+    return { ok: true as const, k, parallelK: k, coincidentK: k, note: `Parallel or the same line needs a1/a2 = b1/b2, so a2 = a1 × b2 / b1 = ${fmt(k, 4)}. Then they are the same line only if c1/c2 matches too (c2 = ${fmt(o.c, 4)} ${Cc !== 0 && Math.abs(Cc * k - o.c * A) < 1e-9 ? 'matches' : 'does not match'}); if it does not match they are parallel (no solution). For every other value of k there is exactly one solution.`, same: Math.abs(Cc * k - o.c * A) < 1e-9 && k !== 0 };
+  }
+  if (which === 'b2') {
+    if (A === 0) return none('When a1 = 0 the first line is horizontal. Try k in a2 instead.');
+    const k = (o.a * B) / A;
+    return { ok: true as const, k, parallelK: k, coincidentK: k, note: `Parallel or the same line needs a1/a2 = b1/b2, so b2 = a2 × b1 / a1 = ${fmt(k, 4)}. They are the same line only if c1/c2 matches too. For every other value of k there is exactly one solution.`, same: Math.abs(Cc * k - o.c * B) < 1e-9 && k !== 0 };
+  }
+  // k is c2: the slopes must already match.
+  if (Math.abs(A * o.b - o.a * B) > 1e-9) return none('The lines are not parallel whatever c2 is (a1/a2 ≠ b1/b2), so they always meet in exactly one point.');
+  if (o.a === 0 && o.b === 0) return none('Equation (2) needs an x or a y term.');
+  const ratio = o.a !== 0 ? o.a / A : o.b / B;
+  if (!Number.isFinite(ratio) || A === 0 && B === 0) return none('Cannot work this out for these numbers.');
+  const same = Cc * ratio;
+  return { ok: true as const, k: same, parallelK: NaN, coincidentK: same, note: `The lines are parallel in direction. They are the same line when c2 = c1 × (a2/a1) = ${fmt(same, 4)}; for any other c2 they are parallel with no solution.`, same: true };
+}
+
+/** Word-problem presets: coefficients a1,b1,c1,a2,b2,c2 and what x and y stand for. Made up for this page. */
+export const WORD_PRESETS: { label: string; p: number[]; story: string }[] = [
+  { label: 'Two numbers', p: [1, 1, 25, 1, -1, 7], story: 'Two numbers add up to 25 and differ by 7. x = the bigger number, y = the smaller.' },
+  { label: 'Pens and books', p: [3, 2, 60, 1, 4, 70], story: '3 pens and 2 books cost 60, while 1 pen and 4 books cost 70. x = price of a pen, y = price of a book.' },
+  { label: 'Ages', p: [1, -3, 0, 1, -2, 10], story: 'A father is 3 times as old as his son; in 10 years he will be twice as old. x = father now, y = son now (x − 3y = 0 and x − 2y = 10).' },
+  { label: 'Taxi fare', p: [1, 10, 105, 1, 15, 155], story: 'A taxi charges a fixed fee plus a rate per km: 10 km costs 105 and 15 km costs 155. x = the fixed fee, y = the cost per km (x + 10y = 105 and x + 15y = 155).' },
+];

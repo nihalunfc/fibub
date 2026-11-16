@@ -11,7 +11,7 @@ ads: false
 order: 1156
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [quadratic-explorer, function-grapher, symbolic-algebra]
 sources:
   - "Standard algebra: zeros of polynomials and the relations between zeros and coefficients (Vieta's formulas). Written for fibub."
@@ -64,6 +64,16 @@ Switch to **Cubic**: it starts as x³ − 2x² − 5x + 6 with zeros −2, 1 and
 - **b, c, d** move the curve; the zeros move with it.
 - The graph shows x from −6 to 6 and y from −10 to 10. Zeros outside that window are still listed under the graph.
 
+## Find the zeros of your polynomial
+
+The first card solves a polynomial you type. Pick linear, quadratic or cubic, enter the coefficients (decimals and fractions like 3/2 are fine), or choose one of eight examples, and the answer comes first: "The zeros are x = 2 and x = 3", or the complex pair when there are no real zeros.
+
+- **Quadratics** show the discriminant D = b² − 4ac with your numbers, what D says (two zeros, equal zeros or none), the quadratic formula filled in, a simplified surd form when the root is not a whole number (for example 2 ± √3), a check with the sum and product of zeros, and the factorised form when the zeros are neat.
+- **Cubics** use the rational zero test to find a whole-number or fraction zero, divide by it with synthetic division, then solve the quadratic that is left. If no simple zero exists the zeros are found by the cubic formula and rounded, with the complex pair shown. The three relations between zeros and coefficients are checked with your numbers.
+- **More options** tests a value k (the remainder theorem: p(k), quotient and remainder on dividing by x − k) and builds the quadratic x² − (sum)x + (product) from a sum and product of zeros.
+
+"Draw it on the graph below" sends your polynomial to the sliders and the graph. Common mistakes are shown under the working: write p(x) = 0 first, keep the signs of b and c, and the zero of ax + b is −b/a.
+
 ## Check yourself
 
 Four fresh questions each time: the zeros of a quadratic, the sum and product from the coefficients, a quadratic from a given sum and product, and the sum and product of a cubic's zeros. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -73,3 +83,7 @@ Four fresh questions each time: the zeros of a quadratic, the sum and product fr
 **Why can't I drag the zeros sometimes?** When some zeros are complex they do not lie on the x axis, so there is nothing to drag. Use the sliders until all zeros are real.
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own examples and pictures. fibub is not part of NCERT.
+
+**How do I find the zeros of a quadratic polynomial?** Put ax² + bx + c = 0, work out D = b² − 4ac, and then x = (−b ± √D)/(2a); if D is negative there are no real zeros.
+
+**What does the page do when a = 0?** It tells you the polynomial has dropped a degree and asks for a non-zero first number, rather than dividing by zero.

@@ -3,9 +3,16 @@
 // add a catalyst; Q against K shows which way it must move, the molecules shift, and an ICE table shows the numbers.
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
+import '../../styles/solvecard-b.css';
 import { REACTIONS } from '../../lib/sci/lechatelier';
 ---
 <div class="ax lc">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Pick the change from your question and get the shift with the reason: moles of gas for pressure changes, exothermic or endothermic for temperature. Or compare Q with K, or find K at a new temperature. For a full ICE table with your own reaction and K use the <a href="/science/equilibrium-solver/">equilibrium solver</a>.</p>
+    <div class="lc-solve"></div>
+  </div>
+
   <div class="ax-card">
     <label>Reaction <select class="lc-rx">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}</select></label>
     <p class="ax-help lc-note"></p>
@@ -74,6 +81,8 @@ import { REACTIONS } from '../../lib/sci/lechatelier';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { LECHAT_SPEC } from '../../lib/sci/solve-lechat';
   import { REACTIONS, Kat, Q, equilibrate, predict, kExpr, dn, type Reaction, type Change } from '../../lib/sci/lechatelier';
   import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
 
@@ -228,4 +237,5 @@ import { REACTIONS } from '../../lib/sci/lechatelier';
       { q: `For H₂ + I₂ ⇌ 2HI at equilibrium, [H₂] = ${a} M, [I₂] = ${b} M and [HI] = ${c} M. What is Kc? (3 significant figures)`, hint: 'a number', answer: String(Number(Kv.toPrecision(3))), ok: near(Kv, 0.006), worked: `Kc = [HI]² / ([H₂][I₂]) = ${c}² / (${a} × ${b}) = ${Number((c * c).toPrecision(4))} / ${Number((a * b).toPrecision(4))} = ${Number(Kv.toPrecision(3))}.` },
     ];
   });
+  mountSolver(q('.lc-solve'), LECHAT_SPEC);
 </script>

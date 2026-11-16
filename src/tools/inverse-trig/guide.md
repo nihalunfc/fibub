@@ -11,7 +11,7 @@ ads: false
 order: 1460
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [function-type, unit-circle, trig-ratios, derivative-slope]
 sources:
   - "Standard school mathematics: inverse trigonometric functions, their domains and principal value branches (sin⁻¹ [−π/2, π/2], cos⁻¹ [0, π], tan⁻¹ (−π/2, π/2), cot⁻¹ (0, π), sec⁻¹ [0, π] − {π/2}, cosec⁻¹ [−π/2, π/2] − {0}) and their properties. Written for fibub; no textbook text, figures or exercises are used."
@@ -36,7 +36,8 @@ It follows inverse trigonometric functions in Class 12 maths, after the trigonom
 1. Pick **sin, cos, tan, cot, sec or cosec**. The page gives the domain of the inverse and its principal values.
 2. In the first picture, grey is the whole graph, blue is the principal branch and green is that branch mirrored in y = x. Drag the **Reflect** slider back to 0 and press **Play the reflection** to watch it turn. Tick **Reflect the whole graph** to see why the full mirror image is not a function.
 3. Under **Principal value**, type x: a decimal, a fraction such as `-1/2` or an expression such as `sqrt(3)/2`. You get the principal value in radians and degrees, a check, the value at −x, the identity with its partner function and the list of all angles with the same ratio.
-4. In **The trap**, slide θ (in steps of 5°) and compare sin⁻¹(sin θ) (the blue zig-zag) with θ itself (dashed).
+4. In **Evaluate sin(cos⁻¹ x) and friends**, pick the outer ratio (sin, cos or tan), the inverse (sin⁻¹, cos⁻¹ or tan⁻¹) and type x. You get the exact value when x is a fraction, such as sin(cos⁻¹ 3/5) = 4/5, plus the working: let θ be the inverse, choose the + root because of the principal range, and substitute. Values outside the domain, or where the outer ratio is undefined (like tan(cos⁻¹ 0)), give a plain message.
+5. In **The trap**, slide θ (in steps of 5°) or type your own θ in degrees or radians (`210`, or `7pi/6` with radians selected) and compare sin⁻¹(sin θ) (the blue zig-zag) with θ itself (dashed).
 
 ## Worked example
 
@@ -45,6 +46,13 @@ With sin picked and x = 1/2, the page shows **sin⁻¹(0.5) = π/6**, that is 0.
 Now press **cos**: x changes to −1/2 and the page shows **cos⁻¹(−0.5) = 2π/3** (120°), which matches π − cos⁻¹(1/2) = π − π/3.
 
 In the trap with sin and θ = 150° (that is 5π/6), the page says sin⁻¹(sin 5π/6) = **π/6**, not 5π/6, because 5π/6 is outside [−π/2, π/2].
+
+## Common mistakes
+
+- Writing sin⁻¹(sin θ) = θ for every θ. It holds only when θ is already in the principal range.
+- Reading sin⁻¹x as 1/sin x. It is the angle whose sine is x.
+- Picking the wrong sign of the root in sin(cos⁻¹ x): the angle is in [0, π], so sine is positive.
+- Giving cos⁻¹(−1/2) as −π/3. The principal range of cos⁻¹ is [0, π], so it is 2π/3.
 
 ## Properties shown
 
@@ -58,6 +66,8 @@ In the trap with sin and θ = 150° (that is 5π/6), the page says sin⁻¹(sin 
 Five fresh questions on principal values of standard angles, the sin⁻¹(sin θ) trap and sin⁻¹x + cos⁻¹x. Answers such as `pi/6` or `2pi/3` are accepted. Nothing is saved.
 
 ## FAQ
+
+**How do I find sin(cos⁻¹ 3/5)?** Choose sin and cos⁻¹ under Evaluate, type 3/5, and read 4/5: the working builds a 3-4-5 triangle with sin θ = √(1 − (3/5)²).
 
 **Why is cot⁻¹(−1) = 3π/4 and not −π/4?** The school convention takes cot⁻¹ in (0, π). Some calculators and computer libraries use (−π/2, π/2] instead, so their answers differ for negative x.
 

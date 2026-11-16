@@ -2,9 +2,16 @@
 // Solids lab: cube, cuboid, cylinder, cone, sphere, hemisphere. Turn it in 3D, unfold its net, or pour it into a
 // cylinder to see the volume rules (cone 1/3, sphere 2/3 of its cylinder). Formulas update live. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm sl">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Choose a solid and type its sizes for volume and surface areas with the formula and substitution, or find a missing radius or height from a volume. Choose π = 22/7, 3.14 or exact.</p>
+    <div class="sl-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick a solid</h2>
     <div class="ax-seg sl-solid" role="group" aria-label="Solid">
@@ -82,6 +89,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SOLIDS_SPEC } from '../../lib/sci/solve-solids';
+  mountSolver(document.querySelector<HTMLElement>('.sl-solve')!, SOLIDS_SPEC, 'sv');
   import { measure, faces, project, coneSectorAngle, loadsToFillCylinder, type Solid, type Dims } from '../../lib/sci/solids-l2';
   import { randInt } from '../../lib/sci/smath';
   import { S, pair, quiz, type Question } from '../../lib/smath-ui';

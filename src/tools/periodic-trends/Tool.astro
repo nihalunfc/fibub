@@ -28,6 +28,22 @@ import '../../styles/astro.css';
     <h2 class="ptr-h"></h2>
     <dl class="ax-facts ptr-facts"></dl>
     <div class="ptr-flags"></div>
+    <details class="ptr-nums"><summary>Show the numbers</summary><div class="ax-scroll"><table class="ptr-tab"></table></div></details>
+  </div>
+
+  <div class="ax-card ptr-cmp">
+    <h2>Compare or put in order</h2>
+    <p class="ax-help" style="margin-top:0">Type two or more elements (symbols, names or atomic numbers) to answer questions like "which is larger, Na or Mg?" or "arrange Na, Mg, Al by size".</p>
+    <label>Elements <input class="ptr-ci" data-k="elements" value="Na, Mg, Al" autocomplete="off" spellcheck="false" aria-label="Elements to compare" /></label>
+    <div class="ptr-cr">
+      <label>Property <select class="ptr-cp" data-k="property"><option value="radius">Atomic radius</option><option value="ie">First ionisation energy</option><option value="en">Electronegativity</option></select></label>
+      <label>Order <select class="ptr-co" data-k="order"><option value="up">Smallest first</option><option value="down">Largest first</option></select></label>
+    </div>
+    <p class="ax-err ptr-ce" role="alert" hidden></p>
+    <p class="ax-big ptr-cb" aria-live="polite" style="margin:10px 0 4px"></p>
+    <p class="ptr-cv"></p>
+    <p class="ptr-cw"></p>
+    <p class="ax-help">Common mistakes: forgetting that radius shrinks across a period but grows down a group, and treating boron and oxygen as the usual trend for ionisation energy (they dip).</p>
   </div>
 
   <div class="ax-card">
@@ -47,7 +63,7 @@ import '../../styles/astro.css';
 </div>
 
 <script>
-  import { MAIN, PROPS, value, inPeriod, inGroup, exceptions, questions, type Prop } from '../../lib/sci/periodtrend';
+  import { MAIN, PROPS, value, inPeriod, inGroup, exceptions, questions, parseElements, compareText, type Prop } from '../../lib/sci/periodtrend';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
   import { setupCanvas, fmt, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
@@ -108,6 +124,7 @@ import '../../styles/astro.css';
   function render() {
     colour();
     const { list, flags } = draw();
+    numbers(list);
     q('.ptr-h').textContent = `${sel.name} (${sel.symbol}, Z = ${sel.z})`;
     const r = value(sel, 'radius'), ie = value(sel, 'ie');
     q('.ptr-facts').replaceChildren(
@@ -127,6 +144,25 @@ import '../../styles/astro.css';
       ...flags.map((f) => [`Exception, ${f.from.symbol} → ${f.to.symbol}: `, f.why] as [string, string])]));
   }
 
+  function numbers(list: typeof MAIN) {
+    const tb = q<HTMLTableElement>('.ptr-tab'); tb.replaceChildren();
+    const h = tb.createTHead().insertRow(); ['Element', 'Radius (pm)', 'Ionisation energy (kJ/mol)', 'Electronegativity'].forEach((t, i) => { const th = document.createElement('th'); th.textContent = t; if (i) th.className = 'r'; h.append(th); });
+    const b = tb.createTBody();
+    list.forEach((e) => { const tr = b.insertRow(); const v = [`${e.symbol} (${e.name})`, value(e, 'radius'), value(e, 'ie'), e.en].map((x, i) => (i === 0 ? String(x) : Number.isFinite(x as number) ? (i === 3 ? (x as number).toFixed(2) : String(x)) : '–')); v.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); });
+  }
+  function compare() {
+    const err = q('.ptr-ce'), big = q('.ptr-cb'); err.hidden = true; big.textContent = ''; q('.ptr-cv').textContent = ''; q('.ptr-cw').textContent = '';
+    const { found, unknown } = parseElements(q<HTMLInputElement>('.ptr-ci').value);
+    if (unknown.length) { err.textContent = `I do not know "${unknown.join('", "')}". Use symbols (Na), names (sodium) or atomic numbers.`; err.hidden = false; return; }
+    if (found.length < 2) { big.textContent = 'Type at least two elements, separated by commas.'; return; }
+    const p = q<HTMLSelectElement>('.ptr-cp').value as Prop, down = q<HTMLSelectElement>('.ptr-co').value === 'down';
+    const r = compareText(found, p, down);
+    big.textContent = r.answer; q('.ptr-cv').textContent = r.values.length ? `Values: ${r.values.join(', ')}.` : ''; q('.ptr-cw').textContent = r.why;
+  }
+  const setOrderLabels = () => { const p = q<HTMLSelectElement>('.ptr-cp').value; const o = q<HTMLSelectElement>('.ptr-co'); const w = p === 'radius' ? ['Smallest first', 'Largest first'] : p === 'ie' ? ['Lowest first', 'Highest first'] : ['Least first', 'Most first']; o.options[0].textContent = w[0]; o.options[1].textContent = w[1]; };
+  ['.ptr-ci', '.ptr-co'].forEach((c) => q(c).addEventListener('input', compare)); q('.ptr-cp').addEventListener('change', () => { setOrderLabels(); compare(); });
+  compare();
+
   segmented(q('.ptr-prop'), (v) => { prop = v as Prop; render(); });
   segmented(q('.ptr-along'), (v) => { along = v as 'period' | 'group'; render(); });
   mountQuiz(q('.ptr-quiz'), () => questions());
@@ -141,6 +177,10 @@ import '../../styles/astro.css';
   .ptr .ptr-cell { min-width: 0; aspect-ratio: 1 / 1.15; padding: 0; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: clamp(8px, 2.6vw, 14px); font-weight: 600; cursor: pointer; background: var(--surface); color: var(--ink); }
   .ptr .ptr-cell.in-line { outline: 2px solid var(--ink); outline-offset: -2px; }
   .ptr .ptr-cell[aria-pressed=true] { outline: 3px solid var(--bad); outline-offset: -3px; }
+  .ptr .ptr-nums { margin-top: 10px; }
+  .ptr .ptr-cr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .ptr .ptr-ci { width: 100%; min-height: 44px; }
+  .ptr .ptr-cv, .ptr .ptr-cw { margin: 4px 0; }
   .ptr .ptr-legend { margin-top: 6px; }
   .ptr canvas { display: block; width: 100%; margin-top: 10px; }
   .ptr .ptr-flags p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }

@@ -2,9 +2,16 @@
 // Circle sectors and tangents: drag the arc to change a sector's angle; sector and segment area, arc length; drag a
 // point outside the circle to see its two tangents. Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm cs">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the radius and angle from your question for sector area, arc length and segment area, or find the angle or radius, a tangent length, or the area a clock hand sweeps. Choose π = 22/7, 3.14 or exact.</p>
+    <div class="cs-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Sector and segment</h2>
     <svg class="sm-fig cs-fig" viewBox="0 0 340 300" role="img" aria-label="A circle with a shaded sector; drag the point on the circle to change the angle"></svg>
@@ -64,6 +71,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { SECTOR_SPEC } from '../../lib/sci/solve-sector';
+  mountSolver(document.querySelector<HTMLElement>('.cs-solve')!, SECTOR_SPEC, 'sv');
   import { sector, tangents, PI_CHOICES, type Pt } from '../../lib/sci/circle-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';

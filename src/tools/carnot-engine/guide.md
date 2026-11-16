@@ -11,7 +11,7 @@ ads: false
 order: 1348
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [heat-engine-cycles, temperature-scales, kinetic-theory, heating-curve]
 sources:
   - "Carnot efficiency η = 1 − T₂/T₁, refrigerator COP = T₂/(T₁ − T₂), heat pump COP = T₁/(T₁ − T₂), Q₂/Q₁ = T₂/T₁: standard thermodynamics."
@@ -40,6 +40,10 @@ It serves Class 11 Physics, Thermodynamics (heat engines, refrigerators and heat
 4. The p–V diagram shows a small amount of air doubling its volume at T₁. The four steps are named as the dot goes round; the shaded area is the work per cycle.
 5. Type a claimed efficiency (or COP) into **Check an inventor's claim**.
 
+## Solve my numbers
+
+The **Solve my numbers** box at the top takes the temperatures and heat from your problem, in kelvin or in °C (choose the unit and the box does the +273.15). It gives the answer in a sentence and the working below. Pick: the best possible efficiency, the work and rejected heat per cycle for a given Q₁, the hot temperature needed for a wanted efficiency, a refrigerator's COP with the work needed to remove a given heat, a heat pump's COP with the heat delivered, whether an inventor's claimed efficiency is possible, or how close a real engine is to the Carnot limit. Heat can be in J, kJ or MJ. If T₂ is not below T₁, or a temperature is below absolute zero, you get a plain message. The common mistake is shown each time: using °C in the formula, or confusing the COP of a fridge with that of a heat pump.
+
 ## Worked example
 
 With the page as it opens: T₁ = 500 K (226.85 °C), T₂ = 300 K, Q₁ = 1000 J.
@@ -67,3 +71,5 @@ Five fresh questions: the efficiency from temperatures in °C, the work per cycl
 **Why does a heat pump have COP one more than a fridge?** The heat delivered to the warm side is the heat taken from the cold side plus the work: Q₁ = Q₂ + W, so Q₁/W = Q₂/W + 1.
 
 **What does the shaded area mean?** On a p–V diagram the area under a path is the work done by the gas. Going round the loop, the gas does more work expanding than is done on it while it is squeezed; the difference is the area inside.
+
+**What is the efficiency of a Carnot engine between 500 K and 300 K?** η = 1 − T₂/T₁ = 1 − 300/500 = 0.4, which is 40 %.

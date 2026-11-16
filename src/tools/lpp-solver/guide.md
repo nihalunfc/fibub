@@ -39,6 +39,19 @@ It follows linear programming in Class 12 maths (the graphical method), and buil
 4. Read the picture: each constraint line is numbered, the shaded area is the feasible region, and green dots mark the best corner.
 5. Move the **objective line** slider, or press **Slide to the best**, to watch Z = k leave the region at the optimum.
 6. The table and the sentence under it give the answer.
+7. Open **Show the working** for an exam-style answer: each corner, which two lines meet there, Z with the numbers put in, and the comparison that picks the maximum or minimum. It updates as you type, so you can paste your own textbook numbers in under *My own* and copy the working.
+8. Open **Is my point feasible?** and type x and y to test a point against every constraint. If it fails, the page names the line it breaks and the value of the left side.
+
+## Common mistakes
+
+- Reading a ≥ constraint as ≤: the shaded side flips, so check the sign for each line.
+- Forgetting x ≥ 0 and y ≥ 0: the page always includes them, as the textbook does.
+- Calling the corner with the largest Z the answer in an unbounded region without the half-plane check.
+- Rounding too early when two lines meet at a fraction: the page keeps full precision.
+
+## FAQ: how do I solve a linear programming problem graphically?
+
+Type Z and the constraints, then read the corner point with the best Z in the working: that corner is the answer.
 
 ## Worked example
 

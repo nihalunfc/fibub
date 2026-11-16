@@ -100,3 +100,56 @@ export function chiSquare(obs: number[], ps: number[]) {
   const chi2 = terms.reduce((s, v) => s + v, 0), df = ps.length - 1;
   return { n, exp, terms, chi2, df, p: df > 0 ? chiP(chi2, df) : 1, small: exp.some((e) => e < 5) };
 }
+
+// ---------- Punnett square calculator (typed genotypes, added 2026-11-16) ----------
+
+/** Read a typed genotype such as "Aa", "AaBb", "Aa Bb" or "aaBB" into pairs, one per gene, dominant letter first.
+ *  Each gene is two letters of the same letter (any case). Up to three genes. Throws a friendly Error. */
+export function parseGenotype(text: string): string[] {
+  const raw = text.replace(/[\s,;·]+/g, '');
+  if (!raw) throw new Error('Type a genotype such as Aa or AaBb.');
+  if (!/^[A-Za-z]+$/.test(raw)) throw new Error('Use letters only, such as Aa or AaBb.');
+  if (raw.length % 2) throw new Error('Each gene needs two letters (one from each parent), such as Aa or bb.');
+  if (raw.length > 6) throw new Error('Up to three genes at a time, such as AaBbCc.');
+  const out: string[] = [];
+  for (let i = 0; i < raw.length; i += 2) {
+    const a = raw[i], b = raw[i + 1], aUp = a === a.toUpperCase(), bUp = b === b.toUpperCase();
+    if (a.toLowerCase() !== b.toLowerCase()) throw new Error(`"${a}${b}" mixes two different letters. Both letters of one gene must be the same letter, such as Aa.`);
+    out.push(!aUp && bUp ? b + a : a + b); // upper case first: aA becomes Aa
+  }
+  return out;
+}
+
+const gcdI = (a: number, b: number): number => (b ? gcdI(b, a % b) : a);
+export const fraction = (p: number, grid = 64) => { const n = Math.round(p * grid), g = gcdI(n, grid) || 1; return n === 0 ? '0' : `${n / g}/${grid / g}`.replace(/\/1$/, ''); };
+
+export type PunnettClass = { label: string; p: number; count: number; fraction: string; percent: number };
+export type PunnettResult = {
+  letters: string[]; gametesMum: string[]; gametesDad: string[]; cells: string[][]; boxes: number;
+  genotypes: PunnettClass[]; phenotypes: PunnettClass[]; genoRatio: string; phenoRatio: string; mum: string[]; dad: string[];
+};
+
+/** The full Punnett square for two typed genotypes. Both must name the same genes in the same order.
+ *  incomplete: the heterozygote looks different from both homozygotes (incomplete dominance or codominance). */
+export function punnett(text1: string, text2: string, incomplete = false): PunnettResult {
+  const mum = parseGenotype(text1), dad = parseGenotype(text2);
+  if (mum.length !== dad.length) throw new Error(`Parent 1 has ${mum.length} gene${mum.length > 1 ? 's' : ''} and parent 2 has ${dad.length}. Use the same genes for both, such as AaBb × aabb.`);
+  const letters = mum.map((m) => m[0].toUpperCase());
+  mum.forEach((m, k) => { if (m[0].toLowerCase() !== dad[k][0].toLowerCase()) throw new Error(`Gene ${k + 1} is ${m[0].toUpperCase()} in parent 1 but ${dad[k][0].toUpperCase()} in parent 2. Use the same letters for the same gene.`); });
+  const genes: Gene[] = letters.map((L) => {
+    const l = L.toLowerCase();
+    return { id: L, trait: L, alleles: [L, l], dominance: incomplete ? 'incomplete' : 'complete', pheno: (g: string) => (incomplete ? g : g.includes(L) ? `${L}_` : `${l}${l}`) } as Gene;
+  });
+  const m = mum.map((x) => x), d = dad.map((x) => x);
+  const c = cross(genes, m, d);
+  const gm = [...c.gametesMum.keys()], gd = [...c.gametesDad.keys()];
+  const cells = gm.map((e) => gd.map((p) => genes.map((_, k) => { const pair = e[k] + p[k]; return genes[k].alleles.indexOf(pair[0]) <= genes[k].alleles.indexOf(pair[1]) ? pair : pair[1] + pair[0]; }).join('')));
+  const boxes = gm.length * gd.length;
+  const cart = (per: string[][]): string[][] => per.reduce<string[][]>((acc, opts) => acc.flatMap((a) => opts.map((o) => [...a, o])), [[]]);
+  const genoOrder = cart(genes.map((g) => [g.alleles[0] + g.alleles[0], g.alleles[0] + g.alleles[1], g.alleles[1] + g.alleles[1]]));
+  const phenoOrder = cart(genes.map((g) => (incomplete ? [g.alleles[0] + g.alleles[0], g.alleles[0] + g.alleles[1], g.alleles[1] + g.alleles[1]] : [`${g.alleles[0]}_`, `${g.alleles[1]}${g.alleles[1]}`])));
+  const cls = (order: string[][], map: Map<string, number>, sep: string): PunnettClass[] => order.map((o) => o.join(sep)).filter((k) => (map.get(k) ?? 0) > 1e-12).map((k) => { const p = map.get(k)!; return { label: k.replace(/ /g, ''), p, count: Math.round(p * boxes), fraction: fraction(p), percent: Math.round(p * 10000) / 100 }; });
+  const genotypes = cls(genoOrder, c.geno, ' '), phenotypes = cls(phenoOrder, new Map([...c.pheno].map(([k, v]) => [k.replace(/, /g, ' '), v])), ' ');
+  const rt = (xs: PunnettClass[]) => ratio(xs.map((x) => x.p)).join(' : ');
+  return { letters, gametesMum: gm, gametesDad: gd, cells, boxes, genotypes, phenotypes, genoRatio: rt(genotypes), phenoRatio: rt(phenotypes), mum, dad };
+}

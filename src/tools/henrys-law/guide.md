@@ -11,7 +11,7 @@ ads: false
 order: 1435
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [colligative-properties, gas-law-calculator, kinetic-theory, concentration-converter]
 sources:
   - "Henry's law p = KH x and the rise of KH with temperature (van 't Hoff form KH(T) = KH(298) e^(C(1/298 − 1/T))) are standard physical chemistry. The KH values (CO₂ 1.7, O₂ 35, N₂ 76 kbar at 25 °C) and temperature coefficients (2400, 1700, 1300 K) are rounded typical values, not copied from any one table."
@@ -50,6 +50,16 @@ Cool the same bottle to 5 °C and it holds 6.43 g/L; warm it to 35 °C and only 
 
 Diver at 30 m: the pressure is 1 + 30/10 = 4 bar, so 4 times as much nitrogen dissolves in body water as at the surface (1.93 mmol/L instead of 0.48 mmol/L in this model). Climber at 5000 m: the air pressure is about 0.54 bar, so only about 0.54 times the sea-level oxygen dissolves.
 
+## Solve your own numbers
+
+The first card solves p = KH x for the numbers in your problem, with the working. Choose what to find:
+
+- **Mole fraction x** from the partial pressure p and KH.
+- **Gas dissolved in 1 L of water**, in millimoles and grams (pick CO₂, O₂ or N₂ to use this page's rounded values at 25 °C, or type your own KH and the gas's molar mass).
+- **Partial pressure p** from x and KH, and **KH** from p and x.
+
+Pressures can be typed in bar, atm, kPa, mmHg or Pa, and KH in kbar, bar, atm, kPa or mmHg: the card converts everything to bar first and shows the conversion. A negative pressure, a KH of zero, or numbers that would put more gas than water in the solution give a friendly message. Remember that a bigger KH means a gas that dissolves less. The values built in are rounded for teaching; check the official source, or your own book, for the value you need in an exam.
+
 ## Tips
 
 - Henry's law works best for gases that don't react with water and at low pressures. CO₂ partly reacts with water to make carbonic acid, which is why soda is slightly acidic.
@@ -63,3 +73,5 @@ Diver at 30 m: the pressure is 1 + 30/10 = 4 bar, so 4 times as much nitrogen di
 **Is anything saved?** No. Everything runs in your browser and nothing is stored or sent.
 
 **Is this an official textbook tool?** No. It is an independent practice page that follows the same school topics.
+
+**How do I find how much gas dissolves in water using Henry's law?** Work out x = p ÷ KH, then multiply by 55.5 mol of water per litre to get moles per litre. The first card does it from your own p and KH.

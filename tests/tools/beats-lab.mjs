@@ -30,4 +30,23 @@ export default async ({ page, check, BASE }) => {
   const qa = await page.$eval('.bt .sq-q', (e) => e.dataset.ans);
   await page.fill('.bt .sq-q .sq-in', qa); await page.click('.bt .sq-q .sq-check');
   check((await page.textContent('.bt .sq-q .sq-res')) === 'Right!' && (await page.$$('.bt .sq-q')).length === 4, 'beats-lab: quiz');
+
+  // ---- Solve my numbers (beats-lab) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Two guitar"); check((await psAns()).includes("4 beats per second, one swell every 0.25 s. You hear a pitch of 442 Hz."), "beats-lab: example Two guitar");
+  await psPre("beats faster"); check((await psAns()).includes("The unknown fork is 254 Hz."), "beats-lab: example beats faster");
+  await psPre("beats slower"); check((await psAns()).includes("The unknown fork is 258 Hz."), "beats-lab: example beats slower");
+  await psPre("No wax test"); check((await psAns()).includes("517 Hz or 507 Hz"), "beats-lab: example No wax test");
+  await psPre("Beats in 10"); check((await psAns()).includes("40 beats in 10 s"), "beats-lab: example Beats in 10");
+  await psSet("fb", {"fb-f1": "1", "fb-f2": "0.44"});
+  await page.selectOption('.ps-host [data-k="fb-f1-u"]', "kHz"); await page.waitForTimeout(80);
+  await page.selectOption('.ps-host [data-k="fb-f2-u"]', "kHz"); await page.waitForTimeout(80);
+  check((await psAns()).includes("560 beats per second"), "beats-lab: typed numbers fb 560 beats per second");
+  await psSet("fb", {"fb-f1": "440", "fb-f2": "440"}); check((await psAns()).includes("no beats"), "beats-lab: friendly message: no beats");
+  await psPre("beats faster"); { const w = await psWork(); check(w.includes("Beats per second = 6 ÷ 3 = 2 Hz") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "beats-lab: working shown, no NaN"); }
+  }
 };

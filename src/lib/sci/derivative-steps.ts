@@ -140,4 +140,20 @@ export const EXAMPLES: { cls: '11' | '12'; src: string; label: string }[] = [
   { cls: '12', src: 'x^x', label: 'xˣ' },
   { cls: '12', src: 'sqrt(1 + sin(x))', label: '√(1 + sin x)' },
   { cls: '12', src: 'tan(2x)', label: 'tan 2x' },
+  { cls: '11', src: 'sin(x) cos(x)', label: 'sin x cos x' },
+  { cls: '12', src: 'x^2 ln(x)', label: 'x² ln x' },
+  { cls: '12', src: 'x^3 e^x', label: 'x³ eˣ' },
+  { cls: '12', src: 'e^x/x^2', label: 'eˣ/x²' },
 ];
+
+/** f′, f″ and f‴ as text (higher derivatives by differentiating again; the steps are only kept for the first). */
+export function higher(f: Ex, upTo = 3): string[] {
+  const out: string[] = []; let cur = f;
+  for (let i = 0; i < upTo; i++) { cur = differentiate(cur).d; out.push(show(cur)); }
+  return out;
+}
+/** f′(x) written out with the number put in for x, e.g. "2(3)·cos(3) + …", for a "substitute" line. */
+export function substituted(dText: string, a: number): string {
+  const n = String(parseFloat(a.toFixed(6))).replace('-', '−');
+  return dText.replace(/\(x\)/g, `(${n})`).replace(/x/g, `(${n})`);
+}

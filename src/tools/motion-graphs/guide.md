@@ -11,7 +11,7 @@ ads: false
 order: 1021
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [video-motion-tracker, projectile-drag]
 sources:
   - "Kinematics of straight-line motion with constant acceleration in each part (x = x₀ + ut + ½at², v = u + at) and the meaning of slope and area on motion graphs: standard school physics found in any textbook."
@@ -37,6 +37,10 @@ It follows the school topics on motion in a straight line: distance and displace
 4. **Match the graph**: a dashed target appears on the x-t graph. Press Start and steer so your line lies on it. You get a score out of 100 from the average gap. **Show me** drives it for you so you can see which velocities make which slopes. **New target** gives another one.
 5. **Play** runs the clock through a story so you can watch the car and the dots on the graphs move together.
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top answers the questions on a motion-graph test. Pick what you want to find: velocity from the slope of a distance-time graph, acceleration from the slope of a velocity-time graph, distance from the area under a velocity-time graph (a turn-around is split into two areas and the distance and displacement are both given), v = u + at, s = ut + ½at², the distance from v² = u² + 2as, or the average speed over two parts of a trip. Type your numbers, choose km/h, m/s, minutes or hours, and the answer comes at the top in one sentence, followed by the formula, the substitution with units and the result. Five examples fill it in for you, such as a car braking from 72 km/h. A zero time or zero acceleration gives a friendly message, never NaN. Common mistake: averaging two speeds instead of dividing total distance by total time.
+
 ## Worked example
 
 Choose **Stop and go** and set the time to **4 s**. The car sped up at 1.5 m/s² for 2 s (to 3 m/s), then cruised. The page shows position **9 m**, velocity **3 m/s** and acceleration **0 m/s²**. The shaded area under the v-t graph is a triangle (½ × 2 × 3 = 3 m) plus a rectangle (2 × 3 = 6 m), so the displacement is **9 m** and the average velocity is 9 ÷ 4 = **2.25 m/s**.
@@ -56,3 +60,5 @@ Now choose **Out and back** and move to **10 s**. The car went 18 m out, stopped
 **What does a negative velocity mean?** The car is moving backwards (to the left on the road). Speed is the size of the velocity, so it is never negative.
 
 **Is anything saved?** No. The questions in Check yourself are made fresh each time and checked in your browser; nothing is stored or sent.
+
+**What is the slope of a velocity-time graph?** It is the acceleration, a = (v − u) ÷ t; the area under the line is the distance.

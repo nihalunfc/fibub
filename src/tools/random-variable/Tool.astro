@@ -3,9 +3,16 @@
 // and standard deviation with the working, the binomial distribution with sliders, and a simulation that shows
 // long-run averages settling on the theory. Class 12 maths, probability.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax rvb">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem. Find a binomial probability (exactly r, at most r, at least r, or between two values) from n and p, the binomial mean and variance, or the mean and variance of a probability table you type in. Fractions such as 1/6 are fine.</p>
+    <div class="rv-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick a random variable</h2>
     <div class="ax-grid">
@@ -56,6 +63,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { RV_SPEC } from '../../lib/sci/solve-randvar';
   import { problems, moments, binomial, hypergeometric, twoDice, simulate, choose, type Dist } from '../../lib/sci/school-r-rv';
   import { paint, type Palette } from '../../lib/report';
   import { view, px, py, axes, fmt } from '../../lib/sm-graph';
@@ -179,6 +188,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
       { text: 'What is the variance of the number of heads in 2 tosses of a fair coin?', answer: 0.5, worked: 'X = 0, 1, 2 with 1/4, 1/2, 1/4. μ = 1, E(X²) = 0 + 1/2 + 4/4 = 1.5, so Var = 1.5 − 1 = 0.5 (and npq = 2 × ½ × ½ = 0.5).' },
     ];
   });
+
+  mountSolver(document.querySelector<HTMLElement>('.rv-solve')!, RV_SPEC, 'rs');
 </script>
 
 <style is:inline>

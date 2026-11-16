@@ -228,4 +228,31 @@ export const EXAMPLES: { group: string; src: string; label: string }[] = [
   { group: 'Standard', src: 'sin(3x + 1)', label: 'sin(3x + 1)' },
   { group: 'Standard', src: '1/(x^2 + 4)', label: '1/(x² + 4)' },
   { group: 'Standard', src: '3x^2 - 4x + 1/x', label: '3x² − 4x + 1/x' },
+  { group: 'Standard', src: 'sec(x)^2', label: 'sec² x' },
+  { group: 'Standard', src: 'e^(2x)', label: 'e²ˣ' },
+  { group: 'Standard', src: 'x^2 + 1/x^2', label: 'x² + 1/x²' },
 ];
+
+export type Definite = { ok: boolean; message: string; Fa?: number; Fb?: number; value?: number; numeric?: number };
+const SIMPSON_N = 2000;
+/** The definite integral of a coached integrand from a to b as F(b) − F(a), cross-checked by Simpson's rule. Friendly message when it cannot be done. */
+export function definite(r: Coach, a: number, b: number): Definite {
+  if (!r.F) return { ok: false, message: 'This integral has no closed-form answer on this page, so limits cannot be put in.' };
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return { ok: false, message: 'Type both limits as numbers, such as 0 and 1 (or 1/2, pi).' };
+  if (Math.abs(a) > 1e6 || Math.abs(b) > 1e6) return { ok: false, message: 'Use limits between −1 000 000 and 1 000 000.' };
+  if (a === b) return { ok: true, message: 'The limits are equal, so the integral is 0 (no width, no area).', Fa: value(r.F, a), Fb: value(r.F, a), value: 0, numeric: 0 };
+  const f = (t: number) => evaluate(r.f, { x: t });
+  const lo = Math.min(a, b), hi = Math.max(a, b), h = (hi - lo) / SIMPSON_N;
+  let sum = 0, bad = false;
+  for (let i = 0; i <= SIMPSON_N; i++) {
+    const y = f(lo + i * h);
+    if (!Number.isFinite(y)) { bad = true; break; }
+    sum += y * (i === 0 || i === SIMPSON_N ? 1 : i % 2 ? 4 : 2);
+  }
+  if (bad) return { ok: false, message: 'The function is not defined (or blows up) somewhere between these limits, so this is an improper integral. The rule F(b) − F(a) does not apply across such a point; split the range and use limits.' };
+  const Fa = value(r.F, a), Fb = value(r.F, b);
+  if (!Number.isFinite(Fa) || !Number.isFinite(Fb)) return { ok: false, message: 'The antiderivative is not defined at one of the limits (for example ln of a negative number). Check the limits.' };
+  const num = (sum * h) / 3 * (a <= b ? 1 : -1), v = Fb - Fa;
+  if (Math.abs(num - v) > 1e-4 * Math.max(1, Math.abs(v))) return { ok: false, message: 'The antiderivative and a numerical check disagree on this range, which usually means f has a jump or a point where it is undefined between the limits. Split the range at that point.', Fa, Fb, numeric: num };
+  return { ok: true, message: '', Fa, Fb, value: v, numeric: num };
+}

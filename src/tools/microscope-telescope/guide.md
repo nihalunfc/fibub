@@ -11,11 +11,12 @@ ads: false
 order: 1006
 icon: telescope
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [lens-ray-diagram, eye-defects, telescope-calculator]
 sources:
   - "Simple microscope M = D/f or 1 + D/f; compound microscope M = m_o × m_e with the lens formula for the objective; refracting telescope M = −f_o/f_e (normal adjustment) or −(f_o/f_e)(1 + f_e/D), length f_o + f_e; near point D = 25 cm. Standard school optics as taught in Class 12 physics. All example numbers are made up."
   - "Checked against an independent Python calculation of each instrument (lens formula for the objective and eyepiece) and hand-worked examples."
+  - "Simple microscope M = D/f or 1 + D/f, compound microscope M = m₀ × mₑ with the lens formula for the objective, M ≈ (L/f₀)(D/fₑ) and the refracting telescope M = f₀/fₑ: standard school physics with D = 25 cm. The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: telescope, label: "Instrument" }
   - { icon: sliders, label: "Focal length" }
@@ -30,6 +31,12 @@ A single convex lens held close to the eye is a **magnifying glass** (a simple m
 You can put the final image **at infinity** (normal adjustment, comfortable for a relaxed eye) or **at the near point**, 25 cm away, which gives a little more magnification.
 
 It follows the Class 12 Physics chapter on ray optics and optical instruments (simple and compound microscope, refracting telescope). The image-forming rules come from [[lens-ray-diagram]], the near point from [[eye-defects]]; for real telescopes with eyepieces and cameras, see [[telescope-calculator]].
+
+## Solve my numbers
+
+The card at the top works out your own numbers. **Magnifying glass** gives M = D / f (image at infinity) or 1 + D / f (image at the near point), with D = 25 cm. **Compound microscope from the object distance** uses the lens formula for the objective, then multiplies by the eyepiece magnification, and also gives the distance between the lenses. **Compound microscope from the tube length** uses the textbook shortcut M ≈ (L / f₀)(D / fₑ). **Refracting telescope** gives M = f₀ / fₑ and the tube length, and **eyepiece for a wanted magnification** finds fₑ. Choose where the final image sits, type the focal lengths in cm or mm, and read one plain sentence with the working underneath. Five worked examples fill the card, such as a 1 cm objective and 5 cm eyepiece with the object at 1.1 cm (50×, lenses 16 cm apart) or a 100 cm and 2 cm telescope (50×, 102 cm long).
+
+Common mistakes: using the eyepiece as the long lens of a telescope, forgetting that the microscope's object must sit just outside f₀, and mixing up the two image positions. If the object is inside f₀ the card explains why no real image forms.
 
 ## How to use it
 
@@ -55,6 +62,8 @@ For a telescope with f_o = 100 cm and f_e = 5 cm, normal adjustment gives **M = 
 Four questions with fresh numbers each time: magnifying glass, microscope total magnification, telescope magnification and length. **Show working** reveals the steps. Nothing is saved or sent anywhere.
 
 ## FAQ
+
+**How do I calculate the magnification of a telescope?** In normal adjustment M = f₀ / fₑ, the focal length of the objective divided by that of the eyepiece; the tube is f₀ + fₑ long.
 
 **Why is the magnification negative?** The final image is upside down. In a microscope it hardly matters; for a telescope used on land, binoculars add prisms to turn it the right way up.
 

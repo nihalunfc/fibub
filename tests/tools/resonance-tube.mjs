@@ -31,4 +31,23 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.rt .sq-q', (e) => e.dataset.ans);
   await page.fill('.rt .sq-q .sq-in', ans); await page.click('.rt .sq-q .sq-check');
   check((await page.textContent('.rt .sq-q .sq-res')) === 'Right!' && (await page.$$('.rt .sq-q')).length === 4, 'resonance-tube: quiz');
+
+  // ---- Solve my numbers (resonance-tube) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Two lengths"); check((await psAns()).includes("The speed of sound is 346 m/s (wavelength 67.6 cm). The end correction is 1.2 cm."), "resonance-tube: example Two lengths");
+  await psPre("One length"); check((await psAns()).includes("The speed of sound is 346 m/s."), "resonance-tube: example One length");
+  await psPre("Find the fork"); check((await psAns()).includes("The frequency is 512 Hz"), "resonance-tube: example Find the fork");
+  await psPre("Predict the lengths"); check((await psAns()).includes("Resonance at 15.7 cm, 49.5 cm and 83.3 cm"), "resonance-tube: example Predict the lengths");
+  await psPre("Speed on a hot day"); check((await psAns()).includes("355 m/s"), "resonance-tube: example Speed on a hot day");
+  await psSet("v", {"v-f": "512", "v-L1": "0.157", "v-L2": "0.495"});
+  await page.selectOption('.ps-host [data-k="v-L1-u"]', "m"); await page.waitForTimeout(80);
+  await page.selectOption('.ps-host [data-k="v-L2-u"]', "m"); await page.waitForTimeout(80);
+  check((await psAns()).includes("346 m/s (wavelength 67.6 cm)"), "resonance-tube: typed numbers v 346 m/s (wavelength 67.6 cm)");
+  await psSet("v", {"v-L1": "60", "v-L2": "50"}); check((await psAns()).includes("must be longer than the first"), "resonance-tube: friendly message: must be longer than the first");
+  await psPre("Two lengths"); { const w = await psWork(); check(w.includes("e = (L₂ − 3 L₁) ÷ 2") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "resonance-tube: working shown, no NaN"); }
+  }
 };

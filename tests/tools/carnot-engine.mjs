@@ -44,4 +44,32 @@ export default async ({ page, check, BASE }) => {
   check((await (await items[4].$('.lq-fb')).textContent()).startsWith('Not quite'), 'carnot: wrong claim answer');
   await ch[right].click();
   check((await (await items[4].$('.lq-fb')).textContent()) === 'Right.', 'carnot: right claim answer');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  {
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, units = {}) => {
+    await page.selectOption('.ps-host [data-k="prob"]', id);
+    for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${id}-${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); else await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); }
+    for (const [k, u] of Object.entries(units)) await page.selectOption(`.ps-host [data-k="${id}-${k}-u"]`, u);
+    await page.waitForTimeout(80);
+  };
+  const T = (cond, msg) => check(cond, `carnot-engine: ${msg}`);
+  await psPre('Steam engine'); T((await psAns()).includes('The best possible efficiency is 28.4 %'), 'example Steam engine');
+  await psPre('Work per cycle'); T((await psAns()).includes('at most 400 J of work per cycle and must reject 600 J'), 'example Work per cycle');
+  await psPre('Fridge'); T((await psAns()).includes('The best possible COP is 9; removing 600 J needs at least 66.7 J'), 'example Fridge');
+  await psPre('Heat pump'); T((await psAns()).includes('The best possible COP is 14.8: 1 kJ of work delivers up to 14.8 kJ'), 'example Heat pump');
+  await psPre('Inventor claims 45 %'); T((await psAns()).includes('Impossible: 45 % is above the Carnot limit of 40 %'), 'example Inventor claims 45 %');
+  await psPre('Real engine'); T((await psAns()).includes('This engine is 30 % efficient, 75 % of the Carnot limit (40 %)'), 'example Real engine');
+  await psSet('Th', {'u': '0', 'Tc': '300', 'e': '60'}, {}); T((await psAns()).includes('The hot side must be at 750 K (477 °C).'), '60 % from 300 K needs 750 K');
+  await psSet('claim', {'u': '0', 'Th': '500', 'Tc': '300', 'e': '35'}, {}); T((await psAns()).includes('Possible: 35 %'), '35 % is possible');
+  await psSet('eff', {'u': '1', 'Th': '227', 'Tc': '27'}, {}); T((await psAns()).includes('The best possible efficiency is 40 % (η = 0.4).'), 'Celsius input converts to kelvin');
+  await psSet('eff', {'u': '0', 'Th': '200', 'Tc': '300'}); T((await psAns()).includes('must be hotter'), 'hot below cold gives a friendly message');
+  await psSet('eff', {'u': '0', 'Th': '500', 'Tc': '-5'}); T((await psAns()).includes('above absolute zero'), 'negative kelvin gives a friendly message');
+  await psSet('real', {'u': '0', 'Th': '500', 'Tc': '300', 'Q': '1000', 'W': '1500'}); T((await psAns()).includes('cannot be more than Q'), 'W above Q gives a friendly message');
+  await psPre('Steam engine');
+  await psPre('Steam engine'); T((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'working shown, no NaN');
+  }
 };

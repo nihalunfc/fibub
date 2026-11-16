@@ -18,6 +18,22 @@ export default async ({ page, check, BASE }) => {
   await tapBox('1s', 0); check((await qn()).includes('(1s, box 1, spin up): n = 1, l = 0, ml = 0, ms = +½'), 'econfig: tap an arrow for quantum numbers');
   await tapBox('1s', 0); check((await qn()).includes('spin down') && (await qn()).includes('ms = −½'), 'econfig: tap again for the paired electron');
   await tapBox('3d', 0); check((await qn()).includes('empty'), 'econfig: empty box');
+  // Look up any element or ion
+  const lbig = () => page.textContent('.ecf .ecf-lbig'), lf = () => page.textContent('.ecf .ecf-lfacts');
+  await page.locator('.ecf .ecf-lq').scrollIntoViewIfNeeded();
+  check((await lbig()) === 'Fe: 1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁶ 4s²' && (await lf()).includes('[Ar] 3d⁶ 4s²') && (await lf()).includes('Unpaired electrons4'), 'econfig lookup: iron ' + (await lbig()));
+  await page.click('.ecf .ecf-lchips [data-el="Fe"][data-c="3"]');
+  check((await lbig()) === 'Fe³⁺: 1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁵' && (await lf()).includes('Unpaired electrons5'), 'econfig lookup: Fe3+ loses 4s first ' + (await lbig()));
+  await page.click('.ecf .ecf-lchips [data-el="Cl"][data-c="-1"]');
+  check((await lbig()) === 'Cl⁻: 1s² 2s² 2p⁶ 3s² 3p⁶' && (await lf()).includes('[Ar]') && (await page.textContent('.ecf .ecf-lnote')).includes('isoelectronic'), 'econfig lookup: Cl- is like argon');
+  await page.fill('.ecf .ecf-lq', 'silver'); await page.selectOption('.ecf .ecf-lc', '0');
+  check((await lf()).includes('[Kr] 4d¹⁰ 5s¹') && (await page.textContent('.ecf .ecf-lnote')).includes('breaks'), 'econfig lookup: silver by name, exception');
+  await page.fill('.ecf .ecf-lq', '118');
+  check((await lbig()).startsWith('Og:') && (await page.textContent('.ecf .ecf-lnote')).includes('Predicted'), 'econfig lookup: element 118 flagged as predicted');
+  await page.fill('.ecf .ecf-lq', 'H'); await page.selectOption('.ecf .ecf-lc', '2');
+  check((await page.textContent('.ecf .ecf-lerr')).includes('cannot lose') && !(await lbig()).includes('NaN'), 'econfig lookup: too many electrons removed');
+  await page.fill('.ecf .ecf-lq', 'zzz'); check(await page.isVisible('.ecf .ecf-lerr'), 'econfig lookup: unknown element');
+  await page.fill('.ecf .ecf-lq', ''); check((await lbig()).includes('Type an element'), 'econfig lookup: blank');
   // Fill it yourself
   await page.selectOption('.ecf .ecf-el', '7'); await page.click('.ecf .ecf-mode [data-m=self]');
   check((await msg()).includes('Place 7 electrons for Nitrogen') && await page.locator('.ecf path.ar').count() === 0, 'econfig: self mode starts empty');

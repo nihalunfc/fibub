@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax gsl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (charge, distance, charge density) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Flux through a closed surface</h2>
     <div class="ax-row">
@@ -191,4 +192,10 @@ import '../../styles/astro.css';
   onTheme(() => { draw(); sym(); });
   all(); sym();
   quiz(q('.gsl-quiz'), () => questions());
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { GAUSS } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, GAUSS);
 </script>

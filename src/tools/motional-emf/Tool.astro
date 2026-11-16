@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax mem">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (field, length, speed, resistance) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Rod on rails</h2>
     <span class="ax-seg mem-mode" role="group" aria-label="How the rod moves"><button type="button" data-v="push" aria-pressed="true">Steady speed</button><button type="button" data-v="coast" aria-pressed="false">Push and let go</button><button type="button" data-v="pull" aria-pressed="false">Steady pull</button></span>
@@ -167,4 +168,10 @@ import '../../styles/astro.css';
   all();
   quiz(q('.mem-quiz'), () => questions());
   requestAnimationFrame(tick);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { MOTIONAL } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, MOTIONAL);
 </script>

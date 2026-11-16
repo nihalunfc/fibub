@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
 ---
 <div class="ax pn">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (voltages, resistors, currents) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-seg pn-d" role="group" aria-label="Diode"><button type="button" data-d="si" aria-pressed="true">Silicon</button><button type="button" data-d="ge" aria-pressed="false">Germanium</button><button type="button" data-d="zener" aria-pressed="false">Zener 5.1 V</button></div>
     <label class="pn-rl"><span>V</span><input type="range" class="pn-v" min="-8" max="0.8" step="0.01" value="0" aria-label="Bias voltage" /><output class="pn-ov"></output></label>
@@ -68,6 +69,9 @@ import '../../styles/chemquiz.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { DIODE } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, DIODE);
   import { DIODES, barrier, bias, current, dynamicResistance, regulator, width, type Diode } from '../../lib/sci/pnjunction';
   import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
 

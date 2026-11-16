@@ -22,4 +22,22 @@ export default async ({ page, check, BASE }) => {
   const q3 = await page.textContent(R + '.eq-q:nth-child(3) p'), l = Number(q3.match(/photon of (\d+) nm/)[1]);
   await page.fill(R + '.eq-q:nth-child(3) .eq-in', String(1239.84 / l)); await page.click(R + '.eq-q:nth-child(3) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(3) .eq-res')).startsWith('Right'), 'spectrum: right answer accepted');
+
+  // ---- Solve my numbers (em-spectrum) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Green light"); check((await psAns()).includes("visible light (green): wavelength 500 nm, frequency 6.00 × 10^14 Hz, photon energy 2.48 eV"), "em-spectrum: example Green light");
+  await psPre("Microwave oven"); check((await psAns()).includes("microwaves: wavelength 122 mm"), "em-spectrum: example Microwave oven");
+  await psPre("FM radio"); check((await psAns()).includes("radio waves: wavelength 3 m"), "em-spectrum: example FM radio");
+  await psPre("Medical X-ray"); check((await psAns()).includes("X-rays: wavelength 31 pm"), "em-spectrum: example Medical X-ray");
+  await psPre("Red laser"); check((await psAns()).includes("1.64 × 10^16 photons"), "em-spectrum: example Red laser");
+  await psSet("lam", {"lam-l": "10"});
+  await page.selectOption('.ps-host [data-k="lam-l-u"]', "µm"); await page.waitForTimeout(80);
+  check((await psAns()).includes("infrared: wavelength 10 µm"), "em-spectrum: typed numbers lam infrared: wavelength 10 µm");
+  await psSet("lam", {"lam-l": "0"}); check((await psAns()).includes("must be more than 0"), "em-spectrum: friendly message: must be more than 0");
+  await psPre("Microwave oven"); { const w = await psWork(); check(w.includes("2.45 GHz = 2.45 × 10^9 Hz") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "em-spectrum: working shown, no NaN"); }
+  }
 };

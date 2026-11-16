@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax fr">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the mass, angle and friction coefficients from your problem and see whether it moves, with the working.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row fr-top">
       <span class="fr-lab">Level</span>
@@ -198,6 +199,12 @@ import '../../styles/astro.css';
   draw();
   document.addEventListener('fibub:theme', draw);
   let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { RAMP } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, RAMP);
 </script>
 
 <style is:inline>

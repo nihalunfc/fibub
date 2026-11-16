@@ -38,7 +38,9 @@ It follows continuity and differentiability in Class 12 maths (derivatives of co
 1. **Pick the links.** The inner link u = g(x) and the outer link y = f(u) each come from a list: k × (inside), (inside)², (inside)³, sin, cos, e^(inside), ln and √. For k × (inside), choose k.
 2. **Level.** *Two links* is the usual y = f(g(x)). *Three links* adds a middle gear v, for functions like (sin 2x)² or e^(sin x²), where three rates multiply.
 3. **Move x** with the slider, drag the x gear round, or press **Turn the x gear** to sweep x along by 1.
-4. Read the **formula line**. It writes the chain rule with names, then with the inner expressions put in, then with today's numbers.
+4. Pick one of the **textbook-style examples** (sin 3x, sin x², (sin x)³, e^(x²), ln(cos x), (sin 2x)²) to fill the links in one step.
+5. Type any **x** in the box under the slider, not just −3 to 3. The sentence at the top gives dy/dx for your chain and the slope at that x, and **Show the working** lays the answer out as an exam does: name the layers, differentiate each, multiply outer first, put the inner layers back, then put x in. If the chain is not defined at your x (for example ln of a negative), you get a message, not a number.
+6. Read the **formula line**. It writes the chain rule with names, then with the inner expressions put in, then with today's numbers.
 
 ## What each part means
 
@@ -51,6 +53,13 @@ It follows continuity and differentiability in Class 12 maths (derivatives of co
 
 Take y = sin(3x) at x = 0.5. The inner link is u = 3x, so u = 1.5 and du/dx = 3. The outer link is y = sin u, so y = sin 1.5 ≈ 0.997 and dy/du = cos 1.5 ≈ 0.0707. Multiply: dy/dx = 0.0707 × 3 ≈ 0.2122. The nudge table agrees: with Δx = 0.001 it gives about 0.21. Slide x to about 0.52 and cos(3x) reaches 0: the y gear stops for a moment and the graph is at the top of its wave.
 
+## Common mistakes
+
+- Leaving out the inner derivative: d/dx sin(3x) is 3 cos(3x), not cos(3x).
+- Changing the inside of the outer function: the derivative of sin u is cos u, with u left as it was.
+- Mixing up the order for three links: take the outermost first, then multiply inwards.
+- Using degrees: these slopes assume radians.
+
 ## Tips
 
 - Always write the outer derivative with the inside left alone: d/dx sin(x²) = cos(x²) × 2x, not cos(2x).
@@ -58,6 +67,8 @@ Take y = sin(3x) at x = 0.5. The inner link is u = 3x, so u = 1.5 and du/dx = 3.
 - Put ln outside e^(inside) and the rates always multiply to 1, since ln(eˣ) = x.
 
 ## FAQ
+
+**How do I use the chain rule to differentiate sin(3x)?** Pick sin outside and 3 × (inside) inside: the answer is cos(3x) × 3, which is 3 cos(3x).
 
 **Why do the rates multiply and not add?** Because each gear scales the turn of the one before it. Scaling by 3 and then by 2 is scaling by 6.
 

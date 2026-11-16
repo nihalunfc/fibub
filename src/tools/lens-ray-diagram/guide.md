@@ -11,7 +11,7 @@ ads: false
 order: 1002
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [mirror-ray-diagram, lens-ray-tracer, telescope-calculator]
 sources:
   - "Lens formula 1/v − 1/u = 1/f, magnification m = v/u, power P = 1/f in dioptres, P = P₁ + P₂ for thin lenses in contact, and the New Cartesian sign convention: standard school optics, as taught in Class 10 and Class 12 physics. All numbers in the examples and questions are made up."
@@ -49,17 +49,30 @@ Solid lines are real light; dashed lines show where rays only seem to come from.
 
 Distances are measured from the optical centre O. The object is on the left, where light comes from, so u is negative; anything to the right of the lens is positive. A convex lens has a positive f, a concave lens a negative f. Then **1/v − 1/u = 1/f** and **m = v/u** work for every case. The **power** P = 1/f with f in metres, measured in dioptres (D): a convex lens of 50 cm is +2 D, a concave lens of 25 cm is −4 D. Lenses in contact simply add their powers.
 
+## Solve my numbers
+
+For a textbook question, use **Solve my numbers** below the picture. Choose what to find (image distance v, object distance u, or focal length f), choose the lens type, pick the unit your question uses (cm, m or mm) and type the other two values. Type u and f as plain sizes and the page puts the signs in for you; type v with its sign. The answer comes in one sentence with its unit and the nature of the image (real or virtual, upright or inverted, enlarged or diminished), and the working below shows the formula 1/v − 1/u = 1/f, your numbers put in with their signs, and the result. Five worked examples fill the boxes for you; they use round numbers of our own. If the object is exactly at the focus, or a value is blank or zero, you get a plain message and not a wrong number. For example, a convex lens of f = 12 cm making a real image 36 cm away needs the object 18 cm in front.
+
 ## Worked example
 
 The page opens with a convex lens of focal length 10 cm and the object 20 cm away, which is at 2F₁. With signs, u = −20 cm and f = +10 cm. Then 1/v = 1/10 + 1/(−20) = 0.05, so **v = 20 cm**: the image is at 2F₂ on the other side. The magnification is m = v/u = 20/(−20) = **−1**: same size, upside down, real. The power is 1/0.1 m = **+10 D**.
 
 Drag the object to 5 cm (inside F₁) and the formula gives v = −10 cm and m = +2: an upright image twice as tall, on the same side as the object. That is a magnifying glass. In Class 12 mode, put a −20 cm concave lens against the 10 cm lens: P = 10 + (−5) = +5 D, so the pair acts like one convex lens of 20 cm.
 
+## Common mistakes
+
+- Dropping the minus sign of u: the object is always on the incoming side, so u is negative.
+- Using cm in a power calculation: power in dioptres needs the focal length in metres.
+- Mixing the lens formula (1/v − 1/u = 1/f) with the mirror formula (1/v + 1/u = 1/f).
+- Calling a negative v "wrong": for a lens it just tells you which side the image is on.
+
 ## Check yourself
 
 Four short questions with fresh numbers each time: image distance, magnification, focal length and power. Type your answer with its sign and press **Check**; **Show working** reveals the steps. Nothing is saved or sent anywhere.
 
 ## FAQ
+
+**How do I find the image distance for my lens problem?** Choose Find: image distance v in Solve my numbers, type u and f, and the page applies 1/v − 1/u = 1/f with the signs and shows the working.
 
 **Why does the ray bend only once, in the middle of the lens?** For a thin lens the two bends at the front and back surfaces add up to one bend, so school diagrams (and this tool) draw it at the centre line.
 

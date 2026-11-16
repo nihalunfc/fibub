@@ -29,4 +29,27 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [mH, fr] = q1.match(/a ([\d.]+) mH inductor at ([\d.]+) Hz/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(2 * Math.PI * fr * mH / 1000)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'lcr: right answer accepted');
+  // ---- Solve your own numbers (the card at the top) ----
+  const S = (k) => `${R}.sv [data-k="${k}"]`;
+  const ans = () => page.textContent(S('answer'));
+  const fillS = async (k, v) => { await page.fill(S(k), v); await page.waitForTimeout(80); };
+  const selS = async (k, v) => { await page.selectOption(S(k), v); await page.waitForTimeout(80); };
+  const clearBad = async (what) => check(!/NaN|Infinity|undefined/.test(await ans() + await page.textContent(S('working'))), `solve: no NaN for ${what}`);
+  check((await ans()).includes('288 Ω') && (await ans()).includes('34.8 mA') && (await ans()).includes('−86°'), `solve: opening example (${await ans()})`);
+  await fillS('f', '0.05'); await selS('f-unit', 'kHz');
+  check((await ans()).includes('288 Ω'), 'solve: frequency in kHz');
+  await fillS('f', '50'); await selS('f-unit', 'Hz');
+  await selS('example', '1');
+  check((await ans()).includes('74.5 Ω') && (await ans()).includes('3.09 A') && (await ans()).includes('57.5°'), `solve: RL circuit (${await ans()})`);
+  await selS('example', '2');
+  check((await ans()).includes('159 Hz') && (await ans()).includes('Q is 20'), `solve: resonance and Q (${await ans()})`);
+  await selS('example', '3');
+  check((await ans()).includes('145 Ω'), `solve: capacitor reactance (${await ans()})`);
+  await selS('example', '4');
+  check((await ans()).includes('101 pF'), `solve: tuning capacitor (${await ans()})`);
+  await selS('find', 'Z'); await fillS('R', '10'); await fillS('f', '50'); await fillS('L', ''); await fillS('C', ''); await fillS('V', '');
+  check((await ans()).includes('impedance is 10 Ω') && (await ans()).includes('in step'), `solve: resistor only (${await ans()})`);
+  await fillS('R', '-5');
+  check((await ans()).includes('above zero'), 'solve: negative resistance message');
+  await clearBad('lcr');
 };

@@ -20,6 +20,21 @@ export default async ({ page, check, BASE }) => {
   check((await t('.lp-ans')) === 'No feasible point', 'lpp: infeasible');
   await page.selectOption(R + '.lp-st', 'farm'); await page.waitForTimeout(60);
   check((await t('.lp-ans')) === 'Maximum Z = 120', `lpp: farm (${await t('.lp-ans')})`);
+  // working and point check (furniture story first)
+  await page.selectOption(R + '.lp-st', 'furn'); await page.waitForTimeout(60);
+  { const w = await t('.lp-work'); check(w.includes('C (8, 4) is where line 1 meets line 2. Z = 50(8) + 30(4) = 520.') && w.includes('A (0, 0) is where x = 0 meets y = 0') && (await t('.lp-wk')).includes('The largest Z is 520'), `lpp: working (${w})`); }
+  await page.evaluate(() => document.querySelectorAll('.lpp details').forEach((d) => { d.open = true; }));
+  await page.fill(R + '[data-k="px"]', '9'); await page.fill(R + '[data-k="py"]', '4');
+  check((await t('.lp-ptans')).startsWith('No.') && (await t('.lp-ptans')).includes('line 1 (2x + y ≤ 20): the left side is 22'), `lpp: point fails (${await t('.lp-ptans')})`);
+  await page.fill(R + '[data-k="px"]', '3'); await page.fill(R + '[data-k="py"]', '3');
+  check((await t('.lp-ptans')).includes('feasible. Z = 240'), `lpp: point works (${await t('.lp-ptans')})`);
+  await page.click(R + '.lp-goal button[data-g=min]'); await page.waitForTimeout(60);
+  check((await t('.lp-work')).includes('A (0, 0)') && (await t('.lp-wk')).includes('The smallest Z is 0'), 'lpp: working follows minimise');
+  await page.click(R + '.lp-goal button[data-g=max]');
+  await page.selectOption(R + '.lp-st', 'diet'); await page.click(R + '.lp-goal button[data-g=max]'); await page.waitForTimeout(60);
+  check((await t('.lp-wk')).includes('no maximum'), 'lpp: unbounded working');
+  await page.selectOption(R + '.lp-st', 'none'); await page.waitForTimeout(60);
+  check((await t('.lp-wk')).includes('cannot all be true'), 'lpp: infeasible working');
   await page.selectOption(R + '.lp-st', 'own'); await page.waitForTimeout(60);
   check((await t('.lp-ans')) === 'Maximum Z = 21', `lpp: own default (${await t('.lp-ans')})`);
   await page.click(R + '.lp-add'); await page.waitForTimeout(60);

@@ -11,7 +11,7 @@ ads: false
 order: 1290
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [circle-sector, herons-formula, pythagoras-proofs]
 sources:
   - "Surface area and volume formulas for the cube, cuboid, cylinder, cone, sphere and hemisphere, and Archimedes' sphere-and-cylinder result, are standard geometry. Wording, pictures and examples are fibub's own."
@@ -56,6 +56,10 @@ Switch to the cone with the same r = 7 and h = 10: the slant height is √(49 + 
 
 Five fresh questions each time: a cuboid's total surface area, a cylinder's volume, a cone's slant height, a sphere's volume and a cone's share of a cylinder. Answers within 1% count, so working with π or 22/7 both pass. Nothing is saved.
 
+## Solve your own numbers
+
+The card at the top takes your own sizes. Choose the solid, then what to find: **volume**, **total surface area**, **curved (or lateral) surface area** or the **diagonal** of a cube or cuboid. You get the formula, your numbers put in, and the result with units, so it reads like a marked answer. For a cone you can give the height or the **slant height**. The last two options run backwards: the **radius (or side)** from a volume, and the **height** from a volume (for example, how tall is a cylinder that holds 3 litres?). Volumes can be in cm³, m³, litres or mL. Choose π as 22/7, 3.14 or exact. Zero or negative sizes and shapes without a height get a plain message.
+
 ## FAQ
 
 **What is the difference between curved and total surface area?** The curved (or lateral) surface is just the side: the label on a tin. The total adds the flat ends: the label plus the lid and the bottom.
@@ -63,3 +67,5 @@ Five fresh questions each time: a cuboid's total surface area, a cylinder's volu
 **Why is the cone exactly one third?** You can see it by pouring, and prove it with calculus or by Cavalieri's principle. A pyramid is a third of its prism for the same reason.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do I find the volume of a solid?** Pick the solid, type its sizes and read the formula with your numbers put in: for a cylinder πr²h, for a cone a third of that, for a sphere ⁴⁄₃πr³.

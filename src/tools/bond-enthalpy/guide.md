@@ -12,9 +12,10 @@ ads: false
 order: 1362
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [gibbs-explorer, thermochemistry-calculator, lewis-structures, heating-curve]
 sources:
+  - "1 kcal = 4.184 kJ (thermochemical calorie, used for the kcal/mol option). The 'Solve your own numbers' card uses the same rounded average bond enthalpies and the formula ΔH = Σ broken − Σ made as the rest of the page; checked 2026-11-16 against hand-worked examples."
   - "Standard method: ΔH ≈ Σ(bond enthalpies of bonds broken) − Σ(bond enthalpies of bonds made). The bond values are rounded average bond enthalpies (general chemistry facts) and can be edited. Written for fibub; no textbook text, figures or exercises are used."
   - "Every preset checked by an independent hand sum in Python with the same rounded values (methane −802, H₂ + Cl₂ −183, water −482, ammonia −93 kJ/mol and others)."
 flow:
@@ -59,6 +60,10 @@ A C–H bond in methane is not exactly as strong as one in ethanol. Tables give 
 
 Three questions with fresh numbers: ΔH for H₂ + X₂, the energy to break all the C–H bonds in an alkane, and whether a reaction is exothermic. Nothing is saved.
 
+## Solve your own numbers
+
+The card at the top takes the numbers from your question. Type **how many of each bond** is broken and **the energy of each** (for example `4 2` and `413 498`), then the same for the bonds made, and it gives ΔH with the working: energy in, energy out, then broken minus made. Energies can be in kJ/mol or kcal/mol (1 kcal = 4.184 kJ, so the answer is also shown in both). Switch **Find** to *An unknown bond energy* to do the other common exam question: give ΔH, the bonds you know and how many of the unknown bond there are, say whether it is broken or made, and it solves for the average bond enthalpy. Four examples are in the **Example** list, one of them in kcal. Blank, mismatched or impossible inputs (for instance a negative bond energy) get a plain message instead of a number. A reminder under the answer covers the usual slip: turning the formula round to made minus broken.
+
 ## FAQ
 
 **Why is breaking a bond "+"?** You have to put energy in to pull atoms apart, so it counts as energy taken in by the system.
@@ -66,3 +71,5 @@ Three questions with fresh numbers: ΔH for H₂ + X₂, the energy to break all
 **Do I count bonds per molecule or per equation?** Per equation as written: 2H₂O has four O–H bonds.
 
 **Is this from my textbook?** It covers the standard school topic with its own examples and pictures. It is an independent study aid, not part of NCERT.
+
+**How do I calculate enthalpy change from bond energies?** Add up the energy of every bond broken, add up the energy of every bond made, and subtract: ΔH = broken − made. The card above does this for the bonds you type, and shows each step.

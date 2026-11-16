@@ -15,8 +15,8 @@ import '../../styles/smath.css';
       </div>
     </div>
     <div class="lp-eqs">
-      <div class="lp-eq" data-n="1"><span class="lp-tag">(1)</span><input type="number" class="lp-a1" value="2" step="1" inputmode="decimal" aria-label="a1" /><i>x</i> + <input type="number" class="lp-b1" value="3" step="1" inputmode="decimal" aria-label="b1" /><i>y</i> = <input type="number" class="lp-c1" value="12" step="1" inputmode="decimal" aria-label="c1" /></div>
-      <div class="lp-eq lp-second" data-n="2"><span class="lp-tag">(2)</span><input type="number" class="lp-a2" value="1" step="1" inputmode="decimal" aria-label="a2" /><i>x</i> + <input type="number" class="lp-b2" value="-1" step="1" inputmode="decimal" aria-label="b2" /><i>y</i> = <input type="number" class="lp-c2" value="1" step="1" inputmode="decimal" aria-label="c2" /></div>
+      <div class="lp-eq" data-n="1"><span class="lp-tag">(1)</span><input type="number" class="lp-a1" data-k="a1" value="2" step="1" inputmode="decimal" aria-label="a1" /><i>x</i> + <input type="number" class="lp-b1" data-k="b1" value="3" step="1" inputmode="decimal" aria-label="b1" /><i>y</i> = <input type="number" class="lp-c1" data-k="c1" value="12" step="1" inputmode="decimal" aria-label="c1" /></div>
+      <div class="lp-eq lp-second" data-n="2"><span class="lp-tag">(2)</span><input type="number" class="lp-a2" data-k="a2" value="1" step="1" inputmode="decimal" aria-label="a2" /><i>x</i> + <input type="number" class="lp-b2" data-k="b2" value="-1" step="1" inputmode="decimal" aria-label="b2" /><i>y</i> = <input type="number" class="lp-c2" data-k="c2" value="1" step="1" inputmode="decimal" aria-label="c2" /></div>
     </div>
     <div class="ax-row lp-pres" style="margin-top:8px">
       <button type="button" class="btn secondary small" data-p="2,3,12,1,-1,1">Cross</button>
@@ -24,7 +24,10 @@ import '../../styles/smath.css';
       <button type="button" class="btn secondary small" data-p="1,2,3,2,4,6">Same line</button>
       <button type="button" class="btn secondary small" data-p="3,-5,-4,9,2,7">Fractions</button>
     </div>
+    <div class="ax-row lp-word" role="group" aria-label="Word problems"><span class="ax-help" style="margin:0">Word problems</span></div>
+    <p class="ax-help lp-story" hidden></p>
     <p class="ax-big lp-eqtxt" style="margin:10px 0 4px"></p>
+    <p class="lp-ans" aria-live="polite"></p>
     <svg class="sm-fig lp-fig" viewBox="0 0 340 340" role="img" aria-label="Graph of the two lines"></svg>
     <p class="ax-help lp-note"></p>
     <p class="ax-err lp-err" hidden></p>
@@ -34,6 +37,11 @@ import '../../styles/smath.css';
     <h2>The ratio test</h2>
     <p class="sm-f lp-ratios"></p>
     <p class="lp-kind"></p>
+    <details class="lp-k"><summary>More options: find k</summary>
+      <p class="ax-help">For questions like "for what k has the pair no solution or infinitely many?". Equation (1) is used as typed. In equation (2), choose which coefficient is k (what you typed there is ignored); the other two are used.</p>
+      <label class="lp-kl">k is <select class="lp-kw" data-k="k-which"><option value="a2">a2 (the number with x)</option><option value="b2">b2 (the number with y)</option><option value="c2">c2 (the right-hand side)</option></select></label>
+      <p class="lp-kans" aria-live="polite"></p>
+    </details>
   </div>
 
   <div class="ax-card lp-c10">
@@ -42,6 +50,12 @@ import '../../styles/smath.css';
     <ol class="sm-steps lp-sub"></ol>
     <h3>Elimination</h3>
     <ol class="sm-steps lp-elim"></ol>
+    <details class="lp-cross"><summary>More options: cross-multiplication</summary>
+      <ol class="sm-steps lp-cm"></ol>
+    </details>
+    <h3>Check your answer</h3>
+    <ul class="sm-steps lp-ver"></ul>
+    <p class="ax-help">Common mistakes: changing the sign of only one side when you move a term, and forgetting to multiply every term (including the right-hand side) when you scale an equation.</p>
   </div>
 
   <div class="ax-card lp-c9" hidden>
@@ -75,6 +89,7 @@ import '../../styles/smath.css';
   .lp .lp-tag { color: var(--muted); font-size: 13px; flex: 0 0 1.8em; }
   .lp .lp-eq[data-n="2"] .lp-tag { color: var(--good); }
   .lp .lp-eq[data-n="1"] .lp-tag { color: var(--accent); }
+  .lp .lp-ans { font-size: 20px; font-weight: 700; margin: 6px 0; overflow-wrap: anywhere; } .lp .lp-word { gap: 6px; } .lp details { margin: 10px 0; } .lp summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; font-weight: 600; } .lp .lp-kans { font-weight: 600; overflow-wrap: anywhere; } .lp .lp-kl { display: flex; gap: 8px; align-items: center; color: var(--ink); }
   .lp h3 { font-size: 15px; margin: 14px 0 4px; }
   .lp svg .lp-l1 { stroke: var(--accent); stroke-width: 3; }
   .lp svg .lp-l2 { stroke: var(--good); stroke-width: 3; }
@@ -82,7 +97,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { solve, ratioTest, substitution, elimination, eqText, type Line } from '../../lib/sci/linpair-school';
+  import { solve, ratioTest, substitution, elimination, eqText, answerLine, verify, crossMultiplication, findK, WORD_PRESETS, type Line } from '../../lib/sci/linpair-school';
   import { fmt, randInt, fracText } from '../../lib/sci/smath';
   import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
 
@@ -116,11 +131,12 @@ import '../../styles/smath.css';
     root.querySelectorAll<HTMLElement>('.lp-c10').forEach((e) => (e.hidden = level !== 10));
     q('.lp-c9').hidden = level !== 9; q('.lp-second').hidden = level !== 10;
     const err = q('.lp-err'), L = lines();
-    if (!L) { err.textContent = 'Fill in every box with a number.'; err.hidden = false; return; }
+    if (!L) { err.textContent = 'Fill in every box with a number.'; err.hidden = false; q('.lp-ans').textContent = ''; return; }
     const [l1, l2] = L;
     const bad = (l: Line) => l.a === 0 && l.b === 0;
-    if (bad(l1) || (level === 10 && bad(l2))) { err.textContent = 'Each equation needs an x or a y term (a and b cannot both be 0).'; err.hidden = false; return; }
+    if (bad(l1) || (level === 10 && bad(l2))) { err.textContent = 'Each equation needs an x or a y term (a and b cannot both be 0).'; err.hidden = false; q('.lp-ans').textContent = ''; return; }
     err.hidden = true;
+    q('.lp-ans').textContent = level === 10 ? answerLine(l1, l2) : '';
     q('.lp-eqtxt').textContent = level === 10 ? `${eqText(l1)},  ${eqText(l2)}` : eqText(l1);
     fig.replaceChildren();
     for (let x = W0; x <= W1; x += 2) { S('line', { x1: px(x), x2: px(x), y1: Lp, y2: Rp, class: 'sm-grid' }, fig); S('line', { x1: Lp, x2: Rp, y1: py(x), y2: py(x), class: 'sm-grid' }, fig); }
@@ -143,6 +159,9 @@ import '../../styles/smath.css';
       const r = ratioTest(l1, l2);
       q('.lp-ratios').textContent = `a1/a2 = ${r.a},  b1/b2 = ${r.b},  c1/c2 = ${r.c}${r.sign ? `,  so ${r.sign}` : ''}.`;
       q('.lp-kind').replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill ' + (r.kind === 'unique' ? 'good' : r.kind === 'parallel' ? 'bad' : 'warn'), textContent: r.kind === 'unique' ? 'One solution' : r.kind === 'parallel' ? 'No solution' : 'Infinitely many' }), ' ', r.words);
+      q('.lp-cm').replaceChildren(...crossMultiplication(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+      q('.lp-ver').replaceChildren(...verify(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+      kRun(l1, l2);
       q('.lp-sub').replaceChildren(...substitution(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
       q('.lp-elim').replaceChildren(...elimination(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
     } else {
@@ -160,9 +179,25 @@ import '../../styles/smath.css';
     }
   }
 
-  for (const n of ['a1', 'b1', 'c1', 'a2', 'b2', 'c2']) I(n).addEventListener('input', draw);
+  function kRun(l1: Line, l2: Line) {
+    const w = q<HTMLSelectElement>('.lp-kw').value as 'a2' | 'b2' | 'c2', out = q('.lp-kans');
+    const r = findK(l1, l2, w);
+    if (!r.ok) { out.textContent = r.why; return; }
+    const kp = (v: number) => fmt(v, 4);
+    out.textContent = w === 'c2'
+      ? `k = ${kp(r.k)} makes the lines the same line (infinitely many solutions); any other c2 gives parallel lines (no solution). ${r.note}`
+      : `k = ${kp(r.k)} ${r.same ? 'gives infinitely many solutions (the same line).' : 'gives no solution (parallel lines), with your c2.'} ${r.note}`;
+  }
+  q('.lp-kw').addEventListener('change', draw);
+  const wrow = q('.lp-word');
+  WORD_PRESETS.forEach((wp) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = wp.label; b.dataset.p = wp.p.join(',');
+    b.addEventListener('click', () => { level = 10; root.querySelectorAll('.lp-level button').forEach((x) => x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.l === '10'))); wp.p.forEach((v, i) => { I(['a1', 'b1', 'c1', 'a2', 'b2', 'c2'][i]).value = String(v); }); q('.lp-story').textContent = wp.story; q('.lp-story').hidden = false; draw(); });
+    wrow.append(b);
+  });
+  for (const n of ['a1', 'b1', 'c1', 'a2', 'b2', 'c2']) I(n).addEventListener('input', () => { q('.lp-story').hidden = true; draw(); });
   root.querySelectorAll<HTMLButtonElement>('.lp-pres button').forEach((btn) => btn.addEventListener('click', () => {
-    btn.dataset.p!.split(',').forEach((v, i) => { I(['a1', 'b1', 'c1', 'a2', 'b2', 'c2'][i]).value = v; }); draw();
+    btn.dataset.p!.split(',').forEach((v, i) => { I(['a1', 'b1', 'c1', 'a2', 'b2', 'c2'][i]).value = v; }); q('.lp-story').hidden = true; draw();
   }));
   root.querySelectorAll<HTMLButtonElement>('.lp-level button').forEach((btn) => btn.addEventListener('click', () => {
     level = Number(btn.dataset.l); root.querySelectorAll('.lp-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn))); draw();

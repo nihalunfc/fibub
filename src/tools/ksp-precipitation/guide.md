@@ -12,7 +12,7 @@ ads: false
 order: 1363
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [le-chatelier, ph-scale-explorer, equilibrium-solver, mole-bridge]
 sources:
   - "Standard ionic equilibrium: Ksp = [M]^a[X]^b, ionic product Q, dilution on mixing c₁V₁/(V₁ + V₂), molar solubility s = (Ksp / aᵃbᵇ)^(1/(a+b)) and the common ion effect. Ksp values are rounded typical values near 25 °C, labelled as such and editable. Written for fibub; no textbook text, figures or exercises are used."
@@ -39,6 +39,17 @@ It follows ionic equilibrium in Class 11 chemistry (solubility product and the c
 3. The facts give Q, how much solid forms (mol/L and mol), and what is left in solution.
 4. **Solubility.** See the molar solubility s in pure water, then add some extra cation or anion and watch s fall.
 
+## Solve your own numbers
+
+The card at the top takes the numbers from your question and answers in one sentence, with the working underneath like an exam answer. Choose what to find:
+
+- **Will a solid form? (mixing).** Pick the type of salt (AB, AB₂, A₂B and so on), type Ksp, then the concentration and volume of each solution. It dilutes both ions, works out Q, compares it with Ksp and, if a solid forms, says how much comes out. Volumes can be in mL or L, concentrations in mol/L or mmol/L.
+- **Solubility from Ksp.** Gives s in mol/L, with the Ksp = 4s³ style line for your salt type. Add a common ion to see how far s falls.
+- **Ksp from solubility.** Type s in mol/L, mmol/L, or g/L together with the molar mass.
+- **Ion level that starts a solid.** Type the ion you know and get how much of the other ion makes Q reach Ksp.
+
+Six worked-example presets fill the card. Blank, zero, negative or impossible entries give a friendly message instead of a number. Common mistakes: forgetting that mixing dilutes both solutions, and forgetting that the anion is squared in AB₂ salts. For other equilibrium constants use the [[equilibrium-solver]].
+
 ## Worked example
 
 Mix 10 mL of 1 × 10⁻⁴ mol/L silver nitrate with 10 mL of 1 × 10⁻⁴ mol/L sodium chloride. The volume doubles, so each ion is now **5 × 10⁻⁵ mol/L**.
@@ -52,6 +63,8 @@ In pure water, s(AgCl) = √(1.8 × 10⁻¹⁰) = **1.34 × 10⁻⁵ mol/L**. Fo
 Three questions with fresh numbers: does a solid form on mixing, the molar solubility from Ksp, and the solubility with a common ion. Type small numbers like 4e-5. Nothing is saved.
 
 ## FAQ
+
+**How do I know if a precipitate forms?** Work out Q after mixing and compare it with Ksp: a solid forms only if Q is bigger.
 
 **Why does mixing matter?** Each solution dilutes the other, so the concentrations in the beaker are smaller than in the bottles.
 

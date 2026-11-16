@@ -27,4 +27,36 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [Rk, l] = q1.match(/a ([\d.]+) Ω resistor in the right gap, the balance point is ([\d.]+) cm/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((Rk * l) / (100 - l))); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'bridge: right answer accepted');
+
+  // "Solve my numbers" card helpers
+  const sv = (ns, root = '') => ({
+    ans: () => page.textContent(`${root}[data-k="${ns}-answer"]`),
+    work: () => page.textContent(`${root}[data-k="${ns}-working"]`),
+    find: (v) => page.selectOption(`${root}[data-k="${ns}-find"]`, v),
+    ex: (i) => page.selectOption(`${root}[data-k="${ns}-example"]`, String(i)),
+    ch: (k, v) => page.selectOption(`${root}[data-k="${ns}-${k}"]`, v),
+    set: async (k, v, u) => { await page.fill(`${root}[data-k="${ns}-${k}"]`, v); if (u) await page.selectOption(`${root}[data-k="${ns}-${k}-unit"]`, u); },
+    clear: () => page.click(`${root}.sv-clear`),
+  });
+  {
+    const s = sv('br');
+    await page.locator('[data-k="br-answer"]').scrollIntoViewIfNeeded();
+    check((await s.ans()) === 'The unknown resistance is X = 6.67 Ω.', `bridge solve: metre bridge (${await s.ans()})`);
+    check((await s.work()).includes('X = R l ÷ (L − l) = 10 × 40 ÷ (100 − 40) = 6.67 Ω'), 'bridge solve: working');
+    await s.ex(1); check((await s.ans()) === 'The unknown resistance is X = 3.33 Ω.', `bridge solve: X in the right gap (${await s.ans()})`);
+    await s.ex(2); check((await s.ans()) === 'The jockey balances at l = 60 cm from the left end.', `bridge solve: balance length (${await s.ans()})`);
+    await s.ex(3); check((await s.ans()) === 'For balance, S must be 25 Ω.', `bridge solve: fourth arm (${await s.ans()})`);
+    await s.ex(4); check((await s.ans()).startsWith('Balanced'), `bridge solve: balanced (${await s.ans()})`);
+    await s.set('wS', '40'); check((await s.ans()).startsWith('Not balanced'), `bridge solve: not balanced (${await s.ans()})`);
+    await s.ch('arm', 'P'); await s.clear(); await s.set('wQ', '10'); await s.set('wR', '250'); await s.set('wS', '25');
+    check((await s.ans()) === 'For balance, P must be 100 Ω.', `bridge solve: find P (${await s.ans()})`);
+    // Units and the wire length
+    await s.find('mb'); await s.ch('side', 'left'); await s.clear(); await s.set('Rk', '10', 'Ω'); await s.set('l', '0.4', 'm');
+    check((await s.ans()) === 'The unknown resistance is X = 6.67 Ω.', `bridge solve: metres accepted (${await s.ans()})`);
+    await s.set('l', '100', 'cm'); await s.set('L', '200', 'cm'); check((await s.ans()) === 'The unknown resistance is X = 10 Ω.', `bridge solve: 200 cm wire (${await s.ans()})`);
+    await s.set('L', '', 'cm'); check((await s.ans()).includes('less than the whole wire'), `bridge solve: l at the end (${await s.ans()})`);
+    await s.set('l', '0'); check((await s.ans()).includes('A balance length of 0 cm'), 'bridge solve: l = 0');
+    await s.clear(); check((await s.ans()).startsWith('Fill in'), 'bridge solve: blank asks for numbers');
+    check(!/NaN|Infinity/.test(await page.textContent('.wsb-solve')), 'bridge solve: never NaN or Infinity');
+  }
 };

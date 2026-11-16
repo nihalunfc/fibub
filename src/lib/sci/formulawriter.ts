@@ -73,3 +73,28 @@ export function formulaMass(formula: string, school: boolean): { rows: MassRow[]
 
 /** Atoms of each kind in one formula unit, e.g. Al2(SO4)3 → Al 2, S 3, O 12. */
 export const atomsIn = (formula: string) => byElement(parseFormula(formula));
+
+/** Percent by mass of each element in a formula (rounded or exact atomic masses). */
+export function percentComposition(formula: string, school: boolean) {
+  const m = formulaMass(formula, school);
+  return { total: m.total, rows: m.rows.map((r) => ({ ...r, percent: (r.subtotal / m.total) * 100 })) };
+}
+
+/** Find the cation and anion named in text such as "calcium nitrate" or "iron(III) oxide". Returns null when either is not found. */
+export function findByName(text: string): { cat: Ion; an: Ion } | null {
+  const t = text.toLowerCase().replace(/[−–]/g, '-').replace(/\s+/g, ' ').replace(/\bsulphate\b/, 'sulfate').replace(/\bsulphide\b/, 'sulfide').replace(/\bsulphite\b/, 'sulfite').replace(/\baluminum\b/, 'aluminium').replace(/\bbicarbonate\b/, 'hydrogencarbonate')
+    .replace(/\b(iron|copper|lead)\s*\(?\s*(iii|ii|i|3|2|1)\s*\)?/g, (_, e, n) => `${e}(${({ '3': 'iii', '2': 'ii', '1': 'i' } as Record<string, string>)[n] ?? n})`);
+  const an = ANIONS.filter((x) => t.includes(x.name.toLowerCase())).sort((x, y) => y.name.length - x.name.length)[0];
+  if (!an) return null;
+  const rest = t.replace(an.name.toLowerCase(), ' ');
+  const cat = CATIONS.filter((x) => rest.includes(x.name.toLowerCase())).sort((x, y) => rest.indexOf(x.name.toLowerCase()) - rest.indexOf(y.name.toLowerCase()) || y.name.length - x.name.length)[0];
+  if (!cat) return null;
+  return { cat, an };
+}
+
+/** Moles from a mass in grams and a molar mass in g/mol, plus the number of formula units. */
+export function molesFromGrams(grams: number, molar: number) {
+  if (!(molar > 0)) throw new Error('The molar mass must be above zero.');
+  const mol = grams / molar;
+  return { mol, units: mol * 6.02214076e23 };
+}

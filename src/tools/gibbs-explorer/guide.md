@@ -11,10 +11,11 @@ ads: false
 order: 1361
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [thermochemistry-calculator, le-chatelier, galvanic-cell, heating-curve]
 sources:
   - "Standard thermodynamics: ΔG = ΔH − TΔS, ΔG° = −RT ln K and ΔG° = −nFE°. R and F from CODATA 2018. Preset ΔH and ΔS values are rounded general reference values, labelled as rounded. Written for fibub; no textbook text, figures or exercises are used."
+  - "Water boiling example in Solve my numbers: ΔH(vap) about 40.7 kJ/mol and ΔS(vap) about 109 J/(K·mol), rounded general reference values (CRC Handbook), giving T = ΔH/ΔS of about 373 K. The other examples use made-up round numbers."
   - "Checked against values worked by hand in independent Python: ice melting (T = 273.18 K), ammonia synthesis (ΔG at 298 K = −32.99 kJ/mol, K ≈ 6.05 × 10⁵, turn-over 464.0 K) and limestone decomposing (turn-over 1110.9 K)."
 flow:
   - { icon: flask, label: "Reaction" }
@@ -39,6 +40,12 @@ It follows thermodynamics in Class 11 chemistry, and its Class 12 level links to
 4. The **table of four sign cases** lights up the row your reaction belongs to.
 5. **Class 12 level** adds the equilibrium constant K = e^(−ΔG°/RT) and the cell voltage E° = −ΔG°/(nF) for n electrons moved.
 
+## Solve my numbers
+
+The second card is for textbook problems. Choose what the question asks for (ΔG, T, ΔH or ΔS), type the other three, and read the answer in one plain sentence with the working underneath: the formula, your numbers put in, and the result to three significant figures. Each box has a unit choice, so you can enter ΔH in J/mol, ΔS in kJ/(K·mol) or T in °C and the page converts first and shows the conversion. Four example problems are one tap away (boiling point of water, ΔG at 300 K, ΔS from ΔG, and the ammonia crossover). A blank box, a zero ΔS when solving for T, or an answer below 0 K gets a short message instead of a number. **Show this on the graph above** copies the solved values into the sliders.
+
+Common mistakes: ΔS in joules with ΔH in kilojoules, and temperature in °C instead of K.
+
 ## Worked example
 
 Making ammonia, N₂ + 3H₂ → 2NH₃, has ΔH = −92.2 kJ/mol and ΔS = −198.7 J/(K·mol). At 298 K:
@@ -61,6 +68,8 @@ For ice, ΔH = +6.01 kJ/mol and ΔS = +22.0 J/(K·mol): T = 6010 ÷ 22.0 = **273
 Four questions with fresh numbers: ΔG at a temperature, the temperature where a change becomes spontaneous, which sign case applies, and K from ΔG°. Nothing is saved.
 
 ## FAQ
+
+**How do I find the temperature at which a reaction becomes spontaneous?** Set ΔG = 0 and solve ΔG = ΔH − TΔS for T, so T = ΔH ÷ ΔS (ΔS in kJ/(K·mol)); pick "T" in Solve my numbers, type ΔH and ΔS, and it does it with the working.
 
 **Why divide ΔS by 1000?** ΔH is in kilojoules but ΔS is usually given in joules per kelvin. Mixing them is the most common slip.
 

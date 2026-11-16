@@ -19,6 +19,19 @@ import '../../styles/chemquiz.css';
     <p class="pa-note ax-help"></p>
   </div>
 
+  <div class="ax-card pn">
+    <h2>Chance for the next child</h2>
+    <p class="ax-help" style="margin-top:0">Once you know the pattern, work out the odds for a couple's next baby from the parents' genotypes.</p>
+    <label>Pattern <select class="pn-m" data-k="pattern"><option value="AR">Autosomal recessive</option><option value="AD">Autosomal dominant</option><option value="XR">X-linked recessive</option><option value="XD">X-linked dominant</option><option value="Y">Y-linked</option></select></label>
+    <div class="ax-grid">
+      <label class="pn-mo">Mother <select class="pn-mk" data-k="mother"></select></label>
+      <label>Father <select class="pn-fk" data-k="father"></select></label>
+    </div>
+    <p class="ax-big pn-ans" data-k="answer" aria-live="polite" style="font-size:1.1rem"></p>
+    <ol class="pn-work"></ol>
+    <p class="ax-help">Common mistakes: forgetting that every daughter gets her father's X, expecting a carrier father to give an X-linked recessive trait to his sons, and treating each child's chance as depending on the earlier children (every birth has the same odds). For other crosses use the Punnett square tool.</p>
+  </div>
+
   <div class="ax-card">
     <h2>Try this</h2>
     <ul class="lx-try">
@@ -37,6 +50,8 @@ import '../../styles/chemquiz.css';
 </div>
 
 <style is:inline>
+  .pn select { font-size: 16px; min-height: 44px; }
+  .pn-work { margin: 6px 0; padding-left: 22px; display: grid; gap: 3px; font-size: 15px; }
   .pa-pre { display: flex; flex-wrap: wrap; gap: 6px; }
   .pa-svg { display: block; width: 100%; max-width: 480px; margin: 10px auto 4px; touch-action: manipulation; }
   .pa .ln { fill: none; stroke: var(--ink); stroke-width: 1.6; }
@@ -56,7 +71,7 @@ import '../../styles/chemquiz.css';
 </style>
 
 <script>
-  import { LAYOUT, MODES, PRESETS, family, fit, reason, type Mode, type Sex } from '../../lib/sci/pedigreefit';
+  import { LAYOUT, MODES, PRESETS, family, fit, reason, childChance, type Mode, type Sex } from '../../lib/sci/pedigreefit';
   import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
 
   const root = document.querySelector<HTMLElement>('.pa')!;
@@ -114,6 +129,44 @@ import '../../styles/chemquiz.css';
   }
   root.querySelectorAll<HTMLButtonElement>('.pa-tap button').forEach((b) => b.addEventListener('click', () => { tap = b.dataset.t as typeof tap; render(); }));
   render();
+
+  // Chance for the next child
+  type Opt = [number, string];
+  const PN: Record<Mode, { m: Opt[]; f: Opt[] }> = {
+    AR: { m: [[0, 'Unaffected, not a carrier (AA)'], [1, 'Carrier, unaffected (Aa)'], [2, 'Affected (aa)']], f: [[0, 'Unaffected, not a carrier (AA)'], [1, 'Carrier, unaffected (Aa)'], [2, 'Affected (aa)']] },
+    AD: { m: [[0, 'Unaffected (aa)'], [1, 'Affected, one allele (Aa)'], [2, 'Affected, two alleles (AA)']], f: [[0, 'Unaffected (aa)'], [1, 'Affected, one allele (Aa)'], [2, 'Affected, two alleles (AA)']] },
+    XR: { m: [[0, 'Unaffected, not a carrier (XA XA)'], [1, 'Carrier, unaffected (XA Xa)'], [2, 'Affected (Xa Xa)']], f: [[0, 'Unaffected (XA Y)'], [1, 'Affected (Xa Y)']] },
+    XD: { m: [[0, 'Unaffected (Xd Xd)'], [1, 'Affected, one allele (XD Xd)'], [2, 'Affected, two alleles (XD XD)']], f: [[0, 'Unaffected (Xd Y)'], [1, 'Affected (XD Y)']] },
+    Y: { m: [[0, 'Not applicable (no Y chromosome)']], f: [[0, 'Unaffected'], [1, 'Affected']] },
+  };
+  const frac = (p: number) => (p === 0.25 ? '1/4' : p === 0.5 ? '1/2' : p === 0.75 ? '3/4' : String(p));
+  const pc = (p: number) => (p === 0 ? '0%' : p === 1 ? '100%' : `${p * 100}% (${frac(p)})`);
+  const PND: Record<Mode, [number, number]> = { AR: [1, 1], AD: [1, 0], XR: [1, 0], XD: [0, 1], Y: [0, 1] };
+  function pnFill(sel: HTMLSelectElement, opts: Opt[], def: number) { sel.replaceChildren(...opts.map(([v, t]) => { const o = document.createElement('option'); o.value = String(v); o.textContent = t; return o; })); sel.value = String(def); }
+  function pnRun(refill: boolean) {
+    const mode = q<HTMLSelectElement>('.pn-m').value as Mode, mk = q<HTMLSelectElement>('.pn-mk'), fk = q<HTMLSelectElement>('.pn-fk');
+    if (refill) { pnFill(mk, PN[mode].m, PND[mode][0]); pnFill(fk, PN[mode].f, PND[mode][1]); }
+    mk.disabled = mode === 'Y';
+    const m = Number(mk.value), f = Number(fk.value), r = childChance(mode, m, f), work = q('.pn-work'), steps: string[] = [];
+    const g = (k: number) => (k === 0 ? 0 : k === 1 ? 0.5 : 1);
+    if (mode === 'AR' || mode === 'AD') {
+      q('.pn-ans').textContent = `Each child, boy or girl, has a ${pc(r.son)} chance of being affected.`;
+      steps.push(`Each parent passes on one allele. Mother passes the trait allele ${pc(g(m))} of the time and father ${pc(g(f))}.`);
+      steps.push(mode === 'AR' ? 'A recessive trait shows only when the child gets the trait allele from both parents, so multiply: mother × father.' : 'A dominant trait shows when the child gets the trait allele from at least one parent: 1 − (chance of getting none from either).');
+      steps.push(mode === 'AR' ? `${pc(g(m))} × ${pc(g(f))} = ${pc(r.son)}.` : `1 − (1 − ${g(m)}) × (1 − ${g(f)}) = ${pc(r.son)}.`);
+    } else if (mode === 'Y') {
+      q('.pn-ans').textContent = `A son has a ${pc(r.son)} chance of being affected; a daughter has a ${pc(r.daughter)} chance.`;
+      steps.push('A Y chromosome goes from father to every son and to no daughter, unchanged.', f === 1 ? 'The father is affected, so every son is affected and no daughter is.' : 'The father is unaffected, so no child is affected.');
+    } else {
+      q('.pn-ans').textContent = `A son has a ${pc(r.son)} chance of being affected; a daughter has a ${pc(r.daughter)} chance.`;
+      steps.push(`A son gets his only X from his mother, who passes the trait allele ${pc(g(m))} of the time, and a Y from his father: son = ${pc(r.son)}.`);
+      steps.push(`A daughter gets her father's X (${f === 1 ? 'it carries the trait allele' : 'it does not carry the trait allele'}) and one of her mother's: daughter = ${pc(r.daughter)}.`);
+    }
+    work.replaceChildren(...steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+  }
+  q('.pn-m').addEventListener('change', () => pnRun(true));
+  q('.pn-mk').addEventListener('change', () => pnRun(false)); q('.pn-fk').addEventListener('change', () => pnRun(false));
+  pnRun(true);
 
   mountQuiz(q('.cq'), (): Question[] => {
     const probs = [

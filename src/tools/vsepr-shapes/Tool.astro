@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 import { EXAMPLES } from '../../lib/sci/vsepr';
 const CENTRES = ['Be', 'B', 'Al', 'C', 'Si', 'N', 'P', 'O', 'S', 'Se', 'F', 'Cl', 'Br', 'I', 'Xe', 'Kr'];
+const typedChips = [['SF4', 'SF₄'], ['XeF2', 'XeF₂'], ['NH4+', 'NH₄⁺'], ['SO4^2-', 'SO₄²⁻'], ['ClF3', 'ClF₃'], ['PCl5', 'PCl₅'], ['H2O', 'H₂O'], ['CO3^2-', 'CO₃²⁻']];
 const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
 ---
 <div class="ax vsp">
@@ -39,6 +40,35 @@ const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
     <button type="button" class="btn small vs-show">Show this shape above</button>
   </div>
 
+  <div class="ax-card vs-typed">
+    <h2>Type a formula</h2>
+    <label>Formula <input class="vs-tf" data-k="formula" value="SF4" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-help">One central atom and one kind of outer atom: SF4, XeF2, NH4+, H2O. Write a charge with ^ if it has a number: SO4^2-, CO3^2-.</p>
+    <div class="vs-chips" role="group" aria-label="Examples">{typedChips.map((c) => <button type="button" class="vs-chip" data-f={c[0]}>{c[1]}</button>)}</div>
+    <p class="ax-err vs-terr" hidden></p>
+    <p class="ax-big vs-tbig" data-k="answer" aria-live="polite"></p>
+    <p class="vs-tline"></p>
+    <ol class="vs-tsteps"></ol>
+    <button type="button" class="btn small vs-tshow">Show this shape above</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>All the shapes in one table</h2>
+    <p class="ax-help" style="margin-top:0">The common shapes by bonded atoms (X) and lone pairs (E), for revision. Tap a row to turn it above.</p>
+    <details class="vs-all"><summary>Show the table</summary>
+      <div class="ax-scroll"><table class="vs-tab"><thead><tr><th>Type</th><th>Pairs</th><th>Shape</th><th>Angle</th><th>Hybrid</th><th>Example</th></tr></thead><tbody></tbody></table></div>
+    </details>
+    <details class="vs-mist"><summary>Common mistakes</summary>
+      <ul class="vs-try">
+        <li>Naming the shape from the electron pairs instead of the atoms: NH₃ has four pairs (tetrahedral arrangement) but its shape is trigonal pyramidal.</li>
+        <li>Counting a double or triple bond as more than one electron domain: it counts once.</li>
+        <li>Forgetting the charge: add an electron for each negative charge and remove one for each positive charge before counting.</li>
+        <li>Putting lone pairs in the axial positions of a trigonal bipyramid: they go in the equatorial ones, which is why SF₄ is see-saw and XeF₂ is linear.</li>
+        <li>Saying a molecule with polar bonds is always polar: if the shape is symmetric, as in CO₂ or CCl₄, the dipoles cancel.</li>
+      </ul>
+    </details>
+  </div>
+
   <div class="ax-card">
     <h2>Try this</h2>
     <ul class="vs-try">
@@ -59,6 +89,12 @@ const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
 </div>
 
 <style is:inline>
+  .vs-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .vs-chip { font: inherit; font-size: 15px; padding: 7px 12px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .vs-typed input { font-size: 16px; min-height: 44px; width: 100%; }
+  .vs-tsteps { margin: 8px 0; padding-left: 20px; font-size: 14px; }
+  .vs-tab tbody tr { cursor: pointer; }
+  .vs-all, .vs-mist { margin-top: 8px; } .vs-all summary, .vs-mist summary { cursor: pointer; font-weight: 650; }
   .vs-steps { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0 4px; }
   .vs-step { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
   .vs-pm { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
@@ -79,7 +115,7 @@ const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
 </style>
 
 <script>
-  import { EXAMPLES, shapeOf, countPairs, isSymmetric, formulaText, pickQuiz, type Shape, type Example } from '../../lib/sci/vsepr';
+  import { EXAMPLES, SHAPE_TABLE, parseSimple, shapeOf, countPairs, isSymmetric, formulaText, pickQuiz, type Shape, type Example } from '../../lib/sci/vsepr';
   import { I3, mul, rotX, rotY, apply, project, type M3, type V3 } from '../../lib/sci/mol3d';
   import { paint, type Figure } from '../../lib/report';
 
@@ -235,6 +271,42 @@ const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
     const known = EXAMPLES.find((e) => e.name === fres!.ex.name); q<HTMLSelectElement>('.vs-ex').value = known ? known.id : 'own'; if (known) ex = known;
     update(); cv.scrollIntoView({ block: 'center', behavior: 'smooth' });
   });
+
+  // Type a formula.
+  let tres: { bonds: number; lone: number; ex: Example } | null = null;
+  const sup2 = (n: number) => String(n).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+  function typed() {
+    const err = q('.vs-terr'), big = q('.vs-tbig'), btn = q<HTMLButtonElement>('.vs-tshow');
+    const fail = (m: string) => { err.hidden = false; err.textContent = m; big.textContent = ''; q('.vs-tline').textContent = ''; q('.vs-tsteps').replaceChildren(); btn.disabled = true; tres = null; };
+    const p = parseSimple(q<HTMLInputElement>('.vs-tf').value);
+    if (typeof p === 'string') return fail(p);
+    const c = countPairs(p.central, p.outer, p.charge);
+    if (typeof c === 'string') return fail(c);
+    const s = shapeOf(c.bonds, c.lone);
+    if (typeof s === 'string') return fail(s);
+    err.hidden = true; btn.disabled = false;
+    const name = formulaText(p.central, p.outer, p.charge), sym = isSymmetric(s);
+    big.textContent = `${name} is ${s.shape}.`;
+    q('.vs-tline').textContent = `${c.bonds} bonded atoms + ${c.lone} lone pair${c.lone === 1 ? '' : 's'} = ${s.domains} electron pairs (${s.electronGeometry}), ${s.hybrid}. Bond angle ${s.ideal}${s.lone ? ' (squeezed a little by the lone pairs)' : ''}. ${c.bonds < 2 ? 'One bond: no angle.' : sym ? 'The bond dipoles cancel, so it is non-polar.' : 'The bond dipoles do not cancel, so it is polar.'}`;
+    q('.vs-tsteps').replaceChildren(...c.steps.map(li));
+    tres = { bonds: c.bonds, lone: c.lone, ex: { id: 'own', name, central: p.central, outer: p.outer, charge: p.charge } };
+  }
+  q('.vs-tf').addEventListener('input', typed);
+  root.querySelectorAll<HTMLButtonElement>('.vs-chip').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.vs-tf').value = b.dataset.f!; typed(); }));
+  q('.vs-tshow').addEventListener('click', () => {
+    if (!tres) return;
+    bonds = tres.bonds; lone = tres.lone; ex = tres.ex; central = ex.central; outerEl = ex.outer[0].el;
+    const known = EXAMPLES.find((e) => e.name === ex!.name); q<HTMLSelectElement>('.vs-ex').value = known ? known.id : 'own'; if (known) ex = known;
+    update(); cv.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+  const tb = q<HTMLTableSectionElement>('.vs-tab tbody');
+  for (const row of SHAPE_TABLE) {
+    const s = shapeOf(row.b, row.l); if (typeof s === 'string') continue;
+    const tr = tb.insertRow(); tr.dataset.b = String(row.b); tr.dataset.l = String(row.l);
+    [`AX${row.b > 1 ? sup2(row.b) : ''}${row.l ? 'E' + (row.l > 1 ? sup2(row.l) : '') : ''}`, `${row.b} + ${row.l}`, s.shape, s.ideal, s.hybrid, row.ex].forEach((t) => { tr.insertCell().textContent = t; });
+    tr.addEventListener('click', () => { bonds = row.b; lone = row.l; ex = null; central = 'A'; outerEl = 'X'; q<HTMLSelectElement>('.vs-ex').value = 'own'; update(); cv.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+  }
+  typed();
 
   // Check yourself.
   const NAMES = ['linear', 'bent (V-shaped)', 'trigonal planar', 'trigonal pyramidal', 'tetrahedral', 'trigonal bipyramidal', 'see-saw', 'T-shaped', 'square pyramidal', 'square planar', 'octahedral'];

@@ -2,8 +2,15 @@
 // Kirchhoff solver: draw a DC network on a 3 × 3 grid of junctions (wires, resistors, cells), see the junction
 // and loop equations written out and solved, with every branch current drawn. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax kch">
+  <div class="ax-card">
+    <h2>Solve a two-loop problem</h2>
+    <p class="ax-help" style="margin-top:0">The usual textbook circuit: two cells, each with a resistor, joined by a middle resistor. Type your numbers; the junction and loop equations are solved and the circuit below is redrawn with them.</p>
+    <div class="kch-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Draw a circuit</h2>
     <label>Start from <select class="kch-preset">
@@ -83,6 +90,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { makeKchSpec } from '../../lib/sci/solve-kch';
   import { solve, edgeIds, ends, edgeName, eqText, sub, questions, PRESETS, NODE_NAMES, COLS, type Edge, type EdgeId, type Kind } from '../../lib/sci/kirchhoff';
   import { pagePalette } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
@@ -223,4 +232,9 @@ import '../../styles/astro.css';
   onTheme(run);
   load('twoloop'); panel(); run();
   quiz(q('.kch-quiz'), () => questions());
+  mountSolver(q('.kch-solve'), makeKchSpec((v) => {
+    load('twoloop');
+    net.h00.R = v.R1; net.h01.R = v.R2; net.v01.R = v.R3; net.v00.E = v.E1; net.v02.E = v.E2;
+    q<HTMLSelectElement>('.kch-preset').value = 'twoloop'; panel(); run();
+  }));
 </script>

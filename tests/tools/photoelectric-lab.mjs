@@ -39,4 +39,25 @@ export default async ({ page, check, BASE }) => {
   check((await t('.lq-score')).startsWith('4 of 5'), 'photo: four numeric answers accepted');
   const ch = await items[4].$$('.lq-choice'); await ch[2].click();
   check((await (await items[4].$('.lq-fb')).textContent()) === 'Right.', 'photo: brighter red light still no electrons');
+  // Solve your own numbers.
+  const S = (k) => `${R}.pe-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()).startsWith('The largest kinetic energy is 1 eV, so the stopping potential is 1 V') && (await ans()).includes('593 km/s') && (await wk()).includes('1240 ÷ 400 nm = 3.1 eV'), `photo solve: 400 nm on caesium (${await ans()})`);
+  await page.selectOption(S('example'), '1'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The largest kinetic energy is 1.9 eV, so the stopping potential is 1.9 V'), `photo solve: 200 nm on zinc (${await ans()})`);
+  await page.selectOption(S('example'), '2'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('No electrons come out') && (await ans()).includes('brighter'), `photo solve: red light, no emission (${await ans()})`);
+  await page.selectOption(S('example'), '3'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The threshold frequency is 5.8 × 10¹⁴ Hz') && (await ans()).includes('517 nm'), `photo solve: sodium threshold (${await ans()})`);
+  await page.selectOption(S('example'), '4'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The work function is 1.77 eV (2.83 × 10⁻¹⁹ J).'), `photo solve: work function from V0 (${await ans()})`);
+  await page.selectOption(S('find'), 'kmax'); await page.selectOption(S('mat'), 'cs'); await page.fill(S('f'), '5'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('No electrons come out: each photon carries 2.07 eV'), `photo solve: 5e14 Hz is just below caesium's threshold (${await ans()})`);
+  await page.fill(S('f'), '7.5'); await page.selectOption(S('f-unit'), '× 10¹⁴ Hz'); await page.waitForTimeout(50);
+  check((await ans()).startsWith('The largest kinetic energy is 1 eV'), `photo solve: frequency input 7.5e14 Hz (${await ans()})`);
+  await page.selectOption(S('find'), 'photon'); await page.selectOption(S('light'), 'lam'); await page.fill(S('lam'), '4000'); await page.selectOption(S('lam-unit'), 'Å'); await page.waitForTimeout(50);
+  check((await ans()) === 'Each photon carries 3.1 eV (4.97 × 10⁻¹⁹ J).', `photo solve: 4000 Å = 400 nm (${await ans()})`);
+  await page.fill(S('lam'), '0'); await page.waitForTimeout(50);
+  check((await ans()).includes('above zero') && !/NaN|Infinity/.test(await ans()), 'photo solve: zero wavelength message');
+  await page.selectOption(S('find'), 'phi'); await page.fill(S('lam'), '300'); await page.selectOption(S('lam-unit'), 'nm'); await page.selectOption(S('K-unit'), 'eV'); await page.fill(S('K'), '9'); await page.waitForTimeout(50);
+  check((await ans()).includes('bigger than the photon energy'), `photo solve: K_max above the photon energy (${await ans()})`);
 };

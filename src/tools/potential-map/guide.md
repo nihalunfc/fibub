@@ -11,11 +11,12 @@ ads: false
 order: 1402
 icon: mountain
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [coulomb-forces, gauss-law, electrostatics-solver, capacitor-lab]
 sources:
   - "Potential of point charges V = Σ q/(4πε₀r), field E = −grad V: standard physics. ε₀ = 8.8541878188 × 10⁻¹² F/m, the CODATA 2022 recommended value (NIST)."
   - "Checked against an independent NumPy script, the field compared with a numerical gradient of the potential, and the equipotential lines checked by evaluating V at their ends."
+  - "V = kq/r with k = 1/(4πε₀) = 8.98755 × 10⁹ N m²/C², superposition for several charges, work W = q(V_A − V_B), E = ΔV/d and eV = ½mv² for an electron (e = 1.602176634 × 10⁻¹⁹ C, mₑ = 9.1093837139 × 10⁻³¹ kg, CODATA 2022): standard school physics. The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: pointer, label: "Place" }
   - { icon: mountain, label: "See hills" }
@@ -32,6 +33,12 @@ A good way to picture potential is as a landscape. A positive charge makes a **h
 This page shows both pictures at once. The map is shaded red where the potential is high and blue where it is low, with equipotential lines every ±50, 100, 200, 400 and 800 V (dashed for 0 V). The 3D view draws the same potential as a surface you can turn. Tap anywhere to put a probe there and read V and the field. Press **Let a + test charge roll** and a positive charge rolls downhill from the probe along the field.
 
 It follows the electrostatic potential and capacitance chapter of Class 12 Physics (potential due to a point charge, a dipole and a system of charges, equipotential surfaces, relation between field and potential). Start with forces in [[coulomb-forces]] and flux in [[gauss-law]]; for conductors at fixed voltages see the [[electrostatics-solver]], and for stored charge the [[capacitor-lab]].
+
+## Solve my numbers
+
+Under the map, the card at the top solves the usual potential questions with your numbers. **Potential of a point charge** (V = k q / r), **two charges** (add the two potentials with their signs, since potential has no direction), **work to move a test charge** from one distance to another (W = q (V_A − V_B), with a note when you must supply the work), **uniform field from a voltage** (E = ΔV / d), and **electron through a voltage**, which gives its speed from e V = ½ m v² and its energy in eV. Charges go in as pC, nC, µC, mC or C and distances in cm or m. The answer comes in one sentence with the formula and your numbers shown like an exam answer, and five worked examples fill the card for you (5 nC at 10 cm gives about 449 V; an electron through 100 V reaches about 5.93 × 10⁶ m/s).
+
+Common mistakes: forgetting the sign of a negative charge, using 1/r² for potential (it is 1/r) and adding potentials like arrows. Impossible input, such as a distance of zero or a voltage so high the formula stops working, gets a plain message.
 
 ## How to use it
 
@@ -58,6 +65,8 @@ Change the layout to two like charges and the same probe reads 424 V, while the 
 - Around a single charge the equipotentials are circles, closer together near the charge, because V falls off as 1/r.
 
 ## FAQ
+
+**How do I find the potential of a point charge?** V = k q / r with k = 8.99 × 10⁹ N m²/C², using the charge with its sign and the distance in metres.
 
 **Why are the heights cut off?** Right at a point charge V goes to infinity. The cut-off just keeps the picture on the screen; the numbers are not cut off.
 

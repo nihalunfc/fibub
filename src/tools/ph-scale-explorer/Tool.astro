@@ -26,6 +26,31 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
     <p class="ax-help">Substance values are rounded, typical ones: real lemons, soaps and soils vary. pH here is at 25 °C, where pure water is pH 7.</p>
   </div>
 
+  <div class="ax-card phx-solve">
+    <h2>Solve my numbers</h2>
+    <label>I know the <select data-k="known">
+      <option value="pH">pH</option><option value="pOH">pOH</option><option value="H">[H⁺] (mol/L)</option><option value="OH">[OH⁻] (mol/L)</option>
+      <option value="strongAcid">concentration of a strong acid</option><option value="strongBase">concentration of a strong base</option>
+      <option value="weakAcid">concentration of a weak acid (and its Ka)</option><option value="weakBase">concentration of a weak base (and its Kb)</option>
+    </select></label>
+    <label><span class="phx-vl">Value</span> <input data-k="value" type="text" inputmode="decimal" value="3.5" autocomplete="off" aria-label="Value" /></label>
+    <label class="phx-unit" hidden>Concentration unit <select data-k="unit"><option value="1">mol/L (M)</option><option value="0.001">mmol/L</option></select></label>
+    <label class="phx-nl" hidden><span class="phx-nt">H⁺ per formula unit</span> <input data-k="n" type="text" inputmode="numeric" value="1" autocomplete="off" aria-label="Ions per formula unit" /></label>
+    <label class="phx-kl" hidden><span class="phx-kt">Ka</span> <input data-k="k" type="text" inputmode="decimal" value="1.8e-5" autocomplete="off" aria-label="Ka or Kb" /></label>
+    <div class="phx-chips" role="group" aria-label="Examples">
+      <button type="button" class="phx-ex" data-known="H" data-value="2.5e-4">[H⁺] = 2.5 × 10⁻⁴</button>
+      <button type="button" class="phx-ex" data-known="strongAcid" data-value="0.01">0.01 M HCl</button>
+      <button type="button" class="phx-ex" data-known="strongBase" data-value="0.005" data-n="2">0.005 M Ca(OH)₂</button>
+      <button type="button" class="phx-ex" data-known="weakAcid" data-value="0.1" data-k="1.8e-5">0.1 M ethanoic acid</button>
+      <button type="button" class="phx-ex" data-known="pOH" data-value="4.2">pOH = 4.2</button>
+    </div>
+    <p class="ax-big phx-sbig" aria-live="polite" style="margin:12px 0 2px"></p>
+    <dl class="ax-facts phx-sfacts"></dl>
+    <p class="lx-eq phx-seq"></p>
+    <p class="ax-err phx-serr" role="alert" hidden></p>
+    <p class="ax-help phx-snote">Common mistakes: using pH when the question gives pOH; forgetting that Ca(OH)₂ gives 2 OH⁻ per formula unit; using the shortcut for a very dilute acid (below about 10⁻⁶ M). Everything is at 25 °C. Type 1e-3 or 1 × 10^-3 for powers of ten.</p>
+  </div>
+
   <div class="ax-card">
     <h2>Indicator colours</h2>
     <div class="phx-ind"></div>
@@ -71,7 +96,8 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
   .phx-rl { display: flex !important; grid-template-columns: none; align-items: center; gap: 10px !important; margin-top: 6px; }
   .phx-range { flex: 1; height: 32px; accent-color: var(--accent); }
   .phx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .phx-chip { font: inherit; font-size: 14px; padding: 8px 11px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .phx-solve [hidden] { display: none !important; }
+  .phx-chip, .phx-ex { font: inherit; font-size: 14px; padding: 8px 11px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
   .phx-chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
   .phx-ind { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
   .phx-ind .phx-sw { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; }
@@ -81,7 +107,8 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
 </style>
 
 <script>
-  import { hFromPH, ohFromPH, pOH, kind, dilute, INDICATORS, SUBSTANCES, sci } from '../../lib/sci/phscale';
+  import { hFromPH, ohFromPH, pOH, kind, dilute, INDICATORS, SUBSTANCES, sci, solvePH, type PHKnown } from '../../lib/sci/phscale';
+  import { readNumber } from '../../lib/learn/quiz';
   import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';
 
   const root = document.querySelector<HTMLElement>('.phx')!;
@@ -152,6 +179,41 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
   root.querySelectorAll<HTMLButtonElement>('.phx-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); update(); }));
   q('.phx-dil').addEventListener('change', update);
   update();
+
+  // Solve my numbers
+  const sv = (k: string) => q<HTMLInputElement | HTMLSelectElement>(`[data-k="${k}"]`);
+  function solve() {
+    const known = sv('known').value as PHKnown;
+    const conc = known === 'strongAcid' || known === 'strongBase' || known === 'weakAcid' || known === 'weakBase';
+    const weak = known === 'weakAcid' || known === 'weakBase', strong = conc && !weak;
+    q('.phx-unit').hidden = !conc; q('.phx-nl').hidden = !strong; q('.phx-kl').hidden = !weak;
+    q('.phx-nt').textContent = known === 'strongAcid' ? 'H⁺ released per formula unit (HCl 1, H₂SO₄ 2)' : 'OH⁻ released per formula unit (NaOH 1, Ca(OH)₂ 2)';
+    q('.phx-kt').textContent = known === 'weakAcid' ? 'Ka' : 'Kb';
+    q('.phx-vl').textContent = known === 'pH' ? 'pH' : known === 'pOH' ? 'pOH' : known === 'H' ? '[H⁺] in mol/L' : known === 'OH' ? '[OH⁻] in mol/L' : 'Concentration';
+    const out = q('.phx-sbig'), err = q('.phx-serr'), facts = q('.phx-sfacts'), eq = q('.phx-seq');
+    facts.replaceChildren(); eq.replaceChildren(); err.hidden = true; q('.phx-snote').hidden = false;
+    const raw = sv('value').value.trim();
+    if (raw === '') { out.textContent = 'Type a value to solve.'; return; }
+    let v = readNumber(raw); if (conc) v *= Number(sv('unit').value);
+    try {
+      const nn = strong ? readNumber(sv('n').value) : 1, kk = weak ? readNumber(sv('k').value) : 0;
+      if (strong && !Number.isFinite(nn)) throw new Error('Type how many ions one formula unit releases (1 or 2).');
+      if (weak && !Number.isFinite(kk)) throw new Error(`Type ${known === 'weakAcid' ? 'Ka' : 'Kb'}, for example 1.8e-5.`);
+      const r = solvePH(known, v, nn, kk);
+      const fix = (x: number) => String(Math.round(x * 100) / 100).replace('-', '−');
+      out.textContent = `pH = ${fix(r.pH)}: the solution is ${kind(r.pH).text}.`;
+      facts.append(fact('pH', fix(r.pH)), fact('pOH', fix(r.pOH)), fact('[H⁺]', `${sci(r.H)} mol/L`), fact('[OH⁻]', `${sci(r.OH)} mol/L`));
+      r.steps.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+      if (r.note) { const b = document.createElement('br'); eq.append(b, r.note); }
+    } catch (e) { out.textContent = ''; err.textContent = (e as Error).message; err.hidden = false; }
+  }
+  root.querySelectorAll<HTMLElement>('.phx-solve input, .phx-solve select').forEach((e) => e.addEventListener('input', solve));
+  root.querySelectorAll<HTMLButtonElement>('.phx-ex').forEach((b) => b.addEventListener('click', () => {
+    sv('known').value = b.dataset.known!; sv('value').value = b.dataset.value!; sv('unit').value = '1';
+    sv('n').value = b.dataset.n || '1'; if (b.dataset.k) sv('k').value = b.dataset.k;
+    solve();
+  }));
+  solve();
 
   // Check yourself
   const supN = (n: number) => String(n).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);

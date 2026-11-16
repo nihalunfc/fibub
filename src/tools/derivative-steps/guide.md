@@ -11,7 +11,7 @@ ads: false
 order: 1467
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [chain-rule, derivative-slope, maxima-minima, symbolic-algebra]
 sources:
   - "Standard differentiation rules (sum, constant multiple, power, product, quotient, chain, the derivatives of eˣ, aˣ, ln x, the trig and inverse trig functions, and logarithmic differentiation). Written for fibub; no textbook text, figures or exercises are used."
@@ -48,6 +48,16 @@ It follows limits and derivatives in Class 11 maths (the sum, product and quotie
 - **Chain rule**: d/dx f(g(x)) = f′(g(x))·g′(x). A power of a bracket, such as (2x + 1)⁵, uses it as n uⁿ⁻¹ · u′.
 - **Logarithmic differentiation** for a variable power such as xˣ: take ln of both sides first.
 
+## Your own point and higher derivatives
+
+Under the graph, type the x-value from your question (a whole number, a decimal, a fraction such as `1/3` or `pi/2`) in *Find the slope at x =*. The page writes the substitution out the way an exam answer does, for example f′(2) = (2)²·cos(2) + 2(2)·sin(2) ≈ 1.9726, then gives f(a), the slope, and the tangent line y − f(a) = f′(a)(x − a). If the function or its slope is not defined at that x (for example 1/x at 0), you get a plain message, not a blank or an error code. The slider and the typed box move together.
+
+Open *More options* to see the second and third derivatives, f″(x) and f‴(x). Each is found by differentiating the previous one, and f″ tells you whether the curve bends up (f″ > 0) or down (f″ < 0).
+
+The extra example buttons (sin x cos x, x² ln x, x³ eˣ, eˣ/x²) are products and quotients of the kind that appear in tests.
+
+Common mistakes: forgetting the chain rule's inside derivative, writing the product rule as u′v′ instead of u′v + uv′, and dropping a minus sign in the quotient rule's numerator (it is v·u′ − u·v′, in that order).
+
 ## Worked example
 
 Type `x^2 sin(x)`. The page finds d/dx[x²] = 2x by the power rule and d/dx[sin x] = cos x, then uses the product rule with u = x² and v = sin x: f′(x) = 2x sin x + x² cos x. At a = 1, f′(1) = 2 sin 1 + cos 1 ≈ 1.6829 + 0.5403 = 2.2232, so the curve is rising there and the tangent is y = 2.223x − 1.382.
@@ -55,6 +65,8 @@ Type `x^2 sin(x)`. The page finds d/dx[x²] = 2x by the power rule and d/dx[sin 
 Now tap `(x + 1)/(x − 1)`. With u = x + 1 and v = x − 1, both u′ and v′ are 1, so f′ = [(x − 1) − (x + 1)]/(x − 1)² = −2/(x − 1)². It is negative everywhere it exists: the graph falls on both sides of x = 1.
 
 ## FAQ
+
+**How do I find the derivative of a function at a point?** Type the function, then type the x-value in *Find the slope at x =*: the page substitutes it into f′(x) and shows the number.
 
 **Why does my answer look different?** There are many correct ways to write a derivative. The page simplifies, but 2x sin x + x² cos x and x(2 sin x + x cos x) are the same thing. Check by putting a number in both.
 

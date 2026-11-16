@@ -33,3 +33,17 @@ export function place(a: number, b: number, c: number): [[number, number], [numb
 
 /** Height on base c (= AB): 2 × area / c. */
 export const heightOn = (base: number, area: number) => (2 * area) / base;
+
+/** The three angles in degrees (A opposite a, B opposite b, C opposite c) by the cosine rule; NaN for an impossible triangle. */
+export function angles(a: number, b: number, c: number): [number, number, number] {
+  if (!valid(a, b, c)) return [NaN, NaN, NaN];
+  const ang = (x: number, y: number, z: number) => (Math.acos(Math.max(-1, Math.min(1, (y * y + z * z - x * x) / (2 * y * z)))) * 180) / Math.PI;
+  const A = ang(a, b, c), B = ang(b, a, c);
+  return [A, B, 180 - A - B];
+}
+/** The three heights (on a, on b, on c) from the area. */
+export const heights = (a: number, b: number, c: number, area: number): [number, number, number] => [(2 * area) / a, (2 * area) / b, (2 * area) / c];
+/** Radius of the inscribed circle: area / s. */
+export const inradius = (a: number, b: number, c: number, area: number) => area / ((a + b + c) / 2);
+/** Radius of the circle through the three corners: abc / (4 area). */
+export const circumradius = (a: number, b: number, c: number, area: number) => (a * b * c) / (4 * area);

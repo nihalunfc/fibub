@@ -11,7 +11,7 @@ ads: false
 order: 1343
 icon: clock
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [bernoulli-flow, capillary-rise, buoyancy-lab, projectile-drag]
 sources:
   - "Stokes' law F = 6πηrv, the terminal velocity v = 2r²(ρ − σ)g/9η, the approach to it v = v_t(1 − e^(−t/τ)) with τ = 2ρr²/9η, buoyancy (Archimedes) and the Reynolds number Re = σv(2r)/η: standard school physics found in any textbook. g = 9.8 m/s²."
@@ -39,6 +39,10 @@ It follows the school topics on viscosity, Stokes' law and terminal velocity (Cl
 3. Tap **Drop the ball** and watch the stopwatch, or **Skip to the end**. The stopwatch times the ball past marks A and B, 20 cm apart, and works out the speed and the viscosity.
 4. Watch the pill: if the **Reynolds number** is above 1 the flow round the ball is no longer smooth and Stokes' law gives too big a speed.
 
+## Solve my numbers
+
+The **Solve my numbers** box at the top is for your own numbers. Choose whether to find the terminal velocity v = 2r²(ρ − σ)g/9η, the liquid's viscosity from a measured steady speed, the radius of a droplet or ball from its terminal speed (try the fog droplet in air), or the time to fall a distance at terminal speed, with the start-up time constant τ. Radii go in mm, cm or m, densities in kg/m³ or g/cm³, speeds in m/s, cm/s or mm/s, and viscosity in Pa·s, mPa·s or poise. The answer comes in one sentence with the working below it, including the drag force at that speed and the Reynolds number, with a note when Stokes' law is no longer a good model (Re above 1). A ball lighter than the liquid is shown rising; equal densities give a speed of zero. The common mistakes are listed: radius instead of diameter, forgetting to subtract the liquid's density, and mixing mm with m.
+
 ## Worked example
 
 Open the page: a **steel** ball (7800 kg/m³) of radius **1 mm** in **glycerine** (1260 kg/m³, η = 1.4 Pa s). The terminal velocity is 2 × (10⁻³)² × (7800 − 1260) × 9.8 ÷ (9 × 1.4) = **1.017 cm/s**. The ball gets there almost at once: it reaches 99 % of it in **5.7 ms**. At that speed its weight, **0.32 mN**, is held up by buoyancy 0.0517 mN plus drag 0.268 mN. The Reynolds number is **0.018**, far below 1, so Stokes' law holds.
@@ -58,3 +62,5 @@ Drop it: the stopwatch shows A at **9.83 s** and B at **29.49 s**, so 20 cm took
 **Does a heavier ball fall faster?** Yes: a denser or bigger ball has more weight compared with its drag.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**How do I find the terminal velocity of a ball falling in a liquid?** Use Stokes' law v = 2r²(ρ − σ)g/9η; a 1 mm steel ball in glycerine settles at about 1.02 cm/s.

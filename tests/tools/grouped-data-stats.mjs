@@ -17,12 +17,30 @@ export default async ({ page, check, BASE }) => {
   await page.fill(R + '.gd-in', '0-10 5\n10-30 8\n30-40 2'); await page.waitForTimeout(100);
   check((await txt('.gd-mean')).includes('equal width') && (await page.$$eval(R + '.gd-tab th', (e) => e.length)) === 7, 'grouped: unequal widths skip step deviation');
   // Errors.
+  await page.evaluate(() => document.querySelectorAll('.gd details').forEach((d) => (d.open = true)));
+  await page.uncheck(R + '.gd-incl');
   await page.fill(R + '.gd-in', '10-19 5\n20-29 4'); await page.waitForTimeout(100);
-  check(await page.isVisible(R + '.gd-err') && (await txt('.gd-err')).includes('9.5') && await page.isHidden(R + '.gd-out'), 'grouped: gap message');
+  check(await page.isVisible(R + '.gd-err') && (await txt('.gd-err')).includes('9.5') && await page.isHidden(R + '.gd-out'), 'grouped: gap message when the fix is off');
+  await page.check(R + '.gd-incl'); await page.waitForTimeout(100);
+  check(await page.isHidden(R + '.gd-err') && (await txt('.gd-note')).includes('gap of 1') && (await txt('.gd-tab')).includes('9.5–19.5'), 'grouped: inclusive classes closed automatically');
+  check((await txt('.gd-big')) === 'Mean 18.94 · Median 18.5 · Mode 17.83', `grouped: inclusive example (${await txt('.gd-big')})`);
   await page.fill(R + '.gd-in', 'hello'); await page.waitForTimeout(100);
   check((await txt('.gd-err')).includes('should look like'), 'grouped: bad line message');
   await page.click(R + '.gd-ex'); await page.waitForTimeout(100);
   check(await page.isHidden(R + '.gd-err') && (await txt('.gd-big')).startsWith('Mean 52.8') && (await txt('.gd-mean')).includes('a = 50'), 'grouped: example button restores');
+  // Spread and presets.
+  check((await txt('.gd-sdbig')) === 'Standard deviation 24.66 · Variance 608.16', `grouped: SD and variance (${await txt('.gd-sdbig')})`);
+  { const sp = await txt('.gd-spread'); check(sp.includes('30408 / 50 = 608.16') && sp.includes('= 34.44') && sp.includes('= 72.5') && sp.includes('Q₃ − Q₁ = 72.5 − 34.44 = 38.06'), `grouped: quartiles (${sp.slice(0, 200)})`); }
+  check((await txt('.gd-emp')).includes('= 54.4. The formula gave 53.33'), 'grouped: empirical relation line');
+  await page.click(R + '.gd-pre[data-p="marks"]'); await page.waitForTimeout(100);
+  check((await txt('.gd-big')) === 'Mean 28 · Median 28.33 · Mode 28.33' && (await txt('.gd-sdbig')).includes('Variance 136'), 'grouped: marks preset');
+  await page.click(R + '.gd-pre[data-p="heights"]'); await page.waitForTimeout(100);
+  check((await txt('.gd-big')) === 'Mean 160.25 · Median 160.57 · Mode 161.38' && await page.isVisible(R + '.gd-note'), 'grouped: heights preset (inclusive classes)');
+  await page.click(R + '.gd-pre[data-p="uneven"]'); await page.waitForTimeout(100);
+  check((await txt('.gd-big')) === 'Mean 19.38 · Median 17.5 · Mode 18.75' && (await txt('.gd-mean')).includes('equal width'), 'grouped: uneven preset');
+  await page.fill(R + '.gd-in', ''); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.gd-err') && (await txt('.gd-err')).includes('at least two classes'), 'grouped: blank table message');
+  await page.click(R + '.gd-ex'); await page.waitForTimeout(100);
   // Quiz.
   check((await page.$$(R + '.sm-q')).length === 3, 'grouped: three questions');
   for (const i of [1, 2, 3]) {

@@ -11,7 +11,7 @@ ads: false
 order: 1471
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [derivative-steps, integral-properties, riemann-sums, symbolic-algebra]
 sources:
   - "Standard school integration methods: the power rule, standard integrals, substitution, integration by parts with the ILATE order, partial fractions with linear and quadratic factors. Written for fibub; no textbook text, figures or exercises are used."
@@ -46,6 +46,16 @@ It follows integrals in Class 12 maths (methods of integration). It is the rever
 4. The **answer** ends in + C, and the green line confirms it differentiates back.
 5. In the graph, slide **x** to move the tangent, and **C** to slide the whole antiderivative up and down: every C gives a correct answer.
 
+## Definite integrals and limits
+
+Open *Definite integral: put in limits* under the answer and type a lower and an upper limit (numbers, fractions or `pi`). The page works out F(b) − F(a) with the numbers shown, for example ∫ from 0 to 1 of x eˣ dx = [x eˣ − eˣ] = 0 − (−1) = 1, and checks the result with a numerical (Simpson's rule) estimate. Swap the limits and the sign flips, with a note saying so. The + C cancels in a definite integral, so it is left out.
+
+If f is undefined or blows up between the limits (1/x from −1 to 1, ln x from −1 to 1) the page says the integral is improper and does not give a number, instead of a wrong one. If the antiderivative and the numerical check disagree, for example when tan x crosses its asymptote, you are told to split the range at that point.
+
+Three more example buttons (sec² x, e²ˣ and x² + 1/x²) cover standard forms and splitting into terms.
+
+Common mistakes: leaving out + C on an indefinite integral, not changing dx when you substitute (u = x² gives du = 2x dx), picking u for integration by parts by guesswork instead of ILATE, and putting the limits into only part of F.
+
 ## Worked example
 
 ∫ x eˣ dx. There are two different kinds of factor: x is algebraic, eˣ is exponential. In ILATE, A comes before E, so u = x and dv = eˣ dx. Then du = dx and v = eˣ, and
@@ -57,6 +67,8 @@ At x = 1.5 the graph shows F(1.5) = 1.5e^1.5 − e^1.5 = 0.5 × 4.4817 = 2.2408,
 Now tap (3x + 5)/(x² + 3x + 2). The bottom factors as (x + 1)(x + 2); matching coefficients gives 2/(x + 1) + 1/(x + 2), so the answer is 2 ln|x + 1| + ln|x + 2| + C.
 
 ## FAQ
+
+**How do I work out a definite integral by hand?** Find an antiderivative F (this page names the method and shows the steps), then compute F(b) − F(a); type your limits under *Definite integral* to see it done.
 
 **Why did it choose substitution and not parts?** If an inside function and its derivative both appear, substitution is quicker. ∫ x e^(x²) dx by parts goes round in circles; with u = x² it is one line.
 

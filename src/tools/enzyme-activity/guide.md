@@ -11,7 +11,7 @@ ads: false
 order: 1131
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [enzyme-kinetics-fitter, photosynthesis-lab, buffer-recipe-calculator]
 sources:
   - "Q10 of 2 for the temperature rise, a sigmoid for heat denaturation, a bell-shaped pH curve and the Michaelis-Menten equation with competitive and non-competitive inhibition: standard textbook ideas, written by fibub."
@@ -53,6 +53,18 @@ Change the temperature, the pH, and (in Class 11) the amount of substrate and an
 
 Amylase at 37 °C and pH 6.8 with 10 mM starch: the temperature factor is about 0.94 and the pH factor 1, so Vmax is about 94.3 units a minute. With Km = 2 mM, v = 94.3 × 10 ÷ (2 + 10) = 78.6 units a minute. The starch drops below 5 % of its start after 3.8 minutes, so the first brown drop on the tile is at 4 minutes, and the rate is 1 ÷ 4 = 0.25 per minute. At 60 °C the same mixture is still blue-black after 20 minutes.
 
+## Solve your own numbers
+
+The first card works through the numbers in enzyme problems and practicals, with each step written out. Choose what to find:
+
+- **Rate of reaction from a time.** With only a time it gives the relative rate 1 ÷ time (a spot test that clears in 4 minutes is 0.25 per minute). Add the amount used or made to get the rate as amount ÷ time.
+- **Rate at a new temperature (Q10).** The new rate is the old rate × Q10 raised to (T2 − T1) ÷ 10; leave Q10 blank to use 2 (the rate doubles every 10 °C).
+- **Q10 from two rates** at two temperatures.
+- **Michaelis-Menten.** v = Vmax [S] ÷ (Km + [S]) for v, or rearranged for the [S] that gives a chosen rate. A rate at or above Vmax gets a friendly message.
+- **Rate with an inhibitor.** Competitive inhibitors raise Km by the factor 1 + [I] ÷ Ki; non-competitive ones lower Vmax by that factor.
+
+Time can be typed in seconds, minutes or hours. Each answer ends with a common mistake, such as thinking a longer time means a faster rate.
+
 ## Where this fits in school
 
 Class 10 science (life processes) introduces digestive enzymes: amylase in saliva, pepsin in the stomach and trypsin from the pancreas. Class 11 biology (biomolecules) covers how enzymes work, the effect of temperature, pH and substrate concentration, and competitive inhibition. This page is an independent learning aid. It is not made by or connected with NCERT, and it does not copy any textbook.
@@ -66,3 +78,5 @@ Class 10 science (life processes) introduces digestive enzymes: amylase in saliv
 **Are these real enzyme numbers?** No. The values are round numbers chosen so the graphs look like the ones in your book. Real times depend on how much enzyme you use, the starch, and the temperature of the tile.
 
 **Is anything saved?** No. Your runs stay on this page until you leave it.
+
+**How do I work out the rate of an enzyme reaction?** Divide the amount of substrate used (or product made) by the time taken, or use 1 ÷ time as a relative rate. The first card works it out from your own numbers.

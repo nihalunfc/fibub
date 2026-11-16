@@ -45,6 +45,22 @@ export default async ({ page, check, BASE }) => {
   await page.fill(R + '.vn-A', '9-1'); await page.waitForTimeout(50);
   check((await t('.vn-res')).includes('too long or backwards'), 'venn: bad range message');
   await page.fill(R + '.vn-A', '1-6');
+  // Solve a counting problem
+  const fillN = (k, v) => page.fill(R + `[data-k="${k}"]`, String(v));
+  check((await t('.vn-cans')) === 'n(A ∪ B ∪ C) = 83, and 17 are in none of the sets. n(A ∩ B ∩ C) = 5.' && (await t('.vn-csteps')).includes('A only = 45 − 10 − 7 − 5 = 23'), `venn: three-set count (${await t('.vn-cans')})`);
+  check(!(await page.isHidden(R + '.vn-cfig')), 'venn: counts drawn on a diagram');
+  await fillN('cABC', ''); await fillN('cUnion', 80);
+  check((await t('.vn-cans')) === 'n(A ∪ B ∪ C) = 80, and 20 are in none of the sets. n(A ∩ B ∩ C) = 2.', `venn: find the middle from the union (${await t('.vn-cans')})`);
+  await fillN('cUnion', ''); check((await t('.vn-cerr')).includes('Fill in n(A ∩ B ∩ C)'), 'venn: missing middle message');
+  await fillN('cABC', 30); check((await t('.vn-cerr')).includes('negative'), `venn: impossible three-set numbers (${await t('.vn-cerr')})`);
+  await page.click(R + '.vn-n button[data-n="2"]');
+  check((await t('.vn-cans')) === 'n(A ∪ B) = 53, and 7 are in neither set. n(A ∩ B) = 10, only A = 25, only B = 18.', `venn: two-set count (${await t('.vn-cans')})`);
+  await fillN('cAB', ''); check((await t('.vn-cerr')).includes('Fill in three of'), 'venn: two blanks message');
+  await page.check(R + '.vn-cAll');
+  check((await t('.vn-cans')).includes('n(A ∩ B) = 3, only A = 32, only B = 25') && (await t('.vn-csteps')).includes('35 + 28 − 60 = 3'), `venn: everyone in a set, find the overlap (${await t('.vn-cans')})`);
+  await page.uncheck(R + '.vn-cAll'); await fillN('cAB', 10); await fillN('cU', 20);
+  check((await t('.vn-cerr')).includes('bigger than n(U) = 20'), 'venn: union bigger than U');
+  await fillN('cAB', 40); check((await t('.vn-cerr')).includes('cannot be bigger'), 'venn: overlap bigger than a set');
   check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'venn: five quiz questions');
   await page.click(R + '.smq-q:nth-child(3) .smq-choices button:nth-child(1)'); await page.click(R + '.smq-q:nth-child(3) .smq-check');
   check((await t('.smq-q:nth-child(3) .smq-out')) === 'Right!', 'venn: De Morgan quiz');

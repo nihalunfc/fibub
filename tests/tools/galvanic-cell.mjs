@@ -16,6 +16,22 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.gc .gc-sub')).startsWith('The hydrogen electrode is the anode') && (await big()) === 'E°cell = +0.34 V', 'galvanic: hydrogen electrode');
   await page.selectOption('.gc .gc-b', 'H2'); check(await page.isVisible('.gc .gc-err') && (await page.textContent('.gc .gc-err')).includes('two different'), 'galvanic: same half-cell refused');
   await page.selectOption('.gc .gc-b', 'Zn');
+  // typed concentrations, presets, own E° values
+  await page.click('.gc .gc-chip[data-a="Zn"][data-b="Cu2"]');
+  check((await big()) === 'E°cell = +1.10 V', 'galvanic: Daniell preset');
+  await page.fill('.gc [data-k=conc-right]', '0.01');
+  check((await page.textContent('.gc .gc-neq')).includes('= 1.045 V') && (await page.inputValue('.gc .gc-cb')) === '-2', 'galvanic: typed concentration moves slider and Nernst ' + (await page.textContent('.gc .gc-neq')));
+  await page.fill('.gc [data-k=conc-right]', '0'); check(await page.isVisible('.gc .gc-err') && (await page.textContent('.gc .gc-err')).includes('above zero'), 'galvanic: zero concentration message');
+  await page.fill('.gc [data-k=conc-right]', '1');
+  await page.click('.gc .gc-chip[data-a="Mg"][data-b="Ag"]'); check((await big()) === 'E°cell = +3.17 V' && (await page.inputValue('.gc [data-k=conc-left]')) === '1', 'galvanic: Mg | Ag preset');
+  const oa = () => page.textContent('.gc .gc-oans'), ow = () => page.textContent('.gc .gc-owork');
+  check((await oa()) === 'E°cell = 1.10 V, so the reaction runs by itself as written.' && (await ow()).includes('= −212.3 kJ/mol') && (await ow()).includes('K = 10^37.2'), 'galvanic: own E° values ' + (await ow()));
+  await page.fill('.gc [data-k=q]', '0.01'); check((await ow()).includes('= 1.159 V'), 'galvanic: own Nernst with Q ' + (await ow()));
+  await page.fill('.gc [data-k=e-cathode]', '-0.76'); await page.fill('.gc [data-k=e-anode]', '0.34');
+  check((await oa()).includes('−1.10 V is negative') && (await oa()).includes('Swap'), 'galvanic: negative E° message');
+  await page.fill('.gc [data-k=n]', '0'); check(await page.isVisible('.gc .gc-oerr') && (await oa()) === '', 'galvanic: n must be a whole number');
+  await page.fill('.gc [data-k=n]', ''); check(await page.isVisible('.gc .gc-oerr'), 'galvanic: blank n message');
+  await page.selectOption('.gc .gc-a', 'Zn'); await page.selectOption('.gc .gc-b', 'Cu2');
   const items = page.locator('.gc .cq-item'); const n = await items.count(); let right = 0;
   for (let i = 0; i < n; i++) {
     const it = items.nth(i); await it.locator('.cq-show').scrollIntoViewIfNeeded(); await it.locator('.cq-show').click();

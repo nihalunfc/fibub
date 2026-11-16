@@ -34,4 +34,31 @@ export default async ({ page, check, BASE }) => {
   check(items.length === 5, 'hyd: five questions');
   for (const i of [0, 1, 2, 3]) { const ans = await items[i].getAttribute('data-ans'); await (await items[i].$('.lq-in')).fill(String(+(+ans).toPrecision(4))); await (await items[i].$('.lq-check')).click(); }
   check((await t('.lq-score')).startsWith('4 of 5'), 'hyd: four numeric answers accepted');
+  // ---- Solve your own numbers (the card at the top) ----
+  const S = (k) => `${R}.sv [data-k="${k}"]`;
+  const ans = () => page.textContent(S('answer'));
+  const fillS = async (k, v) => { await page.fill(S(k), v); await page.waitForTimeout(80); };
+  const selS = async (k, v) => { await page.selectOption(S(k), v); await page.waitForTimeout(80); };
+  const clearBad = async (what) => check(!/NaN|Infinity|undefined/.test(await ans() + await page.textContent(S('working'))), `solve: no NaN for ${what}`);
+  check((await ans()).includes('656.3 nm (red)') && (await ans()).includes('1.89 eV') && (await ans()).includes('given out (Balmer'), `solve: 3 → 2 (${await ans()})`);
+  check((await page.textContent(S('working'))).includes('1.524 × 10⁶ m⁻¹'), 'solve: Rydberg working shown');
+  await selS('example', '1');
+  check((await ans()).includes('102.6 nm (ultraviolet)') && (await ans()).includes('absorbed'), `solve: 1 → 3 absorbs (${await ans()})`);
+  await fillS('ni', '2'); await fillS('nf', '2');
+  check((await ans()).includes('no jump'), 'solve: same level message');
+  await fillS('ni', '1.5');
+  check((await ans()).includes('whole number'), 'solve: non-integer level message');
+  await selS('find', 'level'); await fillS('n', '2');
+  check((await ans()).includes('−3.4 eV') && (await page.textContent(S('working'))).includes('0.212 nm'), `solve: level n = 2 (${await ans()})`);
+  await selS('find', 'limit'); await fillS('nl', '2');
+  check((await ans()).includes('364.6 nm') && (await ans()).includes('656.3 nm'), `solve: Balmer limit (${await ans()})`);
+  await selS('find', 'which'); await fillS('lam', '486'); await fillS('nw', '2');
+  check((await ans()).includes('n = 4 → n = 2'), `solve: 486 nm is 4 → 2 (${await ans()})`);
+  await fillS('lam', '4860'); await selS('lam-unit', 'Å');
+  check((await ans()).includes('n = 4 → n = 2'), 'solve: wavelength in angstrom');
+  await fillS('lam', '100'); await selS('lam-unit', 'nm');
+  check((await ans()).includes('series limit'), 'solve: wavelength below the limit');
+  await fillS('lam', '500');
+  check((await ans()).includes('not a whole number'), `solve: no whole level (${await ans()})`);
+  await clearBad('hydrogen');
 };

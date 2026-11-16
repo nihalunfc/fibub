@@ -7,12 +7,21 @@ import '../../styles/smath.css';
 <div class="ax sm gd">
   <div class="ax-card">
     <h2>Your table</h2>
-    <label>One class per line: lower-upper frequency <textarea class="gd-in" rows="6" spellcheck="false" aria-label="Classes and frequencies"></textarea></label>
+    <label>One class per line: lower-upper frequency <textarea class="gd-in" data-k="classes" rows="6" spellcheck="false" aria-label="Classes and frequencies"></textarea></label>
     <div class="ax-row" style="margin-top:8px">
       <button type="button" class="btn secondary small gd-ex">Use the example</button>
-      <label style="display:flex;align-items:center;gap:6px">Assumed mean a <input type="number" class="gd-a" step="any" inputmode="decimal" placeholder="auto" style="width:6em" /></label>
+      <button type="button" class="btn secondary small gd-pre" data-p="marks">Marks of 40 students</button>
+      <button type="button" class="btn secondary small gd-pre" data-p="heights">Heights (10-19 style classes)</button>
+      <button type="button" class="btn secondary small gd-pre" data-p="uneven">Uneven class widths</button>
+      <label style="display:flex;align-items:center;gap:6px">Assumed mean a <input type="number" class="gd-a" data-k="assumed" step="any" inputmode="decimal" placeholder="auto" style="width:6em" /></label>
     </div>
     <p class="ax-help">The example is made up: minutes 50 students spent on homework one evening. Classes must follow on (0-20, 20-40, ...).</p>
+    <details>
+      <summary>More options</summary>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="gd-incl" data-k="inclusive" checked /> Fix classes like 10-19, 20-29 automatically (they become 9.5-19.5, 19.5-29.5)</label>
+      <p class="ax-help">Many books write inclusive classes with a gap. The mean, median and mode formulas need classes that touch, so the page closes the gap by half the gap width on each side. Turn this off to see a message instead.</p>
+    </details>
+    <p class="ax-help gd-note" hidden></p>
     <p class="ax-err gd-err" hidden></p>
   </div>
 
@@ -25,7 +34,14 @@ import '../../styles/smath.css';
     <ul class="sm-steps gd-med"></ul>
     <h3>Mode</h3>
     <ul class="sm-steps gd-mode"></ul>
-    <p class="ax-big gd-big"></p>
+    <p class="ax-big gd-big" aria-live="polite" data-k="answer"></p>
+    <p class="ax-help gd-emp"></p>
+  </div>
+
+  <div class="ax-card gd-out">
+    <h2>Spread: variance, standard deviation, quartiles</h2>
+    <p class="ax-big gd-sdbig"></p>
+    <ul class="sm-steps gd-spread"></ul>
   </div>
 
   <div class="ax-card gd-out">
@@ -48,6 +64,16 @@ import '../../styles/smath.css';
   </div>
 
   <div class="ax-card">
+    <h2>Common mistakes</h2>
+    <ul class="sm-try">
+      <li>Using the class limits instead of the class marks: x is the middle of the class, (lower + upper) / 2.</li>
+      <li>Taking the median class as the one with the biggest frequency. It is the first class where the cumulative frequency reaches n/2.</li>
+      <li>Forgetting that classes written as 10-19, 20-29 need their boundaries corrected to 9.5-19.5, 19.5-29.5 before using the formulas.</li>
+      <li>Using the width of one class for h when classes are uneven. In the mode and median formulas h is the width of that particular class.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
     <h2>Check yourself</h2>
     <p class="ax-help">Fresh questions every time. Give answers to 2 decimal places. Nothing is saved.</p>
     <div class="gd-quiz"></div>
@@ -63,7 +89,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { parseClasses, stats, EXAMPLE, type Row } from '../../lib/sci/grouped-school';
+  import { parseClassesLoose, spread, PRESETS, stats, EXAMPLE, type Row } from '../../lib/sci/grouped-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';
 
@@ -75,7 +101,8 @@ import '../../styles/smath.css';
   const li = (el: Element, lines: string[]) => el.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
 
   function run() {
-    const err = q('.gd-err'), { rows, error } = parseClasses(inp.value);
+    const err = q('.gd-err'), note = q('.gd-note'), { rows, error, note: nt } = parseClassesLoose(inp.value, q<HTMLInputElement>('.gd-incl').checked);
+    note.hidden = !nt; note.textContent = nt ?? '';
     root.querySelectorAll<HTMLElement>('.gd-out').forEach((e) => (e.hidden = !!error));
     if (error) { err.textContent = error; err.hidden = false; return; }
     err.hidden = true;
@@ -105,6 +132,17 @@ import '../../styles/smath.css';
       `Mode = l + ((f₁ − f₀) / (2f₁ − f₀ − f₂)) × h = ${fmt(k.lo)} + ((${fmt(s.f1)} − ${fmt(s.f0)}) / (${fmt(2 * s.f1)} − ${fmt(s.f0)} − ${fmt(s.f2)})) × ${fmt(k.hi - k.lo)} = ${f2(s.mode)}`,
     ]);
     q('.gd-big').textContent = `Mean ${f2(s.meanDirect)} · Median ${f2(s.median)} · Mode ${Number.isNaN(s.mode) ? '—' : f2(s.mode)}`;
+    q('.gd-emp').textContent = Number.isNaN(s.mode) ? '' : `Check: for data that is not very lopsided, Mode ≈ 3 × Median − 2 × Mean = 3 × ${f2(s.median)} − 2 × ${f2(s.meanDirect)} = ${f2(3 * s.median - 2 * s.meanDirect)}. The formula gave ${f2(s.mode)}.`;
+    const sp = spread(rows, s);
+    q('.gd-sdbig').textContent = `Standard deviation ${f2(sp.sd)} · Variance ${f2(sp.variance)}`;
+    li(q('.gd-spread'), [
+      `Variance σ² = Σf(x − x̄)² / Σf = ${f2(sp.sumSq)} / ${fmt(s.n)} = ${f2(sp.variance)} (x̄ = ${f2(s.meanDirect)}, using the class marks).`,
+      `Standard deviation σ = √variance = √${f2(sp.variance)} = ${f2(sp.sd)}.`,
+      `Mean deviation about the mean = Σf|x − x̄| / Σf = ${f2(sp.meanDev)}.`,
+      `Q₁: n/4 = ${fmt(s.n / 4)}, in class ${fmt(rows[sp.q1.i].lo)}–${fmt(rows[sp.q1.i].hi)}: ${fmt(rows[sp.q1.i].lo)} + ((${fmt(s.n / 4)} − ${fmt(sp.q1.before)}) / ${fmt(s.f[sp.q1.i])}) × ${fmt(rows[sp.q1.i].hi - rows[sp.q1.i].lo)} = ${f2(sp.q1.value)}.`,
+      `Q₃: 3n/4 = ${fmt((3 * s.n) / 4)}, in class ${fmt(rows[sp.q3.i].lo)}–${fmt(rows[sp.q3.i].hi)}: ${fmt(rows[sp.q3.i].lo)} + ((${fmt((3 * s.n) / 4)} − ${fmt(sp.q3.before)}) / ${fmt(s.f[sp.q3.i])}) × ${fmt(rows[sp.q3.i].hi - rows[sp.q3.i].lo)} = ${f2(sp.q3.value)}.`,
+      `Interquartile range = Q₃ − Q₁ = ${f2(sp.q3.value)} − ${f2(sp.q1.value)} = ${f2(sp.iqr)}.`,
+    ]);
     chart(rows, s);
   }
 
@@ -130,6 +168,8 @@ import '../../styles/smath.css';
   inp.addEventListener('input', run);
   q('.gd-a').addEventListener('input', run);
   for (const c of ['.gd-o1', '.gd-o2']) q(c).addEventListener('change', run);
+  q<HTMLInputElement>('.gd-incl').addEventListener('change', run);
+  root.querySelectorAll<HTMLButtonElement>('.gd-pre').forEach((b) => b.addEventListener('click', () => { inp.value = PRESETS[b.dataset.p!]; q<HTMLInputElement>('.gd-a').value = ''; run(); }));
   q('.gd-ex').addEventListener('click', () => { inp.value = EXAMPLE; q<HTMLInputElement>('.gd-a').value = ''; run(); });
   run();
 

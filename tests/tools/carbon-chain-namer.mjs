@@ -61,4 +61,19 @@ export default async ({ page, check, BASE }) => {
   check((await t('.cc-score')) === '2 of 3 right' && (await t('.cc-qs')).includes('✗ It is'), 'chain: wrong answer gets the steps');
   await page.click('.ccn .cc-new');
   check((await t('.cc-score')) === '', 'chain: new questions');
+  // Solve my numbers card
+  const S = (k) => `.ccn .cc-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'pent-2-ene (C₅H₁₀, an alkene, molar mass 70.13 g/mol).', `chain solve: pent-2-ene (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()) === 'butan-2-ol (C₄H₁₀O, an alcohol, molar mass 74.12 g/mol).' && (await wk()).includes('4 × 12.011 + 10 × 1.008 + 1 × 15.999'), `chain solve: butan-2-ol (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()).startsWith('2-methylbutane (C₅H₁₂') && (await ans()).includes('72.15'), `chain solve: 2-methylbutane (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()).startsWith('pentan-3-one (C₅H₁₀O, a ketone, molar mass 86.13'), `chain solve: pentan-3-one (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()).startsWith('propanoic acid (C₃H₆O₂, a carboxylic acid, molar mass 74.08'), `chain solve: propanoic acid (${await ans()})`);
+  await page.selectOption(S('find'), 'series'); await page.selectOption(S('example'), '5'); check((await ans()).startsWith('C₄H₈ fits an alkene') && (await wk()).includes('= 1'), `chain solve: C4H8 (${await ans()})`);
+  await page.selectOption(S('example'), '6'); check((await ans()).includes('aldehyde or a ketone'), 'chain solve: C3H6O');
+  await page.selectOption(S('example'), '7'); check((await ans()).includes('carboxylic acid'), 'chain solve: C2H4O2');
+  await page.fill(S('H'), '7'); check((await ans()).includes('not possible'), `chain solve: odd hydrogens (${await ans()})`);
+  await page.fill(S('H'), '30'); check((await ans()).includes('not possible'), 'chain solve: too many hydrogens');
+  await page.selectOption(S('find'), 'name'); await page.fill(S('n'), '12'); check((await ans()).includes('1 to 10'), 'chain solve: 12 carbons refused');
+  await page.fill(S('n'), '3'); await page.selectOption(S('series'), 'alkene'); await page.fill(S('pos'), '3'); check((await ans()).includes('runs from 1 to 2'), `chain solve: bond position out of range (${await ans()})`);
+  await page.selectOption(S('series'), 'alkane'); await page.fill(S('me'), '9'); check((await ans()).includes('from 1 to 3'), 'chain solve: branch carbon out of range');
 };

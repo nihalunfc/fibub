@@ -30,16 +30,24 @@ import '../../styles/astro.css';
     </div>
 
     <div class="em-p em-p-solve" hidden>
-      <p class="ax-help">Type any three of the five values and leave two empty. Use a minus sign for backwards velocities or slowing down.</p>
+      <p class="ax-help">Type any three of the five values from your problem and leave two empty. Pick the unit your question uses. Use a minus sign for backwards velocities or slowing down.</p>
+      <div class="em-pre" role="group" aria-label="Worked examples"></div>
+      <p class="ax-help em-prenote"></p>
       <div class="ax-grid">
-        <label>u, starting velocity (m/s) <input class="em-su" type="text" inputmode="decimal" value="0" /></label>
-        <label>v, final velocity (m/s) <input class="em-sv" type="text" inputmode="decimal" value="20" /></label>
-        <label>a, acceleration (m/s²) <input class="em-sa" type="text" inputmode="decimal" value="" /></label>
-        <label>s, displacement (m) <input class="em-ss" type="text" inputmode="decimal" value="100" /></label>
-        <label>t, time (s) <input class="em-st" type="text" inputmode="decimal" value="" /></label>
+        <label>u, starting velocity <span class="em-fr"><input class="em-su" data-k="u" type="text" inputmode="decimal" value="0" /><select class="em-un" data-k="u-unit" data-u="u" aria-label="Unit of u"><option>m/s</option><option>km/h</option></select></span></label>
+        <label>v, final velocity <span class="em-fr"><input class="em-sv" data-k="v" type="text" inputmode="decimal" value="20" /><select class="em-un" data-k="v-unit" data-u="v" aria-label="Unit of v"><option>m/s</option><option>km/h</option></select></span></label>
+        <label>a, acceleration <span class="em-fr"><input class="em-sa" data-k="a" type="text" inputmode="decimal" value="" /><select class="em-un" data-k="a-unit" data-u="a" aria-label="Unit of a"><option>m/s²</option><option>g</option></select></span></label>
+        <label>s, displacement <span class="em-fr"><input class="em-ss" data-k="s" type="text" inputmode="decimal" value="100" /><select class="em-un" data-k="s-unit" data-u="s" aria-label="Unit of s"><option>m</option><option>km</option><option>cm</option></select></span></label>
+        <label>t, time <span class="em-fr"><input class="em-st" data-k="t" type="text" inputmode="decimal" value="" /><select class="em-un" data-k="t-unit" data-u="t" aria-label="Unit of t"><option>s</option><option>min</option><option>h</option></select></span></label>
       </div>
       <p class="ax-err em-err" hidden></p>
-      <div class="em-sol" aria-live="polite"></div>
+      <p class="em-ans" data-k="answer" aria-live="polite"></p>
+      <div class="em-sol"></div>
+      <div class="em-work" hidden>
+        <h3>Working, as an exam would want it</h3>
+        <div class="em-wl"></div>
+      </div>
+      <p class="ax-help em-mist">Common mistakes: forgetting that slowing down makes a negative (so the sign of a is minus if u is positive); leaving km/h in a formula that needs m/s (divide by 3.6); using t in minutes with a in m/s².</p>
     </div>
 
     <div class="em-p em-p-brake" hidden>
@@ -78,7 +86,7 @@ import '../../styles/astro.css';
 </div>
 
 <script>
-  import { solve, pathLength, stopping, questions, type Full } from '../../lib/sci/suvat';
+  import { solve, pathLength, stopping, questions, working, toSI, fromSI, PRESETS, UNITS, type Full, type Key } from '../../lib/sci/suvat';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette, type Palette } from '../../lib/report';
   import { num } from '../../lib/sci/num';
@@ -183,18 +191,39 @@ import '../../styles/astro.css';
   }
 
   let sols: Full[] = [];
+  const KEYS: Key[] = ['u', 'v', 'a', 's', 't'];
+  const unitOf = (k: Key) => q<HTMLSelectElement>(`[data-k="${k}-unit"]`).value;
   function readSolve(): boolean {
-    const err = q('.em-err'), out = q('.em-sol');
-    const raw = { u: inp('.em-su').value, v: inp('.em-sv').value, a: inp('.em-sa').value, s: inp('.em-ss').value, t: inp('.em-st').value };
+    const err = q('.em-err'), out = q('.em-sol'), ans = q('.em-ans'), wk = q('.em-work');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.replaceChildren(); ans.textContent = ''; wk.hidden = true; sols = []; return false; };
     const k: Record<string, number> = {};
-    for (const [key, val] of Object.entries(raw)) { if (val.trim() === '') continue; const x = num(val); if (!Number.isFinite(x)) { err.textContent = `${key} is not a number. Leave it empty if it is unknown.`; err.hidden = false; out.replaceChildren(); sols = []; return false; } k[key] = x; }
+    for (const key of KEYS) {
+      const val = inp(`[data-k="${key}"]`).value;
+      if (val.trim() === '') continue;
+      const x = num(val);
+      if (!Number.isFinite(x)) return fail(`${key} is not a number. Leave it empty if it is unknown.`);
+      k[key] = toSI(key, unitOf(key), x);
+    }
     const r = solve(k);
-    if (!r.ok) { err.textContent = r.msg; err.hidden = false; out.replaceChildren(); sols = []; return false; }
+    if (!r.ok) return fail(r.msg);
     err.hidden = true; sols = r.sols;
+    const known = Object.keys(k) as Key[], unknown = KEYS.filter((x) => !known.includes(x));
     const lines: HTMLElement[] = [para([['Used: '], r.used + '.'])];
     r.sols.forEach((c, i) => lines.push(para([[r.sols.length > 1 ? `Answer ${i + 1}: ` : 'Answer: '], `u = ${f(c.u)} m/s, v = ${f(c.v)} m/s, a = ${f(c.a)} m/s², s = ${f(c.s)} m, t = ${f(c.t)} s`])));
     if (r.sols.length > 1) lines.push(para(['Two answers: it passes the same point twice, once going and once coming back. The graph shows answer 1.']));
     out.replaceChildren(...lines);
+    // the plain one-line answer, in the units chosen for the unknown boxes
+    const say = (c: Full) => unknown.map((x) => `${x} = ${f(fromSI(x, unitOf(x), c[x]), 3)} ${unitOf(x)}`).join(' and ');
+    ans.textContent = r.sols.length > 1 ? `Two answers: ${r.sols.map(say).join(', or ')}.` : `${say(r.sols[0])}.`;
+    // working
+    const wl = q('.em-wl'); wl.replaceChildren();
+    const sign = para([['Sign convention: '], `forwards (the direction of u${k.u !== undefined && k.u < 0 ? ', here backwards' : ''}) is positive; a, v and s are negative when they point the other way. All values are changed to m, s, m/s and m/s² first.`]);
+    wl.append(sign);
+    const conv = known.filter((x) => Object.keys(UNITS[x])[0] !== unitOf(x));
+    if (conv.length) wl.append(para([['Units: '], conv.map((x) => `${x} = ${f(inp(`[data-k="${x}"]`).value === '' ? 0 : num(inp(`[data-k="${x}"]`).value), 3)} ${unitOf(x)} = ${f(k[x], 3)} ${x === 'a' ? 'm/s²' : x === 's' ? 'm' : x === 't' ? 's' : 'm/s'}`).join('; ') + '.']));
+    wl.append(para([['Known: '], known.map((x) => `${x} = ${f(k[x], 3)}`).join(', ') + `. Unknown: ${unknown.join(', ')}.`]));
+    r.sols.forEach((c, i) => { if (r.sols.length > 1) wl.append(para([[`Answer ${i + 1}`]])); working(known, c).forEach((ln) => wl.append(para([ln]))); });
+    wk.hidden = false;
     const c = r.sols[0]; u = c.u; a = c.a; t = Math.max(c.t, 1e-6);
     return true;
   }
@@ -287,6 +316,15 @@ import '../../styles/astro.css';
   }));
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', redraw); i.addEventListener('change', redraw); });
 
+  const preBox = q('.em-pre');
+  PRESETS.forEach((pz, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = pz.name; b.dataset.k = `preset-${i}`;
+    b.addEventListener('click', () => {
+      for (const key of KEYS) { inp(`[data-k="${key}"]`).value = pz.vals[key] ?? ''; q<HTMLSelectElement>(`[data-k="${key}-unit"]`).value = pz.units?.[key] ?? Object.keys(UNITS[key])[0]; }
+      q('.em-prenote').textContent = pz.note; redraw();
+    });
+    preBox.append(b);
+  });
   let renderQuiz = () => {};
   renderQuiz = mountQuiz(q('.em-quiz'), () => questions(level));
   redraw();
@@ -312,6 +350,14 @@ import '../../styles/astro.css';
   html[data-theme=dark] .em .em-k1 { background: #7fb2f0; }
   html[data-theme=dark] .em .em-k2 { background: #f0b45a; }
   html.red-mode .em .em-k1, html.red-mode .em .em-k2 { background: #a30000; }
+  .em .em-fr { display: flex; gap: 6px; }
+  .em .em-fr input { flex: 1 1 auto; min-width: 0; }
+  .em .em-fr select { flex: 0 0 5.5em; min-height: 44px; }
+  .em .em-pre { display: flex; flex-wrap: wrap; gap: 6px; }
+  .em .em-ans { margin: 4px 0 0; font-size: 18px; font-weight: 650; overflow-wrap: anywhere; }
+  .em .em-ans:empty { display: none; }
+  .em .em-work h3 { margin: 6px 0 0; font-size: 16px; }
+  .em .em-work p { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
   .em .em-eq p, .em .em-sol p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
   .em .em-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }

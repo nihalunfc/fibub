@@ -23,6 +23,21 @@ export default async ({ page, check, BASE }) => {
   await page.selectOption(R + '.cn-dir', 'down'); check((await t('.cn-eq')) === 'x² = −6y' && (await t('.cn-facts')).includes('(0, −1.5)'), 'conics: parabola opening down');
   check(await page.isHidden(R + '.cn-a') && await page.isVisible(R + '.cn-p'), 'conics: only the parabola sliders show');
   await pick('circle'); check((await t('.cn-eq')) === '(x − 1)² + y² = 9' && (await t('.cn-pnote')).includes('r = 3 away'), `conics: circle (${await t('.cn-eq')})`);
+  // Solve my numbers
+  const typ = (k, v) => page.fill(R + `[data-k="${k}"]`, String(v));
+  await page.selectOption(R + '[data-k="form"]', 'ellipse'); await typ('n1', 25); await typ('n2', 9);
+  check((await t('.cn-ans')).includes('a = 5, b = 3, e = 0.8, foci (4, 0) and (−4, 0), latus rectum 3.6'), `conics: solve ellipse (${await t('.cn-ans')})`);
+  await typ('n1', 9); await typ('n2', 25); check((await t('.cn-ans')).includes('foci (0, 4) and (0, −4)') && (await t('.cn-eq')) === 'x²/9 + y²/25 = 1', `conics: solve vertical ellipse (${await t('.cn-ans')})`);
+  await typ('n1', -3); check((await t('.cn-ans')).includes('positive'), 'conics: solve rejects a negative denominator');
+  await page.selectOption(R + '[data-k="form"]', 'hyperbola-x'); await typ('n1', 9); await typ('n2', 16);
+  check((await t('.cn-ans')).includes('e = 1.667') && (await t('.cn-ans')).includes('latus rectum 10.667'), `conics: solve hyperbola (${await t('.cn-ans')})`);
+  await page.selectOption(R + '[data-k="form"]', 'parabola-x'); await typ('n1', 12);
+  check((await t('.cn-ans')).includes('a = 3, focus (3, 0), directrix x = −3'), `conics: solve parabola (${await t('.cn-ans')})`);
+  await typ('n1', 0); check((await t('.cn-ans')).includes('not a parabola'), 'conics: L = 0 gives a message');
+  await page.selectOption(R + '[data-k="form"]', 'circle-general'); await typ('n1', -2); await typ('n2', 4); await typ('n3', -4);
+  check((await t('.cn-ans')) === 'Circle with centre (1, −2) and radius 3.' && (await t('.cn-eq')) === '(x − 1)² + (y + 2)² = 9', `conics: solve circle (${await t('.cn-ans')} / ${await t('.cn-eq')})`);
+  await typ('n3', 10); check((await t('.cn-ans')).includes('negative') && !/NaN/.test(await t('.cn-ans')), 'conics: negative r² message');
+  await typ('n3', -4); await slide('.cn-r', 2); check((await t('.cn-eq')).includes('= 4'), 'conics: a slider takes over from the solved curve');
   await pick('slice');
   check((await t('.cn-stitle')) === 'The plane cuts an ellipse' && (await t('.cn-snote')).includes('= 0.5774'), `conics: slice ellipse (${await t('.cn-snote')})`);
   await slide('.cn-be', 30); check((await t('.cn-stitle')) === 'The plane cuts a parabola', 'conics: slice parabola');

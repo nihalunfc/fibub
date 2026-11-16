@@ -37,7 +37,16 @@ It follows limits and derivatives in Class 11 maths and continuity and different
 2. Slide **Zoom** or press **Zoom in** to close in on the point. **Zoom out** starts again.
 3. Read the **left-hand** and **right-hand limits**. If they agree, the limit exists. If they differ, or one runs off to infinity, or the values never settle, there is no limit.
 4. Switch the **Level** to Class 12 to see whether f is **continuous** at a, and what kind of break it has if not.
-5. For **sin x / x**, a second picture shows the sector argument: slide the angle and read the three areas.
+5. The sentence under the title is the answer, such as *lim (x → 2) of (x² − 4)/(x − 2) = 4.* **Show the working** lists the substitution (and whether it gives 0/0), the left and right limits, and the conclusion in the order an exam marks it.
+6. Under *My own…*, pick a **textbook-style example** to fill the boxes, or type your own. To find a limit at infinity, type `inf` or `-inf` in the point box: the page shows f at x = 10, 100 … 1,000,000 and says where it heads, with the divide-by-the-highest-power method as the exact route.
+7. For **sin x / x**, a second picture shows the sector argument: slide the angle and read the three areas.
+
+## Common mistakes
+
+- Thinking the limit is f(a). The limit is where f heads, so a hole or a moved value at a does not change it.
+- Forgetting to compare both sides: if the left and right limits differ, there is no limit.
+- Using degrees: standard limits like sin x / x → 1 need x in radians (this page uses radians).
+- Cancelling when x → ∞ without dividing by the highest power first.
 
 ## The kinds of point
 
@@ -62,6 +71,8 @@ It works out f at 0.1, 0.01, … 0.000001 either side of a. If the values settle
 Five fresh questions: a factorising limit, sin(kx)/x, the standard limit (xⁿ − aⁿ)/(x − a), a one-sided limit of [x], and the kind of break of 1/(x − p)². Nothing is saved.
 
 ## FAQ
+
+**How do I find a limit when substituting gives 0/0?** Type the function under My own…, read the sentence at the top for the value, then factorise, rationalise or use a standard limit to prove it, as the working suggests.
 
 **Why can a limit exist when f(a) does not?** The limit only looks at values near a, never at a itself.
 

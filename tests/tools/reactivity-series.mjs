@@ -33,4 +33,22 @@ export default async ({ page, check, BASE }) => {
     if ((await it.locator('.cq-res').textContent()) === 'Right!') right++;
   }
   check(n === 5 && right === n, `reactivity: every worked answer accepted (${right}/${n})`);
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/reactivity-series/`); await page.waitForTimeout(600);
+  {
+  const S = '.rx-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  await pre(0);
+  check((await ans()) === 'Yes: iron displaces copper from copper(II) sulfate.' && (await work()).includes('Fe + CuSO₄ → FeSO₄ + Cu'), `react solve: iron in copper sulfate (${await ans()})`);
+  await pre(1); check((await ans()) === 'No reaction: copper is less reactive than iron.', `react solve: copper in iron sulfate (${await ans()})`);
+  await pre(2); check((await ans()) === 'Yes: zinc displaces hydrogen from dilute acid.', `react solve: zinc and acid (${await ans()})`);
+  await pre(3); check((await ans()) === 'Magnesium is more reactive than lead.', `react solve: compare (${await ans()})`);
+  await pre(4); check((await ans()).startsWith('Aluminium is extracted by electrolysis'), `react solve: aluminium extraction (${await ans()})`);
+  await pre(0); await page.selectOption(S + '[data-k="sv-m"]', 'Na'); check((await ans()).includes('reacts with the water itself'), `react solve: sodium (${await ans()})`);
+  await page.selectOption(S + '[data-k="sv-m"]', 'Fe'); await page.selectOption(S + '[data-k="sv-s"]', 'FeSO4'); check((await ans()) === 'No change: iron cannot displace itself.', `react solve: same metal (${await ans()})`);
+  await page.selectOption(S + '[data-k="sv-find"]', 'cmp'); await page.selectOption(S + '[data-k="sv-m2"]', 'Fe'); check((await ans()).startsWith('Pick two different metals'), `react solve: same two metals (${await ans()})`);
+  await page.evaluate(() => { document.querySelectorAll('.rx details').forEach((d) => (d.open = true)); });
+  await page.fill('[data-k="rx-order"]', 'Cu zinc Mg, silver'); check((await page.textContent('.rx-ord-out')) === 'Most reactive first: Mg > Zn > Cu > Ag.', `react solve: order typed metals (${await page.textContent('.rx-ord-out')})`);
+  await page.fill('[data-k="rx-order"]', 'Cu xyz'); check((await page.textContent('.rx-ord-out')).includes('Type at least two') === false && (await page.textContent('.rx-ord-out')).includes('xyz'), 'react solve: unknown metal named');
+  }
 };

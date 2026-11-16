@@ -128,3 +128,61 @@ export function show(node: SetNode, top = true): string {
     case 'op': { const s = `${show(node.a, false)} ${{ or: '∪', and: '∩', minus: '−', xor: 'Δ' }[node.op]} ${show(node.b, false)}`; return top ? s : `(${s})`; }
   }
 }
+
+/** Counting problem: numbers typed for n(A), n(B), ... (NaN or undefined when left blank). */
+export type CountInput = { U?: number; A?: number; B?: number; C?: number; AB?: number; BC?: number; AC?: number; ABC?: number; union?: number; allIn?: boolean };
+export type CountResult = { regions?: number[]; sentence: string; steps: string[]; error?: string };
+
+const has = (x: number | undefined): x is number => x !== undefined && Number.isFinite(x);
+const whole = (x: number) => Number.isInteger(x) && x >= 0;
+const fixed = (x: number) => String(x);
+
+/** Solve a school counting problem with 2 or 3 sets by inclusion-exclusion, filling in the one missing number. */
+export function countProblem(n: 2 | 3, v: CountInput): CountResult {
+  const bad = (error: string): CountResult => ({ sentence: error, steps: [], error });
+  const nums = [v.U, v.A, v.B, v.C, v.AB, v.BC, v.AC, v.ABC, v.union].filter(has);
+  if (nums.some((x) => !whole(x))) return bad('Counts must be whole numbers, 0 or more.');
+  let union = has(v.union) ? v.union : undefined;
+  if (v.allIn) { if (!has(v.U)) return bad('To say everyone is in at least one set, fill in n(U) as well.'); union = v.U; }
+  const steps: string[] = [];
+  if (n === 2) {
+    let { A, B, AB } = v;
+    const miss = [['n(A)', A], ['n(B)', B], ['n(A ∩ B)', AB], ['n(A ∪ B)', union]].filter(([, x]) => !has(x as number | undefined)).map(([k]) => k as string);
+    if (miss.length > 1) return bad(`Fill in three of n(A), n(B), n(A ∩ B) and n(A ∪ B). Still empty: ${miss.join(', ')}.`);
+    if (miss.length === 1) {
+      if (!has(union)) { union = A! + B! - AB!; steps.push(`n(A ∪ B) = n(A) + n(B) − n(A ∩ B) = ${A} + ${B} − ${AB} = ${union}.`); }
+      else if (!has(AB)) { AB = A! + B! - union; steps.push(`n(A ∩ B) = n(A) + n(B) − n(A ∪ B) = ${A} + ${B} − ${union} = ${AB}.`); }
+      else if (!has(A)) { A = union - B! + AB; steps.push(`n(A) = n(A ∪ B) − n(B) + n(A ∩ B) = ${union} − ${B} + ${AB} = ${A}.`); }
+      else { B = union - A + AB; steps.push(`n(B) = n(A ∪ B) − n(A) + n(A ∩ B) = ${union} − ${A} + ${AB} = ${B}.`); }
+    } else if (A! + B! - AB! !== union) return bad(`These do not fit: n(A) + n(B) − n(A ∩ B) = ${A! + B! - AB!}, not ${union}.`);
+    const a = A!, b = B!, ab = AB!, u = union!;
+    if (ab > a || ab > b) return bad('n(A ∩ B) cannot be bigger than n(A) or n(B).');
+    if (u < 0 || a < 0 || b < 0 || ab < 0) return bad('A count came out negative, so these numbers cannot all be true.');
+    if (has(v.U) && u > v.U) return bad(`n(A ∪ B) = ${u} is bigger than n(U) = ${v.U}, so the numbers cannot all be true.`);
+    const regions = [has(v.U) ? v.U - u : 0, a - ab, b - ab, ab];
+    steps.push(`Only A = n(A) − n(A ∩ B) = ${a} − ${ab} = ${a - ab}. Only B = ${b} − ${ab} = ${b - ab}. Both = ${ab}.`);
+    if (has(v.U)) steps.push(`Neither = n(U) − n(A ∪ B) = ${v.U} − ${u} = ${v.U - u}.`);
+    const sentence = `n(A ∪ B) = ${u}${has(v.U) ? `, and ${v.U - u} are in neither set` : ''}. n(A ∩ B) = ${ab}, only A = ${a - ab}, only B = ${b - ab}.`;
+    return { regions, sentence, steps };
+  }
+  const { A, B, C, AB, BC, AC } = v; let ABC = v.ABC;
+  const miss = [['n(A)', A], ['n(B)', B], ['n(C)', C], ['n(A ∩ B)', AB], ['n(B ∩ C)', BC], ['n(A ∩ C)', AC]].filter(([, x]) => !has(x as number | undefined)).map(([k]) => k as string);
+  if (miss.length) return bad(`Fill in ${miss.join(', ')}. Only n(A ∩ B ∩ C) may be left empty, and then n(A ∪ B ∪ C) or "everyone is in at least one" is needed.`);
+  const base = A! + B! + C! - AB! - BC! - AC!;
+  if (!has(ABC)) {
+    if (!has(union)) return bad('Fill in n(A ∩ B ∩ C), or give n(A ∪ B ∪ C) so it can be found.');
+    ABC = union - base; steps.push(`n(A ∩ B ∩ C) = n(A ∪ B ∪ C) − [n(A) + n(B) + n(C) − n(A ∩ B) − n(B ∩ C) − n(A ∩ C)] = ${union} − ${base} = ${ABC}.`);
+  } else {
+    const u2 = base + ABC;
+    if (has(union) && union !== u2) return bad(`These do not fit: the formula gives n(A ∪ B ∪ C) = ${u2}, not ${union}.`);
+    union = u2; steps.push(`n(A ∪ B ∪ C) = ${A} + ${B} + ${C} − ${AB} − ${BC} − ${AC} + ${ABC} = ${u2}.`);
+  }
+  const t = ABC!, ab = AB! - t, bc = BC! - t, ac = AC! - t, a = A! - ab - ac - t, b = B! - ab - bc - t, c = C! - ac - bc - t;
+  const regions = [has(v.U) ? v.U - union! : 0, a, b, ab, c, ac, bc, t];
+  if (t < 0 || regions.slice(1).some((x) => x < 0)) return bad('One region came out negative, so these numbers cannot all be true. Check the pair counts against the single counts.');
+  if (has(v.U) && union! > v.U) return bad(`n(A ∪ B ∪ C) = ${union} is bigger than n(U) = ${v.U}, so the numbers cannot all be true.`);
+  steps.push(`Pairs only (outside the middle): A∩B only = ${AB} − ${t} = ${ab}, B∩C only = ${bc}, A∩C only = ${ac}.`);
+  steps.push(`Singles only: A only = ${A} − ${ab} − ${ac} − ${t} = ${a}, B only = ${b}, C only = ${c}.`);
+  if (has(v.U)) steps.push(`Neither = n(U) − n(A ∪ B ∪ C) = ${v.U} − ${union} = ${v.U - union!}.`);
+  return { regions, sentence: `n(A ∪ B ∪ C) = ${fixed(union!)}${has(v.U) ? `, and ${v.U - union!} are in none of the sets` : ''}. n(A ∩ B ∩ C) = ${t}.`, steps };
+}

@@ -20,3 +20,23 @@ export const triArea = (A: Pt, B: Pt, C: Pt) => Math.abs(A[0] * (B[1] - C[1]) + 
 
 /** The ratio k : 1 in which the x axis (y = 0) divides AB: k = −y1 / y2. Positive k means between A and B. */
 export const ratioOnXAxis = (A: Pt, B: Pt) => (B[1] === 0 ? NaN : -A[1] / B[1]);
+
+/** The ratio in which P divides AB, when P is on line AB: m : n with P = (mB + nA)/(m + n). `external` when P is outside the segment. */
+export function ratioDividing(A: Pt, B: Pt, P: Pt): { m: number; n: number; external: boolean } | { error: 'same' | 'offline' } {
+  const dx = B[0] - A[0], dy = B[1] - A[1];
+  if (dx === 0 && dy === 0) return { error: 'same' };
+  const cross = dx * (P[1] - A[1]) - dy * (P[0] - A[0]);
+  if (Math.abs(cross) > 1e-9 * Math.max(1, Math.hypot(dx, dy) * Math.hypot(P[0] - A[0], P[1] - A[1]))) return { error: 'offline' };
+  const t = Math.abs(dx) >= Math.abs(dy) ? (P[0] - A[0]) / dx : (P[1] - A[1]) / dy;
+  return { m: Math.abs(t), n: Math.abs(1 - t), external: t < 0 || t > 1 };
+}
+
+/** Where the x axis (axis 'x') or the y axis (axis 'y') cuts line AB: the ratio k : 1 from A (k < 0 means outside AB), and the point.
+ *  Null when AB is parallel to that axis or lies on it; k = Infinity when B itself is on the axis. */
+export function axisCut(A: Pt, B: Pt, axis: 'x' | 'y'): { k: number; P: Pt } | null {
+  const i = axis === 'x' ? 1 : 0;
+  if (A[i] === B[i]) return null;
+  if (B[i] === 0) return { k: Infinity, P: [B[0], B[1]] };
+  const k = -A[i] / B[i];
+  return { k, P: section(A, B, k, 1) };
+}

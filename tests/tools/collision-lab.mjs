@@ -30,4 +30,19 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.cl .sq-q', (e) => e.dataset.ans);
   await page.fill('.cl .sq-q .sq-in', ans); await page.click('.cl .sq-q .sq-check');
   check((await page.textContent('.cl .sq-q .sq-res')) === 'Right!', 'collision-lab: quiz');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/collision-lab/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Equal masses, elastic'); check((await psAns()).includes('body 1 moves at 0 m/s and body 2 at 3 m/s'), 'collision-lab: example Equal masses, elastic: body 1 moves at 0 m/s and body 2 at 3 m/s');
+  await psPre('Head-on, e = 0.5'); check((await psAns()).includes('body 1 moves at 1 m/s and body 2 at 4 m/s. Kinetic energy lost: 9 J'), 'collision-lab: example Head-on, e = 0.5: body 1 moves at 1 m/s and body 2 at 4 m/s. Kinetic');
+  await psPre('Cars stick'); check((await psAns()).includes('They move together at 9 m/s. Kinetic energy lost: 54000 J (40 %)'), 'collision-lab: example Cars stick: They move together at 9 m/s. Kinetic energy lost: ');
+  await psPre('Find e'); check((await psAns()).includes('e = 0.5'), 'collision-lab: example Find e: e = 0.5');
+  await psPre('Bouncing ball'); check((await psAns()).includes('e = 0.8; after bounce 3 the ball rises to 0.524 m'), 'collision-lab: example Bouncing ball: e = 0.8; after bounce 3 the ball rises to 0.524 m');
+  await psSet('e', {'e-v2': '8'}); check((await psAns()).includes('outside 0 to 1'), 'collision-lab: e outside 0 to 1');
+  await psSet('bounce', {'bounce-h2': '3'}); check((await psAns()).includes('cannot be higher'), 'collision-lab: bounce cannot be higher');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'collision-lab: working shown, no NaN');
 };

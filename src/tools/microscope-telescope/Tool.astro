@@ -5,6 +5,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax mst">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (focal lengths and distances) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-seg mst-inst" role="group" aria-label="Instrument">
       <button type="button" data-k="simple" aria-pressed="false">Magnifying glass</button><button type="button" data-k="micro" aria-pressed="true">Compound microscope</button><button type="button" data-k="tele" aria-pressed="false">Telescope</button>
@@ -199,4 +200,10 @@ import '../../styles/astro.css';
   };
   mountQuiz(q('.mst-quiz'), make, 4);
   draw();
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { OPTICS } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, OPTICS);
 </script>

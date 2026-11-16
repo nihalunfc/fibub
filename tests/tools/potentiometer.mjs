@@ -40,4 +40,28 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [e1, a, b] = q1.match(/emf ([\d.]+) V balances at (\d+) cm.*?at (\d+) cm/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((e1 * b) / a)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'pot: right answer accepted');
+  // ---- Solve your own numbers (the card at the top) ----
+  const S = (k) => `${R}.sv [data-k="${k}"]`;
+  const ans = () => page.textContent(S('answer'));
+  const fillS = async (k, v) => { await page.fill(S(k), v); await page.waitForTimeout(80); };
+  const selS = async (k, v) => { await page.selectOption(S(k), v); await page.waitForTimeout(80); };
+  const clearBad = async (what) => check(!/NaN|Infinity|undefined/.test(await ans() + await page.textContent(S('working'))), `solve: no NaN for ${what}`);
+  check((await ans()).includes('1.25 V'), `solve: E₂ = 1.25 V (${await ans()})`);
+  await fillS('l1', '3'); await selS('l1-unit', 'm');
+  check((await ans()).includes('1.25 V'), 'solve: balance length in metres');
+  await selS('example', '1');
+  check((await ans()).includes('1 Ω'), `solve: r = 1 Ω (${await ans()})`);
+  await fillS('l1', '250'); await fillS('l2', '300');
+  check((await ans()).includes('must be shorter'), 'solve: l₂ longer than l₁');
+  await selS('example', '2');
+  check((await ans()).includes('0.5 V/m') && (await ans()).includes('5 mV per cm'), `solve: gradient (${await ans()})`);
+  await selS('example', '3');
+  check((await ans()).includes('240 cm'), `solve: balance length 240 cm (${await ans()})`);
+  await fillS('E', '3');
+  check((await ans()).includes('no balance point'), 'solve: emf above the wire drop');
+  await selS('example', '4');
+  check((await ans()).includes('1.78 V') && (await ans()).includes('0.444 A'), `solve: drop along the wire (${await ans()})`);
+  await selS('find', 'E'); await fillS('Vw', '2'); await fillS('L', '4'); await fillS('l', '150');
+  check((await ans()).includes('0.75 V'), `solve: E = k l = 0.75 V (${await ans()})`);
+  await clearBad('potentiometer');
 };

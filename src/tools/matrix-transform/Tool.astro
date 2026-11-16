@@ -20,30 +20,39 @@ import SmQuiz from '../../components/SmQuiz.astro';
       <span class="mt-br">]</span>
     </div>
     <p class="ax-err mt-err" hidden></p>
+    <p class="ax-big mt-ans" aria-live="polite"></p>
     <canvas class="ax-fig mt-fig" role="img"></canvas>
     <label class="mt-sl">Morph from the identity: <b class="mt-kv"></b><input class="mt-k" type="range" min="0" max="100" value="100" /></label>
     <p class="ax-help">Grey: the old grid. Blue: where the grid goes. Shaded: the unit square becomes a parallelogram. Arrows: where (1, 0) and (0, 1) land, which are the columns of A. The letter F shows if the picture is flipped.</p>
     <dl class="ax-facts mt-facts"></dl>
+    <p class="ax-help">Common mistake: the columns of the matrix are where (1, 0) and (0, 1) land, not the rows. And det A = ad − bc, with the diagonal products in that order.</p>
   </div>
 
   <div class="ax-card mt-two" hidden>
     <h2>First A, then B</h2>
     <div class="ax-grid">
-      <label>A (first) <select class="mt-A"></select></label>
-      <label>B (second) <select class="mt-B"></select></label>
+      <label>A (first) <select class="mt-A" data-k="selA"></select></label>
+      <label>B (second) <select class="mt-B" data-k="selB"></select></label>
     </div>
+    <div class="mt-own mt-ownA" hidden><b>A =</b><div class="mt-cells2"><input data-k="a1" inputmode="decimal" value="1" aria-label="A top left" /><input data-k="a2" inputmode="decimal" value="2" aria-label="A top right" /><input data-k="a3" inputmode="decimal" value="0" aria-label="A bottom left" /><input data-k="a4" inputmode="decimal" value="1" aria-label="A bottom right" /></div></div>
+    <div class="mt-own mt-ownB" hidden><b>B =</b><div class="mt-cells2"><input data-k="b1" inputmode="decimal" value="0" aria-label="B top left" /><input data-k="b2" inputmode="decimal" value="-1" aria-label="B top right" /><input data-k="b3" inputmode="decimal" value="1" aria-label="B bottom left" /><input data-k="b4" inputmode="decimal" value="0" aria-label="B bottom right" /></div></div>
+    <p class="ax-err mt-err2" hidden></p>
     <canvas class="ax-fig mt-fig2" role="img"></canvas>
-    <p class="mt-two-note"></p>
+    <p class="mt-two-note" aria-live="polite"></p>
     <dl class="ax-facts mt-facts2"></dl>
   </div>
 
   <div class="ax-card mt-solve" hidden>
     <h2>Solve AX = B by X = A⁻¹B</h2>
-    <p class="ax-help">Type the coefficients of x, y, z and the right-hand side of each equation (whole numbers or fractions).</p>
+    <p class="ax-help">Type the coefficients and the right-hand side of each equation (whole numbers, decimals or fractions like 3/4; the page scales a row to clear fractions).</p>
+    <div class="ax-row"><label>Number of equations <select class="mt-dim" data-k="dim"><option value="3">3 equations: x, y, z</option><option value="2">2 equations: x, y</option></select></label></div>
     <div class="mt-sys"></div>
-    <div class="ax-row"><button type="button" class="btn small secondary mt-ex1">Example 1</button><button type="button" class="btn small secondary mt-ex2">No solution</button><button type="button" class="btn small secondary mt-ex3">Many solutions</button></div>
+    <div class="mt-sys2" hidden></div>
+    <div class="ax-row"><button type="button" class="btn small secondary mt-ex1">Example 1</button><button type="button" class="btn small secondary mt-ex2">No solution</button><button type="button" class="btn small secondary mt-ex3">Many solutions</button><button type="button" class="btn small secondary mt-ex4" hidden>2 × 2 example</button><button type="button" class="btn small secondary mt-ex5" hidden>No solution</button><button type="button" class="btn small secondary mt-ex6" hidden>Many solutions</button></div>
     <p class="ax-err mt-serr" hidden></p>
+    <p class="ax-big mt-sans" aria-live="polite"></p>
     <ol class="mt-steps"></ol>
+    <p class="ax-help mt-stip">Common mistake: a missing variable still needs a 0 in its box, and the signs of the coefficients stay with them when you expand along a row (+ − +).</p>
   </div>
 
   <div class="ax-card">
@@ -60,7 +69,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
-  import { det2, mul2, apply2, inv2, PRESETS2, solve3, qstr, q as frac, type M2, type M3 } from '../../lib/sci/school-matrix';
+  import { det2, mul2, apply2, inv2, PRESETS2, solve3, solve2, clearFractions, qstr, q as frac, type M2, type M3 } from '../../lib/sci/school-matrix';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { view, axes, line, px, py, fmt, type View } from '../../lib/sm-graph';
   import { readAnswer, quiz, rint, type Question } from '../../lib/sm-quiz';
@@ -73,6 +82,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
   const ms = (m: M2) => `[${fmt(m[0], 3)} ${fmt(m[1], 3)}; ${fmt(m[2], 3)} ${fmt(m[3], 3)}]`;
   const F: [number, number][] = [[0.2, 0.15], [0.35, 0.15], [0.35, 0.5], [0.6, 0.5], [0.6, 0.62], [0.35, 0.62], [0.35, 0.8], [0.7, 0.8], [0.7, 0.92], [0.2, 0.92]];
   for (const sel of ['.mt-pre', '.mt-A', '.mt-B']) qq<HTMLSelectElement>(sel).append(...PRESETS2.map((p) => new Option(p.name, p.id)));
+  for (const sel of ['.mt-A', '.mt-B']) qq<HTMLSelectElement>(sel).append(new Option('Type my own numbers', 'own'));
   qq<HTMLSelectElement>('.mt-A').value = 'shear'; qq<HTMLSelectElement>('.mt-B').value = 'rot';
 
   /** Draw the grid, unit square, basis arrows and F under matrix m (on top of the faint original). */
@@ -113,6 +123,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
     } };
     paint(qq<HTMLCanvasElement>('.mt-fig'), fig);
     const inv = inv2(m);
+    const pn = (x: number) => (x < 0 ? `(${fmt(x, 3)})` : fmt(x, 3));
+    qq('.mt-ans').textContent = `det A = ${pn(m[0])}×${pn(m[3])} − ${pn(m[1])}×${pn(m[2])} = ${fmt(d, 4)}: ${d === 0 ? 'the plane is squashed flat, so A has no inverse.' : `areas are multiplied by ${fmt(Math.abs(d), 4)}${d < 0 ? ' and the picture is flipped' : ''}. A⁻¹ = ${ms(inv!)}.`}`.replace(/-/g, '−');
     qq('.mt-facts').replaceChildren(
       fact('det A = ad − bc', fmt(d, 4), `${fmt(m[0], 3)}×${fmt(m[3], 3)} − ${fmt(m[1], 3)}×${fmt(m[2], 3)}`),
       fact('Area scale', `× ${fmt(Math.abs(d), 4)}`, 'every area is multiplied by |det A|'),
@@ -124,7 +136,12 @@ import SmQuiz from '../../components/SmQuiz.astro';
   }
 
   function two() {
-    const A = PRESETS2.find((p) => p.id === qq<HTMLSelectElement>('.mt-A').value)!.m(90), B = PRESETS2.find((p) => p.id === qq<HTMLSelectElement>('.mt-B').value)!.m(90);
+    const own = (cls: string, k: string): M2 | null => { const v = [1, 2, 3, 4].map((i) => readAnswer(qq<HTMLInputElement>(`[data-k="${k}${i}"]`).value)); return v.every(Number.isFinite) && v.every((x) => Math.abs(x) <= 10) ? (v as M2) : null; };
+    const pick = (selCls: string, ownCls: string, k: string): M2 | null => { const val = qq<HTMLSelectElement>(selCls).value; qq(ownCls).hidden = val !== 'own'; return val === 'own' ? own(ownCls, k) : PRESETS2.find((p) => p.id === val)!.m(90); };
+    const A0 = pick('.mt-A', '.mt-ownA', 'a'), B0 = pick('.mt-B', '.mt-ownB', 'b'), e2 = qq('.mt-err2');
+    if (!A0 || !B0) { e2.textContent = 'Type a number from −10 to 10 (fractions like 1/2 are fine) in every box of the matrix you typed.'; e2.hidden = false; qq('.mt-two-note').textContent = ''; qq('.mt-facts2').replaceChildren(); return; }
+    e2.hidden = true;
+    const A: M2 = A0, B: M2 = B0;
     const BA = mul2(B, A), AB = mul2(A, B), v = V();
     paint(qq<HTMLCanvasElement>('.mt-fig2'), { w: W, h: H, alt: `F, then after A, then after B; the product BA is ${ms(BA)}`, draw: (ctx, w, h, pl) => scene(ctx, v, pl, [{ m: [1, 0, 0, 1], col: pl.line }, { m: A, col: pl.accent2 }, { m: BA, col: pl.accent }]) });
     const same = BA.every((x, i) => Math.abs(x - AB[i]) < 1e-9);
@@ -132,36 +149,81 @@ import SmQuiz from '../../components/SmQuiz.astro';
     qq('.mt-facts2').replaceChildren(fact('A', ms(A)), fact('B', ms(B)), fact('BA (A first)', ms(BA)), fact('AB (B first)', ms(AB)), fact('det(BA) = det B × det A', fmt(det2(BA), 4), `${fmt(det2(B), 3)} × ${fmt(det2(A), 3)}`));
   }
 
-  // 3 × 3 system inputs.
-  const sys = qq('.mt-sys');
-  sys.replaceChildren(...[0, 1, 2].map((i) => {
+  // Systems of equations: 3 × 3 and 2 × 2 inputs.
+  const sys = qq('.mt-sys'), sys2 = qq('.mt-sys2');
+  const buildSys = (box: HTMLElement, n: number, pre: string, names: string[]) => box.replaceChildren(...Array.from({ length: n }, (_, i) => {
     const row = document.createElement('div'); row.className = 'mt-row';
-    ['x', 'y', 'z', '='].forEach((nm, j) => { const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.className = `mt-s${i}${j}`; inp.setAttribute('aria-label', j < 3 ? `Equation ${i + 1}, coefficient of ${nm}` : `Equation ${i + 1}, right-hand side`); const sp = document.createElement('span'); sp.textContent = j < 3 ? `${nm}${j < 2 ? ' +' : ' ='}` : ''; row.append(inp); if (j < 3) row.append(sp); });
+    [...names, '='].forEach((nm, j) => { const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.className = `${pre}${i}${j}`; inp.setAttribute('aria-label', j < n ? `Equation ${i + 1}, coefficient of ${nm}` : `Equation ${i + 1}, right-hand side`); const sp = document.createElement('span'); sp.textContent = j < n ? `${nm}${j < n - 1 ? ' +' : ' ='}` : ''; row.append(inp); if (j < n) row.append(sp); });
     return row;
   }));
-  const setSys = (M: number[][]) => { M.forEach((r, i) => r.forEach((v, j) => { qq<HTMLInputElement>(`.mt-s${i}${j}`).value = String(v); })); solve(); };
+  buildSys(sys, 3, 'mt-s', ['x', 'y', 'z']); buildSys(sys2, 2, 'mt-u', ['x', 'y']);
+  const dim = () => qq<HTMLSelectElement>('.mt-dim').value;
+  const setSys = (M: number[][]) => { M.forEach((r, i) => r.forEach((v, j) => { qq<HTMLInputElement>(`.mt-s${i}${j}`).value = String(v); })); qq<HTMLSelectElement>('.mt-dim').value = '3'; solve(); };
+  const setSys2 = (M: number[][]) => { M.forEach((r, i) => r.forEach((v, j) => { qq<HTMLInputElement>(`.mt-u${i}${j}`).value = String(v); })); qq<HTMLSelectElement>('.mt-dim').value = '2'; solve(); };
+  /** Read n rows of n + 1 boxes; scale a row by a whole number when it has fractions or decimals. */
+  function readSystem(pre: string, n: number): { M: number[][]; notes: string[] } | string {
+    const notes: string[] = [], M: number[][] = [];
+    for (let i = 0; i < n; i++) {
+      const row = Array.from({ length: n + 1 }, (_, j) => readAnswer(qq<HTMLInputElement>(`.${pre}${i}${j}`).value));
+      if (!row.every(Number.isFinite)) return 'Type a number in every box (whole numbers, decimals or fractions like 3/4). Put 0 where a variable is missing.';
+      const c = clearFractions(row);
+      if (!c) return 'These numbers are too awkward to scale to whole numbers. Use simple decimals or fractions.';
+      if (c.row.some((v) => Math.abs(v) > 1000)) return 'Please keep the numbers between −1000 and 1000 (after clearing fractions).';
+      if (c.k !== 1) notes.push(`Equation ${i + 1} was multiplied by ${c.k} to clear the fractions or decimals: ${c.row.join(', ')}.`);
+      M.push(c.row);
+    }
+    return { M, notes };
+  }
   function solve() {
-    const err = qq('.mt-serr'); err.hidden = true;
-    const M = [0, 1, 2].map((i) => [0, 1, 2, 3].map((j) => readAnswer(qq<HTMLInputElement>(`.mt-s${i}${j}`).value)));
-    if (!M.flat().every((v) => Number.isInteger(v) && Math.abs(v) <= 1000)) { err.textContent = 'Use whole numbers from −1000 to 1000 in every box (multiply an equation through to clear fractions).'; err.hidden = false; qq('.mt-steps').replaceChildren(); return; }
-    const A: M3 = M.map((r) => r.slice(0, 3)), B = M.map((r) => r[3]), r = solve3(A, B);
-    const mat = (X: (string | number)[][]) => X.map((row) => `[${row.map(String).join('  ')}]`).join(' ');
-    const steps = [
-      `|A| = ${A[0][0]}(${A[1][1]}·${A[2][2]} − ${A[1][2]}·${A[2][1]}) − ${A[0][1]}(${A[1][0]}·${A[2][2]} − ${A[1][2]}·${A[2][0]}) + ${A[0][2]}(${A[1][0]}·${A[2][1]} − ${A[1][1]}·${A[2][0]}) = ${r.det}`,
-      `Cofactors Aᵢⱼ = (−1)^(i+j) Mᵢⱼ, written as a matrix: ${mat([0, 1, 2].map((i) => [0, 1, 2].map((j) => r.adj[j][i])))}`,
-      `adj A is the transpose of that: ${mat(r.adj)}`,
-    ];
-    if (r.kind === 'unique') {
-      steps.push(`A⁻¹ = (1/|A|) adj A = (1/${r.det}) adj A = ${mat(r.inv!.map((row) => row.map(qstr)))}`);
-      steps.push(`X = A⁻¹B: (adj A)B = (${r.adjB.join(', ')}), divided by ${r.det}`);
-      steps.push(`So x = ${qstr(r.x![0])}, y = ${qstr(r.x![1])}, z = ${qstr(r.x![2])}. Check: ${A.map((row, i) => `${row.map((a, j) => a * (r.x![j].n / r.x![j].d)).reduce((s, t) => s + t, 0).toFixed(6).replace(/\.?0+$/, '')} = ${B[i]}`).join(', ')}`);
-    } else steps.push(`|A| = 0, so A has no inverse. (adj A)B = (${r.adjB.join(', ')}): ${r.kind === 'none' ? 'the equations contradict each other, so there is no solution (inconsistent).' : 'the equations do not contradict, and there are infinitely many solutions (consistent).'}`);
+    const two = dim() === '2';
+    sys.hidden = two; sys2.hidden = !two;
+    for (const c of ['.mt-ex1', '.mt-ex2', '.mt-ex3']) qq(c).hidden = two;
+    for (const c of ['.mt-ex4', '.mt-ex5', '.mt-ex6']) qq(c).hidden = !two;
+    const err = qq('.mt-serr'), ans = qq('.mt-sans'); err.hidden = true;
+    const rd = readSystem(two ? 'mt-u' : 'mt-s', two ? 2 : 3);
+    if (typeof rd === 'string') { err.textContent = rd; err.hidden = false; ans.textContent = ''; qq('.mt-steps').replaceChildren(); return; }
+    const { M, notes } = rd, mat = (X: (string | number)[][]) => X.map((row) => `[${row.map(String).join('  ')}]`).join(' ');
+    let steps: string[] = [...notes], answer = '';
+    if (two) {
+      const [a, b, e] = M[0], [c, d, f] = M[1], r = solve2(a, b, c, d, e, f);
+      steps.push(`|A| = ad − bc = (${a})(${d}) − (${b})(${c}) = ${r.det}`);
+      if (r.kind === 'unique') {
+        steps.push(`adj A = [d −b; −c a] = ${mat([[d, -b], [-c, a]])}, so A⁻¹ = (1/${r.det}) adj A`);
+        steps.push(`X = A⁻¹B: x = (ed − bf)/|A| = (${e}×${d} − ${b}×${f})/${r.det} = ${r.nx}/${r.det} = ${qstr(r.x!)}`, `y = (af − ec)/|A| = (${a}×${f} − ${e}×${c})/${r.det} = ${r.ny}/${r.det} = ${qstr(r.y!)}`);
+        const vx = r.x!.n / r.x!.d, vy = r.y!.n / r.y!.d;
+        steps.push(`Check: ${a}x + ${b}y = ${+(a * vx + b * vy).toFixed(6)} (should be ${e}) and ${c}x + ${d}y = ${+(c * vx + d * vy).toFixed(6)} (should be ${f}).`);
+        answer = `x = ${qstr(r.x!)}, y = ${qstr(r.y!)}.`;
+      } else {
+        steps.push(`|A| = 0, so A has no inverse. ${r.kind === 'none' ? 'The two equations contradict each other (parallel lines), so there is no solution.' : 'The two equations say the same thing (the same line), so there are infinitely many solutions.'}`);
+        answer = r.kind === 'none' ? 'No solution: the equations contradict each other.' : 'Infinitely many solutions: the two equations are the same line.';
+      }
+    } else {
+      const A: M3 = M.map((r) => r.slice(0, 3)), B = M.map((r) => r[3]), r = solve3(A, B);
+      steps.push(
+        `|A| = ${A[0][0]}(${A[1][1]}·${A[2][2]} − ${A[1][2]}·${A[2][1]}) − ${A[0][1]}(${A[1][0]}·${A[2][2]} − ${A[1][2]}·${A[2][0]}) + ${A[0][2]}(${A[1][0]}·${A[2][1]} − ${A[1][1]}·${A[2][0]}) = ${r.det}`,
+        `Cofactors Aᵢⱼ = (−1)^(i+j) Mᵢⱼ, written as a matrix: ${mat([0, 1, 2].map((i) => [0, 1, 2].map((j) => r.adj[j][i])))}`,
+        `adj A is the transpose of that: ${mat(r.adj)}`,
+      );
+      if (r.kind === 'unique') {
+        steps.push(`A⁻¹ = (1/|A|) adj A = (1/${r.det}) adj A = ${mat(r.inv!.map((row) => row.map(qstr)))}`);
+        steps.push(`X = A⁻¹B: (adj A)B = (${r.adjB.join(', ')}), divided by ${r.det}`);
+        steps.push(`So x = ${qstr(r.x![0])}, y = ${qstr(r.x![1])}, z = ${qstr(r.x![2])}. Check: ${A.map((row, i) => `${row.map((a, j) => a * (r.x![j].n / r.x![j].d)).reduce((s, t) => s + t, 0).toFixed(6).replace(/\.?0+$/, '')} = ${B[i]}`).join(', ')}`);
+        answer = `x = ${qstr(r.x![0])}, y = ${qstr(r.x![1])}, z = ${qstr(r.x![2])}.`;
+      } else {
+        steps.push(`|A| = 0, so A has no inverse. (adj A)B = (${r.adjB.join(', ')}): ${r.kind === 'none' ? 'the equations contradict each other, so there is no solution (inconsistent).' : 'the equations do not contradict, and there are infinitely many solutions (consistent).'}`);
+        answer = r.kind === 'none' ? 'No solution: the equations contradict each other.' : 'Infinitely many solutions.';
+      }
+    }
+    ans.textContent = answer.replace(/-/g, '−');
     qq('.mt-steps').replaceChildren(...steps.map((t) => { const li = document.createElement('li'); li.textContent = t.replace(/-(\d)/g, '−$1'); return li; }));
   }
   qq('.mt-ex1').addEventListener('click', () => setSys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]]));
   qq('.mt-ex2').addEventListener('click', () => setSys([[1, 2, 3, 1], [2, 4, 6, 3], [1, 1, 1, 3]]));
   qq('.mt-ex3').addEventListener('click', () => setSys([[1, 2, 3, 1], [2, 4, 6, 2], [1, 1, 1, 3]]));
-  sys.addEventListener('input', solve);
+  qq('.mt-ex4').addEventListener('click', () => setSys2([[2, 3, 12], [1, -1, -1]]));
+  qq('.mt-ex5').addEventListener('click', () => setSys2([[1, 2, 3], [2, 4, 7]]));
+  qq('.mt-ex6').addEventListener('click', () => setSys2([[1, 2, 3], [2, 4, 6]]));
+  sys.addEventListener('input', solve); sys2.addEventListener('input', solve); qq('.mt-dim').addEventListener('change', solve);
 
   const run = () => { qq('.mt-one').hidden = mode !== 'one'; qq('.mt-two').hidden = mode !== 'two'; qq('.mt-solve').hidden = mode !== 'solve'; if (mode === 'one') one(); else if (mode === 'two') two(); else solve(); };
   root.querySelectorAll<HTMLButtonElement>('.mt-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.mt-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
@@ -169,8 +231,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
   root.querySelectorAll('.mt-th, .mt-k').forEach((e) => e.addEventListener('input', one));
   root.querySelectorAll('.mt-cells input').forEach((e) => e.addEventListener('input', () => { qq<HTMLSelectElement>('.mt-pre').value = ''; one(); }));
   root.querySelectorAll('.mt-A, .mt-B').forEach((e) => e.addEventListener('change', two));
+  root.querySelectorAll('.mt-own input').forEach((e) => e.addEventListener('input', two));
   document.addEventListener('fibub:theme', run);
-  setSys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]]);
+  setSys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]]); setSys2([[2, 3, 12], [1, -1, -1]]); qq<HTMLSelectElement>('.mt-dim').value = '3'; solve();
   run();
 
   quiz(qq('.mt-quiz'), (): Question[] => {
@@ -195,6 +258,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
   .mtx .mt-m { display: flex; align-items: center; gap: 6px; margin: 10px 0; }
   .mtx .mt-br { font-size: 64px; font-weight: 200; line-height: 1; color: var(--muted); }
   .mtx .mt-cells { display: grid; grid-template-columns: 80px 80px; gap: 8px; }
+  .mtx .mt-own { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+  .mtx .mt-cells2 { display: grid; grid-template-columns: 70px 70px; gap: 6px; }
+  .mtx .mt-cells2 input { text-align: center; min-height: 44px; width: 100%; }
   .mtx .mt-cells input { text-align: center; font-size: 18px !important; min-height: 44px; }
   .mtx .mt-sl, .mtx .mt-thl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 8px; }
   .mtx input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }

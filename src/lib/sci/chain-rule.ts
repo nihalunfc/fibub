@@ -51,3 +51,22 @@ export function rateTexts(c: Chain, v = 'x'): string[] {
 }
 /** Central-difference slope of the whole chain, for the "small nudge" table. */
 export const numericSlope = (c: Chain, x: number, h = 1e-5) => (values(c, x + h).at(-1)! - values(c, x - h).at(-1)!) / (2 * h);
+
+/** The derivative with the layers put back, outer first: "cos(3x) × 3". */
+export const chainDerivText = (c: Chain) => [...rateTexts(c)].reverse().join(' × ');
+
+/** The working of a chain-rule answer as an exam writes it: name the layers, differentiate each, multiply, put x in. */
+export function chainWorking(c: Chain, x: number): string[] {
+  const names = c.length === 1 ? ['x', 'y'] : c.length === 2 ? ['x', 'u', 'y'] : ['x', 'u', 'v', 'y'];
+  const steps: string[] = [];
+  const layerText = c.map((s, i) => `${names[i + 1]} = ${link(s.id).text(names[i], s.k)}`);
+  steps.push(`Name the layers: ${layerText.join(', ')}. The outer layer is ${layerText[layerText.length - 1]}; the innermost is ${layerText[0]}.`);
+  steps.push(`Differentiate each layer on its own: ${c.map((s, i) => `d${names[i + 1]}/d${names[i]} = ${link(s.id).dText(names[i], s.k)}`).join(', ')}.`);
+  const nm = c.map((_, i) => `d${names[i + 1]}/d${names[i]}`).reverse();
+  steps.push(`Multiply the rates, outer first: dy/dx = ${nm.join(' × ')}.`);
+  steps.push(`Put the inner layers back in: dy/dx = ${chainDerivText(c)}.`);
+  const r = rates(c, x), slope = chainSlope(c, x), f4 = (z: number) => String(+z.toPrecision(5)).replace('-', '−');
+  if (Number.isFinite(slope)) steps.push(`At x = ${f4(x)}: ${[...r].reverse().map((z) => (z < 0 ? `(${f4(z)})` : f4(z))).join(' × ')} = ${f4(slope)}.`);
+  else steps.push(`At x = ${f4(x)} the function is not defined or has no slope, so choose another x.`);
+  return steps;
+}

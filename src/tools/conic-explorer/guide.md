@@ -11,7 +11,7 @@ ads: false
 order: 1188
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [function-grapher, unit-circle, argand-plane]
 sources:
   - "Standard coordinate geometry: the standard equations of the circle, ellipse, parabola and hyperbola, their foci, directrices, eccentricity and latus rectum, and the cone section e = cos β / cos α. Written for fibub; no textbook text, figures or exercises are used."
@@ -33,6 +33,7 @@ It follows conic sections in Class 11 maths. The [[unit-circle]] page covers cir
 
 ## How to use it
 
+0. **Solve my numbers** (top card): choose the shape of your equation, such as x²/A + y²/B = 1, y² = Lx or x² + y² + Dx + Ey + F = 0, and type the numbers from your problem. The answer sentence gives the centre or foci, eccentricity and latus rectum, the working below it is laid out like an exam answer, and the curve is drawn straight away. Enter A and B as the denominators (a² and b²), not a and b. A negative circle radius squared, a zero parabola number or a non-positive denominator gives a plain message instead of a result.
 1. **Pick a conic**: Circle, Ellipse, Parabola, Hyperbola, or Slice a cone.
 2. **Slide the numbers.** Circle: centre (h, k) and radius r. Ellipse and hyperbola: a and b (for an ellipse, whichever is bigger lies along the major axis). Parabola: the focus distance a and which way it opens. A hyperbola can open left–right or up–down.
 3. **Move P** along the curve with the bottom slider. The line under the picture gives the distances: PF₁ + PF₂ for an ellipse, PF₁ − PF₂ for a hyperbola, PF and PD for a parabola.
@@ -52,11 +53,20 @@ For x²/25 + y²/9 = 1, a = 5 and b = 3, so c = √(25 − 9) = 4. The foci are 
 
 For x²/9 − y²/16 = 1, c = √(9 + 16) = 5, e = **5/3**, the directrices are x = ±1.8 and the latus rectum is 2 × 16/3 ≈ **10.667**.
 
+## Common mistakes
+
+- Taking the denominators 25 and 9 as a and b: they are a² and b², so a = 5 and b = 3.
+- Using c² = a² + b² for an ellipse: an ellipse has a minus, a hyperbola a plus.
+- Forgetting that y² = 12x means 4a = 12, so a = 3, not 12.
+- Reading the circle centre as (D/2, E/2): it is (−D/2, −E/2).
+
 ## Check yourself
 
 Five questions with fresh numbers: an ellipse's eccentricity, a parabola's focus, a hyperbola's latus rectum, a circle's radius from its general equation, and which conic a plane parallel to the cone's side cuts. Nothing is saved.
 
 ## FAQ
+
+**How do I find the foci and eccentricity of my ellipse or hyperbola?** Pick its shape under Solve my numbers, type the two denominators, and read c, e and the foci from the answer line.
 
 **Why is a circle an ellipse?** When a = b, c = 0: both foci sit at the centre and e = 0.
 

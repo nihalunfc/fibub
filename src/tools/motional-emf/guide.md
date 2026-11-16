@@ -11,11 +11,12 @@ ads: false
 order: 1414
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [faraday-induction, fleming-rule, inductance-lab, transformer-calculator]
 sources:
   - "Motional emf ε = Bℓv, current I = ε/R, force F = BIℓ = B²ℓ²v/R, power Fv = I²R, and the rod's speed v = v_t + (v₀ − v_t) e^(−t/τ) with τ = mR/(B²ℓ²) and v_t = FR/(B²ℓ²). Standard physics results (Newton's second law with the magnetic drag)."
   - "Checked against an independent Python script that steps Newton's law numerically (fourth-order Runge-Kutta)."
+  - "Motional emf ε = Bℓv, I = ε/R, F = BIℓ, P = Fv and the rotating rod ε = ½Bωℓ²: standard school physics found in any textbook. The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: sliders, label: "Set B, ℓ, R" }
   - { icon: ruler, label: "Slide rod" }
@@ -32,6 +33,12 @@ If the rails are joined by a resistor, a current I = ε/R flows. Now the field p
 This page shows the rod sliding through a field into the page, with the current and the drag force drawn as arrows. It has three ways to move the rod: at a **steady speed** (you push), **push and let go** (it slows down and stops), and a **steady pull** (it speeds up to a top speed where the drag equals the pull). A graph shows the speed against time.
 
 It follows the electromagnetic induction chapter of Class 12 Physics (motional electromotive force, energy consideration, Lenz's law). Before this, see a magnet and coil in [[faraday-induction]] and the force on a current in [[fleming-rule]]; after it, try coils that induce emfs in each other in the [[inductance-lab]].
+
+## Solve my numbers
+
+The card at the top answers your own problem. Choose **motional emf** (ε = B ℓ v) when you know the field, the length of the conductor and its speed, **rod on rails** to get the emf, current, drag force and power together when the circuit has a resistance, **speed needed** to find the speed that gives a wanted emf, or **rotating rod** (ε = ½ B ω ℓ²) for a spoke, a rod pivoted at one end or a wheel. Type the numbers, pick units where you want them (mT or µT for the field, cm or m for the length, km/h or m/s for the speed, rpm or rad/s for the spin) and read the answer in one sentence, with the formula and your numbers underneath. There are five worked examples, from a 40 cm rod at 5 m/s (1 V) to an aeroplane wing sweeping through the Earth's field (about 0.5 V).
+
+Common mistakes: not converting km/h to m/s (divide by 3.6), leaving the length in cm, and forgetting that the drag force and the power are the same numbers whichever way you work them. The card says what to fix when a value is zero, negative or blank.
 
 ## How to use it
 
@@ -58,6 +65,8 @@ Choose **Push and let go** with m = 0.2 kg: the time constant is τ = mR / (B²�
 - Eddy-current brakes in trains and some exercise bikes use exactly this drag.
 
 ## FAQ
+
+**What is the formula for motional emf?** ε = B ℓ v, where B, ℓ and v are at right angles to each other; for a rod spinning about one end it is ε = ½ B ω ℓ².
 
 **Which way does the current go?** Use the right-hand rule, or Lenz's law: the loop's area and flux are growing, so the current flows to make a field that opposes the increase, which here means anticlockwise.
 

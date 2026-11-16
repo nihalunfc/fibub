@@ -11,7 +11,7 @@ ads: false
 order: 1189
 icon: table
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [matrix-calculator, argand-plane, unit-circle]
 sources:
   - "Standard linear algebra: matrices as linear maps of the plane, the determinant as signed area scale, composition as a product, minors, cofactors, the adjoint, the inverse A⁻¹ = adj A / |A| and consistency of AX = B. Written for fibub; no textbook text, figures or exercises are used, and the example systems are made up."
@@ -44,6 +44,12 @@ The shear [2 1; 0 1] sends (1, 0) to (2, 0) and (0, 1) to (1, 1). Its determinan
 
 For the system x + y + z = 6, 2y + 5z = −4, 2x + 5y − z = 27, |A| = **−21** and adj A = [−27 6 3; 10 −3 −5; −4 −3 2]. Then (adj A)B = (−105, −63, 42), and dividing by −21 gives **x = 5, y = 3, z = −2**.
 
+## Solve with your numbers
+
+The solver now takes **whole numbers, decimals and fractions** such as 3/4: a row with fractions is multiplied by the smallest whole number that clears them, and the page tells you which row it scaled. Choose **3 equations** (x, y, z) or **2 equations** (x, y). The answer is one line at the top, "x = 5, y = 3, z = −2" or "No solution" or "Infinitely many solutions", with the working under it. A 2 × 2 system shows |A| = ad − bc, the adjoint, the inverse and X = A⁻¹B, and says whether two lines are parallel (no solution) or the same line (many). Extra 2 × 2 examples sit next to the 3 × 3 ones.
+
+In **One, then another** you can pick "Type my own numbers" for A and for B, so any pair of 2 × 2 matrices from your question gives AB and BA, the determinant of the product and the picture. The first mode also puts the answer on one line: det A with the numbers filled in, what it does to areas and the inverse. A common mistake is noted under the working: the columns of a matrix are the images of (1, 0) and (0, 1), not the rows. For matrices bigger than 3 × 3, use the [[matrix-calculator]].
+
 ## Check yourself
 
 Five questions with fresh numbers: a 2 × 2 determinant, an area after a transformation, an entry of a product, an entry of an inverse and a 3 × 3 determinant. Nothing is saved.
@@ -55,3 +61,5 @@ Five questions with fresh numbers: a 2 × 2 determinant, an area after a transfo
 **Why does det = 0 mean no inverse?** The plane is squashed onto a line, so different points land on the same spot and you cannot tell where they came from.
 
 **Is this from my textbook?** It covers the standard school topics with its own examples. It is an independent study aid.
+
+**How do I solve a system of equations using a matrix?** Write it as AX = B, find the determinant |A|, and if it is not 0 then X = A⁻¹B, where A⁻¹ = (adj A)/|A|; if |A| = 0 the system has no solution or infinitely many.

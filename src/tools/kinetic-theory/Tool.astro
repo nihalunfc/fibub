@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn kth">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (temperature, molar mass, pressure, density) and get the molecule speeds or energy with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Gas in a box</h2>
     <canvas class="lrn-cv kt-cv" aria-label="Gas particles moving in a box and bouncing off its walls; the right wall is a piston"></canvas>
@@ -48,6 +49,8 @@ import '../../styles/learnquiz-d.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { KINETIC } from '../../lib/learn/phys-d';
   import { GASES, vrms, vmean, vmostProbable, meanKE, idealP, makeBox, stepBox, rng, measuredP, maxwell2D, meanSq, scaleSpeeds, discCorrection, R_GAS, type Box } from '../../lib/sci/learngas';
   import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
   import { pagePalette } from '../../lib/report';
@@ -139,4 +142,5 @@ import '../../styles/learnquiz-d.css';
       { q: 'A gas is squeezed to half its volume at the same temperature. Its pressure…', ans: 0, choices: ['Doubles', 'Halves', 'Stays the same', 'Becomes four times bigger'], work: 'The molecules hit the walls twice as often, so P doubles (Boyle’s law, PV = constant).' },
     ];
   });
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, KINETIC);
 </script>

@@ -11,12 +11,13 @@ ads: false
 order: 1070
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [rutherford-scattering, decay-calculator, decay-chain]
 sources:
   - "Mass defect and binding energy B = (Z m_H + N m_n − M) c², the semi-empirical (liquid drop) mass formula with a common textbook set of coefficients (a_V 15.75, a_S 17.8, a_C 0.711, a_A 23.7, a_P 11.18 MeV), and Q values of fission and fusion from mass differences: standard physics."
   - "Atomic masses of the eleven nuclei shown: AME2020 (Atomic Mass Evaluation 2020), rounded to six decimals. Neutron mass and 1 u = 931.49410242 MeV: CODATA 2018."
   - "Checked against an independent Python calculation and well-known results (helium-4 about 28.3 MeV, deuterium–tritium fusion 17.6 MeV, the peak near iron)."
+  - "The solve card uses mₚ = 1.007276 u (CODATA 2018, rounded) for nuclear masses, the hydrogen-atom mass 1.007825 u for atomic masses, mₙ = 1.008665 u, 1 u = 931.494 MeV and 1.66054 × 10⁻²⁷ kg. Checked by hand: the deuteron (nuclear mass 2.013553 u) gives Δm = 0.002388 u and 2.224 MeV, and 0.0304 u is 28.3 MeV."
 flow:
   - { icon: chart, label: "Curve" }
   - { icon: calculator, label: "Mass defect" }
@@ -35,6 +36,12 @@ This page draws the curve from the **liquid drop formula** with real nuclei mark
 1. Slide the **mass number A**. The page shows the nucleus used (the real one where it is in the list, otherwise the most tightly bound one in the model), its binding energy, and the five terms of the liquid drop formula.
 2. In the **mass defect calculator**, pick a nucleus, or choose **My own nucleus** and type Z, A and an atomic mass in u.
 3. Press **Fission** or **Fusion** to draw the reaction on the curve and see the energy given out, per nucleon and per kilogram of fuel.
+
+## Solve your own numbers
+
+The first card works from the masses in your question. Choose **binding energy of a nucleus** (type Z, A and the mass in u, and say whether it is an **atomic mass** or a **nuclear mass**: atomic masses use the hydrogen-atom mass for the protons, nuclear masses use the proton mass), **binding energy per nucleon** (from a total in MeV and A), **energy from a mass** (E = mc², from u, kg or g, answered in MeV and joules) or **energy of a reaction** (total mass before and after, in u; it says whether energy is released or needed). Every answer comes with the working: the neutron count, the mass defect, then the energy. Five examples are included, such as helium-4, the deuteron and the fusion of deuterium with tritium.
+
+Common mistakes it flags: mixing atomic and nuclear masses, typing a mass in kg where u is expected, and getting a mass defect that is not above zero.
 
 ## Worked example
 
@@ -55,6 +62,8 @@ Five questions, fresh each time: binding energy from a mass defect, binding ener
 - Helium-4 sits well above the curve near it: it is unusually tightly bound, which is why alpha particles are what heavy nuclei throw out.
 
 ## FAQ
+
+**How do I find the binding energy of a nucleus?** Work out the mass defect Δm = Z mₚ + N mₙ − M (in u), then multiply by 931.5 MeV per u; the card above does both steps and shows them.
 
 **Why use atomic masses, not nuclear masses?** Tables list the masses of whole atoms. Using the hydrogen atom's mass for each proton brings in the same number of electrons on both sides, so they cancel.
 

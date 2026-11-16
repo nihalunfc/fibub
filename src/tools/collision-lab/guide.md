@@ -11,11 +11,12 @@ ads: false
 order: 1335
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [newtons-laws, collision-calculator, variable-force-work, vector-adder]
 sources:
   - "Conservation of linear momentum, Newton's rule for the coefficient of restitution (v₂ − v₁ = e(u₁ − u₂)), and oblique impact of smooth spheres (only the velocity along the line of centres changes): standard school physics found in any textbook."
   - "Checked against hand-worked cases, physical invariants (momentum kept, energy never gained, 90° for equal elastic balls) and the separately written collision maths of the collision calculator on 1000 random cases."
+  - "Conservation of momentum, the coefficient of restitution e = (v₂ − v₁)/(u₁ − u₂), e = √(h₂/h₁) for a bouncing ball and kinetic energy ½mv²: standard school physics found in any textbook. The card was hand-checked against worked examples."
 flow:
   - { icon: sliders, label: "Mass, speed" }
   - { icon: target, label: "Crash" }
@@ -52,6 +53,9 @@ Open the page: a **2 kg** trolley at **4 m/s** hits a **1 kg** trolley at rest, 
 
 Now press **Stick together**: both move off at 8 ÷ 3 = 2.67 m/s, and the kinetic energy falls to 10.67 J, so 33.3% is lost.
 
+## Solve my numbers
+The card at the top solves collision questions from the numbers you type, with right as positive and a body moving left given a negative speed. Choose a head-on collision with any bounciness e (0 means they stick, 1 means elastic), bodies that stick together, finding e from the speeds before and after, or a ball bouncing on the floor (the coefficient from the drop and bounce heights and the height after any number of bounces). Masses take kg, g or tonnes, speeds m/s or km/h, heights m, cm or km. You get the answer in one sentence, then the working: the total momentum, the speed of separation from e, the two speeds after, a check that momentum is unchanged, and the kinetic energy before, after and lost. A line under it names the usual slip, such as forgetting the sign of a body moving the other way, or using h₂ ÷ h₁ for e instead of its square root. Tap an example for an elastic collision, e = 0.5, cars that stick, finding e and a bouncing ball. Impossible values, such as e above 1 or a bounce higher than the drop, give a message.
+
 ## Tips
 
 - Momentum is a vector. In 2D the x and y totals are each kept separately.
@@ -65,3 +69,5 @@ Now press **Stick together**: both move off at 8 ÷ 3 = 2.67 m/s, and the kineti
 **Can e be more than 1?** Not for ordinary collisions: that would need energy from somewhere, such as an explosion between the bodies.
 
 **Is anything stored?** No. The questions are made in your browser and nothing is saved or sent.
+
+**What are the speeds after an elastic collision?** Use momentum and e = 1 together; type the masses and speeds under Solve my numbers and the working shows both equations.

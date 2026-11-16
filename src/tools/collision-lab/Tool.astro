@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax cl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the masses and speeds from your problem and get the speeds after the collision, with the working.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row cl-top">
       <div class="ax-seg cl-mode" role="group" aria-label="Kind of collision">
@@ -173,6 +174,12 @@ import '../../styles/astro.css';
   mountQuiz(q('.cl-quiz'), () => questions());
   draw();
   keepDrawn(q('.cl-c'), draw);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { COLL } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, COLL);
 </script>
 
 <style is:inline>

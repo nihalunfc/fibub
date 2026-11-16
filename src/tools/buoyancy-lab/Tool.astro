@@ -5,6 +5,12 @@
 import '../../styles/astro.css';
 ---
 <div class="ax by">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the densities, volumes and balance readings from your problem: upthrust, apparent weight, floating or sinking, relative density, with the working.</p><div class="ps-host" data-ps="BUOY"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { BUOY } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, BUOY);
+  </script>
   <div class="ax-card">
     <div class="ax-row">
       <span>Block</span>

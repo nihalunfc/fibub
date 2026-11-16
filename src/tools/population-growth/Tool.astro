@@ -2,9 +2,16 @@
 // Population growth: exponential (J-shaped) and logistic (S-shaped) growth with r and K sliders, the
 // dN/dt against N graph, and three age-pyramid shapes. Class 12 Biology, organisms and populations.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax pgr">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the numbers from your problem. Find the size after a time, r from two sizes, the doubling time, the time to reach a size, dN/dt, or the new size from births, deaths, immigration and emigration, for exponential or logistic growth. The working is shown like an exam answer. For age-structured populations use the <a href="/science/population-growth-models/">population growth models</a> tool.</p>
+    <div class="pg-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Grow a population</h2>
     <label>Story <select class="pg-st">
@@ -56,6 +63,8 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { POP_SPEC } from '../../lib/sci/solve-population';
   import { expN, logN, expRate, logRate, doubling, logTimeTo, maxRate, PYRAMIDS, groups } from '../../lib/sci/pop-growth-r';
   import { paint, type Palette } from '../../lib/report';
   import { view, axes, curve, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';
@@ -157,6 +166,7 @@ import SmQuiz from '../../components/SmQuiz.astro';
       shapes,
     ];
   });
+  mountSolver(q('.pg-solve'), POP_SPEC);
 </script>
 
 <style is:inline>

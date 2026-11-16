@@ -11,7 +11,7 @@ ads: false
 order: 1378
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [section-formula, linear-pair-solver, conic-explorer, trig-ratios]
 sources:
   - "Standard coordinate geometry of the straight line: slope, inclination, the two-point, point-slope, slope-intercept, intercept, general and normal forms, tan θ = |(m₁ − m₂)/(1 + m₁m₂)| and the distance |Ax₀ + By₀ + C|/√(A² + B²). Written for fibub."
@@ -65,6 +65,19 @@ With the extra part on, CD from C(−6, 6) to D(6, 0) is x + 2y − 6 = 0 with s
 - To go from general form to slope-intercept form, solve for y: m = −A/B and c = −C/B.
 - The distance formula's top line, Ax₀ + By₀ + C, is 0 exactly when P is on the line.
 
+## Find the equation of my line
+
+The first card turns what your question gives you into the equation, in every form, with the working. Type the numbers (decimals and fractions like 3/2 are fine) and pick what you know:
+
+- two points on the line,
+- a point and the slope,
+- the slope and the y-intercept,
+- the x-intercept and y-intercept,
+- a point and a line Ax + By + C = 0 to be **parallel** to, or
+- a point and a line Ax + By + C = 0 to be **perpendicular** to.
+
+You can also type Ax + By + C = 0 and just read every form of it. The answer is one sentence (for example "y = 2x − 1, or 2x − y − 1 = 0"), then the working, then the general, slope-intercept, intercept and normal forms with the slope and angle. Vertical, horizontal and through-the-origin lines say which forms do not exist. Under **More options**, add a point P to get its distance from the line, and a second line to get the angle between the lines and where they meet (or the distance between parallel lines). Seven examples in the drop-down start you off. Common mistakes are listed for each case: the order of subtraction in the slope, the sign in x − x₁ for a negative x₁, and keeping the signs of the intercepts.
+
 ## Check yourself
 
 Five fresh questions: a slope from two points, a y-intercept, a distance from a point to a line, a perpendicular slope and an x-intercept from the general form. Nothing is saved.
@@ -74,3 +87,7 @@ Five fresh questions: a slope from two points, a y-intercept, a distance from a 
 **Is normal form still taught?** Some syllabuses dropped it; it is shown for anyone who needs it and can be skipped.
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own examples. fibub is not part of NCERT.
+
+**How do I find the equation of a line through two points?** Work out the slope m = (y₂ − y₁)/(x₂ − x₁), then use y − y₁ = m(x − x₁) and tidy it into y = mx + c or Ax + By + C = 0; if the x values are equal the line is vertical, x = constant.
+
+**What if the two points are the same?** Then they do not fix a line, and the page asks you to change one of them.

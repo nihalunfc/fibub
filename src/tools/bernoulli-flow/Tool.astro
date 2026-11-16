@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax bf">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (pipe widths, speeds, depth of a hole) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <div class="ax-seg bf-mode" role="group" aria-label="What to look at">
@@ -55,6 +56,9 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { BERNOULLI } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, BERNOULLI);
   import { FLUIDS, venturi, torricelli, questions } from '../../lib/sci/bernoulli';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -173,7 +177,7 @@ import '../../styles/astro.css';
 
   segmented(q('.bf-mode'), (v) => { mode = v; q('.bf-v').hidden = v !== 'venturi'; q('.bf-t').hidden = v !== 'tank'; draw(); });
   segmented(q('.bf-fluid'), (v) => { fluid = FLUIDS.find((f) => f.id === v)!; draw(); });
-  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  root.querySelectorAll('input:not(.ps-host input)').forEach((i) => i.addEventListener('input', draw));
   mountQuiz(q('.bf-quiz'), () => questions());
   draw();
   keepDrawn(q<HTMLCanvasElement>('.bf-c'), draw);

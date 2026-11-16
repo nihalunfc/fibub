@@ -40,4 +40,21 @@ export default async ({ page, check, BASE, OUT }) => {
     }
     await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   }
+
+  // ---- Solve my numbers (optical-fibre) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Glass core"); check((await psAns()).includes("critical angle is 75.16°"), "optical-fibre: example Glass core");
+  await psPre("Acceptance angle"); check((await psAns()).includes("NA = 0.3841. The acceptance angle is 22.59°"), "optical-fibre: example Acceptance angle");
+  await psPre("Ray at 15"); check((await psAns()).includes("Yes: the ray hits the wall at 80.06°"), "optical-fibre: example Ray at 15");
+  await psPre("Ray at 40"); check((await psAns()).includes("No: the ray hits the wall at 64.63°"), "optical-fibre: example Ray at 40");
+  await psPre("Spreading"); check((await psAns()).includes("up to 173 ns over 1 km"), "optical-fibre: example Spreading");
+  await psSet("na", {"na-n1": "1.5", "na-n2": "1.0", "na-n0": "1"});
+  check((await psAns()).includes("every direction"), "optical-fibre: typed numbers na every direction");
+  await psSet("crit", {"crit-n1": "1.4", "crit-n2": "1.5"}); check((await psAns()).includes("must be lower than the core"), "optical-fibre: friendly message: must be lower than the core");
+  await psPre("Glass core"); { const w = await psWork(); check(w.includes("sin C = 1.45 ÷ 1.5 = 0.9667") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "optical-fibre: working shown, no NaN"); }
+  }
 };

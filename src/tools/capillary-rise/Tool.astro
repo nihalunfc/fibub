@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax cr">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (surface tension, contact angle, tube radius, density) and get the rise with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <span>Liquid</span>
@@ -44,6 +45,8 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { CAPILLARY } from '../../lib/learn/phys-d';
   import { LIQUIDS, rise, tube, questions } from '../../lib/sci/capillary';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -121,6 +124,7 @@ import '../../styles/astro.css';
   mountQuiz(q('.cr-quiz'), () => questions());
   draw();
   keepDrawn(q<HTMLCanvasElement>('.cr-c'), draw);
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, CAPILLARY);
 </script>
 
 <style is:inline>

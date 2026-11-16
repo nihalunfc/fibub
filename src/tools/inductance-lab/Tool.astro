@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax ind">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (turns, area, length, current, time) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Two coils on one axis</h2>
     <canvas class="ax-fig ind-fig" aria-label="An inner solenoid inside an outer coil"></canvas>
@@ -136,4 +137,10 @@ import '../../styles/astro.css';
   onTheme(all);
   all();
   quiz(q('.ind-quiz'), () => questions());
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { INDUCT } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, INDUCT);
 </script>

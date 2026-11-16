@@ -11,7 +11,7 @@ ads: false
 order: 1155
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [number-theory-toolkit, pythagoras-proofs]
 sources:
   - "The fundamental theorem of arithmetic, HCF and LCM from prime factorisation, and Euclid's division algorithm are standard number theory. Wording, pictures and examples are fibub's own."
@@ -61,8 +61,14 @@ The product a × b uses every prime of a and every prime of b, so the shared pri
 
 Four fresh questions each time: an HCF, an LCM, an LCM from the HCF and the product, and one step of Euclid's algorithm. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
 
+## Solve your own numbers
+
+The card at the top takes your own numbers instead of the example pair. **HCF and LCM** works for two to five numbers and shows each prime factorisation, the lowest powers for the HCF and the highest powers for the LCM. The three word-problem finders cover the usual exam types: the **largest number that leaves given remainders** (subtract each remainder, then take the HCF), the **smallest number that leaves a remainder** (LCM plus the remainder, also used for bells ringing together), and a **missing number** when you know the HCF, the LCM and one of the two numbers. Decimals, zero and numbers over a billion get a plain message. Everything is whole numbers; the page checks each answer against the rules, for example that a divisor must be bigger than its remainders.
+
 ## FAQ
 
 **What if the numbers share no prime?** Then the middle is empty, the HCF is 1 (the numbers are *co-prime*) and the LCM is just the product.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do I find the HCF and LCM of two numbers?** Write each number as a product of primes. The HCF multiplies the primes they share (lowest power); the LCM multiplies every prime that appears (highest power). Type your numbers in the card above to see it worked out.

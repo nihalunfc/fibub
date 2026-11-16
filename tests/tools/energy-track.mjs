@@ -43,4 +43,22 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.et .sq-q', (e) => e.dataset.ans);
   await page.fill('.et .sq-q .sq-in', ans); await page.click('.et .sq-q .sq-check');
   check((await page.textContent('.et .sq-q .sq-res')) === 'Right!', 'energy-track: quiz');
+
+  // ---- Solve my numbers ----
+  {
+    await page.goto(BASE + path); await page.waitForTimeout(500);
+    const ans = () => page.textContent('.ps-host .ps-ans'), work = () => page.textContent('.ps-host .ps-work');
+    const pre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+    const set = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { if (v[0] === '#') await page.selectOption(`.ps-host [data-k="${k}"]`, v.slice(1)); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+    const ok = async (s, m) => check((await ans()).includes(s), `${'energy-track'}: ${m} (${await ans()})`);
+    await pre('Ball down 5 m'); await ok('9.9 m/s', 'v = √(2·9.8·5) = 9.9 m/s');
+    await pre('Cyclist'); await ok('3500 J', '½·70·10² = 3500 J (36 km/h)');
+    await pre('Rough slope'); await ok('7.62 m/s; 40 J became heat', '98 − 40 = 58 J, v = √58');
+    await pre('Loop of 2 m'); await ok('at least 5 m above', 'loop start height 2.5r = 5 m');
+    await pre('Book on a shelf'); await ok('7.35 J', '0.5·9.8·1.5 = 7.35 J');
+    await set('heat', { 'heat-m': '2', 'heat-h': '5', 'heat-Q': '200' }); await ok('stops before the bottom', 'heat above PE: stops');
+    await set('vdrop', { 'vdrop-h0': '2', 'vdrop-h1': '5' }); await ok('never gets there', 'point above start refused');
+    await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+    check((await work()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), `energy-track: working shown, no NaN`);
+  }
 };

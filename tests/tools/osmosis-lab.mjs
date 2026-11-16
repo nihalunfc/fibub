@@ -62,4 +62,17 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(R + '.osl-score')) === '4 of 4 right.' && (await page.textContent(R + '.osl-qs')).includes('MPa'), 'osmosis: Class 11 quiz');
   await tap('.osl-new');
   check((await page.textContent(R + '.osl-score')) === '', 'osmosis: new questions clear the score');
+  // Solve my numbers card
+  const S = (k) => `${R}.osl-solve [data-k="${k}"]`, ans = () => page.textContent(S('answer')), wk = () => page.textContent(S('working'));
+  check((await ans()) === 'The osmotic pressure is 1.24 MPa (12.4 bar = 12.2 atm = 1239 kPa).' && (await wk()).includes('= 2.479 MPa·L/mol'), `osmosis solve: pi of 0.5 M sugar (${await ans()})`);
+  await page.selectOption(S('example'), '1'); check((await ans()).startsWith('The osmotic pressure is 0.774 MPa (7.74 bar = 7.64 atm'), `osmosis solve: saline (${await ans()})`);
+  await page.selectOption(S('example'), '2'); check((await ans()) === 'The sucrose concentration is 0.28 mol/L.', `osmosis solve: concentration (${await ans()})`);
+  await page.selectOption(S('example'), '3'); check((await ans()).startsWith('The water potential is ψ = −0.692 MPa') && (await wk()).includes('ψs = −2 × 0.2 × 2.479 = −0.992 MPa'), `osmosis solve: psi (${await ans()})`);
+  await page.selectOption(S('example'), '4'); check((await ans()).startsWith('Water moves from B into A (ψ = −0.5 MPa to −0.9 MPa)'), `osmosis solve: flow with mixed units (${await ans()})`);
+  await page.selectOption(S('example'), '5'); check((await ans()).startsWith('The mass changed by +12%.') && (await ans()).includes('hypotonic'), `osmosis solve: % change (${await ans()})`);
+  await page.selectOption(S('example'), '6'); check((await ans()) === 'The isotonic concentration is about 0.289 mol/L (where the % change is 0).', `osmosis solve: isotonic point (${await ans()})`);
+  await page.fill(S('p1'), '-3'); check((await ans()).includes('does not cross zero'), 'osmosis solve: same-side readings refused');
+  await page.selectOption(S('find'), 'pi'); await page.selectOption(S('example'), '0'); await page.fill(S('T'), '-300'); check((await ans()).includes('above absolute zero'), 'osmosis solve: below absolute zero');
+  await page.fill(S('T'), '25'); await page.fill(S('C'), '-1'); check((await ans()).includes('cannot be negative'), 'osmosis solve: negative concentration');
+  await page.fill(S('C'), ''); check((await ans()).startsWith('Fill in'), 'osmosis solve: blank asks for numbers');
 };

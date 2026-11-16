@@ -2,9 +2,28 @@
 // Logic gates: tap the inputs of AND, OR, NOT, NAND, NOR, XOR or XNOR and watch the output lamp and the live
 // truth-table row; build NOT/AND/OR from NAND or NOR only; chain two gates.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/chemquiz.css';
 ---
 <div class="ax lg">
+  <div class="ax-card lg-xp">
+    <h2>Truth table for your expression</h2>
+    <p class="ax-help" style="margin-top:0">Type a Boolean expression from your problem and get its truth table, one column for each step. Write AND, OR, NOT, XOR, NAND, NOR, or use A', A+B, A·B, A^B. Letters are the inputs (up to 6).</p>
+    <label class="lg-xl">Expression <input type="text" class="lg-xi" data-k="lg-expr" value="A AND NOT B" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" aria-label="Boolean expression" /></label>
+    <div class="lg-chips" role="group" aria-label="Examples">
+      <button type="button" class="btn secondary small" data-e="A AND NOT B">A AND NOT B</button>
+      <button type="button" class="btn secondary small" data-e="(A + B)'">(A + B)'</button>
+      <button type="button" class="btn secondary small" data-e="A XOR B">A XOR B</button>
+      <button type="button" class="btn secondary small" data-e="A'B + AB'">A'B + AB'</button>
+      <button type="button" class="btn secondary small" data-e="A(B + C)">A(B + C)</button>
+      <button type="button" class="btn secondary small" data-e="(A NAND B) NAND C">(A NAND B) NAND C</button>
+    </div>
+    <p class="ax-big lg-xa" data-k="lg-answer" aria-live="polite"></p>
+    <div class="lg-xwrap"><table class="lg-xt"><thead></thead><tbody></tbody></table></div>
+    <p class="lg-xs"></p>
+    <p class="ax-help lg-xtip">Common mistake: forgetting that NOT binds tightest, then AND, then OR. A + B C means A OR (B AND C). Use brackets when unsure.</p>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg lg-g" role="group" aria-label="Gate">
       <button type="button" data-g="AND" aria-pressed="true">AND</button><button type="button" data-g="OR" aria-pressed="false">OR</button><button type="button" data-g="NOT" aria-pressed="false">NOT</button><button type="button" data-g="NAND" aria-pressed="false">NAND</button><button type="button" data-g="NOR" aria-pressed="false">NOR</button><button type="button" data-g="XOR" aria-pressed="false">XOR</button><button type="button" data-g="XNOR" aria-pressed="false">XNOR</button>
@@ -82,9 +101,19 @@ import '../../styles/chemquiz.css';
   .lg-chain { display: flex; flex-wrap: wrap; gap: 12px; }
   .lg-chain label { display: flex; gap: 6px; align-items: center; font-weight: 650; }
   .lg-chain select { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .lg-xl { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lg-xi { min-height: 44px; font-size: 16px; max-width: 100%; box-sizing: border-box; }
+  .lg-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .lg-xa { margin: 12px 0 0; font-size: clamp(18px, 4.6vw, 24px); overflow-wrap: anywhere; }
+  .lg-xa.lg-bad { color: var(--bad); }
+  .lg-xwrap { overflow-x: auto; max-width: 100%; }
+  .lg-xt th, .lg-xt td { padding: 6px 10px; white-space: nowrap; }
+  .lg-xt td.y, .lg-xt th.y { border-left: 3px solid var(--ink); }
+  .lg-xs { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
 </style>
 
 <script>
+  import { analyse } from '../../lib/sci/logic-expr';
   import { COUNT, EXPR, GATES, RULE, chain, fromUniversal, gate, rows, truthTable, type Bit, type Gate } from '../../lib/sci/gates';
   import { mountQuiz, same, pickOne, rint, type Question } from '../../lib/chemquiz';
 
@@ -186,4 +215,28 @@ import '../../styles/chemquiz.css';
       { q: `What is the smallest number of ${u5} gates needed to make a ${t5} gate (the usual way)?`, hint: 'a whole number', answer: String(k5), ok: same(String(k5)), worked: t5 === 'NOT' ? `Join the two inputs of one ${u5}: 1 gate.` : (u5 === 'NAND') === (t5 === 'AND') ? `One ${u5} followed by one ${u5} wired as NOT: 2 gates.` : `Two ${u5}s wired as NOT on the inputs, then one more ${u5}: 3 gates.` },
     ];
   });
+
+  // Truth table of a typed expression.
+  (function () {
+    const box = q('.lg-xp'), inp = q<HTMLInputElement>('.lg-xi'), big = q('.lg-xa'), tab = q<HTMLTableElement>('.lg-xt'), info = q('.lg-xs');
+    const render = () => {
+      const a = analyse(inp.value);
+      tab.tHead!.replaceChildren(); tab.tBodies[0].replaceChildren(); info.textContent = ''; big.classList.toggle('lg-bad', !!a.error);
+      if (!inp.value.trim()) { big.textContent = 'Type an expression, such as A AND NOT B.'; return; }
+      if (a.error) { big.textContent = a.error; return; }
+      big.textContent = a.tautology ? `${a.text} is always 1 (a tautology).` : a.contradiction ? `${a.text} is always 0 (a contradiction).` : `${a.text} is 1 in ${a.ones} of ${a.rows.length} rows${a.gate ? `, the same as ${a.gate}` : ''}.`;
+      const hr = document.createElement('tr');
+      a.head.forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (i === a.vars.length) c.className = 'y'; hr.append(c); });
+      tab.tHead!.append(hr);
+      for (const r of a.rows) {
+        const tr = document.createElement('tr'); if (r[a.outCol] === 1) tr.className = 'on';
+        r.forEach((v, i) => { const c = document.createElement('td'); c.textContent = String(v); if (i === a.vars.length) c.className = 'y'; tr.append(c); });
+        tab.tBodies[0].append(tr);
+      }
+      info.textContent = `Simplest sum of products: Y = ${a.sop}. Product of sums: Y = ${a.pos}. Rows that give 1 (counting from 0, the first letter as the highest bit): ${a.minterms.length ? a.minterms.join(', ') : 'none'}.`;
+    };
+    inp.addEventListener('input', render);
+    box.querySelectorAll<HTMLButtonElement>('.lg-chips button').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.e!; render(); }));
+    render();
+  })();
 </script>

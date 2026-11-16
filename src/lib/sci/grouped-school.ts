@@ -48,3 +48,46 @@ export function stats(rows: Row[], assumed?: number) {
 
 /** Made-up example (not from any book): minutes a class of 50 spent on homework one evening. */
 export const EXAMPLE = '0-20 6\n20-40 9\n40-60 15\n60-80 12\n80-100 8';
+
+// ---- Added 2026-11-16: inclusive classes (10-19, 20-29), spread (variance, SD, quartiles), more examples ----
+
+/** Like parseClasses but lets classes have a gap (10-19, 20-29), which is then closed if `fixGaps` and all gaps are equal. */
+export function parseClassesLoose(text: string, fixGaps = true): { rows: Row[]; error?: string; note?: string } {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const raw: Row[] = [];
+  for (const [i, line] of lines.entries()) {
+    const m = /^(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)\s*[,:;\s]\s*(\d+(?:\.\d+)?)$/i.exec(line.replace(/−/g, '-'));
+    if (!m) return { rows: raw, error: `Line ${i + 1} ("${line}") should look like "10-20 5": a class and its frequency.` };
+    raw.push({ lo: Number(m[1]), hi: Number(m[2]), f: Number(m[3]) });
+    if (!(raw[i].hi > raw[i].lo)) return { rows: raw, error: `Line ${i + 1}: the upper limit must be bigger than the lower limit.` };
+  }
+  if (raw.length < 2) return { rows: raw, error: 'Enter at least two classes.' };
+  const gaps = raw.slice(1).map((r, i) => Math.round((r.lo - raw[i].hi) * 1e9) / 1e9);
+  const g = gaps[0];
+  if (fixGaps && g > 0 && gaps.every((x) => x === g)) {
+    const rows = raw.map((r) => ({ lo: Math.round((r.lo - g / 2) * 1e9) / 1e9, hi: Math.round((r.hi + g / 2) * 1e9) / 1e9, f: r.f }));
+    const res = parseClasses(rows.map((r) => `${r.lo}-${r.hi} ${r.f}`).join('\n'));
+    return { ...res, note: `Your classes leave a gap of ${g} between them (like ${raw[0].lo}-${raw[0].hi}, ${raw[1].lo}-${raw[1].hi}), so they were closed the usual way: ${rows[0].lo}-${rows[0].hi}, ${rows[1].lo}-${rows[1].hi}, and so on. The answers use these class limits.` };
+  }
+  return parseClasses(text);
+}
+
+/** Variance, standard deviation, mean deviation about the mean, and the quartiles (same interpolation as the median). */
+export function spread(rows: Row[], s: ReturnType<typeof stats>) {
+  const mean = s.meanDirect;
+  const variance = s.x.reduce((t, xi, i) => t + s.f[i] * (xi - mean) ** 2, 0) / s.n;
+  const meanDev = s.x.reduce((t, xi, i) => t + s.f[i] * Math.abs(xi - mean), 0) / s.n;
+  const quart = (p: number) => {
+    const i = s.cf.findIndex((c) => c >= p * s.n - 1e-12), before = i > 0 ? s.cf[i - 1] : 0, h = rows[i].hi - rows[i].lo;
+    return { i, before, value: rows[i].lo + ((p * s.n - before) / s.f[i]) * h };
+  };
+  const q1 = quart(0.25), q3 = quart(0.75);
+  return { variance, sd: Math.sqrt(variance), meanDev, q1, q3, iqr: q3.value - q1.value, sumSq: s.x.reduce((t, xi, i) => t + s.f[i] * (xi - mean) ** 2, 0) };
+}
+
+/** Made-up examples for the preset buttons (not from any book). */
+export const PRESETS: Record<string, string> = {
+  marks: '0-10 3\n10-20 7\n20-30 12\n30-40 11\n40-50 7',
+  heights: '150-154 6\n155-159 11\n160-164 14\n165-169 9',
+  uneven: '0-5 4\n5-15 10\n15-30 12\n30-50 6',
+};

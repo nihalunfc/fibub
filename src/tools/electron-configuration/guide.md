@@ -11,7 +11,7 @@ ads: false
 order: 1082
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [build-an-atom, periodic-table, hydrogen-orbitals]
 sources:
   - "Ground-state configurations from fibub's periodic table code: the Aufbau (Madelung, n + l) order with the measured exceptions (chromium 3d⁵ 4s¹, copper 3d¹⁰ 4s¹) from the NIST Atomic Spectra Database, checked there against the mendeleev and pymatgen Python packages."
@@ -41,6 +41,12 @@ It follows Class 11 Chemistry (structure of the atom: quantum numbers, shapes of
 3. Switch to **Fill it yourself** to place the electrons by hand. **Undo** takes back the last one; **Start again** empties the boxes.
 4. Try the **Check yourself** questions. You can type configurations as 1s2 2s2 2p6 or with a noble-gas core, such as [Ar] 4s1.
 
+## Look up any element or ion
+
+The first card answers the question most people arrive with. Type a symbol (Fe), a name (iron) or an atomic number (26), from 1 to 118, and pick a charge from +4 to −3. You get the full configuration, the short noble-gas form, the number of unpaired electrons (so whether it is attracted to a magnet), the outer shell, the period, group and block, and the orbital boxes drawn with arrows for the outer subshells. Buttons fill in Fe, Fe³⁺, Cu⁺, Cl⁻, Mg²⁺ and Ag.
+
+Ions follow the usual rule: a positive ion loses electrons from the highest shell first, so iron loses its two 4s electrons before any 3d. Fe²⁺ is [Ar] 3d⁶ and Fe³⁺ is [Ar] 3d⁵, with five unpaired electrons. A negative ion simply gains electrons into the next free boxes, so Cl⁻ is [Ar]. Atoms with a measured exception (chromium, copper, silver, gold and others) are flagged. Elements above 103 are predictions, not measurements, and say so.
+
 ## Worked example: nitrogen
 
 Nitrogen has 7 electrons. Two go into 1s and two into 2s. The next three go into 2p, and by Hund's rule each takes its own box with the same spin, so the page shows three single up-arrows in 2p. The configuration is 1s² 2s² 2p³, the short form is [He] 2s² 2p³, and there are 3 unpaired electrons.
@@ -60,6 +66,9 @@ The Aufbau order predicts [Ar] 3d⁴ 4s² for chromium and [Ar] 3d⁹ 4s² for c
 - The way the boxes are numbered (mₗ from −l on the left) and the first spin being "up" are conventions. Other books may draw them the other way round; the physics is the same.
 
 ## FAQ
+
+**What is the electron configuration of iron?** Iron (26 electrons) is 1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁶ 4s², or [Ar] 3d⁶ 4s² in short form, with 4 unpaired electrons.
+
 
 **Why stop at krypton?** That covers the elements most school questions use. For heavier atoms and ions, use the periodic table tool.
 

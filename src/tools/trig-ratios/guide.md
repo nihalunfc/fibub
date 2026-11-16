@@ -11,7 +11,7 @@ ads: false
 order: 1153
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [pythagoras-proofs, function-grapher]
 sources:
   - "Standard trigonometry: the six ratios of a right triangle, exact values at the special angles, sin²θ + cos²θ = 1 and its two partners, complementary angles and the signs in each quadrant. Written for fibub."
@@ -60,6 +60,20 @@ Now drag r to 10. Opposite becomes 5 and adjacent 8.66, but sin 30° is still 5 
 - A handy way to remember the special values: sin 0°, 30°, 45°, 60°, 90° are √0/2, √1/2, √2/2, √3/2, √4/2. Cos runs the same list backwards.
 - In the Class 11 view, "All Students Take Coffee" names the positive ratios in quadrants I to IV: all, sin, tan, cos.
 
+## Solve my numbers
+
+Under the triangle there is a **Solve my numbers** box for the numbers in your own question. Pick what you know:
+
+- **An angle and one side**: give θ (in degrees or radians) and say whether the side you know is the opposite, the adjacent or the hypotenuse. You get the other two sides and the other acute angle, each with the formula and your numbers filled in, for example hypotenuse 6 at 65 gives opposite = 6 × sin 65° = 5.438.
+- **Two sides**: choose which two (opposite and adjacent, opposite and hypotenuse, or adjacent and hypotenuse) and you get the third side by Pythagoras and the angle by tan⁻¹, sin⁻¹ or cos⁻¹.
+- **A ratio**: for "sin θ = 0.6" type the value (a fraction like 3/5 works). You get the angle, and at Class 11 level all the angles between 0° and 360° that share that value.
+
+The answer sits in one line at the top of the box, and a unit select (cm, m, km, ft, in) is added to the answer only. Impossible input gets a plain message: a side of 0 or less, an angle of 0° or 90° in a right triangle, a hypotenuse shorter than a leg, or sin θ above 1. Four example buttons fill in typical textbook-style problems. The button under the working draws the angle in the triangle above.
+
+Below that, **Trigonometric table** opens a table of sin, cos and tan from 0° to 90° (every 1°, 5° or 15°) with radians, and highlights the row for your angle. The sentence at the top of the page always gives sin, cos and tan for the angle you are on.
+
+**Common mistakes** are listed in the box: calculator in the wrong mode, naming the sides from the wrong angle, and mixing up sin and cos.
+
 ## Check yourself
 
 Four fresh questions each time: a ratio from a triangle's sides, an expression with exact values, a complementary angle and a missing side from an angle. Type the answer and press **Check**; open the worked answer if you get stuck. Nothing is saved.
@@ -71,3 +85,9 @@ Four fresh questions each time: a ratio from a triangle's sides, an expression w
 **Degrees or radians?** The page uses degrees, like the Class 10 book. The Class 11 level also gives the angle in radians (180° = π).
 
 **Is this part of NCERT?** No. It follows the same topics, but the pictures and questions are fibub's own.
+
+**What is sin 30°?** It is 0.5: in a right triangle with a 30° angle, the opposite side is half the hypotenuse.
+
+**How do I find an angle from sin, cos or tan?** Use "A ratio" in Solve my numbers, for example sin θ = 0.6 gives θ = 36.87°.
+
+**Is there a trigonometric table here?** Yes, open "Trigonometric table" for 0° to 90° with four decimal places.

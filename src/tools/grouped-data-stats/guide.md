@@ -11,11 +11,12 @@ ads: false
 order: 1163
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [distribution-explorer, grain-size-stats, ap-explorer]
 sources:
   - "Standard formulas for grouped data: the three methods for the mean, median = l + ((n/2 − cf)/f)h and mode = l + ((f₁ − f₀)/(2f₁ − f₀ − f₂))h, and the cumulative frequency curves (ogives). Written for fibub."
   - "Median checked against Python's statistics.median_grouped; the three means checked against the plain mean of the class marks for 300 random tables. The example data are made up."
+  - "Variance, standard deviation, mean deviation and quartile formulas for grouped data are standard statistics results (class marks used for x); the median-style interpolation is the same one used for the median class. Written for fibub."
 flow:
   - { icon: table, label: "Classes" }
   - { icon: calculator, label: "Mean x3" }
@@ -54,6 +55,16 @@ The example (made up) is how many minutes 50 students spent on homework: 0–20:
 - n/2 = 25. The cumulative frequencies are 6, 15, 30, ..., so the median class is 40–60: median = 40 + ((25 − 15)/15) × 20 ≈ 53.33.
 - The modal class is 40–60 (f₁ = 15, f₀ = 9, f₂ = 12): mode = 40 + (6/9) × 20 ≈ 53.33.
 
+## Presets, inclusive classes and spread
+
+Three **preset** buttons load made-up tables so you can try the tool at once: marks of 40 students, heights written as inclusive classes, and classes of uneven width.
+
+Many books write classes with a gap, like 150-154, 155-159. The mean, median and mode formulas need classes that touch, so the page closes the gap by half its width on each side (149.5-154.5, 154.5-159.5) and tells you it did. Turn this off under **More options** to see the plain error message instead.
+
+A new card, **Spread**, adds what Class 11 statistics asks for: the variance (Σf(x − x̄)² / Σf), the standard deviation, the mean deviation about the mean, the quartiles Q₁ and Q₃ found the same way as the median, and the interquartile range. Under the mean, median and mode a check line compares your mode with the rule of thumb Mode ≈ 3 × Median − 2 × Mean.
+
+Help for the usual slips is in the **Common mistakes** card: using class limits instead of class marks, picking the wrong median class, forgetting to fix inclusive classes and using the wrong class width.
+
 ## Check yourself
 
 Three fresh questions each time: the mean, the median and the mode of a small random table. Type your answer to 2 decimal places, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -65,3 +76,5 @@ Three fresh questions each time: the mean, the median and the mode of a small ra
 **What if two classes share the highest frequency?** The page uses the first one. The data then have two modes, and the formula gives only one of them.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own examples. fibub is not part of NCERT.
+
+**How do I find the mean of grouped data?** Multiply each class mark (the middle of the class) by its frequency, add these up and divide by the total frequency; the page shows this as the direct method plus the assumed-mean and step-deviation ways.

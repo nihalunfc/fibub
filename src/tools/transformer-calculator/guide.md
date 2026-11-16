@@ -11,12 +11,13 @@ ads: false
 order: 1417
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [inductance-lab, rms-waveform, lcr-phasors, motional-emf]
 sources:
   - "Ideal transformer V_s/V_p = N_s/N_p; power in = power out ÷ efficiency; line loss I²R with I = P/V (single-phase, unity power factor, a simplified model). Standard physics results."
   - "Transmission voltages 11, 33, 132, 220 and 400 kV are common standard levels on India's grid; 230 V is the nominal household supply. Real grids use three phases, so real currents and losses differ; the page shows the idea, not a design."
   - "Checked against an independent Python script."
+  - "Typed-number calculator: Vp/Vs = Np/Ns, power in = power out ÷ efficiency, and loss = (P/V)² R: standard results; examples checked by hand."
 flow:
   - { icon: sliders, label: "Set turns" }
   - { icon: calculator, label: "Volts, amps" }
@@ -33,6 +34,10 @@ A transformer cannot make energy. In an ideal one, the power in equals the power
 The second card shows why this matters. Power stations send electricity over long lines. The wires have resistance, and the heat lost in them is I²R. Sending the same power P = VI at a higher voltage needs a smaller current, and the loss falls with the square of the current. The page sends your power at six voltages and shows the current and the share lost at each.
 
 It follows the alternating current chapter of Class 12 Physics (transformers) and the induction chapter before it (mutual inductance). See how coils induce emfs in each other in the [[inductance-lab]], what "230 V rms" means in [[rms-waveform]], and AC circuits with L and C in [[lcr-phasors]].
+
+## Solve your own numbers
+
+The first card is for the numbers in your own question. Pick what to find: the **secondary voltage**, the **primary voltage**, the **secondary or primary turns**, or the **primary or secondary current**. Type the others (V, kV or mV; mA or A) and read the answer with the working, from Vp / Vs = Np / Ns, and whether it is step-up or step-down. For currents, add an **efficiency** to include losses, or leave it blank for an ideal transformer (power in = power out); the heat lost is shown. A non-whole number of turns is rounded for you. A second box, **Power line loss (I²R)**, takes the power sent, the line voltage and resistance and gives the current, the heat lost and the percentage lost, or finds the voltage needed to keep the loss below a chosen share. Five transformer examples and three line examples are ready in the Example lists.
 
 ## How to use it
 
@@ -57,6 +62,10 @@ Sending 10 MW through 5 Ω of line: at 11 kV the current is 909 A and 4.13 MW (4
 - Higher voltage needs taller towers and better insulation, so grids balance loss against cost.
 
 ## FAQ
+
+**How do I find the secondary voltage of a transformer?** Vs = Vp × Ns / Np: the voltage is in the same ratio as the turns.
+
+**Why does the current go down when the voltage goes up?** Power is conserved (Vp Ip = Vs Is for an ideal one), so Is / Ip = Np / Ns.
 
 **Is this how the real grid works?** In outline, yes. Real lines carry three-phase AC, and real loads are not pure resistances, so the exact numbers differ.
 

@@ -11,12 +11,13 @@ ads: false
 order: 1339
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [kepler-orbits, two-body-orbit, orbit-transfer-calculator, newtons-laws]
 sources:
   - "Newton's law of gravitation, g = GM/r² outside a planet and g₀(1 − d/R) inside a planet of even density (shell theorem), circular orbit speed √(GM/r), period 2πr/v, escape speed √(2GM/r) and orbital energy −GMm/2r: standard school physics found in any textbook. G = 6.6743 × 10⁻¹¹ N m²/kg² (CODATA 2018)."
   - "GM, mean and equatorial radii and sidereal rotation periods of the Earth, Mars and the Moon: NASA planetary fact sheets (public domain), rounded."
   - "Checked against known values: the geostationary height of 35 786 km, the Space Station's 7.67 km/s at 400 km, the Earth's escape speed 11.19 km/s and Mars' stationary orbit near 17 030 km."
+  - "g = GM/r², g inside = g₀(1 − d/R) for a uniform sphere, orbital speed √(GM/r) and escape speed √(2GM/r): standard school physics found in any textbook. GM and R for Earth, Mars and the Moon are the same values the simulator uses (Earth 3.986004 × 10¹⁴ m³/s², R 6371 km; Mars 4.282837 × 10¹³, 3389.5 km; Moon 4.9028 × 10¹², 1737.4 km). The card was hand-checked."
 flow:
   - { icon: pointer, label: "Pick height" }
   - { icon: curve, label: "g graph" }
@@ -49,6 +50,9 @@ A satellite at that height moves at √(GM/r) = **7.673 km/s** and goes round in
 
 Tap **Halfway down**: at a depth of 3185 km, about half the radius, g = 9.820 × (1 − 3185 ÷ 6371) = **4.911 m/s²**, half the surface value. Tap **Stationary orbit**: **35 786 km** above the equator.
 
+## Solve my numbers
+The card at the top answers the usual gravity questions from the numbers you type. Choose g at a height above the surface (with the school shortcut g(1 − 2h/R) shown next to the exact value when it is accurate enough), g at a depth below the surface, the speed and period of a satellite at a height, the escape speed from the surface or from a height, the weight of a mass at a height or on another planet, or the height at which g falls to 1/k of its surface value. Pick Earth, Mars or the Moon; heights and depths take km or m, masses kg or g. The answer comes in one sentence at the top, followed by the working: the radius from the centre, the formula with the numbers, and the result with units. One line below names the common slip, such as using the height instead of R + h in the 1/r² law, or using the 1/r² law inside the planet where g falls in a straight line. Tap an example for the space-station height, a mine 1000 km down, a low satellite, escape from Mars or weight on the Moon. A depth deeper than the radius gives a friendly message.
+
 ## Tips
 
 - Going up one radius quarters g; going halfway down only halves it.
@@ -64,3 +68,5 @@ Tap **Halfway down**: at a depth of 3185 km, about half the radius, g = 9.820 ×
 **Why no stationary orbit for the Moon?** The Moon turns once in 27.3 days, so the orbit would be about 88 000 km up, where the Earth's pull is stronger than the Moon's.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**How does g change with height?** g = g₀R²/(R + h)²: it falls with the square of the distance from the centre. Type a height under Solve my numbers for the working.

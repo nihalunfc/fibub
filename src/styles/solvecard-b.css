@@ -1,0 +1,18 @@
+/* "Solve my numbers" card (src/lib/learn/solvecard-b.ts) */
+.sv .sv-top { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sv .sv-top label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.sv .sv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
+.sv .sv-f { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.sv .sv-f[hidden] { display: none; }
+.sv .sv-r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.sv .sv-r input, .sv .sv-r textarea, .sv select { min-height: 44px; font-size: 16px; max-width: 100%; }
+.sv .sv-r textarea { font-family: inherit; resize: vertical; }
+.sv .sv-actions { margin-top: 8px; }
+.sv .sv-answer { margin: 12px 0 0; font-size: clamp(18px, 4.6vw, 24px); overflow-wrap: anywhere; }
+.sv .sv-bad { color: var(--bad); }
+.sv .sv-work { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 4px; font-size: 15px; overflow-wrap: anywhere; }
+.sv .sv-work:empty { display: none; }
+.sv .sv-tip { margin: 8px 0 0; }
+@media (max-width: 420px) { .sv .sv-top { grid-template-columns: 1fr; } }
+.sv [hidden] { display: none !important; }
+.sv .sv-r select { max-width: 9.5em; }

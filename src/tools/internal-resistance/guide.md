@@ -11,12 +11,13 @@ ads: false
 order: 1411
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ohms-law-lab, kirchhoff-solver, series-parallel]
 sources:
   - "Terminal voltage V = E − I r with I = E / (R + r), the power E² R / (R + r)² in the load and its maximum E² / (4 r) at R = r: standard circuit results."
   - "Least-squares straight line through the recorded (I, V) readings: intercept E, slope −r."
   - "Checked by hand (1.5 V, 0.5 Ω, 2.5 Ω: 0.5 A, 1.25 V, 0.625 W; maximum 1.125 W at 0.5 Ω), by numerically scanning R for the power peak, and by fitting exact readings back to E and r."
+  - "Typed-number calculator: E = V + I r, I = E / (R + r), r = (V₁ − V₂) / (I₂ − I₁) from two readings, and P max = E² / 4r at R = r: standard results; examples checked by hand."
 flow:
   - { icon: sliders, label: "Set E, r" }
   - { icon: pointer, label: "Change R" }
@@ -33,6 +34,10 @@ A real cell is not a perfect source of voltage. Inside it there is some resistan
 This page shows a cell (the dashed box: an ideal emf E with r beside it) driving a rheostat, with an ammeter and a voltmeter across the cell. Change E, r and R and the meters, the formula with your numbers and the facts update at once. The graph shows either **V against I**, a straight line that falls from E with slope −r, or the **power in the load against R**, which peaks when R = r (maximum power transfer). In the last part you can record readings like a real practical and let the page find E and r from the best straight line.
 
 It follows the Class 12 Physics chapter on current electricity (emf, internal resistance, terminal voltage, cells in circuits) and the practical on finding a cell's internal resistance. Start with the [[ohms-law-lab]]; for circuits with several cells use the [[kirchhoff-solver]], and to combine loads, [[series-parallel]].
+
+## Solve your own numbers
+
+The first card solves the standard exam questions. **Current and terminal voltage** takes E, r and R and gives I = E / (R + r) and V = E − I r, with the volts lost inside, the power and the efficiency. **Emf E** takes I, R and r. **Internal resistance r** works from E, the terminal voltage and either the current or the load resistance. **E and r from two readings** subtracts two equations, the way a V-I graph does it, and warns you if the voltage does not fall as the current rises. **Maximum power transfer** gives the load R = r and P = E² / 4r. Volts, millivolts, ohms, milliamps and so on are accepted, with common-mistake notes (E is not the voltage across the load). Five worked examples are ready in the Example list; the sliders below show the same cell live.
 
 ## How to use it
 
@@ -54,6 +59,10 @@ Record readings at R = 2.5 Ω (0.5 A, 1.25 V) and R = 1 Ω (1 A, 1 V): the line 
 - Old or cold cells have a bigger internal resistance, so their voltage sags more under load.
 
 ## FAQ
+
+**How do I find the internal resistance of a cell?** r = (E − V) / I, where E is the emf, V the terminal voltage and I the current drawn.
+
+**Where does maximum power go?** To a load equal to the internal resistance, R = r, and then P = E² / 4r at 50% efficiency.
 
 **Why does a car's headlights dim when it starts?** The starter motor draws a huge current, so I r is large and the battery's terminal voltage drops.
 

@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax gh">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the height, depth or planet from your problem and get g, the satellite speed or the escape speed, with the working.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row">
       <span>Planet</span>
@@ -163,6 +164,12 @@ import '../../styles/astro.css';
   mountQuiz(q('.gh-quiz'), () => questions());
   draw();
   keepDrawn(cv, draw);
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { GRAV } from '../../lib/learn/phys-a';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, GRAV);
 </script>
 
 <style is:inline>

@@ -11,7 +11,7 @@ ads: false
 order: 1377
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [ap-explorer, limit-zoom, binomial-expansion]
 sources:
   - "Standard results on geometric progressions: aₙ = a rⁿ⁻¹, Sₙ = a(rⁿ − 1)/(r − 1), S∞ = a/(1 − r) for |r| < 1, AM ≥ GM ≥ HM with GM² = AM × HM for two positive numbers, and compound growth P(1 + i/100)ⁿ. Written for fibub."
@@ -61,6 +61,19 @@ With a = 4 and b = 9: AM = 6.5, GM = √36 = 6 and HM = 72/13 ≈ 5.5385; 6² = 
 - For 0 < r < 1 use Sₙ = a(1 − rⁿ)/(1 − r): it is the same formula with both signs flipped, and avoids negatives.
 - A repeating decimal like 0.333… is a GP: 3/10 + 3/100 + … with r = 1/10, so it sums to 1/3.
 
+## Solve my GP question
+
+The first card answers the typical textbook questions from typed numbers (fractions like 1/3 and decimals are fine). Pick what you want, and read the answer in one sentence before the working.
+
+- **Find a term and a sum**: type a, r and n (up to 100,000) for the nth term, Sₙ and, when |r| < 1, S∞. Results too large to show are reported as such, never as Infinity.
+- **Read a list of terms**, like 5, 15, 45: it checks whether they form a GP, gives a and r, the next three terms and the sum so far. If the list is not a GP it tells you whether it is an AP instead.
+- **Find a and r from two terms**, for example the 3rd term is 12 and the 6th is 96. When the terms are an even number of steps apart both signs of r are shown.
+- **Which term equals a number?** Gives n, or says the number is not a term.
+- **How many terms make a sum?** Gives the smallest n, or says the sum can never get there (for |r| < 1 it stays below S∞).
+- **Insert geometric means** between two numbers, with the ratio.
+
+Seven examples are in the drop-down. "Draw this on the graph below" shows a small GP in the chart. One common mistake appears for each question, such as using the power n instead of n − 1.
+
 ## Check yourself
 
 Five fresh questions each time: a term, a sum of n terms, a sum to infinity, a geometric mean and a depreciation. Fractions like 16/3 are accepted. Nothing is saved.
@@ -70,3 +83,7 @@ Five fresh questions each time: a term, a sum of n terms, a sum to infinity, a g
 **Why does the money part say teaching model?** Real savings and loans have tax, fees and interest added monthly or daily. Here interest is added once a year at a fixed rate so the GP is easy to see.
 
 **Is this from the NCERT book?** It covers the same topics with fibub's own examples. fibub is not part of NCERT.
+
+**How do I find the nth term of a geometric progression?** Use aₙ = a × rⁿ⁻¹, where a is the first term and r is the common ratio (any term divided by the one before it).
+
+**Can a GP have a negative ratio?** Yes; the terms then alternate in sign, and the sum to infinity still exists when −1 < r < 1.

@@ -2,8 +2,15 @@
 // Phasor diagram and series LCR circuit: R, L, C and frequency sliders, rotating phasors, the impedance triangle and
 // the resonance curve with its Q factor. Everything runs in the browser.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax lcp">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type R, L, C and the frequency from your question: get the reactances, impedance, current, phase angle and power, the resonant frequency and Q, or the capacitor to tune a circuit. Units can be mH, µF, kHz and so on.</p>
+    <div class="lcp-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Series LCR circuit</h2>
     <label class="lcp-sl">Resistance R: <b class="lcp-rv">20 Ω</b><input type="range" class="lcp-r" min="1" max="100" step="1" value="20" aria-label="Resistance" /></label>
@@ -72,6 +79,8 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { LCR_SPEC } from '../../lib/sci/solve-lcr';
   import { lcr, currentAt, halfPower, questions } from '../../lib/sci/lcr-phasors';
   import { pagePalette } from '../../lib/report';
   import { sig } from '../../lib/sci/num';
@@ -191,4 +200,5 @@ import '../../styles/astro.css';
   all();
   quiz(q('.lcp-quiz'), () => questions());
   requestAnimationFrame(tick);
+  mountSolver(document.querySelector<HTMLElement>('.lcp-solve')!, LCR_SPEC);
 </script>

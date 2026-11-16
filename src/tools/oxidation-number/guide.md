@@ -11,7 +11,7 @@ ads: false
 order: 1088
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [formula-writer, galvanic-cell, equation-balancer, nernst-calculator]
 sources:
   - "Oxidation number rules and the half-reaction (ion-electron) method: general chemistry facts as set out by IUPAC and in standard textbooks, written fresh for fibub."
@@ -31,6 +31,12 @@ An oxidation number is the charge an atom would have if every bond in the compou
 - **Balance a redox reaction.** Pick a reducing agent (it is oxidised) and an oxidising agent (it is reduced), and choose acidic or basic solution. Each half-reaction is balanced in four steps: the main element, then oxygen with H₂O, hydrogen with H⁺, and charge with electrons. In basic solution OH⁻ is added to both sides to remove H⁺. The halves are multiplied so the electrons match, added, and tidied up, and the page checks that atoms and charge balance.
 
 It follows Class 11 Chemistry (redox reactions: oxidation number, the rules for assigning it, types of redox reactions, balancing redox equations by the oxidation number and half-reaction methods). Write formulas with the [[formula-writer]], balance other equations in the [[equation-balancer]], and turn redox reactions into batteries in the [[galvanic-cell]].
+
+## New: spot the change and name the agents
+
+- **Did it change?** Under the balancer, type a reactant, a product and the element (for example KMnO4, Mn^2+ and Mn). The page gives the oxidation number before and after, the change, and says in one sentence whether the element is oxidised or reduced and how many electrons per atom that means. Tap an example chip to see the pattern: H₂O₂ → H₂O (oxygen is reduced) or Zn → Zn²⁺ (zinc is oxidised). If the element is not in a formula, the page says so instead of guessing.
+- **Agents.** Every balanced equation now names the reducing agent (the one that is oxidised) and the oxidising agent (the one that is reduced) with their numbers before and after.
+- **Common mistakes** are listed in a fold-out in the "Try this" card: peroxides, ions, mixed-up agents and unbalanced charge.
 
 ## How to use it
 
@@ -55,11 +61,17 @@ Both sides have charge +17.
 
 ## Tips
 
+- A typical exam slip is writing +2 for oxygen in OF₂ or −2 in H₂O₂. Fluorine beats oxygen, and in a peroxide each oxygen is −1.
+
 - A fraction, such as +8/3 for iron in Fe₃O₄, is an average over atoms in different states.
 - Where two or more elements have no fixed rule (such as ICl or PCl₅), the most electronegative gets its usual negative value and the page says the result is an estimate.
 - In basic solution the final equation has OH⁻ instead of H⁺. The electrons lost and gained are the same in either medium.
 
 ## FAQ
+
+**How do I find the oxidation number of an element in a compound?** Give the fixed ones their usual values (oxygen −2, hydrogen +1, group 1 +1), then make the numbers add up to the charge of the compound: type the formula above and the page shows each step.
+
+**How do I tell which substance is the oxidising agent?** It is the one containing the atom whose oxidation number goes down; the page names both agents under each balanced equation.
 
 **Is an oxidation number a real charge?** Only for simple ions. In molecules it is bookkeeping that helps you follow electrons.
 

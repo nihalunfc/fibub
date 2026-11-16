@@ -22,6 +22,19 @@ export default async ({ page, check, BASE }) => {
   check((await fin()) === 'I⁻ + 2MnO₄⁻ + H₂O → IO₃⁻ + 2MnO₂ + 2OH⁻' && (await page.textContent('.ox .ox-halves')).includes('In base, add'), 'oxidation: basic medium');
   await page.click('.ox .ox-med [data-m=acid]'); await page.selectOption('.ox .ox-o', 'Zn-Zn2'); await page.selectOption('.ox .ox-r', 'NO3-NO');
   check((await fin()) === '3Zn + 2NO₃⁻ + 8H⁺ → 3Zn²⁺ + 2NO + 4H₂O', 'oxidation: zinc and nitrate');
+  // agents line, spot the change, common mistakes
+  await page.selectOption('.ox .ox-o', 'Fe2-Fe3'); await page.selectOption('.ox .ox-r', 'MnO4-Mn2');
+  { const ag = await page.textContent('.ox .ox-agents'); check(ag.includes('Fe²⁺ is the reducing agent: Fe goes from +2 to +3, so it is oxidised') && ag.includes('MnO₄⁻ is the oxidising agent: Mn goes from +7 to +2, so it is reduced'), 'oxidation: agents named ' + ag); }
+  const ans = () => page.textContent('.ox .ox-cans');
+  check((await ans()) === 'Mn is reduced (gains 5 electrons per atom): +7 → +2.', 'oxidation: spot change KMnO4 to Mn2+ ' + (await ans()));
+  const spot = async (a, b, e) => { await page.fill('.ox [data-k=react]', a); await page.fill('.ox [data-k=prod]', b); await page.fill('.ox [data-k=element]', e); };
+  await spot('H2O2', 'H2O', 'O'); check((await ans()) === 'O is reduced (gains 1 electron per atom): −1 → −2.', 'oxidation: peroxide oxygen reduced ' + (await ans()));
+  await spot('Zn', 'Zn^2+', 'Zn'); check((await ans()) === 'Zn is oxidised (loses 2 electrons per atom): 0 → +2.', 'oxidation: zinc oxidised ' + (await ans()));
+  await spot('Fe2O3', 'Fe', 'Fe'); check((await ans()).includes('reduced (gains 3 electrons') && (await page.textContent('.ox .ox-cwork')).includes('2 Fe atoms'), 'oxidation: Fe2O3 to Fe');
+  await spot('NaCl', 'NaOH', 'Na'); check((await ans()).includes('neither oxidised nor reduced'), 'oxidation: unchanged element');
+  await spot('H2O', 'NaCl', 'Na'); check(await page.isVisible('.ox .ox-cerr') && (await page.textContent('.ox .ox-cerr')).includes('not in the reactant') && (await ans()) === '', 'oxidation: element missing message');
+  await page.locator('.ox .ox-ch-card .ox-chip').nth(1).click(); check((await ans()).startsWith('O is reduced'), 'oxidation: example chip');
+  check((await page.locator('.ox .ox-mist li').count()) === 5, 'oxidation: common mistakes listed');
   const items = page.locator('.ox .cq-item'); const n = await items.count(); let right = 0;
   for (let i = 0; i < n; i++) {
     const it = items.nth(i); await it.locator('.cq-show').scrollIntoViewIfNeeded(); await it.locator('.cq-show').click();

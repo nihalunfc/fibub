@@ -11,8 +11,8 @@ ads: false
 order: 1242
 icon: percent
 works: offline
-updated: 2026-11-09
-related: [ratio-mixer, hcf-lcm-venn, inflation-calculator]
+updated: 2026-11-16
+related: [ratio-mixer, hcf-lcm-venn, inflation-calculator, percentage-calculator]
 sources:
   - "Percentages, percentage change and successive changes are standard school arithmetic. Wording, pictures and examples are fibub's own."
   - "Checked against hand-worked examples (35% of 240 = 84; up 20% then down 20% = a 4% fall; up p% then down p% = a fall of p² ÷ 100 %)."
@@ -51,6 +51,19 @@ Below, the start is 500 with changes of +20% and −20%:
 - Down 20%: 600 × 0.8 = 480 (the fall is 20% of 600 = 120, a bigger amount).
 - Overall: × 1.2 × 0.8 = × 0.96, a fall of 4%. In general, up p% then down p% is a fall of p² ÷ 100 percent.
 
+## Solve your own numbers
+
+The first card handles the percentage problems that turn up in tests. Pick what you want to find and type your numbers; the answer appears in one sentence with the working an exam marks.
+
+- **p% of a number**: 35% of 240 = 35 ÷ 100 × 240 = 84, with a quick check by finding 1% first.
+- **What percent a is of b**: part ÷ whole × 100.
+- **The whole from a part**: if 84 is 35% of a number, 1% is 84 ÷ 35 and the whole is 100 times that.
+- **New value after a rise or fall**: choose up or down, type the old value and the percent.
+- **Percent change** between an old and a new value (a negative result is a fall).
+- **Original before a rise or fall**: the reverse percentage, found by dividing by 1.25 (for a 25% rise), not by taking 25% off.
+
+Zero wholes, negative numbers and blank boxes give a friendly message instead of NaN. Each answer ends with the common slip for that kind of problem. This page teaches the school method; for prices, discounts, markup and margin with stacked changes, use the [[percentage-calculator]].
+
 ## Check yourself
 
 Five fresh questions each time: a percent of a number, what percent one number is of another, a price rise, up-then-down by the same percent, and finding the price before a rise. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
@@ -62,3 +75,5 @@ Five fresh questions each time: a percent of a number, what percent one number i
 **Can a percent be more than 100?** Yes. 150% of 60 is one and a half times 60, which is 90. The bar shows it running past the whole.
 
 **Is this from the NCERT book?** It covers the same topic with fibub's own pictures and examples. fibub is not part of NCERT.
+
+**How do I find a percentage of a number?** Divide the percent by 100 and multiply by the number: 35% of 240 = 0.35 × 240 = 84. Type your own numbers into the first card to see the working.

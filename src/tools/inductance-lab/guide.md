@@ -11,12 +11,13 @@ ads: false
 order: 1415
 icon: orbit
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [faraday-induction, motional-emf, transformer-calculator, capacitor-inductor-calculator]
 sources:
   - "Long solenoid: B = µ₀nI, L = µ₀N²A/ℓ; coaxial solenoids: M = µ₀N₁N₂πr₁²/ℓ; emf = −L dI/dt and −M dI/dt; energy ½LI². Standard physics results. µ₀ = 1.25663706127 × 10⁻⁶ N/A², the CODATA 2022 recommended value (NIST)."
   - "The iron core uses a relative permeability of 1000, a round illustrative figure; real iron varies widely and depends on the field."
   - "Checked against an independent Python script, and the coupling k = r₁/r₂ for an air core checked as an exact result."
+  - "L = μ₀μrN²A/ℓ, M = μ₀μrN₁N₂A/ℓ, ε = −L dI/dt, U = ½LI² and τ = L/R: standard school physics; μ₀ = 1.25663706127 × 10⁻⁶ N/A² (CODATA 2022). The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: sliders, label: "Set coils" }
   - { icon: orbit, label: "L and M" }
@@ -33,6 +34,12 @@ Put a second coil around the first and some of that changing flux passes through
 This page draws an inner coil inside an outer coil and works out L₁, L₂, M, the coupling k = M/√(L₁L₂), the field in the inner coil and the energy it stores. In the second card the current in the inner coil ramps up and down, and a graph shows the self-induced emf in coil 1 and the emf in coil 2 flipping each time the ramp turns round.
 
 It follows the electromagnetic induction chapter of Class 12 Physics (inductance, mutual inductance, self-inductance, energy stored in an inductor). Before this, see induction by a moving magnet in [[faraday-induction]] and a moving rod in [[motional-emf]]; after it, the [[transformer-calculator]] uses mutual inductance to change voltages.
+
+## Solve my numbers
+
+The card at the top does your own inductance problems. **Self-inductance of a long solenoid** (L = μ₀ μr N² A / ℓ, with a box for the core material: 1 for air, about 1000 for soft iron), **mutual inductance of two coaxial solenoids** (M = μ₀ μr N₁ N₂ A / ℓ), the **induced emf** ε = L ΔI / Δt (use M for the second coil), the **energy stored** U = ½ L I², and the **time constant** τ = L / R of an L-R circuit. Type turns, an area in cm² or m², a length in cm or m, an inductance in H, mH or µH, and read the answer in one sentence with the working shown the way an exam marks it. Five worked examples are ready, including a 500-turn solenoid (about 503 µH in air, a thousand times more with iron) and a 0.5 H coil whose current falls by 2 A in 0.1 s, giving 10 V.
+
+Common mistakes: forgetting that N is squared, leaving the area in cm², and using the outer coil's area for M. A zero or negative length, area or turns count gets a friendly message.
 
 ## How to use it
 
@@ -57,6 +64,8 @@ The page opens with N₁ = 500, N₂ = 200, ℓ = 25 cm, r₁ = 2 cm, r₂ = 3 c
 - The emf depends on how fast the current changes, not on how big it is. A steady current, however large, induces nothing.
 
 ## FAQ
+
+**What is the formula for the inductance of a solenoid?** L = μ₀ μr N² A / ℓ, where N is the number of turns, A the cross-section area and ℓ the length.
 
 **Why does the iron core multiply everything by 1000?** Iron is easily magnetised and adds its own field, so the flux is much larger. The page uses 1000 as a round typical value.
 

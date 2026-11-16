@@ -11,7 +11,7 @@ ads: false
 order: 1003
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [lens-ray-diagram, fibre-optic-calculator, mirror-ray-diagram]
 sources:
   - "Snell's law n₁ sin i = n₂ sin r, n = c/v, critical angle sin C = n₂/n₁, lateral shift d = t sin(i − r)/cos r and apparent depth = real depth/n: standard school optics, as taught in Class 10 and Class 12 physics. Refractive indices are rounded general values (air 1.00, water 1.33, ice 1.31, kerosene 1.44, crown glass 1.52, dense flint 1.65, diamond 2.42); c = 299 792 458 m/s (SI definition)."
@@ -40,6 +40,10 @@ It follows the Class 10 Science chapter on light (refraction, refractive index, 
 3. Change the **angle of incidence** with the slider or by dragging in the top half of the picture. **Swap the two media** sends the light the other way.
 4. Read the result, the numbers and the worked formula below. **Class 12** adds the speed of light in each material and the critical-angle working.
 
+## Solve my numbers
+
+For a textbook question, use **Solve my numbers**. Choose what to find: the angle of refraction r, the angle of incidence i, the refractive index n₂ or n₁, the critical angle, or the speed of light in a medium. Type the other values (angles from the **normal**, in degrees or radians) and read the answer in one sentence, with the working underneath: the law n₁ sin i = n₂ sin r, your numbers put in, and the result. If the sine comes out above 1, the page says it is **total internal reflection** and gives the critical angle, instead of an error. A blank, impossible or 90° angle gives a plain message. Five worked examples fill the boxes for you (air into glass, finding the index of a block, water to air, the critical angle, and total reflection); they use round numbers of our own.
+
 ## Worked example
 
 The page opens with light going from **air (1.00) into crown glass (1.52)** at i = 40°. Then sin r = 1.00 × sin 40° / 1.52 = 0.4229, so **r = 25.0°**: the ray bends towards the normal, by 15.0°. The relative index n₂₁ = 1.52.
@@ -55,11 +59,20 @@ In **Glass slab** view with a 5 cm slab at 40°, the ray is shifted sideways by 
 - Total internal reflection only happens going from a denser into a rarer material, and only beyond the critical angle.
 - The slab shift is zero at 0° and grows with the angle and the thickness.
 
+## Common mistakes
+
+- Measuring the angle from the surface instead of from the normal.
+- Swapping n₁ and n₂: n₁ is the medium the light comes from, where the angle is i.
+- Treating a sine above 1 as a calculator error: it means the ray is totally reflected.
+- Forgetting to switch the calculator between degrees and radians.
+
 ## Check yourself
 
 Four questions with fresh numbers each time: angles of refraction, refractive index from two angles, critical angles, apparent depth and the speed of light in a material. Press **Check**, and **Show working** for the steps. Nothing is saved or sent anywhere.
 
 ## FAQ
+
+**How do I find the angle of refraction from my numbers?** In Solve my numbers choose Find: angle of refraction r, type n₁, n₂ and i, and the page gives sin r = n₁ sin i ÷ n₂ and the angle with working.
 
 **Why does a straw look bent in a glass of water?** Light from the part under water bends as it leaves the surface, so that part seems higher than it is: the same effect as apparent depth.
 

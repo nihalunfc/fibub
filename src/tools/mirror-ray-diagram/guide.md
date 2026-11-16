@@ -11,7 +11,7 @@ ads: false
 order: 1001
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [lens-ray-tracer, telescope-calculator]
 sources:
   - "Mirror formula 1/v + 1/u = 1/f, magnification m = −v/u, R = 2f and the New Cartesian sign convention: standard school optics, as taught in Class 10 and Class 12 physics. All numbers in the examples and questions are made up."
@@ -50,17 +50,30 @@ Solid lines are real light. Dashed lines show where reflected rays only appear t
 
 Distances are measured from the pole. The object sits on the left, where light comes from, so its distance u is negative. Anything in front of the mirror is negative, anything behind it is positive, heights above the axis are positive. That makes a concave mirror's f negative and a convex mirror's f positive. Then one formula works for every case: **1/v + 1/u = 1/f** and **m = −v/u**.
 
+## Solve my numbers
+
+For a textbook question, use **Solve my numbers** below the picture. Choose what to find (image distance v, object distance u, or focal length f), choose the mirror type, pick the unit your question uses (cm, m or mm) and type the other two values. Type u and f as plain sizes and the page puts the signs in for you; type v with its sign. The answer comes in one sentence with its unit and the nature of the image (real or virtual, upright or inverted, enlarged or diminished), and the working below shows the formula 1/v + 1/u = 1/f, your numbers put in with their signs, and the result. Five worked examples fill the boxes for you; they use round numbers of our own. If the object is exactly at the focus, or a value is blank or zero, you get a plain message and not a wrong number. For example, a concave mirror that makes a real image 24 cm in front for an object 40 cm away has f = −15 cm.
+
 ## Worked example
 
 The page opens with a concave mirror of focal length 15 cm and the object 30 cm away, which is at C. With signs, u = −30 cm and f = −15 cm. Then 1/v = 1/(−15) − 1/(−30) = −0.03333, so **v = −30 cm**: the image is also at C, in front of the mirror. The magnification is m = −v/u = −(−30)/(−30) = **−1**, so the image is the same size and upside down: real and inverted.
 
 Now drag the object to 10 cm (between F and P). The formula gives v = +30 cm and m = +3: the image is behind the mirror, three times as tall and upright. This is how a shaving or make-up mirror works.
 
+## Common mistakes
+
+- Dropping the minus sign of u: the object is always on the incoming side, so u is negative.
+- Using cm in a power calculation: power in dioptres needs the focal length in metres.
+- Mixing the lens formula (1/v − 1/u = 1/f) with the mirror formula (1/v + 1/u = 1/f).
+- Calling a negative v "wrong": for a mirror it just tells you which side the image is on.
+
 ## Check yourself
 
 At the bottom are four short questions with fresh numbers every time. Type your answer with its sign and press **Check**; **Show working** reveals the steps. Nothing is saved or sent anywhere.
 
 ## FAQ
+
+**How do I find the image distance for my mirror problem?** Choose Find: image distance v in Solve my numbers, type u and f, and the page applies 1/v + 1/u = 1/f with the signs and shows the working.
 
 **Why do the rays not hit the curve exactly where a textbook shows?** The tool draws rays to scale for an object close to the axis, which is when the mirror formula holds. Real mirrors with wide openings blur the image a little (spherical aberration).
 

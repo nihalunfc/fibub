@@ -11,11 +11,12 @@ ads: false
 order: 1342
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [hydraulic-lift, potential-flow, stokes-terminal-velocity, projectile-drag]
 sources:
   - "The equation of continuity A₁v₁ = A₂v₂, Bernoulli's equation p + ½ρv² + ρgh = constant along a streamline, the Venturi meter, Torricelli's speed of efflux √(2gh), projectile motion for the jet and the draining time (A/a)√(2h/g): standard school physics found in any textbook. g = 9.8 m/s², water 1000 kg/m³, air 1.2 kg/m³ (rounded)."
   - "Checked by hand: a 10 cm pipe narrowing to 5 cm at 2 m/s gives 8 m/s and a 30 kPa drop; the Venturi meter run backwards returns the flow; the draining level matches a step-by-step simulation to 10⁻⁵ m."
+  - "The Solve my numbers formulas (v₂ = v₁(d₁/d₂)², Δp = ½ρ(v₂² − v₁²), v = √(2gh), range 2√(hy), draining time (D/d)²√(2h/g)) are the standard school ones, hand-checked against the 8 m/s and 30 kPa example."
 flow:
   - { icon: sliders, label: "Pipe" }
   - { icon: curve, label: "Flow" }
@@ -51,6 +52,10 @@ Switch to the tank: water **0.8 m** above a hole that is **0.45 m** above the fl
 - Lift on a wing, a spinning ball curving, and a shower curtain pulled inwards are all explained with this idea.
 - Real liquids are sticky (viscous), so real pressure drops are bigger than Bernoulli alone predicts.
 
+## Solve my numbers
+
+Solve my numbers works out the figures from your textbook problem. Pick the speed in a narrower pipe (continuity), the pressure drop in the narrow part of a Venturi tube for water or air, the speed of water leaving a hole (Torricelli), where the jet lands, or how long a tank takes to drain. Diameters can be in cm, mm or m and speeds in m/s, cm/s or km/h; g is taken as 9.8 m/s². The working shows the formula, the numbers put in and the result with units. A common mistake is using the diameter ratio instead of its square, because the area goes as diameter squared. A hole wider than the tank, or a zero diameter, gives a clear message. Tap an example such as the 10 cm to 5 cm pipe or the 0.8 m jet to fill the boxes.
+
 ## FAQ
 
 **Why does the jet speed not depend on the hole's size?** Every bit of water falls through the same height h, gaining the same energy per kilogram. A bigger hole lets out more water, not faster water.
@@ -58,3 +63,5 @@ Switch to the tank: water **0.8 m** above a hole that is **0.45 m** above the fl
 **Why does the tank drain slower and slower?** The speed √(2gh) falls as the level falls.
 
 **Is anything stored?** No. It all runs in your browser.
+
+**What is the formula for the speed of water from a hole in a tank?** v = √(2 g h), where h is the depth of the hole below the surface, found under Solve my numbers.

@@ -68,3 +68,70 @@ export function questions(rng: () => number = Math.random): Question[] {
     qs.push({ text: `Which is more electronegative, ${a.name} (Z = ${a.z}) or ${b.name} (Z = ${b.z})? Type its atomic number.`, ans: big.z, unit: '', work: `${a.symbol}: ${value(a, 'en')}, ${b.symbol}: ${value(b, 'en')} on the Pauling scale. Electronegativity rises across a period and falls down a group; fluorine is the highest of all.`, tol: 0.01 }); }
   return qs;
 }
+
+// ---- Compare or rank elements (added 2026-11-16) -------------------------------------------------------------------
+import { findElement } from './ptable.ts';
+
+const PHRASE: Record<Prop, { hi: string; lo: string; order: [string, string]; unit: string; dp: number }> = {
+  radius: { hi: 'is the larger atom', lo: 'is the smaller atom', order: ['smallest to largest', 'largest to smallest'], unit: ' pm', dp: 0 },
+  ie: { hi: 'has the higher first ionisation energy', lo: 'has the lower first ionisation energy', order: ['lowest to highest ionisation energy', 'highest to lowest ionisation energy'], unit: ' kJ/mol', dp: 0 },
+  en: { hi: 'is more electronegative', lo: 'is less electronegative', order: ['least to most electronegative', 'most to least electronegative'], unit: '', dp: 2 },
+};
+const show = (v: number, p: Prop) => (p === 'en' ? v.toFixed(2) : String(Math.round(v))) + PHRASE[p].unit;
+
+/** Why the trend points the way it does for two elements, from where they sit. */
+export function whyPair(a: ElementInfo, b: ElementInfo, p: Prop): string {
+  if (a.group === null || b.group === null) return 'These elements are in the f-block, which this explanation does not cover.';
+  const sameP = a.period === b.period, sameG = a.group === b.group, [lo, hi] = a.z < b.z ? [a, b] : [b, a];
+  const nm = { radius: 'radius', ie: 'ionisation energy', en: 'electronegativity' }[p];
+  if (a.z === b.z) return 'These are the same element.';
+  if (sameP) {
+    const base = p === 'radius' ? `They are in the same period, so the outer electrons are in the same shell, but ${hi.name} has more protons pulling them in: the radius falls across a period.`
+      : p === 'ie' ? `They are in the same period, and ${hi.name} has more protons pulling on electrons in the same shell, so ionisation energy generally rises across a period.`
+      : `They are in the same period, and ${hi.name} has more protons pulling on the shared electrons, so electronegativity generally rises across a period.`;
+    const fl = exceptions([lo, hi], p, 'period').map((f) => ` Exception: ${f.why}`).join('');
+    return base + fl;
+  }
+  if (sameG) {
+    return p === 'radius' ? `They are in the same group, and ${hi.name} has one or more extra electron shells, so it is bigger: radius grows down a group.`
+      : p === 'ie' ? `They are in the same group, and in ${hi.name} the outer electron is further out and better shielded, so it is easier to remove: ionisation energy falls down a group.`
+      : `They are in the same group, and in ${hi.name} the bonding electrons are further from the nucleus, so electronegativity falls down a group.`;
+  }
+  return `They are in different periods and groups (${a.symbol}: period ${a.period}, group ${a.group}; ${b.symbol}: period ${b.period}, group ${b.group}). ${nm[0].toUpperCase() + nm.slice(1)} follows two trends that can pull in opposite directions, so compare the values.`;
+}
+
+export type Ranked = { e: ElementInfo; v: number };
+/** Parse a typed list of elements (symbols, names or atomic numbers, separated by commas, spaces or "and"). */
+export function parseElements(text: string): { found: ElementInfo[]; unknown: string[] } {
+  const parts = text.split(/[,;\s]+|\band\b|<|>/i).map((s) => s.trim()).filter(Boolean);
+  const found: ElementInfo[] = [], unknown: string[] = [];
+  for (const s of parts) { const e = findElement(s); if (e) { if (!found.includes(e)) found.push(e); } else unknown.push(s); }
+  return { found, unknown };
+}
+
+/** Put elements in order of a property; elements with no value in this tool are returned separately. */
+export function rank(els: ElementInfo[], p: Prop, largestFirst = false): { ordered: Ranked[]; missing: ElementInfo[] } {
+  const rows = els.map((e) => ({ e, v: value(e, p) }));
+  const ordered = rows.filter((r) => Number.isFinite(r.v)).sort((x, y) => (largestFirst ? y.v - x.v : x.v - y.v));
+  return { ordered, missing: rows.filter((r) => !Number.isFinite(r.v)).map((r) => r.e) };
+}
+
+/** A one-sentence answer and the reason for 2 or more elements. */
+export function compareText(els: ElementInfo[], p: Prop, largestFirst = false): { answer: string; why: string; values: string[]; missing: string[] } {
+  const { ordered, missing } = rank(els, p, largestFirst);
+  const values = ordered.map((r) => `${r.e.symbol} ${show(r.v, p)}`);
+  const miss = missing.map((e) => e.symbol);
+  const name = PROPS.find((x) => x.id === p)!.name.toLowerCase();
+  if (ordered.length < 2) return { answer: ordered.length ? `Only ${ordered[0].e.name} has a value for ${name} here: ${values[0]}.` : `None of these elements has a ${name} value in this tool.`, why: miss.length ? `No value shown for ${miss.join(', ')}${p === 'radius' ? ': radii are shown for s- and p-block elements except the noble gases' : ''}.` : '', values, missing: miss };
+  const order = PHRASE[p].order[largestFirst ? 1 : 0];
+  const chain = ordered.map((r) => r.e.symbol).join(largestFirst ? ' > ' : ' < ');
+  let why = '';
+  if (ordered.length === 2) {
+    const [x, y] = ordered, big = x.v > y.v ? x : y, small = x.v > y.v ? y : x;
+    why = `${big.e.name} ${PHRASE[p].hi} (${show(big.v, p)} against ${show(small.v, p)} for ${small.e.name}). ${whyPair(x.e, y.e, p)}`;
+  } else {
+    const samePeriod = ordered.every((r) => r.e.period === ordered[0].e.period), sameGroup = ordered.every((r) => r.e.group === ordered[0].e.group);
+    why = samePeriod ? `All in period ${ordered[0].e.period}: ${p === 'radius' ? 'radius falls' : p === 'ie' ? 'ionisation energy rises (with exceptions)' : 'electronegativity rises'} from left to right.` : sameGroup ? `All in group ${ordered[0].e.group}: ${p === 'radius' ? 'radius grows' : p === 'ie' ? 'ionisation energy falls' : 'electronegativity falls'} going down.` : 'These are in different periods and groups, so the values decide the order.';
+  }
+  return { answer: `${order[0].toUpperCase() + order.slice(1)}: ${chain}.`, why, values, missing: miss };
+}

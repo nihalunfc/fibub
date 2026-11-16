@@ -64,4 +64,19 @@ export default async ({ page, check, BASE, OUT }) => {
   }
   await page.click(R + '.sq-new'); await page.waitForTimeout(100);
   check((await page.$$(R + '.sq-q .sq-res:not([hidden])')).length === 0, 'mirror: new questions');
+  // Solve my numbers
+  { const R = '.mrd ', sAns = () => page.textContent(R + '[data-k="answer"]'), K = (k) => R + `[data-k="${k}"]`, sWork = () => page.textContent(R + '.mrds-work');
+  check((await sAns()) === 'v = −30 cm. The image is 30 cm from the mirror, in front of it: real, inverted, same size.' && (await sWork()).includes('1/v = 1/(−15) − 1/(−30) = −0.03333'), 'mirror solve: concave f 15, u 30 gives v = −30 cm');
+  await page.click(K('preset-1')); await page.waitForTimeout(150);
+  check((await sAns()) === 'v = 13.33 cm. The image is 13.33 cm from the mirror, behind it: virtual, upright, enlarged.', 'mirror solve: shaving mirror v = 13.33');
+  await page.click(K('preset-2')); await page.waitForTimeout(150);
+  check((await sAns()).startsWith('v = 12 cm.') && (await sAns()).endsWith('virtual, upright, diminished.'), 'mirror solve: convex f 20, u 30: v = 12');
+  await page.click(K('preset-3')); await page.waitForTimeout(150);
+  check((await sAns()) === 'f = −15 cm: a concave mirror. The image is real, inverted, diminished.', 'mirror solve: find f = −15 cm');
+  await page.click(K('preset-4')); await page.waitForTimeout(150);
+  check((await sAns()) === 'u = −20 cm: the object is 20 cm in front of the mirror. The image is real, inverted, same size.', 'mirror solve: find u = −20 cm');
+  await page.click(K('preset-0')); await page.fill(K('solve-u'), '15'); await page.fill(K('solve-f'), '15'); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.mrds-err')).includes('at the focus') && (await sAns()) === '', 'mirror solve: object at focus is a friendly message');
+  await page.fill(K('solve-u'), ''); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.mrds-err')).includes('as a number'), 'mirror solve: blank gives a message'); }
 };

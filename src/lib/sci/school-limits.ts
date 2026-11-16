@@ -54,3 +54,65 @@ export function examine(f: Fn, a: number) {
   else kind = Number.isFinite(value) && Math.abs(value - limit) <= 1e-3 * Math.max(1, Math.abs(limit)) ? 'continuous' : 'removable';
   return { left, right, limit, value, kind };
 }
+
+/** Read the point a as typed: a number, or inf / +inf / ∞ / -inf / −∞. Returns NaN when it cannot be read. */
+export function readPoint(s: string): number {
+  const t = s.trim().toLowerCase().replace(/[−–]/g, '-').replace(/\s+/g, '');
+  if (/^\+?(inf|infinity|∞)$/.test(t)) return Infinity;
+  if (/^-(inf|infinity|∞)$/.test(t)) return -Infinity;
+  if (t === '') return NaN;
+  const v = Number(t);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+export const BIGS = [10, 100, 1e3, 1e4, 1e5, 1e6];
+/** f at x = ±10, 100, … 10⁶ (sign +1 for x → ∞, −1 for x → −∞). */
+export const tableInf = (f: Fn, sign: 1 | -1) => BIGS.map((m) => ({ x: sign * m, y: f(sign * m) }));
+
+/** Limit as x → ±∞ estimated from the table: a number, ±Infinity, or NaN when it does not settle. */
+export function atInfinity(f: Fn, sign: 1 | -1): { limit: number; kind: 'finite' | 'infinite' | 'none' } {
+  const v = tableInf(f, sign).map((p) => p.y);
+  if (v.some((y) => Number.isNaN(y))) return { limit: NaN, kind: 'none' };
+  const n = v.length, last = v[n - 1];
+  if (Math.abs(last) >= 1e5 && Math.abs(last) > Math.abs(v[n - 2]) * 3 && Math.abs(v[n - 2]) > Math.abs(v[n - 3]) * 3) return { limit: Math.sign(last) * Infinity, kind: 'infinite' };
+  const close = (p: number, q: number, t: number) => Math.abs(p - q) <= t * Math.max(1, Math.abs(q));
+  if (v.every(Number.isFinite) && close(v[3], v[4], 1e-3) && close(v[4], v[5], 1e-3) && Math.abs(v[5] - v[4]) <= Math.abs(v[4] - v[3]) + 1e-9) {
+    const L = v[5];
+    // Snap values like 1.9999 to 2 (the error of a rational function shrinks like 1/x).
+    const r = Math.round(L * 1e3) / 1e3;
+    return { limit: Math.abs(r - L) < 5e-5 * Math.max(1, Math.abs(L)) ? r : L, kind: 'finite' };
+  }
+  return { limit: NaN, kind: 'none' };
+}
+
+const lf = (x: number) => (Number.isNaN(x) ? 'does not exist' : x === Infinity ? '∞' : x === -Infinity ? '−∞' : String(+x.toPrecision(5)).replace('-', '−'));
+const side = (a: number) => (a === Infinity ? '∞' : a === -Infinity ? '−∞' : lf(a));
+
+/** One plain sentence answering "what is the limit?". */
+export function limitSentence(name: string, a: number, r: ReturnType<typeof examine>): string {
+  const head = `lim (x → ${side(a)}) of ${name}`;
+  if (Number.isFinite(r.limit)) return `${head} = ${lf(r.limit)}.`;
+  if (Math.abs(r.limit) === Infinity) return `${head} = ${lf(r.limit)}: the values grow without bound.`;
+  if (r.kind === 'jump') return `${head} does not exist: from the left it heads to ${lf(r.left)} and from the right to ${lf(r.right)}.`;
+  if (r.kind === 'infinite') return `${head} does not exist as a number: from the left it heads to ${lf(r.left)} and from the right to ${lf(r.right)}.`;
+  return `${head} does not exist: the values never settle.`;
+}
+export function infSentence(name: string, sign: 1 | -1, r: ReturnType<typeof atInfinity>): string {
+  const head = `lim (x → ${sign > 0 ? '∞' : '−∞'}) of ${name}`;
+  if (r.kind === 'finite') return `${head} = ${lf(r.limit)}.`;
+  if (r.kind === 'infinite') return `${head} = ${lf(r.limit)}: the values grow without bound.`;
+  return `${head} does not exist: the values never settle.`;
+}
+
+/** Marked-answer working: direct substitution first, then what the two sides do. */
+export function limitWorking(a: number, r: ReturnType<typeof examine>): string[] {
+  const s: string[] = [];
+  const A = lf(a);
+  if (Number.isFinite(r.value)) s.push(`Substitute x = ${A}: f(${A}) = ${lf(r.value)}.`);
+  else s.push(`Substitute x = ${A}: f(${A}) is undefined (for example 0/0 or a zero in the bottom), so substitution alone does not give the limit.`);
+  s.push(`Left-hand limit (x → ${A}⁻): ${lf(r.left)}. Right-hand limit (x → ${A}⁺): ${lf(r.right)}. (Estimated from the tables below.)`);
+  if (Number.isFinite(r.limit) && Number.isFinite(r.value) && Math.abs(r.value - r.limit) <= 1e-3 * Math.max(1, Math.abs(r.limit))) s.push(`Both sides agree with f(${A}), so the limit is ${lf(r.limit)} and f is continuous at ${A}.`);
+  else if (Number.isFinite(r.limit)) s.push(`Both sides agree, so the limit is ${lf(r.limit)}${Number.isFinite(r.value) ? `, but f(${A}) = ${lf(r.value)} is different` : ''}. ${Number.isFinite(r.value) ? '' : 'To find it exactly, factorise and cancel, rationalise, or use a standard limit, then substitute.'}`);
+  else s.push(r.kind === 'jump' ? 'The two sides head to different numbers, so the limit does not exist (the left and right limits must be equal).' : 'The limit does not exist as a number.');
+  return s;
+}

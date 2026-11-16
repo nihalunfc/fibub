@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax rt">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (fork frequency, resonance lengths, tube width) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row rt-set">
       <label>Tuning fork <select class="rt-f"></select></label>
@@ -52,6 +53,9 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { RESONANCE } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, RESONANCE);
   import { FORKS, soundSpeed, endCorrection, loudness, fromLengths, questions } from '../../lib/sci/resonance';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { pagePalette } from '../../lib/report';
@@ -142,7 +146,7 @@ import '../../styles/astro.css';
   q('.rt-r1').addEventListener('click', () => { L1 = L(); draw(); });
   q('.rt-r2').addEventListener('click', () => { L2 = L(); draw(); });
   q('.rt-clear').addEventListener('click', reset);
-  root.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => { if (osc) osc.frequency.value = f(); tried = new Map(); L1 = null; L2 = null; draw(); }));
+  root.querySelectorAll('select:not(.ps-host select)').forEach((s) => s.addEventListener('change', () => { if (osc) osc.frequency.value = f(); tried = new Map(); L1 = null; L2 = null; draw(); }));
   const cv = q<HTMLCanvasElement>('.rt-c');
   let drag = false;
   const toL = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), y = e.clientY - r.top; Lin.value = String(Math.max(2, Math.min(95, Math.round(((y - TOP) / (BOT - TOP)) * 1000) / 10))); draw(); };

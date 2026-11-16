@@ -11,11 +11,12 @@ ads: false
 order: 1354
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [travelling-wave, standing-waves, resonance-tube, doppler-beats]
 sources:
   - "Superposition of two waves, sin a + sin b = 2 cos((a − b)/2) sin((a + b)/2), the beat frequency |f₁ − f₂| and the tuning-fork wax-loading method: standard school physics found in any textbook."
   - "Checked against the product formula at 2000 times, the envelope bound for unequal loudness, and every case of the wax puzzle with 2 to 6 beats."
+  - "Beat frequency |f₁ − f₂| and the wax rule (loading a fork lowers its frequency) are standard school physics; the Solve my numbers answers match the wax puzzle in the tool above."
 flow:
   - { icon: sliders, label: "Two tones" }
   - { icon: curve, label: "Add waves" }
@@ -49,6 +50,10 @@ The fork puzzle: a 256 Hz fork and an unknown fork give 4 beats per second, so t
 - Beats faster than about 15 a second are no longer heard as swells, only as roughness.
 - Filing the prongs of a fork makes it vibrate faster; wax makes it slower.
 
+## Solve my numbers
+
+Solve my numbers handles the usual beats questions. Choose the beat frequency of two notes (you also get the time between swells and the pitch you hear), the unknown tuning fork from a known fork, the beats you counted and what wax did, or how many beats you hear in a given time. For the fork puzzle, tell it how many beats you counted and in how much time (6 beats in 3 seconds is 2 per second), then whether the beats got faster or slower after waxing the unknown fork, or that you did not try wax, and it gives one answer or both possibilities. Frequencies can be in Hz, kHz, MHz or GHz. A frequently seen mistake is adding the frequencies instead of subtracting them. Equal frequencies give a message that there are no beats. Tap an example to fill the boxes.
+
 ## FAQ
 
 **Is the beat frequency a new tone?** No. No new sound wave is made; the loudness of the average-pitch tone simply goes up and down.
@@ -56,3 +61,5 @@ The fork puzzle: a 256 Hz fork and an unknown fork give 4 beats per second, so t
 **Why does the graph look like a solid band?** At hundreds of hertz there are many waves in each beat; the shape of the band is the envelope you hear as loudness.
 
 **Is anything stored or recorded?** No. The tool only plays sound; it never uses the microphone, and nothing leaves your browser.
+
+**How do you find the frequency of an unknown tuning fork using beats and wax?** The unknown fork is the known frequency plus or minus the beats per second; wax lowers it, so beats getting faster means it was the lower fork, found under Solve my numbers.

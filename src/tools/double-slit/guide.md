@@ -11,12 +11,13 @@ ads: false
 order: 1422
 icon: eye
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [huygens-wavelets, travelling-wave, diffraction-patterns, prism-dispersion]
 sources:
   - "Fringe width β = λD/d, bright fringes at x = nβ and dark at (n − ½)β, single-slit minima a sin θ = nλ and the Fraunhofer intensity sinc²·cos²: standard wave optics, as taught in Class 12 physics."
   - "Wavelength-to-colour mapping: a common piecewise approximation for screens (after Dan Bruton's public description); colours are approximate."
   - "Checked against an independent Python calculation: β, the minima and the exact path difference with math, and the intensity curve against a numerical Huygens sum of 20 000 point sources across each slit (numpy)."
+  - "The calculator uses the usual small-angle formulas and warns when x/D is above 0.1. Checked by hand: 600 nm, d = 0.25 mm, D = 1 m gives β = 2.4 mm; 600 nm, a = 0.05 mm, D = 1 m gives a central maximum 24 mm wide; the 2nd dark fringe for 650 nm, d = 1 mm, D = 2 m is at 1.95 mm."
 flow:
   - { icon: sliders, label: "Set slits" }
   - { icon: eye, label: "Fringes" }
@@ -57,6 +58,14 @@ Switch to a single slit of the same width: the first minima are where a sin θ =
 
 Four questions with fresh numbers: a fringe width, a wavelength from the fringe width, the position of the nth bright fringe, and the width of a single slit's central maximum. Nothing is saved or sent anywhere.
 
+## Solve your own numbers
+
+The first card solves the standard Class 12 problems without needing the sliders. Choose what to find: the fringe width β, the wavelength, the slit separation, the screen distance, or the position of the nth bright or dark fringe. Type the other values with their units (nm, µm or Å for wavelength; mm, µm, cm or m for lengths) and the answer appears in one sentence, followed by the working: the formula β = λD/d, the conversions to metres, the numbers substituted and the result. For a bright fringe the page also gives the path difference as a whole number of wavelengths, and for a dark fringe a half-odd number.
+
+Open **Single slit** for the central maximum: the width 2λD/a, the position of the nth dark minimum, or the wavelength, slit width or screen distance from a measured width. A slit narrower than the wavelength has no minimum, and the page says so rather than showing a wrong number. If the angle is large, a note warns that the small-angle school formula is only approximate.
+
+The most common mistake is mixing d (the gap between the two slits) with a (the width of one slit), or leaving d in mm while the wavelength is in nm. The working shows every conversion, so you can copy it into an answer.
+
 ## FAQ
 
 **Why are the double-slit fringes not all equally bright here?** Each slit has a width, so each one also diffracts, and its single-slit pattern acts as an envelope. With very narrow slits all fringes would be equally bright.
@@ -64,3 +73,7 @@ Four questions with fresh numbers: a fringe width, a wavelength from the fringe 
 **Is the fringe width the same for bright and dark fringes?** Yes: the distance between two neighbouring bright fringes equals the distance between two neighbouring dark ones, β.
 
 **Does the tool use the small-angle approximation?** The graph and screen use the exact angle. The formulas in the working use the usual school approximations, which agree to better than 0.1% here.
+
+**How do I calculate the fringe width in Young's double slit experiment?** β = λD/d, with the wavelength, screen distance and slit separation all in metres; type them into the calculator at the top for the answer and the working.
+
+**How wide is the central maximum of a single slit?** 2λD/a, which the Single slit calculator works out for you.

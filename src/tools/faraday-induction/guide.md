@@ -11,12 +11,13 @@ ads: false
 order: 1045
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [magnetic-field-mapper, fleming-rule, coil-field-designer]
 sources:
   - "Faraday's law ε = −N dΦ/dt, Lenz's law, the flux of a magnetic dipole through a coaxial circular coil Φ = μ₀ m a² / (2 (a² + z²)^1.5), and the AC generator ε = N B A ω sin ωt with rms value ε₀/√2: standard physics results."
   - "μ₀ = 1.25663706127 × 10⁻⁶ N/A² (CODATA 2022 recommended value). The magnet's strength (1 A m²) is a made-up teaching value."
   - "Checked against an independent NumPy script: the dipole flux formula against a direct numerical integral of the dipole field over the coil's area, dΦ/dz against a finite difference, and the generator peak and rms values against hand calculation."
+  - "Faraday's law ε = −N ΔΦ/Δt, Φ = B A cos θ, generator peak emf N B A ω with ω = 2πf, rms = peak/√2 and charge Q = NΔΦ/R: standard school physics found in any textbook. The Solve my numbers card was hand-checked against worked examples."
 flow:
   - { icon: pointer, label: "Move magnet" }
   - { icon: eye, label: "Galvanometer" }
@@ -33,6 +34,12 @@ Under the picture, **Lenz's law** is spelled out for what you are doing right no
 The second part is an **AC generator**: a coil turning in a magnetic field. Its flux goes up and down like a cosine, and its emf like a sine, so the current reverses twice in every turn.
 
 It follows the Class 10 Science topics on the magnetic effects of electric current (electromagnetic induction, the galvanometer, the electric generator, AC and DC) and the Class 12 Physics topics on electromagnetic induction (Faraday's and Lenz's laws, motional emf, AC generator) and alternating current (peak and rms values). Before this, see the field of a magnet and a coil in the [[magnetic-field-mapper]] and the force on a current in [[fleming-rule]].
+
+## Solve my numbers
+
+The card at the top works out your own textbook numbers. Pick what you want to find: the induced emf from a change in flux (ε = N ΔΦ / Δt), the flux through a tilted coil (Φ = B A cos θ), the emf from a changing field (ε = N A ΔB / Δt), the peak and rms emf of an AC generator (ε₀ = N B A ω), or the current and charge that flow (I = ε / R, Q = N ΔΦ / R). Type your numbers, choose a unit where you need one (mWb or Wb, cm² or m², Hz or rpm, ms or s) and the answer appears in one sentence with the working below it: the formula, your numbers put in, and the result. The answer also tells you which way the emf points, because it always opposes the change (Lenz's law). Five worked-example buttons fill the card for you, for instance a 200-turn coil whose flux rises from 2 mWb to 10 mWb in 0.4 s, which gives 4 V.
+
+Common mistakes: using the flux instead of the change in flux, measuring θ from the coil's surface instead of its normal, and forgetting to turn cm² into m². If a number cannot work (a time of zero, an angle above 180°) the card says so in plain words instead of showing nonsense.
 
 ## How to use it
 
@@ -55,6 +62,8 @@ For the generator, 100 turns of area 100 cm² in a 0.20 T field turning at 1500 
 - A generator's emf is zero when the coil faces the field (flux largest) and biggest when the coil lies along the field (flux zero but changing fastest).
 
 ## FAQ
+
+**What is the formula for induced emf?** ε = −N ΔΦ / Δt: the emf equals the number of turns times the rate of change of magnetic flux, and the minus sign means it opposes the change.
 
 **Is the magnet a real one?** No. It is a small teaching magnet of strength 1 A m², treated as a point dipole, which gives the right shape of flux and emf.
 

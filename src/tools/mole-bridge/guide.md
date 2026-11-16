@@ -11,7 +11,7 @@ ads: false
 order: 1085
 icon: convert
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [molar-mass-calculator, formula-writer, equation-balancer]
 sources:
   - "Avogadro constant 6.022 140 76 × 10²³ mol⁻¹ (exact, SI 2019) and the gas constant R (CODATA, NIST); molar volumes 22.414 L (0 °C, 1 atm) and 22.711 L (0 °C, 1 bar, IUPAC STP) worked out from them."
@@ -61,7 +61,18 @@ Limiting reactant: 5 mol H₂ and 2 mol O₂ in 2H₂ + O₂ → 2H₂O. H₂ co
 - Percentages that do not add up to about 100 % usually mean an element (often oxygen) is missing.
 - The gas volume only applies to gases. 22.4 L is at 1 atm (the older standard); 22.7 L is at 1 bar, the standard used in newer books.
 
+## More ways to use it
+
+- **Units**: the amount can be in g, mg, kg, mol, mmol, particles or litres of gas. A milligram or millimole is changed to grams or moles first, and the first step shows it.
+- **Own molar mass** (under More options): if your question gives you the molar mass, type it and it replaces the one worked out from the formula.
+- **Percent composition** appears under the steps: each element's mass in one mole divided by the molar mass, times 100. Water is H 11.11 % and O 88.89 %.
+- **Molarity**: fill in any two of moles, volume and concentration and the third is worked out, plus the mass of the substance above. Millilitres are turned into litres for you.
+- **Which runs out first** can take grams as well as moles: it converts, finds the limiting reactant, and gives the product and the leftovers in grams too.
+
 ## FAQ
+
+**How do I convert grams to moles?** Divide the mass in grams by the molar mass in g/mol: 36 g of water is 36 ÷ 18 = 2 mol.
+
 
 **Why are my answers slightly different from my book?** Books round atomic masses and Avogadro's number differently. Switch the level to match yours.
 

@@ -7,19 +7,33 @@ import '../../styles/smath.css';
 <div class="ax sm hf">
   <div class="ax-card">
     <h2>Three sides</h2>
+    <div class="ax-grid hf-top">
+      <label>Example <select data-k="preset" class="hf-pre"><option value="">My own numbers</option></select></label>
+      <label>Length unit <select data-k="unit" class="hf-unit"><option value="">units</option><option value="cm">cm</option><option value="m">m</option><option value="mm">mm</option><option value="km">km</option><option value="in">inches</option><option value="ft">feet</option></select></label>
+    </div>
     <svg class="sm-fig hf-fig" viewBox="0 0 340 260" role="img" aria-label="The triangle with sides a, b and c"></svg>
     <p class="ax-help">Drag the top corner C, or use the sliders. Side c is the base.</p>
-    <div class="sm-sl"><b>a</b><input type="range" class="hf-ar" min="1" max="20" step="0.5" value="13" aria-label="a slider" /><input type="number" class="hf-a" min="0.1" step="0.5" value="13" inputmode="decimal" aria-label="Side a (BC)" /></div>
-    <div class="sm-sl"><b>b</b><input type="range" class="hf-br" min="1" max="20" step="0.5" value="15" aria-label="b slider" /><input type="number" class="hf-b" min="0.1" step="0.5" value="15" inputmode="decimal" aria-label="Side b (CA)" /></div>
-    <div class="sm-sl"><b>c</b><input type="range" class="hf-cr" min="1" max="20" step="0.5" value="14" aria-label="c slider" /><input type="number" class="hf-c" min="0.1" step="0.5" value="14" inputmode="decimal" aria-label="Side c (AB, the base)" /></div>
+    <div class="sm-sl"><b>a</b><input type="range" class="hf-ar" min="1" max="20" step="0.5" value="13" aria-label="a slider" /><input type="number" class="hf-a" data-k="a" min="0.1" step="0.5" value="13" inputmode="decimal" aria-label="Side a (BC)" /></div>
+    <div class="sm-sl"><b>b</b><input type="range" class="hf-br" min="1" max="20" step="0.5" value="15" aria-label="b slider" /><input type="number" class="hf-b" data-k="b" min="0.1" step="0.5" value="15" inputmode="decimal" aria-label="Side b (CA)" /></div>
+    <div class="sm-sl"><b>c</b><input type="range" class="hf-cr" min="1" max="20" step="0.5" value="14" aria-label="c slider" /><input type="number" class="hf-c" data-k="c" min="0.1" step="0.5" value="14" inputmode="decimal" aria-label="Side c (AB, the base)" /></div>
     <p class="hf-kind" aria-live="polite"></p>
   </div>
 
   <div class="ax-card">
     <h2>Heron's formula, step by step</h2>
     <ol class="sm-steps hf-steps"></ol>
-    <p class="ax-big hf-big"></p>
+    <p class="ax-big hf-big" aria-live="polite"></p>
     <p class="sm-f hf-check"></p>
+    <p class="ax-help hf-tip">Common mistake: all three sides must be in the same unit. Change cm to m (or the other way round) first, then use the formula. The area comes out in square units.</p>
+    <details class="hf-more">
+      <summary>More options: angles, heights, circles and cost</summary>
+      <ul class="sm-steps hf-facts"></ul>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Price per square unit (optional) <input data-k="price" class="hf-price" inputmode="decimal" placeholder="e.g. 12.5" /></label>
+        <label>Price per unit of fencing (optional) <input data-k="fence" class="hf-fence" inputmode="decimal" placeholder="e.g. 40" /></label>
+      </div>
+      <p class="sm-f hf-cost"></p>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -45,18 +59,35 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { heron, valid, kind, place, heightOn } from '../../lib/sci/heron-school';
-  import { fmt, randInt } from '../../lib/sci/smath';
+  import { heron, valid, kind, place, heightOn, angles, heights, inradius, circumradius } from '../../lib/sci/heron-school';
+  import { fmt, randInt, readNum } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
 
   const root = document.querySelector<HTMLElement>('.hf')!;
   const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
   const fig = q<SVGSVGElement>('.hf-fig');
   const A = q<HTMLInputElement>('.hf-a'), B = q<HTMLInputElement>('.hf-b'), C = q<HTMLInputElement>('.hf-c');
-  const setA = pair(q('.hf-ar'), A, draw), setB = pair(q('.hf-br'), B, draw); pair(q('.hf-cr'), C, draw);
+  const setA = pair(q('.hf-ar'), A, draw), setB = pair(q('.hf-br'), B, draw); const setC = pair(q('.hf-cr'), C, draw);
   let view = { k: 1, ox: 0, oy: 0 }, dragging = false;
 
+  const PRESETS = [
+    { name: 'Right triangle 3, 4, 5', a: 3, b: 4, c: 5, u: '' },
+    { name: 'Sides 13, 14, 15 (area is a whole number)', a: 13, b: 15, c: 14, u: '' },
+    { name: 'Equilateral triangle, side 10', a: 10, b: 10, c: 10, u: '' },
+    { name: 'Isosceles triangle 5, 5, 6', a: 5, b: 5, c: 6, u: '' },
+    { name: 'Triangular park, sides 120 m, 80 m, 50 m', a: 120, b: 80, c: 50, u: 'm' },
+  ];
+  q<HTMLSelectElement>('.hf-pre').append(...PRESETS.map((p, i) => new Option(p.name, String(i))));
+  const unitSel = q<HTMLSelectElement>('.hf-unit');
+  const clearOut = (msg: string) => {
+    fig.replaceChildren(); q('.hf-steps').replaceChildren(); q('.hf-big').textContent = ''; q('.hf-check').textContent = ''; q('.hf-facts').replaceChildren(); q('.hf-cost').textContent = '';
+    q('.hf-kind').replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill bad', textContent: 'Check the sides' }), ' ' + msg);
+  };
   function draw() {
+    const names = ['a', 'b', 'c'], raw = [A, B, C].map((x) => Number(x.value));
+    const badIx = [A, B, C].findIndex((x, i) => x.value.trim() === '' || !Number.isFinite(raw[i]) || raw[i] <= 0 || raw[i] > 1e9);
+    if (badIx >= 0) return clearOut(`Type a length above 0 for side ${names[badIx]} (a number below a billion).`);
+    const unit = unitSel.value, u = unit ? ` ${unit}` : '', u2 = unit ? ` ${unit}²` : ' square units';
     const a = val(A, 13, 0.001), b = val(B, 15, 0.001), c = val(C, 14, 0.001), ok = valid(a, b, c), H = heron(a, b, c);
     fig.replaceChildren();
     if (ok) {
@@ -94,8 +125,9 @@ import '../../styles/smath.css';
       `s(s − a)(s − b)(s − c) = ${f(s)} × ${f(s - a)} × ${f(s - b)} × ${f(s - c)} = ${f(H.product)}`,
       ok ? `Area = √${f(H.product)} = ${f(H.area)}` : 'One of s − a, s − b, s − c is 0 or less: the sides break the triangle rule, so there is no area.',
     ].map((t) => Object.assign(document.createElement('li'), { textContent: t })));
-    q('.hf-big').textContent = ok ? `Area ≈ ${fmt(H.area, 2)} square units` : '';
+    q('.hf-big').textContent = ok ? `Area ≈ ${fmt(H.area, 2)}${u2}` : '';
     q('.hf-check').textContent = ok ? `Check with ½ × base × height: ½ × ${f(c)} × ${f(heightOn(c, H.area))} = ${f(0.5 * c * heightOn(c, H.area))}. Heron needs no height, which is its point.` : '';
+    more(a, b, c, H.area, ok, u, u2);
   }
 
   dragOn(fig, (x, y) => { const h = fig.querySelector('.hf-h'); return h && Math.hypot(x - Number(h.getAttribute('cx')), y - Number(h.getAttribute('cy'))) < 30 ? 'c' : null; },
@@ -104,6 +136,31 @@ import '../../styles/smath.css';
       const { k, ox, oy } = view, px = (x - ox) / k, py = Math.max(0.05, (oy - Math.min(y, oy - 2)) / k), c = val(C, 14, 0.001);
       setB(Math.round(Math.hypot(px, py) * 10) / 10); setA(Math.round(Math.hypot(px - c, py) * 10) / 10); draw();
     }, () => { dragging = false; draw(); });
+
+  /** Angles, heights, circle radii and cost, with the working. */
+  function more(a: number, b: number, c: number, area: number, ok: boolean, u: string, u2: string) {
+    const f = (x: number) => fmt(x, 3), li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+    if (!ok) { q('.hf-facts').replaceChildren(li('These sides cannot make a triangle, so there are no angles, heights or circles.')); q('.hf-cost').textContent = ''; return; }
+    const [x, y, z] = angles(a, b, c), [ha, hb, hc] = heights(a, b, c, area), s = (a + b + c) / 2;
+    q('.hf-facts').replaceChildren(
+      li(`Perimeter = a + b + c = ${f(a + b + c)}${u}.`),
+      li(`Angles (cosine rule, cos A = (b² + c² − a²)/(2bc)): A = ${f(x)}°, B = ${f(y)}°, C = ${f(z)}°. They add to ${f(x + y + z)}°.`),
+      li(`Heights (2 × area ÷ side): on a = ${f(ha)}${u}, on b = ${f(hb)}${u}, on c = ${f(hc)}${u}.`),
+      li(`Inradius r = area / s = ${f(area)} / ${f(s)} = ${f(inradius(a, b, c, area))}${u} (the largest circle inside).`),
+      li(`Circumradius R = abc / (4 × area) = ${f(a * b * c)} / ${f(4 * area)} = ${f(circumradius(a, b, c, area))}${u} (the circle through all three corners).`),
+    );
+    const price = readNum(q<HTMLInputElement>('.hf-price').value), fence = readNum(q<HTMLInputElement>('.hf-fence').value), out: string[] = [];
+    if (Number.isFinite(price) && price >= 0) out.push(`Cost of covering the area: ${f(area)} × ${f(price)} = ${f(area * price)}.`);
+    if (Number.isFinite(fence) && fence >= 0) out.push(`Cost of fencing the edge: ${f(a + b + c)} × ${f(fence)} = ${f((a + b + c) * fence)}.`);
+    q('.hf-cost').textContent = out.join(' ') + (out.length ? ' (Use one currency and the same unit throughout.)' : '');
+  }
+  for (const x of [A, B, C]) x.addEventListener('input', draw);
+  for (const k of ['.hf-unit', '.hf-price', '.hf-fence']) q(k).addEventListener('input', draw);
+  q('.hf-pre').addEventListener('change', () => {
+    const p = PRESETS[Number(q<HTMLSelectElement>('.hf-pre').value)]; if (!p) return;
+    setA(p.a); setB(p.b); setC(p.c); unitSel.value = p.u; draw();
+  });
+  for (const x of [A, B, C]) x.addEventListener('input', () => { q<HTMLSelectElement>('.hf-pre').value = ''; });
   draw();
 
   const NICE = [[13, 14, 15, 84], [5, 12, 13, 30], [9, 10, 17, 36], [7, 15, 20, 42], [10, 17, 21, 84], [6, 25, 29, 60], [5, 5, 6, 12], [5, 5, 8, 12], [4, 13, 15, 24]];

@@ -22,4 +22,26 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.hl .sq-q', (e) => e.dataset.ans);
   await page.fill('.hl .sq-q .sq-in', ans); await page.click('.hl .sq-q .sq-check');
   check((await page.textContent('.hl .sq-q .sq-res')) === 'Right!' && (await page.$$('.hl .sq-q')).length === 4, 'hydraulic-lift: quiz');
+
+  // ---- Solve my numbers (hydraulic-lift) ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) { const sel = await page.$eval(`.ps-host [data-k="${k}"]`, (e) => e.tagName === 'SELECT'); if (sel) await page.selectOption(`.ps-host [data-k="${k}"]`, v); else await page.fill(`.ps-host [data-k="${k}"]`, v); } await page.waitForTimeout(80); };
+  { // new block: no clashes with the checks above
+  await psPre("Garage jack"); check((await psAns()).includes("pushes with 12000 N (100 times"), "hydraulic-lift: example Garage jack");
+  await psPre("Press with areas"); check((await psAns()).includes("pushes with 2500 N"), "hydraulic-lift: example Press with areas");
+  await psPre("Lift a 1200"); check((await psAns()).includes("push the small piston with 118 N"), "hydraulic-lift: example Lift a 1200");
+  await psPre("Distance moved"); check((await psAns()).includes("rises 0.3 cm"), "hydraulic-lift: example Distance moved");
+  await psPre("Pumps to lift"); check((await psAns()).includes("About 75 strokes, so 75 pumps"), "hydraulic-lift: example Pumps to lift");
+  await psSet("p", {"p-F1": "120", "p-d1": "4"});
+  check((await psAns()).includes("95.5 kPa"), "hydraulic-lift: typed numbers p 95.5 kPa");
+  await psSet("F2", {"F2-F1": "0.12", "F2-d1": "40", "F2-d2": "400"});
+  await page.selectOption('.ps-host [data-k="F2-F1-u"]', "kN"); await page.waitForTimeout(80);
+  await page.selectOption('.ps-host [data-k="F2-d1-u"]', "mm"); await page.waitForTimeout(80);
+  await page.selectOption('.ps-host [data-k="F2-d2-u"]', "mm"); await page.waitForTimeout(80);
+  check((await psAns()).includes("pushes with 12000 N"), "hydraulic-lift: typed numbers F2 pushes with 12000 N");
+  await psSet("F2A", {"F2A-A1": "0"}); check((await psAns()).includes("must be more than 0"), "hydraulic-lift: friendly message: must be more than 0");
+  await psPre("Garage jack"); { const w = await psWork(); check(w.includes("(40 ÷ 4)² = 120 × 100") && w.length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "hydraulic-lift: working shown, no NaN"); }
+  }
 };

@@ -57,3 +57,55 @@ export function slice(alpha: number, beta: number): { kind: Conic['kind']; e: nu
   const kind = Math.abs(beta - 90) < 1e-9 ? 'circle' : Math.abs(beta - alpha) < 1e-9 ? 'parabola' : beta > alpha ? 'ellipse' : 'hyperbola';
   return { kind, e: kind === 'circle' ? 0 : kind === 'parabola' ? 1 : e };
 }
+
+/** The equation shapes a student can type numbers into (Solve my numbers). */
+export type ConicForm = 'circle-general' | 'ellipse' | 'hyperbola-x' | 'hyperbola-y' | 'parabola-x' | 'parabola-y';
+export type ConicSolution = { conic?: Conic; sentence: string; steps: string[]; tip: string; error?: string };
+
+const g3 = (x: number) => n(x);
+const pt = (p: Pt) => `(${g3(p[0])}, ${g3(p[1])})`;
+
+/**
+ * Solve a conic from the numbers in its equation, with the working an exam expects.
+ *   circle-general: x² + y² + Dx + Ey + F = 0   v = [D, E, F]
+ *   ellipse: x²/A + y²/B = 1                     v = [A, B]  (A, B are the denominators, i.e. a² and b²)
+ *   hyperbola-x: x²/A − y²/B = 1, hyperbola-y: y²/A − x²/B = 1   v = [A, B]
+ *   parabola-x: y² = Lx, parabola-y: x² = Ly     v = [L]  (negative L opens left or down)
+ */
+export function solveConic(form: ConicForm, v: number[]): ConicSolution {
+  const bad = (error: string): ConicSolution => ({ sentence: error, steps: [], tip: '', error });
+  if (v.some((x) => !Number.isFinite(x))) return bad('Type a number in every box to see the answer.');
+  if (form === 'circle-general') {
+    const [D, E, F] = v, h = -D / 2, k = -E / 2, r2 = h * h + k * k - F;
+    const steps = [`Compare with x² + y² + 2gx + 2fy + c = 0: g = D/2 = ${g3(D / 2)}, f = E/2 = ${g3(E / 2)}, c = ${g3(F)}.`, `Centre = (−g, −f) = ${pt([h, k])}.`, `r² = g² + f² − c = ${g3(h * h)} + ${g3(k * k)} − (${g3(F)}) = ${g3(r2)}.`];
+    if (r2 < -1e-12) return { sentence: `r² = ${g3(r2)} is negative, so no real circle has this equation.`, steps, tip: 'A circle needs g² + f² − c to be positive.', error: 'negative' };
+    if (Math.abs(r2) <= 1e-12) return { sentence: `r² = 0, so this is just the single point ${pt([h, k])} (a point-circle).`, steps, tip: 'A radius of 0 is a point, not a circle you can draw.', error: 'point' };
+    const r = Math.sqrt(r2);
+    return { conic: circle(h, k, r), sentence: `Circle with centre ${pt([h, k])} and radius ${g3(r)}.`, steps: [...steps, `r = √${g3(r2)} = ${g3(r)}.`], tip: 'Common mistake: the centre is (−D/2, −E/2), so the signs flip.' };
+  }
+  if (form === 'parabola-x' || form === 'parabola-y') {
+    const L = v[0];
+    if (L === 0) return bad('L = 0 gives a straight line, not a parabola. Type a number that is not 0.');
+    const a = Math.abs(L) / 4, dir = form === 'parabola-x' ? (L > 0 ? 'right' : 'left') : (L > 0 ? 'up' : 'down'), C = parabola(a, dir as 'right');
+    const open = { right: 'to the right', left: 'to the left', up: 'upwards', down: 'downwards' }[dir];
+    const sq2 = form === 'parabola-x' ? 'y²' : 'x²', lin = form === 'parabola-x' ? 'x' : 'y';
+    return { conic: C, sentence: `Parabola opening ${open}: a = ${g3(a)}, focus ${pt(C.foci[0])}, directrix ${C.directrices[0].x !== undefined ? 'x' : 'y'} = ${g3(C.directrices[0].x ?? C.directrices[0].y!)}, latus rectum ${g3(4 * a)}.`,
+      steps: [`Compare ${sq2} = ${g3(L)}${lin} with ${sq2} = ±4a${lin}: 4a = ${g3(Math.abs(L))}, so a = ${g3(a)}.`, `The sign of L (${L > 0 ? '+' : '−'}) shows it opens ${open}.`, `Focus ${pt(C.foci[0])}; directrix is the line ${C.directrices[0].x !== undefined ? 'x' : 'y'} = ${g3(C.directrices[0].x ?? C.directrices[0].y!)}; latus rectum = 4a = ${g3(4 * a)}.`],
+      tip: 'Common mistake: the number in front of x is 4a, not a. Divide by 4 first.' };
+  }
+  const [A, B] = v;
+  if (A <= 0 || B <= 0) return bad('Both denominators must be positive numbers (they are a² and b²).');
+  const a = Math.sqrt(A), b = Math.sqrt(B);
+  if (form === 'ellipse') {
+    const C = ellipse(a, b), M = Math.max(A, B), m = Math.min(A, B), axis = B > A ? 'y' : 'x';
+    const steps = [`Denominators: ${g3(A)} under x², ${g3(B)} under y². The larger (${g3(M)}) is a², so the major axis lies along the ${axis}-axis.`, `a = √${g3(M)} = ${g3(C.a)}, b = √${g3(m)} = ${g3(C.b)}.`];
+    if (C.e === 0) return { conic: C, sentence: `Both denominators are ${g3(A)}: this is a circle of radius ${g3(a)}, centre (0, 0).`, steps: [...steps, 'a = b, so c = 0 and e = 0.'], tip: 'x²/r² + y²/r² = 1 is the circle x² + y² = r².' };
+    return { conic: C, sentence: `Ellipse with a = ${g3(C.a)}, b = ${g3(C.b)}, e = ${g3(C.e)}, foci ${C.foci.map(pt).join(' and ')}, latus rectum ${g3(C.latus)}.`,
+      steps: [...steps, `c² = a² − b² = ${g3(M)} − ${g3(m)} = ${g3(M - m)}, so c = ${g3(C.c)}.`, `e = c/a = ${g3(C.c)}/${g3(C.a)} = ${g3(C.e)}; foci ${C.foci.map(pt).join(' and ')}.`, `Latus rectum = 2b²/a = 2 × ${g3(m)} / ${g3(C.a)} = ${g3(C.latus)}; directrices ${C.directrices.map((d) => `${d.x !== undefined ? 'x' : 'y'} = ${g3(d.x ?? d.y!)}`).join(', ')}.`],
+      tip: 'Common mistake: the denominators are a² and b², so take the square root before using a and b.' };
+  }
+  const vert = form === 'hyperbola-y', C = hyperbola(a, b, vert);
+  return { conic: C, sentence: `Hyperbola with a = ${g3(a)}, b = ${g3(b)}, e = ${g3(C.e)}, foci ${C.foci.map(pt).join(' and ')}, latus rectum ${g3(C.latus)}.`,
+    steps: [`The ${vert ? 'y²' : 'x²'} term is positive, so the branches open ${vert ? 'up and down' : 'left and right'}, and a² = ${g3(A)}, b² = ${g3(B)}.`, `a = ${g3(a)}, b = ${g3(b)}; c² = a² + b² = ${g3(A)} + ${g3(B)} = ${g3(A + B)}, so c = ${g3(C.c)}.`, `e = c/a = ${g3(C.c)}/${g3(a)} = ${g3(C.e)}; foci ${C.foci.map(pt).join(' and ')}.`, `Latus rectum = 2b²/a = 2 × ${g3(B)} / ${g3(a)} = ${g3(C.latus)}; asymptotes y = ±${g3(vert ? a / b : b / a)}x.`],
+    tip: 'Common mistake: for a hyperbola c² = a² + b² (plus), for an ellipse c² = a² − b² (minus).' };
+}

@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax drv">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (current, area or diameter, electron density) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Electrons in a wire</h2>
     <div class="ax-row">
@@ -170,4 +171,10 @@ import '../../styles/astro.css';
   for (let i = 0; i < 40; i++) step(0.03);
   texts(); draw(); playText(); if (running) requestAnimationFrame(loop);
   quiz(q('.drv-quiz'), () => questions());
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { DRIFT } from '../../lib/learn/phys-c';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, DRIFT);
 </script>

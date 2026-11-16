@@ -27,4 +27,19 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [l, v1, B] = q1.match(/A ([\d.]+) m rod moves at ([\d.]+) m\/s across a ([\d.]+) T/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(B * l * v1)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'motional: right answer accepted');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals, sels = {}) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(sels)) { if (k.startsWith('__u:')) await page.selectOption(`.ps-host [data-k="${id}-${k.slice(4)}-u"]`, v); else await page.selectOption(`.ps-host [data-k="${id}-${k}"]`, v); } for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${id}-${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre("Rod at 5 m/s"); check((await psAns()).includes("The induced emf is 1 V"), "motional-emf: example Rod at 5 m/s: The induced emf is 1 V");
+  await psPre("Aeroplane wings"); check((await psAns()).includes("The induced emf is 500 mV"), "motional-emf: example Aeroplane wings: The induced emf is 500 mV");
+  await psPre("Rod with a 2"); check((await psAns()).includes("the current 200 mA, the drag force 20 mN and the power 80 mW"), "motional-emf: example Rod with a 2: the current 200 mA, the drag force 20 mN and the power 80 mW");
+  await psPre("Speed for 1 V"); check((await psAns()).includes("The speed needed is 20 m/s (72 km/h)"), "motional-emf: example Speed for 1 V: The speed needed is 20 m/s (72 km/h)");
+  await psPre("Spinning 1 m rod"); check((await psAns()).includes("The emf between the centre and the rim is 500 mV"), "motional-emf: example Spinning 1 m rod: The emf between the centre and the rim is 500 mV");
+  await psSet("emf", {"B": "2", "l": "50", "v": "3"}, {"__u:B": "T", "__u:l": "cm", "__u:v": "m/s"}); check((await psAns()).includes("The induced emf is 3 V."), "motional-emf: typed numbers: The induced emf is 3 V.");
+  await psSet("emf", {"B": "0"}, {}); check((await psAns()).includes("must be more than 0"), "motional-emf: friendly message: must be more than 0");
+  await psPre("Rod at 5 m/s"); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), "motional-emf: working shown, no NaN");
 };

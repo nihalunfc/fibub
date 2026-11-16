@@ -35,4 +35,19 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.fb .sq-q', (e) => e.dataset.ans);
   await page.fill('.fb .sq-q .sq-in', ans); await page.click('.fb .sq-q .sq-check');
   check((await page.textContent('.fb .sq-q .sq-res')) === 'Right!', 'free-body-diagram: quiz');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/free-body-diagram/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Atwood 5 kg and 3 kg'); check((await psAns()).includes('Acceleration 2.45 m/s² (mass 1 goes down), tension 36.8 N'), 'free-body-diagram: example Atwood 5 kg and 3 kg: Acceleration 2.45 m/s² (mass 1 goes down), tension');
+  await psPre('Lift going up at 2 m/s²'); check((await psAns()).includes('The scales read 708 N'), 'free-body-diagram: example Lift going up at 2 m/s²: The scales read 708 N');
+  await psPre('Lift in free fall'); check((await psAns()).includes('The scales read 0 N'), 'free-body-diagram: example Lift in free fall: The scales read 0 N');
+  await psPre('Table and hanging mass'); check((await psAns()).includes('Acceleration 1.96 m/s², tension 15.7 N'), 'free-body-diagram: example Table and hanging mass: Acceleration 1.96 m/s², tension 15.7 N');
+  await psPre('Two blocks, 30 N'); check((await psAns()).includes('Acceleration 5 m/s²; block 1 pushes block 2 with 10 N'), 'free-body-diagram: example Two blocks, 30 N: Acceleration 5 m/s²; block 1 pushes block 2 with 1');
+  await psPre('Rope at 30°'); check((await psAns()).includes('Normal force 92.6 N; it accelerates at 2.07 m/s²'), 'free-body-diagram: example Rope at 30°: Normal force 92.6 N; it accelerates at 2.07 m/s²');
+  await psSet('atwood', {'atwood-m1': '2000', 'atwood-m2': '3'}); check((await psAns()).includes('Acceleration'), 'free-body-diagram: atwood Acceleration');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'free-body-diagram: working shown, no NaN');
 };

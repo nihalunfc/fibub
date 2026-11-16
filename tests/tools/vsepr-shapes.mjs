@@ -63,4 +63,27 @@ export default async ({ page, check, BASE }) => {
   check((await t('.vs-score')) === '3 of 4 right' && (await t('.vs-qs')).includes('✗ Not') && (await t('.vs-qs')).includes('valence electrons'), 'vsepr: quiz wrong answer gets worked steps');
   await page.click('.vsp .vs-new'); await page.waitForTimeout(100);
   check((await t('.vs-score')) === '' && (await page.$$('.vsp .vs-q1')).length === 4, 'vsepr: new questions');
+  // Type a formula, shapes table, common mistakes
+  const tb = () => t('.vs-tbig'), tl = () => t('.vs-tline');
+  check((await tb()) === 'SF₄ is see-saw.' && (await tl()).includes('4 bonded atoms + 1 lone pair = 5 electron pairs (trigonal bipyramidal), sp³d') && (await tl()).includes('polar'), 'vsepr typed: SF4 ' + (await tl()));
+  const typed = async (f) => { await page.fill('.vsp [data-k=formula]', f); };
+  await typed('XeF2'); check((await tb()) === 'XeF₂ is linear.' && (await tl()).includes('2 bonded atoms + 3 lone pairs = 5 electron pairs') && (await tl()).includes('non-polar'), 'vsepr typed: XeF2 ' + (await tl()));
+  await typed('NH4+'); check((await tb()) === 'NH₄⁺ is tetrahedral.', 'vsepr typed: NH4+ ' + (await tb()));
+  await typed('SO4^2-'); check((await tb()) === 'SO₄²⁻ is tetrahedral.', 'vsepr typed: SO4^2-');
+  await typed('SO42-'); check((await tb()) === 'SO₄²⁻ is tetrahedral.', 'vsepr typed: SO42-');
+  await typed('H2O'); check((await tb()) === 'H₂O is bent (V-shaped).', 'vsepr typed: H2O (central atom is O) ' + (await tb()));
+  await typed('H₃O⁺'); check((await tb()) === 'H₃O⁺ is trigonal pyramidal.', 'vsepr typed: unicode H3O+ ' + (await tb()));
+  await typed('I3-'); check((await tb()) === 'I₃⁻ is linear.', 'vsepr typed: I3- ' + (await tb()));
+  await typed('SF8'); check((await t('.vs-terr')).includes('enough electrons') && await page.isDisabled('.vsp .vs-tshow') && (await tb()) === '', 'vsepr typed: SF8 message');
+  await typed('Fe'); check((await t('.vs-terr')).includes('one central atom'), 'vsepr typed: single element message');
+  await typed('AB!'); check((await t('.vs-terr')).includes('Could not read'), 'vsepr typed: unreadable');
+  await typed(''); check(await page.isVisible('.vsp .vs-terr'), 'vsepr typed: blank message');
+  await page.click('.vsp .vs-chip[data-f="ClF3"]'); check((await tb()) === 'ClF₃ is T-shaped.', 'vsepr typed: chip ClF3 ' + (await tb()));
+  await page.click('.vsp .vs-tshow'); await page.waitForTimeout(300);
+  check((await t('.vs-shape')) === 'ClF₃: T-shaped' && (await page.inputValue('.vsp .vs-ex')) === 'clf3', 'vsepr typed: show above');
+  await page.locator('.vsp .vs-all summary').click();
+  check((await page.locator('.vsp .vs-tab tbody tr').count()) === 13, 'vsepr: shapes table rows');
+  await page.locator('.vsp .vs-tab tbody tr[data-b="3"][data-l="1"]').click(); await page.waitForTimeout(200);
+  check((await t('.vs-shape')) === 'AX₃E: trigonal pyramidal' && (await page.inputValue('.vsp .vs-ex')) === 'own', 'vsepr: table row turns the shape above');
+  check((await page.locator('.vsp .vs-mist li').count()) === 5, 'vsepr: common mistakes listed');
 };

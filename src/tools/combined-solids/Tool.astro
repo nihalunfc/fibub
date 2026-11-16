@@ -2,9 +2,16 @@
 // Combined solids: pick a shape made of two or three simple solids, slide its sizes, and see its surface area
 // (with the hidden joins left out) and its volume added up part by part. Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm cb">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Choose the solid, type its sizes and get the surface area (joins left out) or the volume part by part. Add a cost per unit area, or melt it into small spheres.</p>
+    <div class="cb-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick a shape</h2>
     <div class="cb-pick" role="group" aria-label="Shape">
@@ -71,6 +78,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { COMBINED_SPEC } from '../../lib/sci/solve-combined';
+  mountSolver(document.querySelector<HTMLElement>('.cb-solve')!, COMBINED_SPEC, 'sv');
   import { solid, invalid, slant, SHAPES, type ShapeId, type Dims } from '../../lib/sci/combined-solids';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';

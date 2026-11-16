@@ -12,6 +12,27 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$(R + '.qx-root')).length === 2, 'quadratic: two root dots on the graph');
   { const s = await txt('.qx-split'); check(s.includes('−3 and −2') && s.includes('= (x − 2)(x − 3)'), `quadratic: split the middle term (${s})`); }
   { const s = await txt('.qx-cs'); check(s.includes('(x − 2.5)² = 0.25') && s.includes('x = 2 or x = 3'), 'quadratic: completing the square steps'); }
+  check((await txt('.qx-ans')) === 'x² − 5x + 6 = 0 has roots x = 2 and x = 3.', `quadratic: answer sentence (${await txt('.qx-ans')})`);
+  await page.evaluate(() => document.querySelectorAll('.qx details').forEach((d) => (d.open = true)));
+  await page.click(R + '.qx-w[data-w="surd"]'); await page.waitForTimeout(100);
+  check((await txt('.qx-ans')) === '2x² + 3x − 7 = 0 has roots x = −2.766 and x = 1.266. Exact: x = (−3 ± √65) / 4.' && (await txt('.qx-wnote')).includes('D = 65'), `quadratic: surd example (${await txt('.qx-ans')})`);
+  await page.click(R + '.qx-w[data-w="rect"]'); await page.waitForTimeout(100);
+  check((await txt('.qx-ans')).includes('x = −8 and x = 6') && (await txt('.qx-wnote')).includes('width is 6 m'), 'quadratic: rectangle word problem');
+  await page.click(R + '.qx-w[data-w="stone"]'); await page.waitForTimeout(100);
+  check((await txt('.qx-eq')) === 'y = −5x² + 20x − 15' && (await txt('.qx-ans')).includes('x = 1 and x = 3'), 'quadratic: stone example');
+  // Right-hand side.
+  await page.click(R + '.qx-pre[data-p="1,-5,6"]'); await setv('.qx-b', 2); await setv('.qx-c', 0); await setv('.qx-rhs', 15);
+  check((await txt('.qx-eq')) === 'y = x² + 2x − 15' && (await txt('.qx-ans')).includes('x = −5 and x = 3'), `quadratic: x² + 2x = 15 (${await txt('.qx-ans')})`);
+  await setv('.qx-rhs', 0);
+  // Build from roots.
+  check((await txt('.qx-fr')).includes('(x − 2)(x + 3) = 0') && (await txt('.qx-fr')).includes('x² + x − 6 = 0'), `quadratic: roots 2 and −3 (${await txt('.qx-fr')})`);
+  await page.click(R + '.qx-build'); await page.waitForTimeout(100);
+  check((await txt('.qx-eq')) === 'y = x² + x − 6' && (await txt('.qx-ans')).includes('x = −3 and x = 2'), 'quadratic: loaded from roots');
+  await setv('.qx-r2', ''); check((await txt('.qx-fr')) === 'Type both roots.', 'quadratic: blank root');
+  await setv('.qx-r2', -3);
+  await setv('.qx-a', 0); await setv('.qx-b', 1); await setv('.qx-c', -6);
+  check((await txt('.qx-err')).includes('x = 6'), 'quadratic: a = 0 gives the straight-line solution');
+  await page.click(R + '.qx-pre[data-p="1,-5,6"]'); await page.waitForTimeout(100);
   // Presets.
   await page.click(R + '.qx-pre[data-p="1,-4,4"]'); await page.waitForTimeout(100);
   check((await txt('.qx-kind')).includes('D = 0') && (await txt('.qx-facts')).includes('x = 2 (twice)') && (await page.$$(R + '.qx-root')).length === 1, 'quadratic: touches preset, equal roots');

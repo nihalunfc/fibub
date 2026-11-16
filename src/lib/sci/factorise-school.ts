@@ -138,3 +138,75 @@ export function cubes(p: number, q: number, plus: boolean): Fact & { quad: numbe
   steps.push(`Check by expanding: ${text} = ${polyText(exp)}.`);
   return { ok: true, g, factors: [[a, s * b]], text, steps, expanded: exp, quad };
 }
+
+const gfrac = (n: number, d: number): string => {
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(Math.abs(n), d) || 1; n /= g; d /= g;
+  return neg(d === 1 ? String(n) : `${n}/${d}`);
+};
+const dec = (x: number) => neg(String(+x.toFixed(4)));
+
+/** Solve ax² + bx + c = 0 and say how: whole-number or fraction roots exactly, surds and decimals otherwise. */
+export function quadRoots(a: number, b: number, c: number): { text: string; steps: string[]; roots: number[] } {
+  if (a === 0) return { text: '', steps: [], roots: [] };
+  const D = b * b - 4 * a * c, eq = `${polyText([a, b, c])} = 0`;
+  const steps = [`Discriminant b² − 4ac = ${neg(String(b))}² − 4(${neg(String(a))})(${neg(String(c))}) = ${neg(String(D))}.`];
+  if (D < 0) return { text: `${eq} has no real roots (the discriminant is negative).`, steps: [...steps, 'A negative discriminant means the curve never crosses the x-axis.'], roots: [] };
+  const r = isqrt(D);
+  if (D === 0) return { text: `${eq} has one repeated root: x = ${gfrac(-b, 2 * a)}.`, steps: [...steps, `Zero discriminant: x = −b/2a = ${gfrac(-b, 2 * a)}.`], roots: [-b / (2 * a)] };
+  if (r !== null) {
+    const x1 = gfrac(-b + r, 2 * a), x2 = gfrac(-b - r, 2 * a);
+    return { text: `${eq} gives x = ${x1} or x = ${x2}.`, steps: [...steps, `√${D} = ${r}, so x = (−b ± √D)/2a = (${neg(String(-b))} ± ${r})/${2 * a}: x = ${x1} or x = ${x2}.`], roots: [(-b + r) / (2 * a), (-b - r) / (2 * a)] };
+  }
+  const s = Math.sqrt(D), x1 = (-b + s) / (2 * a), x2 = (-b - s) / (2 * a);
+  return { text: `${eq} gives x = (${neg(String(-b))} ± √${D})/${neg(String(2 * a))}, about ${dec(x1)} or ${dec(x2)}.`, steps: [...steps, `√${D} is not a whole number, so the roots are not rational: x ≈ ${dec(x1)} or ${dec(x2)}.`], roots: [x1, x2] };
+}
+
+/** Factorise ax³ + bx² + cx + d by the factor theorem (rational root test), then factorise the quadratic left over. */
+export function cubicFactor(a: number, b: number, c: number, d: number): Fact & { quad: number[]; roots: string[] } {
+  const orig = polyText([a, b, c, d]), steps: string[] = [];
+  const fail = (msg: string): Fact & { quad: number[]; roots: string[] } => ({ ok: false, g: 1, factors: [], text: orig, steps: [...steps, msg], expanded: [a, b, c, d], quad: [], roots: [] });
+  if (a === 0) return fail('a must not be 0 for a cubic.');
+  let g = g3(a, b, c, d); if (a < 0) g = -g;
+  const A = a / g, B = b / g, C = c / g, D = d / g;
+  if (g !== 1) steps.push(`Take out the common factor ${neg(String(g))}: ${orig} = ${neg(String(g))}(${polyText([A, B, C, D])}).`);
+  const poly = polyText([A, B, C, D]);
+  let rootP = 0, rootQ = 1;
+  if (D === 0) { steps.push(`There is no number term, so x is a common factor: ${poly} = x(${polyText([A, B, C])}).`); }
+  else {
+    const divs = (n: number) => { const m = Math.abs(n), out: number[] = []; for (let i = 1; i <= m; i++) if (m % i === 0) out.push(i); return out; };
+    const cands: [number, number][] = [];
+    for (const q of divs(A)) for (const p of divs(D)) { if (gcd(p, q) === 1) { cands.push([p, q]); cands.push([-p, q]); } }
+    cands.sort((u, v) => Math.abs(u[0] / u[1]) - Math.abs(v[0] / v[1]) || v[0] - u[0]);
+    steps.push(`Factor theorem: if x = p/q is a root, p divides the number term ${neg(String(D))} and q divides the leading coefficient ${neg(String(A))}. Try the possibilities.`);
+    const f = (p: number, q: number) => A * p ** 3 + B * p * p * q + C * p * q * q + D * q ** 3;
+    let found = false, tried = 0;
+    for (const [p, q] of cands) {
+      tried++;
+      const val = f(p, q) / q ** 3;
+      if (Math.abs(f(p, q)) < 1e-9) { rootP = p; rootQ = q; found = true; steps.push(`Try x = ${gfrac(p, q)}: ${poly} = 0, so ${q === 1 ? `(x ${p < 0 ? '+' : '−'} ${Math.abs(p)})` : `(${q}x ${p < 0 ? '+' : '−'} ${Math.abs(p)})`} is a factor.`); break; }
+      if (tried <= 4) steps.push(`Try x = ${gfrac(p, q)}: the value is ${dec(val)}, not 0.`);
+      else if (tried === 5) steps.push('(Keep trying the other possibilities.)');
+    }
+    if (!found) return fail('None of the possible roots works, so there is no whole-number or fraction root and the cubic does not factorise over the rationals.');
+  }
+  // Divide by the found linear factor (q x − p), or by x.
+  let lin1: [number, number], quot: number[];
+  if (D === 0) { lin1 = [1, 0]; quot = [A, B, C]; }
+  else {
+    const r0 = A / rootQ, r1 = (B + rootP * r0) / rootQ, r2 = (C + rootP * r1) / rootQ;
+    if (![r0, r1, r2].every(Number.isInteger)) return fail('The division did not come out in whole numbers.');
+    lin1 = [rootQ, -rootP]; quot = [r0, r1, r2];
+    steps.push(`Divide ${poly} by ${lin(...lin1)}: the quotient is ${polyText(quot)}.`);
+  }
+  const qf = quadratic(quot[0], quot[1], quot[2]);
+  let factors: [number, number][] = [lin1], quad: number[] = [], gg = g;
+  if (qf.ok) { gg = g * qf.g; factors = [lin1, ...qf.factors].sort((u, v) => -u[1] / u[0] - -v[1] / v[0]); steps.push(`Factorise the quadratic ${polyText(quot)}: ${qf.text}.`); }
+  else { quad = quot; steps.push(`The quadratic ${polyText(quot)} does not factorise over the whole numbers.`); }
+  const exp = (() => { let p = [gg]; for (const f of factors) p = mul(p, [f[0], f[1]]); if (quad.length) p = mul(p, quad); return p; })();
+  const text = quad.length ? `${g === 1 ? '' : neg(String(g))}${lin(...lin1)}(${polyText(quad)})` : factorsText(gg, factors);
+  const ok = exp.length === 4 && exp.every((k, i) => k === [a, b, c, d][i]);
+  steps.push(`Check by expanding: ${text} = ${polyText(exp)}${ok ? ', the expression we started with.' : ' (does not match: please report this).'}`);
+  const roots = factors.map(([p, q]) => `x = ${gfrac(-q, p)}`);
+  return { ok, g: gg, factors, text, steps, expanded: exp, quad, roots };
+}

@@ -11,7 +11,7 @@ ads: false
 order: 1025
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [newtons-laws, friction-ramp, pendulum-analyser]
 sources:
   - "Kinetic energy ½mv², potential energy mgh, conservation of mechanical energy, the work-energy theorem and the loop-the-loop condition (v² ≥ gr at the top, h ≥ 2.5r): standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
@@ -39,6 +39,10 @@ It follows the school topics on energy: kinetic and potential energy and the con
 4. Set **friction** (0 is perfectly smooth) and the **mass**. The mass changes every energy in joules but not the way the ball moves.
 5. **Loop the loop**: set the starting height h and the loop radius r and press Play.
 
+## Solve my numbers
+
+The **Solve my numbers** card at the top gives exam-style answers: kinetic energy ½mv², potential energy mgh, the speed after rolling down a drop (the mass cancels), the speed at the bottom when some energy becomes heat, the speed at the bottom of a rough slope (heat = friction × distance along the track), and the lowest start height for a loop (2.5 r, with the speeds at the top and the bottom). Type the numbers, pick kg or g, m/s or km/h, J or kJ, and read the answer on top with the working underneath. If friction takes all the energy the card says the ball stops before the bottom. Common mistake: using the start height instead of the drop in height.
+
 ## Worked example
 
 Open the page: a **2 kg** ball starts at rest **6 m** up on the left. Its energy is all potential: 2 × 9.8 × 6 = **117.6 J**. As it rolls down, the PE bar shrinks and the KE bar grows, and the total stays **117.6 J**. Near the lowest point (0.5 m high) its speed is √(2 × 9.8 × 5.5) ≈ **10.4 m/s**. It bounces off the right wall and comes back up to 6 m again.
@@ -58,3 +62,5 @@ In **Loop the loop** with r = **2 m**: from h = **6 m** the ball reaches the bot
 **Why does it need 2.5 times the radius, not 2?** At the top it must still be moving fast enough for gravity alone to keep it on its circle, so it needs some kinetic energy left over: half a radius' worth of height.
 
 **Is anything stored?** No. Everything runs in your browser and nothing is saved or sent.
+
+**How do I find the speed at the bottom of a slope?** Set mgh = ½mv² (minus any heat lost), so v = √(2gh) when there is no friction.

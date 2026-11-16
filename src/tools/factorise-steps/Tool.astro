@@ -6,7 +6,7 @@ import '../../styles/smath.css';
 ---
 <div class="ax sm fs">
   <div class="ax-card">
-    <div class="ax-seg fs-mode" role="group" aria-label="Kind of expression"><button type="button" data-m="q" aria-pressed="true">ax² + bx + c</button><button type="button" data-m="d" aria-pressed="false">a² − b²</button><button type="button" data-m="c" aria-pressed="false">a³ ± b³</button></div>
+    <div class="ax-seg fs-mode" role="group" aria-label="Kind of expression"><button type="button" data-m="q" aria-pressed="true">ax² + bx + c</button><button type="button" data-m="d" aria-pressed="false">a² − b²</button><button type="button" data-m="c" aria-pressed="false">a³ ± b³</button><button type="button" data-m="k" aria-pressed="false">Cubic</button></div>
     <div class="ax-grid fs-in fs-q" style="margin-top:10px">
       <label>a (x²) <input type="number" class="fs-a" step="1" value="6" inputmode="numeric" /></label>
       <label>b (x) <input type="number" class="fs-b" step="1" value="-5" inputmode="numeric" /></label>
@@ -21,10 +21,18 @@ import '../../styles/smath.css';
       <label>Sign <select class="fs-cs"><option value="+">+ (sum of cubes)</option><option value="-">− (difference of cubes)</option></select></label>
       <label>q <input type="number" class="fs-cq" min="1" step="1" value="27" inputmode="numeric" /></label>
     </div>
+    <div class="ax-grid fs-in fs-k" style="margin-top:10px" hidden>
+      <label>a (x³) <input type="number" class="fs-ka" step="1" value="2" inputmode="numeric" /></label>
+      <label>b (x²) <input type="number" class="fs-kb" step="1" value="-3" inputmode="numeric" /></label>
+      <label>c (x) <input type="number" class="fs-kc" step="1" value="-3" inputmode="numeric" /></label>
+      <label>d (number) <input type="number" class="fs-kd" step="1" value="2" inputmode="numeric" /></label>
+    </div>
     <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fs-rand">New example</button></div>
     <p class="ax-big fs-expr" aria-live="polite" style="margin:10px 0 2px"></p>
     <p class="ax-big fs-ans" style="margin:0 0 6px"></p>
     <p class="ax-err fs-err" hidden></p>
+    <p class="fs-roots" aria-live="polite"></p>
+    <details class="fs-rd"><summary>How the roots were found</summary><ol class="sm-steps fs-rsteps"></ol></details>
   </div>
 
   <div class="ax-card">
@@ -64,7 +72,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { quadratic, diffSquares, cubes, polyText, term, type Fact } from '../../lib/sci/factorise-school';
+  import { quadratic, diffSquares, cubes, cubicFactor, quadRoots, polyText, term, type Fact } from '../../lib/sci/factorise-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, type Question } from '../../lib/smath-ui';
 
@@ -77,7 +85,7 @@ import '../../styles/smath.css';
 
   function picture(f: Fact) {
     fig.replaceChildren();
-    const show = f.ok && f.factors.length === 2;
+    const show = mode !== 'k' && f.ok && f.factors.length === 2;
     q('.fs-piccard').hidden = !show;
     if (!show) return;
     const [[p, qq], [r, s]] = f.factors;
@@ -98,7 +106,7 @@ import '../../styles/smath.css';
   }
 
   function draw() {
-    let f: Fact | null = null, orig: number[] = [];
+    let f: Fact | null = null, orig: number[] = [], rootsInfo: string[] = [];
     const err = q('.fs-err'); err.hidden = true;
     if (mode === 'q') {
       const a = int('.fs-a', -99, 99), b = int('.fs-b', -999, 999), c = int('.fs-c', -9999, 9999);
@@ -108,12 +116,16 @@ import '../../styles/smath.css';
       const p = int('.fs-dp', 1, 9999), qq = int('.fs-dq', 1, 99999);
       if (p === null || qq === null) { err.hidden = false; err.textContent = 'Use whole numbers of 1 or more.'; }
       else { f = diffSquares(p, qq); orig = [p, 0, -qq]; }
+    } else if (mode === 'k') {
+      const a = int('.fs-ka', -99, 99), b = int('.fs-kb', -999, 999), c = int('.fs-kc', -9999, 9999), d = int('.fs-kd', -9999, 9999);
+      if (a === null || b === null || c === null || d === null || a === 0) { err.hidden = false; err.textContent = 'Use whole numbers: a from −99 to 99 (not 0), and b, c, d of a sensible size.'; }
+      else { f = cubicFactor(a, b, c, d); orig = [a, b, c, d]; rootsInfo = (f as Fact & { roots: string[] }).roots; }
     } else {
       const p = int('.fs-cp', 1, 9999), qq = int('.fs-cq', 1, 99999), plus = q<HTMLSelectElement>('.fs-cs').value === '+';
       if (p === null || qq === null) { err.hidden = false; err.textContent = 'Use whole numbers of 1 or more.'; }
       else { f = cubes(p, qq, plus); orig = [p, 0, 0, plus ? qq : -qq]; }
     }
-    if (!f) { q('.fs-expr').textContent = ''; q('.fs-ans').textContent = ''; q('.fs-steps').replaceChildren(); q('.fs-num').textContent = ''; picture({ ok: false } as Fact); return; }
+    if (!f) { q('.fs-roots').textContent = ''; q('.fs-rsteps').replaceChildren(); q('.fs-rd').hidden = true; q('.fs-expr').textContent = ''; q('.fs-ans').textContent = ''; q('.fs-steps').replaceChildren(); q('.fs-num').textContent = ''; picture({ ok: false } as Fact); return; }
     q('.fs-expr').textContent = polyText(orig);
     q('.fs-ans').textContent = f.ok ? `= ${f.text}` : 'Does not factorise with whole numbers';
     q('.fs-steps').replaceChildren(...f.steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
@@ -125,18 +137,24 @@ import '../../styles/smath.css';
       if (quad && quad.length) right *= ev(quad, x);
       q('.fs-num').textContent = `Number check with x = 2: ${polyText(orig)} gives ${fmt(left, 0)}, and ${f.text} gives ${fmt(right, 0)}. ${left === right ? 'They agree.' : 'They do not agree.'}`;
     } else q('.fs-num').textContent = '';
+    // Roots (solve = 0)
+    let rt = '', rsteps: string[] = [];
+    if (mode === 'q' || mode === 'd') { const [a, b, c] = orig.length === 3 ? orig : [0, 0, 0]; const r = quadRoots(a, b, c); rt = r.text; rsteps = r.steps; if (f.ok) rsteps.unshift(`From the factors: set each bracket equal to 0. ${f.text} = 0.`); }
+    else if (mode === 'k' && f.ok) { rt = `${polyText(orig)} = 0 gives ${[...new Set(rootsInfo)].join(', ')}${(f as Fact & { quad: number[] }).quad.length ? ', plus the roots of the quadratic bracket (if any)' : ''}.`; rsteps = ['Set each bracket equal to 0 and solve for x.']; if ((f as Fact & { quad: number[] }).quad.length) { const qd = (f as Fact & { quad: number[] }).quad; rsteps.push(quadRoots(qd[0], qd[1], qd[2]).text); } }
+    q('.fs-roots').textContent = rt; q('.fs-rsteps').replaceChildren(...rsteps.map((t) => Object.assign(document.createElement('li'), { textContent: t }))); q('.fs-rd').hidden = !rt;
     picture(f);
   }
   root.querySelectorAll('.fs-in input, .fs-in select').forEach((e) => e.addEventListener('input', draw));
   root.querySelectorAll<HTMLButtonElement>('.fs-mode button').forEach((b) => b.addEventListener('click', () => {
     mode = b.dataset.m!;
     root.querySelectorAll('.fs-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    q('.fs-q').hidden = mode !== 'q'; q('.fs-d').hidden = mode !== 'd'; q('.fs-c3').hidden = mode !== 'c'; draw();
+    q('.fs-q').hidden = mode !== 'q'; q('.fs-d').hidden = mode !== 'd'; q('.fs-c3').hidden = mode !== 'c'; q('.fs-k').hidden = mode !== 'k'; draw();
   }));
   const setv = (c: string, v: number) => { q<HTMLInputElement>(c).value = String(v); };
   q('.fs-rand').addEventListener('click', () => {
     if (mode === 'q') { const p = randInt(1, 3), qq = randInt(-7, 7, true), r = randInt(1, 3), s = randInt(-7, 7, true), g = [1, 1, 1, 2, -1][randInt(0, 4)]; setv('.fs-a', g * p * r); setv('.fs-b', g * (p * s + qq * r)); setv('.fs-c', g * qq * s); }
     else if (mode === 'd') { const k = randInt(1, 9), m = randInt(1, 12), g = [1, 1, 2, 3][randInt(0, 3)]; setv('.fs-dp', g * k * k); setv('.fs-dq', g * m * m); }
+    else if (mode === 'k') { const r1 = randInt(-4, 4, true), r2 = randInt(-4, 4, true), r3 = randInt(-4, 4, true), g = [1, 1, 2][randInt(0, 2)]; const c3 = [1, -(r1 + r2 + r3), r1 * r2 + r1 * r3 + r2 * r3, -r1 * r2 * r3].map((k) => k * g); setv('.fs-ka', c3[0]); setv('.fs-kb', c3[1]); setv('.fs-kc', c3[2]); setv('.fs-kd', c3[3]); }
     else { const k = randInt(1, 4), m = randInt(1, 5); setv('.fs-cp', k ** 3); setv('.fs-cq', m ** 3); q<HTMLSelectElement>('.fs-cs').value = randInt(0, 1) ? '+' : '-'; }
     draw();
   });

@@ -4,6 +4,12 @@
 import '../../styles/astro.css';
 ---
 <div class="ax vc">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the mass, speed and radius from your problem: centripetal force, tension at the top or bottom, and the least speed to loop, with the working.</p><div class="ps-host" data-ps="VCIRC"></div></div>
+  <script>
+    import { mountSolver } from '../../lib/learn/phys-a-ui';
+    import { VCIRC } from '../../lib/learn/phys-s1';
+    mountSolver(document.querySelector<HTMLElement>('.ps-host')!, VCIRC);
+  </script>
   <div class="ax-card">
     <div class="ax-row vc-top">
       <div class="ax-seg vc-mode" role="group" aria-label="Which circle">

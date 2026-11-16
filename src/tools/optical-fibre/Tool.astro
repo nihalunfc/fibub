@@ -5,6 +5,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax ofb">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (refractive indices, angles) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row ofb-top">
       <div class="ax-seg ofb-shape" role="group" aria-label="Fibre shape">
@@ -57,6 +58,9 @@ import '../../styles/astro.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { FIBRE } from '../../lib/learn/phys-b';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, FIBRE);
   import { traceFibre, critical, numericalAperture, acceptance, type Fibre, type Pt } from '../../lib/sci/q-fibre';
   import { paint, type Figure } from '../../lib/report';
   const sig = (x: number, n = 3) => String(Number(x.toPrecision(n)));

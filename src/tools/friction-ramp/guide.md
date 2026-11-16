@@ -11,11 +11,12 @@ ads: false
 order: 1024
 icon: mountain
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [newtons-laws, equations-of-motion]
 sources:
   - "Forces on an inclined plane (mg sin θ along, mg cos θ across), static friction up to μs N and kinetic friction μk N, and the angle of repose tan θ = μs: standard school physics found in any textbook. g = 9.8 m/s² (rounded)."
   - "Checked against an independent x-y vector sum of the forces on 500 random cases and against hand-worked examples. The friction coefficients for the surfaces are made-up, rounded teaching values."
+  - "Friction F ≤ μN, N = mg cos θ on a slope, slipping when tan θ = μs, and a = g(sin θ − μk cos θ): standard school physics found in any textbook (g = 9.8 m/s², rounded). The card was hand-checked against worked examples."
 flow:
   - { icon: mountain, label: "Tilt ramp" }
   - { icon: sliders, label: "Push" }
@@ -45,6 +46,9 @@ Open the page: a **10 kg** block of wood on a wooden ramp (μs 0.5, μk 0.3) at 
 
 Tilt it to **30°**. Now the pull is 49 N but friction can only hold 42.4 N, so it **slides down**. At Class 11 the page shows a = (−49 + 25.46) ÷ 10 = **−2.35 m/s²** (2.35 m/s² down the slope). Pushing up the slope with **10 N** is enough to hold it, and a push of more than **91.4 N** starts it moving up.
 
+## Solve my numbers
+The card at the top solves the usual textbook questions about friction and slopes from the numbers you type. Choose one: a push on a flat floor (does it move, and how fast), a block on a slope (the weight components, the normal force, whether it slides and its acceleration), the angle at which a block just slips (which gives the friction coefficient as tan θ), the push needed to start and to keep a box moving, or the push needed to move it up a slope. Boxes take kg or g, N or kN, degrees or radians, and the coefficients you type as plain numbers. The answer is one sentence with units, followed by the working: the normal force, the largest static friction μs N, the comparison with the push or the slope pull, and the acceleration from (net force) ÷ m using the kinetic coefficient. A line underneath names the usual slip, for example using mg instead of mg cos θ for the normal force on a slope, or mixing up static and kinetic friction. Tap a worked example to fill in a crate, a block on a 30° board or a heavy box. Friendly messages appear for a blank box, a negative mass or an angle of 90° or more.
+
 ## Tips
 
 - The angle at which a block starts to slide does not depend on its mass: both the pull down the slope and the friction grow with the weight.
@@ -58,3 +62,5 @@ Tilt it to **30°**. Now the pull is 49 N but friction can only hold 42.4 N, so 
 **Are the μ values real?** They are rounded teaching numbers chosen to behave like the named surfaces. Real values depend on how clean, dry and smooth the surfaces are; measure your own with a tilting board.
 
 **Is anything stored?** No. The questions are made in your browser and nothing is saved or sent.
+
+**How do I find the friction coefficient from the angle?** Tilt until it just slips: μs = tan θ. Choose that option under Solve my numbers.

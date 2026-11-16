@@ -37,4 +37,19 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.fr .sq-q', (e) => e.dataset.ans);
   await page.fill('.fr .sq-q .sq-in', ans); await page.click('.fr .sq-q .sq-check');
   check((await page.textContent('.fr .sq-q .sq-res')) === 'Right!', 'friction-ramp: quiz');
+
+  // ---- Solve my numbers ----
+  await page.goto(`${BASE}/learn/friction-ramp/`); await page.waitForTimeout(500);
+  const psAns = () => page.textContent('.ps-host .ps-ans'), psWork = () => page.textContent('.ps-host .ps-work');
+  const psPre = async (n) => { await page.click(`.ps-host .ps-pre button:has-text("${n}")`); await page.waitForTimeout(80); };
+  const psSet = async (id, vals) => { await page.selectOption('.ps-host [data-k="prob"]', id); for (const [k, v] of Object.entries(vals)) await page.fill(`.ps-host [data-k="${k}"]`, v); await page.waitForTimeout(80); };
+  await psPre('Crate, 60 N push'); check((await psAns()).includes('It slides, speeding up at 2.08 m/s²'), 'friction-ramp: example Crate, 60 N push: It slides, speeding up at 2.08 m/s²');
+  await psPre('Block on 30° board'); check((await psAns()).includes('It stays still: friction can hold 25.5 N and gravity pulls 24.5 N'), 'friction-ramp: example Block on 30° board: It stays still: friction can hold 25.5 N and gravi');
+  await psPre('Slips at 28°'); check((await psAns()).includes('μs = 0.532'), 'friction-ramp: example Slips at 28°: μs = 0.532');
+  await psPre('Start a heavy box'); check((await psAns()).includes('harder than 110 N to start it, and 73.5 N'), 'friction-ramp: example Start a heavy box: more than 110 N to start it, and 73.5 N');
+  await psPre('Up a 20° ramp'); check((await psAns()).includes('more than 141 N to start it up, then 122 N'), 'friction-ramp: example Up a 20° ramp: more than 141 N to start it up, then 122 N');
+  await psSet('slope', {'slope-th': '40'}); check((await psAns()).includes('It slides down the slope at 2.92 m/s²'), 'friction-ramp: slope It slides down the slope at 3.14 m/s²');
+  await psSet('slope', {'slope-th': '95'}); check((await psAns()).includes('cannot be more than 89'), 'friction-ramp: slope cannot be more than 89');
+  await page.click('.ps-host .ps-pre button'); await page.waitForTimeout(80);
+  check((await psWork()).length > 20 && !/NaN|Infinity/.test(await page.textContent('.ps-host')), 'friction-ramp: working shown, no NaN');
 };

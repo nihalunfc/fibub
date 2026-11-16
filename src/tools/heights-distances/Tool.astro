@@ -12,7 +12,20 @@ import '../../styles/smath.css';
       <button type="button" data-m="same" aria-pressed="false">Two, same side</button>
       <button type="button" data-m="opp" aria-pressed="false">Two, opposite sides</button>
       <button type="button" data-m="down" aria-pressed="false">Looking down</button>
+      <button type="button" data-m="stack" aria-pressed="false">Tower on a building</button>
     </div>
+    <div class="ax-row hd-pre" style="margin-top:8px">
+      <span class="ax-help" style="margin:0">Examples</span>
+      <button type="button" class="btn secondary small" data-hp="one,height,40,,30,,,0">Tower, 40 m away, 30°</button>
+      <button type="button" class="btn secondary small" data-hp="one,distance,,24,30,,,0">How far from a 24 m tower?</button>
+      <button type="button" class="btn secondary small" data-hp="one,angle,16,12,,,,0">Angle for 12 m up, 16 m away</button>
+      <button type="button" class="btn secondary small" data-hp="one,height,25,,50,,,1.6">Person 1.6 m tall</button>
+      <button type="button" class="btn secondary small" data-hp="same,height,,,45,30,50,0">Two people, same side</button>
+      <button type="button" class="btn secondary small" data-hp="stack,height,40,,60,30,,0">Tower on a building</button>
+    </div>
+    <label class="hd-unitrow" style="margin-top:8px">Length unit
+      <select class="hd-unit" data-k="unit"><option value="m">metres (m)</option><option value="ft">feet (ft)</option><option value="km">kilometres (km)</option><option value="cm">centimetres (cm)</option></select>
+    </label>
     <div class="ax-row hd-findrow" style="margin-top:10px">
       <span class="ax-help" style="margin:0">Find the</span>
       <div class="ax-seg hd-find" role="group" aria-label="What to find">
@@ -23,20 +36,29 @@ import '../../styles/smath.css';
     </div>
     <svg class="sm-fig hd-fig" viewBox="0 0 340 260" role="img" aria-label="A tower, the observers and their lines of sight" style="margin-top:10px"></svg>
     <p class="ax-help hd-note">Drag the person to change the distance.</p>
-    <div class="sm-sl hd-row" data-v="d"><b>d</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Distance slider" /><input type="number" class="hd-d" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Distance from the foot (m)" /></div>
-    <div class="sm-sl hd-row" data-v="h"><b>h</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Height slider" /><input type="number" class="hd-h" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Height of the tower (m)" /></div>
-    <div class="sm-sl hd-row" data-v="a"><b>θ</b><input type="range" min="1" max="89" step="1" value="60" aria-label="Angle slider" /><input type="number" class="hd-a" min="0.1" max="89.9" step="1" value="60" inputmode="decimal" aria-label="Angle of elevation (degrees)" /></div>
-    <div class="sm-sl hd-row" data-v="b"><b>φ</b><input type="range" min="1" max="89" step="1" value="30" aria-label="Second angle slider" /><input type="number" class="hd-b" min="0.1" max="89.9" step="1" value="30" inputmode="decimal" aria-label="Second angle (degrees)" /></div>
-    <div class="sm-sl hd-row" data-v="s"><b>s</b><input type="range" min="1" max="100" step="1" value="20" aria-label="Gap slider" /><input type="number" class="hd-s" min="0.1" step="1" value="20" inputmode="decimal" aria-label="Distance between the observers (m)" /></div>
-    <div class="sm-sl hd-row" data-v="e"><b>e</b><input type="range" min="0" max="3" step="0.1" value="0" aria-label="Eye height slider" /><input type="number" class="hd-e" min="0" step="0.1" value="0" inputmode="decimal" aria-label="Eye height (m)" /></div>
+    <div class="sm-sl hd-row" data-v="d"><b>d</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Distance slider" /><input type="number" class="hd-d" data-k="d" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Distance from the foot (m)" /></div>
+    <div class="sm-sl hd-row" data-v="h"><b>h</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Height slider" /><input type="number" class="hd-h" data-k="h" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Height of the tower (m)" /></div>
+    <div class="sm-sl hd-row" data-v="a"><b>θ</b><input type="range" min="1" max="89" step="1" value="60" aria-label="Angle slider" /><input type="number" class="hd-a" data-k="a" min="0.1" max="89.9" step="1" value="60" inputmode="decimal" aria-label="Angle of elevation (degrees)" /></div>
+    <div class="sm-sl hd-row" data-v="b"><b>φ</b><input type="range" min="1" max="89" step="1" value="30" aria-label="Second angle slider" /><input type="number" class="hd-b" data-k="b" min="0.1" max="89.9" step="1" value="30" inputmode="decimal" aria-label="Second angle (degrees)" /></div>
+    <div class="sm-sl hd-row" data-v="s"><b>s</b><input type="range" min="1" max="100" step="1" value="20" aria-label="Gap slider" /><input type="number" class="hd-s" data-k="s" min="0.1" step="1" value="20" inputmode="decimal" aria-label="Distance between the observers (m)" /></div>
+    <div class="sm-sl hd-row" data-v="e"><b>e</b><input type="range" min="0" max="3" step="0.1" value="0" aria-label="Eye height slider" /><input type="number" class="hd-e" data-k="e" min="0" step="0.1" value="0" inputmode="decimal" aria-label="Eye height (m)" /></div>
     <p class="ax-help hd-key"></p>
     <p class="ax-err hd-err" hidden></p>
   </div>
 
   <div class="ax-card">
     <h2>Solve it, step by step</h2>
-    <p class="ax-big hd-ans" aria-live="polite"></p>
+    <p class="ax-big hd-ans" aria-live="polite" data-k="answer"></p>
     <ol class="sm-steps hd-steps"></ol>
+    <details>
+      <summary>Common mistakes</summary>
+      <ul class="sm-try">
+        <li>Measuring the angle of depression from the vertical. It is measured down from the horizontal level line, and it equals the angle of elevation seen from the object.</li>
+        <li>Forgetting the observer's height: the triangle starts at the eye, so add the eye height to the answer.</li>
+        <li>Using the wrong side: height is opposite the angle, distance along the ground is adjacent, so use tan (not sin or cos) when you have those two.</li>
+        <li>Mixing units: keep every length in the same unit. Angles here are in degrees, not radians.</li>
+      </ul>
+    </details>
   </div>
 
   <div class="ax-card">
@@ -66,7 +88,7 @@ import '../../styles/smath.css';
 </style>
 
 <script>
-  import { oneObserver, twoObservers, depression } from '../../lib/sci/heights-school';
+  import { oneObserver, twoObservers, depression, towerOnBuilding } from '../../lib/sci/heights-school';
   import { rad } from '../../lib/sci/trig-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
@@ -84,8 +106,11 @@ import '../../styles/smath.css';
     same: { a: 'θ = angle from the nearer person', b: 'φ = angle from the farther person', s: 's = gap between them (m)', e: 'e = eye height (m)' },
     opp: { a: 'θ = angle from the left person', b: 'φ = angle from the right person', s: 's = distance between them (m)', e: 'e = eye height (m)' },
     down: { h: 'h = height of the tower or cliff (m)', a: 'θ = angle of depression' },
+    stack: { d: 'd = distance from the foot of the building (m)', a: 'θ = angle of elevation of the top of the tower', b: 'φ = angle of elevation of the top of the building' },
   };
   let mode = 'one', find = 'height';
+  const unit = q<HTMLSelectElement>('.hd-unit');
+  const uu = (t: string) => (unit.value === 'm' ? t : t.replace(/(\d|\)) m\b/g, `$1 ${unit.value}`).replace(/\(m\)/g, `(${unit.value})`));
   const tn = (a: number) => Math.tan(rad(a));
   const t4 = (a: number) => fmt(tn(a), 4);
 
@@ -142,6 +167,22 @@ import '../../styles/smath.css';
     });
   }
 
+  function sceneStack(d: number, hb: number, ht: number, a: number, b: number) {
+    fig.replaceChildren();
+    const k = Math.min(240 / d, 190 / ht); world = { ox: 35, gy: 230, k };
+    const X = (x: number) => world.ox + x * k, Y = (y: number) => world.gy - y * k;
+    S('line', { x1: 5, x2: 335, y1: world.gy, y2: world.gy, class: 'hd-ground' }, fig);
+    S('rect', { x: X(d) - 20, y: Y(hb), width: 40, height: hb * k, class: 'hd-tower' }, fig);
+    S('rect', { x: X(d) - 6, y: Y(ht), width: 12, height: (ht - hb) * k, class: 'hd-tower', style: 'fill:var(--accent-soft)' }, fig);
+    person(X(0), world.gy);
+    S('line', { x1: X(0), y1: world.gy, x2: X(d), y2: Y(ht), class: 'hd-sight' }, fig);
+    S('line', { x1: X(0), y1: world.gy, x2: X(d) - 20, y2: Y(hb), class: 'hd-sight' }, fig);
+    S('text', { x: X(d) - 28, y: Y(hb / 2), 'text-anchor': 'end', class: 'sm-tick' }, fig, `building ${fmt(hb, 2)} m`);
+    S('text', { x: X(d) + 10, y: Y((hb + ht) / 2) + 4, class: 'sm-tick' }, fig, `tower ${fmt(ht - hb, 2)} m`);
+    S('text', { x: (X(0) + X(d)) / 2, y: world.gy + 18, 'text-anchor': 'middle', class: 'sm-tick' }, fig, `${fmt(d, 2)} m`);
+    S('text', { x: X(0) + 34, y: world.gy - 6, class: 'sm-tick' }, fig, `φ ${fmt(b, 1)}°, θ ${fmt(a, 1)}°`);
+  }
+
   function draw() {
     const err = q('.hd-err'); err.hidden = true;
     const d = val(box.d, 30, 0.01, 1e6), h = val(box.h, 30, 0.01, 1e6), a = val(box.a, 60, 0.1, 89.9), b = val(box.b, 30, 0.1, 89.9), s = val(box.s, 20, 0.01, 1e6), e = val(box.e, 0, 0, 100);
@@ -149,7 +190,7 @@ import '../../styles/smath.css';
     q('.hd-findrow').hidden = mode !== 'one';
     for (const k in rows) rows[k].classList.remove('found');
     const L = LABELS[mode];
-    q('.hd-key').textContent = Object.values(L).join('; ') + '.';
+    q('.hd-key').textContent = uu(Object.values(L).join('; ') + '.');
     const steps: string[] = []; let ans = '';
     if (mode === 'one') {
       show(['d', 'h', 'a', 'e']);
@@ -196,6 +237,16 @@ import '../../styles/smath.css';
         scene({ towerX: r.x1, h: r.h + e, e, people: [{ x: 0, ang: a }, { x: s, ang: b }] });
       }
       if (e) steps.push(`Add the eye height: ${fmt(r.h, 3)} + ${fmt(e)} = ${fmt(r.h + e, 3)} m.`);
+    } else if (mode === 'stack') {
+      show(['d', 'a', 'b']);
+      q('.hd-note').textContent = 'A tower or flagstaff stands on top of a building. From a point on the ground you measure the angle to the top of the tower and to the top of the building.';
+      const r = towerOnBuilding(d, a, b);
+      if (!r) { err.textContent = 'The top of the tower is higher than the top of the building, so θ must be bigger than φ.'; err.hidden = false; q('.hd-ans').textContent = ''; q('.hd-steps').replaceChildren(); fig.replaceChildren(); return; }
+      ans = `Tower ≈ ${fmt(r.tower, 2)} m (building ${fmt(r.building, 2)} m, together ${fmt(r.total, 2)} m)`;
+      steps.push(`Building: tan φ = (height of building) / d, so the building is d × tan φ = ${fmt(d)} × tan ${fmt(b, 1)}° = ${fmt(d)} × ${t4(b)} = ${fmt(r.building, 3)} m.`);
+      steps.push(`Building and tower together: d × tan θ = ${fmt(d)} × tan ${fmt(a, 1)}° = ${fmt(d)} × ${t4(a)} = ${fmt(r.total, 3)} m.`);
+      steps.push(`Tower = total − building = ${fmt(r.total, 3)} − ${fmt(r.building, 3)} = ${fmt(r.tower, 3)} m.`);
+      sceneStack(d, r.building, r.total, a, b);
     } else {
       show(['h', 'a']);
       q('.hd-note').textContent = 'Someone at the top looks down at an object on the ground. The angle of depression is measured down from the level line.';
@@ -205,8 +256,9 @@ import '../../styles/smath.css';
       steps.push(`tan θ = h / x, so x = h / tan θ = ${fmt(h)} / ${t4(a)} = ${fmt(x, 3)} m.`);
       scene({ towerX: x, h, e: 0, people: [{ x: 0, ang: a }], down: a });
     }
-    q('.hd-ans').textContent = ans;
-    q('.hd-steps').replaceChildren(...steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q('.hd-ans').textContent = uu(ans);
+    q('.hd-steps').replaceChildren(...steps.map((t) => Object.assign(document.createElement('li'), { textContent: uu(t) })));
+    fig.querySelectorAll('text').forEach((t) => { t.textContent = uu(t.textContent ?? ''); });
   }
 
   dragOn(fig, (x, y) => {
@@ -229,10 +281,20 @@ import '../../styles/smath.css';
     if (mode === 'same') { set.a(60); set.b(30); set.s(20); }
     if (mode === 'opp') { set.a(60); set.b(30); set.s(80); }
     if (mode === 'down') { set.h(75); set.a(30); }
+    if (mode === 'stack') { set.d(30); set.a(60); set.b(45); }
     draw();
   }));
   root.querySelectorAll<HTMLButtonElement>('.hd-find button').forEach((btn) => btn.addEventListener('click', () => {
     find = btn.dataset.f!; root.querySelectorAll('.hd-find button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    draw();
+  }));
+  unit.addEventListener('change', draw);
+  root.querySelectorAll<HTMLButtonElement>('.hd-pre button').forEach((btn) => btn.addEventListener('click', () => {
+    const [m, f, d, h, a, b, s, e] = btn.dataset.hp!.split(',');
+    (root.querySelector(`.hd-mode button[data-m="${m}"]`) as HTMLButtonElement).click();
+    if (m === 'one') (root.querySelector(`.hd-find button[data-f="${f}"]`) as HTMLButtonElement).click();
+    const put = (k: string, v: string) => { if (v !== '') set[k](Number(v)); };
+    put('d', d); put('h', h); put('a', a); put('b', b); put('s', s); put('e', e);
     draw();
   }));
   draw();
