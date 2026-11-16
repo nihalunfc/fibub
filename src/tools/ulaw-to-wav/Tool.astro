@@ -1,0 +1,132 @@
+---
+// #T957 U-law to WAV: play phone-system recordings (.ulaw, .alaw, .sln, .au, u-law/A-law WAV) and save them as normal 16-bit WAV.
+// Kit: src/lib/audio/ (checks in tests/audio.mjs). Nothing is uploaded.
+---
+<div class="tool-ui u2w">
+  <section class="panel">
+    <div class="u2w-drop">
+      <button type="button" class="btn u2w-open">Open phone recordings</button>
+      <input class="u2w-file" type="file" multiple hidden />
+      <span class="u2w-hint">.ulaw, .alaw, .sln, .au, .pcm or WAV. Or drop them here. Up to 50 files, 200 MB each. They stay on this device.</span>
+    </div>
+    <p class="note bad u2w-err" hidden></p>
+  </section>
+
+  <section class="panel">
+    <p class="u2w-fine">WAV and .au files say how they are coded. Raw files have no header, so the name decides (.ulaw is u-law, .alaw is A-law, .sln is 16-bit, .sln16 is 16 kHz). For any other name, or if one sounds like noise, set it here:</p>
+    <div class="u2w-grid">
+      <label>Raw files are
+        <select class="u2w-kind"><option value="auto">Guess from the name</option><option value="ulaw">u-law (8-bit)</option><option value="alaw">A-law (8-bit)</option><option value="sln">16-bit signed linear</option></select>
+      </label>
+      <label>Raw file sample rate
+        <select class="u2w-rate"><option value="auto">Guess from the name</option><option value="8000">8,000 Hz (phone calls)</option><option value="16000">16,000 Hz (HD voice)</option><option value="44100">44,100 Hz</option><option value="48000">48,000 Hz</option></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="panel u2w-out" hidden>
+    <ol class="u2w-list"></ol>
+    <div class="u2w-row">
+      <button type="button" class="btn u2w-all">Download all</button>
+      <button type="button" class="btn secondary u2w-clear">Clear the list</button>
+    </div>
+  </section>
+  <p class="u2w-fine">Saves a 16-bit PCM WAV at the recording's own sample rate, which every player and editor opens.</p>
+</div>
+
+<style is:inline>
+  .u2w { display: grid; gap: 14px; margin-bottom: 32px; }
+  .u2w .panel { display: grid; gap: 12px; padding: 16px; }
+  .u2w-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .u2w-drop.over { border-color: var(--accent); }
+  .u2w-hint, .u2w-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .u2w-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .u2w label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .u2w select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .u2w-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .u2w-list li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .u2w-list .nm { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+  .u2w-list .st { color: var(--muted); font-size: 14px; flex: 1 1 100%; }
+  .u2w-list .st.bad { color: var(--bad, #b00020); }
+  .u2w-row { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+
+<script>
+  import { readWav, readAu, readRaw, guessRaw, writeWav, wavInfo, type Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, baseName, sizeText, secs, saveBytes, saveZip, player } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.u2w') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.u2w-file'), kindSel = $<HTMLSelectElement>('.u2w-kind'), rateSel = $<HTMLSelectElement>('.u2w-rate');
+  const list = $('.u2w-list'), err = $('.u2w-err'), all = $<HTMLButtonElement>('.u2w-all');
+  type Item = { file: File; buf?: ArrayBuffer; li: HTMLElement; snd?: Sound; how?: string; error?: string; raw?: boolean };
+  let items: Item[] = [];
+  const play = player();
+  const KIND: Record<string, string> = { ulaw: 'u-law', alaw: 'A-law', sln: '16-bit linear' };
+  const FMT: Record<number, string> = { 1: 'PCM', 3: 'floating point', 6: 'A-law', 7: 'u-law' };
+
+  const read = async (it: Item) => {
+    it.error = undefined; it.snd = undefined; it.raw = false;
+    const buf = it.buf!, w = wavInfo(buf);
+    if (w) {
+      const s = readWav(buf);
+      if (s) { it.snd = s; it.how = `WAV, ${FMT[w.format] ?? 'format ' + w.format} ${w.bits}-bit`; return; }
+      try { it.snd = await decodeFile(buf); it.how = 'WAV'; } catch { it.error = `This WAV is coded as format ${w.format}, which this page cannot read.`; }
+      return;
+    }
+    const au = readAu(buf);
+    if (au) { it.snd = au; it.how = `.au, ${au.encoding}`; return; }
+    const g = guessRaw(it.file.name);
+    const kind = (kindSel.value === 'auto' ? g?.kind : kindSel.value) as 'ulaw' | 'alaw' | 'sln' | undefined;
+    const rate = rateSel.value === 'auto' ? g?.rate ?? 8000 : +rateSel.value;
+    if (kind) { it.raw = true; it.snd = { rate, chans: [readRaw(new Uint8Array(buf), kind)] }; it.how = `raw ${KIND[kind]}, ${rate.toLocaleString('en-US')} Hz`; return; }
+    try { it.snd = await decodeFile(buf); it.how = 'read by the browser'; }
+    catch { it.error = 'Unknown kind of file. If it is a raw phone recording, choose u-law, A-law or 16-bit above.'; }
+  };
+  const wavOf = (it: Item) => writeWav(it.snd!.chans, it.snd!.rate, 1);
+  const render = (it: Item) => {
+    const li = it.li; li.replaceChildren();
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = it.file.name; li.append(nm);
+    if (it.snd) {
+      const p = document.createElement('button'); p.type = 'button'; p.className = 'btn secondary u2w-play'; p.textContent = 'Play';
+      p.addEventListener('click', () => {
+        if (p.textContent === 'Stop') { play.stop(); p.textContent = 'Play'; return; }
+        list.querySelectorAll('.u2w-play').forEach((b) => (b.textContent = 'Play'));
+        p.textContent = 'Stop'; play.play(it.snd!.chans, it.snd!.rate, () => (p.textContent = 'Play'));
+      });
+      const d = document.createElement('button'); d.type = 'button'; d.className = 'btn u2w-save'; d.textContent = 'Download WAV';
+      d.addEventListener('click', () => saveBytes(wavOf(it), baseName(it.file.name) + '.wav', 'audio/wav'));
+      li.append(p, d);
+    }
+    const st = document.createElement('span'); st.className = 'st' + (it.error ? ' bad' : '');
+    const s = it.snd;
+    st.textContent = it.error ?? (s ? `${it.how}: ${secs(s.chans[0].length / s.rate)}, ${s.chans.length === 1 ? 'mono' : s.chans.length + ' channels'}. WAV ${sizeText(44 + s.chans[0].length * s.chans.length * 2)}.` : 'Reading…');
+    li.append(st);
+  };
+  const summary = () => {
+    const ok = items.filter((i) => i.snd);
+    $('.u2w-out').hidden = !items.length; all.hidden = ok.length < 2; all.textContent = `Download all ${ok.length} as a ZIP`;
+  };
+  const add = async (files: File[]) => {
+    err.hidden = true;
+    const room = Math.max(0, 50 - items.length);
+    if (files.length > room) { err.textContent = `Only 50 files at a time: ${files.length - room} were left out.`; err.hidden = false; files = files.slice(0, room); }
+    const fresh = files.map((file) => { const li = document.createElement('li'); list.append(li); const it: Item = { file, li }; items.push(it); render(it); return it; });
+    summary();
+    for (const it of fresh) {
+      if (it.file.size > 200e6) it.error = 'Too big: files up to 200 MB.';
+      else { it.buf = await it.file.arrayBuffer(); await read(it); }
+      render(it); summary();
+    }
+  };
+  const reread = async () => { play.stop(); for (const it of items) if (it.buf && (it.raw || it.error)) { await read(it); render(it); } summary(); };
+
+  $('.u2w-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.length) add([...input.files]); input.value = ''; });
+  const drop = $('.u2w-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]); });
+  kindSel.addEventListener('change', reread); rateSel.addEventListener('change', reread);
+  all.addEventListener('click', () => saveZip(items.filter((i) => i.snd).map((i) => ({ name: baseName(i.file.name) + '.wav', bytes: wavOf(i) })), 'phone-recordings.zip'));
+  $('.u2w-clear').addEventListener('click', () => { play.stop(); items = []; list.replaceChildren(); summary(); });
+</script>
