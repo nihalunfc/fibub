@@ -1,0 +1,161 @@
+---
+// Shared page for #T967 Video compressor, #T968 Rotate video and #T969 Mute video. Engine: src/lib/video/convert.ts
+// (Mediabunny + the browser's WebCodecs encoder). The video never leaves the device.
+interface Props { mode: 'compress' | 'rotate' | 'mute' }
+const { mode } = Astro.props;
+---
+<div class="tool-ui vj" data-mode={mode}>
+  <p class="note bad vj-none" hidden>This browser cannot encode video. Use a recent Chrome, Edge, Safari (16.4 or later) or Firefox (130 or later).</p>
+  <section class="panel">
+    <div class="vj-drop">
+      <button type="button" class="btn vj-open">Open a video</button>
+      <input class="vj-file" type="file" accept="video/*,.mp4,.mov,.m4v,.webm,.mkv" hidden />
+      <span class="vj-name">Or drop it here. MP4, MOV, WebM or MKV, up to 2 GB. It stays on this device.</span>
+    </div>
+    <p class="note bad vj-err" hidden></p>
+  </section>
+
+  <section class="panel vj-set" hidden>
+    <video class="vj-video" controls playsinline preload="metadata" muted></video>
+    {mode === 'compress' && (
+      <div class="vj-grid">
+        <label>Make it
+          <select class="vj-how">
+            <option value="level-0.5">Smaller, good quality</option>
+            <option value="level-0.25">Much smaller, fair quality</option>
+            <option value="level-0">Smallest, low quality</option>
+            <option value="size">Fit a size I choose</option>
+          </select>
+        </label>
+        <label class="vj-mb-l" hidden>Target size (MB) <input class="vj-mb" type="number" min="1" max="4000" step="1" value="25" inputmode="numeric" /></label>
+        <label>Picture size
+          <select class="vj-h"><option value="0">Keep</option><option value="1080">1080p</option><option value="720" selected>720p</option><option value="480">480p</option><option value="360">360p</option></select>
+        </label>
+        <label class="vj-check"><input class="vj-mute" type="checkbox" /> Remove the sound</label>
+      </div>
+    )}
+    {mode === 'rotate' && (
+      <div class="vj-grid">
+        <label>Turn
+          <select class="vj-rot"><option value="90">90° clockwise</option><option value="270">90° anticlockwise</option><option value="180">Upside down (180°)</option><option value="0">Don't turn</option></select>
+        </label>
+        <label class="vj-check"><input class="vj-flip" type="checkbox" /> Mirror (flip left to right)</label>
+        <label class="vj-check"><input class="vj-bake" type="checkbox" /> Turn the pixels themselves (slower; for players that ignore the turn flag)</label>
+      </div>
+    )}
+    {mode === 'mute' && <p class="vj-fine">The picture is copied exactly as it is, so this takes seconds and loses nothing.</p>}
+    <p class="vj-plan" aria-live="polite"></p>
+    <div class="vj-row">
+      <button type="button" class="btn vj-go">{mode === 'compress' ? 'Compress' : mode === 'rotate' ? 'Turn the video' : 'Remove the sound'}</button>
+      <button type="button" class="btn secondary vj-cancel" hidden>Cancel</button>
+    </div>
+    <progress class="vj-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel vj-out" hidden>
+    <video class="vj-result" controls playsinline></video>
+    <p class="vj-res" aria-live="polite"></p>
+    <button type="button" class="btn vj-dl">Download</button>
+  </section>
+  <p class="vj-fine">Your browser does the work on this device with its built-in video encoder. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .vj { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vj .panel { display: grid; gap: 12px; padding: 16px; }
+  .vj [hidden] { display: none !important; }
+  .vj-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .vj-drop.over { border-color: var(--accent); }
+  .vj-name, .vj-fine, .vj-plan, .vj-res { color: var(--muted); font-size: 14px; margin: 0; }
+  .vj-video, .vj-result { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; }
+  .vj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
+  .vj label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vj label.vj-check { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .vj label.vj-check input { width: auto; margin-top: 3px; }
+  .vj input, .vj select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .vj-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vj-prog { width: 100%; }
+</style>
+
+<script>
+  import { sizeText, saveBytes } from '../../lib/audio/browser.ts';
+  import type { VideoJob, JobResult } from '../../lib/video/convert.ts';
+  const root = document.querySelector('.vj') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T | null;
+  const mode = root.dataset.mode as 'compress' | 'rotate' | 'mute';
+  const input = $<HTMLInputElement>('.vj-file')!, video = $<HTMLVideoElement>('.vj-video')!, err = $('.vj-err')!, plan = $('.vj-plan')!;
+  const go = $<HTMLButtonElement>('.vj-go')!, cancelB = $<HTMLButtonElement>('.vj-cancel')!, prog = $<HTMLProgressElement>('.vj-prog')!;
+  if (typeof (window as any).VideoEncoder === 'undefined' && mode !== 'mute') { $('.vj-none')!.hidden = false; }
+  let file: File | null = null, dur = 0, url = '', outUrl = '', result: JobResult | null = null, base = 'video';
+  const sig: { cancel?: () => void } = {};
+
+  const job = (): VideoJob => {
+    if (mode === 'mute') return { mute: true };
+    if (mode === 'rotate') return { rotate: +$<HTMLSelectElement>('.vj-rot')!.value as 0 | 90 | 180 | 270, flip: $<HTMLInputElement>('.vj-flip')!.checked, reencode: $<HTMLInputElement>('.vj-bake')!.checked };
+    const how = $<HTMLSelectElement>('.vj-how')!.value, mute = $<HTMLInputElement>('.vj-mute')!.checked, h = +$<HTMLSelectElement>('.vj-h')!.value;
+    const height = h && video.videoHeight && h < Math.min(video.videoWidth, video.videoHeight) ? h : 0;
+    if (how === 'size') {
+      const total = (+$<HTMLInputElement>('.vj-mb')!.value * 1e6 * 8 * 0.98) / Math.max(0.1, dur);
+      return { height, mute, bitrate: Math.max(100_000, Math.round(total - (mute ? 0 : 128_000))) };
+    }
+    return { height, mute, level: +how.slice(6) };
+  };
+  const update = () => {
+    if (!file) return;
+    if (mode === 'compress') {
+      const how = $<HTMLSelectElement>('.vj-how')!.value;
+      $('.vj-mb-l')!.hidden = how !== 'size';
+      const j = job();
+      plan!.textContent = how === 'size'
+        ? `About ${(j.bitrate! / 1e6).toFixed(2)} Mbit/s for the picture over ${dur.toFixed(1)} s, aiming for ${$<HTMLInputElement>('.vj-mb')!.value} MB (now ${sizeText(file.size)}).` + (j.bitrate! < 300_000 ? ' That is very low: expect a blurry picture, or choose a smaller picture size.' : '')
+        : `Now ${sizeText(file.size)}, ${video.videoWidth} × ${video.videoHeight}. The new size depends on the picture; press Compress to see it.`;
+    } else if (mode === 'rotate') {
+      const j = job();
+      plan!.textContent = j.reencode ? 'The picture will be encoded again, which takes about as long as playing it, or less.' : 'The video keeps every pixel and gets a "turn" flag that phones, browsers and most players follow. It takes seconds.';
+    } else plan!.textContent = `Now ${sizeText(file.size)}.`;
+  };
+  const open = (f: File) => {
+    err.hidden = true; file = f; base = f.name.replace(/\.[^.]+$/, '') || 'video';
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(f); video.src = url; $('.vj-out')!.hidden = true;
+    $('.vj-name')!.textContent = `${f.name}: opening…`;
+    if (f.size > 2e9) { err.textContent = 'Too big: videos up to 2 GB.'; err.hidden = false; file = null; }
+  };
+  video.addEventListener('loadedmetadata', () => {
+    dur = video.duration; $('.vj-set')!.hidden = false;
+    $('.vj-name')!.textContent = `${file?.name}: ${dur.toFixed(1)} s, ${video.videoWidth} × ${video.videoHeight}, ${sizeText(file?.size ?? 0)}.`;
+    update();
+  });
+  video.addEventListener('error', () => { if (!file) return; dur = 0; $('.vj-set')!.hidden = false; $('.vj-name')!.textContent = `${file.name}: ${sizeText(file.size)}. This browser cannot preview it, but may still convert it.`; update(); });
+  go.addEventListener('click', async () => {
+    if (!file) return;
+    err.hidden = true; go.disabled = true; cancelB.hidden = false; prog.hidden = false; prog.value = 0;
+    const t0 = performance.now();
+    try {
+      const { runJob } = await import('../../lib/video/convert.ts');
+      result = await runJob(file, job(), (p) => (prog.value = p), sig);
+      if (outUrl) URL.revokeObjectURL(outUrl);
+      outUrl = URL.createObjectURL(new Blob([result.bytes], { type: result.mime }));
+      $<HTMLVideoElement>('.vj-result')!.src = outUrl;
+      const pct = Math.round((1 - result.bytes.length / file.size) * 100);
+      $('.vj-res')!.textContent = `Done in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${sizeText(result.bytes.length)} ${result.ext.toUpperCase()}` +
+        (mode === 'compress' ? (pct > 0 ? `, ${pct}% smaller than the original.` : ', no smaller than the original: try a lower setting or a smaller picture.') : '.') + (result.note.length ? ' ' + result.note.join(' ') : '');
+      $('.vj-out')!.hidden = false;
+    } catch (e) {
+      const m = (e as Error)?.name === 'ConversionCanceledError' || /cancel/i.test(String((e as Error)?.message)) ? 'Cancelled.'
+        : (e as Error)?.message === 'no-video' ? 'There is no video picture in this file.'
+        : 'This browser could not convert this video. Try Chrome or Edge, or another file.';
+      err.textContent = m; err.hidden = false;
+    }
+    go.disabled = false; cancelB.hidden = true; prog.hidden = true;
+  });
+  cancelB.addEventListener('click', () => sig.cancel?.());
+  $('.vj-dl')!.addEventListener('click', () => { if (result) saveBytes(new Blob([result.bytes], { type: result.mime }), `${base}-${mode === 'compress' ? 'small' : mode === 'rotate' ? 'turned' : 'no-sound'}.${result.ext}`); });
+  root.querySelectorAll('select, input:not([type=file])').forEach((el) => el.addEventListener('input', update));
+  $('.vj-open')!.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); });
+  const drop = $('.vj-drop')!;
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>

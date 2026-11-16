@@ -50,3 +50,9 @@ License, version 3 (LGPL-3.0), not the Apache License. It is used unmodified
 and loaded as its own file only when someone saves an MP3, so it can be
 replaced with any compatible version. Its source and licence are at the links
 above and in node_modules/@breezystack/lamejs/LICENSE when installed.
+
+The video tools (compressor, rotate, mute, video info) use Mediabunny by
+Vanilagy (https://github.com/Vanilagy/mediabunny), licensed under the Mozilla
+Public License 2.0 (MPL-2.0), not the Apache License. It is used unmodified
+and loaded as its own file only on those pages; its source is at the link
+above and in node_modules/mediabunny when installed.
