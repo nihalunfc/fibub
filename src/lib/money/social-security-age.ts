@@ -31,3 +31,34 @@ export function breakEven(pia: number, a: number, b: number, fra: number): numbe
 }
 /** Total paid from starting age `start` (months) to age `until` (years), in today's dollars. */
 export const totalTo = (pia: number, start: number, until: number, fra: number) => Math.max(0, until * 12 - start) * benefit(pia, start, fra);
+
+/**
+ * Same as totalTo, but with a yearly cost-of-living adjustment (COLA) added from the year you turn 62
+ * (SSA applies each COLA to everyone getting or eligible for benefits). cola 0 gives the same as totalTo.
+ * fibub's own simple model: a yearly percentage that you choose, not a forecast.
+ */
+export function totalToCola(pia: number, start: number, until: number, fra: number, cola: number): number {
+  const base = benefit(pia, start, fra), end = Math.round(until * 12);
+  let t = 0;
+  for (let m = Math.round(start); m < end; m++) t += base * Math.pow(1 + cola, Math.max(0, Math.floor(m / 12) - 62));
+  return t;
+}
+/** Cumulative benefits paid by each whole age from 62 to `maxAge` (index 0 = age 62). */
+export function cumulativeByAge(pia: number, start: number, fra: number, cola: number, maxAge: number): number[] {
+  const out: number[] = [];
+  for (let a = 62; a <= maxAge; a++) out.push(totalToCola(pia, start, a, fra, cola));
+  return out;
+}
+/** Age (years) when starting later at `b` has caught up with starting at `a`, scanning month by month up to age 110; null if never. */
+export function breakEvenCola(pia: number, a: number, b: number, fra: number, cola: number): number | null {
+  if (b <= a) return null;
+  const ba = benefit(pia, a, fra), bb = benefit(pia, b, fra);
+  if (bb <= ba) return null;
+  let ca = 0, cb = 0;
+  for (let m = Math.round(a); m < 110 * 12; m++) {
+    const g = Math.pow(1 + cola, Math.max(0, Math.floor(m / 12) - 62));
+    ca += ba * g; if (m >= b) cb += bb * g;
+    if (m >= b && cb >= ca) return (m + 1) / 12;
+  }
+  return null;
+}

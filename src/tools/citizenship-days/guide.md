@@ -11,7 +11,7 @@ ads: false
 order: 2049
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [crs-calculator, tax-residency-days, date-calculator]
 sources:
   - "IRCC, Check if you are eligible to apply for citizenship, https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/adult-minor/who/check-adult-eligibility.html (modified 2025-09-11, checked 2026-11-10): 1,095 days in the 5 years before applying; temporary resident or protected person days before PR count as half days, up to 365."
@@ -46,6 +46,13 @@ Rules from IRCC's eligibility page and paper calculator (form CIT 0407), checked
 ## Worked example
 
 You became a PR on 1 January 2023, have no time before that and no trips. The earliest date to apply is **31 December 2025**: from 1 January 2023 to 30 December 2025 is exactly 1,095 days. Add 400 days in Canada as a student before PR and they give 200 days of credit, so you could apply on 14 June 2025. A trip from 1 to 6 July 2024 is 4 full days away and moves the first case to 4 January 2026.
+
+## More options
+
+- **Progress bar and spare days**: a bar shows how close you are to 1,095 days. Once you have enough, "Spare days" says how many more days you could be away and still have 1,095; before that, "Days still needed" says how many you are short.
+- **Five-year window**: the table shows the exact first and last day counted, so you can check them against IRCC's own calculator.
+- **Trips summary**: the total of full days away across all trips you listed.
+- **Paste many trips at once**: open "Paste many trips at once" and add one trip per line as two dates (2024-07-01 to 2024-07-06). Lines that are not two valid dates are skipped and counted.
 
 ## FAQs
 

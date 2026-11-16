@@ -12,7 +12,7 @@ ads: true
 order: 1787
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [cpp-oas-age, retirement-planner]
 sources:
   - "Full retirement age by year of birth: SSA, https://www.ssa.gov/oact/progdata/nra.html (checked 2026-11-10)"
@@ -47,6 +47,11 @@ Fit the benefit into your whole plan with the [[retirement-planner]], or see Can
 ## Worked example
 
 Jordan was born in 1964, so full retirement age is 67, and the statement shows $2,000 a month at 67. Starting at 62 pays 70%, **$1,400** a month. Waiting until 70 pays 124%, **$2,480**. Starting at 67 rather than 62 pays more in total after **age 78.7**; waiting until 70 rather than 62 pays more after **age 80.4**; 70 rather than 67, after 82.5.
+
+## More options
+
+- **A chart** of the total received by each age if you start at 62, at your full retirement age, or at 70, so you can see where the lines cross.
+- **Yearly cost-of-living increase (COLA)**, under More options: type a guess such as 2.5 to include future raises (applied from the year you turn 62) in the totals, the chart and the break-even ages. It is your own assumption, not a forecast. 0 keeps today's dollars.
 
 ## FAQs
 

@@ -12,7 +12,7 @@ ads: true
 order: 1738
 icon: book
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [compound-interest, sip-calculator, rrsp-tfsa, budget-calculator]
 sources:
   - "CESG: 20% of the first $2,500 a year, $500 a year, up to $1,000 a year with unused room, $7,200 lifetime, until the end of the year the child turns 17, and the rules for ages 16 and 17; additional CESG 20% or 10% on the first $500 by adjusted family net income: CRA, Canada Education Savings Grant, https://www.canada.ca/en/revenue-agency/services/tax/individuals/topics/registered-education-savings-plans-resps/canada-education-savings-programs-cesp/canada-education-savings-grant-cesg.html (checked 2026-11-10)"
@@ -51,6 +51,12 @@ This calculator works out the grants year by year, including catch-up for years 
 You start at birth and put in $2,500 a year at 5%. The CESG adds $500 a year. After 14 years it has paid $7,000, and in the year the child turns 14 it pays the last $200, so the $7,200 limit is reached (14.4 years of full grants). You put in $45,000 by age 18 and the RESP grows to $86,597.
 
 Start at age 5 with $5,000 a year and catch-up gives $1,000 a year for five years.
+
+## More options
+
+- **How much for the full grant?** The page works out the smallest yearly amount (to the nearest $50) that collects the most CESG possible from the child's age, and compares it with yours, with the monthly equivalent.
+- **What the pot is made of**: stacked bars by year show what you put in, grants and Learning Bond, and growth.
+- **Today's dollars**: under More options, type a yearly price rise to see the end balance in today's money.
 
 ## FAQs
 

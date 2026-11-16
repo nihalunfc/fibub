@@ -16,4 +16,14 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent(R + '.cd-trip span')).includes('4 days away') && (await date()) === '2026-01-04', `citizenship: trip 1-6 July is 4 days away -> 2026-01-04 (${await date()})`);
   await set('on', '2025-01-01');
   check((await page.textContent(R + '.cd-say')).includes('short of 1,095'), 'citizenship: an early date is short');
+  await set('on', '2026-01-04'); await page.waitForTimeout(80);
+  check((await page.getAttribute(R + '.cd-tab', 'data-spare')) === '0' && (await page.textContent(R + '.cd-tab')).includes('Spare days'), 'citizenship: on the earliest date there are 0 spare days');
+  await set('on', '2025-01-01');
+  check((await page.getAttribute(R + '.cd-tab', 'data-short')) !== '0' && (await page.textContent(R + '.cd-tab')).includes('Days still needed'), 'citizenship: early date shows days still needed');
+  await set('on', '2026-02-04');
+  check((await page.getAttribute(R + '.cd-tab', 'data-spare')) === '31', 'citizenship: a month later gives 31 spare days');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); await page.waitForTimeout(80);
+  await page.fill(R + '[data-k="paste"]', '2025-03-01 to 2025-03-11\nnot a trip\n2025-05-01, 2025-05-03'); await page.click(R + '.cd-addall'); await page.waitForTimeout(150);
+  check((await page.textContent(R + '.cd-pnote')).includes('2 trips added, 1 line skipped') && (await page.$$(R + '.cd-trip')).length === 3, 'citizenship: pasted trips are added, bad lines skipped');
+  check((await page.getAttribute(R + '.cd-tab', 'data-spare')) === '21', 'citizenship: 9 + 1 more full days away leaves 31 - 10 = 21 spare days');
 };

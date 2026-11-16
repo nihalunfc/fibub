@@ -76,3 +76,13 @@ export function statePensionAge(y: number, m: number, d: number): { years: numbe
   if (key < 19780406) return { years: 67, months: 0, note: 'between 67 and 68: a set date from May 2044 to March 2046' };
   return { years: 68, months: 0, note: 'planned; the rise to 68 could change after a future review' };
 }
+
+/** Relief at source: what lands in the pot (gross) for a payment from your take-home pay. Provider adds 25% of what you pay (20% of the total). */
+export const grossFromPaid = (paid: number) => pos(paid) / 0.8;
+/** Gross yearly contribution from a percentage of salary. */
+export const grossFromPercent = (salary: number, percent: number) => pos(salary) * pos(percent) / 100;
+
+/** What-if rows: the same person paying in different gross amounts. */
+export function whatIf(inp: Input, amounts: number[]) {
+  return amounts.map((g) => { const r = relief({ ...inp, gross: g }); return { gross: g, cost: r.ras.cost, relief: r.ras.relief, rate: r.ras.rate, claim: r.ras.claim, over: r.excess > 0 }; });
+}

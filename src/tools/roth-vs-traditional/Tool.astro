@@ -6,17 +6,21 @@
     <h2>Your contributions</h2>
     <div class="rvt-grid">
       <label>Account <select class="rvt-plan"><option value="401k" selected>401(k), 403(b) or 457</option><option value="ira">IRA</option></select></label>
-      <label>Your age now <input class="rvt-age" inputmode="numeric" value="35" /></label>
-      <label>Put in each year (before tax) <span class="rvt-suf"><input class="rvt-amt" inputmode="decimal" value="6,000" /><i>$</i></span></label>
-      <label>Years until you retire <input class="rvt-yrs" inputmode="numeric" value="30" /></label>
-      <label>Yearly return <span class="rvt-suf"><input class="rvt-ret" inputmode="decimal" value="6" /><i>%</i></span></label>
-      <label>Tax rate now (federal + state) <span class="rvt-suf"><input class="rvt-now" inputmode="decimal" value="22" /><i>%</i></span></label>
-      <label>Tax rate in retirement <span class="rvt-suf"><input class="rvt-later" inputmode="decimal" value="12" /><i>%</i></span></label>
+      <label>Your age now <input class="rvt-age" data-k="age" inputmode="numeric" value="35" /></label>
+      <label>Put in each year (before tax) <span class="rvt-suf"><input class="rvt-amt" data-k="amount" inputmode="decimal" value="6,000" /><i>$</i></span></label>
+      <label>Years until you retire <input class="rvt-yrs" data-k="years" inputmode="numeric" value="30" /></label>
+      <label>Yearly return <span class="rvt-suf"><input class="rvt-ret" data-k="return" inputmode="decimal" value="6" /><i>%</i></span></label>
+      <label>Tax rate now (federal + state) <span class="rvt-suf"><input class="rvt-now" data-k="tax-now" inputmode="decimal" value="22" /><i>%</i></span></label>
+      <label>Tax rate in retirement <span class="rvt-suf"><input class="rvt-later" data-k="tax-later" inputmode="decimal" value="12" /><i>%</i></span></label>
       <label>Compare by <select class="rvt-basis">
         <option value="cost" selected>Same cost to my take-home pay</option>
         <option value="same">Same dollars into the account (at the limit)</option>
       </select></label>
-      <label class="rvt-side-l" hidden>Tax on returns of the invested tax saving <span class="rvt-suf"><input class="rvt-side" inputmode="decimal" value="15" /><i>%</i></span></label>
+      <label class="rvt-side-l" hidden>Tax on returns of the invested tax saving <span class="rvt-suf"><input class="rvt-side" data-k="side-tax" inputmode="decimal" value="15" /><i>%</i></span></label>
+    </div>
+    <div class="rvt-sl">
+      <label>Slide: tax rate in retirement <b class="rvt-sl-l"></b><input type="range" class="rvt-s-later" min="0" max="45" step="1" value="12" aria-label="Tax rate in retirement slider" /></label>
+      <label>Slide: tax rate now <b class="rvt-sl-n"></b><input type="range" class="rvt-s-now" min="0" max="45" step="1" value="22" aria-label="Tax rate now slider" /></label>
     </div>
     <p class="rvt-lim"></p>
   </section>
@@ -29,6 +33,11 @@
       <div><span>Break-even tax rate later</span><b class="rvt-be"></b></div>
     </div>
     <p class="rvt-line"></p>
+    <div class="panel rvt-ch">
+      <h2>Growth, after tax, year by year</h2>
+      <svg class="rvt-svg" viewBox="0 0 320 150" role="img" aria-label="Line chart of after-tax value each year, traditional and Roth"></svg>
+      <p class="rvt-key"><span class="k1"></span> Traditional <span class="k2"></span> Roth</p>
+    </div>
     <div class="panel rvt-tw">
       <h2>If your tax rate in retirement is...</h2>
       <table>
@@ -67,6 +76,10 @@
   .rvt th:first-child, .rvt td:first-child { text-align: left; }
   .rvt th { font-size: 12px; color: var(--muted); }
   .rvt tr.on td { font-weight: 700; background: var(--surface); }
+  .rvt-sl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-top: 12px; }
+  .rvt-sl input[type=range] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
+  .rvt-svg { width: 100%; height: auto; display: block; }
+  .rvt-key { font-size: 13px; color: var(--muted); margin: 6px 0 0; } .rvt-key span { display: inline-block; width: 18px; height: 3px; margin: 0 4px 3px 8px; vertical-align: middle; } .rvt-key .k1 { background: var(--accent); } .rvt-key .k2 { background: var(--ink); }
   .rvt-fine { color: var(--muted); font-size: 13px; margin: 0; }
   @media (max-width: 640px) { .rvt-stats { grid-template-columns: 1fr 1fr; } }
 </style>
@@ -80,7 +93,24 @@
   const $ = (n: number) => (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
   const p = (x: number) => `${Math.round(x * 1000) / 10}%`;
 
-  const update = () => {
+  const sync = (e?: Event) => {
+    const t = e?.target as HTMLElement | undefined;
+    for (const [sl, tx] of [['.rvt-s-later', '.rvt-later'], ['.rvt-s-now', '.rvt-now']]) {
+      const S = q<HTMLInputElement>(sl), T = q<HTMLInputElement>(tx);
+      if (t === S) T.value = S.value; else { const x = Math.max(0, Math.min(45, Math.round(v(tx)))); S.value = String(x); }
+    }
+  };
+  const chart = (rows: { year: number; trad: number; roth: number }[]) => {
+    const svg = q<SVGElement>('.rvt-svg'); svg.innerHTML = '';
+    if (rows.length < 2) return;
+    const max = Math.max(...rows.map((r) => Math.max(r.trad, r.roth)), 1), W = 320, H = 150, L = 6, B = 16;
+    const pt = (i: number, y: number) => `${(L + (i / (rows.length - 1)) * (W - L - 6)).toFixed(1)},${(H - B - (Math.max(0, y) / max) * (H - B - 8)).toFixed(1)}`;
+    const line = (k: 'trad' | 'roth', stroke: string) => `<polyline fill="none" stroke="${stroke}" stroke-width="2" points="${rows.map((r, i) => pt(i, r[k])).join(' ')}"/>`;
+    svg.innerHTML = `<line x1="${L}" y1="${H - B}" x2="${W - 6}" y2="${H - B}" stroke="var(--line)"/>` + line('trad', 'var(--accent)') + line('roth', 'var(--ink)') + `<text x="${L}" y="${H - 3}" font-size="10" fill="var(--muted)">Year 1</text><text x="${W - 6}" y="${H - 3}" font-size="10" text-anchor="end" fill="var(--muted)">Year ${rows.length}: ${$(rows[rows.length - 1].roth)} Roth, ${$(rows[rows.length - 1].trad)} traditional</text>`;
+  };
+  const update = (e?: Event) => {
+    sync(e);
+    q('.rvt-sl-l').textContent = `${Math.round(v('.rvt-later') * 10) / 10}%`; q('.rvt-sl-n').textContent = `${Math.round(v('.rvt-now') * 10) / 10}%`;
     const plan = q<HTMLSelectElement>('.rvt-plan').value as '401k' | 'ira';
     const basis = q<HTMLSelectElement>('.rvt-basis').value as 'cost' | 'same';
     q('.rvt-side-l').hidden = basis !== 'same';
@@ -92,6 +122,7 @@
     q('.rvt-lim').textContent = `2026 limit for you: ${$(lim)} a year${amount > lim ? ' (you are over it)' : ''}. ` + (plan === 'ira'
       ? `Roth IRA contributions phase out between ${$(ph.single[0])} and ${$(ph.single[1])} of income if single, ${$(ph.mfj[0])} to ${$(ph.mfj[1])} if married filing jointly.`
       : 'The 401(k) limit is shared between Roth and traditional; your employer match does not count toward it.');
+    chart(r.rows);
     q('.rvt-t').textContent = $(r.trad);
     q('.rvt-r').textContent = $(r.roth);
     q('.rvt-win').textContent = r.better === 'equal' ? 'A tie' : r.better === 'roth' ? 'Roth' : 'Traditional';

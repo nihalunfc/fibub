@@ -74,6 +74,18 @@
   <section class="panel crs-res" aria-live="polite">
     <p class="crs-big"></p>
     <table class="crs-tab"><tbody></tbody></table>
+    <details class="crs-more" open>
+      <summary>What would raise my score?</summary>
+      <p class="crs-hint">Each line changes one thing and shows the points gained and the new total. The list is for planning, not a promise: rules and tests decide.</p>
+      <ul class="crs-sug"></ul>
+      <p class="crs-hint crs-sugnone" hidden>Nothing here changes your score.</p>
+    </details>
+    <details class="crs-more">
+      <summary>Compare with a cut-off score</summary>
+      <p class="crs-hint">Type the lowest score of a recent Express Entry round (see IRCC's "Express Entry rounds of invitations" page). fibub does not list draws, so the number is yours.</p>
+      <label class="crs-one">Cut-off score <input data-k="cut" type="number" inputmode="numeric" min="0" max="1200" placeholder="e.g. 500" /></label>
+      <p class="crs-cmp"></p>
+    </details>
     <button type="button" class="crs-reset">Reset to the example</button>
   </section>
   <p class="crs-fine">Not affiliated with IRCC. Points grid from IRCC's <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/check-score/crs-criteria.html" rel="noopener">CRS criteria page</a> (updated 2026-11-03, checked 2026-11-10), including the Labour Market Integration change of 2026-11-03. Rules change: check the official source and IRCC's own score tool. Nothing you choose leaves this page, and no ID numbers are asked for.</p>
@@ -98,11 +110,12 @@
   .crs-tab td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .crs-tab tr.sub td { font-weight: 700; }
   .crs-tab tr.part td:first-child { padding-left: 16px; color: var(--muted); }
+  .crs-more { margin-top: 10px; } .crs-more summary { cursor: pointer; font-weight: 600; } .crs-sug { padding-left: 18px; margin: 8px 0; font-size: 14px; } .crs-sug li { margin: 4px 0; } .crs-cmp { font-weight: 600; margin: 8px 0 0; }
   .crs-reset { margin-top: 12px; font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
 </style>
 
 <script>
-  import { EDUCATION, score } from './grid';
+  import { EDUCATION, score, suggestions } from './grid';
   const root = document.querySelector('.crs') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const el = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -130,12 +143,13 @@
     q<HTMLElement>('[data-g="spouse"]').hidden = !sLang;
     const age = Math.round(+el('age').value);
     if (!Number.isFinite(age) || el('age').value.trim() === '') { q<HTMLElement>('.crs-big').textContent = 'Type your age.'; body.innerHTML = ''; return; }
-    const s = score({
+    const inp = {
       spouse: sp, age, edu: el('edu').value, firstIsFrench: el('firstLang').value === 'fr', first: clb('first'), second: hasSecond ? clb('second') : null,
       cdnYears: +el('cdn').value, highWage: el('hw').value, offer: el('offer').value, foreignYears: +el('foreign').value, certificate: el('cert').checked,
       spouseEdu: el('sEdu').value, spouseLang: sLang ? clb('spouse') : null, spouseYears: +el('sCdn').value,
       sibling: el('sib').checked, study: el('study').value, nomination: el('pnp').checked,
-    });
+    };
+    const s = score(inp);
     q<HTMLElement>('.crs-big').textContent = `${s.total} points`;
     q<HTMLElement>('.crs-big').dataset.total = String(s.total);
     body.innerHTML = '';
@@ -149,11 +163,18 @@
     row('Provincial nomination', s.aNom, 'part'); row('French language skills', s.aFrench, 'part'); row('Study in Canada', s.aStudy, 'part'); row('Brother or sister in Canada', s.aSibling, 'part');
     row('Total (max 1,200)', s.total, 'sub');
     body.querySelectorAll('tr').forEach((tr, i) => (tr.dataset.i = String(i)));
+    const cut = q<HTMLElement>('.crs-cmp'); const cv = el('cut').value.trim();
+    const cn = Math.round(+cv);
+    cut.textContent = cv === '' ? '' : !Number.isFinite(cn) || cn < 0 || cn > 1200 ? 'Type a cut-off between 0 and 1,200.' : s.total >= cn ? `You are ${s.total - cn} points above ${cn}.` : `You are ${cn - s.total} points below ${cn}.`;
+    const ul = q<HTMLElement>('.crs-sug'); ul.innerHTML = '';
+    const list = suggestions(inp);
+    q<HTMLElement>('.crs-sugnone').hidden = list.length > 0;
+    for (const g of list.slice(0, 10)) { const li = document.createElement('li'); li.append(`${g.label}: `); const b = document.createElement('b'); b.textContent = `${g.gain > 0 ? '+' : ''}${g.gain} (${g.total})`; li.append(b); ul.append(li); }
   };
   const reset = () => {
     root.querySelectorAll('select').forEach((s) => (s.selectedIndex = 0));
     root.querySelectorAll('input[type=checkbox]').forEach((c) => ((c as HTMLInputElement).checked = false));
-    el('age').value = '29'; el('edu').value = 'mast';
+    el('age').value = '29'; el('edu').value = 'mast'; el('cut').value = '';
     for (let i = 0; i < 4; i++) { el('first' + i).value = '9'; el('second' + i).value = '7'; el('spouse' + i).value = '7'; }
     calc();
   };
