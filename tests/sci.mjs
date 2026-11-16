@@ -208,6 +208,9 @@ check('sig figures', sig(0.0012345, 3) === '0.00123');
     near(`Miller x0 at ${y}`, u.x0, x, 0.005); near(`Miller s(x0) at ${y}`, u.se, s, 0.005);
   }
   near('LOD = 3.3 s/b', limits(c).lod, 3.3 * 0.4328 / 1.9304, 1e-3);
+  // 3σ rule (Miller & Miller example 5.7.1: LOD = a + 3 s(y/x) read back, 0.67 pg/mL); LOQ stays 10 s/b.
+  near('LOD = 3 s/b (Miller 0.67 pg/mL)', limits(c, 'residual', 3).lod, 0.67, 0.005);
+  near('LOQ unchanged by the LOD rule', limits(c, 'residual', 3).loq, limits(c).loq, 1e-12);
 }
 
 // ---- 4PL: ryegrass data (Inderjit et al. 2002, R package drc), drc LL.4: b 2.982, c 0.481, d 7.793, e 3.058.
@@ -1145,6 +1148,10 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const v = [0.025, 0.05, 0.1, 0.2, 0.4], st = CV.scanRateStudy(v, v.map((x) => CV.randlesSevcik(1, 0.0707, 1e-5, 1e-3, x)), 1, 0.0707, 1e-3);
   near('scan-rate D', st.D, 1e-5, 1e-12);
   near('log-log slope 0.5', st.logFit.slope, 0.5, 1e-9);
+  // Laviron: a slope of 0.0312 V per ln-unit of scan rate at 25 °C gives αn = RT/(F × 0.0312) = 0.8235.
+  const lvV = [0.07, 0.1, 0.2, 0.4], lv = CV.laviron(lvV, lvV.map((x) => 0.9 + 0.0312 * Math.log(x)));
+  near('Laviron αn from 31.2 mV slope', lv.alphaN, 0.8235, 5e-4);
+  near('Laviron, reduction (negative slope)', CV.laviron(lvV, lvV.map((x) => -0.2 - 0.0312 * Math.log(x))).alphaN, 0.8235, 5e-4);
 }
 {
   // TLC: Rf from distances or pixel rows (y grows downward in photos); lanes; column volumes.

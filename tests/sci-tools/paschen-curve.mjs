@@ -13,4 +13,9 @@ export default async (check) => {
   check('paschen: argon γ 0.07, 1 Torr cm: 121.479 V', near(paschenV(1, 12, 180, 0.07), 121.47926, 1e-7));
   check('paschen: NaN left of the asymptote', Number.isNaN(paschenV(pdAsymptote(15, 0.01) * 0.999, 15, 365, 0.01)));
   check('paschen: units: 1 atm = 101325 Pa = 760 Torr; 1 in = 2.54 cm', near(101325 * PRESSURE.pa, 760, 1e-6) && GAP.in === 2.54 && near(1013.25 * PRESSURE.mbar, 760, 1e-6));
+  // Argon constants quoted per mbar (A 10.2 /(mbar cm), B 176 V/(mbar cm), as in Hridya and Choudhary 2025,
+  // arXiv:2511.23108) converted to Torr: the minimum voltage depends only on B/A and gamma, so it must not change
+  // (gamma 0.005: e * 17.2549 * ln 201 = 248.745 V), while (pd)min in Torr cm is the mbar value / 1.33322.
+  { const T = 1.33322368, a = paschenMin(10.2, 176, 0.005), b = paschenMin(10.2 * T, 176 * T, 0.005);
+    check('paschen: argon in mbar or Torr units: minimum 248.745 V either way, pd scales by 1.33322', near(a.V, 248.74455, 1e-6) && near(b.V, a.V, 1e-12) && near(a.pd / b.pd, T, 1e-12)); }
 };
