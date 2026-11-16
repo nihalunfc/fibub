@@ -33,6 +33,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
       <div><span>Chance the high deductible comes out ahead</span><b class="ded-s-win"></b></div>
     </div>
     <p class="ded-line ded-words"></p>
+    <details class="panel ded-more">
+      <summary><b>More options: one year at a time, by claim size and number of claims</b></summary>
+      <p class="ded-hint">What you pay in a single year (premium plus your share of the claims) with the middle-sized claim, and with the claim size you pick.</p>
+      <label>Claim size to try <input data-k="size" inputmode="decimal" /></label>
+      <div class="ded-wrap"><table><thead><tr><th>Claims in the year</th><th class="ded-ha"></th><th class="ded-hb"></th><th>Cheaper</th></tr></thead><tbody class="ded-yr"></tbody></table></div>
+      <p class="ded-hint">By claim size, with one claim in the year:</p>
+      <div class="ded-wrap"><table><thead><tr><th>Claim size</th><th class="ded-ha2"></th><th class="ded-hb2"></th><th>Cheaper</th></tr></thead><tbody class="ded-sz"></tbody></table></div>
+    </details>
     <div class="panel"><h2>10,000 imagined runs</h2>
       <table><thead><tr><th>Outcome</th><th>Saving (loss if negative)</th></tr></thead><tbody class="ded-sim"></tbody></table>
       <p class="ded-hint">Worse luck (10th percentile), middle (50th) and good luck (90th). A negative number means the high deductible cost you more.</p>
@@ -45,6 +53,10 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
   .ded { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .ded > *, .ded-res > * { min-width: 0; }
   .ded h2 { margin: 0 0 12px; font-size: 18px; }
+  .ded-wrap { overflow-x: auto; }
+  .ded th, .ded td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 14px; }
+  .ded th:first-child, .ded td:first-child { text-align: left; }
+  .ded table { border-collapse: collapse; width: 100%; }
   .ded h2:not(:first-child) { margin-top: 16px; }
   .ded .panel { padding: 16px; }
   .ded-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
@@ -66,14 +78,14 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
 </style>
 
 <script>
-  import { deductibleChoice } from '../../lib/money/insurance';
+  import { deductibleChoice, yearCostWithClaims } from '../../lib/money/insurance';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.ded')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
   const cur = defaultCurrency();
   q('.ded-cur').innerHTML = currencyOptions(cur);
-  const def: Record<string, string> = { pa: '1200', da: '500', pb: '1000', db: '2500', lam: '0.1', every: '', med: '100000', p90: '200000', years: '10' };
+  const def: Record<string, string> = { pa: '1200', da: '500', pb: '1000', db: '2500', lam: '0.1', every: '', med: '100000', p90: '200000', years: '10', size: '' };
   for (const k in def) f(k).value = def[k];
   const $ = (n: number) => money(n, f('cur').value, 0);
   const fmt = (n: number) => (Number.isFinite(n) ? (Math.round(n * 100) / 100).toLocaleString('en') : 'never');
@@ -97,6 +109,11 @@ import InsuranceNote from '../../components/InsuranceNote.astro';
     q('.ded-s-exp').textContent = $(r.expectedTotal);
     q('.ded-s-win').textContent = '…';
     q('.ded-sim').innerHTML = '<tr><td colspan="2">Working it out…</td></tr>';
+    const sz = num(f('size').value) > 0 ? num(f('size').value) : med;
+    const cmpRow = (label: string, ca: number, cb: number) => `<tr><td>${label}</td><td>${$(ca)}</td><td>${$(cb)}</td><td>${ca === cb ? 'Same' : ca < cb ? 'Quote A' : 'Quote B'}</td></tr>`;
+    q('.ded-ha').textContent = q('.ded-ha2').textContent = 'Quote A'; q('.ded-hb').textContent = q('.ded-hb2').textContent = 'Quote B';
+    q('.ded-yr').innerHTML = [0, 1, 2, 3].map((n) => cmpRow(String(n), yearCostWithClaims(a.p, a.d, sz, n), yearCostWithClaims(b.p, b.d, sz, n))).join('');
+    q('.ded-sz').innerHTML = [0.1, 0.25, 0.5, 1, 2, 4].map((m) => med * m).concat([lo.d, hi.d]).sort((x, y) => x - y).filter((x, i, arr) => i === 0 || x !== arr[i - 1]).map((x) => cmpRow($(x), yearCostWithClaims(a.p, a.d, x, 1), yearCostWithClaims(b.p, b.d, x, 1))).join('');
     const lower = lam < r.breakEvenRate;
     q('.ded-words').innerHTML = `You save <b>${$(r.saving)}</b> a year with the higher deductible (${$(hi.d)} instead of ${$(lo.d)}). One full claim costs you up to <b>${$(r.gap)}</b> more, which is ${fmt(r.yearsToRecover)} years of savings. At ${fmt(lam)} claims a year (break-even: ${fmt(r.breakEvenRate)}), the higher deductible ${lower ? 'costs less' : 'costs more'} on average.`;
     timer = window.setTimeout(() => {

@@ -303,3 +303,66 @@ export function surrenderInvest(surrenderValue: number, premium: number, yearsLe
   for (let k = 0; k < atYear; k++) { if (k < yearsLeft) v += premium; v *= 1 + r; }
   return v;
 }
+
+/** Needs-approach cover for several support lengths (what-if table). */
+export function needsByYears(a: NeedIn, yearsList: number[]) {
+  return yearsList.map((y) => ({ years: y, needs: lifeNeed({ ...a, years: y }).needs }));
+}
+/** Where the needs figure comes from: each piece with its sign. */
+export function needBreakdown(a: NeedIn) {
+  const r = lifeNeed(a);
+  return { income: r.hlv, debts: a.debts, goals: a.goals, funeral: a.funeral, assets: -a.assets, existing: -a.existing, needs: r.needs, shortfallBeforeFloor: r.hlv + a.debts + a.goals + a.funeral - a.assets - a.existing };
+}
+
+/** Compare yearly quotes with the fair price: cost per `per` of cover, times the fair price, and the total paid over the term. */
+export function quoteCompare(quotes: number[], fair: number, sumAssured: number, term: number, per = 1000) {
+  return quotes.map((q) => ({ quote: q, perUnit: sumAssured > 0 ? (q / sumAssured) * per : 0, timesFair: fair > 0 ? q / fair : 0, total: q * term }));
+}
+
+/** Most you can pay in a year on a plan (premium + out-of-pocket maximum + copays), or null when the plan has no out-of-pocket maximum or a yearly cap, so the bill has no ceiling. */
+export function worstYear(p: Plan): number | null {
+  if (!(p.oopMax > 0) || p.cap > 0) return null;
+  return p.premium + p.oopMax + (p.fixed || 0);
+}
+/** Expected yearly cost over spends with chances (chances are scaled to add up to 1). */
+export function weightedCost(p: Plan, spends: number[], chances: number[]): number | null {
+  const t = chances.reduce((a, b) => a + Math.max(0, b), 0);
+  if (!(t > 0)) return null;
+  return spends.reduce((a, s, i) => a + (Math.max(0, chances[i]) / t) * planCost(p, s).total, 0);
+}
+
+/** Your total cost in one year with `claims` claims, each of size `size`: premium + claims x min(size, deductible). */
+export function yearCostWithClaims(premium: number, deductible: number, size: number, claims: number) {
+  return premium + Math.max(0, claims) * Math.min(Math.max(0, size), deductible);
+}
+
+/** Who pays when a year's hospital total comes as `parts` equal bills: the base policy, the top-up or super top-up (same rules as `topUp`), and you. */
+export function topUpScenario(total: number, parts: number, base: number, deductible: number, sumInsured: number, kind: 'topup' | 'super') {
+  const n = Math.max(1, Math.round(parts));
+  const bills = Array.from({ length: n }, () => total / n);
+  let left = Math.max(0, base), basePays = 0;
+  for (const b of bills) { const p = Math.min(b, left); left -= p; basePays += p; }
+  const t = topUp(bills, deductible, sumInsured, kind);
+  return { basePays, topPays: t.paid, youPay: Math.max(0, total - basePays - t.paid) };
+}
+
+/** Value at year `at` of one payment `amount` made at year `year`, kept growing at `rate` % a year (a payment after `at` counts as 0). */
+export function grownPayment(amount: number, year: number, rate: number, at: number) {
+  return year <= at ? amount * Math.pow(1 + rate / 100, at - year) : 0;
+}
+
+/** Return after inflation: (1 + nominal) / (1 + inflation) - 1, all as fractions. NaN when the nominal return is NaN. */
+export const realReturn = (nominal: number, inflationPct: number) => (1 + nominal) / (1 + inflationPct / 100) - 1;
+/** Money multiple: total received divided by total paid (0 when nothing was paid). */
+export const moneyMultiple = (flows: number[]) => {
+  const paid = flows.reduce((s, x) => (x < 0 ? s - x : s), 0), got = flows.reduce((s, x) => (x > 0 ? s + x : s), 0);
+  return { paid, got, multiple: paid > 0 ? got / paid : 0 };
+};
+
+/** India NCB at the renewal after `freeYears` claim-free years (slab index capped at the top). */
+export const ncbAt = (freeYears: number) => NCB_IN[Math.max(0, Math.min(Math.floor(freeYears), NCB_IN.length - 1))];
+/** Claim or not, for one renewal: the repair payout against the discount you would lose. `odPremium` is the own-damage premium before any discount. */
+export function claimOrNot(payout: number, odPremium: number, freeYears: number) {
+  const lost = (odPremium * ncbAt(freeYears)) / 100;
+  return { lost, net: payout - lost, claimWins: payout > lost };
+}

@@ -17,4 +17,11 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.tf-s-fair')).includes('10.') || (await txt('.tf-s-fair')).includes('9.'), 'term-fair-price: flat q 1% on 1000 gives about 10 a year (' + (await txt('.tf-s-fair')) + ')');
   await set('q0', '5'); await page.waitForTimeout(100);
   check(await page.isVisible('.tf .tf-err'), 'term-fair-price: a death chance above 1 shows a message');
+  await page.selectOption('.tf [data-k="mode"]', 'col');
+  await set('col', '0.1, 0.1'); await set('sa', '1000'); await set('rate', '0'); await set('quote', '150');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('quote2', '200'); await page.waitForTimeout(100);
+  const cmp = await txt('.tf-cmp');
+  check(cmp.includes('Quote 2') && cmp.includes('2.00'), 'term-fair-price: second quote 200 is 2.00 times fair 100');
+  check(cmp.replace(/[^\d.]/g, '').includes('400'), 'term-fair-price: second quote total over 2 years is 400');
 };

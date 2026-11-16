@@ -20,4 +20,14 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.ti-s-fair')).includes('400'), 'travel-insurance: deductible 10,000 gives fair price 400');
   await page.click('.ti .ti-add'); await page.waitForTimeout(100);
   check(await page.isVisible('.ti .ti-err'), 'travel-insurance: a blank new risk shows a message');
+  await page.reload(); await page.waitForTimeout(300);
+  await page.selectOption('.ti [data-k="cur"]', 'USD');
+  await page.click('.ti .ti-row:nth-child(3) .ti-rm'); await page.click('.ti .ti-row:nth-child(2) .ti-rm');
+  await page.fill('.ti .ti-row .ti-p', '1'); await page.fill('.ti .ti-row .ti-loss', '50000');
+  await set('wealth', '100000'); await set('price', '600'); await set('ded', '0');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await set('priceB', '400'); await set('dedB', '10000'); await page.waitForTimeout(150);
+  const c = await txt('.ti-cmp');
+  check(c.includes('600') && c.includes('500') && c.includes('B costs less'), 'travel-insurance: policy B 400 + 1% x 10,000 = 500 beats A 600');
+  check((await page.$$('.ti .ti-check input')).length >= 5, 'travel-insurance: checklist shown');
 };

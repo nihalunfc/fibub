@@ -28,6 +28,10 @@ A term policy pays only if you die in the term, so a fair yearly price can be wo
 
 The fair price leaves out the insurer's costs and profit, so a quote is expected to be higher. Insured people also pass medical checks, so they die less often than the whole population in the first years; the true loading on your quote is therefore higher than shown. The numbers are examples until you change them. To look up the death chance for your age use the [[life-table]], to decide the sum assured use [[life-cover-needed]], and to compare a savings policy use [[policy-return]].
 
+## More options
+
+Under the results, "More options" lets you type up to three quotes. A table shows each one's cost per 1,000 of cover (per lakh when your currency is the rupee), how many times the fair price it is, and the total you would pay over the whole term if you keep it to the end. The fair price is shown in the first row for comparison. This is general information, not advice; check the official source for the death chances you use.
+
 ## How to use it
 
 1. Enter the sum assured, an interest rate and (if you have one) your quote per year.

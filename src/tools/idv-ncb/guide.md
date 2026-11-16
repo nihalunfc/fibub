@@ -23,6 +23,10 @@ flow:
   - { icon: check, label: "Claim" }
 ---
 
+## More options
+
+"More options" shows the NCB slab table (0, 20, 25, 35, 45 and 50% after 0 to 5 claim-free years, with your row in bold) and a claim-or-not line. Type your own-damage premium before any bonus and the tool compares the repair payout (without the zero-depreciation add-on) with the bonus you would lose at the next renewal. It is a one-renewal view: the [[claim-or-pay]] tool follows the bonus over several years. General information, not insurance advice; check the official source and your policy.
+
 ## What it does
 
 The IDV (insured declared value) is the most the insurer pays if your car is stolen or written off. It is the ex-showroom price plus accessories, less depreciation for the car's age. The no-claim bonus (NCB) is a discount for each claim-free year. This tool shows both, and what a repair claim would pay.

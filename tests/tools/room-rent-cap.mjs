@@ -15,4 +15,9 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$('.rr .rr-body tr')).length === 3, 'room-rent-cap: removing a line leaves two lines and a total');
   await set('si', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.rr .rr-err'), 'room-rent-cap: no sum insured shows a message');
+  await page.reload(); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  const lad = await page.$$eval('.rr .rr-lad tr', (r) => r.map((x) => x.textContent));
+  check(lad.length >= 5 && lad[0].includes('(the limit)') && lad[0].includes('100.0%'), 'room-rent-cap: ladder starts at the limit with 100% paid (' + lad[0] + ')');
+  check(lad.some((x) => x.includes('(your room)') && x.includes('62.5%')), 'room-rent-cap: 5,000 limit on an 8,000 room pays 62.5%');
 };
