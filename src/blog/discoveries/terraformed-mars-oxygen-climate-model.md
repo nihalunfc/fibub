@@ -64,6 +64,33 @@ We cannot run a 3D climate model here, so we checked the paper's two main ideas 
 | Time to make breathable air | at least thousands of years | about 6,600 years at Earth-average plant growth |
 | Enough carbon dioxide? | no, unless recycled | about 15 hPa of oxygen from 20 hPa of carbon dioxide, against about 130 hPa needed |
 
+## How we made the graphs
+
+Both charts come from `scripts/blog-figures/terraformed-mars-oxygen-climate-model.mjs` in fibub's public code. It uses `oneLayer`, `efold`, `SIGMA` and `YEAR` from `src/lib/sci/ebm.ts`, the maths behind the [[energy-balance-model]]: the one-layer greenhouse and the "heat capacity ÷ cooling rate" time that the tool uses for oceans. The Mars values (gravity, area, sunlight, albedo, pressure) are standard and labelled in the script; the 130 hPa oxygen target and the plant growth rates are marked as our choices. Running the script prints every number quoted here.
+
+## How we test the maths
+
+The energy balance maths has its own checks (`tests/sci-tools/energy-balance-model.mjs`), run on every change:
+
+- Doubling carbon dioxide must give a forcing of 3.708 W/m² (5.35 × ln 2), the standard value.
+- With Earth's sunlight, albedo 0.3 and emissivity 0.612 the model must settle at 287.83 K (about 15 °C), and at 254.6 K with no greenhouse effect.
+- With ice included, the snowball and melt-back tipping points must match an independent calculation in Python (SciPy) to eight decimal places, and 100 m of ocean must take 11.04 years to respond.
+
+## Check it yourself
+
+You can do Step 3's no-greenhouse temperature and the one-layer limit for Mars on the [[energy-balance-model]]:
+
+1. Open the [[energy-balance-model]]. Type **586** in *Solar constant S (W/m²)*, Mars's sunlight, and **0.25** in *Albedo α (ice-free)*.
+2. In the one-layer greenhouse card, set *Atmosphere long-wave emissivity εₐ* to **0**. *No-atmosphere temperature* and *Surface temperature* both read about **−63.3 °C (209.8 K)**, the no-greenhouse temperature in Step 3.
+3. Move εₐ up to **1**, the thickest single layer. The surface reads about **−23.6 °C (249.5 K)**: 2^¼ times, or about 19 %, warmer than with no greenhouse, and still well below freezing. That is why one layer of ordinary air cannot warm Mars enough, and why the study adds a strong grey greenhouse gas.
+4. For a second opinion, open the [[habitable-zone-calculator]], type **5772** in *Temperature (K)*, **1** in *Luminosity (Suns)*, **1** in *Mass (Suns)*, **1.524** in *Distance from the star (AU)* and **0.25** in *Albedo*: the equilibrium temperature again reads about **210 K**.
+
+## What researchers can use it for
+
+- **Back-of-envelope climate checks** before a full model run: the no-greenhouse temperature, the greenhouse needed and how fast a layer of air or water responds.
+- **Teach climate feedbacks:** the [[energy-balance-model]] shows CO₂ forcing, the ice-albedo tipping points and response times with sliders.
+- **Carbon and oxygen bookkeeping:** the [[carbon-cycle]] tool follows carbon between air, plants and soil.
+
 ## The fine print
 
 - This is a **preprint, not yet peer-reviewed**, and the paper itself leaves out dust, water, soil chemistry and nutrients.
