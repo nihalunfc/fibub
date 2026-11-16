@@ -7,29 +7,40 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>What you know</h2>
     <div class="ax-grid">
-      <label>I know <select class="rz-kind">
+      <label>I know <select data-k="kind" class="rz-kind">
         <option value="z" selected>The redshift z</option>
         <option value="v">A velocity (km/s)</option>
         <option value="lam">Where a line is seen (wavelength)</option>
         <option value="freq">Where a line is seen (frequency)</option>
       </select></label>
-      <label><span class="rz-vl">Redshift z</span> <input class="rz-v" inputmode="decimal" value="0.05" /></label>
-      <label class="rz-cw" hidden>Velocity convention <select class="rz-conv">
+      <label><span class="rz-vl">Redshift z</span> <input data-k="v" class="rz-v" inputmode="decimal" value="0.05" /></label>
+      <label class="rz-cw" hidden>Velocity convention <select data-k="conv" class="rz-conv">
         <option value="relativistic" selected>Relativistic (special relativity)</option>
         <option value="optical">Optical (v = cz)</option>
         <option value="radio">Radio (v = c(1 − 1/(1+z)))</option>
       </select></label>
-      <label class="rz-uw" hidden>Unit <select class="rz-unit"></select></label>
-      <label class="rz-lw" hidden>Line <select class="rz-line"></select></label>
-      <label class="rz-rw" hidden>Rest value <input class="rz-rest" inputmode="decimal" /></label>
+      <label class="rz-uw" hidden>Unit <select data-k="unit" class="rz-unit"></select></label>
+      <label class="rz-lw" hidden>Line <select data-k="line" class="rz-line"></select></label>
+      <label class="rz-rw" hidden>Rest value <input data-k="rest" class="rz-rest" inputmode="decimal" /></label>
     </div>
+    <label class="rz-sl">Redshift slider (0 to 10) <input data-k="slider" type="range" class="rz-slider" min="0" max="1000" step="1" value="70" aria-label="Redshift slider" /></label>
+    <details class="rz-more"><summary>More options: cosmology and wavelength converter</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Cosmology for distances <select data-k="cos" class="rz-cos"><option value="planck18" selected>Planck 2018 (H₀ 67.66, Ωm 0.3111)</option><option value="wmap9">WMAP 9-year (H₀ 69.32, Ωm 0.2865)</option><option value="round">Round numbers (H₀ 70, Ωm 0.3)</option></select></label>
+        <label>Any wavelength (nm) <input data-k="w" class="rz-w" inputmode="decimal" placeholder="e.g. 500" /></label>
+        <label>That wavelength is the <select data-k="wk" class="rz-wk"><option value="rest" selected>rest wavelength (at the source)</option><option value="obs">observed wavelength (at your telescope)</option></select></label>
+      </div>
+      <p class="ax-help">Distances assume a flat universe with the chosen parameters. The wavelength converter uses the redshift above.</p>
+    </details>
     <p class="ax-help rz-help"></p>
     <p class="ax-err rz-err" hidden></p>
   </div>
 
   <div class="ax-card rz-out" hidden>
     <h2>Result</h2>
-    <p class="ax-big rz-big"></p>
+    <p class="ax-big rz-big" aria-live="polite"></p>
+    <p class="rz-plain" aria-live="polite"></p>
+    <p class="rz-wout" aria-live="polite"></p>
     <dl class="ax-facts rz-facts"></dl>
     <h3>Lines at this redshift</h3>
     <div class="ax-scroll"><table class="rz-tab"></table></div>
@@ -42,6 +53,10 @@ import Downloads from '../../components/Downloads.astro';
 <style is:inline>
   .rz .rz-tab td, .rz .rz-tab th { white-space: nowrap; }
   .rz tr.rz-on td { font-weight: 650; }
+  .rz .rz-sl { display: block; margin-top: 10px; font-size: 14px; }
+  .rz .rz-sl input { width: 100%; }
+  .rz details summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
+  .rz .rz-plain { margin: 4px 0 8px; font-size: 15px; }
 </style>
 
 <script>
@@ -55,7 +70,7 @@ import Downloads from '../../components/Downloads.astro';
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const kind = q<HTMLSelectElement>('.rz-kind'), unit = q<HTMLSelectElement>('.rz-unit'), line = q<HTMLSelectElement>('.rz-line');
   let fig: Figure | null = null, report: Section[] = [];
-  const P18 = presets.planck18, COSMO = { H0: P18.H0, Om: P18.Om, OL: 1 - P18.Om, Or: 0 };
+  let COSMO = { H0: presets.planck18.H0, Om: presets.planck18.Om, OL: 1 - presets.planck18.Om, Or: 0 }, COSNAME = 'Planck 2018';
   const LAM_UNITS: Record<string, number> = { 'nm': 1, 'Å': 0.1, 'µm': 1000, 'mm': 1e6, 'cm': 1e7 };
   const FREQ_UNITS: Record<string, number> = { 'MHz': 1e-3, 'GHz': 1 };
   const HELP: Record<string, string> = {
@@ -95,12 +110,15 @@ import Downloads from '../../components/Downloads.astro';
 
   function calc() {
     const err = q('.rz-err');
+    { const pr = presets[q<HTMLSelectElement>('.rz-cos').value]; COSMO = { H0: pr.H0, Om: pr.Om, OL: 1 - pr.Om, Or: 0 }; COSNAME = pr.name; }
     try {
       const z = readZ(); if (!(z > -1)) throw new Error('That gives a redshift below −1');
+      const sl = q<HTMLInputElement>('.rz-slider'); if (document.activeElement !== sl) sl.value = String(Math.round(1000 * Math.sqrt(Math.min(10, Math.max(0, z)) / 10)));
       const vr = velocity(z, 'relativistic'), vo = velocity(z, 'optical'), vd = velocity(z, 'radio');
       err.hidden = true; q('.rz-out').hidden = false;
       q('.rz-big').textContent = `z = ${Math.abs(z) < 0.001 && z !== 0 ? z.toExponential(4) : trim(z, 6)}${z < 0 ? ' (blueshift)' : ''}`;
       const kms = (v: number) => `${Math.round(v).toLocaleString('en')} km/s`;
+      let plain = z < 0 ? `A blueshift: light is squeezed to ${trim(1 + z, 4)} of its rest wavelength, so the source is moving towards you at about ${Math.round(Math.abs(vr)).toLocaleString('en')} km/s.` : `At z = 0 nothing is shifted.`;
       const facts: [string, string, string?][] = [
         ['Relativistic velocity', kms(vr), `${(vr / C_KMS).toFixed(5)} c; Lorentz factor ${gamma(z).toFixed(5)}`],
         ['Optical velocity (cz)', kms(vo), Math.abs(z) < 0.1 ? 'close to the true speed at this redshift' : 'no longer a physical speed at this redshift'],
@@ -109,9 +127,16 @@ import Downloads from '../../components/Downloads.astro';
       ];
       if (z > 0) {
         const c = cosmology(COSMO, z);
-        facts.push(['If the redshift is cosmological', `recession velocity ${kms(COSMO.H0 * c.dc)}`, `${(COSMO.H0 * c.dc / C_KMS).toFixed(3)} c, at ${Math.round(c.dc).toLocaleString('en')} Mpc today (Planck 2018); light-travel time ${c.lookback < 1 ? `${Math.round(c.lookback * 1000)} million` : c.lookback.toFixed(3) + ' billion'} years`]);
+        facts.push(['If the redshift is cosmological', `recession velocity ${kms(COSMO.H0 * c.dc)}`, `${(COSMO.H0 * c.dc / C_KMS).toFixed(3)} c, at ${Math.round(c.dc).toLocaleString('en')} Mpc today (${COSNAME}); light-travel time ${c.lookback < 1 ? `${Math.round(c.lookback * 1000)} million` : c.lookback.toFixed(3) + ' billion'} years`]);
+        facts.push(['Luminosity distance', `${Math.round(c.dl).toLocaleString('en')} Mpc`, `used with flux and magnitudes; distance modulus ${c.distMod.toFixed(2)}`]);
+        facts.push(['Angular size distance', `${Math.round(c.da).toLocaleString('en')} Mpc`, `1 arcsecond across is ${sig(c.kpcPerArcsec, 3)} kpc`]);
+        facts.push(['Age of the universe then', `${c.ageZ.toFixed(3)} billion years`, `now ${c.age0.toFixed(2)} billion years (${COSNAME}, flat universe)`]);
+        plain = `At z = ${trim(z, 4)} light is stretched ${trim(1 + z, 4)} times. If the redshift is cosmological the source is ${Math.round(c.dc).toLocaleString('en')} Mpc away today and we see it as it was ${c.lookback < 1 ? `${Math.round(c.lookback * 1000)} million` : c.lookback.toFixed(2) + ' billion'} years ago.`;
         if (z < 0.1) facts.push(['Hubble law distance', `${sig(vo / COSMO.H0, 4)} Mpc`, `cz / H₀ with H₀ = ${COSMO.H0} km/s/Mpc; ignores the galaxy's own motion, which matters below about 0.01`]);
       }
+      q('.rz-plain').textContent = plain;
+      { const w = num(q<HTMLInputElement>('.rz-w').value), isRest = q<HTMLSelectElement>('.rz-wk').value === 'rest', o = q('.rz-wout');
+        o.textContent = Number.isFinite(w) && w > 0 ? (isRest ? `A line at ${trim(w, 6)} nm at the source arrives at ${trim(w * (1 + z), 6)} nm.` : `A line seen at ${trim(w, 6)} nm left the source at ${trim(w / (1 + z), 6)} nm.`) : (q<HTMLInputElement>('.rz-w').value.trim() ? 'Type the wavelength as a number above zero.' : ''); }
       q('.rz-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
       const head = ['Line', 'Rest', 'Observed'];
       const rows = LINES.map((l) => [l.name, showLam(l.nm), showLam(l.nm * (1 + z))]);
@@ -126,7 +151,7 @@ import Downloads from '../../components/Downloads.astro';
           { name: 'Relativistic', x: xs, y: xs.map((x) => velocity(x, 'relativistic') / C_KMS), mode: 'line' },
           { name: 'Optical cz', x: xs, y: xs.map((x) => x), mode: 'line' },
           { name: 'Radio', x: xs, y: xs.map((x) => velocity(x, 'radio') / C_KMS), mode: 'line' },
-          { name: 'Recession (Planck 2018)', x: xs.slice(1), y: xs.slice(1).map((x) => (COSMO.H0 * cosmology(COSMO, x).dc) / C_KMS), mode: 'line' },
+          { name: `Recession (${COSNAME})`, x: xs.slice(1), y: xs.slice(1).map((x) => (COSMO.H0 * cosmology(COSMO, x).dc) / C_KMS), mode: 'line' },
         ],
         yMax: Math.min(4, zMax), marks: [{ kind: 'hline', at: 1, dash: [4, 4], label: 'speed of light' }, ...(z > 0 && z <= zMax ? [{ kind: 'vline' as const, at: z, label: 'your z' }] : [])] }, 'Velocity against redshift in each convention');
       paint(q<HTMLCanvasElement>('.rz-fig'), fig);
@@ -135,8 +160,9 @@ import Downloads from '../../components/Downloads.astro';
   }
   kind.addEventListener('change', setKind);
   line.addEventListener('change', setLine);
-  for (const c of ['.rz-unit', '.rz-conv']) q(c).addEventListener('change', calc);
-  for (const c of ['.rz-v', '.rz-rest']) q(c).addEventListener('input', calc);
+  for (const c of ['.rz-unit', '.rz-conv', '.rz-cos', '.rz-wk']) q(c).addEventListener('change', calc);
+  for (const c of ['.rz-v', '.rz-rest', '.rz-w']) q(c).addEventListener('input', calc);
+  q('.rz-slider').addEventListener('input', () => { const z = 10 * (Number(q<HTMLInputElement>('.rz-slider').value) / 1000) ** 2; if (kind.value !== 'z') { kind.value = 'z'; setKind(); } q<HTMLInputElement>('.rz-v').value = String(+z.toPrecision(3)); calc(); });
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.rz-fig'), fig));
   setKind();
   wireDownloads(q('.dl'), () => ({ title: 'Redshift calculator', file: 'redshift', sections: report }));

@@ -49,6 +49,10 @@ Some tests are weighed as something particular. **Triglycerides** are a mixture,
 
 **HbA1c** is different: the NGSP percentage and the IFCC mmol/mol value measure different things, so they are linked by the IFCC-NGSP master equation (Hoelzel et al., 2004): NGSP % = 0.09148 × IFCC + 2.152.
 
+## Rounding and every unit at once
+
+**Round to** now offers 3, 4 (the default), 5 or 6 significant figures as well as a fixed number of decimals, so you can match what your lab or journal prints. Under *More options: this value in every unit*, a small table shows the same result in every unit the chosen test offers (for glucose: mg/dL, mmol/L, mg/L and g/L), so you can read off the one you need without switching the To box.
+
 ## Worked example
 
 Choose Glucose and type 100 mg/dL. The page shows **100 mg/dL = 5.551 mmol/L**, molar mass 180.156 g/mol (C₆H₁₂O₆) and factor 0.055507. The example list (72, 95, 110, 126, <40, 183 mg/dL) becomes 3.997, 5.273, 6.106, 6.994, <2.220 and 10.16 mmol/L. Creatinine 1.2 mg/dL is 106.1 µmol/L. HbA1c 7 % is 53 mmol/mol when rounded to 0 decimals.

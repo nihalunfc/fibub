@@ -5,13 +5,13 @@ shelf: science
 code: T423
 section: electrical-and-electronics
 title: "LED resistor calculator: series resistor, power, series and parallel strings, nearest E-series value and power budget"
-summary: "Work out the series resistor for one LED or a string of LEDs, pick the standard E12, E24 or E96 value, see the resistor and LED power with a safe resistor rating, how much the current moves with forward-voltage spread and supply tolerance, and plan an array of many LEDs as even strings with a power budget."
+summary: "Work out the series resistor for one LED or a string of LEDs, pick the standard E12, E24 or E96 value, see the resistor and LED power with a safe resistor rating, how much the current moves with forward-voltage spread and supply tolerance, and plan an array of many LEDs as even strings with a power budget. Check a resistor you already have, with the working shown."
 status: live
 ads: true
 order: 626
 icon: calculator
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [resistor-colour-code, op-amp-calculator, circuit-simulator, battery-solar-sizing, pcb-trace-calculator]
 sources:
   - "Ohm's law with a straight-line LED model, R = (Vsupply − n × Vf) / I, and P = I²R (general electronics)."
@@ -35,6 +35,12 @@ An LED needs something to limit its current; the simplest is a resistor in serie
 - An **array planner**: give the total number of LEDs and it splits them into even strings, with a resistor for each string length and a **power budget**.
 
 Read the colour bands on the resistor you pick with the [[resistor-colour-code]], and see how long a battery will run your LEDs with the [[battery-solar-sizing|battery runtime calculator]].
+
+## Extra options
+
+- **Common supplies**: one tap for 3.3 V, 5 V, 9 V, 12 V or 24 V.
+- **A working line** under the answer shows the sum with your numbers, so you can check it by hand: R = (supply − LEDs × Vf) ÷ current.
+- **A resistor I already have** (under More options): type 330 or 4.7k and see the current it would give, the heat in it, and whether that is too bright, about right or dim for your target current.
 
 ## How to use it
 

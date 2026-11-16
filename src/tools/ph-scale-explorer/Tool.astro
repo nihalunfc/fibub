@@ -3,7 +3,7 @@
 // school indicators and what dilution with water does. Level switch for Class 10 / Class 11. "Check yourself" block.
 import '../../styles/astro.css';
 import '../../styles/chemquiz.css';
-import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
+import { SUBSTANCES, UNIVERSAL, KNOW_LABELS } from '../../lib/sci/phscale';
 ---
 <div class="ax phx">
   <div class="ax-card">
@@ -24,6 +24,21 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
     <dl class="ax-facts phx-facts"></dl>
     <p class="lx-eq phx-eq"></p>
     <p class="ax-help">Substance values are rounded, typical ones: real lemons, soaps and soils vary. pH here is at 25 °C, where pure water is pH 7.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Work out the pH</h2>
+    <div class="ax-grid">
+      <label>I know <select class="phx-kn" data-k="know">{Object.entries(KNOW_LABELS).map(([k, t]) => <option value={k} selected={k === 'strongAcid'}>{t}</option>)}</select></label>
+      <label>Value <input class="phx-kv" data-k="value" inputmode="decimal" value="0.01" /></label>
+      <label class="phx-kpl" hidden><span class="phx-kpt">pKa</span> <input class="phx-kp" data-k="pk" inputmode="decimal" value="4.76" /></label>
+    </div>
+    <p class="ax-err phx-kerr" hidden></p>
+    <p class="ax-big phx-kbig" style="margin:12px 0 2px" aria-live="polite"></p>
+    <p class="lx-eq phx-kwork"></p>
+    <p class="ax-help phx-knote" hidden></p>
+    <div class="ax-row"><button type="button" class="btn secondary small phx-kshow">Show on the scale above</button></div>
+    <p class="ax-help">Type a concentration as 0.01, 1e-3 or 1.5e-4. The weak acid example, pKa 4.76, is that of ethanoic (acetic) acid; check your own value in your textbook or data table. All at 25 °C.</p>
   </div>
 
   <div class="ax-card">
@@ -81,7 +96,7 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
 </style>
 
 <script>
-  import { hFromPH, ohFromPH, pOH, kind, dilute, INDICATORS, SUBSTANCES, sci } from '../../lib/sci/phscale';
+  import { phFrom, type Know, hFromPH, ohFromPH, pOH, kind, dilute, INDICATORS, SUBSTANCES, sci } from '../../lib/sci/phscale';
   import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';
 
   const root = document.querySelector<HTMLElement>('.phx')!;
@@ -151,6 +166,31 @@ import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
   root.querySelectorAll<HTMLButtonElement>('.phx-chip').forEach((b) => b.addEventListener('click', () => { picked = b.dataset.id!; setPH(Number(b.dataset.ph), true); }));
   root.querySelectorAll<HTMLButtonElement>('.phx-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); update(); }));
   q('.phx-dil').addEventListener('change', update);
+  // pH calculator
+  let calcPH: number | null = null, lastKn = '';
+  function know() {
+    const kn = q<HTMLSelectElement>('.phx-kn').value as Know, weak = kn === 'weakAcid' || kn === 'weakBase';
+    q('.phx-kpl').hidden = !weak; q('.phx-kpt').textContent = kn === 'weakBase' ? 'pKb' : 'pKa';
+    if (weak && kn !== lastKn) q<HTMLInputElement>('.phx-kp').value = kn === 'weakBase' ? '4.75' : '4.76';
+    lastKn = kn;
+    const err = q('.phx-kerr'), note = q('.phx-knote');
+    err.hidden = true; note.hidden = true; calcPH = null;
+    const num = (t: string) => Number(t.trim().replace(',', '.'));
+    try {
+      const v = q<HTMLInputElement>('.phx-kv').value.trim(), pk = q<HTMLInputElement>('.phx-kp').value.trim();
+      if (!v) throw new Error('Type a value.');
+      const r = phFrom(kn, num(v), weak ? (pk ? num(pk) : undefined) : undefined);
+      calcPH = r.pH;
+      q('.phx-kbig').textContent = `pH ${Math.abs(r.pH) < 1e-9 ? '0' : String(+r.pH.toFixed(2))}: ${r.pH < 0 || r.pH > 14 ? 'off the usual 0 to 14 scale, ' : ''}${kind(r.pH).text}`;
+      q('.phx-kwork').textContent = r.working + (r.ionised !== undefined ? `. About ${+r.ionised.toPrecision(3)} % of the acid or base is ionised.` : '');
+      if (r.note) { note.textContent = r.note; note.hidden = false; }
+    } catch (e) { q('.phx-kbig').textContent = ''; q('.phx-kwork').textContent = ''; err.textContent = (e as Error).message; err.hidden = false; }
+  }
+  
+  ['.phx-kv', '.phx-kp'].forEach((c) => q(c).addEventListener('input', know));
+  q('.phx-kn').addEventListener('change', know);
+  q('.phx-kshow').addEventListener('click', () => { if (calcPH !== null) setPH(calcPH); });
+  know();
   update();
 
   // Check yourself

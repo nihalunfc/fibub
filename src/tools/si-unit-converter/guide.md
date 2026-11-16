@@ -70,6 +70,13 @@ In the adding box, 1.2 km + 350 m: change 1.2 km to 1 200 m, then 1 200 + 350 = 
 
 Five fresh questions: three conversions, a prefix's power of ten, and which quantities can be added. Nothing is saved.
 
+## Quicker ways to type it
+
+- **Type it in words.** In the box at the top of Convert, write something like `5 km in cm`, `250 mA to A` or `3 MΩ in kΩ`. The value, prefixes and unit fill in for you. Both sides must be the same unit; a request like `5 km in s` gets a plain message instead of an answer.
+- **Swap** flips the two prefixes, so you can check the answer by going back.
+- Under *More options*, the same value is written with **every prefix** from tera to pico, in one table.
+- The unit list now also has ohm (Ω), farad (F), coulomb (C), tesla (T), henry (H), siemens (S), kelvin (K) and candela (cd), so `4.7 kΩ` or `100 nF`-style conversions work too.
+
 ## FAQ
 
 **Why move the point and not multiply?** It is the same thing: multiplying by 10³ moves the decimal point 3 places right. Moving the point is quicker and avoids rounding slips.

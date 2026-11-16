@@ -2,7 +2,7 @@
 export const path = '/science/nnt-calculator/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
   const R = '.nnt ', txt = (c) => page.textContent(R + c);
-  await page.goto(`${BASE}${path}`); await page.waitForTimeout(500);
+  await page.goto(`${BASE}${path}`); const __op = () => page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true))); for (const m of ['fill', 'selectOption', 'check', 'uncheck', 'click']) { const o = page[m].bind(page); page[m] = async (...a) => { await __op(); return o(...a); }; } /* WRAP-OPEN */  await page.waitForTimeout(500);
   check((await txt('.nnt-med')).includes('For study and teaching, not medical advice. Check with a qualified professional.'), 'nnt: medical line near the top');
   check((await txt('.nnt-big')) === 'NNTB 12.5 (round up: 13)' && (await txt('.nnt-ci')) === '95 % interval: NNTB 6.94 to 64.0', 'nnt: example NNTB and interval');
   { const f = await txt('.nnt-facts'); check(f.includes('8.0 % (1.6 % to 14.4 %)') && f.includes('0.600 (0.395 to 0.911)') && f.includes('40.0 % (8.9 % to 60.5 %)') && f.includes('80 fewer') && f.includes('p = 0.015'), 'nnt: ARR, RR, RRR, per 1000 and p'); }
@@ -29,4 +29,22 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await txt('.nnt-err')).includes('whole numbers'), 'nnt: bad count message');
   await page.fill(R + '.nnt-x1', '15'); await page.fill(R + '.nnt-base', '120'); await page.waitForTimeout(300);
   check((await txt('.nnt-err')).includes('baseline risk must be'), 'nnt: bad baseline message');
+  // Upgrades: plain sentence, dots, risks mode, time span, slider, chart, working.
+  await page.fill(R + '.nnt-x1', '30'); await page.fill(R + '.nnt-t1', '250'); await page.fill(R + '.nnt-x2', '50'); await page.fill(R + '.nnt-t2', '250'); await page.fill(R + '.nnt-base', '40'); await page.fill(R + '.nnt-time', '2 years'); await page.waitForTimeout(300);
+  check((await txt('.nnt-plain')).includes('About 13 people need to be treated over 2 years for one more to benefit') && (await txt('.nnt-plain')).includes('8 fewer'), 'nnt: plain sentence with time span');
+  check((await page.locator(R + '.nnt-icons i').count()) === 100 && (await page.locator(R + '.nnt-icons i.ok').count()) === 8 && (await page.locator(R + '.nnt-icons i.ev').count()) === 12, 'nnt: 100 dots (12 events either way, 8 helped)');
+  check(await page.isVisible(R + '.nnt-curve'), 'nnt: NNT against baseline chart');
+  await page.evaluate(() => { const r = document.querySelector('.nnt-baser'); r.value = '20'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(300);
+  check((await page.inputValue(R + '.nnt-base')) === '20' && (await txt('.nnt-pt')).includes('NNTB 12.5'), 'nnt: slider sets baseline (20 % x 40 % = 8 %, NNT 12.5)');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await txt('.nnt-wk')).includes('Risk difference = 12.0 % − 20.0 % = −8.0 %'), 'nnt: working');
+  await page.selectOption(R + '.nnt-mode', 'risks'); await page.waitForTimeout(300);
+  check(await page.isHidden(R + '.nnt-groups'), 'nnt: counts hidden in risks mode');
+  check((await txt('.nnt-big')).startsWith('NNTB 12.5') && (await txt('.nnt-ci')).includes('need the number of people') && (await txt('.nnt-facts')).includes('0.600'), 'nnt: 12 % against 20 % from risks');
+  await page.fill(R + '.nnt-r1', '25'); await page.fill(R + '.nnt-r2', '20'); await page.waitForTimeout(300);
+  check((await txt('.nnt-big')).startsWith('NNTH 20.0') && (await txt('.nnt-plain')).includes('harmed'), 'nnt: harm from risks (5 points up, NNTH 20)');
+  await page.fill(R + '.nnt-r1', '20'); await page.waitForTimeout(300);
+  check((await txt('.nnt-big')).includes('No difference'), 'nnt: equal risks');
+  await page.fill(R + '.nnt-r1', '120'); await page.waitForTimeout(300);
+  check((await txt('.nnt-err')).includes('Each risk must be'), 'nnt: bad risk message');
 };

@@ -36,4 +36,15 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await t('.os-err')).includes('molar mass of Sugar X') && await page.isHidden(R + '.os-out'), 'osmolarity: missing molar mass message');
   await page.fill(row(2) + '.os-mm', '200'); await page.fill(row(1) + '.os-i', '0'); await page.waitForTimeout(150);
   check((await t('.os-err')).includes('from 1 to 10'), 'osmolarity: bad i message');
+  // Weigh-out helper and starting chips.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await t('.os-gres')) === 'Weigh 9.112 g of sodium chloride for 1000 mL at 290 mOsm/L.', `osmolarity: weigh for a target (${await t('.os-gres')})`);
+  await page.selectOption(R + '.os-gs', 'glucose'); await page.fill(R + '.os-gv', '500'); await page.waitForTimeout(150);
+  check((await t('.os-gres')) === 'Weigh 26.12 g of glucose for 500 mL at 290 mOsm/L.', 'osmolarity: glucose target');
+  await page.fill(R + '.os-gv', '-5'); await page.waitForTimeout(150);
+  check((await t('.os-gres')).includes('Type a target') && !(await t('.os-gres')).includes('NaN'), 'osmolarity: bad volume message');
+  await page.click(R + '.os-pre button[data-p="glucose"]'); await page.waitForTimeout(200);
+  check((await t('.os-big')).startsWith('277.5 mOsm/L: hypo-osmotic') && (await page.locator(R + '.os-row').count()) === 1, 'osmolarity: 5 % glucose chip');
+  await page.click(R + '.os-pre button[data-p="saline"]'); await page.waitForTimeout(200);
+  check((await t('.os-big')).startsWith('286.4 mOsm/L: iso-osmotic'), 'osmolarity: saline chip');
 };

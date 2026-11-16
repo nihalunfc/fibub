@@ -6,6 +6,18 @@ export default async ({ page, check, OUT, BASE, readFileSync }) => {
   const wait = () => page.waitForTimeout(350);
   const row = async (name) => page.$$eval(P + '.es-tab tbody tr', (rs, n) => { const r = rs.find((x) => x.cells[0].firstChild.textContent === n); return r ? [...r.cells].slice(1).map((c) => c.textContent) : null; }, name);
   await page.goto(`${BASE}/science/effect-size-converter/`); await page.waitForTimeout(600);
+  check((await txt('.es-big')) === "Cohen's d = 0.3333 ≈ r = 0.1671 ≈ Odds ratio = 1.831", `effsize: default means example (${await txt('.es-big')})`);
+  check((await txt('.es-plain')).includes('small effect') && (await txt('.es-plain')).includes('63 %') && (await txt('.es-plain')).includes('59 %'), 'effsize: plain sentence (U3 0.63, superiority 0.59)');
+  check((await row("Glass's delta"))?.[0] === '0.3333', "effsize: Glass's delta");
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await txt('.es-wk')).includes('Pooled SD = ') && (await txt('.es-wk')).includes('= 15'), 'effsize: working shows the pooled SD');
+  await page.fill(P + '.es-m2', '90'); await wait();
+  check((await txt('.es-big')).startsWith("Cohen's d = 1"), 'effsize: means 105 vs 90, SD 15 gives d = 1');
+  await page.fill(P + '.es-sd1', '0'); await wait();
+  check((await txt('.es-err')).includes('above zero'), 'effsize: zero SD message');
+  await page.fill(P + '.es-sd1', 'x'); await wait();
+  check((await txt('.es-err')).includes('is not a number'), 'effsize: bad mean message');
+  await page.selectOption(P + '.es-from', 't-ind'); await wait();
   check((await txt('.es-big')) === "Cohen's d = 0.75 ≈ r = 0.3562 ≈ Odds ratio = 3.898", `effsize: example from t (${await txt('.es-big')})`);
   { const d = await row("Cohen's d"); check(d && d[1] === '0.1419 to 1.358' && d[2] === 'medium', 'effsize: d interval and label'); }
   { const g = await row("Hedges' g"); const e = await row('η² (eta squared)'); check(g?.[0] === '0.7368' && e?.[0] === '0.1269', 'effsize: g and eta squared'); }

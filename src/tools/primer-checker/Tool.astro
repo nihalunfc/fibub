@@ -34,11 +34,19 @@ TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
   <div class="ax-card">
     <h2>Primers</h2>
     <div class="ax-grid">
-      <label>Forward primer (5′→3′) <input class="pr-f" spellcheck="false" autocomplete="off" value="ACTCACATCGGTGTCACCTG" /></label>
-      <label>Reverse primer (5′→3′, optional) <input class="pr-r" spellcheck="false" autocomplete="off" value="TACTTCACGGCGTGTGCATC" /></label>
-      <label>Sodium (mM) <input class="pr-na" inputmode="decimal" value="50" /></label>
+      <label>Forward primer (5′→3′) <input data-k="f" class="pr-f" spellcheck="false" autocomplete="off" value="ACTCACATCGGTGTCACCTG" /></label>
+      <label>Reverse primer (5′→3′, optional) <input data-k="r" class="pr-r" spellcheck="false" autocomplete="off" value="TACTTCACGGCGTGTGCATC" /></label>
+      <label>Sodium (mM) <input data-k="na" class="pr-na" inputmode="decimal" value="50" /></label>
     </div>
     <p class="ax-help">Type each primer 5′ to 3′ as written on the order sheet (the reverse primer as it is, not its complement). Spaces and dashes are ignored; only A, C, G, T (or U) are accepted. Sodium is used only by the salt-adjusted Tm.</p>
+    <details class="pr-more"><summary>More options: ordering and resuspension</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Amount in the tube <input data-k="amt" class="pr-amt" inputmode="decimal" value="25" /></label>
+        <label>Unit <select data-k="unit" class="pr-unit"><option value="nmol" selected>nmol</option><option value="ug">µg</option></select></label>
+        <label>Stock to make (µM) <input data-k="stock" class="pr-stock" inputmode="decimal" value="100" /></label>
+      </div>
+      <p class="ax-help">The tube label gives nmol or µg. The tool works out how much water or buffer to add for a stock of the strength you choose. Molecular weight is worked out from the sequence (5′ and 3′ hydroxyl ends, no modifications).</p>
+    </details>
     <p class="ax-err pr-err" hidden></p>
   </div>
 
@@ -46,17 +54,19 @@ TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
     <h2>Template (optional)</h2>
     <label>DNA to find binding sites and products on, as FASTA or plain letters <textarea class="pr-tpl" rows="4" spellcheck="false">{tpl}</textarea></label>
     <div class="ax-grid">
-      <label>Mismatches allowed <select class="pr-mm"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select></label>
-      <label>Largest product (bp) <input class="pr-max" inputmode="numeric" value="5000" /></label>
+      <label>Mismatches allowed <select data-k="mm" class="pr-mm"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select></label>
+      <label>Largest product (bp) <input data-k="max" class="pr-max" inputmode="numeric" value="5000" /></label>
     </div>
     <p class="ax-help">Both strands are searched. Sites may have the mismatches you allow, but the last 3 bases at the primer's 3′ end must match, since that is where the polymerase starts. Up to 1 million bases; letters other than A, C, G, T are skipped over as mismatches. The example template is random made-up sequence.</p>
   </div>
 
   <div class="ax-card pr-out">
     <h2>Checks</h2>
-    <p class="ax-big pr-big"></p>
+    <p class="ax-big pr-big" aria-live="polite"></p>
     <dl class="ax-facts pr-facts"></dl>
     <div class="ax-scroll"><table class="pr-tab"></table></div>
+    <div class="pr-ord"></div>
+    <details class="pr-work"><summary>Show the working</summary><div class="pr-wk"></div></details>
     <h3 class="pr-h">Strongest primer-dimer</h3>
     <pre class="pr-dim"></pre>
     <div class="pr-tplout">
@@ -69,7 +79,7 @@ TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
 </div>
 
 <script>
-  import { clean, gcCount, tmWallace, tmBasic, tmSalt, runs, clamp, hairpin, dimer, sites, products } from '../../lib/sci/primer';
+  import { molWeight, resuspendUL, nmolFromUg, rc, clean, gcCount, tmWallace, tmBasic, tmSalt, runs, clamp, hairpin, dimer, sites, products } from '../../lib/sci/primer';
   import { wireDownloads, type Section } from '../../lib/report';
   import { num, sig } from '../../lib/sci/num';
 
@@ -176,9 +186,21 @@ TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
       ['Longest run', ...col((o) => mark(o.r.run.len > 1 ? `${o.r.run.len} ${o.r.run.base}` : '1', o.r.run.len >= 4))],
       ['Dinucleotide repeat', ...col((o) => mark(o.r.di.reps > 1 ? `${o.r.di.unit} × ${o.r.di.reps}` : 'none', o.r.di.reps >= 4))],
       ['Hairpin stem (bp)', ...col((o) => mark(o.hp.stem ? String(o.hp.stem) : '0', o.hp.stem >= 4))],
+      ['Molecular weight (g/mol)', ...col((o) => sg(molWeight(o.s), 6))],
       ['Self-dimer: longest / at 3′ (bp)', ...col((o) => mark(`${o.sd.longest} / ${o.sd.threePrime}`, o.sd.threePrime >= 3 || o.sd.longest >= 6))],
       ...(b && cross ? [['Cross-dimer: longest / at 3′ (bp)', mark(`${cross.longest} / ${cross.threePrime}`, cross.threePrime >= 3 || cross.longest >= 6), '']] : []),
     ];
+    const amt = num(q<HTMLInputElement>('.pr-amt').value), stock = num(q<HTMLInputElement>('.pr-stock').value), isUg = q<HTMLSelectElement>('.pr-unit').value === 'ug';
+    const ord = q('.pr-ord'); ord.replaceChildren();
+    if (amt > 0 && stock > 0) {
+      const lines = [[F, 'Forward', a], ...(b ? [[R!, 'Reverse', b]] : [])] as [string, string, One][];
+      const dl = document.createElement('dl'); dl.className = 'ax-facts';
+      for (const [seq, name] of lines) { const nm = isUg ? nmolFromUg(amt, molWeight(seq)) : amt; const v = resuspendUL(nm, stock); dl.append(fact(`${name}: add`, `${v >= 100 ? Math.round(v).toLocaleString('en') : sg(v, 3)} µL`, `for a ${sg(stock, 3)} µM stock from ${sg(nm, 3)} nmol${isUg ? ` (${sg(amt, 4)} µg ÷ ${sg(molWeight(seq), 6)} g/mol)` : ''}`)); }
+      ord.append(dl);
+    } else if (q<HTMLInputElement>('.pr-amt').value.trim() || q<HTMLInputElement>('.pr-stock').value.trim()) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = 'Type the amount in the tube and the stock concentration, both above zero, to get the volume to add.'; ord.append(p); }
+    const wkLines = [[F, 'Forward', a], ...(b ? [[R!, 'Reverse', b]] : [])].flatMap(([seq, name, o]) => { const x = o as One, sq = seq as string; return [`${name} (${sq.length} nt, ${gcCount(sq)} G or C = ${t1(x.gc)} % GC): Wallace 2 × ${sq.length - gcCount(sq)} + 4 × ${gcCount(sq)} = ${x.wal} °C`, `${name}: basic Tm = 64.9 + 41 × (${gcCount(sq)} − 16.4) ÷ ${sq.length} = ${t1(x.basic)} °C; salt-adjusted = 81.5 + 16.6 × log₁₀(${sg(na / 1000, 3)} M) + 0.41 × ${t1(x.gc)} − 675 ÷ ${sq.length} = ${t1(x.salt)} °C`]; });
+    if (b) wkLines.push(`Reverse primer, read along the template (reverse complement): ${rc(R!)}`);
+    q('.pr-wk').replaceChildren(...wkLines.map((t) => { const e = document.createElement('p'); e.textContent = t; e.style.cssText = 'margin:6px 0;font-size:14px;overflow-wrap:anywhere'; return e; }));
     const head = ['Check', 'Forward', ...(b ? ['Reverse'] : [])];
     table('.pr-tab', head, rows, b ? [1, 2] : [1]);
     // Dimer picture: the cross-dimer for a pair, otherwise the self-dimer.
@@ -202,4 +224,5 @@ TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
   .prc .pr-dim { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre; margin: 0; padding: 8px; border: 1px solid var(--line, #ddd); border-radius: 6px; }
   .prc .pr-bad { font-weight: 700; }
   .prc select { max-width: 100%; }
+  .prc details summary { cursor: pointer; font-weight: 600; margin-top: 10px; }
 </style>

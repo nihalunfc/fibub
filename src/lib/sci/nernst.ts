@@ -133,3 +133,12 @@ export function cellNotation(an: Half, cat: Half, pretty: (t: string) => string)
   const a = side(an), c = side(cat);
   return [a.electrode, ...a.parts, a.aq].filter(Boolean).join(' | ') + ' ‖ ' + [c.aq, ...[...c.parts].reverse(), c.electrode].filter(Boolean).join(' | ');
 }
+
+/**
+ * Equilibrium (Nernst) potential of an ion across a membrane, in volts: E = (RT / zF) ln([out] / [in]),
+ * inside relative to outside is the usual convention: E = (RT / zF) ln(out / in) with z the ion's charge.
+ */
+export const ionPotential = (z: number, cOut: number, cIn: number, T = 310.15) => (thermalV(T) / z) * Math.log(cOut / cIn);
+
+/** Reaction quotient Q from a measured potential: ln Q = n (E° − E) F / (R T). */
+export const qFromE = (E0: number, E: number, n: number, T = 298.15) => (n * (E0 - E)) / thermalV(T);

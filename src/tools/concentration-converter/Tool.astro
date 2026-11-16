@@ -44,8 +44,25 @@ import DataFile from '../../components/DataFile.astro';
     </div>
     <p class="ax-err cc-err" hidden></p>
     <div class="cc-out" hidden>
-      <p class="ax-big cc-big"></p>
+      <p class="ax-big cc-big" aria-live="polite"></p>
       <div class="ax-scroll"><table class="cc-tab"><thead><tr><th>Unit</th><th class="r">Value</th></tr></thead><tbody></tbody></table></div>
+      <details>
+        <summary>More options: weigh it out, or dilute it</summary>
+        <h3>From a weighed mass</h3>
+        <div class="ax-grid">
+          <label>Solute mass <span class="ax-row" style="gap:6px"><input class="cc-wm" data-k="wmass" inputmode="decimal" placeholder="e.g. 5.84" /><select class="cc-wmu" data-k="wmassunit"><option value="1">g</option><option value="0.001">mg</option><option value="1000">kg</option></select></span></label>
+          <label>Final volume <span class="ax-row" style="gap:6px"><input class="cc-wv" data-k="wvol" inputmode="decimal" placeholder="e.g. 100" /><select class="cc-wvu" data-k="wvolunit"><option value="1e-3">mL</option><option value="1">L</option></select></span></label>
+        </div>
+        <p class="ax-big cc-wres" style="font-size:18px" aria-live="polite"></p>
+        <div class="ax-row"><button type="button" class="btn secondary small cc-wuse" hidden>Use this as the value above</button></div>
+        <h3>Dilute it (C₁V₁ = C₂V₂)</h3>
+        <div class="ax-grid">
+          <label>Wanted concentration (same unit as the value) <input class="cc-d2" data-k="dc2" inputmode="decimal" placeholder="e.g. 0.1" /></label>
+          <label>Wanted final volume <span class="ax-row" style="gap:6px"><input class="cc-dv" data-k="dvol" inputmode="decimal" placeholder="e.g. 100" /><select class="cc-dvu" data-k="dvolunit"><option value="mL">mL</option><option value="L">L</option></select></span></label>
+        </div>
+        <p class="ax-big cc-dres" style="font-size:18px" aria-live="polite"></p>
+        <p class="ax-help">Uses the value you typed above as the stock. Take the stock volume, then add solvent up to the final volume.</p>
+      </details>
       <h3>Show the working</h3>
       <label>Steps from the value you typed to <select class="cc-to"></select></label>
       <ol class="cc-chain"></ol>
@@ -76,7 +93,7 @@ import DataFile from '../../components/DataFile.astro';
 </div>
 
 <script>
-  import { units, convertAll, toBase, fromBase, missing, readMolarMass, NEED_TEXT, ConcError, f, type Phase, type Params, type Row } from '../../lib/sci/concconv';
+  import { fromMassVolume, dilutionVolume, units, convertAll, toBase, fromBase, missing, readMolarMass, NEED_TEXT, ConcError, f, type Phase, type Params, type Row } from '../../lib/sci/concconv';
   import { num, parseTable } from '../../lib/sci/num';
   import { wireDownloads, save, type Section } from '../../lib/report';
 
@@ -239,6 +256,32 @@ import DataFile from '../../components/DataFile.astro';
     bnote.textContent = notes.join(' '); bnote.hidden = false;
   }
 
+  function extras() {
+    const wres = q('.cc-wres'), use = q('.cc-wuse'), dres = q('.cc-dres');
+    use.hidden = true; wres.textContent = dres.textContent = '';
+    const wmT = inp('.cc-wm').value.trim(), wvT = inp('.cc-wv').value.trim();
+    if (wmT || wvT) {
+      const pr = params(), M = typeof pr === 'string' ? undefined : pr.p.M;
+      const m = num(wmT) * Number(sel('.cc-wmu').value) , L = num(wvT) * Number(sel('.cc-wvu').value);
+      const r = fromMassVolume(m, L, M);
+      if (!wmT || !wvT || !r) wres.textContent = 'Type a mass of zero or more and a volume above zero.';
+      else {
+        wres.textContent = r.molL !== undefined ? `${f(r.molL)} mol/L (${f(r.gL)} g/L)` : `${f(r.gL)} g/L. Add the solute's formula above to get mol/L.`;
+        use.hidden = false; use.dataset.u = r.molL !== undefined ? 'molL' : 'gL'; use.dataset.v = String(r.molL ?? r.gL);
+      }
+    }
+    const c2T = inp('.cc-d2').value.trim(), vT = inp('.cc-dv').value.trim();
+    if (c2T && vT) {
+      const c1 = num(inp('.cc-v').value), c2 = num(c2T), v2 = num(vT), u = sel('.cc-dvu').value;
+      const d = dilutionVolume(c1, c2, v2);
+      if (!d) dres.textContent = c2 > c1 ? 'A dilution can only lower the concentration: the wanted value is above the stock.' : 'Type a stock above zero, a wanted concentration of zero or more and a volume.';
+      else dres.textContent = `Take ${f(d.v1)} ${u} of the stock and add ${f(d.solvent)} ${u} of solvent to make ${f(v2)} ${u}.`;
+    }
+  }
+  ['.cc-wm', '.cc-wv', '.cc-d2', '.cc-dv', '.cc-v'].forEach((c) => inp(c).addEventListener('input', extras));
+  ['.cc-wmu', '.cc-wvu', '.cc-dvu'].forEach((c) => sel(c).addEventListener('change', extras));
+  q('.cc-wuse').addEventListener('click', (e) => { const b = e.currentTarget as HTMLElement; sel('.cc-u').value = b.dataset.u!; inp('.cc-v').value = String(+Number(b.dataset.v).toPrecision(6)); run(); extras(); });
+
   const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
   const full = (x: number | null) => (x === null ? '' : String(+x.toPrecision(12)));
   q('.cc-csv1').addEventListener('click', () => {
@@ -265,7 +308,7 @@ import DataFile from '../../components/DataFile.astro';
   sel('.cc-bu').addEventListener('change', runBatch);
   sel('.cc-bt').addEventListener('change', runBatch);
   setExample('nacl');
-  run();
+  run(); extras();
   wireDownloads(q('.dl'), () => ({ title: 'Concentration converter', subtitle: q('.cc-big').textContent ?? '', file: 'concentration', sections }));
 </script>
 

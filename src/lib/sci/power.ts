@@ -21,19 +21,19 @@ export function nctUpper(c: number, df: number, ncp: number): number {
 }
 
 export type TDesign = 'two-sample' | 'paired' | 'one-sample';
-/** Power of a two-sided t test at level alpha, effect size d (difference / SD), n per group (or pairs). */
-export function powerT(n: number, d: number, alpha = 0.05, design: TDesign = 'two-sample'): number {
+/** Power of a t test (two-sided unless sides = 1) at level alpha, effect size d (difference / SD), n per group (or pairs). */
+export function powerT(n: number, d: number, alpha = 0.05, design: TDesign = 'two-sample', sides: 1 | 2 = 2): number {
   if (!(n >= 2) || !(d > 0)) return NaN;
   const df = design === 'two-sample' ? 2 * (n - 1) : n - 1;
   const ncp = design === 'two-sample' ? d * Math.sqrt(n / 2) : d * Math.sqrt(n);
-  const c = tInv(1 - alpha / 2, df);
+  const c = tInv(1 - alpha / sides, df);
   return nctUpper(c, df, ncp);
 }
 
 /** Power of a two-sided test of two proportions, n per group (R power.prop.test). */
-export function powerProp(n: number, p1: number, p2: number, alpha = 0.05): number {
+export function powerProp(n: number, p1: number, p2: number, alpha = 0.05, sides: 1 | 2 = 2): number {
   if (!(n > 0) || !(p1 > 0 && p1 < 1 && p2 > 0 && p2 < 1) || p1 === p2) return NaN;
-  const q = normInv(1 - alpha / 2), q1 = 1 - p1, q2 = 1 - p2;
+  const q = normInv(1 - alpha / sides), q1 = 1 - p1, q2 = 1 - p2;
   return normCdf((Math.sqrt(n) * Math.abs(p1 - p2) - q * Math.sqrt(((p1 + p2) * (q1 + q2)) / 2)) / Math.sqrt(p1 * q1 + p2 * q2));
 }
 
@@ -55,4 +55,13 @@ export function surveyN(E: number, conf = 0.95, p = 0.5, N = Infinity): number {
 export function surveyMargin(n: number, conf = 0.95, p = 0.5, N = Infinity): number {
   const z = normInv(1 - (1 - conf) / 2), fpc = Number.isFinite(N) ? Math.sqrt((N - n) / (N - 1)) : 1;
   return z * Math.sqrt((p * (1 - p)) / n) * fpc;
+}
+
+/** The smallest effect size d a t test can detect with n per group (or pairs) at the given power: bisection on d. NaN if n is too small to ever reach it. */
+export function solveD(n: number, alpha: number, target: number, design: TDesign = 'two-sample', sides: 1 | 2 = 2): number {
+  if (!(n >= 2)) return NaN;
+  let lo = 1e-4, hi = 12;
+  if (powerT(n, hi, alpha, design, sides) < target) return NaN;
+  for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (powerT(n, m, alpha, design, sides) < target) lo = m; else hi = m; }
+  return (lo + hi) / 2;
 }

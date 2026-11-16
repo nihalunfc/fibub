@@ -11,7 +11,7 @@ ads: true
 order: 344
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [colligative-properties, solution-calculator, molar-mass-calculator, buffer-recipe-calculator, membrane-potential, fick-cardiac-output, respirometry-calculator, lab-unit-converter, concentration-converter]
 sources:
   - "Osmotic pressure: J. H. van 't Hoff (1887), π = cRT. Gas constant R = 8.314462618 J/(mol·K) (CODATA)."
@@ -51,6 +51,11 @@ Make up the solution with the [[solution-calculator]], and see how the same part
 4. **φ** is 1 for an ideal solution. Use a measured value if you have one.
 5. **Crosses membranes** removes that solute from the effective (tonic) osmolarity.
 6. Set the **temperature**, the **reference** osmolarity and how close counts as equal.
+
+## More options
+
+- **Start from.** Buttons set up 0.9 % saline (NaCl, φ 0.93), 5 % glucose or a single glucose row, so you can edit from a known example.
+- **How much to weigh for a target.** Under "More options" on the first card, choose a solute, a target in mOsm/L and a final volume, and read the grams to weigh: grams = target ÷ (i × φ) × molar mass × volume. For 290 mOsm/L of NaCl with φ 0.93 in 1 L that is 9.112 g. Osmolarity is per litre of solution; osmolality is per kg of water and is almost identical for dilute solutions. Study use only, not for making clinical fluids.
 
 ## Worked example
 

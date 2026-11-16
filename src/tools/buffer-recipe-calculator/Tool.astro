@@ -8,24 +8,42 @@ import { BUFFERS } from '../../lib/sci/buffer';
 <div class="ax buf">
   <div class="ax-card">
     <h2>Buffer</h2>
-    <div class="ax-grid">
-      <label class="buf-wide">Buffer <select class="buf-b">{BUFFERS.map((b) => <option value={b.id} selected={b.id === 'tris'}>{b.name} (pKa {b.pKa.map((p) => p.toFixed(2)).join(', ')})</option>)}</select></label>
-      <label>Target pH <input class="buf-ph" inputmode="decimal" value="8.0" /></label>
-      <label>Concentration (mM) <input class="buf-c" inputmode="decimal" value="50" /></label>
-      <label>Final volume (mL) <input class="buf-v" inputmode="decimal" value="1000" /></label>
-      <label>Temperature when you set the pH (°C) <input class="buf-t" inputmode="decimal" value="25" /></label>
-      <label>Temperature you will use it at (°C) <input class="buf-tu" inputmode="decimal" value="4" /></label>
-      <label>Extra NaCl (mM, optional) <input class="buf-salt" inputmode="decimal" value="0" /></label>
-      <label class="buf-wide">Recipe <select class="buf-mode"><option value="one">Weigh one form, then add strong acid or base</option><option value="two">Mix two forms (no acid or base needed)</option></select></label>
-      <label class="buf-wide">Form to weigh <select class="buf-f1"></select></label>
-      <label class="buf-wide buf-f2l" hidden>Second form <select class="buf-f2"></select></label>
-      <label class="buf-tl">Acid or base strength (M) <input class="buf-ct" inputmode="decimal" value="1" /></label>
+    <div class="ax-row buf-pre" style="margin-bottom:10px">
+      <span class="ax-help" style="margin:0">Common recipes</span>
+      <button type="button" class="btn secondary small" data-b="tris" data-ph="7.5" data-c="50">50 mM Tris pH 7.5</button>
+      <button type="button" class="btn secondary small" data-b="phosphate" data-ph="7.4" data-c="10">10 mM phosphate pH 7.4</button>
+      <button type="button" class="btn secondary small" data-b="hepes" data-ph="7.4" data-c="20">20 mM HEPES pH 7.4</button>
+      <button type="button" class="btn secondary small" data-b="acetate" data-ph="5" data-c="50">50 mM acetate pH 5</button>
     </div>
+    <div class="ax-grid">
+      <label class="buf-wide">Buffer <select class="buf-b" data-k="buffer">{BUFFERS.map((b) => <option value={b.id} selected={b.id === 'tris'}>{b.name} (pKa {b.pKa.map((p) => p.toFixed(2)).join(', ')})</option>)}</select></label>
+      <label>Target pH <input class="buf-ph" data-k="ph" inputmode="decimal" value="8.0" /></label>
+      <label>Concentration (mM) <input class="buf-c" data-k="conc" inputmode="decimal" value="50" /></label>
+      <label>Final volume (mL) <input class="buf-v" data-k="vol" inputmode="decimal" value="1000" /></label>
+      <label>Temperature when you set the pH (°C) <input class="buf-t" data-k="temp" inputmode="decimal" value="25" /></label>
+      <label>Temperature you will use it at (°C) <input class="buf-tu" data-k="tempuse" inputmode="decimal" value="4" /></label>
+      <label>Extra NaCl (mM, optional) <input class="buf-salt" data-k="salt" inputmode="decimal" value="0" /></label>
+      <label class="buf-wide">Recipe <select class="buf-mode" data-k="recipe"><option value="one">Weigh one form, then add strong acid or base</option><option value="two">Mix two forms (no acid or base needed)</option></select></label>
+      <label class="buf-wide">Form to weigh <select class="buf-f1" data-k="form1"></select></label>
+      <label class="buf-wide buf-f2l" hidden>Second form <select class="buf-f2" data-k="form2"></select></label>
+      <label class="buf-tl">Acid or base strength (M) <input class="buf-ct" data-k="titrant" inputmode="decimal" value="1" /></label>
+    </div>
+    <details style="margin-top:10px">
+      <summary>More options: make a concentrated stock</summary>
+      <label style="margin-top:8px">Stock strength (× the concentration above; 1 = no stock) <input class="buf-n" data-k="stock" inputmode="decimal" value="1" /></label>
+      <p class="ax-help">For a 10× stock, type 10. The table below then shows the amounts for the stock in the same final volume, and you dilute it 1 in 10 to get the buffer above. Check the pH after diluting, because the ionic strength changes it a little.</p>
+    </details>
     <p class="ax-help">The recipe solves the full charge balance over every pKa of the buffer, with pKa adjusted for temperature and for ionic strength (Davies equation). It is a starting point: make up to about 80 % of the volume, check with a calibrated pH meter at the working temperature, adjust, then make up to volume.</p>
     <p class="ax-err buf-err" hidden></p>
     <div class="buf-out">
-      <p class="ax-big buf-big"></p>
+      <p class="ax-big buf-big" aria-live="polite"></p>
+      <div class="ax-scroll"><table class="buf-rt"></table></div>
       <ol class="buf-steps"></ol>
+      <div class="buf-stock" hidden>
+        <h3 class="buf-stock-h"></h3>
+        <div class="ax-scroll"><table class="buf-st"></table></div>
+        <p class="ax-help buf-stock-n"></p>
+      </div>
       <dl class="ax-facts buf-facts"></dl>
       <canvas class="ax-fig buf-fig" style="margin-top:10px"></canvas>
       <h3>Species at this pH</h3>
@@ -36,7 +54,7 @@ import { BUFFERS } from '../../lib/sci/buffer';
 </div>
 
 <script>
-  import { BUFFERS, oneForm, twoForms, pHAtOtherT, pHFor, betaMaxSingle, fractions, nBar, type Recipe } from '../../lib/sci/buffer';
+  import { BUFFERS, oneForm, twoForms, pHAtOtherT, pHFor, betaMaxSingle, fractions, nBar, type Recipe, scaleRecipe, baseAcidRatio } from '../../lib/sci/buffer';
   import { num } from '../../lib/sci/num';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Figure } from '../../lib/report';
@@ -102,9 +120,28 @@ import { BUFFERS } from '../../lib/sci/buffer';
     const main = r.forms.filter((x) => x.mol > 1e-12).map((x) => `${grams(x.grams)} g ${lc(x.form.name.split(/[,(]/)[0].trim())}`).join(' + ');
     q('.buf-big').textContent = two ? `${main} in ${Vml} mL` : `${main} + ${mL(r.titrantmL)} mL ${Ct} M ${r.titrant >= 0 ? 'NaOH' : 'HCl'} in ${Vml} mL`;
 
+    const rt: string[][] = r.forms.filter((x) => x.mol > 1e-12).map((x) => [x.form.name, x.mL !== undefined ? `${mL(x.mL)} mL (${grams(x.grams)} g)` : `${grams(x.grams)} g`]);
+    if (salt > 0) rt.push(['Sodium chloride (NaCl)', `${grams(salt * V * 58.44)} g`]);
+    if (!two && Math.abs(r.titrant) >= 1e-9 * V) rt.push([`${Ct} M ${r.titrant >= 0 ? 'NaOH' : 'HCl'}, about`, `${mL(r.titrantmL)} mL`]);
+    rt.push(['Water', `to ${Vml} mL`]);
+    table(q<HTMLTableElement>('.buf-rt'), ['Ingredient', 'Amount'], rt, [1]);
+    const nStock = num(q<HTMLInputElement>('.buf-n').value), sc = nStock > 1 ? scaleRecipe(r, nStock) : null;
+    q('.buf-stock').hidden = !sc;
+    if (sc) {
+      const sr = sc.forms.map((x) => [x.name, x.mL !== undefined ? `${mL(x.mL)} mL (${grams(x.grams)} g)` : `${grams(x.grams)} g`]);
+      if (salt > 0) sr.push(['Sodium chloride (NaCl)', `${grams(salt * V * 58.44 * nStock)} g`]);
+      if (!two && Math.abs(sc.titrant) >= 1e-9 * V) sr.push([`${Ct} M ${sc.titrant >= 0 ? 'NaOH' : 'HCl'}, about`, `${mL(sc.titrantmL)} mL`]);
+      sr.push(['Water', `to ${Vml} mL`]);
+      q('.buf-stock-h').textContent = `${+nStock.toPrecision(4)}× stock (${+(C * 1000 * nStock).toPrecision(4)} mM) in ${Vml} mL`;
+      table(q<HTMLTableElement>('.buf-st'), ['Ingredient', 'Amount'], sr, [1]);
+      q('.buf-stock-n').textContent = `Dilute 1 part stock with ${+(nStock - 1).toPrecision(4)} parts water to get ${+(C * 1000).toPrecision(4)} mM. Ionic strength drops when you dilute, so the pH moves a little: check it on the diluted buffer.`;
+      if (sc.titrantmL > Vml * 0.5) q('.buf-stock-n').textContent += ' The acid or base is over half the volume: use a stronger solution.';
+    }
+
     const near = s.pKa.reduce((bi, p, i) => (Math.abs(p - pH) < Math.abs(s.pKa[bi] - pH) ? i : bi), 0);
     const facts: HTMLElement[] = [
       fact(`pKa at ${t} °C`, `${(b.pKa[near] + b.dT[near] * (t - 25)).toFixed(2)} (pKa′ ${s.pKa[near].toFixed(2)} at this ionic strength)`, `25 °C value ${b.pKa[near].toFixed(2)}, changes by ${b.dT[near] > 0 ? '+' : b.dT[near] < 0 ? '−' : ''}${Math.abs(b.dT[near]).toFixed(3)} per °C (approximate)`),
+      (() => { const br = baseAcidRatio(s.alpha, s.pKa, pH); return fact('Base to acid ratio', `${br.ratio >= 100 ? br.ratio.toFixed(0) : br.ratio.toPrecision(3)} : 1 (${br.basePct.toFixed(1)} % base)`, `pH − pKa′ = ${(pH - br.pKa).toFixed(2)}; the Henderson–Hasselbalch ratio at the apparent pKa′ ${br.pKa.toFixed(2)}`); })(),
       fact('Ionic strength', `${(s.I * 1000).toFixed(1)} mM`, 'from the buffer ions, the added acid or base and any NaCl'),
       fact('Buffer capacity β', `${(s.beta * 1000).toFixed(1)} mM per pH unit`, `${Math.round((100 * s.beta) / betaMaxSingle(C))} % of the most a ${C * 1000} mM buffer gives at its pKa`),
     ];
@@ -125,6 +162,10 @@ import { BUFFERS } from '../../lib/sci/buffer';
     paint(q<HTMLCanvasElement>('.buf-fig'), figs[0]);
   }
 
+  root.querySelectorAll<HTMLButtonElement>('.buf-pre button').forEach((bt) => bt.addEventListener('click', () => {
+    q<HTMLSelectElement>('.buf-b').value = bt.dataset.b!; q<HTMLInputElement>('.buf-ph').value = bt.dataset.ph!; q<HTMLInputElement>('.buf-c').value = bt.dataset.c!;
+    q<HTMLSelectElement>('.buf-mode').value = bt.dataset.b === 'phosphate' ? 'two' : 'one'; fillForms(); calc();
+  }));
   q('.buf-b').addEventListener('change', () => { fillForms(); calc(); });
   q('.buf-mode').addEventListener('change', () => { fillForms(); calc(); });
   root.querySelectorAll('.buf-f1, .buf-f2').forEach((i) => i.addEventListener('change', calc));

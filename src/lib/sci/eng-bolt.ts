@@ -81,3 +81,16 @@ export function propertyClass(s: string): { Rm: number; Re: number } | null {
   const a = +m[1], b = +m[2];
   return { Rm: 100 * a, Re: 10 * a * b };
 }
+
+// Torque chart: the common coarse (and unified fine) sizes. Pitches are thread geometry from ISO 261 / ISO 724
+// (metric coarse series) and ASME B1.1 (UNC and UNF); the strength, preload share and nut factor come from the user.
+export type ThreadSize = { name: string; d: number; P: number };
+export const ISO_COARSE: ThreadSize[] = [['M5', 5, 0.8], ['M6', 6, 1], ['M8', 8, 1.25], ['M10', 10, 1.5], ['M12', 12, 1.75], ['M14', 14, 2], ['M16', 16, 2], ['M20', 20, 2.5], ['M24', 24, 3], ['M30', 30, 3.5]].map(([name, d, P]) => ({ name: name as string, d: d as number, P: P as number }));
+const inch = (list: [string, number, number][]): ThreadSize[] => list.map(([name, d, n]) => ({ name, d, P: 1 / n }));
+export const UNC: ThreadSize[] = inch([['1/4-20', 0.25, 20], ['5/16-18', 0.3125, 18], ['3/8-16', 0.375, 16], ['7/16-14', 0.4375, 14], ['1/2-13', 0.5, 13], ['9/16-12', 0.5625, 12], ['5/8-11', 0.625, 11], ['3/4-10', 0.75, 10], ['7/8-9', 0.875, 9], ['1-8', 1, 8]]);
+export const UNF: ThreadSize[] = inch([['1/4-28', 0.25, 28], ['5/16-24', 0.3125, 24], ['3/8-24', 0.375, 24], ['7/16-20', 0.4375, 20], ['1/2-20', 0.5, 20], ['9/16-18', 0.5625, 18], ['5/8-18', 0.625, 18], ['3/4-16', 0.75, 16], ['7/8-14', 0.875, 14], ['1-12', 1, 12]]);
+/** Stress area, preload and torque for each size: Sp proof strength, frac the preload share (0 to 1), kOf the nut factor for a size.
+ * Units follow the system: mm, N, N·mm (iso) or in, lbf, lbf·in (un). */
+export function torqueChart(sizes: ThreadSize[], system: 'iso' | 'un', Sp: number, frac: number, kOf: (s: ThreadSize) => number) {
+  return sizes.map((s) => { const As = stressArea(s.d, s.P, system), Fi = frac * Sp * As; return { ...s, As, Fi, T: torqueK(kOf(s), Fi, s.d) }; });
+}

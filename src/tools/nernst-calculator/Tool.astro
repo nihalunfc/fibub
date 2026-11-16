@@ -12,11 +12,11 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
     <h2>Electrode or cell</h2>
     <div class="ax-seg nst-mode" role="group" aria-label="Work out"><button type="button" data-m="cell" aria-pressed="true">Cell (two electrodes)</button><button type="button" data-m="one" aria-pressed="false">One electrode</button></div>
     <div class="ax-grid" style="margin-top:12px">
-      <label class="nst-wide"><span class="nst-catl">Cathode (reduction, + terminal)</span> <select class="nst-cat">{opt.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
-      <div class="nst-wide nst-cc" hidden><div class="ax-grid"><label>E° (V vs SHE) <input class="nst-cE" inputmode="decimal" value="0.500" /></label><label>Electrons n <input class="nst-cn" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input class="nst-cQ" inputmode="decimal" value="1" /></label></div></div>
-      <label class="nst-wide nst-anw">Anode (oxidation, − terminal) <select class="nst-an">{opt.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
-      <div class="nst-wide nst-ac" hidden><div class="ax-grid"><label>E° (V vs SHE) <input class="nst-aE" inputmode="decimal" value="0.000" /></label><label>Electrons n <input class="nst-an2" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input class="nst-aQ" inputmode="decimal" value="1" /></label></div></div>
-      <label>Temperature (°C) <input class="nst-T" inputmode="decimal" value="25" /></label>
+      <label class="nst-wide"><span class="nst-catl">Cathode (reduction, + terminal)</span> <select data-k="cat" class="nst-cat">{opt.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
+      <div class="nst-wide nst-cc" hidden><div class="ax-grid"><label>E° (V vs SHE) <input data-k="cE" class="nst-cE" inputmode="decimal" value="0.500" /></label><label>Electrons n <input data-k="cn" class="nst-cn" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input data-k="cQ" class="nst-cQ" inputmode="decimal" value="1" /></label></div></div>
+      <label class="nst-wide nst-anw">Anode (oxidation, − terminal) <select data-k="an" class="nst-an">{opt.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}<option value="custom">Your own half-reaction…</option></select></label>
+      <div class="nst-wide nst-ac" hidden><div class="ax-grid"><label>E° (V vs SHE) <input data-k="aE" class="nst-aE" inputmode="decimal" value="0.000" /></label><label>Electrons n <input data-k="an" class="nst-an2" inputmode="numeric" value="1" /></label><label>Q of this half-reaction <input data-k="aQ" class="nst-aQ" inputmode="decimal" value="1" /></label></div></div>
+      <label>Temperature (°C) <input data-k="T" class="nst-T" inputmode="decimal" value="25" /></label>
       <div class="nst-swapw" style="align-self:end"><button type="button" class="btn secondary small nst-swap">Swap electrodes</button></div>
     </div>
     <p class="ax-help">Both lists are reduction half-reactions with their standard potential at 25 °C. The tool writes the anode one backwards for you.</p>
@@ -25,8 +25,9 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
     <p class="ax-help">Ions in mol/L, gases in bar. Solids, liquids and water count as 1. Concentration stands in for activity, which is good below about 0.01 M and a few mV out at 0.1 M.</p>
     <p class="ax-err nst-err" hidden></p>
     <div class="nst-out">
-      <p class="ax-big nst-big"></p>
+      <p class="ax-big nst-big" aria-live="polite"></p>
       <dl class="ax-facts nst-facts"></dl>
+      <details class="nst-work"><summary>Show the working</summary><div class="nst-wk"></div></details>
       <canvas class="ax-fig nst-fig" style="margin-top:10px"></canvas>
       <p class="ax-help">Away from 25 °C the tool uses the right Nernst slope but keeps E° at its 25 °C value, which is usually within a few mV over ±20 °C.</p>
     </div>
@@ -34,11 +35,40 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
   </div>
 
   <div class="ax-card">
+    <h2>Ion (membrane) potential</h2>
+    <p class="ax-help" style="margin-top:0">The Nernst potential of one ion across a membrane, as used for nerve and muscle cells: E = (RT / zF) ln([outside] / [inside]).</p>
+    <div class="ax-grid">
+      <label>Example <select data-k="ionx" class="nst-ionx"><option value="">Choose, or type your own</option><option value="K">Potassium, K⁺ (example 5 mM outside, 140 mM inside)</option><option value="Na">Sodium, Na⁺ (example 145 mM outside, 12 mM inside)</option><option value="Cl">Chloride, Cl⁻ (example 110 mM outside, 10 mM inside)</option><option value="Ca">Calcium, Ca²⁺ (example 2 mM outside, 0.0001 mM inside)</option></select></label>
+      <label>Charge z <select data-k="z" class="nst-z"><option value="1" selected>+1</option><option value="2">+2</option><option value="-1">−1</option><option value="-2">−2</option></select></label>
+      <label>Concentration outside (any unit) <input data-k="co" class="nst-co" inputmode="decimal" value="5" /></label>
+      <label>Concentration inside (same unit) <input data-k="ci" class="nst-ci" inputmode="decimal" value="140" /></label>
+      <label>Temperature (°C) <input data-k="iT" class="nst-iT" inputmode="decimal" value="37" /></label>
+    </div>
+    <p class="ax-err nst-ierr" hidden></p>
+    <p class="ax-big nst-ibig" aria-live="polite"></p>
+    <p class="ax-help nst-iwk"></p>
+    <p class="ax-help">The example concentrations are rounded textbook figures for a typical mammalian cell; real cells and tissues differ, so use your own values. Inside is measured relative to outside.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find Q or a concentration from a measured potential</h2>
+    <div class="ax-grid">
+      <label>Measured E (V) <input data-k="bE" class="nst-bE" inputmode="decimal" value="0.28" /></label>
+      <label>E° (V, same reference) <input data-k="bE0" class="nst-bE0" inputmode="decimal" value="0.3419" /></label>
+      <label>Electrons n <input data-k="bn" class="nst-bn" inputmode="numeric" value="2" /></label>
+      <label>Temperature (°C) <input data-k="bT" class="nst-bT" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-err nst-berr" hidden></p>
+    <p class="ax-big nst-bbig" aria-live="polite"></p>
+    <p class="ax-help">Rearranges E = E° − (RT/nF) ln Q to ln Q = nF(E° − E)/RT. For a couple like Cu²⁺ + 2e⁻ → Cu(s), Q = 1/[Cu²⁺], so the concentration is 1/Q. Example: copper at E° +0.3419 V reading +0.28 V.</p>
+  </div>
+
+  <div class="ax-card">
     <h2>Reference electrode converter</h2>
     <div class="ax-grid">
-      <label>Potential (V) <input class="nst-rv" inputmode="decimal" value="0.500" /></label>
-      <label>Measured against <select class="nst-rfrom">{REFERENCES.map((r) => <option value={r.id} selected={r.id === 'AgClsat'}>{r.name}</option>)}</select></label>
-      <label>pH (for RHE) <input class="nst-rpH" inputmode="decimal" value="7" /></label>
+      <label>Potential (V) <input data-k="rv" class="nst-rv" inputmode="decimal" value="0.500" /></label>
+      <label>Measured against <select data-k="rfrom" class="nst-rfrom">{REFERENCES.map((r) => <option value={r.id} selected={r.id === 'AgClsat'}>{r.name}</option>)}</select></label>
+      <label>pH (for RHE) <input data-k="rpH" class="nst-rpH" inputmode="decimal" value="7" /></label>
     </div>
     <p class="ax-err nst-rerr" hidden></p>
     <div class="ax-scroll"><table class="nst-rtab"></table></div>
@@ -49,7 +79,7 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
 </div>
 
 <script>
-  import { half, variable, halfE, lnQhalf, cellReaction, cellStandard, cellNotation, halfText, thermalV, REFERENCES, convertRef, refE, F, type Half } from '../../lib/sci/nernst';
+  import { ionPotential, qFromE, half, variable, halfE, lnQhalf, cellReaction, cellStandard, cellNotation, halfText, thermalV, REFERENCES, convertRef, refE, F, type Half } from '../../lib/sci/nernst';
   import { pretty } from '../../lib/sci/chem';
   import { num, sig, fmtExp } from '../../lib/sci/num';
   import { chartFigure } from '../../lib/sci/plot';
@@ -136,6 +166,7 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
         fact('Shift from E°', `${sig((c.E - c.E0) * 1000, 4)} mV`, c.E > c.E0 ? 'a stronger oxidant than standard' : c.E < c.E0 ? 'a weaker oxidant than standard' : 'standard conditions'),
       );
       plot(c.E0, c.n, c.lnQ, T, 'E (V vs SHE)', 'Electrode potential against Q', c.E);
+      working([`E = E° − (RT / nF) ln Q`, `RT/F = ${sig(thermalV(T), 5)} V at ${sig(Tc, 4)} °C`, `E = ${V(c.E0)} − (${sig(thermalV(T), 5)} ÷ ${c.n}) × ln(${fmtQ(Math.exp(c.lnQ), c.lnQ)}) = ${V(c.E)}`]);
       return;
     }
     const a = electrode('a', T); if (typeof a === 'string') return err(a);
@@ -161,7 +192,32 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
     if (E < 0) facts.push(fact('Tip', 'swap the electrodes', 'the other way round this is a working battery'));
     q('.nst-facts').replaceChildren(...facts);
     plot(st.E0, L, lnQ, T, 'Ecell (V)', 'Cell voltage against reaction quotient Q', E);
+    working([`E°cell = E°cathode − E°anode = ${V(c.E0)} − (${V(a.E0)}) = ${V(st.E0)}`, `Ecell = E°cell − (RT / nF) ln Q = ${V(st.E0)} − (${sig(thermalV(T), 5)} ÷ ${L}) × ln(${fmtQ(Math.exp(lnQ), lnQ)}) = ${V(st.E0 - (thermalV(T) / L) * lnQ)}`, `ΔG = −nFE = −${L} × 96485 × ${sig(E, 4)} = ${kj(dG)} kJ/mol`]);
   }
+  function working(lines: string[]) { q('.nst-wk').replaceChildren(...lines.map((t) => { const e = document.createElement('p'); e.textContent = t; e.style.margin = '6px 0'; e.style.fontSize = '14px'; return e; })); }
+  function ion() {
+    const x = q<HTMLSelectElement>('.nst-ionx').value, e = q('.nst-ierr'), big = q('.nst-ibig'), wk = q('.nst-iwk');
+    const z = Number(q<HTMLSelectElement>('.nst-z').value), co = num(q<HTMLInputElement>('.nst-co').value), ci = num(q<HTMLInputElement>('.nst-ci').value), Tc = num(q<HTMLInputElement>('.nst-iT').value);
+    void x;
+    const bad = !(co > 0 && ci > 0) ? 'Both concentrations must be above zero.' : !(Tc > -273.15 && Tc <= 400) ? 'Type a temperature in °C between −273 and 400.' : '';
+    e.textContent = bad; e.hidden = !bad; if (bad) { big.textContent = ''; wk.textContent = ''; return; }
+    const T = Tc + 273.15, E = ionPotential(z, co, ci, T) * 1000;
+    big.textContent = `E = ${E >= 0 ? '+' : '−'}${Math.abs(E).toFixed(1)} mV (inside relative to outside)`;
+    wk.textContent = `E = (RT / zF) ln(out / in) = (${sig(thermalV(T) * 1000, 5)} mV ÷ ${z}) × ln(${sig(co, 4)} ÷ ${sig(ci, 4)}) = ${E.toFixed(2)} mV at ${sig(Tc, 4)} °C`;
+  }
+  const IONS: Record<string, [string, string, string]> = { K: ['1', '5', '140'], Na: ['1', '145', '12'], Cl: ['-1', '110', '10'], Ca: ['2', '2', '0.0001'] };
+  q('.nst-ionx').addEventListener('change', () => { const p = IONS[q<HTMLSelectElement>('.nst-ionx').value]; if (!p) return; q<HTMLSelectElement>('.nst-z').value = p[0]; q<HTMLInputElement>('.nst-co').value = p[1]; q<HTMLInputElement>('.nst-ci').value = p[2]; ion(); });
+  root.querySelectorAll('.nst-z, .nst-co, .nst-ci, .nst-iT').forEach((i) => i.addEventListener('input', ion));
+  root.querySelectorAll('.nst-z').forEach((i) => i.addEventListener('change', ion));
+  function back() {
+    const E = num(q<HTMLInputElement>('.nst-bE').value), E0 = num(q<HTMLInputElement>('.nst-bE0').value), n = num(q<HTMLInputElement>('.nst-bn').value), Tc = num(q<HTMLInputElement>('.nst-bT').value);
+    const e = q('.nst-berr'), big = q('.nst-bbig');
+    const bad = !Number.isFinite(E) || !Number.isFinite(E0) ? 'Type the measured potential and E° in volts.' : !(n >= 1 && n <= 12 && Number.isInteger(n)) ? 'Electrons n should be a whole number from 1 to 12.' : !(Tc > -273.15 && Tc <= 400) ? 'Type a temperature in °C between −273 and 400.' : '';
+    e.textContent = bad; e.hidden = !bad; if (bad) { big.textContent = ''; return; }
+    const lnQ = qFromE(E0, E, n, Tc + 273.15);
+    big.textContent = `Q = ${fmtQ(Math.exp(lnQ), lnQ)} (log₁₀ Q = ${sig(lnQ / Math.LN10, 4)}); 1/Q = ${fmtQ(Math.exp(-lnQ), -lnQ)}`;
+  }
+  root.querySelectorAll('.nst-bE, .nst-bE0, .nst-bn, .nst-bT').forEach((i) => i.addEventListener('input', back));
   const kj = (x: number) => `${x >= 0 ? '+' : '−'}${(Math.abs(x) + 1e-9).toFixed(1)}`;
   const lcmN = (x: number, y: number) => { const g = (p: number, r: number): number => (r ? g(r, p % r) : p); return (x * y) / g(x, y); };
   function fmtQ(x: number, ln = Math.log(x)) {
@@ -205,7 +261,7 @@ const opt = HALVES.map((h) => ({ id: h.id, label: `${h.E >= 0 ? '+' : '−'}${Ma
   root.querySelectorAll('.nst-rv, .nst-rpH, .nst-rfrom').forEach((i) => i.addEventListener('input', refs));
   q('.nst-rfrom').addEventListener('change', refs);
   document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nst-fig'), fig); });
-  conc.c['Cu^2+'] = '0.01'; sides(); refs();
+  conc.c['Cu^2+'] = '0.01'; sides(); refs(); ion(); back();
   wireDownloads(q('.dl'), () => {
     const rows = [...root.querySelectorAll<HTMLInputElement>('.nst-v')].map((i) => [i.closest('tr')!.cells[0].textContent!, i.closest('tr')!.cells[1].textContent!, i.value, i.closest('tr')!.cells[3].textContent!]);
     return {

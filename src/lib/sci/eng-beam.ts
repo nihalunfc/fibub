@@ -142,3 +142,14 @@ export function sectionProps(s: SectionShape): { I: number; c: number; A: number
   } else { if (!(s.I > 0 && s.c > 0 && s.A > 0)) throw new Error('Give I, c and the area.'); I = s.I; c = s.c; A = s.A; k = 1.5; }
   return { I, c, A, Z: I / c, k };
 }
+
+// US customary equivalents, from the exact definitions 1 in = 0.0254 m, 1 ft = 0.3048 m, 1 lbf = 4.4482216152605 N,
+// 1 kip = 1000 lbf and 1 psi = 6894.757293168 Pa.
+export const US = {
+  mmToIn: 1 / 25.4,
+  kNToKip: 1000 / 4448.2216152605,
+  kNmToKipFt: 1000 / (4448.2216152605 * 0.3048),
+  MPaToKsi: 1e3 / 6894.757293168,
+};
+/** Allowed deflection in mm for a span in metres and a limit of span / n. */
+export const deflectionLimit = (spanM: number, n: number) => (spanM * 1000) / n;

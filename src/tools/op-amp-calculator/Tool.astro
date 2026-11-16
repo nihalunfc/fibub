@@ -7,7 +7,7 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Circuit</h2>
     <div class="ax-grid">
-      <label>Circuit <select class="op-cfg">
+      <label>Circuit <select data-k="cfg" class="op-cfg">
         <option value="inv" selected>Inverting amplifier</option>
         <option value="noninv">Non-inverting amplifier</option>
         <option value="diff">Difference amplifier</option>
@@ -15,28 +15,38 @@ import Downloads from '../../components/Downloads.astro';
         <option value="int">Integrator</option>
         <option value="dif">Differentiator</option>
       </select></label>
-      <label class="op-b op-r1b"><span class="op-r1l">R1, input resistor (Ω)</span> <input class="op-r1" type="text" value="10k" /></label>
-      <label class="op-b op-rfb"><span class="op-rfl">Rf, feedback resistor (Ω)</span> <input class="op-rf" type="text" value="100k" /></label>
-      <label class="op-b op-r3b" hidden>R3, from V2 to the + input (Ω) <input class="op-r3" type="text" value="10k" /></label>
-      <label class="op-b op-r4b" hidden>R4, from the + input to ground (Ω) <input class="op-r4" type="text" value="100k" /></label>
-      <label class="op-b op-rsb" hidden>Input resistors (Ω), comma separated <input class="op-rs" type="text" value="10k, 20k, 40k" /></label>
-      <label class="op-b op-cb" hidden>Capacitor C (F) <input class="op-c" type="text" value="10n" /></label>
+      <label class="op-b op-r1b"><span class="op-r1l">R1, input resistor (Ω)</span> <input data-k="r1" class="op-r1" type="text" value="10k" /></label>
+      <label class="op-b op-rfb"><span class="op-rfl">Rf, feedback resistor (Ω)</span> <input data-k="rf" class="op-rf" type="text" value="100k" /></label>
+      <label class="op-b op-r3b" hidden>R3, from V2 to the + input (Ω) <input data-k="r3" class="op-r3" type="text" value="10k" /></label>
+      <label class="op-b op-r4b" hidden>R4, from the + input to ground (Ω) <input data-k="r4" class="op-r4" type="text" value="100k" /></label>
+      <label class="op-b op-rsb" hidden>Input resistors (Ω), comma separated <input data-k="rs" class="op-rs" type="text" value="10k, 20k, 40k" /></label>
+      <label class="op-b op-cb" hidden>Capacitor C (F) <input data-k="c" class="op-c" type="text" value="10n" /></label>
     </div>
     <p class="ax-help op-help"></p>
+    <details class="op-design"><summary>More options: pick resistors for the gain I want</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Gain I want (plain number, such as 10) <input data-k="tg" class="op-tg" type="text" inputmode="decimal" value="10" /></label>
+        <label>Resistor series <select data-k="tser" class="op-tser"><option value="12">E12</option><option value="24" selected>E24</option><option value="96">E96</option></select></label>
+      </div>
+      <p class="ax-help">Works for the inverting, non-inverting and difference circuits, using the R1 above. For the inverting and difference circuits give the size of the gain (the minus sign is implied).</p>
+      <p class="ax-big op-dbig" aria-live="polite"></p>
+      <p class="ax-help op-dsub"></p>
+      <button type="button" class="btn secondary small op-use" hidden>Use these resistors above</button>
+    </details>
   </div>
 
   <div class="ax-card">
     <h2>Op-amp, supply and signal</h2>
     <div class="ax-grid">
-      <label>Gain-bandwidth product GBW (Hz) <input class="op-gbw" type="text" value="1M" /></label>
-      <label>Slew rate (V/µs) <input class="op-sr" type="text" inputmode="decimal" value="0.5" /></label>
-      <label>Positive supply (V) <input class="op-vp" type="text" inputmode="decimal" value="15" /></label>
-      <label>Negative supply (V) <input class="op-vn" type="text" inputmode="decimal" value="-15" /></label>
-      <label>Output gets within (V) of each rail <input class="op-head" type="text" inputmode="decimal" value="1.5" /></label>
-      <label><span class="op-dcl">DC input (V)</span> <input class="op-dc" type="text" inputmode="decimal" value="0" /></label>
-      <label class="op-v2b" hidden><span class="op-v2l">V2 (V)</span> <input class="op-v2" type="text" inputmode="decimal" value="0" /></label>
-      <label>Sine on the input: peak (V) <input class="op-amp" type="text" inputmode="decimal" value="1" /></label>
-      <label>Sine frequency (Hz) <input class="op-f" type="text" value="1k" /></label>
+      <label>Gain-bandwidth product GBW (Hz) <input data-k="gbw" class="op-gbw" type="text" value="1M" /></label>
+      <label>Slew rate (V/µs) <input data-k="sr" class="op-sr" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Positive supply (V) <input data-k="vp" class="op-vp" type="text" inputmode="decimal" value="15" /></label>
+      <label>Negative supply (V) <input data-k="vn" class="op-vn" type="text" inputmode="decimal" value="-15" /></label>
+      <label>Output gets within (V) of each rail <input data-k="head" class="op-head" type="text" inputmode="decimal" value="1.5" /></label>
+      <label><span class="op-dcl">DC input (V)</span> <input data-k="dc" class="op-dc" type="text" inputmode="decimal" value="0" /></label>
+      <label class="op-v2b" hidden><span class="op-v2l">V2 (V)</span> <input data-k="v2" class="op-v2" type="text" inputmode="decimal" value="0" /></label>
+      <label>Sine on the input: peak (V) <input data-k="amp" class="op-amp" type="text" inputmode="decimal" value="1" /></label>
+      <label>Sine frequency (Hz) <input data-k="f" class="op-f" type="text" value="1k" /></label>
     </div>
     <p class="ax-help">GBW and slew rate are on the op-amp's data sheet (the example is a made-up general-purpose part: 1 MHz, 0.5 V/µs). The output swing limit is how close the output gets to each supply; rail-to-rail parts get within about 0.05 V. The open-loop gain at DC is taken as 100,000 (100 dB).</p>
     <p class="ax-err op-err" hidden></p>
@@ -44,7 +54,8 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card op-out">
     <h2>Result</h2>
-    <p class="ax-big op-big"></p>
+    <p class="ax-big op-big" aria-live="polite"></p>
+    <p class="ax-help op-work"></p>
     <dl class="ax-facts op-facts"></dl>
     <canvas class="ax-fig op-bode"></canvas>
     <canvas class="ax-fig op-wave"></canvas>
@@ -54,7 +65,7 @@ import Downloads from '../../components/Downloads.astro';
 </div>
 
 <script>
-  import { idealGains, realGains, noiseGain, bandwidth, fullPower, diffCmrr, diffCmrrWorst, clip, f3db, type Params, type Config } from '../../lib/sci/eng-opamp';
+  import { designGain, bestPair, type GainCfg, idealGains, realGains, noiseGain, bandwidth, fullPower, diffCmrr, diffCmrrWorst, clip, f3db, type Params, type Config } from '../../lib/sci/eng-opamp';
   import { parseOhms, ohmText } from '../../lib/sci/eng-resistor';
   import { parseValue, eng, logFreqs } from '../../lib/sci/eng-circuit';
   import { chartFigure } from '../../lib/sci/plot';
@@ -89,6 +100,20 @@ import Downloads from '../../components/Downloads.astro';
     q('.op-rfl').textContent = c === 'int' ? 'Rf across C (Ω, blank for none)' : 'Rf, feedback resistor (Ω)';
     q('.op-dcl').textContent = c === 'sum' ? 'DC inputs (V), comma separated' : c === 'diff' ? 'V1, DC (V)' : 'DC input (V)';
     q('.op-help').textContent = HELP[c];
+  }
+
+  let pending: { r1: number; rf: number } | null = null;
+  function design(c: Config, r1: number) {
+    const big = q('.op-dbig'), sub = q('.op-dsub'), btn = q('.op-use');
+    pending = null; btn.hidden = true; sub.textContent = '';
+    if (c !== 'inv' && c !== 'noninv' && c !== 'diff') { big.textContent = 'Pick the inverting, non-inverting or difference circuit to use this.'; return; }
+    const g = Math.abs(val('.op-tg')), ser = +sel('.op-tser'), cfg = c as GainCfg;
+    if (!(g > 0 && g < 1e5)) { big.textContent = 'Give the gain you want, as a number above 0.'; return; }
+    if (cfg === 'noninv' && !(g > 1)) { big.textContent = 'A non-inverting amplifier cannot have a gain below 1 (for exactly 1 use a wire from the output to the − input and no R1 or Rf).'; return; }
+    const d = designGain(cfg, g, r1, ser), b = bestPair(cfg, g, ser);
+    big.textContent = `With R1 = ${ohmText(r1)}: Rf = ${ohmText(+d.exact.toPrecision(4))}, nearest E${ser} ${ohmText(d.rf)} gives gain ${sig(d.actual, 4)} (${d.err === 0 || Math.abs(d.err) < 1e-9 ? 'exact' : `${sig(d.err, 2)} % off`})`;
+    sub.textContent = b ? `Closest pair in E${ser} (R1 between 1 kΩ and 100 kΩ): R1 = ${ohmText(b.r1)}, Rf = ${ohmText(b.rf)}, gain ${sig(b.actual, 4)} (${Math.abs(b.err) < 1e-9 ? 'exact' : `${sig(b.err, 2)} % off`}). The resistors' own tolerance (1 % to 5 %) adds to this.` : 'No pair found in range.';
+    if (b) { pending = { r1: b.r1, rf: b.rf }; btn.hidden = false; }
   }
 
   function run() {
@@ -136,6 +161,11 @@ import Downloads from '../../components/Downloads.astro';
     } else if (c === 'sum') q('.op-big').textContent = `Summing: Vout = ${g0.map((g, i) => `${+g.toPrecision(4)} × V${i + 1}`.replace('-', '−')).join(' + ').replace(/\+ −/g, '− ')}`;
     else if (c === 'int') q('.op-big').textContent = `Integrator: unity gain at ${eng(1 / (2 * Math.PI * p.r1 * p.c!), 'Hz')}`;
     else q('.op-big').textContent = `Differentiator: gain ${sig(mag(Hi), 3)} at ${eng(f || 1, 'Hz')}`;
+    if (c === 'inv' || c === 'noninv' || c === 'diff') {
+      const g = c === 'diff' ? p.rf / p.r1 : g0[0];
+      q('.op-work').textContent = c === 'inv' ? `Working: gain = −Rf ÷ R1 = −${ohmText(p.rf)} ÷ ${ohmText(p.r1)} = ${sig(g, 4)}` : c === 'noninv' ? `Working: gain = 1 + Rf ÷ R1 = 1 + ${ohmText(p.rf)} ÷ ${ohmText(p.r1)} = ${sig(g, 4)}` : `Working: gain = Rf ÷ R1 = ${ohmText(p.rf)} ÷ ${ohmText(p.r1)} = ${sig(g, 4)} (when R4 ÷ R3 matches)`;
+    } else q('.op-work').textContent = '';
+    design(c, p.r1);
     // Bandwidth.
     const fr = (x: number) => mag(realGains(p, 2 * Math.PI * x, gbw)[0]);
     if (c === 'inv' || c === 'noninv' || c === 'diff' || c === 'sum') {
@@ -189,6 +219,12 @@ import Downloads from '../../components/Downloads.astro';
     sections = [{ title: q('.op-big').textContent!, text: [HELP[c]], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] }];
     if (figs[1]) sections.push({ title: 'Waveforms', figure: figs[1] });
   }
+  q('.op-use').addEventListener('click', () => {
+    if (!pending) return;
+    q<HTMLInputElement>('.op-r1').value = ohmText(pending.r1).replace(/ ?Ω/, '').replace(' ', ''); q<HTMLInputElement>('.op-rf').value = ohmText(pending.rf).replace(/ ?Ω/, '').replace(' ', '');
+    if (sel('.op-cfg') === 'diff') { q<HTMLInputElement>('.op-r3').value = q<HTMLInputElement>('.op-r1').value; q<HTMLInputElement>('.op-r4').value = q<HTMLInputElement>('.op-rf').value; }
+    run();
+  });
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
   document.addEventListener('fibub:theme', () => { if (!q('.op-out').hidden) { paint(q<HTMLCanvasElement>('.op-bode'), figs[0]); if (figs[1] && !q('.op-wave').hidden) paint(q<HTMLCanvasElement>('.op-wave'), figs[1]); } });
   run();
