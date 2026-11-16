@@ -1,4 +1,4 @@
-// #L342 Rate lab
+// #L329 Rate lab
 export const path = '/learn/rate-of-reaction-lab/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/learn/rate-of-reaction-lab/`); await page.waitForTimeout(300);

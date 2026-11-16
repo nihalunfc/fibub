@@ -1,14 +1,14 @@
 ---
 name: Energy stores
-num: 2130
+num: 2161
 shelf: learn
-code: L341
+code: L328
 section: school-physics
 title: "Energy stores: efficiency and wasted energy for everyday devices"
 summary: "Pick a device, set the energy going in and see how much is useful and how much is wasted. Works out efficiency and power on a simple energy transfer diagram."
 status: live
 ads: false
-order: 2130
+order: 2161
 icon: sliders
 works: offline
 updated: 2026-11-16

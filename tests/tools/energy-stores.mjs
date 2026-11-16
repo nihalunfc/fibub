@@ -1,4 +1,4 @@
-// #L341 Energy stores
+// #L328 Energy stores
 export const path = '/learn/energy-stores/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/learn/energy-stores/`); await page.waitForTimeout(300);

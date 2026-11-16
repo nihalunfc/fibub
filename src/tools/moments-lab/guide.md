@@ -1,14 +1,14 @@
 ---
 name: Moments lab
-num: 2129
+num: 2160
 shelf: learn
-code: L340
+code: L327
 section: school-physics
 title: "Moments lab: balance a seesaw and find the turning effect of a force"
 summary: "Place weights on a beam, move the pivot and see the moments on each side. Find out when it balances, which way it turns and what the pivot pushes back with."
 status: live
 ads: false
-order: 2129
+order: 2160
 icon: sliders
 works: offline
 updated: 2026-11-16

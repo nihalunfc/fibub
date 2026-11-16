@@ -1,4 +1,4 @@
-// #L340 Moments lab
+// #L327 Moments lab
 export const path = '/learn/moments-lab/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/learn/moments-lab/`); await page.waitForTimeout(300);

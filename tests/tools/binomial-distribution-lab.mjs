@@ -1,4 +1,4 @@
-// #L344 Binomial lab
+// #L339 Binomial lab
 export const path = '/learn/binomial-distribution-lab/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/learn/binomial-distribution-lab/`); await page.waitForTimeout(300);

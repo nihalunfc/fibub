@@ -1,4 +1,4 @@
-// #L343 Normal lab
+// #L338 Normal lab
 export const path = '/learn/normal-distribution-lab/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/learn/normal-distribution-lab/`); await page.waitForTimeout(300);

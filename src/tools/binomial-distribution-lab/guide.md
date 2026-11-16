@@ -1,14 +1,14 @@
 ---
 name: Binomial lab
-num: 2133
+num: 2164
 shelf: learn
-code: L344
+code: L339
 section: school-maths
 title: "Binomial distribution lab: probabilities and hypothesis tests"
 summary: "Set the number of trials and the chance of success, see the bar chart of probabilities and test a claim with a one-tailed binomial hypothesis test."
 status: live
 ads: false
-order: 2133
+order: 2164
 icon: sliders
 works: offline
 updated: 2026-11-16

@@ -1,14 +1,14 @@
 ---
 name: Rate lab
-num: 2131
+num: 2162
 shelf: learn
-code: L342
+code: L329
 section: school-chemistry
 title: "Rate of reaction lab: temperature, concentration, surface area and catalysts"
 summary: "Change the temperature, concentration, particle size and catalyst and watch the gas collected over time. See how collision theory explains faster and slower reactions."
 status: live
 ads: false
-order: 2131
+order: 2162
 icon: sliders
 works: offline
 updated: 2026-11-16

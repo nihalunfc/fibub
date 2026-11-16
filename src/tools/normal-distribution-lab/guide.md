@@ -1,14 +1,14 @@
 ---
 name: Normal lab
-num: 2132
+num: 2163
 shelf: learn
-code: L343
+code: L338
 section: school-maths
 title: "Normal distribution lab: probabilities, z-scores and inverse normal"
 summary: "Set the mean and standard deviation, shade the area you want and read the probability. Also works backwards to find the value for a given probability."
 status: live
 ads: false
-order: 2132
+order: 2163
 icon: sliders
 works: offline
 updated: 2026-11-16
