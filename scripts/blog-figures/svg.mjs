@@ -63,9 +63,23 @@ export function chart(o) {
       lx += w;
     }
   }
+  // fibub.com mark: half opacity, in a corner that has no data (next to the x-axis label, else beside the title).
+  const markW = MARK_W + 6, xLabelEnd = (L + W - R) / 2 + textW(o.xLabel, 7) / 2, titleEnd = L + textW(o.title, 8);
+  if (xLabelEnd < W - R - markW) out.push(mark(W - R, H - 8));
+  else if (titleEnd < W - R - markW) out.push(mark(W - R, 18));
+  else { out[0] = out[0].replace(`viewBox="0 0 ${W} ${H}"`, `viewBox="0 0 ${W} ${H + 16}"`); out.push(mark(W - R, H + 10)); }
   out.push('</svg>');
   return out.join('');
 }
+
+// The fibub.com watermark every blog plot carries (nihal, 2026-11-16): 50 % opacity, in a corner, never over data.
+// `mark(x, y)` is right-aligned at (x, y) (the text baseline); use `watermark(W, H)` for the bottom-right corner of a
+// hand-made SVG. `npm test` fails on a blog <svg role="img"> without it (add data-no-mark to a pure diagram).
+export const MARK = 'fibub.com';
+const MARK_W = 58; // width of "fibub.com" at 11px bold, in SVG units
+const textW = (s, perChar) => String(s ?? '').length * perChar;
+export const mark = (x, y, anchor = 'end') => `<text class="fibub-mark" x="${r(x)}" y="${r(y)}" text-anchor="${anchor}" style="fill:var(--ink);opacity:.5;font:600 11px system-ui,sans-serif">${MARK}</text>`;
+export const watermark = (W, H, inset = 6) => mark(W - inset, H - inset);
 
 /** Wrap a chart in a <figure> with a caption. One line, so Markdown keeps it as a raw HTML block. */
 export const figure = (svg, caption) => `<figure class="blog-figure">${svg}<figcaption>${esc(caption)}</figcaption></figure>`;

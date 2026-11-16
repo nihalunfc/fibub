@@ -5,13 +5,15 @@
 // CSS variables, so the charts follow light, dark and red-light modes.
 // Run: node scripts/net-figures.mjs   (rewrites the figures in place; prints one line per figure)
 import { readFileSync, writeFileSync } from 'node:fs';
+import { watermark } from './blog-figures/svg.mjs';
 import { median, jitter, bloat, spotScore } from '../src/lib/net/speed.ts';
 import { rateSignal } from '../src/lib/net/cell.ts';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const T = (x, y, s, a = 'start', extra = '') => `<text x="${x}" y="${y}" text-anchor="${a}" style="fill:var(--ink);font:12px system-ui,sans-serif" ${extra}>${esc(s)}</text>`;
 const M = (x, y, s, a = 'start') => `<text x="${x}" y="${y}" text-anchor="${a}" style="fill:var(--muted);font:11px system-ui,sans-serif">${esc(s)}</text>`;
-const svg = (w, h, label, body) => `<figure class="fig"><svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(label)}">${body}</svg><figcaption>${esc(label)}</figcaption></figure>`;
+// A 16-unit strip under each chart holds the fibub.com mark (bottom right, never over data).
+const svg = (w, h, label, body) => `<figure class="fig"><svg viewBox="0 0 ${w} ${h + 16}" width="100%" role="img" aria-label="${esc(label)}">${body}${watermark(w, h + 16, 8)}</svg><figcaption>${esc(label)}</figcaption></figure>`;
 const tone = (t) => `var(--${t === 'good' ? 'good' : t === 'warn' ? 'warn' : 'bad'})`;
 
 const figs = {};
