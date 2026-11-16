@@ -16,6 +16,14 @@ export default async (check) => {
   check('feels: same heat index as the psychrometric calculator', near(heatIndex(31, 40).f, heatIndexF(C2F(31), 40), 1e-12));
   check('feels: dry and humid adjustments used', heatIndex(F2C(100), 10).method === 'dry' && heatIndex(F2C(84), 90).method === 'humid' && heatIndex(20, 50).method === 'simple');
   check('feels: heat index from 80 °F', heatIndexOk(F2C(80)) && !heatIndexOk(26.6));
+  { // Rothfusz (1990) in its published °C form (c0 = −8.784695 ... c8 = −0.000003582), as used by Psiloglou et al. (2025,
+    // Climate 13, 210): same as the NWS °F code where Rothfusz applies; below 80 °F the NWS switches to Steadman's simple
+    // formula, which is 3.4 °C lower than raw Rothfusz at 22 °C and 50 %.
+    const rC = (T, R) => -8.784695 + 1.61139411 * T + 2.338549 * R - 0.14611605 * T * R - 0.012308094 * T * T - 0.016424828 * R * R + 0.002211732 * T * T * R + 0.00072546 * T * R * R - 0.000003582 * T * T * R * R;
+    check('feels: heat index 33 °C, 35 % = 32.80 by both Rothfusz forms', near(heatIndex(33, 35).c, 32.80, 0.01) && near(rC(33, 35), heatIndex(33, 35).c, 0.01));
+    check('feels: heat index 35 °C, 30 % = 34.67 (°C Rothfusz agrees)', near(heatIndex(35, 30).c, 34.67, 0.01) && near(rC(35, 30), 34.67, 0.01));
+    check('feels: 22 °C, 50 % uses the simple formula (21.56), raw Rothfusz says 24.94', heatIndex(22, 50).method === 'simple' && near(heatIndex(22, 50).c, 21.56, 0.01) && near(rC(22, 50), 24.94, 0.01));
+  }
   check('feels: humidex 30 °C, dew point 15 °C = 34.0 (Environment Canada formula)', near(humidexC(30, 15), 33.97, 0.01));
   check('feels: dew point and RH are inverses (Bolton)', near(relHum(25, dewPoint(25, 60)), 60, 1e-9) && near(dewPoint(20, 100), 20, 1e-9));
   const e = 0.5 * 6.105 * Math.exp((17.27 * 25) / (237.7 + 25));

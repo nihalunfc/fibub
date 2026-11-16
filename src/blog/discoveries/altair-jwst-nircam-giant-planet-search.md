@@ -63,6 +63,38 @@ We do not have the JWST images, so we checked the physics behind the search with
 
 The temperatures in Step 3 are a little higher than what the paper's models need. Real giant planets are not perfect black bodies: their atmospheres let extra light out near 4 to 5 microns, so a real planet at a given temperature is brighter there than our simple sum. Read our temperatures as rough upper values. The masses (sub-Jupiter beyond 5 au, sub-Saturn beyond 10 au) need models of how a young planet cools, which we have not done.
 
+## How we made the graphs
+
+Both charts come from `scripts/blog-figures/altair-jwst-nircam-giant-planet-search.mjs` in fibub's public code, which calls the tools' own functions rather than drawing by hand:
+
+- `planckLam` and `star` from `src/lib/sci/blackbody.ts`, the maths behind the [[blackbody-calculator]], give the glow of the star and the planet at each wavelength, and Altair's power output.
+- `tEq` from `src/lib/sci/habitable.ts`, the maths behind the [[habitable-zone-calculator]], gives the temperature starlight alone would give a planet.
+
+The paper's numbers (distance and reach) and the literature values for Altair are labelled in the script; the planet size and albedo are marked as our assumptions. Running the script prints every number quoted here and redraws the charts.
+
+## How we test the maths
+
+These functions are checked against known results on every change to fibub (`tests/sci.mjs`):
+
+- Planck's law must put the Sun's peak at 502 nm, matching Wien's law, and the whole spectrum must add up to exactly the Sun's power: one solar luminosity, absolute magnitude 4.82.
+- The Sun's share of light between 400 and 700 nm must come out at 36.6%.
+- The equilibrium temperature maths must give Earth 254 K, the textbook value, for an albedo of 0.306.
+
+## Check it yourself
+
+1. Open the [[blackbody-calculator]]. Under *I know*, choose **The temperature (K)** and type **7700**.
+2. Type **1.8** in *Radius (Suns)* and **5.13** in *Distance (parsecs)*. The luminosity reads about **10 Suns**, and you can see where Altair's light peaks: around 376 nm, in the near ultraviolet.
+3. Type **500** in *Compare with (K, optional)*. The two curves show at a glance why a cool planet is best seen far out in the infrared.
+4. Now open the [[habitable-zone-calculator]]. Type **7700** in *Temperature (K)*, **10.3** in *Luminosity (Suns)* and **1.8** in *Mass (Suns)*.
+5. Type **5.13** in *Distance from the star (AU)* and **0.3** in *Albedo*. The equilibrium temperature reads about **200 K**: far too cold to be seen by JWST at that distance, which is the point of Step 3 above.
+
+## What researchers can use it for
+
+- **Choose a filter:** compare a target star and a planet of a given temperature in the [[blackbody-calculator]] to see which wavelength gives the best contrast.
+- **Turn an imaging limit into a temperature:** as in Step 3, before reaching for full atmosphere models.
+- **Convert arcseconds to au:** multiply by the distance in parsecs; the [[parallax-reading]] activity explains why.
+- **Teach direct imaging:** the two tools together show students why young stars are the best hunting grounds.
+
 ## The fine print
 
 - Our checks treat star and planet as perfect black bodies, with an assumed planet size of 1.15 Jupiter radii and rounded values for Altair. The paper uses detailed planet atmosphere models (Sonora Flame Skimmer) instead.

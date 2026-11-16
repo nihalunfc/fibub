@@ -26,7 +26,7 @@ flow:
 
 Printing pages 1, 2, 3 in order does not give you a booklet. For a folded booklet each sheet must carry pages from both ends of the document, such as 8 and 1 on one side and 2 and 7 on the back. This tool rearranges your PDF into that order, two pages per landscape side, so you can print double-sided, fold the stack in half and staple the fold.
 
-It also puts 2 or 4 pages on each sheet in normal reading order to save paper, and it can enlarge one page over a grid of sheets as a poster, with overlap and cut marks for taping. Number the pages first with [[page-numbers]], and reorder or remove pages with [[organise-pdf]] before you start.
+It also puts 2, 4, 6 or 9 pages on each sheet in normal reading order to save paper, and it can enlarge one page over a grid of sheets as a poster, with overlap and cut marks for taping. Number the pages first with [[page-numbers]], and reorder or remove pages with [[organise-pdf]] before you start.
 
 ## How to use it
 
@@ -38,7 +38,7 @@ It also puts 2 or 4 pages on each sheet in normal reading order to save paper, a
 ## What each setting does
 
 - **Booklet, flips on**: choose long edge for most printers. Pick short edge if the back sides come out upside down.
-- **Pages per sheet**: 2 (landscape) or 4 (2 by 2). A thin border can mark each page.
+- **Pages per sheet**: 2 (landscape), 4 (2 by 2), 6 (3 by 2, landscape, good for handouts) or 9 (3 by 3, small thumbnails). A thin border can mark each page.
 - **Poster**: the page to enlarge, sheets across and down, overlap in millimetres, and cut marks at the printable corners. Each sheet is labelled with its row and column.
 
 ## Worked example

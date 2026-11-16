@@ -39,6 +39,8 @@ It copes with Word's habit of splitting a placeholder into several pieces of tex
 
 - **Name each file after**: a column such as Name or Invoice. Clashing names get -2, -3. Blank names become merged-001 and so on.
 - **Email address column**: used by "Open in my email app", which fills a new message with the address, subject and body.
+- **Column buttons**: once your list is loaded, press a column name to put {{that column}} into your text message at the cursor (in Word mode it copies the placeholder for you to paste into your template).
+- **One PDF, a page per person**: in text mode, makes a single PDF with each merged message on its own page, ready to print. It uses plain standard fonts.
 - **Case**: {{name}} and {{Name}} both work.
 - A placeholder with no matching column is left as written, and a warning tells you which.
 

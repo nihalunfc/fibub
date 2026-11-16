@@ -29,6 +29,19 @@ export function parseCsvLine(line: string): string[] {
   }
   out.push(cur); return out;
 }
+/** Numbered labels: when any label holds {n}, every label is repeated `copies` times and each repeat gets the next number
+ *  (start, start+1, ...), so "Box {n}" x 5 from 101 gives Box 101 to Box 105. Returns the labels and the copies the PDF should still make
+ *  (1 once numbered, since the repeats are already in the list). With no {n} the labels come back unchanged. */
+export function numberLabels(labels: string[][], copies: number, start: number, pad = 0): { labels: string[][]; copies: number } {
+  if (!labels.some((l) => l.some((t) => t.includes('{n}')))) return { labels, copies };
+  const out: string[][] = []; let n = Math.floor(start);
+  for (const l of labels) for (let c = 0; c < Math.max(1, copies); c++, n++) {
+    const text = (n < 0 ? '-' : '') + String(Math.abs(n)).padStart(Math.max(0, Math.floor(pad)), '0');
+    out.push(l.map((t) => t.split('{n}').join(text)));
+  }
+  return { labels: out, copies: 1 };
+}
+
 export const perPage = (s: Sheet) => s.cols * s.rows;
 /** Number of pages for n labels, with `skip` spots already used on the first sheet. */
 export const pageCount = (s: Sheet, n: number, skip: number) => Math.max(1, Math.ceil((n + skip) / perPage(s)));

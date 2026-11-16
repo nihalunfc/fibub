@@ -1,5 +1,6 @@
 ---
 // #T862 Pan size converter
+import { PRESETS } from './pan';
 const pans = [
   { k: 'a', title: "The recipe's pan", shape: 'round', d1: '8', d2: '', vol: '10' },
   { k: 'b', title: 'Your pan', shape: 'round', d1: '9', d2: '', vol: '10' },
@@ -7,15 +8,21 @@ const pans = [
 ---
 <div class="tool-ui pan">
   <div class="pan-units" role="radiogroup" aria-label="Units">
-    <label><input type="radio" name="pan-u" value="in" checked /> Inches</label>
+    <label><input type="radio" name="pan-u" data-k="units" value="in" checked /> Inches</label>
     <label><input type="radio" name="pan-u" value="cm" /> Centimetres</label>
   </div>
   <div class="pan-two">
     {pans.map((p) => (
       <section class="panel pan-p" data-p={p.k}>
         <h3>{p.title}</h3>
+        <label>Pick a common pan (optional)
+          <select data-preset data-k={`${p.k}-preset`}>
+            <option value="">Type my own size</option>
+            {PRESETS.map((x) => <option value={x.id}>{x.name}</option>)}
+          </select>
+        </label>
         <label>Shape
-          <select data-f="shape">
+          <select data-f="shape" data-k={`${p.k}-shape`}>
             <option value="round" selected={p.shape === 'round'}>Round</option>
             <option value="square">Square</option>
             <option value="rect">Rectangle</option>
@@ -23,10 +30,10 @@ const pans = [
             <option value="vol">Bundt or other (by volume)</option>
           </select>
         </label>
-        <label data-show="dim"><span data-l="d1">Diameter</span> <input data-f="d1" inputmode="decimal" value={p.d1} /></label>
-        <label data-show="two"><span>Width</span> <input data-f="d2" inputmode="decimal" value={p.d2} /></label>
-        <label data-show="vol"><span>Volume it holds (<span data-l="vu">cups</span>)</span> <input data-f="vol" inputmode="decimal" value={p.vol} /></label>
-        <label data-show="depth"><span>Depth (optional, for a volume pan)</span> <input data-f="depth" inputmode="decimal" value="2" /></label>
+        <label data-show="dim"><span data-l="d1">Diameter</span> <input data-f="d1" data-k={`${p.k}-size`} inputmode="decimal" value={p.d1} /></label>
+        <label data-show="two"><span>Width</span> <input data-f="d2" data-k={`${p.k}-width`} inputmode="decimal" value={p.d2} /></label>
+        <label data-show="vol"><span>Volume it holds (<span data-l="vu">cups</span>)</span> <input data-f="vol" data-k={`${p.k}-volume`} inputmode="decimal" value={p.vol} /></label>
+        <label data-show="depth"><span>Depth (optional, for a volume pan)</span> <input data-f="depth" data-k={`${p.k}-depth`} inputmode="decimal" value="2" /></label>
         <p class="pan-area" aria-live="polite"></p>
       </section>
     ))}
@@ -35,6 +42,8 @@ const pans = [
     <p class="pan-big" aria-live="polite"></p>
     <p class="pan-say" aria-live="polite"></p>
     <p class="pan-note" aria-live="polite"></p>
+    <p class="pan-equiv"></p>
+    <button type="button" class="btn secondary pan-swap">Swap the two pans</button>
     <button type="button" class="btn secondary pan-reset">Reset</button>
   </section>
   <p class="pan-fine">Pan sizes are measured across the top, inside the rim. Nothing you type leaves this page.</p>
@@ -55,13 +64,15 @@ const pans = [
   .pan-area { margin: 0; font-size: 14px; }
   .pan-big { font-size: 26px; font-weight: 700; margin: 0 0 4px; }
   .pan-say, .pan-note { margin: 0 0 8px; color: var(--muted); font-size: 15px; }
-  .pan-reset { padding: 8px 14px; }
+  .pan-reset, .pan-swap { padding: 8px 14px; margin-right: 8px; }
+  .pan-equiv { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
   .pan-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { PRESETS, panArea, roundEquivalent, friendlyFactor } from './pan';
   const root = document.querySelector('.pan') as HTMLElement;
-  const big = root.querySelector('.pan-big') as HTMLElement, say = root.querySelector('.pan-say') as HTMLElement, note = root.querySelector('.pan-note') as HTMLElement;
+  const big = root.querySelector('.pan-big') as HTMLElement, say = root.querySelector('.pan-say') as HTMLElement, note = root.querySelector('.pan-note') as HTMLElement, equiv = root.querySelector('.pan-equiv') as HTMLElement;
   const IN3_PER_CUP = 14.4375; // one US cup in cubic inches; 1 cm³ = 1 ml
   const units = () => (root.querySelector('[name="pan-u"]:checked') as HTMLInputElement).value;
   const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
@@ -93,11 +104,14 @@ const pans = [
   };
   const calc = () => {
     const [a, b] = [...root.querySelectorAll('.pan-p')].map((s) => read(s as HTMLElement));
-    if (!a || !b) { big.textContent = ''; say.textContent = 'Fill in both pans.'; note.textContent = ''; return; }
+    if (!a || !b) { big.textContent = ''; say.textContent = 'Fill in both pans.'; note.textContent = ''; equiv.textContent = ''; return; }
     const byVol = a.shape === 'vol' || b.shape === 'vol';
-    if (byVol && !(a.vol > 0 && b.vol > 0)) { big.textContent = ''; say.textContent = 'With a volume pan, give the other pan a depth too.'; note.textContent = ''; return; }
+    if (byVol && !(a.vol > 0 && b.vol > 0)) { big.textContent = ''; say.textContent = 'With a volume pan, give the other pan a depth too.'; note.textContent = ''; equiv.textContent = ''; return; }
     const k = byVol ? b.vol / a.vol : b.area / a.area;
     big.textContent = `× ${n(k)}`;
+    const ff = friendlyFactor(k);
+    const eq = roundEquivalent(b.area);
+    equiv.textContent = (ff && Math.abs(k - 1) >= 0.03 ? `That is about ${ff} times the recipe. ` : '') + (b.shape !== 'vol' && b.shape !== 'round' && eq > 0 ? `Your pan has the same top area as a round pan about ${n(eq, 1)} ${units()} across.` : '');
     say.textContent = `Going from the ${a.label} to the ${b.label}, multiply every ingredient by ${n(k)} (compared by ${byVol ? 'volume' : 'area'}).`;
     note.textContent = Math.abs(k - 1) < 0.05
       ? 'The pans are about the same size: keep the recipe and the baking time.'
@@ -105,11 +119,35 @@ const pans = [
         ? 'Scaled to fill the pan the same way, the bake is often a little longer in a bigger pan; check early and often.'
         : `Scaled like this the batter is just as deep, so the baking time stays about the same. If you do not scale it, the batter is ${k > 1 ? 'shallower: check 5 to 10 minutes early' : 'deeper: bake a little longer, perhaps 10 to 15 °C (25 °F) lower so the middle cooks'}.`;
   };
-  root.addEventListener('input', calc);
+  const field = (p: string, k: string) => root.querySelector(`[data-p="${p}"] [data-f="${k}"]`) as HTMLInputElement;
+  const applyPreset = (sec: HTMLElement) => {
+    const sel = sec.querySelector('[data-preset]') as HTMLSelectElement, pr = PRESETS.find((x) => x.id === sel.value);
+    if (!pr) return;
+    const p = sec.dataset.p!, a = units() === 'in' ? pr.inch : pr.cm;
+    field(p, 'shape').value = pr.shape;
+    if (pr.shape === 'vol') field(p, 'vol').value = String(a[0]);
+    else { field(p, 'd1').value = String(a[0]); field(p, 'd2').value = a[1] ? String(a[1]) : ''; }
+  };
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement, sec = t.closest('.pan-p') as HTMLElement | null;
+    if (sec && t.hasAttribute('data-f')) (sec.querySelector('[data-preset]') as HTMLSelectElement).value = '';
+    calc();
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.hasAttribute('data-preset')) { applyPreset(t.closest('.pan-p') as HTMLElement); calc(); }
+    else if (t.getAttribute('name') === 'pan-u') { root.querySelectorAll('.pan-p').forEach((sec) => applyPreset(sec as HTMLElement)); calc(); }
+  });
+  root.querySelector('.pan-swap')!.addEventListener('click', () => {
+    for (const k of ['shape', 'd1', 'd2', 'vol', 'depth']) { const x = field('a', k), y = field('b', k); const v = x.value; x.value = y.value; y.value = v; }
+    const pa = root.querySelector('[data-p="a"] [data-preset]') as HTMLSelectElement, pb = root.querySelector('[data-p="b"] [data-preset]') as HTMLSelectElement;
+    const pv = pa.value; pa.value = pb.value; pb.value = pv; calc();
+  });
   root.querySelector('.pan-reset')!.addEventListener('click', () => {
     (root.querySelector('[name="pan-u"][value="in"]') as HTMLInputElement).checked = true;
     const set = (p: string, v: Record<string, string>) => { for (const [k, x] of Object.entries(v)) (root.querySelector(`[data-p="${p}"] [data-f="${k}"]`) as HTMLInputElement).value = x; };
     set('a', { shape: 'round', d1: '8', d2: '', vol: '10', depth: '2' }); set('b', { shape: 'round', d1: '9', d2: '', vol: '10', depth: '2' });
+    root.querySelectorAll('[data-preset]').forEach((x) => ((x as HTMLSelectElement).value = ''));
     calc();
   });
   calc();

@@ -1,5 +1,5 @@
 // #1729 Gratuity
-import { indiaGratuity, uaeGratuity, saudiGratuity, serviceBetween, byYears } from '../../src/lib/money/gratuity-calculator.ts';
+import { indiaGratuity, uaeGratuity, saudiGratuity, qatarGratuity, omanGratuity, bahrainGratuity, serviceBetween, byYears } from '../../src/lib/money/gratuity-calculator.ts';
 export const path = '/money/gratuity-calculator/';
 export default async ({ page, check, BASE }) => {
   const near = (a, b) => Math.abs(a - b) < 0.5;
@@ -14,8 +14,18 @@ export default async ({ page, check, BASE }) => {
   const s = saudiGratuity({ wage: 8000, years: 7, months: 0, resigned: true });
   check(near(s.full, 36000) && near(s.amount, 24000), `gratuity-calculator: Saudi 8,000 x 7 yr -> 36,000, 24,000 on resignation (got ${s.amount})`);
 
+  const qa = qatarGratuity({ basic: 10000, years: 7, months: 0 });
+  check(near(qa.amount, 49000) && qatarGratuity({ basic: 10000, years: 0, months: 11 }).amount === 0, `gratuity-calculator: Qatar 10,000 x 7 yr -> 49,000; under 1 yr 0 (got ${qa.amount})`);
+  check(near(omanGratuity({ basic: 600, years: 7, months: 6 }).amount, 4500), 'gratuity-calculator: Oman 600 x 7.5 yr -> 4,500');
+  check(near(bahrainGratuity({ wage: 800, years: 7, months: 0 }).amount, 4400) && near(bahrainGratuity({ wage: 800, years: 2, months: 0 }).amount, 800), 'gratuity-calculator: Bahrain 800 x 7 yr -> 4,400; 2 yr -> 800');
   await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
   check((await page.textContent('.gc-out')).includes('2,88,462'), 'gratuity-calculator: page shows the India worked example');
+  await page.click('.gc-tabs [data-c=qa]'); await page.waitForTimeout(100);
+  check((await page.textContent('.gc-out')).includes('QAR 49,000'), 'gratuity-calculator: Qatar tab shows QAR 49,000');
+  await page.click('.gc-tabs [data-c=bh]'); await page.waitForTimeout(100);
+  check((await page.textContent('.gc-out')).includes('BHD 4,400'), 'gratuity-calculator: Bahrain tab shows BHD 4,400');
+  await page.click('.gc-tabs [data-c=om]'); await page.waitForTimeout(100);
+  check((await page.textContent('.gc-out')).includes('OMR 4,200') && (await page.textContent('.gc-fine')).includes('Art. 61'), 'gratuity-calculator: Oman tab shows OMR 4,200 and the article');
   await page.click('.gc-tabs [data-c=ae]'); await page.waitForTimeout(100);
   check((await page.textContent('.gc-out')).includes('55,000'), 'gratuity-calculator: UAE tab shows AED 55,000');
   await page.click('.gc-tabs [data-c=sa]'); await page.check('.gc-sa-r'); await page.waitForTimeout(100);

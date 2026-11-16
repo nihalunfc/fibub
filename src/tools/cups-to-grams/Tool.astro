@@ -6,25 +6,37 @@ const units = Object.entries(UNIT_NAMES);
 ---
 <div class="tool-ui ctg">
   <section class="panel ctg-form">
+    <label>Find an ingredient (optional)
+      <input class="ctg-find" data-k="find" type="search" autocomplete="off" placeholder="e.g. flour, honey, oats" />
+    </label>
     <label>Ingredient
-      <select class="ctg-ing">
+      <select class="ctg-ing" data-k="ingredient">
         {groups.map((g) => <optgroup label={g}>{INGREDIENTS.filter((i) => i.group === g).map((i) => <option value={i.id} selected={i.id === 'ap-flour'}>{i.name}</option>)}</optgroup>)}
       </select>
     </label>
     <div class="ctg-row">
-      <label>Amount <input class="ctg-amt" inputmode="decimal" value="1" /></label>
-      <label>From <select class="ctg-from">{units.map(([k, v]) => <option value={k} selected={k === 'uscup'}>{v}</option>)}</select></label>
+      <label>Amount <input class="ctg-amt" data-k="amount" inputmode="decimal" value="1" placeholder="1, 1.5 or 1 1/2" /></label>
+      <label>From <select class="ctg-from" data-k="from">{units.map(([k, v]) => <option value={k} selected={k === 'uscup'}>{v}</option>)}</select></label>
       <button type="button" class="btn secondary ctg-swap" aria-label="Swap from and to">⇄</button>
-      <label>To <select class="ctg-to">{units.map(([k, v]) => <option value={k} selected={k === 'g'}>{v}</option>)}</select></label>
+      <label>To <select class="ctg-to" data-k="to">{units.map(([k, v]) => <option value={k} selected={k === 'g'}>{v}</option>)}</select></label>
     </div>
+    <input class="ctg-range" data-k="slider" type="range" min="0" max="10" step="0.25" value="1" aria-label="Amount slider (0 to 10)" />
     <p class="ctg-big" aria-live="polite"></p>
     <p class="ctg-say" aria-live="polite"></p>
+    <p class="ctg-work"></p>
     <button type="button" class="btn secondary ctg-reset">Reset</button>
   </section>
   <section class="panel">
     <h3 class="ctg-h">The same amount in every unit</h3>
     <ul class="ctg-all"></ul>
   </section>
+  <details class="panel ctg-more">
+    <summary>More options: common measures of this ingredient</summary>
+    <label class="ctg-cuplab">Cup size for the table
+      <select class="ctg-cup" data-k="cup"><option value="uscup">US cup (236.6 ml)</option><option value="metcup">Metric cup (250 ml)</option><option value="ukcup">UK cup (284 ml)</option></select>
+    </label>
+    <table class="ctg-tab"><thead><tr><th>Measure</th><th>Grams</th><th>Ounces</th></tr></thead><tbody></tbody></table>
+  </details>
   <p class="ctg-fine">Approximate, from USDA FoodData Central household measures. How you fill the cup (scooped, spooned, sifted, packed) changes the weight by 10-20%, so weigh when it matters. Nothing you type leaves this page.</p>
 </div>
 
@@ -40,17 +52,25 @@ const units = Object.entries(UNIT_NAMES);
   .ctg-reset { justify-self: start; padding: 8px 14px; }
   .ctg-big { font-size: 26px; font-weight: 700; margin: 4px 0 0; overflow-wrap: anywhere; }
   .ctg-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .ctg-range { width: 100%; accent-color: var(--accent); }
+  .ctg-work { margin: 0; color: var(--muted); font-size: 13px; }
+  .ctg-more summary { cursor: pointer; font-size: 15px; }
+  .ctg-cuplab { margin-top: 10px; }
+  .ctg-tab { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+  .ctg-tab th, .ctg-tab td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); }
   .ctg-h { margin: 0 0 8px; font-size: 16px; }
   .ctg-all { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px 14px; font-size: 15px; }
   .ctg-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
-  import { INGREDIENTS, UNIT_NAMES, SHORT, convert } from './data';
+  import { INGREDIENTS, UNIT_NAMES, SHORT, convert, parseAmount, commonTable, searchIngredient } from './data';
   const root = document.querySelector('.ctg') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const ing = $<HTMLSelectElement>('.ctg-ing'), amt = $<HTMLInputElement>('.ctg-amt');
   const from = $<HTMLSelectElement>('.ctg-from'), to = $<HTMLSelectElement>('.ctg-to');
+  const find = $<HTMLInputElement>('.ctg-find'), range = $<HTMLInputElement>('.ctg-range'), cupSel = $<HTMLSelectElement>('.ctg-cup'), work = $('.ctg-work');
+  const tbody = $('.ctg-tab tbody');
   const big = $('.ctg-big'), say = $('.ctg-say'), all = $('.ctg-all');
   // Grams and ml: whole numbers from 10 up, one decimal below. Other units: up to 2 decimals.
   const fmt = (v: number, u: string) => {
@@ -59,10 +79,21 @@ const units = Object.entries(UNIT_NAMES);
   };
   const calc = () => {
     const i = INGREDIENTS.find((x) => x.id === ing.value)!;
-    const a = +amt.value.replace(',', '.');
-    all.innerHTML = '';
-    if (amt.value.trim() === '' || !Number.isFinite(a) || a < 0) { big.textContent = ''; say.textContent = 'Type an amount above.'; return; }
+    const a = parseAmount(amt.value);
+    all.innerHTML = ''; work.textContent = '';
+    const g1 = commonTable(i, cupSel.value);
+    tbody.innerHTML = '';
+    for (const row of g1) {
+      const tr = document.createElement('tr');
+      for (const t of [row.label, fmt(row.g, 'g') + ' g', fmt(row.oz, 'oz') + ' oz']) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
+      tbody.append(tr);
+    }
+    if (amt.value.trim() === '') { big.textContent = ''; say.textContent = 'Type an amount above.'; return; }
+    if (!Number.isFinite(a)) { big.textContent = ''; say.textContent = 'I could not read that amount. Try 2, 1.5, 1/2 or 1 1/2.'; return; }
+    if (a < 0) { big.textContent = ''; say.textContent = 'An amount cannot be below zero.'; return; }
+    if (a > 100000) { big.textContent = ''; say.textContent = 'That is a very large amount. Try a smaller number.'; return; }
     const r = convert(a, from.value, to.value, i);
+    work.textContent = `Working: this ingredient weighs ${(i.g / 236.588).toFixed(2)} g per ml (${i.g} g per US cup of 236.6 ml), so ${fmt(a, from.value)} ${SHORT[from.value]} becomes ${fmt(r, to.value)} ${SHORT[to.value]}.`;
     big.textContent = `${fmt(r, to.value)} ${SHORT[to.value]}`;
     say.textContent = `${fmt(a, from.value)} ${SHORT[from.value]} of ${i.name.replace(' (~)', '').toLowerCase()} is about ${fmt(r, to.value)} ${SHORT[to.value]}. A level US cup holds about ${i.g} g of it.`;
     for (const u of Object.keys(UNIT_NAMES)) {
@@ -71,8 +102,10 @@ const units = Object.entries(UNIT_NAMES);
       li.dataset.u = u; all.append(li);
     }
   };
-  for (const el of [ing, amt, from, to]) el.addEventListener('input', calc);
+  for (const el of [ing, amt, from, to, cupSel]) el.addEventListener('input', () => { if (el === amt) { const a = parseAmount(amt.value); if (a >= 0 && a <= 10) range.value = String(a); } calc(); });
+  range.addEventListener('input', () => { amt.value = range.value; calc(); });
+  find.addEventListener('input', () => { const m = searchIngredient(find.value); if (m) ing.value = m.id; calc(); });
   $('.ctg-swap').addEventListener('click', () => { const f = from.value; from.value = to.value; to.value = f; calc(); });
-  $('.ctg-reset').addEventListener('click', () => { ing.value = 'ap-flour'; amt.value = '1'; from.value = 'uscup'; to.value = 'g'; calc(); });
+  $('.ctg-reset').addEventListener('click', () => { ing.value = 'ap-flour'; amt.value = '1'; range.value = '1'; find.value = ''; cupSel.value = 'uscup'; from.value = 'uscup'; to.value = 'g'; calc(); });
   calc();
 </script>

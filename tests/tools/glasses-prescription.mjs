@@ -17,6 +17,12 @@ export default async ({ page, check, BASE }) => {
   { const t = await page.textContent('.gp .gp-eye[data-eye=od]'); check(t.includes('+2.50') && t.includes('long-sightedness'), 'glasses: near prescription +1.00 +1.50 = +2.50'); }
   await page.fill('.gp .gp-od-sph', '-1.10'); await page.waitForTimeout(100);
   check((await page.textContent('.gp .gp-err')).includes('multiple of 0.25'), 'glasses: step of 0.25 checked');
+  await page.fill('.gp .gp-od-sph', '-2.00'); await page.waitForTimeout(100);
+  check((await page.textContent('.gp .gp-sum')).includes('OD: short-sighted lens power'), 'glasses: one-line summary');
+  await page.evaluate(() => document.querySelectorAll('.gp details').forEach((d) => (d.open = true)));
+  await page.fill('.gp .gp-old-od-sph', '-1.75'); await page.waitForTimeout(100);
+  check((await page.textContent('.gp .gp-diff')).includes('SPH: −1.75 to −2.00 (down 0.25)'), 'glasses: compare shows SPH down 0.25');
+  await page.fill('.gp .gp-od-sph', '-1.10'); await page.waitForTimeout(100);
   const dl = page.waitForEvent('download');
   await page.click('.gp .dl button[data-f=pdf]');
   check((await dl).suggestedFilename() === 'glasses-prescription.pdf', 'glasses: PDF download');

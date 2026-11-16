@@ -27,6 +27,11 @@ export default async ({ page, check, BASE }) => {
   check(!bg.some(red), `lab-report-reader: no red colour on flagged rows (${bg.join(' ')})`);
   await page.fill('.lrr-body tr:nth-child(3) [data-k=value]', '4.0');
   check((await mark(3)).trim() === '', 'lab-report-reader: editing the result updates the mark');
+  check((await page.textContent('.lrr-count')).includes('8 tests'), 'lab-report-reader: count line');
+  await page.check('.lrr-flagonly');
+  const vis = await page.$$eval('.lrr-body tr', (r) => r.filter((x) => getComputedStyle(x).display !== 'none').length);
+  check(vis === 1, `lab-report-reader: only flagged rows shown after edits (${vis})`);
+  await page.uncheck('.lrr-flagonly');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lrr-trk')]);
   check(dl.suggestedFilename().endsWith('.csv'), 'lab-report-reader: tracker CSV downloads');
 };

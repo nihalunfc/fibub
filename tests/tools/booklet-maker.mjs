@@ -15,6 +15,12 @@ export default async ({ page, check, BASE }) => {
   await page.check('input[name=bkl-mode][value=nup]'); await page.selectOption('.bkl-per', '4');
   const n = await saved(page, () => page.click('.bkl-go'));
   check(await pages(n.buf) === 2, 'booklet: 4-up of 6 pages gives 2 sheets');
+  await page.selectOption('.bkl-per', '9');
+  const n9 = await saved(page, () => page.click('.bkl-go'));
+  check(await pages(n9.buf) === 1, 'booklet: 9-up of 6 pages gives 1 sheet');
+  await page.selectOption('.bkl-per', '6');
+  const n6 = await saved(page, () => page.click('.bkl-go'));
+  check(await pages(n6.buf) === 1, 'booklet: 6-up of 6 pages gives 1 sheet');
   await page.check('input[name=bkl-mode][value=poster]');
   const p = await saved(page, () => page.click('.bkl-go'));
   check(await pages(p.buf) === 4, 'booklet: 2 x 2 poster gives 4 tiles');

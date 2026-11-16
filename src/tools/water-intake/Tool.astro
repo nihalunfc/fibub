@@ -5,7 +5,7 @@
   <section class="panel">
     <div class="wi-grid">
       <label>Who
-        <select class="wi-who">
+        <select class="wi-who" data-k="who">
           <option value="w">Woman</option>
           <option value="m" selected>Man</option>
           <option value="p">Pregnant</option>
@@ -13,22 +13,22 @@
         </select>
       </label>
       <label>Units
-        <select class="wi-unit"><option value="l">Litres</option><option value="oz">US fluid ounces</option></select>
+        <select class="wi-unit" data-k="unit"><option value="l">Litres</option><option value="oz">US fluid ounces</option></select>
       </label>
       <label>Exercise today (minutes)
-        <input class="wi-ex" type="number" inputmode="decimal" min="0" step="5" value="0" />
+        <input class="wi-ex" data-k="ex" type="number" inputmode="decimal" min="0" step="5" value="0" />
       </label>
       <label>Extra per 30 min of exercise (L)
-        <input class="wi-per" type="number" inputmode="decimal" min="0" step="0.1" value="0.5" />
+        <input class="wi-per" data-k="per" type="number" inputmode="decimal" min="0" step="0.1" value="0.5" />
       </label>
       <label>Share from drinks (%)
-        <input class="wi-share" type="number" inputmode="decimal" min="1" max="100" step="5" value="80" />
+        <input class="wi-share" data-k="share" type="number" inputmode="decimal" min="1" max="100" step="5" value="80" />
       </label>
       <label>Glass size (mL)
-        <input class="wi-glass" type="number" inputmode="decimal" min="50" step="50" value="250" />
+        <input class="wi-glass" data-k="glass" type="number" inputmode="decimal" min="50" step="50" value="250" />
       </label>
     </div>
-    <label class="wi-check"><input type="checkbox" class="wi-hot" /> Hot weather or a hot room today</label>
+    <label class="wi-check"><input type="checkbox" class="wi-hot" data-k="hot" /> Hot weather or a hot room today</label>
     <p class="wi-big" aria-live="polite"></p>
     <div class="wi-scroll">
       <table class="wi-tbl">
@@ -38,6 +38,30 @@
     </div>
     <p class="wi-say" aria-live="polite"></p>
     <p class="wi-note"></p>
+    <details class="wi-more">
+      <summary>More options (body weight, glass presets, drinking times)</summary>
+      <div class="wi-grid">
+        <label>Body weight (<span class="wi-wu">kg</span>), optional
+          <input class="wi-wt" data-k="wt" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 70" />
+        </label>
+        <label>mL per kg for the weight rule
+          <input class="wi-mlkg" data-k="mlkg" type="number" inputmode="decimal" min="1" step="1" value="30" />
+        </label>
+        <label>Wake-up time
+          <input class="wi-wake" data-k="wake" type="time" value="07:00" />
+        </label>
+        <label>Bedtime
+          <input class="wi-bed" data-k="bed" type="time" value="22:00" />
+        </label>
+      </div>
+      <div class="wi-presets" aria-label="Glass sizes">
+        <button type="button" data-g="200">Small glass 200 mL</button><button type="button" data-g="250">Glass 250 mL</button><button type="button" data-g="330">Can 330 mL</button><button type="button" data-g="500">Bottle 500 mL</button>
+      </div>
+      <p class="wi-wnote"></p>
+      <h3>When to drink</h3>
+      <p class="wi-fine">The glasses for today (lower figure) spread evenly from wake-up to bedtime.</p>
+      <ol class="wi-times"></ol>
+    </details>
   </section>
   <section class="panel">
     <h2>Today's glasses</h2>
@@ -48,7 +72,7 @@
     </div>
     <div class="wi-bar" aria-hidden="true"><div class="wi-fill"></div></div>
     <p class="wi-prog" aria-live="polite"></p>
-    <label class="wi-check"><input type="checkbox" class="wi-remember" /> Remember today's count on this device</label>
+    <label class="wi-check"><input type="checkbox" class="wi-remember" data-k="remember" /> Remember today's count on this device</label>
     <button type="button" class="wi-clear">Clear</button>
   </section>
   <p class="wi-fine">Estimates for healthy adults, not medical advice. If a doctor has told you to limit or increase fluids, follow that. Nothing you type leaves this page.</p>
@@ -70,6 +94,15 @@
   .wi-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
   .wi-tbl th, .wi-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   .wi-tbl th { color: var(--muted); font-weight: 600; }
+  .wi-more { margin-top: 12px; }
+  .wi-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .wi-more h3 { font-size: 15px; margin: 14px 0 4px; }
+  .wi input[type=time] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .wi-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .wi-times { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 6px 0 0; list-style: none; }
+  .wi-times li { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .wi-wnote { color: var(--muted); font-size: 14.5px; margin: 10px 0 0; }
+  .wi-wnote:empty { display: none; }
   .wi-say, .wi-note, .wi-prog { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
   .wi-track { display: flex; gap: 12px; align-items: center; }
   .wi-count { font-size: 28px; font-weight: 700; min-width: 2ch; text-align: center; }
@@ -80,6 +113,7 @@
 </style>
 
 <script>
+  import { drinkTimes, waterByWeight } from '../../lib/everyday/body';
   // Adequate intakes of total water (food + drinks), litres a day, adults.
   // EFSA 2010 (EFSA Journal 8(3):1459): women 2.0, men 2.5, pregnancy +0.3, breastfeeding +0.7.
   // US National Academies (IOM 2004): women 2.7, men 3.7, pregnancy 3.0, breastfeeding 3.8.
@@ -105,9 +139,17 @@
     const ex = num('.wi-ex', 0), per = num('.wi-per', 0.5), share = Math.min(100, Math.max(1, num('.wi-share', 80))) / 100, glass = num('.wi-glass', 250) / 1000;
     const add = (ex / 30) * per;
     const rows = [['EFSA (Europe)', AI[who][0]], ['US National Academies', AI[who][1]]] as [string, number][];
+    const lbs = unit() === 'oz', wtIn = num('.wi-wt', 0), kg = lbs ? wtIn * 0.45359237 : wtIn, mlkg = num('.wi-mlkg', 30);
+    q('.wi-wu').textContent = lbs ? 'lb' : 'kg';
+    if (kg > 0 && mlkg > 0) rows.push(['Body-weight rule of thumb', waterByWeight(kg, mlkg)]);
+    q('.wi-wnote').textContent = kg > 0 && mlkg > 0 ? `Body-weight rule: ${Math.round(kg * 10) / 10} kg × ${mlkg} mL = ${vol(waterByWeight(kg, mlkg))} of total water. This is a common rule of thumb, not an EFSA or National Academies figure; it is the last row.` : '';
     const drinks = rows.map(([, t]) => t * share + add);
-    q('.wi-rows').innerHTML = rows.map(([n, t], i) => `<tr data-src="${i ? 'nasem' : 'efsa'}"><td>${n}</td><td>${vol(t)}</td><td>${vol(t * share)}</td><td>+${vol(add)}</td><td><b>${vol(drinks[i])}</b></td><td>${glass > 0 ? Math.ceil(drinks[i] / glass - 1e-9) : '–'}</td></tr>`).join('');
+    q('.wi-rows').innerHTML = rows.map(([n, t], i) => `<tr data-src="${i === 0 ? 'efsa' : i === 1 ? 'nasem' : 'weight'}"><td>${n}</td><td>${vol(t)}</td><td>${vol(t * share)}</td><td>+${vol(add)}</td><td><b>${vol(drinks[i])}</b></td><td>${glass > 0 ? Math.ceil(drinks[i] / glass - 1e-9) : '–'}</td></tr>`).join('');
     q('.wi-big').textContent = `About ${vol(drinks[0])} to ${vol(drinks[1])} from drinks today`;
+    const glassesN = glass > 0 ? Math.ceil(drinks[0] / glass - 1e-9) : 0;
+    const hm = (v: string) => { const [h, m] = v.split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN; };
+    const w0 = hm(q<HTMLInputElement>('.wi-wake').value), b0 = hm(q<HTMLInputElement>('.wi-bed').value);
+    q('.wi-times').innerHTML = Number.isFinite(w0) && Number.isFinite(b0) ? drinkTimes(glassesN, w0, b0).map((m) => `<li>${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}</li>`).join('') : '';
     q('.wi-say').textContent = `Total water counts food too. About ${Math.round(share * 100)}% usually comes from drinks (water, tea, coffee, milk, juice) and the rest from food.` + (add > 0 ? ` ${Math.round(ex)} min of exercise adds about ${vol(add)} (rule of thumb: ${per} L per 30 min).` : '');
     q('.wi-note').textContent = q<HTMLInputElement>('.wi-hot').checked
       ? 'Hot weather: you sweat more, so drink more than this and drink before you feel very thirsty. Pale yellow urine is a simple sign you are drinking enough.'
@@ -115,7 +157,8 @@
     target = drinks[0];
     track();
   };
-  root.querySelectorAll('input[type=number], select, .wi-hot').forEach((el) => el.addEventListener('input', calc));
+  root.querySelectorAll('input[type=number], input[type=time], select, .wi-hot').forEach((el) => el.addEventListener('input', calc));
+  root.querySelectorAll('.wi-presets button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.wi-glass').value = (b as HTMLElement).dataset.g!; calc(); }));
   q('.wi-plus').addEventListener('click', () => { count++; track(); store(); });
   q('.wi-minus').addEventListener('click', () => { count = Math.max(0, count - 1); track(); store(); });
   q('.wi-remember').addEventListener('change', () => { if (q<HTMLInputElement>('.wi-remember').checked) store(); else { try { localStorage.removeItem(KEY); } catch {} } });

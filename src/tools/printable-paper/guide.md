@@ -39,6 +39,8 @@ Tick more than one kind and each gets its own page. Everything runs on your devi
 - **Darker line every**: for graph paper, every Nth line is drawn heavier, like the 1 cm lines on 5 mm paper.
 - **Pages of each**: how many pages of every ticked kind.
 - **Colour**: light grey and light blue use less ink and let your writing stand out.
+- **Paper**: A4, US Letter, A5, A3, A6 or US Legal, upright or sideways.
+- **Line thickness** (under More options): thin, medium or bold lines, for pencil, pen or a copier that fades fine lines.
 - **Margin**: the blank edge where nothing is drawn.
 
 ## Worked example

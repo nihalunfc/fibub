@@ -5,11 +5,26 @@
   <label class="fc-drop">
     <input class="fc-input visually-hidden" type="file" multiple accept=".pdf,.docx,.csv,.tsv,.xlsx,.json,.jpg,.jpeg,.png,.webp,.avif,.gif,.bmp,image/*" />
     <strong>Choose a file</strong>
-    <span>PDF, Word, Excel, CSV, JSON or pictures (several pictures at once is fine) · up to <b class="fc-limit">200 MB</b></span>
+    <span>PDF, Word, Excel, CSV, JSON or pictures. Several files of the same kind at once are fine · up to <b class="fc-limit">200 MB</b></span>
   </label>
   <div class="fc-picked" hidden>
     <p class="fc-files"></p>
     <fieldset class="fc-targets"><legend>Convert to</legend><div class="fc-chips"></div></fieldset>
+    <details class="fc-more" hidden>
+      <summary>More options</summary>
+      <label class="fc-opt fc-qrow">Picture quality <b class="fc-qv">92%</b>
+        <input class="fc-quality" type="range" min="40" max="100" value="92" aria-label="Picture quality" />
+        <small>Lower is a smaller file. Used for JPG, WebP and AVIF.</small>
+      </label>
+      <label class="fc-opt fc-prow">PDF page size
+        <select class="fc-page">
+          <option value="fit">Same size as the picture</option>
+          <option value="a4">A4, picture centred</option>
+          <option value="letter">US Letter, picture centred</option>
+        </select>
+        <small>Used when you convert pictures to PDF.</small>
+      </label>
+    </details>
     <div class="fc-row">
       <button type="button" class="btn fc-go">Convert</button>
       <button type="button" class="btn secondary fc-clear">Choose other files</button>
@@ -44,6 +59,11 @@
   .fc-status:empty { display: none; }
   .fc-result { display: grid; gap: 8px; }
   .fc-note:empty { display: none; }
+  .fc-opt { display: grid; gap: 6px; font-weight: 600; margin-top: 10px; }
+  .fc-opt small { font-weight: 400; color: var(--muted); }
+  .fc-opt select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .fc [hidden] { display: none !important; }
+  .fc-more summary { cursor: pointer; font-weight: 600; }
 </style>
 
 <script>
@@ -77,12 +97,13 @@
     if (!list.length) return;
     const kind = kindOf(list[0]);
     if (!kind) return fail('This type of file can\'t be converted here yet. Supported: PDF, Word (.docx), Excel (.xlsx), CSV, JSON and pictures.');
-    if (list.length > 1 && (kind !== 'image' || !list.every((f) => kindOf(f) === 'image'))) return fail('Choose one file at a time, or several pictures together.');
+    if (list.some((f) => f.size === 0)) return fail('One of these files is empty.');
+    if (list.length > 1 && !list.every((f) => kindOf(f) === kind)) return fail('Choose files of the same kind together (all pictures, all PDFs, all CSVs and so on).');
     const big = list.find((f) => f.size > limit);
     if (big) return fail(`${big.name} is ${formatBytes(big.size)}. The limit on this device is ${formatBytes(limit)}.`);
     files = list;
     targets = targetsFor(kind, await formats).filter((t) => !(kind === 'image' && list.length === 1 && t.id === list[0].type));
-    q('.fc-files').textContent = list.length > 1 ? `${list.length} pictures (${formatBytes(list.reduce((n, f) => n + f.size, 0))})` : `${list[0].name} (${formatBytes(list[0].size)})`;
+    q('.fc-files').textContent = list.length > 1 ? `${list.length} files (${formatBytes(list.reduce((n, f) => n + f.size, 0))})` : `${list[0].name} (${formatBytes(list[0].size)})`;
     chips.replaceChildren(...targets.map((t, i) => {
       const l = document.createElement('label');
       const r = document.createElement('input');
@@ -92,19 +113,31 @@
     }));
     root.dataset.state = 'ready';
     picked.hidden = false;
+    q('.fc-more').hidden = kind !== 'image';
+    updateOpts();
   }
+  const qual = q<HTMLInputElement>('.fc-quality');
+  function updateOpts() {
+    const t = targets[+(root.querySelector<HTMLInputElement>('input[name=fc-target]:checked')?.value ?? 0)];
+    q('.fc-qv').textContent = `${qual.value}%`;
+    q('.fc-qrow').hidden = !(t && /^image\/(jpeg|webp|avif)$/.test(t.id));
+    q('.fc-prow').hidden = !(t && t.id === 'pdf');
+  }
+  qual.addEventListener('input', updateOpts);
+  chips.addEventListener('change', updateOpts);
 
   q('.fc-go').addEventListener('click', async () => {
     const t = targets[+(root.querySelector<HTMLInputElement>('input[name=fc-target]:checked')?.value ?? 0)];
     picked.hidden = true; err.hidden = true; status.textContent = 'Converting on your device…';
     try {
       const { convert } = await engine();
-      const out = await convert(files, t, (s) => (status.textContent = s));
+      const out = await convert(files, t, (s) => (status.textContent = s), { quality: +qual.value / 100, page: q<HTMLSelectElement>('.fc-page').value as 'fit' });
       if (url) URL.revokeObjectURL(url);
       url = URL.createObjectURL(out.blob);
       dl.href = url; dl.download = out.name;
       dl.textContent = `Download ${out.name.split('.').pop()!.toUpperCase()}`;
-      q('.fc-done').textContent = `${out.name} · ${formatBytes(out.blob.size)}`;
+      const before = files.reduce((n, f) => n + f.size, 0);
+      q('.fc-done').textContent = `${out.name} · ${formatBytes(out.blob.size)} (before: ${formatBytes(before)})`;
       q('.fc-note').textContent = out.note;
       result.hidden = false;
       root.dispatchEvent(new CustomEvent('fibub:converted', { bubbles: true, detail: { to: t.id } }));

@@ -1,0 +1,109 @@
+---
+// #T993 Rent cheques: yearly rent in a few payments, move-in cash and true monthly cost.
+---
+<div class="tool-ui rc">
+  <section class="panel">
+    <h2>Your rent</h2>
+    <div class="rc-grid">
+      <label>Currency <select data-k="cur"></select></label>
+      <label>Yearly rent <input inputmode="decimal" data-k="rent" value="60000" /></label>
+      <label>Number of payments <select data-k="n"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>6</option><option>12</option></select></label>
+      <label>Discount for this many payments or fewer (optional) <span class="rc-suf"><input inputmode="decimal" data-k="disc" value="" /><i>%</i></span></label>
+      <label>Security deposit is <select data-k="depm"><option value="pct">% of the yearly rent</option><option value="amt">a fixed amount</option></select></label>
+      <label>Deposit <input inputmode="decimal" data-k="dep" value="5" /></label>
+      <label>Agency fee is <select data-k="agm"><option value="pct">% of the yearly rent</option><option value="amt">a fixed amount</option></select></label>
+      <label>Agency fee <input inputmode="decimal" data-k="ag" value="5" /></label>
+      <label>Other move-in costs (utility deposits, etc.) <input inputmode="decimal" data-k="other" value="500" /></label>
+    </div>
+    <details class="rc-more">
+      <summary>If you might leave early</summary>
+      <div class="rc-grid">
+        <label>Months you would stay <input inputmode="decimal" data-k="stay" value="" /></label>
+        <label>Early-exit penalty, in months of rent <input inputmode="decimal" data-k="pen" value="" /></label>
+      </div>
+    </details>
+    <p class="note bad rc-err" role="alert" hidden></p>
+  </section>
+  <section class="rc-res" aria-live="polite">
+    <p class="rc-lead"></p>
+    <div class="rc-stats">
+      <div><span>Each payment</span><b class="rc-pay"></b></div>
+      <div><span>Monthly equivalent</span><b class="rc-mon"></b></div>
+      <div class="good"><span>Cash needed on day one</span><b class="rc-day"></b></div>
+      <div><span>True monthly cost</span><b class="rc-true"></b></div>
+    </div>
+    <div class="panel rc-wrap"><table>
+      <thead><tr><th>Payment</th><th>Due</th><th>Amount</th></tr></thead>
+      <tbody class="rc-sched"></tbody>
+    </table></div>
+    <p class="rc-line rc-exit"></p>
+    <div class="panel rc-wrap"><table>
+      <thead><tr><th>Payments</th><th>Each</th><th>Day one</th><th>Year of rent</th></tr></thead>
+      <tbody class="rc-cmp"></tbody>
+    </table></div>
+  </section>
+  <p class="rc-fine">An estimate from your numbers. The deposit is treated as refundable; the agency fee and other move-in costs as costs you do not get back (type 0 for refundable ones). Rules and fees differ: check your contract and the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rc > *, .rc-res > * { min-width: 0; }
+  .rc h2 { margin: 0 0 12px; font-size: 18px; }
+  .rc .panel { padding: 16px; }
+  .rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .rc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rc input, .rc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rc input:focus, .rc select:focus { border-color: var(--accent); outline: none; }
+  .rc-suf { position: relative; display: block; }
+  .rc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .rc-suf input { padding-right: 28px; }
+  .rc-more { margin-top: 12px; }
+  .rc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .rc-res { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  .rc-lead, .rc-line { margin: 0; font-size: 15px; }
+  .rc-line:empty { display: none; }
+  .rc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rc-stats span { font-size: 13px; color: var(--muted); }
+  .rc-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .rc-stats .good b { color: var(--good); }
+  .rc-wrap { overflow-x: auto; }
+  .rc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rc th, .rc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rc th:first-child, .rc td:first-child { text-align: left; }
+  .rc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .rc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) { .rc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { money, num, defaultCurrency, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.rc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  f('cur').innerHTML = currencyOptions(defaultCurrency());
+  function run() {
+    const $ = (v: number, d = 0) => money(v, f('cur').value, d);
+    const rent = num(f('rent').value), n = Number(f('n').value), disc = Math.min(Math.max(num(f('disc').value), 0), 100);
+    const bad = !(rent > 0) ? 'Type the yearly rent.' : '';
+    q('.rc-err').hidden = !bad; q('.rc-err').textContent = bad; q('.rc-res').hidden = !!bad;
+    if (bad) return;
+    const dep = f('depm').value === 'pct' ? (rent * num(f('dep').value)) / 100 : num(f('dep').value);
+    const ag = f('agm').value === 'pct' ? (rent * num(f('ag').value)) / 100 : num(f('ag').value);
+    const other = num(f('other').value);
+    const net = (cnt: number) => rent * (1 - (cnt <= n ? disc : 0) / 100);
+    const R = net(n), pay = R / n, mon = R / 12, fees = ag + other;
+    const day = pay + dep + ag + other;
+    q('.rc-pay').textContent = $(pay, 2); q('.rc-mon').textContent = $(mon, 2); q('.rc-day').textContent = $(day, 2); q('.rc-true').textContent = $((R + fees) / 12, 2);
+    q('.rc-lead').innerHTML = `${n} payment${n > 1 ? 's' : ''} of <b>${$(pay, 2)}</b>${disc > 0 ? ` after a ${disc}% discount (you save ${$(rent - R, 2)})` : ''}. On day one you need <b>${$(day, 2)}</b> including the deposit of ${$(dep, 2)}.`;
+    q('.rc-sched').innerHTML = Array.from({ length: n }, (_, i) => `<tr><td>${i + 1} of ${n}</td><td>Start of month ${(i * 12) / n + 1}</td><td>${$(pay, 2)}</td></tr>`).join('');
+    const stay = num(f('stay').value), pen = num(f('pen').value);
+    if (stay > 0 && stay < 12) {
+      const cost = mon * stay + mon * pen + fees;
+      q('.rc-exit').textContent = `Leaving after ${stay} month${stay > 1 ? 's' : ''}: ${$(mon * stay, 2)} of rent, ${$(mon * pen, 2)} penalty and ${$(fees, 2)} of fees come to ${$(cost, 2)}, about ${$(cost / stay, 2)} a month. Rent already paid by cheque for later months may be lost or refunded: check your contract.`;
+    } else q('.rc-exit').textContent = '';
+    q('.rc-cmp').innerHTML = [1, 2, 4, 12].map((c) => { const r = net(c); return `<tr><td>${c}</td><td>${$(r / c, 2)}</td><td>${$(r / c + dep + fees, 2)}</td><td>${$(r, 2)}</td></tr>`; }).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

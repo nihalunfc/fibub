@@ -5,17 +5,34 @@
   <section class="panel">
     <div class="oc-grid">
       <label>First day of last period
-        <input class="oc-start" type="date" value="2026-11-01" />
+        <input class="oc-start" data-k="start" type="date" value="2026-11-01" />
       </label>
       <label>Usual cycle length (days)
-        <input class="oc-cyc" type="number" inputmode="numeric" min="21" max="45" step="1" value="28" />
+        <input class="oc-cyc" data-k="cycle" type="number" inputmode="numeric" min="21" max="45" step="1" value="28" />
       </label>
       <label>Period length (days)
-        <input class="oc-per" type="number" inputmode="numeric" min="1" max="10" step="1" value="5" />
+        <input class="oc-per" data-k="period" type="number" inputmode="numeric" min="1" max="10" step="1" value="5" />
       </label>
     </div>
     <p class="oc-big" aria-live="polite"></p>
+    <p class="oc-today" aria-live="polite"></p>
     <p class="oc-say" aria-live="polite"></p>
+    <details class="oc-more">
+      <summary>More options</summary>
+      <div class="oc-grid">
+        <label>Days from ovulation to next period
+          <input class="oc-lut" data-k="luteal" type="number" inputmode="numeric" min="10" max="16" step="1" value="14" />
+        </label>
+        <label>Shortest cycle lately (days)
+          <input class="oc-short" data-k="short" type="number" inputmode="numeric" min="21" max="45" step="1" placeholder="e.g. 26" />
+        </label>
+        <label>Longest cycle lately (days)
+          <input class="oc-long" data-k="long" type="number" inputmode="numeric" min="21" max="45" step="1" placeholder="e.g. 32" />
+        </label>
+      </div>
+      <p class="oc-fine">The first box is 14 by default; most people are between 10 and 16. If your cycles vary, fill in the shortest and longest: the calendar then outlines a wider possible window (W), worked out with the old calendar method (shortest cycle minus 18 to longest cycle minus 11, counting the first day of your period as day 1).</p>
+      <p class="oc-wide" aria-live="polite"></p>
+    </details>
   </section>
   <section class="panel">
     <div class="oc-head">
@@ -24,7 +41,7 @@
       <button type="button" class="oc-next" aria-label="Next month">›</button>
     </div>
     <div class="oc-cal" role="grid" aria-label="Month calendar"></div>
-    <p class="oc-key"><span class="k per">P</span> Period <span class="k fer">F</span> Fertile window <span class="k ovu">O</span> Estimated ovulation</p>
+    <p class="oc-key"><span class="k per">P</span> Period <span class="k fer">F</span> Fertile window <span class="k ovu">O</span> Estimated ovulation <span class="k wid">W</span> Wider window if cycles vary</p>
   </section>
   <section class="panel">
     <h2>Next 6 cycles</h2>
@@ -38,7 +55,7 @@
       <button type="button" class="oc-ics">Download calendar (.ics)</button>
       <button type="button" class="oc-reset">Reset</button>
     </div>
-    <label class="oc-check"><input type="checkbox" class="oc-remember" /> Remember these three numbers on this device</label>
+    <label class="oc-check"><input type="checkbox" class="oc-remember" data-k="remember" /> Remember these three numbers on this device</label>
     <button type="button" class="oc-clear">Clear saved</button>
     <p class="oc-saved" aria-live="polite"></p>
   </section>
@@ -59,6 +76,11 @@
   .oc-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .oc .oc-clear { margin-top: 8px; }
   .oc-big { font-size: 22px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .oc-more { margin-top: 12px; }
+  .oc-more summary { cursor: pointer; font-size: 14.5px; font-weight: 600; margin-bottom: 10px; }
+  .oc-today { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .oc-today:empty, .oc-wide:empty { display: none; }
+  .oc-wide { color: var(--muted); font-size: 15px; margin: 8px 0 0; }
   .oc-say, .oc-saved { color: var(--muted); font-size: 15px; margin: 6px 0 0; }
   .oc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .oc-head h2 { margin: 0; text-align: center; }
@@ -69,6 +91,7 @@
   .oc-cal .d.per, .oc-key .per { background: var(--bad-soft); border-color: var(--bad); }
   .oc-cal .d.fer, .oc-key .fer { background: var(--good-soft); border-color: var(--good); }
   .oc-cal .d.ovu, .oc-key .ovu { background: var(--good-soft); border: 2px solid var(--good); font-weight: 700; }
+  .oc-cal .d.wid, .oc-key .wid { border-style: dashed; border-color: var(--good); }
   .oc-cal .d.today { outline: 2px solid var(--ink); outline-offset: -2px; }
   .oc-key { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 0; }
   .oc-key .k { display: inline-block; width: 20px; text-align: center; border: 1px solid; border-radius: 5px; font-size: 11px; font-weight: 700; color: var(--ink); margin-left: 6px; }
@@ -80,8 +103,8 @@
 </style>
 
 <script>
+  import { DAY, ovulationDay, calendarRange, cycleDay } from '../../lib/everyday/cycle';
   const KEY = 'fibub-cycle-v1';
-  const DAY = 86400000;
   const root = document.querySelector('.oc') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const start = q<HTMLInputElement>('.oc-start'), cyc = q<HTMLInputElement>('.oc-cyc'), per = q<HTMLInputElement>('.oc-per'), remember = q<HTMLInputElement>('.oc-remember');
@@ -90,15 +113,17 @@
   const short = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   const long = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   const clampInt = (el: HTMLInputElement, lo: number, hi: number, d: number) => { const v = parseInt(el.value, 10); return Number.isFinite(v) && v >= lo && v <= hi ? v : d; };
-  type Cycle = { p0: number; p1: number; f0: number; f1: number; ov: number; next: number };
+  type Cycle = { p0: number; p1: number; f0: number; f1: number; ov: number; next: number; w0: number; w1: number };
+  let wide = false;
   let cycles: Cycle[] = [], month = 0;
   // Ovulation is estimated 14 days before the next period; the fertile window is the 5 days before it and the day after.
-  const plan = (s: number, c: number, p: number): Cycle[] => Array.from({ length: 6 }, (_, i) => {
-    const p0 = s + i * c * DAY, ov = p0 + (c - 14) * DAY;
-    return { p0, p1: p0 + (p - 1) * DAY, f0: ov - 5 * DAY, f1: ov + DAY, ov, next: p0 + c * DAY };
+  const plan = (s: number, c: number, p: number, lut = 14, sh = 0, lo = 0): Cycle[] => Array.from({ length: 6 }, (_, i) => {
+    const p0 = s + i * c * DAY, ov = ovulationDay(p0, c, lut), [w0, w1] = sh && lo ? calendarRange(p0, sh, lo) : [NaN, NaN];
+    return { p0, p1: p0 + (p - 1) * DAY, f0: ov - 5 * DAY, f1: ov + DAY, ov, next: p0 + c * DAY, w0, w1 };
   });
   const kind = (t: number) => {
     for (const k of cycles) { if (t === k.ov) return 'ovu'; if (t >= k.p0 && t <= k.p1) return 'per'; if (t >= k.f0 && t <= k.f1) return 'fer'; }
+    if (wide) for (const k of cycles) if (t >= k.w0 && t <= k.w1) return 'wid';
     const last = cycles[cycles.length - 1];
     if (last && t >= last.next && t < last.next + (last.p1 - last.p0) + DAY) return 'per';
     return '';
@@ -111,19 +136,30 @@
     let h = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((w) => `<div class="dow">${w}</div>`).join('') + '<div></div>'.repeat(lead);
     for (let i = 1; i <= days; i++) {
       const t = Date.UTC(y, m, i), k = kind(t);
-      h += `<div class="d ${k}${t === now ? ' today' : ''}" data-d="${iso(t)}" data-k="${k}">${i}<small>${k === 'per' ? 'P' : k === 'fer' ? 'F' : k === 'ovu' ? 'O' : ''}</small></div>`;
+      h += `<div class="d ${k}${t === now ? ' today' : ''}" data-d="${iso(t)}" data-k="${k}">${i}<small>${k === 'per' ? 'P' : k === 'fer' ? 'F' : k === 'ovu' ? 'O' : k === 'wid' ? 'W' : ''}</small></div>`;
     }
     q('.oc-cal').innerHTML = h;
   };
   const store = () => { try { if (remember.checked) localStorage.setItem(KEY, JSON.stringify({ s: start.value, c: cyc.value, p: per.value })); } catch {} };
   const calc = (keepMonth = false) => {
     const s = parse(start.value);
-    if (!Number.isFinite(s)) { q('.oc-big').textContent = 'Pick the first day of your last period.'; q('.oc-say').textContent = ''; q('.oc-rows').innerHTML = ''; cycles = []; drawMonth(); return; }
+    if (!Number.isFinite(s)) { q('.oc-big').textContent = 'Pick the first day of your last period.'; q('.oc-say').textContent = ''; q('.oc-rows').innerHTML = ''; q('.oc-today').textContent = ''; q('.oc-wide').textContent = ''; cycles = []; wide = false; drawMonth(); return; }
     const c = clampInt(cyc, 21, 45, 28), p = clampInt(per, 1, 10, 5);
-    cycles = plan(s, c, p);
+    const lut = clampInt(q<HTMLInputElement>('.oc-lut'), 10, 16, 14), sh = clampInt(q<HTMLInputElement>('.oc-short'), 21, 45, 0), lo = clampInt(q<HTMLInputElement>('.oc-long'), 21, 45, 0);
+    wide = sh > 0 && lo >= sh;
+    cycles = plan(s, c, p, lut, wide ? sh : 0, wide ? lo : 0);
     const k = cycles[0];
+    q('.oc-wide').textContent = wide ? `Wider possible window this cycle: ${short(k.w0)} to ${short(k.w1)} (cycles of ${sh} to ${lo} days). It is longer because your cycles vary.` : (q<HTMLInputElement>('.oc-short').value || q<HTMLInputElement>('.oc-long').value) ? 'Fill in both the shortest and the longest cycle (21 to 45 days, longest not shorter than shortest) for a wider window.' : '';
     const big = q('.oc-big'); big.textContent = `Estimated ovulation: ${long(k.ov)}`; big.dataset.ov = iso(k.ov); big.dataset.f0 = iso(k.f0); big.dataset.f1 = iso(k.f1); big.dataset.next = iso(k.next);
-    q('.oc-say').textContent = `Fertile window ${short(k.f0)} to ${short(k.f1)}. Next period about ${long(k.next)}. Ovulation is taken as 14 days before the next period: day ${c - 13} of a ${c}-day cycle.` + (String(c) !== cyc.value.trim() || String(p) !== per.value.trim() ? ' (Values outside 21–45 or 1–10 days use 28 and 5.)' : '');
+    q('.oc-say').textContent = `Fertile window ${short(k.f0)} to ${short(k.f1)}. Next period about ${long(k.next)}. Ovulation is taken as 14 days before the next period: day ${c - lut + 1} of a ${c}-day cycle (${lut} days before the next period).` + (String(c) !== cyc.value.trim() || String(p) !== per.value.trim() ? ' (Values outside 21–45 or 1–10 days use 28 and 5.)' : '');
+    const nowT = localToday(), cd = cycleDay(cycles.map((x) => x.p0), nowT), last = cycles[cycles.length - 1];
+    const td = q('.oc-today');
+    if (cd === 0 || nowT >= last.next) td.textContent = '';
+    else {
+      const cur = cycles.find((x) => nowT >= x.p0 && nowT < x.next)!;
+      const to = Math.round((cur.f0 - nowT) / DAY);
+      td.textContent = `Today is day ${cd} of this cycle. ` + (nowT >= cur.f0 && nowT <= cur.f1 ? 'You are in the estimated fertile window.' : to > 0 ? `The fertile window starts in ${to} day${to === 1 ? '' : 's'}.` : `The fertile window ended ${Math.round((nowT - cur.f1) / DAY)} day${Math.round((nowT - cur.f1) / DAY) === 1 ? '' : 's'} ago.`);
+    }
     q('.oc-rows').innerHTML = cycles.map((x, i) => `<tr data-i="${i}"><td>${short(x.p0)} – ${short(x.p1)}</td><td>${short(x.f0)} – ${short(x.f1)}</td><td>${short(x.ov)}</td><td>${short(x.next)}</td></tr>`).join('');
     if (!keepMonth) { const d = new Date(s); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); }
     drawMonth();
@@ -143,12 +179,12 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics()], { type: 'text/calendar' })); a.download = 'ovulation-calendar.ics';
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
-  [start, cyc, per].forEach((el) => el.addEventListener('input', () => calc()));
+  [start, cyc, per, q<HTMLInputElement>('.oc-lut'), q<HTMLInputElement>('.oc-short'), q<HTMLInputElement>('.oc-long')].forEach((el) => el.addEventListener('input', () => calc()));
   q('.oc-prev').addEventListener('click', () => { const d = new Date(month); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1); drawMonth(); });
   q('.oc-next').addEventListener('click', () => { const d = new Date(month); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); drawMonth(); });
   remember.addEventListener('change', () => { if (remember.checked) { store(); q('.oc-saved').textContent = 'Saved in this browser only.'; } else { try { localStorage.removeItem(KEY); } catch {} q('.oc-saved').textContent = 'Not saved.'; } });
   q('.oc-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} remember.checked = false; q('.oc-saved').textContent = 'Saved numbers deleted from this browser.'; });
-  q('.oc-reset').addEventListener('click', () => { start.value = '2026-11-01'; cyc.value = '28'; per.value = '5'; calc(); });
+  q('.oc-reset').addEventListener('click', () => { start.value = '2026-11-01'; cyc.value = '28'; per.value = '5'; q<HTMLInputElement>('.oc-lut').value = '14'; q<HTMLInputElement>('.oc-short').value = ''; q<HTMLInputElement>('.oc-long').value = ''; calc(); });
   try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.s) { start.value = s.s; cyc.value = s.c; per.value = s.p; remember.checked = true; q('.oc-saved').textContent = 'Loaded from this browser.'; } } catch {}
   calc();
 </script>

@@ -29,4 +29,17 @@ export default async ({ page, check, BASE }) => {
   check(await pages(pdf.buf) === 1 && (await pdfText(pdf.buf)).join(' ').includes('Region'), 'excel-viewer: PDF has the header text');
   await page.click('.xv-tabs button:nth-child(2)');
   check((await page.textContent('.xv-grid tbody')).includes('Rent'), 'excel-viewer: second sheet shows its rows');
+  await page.click('.xv-tabs button:nth-child(1)');
+  await page.uncheck('.xv-skip'); await page.fill('.xv-q', 'south');
+  await page.waitForTimeout(100);
+  const bodyTxt = await page.textContent('.xv-grid tbody');
+  check(bodyTxt.includes('South') && !bodyTxt.includes('East') && bodyTxt.includes('Region'), 'excel-viewer: find keeps the header and matching rows only');
+  const fcsv = await saved(page, () => page.click('.xv-csv'));
+  const fl = fcsv.buf.toString('utf8').replace(/^\uFEFF/, '').trim().split(/\r?\n/);
+  check(fl.length === 2 && fl[1].startsWith('South'), 'excel-viewer: CSV saves only the found rows');
+  await page.click('.xv-clear');
+  await page.click('.xv-grid thead th[data-c="1"]');
+  await page.click('.xv-grid thead th[data-c="1"]');
+  const firstData = await page.$$eval('.xv-grid tbody tr:nth-child(2) td', (t) => t[0].textContent);
+  check(firstData === 'East' || firstData === 'South', `excel-viewer: sort descending by Units puts the biggest first (${firstData})`);
 };

@@ -32,7 +32,9 @@ This tool shows what it finds and then saves a clean copy. Files never leave you
 
 1. Add one or more files. Each one shows a card listing what was found. Names and places are in bold.
 2. Press **Clean and download**. One file gives you that file back as `name-clean.ext`. Several files give you one ZIP.
-3. Open the clean copy to check it looks the same.
+3. A line above the cards says how many files carry hidden details and how many may identify you. You can also drop files onto the page, and take any file off the list with its **Remove** link.
+4. After cleaning, the tool reads the cleaned files again and tells you whether any author, owner or location detail is left.
+5. Open the clean copy to check it looks the same.
 
 ## What gets removed
 

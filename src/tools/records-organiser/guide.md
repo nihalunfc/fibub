@@ -37,6 +37,8 @@ The date and type are only guesses, so check them. You can change any date, type
 
 ## What each option does
 
+- **Missing dates**: the message under the list says how many files have no date yet, so you can type one and they sort in the right place.
+
 - **Dates like 03/04/2026 mean**: day first or month first. It re-reads dates you have not typed yourself.
 - **Sort by date**: oldest first or newest first.
 - **Group by type first**: Lab, Imaging, Bill, Prescription, Letter, Other, each sorted by date inside.

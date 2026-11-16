@@ -17,6 +17,12 @@ export default async (check) => {
   check(`soil texture: class polygons agree with the rules on the grid (${polyBad} differ)`, polyBad === 0);
   // Points on boundaries (integers), classes from the Python rules: boundaries fall where the USDA definitions put them.
   const pts = [[40, 40, 20, 'Loam'], [52, 41, 7, 'Loam'], [45, 20, 35, 'Clay loam'], [20, 53, 27, 'Silty clay loam'], [85, 15, 0, 'Loamy sand'], [70, 30, 0, 'Sandy loam'], [20, 80, 0, 'Silt'], [8, 80, 12, 'Silt loam'], [45, 28, 27, 'Clay loam'], [52, 28, 20, 'Loam'], [33, 33, 34, 'Clay loam']];
+  // Callesen et al. (2023, Front. For. Glob. Change 6, 1144845) Danish forest soils: sieve-and-settle result and our average of
+  // three laser instruments, rounded to whole %; classes worked by hand from the NRCS rules (e.g. loamy sand: silt + 1.5 clay ≥ 15
+  // and silt + 2 clay < 30). Laser results lose clay and fall into coarser classes.
+  { const L = [[25, 37, 38, 'Clay loam'], [23, 62, 16, 'Silt loam'], [60, 18, 22, 'Sandy clay loam'], [63, 28, 9, 'Sandy loam'],
+      [77, 13, 10, 'Sandy loam'], [77, 17, 5, 'Loamy sand'], [74, 11, 15, 'Sandy loam'], [79, 16, 5, 'Loamy sand']];
+    check('soil texture: laser vs sieve-and-settle samples (8 classes)', L.every(([sa, si, c, n]) => usdaClass(sa, si, c) === n)); }
   check('soil texture: 11 boundary points', pts.every(([s, si, c, n]) => usdaClass(s, si, c) === n));
   check('soil texture: label spots sit in their own class', CLASSES.every((n) => usdaClass(LABELS[n][2], LABELS[n][1], LABELS[n][0]) === n));
   // Polygon areas (in clay-silt space) add up to the whole triangle, 5000.

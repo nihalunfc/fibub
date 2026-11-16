@@ -1,0 +1,92 @@
+---
+title: "TOI-672 b: a hot super-Neptune on the Neptunian ridge round an M dwarf"
+summary: "NIRPS and HARPS weigh TOI-672 b, a 51 Earth-mass super-Neptune on a 3.6-day orbit round a red dwarf. We rebuild its mass, transit depth and transit length with fibub's tools."
+tools: [exoplanet-mass-calculator, transit-light-curve-fitter, habitable-zone-calculator]
+updated: 2026-11-16
+sources:
+  - "Osborn, A., Cloutier, R., Bourrier, V., Skinner, B., Gromek, N. et al. (2026), Confirmation of the hot super-Neptune TOI-672 b with NIRPS and HARPS: Insights into the Neptunian desert around M dwarfs, Astronomy & Astrophysics 709, A23, doi:10.1051/0004-6361/202558343. Licence CC BY 4.0, checked on the journal page, 2026-11-16. Values used here: M0 star, 3810 K, 0.54 Suns and 0.54 solar radii (empirical relations), luminosity 0.056 Suns (0.048 from the SED fit); period 3.633581 days, K = 32.0 m/s, eccentricity fixed at 0, radius 5.31 Earth radii, mass 50.9 Earth masses; TOI catalogue depth 8668 ppm and duration 1.78 hours, and an earlier impact parameter of 0.42, as quoted in the paper; ridge edge at 3.3 ± 1.4 days (FGK stars) and 2.2 ± 1.0 days (M dwarfs)."
+  - "Transit durations: Winn, J. N. (2010), Transits and occultations, eq. 14-15; star density from a/R*: Seager, S. and Mallén-Ornelas, G. (2003), ApJ 585, 1038. Both as used by the Transit light curve fitter (src/lib/sci/transit.ts)."
+paper:
+  title: "Confirmation of the hot super-Neptune TOI-672 b with NIRPS and HARPS: Insights into the Neptunian desert around M dwarfs"
+  authors: "Osborn, A.; Cloutier, R.; Bourrier, V.; Skinner, B.; Gromek, N. et al."
+  journal: "Astronomy & Astrophysics"
+  year: 2026
+  doi: "10.1051/0004-6361/202558343"
+  url: "https://www.aanda.org/articles/aa/full_html/2026/05/aa58343-25/aa58343-25.html"
+  licence: "CC BY 4.0"
+  reviewed: true
+---
+
+Planets the size of Neptune are strangely rare on orbits of a few days round Sun-like stars: astronomers call this gap the **Neptunian desert**. Starlight probably boils their gas away, or they never settle there. At its edge, around 3 to 5 days, there is a pile-up called the **Neptunian ridge**. A new study weighs TOI-672 b, a planet found by the TESS satellite round a small red star (an M0 dwarf), and asks whether the desert and ridge look the same round red dwarfs. This article shows how the [[exoplanet-mass-calculator]], the [[transit-light-curve-fitter]] and the [[habitable-zone-calculator]] let anyone rebuild its key numbers.
+
+## The paper in brief
+
+The team measured the star's wobble with **NIRPS**, an infrared spectrograph made for red stars, and HARPS. TOI-672 b orbits every **3.63 days**, is **5.3 Earth radii** across and weighs about **51 Earth masses**: a **super-Neptune**, three times Neptune's mass. That puts it right on the Neptunian ridge. Comparing many planets, the authors find the ridge's inner edge may sit slightly closer to M dwarfs (about 2.2 days) than to Sun-like stars (about 3.3 days), but within the uncertainties the two do not differ, and the shift is smaller than models of gas loss by starlight predict. No other planet shows up in the velocities or transit times.
+
+## Checked with the tools
+
+This is a **recomputation** from the paper's values, plus **simulated** transits. We assumed a circular orbit (as the paper fixes it) and an edge-on orbit for the mass (it transits).
+
+**Mass.** K = 32.0 m/s, a 3.633581-day period and a star of 0.54 Suns give **51.0 Earth masses** (paper 50.9). With 5.31 Earth radii the density is **1.87 g/cm³**, a little above Neptune's 1.64: a big rocky core under a thick gas envelope.
+
+**Orbit.** Kepler's third law puts the planet at **0.0377 au**, only **15.0 star radii** out. From that and the period, the transit maths gives a star density of **4.84 g/cm³**, the same as 0.54 Suns in a ball of 0.54 solar radii should have, so the star parameters hang together.
+
+**Depth.** A planet of 5.31 Earth radii in front of a star of 0.54 solar radii covers **(Rp/R*)² = 0.81 %** of its disc (8,127 ppm). The TOI catalogue depth quoted in the paper is 8,668 ppm, which would mean 5.48 Earth radii if read naively. The difference is **limb darkening**: a star is brighter in the middle than at its edge, so a planet crossing near the middle hides more than its share of the light. With the fitter's near-infrared limb darkening and an impact parameter of 0.42, the model dip is about **0.91 %** (Figure 1). Always fit depth with limb darkening before turning it into a radius.
+
+<!-- fig:transit -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 268" role="img" aria-label="Model transits of TOI-672 b at impact parameter 0.42: a uniform star gives 0.81 %, a limb-darkened one about 0.91 %." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>Limb darkening makes the dip deeper than (Rp/R*)² (simulated)</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">Limb darkening makes the dip deeper than (Rp/R*)² (simulated)</text><line x1="58" x2="546" y1="207.7" y2="207.7" style="stroke:var(--line)"/><text x="52" y="211.7" text-anchor="end" style="fill:var(--muted)">99</text><line x1="58" x2="546" y1="171.8" y2="171.8" style="stroke:var(--line)"/><text x="52" y="175.8" text-anchor="end" style="fill:var(--muted)">99.25</text><line x1="58" x2="546" y1="136" y2="136" style="stroke:var(--line)"/><text x="52" y="140" text-anchor="end" style="fill:var(--muted)">99.5</text><line x1="58" x2="546" y1="100.2" y2="100.2" style="stroke:var(--line)"/><text x="52" y="104.2" text-anchor="end" style="fill:var(--muted)">99.75</text><line x1="58" x2="546" y1="64.3" y2="64.3" style="stroke:var(--line)"/><text x="52" y="68.3" text-anchor="end" style="fill:var(--muted)">100</text><line x1="58" x2="58" y1="222" y2="226" style="stroke:var(--muted)"/><text x="58" y="239" text-anchor="middle" style="fill:var(--muted)">-1.5</text><line x1="139.3" x2="139.3" y1="222" y2="226" style="stroke:var(--muted)"/><text x="139.3" y="239" text-anchor="middle" style="fill:var(--muted)">-1</text><line x1="220.7" x2="220.7" y1="222" y2="226" style="stroke:var(--muted)"/><text x="220.7" y="239" text-anchor="middle" style="fill:var(--muted)">-0.5</text><line x1="302" x2="302" y1="222" y2="226" style="stroke:var(--muted)"/><text x="302" y="239" text-anchor="middle" style="fill:var(--muted)">0</text><line x1="383.3" x2="383.3" y1="222" y2="226" style="stroke:var(--muted)"/><text x="383.3" y="239" text-anchor="middle" style="fill:var(--muted)">0.5</text><line x1="464.7" x2="464.7" y1="222" y2="226" style="stroke:var(--muted)"/><text x="464.7" y="239" text-anchor="middle" style="fill:var(--muted)">1</text><line x1="546" x2="546" y1="222" y2="226" style="stroke:var(--muted)"/><text x="546" y="239" text-anchor="middle" style="fill:var(--muted)">1.5</text><line x1="58" x2="546" y1="222" y2="222" style="stroke:var(--muted)"/><text x="302" y="260" text-anchor="middle" style="fill:var(--ink)">Hours from mid-transit</text><text transform="translate(14 136) rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Brightness (%)</text><line x1="58" x2="546" y1="188.6" y2="188.6" style="stroke:var(--muted);stroke-dasharray:4 4"/><text x="542" y="183.6" text-anchor="end" style="fill:var(--muted)">TOI catalogue depth</text><path d="M58 64.3L62.1 64.3L66.1 64.3L70.2 64.3L74.3 64.3L78.3 64.3L82.4 64.3L86.5 64.3L90.5 64.3L94.6 64.3L98.7 64.3L102.7 64.3L106.8 64.3L110.9 64.3L114.9 64.3L119 64.3L123.1 64.3L127.1 64.3L131.2 64.3L135.3 64.3L139.3 64.3L143.4 64.3L147.5 64.3L151.5 65.2L155.6 73.1L159.7 85.4L163.7 100.6L167.8 117.2L171.9 134.3L175.9 150L180 162.4L184.1 167.2L188.1 171L192.2 174L196.3 176.6L200.3 178.7L204.4 180.6L208.5 182.3L212.5 183.9L216.6 185.2L220.7 186.5L224.7 187.5L228.8 188.5L232.9 189.3L236.9 190L241 190.8L245.1 191.5L249.1 192L253.2 192.5L257.3 193L261.3 193.3L265.4 193.8L269.5 194.1L273.5 194.3L277.6 194.6L281.7 194.8L285.7 194.9L289.8 195.1L293.9 195.1L297.9 195.2L302 195.2L306.1 195.2L310.1 195.1L314.2 195.1L318.3 194.9L322.3 194.8L326.4 194.6L330.5 194.3L334.5 194.1L338.6 193.8L342.7 193.3L346.7 193L350.8 192.5L354.9 192L358.9 191.5L363 190.8L367.1 190L371.1 189.3L375.2 188.5L379.3 187.5L383.3 186.5L387.4 185.2L391.5 183.9L395.5 182.3L399.6 180.6L403.7 178.7L407.7 176.6L411.8 174L415.9 171L419.9 167.2L424 162.4L428.1 150L432.1 134.3L436.2 117.2L440.3 100.6L444.3 85.4L448.4 73.1L452.5 65.2L456.5 64.3L460.6 64.3L464.7 64.3L468.7 64.3L472.8 64.3L476.9 64.3L480.9 64.3L485 64.3L489.1 64.3L493.1 64.3L497.2 64.3L501.3 64.3L505.3 64.3L509.4 64.3L513.5 64.3L517.5 64.3L521.6 64.3L525.7 64.3L529.7 64.3L533.8 64.3L537.9 64.3L541.9 64.3L546 64.3" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/><path d="M58 64.3L62.1 64.3L66.1 64.3L70.2 64.3L74.3 64.3L78.3 64.3L82.4 64.3L86.5 64.3L90.5 64.3L94.6 64.3L98.7 64.3L102.7 64.3L106.8 64.3L110.9 64.3L114.9 64.3L119 64.3L123.1 64.3L127.1 64.3L131.2 64.3L135.3 64.3L139.3 64.3L143.4 64.3L147.5 64.3L151.5 65.8L155.6 77.7L159.7 94.6L163.7 113.9L167.8 134L171.9 153.2L175.9 169.8L180 180.4L184.1 180.9L188.1 180.9L192.2 180.9L196.3 180.9L200.3 180.9L204.4 180.9L208.5 180.9L212.5 180.9L216.6 180.9L220.7 180.9L224.7 180.9L228.8 180.9L232.9 180.9L236.9 180.9L241 180.9L245.1 180.9L249.1 180.9L253.2 180.9L257.3 180.9L261.3 180.9L265.4 180.9L269.5 180.9L273.5 180.9L277.6 180.9L281.7 180.9L285.7 180.9L289.8 180.9L293.9 180.9L297.9 180.9L302 180.9L306.1 180.9L310.1 180.9L314.2 180.9L318.3 180.9L322.3 180.9L326.4 180.9L330.5 180.9L334.5 180.9L338.6 180.9L342.7 180.9L346.7 180.9L350.8 180.9L354.9 180.9L358.9 180.9L363 180.9L367.1 180.9L371.1 180.9L375.2 180.9L379.3 180.9L383.3 180.9L387.4 180.9L391.5 180.9L395.5 180.9L399.6 180.9L403.7 180.9L407.7 180.9L411.8 180.9L415.9 180.9L419.9 180.9L424 180.4L428.1 169.8L432.1 153.2L436.2 134L440.3 113.9L444.3 94.6L448.4 77.7L452.5 65.8L456.5 64.3L460.6 64.3L464.7 64.3L468.7 64.3L472.8 64.3L476.9 64.3L480.9 64.3L485 64.3L489.1 64.3L493.1 64.3L497.2 64.3L501.3 64.3L505.3 64.3L509.4 64.3L513.5 64.3L517.5 64.3L521.6 64.3L525.7 64.3L529.7 64.3L533.8 64.3L537.9 64.3L541.9 64.3L546 64.3" style="fill:none;stroke:var(--c-tools);stroke-width:2;stroke-linejoin:round;stroke-dasharray:4 3"/><line x1="58" x2="70" y1="36" y2="36" style="stroke:var(--c-blog);stroke-width:2"/><text x="74" y="40" style="fill:var(--muted)">Limb-darkened star</text><line x1="213.6" x2="225.6" y1="36" y2="36" style="stroke:var(--c-tools);stroke-width:2;stroke-dasharray:4 3"/><text x="229.6" y="40" style="fill:var(--muted)">Uniform star</text></svg><figcaption>Figure 1. Model transits of TOI-672 b from the Transit light curve fitter's maths, with the paper's radii and an impact parameter of 0.42: a uniform star and a limb-darkened one (the fitter's near-infrared/TESS setting, our assumption). Simulated, not the TESS data.</figcaption></figure>
+<!-- /fig:transit -->
+
+**Length.** A central crossing would last **2.02 hours**; at the earlier impact parameter of 0.42, **1.86 hours**; at 0.6, **1.69 hours**. The catalogue's 1.78 hours falls between, pointing to an impact parameter of about 0.5 (Figure 2): the planet crosses about halfway between the centre and the edge of the star.
+
+<!-- fig:dur -->
+<figure class="blog-figure"><svg class="blog-fig" viewBox="0 0 560 240" role="img" aria-label="The full transit lasts about 2.0 hours for a central crossing and shortens as the planet crosses nearer the edge of the star." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font:13px system-ui,sans-serif"><title>Transit length against impact parameter</title><text x="58" y="18" style="fill:var(--ink);font-weight:600;font-size:14px">Transit length against impact parameter</text><line x1="58" x2="546" y1="170.9" y2="170.9" style="stroke:var(--line)"/><text x="52" y="174.9" text-anchor="end" style="fill:var(--muted)">1</text><line x1="58" x2="546" y1="113" y2="113" style="stroke:var(--line)"/><text x="52" y="117" text-anchor="end" style="fill:var(--muted)">1.5</text><line x1="58" x2="546" y1="55.1" y2="55.1" style="stroke:var(--line)"/><text x="52" y="59.1" text-anchor="end" style="fill:var(--muted)">2</text><line x1="58" x2="58" y1="194" y2="198" style="stroke:var(--muted)"/><text x="58" y="211" text-anchor="middle" style="fill:var(--muted)">0</text><line x1="166.4" x2="166.4" y1="194" y2="198" style="stroke:var(--muted)"/><text x="166.4" y="211" text-anchor="middle" style="fill:var(--muted)">0.2</text><line x1="274.9" x2="274.9" y1="194" y2="198" style="stroke:var(--muted)"/><text x="274.9" y="211" text-anchor="middle" style="fill:var(--muted)">0.4</text><line x1="383.3" x2="383.3" y1="194" y2="198" style="stroke:var(--muted)"/><text x="383.3" y="211" text-anchor="middle" style="fill:var(--muted)">0.6</text><line x1="491.8" x2="491.8" y1="194" y2="198" style="stroke:var(--muted)"/><text x="491.8" y="211" text-anchor="middle" style="fill:var(--muted)">0.8</text><line x1="58" x2="546" y1="194" y2="194" style="stroke:var(--muted)"/><text x="302" y="232" text-anchor="middle" style="fill:var(--ink)">Impact parameter b</text><text transform="translate(14 113) rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Duration (hours)</text><line x1="58" x2="546" y1="80.6" y2="80.6" style="stroke:var(--muted);stroke-dasharray:4 4"/><text x="542" y="75.6" text-anchor="end" style="fill:var(--muted)">1.78 h (TOI catalogue)</text><path d="M58 52.9L68.8 52.9L79.7 53.1L90.5 53.3L101.4 53.5L112.2 53.9L123.1 54.3L133.9 54.9L144.8 55.5L155.6 56.2L166.4 56.9L177.3 57.7L188.1 58.6L199 59.7L209.8 60.7L220.7 62L231.5 63.2L242.4 64.5L253.2 66L264 67.5L274.9 69.1L285.7 70.9L296.6 72.7L307.4 74.7L318.3 76.8L329.1 78.9L340 81.2L350.8 83.5L361.6 86L372.5 88.7L383.3 91.4L394.2 94.3L405 97.3L415.9 100.5L426.7 103.9L437.6 107.3L448.4 111L459.2 114.9L470.1 118.9L480.9 123.2L491.8 127.7L502.6 132.4L513.5 137.5L524.3 142.9L535.2 148.5L546 154.5" style="fill:none;stroke:var(--c-blog);stroke-width:2;stroke-linejoin:round"/></svg><figcaption>Figure 2. First-to-fourth-contact duration from the fitter's duration formula (Winn 2010) for the paper's period, radii and a/R* from Kepler's law, against the TOI catalogue's 1.78 hours.</figcaption></figure>
+<!-- /fig:dur -->
+
+**Starlight.** With 0.056 solar luminosities at 0.0377 au, the planet gets **39.5 times** Earth's sunlight (33.8 with the SED luminosity of 0.048). Its equilibrium temperature is about **698 K** with no reflection, 638 K with albedo 0.3: hot, but cooler than desert-edge Neptunes round Sun-like stars, which is why M dwarfs are a test of the gas-loss explanation.
+
+| Check | Paper | Tool result |
+|---|---|---|
+| Mass from K = 32.0 m/s | 50.9 Earth masses | 51.0 Earth masses |
+| Density | (from mass and radius) | 1.87 g/cm³ |
+| Depth (Rp/R*)² | 8,668 ppm (TOI catalogue) | 8,127 ppm uniform; about 9,130 ppm limb-darkened at b = 0.42 |
+| Duration | 1.78 h (TOI catalogue) | 2.02 h at b = 0, 1.86 h at b = 0.42, 1.69 h at b = 0.6 |
+| Star density from a/R* | (0.54 Suns, 0.54 solar radii) | 4.84 g/cm³ both ways |
+
+## How we made the graphs
+
+Both charts and every number above come from `scripts/blog-figures/toi-672b-hot-super-neptune-m-dwarf-nirps-neptunian-ridge.mjs`. It calls:
+
+- `minMass`, `semiMajor`, `density` and `radiusFromDepth` from `src/lib/sci/rvmass.ts` (the [[exoplanet-mass-calculator]]);
+- `fluxAt`, `durations` and `stellarDensity` from `src/lib/sci/transit.ts` (the [[transit-light-curve-fitter]]);
+- `insolation` and `tEq` from `src/lib/sci/habitable.ts` (the [[habitable-zone-calculator]]).
+
+The star and planet values, the catalogue depth and duration and the 0.42 impact parameter are as quoted in the paper. The limb darkening (0.25 and 0.30, the fitter's "Near infrared or TESS band" setting), the albedos and the sin i = 1 are our assumptions. The figures are **simulated** transits, not the TESS light curve.
+
+## How we test the maths
+
+Every change to fibub runs `tests/sci.mjs`, which pins these functions to published results:
+
+- 51 Pegasi b's minimum mass must be **0.477 Jupiter masses** from its 55.94 m/s wobble (Mayor and Queloz 1995).
+- HD 209458 b's transit must last **3.07 hours** from the duration formula (Winn 2010), and a planet one tenth the star's size at the centre of a uniform star must block exactly **1 %** of the light.
+- A 1.05 % depth on a Sun-sized star must give **1.0 Jupiter radii**.
+
+## Check it yourself
+
+**The mass, on the [[exoplanet-mass-calculator]]:**
+
+1. Keep **Mass from the wobble**.
+2. Type **Star mass (Suns)** 0.54, **Orbital period (days)** 3.633581, **Eccentricity** 0 and **Velocity semi-amplitude K (m/s)** 32.
+3. The mass reads at least **0.161 Jupiter masses (51 Earths)**, and **Planet orbit** about **0.0377 AU**.
+4. Type **Transit depth (%)** 0.8127 and **Star radius (Suns)** 0.54: **Planet radius** reads **5.31 Earth radii** and **Density** about **1.87 g/cm³**. Type 0.8668 instead and the radius jumps to 5.48 Earth radii, the limb-darkening trap above.
+
+**The temperature, on the [[habitable-zone-calculator]]:** type **Temperature (K)** 3810, **Luminosity (Suns)** 0.056 and **Mass (Suns)** 0.54, then 3.633581 in **or orbital period (days)** and **Albedo (0 to 1)** 0. **Starlight at the planet** reads about **39.5 times Earth's** and the **Equilibrium temperature** about **698 K**.
+
+**The transit:** on the [[transit-light-curve-fitter]], pick **Near infrared or TESS band** under **Limb darkening** and type 0.54 in **Star's radius, if known (R☉)** before fitting a TESS light curve of the star; a good fit should land near a depth of 0.9 % and a length of 1.8 hours.
+
+## What researchers can use it for
+
+- **Checking mass tables:** the [[exoplanet-mass-calculator]] turns K, period and star mass into a mass and density in seconds.
+- **Catching the limb-darkening trap:** the [[transit-light-curve-fitter]] models how much deeper a real dip is than (Rp/R*)², and what impact parameter a given duration implies.
+- **Testing star parameters:** the star density from a/R* and the period is a quick consistency check on an adopted mass and radius.
+- **Placing planets on the desert map:** starlight and equilibrium temperature from the [[habitable-zone-calculator]] let you compare planets round different kinds of star on the same footing.

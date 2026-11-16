@@ -1,0 +1,118 @@
+---
+// #T998 Gold allowance: customs duty on gold jewellery a passenger brings into India, with the duty-free allowance and editable rates.
+---
+<div class="tool-ui ga">
+  <section class="panel">
+    <h2>Your jewellery</h2>
+    <div class="ga-grid">
+      <label>Weight <span class="ga-suf"><input data-k="grams" inputmode="decimal" /><i>grams</i></span></label>
+      <label>Purity <select data-k="karat"><option value="24">24K (99.9%)</option><option value="22" selected>22K (91.6%)</option><option value="18">18K (75%)</option></select></label>
+      <label>Price abroad per gram of 24K <span class="ga-suf"><input data-k="price" inputmode="decimal" /><i>₹</i></span></label>
+      <label>Shop price in India per gram of 24K <span class="ga-suf"><input data-k="india" inputmode="decimal" /><i>₹</i></span></label>
+    </div>
+    <p class="ga-help">Type today's prices in rupees. The tool scales them to the purity you picked (22K is 22/24 of the 24K price).</p>
+  </section>
+  <section class="panel">
+    <h2>You, the passenger</h2>
+    <div class="ga-grid">
+      <label>Passenger <select data-k="sex"><option value="f">Female passenger (40 g allowance)</option><option value="m">Any other passenger (20 g allowance)</option></select></label>
+      <label>Time abroad before this trip <span class="ga-suf"><input data-k="months" inputmode="decimal" /><i>months</i></span></label>
+      <label>Indian passport or Indian origin <select data-k="origin"><option value="y">Yes</option><option value="n">No</option></select></label>
+    </div>
+    <details class="ga-more">
+      <summary>Duty rates (change if the rules change)</summary>
+      <div class="ga-grid">
+        <label>Eligible-passenger duty (customs duty + cess) <span class="ga-suf"><input data-k="erate" inputmode="decimal" /><i>%</i></span></label>
+        <label>IGST on the eligible-passenger route <span class="ga-suf"><input data-k="igst" inputmode="decimal" /><i>%</i></span></label>
+        <label>Normal baggage rate (all-in) <span class="ga-suf"><input data-k="brate" inputmode="decimal" /><i>%</i></span></label>
+      </div>
+      <p class="ga-help">Defaults are the last known values, checked 2026-11-16. Rates change by notification: check the official source (cbic.gov.in) before you travel.</p>
+    </details>
+    <p class="note bad ga-err" role="alert" hidden></p>
+  </section>
+  <section class="ga-res" aria-live="polite">
+    <p class="ga-line ga-lead"></p>
+    <div class="ga-stats">
+      <div class="good"><span>Duty-free</span><b class="ga-s-free"></b></div>
+      <div><span>Dutiable value</span><b class="ga-s-dut"></b></div>
+      <div><span>Duty to pay</span><b class="ga-s-duty"></b></div>
+      <div><span>Landed cost per gram</span><b class="ga-s-pg"></b></div>
+    </div>
+    <div class="panel ga-wrap"><table><tbody class="ga-body"></tbody></table></div>
+    <p class="ga-line ga-gap"></p>
+    <p class="ga-line ga-route"></p>
+  </section>
+  <p class="ga-fine">Estimate, not legal or tax advice. Rules: Baggage Rules, 2026, Rule 6 (notification 14/2026-Customs (N.T.), in force 2 February 2026): jewellery up to 40 g for a female passenger and 20 g for any other passenger, duty-free, for a resident or tourist of Indian origin who has lived abroad for more than one year; no value cap. Eligible passenger: Indian passport or Indian origin, back after at least 6 months abroad, duty paid in foreign currency, up to 1 kg (notification 45/2025-Customs as amended). Customs may value gold at the notified tariff value rather than your receipt. Checked 2026-11-16; check the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ga { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ga > *, .ga-res > * { min-width: 0; }
+  .ga h2 { margin: 0 0 12px; font-size: 18px; }
+  .ga .panel { padding: 16px; }
+  .ga-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ga label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ga input, .ga select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ga input:focus, .ga select:focus { border-color: var(--accent); outline: none; }
+  .ga-suf { position: relative; display: block; }
+  .ga-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ga-suf input { padding-right: 64px; }
+  .ga-help { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .ga-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ga-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ga-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ga-stats span { font-size: 13px; color: var(--muted); }
+  .ga-stats b { font-size: clamp(16px, 3.2vw, 22px); overflow-wrap: anywhere; }
+  .ga-stats .good b { color: var(--good); }
+  .ga-line { margin: 0; font-size: 15px; }
+  .ga-line:empty { display: none; }
+  .ga-wrap { overflow-x: auto; }
+  .ga table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ga td { padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .ga td:last-child { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ga-more { margin-top: 12px; }
+  .ga-more summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+  .ga-route { color: var(--muted); font-size: 13px; }
+  .ga-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .ga-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .ga-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { goldDuty } from '../../lib/money/gold-allowance';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const D: Record<string, string> = { grams: '50', price: '12000', india: '13500', months: '18', erate: '15', igst: '3', brate: '38.5' };
+  for (const k in D) f(k).value = D[k];
+  const r = (n: number, d = 0) => money(n, 'INR', d);
+  function run() {
+    const grams = num(f('grams').value), price24 = num(f('price').value), months = num(f('months').value);
+    const bad = !(grams > 0) ? 'Enter the weight of the jewellery in grams.' : !(price24 > 0) ? 'Enter the price abroad per gram of 24K gold, in rupees.' : months < 0 ? 'Time abroad cannot be negative.' : '';
+    q('.ga-err').hidden = !bad; q('.ga-err').textContent = bad; q('.ga-res').hidden = !!bad;
+    if (bad) return;
+    const res = goldDuty({ grams, karat: +f('karat').value, price24, female: f('sex').value === 'f', monthsAbroad: months, indianOrigin: f('origin').value === 'y', eligibleRate: num(f('erate').value), igst: num(f('igst').value), baggageRate: num(f('brate').value), india24: num(f('india').value) });
+    q('.ga-s-free').textContent = `${res.freeGrams.toLocaleString('en')} g`;
+    q('.ga-s-dut').textContent = r(res.dutiable);
+    q('.ga-s-duty').textContent = r(res.total);
+    q('.ga-s-pg').textContent = r(res.landedPerGram, 2);
+    q('.ga-lead').innerHTML = res.total > 0 ? `About <b>${r(res.total)}</b> duty on ${res.extraGrams.toLocaleString('en')} g over the allowance.` : `No duty: all ${grams.toLocaleString('en')} g fit in the duty-free allowance.`;
+    const rows: [string, string][] = [
+      ['Value per gram at this purity', r(res.perGram, 2)],
+      ['Value of all the jewellery', r(res.value)],
+      ['Duty-free weight', `${res.freeGrams.toLocaleString('en')} g`],
+      ['Weight over the allowance', `${res.extraGrams.toLocaleString('en')} g`],
+      ['Dutiable value', r(res.dutiable)],
+      [res.eligible ? `Customs duty + cess at ${num(f('erate').value)}%` : `Baggage duty at ${num(f('brate').value)}%`, r(res.duty)],
+    ];
+    if (res.eligible) rows.push([`IGST at ${num(f('igst').value)}% on value + duty`, r(res.igst)]);
+    rows.push(['Total to pay at customs', r(res.total)], ['Landed cost (value + duty)', r(res.landed)]);
+    q('.ga-body').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+    q('.ga-gap').textContent = res.india > 0 ? (res.gap >= 0 ? `Buying the same weight and purity in India would cost about ${r(res.india)}, so bringing it saves about ${r(res.gap)} (before making charges).` : `Buying the same weight and purity in India would cost about ${r(res.india)}, so bringing it costs about ${r(-res.gap)} more.`) : '';
+    const why = res.freeGrams === 0 && grams > 0 ? (f('origin').value !== 'y' ? 'The allowance is for passengers of Indian origin or with an Indian passport. ' : 'The allowance needs more than one year abroad. ') : '';
+    q('.ga-route').textContent = why + (res.eligible ? 'Eligible-passenger route: at least 6 months abroad; pay the duty in foreign currency and declare it in the red channel.' : 'Normal baggage rate: the eligible-passenger route needs an Indian passport or Indian origin and at least 6 months abroad.') + (res.overKg ? ' The eligible-passenger route is limited to 1 kg.' : '');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

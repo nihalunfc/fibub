@@ -14,6 +14,7 @@ works: offline
 updated: 2026-11-10
 related: [metadata-cleaner, compress-file, compare-documents]
 sources:
+  - "Email attachment limits offered as presets (Gmail 25 MB, Outlook.com and Microsoft 365 20 MB by default) come from the providers' help pages, checked 2026-11-16. Limits change and organisations set their own: check the official source."
   - "Office files are ZIP packages of XML read with fflate; PDFs are read with pdf-lib. Both are open source. Nothing is sent anywhere."
 flow:
   - { icon: file, label: "Add file" }
@@ -30,7 +31,7 @@ Each line is red (fix it), amber (check it) or green (fine). Clear names and com
 ## How to use it
 
 1. Add your file. The report appears at once.
-2. Optionally type a size limit, such as 10 MB for an email or a portal. The size line turns red when the file is over it.
+2. Optionally type a size limit, such as 10 MB for an email or a portal. The size line turns red when the file is over it. Or pick a common limit from the list (Gmail 25 MB, Outlook 20 MB, or a 10, 5 or 2 MB portal limit); providers change these, so check the official source for yours.
 3. Work through the red and amber lines in your own editor, then check the file again.
 
 ## What it looks for

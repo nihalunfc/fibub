@@ -71,3 +71,38 @@ export function findIngredient(text: string): Ingredient | undefined {
   for (const ing of INGREDIENTS) for (const k of ing.k) if (k.length > len && new RegExp(`\\b${k.replace(/[-]/g, '\\-')}`).test(t)) { best = ing; len = k.length; }
   return best;
 }
+
+const UFRAC: Record<string, number> = { '½': 1 / 2, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 1 / 4, '¾': 3 / 4, '⅛': 1 / 8, '⅜': 3 / 8, '⅝': 5 / 8, '⅞': 7 / 8 };
+
+/** Read a typed amount: "1.5", "1,5", "1/2", "1 1/2", "1½", "½". Returns NaN when it cannot be read. */
+export function parseAmount(raw: string): number {
+  const s = raw.trim().replace(/\s+/g, ' ');
+  if (s === '') return NaN;
+  let m = s.match(/^(\d+)\s*([½⅓⅔¼¾⅛⅜⅝⅞])$/); if (m) return +m[1] + UFRAC[m[2]];
+  if (UFRAC[s] !== undefined) return UFRAC[s];
+  m = s.match(/^(\d+) (\d+)\/(\d+)$/); if (m) return +m[3] === 0 ? NaN : +m[1] + +m[2] / +m[3];
+  m = s.match(/^(\d+)\/(\d+)$/); if (m) return +m[2] === 0 ? NaN : +m[1] / +m[2];
+  return /^-?(\d*[.,]?\d+|\d+[.,])$/.test(s) ? +s.replace(',', '.') : NaN;
+}
+
+/** Typical recipe measures for the "common measures" table: [label, unit, amount]. */
+export const COMMON: [string, string, number][] = [
+  ['1/4 cup', 'cup', 0.25], ['1/3 cup', 'cup', 1 / 3], ['1/2 cup', 'cup', 0.5], ['2/3 cup', 'cup', 2 / 3], ['3/4 cup', 'cup', 0.75], ['1 cup', 'cup', 1],
+  ['1 tbsp', 'tbsp', 1], ['1 tsp', 'tsp', 1],
+];
+
+/** Grams and ounces of one ingredient for each common measure. `cup` is the cup unit key (uscup, metcup or ukcup). */
+export function commonTable(ing: Ingredient, cup = 'uscup'): { label: string; g: number; oz: number }[] {
+  return COMMON.map(([label, u, a]) => {
+    const g = convert(a, u === 'cup' ? cup : u, 'g', ing);
+    return { label: u === 'cup' && cup !== 'uscup' ? label.replace('cup', cup === 'metcup' ? 'metric cup' : 'UK cup') : label, g, oz: g / G.oz };
+  });
+}
+
+/** The first ingredient whose name or keywords start with or contain the typed words, or undefined. */
+export function searchIngredient(q: string): Ingredient | undefined {
+  const t = q.toLowerCase().trim();
+  if (!t) return undefined;
+  return INGREDIENTS.find((i) => i.name.toLowerCase().startsWith(t)) || INGREDIENTS.find((i) => i.k.some((k) => k.startsWith(t))) ||
+    INGREDIENTS.find((i) => i.name.toLowerCase().includes(t) || i.k.some((k) => k.includes(t)));
+}

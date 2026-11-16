@@ -6,38 +6,70 @@
     <button type="button" role="tab" data-m="age" aria-selected="true">Age</button>
     <button type="button" role="tab" data-m="between" aria-selected="false">Days between</button>
     <button type="button" role="tab" data-m="add" aria-selected="false">Add or subtract</button>
+    <button type="button" role="tab" data-m="count" aria-selected="false">Countdown</button>
   </div>
   <section class="panel dc-p" data-p="age">
     <div class="dc-grid">
-      <label>Date of birth <input class="dc-born" type="date" value="1990-05-15" /></label>
-      <label>Age on <input class="dc-on" type="date" /></label>
+      <label>Date of birth <input class="dc-born" data-k="born" type="date" value="1990-05-15" /></label>
+      <label>Age on <input class="dc-on" data-k="on" type="date" /></label>
     </div>
     <p class="dc-big dc-age-big" aria-live="polite"></p>
     <p class="dc-say dc-age-say" aria-live="polite"></p>
   </section>
   <section class="panel dc-p" data-p="between" hidden>
     <div class="dc-grid">
-      <label>From <input class="dc-from" type="date" value="2026-01-01" /></label>
-      <label>To <input class="dc-to" type="date" value="2026-12-31" /></label>
+      <label>From <input class="dc-from" data-k="from" type="date" value="2026-01-01" /></label>
+      <label>To <input class="dc-to" data-k="to" type="date" value="2026-12-31" /></label>
     </div>
-    <label class="dc-chk"><input class="dc-incl" type="checkbox" /> Count the end day too</label>
+    <label class="dc-chk"><input class="dc-incl" data-k="incl" type="checkbox" /> Count the end day too</label>
     <p class="dc-big dc-btw-big" aria-live="polite"></p>
     <p class="dc-say dc-btw-say" aria-live="polite"></p>
+    <p class="dc-more dc-btw-more" aria-live="polite"></p>
+    <p class="dc-more dc-btw-biz" aria-live="polite"></p>
+    <ul class="dc-hol dc-btw-hol"></ul>
   </section>
   <section class="panel dc-p" data-p="add" hidden>
     <div class="dc-grid">
-      <label>Start date <input class="dc-start" type="date" value="2026-01-31" /></label>
+      <label>Start date <input class="dc-start" data-k="start" type="date" value="2026-01-31" /></label>
       <label>Add or subtract
-        <select class="dc-op"><option value="1">Add</option><option value="-1">Subtract</option></select>
+        <select class="dc-op" data-k="op"><option value="1">Add</option><option value="-1">Subtract</option></select>
       </label>
-      <label>How many <input class="dc-n" type="number" inputmode="numeric" min="0" step="1" value="1" /></label>
+      <label>How many <input class="dc-n" data-k="n" type="number" inputmode="numeric" min="0" step="1" value="1" /></label>
       <label>Unit
-        <select class="dc-unit"><option value="d">Days</option><option value="w">Weeks</option><option value="m" selected>Months</option><option value="y">Years</option></select>
+        <select class="dc-unit" data-k="unit"><option value="d">Days</option><option value="b">Business days</option><option value="w">Weeks</option><option value="m" selected>Months</option><option value="y">Years</option></select>
       </label>
     </div>
     <p class="dc-big dc-add-big" aria-live="polite"></p>
     <p class="dc-say dc-add-say" aria-live="polite"></p>
+    <ul class="dc-hol dc-add-hol"></ul>
   </section>
+  <section class="panel dc-p" data-p="count" hidden>
+    <div class="dc-grid">
+      <label>Counting down to <input class="dc-target" data-k="target" type="date" /></label>
+      <label>From <input class="dc-cfrom" data-k="cfrom" type="date" /></label>
+    </div>
+    <div class="dc-chips" role="group" aria-label="Quick dates">
+      <button type="button" data-q="ny">New Year's Day</button><button type="button" data-q="xmas">Christmas Day</button><button type="button" data-q="end">End of this year</button>
+    </div>
+    <p class="dc-big dc-cd-big" aria-live="polite"></p>
+    <p class="dc-say dc-cd-say" aria-live="polite"></p>
+  </section>
+  <details class="panel dc-opts">
+    <summary>Business days and holidays (weekend days, region, your own days off)</summary>
+    <div class="dc-grid">
+      <label>Weekend
+        <select class="dc-wk" data-k="wk"><option value="satsun">Saturday and Sunday</option><option value="frisat">Friday and Saturday</option><option value="sun">Sunday only</option></select>
+      </label>
+      <label>Public holidays to skip
+        <select class="dc-region" data-k="region"><option value="none">None</option><option value="us">United States (federal)</option><option value="ca">Canada (federal)</option><option value="uk">United Kingdom (England and Wales)</option><option value="in">India (3 fixed national days)</option></select>
+      </label>
+    </div>
+    <label class="dc-chk-l">Your own days off (dates like 2026-12-24, one per line or separated by commas)
+      <textarea class="dc-hol-in" data-nokit spellcheck="false" placeholder="2026-12-24"></textarea>
+    </label>
+    <p class="dc-small dc-hol-note"></p>
+    <p class="dc-small">Holidays follow each region's public rules for the year (for example, a US holiday on a Saturday is observed on the Friday). Regional, religious and one-off days vary, so add yours above and check the official source: US OPM, Canada.ca, GOV.UK, India's national holiday list.</p>
+  </details>
   <div class="dc-row">
     <button type="button" class="dc-reset">Reset</button>
     <p class="dc-fine">Dates are calendar days in the Gregorian calendar. Nothing you type leaves this page.</p>
@@ -59,28 +91,26 @@
   .dc-say { margin: 0; color: var(--muted); font-size: 15px; }
   .dc-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   .dc-fine { color: var(--muted); font-size: 13px; margin: 0; flex: 1 1 200px; }
+  .dc textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; min-height: 64px; resize: vertical; }
+  .dc textarea:focus { border-color: var(--accent); outline: none; }
+  .dc-opts { padding: 16px; }
+  .dc label.dc-chk-l { margin-top: 12px; }
+  .dc-opts summary { cursor: pointer; font-size: 14px; }
+  .dc-opts .dc-grid { margin-top: 12px; }
+  .dc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .dc-chips button { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .dc-more { margin: 6px 0 0; font-size: 15px; }
+  .dc-small { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .dc-hol { margin: 6px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
 </style>
 
 <script>
+  import { DAY, parse, iso, dow, dim, utc, addMonths, ymd, holidays, parseDates, makeCal, businessBetween, addBusiness, holidaysIn, WEEKENDS, type Region, type Weekend } from '../../lib/everyday/datecalc';
   const root = document.querySelector('.dc') as HTMLElement;
   const q = <T extends HTMLElement = HTMLInputElement>(s: string) => root.querySelector(s) as T;
-  const DAY = 86400000;
-  // Dates are whole days held as UTC midnight, so clock changes never shift a day.
-  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
-  const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
   const long = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   const nf = (n: number) => n.toLocaleString('en-US');
   const pl = (n: number, w: string) => `${nf(n)} ${w}${n === 1 ? '' : 's'}`;
-  const dim = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-  // Add months, keeping the day but moving to the month's last day when it is shorter (31 Jan + 1 month = 28 Feb).
-  const addMonths = (t: number, k: number) => { const d = new Date(t); const y = d.getUTCFullYear(), m = d.getUTCMonth() + k; const ty = y + Math.floor(m / 12), tm = ((m % 12) + 12) % 12; return Date.UTC(ty, tm, Math.min(d.getUTCDate(), dim(ty, tm))); };
-  // Whole years, months and days from a to b (a <= b).
-  const ymd = (a: number, b: number) => {
-    const da = new Date(a), db = new Date(b);
-    let months = (db.getUTCFullYear() - da.getUTCFullYear()) * 12 + db.getUTCMonth() - da.getUTCMonth();
-    if (addMonths(a, months) > b) months--;
-    return { y: Math.floor(months / 12), m: months % 12, d: Math.round((b - addMonths(a, months)) / DAY) };
-  };
   const ymdText = (r: { y: number; m: number; d: number }) => `${pl(r.y, 'year')}, ${pl(r.m, 'month')}, ${pl(r.d, 'day')}`;
   // Mon to Fri in [a, b).
   const weekdays = (a: number, b: number) => {
@@ -89,6 +119,22 @@
     return c;
   };
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // Shared business-day settings
+  const region = () => q<HTMLSelectElement>('.dc-region').value as Region;
+  const weekend = () => q<HTMLSelectElement>('.dc-wk').value as Weekend;
+  const custom = () => parseDates(q('.dc-hol-in').value);
+  const cal = (a: number, b: number) => makeCal(region(), weekend(), custom().ok, a, b);
+  const usingCal = () => region() !== 'none' || custom().ok.size > 0;
+  const names = (a: number, b: number) => { const m = new Map<string, string>(); for (let y = new Date(Math.min(a, b)).getUTCFullYear(); y <= new Date(Math.max(a, b)).getUTCFullYear(); y++) for (const [k, v] of holidays(region(), y)) m.set(k, v); return m; };
+  const listHol = (ul: HTMLElement, a: number, b: number) => {
+    ul.innerHTML = '';
+    for (const h of holidaysIn(Math.min(a, b), Math.max(a, b), cal(a, b), names(a, b)).slice(0, 12)) { const li = document.createElement('li'); li.textContent = `${long(parse(h.iso))}: ${h.name}`; ul.append(li); }
+  };
+  const holNote = () => {
+    const c = custom(), el = q<HTMLElement>('.dc-hol-note');
+    el.textContent = c.bad.length ? `Could not read: ${c.bad.slice(0, 3).join(', ')}. Use year-month-day, like 2026-12-24.` : c.ok.size ? `${pl(c.ok.size, 'own day')} off counted.` : '';
+  };
 
   const age = () => {
     const b = parse(q('.dc-born').value), on = parse(q('.dc-on').value);
@@ -107,44 +153,86 @@
   };
   const between = () => {
     let a = parse(q('.dc-from').value), b = parse(q('.dc-to').value);
-    const big = q<HTMLElement>('.dc-btw-big'), say = q<HTMLElement>('.dc-btw-say');
-    big.dataset.days = '';
+    const big = q<HTMLElement>('.dc-btw-big'), say = q<HTMLElement>('.dc-btw-say'), more = q<HTMLElement>('.dc-btw-more'), biz = q<HTMLElement>('.dc-btw-biz'), hol = q<HTMLElement>('.dc-btw-hol');
+    big.dataset.days = ''; more.textContent = ''; biz.textContent = ''; hol.innerHTML = '';
     if (!Number.isFinite(a) || !Number.isFinite(b)) { big.textContent = ''; say.textContent = 'Pick both dates.'; return; }
     const swapped = b < a; if (swapped) [a, b] = [b, a];
     const incl = q('.dc-incl').checked, end = incl ? b + DAY : b;
     const days = Math.round((end - a) / DAY), wd = weekdays(a, end);
     big.textContent = pl(days, 'day'); big.dataset.days = String(days); say.dataset.wd = String(wd);
+    const r = ymd(a, end);
     say.textContent = (swapped ? 'The dates were the other way round, so they are swapped. ' : '') +
-      `${pl(Math.floor(days / 7), 'week')} and ${pl(days % 7, 'day')}, or ${ymdText(ymd(a, end))}. ` +
-      `Weekdays (Monday to Friday): ${nf(wd)}. Public holidays are not taken off. ` +
+      `${pl(Math.floor(days / 7), 'week')} and ${pl(days % 7, 'day')}, or ${ymdText(r)}. ` +
+      `Weekdays (Monday to Friday): ${nf(wd)}. ` + (usingCal() || weekend() !== 'satsun' ? '' : 'Public holidays are not taken off. ') +
       (incl ? 'Both the first and the last day are counted.' : 'The first day is counted, the last day is not (tick the box to count it).');
+    more.textContent = `In other units: ${pl(r.totalMonths, 'month')} and ${pl(r.d, 'day')} in all, ${pl(days * 24, 'hour')}, ${pl(days * 1440, 'minute')} (whole calendar days; clock changes ignored).`;
+    if (usingCal() || weekend() !== 'satsun') {
+      const c = cal(a, end), bd = businessBetween(a, end, c);
+      biz.dataset.bd = Number.isFinite(bd) ? String(bd) : '';
+      biz.textContent = Number.isFinite(bd) ? `Business days (your weekend and holidays taken off): ${nf(bd)}.` : 'That range is too long to count business days.';
+      listHol(hol, a, end - DAY);
+    }
   };
   const add = () => {
     const s = parse(q('.dc-start').value), n = Math.trunc(+q('.dc-n').value), sign = +q<HTMLSelectElement>('.dc-op').value, u = q<HTMLSelectElement>('.dc-unit').value;
-    const big = q<HTMLElement>('.dc-add-big'), say = q<HTMLElement>('.dc-add-say');
-    big.dataset.iso = '';
+    const big = q<HTMLElement>('.dc-add-big'), say = q<HTMLElement>('.dc-add-say'), hol = q<HTMLElement>('.dc-add-hol');
+    big.dataset.iso = ''; hol.innerHTML = '';
     if (!Number.isFinite(s) || q('.dc-n').value.trim() === '' || !Number.isFinite(n) || n < 0) { big.textContent = ''; say.textContent = 'Pick a start date and type a whole number.'; return; }
     const k = sign * n;
-    const t = u === 'd' ? s + k * DAY : u === 'w' ? s + k * 7 * DAY : addMonths(s, u === 'm' ? k : k * 12);
+    let t: number;
+    if (u === 'b') {
+      if (n > 20000) { big.textContent = ''; say.textContent = 'That is too many business days: try 20,000 or fewer.'; return; }
+      t = addBusiness(s, k, cal(s - 3650 * DAY - n * 2 * DAY, s + 3650 * DAY + n * 2 * DAY));
+      if (!Number.isFinite(t)) { big.textContent = ''; say.textContent = 'Every day of the week is a weekend here, so there is no business day to land on.'; return; }
+    } else t = u === 'd' ? s + k * DAY : u === 'w' ? s + k * 7 * DAY : addMonths(s, u === 'm' ? k : k * 12);
     if (!Number.isFinite(t) || Math.abs(t) > 8.64e15) { big.textContent = ''; say.textContent = 'That is too far away to show.'; return; }
     big.textContent = long(t); big.dataset.iso = iso(t);
     const clamped = (u === 'm' || u === 'y') && new Date(t).getUTCDate() !== new Date(s).getUTCDate();
-    say.textContent = `${long(s)} ${sign > 0 ? 'plus' : 'minus'} ${pl(n, { d: 'day', w: 'week', m: 'month', y: 'year' }[u]!)} is ${iso(t)}.` +
-      (clamped ? ' That month is shorter, so the answer moves back to its last day.' : '');
+    const unitName = { d: 'day', b: 'business day', w: 'week', m: 'month', y: 'year' }[u]!;
+    say.textContent = `${long(s)} ${sign > 0 ? 'plus' : 'minus'} ${pl(n, unitName)} is ${iso(t)}.` +
+      (clamped ? ' That month is shorter, so the answer moves back to its last day.' : '') +
+      (u === 'b' ? ` The start day is not counted; weekends${usingCal() ? ' and your holidays' : ''} are skipped.` : '');
+    if (u === 'b' && usingCal()) listHol(hol, Math.min(s, t), Math.max(s, t));
   };
-  const all = () => { age(); between(); add(); };
+  const countdown = () => {
+    const big = q<HTMLElement>('.dc-cd-big'), say = q<HTMLElement>('.dc-cd-say');
+    big.dataset.days = '';
+    const a = parse(q('.dc-cfrom').value), b = parse(q('.dc-target').value);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) { big.textContent = ''; say.textContent = 'Pick the date you are counting down to.'; return; }
+    const days = Math.round((b - a) / DAY);
+    big.dataset.days = String(days);
+    if (days === 0) { big.textContent = 'That is the same day'; say.textContent = long(b) + '.'; return; }
+    const lo = Math.min(a, b), hi = Math.max(a, b), r = ymd(lo, hi), ad = Math.abs(days);
+    big.textContent = days > 0 ? `${pl(days, 'day')} to go` : `${pl(ad, 'day')} ago`;
+    const bd = businessBetween(lo, hi, cal(lo, hi));
+    say.textContent = `${long(b)}. That is ${pl(Math.floor(ad / 7), 'week')} and ${pl(ad % 7, 'day')}, or ${ymdText(r)}. ` +
+      (Number.isFinite(bd) ? `Business days between: ${nf(bd)}${usingCal() || weekend() !== 'satsun' ? ' (with your weekend and holidays)' : ' (Monday to Friday)'}. ` : '') +
+      (days > 0 ? `${pl(days, 'sleep')} to go.` : '');
+  };
+  const all = () => { holNote(); age(); between(); add(); countdown(); };
   const show = (m: string) => {
     root.querySelectorAll('.dc-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
     root.querySelectorAll<HTMLElement>('.dc-p').forEach((p) => { p.hidden = p.dataset.p !== m; });
   };
   root.querySelectorAll('.dc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
-  root.querySelectorAll('input, select').forEach((el) => { el.addEventListener('input', all); el.addEventListener('change', all); });
+  root.querySelectorAll('input, select, textarea').forEach((el) => { el.addEventListener('input', all); el.addEventListener('change', all); });
+  // Quick dates for the countdown: the next one that has not passed (or this year's end).
+  root.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => {
+    const from = parse(q('.dc-cfrom').value), y = new Date(Number.isFinite(from) ? from : Date.now()).getUTCFullYear();
+    const w = (b as HTMLElement).dataset.q;
+    const pick = (m: number, d: number) => { const t = utc(y, m, d); return t >= from ? t : utc(y + 1, m, d); };
+    const t = w === 'ny' ? utc((Number.isFinite(from) ? new Date(from).getUTCFullYear() : y) + 1, 1, 1) : w === 'xmas' ? pick(12, 25) : utc(y, 12, 31);
+    q('.dc-target').value = iso(t); all();
+  }));
   const DEF: Record<string, string> = { '.dc-born': '1990-05-15', '.dc-from': '2026-01-01', '.dc-to': '2026-12-31', '.dc-start': '2026-01-31', '.dc-n': '1' };
+  const nextNewYear = () => `${new Date().getFullYear() + 1}-01-01`;
   q('.dc-reset').addEventListener('click', () => {
     for (const [s, v] of Object.entries(DEF)) q(s).value = v;
-    q('.dc-on').value = today(); q('.dc-incl').checked = false; q<HTMLSelectElement>('.dc-op').value = '1'; q<HTMLSelectElement>('.dc-unit').value = 'm';
+    q('.dc-on').value = today(); q('.dc-cfrom').value = today(); q('.dc-target').value = nextNewYear();
+    q('.dc-incl').checked = false; q<HTMLSelectElement>('.dc-op').value = '1'; q<HTMLSelectElement>('.dc-unit').value = 'm';
+    q<HTMLSelectElement>('.dc-wk').value = 'satsun'; q<HTMLSelectElement>('.dc-region').value = 'none'; q('.dc-hol-in').value = '';
     all();
   });
-  q('.dc-on').value = today();
+  q('.dc-on').value = today(); q('.dc-cfrom').value = today(); q('.dc-target').value = nextNewYear();
   all();
 </script>

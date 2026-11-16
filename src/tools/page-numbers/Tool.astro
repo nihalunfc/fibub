@@ -17,11 +17,17 @@
     <label>Start at <input class="pn-start" type="number" min="0" value="1" /></label>
     <label>Skip first pages <input class="pn-skip" type="number" min="0" value="0" /></label>
     <label>Font size <input class="pn-size" type="number" min="6" max="40" value="11" /></label>
+    <label class="pn-num">Number look
+      <select class="pn-fmt"><option value="arabic">1, 2, 3</option><option value="roman">i, ii, iii</option><option value="ROMAN">I, II, III</option><option value="alpha">a, b, c</option></select></label>
+    <label>Margin from edge (pt) <input class="pn-margin" type="number" min="10" max="100" value="28" /></label>
+    <label>Skip last pages <input class="pn-skipend" type="number" min="0" value="0" /></label>
+    <label class="pn-chk"><input class="pn-mirror" type="checkbox" /> Outside corners for double-sided printing</label>
     <label>Header text <input class="pn-header" type="text" placeholder="e.g. &#123;file&#125;" maxlength="80" /></label>
     <label>Footer text <input class="pn-footer" type="text" placeholder="e.g. Printed &#123;date&#125;" maxlength="80" /></label>
   </div>
   <p class="pn-hint">In header and footer text, <code>&#123;date&#125;</code> becomes today's date and <code>&#123;file&#125;</code> the file name.</p>
   <p class="pn-preview" aria-live="polite"></p>
+  <canvas class="pn-canvas" hidden></canvas>
   <button class="btn pn-go" type="button" disabled>Add and download</button>
   <p class="pn-msg" role="status" aria-live="polite"></p>
 </div>
@@ -33,11 +39,14 @@
   .pn-form label { display: grid; gap: .25rem; font-weight: 600; }
   .pn-form [hidden] { display: none; }
   .pn-hint, .pn-msg, .pn-preview { margin: 0; font-size: 15px; }
+  .pn-form label.pn-chk { display: flex; gap: .5rem; align-items: center; }
+  .pn-canvas { max-width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
+  .pn-canvas[hidden] { display: none; }
   .pn-msg.err { color: var(--warn); }
 </style>
 
 <script>
-  import { addPageNumbers, labelFor, download, baseName, pageCount, type NumberOpts, type NumPos } from '../../lib/docs/pdfpages';
+  import { buildPdf, loadPdfJs, addPageNumbers, labelFor, download, baseName, pageCount, type NumberOpts, type NumPos } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.pn') as HTMLElement;
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const v = (s: string) => $<HTMLInputElement>(s).value;
@@ -47,23 +56,41 @@
     mode: v('.pn-mode') as NumberOpts['mode'], pos: v('.pn-pos') as NumPos, style: v('.pn-style') as NumberOpts['style'],
     start: Math.max(0, Math.floor(Number(v('.pn-start')) || 0)), skip: Math.max(0, Math.floor(Number(v('.pn-skip')) || 0)),
     size: Math.min(40, Math.max(6, Number(v('.pn-size')) || 11)), header: v('.pn-header'), footer: v('.pn-footer'),
+    fmt: v('.pn-fmt') as NumberOpts['fmt'], margin: Math.min(100, Math.max(10, Number(v('.pn-margin')) || 28)),
+    skipEnd: Math.max(0, Math.floor(Number(v('.pn-skipend')) || 0)), mirror: $<HTMLInputElement>('.pn-mirror').checked,
     file: name, date: new Date().toISOString().slice(0, 10), prefix: v('.pn-prefix'), digits: Math.min(10, Math.max(1, Math.floor(Number(v('.pn-digits')) || 6))),
   });
   function update() {
     const bates = v('.pn-mode') === 'bates';
     root.querySelectorAll<HTMLElement>('.pn-bates').forEach((e) => (e.hidden = !bates));
     $<HTMLElement>('.pn-num').hidden = bates;
-    const o = opts(), n = Math.max(0, pages - o.skip), last = o.start + n - 1;
+    const o = opts(), n = Math.max(0, pages - o.skip - (o.skipEnd || 0)), last = o.start + n - 1;
     $('.pn-preview').textContent = pages ? (n ? `${pages} pages. The first numbered page will read "${labelFor(o, o.start, last)}" and the last "${labelFor(o, last, last)}".` : 'Every page is skipped. Lower "Skip first pages".') : '';
   }
-  root.addEventListener('input', update);
+  let timer: any = 0;
+  /** Show the real first numbered page so the position and size can be judged. */
+  async function preview() {
+    const c = $<HTMLCanvasElement>('.pn-canvas');
+    if (!bytes || !pages) { c.hidden = true; return; }
+    try {
+      const o = opts(), idx = Math.min(pages - 1, o.skip);
+      const one = await buildPdf([bytes], [{ src: 0, index: idx, rot: 0 }]);
+      // A one-page copy: number it as it would be on its own page in the full file.
+      const done = await addPageNumbers(one, { ...o, skip: 0, skipEnd: 0, start: o.start, mirror: o.mirror && idx % 2 === 1 ? false : o.mirror });
+      const pdfjs = await loadPdfJs(), doc = await pdfjs.getDocument({ data: done, isEvalSupported: false }).promise, pg = await doc.getPage(1);
+      const vp0 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(2, 360 / vp0.width) });
+      c.width = vp.width; c.height = vp.height;
+      await pg.render({ canvasContext: c.getContext('2d')!, viewport: vp, canvas: c } as any).promise; c.hidden = false;
+    } catch { c.hidden = true; }
+  }
+  root.addEventListener('input', () => { update(); clearTimeout(timer); timer = setTimeout(preview, 300); });
   $<HTMLInputElement>('.pn-file').addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
     try {
       bytes = new Uint8Array(await f.arrayBuffer()); pages = await pageCount(bytes); name = baseName(f.name);
       go.disabled = false; msg.textContent = `${f.name} is ready.`; msg.classList.remove('err');
     } catch { bytes = null; pages = 0; go.disabled = true; msg.textContent = 'That PDF could not be opened. It may be damaged or locked with a password.'; msg.classList.add('err'); }
-    update();
+    update(); preview();
   });
   go.addEventListener('click', async () => {
     if (!bytes) return;

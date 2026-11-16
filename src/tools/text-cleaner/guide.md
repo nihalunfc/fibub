@@ -11,7 +11,7 @@ ads: false
 order: 1770
 icon: scissors
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [case-converter, compare-documents, word-counter]
 sources:
   - "Unicode character ranges for the hidden characters, emojis and quotes. Rules are fibub's own; always read the result before you use it."
@@ -41,6 +41,11 @@ Nothing is uploaded; the cleaning runs on your device. After cleaning, you can c
 - **Strip bullets** and **list numbers**: remove the signs at the start of lines.
 - **Straight or curly quotes**: pick one style for all quotes and apostrophes.
 - **Remove emojis** and **hidden characters**: deletes pictures, zero-width marks and control characters, and turns non-breaking spaces into normal ones.
+
+## More options (added 2026-11-16)
+
+- **Quick settings**: three buttons tick the right boxes for you. "From a PDF" joins broken lines and strips bullets, "From an AI chat" removes Markdown marks, long dashes and emojis, and "Tidy a list" strips bullets and numbers, removes repeats and sorts A to Z.
+- **New boxes**: remove Markdown marks, remove HTML tags, replace long dashes, remove repeated lines and sort lines. All start unticked.
 
 ## Worked example
 

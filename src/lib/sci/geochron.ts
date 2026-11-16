@@ -100,6 +100,14 @@ export function isochronAge(fit: ReturnType<typeof york>, lambda: number) {
   return { t, s, sScaled: s * Math.sqrt(Math.max(1, fit.mswd)), initial: fit.a, sInitial: fit.sa, sInitialScaled: fit.sa * Math.sqrt(Math.max(1, fit.mswd)) };
 }
 
+/** ⁴⁰Ar/³⁹Ar normal isochron (x = ³⁹Ar/³⁶Ar, y = ⁴⁰Ar/³⁶Ar): the slope is ⁴⁰Ar* over ³⁹Ar, so t = ln(1 + J·slope)/λ.
+ *  σ from the slope error and (optional) the J error; the intercept is the trapped ⁴⁰Ar/³⁶Ar (air is about 298.6). */
+export function arArIsochronAge(fit: ReturnType<typeof york>, J: number, sJ = 0) {
+  const L = K40.lambda, u = 1 + J * fit.b, t = Math.log(u) / L;
+  const sOf = (sb: number) => Math.hypot((J * sb) / (L * u), (fit.b * sJ) / (L * u));
+  return { t, s: sOf(fit.sb), sScaled: sOf(fit.sb * Math.sqrt(Math.max(1, fit.mswd))), initial: fit.a, sInitial: fit.sa, sInitialScaled: fit.sa * Math.sqrt(Math.max(1, fit.mswd)) };
+}
+
 /** radiogenic ²⁰⁷Pb to ²⁰⁶Pb ratio for age t. */
 export const pb76 = (t: number) => Math.expm1(L235 * t) / Math.expm1(L238 * t) / U85;
 /** Age from the radiogenic ²⁰⁷Pb/²⁰⁶Pb ratio (solved numerically). */

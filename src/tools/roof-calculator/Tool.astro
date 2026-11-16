@@ -4,13 +4,18 @@
 <div class="tool-ui rf">
   <section class="panel">
     <h3 class="rf-h">Pitch</h3>
-    <p class="rf-small">Type the pitch in any one box; the other two follow.</p>
-    <div class="rf-fields">
-      <label>Rise per 12 (x:12) <input data-p="x" inputmode="decimal" /></label>
-      <label>Degrees <input data-p="deg" inputmode="decimal" /></label>
-      <label>Percent (rise ÷ run × 100) <input data-p="pct" inputmode="decimal" /></label>
+    <p class="rf-small">Type the pitch in any one box, drag the slider or tap a common pitch; the others follow.</p>
+    <div class="rf-chips" role="group" aria-label="Common pitches">
+      <button type="button" data-preset="3">3:12</button><button type="button" data-preset="4">4:12</button><button type="button" data-preset="6">6:12</button><button type="button" data-preset="8">8:12</button><button type="button" data-preset="12">12:12</button>
     </div>
+    <div class="rf-fields">
+      <label>Rise per 12 (x:12) <input data-p="x" data-k="px" inputmode="decimal" /></label>
+      <label>Degrees <input data-p="deg" data-k="pdeg" inputmode="decimal" /></label>
+      <label>Percent (rise ÷ run × 100) <input data-p="pct" data-k="ppct" inputmode="decimal" /></label>
+    </div>
+    <label class="rf-slide" data-nokit>Rise per 12 (0 to 24) <input type="range" data-k="slider" min="0" max="24" step="0.5" value="6" /></label>
     <p class="rf-factor"></p>
+    <p class="rf-pnote"></p>
   </section>
   <div class="rf-seg rf-units" role="group" aria-label="Units">
     <button type="button" data-u="i" aria-pressed="true">Imperial (ft)</button>
@@ -23,11 +28,19 @@
       <label><span data-l="w">Building width (ft)</span> <input data-k="w" inputmode="decimal" /></label>
       <label><span data-l="o">Overhang on each side (ft)</span> <input data-k="o" inputmode="decimal" /></label>
       <label>Roof shape
-        <select data-k="shape"><option value="gable">Gable (two slopes)</option><option value="hip">Hip (four slopes)</option></select>
+        <select data-k="shape"><option value="gable">Gable (two slopes)</option><option value="hip">Hip (four slopes)</option><option value="shed">Shed (one slope)</option></select>
       </label>
-      <label>Extra for waste (%) <input data-k="waste" inputmode="decimal" value="10" /></label>
-      <label>Bundles per square <input data-k="bps" inputmode="decimal" value="3" /></label>
     </div>
+    <details class="rf-more">
+      <summary>More options</summary>
+      <div class="rf-fields">
+        <label>Extra for waste (%) <input data-k="waste" inputmode="decimal" value="10" /></label>
+        <label>Bundles per square <input data-k="bps" inputmode="decimal" value="3" /></label>
+        <label><span data-l="x">Extra roof area, measured on the slope (sq ft)</span> <input data-k="extra" inputmode="decimal" placeholder="Dormer, porch ..." /></label>
+        <label>Price per bundle (your currency) <input data-k="price" inputmode="decimal" placeholder="Optional" /></label>
+      </div>
+      <p class="rf-small">Waste: 10% is typical for a simple roof; use more for a hip roof or one with many valleys. Check the bundles per square on the shingle wrapper.</p>
+    </details>
     <div class="rf-btns"><button type="button" class="rf-reset">Reset example</button><button type="button" class="rf-clear">Clear</button></div>
   </section>
   <section class="panel" aria-live="polite">
@@ -38,7 +51,17 @@
       <dt>Squares</dt><dd class="rf-sq"></dd>
       <dt>With waste</dt><dd class="rf-sqw"></dd>
       <dt>Bundles</dt><dd class="rf-bundles"></dd>
+      <dt class="rf-ct">Cost</dt><dd class="rf-cost"></dd>
     </dl>
+    <h4 class="rf-h4">Measurements for the framing and trim</h4>
+    <dl class="rf-dl">
+      <dt>Rafter length</dt><dd class="rf-raf"></dd>
+      <dt>Ridge height</dt><dd class="rf-rh"></dd>
+      <dt>Ridge length</dt><dd class="rf-rl"></dd>
+      <dt>Eaves</dt><dd class="rf-eaves"></dd>
+      <dt>Rakes (sloped edges)</dt><dd class="rf-rakes"></dd>
+    </dl>
+    <svg class="rf-svg" viewBox="0 0 200 84" role="img" aria-label="Side view of the roof at this pitch"><polygon points="" /></svg>
     <p class="rf-note"></p>
   </section>
   <p class="rf-fine">One square is 100 sq ft (9.29 m²) of roof. Check the bundle count on the shingle wrapper. Nothing you type leaves this page.</p>
@@ -64,11 +87,21 @@
   .rf-dl dd { margin: 0; overflow-wrap: anywhere; }
   .rf-note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
   .rf-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .rf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .rf-chips button { font: inherit; font-size: 14px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .rf-slide { margin: 0 0 12px; }
+  .rf input[type="range"] { padding: 0; border: 0; background: transparent; accent-color: var(--accent); }
+  .rf-more { margin-top: 12px; }
+  .rf-more summary { cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+  .rf-pnote { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .rf-h4 { margin: 14px 0 6px; font-size: 15px; }
+  .rf-svg { width: 100%; max-width: 360px; height: auto; margin-top: 12px; display: block; }
+  .rf-svg polygon { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
 </style>
 
 <script>
+  import { SQFT, slopeFrom, pitchFactor, degreesOf, footprint, shingles, lengths, pitchNote, type PitchKind } from '../../lib/everyday/roof';
   const EX = { i: { l: '40', w: '30', o: '1' }, m: { l: '12', w: '9', o: '0.3' } };
-  const SQFT = 0.09290304; // m² per sq ft
   const root = document.querySelector('.rf') as HTMLElement;
   const q = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (s: string) => root.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
@@ -77,63 +110,83 @@
   let units: 'i' | 'm' = 'i';
   let slope = 0.5; // rise ÷ run
 
-  // Typing in one pitch box sets the slope and rewrites the other two.
-  const fromBox = (which: string) => {
-    const t = p(which).value.trim(), v = +t;
-    if (t === '' || !Number.isFinite(v) || v < 0 || (which === 'deg' && v >= 90)) { slope = NaN; }
-    else slope = which === 'x' ? v / 12 : which === 'pct' ? v / 100 : Math.tan((v * Math.PI) / 180);
+  // Typing in one pitch box (or the slider) sets the slope and rewrites the others.
+  const fromBox = (which: PitchKind | 'slider') => {
+    slope = which === 'slider' ? +k('slider').value / 12 : slopeFrom(which, p(which).value);
     if (Number.isFinite(slope)) {
       if (which !== 'x') p('x').value = String(+(slope * 12).toFixed(2));
-      if (which !== 'deg') p('deg').value = String(+((Math.atan(slope) * 180) / Math.PI).toFixed(2));
+      if (which !== 'deg') p('deg').value = String(+degreesOf(slope).toFixed(2));
       if (which !== 'pct') p('pct').value = String(+(slope * 100).toFixed(2));
+      if (which !== 'slider') k('slider').value = String(Math.min(24, Math.max(0, slope * 12)));
     }
     calc();
   };
-  const clearOut = (msg: string) => { q('.rf-big').textContent = ''; for (const c of ['plan', 'area', 'sq', 'sqw', 'bundles']) q('.rf-' + c).textContent = '–'; q('.rf-note').textContent = msg; };
+  const cells = ['plan', 'area', 'sq', 'sqw', 'bundles', 'cost', 'raf', 'rh', 'rl', 'eaves', 'rakes'];
+  const clearOut = (msg: string) => { q('.rf-big').textContent = ''; for (const c of cells) q('.rf-' + c).textContent = '–'; q('.rf-svg polygon').setAttribute('points', ''); q('.rf-note').textContent = msg; };
   const calc = () => {
     const ok = Number.isFinite(slope);
-    const factor = ok ? Math.sqrt(1 + slope * slope) : NaN;
+    const factor = ok ? pitchFactor(slope) : NaN;
     q('.rf-factor').textContent = ok
-      ? `${n(slope * 12)}:12 = ${n((Math.atan(slope) * 180) / Math.PI)}° = ${n(slope * 100)}%. Pitch factor (roof area ÷ flat area): ${factor.toFixed(3)}`
-      : 'Type a pitch (degrees below 90).';
+      ? `${n(slope * 12)}:12 = ${n(degreesOf(slope))}° = ${n(slope * 100)}%. Pitch factor (roof area ÷ flat area): ${factor.toFixed(3)}`
+      : 'Type a pitch (degrees below 90, nothing negative).';
+    q('.rf-pnote').textContent = ok ? pitchNote(slope) : '';
     if (!ok) return clearOut('Type a pitch above.');
     const v: Record<string, number> = {};
     for (const s of ['l', 'w', 'o', 'waste', 'bps']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] < 0) return clearOut('Type the building size above.'); }
-    const L = v.l + 2 * v.o, W = v.w + 2 * v.o, plan = L * W;
-    const area = plan * factor; // hip or gable: every slope has the same pitch, so the factor is the same
+    if (v.l === 0 || v.w === 0) return clearOut('Length and width must be more than 0.');
+    const shape = k('shape').value as 'gable' | 'hip' | 'shed';
+    const { L, W } = footprint(v.l, v.w, v.o), plan = L * W;
+    const extra = k('extra').value.trim() === '' || !(+k('extra').value > 0) ? 0 : +k('extra').value;
+    const area = plan * factor + extra; // every slope has the same pitch, so one factor covers hip, gable and shed
     const sqft = units === 'i' ? area : area / SQFT;
-    const sq = sqft / 100, sqw = sq * (1 + v.waste / 100), bundles = Math.ceil(sqw * v.bps - 1e-9);
+    const { sq, sqWaste: sqw, bundles } = shingles(sqft, v.waste, v.bps);
     const A = units === 'i' ? 'sq ft' : 'm²', U = units === 'i' ? 'ft' : 'm';
     q('.rf-plan').textContent = `${n(L)} × ${n(W)} ${U} = ${n(plan)} ${A}`;
-    q('.rf-area').textContent = `${n(plan)} × ${factor.toFixed(3)} = ${n(area, 1)} ${A}` + (units === 'm' ? ` (${n(sqft, 1)} sq ft)` : ` (${n(area * SQFT, 1)} m²)`);
+    q('.rf-area').textContent = `${n(plan)} × ${factor.toFixed(3)}${extra ? ' + ' + n(extra) : ''} = ${n(area, 1)} ${A}` + (units === 'm' ? ` (${n(sqft, 1)} sq ft)` : ` (${n(area * SQFT, 1)} m²)`);
     q('.rf-sq').textContent = `${n(sq)} squares`;
     q('.rf-sqw').textContent = `${n(sqw)} squares (+${n(v.waste, 1)}%)`;
     q('.rf-bundles').textContent = `${bundles} bundles (${n(sqw)} × ${n(v.bps)} = ${n(sqw * v.bps)}, rounded up)`;
+    const price = +k('price').value;
+    const hasPrice = k('price').value.trim() !== '' && Number.isFinite(price) && price > 0;
+    q('.rf-cost').textContent = hasPrice ? `${bundles} × ${n(price)} = ${n(bundles * price)}` : 'Type a price per bundle under More options';
     q('.rf-big').textContent = `${n(area, 1)} ${A} · ${bundles} bundles`;
-    q('.rf-note').textContent = (k('shape').value === 'hip' ? 'A hip roof has the same area as a gable roof of the same pitch over the same footprint; it needs more hip and ridge caps and more cutting, so allow more waste. ' : '')
-      + 'Ridge caps, starter strips and underlay are not counted.';
+    const m = lengths(shape, W, L, slope);
+    q('.rf-raf').textContent = `${n(m.rafter)} ${U} along the slope (run ${n(m.run)} ${U} × ${factor.toFixed(3)})`;
+    q('.rf-rh').textContent = `${n(m.ridgeHeight)} ${U} above the eave line`;
+    q('.rf-rl').textContent = shape === 'hip' ? `${n(m.ridgeLength)} ${U} (length − width)` : `${n(m.ridgeLength)} ${U}`;
+    q('.rf-eaves').textContent = `${n(m.eaves)} ${U}`;
+    q('.rf-rakes').textContent = shape === 'hip' ? 'None on a hip roof (the hips run down the corners)' : `${n(m.rakes)} ${U}`;
+    // Side view: the span W across the bottom and the ridge height on top, scaled to fit.
+    const sc = Math.min(180 / W, 66 / Math.max(m.ridgeHeight, 1e-9)), w = W * sc, h = m.ridgeHeight * sc, x0 = (200 - w) / 2, yb = 78;
+    q('.rf-svg polygon').setAttribute('points', shape === 'shed' ? `${x0},${yb} ${x0 + w},${yb} ${x0 + w},${yb - h}` : `${x0},${yb} ${x0 + w / 2},${yb - h} ${x0 + w},${yb}`);
+    q('.rf-note').textContent = (shape === 'hip' ? 'A hip roof has the same area as a gable roof of the same pitch over the same footprint; it needs more hip and ridge caps and more cutting, so allow more waste. ' : '')
+      + 'Ridge caps, starter strips, drip edge and underlay are not counted: use the ridge and edge lengths above to price them.';
   };
   const fill = () => {
     for (const [s, t] of Object.entries(EX[units])) k(s).value = t;
-    k('waste').value = '10'; k('bps').value = '3';
+    k('waste').value = '10'; k('bps').value = '3'; k('extra').value = ''; k('price').value = ''; k('shape').value = 'gable';
     p('x').value = '6'; fromBox('x');
   };
   const labels = () => {
     const U = units === 'i' ? 'ft' : 'm';
     q('[data-l="l"]').textContent = `Building length (${U})`; q('[data-l="w"]').textContent = `Building width (${U})`; q('[data-l="o"]').textContent = `Overhang on each side (${U})`;
+    q('[data-l="x"]').textContent = `Extra roof area, measured on the slope (${units === 'i' ? 'sq ft' : 'm²'})`;
   };
   root.querySelectorAll('.rf-units button').forEach((b) => b.addEventListener('click', () => {
     const u = (b as HTMLElement).dataset.u as 'i' | 'm';
     if (u === units) return;
     for (const s of ['l', 'w', 'o']) { const t = k(s).value.trim(); if (t === '' || !Number.isFinite(+t)) continue; k(s).value = String(+(u === 'm' ? +t * 0.3048 : +t / 0.3048).toFixed(2)); }
+    const xt = k('extra').value.trim(); if (xt !== '' && Number.isFinite(+xt)) k('extra').value = String(+(u === 'm' ? +xt * SQFT : +xt / SQFT).toFixed(1));
     units = u;
     root.querySelectorAll('.rf-units button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
     labels(); calc();
   }));
-  for (const s of ['x', 'deg', 'pct']) p(s).addEventListener('input', () => fromBox(s));
-  for (const s of ['l', 'w', 'o', 'waste', 'bps']) k(s).addEventListener('input', calc);
+  for (const s of ['x', 'deg', 'pct'] as PitchKind[]) p(s).addEventListener('input', () => fromBox(s));
+  k('slider').addEventListener('input', () => fromBox('slider'));
+  root.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => { p('x').value = (b as HTMLElement).dataset.preset!; fromBox('x'); }));
+  for (const s of ['l', 'w', 'o', 'waste', 'bps', 'extra', 'price']) k(s).addEventListener('input', calc);
   k('shape').addEventListener('change', calc);
   q('.rf-reset').addEventListener('click', fill);
-  q('.rf-clear').addEventListener('click', () => { for (const s of ['l', 'w', 'o']) k(s).value = ''; calc(); });
+  q('.rf-clear').addEventListener('click', () => { for (const s of ['l', 'w', 'o', 'extra', 'price']) k(s).value = ''; calc(); });
   labels(); fill();
 </script>

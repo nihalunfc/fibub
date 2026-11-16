@@ -35,4 +35,12 @@ export default async ({ page, check, BASE }) => {
   const f = await saved(page, () => page.click('.stp-make'));
   const fs = (await PDFDocument.load(f.buf)).getPage(0).getSize();
   check(fs.width < fs.height === (fs.width / fs.height < 1) && Math.abs(fs.width / fs.height - 1) > 0.05, 'scan-to-pdf: fit size follows the (turned) scan shape');
+  // more options: small file size, size shown in the message
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.stp-size', 'a4');
+  const std = await saved(page, () => page.click('.stp-make'));
+  await page.selectOption('.stp-quality', 'small');
+  const sm = await saved(page, () => page.click('.stp-make'));
+  check(sm.buf.length < std.buf.length, `scan-to-pdf: small option makes a smaller PDF (${sm.buf.length} < ${std.buf.length})`);
+  check(/\d+ (KB|MB)/.test(await page.textContent('.stp-msg')), 'scan-to-pdf: shows the PDF size');
 };

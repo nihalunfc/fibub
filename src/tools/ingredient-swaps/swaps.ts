@@ -5,7 +5,7 @@ export type Part = [number, string, string]; // quantity, unit ('' for none), wh
 export type Swap = { parts: Part[]; note?: string; f: string };
 export type Item = { name: string; per: string; also?: string; swaps: Swap[] };
 
-export const PLURAL: Record<string, string> = { cup: 'cups', egg: 'eggs', clove: 'cloves', 'medium onion': 'medium onions', 'vanilla pod': 'vanilla pods' };
+export const PLURAL: Record<string, string> = { cup: 'cups', egg: 'eggs', 'egg white': 'egg whites', clove: 'cloves', 'medium onion': 'medium onions', 'vanilla pod': 'vanilla pods' };
 
 export const ITEMS: Item[] = [
   { name: 'Buttermilk', per: 'cup', swaps: [
@@ -30,6 +30,8 @@ export const ITEMS: Item[] = [
     { parts: [[1, 'tbsp', 'ground flaxseed'], [3, 'tbsp', 'water']], note: 'Stir and rest 5 minutes until it gels. Good in muffins, cookies and pancakes.', f: 'vdeg' },
     { parts: [[0.25, 'cup', 'unsweetened applesauce']], note: 'Adds moisture; best in moist cakes and quick breads.', f: 'vdeg' },
     { parts: [[3, 'tbsp', 'aquafaba (liquid from a can of chickpeas)']], note: 'Whisk until foamy. Can be whipped like egg white.', f: 'vdeg' }] },
+  { name: 'Egg white', per: 'egg white', also: 'egg whites meringue', swaps: [
+    { parts: [[2, 'tbsp', 'aquafaba (liquid from a can of chickpeas)']], note: 'Whisk until foamy or stiff, as the recipe needs.', f: 'vdeg' }] },
   { name: 'Butter', per: 'cup', also: 'margarine', swaps: [
     { parts: [[1, 'cup', 'solid coconut oil']], note: 'Gives a faint coconut taste.', f: 'vdeg' },
     { parts: [[0.75, 'cup', 'vegetable oil'], [2, 'tbsp', 'vegetable oil']], note: 'For cakes and muffins, not for pastry or cookies that need solid fat.', f: 'vdeg' }] },
@@ -39,6 +41,8 @@ export const ITEMS: Item[] = [
   { name: 'Milk', per: 'cup', swaps: [
     { parts: [[0.5, 'cup', 'evaporated milk'], [0.5, 'cup', 'water']], f: 'eg' },
     { parts: [[1, 'cup', 'unsweetened soy milk']], note: 'Oat or almond milk also work; oat is gluten-free only if the pack says so.', f: 'vdeg' }] },
+  { name: 'Half-and-half', per: 'cup', also: 'half and half single cream light cream', swaps: [
+    { parts: [[0.5, 'cup', 'whole milk'], [0.5, 'cup', 'heavy cream']], note: 'For coffee, sauces and soups.', f: 'eg' }] },
   { name: 'Heavy cream (in cooking)', per: 'cup', also: 'double cream whipping cream', swaps: [
     { parts: [[0.75, 'cup', 'milk'], [0.25, 'cup', 'melted butter']], note: 'For sauces and soups. It will not whip.', f: 'eg' },
     { parts: [[1, 'cup', 'full-fat coconut milk']], note: 'For curries and soups.', f: 'vdeg' }] },
@@ -70,6 +74,10 @@ export const ITEMS: Item[] = [
     { parts: [[0.5, 'oz', 'unsweetened chocolate'], [1, 'tbsp', 'sugar']], note: '1 oz is about 28 g.', f: 'vdeg' }] },
   { name: 'Unsweetened chocolate', per: 'oz', also: 'baking chocolate', swaps: [
     { parts: [[3, 'tbsp', 'unsweetened cocoa powder'], [1, 'tbsp', 'vegetable oil']], note: '1 oz is about 28 g.', f: 'vdeg' }] },
+  { name: 'Active dry yeast', per: 'tsp', also: 'dried yeast bread', swaps: [
+    { parts: [[0.75, 'tsp', 'instant (fast-action) yeast']], note: 'Instant yeast can go straight into the flour; the rise may be a little quicker.', f: 'vdeg' }] },
+  { name: 'Instant yeast', per: 'tsp', also: 'fast-action rapid rise yeast bread', swaps: [
+    { parts: [[1.25, 'tsp', 'active dry yeast']], note: 'Stir it into a little of the warm liquid for 5 to 10 minutes first.', f: 'vdeg' }] },
   { name: 'Vanilla extract', per: 'tsp', also: 'vanilla essence', swaps: [
     { parts: [[1 / 3, 'vanilla pod', 'seeds scraped out']], f: 'vdeg' },
     { parts: [[1, 'tsp', 'maple syrup']], note: 'A softer flavour; fine in pancakes and oats.', f: 'vdeg' }] },
@@ -120,6 +128,29 @@ export function frac(q: number): string {
 export function amount(q: number, unit: string, what = ''): string {
   const s = frac(q);
   if (s === 'a pinch of') return `a pinch of ${what}`.trim();
-  const u = unit && q > 1.0001 ? PLURAL[unit] || unit : unit;
+  const u = unit && q > 1.0001 && s !== '1' ? PLURAL[unit] || unit : unit;
   return [s, u, what].filter(Boolean).join(' ');
+}
+
+/** Flags that follow from the swap's own words: n = no nuts or coconut, s = no soy. Checked from the ingredient text, so still read the label. */
+export function flagsOf(sw: Swap): string {
+  const text = sw.parts.map((p) => p[2]).join(' ').toLowerCase();
+  return sw.f + (/almond|coconut|peanut|hazelnut|walnut|cashew|pecan|pistachio|\bnuts?\b/.test(text) ? '' : 'n') + (/soy|tamari/.test(text) ? '' : 's');
+}
+
+/** Rounded metric size for a household unit: cup 240 ml, tbsp 15 ml, tsp 5 ml, oz 28 g (the sizes used on nutrition labels). '' for other units. */
+export function metricHint(q: number, unit: string): string {
+  const per: Record<string, [number, string]> = { cup: [240, 'ml'], tbsp: [15, 'ml'], tsp: [5, 'ml'], oz: [28, 'g'] };
+  const p = per[unit];
+  if (!p || !(q > 0)) return '';
+  const v = q * p[0];
+  return `${v < 10 ? Math.round(v * 10) / 10 : Math.round(v)} ${p[1]}`;
+}
+
+/** The multiplier for the card's unit when the recipe amount is typed in ml (or g for ounces); unchanged for other units. */
+export function toMultiplier(typed: number, per: string, metric: boolean): number {
+  if (!(typed > 0)) return NaN;
+  if (!metric) return typed;
+  const size: Record<string, number> = { cup: 240, tbsp: 15, tsp: 5, oz: 28 };
+  return size[per] ? typed / size[per] : typed;
 }

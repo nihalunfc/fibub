@@ -46,8 +46,12 @@ function myers(a: string[], b: string[]): ('eq' | 'ins' | 'del')[] | null {
   return null;
 }
 
-export function diffWords(aText: string, bText: string, ignoreCase = false): Diff {
-  const A = tokenise(aText), B = tokenise(bText), key = (w: Word) => (ignoreCase ? w.w.toLowerCase() : w.w);
+export type DiffOpts = boolean | { ignoreCase?: boolean; ignorePunct?: boolean };
+
+export function diffWords(aText: string, bText: string, opts: DiffOpts = false): Diff {
+  const o = typeof opts === 'boolean' ? { ignoreCase: opts } : opts, ignoreCase = !!o.ignoreCase, ignorePunct = !!o.ignorePunct;
+  const A = tokenise(aText), B = tokenise(bText);
+  const key = (w: Word) => { let k = w.w; if (ignorePunct) k = k.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '') || k; return ignoreCase ? k.toLowerCase() : k; };
   const ak = A.map(key), bk = B.map(key);
   let s = 0; while (s < ak.length && s < bk.length && ak[s] === bk[s]) s++;
   let e = 0; while (e < ak.length - s && e < bk.length - s && ak[ak.length - 1 - e] === bk[bk.length - 1 - e]) e++;
@@ -71,4 +75,26 @@ export function diffWords(aText: string, bText: string, ignoreCase = false): Dif
     if (o.t === 'eq') inChange = false; else { if (!inChange) changes++; inChange = true; if (o.t === 'ins') added += o.words.length; else removed += o.words.length; }
   }
   return { ops, changes, added, removed, same: changes === 0 };
+}
+
+export interface ChangeItem { before: string; after: string }
+/** The changes as a short list: what the old text said and what the new text says ("" for none). */
+export function changeList(d: Diff): ChangeItem[] {
+  const out: ChangeItem[] = [];
+  let cur: ChangeItem | null = null;
+  for (const op of d.ops) {
+    if (op.t === 'eq') { cur = null; continue; }
+    if (!cur) { cur = { before: '', after: '' }; out.push(cur); }
+    const t = op.words.map((w) => w.w).join(' ');
+    if (op.t === 'del') cur.before = (cur.before ? cur.before + ' ' : '') + t; else cur.after = (cur.after ? cur.after + ' ' : '') + t;
+  }
+  return out;
+}
+
+/** Plain-text summary: "2 changes: 'cat' -> 'dog'; (added) 'red'". */
+export function changeSummary(d: Diff, max = 20): string {
+  if (d.same) return 'No differences.';
+  const l = changeList(d);
+  const parts = l.slice(0, max).map((c, i) => `${i + 1}. ${c.before && c.after ? `"${c.before}" became "${c.after}"` : c.before ? `removed "${c.before}"` : `added "${c.after}"`}`);
+  return `${d.changes} change${d.changes === 1 ? '' : 's'} (${d.added} word${d.added === 1 ? '' : 's'} added, ${d.removed} removed).\n` + parts.join('\n') + (l.length > max ? `\n...and ${l.length - max} more.` : '');
 }

@@ -11,7 +11,7 @@ ads: false
 order: 2020
 icon: table
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [paint-calculator, concrete-calculator, wallpaper-calculator]
 sources:
   - "Area, tile count and grout joint volume: fibub's own working. Waste allowances (10% straight, 15% diagonal or herringbone) and grout at 1.6 kg per litre of joint are rules of thumb; check the box and the bag."
@@ -44,6 +44,12 @@ If the walls are being painted or papered at the same time, the [[paint-calculat
 - **Grout per litre of joint**: 1.6 kg is a rule of thumb for cement grout; the bag gives the real figure.
 
 The count uses the tile size alone and leaves out the joints, which makes it a touch generous.
+
+## More options
+
+Open **More options** to add the money side. Choose whether your price is per box, per tile or per area, type it, and the page shows an estimated cost for the boxes you will actually buy (tax and delivery are not included). Type the coverage printed on your adhesive bag and the weight of your grout bag, and the shopping list adds the number of bags of each; leave them empty and they are skipped, because bag sizes differ by brand and we do not guess them.
+
+Under the result a scaled sketch of your first rectangle shows the tile grid, with a line saying how many tiles run across and down, counting part tiles at the edges. Blank, zero or negative sizes give a plain message, never a strange number.
 
 ## Worked example
 

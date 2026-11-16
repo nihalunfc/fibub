@@ -18,4 +18,11 @@ export default async ({ page, check, BASE }) => {
   const b = await text((await saved(page, () => page.click('.pn-go'))).buf);
   check(b[0].includes('ABC-000041') && b[3].includes('ABC-000044'), `page-numbers: Bates ABC-000041 (${b[0]})`);
   check((await page.textContent('.pn-preview')).includes('ABC-000041'), 'page-numbers: preview shows first label');
+  // number look, skip last pages, preview
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.pn-mode', 'numbers'); await page.selectOption('.pn-style', 'page'); await page.selectOption('.pn-fmt', 'ROMAN');
+  await page.fill('.pn-start', '1'); await page.fill('.pn-footer', ''); await page.fill('.pn-skipend', '1');
+  await page.waitForSelector('.pn-canvas:not([hidden])', { timeout: 10000 });
+  const r = await text((await saved(page, () => page.click('.pn-go'))).buf);
+  check(r[0].includes('Page I') && r[2].includes('Page III') && !/Page IV/.test(r[3]), `page-numbers: roman numerals, last page skipped (${r[2]} | ${r[3]})`);
 };

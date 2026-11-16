@@ -66,3 +66,43 @@ export async function readPieces(bytes: Uint8Array): Promise<Piece[]> {
   }
   return out;
 }
+
+
+/** Format an ISO date (2026-01-31) the way the person wants it in the CSV. */
+export function formatIso(iso: string, fmt: 'iso' | 'dmy' | 'mdy'): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m || fmt === 'iso') return iso;
+  return fmt === 'dmy' ? `${m[3]}/${m[2]}/${m[1]}` : `${m[2]}/${m[3]}/${m[1]}`;
+}
+
+/** Totals and running-balance check of a table whose first row is the heading. Works from the headings
+ *  (debit / withdrawal / paid out, credit / deposit / paid in, amount, balance). Returns plain sentences. */
+export function totalsCheck(t: string[][], num: (s: string) => number, hasDate: (r: string[]) => boolean): string[] {
+  const hi = t.findIndex((r) => !hasDate(r) && r.some((x) => /date/i.test(x)));
+  if (hi < 0) return [];
+  const head = t[hi].map((x) => x.toLowerCase());
+  const find = (re: RegExp) => head.findIndex((h) => re.test(h));
+  const out = find(/debit|withdraw|paid out|money out|\bout\b/), inn = find(/credit|deposit|paid in|money in|\bin\b/), amt = find(/^amount/), bal = find(/balance/);
+  const rows = t.slice(hi + 1).filter(hasDate);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const fmt = (n: number) => r2(n).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const lines: string[] = [];
+  const sum = (c: number) => { const v = rows.map((r) => num(r[c] ?? '')).filter((x) => !isNaN(x)); return { n: v.length, s: v.reduce((a, b) => a + Math.abs(b), 0) }; };
+  if (out >= 0) { const o = sum(out); lines.push(`${t[hi][out]}: ${fmt(o.s)} in ${o.n} row${o.n === 1 ? '' : 's'}.`); }
+  if (inn >= 0) { const o = sum(inn); lines.push(`${t[hi][inn]}: ${fmt(o.s)} in ${o.n} row${o.n === 1 ? '' : 's'}.`); }
+  if (out < 0 && inn < 0 && amt >= 0) {
+    const v = rows.map((r) => num(r[amt] ?? '')).filter((x) => !isNaN(x));
+    lines.push(`${t[hi][amt]}: total ${fmt(v.reduce((a, b) => a + b, 0))} in ${v.length} row${v.length === 1 ? '' : 's'} (${fmt(v.filter((x) => x < 0).reduce((a, b) => a + b, 0))} negative, ${fmt(v.filter((x) => x > 0).reduce((a, b) => a + b, 0))} positive).`);
+  }
+  if (bal >= 0 && (out >= 0 || inn >= 0 || amt >= 0)) {
+    let ok = 0, bad = 0, firstBad = '';
+    for (let i = 1; i < rows.length; i++) {
+      const b0 = num(rows[i - 1][bal] ?? ''), b1 = num(rows[i][bal] ?? '');
+      if (isNaN(b0) || isNaN(b1)) continue;
+      const d = out >= 0 || inn >= 0 ? (num(rows[i][inn] ?? '') || 0) - (num(rows[i][out] ?? '') || 0) : num(rows[i][amt] ?? '') || 0;
+      const dAbs = out >= 0 || inn >= 0 ? (isNaN(num(rows[i][inn] ?? '')) ? 0 : Math.abs(num(rows[i][inn]))) - (isNaN(num(rows[i][out] ?? '')) ? 0 : Math.abs(num(rows[i][out]))) : d;
+      if (Math.abs(r2(b0 + dAbs) - r2(b1)) < 0.011) ok++; else { bad++; if (!firstBad) firstBad = rows[i].join(' ').slice(0, 60); }
+    }
+    if (ok + bad) lines.push(bad ? `Balance check: ${bad} of ${ok + bad} lines do not follow from the line above (first: ${firstBad}). A column may have been read wrongly, or a line is missing.` : `Balance check: all ${ok} lines follow from the balance above.`);
+  }
+  return lines;
+}

@@ -36,6 +36,12 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill(R + '.eb-eps', '0.612'); await wait();
   await page.fill(R + '.eb-ea', '1.5'); await wait();
   check((await txt('.eb-lerr')).includes('between 0 and 1') && await page.isHidden(R + '.eb-lfacts'), 'ebm: bad atmosphere emissivity');
+  // Mars sunlight (586 W/m²) fits the slider: one-layer model, no greenhouse and the εₐ = 1 limit.
+  await page.fill(R + '.eb-S', '586'); await page.fill(R + '.eb-alpha', '0.25'); await page.fill(R + '.eb-ea', '0'); await wait();
+  check((await page.inputValue(R + '.eb-r-S')) === '586' && (await txt('.eb-lfacts')).includes('−63.34 °C'), `ebm: Mars sunlight on the slider (${(await txt('.eb-lfacts')).slice(0, 60)})`);
+  await page.fill(R + '.eb-ea', '1'); await wait();
+  check((await txt('.eb-lfacts')).includes('−23.64 °C'), 'ebm: Mars one-layer limit');
+  await page.fill(R + '.eb-S', '1361'); await page.fill(R + '.eb-alpha', '0.3');
   await page.fill(R + '.eb-ea', '0.78'); await wait();
   check((await txt('.eb-facts')).includes('15.53 °C') && (await txt('.eb-lfacts')).includes('14.91 °C'), 'ebm: back to the example');
   for (const f of ['pdf', 'docx', 'png']) { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`.ebm .dl [data-f=${f}]`)]); const p = OUT + 'eb.' + f; await d.saveAs(p); check(readFileSync(p).length > 5000, `ebm: ${f} report`); }

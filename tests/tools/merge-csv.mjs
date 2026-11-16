@@ -23,4 +23,14 @@ export default async ({ page, check, BASE }) => {
   const names = Object.keys(unzipSync(new Uint8Array(z.buf)));
   const rome = strFromU8(unzipSync(new Uint8Array(z.buf))['Rome.csv'] ?? new Uint8Array());
   check(names.length === 3 && rome.trim().split(/\r?\n/).length === 4, `merge-csv: split by City gives 3 files, Rome has 3 rows (${names.join(',')})`);
+  check((await page.$$('.mc-pt tr')).length >= 2, 'merge-csv: preview table shows rows');
+  await page.click('.mc-list li:nth-child(3) button'); await page.waitForTimeout(150);
+  check((await page.$$('.mc-list li')).length === 2 && (await page.textContent('.mc-sum')).includes('5 rows'), 'merge-csv: a file can be taken out');
+  await page.setInputFiles('.mc-file', [f('d.csv', 'Name,City\nAnn,Paris\n')]);
+  await page.waitForTimeout(200);
+  check((await page.textContent('.mc-sum')).includes('6 rows'), 'merge-csv: 6 rows before dropping repeats');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.check('.mc-dedupe'); await page.waitForTimeout(100);
+  const sm = await page.textContent('.mc-sum');
+  check(sm.includes('5 rows') && sm.includes('1 repeated row'), `merge-csv: repeated row dropped (${sm})`);
 };

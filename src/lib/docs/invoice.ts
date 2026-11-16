@@ -106,3 +106,29 @@ export function rentReceipts(inv: Inv): Rent[] {
     sentence: `Received ${fmt(cents, inv.cur)} (${words}) from ${tenant} as rent for the property at ${prop} for the month of ${month}${inv.pay.trim() ? `, paid by ${inv.pay.trim()}` : ''}.`,
   }));
 }
+
+/** ISO date (YYYY-MM-DD) plus n days, worked in UTC so time zones and daylight saving never shift it. Blank for a bad date. */
+export function addDays(iso: string, n: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return '';
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + n));
+  return d.toISOString().slice(0, 10);
+}
+
+/** The next document number: the last run of digits goes up by one and keeps its zeros ("INV-0099" -> "INV-0100"). With no digits, "-1" is added. */
+export function nextNumber(s: string): string {
+  const t = s.trim();
+  const m = /^(.*?)(\d+)(\D*)$/.exec(t);
+  if (!m) return t ? `${t}-1` : '1001';
+  const n = String(BigInt(m[2]) + 1n).padStart(m[2].length, '0');
+  return `${m[1]}${n}${m[3]}`;
+}
+
+/** Common standard sales-tax rates offered as one-press presets. Not live-checked: the page tells people to check the official source. */
+export const TAX_PRESETS: { label: string; name: string; rate: string }[] = [
+  { label: 'Canada GST 5%', name: 'GST', rate: '5' },
+  { label: 'Ontario HST 13%', name: 'HST', rate: '13' },
+  { label: 'UK VAT 20%', name: 'VAT', rate: '20' },
+  { label: 'UAE VAT 5%', name: 'VAT', rate: '5' },
+  { label: 'Saudi VAT 15%', name: 'VAT', rate: '15' },
+];

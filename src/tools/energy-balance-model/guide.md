@@ -11,7 +11,7 @@ ads: true
 order: 834
 icon: sliders
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [glacier-ice, blackbody-calculator, habitable-zone-calculator, trend-analyser, koppen-climate, insolation-calculator, walter-lieth, carbon-footprint, proxy-stacker]
 sources:
   - "CO₂ forcing ΔF = 5.35 ln(C/C₀) W/m²: Myhre, G., Highwood, E. J., Shine, K. P. and Stordal, F. (1998), New estimates of radiative forcing due to well mixed greenhouse gases, Geophysical Research Letters 25, 2715–2718."

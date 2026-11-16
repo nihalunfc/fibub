@@ -16,7 +16,7 @@ import DataFile from '../../components/DataFile.astro';
     <p class="ax-help">The example is a made-up year (2025) for a temperate place, in °C. 14 March is left out on purpose to show how a missing day is handled. Dates like 2025-01-31 work best.</p>
     <div class="ax-grid" style="margin-top:10px">
       <label>Temperature unit <select class="dgd-unit"><option value="C" selected>°C</option><option value="F">°F</option></select></label>
-      <label>Method <select class="dgd-method"><option value="mean">Mean</option><option value="modified">Modified average</option><option value="sine" selected>Single sine</option><option value="triangle">Single triangle</option></select></label>
+      <label>Method <select class="dgd-method"><option value="mean">Mean</option><option value="modified">Modified average</option><option value="sine" selected>Single sine</option><option value="triangle">Single triangle</option><option value="ukmo">UK Met Office</option></select></label>
       <label>Heating base <input class="dgd-hb" inputmode="decimal" value="18" /></label>
       <label>Cooling base <input class="dgd-cb" inputmode="decimal" value="18" /></label>
       <label>Growing base <input class="dgd-gb" inputmode="decimal" value="10" /></label>
@@ -67,7 +67,7 @@ import DataFile from '../../components/DataFile.astro';
   const f1 = (x: number) => (Math.abs(x) < 0.05 ? '0.0' : x.toFixed(1)).replace('-', '−');
   const nice = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   const monthName = (ym: string) => new Date(ym + '-15T12:00:00Z').toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
-  const METHOD: Record<Method, string> = { mean: 'Mean', modified: 'Modified average', sine: 'Single sine', triangle: 'Single triangle' };
+  const METHOD: Record<Method, string> = { mean: 'Mean', modified: 'Modified average', sine: 'Single sine', triangle: 'Single triangle', ukmo: 'UK Met Office' };
   let figs: Figure[] = [], sections: Section[] = [], dayCsv: string[][] = [], monCsv: string[][] = [];
   const canv = ['.dgd-cfig', '.dgd-mfig', '.dgd-tfig'];
 
@@ -109,7 +109,7 @@ import DataFile from '../../components/DataFile.astro';
     q('.dgd-facts').replaceChildren(
       fact('Days counted', String(n), gapNote + (start && filledIn !== gaps.missing && how === 'interp' ? ` (${filledIn} after the start date)` : '')),
       fact('Mean per day', `heating ${f1(last.chdd / n)}, cooling ${f1(last.ccdd / n)}, growing ${f1(last.cgdd / n)}`, `degree days (${deg})`),
-      fact('Method', METHOD[method], !parsed.hasMinMax ? 'only daily means were given, so every method uses the mean' : method === 'modified' ? 'heating and cooling use the plain mean under this method' : method === 'mean' ? '(min + max) / 2 against each base' : 'each day drawn as a curve from min to max and back'),
+      fact('Method', METHOD[method], !parsed.hasMinMax ? 'only daily means were given, so every method uses the mean' : method === 'modified' ? 'heating and cooling use the plain mean under this method' : method === 'mean' ? '(min + max) / 2 against each base' : method === 'ukmo' ? 'four-case rule from min and max (Met Office, CIBSE TM41)' : 'each day drawn as a curve from min to max and back'),
       fact('Bases', `heating ${sig(hb, 4)} ${deg}, cooling ${sig(cb, 4)} ${deg}`, `growing ${sig(gb, 4)} ${deg}${gu != null ? `, upper cutoff ${sig(gu, 4)} ${deg}` : ', no upper cutoff'}`),
       fact('Peak months', (() => { const by = [...months].sort((a, b) => b.cdd + b.gdd - a.cdd - a.gdd); return `${monthName(by[0].month)} (${f1(by[0].gdd)} growing)`; })(), (() => { const c = [...months].sort((a, b) => b.hdd - a.hdd)[0]; return `most heating: ${monthName(c.month)} (${f1(c.hdd)})`; })()),
       ...(parsed.bad ? [fact('Rows skipped', String(parsed.bad), 'the date could not be read')] : []),
