@@ -3,18 +3,40 @@
 ---
 <div class="tool-ui og">
   <label class="og-drop">Add one or more PDFs <input class="og-file" type="file" accept="application/pdf,.pdf" multiple /></label>
+  <p class="og-hint">Add as many PDFs as you like (up to about 200 MB each). Password-protected files cannot be opened.</p>
   <p class="og-msg" role="status" aria-live="polite"></p>
   <div class="og-bar" hidden>
     <button class="btn secondary small og-all" type="button">Select all</button>
     <button class="btn secondary small og-none" type="button">Select none</button>
     <button class="btn secondary small og-clear" type="button">Remove all files</button>
   </div>
+  <details class="og-more" open hidden>
+    <summary>Quick edits for selected pages</summary>
+    <div class="og-bar">
+      <button class="btn secondary small og-odd" type="button">Select odd</button>
+      <button class="btn secondary small og-even" type="button">Select even</button>
+      <label>Select pages <input class="og-pick" type="text" placeholder="1-3,7" aria-label="Select pages by number" /></label>
+      <button class="btn secondary small og-pickgo" type="button">Select</button>
+    </div>
+    <div class="og-bar">
+      <button class="btn secondary small og-rotsel" type="button">Rotate selected</button>
+      <button class="btn secondary small og-dupsel" type="button">Duplicate selected</button>
+      <button class="btn secondary small og-delsel" type="button">Delete selected</button>
+      <button class="btn secondary small og-blank" type="button">Add blank page at end</button>
+      <button class="btn secondary small og-rev" type="button">Reverse order</button>
+    </div>
+    <p class="og-hint">On a computer you can also drag a page card onto another to move it.</p>
+  </details>
   <div class="og-grid"></div>
   <div class="og-out" hidden>
     <h3>Save</h3>
     <div class="og-row">
       <button class="btn og-merge" type="button">Download all pages as one PDF</button>
       <button class="btn secondary og-extract" type="button">Download selected pages</button>
+    </div>
+    <div class="og-row">
+      <label>Save only pages <input class="og-keep" type="text" placeholder="1-3,5" /></label>
+      <button class="btn secondary og-keepgo" type="button">Download these pages</button>
     </div>
     <div class="og-row">
       <label>Split every <input class="og-n" type="number" min="1" value="1" /> pages</label>
@@ -44,16 +66,20 @@
   .og-act { display: flex; justify-content: space-between; gap: 2px; }
   .og-act button { flex: 1; min-height: 36px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; font: inherit; cursor: pointer; }
   .og input[type=number] { width: 4.5em; } .og-ranges { width: 9em; }
+  .og-card.drop { outline: 3px dashed var(--accent); }
+  .og-more[hidden] { display: none; }
+  .og-pick, .og-keep { width: 8em; }
   .og-hint { font-size: 14px; margin: 0; }
 </style>
 
 <script>
   import { zipSync } from 'fflate';
-  import { buildPdf, parseRanges, download, baseName, loadPdfJs, type PageRef } from '../../lib/docs/pdfpages';
+  import { buildPdf, parseRanges, pickPages, download, baseName, loadPdfJs, type PageRef } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.og') as HTMLElement;
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const msg = $<HTMLElement>('.og-msg'), grid = $<HTMLElement>('.og-grid');
   interface Item extends PageRef { sel: boolean }
+  let dragFrom = -1;
   const sources: Uint8Array[] = [], names: string[] = [], viewers: any[] = [];
   let items: Item[] = [];
   const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
@@ -73,10 +99,16 @@
     items.forEach((it, i) => {
       const card = document.createElement('div'); card.className = 'og-card' + (it.sel ? ' sel' : '');
       card.innerHTML = '<div class="og-th" title="Tap to select"></div><div class="og-lab"></div><div class="og-act"><button type="button" data-a="l" aria-label="Move earlier">&larr;</button><button type="button" data-a="r" aria-label="Move later">&rarr;</button><button type="button" data-a="rot" aria-label="Rotate">&#8635;</button><button type="button" data-a="del" aria-label="Delete page">&times;</button></div>';
-      (card.querySelector('.og-lab') as HTMLElement).textContent = `${i + 1}. ${names[it.src]} p${it.index + 1}`;
+      (card.querySelector('.og-lab') as HTMLElement).textContent = it.src < 0 ? `${i + 1}. Blank page` : `${i + 1}. ${names[it.src]} p${it.index + 1}`;
+      card.draggable = true;
+      card.addEventListener('dragstart', (e) => { dragFrom = i; e.dataTransfer?.setData('text/plain', String(i)); });
+      card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('drop'); });
+      card.addEventListener('dragleave', () => card.classList.remove('drop'));
+      card.addEventListener('drop', (e) => { e.preventDefault(); if (dragFrom < 0 || dragFrom === i) return; const [m] = items.splice(dragFrom, 1); items.splice(i, 0, m); dragFrom = -1; draw(); });
       const th = card.querySelector('.og-th') as HTMLElement, key = it.src + ':' + it.index;
       const put = (c: HTMLCanvasElement) => { const k = c.cloneNode() as HTMLCanvasElement; k.getContext('2d')!.drawImage(c, 0, 0); k.style.transform = `rotate(${it.rot}deg)`; th.appendChild(k); };
-      if (cache.has(key)) put(cache.get(key)!); else thumb(it).then((c) => { cache.set(key, c); if (th.isConnected) put(c); }).catch(() => { th.textContent = 'No preview'; });
+      if (it.src < 0) { th.textContent = 'Blank'; th.style.color = '#555'; }
+      else if (cache.has(key)) put(cache.get(key)!); else thumb(it).then((c) => { cache.set(key, c); if (th.isConnected) put(c); }).catch(() => { th.textContent = 'No preview'; });
       th.onclick = () => { it.sel = !it.sel; card.classList.toggle('sel', it.sel); };
       card.querySelector('.og-act')!.addEventListener('click', (e) => {
         const a = (e.target as HTMLElement).closest('button')?.dataset.a; if (!a) return;
@@ -89,7 +121,7 @@
       grid.appendChild(card);
     });
     const has = items.length > 0;
-    ($('.og-bar') as HTMLElement).hidden = !has; ($('.og-out') as HTMLElement).hidden = !has;
+    ($('.og-bar') as HTMLElement).hidden = !has; ($('.og-out') as HTMLElement).hidden = !has; ($('.og-more') as HTMLElement).hidden = !has;
     if (has) say(`${items.length} page${items.length === 1 ? '' : 's'} from ${sources.length} file${sources.length === 1 ? '' : 's'}. Tap a page to select it.`);
   }
 
@@ -98,6 +130,8 @@
     for (const f of files) {
       try {
         say(`Reading ${f.name}...`);
+        if (f.size === 0) { say(`${f.name} is empty.`, true); return; }
+        if (f.size > 200 * 1024 * 1024) { say(`${f.name} is over 200 MB; try a smaller file.`, true); return; }
         const bytes = new Uint8Array(await f.arrayBuffer());
         const pdfjs = await loadPdfJs();
         const doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
@@ -112,6 +146,23 @@
   $('.og-none').addEventListener('click', () => each((it) => (it.sel = false)));
   $('.og-clear').addEventListener('click', () => { items = []; sources.length = names.length = viewers.length = 0; cache.clear(); say(''); draw(); });
 
+  const guard = (fn: () => Promise<void>) => async () => { try { await fn(); } catch (e: any) { say(e.message || 'Something went wrong.', true); } };
+  $('.og-odd').addEventListener('click', () => { items.forEach((it, i) => (it.sel = i % 2 === 0)); draw(); });
+  $('.og-even').addEventListener('click', () => { items.forEach((it, i) => (it.sel = i % 2 === 1)); draw(); });
+  $('.og-pickgo').addEventListener('click', guard(async () => {
+    const ix = new Set(pickPages($<HTMLInputElement>('.og-pick').value, items.length));
+    items.forEach((it, i) => (it.sel = ix.has(i))); draw(); say(`Selected ${ix.size} page${ix.size === 1 ? '' : 's'}.`);
+  }));
+  const needSel = () => { if (!items.some((i) => i.sel)) throw new Error('Tap the pages you want first.'); };
+  $('.og-rotsel').addEventListener('click', guard(async () => { needSel(); items.forEach((it) => { if (it.sel) it.rot = (it.rot + 90) % 360; }); draw(); }));
+  $('.og-delsel').addEventListener('click', guard(async () => { needSel(); items = items.filter((i) => !i.sel); draw(); say(`${items.length} pages left.`); }));
+  $('.og-dupsel').addEventListener('click', guard(async () => { needSel(); items = items.flatMap((it) => (it.sel ? [{ ...it, sel: false }, { ...it, sel: false }] : [it])); draw(); }));
+  $('.og-rev').addEventListener('click', () => { items.reverse(); draw(); });
+  $('.og-blank').addEventListener('click', () => { items.push({ src: -1, index: 0, rot: 0, sel: false }); draw(); });
+  $('.og-keepgo').addEventListener('click', guard(async () => {
+    const ix = pickPages($<HTMLInputElement>('.og-keep').value, items.length);
+    download(await buildPdf(sources, refs(ix.map((i) => items[i]))), `${outName()}-pages.pdf`); say(`Saved ${ix.length} page${ix.length === 1 ? '' : 's'}.`);
+  }));
   const outName = () => (sources.length === 1 ? names[0] : 'organised');
   const refs = (list: Item[]): PageRef[] => list.map(({ src, index, rot }) => ({ src, index, rot }));
   async function zip(groups: Item[][], label: string) {
@@ -120,8 +171,7 @@
     download(zipSync(files, { level: 0 }), `${outName()}-split.zip`, 'application/zip');
     say(`Made a ZIP with ${groups.length} PDF${groups.length === 1 ? '' : 's'}.`);
   }
-  const guard = (fn: () => Promise<void>) => async () => { try { await fn(); } catch (e: any) { say(e.message || 'Something went wrong.', true); } };
-  $('.og-merge').addEventListener('click', guard(async () => { download(await buildPdf(sources, refs(items)), `${outName()}-organised.pdf`); say(`Saved ${items.length} pages.`); }));
+  $('.og-merge').addEventListener('click', guard(async () => { const out = await buildPdf(sources, refs(items)); download(out, `${outName()}-organised.pdf`); say(`Saved ${items.length} pages, ${(out.length / 1024).toFixed(0)} KB.`); }));
   $('.og-extract').addEventListener('click', guard(async () => {
     const s = items.filter((i) => i.sel); if (!s.length) throw new Error('Tap the pages you want first.');
     download(await buildPdf(sources, refs(s)), `${outName()}-extract.pdf`); say(`Saved ${s.length} selected pages.`);

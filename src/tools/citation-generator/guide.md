@@ -11,12 +11,13 @@ ads: false
 order: 1773
 icon: book
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [bibtex-cleaner, resume-builder, word-counter]
 sources:
   - "The punctuation, name order and italic rules for APA 7th edition, MLA 9th edition, Chicago 17th edition (author-date and notes-bibliography), Harvard (the common Cite Them Right layout) and IEEE are written by fibub from the published style rules. They are not the official style guides and no example text is copied from them."
   - "Universities and journals often add their own variations, especially for Harvard. Check your own style guide or the one your journal gives you."
   - "The example authors, titles and DOI (10.1234 is a made-up prefix) are invented."
+  - "In-text forms follow the APA 7, MLA 9, Chicago author-date and Harvard (Cite Them Right) summaries: two authors joined with & or and, three or more as et al. (Chicago and Harvard four or more); checked 2026-11-16. Check your institution's version."
 flow:
   - { icon: pencil, label: "Type" }
   - { icon: book, label: "Style" }
@@ -44,6 +45,11 @@ You can add each finished reference to a list. The list is sorted the way the st
 - **Date you looked at it**: used for web pages without a date, and by Harvard and IEEE.
 - **Page you cite**: only for the Chicago footnote.
 - **Chicago notes and bibliography**: gives the footnote and the bibliography entry together.
+
+## More options (added 2026-11-16)
+
+- **In-text citation**: under the full citation you now see the short form for your sentence, such as (Rao & Ivanov, 2021) in APA or (Rao and Ivanov 45) in MLA. Add a page number to include it. IEEE shows [1] and Chicago notes use a numbered footnote.
+- **Online video**: choose "Online video" for YouTube and similar. APA and MLA are written out in full; the other styles use the web page form, and the page tells you so.
 
 ## Worked example
 

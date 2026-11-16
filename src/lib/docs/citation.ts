@@ -2,7 +2,7 @@
 // The rules below are written from the published style rules (author order, punctuation, which parts are
 // italic or quoted). Italic text is marked with * ... * in the strings returned.
 
-export type SrcType = 'book' | 'article' | 'chapter' | 'website' | 'report';
+export type SrcType = 'book' | 'article' | 'chapter' | 'website' | 'report' | 'video';
 export type StyleId = 'apa' | 'mla' | 'chicago-ad' | 'chicago-note' | 'harvard' | 'ieee';
 
 export interface Src {
@@ -42,6 +42,7 @@ export const TYPES: { id: SrcType; name: string }[] = [
   { id: 'chapter', name: 'Chapter in an edited book' },
   { id: 'website', name: 'Web page' },
   { id: 'report', name: 'Report' },
+  { id: 'video', name: 'Online video' },
 ];
 
 export const emptySrc = (type: SrcType = 'book'): Src => ({
@@ -169,14 +170,14 @@ function editorsList(ns: Name[], style: 'apa' | 'plain' | 'harvard' | 'ieee'): s
 // ---------- the six styles ----------
 function apa(s: Src): string[] {
   const au = parseNames(s.authors), eds = parseNames(s.editors);
-  const web = s.type === 'website';
+  const web = s.type === 'website' || s.type === 'video';
   const dp = `(${s.year.trim() ? s.year.trim() + (web && s.month ? ', ' + MONTHS[s.month - 1] + (s.day ? ' ' + s.day : '') : '') : 'n.d.'})`;
   const ed = ordinal(s.edition);
   const rep = s.reportNo ? ` (Report No. ${s.reportNo.trim()})` : '';
   let title = '';
   if (s.type === 'book') title = it(s.title) + (ed ? ` (${ed})` : '');
   else if (s.type === 'article' || s.type === 'chapter') title = s.title;
-  else if (web) title = it(s.title);
+  else if (web) title = it(s.title) + (s.type === 'video' ? ' [Video]' : '');
   else title = it(s.title) + rep;
   const head = au.length ? `${endDot(listAPA(au))} ${dp}. ${endDot(title)}` : `${endDot(title)} ${dp}.`;
   const orgAuthor = au.length === 1 && au[0].org ? au[0].family.toLowerCase() : '';
@@ -200,7 +201,8 @@ function apa(s: Src): string[] {
 function mla(s: Src): string[] {
   const au = parseNames(s.authors), eds = parseNames(s.editors);
   const a = au.length ? endDot(listMLA(au)) : '';
-  const web = s.type === 'website';
+  const video = s.type === 'video';
+  const web = s.type === 'website' || video;
   const quoted = s.type === 'article' || s.type === 'chapter' || web;
   const t = quoted ? `"${endDot(s.title)}"` : endDot(it(s.title));
   const pg = pagesText(s.pages, '-', true);
@@ -214,7 +216,8 @@ function mla(s: Src): string[] {
   else if (s.type === 'chapter') {
     const e = eds.length ? 'edited by ' + editorsList(eds, 'plain') : '';
     rest = [it(s.container), e, s.publisher, s.year.trim(), pg];
-  } else rest = [it(s.container), s.publisher, dateTxt];
+  } else if (video) rest = [it(s.container), s.publisher && `uploaded by ${s.publisher.trim()}`, dateTxt];
+  else rest = [it(s.container), s.publisher, dateTxt];
   const ac = accessedParts(s.accessed);
   let r = join(rest.filter(Boolean) as string[], ', ');
   r = join([r, l], ', ');
@@ -336,7 +339,9 @@ function ieee(s: Src): string[] {
   return [clean(r)];
 }
 
-export function cite(s: Src, style: StyleId): string[] {
+export function cite(s0: Src, style: StyleId): string[] {
+  // Video is written out in full for APA and MLA; the other styles use their web page form.
+  const s: Src = s0.type === 'video' && style !== 'apa' && style !== 'mla' ? { ...s0, type: 'website' } : s0;
   switch (style) {
     case 'apa': return apa(s);
     case 'mla': return mla(s);
@@ -360,7 +365,8 @@ export function problems(s: Src): string[] {
   if (!s.year.trim()) p.push('No year: it will show as "n.d." (no date).');
   if (s.type === 'article' && !s.container.trim()) p.push('Add the journal name.');
   if (s.type === 'chapter' && !s.container.trim()) p.push('Add the title of the book that holds the chapter.');
-  if (s.type === 'website' && !s.url.trim()) p.push('Add the web address.');
+  if ((s.type === 'website' || s.type === 'video') && !s.url.trim()) p.push('Add the web address.');
+  if (s.type === 'video' && !s.container.trim()) p.push('Add the site, for example YouTube.');
   if ((s.type === 'book' || s.type === 'chapter' || s.type === 'report') && !s.publisher.trim()) p.push('Add the publisher.');
   return p;
 }
@@ -380,24 +386,24 @@ const bibEsc = (t: string) => t.replace(/([&%$#_])/g, '\\$1');
 export function toBibtex(list: Src[]): string {
   const keys = bibKeys(list);
   return list.map((s, i) => {
-    const type = { book: 'book', article: 'article', chapter: 'incollection', website: 'misc', report: 'techreport' }[s.type];
+    const type = { book: 'book', article: 'article', chapter: 'incollection', website: 'misc', video: 'misc', report: 'techreport' }[s.type];
     const f: [string, string][] = [];
     const au = parseNames(s.authors).map((n) => (n.org ? `{${n.family}}` : `${n.family}, ${n.given}`)).join(' and ');
     const ed = parseNames(s.editors).map((n) => (n.org ? `{${n.family}}` : `${n.family}, ${n.given}`)).join(' and ');
     f.push(['author', au], ['editor', ed], ['title', s.title ? `{${bibEsc(s.title)}}` : '']);
     if (s.type === 'article') f.push(['journal', bibEsc(s.container)]);
     else if (s.type === 'chapter') f.push(['booktitle', bibEsc(s.container)]);
-    else if (s.type === 'website') f.push(['howpublished', s.url ? `\\url{${s.url}}` : ''], ['organization', bibEsc(s.container)]);
+    else if (s.type === 'website' || s.type === 'video') f.push(['howpublished', s.url ? `\\url{${s.url}}` : ''], ['organization', bibEsc(s.container)]);
     f.push(['year', s.year.trim()], ['month', s.month ? MONTHS[s.month - 1].slice(0, 3).toLowerCase() : ''], ['volume', s.volume], ['number', s.issue || s.reportNo],
       ['pages', s.pages.replace(/\s*[-–—]+\s*/, '--')], ['publisher', bibEsc(s.publisher)], ['address', s.place], ['edition', s.edition],
-      ['doi', normDoi(s.doi)], ['url', s.type === 'website' ? '' : s.url]);
+      ['doi', normDoi(s.doi)], ['url', s.type === 'website' || s.type === 'video' ? '' : s.url]);
     const body = f.filter(([, v]) => v && v.trim()).map(([k, v]) => `  ${k} = {${/^\{.*\}$/.test(v) && k === 'title' ? v.slice(1, -1).replace(/^/, '{').replace(/$/, '}') : v}}`).join(',\n');
     return `@${type}{${keys[i]},\n${body}\n}`;
   }).join('\n\n') + (list.length ? '\n' : '');
 }
 export function toRis(list: Src[]): string {
   return list.map((s) => {
-    const ty = { book: 'BOOK', article: 'JOUR', chapter: 'CHAP', website: 'ELEC', report: 'RPRT' }[s.type];
+    const ty = { book: 'BOOK', article: 'JOUR', chapter: 'CHAP', website: 'ELEC', video: 'VIDEO', report: 'RPRT' }[s.type];
     const [sp, ep] = pageParts(s.pages);
     const rows: [string, string][] = [['TY', ty]];
     parseNames(s.authors).forEach((n) => rows.push(['AU', n.org ? n.family : `${n.family}, ${n.given}`]));
@@ -414,3 +420,27 @@ export function toRis(list: Src[]): string {
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const toHtml = (t: string) => esc(t).replace(/\*([^*]+)\*/g, '<i>$1</i>');
 export const toPlain = (t: string) => t.replace(/\*/g, '');
+
+// ---------- in-text citation ----------
+const famOf = (ns: Name[]) => ns.map((n) => n.family);
+/** The short form that goes in the sentence, such as (Rao & Ivanov, 2021). The first author's surname and the year; page optional. */
+export function inText(s: Src, style: StyleId, page = ''): string {
+  const ns = parseNames(s.authors), f = famOf(ns), y = s.year.trim(), pg = page.trim();
+  const shortTitle = s.title.trim().split(/\s+/).slice(0, 4).join(' ');
+  if (style === 'ieee') return '[1]';
+  if (style === 'chicago-note') return 'Numbered footnote (see the Footnote above).';
+  const quotedTitle = s.type === 'article' || s.type === 'chapter' || s.type === 'website' || s.type === 'video';
+  const who = (sep: string, last: string, etalAt: number) => {
+    if (!f.length) return quotedTitle ? `"${shortTitle}"` : shortTitle;
+    if (f.length >= etalAt) return f[0] + ' et al.';
+    if (f.length === 1) return f[0];
+    if (f.length === 2) return `${f[0]}${sep}${f[1]}`;
+    return f.slice(0, -1).join(', ') + last + f[f.length - 1];
+  };
+  switch (style) {
+    case 'apa': return `(${who(' & ', ', & ', 3)}, ${y || 'n.d.'}${pg ? ', p. ' + pg : ''})`;
+    case 'mla': return `(${who(' and ', ', and ', 3)}${pg ? ' ' + pg : ''})`;
+    case 'chicago-ad': return `(${who(' and ', ', and ', 4)} ${y || 'n.d.'}${pg ? ', ' + pg : ''})`;
+    case 'harvard': return `(${who(' and ', ' and ', 4)} ${y || 'no date'}${pg ? ', p. ' + pg : ''})`;
+  }
+}

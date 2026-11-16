@@ -34,6 +34,7 @@ import { TEMPLATES } from '../../lib/docs/letters';
         <label>Subject line <input type="text" data-k="subject" /></label>
         <label>Greeting <input type="text" data-k="salutation" /></label>
         <label>Body <textarea rows="12" data-k="body"></textarea></label>
+        <button type="button" class="btn secondary lb-next">Jump to the next [blank]</button>
         <p class="lb-hint">Replace everything in [square brackets] with your own facts. A blank line starts a new paragraph.</p>
         <div class="lb-grid">
           <label>Sign-off
@@ -109,6 +110,16 @@ import { TEMPLATES } from '../../lib/docs/letters';
     if (!el.dataset.k) return;
     (F as any)[el.dataset.k] = el.dataset.k === 'serif' ? el.value === '1' : el.value;
     show();
+  });
+  // Select the next [bracketed] spot in the body (or the subject), so each blank can be typed over.
+  q('.lb-next').addEventListener('click', () => {
+    const ta = q<HTMLTextAreaElement>('[data-k=body]');
+    const from = document.activeElement === ta ? ta.selectionEnd : 0;
+    const re = /\[[^\]]+\]/g; let m: RegExpExecArray | null, hit: RegExpExecArray | null = null;
+    while ((m = re.exec(ta.value))) { if (m.index >= from) { hit = m; break; } }
+    if (!hit) { re.lastIndex = 0; hit = re.exec(ta.value); }
+    if (!hit) { const s = q<HTMLInputElement>('[data-k=subject]'); if (/\[[^\]]+\]/.test(s.value)) s.focus(); return; }
+    ta.focus(); ta.setSelectionRange(hit.index, hit.index + hit[0].length);
   });
   root.querySelectorAll<HTMLInputElement>('input[name=lb-kind]').forEach((r) => r.addEventListener('change', () => { F = switchKind(F, r.value as Kind); bind(); show(); }));
   const base = () => (F.name.trim() ? `${F.name.trim()}-` : '').replace(/[^\w.-]+/g, '-') + F.kind + '-letter';

@@ -33,7 +33,7 @@ It also works the other way round: pick a column such as country or department a
 1. Choose several CSV or .xlsx files. You can add more files later.
 2. Pick how to join them: **Same columns** or **All columns**.
 3. Keep or remove the source-file column, and rename it if you like.
-4. Read the summary line, then download the merged CSV or Excel file.
+4. Look at the preview of the first rows and read the summary line. Use the small button next to a file to take it out. Then download the merged CSV or Excel file.
 5. To split instead, pick a column and press Download ZIP.
 
 ## What each setting does
@@ -41,6 +41,7 @@ It also works the other way round: pick a column such as country or department a
 - **Same columns**: every file must have the same column names. If one differs, the tool tells you which and stops, so no data is silently lost.
 - **All columns**: the result has every column from every file. Missing cells stay empty.
 - **Source-file column**: adds the file name to each row.
+- **Repeated rows** (under More options): keeps the first copy of every identical row, ignoring the source-file column. A second box also ignores capitals and spaces at the ends.
 - **Split by column**: one CSV per different value; blank values go to a file called blank.
 
 ## Worked example

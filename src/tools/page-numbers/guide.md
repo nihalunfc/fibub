@@ -30,6 +30,9 @@ You can also add header and footer text. Write `{date}` for today's date and `{f
 
 ## How to use it
 
+Extra options: pick roman (i, ii, iii or I, II, III) or lettered numbers, set the margin from the page edge, leave the last pages unnumbered, and tick "Outside corners for double-sided printing" to put the number on the outer edge of facing pages. A picture of the first numbered page updates as you change settings.
+
+
 1. Choose your PDF.
 2. Pick where the number goes and which style you want.
 3. Set "Start at" and "Skip first pages" if the first pages should not be counted.

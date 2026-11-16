@@ -11,6 +11,8 @@ export interface Resume {
   summary: string; skills: string; certs: string;
   experience: Job[]; education: Edu[]; projects: Project[]; extras: Extra[];
   order: SectionId[]; style: 'sans' | 'serif'; paper: 'letter' | 'a4';
+  /** Optional look settings (older saved resumes lack them): name and contacts centred or left, normal or compact text. */
+  header?: 'center' | 'left'; density?: 'normal' | 'compact';
 }
 
 export const SECTION_TITLES: Record<SectionId, string> = {
@@ -27,7 +29,7 @@ export const emptyExtra = (): Extra => ({ title: '', body: '' });
 export const emptyResume = (paper: 'letter' | 'a4' = 'letter'): Resume => ({
   name: '', headline: '', email: '', phone: '', location: '', links: '', summary: '', skills: '', certs: '',
   experience: [emptyJob()], education: [emptyEdu()], projects: [], extras: [],
-  order: [...DEFAULT_ORDER], style: 'sans', paper,
+  order: [...DEFAULT_ORDER], style: 'sans', paper, header: 'center', density: 'normal',
 });
 
 export const EXAMPLE: Resume = {

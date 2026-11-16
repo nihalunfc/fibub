@@ -55,4 +55,15 @@ export default async ({ page, check, BASE }) => {
   const o2 = await read(dl2);
   const d2 = await PDFDocument.load(o2);
   check(d2.getPageCount() === 2 && (await textOf(o2, 1)).trim() === '' && (await textOf(o2, 2)).includes('Second page keeps its text'), 'redact-pdf: untouched page keeps its real text');
+  // whole page cover, then clear all
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.rd-whole', '2'); await page.click('.rd-wholego');
+  check((await page.textContent('.rd-count')).includes('on 2 pages'), 'redact-pdf: whole page 2 covered');
+  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('.rd-save')]);
+  const o3 = await read(dl3);
+  check((await textOf(o3, 2)).trim() === '', 'redact-pdf: whole-page cover leaves no text on page 2');
+  await page.fill('.rd-whole', '9'); await page.click('.rd-wholego');
+  check((await page.textContent('.rd-whole-msg')).includes('within'), 'redact-pdf: bad page explained');
+  await page.click('.rd-clearall');
+  check((await page.textContent('.rd-count')).trim() === '', 'redact-pdf: remove all boxes clears the count');
 };

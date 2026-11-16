@@ -70,3 +70,33 @@ export function readZipInfo(b: Uint8Array): ZipInfo {
 
 /** File types that are already compressed inside, so packing them again gains almost nothing. */
 export const ALREADY_COMPRESSED = /\.(jpe?g|png|gif|webp|avif|heic|mp3|m4a|aac|ogg|opus|flac|mp4|m4v|mov|mkv|webm|avi|zip|7z|rar|gz|bz2|xz|zst|docx|xlsx|pptx|odt|ods|odp|epub|jar|apk|pdf)$/i;
+
+/** Things worth a look inside a ZIP before opening it. Plain sentences, most important first. */
+export function zipWarnings(entries: ZipEntry[]): string[] {
+  const files = entries.filter((e) => !e.dir), out: string[] = [];
+  const unsafe = files.filter((e) => /(^|[\\/])\.\.([\\/]|$)/.test(e.name) || /^([\\/]|[A-Za-z]:)/.test(e.name));
+  if (unsafe.length) out.push(`${unsafe.length} file${unsafe.length === 1 ? ' has' : 's have'} a path that points outside the folder it is unpacked into (such as ${unsafe[0].name}). Do not unpack this ZIP unless you trust whoever sent it.`);
+  const prog = files.filter((e) => /\.(exe|msi|bat|cmd|com|scr|js|jse|vbs|vbe|wsf|ps1|jar|apk|dmg|pkg|sh|lnk|hta|dll)$/i.test(e.name));
+  if (prog.length) out.push(`${prog.length} program or script file${prog.length === 1 ? '' : 's'} inside (such as ${prog[0].name}). Only open them if you know who made them.`);
+  const dbl = files.filter((e) => /\.(pdf|docx?|xlsx?|jpe?g|png|txt)\.(exe|bat|cmd|scr|js|vbs|lnk)$/i.test(e.name));
+  if (dbl.length) out.push(`${dbl.length} file${dbl.length === 1 ? ' looks' : 's look'} like a document but ${dbl.length === 1 ? 'is' : 'are'} really a program (such as ${dbl[0].name}).`);
+  const seen = new Set<string>(), dup = new Set<string>();
+  for (const e of files) { const k = e.name.toLowerCase(); if (seen.has(k)) dup.add(e.name); seen.add(k); }
+  if (dup.size) out.push(`${dup.size} name${dup.size === 1 ? ' appears' : 's appear'} more than once (such as ${[...dup][0]}); unpacking will overwrite one with another.`);
+  const junk = files.filter((e) => /(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|desktop\.ini$|\._)/i.test(e.name));
+  if (junk.length) out.push(`${junk.length} hidden system file${junk.length === 1 ? '' : 's'} from a Mac or Windows computer (such as ${junk[0].name}). They are harmless; leaving them out makes the ZIP tidier.`);
+  const ratio = files.filter((e) => e.packed > 0 && e.size / e.packed > 1000 && e.size > 50 * 1024 * 1024);
+  if (ratio.length) out.push(`${ratio.length} file${ratio.length === 1 ? ' is' : 's are'} extremely compressed (over 1000 times, ${ratio[0].name}). That is a sign of a "zip bomb" that fills the disk when unpacked.`);
+  return out;
+}
+
+/** Totals by file type (extension), biggest first. */
+export function byType(entries: ZipEntry[]): { type: string; count: number; size: number; packed: number }[] {
+  const m = new Map<string, { type: string; count: number; size: number; packed: number }>();
+  for (const e of entries.filter((x) => !x.dir)) {
+    const ext = (e.name.match(/\.([A-Za-z0-9]{1,6})$/)?.[1] ?? 'no extension').toLowerCase();
+    const r = m.get(ext) ?? { type: ext, count: 0, size: 0, packed: 0 };
+    r.count++; r.size += e.size; r.packed += e.packed; m.set(ext, r);
+  }
+  return [...m.values()].sort((a, b) => b.size - a.size);
+}

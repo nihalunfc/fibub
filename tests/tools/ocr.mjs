@@ -32,4 +32,9 @@ export default async ({ page, check, BASE }) => {
   await page.waitForFunction((b) => document.querySelector('.ocr').dataset.done !== b, before, { timeout: 90000 });
   const t2 = await page.inputValue('.ocr-text');
   check(/--- Page 1 ---\s*FIRST PAGE/.test(t2) && /--- Page 2 ---\s*SECOND PAGE/.test(t2), 'ocr: reads both PDF pages in order ' + JSON.stringify(t2));
+  // join broken lines: same words, no more line breaks than before
+  const before2 = (await page.inputValue('.ocr-text')).split('\n').length;
+  await page.check('.ocr-join');
+  const t3 = await page.inputValue('.ocr-text');
+  check(/FIRST PAGE/.test(t3) && /SECOND PAGE/.test(t3) && t3.split('\n').length <= before2, 'ocr: join broken lines keeps the words');
 };

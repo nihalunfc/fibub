@@ -54,4 +54,13 @@ export default async ({ page, check, BASE }) => {
   await page.setInputFiles('.mc-file', upload('x.txt', Buffer.from('hello')));
   await page.waitForTimeout(300);
   check((await page.textContent('.mc-msg')).includes('not a type'), 'metadata-cleaner: unsupported file explained');
+  // summary, taking one file off the list, re-check after cleaning
+  await go();
+  await page.setInputFiles('.mc-file', [upload('p.png', makePng()), upload('b.docx', makeDocx())]);
+  await page.waitForFunction(() => document.querySelectorAll('.mc-card').length === 2);
+  check(/carry hidden details/.test(await page.textContent('.mc-sum')), 'metadata-cleaner: summary says files carry details');
+  await page.click('.mc-card:first-child .mc-rm');
+  check((await page.$$('.mc-card')).length === 1, 'metadata-cleaner: one file can be taken off the list');
+  await saved(page, () => page.click('.mc-clean'));
+  check(/no author, owner or location details left/.test(await page.textContent('.mc-msg')), 'metadata-cleaner: cleaned file is re-read and checked (' + (await page.textContent('.mc-msg')) + ')');
 };

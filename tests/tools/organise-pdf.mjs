@@ -30,4 +30,17 @@ export default async ({ page, check, BASE }) => {
   check(Object.keys(unzipSync(new Uint8Array(z2.buf))).length === 2, 'organise-pdf: 4 pages split every 3 gives 2 parts');
   await page.fill('.og-ranges', '9'); await page.click('.og-split-r');
   check((await page.textContent('.og-msg')).includes('outside'), 'organise-pdf: bad range explained');
+  // quick edits: odd, delete selected, blank, reverse, keep-range
+  await page.click('.og-odd');
+  check((await page.$$('.og-card.sel')).length === 2, 'organise-pdf: select odd picks 2 of 4');
+  await page.click('.og-dupsel');
+  check((await page.$$('.og-card')).length === 6, 'organise-pdf: duplicate selected gives 6');
+  await page.click('.og-blank');
+  check((await page.$$('.og-card')).length === 7, 'organise-pdf: blank page added');
+  await page.fill('.og-pick', '1-2'); await page.click('.og-pickgo'); await page.click('.og-delsel');
+  check((await page.$$('.og-card')).length === 5, 'organise-pdf: delete selected leaves 5');
+  await page.click('.og-rev');
+  await page.fill('.og-keep', '1-2');
+  const k = await saved(page, () => page.click('.og-keepgo'));
+  check(await pages(k.buf) === 2, 'organise-pdf: save only pages 1-2');
 };

@@ -43,6 +43,14 @@ import { SHEETS } from '../../lib/docs/labels';
           <label>Skip used labels <input class="lm-skip" type="number" min="0" step="1" value="0" /></label>
           <label>Align <select class="lm-align"><option value="left">Left</option><option value="center">Centre</option></select></label>
         </div>
+        <details class="lm-more">
+          <summary>Numbered labels (box 1, box 2, ...)</summary>
+          <p class="lm-hint">Type &#123;n&#125; in a label, such as "Box &#123;n&#125;". Each copy gets the next number, so 5 copies from 101 make Box 101 to Box 105.</p>
+          <div class="lm-grid">
+            <label>Start at <input class="lm-start" type="number" step="1" value="1" /></label>
+            <label>Pad with zeros to <input class="lm-pad" type="number" min="0" max="8" step="1" value="0" /> digits</label>
+          </div>
+        </details>
         <label class="lm-chk"><input type="checkbox" class="lm-bold" /> First line in bold (the name)</label>
         <label class="lm-chk"><input type="checkbox" class="lm-border" /> Draw light label outlines (for a test print on plain paper)</label>
         <p class="lm-hint">Text that is too long for a label is made smaller until it fits. "Skip used labels" starts printing part-way down a sheet you have already used.</p>
@@ -78,7 +86,7 @@ import { SHEETS } from '../../lib/docs/labels';
 </style>
 
 <script>
-  import { SHEETS, splitLabels, pageCount, perPage, type Sheet } from '../../lib/docs/labels';
+  import { SHEETS, splitLabels, numberLabels, pageCount, perPage, type Sheet } from '../../lib/docs/labels';
   const root = document.querySelector('.lm') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const custom: Sheet = { ...SHEETS.find((s) => s.id === 'custom')! };
@@ -86,10 +94,12 @@ import { SHEETS } from '../../lib/docs/labels';
   const labels = () => splitLabels(q<HTMLTextAreaElement>('.lm-text').value, q<HTMLSelectElement>('.lm-mode').value as 'line' | 'block', q<HTMLInputElement>('.lm-head').checked);
   const num = (s: string, d: number) => { const v = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(v) ? v : d; };
   const opts = () => ({ size: num('.lm-size', 10), copies: Math.max(1, Math.floor(num('.lm-copies', 1))), skip: Math.max(0, Math.floor(num('.lm-skip', 0))), align: q<HTMLSelectElement>('.lm-align').value as 'left' | 'center', borders: q<HTMLInputElement>('.lm-border').checked, boldFirst: q<HTMLInputElement>('.lm-bold').checked });
+  // Labels as they will print: {n} numbering applied (it uses the copies box), otherwise as typed.
+  const planned = () => { const o = opts(); return numberLabels(labels(), o.copies, num('.lm-start', 1), num('.lm-pad', 0)); };
   const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 
   function refresh() {
-    const s = sheet(), L = labels(), o = opts(), n = L.length * o.copies;
+    const s = sheet(), P = planned(), L = P.labels, o = { ...opts(), copies: P.copies }, n = L.length * o.copies;
     q('.lm-custom').hidden = q<HTMLSelectElement>('.lm-sheet').value !== 'custom';
     const pages = pageCount(s, n, o.skip);
     q('.lm-count').textContent = `${L.length} label${L.length === 1 ? '' : 's'}${o.copies > 1 ? ` x ${o.copies} copies` : ''} on ${s.cols * s.rows} per sheet = ${pages} page${pages === 1 ? '' : 's'}.`;
@@ -113,10 +123,10 @@ import { SHEETS } from '../../lib/docs/labels';
   });
   const download = (blob: Blob, name: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   q('.lm-pdf').addEventListener('click', async () => {
-    const L = labels(); const st = q('.lm-status');
+    const P = planned(), L = P.labels; const st = q('.lm-status');
     if (!L.length) { st.textContent = 'Type or open some labels first.'; return; }
     const { labelsPdf } = await import('../../lib/docs/labels');
-    const r = await labelsPdf(sheet(), L, opts());
+    const r = await labelsPdf(sheet(), L, { ...opts(), copies: P.copies });
     st.textContent = `Made ${r.pages} page${r.pages === 1 ? '' : 's'}.` + (r.lost.length ? ` These characters can't be shown in the PDF and were replaced: ${r.lost.slice(0, 10).join(' ')}.` : '');
     download(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), 'labels.pdf');
   });

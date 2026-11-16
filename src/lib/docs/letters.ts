@@ -2,7 +2,7 @@
 // reuse the cover-letter layout code (one column, standard fonts), so the result opens anywhere.
 import { emptyLetter, plainText, letterDocx, letterPdf, type Letter } from './coverletter';
 
-export type Kind = 'formal' | 'complaint' | 'request' | 'resignation' | 'reference' | 'leave';
+export type Kind = 'formal' | 'complaint' | 'request' | 'resignation' | 'reference' | 'leave' | 'thanks' | 'apology' | 'landlord' | 'accept' | 'absence';
 export type Template = { id: Kind; name: string; blurb: string; subject: string; salutation: string; closing: string; body: string };
 
 export const TEMPLATES: Template[] = [
@@ -18,6 +18,16 @@ export const TEMPLATES: Template[] = [
     body: 'I am pleased to recommend [name]. I have known [name] for [number] years as their [manager, teacher or colleague] at [place].\n\n[Describe two or three strengths with a real example of each, such as a project they led or a problem they solved.]\n\nI recommend [name] without reservation for [the role or course]. Please contact me at the details above if you would like to know more.' },
   { id: 'leave', name: 'Leave request', blurb: 'Ask your employer or school for time off.', subject: 'Leave request: [start date] to [end date]', salutation: 'Dear [Manager name],', closing: 'Kind regards',
     body: 'I would like to request [number] days of [annual, sick or unpaid] leave from [start date] to [end date], returning on [date].\n\n[Optional: the reason, and how your work will be covered, for example "I will finish the monthly report before I go and [colleague] will cover my calls".]\n\nPlease let me know if you need any more information, or if these dates cause a problem.' },
+  { id: 'thanks', name: 'Thank-you letter', blurb: 'Thank someone for a gift, help or an interview.', subject: 'Thank you for [what they did]', salutation: 'Dear [Name],', closing: 'Kind regards',
+    body: 'Thank you for [what they did or gave], on [date]. It meant a lot to me.\n\n[Say one specific thing it helped with, or what you enjoyed or learned.]\n\nI am grateful for your time and kindness, and I hope we can [stay in touch or meet again soon].' },
+  { id: 'apology', name: 'Apology letter', blurb: 'Say sorry, own the mistake and offer to put it right.', subject: 'My apology for [what happened]', salutation: 'Dear [Name],', closing: 'Sincerely',
+    body: 'I am sorry for [what happened] on [date]. It was my mistake, and I understand the problem it caused for you.\n\n[Say in a sentence or two what went wrong, without making excuses.]\n\nTo make it right, I will [what you will do] by [date]. I will also [what you will do to stop it happening again].\n\nThank you for your patience.' },
+  { id: 'landlord', name: 'Notice to landlord', blurb: 'Tell your landlord you are moving out.', subject: 'Notice to end tenancy at [property address]', salutation: 'Dear [Landlord name],', closing: 'Sincerely',
+    body: 'I am writing to give notice that I will move out of [property address] on [last day of tenancy], in line with the notice period in my tenancy agreement ([number] days or months).\n\nPlease let me know a suitable time for the final inspection, and where to send my security deposit of [amount]. My new address for post is [forwarding address].\n\nThank you for your help during my tenancy.' },
+  { id: 'accept', name: 'Job offer acceptance', blurb: 'Accept a job offer in writing.', subject: 'Acceptance of the [job title] position', salutation: 'Dear [Hiring manager name],', closing: 'Sincerely',
+    body: 'Thank you for offering me the position of [job title] at [company]. I am pleased to accept, on the terms in your letter dated [date], including a salary of [amount] a year.\n\nI can start on [start date]. Please tell me what documents you need before my first day, and who I should report to.\n\nI look forward to joining the team.' },
+  { id: 'absence', name: 'Absence note', blurb: 'Explain a child\'s or your own absence to a school or employer.', subject: 'Absence on [date]', salutation: 'Dear [Teacher or manager name],', closing: 'Yours sincerely',
+    body: 'Please excuse [name] from [school or work] on [date or dates], because of [a short reason, such as illness or a family matter].\n\n[name] is expected to return on [date]. Please let me know if you need a doctor\'s note or any other record.\n\nThank you for understanding.' },
 ];
 
 export type LetterForm = {

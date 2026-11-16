@@ -70,4 +70,13 @@ export default async ({ page, check, BASE, OUT }) => {
   check((await v('experience.0.title')) === 'Inventory Planner' && (await v('experience.1.title')) === 'Stock Clerk' && (await v('experience.1.bullets')).split('\n').length === 2, 'fix 2-col: jobs from the right column, not mixed with skills');
   check(/Hindi/.test(await page.inputValue('[data-p="extras.0.body"]')), 'fix 2-col: Languages kept as an extra section');
   check(/two columns into one/.test(await page.textContent('.rb-imp-list')), 'fix 2-col: column fix listed');
+
+  // Pasted text and copy-missing-keywords.
+  await page.goto(BASE + path);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.ats-jd', 'We need an analyst with Kubernetes and Terraform. Kubernetes experience is essential. Terraform too.');
+  await page.fill('.ats-paste', 'Jo Lee\njo@example.com 555 123 4567\nExperience\nAnalyst, Acme 2020 - 2023\n- Built 3 reports\nEducation\nBSc\nSkills\nSQL');
+  await page.click('.ats-pastego');
+  await page.waitForSelector('.ats-result:not([hidden])', { timeout: 10000 });
+  check(/Kubernetes|kubernetes/.test(await page.getAttribute('.ats-copymiss', 'data-words') ?? ''), 'paste: missing keywords listed for copying');
 };

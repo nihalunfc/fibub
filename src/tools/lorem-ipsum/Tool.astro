@@ -1,27 +1,33 @@
 ---
 // #1772 Lorem ipsum. Maths in src/lib/docs/textutil.ts.
 ---
-<div class="tool-ui lrm">
+<div class="tool-ui lrm" data-kit>
   <div class="lrm-card">
     <div class="lrm-grid">
       <label>How many
-        <input class="lrm-n" type="number" min="1" max="5000" value="3" inputmode="numeric" />
+        <input class="lrm-n" data-k="n" type="number" min="1" max="5000" value="3" inputmode="numeric" />
       </label>
       <label>Of
-        <select class="lrm-unit"><option value="paragraphs">paragraphs</option><option value="sentences">sentences</option><option value="words">words</option></select>
+        <select class="lrm-unit" data-k="unit"><option value="paragraphs">paragraphs</option><option value="sentences">sentences</option><option value="words">words</option><option value="characters">characters (at most)</option><option value="bullets">list items</option></select>
       </label>
       <label>Kind of filler
-        <select class="lrm-style"><option value="classic">Classic Latin (lorem ipsum)</option><option value="plain">Plain English</option></select>
+        <select class="lrm-style" data-k="style"><option value="classic">Classic Latin (lorem ipsum)</option><option value="plain">Plain English</option></select>
       </label>
     </div>
-    <label class="lrm-chk"><input type="checkbox" class="lrm-start" checked /> <span>Start with "Lorem ipsum dolor sit amet"<small>Only for the classic kind.</small></span></label>
-    <label class="lrm-chk"><input type="checkbox" class="lrm-html" /> <span>Wrap in HTML &lt;p&gt; tags<small>Handy when you paste into a web page.</small></span></label>
+    <label class="lrm-chk"><input type="checkbox" class="lrm-start" data-k="start" checked /> <span>Start with "Lorem ipsum dolor sit amet"<small>Only for the classic kind.</small></span></label>
+    <label class="lrm-chk"><input type="checkbox" class="lrm-html" data-k="html" /> <span>Wrap in HTML &lt;p&gt; tags<small>Handy when you paste into a web page. List items become a &lt;ul&gt; list.</small></span></label>
+    <div class="lrm-row lrm-quick" role="group" aria-label="Quick sizes">
+      <button type="button" class="btn lrm-q" data-u="characters" data-n="60">Headline (60 characters)</button>
+      <button type="button" class="btn lrm-q" data-u="characters" data-n="160">Description (160)</button>
+      <button type="button" class="btn lrm-q" data-u="paragraphs" data-n="3">3 paragraphs</button>
+      <button type="button" class="btn lrm-q" data-u="bullets" data-n="5">5 list items</button>
+    </div>
     <div class="lrm-row"><button type="button" class="btn lrm-again">Make different text</button></div>
   </div>
   <div class="lrm-card">
     <h2>Your filler text</h2>
-    <pre class="lrm-pre lrm-out" aria-live="polite"></pre>
-    <p class="lrm-hint lrm-stat"></p>
+    <pre class="lrm-pre lrm-out"></pre>
+    <p class="lrm-hint lrm-stat" aria-live="polite"></p>
     <div class="lrm-row"><button type="button" class="btn lrm-copy">Copy the text</button></div>
   </div>
 </div>
@@ -62,5 +68,6 @@
   q('.lrm-again').addEventListener('click', () => { seed = Math.floor(Math.random() * 1e9) + 1; update(); });
   const copy = q<HTMLButtonElement>('.lrm-copy');
   copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(out.textContent || ''); copy.textContent = 'Copied'; } catch { copy.textContent = 'Press Ctrl+C to copy'; } setTimeout(() => (copy.textContent = 'Copy the text'), 1800); });
+  root.querySelectorAll<HTMLElement>('.lrm-q').forEach((b) => b.addEventListener('click', () => { unit.value = b.dataset.u!; n.value = b.dataset.n!; update(); }));
   update();
 </script>
