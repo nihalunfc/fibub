@@ -1,0 +1,132 @@
+---
+// #L378 Build a simple shelf. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk bss">
+  <CourseNav id="build-simple-shelf" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Before you drill a wall, check for hidden cables and pipes with a detector, and never drill straight above, below or beside a switch or socket. If you hit a cable or pipe, stop and call an electrician or plumber.</li>
+      <li>Wear safety glasses for sawing, drilling and sanding, and a dust mask for sanding and drilling masonry.</li>
+      <li>Use a stable step ladder, not a chair, and have a helper hold the shelf while you mark.</li>
+      <li>Do not put a heavy shelf above a bed, cot or seat, and keep heavy things low.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Shelf board</li><li>2 shelf brackets</li><li>Short screws for the board</li><li>Wall screws and plugs for your wall</li><li>Tape measure and pencil</li><li>Saw and square</li><li>Drill and bits</li><li>Sandpaper (120 and 180)</li><li>Spirit level</li><li>Cable and pipe detector</li><li>Oil, wax or paint</li><li>Safety glasses</li></ul>
+  </div>
+  <div class="ax-card bss-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A sketch of the shelf with its length and depth marked and books on it" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 70h160v10H20z" /><path d="M40 70V40h10v30M52 70V36h10v34M64 70V44h8v26M74 70V38h10v32" /><path class="hl" d="M20 94h160M20 90v8M180 90v8" /><text x="100" y="108" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">length</text>
+          <path class="hl" d="M150 30l20 20" /><text x="160" y="24" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">depth</text>
+        </svg>
+        <div class="sk-txt"><h3>Plan it</h3><p>Decide the length, the depth and what will go on it. Books need about 200 to 250 mm (8 to 10 in) depth and weigh roughly 20 to 25 kg per metre of shelf. Find where on the wall it will go.</p><p class="sk-tip">Check the weight on each wall screw with the <a href="/everyday/shelf-load/">shelf load</a> tool.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A cut list on paper next to the board, brackets and screws" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 14h70v86H20z" /><path class="hl" d="M30 32h50M30 48h40M30 64h46M30 80h34" stroke-width="2" /><path d="M110 20h80v12h-80z" /><path d="M110 50v36h30M160 50v36h30" /><path d="M118 98h6M132 98h6M146 98h6" />
+        </svg>
+        <div class="sk-txt"><h3>Make a cut list and buy</h3><p>Write down each part and its size: one board, two brackets, short screws for the board, and wall screws and plugs that suit your wall. Buy the board a little longer than you need.</p><p class="sk-tip">Many timber yards will cut the board to length for you.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The board clamped with a square line and the saw on the waste side" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180v20H10z" /><path d="M140 52v36" stroke-dasharray="3 3" /><path class="hl" d="M144 58l40-40M150 64l40-40" /><path d="M156 66l10 12M166 66l-10 12" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Cut to length</h3><p>Square a line across, mark the waste side and cut on it, as in the Saw a straight cut lesson. Support the offcut at the end.</p><p class="sk-tip">Measure twice, cut once.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A sanding block moving along the grain of the board" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180v24H10z" /><path d="M30 66c30-4 60 4 90 0s40-2 60 0M30 76c30-4 60 4 90 0s40-2 60 0" stroke-width="1.5" /><path class="hl" d="M70 40h50v20H70z" /><path class="hl" d="M50 32h-20M30 32l6-4M30 32l6 4M140 32h20M160 32l-6-4M160 32l-6 4" />
+        </svg>
+        <div class="sk-txt"><h3>Sand it</h3><p>Sand the faces and edges with 120 grit, then 180, always along the grain. Round off the sharp corners a little so they do not chip.</p><p class="sk-tip">Wrap the paper round a block to keep surfaces flat.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The board upside down with bracket positions marked an equal distance in from each end" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 40h180v20H10z" /><path class="hl" d="M38 60v40h10V60M152 60v40h10V60" /><path d="M10 30h33M10 26v8M43 26v8M157 30h33M157 26v8M190 26v8" stroke-width="1.5" />
+          <text x="26" y="22" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">⅙</text><text x="174" y="22" font-family="system-ui,sans-serif" font-size="11" text-anchor="middle" fill="currentColor" stroke="none">⅙</text>
+        </svg>
+        <div class="sk-txt"><h3>Mark the brackets</h3><p>Turn the board upside down. Set each bracket the same distance in from its end, about a sixth of the length, with its upright arm flush with the back edge. Mark the holes and drill small pilot holes.</p><p class="sk-tip">Set in from the ends, the board sags less in the middle.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A short screw going up through the bracket into the board, stopping well short of the top" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 30h160v30H20z" /><path d="M20 60h120v8H28v40h-8z" /><path class="hl" d="M90 74h12M96 74V46" /><path d="M150 30v30M146 30h8M146 60h8" stroke-width="1.5" /><text x="168" y="50" font-family="system-ui,sans-serif" font-size="11" fill="currentColor" stroke="none">18</text>
+        </svg>
+        <div class="sk-txt"><h3>Screw on the brackets</h3><p>Screw the brackets to the underside. These screws must be shorter than the board is thick: for an 18 mm board, use 12 to 16 mm screws so the tips never poke through the top.</p><p class="sk-tip">Check the brackets are square to the back edge before the last screw.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A cloth wiping oil along the board" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 64h180v20H10z" /><path class="hl" d="M80 40c10-10 30-10 40 0s0 24-20 24-30-14-20-24z" /><path d="M140 30h20v24h-20zM144 30v-8h12v8" />
+        </svg>
+        <div class="sk-txt"><h3>Finish it</h3><p>Wipe off the dust, then oil, wax, varnish or paint the board. Follow the tin for drying time and give it two thin coats rather than one thick one.</p><p class="sk-tip">Work in a ventilated room and lay oily rags flat outside to dry: they can catch fire if bundled up.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="A detector on the wall and a level pencil line drawn with a spirit level" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M120 14v90M150 14v90" stroke-dasharray="4 4" /><path d="M20 30h40v50H20z" /><circle cx="40" cy="46" r="6" /><path class="hl" d="M80 60h110" /><path d="M90 46h90v12H90z" /><path d="M128 48h14v8h-14z" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Check the wall and mark a level line</h3><p>Scan the area with a cable and pipe detector. On a hollow wall, find a stud for at least one bracket. Hold the shelf in place, put a spirit level on it and mark the holes through the brackets.</p><p class="sk-tip">See the Wall fixings course: "What's in your wall".</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="The finished shelf on the wall with a spirit level on top showing the bubble centred" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M30 50h150v10H30z" /><path d="M50 60v36h8V60M150 60v36h8V60" /><circle cx="54" cy="70" r="2" /><circle cx="54" cy="88" r="2" /><circle cx="154" cy="70" r="2" /><circle cx="154" cy="88" r="2" />
+          <path class="hl" d="M70 34h80v14H70z" /><path class="hl" d="M104 38h12v6h-12z" stroke-width="1.5" />
+        </svg>
+        <div class="sk-txt"><h3>Drill, plug and hang</h3><p>Drill the holes with the right bit for your wall, push in plugs that suit it (none into a stud), and screw the shelf up. Check level again, then load it a little at a time.</p><p class="sk-tip">Which plug? See "Pick a wall plug" in the Wall fixings course.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card sk-label bss-label">
+    <h2>Name the parts</h2>
+    <svg viewBox="0 0 320 200" role="group" aria-label="A shelf on a wall seen from the front: one bracket over a stud inside the wall, one on wall plugs, and a spirit level on top" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="stud" data-name="Stud" data-note="an upright post inside a hollow wall. A screw into a stud is the strongest fixing; no plug needed."><path d="M56 6h34v188H56z" stroke-width="2" stroke-dasharray="6 5" /></g>
+      <g data-part="board" data-name="Shelf board" data-note="18 to 22 mm thick timber, plywood or MDF. Shorter spans sag less."><path d="M24 74h272v16H24z" /></g>
+      <g data-part="brackets" data-name="Brackets" data-note="carry the board and pass the weight to the wall. Set them in from the ends."><path d="M66 90h14v70H66zM236 90h14v70h-14z" /></g>
+      <g data-part="screws" data-name="Screws" data-note="into the wall through each bracket. The top screw takes the most pull."><circle cx="73" cy="106" r="4" /><circle cx="73" cy="146" r="4" /><circle cx="243" cy="106" r="4" /><circle cx="243" cy="146" r="4" /></g>
+      <g data-part="plug" data-name="Wall plug" data-note="a sleeve that lets a screw grip brick, block or plasterboard. Pick it for your wall."><path d="M224 178h34l8 6-8 6h-34z" /><path d="M232 178v12M242 178v12" stroke-width="2" /></g>
+      <g data-part="level" data-name="Spirit level" data-note="the bubble sits between the lines when the shelf is level."><path d="M120 50h110v20H120z" /><path d="M164 54h22v12h-22z" stroke-width="2" /><circle cx="175" cy="60" r="3" fill="currentColor" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order bss-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The detector finds a cable or pipe where you want to drill, or you drill into one: stop and call an electrician or plumber.</li>
+      <li>The shelf will carry a lot of weight (a full bookcase run, a TV, a fish tank) or hang over a bed, cot or seat.</li>
+      <li>The wall crumbles, the plugs spin, or you cannot tell what the wall is made of.</li>
+      <li>You rent your home: check with the landlord before drilling.</li>
+    </ul>
+  </div>
+  <div class="ax-card bss-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.bss') as HTMLElement;
+  mountSteps(root.querySelector('.bss-steps') as HTMLElement, 'build-simple-shelf');
+  mountLabels(root.querySelector('.bss-label') as HTMLElement);
+  mountOrder(root.querySelector('.bss-order') as HTMLElement, ['Plan size and load', 'Make a cut list and buy', 'Cut the board to length', 'Sand along the grain', 'Screw brackets to the board', 'Oil, wax or paint it', 'Check the wall, mark level', 'Drill, plug and hang']);
+  const bank = [
+    () => choice('What must you do before drilling a wall?', 'Check for hidden cables and pipes', ['Paint the wall', 'Nothing, just drill'], 'Cables and pipes often run straight up, down and across from switches, sockets and taps. A detector helps; stop and call a professional if you hit one.'),
+    () => choice('How long should the screws into an 18 mm shelf board be?', 'Shorter than 18 mm, such as 12 to 16 mm', ['30 mm', 'As long as the wall screws'], 'Any longer and the tips poke through the top of the shelf.'),
+    () => choice('Where do the brackets go along the board?', 'Set in from each end, about a sixth of the length', ['Right at the ends', 'Both in the middle'], 'Set in from the ends, the overhangs balance the middle and the board sags less.'),
+    () => choice('Which way do you sand?', 'Along the grain', ['Across the grain', 'In small circles only'], 'Sanding across the grain leaves scratches that show through oil or varnish.'),
+    () => choice('On a hollow wall, what is the strongest place to fix a bracket?', 'Into a stud', ['Into plasterboard alone', 'Into the skirting board'], 'A stud is a solid post inside the wall. A wood screw into it holds far more than plasterboard can.'),
+    () => choice('Which screw on a shelf bracket works hardest?', 'The top one, which is pulled out of the wall', ['The bottom one', 'They all work the same'], 'The weight tries to tip the bracket about its bottom edge, so the top screw is pulled out. The shelf load tool works out how hard.'),
+    () => choice('What tells you the shelf is level?', 'The bubble in a spirit level sits between the lines', ['It looks about right', 'The ceiling line'], 'Ceilings and floors are often not level. Trust the bubble.'),
+    () => choice('Roughly how much do paperback books weigh per metre of shelf?', 'About 20 to 25 kg', ['About 2 kg', 'About 100 kg'], 'A full metre of books is heavy. That is why the wall fixings matter.'),
+    () => choice('Oily rags after finishing. What do you do?', 'Lay them flat outside to dry, then throw away', ['Bundle them in a bin indoors', 'Leave them in a pile'], 'Some oils heat up as they dry, and a crumpled pile of rags can catch fire on its own.'),
+  ];
+  mountQuiz(root.querySelector('.bss-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>
