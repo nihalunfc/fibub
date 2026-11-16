@@ -1,5 +1,24 @@
 [
  {
+  "sha": "56bd2f645357",
+  "date": "2026-11-16T22:40:07+00:00",
+  "title": "Blog: 24 research articles checked with the tools; LOD rule, Laviron fit, Peppas n range, UK Met Office degree-days",
+  "tools": [
+   "calibration-curve",
+   "cyclic-voltammetry",
+   "degree-days",
+   "gamma-shielding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "846da5feb073",
+  "date": "2026-11-16T22:32:07+00:00",
+  "title": "Share link: apply drop-downs before number boxes so presets cannot overwrite them",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "7261d76a0352",
   "date": "2026-11-16T22:26:47+00:00",
   "title": "Add Copy link / Copy result bar to science tool pages",
@@ -13,6 +32,54 @@
   "tools": [
    "energy-balance-model",
    "radiometric-age-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e65ff78c348a",
+  "date": "2026-11-16T22:13:43+00:00",
+  "title": "Upgrade 7 money and admin tools: tax residency days, bill calendar, home inventory, medical expense tax, health insurance tax, shift scheduler, planner",
+  "tools": [
+   "bill-calendar",
+   "health-insurance-tax",
+   "home-inventory",
+   "medical-expense-tax",
+   "planner",
+   "shift-scheduler",
+   "tax-residency-days"
+  ],
+  "site": false
+ },
+ {
+  "sha": "59ef9619794e",
+  "date": "2026-11-16T22:13:43+00:00",
+  "title": "Upgrade 7 collecting tools: coin check, grade scale, serial checker, coin dates, pre-decimal, collection catalogue, card centering",
+  "tools": [
+   "card-centering",
+   "coin-check",
+   "coin-dates",
+   "collection-catalogue",
+   "grade-scale",
+   "pre-decimal",
+   "serial-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "54591f8cd6e8",
+  "date": "2026-11-16T22:13:43+00:00",
+  "title": "Upgrade 10 insurance tools: should I insure, claim or pay, underinsurance, dental, creditor, own damage, liability limits, waiting periods, health cover, insurance terms",
+  "tools": [
+   "claim-or-pay",
+   "creditor-insurance",
+   "dental-insurance",
+   "health-cover-needed",
+   "insurance-terms",
+   "liability-limits",
+   "own-damage-cover",
+   "should-i-insure",
+   "underinsurance-check",
+   "waiting-periods"
   ],
   "site": false
  },
@@ -75,6 +142,16 @@
   "site": false
  },
  {
+  "sha": "0f8a28eeb5a7",
+  "date": "2026-11-16T22:08:51+00:00",
+  "title": "Fix trip splitter start-up and currency box, uuid braces text, and test expectations; update change log",
+  "tools": [
+   "trip-splitter",
+   "uuid-generator"
+  ],
+  "site": false
+ },
+ {
   "sha": "775886cd2b39",
   "date": "2026-11-16T22:06:32+00:00",
   "title": "Documents shelf: upgrade 44 tools for search visitors",
@@ -125,6 +202,121 @@
    "zip-checker"
   ],
   "site": true
+ },
+ {
+  "sha": "b7285657288b",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade 9 everyday tools: link cleaner, LinkedIn formatter, group maker, timers, document expiry, favicon, palette, image compare",
+  "tools": [
+   "classroom-timer",
+   "document-expiry",
+   "favicon-maker",
+   "group-maker",
+   "image-compare",
+   "link-cleaner",
+   "linkedin-post-formatter",
+   "photo-palette",
+   "study-timer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2e9efbd93992",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade 7 collecting tools: melt value, gold purity, bullion premium, coin counter, auction costs, specific gravity, bullion weights",
+  "tools": [
+   "auction-costs",
+   "bullion-premium",
+   "bullion-weights",
+   "coin-counter",
+   "gold-purity",
+   "melt-value",
+   "specific-gravity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d021d009c1c0",
+  "date": "2026-11-16T21:56:42+00:00",
+  "title": "Upgrade 10 insurance tools: life cover, term price, travel, health plans, deductible, super top-up, room rent cap, surrender, policy return, IDV/NCB",
+  "tools": [
+   "health-plan-comparer",
+   "idv-ncb",
+   "insurance-deductible",
+   "life-cover-needed",
+   "policy-return",
+   "room-rent-cap",
+   "super-top-up",
+   "surrender-or-keep",
+   "term-fair-price",
+   "travel-insurance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c3b1919e8da0",
+  "date": "2026-11-16T21:56:41+00:00",
+  "title": "Upgrade 7 tools: CRS, citizenship days, jet lag, Roth vs traditional, Social Security age, UK pension relief, RESP",
+  "tools": [
+   "citizenship-days",
+   "crs-calculator",
+   "jet-lag-planner",
+   "resp-calculator",
+   "roth-vs-traditional",
+   "social-security-age",
+   "uk-pension-relief"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e85bd6812968",
+  "date": "2026-11-16T21:53:07+00:00",
+  "title": "Upgrade 10 everyday dev and text tools: timestamp, regex, colour, UUID, sort lines, slug, Base64, URL encoder, hash, JWT",
+  "tools": [
+   "base64-converter",
+   "colour-converter",
+   "hash-checker",
+   "jwt-decoder",
+   "regex-tester",
+   "slug-maker",
+   "sort-lines",
+   "timestamp-converter",
+   "url-encoder",
+   "uuid-generator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3507a2a2504e",
+  "date": "2026-11-16T21:52:52+00:00",
+  "title": "Upgrade 8 money tools: trip splitter, net worth, electricity cost, debt-to-income, mileage log, rideshare, meeting cost, timesheet",
+  "tools": [
+   "debt-to-income",
+   "electricity-cost",
+   "meeting-cost",
+   "mileage-log",
+   "net-worth",
+   "rideshare-earnings",
+   "timesheet",
+   "trip-splitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "42f02b8af944",
+  "date": "2026-11-16T21:51:34+00:00",
+  "title": "Upgrade 8 money tools: dividend, return, freelance rate, break-even, rebalance, NPS, depreciation, cash runway",
+  "tools": [
+   "break-even",
+   "cash-runway",
+   "depreciation",
+   "dividend-calculator",
+   "freelance-rate",
+   "nps-calculator",
+   "rebalance-portfolio",
+   "return-calculator"
+  ],
+  "site": false
  },
  {
   "sha": "eb16852b2bd6",
