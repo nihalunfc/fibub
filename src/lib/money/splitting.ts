@@ -21,12 +21,39 @@ export type SplitBy = 'equal' | 'share' | 'room' | 'income';
 export interface Housemate { name: string; share: number; room: number; income: number }
 export interface HouseBill { name: string; amount: number; by: SplitBy }
 
-/** One row per bill, one column per person (cents), plus each person's total. */
-export function splitBills(people: Housemate[], bills: HouseBill[]) {
+/** Tax and tip as percentages added on top of every bill's amount (both worked out on the amount before either). */
+export interface Extras { tax?: number; tip?: number }
+const pct = (x: number | undefined) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? Math.min(x, 1000) : 0);
+/** A bill amount in cents with tax and tip added. Negative or unusable amounts count as 0. */
+export const withExtras = (amount: number, e: Extras = {}) => {
+  const base = Math.max(0, Number.isFinite(amount) ? amount : 0);
+  return toCents(base) + Math.round((base * (pct(e.tax) + pct(e.tip))) );
+};
+
+/** One row per bill, one column per person (cents), plus each person's total. Optional tax and tip are added to every bill. */
+export function splitBills(people: Housemate[], bills: HouseBill[], extras: Extras = {}) {
   const key = (p: Housemate, by: SplitBy) => (by === 'equal' ? 1 : by === 'share' ? p.share : by === 'room' ? p.room : p.income);
-  const rows = bills.map((b) => splitCents(toCents(b.amount), people.map((p) => key(p, b.by))));
+  const billCents = bills.map((b) => withExtras(b.amount, extras));
+  const rows = bills.map((b, i) => splitCents(billCents[i], people.map((p) => key(p, b.by))));
   const totals = people.map((_, i) => rows.reduce((a, r) => a + (r[i] || 0), 0));
-  return { rows, totals, grand: totals.reduce((a, b) => a + b, 0) };
+  return { rows, totals, billCents, grand: totals.reduce((a, b) => a + b, 0) };
+}
+
+/**
+ * Who owes whom. `payers[i]` is the index of the person who paid bill i (or -1 if not tracked).
+ * Each tracked bill credits its payer and debits everyone's share of it; the balances then go through `settle`.
+ * Returns balances (cents, positive = is owed) and the transfers.
+ */
+export function settleUp(n: number, rows: number[][], payers: number[]) {
+  const bal: number[] = new Array(n).fill(0);
+  rows.forEach((r, i) => {
+    const p = payers[i];
+    if (!(p >= 0 && p < n)) return;
+    const total = r.reduce((a, b) => a + b, 0);
+    bal[p] += total;
+    r.forEach((c, k) => { bal[k] -= c; });
+  });
+  return { bal, transfers: settle(bal) };
 }
 
 export interface TripExpense { what: string; payer: number; amount: number; forWho: number[] }

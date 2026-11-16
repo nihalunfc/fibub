@@ -18,4 +18,20 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.oc-s-ot')) === '5.00' && (await txt('.oc-s-pay')).includes('1,200'), 'BC 13 h day: 4 h at 1.5 and 1 h at 2 = 1,200 (' + (await txt('.oc-s-pay')) + ')');
   await page.selectOption('.oc [data-k="rule"]', 'uk'); await page.waitForTimeout(100);
   check((await txt('.oc-s-pay')).includes('1,125'), 'UK: no premium, 45 h x 25 = 1,125 (' + (await txt('.oc-s-pay')) + ')');
+  // new options
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.selectOption('.oc [data-k="how"]', 'week'); await page.selectOption('.oc [data-k="rule"]', 'on');
+  await page.fill('.oc [data-k="wk"]', '48');
+  await page.selectOption('.oc [data-k="ptype"]', 'year'); await page.fill('.oc [data-k="sal"]', '52000'); await page.fill('.oc [data-k="norm"]', '40'); await page.waitForTimeout(100);
+  check((await txt('.oc-s-pay')).includes('1,250'), 'overtime: yearly salary 52,000 over 40 h is 25 an hour, pay 1,250 (' + (await txt('.oc-s-pay')) + ')');
+  check((await txt('.oc-answer')).includes('1,250') && (await txt('.oc-answer')).includes('hourly rate'), 'overtime: plain answer line');
+  check((await txt('.oc-pbody')).includes('65,') || (await txt('.oc-pbody')).includes('65000') || (await txt('.oc-pbody')).includes('65,000'), 'overtime: yearly projection 1,250 x 52 = 65,000');
+  await page.selectOption('.oc [data-k="ptype"]', 'hour'); await page.fill('.oc [data-k="rate"]', '25'); await page.waitForTimeout(100);
+  await page.evaluate(() => { const r = document.querySelector('.oc [data-k="wi"]'); r.value = '50'; r.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(100);
+  check((await txt('.oc-wi-line')).includes('6.00 overtime hours') && (await txt('.oc-wi-line')).includes('1,325'), 'overtime: what-if 50 h in Ontario = 6 overtime hours, 1,325 (' + (await txt('.oc-wi-line')) + ')');
+  check((await txt('.oc-tbody')).includes('44'), 'overtime: pay-by-hours table shows');
+  await page.fill('.oc [data-k="rate"]', ''); await page.waitForTimeout(100);
+  check((await txt('.oc-answer')).includes('hourly pay'), 'overtime: blank pay shows a friendly message, no NaN');
+  check(!(await page.textContent('.oc')).includes('NaN'), 'overtime: no NaN on the page');
 };

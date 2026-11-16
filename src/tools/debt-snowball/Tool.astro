@@ -7,13 +7,26 @@
     <div class="ds-list"></div>
     <button type="button" class="btn secondary ds-add">Add a debt</button>
     <label class="ds-extra">Extra you can pay each month on top of the minimums <input data-k="extra" inputmode="decimal" value="200" /></label>
+    <label class="ds-extra">Or slide it <input class="ds-slide" data-k="extra-s" type="range" min="0" max="2000" step="10" value="200" aria-label="Extra payment per month" /></label>
+    <details class="ds-more">
+      <summary>More options</summary>
+      <label class="ds-extra">One-off payment now (a bonus or tax refund) <input data-k="lump" inputmode="decimal" placeholder="0" /></label>
+      <p class="ds-fine">It goes to the first debt in each plan before month 1.</p>
+    </details>
   </section>
   <section class="panel" aria-live="polite">
     <p class="ds-msg" role="alert"></p>
+    <p class="ds-answer"></p>
+    <p class="ds-warn"></p>
     <div class="ds-cols"></div>
     <div class="ds-chart"></div>
     <p class="ds-leg"></p>
     <button type="button" class="btn secondary ds-csv">Download month by month (CSV)</button>
+    <details class="ds-more">
+      <summary>What would a different extra amount do?</summary>
+      <p class="ds-fine">Avalanche plan, same debts. Each row changes only the extra monthly payment.</p>
+      <div class="ds-scroll"><table class="ds-tab"><thead><tr><th>Extra a month</th><th>Debt-free</th><th>Date</th><th>Interest</th><th>Interest saved</th></tr></thead><tbody class="ds-what"></tbody></table></div>
+    </details>
   </section>
   <section class="panel">
     <h2 class="ds-h">The minimum-payment trap</h2>
@@ -43,16 +56,27 @@
   .ds-col ol { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
   .ds-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
   .ds-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .ds-answer { margin: 0 0 8px; font-size: 17px; font-weight: 600; } .ds-answer:empty, .ds-warn:empty { display: none; }
+  .ds-warn { color: var(--warn); margin: 0 0 8px; font-size: 14px; }
+  .ds-slide { padding: 0 !important; border: 0 !important; accent-color: var(--accent); }
+  .ds-more { margin-top: 12px; } .ds-more > summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .ds-scroll { overflow-x: auto; } .ds-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ds-tab th, .ds-tab td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; } .ds-tab th:first-child, .ds-tab td:first-child { text-align: left; }
+  .ds-tab tr.on td { font-weight: 700; }
+  .ds-tab th { font-size: 12px; color: var(--muted); font-weight: 600; }
   .ds-csv { margin-top: 10px; }
 </style>
 
 <script>
-  import { payoff, type Debt, type Strategy } from '../../lib/money/homes';
+  import { payoff, addMonths, minimumTooLow, extraScenarios, type Debt, type Strategy } from '../../lib/money/homes';
   import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   const root = document.querySelector('.ds') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const list = $('.ds-list');
   const extraIn = root.querySelector('[data-k="extra"]') as HTMLInputElement;
+  const slider = root.querySelector('.ds-slide') as HTMLInputElement, lumpIn = root.querySelector('[data-k="lump"]') as HTMLInputElement;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateAt = (months: number) => { const n = new Date(), d = addMonths(n.getFullYear(), n.getMonth(), months); return `${MON[d.month0]} ${d.year}`; };
   const m0 = (v: number) => Math.round(v).toLocaleString('en-US');
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
   const addRow = (name = '', bal = '', apr = '', min = '') => {
@@ -70,25 +94,39 @@
     list.querySelectorAll('.ds-row').forEach((r, k) => {
       const g = (f: string) => (r.querySelector(`[data-f="${f}"]`) as HTMLInputElement).value.trim();
       if (g('bal') === '' && g('min') === '' ) return;
-      const d = { name: g('name') || `Debt ${k + 1}`, balance: parseFloat(g('bal')), apr: parseFloat(g('apr') || '0'), min: parseFloat(g('min')) };
-      if (!(d.balance > 0) || !(d.apr >= 0) || !(d.min > 0)) bad = 'Each debt needs a balance and a minimum payment above zero, and a rate (APR) of zero or more.';
+      const d = { name: g('name') || `Debt ${k + 1}`, balance: parseFloat(g('bal').replace(/,/g, '')), apr: parseFloat(g('apr') || '0'), min: parseFloat(g('min').replace(/,/g, '')) };
+      if (d.balance < 0 || d.min < 0 || d.apr < 0) bad = `${d.name}: amounts and the rate cannot be negative.`;
+      else if (d.balance > 1e12 || d.min > 1e12) bad = `${d.name}: that amount is too large to work with.`;
+      else if (d.apr > 200) bad = `${d.name}: a rate above 200% looks like a typing slip. Enter the yearly rate as a percent, for example 24.`;
+      else if (!(d.balance > 0)) bad = `${d.name}: enter the balance you owe.`;
+      else if (!(d.min > 0)) bad = `${d.name}: enter the minimum monthly payment (it must be above zero).`;
+      else if (!(d.apr >= 0)) bad = `${d.name}: enter the yearly rate (APR), or 0 if there is no interest.`;
       debts.push(d);
     });
-    const extra = parseFloat(extraIn.value || '0');
+    const extra = parseFloat((extraIn.value || '0').replace(/,/g, '')), lump = Math.max(0, parseFloat((lumpIn.value || '0').replace(/,/g, '')) || 0);
     const msg = $('.ds-msg'), cols = $('.ds-cols');
-    if (!debts.length || bad || !(extra >= 0)) { msg.textContent = bad || 'Add at least one debt.'; cols.innerHTML = ''; $('.ds-chart').innerHTML = ''; $('.ds-leg').innerHTML = ''; last = null; return; }
+    if (!debts.length || bad || !(extra >= 0) || extra > 1e12) { msg.textContent = bad || (extra < 0 ? 'The extra payment cannot be negative.' : extra > 1e12 ? 'That extra payment is too large to work with.' : 'Add at least one debt: a name, balance, rate and minimum payment.'); $('.ds-answer').textContent = ''; $('.ds-warn').textContent = ''; $('.ds-what').innerHTML = ''; cols.innerHTML = ''; $('.ds-chart').innerHTML = ''; $('.ds-leg').innerHTML = ''; last = null; return; }
     msg.textContent = '';
-    const res = { snowball: payoff(debts, extra, 'snowball'), avalanche: payoff(debts, extra, 'avalanche'), minimums: payoff(debts, 0, 'minimums') };
+    const res = { snowball: payoff(debts, extra, 'snowball', lump), avalanche: payoff(debts, extra, 'avalanche', lump), minimums: payoff(debts, 0, 'minimums') };
     last = { debts, res };
     const yrs = (mo: number) => `${Math.floor(mo / 12)} yr ${mo % 12} mo`;
     const card = (title: string, sub: string, r: ReturnType<typeof payoff>, win: boolean) =>
       `<div class="ds-col${win ? ' win' : ''}"><h3>${title}</h3><p>${sub}</p>` +
-      (r.finished ? `<p class="big">${r.months} months</p><p>${yrs(r.months)} to debt-free</p>` : `<p class="big">Never</p><p>The payments do not cover the interest (after 100 years).</p>`) +
-      `<p>Interest: <b>${m0(r.totalInterest)}</b></p>` +
-      (r.order.length && r.finished ? `<p>Paid off in order:</p><ol>${r.order.map((k) => `<li>${esc(debts[k].name)} (month ${r.doneMonth[k]})</li>`).join('')}</ol>` : '') + '</div>';
+      (r.finished ? `<p class="big">${r.months} months</p><p>${yrs(r.months)} to debt-free, by ${dateAt(r.months)}</p>` : `<p class="big">Never</p><p>The payments do not cover the interest (after 100 years).</p>`) +
+      `<p>Interest: <b>${m0(r.totalInterest)}</b></p><p>Total paid: ${m0(r.rows.reduce((x, y) => x + y.paid, 0) + (title === 'Minimums only' ? 0 : lump))}</p>` +
+      (r.order.length && r.finished ? `<p>Paid off in order:</p><ol>${r.order.map((k) => `<li>${esc(debts[k].name)} (month ${r.doneMonth[k]}, ${dateAt(r.doneMonth[k]!)})</li>`).join('')}</ol>` : '') + '</div>';
     const a = res.avalanche, s = res.snowball;
     const winA = a.totalInterest <= s.totalInterest + 0.005;
     cols.innerHTML = card('Snowball', 'Smallest balance first', s, !winA) + card('Avalanche', 'Highest rate first', a, winA && a.totalInterest < s.totalInterest - 0.005) + card('Minimums only', 'No extra, no roll-over', res.minimums, false);
+    const best = a.totalInterest <= s.totalInterest + 0.005 ? 'Avalanche' : 'Snowball', bestR = best === 'Avalanche' ? a : s, other = best === 'Avalanche' ? s : a;
+    const diff = Math.abs(a.totalInterest - s.totalInterest);
+    $('.ds-answer').textContent = !bestR.finished ? 'With these payments the debts never clear: the interest is bigger than what you pay. Raise the extra amount.'
+      : `${best} gets you debt-free in ${yrs(bestR.months)} (${dateAt(bestR.months)}) and costs ${m0(bestR.totalInterest)} in interest` + (diff >= 1 ? `, ${m0(diff)} less than ${best === 'Avalanche' ? 'snowball' : 'avalanche'}.` : `; snowball costs the same here.`) + (res.minimums.finished ? ` Minimums alone would cost ${m0(res.minimums.totalInterest - bestR.totalInterest)} more.` : ' Minimums alone never clear them.');
+    const low = minimumTooLow(debts);
+    $('.ds-warn').textContent = low.length ? `${low.join(', ')}: the minimum is no more than a month of interest, so on minimums alone the balance will not fall.` : '';
+    const ex = [...new Set([0, 50, 100, 250, 500, Math.round(extra)])].sort((x, y) => x - y);
+    const sc = extraScenarios(debts, ex, 'avalanche', lump), base = sc.find((x) => x.extra === ex[0])!;
+    $('.ds-what').innerHTML = sc.map((x) => `<tr${x.extra === Math.round(extra) ? ' class="on"' : ''}><td>${m0(x.extra)}${x.extra === Math.round(extra) ? ' (yours)' : ''}</td><td>${x.finished ? yrs(x.months) : 'Never'}</td><td>${x.finished ? dateAt(x.months) : '–'}</td><td>${x.finished ? m0(x.interest) : '–'}</td><td>${x.finished && base.finished ? m0(base.interest - x.interest) : '–'}</td></tr>`).join('');
     const T = Math.max(s.rows.length, a.rows.length, res.minimums.rows.length, 1);
     const tot = (r: ReturnType<typeof payoff>) => Array.from({ length: T + 1 }, (_, m) => (m === 0 ? debts.reduce((x, d) => x + d.balance, 0) : (r.rows[m - 1] ? r.rows[m - 1].balances.reduce((x, y) => x + y, 0) : 0)));
     const sr = [{ label: 'Snowball', ys: tot(s), color: 'var(--accent)' }, { label: 'Avalanche', ys: tot(a), color: 'var(--warn)', dash: true }, { label: 'Minimums only', ys: tot(res.minimums), color: 'var(--muted)' }];
@@ -102,6 +140,13 @@
     (['snowball', 'avalanche', 'minimums'] as Strategy[]).forEach((st) => res[st].rows.forEach((r) => out.push([st, r.month, ...r.balances.map((b) => b.toFixed(2)), r.interest.toFixed(2), r.paid.toFixed(2)])));
     downloadCsv('debt-payoff.csv', out);
   });
-  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  // the slider and the typed amount stay in step; each is read, never rewritten, by calc()
+  root.addEventListener('input', (e) => {
+    if (e.target === slider) return;
+    if (e.target === extraIn) { const v = Math.max(0, parseFloat(extraIn.value) || 0); slider.max = String(Math.max(2000, Math.ceil(v / 10) * 10)); slider.value = String(v); }
+    calc();
+  });
+  slider.addEventListener('input', () => { if (+slider.value !== Math.min(+slider.max, Math.max(0, parseFloat(extraIn.value) || 0))) extraIn.value = slider.value; calc(); });
+  root.addEventListener('change', (e) => { if (e.target !== slider) calc(); });
   calc();
 </script>

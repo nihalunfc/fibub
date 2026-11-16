@@ -1,5 +1,5 @@
 // #T848 EI Calculator
-import { scheduleWeeks, hoursNeeded, ei, fromStubs, readDocText } from '../../src/lib/money/ei.ts';
+import { scheduleWeeks, hoursNeeded, ei, fromStubs, readDocText, workingWhileOnClaim, claimDates, weeksByHours, benefitByPay } from '../../src/lib/money/ei.ts';
 export const path = '/money/ei-calculator/';
 export default async ({ page, check, BASE }) => {
   // Schedule I cells (Employment Insurance Act, Table of Weeks of Benefits).
@@ -27,4 +27,18 @@ export default async ({ page, check, BASE }) => {
   check((await page.textContent('.ec-stubsum')).includes('1,950 hours'), 'ei-calculator: 26 filled stubs add up');
   await page.click('.ec-custom summary'); await page.fill('.ec-c[data-k=maxWeekly]', '700'); await page.click('[data-mode=type]'); await page.fill('.ec-pay', '3000'); await page.fill('.ec-hours', '1500'); await page.waitForTimeout(100);
   check((await page.textContent('.ec-weekly')).includes('700'), 'ei-calculator: custom maximum weekly benefit is used');
+  // new options
+  const w1 = workingWhileOnClaim(550, 1000, 200), w2 = workingWhileOnClaim(550, 1000, 2000);
+  check(w1.deduction === 100 && w1.paid === 450 && w2.paid === 0 && workingWhileOnClaim(0, 0, 0).paid === 0, 'ei-calculator: working while on claim keeps 50 cents per dollar, never below 0');
+  const cd = claimDates('2026-11-15', 0, 30);
+  check(cd.firstPaid === '2026-11-15' && cd.last === '2027-06-12' && claimDates('', 1, 30) === null, 'ei-calculator: claim dates');
+  check(weeksByHours(7.2, [1500])[0].weeks === 30 && benefitByPay([1000, 3000])[0].weekly === 550 && benefitByPay([3000])[0].weekly === 729, 'ei-calculator: what-if tables');
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill('.ec-date', '2026-11-15'); await page.dispatchEvent('.ec-date', 'change'); await page.waitForTimeout(100);
+  check((await page.textContent('.ec-wi-pay')).includes('every two weeks') && (await page.textContent('.ec-wi-pay')).includes('1,100'), 'ei-calculator: biweekly payment shown');
+  check((await page.textContent('.ec-wwc-out')).includes('$450.00') || (await page.textContent('.ec-wwc-out')).includes('450'), 'ei-calculator: working-while-on-EI result');
+  check((await page.textContent('.ec-t-hours')).includes('1,400') && (await page.textContent('.ec-t-pay')).includes('729'), 'ei-calculator: what-if tables on page');
+  await page.fill('.ec-hours', ''); await page.waitForTimeout(100);
+  check((await page.textContent('.ec-verdict')).includes('Type your insurable hours') && !(await page.textContent('.ec')).includes('NaN'), 'ei-calculator: blank hours gives a message, no NaN');
 };

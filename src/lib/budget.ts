@@ -49,3 +49,33 @@ export const EXPENSE_DEFAULT: [string, Freq, 'need' | 'want'][] = [
   ['Loan or card payments', 'month', 'need'], ['Eating out and takeaway', 'month', 'want'], ['Subscriptions', 'month', 'want'],
   ['Shopping and clothes', 'month', 'want'], ['Car service and repairs', 'year', 'need'], ['Holidays and gifts', 'year', 'want'],
 ];
+
+// ---------- Guides, targets and views added for the monthly budget ----------
+/** Popular splits of take-home pay: needs / wants / savings (percent). */
+export const RULES: Record<string, { label: string; needs: number; wants: number; save: number }> = {
+  '50-30-20': { label: '50 / 30 / 20 (needs, wants, savings)', needs: 50, wants: 30, save: 20 },
+  '60-20-20': { label: '60 / 20 / 20 (higher living costs)', needs: 60, wants: 20, save: 20 },
+  '70-20-10': { label: '70 / 20 / 10 (tight budget)', needs: 70, wants: 20, save: 10 },
+  '50-20-30': { label: '50 / 20 / 30 (saving hard)', needs: 50, wants: 20, save: 30 },
+};
+
+/** What reaching a saving-rate target takes. All amounts are per month; `income`, `out` and `wants` are monthly. */
+export function savingTarget(income: number, out: number, wants: number, targetPct: number) {
+  const safe = (x: number) => (Number.isFinite(x) ? x : 0);
+  const pct = Math.min(100, Math.max(0, safe(targetPct)));
+  const goal = (safe(income) * pct) / 100, left = safe(income) - safe(out);
+  const gap = Math.max(0, goal - left);
+  const cutPct = gap === 0 ? 0 : wants > 0 ? Math.min(100, (gap / wants) * 100) : null;
+  return { goal, left, gap, met: gap === 0, cutPct, wantsEnough: gap <= wants, stillShort: Math.max(0, gap - Math.max(0, wants)) };
+}
+
+/** The same monthly figure per week, month and year. */
+export const perPeriod = (m: number) => ({ week: (m * 12) / 52, month: m, year: m * 12 });
+
+/** Each person's share of a total (0 people counts as 1). */
+export const perPerson = (total: number, people: number) => total / Math.max(1, Math.floor(Number.isFinite(people) ? people : 1));
+
+/** Each cost as a monthly amount and a share of income, biggest first. */
+export function costShares(items: { name: string; amount: number; f: Freq; kind: 'need' | 'want' }[], income: number) {
+  return items.filter((i) => i.amount > 0).map((i) => { const m = monthly(i.amount, i.f); return { name: i.name, kind: i.kind, month: m, pct: income > 0 ? (m / income) * 100 : 0 }; }).sort((a, b) => b.month - a.month);
+}

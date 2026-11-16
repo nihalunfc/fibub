@@ -49,3 +49,21 @@ export function splitHours(days: number[], r: Pick<OtRule, 'daily' | 'weekly' | 
 }
 export const payFor = (s: Split, rate: number, m1: number, m2: number) => s.regular * rate + s.ot1 * rate * m1 + s.ot2 * rate * m2;
 export const hm = (h: number) => { const m = Math.round(h * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
+
+export type PayType = 'hour' | 'week' | 'month' | 'year';
+/** Hourly rate from a salary: week/month/year amounts divided by the normal hours (per week x weeks in that period). 0 if inputs are not usable. */
+export function hourlyFromPay(amount: number, type: PayType, hoursPerWeek: number): number {
+  if (!(amount > 0) || !(hoursPerWeek > 0)) return 0;
+  if (type === 'hour') return amount;
+  const weeks = type === 'week' ? 1 : type === 'month' ? 52 / 12 : 52;
+  return amount / (weeks * hoursPerWeek);
+}
+/** Spread a week's total hours evenly over `workDays` days (for rules with a daily limit). */
+export const spreadWeek = (total: number, workDays = 5): number[] => Array.from({ length: 7 }, (_, i) => (i < workDays && total > 0 ? total / workDays : 0));
+/** Pay for a week of `total` hours spread over 5 days under a rule (a what-if). */
+export function whatIf(total: number, r: Pick<OtRule, 'daily' | 'weekly' | 'dailyDouble' | 'mode'>, rate: number, m1: number, m2: number): { split: Split; pay: number } {
+  const split = splitHours(spreadWeek(total), r);
+  return { split, pay: payFor(split, rate, m1, m2) };
+}
+/** If every week is like this one: two weeks, a month (52/12 weeks) and a year (52 weeks). */
+export const projectPay = (week: number) => ({ biweekly: week * 2, monthly: (week * 52) / 12, yearly: week * 52 });

@@ -23,4 +23,28 @@ export default async ({ page, check, BASE }) => {
   check((await page.locator(R + '.ds-row').count()) === 2, 'debt-snowball: add a debt');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click(R + '.ds-csv')]);
   check(dl.suggestedFilename().endsWith('.csv'), 'debt-snowball: CSV downloads');
+  // new options, on a fresh page
+  await page.goto(`${BASE}/money/debt-snowball/`); await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check(/Avalanche gets you debt-free in .* \(\w{3} \d{4}\)/.test(await page.textContent(R + '.ds-answer')), 'debt-snowball: one-line answer with a date ' + await page.textContent(R + '.ds-answer'));
+  c = await cols();
+  check(/month \d+, [A-Z][a-z]{2} \d{4}/.test(c[1]) && /Total paid/.test(c[1]), 'debt-snowball: payoff date for each debt and total paid');
+  const m200 = months(c[1]);
+  await page.evaluate(() => { const sl = document.querySelector('.ds-slide'); sl.value = '600'; sl.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.waitForTimeout(100);
+  c = await cols();
+  check(await page.inputValue(R + '[data-k="extra"]') === '600' && months(c[1]) < m200, `debt-snowball: the slider sets the extra amount (${m200} -> ${months(c[1])} months)`);
+  await page.fill(R + '[data-k="extra"]', '900'); await page.waitForTimeout(100);
+  check(await page.inputValue(R + '.ds-slide') === '900', 'debt-snowball: typing the extra moves the slider');
+  await page.fill(R + '[data-k="extra"]', '200'); await page.waitForTimeout(100);
+  c = await cols(); const noLump = months(c[1]);
+  await page.fill(R + '[data-k="lump"]', '3000'); await page.waitForTimeout(100);
+  c = await cols();
+  check(months(c[1]) < noLump, `debt-snowball: a one-off payment shortens the plan (${noLump} -> ${months(c[1])})`);
+  await page.fill(R + '[data-k="lump"]', '');
+  check((await page.$$(R + '.ds-what tr')).length >= 5 && /\d/.test(await page.textContent(R + '.ds-what')), 'debt-snowball: table of different extra amounts');
+  await page.fill(R + '[data-f="bal"]', '-5'); await page.waitForTimeout(100);
+  check(/negative/.test(await page.textContent(R + '.ds-msg')) && !/NaN/.test(await page.textContent(R + '.ds-msg')), 'debt-snowball: a negative balance gets a friendly message');
+  await page.fill(R + '[data-f="bal"]', '10000'); await page.fill(R + '[data-f="apr"]', '30'); await page.fill(R + '[data-f="min"]', '100'); await page.waitForTimeout(100);
+  check(/not fall/.test(await page.textContent(R + '.ds-warn')), 'debt-snowball: warns when a minimum is below the interest');
 };

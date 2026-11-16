@@ -11,7 +11,7 @@ ads: false
 order: 1776
 icon: clock
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [timesheet, hourly-salary]
 sources:
   - "ontario.ca Employment Standards Act guide (44 hours, 1.5 times); canada.ca federal labour standards, Hours of work (8 a day, 40 a week); US Department of Labor Fact Sheet 23 (FLSA, 40 hours); gov.uk Overtime: your rights (no statutory premium); all checked 2026-11-10. Other provinces and the Indian Factories Act are not confirmed on an official page: check the official source."
@@ -40,6 +40,10 @@ If you track your hours by the day, the [[timesheet]] fills in the week from you
 - **Overtime after, per day / per week:** hours above these are overtime. 0 means no limit of that kind. Where a place has both, the higher overtime total counts, except British Columbia which adds them.
 - **Overtime pays:** 1.5 means time and a half. The United Kingdom starts at 1 because the law sets no premium.
 - **Double time after:** hours past this in a day pay the double rate (British Columbia, after 12).
+
+## More options
+
+Open **More options** to give a weekly, monthly or yearly salary instead of an hourly rate; the hourly rate is the salary divided by your normal weekly hours (52 weeks a year), and some salaried jobs are exempt, so check your contract. A **what-if slider** shows the overtime hours and pay for any number of hours from 0 to 80 in a week. Below the result, a table shows what the same pay would be for two weeks, a month and a year if every week were like this one, and another shows the pay at 30, 40, 44, 48, 50, 55 and 60 hours so you can see what extra shifts are worth. A line at the top gives the answer in one sentence, and blank, zero or impossible hours (over 168 a week) give a clear message instead of a number.
 
 ## Worked example
 

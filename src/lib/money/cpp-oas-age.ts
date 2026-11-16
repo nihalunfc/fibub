@@ -34,3 +34,18 @@ export function breakEvenOas(a: number, fa: number, b: number, fb: number): numb
   for (let m = b * 12; m <= 120 * 12; m++) if (totalTo(fb, b, m / 12, true) >= totalTo(fa, a, m / 12, true) - 1e-9) return m / 12;
   return null;
 }
+
+export const CPP_MAX_65 = 1507.65; // 2026 maximum CPP retirement pension at 65 (ESDC, Maximum benefit amounts, Oct to Dec 2026)
+/** Age as years plus months, kept inside a pension's allowed range (CPP 60 to 70, OAS 65 to 70). */
+export const ageYM = (years: number, months: number, min: number, max = 70) => Math.min(max, Math.max(min, years + Math.min(11, Math.max(0, months || 0)) / 12));
+/** Month (yyyy-mm) after the birthday on which you reach `age`: the earliest month a pension can usually start. null if the birth date is not valid. */
+export function monthAtAge(birth: string, age: number): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birth || '');
+  if (!m) return null;
+  const y = +m[1], mo = +m[2];
+  if (y < 1900 || mo < 1 || mo > 12) return null;
+  const total = y * 12 + (mo - 1) + Math.round(age * 12) + 1; // month after the birthday month
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+}
+/** Running totals (no indexing, today's dollars) at each of `at` ages for a pension starting at `start`. */
+export const totalsAt = (monthly: number, start: number, at: number[], oas = false) => at.map((a) => ({ age: a, total: totalTo(monthly, start, a, oas) }));

@@ -100,3 +100,17 @@ export function paycheck(inp: Input): Result {
 
 /** Most an employee can defer to a 401(k) in 2026 at this age. */
 export const k401Limit = (age: number) => LIMITS.k401 + (age >= 60 && age <= 63 ? LIMITS.k401CatchUp60 : age >= 50 ? LIMITS.k401CatchUp50 : 0);
+
+// ---- Extras: "next $1,000", what-if raise, comparing two pay levels, total tax rate ----
+/** Yearly pay from an hourly wage (52 weeks). Never negative or NaN. */
+export const hourlyToYear = (rate: number, hoursPerWeek: number) => r2(pos(rate || 0) * pos(hoursPerWeek || 0) * 52);
+/** Everything taken out as a share of pay: federal, Social Security, Medicare and state (not 401(k) or premiums, which you keep or use). */
+export const taxShare = (r: Result) => (r.gross > 0 ? (r.fed + r.ss + r.medicare + r.state) / r.gross : 0);
+/** What an extra amount of yearly pay does to take-home, when pay rises with the 401(k) percentage unchanged. */
+export function nextExtra(inp: Input, extra = 1000, k401Pct?: number) {
+  const a = paycheck(inp);
+  const g = pos(inp.gross) + extra;
+  const b = paycheck({ ...inp, gross: g, k401: k401Pct === undefined ? inp.k401 : (g * k401Pct) / 100 });
+  const keep = r2(b.takeHome - a.takeHome);
+  return { keep, taken: r2(extra - keep), share: extra > 0 ? keep / extra : 0 };
+}

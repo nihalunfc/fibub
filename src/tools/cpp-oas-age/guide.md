@@ -12,7 +12,7 @@ ads: true
 order: 1739
 icon: calendar
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [rrsp-tfsa, canada-income-tax, compound-interest]
 sources:
   - "CPP: 0.6% less for each month before 65 (36% at 60), 0.7% more for each month after 65 (42% at 70): ESDC, CPP retirement pension: When to start your pension, https://www.canada.ca/en/services/benefits/publicpensions/cpp/cpp-benefit/when-start.html (checked 2026-11-10)"
@@ -46,6 +46,10 @@ Your CPP estimate at 65 is on your My Service Canada Account statement. To see h
 - **Start OAS at:** 0.6% more for each month after 65, up to 70. OAS also rises 10% at 75.
 - **Plan to age:** sets the lifetime totals. Pick a cautious, long age.
 - **Net income:** OAS is taxed back at 15% of income above $95,323 (2026).
+
+## More options
+
+Open **More options** to add months to a start age (for example 64 years and 6 months, which pays 96.4% of the age-65 CPP), to type your date of birth and see the earliest months each pension can usually start (the month after the birthday; check the official source), or to fill in the 2026 maximum CPP at 65 ($1,507.65, from the ESDC table above). Most people get less than the maximum, so your own statement is better. A table also shows the running total of CPP and OAS together by ages 70, 75, 80 and 90 for starting CPP at 60, 65, 70 or your choice, in today's dollars before tax.
 
 ## Worked example
 

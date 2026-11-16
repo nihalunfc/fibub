@@ -281,3 +281,25 @@ export function readDocText(raw: string): Found {
   if (gross == null && hours == null) return { kind: 'unknown' };
   return { kind: 'stub', stub: { end: end ?? '', days: PERIODS[per].days, hours: hours ?? 0, earnings: gross ?? 0 } };
 }
+
+/** Working while on a claim (canada.ca, EI regular benefits: While on EI): you keep 50 cents of benefit for each dollar earned, up to 90% of the
+ *  weekly insurable earnings used for your rate; earnings above that are deducted dollar for dollar. Waiting period must be served. */
+export function workingWhileOnClaim(weeklyBenefit: number, avgWeekly: number, earnings: number): { deduction: number; paid: number; combined: number; limit: number } {
+  const b = Math.max(0, weeklyBenefit || 0), e = Math.max(0, earnings || 0), limit = 0.9 * Math.max(0, avgWeekly || 0);
+  let ded = 0.5 * e;
+  const excess = Math.max(0, e + (b - ded) - limit);
+  ded = Math.min(b, ded + excess);
+  const paid = b - ded;
+  return { deduction: ded, paid, combined: paid + e, limit };
+}
+/** First and last day of benefit weeks, from the claim start date (yyyy-mm-dd), unpaid waiting weeks and weeks of benefits. null if the date is missing. */
+export function claimDates(claimDate: string, waitingWeeks: number, weeks: number): { firstPaid: string; last: string } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(claimDate || '');
+  if (!m || !(weeks > 0)) return null;
+  const t = Date.UTC(+m[1], +m[2] - 1, +m[3]), day = 86400000, iso = (x: number) => new Date(x).toISOString().slice(0, 10);
+  return { firstPaid: iso(t + Math.max(0, waitingWeeks) * 7 * day), last: iso(t + (Math.max(0, waitingWeeks) + weeks) * 7 * day - day) };
+}
+/** What-if: weeks of benefits at different insurable hours for the same regional rate (Schedule I). */
+export const weeksByHours = (rate: number, hours: number[], extra = 0, cap = DEFAULTS.maxWeeks) => hours.map((h) => ({ hours: h, weeks: Math.min(cap, scheduleWeeks(h, rate, cap) + extra) }));
+/** What-if: weekly benefit at different average weekly earnings. */
+export const benefitByPay = (pays: number[], rules: Rules = DEFAULTS) => pays.map((p) => ({ pay: p, weekly: Math.min(rules.maxWeekly, Math.round(Math.min(rules.mie / 52, Math.max(0, p)) * rules.rate)) }));

@@ -11,7 +11,7 @@ ads: false
 order: 1748
 icon: wallet
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [trip-splitter, budget-calculator, tip-calculator, bill-calendar, percentage-calculator]
 sources:
   - "Standard proportional arithmetic. Shares are rounded to the cent and the odd cents go to the largest remainders, so they always add up to the bill."
@@ -40,6 +40,16 @@ Different bills can use different rules, for example rent by room size and inter
 - **By room size**: rent in proportion to the size of each person's room. Use any unit, as long as it is the same for everyone.
 - **By income**: pays in proportion to monthly income, so the person who earns more pays more.
 
+## More options: tax, tip and who paid
+
+Open **More options** when you need more than a simple split. The answer line at the top of the results always tells you in one sentence what each person pays.
+
+- **Tax and tip:** type a percent for either. It is added on top of every bill, and the table says so. Use it for a meal or a shared shop; leave it empty for rent.
+- **Paid by:** for each bill, say who actually paid. The **Settle up** list then shows the fewest payments that make everyone square, such as "Alex pays Sam 400.00". Leave a bill as "Not tracked" if it should not count.
+- **Download CSV** includes the settle-up list when there is one.
+
+Negative amounts count as zero and very large amounts are cut to a billion, with a note, so the table never shows a broken number.
+
 ## Worked example
 
 Rent is 2,000. Sam has a room of 12 square metres and Alex 8. Split by room size, Sam pays 1,200 and Alex pays 800. Internet of 60 split equally is 30 each, so Sam's month is 1,230 and Alex's is 830.
@@ -50,4 +60,4 @@ Rent is 2,000. Sam has a room of 12 square metres and Alex 8. Split by room size
 
 **Is my list saved?** Not unless you tick the box. If you do, it stays in this browser on this device and the Clear button removes it.
 
-**Who paid the bill?** This tool only works out each person's share. To track who paid what on a trip and settle up, use the [[trip-splitter]]. For percentage sums, the [[percentage-calculator]] helps.
+**Who paid the bill?** Say so under More options and the tool lists who owes whom. For a trip with many small expenses paid by different people, the [[trip-splitter]] is built for it. For percentage sums, the [[percentage-calculator]] helps.

@@ -11,6 +11,17 @@
       <label class="oc-wk">Hours this week <span class="oc-suf"><input data-k="wk" inputmode="decimal" /><i>hours</i></span></label>
     </div>
     <div class="oc-days" hidden></div>
+    <details class="oc-more"><summary>More options: salary instead of hourly pay, what-if hours</summary>
+      <div class="oc-grid" style="margin-top:10px">
+        <label>My pay is given as <select data-k="ptype"><option value="hour">an hourly rate (above)</option><option value="week">a weekly salary</option><option value="month">a monthly salary</option><option value="year">a yearly salary</option></select></label>
+        <label class="oc-sal" hidden>Salary amount <input data-k="sal" inputmode="decimal" /></label>
+        <label class="oc-sal" hidden>Normal hours a week <span class="oc-suf"><input data-k="norm" inputmode="decimal" /><i>hours</i></span></label>
+      </div>
+      <p class="oc-help">With a salary, the hourly rate is worked out as salary divided by the normal hours (52 weeks a year). Check your contract: some salaried jobs are exempt from overtime.</p>
+      <label style="margin-top:10px">What if I work <b class="oc-wi-h">0</b> hours this week
+        <input type="range" data-k="wi" min="0" max="80" step="1" value="50" /></label>
+      <p class="oc-help oc-wi-line"></p>
+    </details>
   </section>
   <section class="panel">
     <h2>Overtime rule</h2>
@@ -27,6 +38,7 @@
   </section>
   <section class="oc-res" aria-live="polite">
     <p class="note oc-help oc-warn" hidden></p>
+    <p class="oc-answer" aria-live="polite"></p>
     <div class="oc-stats">
       <div><span>Regular hours</span><b class="oc-s-reg"></b></div>
       <div><span>Overtime hours</span><b class="oc-s-ot"></b></div>
@@ -38,6 +50,14 @@
       <tbody class="oc-body"></tbody>
     </table></div>
     <p class="oc-line"></p>
+    <div class="panel oc-wrap oc-proj"><h2>If every week were like this</h2><table>
+      <thead><tr><th>Period</th><th>Total pay</th><th>Of which overtime</th></tr></thead>
+      <tbody class="oc-pbody"></tbody>
+    </table></div>
+    <div class="panel oc-wrap"><h2>Pay by hours worked in a week</h2><table>
+      <thead><tr><th>Hours</th><th>Overtime hours</th><th>Total pay</th></tr></thead>
+      <tbody class="oc-tbody"></tbody>
+    </table><p class="oc-help">Hours are spread evenly over 5 days under this rule and rate.</p></div>
   </section>
   <p class="oc-fine">Pay is before tax. Rules change and many jobs are exempt (managers, some salaried staff, some industries); these are short summaries, so check the official source and your contract. Not legal, payroll or tax advice. Nothing you type leaves this page.</p>
 </div>
@@ -63,6 +83,9 @@
   .oc-stats span { font-size: 13px; color: var(--muted); }
   .oc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
   .oc-stats .good b { color: var(--good); }
+  .oc-answer { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+  .oc-more summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .oc-sal[hidden] { display: none; }
   .oc-line { margin: 0; font-size: 15px; }
   .oc-line:empty { display: none; }
   .oc-wrap { overflow-x: auto; }
@@ -76,7 +99,7 @@
 
 <script>
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
-  import { OT_RULES, ruleById, splitHours, payFor } from '../../lib/money/overtime';
+  import { OT_RULES, ruleById, splitHours, payFor, hourlyFromPay, whatIf, projectPay, type PayType } from '../../lib/money/overtime';
   const root = document.querySelector<HTMLElement>('.oc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
@@ -84,7 +107,7 @@
   q('.oc-cur').innerHTML = currencyOptions(defaultCurrency());
   q('.oc-rule').innerHTML = OT_RULES.map((r) => `<option value="${r.id}">${r.label}</option>`).join('');
   q('.oc-days').innerHTML = NAMES.map((n, i) => `<label>${n} <input data-day="${i}" inputmode="decimal" value="${i < 5 ? 8 : 0}" /></label>`).join('');
-  f('rate').value = '20'; f('wk').value = '48';
+  f('rate').value = '20'; f('wk').value = '48'; f('norm').value = '40'; f('sal').value = '52000';
   function fillRule() {
     const r = ruleById(f('rule').value);
     f('daily').value = String(r.daily); f('weekly').value = String(r.weekly); f('mult').value = String(r.mult); f('dd').value = String(r.dailyDouble); f('mult2').value = String(r.mult2);
@@ -92,7 +115,9 @@
   }
   fillRule();
   function run() {
-    const rate = num(f('rate').value), cur = f('cur').value, byDay = f('how').value === 'days';
+    const ptype = f('ptype').value as PayType;
+    root.querySelectorAll<HTMLElement>('.oc-sal').forEach((e) => (e.hidden = ptype === 'hour'));
+    const rate = hourlyFromPay(ptype === 'hour' ? num(f('rate').value) : num(f('sal').value), ptype, num(f('norm').value)), cur = f('cur').value, byDay = f('how').value === 'days';
     q('.oc-days').hidden = !byDay; q('.oc-wk').hidden = byDay;
     const rule = ruleById(f('rule').value);
     const daily = num(f('daily').value), weekly = num(f('weekly').value), dd = num(f('dd').value), m1 = Math.max(1, num(f('mult').value)), m2 = Math.max(1, num(f('mult2').value));
@@ -110,7 +135,18 @@
     q('.oc-s-pay').textContent = $(pay);
     const row = (n: string, h: number, m: number) => h > 0 ? `<tr><td>${n}</td><td>${h.toFixed(2)}</td><td>${$(rate * m)}</td><td>${$(h * rate * m)}</td></tr>` : '';
     q('.oc-body').innerHTML = row('Regular', sp.regular, 1) + row(`Overtime (${m1} times)`, sp.ot1, m1) + row(`Double time (${m2} times)`, sp.ot2, m2) + `<tr><td><b>Total</b></td><td><b>${sp.total.toFixed(2)}</b></td><td></td><td><b>${$(pay)}</b></td></tr>`;
-    q('.oc-line').textContent = sp.total > 0 && rate > 0 ? `Overtime adds ${$(pay - sp.total * rate)} compared with paying every hour at the normal rate. Average pay per hour: ${$(pay / sp.total)}.` : '';
+    const rateOk = rate > 0 && Number.isFinite(rate);
+    const huge = sp.total > 168 || sp.total !== sp.total;
+    const bad = !rateOk ? (ptype === 'hour' ? 'Type your hourly pay to see the result.' : 'Type your salary and normal weekly hours to see the result.') : sp.total <= 0 ? 'Type the hours you worked to see the result.' : huge ? 'A week has only 168 hours: check the hours you typed.' : '';
+    q('.oc-answer').textContent = bad || `You earn ${$(pay)} this week: ${sp.regular.toFixed(2)} regular hours and ${(sp.ot1 + sp.ot2).toFixed(2)} overtime hours` + (ptype === 'hour' ? '.' : ` (hourly rate ${$(rate)}).`);
+    q('.oc-proj').hidden = !!bad;
+    const pj = projectPay(pay), pjo = projectPay(pay - sp.total * rate);
+    q('.oc-pbody').innerHTML = bad ? '' : [['This week', pay, pay - sp.total * rate], ['Two weeks', pj.biweekly, pjo.biweekly], ['A month (average)', pj.monthly, pjo.monthly], ['A year (52 weeks)', pj.yearly, pjo.yearly]].map((r) => `<tr><td>${r[0]}</td><td>${$(r[1] as number)}</td><td>${$(r[2] as number)}</td></tr>`).join('');
+    const wiH = Math.max(0, num(f('wi').value)); q('.oc-wi-h').textContent = String(wiH);
+    const wi = whatIf(wiH, { daily, weekly, dailyDouble: dd, mode: rule.mode }, rate, m1, m2);
+    q('.oc-wi-line').textContent = rateOk ? `${wiH} hours: ${(wi.split.ot1 + wi.split.ot2).toFixed(2)} overtime hours, total pay ${$(wi.pay)} (${$(wi.pay - pay)} ${wi.pay - pay < 0 ? 'less' : 'more'} than your hours above).` : '';
+    q('.oc-tbody').innerHTML = !rateOk ? '' : [...new Set([30, 40, 44, 48, 50, 55, 60, Math.round(sp.total)].filter((h) => h > 0 && h <= 168))].sort((a, b) => a - b).map((h) => { const w = whatIf(h, { daily, weekly, dailyDouble: dd, mode: rule.mode }, rate, m1, m2); return `<tr><td>${h}</td><td>${(w.split.ot1 + w.split.ot2).toFixed(2)}</td><td>${$(w.pay)}</td></tr>`; }).join('');
+    q('.oc-line').textContent = bad ? '' : sp.total > 0 && rate > 0 ? `Overtime adds ${$(pay - sp.total * rate)} compared with paying every hour at the normal rate. Average pay per hour: ${$(pay / sp.total)}.` : '';
   }
   f('rule').addEventListener('change', () => { fillRule(); run(); });
   root.addEventListener('input', (e) => { if (e.target !== f('rule')) run(); });

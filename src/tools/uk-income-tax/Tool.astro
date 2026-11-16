@@ -5,22 +5,22 @@
   <section class="panel">
     <h2>Your pay in 2026/27</h2>
     <div class="uit-grid">
-      <label>Where you live <select class="uit-reg">
+      <label>Where you live <select class="uit-reg" data-k="region">
         <option value="ruk" selected>England, Wales or Northern Ireland</option>
         <option value="scot">Scotland</option>
       </select></label>
-      <label>Salary a year (before anything comes off) <input class="uit-sal" inputmode="decimal" value="50,000" /></label>
-      <label>Other taxable income (rent profit, a pension) <input class="uit-oth" inputmode="decimal" value="0" /></label>
+      <label>Salary a year (before anything comes off) <input class="uit-sal" data-k="salary" inputmode="decimal" value="50,000" /></label>
+      <label>Other taxable income (rent profit, a pension) <input class="uit-oth" data-k="other" inputmode="decimal" value="0" /></label>
     </div>
     <h3>Pension</h3>
     <div class="uit-grid">
-      <label>How you pay in <select class="uit-ptype">
+      <label>How you pay in <select class="uit-ptype" data-k="pension-type">
         <option value="none" selected>No pension</option>
         <option value="ras">Relief at source (you pay 80%, 20% is added)</option>
         <option value="netpay">Net pay (taken before tax)</option>
         <option value="sacrifice">Salary sacrifice (before tax and NI)</option>
       </select></label>
-      <label>Into your pot <span class="uit-suf"><input class="uit-pen" inputmode="decimal" value="5" /><select class="uit-punit" aria-label="Percent of salary or pounds a year"><option value="pct" selected>% of salary</option><option value="gbp">£ a year</option></select></span></label>
+      <label>Into your pot <span class="uit-suf"><input class="uit-pen" data-k="pension" inputmode="decimal" value="5" /><select class="uit-punit" data-k="pension-unit" aria-label="Percent of salary or pounds a year"><option value="pct" selected>% of salary</option><option value="gbp">£ a year</option></select></span></label>
     </div>
     <fieldset class="uit-loans">
       <legend>Student loans</legend>
@@ -30,16 +30,34 @@
       <label><input type="checkbox" value="plan5" /> Plan 5</label>
       <label><input type="checkbox" value="pg" /> Postgraduate</label>
     </fieldset>
+    <details class="uit-more">
+      <summary>More options</summary>
+      <div class="uit-grid">
+        <label>I know my pay as <select class="uit-unit" data-k="unit"><option value="year" selected>a yearly salary</option><option value="hour">an hourly wage</option></select></label>
+        <label class="uit-hrs-l" hidden>Hourly wage (£) <input class="uit-hrate" data-k="rate" inputmode="decimal" value="20" /></label>
+        <label class="uit-hrs-l" hidden>Hours a week <input class="uit-hrs" data-k="hours" inputmode="decimal" value="37.5" /></label>
+        <label>Show take-home for each <select class="uit-per" data-k="period">
+          <option value="weekly" selected>Week</option><option value="fourweekly">Four weeks</option><option value="monthly">Month</option><option value="daily">Working day</option>
+        </select></label>
+        <label>What if I earned more? <b class="uit-morev">+£0</b>
+          <input type="range" class="uit-more-r" data-k="more" min="0" max="50000" step="1000" value="0" aria-label="Extra salary a year" /></label>
+        <label>Compare with another salary (a year) <input class="uit-cmp" data-k="compare" inputmode="decimal" placeholder="e.g. 60,000" /></label>
+      </div>
+      <p class="uit-hint">An hourly wage replaces the salary box (52 weeks). The slider adds to your salary; a pension in % grows with it.</p>
+    </details>
   </section>
 
   <section class="uit-res" aria-live="polite">
+    <p class="uit-line"></p>
+    <p class="uit-next"></p>
     <div class="uit-stats">
       <div class="good"><span>Take-home a year</span><b class="uit-year"></b></div>
       <div><span>A month</span><b class="uit-month"></b></div>
-      <div><span>A week</span><b class="uit-week"></b></div>
+      <div><span class="uit-per-t">Every week</span><b class="uit-week"></b></div>
       <div><span>Marginal / average rate</span><b class="uit-rates"></b></div>
     </div>
     <p class="uit-note"></p>
+    <p class="uit-cmpout panel" hidden></p>
     <figure class="panel uit-fig">
       <figcaption>Where your money goes</figcaption>
       <div class="uit-bar" role="img"></div>
@@ -75,6 +93,14 @@
   .uit-stats span { font-size: 13px; color: var(--muted); }
   .uit-stats b { font-size: 20px; }
   .uit-stats .good b { color: var(--good); }
+  .uit-line { margin: 0; font-size: 17px; font-weight: 600; }
+  .uit-next, .uit-cmpout { margin: 0; font-size: 14px; }
+  .uit-line:empty, .uit-next:empty { display: none; }
+  .uit-more { margin-top: 14px; }
+  .uit-more summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+  .uit label[hidden] { display: none; }
+  .uit-hint { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .uit-more input[type=range] { padding: 0; }
   .uit-note { margin: 0; font-size: 14px; }
   .uit-note:empty { display: none; }
   .uit-fig { margin: 0; }
@@ -94,7 +120,7 @@
 </style>
 
 <script>
-  import { ukTax, LOANS, type PensionType } from '../../lib/money/uk-income-tax.ts';
+  import { ukTax, LOANS, PERIODS, hourlyToYear, nextExtra, pensionAmount, type PensionType } from '../../lib/money/uk-income-tax.ts';
   const root = document.querySelector('.uit') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const num = (s: string) => { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -102,15 +128,38 @@
   const pct = (n: number) => `${(Math.round(n * 1000) / 10).toFixed(1)}%`;
 
   const update = () => {
-    const salary = num(q<HTMLInputElement>('.uit-sal').value);
+    const hourly = q<HTMLSelectElement>('.uit-unit').value === 'hour';
+    root.querySelectorAll<HTMLElement>('.uit-hrs-l').forEach((e) => { e.hidden = !hourly; });
+    q<HTMLInputElement>('.uit-sal').disabled = hourly;
+    const extra = num(q<HTMLInputElement>('.uit-more-r').value);
+    q('.uit-morev').textContent = `+${$(extra).replace(/\.00$/, '')}`;
+    const base = Math.max(0, hourly ? hourlyToYear(num(q<HTMLInputElement>('.uit-hrate').value), num(q<HTMLInputElement>('.uit-hrs').value)) : num(q<HTMLInputElement>('.uit-sal').value));
+    const salary = base + extra;
     const type = q<HTMLSelectElement>('.uit-ptype').value as PensionType;
     const pv = num(q<HTMLInputElement>('.uit-pen').value);
-    const pension = q<HTMLSelectElement>('.uit-punit').value === 'pct' ? salary * pv / 100 : pv;
+    const isPct = q<HTMLSelectElement>('.uit-punit').value === 'pct';
+    const pension = pensionAmount(salary, pv, isPct);
     const loans = [...root.querySelectorAll<HTMLInputElement>('.uit-loans input:checked')].map((i) => i.value);
-    const r = ukTax({ region: q<HTMLSelectElement>('.uit-reg').value as 'ruk' | 'scot', salary, other: num(q<HTMLInputElement>('.uit-oth').value), pension, pensionType: type, loans });
+    const inp = { region: q<HTMLSelectElement>('.uit-reg').value as 'ruk' | 'scot', salary, other: num(q<HTMLInputElement>('.uit-oth').value), pension, pensionType: type, loans };
+    const r = ukTax(inp);
+    const [pname, pn] = PERIODS[q<HTMLSelectElement>('.uit-per').value];
+    q('.uit-per-t').textContent = pname;
+    const empty = r.gross <= 0, huge = r.gross > 1e9;
+    const taken = r.gross > 0 ? (r.tax + r.ni + r.loans) / r.gross : 0;
+    q('.uit-line').textContent = empty ? 'Type your salary above to see your take-home pay.'
+      : huge ? 'That is a very large number. Check for an extra zero.'
+      : `On ${$(r.gross)} a year you take home ${$(r.takeHome)} (${$(r.takeHome / 12)} a month). Tax, National Insurance${r.loans ? ' and student loan' : ''} take ${pct(taken)}.`;
+    q('.uit-next').textContent = empty || huge ? '' : (() => { const x = nextExtra(inp, 1000, isPct && type !== 'none' ? pv : undefined); return `Your next £1,000 of salary: you keep ${$(x.keep)} and ${$(x.taken)} goes on tax, NI${r.loans ? ', loan' : ''}${type !== 'none' && isPct ? ' and pension' : ''}.`; })();
+    const cbox = q<HTMLInputElement>('.uit-cmp'), cout = q('.uit-cmpout'), cv = num(cbox.value);
+    cout.hidden = !(cbox.value.trim() && cv > 0 && !empty);
+    if (!cout.hidden) {
+      const c = ukTax({ ...inp, salary: cv, pension: pensionAmount(cv, pv, isPct) });
+      const d = c.takeHome - r.takeHome;
+      cout.textContent = `On a salary of ${$(cv)} you would take home ${$(c.takeHome)} a year, ${$(Math.abs(d))} ${d >= 0 ? 'more' : 'less'} than now.`;
+    }
     q('.uit-year').textContent = $(r.takeHome);
     q('.uit-month').textContent = $(r.takeHome / 12);
-    q('.uit-week').textContent = $(r.takeHome / 52);
+    q('.uit-week').textContent = $(r.takeHome / pn);
     q('.uit-rates').textContent = `${pct(r.marginal)} / ${pct(r.average)}`;
     const notes: string[] = [];
     if (r.allowance < 12570) notes.push(`Your personal allowance is cut to ${$(r.allowance)} because income over £100,000 loses £1 of allowance for every £2.`);

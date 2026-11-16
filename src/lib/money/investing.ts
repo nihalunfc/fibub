@@ -80,7 +80,7 @@ export function dividends(a: DivIn): DivYear[] {
 }
 
 export type Tx = { date: string; symbol: string; side: 'buy' | 'sell'; qty: number; price: number; fee: number };
-export type Sale = { date: string; symbol: string; qty: number; proceeds: number; cost: number; gain: number };
+export type Sale = { date: string; symbol: string; qty: number; proceeds: number; cost: number; gain: number; /** per-unit average cost used (average method) or cost per unit sold */ unitCost?: number; /** lot methods only: gain on units held more than a year / a year or less */ longGain?: number; shortGain?: number };
 
 /** Lines: date, symbol, buy|sell, quantity, price, fee (fee optional). */
 export function parseTx(text: string): { tx: Tx[]; error: string } {
@@ -99,32 +99,64 @@ export function parseTx(text: string): { tx: Tx[]; error: string } {
   return { tx, error: '' };
 }
 
-/** Gains per sale by average cost (Canada's ACB) or FIFO. Buying fees join the cost, selling fees reduce the proceeds. */
-export function gains(tx: Tx[], method: 'average' | 'fifo'): { sales: Sale[]; error: string } {
+export type CostMethod = 'average' | 'fifo' | 'lifo' | 'hifo';
+function daysBetween(a: string, b: string): number {
+  const t = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return Date.UTC(y, m - 1, dd); };
+  return Math.round((t(b) - t(a)) / DAY);
+}
+
+/** Gains per sale by average cost (Canada's ACB), FIFO, LIFO or highest-cost-first. Buying fees join the cost, selling fees reduce the proceeds.
+ *  Lot methods also split each gain into long (held over 365 days) and short. */
+export function gains(tx: Tx[], method: CostMethod): { sales: Sale[]; error: string } {
   const sales: Sale[] = [];
-  const books = new Map<string, { lots: { qty: number; cost: number }[] }>();
+  const books = new Map<string, { lots: { qty: number; cost: number; date: string }[] }>();
   for (const t of tx) {
     const b = books.get(t.symbol) || { lots: [] };
     books.set(t.symbol, b);
-    if (t.side === 'buy') { b.lots.push({ qty: t.qty, cost: t.qty * t.price + t.fee }); continue; }
+    if (t.side === 'buy') { b.lots.push({ qty: t.qty, cost: t.qty * t.price + t.fee, date: t.date }); continue; }
     const held = b.lots.reduce((s, l) => s + l.qty, 0);
     if (t.qty > held + 1e-9) return { sales: [], error: `${t.symbol}: you sell ${t.qty} on ${t.date} but only hold ${Math.round(held * 1e6) / 1e6} by then.` };
-    let cost = 0;
+    const proceeds = t.qty * t.price - t.fee;
+    let cost = 0, longGain: number | undefined, shortGain: number | undefined;
     if (method === 'average') {
       const totalCost = b.lots.reduce((s, l) => s + l.cost, 0), frac = t.qty / held;
       cost = totalCost * frac;
-      b.lots = b.lots.map((l) => ({ qty: l.qty * (1 - frac), cost: l.cost * (1 - frac) }));
+      b.lots = b.lots.map((l) => ({ ...l, qty: l.qty * (1 - frac), cost: l.cost * (1 - frac) }));
     } else {
-      let left = t.qty;
-      for (const l of b.lots) {
+      const order = b.lots.slice();
+      if (method === 'lifo') order.reverse();
+      if (method === 'hifo') order.sort((x, y) => y.cost / y.qty - x.cost / x.qty);
+      let left = t.qty; longGain = 0; shortGain = 0;
+      for (const l of order) {
         if (left <= 1e-12) break;
         const take = Math.min(left, l.qty), c = l.cost * (take / l.qty);
+        const g = (proceeds * take) / t.qty - c;
+        if (daysBetween(l.date, t.date) > 365) longGain += g; else shortGain += g;
         cost += c; l.cost -= c; l.qty -= take; left -= take;
       }
       b.lots = b.lots.filter((l) => l.qty > 1e-12);
     }
-    const proceeds = t.qty * t.price - t.fee;
-    sales.push({ date: t.date, symbol: t.symbol, qty: t.qty, proceeds, cost, gain: proceeds - cost });
+    sales.push({ date: t.date, symbol: t.symbol, qty: t.qty, proceeds, cost, gain: proceeds - cost, unitCost: cost / t.qty, longGain, shortGain });
   }
   return { sales, error: '' };
+}
+
+export type GainYear = { year: string; sales: number; proceeds: number; cost: number; gain: number; longGain?: number; shortGain?: number; taxable: number; estTax: number | null };
+/** Yearly totals. taxFree = a yearly tax-free amount taken off a net gain (0 if none); inclPct = taxable share of the rest;
+ *  ratePct = optional tax rate (null = leave the estimate out). A net loss gives a taxable part of 0. */
+export function summarize(sales: Sale[], inclPct: number, taxFree = 0, ratePct: number | null = null): { years: GainYear[]; total: GainYear } {
+  const mk = (year: string, a: Sale[]): GainYear => {
+    const sum = (k: 'proceeds' | 'cost' | 'gain') => a.reduce((s, x) => s + x[k], 0);
+    const lots = a.every((x) => x.longGain !== undefined) && a.length > 0;
+    const gain = sum('gain');
+    const taxable = (Math.max(0, gain - Math.max(0, taxFree)) * inclPct) / 100;
+    return { year, sales: a.length, proceeds: sum('proceeds'), cost: sum('cost'), gain,
+      longGain: lots ? a.reduce((s, x) => s + (x.longGain || 0), 0) : undefined,
+      shortGain: lots ? a.reduce((s, x) => s + (x.shortGain || 0), 0) : undefined,
+      taxable, estTax: ratePct === null || !(ratePct >= 0) ? null : (taxable * ratePct) / 100 };
+  };
+  const ys = [...new Set(sales.map((s) => s.date.slice(0, 4)))];
+  const years = ys.map((y) => mk(y, sales.filter((s) => s.date.startsWith(y))));
+  const total: GainYear = { ...mk('All', sales), taxable: years.reduce((s, y) => s + y.taxable, 0), estTax: ratePct === null || !(ratePct >= 0) ? null : years.reduce((s, y) => s + (y.estTax || 0), 0) };
+  return { years, total };
 }

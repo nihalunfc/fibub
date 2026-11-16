@@ -12,10 +12,38 @@
       <label>Return after inflation <span class="fi-suf"><input data-k="ret" inputmode="decimal" /><i>% a year</i></span></label>
       <label>Safe withdrawal rate <span class="fi-suf"><input data-k="wr" inputmode="decimal" /><i>% a year</i></span></label>
     </div>
-    <p class="fi-hint">Spending in retirement is taken as the same as now. The return is after inflation, so every figure is in today's money.</p>
+    <div class="fi-rate">
+      <label>Saving rate: <b class="fi-ratev"></b> of your income<input type="range" class="fi-rs" data-k="rs" min="0" max="90" step="1" aria-label="Saving rate, percent of income" /></label>
+      <label>or type it <span class="fi-suf"><input data-k="rate" inputmode="decimal" aria-label="Saving rate in percent" /><i>%</i></span></label>
+    </div>
+    <p class="fi-hint">Moving the saving rate changes your spending, and the other way round.</p>
+    <details class="fi-more">
+      <summary>More options: age, retirement spending, lean, fat, coast and barista FIRE</summary>
+      <div class="fi-grid">
+        <label>Your age (optional) <input data-k="age" inputmode="numeric" placeholder="e.g. 32" /></label>
+        <label>Usual retirement age (for Coast FIRE) <input data-k="rage" inputmode="numeric" value="65" /></label>
+        <label>Spending in retirement, a year (if different) <input data-k="rspend" inputmode="decimal" placeholder="same as now" /></label>
+        <label>Part-time or pension income, a year (for Barista FIRE) <input data-k="other" inputmode="decimal" placeholder="0" /></label>
+      </div>
+      <div class="fi-wrap"><table>
+        <caption>Different kinds of FIRE</caption>
+        <thead><tr><th>Kind</th><th>Spending a year</th><th>Number needed</th><th>Years to go</th></tr></thead>
+        <tbody class="fi-var-body"></tbody>
+      </table></div>
+      <p class="fi-hint">Lean is 70% of your retirement spending, fat is 150%. Barista means part-time or pension income covers part of it. Coast means you can stop saving now and growth alone gets you to the full number by your retirement age.</p>
+      <div class="fi-wrap"><table>
+        <caption>Different withdrawal rates</caption>
+        <thead><tr><th>Withdrawal rate</th><th>FIRE number</th><th>Years to go</th></tr></thead>
+        <tbody class="fi-wr-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary fi-csv">Download year by year (CSV)</button>
+    </details>
+    <p class="fi-hint">Spending in retirement is taken as the same as now unless you change it above. The return is after inflation, so every figure is in today's money.</p>
     <p class="note bad fi-err" role="alert" hidden></p>
   </section>
   <section class="fi-res" aria-live="polite">
+    <p class="fi-head"></p>
+    <p class="fi-work"></p>
     <div class="fi-stats">
       <div><span>Your FIRE number</span><b class="fi-num"></b></div>
       <div><span>You save each year</span><b class="fi-save"></b></div>
@@ -29,6 +57,7 @@
     <div class="fi-tab panel">
       <h2>What if you saved more?</h2>
       <p class="fi-hint">Same income, a different share of it saved. Spending falls as saving rises, so the FIRE number falls too.</p>
+      <div class="fi-svg2"></div>
       <div class="fi-wrap"><table>
         <thead><tr><th>Saving rate</th><th>Spending a year</th><th>FIRE number</th><th>Years to go</th></tr></thead>
         <tbody class="fi-body"></tbody>
@@ -68,6 +97,12 @@
   .fi th, .fi td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   .fi th:first-child, .fi td:first-child { text-align: left; }
   .fi th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .fi-head { margin: 0; font-size: 17px; font-weight: 600; } .fi-head:empty, .fi-work:empty { display: none; }
+  .fi-work { margin: 0; font-size: 13px; color: var(--muted); }
+  .fi-rate { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; align-items: end; margin-top: 12px; }
+  .fi-rate input[type=range] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
+  .fi-more { margin-top: 12px; } .fi-more > summary { cursor: pointer; font-weight: 600; font-size: 15px; } .fi-more .fi-grid { margin: 10px 0; } .fi-more .fi-wrap { margin-top: 10px; } .fi-more .btn { margin-top: 12px; }
+  .fi caption { text-align: left; font-weight: 600; font-size: 14px; padding-bottom: 4px; }
   .fi-fine { margin: 0; color: var(--muted); font-size: 13px; }
   .fi-err { margin: 10px 0 0; }
   .fi-hint { margin: 0; font-size: 13px; color: var(--muted); }
@@ -75,8 +110,8 @@
 </style>
 
 <script>
-  import { yearsToTarget } from '../../lib/money/goals';
-  import { lineSvg, legend } from '../../lib/money/chart';
+  import { yearsToTarget, fireNumber, coastNumber, yearsToCoast, savingsByYear, savingRateCurve, savingRate } from '../../lib/money/goals';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
   import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
   const root = document.querySelector<HTMLElement>('.fi')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -88,28 +123,72 @@
   f('ret').value = '5'; f('wr').value = '4';
   const $ = (n: number) => money(n, f('cur').value, 0);
   const yrs = (y: number) => !isFinite(y) ? 'Not at this rate' : y <= 0 ? 'Already there' : y > 100 ? 'Over 100 years' : (Math.round(y * 10) / 10).toString() + ' years';
+  const rs = f('rs'), rateIn = f('rate');
+  let rows: (string | number)[][] = [];
+  /** Show the saving rate that matches the income and spending boxes (never overwrites the box being typed in). */
+  function syncRate() {
+    const income = num(f('income').value), r = income > 0 ? savingRate(income, num(f('spend').value)) : 0;
+    rs.value = String(Math.round(Math.min(90, Math.max(0, r))));
+    if (document.activeElement !== rateIn) rateIn.value = income > 0 ? String(Math.round(r * 10) / 10) : '';
+  }
+  /** Moving the rate sets spending. It only rewrites spending when the rate really changed, so shared links keep exact numbers. */
+  function applyRate(fromSlider: boolean) {
+    const income = num(f('income').value);
+    if (!(income > 0)) return;
+    const now = savingRate(income, num(f('spend').value));
+    const want = fromSlider ? +rs.value : Math.min(100, Math.max(0, num(rateIn.value)));
+    if (fromSlider ? Math.round(now) === want : Math.abs(now - want) < 0.05) return;
+    f('spend').value = String(Math.round(income * (1 - want / 100)));
+    if (fromSlider) rateIn.value = String(want); else rs.value = String(Math.round(Math.min(90, want)));
+  }
   function run() {
     const income = num(f('income').value), spend = num(f('spend').value), saved = num(f('saved').value), ret = num(f('ret').value), wr = num(f('wr').value);
-    const bad = !(spend > 0) ? 'Enter what you spend in a year.' : !(wr > 0 && wr <= 20) ? 'Enter a withdrawal rate between 0 and 20, for example 4.' : ret < -10 || ret > 30 ? 'Enter a return between -10 and 30.' : income < 0 || saved < 0 ? 'Amounts cannot be negative.' : '';
+    const rsp = num(f('rspend').value), other = num(f('other').value), age = Math.floor(num(f('age').value)), rage = Math.floor(num(f('rage').value)) || 65;
+    const big = [income, spend, saved, rsp, other].some((v) => v > 1e13);
+    const bad = big ? 'Those amounts are too large to work with. Check the zeros.' : !(spend > 0) ? 'Enter what you spend in a year.' : !(wr > 0 && wr <= 20) ? 'Enter a withdrawal rate between 0 and 20, for example 4.' : ret < -10 || ret > 30 ? 'Enter a return between -10 and 30.' : income < 0 || saved < 0 || rsp < 0 || other < 0 || /-/.test(f('income').value + f('saved').value + f('rspend').value + f('other').value) ? 'Amounts cannot be negative.' : '';
     q('.fi-err').hidden = !bad; q('.fi-err').textContent = bad; q('.fi-res').hidden = !!bad;
     if (bad) return;
-    const fire = spend / (wr / 100), save = income - spend;
+    syncRate(); q('.fi-ratev').textContent = `${Math.round(savingRate(income, spend))}%`;
+    const retSpend = rsp > 0 ? rsp : spend, ratio = retSpend / spend;
+    const fire = fireNumber(retSpend, wr), save = income - spend;
     const y = yearsToTarget(fire, saved, save, ret);
+    const when = age > 0 && isFinite(y) && y > 0 && y <= 100 ? ` You would be about ${Math.ceil(age + y)}.` : '';
     q('.fi-num').textContent = $(fire);
     q('.fi-save').textContent = $(save);
     q('.fi-years').textContent = yrs(y);
+    q('.fi-head').textContent = !isFinite(y) ? (save <= 0 ? 'At these numbers you do not get there: you spend as much as you earn.' : 'At this return the target is out of reach.')
+      : y <= 0 ? `You already have enough: ${$(saved)} covers ${$(retSpend)} a year at ${wr}%.`
+      : `You could reach financial independence in about ${yrs(y)}.${when}`;
+    q('.fi-work').textContent = `Working: ${$(retSpend)} ÷ ${wr}% = ${$(fire)} (about ${Math.round(100 / wr * 10) / 10} times your yearly spending). You save ${$(income)} − ${$(spend)} = ${$(save)} a year.`;
     q('.fi-msg').textContent = !isFinite(y) ? (save <= 0 ? 'You spend as much as you earn, so savings do not grow from your pay. Lower spending or raise income.' : 'At this return the target is out of reach.') : y <= 0 ? 'You already have enough for your spending at this withdrawal rate.' : `Saving ${$(save)} a year (${income > 0 ? Math.round((save / income) * 100) : 0}% of your income), you reach ${$(fire)} in about ${yrs(y)}.`;
-    const n = isFinite(y) ? Math.min(60, Math.ceil(y) + 2) : 30, xs: number[] = [], bal: number[] = [];
-    let b = saved;
-    for (let k = 0; k <= n; k++) { xs.push(k); bal.push(b); b = b * (1 + ret / 100) + save; }
+    const n = isFinite(y) ? Math.min(60, Math.ceil(y) + 2) : 30, xs: number[] = [], bal = savingsByYear(saved, save, ret, n);
+    for (let k = 0; k <= n; k++) xs.push(k);
     const series = [{ label: 'Your savings', ys: bal, color: 'var(--accent)' }, { label: 'FIRE number', ys: bal.map(() => fire), color: 'var(--muted)', dash: true }];
     q('.fi-svg').innerHTML = lineSvg(series, xs, 'Savings over the years against the FIRE number');
     q('.fi-leg').innerHTML = legend(series);
-    q('.fi-body').innerHTML = income > 0 ? [10, 20, 30, 40, 50, 60, 70].map((r) => {
-      const sp = income * (1 - r / 100), fr = sp / (wr / 100), yy = yearsToTarget(fr, saved, income - sp, ret);
-      return `<tr><td>${r}%</td><td>${$(sp)}</td><td>${$(fr)}</td><td>${yrs(yy)}</td></tr>`;
-    }).join('') : '';
+    rows = [['Year', 'Savings', 'FIRE number'], ...bal.map((b, k) => [k, Math.round(b), Math.round(fire)])];
+    const curve = savingRateCurve(income, [10, 20, 30, 40, 50, 60, 70], wr, saved, ret, ratio);
+    q('.fi-body').innerHTML = income > 0 ? curve.map((c) => `<tr><td>${c.rate}%</td><td>${$(c.spend)}</td><td>${$(c.fire)}</td><td>${yrs(c.years)}</td></tr>`).join('') : '';
+    const rates = Array.from({ length: 18 }, (_, k) => 5 + k * 5), cv = savingRateCurve(income, rates, wr, saved, ret, ratio);
+    q('.fi-svg2').innerHTML = income > 0 ? lineSvg([{ label: 'Years to independence', ys: cv.map((c) => (isFinite(c.years) ? Math.min(60, c.years) : 60)), color: 'var(--accent)' }], rates, 'Years to independence by saving rate (percent of income), capped at 60') + '<p class="fi-hint">Horizontal: saving rate, % of income. Vertical: years to independence (60 means 60 or more).</p>' : '';
+    // lean, regular, fat, barista, coast
+    const kinds: [string, number][] = [['Lean (70%)', retSpend * 0.7], ['Regular', retSpend], ['Fat (150%)', retSpend * 1.5]];
+    let html = kinds.map(([n, sp]) => { const fn = fireNumber(sp, wr); return `<tr><td>${n}</td><td>${$(sp)}</td><td>${$(fn)}</td><td>${yrs(yearsToTarget(fn, saved, save, ret))}</td></tr>`; }).join('');
+    if (other > 0) { const fn = fireNumber(retSpend, wr, other); html += `<tr><td>Barista</td><td>${$(Math.max(0, retSpend - other))}</td><td>${$(fn)}</td><td>${yrs(yearsToTarget(fn, saved, save, ret))}</td></tr>`; }
+    else html += '<tr><td>Barista</td><td colspan="3">Add part-time or pension income above to see it</td></tr>';
+    const left = rage - age;
+    if (!(age > 0)) html += '<tr><td>Coast</td><td colspan="3">Add your age above to see it</td></tr>';
+    else if (left <= 0) html += `<tr><td>Coast</td><td colspan="3">You are past ${rage}. Change the retirement age to see it</td></tr>`;
+    else { const cn = coastNumber(fire, ret, left), yc = yearsToCoast(fire, saved, save, ret, left); html += `<tr><td>Coast (stop saving by age ${rage})</td><td>${$(retSpend)}</td><td>${$(cn)} now</td><td>${yc === 0 ? 'Already coasting' : isFinite(yc) ? `${yc} years` : `Not before ${rage}`}</td></tr>`; }
+    q('.fi-var-body').innerHTML = html;
+    q('.fi-wr-body').innerHTML = [3, 3.5, 4, 5].map((r) => { const fn = fireNumber(retSpend, r); return `<tr${r === wr ? ' style="font-weight:700"' : ''}><td>${r}%</td><td>${$(fn)}</td><td>${yrs(yearsToTarget(fn, saved, save, ret))}</td></tr>`; }).join('');
   }
-  root.addEventListener('input', run); root.addEventListener('change', run);
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement;
+    if (t === rs) applyRate(true); else if (t === rateIn) applyRate(false);
+    run();
+  });
+  root.addEventListener('change', run);
+  q('.fi-csv').addEventListener('click', () => { if (rows.length) downloadCsv('fire-year-by-year.csv', rows); });
   run();
 </script>

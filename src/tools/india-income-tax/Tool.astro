@@ -5,31 +5,45 @@
   <section class="panel">
     <h2>Your income in FY 2026-27</h2>
     <div class="iit-grid">
-      <label>Your age <select class="iit-age">
+      <label>Your age <select class="iit-age" data-k="age">
         <option value="under60">Under 60</option>
         <option value="60to79">60 to 79 (senior citizen)</option>
         <option value="80plus">80 or over (super senior)</option>
       </select></label>
-      <label>Gross salary for the year (₹) <input class="iit-sal" inputmode="decimal" value="15,00,000" /></label>
-      <label>Other income: interest, rent, other (₹) <input class="iit-oth" inputmode="decimal" value="0" /></label>
+      <label>Gross salary for the year (₹) <input class="iit-sal" data-k="salary" inputmode="decimal" value="15,00,000" /></label>
+      <label>Other income: interest, rent, other (₹) <input class="iit-oth" data-k="other" inputmode="decimal" value="0" /></label>
     </div>
     <details class="iit-old" open>
       <summary>Old regime deductions (the new regime ignores these)</summary>
       <div class="iit-grid">
-        <label>HRA exemption (₹) <input class="iit-hra" inputmode="decimal" value="0" /></label>
-        <label>80C: PF, PPF, ELSS, insurance (max 1,50,000) <input class="iit-80c" inputmode="decimal" value="1,50,000" /></label>
-        <label>80D: health insurance, you and family <input class="iit-80d" inputmode="decimal" value="25,000" /></label>
-        <label>80D: parents' health insurance <input class="iit-80dp" inputmode="decimal" value="0" /></label>
-        <label class="iit-chk"><input type="checkbox" class="iit-ps" /> Parents are 60 or over</label>
-        <label>Home loan interest, 24(b) (max 2,00,000) <input class="iit-home" inputmode="decimal" value="0" /></label>
-        <label>Own NPS, 80CCD(1B) (max 50,000) <input class="iit-nps" inputmode="decimal" value="0" /></label>
+        <label>HRA exemption (₹) <input class="iit-hra" data-k="hra" inputmode="decimal" value="0" /></label>
+        <label>80C: PF, PPF, ELSS, insurance (max 1,50,000) <input class="iit-80c" data-k="c80" inputmode="decimal" value="1,50,000" /></label>
+        <label>80D: health insurance, you and family <input class="iit-80d" data-k="d80" inputmode="decimal" value="25,000" /></label>
+        <label>80D: parents' health insurance <input class="iit-80dp" data-k="d80-parents" inputmode="decimal" value="0" /></label>
+        <label class="iit-chk"><input type="checkbox" class="iit-ps" data-k="parents-senior" /> Parents are 60 or over</label>
+        <label>Home loan interest, 24(b) (max 2,00,000) <input class="iit-home" data-k="home" inputmode="decimal" value="0" /></label>
+        <label>Own NPS, 80CCD(1B) (max 50,000) <input class="iit-nps" data-k="nps" inputmode="decimal" value="0" /></label>
       </div>
+    </details>
+    <details class="iit-more">
+      <summary>More options</summary>
+      <div class="iit-grid">
+        <label>I know my salary as <select class="iit-unit" data-k="unit"><option value="year" selected>a yearly amount</option><option value="month">a monthly amount</option></select></label>
+        <label>Employer NPS contribution for the year, 80CCD(2) (₹) <input class="iit-enps" data-k="employer-nps" inputmode="decimal" value="0" /></label>
+        <label>Yearly basic + DA, for the NPS limit (₹) <input class="iit-basic" data-k="basic" inputmode="decimal" value="0" /></label>
+        <label>Education loan interest, 80E (₹) <input class="iit-80e" data-k="edu-loan" inputmode="decimal" value="0" /></label>
+        <label>Savings-account interest in other income (₹) <input class="iit-tta" data-k="savings-interest" inputmode="decimal" value="0" /></label>
+        <label>What if I earned more? <b class="iit-morev">+₹0</b>
+          <input type="range" class="iit-more-r" data-k="more" min="0" max="1000000" step="50000" value="0" aria-label="Extra salary a year" /></label>
+      </div>
+      <p class="iit-hint">Employer NPS counts in both regimes (up to 14% of basic + DA new, 10% old) and should already be inside your gross salary. Savings interest: up to ₹10,000 (₹50,000 on all deposit interest for seniors), old regime only. Limits are estimates: check the official source.</p>
     </details>
     <p class="iit-hint">Resident individuals, amounts for the whole year in rupees. HRA: type the exempt amount from your Form 16 or payslip.</p>
   </section>
 
   <section class="iit-res" aria-live="polite">
     <p class="iit-verdict"></p>
+    <p class="iit-be"></p>
     <div class="iit-cols">
       <div class="panel iit-col" data-reg="new"><h3>New regime</h3><b class="iit-tot"></b><span class="iit-sub"></span><table><tbody></tbody></table></div>
       <div class="panel iit-col" data-reg="old"><h3>Old regime</h3><b class="iit-tot"></b><span class="iit-sub"></span><table><tbody></tbody></table></div>
@@ -55,6 +69,11 @@
   .iit-old summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
   .iit-hint, .iit-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
   .iit-res { display: grid; gap: 12px; min-width: 0; }
+  .iit-be { margin: 0; font-size: 14px; }
+  .iit-be:empty { display: none; }
+  .iit-more { margin-top: 14px; }
+  .iit-more summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+  .iit-more input[type=range] { padding: 0; }
   .iit-verdict { margin: 0; font-size: 17px; font-weight: 600; }
   .iit-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .iit-col { display: grid; gap: 4px; align-content: start; min-width: 0; }
@@ -76,7 +95,7 @@
 </style>
 
 <script>
-  import { indiaTax, type Age } from '../../lib/money/india-income-tax.ts';
+  import { indiaTax, breakEven, yearly, nextExtra, type Age } from '../../lib/money/india-income-tax.ts';
   const root = document.querySelector('.iit') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const val = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -84,13 +103,27 @@
   const pct = (n: number) => `${(Math.round(n * 1000) / 10).toFixed(1)}%`;
 
   const update = () => {
-    const r = indiaTax({
-      age: q<HTMLSelectElement>('.iit-age').value as Age, salary: val('.iit-sal'), other: val('.iit-oth'), hra: val('.iit-hra'),
+    const extra = val('.iit-more-r');
+    q('.iit-morev').textContent = `+${inr(extra)}`;
+    const monthly = q<HTMLSelectElement>('.iit-unit').value === 'month';
+    const inp = {
+      age: q<HTMLSelectElement>('.iit-age').value as Age, salary: Math.max(0, monthly ? yearly(val('.iit-sal')) : val('.iit-sal')) + extra, other: val('.iit-oth'), hra: val('.iit-hra'),
       c80: val('.iit-80c'), d80: val('.iit-80d'), d80parents: val('.iit-80dp'), parentsSenior: q<HTMLInputElement>('.iit-ps').checked,
       home: val('.iit-home'), nps: val('.iit-nps'),
-    });
-    q('.iit-verdict').textContent = r.saving < 1 ? 'Both regimes give the same tax.'
+      employerNps: val('.iit-enps'), basic: val('.iit-basic'), eduLoan: val('.iit-80e'), savingsInterest: val('.iit-tta'),
+    };
+    const r = indiaTax(inp);
+    const empty = r.new.gross <= 0, huge = r.new.gross > 1e11;
+    q('.iit-verdict').textContent = empty ? 'Type your salary above to compare the two regimes.'
+      : huge ? 'That is a very large number. Check for an extra zero.'
+      : r.saving < 1 ? (r.new.total === 0 ? 'You pay no income tax in either regime.' : 'Both regimes give the same tax.')
       : `The ${r.better} regime saves you ${inr(r.saving)} a year (${inr(r.saving / 12)} a month).`;
+    const be = empty || huge ? 0 : breakEven(inp);
+    const nx = nextExtra(inp, 100000);
+    q('.iit-be').textContent = empty || huge ? '' : (be === null ? 'The old regime cannot beat the new one for this income.'
+      : be > 0 ? `The old regime would need about ${inr(be)} more in deductions than you entered to cost the same as the new one. `
+      : r.better === 'old' ? 'Your deductions are enough for the old regime to win. ' : '')
+      + `A further ₹1,00,000 of salary would add ${inr(nx.new)} of tax in the new regime and ${inr(nx.old)} in the old.`;
     const max = Math.max(r.new.total, r.old.total, 1);
     for (const reg of ['new', 'old'] as const) {
       const s = r[reg], col = q(`.iit-col[data-reg=${reg}]`);

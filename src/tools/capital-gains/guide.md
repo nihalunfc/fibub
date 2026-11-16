@@ -11,10 +11,10 @@ ads: false
 order: 1756
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [return-calculator, canada-income-tax, uk-income-tax, india-income-tax]
 sources:
-  - "Average cost (adjusted cost base) and FIFO matching of sales to purchases. Canada's capital gains inclusion rate is 50% at the time of writing, see canada.ca (Line 12700, capital gains), and is editable here; check the official source. Checked by hand: buy 100 at 10 and 100 at 20, sell 100 at 25 gives a gain of 1,000 by average cost and 1,500 by FIFO."
+  - "Average cost (adjusted cost base) and FIFO matching of sales to purchases. Canada's capital gains inclusion rate is 50% at the time of writing, see canada.ca (Line 12700, capital gains), and is editable here; check the official source. The yearly tax-free amount and tax rate are blank by default because they differ by country and year; type the figures from your tax authority and check the official source. Checked by hand: buy 100 at 10 and 100 at 20, sell 100 at 25 gives a gain of 1,000 by average cost and 1,500 by FIFO."
 flow:
   - { icon: coin, label: "Enter" }
   - { icon: sliders, label: "Choose" }
@@ -38,6 +38,9 @@ It also shows a **taxable part**: the gain multiplied by a percentage you can ed
 
 - **Average cost:** the cost of a sale is the average cost of everything you hold of that name.
 - **FIFO:** the cost of a sale comes from your oldest purchases first.
+- **LIFO and HIFO:** the newest purchases are sold first (LIFO), or the most expensive per unit first (HIFO). Some countries only allow certain methods, so check the official source.
+- **More options:** a yearly tax-free amount (taken off a year's net gain first), your own tax rate for an estimated tax, and, for FIFO, LIFO and HIFO, a split of each gain into units held more than a year and a year or less. These are blank or off by default.
+- **Plain answer and working:** a line at the top gives the net gain or loss, taxable part and estimated tax; each sale also shows its cost per unit so you can check the working.
 - **Fees:** buying fees add to the cost; selling fees reduce the proceeds.
 - **Taxable share:** the part of a gain that counts as income, such as 50% in Canada.
 
@@ -50,5 +53,7 @@ You buy 100 shares at 10 and 100 more at 20, then sell 100 at 25. By average cos
 **Does it handle superficial-loss or wash-sale rules, splits or currencies?** No. Enter figures already in one currency and adjust for those yourself.
 
 **Which method must I use?** It depends on your country; Canada uses average cost. Check the official source. Not financial or tax advice.
+
+**What if I have a net loss?** The taxable part shows 0 and the answer line says so. Many countries let you use a loss against other gains; check the official source.
 
 **Can I sell more than I bought?** No; the tool shows a message because that would be a short sale.

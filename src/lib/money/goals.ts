@@ -147,3 +147,41 @@ export const todaysMoney = (amount: number, inflation: number, years: number) =>
 export const firstYearInterest = (p: number, rate: number, comp: Comp) => fdMaturity(p, rate, 1, comp) - p;
 /** Bank TDS (10%) applies once a year's interest passes the limit: Rs 40,000, or Rs 50,000 for senior citizens (from 1 April 2025). */
 export const tdsLimit = (senior: boolean) => (senior ? 50000 : 40000);
+
+// ---------- FIRE calculator ----------
+/** The pot that pays `spend` a year at `wrPct`% a year, after any other income (pension, part-time work) that covers part of it. */
+export const fireNumber = (spend: number, wrPct: number, otherIncome = 0) =>
+  wrPct > 0 ? Math.max(0, (Number.isFinite(spend) ? spend : 0) - Math.max(0, otherIncome || 0)) / (wrPct / 100) : Infinity;
+
+/** What you need today so that growth alone (no more saving) reaches `fire` in `yearsLeft` years at real return `ret`%. */
+export const coastNumber = (fire: number, ret: number, yearsLeft: number) => fire / Math.pow(1 + ret / 100, Math.max(0, yearsLeft));
+
+/** Whole years until the savings, left to grow on their own from then on, reach `fire` by the end of `yearsLeft`. 0 = already there, Infinity = not within yearsLeft. */
+export function yearsToCoast(fire: number, saved: number, perYear: number, ret: number, yearsLeft: number): number {
+  const i = ret / 100;
+  let bal = saved;
+  for (let t = 0; t <= Math.max(0, Math.floor(yearsLeft)); t++) {
+    if (bal * Math.pow(1 + i, yearsLeft - t) >= fire) return t;
+    bal = bal * (1 + i) + perYear;
+  }
+  return Infinity;
+}
+
+/** Savings at the end of each year, 0..years. */
+export function savingsByYear(saved: number, perYear: number, ret: number, years: number): number[] {
+  const out: number[] = [];
+  let b = saved;
+  for (let k = 0; k <= years; k++) { out.push(b); b = b * (1 + ret / 100) + perYear; }
+  return out;
+}
+
+/** Years to FIRE for each saving rate (percent of income). Spending = income x (1 - rate); retirement spending is that times `retireRatio`. */
+export function savingRateCurve(income: number, rates: number[], wrPct: number, saved: number, ret: number, retireRatio = 1, other = 0) {
+  return rates.map((rate) => {
+    const spend = income * (1 - rate / 100), fire = fireNumber(spend * retireRatio, wrPct, other);
+    return { rate, spend, fire, years: yearsToTarget(fire, saved, income - spend, ret) };
+  });
+}
+
+/** The saving rate (percent of income, may be below 0 or above 100) that gives this yearly spending. */
+export const savingRate = (income: number, spend: number) => (income > 0 ? ((income - spend) / income) * 100 : 0);

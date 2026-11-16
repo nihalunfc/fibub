@@ -12,13 +12,14 @@ ads: true
 order: 1726
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [canada-income-tax, uk-income-tax, budget-calculator]
 sources:
   - "Slabs (new regime, old regime by age), 87A rebate, surcharge and 4% Health and Education Cess: Income Tax Department, Tax rates, https://www.incometaxindia.gov.in/w/tax-rates%E2%80%8B (checked 2026-11-10)"
   - "New regime slabs, Rs 75,000 standard deduction and no tax up to Rs 12 lakh (Rs 60,000 rebate): PIB, 1 February 2025, https://www.pib.gov.in/PressReleasePage.aspx?PRID=2098406 (checked 2026-11-10)"
   - "No change to individual slabs in Budget 2026-27; Income-tax Act, 2025 in force from 1 April 2026: PIB Summary of Union Budget 2026-27, https://static.pib.gov.in/WriteReadData/specificdocs/documents/2026/feb/doc202621776101.pdf and https://www.pib.gov.in/PressReleasePage.aspx?PRID=2221416 (checked 2026-11-10)"
   - "Deduction limits (80C Rs 1.5 lakh, 80D Rs 25,000 / Rs 50,000 for seniors, 24(b) Rs 2 lakh, 80CCD(1B) Rs 50,000, old-regime standard deduction Rs 50,000) as in the Income-tax Act, 1961 and carried into the 2025 Act: estimate, check the official source"
+  - "Employer NPS deduction 80CCD(2) at 14% (new regime) and 10% (old regime) of basic + DA, 80E with no cap, 80TTA Rs 10,000 and 80TTB Rs 50,000: Income-tax Act, 1961 as carried into the 2025 Act. Estimate, check the official source: https://www.incometax.gov.in"
 flow:
   - { icon: wallet, label: "Your income" }
   - { icon: pencil, label: "Deductions" }
@@ -37,6 +38,8 @@ Once you know your tax, plan where the rest goes with the [[budget-calculator|bu
 1. Pick your **age**: the old regime gives seniors a higher tax-free amount.
 2. Type your **gross salary** for the year, and any **other income** such as bank interest or rent.
 3. Open **Old regime deductions** and type what you claim. The new regime ignores them, apart from its own Rs 75,000 standard deduction.
+
+Open **More options** to enter a **monthly salary** instead of a yearly one, your **employer's NPS contribution** (section 80CCD(2), which counts in both regimes, up to 14% of basic + DA in the new regime and 10% in the old), **education loan interest** (80E, old regime) and the **savings-account interest** inside your other income (80TTA, old regime, up to Rs 10,000, or Rs 50,000 on deposit interest for seniors). A slider shows what a bigger salary would do. Under the verdict, the page says how much more in old-regime deductions you would need for the old regime to cost the same as the new one, and what an extra Rs 1,00,000 of salary would add in each. If the salary box is empty it asks for your salary instead of showing zeros.
 
 ## What each part means
 

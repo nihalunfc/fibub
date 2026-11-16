@@ -125,3 +125,25 @@ export function canadaTax(inp: Input): Result {
     estimate: c.P.estimate,
   };
 }
+
+// ---- Extras: pay periods, hourly pay, "next $1,000", comparing two incomes, RRSP refund ----
+export const PERIODS: Record<string, [string, number]> = {
+  weekly: ['Every week', 52], biweekly: ['Every two weeks', 26], semimonthly: ['Twice a month', 24], monthly: ['Every month', 12],
+};
+/** Yearly pay from an hourly wage (52 weeks). Never negative or NaN. */
+export const hourlyToYear = (rate: number, hoursPerWeek: number) => r2(pos(rate || 0) * pos(hoursPerWeek || 0) * 52);
+
+/** What an extra amount of employment income does to take-home pay. */
+export function nextExtra(inp: Input, extra = 1000) {
+  const a = canadaTax(inp);
+  const b = canadaTax({ ...inp, employment: pos(inp.employment) + extra });
+  const keep = r2(b.takeHome - a.takeHome);
+  return { keep, taken: r2(extra - keep), share: extra > 0 ? keep / extra : 0 };
+}
+/** Compare today's income with another employment income, same province and RRSP. */
+export function compareIncome(inp: Input, otherEmployment: number) {
+  const a = canadaTax(inp), b = canadaTax({ ...inp, employment: pos(otherEmployment) });
+  return { a, b, takeHomeDiff: r2(b.takeHome - a.takeHome), grossDiff: r2(b.gross - a.gross), taxDiff: r2(b.deductions - a.deductions) };
+}
+/** Income tax an RRSP deduction saves (not CPP or EI, which an RRSP does not change). */
+export const rrspSaving = (inp: Input) => r2(canadaTax({ ...inp, rrsp: 0 }).incomeTax - canadaTax(inp).incomeTax);

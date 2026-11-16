@@ -12,7 +12,7 @@ ads: true
 order: 1785
 icon: calculator
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [hourly-salary, canada-income-tax, uk-income-tax]
 sources:
   - "2026 federal tax brackets, standard deduction ($16,100 single, $32,200 joint, $24,150 head of household) and child tax credit ($2,200): IRS Rev. Proc. 2025-32, https://www.irs.gov/pub/irs-drop/rp-25-32.pdf (checked 2026-11-10)"
@@ -41,6 +41,8 @@ To turn an hourly wage into a salary first, use the [[hourly-salary|hourly to sa
 2. Pick your **pay schedule** and **filing status**, and count **children under 17**.
 3. Choose the **state you work in**. If a rate box appears, type your effective state rate.
 4. Add your **401(k)**, **HSA** and **health premiums** taken from pay.
+
+Under **More options**, drag the **"What if I earned more?"** slider to add up to $50,000 to your yearly pay, or type **another yearly pay** to compare the take-home. A plain sentence at the top gives your take-home per paycheck and the share of pay that goes to tax, and a second line shows what you keep from your **next $1,000**, with your federal bracket and the 7.65% Social Security and Medicare. If the box is empty or zero, the page asks for your pay instead of showing zeros.
 
 ## What each setting does
 

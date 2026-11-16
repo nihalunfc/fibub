@@ -162,12 +162,17 @@ export const rvbTodays = (v: number, inflation: number, years: number) => v / Ma
 export interface Debt { name: string; balance: number; apr: number; min: number }
 export type Strategy = 'snowball' | 'avalanche' | 'minimums';
 export interface PayoffRow { month: number; balances: number[]; interest: number; paid: number }
-export function payoff(debts: Debt[], extra: number, strategy: Strategy) {
+/** `lump` is a one-off payment made before the first month (ignored for 'minimums'). */
+export function payoff(debts: Debt[], extra: number, strategy: Strategy, lump = 0) {
   const n = debts.length, bal = debts.map((d) => d.balance), done: (number | null)[] = debts.map((d) => (d.balance <= 0 ? 0 : null));
   const rows: PayoffRow[] = [];
   let totalInterest = 0, m = 0;
   const budget = debts.reduce((s, d) => s + d.min, 0) + Math.max(0, extra);
   const order = debts.map((_, k) => k).sort((a, b) => strategy === 'avalanche' ? debts[b].apr - debts[a].apr || bal[a] - bal[b] : bal[a] - bal[b] || debts[b].apr - debts[a].apr);
+  if (strategy !== 'minimums' && lump > 0 && Number.isFinite(lump)) {
+    let pool = lump;
+    for (const k of order) { if (pool <= 0.005) break; const p = Math.min(bal[k], pool); if (p > 0) { bal[k] -= p; pool -= p; } }
+  }
   while (bal.some((b) => b > 0.005) && m < 1200) {
     m++;
     let mInt = 0, paid = 0;
@@ -185,4 +190,20 @@ export function payoff(debts: Debt[], extra: number, strategy: Strategy) {
   }
   const finished = bal.every((b) => b <= 0.005);
   return { months: m, finished, totalInterest, rows, doneMonth: done, order: debts.map((_, k) => k).filter((k) => done[k] !== null).sort((a, b) => (done[a]! - done[b]!) || a - b) };
+}
+
+/** Year and month (0 to 11) that is `months` after the given year and month. */
+export function addMonths(year: number, month0: number, months: number) {
+  const t = year * 12 + month0 + Math.max(0, Math.round(months));
+  return { year: Math.floor(t / 12), month0: t % 12 };
+}
+
+/** Names of debts whose minimum does not even cover one month of interest (the balance would never fall on minimums alone). */
+export function minimumTooLow(debts: Debt[]) {
+  return debts.filter((d) => d.balance > 0 && d.min <= (d.balance * d.apr) / 1200).map((d) => d.name);
+}
+
+/** The same payoff plan with different extra monthly amounts, so people can see what a bit more does. */
+export function extraScenarios(debts: Debt[], extras: number[], strategy: Strategy, lump = 0) {
+  return extras.map((extra) => { const r = payoff(debts, extra, strategy, lump); return { extra, months: r.months, finished: r.finished, interest: r.totalInterest }; });
 }
