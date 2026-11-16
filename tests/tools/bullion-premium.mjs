@@ -20,4 +20,11 @@ export default async ({ page, check, BASE }) => {
   check((await prem(0)).trim() === '5.0%', 'bullion-premium: removing a row keeps the first result');
   await page.fill('.bp tr[data-i="0"] input[data-k=price]', ''); await page.waitForTimeout(50);
   check((await prem(0)).trim() === '–', 'bullion-premium: empty price shows a dash, not a number');
+  await page.fill('.bp tr[data-i="0"] input[data-k=price]', '4200');
+  await page.evaluate(() => document.querySelectorAll('.bp details').forEach((d) => (d.open = true)));
+  await page.waitForTimeout(50);
+  check((await page.textContent('.bp .bp-res tr[data-i="0"] .bp-poz')).replace(/,/g, '').includes('200'), `bullion-premium: over spot per oz about 200 (${await page.textContent('.bp .bp-res tr[data-i="0"] .bp-poz')})`);
+  check((await page.textContent('.bp .bp-bev')).replace(/,/g, '').includes('4200'), `bullion-premium: break-even at 100% payout is the price per pure oz, 4,200 (${await page.textContent('.bp .bp-bev')})`);
+  await page.fill('.bp .bp-pay', '96'); await page.waitForTimeout(50);
+  check((await page.textContent('.bp .bp-bev')).replace(/,/g, '').includes('4375'), `bullion-premium: at 96% payout break-even spot = 4,200.42 / 0.96 = 4,375 (${await page.textContent('.bp .bp-bev')})`);
 };

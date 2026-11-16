@@ -286,3 +286,19 @@ export const maxBid = (budget: number, bp: number, tax: number, ship = 0, taxOnA
 // ---------- Coin counting by weight ----------
 /** How many coins from a total weight, given the weight of one (and of the empty container). */
 export const coinsFromWeight = (totalG: number, eachG: number, tareG = 0) => (totalG - tareG) / eachG;
+
+// ---------- Upgrade additions (batch D) ----------
+/** Buyer's premium with a higher (or lower) rate on the part of the hammer price above a threshold. Rates as fractions. */
+export const tieredPremium = (hammer: number, baseRate: number, threshold = 0, upperRate = baseRate) =>
+  !(threshold > 0) || hammer <= threshold ? hammer * baseRate : threshold * baseRate + (hammer - threshold) * upperRate;
+/** Hammer price a seller needs so that, after commission, its tax and fixed fees, they receive `net`. */
+export const hammerForNet = (net: number, commission: number, fees = 0, taxOnCommission = 0) =>
+  (net + fees) / (1 - commission * (1 + taxOnCommission));
+/** Spot price (per troy ounce of pure metal) at which selling back at `payout` (a fraction of melt) just returns what you paid. */
+export const breakEvenSpot = (pricePaid: number, pureOzt: number, payout = 1) => pricePaid / (pureOzt * payout);
+/** Value of the pure metal in a piece, from its weight in grams, fineness and a price per gram of pure metal. */
+export const pieceValue = (weightG: number, fineness: number, pricePerPureGram: number) => (weightG * fineness / 1000) * pricePerPureGram;
+/** Weight a solid piece of a given density should show hanging in water (grams), from its weight in air. */
+export const expectedWaterWeight = (airG: number, density: number, tC = 20) => airG * (1 - waterDensity(tC) / density);
+/** Density from weight and a measured disc (diameter and thickness in mm). */
+export const densityFromDisc = (weightG: number, diaMm: number, thickMm: number) => weightG / discVolume(diaMm, thickMm);

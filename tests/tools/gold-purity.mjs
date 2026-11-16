@@ -16,4 +16,9 @@ export default async ({ page, check, BASE }) => {
   await page.fill('.gp tr[data-m=gold] .cp-own', '100'); await page.waitForTimeout(100);
   check((await page.textContent('.gp tr[data-k="22"] .gp-g')).includes('91.67'), `gold-purity: 22k at 100 per gram = 91.67 (${await page.textContent('.gp tr[data-k="22"] .gp-g')})`);
   check((await page.textContent('.gp tr[data-k="24"] .gp-g')).includes('100'), 'gold-purity: 24k at 100 per gram = 100');
+  await page.fill('.gp .gp-w', '10'); await page.waitForTimeout(100);
+  check((await page.textContent('.gp .gp-val')).replace(/,/g, '').includes('917'), `gold-purity: 10 g of 22k at 100 per gram = 916.67 (${await page.textContent('.gp .gp-val')})`);
+  await page.selectOption('.gp .gp-wu', 'tola'); await page.waitForTimeout(100);
+  check((await page.textContent('.gp .gp-val')).replace(/,/g, '').includes('10692'), `gold-purity: 10 tola of 22k at 100 per gram = 10,692 (${await page.textContent('.gp .gp-val')})`);
+  check((await page.locator('.gp .gp-stamps tbody tr').count()) === 7, 'gold-purity: stamp table has seven rows');
 };

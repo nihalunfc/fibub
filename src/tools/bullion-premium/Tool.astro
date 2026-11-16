@@ -26,10 +26,15 @@ import '../../styles/collect.css';
     <p class="ax-big bp-out" aria-live="polite">…</p>
     <div class="ax-scroll">
       <table class="bp-res">
-        <thead><tr><th>Product</th><th class="r">Per pure gram</th><th class="r">Per pure troy oz</th><th class="r">Metal value</th><th class="r">Premium over spot</th><th></th></tr></thead>
+        <thead><tr><th>Product</th><th class="r">Per pure gram</th><th class="r">Per pure troy oz</th><th class="r">Metal value</th><th class="r">Premium over spot</th><th class="r">Over spot per oz</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
+    <details style="margin-top:10px"><summary>More options: break-even spot price if you sell back</summary>
+      <label>A dealer would buy this back at this % of spot <input class="bp-pay" type="number" min="1" max="200" step="any" inputmode="decimal" placeholder="e.g. 97" /></label>
+      <p class="ax-help">Type the buy-back figure your dealer quotes (leave empty to assume you could sell at 100% of spot). The list shows the spot price per troy ounce the metal would need to reach for selling back to return what you paid.</p>
+      <dl class="ax-facts bp-be" aria-live="polite"></dl>
+    </details>
     <p class="ax-help">Premium is how much more you pay than the metal is worth at the spot price. Lower is cheaper for the same metal. Compare products of the same metal only: the price per pure gram of gold and silver can't be compared with each other. Dealers' buy-back prices are lower than their selling prices, so a low premium on the way in doesn't mean you can sell at spot.</p>
   </div>
 </div>
@@ -45,7 +50,7 @@ import '../../styles/collect.css';
 
 <script>
   import { mountPrices, money, type Metal, type PriceState } from '../../lib/collect/prices';
-  import { melt, premium, perPureGram, toGrams, UNITS } from '../../lib/collect/maths';
+  import { melt, premium, breakEvenSpot, perPureGram, toGrams, UNITS } from '../../lib/collect/maths';
 
   type Row = { name: string; metal: Metal; w: number; unit: string; fin: number; price: number };
   const root = document.querySelector('.bp') as HTMLElement;
@@ -75,18 +80,22 @@ import '../../styles/collect.css';
       const g = toGrams(r.w, r.unit);
       const m = melt(g, r.fin, ps!.perOzt(r.metal));
       const pg = perPureGram(r.price, g, r.fin);
-      return { r, pg, pozt: pg * UNITS.ozt.g, mv: m.value, prem: premium(r.price, m.value), ok: Number.isFinite(pg) && Number.isFinite(m.value) && r.price > 0 };
+      return { r, pg, pozt: pg * UNITS.ozt.g, mv: m.value, pureOzt: m.pureOzt, metal: r.metal, prem: premium(r.price, m.value), ok: Number.isFinite(pg) && Number.isFinite(m.value) && r.price > 0 };
     });
     const good = list.filter((x) => x.ok).sort((a, b) => a.prem - b.prem);
     const bad = list.filter((x) => !x.ok);
     const best = good[0];
     const pct = (v: number) => (v * 100).toFixed(1) + '%';
     res.innerHTML = [...good, ...bad].map((x) => x.ok
-      ? `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">${money(x.pg, cur)}</td><td class="r">${money(x.pozt, cur)}</td><td class="r">${money(x.mv, cur)}</td><td class="r bp-prem">${pct(x.prem)}</td><td>${x === best && good.length > 1 ? '<span class="ax-pill good">Lowest premium</span>' : ''}</td></tr>`
-      : `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">–</td><td class="r">–</td><td class="r">–</td><td class="r bp-prem">–</td><td><span class="ax-pill warn">Needs weight, fineness and price</span></td></tr>`).join('');
+      ? `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">${money(x.pg, cur)}</td><td class="r">${money(x.pozt, cur)}</td><td class="r">${money(x.mv, cur)}</td><td class="r bp-prem">${pct(x.prem)}</td><td class="r bp-poz">${money(x.pozt - ps!.perOzt(x.r.metal), cur)}</td><td>${x === best && good.length > 1 ? '<span class="ax-pill good">Lowest premium</span>' : ''}</td></tr>`
+      : `<tr data-i="${rows.indexOf(x.r)}"><th>${esc(x.r.name)}</th><td class="r">–</td><td class="r">–</td><td class="r">–</td><td class="r bp-prem">–</td><td class="r">–</td><td><span class="ax-pill warn">Needs weight, fineness and price</span></td></tr>`).join('');
+    const pay = parseFloat(q<HTMLInputElement>('.bp-pay').value), frac = pay > 0 ? pay / 100 : 1;
+    q('.bp-be').innerHTML = good.map((x) => { const be = breakEvenSpot(x.r.price, x.pureOzt, frac), now = ps!.perOzt(x.metal);
+      return `<div><dt>${esc(x.r.name)}</dt><dd class="bp-bev">${money(be, cur)} per oz<small>${x.metal} is ${money(now, cur)} now (${((be / now - 1) * 100).toFixed(1)}% ${be >= now ? 'to rise' : 'below'})</small></dd></div>`; }).join('');
     out.textContent = best ? `${best.r.name}: ${pct(best.prem)} over spot` : 'Add a product with a weight, fineness and price.';
   };
 
+  q('.bp-pay').addEventListener('input', calc);
   body.addEventListener('input', (e) => {
     const el = e.target as HTMLInputElement, tr = el.closest('tr') as HTMLElement, r = rows[+tr.dataset.i!] as any, k = el.dataset.k!;
     r[k] = k === 'name' || k === 'metal' || k === 'unit' ? el.value : parseFloat(el.value);

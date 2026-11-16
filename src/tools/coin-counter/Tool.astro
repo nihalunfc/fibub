@@ -31,7 +31,7 @@ import '../../styles/collect.css';
     <h2>2. Count by hand</h2>
     <div class="ax-scroll">
       <table class="cc-tab">
-        <thead><tr><th>Coin</th><th>Face value</th><th>How many</th><th class="r">Value</th><th></th></tr></thead>
+        <thead><tr><th>Coin</th><th>Face value</th><th>Full rolls or bags</th><th>Coins in each</th><th>Loose coins</th><th class="r">Coins</th><th class="r">Value</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -59,8 +59,10 @@ import '../../styles/collect.css';
   import { coinsFromWeight } from '../../lib/collect/maths';
 
   type WRow = { name: string; face: number; each: number; total: number; tare: number };
-  type HRow = { name: string; face: number; qty: number };
+  type HRow = { name: string; face: number; qty: number; rolls: number; per: number };
   // Face values and weights as published by each mint (general facts); rows can be edited.
+  // Roll sizes (US): cent 50, nickel 40, dime 50, quarter 40, half dollar 20, dollar coin 25 (standard bank rolls; check your bank).
+  const ROLL: Record<string, number> = { Cent: 50, Nickel: 40, Dime: 50, Quarter: 40 };
   const SETS: Record<string, { label: string; sym: string; coins: [string, number, number][] }> = {
     us: { label: 'US coins', sym: '$', coins: [['Cent', 0.01, 2.5], ['Nickel', 0.05, 5.0], ['Dime', 0.1, 2.268], ['Quarter', 0.25, 5.67]] },
     ca: { label: 'Canadian coins', sym: '$', coins: [['5 cents', 0.05, 3.95], ['10 cents', 0.1, 1.75], ['25 cents', 0.25, 4.4], ['Loonie $1', 1, 6.27], ['Toonie $2', 2, 6.92]] },
@@ -73,7 +75,7 @@ import '../../styles/collect.css';
   preset.innerHTML += Object.entries(SETS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('');
   let mode: 'weigh' | 'hand' = 'weigh';
   let wRows: WRow[] = [{ name: 'My coin', face: 0.25, each: 5, total: 1250, tare: 50 }];
-  let hRows: HRow[] = [{ name: 'My coin', face: 0.25, qty: 0 }];
+  let hRows: HRow[] = [{ name: 'My coin', face: 0.25, qty: 0, rolls: 0, per: NaN }];
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
   const num = (v: number) => (Number.isFinite(v) ? v : 0);
   const money = (v: number) => `${sym.value}${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -84,8 +86,9 @@ import '../../styles/collect.css';
       <td>${inp('each', r.each, 'Weight of one coin in grams')}</td><td>${inp('total', r.total, 'Total weight in grams')}</td><td>${inp('tare', r.tare, 'Weight of the empty container in grams')}</td>
       <td class="r cc-n"></td><td class="r cc-v"></td><td><button type="button" class="cc-del" aria-label="Remove">✕</button></td></tr>`).join('');
     hBody.innerHTML = hRows.map((r, i) => `<tr data-i="${i}"><td>${inp('name', r.name, 'Coin name', 'type="text"')}</td><td>${inp('face', r.face, 'Face value of one coin')}</td>
-      <td>${inp('qty', r.qty, 'How many', 'type="number" min="0" step="1" inputmode="numeric"')}</td>
-      <td class="r cc-v"></td><td><button type="button" class="cc-del" aria-label="Remove">✕</button></td></tr>`).join('');
+      <td>${inp('rolls', r.rolls, 'Full rolls or bags', 'type="number" min="0" step="1" inputmode="numeric"')}</td><td>${inp('per', r.per, 'Coins in each roll or bag', 'type="number" min="0" step="1" inputmode="numeric"')}</td>
+      <td>${inp('qty', r.qty, 'Loose coins', 'type="number" min="0" step="1" inputmode="numeric"')}</td>
+      <td class="r cc-n"></td><td class="r cc-v"></td><td><button type="button" class="cc-del" aria-label="Remove">✕</button></td></tr>`).join('');
     calc();
   };
 
@@ -106,7 +109,8 @@ import '../../styles/collect.css';
       });
     } else {
       hBody.querySelectorAll<HTMLElement>('tr').forEach((tr) => {
-        const r = hRows[+tr.dataset.i!], n = Math.max(0, Math.round(num(r.qty))), v = n * num(r.face);
+        const r = hRows[+tr.dataset.i!], n = Math.max(0, Math.round(num(r.rolls)) * Math.max(0, Math.round(num(r.per))) + Math.round(num(r.qty))), v = n * num(r.face);
+        tr.querySelector('.cc-n')!.textContent = String(n);
         tr.querySelector('.cc-v')!.textContent = money(v);
         total += v; coins += n;
         if (n > 0) parts.push(`<div><dt>${esc(r.name || 'Coins')}</dt><dd>${n}<small>${money(v)}</small></dd></div>`);
@@ -134,14 +138,14 @@ import '../../styles/collect.css';
 
   root.querySelectorAll<HTMLElement>('.cc-add').forEach((b) => b.addEventListener('click', () => {
     if (b.dataset.for === 'weigh') wRows.push({ name: 'My coin', face: 1, each: 1, total: NaN, tare: 0 });
-    else hRows.push({ name: 'My coin', face: 1, qty: 0 });
+    else hRows.push({ name: 'My coin', face: 1, qty: 0, rolls: 0, per: NaN });
     draw();
   }));
   preset.addEventListener('change', () => {
     const s = SETS[preset.value]; if (!s) return;
     sym.value = s.sym;
     wRows = s.coins.map(([name, face, each]) => ({ name, face, each, total: NaN, tare: 0 }));
-    hRows = s.coins.map(([name, face]) => ({ name, face, qty: 0 }));
+    hRows = s.coins.map(([name, face]) => ({ name, face, qty: 0, rolls: 0, per: preset.value === 'us' ? (ROLL[name] ?? NaN) : NaN }));
     preset.value = ''; draw();
   });
   sym.addEventListener('input', calc);

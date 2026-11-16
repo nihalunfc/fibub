@@ -11,12 +11,16 @@ import '../../styles/collect.css';
       <label>Unit <select class="bw-unit"></select></label>
     </div>
     <p class="ax-big bw-out" aria-live="polite"></p>
+    <details class="bw-more" style="margin-top:10px"><summary>More options: convert a price per unit</summary>
+      <label style="margin-top:8px">Price for one of the unit above (any currency) <input class="bw-price" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. price per tola" /></label>
+      <p class="ax-help">Type a quoted price (say, gold per tola) and the table shows the same price per gram, per troy ounce and per every other unit.</p>
+    </details>
   </div>
   <div class="ax-card">
     <h2>2. The same weight in every unit</h2>
     <div class="ax-scroll">
       <table class="bw-tab">
-        <thead><tr><th>Unit</th><th class="r">Amount</th><th>Where it is used</th></tr></thead>
+        <thead><tr><th>Unit</th><th class="r">Amount</th><th class="r bw-ph" hidden>Price per unit</th><th>Where it is used</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -48,13 +52,15 @@ import '../../styles/collect.css';
   const fmt = (v: number) => (Number.isFinite(v) ? v.toLocaleString('en-US', { maximumSignificantDigits: 7, useGrouping: v >= 10000 }) : '–');
 
   const update = () => {
-    const v = parseFloat(input.value), u = sel.value;
+    const v = parseFloat(input.value), u = sel.value, pv = parseFloat(q<HTMLInputElement>('.bw-price').value);
+    q('.bw-ph').hidden = !(pv > 0);
     body.innerHTML = ids.map((id) => `<tr data-u="${id}" class="${id === u ? 'bw-cur' : ''}"><th>${UNITS[id].name}</th>
-      <td class="r bw-v">${fmt(convertWeight(v, u, id))}</td><td class="bw-note">${UNITS[id].note ?? USE[id] ?? ''}</td></tr>`).join('');
+      <td class="r bw-v">${fmt(convertWeight(v, u, id))}</td><td class="r bw-p" ${pv > 0 ? '' : 'hidden'}>${pv > 0 ? fmt(pv * UNITS[id].g / UNITS[u].g) : ''}</td><td class="bw-note">${UNITS[id].note ?? USE[id] ?? ''}</td></tr>`).join('');
     out.textContent = Number.isFinite(v) && v >= 0
       ? `${fmt(v)} ${UNITS[u].name} = ${fmt(convertWeight(v, u, 'g'))} g = ${fmt(convertWeight(v, u, 'ozt'))} troy oz`
       : 'Type an amount of 0 or more.';
   };
+  q('.bw-price').addEventListener('input', update);
   input.addEventListener('input', update);
   sel.addEventListener('change', update);
   update();

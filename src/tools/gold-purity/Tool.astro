@@ -20,13 +20,27 @@ import '../../styles/collect.css';
     <div class="gp-prices"></div>
   </div>
   <div class="ax-card">
-    <h2>3. Common karats and what their gold is worth</h2>
+    <h2>3. What is my piece worth?</h2>
+    <div class="ax-grid">
+      <label>Weight <input class="gp-w" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 10" /></label>
+      <label>Unit <select class="gp-wu"><option value="g">gram</option><option value="tola">tola</option><option value="ozt">troy ounce</option><option value="sovereign">sovereign (pavan, 8 g)</option><option value="dwt">pennyweight</option></select></label>
+    </div>
+    <p class="ax-big gp-val" aria-live="polite">Type a weight to see the value of the pure gold in it, at the purity from step 1.</p>
+    <p class="ax-help">This is the gold content at the price above, before any making charge, wastage or dealer margin.</p>
+  </div>
+  <div class="ax-card">
+    <h2>4. Common karats and what their gold is worth</h2>
     <div class="ax-scroll">
       <table class="gp-tab">
         <thead><tr><th>Karat</th><th class="r">Fineness</th><th class="r">Per cent</th><th class="r">Per gram</th><th class="r">Per 10 g</th><th class="r">Per tola</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
+    <details style="margin-top:10px"><summary>More options: what the number stamped on gold means</summary>
+      <div class="ax-scroll"><table class="gp-stamps"><thead><tr><th>Stamp</th><th class="r">Karat</th><th class="r">Pure gold</th></tr></thead>
+      <tbody>{[375, 417, 585, 750, 916, 958, 999].map((f) => <tr><td>{f}</td><td class="r">{+(f / 1000 * 24).toFixed(2)}</td><td class="r">{+(f / 10).toFixed(1)}%</td></tr>)}</tbody></table></div>
+      <p class="ax-help">The stamp is the fineness in parts per 1,000 (the karat figure is that divided by 1,000, times 24). Real alloys are sold at the nearest standard, so 14 karat is stamped 585 although 14/24 is 583.3. Which stamps are legal differs by country: check the official source (your national hallmarking body).</p>
+    </details>
     <p class="ax-help">These are the values of the pure gold in the piece at the gold price above, not what a jeweller will pay. Jewellers and dealers deduct their own charges. A tola is 11.6638 g.</p>
   </div>
 </div>
@@ -38,11 +52,12 @@ import '../../styles/collect.css';
 
 <script>
   import { mountPrices, money, type PriceState } from '../../lib/collect/prices';
-  import { karatToFineness, finenessToKarat, KARATS, UNITS } from '../../lib/collect/maths';
+  import { pieceValue, toGrams, karatToFineness, finenessToKarat, KARATS, UNITS } from '../../lib/collect/maths';
 
   const root = document.querySelector('.gp') as HTMLElement;
   const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
   const kIn = q<HTMLInputElement>('.gp-k'), fIn = q<HTMLInputElement>('.gp-f'), pIn = q<HTMLInputElement>('.gp-p');
+  const wIn = q<HTMLInputElement>('.gp-w'), wu = q<HTMLSelectElement>('.gp-wu'), val = q('.gp-val');
   const out = q('.gp-out'), warn = q('.gp-warn'), body = q('.gp-tab tbody');
   const trim = (v: number, d: number) => String(+v.toFixed(d));
   let ps: PriceState | null = null;
@@ -60,6 +75,15 @@ import '../../styles/collect.css';
     if (src !== 'p') pIn.value = Number.isFinite(fin) ? trim(fin / 10, 2) : '';
     show(fin);
     mark(fin);
+    piece();
+  };
+  const piece = () => {
+    const w = parseFloat(wIn.value), fin = parseFloat(fIn.value);
+    if (!(w > 0)) { val.textContent = 'Type a weight to see the value of the pure gold in it, at the purity from step 1.'; return; }
+    if (!(fin > 0 && fin <= 1000)) { val.textContent = 'Type a purity in step 1 first.'; return; }
+    if (!ps) { val.textContent = '…'; return; }
+    const g = toGrams(w, wu.value), v = pieceValue(g, fin, ps.perGram('gold'));
+    val.textContent = `${money(v, ps.cur)} of pure gold (${trim(g * fin / 1000, 3)} g pure, from ${trim(g, 3)} g)`;
   };
   // Highlight the table row for the typed purity, if it is one of the common karats.
   const mark = (fin: number) => body.querySelectorAll<HTMLElement>('tr').forEach((tr) => tr.classList.toggle('gp-hit', Math.abs(karatToFineness(+tr.dataset.k!) - fin) < 0.5));
@@ -78,7 +102,8 @@ import '../../styles/collect.css';
   kIn.addEventListener('input', () => from('k'));
   fIn.addEventListener('input', () => from('f'));
   pIn.addEventListener('input', () => from('p'));
+  wIn.addEventListener('input', piece); wu.addEventListener('change', piece);
   from('k');
   drawTable();
-  mountPrices(q('.gp-prices'), (s) => { ps = s; drawTable(); }, ['gold']);
+  mountPrices(q('.gp-prices'), (s) => { ps = s; drawTable(); piece(); }, ['gold']);
 </script>
