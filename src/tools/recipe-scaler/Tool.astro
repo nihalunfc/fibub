@@ -13,22 +13,33 @@ Berries to serve`;
 <div class="tool-ui rs">
   <section class="panel rs-form">
     <label>Ingredients, one per line
-      <textarea class="rs-in" rows="9" spellcheck="false">{EXAMPLE}</textarea>
+      <textarea class="rs-in" data-k="ingredients" rows="9" spellcheck="false">{EXAMPLE}</textarea>
     </label>
     <div class="rs-mode" role="radiogroup" aria-label="Scale by">
-      <label><input type="radio" name="rs-m" value="serv" checked /> Servings</label>
+      <label><input type="radio" name="rs-m" data-k="mode" value="serv" checked /> Servings</label>
       <label><input type="radio" name="rs-m" value="fac" /> A factor</label>
     </div>
     <div class="rs-row" data-m="serv">
-      <label>Recipe serves <input class="rs-from" inputmode="decimal" value="4" /></label>
-      <label>I want to serve <input class="rs-to" inputmode="decimal" value="6" /></label>
+      <label>Recipe serves <input class="rs-from" data-k="from" inputmode="decimal" value="4" /></label>
+      <label>I want to serve <input class="rs-to" data-k="to" inputmode="decimal" value="6" /></label>
+      <input class="rs-range" data-k="servings-slider" type="range" min="1" max="24" step="1" value="6" aria-label="Servings slider (1 to 24)" />
     </div>
     <div class="rs-row" data-m="fac" hidden>
-      <label>Multiply by <input class="rs-fac" inputmode="decimal" value="2" /></label>
+      <label>Multiply by <input class="rs-fac" data-k="factor" inputmode="decimal" value="2" /></label>
     </div>
-    <label class="rs-check"><input type="checkbox" class="rs-metric" /> Change cups, spoons, oz and lb to grams or ml</label>
+    <div class="rs-presets" role="group" aria-label="Quick factors">
+      <button type="button" class="btn secondary" data-f="0.5">Half</button>
+      <button type="button" class="btn secondary" data-f="2">Double</button>
+      <button type="button" class="btn secondary" data-f="3">Triple</button>
+    </div>
+    <label class="rs-check"><input type="checkbox" class="rs-metric" data-k="metric" /> Change cups, spoons, oz and lb to grams or ml</label>
+    <details class="rs-more">
+      <summary>More options</summary>
+      <label class="rs-check"><input type="checkbox" class="rs-orig" data-k="show-original" /> Show the original amount beside each line</label>
+    </details>
     <div class="rs-btns">
       <button type="button" class="btn secondary rs-copy">Copy</button>
+      <button type="button" class="btn secondary rs-print-b">Print list</button>
       <button type="button" class="btn secondary rs-clear">Clear</button>
       <button type="button" class="btn secondary rs-example">Example</button>
     </div>
@@ -36,8 +47,10 @@ Berries to serve`;
   <section class="panel">
     <p class="rs-big" aria-live="polite"></p>
     <ul class="rs-out" aria-live="polite"></ul>
+    <p class="rs-hint"></p>
   </section>
   <p class="rs-fine">Amounts are rounded to kitchen fractions for cups and spoons, and to whole grams. Nothing you type leaves this page.</p>
+  <div class="rs-print" aria-hidden="true"></div>
 </div>
 
 <style is:inline>
@@ -58,14 +71,26 @@ Berries to serve`;
   .rs-out { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 16px; overflow-wrap: anywhere; }
   .rs-out li.same { color: var(--muted); }
   .rs-was { color: var(--muted); font-size: 14px; }
+  .rs-range { width: 100%; accent-color: var(--accent); grid-column: 1 / -1; }
+  .rs-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rs-presets .btn { padding: 8px 14px; }
+  .rs-more summary { cursor: pointer; font-size: 15px; margin-bottom: 8px; }
+  .rs-hint { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+  .rs-print { display: none; }
+  @media print {
+    body * { visibility: hidden !important; }
+    .rs-print, .rs-print * { visibility: visible !important; }
+    .rs-print { display: block; position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; font-size: 13pt; }
+  }
   .rs-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
-  import { scaleLine } from './scale';
+  import { scaleLine, servingFactor, scaleHint } from './scale';
   const root = document.querySelector('.rs') as HTMLElement;
   const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
-  const inp = $<HTMLTextAreaElement>('.rs-in'), out = $('.rs-out'), big = $('.rs-big');
+  const inp = $<HTMLTextAreaElement>('.rs-in'), out = $('.rs-out'), big = $('.rs-big'), hint = $('.rs-hint');
+  const range = $<HTMLInputElement>('.rs-range'), orig = $<HTMLInputElement>('.rs-orig'), printBox = $('.rs-print');
   const from = $<HTMLInputElement>('.rs-from'), to = $<HTMLInputElement>('.rs-to'), fac = $<HTMLInputElement>('.rs-fac'), met = $<HTMLInputElement>('.rs-metric');
   const EXAMPLE = inp.value;
   const num = (s: string) => (s.trim() === '' ? NaN : +s.replace(',', '.'));
@@ -73,13 +98,15 @@ Berries to serve`;
   let lines: string[] = [];
   const calc = () => {
     root.querySelectorAll('.rs-row').forEach((r) => ((r as HTMLElement).hidden = (r as HTMLElement).dataset.m !== mode()));
-    const k = mode() === 'serv' ? num(to.value) / num(from.value) : num(fac.value);
-    out.innerHTML = ''; lines = [];
+    const k = mode() === 'serv' ? servingFactor(num(from.value), num(to.value)) : num(fac.value);
+    out.innerHTML = ''; lines = []; hint.textContent = '';
     if (!(k > 0) || !Number.isFinite(k)) { big.textContent = mode() === 'serv' ? 'Type both serving numbers.' : 'Type a factor above 0.'; return; }
     big.textContent = `Scaled × ${k.toLocaleString('en-US', { maximumFractionDigits: 3 })}`;
+    hint.textContent = scaleHint(k);
     for (const line of inp.value.split('\n')) {
       if (line.trim() === '') continue;
       const r = scaleLine(line, k, met.checked);
+      if (orig.checked && !r.was && r.changed) r.was = `was ${line.trim()}`;
       const li = document.createElement('li');
       const t = document.createElement('span'); t.className = 'rs-line'; t.textContent = r.text.trim(); li.append(t);
       if (r.was) { const w = document.createElement('span'); w.className = 'rs-was'; w.textContent = ` (${r.was})`; li.append(w); }
@@ -88,7 +115,23 @@ Berries to serve`;
     }
     if (!lines.length) big.textContent = 'Paste or type your ingredients above.';
   };
-  root.addEventListener('input', calc);
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t === range) return;
+    if (t === to) { const v = num(to.value); if (v >= 1 && v <= 24) range.value = String(Math.round(v)); }
+    calc();
+  });
+  range.addEventListener('input', () => { to.value = range.value; calc(); });
+  root.querySelectorAll('.rs-presets [data-f]').forEach((b) => b.addEventListener('click', () => {
+    (root.querySelector('[name="rs-m"][value="fac"]') as HTMLInputElement).checked = true;
+    fac.value = (b as HTMLElement).dataset.f!; calc();
+  }));
+  $('.rs-print-b').addEventListener('click', () => {
+    printBox.innerHTML = '';
+    const h = document.createElement('h2'); h.textContent = big.textContent || 'Recipe'; printBox.append(h);
+    const ul = document.createElement('ul'); for (const l of lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); }
+    printBox.append(ul); window.print();
+  });
   $('.rs-copy').addEventListener('click', async () => {
     const b = $('.rs-copy');
     try { await navigator.clipboard.writeText(lines.join('\n')); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy the list'; }

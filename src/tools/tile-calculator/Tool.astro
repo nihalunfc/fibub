@@ -31,9 +31,23 @@
     <label class="tlc-g">Grout per litre of joint (kg)<input data-k="dens" inputmode="decimal" /></label>
   </section>
   <section class="panel">
+    <details class="tlc-more">
+      <summary>More options: price, adhesive and grout bags</summary>
+      <div class="tlc-grid">
+        <label>Price is per
+          <select data-k="pby"><option value="box">Box</option><option value="unit">Tile</option><option value="area">Area (m² or sq ft)</option></select>
+        </label>
+        <label>Price (any currency)<input data-k="price" inputmode="decimal" placeholder="optional" /></label>
+        <label>Adhesive bag covers <span data-u="a"></span><input data-k="adh" inputmode="decimal" placeholder="from the bag" /></label>
+        <label>Grout bag size (kg)<input data-k="gbag" inputmode="decimal" placeholder="from the bag" /></label>
+      </div>
+      <p class="tlc-h">Leave a box empty to skip it. Adhesive coverage and grout bag size are on the packaging: we do not guess them.</p>
+    </details>
     <p class="tlc-big" aria-live="polite"></p>
     <p class="tlc-box" aria-live="polite"></p>
+    <p class="tlc-cost" aria-live="polite"></p>
     <ul class="tlc-lines"></ul>
+    <div class="tlc-sk" aria-label="Scaled sketch of the first rectangle"></div>
     <button type="button" class="tlc-btn tlc-reset">Reset to the example</button>
   </section>
   <p class="tlc-fine">Counts round up to whole tiles and whole boxes. Nothing you type leaves this page.</p>
@@ -58,10 +72,14 @@
   .tlc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
   .tlc-box { margin: 0; font-weight: 600; }
   .tlc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .tlc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .tlc-cost { margin: 0; font-weight: 600; }
+  .tlc-sk { max-width: 420px; }
   .tlc-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, packs, tileGrid, rectSketch } from '../../lib/build-calc';
   const root = document.querySelector('.tlc') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
@@ -88,7 +106,7 @@
     (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
     list.append(row);
   };
-  const big = $('.tlc-big'), boxEl = $('.tlc-box'), lines = $('.tlc-lines');
+  const big = $('.tlc-big'), boxEl = $('.tlc-box'), lines = $('.tlc-lines'), costEl = $('.tlc-cost'), sk = $('.tlc-sk');
   function calc() {
     const u = k('units').value, un = U[u], tiles = mode === 'tiles';
     if (!tiles) k('boxBy').value = 'a';
@@ -106,8 +124,10 @@
     const tl = num(k('tl').value), tw = num(k('tw').value);
     const tileA = u === 'm' ? (tl * tw) / 10000 : (tl * tw) / 144;
     const bad = !Number.isFinite(A) || A < 0 || !(w >= 0) || (tiles && !(tileA > 0));
-    if (bad) { big.textContent = ''; boxEl.textContent = 'Type the sizes above (numbers only, and the area cannot be below zero).'; lines.innerHTML = ''; return; }
+    if (bad) { big.textContent = ''; boxEl.textContent = 'Type the sizes above (numbers only, and the area cannot be below zero).'; lines.innerHTML = ''; costEl.textContent = ''; sk.innerHTML = ''; return; }
     const li: string[] = [];
+    let cost: number | null = null, boughtArea = 0, groutKg = 0;
+    const price = pnum(k('price').value), pby = k('pby').value;
     const withW = A * (1 + w / 100);
     if (tiles) {
       const exact = A / tileA, n = up(exact * (1 + w / 100));
@@ -117,7 +137,13 @@
       if (box > 0) {
         const b = byArea ? up((n * tileA) / box) : up(n / box);
         boxEl.textContent = `${b} box${b === 1 ? '' : 'es'}${byArea ? '' : ` (${b * box} tiles)`}.`;
-      } else boxEl.textContent = '';
+        boughtArea = byArea ? b * box : b * box * tileA;
+        cost = costOf(pby === 'box' ? b : pby === 'unit' ? (byArea ? n : b * box) : boughtArea, price);
+      } else {
+        boxEl.textContent = '';
+        boughtArea = n * tileA;
+        cost = costOf(pby === 'box' ? NaN : pby === 'unit' ? n : boughtArea, price);
+      }
       if (k('grout').checked) {
         const gap = num(k('gap').value), th = num(k('thick').value), dens = num(k('dens').value);
         if (gap >= 0 && th >= 0 && dens > 0) {
@@ -125,16 +151,30 @@
           const Lm = u === 'm' ? tl / 100 : tl * 0.0254, Wm = u === 'm' ? tw / 100 : tw * 0.0254;
           const Am = u === 'm' ? A : A * 0.09290304;
           const litres = ((Lm + Wm) / (Lm * Wm)) * gap * toM * th * toM * Am * 1000;
-          const kg = litres * dens;
+          const kg = litres * dens; groutKg = kg;
           li.push(`Grout: about ${f(kg, 1)} kg${u === 'ft' ? ` (${f(kg * 2.20462, 1)} lb)` : ''} for ${f(litres, 2)} L of joints. Buy the next bag size up.`);
         }
       }
     } else {
       big.textContent = box > 0 ? `${up(withW / box)} boxes` : `${f(withW, 2)} ${un.a}`;
       boxEl.textContent = `Cover ${f(withW, 2)} ${un.a} including waste.`;
+      boughtArea = box > 0 ? up(withW / box) * box : withW;
+      cost = costOf(pby === 'area' ? boughtArea : box > 0 && pby === 'box' ? up(withW / box) : NaN, price);
       li.push(`Area ${f(A, 2)} ${un.a} plus ${f(w, 0)}% = ${f(withW, 2)} ${un.a}.`);
       if (box > 0) li.push(`${f(withW, 2)} ÷ ${f(box, 2)} ${un.a} per box = ${f(withW / box, 2)}, rounded up.`);
     }
+    // Adhesive and grout bags (only when the visitor typed the bag figures).
+    const adh = pnum(k('adh').value);
+    if (adh > 0) li.push(`Adhesive: ${f(A, 2)} ${un.a} ÷ ${f(adh, 2)} ${un.a} per bag = ${packs(A, adh)} bag${packs(A, adh) === 1 ? '' : 's'}.`);
+    const gb = pnum(k('gbag').value);
+    if (gb > 0 && tiles && k('grout').checked && groutKg > 0) li.push(`Grout: ${f(groutKg, 1)} kg ÷ ${f(gb, 2)} kg bags = ${packs(groutKg, gb)} bag${packs(groutKg, gb) === 1 ? '' : 's'}.`);
+    costEl.textContent = cost !== null ? `Estimated cost: ${money(cost)} (${pby === 'box' ? 'boxes' : pby === 'unit' ? 'tiles' : un.a} × price). Tax and delivery not included.` : (price > 0 ? 'Set "Price is per" to match how the price is quoted (box needs a box size).' : '');
+    // Sketch of the first rectangle, with the tile grid when tiles are chosen.
+    const r0 = list.querySelector('.tlc-row');
+    const sl = r0 ? num((r0.querySelector('.tlc-l') as HTMLInputElement).value) : NaN, sw = r0 ? num((r0.querySelector('.tlc-wd') as HTMLInputElement).value) : NaN;
+    const tlm = u === 'm' ? tl / 100 : tl / 12, twm = u === 'm' ? tw / 100 : tw / 12;
+    const g = tiles ? tileGrid(sl, sw, tlm, twm) : undefined;
+    sk.innerHTML = sl > 0 && sw > 0 ? rectSketch(sl, sw, `${f(sl, 2)} ${un.len.replace(/[()]/g, '')}`, `${f(sw, 2)} ${un.len.replace(/[()]/g, '')}`, g, 'Scaled sketch of the first rectangle') + (g ? `<p class="tlc-h">First rectangle: ${g.cols} × ${g.rows} tiles across and down, counting part tiles at the edges.</p>` : '') : '';
     lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
   }
   const load = (u: string) => {
@@ -155,9 +195,9 @@
   root.querySelectorAll('.tlc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
   k('units').addEventListener('change', () => load(k('units').value));
   k('lay').addEventListener('change', () => { k('waste').value = k('lay').value.replace('h', ''); calc(); });
-  for (const key of ['tl', 'tw', 'waste', 'box', 'gap', 'thick', 'dens']) k(key).addEventListener('input', calc);
-  k('boxBy').addEventListener('change', calc); k('grout').addEventListener('change', calc);
+  for (const key of ['tl', 'tw', 'waste', 'box', 'gap', 'thick', 'dens', 'price', 'adh', 'gbag']) k(key).addEventListener('input', calc);
+  k('boxBy').addEventListener('change', calc); k('pby').addEventListener('change', calc); k('grout').addEventListener('change', calc);
   $('.tlc-add').addEventListener('click', () => { addRect(); calc(); });
-  $('.tlc-reset').addEventListener('click', () => { k('units').value = 'm'; k('grout').checked = true; mode = 'tiles'; load('m'); show('tiles'); });
+  $('.tlc-reset').addEventListener('click', () => { for (const key of ['price', 'adh', 'gbag']) k(key).value = ''; k('units').value = 'm'; k('grout').checked = true; mode = 'tiles'; load('m'); show('tiles'); });
   load('m');
 </script>

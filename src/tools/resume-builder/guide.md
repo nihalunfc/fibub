@@ -35,7 +35,7 @@ Already have a resume? Score it with the [[ats-resume-checker]] and press **Fix 
 3. **Skills:** one line per group, for example `Tools: Excel, SQL, Power BI`. Use the job ad's exact wording.
 4. **Experience:** add each job, most recent first, with dates. Tick **I work here now** for your current job. Write 3 to 6 achievements, one per line. Start each with a verb and add a number where you can.
 5. **Projects, Education, Certifications and More sections** (Languages, Volunteering, Awards and others) are there if you need them. Empty sections are left out.
-6. **Layout and order:** choose a modern (Helvetica/Calibri) or classic (Times) font, Letter or A4 paper, and the order of your sections.
+6. **Layout and order:** choose a modern (Helvetica/Calibri) or classic (Times) font, Letter or A4 paper, name and contacts centred or left-aligned, normal or compact text (compact fits more on one page by using a smaller size and tighter margins), and the order of your sections. All of these carry into both the PDF and the Word file.
 
 As you type, the preview shows the finished page and the **ATS score** updates, with the top things to improve. Open **Match it to a job ad** and paste a job description to see which of its key terms your resume already has and which are missing. The score uses the same checks as our [ATS resume checker](/documents/ats-resume-checker/).
 

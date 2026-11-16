@@ -11,7 +11,7 @@ ads: false
 order: 2023
 icon: mountain
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [concrete-mix-design, deck-calculator, gravel-calculator]
 sources:
   - "Volume formulas for boxes and cylinders; fibub's own working."
@@ -44,6 +44,12 @@ It works in metric or imperial, all in your browser. To choose the cement, sand 
 - **Steps**: solid steps built on the ground. Step 1 is one rise high, step 2 two rises, and so on, so the volume is width × rise × tread × (1 + 2 + ... + n).
 - **Extra for waste**: 5 to 10% is the usual rule of thumb for spills, uneven ground and over-dig. The default is 10%.
 - **Bag size and yield**: 20, 25 or 30 kg, or 40, 60 or 80 lb. The yield fills in with a typical label value and you can change it. Bags are always rounded up.
+
+## More options
+
+Open **More options** to compare the cost of bags and ready-mix. Type the price of one bag and the ready-mix price per cubic metre (or per cubic yard in imperial), and the Cost line shows both totals and which is cheaper, before delivery and tax. Many suppliers charge for a minimum load, so you can type it and the ready-mix total uses whichever is larger, your volume or the minimum. Type only one of the prices and you get just that cost.
+
+A scaled sketch under the results follows the shape you chose: the slab or footing from above, the post hole with the post in the middle, or the side view of the steps.
 
 ## Worked example
 

@@ -65,4 +65,17 @@ export function splitBy(table: Table, col: number): { zip: Uint8Array; names: st
   return { zip: zipFiles(files), names: Object.keys(files) };
 }
 
+/** Remove repeated rows (the first copy stays). `ignoreLast` leaves the last column (the source-file column) out of the comparison.
+ *  Text is compared after trimming and ignoring upper/lower case when `loose` is true. */
+export function dedupeRows(table: Table, o: { ignoreLast?: boolean; loose?: boolean } = {}): { table: Table; removed: number } {
+  if (!table.length) return { table, removed: 0 };
+  const seen = new Set<string>(), out: Table = [table[0]];
+  for (const r of table.slice(1)) {
+    const cells = o.ignoreLast ? r.slice(0, -1) : r;
+    const key = JSON.stringify(cells.map((c) => (o.loose ? (c ?? '').trim().toLowerCase() : c ?? '')));
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(r);
+  }
+  return { table: out, removed: table.length - out.length };
+}
 export { toCsv };

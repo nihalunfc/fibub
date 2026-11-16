@@ -39,7 +39,10 @@ The list is grouped roughly by aisle. To make a recipe serve more people first, 
 
 - **Meal and ingredients boxes**: one pair per slot. Lines without a number at the start, like "salt", are listed once without an amount.
 - **Remember my plan on this device**: off by default. When ticked, the plan is kept in this browser only and comes back next visit. Unticking it deletes the saved copy.
-- **Clear**: empties every slot, unticks Remember and deletes any saved plan.
+- **More options, people**: type how many people the plan is written for and how many you are shopping for, and every amount is scaled (4 to 6 is × 1.5). Things bought whole, like eggs, cans and cloves, round up. Leave the boxes empty to use the amounts as typed; a zero or a negative number is ignored with a short note.
+- **More options, already at home**: list what is in the cupboard, one name per line (rice, olive oil, salt). Matching items are left off the shopping list. A short name covers longer ones, so "oil" also covers "olive oil".
+- **Tick boxes on the list**: tick things off as you put them in the trolley. The ticks are not saved, and the line under the list counts them.
+- **Clear**: empties every slot, the people boxes and the at-home box, unticks Remember and deletes any saved plan.
 - **Print or save as PDF**: prints a table of the week and the shopping list. Pick "Save as PDF" to keep a file.
 - **Download .txt**: a plain text file with the plan and a tick-box shopping list.
 
@@ -49,6 +52,8 @@ The example plans chicken fried rice on Monday and dal with rice on Tuesday, eac
 
 ## FAQs
 
+**Do kilograms and grams add up?** Yes. 500 g and 1 kg of flour become 1½ kg, and ml and litres are added the same way. The list switches to kg or l from 1000 g or 1000 ml.
+
 **Why are 200 g and 1 cup of rice on one line but not added?** They are different units, so the list shows "200 g + 1 cup rice" rather than guess.
 
-**Is my plan sent anywhere?** No. It stays on this page, and in this browser only if you tick Remember.
+**Is my plan sent anywhere?** No. It stays on this page, and in this browser only if you tick Remember, which then also keeps the people numbers and the at-home list.

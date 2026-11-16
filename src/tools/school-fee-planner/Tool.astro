@@ -1,0 +1,122 @@
+---
+// #T992 School fees: yearly fees per child to the final grade.
+---
+<div class="tool-ui sf">
+  <section class="panel">
+    <h2>Settings</h2>
+    <div class="sf-grid">
+      <label>Currency <select data-g="cur"></select></label>
+      <label>Usual yearly fee rise <span class="sf-suf"><input inputmode="decimal" data-g="rise" value="5" /><i>%</i></span></label>
+      <label>Second currency (optional) <select data-g="cur2"></select></label>
+      <label class="sf-2">Rate: second currency per 1 of yours <input inputmode="decimal" data-g="rate" value="" /></label>
+      <label class="sf-2">Rate drift a year <span class="sf-suf"><input inputmode="decimal" data-g="drift" value="0" /><i>%</i></span></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Children</h2>
+    <div class="sf-kids"></div>
+    <button type="button" class="btn secondary sf-add">Add a child</button>
+    <p class="note bad sf-err" role="alert" hidden></p>
+  </section>
+  <section class="sf-res" aria-live="polite">
+    <p class="sf-lead"></p>
+    <div class="panel sf-wrap"><table>
+      <thead class="sf-head"></thead>
+      <tbody class="sf-body"></tbody>
+    </table></div>
+    <p class="sf-line sf-term"></p>
+    <p class="sf-line sf-save"></p>
+  </section>
+  <p class="sf-fine">An estimate from your own numbers. Fees may change for other reasons: check with the school. Labels stay on this page only and nothing you type leaves it.</p>
+</div>
+
+<style is:inline>
+  .sf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .sf > *, .sf-res > * { min-width: 0; }
+  .sf h2 { margin: 0 0 12px; font-size: 18px; }
+  .sf .panel { padding: 16px; }
+  .sf-grid, .sf-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .sf-row { border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 12px; }
+  .sf label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sf input, .sf select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sf input:focus, .sf select:focus { border-color: var(--accent); outline: none; }
+  .sf-suf { position: relative; display: block; }
+  .sf-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .sf-suf input { padding-right: 28px; }
+  .sf-res { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  .sf-lead, .sf-line { margin: 0; font-size: 15px; }
+  .sf-line:empty, .sf-lead:empty { display: none; }
+  .sf-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .sf-wrap { overflow-x: auto; }
+  .sf table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sf th, .sf td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .sf th:first-child, .sf td:first-child { text-align: left; }
+  .sf th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .sf tfoot td, .sf .sf-tot td { font-weight: 700; }
+  .sf-add { margin-top: 4px; }
+</style>
+
+<script>
+  import { money, num, defaultCurrency, currencyOptions, CURRENCIES } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.sf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const gi = (k: string) => q<HTMLInputElement>(`[data-g="${k}"]`);
+  gi('cur').innerHTML = currencyOptions(defaultCurrency());
+  gi('cur2').innerHTML = '<option value="">None</option>' + CURRENCIES.map(([c, n]) => `<option value="${c}">${n}</option>`).join('');
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  let n = 0;
+  function addKid(v: Record<string, string> = {}) {
+    n++;
+    const d = document.createElement('div'); d.className = 'sf-row';
+    d.innerHTML = `<label>Name or label <input data-k="name" value="${esc(v.name ?? 'Child ' + n)}" /></label>
+      <label>Current grade <input data-k="grade" inputmode="numeric" value="${v.grade ?? '10'}" /></label>
+      <label>Final grade <input data-k="final" inputmode="numeric" value="${v.final ?? '12'}" /></label>
+      <label>Yearly fee now <input data-k="fee" inputmode="decimal" value="${v.fee ?? '10000'}" /></label>
+      <label>Own fee rise (blank = usual) <span class="sf-suf"><input data-k="rise" inputmode="decimal" value="${v.rise ?? ''}" /><i>%</i></span></label>
+      <label>Terms a year <select data-k="terms"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></label>
+      <label>Extras a year <input data-k="extras" inputmode="decimal" value="${v.extras ?? '0'}" /></label>
+      <label>&nbsp;<button type="button" class="btn secondary sf-rm">Remove</button></label>`;
+    d.querySelector('.sf-rm')!.addEventListener('click', () => { d.remove(); run(); });
+    q('.sf-kids').appendChild(d);
+  }
+  addKid();
+  q('.sf-add').addEventListener('click', () => { addKid({ grade: '5' }); run(); });
+  function run() {
+    const cur = gi('cur').value, cur2 = gi('cur2').value;
+    const $ = (v: number, d = 0) => money(v, cur, d);
+    root.querySelectorAll<HTMLElement>('.sf-2').forEach((e) => (e.style.display = cur2 ? '' : 'none'));
+    const rise = num(gi('rise').value);
+    const kids: { name: string; years: number; fees: number[]; fee: number; terms: number; extras: number }[] = [];
+    let bad = '';
+    root.querySelectorAll('.sf-row').forEach((r) => {
+      const v = (k: string) => (r.querySelector(`[data-k="${k}"]`) as HTMLInputElement).value;
+      const grade = Math.round(num(v('grade'))), fin = Math.round(num(v('final'))), fee = num(v('fee')), extras = num(v('extras'));
+      const own = v('rise').trim() === '' ? rise : num(v('rise'));
+      if (!(fee > 0) || !(grade >= 0) || !(fin >= grade) || fin > 20) { bad = 'Check each child: a fee above zero, and a final grade that is not before the current grade.'; return; }
+      const years = fin - grade + 1;
+      kids.push({ name: v('name') || 'Child', years, fee, terms: Number(v('terms')), extras, fees: Array.from({ length: years }, (_, i) => (fee + extras) * Math.pow(1 + own / 100, i)) });
+    });
+    if (!kids.length && !bad) bad = 'Add a child to begin.';
+    q('.sf-err').hidden = !bad; q('.sf-err').textContent = bad; q('.sf-res').hidden = !!bad;
+    if (bad) return;
+    const rate = num(gi('rate').value), drift = num(gi('drift').value), show2 = !!cur2 && rate > 0;
+    const Y = Math.max(...kids.map((k) => k.years));
+    q('.sf-head').innerHTML = `<tr><th>Year</th>${kids.map((k) => `<th>${esc(k.name)}</th>`).join('')}<th>Total</th>${show2 ? `<th>In ${cur2}</th>` : ''}</tr>`;
+    const totals: number[] = [];
+    let rows = '', grand = 0, grand2 = 0;
+    for (let i = 0; i < Y; i++) {
+      const t = kids.reduce((s, k) => s + (i < k.years ? k.fees[i] : 0), 0);
+      totals.push(t); grand += t;
+      const t2 = t * rate * Math.pow(1 + drift / 100, i); grand2 += t2;
+      rows += `<tr><td>${i === 0 ? 'Year 1 (this year)' : 'Year ' + (i + 1)}</td>${kids.map((k) => `<td>${i < k.years ? $(k.fees[i]) : '-'}</td>`).join('')}<td>${$(t)}</td>${show2 ? `<td>${money(t2, cur2, 0)}</td>` : ''}</tr>`;
+    }
+    rows += `<tr class="sf-tot"><td>All years</td>${kids.map((k) => `<td>${$(k.fees.reduce((a, b) => a + b, 0))}</td>`).join('')}<td class="sf-grand">${$(grand)}</td>${show2 ? `<td>${money(grand2, cur2, 0)}</td>` : ''}</tr>`;
+    q('.sf-body').innerHTML = rows;
+    q('.sf-lead').innerHTML = `Over ${Y} year${Y > 1 ? 's' : ''}, school fees come to about <b>${$(grand)}</b>.`;
+    const term = kids.reduce((s, k) => s + k.fee / k.terms, 0), ex = kids.reduce((s, k) => s + k.extras, 0);
+    q('.sf-term').textContent = `This year, each term's payment is ${$(term, 2)} in all${kids.length > 1 ? ' (children added together)' : ''}${ex > 0 ? `, plus ${$(ex)} of extras over the year` : ''}.`;
+    q('.sf-save').textContent = Y > 1 ? `To cover next year's total of ${$(totals[1])}, save about ${$(totals[1] / 12, 2)} a month.` : 'This is the last year of fees, so there is no next year to save for.';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

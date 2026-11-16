@@ -29,6 +29,7 @@
       <label>Subject (optional) <input class="mm-subj" type="text" placeholder="Your order {{Order}}" /></label>
       <label>Message <textarea class="mm-body" rows="7" placeholder="Dear {{Name}},"></textarea></label>
     </div>
+    <div class="mm-insert" hidden><span class="mm-hint">Press a column to put it in the message at the cursor:</span> <span class="mm-ins-btns"></span></div>
     <p class="mm-chips" aria-live="polite"></p>
     <p class="mm-status mm-tpl-s" aria-live="polite"></p>
   </section>
@@ -53,6 +54,7 @@
     <div class="mm-btns">
       <button type="button" class="btn mm-zip">Download all (ZIP)</button>
       <button type="button" class="btn secondary mm-one">Download this one</button>
+      <button type="button" class="btn secondary mm-all-pdf" hidden>One PDF, a page per person</button>
       <button type="button" class="btn secondary mm-all-txt" hidden>One combined text file</button>
       <button type="button" class="btn secondary mm-copy" hidden>Copy this message</button>
       <button type="button" class="btn secondary mm-mailto" hidden>Open in my email app</button>
@@ -62,6 +64,8 @@
 </div>
 
 <style is:inline>
+  .mm-ins-btns { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .mm-ins-btns button { font: inherit; font-size: 13px; border: 1px dashed var(--line); background: none; color: var(--accent); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
   .mm { display: grid; gap: 14px; margin-bottom: 32px; }
   .mm-seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 3px; background: var(--bg); width: fit-content; max-width: 100%; }
   .mm-seg button { font: inherit; font-weight: 600; font-size: 14px; border: 0; background: none; color: var(--muted); padding: 7px 14px; border-radius: 9px; cursor: pointer; }
@@ -110,6 +114,8 @@
     namecol.innerHTML = '<option value="">Numbers (merged-001, ...)</option>' + table.headers.map((h) => `<option>${h.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
     mailcol.innerHTML = table.headers.map((h) => `<option>${h.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
     if (table.headers.includes(keep[0])) namecol.value = keep[0];
+    q('.mm-insert').hidden = !table.headers.length;
+    q('.mm-ins-btns').innerHTML = table.headers.map((h, i) => `<button type="button" data-ins="${i}">${h.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</button>`).join('');
     const em = table.headers.find((h) => /e-?mail/i.test(h));
     mailcol.value = table.headers.includes(keep[1]) ? keep[1] : em ?? table.headers[0] ?? '';
   };
@@ -136,7 +142,7 @@
     q('.mm-prev-box').textContent = preview || '(empty)';
     say(q('.mm-warn'), missing.length ? `No column named ${missing.map((m) => `"${m}"`).join(', ')} in your list, so ${missing.length === 1 ? 'it is' : 'they are'} left as written. Check the spelling of the headings.` : '', 'warn');
     q('.mm-mail-l').hidden = mode !== 'text';
-    for (const s of ['.mm-all-txt', '.mm-copy', '.mm-mailto']) q(s).hidden = mode !== 'text';
+    for (const s of ['.mm-all-pdf', '.mm-all-txt', '.mm-copy', '.mm-mailto']) q(s).hidden = mode !== 'text';
   };
 
   const loadCsv = (text: string) => {
@@ -192,6 +198,24 @@
     const nm = names()[row], r = rowOf(row);
     if (mode === 'docx') download(mergeDocx(tpl!, r).bytes, nm, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     else download(oneText(r), nm, 'text/plain');
+  });
+  q('.mm-ins-btns').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-ins]');
+    if (!b) return;
+    const tag = `{{${table.headers[+b.dataset.ins!]}}}`;
+    // docx mode has no box to type in, so the field goes in the text message box only when that box is showing.
+    const ta = mode === 'text' ? q<HTMLTextAreaElement>('.mm-body') : null;
+    if (!ta) { navigator.clipboard?.writeText(tag).catch(() => {}); say(q('.mm-tpl-s'), `Copied ${tag}. Paste it into your Word file where the value should go.`); return; }
+    const a = ta.selectionStart ?? ta.value.length, z = ta.selectionEnd ?? a;
+    ta.value = ta.value.slice(0, a) + tag + ta.value.slice(z);
+    ta.focus(); ta.setSelectionRange(a + tag.length, a + tag.length);
+    refresh();
+  });
+  q('.mm-all-pdf').addEventListener('click', async () => {
+    const { messagesPdf } = await import('../../lib/docs/mailmerge');
+    const r = await messagesPdf(table.rows.map(oneText), (navigator.language.split('-')[1] ?? '').toUpperCase() === 'US' || (navigator.language.split('-')[1] ?? '').toUpperCase() === 'CA' ? 'letter' : 'a4');
+    say(q('.mm-warn'), `Made ${r.pages} page${r.pages === 1 ? '' : 's'}, one message per person.` + (r.lost.length ? ` Characters that can't be shown were replaced: ${r.lost.slice(0, 10).join(' ')}.` : ''), r.lost.length ? 'warn' : '');
+    download(r.bytes, 'merged.pdf', 'application/pdf');
   });
   q('.mm-all-txt').addEventListener('click', () => download(table.rows.map(oneText).join('\n\n' + '='.repeat(40) + '\n\n'), 'merged.txt', 'text/plain'));
   q('.mm-copy').addEventListener('click', async (e) => {

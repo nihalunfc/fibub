@@ -1,0 +1,108 @@
+---
+// #T990 Offer compare: two or three job offers in one display currency.
+---
+<div class="tool-ui jo">
+  <section class="panel">
+    <h2>Show everything in</h2>
+    <div class="jo-grid"><label>Display currency <select data-d="disp"></select></label></div>
+  </section>
+  <div class="jo-offers"></div>
+  <section class="panel">
+    <h2>Exchange rates</h2>
+    <p class="jo-fine">Units of each currency for 1 US dollar. These are example values: type today's rate. Gulf pegs are fixed; Kuwait uses a basket of currencies, not a peg, so its rate moves a little.</p>
+    <div class="jo-grid jo-rates"></div>
+  </section>
+  <section class="jo-res" aria-live="polite">
+    <p class="jo-lead"></p>
+    <div class="panel jo-wrap"><table>
+      <thead class="jo-head"></thead>
+      <tbody class="jo-body"></tbody>
+    </table></div>
+    <div class="panel jo-bars"></div>
+  </section>
+  <p class="jo-fine">An estimate from the numbers you type. Tax and end-of-service rules differ by country and contract: check the official source. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .jo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .jo > *, .jo-res > * { min-width: 0; }
+  .jo h2, .jo h3 { margin: 0 0 10px; font-size: 18px; }
+  .jo h3 { font-size: 16px; }
+  .jo .panel { padding: 16px; }
+  .jo-offers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 14px; }
+  .jo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .jo-card .jo-grid { grid-template-columns: minmax(0, 1fr); }
+  .jo label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .jo input, .jo select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .jo input:focus, .jo select:focus { border-color: var(--accent); outline: none; }
+  .jo-res { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  .jo-lead { margin: 0; font-size: 16px; }
+  .jo-lead:empty { display: none; }
+  .jo-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .jo-wrap { overflow-x: auto; }
+  .jo table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .jo th, .jo td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .jo th:first-child, .jo td:first-child { text-align: left; white-space: normal; }
+  .jo th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .jo-bar { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
+  .jo-bar span:nth-child(2) { display: block; height: 14px; background: var(--line); border-radius: 7px; overflow: hidden; }
+  .jo-bar i { display: block; height: 100%; background: var(--accent); }
+  .jo-bar i.neg { background: var(--bad, #b00020); }
+</style>
+
+<script>
+  import { money, num, CURRENCIES, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.jo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const RATES: Record<string, number> = { USD: 1, AED: 3.6725, SAR: 3.75, QAR: 3.64, KWD: 0.307, OMR: 0.3845, BHD: 0.376, INR: 88, CAD: 1.4, GBP: 0.76, EUR: 0.87 };
+  const CODES = Object.keys(RATES);
+  const opts = (sel: string) => CODES.map((c) => `<option value="${c}"${c === sel ? ' selected' : ''}>${CURRENCIES.find((x) => x[0] === c)![1]}</option>`).join('');
+  const FIELDS: [string, string][] = [['basic', 'Basic pay a month'], ['housing', 'Housing a month'], ['transport', 'Transport a month'], ['other', 'Other allowances a month'], ['extras', 'Yearly extras (school help, flights, bonus)']];
+  const DEF = [
+    { name: 'Offer A', cur: 'AED', basic: '10000', housing: '5000', transport: '1000', other: '1000', extras: '20000', eos: '21', tax: '0', live: '9000' },
+    { name: 'Offer B', cur: 'USD', basic: '4000', housing: '1000', transport: '0', other: '0', extras: '0', eos: '0', tax: '20', live: '2500' },
+    { name: 'Offer C (optional)', cur: 'USD', basic: '', housing: '', transport: '', other: '', extras: '', eos: '', tax: '', live: '' },
+  ];
+  q('[data-d="disp"]').innerHTML = opts('USD');
+  q('.jo-rates').innerHTML = CODES.map((c) => `<label>${c} per US dollar <input inputmode="decimal" data-r="${c}" value="${RATES[c]}" /></label>`).join('');
+  q('.jo-offers').innerHTML = DEF.map((d, i) => `<section class="panel jo-card" data-o="${i}"><h3><input data-k="name" value="${d.name}" aria-label="Offer name" /></h3><div class="jo-grid">
+    <label>Currency <select data-k="cur">${opts(d.cur)}</select></label>
+    ${FIELDS.map(([k, l]) => `<label>${l} <input inputmode="decimal" data-k="${k}" value="${(d as any)[k]}" /></label>`).join('')}
+    <label>End-of-service counted as <select data-k="eosmode"><option value="days">days of basic per year</option><option value="pct">% of yearly basic</option></select></label>
+    <label>End-of-service amount (0 for none) <input inputmode="decimal" data-k="eos" value="${d.eos}" /></label>
+    <label>Income tax estimate (%) <input inputmode="decimal" data-k="tax" value="${d.tax}" /></label>
+    <label>Living costs a month there <input inputmode="decimal" data-k="live" value="${d.live}" /></label></div></section>`).join('');
+  const g = (o: Element, k: string) => (o.querySelector(`[data-k="${k}"]`) as HTMLInputElement).value;
+  function run() {
+    const disp = (q('[data-d="disp"]') as HTMLSelectElement).value;
+    const rate = (c: string) => num((q(`[data-r="${c}"]`) as HTMLInputElement).value);
+    const conv = (v: number, c: string) => (rate(c) > 0 && rate(disp) > 0 ? (v / rate(c)) * rate(disp) : NaN);
+    const $ = (n: number) => (Number.isFinite(n) ? money(n, disp, 0) : 'Check the rates');
+    const rows: any[] = [];
+    root.querySelectorAll('.jo-card').forEach((o) => {
+      const basic = num(g(o, 'basic'));
+      if (!(basic > 0)) return;
+      const c = g(o, 'cur');
+      const monthly = basic + num(g(o, 'housing')) + num(g(o, 'transport')) + num(g(o, 'other'));
+      const cash = monthly * 12 + num(g(o, 'extras'));
+      const eosv = num(g(o, 'eos'));
+      const eos = g(o, 'eosmode') === 'days' ? (basic / 30) * eosv : basic * 12 * eosv / 100;
+      const tax = Math.min(Math.max(num(g(o, 'tax')), 0), 99);
+      const take = cash * (1 - tax / 100), save = take - num(g(o, 'live')) * 12;
+      rows.push({ name: g(o, 'name') || 'Offer', pkg: conv(cash + eos, c), take: conv(take, c), save: conv(save, c), total: conv(save + eos, c), eos: conv(eos, c) });
+    });
+    const body = q('.jo-body'), head = q('.jo-head');
+    if (!rows.length) { head.innerHTML = ''; body.innerHTML = ''; q('.jo-bars').innerHTML = ''; q('.jo-lead').textContent = 'Type the basic pay for at least one offer.'; return; }
+    head.innerHTML = `<tr><th>In ${disp}, per year</th>${rows.map((r) => `<th>${r.name.replace(/</g, '&lt;')}</th>`).join('')}</tr>`;
+    const line = (l: string, k: string) => `<tr><td>${l}</td>${rows.map((r) => `<td class="jo-${k}">${$(r[k])}</td>`).join('')}</tr>`;
+    body.innerHTML = line('Yearly package (cash plus end-of-service)', 'pkg') + line('Take-home after tax (cash)', 'take') + line('Savings after living costs', 'save') + line('Savings plus end-of-service', 'total');
+    const ok = rows.filter((r) => Number.isFinite(r.total));
+    if (!ok.length) { q('.jo-lead').textContent = 'Type a rate above zero for every currency used.'; q('.jo-bars').innerHTML = ''; return; }
+    const best = ok.reduce((a, b) => (b.total > a.total ? b : a));
+    q('.jo-lead').innerHTML = ok.length > 1 ? `<b>${best.name.replace(/</g, '&lt;')}</b> leaves the most savings: about ${$(best.total)} a year including end-of-service.` : `Savings plus end-of-service: about ${$(best.total)} a year.`;
+    const mx = Math.max(...ok.map((r) => Math.abs(r.total)), 1);
+    q('.jo-bars').innerHTML = ok.map((r) => `<div class="jo-bar"><span>${r.name.replace(/</g, '&lt;')}</span><span><i class="${r.total < 0 ? 'neg' : ''}" style="width:${Math.round((Math.abs(r.total) / mx) * 100)}%"></i></span><span>${$(r.total)}</span></div>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

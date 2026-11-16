@@ -11,7 +11,7 @@ ads: false
 order: 1774
 icon: sliders
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [resume-builder, cover-letter]
 sources:
   - "India: CBSE's indicative percentage is CGPA x 9.5 (CBSE announcement, reported by Deccan Herald; check cbse.gov.in). Universities use their own formulas (for example Mumbai University engineering, 7.25 x CGPA + 11), so use your university's rule if it has one."
@@ -19,6 +19,7 @@ sources:
   - "US: the percentage to letter to points table is the common college scale (93 = A, 90 = A-, 87 = B+ ...). Schools differ."
   - "UK: the classes use the usual boundaries 70, 60, 50 and 40. The US equivalents are rough ranges quoted by many guides, not an official rule."
   - "Each university converts in its own way; check the official source of the place you apply to."
+  - "Change the scale is a plain proportion (value divided by the scale's top, times the new top), not an evaluator's rule. The needed grade is (target x all credits - GPA now x credits done) / credits left. Checked 2026-11-16; check your institution."
 flow:
   - { icon: sliders, label: "Enter" }
   - { icon: scale, label: "Convert" }
@@ -43,6 +44,11 @@ Conversions between grading systems are never exact. Indian marks are usually lo
 - **Simple scale**: CGPA divided by 10, times 4.
 - **Topper method**: your CGPA divided by the best CGPA in the batch, times 4.
 - **Weighted GPA**: each grade is turned into points, multiplied by the course credits, added up and divided by total credits.
+
+## More options (added 2026-11-16)
+
+- **Change the scale** (section 3): type a grade, pick the scale it is on and the scale you want. It is a straight proportion, so 8.4 out of 10 becomes 3.36 out of 4.0. It is not an official conversion; check the rule of the place you apply to.
+- **What grade do I need?** (section 4): enter your GPA now, the credits you have done and the credits left, and the overall GPA you want. It tells you the average you need in the rest, or that the target cannot be reached and the best you can finish on.
 
 ## Worked example
 

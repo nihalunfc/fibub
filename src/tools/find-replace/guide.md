@@ -11,7 +11,7 @@ ads: false
 order: 1771
 icon: search
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [text-cleaner, mail-merge]
 sources:
   - "Patterns use JavaScript regular expressions (MDN web docs). Everything else is plain find and replace."
@@ -40,6 +40,12 @@ By default it looks for the exact letters you typed. Tick **Use patterns** if yo
 - **Whole word only**: "cat" will not match inside "concatenate".
 - **Use patterns**: the find box is read as a regular expression. In the replace box, $1, $2 are the bracketed groups and $& is the whole match.
 - **Use result as my text**: puts the result back in the top box so you can run more changes.
+
+## More options (added 2026-11-16)
+
+- **Common fixes**: open the box for ready-made patterns: many spaces to one, remove empty lines, trim line ends, dates 31/12/2026 to 2026-12-31, "Smith, John" to "John Smith", commas to tabs and remove numbers. A fix fills the first pair and turns on patterns; change it as you like.
+- **Treat each line on its own**: makes ^ and $ match at every line.
+- **New line and tab**: in "replace with" with patterns on, \n is a new line and \t is a tab.
 
 ## Worked example
 

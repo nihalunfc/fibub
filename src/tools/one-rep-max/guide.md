@@ -11,12 +11,13 @@ ads: false
 order: 2031
 icon: chart
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [pace-calculator, calorie-calculator, heart-rate-zones]
 sources:
   - "Epley B (1985). Poundage chart. Boyd Epley Workout. Lincoln, NE: Body Enterprises (1RM = w × (1 + r/30))."
   - "Brzycki M (1993). Strength testing: predicting a one-rep max from reps-to-fatigue. Journal of Physical Education, Recreation & Dance 64(1): 88–90 (1RM = w × 36 / (37 − r))."
   - "Table, rounding and rep estimates are fibub's own working. 1 lb = 0.45359237 kg."
+  - "Other formulas: Lombardi 1RM = w × r^0.10 (1989); O'Connor w × (1 + r/40) (1989); Wathan 100w / (48.8 + 53.8 e^(−0.075r)) (1994); Mayhew 100w / (52.2 + 41.9 e^(−0.055r)) (1992); Lander 100w / (101.3 − 2.67123r) (1985). They are widely published and checked here only against their own formulas (2026-11-16)."
 flow:
   - { icon: pencil, label: "Weight" }
   - { icon: calculator, label: "Reps" }
@@ -44,6 +45,10 @@ Everything runs in your browser and nothing is sent anywhere. To plan the energy
 - **Reset**: brings back the example.
 
 The **About reps** column turns Epley around, reps ≈ 30 × (100 / percent − 1), so it is a rough guide only. With more than 12 reps a warning shows, because both formulas drift apart and lose accuracy on long sets.
+
+## More options
+
+Open "More options" to see the estimate from seven formulas side by side (Epley, Brzycki, Lombardi, O'Connor, Wathan, Mayhew and Lander) and how far apart they are. Type the reps you want to train with, such as 8, to see about what weight to use. The plate helper shows what to put on each side of the bar for a target weight (it uses the weight you lifted unless you type another) with a 20 kg or 45 lb bar and common plates. All of these are estimates for planning, not a test; lift with a spotter and check the official source (a qualified coach) for your programme.
 
 ## Worked example
 

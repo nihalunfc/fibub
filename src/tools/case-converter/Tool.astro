@@ -1,8 +1,8 @@
 ---
 // #1769 Case converter. Maths in src/lib/docs/textutil.ts.
-const KINDS: [string, string][] = [['upper', 'UPPER CASE'], ['lower', 'lower case'], ['title', 'Title Case'], ['sentence', 'Sentence case'], ['camel', 'camelCase'], ['pascal', 'PascalCase'], ['snake', 'snake_case'], ['constant', 'CONSTANT_CASE'], ['kebab', 'kebab-case'], ['alternate', 'aLtErNaTe']];
+const KINDS: [string, string][] = [['upper', 'UPPER CASE'], ['lower', 'lower case'], ['title', 'Title Case'], ['sentence', 'Sentence case'], ['camel', 'camelCase'], ['pascal', 'PascalCase'], ['snake', 'snake_case'], ['constant', 'CONSTANT_CASE'], ['kebab', 'kebab-case'], ['dot', 'dot.case'], ['alternate', 'aLtErNaTe']];
 ---
-<div class="tool-ui cvc">
+<div class="tool-ui cvc" data-kit>
   <div class="cvc-card">
     <label>Your text
       <textarea class="cvc-in" placeholder="Type or paste your text here"></textarea>
@@ -10,12 +10,22 @@ const KINDS: [string, string][] = [['upper', 'UPPER CASE'], ['lower', 'lower cas
     <div class="cvc-row" role="group" aria-label="Choose a case">
       {KINDS.map(([k, n]) => <button type="button" class="btn cvc-b" data-k={k}>{n}</button>)}
     </div>
+    <label class="cvc-sty" hidden>Title Case style
+      <select class="cvc-style" data-k="style">
+        <option value="title">Simple (short words stay small)</option>
+        <option value="title-ap">AP and APA (words of 4+ letters capitalised)</option>
+        <option value="title-chicago">Chicago and MLA (all prepositions small)</option>
+      </select>
+    </label>
     <p class="cvc-hint">Press a case to see the result below. Your own text is not changed until you press "Use result as my text".</p>
   </div>
   <div class="cvc-card">
     <h2>Result</h2>
     <pre class="cvc-pre cvc-out" aria-live="polite">Choose a case above.</pre>
     <div class="cvc-row"><button type="button" class="btn cvc-copy">Copy the result</button><button type="button" class="btn cvc-use">Use result as my text</button></div>
+    <details class="cvc-all"><summary>See every case at once</summary>
+      <ul class="cvc-list"></ul>
+    </details>
   </div>
 </div>
 <style is:inline>
@@ -28,6 +38,12 @@ const KINDS: [string, string][] = [['upper', 'UPPER CASE'], ['lower', 'lower cas
   .cvc .cvc-chk { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
   .cvc .cvc-chk input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
   .cvc .cvc-chk small { display: block; color: var(--muted); font-size: 13px; }
+  .cvc-sty { max-width: 420px; }
+  .cvc-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+  .cvc-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+  .cvc-list small { display: block; color: var(--muted); font-size: 12px; }
+  .cvc-list span { overflow-wrap: anywhere; }
+  .cvc details summary { cursor: pointer; font-size: 14px; padding: 6px 0; }
   .cvc-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .cvc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .cvc-hint { margin: 0; font-size: 13px; color: var(--muted); }
@@ -43,12 +59,26 @@ const KINDS: [string, string][] = [['upper', 'UPPER CASE'], ['lower', 'lower cas
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const inp = q<HTMLTextAreaElement>('.cvc-in'), out = q('.cvc-out');
   let kind: CaseKind | '' = '';
+  const style = q<HTMLSelectElement>('.cvc-style'), list = q('.cvc-list');
+  const real = (k: CaseKind | ''): CaseKind | '' => (k === 'title' ? (style.value as CaseKind) : k);
+  const fill = () => {
+    list.textContent = '';
+    for (const [k, n] of [...root.querySelectorAll<HTMLElement>('.cvc-b')].map((b) => [b.dataset.k as CaseKind, b.textContent || ''] as const)) {
+      const li = document.createElement('li'), box = document.createElement('span'), lab = document.createElement('small'), b = document.createElement('button');
+      lab.textContent = n; box.append(lab, document.createTextNode(convertCase(inp.value, real(k) as CaseKind).slice(0, 300) || '-'));
+      b.type = 'button'; b.className = 'btn'; b.textContent = 'Copy';
+      b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(convertCase(inp.value, real(k) as CaseKind)); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C'; } setTimeout(() => (b.textContent = 'Copy'), 1500); });
+      li.append(box, b); list.append(li);
+    }
+  };
   const show = () => {
-    out.textContent = kind ? convertCase(inp.value, kind) : 'Choose a case above.';
+    q('.cvc-sty').hidden = kind !== 'title';
+    out.textContent = kind ? convertCase(inp.value, real(kind) as CaseKind) : 'Choose a case above.';
+    if ((q('.cvc-all') as HTMLDetailsElement).open) fill();
     root.querySelectorAll('.cvc-b').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.k === kind)));
   };
   root.querySelectorAll('.cvc-b').forEach((b) => b.addEventListener('click', () => { kind = (b as HTMLElement).dataset.k as CaseKind; show(); }));
-  inp.addEventListener('input', show);
+  inp.addEventListener('input', show); style.addEventListener('change', show); q('.cvc-all').addEventListener('toggle', show);
   const copy = q<HTMLButtonElement>('.cvc-copy');
   copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(out.textContent || ''); copy.textContent = 'Copied'; } catch { copy.textContent = 'Press Ctrl+C to copy'; } setTimeout(() => (copy.textContent = 'Copy the result'), 1800); });
   q('.cvc-use').addEventListener('click', () => { if (kind) { inp.value = out.textContent || ''; show(); } });

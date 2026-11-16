@@ -1,0 +1,83 @@
+---
+// #T994 Arabic digits
+const AR = '٠١٢٣٤٥٦٧٨٩', FA = '۰۱۲۳۴۵۶۷۸۹';
+const rows = [...'0123456789'].map((w, i) => ({ w, ar: AR[i], fa: FA[i] }));
+---
+<div class="tool-ui ad">
+  <section class="panel">
+    <label>Your text <textarea class="ad-in" rows="4" dir="auto" placeholder="Paste text with numbers, e.g. ١٢٣٤٥٫٦٧"></textarea></label>
+    <div class="ad-dir" role="group" aria-label="Direction">
+      <label><input type="radio" name="ad-d" value="w" checked /> To Western digits</label>
+      <label><input type="radio" name="ad-d" value="ar" /> To Eastern Arabic digits</label>
+      <label><input type="radio" name="ad-d" value="fa" /> To Persian style digits</label>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <h2>Result</h2>
+    <output class="ad-out" dir="auto"></output>
+    <button type="button" class="btn ad-copy">Copy</button> <span class="ad-msg" role="status"></span>
+  </section>
+  <section class="panel">
+    <h2>Read a number</h2>
+    <label>One number, in any digits <input class="ad-num" dir="auto" inputmode="text" value="١٢٣٤٥٫٦٧" /></label>
+    <p class="ad-numout"></p>
+  </section>
+  <section class="panel">
+    <h2>The ten digits</h2>
+    <div class="ad-wrap"><table>
+      <thead><tr><th>Western</th><th>Eastern Arabic</th><th>Persian / Urdu</th></tr></thead>
+      <tbody>{rows.map((r) => <tr><td>{r.w}</td><td class="ad-big">{r.ar}</td><td class="ad-big">{r.fa}</td></tr>)}</tbody>
+    </table></div>
+    <p class="ad-fine">Marks: ٫ decimal, ٬ thousands, ، comma. Persian 4, 5 and 6 (۴ ۵ ۶) differ from Arabic (٤ ٥ ٦). Nothing you type leaves this page.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ad { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ad > * { min-width: 0; }
+  .ad h2 { margin: 0 0 10px; font-size: 18px; }
+  .ad .panel { padding: 16px; }
+  .ad label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ad textarea, .ad input[type=text], .ad .ad-num { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ad-dir { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+  .ad-dir label { display: flex; gap: 6px; align-items: center; color: var(--ink); }
+  .ad-out { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 18px; min-height: 1.6em; margin-bottom: 10px; }
+  .ad-numout { margin: 8px 0 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+  .ad-wrap { overflow-x: auto; }
+  .ad table { border-collapse: collapse; width: 100%; }
+  .ad th, .ad td { text-align: center; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .ad th { font-size: 12px; color: var(--muted); }
+  .ad-big { font-size: 28px; }
+  .ad-fine { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  const AR = '٠١٢٣٤٥٦٧٨٩', FA = '۰۱۲۳۴۵۶۷۸۹';
+  const toWestern = (s: string) => s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x6f0)).replace(/٫/g, '.').replace(/٬/g, ',').replace(/،/g, ',');
+  const toStyle = (s: string, set: string, marks: boolean) => {
+    let t = toWestern(s);
+    if (marks) t = t.replace(/(\d)\.(?=\d)/g, '$1٫').replace(/(\d),(?=\d)/g, '$1٬');
+    return t.replace(/[0-9]/g, (c) => set[+c]);
+  };
+  const convert = (s: string, d: string) => (d === 'ar' ? toStyle(s, AR, true) : d === 'fa' ? toStyle(s, FA, true) : toWestern(s));
+  const root = document.querySelector<HTMLElement>('.ad')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const dir = () => (root.querySelector('input[name="ad-d"]:checked') as HTMLInputElement).value;
+  function group(s: string) {
+    const w = toWestern(s).replace(/[,\s]/g, '');
+    if (!/^-?\d+(\.\d+)?$/.test(w)) return s.trim() ? 'That does not look like a plain number.' : '';
+    const [i, f] = w.split('.');
+    const neg = i.startsWith('-');
+    const g = i.replace('-', '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + g + (f ? '.' + f : '');
+  }
+  function run() {
+    q('.ad-out').textContent = convert(q<HTMLTextAreaElement>('.ad-in').value, dir());
+    q('.ad-numout').textContent = group(q<HTMLInputElement>('.ad-num').value);
+  }
+  q('.ad-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(q('.ad-out').textContent || ''); q('.ad-msg').textContent = 'Copied.'; } catch { q('.ad-msg').textContent = 'Select the text and copy it.'; }
+  });
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

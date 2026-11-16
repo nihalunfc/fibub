@@ -21,6 +21,16 @@
     </div>
     <div class="dk-btns"><button type="button" class="dk-reset">Reset example</button><button type="button" class="dk-clear">Clear</button></div>
   </section>
+  <section class="panel">
+    <details class="dk-more">
+      <summary>More options: prices</summary>
+      <div class="dk-fields">
+        <label>Board price per <span class="dk-pu">m</span> (any currency)<input data-k="pb" inputmode="decimal" placeholder="optional" /></label>
+        <label>Joist price per <span class="dk-pu">m</span><input data-k="pj" inputmode="decimal" placeholder="optional" /></label>
+        <label>Screws or clips, price per 100<input data-k="pf" inputmode="decimal" placeholder="optional" /></label>
+      </div>
+    </details>
+  </section>
   <section class="panel" aria-live="polite">
     <p class="dk-big"></p>
     <dl class="dk-dl">
@@ -30,7 +40,9 @@
       <dt>Board length</dt><dd class="dk-lin"></dd>
       <dt>Joists</dt><dd class="dk-joists"></dd>
       <dt>Fixings</dt><dd class="dk-fix"></dd>
+      <dt>Cost</dt><dd class="dk-cost">–</dd>
     </dl>
+    <div class="dk-sk" aria-label="Scaled plan of the deck"></div>
     <p class="dk-note"></p>
   </section>
   <p class="dk-fine">Span tables and permits are local: check your building code before you build. Nothing you type leaves this page.</p>
@@ -52,10 +64,13 @@
   .dk-dl dt { color: var(--muted); }
   .dk-dl dd { margin: 0; overflow-wrap: anywhere; }
   .dk-note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+  .dk-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .dk-sk { max-width: 420px; margin-top: 8px; }
   .dk-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, joistPositions, deckSketch } from '../../lib/build-calc';
   const EX = {
     m: { run: '4', wid: '3', bw: '140', gap: '5', lens: '3.6, 4.8', sp: '400' },
     i: { run: '16', wid: '12', bw: '5.5', gap: '0.1875', lens: '12, 16', sp: '16' },
@@ -87,7 +102,7 @@
     return best as number[] | null;
   };
 
-  const clearOut = (msg: string) => { q('.dk-big').textContent = ''; for (const c of ['rows', 'row', 'boards', 'lin', 'joists', 'fix']) q('.dk-' + c).textContent = '–'; q('.dk-note').textContent = msg; };
+  const clearOut = (msg: string) => { q('.dk-sk').innerHTML = ''; q('.dk-cost').textContent = '–'; q('.dk-big').textContent = ''; for (const c of ['rows', 'row', 'boards', 'lin', 'joists', 'fix']) q('.dk-' + c).textContent = '–'; q('.dk-note').textContent = msg; };
   const calc = () => {
     const v: Record<string, number> = {};
     for (const s of ['run', 'wid', 'bw', 'gap', 'sp', 'spj']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] < 0) return clearOut('Type the sizes above.'); }
@@ -114,12 +129,22 @@
     q('.dk-fix').textContent = k('fix').value === 'clip'
       ? `${hits} hidden clips (one per board at each joist), plus face screws for the first and last board`
       : `${n(hits * v.spj, 0)} screws (${rows} rows × ${joists} joists × ${n(v.spj)})`;
+    const pb = pnum(k('pb').value), pj = pnum(k('pj').value), pf = pnum(k('pf').value);
+    const nFix = k('fix').value === 'clip' ? hits : hits * v.spj;
+    const parts: string[] = []; let sum = 0;
+    const cb = costOf(lin, pb), cj = costOf(joists * v.wid, pj), cf = costOf(nFix / 100, pf);
+    if (cb !== null) { parts.push(`boards ${money(cb)}`); sum += cb; }
+    if (cj !== null) { parts.push(`joists ${money(cj)}`); sum += cj; }
+    if (cf !== null) { parts.push(`fixings ${money(cf)}`); sum += cf; }
+    q('.dk-cost').textContent = parts.length ? `${money(sum)} (${parts.join(', ')}); before tax, delivery, spares and posts.` : '–';
+    q('.dk-sk').innerHTML = deckSketch(v.run, v.wid, rows, joistPositions(v.run, v.sp / S).map((j) => j), `${n(v.run, 2)} ${long()} long`, `${n(v.wid, 2)} ${long()}`);
     q('.dk-big').textContent = buy;
     q('.dk-note').textContent = `Add a few spare boards for bad ones and cuts, and extra screws where board ends butt together. Rim joists, beams and posts are not counted.`;
   };
   const fill = () => {
     for (const [s, t] of Object.entries(EX[units])) k(s).value = t;
     for (const [s, t] of Object.entries(LAB[units])) q(`[data-l="${s}"]`).textContent = t;
+    root.querySelectorAll('.dk-pu').forEach((e) => { e.textContent = long(); });
     calc();
   };
   root.querySelectorAll('.dk-units button').forEach((b) => b.addEventListener('click', () => {
@@ -129,7 +154,7 @@
   }));
   root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
   k('fix').addEventListener('change', calc);
-  q('.dk-reset').addEventListener('click', () => { k('spj').value = '2'; (k('fix') as unknown as HTMLSelectElement).value = 'screw'; fill(); });
+  q('.dk-reset').addEventListener('click', () => { for (const key of ['pb', 'pj', 'pf']) k(key).value = ''; k('spj').value = '2'; (k('fix') as unknown as HTMLSelectElement).value = 'screw'; fill(); });
   q('.dk-clear').addEventListener('click', () => { for (const s of ['run', 'wid', 'bw', 'gap', 'lens', 'sp']) k(s).value = ''; calc(); });
   fill();
 </script>

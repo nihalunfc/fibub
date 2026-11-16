@@ -38,8 +38,14 @@ The weights are approximate. They come from the household measures in USDA FoodD
 
 - **Ingredient**: sets the weight of one level US cup, shown in the sentence under the answer.
 - **From / To**: US cup (236.6 ml), metric cup (250 ml, used in Australia, Canada and India), UK cup (284 ml), tbsp, tsp, ml, US fl oz, g, oz and lb. Any unit converts to any other.
+- **Find an ingredient**: type a few letters (flour, honey, oats) and the list jumps to the first match, including other names such as cornflour or caster sugar.
+- **Amount**: type a whole number, a decimal (1.5 or 1,5) or a fraction (1/2, 1 1/2, 1½). The slider next to it moves in quarter cups from 0 to 10 and stays in step with the box.
+- **Working line**: under the answer, one line shows the weight per ml that was used, so you can check the sum.
+- **More options, common measures**: a table of 1/4, 1/3, 1/2, 2/3, 3/4 and 1 cup plus 1 tbsp and 1 tsp of the chosen ingredient in grams and ounces, for a US, metric (250 ml) or UK (284 ml) cup.
 - **⇄**: swaps From and To.
 - **Reset**: goes back to 1 US cup of flour in grams.
+
+Odd input never gives a broken answer: an empty box, a negative number, text or a huge number each get a short message.
 
 Rounding: grams and ml are whole numbers from 10 up and one decimal below; other units show up to 2 decimals.
 

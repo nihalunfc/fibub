@@ -11,7 +11,7 @@ ads: false
 order: 2024
 icon: ruler
 works: offline
-updated: 2026-11-10
+updated: 2026-11-16
 related: [concrete-calculator, stair-calculator, paint-calculator]
 sources:
   - "Board, joist and fastener counts are fibub's own working from the sizes you type."
@@ -43,6 +43,12 @@ It works in metric or imperial and runs entirely in your browser. Span tables an
 - **Board lengths you can buy**: for each row the calculator picks the combination of up to 4 boards with the least total length; joints must sit on a joist. Offcuts are not reused.
 - **Joist spacing**: 400 or 600 mm (16 or 24 in) centres are common. Joists = deck length ÷ spacing, rounded up, plus one.
 - **Fixing**: face screws (screws per board at each joist, 2 by default) or hidden clips, counted as one per board at each joist.
+
+## More options
+
+Open **More options** to price the job. Type the board price per metre (or foot), the joist price per metre (or foot) and the price per 100 screws or clips, and the Cost line adds up the parts you have priced: the board length you would buy, the joist length and the number of fixings. Leave a price empty and that part is left out. Spare boards, posts, tax and delivery are not included.
+
+A scaled plan of the deck sits under the results: the rows of boards across the width, with dashed lines for the joists at your spacing, so you can see at a glance that the layout matches what you meant. Blank or zero sizes clear the cost and plan and show a message.
 
 ## Worked example
 

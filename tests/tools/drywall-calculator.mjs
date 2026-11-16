@@ -13,4 +13,15 @@ export default async ({ page, check, BASE }) => {
   check((await big()) === '17 sheets', `drywall: plus 120 sq ft ceiling -> 472 sq ft, 17 sheets (${await big()})`);
   await page.selectOption(R + '[data-k="sheet"]', '48'); await page.waitForTimeout(100);
   check((await big()) === '11 sheets' && (await lines()).includes('× 48'), `drywall: 4x12 sheets -> 11, 48 screws each (${await big()})`);
+  // More options: rooms, price, sketch.
+  await page.goto(`${BASE}/everyday/drywall-calculator/`); await page.waitForTimeout(300);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '[data-k="price"]', '8'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.dwc-cost')).includes('104.00'), `drywall: 13 sheets x 8 = 104.00 (${await page.textContent(R + '.dwc-cost')})`);
+  check((await page.locator(R + '.dwc-sk svg').count()) === 1, 'drywall: plan sketch of the room');
+  await page.fill(R + '[data-k="rooms"]', '2'); await page.waitForTimeout(100);
+  check((await big()) === '25 sheets', `drywall: two rooms 63.36 m² / 2.88 x 1.1 -> 25 sheets (${await big()})`);
+  check((await page.textContent(R + '.dwc-cost')).includes('200.00'), 'drywall: 25 x 8 = 200.00');
+  await page.fill(R + '[data-k="price"]', '-3'); await page.waitForTimeout(100);
+  check((await page.textContent(R + '.dwc-cost')).trim() === '', 'drywall: a negative price shows no cost');
 };

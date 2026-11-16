@@ -32,7 +32,7 @@ The reader is Tesseract, the open-source OCR engine, running inside your browser
 
 ## How to use it
 
-1. Choose **Add images or a PDF** (you can pick several), **Take a photo**, or paste a picture with Ctrl+V (⌘+V on a Mac).
+1. Choose **Add images or a PDF** (you can pick several), **Take a photo**, drop files on the page, or paste a picture with Ctrl+V (⌘+V on a Mac). A PDF is read up to 30 pages at a time.
 2. Pick the **Language** of the text. Wait while the reader loads (first time only) and reads each page; the bar shows progress.
 3. Check the text in the box against the picture. Word boxes in orange are words the reader was unsure about, so look at those first. Edit the text right in the box.
 4. **Copy text** or **Download .txt**.
@@ -41,6 +41,7 @@ The reader is Tesseract, the open-source OCR engine, running inside your browser
 
 - **Language**: which language model the reader uses. Pick the language the text is written in; English reads numbers and Latin letters best. Arabic text is shown right to left.
 - **Clean up first**: turns the picture grey, evens out shadows and raises contrast before reading. It helps with phone photos taken under a lamp. Untick it for clean screenshots, or if letters come out broken.
+- **Join broken lines into paragraphs**: turns the line breaks inside a paragraph into spaces and mends words split with a hyphen at the end of a line, so the text pastes neatly into an email or document. Blank lines between paragraphs stay. Untick it for tables, lists and addresses.
 - **Show word boxes**: draws a box around every word found (blue when sure, orange when under 60% sure), so you can see what was read and what was missed.
 - **Turn and read again**: turns the page showing a quarter turn and reads all pages again. Use it when a photo was taken sideways and the text comes out as nonsense.
 - **Previous / Next**: with several pages, moves the picture between pages. The text box has every page, each starting with a "--- Page N ---" line.

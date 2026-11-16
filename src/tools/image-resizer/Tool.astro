@@ -5,9 +5,9 @@
 <div class="rz panel" data-state="empty">
 
   <label class="rz-drop">
-    <input class="rz-input visually-hidden" type="file" accept="image/*" />
+    <input class="rz-input visually-hidden" type="file" accept="image/*" multiple />
     <strong>Choose an image</strong>
-    <span>or drop it here · JPG, PNG, WebP, GIF, BMP, AVIF, HEIC (where your browser supports it)</span>
+    <span>or drop one or many here · JPG, PNG, WebP, GIF, BMP, AVIF, HEIC (where your browser supports it)</span>
     <span>Up to <b class="rz-limit">50 MB</b></span>
   </label>
 
@@ -43,6 +43,17 @@
           <option value="0.7778" data-px="413x531">Photo 35 × 45 mm (UK, India, Gulf, EU)</option>
           <option value="1" data-px="600x600">Photo 2 × 2 in (US, India OCI)</option>
           <option value="0.7143" data-px="591x827">Photo 50 × 70 mm (Canada passport)</option>
+          <optgroup label="Social media (sizes change; check the app)">
+            <option value="1" data-px="1080x1080" data-social="1">Instagram post, square 1080 × 1080</option>
+            <option value="0.8" data-px="1080x1350" data-social="1">Instagram portrait post 1080 × 1350</option>
+            <option value="0.5625" data-px="1080x1920" data-social="1">Story, Reel, TikTok, Shorts 1080 × 1920</option>
+            <option value="1.7778" data-px="1280x720" data-social="1">YouTube thumbnail 1280 × 720</option>
+            <option value="1.7778" data-px="1600x900" data-social="1">X (Twitter) post image 1600 × 900</option>
+            <option value="3" data-px="1500x500" data-social="1">X (Twitter) header 1500 × 500</option>
+            <option value="4" data-px="1584x396" data-social="1">LinkedIn banner 1584 × 396</option>
+            <option value="1" data-px="400x400" data-social="1">Profile picture 400 × 400</option>
+            <option value="2.6282" data-px="820x312" data-social="1">Facebook cover 820 × 312</option>
+          </optgroup>
         </select>
       </label>
       <div class="rz-field">Size in pixels
@@ -57,7 +68,7 @@
         </div>
       </div>
     </div>
-    <p class="rz-muted rz-photo-note" hidden>Photo sizes are set at 300 DPI for printing. Each country also has rules on background, head size and expression; check the official rules before you apply.</p>
+    <p class="rz-muted rz-photo-note" hidden></p>
 
     <fieldset class="rz-field rz-formats"><legend>Save as</legend><div class="rz-format-list"></div></fieldset>
 
@@ -79,13 +90,29 @@
     <p class="rz-muted rz-status" role="status" aria-live="polite"></p>
 
     <div class="rz-result" hidden>
-      <img class="rz-preview" alt="Preview of the new image" />
-      <div>
+      <figure class="rz-fig"><img class="rz-before" alt="The original image" /><figcaption class="rz-ba rz-ba-before"></figcaption></figure>
+      <figure class="rz-fig"><img class="rz-preview" alt="Preview of the new image" /><figcaption class="rz-ba rz-ba-after"></figcaption></figure>
+      <div class="rz-sum">
         <p class="rz-summary"></p>
         <a class="btn rz-download" download>Download</a>
       </div>
     </div>
     <p class="note bad rz-error" role="alert" hidden></p>
+
+    <details class="rz-batch" hidden>
+      <summary>More images: <span class="rz-bn"></span> waiting</summary>
+      <p class="rz-muted">They get the same turn, format, quality and size limit as the image above. Choose how the size is applied.</p>
+      <label class="rz-field">Size for the others
+        <select class="rz-bmode">
+          <option value="fit">Fit inside the width × height above (no cropping)</option>
+          <option value="cover">Exactly that width × height (centre crop)</option>
+        </select>
+      </label>
+      <button class="btn rz-bgo" type="button">Create all</button>
+      <p class="rz-muted rz-bstatus" aria-live="polite"></p>
+      <ul class="rz-blist"></ul>
+      <a class="btn rz-bzip" download="resized-images.zip" hidden>Download all as ZIP</a>
+    </details>
   </div>
   <p class="note bad rz-error0" role="alert" hidden></p>
 </div>
@@ -132,15 +159,19 @@
   .rz-q.off { opacity: 0.45; }
   .rz-go { width: 100%; font-size: 17px; padding: 14px; }
   .rz-status { margin: 0; min-height: 1.4em; }
-  .rz-result { display: grid; grid-template-columns: minmax(0, 220px) 1fr; gap: 16px; align-items: center; animation: rzfade .25s ease; }
-  @media (max-width: 520px) { .rz-result { grid-template-columns: 1fr; } }
-  .rz-preview { max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--line); background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
+  .rz-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .rz-fig { margin: 0; display: grid; gap: 4px; justify-items: start; }
+  .rz-ba { font-size: 13px; color: var(--muted); }
+  .rz-sum { grid-column: 1 / -1; }
+  .rz-blist { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 4px; font-size: 14px; }
+  .rz-batch summary { cursor: pointer; font-weight: 600; }
+  .rz-batch .btn { margin-top: 8px; }
+  .rz-preview, .rz-before { max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--line); background: repeating-conic-gradient(var(--line) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
   .rz-summary { margin: 0 0 12px; }
-  @keyframes rzfade { from { opacity: 0; transform: translateY(4px); } }
 </style>
 
 <script>
-  import { FORMATS, formatInfo, orient, render, renderUnder, writableFormats, type Format, type Rect } from '../../lib/image/edit';
+  import { FORMATS, formatInfo, orient, planBatch, render, renderUnder, writableFormats, type Format, type Rect } from '../../lib/image/edit';
   import { formatBytes } from '../../lib/compress/format';
 
   const root = document.querySelector<HTMLElement>('.rz')!;
@@ -200,9 +231,27 @@
   }
 
   // ---------- loading ----------
+  let queue: File[] = [];
+  let origUrl: string | null = null;
+  async function pickMany(list?: FileList | File[] | null) {
+    const all = Array.from(list ?? []);
+    const imgs = all.filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif)$/i.test(f.name));
+    q('.rz-error0').hidden = true;
+    if (!imgs.length) { if (all.length) showError(q('.rz-error0'), 'That is not a picture. Choose a JPG, PNG, WebP, GIF, BMP, AVIF or HEIC image.'); return; }
+    queue = imgs.slice(1);
+    await pick(imgs[0]);
+    showBatch();
+  }
+  function showBatch() {
+    const b = q('.rz-batch');
+    b.hidden = !queue.length;
+    q('.rz-bn').textContent = String(queue.length);
+    q('.rz-blist').innerHTML = ''; q('.rz-bzip').hidden = true; q('.rz-bstatus').textContent = '';
+  }
   async function pick(f?: File) {
     q('.rz-error0').hidden = true;
     if (!f) return;
+    if (f.size === 0) return showError(q('.rz-error0'), 'This file is empty.');
     if (f.size > LIMIT) return showError(q('.rz-error0'), `This image is ${formatBytes(f.size)}; the limit on this device is ${formatBytes(LIMIT)}.`);
     try {
       source?.close();
@@ -211,6 +260,8 @@
       return showError(q('.rz-error0'), 'This image could not be opened. Your browser may not support this format (HEIC works in Safari; on other browsers convert it to JPG first).');
     }
     file = f;
+    if (origUrl) URL.revokeObjectURL(origUrl);
+    origUrl = URL.createObjectURL(f);
     rot = 0; flipH = flipV = false; sizeTouched = false;
     q('.rz-name').textContent = f.name;
     q('.rz-orig').textContent = `${source.width} × ${source.height} px · ${formatBytes(f.size)}`;
@@ -220,11 +271,11 @@
     q('.rz-editor').hidden = false;
     reorient(true);
   }
-  input.addEventListener('change', () => pick(input.files?.[0]));
+  input.addEventListener('change', () => pickMany(input.files));
   for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
   for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => { e.preventDefault(); pick((e as DragEvent).dataTransfer?.files?.[0]); });
-  q('.rz-new').addEventListener('click', () => { clearResult(); input.value = ''; root.dataset.state = 'empty'; q('.rz-editor').hidden = true; });
+  drop.addEventListener('drop', (e) => { e.preventDefault(); pickMany((e as DragEvent).dataTransfer?.files); });
+  q('.rz-new').addEventListener('click', () => { clearResult(); queue = []; input.value = ''; root.dataset.state = 'empty'; q('.rz-editor').hidden = true; });
 
   // ---------- turning ----------
   function reorient(resetCrop: boolean) {
@@ -271,7 +322,10 @@
     }
     const px = opt.dataset.px;
     q('.rz-photo-note').hidden = !px;
+    const note = q('.rz-photo-note');
+    note.textContent = opt.dataset.social ? 'Platforms change their sizes now and then, so check the app for the current one.' : 'Photo sizes are set at 300 DPI for printing. Each country also has rules on background, head size and expression; check the official rules before you apply.';
     if (px) { const [pw, ph] = px.split('x'); wIn.value = pw; hIn.value = ph; sizeTouched = true; lock.checked = true; }
+    q<HTMLSelectElement>('.rz-bmode').value = px ? 'cover' : 'fit';
     clampCrop();
     drawCrop();
   }
@@ -353,6 +407,9 @@
       dl.download = `${file.name.replace(/\.[^.]+$/, '') || 'image'}-resized.${info.ext}`;
       dl.textContent = `Download ${info.label}`;
       q<HTMLImageElement>('.rz-preview').src = url;
+      q<HTMLImageElement>('.rz-before').src = origUrl!;
+      q('.rz-ba-before').textContent = `Before: ${source!.width} × ${source!.height} px, ${formatBytes(file.size)}`;
+      q('.rz-ba-after').textContent = `After: ${used.outW} × ${used.outH} px, ${formatBytes(blob.size)}`;
       const change = blob.size < file.size ? `${Math.round((1 - blob.size / file.size) * 100)}% smaller than the original` : `${Math.round((blob.size / file.size - 1) * 100)}% larger than the original`;
       q('.rz-summary').textContent = `${info.label}, ${used.outW} × ${used.outH} px, ${formatBytes(blob.size)} (${change})${info.lossy ? `, quality ${Math.round(used.quality * 100)}%` : ''}.`;
       status.textContent = '';
@@ -365,5 +422,56 @@
     } finally {
       btn.disabled = false;
     }
+  });
+
+  // ---------- batch: the same settings for the other images ----------
+  q('.rz-bgo').addEventListener('click', async () => {
+    if (!queue.length) return;
+    const outW = Math.round(+wIn.value), outH = Math.round(+hIn.value);
+    if (!(outW >= 1 && outH >= 1 && outW <= 16000 && outH <= 16000)) return (q('.rz-bstatus').textContent = 'Enter a width and height between 1 and 16,000 pixels above first.');
+    const mode = q<HTMLSelectElement>('.rz-bmode').value as 'fit' | 'cover';
+    const targetMax = targetOn.checked ? +q<HTMLInputElement>('.rz-target').value * +q<HTMLSelectElement>('.rz-unit').value : 0;
+    const btn = q<HTMLButtonElement>('.rz-bgo'), list = q('.rz-blist'), st = q('.rz-bstatus');
+    btn.disabled = true; list.innerHTML = ''; q('.rz-bzip').hidden = true;
+    const done: { name: string; blob: Blob }[] = [];
+    const used = new Set<string>();
+    let i = 0;
+    for (const f of queue) {
+      i++; st.textContent = `Working on ${i} of ${queue.length}…`;
+      const li = document.createElement('li');
+      try {
+        if (f.size > LIMIT) throw new RangeError(`too big (${formatBytes(f.size)}; limit ${formatBytes(LIMIT)})`);
+        const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+        const o = orient(bmp, rot, flipH, flipV); bmp.close();
+        const plan = planBatch(o.width, o.height, outW, outH, mode);
+        const edit = { ...plan, format: fmt(), quality: +quality.value / 100, background: q<HTMLInputElement>('.rz-bg').value };
+        let blob: Blob, fin = edit;
+        if (targetMax) {
+          const r = await renderUnder(o, edit, targetMax, () => {});
+          if (!r) throw new RangeError(`could not get under ${formatBytes(targetMax)}`);
+          blob = r.blob; fin = { ...edit, ...r.edit };
+        } else blob = await render(o, edit);
+        const info = formatInfo(fin.format);
+        let base = `${f.name.replace(/\.[^.]+$/, '') || 'image'}-resized`, nm = `${base}.${info.ext}`, n = 2;
+        while (used.has(nm)) nm = `${base}-${n++}.${info.ext}`;
+        used.add(nm);
+        done.push({ name: nm, blob });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nm; a.textContent = nm;
+        li.append(a, ` · ${fin.outW} × ${fin.outH} px · ${formatBytes(f.size)} to ${formatBytes(blob.size)}`);
+      } catch (e) {
+        li.textContent = `${f.name}: ${e instanceof RangeError ? e.message : 'could not be opened'}`;
+      }
+      list.append(li);
+    }
+    st.textContent = `${done.length} of ${queue.length} done.`;
+    if (done.length > 1) {
+      const { zipAsync } = await import('../../lib/compress/zipper');
+      const files: Record<string, Uint8Array> = {};
+      for (const d of done) files[d.name] = new Uint8Array(await d.blob.arrayBuffer());
+      const z = await zipAsync(files, { level: 0 });
+      const za = q<HTMLAnchorElement>('.rz-bzip');
+      za.href = URL.createObjectURL(new Blob([z], { type: 'application/zip' })); za.hidden = false;
+    }
+    btn.disabled = false;
   });
 </script>

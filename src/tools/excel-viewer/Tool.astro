@@ -11,6 +11,10 @@
   <div class="xv-main" hidden>
     <p class="xv-name"></p>
     <div class="xv-tabs" role="tablist" aria-label="Sheets"></div>
+    <div class="xv-find">
+      <label>Find rows <input type="search" class="xv-q" data-k="q" placeholder="Type to show only matching rows" autocomplete="off" /></label>
+      <button type="button" class="btn secondary xv-clear" hidden>Clear find and sort</button>
+    </div>
     <div class="xv-bar">
       <label class="xv-chk"><input type="checkbox" class="xv-hid" checked /> Show hidden rows and columns (marked in grey)</label>
       <label class="xv-chk"><input type="checkbox" class="xv-head" checked /> First row is a header</label>
@@ -21,6 +25,7 @@
     <fieldset class="xv-out">
       <legend>Save this sheet</legend>
       <label class="xv-chk"><input type="checkbox" class="xv-skip" /> Leave out hidden rows and columns</label>
+      <label class="xv-chk xv-viewonly" hidden><input type="checkbox" class="xv-view" checked /> Save only the rows I am seeing, in this order (found and sorted)</label>
       <div class="xv-row">
         <label>Paper <select class="xv-paper"><option value="a4">A4</option><option value="letter">US Letter</option></select></label>
         <button type="button" class="btn xv-csv">Save as CSV</button>
@@ -45,6 +50,11 @@
   .xv-tabs button { font: inherit; font-size: 14px; padding: 7px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; cursor: pointer; }
   .xv-tabs button[aria-selected=true] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
   .xv-tabs button.is-hidden { font-style: italic; color: var(--muted); }
+  .xv-find { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .xv-find label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); flex: 1 1 220px; }
+  .xv-find input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); min-width: 0; }
+  .xv-grid thead th[data-c] { cursor: pointer; user-select: none; }
+  .xv-grid thead th[data-c]:hover { background: var(--accent-soft); }
   .xv-bar { display: flex; flex-wrap: wrap; gap: 6px 18px; }
   .xv-chk { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .xv-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
@@ -67,12 +77,12 @@
 </style>
 
 <script>
-  import { readFile, colLetters, sheetCsv, sheetPdf, type Sheet } from '../../lib/docs/xlview';
+  import { readFile, colLetters, sheetCsv, sheetPdf, viewRows, type Sheet } from '../../lib/docs/xlview';
   import { download, baseName } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.xv') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const input = q<HTMLInputElement>('.xv-file'), drop = q('.xv-drop'), err = q('.xv-err'), grid = q<HTMLTableElement>('.xv-grid');
-  let sheets: Sheet[] = [], cur = 0, shown = 500, fileName = '';
+  let sheets: Sheet[] = [], cur = 0, shown = 500, fileName = '', sortCol = -1, dir: 1 | -1 = 1;
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   function render() {
@@ -80,9 +90,12 @@
     const showHid = q<HTMLInputElement>('.xv-hid').checked, head = q<HTMLInputElement>('.xv-head').checked;
     const ncol = s.table[0]?.length ?? 0;
     const cols = Array.from({ length: ncol }, (_, i) => i).filter((i) => showHid || !s.hiddenCols.has(i));
-    const rows = s.table.map((_, i) => i).filter((i) => showHid || !s.hiddenRows.has(i));
+    const qv = q<HTMLInputElement>('.xv-q').value;
+    const rows = viewRows(s, { query: qv, sortCol: sortCol >= 0 ? sortCol : undefined, dir, header: head, showHidden: showHid });
+    const changed = !!qv.trim() || sortCol >= 0;
+    q('.xv-clear').hidden = !changed; q('.xv-viewonly').hidden = !changed;
     const part = rows.slice(0, shown);
-    let h = `<thead><tr><th class="rn"></th>${cols.map((c) => `<th${s.hiddenCols.has(c) ? ' class="hid" title="Hidden column"' : ''}>${colLetters(c)}${s.hiddenCols.has(c) ? ' (hidden)' : ''}</th>`).join('')}</tr></thead><tbody>`;
+    let h = `<thead><tr><th class="rn"></th>${cols.map((c) => `<th data-c="${c}" title="Click to sort by this column"${s.hiddenCols.has(c) ? ' class="hid"' : ''}>${colLetters(c)}${s.hiddenCols.has(c) ? ' (hidden)' : ''}${sortCol === c ? (dir === 1 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>`;
     for (const r of part) {
       const hr = s.hiddenRows.has(r);
       h += `<tr${head && r === 0 ? ' class="is-head"' : ''}><th class="rn${hr ? ' hid' : ''}">${r + 1}${hr ? ' (hidden)' : ''}</th>${cols.map((c) => `<td${hr || s.hiddenCols.has(c) ? ' class="hid"' : ''}>${esc(s.table[r][c] ?? '')}</td>`).join('')}</tr>`;
@@ -90,6 +103,7 @@
     grid.innerHTML = h + '</tbody>';
     const hv = s.hiddenRows.size, hc = s.hiddenCols.size;
     q('.xv-info').textContent = `${s.table.length.toLocaleString('en')} rows, ${ncol} columns.` + (hv || hc ? ` Hidden in the file: ${hv} row${hv === 1 ? '' : 's'}, ${hc} column${hc === 1 ? '' : 's'}.` : '') + (s.hidden ? ' This whole sheet is hidden in Excel.' : '');
+    if (qv.trim()) q('.xv-info').textContent += ` Showing ${rows.length.toLocaleString('en')} matching row${rows.length === 1 ? '' : 's'}${rows.length ? '' : `: no row contains "${qv.trim()}"`}.`;
     q('.xv-more').hidden = rows.length <= shown;
     q('.xv-more').textContent = `Show 500 more rows (${(rows.length - shown).toLocaleString('en')} not shown yet)`;
   }
@@ -99,7 +113,7 @@
       const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab');
       b.textContent = s.name + (s.hidden ? ' (hidden)' : ''); b.className = s.hidden ? 'is-hidden' : '';
       b.setAttribute('aria-selected', String(i === cur));
-      b.addEventListener('click', () => { cur = i; shown = 500; q('.xv-note').textContent = ''; tabs(); render(); });
+      b.addEventListener('click', () => { cur = i; shown = 500; sortCol = -1; q('.xv-note').textContent = ''; tabs(); render(); });
       box.append(b);
     });
   }
@@ -110,7 +124,7 @@
       sheets = await readFile(f);
       if (!sheets.length) throw new Error(`${f.name} has no sheets.`);
     } catch (e: any) { err.textContent = e.message; err.hidden = false; return; }
-    fileName = f.name; cur = Math.max(0, sheets.findIndex((s) => !s.hidden)); shown = 500;
+    fileName = f.name; cur = Math.max(0, sheets.findIndex((s) => !s.hidden)); shown = 500; sortCol = -1; q<HTMLInputElement>('.xv-q').value = '';
     q('.xv-name').textContent = `${f.name} · ${sheets.length} sheet${sheets.length === 1 ? '' : 's'}`;
     root.dataset.state = 'open'; q('.xv-main').hidden = false; tabs(); render();
   }
@@ -118,11 +132,19 @@
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('over'));
   drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); pick((e as DragEvent).dataTransfer?.files?.[0]); });
+  const rows = () => viewRows(sheets[cur], { query: q<HTMLInputElement>('.xv-q').value, sortCol: sortCol >= 0 ? sortCol : undefined, dir, header: q<HTMLInputElement>('.xv-head').checked, showHidden: true });
+  q<HTMLInputElement>('.xv-q').addEventListener('input', () => { shown = 500; render(); });
+  q('.xv-clear').addEventListener('click', () => { q<HTMLInputElement>('.xv-q').value = ''; sortCol = -1; shown = 500; render(); });
+  grid.addEventListener('click', (e) => {
+    const th = (e.target as HTMLElement).closest('th[data-c]') as HTMLElement | null; if (!th) return;
+    const c = +th.dataset.c!; if (sortCol === c) { if (dir === 1) dir = -1; else sortCol = -1; } else { sortCol = c; dir = 1; }
+    render();
+  });
   q('.xv-hid').addEventListener('change', render); q('.xv-head').addEventListener('change', render);
   q('.xv-more').addEventListener('click', () => { shown += 500; render(); });
   q('.xv-other').addEventListener('click', () => { input.value = ''; sheets = []; root.dataset.state = 'empty'; q('.xv-main').hidden = true; });
   const name = (ext: string) => `${baseName(fileName)}-${sheets[cur].name}`.replace(/[^\w.-]+/g, '-') + ext;
-  q('.xv-csv').addEventListener('click', () => download(new Blob(['﻿' + sheetCsv(sheets[cur], q<HTMLInputElement>('.xv-skip').checked)], { type: 'text/csv' }), name('.csv'), 'text/csv'));
+  q('.xv-csv').addEventListener('click', () => download(new Blob(['﻿' + sheetCsv(sheets[cur], q<HTMLInputElement>('.xv-skip').checked, q<HTMLInputElement>('.xv-view').checked && !q('.xv-viewonly').hidden ? rows() : undefined)], { type: 'text/csv' }), name('.csv'), 'text/csv'));
   q('.xv-pdf').addEventListener('click', async () => {
     const r = await sheetPdf(sheets[cur], q<HTMLInputElement>('.xv-skip').checked, q<HTMLSelectElement>('.xv-paper').value as 'a4', q<HTMLInputElement>('.xv-head').checked);
     q('.xv-note').textContent = `${r.pages} page${r.pages === 1 ? '' : 's'}, scaled to ${Math.round(r.scale * 100)}% to fit the width.` + (r.lost.length ? ` Characters the PDF font cannot draw were left out: ${r.lost.slice(0, 10).join(' ')}.` : '');

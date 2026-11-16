@@ -17,10 +17,13 @@
     <label class="wm-t">Angle (degrees) <input class="wm-angle" type="number" min="-90" max="90" value="45" /></label>
     <label>Opacity (%) <input class="wm-op" type="number" min="5" max="100" value="25" /></label>
     <label>Colour <input class="wm-col" type="color" value="#cc0000" /></label>
+    <label class="wm-t">Layout
+      <select class="wm-layout"><option value="one">One, in the middle</option><option value="tile">Repeated across the page</option></select></label>
     <label class="wm-p">Pages (blank = all) <input class="wm-pages" type="text" placeholder="1-3,5" /></label>
   </div>
   <p class="wm-hint">For a copy of an ID, try "Copy for [who] only, [date]" with a size around 40. Nothing is kept or sent.</p>
   <canvas class="wm-canvas" hidden></canvas>
+  <p class="wm-hint wm-prevnote" hidden>Preview of page 1 (or of your picture). Pages you leave out below will not carry the mark.</p>
   <button class="btn wm-go" type="button" disabled>Add watermark and download</button>
   <p class="wm-msg" role="status" aria-live="polite"></p>
 </div>
@@ -34,11 +37,12 @@
   .wm-hint, .wm-msg { margin: 0; font-size: 15px; }
   .wm-msg.err { color: var(--warn); }
   .wm-canvas { max-width: 100%; height: auto; border: 1px solid var(--line); }
+  .wm-prevnote[hidden] { display: none; }
   .wm-canvas[hidden] { display: none; }
 </style>
 
 <script>
-  import { watermarkPdf, parseRanges, latinOnly, download, baseName, pageCount, type MarkOpts } from '../../lib/docs/pdfpages';
+  import { buildPdf, loadPdfJs, watermarkPdf, parseRanges, latinOnly, download, baseName, pageCount, type MarkOpts } from '../../lib/docs/pdfpages';
   const root = document.querySelector('.wm') as HTMLElement;
   const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
   const v = (s: string) => $<HTMLInputElement>(s).value;
@@ -54,7 +58,34 @@
     root.querySelectorAll<HTMLElement>('.wm-s').forEach((e) => (e.hidden = !stamp));
     $<HTMLElement>('.wm-p').hidden = !!file && !isPdf();
   }
-  root.addEventListener('input', () => { layout(); if (img) paintImage(); });
+  let timer: any = 0;
+  root.addEventListener('input', () => { layout(); if (img) paintImage(); else if (bytes) { clearTimeout(timer); timer = setTimeout(previewPdf, 300); } });
+
+  function opts(): MarkOpts {
+    const stamp = v('.wm-kind') === 'stamp';
+    return {
+      kind: stamp ? 'stamp' : 'text', text: v('.wm-text'), opacity: Math.min(1, Math.max(0.05, Number(v('.wm-op')) / 100)),
+      angle: Number(v('.wm-angle')) || 0, size: Math.max(8, Number(v('.wm-size')) || 90), color: v('.wm-col'),
+      stamp: v('.wm-stamp'), stampCorner: v('.wm-corner') as MarkOpts['stampCorner'], date: today(), tile: v('.wm-layout') === 'tile',
+      pages: v('.wm-pages').trim() ? [...new Set(parseRanges(v('.wm-pages'), total).flat())] : null,
+    };
+  }
+  /** Draw the real result for page 1 so the settings can be judged before downloading. */
+  async function previewPdf() {
+    if (!bytes) return;
+    try {
+      const o = opts(); if (o.kind === 'text') latinOnly(o.text);
+      o.pages = null;
+      const one = await buildPdf([bytes], [{ src: 0, index: 0, rot: 0 }]);
+      const marked = await watermarkPdf(one, o);
+      const pdfjs = await loadPdfJs();
+      const doc = await pdfjs.getDocument({ data: marked, isEvalSupported: false }).promise, pg = await doc.getPage(1);
+      const vp0 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(2, 520 / vp0.width) });
+      canvas.width = vp.width; canvas.height = vp.height;
+      await pg.render({ canvasContext: canvas.getContext('2d')!, viewport: vp, canvas } as any).promise;
+      canvas.hidden = false; $<HTMLElement>('.wm-prevnote').hidden = false;
+    } catch { canvas.hidden = true; }
+  }
 
   // Pictures: draw the words over the image on a canvas and save it as a new picture.
   function paintImage() {
@@ -72,17 +103,22 @@
     } else {
       const size = Math.max(8, Number(v('.wm-size')) || 90) * k, a = ((Number(v('.wm-angle')) || 0) * Math.PI) / 180;
       ctx.font = `bold ${size}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.translate(w / 2, h / 2); ctx.rotate(-a); ctx.fillText(v('.wm-text'), 0, 0);
+      ctx.translate(w / 2, h / 2); ctx.rotate(-a);
+      if (v('.wm-layout') === 'tile') {
+        const tw = ctx.measureText(v('.wm-text')).width, gx = tw * 1.5, gy = size * 3, n = Math.ceil(Math.hypot(w, h) / Math.min(gx, gy));
+        for (let r = -n; r <= n; r++) for (let c = -n; c <= n; c++) ctx.fillText(v('.wm-text'), c * gx + (r % 2 ? gx / 2 : 0), r * gy);
+      } else ctx.fillText(v('.wm-text'), 0, 0);
     }
     ctx.globalAlpha = 1; ctx.setTransform(1, 0, 0, 1, 0, 0);
-    canvas.hidden = false;
+    canvas.hidden = false; $<HTMLElement>('.wm-prevnote').hidden = false;
   }
 
   $<HTMLInputElement>('.wm-file').addEventListener('change', async (e) => {
     file = (e.target as HTMLInputElement).files?.[0] || null; img = null; bytes = null; canvas.hidden = true; go.disabled = true;
     if (!file) return;
     try {
-      if (isPdf()) { bytes = new Uint8Array(await file.arrayBuffer()); total = await pageCount(bytes); say(`${file.name}: ${total} page${total === 1 ? '' : 's'}.`); }
+      if (file.size === 0) throw new Error('empty');
+      if (isPdf()) { bytes = new Uint8Array(await file.arrayBuffer()); total = await pageCount(bytes); previewPdf(); say(`${file.name}: ${total} page${total === 1 ? '' : 's'}.`); }
       else {
         const url = URL.createObjectURL(file); img = new Image(); img.src = url; await img.decode(); URL.revokeObjectURL(url); paintImage(); say(`${file.name} is ready.`);
       }
@@ -101,12 +137,7 @@
         const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Could not save the picture.'))), type, 0.92));
         download(blob, `${baseName(file.name)}-marked.${type === 'image/png' ? 'png' : 'jpg'}`, type);
       } else if (bytes) {
-        const o: MarkOpts = {
-          kind: stamp ? 'stamp' : 'text', text: v('.wm-text'), opacity: Math.min(1, Math.max(0.05, Number(v('.wm-op')) / 100)),
-          angle: Number(v('.wm-angle')) || 0, size: Math.max(8, Number(v('.wm-size')) || 90), color: v('.wm-col'),
-          stamp: v('.wm-stamp'), stampCorner: v('.wm-corner') as MarkOpts['stampCorner'], date: today(),
-          pages: v('.wm-pages').trim() ? [...new Set(parseRanges(v('.wm-pages'), total).flat())] : null,
-        };
+        const o = opts();
         if (!stamp) { if (!o.text.trim()) throw new Error('Type the words for the watermark.'); latinOnly(o.text); }
         download(await watermarkPdf(bytes, o), `${baseName(file.name)}-marked.pdf`);
       }

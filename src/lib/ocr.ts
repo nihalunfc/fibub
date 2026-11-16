@@ -68,3 +68,8 @@ export function recognise(source: OcrSource, lang: OcrLang | string = 'eng', onP
 export async function stopOcr() {
   await busy; if (worker) { const w = worker; worker = null; workerLang = ''; await w.terminate(); }
 }
+
+/** Join the lines of each paragraph into one flowing line (and mend words split with a hyphen at the line end). Blank lines still separate paragraphs. */
+export function tidyLines(text: string): string {
+  return text.split(/\n{2,}/).map((para) => para.split('\n').map((l) => l.trim()).filter(Boolean).reduce((acc, l) => (acc.endsWith('-') && /^[a-z]/.test(l) && /[a-z]-$/.test(acc) ? acc.slice(0, -1) + l : acc ? acc + ' ' + l : l), '')).filter(Boolean).join('\n\n');
+}

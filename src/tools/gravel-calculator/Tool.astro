@@ -45,11 +45,30 @@
       </label>
     </div>
   </section>
+  <section class="panel">
+    <details class="gc-more">
+      <summary>More options: price</summary>
+      <div class="gc-row">
+        <label>Price is per
+          <select data-k="pby">
+            <option value="t">Tonne (1,000 kg)</option>
+            <option value="ton">US ton (2,000 lb)</option>
+            <option value="m3">Cubic metre</option>
+            <option value="yd3">Cubic yard</option>
+            <option value="bag">Bag</option>
+          </select>
+        </label>
+        <label>Price (any currency) <input data-k="price" inputmode="decimal" placeholder="optional" /></label>
+      </div>
+    </details>
+  </section>
   <section class="panel gc-res" aria-live="polite">
     <p class="gc-area"></p>
     <p class="gc-big gc-vol"></p>
     <p class="gc-wt"></p>
     <p class="gc-bags"></p>
+    <p class="gc-cov"></p>
+    <p class="gc-cost"></p>
     <p class="gc-say"></p>
   </section>
   <p class="gc-fine">Densities are approximate; loose stone, wet sand and fluffy mulch all weigh different amounts. Nothing you type leaves this page.</p>
@@ -70,11 +89,14 @@
   .gc-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .gc-res p { margin: 4px 0; overflow-wrap: anywhere; }
   .gc-big { font-size: 24px; font-weight: 700; }
+  .gc-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .gc-cost { font-weight: 600; }
   .gc-say, .gc-fine { color: var(--muted); font-size: 14px; }
   .gc-fine { margin: 0; font-size: 13px; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, areaPerTonne } from '../../lib/build-calc';
   const root = document.querySelector('.gc') as HTMLElement;
   const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
   const list = root.querySelector('.gc-areas') as HTMLElement;
@@ -116,12 +138,12 @@
       area += shape === 'rect' ? d[0] * d[1] : shape === 'circle' ? Math.PI * (d[0] / 2) ** 2 : 0.5 * d[0] * d[1];
     });
     const depth = num(el('depth').value) * D, extra = num(el('extra').value) || 0, dens = num(el('dens').value);
-    const clear = (msg: string) => { for (const c of ['gc-area', 'gc-vol', 'gc-wt', 'gc-bags']) out(c).textContent = ''; out('gc-say').textContent = msg; };
+    const clear = (msg: string) => { for (const c of ['gc-area', 'gc-vol', 'gc-wt', 'gc-bags', 'gc-cov', 'gc-cost']) out(c).textContent = ''; out('gc-say').textContent = msg; };
     if (bad || !list.children.length || !Number.isFinite(depth) || depth <= 0) return clear('Type the size of each area and the depth.');
     const vol = area * depth * (1 + extra / 100);
     out('gc-area').textContent = metric ? `Area: ${n(area)} m²` : `Area: ${n(area / FT ** 2)} sq ft`;
     out('gc-vol').textContent = `${n(vol, 3)} m³ · ${n(vol / YD3, 3)} yd³ · ${n(vol / FT3, 2)} ft³`;
-    if (!Number.isFinite(dens) || dens <= 0) { out('gc-wt').textContent = ''; out('gc-bags').textContent = ''; out('gc-say').textContent = 'Type a density to see the weight.'; return; }
+    if (!Number.isFinite(dens) || dens <= 0) { out('gc-wt').textContent = ''; out('gc-bags').textContent = ''; out('gc-cov').textContent = ''; out('gc-cost').textContent = ''; out('gc-say').textContent = 'Type a density to see the weight.'; return; }
     const kg = vol * dens * 1000;
     out('gc-wt').textContent = `Weight: ${n(kg / 1000, 2)} t (tonnes) · ${n(kg / USTON, 2)} US tons · ${n(kg, 0)} kg · ${n(kg / LB, 0)} lb`;
     const [kind, size] = el('bag').value.split(':'), s = +size;
@@ -129,6 +151,12 @@
     const bags = Math.ceil((kind === 'cf' ? vol : kg) / each - 1e-9);
     const bagName = kind === 'cf' ? `${s} cu ft` : `${s} ${kind}`;
     out('gc-bags').textContent = `${n(bags, 0)} bags of ${bagName}`;
+    const cov = areaPerTonne(depth * (1 + extra / 100), dens);
+    out('gc-cov').textContent = Number.isFinite(cov) ? `One tonne covers about ${n(cov, 1)} m² (${n(cov / FT ** 2, 0)} sq ft) at this depth.` : '';
+    const pby = el('pby').value, price = pnum(el('price').value);
+    const qty = pby === 't' ? kg / 1000 : pby === 'ton' ? kg / USTON : pby === 'm3' ? vol : pby === 'yd3' ? vol / YD3 : bags;
+    const cost = costOf(qty, price);
+    out('gc-cost').textContent = cost !== null ? `Estimated cost: ${money(cost)} (${n(qty, 2)} ${({ t: 'tonnes', ton: 'US tons', m3: 'm³', yd3: 'yd³', bag: 'bags' } as Record<string, string>)[pby]} × ${money(price)}). Delivery and tax not included.` : '';
     out('gc-say').textContent = `Area × depth${extra ? ` + ${n(extra)}% extra` : ''} = volume; volume × ${n(dens, 3)} t/m³ = weight. ${kind === 'cf' ? 'Bags are counted by volume.' : 'Bags are counted by weight.'} Bulk loads are often sold by the tonne or cubic yard.`;
   };
 
@@ -143,11 +171,11 @@
   };
   el('units').addEventListener('change', () => { setUnits(el('units').value, true); calc(); });
   el('mat').addEventListener('change', () => { el('dens').value = el('mat').value; calc(); });
-  for (const k of ['depth', 'extra', 'dens', 'bag']) el(k).addEventListener(k === 'bag' ? 'change' : 'input', calc);
+  for (const k of ['depth', 'extra', 'dens', 'bag', 'pby', 'price']) el(k).addEventListener(k === 'bag' || k === 'pby' ? 'change' : 'input', calc);
   (root.querySelector('.gc-add') as HTMLElement).addEventListener('click', () => { addArea(); calc(); });
   const reset = () => {
     list.innerHTML = ''; el('units').value = 'm'; setUnits('m', false);
-    el('depth').value = '75'; el('extra').value = '0'; el('mat').selectedIndex = 0; el('dens').value = '1.6'; el('bag').selectedIndex = 0;
+    el('depth').value = '75'; el('extra').value = '0'; el('mat').selectedIndex = 0; el('dens').value = '1.6'; el('bag').selectedIndex = 0; el('price').value = ''; el('pby').value = 't';
     addArea('rect', ['5', '2']); calc();
   };
   (root.querySelector('.gc-reset') as HTMLElement).addEventListener('click', reset);

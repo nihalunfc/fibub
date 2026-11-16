@@ -33,9 +33,18 @@
     <label class="pnt-pcov" hidden>Primer coverage <span class="pnt-u" data-u="cov"></span><input data-k="pcov" inputmode="decimal" /></label>
   </section>
   <section class="panel">
+    <details class="pnt-more">
+      <summary>More options: several rooms and cost</summary>
+      <div class="pnt-grid">
+        <label>Number of identical rooms<input data-k="rooms" inputmode="numeric" /></label>
+        <label>Price per <span class="pnt-u" data-u="vn"></span> (any currency)<input data-k="price" inputmode="decimal" placeholder="optional" /></label>
+      </div>
+    </details>
     <p class="pnt-big" aria-live="polite"></p>
     <p class="pnt-tins" aria-live="polite"></p>
+    <p class="pnt-cost" aria-live="polite"></p>
     <ul class="pnt-lines"></ul>
+    <div class="pnt-sk" aria-label="Scaled plan of the room"></div>
     <button type="button" class="pnt-btn pnt-reset">Reset to the example</button>
   </section>
   <p class="pnt-fine">Coverage is a typical label figure: check the tin, as rough or porous walls take more. Nothing you type leaves this page.</p>
@@ -55,25 +64,29 @@
   .pnt-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
   .pnt-tins { margin: 0; font-weight: 600; }
   .pnt-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .pnt-more summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  .pnt-cost { margin: 0; font-weight: 600; }
+  .pnt-sk { max-width: 420px; }
   .pnt-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
 <script>
+  import { num as pnum, money, costOf, rectSketch } from '../../lib/build-calc';
   const root = document.querySelector('.pnt') as HTMLElement;
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
   const list = $('.pnt-list');
   const EX: Record<string, Record<string, string>> = {
-    m: { L: '4', W: '3.5', H: '2.4', doors: '1', doorA: '1.9', wins: '1', winA: '1.5', coats: '2', cov: '10', pcov: '10' },
-    ft: { L: '12', W: '10', H: '8', doors: '1', doorA: '21', wins: '1', winA: '16', coats: '2', cov: '400', pcov: '400' },
+    m: { L: '4', W: '3.5', H: '2.4', doors: '1', doorA: '1.9', wins: '1', winA: '1.5', coats: '2', cov: '10', pcov: '10', rooms: '1' },
+    ft: { L: '12', W: '10', H: '8', doors: '1', doorA: '21', wins: '1', winA: '16', coats: '2', cov: '400', pcov: '400', rooms: '1' },
   };
   const TINS: Record<string, { v: number; t: string }[]> = {
     m: [{ v: 5, t: '5 L' }, { v: 2.5, t: '2.5 L' }, { v: 1, t: '1 L' }],
     ft: [{ v: 1, t: '1 gallon' }, { v: 0.25, t: '1 quart' }],
   };
   const UNITS: Record<string, Record<string, string>> = {
-    m: { len: '(m)', area: '(m²)', cov: '(m² per litre)', a: 'm²', vol: 'L' },
-    ft: { len: '(ft)', area: '(sq ft)', cov: '(sq ft per gallon)', a: 'sq ft', vol: 'US gal' },
+    m: { len: '(m)', area: '(m²)', cov: '(m² per litre)', a: 'm²', vol: 'L', vn: 'litre' },
+    ft: { len: '(ft)', area: '(sq ft)', cov: '(sq ft per gallon)', a: 'sq ft', vol: 'US gal', vn: 'US gallon' },
   };
   const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
   const f = (v: number, d: number) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -103,6 +116,7 @@
     (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
     list.append(row);
   };
+  const costEl = $('.pnt-cost'), sk = $('.pnt-sk');
   const big = $('.pnt-big'), tinsEl = $('.pnt-tins'), lines = $('.pnt-lines');
   function calc() {
     const u = k('units').value, U = UNITS[u], room = k('how').value === 'room';
@@ -121,9 +135,10 @@
     const open = num(k('doors').value || '0') * num(k('doorA').value || '0') + num(k('wins').value || '0') * num(k('winA').value || '0');
     const coats = num(k('coats').value), cov = num(k('cov').value);
     if (!Number.isFinite(walls) || !Number.isFinite(open) || !Number.isFinite(coats) || !(cov > 0) || walls < 0 || coats < 0) {
-      big.textContent = ''; tinsEl.textContent = 'Type the sizes above (numbers only).'; lines.innerHTML = ''; return;
+      big.textContent = ''; tinsEl.textContent = 'Type the sizes above (numbers only).'; lines.innerHTML = ''; costEl.textContent = ''; sk.innerHTML = ''; return;
     }
-    const net = Math.max(0, walls - open) + ceil, coated = net * coats, paint = coated / cov;
+    const rooms = Number.isFinite(num(k('rooms').value)) ? Math.max(1, Math.floor(num(k('rooms').value))) : 1;
+    const net = Math.max(0, walls - open) + ceil, coated = net * coats * rooms, paint = coated / cov;
     big.textContent = `${f(paint, 2)} ${U.vol} of paint`;
     const t = tins(paint, TINS[u]);
     tinsEl.textContent = paint > 0 ? `Buy ${t.text} (${f(t.total, 2)} ${U.vol}).` : 'Nothing to paint.';
@@ -131,11 +146,16 @@
       `Wall area ${f(walls, 1)} ${U.a}${open > 0 ? `, minus doors and windows ${f(open, 1)} ${U.a} = ${f(Math.max(0, walls - open), 1)} ${U.a}` : ''}.`,
     ];
     if (ceil) li.push(`Ceiling ${f(ceil, 1)} ${U.a}, so ${f(net, 1)} ${U.a} to paint.`);
-    li.push(`${f(net, 1)} ${U.a} × ${coats} coat${coats === 1 ? '' : 's'} = ${f(coated, 1)} ${U.a}, ÷ ${f(cov, 1)} ${U.a} per ${U.vol} = ${f(paint, 2)} ${U.vol}.`);
+    li.push(`${f(net, 1)} ${U.a} × ${coats} coat${coats === 1 ? '' : 's'}${rooms > 1 ? ` × ${rooms} rooms` : ''} = ${f(coated, 1)} ${U.a}, ÷ ${f(cov, 1)} ${U.a} per ${U.vol} = ${f(paint, 2)} ${U.vol}.`);
     if (k('primer').checked) {
       const pc = num(k('pcov').value);
-      if (pc > 0) { const p = net / pc, pt = tins(p, TINS[u]); li.push(`Primer, one coat: ${f(p, 2)} ${U.vol}, buy ${pt.text}.`); }
+      if (pc > 0) { const p = (net * rooms) / pc, pt = tins(p, TINS[u]); li.push(`Primer, one coat: ${f(p, 2)} ${U.vol}, buy ${pt.text}.`); }
     }
+    const price = pnum(k('price').value), tinLitres = paint > 0 ? t.total : 0;
+    const cost = costOf(tinLitres, price);
+    costEl.textContent = cost !== null ? `Estimated cost: ${money(cost)} (${f(tinLitres, 2)} ${U.vol} of tins × ${money(price)}). Primer, tax and delivery not included.` : '';
+    sk.innerHTML = room && Number.isFinite(num(k('L').value)) && num(k('L').value) > 0 && num(k('W').value) > 0
+      ? rectSketch(num(k('L').value), num(k('W').value), `${f(num(k('L').value), 2)} ${U.len.replace(/[()]/g, '')}`, `${f(num(k('W').value), 2)} ${U.len.replace(/[()]/g, '')}`, undefined, 'Scaled plan of the room') : '';
     li.push('Tins: the fewest tins that cover it, then the one with the least left over.');
     lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
   }
@@ -148,6 +168,6 @@
   };
   root.querySelectorAll('[data-k]').forEach((e) => e.addEventListener(e.tagName === 'SELECT' || (e as HTMLInputElement).type === 'checkbox' ? 'change' : 'input', () => (e === k('units') ? load(k('units').value) : calc())));
   $('.pnt-add').addEventListener('click', () => { addWall(); calc(); });
-  $('.pnt-reset').addEventListener('click', () => { k('units').value = 'm'; k('how').value = 'room'; k('ceil').checked = false; k('primer').checked = false; load('m'); });
+  $('.pnt-reset').addEventListener('click', () => { k('price').value = ''; k('units').value = 'm'; k('how').value = 'room'; k('ceil').checked = false; k('primer').checked = false; load('m'); });
   load('m');
 </script>

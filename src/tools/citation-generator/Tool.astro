@@ -3,15 +3,15 @@
 import { STYLES, TYPES } from '../../lib/docs/citation';
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 ---
-<div class="tool-ui cg">
+<div class="tool-ui cg" data-kit>
   <div class="cg-card">
     <h2>1. About the source</h2>
     <div class="cg-row">
       <label>What is it?
-        <select class="cg-type">{TYPES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
+        <select class="cg-type" data-k="type">{TYPES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
       </label>
       <label>Style
-        <select class="cg-style">{STYLES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
+        <select class="cg-style" data-k="style">{STYLES.map((t) => <option value={t.id}>{t.name}</option>)}</select>
       </label>
     </div>
     <label>Authors, one per line
@@ -24,15 +24,15 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
     <label>Title <span class="cg-lab" data-for="title">of the book</span>
       <input class="cg-title" type="text" autocomplete="off" />
     </label>
-    <label data-t="article chapter website"><span class="cg-lab" data-for="container">Journal name</span>
+    <label data-t="article chapter website video"><span class="cg-lab" data-for="container">Journal name</span>
       <input class="cg-container" type="text" autocomplete="off" />
     </label>
     <div class="cg-row3">
       <label>Year <input class="cg-year" type="text" inputmode="numeric" maxlength="9" autocomplete="off" /></label>
-      <label data-t="article website">Month
+      <label data-nokit data-t="article website video">Month
         <select class="cg-month"><option value="0">-</option>{months.map((m, i) => <option value={i + 1}>{m}</option>)}</select>
       </label>
-      <label data-t="website">Day <input class="cg-day" type="number" min="1" max="31" /></label>
+      <label data-nokit data-t="website video">Day <input class="cg-day" type="number" min="1" max="31" /></label>
     </div>
     <div class="cg-row3" data-t="article">
       <label>Volume <input class="cg-volume" type="text" autocomplete="off" /></label>
@@ -44,20 +44,23 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
       <label>Publisher <input class="cg-publisher" type="text" autocomplete="off" /></label>
       <label>Place (city) <input class="cg-place" type="text" autocomplete="off" /></label>
     </div>
-    <label data-t="website">Publisher or organisation (if different from the site name) <input class="cg-publisher2" type="text" autocomplete="off" /></label>
+    <label data-t="website video"><span class="cg-lab" data-for="publisher2">Publisher or organisation (if different from the site name)</span> <input class="cg-publisher2" type="text" autocomplete="off" /></label>
     <label data-t="book chapter">Edition (for example 2) <input class="cg-edition" type="text" autocomplete="off" /></label>
     <label data-t="report">Report number <input class="cg-reportno" type="text" autocomplete="off" /></label>
     <label>DOI (optional) <input class="cg-doi" type="text" placeholder="10.xxxx/xxxxx" autocomplete="off" /></label>
     <label>Web address (optional) <input class="cg-url" type="text" inputmode="url" autocomplete="off" /></label>
-    <label data-t="website">Date you looked at it <input class="cg-accessed" type="date" /></label>
+    <label data-t="website video">Date you looked at it <input class="cg-accessed" type="date" /></label>
     <label data-t="book chapter report article" class="cg-note-l">Page you cite (used in Chicago notes) <input class="cg-pagecited" type="text" autocomplete="off" /></label>
     <div class="cg-btns"><button type="button" class="btn cg-example">Fill an example</button><button type="button" class="btn cg-clear">Clear the form</button></div>
   </div>
 
   <div class="cg-card">
     <h2>2. Your citation</h2>
-    <ul class="cg-probs" aria-live="polite"></ul>
-    <div class="cg-outs"></div>
+    <ul class="cg-probs"></ul>
+    <div class="cg-outs" aria-live="polite"></div>
+    <p class="cg-intext-l">In your sentence: <b class="cg-intext"></b></p>
+    <label class="cg-pg-l">Page for the in-text citation (optional) <input class="cg-intextpg" type="text" autocomplete="off" /></label>
+    <p class="cg-hint cg-vidhint" hidden>Online videos are written out in full for APA and MLA. The other styles use the web page form.</p>
     <div class="cg-btns"><button type="button" class="btn cg-copy">Copy</button><button type="button" class="btn cg-add">Add to my list</button></div>
     <p class="cg-hint">Each style has its own capital-letter rule for titles (APA uses sentence case for articles and books, for example). Type the title the way your style needs it; the tool does not change it.</p>
   </div>
@@ -86,6 +89,7 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
   .cg-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .cg-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .cg-row[hidden], .cg-row3[hidden], .cg label[hidden] { display: none; }
+  .cg-intext-l { margin: 0; }
   .cg-hint { margin: 0; font-size: 13px; color: var(--muted); }
   .cg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
   .cg-probs { margin: 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
@@ -101,7 +105,7 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 </style>
 
 <script>
-  import { emptySrc, cite, sortKey, problems, toBibtex, toRis, toHtml, toPlain, type Src, type SrcType, type StyleId } from '../../lib/docs/citation';
+  import { emptySrc, cite, inText, sortKey, problems, toBibtex, toRis, toHtml, toPlain, type Src, type SrcType, type StyleId } from '../../lib/docs/citation';
   const root = document.querySelector('.cg') as HTMLElement;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
   const v = (s: string) => q<HTMLInputElement>(s).value;
@@ -110,7 +114,7 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
   const LABELS: Record<SrcType, { title: string; container: string }> = {
     book: { title: 'of the book', container: '' }, article: { title: 'of the article', container: 'Journal name' },
     chapter: { title: 'of the chapter', container: 'Title of the book' }, website: { title: 'of the page', container: 'Website name' },
-    report: { title: 'of the report', container: '' },
+    report: { title: 'of the report', container: '' }, video: { title: 'of the video', container: 'Site (for example YouTube)' },
   };
   const read = (): Src => {
     const t = typeSel.value as SrcType;
@@ -120,7 +124,7 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
     s.title = v('.cg-title').trim(); s.container = v('.cg-container').trim();
     s.volume = v('.cg-volume').trim(); s.issue = v('.cg-issue').trim();
     s.pages = (t === 'chapter' ? v('.cg-pages2') : v('.cg-pages')).trim();
-    s.publisher = (t === 'website' ? v('.cg-publisher2') : v('.cg-publisher')).trim(); s.place = v('.cg-place').trim();
+    s.publisher = (t === 'website' || t === 'video' ? v('.cg-publisher2') : v('.cg-publisher')).trim(); s.place = v('.cg-place').trim();
     s.edition = v('.cg-edition').trim(); s.reportNo = v('.cg-reportno').trim();
     s.doi = v('.cg-doi').trim(); s.url = v('.cg-url').trim(); s.accessed = v('.cg-accessed'); s.pageCited = v('.cg-pagecited').trim();
     return s;
@@ -131,12 +135,15 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
     root.querySelectorAll<HTMLElement>('[data-t]').forEach((e) => { e.hidden = !(e.dataset.t || '').split(' ').includes(t); });
     q('[data-for=title]').textContent = LABELS[t].title;
     q('[data-for=container]').textContent = LABELS[t].container;
+    q('[data-for=publisher2]').textContent = t === 'video' ? 'Channel or uploader (if different from the author)' : 'Publisher or organisation (if different from the site name)';
   };
   const render = () => {
     const s = read(), st = styleSel.value as StyleId;
     const out = cite(s, st);
     const labs = st === 'chicago-note' ? ['Footnote', 'Bibliography'] : ['', ''];
     q('.cg-outs').innerHTML = out.map((o, i) => (labs[i] ? `<p class="cg-outlab">${labs[i]}</p>` : '') + `<p class="cg-out">${toHtml(o)}</p>`).join('');
+    q('.cg-intext').textContent = inText(s, st, v('.cg-intextpg'));
+    q('.cg-vidhint').hidden = !(s.type === 'video' && st !== 'apa' && st !== 'mla');
     const pr = problems(s);
     q('.cg-probs').innerHTML = pr.map((p) => `<li>${p}</li>`).join('');
     // list
@@ -175,9 +182,10 @@ const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
     clearForm();
     set('.cg-authors', 'Rao, Meera\nIvanov, Pavel');
     set('.cg-year', '2021');
-    set('.cg-title', t === 'article' ? 'Soil moisture and crop yield in semi-arid farms' : t === 'website' ? 'How farmers read the rain' : 'Dryland farming in practice');
+    set('.cg-title', t === 'article' ? 'Soil moisture and crop yield in semi-arid farms' : t === 'website' || t === 'video' ? 'How farmers read the rain' : 'Dryland farming in practice');
     if (t === 'article') { set('.cg-container', 'Journal of Dryland Studies'); set('.cg-volume', '14'); set('.cg-issue', '3'); set('.cg-pages', '201-219'); set('.cg-doi', '10.1234/jds.2021.014'); }
     if (t === 'chapter') { set('.cg-container', 'Handbook of Rural Studies'); set('.cg-editors', 'Khan, Aisha'); set('.cg-pages2', '45-67'); }
+    if (t === 'video') { set('.cg-container', 'YouTube'); set('.cg-publisher2', 'Farm Notes'); set('.cg-month', '3'); set('.cg-day', '5'); set('.cg-url', 'https://example.org/video'); }
     if (t === 'website') { set('.cg-container', 'Farm Notes'); set('.cg-month', '3'); set('.cg-day', '5'); set('.cg-url', 'https://example.org/rain'); }
     if (t === 'book' || t === 'chapter' || t === 'report') { set('.cg-publisher', 'Orchid Press'); set('.cg-place', 'Pune'); }
     if (t === 'report') set('.cg-reportno', '12');

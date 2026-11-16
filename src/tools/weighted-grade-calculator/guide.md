@@ -15,7 +15,7 @@ updated: 2026-11-10
 related: [final-grade-calculator, gpa-converter, rubric-grade-calculator]
 sources:
   - "Standard weighted mean: sum of (score × weight) ÷ sum of weights. fibub's own working."
-  - "The A/B/C/D cut-offs (90/80/70/60) are a common default, not a rule; edit them to match your school."
+  - "The A/B/C/D cut-offs (90/80/70/60), the plus-minus scale and the UK class boundaries (70/60/50/40) are common defaults, not rules; edit them to match your school and check its official grading policy."
 flow:
   - { icon: table, label: "Add items" }
   - { icon: scale, label: "Weigh" }
@@ -32,16 +32,20 @@ Everything runs in your browser and nothing is sent anywhere. Once you know your
 
 1. Type each item's name, score and weight on its own row. Use **Add a row** for more and × to remove one.
 2. Read your weighted average and letter grade under the rows.
-3. Leave the score empty on anything not marked yet, then use **What if** to try a score for it.
+3. Leave the score empty on anything not marked yet, then use **What if** to try a score for it, or type the grade you want to see what the missing items must average.
+4. Open **Show the working** to see each row's share of the total, and **More options** for several scores in one row, dropping the lowest, and the letter scale.
 
 ## What each setting does
 
 - **Score**: a percent such as 90, or points earned and possible such as 45/50 (which counts as 90%).
-- **Weight**: how much the item counts, as a percent of the course.
+- **Several scores in one row**: type them separated by spaces or semicolons, such as 90 85 45/50. The row's score is their average, which suits homework or quizzes with one weight in total.
+- **Drop the lowest**: removes the lowest 1 or 2 scores from every row that has several (never the last one left).
+- **Weight**: how much the item counts, as a percent or in points (a trailing % is fine).
 - **Weights that do not add up to 100**: the calculator divides by the total weight, so 50 and 30 work like 62.5% and 37.5% (with a note).
 - **Items with no score**: left out of the average, which then covers only the marked part of the course.
 - **What if**: the score you might get on every item with no score yet, and the course grade that would give.
-- **Letter scale**: the lowest percent for A, B, C and D. Below D is F.
+- **I want to finish with**: the average the missing items need so that the whole course ends on your goal. It tells you plainly when that is over 100% or already safe.
+- **Letter scale**: simple A to D (90, 80, 70, 60), plus and minus (A 93 down to D- 60) or UK degree classes (70, 60, 50, 40); every cut-off is editable. Below the last cut-off is F (or Fail).
 
 ## Worked example
 
@@ -50,5 +54,7 @@ Homework 90% (weight 20), midterm 80% (weight 30) and final 70% (weight 50): 90 
 ## FAQs
 
 **My teacher uses points, not percents. Does it still work?** Yes. Type points as 45/50 and the weight from the syllabus.
+
+**How do I get 76% from the missing final?** Leave the final's score empty, type 80 in "I want to finish with", and the page says the final must average 76.0% in the default example.
 
 **Is this the same as my GPA?** No. This is one course's grade. A GPA averages grade points across courses.

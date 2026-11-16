@@ -1825,6 +1825,13 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('geochron: K-Ar round trip', kr.t, 1e8, 1e-3);
   const J = GC.jFromStandard(28.2e6, 12);
   near('geochron: Ar-Ar standard gives its own age', GC.arArAge(J, 12).t, 28.2e6, 1e-3);
+  // Ar-Ar isochron: points on a line of slope R = 40Ar*/39Ar through air 298.56 give the same age as the single-step formula.
+  const Jx = 0.0025, Rx = GC.arArAge.length && Math.expm1(GC.K40.lambda * 6.6e7) / Jx;
+  const arPts = [50, 120, 300, 600, 1000].map((x) => ({ x, sx: 0.01 * x, y: 298.56 + Rx * x, sy: 0.5 }));
+  const aiso = GC.arArIsochronAge(GC.york(arPts), Jx, 0);
+  near('geochron: Ar-Ar isochron age 66 Ma', aiso.t, 6.6e7, 10); near('geochron: Ar-Ar isochron trapped 40/36 = air', aiso.initial, 298.56, 1e-6);
+  near('geochron: Ar-Ar isochron = single-step age', aiso.t, GC.arArAge(Jx, Rx).t, 1);
+  check('geochron: Ar-Ar isochron J error widens the age error', GC.arArIsochronAge(GC.york(arPts), Jx, Jx * 0.01).s > aiso.s);
   // U-Pb: a point on concordia is concordant and all three ages agree.
   const c = GC.concordia(2.0e9), u = GC.uPbAges(c[1], c[0]);
   near('geochron: concordant 206/238', u.t68, 2e9, 1e-3); near('geochron: concordant 207/235', u.t75, 2e9, 1e-3); near('geochron: concordant 207/206', u.t76, 2e9, 1e-2);
