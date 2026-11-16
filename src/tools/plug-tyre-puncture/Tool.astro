@@ -1,0 +1,175 @@
+---
+// #L371 Plug a tyre puncture. Home skills engine: src/lib/learn/skill.ts (steps, labels, order) + quiz.ts.
+import CourseNav from '../../components/CourseNav.astro';
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import '../../styles/skill.css';
+---
+<div class="tool-ui ax sk ptp">
+  <CourseNav id="plug-tyre-puncture" />
+  <div class="ax-card sk-safe">
+    <h2>Stay safe</h2>
+    <ul>
+      <li>Work well away from traffic, on firm, flat ground, with the parking brake on and the engine off. Never reach under a car held up only by a jack.</li>
+      <li>Wear safety glasses and gloves. The reamer and needle are sharp, and wire from a steel belt can stick out of the hole.</li>
+      <li>A string plug from outside is a <strong>temporary</strong> repair in most tyre makers' eyes. Drive gently and get a tyre shop to check the tyre and fit a proper repair from the inside soon.</li>
+      <li>Never plug the sidewall or shoulder, a cut or slit, or a hole bigger than about 6 mm (1/4 in). Fit the spare instead.</li>
+    </ul>
+  </div>
+  <div class="ax-card">
+    <h2>What you need</h2>
+    <ul class="sk-kit"><li>Tubeless plug kit (reamer, insertion needle, string plugs)</li><li>Pliers</li><li>Knife or scissors</li><li>Chalk or a marker</li><li>Soapy water in a spray bottle</li><li>Pump or compressor</li><li>Pressure gauge</li><li>Safety glasses and gloves</li></ul>
+  </div>
+  <div class="ax-card ptp-steps">
+    <h2>Step by step</h2>
+    <ol class="sk-steps">
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Tread of a tyre with a screw head in it, bubbles rising from soapy water and a chalk ring round the hole" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 30h160v60H20z" /><path d="M20 45h160M20 75h160M60 30v15M100 45v30M140 30v15M60 75v15M140 75v15" stroke-width="1.5" />
+          <circle class="hl" cx="100" cy="60" r="16" stroke-dasharray="4 3" /><circle cx="100" cy="60" r="4" fill="currentColor" /><path d="M96 56l8 8M104 56l-8 8" stroke="var(--bg)" stroke-width="1.5" />
+          <circle cx="118" cy="40" r="3" /><circle cx="124" cy="30" r="2" /><circle cx="114" cy="24" r="3" />
+        </svg>
+        <div class="sk-txt"><h3>Find the hole</h3><p>Look round the tread for a nail, screw or stone. No luck? Pump the tyre up a little and spray soapy water on the tread: bubbles grow where air comes out. Draw a chalk ring round the hole.</p><p class="sk-tip">Roll the car forward a little, or take the wheel off, to see the part of the tyre that was on the ground.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Cut-through tyre showing the middle of the tread ticked as repairable and the shoulders and sidewalls crossed out" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 100V55C40 30 55 20 75 20h50c20 0 35 10 35 35v45" stroke-width="6" />
+          <path class="hl" d="M80 20h40" stroke-width="8" /><path class="hl" d="M92 8l6 6 10-10" />
+          <path d="M22 30l12 12M34 30l-12 12M166 30l12 12M178 30l-12 12M22 70l12 12M34 70l-12 12M166 70l12 12M178 70l-12 12" />
+        </svg>
+        <div class="sk-txt"><h3>Check it can be plugged</h3><p>Only plug a round hole in the middle part of the tread, up to about 6 mm (1/4 in) across. Not the shoulder, not the sidewall, not a cut. If the tyre was driven flat, or it is a run-flat tyre, a tyre shop needs to look inside.</p><p class="sk-tip">Use the "Can this be plugged?" checker below.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Pliers pulling a screw straight out of the tread" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 90h180M10 100h180" /><path class="hl" d="M100 90V50M94 50h12M96 60l8 4M96 70l8 4M96 80l8 4" />
+          <path d="M92 44L60 10M108 44l32-34M92 44h16" /><path d="M150 40v-20M144 26l6-6 6 6" />
+        </svg>
+        <div class="sk-txt"><h3>Pull the object out</h3><p>Note the angle it went in at, then pull it straight out with pliers. The tyre will go down, which is fine: you will pump it up again.</p><p class="sk-tip">If it is a long bolt or something wide, stop and use the spare.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Reamer tool with a T handle pushed in and out of the hole" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 80h180M10 92h180" /><path d="M70 22h60" stroke-width="8" /><path class="hl" d="M100 26v66" stroke-width="5" /><path d="M96 60l8-4M96 70l8-4M96 50l8-4" stroke-width="1.5" />
+          <path d="M150 30v40M144 36l6-6 6 6M144 64l6 6 6-6" />
+        </svg>
+        <div class="sk-txt"><h3>Ream the hole</h3><p>Push the reamer (the rough, file-like spike) into the hole along the same angle as the object, and work it in and out several times. This cleans and roughens the hole so the plug grips.</p><p class="sk-tip">It takes a firm push. Hold the handle with both hands and keep your face out of line.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Insertion needle with a sticky string plug threaded halfway through its eye" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M40 30h60" stroke-width="8" /><path d="M70 34v56" stroke-width="4" /><path d="M66 78h8v14h-8z" />
+          <path class="hl" d="M30 86c20-2 30-2 40 0s20 2 50 0" stroke-width="7" />
+        </svg>
+        <div class="sk-txt"><h3>Load a plug</h3><p>Peel a string plug off its backing and push it through the eye of the insertion needle until the same length sticks out each side. If your kit has rubber cement, coat the plug with it.</p><p class="sk-tip">Plugs are sticky: keep them clean and off the ground.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Needle pushed into the tyre with the plug folded in two, about a third still outside" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180M10 72h180" /><path d="M70 14h60" stroke-width="8" /><path d="M100 18v70" stroke-width="4" />
+          <path class="hl" d="M100 60c-14-4-20-14-22-26M100 60c14-4 20-14 22-26" stroke-width="6" /><path class="hl" d="M100 72v18" stroke-width="6" />
+          <path d="M150 22v58M144 28l6-6 6 6M144 74l6 6 6-6" />
+        </svg>
+        <div class="sk-txt"><h3>Push the plug in</h3><p>Push the needle into the hole until about a third of the plug (1 to 2 cm) is still outside. Then pull the needle straight out in one quick, steady move. The plug stays in, folded in two.</p><p class="sk-tip">Do not twist the needle as you pull it out, or the plug can come with it.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Knife trimming the plug ends level with the tread" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 60h180M10 72h180" /><path d="M94 60l-8-20M106 60l8-20" stroke-width="5" /><path class="hl" d="M60 56h80" stroke-width="2" stroke-dasharray="4 3" />
+          <path d="M140 50l40-10v8z" /><path d="M180 44h14" stroke-width="5" />
+        </svg>
+        <div class="sk-txt"><h3>Trim the ends</h3><p>Cut the loose ends off level with the tread (leave a stub of a couple of millimetres rather than cutting into the tyre). Do not pull on the plug while you cut.</p></div>
+      </li>
+      <li class="sk-step">
+        <svg class="sk-fig" viewBox="0 0 200 110" role="img" aria-label="Pump hose on the valve and soapy water on the plug with no bubbles" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="60" cy="55" r="45" /><circle cx="60" cy="55" r="28" /><path d="M60 83v10" stroke-width="4" /><path d="M60 93c0 10 30 10 40 5" /><path d="M100 90h20v12h-20z" />
+          <circle class="hl" cx="150" cy="45" r="22" /><path class="hl" d="M140 45l7 7 13-14" />
+        </svg>
+        <div class="sk-txt"><h3>Pump up and check</h3><p>Pump to the pressure on the door-jamb label or in the handbook. Spray soapy water on the plug: no bubbles means it is sealed. Check the pressure again after a short drive and the next morning.</p><p class="sk-tip">Book a tyre shop to check it and fit a plug-patch from inside. Until then, drive gently.</p></div>
+      </li>
+    </ol>
+  </div>
+  <div class="ax-card ptp-check">
+    <h2>Can this be plugged?</h2>
+    <div class="ax-grid">
+      <label>Where is the hole? <select data-k="where"><option value="centre">Middle of the tread</option><option value="shoulder">Shoulder (edge of the tread)</option><option value="sidewall">Sidewall</option></select></label>
+      <label>Hole size (mm) <input data-k="mm" type="text" inputmode="decimal" value="4" /></label>
+      <label class="ax-check"><input type="checkbox" data-k="cut" /> It is a cut or slit, not a round hole</label>
+      <label class="ax-check"><input type="checkbox" data-k="flat" /> The tyre was driven on while flat or very low</label>
+      <label class="ax-check"><input type="checkbox" data-k="rf" /> It is a run-flat tyre</label>
+      <label class="ax-check"><input type="checkbox" data-k="worn" /> The tread is worn to the legal limit</label>
+    </div>
+    <p class="ptp-verdict" data-o="verdict" aria-live="polite"></p>
+    <p class="ax-help">A guide only, based on common tyre-repair rules (such as the UK standard BS AU 159 and US tyre industry guidance). Rules differ by country and tyre maker: check your local rules and ask a tyre shop.</p>
+  </div>
+  <div class="ax-card sk-label ptp-label">
+    <h2>Where on the tyre?</h2>
+    <p class="sk-small">A tyre cut through, as if sliced across. Tap a part to see what it is and whether a hole there can be repaired.</p>
+    <svg viewBox="0 0 320 200" role="group" aria-label="Cross-section of a tyre on a rim: tread, shoulders, sidewalls, beads, inner liner and rim" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <g data-part="rim" data-name="Rim" data-note="the metal wheel. The tyre's beads seal against its edges."><path d="M60 162l12 24h176l12-24" stroke-width="5" /></g>
+      <g data-part="liner" data-name="Inner liner" data-note="the airtight rubber skin inside. A proper repair (a plug-patch) is fitted from this side by a tyre shop."><path d="M82 156C72 130 72 92 82 72C92 54 108 50 124 50H196C212 50 228 54 238 72C248 92 248 130 238 156" stroke-dasharray="6 5" /></g>
+      <g data-part="tread" data-name="Middle of the tread" data-note="the repair zone. A round hole up to about 6 mm (1/4 in) here can usually be plugged, then repaired properly from inside."><path d="M106 28H214" stroke-width="18" /><path d="M128 22v12M160 22v12M192 22v12" stroke="var(--bg)" stroke-width="3" /></g>
+      <g data-part="shoulder" data-name="Shoulder" data-note="the curved edge of the tread. It flexes a lot, so a hole here cannot be repaired: replace the tyre."><path d="M98 28C74 30 60 50 58 78" stroke-width="16" /><path d="M222 28C246 30 260 50 262 78" stroke-width="16" /></g>
+      <g data-part="sidewall" data-name="Sidewall" data-note="the side of the tyre. It bends with every turn of the wheel, so a hole, cut or bulge here means a new tyre."><path d="M58 90C54 118 60 140 74 156" stroke-width="12" /><path d="M262 90C266 118 260 140 246 156" stroke-width="12" /></g>
+      <g data-part="bead" data-name="Bead" data-note="the stiff wire-reinforced edge that seals against the rim. Damage here means a new tyre."><circle cx="80" cy="166" r="7" fill="currentColor" /><circle cx="240" cy="166" r="7" fill="currentColor" /></g>
+    </svg>
+  </div>
+  <div class="ax-card sk-order ptp-order">
+    <h2>Put the steps in order</h2>
+  </div>
+  <div class="ax-card sk-pro">
+    <h2>Call a professional when</h2>
+    <ul>
+      <li>The hole is in the shoulder or sidewall, is a cut or slit, or is bigger than about 6 mm (1/4 in).</li>
+      <li>The tyre was driven flat or very low, has a bulge, or it is a run-flat tyre.</li>
+      <li>The plug still leaks after a second try, or the tyre keeps losing pressure.</li>
+      <li>Always, soon after a roadside plug: a tyre shop can take the tyre off, check the inside and fit a plug-patch.</li>
+    </ul>
+  </div>
+  <div class="ax-card ptp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ptp .ptp-verdict { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; font-weight: 600; border-left: 4px solid var(--line); }
+  .ptp .ptp-verdict.yes { border-color: var(--good); background: var(--good-soft); }
+  .ptp .ptp-verdict.no { border-color: var(--bad); background: var(--bad-soft); }
+  .ptp .ptp-verdict.ask { border-color: var(--warn); background: var(--warn-soft); }
+</style>
+
+<script>
+  import { mountQuiz } from '../../lib/learn/quiz';
+  import { mountSteps, mountLabels, mountOrder, choice, some } from '../../lib/learn/skill';
+  const root = document.querySelector('.ptp') as HTMLElement;
+  mountSteps(root.querySelector('.ptp-steps') as HTMLElement, 'plug-tyre-puncture');
+  mountLabels(root.querySelector('.ptp-label') as HTMLElement);
+  mountOrder(root.querySelector('.ptp-order') as HTMLElement, ['Find the hole, mark it', 'Check it can be plugged', 'Pull the object out', 'Ream the hole', 'Load a plug in the needle', 'Push in, pull the needle out', 'Trim the ends', 'Pump up, soapy-water check']);
+
+  // "Can this be plugged?" A plain decision, worst problem first.
+  const box = root.querySelector('.ptp-check') as HTMLElement;
+  const k = (s: string) => box.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
+  const verdict = () => {
+    const out = box.querySelector('[data-o="verdict"]') as HTMLElement, mm = parseFloat(k('mm').value.replace(',', '.'));
+    const say = (cls: string, t: string) => { out.className = 'ptp-verdict ' + cls; out.textContent = t; };
+    const where = k('where').value;
+    if (where === 'sidewall') return say('no', 'No: never repair the sidewall. It bends all the time and a repair can fail suddenly. Fit the spare and replace the tyre.');
+    if (where === 'shoulder') return say('no', 'No: the shoulder flexes too much for a repair to hold. Fit the spare and replace the tyre.');
+    if (k('cut').checked) return say('no', 'No: plugs only seal round holes. A cut or slit needs the spare and a tyre shop, and usually a new tyre.');
+    if (!(mm > 0)) return say('ask', 'Type the hole size in mm (a typical nail or screw is 3 to 5 mm).');
+    if (mm > 6) return say('no', `No: ${mm} mm is bigger than about 6 mm (1/4 in), the largest hole a car tyre repair is allowed for. Replace the tyre.`);
+    if (k('worn').checked) return say('no', 'No: a tyre worn to the legal limit needs replacing anyway. Fit the spare.');
+    if (k('flat').checked) return say('ask', 'Not at the roadside: driving on a flat tyre often wrecks the inside, which you cannot see. Fit the spare and let a tyre shop take the tyre off and check it.');
+    if (k('rf').checked) return say('ask', 'Ask a tyre shop: many run-flat makers allow repairs only after the tyre is checked inside, and some allow none. Use the run-flat range to get there.');
+    return say('yes', 'Yes: a string plug can get you going. Treat it as temporary, drive gently, and have a tyre shop fit a plug-patch from inside soon.');
+  };
+  box.addEventListener('input', verdict); box.addEventListener('change', verdict); verdict();
+
+  const bank = [
+    () => choice('Where on a tyre can a puncture be plugged?', 'The middle part of the tread', ['The sidewall', 'The shoulder', 'Anywhere, if the plug is big enough'], 'Only the central part of the tread is a repair zone. The shoulder and sidewall flex too much for a repair to hold.'),
+    () => choice('What is the largest hole a car tyre repair is usually allowed for?', 'About 6 mm (1/4 in)', ['About 15 mm', 'Any size a plug fits', 'About 1 mm'], 'Common repair rules, such as the UK standard BS AU 159 and US tyre industry guidance, allow up to about 6 mm in the tread of a car tyre.'),
+    () => choice('Why do you ream the hole before the plug goes in?', 'To clean and roughen it so the plug grips', ['To make the hole bigger than 6 mm', 'To let the air out faster'], 'The reamer cleans out dirt and rust and roughens the rubber so the sticky plug bonds.'),
+    () => choice('How much of the plug should still stick out before you pull the needle out?', 'About a third', ['None, push it all in', 'All of it, the needle does the work'], 'Leave about a third outside. The plug folds in two as the needle comes out and fills the hole.'),
+    () => choice('How do you check the plug has sealed?', 'Soapy water on the plug: no bubbles', ['Kick the tyre', 'Listen for a hiss while driving'], 'Bubbles grow where air escapes. Then check the pressure again later.'),
+    () => choice('What do many tyre makers say about a string plug from outside?', 'It is temporary; get a plug-patch fitted from inside', ['It is a permanent repair', 'It is illegal everywhere'], 'Many makers, and the UK standard BS AU 159, want a combined plug and patch fitted from inside after the tyre is checked.'),
+    () => choice('The tyre was driven a few kilometres while flat. Can you just plug it?', 'No, a tyre shop must check the inside first', ['Yes, flat tyres are fine', 'Yes, but use two plugs'], 'Running flat crushes and overheats the sidewall from the inside, where you cannot see it.'),
+    () => choice('Which pressure do you pump the tyre to?', 'The one on the door-jamb label or in the handbook', ['The maximum on the sidewall', 'As hard as the pump goes'], 'The number on the tyre sidewall is its limit, not the right pressure for your car.'),
+    () => choice('A screw went in at a slant. How do you ream?', 'Along the same angle the screw went in', ['Straight down, whatever the angle', 'Across the tread'], 'Following the path of the object keeps the hole clean and the plug in line with it.'),
+  ];
+  mountQuiz(root.querySelector('.ptp-quiz') as HTMLElement, () => some(bank, 5).map((f) => f()));
+</script>

@@ -1,0 +1,127 @@
+---
+// #T1010 Wheel nut torque: typical ranges, unit conversion, push on the brace (F = T / L) and the star order.
+// Maths in src/lib/money/wheel-torque.ts (checked in tests/tools/wheel-nut-torque.mjs).
+import '../../styles/astro.css';
+import { TYPICAL } from '../../lib/money/wheel-torque';
+const byType = TYPICAL.slice(0, 6), bySize = TYPICAL.slice(6);
+---
+<div class="ax wnt">
+  <div class="ax-card">
+    <h2>1. How tight?</h2>
+    <div class="ax-grid">
+      <label class="wn-wide">Start from <select data-k="pick">
+        <option value="">My handbook value (type it below)</option>
+        <optgroup label="Typical, by vehicle">{byType.map((t) => <option value={t.id}>{t.name}</option>)}</optgroup>
+        <optgroup label="Typical, by stud thread">{bySize.map((t) => <option value={t.id}>{t.name}</option>)}</optgroup>
+      </select></label>
+      <label>Torque <input data-k="t" type="text" inputmode="decimal" value="110" /></label>
+      <label>Unit <select data-k="tu"><option value="nm">N·m</option><option value="lbfft">lbf·ft (ft-lb)</option><option value="kgfm">kgf·m</option></select></label>
+    </div>
+    <p class="wn-typ" data-o="typ" hidden></p>
+    <p class="ax-big" data-o="conv" aria-live="polite"></p>
+    <p class="ax-help">The right figure is printed in your vehicle's handbook (often in the "wheels and tyres" or "technical data" pages) and sometimes on a sticker. Typical ranges here are rounded from many makers' handbooks: they are a sanity check, and <strong>your handbook value wins</strong>.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Push on the brace</h2>
+    <div class="ax-grid">
+      <label>Brace or wrench length <input data-k="l" type="text" inputmode="decimal" value="40" /></label>
+      <label>Unit <select data-k="lu"><option value="cm">cm</option><option value="in">in</option></select></label>
+      <label>Your body weight <input data-k="w" type="text" inputmode="decimal" value="70" /></label>
+      <label>Unit <select data-k="wu"><option value="kg">kg</option><option value="lb">lb</option></select></label>
+    </div>
+    <p class="ax-help">Measure from the centre of the nut to where your hand or foot pushes. Push at right angles to the handle.</p>
+    <p class="ax-big" data-o="push" aria-live="polite"></p>
+    <p data-o="weight"></p>
+    <p class="ax-err" data-o="err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Tightening order</h2>
+    <div class="ax-seg wn-n" role="group" aria-label="Number of wheel nuts">
+      <button type="button" data-n="4">4 nuts</button><button type="button" data-n="5" aria-pressed="true">5 nuts</button><button type="button" data-n="6">6 nuts</button><button type="button" data-n="8">8 nuts</button>
+    </div>
+    <svg class="wn-star" viewBox="0 0 200 200" role="img" aria-label="Star tightening order" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></svg>
+    <p data-o="order"></p>
+    <p class="ax-help">Go round twice: first snug every nut in this order with the wheel just touching the ground, then do them all to the full torque in the same order. Going across the wheel pulls it on flat against the hub.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Good habits</h2>
+    <ul class="wn-list">
+      <li>Re-check the nuts with a torque wrench after <strong>50 to 100 km (30 to 60 miles)</strong>, as the wheel beds in. Tyre shops ask for this after fitting alloy wheels.</li>
+      <li>Keep threads clean and dry. Do not oil or grease them unless the handbook says so: oiled threads reach the same torque with much more clamp, and can stretch the studs.</li>
+      <li>Do not do the final tightening with an impact gun. Too tight can stretch studs and warp brake discs; too loose and a wheel can come off.</li>
+      <li>Never jump on the brace. If the push you need is more than about half your body weight, use a longer bar or a torque wrench, or ask a tyre shop.</li>
+    </ul>
+    <p class="ax-help">Nothing you type leaves this page. For study and planning: always follow your vehicle maker's figure and method.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .wnt .wn-wide { grid-column: 1 / -1; }
+  .wnt .wn-typ { margin: 10px 0 0; padding: 8px 10px; border-left: 4px solid var(--warn); background: var(--warn-soft); font-size: 14px; }
+  .wnt .wn-star { display: block; width: 100%; max-width: 260px; height: auto; margin: 12px auto 0; color: var(--ink); }
+  .wnt .wn-star .hl { color: var(--accent); }
+  .wnt .wn-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .wnt [data-o=weight] { margin: 6px 0 0; }
+</style>
+
+<script>
+  import { toNm, fromNm, lengthM, pushForce, shareOfWeight, starOrder, TYPICAL, type TorqueUnit } from '../../lib/money/wheel-torque';
+  const root = document.querySelector('.wnt') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const o = (k: string) => root.querySelector(`[data-o="${k}"]`) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f = (v: number, d = 1) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const UN: Record<TorqueUnit, string> = { nm: 'N·m', lbfft: 'lbf·ft', kgfm: 'kgf·m' };
+  let nuts = 5;
+
+  function calc() {
+    const u = q('tu').value as TorqueUnit, t = num('t'), err = o('err');
+    const nm = toNm(t, u);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; o('push').textContent = ''; o('weight').textContent = ''; };
+    if (!(nm > 0)) { o('conv').textContent = ''; return fail('Type the torque from your handbook (more than 0).'); }
+    o('conv').textContent = `${f(fromNm(nm, 'nm'))} N·m = ${f(fromNm(nm, 'lbfft'))} lbf·ft = ${f(fromNm(nm, 'kgfm'), 2)} kgf·m`;
+    const L = lengthM(num('l'), q('lu').value as 'cm' | 'in');
+    if (!(L > 0.05 && L < 3)) return fail('Type the brace length, from the nut centre to where you push (for example 40 cm).');
+    err.hidden = true;
+    const F = pushForce(nm, L);
+    o('push').textContent = `Push about ${f(F.N, 0)} N (${f(F.kgf)} kgf, ${f(F.lbf)} lbf)`;
+    const w = num('w'), kg = q('wu').value === 'lb' ? w * 0.45359237 : w;
+    if (kg > 10) {
+      const s = shareOfWeight(F.N, kg);
+      o('weight').textContent = `That is about ${f(s * 100, 0)} % of your body weight. ` + (s > 0.6 ? 'That is a lot: use a longer bar or a torque wrench rather than jumping or bouncing on the brace.' : s > 0.3 ? 'A firm push, about like leaning part of your weight on it.' : 'A firm push by hand.');
+    } else o('weight').textContent = '';
+  }
+
+  function star() {
+    const svg = root.querySelector('.wn-star') as SVGSVGElement, ns = 'http://www.w3.org/2000/svg';
+    const el = (tag: string, a: Record<string, string | number>) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, String(a[k])); return e; };
+    const seq = starOrder(nuts), R = 58, pos = (i: number) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / nuts; return [100 + R * Math.cos(a), 100 + R * Math.sin(a)]; };
+    svg.replaceChildren(el('circle', { cx: 100, cy: 100, r: 94 }), el('circle', { cx: 100, cy: 100, r: 80, 'stroke-width': 1.5 }), el('circle', { cx: 100, cy: 100, r: 22 }));
+    svg.append(el('path', { class: 'hl', d: 'M' + seq.map((i) => pos(i).map((v) => v.toFixed(1)).join(' ')).join(' L') + ' Z', 'stroke-width': 2, 'stroke-dasharray': '4 4' }));
+    seq.forEach((p, k) => {
+      const [x, y] = pos(p);
+      svg.append(el('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: 12, fill: 'var(--bg)', 'stroke-width': 2 }));
+      const t = el('text', { x: x.toFixed(1), y: (y + 5).toFixed(1), 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700, 'font-family': 'system-ui,sans-serif', fill: 'currentColor', stroke: 'none' });
+      t.textContent = String(k + 1); svg.append(t);
+    });
+    svg.setAttribute('aria-label', `Star tightening order for ${nuts} wheel nuts: the dashed line goes from nut 1 to nut ${nuts} across the wheel`);
+    const clock = seq.map((p) => p + 1);
+    o('order').textContent = `Numbered round the wheel clockwise from the top, tighten nuts ${clock.join(', ')}. The picture shows the step number on each nut.`;
+    root.querySelectorAll<HTMLButtonElement>('.wn-n button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.n! === nuts)));
+  }
+
+  q('pick').addEventListener('change', () => {
+    const t = TYPICAL.find((x) => x.id === q('pick').value), box = o('typ');
+    if (!t) { box.hidden = true; return calc(); }
+    q('tu').value = 'nm'; q('t').value = String(Math.round((t.lo + t.hi) / 2 / 5) * 5);
+    box.hidden = false;
+    box.textContent = `Typical for ${t.name.toLowerCase()}: ${t.lo} to ${t.hi} N·m (${f(fromNm(t.lo, 'lbfft'), 0)} to ${f(fromNm(t.hi, 'lbfft'), 0)} lbf·ft). ${t.note} The middle of the range is filled in below. This is typical only: your handbook value wins.`;
+    calc();
+  });
+  root.addEventListener('input', calc); root.addEventListener('change', (e) => { if ((e.target as HTMLElement).dataset.k !== 'pick') calc(); });
+  root.querySelectorAll<HTMLButtonElement>('.wn-n button').forEach((b) => b.addEventListener('click', () => { nuts = +b.dataset.n!; star(); }));
+  calc(); star();
+</script>
