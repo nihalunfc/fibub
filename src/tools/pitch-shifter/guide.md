@@ -1,6 +1,6 @@
 ---
 name: Pitch shifter
-num: 2255
+num: 2265
 shelf: everyday
 code: T972
 section: video-audio
@@ -10,7 +10,7 @@ seoDescription: "Change the key of a song or voice by semitones and cents withou
 summary: "Move a song, backing track or voice up or down by semitones (and fine-tune in cents) while keeping its length and tempo. Plays in the page; saves MP3 or WAV. Nothing is uploaded."
 status: live
 ads: false
-order: 2255
+order: 2265
 icon: wave
 works: offline
 updated: 2026-11-16

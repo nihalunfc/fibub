@@ -1,6 +1,6 @@
 ---
 name: Add audio
-num: 2260
+num: 2270
 shelf: everyday
 code: T977
 section: video-audio
@@ -10,7 +10,7 @@ seoDescription: "Add music or a voice-over to a video: replace or mix its sound,
 summary: "Add music or a voice-over to a video, replacing its sound or mixing under it, with volume, start time, loop and fades. The picture is copied without loss. Nothing is uploaded."
 status: live
 ads: false
-order: 2260
+order: 2270
 icon: mic
 works: offline
 updated: 2026-11-16

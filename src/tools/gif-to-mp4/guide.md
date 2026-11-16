@@ -1,6 +1,6 @@
 ---
 name: GIF to MP4
-num: 2257
+num: 2267
 shelf: everyday
 code: T974
 section: video-audio
@@ -9,7 +9,7 @@ seoTitle: "GIF to MP4 converter, free online tool"
 summary: "Turn an animated GIF into an MP4 video that is often 80 to 95% smaller and plays smoothly everywhere. Keeps each frame's timing. Nothing is uploaded."
 status: live
 ads: false
-order: 2257
+order: 2267
 icon: convert
 works: offline
 updated: 2026-11-16
