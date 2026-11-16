@@ -12,7 +12,7 @@ order: 3001
 icon: target
 works: offline
 updated: 2026-11-16
-related: [tyre-pressure, tyre-age]
+related: [wheel-nut-torque, tyre-pressure, plug-tyre-puncture, tyre-age]
 sources:
   - "Steps follow the general advice in car makers' handbooks and roadside-assistance guides (jack only at the marked jacking points, loosen nuts before lifting, tighten in a star pattern, re-check after a short drive). Always follow your own car's handbook. Drawings are fibub's own."
   - "Space-saver spare limits (usually 80 km/h or 50 mph) are printed on the spare and in the handbook; check yours."
@@ -26,7 +26,7 @@ flow:
 
 This lesson walks you through changing a flat tyre on a car, the way you would do it at the side of a quiet road or in a car park. Each of the eight steps has a drawing and a **Done** tick, so you can follow along with the car in front of you. The picture of a wheel lets you tap each part to learn its name, then test yourself. A put-in-order activity and a short quiz check that the order sticks, and you can print the whole list to keep in the glovebox.
 
-It is the first lesson of the free **Tyres and punctures** course. When the spare is on, work out how tight the nuts should be with wheel nut torque, check the spare's pressure with [[tyre-pressure]], and see if the flat can be mended in the puncture plugging lesson.
+It is the first lesson of the free **Tyres and punctures** course. When the spare is on, work out how tight the nuts should be with [[wheel-nut-torque]], check the spare's pressure with [[tyre-pressure]], and see if the flat can be mended in [[plug-tyre-puncture|the puncture plugging lesson]].
 
 ## How to use it
 
