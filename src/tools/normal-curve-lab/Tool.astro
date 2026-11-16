@@ -1,0 +1,91 @@
+---
+// #L330 Normal curve lab. The bell curve with a mean, a standard deviation and a value x: z-score, the share below x, and the 68-95-99.7 bands.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn nc">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Test scores, heights and measurement errors often pile up in a bell shape. Set the mean and the spread, then slide a value along it.</p>
+    <canvas class="lrn-cv nc-cv" aria-label="A normal curve with the area below the chosen value shaded"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Mean: <b class="nc-muv"></b> <input class="nc-mu" type="range" min="40" max="120" step="1" value="70" /></label>
+      <label class="lrn-sl">Standard deviation: <b class="nc-sdv"></b> <input class="nc-sd" type="range" min="2" max="30" step="1" value="10" /></label>
+      <label class="lrn-sl">Value x: <b class="nc-xv"></b> <input class="nc-x" type="range" min="10" max="160" step="1" value="85" /></label>
+    </div>
+    <div class="ax-seg nc-bands" role="group" aria-label="Bands" style="margin-top:8px">
+      <button type="button" data-k="0" aria-pressed="true">Shade below x</button>
+      <button type="button" data-k="1" aria-pressed="false">Within 1 SD</button>
+      <button type="button" data-k="2" aria-pressed="false">Within 2 SD</button>
+      <button type="button" data-k="3" aria-pressed="false">Within 3 SD</button>
+    </div>
+    <p class="ax-big nc-out" aria-live="polite"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: z = (x − mean) ÷ SD, and the share below x is the normal cumulative distribution Φ(z). It is worked out from the error function, so it is exact, not read from a table.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Pick "Within 1 SD", "Within 2 SD" and "Within 3 SD": about 68%, 95% and 99.7% of values fall in them, whatever the mean and spread.</li><li>Make the standard deviation bigger. The curve gets wider and flatter, but the shaded shares for each band stay the same.</li><li>Slide x up to the mean: exactly half of the values are below it.</li></ul>
+  </div>
+  <div class="ax-card nc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .nc .nc-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { normalBelow, zScore, withinK } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.nc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.nc-cv'), out = $('.nc-out');
+  let band = 0;
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const draw = () => {
+    const mu = val('.nc-mu'), sd = val('.nc-sd'), x = val('.nc-x');
+    const { ctx, W, H } = fitCanvas(cv, 230), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const lo = mu - 4 * sd, hi = mu + 4 * sd, px = (v: number) => 14 + ((v - lo) / (hi - lo)) * (W - 28), base = H - 30, top = 18;
+    const pdf = (v: number) => Math.exp(-0.5 * ((v - mu) / sd) ** 2), py = (v: number) => base - pdf(v) * (base - top);
+    const shade = (a: number, b: number) => {
+      ctx.beginPath(); ctx.moveTo(px(a), base);
+      for (let v = a; v <= b + 1e-9; v += (hi - lo) / 200) ctx.lineTo(px(v), py(v));
+      ctx.lineTo(px(b), base); ctx.closePath(); ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.28; ctx.fill(); ctx.globalAlpha = 1;
+    };
+    if (band === 0) shade(lo, Math.min(Math.max(x, lo), hi)); else shade(mu - band * sd, mu + band * sd);
+    ctx.beginPath(); for (let i = 0; i <= 240; i++) { const v = lo + (i / 240) * (hi - lo); i ? ctx.lineTo(px(v), py(v)) : ctx.moveTo(px(v), py(v)); }
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(10, base); ctx.lineTo(W - 10, base); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    for (let k = -3; k <= 3; k++) { ctx.fillText(String(Math.round((mu + k * sd) * 10) / 10), px(mu + k * sd), base + 14); ctx.fillText(k ? (k > 0 ? '+' : '−') + Math.abs(k) + ' SD' : 'mean', px(mu + k * sd), base + 26); }
+    if (band === 0 && x >= lo && x <= hi) { ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px(x), base); ctx.lineTo(px(x), py(x)); ctx.stroke(); ctx.lineWidth = 1; }
+  };
+  const readout = () => {
+    const mu = val('.nc-mu'), sd = val('.nc-sd'), x = val('.nc-x');
+    $('.nc-muv').textContent = String(mu); $('.nc-sdv').textContent = String(sd); $('.nc-xv').textContent = String(x);
+    const z = zScore(x, mu, sd), below = normalBelow(x, mu, sd);
+    out.textContent = band === 0
+      ? `x = ${x} is z = ${r(z)}: ${r(below * 100, 3)}% of values are below it.`
+      : `Within ${band} SD of the mean (${r(mu - band * sd)} to ${r(mu + band * sd)}): ${r(withinK(band) * 100, 3)}% of values.`;
+    out.dataset.z = z.toFixed(4); out.dataset.below = below.toFixed(5); out.dataset.within = withinK(Math.max(band, 1)).toFixed(5);
+    draw();
+  };
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', readout));
+  root.querySelectorAll<HTMLButtonElement>('.nc-bands button').forEach((b) => b.addEventListener('click', () => {
+    band = +b.dataset.k!; root.querySelectorAll('.nc-bands button').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); readout();
+  }));
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  readout();
+  mountQuiz($('.nc-quiz'), () => {
+    const mu = pick(60, 100, 5), sd = pick(5, 15), z = pick(-3, 3), x = mu + z * sd, k = pick(1, 3), pc = [68, 95, 99.7][k - 1];
+    return [
+      { q: `Scores have a mean of ${mu} and a standard deviation of ${sd}. What is the z-score of ${x}?`, ans: z, abs: 0.01, work: `z = (x − mean) ÷ SD = (${x} − ${mu}) ÷ ${sd} = ${z}.` },
+      { q: `Heights have a mean of ${mu} and an SD of ${sd}. About what percent are between ${mu - k * sd} and ${mu + k * sd}?`, ans: pc, tol: 0.02, unit: '%', hint: 'the 68-95-99.7 rule', work: `That is within ${k} SD of the mean, which holds about ${pc}% of a normal distribution.` },
+      { q: 'A value has z = 0. What share of the values lie below it?', ans: 50, unit: '%', work: 'z = 0 is the mean. A normal curve is symmetric, so half the values are below it.' },
+    ];
+  });
+</script>

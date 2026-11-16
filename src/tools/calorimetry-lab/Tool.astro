@@ -1,0 +1,83 @@
+---
+// #L337 Calorimetry lab. A hot metal dropped into water: final temperature, heat moved, and finding a metal from its specific heat. Maths: src/lib/learn/usa-math.ts (specific heats are standard textbook values).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn cl">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Grade 8 to 9</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">A hot piece of metal goes into cool water in a well-insulated cup. Heat flows from the metal to the water until both reach the same temperature.</p>
+    <canvas class="lrn-cv cl-cv" aria-label="Temperature against time: the metal cools and the water warms until they meet at the final temperature"></canvas>
+    <label style="margin-top:8px;display:block">Metal <select class="cl-metal" aria-label="Metal"></select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Water: <b class="cl-wmv"></b> g <input class="cl-wm" type="range" min="50" max="300" step="10" value="100" /></label>
+      <label class="lrn-sl">Water starts at: <b class="cl-wtv"></b> °C <input class="cl-wt" type="range" min="5" max="40" step="1" value="20" /></label>
+      <label class="lrn-sl">Metal: <b class="cl-mmv"></b> g <input class="cl-mm" type="range" min="20" max="300" step="10" value="100" /></label>
+      <label class="lrn-sl">Metal starts at: <b class="cl-mtv"></b> °C <input class="cl-mt" type="range" min="60" max="100" step="1" value="95" /></label>
+    </div>
+    <p class="ax-big cl-out" aria-live="polite"></p>
+    <p class="ax-help cl-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: with no heat lost, heat lost by the metal equals heat gained by the water, so m<sub>m</sub> c<sub>m</sub> (T<sub>m</sub> − T<sub>f</sub>) = m<sub>w</sub> c<sub>w</sub> (T<sub>f</sub> − T<sub>w</sub>). Measure T<sub>f</sub> in a real cup and you can solve for the unknown c<sub>m</sub>. Real cups lose a little heat, so measured values come out a bit low.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Choose lead, then aluminium, with everything else the same. Which warms the water more? Why?</li><li>Double the water. Does the final temperature go up or down?</li><li>Check the numbers: the heat the metal loses should equal the heat the water gains.</li></ul>
+  </div>
+  <div class="ax-card cl-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cl .cl-cv { width: 100%; }
+  .cl select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { mixTemp, heatQ, metalSpecificHeat, SPECIFIC_HEAT } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.cl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.cl-cv'), out = $('.cl-out'), sel = $<HTMLSelectElement>('.cl-metal');
+  const METALS = Object.entries(SPECIFIC_HEAT).filter(([k]) => k !== 'Water');
+  METALS.forEach(([k, c]) => { const o = document.createElement('option'); o.value = k; o.textContent = `${k} (${c} J/g°C)`; sel.append(o); });
+  sel.value = 'Aluminium';
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const draw = (tm: number, tw: number, tf: number) => {
+    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const L = 38, R = W - 12, T = 12, B = H - 26, lo = Math.floor(Math.min(tw, tf) / 5) * 5 - 5, hi = Math.ceil(tm / 5) * 5 + 5;
+    const py = (v: number) => B - ((v - lo) / (hi - lo)) * (B - T), px = (t: number) => L + t * (R - L);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) { const v = lo + (i / 4) * (hi - lo); ctx.beginPath(); ctx.moveTo(L, py(v)); ctx.lineTo(R, py(v)); ctx.stroke(); ctx.fillText(Math.round(v) + '°C', L - 4, py(v) + 4); }
+    ctx.textAlign = 'center'; ctx.fillText('time →', (L + R) / 2, H - 6);
+    const curve = (a: number, col: string, name: string) => { ctx.beginPath(); for (let i = 0; i <= 100; i++) { const t = i / 100, v = tf + (a - tf) * Math.exp(-5 * t); i ? ctx.lineTo(px(t), py(v)) : ctx.moveTo(px(t), py(v)); } ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.fillText(name, L + 6, py(a) + (a > tf ? 14 : -6)); };
+    curve(tm, pal.accent2, `metal ${tm}°C`); curve(tw, pal.accent, `water ${tw}°C`);
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, py(tf)); ctx.lineTo(R, py(tf)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(`final ${r(tf, 3)}°C`, R, py(tf) - 5);
+  };
+  const show = () => {
+    const wm = val('.cl-wm'), wt = val('.cl-wt'), mm = val('.cl-mm'), mt = val('.cl-mt'), cm = SPECIFIC_HEAT[sel.value], cw = SPECIFIC_HEAT.Water;
+    ['wm', 'wt', 'mm', 'mt'].forEach((k) => { $('.cl-' + k + 'v').textContent = String(val('.cl-' + k)); });
+    const tf = mixTemp(wm, cw, wt, mm, cm, mt), q = heatQ(wm, cw, tf - wt), back = metalSpecificHeat(wm, wt, mm, mt, tf);
+    out.textContent = `Final temperature: ${r(tf, 3)} °C. Heat moved: ${r(q, 3)} J.`;
+    out.dataset.tf = tf.toFixed(4); out.dataset.q = q.toFixed(3); out.dataset.c = back.toFixed(5);
+    $('.cl-sub').textContent = `The water gains ${r(q, 3)} J (q = m × c × ΔT = ${wm} × 4.184 × ${r(tf - wt, 3)}) and the metal loses the same amount. Working back from ${r(tf, 3)} °C gives c = ${r(back, 3)} J/g°C, which matches ${sel.value}.`;
+    draw(mt, wt, tf);
+  };
+  sel.addEventListener('input', show);
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', show));
+  addEventListener('resize', show);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.cl-quiz'), () => {
+    const m = pick(50, 250, 50), dT = pick(5, 40, 5), wm = pick(100, 200, 50), tf = pick(24, 34), tw = 20, mm = 50, mt = 100;
+    const c = metalSpecificHeat(wm, tw, mm, mt, tf);
+    return [
+      { q: `How much heat does ${m} g of water absorb when it warms by ${dT} °C? (c = 4.184 J/g°C)`, ans: m * 4.184 * dT, unit: 'J', tol: 0.02, work: `q = m × c × ΔT = ${m} × 4.184 × ${dT} = ${r(m * 4.184 * dT)} J.` },
+      { q: `${mm} g of a hot metal at ${mt} °C is dropped into ${wm} g of water at ${tw} °C. The final temperature is ${tf} °C. What is the metal's specific heat?`, ans: c, unit: 'J/g°C', tol: 0.03, work: `Heat gained by water = ${wm} × 4.184 × ${tf - tw} = ${r(wm * 4.184 * (tf - tw))} J. c = that ÷ (${mm} × ${mt - tf}) = ${r(c)} J/g°C.` },
+      { q: 'Two metals of equal mass start at the same hot temperature. Metal X has a higher specific heat than Y. Which warms the same water more?', choices: ['X', 'Y', 'They are the same'], ans: 0, work: 'A higher specific heat means the metal stores more heat per degree, so it gives more heat to the water as it cools.' },
+    ];
+  });
+</script>

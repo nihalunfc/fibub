@@ -1,0 +1,79 @@
+---
+// #L336 Limiting reagent. Grams of two reactants, moles, which one runs out, the most product and what is left over. Maths: src/lib/learn/usa-math.ts (molar masses to 3 decimals).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn lr">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Like making sandwiches: whichever ingredient runs out first decides how many you can make. Pick a reaction and set how much of each reactant you have.</p>
+    <label>Reaction <select class="lr-rx" aria-label="Reaction"></select></label>
+    <p class="lrn-eq lr-eq"></p>
+    <canvas class="lrn-cv lr-cv" aria-label="Two bars showing how many reaction batches each reactant can supply; the shorter bar is the limiting reagent" style="margin-top:8px"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl"><span class="lr-an">A</span>: <b class="lr-av"></b> g <input class="lr-a" type="range" min="1" max="100" step="1" value="10" /></label>
+      <label class="lrn-sl"><span class="lr-bn">B</span>: <b class="lr-bv"></b> g <input class="lr-b" type="range" min="1" max="100" step="1" value="50" /></label>
+    </div>
+    <p class="ax-big lr-out" aria-live="polite"></p>
+    <p class="ax-help lr-sub"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: divide each amount in moles by its coefficient in the balanced equation. The smaller result is the limiting reagent. Theoretical yield = limiting moles × (product coefficient ÷ reactant coefficient) × molar mass of the product. Percent yield = actual ÷ theoretical × 100.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Keep A fixed and raise B. After a point the product stops growing. Why?</li><li>Find amounts where both run out together (no leftover). What is the mass ratio then?</li><li>Switch reaction and check that the leftover is always the reactant that is not limiting.</li></ul>
+  </div>
+  <div class="ax-card lr-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .lr .lr-cv { width: 100%; }
+  .lr select { font: inherit; font-size: 16px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { REACTIONS, MOLAR, limiting } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.lr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.lr-cv'), out = $('.lr-out'), sel = $<HTMLSelectElement>('.lr-rx');
+  const FORMULA: Record<string, string> = { H2: 'H₂', O2: 'O₂', H2O: 'H₂O', N2: 'N₂', NH3: 'NH₃', CH4: 'CH₄', CO2: 'CO₂', Mg: 'Mg', MgO: 'MgO' };
+  REACTIONS.forEach((rx, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${rx.name}: ${rx.eq}`; sel.append(o); });
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  const draw = () => {
+    const rx = REACTIONS[+sel.value], res = limiting(rx, val('.lr-a'), val('.lr-b'));
+    const { ctx, W, H } = fitCanvas(cv, 130), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif';
+    const ea = res.nA / rx.ca, eb = res.nB / rx.cb, mx = Math.max(ea, eb), bar = (y: number, v: number, name: string, lim: boolean) => {
+      const w = (v / mx) * (W - 150);
+      ctx.fillStyle = lim ? pal.accent2 : pal.accent; ctx.fillRect(110, y, Math.max(2, w), 30);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(name, 104, y + 20);
+      ctx.textAlign = 'left'; ctx.fillText(`${r(v, 3)} batches${lim ? ' (limiting)' : ''}`, 114 + Math.max(2, w), y + 20);
+    };
+    bar(18, ea, FORMULA[rx.a], res.limiter === rx.a); bar(66, eb, FORMULA[rx.b], res.limiter === rx.b);
+  };
+  const show = () => {
+    const rx = REACTIONS[+sel.value], A = val('.lr-a'), B = val('.lr-b'), res = limiting(rx, A, B);
+    $('.lr-eq').textContent = rx.eq; $('.lr-an').textContent = FORMULA[rx.a]; $('.lr-bn').textContent = FORMULA[rx.b];
+    $('.lr-av').textContent = String(A); $('.lr-bv').textContent = String(B);
+    out.textContent = `${FORMULA[res.limiter]} runs out first. Most ${FORMULA[rx.p]}: ${r(res.productG)} g.`;
+    out.dataset.limiter = res.limiter; out.dataset.prod = res.productG.toFixed(4); out.dataset.left = res.leftoverG.toFixed(4);
+    $('.lr-sub').textContent = `${FORMULA[rx.a]}: ${r(res.nA)} mol (molar mass ${MOLAR[rx.a]} g/mol). ${FORMULA[rx.b]}: ${r(res.nB)} mol (${MOLAR[rx.b]} g/mol). Left over: ${r(res.leftoverG)} g of ${FORMULA[res.leftSpecies]}.`;
+    draw();
+  };
+  sel.addEventListener('input', show);
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', show));
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  show();
+  mountQuiz($('.lr-quiz'), () => {
+    const gH = pick(2, 10), gO = pick(20, 80, 5), res = limiting(REACTIONS[0], gH, gO), gMg = pick(6, 24, 2), gO2 = pick(8, 32, 4), res2 = limiting(REACTIONS[3], gMg, gO2);
+    return [
+      { q: `2 H₂ + O₂ → 2 H₂O. With ${gH} g of H₂ and ${gO} g of O₂, which is the limiting reagent?`, choices: ['H₂', 'O₂'], ans: res.limiter === 'H2' ? 0 : 1, work: `H₂: ${r(res.nA)} mol ÷ 2 = ${r(res.nA / 2)}. O₂: ${r(res.nB)} mol ÷ 1 = ${r(res.nB)}. The smaller number runs out first: ${FORMULA[res.limiter]}.` },
+      { q: `How many grams of water form from ${gH} g of H₂ and ${gO} g of O₂? (H₂ 2.016, O₂ 31.998, H₂O 18.015 g/mol)`, ans: res.productG, unit: 'g', tol: 0.03, work: `Limiting reagent ${FORMULA[res.limiter]} gives ${r(res.productMol)} mol of H₂O × 18.015 = ${r(res.productG)} g.` },
+      { q: `2 Mg + O₂ → 2 MgO. How many grams of MgO can ${gMg} g of Mg and ${gO2} g of O₂ make? (Mg 24.305, O₂ 31.998, MgO 40.304 g/mol)`, ans: res2.productG, unit: 'g', tol: 0.03, work: `Limiting: ${FORMULA[res2.limiter]}. Moles of MgO = ${r(res2.productMol)}, so ${r(res2.productMol)} × 40.304 = ${r(res2.productG)} g.` },
+    ];
+  });
+</script>
