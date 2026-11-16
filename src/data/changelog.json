@@ -1,16 +1,19 @@
 [
  {
-  "sha": "2f5943ed15db",
-  "date": "2026-11-16T07:50:43+00:00",
-  "title": "UK curriculum: England KS3, GCSE and A-level topic map, pages and 5 gap tools",
+  "sha": "8a5aa96314d2",
+  "date": "2026-11-16T07:39:16+00:00",
+  "title": "Learn: USA grade 8-12 curriculum map and 8 new tools (Common Core, NGSS)",
   "tools": [
-   "binomial-distribution-lab",
-   "energy-stores",
-   "moments-lab",
-   "normal-distribution-lab",
-   "rate-of-reaction-lab"
+   "box-plot-lab",
+   "calorimetry-lab",
+   "earth-seasons",
+   "limiting-reagent",
+   "margin-of-error-sim",
+   "normal-curve-lab",
+   "rigid-motions",
+   "scatter-best-fit"
   ],
-  "site": true
+  "site": false
  },
  {
   "sha": "7ac6ade07dd8",

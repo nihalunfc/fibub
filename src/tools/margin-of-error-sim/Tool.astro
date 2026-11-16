@@ -1,0 +1,90 @@
+---
+// #L333 Margin of error. Polls of n people from a population with a true share p: 95 % margin p̂ ± 1.96 √(p̂(1 − p̂)/n). Maths: src/lib/learn/usa-math.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn me">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Grade 9 to 10</button><button type="button" data-level="11" aria-pressed="false">Grade 11 to 12</button></div>
+    <p class="ax-help">Imagine 100 polls of the same town. Each asks n people the same yes or no question. The dots are what each poll found. The ones that miss the true share are in a different colour.</p>
+    <canvas class="lrn-cv me-cv" aria-label="One hundred poll results as dots with their margin of error bars around the true share"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">True share saying yes: <b class="me-pv"></b>% <input class="me-p" type="range" min="10" max="90" step="1" value="50" /></label>
+      <label class="lrn-sl">People asked (n): <b class="me-nv"></b> <input class="me-n" type="range" min="25" max="2000" step="25" value="400" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small me-run">Run 100 new polls</button></div>
+    <p class="ax-big me-out" aria-live="polite"></p>
+    <p class="ax-help me-hit"></p>
+    <p class="ax-help" data-only="11" hidden>Grade 11 to 12: the 95% margin is z × √(p̂(1 − p̂) ÷ n) with z = 1.96, so quadrupling n halves it. For a wanted margin m the worst-case size is n = (1.96 ÷ 2m)², about 1,068 people for ±3%.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try"><li>Press "Run 100 new polls" a few times. About 95 of 100 bars should reach the true share.</li><li>Raise n from 400 to 1,600. The bars get half as wide, not a quarter.</li><li>Set the true share to 50% and then 10%. Which gives a wider margin for the same n?</li></ul>
+  </div>
+  <div class="ax-card me-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .me .me-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { marginOfError, sampleSizeFor } from '../../lib/learn/usa-math';
+  const root = document.querySelector('.me') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.me-cv'), out = $('.me-out');
+  type Poll = { ph: number; moe: number };
+  let polls: Poll[] = [];
+  const val = (s: string) => +$<HTMLInputElement>(s).value;
+  // The normal approximation to the binomial keeps 100 polls of 2,000 people instant.
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  const run = () => {
+    const p = val('.me-p') / 100, n = val('.me-n');
+    polls = Array.from({ length: 100 }, () => {
+      const ph = Math.min(1, Math.max(0, p + gauss() * Math.sqrt(p * (1 - p) / n)));
+      return { ph, moe: marginOfError(ph, n) };
+    });
+    show();
+  };
+  const draw = () => {
+    const p = val('.me-p') / 100, { ctx, W, H } = fitCanvas(cv, 320), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.font = '12px system-ui,sans-serif';
+    const lo = Math.max(0, p - 0.25), hi = Math.min(1, p + 0.25), px = (v: number) => 14 + ((v - lo) / (hi - lo)) * (W - 28), rowH = (H - 40) / 100;
+    ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px(p), 6); ctx.lineTo(px(p), H - 30); ctx.stroke(); ctx.lineWidth = 1;
+    polls.forEach((q, i) => {
+      const y = 10 + i * rowH, miss = p < q.ph - q.moe || p > q.ph + q.moe;
+      ctx.strokeStyle = miss ? pal.bad : pal.accent; ctx.fillStyle = ctx.strokeStyle;
+      ctx.beginPath(); ctx.moveTo(px(Math.max(lo, q.ph - q.moe)), y); ctx.lineTo(px(Math.min(hi, q.ph + q.moe)), y); ctx.stroke();
+      ctx.beginPath(); ctx.arc(px(q.ph), y, 1.8, 0, 7); ctx.fill();
+    });
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    for (let i = 0; i <= 4; i++) { const v = lo + (i / 4) * (hi - lo); ctx.fillText(Math.round(v * 100) + '%', px(v), H - 8); }
+    ctx.fillStyle = pal.accent2; ctx.fillText('true share', px(p), H - 20);
+  };
+  const show = () => {
+    const p = val('.me-p') / 100, n = val('.me-n'), moe = marginOfError(p, n);
+    $('.me-pv').textContent = String(Math.round(p * 100)); $('.me-nv').textContent = String(n);
+    const hit = polls.filter((q) => p >= q.ph - q.moe && p <= q.ph + q.moe).length;
+    out.textContent = `Margin of error: ±${r(moe * 100, 2)} percentage points (95%).`;
+    out.dataset.moe = moe.toFixed(5); out.dataset.hit = String(hit); out.dataset.polls = String(polls.length);
+    $('.me-hit').textContent = `${hit} of ${polls.length} polls had the true share inside their bar. The rule promises about 95.`;
+    draw();
+  };
+  root.querySelectorAll('input[type=range]').forEach((i) => i.addEventListener('input', run));
+  $('.me-run').addEventListener('click', run);
+  addEventListener('resize', draw);
+  wireLevel(root, () => {});
+  run();
+  mountQuiz($('.me-quiz'), () => {
+    const n = pick(400, 2500, 100), p = pick(30, 70, 10) / 100, m = pick(2, 5);
+    return [
+      { q: `A poll of ${n} people finds ${Math.round(p * 100)}% say yes. What is the 95% margin of error, in percentage points? (use z = 1.96)`, ans: marginOfError(p, n) * 100, unit: 'points', tol: 0.03, work: `1.96 × √(${p} × ${r(1 - p)} ÷ ${n}) = ${r(marginOfError(p, n), 3)} = ±${r(marginOfError(p, n) * 100, 3)} points.` },
+      { q: `How many people must be asked for a margin of error of ±${m}% in the worst case (p = 0.5)? (z = 1.96)`, ans: sampleSizeFor(m / 100), tol: 0.02, work: `n = (1.96 ÷ (2 × ${m / 100}))² = ${sampleSizeFor(m / 100)}.` },
+      { q: 'A poll asks four times as many people. What happens to the margin of error?', choices: ['It halves', 'It is four times smaller', 'It stays the same'], ans: 0, work: 'The margin has √n in the bottom. Four times n makes √n twice as big, so the margin halves.' },
+    ];
+  });
+</script>
