@@ -8,11 +8,20 @@
     </label>
     <div class="sm-fields">
       <label>Make<select data-k="kind"><option value="url">URL slug</option><option value="file">File name</option></select></label>
-      <label>Separator<select data-k="sep"><option value="-">Hyphen ( - )</option><option value="_">Underscore ( _ )</option></select></label>
+      <label>Separator<select data-k="sep"><option value="-">Hyphen ( - )</option><option value="_">Underscore ( _ )</option><option value="camel">camelCase (no separator)</option></select></label>
       <label>Max length (0 = no limit)<input data-k="max" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
       <label class="sm-check"><input data-k="lower" type="checkbox" checked /> Lower case</label>
       <label class="sm-check"><input data-k="stop" type="checkbox" /> Drop little words (a, the, and ...)</label>
     </div>
+    <details class="sm-more">
+      <summary>More options: prefix, unique slugs, numbers</summary>
+      <div class="sm-fields">
+        <label>Put before each slug<input data-k="pre" type="text" spellcheck="false" autocomplete="off" placeholder="/blog/" /></label>
+        <label>Put after each slug<input data-k="suf" type="text" spellcheck="false" autocomplete="off" placeholder="/" /></label>
+        <label class="sm-check"><input data-k="uniq" type="checkbox" /> Make repeats unique (add -2, -3)</label>
+        <label class="sm-check"><input data-k="nonum" type="checkbox" /> Remove numbers</label>
+      </div>
+    </details>
   </section>
   <section class="panel">
     <label class="sm-lab">Result
@@ -37,6 +46,8 @@
   .sm select, .sm input[type="number"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
   .sm textarea:focus, .sm select:focus, .sm input:focus { border-color: var(--accent); outline: none; }
   .sm-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; margin-top: 12px; align-items: end; }
+  .sm-more summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .sm input[type="text"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
   .sm button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
   .sm .sm-main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   .sm-say { margin: 8px 0; color: var(--muted); font-size: 14px; }
@@ -66,18 +77,24 @@
     return s || ws[0].slice(0, max); // a first word longer than the limit is cut inside the word
   };
   const slug = (line: string) => {
-    const sep = k<HTMLSelectElement>('sep').value, max = Math.max(0, Math.floor(+k<HTMLInputElement>('max').value || 0));
-    const lower = k<HTMLInputElement>('lower').checked, file = k<HTMLSelectElement>('kind').value === 'file';
+    const camel = k<HTMLSelectElement>('sep').value === 'camel';
+    const sep = camel ? '' : k<HTMLSelectElement>('sep').value, max = Math.max(0, Math.floor(+k<HTMLInputElement>('max').value || 0));
+    const lower = camel || k<HTMLInputElement>('lower').checked, file = k<HTMLSelectElement>('kind').value === 'file';
     let stem = line.trim(), ext = '';
     if (file) { const m = stem.match(/^(.*\S)\.([A-Za-z0-9]{1,5})$/); if (m) { stem = m[1]; ext = '.' + m[2].toLowerCase(); } }
     let ws = words(stem, lower);
+    if (k<HTMLInputElement>('nonum').checked) { const kept = ws.filter((w) => !/^\d+$/.test(w)); if (kept.length) ws = kept; }
     if (k<HTMLInputElement>('stop').checked) { const kept = ws.filter((w) => !STOP.has(w.toLowerCase())); if (kept.length) ws = kept; }
     if (!ws.length) return '';
+    if (camel) ws = ws.map((w, i) => (i ? w[0].toUpperCase() + w.slice(1) : w));
     return cut(ws, sep, max ? Math.max(1, max - ext.length) : 0) + ext;
   };
   const run = () => {
     const lines = inp.value.split(/\r?\n/);
-    const res = lines.map((l) => (l.trim() ? slug(l) : ''));
+    let res = lines.map((l) => (l.trim() ? slug(l) : ''));
+    if (k<HTMLInputElement>('uniq').checked) { const seen = new Map<string, number>(); const sp = k<HTMLSelectElement>('sep').value === '_' ? '_' : '-'; res = res.map((r) => { if (!r) return r; const n = (seen.get(r) || 0) + 1; seen.set(r, n); return n > 1 ? r + sp + n : r; }); }
+    const pre = k<HTMLInputElement>('pre').value, suf = k<HTMLInputElement>('suf').value;
+    if (pre || suf) res = res.map((r) => (r ? pre + r + suf : r));
     while (res.length && res[res.length - 1] === '' && !lines[res.length - 1].trim()) { res.pop(); lines.pop(); }
     out.value = res.join('\n');
     const n = res.filter(Boolean).length, empty = lines.filter((l, i) => l.trim() && !res[i]).length;

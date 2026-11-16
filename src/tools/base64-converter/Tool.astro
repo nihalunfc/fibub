@@ -7,6 +7,7 @@
     <label>Text<textarea class="bc-text" rows="4" spellcheck="false">héllo</textarea></label>
     <label>Base64<textarea class="bc-b64" rows="4" spellcheck="false"></textarea></label>
     <label class="bc-row"><input class="bc-safe" type="checkbox" /> URL-safe (uses - and _ instead of + and /, no = at the end)</label>
+    <label class="bc-row"><input class="bc-wrap" type="checkbox" /> Break into lines of 76 characters (the email, MIME and PEM style)</label>
     <p class="bc-err" role="alert" hidden></p>
     <p class="bc-info" aria-live="polite"></p>
     <div class="bc-btns">
@@ -26,6 +27,7 @@
     <p class="bc-note">Turns the Base64 box above (or a data: URL) back into a file you can save.</p>
     <label>File name<input class="bc-name" type="text" value="decoded.bin" /></label>
     <div class="bc-btns"><button type="button" class="btn bc-dl">Download file</button></div>
+    <img class="bc-prev" alt="Preview of the decoded image" hidden />
     <p class="bc-derr" role="alert" hidden></p>
   </section>
   <p class="bc-fine">Everything happens on this page. Nothing you type or open is sent anywhere.</p>
@@ -43,6 +45,7 @@
   .bc-btns { display: flex; flex-wrap: wrap; gap: 8px; }
   .bc-err, .bc-derr { color: var(--bad, #b00020); margin: 0; font-size: 14px; }
   .bc-info, .bc-finfo, .bc-note, .bc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .bc-prev { max-width: 100%; max-height: 240px; object-fit: contain; border: 1px solid var(--line); border-radius: 10px; justify-self: start; }
 </style>
 
 <script>
@@ -69,14 +72,29 @@
     for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
     return u;
   };
+  const wrapEl = $<HTMLInputElement>('.bc-wrap'), prev = $<HTMLImageElement>('.bc-prev');
+  const wrap76 = (s: string) => (s.match(/.{1,76}/g) || []).join('\n');
   const showErr = (m: string) => { err.textContent = m; err.hidden = !m; };
 
   const encode = () => {
     const u = new TextEncoder().encode(text.value);
-    b64.value = bytesToB64(u, safe.checked); showErr('');
-    info.textContent = `${text.value.length} characters, ${u.length} bytes (UTF-8) → ${b64.value.length} Base64 characters.`;
+    b64.value = bytesToB64(u, safe.checked); if (wrapEl.checked) b64.value = wrap76(b64.value); showErr(''); showPrev();
+    info.textContent = `${text.value.length} characters, ${u.length} bytes (UTF-8) → ${b64.value.replace(/\s/g, '').length} Base64 characters.`;
+  };
+  // Show a picture when the Base64 (or data: URL) is a PNG, JPEG, GIF, WebP or SVG.
+  const showPrev = () => {
+    prev.hidden = true; prev.removeAttribute('src');
+    try {
+      const m = /^data:(image\/(?:png|jpeg|gif|webp|svg\+xml))/i.exec(b64.value.trim());
+      const u = b64ToBytes(b64.value); if (!u.length) return;
+      const sig = (a: number[]) => a.every((v, i) => u[i] === v);
+      const mime = m ? m[1].toLowerCase() : sig([0x89, 0x50, 0x4e, 0x47]) ? 'image/png' : sig([0xff, 0xd8, 0xff]) ? 'image/jpeg' : sig([0x47, 0x49, 0x46, 0x38]) ? 'image/gif' : (sig([0x52, 0x49, 0x46, 0x46]) && u[8] === 0x57 && u[9] === 0x45) ? 'image/webp' : '';
+      if (!mime || mime === 'image/svg+xml') return;
+      prev.src = `data:${mime};base64,${bytesToB64(u, false)}`; prev.hidden = false;
+    } catch { /* not an image */ }
   };
   const decode = () => {
+    showPrev();
     if (!b64.value.trim()) { text.value = ''; showErr(''); info.textContent = ''; return; }
     try {
       const u = b64ToBytes(b64.value);
@@ -87,6 +105,7 @@
   text.addEventListener('input', encode);
   b64.addEventListener('input', decode);
   safe.addEventListener('change', () => { if (err.hidden) encode(); });
+  wrapEl.addEventListener('change', () => { if (err.hidden) encode(); showFile(); });
   $('.bc-copy').addEventListener('click', () => { navigator.clipboard?.writeText(b64.value).then(() => { info.textContent = 'Copied.'; }, () => {}); });
   $('.bc-clear').addEventListener('click', () => { text.value = ''; b64.value = ''; showErr(''); info.textContent = ''; fout.value = ''; finfo.textContent = ''; file.value = ''; derr.hidden = true; });
 
@@ -94,7 +113,7 @@
   const showFile = () => {
     if (!fileBytes) return;
     const s = bytesToB64(fileBytes, false);
-    fout.value = data.checked ? `data:${fileType || 'application/octet-stream'};base64,${s}` : s;
+    fout.value = data.checked ? `data:${fileType || 'application/octet-stream'};base64,${s}` : wrapEl.checked ? wrap76(s) : s;
     finfo.textContent = `${fileBytes.length.toLocaleString('en-US')} bytes → ${fout.value.length.toLocaleString('en-US')} characters (Base64 is about a third bigger).`;
   };
   file.addEventListener('change', async () => {

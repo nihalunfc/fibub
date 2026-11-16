@@ -27,6 +27,14 @@
     <div class="ue-wrap"><table class="ue-tab"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody></tbody></table></div>
     <p class="ue-uinfo" aria-live="polite"></p>
   </section>
+  <section class="panel">
+    <h2 class="ue-h">Build a query string</h2>
+    <label>One key=value per line<textarea class="ue-kv" rows="4" spellcheck="false">q=fibub tools
+lang=en&amp;fr</textarea></label>
+    <label>Start with (optional)<input class="ue-base" type="text" value="https://example.com/search" spellcheck="false" autocomplete="off" /></label>
+    <label>Result<textarea class="ue-built" rows="3" readonly spellcheck="false"></textarea></label>
+    <div class="ue-btns"><button type="button" class="btn ue-bcopy">Copy result</button></div>
+  </section>
   <p class="ue-fine">Everything happens on this page. Nothing you type is sent anywhere.</p>
 </div>
 
@@ -97,5 +105,21 @@
   };
   url.addEventListener('input', table);
   $('.ue-clear').addEventListener('click', () => { plain.value = ''; enc.value = ''; url.value = ''; showErr(''); info.textContent = ''; table(); });
-  encode(); table();
+  const kv = $<HTMLTextAreaElement>('.ue-kv'), base = $<HTMLInputElement>('.ue-base'), built = $<HTMLTextAreaElement>('.ue-built');
+  const build = () => {
+    const parts: string[] = [];
+    for (const line of kv.value.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const i = line.indexOf('='); const k = i < 0 ? line : line.slice(0, i), v = i < 0 ? '' : line.slice(i + 1);
+      try { parts.push(`${encodeURIComponent(k.trim())}=${encodeURIComponent(v)}`); } catch { /* skip lines with a broken character */ }
+    }
+    const qs = parts.join('&'), b = base.value.trim();
+    built.value = b ? (qs ? b + (b.includes('?') ? '&' : '?') + qs : b) : qs;
+  };
+  kv.addEventListener('input', build); base.addEventListener('input', build);
+  $('.ue-bcopy').addEventListener('click', () => { navigator.clipboard?.writeText(built.value).then(() => {}, () => {}); });
+  // Hint when the decoded text still has %XX in it (encoded twice).
+  plain.addEventListener('input', () => {});
+  enc.addEventListener('input', () => { if (!err.hidden) return; if (/%[0-9A-Fa-f]{2}/.test(plain.value)) info.textContent += ' It still contains %XX codes: it may have been encoded twice, so decode again.'; });
+  encode(); table(); build();
 </script>

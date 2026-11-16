@@ -14,8 +14,16 @@
     <h2 class="jd-h">Payload</h2>
     <pre class="jd-pay"></pre>
     <div class="jd-times"></div>
-    <h2 class="jd-h">Signature (not verified)</h2>
+    <h2 class="jd-h">What the claims mean</h2>
+    <ul class="jd-claims"></ul>
+    <h2 class="jd-h">Signature <span class="jd-vstate">(not verified)</span></h2>
     <pre class="jd-sig"></pre>
+    <details class="jd-ver">
+      <summary>Check the signature with a secret (HS256, HS384, HS512)</summary>
+      <label>Shared secret<input class="jd-secret" type="text" spellcheck="false" autocomplete="off" /></label>
+      <p class="jd-vres" aria-live="polite"></p>
+      <p class="jd-vnote">Typed here only, checked on this page, never sent. Tokens signed with RSA or ECDSA (RS256, ES256) need a public key and cannot be checked here.</p>
+    </details>
   </section>
 </div>
 
@@ -35,6 +43,15 @@
   .jd-t { margin: 0; font-size: 14px; }
   .jd-t b { font-family: ui-monospace, Menlo, Consolas, monospace; }
   .jd-good { color: var(--good); } .jd-bad { color: var(--bad); }
+  .jd-claims { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+  .jd-claims li { display: grid; grid-template-columns: minmax(0, 6.5em) 1fr; gap: 10px; }
+  .jd-claims code { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .jd-claims span { overflow-wrap: anywhere; }
+  .jd-ver summary { cursor: pointer; font-weight: 600; }
+  .jd-ver input { font: inherit; font-family: ui-monospace, monospace; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; margin-top: 4px; }
+  .jd-ver label { margin-top: 8px; }
+  .jd-vres { margin: 8px 0 0; font-weight: 600; } .jd-vres.ok { color: var(--good); } .jd-vres.no { color: var(--bad); }
+  .jd-vnote { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
 </style>
 
 <script>
@@ -62,6 +79,25 @@
   };
   const utc = (t: number) => new Date(t * 1000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
 
+  let curSigning = '', curSig = '', curAlg = '';
+  const secret = $<HTMLInputElement>('.jd-secret'), vres = $('.jd-vres'), vstate = $('.jd-vstate');
+  const verify = async () => {
+    vres.className = 'jd-vres'; vstate.textContent = '(not verified)';
+    if (!secret.value) { vres.textContent = ''; return; }
+    const h = { HS256: 'SHA-256', HS384: 'SHA-384', HS512: 'SHA-512' }[curAlg as 'HS256'];
+    if (!h) { vres.textContent = `This token uses ${curAlg || 'no algorithm'}; only HS256, HS384 and HS512 can be checked with a secret.`; return; }
+    try {
+      const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret.value), { name: 'HMAC', hash: h }, false, ['sign']);
+      const sig = new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(curSigning)));
+      let b = ''; for (const x of sig) b += String.fromCharCode(x);
+      const mine = btoa(b).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const ok = mine === curSig.replace(/=+$/, '');
+      vres.className = 'jd-vres ' + (ok ? 'ok' : 'no');
+      vres.textContent = ok ? 'Signature is valid for this secret.' : 'Signature does not match this secret (wrong secret, or the token was changed).';
+      vstate.textContent = ok ? '(verified with your secret)' : '(does NOT match your secret)';
+    } catch { vres.textContent = 'Could not check the signature.'; }
+  };
+  secret.addEventListener('input', verify);
   const run = () => {
     const tok = inp.value.trim().replace(/^Bearer\s+/i, '');
     res.hidden = true; err.hidden = true;
@@ -88,6 +124,14 @@
         else st.textContent = v > now ? ` In the future (${span(v - now)} from now).` : ` ${span(now - v)} ago.`;
         p.append(st); box.append(p);
       }
+      const CL: Record<string, string> = { iss: 'issuer: who created the token', sub: 'subject: who the token is about (often a user ID)', aud: 'audience: who the token is meant for', exp: 'expires at', nbf: 'not valid before', iat: 'issued at', jti: 'token ID, to stop reuse', scope: 'permissions granted', scp: 'permissions granted', roles: 'roles of the user', role: 'role of the user', email: 'email address', name: 'name of the user', azp: 'authorised party (the client app)', nonce: 'a one-time value that ties it to a login', sid: 'session ID', typ: 'token type' };
+      const cl = $('.jd-claims'); cl.innerHTML = '';
+      for (const [k, v] of Object.entries(pay)) {
+        const li = document.createElement('li'); const c = document.createElement('code'); c.textContent = k;
+        const sp = document.createElement('span'); sp.textContent = (CL[k] || 'custom claim') + (typeof v === 'string' || typeof v === 'number' ? ': ' + String(v) : '');
+        li.append(c, sp); cl.append(li);
+      }
+      curSigning = bits[0] + '.' + bits[1]; curSig = bits[2]; curAlg = String(head.alg || ''); verify();
       if (!box.childNodes.length) box.textContent = 'No iat, nbf or exp times in this payload.';
       res.hidden = false;
     } catch (e) { err.textContent = (e as Error).message; err.hidden = false; }

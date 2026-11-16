@@ -38,6 +38,8 @@ Everything runs in your browser. To tidy messy pasted text before you start, use
 
 - **Make**: "URL slug" uses the whole line. "File name" keeps an extension at the end (such as `.pdf`, up to 5 letters) and cleans only the part before it.
 - **Separator**: hyphens are usual for web addresses; underscores suit some file systems.
+- **camelCase** (in Separator): joins the words with no separator and a capital at the start of each word after the first, for example `helloWorld10Tips`.
+- **More options**: put text before or after every slug (such as `/blog/`), make repeated slugs unique by adding -2, -3, and remove standalone numbers.
 - **Max length**: cuts at the last whole word that fits, so you never get half a word. A single word longer than the limit is cut inside the word. 0 means no limit.
 - **Lower case**: on by default. Untick it to keep capital letters.
 - **Drop little words**: removes short English words such as a, an, the, and, of, to, in, for and with. If a line has nothing but little words, they are kept.

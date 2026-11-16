@@ -18,6 +18,20 @@
       <label><input type="checkbox" data-k="upper" /> UPPER CASE</label>
       <label><input type="checkbox" data-k="nohyphen" /> No hyphens</label>
     </div>
+    <details class="ug-more">
+      <summary>More options: output format</summary>
+      <label>Write the list as
+        <select data-k="wrap">
+          <option value="lines">One per line</option>
+          <option value="braces">One per line, in {braces}</option>
+          <option value="quoted">One per line, in "quotes" with commas</option>
+          <option value="json">JSON array</option>
+          <option value="csv">One line, comma separated</option>
+          <option value="sql">SQL values: ('...'), ('...')</option>
+          <option value="short">Short (22 letters and digits, URL safe)</option>
+        </select>
+      </label>
+    </details>
     <div class="ug-btns">
       <button type="button" class="ug-gen">Generate new</button>
       <button type="button" class="ug-copy">Copy all</button>
@@ -55,6 +69,8 @@
   .ug-msg { margin: 0; color: var(--muted); font-size: 14px; min-height: 1.2em; }
   .ug-verdict { margin: 8px 0 0; font-weight: 600; overflow-wrap: anywhere; }
   .ug-verdict.bad { color: var(--bad); }
+  .ug-more summary { cursor: pointer; font-weight: 600; }
+  .ug-more label { display: grid; gap: 4px; margin-top: 8px; font-size: 14px; color: var(--muted); }
   .ug-fine { color: var(--muted); font-size: 13px; margin: 0; }
 </style>
 
@@ -91,7 +107,16 @@
     return fmt(hex(b));
   };
   const style = (u: string) => { let s = nohy.checked ? u.replace(/-/g, '') : u; return upper.checked ? s.toUpperCase() : s.toLowerCase(); };
-  const render = () => { out.value = ids.map(style).join('\n'); };
+  const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const short = (u: string) => { let n = BigInt('0x' + u.replace(/-/g, '')), r = ''; while (n > 0n) { r = B62[Number(n % 62n)] + r; n /= 62n; } return r.padStart(22, '0'); };
+  const wrapSel = q<HTMLSelectElement>('[data-k="wrap"]');
+  const render = () => {
+    const w = wrapSel.value, l = ids.map(style);
+    out.value = !ids.length ? '' : w === 'braces' ? l.map((x) => `{${x}}`).join('\n') : w === 'quoted' ? l.map((x) => `"${x}"`).join(',\n')
+      : w === 'json' ? JSON.stringify(l, null, 2) : w === 'csv' ? l.join(',') : w === 'sql' ? l.map((x) => `('${x}')`).join(',\n')
+      : w === 'short' ? ids.map(short).join('\n') : l.join('\n');
+  };
+  wrapSel.addEventListener('change', render);
   const generate = () => {
     let n = Math.round(+count.value);
     if (!Number.isFinite(n) || n < 1) { msg.textContent = 'Type a number from 1 to 500.'; ids = []; render(); return; }
