@@ -16,6 +16,8 @@ export default async ({ page, check, BASE }) => {
   check((await txt('.ci-s-cc')).includes('15'), 'creditor-insurance: 10% of balances 100 and 50 costs 15 (' + (await txt('.ci-s-cc')) + ')');
   await set('loan', '0'); await page.waitForTimeout(100);
   check(await page.isVisible('.ci .ci-err'), 'creditor-insurance: no loan shows a message');
+  await set('loan', '100'); await page.waitForTimeout(100);
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
   await page.fill('.ci [data-k="dyear"]', '2'); await page.waitForTimeout(100);
   check((await page.textContent('.ci .ci-death')).includes('year 2'), 'creditor-insurance: death-in-year panel names the year');
 };

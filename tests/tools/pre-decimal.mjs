@@ -14,6 +14,7 @@ export default async ({ page, check, BASE }) => {
   check(/1\.5 rupees = 150 naye paise/.test(i), `pre-decimal: 1 rupee 8 annas = 150 naye paise (${i})`);
   await page.fill('.pd .pd-p', '2'); await page.waitForTimeout(100);
   check(/1\.5313 rupees/.test(await page.textContent('.pd .pd-in-out')), 'pre-decimal: adding pice changes the total');
+  await page.click('.pd .pd-m[data-m=gb]'); await page.waitForTimeout(100);
   await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
   await page.fill('.pd .pd-list', '£2 5s 6d\n10/-\n6d'); await page.waitForTimeout(100);
   const s = await page.textContent('.pd .pd-sum-out');
