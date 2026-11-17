@@ -10,6 +10,7 @@ import { UK_LEVELS } from './uk';
 import { ONTARIO_CLASSES } from './ontario';
 import { USA_GRADES } from './usa';
 import { SKILL_COURSES } from './skill-courses';
+import { KERALA_CLASSES } from './kerala';
 
 export type Curriculum = {
   id: string;
@@ -31,6 +32,8 @@ export const CURRICULA: Curriculum[] = [
     note: 'Topics follow the Common Core State Standards for Mathematics and the Next Generation Science Standards, with standard codes such as 8.EE, HS-PS1 and MS-ESS2 so you can match them to your own state\'s list (some states, such as Texas, Virginia and New York, have their own standards). High school courses differ by school, so each grade shows the usual course for it. fibub is an independent free site, not part of Common Core, NGSS or any state, and copies no standards or textbook text.' },
   { id: 'uk', name: 'England national curriculum (UK)', country: 'United Kingdom', grades: 'Key Stage 3, GCSE, A-level', status: 'live', classes: UK_LEVELS, unit: 'topic',
     note: "Topics follow the national curriculum for England (Key Stage 3, GCSE and A-level subject content) as exam boards teach it, so they fit students in England, Wales and Northern Ireland with small differences; Scotland has its own system. Check your own exam board's specification. fibub is an independent free site, not part of the Department for Education or any exam board, and copies no textbook text or pictures." },
+  { id: 'kerala', name: 'Kerala state syllabus (SCERT)', country: 'India', grades: 'Class 8 to 10', status: 'live', classes: KERALA_CLASSES,
+    note: 'Chapters follow the SCERT Kerala English-medium textbooks for 2026-27 (the new Class 9 books of 2024 and the new Class 8 and 10 books of 2025), the books used in Kerala state syllabus schools in Kerala and in Kerala-syllabus schools in the Gulf. Check the official SCERT Kerala textbooks (scert.kerala.gov.in, samagra.kite.kerala.gov.in) for the current list. fibub is an independent free site, not part of SCERT Kerala or the Government of Kerala, and copies no textbook text or pictures.' },
 ];
 
 export type Course = { id: string; name: string; text: string; status: 'live' | 'planned'; href?: string };
