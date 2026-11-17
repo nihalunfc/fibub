@@ -130,7 +130,12 @@ try {
   for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
   const browser = await chromium.launch();
   // The service worker is tested on its own in tests/pwa.mjs; here it would sit between the page and these routes.
-  const ctx = await browser.newContext({ acceptDownloads: true, serviceWorkers: 'block' });
+  // The counters skip headless and automated browsers (src/lib/bots.mjs), so this browser passes
+  // itself off as a person's: an everyday Chrome name and no navigator.webdriver flag.
+  const PERSON_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  const asPerson = () => Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false });
+  const ctx = await browser.newContext({ acceptDownloads: true, serviceWorkers: 'block', userAgent: PERSON_UA });
+  await ctx.addInitScript(asPerson);
   // The view and use counters (worker/index.ts) are not part of the static preview, so the tests
   // answer for them: running totals that go up by one per note, as the real Worker does.
   const fakeCounts = { site: 41, v: 9, u: 2 };
@@ -3525,6 +3530,25 @@ try {
     await page.waitForSelector('.page-views:not([hidden])');
     check(await page.evaluate(() => document.querySelector('main h1').nextElementSibling.classList.contains('page-views')), 'counters: other pages show their own views under the title');
     check(JSON.parse(counterNotes.at(-1).body).p === '/about/' && JSON.parse(counterNotes.at(-1).body).t === undefined, 'counters: other pages send only their address');
+  }
+
+  // Bots: a headless or automated browser still sees the numbers but adds nothing, even when it works the tool.
+  {
+    const bc = await browser.newContext({ serviceWorkers: 'block' });
+    const sent = [];
+    await bc.route(BASE + '/api/**', (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/api/counts') return route.fulfill({ json: { site: 500, pages: { '/money/loan-payoff-planner/': 77 }, uses: {} } });
+      sent.push(path);
+      return route.fulfill({ json: { site: 1, v: 1, u: 1 } });
+    });
+    const bp = await bc.newPage();
+    await bp.goto(BASE + '/money/loan-payoff-planner/');
+    await bp.waitForSelector('.tool-counts:not([hidden])');
+    await bp.locator('.tool-ui input[type=number], .tool-ui input:not([type])').first().fill('999');
+    await bp.waitForTimeout(300);
+    check(sent.length === 0 && /^77 views$/.test((await bp.innerText('.tool-counts')).trim()), `counters: a headless browser adds no view or use but sees the count (${sent.join(', ') || 'nothing sent'})`);
+    await bc.close();
   }
 
   // 9. Phone: 50 MB limit, layout fits.

@@ -5,8 +5,10 @@
 // of the site (by its address, such as /money/budget-calculator/), and uses for each tool. Each is
 // kept as a total per day (UTC) and as an all-time total. Weeks, months and years are added up from
 // the days. No IP address, cookie, visitor ID, time of day, browser or anything else about the
-// visitor is read or kept, so a count can never be traced back to anyone, and nobody can be
-// recognised when they come back.
+// visitor is kept, so a count can never be traced back to anyone, and nobody can be recognised when
+// they come back. The one thing read is the browser's name (User-Agent), checked on the spot and then
+// dropped, so crawlers, link previews and scripts are not counted (src/lib/bots.mjs); they get the
+// current numbers back without adding to them.
 //
 // Routes (the only ones that reach this script, see run_worker_first in wrangler.jsonc):
 //   POST /api/hit   {"p": "<page address>", "t": "<tool id>"?}  one page view; returns the counts to show
@@ -24,6 +26,7 @@
 // New counts are held in memory for up to 10 seconds and then written in one go, which keeps the
 // database writes (the part Cloudflare meters) low however busy the site gets.
 import { DurableObject } from 'cloudflare:workers';
+import { isBotUA } from '../src/lib/bots.mjs';
 
 interface Env {
   ASSETS: Fetcher;
@@ -101,8 +104,12 @@ export class Counter extends DurableObject<Env> {
     if (path) this.add(`p:${path}`);
     return path ? { site: this.total('site'), v: this.total(`p:${path}`) } : { site: this.total('site') };
   }
-  async use(tool: string): Promise<number> {
-    this.add(`u:${tool}`);
+  // A bot's view or use adds nothing; it only gets the current numbers back.
+  async peek(path: string | null): Promise<Hit> {
+    return path ? { site: this.total('site'), v: this.total(`p:${path}`) } : { site: this.total('site') };
+  }
+  async use(tool: string, count = true): Promise<number> {
+    if (count) this.add(`u:${tool}`);
     return this.total(`u:${tool}`);
   }
 
@@ -198,6 +205,7 @@ export default {
     if (req.method === 'POST' && origin && origin !== url.origin) return json({ error: 'forbidden' }, 403);
     if (url.pathname === '/api/prices' && req.method === 'GET') return prices();
     const counter = env.COUNTER.get(env.COUNTER.idFromName('fibub'));
+    const bot = isBotUA(req.headers.get('User-Agent'));
 
     if (url.pathname === '/api/hit' && req.method === 'POST') {
       const { p, t } = await readBody(req);
@@ -205,12 +213,12 @@ export default {
       // Pages loaded before page counting send only the tool id; their address comes from the tool list.
       let path = typeof p === 'string' && p.length <= 200 && k.pages.has(p) ? p : null;
       if (!path && typeof t === 'string') path = k.tools.get(t) ?? null;
-      return json(await counter.hit(path));
+      return json(await (bot ? counter.peek(path) : counter.hit(path)));
     }
     if (url.pathname === '/api/use' && req.method === 'POST') {
       const { t } = await readBody(req);
       const k = await site(env, url, counter);
-      return typeof t === 'string' && k.tools.has(t) ? json({ u: await counter.use(t) }) : json({ error: 'unknown tool' }, 400);
+      return typeof t === 'string' && k.tools.has(t) ? json({ u: await counter.use(t, !bot) }) : json({ error: 'unknown tool' }, 400);
     }
     if (url.pathname === '/api/counts' && req.method === 'GET') {
       return json(await counter.totals(), 200, 'public, max-age=60');
