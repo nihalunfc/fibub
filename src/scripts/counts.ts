@@ -4,10 +4,17 @@
 // /api/use. Uses are counted and published in the repo (data/views/) but not shown on the pages for
 // now. Nothing about the visitor is sent or kept (see worker/index.ts), and the tools work the same
 // if the counter is down: the numbers just stay hidden.
+//
+// Only people are counted. Crawlers, link previews and automated or headless browsers (the browser
+// says so in navigator.webdriver or its own name, see src/lib/bots.mjs) still see the numbers but add
+// nothing, and a use needs a real tap, click or keypress (isTrusted), never one made by a script.
+// The counter repeats the name check on its side, for crawlers that never run this script.
+import { isBotUA } from '../lib/bots.mjs';
 
 const tool = document.documentElement.dataset.tool || undefined;
 const path = location.pathname;
 const fmt = (n: number) => n.toLocaleString('en');
+const bot = navigator.webdriver === true || isBotUA(navigator.userAgent);
 
 // Pages without their own counter line (everything but tool pages and the home page) get one under
 // their title.
@@ -41,8 +48,10 @@ const post = (path: string, body: object) =>
   fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true, credentials: 'omit' });
 
 // Pages opened in the background by the browser (prerendering) are counted only once someone looks.
-const countView = () => post('/api/hit', { p: path, t: tool })
-  .then((r) => (r.ok ? r.json() : null))
+// A bot asks for the numbers without adding to them.
+const countView = () => (bot ? fetch('/api/counts', { credentials: 'omit' }).then((r) => (r.ok ? r.json() : null))
+  .then((c: { site: number; pages: Record<string, number> } | null) => (c ? { site: c.site, v: c.pages[path] } : null))
+  : post('/api/hit', { p: path, t: tool }).then((r) => (r.ok ? r.json() : null)))
   .then((c: { site: number; v?: number } | null) => {
     if (!c) return;
     show('site', c.site); show('v', c.v);
@@ -54,7 +63,7 @@ else countView();
 // A "use" is the first time someone works the tool on this page: picks or drops a file, types or
 // changes a setting, or presses one of its buttons. It is counted once per page load.
 const ui = document.querySelector<HTMLElement>('.tool-ui');
-if (tool && ui) {
+if (tool && ui && !bot) {
   const events = ['change', 'input', 'drop', 'click'] as const;
   const onUse = (e: Event) => {
     if (!e.isTrusted) return;
