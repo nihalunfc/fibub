@@ -23,6 +23,18 @@ export default async ({ page, check, BASE }) => {
   check((await t('.npc-facts')).includes('0.2880 nm') && (await t('.npc-big')).includes('8.39 %'), 'nano: typed atom diameter');
   await page.fill(R + '.npc-d', '0.4'); await page.waitForTimeout(100);
   check((await t('.npc-facts')).includes('below two atoms'), 'nano: very small particle');
+  // more options: presets, diameter slider, particles per mL to mass
+  await page.fill(R + '.npc-d', '20'); await page.fill(R + '.npc-da', ''); await page.selectOption(R + '.npc-pre', '10.49,107.87'); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.npc-rho')) === '10.49' && (await t('.npc-big')).includes('28.6'), 'nano: silver preset');
+  await page.fill(R + '.npc-rho', '10.5'); await page.waitForTimeout(50);
+  check((await page.inputValue(R + '.npc-pre')) === '', 'nano: typing a density switches the preset to own numbers');
+  await page.selectOption(R + '.npc-pre', '19.3,196.97'); await page.waitForTimeout(100);
+  await page.evaluate(() => { const r = document.querySelector('.npc .npc-ds'); r.value = '2'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await page.inputValue(R + '.npc-d')) === '100' && (await t('.npc-work')).startsWith('Working:'), 'nano: diameter slider (10^2 = 100 nm) and working line');
+  await page.fill(R + '.npc-d', '20'); await page.selectOption(R + '.npc-cu', 'pml'); await page.fill(R + '.npc-c', '1e11'); await page.waitForTimeout(100);
+  check((await t('.npc-kfacts')).includes('8.084 µg/mL'), 'nano: particles per mL to mass');
+  await page.fill(R + '.npc-c', '-3'); await page.waitForTimeout(100);
+  check((await t('.npc-kerr')).includes('particle concentration') && !(await t('.npc-kfacts')).includes('NaN'), 'nano: negative particle count');
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.dl button[data-f=png]')]); check((await d.suggestedFilename()) === 'nanoparticle.png', 'nano: image report'); }
   // Bad input.
   await page.fill(R + '.npc-n', '2.5'); await page.waitForTimeout(100);

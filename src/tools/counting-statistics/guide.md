@@ -11,12 +11,13 @@ ads: true
 order: 6
 icon: sigma
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [decay-calculator, decay-chain, uncertainty-calculator, gamma-shielding, spectrum-peak-fitter, hypothesis-tests, distribution-explorer, sample-size]
 sources:
   - "Currie, L. A. (1968), Limits for qualitative detection and quantitative determination, Analytical Chemistry 40, 586 to 593 (decision threshold and detection limit formulas)."
   - "Poisson counting, dead-time models and optimum counting-time division: standard results, for example Knoll, G. F., Radiation Detection and Measurement. Exact Poisson limits: Garwood, F. (1936), Biometrika 28, 437."
   - "Checked against SciPy (normal and chi-square quantiles, Lambert W, root finding) and against Currie's paired-blank forms L_C = 2.33 √B and L_D = 2.71 + 4.65 √B, in tests written for this page."
+  - "Poisson probabilities e^−μ μ^k / k!: standard result (Knoll, as above); checked against a direct sum in Python."
   - "The example counts are made up."
 flow:
   - { icon: calculator, label: "Counts" }
@@ -33,17 +34,21 @@ Radioactive decay is random, so every count has an uncertainty: for N counts the
 2. **Dead-time correction.** A detector is blind for a short time τ after each event. The page corrects a measured rate with the **non-paralysable** model, n = m / (1 − mτ), and the **paralysable** one, m = n e^(−nτ) (solved with the Lambert W function), and plots both.
 3. **Counting-time planning.** For expected gross and background rates, the best split of a fixed time is t_sample / t_background = √(R_gross / R_background); the page gives that split, the uncertainty it reaches, and the total time for the uncertainty you want.
 
+4. **Poisson probabilities.** The chance of seeing exactly, at most, at least, fewer than or more than k counts when the expected count is μ, from P(X = k) = e^−μ μ^k / k!, with the standard deviation √μ and a chart of the whole distribution. It also shows how many counts a 1 % uncertainty needs (10,000, since the relative uncertainty of one count is 1/√N).
+
 Fit the peaks in your gamma spectrum with the [[spectrum-peak-fitter|spectrum peak fitter]], and follow the activity through time with the [[decay-chain|decay chain calculator]].
 
 ## How to use it
 
-Type the counts and times (in seconds, minutes or hours; the same unit for both), and optionally the efficiency (counts per particle emitted) and the emission yield (particles per decay). Pick α and β (5 % each is usual) and the confidence for the intervals. The other two cards work on their own.
+Type the counts and times (in seconds, minutes or hours; the same unit for both), and optionally the efficiency (counts per particle emitted) and the emission yield (particles per decay). Pick α and β (5 % each is usual) and the confidence for the intervals. The other cards work on their own. In the Poisson card type μ, the expected count (for example average rate × time), and k; the page gives P(X = k), P(X ≤ k) and P(X ≥ k) and marks k on the chart.
 
 ## Worked example
 
 A made-up sample gives **1,500 counts in 600 s**; the background gives **900 counts in 1,800 s**. The net rate is **2 ± 0.067 per s**, 3.33 %. With no activity, the net count in 600 s would scatter with σ₀ = 20 counts, so L_C = **32.9** and L_D = **68.5 net counts**; the 1,200 net counts are far above L_C, so the page says **detected**. At 25 % efficiency the activity is **8 ± 0.27 Bq** and the MDA is **0.4567 Bq** (27.4 dpm).
 
 A counter reading **20,000 per s** with a **5 µs** dead time is busy 10 % of the time: the true rate is 22,222 per s (non-paralysable) or 22,367 per s (paralysable). With rates of 2.5 and 0.5 per s and 2,400 s in all, count the sample for 1,658 s and the background for 741.6 s to reach 2.34 %; reaching 1 % needs 13,090 s.
+
+With an expected count μ = 4, the chance of exactly 7 counts is **5.954 %**, of 7 or fewer **94.89 %**, and of 7 or more **11.07 %**.
 
 ## Tips
 

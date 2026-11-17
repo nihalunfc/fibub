@@ -15,6 +15,7 @@ updated: 2026-11-09
 related: [diffusion-calculator, dls-analyser, quantum-dot-size, particle-size-image, afm-roughness, centrifuge-calculator]
 sources:
   - "S/V = 6/d, specific surface area 6/(ρd), and the magic-number cluster counts N = (10n³ + 15n² + 11n + 3)/3 with 10n² + 2 surface atoms (Mackay 1962, Acta Cryst. 15, 916; Benfield 1992, J. Chem. Soc. Faraday Trans. 88, 1107) are standard closed forms. fibub's code is checked in the tests against clusters built atom by atom in NumPy."
+  - "Material presets: molar masses from IUPAC standard atomic weights (CIAAW, 2021 table; oxides added up from them); densities are typical bulk handbook values (e.g. CRC Handbook of Chemistry and Physics) rounded, anatase TiO2 and amorphous SiO2 meaning those phases. Nanoparticle densities can differ; check your supplier's datasheet. Checked 2026-11-16."
   - "The example uses the density and molar mass of gold, rounded; the concentration and surface area are made-up round values."
   - "Nothing you type is sent or stored."
 flow:
@@ -38,9 +39,9 @@ Measure the real size in solution with the [[dls-analyser]] or from microscope p
 
 ## How to use it
 
-1. Type the density and molar mass of the material (for a compound, of one formula unit) and the particle diameter. Leave the atom diameter blank to estimate it from the volume per atom, or type the nearest-neighbour distance.
+1. Pick a material preset (gold, silver, platinum, copper, anatase TiO₂, amorphous SiO₂, magnetite or ZnO) or type the density and molar mass of the material (for a compound, of one formula unit) and the particle diameter, by typing or with the log-scale slider from 1 to 1000 nm. A one-line working note shows how the surface atoms are counted. Leave the atom diameter blank to estimate it from the volume per atom, or type the nearest-neighbour distance.
 2. For clusters, pick the shape and the number of shells. The page suggests the n that matches your diameter.
-3. Type a mass concentration and a measured surface area if you have them. Download the results as an image, PDF or Word file.
+3. Type a mass concentration (or switch the unit to particles per mL or nM to find the mass) and a measured surface area if you have them. Download the results as an image, PDF or Word file.
 
 ## Worked example
 

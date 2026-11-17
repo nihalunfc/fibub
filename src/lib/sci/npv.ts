@@ -109,3 +109,43 @@ export function equivalentAnnuity(r: number, cf: number[]): number {
   if (n < 1) return NaN;
   return r === 0 ? v / n : (v * r) / (1 - (1 + r) ** -n);
 }
+
+// --- Dated cash flows (the XNPV and XIRR of spreadsheets: years = days ÷ 365 from the first date) ---
+
+/** Days since 1970-01-01 for "2026-03-15" or "2026/03/15"; NaN if it is not a real calendar date. */
+export function parseDay(s: string): number {
+  const m = /^\s*(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s*$/.exec(s);
+  if (!m) return NaN;
+  const y = +m[1], mo = +m[2], d = +m[3], t = Date.UTC(y, mo - 1, d);
+  const c = new Date(t);
+  if (c.getUTCFullYear() !== y || c.getUTCMonth() !== mo - 1 || c.getUTCDate() !== d) return NaN;
+  return Math.round(t / 86400000);
+}
+
+/** Net present value of dated flows at yearly rate r, counting years as days ÷ 365 from the first day. */
+export function xnpv(r: number, cf: number[], days: number[]): number {
+  let s = 0;
+  for (let i = 0; i < cf.length; i++) s += cf[i] / (1 + r) ** ((days[i] - days[0]) / 365);
+  return s;
+}
+
+/** Every yearly rate between −99.9 % and 100,000 % where the dated flows have zero value. */
+export function xirrAll(cf: number[], days: number[]): number[] {
+  if (cf.length < 2 || signChanges(cf) === 0) return [];
+  const N = 6000, lo = Math.log(0.001), hi = Math.log(1001), out: number[] = [];
+  const f = (g: number) => xnpv(g - 1, cf, days);
+  let gPrev = Math.exp(lo), pPrev = f(gPrev);
+  for (let i = 1; i <= N; i++) {
+    const g = Math.exp(lo + ((hi - lo) * i) / N), p = f(g);
+    if (p === 0) out.push(g);
+    else if (pPrev !== 0 && (p > 0) !== (pPrev > 0)) out.push(root(f, gPrev, g));
+    gPrev = g; pPrev = p;
+  }
+  return [...new Set(out.map((g) => g - 1))].sort((a, b) => a - b);
+}
+
+/** Rates where two projects have the same NPV (their cash flows differ by zero value): the IRRs of A − B, padded with zeros. */
+export function crossovers(a: number[], b: number[]): number[] {
+  const n = Math.max(a.length, b.length);
+  return irrAll(Array.from({ length: n }, (_, i) => (a[i] ?? 0) - (b[i] ?? 0)));
+}

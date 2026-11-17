@@ -20,4 +20,13 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await fill('.ls-data', 'nothing'); check((await t('.ls-err')).includes('at least one log'), 'log scale: empty message');
   await page.selectOption(R + '.ls-u', 'imp'); await fill('.ls-data', 'L1,12,16,14,13\nL2,16,16,19,17.4');
   for (const f of ['png', 'pdf', 'docx']) { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`${R}.dl button[data-f=${f}]`)]); check((await d.suggestedFilename()) === `log-scale.${f}`, `log scale: ${f} download`); }
+  // Defects and price (More options).
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await fill('.ls-data', 'L1,12,16,14,13\nL2,16,16,19,17.4\nL3,20,12,22.5,21.2\nL4,9,8,10,9.5\nL5,24,10,26,25\nL6,14,18,16.5,15.2');
+  await fill('.ls-def', '10'); await fill('.ls-price', '500');
+  { const f = await t('.ls-facts'); check(f.includes('After 10 % defect deduction') && f.includes('832 Intl, 780 Scribner') && f.includes('416.05'), `log scale: defect and value (${f.slice(-160)})`); }
+  await page.selectOption(R + '.ls-rule', 'scrib'); await page.waitForTimeout(450);
+  check((await t('.ls-facts')).includes('390.19'), 'log scale: value by Scribner');
+  await fill('.ls-def', '120'); check((await t('.ls-err')).includes('Defect deduction') && await page.isHidden(R + '.ls-out'), 'log scale: bad defect message');
+  await fill('.ls-def', '0'); await fill('.ls-price', '-5'); check((await t('.ls-err')).includes('Price'), 'log scale: bad price message');
 };

@@ -11,7 +11,7 @@ ads: true
 order: 563
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [sample-size, uncertainty-calculator, plot-maker, reliability-analysis, hypothesis-tests, bootstrap-permutation, bayesian-ab-test, counting-statistics, regression-workbench]
 sources:
   - "Formulas are standard textbook results. Methods: Loader's saddle-point binomial and Poisson terms (as in R), Numerical Recipes series and continued fractions for the incomplete gamma and beta functions, Gauss–Legendre quadrature for the Rice and von Mises distributions."
@@ -42,9 +42,11 @@ Once you know which distribution fits, run the right test with the [[hypothesis-
 1. Pick the distribution. The page fills in sensible parameters and sets a and b to the 2.5 % and 97.5 % points.
 2. Change the parameters. Under them you see the same distribution written as scipy.stats would take it, which helps when you move to code.
 3. Choose what to shade: **between a and b**, **below b**, **above a**, or **outside a to b** (both tails, as in a two-sided p-value).
-4. Type the probabilities you want quantiles for, separated by commas.
-5. Optionally set the plot range. Download the curve as CSV, or the whole result as an image, PDF or Word file.
-6. To simulate, choose how many values and a seed, then press **Draw sample**. The CSV holds the values.
+4. To go the other way, type a probability under **Find x for a probability** and say whether it is the **left tail**, the **right tail**, the **middle** (a central interval) or **both tails together**. The page gives the x value (or the two x values) and, for the normal distribution, their z-scores. For example, 0.95 as the left tail of the standard normal gives x = 1.64485, while 0.95 as the middle gives −1.95996 and 1.95996.
+5. For the normal distribution the result also shows the **z-scores** of a and b and a **Working** line: z = (x − μ) ÷ σ, then the area from the z values.
+6. Type the probabilities you want quantiles for, separated by commas.
+7. Optionally set the plot range. Download the curve as CSV, or the whole result as an image, PDF or Word file.
+8. To simulate, choose how many values and a seed, then press **Draw sample**. The CSV holds the values.
 
 For whole-number distributions the end points count: “between 3 and 9” is P(3 ≤ X ≤ 9), and “above 5” is P(X ≥ 5). For continuous ones it makes no difference.
 

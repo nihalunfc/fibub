@@ -40,7 +40,8 @@ To digest the protein into peptides, use the [[peptide-mass-calculator]]; to fin
 
 ## Options
 
-- **pH for the charge**: the pH of your buffer.
+- **pH for the charge**: the pH of your buffer; type it or drag the slider (0 to 14) and the charge, the plot marker and the table follow.
+- **Amount and concentration converter**: turn µg, mg, pmol or nmol of this protein into the others, and mg/mL, µM or nM into the other units, using its average mass (pmol = µg ÷ mass × 10⁶).
 - **Disulfide bonds**: how many pairs of cysteines are joined. Each bond takes two hydrogens off the mass, adds to the extinction coefficient and removes two cysteines from the charge. Leave it at 0 for a reduced protein, such as in SDS-PAGE sample buffer with DTT.
 - **pKa values and extinction coefficients**: the values used, which you can change. The default pKa values are fibub's own rounded values. Every tool uses a slightly different set, so pI values from different tools often differ by 0.1 to 0.5. Type in another tool's values to match it.
 

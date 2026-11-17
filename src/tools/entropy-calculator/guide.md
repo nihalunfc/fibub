@@ -41,7 +41,7 @@ See how close a real code gets to the entropy with [[huffman-coding|Huffman codi
 ## How to use it
 
 1. Choose what to measure at the top, and the units.
-2. Type or paste your numbers. Commas, spaces or new lines all work, and fractions such as 1/3 are fine. Counts are turned into probabilities for you. A distribution can also be "label, value" lines straight from a spreadsheet, and the tables take a header row and a first column of names. **Open a file** reads CSV, TSV, text or Excel.
+2. For a quick answer, pick a **Quick start** (fair coin, loaded coin, fair die, the sum of two dice) or drag the **two-outcome slider** to see how entropy peaks at 1 bit when both outcomes are equally likely. Or type or paste your numbers. Commas, spaces or new lines all work, and fractions such as 1/3 are fine. Counts are turned into probabilities for you. For up to eight outcomes a **Working** line writes out −Σ p log p term by term. A distribution can also be "label, value" lines straight from a spreadsheet, and the tables take a header row and a first column of names. **Open a file** reads CSV, TSV, text or Excel.
 3. For text, choose whether to count characters, UTF-8 bytes or words. **Measure a file's bytes** reads any file (up to 200 MB) on your device: a photo, a zip, a program. It is never uploaded.
 4. For a channel, choose its type and type the probability p, or type the matrix P(y | x): one row per input, one column per output.
 5. Download the table as CSV, or the whole result as an image, PDF or Word file.

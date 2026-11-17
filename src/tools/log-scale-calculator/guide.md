@@ -11,7 +11,7 @@ ads: true
 order: 335
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [tree-carbon, field-sampling-planner, calibration-curve, tree-height-basal-area, forest-inventory-summary, unit-converter]
 sources:
   - "Doyle rule (D − 4)²·L/16; Scribner formula rule (0.79D² − 2D − 4)·L/16 (Bruce's formula version, not the Scribner Decimal C table); International 1/8-inch rule 0.22D² − 0.71D per 4-foot section (J. F. Clark, 1906) with ½-inch taper per section and × 0.905 for a ¼-inch kerf; Smalian, Huber and Newton (Riecke) cubic formulas: standard forest mensuration, as in Avery and Burkhart, Forest Measurements. Formulas only; no log rule tables copied."
@@ -43,7 +43,8 @@ Measure the standing trees first with the [[tree-height-basal-area|tree height a
 
 1. Choose **inches and feet** (cubic feet) or **cm and metres** (cubic metres). In metric the board-foot rules use the diameter and length converted to inches and feet.
 2. Paste or open one row per log: an optional name, the small-end diameter, the length, and if you have them the large-end and middle diameters. Diameters are inside the bark.
-3. Read the totals, the table for each log, and the chart, which draws the three rules against small-end diameter for any log length you type.
+3. Under **More options**, type a **defect deduction** (a per cent taken off every log) and, if you like, a **price per 1,000 board feet** and the rule it is quoted by, to see the net board feet and the value.
+4. Read the totals, the table for each log, and the chart, which draws the three rules against small-end diameter for any log length you type.
 
 ## Worked example (made-up logs)
 
@@ -52,7 +53,8 @@ Six logs from 9 to 24 inches at the small end and 8 to 18 feet long scale to **9
 ## Tips
 
 - Printed log rule tables usually round diameters down to the inch, lengths down to the foot, and volumes to the nearest 5 or 10 board feet; this tool does not round, so expect small differences.
-- Deduct for defects (rot, sweep, splits) separately; no rule here does that.
+- The defect option takes one per cent off every log. Real scalers deduct per log by their own rules, so use it for a quick estimate.
+- Type your own price: the tool has no market prices. Value = net board feet ÷ 1,000 × price.
 - Use the rule your buyer or region uses. Prices are quoted per thousand board feet (MBF) of a named rule.
 
 ## FAQs

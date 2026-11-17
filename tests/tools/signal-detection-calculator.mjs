@@ -48,4 +48,20 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check(readFileSync(p).subarray(0, 4).toString() === '%PDF', 'roc: PDF report');
   await page.fill(R + '.sd-roc', '1\t5'); await page.waitForTimeout(400);
   check(/at least two rating rows/.test(await txt('.sd-err')), 'roc: too few rows message');
+  // From rates mode.
+  await page.click(R + '.sd-mode [data-m=rates]'); await page.waitForTimeout(400);
+  check((await txt('.sd-big')) === 'd′ = 1.701', `sdt: from rates d′ (${await txt('.sd-big')})`);
+  { const rf = await txt('.sd-facts'); check(rf.includes('1.701') && /−0\.144/.test(rf) && /0\.783/.test(rf) && /0\.876/.test(rf) && rf.includes('Working') && !rf.includes('95 % interval'), 'sdt: rates facts, working line, no interval'); }
+  check(await page.isVisible(R + '.sd-fig2'), 'sdt: ROC figure drawn');
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  await page.fill(R + '.sd-rns', '50'); await page.fill(R + '.sd-rnn', '50'); await page.waitForTimeout(400);
+  check((await txt('.sd-facts')).includes('1.136 to 2.266'), 'sdt: rates with trials give an interval');
+  await page.fill(R + '.sd-rh', '100'); await page.waitForTimeout(400);
+  check((await txt('.sd-big')) === 'd′ = 3.033', `sdt: rate 100 % corrected with trials (${await txt('.sd-big')})`);
+  await page.fill(R + '.sd-rns', ''); await page.fill(R + '.sd-rnn', ''); await page.waitForTimeout(400);
+  check(/infinite/.test(await txt('.sd-err')), 'sdt: 100 % without trials explains');
+  await page.fill(R + '.sd-rh', '140'); await page.waitForTimeout(400);
+  check(/0 to 100/.test(await txt('.sd-err')), 'sdt: rate over 100 message');
+  await page.fill(R + '.sd-rh', 'abc'); await page.waitForTimeout(400);
+  check(/number for the hit rate/.test(await txt('.sd-err')), 'sdt: non-number rate message');
 };

@@ -11,11 +11,12 @@ ads: true
 order: 10
 icon: orbit
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [transit-planner, magnitude-flux-converter, orbit-transfer-calculator, period-finder]
 sources:
   - "Habitable zone limits: the published fit of Kopparapu et al. (2014)."
   - "Solar constants: IAU nominal values."
+  - "Mercury and Jupiter distance and Bond albedo: NASA Planetary Fact Sheet (rounded). AU in km and light-seconds: IAU 2012. Checked 2026-11-16."
 flow:
   - { icon: star, label: "Star" }
   - { icon: orbit, label: "Planet" }
@@ -31,10 +32,14 @@ For the planet's year and transit times, use the [[transit-planner]]; for the st
 ## How to use it
 
 1. Pick a **star** or type your own temperature, luminosity and mass. If you only know the radius, leave the luminosity blank and type the radius: the luminosity comes from L = R² (T / 5772 K)⁴.
-2. Pick a **planet**, or type its distance in AU, or its orbital period in days. The tool turns a period into a distance with Kepler's third law and the star's mass.
+2. Pick a **planet** (Mercury, Venus, Earth, Mars, Jupiter or a nearby exoplanet), or type its distance in AU, or its orbital period in days. The tool turns a period into a distance with Kepler's third law and the star's mass.
 3. Set the **albedo**, the share of light the planet reflects. Rocky planets without thick clouds are usually 0.2 to 0.35.
 4. Choose the **planet mass**. Heavier planets hold more air, which pushes the runaway greenhouse limit slightly closer to the star.
-5. Choose the **heat spread**. A fast-spinning planet or one with thick air spreads heat round the whole globe. A tidally locked planet with no air keeps it on the day side, which is 19 % warmer.
+5. Use **Put the planet at the inner edge, middle or outer edge** to drop a planet into the conservative zone in one click, for a quick "what if".
+6. Open **More options** to show distances in AU, million km or light-minutes, temperatures in kelvin, °C or °F, or to type an **equilibrium temperature** and read off the distance where a planet with your albedo and heat spread reaches it (with its starlight, orbit and whether that is in the zone).
+7. Choose the **heat spread**. A fast-spinning planet or one with thick air spreads heat round the whole globe. A tidally locked planet with no air keeps it on the day side, which is 19 % warmer.
+
+The equilibrium temperature comes from balancing the starlight a planet absorbs with the heat it radiates: T = [S(1 − A) f / (4σ)]^¼ with S = L / (4π d²). The solar planets' distances and Bond albedos (Mercury 0.088, Jupiter 0.343) are rounded values from NASA's Planetary Fact Sheet; check the official source for anything you plan to publish.
 
 ## What the edges mean
 

@@ -8,15 +8,18 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>1. Material and size</h2>
     <div class="ax-grid">
-      <label>Density ρ (g/cm³) <input class="npc-rho" inputmode="decimal" value="19.3" /></label>
-      <label>Molar mass M (g/mol) <input class="npc-m" inputmode="decimal" value="196.97" /></label>
+      <label>Material preset <select class="npc-pre" data-k="material"><option value="">My own numbers</option><option value="19.3,196.97" selected>Gold (Au, rounded)</option><option value="10.49,107.87">Silver (Ag)</option><option value="21.45,195.08">Platinum (Pt)</option><option value="8.96,63.546">Copper (Cu)</option><option value="3.9,79.865">Titanium dioxide, anatase (TiO₂)</option><option value="2.2,60.083">Silica, amorphous (SiO₂)</option><option value="5.17,231.53">Magnetite (Fe₃O₄)</option><option value="5.61,81.379">Zinc oxide (ZnO)</option></select></label>
+      <label>Density ρ (g/cm³) <input class="npc-rho" data-k="density" inputmode="decimal" value="19.3" /></label>
+      <label>Molar mass M (g/mol) <input class="npc-m" data-k="molar-mass" inputmode="decimal" value="196.97" /></label>
       <label>Atom diameter (nm, blank = estimate) <input class="npc-da" inputmode="decimal" value="" placeholder="from ρ and M" /></label>
-      <label>Particle diameter d (nm) <input class="npc-d" inputmode="decimal" value="20" /></label>
+      <label>Particle diameter d (nm) <input class="npc-d" data-k="diameter" inputmode="decimal" value="20" /></label>
+      <label>Diameter slider (1 to 1000 nm) <input class="npc-ds" type="range" min="0" max="3" step="0.01" value="1.301" aria-label="Particle diameter slider, logarithmic" /></label>
     </div>
-    <p class="ax-help">The example is gold (density and molar mass rounded). For a compound such as SiO₂ or TiO₂, M is the formula unit's mass, and "atoms" then means formula units. Left blank, the atom diameter is that of a sphere with the volume per atom, M/(ρN<sub>A</sub>); typing the nearest-neighbour distance instead is also common.</p>
+    <p class="ax-help">Presets use typical bulk handbook densities and IUPAC atomic weights; real nanoparticles can be less dense (porous, coated, other crystal phase), so use your supplier's figure when you have it. The example is gold. For a compound such as SiO₂ or TiO₂, M is the formula unit's mass, and "atoms" then means formula units. Left blank, the atom diameter is that of a sphere with the volume per atom, M/(ρN<sub>A</sub>); typing the nearest-neighbour distance instead is also common.</p>
     <p class="ax-err npc-err" hidden></p>
     <div class="npc-out">
-      <p class="ax-big npc-big"></p>
+      <p class="ax-big npc-big" aria-live="polite" data-k="result"></p>
+      <p class="ax-help npc-work"></p>
       <dl class="ax-facts npc-facts"></dl>
       <canvas class="ax-fig npc-fig" style="margin-top:12px"></canvas>
     </div>
@@ -41,7 +44,7 @@ import Downloads from '../../components/Downloads.astro';
     <h2>3. Concentration</h2>
     <div class="ax-grid">
       <label>Mass concentration <input class="npc-c" inputmode="decimal" value="50" /></label>
-      <label>Unit <select class="npc-cu"><option value="1">mg/mL (g/L)</option><option value="1e-3" selected>µg/mL (mg/L)</option><option value="1e-6">ng/mL (µg/L)</option></select></label>
+      <label>Unit <select class="npc-cu"><option value="1">mg/mL (g/L)</option><option value="1e-3" selected>µg/mL (mg/L)</option><option value="1e-6">ng/mL (µg/L)</option><option value="pml">particles per mL (find the mass)</option><option value="nM">nM of particles (find the mass)</option></select></label>
       <label>Particles are <select class="npc-of"><option value="sphere" selected>spheres of diameter d</option><option value="cluster">the cluster above</option></select></label>
     </div>
     <p class="ax-help">The mass concentration of the particle material itself (for example the metal content from ICP), not counting ligands or shells.</p>
@@ -86,6 +89,7 @@ import Downloads from '../../components/Downloads.astro';
     if (!(d > 0)) return err('.npc-err', '.npc-out', 'Give a particle diameter above zero.');
     const av = atomVolume(rho, M), da = dat ? daIn : av.da;
     st = { rho, M, da, d }; err('.npc-err', '.npc-out', '');
+    q('.npc-work').textContent = `Working: atoms on the surface are those within one atom diameter (${sig(da, 3)} nm) of the surface; specific surface = 6 ÷ (${sig(rho, 4)} g/cm³ × ${sig(d, 4)} nm), with units converted to m²/g.`;
     const sp = sphere(d), sa = sphereAtoms(d, rho, M, da), mass = particleMass(d, rho);
     q('.npc-big').textContent = `${sig(specificSurface(d, rho), 4)} m²/g, ${pct(sa.fraction)} of atoms on the surface`;
     const f = [
@@ -142,15 +146,18 @@ import Downloads from '../../components/Downloads.astro';
   }
 
   function concStep() {
-    const c = v('.npc-c') * Number(q<HTMLSelectElement>('.npc-cu').value), of = q<HTMLSelectElement>('.npc-of').value;
+    const cu = q<HTMLSelectElement>('.npc-cu').value, of = q<HTMLSelectElement>('.npc-of').value, cin = v('.npc-c');
     if (!st) return err('.npc-kerr', '.npc-kfacts', 'Fix the material and size first.');
-    if (!(c > 0)) return err('.npc-kerr', '.npc-kfacts', 'Give a mass concentration above zero.');
+    if (!(cin > 0)) return err('.npc-kerr', '.npc-kfacts', cu === 'pml' || cu === 'nM' ? 'Give a particle concentration above zero.' : 'Give a mass concentration above zero.');
     if (of === 'cluster' && !cl) return err('.npc-kerr', '.npc-kfacts', 'Fix the cluster first.');
     err('.npc-kerr', '.npc-kfacts', '');
-    const mass = of === 'cluster' ? (cl!.N * st.M) / NA : particleMass(st.d, st.rho), r = numberConc(c, mass);
+    const mass = of === 'cluster' ? (cl!.N * st.M) / NA : particleMass(st.d, st.rho);
+    // g/mL from the chosen unit: a particle count or nM is turned into mass using one particle's mass.
+    const c = cu === 'pml' ? cin * mass : cu === 'nM' ? cin * 1e-9 * NA * mass / 1000 : cin * Number(cu), r = numberConc(c, mass);
     const atoms = of === 'cluster' ? cl!.N : sphereAtoms(st.d, st.rho, st.M, st.da).N;
     const area = of === 'cluster' ? null : r.perML * sphere(st.d).S * 1e-14; // cm² per mL
     const f = [
+      ...(cu === 'pml' || cu === 'nM' ? [fact('Mass concentration', `${sig(c * 1000, 4)} mg/mL`, `${sig(c * 1e6, 4)} µg/mL`)] : []),
       fact('Particles per mL', sig(r.perML, 4), `${sig(r.perML * 1000, 4)} per litre`),
       fact('Molar concentration of particles', molar(r.molar), 'particles ÷ Avogadro\'s number'),
       fact('Atoms per mL', sig(r.perML * atoms, 4), `${molar((c / st.M))} of atoms`),
@@ -171,6 +178,10 @@ import Downloads from '../../components/Downloads.astro';
     );
   }
 
+  q('.npc-pre').addEventListener('change', () => { const x = q<HTMLSelectElement>('.npc-pre').value; if (!x) return; const [r, m] = x.split(','); q<HTMLInputElement>('.npc-rho').value = r; q<HTMLInputElement>('.npc-m').value = m; q<HTMLInputElement>('.npc-da').value = ''; });
+  ['.npc-rho', '.npc-m'].forEach((c) => q(c).addEventListener('input', () => { q<HTMLSelectElement>('.npc-pre').value = ''; }));
+  q('.npc-ds').addEventListener('input', () => { q<HTMLInputElement>('.npc-d').value = sig(10 ** Number(q<HTMLInputElement>('.npc-ds').value), 3); });
+  q('.npc-d').addEventListener('input', () => { const d = v('.npc-d'); if (d > 0) q<HTMLInputElement>('.npc-ds').value = String(Math.min(3, Math.max(0, Math.log10(d)))); });
   const all = () => { sizeStep(); clusterStep(); concStep(); betStep(); };
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
   document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.npc-fig'), fig); });

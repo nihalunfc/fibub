@@ -7,21 +7,31 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Air</h2>
     <div class="ax-grid">
-      <label>Temperatures in <select class="ps-u"><option value="C">°C</option><option value="F">°F</option></select></label>
-      <label>Dry bulb (air) temperature <input class="ps-t" inputmode="decimal" value="25" /></label>
-      <label>And <select class="ps-k"><option value="rh">Relative humidity (%)</option><option value="td">Dew point</option><option value="tw">Wet bulb</option></select></label>
-      <label><span class="ps-kl">Value</span> <input class="ps-v" inputmode="decimal" value="50" /></label>
-      <label>Altitude (m) <input class="ps-z" inputmode="decimal" value="0" /></label>
-      <label>Or pressure (kPa) <input class="ps-p" inputmode="decimal" placeholder="from altitude" /></label>
+      <label>Temperatures in <select class="ps-u" data-k="tempunit"><option value="C">°C</option><option value="F">°F</option></select></label>
+      <label>Dry bulb (air) temperature <input class="ps-t" data-k="temp" inputmode="decimal" value="25" /></label>
+      <label>And <select class="ps-k" data-k="given"><option value="rh">Relative humidity (%)</option><option value="td">Dew point</option><option value="tw">Wet bulb</option></select></label>
+      <label><span class="ps-kl">Value</span> <input class="ps-v" data-k="value" inputmode="decimal" value="50" /></label>
+      <label><span class="ps-zl">Altitude (m)</span> <input class="ps-z" data-k="altitude" inputmode="decimal" value="0" /></label>
+      <label><span class="ps-pl">Or pressure (kPa)</span> <input class="ps-p" data-k="pressure" inputmode="decimal" placeholder="from altitude" /></label>
     </div>
+    <details class="ps-more"><summary>More options: units, cooling or heating, condensation</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Altitude in <select class="ps-zu" data-k="altunit"><option value="m" selected>metres</option><option value="ft">feet</option></select></label>
+        <label>Pressure in <select class="ps-pu" data-k="pressunit"><option value="kPa" selected>kPa</option><option value="hPa">hPa (mbar)</option><option value="atm">atm</option><option value="psi">psi</option><option value="inHg">inHg</option></select></label>
+        <label><span class="ps-t2l">Heat or cool the air to (°C)</span> <input class="ps-t2" data-k="target" inputmode="decimal" placeholder="optional, e.g. 10" /></label>
+        <label>Airflow (m³/h) <input class="ps-flow" data-k="airflow" inputmode="decimal" placeholder="optional, e.g. 1000" /></label>
+        <label><span class="ps-sl">Surface temperature (°C)</span> <input class="ps-surf" data-k="surface" inputmode="decimal" placeholder="optional: a window or pipe" /></label>
+      </div>
+    </details>
     <p class="ax-help">Wet bulb here is the thermodynamic (psychrometer) wet bulb. The pressure follows from the altitude in a standard atmosphere unless you type it.</p>
     <p class="ax-err ps-err" hidden></p>
   </div>
 
   <div class="ax-card ps-out">
     <h2>Properties</h2>
-    <p class="ax-big ps-big"></p>
+    <p class="ax-big ps-big" aria-live="polite"></p>
     <dl class="ax-facts ps-facts"></dl>
+    <div class="ps-procw" hidden><h3>Cooling or heating</h3><dl class="ax-facts ps-proc" aria-live="polite"></dl></div>
     <h3>Heat stress</h3>
     <dl class="ax-facts ps-heat"></dl>
     <canvas class="ax-fig ps-fig" style="margin-top:14px"></canvas>
@@ -31,13 +41,14 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { num, sig } from '../../lib/sci/num';
-  import { air, pressureAt, pws, humRatio, heatIndexC, humidex, type Air } from '../../lib/sci/psychro';
+  import { air, pressureAt, pws, humRatio, heatIndexC, humidex, processTo, dryAirFlow, FT_M, PRESSURE_UNITS, type Air } from '../../lib/sci/psychro';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.ps')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   let fig: Figure | null = null, report: Section[] = [];
+  const zFt = () => q<HTMLSelectElement>('.ps-zu').value === 'ft', PU = () => PRESSURE_UNITS[q<HTMLSelectElement>('.ps-pu').value];
   const LABEL: Record<string, string> = { rh: 'Relative humidity (%)', td: 'Dew point', tw: 'Wet bulb' };
 
   // Heat index bands of the US National Weather Service; humidex bands of Environment Canada.
@@ -48,15 +59,16 @@ import Downloads from '../../components/Downloads.astro';
     const F = q<HTMLSelectElement>('.ps-u').value === 'F', k = q<HTMLSelectElement>('.ps-k').value;
     const toC = (x: number) => (F ? (x - 32) / 1.8 : x), fromC = (x: number) => (F ? x * 1.8 + 32 : x), U = F ? '°F' : '°C';
     const fT = (c: number) => `${sig(fromC(c), 3)} ${U}`;
+    q('.ps-t2l').textContent = `Heat or cool the air to (${U})`; q('.ps-sl').textContent = `Surface temperature (${U})`; q('.ps-zl').textContent = `Altitude (${zFt() ? 'ft' : 'm'})`; q('.ps-pl').textContent = `Or pressure (${PU().name})`;
     q('.ps-kl').textContent = k === 'rh' ? 'Relative humidity (%)' : `${LABEL[k]} (${U})`;
     const err = q('.ps-err');
     let a: Air;
     try {
       const t = toC(num(q<HTMLInputElement>('.ps-t').value)), v = num(q<HTMLInputElement>('.ps-v').value);
       if (!Number.isFinite(t) || !Number.isFinite(v)) throw new Error('Type the temperature and the second value.');
-      const pTxt = q<HTMLInputElement>('.ps-p').value.trim(), z = num(q<HTMLInputElement>('.ps-z').value) || 0;
-      if (!pTxt && !(z > -500 && z < 11000)) throw new Error('Altitude must be between −500 and 11,000 m.');
-      const p = pTxt ? num(pTxt) * 1000 : pressureAt(z);
+      const pTxt = q<HTMLInputElement>('.ps-p').value.trim(), z = (num(q<HTMLInputElement>('.ps-z').value) || 0) * (zFt() ? FT_M : 1);
+      if (!pTxt && !(z > -500 && z < 11000)) throw new Error(zFt() ? 'Altitude must be between −1,640 and 36,090 feet.' : 'Altitude must be between −500 and 11,000 m.');
+      const p = pTxt ? num(pTxt) * 1000 * PU().kPa : pressureAt(z);
       a = air(t, p, k === 'rh' ? { rh: v / 100 } : k === 'td' ? { td: toC(v) } : { tw: toC(v) });
     } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ps-out').hidden = true; report = []; return; }
     err.hidden = true; q('.ps-out').hidden = false;
@@ -70,7 +82,7 @@ import Downloads from '../../components/Downloads.astro';
       ['Enthalpy', `${sig(a.h, 4)} kJ/kg`, 'per kg of dry air'],
       ['Specific volume', `${sig(a.v, 4)} m³/kg`, 'per kg of dry air'],
       ['Vapour pressure deficit', `${sig(a.vpd, 3)} kPa`, 'drying power of the air; plants grow best at about 0.8 to 1.2 kPa'],
-      ['Pressure', `${sig(a.p / 1000, 5)} kPa`],
+      ['Pressure', `${sig(a.p / 1000 / PU().kPa, 5)} ${PU().name}`],
     ];
     const hi = heatIndexC(a.t, a.rh * 100), hx = humidex(a.t, a.td);
     const heat: [string, string, string?][] = a.t >= 26.7 ? [['Heat index (US NWS)', fT(hi), hiBand(hi * 1.8 + 32)]] : [['Heat index (US NWS)', 'not used', 'defined for 27 °C (80 °F) and above']];
@@ -78,24 +90,65 @@ import Downloads from '../../components/Downloads.astro';
     const dl = (el: HTMLElement, rows: [string, string, string?][]) => el.replaceChildren(...rows.map(([kk, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
     dl(q('.ps-facts'), facts); dl(q('.ps-heat'), heat);
 
+    // Cooling or heating to a new temperature, and a surface condensation check.
+    const proc: [string, string, string?][] = []; let pathX: number[] = [], pathY: number[] = [];
+    const t2Txt = q<HTMLInputElement>('.ps-t2').value.trim(), sTxt = q<HTMLInputElement>('.ps-surf').value.trim(), fTxt = q<HTMLInputElement>('.ps-flow').value.trim();
+    try {
+      if (t2Txt) {
+        const t2 = toC(num(q<HTMLInputElement>('.ps-t2').value));
+        if (!Number.isFinite(t2)) throw new Error('Type the final temperature as a number.');
+        const r = processTo(a, t2);
+        proc.push(['Air leaves at', `${fT(r.end.t)}, ${sig(r.end.rh * 100, 3)} % RH`, r.condenses ? 'saturated: the coil or surface is wet' : 'same moisture content, so the dew point stays at ' + fT(a.td)]);
+        proc.push([r.q < 0 ? 'Heat removed' : 'Heat added', `${sig(Math.abs(r.q), 4)} kJ per kg of dry air`, 'counts the energy of the water that drains off']);
+        proc.push(['Water condensed', r.condenses ? `${sig(r.water * 1000, 3)} g per kg of dry air` : 'none', r.condenses ? 'the air is cooled below its dew point' : 'the air stays above its dew point']);
+        if (fTxt) {
+          const f = num(q<HTMLInputElement>('.ps-flow').value);
+          if (!(f > 0)) throw new Error('Type the airflow in m³/h as a number above zero.');
+          const m = dryAirFlow(f, a.v), kw = m * r.q;
+          proc.push([r.q < 0 ? 'Cooling load' : 'Heating load', `${sig(Math.abs(kw), 4)} kW`, `${sig(m, 4)} kg/s of dry air; ${r.condenses ? sig(m * r.water * 3600, 3) + ' litres of water per hour drain off' : 'no water drains off'}`]);
+        }
+        pathX = [a.t]; pathY = [a.W * 1000];
+        if (r.condenses) { pathX.push(a.td); pathY.push(a.W * 1000); const n = 24; for (let i = 1; i <= n; i++) { const x = a.td + ((t2 - a.td) * i) / n; pathX.push(x); pathY.push(1000 * humRatio(pws(x), a.p)); } }
+        else { pathX.push(t2); pathY.push(a.W * 1000); }
+      }
+      if (sTxt) {
+        const ts = toC(num(q<HTMLInputElement>('.ps-surf').value));
+        if (!Number.isFinite(ts)) throw new Error('Type the surface temperature as a number.');
+        const gap = ts - a.td;
+        proc.push(['Surface at ' + fT(ts), gap <= 0 ? 'water condenses on it' : 'stays dry', gap <= 0 ? `${sig(-gap, 3)} ${F ? '°F' : '°C'} below the dew point${ts < 0 ? ' (frost)' : ''}` : `${sig(F ? gap * 1.8 : gap, 3)} ${F ? '°F' : '°C'} above the dew point of ${fT(a.td)}`]);
+      }
+    } catch (e) { proc.push(['Check this', (e as Error).message]); pathX = []; pathY = []; }
+    q('.ps-procw').hidden = !proc.length; dl(q('.ps-proc'), proc);
+
     // A psychrometric chart at this pressure: humidity ratio against dry bulb, with lines of equal RH.
     const lo = Math.min(-10, Math.floor(a.t / 5) * 5 - 5), hiT = Math.max(45, Math.ceil(a.t / 5) * 5 + 5), xs: number[] = [];
     for (let x = lo; x <= hiT; x += 0.5) xs.push(x);
     const series = [20, 40, 60, 80, 100].map((rh) => ({ name: '', x: xs.map(fromC), y: xs.map((x) => { const pw = (rh / 100) * pws(x); return pw < a.p ? 1000 * humRatio(pw, a.p) : NaN; }), mode: 'line' as const, color: '#9a9a9a', width: rh === 100 ? 1.8 : 0.9 }));
     const yMax = Math.min(40, Math.max(15, Math.ceil(a.W * 1000 / 5) * 5 + 5));
-    fig = chartFigure({ h: 360, xLabel: `Dry bulb (${U})`, yLabel: 'Humidity ratio (g/kg)', yMin: 0, yMax, xMin: fromC(lo), xMax: fromC(hiT), legend: 'none', series: [...series, { name: 'This air', x: [fromC(a.t)], y: [a.W * 1000], marker: 'circle', size: 5 }] }, 'Psychrometric chart with lines of 20 to 100 % relative humidity');
+    fig = chartFigure({ h: 360, xLabel: `Dry bulb (${U})`, yLabel: 'Humidity ratio (g/kg)', yMin: 0, yMax, xMin: fromC(lo), xMax: fromC(hiT), legend: 'none', series: [...series, ...(pathX.length ? [{ name: '', x: pathX.map(fromC), y: pathY, mode: 'line' as const, color: '#c24d00', width: 2.2 }] : []), { name: 'This air', x: [fromC(a.t)], y: [a.W * 1000], marker: 'circle', size: 5 }] }, 'Psychrometric chart with lines of 20 to 100 % relative humidity');
     paint(q<HTMLCanvasElement>('.ps-fig'), fig);
-    report = [{ title: 'Moist air properties (ASHRAE Fundamentals 2017)', facts: facts.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v]), figure: fig }, { title: 'Heat stress', facts: heat.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v]) }];
+    report = [{ title: 'Moist air properties (ASHRAE Fundamentals 2017)', facts: facts.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v]), figure: fig }, ...(proc.length ? [{ title: 'Cooling or heating', facts: proc.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v] as [string, string]) }] : []), { title: 'Heat stress', facts: heat.map(([kk, v, s]) => [kk, s ? `${v} (${s})` : v]) }];
   }
   q('.ps-u').addEventListener('change', () => {
     // Keep the same air when switching units: convert the typed temperatures.
     const F = q<HTMLSelectElement>('.ps-u').value === 'F', cv = (x: number) => (F ? x * 1.8 + 32 : (x - 32) / 1.8);
-    for (const c of ['.ps-t', ...(q<HTMLSelectElement>('.ps-k').value === 'rh' ? [] : ['.ps-v'])]) { const el = q<HTMLInputElement>(c), v = num(el.value); if (Number.isFinite(v)) el.value = String(+cv(v).toFixed(2)); }
+    for (const c of ['.ps-t', '.ps-t2', '.ps-surf', ...(q<HTMLSelectElement>('.ps-k').value === 'rh' ? [] : ['.ps-v'])]) { const el = q<HTMLInputElement>(c), v = num(el.value); if (Number.isFinite(v)) el.value = String(+cv(v).toFixed(2)); }
     calc();
   });
   let t = 0;
   root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
   q('.ps-k').addEventListener('change', calc);
+  q('.ps-pu').addEventListener('change', () => {
+    // Keep the same pressure when the unit changes.
+    const el = q<HTMLInputElement>('.ps-p'), v = num(el.value), old = PRESSURE_UNITS[(el.dataset.u as string) || 'kPa'];
+    if (Number.isFinite(v)) el.value = String(+((v * old.kPa) / PU().kPa).toPrecision(6));
+    el.dataset.u = q<HTMLSelectElement>('.ps-pu').value; calc();
+  });
+  q('.ps-zu').addEventListener('change', () => {
+    const el = q<HTMLInputElement>('.ps-z'), v = num(el.value);
+    if (Number.isFinite(v)) el.value = String(+(zFt() ? v / FT_M : v * FT_M).toFixed(1));
+    calc();
+  });
   document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ps-fig'), fig));
   calc();
   wireDownloads(q('.dl'), () => ({ title: 'Psychrometric calculation', subtitle: q('.ps-big').textContent ?? '', file: 'psychrometrics', sections: report }));

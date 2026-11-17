@@ -22,6 +22,19 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check(await T('.en-big') === 'H = 1.48548 bits' && (await T('.en-facts')).includes('counts (total 10)') && (await T('.en-tab')).includes('a0.5'), 'entropy: labelled counts from a spreadsheet');
   await page.fill('.enc .en-dist', '1/2 1/4 1/8 1/8'); await wait();
   check(await T('.en-big') === 'H = 1.75 bits', 'entropy: fractions');
+  // quick start, slider, working line
+  await mode('dist');
+  await page.selectOption('.enc .en-pre', '1, 1, 1, 1, 1, 1'); await wait();
+  check(await T('.en-big') === 'H = 2.58496 bits' && (await T('.en-work')).startsWith('Working: H = −Σ p log₂ p'), 'entropy: fair die preset and working line');
+  await page.selectOption('.enc .en-pre', '0.9, 0.1'); await wait();
+  check(await T('.en-big') === 'H = 0.468996 bits', 'entropy: loaded coin preset');
+  await page.selectOption('.enc .en-pre', { index: 4 }); await wait();
+  check(await T('.en-big') === 'H = 3.2744 bits' && await page.isHidden('.enc .en-work'), 'entropy: two dice sum has no working line (11 terms)');
+  await page.evaluate(() => { const r = document.querySelector('.enc .en-bp'); r.value = '0.25'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await wait();
+  check(await T('.en-big') === 'H = 0.811278 bits' && (await page.inputValue('.enc .en-dist')) === '0.25, 0.75', 'entropy: two-outcome slider');
+  await page.fill('.enc .en-dist', '0, 0'); await wait();
+  check(!(await page.textContent('.enc .en-big')).includes('NaN'), 'entropy: all zeros has no NaN');
+  await page.fill('.enc .en-dist', '0.5, 0.25, 0.125, 0.125');
   await page.fill('.enc .en-dist', '0.5, half'); await wait();
   check(await errShown(/"half" is not a number/), 'entropy: words rejected');
   await page.fill('.enc .en-dist', '0.5, -0.2'); await wait();

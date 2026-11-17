@@ -11,12 +11,13 @@ ads: true
 order: 5
 icon: link
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [gaussian-beam, link-budget-calculator, uncertainty-calculator, sellmeier-fitter, polarisation-calculator, lens-ray-tracer, constellation-ber]
 sources:
   - "Step-index fibre optics under weak guidance (LP modes, cut-offs at Bessel function zeros, the LP01 eigenvalue equation): Gloge, D. (1971), Applied Optics 10, 2252; Snyder, A. W. and Love, J. D., Optical Waveguide Theory; Saleh and Teich, Fundamentals of Photonics, chapter 9."
   - "Mode-field radius approximation w/a = 0.65 + 1.619 V^−1.5 + 2.879 V^−6: Marcuse, D. (1977), Bell System Technical Journal 56, 703. Modal and chromatic pulse spreading and dB power budgets: standard textbook results (for example Keiser, Optical Fiber Communications)."
   - "Checked against SciPy (jv, kv, jn_zeros, and brentq on the LP01 equation) and hand sums. The three example fibres and links use rounded, made-up values, not any manufacturer's data sheet."
+  - "Splitter loss: an ideal 1:N power splitter divides the light into N equal parts, so its loss is 10 × log10 N dB (standard decibel arithmetic); excess loss is whatever the data sheet gives."
 flow:
   - { icon: sliders, label: "Fibre" }
   - { icon: target, label: "Modes" }
@@ -35,6 +36,8 @@ Work out the core glass's index with the [[sellmeier-fitter|Sellmeier fitter]], 
 1. Pick an example or type your fibre: **core index n₁**, **cladding index n₂**, **core diameter** in µm, the **wavelength**, and whether the index is a **step** or a **graded (parabolic)** profile.
 2. For **pulse spreading**, give the link length, the fibre's **chromatic dispersion D** at your wavelength (from its data sheet) and the source's **spectral width**.
 3. For the **power budget**, give the transmitter power and receiver sensitivity in dBm, the fibre loss in dB/km, the numbers of connector pairs and splices with their losses, and a safety margin.
+
+**More options.** The link length can be typed in kilometres, metres or miles. Under "More: splitter, other losses and the itemised loss budget" you can add a 1:N splitter (ideal loss 10 × log10 N dB plus the excess loss from its data sheet) and any other known losses. The results now also show what share of the light arrives, the transmitter power needed to keep your margin and how many more connector pairs would still fit. A table lists every loss item by item (fibre, connectors, splices, splitter, margin) with a CSV download, and the same table goes into the PNG, PDF and Word report. Standard maximum-attenuation presets for fibre grades are not included, because their exact values depend on the standard edition and cable type; type the figure from your data sheet.
 
 ## What the results mean
 

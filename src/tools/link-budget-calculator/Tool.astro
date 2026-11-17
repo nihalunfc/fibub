@@ -7,49 +7,56 @@ import Downloads from '../../components/Downloads.astro';
   <div class="ax-card">
     <h2>Link</h2>
     <div class="ax-grid">
-      <label>Example <select class="lb-pre"></select></label>
-      <label>Frequency (MHz) <input class="lb-f" inputmode="decimal" /></label>
-      <label>Distance <select class="lb-dm"><option value="sat" selected>A satellite: altitude and elevation</option><option value="km">A distance I know</option></select></label>
-      <label class="lb-hw">Satellite altitude (km) <input class="lb-h" inputmode="decimal" /></label>
-      <label class="lb-ew">Elevation above the horizon (°) <input class="lb-el" inputmode="decimal" /></label>
-      <label class="lb-kw" hidden>Distance (km) <input class="lb-km" inputmode="decimal" /></label>
+      <label>Example <select data-k="pre" class="lb-pre"></select></label>
+      <label>Frequency (MHz) <input data-k="f" class="lb-f" inputmode="decimal" /></label>
+      <label>Distance <select data-k="dm" class="lb-dm"><option value="sat" selected>A satellite: altitude and elevation</option><option value="km">A distance I know</option></select></label>
+      <label class="lb-hw">Satellite altitude (km) <input data-k="h" class="lb-h" inputmode="decimal" /></label>
+      <label class="lb-ew">Elevation above the horizon (°) <input data-k="el" class="lb-el" inputmode="decimal" /></label>
+      <label class="lb-kw" hidden>Distance (km) <input data-k="km" class="lb-km" inputmode="decimal" /></label>
     </div>
     <h3>Transmitter</h3>
     <div class="ax-grid">
-      <label>Power (W) <input class="lb-pt" inputmode="decimal" /></label>
-      <label>Antenna gain (dBi) <input class="lb-gt" inputmode="decimal" /></label>
-      <label>Cable and other losses (dB) <input class="lb-lt" inputmode="decimal" /></label>
+      <label>Power (W) <input data-k="pt" class="lb-pt" inputmode="decimal" /></label>
+      <label>Antenna gain (dBi) <input data-k="gt" class="lb-gt" inputmode="decimal" /></label>
+      <label>Cable and other losses (dB) <input data-k="lt" class="lb-lt" inputmode="decimal" /></label>
     </div>
     <h3>Receiver</h3>
     <div class="ax-grid">
-      <label>Antenna <select class="lb-ant"><option value="gain">I know its gain</option><option value="dish">A dish of known size</option></select></label>
-      <label class="lb-grw">Antenna gain (dBi) <input class="lb-gr" inputmode="decimal" /></label>
-      <label class="lb-dw" hidden>Dish diameter (m) <input class="lb-dd" inputmode="decimal" value="3" /></label>
-      <label class="lb-dw" hidden>Aperture efficiency <input class="lb-eta" inputmode="decimal" value="0.55" /></label>
-      <label>Cable and other losses (dB) <input class="lb-lr" inputmode="decimal" /></label>
-      <label>System noise temperature (K) <input class="lb-ts" inputmode="decimal" /></label>
+      <label>Antenna <select data-k="ant" class="lb-ant"><option value="gain">I know its gain</option><option value="dish">A dish of known size</option></select></label>
+      <label class="lb-grw">Antenna gain (dBi) <input data-k="gr" class="lb-gr" inputmode="decimal" /></label>
+      <label class="lb-dw" hidden>Dish diameter (m) <input data-k="dd" class="lb-dd" inputmode="decimal" value="3" /></label>
+      <label class="lb-dw" hidden>Aperture efficiency <input data-k="eta" class="lb-eta" inputmode="decimal" value="0.55" /></label>
+      <label>Cable and other losses (dB) <input data-k="lr" class="lb-lr" inputmode="decimal" /></label>
+      <label>System noise temperature (K) <input data-k="ts" class="lb-ts" inputmode="decimal" /></label>
     </div>
     <h3>Path and data</h3>
     <div class="ax-grid">
-      <label>Atmosphere and rain (dB) <input class="lb-la" inputmode="decimal" /></label>
-      <label>Polarisation mismatch (dB) <input class="lb-lp" inputmode="decimal" /></label>
-      <label>Pointing loss (dB) <input class="lb-lpt" inputmode="decimal" /></label>
-      <label>Data rate (bit/s) <input class="lb-r" inputmode="decimal" /></label>
-      <label>Modulation <select class="lb-mod"><option value="bpsk">BPSK or QPSK</option><option value="cfsk">FSK, coherent</option><option value="fsk">FSK or GFSK, non-coherent</option><option value="custom">My own required Eb/N0</option></select></label>
-      <label class="lb-berw">Bit error rate <select class="lb-ber"><option value="1e-5" selected>1 in 100,000</option><option value="1e-6">1 in a million</option><option value="1e-4">1 in 10,000</option></select></label>
-      <label class="lb-reqw" hidden>Required Eb/N0 (dB) <input class="lb-req" inputmode="decimal" value="4.4" /></label>
-      <label>Implementation loss (dB) <input class="lb-im" inputmode="decimal" /></label>
+      <label>Atmosphere and rain (dB) <input data-k="la" class="lb-la" inputmode="decimal" /></label>
+      <label>Polarisation mismatch (dB) <input data-k="lp" class="lb-lp" inputmode="decimal" /></label>
+      <label>Pointing loss (dB) <input data-k="lpt" class="lb-lpt" inputmode="decimal" /></label>
+      <label>Data rate (bit/s) <input data-k="r" class="lb-r" inputmode="decimal" /></label>
+      <label>Modulation <select data-k="mod" class="lb-mod"><option value="bpsk">BPSK or QPSK</option><option value="cfsk">FSK, coherent</option><option value="fsk">FSK or GFSK, non-coherent</option><option value="custom">My own required Eb/N0</option></select></label>
+      <label class="lb-berw">Bit error rate <select data-k="ber" class="lb-ber"><option value="1e-5" selected>1 in 100,000</option><option value="1e-6">1 in a million</option><option value="1e-4">1 in 10,000</option></select></label>
+      <label class="lb-reqw" hidden>Required Eb/N0 (dB) <input data-k="req" class="lb-req" inputmode="decimal" value="4.4" /></label>
+      <label>Implementation loss (dB) <input data-k="im" class="lb-im" inputmode="decimal" /></label>
     </div>
     <p class="ax-help">Polarisation mismatch is 0 dB for matched antennas and 3 dB for a linear antenna receiving a circular signal. System noise temperature is the receiver's noise plus what the antenna picks up: about 100 to 300 K for a good amateur station, and 500 K or more at UHF in a town. Implementation loss covers real radios falling short of theory, usually 1 to 3 dB.</p>
+    <details class="lb-more"><summary>More: the margin you want, and a distance table</summary>
+      <div class="ax-grid" style="margin-top:8px"><label>Margin you want (dB) <input data-k="tm" class="lb-tm" inputmode="decimal" value="3" /></label></div>
+      <p class="ax-help">Adds to the results: how far, how fast or how little power the link would need to keep exactly this margin. 3 dB is a common minimum; use 6 to 10 dB where rain or fading is likely.</p>
+    </details>
     <p class="ax-err lb-err" hidden></p>
   </div>
 
   <div class="ax-card lb-out" hidden>
     <h2>Link budget</h2>
-    <p class="ax-big lb-big"></p>
+    <p class="ax-big lb-big" aria-live="polite"></p>
     <dl class="ax-facts lb-facts"></dl>
     <div class="ax-scroll"><table class="lb-tab"></table></div>
+    <h3 class="lb-sth">Margin at other distances</h3>
+    <div class="ax-scroll"><table class="lb-st"></table></div>
     <canvas class="ax-fig lb-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lb-csv">Download the budget and table (CSV)</button></div>
     <Downloads />
   </div>
 </div>
@@ -62,10 +69,10 @@ import Downloads from '../../components/Downloads.astro';
 </style>
 
 <script>
-  import { num, sig } from '../../lib/sci/num';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
   import { budget, slantRange, dishGain, beamwidth, requiredEbN0, fspl, K_DB } from '../../lib/sci/linkbudget';
   import { chartFigure } from '../../lib/sci/plot';
-  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
 
   const root = document.querySelector<HTMLElement>('.lb')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -79,7 +86,7 @@ import Downloads from '../../components/Downloads.astro';
     { id: 'custom', name: 'My own', v: {} },
   ];
   sel('.lb-pre').replaceChildren(...PRE.map((p) => Object.assign(document.createElement('option'), { value: p.id, textContent: p.name })));
-  let fig: Figure | null = null, report: Section[] = [];
+  let fig: Figure | null = null, report: Section[] = [], csvRows: string[][] = [];
   const dB = (x: number, plus = false) => `${x < 0 ? '−' : plus ? '+' : ''}${Math.abs(x).toFixed(2)}`;
   const t3 = (x: number) => String(+x.toPrecision(3));
   const rate = (r: number) => (r >= 1e6 ? `${t3(r / 1e6)} Mbit/s` : r >= 1e3 ? `${t3(r / 1e3)} kbit/s` : `${t3(r)} bit/s`);
@@ -119,6 +126,11 @@ import Downloads from '../../components/Downloads.astro';
         ['Fastest rate at zero margin', rate(b.maxRate), `with the same power, antennas and modulation; you asked for ${rate(L.rate)}`],
         ['Received power', `${dB(b.prxDbm)} dBm`, `${sig(10 ** (b.prxDbm / 10) * 1e-3, 3)} W`],
       ];
+      const tm = val('.lb-tm', 'the margin you want'), dm = b.margin - tm;
+      facts.push(['Farthest distance at a ' + sig(tm, 3) + ' dB margin', `${Math.round((d * 10 ** (dm / 20)) / 1000).toLocaleString('en')} km`, 'free-space loss grows with 20 × log10 of distance; other losses held']);
+      facts.push(['Transmit power for a ' + sig(tm, 3) + ' dB margin', `${sig(L.ptW * 10 ** (-dm / 10), 3)} W`, `you have ${sig(L.ptW, 3)} W now`]);
+      facts.push(['Fastest rate at a ' + sig(tm, 3) + ' dB margin', rate(L.rate * 10 ** (dm / 10)), 'with the same power, antennas and modulation']);
+      if (dish) facts.push(['Dish for a ' + sig(tm, 3) + ' dB margin', `${sig(D * 10 ** (-dm / 20), 3)} m`, `you have ${sig(D, 3)} m now; gain grows with 20 × log10 of the diameter`]);
       if (dish) facts.push(['Dish', `${gr.toFixed(1)} dBi`, `beam ${sig(beamwidth(D, f), 3)}° wide at half power: ${sat ? 'track the satellite to keep it in the beam' : 'aim it carefully'}`]);
       q('.lb-facts').replaceChildren(...facts.map(([k, v, s]) => { const dd = document.createElement('div'); dd.innerHTML = '<dt></dt><dd></dd>'; dd.querySelector('dt')!.textContent = k; dd.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; dd.querySelector('dd')!.append(m); } return dd; }));
       const rows: [string, string, boolean?][] = [
@@ -139,9 +151,19 @@ import Downloads from '../../components/Downloads.astro';
       fig = chartFigure({ h: 260, xLog: !sat, xLabel: sat ? 'Elevation (°)' : 'Distance (km)', yLabel: 'Margin (dB)', legend: 'none',
         series: [{ name: 'Margin', x: xs, y: ys, mode: 'line', width: 2.2 }], marks: [{ kind: 'hline', at: 0, label: '0 dB' }, { kind: 'hline', at: 3, dash: [4, 4], label: '3 dB' }, { kind: 'vline', at: sat ? el : d / 1000, label: 'this link' }] }, sat ? 'Link margin against elevation through a pass' : 'Link margin against distance');
       paint(q<HTMLCanvasElement>('.lb-fig'), fig);
-      report = [{ title: 'Link budget', facts: [['Result', big.textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])] }, { title: 'Budget', table: { head: ['Step', 'Value'], rows: rows.map(([k, v]) => [k, v]), align: ['l', 'r'] } }, { title: 'Margin', figure: fig }];
-    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lb-out').hidden = true; report = []; }
+      const stHead = sat ? ['Elevation (°)', 'Distance (km)', 'Path loss (dB)', 'Margin (dB)'] : ['Distance (km)', 'Path loss (dB)', 'Margin (dB)'];
+      const stRows = (sat ? [5, 10, 20, 30, 45, 60, 90] : [0.25, 0.5, 1, 2, 4, 10].map((x) => d * x / 1000)).map((x) => {
+        const dd = sat ? slantRange(h, x) : x * 1000, pl = fspl(dd, f), mg = b.margin + b.path - pl;
+        return [...(sat ? [String(x)] : []), Math.round(dd / 1000).toLocaleString('en'), pl.toFixed(1), dB(mg, true)];
+      });
+      const st = q<HTMLTableElement>('.lb-st'); st.replaceChildren();
+      for (const [i, r] of [stHead, ...stRows].entries()) { const tr = st.insertRow(); r.forEach((c, j) => { const e = document.createElement(i ? 'td' : 'th'); e.textContent = c; if (j) e.className = 'r'; tr.append(e); }); }
+      q('.lb-sth').textContent = sat ? 'Margin through a pass' : 'Margin at other distances';
+      csvRows = [['Step', 'Value'], ...rows.map(([k, v]) => [k, v]), [], stHead, ...stRows];
+      report = [{ title: 'Link budget', facts: [['Result', big.textContent!], ...facts.map(([k, v]) => [k, v] as [string, string])] }, { title: 'Budget', table: { head: ['Step', 'Value'], rows: rows.map(([k, v]) => [k, v]), align: ['l', 'r'] } }, { title: sat ? 'Margin through a pass' : 'Margin at other distances', table: { head: stHead, rows: stRows, align: stHead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, figure: fig }];
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lb-out').hidden = true; report = []; csvRows = []; }
   }
+  q('.lb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'link-budget.csv', 'text/csv'); });
   sel('.lb-pre').addEventListener('change', () => { setPre(sel('.lb-pre').value); calc(); });
   root.querySelectorAll('input').forEach((x) => x.addEventListener('input', () => { sel('.lb-pre').value = 'custom'; calc(); }));
   root.querySelectorAll('select:not(.lb-pre)').forEach((x) => x.addEventListener('change', () => { sel('.lb-pre').value = 'custom'; calc(); }));

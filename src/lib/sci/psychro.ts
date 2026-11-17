@@ -59,3 +59,26 @@ export function heatIndexF(T: number, RH: number): number {
 export const heatIndexC = (t: number, rhPct: number) => (heatIndexF(t * 1.8 + 32, rhPct) - 32) / 1.8;
 /** Environment Canada humidex from air temperature and dew point (°C). */
 export const humidex = (t: number, td: number) => t + 0.5555 * (6.11 * Math.exp(5417.753 * (1 / 273.16 - 1 / (273.15 + td))) - 10);
+
+/**
+ * Heating or cooling the air at constant pressure from state a to a new dry bulb t2 (°C).
+ * If the air stays above its dew point, the moisture content W stays the same; if not, moisture condenses
+ * and the air leaves saturated at t2. Heat q is kJ per kg of dry air (negative = heat removed), and
+ * includes the enthalpy of the liquid water drained off at t2 (4.186 kJ/kg per °C). Condensing at or below 0 °C (frost) is not modelled.
+ */
+export function processTo(a: Air, t2: number) {
+  if (!(t2 >= -100 && t2 <= 200)) throw new Error('The final temperature must be between −100 and 200 °C');
+  const ps2 = pws(t2), pw2 = a.pw;
+  const condenses = pw2 > ps2 + 1e-9;
+  if (condenses && t2 <= 0) throw new Error('Cooling below the dew point and below 0 °C makes frost, which this calculator does not model');
+  const end = condenses ? air(t2, a.p, { rh: 1 }) : air(t2, a.p, { rh: pw2 / ps2 });
+  const water = Math.max(0, a.W - end.W);
+  const q = end.h - a.h + water * 4.186 * t2;
+  return { end, condenses, water, q };
+}
+/** Mass flow of dry air in kg/s from a volume flow in m³/h and the specific volume (m³ per kg dry air). */
+export const dryAirFlow = (m3h: number, v: number) => m3h / 3600 / v;
+export const FT_M = 0.3048;
+export const PRESSURE_UNITS: Record<string, { name: string; kPa: number }> = {
+  kPa: { name: 'kPa', kPa: 1 }, hPa: { name: 'hPa (mbar)', kPa: 0.1 }, atm: { name: 'atm', kPa: 101.325 }, psi: { name: 'psi', kPa: 6.894757293168 }, inHg: { name: 'inHg', kPa: 3.386389 },
+};

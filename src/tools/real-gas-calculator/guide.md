@@ -11,7 +11,7 @@ ads: true
 order: 1
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [gas-law-calculator, phase-diagram-calculator, vapour-pressure-calculator, thermochemistry-calculator, heat-engine-cycles, partition-function, steam-tables, pvt-correlations]
 sources:
   - "van der Waals (1873); Redlich, O. and Kwong, J. N. S. (1949), Chemical Reviews 44, 233; Soave, G. (1972), Chemical Engineering Science 27, 1197; Peng, D.-Y. and Robinson, D. B. (1976), Industrial and Engineering Chemistry Fundamentals 15, 59: the equations and their standard constants, as given in thermodynamics textbooks."
@@ -45,6 +45,8 @@ Start from the ideal case in the [[gas-law-calculator]], and look up water and s
 1. Pick a **gas**. Its critical point, ω and molar mass fill in (rounded values). For anything else, type the constants yourself.
 2. Give the **temperature** (K, °C or °F) and **pressure** (bar, MPa, kPa, atm or psi).
 3. Choose which **equation** the isotherm and generalised charts use.
+4. Under **Gas in a container**, type an **amount** (mol, g or kg) and a **volume** (litres, m³ or mL) to get the pressure that amount makes at your temperature from every equation, the classic "van der Waals calculator" question. Leave the volume blank to get instead the volume the amount takes at your pressure. Where a volume sits inside the liquid-vapour region below the critical temperature, the pressure shown is the saturation pressure, flagged as two phases.
+5. The results also show the equation's own **constants** (for van der Waals, a and b with the formulas used).
 
 The results show Z, molar volume, density and fugacity for the chosen equation, a table for every equation, and three charts: **Z against pressure** for all equations at your temperature, the **P-V isotherm** (with the van der Waals loop and the saturation line below the critical temperature), and a **generalised compressibility chart** of Z against reduced pressure for several reduced temperatures. A CSV of the Z curves is one click away, and the whole report downloads as an image, PDF or Word file.
 

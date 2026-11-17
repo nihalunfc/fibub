@@ -46,3 +46,15 @@ export const insolation = (L: number, d: number) => L / (d * d);
 /** Kepler's third law: period in days for a orbit of d AU round a star of M solar masses (planet mass neglected). */
 export const periodDays = (d: number, M: number) => 365.25636 * Math.sqrt(d ** 3 / M);
 export const auForPeriod = (days: number, M: number) => Math.cbrt(M * (days / 365.25636) ** 2);
+
+/** The distance in AU at which a planet of the given albedo has equilibrium temperature T (K): the inverse of tEq. */
+export function distForTeq(L: number, T: number, albedo: number, redistribute: 1 | 2 = 1) {
+  return Math.sqrt((L * L_SUN * (1 - albedo) * redistribute) / (16 * Math.PI * SIGMA * T ** 4)) / AU_M;
+}
+/** Distance units shown next to AU: million km and light-minutes (1 AU = 149 597 870.7 km = 499.004784 light-seconds, IAU 2012). */
+export const DIST_UNITS: Record<string, { name: string; perAU: number }> = {
+  au: { name: 'AU', perAU: 1 },
+  mkm: { name: 'million km', perAU: 149.5978707 },
+  lmin: { name: 'light-minutes', perAU: 499.004784 / 60 },
+};
+export const kelvinTo = (k: number, unit: 'K' | 'C' | 'F') => (unit === 'K' ? k : unit === 'C' ? k - 273.15 : (k - 273.15) * 1.8 + 32);

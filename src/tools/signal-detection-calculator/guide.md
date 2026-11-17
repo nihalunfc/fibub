@@ -11,7 +11,7 @@ ads: true
 order: 721
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [reliability-analysis, sample-size, plot-maker, uncertainty-calculator, reaction-time-experiments, staircase-threshold-fitter, roc-curve, memory-attention-tasks, effect-size-converter]
 sources:
   - "Formulas: Green and Swets (1966); Macmillan and Creelman, Detection Theory: A User's Guide; Grier (1971) for A′ and B″; Hautus (1995) and Macmillan and Kaplan (1985) for corrections; Gourevitch and Galanter (1967) for the variance of d′; Dorfman and Alf (1969) for the maximum likelihood ROC fit."
@@ -31,12 +31,13 @@ Collect hits and false alarms with the [[memory-attention-tasks|memory and atten
 
 ## How to use it
 
-1. Pick **One table**, **Many people** or **Ratings (ROC)**.
+1. Pick **One table**, **From rates**, **Many people** or **Ratings (ROC)**.
 2. **One table:** type the number of hits (said "yes" when the signal was there), misses, false alarms (said "yes" to noise) and correct rejections.
-3. **Many people:** paste one row per person with a name and the same four counts, or open a CSV or Excel file. The table gives d′, c, β and A′ for each row, and the CSV download has every measure for your statistics package.
-4. **Ratings (ROC):** paste one row per confidence rating with the number of signal and noise trials that got that rating. Say whether the first row is the surest "signal" or the surest "noise".
-5. Choose how to handle **rates of 0 or 1**. A perfect hit rate gives an infinite d′, so it has to be pulled in. **1/2N** changes only the rates that need it, by half a trial. **Log-linear** adds 0.5 to every count before working out the rates; it is less biased and treats everyone the same, so use it when comparing people. **No correction** leaves the rates as they are.
-6. Download the result as CSV, or as an image, PDF or Word report.
+3. **From rates:** type just the hit rate and the false-alarm rate as percentages (84 for 84 %), as in many papers that report only rates. You get d′, c, β, A′, B″ and a line showing the sum z(H) − z(F). Under More options you can add the number of signal and noise trials to get a 95 % interval for d′ and to correct rates of 0 % or 100 %. The one-table and rates modes also draw the **ROC curve** for that d′ with your point on it.
+4. **Many people:** paste one row per person with a name and the same four counts, or open a CSV or Excel file. The table gives d′, c, β and A′ for each row, and the CSV download has every measure for your statistics package.
+5. **Ratings (ROC):** paste one row per confidence rating with the number of signal and noise trials that got that rating. Say whether the first row is the surest "signal" or the surest "noise".
+6. Choose how to handle **rates of 0 or 1**. A perfect hit rate gives an infinite d′, so it has to be pulled in. **1/2N** changes only the rates that need it, by half a trial. **Log-linear** adds 0.5 to every count before working out the rates; it is less biased and treats everyone the same, so use it when comparing people. **No correction** leaves the rates as they are.
+7. Download the result as CSV, or as an image, PDF or Word report.
 
 ## What the numbers mean
 
@@ -48,6 +49,8 @@ Collect hits and false alarms with the [[memory-attention-tasks|memory and atten
 ## Worked example
 
 The one-table example has 42 hits, 8 misses, 12 false alarms and 38 correct rejections (made-up numbers). The hit rate is 84.0 % and the false-alarm rate 24.0 %, so z(H) = 0.994 and z(F) = −0.706. That gives **d′ = 1.701** (95 % interval 1.136 to 2.266), **c = −0.144** (about neutral, slightly liberal), β = 0.783 and A′ = 0.876.
+
+Typing the same two rates, 84 % and 24 %, in **From rates** gives the same d′ of 1.701 (with no interval, since the number of trials is not known).
 
 In the "Many people" example, P04 had 50 hits out of 50. With the 1/2N rule the hit rate becomes 99.0 % and d′ = 3.242; the rate is marked so you can see it was corrected.
 

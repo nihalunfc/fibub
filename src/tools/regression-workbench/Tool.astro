@@ -17,6 +17,7 @@ import { EXAMPLES } from '../../lib/sci/regression';
     <label style="margin-top:10px">Table with a header row (paste from a spreadsheet, or CSV)
       <textarea class="rw-data" rows="8" spellcheck="false"></textarea>
     </label>
+    <label class="ax-check" style="margin-top:6px"><input type="checkbox" class="rw-nohdr" data-k="no-header" /> My numbers have no header row (the last column is y; one column is y against row number)</label>
     <DataFile target=".rw-data" maxMB={5} maxCols={30} maxRows={20000} />
     <p class="ax-help">Numbers are used as they are. A column with text (such as soil type) is split into groups, each compared with the first group in A–Z order. Rows with an empty cell or NA in a column the model uses are left out. The examples are made up.</p>
   </div>
@@ -45,11 +46,15 @@ import { EXAMPLES } from '../../lib/sci/regression';
 
   <div class="ax-card rw-out">
     <h2>Fit</h2>
-    <p class="ax-big rw-big"></p>
+    <p class="ax-big rw-big" data-k="result" aria-live="polite"></p>
     <p class="rw-eq"></p>
     <p class="ax-help rw-notes"></p>
     <p class="ax-err rw-warn" hidden></p>
     <dl class="ax-facts rw-facts" style="margin-top:10px"></dl>
+    <div class="rw-anova-box">
+      <h3 class="rw-h3">Analysis of variance (ANOVA)</h3>
+      <div class="ax-scroll"><table class="rw-anova"></table></div>
+    </div>
     <h3 class="rw-h3">Coefficients</h3>
     <div class="ax-scroll"><table class="rw-coef"></table></div>
     <div class="ax-row" style="margin-top:12px">
@@ -89,7 +94,7 @@ import { EXAMPLES } from '../../lib/sci/regression';
 
 <script>
   import { csv, fmtExp } from '../../lib/sci/num';
-  import { readTable, isMissing, design, ols, logit, olsPredict, logitPredict, newRow, qqPoints, EXAMPLES, type Table, type Design, type OlsFit, type LogitFit, type Kind } from '../../lib/sci/regression';
+  import { readTable, addHeader, anova, correlationR, isMissing, design, ols, logit, olsPredict, logitPredict, newRow, qqPoints, EXAMPLES, type Table, type Design, type OlsFit, type LogitFit, type Kind } from '../../lib/sci/regression';
   import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
   import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
 
@@ -124,10 +129,10 @@ import { EXAMPLES } from '../../lib/sci/regression';
   }
   /** Read the table and rebuild the column pickers, keeping choices where the columns still exist. */
   function readData(pre?: { y: string; xs: string[]; degree?: number }) {
-    try { table = readTable(q<HTMLTextAreaElement>('.rw-data').value); }
+    try { const raw = q<HTMLTextAreaElement>('.rw-data').value; table = readTable(q<HTMLInputElement>('.rw-nohdr').checked ? addHeader(raw) : raw); }
     catch (e) { table = null; showError((e as Error).message); return; }
     const h = table.headers, oldY = sel('.rw-y').value, oldX = checkedXs(), oldPx = sel('.rw-px').value;
-    const y = pre?.y ?? (h.includes(oldY) ? oldY : h[0]);
+    const nohdr = q<HTMLInputElement>('.rw-nohdr').checked, y = pre?.y ?? (nohdr ? h[h.length - 1] : h.includes(oldY) ? oldY : h[0]);
     const opts = (s: HTMLSelectElement, v: string) => { s.replaceChildren(...h.map((c) => new Option(c, c, false, c === v))); };
     opts(sel('.rw-y'), y);
     const xs = pre?.xs ?? (oldX.filter((c) => h.includes(c) && c !== y).length ? oldX.filter((c) => h.includes(c) && c !== y) : h.filter((c) => c !== y));
@@ -174,7 +179,8 @@ import { EXAMPLES } from '../../lib/sci/regression';
       const warn: string[] = [];
       if (f.kind === 'ols') {
         big = `R² = ${g(f.r2, 4)}, adjusted R² = ${g(f.adjR2, 4)} (n = ${n})`;
-        rows = [['Residual SD (σ)', g(f.sigma)], ['F test', f.dfModel > 0 ? `F(${f.dfModel}, ${f.dfResid}) = ${g(f.F, 4)}, p = ${fp(f.Fp)}` : '–'], ['AIC', g(f.aic, 6)], ['BIC', g(f.bic, 6)], ['Log-likelihood', g(f.llf, 6)], ['Durbin–Watson', g(f.dw, 4)]];
+        const rr = correlationR(f);
+        rows = [...(Number.isFinite(rr) ? [['Correlation r', g(rr, 4)] as [string, string]] : []), ['Residual SD (σ)', g(f.sigma)], ['F test', f.dfModel > 0 ? `F(${f.dfModel}, ${f.dfResid}) = ${g(f.F, 4)}, p = ${fp(f.Fp)}` : '–'], ['AIC', g(f.aic, 6)], ['BIC', g(f.bic, 6)], ['Log-likelihood', g(f.llf, 6)], ['Durbin–Watson', g(f.dw, 4)]];
         if (!f.intercept) rows.push(['Note', 'Without an intercept R² is measured from zero, not from the mean, so it is not comparable with R² of a model with one.']);
         head = ['Term', 'Estimate', 'SE', 't', 'p', `${pct} CI low`, `${pct} CI high`, 'VIF'];
         coefRows = f.coefs.map((c) => [c.name, g(c.est), g(c.se, 4), g(c.stat, 4), fp(c.p), g(c.lo), g(c.hi), c.vif === undefined ? '' : g(c.vif, 3)]);
@@ -193,11 +199,14 @@ import { EXAMPLES } from '../../lib/sci/regression';
       q('.rw-warn').textContent = warn.join(' '); q('.rw-warn').hidden = !warn.length;
       q('.rw-big').textContent = big;
       facts(rows);
+      q('.rw-anova-box').hidden = f.kind !== 'ols';
+      if (f.kind === 'ols') fillTable(q('.rw-anova'), ['Source', 'SS', 'df', 'MS', 'F', 'p'], anova(f).rows.map((r) => [r.name, g(r.ss), String(r.df), g(r.ms), g(r.F, 4), fp(r.p)]));
       fillTable(q('.rw-coef'), head, coefRows, f.coefs.map((c) => c.p < 1 - conf));
       drawPlots(f, D, kind, conf);
       buildPredict(D);
       report = [
         { title: `${kind === 'logistic' ? 'Logistic' : kind === 'polynomial' ? `Polynomial (degree ${degree})` : 'Linear'} regression of ${y}`, text: [q('.rw-eq').textContent!, ...notes], facts: [['Fit', big], ...rows] },
+        ...(f.kind === 'ols' ? [{ title: 'Analysis of variance', table: { head: ['Source', 'SS', 'df', 'MS', 'F', 'p'], rows: anova(f).rows.map((r) => [r.name, g(r.ss), String(r.df), g(r.ms), g(r.F, 4), fp(r.p)]), align: ['l', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
         { title: 'Coefficients', table: { head, rows: coefRows, align: head.map((_, i) => (i ? 'r' : 'l')) }, note: warn.join(' ') || undefined, figure: figs.fit ?? undefined },
         ...['rvf', 'qq', 'lev', 'cook'].filter((k) => figs[k]).map((k) => ({ title: figs[k]!.alt, figure: figs[k]! })),
       ];
@@ -319,7 +328,8 @@ import { EXAMPLES } from '../../lib/sci/regression';
     save(new Blob([csv(rows)], { type: 'text/csv' }), 'regression-residuals.csv', 'text/csv');
   }
 
-  sel('.rw-ex').addEventListener('change', loadExample);
+  sel('.rw-ex').addEventListener('change', () => { q<HTMLInputElement>('.rw-nohdr').checked = false; loadExample(); });
+  q('.rw-nohdr').addEventListener('change', () => readData());
   let t = 0;
   q('.rw-data').addEventListener('input', () => { sel('.rw-ex').value = ''; clearTimeout(t); t = window.setTimeout(() => readData(), 300); });
   sel('.rw-kind').addEventListener('change', () => calc());

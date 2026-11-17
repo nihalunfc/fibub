@@ -11,7 +11,7 @@ ads: true
 order: 20
 icon: orbit
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [rocket-equation, cosmology-calculator, sky-events-calendar]
 sources:
   - "Gravitational parameters and radii: JPL and IAU values."
@@ -32,11 +32,15 @@ To see whether a rocket can deliver the delta-v, use the [[rocket-equation]]; to
 1. Pick the body you are orbiting: Earth, the Moon, Mars, Venus, Jupiter or the Sun.
 2. Type the start and target **altitudes** in km above the surface, or, around the Sun, the **distances in AU** (Earth is 1). The quick buttons fill in common cases such as low Earth orbit to geostationary orbit, or Earth to Mars.
 3. Optionally type a **bi-elliptic apoapsis**, the far point of the intermediate orbit, to compare a three-burn transfer.
-4. The diagram shows the start orbit in grey, the target in black and the transfer path in colour.
+4. Choose the units you think in: **distances** in km or miles, **speeds** in km/s, m/s or mph, and whether the orbit height is measured from the **surface** (altitude) or the **centre** (orbit radius, as many textbooks give it). Switching keeps the same orbits.
+5. Under **More options**, type a **change of orbit tilt** (for example 28.5° for a launch from Florida to the equator) to see its cost as a separate burn and folded into the second burn, which is cheaper. Type a **spacecraft mass** and an engine **Isp** to see how much fuel each burn needs, from the rocket equation.
+6. The diagram shows the start orbit in grey, the target in black and the transfer path in colour.
 
 ## How it works
 
 Circular speed is v = √(μ/r). The transfer ellipse has semi-major axis a = (r₁ + r₂)/2, and the vis-viva equation v = √(μ(2/r − 1/a)) gives the speed at each end. Each burn is the difference between the circular and ellipse speeds. The transfer takes half the ellipse's period, π√(a³/μ). The lead angle is how far the target moves while the craft travels half way round, taken from 180°, and the synodic period 1/|1/T₁ − 1/T₂| is how often the two orbits line up again. Gravitational parameters μ are the standard values (Earth 398,600.4418 km³/s²; Sun 1.327 × 10¹¹ km³/s²).
+
+Folding a tilt change into a burn uses the law of cosines: Δv = √(v₁² + v₂² − 2 v₁ v₂ cos Δi), where v₁ is the speed on the transfer ellipse and v₂ the circular speed at the target. A tilt change alone is 2 v sin(Δi/2). Fuel is m_fuel = m_final (e^(Δv/(Isp g₀)) − 1), worked backwards from the second burn, with g₀ = 9.80665 m/s². Check these figures against mission data before relying on them: real transfers add losses, margins and the launch itself.
 
 ## Worked example
 

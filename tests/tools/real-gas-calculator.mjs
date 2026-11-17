@@ -31,4 +31,27 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent('.rgc .rg-err')).includes('pressure'), 'real gas: bad pressure message');
   await page.fill('.rgc .rg-p', '50'); await page.fill('.rgc .rg-pc', '0'); await page.waitForTimeout(150);
   check((await page.textContent('.rgc .rg-err')).includes('critical pressure'), 'real gas: bad critical pressure message');
+  // van der Waals constants for the default CO2: a = 3.655 L2 bar/mol2, b = 0.04283 L/mol
+  await page.selectOption('.rgc .rg-tu', 'K'); await page.selectOption('.rgc .rg-gas', 'co2'); await page.fill('.rgc .rg-t', '300'); await page.fill('.rgc .rg-p', '50'); await page.waitForTimeout(200);
+  check((await facts()).includes('a = 3.655 L² bar/mol², b = 0.04283 L/mol'), 'real gas: van der Waals constants and working');
+  // container: 1 mol in 1 L at 300 K, Peng-Robinson 21.83 bar, ideal 24.94 bar
+  const ct = () => page.textContent('.rgc .rg-ct-msg'), ctab = () => page.textContent('.rgc .rg-ct-tab');
+  await page.fill('.rgc .rg-n', '1'); await page.fill('.rgc .rg-v', '1'); await page.waitForTimeout(200);
+  check((await ct()).includes('Peng-Robinson gives 21.83 bar') && (await ct()).includes('ideal gas would give 24.94 bar'), 'real gas: container pressure');
+  check((await ctab()).includes('22.4') && (await ctab()).includes('0.8982'), 'real gas: container table van der Waals row');
+  await page.selectOption('.rgc .rg-vu', '1e-6'); await page.fill('.rgc .rg-v', '1000'); await page.waitForTimeout(200);
+  check((await ct()).includes('21.83 bar'), 'real gas: container volume in mL');
+  await page.selectOption('.rgc .rg-vu', '1'); await page.fill('.rgc .rg-v', '0.001'); await page.waitForTimeout(200);
+  check((await ct()).includes('21.83 bar'), 'real gas: container volume in cubic metres');
+  await page.selectOption('.rgc .rg-vu', '1e-3');
+  // 10 mol in 1 L is a liquid-vapour mixture at 300 K
+  await page.fill('.rgc .rg-n', '10'); await page.fill('.rgc .rg-v', '1'); await page.waitForTimeout(200);
+  check((await ct()).includes('67.33 bar (liquid and vapour together') && (await ctab()).includes('70.82') && (await ctab()).includes('two phases'), 'real gas: container inside the two-phase region');
+  // amount in grams, no volume: 44.01 g = 1 mol takes 0.3348 L at 50 bar (Peng-Robinson)
+  await page.selectOption('.rgc .rg-nu', 'g'); await page.fill('.rgc .rg-n', '44.01'); await page.fill('.rgc .rg-v', ''); await page.waitForTimeout(200);
+  check((await ct()).includes('takes 0.3348 litres') && (await ct()).includes('50 bar'), 'real gas: volume from an amount in grams');
+  await page.selectOption('.rgc .rg-nu', 'mol'); await page.fill('.rgc .rg-n', '1'); await page.fill('.rgc .rg-v', '0.02'); await page.waitForTimeout(200);
+  check((await ct()).includes('cannot fit'), 'real gas: container too small for the molecules');
+  await page.fill('.rgc .rg-n', '-3'); await page.waitForTimeout(200);
+  check((await ct()).includes('above zero'), 'real gas: negative amount message');
 };

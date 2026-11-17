@@ -153,7 +153,7 @@ export function design(t: Table, s: Spec): Design {
 export type Coef = { name: string; est: number; se: number; stat: number; p: number; lo: number; hi: number; vif?: number };
 export type OlsFit = {
   kind: 'ols'; n: number; p: number; dfResid: number; dfModel: number; intercept: boolean; coefs: Coef[];
-  r2: number; adjR2: number; F: number; Fp: number; sigma: number; sse: number; llf: number; aic: number; bic: number; dw: number;
+  r2: number; adjR2: number; F: number; Fp: number; sigma: number; sse: number; sst: number; llf: number; aic: number; bic: number; dw: number;
   fitted: number[]; resid: number[]; hat: number[]; stdResid: number[]; studResid: number[]; cooks: number[]; XtXi: Mat; conf: number;
 };
 export function ols(d: Design, conf = 0.95): OlsFit {
@@ -178,7 +178,7 @@ export function ols(d: Design, conf = 0.95): OlsFit {
   const studResid = stdResid.map((r) => r * Math.sqrt((df - 1) / (df - r * r)));
   const cooks = stdResid.map((r, i) => (r * r * L.hat[i]) / (p * (1 - L.hat[i])));
   let dwn = 0; for (let i = 1; i < n; i++) dwn += (L.resid[i] - L.resid[i - 1]) ** 2;
-  return { kind: 'ols', n, p, dfResid: df, dfModel, intercept, coefs, r2, adjR2, F, Fp, sigma, sse, llf, aic: -2 * llf + 2 * p, bic: -2 * llf + p * Math.log(n), dw: dwn / sse, fitted: L.fitted, resid: L.resid, hat: L.hat, stdResid, studResid, cooks, XtXi: L.XtXi, conf };
+  return { kind: 'ols', n, p, dfResid: df, dfModel, intercept, coefs, r2, adjR2, F, Fp, sigma, sse, sst, llf, aic: -2 * llf + 2 * p, bic: -2 * llf + p * Math.log(n), dw: dwn / sse, fitted: L.fitted, resid: L.resid, hat: L.hat, stdResid, studResid, cooks, XtXi: L.XtXi, conf };
 }
 /** Variance inflation factors: column j regressed on all the other columns (the first column being the intercept). */
 export function vif(X: Mat): number[] {
@@ -311,3 +311,29 @@ export const EXAMPLES: { id: string; name: string; kind: Kind; y: string; xs: st
   "text": "passed,hours_studied,practice_tests\n1,9.5,2\n1,9.8,4\n0,6.7,1\n0,0.6,1\n1,10.8,4\n1,6.3,4\n0,0.1,2\n1,10,1\n0,3.4,4\n1,8.5,3\n1,7,2\n1,11.8,4\n1,5.9,2\n0,0.5,1\n1,6.1,2\n1,11.2,0\n0,1.3,2\n1,11.8,5\n0,0.1,1\n0,0.1,4\n0,1.1,4\n0,9.5,2\n0,3.1,0\n0,4.7,2\n0,3.6,4\n0,3.6,3\n0,1.1,1\n1,11.1,0\n1,6.6,1\n0,2,0\n0,0.1,4\n0,0.1,1\n0,0.6,1\n1,10.5,2\n1,6.9,4\n1,11.6,5\n0,0.7,2\n1,9.2,1\n0,9.3,2\n0,2.2,2"
  }
 ];
+
+/** Analysis-of-variance rows (regression, residual, total) from a least-squares fit; the regression row is empty for a fit with no predictors. */
+export function anova(f: OlsFit) {
+  const ssr = f.sst - f.sse, dfT = f.n - (f.intercept ? 1 : 0);
+  return {
+    rows: [
+      { name: 'Regression', ss: ssr, df: f.dfModel, ms: f.dfModel > 0 ? ssr / f.dfModel : NaN, F: f.F, p: f.Fp },
+      { name: 'Residual', ss: f.sse, df: f.dfResid, ms: f.sse / f.dfResid, F: NaN, p: NaN },
+      { name: f.intercept ? 'Total (about the mean)' : 'Total (about zero)', ss: f.sst, df: dfT, ms: NaN, F: NaN, p: NaN },
+    ],
+  };
+}
+/** Pearson correlation of a one-predictor fit with an intercept: the sign of the slope times √R². */
+export const correlationR = (f: OlsFit) => (f.intercept && f.coefs.length === 2 ? Math.sign(f.coefs[1].est) * Math.sqrt(Math.max(0, f.r2)) : NaN);
+/** Add a header row to pasted columns that have none: x, y for two columns; x1, x2, … then y otherwise; one column becomes y against row number x. */
+export function addHeader(text: string): string {
+  let lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== '');
+  if (!lines.length) return text;
+  const first = lines[0];
+  let d = /\t/.test(first) ? '\t' : first.includes(';') ? ';' : first.includes(',') ? ',' : '';
+  if (!d) { d = '\t'; lines = lines.map((l) => l.split(/\s+/).join('\t')); }
+  let n = lines[0].split(d).length;
+  if (n === 1) { lines = lines.map((l, i) => `${i + 1}${d}${l}`); n = 2; }
+  const names = n === 2 ? ['x', 'y'] : [...Array.from({ length: n - 1 }, (_, i) => `x${i + 1}`), 'y'];
+  return [names.join(d), ...lines].join('\n');
+}

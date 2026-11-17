@@ -11,11 +11,12 @@ ads: false
 order: 33
 icon: percent
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [epidemic-model, sample-size, plot-maker, biodiversity-indices]
 sources:
   - "Threshold 1 − 1/R0: Anderson and May (1985), Nature 318: 323-329; Fine (1993), Epidemiologic Reviews 15: 265-302."
   - "Coverage with an imperfect vaccine, (1 − 1/R0) / E: Anderson and May (1991), Infectious Diseases of Humans, Oxford University Press."
+  - "Prior immunity extension (immune share p + (1 − p)cE, target R, population head count) follows from the same model: Anderson and May (1991), Infectious Diseases of Humans."
   - "Example R0 values are made up for teaching."
 flow:
   - { icon: sliders, label: "R0" }
@@ -37,7 +38,9 @@ To see the whole outbreak over time, use the [[epidemic-model|epidemic model sim
 3. Type the **coverage**: the share of the whole population vaccinated.
 4. Read the threshold, the coverage needed, and the effective R. Below 1, outbreaks shrink; at or above 1 they can grow.
 5. In **Compare diseases**, list names and R0 values, one per line. The five rows you see are **made-up round numbers**, not real diseases; replace them with your own. Real R0 values vary with place, season, crowding and behaviour.
-6. Download the table as CSV, or the report as an image, PDF or Word file.
+6. Drag a **slider** next to R0, effectiveness or coverage to see the answer move; the typed number and the slider stay in step. The **Working** line under the result shows each step with your numbers.
+7. Under **More options**, enter the share **already immune from past infection**, a **target effective R** other than 1 (for example 0.5 for a firm margin), or a **population** to turn coverage into a head count. The second chart, **What if coverage changes?**, draws effective R against coverage with the R = 1 line.
+8. Download the table as CSV, or the report as an image, PDF or Word file.
 
 ## The formulas
 
@@ -46,7 +49,7 @@ To see the whole outbreak over time, use the [[epidemic-model|epidemic model sim
 - **Effective R:** R = R0 × (1 − c × E) for coverage c, assuming everyone else is susceptible.
 - **Highest R0 held below 1** at your coverage: 1 / (1 − c × E).
 
-These assume a well-mixed population: everyone equally likely to meet everyone else, immunity that lasts, and a vaccine that fully protects a share E of those who get it. Real populations mix unevenly (schools, households, cities), so pockets of low coverage can still have outbreaks above the average threshold. Prior infection also adds immunity, which these formulas leave out.
+These assume a well-mixed population: everyone equally likely to meet everyone else, immunity that lasts, and a vaccine that fully protects a share E of those who get it. Real populations mix unevenly (schools, households, cities), so pockets of low coverage can still have outbreaks above the average threshold. The main formulas leave out past infection; the option for it treats past infection as independent of vaccination, so the immune share is p + (1 − p) × c × E, and the coverage needed becomes ((1 − 1/R0) − p) ÷ ((1 − p) × E). Past infection protection varies by disease and fades, so take it from an official source. The comparison table ignores this option. For a target effective R, the immune share needed is 1 − target/R0.
 
 ## Worked example
 

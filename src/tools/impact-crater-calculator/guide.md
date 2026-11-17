@@ -12,7 +12,7 @@ ads: true
 order: 12
 icon: target
 works: offline
-updated: 2026-11-08
+updated: 2026-11-16
 related: [orbit-transfer-calculator, rocket-equation, mars-time, uncertainty-calculator]
 sources:
   - "Crater scaling: the equations of Collins, Melosh and Marcus (2005), Earth Impact Effects Program."
@@ -31,11 +31,13 @@ For the impactor's path and speed before it hits, use the [[orbit-transfer-calcu
 
 ## How to use it
 
-1. Choose **Crater from impactor** or **Impactor from crater**.
+1. Choose **Crater from impactor**, **Impactor from crater** or **Crater from energy**. The last one starts from an impact energy (kilotons or megatons of TNT, or joules), finds the size of the body that carries it at your speed and density, and gives the crater.
 2. Pick **where**: the Earth, the Moon or Mars. Gravity, and the size at which craters turn complex, change with the body.
 3. Pick the **ground** and the **impactor**: ice for comets, porous or dense rock for most asteroids, iron for metal ones.
 4. Type the impactor **diameter** in metres (or the crater diameter in km), the **speed** at impact and the **angle** above the ground.
-5. Or tap a quick example.
+5. Switch **Units** to US (feet, miles and mph) if you think that way. Your numbers convert and the same impact stays.
+6. Open **The same impact on the Earth, Moon and Mars** to compare the crater the same body would make on each world.
+7. Or tap a quick example.
 
 ## What each result means
 

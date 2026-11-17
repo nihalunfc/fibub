@@ -60,3 +60,21 @@ export function ppmFromCure(meatG: number, nitritePct: number, cureG: number): n
   if (!(nitritePct > 0 && nitritePct <= 100)) throw new Error('Nitrite in the cure must be more than 0 and at most 100 %.');
   return ((cureG * nitritePct) / 100 / meatG) * 1e6;
 }
+
+/** Weight in grams of one unit of the water units the brine page offers (US cup = 236.5882365 ml of water, about 1 g per ml). */
+export const WATER_UNITS: Record<string, number> = { g: 1, kg: 1000, ml: 1, l: 1000, oz: 28.349523125, lb: 453.59237, cup: 236.5882365 };
+export const toGrams = (x: number, unit: string) => x * (WATER_UNITS[unit] ?? 1);
+/**
+ * Salt (g) to stir into an existing brine to bring it up to a stronger percentage (of salt + water by weight).
+ * From (s0 + x) = t/100 × (W + x) with s0 = W × c/100: x = W (t − c) / (100 − t). Negative means the brine is already too strong
+ * (add water instead: see waterToDilute).
+ */
+export function saltToAdd(brineG: number, currentPct: number, targetPct: number): number {
+  if (!(targetPct < 100)) throw new Error('The target must be under 100 %.');
+  return (brineG * (targetPct - currentPct)) / (100 - targetPct);
+}
+/** Water (g) to add to a brine to dilute it from currentPct to a weaker targetPct: W × (c − t) / t. */
+export function waterToDilute(brineG: number, currentPct: number, targetPct: number): number {
+  if (!(targetPct > 0)) throw new Error('The target must be above 0 %.');
+  return (brineG * (currentPct - targetPct)) / targetPct;
+}

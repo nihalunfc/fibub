@@ -36,4 +36,19 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent('.hit .hi-err')).includes('Coverage'), 'herd: coverage over 100 % message');
   await set('.hi-c', '80');
   check(await page.isHidden('.hit .hi-err') && await page.isVisible('.hit .hi-out'), 'herd: recovers after a fix');
+  // More options: past infection, target R, population, sliders, working line, second chart.
+  await page.evaluate(() => document.querySelectorAll('.tool-ui details').forEach((d) => (d.open = true)));
+  check((await page.textContent('.hit .hi-work')).includes('Working: threshold = 1 − 1/3 = 66.7 %'), 'herd: working line');
+  check(await page.isVisible('.hit .hi-fig2') && (await page.getAttribute('.hit .hi-fig2', 'aria-label')).includes('Effective R against vaccine coverage'), 'herd: R against coverage chart');
+  await set('.hi-p', '20');
+  check((await big()).endsWith('vaccinate 64.8 %') && (await facts()).includes('Immune in total77.6 %') && (await facts()).includes('0.672'), `herd: past infection (${await big()})`);
+  await set('.hi-p', '0'); await set('.hi-t', '0.5');
+  check((await facts()).includes('Coverage for an effective R of 0.592.6 %'), 'herd: target R coverage');
+  await set('.hi-t', '1'); await set('.hi-pop', '50000');
+  { const f = await facts(); check(f.includes('37,038') && f.includes('40,000'), 'herd: people to vaccinate'); }
+  await set('.hi-pop', '-5');
+  check((await page.textContent('.hit .hi-err')).includes('Population'), 'herd: bad population message');
+  await set('.hi-pop', '');
+  await page.evaluate(() => { const sl = document.querySelector('.hit input[data-for=".hi-r0"]'); sl.value = '6'; sl.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(450);
+  check((await page.inputValue('.hit .hi-r0')) === '6' && (await big()).includes('83.3 %'), 'herd: slider drives R0');
 };

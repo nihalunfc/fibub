@@ -8,9 +8,11 @@ import Downloads from '../../components/Downloads.astro';
 <div class="ax ipc">
   <div class="ax-card">
     <div class="ax-grid">
-      <label>Molecule (neutral formula) <input class="ipc-in" value="C17H19NO3" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
-      <label>Ion <select class="ipc-ad"></select></label>
-      <label>Resolving power (m/Δm) <input class="ipc-res" inputmode="numeric" value="20000" /></label>
+      <label>Molecule (neutral formula) <input class="ipc-in" data-k="formula" value="C17H19NO3" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Ion <select class="ipc-ad" data-k="ion"></select></label>
+      <label>Resolving power (m/Δm) <input class="ipc-res" data-k="resolution" inputmode="numeric" value="20000" /></label>
+      <label>Instrument type <select class="ipc-rp"><option value="">My own number</option><option value="1000">Single quadrupole (about 1,000)</option><option value="20000" selected>Time-of-flight (about 20,000)</option><option value="60000">High-resolution TOF (about 60,000)</option><option value="140000">Orbitrap (about 140,000)</option><option value="1000000">FT-ICR (about 1,000,000)</option></select></label>
+      <label>Resolving power slider (100 to 1,000,000) <input class="ipc-rs" type="range" min="2" max="6" step="0.01" value="4.301" aria-label="Resolving power slider, logarithmic" /></label>
     </div>
     <div class="ax-row ipc-ex" style="margin-top:8px">
       <span class="ax-help" style="margin:0">Try</span>
@@ -23,7 +25,7 @@ import Downloads from '../../components/Downloads.astro';
     <p class="ax-help">Type the neutral molecule; the ion adds or removes the rest. Resolving power is your instrument's m/Δm at half height: about 1,000 for a single quadrupole, 20,000 to 60,000 for a time-of-flight, 100,000 and up for an Orbitrap or FT-ICR.</p>
     <p class="ax-err ipc-err" hidden></p>
     <div class="ipc-out">
-      <p class="ax-big ipc-big"></p>
+      <p class="ax-big ipc-big" aria-live="polite" data-k="result"></p>
       <dl class="ax-facts ipc-facts"></dl>
     </div>
   </div>
@@ -34,6 +36,7 @@ import Downloads from '../../components/Downloads.astro';
       <button type="button" data-m="unit" aria-pressed="true">By nominal mass</button>
       <button type="button" data-m="fine" aria-pressed="false">Fine structure</button>
     </div>
+    <label style="margin-top:10px">Hide table peaks below (% of the tallest, blank = default) <input class="ipc-min" inputmode="decimal" placeholder="e.g. 1" /></label>
     <canvas class="ax-fig ipc-fig" style="margin-top:10px"></canvas>
     <p class="ax-help ipc-fig-note"></p>
     <div class="ax-scroll"><table class="ipc-tab"></table></div>
@@ -93,6 +96,7 @@ import Downloads from '../../components/Downloads.astro';
       fact('Most abundant peak', `m/z ${top.mz.toFixed(4)}`, top === unit[0] ? 'the monoisotopic peak is the tallest' : `M+${unit.indexOf(top)} is taller than the monoisotopic peak, as for any large molecule`),
       fact('Average mass', `${(molarMass(ion) - ion.charge * ELECTRON).toFixed(4)}`, 'from standard atomic weights: what a low-resolution instrument centres on for big molecules'),
     ];
+    facts.push(fact('Nominal mass and mass defect', `${Math.round(mzMono * z)} and ${(mono - Math.round(mono)).toFixed(4)} u`, 'monoisotopic mass minus its whole-number mass'));
     if (unit[1]) { const c = ion.counts.get('C') ?? 0; facts.push(fact('M+1 ÷ M', `${(unit[1].abundance * 100 / unit[0].abundance).toFixed(1)} %`, c ? `about 1.1 % per carbon atom: ${c} carbons give about ${(c * 1.08).toFixed(0)} %` : '')); }
     if (unit[2] && unit[2].abundance > 5) facts.push(fact('M+2 ÷ M', `${(unit[2].abundance * 100 / unit[0].abundance).toFixed(1)} %`, 'a large M+2 is the mark of Cl (32 % per atom), Br (97 %), S (4.5 %) or a metal'));
     q('.ipc-facts').replaceChildren(...facts);
@@ -123,7 +127,7 @@ import Downloads from '../../components/Downloads.astro';
     const tb = q<HTMLTableElement>('.ipc-tab'); tb.replaceChildren();
     const hr = tb.createTHead().insertRow(); (mode === 'unit' ? ['Peak', 'm/z', 'Relative abundance (%)'] : ['m/z', 'Relative abundance (%)', 'Δ from monoisotopic (mu)']).forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
     const bd = tb.createTBody(), m0 = shown[0]?.mz ?? 0;
-    shown.filter((p) => p.abundance >= (mode === 'unit' ? 0.01 : 0.05)).slice(0, 60).forEach((p, i) => { const row = bd.insertRow(); (mode === 'unit' ? [i ? `M+${i}` : 'M', p.mz.toFixed(5), p.abundance.toFixed(2)] : [p.mz.toFixed(5), p.abundance.toFixed(3), ((p.mz - m0) * 1000).toFixed(2)]).forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j || mode === 'fine') td.style.textAlign = 'right'; }); });
+    shown.filter((p) => p.abundance >= (Number.isFinite(num(q<HTMLInputElement>('.ipc-min').value)) && num(q<HTMLInputElement>('.ipc-min').value) > 0 ? num(q<HTMLInputElement>('.ipc-min').value) : mode === 'unit' ? 0.01 : 0.05)).slice(0, 60).forEach((p, i) => { const row = bd.insertRow(); (mode === 'unit' ? [i ? `M+${i}` : 'M', p.mz.toFixed(5), p.abundance.toFixed(2)] : [p.mz.toFixed(5), p.abundance.toFixed(3), ((p.mz - m0) * 1000).toFixed(2)]).forEach((c, j) => { const td = row.insertCell(); td.textContent = c; if (j || mode === 'fine') td.style.textAlign = 'right'; }); });
   }
 
   function measured(): [number, number][] {
@@ -164,6 +168,10 @@ import Downloads from '../../components/Downloads.astro';
 
   q('.ipc-in').addEventListener('input', run); sel.addEventListener('change', run);
   q('.ipc-res').addEventListener('change', draw);
+  q('.ipc-res').addEventListener('input', () => { const r = num(q<HTMLInputElement>('.ipc-res').value); if (r >= 100) q<HTMLInputElement>('.ipc-rs').value = String(Math.min(6, Math.log10(r))); q<HTMLSelectElement>('.ipc-rp').value = ''; draw(); });
+  q('.ipc-rs').addEventListener('input', () => { q<HTMLInputElement>('.ipc-res').value = String(Math.round(10 ** Number(q<HTMLInputElement>('.ipc-rs').value))); q<HTMLSelectElement>('.ipc-rp').value = ''; draw(); });
+  q('.ipc-rp').addEventListener('change', () => { const v = q<HTMLSelectElement>('.ipc-rp').value; if (v) { q<HTMLInputElement>('.ipc-res').value = v; q<HTMLInputElement>('.ipc-rs').value = String(Math.log10(Number(v))); draw(); } });
+  q('.ipc-min').addEventListener('input', draw);
   q('.ipc-meas').addEventListener('input', () => { draw(); compare(); });
   root.querySelectorAll<HTMLButtonElement>('.ipc-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ipc-in').value = b.dataset.f!; run(); }));
   root.querySelectorAll<HTMLButtonElement>('.ipc-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as 'unit' | 'fine'; draw(); }));

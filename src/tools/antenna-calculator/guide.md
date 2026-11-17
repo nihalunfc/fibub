@@ -11,13 +11,14 @@ ads: true
 order: 632
 icon: ruler
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [link-budget-calculator, radio-telescope-calculator, wave-calculator, smith-chart, constellation-ber, waveguide-modes, skin-depth-calculator, pcb-trace-calculator]
 sources:
   - "Dipole and monopole: standard antenna theory (resonant half-wave dipole, image theory), for example Balanis, Antenna Theory: Analysis and Design, chapter 4."
   - "Microstrip patch: transmission-line model with Hammerstad's fringing extension, radiating-slot and mutual conductances and inset feed, as described in Balanis, Antenna Theory, chapter 14; checked against Balanis's worked examples and an independent scipy implementation."
   - "Yagi-Uda element lengths and spacings: widely quoted rules of thumb (in wavelengths), stated as approximate starting values, not taken from any one design table."
   - "Speed of light: exact SI value. Example values are made up by fibub."
+  - "Band presets: typical mid-band frequencies from the ITU Radio Regulations frequency allocations and common national band plans (cited from memory, not re-checked; confirm at the source). Allocations differ by country: check the official source."
 flow:
   - { icon: sliders, label: "Frequency" }
   - { icon: ruler, label: "Lengths" }
@@ -44,6 +45,8 @@ Match the antenna to its feed line with the [[smith-chart]], and check the whole
 3. **Dipole and monopole:** the **shortening factor** allows for the end effect: a real resonant wire is a little shorter than the free-space half wavelength. About 0.95 to 0.98 for thin wire is the usual starting point; thick tubes need less.
 4. **Patch:** type the board's **relative permittivity** εr and **thickness** h, and the **impedance** of the feed line you want to match (50 Ω is usual). Use the εr your laminate's maker gives at your frequency.
 5. **Yagi:** pick the number of directors. Every ratio (element lengths and spacings in wavelengths) can be changed.
+
+**More options.** "Band or service" fills in the frequency of a common band, such as the 2 m and 70 cm amateur bands, 433, 868 and 915 MHz licence-free bands, FM broadcast, GPS L1 and Wi-Fi 2.4 GHz channel 6; typing your own frequency switches it back. For dipoles and monopoles a small table shows the cut length at five frequencies from 5 % below to 5 % above yours, which helps when you want to cover a band, with a CSV download (the Yagi element table downloads the same way). A line of working shows the formula with your numbers. Under "More: find the frequency from a length I have", type the length of wire you already have and read the frequency it is cut for. Band frequencies are typical mid-band values; check your own country's allocation.
 
 ## Worked example
 

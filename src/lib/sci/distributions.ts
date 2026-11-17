@@ -966,3 +966,20 @@ export function plotRange(d: Dist, p: Params): [number, number] {
   if (!(b > a)) { a -= 1; b += 1; }
   return [a, b];
 }
+
+export type Tail = 'left' | 'right' | 'middle' | 'both';
+/**
+ * The value(s) x for a probability: left tail P(X ≤ x) = prob; right tail P(X ≥ x) ≈ prob (P(X > x) for continuous
+ * distributions); middle: the central interval holding prob; both: two tails that together hold prob, prob/2 each.
+ * Returns one value for a single tail and [low, high] for the other two. Whole-number distributions give the
+ * smallest k that reaches the probability, as quantile() does.
+ */
+export function valueForProbability(d: Dist, p: Params, prob: number, tail: Tail): number[] {
+  if (!(prob >= 0 && prob <= 1)) return [NaN];
+  if (tail === 'left') return [quantile(d, p, prob)];
+  if (tail === 'right') return [quantile(d, p, 1 - prob)];
+  if (tail === 'middle') return [quantile(d, p, (1 - prob) / 2), quantile(d, p, (1 + prob) / 2)];
+  return [quantile(d, p, prob / 2), quantile(d, p, 1 - prob / 2)];
+}
+/** z = (x − mean) / SD. */
+export const zScore = (x: number, mean: number, sd: number) => (x - mean) / sd;

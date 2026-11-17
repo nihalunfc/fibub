@@ -31,6 +31,7 @@ Ligations and assemblies work best when the pieces are mixed by **number of mole
 - **Amounts.** For each insert: fmol = vector fmol × ratio, then ng from the length. The vector's amount sets everything.
 - **Volumes.** µL of each fragment from its concentration, the buffer or master mix volume (total ÷ strength), the enzyme volume, and the water that fills the rest.
 - **Checks.** Whether the DNA fits in the room left, the most vector that would fit, and which fragments need less than 0.5 µL (hard to pipette accurately), with a dilution that brings them to at least 1 µL.
+- **Working.** A line under the answer shows how the vector's fmol follows from its ng and length, and how each insert follows from it.
 - **Other ratios.** The first insert's ng and µL at 1:1, 2:1, 3:1, 5:1, 7:1 and 10:1.
 
 Measure each fragment first with [[nucleic-acid-concentration|DNA, RNA and protein concentration]], and see the finished construct on a [[plasmid-map]].
@@ -38,8 +39,8 @@ Measure each fragment first with [[nucleic-acid-concentration|DNA, RNA and prote
 ## How to use it
 
 1. **Reaction.** Pick *Ligation* (10× buffer plus 1 µL ligase in 20 µL) or *Assembly* (2× master mix, enzyme included), or type your own total volume, buffer strength and enzyme volume.
-2. **Vector amount.** How many ng of vector you want in the reaction.
-3. **Fragments.** One row each: name, length in bp, concentration in ng/µL and molar ratio to the vector. The first row is the vector.
+2. **Vector amount.** How much vector you want in the reaction, in ng or, if your protocol gives it that way, in fmol (the tool converts using the vector's length).
+3. **Fragments.** One row each: name, length in bp, concentration in ng/µL and molar ratio to the vector. The first row is the vector. *Set every insert to one ratio* rewrites the ratio column to 1:1, 2:1, 3:1, 5:1 or 10:1 in one click.
 4. **Pipette.** Follow the table from the top: buffer, water, DNA, and the enzyme last.
 
 ## Worked example

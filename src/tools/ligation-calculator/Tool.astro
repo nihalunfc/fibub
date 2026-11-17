@@ -9,15 +9,16 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
   <div class="ax-card">
     <h2>Reaction</h2>
     <div class="ax-grid">
-      <label>Kind <select class="lg-kind">
+      <label>Kind <select class="lg-kind" data-k="kind">
         <option value="lig" selected>Ligation (10× buffer + ligase)</option>
         <option value="asm">Assembly (2× master mix, Gibson or HiFi style)</option>
         <option value="own">My own set-up</option>
       </select></label>
-      <label>Total volume (µL) <input class="lg-tot" inputmode="decimal" value="20" /></label>
+      <label>Total volume (µL) <input class="lg-tot" data-k="total" inputmode="decimal" value="20" /></label>
       <label>Buffer or master mix strength (×) <input class="lg-x" inputmode="decimal" value="10" /></label>
       <label>Enzyme volume (µL) <input class="lg-enz" inputmode="decimal" value="1" /></label>
-      <label>Vector amount (ng) <input class="lg-vng" inputmode="decimal" value="50" /></label>
+      <label>Vector amount <input class="lg-vng" data-k="vector" inputmode="decimal" value="50" /></label>
+      <label>Vector amount in <select class="lg-vu" data-k="vunit"><option value="ng" selected>ng</option><option value="fmol">fmol (femtomoles)</option></select></label>
     </div>
     <p class="ax-help">The buffer takes total ÷ strength (2 µL of a 10× buffer in 20 µL; 10 µL of a 2× master mix). Enzyme is the separate ligase volume (0 when it is in the master mix). Follow your kit's amounts where they differ.</p>
   </div>
@@ -27,12 +28,16 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
     <label>Name, length (bp), concentration (ng/µL) and molar ratio to the vector; the first row is the vector <textarea class="lg-data" rows="5" spellcheck="false">{frags}</textarea></label>
     <DataFile target=".lg-data" maxCols={6} maxRows={50} />
     <p class="ax-help">A ratio of 3 means three insert molecules per vector molecule (3:1). Molar amounts use the mass of linear double-stranded DNA of that length. Up to 50 fragments. The example is made up.</p>
+    <label>Set every insert to one ratio
+      <select class="lg-allr"><option value="">Keep the ratios in the table</option><option value="1">1:1</option><option value="2">2:1</option><option value="3">3:1 (usual for sticky ends)</option><option value="5">5:1</option><option value="10">10:1 (blunt ends or short inserts)</option></select></label>
+    <p class="ax-help">Picking one rewrites the ratio column. Sticky-end ligations often start at 3:1 and blunt ones higher; try a few and see which gives the most colonies.</p>
     <p class="ax-err lg-err" hidden></p>
   </div>
 
   <div class="ax-card lg-out">
     <h2>What to pipette</h2>
-    <p class="ax-big lg-big"></p>
+    <p class="ax-big lg-big" aria-live="polite" data-k="result"></p>
+    <p class="ax-help lg-work"></p>
     <dl class="ax-facts lg-facts"></dl>
     <div class="ax-scroll"><table class="lg-tab"></table></div>
     <canvas class="ax-fig lg-fig"></canvas>
@@ -46,7 +51,7 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
 </div>
 
 <script>
-  import { reaction, ngOf, type Frag } from '../../lib/sci/ligation';
+  import { reaction, ngOf, pmol, type Frag } from '../../lib/sci/ligation';
   import { OKABE_ITO } from '../../lib/sci/plot';
   import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
   import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
@@ -85,14 +90,15 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
     };
   }
 
+  const rr0 = (ng: number, bp: number) => pmol(ng, bp) * 1000;
   function calc() {
     const fail = (m: string) => { q('.lg-err').textContent = m; q('.lg-err').hidden = false; q('.lg-out').hidden = true; fig = null; sections = []; csvRows = []; };
     q('.lg-err').hidden = true;
-    const total = val('.lg-tot'), x = val('.lg-x'), enz = val('.lg-enz'), vng = val('.lg-vng');
+    const total = val('.lg-tot'), x = val('.lg-x'), enz = val('.lg-enz'), vraw = val('.lg-vng'), fm = q<HTMLSelectElement>('.lg-vu').value === 'fmol';
     if (!(total > 0 && total <= 1000)) return fail('Give the total volume in µL (above 0, up to 1,000).');
     if (!(x >= 1 && x <= 100)) return fail('Give the buffer strength as a number such as 10 (for 10×) or 2 (for 2×); 1 means no separate buffer volume.');
     if (!(enz >= 0 && enz < total)) return fail('Give the enzyme volume in µL (0 or more, less than the total).');
-    if (!(vng > 0 && vng <= 1e5)) return fail('Give the vector amount in ng (above 0).');
+    if (!(vraw > 0 && vraw <= 1e6)) return fail(`Give the vector amount in ${fm ? 'fmol' : 'ng'} (above 0).`);
     const rows = parseTable(q<HTMLTextAreaElement>('.lg-data').value).filter((r) => r.some((c) => c.trim() !== '')).filter((r) => r.slice(1).some((c) => isNum(c)) || r.every((c) => isNum(c)));
     if (rows.length < 2) return fail('Give the vector and at least one insert: name, length (bp), concentration (ng/µL), ratio.');
     if (rows.length > 50) return fail('Up to 50 fragments, please.');
@@ -105,6 +111,8 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
       if (i > 0 && !(ra > 0 && ra <= 100)) return fail(`${nm}: give the molar ratio to the vector (above 0, such as 3 for 3:1).`);
       frags.push({ name: nm, bp, conc: c, ratio: ra });
     }
+    const vng = fm ? ngOf(vraw / 1000, frags[0].bp) : vraw;
+    q('.lg-work').textContent = `Working: vector ${sg(vng, 4)} ng ÷ the molar mass of ${sg(frags[0].bp, 6)} bp of double-stranded DNA × 1000 = ${sg(rr0(vng, frags[0].bp), 3)} fmol; each insert = vector fmol × ratio, then ng = fmol × its length, µL = ng ÷ its concentration.`;
     const bufFrac = x === 1 ? 0 : 1 / x, rr = reaction(frags, vng, { total, bufferFraction: bufFrac, enzyme: enz });
     if (rr.room <= 0) return fail('The buffer and enzyme already fill the reaction. Raise the total volume.');
     q('.lg-out').hidden = false;
@@ -135,6 +143,12 @@ const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert 
     sections = [{ title: q('.lg-big').textContent!, facts: [...q('.lg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: trs, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
   }
 
+  q('.lg-allr').addEventListener('change', () => {
+    const v = q<HTMLSelectElement>('.lg-allr').value; if (!v) return;
+    const ta = q<HTMLTextAreaElement>('.lg-data'), lines = ta.value.split('\n');
+    ta.value = lines.map((l, i) => { if (i === 0 || !l.trim()) return l; const c = l.split(/[\t,;]/); const named = c.length > 3 || !isNum(c[0]); const idx = named ? 3 : 2; if (c.length <= idx) c.push(v); else c[idx] = v; return c.join(','); }).join('\n');
+    q('.lg-allr').dataset.done = '1';
+  });
   q('.lg-kind').addEventListener('change', () => { const p = PRESET[q<HTMLSelectElement>('.lg-kind').value]; if (p) { q<HTMLInputElement>('.lg-tot').value = p[0]; q<HTMLInputElement>('.lg-x').value = p[1]; q<HTMLInputElement>('.lg-enz').value = p[2]; } });
   ['.lg-tot', '.lg-x', '.lg-enz'].forEach((c) => q(c).addEventListener('input', () => { q<HTMLSelectElement>('.lg-kind').value = 'own'; }));
   let timer = 0;

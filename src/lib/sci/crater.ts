@@ -30,3 +30,13 @@ export function impactorFor(D: number, p: Omit<Impact, 'L'>) {
   for (let i = 0; i < 200; i++) { const mid = Math.sqrt(lo * hi); if (crater({ ...p, L: mid }).D < D) lo = mid; else hi = mid; }
   return Math.sqrt(lo * hi);
 }
+
+/** Diameter (m) of a sphere of density rhoI (kg/m³) that carries energy E (joules) at speed v (m/s). */
+export function diameterFromEnergy(E: number, v: number, rhoI: number) {
+  if (!(E > 0 && v > 0 && rhoI > 0)) throw new Error('Energy, speed and density must be above zero');
+  const mass = (2 * E) / (v * v);
+  return Math.cbrt((6 * mass) / (Math.PI * rhoI));
+}
+/** Energy units, in joules: kilotons and megatons of TNT (1 ton = 4.184 × 10⁹ J, the standard convention). */
+export const ENERGY_J: Record<string, number> = { kt: MT_TNT / 1000, Mt: MT_TNT, J: 1 };
+export const M_PER_FT = 0.3048, KM_PER_MILE = 1.609344, MPH_PER_KMS = 1000 / 0.44704;

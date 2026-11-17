@@ -127,3 +127,27 @@ export function zCurve(eos: Eos, g: Pick<Gas, 'Tc' | 'Pc' | 'w'>, T: number, Pma
   for (let i = 1; i <= n; i++) { const p = (Pmax * i) / n; P.push(p); Z.push(solveTP(eos, g, T, p).Z); }
   return { P, Z };
 }
+
+/** van der Waals constants from the critical point: a = 27 R² Tc² / (64 Pc) in Pa m⁶/mol², b = R Tc / (8 Pc) in m³/mol. */
+export function vdwConstants(Tc: number, Pc: number) {
+  return { a: (27 * R * R * Tc * Tc) / (64 * Pc), b: (R * Tc) / (8 * Pc) };
+}
+
+/**
+ * Pressure of n moles in a container of volume V (m³) at T for every equation, in Pa.
+ * Below the critical temperature, a volume between the saturated liquid and vapour volumes is a mixture of the two:
+ * the pressure there is the saturation pressure (twoPhase = true), not the equation's own loop.
+ * NaN means the volume per mole is smaller than the equation's own excluded volume b.
+ */
+export function containerPressures(g: Pick<Gas, 'Tc' | 'Pc' | 'w'>, T: number, n: number, V: number) {
+  if (!(n > 0 && V > 0 && T > 0)) throw new Error('Amount, volume and temperature must be above zero');
+  const Vm = V / n;
+  return EOS_LIST.map((e) => {
+    let P = e === 'ideal' ? (R * T) / Vm : pressure(e, g, T, Vm), twoPhase = false;
+    if (e !== 'ideal' && T < g.Tc) {
+      const s = psat(e, g, T);
+      if (s) { const VL = (s.ZL * R * T) / s.P, VV = (s.ZV * R * T) / s.P; if (Vm > VL && Vm < VV) { P = s.P; twoPhase = true; } }
+    }
+    return { eos: e, P, Z: (P * Vm) / (R * T), twoPhase };
+  });
+}

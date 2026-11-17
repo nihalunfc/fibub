@@ -11,20 +11,21 @@ import Downloads from '../../components/Downloads.astro';
       <button type="button" data-k="dipole" aria-pressed="true">Dipole</button><button type="button" data-k="monopole" aria-pressed="false">Monopole</button><button type="button" data-k="patch" aria-pressed="false">Patch</button><button type="button" data-k="yagi" aria-pressed="false">Yagi</button>
     </div>
     <div class="ax-grid" style="margin-top:12px">
-      <label>Frequency <input class="an-f" type="text" inputmode="decimal" value="145" /></label>
-      <label>Unit <select class="an-fu"><option value="1e3">kHz</option><option value="1e6" selected>MHz</option><option value="1e9">GHz</option></select></label>
-      <label>Show lengths in <select class="an-lu"><option value="si" selected>metres, cm, mm</option><option value="imp">feet and inches</option></select></label>
-      <label class="an-wire">Shortening factor <input class="an-k" type="text" inputmode="decimal" value="0.95" /></label>
-      <label class="an-p" hidden>Substrate relative permittivity εr <input class="an-er" type="text" inputmode="decimal" value="4.4" /></label>
-      <label class="an-p" hidden>Substrate thickness h (mm) <input class="an-h" type="text" inputmode="decimal" value="1.6" /></label>
-      <label class="an-p" hidden>Feed line impedance for the inset (Ω) <input class="an-z0" type="text" inputmode="decimal" value="50" /></label>
-      <label class="an-y" hidden>Directors <select class="an-nd"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></label>
-      <label class="an-y" hidden>Reflector length (λ) <input class="an-yr" type="text" inputmode="decimal" value="0.495" /></label>
-      <label class="an-y" hidden>Driven element (λ) <input class="an-yd" type="text" inputmode="decimal" value="0.473" /></label>
-      <label class="an-y" hidden>First director (λ) <input class="an-y1" type="text" inputmode="decimal" value="0.44" /></label>
-      <label class="an-y" hidden>Each next director shorter by (λ) <input class="an-yt" type="text" inputmode="decimal" value="0.005" /></label>
-      <label class="an-y" hidden>Reflector to driven spacing (λ) <input class="an-ysr" type="text" inputmode="decimal" value="0.2" /></label>
-      <label class="an-y" hidden>Director spacing (λ) <input class="an-ysd" type="text" inputmode="decimal" value="0.25" /></label>
+      <label>Band or service <select data-k="pre" class="an-pre"><option value="">My own frequency</option><option value="7.1">40 m amateur band, 7.1 MHz</option><option value="14.2">20 m amateur band, 14.2 MHz</option><option value="27.185">CB radio (27 MHz), 27.185 MHz</option><option value="28.5">10 m amateur band, 28.5 MHz</option><option value="98">FM broadcast, 98 MHz</option><option value="145">2 m amateur band, 145 MHz</option><option value="433.92">433 MHz ISM band, 433.92 MHz</option><option value="435">70 cm amateur band, 435 MHz</option><option value="868">868 MHz ISM band, 868 MHz</option><option value="915">915 MHz ISM band, 915 MHz</option><option value="1575.42">GPS L1, 1575.42 MHz</option><option value="2437">Wi-Fi 2.4 GHz, channel 6, 2437 MHz</option></select></label>
+      <label>Frequency <input data-k="f" class="an-f" type="text" inputmode="decimal" value="145" /></label>
+      <label>Unit <select data-k="fu" class="an-fu"><option value="1e3">kHz</option><option value="1e6" selected>MHz</option><option value="1e9">GHz</option></select></label>
+      <label>Show lengths in <select data-k="lu" class="an-lu"><option value="si" selected>metres, cm, mm</option><option value="imp">feet and inches</option></select></label>
+      <label class="an-wire">Shortening factor <input data-k="k" class="an-k" type="text" inputmode="decimal" value="0.95" /></label>
+      <label class="an-p" hidden>Substrate relative permittivity εr <input data-k="er" class="an-er" type="text" inputmode="decimal" value="4.4" /></label>
+      <label class="an-p" hidden>Substrate thickness h (mm) <input data-k="h" class="an-h" type="text" inputmode="decimal" value="1.6" /></label>
+      <label class="an-p" hidden>Feed line impedance for the inset (Ω) <input data-k="z0" class="an-z0" type="text" inputmode="decimal" value="50" /></label>
+      <label class="an-y" hidden>Directors <select data-k="nd" class="an-nd"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></label>
+      <label class="an-y" hidden>Reflector length (λ) <input data-k="yr" class="an-yr" type="text" inputmode="decimal" value="0.495" /></label>
+      <label class="an-y" hidden>Driven element (λ) <input data-k="yd" class="an-yd" type="text" inputmode="decimal" value="0.473" /></label>
+      <label class="an-y" hidden>First director (λ) <input data-k="y1" class="an-y1" type="text" inputmode="decimal" value="0.44" /></label>
+      <label class="an-y" hidden>Each next director shorter by (λ) <input data-k="yt" class="an-yt" type="text" inputmode="decimal" value="0.005" /></label>
+      <label class="an-y" hidden>Reflector to driven spacing (λ) <input data-k="ysr" class="an-ysr" type="text" inputmode="decimal" value="0.2" /></label>
+      <label class="an-y" hidden>Director spacing (λ) <input data-k="ysd" class="an-ysd" type="text" inputmode="decimal" value="0.25" /></label>
     </div>
     <p class="ax-help an-help"></p>
     <p class="ax-err an-err" hidden></p>
@@ -32,10 +33,16 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card an-out">
     <h2 class="an-title">Result</h2>
-    <p class="ax-big an-big"></p>
+    <p class="ax-big an-big" aria-live="polite"></p>
+    <p class="ax-help an-work"></p>
     <dl class="ax-facts an-facts"></dl>
     <canvas class="ax-fig an-fig" style="margin-top:12px"></canvas>
     <div class="ax-scroll an-tabw" hidden><table class="an-tab"></table></div>
+    <div class="ax-row an-csvw" style="margin-top:8px" hidden><button type="button" class="btn secondary small an-csv">Download the table (CSV)</button></div>
+    <details class="an-rev" style="margin-top:10px"><summary>More: find the frequency from a length I have</summary>
+      <div class="ax-grid" style="margin-top:8px"><label>Cut length of the whole wire or whip (cm) <input data-k="len" class="an-len" type="text" inputmode="decimal" placeholder="for example 98" /></label></div>
+      <p class="ax-help an-revout" aria-live="polite"></p>
+    </details>
     <h3 style="margin:14px 0 6px">Formulas</h3>
     <ul class="an-form"></ul>
     <p class="ax-help">For study and planning. Real antennas are affected by element thickness, nearby objects, the feed and the ground; cut a little long, measure (with an antenna analyser or VNA) and trim. The example values are made up.</p>
@@ -45,8 +52,8 @@ import Downloads from '../../components/Downloads.astro';
 
 <script>
   import { dipole, monopole, patch, yagi, wavelength } from '../../lib/sci/eng-antenna';
-  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
-  import { num, sig } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
 
   const root = document.querySelector<HTMLElement>('.anc')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
@@ -55,7 +62,7 @@ import Downloads from '../../components/Downloads.astro';
   const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
   const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
   const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
-  let kind = 'dipole', fig: Figure | null = null, report: Section[] = [];
+  let kind = 'dipole', fig: Figure | null = null, report: Section[] = [], csvRows: string[][] = [];
 
   /** A length in metres, written in the chosen units. */
   const len = (m: number) => {
@@ -76,13 +83,22 @@ import Downloads from '../../components/Downloads.astro';
       yagi: 'A Yagi-Uda beam: one driven element, a longer reflector behind and shorter directors in front. The starting values are common rules of thumb (in wavelengths); a real design is tuned with a modelling program such as NEC, as lengths also depend on element thickness and how the elements are mounted on the boom.',
     }[kind]!;
     const err = q('.an-err'), out = q('.an-out');
-    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    q('.an-rev').hidden = !(kind === 'dipole' || kind === 'monopole');
     const f = val('.an-f') * +sel('.an-fu');
     if (!(f > 0)) return fail('Give the frequency (more than 0).');
     if (f < 1e3 || f > 3e12) return fail('Give a frequency between 1 kHz and 3,000 GHz.');
     const lam = wavelength(f);
     let facts: HTMLElement[] = [], forms: string[] = [], big = '', title = '';
-    q('.an-tabw').hidden = true;
+    q('.an-tabw').hidden = true; q('.an-csvw').hidden = true; q('.an-work').textContent = ''; csvRows = [];
+    const bandTable = (fn: (g: number) => number, head: string[], extra?: (L: number) => string[]) => {
+      const rows = [0.95, 0.975, 1, 1.025, 1.05].map((x) => { const L = fn(f * x); return [freqTxt(f * x), len(L), ...(extra ? extra(L) : [])]; });
+      const tab = q<HTMLTableElement>('.an-tab'); tab.replaceChildren();
+      const tr = (c: string[], th = false) => { const r = document.createElement('tr'); c.forEach((x, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; if (j) e.className = 'r'; r.append(e); }); return r; };
+      tab.append(tr(head, true), ...rows.map((r) => tr(r))); q('.an-tabw').hidden = false;
+      return { head, rows };
+    };
+    let bt: { head: string[]; rows: string[][] } | undefined;
     if (kind === 'dipole' || kind === 'monopole') {
       const k = val('.an-k');
       if (!(k >= 0.5 && k <= 1)) return fail('Give a shortening factor between 0.5 and 1 (0.95 is a usual start).');
@@ -92,12 +108,16 @@ import Downloads from '../../components/Downloads.astro';
         facts = [fact('Wavelength λ', len(d.lambda), `c / f at ${freqTxt(f)}`), fact('Free-space λ/2', len(d.half), 'before the shortening factor'), fact('Cut length', len(d.length), `λ/2 × ${sg(k, 3)}; two legs of ${len(d.leg)} with a small gap at the feed`), fact('Feed resistance', 'about 73 Ω', 'thin, resonant dipole in free space; lower close to the ground'), fact('Gain', '2.15 dBi', 'ideal half-wave dipole')];
         forms = ['λ = c / f, with c = 299,792,458 m/s', 'L = k × λ / 2 (k: shortening factor)', 'Each leg = L / 2'];
         fig = drawWire(d.length, true);
+        q('.an-work').textContent = `Working: L = k × λ / 2 = ${sg(k, 3)} × ${len(d.lambda)} ÷ 2 = ${len(d.length)}.`;
+        bt = bandTable((g) => dipole(g, k).length, ['Frequency', 'Cut length', 'Each side'], (L) => [len(L / 2)]);
       } else {
         const m = monopole(f, k);
         title = 'Quarter-wave monopole'; big = `Element length ${len(m.length)}`;
         facts = [fact('Wavelength λ', len(m.lambda), `c / f at ${freqTxt(f)}`), fact('Free-space λ/4', len(m.quarter), 'before the shortening factor'), fact('Cut length', len(m.length), `λ/4 × ${sg(k, 3)}`), fact('Radials or ground plane', `at least ${len(m.quarter)} across`, 'radials about λ/4 long; sloping them down raises the feed resistance towards 50 Ω'), fact('Feed resistance', 'about 37 Ω', 'over a perfect ground plane (half the dipole value)'), fact('Gain', '5.15 dBi', 'ideal, over an infinite ground plane')];
         forms = ['λ = c / f', 'L = k × λ / 4', 'R ≈ 73 Ω / 2 ≈ 36.5 Ω (image theory)'];
         fig = drawWire(m.length, false);
+        q('.an-work').textContent = `Working: L = k × λ / 4 = ${sg(k, 3)} × ${len(m.lambda)} ÷ 4 = ${len(m.length)}.`;
+        bt = bandTable((g) => monopole(g, k).length, ['Frequency', 'Cut length']);
       }
     } else if (kind === 'patch') {
       const er = val('.an-er'), h = val('.an-h') / 1000, z0 = val('.an-z0');
@@ -137,14 +157,25 @@ import Downloads from '../../components/Downloads.astro';
       return;
     }
     err.hidden = true; out.hidden = false;
-    finish(title, big, facts, forms);
+    finish(title, big, facts, forms, bt);
   }
   function finish(title: string, big: string, facts: HTMLElement[], forms: string[], table?: { head: string[]; rows: string[][] }) {
     q('.an-title').textContent = title; q('.an-big').textContent = big;
+    if (table) { csvRows = [table.head, ...table.rows]; q('.an-csvw').hidden = false; }
+    reverse();
     q('.an-facts').replaceChildren(...facts);
     q('.an-form').replaceChildren(...forms.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
     paint(q<HTMLCanvasElement>('.an-fig'), fig!);
     report = [{ title: `${title}: ${big}`, facts: factPairs(facts), figure: fig!, ...(table ? { table } : {}), text: forms }];
+  }
+
+  /** Frequency a given cut length resonates at, with the shortening factor. */
+  function reverse() {
+    const out = q('.an-revout'), L = val('.an-len') / 100, k = val('.an-k');
+    if (!q<HTMLInputElement>('.an-len').value.trim()) { out.textContent = 'Type the length of wire you have, and this gives the frequency it is cut for.'; return; }
+    if (!(L > 0) || !(k >= 0.5 && k <= 1)) { out.textContent = 'Give a length above 0 in cm, and a shortening factor between 0.5 and 1.'; return; }
+    const g = (k * 299792458) / ((kind === 'dipole' ? 2 : 4) * L);
+    out.textContent = `A ${len(L)} ${kind === 'dipole' ? 'dipole' : 'monopole'} is cut for ${freqTxt(g)} (f = k × c ÷ ${kind === 'dipole' ? '2' : '4'}L, with k = ${sg(k, 3)}).`;
   }
 
   // Drawings (not to scale for the wires; to scale for the patch and the Yagi).
@@ -205,6 +236,9 @@ import Downloads from '../../components/Downloads.astro';
 
   root.querySelectorAll<HTMLButtonElement>('.an-kind button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.k!; if (kind === 'patch' && sel('.an-fu') !== '1e9') { q<HTMLInputElement>('.an-f').value = '2.45'; q<HTMLSelectElement>('.an-fu').value = '1e9'; } calc(); }));
   root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.an-pre').addEventListener('change', () => { const v = sel('.an-pre'); if (!v) return; q<HTMLInputElement>('.an-f').value = v; q<HTMLSelectElement>('.an-fu').value = '1e6'; calc(); });
+  for (const c of ['.an-f', '.an-fu']) q(c).addEventListener('input', () => { q<HTMLSelectElement>('.an-pre').value = ''; });
+  q('.an-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), `antenna-${kind}.csv`, 'text/csv'); });
   document.addEventListener('fibub:theme', () => { if (fig && report.length) paint(q<HTMLCanvasElement>('.an-fig'), fig); });
   calc();
   wireDownloads(q('.dl'), () => ({ title: 'Antenna calculator', subtitle: q('.an-big').textContent ?? '', file: `antenna-${kind}`, sections: report }));

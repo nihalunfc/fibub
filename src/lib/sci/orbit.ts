@@ -48,7 +48,7 @@ export function hohmann(mu: number, r1: number, r2: number) {
   // Where the target must be at departure: it moves (π − lead) while the craft goes half way round.
   const tof = period(mu, a) / 2, lead = Math.PI - (2 * Math.PI * tof) / period(mu, r2);
   const T1 = period(mu, r1), T2 = period(mu, r2), synodic = 1 / Math.abs(1 / T1 - 1 / T2);
-  return { a, e: Math.abs(r2 - r1) / (r2 + r1), v1, v2, dv1, dv2, dv: dv1 + dv2, tof, lead, T1, T2, synodic };
+  return { a, e: Math.abs(r2 - r1) / (r2 + r1), v1, v2, vT1: vp, vT2: va, dv1, dv2, dv: dv1 + dv2, tof, lead, T1, T2, synodic };
 }
 
 /** Bi-elliptic transfer through an intermediate apoapsis rb (rb ≥ both radii). */
@@ -60,3 +60,15 @@ export function biElliptic(mu: number, r1: number, r2: number, rb: number) {
   const dv3 = Math.abs(Math.sqrt(mu * (2 / r2 - 1 / a2)) - vc(mu, r2));
   return { dv1, dv2, dv3, dv: dv1 + dv2 + dv3, tof: period(mu, a1) / 2 + period(mu, a2) / 2 };
 }
+
+/** Δv (km/s) for turning a speed v through an angle (degrees) with no change of speed: 2 v sin(Δi/2). */
+export const planeChangeDv = (v: number, degrees: number) => 2 * v * Math.sin((degrees * Math.PI) / 360);
+/** Δv (km/s) of one burn that goes from speed vFrom to vTo while also turning the orbit plane by degrees (law of cosines). */
+export const combinedBurnDv = (vFrom: number, vTo: number, degrees: number) => Math.sqrt(Math.max(0, vFrom * vFrom + vTo * vTo - 2 * vFrom * vTo * Math.cos((degrees * Math.PI) / 180)));
+
+export const SPEED_UNITS: Record<string, { name: string; perKms: number }> = {
+  kms: { name: 'km/s', perKms: 1 },
+  ms: { name: 'm/s', perKms: 1000 },
+  mph: { name: 'mph', perKms: 1000 / 0.44704 },
+};
+export const KM_PER_MILE = 1.609344;

@@ -27,5 +27,22 @@ export default async ({ page, check, BASE }) => {
   await page.fill(R + '.pc-er', '4.2'); await page.selectOption(R + '.pc-mode', 'w'); await page.fill(R + '.pc-z', '500'); await page.waitForTimeout(100);
   check((await t('.pc-err2')).includes('No width'), 'pcb: unreachable impedance message');
   await page.fill(R + '.pc-i', '2'); await page.waitForTimeout(100);
+  // New options: current for a width, custom copper, temperature-rise table, working line, CSV.
+  await page.selectOption(R + '.pc-u', 'mm'); await page.selectOption(R + '.pc-layer', 'outer'); await page.fill(R + '.pc-dt', '10');
+  await page.selectOption(R + '.pc-find', 'i'); await page.fill(R + '.pc-wd', '0.8'); await page.waitForTimeout(100);
+  check(await page.isHidden(R + '.pc-iw') && (await t('.pc-big1')) === 'Up to 2.03 A for a 10 °C rise', `pcb: current for a 0.8 mm trace (${await t('.pc-big1')})`);
+  check((await t('.pc-work')).includes('43.14 mil²') && (await t('.pc-facts1')).includes('1.01 A'), 'pcb: working line and inner-layer current');
+  { const tb = await t('.pc-tab'); check(tb.includes('2.75') && tb.includes('1.37') && tb.includes('Outer layer (A)'), 'pcb: temperature-rise table (current)'); }
+  await page.fill(R + '.pc-wd', '0'); await page.waitForTimeout(100);
+  check((await t('.pc-err1')).includes('width'), 'pcb: bad width message');
+  await page.fill(R + '.pc-wd', '0.8');
+  await page.selectOption(R + '.pc-find', 'w'); await page.selectOption(R + '.pc-oz', 'custom'); await page.fill(R + '.pc-cu', '70'); await page.waitForTimeout(100);
+  check((await t('.pc-big1')) === 'At least 0.391 mm wide (15.4 mil)', `pcb: custom 70 µm copper (${await t('.pc-big1')})`);
+  { const tb = await t('.pc-tab'); check(tb.includes('Outer width (mm)') && tb.includes('0.391'), 'pcb: temperature-rise table (width)'); }
+  await page.fill(R + '.pc-cu', '0'); await page.waitForTimeout(100);
+  check((await t('.pc-err1')).includes('thickness'), 'pcb: bad copper thickness message');
+  await page.selectOption(R + '.pc-oz', '1'); await page.waitForTimeout(100);
+  await page.evaluate(() => { document.querySelector('.pc-more').open = true; });
+  { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.pc-csv')]); check((await d.suggestedFilename()) === 'pcb-trace-table.csv', 'pcb: table CSV'); }
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + '.dl [data-f=png]')]); check((await d.suggestedFilename()).endsWith('.png'), 'pcb: image download'); }
 };

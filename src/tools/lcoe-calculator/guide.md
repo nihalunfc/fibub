@@ -11,7 +11,7 @@ ads: true
 order: 676
 icon: currency
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [home-battery-sizing, load-flow, lca-compare, solar-pv-yield, wind-energy-yield, npv-irr-calculator, inflation-calculator, carbon-footprint]
 sources:
   - "Own code: the standard LCOE definition (present value of lifetime costs divided by present value of lifetime energy) and the capital recovery factor, as found in energy economics textbooks."
@@ -48,6 +48,8 @@ Get the yearly energy from the [[solar-pv-yield|solar PV yield estimator]] or th
 5. **Discount rate**: use a real rate if costs are in today's money, or a nominal rate together with a cost rise equal to inflation.
 
 Energy and running costs are counted at the end of each year; there is no build period, tax, subsidy, debt structure or end-of-life cost.
+
+**More options.** Under the results a line of working shows the division behind the answer (present value of costs ÷ present value of energy). Open "More: what would it take to reach a target price": type a price per MWh, choose capital cost, capacity factor, discount rate, fixed O&M, variable O&M or fuel price, and the calculator finds the value of that one input that gets there, with the others held; it says so plainly when no value can. The same panel shows LCOE for discount rates 2 points either side of yours against capacity factors 20 % either side, with a CSV download.
 
 ## Worked example
 

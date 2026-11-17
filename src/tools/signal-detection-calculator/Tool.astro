@@ -9,7 +9,7 @@ import DataFile from '../../components/DataFile.astro';
   <div class="ax-card">
     <h2>What data do you have?</h2>
     <div class="ax-seg sd-mode" role="group" aria-label="Data">
-      <button type="button" data-m="one" aria-pressed="true">One table</button><button type="button" data-m="many" aria-pressed="false">Many people</button><button type="button" data-m="roc" aria-pressed="false">Ratings (ROC)</button>
+      <button type="button" data-m="one" aria-pressed="true">One table</button><button type="button" data-m="rates" aria-pressed="false">From rates</button><button type="button" data-m="many" aria-pressed="false">Many people</button><button type="button" data-m="roc" aria-pressed="false">Ratings (ROC)</button>
     </div>
     <p class="ax-help sd-what"></p>
 
@@ -21,6 +21,21 @@ import DataFile from '../../components/DataFile.astro';
         <label>Correct rejections <input class="sd-c" inputmode="numeric" value="38" /></label>
       </div>
       <p class="ax-help">Hits and misses are the signal trials (the thing was there); false alarms and correct rejections are the noise trials (it was not). Made-up example.</p>
+    </div>
+
+    <div class="sd-p" data-m="rates" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Hit rate (%) <input class="sd-rh" data-k="hit-rate" inputmode="decimal" value="84" /></label>
+        <label>False-alarm rate (%) <input class="sd-rf" data-k="fa-rate" inputmode="decimal" value="24" /></label>
+      </div>
+      <details class="sd-rmore" style="margin-top:8px"><summary>More options: number of trials</summary>
+        <div class="ax-grid">
+          <label>Signal trials (optional) <input class="sd-rns" data-k="signal-trials" inputmode="numeric" value="" placeholder="e.g. 50" /></label>
+          <label>Noise trials (optional) <input class="sd-rnn" data-k="noise-trials" inputmode="numeric" value="" placeholder="e.g. 50" /></label>
+        </div>
+        <p class="ax-help">With both trial counts the page also gives a 95 % interval for d′ and can correct rates of 0 % or 100 % (counts are the rate × trials, rounded). Without them, rates of exactly 0 % or 100 % cannot be used.</p>
+      </details>
+      <p class="ax-help">Type the hit rate and false-alarm rate as percentages (a value like 0.84 is read as 0.84 %, so write 84 for 84 %). Made-up example.</p>
     </div>
 
     <div class="sd-p" data-m="many" hidden>
@@ -64,7 +79,7 @@ P05	28	22	14	36</textarea></label>
 
   <div class="ax-card sd-out" hidden>
     <h2 class="sd-hd"></h2>
-    <p class="ax-big sd-big"></p>
+    <p class="ax-big sd-big" data-k="result" aria-live="polite"></p>
     <dl class="ax-facts sd-facts"></dl>
     <canvas class="ax-fig sd-fig" style="margin-top:14px"></canvas>
     <canvas class="ax-fig sd-fig2" style="margin-top:14px" hidden></canvas>
@@ -82,7 +97,7 @@ P05	28	22	14	36</textarea></label>
 
 <script>
   import { parseTable, num, csv } from '../../lib/sci/num';
-  import { yesNo, roc, rocCurve, type Correction, type SdtResult } from '../../lib/sci/sdt';
+  import { yesNo, fromRates, isoROC, roc, rocCurve, type Correction, type SdtResult } from '../../lib/sci/sdt';
   import { chartFigure } from '../../lib/sci/plot';
   import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
 
@@ -91,6 +106,7 @@ P05	28	22	14	36</textarea></label>
   let mode = 'one', report: Section[] = [], figs: (Figure | null)[] = [null, null], csvRows: (string | number)[][] = [];
   const WHAT: Record<string, string> = {
     one: 'Sensitivity (d′) and response bias (c, β) from one table of yes/no answers.',
+    rates: 'd′, c and β straight from a hit rate and a false-alarm rate, when you do not have the counts.',
     many: 'd′, c and β for each person in a study, ready to analyse further.',
     roc: 'An ROC curve from confidence ratings: area under the curve (Az) and the slope of the z-ROC, which tests whether signal and noise spread equally.',
   };
@@ -149,11 +165,62 @@ P05	28	22	14	36</textarea></label>
       ['Correction', r.corrected ? CORR[corr()] : 'none needed'],
     ];
     facts(fl);
-    figs = [distFigure(r), null];
+    figs = [distFigure(r), rocFigure(r)];
     q('.sd-tw').hidden = true;
     csvRows = [['measure', 'value'], ['hits', t.hits], ['misses', t.misses], ['false_alarms', t.fas], ['correct_rejections', t.crs], ['hit_rate', r.H], ['fa_rate', r.F], ['z_hit', r.zH], ['z_fa', r.zF], ['d_prime', r.dprime], ['d_prime_se', r.se], ['c', r.c], ['beta', r.beta], ['ln_beta', r.lnBeta], ['A_prime', r.aPrime], ['B_double_prime', r.bDoublePrime], ['correction', corr()]];
     q('.sd-note').textContent = `z(H) = ${f3(r.zH)}, z(F) = ${f3(r.zF)}. d′ = z(H) − z(F); c = −(z(H) + z(F)) / 2; ln β = d′ × c. c = 0 is neutral, positive c means a cautious observer. The interval uses the large-sample variance of d′ (Gourevitch and Galanter), so it is rough with few trials. A′ and B″ make no normal-distribution assumption (Grier's formulas).`;
-    return [{ title: 'Signal detection measures', facts: [['d′', f3(r.dprime)], ...fl], figure: figs[0]! }];
+    return [{ title: 'Signal detection measures', facts: [['d′', f3(r.dprime)], ...fl], figure: figs[0]! }, { title: 'ROC curve', figure: figs[1]! }];
+  }
+
+  function rocFigure(r: SdtResult): Figure {
+    const iso = isoROC(Number.isFinite(r.dprime) ? r.dprime : 0);
+    return chartFigure({ h: 320, xLabel: 'False-alarm rate', yLabel: 'Hit rate', xMin: 0, xMax: 1, yMin: 0, yMax: 1, legend: 'inside', series: [
+      { name: `Equal-variance ROC, d′ = ${f3(r.dprime)}`, x: iso.F, y: iso.H, mode: 'line', width: 2 },
+      { name: 'Your point', x: [r.F], y: [r.H], mode: 'points' },
+      { name: 'Chance', x: [0, 1], y: [0, 1], mode: 'line', dash: [4, 4], width: 1 },
+    ] }, `ROC curve for d′ ${f3(r.dprime)} with your hit rate ${pct(r.H)} and false-alarm rate ${pct(r.F)}.`);
+  }
+
+  function runRates(): Section[] {
+    const rate = (c: string, what: string) => {
+      const s = q<HTMLInputElement>(c).value.trim(), v = num(s.replace('%', ''));
+      if (s === '' || !Number.isFinite(v)) throw new Error(`Enter a number for the ${what}.`);
+      if (v < 0 || v > 100) throw new Error(`The ${what} is a percentage from 0 to 100.`);
+      return v / 100;
+    };
+    const H0 = rate('.sd-rh', 'hit rate'), F0 = rate('.sd-rf', 'false-alarm rate');
+    const nsS = q<HTMLInputElement>('.sd-rns').value.trim(), nnS = q<HTMLInputElement>('.sd-rnn').value.trim();
+    let r: SdtResult, ci = false;
+    if (nsS !== '' || nnS !== '') {
+      const nS = num(nsS), nN = num(nnS);
+      if (!(nS >= 1 && Number.isInteger(nS)) || !(nN >= 1 && Number.isInteger(nN))) throw new Error('Give both trial counts as whole numbers of 1 or more, or leave both blank.');
+      const h = Math.round(H0 * nS), f = Math.round(F0 * nN);
+      r = yesNo({ hits: h, misses: nS - h, fas: f, crs: nN - f }, corr()); ci = true;
+    } else {
+      if (H0 <= 0 || H0 >= 1 || F0 <= 0 || F0 >= 1) throw new Error('A rate of 0 % or 100 % gives an infinite d′. Give the trial counts under "More options" so a correction can be used, or type a rate between 0 and 100.');
+      r = fromRates(H0, F0);
+    }
+    q('.sd-hd').textContent = 'Signal detection measures';
+    if (!Number.isFinite(r.dprime)) throw new Error('d′ is infinite without a correction. Choose "1/2N" or "log-linear" above.');
+    q('.sd-big').textContent = `d′ = ${f3(r.dprime)}`;
+    const fl: [string, string][] = [
+      ...(ci ? [['95 % interval for d′', `${f3(r.ci[0])} to ${f3(r.ci[1])}`] as [string, string]] : []),
+      ['Working', `z(${pct(r.H)}) − z(${pct(r.F)}) = ${f3(r.zH)} − ${f3(r.zF)} = ${f3(r.dprime)}`],
+      ['Criterion c', `${f3(r.c)} (${biasWord(r.c)})`],
+      ['β (likelihood ratio)', f3(r.beta)],
+      ['ln β', f3(r.lnBeta)],
+      ['Relative criterion c′ = c/d′', f3(r.cRel)],
+      ['A′ (non-parametric)', f3(r.aPrime)],
+      ['B″ (non-parametric bias)', f3(r.bDoublePrime)],
+      ['Az if variances are equal', f3(r.azEqual)],
+      [ci ? 'Percent correct' : 'Percent correct (equal trials)', pct(r.pc)],
+    ];
+    facts(fl);
+    figs = [distFigure(r), rocFigure(r)];
+    q('.sd-tw').hidden = true;
+    csvRows = [['measure', 'value'], ['hit_rate', r.H], ['fa_rate', r.F], ['z_hit', r.zH], ['z_fa', r.zF], ['d_prime', r.dprime], ['c', r.c], ['beta', r.beta], ['ln_beta', r.lnBeta], ['A_prime', r.aPrime], ['B_double_prime', r.bDoublePrime]];
+    q('.sd-note').textContent = 'd′ = z(H) − z(F); c = −(z(H) + z(F)) / 2; ln β = d′ × c. z is the inverse of the standard normal curve. ' + (ci ? '' : 'With rates only there is no interval: it needs the number of trials. ') + 'A′ and B″ make no normal-distribution assumption (Grier).';
+    return [{ title: 'Signal detection measures', facts: [['d′', f3(r.dprime)], ...fl], figure: figs[0]! }, { title: 'ROC curve', figure: figs[1]! }];
   }
 
   function runMany(): Section[] {
@@ -250,7 +317,7 @@ P05	28	22	14	36</textarea></label>
     const err = q('.sd-err');
     try {
       figs = [null, null];
-      report = mode === 'one' ? runOne() : mode === 'many' ? runMany() : runRoc();
+      report = mode === 'one' ? runOne() : mode === 'rates' ? runRates() : mode === 'many' ? runMany() : runRoc();
       err.hidden = true; q('.sd-out').hidden = false; draw();
     } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.sd-out').hidden = true; report = []; }
   }

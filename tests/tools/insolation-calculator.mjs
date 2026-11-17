@@ -51,4 +51,13 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill('.isl .isl-lat', '65'); await page.dispatchEvent('.isl .isl-lat', 'input'); await page.waitForTimeout(500);
   await page.click('.isl .isl-today');
   check(await page.isVisible('.isl .isl-out') && await page.isHidden('.isl .isl-terr'), 'insolation: back to good input');
+  // Energy units: 477.9 W/m² x 0.0864 = 41.29 MJ/m2/day, x 0.024 = 11.47 kWh/m2/day
+  check(/^Daily mean \(MJ\/m² per day\) \| 41\.[23]\d \|/.test(await row(17)) && /^Daily mean \(kWh\/m² per day\) \| 11\.[45]\d\d \|/.test(await row(18)), 'insolation: daily mean in MJ and kWh');
+  // Place preset and season buttons 
+  await page.selectOption('.isl .isl-place', '0'); await page.waitForTimeout(500);
+  check((await page.inputValue('.isl .isl-lat')) === '0', 'insolation: place preset fills latitude');
+  await page.click('.isl .isl-season [data-l="90"]'); await page.waitForTimeout(600);
+  check((await page.inputValue('.isl .isl-t')) === '90' && (await page.inputValue('.isl .isl-mode')) === 'lam' && (await txt('.isl .isl-big')).startsWith('0°, λ = 90°'), 'insolation: June solstice button');
+  await page.click('.isl .isl-season [data-l="today"]'); await page.waitForTimeout(600);
+  check((await page.inputValue('.isl .isl-mode')) === 'day' && await page.isVisible('.isl .isl-out'), 'insolation: today button');
 };

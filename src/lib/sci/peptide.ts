@@ -3,7 +3,7 @@
 // and b, y and a fragment ions of one peptide. Residue masses come from each amino acid's formula (protparam.ts)
 // and exact isotope masses (chem.ts). No DOM.
 import { RESIDUES } from './protparam.ts';
-import { parseFormula, molarMass, monoMass, PROTON } from './chem.ts';
+import { parseFormula, molarMass, monoMass, PROTON, hill, type Formula } from './chem.ts';
 
 const RES_MONO: Record<string, number> = {}, RES_AVG: Record<string, number> = {};
 for (const [k, r] of Object.entries(RESIDUES)) { const f = parseFormula(r.formula); RES_MONO[k] = monoMass(f); RES_AVG[k] = molarMass(f); }
@@ -124,3 +124,23 @@ export const EXAMPLE_PEAKS = `822.4395
 1693.8659
 2081.9588
 2211.0987`;
+
+/**
+ * Mass, formula and m/z of one peptide with optional ends and modifications. N-terminus: free (H) or acetyl (adds C2H2O);
+ * C-terminus: free acid (OH) or amide (OH becomes NH2: adds N and H, removes O); phospho adds HPO3 per site (set the number
+ * of sites yourself, at most the number of S, T and Y). Carbamidomethyl Cys and oxidised Met come from MODS.
+ */
+export function peptideProps(seq: string, o: { nTerm?: 'free' | 'acetyl'; cTerm?: 'acid' | 'amide'; mods?: ModId[]; phospho?: number } = {}) {
+  const bad = [...seq].find((ch) => RES_MONO[ch] === undefined);
+  if (bad) throw new Error(`"${bad}" is not an amino acid code.`);
+  const mods = o.mods ?? [], tot = new Map<string, number>(), add = (f: string, k = 1) => { for (const [el, c] of parseFormula(f).counts) tot.set(el, (tot.get(el) ?? 0) + c * k); };
+  add('H2O');
+  for (const ch of seq) { add(RESIDUES[ch].formula); for (const m of mods) if (MODS[m].aa === ch) add(MODS[m].formula); }
+  if (o.nTerm === 'acetyl') add('C2H2O');
+  if (o.cTerm === 'amide') { add('NH'); add('O', -1); }
+  const sty = [...seq].filter((c) => 'STY'.includes(c)).length, ph = Math.max(0, Math.floor(o.phospho ?? 0));
+  if (ph > sty) throw new Error(`Only ${sty} Ser, Thr or Tyr in this peptide, so at most ${sty} phosphates.`);
+  if (ph) add('HPO3', ph);
+  const f: Formula = { counts: tot, charge: 0 };
+  return { mono: monoMass(f), avg: molarMass(f), formula: hill(f, true), residues: seq.length, sty };
+}

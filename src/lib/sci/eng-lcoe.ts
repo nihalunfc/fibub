@@ -67,3 +67,35 @@ export const EXAMPLES: Record<string, { name: string; p: LcoeInput }> = {
   wind: { name: 'Onshore wind farm (made-up example)', p: { mw: 100, capex: 1400, fom: 40, vom: 0, fuelPrice: 0, heatRate: 0, cf: 0.35, degr: 0.002, rate: 0.07, life: 25, esc: 0 } },
   gas: { name: 'Gas combined-cycle plant (made-up example)', p: { mw: 400, capex: 1000, fom: 20, vom: 3, fuelPrice: 6, heatRate: 7, cf: 0.55, degr: 0, rate: 0.07, life: 30, esc: 0.01 } },
 };
+
+/** Inputs that can be solved for, and which way LCOE moves when each one rises (+1 up, −1 down). */
+export const SOLVABLE: { key: keyof LcoeInput; name: string; dir: 1 | -1; max: number }[] = [
+  { key: 'capex', name: 'Capital cost (per kW)', dir: 1, max: 1e7 },
+  { key: 'cf', name: 'Capacity factor', dir: -1, max: 1 },
+  { key: 'rate', name: 'Discount rate', dir: 1, max: 0.99 },
+  { key: 'fom', name: 'Fixed O&M (per kW per year)', dir: 1, max: 1e6 },
+  { key: 'vom', name: 'Variable O&M (per MWh)', dir: 1, max: 1e5 },
+  { key: 'fuelPrice', name: 'Fuel price (per GJ)', dir: 1, max: 1e5 },
+];
+
+/**
+ * The value of one input that makes the LCOE equal a target price (per MWh), the others held, by bisection.
+ * Returns NaN when no value in the allowed range gets there (for example a target below the cost that
+ * remains when this input is zero, or above what capacity factor 1 or the largest value gives).
+ */
+export function solveLcoe(p: LcoeInput, key: keyof LcoeInput, target: number): number {
+  const s = SOLVABLE.find((x) => x.key === key);
+  if (!s || !(target > 0)) return NaN;
+  const at = (v: number) => lcoe({ ...p, [key]: v }).lcoe;
+  // For capacity factor the lowest useful value is tiny but above zero.
+  let lo = key === 'cf' ? 1e-4 : 0, hi = s.max;
+  const f = (v: number) => (at(v) - target) * s.dir; // rises with v
+  if (!(f(lo) <= 0 && f(hi) >= 0)) return NaN;
+  for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (f(m) < 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+/** LCOE over a grid of discount rates (rows) and capacity factors (columns). */
+export function lcoeGrid(p: LcoeInput, rates: number[], cfs: number[]): number[][] {
+  return rates.map((r) => cfs.map((c) => lcoe({ ...p, rate: r, cf: Math.min(1, c) }).lcoe));
+}

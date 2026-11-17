@@ -39,7 +39,7 @@ Get the formula's average mass with the [[molar-mass-calculator]], and check the
 
 1. Type the neutral formula, such as C17H19NO3. Capitals matter; brackets, isotope labels like [13C] and D for deuterium work.
 2. Choose the ion. [M+H]⁺ is the usual one in positive electrospray, [M−H]⁻ in negative.
-3. Set your instrument's resolving power (m/Δm at half height).
+3. Set your instrument's resolving power (m/Δm at half height): pick an instrument type (quadrupole about 1,000, TOF about 20,000 to 60,000, Orbitrap about 140,000, FT-ICR about 1,000,000, typical round values, check your instrument's specification), drag the log-scale slider, or type it. The chart and peak widths follow at once. A box under the pattern hides table peaks below a chosen percentage, and the facts list the nominal mass and mass defect.
 4. Paste your measured peaks, m/z and intensity, to check the match.
 
 ## Worked example
