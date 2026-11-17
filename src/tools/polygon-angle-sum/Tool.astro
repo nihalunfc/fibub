@@ -3,9 +3,15 @@
 // (ear clipping, so concave shapes work too), every interior angle is measured live and they add to (n − 2) × 180°.
 // Optional exterior (turning) angles add to 360°. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm pa">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Find the angle sum, each angle of a regular polygon, the number of sides from an angle, a missing angle or the diagonals, with the working.</p>
+    <div class="pa-solve"></div>
+  </div>
   <div class="ax-card">
     <h2>Drag the corners</h2>
     <p class="ax-big pa-big" aria-live="polite"></p>
@@ -63,6 +69,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { POLYGON_SPEC } from '../../lib/sci/solve-polygon';
+  mountSolver(document.querySelector<HTMLElement>('.pa-solve')!, POLYGON_SPEC, 'sv');
   import { isSimple, interiorAngles, exteriorAngles, triangulate, regular, angleSum, type Pt } from '../../lib/sci/polygon-j4';
   import { nice } from '../../lib/sci/school-j4';
   import { randInt } from '../../lib/sci/smath';

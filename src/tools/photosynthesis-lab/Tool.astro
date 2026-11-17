@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax phl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your practical (bubbles, time, volume, distance, temperature) and get the rate with the working an exam marks.</p><div class="ps-host"></div></div>
   <p class="ax-help phl-note">A teaching model: the plant's numbers are made-up round values, so a real pondweed will give different counts.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="phl-lab">Level</span>
@@ -282,6 +283,12 @@ import Downloads from '../../components/Downloads.astro';
       { title: 'Rate graph', figure: graph ?? undefined, ...(counts.length ? { table: { head: ['Lamp (cm)', 'Light', 'CO₂ (%)', 'Temp (°C)', 'Bubbles in 1 min'], rows: counts.map((r) => [String(r.d), fx(r.I), fx(r.c, 2), String(r.t), String(r.n)]), align: ['r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } } : {}) },
     ] as Section[],
   }));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { PHOTO } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, PHOTO);
 </script>
 
 <style is:inline>

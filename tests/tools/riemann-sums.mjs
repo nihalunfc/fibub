@@ -45,4 +45,24 @@ export default async ({ page, check, BASE }) => {
   check((await t('.smq-q:nth-child(3) .smq-out')) === 'Right!', 'riemann: fraction answer accepted');
   await page.click(R + '.smq-q:nth-child(5) .smq-choices button:nth-child(1)'); await page.click(R + '.smq-q:nth-child(5) .smq-check');
   check((await t('.smq-q:nth-child(5) .smq-out')).startsWith('Not quite'), 'riemann: wrong choice caught');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/riemann-sums/`); await page.waitForTimeout(600);
+  {
+  const S = '.rs-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'The left sum of x² from 0 to 2 with 4 strips is 1.75.' && (await work()).includes('Heights: f(0) = 0, f(0.5) = 0.25, f(1) = 1, f(1.5) = 2.25'), `riemann solve: left sum (${await ans()})`);
+  await pick('meth', 'right'); check((await ans()) === 'The right sum of x² from 0 to 2 with 4 strips is 3.75.', `riemann solve: right sum (${await ans()})`);
+  await pick('meth', 'mid'); check((await ans()) === 'The midpoint sum of x² from 0 to 2 with 4 strips is 2.625.', `riemann solve: midpoint sum (${await ans()})`);
+  await pick('meth', 'trap'); check((await ans()) === 'The trapezium sum of x² from 0 to 2 with 4 strips is 2.75.', `riemann solve: trapezium (${await ans()})`);
+  await pick('fn', 'sqrt'); await pick('meth', 'mid'); await fill('sa', '0'); await fill('sb', '4'); check((await ans()) === 'The midpoint sum of √x from 0 to 4 with 4 strips is 5.384.', `riemann solve: sqrt (${await ans()})`);
+  await pick('fn', 'ln'); await pick('meth', 'left'); await fill('sa', '-1'); await fill('sb', '1'); check((await ans()).includes('not defined at x = −1'), `riemann solve: ln outside domain (${await ans()})`);
+  await pre(0); await fill('n', '0'); check((await ans()).includes('whole number from 1 to 10 000'), `riemann solve: zero strips (${await ans()})`);
+  await pre(1); check((await ans()) === 'The trapezium sum of 1/x from 1 to 2 with 5 strips is 0.6956.', `riemann solve: 1/x trapezium (${await ans()})`);
+  await pre(2); check((await ans()) === '∫ from 0 to 2 of (3x² + 2x + 1) dx = 14.' && (await work()).includes('∫ f(x) dx = x³ + x² + x + C'), `riemann solve: polynomial integral (${await ans()})`);
+  await fill('a', ''); await fill('b', ''); check((await ans()) === '∫ (3x² + 2x + 1) dx = x³ + x² + x + C.', `riemann solve: antiderivative (${await ans()})`);
+  await pre(3); check((await ans()) === 'The area between the curves is 11.68 square units.', `riemann solve: area between curves (${await ans()})`);
+  await fill('a', '0'); await fill('b', '1'); check((await ans()) === 'The area between the curves is 3.167 square units.', `riemann solve: area on [0, 1] (${await ans()})`);
+  }
 };

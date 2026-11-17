@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax odc">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (haemoglobin, saturation, PO₂, cardiac output) and get the answer with the working an exam marks. School arithmetic only, not medical advice.</p><div class="ps-host"></div></div>
   <p class="ax-help odc-note">A teaching model from a standard published equation: real blood differs between people. Not for judging anyone's health.</p>
   <div class="ax-card">
     <h2>Haemoglobin and oxygen</h2>
@@ -192,6 +193,12 @@ import Downloads from '../../components/Downloads.astro';
       { title: 'Oxygen dissociation curve', text: [q('.odc-say').textContent ?? '', q('.odc-formula').textContent ?? '', 'Teaching model (Severinghaus 1979 equation).'], facts: factList.map(([k, val, sm]) => [k, sm ? `${val} (${sm})` : val] as [string, string]), figure: curve ?? undefined },
       { title: 'Lung volumes', text: [q('.odc-lformula').textContent ?? ''], facts: lfacts.map(([k, val, sm]) => [k, sm ? `${val} (${sm})` : val] as [string, string]), figure: sp ?? undefined },
     ] as Section[] }));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { OXYGEN } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, OXYGEN);
 </script>
 
 <style is:inline>

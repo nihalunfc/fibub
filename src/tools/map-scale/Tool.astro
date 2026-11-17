@@ -3,9 +3,15 @@
 // centimetres between them into real distance. Works backwards from a real distance, and scales a recipe to any
 // number of people. Fresh practice questions. Nothing is stored.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm ms">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own scale and distance: real distance from the map, map distance from the real one, the scale itself, a "1 cm = 2 km" statement as a ratio, or a map area as a real area.</p>
+    <div class="ms-solve"></div>
+  </div>
   <div class="ax-card">
     <h2>Measure on the map</h2>
     <div class="ax-seg ms-sc" role="group" aria-label="Map scale">
@@ -74,6 +80,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { MAPSCALE_SPEC } from '../../lib/sci/solve-mapscale';
+  mountSolver(document.querySelector<HTMLElement>('.ms-solve')!, MAPSCALE_SPEC, 'sv');
   import { realKm, mapCm, scaleN, niceDistance, scaleAmount } from '../../lib/sci/map-scale';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, quiz, dragOn, pair, val, type Question } from '../../lib/smath-ui';

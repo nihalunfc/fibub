@@ -11,11 +11,12 @@ ads: false
 order: 1044
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [magnetic-field-mapper, ohms-law-lab, coil-field-designer, magnetic-circuit]
 sources:
   - "Force on a current-carrying conductor F = I L × B (size B I L sin θ), Fleming's left-hand rule, and the torque on a coil τ = N B I A sin φ with a split-ring commutator: standard school physics results."
   - "Checked against numpy.cross for the force vector at several angles, a hand calculation of the coil's largest torque, and the textbook direction case (field to the right, current into the page, force downwards)."
+  - "Solve my numbers uses motional emf ε = B L v sin θ, induced current I = ε/R with the opposing force F = B I L, the force on a moving charge F = q v B sin θ and the radius of its circle r = m v / (q B); the elementary charge e = 1.602176634 × 10⁻¹⁹ C is the exact SI value."
 flow:
   - { icon: sliders, label: "Set B, I" }
   - { icon: pointer, label: "Turn view" }
@@ -51,7 +52,13 @@ For the motor coil (50 turns, 5 cm by 5 cm, so A = 0.0025 m²) the biggest turni
 - The force is always at right angles to both the wire and the field.
 - A real motor uses many turns, a stronger magnet and a soft iron core to make the turning effect bigger.
 
+## Solve my numbers
+
+The first card is for your own problem. Choose the force on a wire (F = B I L sin θ), the emf of a moving rod (ε = B L v sin θ), the induced current and the force that opposes the motion, the torque on a motor coil, the force on a moving charge, or the radius of its circular path. Type your numbers, pick units (cm, km/h, mT, degrees or radians, charge in elementary charges or coulombs) and the answer appears at the top with the working below it. A zero from sin 0° is explained in words ("the wire runs along the field"). Each problem ends with a **common mistake** line, and five worked-example buttons fill in typical problems.
+
 ## FAQ
+
+**How do I find the force on a wire in a magnetic field?** Use F = B I L sin θ: 0.2 T, 5 A and 0.3 m at right angles give 0.3 N. Try your own numbers in the Solve my numbers card.
 
 **Why the left hand?** The left-hand rule is for motors (force from current). For generators (current from motion) Fleming's right-hand rule is used instead.
 

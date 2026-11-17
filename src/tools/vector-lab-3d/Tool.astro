@@ -3,9 +3,16 @@
 // cross product as a parallelogram, and lines in space with the shortest distance between them.
 // Class 12 maths, vector algebra and three-dimensional geometry.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax v3l">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own vectors as x, y, z to add them, find the dot product and angle, the cross product and area, the unit vector and direction cosines, or the shortest distance between two lines.</p>
+    <div class="v3-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg v3-op" role="group" aria-label="What to show"><button type="button" data-o="sum" aria-pressed="true">a + b</button><button type="button" data-o="dot" aria-pressed="false">a · b</button><button type="button" data-o="cross" aria-pressed="false">a × b</button><button type="button" data-o="lines" aria-pressed="false">Lines in space</button></div>
     <div class="v3-vecs">
@@ -41,6 +48,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { VEC3D_SPEC } from '../../lib/sci/solve-vec3d';
+  mountSolver(document.querySelector<HTMLElement>('.v3-solve')!, VEC3D_SPEC, 'sv');
   import { add, sub, scale, dot, cross, norm, angle, projection, dirCos, lines, type V3 } from '../../lib/sci/school-vectors';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { pointer, fmt, FONT } from '../../lib/sm-graph';

@@ -52,4 +52,33 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   }
   await tap('.phl-new');
   check((await page.textContent(R + '.phl-score')) === '', 'photo: new questions');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('bubbles', 'bub', { n: '24', t: '2' }, 'The rate is 12 bubbles per minute.', 'rate = 24 ÷ 2 min');
+  await psCase('bubbles with seconds', 'bub', { n: '24', t: '120' }, 'The rate is 12 bubbles per minute.', 'Convert to base units', { t: 's' });
+  await psCase('gas volume', 'vol', { v: '0.6', t: '10' }, 'The rate is 0.06 mL per minute (3.6 mL per hour).', 'rate = 0.06 mL/min = 3.6 mL/h');
+  await psCase('lamp moved', 'light', { d1: '10', d2: '20' }, 'The light is 0.25 times as bright (25 % of the first). It is dimmer.', 'I₂ / I₁ = (10 ÷ 20)² = 0.25');
+  await psCase('Q10', 'q10', { r1: '12', r2: '24', t1: '20', t2: '30' }, 'Q₁₀ is 2.', 'Q₁₀ = (24 ÷ 12)^(10 ÷ 10)');
+  await psCase('same temperatures', 'q10', { r1: '12', r2: '24', t1: '20', t2: '20' }, 'The two temperatures must be different.', null);
+  await psCase('gross', 'gross', { net: '8', resp: '2' }, 'The gross rate of photosynthesis is 10, in the same units as you typed.', 'gross = 8 + 2 = 10');
+  await psCase('compensation point', 'gross', { net: '0', resp: '2' }, 'The gross rate of photosynthesis is 2, in the same units as you typed.', 'compensation point');
+  await psCase('percentage change', 'pct', { a: '12', b: '30' }, 'An increase of 150 %.', null);
+  await psSolve('bub', { n: '24', t: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero time gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Gas syringe")'); await page.waitForTimeout(80);
+  check((await psAns()).startsWith('The rate is 0.06 mL per minute') && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Gas syringe and tip');
 };

@@ -28,4 +28,23 @@ export default async ({ page, check, BASE }) => {
   const ans = await page.$eval('.va .sq-q', (e) => e.dataset.ans);
   await page.fill('.va .sq-q .sq-in', ans); await page.click('.va .sq-q .sq-check');
   check((await page.textContent('.va .sq-q .sq-res')) === 'Right!', 'vector-adder: quiz');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/vector-adder/`); await page.waitForTimeout(600);
+  {
+  const S = '.va-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'The resultant R = 8.718 N at 23.41° to the +x axis.' && (await work()).includes('Rx = Ax + Bx = 6 + 2 = 8'), `vector solve: two vectors (${await ans()})`);
+  await pick('tb-unit', 'radians'); await fill('tb', '1.0471975512'); check((await ans()) === 'The resultant R = 8.718 N at 23.41° to the +x axis.', `vector solve: radians (${await ans()})`);
+  await pre(0); await fill('A', '-2'); check((await ans()).includes('cannot be negative'), `vector solve: negative size (${await ans()})`);
+  await pre(1); check((await ans()) === 'R = 5, at 53.13° to A (towards B).', `vector solve: law of cosines (${await ans()})`);
+  await pre(2); check((await ans()) === 'Horizontal part 39.93 N, vertical part 30.09 N.', `vector solve: components (${await ans()})`);
+  await pre(3); check((await ans()) === 'Size 5 m, direction 126.9° anticlockwise from +x.', `vector solve: from components (${await ans()})`);
+  await fill('x', '0'); await fill('y', '0'); check((await ans()).includes('Both parts are 0'), `vector solve: zero vector (${await ans()})`);
+  await pre(4); check((await ans()) === 'Left string T₁ = 50 N and right string T₂ = 86.6 N.', `vector solve: Lami (${await ans()})`);
+  await pick('W-unit', 'kg (× 9.8)'); await fill('W', '10'); check((await ans()) === 'Left string T₁ = 49 N and right string T₂ = 84.87 N.', `vector solve: kg to N (${await ans()})`);
+  await fill('t1', '90'); await fill('t2', '90'); check((await ans()).includes('Two vertical strings'), `vector solve: both vertical (${await ans()})`);
+  await fill('t1', '0'); check((await ans()).includes('more than 0°'), `vector solve: angle 0 (${await ans()})`);
+  }
 };

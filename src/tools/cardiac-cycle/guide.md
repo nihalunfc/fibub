@@ -11,12 +11,13 @@ ads: false
 order: 1127
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [photosynthesis-lab, fick-cardiac-output, heart-rate-zones]
 sources:
   - "Timing at 75 beats a minute (cycle 0.8 s: atrial systole 0.1 s, ventricular systole 0.3 s, joint diastole 0.4 s), cardiac output = stroke volume × heart rate, and the order of valve events are standard physiology; written by fibub."
   - "Systole is scaled with the square root of the cycle length (as the QT interval roughly is) so that diastole shortens most at fast rates; this is a simplification for teaching."
   - "The ECG-like trace and the volume curve are smooth made-up shapes drawn by fibub, not recordings, and must not be used to read a real ECG. Volumes are typical round resting values. Nothing you enter is stored or sent anywhere."
+  - "Solve my numbers uses cardiac output = stroke volume × heart rate, stroke volume = EDV − ESV, ejection fraction = SV / EDV × 100, heart rate = 60 / cycle time, and the ECG rule heart rate = 300 / large squares (for 25 mm/s paper): standard school physiology arithmetic. It is not medical advice."
 flow:
   - { icon: sliders, label: "Rate" }
   - { icon: eye, label: "Watch" }
@@ -54,7 +55,13 @@ At the start: 75 beats a minute, 120 mL in the ventricle when full and 50 mL lef
 - The left ventricle wall is thickest because it pushes blood all round the body.
 - Real ECGs come from electrodes on the skin; doctors read them carefully. Do not use this trace to judge a real one.
 
+## Solve my numbers
+
+The first card is for the numbers in your problem. It is school arithmetic only and is not medical advice. Choose cardiac output (stroke volume × heart rate), stroke volume and ejection fraction from the end-diastolic and end-systolic volumes, stroke volume from cardiac output, heart rate from the length of one cycle, heart rate from an ECG strip counted in large squares, or a percentage change such as heart rate before and after exercise. Type the numbers, choose mL or L, L/min or mL/min, and the answer appears at the top with the working below: formula, numbers with units, result. A **common mistake** line follows, for example mixing mL with litres. If the volume left after the beat is bigger than the full volume you get a friendly message instead of a number.
+
 ## FAQ
+
+**How do I calculate cardiac output?** Multiply stroke volume by heart rate: 70 mL × 72 beats/min = 5,040 mL/min, which is 5.04 L/min. The Solve my numbers card does it with your numbers.
 
 **Why does the volume not fall to zero?** The ventricle never empties completely; about 50 mL stays behind at rest.
 

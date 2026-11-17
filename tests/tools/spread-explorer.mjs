@@ -29,4 +29,27 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'spread: five quiz questions');
   await page.click(R + '.smq-q:nth-child(5) .smq-choices button:nth-child(2)'); await page.click(R + '.smq-q:nth-child(5) .smq-check');
   check((await t('.smq-q:nth-child(5) .smq-out')) === 'Right!', 'spread: quiz answer');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/spread-explorer/`); await page.waitForTimeout(600);
+  {
+  const S = '.spx-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const sel = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const is = async (want, label) => check((await ans()) === want, `spread solve: ${label} (${await ans()})`);
+  const has = async (want, label) => check((await ans()).includes(want), `spread solve: ${label} (${await ans()})`);
+  const wk = async (want, label) => check((await work()).includes(want), `spread solve working: ${label}`);
+  await pre(0); await is('Mean = 8, variance = 6.8, standard deviation = 2.608.', '4 7 8 9 12'); await wk('Σ(x − x̄)² = (−4)² + (−1)² + (0)² + (1)² + (4)² = 34', 'squares'); await wk('Median = 8; range = 12 − 4 = 8', 'median and range'); await wk('= 32.6 %', 'CV');
+  await pre(1); await is('Mean = 10, variance = 8, standard deviation = 2.828.', '6 8 10 12 14'); await wk('Σ|x − x̄| ÷ n = 2.4', 'mean deviation');
+  await pre(2); await is('Mean = 4.714, variance = 3.776, standard deviation = 1.943.', 'frequencies'); await wk('Σfx = 3×2 + 5×4 + 4×6 + 2×8 = 66', 'Σfx');
+  await pre(3); await is('CV of A = 20 %, CV of B = 17.5 %. Set B is more consistent (smaller CV).', 'CV compare');
+  await pre(0); await fill('data', '2 4 4 4 5 5 7 9'); await is('Mean = 5, variance = 4, standard deviation = 2.', 'classic set, divide by n');
+  await sel('div', 'sample'); await is('Mean = 5, variance = 4.571, standard deviation = 2.138.', 'divide by n − 1');
+  await fill('data', '5'); await has('at least 2 values', 'one number, sample');
+  await sel('div', 'n'); await is('Mean = 5, variance = 0, standard deviation = 0.', 'one number'); await wk('no spread', 'identical values');
+  await fill('data', '-3 3'); await is('Mean = 0, variance = 9, standard deviation = 3.', 'negative numbers'); await wk('not defined when the mean is 0', 'CV with mean 0');
+  await fill('data', '4 x 6'); await has('cannot read', 'text in the list');
+  await pre(2); await fill('freq', '3 5 4'); await has('4 values but 3 frequencies', 'mismatched lengths');
+  await pre(3); await fill('m1', '0'); await has('more than 0', 'zero mean');
+  }
 };

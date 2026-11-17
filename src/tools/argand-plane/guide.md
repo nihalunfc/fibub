@@ -11,7 +11,7 @@ ads: false
 order: 1187
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [unit-circle, symbolic-algebra, function-grapher]
 sources:
   - "Standard complex number algebra: i² = −1, the Argand plane, modulus, principal argument in (−π, π], polar form, and the quadratic formula with a negative discriminant. Written for fibub; no textbook text, figures or exercises are used."
@@ -58,7 +58,21 @@ For x² + 2x + 5 = 0, the discriminant is 4 − 20 = −16, so the parabola neve
 
 Five questions with fresh numbers: a modulus, the real part of a product, a power of i, an argument, and the roots of a quadratic. Nothing is saved.
 
+## Solve your own numbers
+
+The first card works with the numbers from your own question. Choose what to find, type the parts, and the answer appears as one sentence with the working underneath, set out the way an exam answer is marked.
+
+- **z and w**: add, subtract, multiply or divide, for example (3 + i)(1 + 2i) = 1 + 7i. Division multiplies top and bottom by the conjugate.
+- **Modulus and argument of z**: |z| and arg z in degrees and radians, using the reference angle and the quadrant, with the polar form.
+- **Polar form to a + bi**: type r and θ (pick degrees or radians) and get a + bi.
+- **Power zⁿ**: De Moivre's theorem for whole n from −60 to 60, for example (1 + i)⁸ = 16.
+- **Roots of a quadratic**: type a, b and c. Real or complex roots come with the discriminant and a sum-and-product check.
+
+Zero divisors, zero modulus and a = 0 give a plain message. A line under each answer names the usual slip, such as using tan⁻¹(b/a) without checking the quadrant.
+
 ## FAQ
+
+**How do I find the modulus and argument of a complex number?** Type a and b in the first card and choose *Modulus and argument of z*: |z| = √(a² + b²), and the argument comes from the reference angle tan⁻¹(|b|/|a|) placed in the right quadrant.
 
 **Why is the argument of a negative real number 180° and not −180°?** The principal argument is taken in (−π, π], which includes π but not −π.
 

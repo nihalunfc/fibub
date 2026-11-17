@@ -2,9 +2,16 @@
 // Compound angle: the stacked right triangles that prove sin(A + B) and cos(A + B), with A and B on sliders, the
 // lengths labelled with live numbers, and a table that checks every sum, difference and double angle formula.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax cpa">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Find sin, cos or tan of A + B or A − B (exact surd answers for 0°, 30°, 45°, 60°, 90°), work out A ± B from known ratios such as sin A = 3/5, or get the double angle formulae from one ratio.</p>
+    <div class="cp-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick the two angles</h2>
     <label class="cp-sl"><span>A = <b class="cp-av"></b>°</span><input class="cp-a" type="range" min="0" max="80" step="1" value="30" /></label>
@@ -43,6 +50,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { COMPOUND_SPEC } from '../../lib/sci/solve-compound';
+  mountSolver(document.querySelector<HTMLElement>('.cp-solve')!, COMPOUND_SPEC, 'sv');
   import { proof, formulas, rad } from '../../lib/sci/school-compound';
   import { paint, type Figure } from '../../lib/report';
   import { view, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';

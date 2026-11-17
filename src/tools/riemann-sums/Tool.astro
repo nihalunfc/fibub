@@ -2,9 +2,16 @@
 // Riemann sums to integral: left, right, midpoint and trapezium sums with an n slider and the error,
 // the antiderivative family F(x) + C, and the area between two curves. Class 12 maths, integrals.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax rms">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Work out a left, right, midpoint or trapezium sum for your own function and strips, integrate a polynomial between limits, or find the area between two polynomial curves, with the working.</p>
+    <div class="rs-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-seg rs-mode" role="group" aria-label="What to show">
       <button type="button" data-m="sum" aria-pressed="true">Riemann sums</button><button type="button" data-m="anti" aria-pressed="false">Antiderivative + C</button><button type="button" data-m="area" aria-pressed="false">Area between curves</button>
@@ -58,6 +65,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { RIEMANN_SPEC } from '../../lib/sci/solve-riemann';
+  mountSolver(document.querySelector<HTMLElement>('.rs-solve')!, RIEMANN_SPEC, 'sv');
   import { preset, readFn, deriv, type Fn } from '../../lib/sci/school-calculus';
   import { riemann, simpson, areaBetween, crossings, type Method } from '../../lib/sci/school-integral';
   import { paint, pagePalette, type Figure } from '../../lib/report';

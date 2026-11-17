@@ -11,7 +11,7 @@ ads: false
 order: 1190
 icon: compass
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [matrix-transform, argand-plane, matrix-calculator]
 sources:
   - "Standard vector algebra and three-dimensional geometry: components, magnitude, direction cosines, dot and cross products, projections, the vector equation of a line, the angle between lines and the shortest distance between skew and parallel lines. Written for fibub; no textbook text, figures or exercises are used, and the example vectors are made up."
@@ -59,7 +59,21 @@ For the lines through (1, 2, 3) along (1, −3, 2) and through (4, 5, 6) along (
 
 Five questions with fresh numbers: a dot product, a length, a part of a cross product, a parallelogram's area and the angle when a · b = 0. Nothing is saved.
 
+## Solve your own numbers
+
+The first card takes the vectors from your own question, typed as three numbers such as 2, 1, -2. Choose what to find and read the answer with its working.
+
+- **a + b and a − b**, with the size of the sum.
+- **Dot product, angle and projection**: a · b, cos θ, θ in degrees, and the scalar and vector projection of a on b. A dot product of 0 is reported as perpendicular.
+- **Cross product and area**: a × b written out from the determinant, |a × b| as the parallelogram area, half of it as the triangle area, the unit vector perpendicular to both, and a perpendicularity check.
+- **Size, unit vector and direction cosines**: the angles with the x, y and z axes, with l² + m² + n² = 1 checked.
+- **Distance between two lines**: type a point and a direction for each line. Skew lines use |(q − p) · (a × b)| / |a × b|, parallel lines use |(q − p) × a| / |a|, and 0 means the lines meet.
+
+Anything that is not three numbers, and the zero vector where a direction is needed, gets a clear message.
+
 ## FAQ
+
+**How do I find the angle between two vectors?** Choose *Dot product, angle and projection* in the first card and type both vectors: cos θ = a · b / (|a||b|), and the card gives θ in degrees.
 
 **Why does a × b change sign when I swap a and b?** The right-hand rule: curling from b to a instead of a to b points your thumb the other way.
 

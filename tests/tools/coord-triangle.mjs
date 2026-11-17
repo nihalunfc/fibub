@@ -38,4 +38,24 @@ export default async ({ page, check, BASE }) => {
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1] : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `coord: quiz ${i} (${w})`);
   }
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/coord-triangle/`); await page.waitForTimeout(600);
+  {
+  const S = '.ct-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'ABC is a scalene, right-angled triangle (right angle at A), with area 6 square units and perimeter 12.' && (await work()).includes('= ½ × 12 = 6'), `coord solve: right triangle (${await ans()})`);
+  await fill('C', '9, 1'); check((await ans()).startsWith('The three points are collinear') && (await ans()).includes('B lies between'), `coord solve: collinear (${await ans()})`);
+  await fill('C', '5'); check((await ans()).includes('needs two numbers'), `coord solve: one number (${await ans()})`);
+  await pre(1); check((await ans()) === 'ABC is an isosceles, acute triangle, with area 6 square units and perimeter 11.21.' && (await work()).includes('BC = √((2 − 4)² + (3 − 0)²) = √13 = 3.6056'), `coord solve: isosceles (${await ans()})`);
+  await pre(2); check((await ans()) === 'AB = 6.3246 (2√10) and the midpoint is (−1, 2).' && (await work()).includes('y = (1/3)x + 7/3'), `coord solve: distance and line (${await ans()})`);
+  await fill('B', '2, 7'); check((await work()).includes('slope is not defined') && (await ans()).startsWith('AB = 4'), `coord solve: vertical line (${await ans()})`);
+  await fill('B', '2, 3'); check((await ans()).includes('same point'), `coord solve: same point (${await ans()})`);
+  await pre(3); check((await ans()) === 'The point dividing AB internally in the ratio 2 : 3 is (1, 3).', `coord solve: section (${await ans()})`);
+  await pick('kind', 'ex'); await fill('m', '3'); await fill('n', '2'); check((await ans()) === 'The point dividing AB externally in the ratio 3 : 2 is (14, −23).', `coord solve: external (${await ans()})`);
+  await fill('n', '3'); check((await ans()).includes('1 : 1'), `coord solve: external 1:1 (${await ans()})`);
+  await pre(4); check((await ans()) === 'The x-axis cuts AB at (3, 0), dividing it internally in the ratio 1 : 2.', `coord solve: x-axis (${await ans()})`);
+  await pick('which', 'y'); check((await ans()) === 'The y-axis cuts AB at (0, −9), dividing it externally in the ratio 2 : 5.', `coord solve: y-axis (${await ans()})`);
+  }
 };

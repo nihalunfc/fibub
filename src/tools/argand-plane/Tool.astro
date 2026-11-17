@@ -3,9 +3,16 @@
 // as a reflection, modulus and argument, powers of i and zⁿ, and the complex roots of a quadratic.
 // Class 11 maths, complex numbers and quadratic equations.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import SmQuiz from '../../components/SmQuiz.astro';
 ---
 <div class="ax agp">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type the parts of your own complex numbers to add, subtract, multiply or divide them, find the modulus and argument, change polar form to a + bi, raise to a power, or solve a quadratic with complex roots. You get the answer and the working.</p>
+    <div class="ag-solve"></div>
+  </div>
+
   <div class="ax-card">
     <h2>Pick what to do with z and w</h2>
     <div class="ax-seg ag-op" role="group" aria-label="Operation">
@@ -57,6 +64,9 @@ import SmQuiz from '../../components/SmQuiz.astro';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { ARGAND_SPEC } from '../../lib/sci/solve-argand';
+  mountSolver(document.querySelector<HTMLElement>('.ag-solve')!, ARGAND_SPEC, 'sv');
   import { cx, add, sub, mul, div, conj, abs, arg, pow, iPower, quadRoots, show, type C } from '../../lib/sci/school-complex';
   import { paint, type Figure, type Palette } from '../../lib/report';
   import { view, axes, curve, line, dot, label, px, py, wx, wy, pointer, fmt, type View } from '../../lib/sm-graph';

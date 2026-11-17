@@ -2,8 +2,15 @@
 // Vector adder: drag two arrows, see the triangle and parallelogram laws and components; three forces in
 // balance (Lami's theorem). Maths in src/lib/sci/vector-adder.ts.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 ---
 <div class="ax va">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own vectors: add two by size and direction, use the angle between them, split one into parts, find size and direction from parts, or find the tensions of two strings holding a weight. You get the answer and the working.</p>
+    <div class="va-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row va-top">
       <span class="va-lab">Show</span>
@@ -64,6 +71,9 @@ import '../../styles/astro.css';
 </div>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { VECTOR_SPEC } from '../../lib/sci/solve-vectors';
+  mountSolver(document.querySelector<HTMLElement>('.va-solve')!, VECTOR_SPEC, 'sv');
   import { fromPolar, add, lami, questions, type Vec } from '../../lib/sci/vector-adder';
   import { mountQuiz } from '../../lib/school-quiz-b';
   import { setupCanvas, arrow, text, f, fact, para, seg, keepDrawn, drag } from '../../lib/school-n';

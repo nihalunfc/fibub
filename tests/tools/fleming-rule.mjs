@@ -37,4 +37,33 @@ export default async ({ page, check, BASE }) => {
   const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [L, I, B] = q1.match(/wire ([\d.]+) cm long carries ([\d.]+) A at right angles to a magnetic field of ([\d.]+) T/).slice(1).map(Number);
   await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((B * I * L) / 100)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
   check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'fleming: right answer accepted');
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('force', 'force', { B: '0.2', I: '5', L: '30', th: '90' }, 'The force is 0.3 N.', 'F = 0.2 T × 5 A × 0.3 m × sin 90°');
+  await psCase('emf', 'emf', { B: '0.5', L: '40', v: '3', th: '90' }, 'The induced emf is 0.6 V.', 'ε = 0.6 V');
+  await psCase('emf with km/h', 'emf', { B: '0.5', L: '40', v: '10.8', th: '90' }, 'The induced emf is 0.6 V.', 'Convert to base units', { v: 'km/h' });
+  await psCase('emf along the field', 'emf', { B: '0.5', L: '40', v: '3', th: '0' }, 'The emf is 0 V: the rod moves along the field, so it cuts no field lines.', null);
+  await psCase('induced current', 'cur', { B: '0.5', L: '40', v: '3', R: '2' }, 'The induced current is 0.3 A, and the magnetic force opposing the motion is 0.06 N.', 'Power you put in = F v = 0.06 × 3 = 0.18 W');
+  await psCase('torque', 'torque', { N: '100', B: '0.5', I: '2', A: '200', th: '90' }, 'The torque is 2 N m.', 'τ = 100 × 0.5 T × 2 A × 0.02 m²');
+  await psCase('torque face-on', 'torque', { N: '100', B: '0.5', I: '2', A: '200', th: '0' }, 'The torque is 0 N m: the coil is face-on to the field.', null);
+  await psCase('charge', 'charge', { q: '1', v: '1e6', B: '0.01', th: '90' }, 'The force is 1.60 × 10^-15 N.', null);
+  await psCase('proton circle', 'radius', { m: '1.67e-27', q: '1', v: '1e6', B: '0.5' }, 'The radius of the circle is 2.08 cm.', 'r = 0.0208 m');
+  await psSolve('radius', { m: '1.67e-27', q: '1', v: '1e6', B: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero field gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Rod generator")'); await page.waitForTimeout(80);
+  check((await psAns()) === 'The induced emf is 0.6 V.' && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Rod generator and tip');
 };

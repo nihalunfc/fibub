@@ -44,4 +44,34 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
     await tap('.ccy-check');
     check((await page.textContent(R + '.ccy-score')) === `${n} of ${n} right.` && n === (lv === '11' ? 5 : 4), `heart: Class ${lv} quiz (${n})`);
   }
+
+  // ---- Solve my numbers (phys-e.ts) ----
+  const PS = '.ps-host ';
+  const psAns = () => page.textContent(PS + '.ps-ans'), psWork = () => page.textContent(PS + '.ps-work');
+  const psSolve = async (prob, vals, units = {}) => {
+    await page.selectOption(PS + '[data-k="prob"]', prob);
+    await page.$$eval(PS + `label[data-p="${prob}"] select`, (ss, u) => ss.forEach((s) => { const k = s.dataset.k; const want = u[k]; s.value = want ?? s.options[0].value; }), Object.fromEntries(Object.entries(units).map(([k, v]) => [`${prob}-${k}-u`, v])));
+    for (const [k, v] of Object.entries(vals)) await page.fill(PS + `[data-k="${prob}-${k}"]`, v);
+    await page.waitForTimeout(80);
+  };
+  const psCase = async (name, prob, vals, ans, work, units) => {
+    await psSolve(prob, vals, units);
+    const a = await psAns(), w = await psWork();
+    check(a === ans && (!work || w.includes(work)) && !/NaN|Infinity/.test(a + w), `solve ${name}: ${a}${work && !w.includes(work) ? ' / working: ' + w : ''}`);
+  };
+  check((await page.getAttribute(PS + '.ps-out', 'aria-live')) === 'polite', 'solve: answer is a polite live region');
+
+  await psCase('cardiac output', 'co', { sv: '70', hr: '72' }, 'The cardiac output is 5.04 L/min.', 'CO = 70 mL × 72 beats/min = 5040 mL/min');
+  await psCase('cardiac output, SV in L', 'co', { sv: '0.07', hr: '72' }, 'The cardiac output is 5.04 L/min.', 'Convert to base units', { sv: 'L' });
+  await psCase('ejection fraction', 'sv', { edv: '120', esv: '50' }, 'The stroke volume is 70 mL and the ejection fraction is 58.3 %.', 'EF = 70 ÷ 120 × 100 = 58.3 %');
+  await psCase('ESV bigger than EDV', 'sv', { edv: '50', esv: '120' }, 'The volume left after the beat (ESV) must be smaller than the full volume (EDV).', null);
+  await psCase('stroke volume from CO', 'svco', { co: '5', hr: '75' }, 'The stroke volume is 66.7 mL per beat.', 'SV = 5000 mL/min ÷ 75 beats/min');
+  await psCase('heart rate from cycle', 'hr', { T: '0.8' }, 'The heart rate is 75 beats per minute.', 'HR = 60 ÷ 0.8 s');
+  await psCase('heart rate from ms', 'hr', { T: '800' }, 'The heart rate is 75 beats per minute.', null, { T: 'ms' });
+  await psCase('ECG strip', 'ecg', { sq: '4' }, 'The heart rate is 75 beats per minute.', 'One R–R gap = 4 × 0.2 s = 0.8 s');
+  await psCase('percentage rise', 'pct', { a: '70', b: '140' }, 'An increase of 100 %.', null);
+  await psCase('percentage fall', 'pct', { a: '140', b: '70' }, 'A decrease of 50 %.', null);
+  await psSolve('hr', { T: '0' }); check((await psAns()).includes('must be more than 0') && !/NaN|Infinity/.test(await psAns()), 'solve: zero cycle time gives a friendly message');
+  await page.click(PS + '.ps-pre button:has-text("Resting adult")'); await page.waitForTimeout(80);
+  check((await psAns()) === 'The cardiac output is 5.04 L/min.' && (await page.textContent(PS + '.ps-tip')).includes('Common mistake'), 'solve: preset Resting adult and tip');
 };

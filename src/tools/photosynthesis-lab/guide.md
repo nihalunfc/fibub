@@ -11,13 +11,14 @@ ads: false
 order: 1122
 icon: flask
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [osmosis-lab, photosynthesis-curve-fitter, enzyme-kinetics-fitter]
 sources:
   - "Inverse square law for light from a small lamp, and Blackman's (1905) law of limiting factors: written by fibub from these standard ideas."
   - "The plant's numbers (bubbles per light unit, carbon dioxide cap, top rate, optimum 30 °C, respiration) are made-up round values for teaching. They are not measurements of any real plant."
   - "The rates were checked in the tests against a separate Python version of the same model (40 random settings) and hand-worked cases."
   - "Drawings are fibub's own simple shapes. Nothing you enter is stored or sent anywhere."
+  - "Solve my numbers uses rate = amount / time, the inverse square law I₂/I₁ = (d₁/d₂)², the temperature coefficient Q₁₀ = (R₂/R₁)^(10/(T₂−T₁)), gross = net + respiration, and percentage change: standard school practical arithmetic."
 flow:
   - { icon: sliders, label: "Set up" }
   - { icon: eye, label: "Watch" }
@@ -53,7 +54,13 @@ The page opens with the lamp at 20 cm, 0.25 % baking soda and water at 25 °C. L
 - In a real lab, a lamp also warms the water. Put a beaker of water between lamp and plant as a heat screen.
 - If no bubbles come off in dim light, the plant is still photosynthesising: it is using all its oxygen in respiration. That light level is the **compensation point**.
 
+## Solve my numbers
+
+The first card is for the numbers from your own practical. Choose the rate from counting bubbles, the rate from gas collected (mL per minute and per hour), how bright the light is after you move the lamp (the inverse square law), the temperature coefficient Q₁₀, gross photosynthesis from net photosynthesis plus respiration, or a percentage change in rate. Type the numbers, choose minutes, seconds or hours, and the answer appears at the top with the working below. A **common mistake** line follows: giving the count without the time, or dividing by the rate after the change. Five worked-example buttons fill in typical results, and a blank or zero entry gives a plain message.
+
 ## FAQ
+
+**How do I work out the rate of photosynthesis from bubbles?** Divide the number of bubbles by the time: 24 bubbles in 2 minutes is 12 bubbles per minute. The Solve my numbers card shows the working.
 
 **Why does the light graph go flat?** Once there is plenty of light, something else (carbon dioxide or temperature) is in short supply and holds the rate down.
 

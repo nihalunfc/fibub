@@ -2,9 +2,16 @@
 // Triangle type from coordinates: drag three points on a grid (or type them) and see whether they are collinear,
 // the side lengths, the area, and the type by sides and by angles. Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm ct">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type your own points to find the type, sides and area of a triangle, the distance, midpoint and line through two points, a point dividing a segment in a ratio, or where a line cuts an axis.</p>
+    <div class="ct-solve"></div>
+  </div>
+
   <div class="ax-card">
     <div class="ax-row" style="margin-bottom:10px">
       <span class="ax-help" style="margin:0">Level</span>
@@ -58,6 +65,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { COORD_SPEC } from '../../lib/sci/solve-coord';
+  mountSolver(document.querySelector<HTMLElement>('.ct-solve')!, COORD_SPEC, 'sv');
   import { classify, angles, d2, slope, surd, type Pt } from '../../lib/sci/coord-triangle';
   import { fmt, randInt, readNum } from '../../lib/sci/smath';
   import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';

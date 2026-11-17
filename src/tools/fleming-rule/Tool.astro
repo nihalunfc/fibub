@@ -4,6 +4,7 @@
 import '../../styles/astro.css';
 ---
 <div class="ax flr">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (field, current, length, speed, charge) and get the force, emf or torque with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <h2>Force on a wire in a magnetic field</h2>
     <div class="ax-row">
@@ -52,6 +53,12 @@ import '../../styles/astro.css';
     <div class="flr-quiz"></div>
   </div>
 </div>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { FLEMING } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, FLEMING);
+</script>
 
 <style is:inline>
   .flr .flr-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }

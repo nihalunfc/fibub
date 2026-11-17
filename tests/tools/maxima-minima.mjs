@@ -45,4 +45,26 @@ export default async ({ page, check, BASE }) => {
   check((await t('.smq-q:nth-child(4) .smq-out')) === 'Right!', 'extrema: box answer');
   await page.click(R + '.smq-q:nth-child(3) .smq-choices button:nth-child(2)'); await page.click(R + '.smq-q:nth-child(3) .smq-check');
   check((await t('.smq-q:nth-child(3) .smq-out')) === 'Right!', 'extrema: choice answer');
+  // Solve your own numbers (shared card, src/lib/learn/solvecard-b.ts)
+  await page.goto(`${BASE}/learn/maxima-minima/`); await page.waitForTimeout(600);
+  {
+  const S = '.mm-solve ', ans = () => page.textContent(S + '.sv-answer'), work = () => page.textContent(S + '.sv-work');
+  const pre = async (n) => { await page.selectOption(S + '[data-k="sv-example"]', ''); await page.selectOption(S + '[data-k="sv-example"]', String(n)); await page.waitForTimeout(60); };
+  const fill = async (k, v) => { await page.fill(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  const pick = async (k, v) => { await page.selectOption(S + `[data-k="sv-${k}"]`, v); await page.waitForTimeout(40); };
+  await pre(0); check((await ans()) === 'f has a local maximum of 2 at x = −1 and a local minimum of −2 at x = 1.' && (await work()).includes('f′(x) = 3x² − 3'), `extrema solve: x³ − 3x (${await ans()})`);
+  await fill('co', '1 0 0 0 0'); check((await ans()) === 'f has a local minimum of 0 at x = 0.' && (await work()).includes('second derivative test fails'), `extrema solve: x⁴ (${await ans()})`);
+  await fill('co', '1 0 0 0'); check((await ans()) === 'f has no maximum or minimum: it flattens at that point but keeps going the same way.', `extrema solve: x³ (${await ans()})`);
+  await fill('co', '3 2'); check((await ans()) === 'A straight line has no turning points.', `extrema solve: line (${await ans()})`);
+  await fill('co', '1 0 3'); check((await ans()) === 'f has a local minimum of 3 at x = 0.', `extrema solve: x² + 3 (${await ans()})`);
+  await pre(1); check((await ans()) === 'f has a local maximum of 10 at x = 1 and a local minimum of 9 at x = 2. On [0, 3]: absolute maximum 14 at x = 3, absolute minimum 5 at x = 0.', `extrema solve: cubic on [0, 3] (${await ans()})`);
+  await fill('a', '3'); await fill('b', '0'); check((await ans()).includes('must be smaller'), `extrema solve: bad interval (${await ans()})`);
+  await fill('b', ''); check((await ans()).includes('both a and b'), `extrema solve: one limit (${await ans()})`);
+  await pre(2); check((await ans()) === 'Cut 5 cm squares from each corner: the biggest box holds 2000 cm³.', `extrema solve: box (${await ans()})`);
+  await pick('s-unit', 'm'); await fill('s', '1.2'); check((await ans()) === 'Cut 0.2 m squares from each corner: the biggest box holds 0.128 m³.', `extrema solve: box in m (${await ans()})`);
+  await fill('s', '-5'); check((await ans()).includes('more than 0'), `extrema solve: negative side (${await ans()})`);
+  await pre(3); check((await ans()) === 'Make the two sides 25 m and the side along the river 50 m: the biggest area is 1250 m².', `extrema solve: fence (${await ans()})`);
+  await pre(4); check((await ans()) === 'Radius 5.419 cm and height 10.84 cm (h = 2r) use the least metal: 553.6 cm².', `extrema solve: can (${await ans()})`);
+  await pick('V-unit', 'cm³'); await fill('V', '1000'); check((await ans()) === 'Radius 5.419 cm and height 10.84 cm (h = 2r) use the least metal: 553.6 cm².', `extrema solve: can in cm³ (${await ans()})`);
+  }
 };

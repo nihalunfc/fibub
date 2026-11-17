@@ -11,7 +11,7 @@ ads: false
 order: 1286
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [grouped-data-stats, sample-space, probability-tree]
 sources:
   - "Frequency tables, histograms, frequency polygons, mean, median, mode and the combined mean are standard school statistics. Wording, pictures and the made-up example data are fibub's own."
@@ -59,7 +59,19 @@ In the combine card, 30 pupils averaging 62 and 20 pupils averaging 70 give (30 
 
 Four fresh questions each time: a class mark, counting numbers into a class, a mean from a small table and a combined mean. Type the answer, press **Check**, and open the worked answer if you need it. Nothing is saved.
 
+## Solve your own numbers
+
+The first card takes the numbers from your own question. Choose what to find:
+
+- **Raw numbers**: type them with spaces or commas. You get the mean (sum ÷ count), the median (sorted, with the middle position named), the mode (or "none"), and the range.
+- **Grouped data**: type the class boundaries (10 20 30 40 50 60) and one frequency per class. The card works out the class marks and f × x for the mean, the cumulative frequencies and median class for l + ((N/2 − cf)/f) × h, and the modal class for l + ((f₁ − f₀)/(2f₁ − f₀ − f₂)) × h. These are estimates, as the textbook formulae are.
+- **Combined mean of two groups**: type each size and mean for (n₁m₁ + n₂m₂)/(n₁ + n₂).
+
+Mismatched counts, boundaries that do not rise, an all-zero table and a mode formula with a zero bottom each give a clear message. Different class widths are noted.
+
 ## FAQ
+
+**How do I find the mean, median and mode of grouped data?** Choose *Grouped data* in the first card, type the class boundaries and frequencies, and it applies the mean, median and mode formulae with every step shown.
 
 **Why do the bars touch?** The classes follow on with no gaps (40–50 ends where 50–60 begins), so the bars do too. In a bar graph of separate things, like favourite fruits, the bars have gaps.
 

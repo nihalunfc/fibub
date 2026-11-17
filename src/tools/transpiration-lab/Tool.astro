@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
 <div class="ax trl">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your practical (bubble distance, tube radius, time, leaf area) and get the rate with the working an exam marks.</p><div class="ps-host"></div></div>
   <p class="ax-help trl-note">A teaching model: the shoot's numbers are made-up round values, so a real potometer will give different readings.</p>
   <div class="ax-card">
     <div class="ax-row"><span class="trl-lab">Level</span>
@@ -283,6 +284,12 @@ import Downloads from '../../components/Downloads.astro';
       { title: 'Rate graph', figure: graph ?? undefined, ...(readings.length ? { table: { head: HEAD, rows: readings.map(row), align: ['r', 'r', 'r', 'r', 'l', 'r'] as ('l' | 'r')[] } } : {}) },
     ] as Section[],
   }));
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { TRANSP } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, TRANSP);
 </script>
 
 <style is:inline>

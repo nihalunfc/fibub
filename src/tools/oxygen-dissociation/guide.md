@@ -11,12 +11,13 @@ ads: false
 order: 1130
 icon: curve
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [cardiac-cycle, acid-base-interpreter, respirometry-calculator, vo2max-estimator]
 sources:
   - "Standard curve: Severinghaus JW (1979), Simple, accurate equations for human blood O2 dissociation computations, Journal of Applied Physiology 46: 599-602, with his correction for pH, temperature and PCO2. Checked in the tests against a separate Python version."
   - "Oxygen content = 1.34 × Hb × saturation + 0.003 × PO2 is a standard physiology formula; Hb 15 g/dL is a typical round value. The fetal P50 of about 19 mmHg is an approximate teaching value."
   - "Lung volumes are typical round adult values as quoted in school books; you can type your own. Not for judging anyone's health. Nothing you enter is stored or sent anywhere."
+  - "Solve my numbers also uses PO₂ = fraction of the gas × total pressure, 1 kPa = 7.50062 mmHg, 1 atm = 101.325 kPa, oxygen unloaded = 1.34 × Hb × (arterial − venous saturation), and delivery = cardiac output × content × 10: standard school physiology arithmetic, not medical advice."
 flow:
   - { icon: sliders, label: "PO₂" }
   - { icon: curve, label: "Curve" }
@@ -47,7 +48,13 @@ It fits **Class 11 Biology: breathing and exchange of gases** (respiratory volum
 
 At normal conditions and PO₂ 40 mmHg the page shows **75 % saturated**. In the lungs (100 mmHg) it is 97.7 %, so the blood gives up 22.8 % of its load, about 4.8 mL of oxygen per 100 mL of blood. Press **Working muscle**: P50 rises from 26.9 to **37.0 mmHg**, the curve moves right by 10.1 mmHg, and at 40 mmHg haemoglobin is only 55.3 % full, so it gives up 42.5 % of its load, nearly twice as much. For the lungs, with tidal volume 500 mL, inspiratory reserve 2750 mL and expiratory reserve 1050 mL, the vital capacity is 1050 + 500 + 2750 = **4300 mL**, and with 1150 mL residual volume the total lung capacity is **5450 mL**.
 
+## Solve my numbers
+
+The first card is for the numbers in your problem. It is school arithmetic only and is not medical advice. Choose the oxygen content of blood (1.34 × Hb × saturation + 0.003 × PO₂), the saturation at a given PO₂ on the normal curve, the oxygen unloaded to the tissues from the arterial and venous saturations, the oxygen delivered per minute from cardiac output, or the partial pressure of oxygen from its percentage in the air. Pick g/dL or g/L for haemoglobin and mmHg or kPa for pressure, and the answer appears at the top with the working below: the bound part, the dissolved part and the total. A **common mistake** line reminds you to turn percent saturation into a fraction. If you swap the two saturations you get a plain message.
+
 ## FAQ
+
+**How much oxygen does blood carry?** With 15 g/dL of haemoglobin, 97.5 % saturation and PO₂ 100 mmHg it is 1.34 × 15 × 0.975 + 0.003 × 100 = 19.9 mL per 100 mL. The Solve my numbers card works yours out.
 
 **Why is the curve S-shaped?** When one oxygen binds, haemoglobin changes shape and the next ones bind more easily (cooperative binding). So the middle of the curve is steep, just where tissue PO₂ lies.
 

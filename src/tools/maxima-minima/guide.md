@@ -11,7 +11,7 @@ ads: false
 order: 1184
 icon: chart
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [derivative-slope, riemann-sums, function-grapher, symbolic-algebra]
 sources:
   - "Standard calculus: critical points, the first and second derivative tests, absolute extremes on a closed interval, and classic optimisation problems (open box, three-sided fence, closed cylinder). Written for fibub; no textbook text, figures or exercises are used, and the sizes are made-up examples."
@@ -54,7 +54,20 @@ For f(x) = x³ − 3x, f′(x) = 3x² − 3 = 0 at x = −1 and x = 1. f″(x) =
 
 Five questions with fresh numbers: a critical point of a quadratic, a local maximum of a cubic, a second derivative test, the best cut for a box and the biggest fenced area. Nothing is saved.
 
+## Solve your own numbers
+
+The first card works on your own question. Choose what to find:
+
+- **Turning points of a polynomial**: type the coefficients, highest power first (1 0 -3 0 means x³ − 3x). The card writes f, f′ and f″, solves f′ = 0, tests each point by the second derivative and gives the local maximum and minimum with their values. Where f″ = 0 it switches to the first derivative test and says so, so x⁴ shows a minimum and x³ shows none. Add an interval a to b to also get the absolute largest and smallest values, ends included.
+- **Open box** from a square sheet of side s: the cut x = s/6 and the biggest volume 2s³/27.
+- **Fence beside a river** with a given length of fencing: the sides L/4 and L/2 and the area L²/8.
+- **Closed can of a given volume** (cm³, litres or m³) with the least metal: the radius, the height h = 2r and the surface area.
+
+Polynomials up to degree 4 are handled here; for other functions use the grapher below. A straight line, no turning point or a bad interval gives a plain message.
+
 ## FAQ
+
+**How do I find the maximum and minimum of a function?** Type the coefficients in the first card: it solves f′(x) = 0 and then uses the sign of f″ at each solution, a negative value meaning a maximum and a positive value a minimum.
 
 **Why can a local maximum be lower than a local minimum?** "Local" only compares nearby points. For x + 1/x the hill at x = −1 has height −2 and the valley at x = 1 has height 2.
 

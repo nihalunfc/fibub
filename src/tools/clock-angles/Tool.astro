@@ -3,9 +3,15 @@
 // angle between the hands, how far each hand has turned, and when the hands next make a chosen angle.
 // Nothing is stored or sent.
 import '../../styles/astro.css';
+import '../../styles/solvecard-b.css';
 import '../../styles/smath.css';
 ---
 <div class="ax sm ck">
+  <div class="ax-card">
+    <h2>Solve your own numbers</h2>
+    <p class="ax-help" style="margin-top:0">Type a time for the angle between the hands, or an hour and an angle for the exact times the hands make it (together, right angle, opposite), with the working.</p>
+    <div class="ck-solve"></div>
+  </div>
   <div class="ax-card">
     <svg class="sm-fig ck-face" viewBox="0 0 300 300" role="img" aria-label="Clock face; drag the long hand to change the time" style="max-width:340px;margin:0 auto"></svg>
     <p class="ax-big ck-big" aria-live="polite" style="margin:8px 0 2px"></p>
@@ -70,6 +76,9 @@ import '../../styles/smath.css';
 </style>
 
 <script>
+  import { mountSolver } from '../../lib/learn/solvecard-b';
+  import { CLOCK_SPEC } from '../../lib/sci/solve-clock';
+  mountSolver(document.querySelector<HTMLElement>('.ck-solve')!, CLOCK_SPEC, 'sv');
   import { hands, between, formula, timesAtAngle, clockText } from '../../lib/sci/clock-school';
   import { fmt, randInt } from '../../lib/sci/smath';
   import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';

@@ -11,7 +11,7 @@ ads: false
 order: 1317
 icon: target
 works: offline
-updated: 2026-11-09
+updated: 2026-11-16
 related: [section-formula, pythagoras-proofs, herons-formula]
 sources:
   - "Standard coordinate geometry: the distance formula, the area of a triangle from its vertices, the converse of Pythagoras' theorem and slopes of perpendicular lines. Written for fibub."
@@ -63,7 +63,20 @@ Now type C as 9, 1. The area becomes 0 and the verdict says the points are **col
 - To show three points are collinear you can use the area (it is 0) or the distances (the two short ones add to the long one).
 - An equilateral triangle can never have all three corners on whole-number grid points. Its height always brings in √3.
 
+## Solve your own numbers
+
+The first card works on your own points, typed as x, y (for example 3, -2). Choose what to find:
+
+- **Triangle from three points**: the three sides by the distance formula (with simple surds such as 2√5), the area by the vertex formula, the type by sides and by angles (using the converse of Pythagoras on squared lengths), the three angles, the perimeter and the centroid. Collinear points are recognised and the middle point named.
+- **Two points**: distance, midpoint, slope and the equation of the line, with vertical lines handled.
+- **Section formula**: the point dividing AB internally or externally in the ratio m : n.
+- **Where line AB cuts an axis**: the point and the ratio k : 1 in which the axis divides AB, with a negative k meaning outside the segment.
+
+Repeated points, a missing coordinate, a ratio of 1 : 1 for an external division and a line parallel to the axis each get a plain message.
+
 ## FAQ
+
+**How do I find the area of a triangle from its coordinates?** Choose *Type, sides and area of a triangle* in the first card and type the three points: it uses ½|x₁(y₂ − y₃) + x₂(y₃ − y₁) + x₃(y₁ − y₂)|.
 
 **Why does my equilateral triangle say isosceles?** Typed decimals such as 1.732 are not exactly √3, so the sides differ slightly. Type `√3` instead (for example A 0, 0; B 2, 0; C 1, √3).
 

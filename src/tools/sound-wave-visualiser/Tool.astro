@@ -5,6 +5,7 @@ import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="ax lrn swv">
+  <div class="ax-card"><h2>Solve my numbers</h2><p class="ax-help" style="margin:0 0 10px">Type the numbers from your problem (frequency, wavelength, speed, echo time) and get the answer with the working an exam marks.</p><div class="ps-host"></div></div>
   <div class="ax-card">
     <div class="ax-row" style="justify-content:space-between">
       <h2 style="margin:0">Watch the air</h2>
@@ -189,4 +190,10 @@ import '../../styles/learnquiz-d.css';
       { q: `A ship's SONAR hears the echo from the sea bed ${t5} s after sending the pulse. Sound travels at 1,500 m/s in sea water. How deep is the sea?`, ans: echoDistance(1500, t5), unit: 'm', work: `depth = v t / 2 = 1500 × ${t5} / 2 = ${r(echoDistance(1500, t5), 4)} m` },
     ];
   });
+</script>
+
+<script>
+  import { mountSolver } from '../../lib/learn/phys-a-ui';
+  import { SOUND } from '../../lib/learn/phys-e';
+  mountSolver(document.querySelector<HTMLElement>('.ps-host')!, SOUND);
 </script>
