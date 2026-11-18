@@ -1,6 +1,6 @@
 ---
 name: Note chart
-num: 3023
+num: 3044
 shelf: everyday
 code: T1038
 section: music-theory
@@ -9,7 +9,7 @@ seoTitle: "Note frequency chart: every note in Hz and MIDI number"
 summary: "A table of every note from C-1 to G9 with its MIDI number, frequency in Hz, period, wavelength in air and piano key. Search by name, MIDI number or Hz, tap to hear a note, and download it as a CSV."
 status: live
 ads: false
-order: 3023
+order: 3044
 icon: sliders
 works: offline
 updated: 2026-11-18

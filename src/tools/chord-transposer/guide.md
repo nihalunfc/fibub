@@ -1,6 +1,6 @@
 ---
 name: Chord transposer
-num: 3024
+num: 3051
 shelf: everyday
 code: T1045
 section: music-theory
@@ -9,7 +9,7 @@ seoTitle: "Chord transposer: move song chords to any key"
 summary: "Paste a song with its chords, move it up or down by semitones or to a key you choose, and get a clean copy with the chords still above the right words. Includes a capo helper and sharps or flats choice."
 status: live
 ads: false
-order: 3024
+order: 3051
 icon: sliders
 works: offline
 updated: 2026-11-18

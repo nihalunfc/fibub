@@ -1,6 +1,6 @@
 ---
 name: Tab maker
-num: 3025
+num: 3052
 shelf: everyday
 code: T1046
 section: music-theory
@@ -9,7 +9,7 @@ seoTitle: "Guitar chord diagram and tab maker, free online"
 summary: "Press frets on a fretboard to build a guitar, ukulele or bass chord diagram, see the chord name worked out from the notes, add it to a printable chord sheet, and write text tab in several tunings."
 status: live
 ads: false
-order: 3025
+order: 3052
 icon: sliders
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Chord helper
-num: 3022
+num: 3040
 shelf: everyday
 code: T1034
 section: music-theory
@@ -9,7 +9,7 @@ seoTitle: "Chord helper: chords in a key, with piano and MIDI"
 summary: "Pick a key and scale, or type your chords to find the key. See the scale on a piano, the chords it contains, common chord patterns for pop, house, hip-hop and more, and save a pattern as a MIDI file."
 status: live
 ads: false
-order: 3022
+order: 3040
 icon: sliders
 works: offline
 updated: 2026-11-18
