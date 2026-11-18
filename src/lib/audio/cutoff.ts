@@ -1,6 +1,5 @@
 // High-frequency cutoff of decoded audio, for spotting a "320 kbps" file that was made from a lower-quality one.
-// Lossy encoders cut the top end (roughly 16 kHz at low bitrates, 19-20 kHz at high ones), and re-encoding cannot bring
-// it back, so a high stated bitrate with a low cutoff is a hint (not proof) of an upscaled file. Plain TypeScript, no DOM.
+// Lossy encoders cut the top end (lower bitrates cut lower), and re-encoding cannot bring it back, so a high stated bitrate with a low cutoff is a hint (not proof) of an upscaled file. Plain TypeScript, no DOM.
 import { fft, hann } from '../sci/dsp.ts';
 
 export type Cutoff = {
