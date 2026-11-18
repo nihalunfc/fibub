@@ -1,6 +1,6 @@
 ---
 name: Sample chopper
-num: 3022
+num: 3028
 shelf: everyday
 code: T1022
 section: production
@@ -9,7 +9,7 @@ seoTitle: "Sample chopper: slice audio into WAV samples, free"
 summary: "Open a loop, break or vocal and cut it into slices by its hits, a beat grid or by hand. Play the slices on 16 pads, then save every slice as a WAV in a ZIP, a new WAV of slices in any order, or a MIDI file for a sampler. Nothing is uploaded."
 status: live
 ads: false
-order: 3022
+order: 3028
 icon: scissors
 works: offline
 updated: 2026-11-18

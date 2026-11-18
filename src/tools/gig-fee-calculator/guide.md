@@ -1,6 +1,6 @@
 ---
 name: Gig fee
-num: 3021
+num: 3045
 shelf: everyday
 code: T1039
 section: music-business
@@ -8,7 +8,7 @@ title: "Gig fee: how much to charge for a DJ or live set"
 summary: "Work out a fair gig fee from set length, prep, travel, costs, agent cut, tax set-aside and your own hourly rate, with deposit, balance and what you keep."
 status: live
 ads: false
-order: 3021
+order: 3045
 icon: calculator
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Release checklist
-num: 3040
+num: 3053
 shelf: everyday
 code: T1047
 section: music-business
@@ -8,7 +8,7 @@ title: "Release checklist: a dated music release plan from your release date"
 summary: "Enter a release date and get a dated checklist working back from it: master, artwork, ISRC and UPC, metadata, split sheet, upload, pitching, pre-save, promo and after. Export .ics or CSV. Free, on your device."
 status: live
 ads: false
-order: 3040
+order: 3053
 icon: calendar
 works: offline
 updated: 2026-11-18

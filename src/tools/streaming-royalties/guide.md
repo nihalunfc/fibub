@@ -1,6 +1,6 @@
 ---
 name: Royalty estimator
-num: 3022
+num: 3054
 shelf: everyday
 code: T1048
 section: music-business
@@ -8,7 +8,7 @@ title: "Royalty estimator: what your streams might earn after the cuts"
 summary: "Estimate music streaming payouts from your own per-stream rates, take off distributor and label shares, split the rest between collaborators, work out streams needed for a target, and download a CSV."
 status: live
 ads: false
-order: 3022
+order: 3054
 icon: coin
 works: offline
 updated: 2026-11-18

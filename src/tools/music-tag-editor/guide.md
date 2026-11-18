@@ -1,6 +1,6 @@
 ---
 name: Tag editor
-num: 3019
+num: 3024
 shelf: everyday
 code: T1018
 section: dj-library
@@ -9,7 +9,7 @@ seoTitle: "Music tag editor for MP3, FLAC, M4A, WAV: free online tool"
 summary: "Edit the title, artist, genre, BPM, key, cover art and other tags of many music files at once, fill tags from file names or rename files from tags. The sound is never re-encoded and nothing is uploaded."
 status: live
 ads: false
-order: 3019
+order: 3024
 icon: pencil
 works: offline
 updated: 2026-11-18

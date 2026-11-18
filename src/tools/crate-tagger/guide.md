@@ -1,6 +1,6 @@
 ---
 name: Crate tagger
-num: 3024
+num: 3034
 shelf: everyday
 code: T1028
 section: dj-library
@@ -8,7 +8,7 @@ title: "Crate tagger: add your own tags to a DJ music library"
 summary: "Tag the tracks in your DJ library with vibe, set time and crowd labels, stars, energy and notes, then filter and export the list as a playlist, CSV or comment-field text. Your audio files are never touched or uploaded."
 status: live
 ads: false
-order: 3024
+order: 3034
 icon: pencil
 works: offline
 updated: 2026-11-18

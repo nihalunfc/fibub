@@ -1,6 +1,6 @@
 ---
 name: Set planner
-num: 3021
+num: 3032
 shelf: everyday
 code: T1026
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Set planner: how many tracks you need and an energy plan for your DJ set
 summary: "Work out how many tracks fill your DJ set, see a timeline with clock times, and shape an energy curve with suggested BPM ranges. Print it or download CSV. Free, on your device."
 status: live
 ads: false
-order: 3021
+order: 3032
 icon: calendar
 works: offline
 updated: 2026-11-18

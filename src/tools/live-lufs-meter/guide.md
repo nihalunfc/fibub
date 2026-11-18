@@ -1,6 +1,6 @@
 ---
 name: LUFS meter
-num: 3022
+num: 3042
 shelf: everyday
 code: T1036
 section: production
@@ -8,7 +8,7 @@ title: "LUFS meter: live loudness meter for microphone, browser tab or file"
 summary: "Watch loudness live in LUFS (ITU-R BS.1770, EBU R 128): momentary, short-term, integrated, loudness range and true peak, with a scrolling graph and −14 and −23 target lines. Measure a microphone, a browser tab's sound or a file."
 status: live
 ads: false
-order: 3022
+order: 3042
 icon: chart
 works: offline
 updated: 2026-11-18

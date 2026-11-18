@@ -1,6 +1,6 @@
 ---
 name: Tempo matcher
-num: 3023
+num: 3031
 shelf: everyday
 code: T1025
 section: dj-mixing
@@ -9,7 +9,7 @@ seoTitle: "Tempo matcher: pitch fader % to match two BPMs"
 summary: "Tap the beat or type two BPM values and see the pitch fader percent that matches them, which fader ranges allow it, the key you will hear without key lock, and half-time or double-time matches. Nothing is uploaded."
 status: live
 ads: false
-order: 3023
+order: 3031
 icon: sliders
 works: offline
 updated: 2026-11-18

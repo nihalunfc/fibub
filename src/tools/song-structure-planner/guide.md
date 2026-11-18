@@ -1,6 +1,6 @@
 ---
 name: Song planner
-num: 3025
+num: 3048
 shelf: everyday
 code: T1042
 section: production
@@ -8,7 +8,7 @@ title: "Song planner: song structure and arrangement timeline with section times
 summary: "Plan a song from intro, verse, chorus, drop and other sections: set bars, BPM and time signature, see the start time of every section and export the plan."
 status: live
 ads: false
-order: 3025
+order: 3048
 icon: calendar
 works: offline
 updated: 2026-11-18

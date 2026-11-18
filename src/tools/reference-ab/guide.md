@@ -1,6 +1,6 @@
 ---
 name: A/B compare
-num: 3024
+num: 3050
 shelf: everyday
 code: T1044
 section: production
@@ -8,7 +8,7 @@ title: "A/B compare: compare your mix with reference tracks at matched loudness"
 summary: "Load your mix and up to 3 reference tracks, match their loudness automatically (ITU-R BS.1770), switch between them in sync with keys 1 to 4, loop a part, run a blind test and compare spectra, LUFS, range, true peak, correlation and crest factor. Nothing is uploaded."
 status: live
 ads: false
-order: 3024
+order: 3050
 icon: scale
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Mix planner
-num: 3021
+num: 3030
 shelf: everyday
 code: T1024
 section: dj-mixing
@@ -9,7 +9,7 @@ seoTitle: "Harmonic mixing planner: order a DJ set by key and BPM"
 summary: "Type or import a track list with BPM and key, pick a start track and an energy shape, and get a running order where each mix blends in key and the tempo moves in small steps, with the path on the key wheel. Nothing is uploaded."
 status: live
 ads: false
-order: 3021
+order: 3030
 icon: compass
 works: offline
 updated: 2026-11-18

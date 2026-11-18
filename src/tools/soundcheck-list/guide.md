@@ -1,6 +1,6 @@
 ---
 name: Soundcheck list
-num: 3030
+num: 3037
 shelf: everyday
 code: T1031
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Soundcheck list: a DJ sound check and gear checklist for any venue"
 summary: "A tick list for a DJ's venue sound check and gear: arrive, power, mixer, booth monitor, PA, recording and after the set. Edit it, print it or copy it as text. Free, on your device."
 status: live
 ads: false
-order: 3030
+order: 3037
 icon: check
 works: offline
 updated: 2026-11-18

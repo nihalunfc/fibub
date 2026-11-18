@@ -1,6 +1,6 @@
 ---
 name: Audio repair
-num: 3042
+num: 3026
 shelf: everyday
 code: T1020
 section: production
@@ -9,7 +9,7 @@ seoTitle: "Audio repair: remove noise, hum and clicks, free online tool"
 summary: "Clean up a recording in your browser: reduce hiss and fan noise from a noise sample, notch out 50 or 60 Hz mains hum, repair clicks and clipped peaks. Hear before and after, save WAV or MP3. Nothing is uploaded."
 status: live
 ads: false
-order: 3042
+order: 3026
 icon: wave
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Library cleaner
-num: 3020
+num: 3022
 shelf: everyday
 code: T1016
 section: dj-library
@@ -9,7 +9,7 @@ seoTitle: "Duplicate song finder and fake MP3 checker, free online tool"
 summary: "Check a music folder for duplicate tracks, missing tags, low bitrates, likely fake 320 kbps files, very short or silent files and unusual sample rates, then download a CSV report. Nothing is uploaded or deleted."
 status: live
 ads: false
-order: 3020
+order: 3022
 icon: search
 works: offline
 updated: 2026-11-18

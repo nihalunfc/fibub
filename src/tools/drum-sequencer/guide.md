@@ -1,6 +1,6 @@
 ---
 name: Drum sketcher
-num: 3026
+num: 3041
 shelf: everyday
 code: T1035
 section: production
@@ -8,7 +8,7 @@ title: "Drum sketcher: online drum machine with step grid, WAV and MIDI export"
 summary: "Sketch a drum loop on a 16 or 32 step grid with synthesised kick, snare, clap, hats, tom, rim and perc, then download it as WAV or MIDI or share it as a link."
 status: live
 ads: false
-order: 3026
+order: 3041
 icon: table
 works: offline
 updated: 2026-11-18

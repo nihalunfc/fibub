@@ -1,6 +1,6 @@
 ---
 name: LFO rates
-num: 3020
+num: 3047
 shelf: everyday
 code: T1041
 section: production
@@ -8,7 +8,7 @@ title: "LFO rates: BPM to LFO Hz for tempo-synced modulation"
 summary: "Turn a BPM into LFO and sidechain rates in Hz for every note value, work out the nearest note for any Hz, and see the LFO shape drawn over one bar."
 status: live
 ads: false
-order: 3020
+order: 3047
 icon: wave
 works: offline
 updated: 2026-11-18

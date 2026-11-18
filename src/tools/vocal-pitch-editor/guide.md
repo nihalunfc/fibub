@@ -1,6 +1,6 @@
 ---
 name: Pitch editor
-num: 3023
+num: 3025
 shelf: everyday
 code: T1019
 section: production
@@ -9,7 +9,7 @@ seoTitle: "Vocal pitch correction online, note by note, free"
 summary: "Open a solo vocal or instrument, see every note on a piano roll, snap the notes to a key with a strength and retune time, or drag single notes up and down. Compare before and after, then save a WAV of the same length. Nothing is uploaded."
 status: live
 ads: false
-order: 3023
+order: 3025
 icon: mic
 works: offline
 updated: 2026-11-18

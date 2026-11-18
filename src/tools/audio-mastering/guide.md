@@ -1,6 +1,6 @@
 ---
 name: Track mastering
-num: 3021
+num: 3023
 shelf: everyday
 code: T1017
 section: production
@@ -8,7 +8,7 @@ title: "Track mastering: master a song online to -14 LUFS for streaming or loude
 summary: "Master a finished mix in your browser: gentle tone EQ, glue compression, stereo width and a true-peak limiter that lands on −14, −16, −23 LUFS or a loud club level. Compare before and after at matched loudness, then save WAV or MP3. Nothing is uploaded."
 status: live
 ads: false
-order: 3021
+order: 3023
 icon: sliders
 works: offline
 updated: 2026-11-18

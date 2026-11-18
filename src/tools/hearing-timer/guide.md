@@ -1,6 +1,6 @@
 ---
 name: Hearing timer
-num: 3025
+num: 3038
 shelf: everyday
 code: T1032
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Hearing timer: how long can you safely listen at a sound level"
 summary: "Type a sound level in dB(A), pick the NIOSH or OSHA rule and see how long you can listen, with a countdown and dose used for your set. Free, on your device, not medical advice."
 status: live
 ads: false
-order: 3025
+order: 3038
 icon: clock
 works: offline
 updated: 2026-11-18

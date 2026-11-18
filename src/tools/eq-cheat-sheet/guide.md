@@ -1,6 +1,6 @@
 ---
 name: EQ guide
-num: 3024
+num: 3043
 shelf: everyday
 code: T1037
 section: production
@@ -8,7 +8,7 @@ title: "EQ guide: frequency chart with instrument ranges, EQ bands and what to c
 summary: "A frequency chart from 20 Hz to 20 kHz showing EQ bands and where common instruments sit, with plain advice for each band, note names and a test tone."
 status: live
 ads: false
-order: 3024
+order: 3043
 icon: curve
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Phrase counter
-num: 3020
+num: 3033
 shelf: everyday
 code: T1027
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Phrase counter: bars, phrases and time to the next phrase from BPM"
 summary: "Turn a BPM into seconds per beat, bar and 8, 16 or 32-bar phrase, find the time to the next phrase, convert minutes to bars, and count phrases live with a flash."
 status: live
 ads: false
-order: 3020
+order: 3033
 icon: clock
 works: offline
 updated: 2026-11-18

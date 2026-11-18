@@ -1,6 +1,6 @@
 ---
 name: Split sheet
-num: 3023
+num: 3055
 shelf: everyday
 code: T1049
 section: music-business
@@ -8,7 +8,7 @@ title: "Split sheet: free song split agreement template with writing and master 
 summary: "Fill in who wrote and produced a song, set writing and master percentages that must each add up to 100, then print or download a split sheet to sign."
 status: live
 ads: false
-order: 3023
+order: 3055
 icon: table
 works: offline
 updated: 2026-11-18

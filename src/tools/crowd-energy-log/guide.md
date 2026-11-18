@@ -1,6 +1,6 @@
 ---
 name: Crowd log
-num: 3023
+num: 3036
 shelf: everyday
 code: T1030
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Crowd log: log crowd energy during a DJ set and see what worked"
 summary: "Tap a 1 to 10 button during your set to log the crowd's energy with the time, track and a note, then see a chart, the peak, average and best and worst tracks, and export CSV."
 status: live
 ads: false
-order: 3023
+order: 3036
 icon: chart
 works: offline
 updated: 2026-11-18

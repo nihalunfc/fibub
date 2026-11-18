@@ -1,6 +1,6 @@
 ---
 name: Rider maker
-num: 3033
+num: 3046
 shelf: everyday
 code: T1040
 section: music-business
@@ -8,7 +8,7 @@ title: "Rider maker: make a DJ technical and hospitality rider with a setlist"
 summary: "Fill in a form to make a DJ rider with gear, power, hospitality, travel, payment terms and a setlist with running time. Print it or download PDF or Word. Free, on your device."
 status: live
 ads: false
-order: 3033
+order: 3046
 icon: pencil
 works: offline
 updated: 2026-11-18

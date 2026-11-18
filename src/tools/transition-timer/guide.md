@@ -1,6 +1,6 @@
 ---
 name: Transition timer
-num: 3022
+num: 3035
 shelf: everyday
 code: T1029
 section: dj-mixing
@@ -8,7 +8,7 @@ title: "Transition timer: practice DJ transitions with phrase countdowns"
 summary: "Practise DJ transitions with a countdown in phrase-length steps at your BPM, rate each attempt, and see your average, best streak and a chart. Free, nothing uploaded."
 status: live
 ads: false
-order: 3022
+order: 3035
 icon: clock
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Mix recorder
-num: 3028
+num: 3027
 shelf: everyday
 code: T1021
 section: dj-mixing
@@ -9,7 +9,7 @@ seoTitle: "DJ mix recorder with tracklist and CUE sheet, free"
 summary: "Record your DJ set from a mixer, audio interface or browser tab, press New track as each song comes in, and save WAV plus a tracklist as text, CUE sheet or CSV. Or mark the tracks in a mix you already have. Nothing is uploaded."
 status: live
 ads: false
-order: 3028
+order: 3027
 icon: mic
 works: offline
 updated: 2026-11-18

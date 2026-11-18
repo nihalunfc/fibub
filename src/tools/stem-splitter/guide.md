@@ -1,6 +1,6 @@
 ---
 name: Stem splitter
-num: 3041
+num: 3020
 shelf: everyday
 code: T1014
 section: production
@@ -9,7 +9,7 @@ seoTitle: "Stem splitter: vocals, drums and bass, free online tool"
 summary: "Split a song into vocals and instrumental, drums and melodic parts, or bass and the rest with classic signal maths. Preview each stem with solo and mute, save WAV or MP3. Nothing is uploaded."
 status: live
 ads: false
-order: 3041
+order: 3020
 icon: sliders
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Delay calculator
-num: 3019
+num: 3039
 shelf: everyday
 code: T1033
 section: production
@@ -8,7 +8,7 @@ title: "Delay calculator: BPM to delay time in ms and Hz"
 summary: "Type or tap a BPM and see delay times in milliseconds for every note value, dotted and triplet, plus reverb pre-delay, decay and compressor attack and release starting points."
 status: live
 ads: false
-order: 3019
+order: 3039
 icon: clock
 works: offline
 updated: 2026-11-18

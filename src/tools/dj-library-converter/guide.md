@@ -1,6 +1,6 @@
 ---
 name: Library converter
-num: 3027
+num: 3021
 shelf: everyday
 code: T1015
 section: dj-library
@@ -9,7 +9,7 @@ seoTitle: "DJ library converter: Rekordbox, Traktor, VirtualDJ, free"
 summary: "Open a Rekordbox XML, Traktor NML or VirtualDJ database export, or M3U and Serato crate files, and save your playlists, cue points, loops and beat grids in another format. Change the file paths for a new computer. Nothing is uploaded."
 status: live
 ads: false
-order: 3027
+order: 3021
 icon: convert
 works: offline
 updated: 2026-11-18

@@ -1,6 +1,6 @@
 ---
 name: Phase checker
-num: 3023
+num: 3049
 shelf: everyday
 code: T1043
 section: production
@@ -8,7 +8,7 @@ title: "Phase checker: stereo phase correlation and mono compatibility check"
 summary: "Check a mix for phase problems: correlation over time, a goniometer, correlation by band, how much quieter it gets in mono, left/right balance and flagged out-of-phase moments. Listen in stereo, mono or side only. Nothing is uploaded."
 status: live
 ads: false
-order: 3023
+order: 3049
 icon: wave
 works: offline
 updated: 2026-11-18

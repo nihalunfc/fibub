@@ -1,6 +1,6 @@
 ---
 name: Key finder
-num: 3020
+num: 3029
 shelf: everyday
 code: T1023
 section: dj-library
@@ -9,7 +9,7 @@ seoTitle: "Song key and BPM finder with Camelot code, free"
 summary: "Open a song to see its tempo (BPM) with a beat grid, its key with the runner-up and a confidence, and the keys that mix well with it. Tap along to check the tempo, or let it listen through the microphone. Nothing is uploaded."
 status: live
 ads: false
-order: 3020
+order: 3029
 icon: search
 works: offline
 updated: 2026-11-18
