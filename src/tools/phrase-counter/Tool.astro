@@ -1,0 +1,137 @@
+---
+// #T1027 Phrase counter: bar and phrase lengths from BPM, time to next phrase, mm:ss <-> bars, live counter.
+// Maths in src/lib/music/sets.ts.
+---
+<div class="tool-ui pc">
+  <section class="panel">
+    <div class="pc-row">
+      <label>BPM <input data-k="bpm" type="number" min="20" max="300" step="0.1" value="128" inputmode="decimal" /></label>
+      <button type="button" class="btn secondary pc-tap">Tap tempo</button>
+      <label>Track length (m:ss) <input data-k="len" type="text" value="5:00" inputmode="numeric" /></label>
+    </div>
+    <div class="pc-out" aria-live="polite">
+      <table class="pc-tbl"><tbody>
+        <tr><th>1 beat</th><td class="pc-beat"></td></tr>
+        <tr><th>1 bar</th><td class="pc-bar"></td></tr>
+        <tr><th>8 bars</th><td class="pc-p8"></td></tr>
+        <tr><th>16 bars</th><td class="pc-p16"></td></tr>
+        <tr><th>32 bars</th><td class="pc-p32"></td></tr>
+        <tr><th>In the track</th><td class="pc-count"></td></tr>
+      </tbody></table>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Time to next phrase</h2>
+    <div class="pc-row">
+      <label>Now at (m:ss) <input data-k="cue" type="text" value="1:10" inputmode="numeric" /></label>
+      <label>Phrase <select data-k="cuebars"><option value="8">8 bars</option><option value="16">16 bars</option><option value="32" selected>32 bars</option></select></label>
+    </div>
+    <p class="pc-next" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>Minutes and bars</h2>
+    <div class="pc-row">
+      <label>Time (m:ss) <input data-k="cvt" type="text" value="2:00" inputmode="numeric" /></label>
+      <label>= bars <input data-k="cvb" type="number" min="0" step="any" value="64" inputmode="decimal" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Live counter</h2>
+    <div class="pc-live" aria-live="off"><span class="pc-lb">-</span><span class="pc-ls">Press Start on a downbeat</span></div>
+    <button type="button" class="btn pc-go">Start</button>
+    <div class="pc-row">
+      <label>Flash every <select data-k="flash"><option value="8">8 bars</option><option value="16" selected>16 bars</option><option value="32">32 bars</option></select></label>
+      <label class="pc-chk"><input data-k="click" type="checkbox" /> Click</label>
+    </div>
+  </section>
+  <details class="panel"><summary>More options</summary>
+    <label>Beats per bar <select data-k="beats"><option value="4" selected>4</option><option value="3">3</option><option value="6">6</option></select></label>
+  </details>
+</div>
+
+<style is:inline>
+  .pc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pc .panel { display: grid; gap: 12px; padding: 16px; }
+  .pc h2 { font-size: 17px; margin: 0; }
+  .pc-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .pc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .pc input[type=number], .pc input[type=text], .pc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 130px; max-width: 100%; }
+  .pc-chk { display: flex !important; align-items: center; gap: 8px; }
+  .pc-tbl { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .pc-tbl th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 0; }
+  .pc-tbl td { text-align: right; font-size: 18px; padding: 6px 0; }
+  .pc-tbl tr + tr { border-top: 1px solid var(--line); }
+  .pc-next { font-size: 20px; margin: 0; }
+  .pc-live { display: grid; place-items: center; gap: 4px; min-height: 160px; border: 2px solid var(--line); border-radius: 14px; text-align: center; padding: 12px; }
+  .pc-live.flash { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pc-lb { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .pc-ls { font-size: 16px; opacity: .85; }
+  .pc-go { font-size: 20px; padding: 14px; }
+</style>
+
+<script>
+  import { beatSec, barSec, phraseSec, fmtTime, parseTime, timeToNextPhrase, position, barsToSec, secToBars } from '../../lib/music/sets.ts';
+  const root = document.querySelector('.pc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const num = (s: number, d = 3) => String(+s.toFixed(d));
+  const bpm = () => Math.max(20, Math.min(300, +k('bpm').value || 128));
+  const bpb = () => +k('beats').value || 4;
+  const upd = () => {
+    const b = bpm(), n = bpb();
+    $('.pc-beat').textContent = num(beatSec(b)) + ' s';
+    $('.pc-bar').textContent = num(barSec(b, n)) + ' s';
+    for (const p of [8, 16, 32]) $('.pc-p' + p).textContent = `${num(phraseSec(b, p, n), 2)} s (${fmtTime(phraseSec(b, p, n), 1)})`;
+    const len = parseTime(k('len').value);
+    $('.pc-count').textContent = isFinite(len) ? `${num(secToBars(len, b, n), 1)} bars: ${num(len / phraseSec(b, 32, n), 1)} x 32, ${num(len / phraseSec(b, 16, n), 1)} x 16, ${num(len / phraseSec(b, 8, n), 1)} x 8` : 'Type a length like 5:00';
+    const cue = parseTime(k('cue').value), pb = +k('cuebars').value;
+    $('.pc-next').textContent = isFinite(cue) ? `Next ${pb}-bar phrase in ${fmtTime(timeToNextPhrase(b, cue, pb, n), 1)} (at ${fmtTime(cue + timeToNextPhrase(b, cue, pb, n), 1)})` : 'Type a time like 1:10';
+    cvt('t');
+  };
+  const cvt = (from: 't' | 'b') => {
+    const b = bpm(), n = bpb();
+    if (from === 't') { const t = parseTime(k('cvt').value); k('cvb').value = isFinite(t) ? num(secToBars(t, b, n), 2) : ''; }
+    else { const x = +k('cvb').value; k('cvt').value = fmtTime(barsToSec(x, b, n), 1).replace(/\.0$/, ''); }
+  };
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLElement;
+    if (t === k('cvb')) cvt('b'); else if (t.dataset.k && t.dataset.k !== 'click' && t.dataset.k !== 'flash') upd();
+  });
+  let taps: number[] = [];
+  $('.pc-tap').addEventListener('click', () => {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now); taps = taps.slice(-8);
+    if (taps.length >= 2) { k('bpm').value = String(Math.round((600000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0])) / 10); upd(); }
+  });
+  // Live counter: counts beats from the moment Start is pressed (performance clock).
+  const live = $('.pc-live'), lb = $('.pc-lb'), ls = $('.pc-ls'), go = $<HTMLButtonElement>('.pc-go');
+  let t0 = 0, raf = 0, last = -1, ac: AudioContext | null = null;
+  const tick = (hi: boolean) => {
+    if (!k('click').checked) return;
+    try {
+      ac ??= new AudioContext();
+      const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = hi ? 1600 : 1000; g.gain.value = 0.15;
+      o.connect(g); g.connect(ac.destination); o.start(); g.gain.setTargetAtTime(0, ac.currentTime + 0.01, 0.02); o.stop(ac.currentTime + 0.1);
+    } catch { /* no audio */ }
+  };
+  const frame = () => {
+    const b = bpm(), n = bpb(), fl = +k('flash').value;
+    const bi = Math.floor((performance.now() - t0) / 1000 / beatSec(b));
+    if (bi !== last) {
+      last = bi;
+      const p = position(bi, fl, n), p8 = position(bi, 8, n), p16 = position(bi, 16, n), p32 = position(bi, 32, n);
+      lb.textContent = `${p.beat}`;
+      ls.textContent = `Bar ${p.bar}  |  ${fl}-bar phrase ${p.phrase}, bar ${p.barInPhrase}  |  8-bar ${p8.phrase}, 16-bar ${p16.phrase}, 32-bar ${p32.phrase}`;
+      live.classList.toggle('flash', p.phraseStart);
+      if (p.phraseStart) setTimeout(() => live.classList.remove('flash'), 250);
+      tick(p.phraseStart);
+    }
+    raf = requestAnimationFrame(frame);
+  };
+  go.addEventListener('click', () => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; go.textContent = 'Start'; live.classList.remove('flash'); return; }
+    t0 = performance.now(); last = -1; go.textContent = 'Stop'; frame();
+  });
+  upd();
+</script>

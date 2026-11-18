@@ -1,0 +1,122 @@
+---
+// #T1030 Crowd log: tap 1-10 during a set, chart, summary, CSV, print. Maths in src/lib/music/sets.ts.
+---
+<div class="tool-ui cl">
+  <section class="panel">
+    <div class="cl-clock" aria-live="off"><span class="cl-time">0:00</span></div>
+    <div class="cl-row">
+      <button type="button" class="btn cl-go">Start clock</button>
+      <button type="button" class="btn secondary cl-undo">Undo last</button>
+    </div>
+    <label>Now playing <input data-k="track" type="text" maxlength="120" placeholder="Track name (optional)" /></label>
+    <label>Note <input data-k="note" type="text" maxlength="200" placeholder="Note for the next tap (optional)" /></label>
+    <div class="cl-pad" role="group" aria-label="Crowd energy 1 to 10"></div>
+  </section>
+  <section class="panel cl-printable">
+    <h2>Summary</h2>
+    <p class="cl-sum" aria-live="polite"></p>
+    <svg class="cl-chart" viewBox="0 0 320 140" role="img" aria-label="Crowd energy over the set"></svg>
+    <ol class="cl-list"></ol>
+  </section>
+  <section class="panel">
+    <div class="cl-row">
+      <button type="button" class="btn secondary cl-csv">Download CSV</button>
+      <button type="button" class="btn secondary cl-print">Print summary</button>
+      <button type="button" class="btn secondary cl-clear">Clear</button>
+    </div>
+    <label class="cl-chk"><input data-k="save" type="checkbox" /> Remember this set on this device (off by default)</label>
+    <p class="cl-fine">When ticked, entries are kept in this browser only and never sent anywhere. Clear removes them.</p>
+  </section>
+  <details class="panel"><summary>More options</summary>
+    <label>Energy slider <input data-k="slider" type="range" min="1" max="10" step="1" value="5" /></label>
+    <button type="button" class="btn secondary cl-slog">Log the slider value</button>
+  </details>
+</div>
+
+<style is:inline>
+  .cl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cl .panel { display: grid; gap: 12px; padding: 16px; }
+  .cl h2 { font-size: 17px; margin: 0; }
+  .cl-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cl input[type=text] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; box-sizing: border-box; }
+  .cl-chk { display: flex !important; gap: 8px; align-items: center; }
+  .cl-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .cl-time { font-size: 56px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cl-clock { text-align: center; }
+  .cl-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .cl-pad button { font-size: 24px; padding: 18px 0; }
+  .cl-chart { width: 100%; height: auto; }
+  .cl-chart .ax { stroke: var(--line); }
+  .cl-chart .ln { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .cl-chart circle { fill: var(--accent); }
+  .cl-chart text { fill: var(--muted); font-size: 9px; }
+  .cl-list { margin: 0; padding-left: 22px; font-size: 14px; max-height: 240px; overflow: auto; }
+  @media print {
+    html.cl-printing body * { visibility: hidden; }
+    html.cl-printing .cl-printable, html.cl-printing .cl-printable * { visibility: visible; }
+    html.cl-printing .cl-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    html.cl-printing .cl-list { max-height: none; }
+  }
+</style>
+
+<script>
+  import { crowdSummary, fmtTime, toCsv, type LogEntry } from '../../lib/music/sets.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.cl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-crowd-log-v1';
+  let log: LogEntry[] = [], t0 = 0, base = 0, timer = 0, lock: any = null;
+  const store = (act: 'get' | 'set' | 'del') => {
+    try {
+      if (act === 'get') return JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (act === 'set') localStorage.setItem(KEY, JSON.stringify(log)); else localStorage.removeItem(KEY);
+    } catch { /* storage blocked */ }
+    return null;
+  };
+  const elapsed = () => (timer ? base + (performance.now() - t0) / 1000 : base);
+  const show = () => { $('.cl-time').textContent = fmtTime(elapsed()); };
+  const getLock = async () => { try { if ('wakeLock' in navigator) lock = await (navigator as any).wakeLock.request('screen'); } catch { lock = null; } };
+  const start = () => { if (timer) return; t0 = performance.now(); timer = window.setInterval(show, 250); $('.cl-go').textContent = 'Pause clock'; getLock(); };
+  const pause = () => { if (!timer) return; base = elapsed(); clearInterval(timer); timer = 0; $('.cl-go').textContent = 'Start clock'; try { lock?.release(); } catch { /* none */ } lock = null; show(); };
+  $('.cl-go').addEventListener('click', () => (timer ? pause() : start()));
+  document.addEventListener('visibilitychange', () => { if (timer && document.visibilityState === 'visible' && !lock) getLock(); });
+  const pad = $('.cl-pad');
+  for (let i = 1; i <= 10; i++) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (i > 5 ? '' : ' secondary'); b.textContent = String(i); b.dataset.e = String(i); pad.appendChild(b); }
+  const add = (e: number) => {
+    if (!timer) start();
+    log.push({ t: Math.round(elapsed()), e, track: k('track').value.trim(), note: k('note').value.trim() });
+    k('note').value = ''; render(); if (k('save').checked) store('set');
+  };
+  pad.addEventListener('click', (ev) => { const b = (ev.target as HTMLElement).closest('button'); if (b) add(+b.dataset.e!); });
+  $('.cl-slog').addEventListener('click', () => add(+k('slider').value));
+  $('.cl-undo').addEventListener('click', () => { log.pop(); render(); if (k('save').checked) store('set'); });
+  const render = () => {
+    const s = crowdSummary(log);
+    $('.cl-sum').textContent = s
+      ? `${s.n} entries. Peak ${s.peak.e} at ${fmtTime(s.peak.t)}${s.peak.track ? ' (' + s.peak.track + ')' : ''}. Lowest ${s.low.e} at ${fmtTime(s.low.t)}. Average ${s.avg}.${s.best ? ` Best track: ${s.best.name} (${s.best.avg.toFixed(1)}). Worst track: ${s.worst!.name} (${s.worst!.avg.toFixed(1)}).` : ' Add track names to see best and worst tracks.'}`
+      : 'No entries yet. Tap a number when the energy changes.';
+    $('.cl-list').innerHTML = '';
+    log.forEach((l) => { const li = document.createElement('li'); li.textContent = `${fmtTime(l.t)}: ${l.e}${l.track ? ' ' + l.track : ''}${l.note ? ' (' + l.note + ')' : ''}`; $('.cl-list').appendChild(li); });
+    const W = 320, H = 140, mx = Math.max(60, log.length ? log[log.length - 1].t : 0);
+    const X = (t: number) => 24 + (t / mx) * (W - 34), Y = (e: number) => 120 - ((e - 1) / 9) * 100;
+    let g = [1, 5, 10].map((e) => `<line class="ax" x1="24" x2="${W - 10}" y1="${Y(e)}" y2="${Y(e)}"/><text x="4" y="${Y(e) + 3}">${e}</text>`).join('');
+    g += `<text x="24" y="136">0:00</text><text x="${W - 40}" y="136">${fmtTime(mx)}</text>`;
+    if (log.length) g += `<polyline class="ln" points="${log.map((l) => X(l.t) + ',' + Y(l.e)).join(' ')}"/>` + log.map((l) => `<circle cx="${X(l.t)}" cy="${Y(l.e)}" r="3"/>`).join('');
+    $('.cl-chart').innerHTML = g;
+  };
+  k('save').addEventListener('change', () => { if (k('save').checked) store('set'); else store('del'); });
+  $('.cl-clear').addEventListener('click', () => { log = []; base = 0; pause(); store('del'); render(); show(); });
+  $('.cl-csv').addEventListener('click', () => {
+    saveBytes(new Blob([toCsv([['Time', 'Seconds', 'Energy', 'Track', 'Note'], ...log.map((l) => [fmtTime(l.t), l.t, l.e, l.track, l.note])])], { type: 'text/csv' }), 'crowd-log.csv', 'text/csv');
+  });
+  $('.cl-print').addEventListener('click', () => {
+    document.documentElement.classList.add('cl-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('cl-printing'), { once: true });
+    window.print();
+  });
+  const old = store('get');
+  if (Array.isArray(old) && old.length) { log = old; k('save').checked = true; base = log[log.length - 1].t; show(); }
+  render();
+</script>
