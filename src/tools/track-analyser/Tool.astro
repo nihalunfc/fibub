@@ -1,0 +1,235 @@
+---
+// #T1013 Track analyser: BPM, key, Camelot code, energy, length and loudness for many tracks at once, in a Web Worker.
+// Maths in src/lib/music/analyse.ts and theory.ts (checks in tests/music.mjs). Nothing is uploaded.
+---
+<div class="tool-ui ta">
+  <section class="panel">
+    <div class="ta-drop">
+      <button type="button" class="btn ta-pick">Choose tracks</button>
+      <button type="button" class="btn secondary ta-dirb">Choose a folder</button>
+      <input class="ta-files" type="file" multiple accept="audio/*,.mp3,.wav,.ogg,.oga,.opus,.m4a,.aac,.flac,.webm,.aif,.aiff" hidden />
+      <input class="ta-dir" type="file" webkitdirectory multiple hidden />
+      <span class="ta-hint">Or drop them here. MP3, WAV, M4A, FLAC, OGG. They stay on this device.</span>
+    </div>
+    <p class="ta-status" aria-live="polite">No tracks yet.</p>
+    <progress class="ta-bar" max="1" value="0" hidden></progress>
+    <div class="ta-row">
+      <button type="button" class="btn secondary ta-stop" hidden>Stop after this track</button>
+    </div>
+  </section>
+
+  <section class="panel ta-res" hidden>
+    <div class="ta-two">
+      <label>Key notation
+        <select class="ta-not" data-k="notation">
+          <option value="camelot">Camelot wheel (8A)</option>
+          <option value="openkey">Open Key (1m)</option>
+          <option value="musical">Musical (Am)</option>
+        </select>
+      </label>
+      <label>Show tracks that mix with
+        <select class="ta-with" data-k="with"><option value="">All tracks</option></select>
+      </label>
+    </div>
+    <div class="ta-wrap">
+      <table class="ta-tab">
+        <thead><tr>
+          <th><button type="button" data-sort="name">File</button></th>
+          <th><button type="button" data-sort="bpm">BPM</button></th>
+          <th><button type="button" data-sort="key">Key</button></th>
+          <th><button type="button" data-sort="cam">Camelot</button></th>
+          <th><button type="button" data-sort="energy">Energy</button></th>
+          <th><button type="button" data-sort="len">Length</button></th>
+          <th><button type="button" data-sort="lufs">LUFS</button></th>
+          <th class="ta-mcol" hidden>Mix</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="ta-fine">Press a column name to sort; press again to reverse. The playlist and the CSV follow the order shown.</p>
+    <div class="ta-row">
+      <button type="button" class="btn ta-csv">Download CSV</button>
+      <button type="button" class="btn secondary ta-m3u">Download playlist (M3U8)</button>
+      <button type="button" class="btn secondary ta-clear">Clear the list</button>
+    </div>
+    <details class="ta-more">
+      <summary>More options</summary>
+      <div class="ta-two">
+        <label>Tempo range for BPM
+          <select class="ta-range" data-k="range">
+            <option value="70-180">70 to 180 (most music)</option>
+            <option value="85-175">85 to 175 (house, techno, drum and bass)</option>
+            <option value="60-120">60 to 120 (hip-hop, slow songs)</option>
+          </select>
+        </label>
+        <label>Tuning of A4 (Hz) <input class="ta-a4" data-k="a4" type="number" min="400" max="480" step="1" value="440" inputmode="decimal" /></label>
+      </div>
+      <p class="ta-fine">The tempo range only decides between half and double tempo (a 174 BPM track can also be counted at 87). It changes the BPM column at once. The tuning helps with music not tuned to A = 440 Hz; it applies to tracks added after the change.</p>
+    </details>
+  </section>
+</div>
+
+<style is:inline>
+  .ta { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ta .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .ta [hidden] { display: none !important; }
+  .ta-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .ta-drop.over { border-color: var(--accent); }
+  .ta-hint, .ta-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .ta-status { margin: 0; }
+  .ta-bar { width: 100%; }
+  .ta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ta-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ta label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ta input, .ta select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ta-wrap { overflow-x: auto; max-width: 100%; }
+  .ta-tab { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .ta-tab th, .ta-tab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ta-tab td:first-child { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .ta-tab th button { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer; }
+  .ta-tab th button[aria-sort]::after { content: ' ↑'; }
+  .ta-tab th button[aria-sort=descending]::after { content: ' ↓'; }
+  .ta-tab .bad { color: var(--bad, #b42318); }
+  .ta-tab .low { color: var(--muted); }
+  .ta-more summary { cursor: pointer; }
+  .ta-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import type { Analysis } from '../../lib/music/analyse.ts';
+  import { keyIn, camelot, compatibility, keyName, camelotNumber, type KeyNotation } from '../../lib/music/theory.ts';
+  import { decodeFile, baseName, saveBytes } from '../../lib/audio/browser.ts';
+
+  type Row = { name: string; path: string; a?: Analysis; error?: string; bpm: number };
+  const root = document.querySelector('.ta') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.ta-status'), bar = $<HTMLProgressElement>('.ta-bar'), tbody = $('.ta-tab tbody'), notSel = $<HTMLSelectElement>('.ta-not'), withSel = $<HTMLSelectElement>('.ta-with');
+  const rows: Row[] = [], queue: File[] = [];
+  let sortKey = '', sortDir = 1, busy = false, stopAsked = false, worker: Worker | null = null, jobId = 0;
+  const AUDIO = /\.(mp3|wav|ogg|oga|opus|m4a|aac|flac|webm|aif|aiff|mp4)$/i;
+
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`.replace(/:60$/, ':59');
+  const f1 = (v: number) => (isFinite(v) ? (Math.round(v * 10) / 10).toFixed(1) : '');
+  const keyText = (r: Row) => (r.a?.key ? keyIn(r.a.key.key, notSel.value as KeyNotation) : '');
+  const sortVal = (r: Row): number | string => {
+    const a = r.a;
+    switch (sortKey) {
+      case 'bpm': return a ? r.bpm : -1;
+      case 'key': return a?.key ? (notSel.value === 'musical' ? keyName(a.key.key) : camelotNumber(a.key.key) * 2 + (a.key.key.mode === 'major' ? 1 : 0)) : '~';
+      case 'cam': return a?.key ? camelotNumber(a.key.key) * 2 + (a.key.key.mode === 'major' ? 1 : 0) : 99;
+      case 'energy': return a ? a.energy : -1;
+      case 'len': return a ? a.duration : -1;
+      case 'lufs': return a && isFinite(a.lufs) ? a.lufs : -999;
+      default: return r.name.toLowerCase();
+    }
+  };
+  const shown = (): Row[] => {
+    let list = rows.slice();
+    const w = withSel.value === '' ? null : rows[+withSel.value];
+    if (w?.a?.key) list = list.filter((r) => r.a?.key && compatibility(w.a!.key!.key, r.a.key.key).score >= 70);
+    if (sortKey) list.sort((x, y) => { const a = sortVal(x), b = sortVal(y); return (a < b ? -1 : a > b ? 1 : 0) * sortDir; });
+    return list;
+  };
+  const render = () => {
+    const w = withSel.value === '' ? null : rows[+withSel.value];
+    $('.ta-mcol').hidden = !w;
+    root.querySelectorAll<HTMLButtonElement>('th button').forEach((b) => {
+      if (b.dataset.sort === sortKey) b.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending'); else b.removeAttribute('aria-sort');
+    });
+    tbody.replaceChildren(...shown().map((r) => {
+      const tr = document.createElement('tr'), a = r.a;
+      const cells = a
+        ? [r.name, f1(r.bpm), keyText(r), a.key ? camelot(a.key.key) : '', String(a.energy), mmss(a.duration), f1(a.lufs)]
+        : [r.name, r.error ? 'Could not read' : '…', '', '', '', '', ''];
+      cells.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i === 0) td.title = r.path; if (r.error && i === 1) td.className = 'bad'; tr.append(td); });
+      if (a) {
+        if (a.bpmConfidence < 0.3) { tr.children[1].className = 'low'; (tr.children[1] as HTMLElement).title = 'Low confidence: check by ear'; }
+        if (a.key && a.key.confidence < 0.3) { tr.children[2].className = 'low'; (tr.children[2] as HTMLElement).title = `Low confidence; next best ${keyIn(a.key.runnerUp.key, notSel.value as KeyNotation)}`; }
+      }
+      if (w) { const td = document.createElement('td'); td.textContent = w.a?.key && a?.key ? (r === w ? 'This track' : compatibility(w.a.key.key, a.key.key).label) : ''; tr.append(td); }
+      return tr;
+    }));
+    $('.ta-res').hidden = rows.length === 0;
+  };
+  const refreshWith = () => {
+    const v = withSel.value;
+    withSel.replaceChildren(new Option('All tracks', ''), ...rows.map((r, i) => (r.a?.key ? new Option(`${r.name} (${camelot(r.a.key.key)})`, String(i)) : null)).filter((o): o is HTMLOptionElement => !!o));
+    withSel.value = [...withSel.options].some((o) => o.value === v) ? v : '';
+  };
+
+  const rangeOf = () => $<HTMLSelectElement>('.ta-range').value.split('-').map(Number);
+  /** Pick the BPM inside the chosen range from the best tempo and its half/double alternative. */
+  const fitBpm = (a: Analysis) => {
+    const [lo, hi] = rangeOf();
+    for (const b of [a.bpm, a.altBpm, a.bpm * 2, a.bpm / 2]) if (b >= lo && b <= hi) return Math.round(b * 10) / 10;
+    return a.bpm;
+  };
+  const analyse = (chans: Float32Array[], rate: number, onP: (f: number) => void) => new Promise<Analysis>((res, rej) => {
+    worker ??= new Worker(new URL('../../lib/music/analyse-worker.ts', import.meta.url), { type: 'module' });
+    const id = ++jobId;
+    worker.onmessage = (e) => { const m = e.data; if (m.id !== id) return; if (m.result) res(m.result); else if (m.error) rej(new Error(m.error)); else onP(m.progress); };
+    worker.onerror = (e) => rej(new Error(e.message));
+    const copies = chans.map((c) => c.slice());
+    worker.postMessage({ id, chans: copies, rate, a4: Math.max(400, Math.min(480, +$<HTMLInputElement>('.ta-a4').value || 440)) }, copies.map((c) => c.buffer));
+  });
+  const run = async () => {
+    if (busy) return;
+    busy = true; stopAsked = false; bar.hidden = false; $('.ta-stop').hidden = false;
+    let done = 0;
+    while (queue.length && !stopAsked) {
+      const f = queue.shift()!, total = done + queue.length + 1;
+      const row: Row = { name: baseName(f.name, f.name), path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, bpm: 0 };
+      rows.push(row); render();
+      status.textContent = `Reading ${f.name} (${done + 1} of ${total})…`; bar.value = done / total;
+      try {
+        const snd = await decodeFile(f);
+        status.textContent = `Analysing ${f.name} (${done + 1} of ${total})…`;
+        row.a = await analyse(snd.chans, snd.rate, (p) => (bar.value = (done + p) / total));
+        row.bpm = fitBpm(row.a);
+      } catch { row.error = 'This browser cannot read that file.'; }
+      done++; refreshWith(); render();
+    }
+    busy = false; bar.hidden = true; $('.ta-stop').hidden = true;
+    const ok = rows.filter((r) => r.a).length, bad = rows.length - ok;
+    status.textContent = `${ok} track${ok === 1 ? '' : 's'} analysed${bad ? `, ${bad} could not be read` : ''}${queue.length ? `; ${queue.length} left (stopped)` : ''}.`;
+    queue.length = 0;
+  };
+  const add = (files: Iterable<File>) => {
+    const list = [...files].filter((f) => AUDIO.test(f.name) || f.type.startsWith('audio/'));
+    if (!list.length) { status.textContent = 'No sound files there. Choose MP3, WAV, M4A, FLAC or OGG files.'; return; }
+    list.sort((a, b) => ((a as any).webkitRelativePath || a.name).localeCompare((b as any).webkitRelativePath || b.name));
+    queue.push(...list); run();
+  };
+
+  const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  $('.ta-csv').addEventListener('click', () => {
+    const lines = [['file', 'bpm', 'key', 'camelot', 'open_key', 'energy', 'length_s', 'lufs', 'bpm_confidence', 'key_confidence', 'key_runner_up'].join(',')];
+    for (const r of shown()) {
+      const a = r.a, k = a?.key;
+      lines.push([r.path, a ? f1(r.bpm) : '', k ? keyName(k.key, 'short', true) : '', k ? camelot(k.key) : '', k ? keyIn(k.key, 'openkey') : '', a ? String(a.energy) : '', a ? a.duration.toFixed(1) : '', a ? f1(a.lufs) : '', a ? a.bpmConfidence.toFixed(2) : '', k ? k.confidence.toFixed(2) : '', k ? camelot(k.runnerUp.key) : ''].map(csvCell).join(','));
+    }
+    saveBytes(new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv' }), 'tracks.csv');
+  });
+  $('.ta-m3u').addEventListener('click', () => {
+    const out = ['#EXTM3U'];
+    for (const r of shown()) { out.push(`#EXTINF:${r.a ? Math.round(r.a.duration) : -1},${r.name}`); out.push(r.path); }
+    saveBytes(new Blob([out.join('\n') + '\n'], { type: 'audio/x-mpegurl' }), 'playlist.m3u8');
+  });
+  $('.ta-clear').addEventListener('click', () => { queue.length = 0; if (!busy) { rows.length = 0; refreshWith(); render(); status.textContent = 'No tracks yet.'; } });
+  $('.ta-stop').addEventListener('click', () => { stopAsked = true; status.textContent = 'Stopping after this track…'; });
+  root.querySelectorAll<HTMLButtonElement>('th button').forEach((b) => b.addEventListener('click', () => {
+    if (sortKey === b.dataset.sort) sortDir = -sortDir; else { sortKey = b.dataset.sort!; sortDir = 1; }
+    render();
+  }));
+  notSel.addEventListener('change', render);
+  withSel.addEventListener('change', render);
+  $('.ta-range').addEventListener('change', () => { rows.forEach((r) => r.a && (r.bpm = fitBpm(r.a))); render(); });
+  const fi = $<HTMLInputElement>('.ta-files'), di = $<HTMLInputElement>('.ta-dir');
+  $('.ta-pick').addEventListener('click', () => fi.click());
+  $('.ta-dirb').addEventListener('click', () => di.click());
+  for (const inp of [fi, di]) inp.addEventListener('change', () => { if (inp.files?.length) add(inp.files); inp.value = ''; });
+  const drop = $('.ta-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) add(e.dataTransfer.files); });
+</script>

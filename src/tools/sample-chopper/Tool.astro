@@ -1,0 +1,368 @@
+---
+// #T1022 Sample chopper: slice a sound by transients, a beat grid or by hand, play the slices on 16 pads, export
+// every slice as a WAV in a ZIP, a joined WAV of chosen slices, and a MIDI file mapping slices to notes.
+// Slice maths in src/lib/audio/chop.ts; onsets and tempo from src/lib/music/analyse.ts (in its worker).
+---
+<div class="tool-ui sc">
+  <section class="panel">
+    <div class="sc-drop">
+      <button type="button" class="btn sc-open">Open a sound</button>
+      <input class="sc-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.opus,.m4a,.aac,.flac,.webm,.mp4,.aif,.aiff" hidden />
+      <span class="sc-name">Or drop a file here. It stays on this device.</span>
+    </div>
+    <progress class="sc-bar" max="1" value="0" hidden></progress>
+    <p class="sc-msg" aria-live="polite"></p>
+  </section>
+
+  <section class="panel sc-res" hidden>
+    <div class="sc-row">
+      <label class="sc-lab">Cut by
+        <select class="sc-mode" data-k="mode">
+          <option value="transients">Hits (transients)</option>
+          <option value="grid">Beat grid</option>
+          <option value="manual">By hand</option>
+        </select>
+      </label>
+      <label class="sc-lab sc-m-transients">Sensitivity <span class="sc-sensv">5</span>
+        <input class="sc-sens" data-k="sensitivity" type="range" min="1" max="10" step="1" value="5" />
+      </label>
+      <label class="sc-lab sc-m-grid" hidden>Tempo (BPM) <input class="sc-bpm" data-k="bpm" type="number" min="40" max="300" step="0.1" value="120" inputmode="decimal" /></label>
+      <label class="sc-lab sc-m-grid" hidden>Slice every
+        <select class="sc-div" data-k="division">
+          <option value="4">Bar (4 beats)</option>
+          <option value="1" selected>1/4 (one beat)</option>
+          <option value="0.5">1/8</option>
+          <option value="0.25">1/16</option>
+        </select>
+      </label>
+    </div>
+    <p class="sc-sub sc-hint">Higher sensitivity finds quieter hits. Changing the mode, sensitivity or grid sets the markers again.</p>
+
+    <div class="sc-wave-box">
+      <canvas class="sc-wave" height="150" tabindex="0" aria-label="Waveform with slice markers. Drag a marker to move it."></canvas>
+    </div>
+    <div class="sc-row">
+      <label class="sc-lab sc-zoomlab">Zoom <input class="sc-zoom" data-k="zoom" type="range" min="0" max="6" step="0.1" value="0" /></label>
+      <label class="sc-lab sc-zoomlab">Scroll <input class="sc-scroll" data-k="scroll" type="range" min="0" max="1000" step="1" value="0" disabled /></label>
+    </div>
+    <div class="sc-row">
+      <button type="button" class="btn secondary sc-del" disabled>Delete marker</button>
+      <button type="button" class="btn secondary sc-playall">Play all</button>
+      <span class="sc-count" aria-live="polite"></span>
+    </div>
+
+    <h2 class="sc-h">Pads</h2>
+    <div class="sc-banks sc-row"></div>
+    <div class="sc-pads"></div>
+    <p class="sc-sub">Tap a pad, or press the keys 1 2 3 4 / Q W E R / A S D F / Z X C V.</p>
+
+    <div class="sc-slice">
+      <h2 class="sc-h">Slice <span class="sc-sn">1</span> <small class="sc-slen"></small></h2>
+      <div class="sc-row">
+        <label class="sc-lab">Fade in (ms) <input class="sc-fi" data-k="fade-in" type="number" min="0" max="500" step="1" value="1" inputmode="decimal" /></label>
+        <label class="sc-lab">Fade out (ms) <input class="sc-fo" data-k="fade-out" type="number" min="0" max="2000" step="1" value="5" inputmode="decimal" /></label>
+      </div>
+      <div class="sc-row">
+        <label class="sc-chk"><input class="sc-norm" data-k="normalise" type="checkbox" /> Normalise (loudest point to −0.3 dB)</label>
+        <label class="sc-chk"><input class="sc-rev" data-k="reverse" type="checkbox" /> Reverse</label>
+      </div>
+      <div class="sc-row"><button type="button" class="btn secondary sc-all">Use these for every slice</button></div>
+    </div>
+
+    <h2 class="sc-h">Save</h2>
+    <div class="sc-row">
+      <button type="button" class="btn sc-zip">Save all slices (ZIP)</button>
+    </div>
+    <label class="sc-lab sc-wide">Slices to join, in order (pad numbers)
+      <input class="sc-order" data-k="order" type="text" inputmode="numeric" autocomplete="off" />
+    </label>
+    <div class="sc-row">
+      <button type="button" class="btn secondary sc-join">Save joined WAV</button>
+      <label class="sc-chk"><input class="sc-rec" data-k="record-order" type="checkbox" /> Pads add to the order</label>
+      <button type="button" class="btn secondary sc-clear">Clear order</button>
+    </div>
+    <details class="sc-more">
+      <summary>More options</summary>
+      <div class="sc-row">
+        <label class="sc-lab">MIDI: slice 1 on
+          <select class="sc-note" data-k="first-note">
+            <option value="24">C1 (MIDI note 24)</option>
+            <option value="36">C2 (MIDI note 36)</option>
+            <option value="48">C3 (MIDI note 48)</option>
+          </select>
+        </label>
+        <button type="button" class="btn secondary sc-midi">Save MIDI file</button>
+      </div>
+      <p class="sc-sub">The MIDI file has one note per slice at its own time and length (slice 1 on the note above, slice 2 a semitone higher…), at the tempo above. Load the slices into a sampler from that note up and it plays the loop back.</p>
+      <label class="sc-lab">Grid starts at (ms) <input class="sc-off" data-k="grid-offset" type="number" min="0" step="1" value="0" inputmode="decimal" /></label>
+    </details>
+    <p class="sc-sub">Saved files are 16-bit WAV at the sound's own sample rate and channels.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .sc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sc .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .sc [hidden] { display: none !important; }
+  .sc-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .sc-drop.over { border-color: var(--accent); }
+  .sc-name, .sc-sub, .sc-count { color: var(--muted); font-size: 14px; margin: 0; }
+  .sc-count { color: var(--ink); }
+  .sc-msg { margin: 0; }
+  .sc-bar { width: 100%; }
+  .sc-h { font-size: 18px; margin: 4px 0 0; }
+  .sc-h small { font-size: 14px; color: var(--muted); font-weight: normal; }
+  .sc-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+  .sc-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; flex: 1 1 140px; max-width: 260px; }
+  .sc-wide { max-width: none; }
+  .sc-zoomlab { flex: 1 1 140px; max-width: none; }
+  .sc-chk { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+  .sc input:not([type=checkbox]):not([type=range]), .sc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .sc input[type=range] { width: 100%; }
+  .sc-wave-box { width: 100%; min-width: 0; }
+  .sc-wave { width: 100%; height: 150px; display: block; border: 1px solid var(--line); border-radius: 10px; touch-action: pan-y; cursor: crosshair; }
+  .sc-pads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; max-width: 420px; }
+  .sc-pad { aspect-ratio: 1.3; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-size: 18px; display: grid; place-items: center; cursor: pointer; padding: 0; touch-action: manipulation; }
+  .sc-pad small { display: block; font-size: 11px; color: var(--muted); }
+  .sc-pad.sel { border: 2px solid var(--accent); }
+  .sc-pad.on { background: var(--accent); color: var(--bg); }
+  .sc-pad:disabled { opacity: .35; cursor: default; }
+  .sc-banks .on { border-color: var(--accent); }
+  .sc-slice { border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px; }
+  .sc-more summary { cursor: pointer; }
+  .sc-more[open] { display: grid; gap: 10px; }
+</style>
+
+<script>
+  import type { Analysis } from '../../lib/music/analyse.ts';
+  import { onsetTimes, downmix } from '../../lib/music/analyse.ts';
+  import { refineOnsets, gridStarts, cleanStarts, slicesFrom, renderSlice, joinPieces, slicesMidi, DEFAULT_SLICE, type SliceOpts } from '../../lib/audio/chop.ts';
+  import { decodeFile, player, baseName, saveBytes, saveZip } from '../../lib/audio/browser.ts';
+  import { writeWav, type Sound } from '../../lib/audio/pcm.ts';
+
+  const root = document.querySelector('.sc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const msg = $('.sc-msg'), bar = $<HTMLProgressElement>('.sc-bar'), cv = $<HTMLCanvasElement>('.sc-wave');
+  const modeSel = $<HTMLSelectElement>('.sc-mode'), sens = $<HTMLInputElement>('.sc-sens'), bpmIn = $<HTMLInputElement>('.sc-bpm'), divSel = $<HTMLSelectElement>('.sc-div');
+  const zoomIn = $<HTMLInputElement>('.sc-zoom'), scrollIn = $<HTMLInputElement>('.sc-scroll'), orderIn = $<HTMLInputElement>('.sc-order'), offIn = $<HTMLInputElement>('.sc-off');
+  const fiIn = $<HTMLInputElement>('.sc-fi'), foIn = $<HTMLInputElement>('.sc-fo'), normIn = $<HTMLInputElement>('.sc-norm'), revIn = $<HTMLInputElement>('.sc-rev');
+  const play = player();
+  const MAX = 128, KEYS = '1234qwerasdfzxcv';
+  type Marker = { t: number; o: SliceOpts };
+  let snd: Sound | null = null, mono: Float32Array | null = null, A: Analysis | null = null, name = 'sound', dur = 0;
+  let markers: Marker[] = [], sel = 0, bank = 0, orderEdited = false, playing = -1, worker: Worker | null = null, defOpts: SliceOpts = { ...DEFAULT_SLICE };
+
+  const slices = () => (snd ? slicesFrom(markers.map((m) => m.t), snd.rate, snd.chans[0].length) : []);
+  const render = (i: number) => { const s = slices()[i]; return s && snd ? renderSlice(snd.chans, snd.rate, s.a, s.b, markers[i].o) : null; };
+
+  // ---------- Markers from the chosen mode ----------
+  const setStarts = (ts: number[]) => {
+    markers = cleanStarts(ts, dur).slice(0, MAX).map((t) => ({ t, o: { ...defOpts } }));
+    sel = Math.min(sel, Math.max(0, markers.length - 1)); bank = 0; afterChange();
+  };
+  const detect = () => {
+    if (!snd || !A || !mono) return;
+    const mode = modeSel.value;
+    root.querySelectorAll<HTMLElement>('.sc-m-transients').forEach((e) => (e.hidden = mode !== 'transients'));
+    root.querySelectorAll<HTMLElement>('.sc-m-grid').forEach((e) => (e.hidden = mode !== 'grid'));
+    $('.sc-hint').textContent = mode === 'manual' ? 'Tap the waveform to add a marker; drag a marker to move it; select one and press Delete marker to remove it.'
+      : mode === 'grid' ? 'Markers every chosen length from the first beat. Drag any marker to fine-tune it.'
+      : 'Higher sensitivity finds quieter hits. Drag any marker to fine-tune it.';
+    $('.sc-sensv').textContent = sens.value;
+    if (mode === 'transients') {
+      const s = Math.pow(2, (+sens.value - 5) / 2.5);
+      const rough = onsetTimes({ env: A.env, fps: A.envFps, t0: A.envT0, centroid: A.centroid }, 0.05, s).map((o) => o.t);
+      setStarts(refineOnsets(mono, snd.rate, rough));
+    } else if (mode === 'grid') {
+      const bpm = Math.max(40, Math.min(300, +bpmIn.value || 120)), off = Math.max(0, +offIn.value || 0) / 1000;
+      setStarts(gridStarts(bpm, off, +divSel.value, dur));
+    } else if (!markers.length) setStarts([0]);
+    else afterChange();
+  };
+
+  // ---------- Waveform ----------
+  let v0 = 0, drag = -1;
+  const span = () => dur / Math.pow(2, +zoomIn.value);
+  const tx = (t: number, W: number) => ((t - v0) / span()) * W;
+  const xt = (x: number) => v0 + (x / cv.clientWidth) * span();
+  const draw = () => {
+    if (!snd || !mono) return;
+    const dpr = window.devicePixelRatio || 1, W = Math.max(100, Math.round(cv.clientWidth * dpr)), H = Math.round(150 * dpr);
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d')!, css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#ccc', acc = css.getPropertyValue('--accent') || '#00f';
+    g.clearRect(0, 0, W, H);
+    const sl = slices();
+    if (sl[sel]) { const a = tx(sl[sel].a / snd.rate, W), b = tx(sl[sel].b / snd.rate, W); g.fillStyle = line; g.fillRect(a, 0, b - a, H); }
+    const r = snd.rate, s0 = v0 * r, per = (span() * r) / W, step = Math.max(1, Math.floor(per / 64));
+    g.fillStyle = ink;
+    for (let i = 0; i < W; i++) {
+      const a = Math.floor(s0 + i * per), b = Math.min(mono.length, Math.max(a + 1, Math.floor(s0 + (i + 1) * per)));
+      let lo = 0, hi = 0; for (let j = Math.max(0, a); j < b; j += step) { const v = mono[j]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      g.fillRect(i, H / 2 - hi * (H / 2 - 4 * dpr) - dpr / 2, 1, Math.max(dpr, (hi - lo) * (H / 2 - 4 * dpr)));
+    }
+    g.font = `${11 * dpr}px system-ui, sans-serif`; g.textBaseline = 'top';
+    markers.forEach((m, i) => {
+      const x = Math.round(tx(m.t, W)) + 0.5; if (x < -20 || x > W + 20) return;
+      g.strokeStyle = acc; g.lineWidth = (i === sel ? 2.5 : 1.2) * dpr;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+      g.fillStyle = acc; g.fillRect(x, 0, 18 * dpr, 14 * dpr); g.fillStyle = getComputedStyle(document.body).backgroundColor || '#fff'; g.fillText(String(i + 1), x + 2 * dpr, 1 * dpr);
+    });
+    cv.dataset.starts = JSON.stringify(markers.map((m) => Math.round(m.t * 10000) / 10000));
+  };
+  const setView = () => {
+    const max = Math.max(0, dur - span());
+    scrollIn.disabled = max <= 0; v0 = max * (+scrollIn.value / 1000); draw();
+  };
+  const near = (x: number) => { let best = -1, bd = 10; markers.forEach((m, i) => { const d = Math.abs(tx(m.t, cv.clientWidth) - x); if (d < bd) { bd = d; best = i; } }); return best; };
+  cv.addEventListener('pointerdown', (e) => {
+    if (!snd) return;
+    const x = e.clientX - cv.getBoundingClientRect().left, hit = near(x);
+    if (hit >= 0) { drag = hit; sel = hit; cv.setPointerCapture(e.pointerId); afterChange(false); return; }
+    const t = xt(x);
+    if (modeSel.value === 'manual' && markers.length < MAX) {
+      markers.push({ t, o: { ...defOpts } }); markers.sort((a, b) => a.t - b.t);
+      sel = markers.findIndex((m) => m.t === t); afterChange(); return;
+    }
+    let i = markers.length - 1; while (i > 0 && markers[i].t > t) i--;
+    if (i >= 0 && markers[i].t <= t) { sel = i; afterChange(false); playSlice(i); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (drag < 0 || !snd) return;
+    const t = xt(e.clientX - cv.getBoundingClientRect().left);
+    const lo = drag > 0 ? markers[drag - 1].t + 0.01 : 0, hi = drag + 1 < markers.length ? markers[drag + 1].t - 0.01 : dur - 0.01;
+    markers[drag].t = Math.max(lo, Math.min(hi, t)); draw();
+  });
+  const endDrag = () => { if (drag >= 0) { drag = -1; afterChange(); } };
+  cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+  const delMarker = () => { if (markers.length > 1 && markers[sel]) { markers.splice(sel, 1); sel = Math.max(0, sel - 1); afterChange(); } };
+  $('.sc-del').addEventListener('click', delMarker);
+  cv.addEventListener('keydown', (e) => { if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); delMarker(); } });
+  zoomIn.addEventListener('input', () => {
+    // Keep the selected slice in view while zooming.
+    const m = markers[sel]; const max = Math.max(0, dur - span());
+    if (m && max > 0) scrollIn.value = String(Math.round(Math.max(0, Math.min(1, (m.t - span() * 0.1) / max)) * 1000));
+    setView();
+  });
+  scrollIn.addEventListener('input', setView);
+  window.addEventListener('resize', draw);
+
+  // ---------- Pads, slice settings and order ----------
+  const fmtLen = (s: { a: number; b: number }) => `${(((s.b - s.a) / snd!.rate) * 1000).toFixed(0)} ms`;
+  const afterChange = (full = true) => {
+    const sl = slices(), n = sl.length;
+    if (full) {
+      bank = Math.min(bank, Math.max(0, Math.ceil(n / 16) - 1));
+      const banks = $('.sc-banks'); banks.replaceChildren();
+      if (n > 16) for (let b = 0; b < Math.ceil(n / 16); b++) {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary' + (b === bank ? ' on' : '');
+        btn.textContent = `${b * 16 + 1}–${Math.min(n, b * 16 + 16)}`; btn.addEventListener('click', () => { bank = b; afterChange(); }); banks.append(btn);
+      }
+      const pads = $('.sc-pads'); pads.replaceChildren();
+      for (let k = 0; k < 16; k++) {
+        const i = bank * 16 + k, b = document.createElement('button');
+        b.type = 'button'; b.className = 'sc-pad'; b.dataset.i = String(i); b.disabled = i >= n;
+        b.innerHTML = i < n ? `<span>${i + 1}<small>${KEYS[k].toUpperCase()} · ${fmtLen(sl[i])}</small></span>` : `<span>–</span>`;
+        b.setAttribute('aria-label', i < n ? `Play slice ${i + 1}` : 'Empty pad');
+        b.addEventListener('click', () => padHit(i)); pads.append(b);
+      }
+      $('.sc-count').textContent = `${n} slice${n === 1 ? '' : 's'}` + (markers.length >= MAX ? ` (the most is ${MAX})` : '');
+      if (!orderEdited) orderIn.value = sl.map((_, i) => i + 1).join(' ');
+    }
+    root.querySelectorAll<HTMLElement>('.sc-pad').forEach((p) => { p.classList.toggle('sel', +p.dataset.i! === sel); p.classList.toggle('on', +p.dataset.i! === playing); });
+    const m = markers[sel];
+    if (m && sl[sel]) {
+      $('.sc-sn').textContent = String(sel + 1); $('.sc-slen').textContent = `${(m.t).toFixed(3)} s, ${fmtLen(sl[sel])}`;
+      fiIn.value = String(m.o.fadeIn); foIn.value = String(m.o.fadeOut); normIn.checked = m.o.normalise; revIn.checked = m.o.reverse;
+    }
+    $<HTMLButtonElement>('.sc-del').disabled = markers.length < 2;
+    draw();
+  };
+  const playSlice = (i: number) => {
+    const p = render(i); if (!p || !snd) return;
+    playing = i; afterChange(false);
+    play.play(p, snd.rate, () => { if (playing === i) { playing = -1; afterChange(false); } });
+  };
+  const padHit = (i: number) => {
+    if (i >= slices().length) return;
+    sel = i; playSlice(i);
+    if ($<HTMLInputElement>('.sc-rec').checked) { orderEdited = true; orderIn.value = (orderIn.value.trim() + ' ' + (i + 1)).trim(); }
+  };
+  document.addEventListener('keydown', (e) => {
+    if (!snd || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    const k = KEYS.indexOf(e.key.toLowerCase());
+    if (k >= 0) { e.preventDefault(); padHit(bank * 16 + k); }
+  });
+  const readOpts = () => {
+    const m = markers[sel]; if (!m) return;
+    m.o = { fadeIn: Math.max(0, +fiIn.value || 0), fadeOut: Math.max(0, +foIn.value || 0), normalise: normIn.checked, reverse: revIn.checked };
+  };
+  [fiIn, foIn, normIn, revIn].forEach((el) => el.addEventListener('change', readOpts));
+  $('.sc-all').addEventListener('click', () => { readOpts(); const m = markers[sel]; if (!m) return; defOpts = { ...m.o }; markers.forEach((x) => (x.o = { ...defOpts })); msg.textContent = `These fade, normalise and reverse settings now apply to all ${markers.length} slices.`; });
+  orderIn.addEventListener('input', () => (orderEdited = true));
+  $('.sc-clear').addEventListener('click', () => { orderEdited = true; orderIn.value = ''; });
+  const order = () => { const n = slices().length; return (orderIn.value.match(/\d+/g) || []).map(Number).filter((v) => v >= 1 && v <= n).map((v) => v - 1); };
+  $('.sc-playall').addEventListener('click', () => {
+    if (!snd) return;
+    if (play.playing) { play.stop(); playing = -1; afterChange(false); return; }
+    const idx = order(); if (!idx.length) return;
+    play.play(joinPieces(idx.map((i) => render(i)!)), snd.rate);
+  });
+
+  // ---------- Save ----------
+  const two = (i: number) => String(i + 1).padStart(slices().length >= 100 ? 3 : 2, '0');
+  $('.sc-zip').addEventListener('click', async () => {
+    if (!snd) return;
+    const files = slices().map((_, i) => ({ name: `${name}_${two(i)}.wav`, bytes: writeWav(render(i)!, snd!.rate) }));
+    await saveZip(files, `${name}_slices.zip`);
+    msg.textContent = `Saved ${files.length} slices in ${name}_slices.zip.`;
+  });
+  $('.sc-join').addEventListener('click', () => {
+    if (!snd) return;
+    const idx = order(); if (!idx.length) { msg.textContent = 'Type the slice numbers to join, such as 1 2 1 3.'; return; }
+    const out = joinPieces(idx.map((i) => render(i)!));
+    saveBytes(writeWav(out, snd.rate), `${name}_joined.wav`, 'audio/wav');
+    msg.textContent = `Saved ${idx.length} slices joined (${(out[0].length / snd.rate).toFixed(2)} s) as ${name}_joined.wav.`;
+  });
+  $('.sc-midi').addEventListener('click', () => {
+    if (!snd) return;
+    const bpm = Math.max(40, Math.min(300, +bpmIn.value || 120));
+    const mid = slicesMidi(slices().map((s) => ({ start: s.a / snd!.rate, end: s.b / snd!.rate })), bpm, +$<HTMLSelectElement>('.sc-note').value, name);
+    saveBytes(mid, `${name}_slices.mid`, 'audio/midi');
+    msg.textContent = `Saved a MIDI file with ${slices().length} notes at ${bpm} BPM.`;
+  });
+
+  [modeSel, divSel].forEach((el) => el.addEventListener('change', detect));
+  sens.addEventListener('input', detect);
+  [bpmIn, offIn].forEach((el) => el.addEventListener('change', detect));
+
+  // ---------- Open ----------
+  const open = async (f: File) => {
+    play.stop();
+    $('.sc-name').textContent = `${f.name}: reading…`; msg.textContent = ''; bar.hidden = false; bar.value = 0;
+    try { snd = await decodeFile(f); } catch { $('.sc-name').textContent = f.name; msg.textContent = 'This browser cannot read that file. Try MP3 or WAV.'; bar.hidden = true; return; }
+    name = baseName(f.name); dur = snd.chans[0].length / snd.rate; mono = downmix(snd.chans);
+    $('.sc-name').textContent = `${f.name}: finding the hits…`;
+    worker ??= new Worker(new URL('../../lib/music/analyse-worker.ts', import.meta.url), { type: 'module' });
+    const copies = snd.chans.map((c) => c.slice());
+    A = await new Promise<Analysis | null>((res) => {
+      worker!.onmessage = (e) => { const m = e.data; if (m.result) res(m.result); else if (m.error) res(null); else bar.value = m.progress; };
+      worker!.postMessage({ id: 1, chans: copies, rate: snd!.rate }, copies.map((c) => c.buffer));
+    });
+    bar.hidden = true;
+    $('.sc-name').textContent = `${f.name}: ${dur.toFixed(2)} s, ${snd.chans.length === 1 ? 'mono' : snd.chans.length + ' channels'}, ${snd.rate} Hz`;
+    if (!A) { msg.textContent = 'Could not analyse this file.'; return; }
+    if (A.bpm) { bpmIn.value = String(A.bpm); offIn.value = String(Math.round(Math.max(0, A.firstBeat) * 1000)); }
+    markers = []; sel = 0; orderEdited = false; zoomIn.value = '0'; scrollIn.value = '0';
+    $('.sc-res').hidden = false; setView(); detect();
+    msg.textContent = `${slices().length} slices found.` + (A.bpm ? ` Tempo about ${A.bpm} BPM.` : '');
+  };
+  const input = $<HTMLInputElement>('.sc-file');
+  $('.sc-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.sc-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>

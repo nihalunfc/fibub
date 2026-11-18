@@ -1,0 +1,167 @@
+---
+// #T1024 Mix planner: orders a track list for a DJ set by key compatibility, small BPM jumps and an energy shape.
+// Planning in src/lib/music/mixplan.ts, keys in src/lib/music/theory.ts. Nothing is uploaded.
+---
+<div class="tool-ui mp">
+  <section class="panel">
+    <label class="mp-lab">Your tracks: one per line, as title, BPM, key (any notation: 8A, 1m, Am, A minor)
+      <textarea class="mp-in" data-k="tracks" rows="8" spellcheck="false">Opening Pad, 122, 8A
+Deep Roller, 124, 3B
+Night Bus, 123, 9A
+Warehouse, 126, 10A
+Sunrise, 122, 8B
+Low Sun, 125, 9B</textarea>
+    </label>
+    <div class="mp-row">
+      <button type="button" class="btn secondary mp-imp">Import a CSV</button>
+      <input class="mp-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+      <span class="mp-sub">The Track analyser's CSV works as it is. An energy column (1-10) is used if every track has one.</span>
+    </div>
+    <div class="mp-two">
+      <label class="mp-lab">Start with
+        <select class="mp-start" data-k="start"></select>
+      </label>
+      <label class="mp-lab">Energy shape
+        <select class="mp-shape" data-k="shape">
+          <option value="steady">Steady (keys and tempo only)</option>
+          <option value="build">Build up (calm to strong)</option>
+          <option value="peak">Peak in the middle</option>
+        </select>
+      </label>
+      <label class="mp-lab">Show keys as
+        <select class="mp-not" data-k="notation">
+          <option value="camelot">Camelot wheel (8A)</option>
+          <option value="openkey">Open Key (1m)</option>
+          <option value="musical">Musical (Am)</option>
+        </select>
+      </label>
+    </div>
+    <details class="mp-more">
+      <summary>More options</summary>
+      <div class="mp-two">
+        <label class="mp-lab">Largest BPM jump <input class="mp-jump" data-k="jump" type="number" min="0" max="60" step="0.5" value="6" inputmode="decimal" /></label>
+        <label class="mp-chk"><input class="mp-shift" data-k="shift" type="checkbox" /> Allow moving a track up or down one semitone (key shift)</label>
+      </div>
+      <p class="mp-sub">Jumps bigger than the limit are allowed only when nothing else fits, and are marked risky. A key shift needs a player or tool that changes pitch, such as the Pitch shifter.</p>
+    </details>
+  </section>
+
+  <section class="panel mp-res" hidden>
+    <p class="mp-sum" aria-live="polite"></p>
+    <ol class="mp-list"></ol>
+    <svg class="mp-wheel" viewBox="-160 -160 320 320" role="img" aria-label="Key wheel with the path of the set"></svg>
+    <p class="mp-path mp-sub"></p>
+    <div class="mp-row">
+      <button type="button" class="btn mp-csv">Download CSV</button>
+      <button type="button" class="btn secondary mp-m3u">Download playlist (M3U8)</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .mp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mp .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .mp [hidden] { display: none !important; }
+  .mp-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mp-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink); }
+  .mp-chk input { width: auto; margin-top: 3px; }
+  .mp textarea, .mp input:not([type=checkbox]), .mp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .mp textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; resize: vertical; }
+  .mp-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .mp-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .mp-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .mp-sum { margin: 0; font-size: 16px; }
+  .mp-list { margin: 0; padding-left: 1.6em; display: grid; gap: 6px; }
+  .mp-list li { padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .mp-list .t { font-weight: 600; overflow-wrap: anywhere; }
+  .mp-list .m { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .mp-tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); margin-left: 6px; }
+  .mp-tag.perfect, .mp-tag.good { color: var(--good, #1a7f37); border-color: currentColor; }
+  .mp-tag.risky { color: var(--bad, #b42318); border-color: currentColor; }
+  .mp-tag.energy-boost, .mp-tag.mood-change { color: var(--warn, #8a5a00); border-color: currentColor; }
+  .mp-wheel { width: 100%; max-width: 340px; justify-self: center; }
+  .mp-wheel text { font: 11px system-ui, sans-serif; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+  .mp-wheel .ring { fill: none; stroke: var(--line); }
+  .mp-wheel .on { fill: var(--accent); }
+  .mp-wheel .path { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .mp-more summary { cursor: pointer; }
+  .mp-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { parseTracks, plan, transitionTag, type Step, type Track } from '../../lib/music/mixplan.ts';
+  import { keyIn, camelotNumber, fromCamelot, type Key, type KeyNotation } from '../../lib/music/theory.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.mp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = $<HTMLTextAreaElement>('.mp-in'), startSel = $<HTMLSelectElement>('.mp-start');
+  let tracks: Track[] = [], steps: Step[] = [], skipped = 0;
+  const not = () => $<HTMLSelectElement>('.mp-not').value as KeyNotation;
+  const k = (key: Key | null) => (key ? keyIn(key, not()) : '?');
+  const f1 = (v: number) => String(Math.round(v * 10) / 10);
+  const SVG = 'http://www.w3.org/2000/svg';
+  const el = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(SVG, tag); for (const [a, v] of Object.entries(attrs)) e.setAttribute(a, String(v)); if (text) e.textContent = text; return e; };
+  // Wheel position: number n at n o'clock; major (B) on the outer ring, minor (A) inside.
+  const pos = (key: Key) => { const a = (camelotNumber(key) * Math.PI) / 6, r = key.mode === 'major' ? 128 : 88; return [r * Math.sin(a), -r * Math.cos(a)]; };
+
+  const wheel = () => {
+    const svg = $('.mp-wheel') as unknown as SVGSVGElement, used = new Set(steps.filter((s) => s.key).map((s) => keyIn(s.key!, 'camelot')));
+    const parts: Element[] = [el('circle', { class: 'ring', r: 150 }), el('circle', { class: 'ring', r: 108 }), el('circle', { class: 'ring', r: 68 })];
+    for (let n = 1; n <= 12; n++) for (const mode of ['major', 'minor'] as const) {
+      const key = fromCamelot(n, mode), [x, y] = pos(key);
+      if (used.has(keyIn(key, 'camelot'))) parts.push(el('circle', { class: 'on', cx: x, cy: y, r: 15, 'fill-opacity': 0.25 }));
+      parts.push(el('text', { x, y }, keyIn(key, not())));
+    }
+    const pts = steps.filter((s) => s.key).map((s) => pos(s.key!).join(',')).join(' ');
+    if (pts) parts.push(el('polyline', { class: 'path', points: pts }));
+    svg.replaceChildren(...parts);
+  };
+  const render = () => {
+    const res = $('.mp-res');
+    if (!steps.length) { res.hidden = true; return; }
+    res.hidden = false;
+    const tags = steps.slice(1).map(transitionTag), count = (t: string) => tags.filter((x) => x === t).length;
+    const jumps = steps.slice(1).map((s) => Math.abs(s.jump)), avg = jumps.length ? jumps.reduce((a, b) => a + b, 0) / jumps.length : 0;
+    $('.mp-sum').textContent = `${steps.length} tracks, ${tags.length} mixes: ${count('perfect')} perfect, ${count('good')} good, ${count('energy boost')} energy boost, ${count('mood change')} mood change, ${count('risky')} risky` +
+      `${count('unknown key') ? `, ${count('unknown key')} with an unknown key` : ''}. Average BPM jump ${f1(avg)}.` + (skipped ? ` ${skipped} line${skipped === 1 ? '' : 's'} without a BPM left out.` : '');
+    $('.mp-list').replaceChildren(...steps.map((s, i) => {
+      const li = document.createElement('li'), t = document.createElement('div'), m = document.createElement('div');
+      t.className = 't'; t.textContent = s.track.title; m.className = 'm';
+      const keyTxt = s.shift ? `${k(s.track.key)} → ${k(s.key)} (${s.shift > 0 ? '+1' : '−1'} semitone)` : k(s.key);
+      m.textContent = `${f1(s.track.bpm)} BPM · ${keyTxt}` + (i ? ` · ${s.jump >= 0 ? '+' : '−'}${f1(Math.abs(s.jump))} BPM${s.compat ? ' · ' + s.compat.label : ''}` : ' · start');
+      if (i) { const tag = document.createElement('span'), tt = transitionTag(s); tag.className = 'mp-tag ' + tt.replace(' ', '-'); tag.textContent = tt; m.append(tag); }
+      li.append(t, m); return li;
+    }));
+    $('.mp-path').textContent = 'Path round the wheel: ' + steps.map((s) => k(s.key)).join(' → ');
+    wheel();
+  };
+  const run = () => {
+    ({ tracks, skipped } = parseTracks(inp.value));
+    const keep = startSel.value;
+    startSel.replaceChildren(...tracks.map((t, i) => new Option(`${t.title} (${f1(t.bpm)}, ${k(t.key)})`, String(i))));
+    if (+keep < tracks.length) startSel.value = keep;
+    steps = plan(tracks, { start: +startSel.value || 0, shape: $<HTMLSelectElement>('.mp-shape').value as 'steady', maxJump: Math.max(0, +$<HTMLInputElement>('.mp-jump').value || 0), allowShift: $<HTMLInputElement>('.mp-shift').checked });
+    if (!tracks.length) { $('.mp-res').hidden = false; $('.mp-sum').textContent = 'No tracks yet: type one per line as title, BPM, key.'; $('.mp-list').replaceChildren(); $('.mp-wheel').replaceChildren(); $('.mp-path').textContent = ''; return; }
+    render();
+  };
+  let t = 0;
+  inp.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(run, 300); });
+  for (const s of ['.mp-start', '.mp-shape', '.mp-shift']) $(s).addEventListener('change', run);
+  $('.mp-jump').addEventListener('input', run);
+  $('.mp-not').addEventListener('change', run);
+  const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  $('.mp-csv').addEventListener('click', () => {
+    const lines = ['position,title,file,bpm,key,camelot,shift_semitones,energy,bpm_jump,mix'];
+    steps.forEach((s, i) => lines.push([String(i + 1), s.track.title, s.track.file, f1(s.track.bpm), s.key ? keyIn(s.key, 'musical') : '', s.key ? keyIn(s.key, 'camelot') : '', String(s.shift), s.track.energy ?? '', i ? f1(s.jump) : '', i ? (s.compat?.label ?? 'unknown key') : 'start'].map((v) => csvCell(String(v))).join(',')));
+    saveBytes(new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv' }), 'mix-order.csv');
+  });
+  $('.mp-m3u').addEventListener('click', () => {
+    const out = ['#EXTM3U'];
+    for (const s of steps) { out.push(`#EXTINF:-1,${s.track.title}`); out.push(s.track.file || s.track.title); }
+    saveBytes(new Blob([out.join('\n') + '\n'], { type: 'audio/x-mpegurl' }), 'mix-order.m3u8');
+  });
+  const file = $<HTMLInputElement>('.mp-file');
+  $('.mp-imp').addEventListener('click', () => file.click());
+  file.addEventListener('change', async () => { const f = file.files?.[0]; if (f) { inp.value = await f.text(); startSel.value = '0'; run(); } file.value = ''; });
+  run();
+</script>
