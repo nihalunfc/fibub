@@ -54,5 +54,3 @@ Three test files: a 20-second click track at 128 BPM, chords in A minor (Am, Dm,
 **How is energy worked out?** It is fibub's own scale, not a standard: loudness counts most (45%), then how busy the track is (onsets per second, 25%), how bright it sounds (15%) and the tempo (15%).
 
 **Why is the key sometimes off by one step?** Songs that change key or sit between relative keys can score close. The runner-up is in the CSV.
-
-**Does it change my files?** No. It only reads them; nothing is written back or uploaded.
