@@ -1,0 +1,150 @@
+---
+// #T1045 Chord transposer: moves the chords of a song up or down, or to a key, keeping the lyrics and spacing.
+// Logic in src/lib/music/chordsheet.ts and theory.ts. Nothing is uploaded.
+---
+<div class="tool-ui ct">
+  <section class="panel">
+    <label class="ct-lab">Paste your song: chords above the words, or inside [brackets] in the words
+      <textarea class="ct-in" data-k="song" rows="10" spellcheck="false">[Verse]
+Am            F
+Walking down the road tonight
+C             G
+Everything feels right
+Am            F
+Nothing left to say
+C                G
+We [C]found the [G]way</textarea>
+    </label>
+    <div class="ct-two">
+      <div class="ct-lab">Move by (semitones)
+        <div class="ct-step">
+          <button type="button" class="btn secondary ct-dn" aria-label="Down one semitone">−</button>
+          <input class="ct-n" data-k="steps" type="number" min="-11" max="11" step="1" value="2" inputmode="numeric" aria-label="Semitones" />
+          <button type="button" class="btn secondary ct-up" aria-label="Up one semitone">+</button>
+        </div>
+      </div>
+      <label class="ct-lab">Or move to the key of
+        <select class="ct-to" data-k="tokey"></select>
+      </label>
+    </div>
+    <p class="ct-sub ct-key" aria-live="polite"></p>
+    <details class="ct-more">
+      <summary>More options</summary>
+      <div class="ct-two">
+        <label class="ct-lab">Sharps or flats
+          <select class="ct-spell" data-k="spelling">
+            <option value="auto">Automatic (by the new key)</option>
+            <option value="sharps">Always sharps (F♯)</option>
+            <option value="flats">Always flats (G♭)</option>
+          </select>
+        </label>
+        <label class="ct-lab">Original key (leave on automatic unless the guess is wrong)
+          <select class="ct-from" data-k="fromkey"><option value="">Automatic</option></select>
+        </label>
+      </div>
+      <p class="ct-sub">Only words that look like chords are changed (A, Am7, F♯m7/C♯). Lyrics are left alone, and chords stay above the same words.</p>
+    </details>
+  </section>
+
+  <section class="panel">
+    <div class="ct-row">
+      <h2 class="ct-h">Transposed song</h2>
+      <label class="ct-lab ct-capo">Capo fret
+        <input class="ct-capo-n" data-k="capo" type="number" min="0" max="11" step="1" value="0" inputmode="numeric" />
+      </label>
+    </div>
+    <pre class="ct-out" aria-live="polite"></pre>
+    <div class="ct-row">
+      <button type="button" class="btn ct-copy">Copy</button>
+      <button type="button" class="btn secondary ct-print">Print</button>
+      <button type="button" class="btn secondary ct-dl">Download .txt</button>
+    </div>
+    <p class="ct-sub ct-msg" aria-live="polite"></p>
+  </section>
+
+  <section class="panel">
+    <h2 class="ct-h">Capo helper</h2>
+    <p class="ct-sub">Chords that are easy to play on guitar without a barre are marked as open shapes. Pick a capo fret that makes the song easy and set it above; the chord names then show the shapes to play.</p>
+    <div class="ct-capos"></div>
+  </section>
+</div>
+
+<style is:inline>
+  .ct { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ct .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .ct-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ct textarea, .ct input, .ct select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ct textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; resize: vertical; white-space: pre; overflow-x: auto; }
+  .ct-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ct-step { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; }
+  .ct-step input { text-align: center; }
+  .ct-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .ct-capo { width: 120px; }
+  .ct-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .ct-h { font-size: 17px; margin: 0; }
+  .ct-out { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; max-width: 100%; box-sizing: border-box; background: var(--bg); color: var(--ink); }
+  .ct-capos { display: grid; gap: 8px; }
+  .ct-capos button { text-align: left; }
+  .ct-more summary { cursor: pointer; }
+  .ct-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { capoOptions, sheetChords, sheetKey, transposeSheet, semitoneRange } from '../../lib/music/chordsheet.ts';
+  import { keyUsesFlats, keyName, mod12, noteName, pretty, type Key } from '../../lib/music/theory.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.ct') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = $<HTMLTextAreaElement>('.ct-in'), nInp = $<HTMLInputElement>('.ct-n'), to = $<HTMLSelectElement>('.ct-to'), from = $<HTMLSelectElement>('.ct-from');
+  const noteOpts = (blank: string) => [new Option(blank, ''), ...Array.from({ length: 12 }, (_, i) => new Option(pretty(noteName(i, [1, 3, 5, 8, 10].includes(i) && false)) + ([1, 3, 6, 8, 10].includes(i) ? ' / ' + pretty(noteName(i, true)) : ''), String(i)))];
+  to.replaceChildren(...noteOpts('Not used'));
+  from.replaceChildren(...noteOpts('Automatic'));
+  let output = '';
+  const kname = (k: Key) => keyName(k, 'long');
+  const run = () => {
+    const text = inp.value;
+    const detected = sheetKey(text);
+    const orig: Key | null = from.value !== '' && detected ? { tonic: +from.value, mode: detected.mode } : from.value !== '' ? { tonic: +from.value, mode: 'major' } : detected;
+    let n = Math.round(+nInp.value || 0);
+    const info = $('.ct-key');
+    if (to.value !== '') {
+      if (orig) { n = semitoneRange(+to.value - orig.tonic); nInp.value = String(n); }
+      else info.textContent = 'No chords found, so the starting key is unknown. Use the semitone box.';
+    }
+    const capo = Math.max(0, Math.min(11, Math.round(+$<HTMLInputElement>('.ct-capo-n').value || 0)));
+    const newKey: Key | undefined = orig ? { tonic: mod12(orig.tonic + n), mode: orig.mode } : undefined;
+    const sp = $<HTMLSelectElement>('.ct-spell').value;
+    const flatsOpt = sp === 'flats' ? true : sp === 'sharps' ? false : undefined;
+    const shapeKey = newKey ? { tonic: mod12(newKey.tonic - capo), mode: newKey.mode } : undefined;
+    const res = transposeSheet(text, { n: n - capo, flats: flatsOpt, targetKey: sp === 'auto' ? shapeKey : undefined });
+    if (orig) info.textContent = `Key found in your chords: ${kname(orig)}. ${n === 0 ? 'Not moved.' : `Moved ${n > 0 ? 'up' : 'down'} ${Math.abs(n)} semitone${Math.abs(n) === 1 ? '' : 's'} to ${kname(newKey!)}.`}`;
+    else if (to.value === '') info.textContent = 'No chords found yet. Put chords on their own line above the words, or in [brackets].';
+    output = (capo ? `Capo ${capo}: play these shapes (they sound in ${newKey ? kname(newKey) : 'the new key'})\n\n` : '') + res;
+    $('.ct-out').textContent = output;
+    // Capo suggestions for the song as it sounds (no capo).
+    const sounding = sheetChords(transposeSheet(text, { n, flats: flatsOpt, targetKey: sp === 'auto' ? newKey : undefined }));
+    const box = $('.ct-capos');
+    if (!sounding.length) { box.replaceChildren(); return; }
+    const opts = capoOptions(sounding, (c) => (sp === 'auto' && newKey ? keyUsesFlats({ tonic: mod12(newKey.tonic - c), mode: newKey.mode }) : flatsOpt)).slice(0, 4);
+    box.replaceChildren(...opts.map((o) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.dataset.capo = String(o.capo);
+      b.textContent = `${o.capo === 0 ? 'No capo' : 'Capo ' + o.capo}: ${o.shapes.map(pretty).join(' ')} (${o.easy} of ${o.total} open shapes)`;
+      return b;
+    }));
+  };
+  $('.ct-capos').addEventListener('click', (e) => { const b = (e.target as Element).closest('button'); if (b) { $<HTMLInputElement>('.ct-capo-n').value = b.dataset.capo!; run(); } });
+  for (const s of ['.ct-in', '.ct-n', '.ct-spell', '.ct-capo-n', '.ct-from']) $(s).addEventListener('input', () => { if (s === '.ct-n') to.value = ''; run(); });
+  to.addEventListener('change', run);
+  $('.ct-up').addEventListener('click', () => { to.value = ''; nInp.value = String(Math.min(11, (+nInp.value || 0) + 1)); run(); });
+  $('.ct-dn').addEventListener('click', () => { to.value = ''; nInp.value = String(Math.max(-11, (+nInp.value || 0) - 1)); run(); });
+  const msg = (t: string) => { $('.ct-msg').textContent = t; };
+  $('.ct-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(output); msg('Copied.'); } catch { msg('Copy was blocked. Select the text above and copy it by hand.'); } });
+  $('.ct-dl').addEventListener('click', () => saveBytes(new Blob([output + '\n'], { type: 'text/plain' }), 'transposed-song.txt'));
+  $('.ct-print').addEventListener('click', () => {
+    const w = window.open('', '_blank');
+    if (!w) { msg('The print window was blocked. Allow pop-ups for this page, or use Copy.'); return; }
+    const pre = w.document.createElement('pre'); pre.textContent = output; pre.style.cssText = 'font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap';
+    w.document.title = 'Transposed song'; w.document.body.append(pre); w.print();
+  });
+  run();
+</script>

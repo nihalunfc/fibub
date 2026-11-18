@@ -1,0 +1,229 @@
+---
+// #T1034 Chord helper: scale notes on a piano, chords of the scale, common progressions in the key, MIDI export.
+// Theory in src/lib/music/theory.ts and theory-extra.ts, MIDI in src/lib/music/midi.ts. Nothing is uploaded.
+---
+<div class="tool-ui csh">
+  <section class="panel">
+    <div class="csh-tabs" role="group" aria-label="How to start">
+      <button type="button" class="btn csh-t-key" aria-pressed="true">I know the key</button>
+      <button type="button" class="btn secondary csh-t-find" aria-pressed="false">Find the key from chords</button>
+    </div>
+    <div class="csh-two csh-pick">
+      <label class="csh-lab">Key note
+        <select class="csh-root" data-k="root"></select>
+      </label>
+      <label class="csh-lab">Scale
+        <select class="csh-scale" data-k="scale"></select>
+      </label>
+    </div>
+    <div class="csh-find" hidden>
+      <label class="csh-lab">Type the chords of your song (for example Am F C G)
+        <input class="csh-chords" data-k="chords" type="text" value="Am F C G" spellcheck="false" autocomplete="off" />
+      </label>
+      <div class="csh-guess" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <p class="csh-sum" aria-live="polite"></p>
+    <p class="csh-sub csh-cam"></p>
+    <svg class="csh-piano" role="img" aria-label="Piano keyboard with the notes of the scale marked"></svg>
+    <p class="csh-sub">Tap a key to hear it. Dots mark notes of the scale; the big dot is the first note. The chord you play is shaded.</p>
+  </section>
+
+  <section class="panel csh-chpanel">
+    <div class="csh-row"><h2 class="csh-h">Chords in this scale</h2>
+      <label class="csh-chk"><input class="csh-sev" data-k="sevenths" type="checkbox" /> 7th chords</label></div>
+    <div class="csh-chords-list"></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="csh-h">Common chord patterns in this key</h2>
+    <p class="csh-sub">Patterns that are often heard in each style. They are starting points, not rules.</p>
+    <div class="csh-progs"></div>
+    <details class="csh-more">
+      <summary>More options</summary>
+      <div class="csh-two">
+        <label class="csh-lab">Tempo for playing and the MIDI file (BPM) <input class="csh-bpm" data-k="bpm" type="number" min="40" max="220" value="100" inputmode="numeric" /></label>
+        <label class="csh-lab">Volume (quiet by default) <input class="csh-vol" data-k="volume" type="range" min="0" max="100" value="25" /></label>
+      </div>
+      <p class="csh-sub">The MIDI file has one chord per bar. Open it in any music program to play or edit it.</p>
+    </details>
+  </section>
+</div>
+
+<style is:inline>
+  .csh { display: grid; gap: 14px; margin-bottom: 32px; }
+  .csh .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .csh [hidden] { display: none !important; }
+  .csh-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .csh-chk { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); }
+  .csh-chk input { width: auto; }
+  .csh input:not([type=checkbox]):not([type=range]), .csh select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .csh-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .csh-tabs, .csh-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .csh-tabs { justify-content: flex-start; }
+  .csh-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .csh-sum { margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+  .csh-h { font-size: 17px; margin: 0; }
+  .csh-piano { width: 100%; height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .csh-piano .w { fill: #fff; stroke: #222; stroke-width: 1; cursor: pointer; }
+  .csh-piano .b { fill: #222; stroke: #000; cursor: pointer; }
+  .csh-piano .w.ch { fill: #9ec5ff; }
+  .csh-piano .b.ch { fill: #2f6fd0; }
+  .csh-piano .dot { fill: var(--accent); pointer-events: none; }
+  .csh-piano .dot.bk { fill: #fff; }
+  .csh-piano text { font: 11px system-ui, sans-serif; fill: #222; text-anchor: middle; pointer-events: none; }
+  .csh-chords-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px; }
+  .csh-ch { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .csh-ch .r { font-size: 13px; color: var(--muted); }
+  .csh-ch .s { font-size: 18px; font-weight: 600; }
+  .csh-ch .n { font-size: 12px; color: var(--muted); }
+  .csh-ch:hover, .csh-ch.on { border-color: var(--accent); }
+  .csh-progs { display: grid; gap: 10px; }
+  .csh-prog { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .csh-prog .g { font-weight: 600; }
+  .csh-prog .c { font-size: 18px; overflow-wrap: anywhere; }
+  .csh-prog .ro { color: var(--muted); font-size: 14px; }
+  .csh-prog .b { display: flex; flex-wrap: wrap; gap: 8px; }
+  .csh-guess { display: grid; gap: 8px; }
+  .csh-guess button { text-align: left; }
+  .csh-more summary { cursor: pointer; }
+  .csh-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { SCALES, noteName, pretty, scalePcs, type ScaleId } from '../../lib/music/theory.ts';
+  import { PROGRESSIONS, camelotFor, findKeys, isMinorish, renderProgression, scaleChords, scaleUsesFlats, voicing, type ChordInfo } from '../../lib/music/theory-extra.ts';
+  import { writeMidi } from '../../lib/music/midi.ts';
+  import { playNotes } from '../../lib/audio/play.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.csh') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rootSel = $<HTMLSelectElement>('.csh-root'), scaleSel = $<HTMLSelectElement>('.csh-scale');
+  rootSel.replaceChildren(...Array.from({ length: 12 }, (_, i) => new Option(pretty(noteName(i, [1, 3, 5, 8, 10].includes(i) && false)) + ([1, 3, 6, 8, 10].includes(i) ? ' / ' + pretty(noteName(i, true)) : ''), String(i))));
+  scaleSel.replaceChildren(...Object.entries(SCALES).map(([id, s]) => new Option(s.name, id)));
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [a, v] of Object.entries(attrs)) e.setAttribute(a, String(v)); if (text) e.textContent = text; return e; };
+  const vol = () => +$<HTMLInputElement>('.csh-vol').value / 100 * 0.5;
+  const bpm = () => Math.max(40, Math.min(220, +$<HTMLInputElement>('.csh-bpm').value || 100));
+  let tonic = 0, scaleId: ScaleId = 'major', flats = false, chordPcsOn: number[] = [], pcs: number[] = [];
+  const LOW = 48, HIGH = 71; // C3 to B4
+  const WHITE = [0, 2, 4, 5, 7, 9, 11], isBlack = (m: number) => [1, 3, 6, 8, 10].includes(m % 12);
+
+  const piano = () => {
+    const svg = $('.csh-piano') as unknown as SVGSVGElement, W = 40, H = 130, parts: Element[] = [];
+    svg.setAttribute('viewBox', `0 0 ${W * 14} ${H + 18}`);
+    let x = 0; const xs: Record<number, number> = {};
+    for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) { xs[m] = x; x += W; }
+    const mark = (m: number, cx: number, y: number, black: boolean) => {
+      const pc = m % 12;
+      if (pcs.includes(pc)) parts.push(el('circle', { class: 'dot' + (black ? ' bk' : ''), cx, cy: y, r: pc === tonic ? 7 : 4 }));
+    };
+    for (let m = LOW; m <= HIGH; m++) if (!isBlack(m)) {
+      parts.push(el('rect', { class: 'w' + (chordPcsOn.includes(m % 12) ? ' ch' : ''), x: xs[m], y: 0, width: W, height: H, 'data-midi': m }));
+      mark(m, xs[m] + W / 2, H - 14, false);
+      parts.push(el('text', { x: xs[m] + W / 2, y: H + 13 }, pretty(noteName(m % 12, flats)) + (m % 12 === 0 ? Math.floor(m / 12) - 1 : '')));
+    }
+    for (let m = LOW; m <= HIGH; m++) if (isBlack(m)) {
+      const cx = xs[m - 1] + W;
+      parts.push(el('rect', { class: 'b' + (chordPcsOn.includes(m % 12) ? ' ch' : ''), x: cx - 13, y: 0, width: 26, height: 78, 'data-midi': m }));
+      mark(m, cx, 64, true);
+    }
+    svg.replaceChildren(...parts);
+  };
+  $('.csh-piano').addEventListener('click', (e) => {
+    const m = (e.target as Element).getAttribute?.('data-midi');
+    if (m) playNotes([+m], { volume: vol(), secs: 1 });
+  });
+
+  let chords: ChordInfo[] = [];
+  const chordList = () => {
+    const sev = $<HTMLInputElement>('.csh-sev').checked;
+    chords = scaleChords(tonic, scaleId, sev);
+    const box = $('.csh-chords-list');
+    if (!chords.length) { box.replaceChildren(Object.assign(document.createElement('p'), { className: 'csh-sub', textContent: `${SCALES[scaleId].name} has ${SCALES[scaleId].steps.length} notes, so it has no standard stacked-thirds chords. Pick a 7-note scale to see them, or use the patterns below.` })); return; }
+    box.replaceChildren(...chords.map((c, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'csh-ch'; b.dataset.i = String(i);
+      b.innerHTML = `<span class="r"></span><span class="s"></span><span class="n"></span>`;
+      (b.children[0] as HTMLElement).textContent = c.roman;
+      (b.children[1] as HTMLElement).textContent = pretty(c.symbol);
+      (b.children[2] as HTMLElement).textContent = c.ints.map((n) => pretty(noteName(c.root + n, flats))).join(' ');
+      b.setAttribute('aria-label', `Play ${c.roman}, ${c.symbol}`);
+      return b;
+    }));
+  };
+  const hear = (c: ChordInfo, mark = true) => {
+    if (mark) { chordPcsOn = c.ints.map((n) => (c.root + n) % 12); piano(); }
+    return playNotes(voicing(c.root, c.ints), { volume: vol(), secs: 1.6, stagger: 0.03 });
+  };
+  $('.csh-chords-list').addEventListener('click', (e) => {
+    const b = (e.target as Element).closest('.csh-ch') as HTMLElement | null; if (!b) return;
+    root.querySelectorAll('.csh-ch.on').forEach((x) => x.classList.remove('on')); b.classList.add('on');
+    hear(chords[+b.dataset.i!]);
+  });
+
+  let progs: { p: (typeof PROGRESSIONS)[number]; ch: ChordInfo[] }[] = [];
+  const progList = () => {
+    const mode = isMinorish(scaleId) ? 'minor' : 'major';
+    progs = PROGRESSIONS.filter((p) => p.mode === mode).map((p) => ({ p, ch: renderProgression(tonic, p, flats) }));
+    $('.csh-progs').replaceChildren(...progs.map(({ p, ch }, i) => {
+      const d = document.createElement('div'); d.className = 'csh-prog';
+      d.innerHTML = '<div class="g"></div><div class="c"></div><div class="ro"></div><div class="b"><button type="button" class="btn secondary csh-play">Play</button><button type="button" class="btn secondary csh-mid">Download MIDI</button></div>';
+      (d.children[0] as HTMLElement).textContent = p.genre;
+      (d.children[1] as HTMLElement).textContent = ch.map((c) => pretty(c.symbol)).join(' – ');
+      (d.children[2] as HTMLElement).textContent = ch.map((c) => c.roman).join(' – ') + '. ' + p.note;
+      d.dataset.i = String(i); return d;
+    }));
+  };
+  let playing = 0;
+  $('.csh-progs').addEventListener('click', async (e) => {
+    const t = e.target as HTMLElement, d = t.closest('.csh-prog') as HTMLElement | null; if (!d) return;
+    const { p, ch } = progs[+d.dataset.i!], beat = 60 / bpm();
+    if (t.classList.contains('csh-play')) {
+      const run = ++playing;
+      for (const c of ch) { if (run !== playing) return; hear(c); await new Promise((r) => setTimeout(r, beat * 4 * 1000)); }
+    } else if (t.classList.contains('csh-mid')) {
+      const notes = ch.flatMap((c, i) => voicing(c.root, c.ints).map((n, j) => ({ note: n, start: i * 4, dur: 4, vel: j === 0 ? 80 : 70 })));
+      const name = (noteName(tonic, flats) + '-' + p.id).replace('#', 's');
+      saveBytes(writeMidi(notes, { bpm: bpm(), name: `${p.genre} ${ch.map((c) => c.symbol).join(' ')}` }), `chords-${name}.mid`, 'audio/midi');
+    }
+  });
+
+  const show = () => {
+    tonic = +rootSel.value; scaleId = scaleSel.value as ScaleId;
+    flats = scaleUsesFlats(tonic, scaleId); chordPcsOn = []; pcs = scalePcs(tonic, scaleId);
+    const names = pcs.map((p) => pretty(noteName(p, flats)));
+    $('.csh-sum').textContent = `${pretty(noteName(tonic, flats))} ${SCALES[scaleId].name.replace(/ \(.*\)/, '').toLowerCase()}: ${names.join(' ')}`;
+    const cam = camelotFor(tonic, scaleId);
+    $('.csh-cam').textContent = `Camelot code: ${cam.code}. ${cam.note}`;
+    piano(); chordList(); progList();
+  };
+  for (const s of ['.csh-root', '.csh-scale']) $(s).addEventListener('change', show);
+  $('.csh-sev').addEventListener('change', () => { chordList(); });
+
+  const modeBtns = [$('.csh-t-key'), $('.csh-t-find')];
+  const setMode = (find: boolean) => {
+    $('.csh-find').hidden = !find; $('.csh-pick').hidden = find;
+    modeBtns[0].classList.toggle('secondary', find); modeBtns[1].classList.toggle('secondary', !find);
+    modeBtns[0].setAttribute('aria-pressed', String(!find)); modeBtns[1].setAttribute('aria-pressed', String(find));
+    if (find) guess();
+  };
+  modeBtns[0].addEventListener('click', () => setMode(false));
+  modeBtns[1].addEventListener('click', () => setMode(true));
+  const guess = () => {
+    const syms = $<HTMLInputElement>('.csh-chords').value.split(/[\s,|]+/).filter(Boolean);
+    const box = $('.csh-guess'), g = findKeys(syms).slice(0, 3);
+    if (!g.length || !g[0].total) { box.replaceChildren(Object.assign(document.createElement('p'), { className: 'csh-sub', textContent: 'Type chords such as Am F C G, separated by spaces.' })); return; }
+    box.replaceChildren(...g.map((x, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (i ? ' secondary' : '');
+      const nm = pretty(noteName(x.key.tonic, scaleUsesFlats(x.key.tonic, x.key.mode === 'major' ? 'major' : 'natural-minor'))) + ' ' + x.key.mode;
+      b.textContent = `${i === 0 ? 'Best fit: ' : ''}${nm} (${x.fit} of ${x.total} chords fit)`;
+      b.addEventListener('click', () => { rootSel.value = String(x.key.tonic); scaleSel.value = x.key.mode === 'major' ? 'major' : 'natural-minor'; show(); });
+      return b;
+    }));
+    const k = g[0].key; rootSel.value = String(k.tonic); scaleSel.value = k.mode === 'major' ? 'major' : 'natural-minor'; show();
+  };
+  $('.csh-chords').addEventListener('input', guess);
+  show();
+</script>
