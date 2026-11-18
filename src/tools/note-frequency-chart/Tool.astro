@@ -1,0 +1,127 @@
+---
+// #T1038 Note chart: every note from C-1 to G9 with MIDI number, frequency, period, wavelength and piano key.
+// Maths in src/lib/music/notechart.ts and theory.ts. Nothing is uploaded.
+---
+<div class="tool-ui nfc">
+  <section class="panel">
+    <label class="nfc-lab">Find a note, MIDI number or frequency (try A4, 60 or 261.6 Hz)
+      <input class="nfc-q" data-k="query" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="A4" />
+    </label>
+    <p class="nfc-res" aria-live="polite">Type a note name with its octave, a MIDI number (0 to 127) or a frequency in Hz.</p>
+    <div class="nfc-two">
+      <label class="nfc-lab">A4 pitch (Hz, 415 to 466)
+        <input class="nfc-a4" data-k="a4" type="number" min="415" max="466" step="0.1" value="440" inputmode="decimal" />
+      </label>
+      <label class="nfc-lab">Octave numbers
+        <select class="nfc-conv" data-k="convention">
+          <option value="scientific">Middle C is C4 (scientific)</option>
+          <option value="midi">Middle C is C3 (many MIDI programs)</option>
+        </select>
+      </label>
+    </div>
+    <details class="nfc-more">
+      <summary>More options</summary>
+      <div class="nfc-two">
+        <label class="nfc-lab">Highlight a scale: first note
+          <select class="nfc-hroot" data-k="hroot"></select>
+        </label>
+        <label class="nfc-lab">Scale
+          <select class="nfc-hscale" data-k="hscale"><option value="">None</option></select>
+        </label>
+        <label class="nfc-lab">Volume when you tap a row <input class="nfc-vol" data-k="volume" type="range" min="0" max="100" value="25" /></label>
+      </div>
+      <p class="nfc-sub">Two names such as C♯ / D♭ are the same key on a piano. The octave switch only changes the number in the name, not the sound. Wavelength uses 343 m/s, the commonly quoted speed of sound in dry air at 20 °C; sound travels about 0.6 m/s faster for each degree warmer.</p>
+    </details>
+    <div class="nfc-row"><button type="button" class="btn nfc-csv">Download CSV</button></div>
+  </section>
+  <section class="panel">
+    <p class="nfc-sub">Tap a row to hear the note. Piano key is the number on an 88-key piano (A0 is 1, middle C is 40).</p>
+    <div class="nfc-wrap" tabindex="0" role="region" aria-label="Note table">
+      <table class="nfc-tab">
+        <thead><tr><th>Note</th><th>MIDI</th><th>Hz</th><th>Period (ms)</th><th title="Wavelength in air, metres" aria-label="Wavelength in metres">λ (m)</th><th>Piano key</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .nfc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .nfc .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .nfc-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .nfc input:not([type=range]), .nfc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .nfc-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .nfc-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .nfc-res { margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+  .nfc-row { display: flex; gap: 8px; }
+  .nfc-wrap { max-height: 70vh; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--line); border-radius: 10px; }
+  .nfc-tab { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; table-layout: fixed; }
+  .nfc-tab th { position: sticky; top: 0; background: var(--bg); text-align: right; padding: 6px 4px; border-bottom: 1px solid var(--line); font-weight: 600; overflow-wrap: anywhere; }
+  .nfc-tab td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .nfc-tab th:first-child, .nfc-tab td:first-child { text-align: left; width: 26%; }
+  .nfc-tab tbody tr { cursor: pointer; }
+  .nfc-tab tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .nfc-tab tr.sc td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .nfc-tab tr.sc td:first-child { font-weight: 600; }
+  .nfc-tab tr.rt td:first-child::before { content: '● '; color: var(--accent); }
+  .nfc-tab tr.hit td { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .nfc-more summary { cursor: pointer; }
+  .nfc-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { allRows, search, type Convention } from '../../lib/music/notechart.ts';
+  import { SCALES, noteName, pretty, scalePcs, type ScaleId } from '../../lib/music/theory.ts';
+  import { playNotes } from '../../lib/audio/play.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.nfc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const a4Inp = $<HTMLInputElement>('.nfc-a4'), conv = $<HTMLSelectElement>('.nfc-conv'), q = $<HTMLInputElement>('.nfc-q');
+  $<HTMLSelectElement>('.nfc-hroot').replaceChildren(...Array.from({ length: 12 }, (_, i) => new Option(pretty(noteName(i)), String(i))));
+  $<HTMLSelectElement>('.nfc-hscale').append(...Object.entries(SCALES).map(([id, s]) => new Option(s.name, id)));
+  const a4 = () => Math.max(415, Math.min(466, parseFloat(a4Inp.value) || 440));
+  const c = () => conv.value as Convention;
+  const fmt = (v: number) => (v >= 1000 ? v.toFixed(1) : v >= 100 ? v.toFixed(2) : Number(v.toPrecision(4)).toString());
+  const hz = (v: number) => v.toFixed(2);
+  let hitMidi = -1;
+  const draw = () => {
+    const rows = allRows(a4(), c()), sc = $<HTMLSelectElement>('.nfc-hscale').value as ScaleId | '';
+    const rootPc = +$<HTMLSelectElement>('.nfc-hroot').value, set = sc ? scalePcs(rootPc, sc) : [];
+    $('.nfc-tab tbody').replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'); tr.dataset.midi = String(r.midi);
+      if (set.includes(r.midi % 12)) tr.classList.add('sc');
+      if (sc && r.midi % 12 === rootPc) tr.classList.add('rt');
+      if (r.midi === hitMidi) tr.classList.add('hit');
+      for (const t of [pretty(r.name).replace(' / ', ' /​'), String(r.midi), hz(r.freq), fmt(r.periodMs), fmt(r.wavelength), r.pianoKey === null ? '-' : String(r.pianoKey)]) tr.append(Object.assign(document.createElement('td'), { textContent: t }));
+      return tr;
+    }));
+  };
+  const find = () => {
+    const out = $('.nfc-res'), h = search(q.value, a4(), c());
+    hitMidi = h ? h.row.midi : -1;
+    if (!q.value.trim()) out.textContent = 'Type a note name with its octave, a MIDI number (0 to 127) or a frequency in Hz.';
+    else if (!h) out.textContent = 'Not understood. Try A4, C#3, 60 or 261.6 Hz (notes run from C-1 to G9, 8 Hz to 12.5 kHz).';
+    else {
+      const r = h.row, nm = pretty(r.name);
+      if (h.from === 'freq') {
+        const cts = Math.abs(h.cents);
+        out.textContent = `${h.input} Hz is nearest to ${nm} (MIDI ${r.midi}, ${hz(r.freq)} Hz): ${cts < 0.05 ? 'in tune' : cts.toFixed(1) + ' cents ' + (h.cents < 0 ? 'flat' : 'sharp')}.`;
+      } else out.textContent = `${nm}: MIDI ${r.midi}, ${hz(r.freq)} Hz, period ${fmt(r.periodMs)} ms, wavelength ${fmt(r.wavelength)} m, ${r.pianoKey === null ? 'not on an 88-key piano' : 'piano key ' + r.pianoKey}.`;
+    }
+    draw();
+    if (h) $(`.nfc-tab tr[data-midi="${h.row.midi}"]`)?.scrollIntoView({ block: 'center' });
+  };
+  const all = () => { draw(); if (q.value.trim()) find(); };
+  for (const s of ['.nfc-a4', '.nfc-conv', '.nfc-hroot', '.nfc-hscale']) $(s).addEventListener('input', all);
+  q.addEventListener('input', find);
+  $('.nfc-tab tbody').addEventListener('click', (e) => {
+    const tr = (e.target as Element).closest('tr') as HTMLElement | null; if (!tr) return;
+    playNotes([+tr.dataset.midi!], { a4: a4(), volume: +$<HTMLInputElement>('.nfc-vol').value / 200, secs: 1.2, wave: 'sine' });
+  });
+  $('.nfc-csv').addEventListener('click', () => {
+    const lines = ['midi,note_sharp,note_flat,octave_convention,frequency_hz,period_ms,wavelength_m,piano_key'];
+    for (const r of allRows(a4(), c())) lines.push([r.midi, r.sharp, r.flat, c() === 'scientific' ? 'C4=60' : 'C3=60', r.freq.toFixed(4), r.periodMs.toFixed(5), r.wavelength.toFixed(5), r.pianoKey ?? ''].join(','));
+    saveBytes(new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/csv' }), `note-frequencies-a4-${a4()}.csv`);
+  });
+  draw();
+</script>

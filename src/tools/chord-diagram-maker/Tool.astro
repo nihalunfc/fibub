@@ -1,0 +1,268 @@
+---
+// #T1046 Tab maker: guitar, ukulele and bass chord diagrams and a text tab editor.
+// Logic in src/lib/music/fretboard.ts (names from theory.ts). Nothing is uploaded; nothing is stored.
+---
+<div class="tool-ui tm">
+  <section class="panel">
+    <div class="tm-two">
+      <label class="tm-lab">Instrument <select class="tm-inst" data-k="instrument"></select></label>
+      <label class="tm-lab">Tuning <select class="tm-tun" data-k="tuning"></select></label>
+      <label class="tm-lab">Start from a common chord <select class="tm-shape" data-k="shape"></select></label>
+    </div>
+    <p class="tm-sub tm-note"></p>
+  </section>
+
+  <section class="panel">
+    <h2 class="tm-h">Chord diagram</h2>
+    <p class="tm-sub">Tap a spot on the grid to press a string there; tap it again to let the string ring. The buttons on top switch a string between open (○) and muted (×).</p>
+    <div class="tm-build">
+      <div class="tm-gridwrap"><div class="tm-grid" role="group" aria-label="Fretboard"></div>
+        <div class="tm-base">
+          <button type="button" class="btn secondary tm-b-dn" aria-label="Show lower frets">−</button>
+          <span class="tm-b-txt"></span>
+          <button type="button" class="btn secondary tm-b-up" aria-label="Show higher frets">+</button>
+        </div>
+      </div>
+      <div class="tm-prev">
+        <div class="tm-svg"></div>
+        <p class="tm-res" aria-live="polite"></p>
+      </div>
+    </div>
+    <details class="tm-more">
+      <summary>More options</summary>
+      <label class="tm-lab">Name to show on the diagram (leave empty to use the detected name)
+        <input class="tm-name" data-k="name" type="text" maxlength="24" autocomplete="off" />
+      </label>
+      <div class="tm-lab">Fingers (Auto numbers them for you; a barre is finger 1)
+        <div class="tm-fingers"></div>
+      </div>
+    </details>
+    <div class="tm-row">
+      <button type="button" class="btn tm-add">Add to chord sheet</button>
+      <button type="button" class="btn secondary tm-svgdl">Download SVG</button>
+      <button type="button" class="btn secondary tm-pngdl">Download PNG</button>
+      <button type="button" class="btn secondary tm-clear">Clear</button>
+    </div>
+  </section>
+
+  <section class="panel tm-sheet" hidden>
+    <h2 class="tm-h">Chord sheet</h2>
+    <div class="tm-cards"></div>
+    <div class="tm-row"><button type="button" class="btn tm-print">Print sheet</button><button type="button" class="btn secondary tm-sheetclear">Remove all</button></div>
+    <p class="tm-sub">The sheet lives only on this page. Reloading the page clears it, so print or save before you leave.</p>
+  </section>
+
+  <section class="panel">
+    <h2 class="tm-h">Tab editor</h2>
+    <p class="tm-sub">Type a fret number in a box (0 is open). Each column is one beat or step. The text tab below updates as you type.</p>
+    <div class="tm-row">
+      <label class="tm-lab tm-short">Steps <input class="tm-steps" data-k="steps" type="number" min="4" max="48" step="4" value="16" inputmode="numeric" /></label>
+      <button type="button" class="btn secondary tm-put">Put the chord above into the tab</button>
+      <button type="button" class="btn secondary tm-tabclear">Clear tab</button>
+    </div>
+    <div class="tm-tabwrap"><table class="tm-tabgrid"></table></div>
+    <pre class="tm-tab" aria-live="polite"></pre>
+    <div class="tm-row"><button type="button" class="btn tm-copy">Copy tab</button><button type="button" class="btn secondary tm-txt">Download .txt</button></div>
+    <p class="tm-sub tm-msg" aria-live="polite"></p>
+  </section>
+</div>
+
+<style is:inline>
+  .tm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tm .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .tm [hidden] { display: none !important; }
+  .tm-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .tm input:not([type=checkbox]), .tm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .tm-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .tm-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .tm-short { width: 100px; }
+  .tm-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .tm-h { font-size: 17px; margin: 0; }
+  .tm-build { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; align-items: start; }
+  .tm-grid { display: grid; gap: 4px; }
+  .tm-grid .r { display: grid; grid-template-columns: 34px repeat(var(--n), minmax(0, 1fr)); gap: 4px; align-items: center; }
+  .tm-grid .fl { font-size: 12px; color: var(--muted); text-align: center; }
+  .tm-grid button { min-height: 40px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+  .tm-grid button.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .tm-grid .top button { font-size: 16px; }
+  .tm-grid .top .lbl { font-size: 11px; color: var(--muted); display: block; line-height: 1; }
+  .tm-base { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 14px; }
+  .tm-base .btn { min-width: 44px; }
+  .tm-svg { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: grid; justify-items: center; }
+  .tm-svg svg { max-width: 100%; height: auto; }
+  .tm-res { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .tm-fingers { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tm-fingers select { width: 78px; padding: 6px; }
+  .tm-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tm-card { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 4px; display: grid; justify-items: center; }
+  .tm-card svg { max-width: 100%; height: auto; }
+  .tm-card button { margin-bottom: 4px; font-size: 13px; }
+  .tm-tabwrap { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
+  .tm-tabgrid { border-collapse: collapse; }
+  .tm-tabgrid th { font-size: 12px; color: var(--muted); padding: 0 6px 0 2px; text-align: right; font-weight: 600; }
+  .tm-tabgrid td { padding: 0; }
+  .tm-tabgrid input { width: 34px; padding: 6px 2px; text-align: center; border-radius: 6px; font-size: 14px; }
+  .tm-tabgrid td.bar input { margin-left: 4px; }
+  .tm-tab { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: 14px/1.4 ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; max-width: 100%; box-sizing: border-box; background: var(--bg); color: var(--ink); }
+  .tm-more summary { cursor: pointer; }
+  .tm-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { INSTRUMENTS, autoFingers, baseFret, diagramSvg, findBarre, shapeName, shapeNoteNames, tabText } from '../../lib/music/fretboard.ts';
+  import { noteName, pretty } from '../../lib/music/theory.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.tm') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const instSel = $<HTMLSelectElement>('.tm-inst'), tunSel = $<HTMLSelectElement>('.tm-tun'), shapeSel = $<HTMLSelectElement>('.tm-shape');
+  instSel.replaceChildren(...INSTRUMENTS.map((i) => new Option(i.name, i.id)));
+  const SPAN = 5;
+  let inst = INSTRUMENTS[0], tun = inst.tunings[0], frets: number[] = [], manual: number[] = [], base = 1, grid: string[][] = [], cur = 0;
+  let sheet: string[] = [];
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const label = (m: number) => pretty(noteName(m, tun.id === 'halfdown'));
+
+  const fingers = () => { const a = autoFingers(frets); return frets.map((_, i) => manual[i] || a[i]); };
+  const title = () => $<HTMLInputElement>('.tm-name').value.trim() || shapeName(frets, tun) || '';
+  const svg = () => diagramSvg({ name: title(), frets, fingers: fingers(), base });
+
+  const drawGrid = () => {
+    const n = frets.length, g = $('.tm-grid'); g.style.setProperty('--n', String(n));
+    const fin = fingers(), rows: HTMLElement[] = [];
+    const top = el('div', 'r top'); top.append(el('span'));
+    frets.forEach((f, i) => {
+      const b = el('button'); b.type = 'button'; b.dataset.s = String(i);
+      b.innerHTML = `<span class="lbl"></span><span class="sym"></span>`;
+      (b.firstChild as HTMLElement).textContent = label(tun.midi[i]);
+      (b.lastChild as HTMLElement).textContent = f < 0 ? '×' : f === 0 ? '○' : ' ';
+      b.setAttribute('aria-label', `String ${i + 1}, ${label(tun.midi[i])}: ${f < 0 ? 'muted' : f === 0 ? 'open' : 'fret ' + f}. Switch open or muted`);
+      b.dataset.top = '1'; top.append(b);
+    });
+    rows.push(top);
+    for (let f = base; f < base + SPAN; f++) {
+      const r = el('div', 'r'); r.append(Object.assign(el('span', 'fl'), { textContent: String(f) }));
+      frets.forEach((v, i) => {
+        const b = el('button'); b.type = 'button'; b.dataset.s = String(i); b.dataset.f = String(f);
+        if (v === f) { b.classList.add('on'); b.textContent = fin[i] ? String(fin[i]) : '●'; }
+        b.setAttribute('aria-label', `String ${i + 1}, fret ${f}${v === f ? ', pressed' : ''}`);
+        r.append(b);
+      });
+      rows.push(r);
+    }
+    g.replaceChildren(...rows);
+    $('.tm-b-txt').textContent = `Frets ${base} to ${base + SPAN - 1}`;
+  };
+  const drawFingers = () => {
+    $('.tm-fingers').replaceChildren(...frets.map((f, i) => {
+      const s = el('select'); s.setAttribute('aria-label', `Finger for string ${i + 1}`);
+      s.append(new Option('Auto', ''), ...[1, 2, 3, 4].map((x) => new Option(String(x), String(x))));
+      s.value = manual[i] ? String(manual[i]) : ''; s.disabled = f <= 0;
+      s.addEventListener('change', () => { manual[i] = +s.value || 0; update(false); });
+      return s;
+    }));
+  };
+  const update = (fingerUi = true) => {
+    drawGrid(); if (fingerUi) drawFingers();
+    $('.tm-svg').innerHTML = svg();
+    const nm = shapeName(frets, tun), notes = shapeNoteNames(frets, tun), muted = frets.filter((f) => f < 0).length;
+    const out = frets.some((f) => f > 0 && (f < base || f >= base + SPAN));
+    const b = findBarre(frets);
+    $('.tm-res').textContent = (notes.length < 2 ? (notes.length ? `One note: ${pretty(notes[0])}.` : 'No strings are sounding yet.') : nm ? `Chord: ${pretty(nm)}. Notes: ${notes.map(pretty).join(' ')}.` : `Not a chord name fibub knows. Notes: ${notes.map(pretty).join(' ')}.`) +
+      (b ? ` Barre on fret ${b.fret}.` : '') + (muted ? ` ${muted} muted.` : '') + (out ? ' Some pressed frets are outside the frets shown; use + or − to move the window.' : '');
+  };
+
+  const loadTuning = () => {
+    tun = inst.tunings.find((t) => t.id === tunSel.value) ?? inst.tunings[0];
+    $('.tm-note').textContent = tun.id === inst.tunings[0].id ? '' : 'Common chord shapes are written for standard tuning. In this tuning the same fingering sounds different, and the name above is worked out from the notes.';
+  };
+  const setShape = (name: string) => {
+    const s = inst.shapes[name];
+    if (s) { frets = s.slice(); manual = frets.map(() => 0); base = baseFret(frets, SPAN); }
+  };
+  const loadInstrument = (keepShape = false) => {
+    inst = INSTRUMENTS.find((i) => i.id === instSel.value) ?? INSTRUMENTS[0];
+    tunSel.replaceChildren(...inst.tunings.map((t) => new Option(t.name, t.id)));
+    shapeSel.replaceChildren(new Option(Object.keys(inst.shapes).length ? 'Choose a chord' : 'None for this instrument', ''), ...Object.keys(inst.shapes).map((k) => new Option(k, k)));
+    loadTuning();
+    frets = inst.tunings[0].midi.map(() => -1); manual = frets.map(() => 0); base = 1;
+    if (!keepShape && inst.shapes.C) { shapeSel.value = 'C'; setShape('C'); }
+    resetTab(); update();
+  };
+  instSel.addEventListener('change', () => loadInstrument());
+  tunSel.addEventListener('change', () => { loadTuning(); resetTab(); update(); });
+  shapeSel.addEventListener('change', () => { if (shapeSel.value) { setShape(shapeSel.value); update(); } });
+  $('.tm-grid').addEventListener('click', (e) => {
+    const b = (e.target as Element).closest('button') as HTMLElement | null; if (!b) return;
+    const i = +b.dataset.s!;
+    if (b.dataset.top) frets[i] = frets[i] === 0 ? -1 : 0;
+    else { const f = +b.dataset.f!; frets[i] = frets[i] === f ? 0 : f; }
+    manual[i] = 0; shapeSel.value = ''; update();
+  });
+  $('.tm-b-up').addEventListener('click', () => { base = Math.min(20, base + 1); update(false); });
+  $('.tm-b-dn').addEventListener('click', () => { base = Math.max(1, base - 1); update(false); });
+  $('.tm-name').addEventListener('input', () => update(false));
+  $('.tm-clear').addEventListener('click', () => { frets = frets.map(() => -1); manual = frets.map(() => 0); base = 1; shapeSel.value = ''; $<HTMLInputElement>('.tm-name').value = ''; update(); });
+
+  // Exports
+  const fname = () => (title() || 'chord').replace(/[^\w#-]+/g, '-').replace(/#/g, 'sharp');
+  $('.tm-svgdl').addEventListener('click', () => saveBytes(new Blob([svg()], { type: 'image/svg+xml' }), `${fname()}-diagram.svg`));
+  $('.tm-pngdl').addEventListener('click', () => {
+    const s = svg(), img = new Image(), k = 3;
+    img.onload = () => { const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height); c.toBlob((b) => b && saveBytes(b, `${fname()}-diagram.png`, 'image/png')); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+  });
+  // Chord sheet (kept on this page only)
+  const drawSheet = () => {
+    $('.tm-sheet').hidden = !sheet.length;
+    $('.tm-cards').replaceChildren(...sheet.map((s, i) => {
+      const d = el('div', 'tm-card'); d.innerHTML = s;
+      const b = el('button', 'btn secondary', 'Remove'); b.type = 'button'; b.addEventListener('click', () => { sheet.splice(i, 1); drawSheet(); });
+      d.append(b); return d;
+    }));
+  };
+  $('.tm-add').addEventListener('click', () => { sheet.push(svg()); drawSheet(); });
+  $('.tm-sheetclear').addEventListener('click', () => { sheet = []; drawSheet(); });
+  $('.tm-print').addEventListener('click', () => {
+    const w = window.open('', '_blank'); if (!w) { msg('The print window was blocked. Allow pop-ups for this page.'); return; }
+    w.document.title = 'Chord sheet';
+    const wrap = w.document.createElement('div'); wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;font-family:Arial,sans-serif';
+    wrap.innerHTML = sheet.join(''); w.document.body.append(wrap); w.print();
+  });
+
+  // Tab editor
+  const steps = () => Math.max(4, Math.min(48, Math.round(+$<HTMLInputElement>('.tm-steps').value || 16)));
+  const tabOut = () => tabText(grid, tun, 4);
+  const drawTab = () => {
+    const tbl = $('.tm-tabgrid'), n = tun.midi.length, rows: HTMLElement[] = [];
+    for (let s = n - 1; s >= 0; s--) {
+      const tr = el('tr'); const th = el('th', '', label(tun.midi[s]).replace(/^(.*)$/, (m) => (s === n - 1 ? m.toLowerCase() : m)));
+      tr.append(th);
+      for (let c = 0; c < grid[s].length; c++) {
+        const td = el('td', c % 4 === 0 && c ? 'bar' : ''), inp = el('input'); inp.type = 'text'; inp.maxLength = 2; inp.inputMode = 'numeric';
+        inp.value = grid[s][c]; inp.dataset.s = String(s); inp.dataset.c = String(c); inp.setAttribute('aria-label', `String ${s + 1}, step ${c + 1}`);
+        td.append(inp); tr.append(td);
+      }
+      rows.push(tr);
+    }
+    tbl.replaceChildren(...rows);
+    $('.tm-tab').textContent = tabOut();
+  };
+  const resetTab = () => { grid = tun.midi.map(() => Array(steps()).fill('')); cur = 0; drawTab(); };
+  $('.tm-tabgrid').addEventListener('input', (e) => {
+    const i = e.target as HTMLInputElement; if (!i.dataset.s) return;
+    i.value = i.value.replace(/[^0-9]/g, '');
+    grid[+i.dataset.s][+i.dataset.c!] = i.value; $('.tm-tab').textContent = tabOut();
+  });
+  $('.tm-steps').addEventListener('input', () => {
+    const n = steps(); grid = grid.map((r) => Array.from({ length: n }, (_, c) => r[c] ?? '')); cur = Math.min(cur, n - 1); drawTab();
+  });
+  $('.tm-put').addEventListener('click', () => {
+    frets.forEach((f, i) => { grid[i][cur] = f >= 0 ? String(f) : ''; });
+    cur = (cur + 1) % grid[0].length; drawTab();
+  });
+  $('.tm-tabclear').addEventListener('click', resetTab);
+  const msg = (t: string) => { $('.tm-msg').textContent = t; };
+  $('.tm-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(tabOut()); msg('Copied.'); } catch { msg('Copy was blocked. Select the tab text and copy it by hand.'); } });
+  $('.tm-txt').addEventListener('click', () => saveBytes(new Blob([tabOut() + '\n'], { type: 'text/plain' }), 'tab.txt'));
+  loadInstrument();
+</script>
