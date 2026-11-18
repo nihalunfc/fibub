@@ -1,0 +1,174 @@
+---
+// #T1026 Set planner: tracks needed, timeline with clock times, draggable energy curve. Maths in src/lib/music/sets.ts.
+---
+<div class="tool-ui dp">
+  <section class="panel">
+    <div class="dp-row">
+      <label>Start <input data-k="start" type="time" value="21:00" /></label>
+      <label>End <input data-k="end" type="time" value="23:00" /></label>
+      <label>Slot <select data-k="slot"><option value="warmup">Warm-up</option><option value="peak" selected>Peak time</option><option value="closing">Closing</option><option value="allnight">All night</option></select></label>
+    </div>
+    <div class="dp-row">
+      <label>Track length by <select data-k="mode"><option value="avg" selected>Average length</option><option value="bpm">BPM and bars</option></select></label>
+      <label class="dp-avg">Average (m:ss) <input data-k="avg" type="text" value="4:00" inputmode="numeric" /></label>
+      <label class="dp-bb" hidden>BPM <input data-k="bpm" type="number" min="60" max="220" step="0.1" value="128" inputmode="decimal" /></label>
+      <label class="dp-bb" hidden>Bars per track <input data-k="bars" type="number" min="8" max="512" step="8" value="64" inputmode="numeric" /></label>
+      <label>Overlap (s) <input data-k="overlap" type="number" min="0" max="180" step="1" value="30" inputmode="numeric" /></label>
+    </div>
+  </section>
+  <section class="panel dp-printable">
+    <h2>Your set</h2>
+    <p class="dp-out" aria-live="polite"></p>
+    <canvas class="dp-cv" width="640" height="280" aria-label="Energy curve: drag the dots up or down"></canvas>
+    <div class="dp-row dp-pre"></div>
+    <p class="dp-fine">Drag a dot to change the energy plan (1 to 10). Dots at the ends only move up and down.</p>
+    <table class="dp-tbl dp-seg"><thead><tr><th>Time</th><th>Energy</th><th>BPM</th></tr></thead><tbody></tbody></table>
+    <h3>Tracks</h3>
+    <table class="dp-tbl dp-trk"><thead><tr><th>#</th><th>Starts</th><th>Track</th><th>Energy</th></tr></thead><tbody></tbody></table>
+  </section>
+  <section class="panel">
+    <div class="dp-row">
+      <button type="button" class="btn secondary dp-csv">Download CSV</button>
+      <button type="button" class="btn secondary dp-print">Print</button>
+      <button type="button" class="btn secondary dp-clear">Clear</button>
+    </div>
+    <label class="dp-chk"><input data-k="save" type="checkbox" /> Remember my plan on this device (off by default)</label>
+    <p class="dp-fine">When ticked, your plan is kept in this browser only and never sent anywhere. Clear removes it.</p>
+  </section>
+  <details class="panel"><summary>More options</summary>
+    <div class="dp-row">
+      <label>Lowest BPM <input data-k="bpmlo" type="number" min="60" max="220" step="1" value="120" inputmode="numeric" /></label>
+      <label>Highest BPM <input data-k="bpmhi" type="number" min="60" max="220" step="1" value="130" inputmode="numeric" /></label>
+    </div>
+    <label>Track list (one per line, optional length like 5:30 at the end)
+      <textarea data-k="tracks" rows="6" placeholder="Artist - Title 5:30"></textarea></label>
+  </details>
+</div>
+
+<style is:inline>
+  .dp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dp .panel { display: grid; gap: 12px; padding: 16px; }
+  .dp h2 { font-size: 17px; margin: 0; }
+  .dp h3 { font-size: 15px; margin: 4px 0 0; }
+  .dp-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .dp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .dp label[hidden] { display: none; }
+  .dp input[type=number], .dp input[type=text], .dp input[type=time], .dp select, .dp textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; box-sizing: border-box; }
+  .dp input[type=number] { width: 100px; }
+  .dp textarea { width: 100%; }
+  .dp-chk { display: flex !important; gap: 8px; align-items: center; }
+  .dp-out { font-size: 20px; margin: 0; }
+  .dp-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .dp-cv { width: 100%; height: auto; touch-action: none; border: 1px solid var(--line); border-radius: 10px; }
+  .dp-tbl { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .dp-tbl th { text-align: left; color: var(--muted); font-weight: 500; }
+  .dp-tbl th, .dp-tbl td { padding: 5px 6px 5px 0; border-bottom: 1px solid var(--line); }
+  .dp-trk tbody { display: block; max-height: 320px; overflow: auto; }
+  .dp-trk thead, .dp-trk tbody tr { display: table; width: 100%; table-layout: fixed; }
+  @media print {
+    html.dp-printing body * { visibility: hidden; }
+    html.dp-printing .dp-printable, html.dp-printing .dp-printable * { visibility: visible; }
+    html.dp-printing .dp-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    html.dp-printing .dp-trk tbody { max-height: none; display: table-row-group; }
+    html.dp-printing .dp-pre, html.dp-printing .dp-fine { display: none; }
+  }
+</style>
+
+<script>
+  import { PRESETS, SLOTS, tracksNeeded, trackStarts, energyAt, segments, parseTracks, parseTime, parseClock, fmtClock, fmtTime, barSec, toCsv, clampE, type Pt, type Slot } from '../../lib/music/sets.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.dp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-set-planner-v1';
+  const cv = $<HTMLCanvasElement>('.dp-cv'), ctx = cv.getContext('2d')!;
+  let pts: Pt[] = PRESETS.peak.pts.map((p) => ({ ...p }));
+  let rows: (string | number)[][] = [];
+
+  const setSec = () => { const s = parseClock(k('start').value), e0 = parseClock(k('end').value); if (isNaN(s) || isNaN(e0)) return 0; const e = e0 <= s ? e0 + 1440 : e0; return (e - s) * 60; };
+  const trackSec = () => k('mode').value === 'bpm' ? barSec(Math.max(60, +k('bpm').value || 128)) * Math.max(1, +k('bars').value || 64) : (parseTime(k('avg').value) || 240);
+  const overlap = () => Math.max(0, +k('overlap').value || 0);
+
+  const draw = () => {
+    const W = cv.width, H = cv.height, cs = getComputedStyle(cv), ink = cs.color, line = cs.borderTopColor, acc = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || ink;
+    const X = (x: number) => 36 + x * (W - 56), Y = (e: number) => H - 30 - ((e - 1) / 9) * (H - 50);
+    ctx.clearRect(0, 0, W, H); ctx.font = '20px sans-serif'; ctx.fillStyle = ink; ctx.strokeStyle = line; ctx.lineWidth = 1;
+    for (const e of [1, 5, 10]) { ctx.beginPath(); ctx.moveTo(36, Y(e)); ctx.lineTo(W - 20, Y(e)); ctx.stroke(); ctx.fillText(String(e), 8, Y(e) + 6); }
+    const s = [...pts].sort((a, b) => a.x - b.x);
+    ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.beginPath(); s.forEach((p, i) => (i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)))); ctx.stroke();
+    ctx.fillStyle = acc; s.forEach((p) => { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 11, 0, 7); ctx.fill(); });
+  };
+
+  const render = () => {
+    const sec = setSec(), ts = trackSec(), ov = overlap(), n = tracksNeeded(sec, ts, ov);
+    const start = parseClock(k('start').value) || 0, lo = +k('bpmlo').value || 120, hi = Math.max(lo, +k('bpmhi').value || 130);
+    const list = k('tracks').value.trim() ? parseTracks(k('tracks').value, ts) : [];
+    let starts: number[], names: string[], count = n;
+    if (list.length) {
+      starts = []; let t = 0; for (const x of list) { starts.push(t); t += x.sec - ov; } t += ov;
+      names = list.map((x) => x.name); count = list.length;
+      const end = starts[starts.length - 1] + list[list.length - 1].sec;
+      $('.dp-out').textContent = `Your ${count} tracks run ${fmtTime(end)} from ${fmtClock(start)} to ${fmtClock(start + end / 60)}. The set is ${fmtTime(sec)}${end < sec ? ': ' + fmtTime(sec - end) + ' short.' : end > sec ? ': ' + fmtTime(end - sec) + ' over.' : '.'}`;
+    } else {
+      starts = trackStarts(n, ts, ov); names = starts.map((_, i) => `Track ${i + 1}`);
+      $('.dp-out').textContent = sec > 0 ? `${n} tracks for ${fmtTime(sec)} (${fmtClock(start)} to ${fmtClock(start + sec / 60)}). Each track is ${fmtTime(ts)} with ${ov} s overlap.` : 'Set a start and end time.';
+    }
+    const nseg = Math.max(3, Math.min(8, Math.ceil(sec / 1200)));
+    const sg = segments(pts, nseg, Math.max(sec, 1), lo, hi);
+    const segB = $('.dp-seg tbody'); segB.innerHTML = '';
+    sg.forEach((s) => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${fmtClock(start + s.from / 60)} to ${fmtClock(start + s.to / 60)}</td><td>${s.energy} ${s.label}</td><td>${s.bpmLo} to ${s.bpmHi}</td>`; segB.appendChild(tr); });
+    const trB = $('.dp-trk tbody'); trB.innerHTML = '';
+    rows = [['Time', 'Track', 'Energy', 'BPM range']];
+    starts.forEach((t, i) => {
+      const e = energyAt(pts, sec ? Math.min(1, t / sec) : 0), tr = document.createElement('tr'), c = fmtClock(start + t / 60);
+      tr.innerHTML = `<td>${i + 1}</td><td>${c}</td><td></td><td>${(Math.round(e * 10) / 10)}</td>`; (tr.children[2] as HTMLElement).textContent = names[i]; trB.appendChild(tr);
+      rows.push([c, names[i], Math.round(e * 10) / 10, '']);
+    });
+    sg.forEach((s) => rows.push([`${fmtClock(start + s.from / 60)}-${fmtClock(start + s.to / 60)}`, 'Segment', s.energy, `${s.bpmLo}-${s.bpmHi}`]));
+    draw(); save();
+  };
+
+  // Dragging points.
+  let drag = -1;
+  const pos = (ev: PointerEvent) => { const r = cv.getBoundingClientRect(), sx = cv.width / r.width; return { px: (ev.clientX - r.left) * sx, py: (ev.clientY - r.top) * sx }; };
+  const toPt = (px: number, py: number) => ({ x: Math.max(0, Math.min(1, (px - 36) / (cv.width - 56))), y: clampE(1 + ((cv.height - 30 - py) / (cv.height - 50)) * 9) });
+  cv.addEventListener('pointerdown', (ev) => {
+    const { px, py } = pos(ev); let best = -1, bd = 36 * 36;
+    pts.forEach((p, i) => { const dx = 36 + p.x * (cv.width - 56) - px, dy = cv.height - 30 - ((p.y - 1) / 9) * (cv.height - 50) - py, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { drag = best; cv.setPointerCapture(ev.pointerId); ev.preventDefault(); }
+  });
+  cv.addEventListener('pointermove', (ev) => {
+    if (drag < 0) return;
+    const { px, py } = pos(ev), q = toPt(px, py), p = pts[drag], end = p.x === 0 || p.x === 1;
+    p.y = Math.round(q.y * 10) / 10; if (!end) p.x = Math.max(0.02, Math.min(0.98, q.x));
+    render();
+  });
+  const up = () => { drag = -1; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  const pre = $('.dp-pre');
+  Object.entries(PRESETS).forEach(([id, p]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.textContent = p.label; b.dataset.p = id;
+    b.addEventListener('click', () => { pts = p.pts.map((q) => ({ ...q })); render(); }); pre.appendChild(b);
+  });
+  k('slot').addEventListener('change', () => { pts = PRESETS[SLOTS[k('slot').value as Slot].curve].pts.map((q) => ({ ...q })); render(); });
+  k('mode').addEventListener('change', () => { const b = k('mode').value === 'bpm'; root.querySelectorAll<HTMLElement>('.dp-bb').forEach((e) => (e.hidden = !b)); $('.dp-avg').hidden = b; render(); });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).dataset.k && (e.target as HTMLElement).dataset.k !== 'save') render(); });
+
+  $('.dp-csv').addEventListener('click', () => saveBytes(new Blob([toCsv(rows)], { type: 'text/csv' }), 'dj-set-plan.csv', 'text/csv'));
+  $('.dp-print').addEventListener('click', () => {
+    document.documentElement.classList.add('dp-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('dp-printing'), { once: true });
+    window.print();
+  });
+  // Opt-in save, this browser only.
+  const FIELDS = ['start', 'end', 'slot', 'mode', 'avg', 'bpm', 'bars', 'overlap', 'bpmlo', 'bpmhi', 'tracks'];
+  function save() { if (!k('save').checked) return; try { localStorage.setItem(KEY, JSON.stringify({ pts, f: Object.fromEntries(FIELDS.map((f) => [f, k(f).value])) })); } catch { /* blocked */ } }
+  k('save').addEventListener('change', () => { if (k('save').checked) save(); else try { localStorage.removeItem(KEY); } catch { /* blocked */ } });
+  $('.dp-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch { /* blocked */ } k('save').checked = false; k('tracks').value = ''; pts = PRESETS.peak.pts.map((q) => ({ ...q })); k('slot').value = 'peak'; render(); });
+  try {
+    const old = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (old?.pts) { pts = old.pts; FIELDS.forEach((f) => { if (old.f?.[f] != null) k(f).value = old.f[f]; }); k('save').checked = true; k('mode').dispatchEvent(new Event('change')); }
+  } catch { /* none */ }
+  render();
+</script>

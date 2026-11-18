@@ -1,0 +1,290 @@
+---
+// #T1020 Audio repair: noise reduction (spectral subtraction with a learned noise profile), mains hum notches,
+// click repair (AR prediction) and clipping repair (cubic). Maths in src/lib/audio/repair.ts, run in a Web Worker
+// (src/lib/audio/dsp-worker.ts); checks in tests/audio-dsp.mjs. Nothing is uploaded.
+---
+<div class="tool-ui ar">
+  <section class="panel">
+    <div class="ar-drop">
+      <button type="button" class="btn ar-open">Open a recording</button>
+      <input class="ar-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden data-k="file" />
+      <span class="ar-name">Or drop it here. MP3, WAV, M4A, FLAC, OGG, up to 30 minutes. It stays on this device.</span>
+    </div>
+    <p class="note bad ar-err" hidden></p>
+    <div class="ar-wave-box" hidden>
+      <canvas class="ar-wave" height="90" aria-label="Waveform. Drag across a quiet part to choose the noise sample."></canvas>
+      <p class="ar-sel"></p>
+    </div>
+    <div class="ar-fixes">
+      <label class="ar-chk"><input type="checkbox" class="ar-noise" checked data-k="noise" /> Reduce background noise (hiss, fan, room)</label>
+      <label class="ar-amt">Reduce noise by up to <output class="ar-amt-v">18 dB</output>
+        <input type="range" class="ar-db" min="6" max="40" step="1" value="18" data-k="reduce" />
+      </label>
+      <label class="ar-chk"><input type="checkbox" class="ar-hum" checked data-k="hum" /> Remove mains hum (50 or 60 Hz buzz)</label>
+      <label class="ar-chk"><input type="checkbox" class="ar-clicks" data-k="clicks" /> Remove clicks and crackle</label>
+      <label class="ar-chk"><input type="checkbox" class="ar-clip" data-k="clip" /> Repair clipped (flattened) peaks</label>
+    </div>
+    <details class="ar-more">
+      <summary>More options</summary>
+      <div class="ar-two">
+        <label>Noise smoothing
+          <select class="ar-smooth" data-k="smooth">
+            <option value="0">Off (sharpest, may twinkle)</option>
+            <option value="1">Light</option>
+            <option value="2" selected>Normal</option>
+            <option value="4">Heavy (smoothest, softer detail)</option>
+          </select>
+        </label>
+        <label>Mains frequency
+          <select class="ar-base" data-k="base">
+            <option value="auto" selected>Find it for me</option>
+            <option value="50">50 Hz (Europe, India, UAE, most of the world)</option>
+            <option value="60">60 Hz (North America, Saudi Arabia, parts of South America)</option>
+          </select>
+        </label>
+        <label>Hum harmonics removed <input class="ar-harm" type="number" min="1" max="20" step="1" value="8" inputmode="numeric" data-k="harmonics" /></label>
+        <label>Notch width
+          <select class="ar-width" data-k="width">
+            <option value="2">Narrow (2 Hz)</option>
+            <option value="4" selected>Normal (4 Hz)</option>
+            <option value="8">Wide (8 Hz)</option>
+          </select>
+        </label>
+        <label>Click sensitivity
+          <select class="ar-sens" data-k="sensitivity">
+            <option value="12">Low (only loud clicks)</option>
+            <option value="8" selected>Normal</option>
+            <option value="5">High (also fine crackle)</option>
+          </select>
+        </label>
+      </div>
+      <p class="ar-fine">Smoothing averages the noise reduction over nearby moments and pitches so it does not twinkle. Harmonics are the hum's overtones (100, 150, 200 Hz and so on for 50 Hz hum). Narrow notches take out less music; wide ones catch hum that wanders.</p>
+    </details>
+    <div class="ar-row">
+      <button type="button" class="btn ar-go" disabled>Repair</button>
+      <button type="button" class="btn secondary ar-cancel" hidden>Cancel</button>
+    </div>
+    <div class="ar-prog" hidden><progress class="ar-bar" max="1" value="0"></progress> <span class="ar-pct"></span></div>
+  </section>
+
+  <section class="panel ar-res" hidden>
+    <p class="ar-sum" aria-live="polite"></p>
+    <div class="ar-row">
+      <button type="button" class="btn ar-play">Play</button>
+      <div class="ar-ab" role="group" aria-label="Which version to hear">
+        <button type="button" class="btn secondary ar-a" aria-pressed="false">Before</button>
+        <button type="button" class="btn secondary ar-b" aria-pressed="true">After</button>
+      </div>
+    </div>
+    <figure class="ar-fig"><figcaption>Before</figcaption><canvas class="ar-spec-a" height="140"></canvas></figure>
+    <figure class="ar-fig"><figcaption>After</figcaption><canvas class="ar-spec-b" height="140"></canvas></figure>
+    <p class="ar-fine">Spectrograms: time runs left to right, pitch bottom (30 Hz) to top, darker is louder. Hum shows as thin flat lines near the bottom; hiss as a grey haze; clicks as thin upright lines.</p>
+    <div class="ar-row">
+      <label class="ar-fmt-l">Save as
+        <select class="ar-fmt" data-k="format">
+          <option value="wav16">WAV 16-bit</option>
+          <option value="wav24">WAV 24-bit</option>
+          <option value="mp3-192">MP3 192 kbps</option>
+        </select>
+      </label>
+      <button type="button" class="btn ar-save">Save the repaired file</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .ar { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ar .panel { display: grid; gap: 12px; padding: 16px; }
+  .ar [hidden] { display: none !important; }
+  .ar-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .ar-drop.over { border-color: var(--accent); }
+  .ar-name, .ar-fine, .ar-sel { color: var(--muted); font-size: 14px; margin: 0; }
+  .ar-sum { margin: 0; font-size: 16px; }
+  .ar canvas { width: 100%; display: block; border: 1px solid var(--line); border-radius: 8px; touch-action: none; }
+  .ar-wave { cursor: crosshair; }
+  .ar-fixes { display: grid; gap: 8px; }
+  .ar-chk { display: flex; gap: 8px; align-items: center; font-size: 16px; }
+  .ar-amt { display: grid; gap: 4px; font-size: 14px; color: var(--muted); padding-left: 26px; }
+  .ar-amt input { width: 100%; }
+  .ar-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin: 10px 0; }
+  .ar .ar-two label, .ar-fmt-l { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ar input[type=number], .ar select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ar-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .ar-ab { display: flex; gap: 0; }
+  .ar-ab button[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+  .ar-prog { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+  .ar-bar { flex: 1; min-width: 0; height: 10px; }
+  .ar-fig { margin: 0; display: grid; gap: 4px; }
+  .ar-fig figcaption { font-size: 13px; color: var(--muted); }
+</style>
+
+<script>
+  import { decodeFile, baseName, saveBytes } from '../../lib/audio/browser.ts';
+  import { quietest } from '../../lib/audio/repair.ts';
+  import { encodeAs, OUT_FORMATS, type OutFormat } from '../../lib/audio/encode.ts';
+  import { toMono, type Sound } from '../../lib/audio/pcm.ts';
+  import { fft } from '../../lib/sci/dsp.ts';
+  const root = document.querySelector('.ar') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.ar-file'), err = $('.ar-err'), go = $<HTMLButtonElement>('.ar-go'), cancel = $<HTMLButtonElement>('.ar-cancel');
+  const prog = $('.ar-prog'), bar = $<HTMLProgressElement>('.ar-bar'), pct = $('.ar-pct'), sum = $('.ar-sum');
+  const wave = $<HTMLCanvasElement>('.ar-wave');
+  let snd: Sound | null = null, fixed: Sound | null = null, name = 'recording', worker: Worker | null = null;
+  let sel = { a: 0, z: 0, auto: true };
+  const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+  const t1 = (s: number) => (Math.round(s * 10) / 10).toFixed(1);
+
+  // ---- Colours from the page, so dark and red modes work.
+  const rgb = (c: string) => (c.match(/\d+(\.\d+)?/g) || ['0', '0', '0']).slice(0, 3).map(Number);
+  const colours = () => { const cs = getComputedStyle(root); return { ink: rgb(cs.color), bg: rgb(getComputedStyle(document.body).backgroundColor), accent: cs.getPropertyValue('--accent').trim() || '#1d4ed8' }; };
+  const size = (c: HTMLCanvasElement) => { const w = Math.min(1200, Math.round(c.clientWidth * Math.min(2, devicePixelRatio || 1))) || 600; c.width = w; return w; };
+
+  // ---- Waveform with the noise sample marked; drag to choose another.
+  const drawWave = () => {
+    if (!snd) return;
+    const W = size(wave), H = wave.height, g = wave.getContext('2d')!, x = snd.chans[0], n = x.length, col = colours();
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = col.accent; g.globalAlpha = 0.25; g.fillRect((sel.a / n) * W, 0, Math.max(2, ((sel.z - sel.a) / n) * W), H); g.globalAlpha = 1;
+    g.fillStyle = `rgb(${col.ink.join(',')})`;
+    for (let px = 0; px < W; px++) {
+      let lo = 0, hi = 0; const a = Math.floor((px / W) * n), z = Math.min(n, Math.floor(((px + 1) / W) * n));
+      for (let i = a; i < z; i++) { for (const c of snd.chans) { const v = c[i]; if (v < lo) lo = v; if (v > hi) hi = v; } }
+      g.fillRect(px, H / 2 - hi * (H / 2), 1, Math.max(1, (hi - lo) * (H / 2)));
+    }
+    $('.ar-sel').textContent = `Noise sample: ${t1(sel.a / snd.rate)} s to ${t1(sel.z / snd.rate)} s${sel.auto ? ' (the quietest half second, found for you)' : ''}. Drag across a part with only background noise to choose another.`;
+  };
+  let dragFrom = -1;
+  const posOf = (e: PointerEvent) => { const r = wave.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * snd!.chans[0].length; };
+  wave.addEventListener('pointerdown', (e) => { if (!snd) return; dragFrom = posOf(e); wave.setPointerCapture(e.pointerId); });
+  wave.addEventListener('pointermove', (e) => {
+    if (dragFrom < 0 || !snd) return;
+    const p = posOf(e); sel = { a: Math.round(Math.min(p, dragFrom)), z: Math.round(Math.max(p, dragFrom)), auto: false }; drawWave();
+  });
+  wave.addEventListener('pointerup', () => {
+    if (dragFrom < 0 || !snd) return; dragFrom = -1;
+    const min = Math.round(0.2 * snd.rate), n = snd.chans[0].length;
+    if (sel.z - sel.a < min) { const c = (sel.a + sel.z) / 2; sel.a = Math.max(0, Math.round(c - min / 2)); sel.z = Math.min(n, sel.a + min); }
+    drawWave();
+  });
+
+  // ---- Spectrogram: one 2048-point FFT per column on a log pitch scale, shared level scale for before and after.
+  const specCols = (s: Sound, W: number, H: number) => {
+    const x = toMono(s.chans), n = 2048, half = n / 2, re = new Float64Array(n), im = new Float64Array(n), out = new Float32Array(W * H);
+    const fLo = 30, fHi = Math.min(16000, s.rate / 2), rows = Array.from({ length: H }, (_, r) => Math.min(half, Math.round((fLo * Math.pow(fHi / fLo, (H - 1 - r) / (H - 1)) * n) / s.rate)));
+    for (let c = 0; c < W; c++) {
+      const s0 = Math.round(((c + 0.5) / W) * x.length) - half;
+      for (let i = 0; i < n; i++) { const j = s0 + i; re[i] = j >= 0 && j < x.length ? x[j] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / n)) : 0; im[i] = 0; }
+      fft(re, im);
+      for (let r = 0; r < H; r++) { const k = rows[r]; out[r * W + c] = 10 * Math.log10(re[k] * re[k] + im[k] * im[k] + 1e-20); }
+    }
+    return out;
+  };
+  const drawSpecs = () => {
+    const ca = $<HTMLCanvasElement>('.ar-spec-a'), cb = $<HTMLCanvasElement>('.ar-spec-b'), W = size(ca); cb.width = W;
+    const H = ca.height, A = specCols(snd!, W, H), B = specCols(fixed!, W, H), col = colours();
+    let top = -Infinity; for (const v of A) if (v > top) top = v;
+    for (const [cv, D] of [[ca, A], [cb, B]] as const) {
+      const g = cv.getContext('2d')!, img = g.createImageData(W, H);
+      for (let i = 0; i < D.length; i++) {
+        const t = Math.max(0, Math.min(1, (D[i] - (top - 90)) / 90));
+        for (let k = 0; k < 3; k++) img.data[i * 4 + k] = col.bg[k] + (col.ink[k] - col.bg[k]) * t;
+        img.data[i * 4 + 3] = 255;
+      }
+      g.putImageData(img, 0, 0);
+    }
+  };
+
+  // ---- A/B playback: switching keeps the place in the recording.
+  let ac: AudioContext | null = null, src: AudioBufferSourceNode | null = null, bufs: AudioBuffer[] = [], useB = true, startedAt = 0, from = 0;
+  const stopPlay = () => { if (src) { src.onended = null; try { src.stop(); } catch {} src = null; } $('.ar-play').textContent = 'Play'; };
+  const startAt = async (pos: number) => {
+    stopPlay(); ac ??= new AudioContext(); await ac.resume();
+    if (!bufs.length) bufs = [snd!, fixed!].map((s) => { const b = ac!.createBuffer(s.chans.length, s.chans[0].length, s.rate); s.chans.forEach((c, i) => b.copyToChannel(c, i)); return b; });
+    const b = bufs[useB ? 1 : 0]; if (pos >= b.duration) pos = 0;
+    src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination);
+    src.onended = () => { src = null; $('.ar-play').textContent = 'Play'; };
+    src.start(0, pos); startedAt = ac.currentTime; from = pos;
+    $('.ar-play').textContent = 'Stop';
+  };
+  const setAB = (b: boolean) => {
+    const pos = src && ac ? from + ac.currentTime - startedAt : null;
+    useB = b; $('.ar-a').setAttribute('aria-pressed', String(!b)); $('.ar-b').setAttribute('aria-pressed', String(b));
+    if (pos !== null) startAt(pos);
+  };
+  $('.ar-play').addEventListener('click', () => (src ? stopPlay() : startAt(0)));
+  $('.ar-a').addEventListener('click', () => setAB(false));
+  $('.ar-b').addEventListener('click', () => setAB(true));
+
+  // ---- Repair in a worker.
+  const busy = (on: boolean) => { go.disabled = on || !snd; cancel.hidden = !on; prog.hidden = !on; if (on) { bar.value = 0; pct.textContent = ''; } };
+  const summary = (info: Record<string, any>, o: Record<string, any>, secs: number) => {
+    const parts: string[] = [];
+    if (o.clip) parts.push(info.clipRuns ? `${info.clipRuns} clipped peak${info.clipRuns === 1 ? '' : 's'} redrawn (whole file turned down ${(-info.clipGainDb).toFixed(1)} dB to make room)` : 'No clipped peaks found');
+    if (o.clicks) parts.push(info.clicks ? `${info.clicks} click${info.clicks === 1 ? '' : 's'} repaired` : 'No clicks found');
+    if (o.hum) {
+      if (o.hum.base === 'auto') parts.push(info.humBase ? `Hum found at ${info.humBase} Hz (${Math.round(info.humDb)} dB above its surroundings) and removed with ${o.hum.harmonics} notches` : 'No mains hum found, so nothing was notched');
+      else parts.push(`${info.humBase} Hz hum and ${o.hum.harmonics - 1} harmonics notched out`);
+    }
+    if (o.noise) parts.push(`Background noise reduced by up to ${o.noise.reduceDb} dB`);
+    return `Done in ${t1(secs)} s. ${parts.join('. ')}.`;
+  };
+  const repair = () => {
+    if (!snd) return;
+    stopPlay(); err.hidden = true; $('.ar-res').hidden = true; busy(true);
+    const o = {
+      noise: $<HTMLInputElement>('.ar-noise').checked ? { start: sel.a, end: sel.z, reduceDb: +$<HTMLInputElement>('.ar-db').value, smoothing: +$<HTMLSelectElement>('.ar-smooth').value } : null,
+      hum: $<HTMLInputElement>('.ar-hum').checked ? { base: $<HTMLSelectElement>('.ar-base').value === 'auto' ? 'auto' : +$<HTMLSelectElement>('.ar-base').value, harmonics: Math.max(1, Math.min(20, Math.round(+$<HTMLInputElement>('.ar-harm').value || 8))), widthHz: +$<HTMLSelectElement>('.ar-width').value } : null,
+      clicks: $<HTMLInputElement>('.ar-clicks').checked ? { sensitivity: +$<HTMLSelectElement>('.ar-sens').value } : null,
+      clip: $<HTMLInputElement>('.ar-clip').checked,
+    };
+    if (!o.noise && !o.hum && !o.clicks && !o.clip) { busy(false); fail('Tick at least one repair.'); return; }
+    const t0 = performance.now();
+    let step = 'Working';
+    worker?.terminate();
+    worker = new Worker(new URL('../../lib/audio/dsp-worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e) => {
+      const d = e.data;
+      if (d.progress !== undefined) { if (d.label) step = d.label; bar.value = d.progress; pct.textContent = `${step}: ${Math.round(d.progress * 100)} %`; return; }
+      worker?.terminate(); worker = null; busy(false);
+      if (d.error) { fail('Something went wrong: ' + d.error); return; }
+      fixed = { rate: snd!.rate, chans: d.chans }; bufs = [];
+      sum.textContent = summary(d.info, o, (performance.now() - t0) / 1000);
+      $('.ar-res').hidden = false; drawSpecs();
+    };
+    worker.onerror = () => { worker?.terminate(); worker = null; busy(false); fail('This browser could not run the repair. Try a recent Chrome, Edge, Firefox or Safari.'); };
+    worker.postMessage({ job: 'repair', chans: snd.chans.map((c) => c.slice()), rate: snd.rate, opts: o });
+  };
+
+  const open = async (f: File) => {
+    err.hidden = true; stopPlay(); $('.ar-res').hidden = true; fixed = null; bufs = [];
+    if (f.size > 500e6) { fail('Too big: files up to 500 MB.'); return; }
+    $('.ar-name').textContent = `${f.name}: opening…`;
+    try { snd = await decodeFile(f); } catch { snd = null; go.disabled = true; $('.ar-name').textContent = f.name; fail('This browser cannot read that file. Try MP3 or WAV.'); return; }
+    if (snd.chans.length > 2) snd = { rate: snd.rate, chans: snd.chans.slice(0, 2) };
+    const s = snd.chans[0].length / snd.rate;
+    if (s > 1800) { snd = null; go.disabled = true; $('.ar-name').textContent = f.name; fail('That is longer than 30 minutes. Cut it shorter first.'); return; }
+    name = baseName(f.name, 'recording');
+    const half = Math.min(snd.chans[0].length, Math.round(snd.rate * 0.5)), q = quietest(snd.chans, snd.rate, 0.5);
+    sel = { a: q, z: q + half, auto: true };
+    $('.ar-name').textContent = `${f.name}: ${s >= 60 ? Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s' : t1(s) + ' s'}, ${snd.chans.length === 1 ? 'mono' : 'stereo'}, ${snd.rate.toLocaleString('en-US')} Hz.`;
+    $('.ar-wave-box').hidden = false; drawWave();
+    go.disabled = false;
+  };
+
+  go.addEventListener('click', repair);
+  cancel.addEventListener('click', () => { worker?.terminate(); worker = null; busy(false); fail('Cancelled.'); });
+  $<HTMLInputElement>('.ar-db').addEventListener('input', () => ($('.ar-amt-v').textContent = $<HTMLInputElement>('.ar-db').value + ' dB'));
+  $<HTMLInputElement>('.ar-noise').addEventListener('change', () => ($('.ar-amt').hidden = !$<HTMLInputElement>('.ar-noise').checked));
+  $('.ar-save').addEventListener('click', async () => {
+    if (!fixed) return;
+    const b = $<HTMLButtonElement>('.ar-save'), f = $<HTMLSelectElement>('.ar-fmt').value as OutFormat; b.disabled = true;
+    try { saveBytes(await encodeAs(fixed, f), `${name}-repaired.${OUT_FORMATS[f].ext}`, OUT_FORMATS[f].mime); } finally { b.disabled = false; }
+  });
+  addEventListener('resize', () => { if (snd) drawWave(); });
+  $('.ar-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.ar-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>
