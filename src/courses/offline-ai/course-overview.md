@@ -68,11 +68,11 @@ Some lessons have **simulations**: small things to play with, such as a slider t
 The course is written to be taken in order, but you do not have to. If your first goal is "get a model running on my laptop and use it from code", take this short path first:
 
 1. Module 1 (this module) and Module 3, lessons 3.1 to 3.5 (tokens).
-2. Lesson 4.1 (memory) and lessons 8.1 and 8.5 (shrinking a model to fit).
+2. Lesson 4.1 (memory), 7.1 and 7.3 (finding and choosing a model), and 8.1 and 8.5 (shrinking it to fit).
 3. Module 9 (install, then test with the internet off).
 4. Module 11 (call the model from Python).
 
-That path is about 20 lessons. After it you can use local AI for real work, and the rest of the course makes you better at it. Lesson 1.4 has a short quiz that suggests a path for your own situation.
+That path is about 25 lessons, all written. After it you can use local AI for real work, and the rest of the course makes you better at it. Lesson 1.4 has a short quiz that suggests a path for your own situation.
 
 ## 5. Worked example
 

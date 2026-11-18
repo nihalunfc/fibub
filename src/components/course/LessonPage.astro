@@ -16,8 +16,10 @@ const prev = liveAll[li - 1], next = liveAll[li + 1];
 const parts = splitFigures(entry.rendered?.html ?? '');
 for (const p of parts) if (p.fig && !figures[p.fig]) throw new Error(`lesson ${slug}: unknown figure ${p.fig}`);
 const d = entry.data;
+const docTitle = d.seoTitle ?? [`${d.title} | ${course.name}`, d.title].find((t) => t.length <= 60);
+if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add a seoTitle`);
 ---
-<Base title={`${me.n} ${d.title}`} docTitle={`${d.title} | ${course.name} course | fibub`} description={d.summary}>
+<Base title={`${me.n} ${d.title}`} docTitle={docTitle} description={d.summary}>
   <div class="crumbs"><a href="/">Home</a> / <a href="/learn/courses/">Courses</a> / <a href={`/learn/courses/${course.id}/`}>{course.name}</a> / Lesson {me.n}</div>
   <div class="cs-layout" data-course={course.id} data-total={all.length} data-lesson={slug}>
     <CourseSidebar course={course} live={live} current={slug} />

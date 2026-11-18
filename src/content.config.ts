@@ -82,6 +82,7 @@ const lessons = defineCollection({
   schema: z.object({
     title: z.string(),
     summary: z.string(),          // one or two sentences for the lesson list and the meta description
+    seoTitle: z.string().max(60).optional(), // the search title, when "<title> | Offline AI" would pass 60 characters
     minutes: z.number().int().positive(),
     updated: z.coerce.date(),
     quiz: z.array(z.object({ q: z.string(), choices: z.array(z.string()).min(2), ans: z.number().int().min(0), why: z.string() })).default([]),

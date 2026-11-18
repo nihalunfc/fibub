@@ -1,5 +1,6 @@
 ---
 title: 'Cloud AI and local AI: the same brain in a different house'
+seoTitle: 'Cloud AI vs local AI: what changes | Offline AI'
 summary: What actually happens when you use a chatbot website, what changes when the model runs on your own computer, and the trade-offs in one table.
 minutes: 20
 updated: 2026-11-18

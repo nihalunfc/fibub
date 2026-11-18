@@ -1,5 +1,6 @@
 ---
 title: 'Pick your track: laptop, desktop or team server'
+seoTitle: 'Pick your track: laptop, desktop or server'
 summary: Answer four questions about your computer, your users, your budget and your goal, and get a suggested path through the course.
 minutes: 15
 updated: 2026-11-18
