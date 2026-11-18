@@ -1,0 +1,232 @@
+---
+// #T1016 Library cleaner: finds duplicates, missing tags, low or likely fake bitrates, short or silent files and unusual
+// sample rates in a music folder. Engines: src/lib/music/tags.ts, src/lib/audio/cutoff.ts (checks in tests/music-tags.mjs).
+---
+<div class="tool-ui mlc">
+  <section class="panel">
+    <div class="mlc-drop">
+      <button type="button" class="btn mlc-dir">Pick a music folder</button>
+      <button type="button" class="btn secondary mlc-files">Pick files</button>
+      <input class="mlc-dirin" data-k="folder" type="file" webkitdirectory multiple hidden />
+      <input class="mlc-filein" data-k="files" type="file" multiple accept=".mp3,.flac,.m4a,.mp4,.aac,.wav,.ogg,.oga,.opus,audio/*" hidden />
+      <span class="mlc-hint">Or drop files here. Only tags and file headers are read; nothing is uploaded, changed or deleted.</span>
+    </div>
+    <div class="mlc-opts">
+      <label>Low bitrate is under
+        <select class="mlc-thr" data-k="threshold">
+          <option value="128">128 kbps</option><option value="160">160 kbps</option><option value="192" selected>192 kbps</option>
+          <option value="224">224 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
+        </select>
+      </label>
+      <label class="mlc-chk"><input class="mlc-deep" data-k="deep" type="checkbox" /> Also check for likely fake high bitrates and silent files (slower: plays each file through the decoder)</label>
+    </div>
+    <details>
+      <summary>More options</summary>
+      <div class="mlc-opts">
+        <label>Very short is under (seconds) <input class="mlc-short" data-k="short" type="number" min="0" max="600" step="1" value="30" inputmode="numeric" /></label>
+        <label>Missing tags to look for
+          <select class="mlc-need" data-k="need">
+            <option value="artist,title,genre,bpm,key,cover" selected>Artist, title, genre, BPM, key, cover</option>
+            <option value="artist,title">Artist and title only</option>
+            <option value="artist,title,genre">Artist, title, genre</option>
+            <option value="bpm,key">BPM and key only</option>
+          </select>
+        </label>
+      </div>
+    </details>
+    <p class="mlc-status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel mlc-res" hidden>
+    <h2 class="mlc-h">What it found</h2>
+    <div class="mlc-sum" role="group" aria-label="Show"></div>
+    <div class="mlc-dups"></div>
+    <div class="mlc-wrap"><table class="mlc-table"><thead><tr><th>File</th><th>Type</th><th>kbps</th><th>kHz</th><th>Length</th><th>Issues</th></tr></thead><tbody></tbody></table></div>
+    <div class="mlc-row">
+      <button type="button" class="btn mlc-csv">Download the report (CSV)</button>
+    </div>
+    <label>Files you could remove (the lower-quality copies of duplicates)
+      <textarea class="mlc-remove" data-k="remove-list" rows="5" readonly></textarea>
+    </label>
+    <div class="mlc-row"><button type="button" class="btn secondary mlc-copy">Copy the list</button></div>
+    <p class="mlc-fine">Browsers cannot delete files, so nothing is deleted here: use the list in your file manager or DJ software. Check by ear before removing anything; the "keep" suggestion is the copy with the best quality (lossless first, then the highest bitrate), and ties go to the one with more tags.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .mlc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mlc .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .mlc [hidden] { display: none !important; }
+  .mlc-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .mlc-drop.over { border-color: var(--accent); }
+  .mlc-hint, .mlc-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .mlc-status { margin: 0; }
+  .mlc-h { font-size: 18px; margin: 0; }
+  .mlc-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; align-items: end; margin-top: 8px; }
+  .mlc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .mlc label.mlc-chk { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); }
+  .mlc input[type=number], .mlc select, .mlc textarea { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .mlc textarea { font-family: ui-monospace, monospace; font-size: 13px; }
+  .mlc details summary { cursor: pointer; font-weight: 600; }
+  .mlc-sum { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mlc-sum button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .mlc-sum button[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .mlc-dups { display: grid; gap: 8px; }
+  .mlc-dups details { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .mlc-dups ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; overflow-wrap: anywhere; }
+  .mlc-keep { color: var(--good, #1a7f37); font-weight: 600; }
+  .mlc-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); border-radius: 10px; max-width: 100%; }
+  .mlc-table { border-collapse: collapse; font-size: 14px; width: 100%; }
+  .mlc-table th, .mlc-table td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .mlc-table th { position: sticky; top: 0; background: var(--bg); white-space: nowrap; }
+  .mlc-table td:first-child { min-width: 160px; overflow-wrap: anywhere; }
+  .mlc-table td:nth-child(n+2):nth-child(-n+5) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .mlc-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mlc .bad { color: var(--bad, #b00020); }
+</style>
+
+<script>
+  import { matchKey, tagsFromName, type ReadResult } from '../../lib/music/tags.ts';
+  import { readFileTags, MUSIC_EXT, csvCell } from '../../lib/music/browser.ts';
+  import { estimateCutoff, fakeBitrateHint } from '../../lib/audio/cutoff.ts';
+  import { saveBytes, secs } from '../../lib/audio/browser.ts';
+
+  type Item = { file: File; path: string; r: ReadResult | null; deep?: { cutoff: number | null; peak: number; hint: string; suspect: boolean } | 'skipped'; group?: number; keep?: boolean; issues: string[] };
+  const root = document.querySelector('.mlc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.mlc-status');
+  let items: Item[] = [], groups: Item[][] = [], filter = 'all';
+  const ISSUES: [string, string][] = [['all', 'All files'], ['dup', 'Duplicates'], ['missing', 'Missing tags'], ['low', 'Low bitrate'], ['fake', 'Likely fake bitrate'], ['short', 'Very short'], ['silent', 'Silent'], ['rate', 'Unusual sample rate'], ['unread', 'Could not read']];
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const say = (t: string, bad = false) => { status.textContent = t; status.classList.toggle('bad', bad); };
+
+  const score = (it: Item) => {
+    const i = it.r?.info; if (!i) return -1;
+    const t = it.r!.tags, tagCount = ['artist', 'title', 'genre', 'bpm', 'key', 'album'].filter((k) => (t as Record<string, unknown>)[k]).length + (t.cover ? 1 : 0);
+    return (i.lossless ? 1e6 + i.sampleRate * (i.bits ?? 16) : i.bitrate * 1000) + tagCount;
+  };
+  const who = (it: Item) => {
+    let artist = it.r?.tags.artist ?? '', title = it.r?.tags.title ?? '';
+    if (!artist || !title) { const f = tagsFromName(it.file.name, '%artist% - %title%'); artist ||= f?.artist ?? ''; title ||= f?.title ?? it.file.name.replace(/\.[^.]+$/, ''); }
+    return matchKey(artist, title);
+  };
+  const groupDuplicates = () => {
+    const parent = items.map((_, i) => i), find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    const join = (a: number, b: number) => { parent[find(a)] = find(b); };
+    const byKey = new Map<string, number>();
+    items.forEach((it, i) => { if (!it.r) return; const k = who(it); if (!k) return; const j = byKey.get(k); if (j === undefined) byKey.set(k, i); else join(i, j); });
+    const bySize = new Map<number, number[]>();
+    items.forEach((it, i) => { if (it.r?.info) bySize.set(it.file.size, [...(bySize.get(it.file.size) ?? []), i]); });
+    for (const list of bySize.values()) for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++)
+      if (Math.abs(items[list[a]].r!.info!.duration - items[list[b]].r!.info!.duration) < 0.5) join(list[a], list[b]);
+    const m = new Map<number, Item[]>();
+    items.forEach((it, i) => { it.group = undefined; it.keep = undefined; const g = find(i); m.set(g, [...(m.get(g) ?? []), it]); });
+    groups = [...m.values()].filter((g) => g.length > 1);
+    groups.forEach((g, n) => { const best = g.reduce((a, b) => (score(b) > score(a) ? b : a)); for (const it of g) { it.group = n + 1; it.keep = it === best; } });
+  };
+  const evaluate = () => {
+    const thr = +$<HTMLSelectElement>('.mlc-thr').value, short = +$<HTMLInputElement>('.mlc-short').value || 0;
+    const need = $<HTMLSelectElement>('.mlc-need').value.split(',');
+    groupDuplicates();
+    for (const it of items) {
+      const is: string[] = []; it.issues = is;
+      if (!it.r || !it.r.info) { is.push('unread'); continue; }
+      const i = it.r.info, t = it.r.tags as Record<string, unknown>;
+      if (it.group) is.push('dup');
+      const miss = need.filter((k) => !t[k]); if (miss.length) is.push('missing');
+      if (!i.lossless && i.bitrate && i.bitrate < thr) is.push('low');
+      if (it.deep && it.deep !== 'skipped' && it.deep.suspect) is.push('fake');
+      if (i.duration && i.duration < short) is.push('short');
+      if (it.deep && it.deep !== 'skipped' && it.deep.peak < 0.001) is.push('silent');
+      if (i.sampleRate && i.sampleRate !== 44100 && i.sampleRate !== 48000) is.push('rate');
+    }
+    show();
+  };
+  const issueText = (it: Item) => {
+    const i = it.r?.info, t = it.r?.tags as Record<string, unknown> | undefined, out: string[] = [];
+    for (const k of it.issues) {
+      if (k === 'dup') out.push(`Duplicate, group ${it.group}${it.keep ? ' (keep)' : ' (could remove)'}`);
+      else if (k === 'missing') out.push('No ' + $<HTMLSelectElement>('.mlc-need').value.split(',').filter((x) => !t![x]).map((x) => (x === 'bpm' ? 'BPM' : x)).join(', '));
+      else if (k === 'low') out.push(`Low bitrate (${i!.bitrate} kbps)`);
+      else if (k === 'fake') out.push((it.deep as { hint: string }).hint);
+      else if (k === 'short') out.push(`Very short (${secs(i!.duration)})`);
+      else if (k === 'silent') out.push('Silent (peak below −60 dBFS)');
+      else if (k === 'rate') out.push(`Unusual sample rate (${i!.sampleRate.toLocaleString('en-US')} Hz)`);
+      else if (k === 'unread') out.push('Could not read this file');
+    }
+    if (it.deep === 'skipped') out.push('Too big for the deep check');
+    return out.join('; ');
+  };
+  const show = () => {
+    const n = (k: string) => (k === 'all' ? items.length : items.filter((it) => it.issues.includes(k)).length);
+    $('.mlc-sum').innerHTML = ISSUES.filter(([k]) => k === 'all' || n(k)).map(([k, l]) => `<button type="button" data-f="${k}" aria-pressed="${filter === k}">${l}: ${n(k)}</button>`).join('');
+    const list = filter === 'all' ? items : items.filter((it) => it.issues.includes(filter));
+    $('.mlc-table tbody').innerHTML = list.slice(0, 2000).map((it) => {
+      const i = it.r?.info;
+      return `<tr><td>${esc(it.path)}</td><td>${i ? esc(i.codec) : '—'}</td><td>${i?.bitrate ? i.bitrate + (i.vbr && !i.lossless ? ' VBR' : '') : '—'}</td><td>${i?.sampleRate ? i.sampleRate / 1000 : '—'}</td><td>${i?.duration ? secs(i.duration) : '—'}</td><td>${esc(issueText(it)) || 'None'}</td></tr>`;
+    }).join('') + (list.length > 2000 ? `<tr><td colspan="6">…and ${list.length - 2000} more in the CSV.</td></tr>` : '');
+    $('.mlc-dups').innerHTML = groups.length && (filter === 'all' || filter === 'dup') ? `<p class="mlc-fine">${groups.length} group${groups.length === 1 ? '' : 's'} of duplicates (same artist and title once "(Original Mix)", feat. credits, capitals and punctuation are ignored, or the same size and length):</p>` +
+      groups.slice(0, 300).map((g, n) => `<details${n < 3 ? ' open' : ''}><summary>Group ${n + 1}: ${esc(g[0].r?.tags.title || g[0].file.name)} (${g.length} files)</summary><ul>${g.map((it) => `<li>${it.keep ? '<span class="mlc-keep">Keep:</span> ' : ''}${esc(it.path)} — ${esc(it.r?.info ? `${it.r.info.codec}, ${it.r.info.bitrate} kbps, ${secs(it.r.info.duration)}` : '')}</li>`).join('')}</ul></details>`).join('') : '';
+    $<HTMLTextAreaElement>('.mlc-remove').value = items.filter((it) => it.group && !it.keep).map((it) => it.path).join('\n');
+    $('.mlc-res').hidden = !items.length;
+  };
+  $('.mlc-sum').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (b) { filter = b.dataset.f!; show(); } });
+  for (const s of ['.mlc-thr', '.mlc-short', '.mlc-need']) $(s).addEventListener('change', () => items.length && evaluate());
+
+  const deepCheck = async (it: Item) => {
+    if (!it.r?.info) return;
+    if (it.file.size > 80e6) { it.deep = 'skipped'; return; }
+    try {
+      const buf = await it.file.arrayBuffer();
+      const ac = new OfflineAudioContext(1, 1, it.r.info.sampleRate || 44100);
+      const dec = await ac.decodeAudioData(buf);
+      const ch = Array.from({ length: dec.numberOfChannels }, (_, c) => dec.getChannelData(c));
+      let peak = 0; for (const c of ch) for (let i = 0; i < c.length; i++) { const a = Math.abs(c[i]); if (a > peak) peak = a; }
+      // Up to 60 s from the middle, mixed to mono.
+      const len = ch[0].length, take = Math.min(len, dec.sampleRate * 60), a = Math.floor((len - take) / 2), mono = new Float32Array(take);
+      for (const c of ch) for (let i = 0; i < take; i++) mono[i] += c[a + i] / ch.length;
+      const cut = estimateCutoff(mono, dec.sampleRate), h = fakeBitrateHint(it.r.info.lossless ? 0 : it.r.info.bitrate, cut.cutoff);
+      it.deep = { cutoff: cut.cutoff, peak, hint: h.text, suspect: !it.r.info.lossless && h.suspect };
+    } catch { it.deep = 'skipped'; }
+  };
+
+  const run = async (files: File[]) => {
+    const list = files.filter((f) => MUSIC_EXT.test(f.name));
+    if (!list.length) { say('No music files found (MP3, FLAC, WAV, M4A, Ogg, Opus).', true); return; }
+    items = []; filter = 'all';
+    const deep = $<HTMLInputElement>('.mlc-deep').checked, t0 = performance.now();
+    for (let k = 0; k < list.length; k++) {
+      const f = list[k], it: Item = { file: f, path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name, r: null, issues: [] };
+      if (k % 10 === 0 || deep) { say(`${deep ? 'Checking' : 'Reading'} ${k + 1} of ${list.length}: ${f.name}`); await new Promise((r) => setTimeout(r, 0)); }
+      try { it.r = await readFileTags(f); } catch { it.r = null; }
+      if (deep) await deepCheck(it);
+      items.push(it);
+    }
+    evaluate();
+    const bad = items.filter((it) => it.issues.length).length;
+    say(`Checked ${items.length} file${items.length === 1 ? '' : 's'} in ${((performance.now() - t0) / 1000).toFixed(1)} s: ${bad} with something to look at, ${groups.length} duplicate group${groups.length === 1 ? '' : 's'}.`);
+  };
+
+  $('.mlc-csv').addEventListener('click', () => {
+    const head = ['path', 'format', 'codec', 'kbps', 'vbr', 'sample_rate', 'bits', 'channels', 'seconds', 'bytes', 'artist', 'title', 'album', 'genre', 'bpm', 'key', 'cover', 'cutoff_hz', 'peak', 'duplicate_group', 'suggestion', 'issues'];
+    const rowsOut = items.map((it) => {
+      const i = it.r?.info, t = it.r?.tags ?? {}, d = it.deep && it.deep !== 'skipped' ? it.deep : null;
+      return [it.path, it.r?.format ?? '', i?.codec ?? '', i?.bitrate ?? '', i ? (i.vbr ? 'yes' : 'no') : '', i?.sampleRate ?? '', i?.bits ?? '', i?.channels ?? '', i ? i.duration.toFixed(1) : '', it.file.size,
+        t.artist ?? '', t.title ?? '', t.album ?? '', t.genre ?? '', t.bpm ?? '', t.key ?? '', t.cover ? 'yes' : 'no', d ? (d.cutoff === null ? 'full' : Math.round(d.cutoff)) : '', d ? d.peak.toFixed(4) : '',
+        it.group ?? '', it.group ? (it.keep ? 'keep' : 'could remove') : '', issueText(it)].map(csvCell).join(',');
+    });
+    saveBytes(new TextEncoder().encode('﻿' + [head.join(','), ...rowsOut].join('\r\n') + '\r\n'), 'music-library-report.csv', 'text/csv');
+  });
+  $('.mlc-copy').addEventListener('click', async () => {
+    const ta = $<HTMLTextAreaElement>('.mlc-remove');
+    try { await navigator.clipboard.writeText(ta.value); say('List copied.'); } catch { ta.select(); say('Select the list and copy it.'); }
+  });
+  const dirIn = $<HTMLInputElement>('.mlc-dirin'), fileIn = $<HTMLInputElement>('.mlc-filein');
+  $('.mlc-dir').addEventListener('click', () => dirIn.click());
+  $('.mlc-files').addEventListener('click', () => fileIn.click());
+  for (const inp of [dirIn, fileIn]) inp.addEventListener('change', () => { const fs = [...(inp.files ?? [])]; inp.value = ''; if (fs.length) run(fs); });
+  const drop = $('.mlc-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const fs = [...(e.dataTransfer?.files ?? [])]; if (fs.length) run(fs); });
+</script>

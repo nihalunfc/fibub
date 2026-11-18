@@ -1,0 +1,333 @@
+---
+// #T1018 Tag editor: edit the tags of many music files at once (MP3, FLAC, WAV, M4A), cover art, names from tags.
+// Engine: src/lib/music/tags.ts (checks in tests/music-tags.mjs). Only the tags change; the audio bytes are copied as they are.
+import { FIELDS } from '../../lib/music/tags.ts';
+---
+<div class="tool-ui mte">
+  <section class="panel">
+    <div class="mte-drop">
+      <button type="button" class="btn mte-open">Open music files</button>
+      <button type="button" class="btn secondary mte-folder" hidden>Open a folder (save in place)</button>
+      <input class="mte-file" data-k="files" type="file" multiple accept=".mp3,.flac,.m4a,.mp4,.aac,.wav,.ogg,.oga,.opus,audio/*" hidden />
+      <span class="mte-hint">Or drop them here. MP3, FLAC, WAV and M4A can be changed; Ogg and Opus are shown read only. Files stay on this device.</span>
+    </div>
+    <p class="mte-status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel mte-work" hidden>
+    <div class="mte-bulk">
+      <label>Field
+        <select class="mte-bf" data-k="bulk-field">{FIELDS.map((f) => <option value={f.id}>{f.label}</option>)}</select>
+      </label>
+      <label>New value <input class="mte-bv" data-k="bulk-value" type="text" placeholder="e.g. Deep House" /></label>
+      <button type="button" class="btn mte-apply">Apply to ticked files</button>
+    </div>
+    <details class="mte-more">
+      <summary>More options: find and replace, title case, names, cover art, BPM and key</summary>
+      <div class="mte-tools">
+        <fieldset>
+          <legend>Find and replace</legend>
+          <label>In <select class="mte-rf" data-k="replace-field"><option value="*">All text fields</option>{FIELDS.map((f) => <option value={f.id}>{f.label}</option>)}</select></label>
+          <label>Find <input class="mte-find" data-k="find" type="text" /></label>
+          <label>Replace with <input class="mte-repl" data-k="replace" type="text" /></label>
+          <label class="mte-chk"><input class="mte-case" data-k="match-case" type="checkbox" /> Match capitals</label>
+          <button type="button" class="btn secondary mte-doreplace">Replace in ticked files</button>
+        </fieldset>
+        <fieldset>
+          <legend>Title Case</legend>
+          <label>Field <select class="mte-tf" data-k="case-field"><option value="title,artist,album,albumArtist">Title, artist and album</option>{FIELDS.map((f) => <option value={f.id}>{f.label}</option>)}</select></label>
+          <button type="button" class="btn secondary mte-docase">Title Case ticked files</button>
+          <p class="mte-fine">Capital on each word; small words (of, the, and) stay small in the middle; short all-capital words like DJ stay.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Fill tags from the file name</legend>
+          <label>Pattern <input class="mte-fp" data-k="from-name" type="text" value="%artist% - %title%" /></label>
+          <button type="button" class="btn secondary mte-dofill">Fill ticked files</button>
+          <p class="mte-fine">Fields: %title% %artist% %album% %albumartist% %genre% %year% %track% %bpm% %key% %label%, and %skip% for a part to ignore.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Rename files from tags</legend>
+          <label>Pattern <input class="mte-np" data-k="to-name" type="text" value="%artist% - %title%" /></label>
+          <button type="button" class="btn secondary mte-doname">Rename ticked files</button>
+          <p class="mte-fine">New names show under the old ones and are used when you save. Characters that are not allowed in file names are dropped.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Cover art</legend>
+          <div class="mte-crow">
+            <img class="mte-cprev" alt="Chosen cover" hidden />
+            <div class="mte-cbtns">
+              <button type="button" class="btn secondary mte-cpick">Choose an image</button>
+              <input class="mte-cfile" data-k="cover" type="file" accept="image/jpeg,image/png" hidden />
+              <button type="button" class="btn secondary mte-cset" disabled>Set as cover of ticked files</button>
+              <button type="button" class="btn secondary mte-cdel">Remove cover from ticked files</button>
+            </div>
+          </div>
+          <p class="mte-fine">JPEG or PNG; about 500 to 1400 pixels square suits most players. One front cover is kept per file.</p>
+        </fieldset>
+        <fieldset>
+          <legend>BPM and key from a CSV</legend>
+          <button type="button" class="btn secondary mte-csv">Open a CSV</button>
+          <input class="mte-csvfile" data-k="csv" type="file" accept=".csv,.tsv,.txt,text/csv" hidden />
+          <p class="mte-fine">A CSV from the Track analyser (or any CSV with a file name column and BPM or key columns). Rows are matched by file name, without the extension.</p>
+        </fieldset>
+      </div>
+    </details>
+    <div class="mte-sel">
+      <label class="mte-chk"><input class="mte-all" data-k="select-all" type="checkbox" checked /> Tick all</label>
+      <span class="mte-count"></span>
+    </div>
+    <div class="mte-wrap"><table class="mte-table"><thead></thead><tbody></tbody></table></div>
+    <div class="mte-save">
+      <button type="button" class="btn mte-inplace" hidden>Save changes in place</button>
+      <button type="button" class="btn mte-zip">Download changed files</button>
+      <button type="button" class="btn secondary mte-undo">Undo all changes</button>
+    </div>
+    <p class="mte-out" aria-live="polite"></p>
+    <p class="mte-fine">Only the tags are rewritten; the sound itself is copied byte for byte. MP3 files are saved with an ID3v2.3 tag (the most widely read version). Several changed files download as one ZIP.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .mte { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mte .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .mte [hidden] { display: none !important; }
+  .mte-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .mte-drop.over { border-color: var(--accent); }
+  .mte-hint, .mte-fine, .mte-count { color: var(--muted); font-size: 14px; margin: 0; }
+  .mte-status, .mte-out { margin: 0; }
+  .mte label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .mte label.mte-chk { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+  .mte input[type=text], .mte select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .mte-bulk { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 10px; align-items: end; }
+  .mte-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; margin-top: 10px; }
+  .mte fieldset { border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 8px; padding: 10px 12px; margin: 0; min-width: 0; }
+  .mte legend { font-weight: 600; padding: 0 4px; }
+  .mte-more summary { cursor: pointer; font-weight: 600; }
+  .mte-crow { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .mte-cprev { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+  .mte-cbtns { display: grid; gap: 6px; }
+  .mte-sel, .mte-save { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+  .mte-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 10px; max-width: 100%; }
+  .mte-table { border-collapse: collapse; font-size: 14px; }
+  .mte-table th, .mte-table td { border-bottom: 1px solid var(--line); padding: 4px; text-align: left; vertical-align: top; }
+  .mte-table th { position: sticky; top: 0; background: var(--bg); z-index: 1; font-weight: 600; white-space: nowrap; }
+  .mte-table td input[type=text] { padding: 5px 7px; border-radius: 6px; min-width: 120px; }
+  .mte-table td.n input[type=text] { min-width: 64px; width: 72px; }
+  .mte-table tr.changed td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .mte-name { min-width: 160px; max-width: 240px; overflow-wrap: anywhere; }
+  .mte-name small { display: block; color: var(--muted); }
+  .mte-name .new { color: var(--accent); }
+  .mte-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; display: block; }
+  .mte-nocov { width: 40px; height: 40px; border: 1px dashed var(--line); border-radius: 4px; }
+  .mte .bad { color: var(--bad, #b00020); }
+</style>
+
+<script>
+  import { FIELDS, writeTags, tagsFromName, nameFromTags, titleCase, imageMime, type Tags, type TextField, type Picture, type ReadResult } from '../../lib/music/tags.ts';
+  import { readFileTags, walkDir, parseCsv, MUSIC_EXT } from '../../lib/music/browser.ts';
+  import { saveBytes, saveZip, sizeText } from '../../lib/audio/browser.ts';
+
+  type Row = {
+    file: File; name: string; path: string; handle?: FileSystemFileHandle; dir?: FileSystemDirectoryHandle;
+    r: ReadResult; orig: Tags; tags: Tags; coverChanged: boolean; newName: string | null; sel: boolean; thumb?: string;
+  };
+  const root = document.querySelector('.mte') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.mte-status'), out = $('.mte-out'), tbody = $('.mte-table tbody'), thead = $('.mte-table thead');
+  const input = $<HTMLInputElement>('.mte-file');
+  let rows: Row[] = [], inPlace = false, pending: Picture | null = null;
+  const IDS = FIELDS.map((f) => f.id);
+  const NUM = new Set<TextField>(['year', 'track', 'bpm', 'key']);
+  const say = (el: HTMLElement, t: string, bad = false) => { el.textContent = t; el.classList.toggle('bad', bad); };
+
+  const changed = (w: Row) => w.coverChanged || (w.newName !== null && w.newName !== w.name) || IDS.some((f) => (w.tags[f] ?? '') !== (w.orig[f] ?? ''));
+  const ticked = () => rows.filter((w) => w.sel && w.r.writable);
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const thumb = (w: Row) => {
+    if (!w.tags.cover) return '<div class="mte-nocov" title="No cover"></div>';
+    if (!w.thumb) w.thumb = URL.createObjectURL(new Blob([w.tags.cover.data], { type: w.tags.cover.mime }));
+    return `<img class="mte-thumb" src="${w.thumb}" alt="Cover" />`;
+  };
+  const facts = (r: ReadResult) => {
+    const i = r.info; if (!i) return r.format.toUpperCase();
+    return `${i.codec}${i.bitrate ? ', ' + i.bitrate + ' kbps' + (i.vbr && !i.lossless ? ' VBR' : '') : ''}${i.sampleRate ? ', ' + (i.sampleRate / 1000) + ' kHz' : ''}${r.writable ? '' : ', read only'}`;
+  };
+  const render = () => {
+    thead.innerHTML = `<tr><th>✓</th><th>File</th><th>Cover</th>${FIELDS.map((f) => `<th>${f.label}</th>`).join('')}</tr>`;
+    tbody.innerHTML = rows.map((w, i) => `<tr data-i="${i}" class="${changed(w) ? 'changed' : ''}">
+      <td><input type="checkbox" data-k="tick" data-sel ${w.sel ? 'checked' : ''} ${w.r.writable ? '' : 'disabled'} aria-label="Tick ${esc(w.name)}" /></td>
+      <td class="mte-name">${esc(w.path)}${w.newName && w.newName !== w.name ? `<small class="new">→ ${esc(w.newName)}</small>` : ''}<small>${esc(facts(w.r))}</small></td>
+      <td>${thumb(w)}</td>
+      ${FIELDS.map((f) => `<td class="${NUM.has(f.id) ? 'n' : ''}"><input type="text" data-k="${f.id}" data-f="${f.id}" value="${esc(w.tags[f.id] ?? '')}" ${w.r.writable ? '' : 'disabled'} aria-label="${f.label}" /></td>`).join('')}
+    </tr>`).join('');
+    count();
+  };
+  const count = () => {
+    const c = rows.filter(changed).length, s = rows.filter((w) => w.sel).length;
+    $('.mte-count').textContent = `${rows.length} file${rows.length === 1 ? '' : 's'}, ${s} ticked, ${c} changed`;
+    $<HTMLButtonElement>('.mte-zip').disabled = !c; $<HTMLButtonElement>('.mte-inplace').disabled = !c;
+  };
+  tbody.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement, tr = t.closest('tr') as HTMLElement, w = rows[+tr.dataset.i!];
+    if (t.dataset.f) w.tags[t.dataset.f as TextField] = t.value;
+    tr.classList.toggle('changed', changed(w)); count();
+  });
+  tbody.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement; if (!t.hasAttribute('data-sel')) return;
+    rows[+(t.closest('tr') as HTMLElement).dataset.i!].sel = t.checked; count();
+  });
+  $<HTMLInputElement>('.mte-all').addEventListener('change', (e) => { const v = (e.target as HTMLInputElement).checked; rows.forEach((w) => (w.sel = v && w.r.writable)); render(); });
+
+  const load = async (list: { file: File; path: string; handle?: FileSystemFileHandle; dir?: FileSystemDirectoryHandle }[]) => {
+    for (const w of rows) if (w.thumb) URL.revokeObjectURL(w.thumb);
+    rows = []; out.textContent = '';
+    const music = list.filter((x) => MUSIC_EXT.test(x.file.name));
+    if (!music.length) { say(status, 'No music files found (MP3, FLAC, WAV, M4A, Ogg, Opus).', true); return; }
+    let bad = 0;
+    for (let i = 0; i < music.length; i++) {
+      const x = music[i];
+      if (i % 10 === 0) { say(status, `Reading ${i + 1} of ${music.length}…`); await new Promise((r) => setTimeout(r, 0)); }
+      try {
+        const r = await readFileTags(x.file);
+        rows.push({ ...x, name: x.file.name, r, orig: { ...r.tags }, tags: { ...r.tags }, coverChanged: false, newName: null, sel: r.writable });
+      } catch { bad++; }
+    }
+    const ro = rows.filter((w) => !w.r.writable).length;
+    say(status, `${rows.length} file${rows.length === 1 ? '' : 's'} open${inPlace ? ' from the folder' : ''}.` + (ro ? ` ${ro} can only be read (shown greyed out).` : '') + (bad ? ` ${bad} could not be read.` : ''));
+    $('.mte-work').hidden = !rows.length; $('.mte-inplace').hidden = !inPlace;
+    render();
+  };
+
+  // ---- bulk tools ----
+  const report = (n: number, what: string) => { say(out, n ? `${what}: ${n} file${n === 1 ? '' : 's'} changed. Press a save button to keep it.` : `${what}: nothing changed.`); render(); };
+  $('.mte-apply').addEventListener('click', () => {
+    const f = $<HTMLSelectElement>('.mte-bf').value as TextField, v = $<HTMLInputElement>('.mte-bv').value.trim(); let n = 0;
+    for (const w of ticked()) if ((w.tags[f] ?? '') !== v) { w.tags[f] = v; n++; }
+    report(n, `${FIELDS.find((x) => x.id === f)!.label} set`);
+  });
+  $('.mte-doreplace').addEventListener('click', () => {
+    const fv = $<HTMLSelectElement>('.mte-rf').value, find = $<HTMLInputElement>('.mte-find').value, rep = $<HTMLInputElement>('.mte-repl').value;
+    if (!find) { say(out, 'Type the text to find first.', true); return; }
+    const re = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $<HTMLInputElement>('.mte-case').checked ? 'g' : 'gi');
+    const fs = fv === '*' ? IDS : [fv as TextField]; let n = 0;
+    for (const w of ticked()) { let hit = false; for (const f of fs) { const s = w.tags[f] ?? ''; const t = s.replace(re, rep); if (t !== s) { w.tags[f] = t; hit = true; } } if (hit) n++; }
+    report(n, 'Replaced');
+  });
+  $('.mte-docase').addEventListener('click', () => {
+    const fs = $<HTMLSelectElement>('.mte-tf').value.split(',') as TextField[]; let n = 0;
+    for (const w of ticked()) { let hit = false; for (const f of fs) { const s = w.tags[f] ?? '', t = titleCase(s); if (t !== s) { w.tags[f] = t; hit = true; } } if (hit) n++; }
+    report(n, 'Title Case');
+  });
+  $('.mte-dofill').addEventListener('click', () => {
+    const p = $<HTMLInputElement>('.mte-fp').value; let n = 0, miss = 0;
+    for (const w of ticked()) { const t = tagsFromName(w.name, p); if (!t) { miss++; continue; } Object.assign(w.tags, t); n++; }
+    report(n, 'Filled from file names');
+    if (miss) out.textContent += ` ${miss} name${miss === 1 ? ' does' : 's do'} not fit the pattern and were left alone.`;
+  });
+  $('.mte-doname').addEventListener('click', () => {
+    const p = $<HTMLInputElement>('.mte-np').value; let n = 0;
+    for (const w of ticked()) { const nn = nameFromTags(w.tags, p, w.name); w.newName = nn === w.name ? null : nn; if (w.newName) n++; }
+    report(n, 'New names');
+  });
+  const cfile = $<HTMLInputElement>('.mte-cfile');
+  $('.mte-cpick').addEventListener('click', () => cfile.click());
+  cfile.addEventListener('change', async () => {
+    const f = cfile.files?.[0]; cfile.value = ''; if (!f) return;
+    const data = new Uint8Array(await f.arrayBuffer()), mime = imageMime(data);
+    if (mime !== 'image/jpeg' && mime !== 'image/png') { say(out, 'Use a JPEG or PNG image: most players cannot show other types as covers.', true); return; }
+    pending = { mime, data, type: 3, desc: '' };
+    const img = $<HTMLImageElement>('.mte-cprev'); if (img.src) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(new Blob([data], { type: mime })); img.hidden = false;
+    $<HTMLButtonElement>('.mte-cset').disabled = false;
+    say(out, `Cover chosen: ${f.name}, ${sizeText(data.length)}.`);
+  });
+  const setCover = (pc: Picture | null) => {
+    let n = 0;
+    for (const w of ticked()) { if (!pc && !w.tags.cover) continue; w.tags.cover = pc; w.coverChanged = true; if (w.thumb) URL.revokeObjectURL(w.thumb); w.thumb = undefined; n++; }
+    report(n, pc ? 'Cover set' : 'Cover removed');
+  };
+  $('.mte-cset').addEventListener('click', () => pending && setCover(pending));
+  $('.mte-cdel').addEventListener('click', () => setCover(null));
+  const csvIn = $<HTMLInputElement>('.mte-csvfile');
+  $('.mte-csv').addEventListener('click', () => csvIn.click());
+  csvIn.addEventListener('change', async () => {
+    const f = csvIn.files?.[0]; csvIn.value = ''; if (!f) return;
+    const t = parseCsv(await f.text()); if (t.length < 2) { say(out, 'That CSV has no rows.', true); return; }
+    const h = t[0].map((x) => x.trim().toLowerCase());
+    const fi = h.findIndex((x) => /file|name|track/.test(x)), bi = h.findIndex((x) => /bpm|tempo/.test(x));
+    let ki = h.findIndex((x) => x === 'key'); if (ki < 0) ki = h.findIndex((x) => /key|camelot/.test(x));
+    if (fi < 0 || (bi < 0 && ki < 0)) { say(out, 'Could not find a file name column and a BPM or key column in that CSV.', true); return; }
+    const norm = (s: string) => s.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '').trim().toLowerCase();
+    const map = new Map(t.slice(1).map((r) => [norm(r[fi] ?? ''), r]));
+    let n = 0;
+    for (const w of rows) {
+      const r = map.get(norm(w.name)); if (!r || !w.r.writable) continue;
+      if (bi >= 0 && r[bi]?.trim()) w.tags.bpm = String(Math.round(parseFloat(r[bi]) * 100) / 100);
+      if (ki >= 0 && r[ki]?.trim()) w.tags.key = r[ki].trim();
+      n++;
+    }
+    report(n, `Matched ${n} of ${t.length - 1} CSV rows by file name; BPM and key filled`);
+  });
+
+  // ---- saving ----
+  const build = async (w: Row) => {
+    const bytes = new Uint8Array(await w.file.arrayBuffer());
+    const tags: Tags = { ...w.tags, cover: w.coverChanged ? w.tags.cover ?? null : undefined };
+    return writeTags(bytes, tags);
+  };
+  $('.mte-zip').addEventListener('click', async () => {
+    const list = rows.filter((w) => changed(w) && w.r.writable); if (!list.length) return;
+    say(out, `Writing ${list.length} file${list.length === 1 ? '' : 's'}…`);
+    const files: { name: string; bytes: Uint8Array }[] = []; const errs: string[] = [];
+    for (const w of list) {
+      try { files.push({ name: (w.path.includes('/') ? w.path.replace(/[^/]+$/, '') : '') + (w.newName ?? w.name), bytes: await build(w) }); }
+      catch (e) { errs.push(`${w.name}: ${(e as Error).message}`); }
+    }
+    if (files.length === 1) saveBytes(files[0].bytes, files[0].name.replace(/^.*\//, ''));
+    else if (files.length) await saveZip(files, 'tagged-music.zip');
+    say(out, `Saved ${files.length} file${files.length === 1 ? '' : 's'}${files.length > 1 ? ' in tagged-music.zip' : ''}.` + (errs.length ? ' Not saved: ' + errs.join('; ') : ''), !!errs.length);
+  });
+  $('.mte-inplace').addEventListener('click', async () => {
+    const list = rows.filter((w) => changed(w) && w.r.writable && w.handle); if (!list.length) return;
+    let ok = 0, renamed = 0, noMove = 0; const errs: string[] = [];
+    for (const w of list) {
+      try {
+        const h = w.handle! as FileSystemFileHandle & { requestPermission?: (o: object) => Promise<string>; move?: (n: string) => Promise<void>; createWritable: () => Promise<FileSystemWritableFileStream> };
+        if (h.requestPermission && (await h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('permission refused');
+        const bytes = await build(w);
+        const ws = await h.createWritable(); await ws.write(bytes); await ws.close();
+        if (w.newName && w.newName !== w.name) { if (typeof h.move === 'function') { await h.move(w.newName); renamed++; w.path = w.path.replace(/[^/]+$/, w.newName); w.name = w.newName; } else noMove++; }
+        w.file = await h.getFile(); w.r = await readFileTags(w.file);
+        w.orig = { ...w.r.tags }; w.tags = { ...w.r.tags }; w.coverChanged = false; w.newName = null; ok++;
+      } catch (e) { errs.push(`${w.name}: ${(e as Error).message}`); }
+    }
+    render();
+    say(out, `Saved ${ok} file${ok === 1 ? '' : 's'} in place${renamed ? `, ${renamed} renamed` : ''}.` + (noMove ? ` This browser cannot rename files in place, so ${noMove} kept their old names; download them to get the new names.` : '') + (errs.length ? ' Not saved: ' + errs.join('; ') : ''), !!errs.length);
+  });
+  $('.mte-undo').addEventListener('click', () => {
+    for (const w of rows) { w.tags = { ...w.orig }; w.coverChanged = false; w.newName = null; if (w.thumb) URL.revokeObjectURL(w.thumb); w.thumb = undefined; }
+    report(0, 'Undone'); say(out, 'All changes undone.');
+  });
+
+  // ---- opening ----
+  $('.mte-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { inPlace = false; const fs = [...(input.files ?? [])]; input.value = ''; load(fs.map((file) => ({ file, path: file.name }))); });
+  const picker = (window as unknown as { showDirectoryPicker?: (o: object) => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker;
+  if (picker) {
+    const fb = $('.mte-folder'); fb.hidden = false;
+    fb.addEventListener('click', async () => {
+      let dir: FileSystemDirectoryHandle;
+      try { dir = await picker.call(window, { mode: 'readwrite', id: 'fibub-music' }); } catch { return; }
+      say(status, 'Looking through the folder…');
+      const found = await walkDir(dir);
+      inPlace = true;
+      const list = []; for (const e of found) { try { list.push({ file: await e.handle.getFile(), path: e.path, handle: e.handle, dir: e.dir }); } catch {} }
+      load(list);
+    });
+  }
+  const drop = $('.mte-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); inPlace = false; const fs = [...(e.dataTransfer?.files ?? [])]; if (fs.length) load(fs.map((file) => ({ file, path: file.name }))); });
+</script>
