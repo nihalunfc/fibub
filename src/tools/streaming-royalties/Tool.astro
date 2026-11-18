@@ -1,0 +1,149 @@
+---
+// #T1048 Royalty estimator: streams x your own per-stream rates, minus distributor and label shares, split among collaborators; reverse mode and CSV. Maths in src/lib/music/calc.ts.
+---
+<div class="tool-ui sr">
+  <section class="panel">
+    <h2>Streams and rates</h2>
+    <p class="sr-fine"><b>No rates are built in.</b> Streaming services do not publish a fixed per-stream rate: payouts come from a share of each service's revenue, so the amount per stream changes month to month. Type the rate you see on your own statements. If you only want to try the tool, press <b>Fill an example</b>: those are made-up round numbers, example only.</p>
+    <div class="sr-rows"></div>
+    <div class="sr-row2">
+      <button type="button" class="btn secondary sr-add">Add a service</button>
+      <button type="button" class="btn secondary sr-ex">Fill an example</button>
+      <label class="sr-cur">Currency symbol <select class="sr-curs" data-k="cur"><option>$</option><option>£</option><option>€</option><option>₹</option><option>AED</option><option>C$</option></select></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Cuts and splits</h2>
+    <div class="sr-two">
+      <label>Distributor fee (%) <input class="sr-dist" data-k="dist" type="number" min="0" max="100" step="any" value="0" inputmode="decimal" /></label>
+      <label>Label share (%) <input class="sr-label" data-k="label" type="number" min="0" max="100" step="any" value="0" inputmode="decimal" /></label>
+    </div>
+    <p class="sr-fine">The distributor fee comes off the money first, then the label share comes off what is left. Leave both at 0 if you have no distributor fee or label.</p>
+    <div class="sr-collabs"></div>
+    <div class="sr-row2"><button type="button" class="btn secondary sr-addc">Add a collaborator</button></div>
+    <p class="sr-warn" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>Result</h2>
+    <p class="sr-big" aria-live="polite" role="status"></p>
+    <div class="sr-scroll"><table class="sr-table"><tbody class="sr-body"></tbody></table></div>
+    <div class="sr-row2"><button type="button" class="btn secondary sr-csv">Download CSV</button></div>
+  </section>
+  <details class="panel">
+    <summary>More options: streams needed to earn a target</summary>
+    <div class="sr-two">
+      <label>I want to earn <input class="sr-target" data-k="target" type="number" min="0" step="any" value="" placeholder="amount" inputmode="decimal" /></label>
+      <label>Who earns it <select class="sr-who" data-k="who"></select></label>
+    </div>
+    <p class="sr-out" aria-live="polite"></p>
+    <p class="sr-fine">It uses the average amount per stream from the rows above (after the cuts), so fill those in first. If your mix of services changes, the answer changes.</p>
+  </details>
+  <details class="panel">
+    <summary>How payouts work</summary>
+    <p class="sr-fine">Most services put the money from subscriptions and adverts into one pool each month. Each rights holder gets a share of the pool matching their share of all the streams on that service (a pro-rata share), so there is no fixed price per stream. The money goes to the rights holders: the master side (the recording, paid to the label or distributor) and the publishing side (the song, paid through publishers and collecting societies). This tool covers the master side you receive through a distributor. A distributor may keep a fee or a share, and a label may take a share under your deal. Check each service's own pages and your contract for the real terms.</p>
+  </details>
+</div>
+
+<style is:inline>
+  .sr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sr .panel { display: grid; gap: 12px; padding: 16px; }
+  .sr h2 { margin: 0; font-size: 18px; }
+  .sr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sr input, .sr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sr-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .sr-rows, .sr-collabs { display: grid; gap: 10px; }
+  .sr-r { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); align-items: end; }
+  .sr-r .sr-n { grid-column: 1 / -1; }
+  .sr-r button { justify-self: start; }
+  .sr-c { display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: end; }
+  .sr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sr-row2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .sr-cur { width: 130px; }
+  .sr-big { font-size: 24px; margin: 0; font-variant-numeric: tabular-nums; }
+  .sr-warn { color: var(--bad, #b00020); margin: 0; font-size: 14px; }
+  .sr-scroll { overflow-x: auto; }
+  .sr-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .sr-table th, .sr-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  .sr-table td { text-align: right; white-space: nowrap; }
+  .sr-table tr.k th, .sr-table tr.k td { font-weight: 700; }
+  .sr-out { margin: 0; font-size: 17px; }
+</style>
+
+<script>
+  import { royalties, streamsNeeded, type StreamRow, type Collab } from '../../lib/music/calc.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.sr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rowsEl = $('.sr-rows'), collEl = $('.sr-collabs');
+  const num = (el: HTMLInputElement | null) => { const v = parseFloat(el?.value ?? ''); return Number.isFinite(v) && v >= 0 ? v : 0; };
+  const cur = () => $<HTMLSelectElement>('.sr-curs').value;
+  const addRow = (service = '', streams = '', rate = '') => {
+    const d = document.createElement('div'); d.className = 'sr-r';
+    d.innerHTML = `<label class="sr-n">Service name <input data-k="service" type="text" placeholder="e.g. a streaming service" /></label>
+      <label>Streams <input data-k="streams" type="number" min="0" step="1" inputmode="numeric" /></label>
+      <label>Rate per stream <input data-k="rate" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <button type="button" class="btn secondary sr-rm" aria-label="Remove this service">Remove</button>`;
+    (d.querySelector('[data-k=service]') as HTMLInputElement).value = service;
+    (d.querySelector('[data-k=streams]') as HTMLInputElement).value = streams;
+    (d.querySelector('[data-k=rate]') as HTMLInputElement).value = rate;
+    rowsEl.append(d);
+  };
+  const addCollab = (name = '', pct = '') => {
+    const d = document.createElement('div'); d.className = 'sr-c';
+    d.innerHTML = `<label>Name <input data-k="cname" type="text" /></label><label>Share (%) <input data-k="cpct" type="number" min="0" max="100" step="any" inputmode="decimal" /></label><button type="button" class="btn secondary sr-rmc" aria-label="Remove this collaborator">Remove</button>`;
+    (d.querySelector('[data-k=cname]') as HTMLInputElement).value = name;
+    (d.querySelector('[data-k=cpct]') as HTMLInputElement).value = pct;
+    collEl.append(d);
+  };
+  const readRows = (): (StreamRow & { raw: string })[] => [...rowsEl.children].map((d) => ({ service: (d.querySelector('[data-k=service]') as HTMLInputElement).value.trim(), streams: num(d.querySelector('[data-k=streams]')), rate: num(d.querySelector('[data-k=rate]')), raw: '' }));
+  const readCollabs = (): Collab[] => [...collEl.children].map((d, i) => ({ name: (d.querySelector('[data-k=cname]') as HTMLInputElement).value.trim() || `Person ${i + 1}`, pct: num(d.querySelector('[data-k=cpct]')) }));
+  const money = (x: number, dp = 2) => { const c = cur(); return c + (c.length > 1 && !c.endsWith('$') ? ' ' : '') + x.toLocaleString('en', { minimumFractionDigits: dp, maximumFractionDigits: dp }); };
+  const fmtRate = (x: number) => { const c = cur(); return c + (c.length > 1 && !c.endsWith('$') ? ' ' : '') + (Math.round(x * 1e8) / 1e8).toLocaleString('en', { maximumFractionDigits: 8 }); };
+  let last: ReturnType<typeof royalties> | null = null, rows: StreamRow[] = [], collabs: Collab[] = [];
+  const update = () => {
+    rows = readRows(); collabs = readCollabs();
+    const dist = Math.min(100, num($('.sr-dist'))), lab = Math.min(100, num($('.sr-label')));
+    const o = last = royalties(rows, dist, lab, collabs);
+    const warn = $('.sr-warn');
+    warn.textContent = o.splitOk ? '' : `The shares add up to ${Math.round(o.splitTotal * 100) / 100}%. They need to total exactly 100%${o.splitTotal < 100 ? `: ${Math.round((100 - o.splitTotal) * 100) / 100}% is still unassigned.` : `: ${Math.round((o.splitTotal - 100) * 100) / 100}% too much.`}`;
+    const big = $('.sr-big');
+    if (o.streams === 0) { big.textContent = 'Add streams and a rate to see an estimate.'; $('.sr-body').innerHTML = ''; }
+    else {
+      big.textContent = `After all cuts: ${money(o.pool)} from ${o.streams.toLocaleString('en')} streams.`;
+      const r = (a: string, b: string, k = false) => `<tr${k ? ' class="k"' : ''}><th scope="row">${a}</th><td>${b}</td></tr>`;
+      $('.sr-body').innerHTML = rows.map((x, i) => x.streams || x.rate ? r(x.service || `Service ${i + 1}`, money(o.perRow[i])) : '').join('') +
+        r('Total before cuts', money(o.gross), true) + r(`Distributor fee (${dist}%)`, '-' + money(o.distributorCut)) + r(`Label share (${lab}%)`, '-' + money(o.labelCut)) +
+        r('Left to split', money(o.pool), true) + r('Average per stream', fmtRate(o.perStream)) +
+        o.shares.map((s) => r(`${s.name} (${Math.round(s.pct * 100) / 100}%)`, money(s.amount))).join('');
+    }
+    // reverse mode
+    const who = $<HTMLSelectElement>('.sr-who'), keep = who.value;
+    who.innerHTML = '<option value="all">The whole amount left to split</option>' + collabs.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')} (${Math.round(c.pct * 100) / 100}%)</option>`).join('');
+    who.value = [...who.options].some((x) => x.value === keep) ? keep : 'all';
+    const t = parseFloat($<HTMLInputElement>('.sr-target').value), out = $('.sr-out');
+    if (!(t > 0)) out.textContent = '';
+    else if (!(o.perStream > 0)) out.textContent = 'Fill in streams and rates above first, so there is an average per stream to work from.';
+    else {
+      const share = who.value === 'all' ? 1 : collabs[+who.value].pct / 100;
+      const per = o.perStream * share, need = streamsNeeded(t, per);
+      out.textContent = per > 0 ? `About ${need.toLocaleString('en')} streams to earn ${money(t)} (${fmtRate(per)} per stream to you after cuts).` : 'That person has a 0% share, so no number of streams would pay them.';
+    }
+  };
+  const csvCell = (s: string | number) => { let t = String(s); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  $('.sr-csv').addEventListener('click', () => {
+    if (!last) return;
+    const o = last, L: (string | number)[][] = [['Service', 'Streams', 'Rate per stream', 'Amount']];
+    rows.forEach((r, i) => { if (r.streams || r.rate) L.push([r.service || `Service ${i + 1}`, r.streams, r.rate, o.perRow[i].toFixed(2)]); });
+    L.push(['Total before cuts', o.streams, '', o.gross.toFixed(2)], ['Distributor fee', '', '', (-o.distributorCut).toFixed(2)], ['Label share', '', '', (-o.labelCut).toFixed(2)], ['Left to split', '', '', o.pool.toFixed(2)], [], ['Collaborator', 'Share %', '', 'Amount']);
+    o.shares.forEach((s) => L.push([s.name, s.pct, '', s.amount.toFixed(2)]));
+    saveBytes(new Blob([L.map((l) => l.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv' }), 'royalty-estimate.csv');
+  });
+  $('.sr-add').addEventListener('click', () => { addRow(); update(); });
+  $('.sr-addc').addEventListener('click', () => { addCollab(); update(); });
+  $('.sr-ex').addEventListener('click', () => { rowsEl.innerHTML = ''; addRow('Example service A', '100000', '0.004'); addRow('Example service B', '50000', '0.002'); update(); });
+  root.addEventListener('click', (e) => { const b = e.target as HTMLElement; if (b.classList.contains('sr-rm')) { b.closest('.sr-r')!.remove(); update(); } if (b.classList.contains('sr-rmc')) { b.closest('.sr-c')!.remove(); update(); } });
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  addRow(); addRow(); addCollab('Me', '100');
+  update();
+</script>

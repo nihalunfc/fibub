@@ -1,0 +1,90 @@
+---
+// #T1033 Delay calculator: tempo to delay times, reverb pre-delay and decay, compressor attack and release. Maths in src/lib/music/calc.ts.
+---
+<div class="tool-ui dl">
+  <section class="panel">
+    <div class="dl-row">
+      <label class="dl-num">BPM <input class="dl-bpm" data-k="bpm" type="number" min="20" max="400" step="any" value="120" inputmode="decimal" /></label>
+      <button type="button" class="btn secondary dl-tap">Tap tempo</button>
+    </div>
+    <p class="dl-big" aria-live="polite"><span class="dl-q"></span></p>
+    <p class="dl-fine">Tap at least twice in time with the music, or type the speed.</p>
+  </section>
+  <section class="panel">
+    <h2>Delay times</h2>
+    <div class="dl-scroll"><table class="dl-table"><thead><tr><th>Note</th><th>Straight</th><th>Dotted</th><th>Triplet</th></tr></thead><tbody class="dl-body"></tbody></table></div>
+    <p class="dl-fine">Each cell is the delay time in milliseconds. A tap on a cell copies it.</p>
+    <div class="dl-row"><button type="button" class="btn secondary dl-copy">Copy table</button><span class="dl-fine dl-msg" aria-live="polite"></span></div>
+  </section>
+  <section class="panel">
+    <h2>Reverb and compressor starting points</h2>
+    <p class="dl-fine">These are starting points, not rules. Set the pre-delay so the dry sound lands first, and the decay so the tail is gone by the next hit you want to keep clear. Then trust your ears.</p>
+    <div class="dl-sug"></div>
+  </section>
+  <details class="panel">
+    <summary>More options: samples</summary>
+    <p class="dl-fine">Delay lengths in samples, for plug-ins and code that count samples.</p>
+    <div class="dl-scroll"><table class="dl-table"><thead><tr><th>Note</th><th>At 44.1 kHz</th><th>At 48 kHz</th></tr></thead><tbody class="dl-samples"></tbody></table></div>
+  </details>
+</div>
+
+<style is:inline>
+  .dl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dl .panel { display: grid; gap: 10px; padding: 16px; }
+  .dl h2 { margin: 0; font-size: 18px; }
+  .dl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .dl-num { display: grid; gap: 4px; font-size: 14px; color: var(--muted); width: 120px; }
+  .dl input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dl-big { font-size: 22px; margin: 0; font-variant-numeric: tabular-nums; }
+  .dl-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .dl-scroll { overflow-x: auto; }
+  .dl-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 15px; }
+  .dl-table th, .dl-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .dl-table td.c { cursor: pointer; }
+  .dl-sug { display: grid; gap: 8px; }
+  .dl-sug div { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .dl-sug b { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { beatMs, delayTable, reverbSuggestions, compressorSuggestions, NOTE_DIVS, noteLabel } from '../../lib/music/calc.ts';
+  const root = document.querySelector('.dl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const bpmIn = $<HTMLInputElement>('.dl-bpm');
+  const f = (x: number) => (Math.round(x * 100) / 100).toLocaleString('en', { maximumFractionDigits: 2 });
+  const hzf = (x: number) => (Math.round(x * 1000) / 1000).toLocaleString('en', { maximumFractionDigits: 3 });
+  const fmt = (ms: number) => f(ms) + ' ms';
+  let table = '';
+  const update = () => {
+    const bpm = parseFloat(bpmIn.value);
+    if (!(bpm >= 20 && bpm <= 400)) { $('.dl-q').textContent = 'Type a speed from 20 to 400 BPM.'; return; }
+    $('.dl-q').textContent = `${f(bpm)} BPM: one beat (1/4) is ${fmt(beatMs(bpm))}, ${hzf(1000 / beatMs(bpm))} Hz`;
+    const rows = delayTable(bpm);
+    let html = '', text = 'Note\tStraight\tDotted\tTriplet\n', samples = '';
+    for (const n of NOTE_DIVS) {
+      const r = rows.filter((x) => x.n === n);
+      html += `<tr><th scope="row">1/${n}</th>` + r.map((x) => `<td class="c" data-copy="${f(x.ms)}" title="${hzf(x.hz)} Hz">${fmt(x.ms)}</td>`).join('') + '</tr>';
+      text += `1/${n}\t` + r.map((x) => f(x.ms)).join('\t') + '\n';
+      for (const x of r) samples += `<tr><th scope="row">${noteLabel(x.n, x.feel)}</th><td>${Math.round(x.s441).toLocaleString('en')}</td><td>${Math.round(x.s48).toLocaleString('en')}</td></tr>`;
+    }
+    table = text;
+    $('.dl-body').innerHTML = html;
+    $('.dl-samples').innerHTML = samples;
+    const s = reverbSuggestions(bpm), c = compressorSuggestions(bpm);
+    const block = (h: string, a: { label: string; ms: number; note: string }[]) => `<div><strong>${h}</strong>` + a.map((x) => `<span>${x.label}: <b>${fmt(x.ms)}</b>. ${x.note}</span>`).join('') + '</div>';
+    $('.dl-sug').innerHTML = block('Reverb pre-delay', s.pre) + block('Reverb decay time', s.decay) + block('Compressor attack and release', c);
+  };
+  const msg = (t: string) => { $('.dl-msg').textContent = t; };
+  const copy = async (t: string, ok: string) => { try { await navigator.clipboard.writeText(t); msg(ok); } catch { msg('Could not copy here: select the text and copy it.'); } };
+  $('.dl-copy').addEventListener('click', () => copy(table, 'Table copied.'));
+  $('.dl-body').addEventListener('click', (e) => { const td = (e.target as HTMLElement).closest('td[data-copy]') as HTMLElement | null; if (td) copy(td.dataset.copy!, `Copied ${td.dataset.copy} ms.`); });
+  let taps: number[] = [];
+  $('.dl-tap').addEventListener('click', () => {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now); taps = taps.slice(-8);
+    if (taps.length >= 2) { bpmIn.value = String(Math.round((600000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0])) / 10); update(); }
+  });
+  bpmIn.addEventListener('input', update);
+  update();
+</script>
