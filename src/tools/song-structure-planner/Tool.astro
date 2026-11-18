@@ -1,0 +1,100 @@
+---
+// #T1042 Song planner: sections with bars, BPM and time signature, timeline with running times, templates, exports.
+// Maths in src/lib/music/produce.ts.
+---
+<div class="tool-ui ssp">
+  <section class="panel ssp-top">
+    <label>BPM <input class="ssp-bpm" data-k="bpm" type="number" min="30" max="300" step="1" value="120" inputmode="decimal" /></label>
+    <label>Time signature
+      <select class="ssp-ts" data-k="ts"><option value="4/4" selected>4/4</option><option value="3/4">3/4</option><option value="6/8">6/8</option><option value="12/8">12/8</option><option value="5/4">5/4</option><option value="7/8">7/8</option><option value="2/4">2/4</option></select>
+    </label>
+    <label>Start from a template
+      <select class="ssp-tpl"><option value="">Choose...</option><option value="pop">Pop song</option><option value="house">House or techno club edit</option><option value="hiphop">Hip-hop</option><option value="dnb">Drum and bass</option></select>
+    </label>
+  </section>
+  <p class="ssp-fine">Templates are common shapes, not rules. Change anything.</p>
+  <section class="panel">
+    <p class="ssp-total" aria-live="polite"></p>
+    <div class="ssp-bar" role="img" aria-label="Timeline of song sections"></div>
+    <div class="ssp-list"></div>
+    <div class="ssp-add">
+      <select class="ssp-kind" aria-label="Section to add"></select>
+      <input class="ssp-nbars" type="number" min="1" max="128" value="8" aria-label="Bars" inputmode="numeric" />
+      <button type="button" class="btn ssp-addbtn">Add section</button>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="ssp-actions">
+      <button type="button" class="btn secondary ssp-txt">Download text</button>
+      <button type="button" class="btn secondary ssp-csv">Download CSV</button>
+      <button type="button" class="btn secondary ssp-mk">Download markers</button>
+    </div>
+    <p class="ssp-fine">Markers are a CSV of names and start times in seconds and h:mm:ss.mmm, to paste or import into an editor. BPM counts quarter notes.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ssp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ssp .panel { display: grid; gap: 12px; padding: 16px; }
+  .ssp-top { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+  .ssp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ssp input[type=number], .ssp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ssp-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .ssp-total { font-size: 20px; font-weight: 600; margin: 0; font-variant-numeric: tabular-nums; }
+  .ssp-bar { display: flex; height: 44px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .ssp-bar span { display: block; min-width: 2px; border-right: 1px solid var(--bg); }
+  .ssp-list { display: grid; gap: 8px; }
+  .ssp-row { display: grid; grid-template-columns: 14px 64px 1fr; gap: 8px; align-items: center; }
+  .ssp-row .sw { width: 14px; height: 28px; border-radius: 4px; }
+  .ssp-row .t { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); }
+  .ssp-ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ssp-ctl select { width: 130px; }
+  .ssp-ctl input { width: 72px !important; }
+  .ssp-ctl button { padding: 6px 10px; font-size: 14px; }
+  .ssp-add, .ssp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ssp-add select { width: 160px; }
+  .ssp-add input { width: 90px; }
+</style>
+
+<script>
+  import { SECTION_KINDS, TEMPLATES, timeline, fmtTime, songText, songCsv, markersCsv, type Sect } from '../../lib/music/produce.ts';
+  import { save } from '../../lib/report.ts';
+  const root = document.querySelector('.ssp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const bpmIn = $<HTMLInputElement>('.ssp-bpm'), tsSel = $<HTMLSelectElement>('.ssp-ts'), list = $('.ssp-list'), bar = $('.ssp-bar'), kindSel = $<HTMLSelectElement>('.ssp-kind'), nb = $<HTMLInputElement>('.ssp-nbars');
+  const COL: Record<string, string> = { Intro: '#6b7a99', Verse: '#2f7fb8', 'Pre-chorus': '#3b9d8f', Chorus: '#d9822b', Drop: '#c2413b', Breakdown: '#7e57c2', Build: '#c9a227', Bridge: '#8a6d3b', Outro: '#7a8590' };
+  kindSel.replaceChildren(...SECTION_KINDS.map((k) => new Option(k, k)));
+  let secs: Sect[] = [], nextId = 1;
+  const mk = (kind: string, bars: number): Sect => ({ id: nextId++, kind, bars });
+  const bpm = () => Math.max(30, Math.min(300, +bpmIn.value || 120));
+  const ts = () => { const [a, b] = tsSel.value.split('/').map(Number); return [a, b] as const; };
+  const clampBars = (v: number) => Math.max(1, Math.min(128, Math.round(v) || 1));
+
+  function render() {
+    const [num, den] = ts(), t = timeline(secs, bpm(), num, den);
+    $('.ssp-total').textContent = `Total ${t.totalBars} bars, ${fmtTime(t.totalS)} (${Math.round(t.totalS * 10) / 10} s)`;
+    bar.replaceChildren(...t.rows.map((r) => { const s = document.createElement('span'); s.style.flex = String(r.bars); s.style.background = COL[r.kind] ?? '#888'; s.title = `${r.kind}, ${r.bars} bars, starts ${fmtTime(r.startS)}`; return s; }));
+    list.replaceChildren(...t.rows.map((r, i) => {
+      const d = document.createElement('div'); d.className = 'ssp-row';
+      d.innerHTML = `<span class="sw" style="background:${COL[r.kind] ?? '#888'}"></span><span class="t">${fmtTime(r.startS)}</span><div class="ssp-ctl"><select aria-label="Section type">${SECTION_KINDS.map((k) => `<option${k === r.kind ? ' selected' : ''}>${k}</option>`).join('')}</select><input type="number" min="1" max="128" value="${r.bars}" aria-label="Bars" inputmode="numeric"><span class="ssp-fine">bars, ${Math.round(r.lenS * 10) / 10} s</span><button type="button" class="btn secondary up" aria-label="Move up">Up</button><button type="button" class="btn secondary dn" aria-label="Move down">Down</button><button type="button" class="btn secondary dup">Copy</button><button type="button" class="btn secondary del">Delete</button></div>`;
+      d.querySelector('select')!.addEventListener('change', (e) => { secs[i].kind = (e.target as HTMLSelectElement).value; render(); });
+      d.querySelector('input')!.addEventListener('change', (e) => { secs[i].bars = clampBars(+(e.target as HTMLInputElement).value); render(); });
+      d.querySelector('.up')!.addEventListener('click', () => { if (i > 0) { [secs[i - 1], secs[i]] = [secs[i], secs[i - 1]]; render(); } });
+      d.querySelector('.dn')!.addEventListener('click', () => { if (i < secs.length - 1) { [secs[i + 1], secs[i]] = [secs[i], secs[i + 1]]; render(); } });
+      d.querySelector('.dup')!.addEventListener('click', () => { secs.splice(i + 1, 0, mk(secs[i].kind, secs[i].bars)); render(); });
+      d.querySelector('.del')!.addEventListener('click', () => { secs.splice(i, 1); render(); });
+      return d;
+    }));
+  }
+  $('.ssp-addbtn').addEventListener('click', () => { secs.push(mk(kindSel.value, clampBars(+nb.value))); render(); });
+  $<HTMLSelectElement>('.ssp-tpl').addEventListener('change', (e) => {
+    const t = TEMPLATES[(e.target as HTMLSelectElement).value]; if (!t) return;
+    bpmIn.value = String(t.bpm); tsSel.value = '4/4'; secs = t.parts.map(([k, b]) => mk(k, b)); render();
+  });
+  bpmIn.addEventListener('input', render); tsSel.addEventListener('change', render);
+  const out = (name: string, body: string, type: string) => save(new Blob([body], { type }), name, type);
+  $('.ssp-txt').addEventListener('click', () => out('song-plan.txt', songText('Song plan', secs, bpm(), ...ts()), 'text/plain'));
+  $('.ssp-csv').addEventListener('click', () => out('song-plan.csv', songCsv(secs, bpm(), ...ts()), 'text/csv'));
+  $('.ssp-mk').addEventListener('click', () => out('song-markers.csv', markersCsv(secs, bpm(), ...ts()), 'text/csv'));
+  secs = [mk('Verse', 4)]; render();
+</script>

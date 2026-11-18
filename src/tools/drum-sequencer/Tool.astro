@@ -1,0 +1,146 @@
+---
+// #T1035 Drum sketcher: step grid with synthesised drums, look-ahead playback, WAV and MIDI export, share link.
+// Patterns, sounds, swing, MIDI writer and share hash in src/lib/music/produce.ts.
+---
+<div class="tool-ui dsq">
+  <section class="panel">
+    <div class="dsq-top">
+      <button type="button" class="btn dsq-go">Play</button>
+      <label>BPM <input class="dsq-bpm" data-k="bpm" type="number" min="40" max="240" step="1" value="120" inputmode="numeric" /></label>
+      <label>Swing <output class="dsq-swo">50</output>%<input class="dsq-sw" data-k="swing" type="range" min="50" max="75" step="1" value="50" /></label>
+      <label>Length <select class="dsq-len" data-k="len"><option value="16">16 steps</option><option value="32">32 steps</option></select></label>
+    </div>
+    <label class="dsq-pre">Start from a pattern
+      <select class="dsq-preset"><option value="">Choose...</option></select>
+    </label>
+    <p class="dsq-fine">Presets are generic patterns to start from. Tap a square to switch a hit on or off. Space bar plays and stops.</p>
+  </section>
+  <section class="panel dsq-grid" aria-label="Drum grid"></section>
+  <section class="panel">
+    <div class="dsq-top">
+      <label>Bars to export <input class="dsq-bars" type="number" min="1" max="64" value="4" inputmode="numeric" /></label>
+      <button type="button" class="btn secondary dsq-wav">Download WAV</button>
+      <button type="button" class="btn secondary dsq-mid">Download MIDI</button>
+      <button type="button" class="btn secondary dsq-share">Copy share link</button>
+    </div>
+    <p class="dsq-fine dsq-msg" aria-live="polite"></p>
+    <details>
+      <summary>More options: row volumes</summary>
+      <div class="dsq-vols"></div>
+    </details>
+  </section>
+</div>
+
+<style is:inline>
+  .dsq { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dsq .panel { display: grid; gap: 10px; padding: 16px; }
+  .dsq-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .dsq label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dsq input[type=number], .dsq select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); min-width: 0; box-sizing: border-box; }
+  .dsq input[type=number] { width: 90px; }
+  .dsq-go { min-width: 90px; font-size: 18px; padding: 12px; }
+  .dsq-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .dsq-block { display: grid; gap: 3px; }
+  .dsq-block + .dsq-block { margin-top: 10px; }
+  .dsq-row { display: grid; grid-template-columns: 52px repeat(16, minmax(0, 1fr)); gap: 2px; align-items: center; }
+  .dsq-rl { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dsq-c { aspect-ratio: 1; min-height: 16px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); cursor: pointer; }
+  .dsq-c.q { border-color: var(--muted); }
+  .dsq-c.on { background: var(--accent); border-color: var(--accent); }
+  .dsq-c.now { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .dsq-vols { display: grid; gap: 8px; margin-top: 10px; }
+  .dsq-vols label { grid-template-columns: 90px 1fr; align-items: center; }
+</style>
+
+<script>
+  import { ROWS, PRESETS, emptySteps, drumSound, stepTime, renderLoop, writeMidi, drumsToHash, drumsFromHash, type Drums, type RowId } from '../../lib/music/produce.ts';
+  import { writeWav } from '../../lib/audio/pcm.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.dsq') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const go = $<HTMLButtonElement>('.dsq-go'), bpmIn = $<HTMLInputElement>('.dsq-bpm'), swIn = $<HTMLInputElement>('.dsq-sw'), lenSel = $<HTMLSelectElement>('.dsq-len'), grid = $('.dsq-grid'), msg = $('.dsq-msg');
+  const presetSel = $<HTMLSelectElement>('.dsq-preset');
+  for (const [id, p] of Object.entries(PRESETS)) presetSel.append(new Option(p.name, id));
+  let d: Drums = { bpm: 120, swing: 50, len: 16, vol: [100, 90, 80, 55, 60, 80, 70, 70], steps: emptySteps() };
+  const cells: HTMLButtonElement[][] = [];
+
+  function build() {
+    grid.replaceChildren(); cells.length = ROWS.length; ROWS.forEach((_, r) => (cells[r] = []));
+    for (let b = 0; b < d.len / 16; b++) {
+      const blk = document.createElement('div'); blk.className = 'dsq-block';
+      ROWS.forEach((row, r) => {
+        const line = document.createElement('div'); line.className = 'dsq-row';
+        const l = document.createElement('span'); l.className = 'dsq-rl'; l.textContent = row.name; line.append(l);
+        for (let s = 0; s < 16; s++) {
+          const i = b * 16 + s, c = document.createElement('button'); c.type = 'button'; c.className = 'dsq-c' + (s % 4 === 0 ? ' q' : '');
+          c.setAttribute('aria-label', `${row.name} step ${i + 1}`); c.setAttribute('aria-pressed', 'false');
+          c.addEventListener('click', () => { d.steps[row.id][i] = !d.steps[row.id][i]; paintCells(); sync(); preview(r); });
+          cells[r][i] = c; line.append(c);
+        }
+        blk.append(line);
+      });
+      grid.append(blk);
+    }
+    paintCells();
+  }
+  function paintCells() { ROWS.forEach((row, r) => cells[r].forEach((c, i) => { const on = d.steps[row.id][i]; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on)); })); }
+  function sync() { try { history.replaceState(null, '', '#' + drumsToHash(d)); } catch {} }
+  function fromState() {
+    bpmIn.value = String(d.bpm); swIn.value = String(d.swing); $('.dsq-swo').textContent = String(d.swing); lenSel.value = String(d.len);
+    $('.dsq-vols').replaceChildren(...ROWS.map((row, r) => { const l = document.createElement('label'); l.append(row.name); const i = document.createElement('input'); i.type = 'range'; i.min = '0'; i.max = '100'; i.value = String(d.vol[r]); i.setAttribute('aria-label', row.name + ' volume'); i.addEventListener('input', () => { d.vol[r] = +i.value; sync(); }); l.append(i); return l; }));
+    build();
+  }
+
+  // Playback: sounds are made once as buffers, then booked on the audio clock a little ahead.
+  let ac: AudioContext | null = null, master: GainNode | null = null, bufs: AudioBuffer[] = [], timer = 0, nextStep = 0, openSrc: AudioBufferSourceNode | null = null;
+  const queue: { t: number; step: number }[] = [];
+  const ensure = async () => {
+    ac ??= new AudioContext(); await ac.resume();
+    if (!master) { master = ac.createGain(); master.gain.value = 0.7; master.connect(ac.destination); }
+    if (!bufs.length) bufs = ROWS.map((r) => { const x = drumSound(r.id, ac!.sampleRate), b = ac!.createBuffer(1, x.length, ac!.sampleRate); b.copyToChannel(x, 0); return b; });
+  };
+  function fire(r: number, at: number) {
+    const s = ac!.createBufferSource(), g = ac!.createGain(); s.buffer = bufs[r]; g.gain.value = (d.vol[r] ?? 80) / 100; s.connect(g).connect(master!); s.start(at);
+    const id = ROWS[r].id;
+    if (id === 'o') { openSrc = s; } else if (id === 'h' && openSrc) { try { openSrc.stop(at + 0.005); } catch {} openSrc = null; }
+  }
+  async function preview(r: number) { if (!d.steps[ROWS[r].id].some(Boolean) || timer) return; await ensure(); fire(r, ac!.currentTime); }
+  let barStart = 0;
+  const when = () => barStart + stepTime(nextStep % 16, d.bpm, d.swing);
+  const schedule = () => {
+    while (when() < ac!.currentTime + 0.12) {
+      const i = nextStep % d.len, t = when();
+      ROWS.forEach((row, r) => { if (d.steps[row.id][i]) fire(r, t); });
+      queue.push({ t, step: i }); nextStep++;
+      if (nextStep % 16 === 0) barStart += 16 * (60 / d.bpm / 4);
+    }
+  };
+  const paintLoop = () => {
+    if (!timer) return;
+    while (queue.length && queue[0].t <= ac!.currentTime) {
+      const q = queue.shift()!;
+      cells.forEach((row) => row.forEach((c, i) => c.classList.toggle('now', i === q.step)));
+    }
+    requestAnimationFrame(paintLoop);
+  };
+  async function start() {
+    await ensure(); nextStep = 0; barStart = ac!.currentTime + 0.08; queue.length = 0;
+    timer = window.setInterval(schedule, 25); schedule(); requestAnimationFrame(paintLoop); go.textContent = 'Stop'; root.dataset.running = '1';
+  }
+  function stop() { clearInterval(timer); timer = 0; go.textContent = 'Play'; delete root.dataset.running; cells.forEach((row) => row.forEach((c) => c.classList.remove('now'))); }
+  go.addEventListener('click', () => (timer ? stop() : start()));
+  document.addEventListener('keydown', (e) => { if (e.code !== 'Space' || (e.target as HTMLElement).closest('input, select, textarea, button')) return; e.preventDefault(); timer ? stop() : start(); });
+
+  bpmIn.addEventListener('input', () => { d.bpm = Math.max(40, Math.min(240, +bpmIn.value || 120)); sync(); });
+  swIn.addEventListener('input', () => { d.swing = +swIn.value; $('.dsq-swo').textContent = swIn.value; sync(); });
+  lenSel.addEventListener('change', () => { d.len = +lenSel.value === 32 ? 32 : 16; if (timer) { nextStep = Math.floor(nextStep / 16) * 16; } build(); sync(); });
+  presetSel.addEventListener('change', () => { const p = PRESETS[presetSel.value]; if (!p) return; const keep = d.len; d = p.make(); d.len = keep; fromState(); sync(); presetSel.value = ''; });
+
+  const bars = () => Math.max(1, Math.min(64, Math.round(+$<HTMLInputElement>('.dsq-bars').value) || 4));
+  $('.dsq-wav').addEventListener('click', () => { const b = bars(); saveBytes(writeWav([renderLoop(d, b, 44100)], 44100), `drums-${d.bpm}bpm-${b}bars.wav`, 'audio/wav'); msg.textContent = `Saved ${b} bars at ${d.bpm} BPM as WAV. The tail of the last hits wraps to the start so it loops cleanly.`; });
+  $('.dsq-mid').addEventListener('click', () => { const b = bars(); saveBytes(writeMidi(d, b), `drums-${d.bpm}bpm-${b}bars.mid`, 'audio/midi'); msg.textContent = `Saved ${b} bars as a MIDI file: General MIDI drum notes on channel 10.`; });
+  $('.dsq-share').addEventListener('click', async () => { sync(); const u = location.href; try { await navigator.clipboard.writeText(u); msg.textContent = 'Link copied. The pattern is stored in the link itself, nothing is uploaded.'; } catch { msg.textContent = 'Copy the address from your browser: the pattern is in it.'; } });
+
+  const init = drumsFromHash(location.hash); if (init) d = init; else d = PRESETS.house.make();
+  fromState();
+</script>
