@@ -1,0 +1,16 @@
+---
+// "Check yourself": pick-one questions checked in the browser, with the reason shown after each answer.
+interface Props { quiz: { q: string; choices: string[]; ans: number; why: string }[] }
+const { quiz } = Astro.props;
+---
+{quiz.length > 0 && <section class="cs-quiz" data-quiz={quiz.length}>
+  <h2>Check yourself</h2>
+  {quiz.map((it, i) => (
+    <fieldset class="cs-q" data-ans={it.ans}>
+      <legend><span class="cs-n">{i + 1}</span> {it.q}</legend>
+      <div class="cs-choices">{it.choices.map((c, j) => <button type="button" data-choice={j}>{c}</button>)}</div>
+      <p class="cs-why" hidden>{it.why}</p>
+    </fieldset>
+  ))}
+  <p class="cs-score" data-quiz-score role="status"></p>
+</section>}

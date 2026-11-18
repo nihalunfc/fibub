@@ -1,0 +1,80 @@
+---
+// SIM for 1.4: four questions, then the track to follow, the model size that fits, and where to start.
+// Runs in the browser; the answers are not kept or sent anywhere.
+const Q = [
+  { id: 'hw', q: 'What will you run it on?', opts: [
+    ['laptop8', 'A laptop or PC with 8 GB of memory'], ['laptop16', 'A laptop or PC with 16 GB of memory'],
+    ['mac32', 'A Mac or laptop with 24 to 64 GB of memory'], ['gpu16', 'A desktop with an 8 to 16 GB graphics card'],
+    ['gpu24', 'A desktop with a 24 GB or bigger graphics card'], ['big', 'A Mac Studio or AI box with 96 GB or more'],
+    ['none', 'Nothing suitable yet'] ] },
+  { id: 'who', q: 'Who will use it?', opts: [['me', 'Just me'], ['few', 'Me and 2 to 4 others'], ['team', 'A team or office of 5 or more']] },
+  { id: 'budget', q: 'How much could you spend on new hardware?', opts: [['0', 'Nothing for now'], ['1000', 'Up to about US$1,000, or the same in your currency'], ['3000', 'Up to about US$3,000'], ['more', 'More than that']] },
+  { id: 'goal', q: 'What matters most to you?', opts: [['privacy', 'Keeping my data private'], ['money', 'Spending less than a subscription'], ['offline', 'Working with no internet'], ['code', 'Writing code and automating my work'], ['skill', 'Learning a skill employers want']] },
+];
+---
+<figure class="cs-fig pt" data-pick-track>
+  <span class="cs-figtag">Try it: pick your track</span>
+  <form class="pt-form">
+    {Q.map((q) => (
+      <fieldset><legend>{q.q}</legend>
+        {q.opts.map(([v, t], i) => <label><input type="radio" name={q.id} value={v} checked={i === 0} /> {t}</label>)}
+      </fieldset>
+    ))}
+  </form>
+  <div class="pt-out" aria-live="polite">
+    <p class="pt-track" data-out="track"></p>
+    <p data-out="model"></p>
+    <p data-out="start"></p>
+  </div>
+  <figcaption>Change any answer and the advice changes. Prices are rough guides from November 2026; Module 5 has the details for each country. Nothing you pick here is saved.</figcaption>
+</figure>
+<style>
+  .pt-form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+  .pt-form fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 10px; margin: 0; }
+  .pt-form legend { font-weight: 700; padding: 0 4px; }
+  .pt-form label { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; font-size: 15px; line-height: 1.4; cursor: pointer; }
+  .pt-form input { margin-top: 3px; }
+  .pt-out { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); }
+  .pt-out p { margin: 0 0 6px; font-size: 15.5px; line-height: 1.5; }
+  .pt-out p:last-child { margin: 0; }
+  .pt-track { font-size: 18px !important; font-weight: 700; }
+</style>
+<script>
+  const MODEL: Record<string, string> = {
+    laptop8: 'Small models of a few billion parameters, such as Gemma 4 E2B (about a 4.6 GB download). Good for summaries, rewriting and simple questions; close other apps first.',
+    laptop16: 'Models up to about 12 billion parameters at 4-bit, such as Gemma 4 12B. Good everyday writing, reading and light coding.',
+    mac32: 'With 32 GB or more: models of about 27 to 31 billion parameters at 4-bit, such as Qwen3.8-27B or Gemma 4 31B (18 to 19 GB downloads). With 24 GB, stay with models up to about 14 billion. Strong for writing, documents and coding.',
+    gpu16: 'Models up to about 14 billion parameters fully on the graphics card, which makes them fast. Bigger ones run, but slower.',
+    gpu24: 'Models of about 27 to 31 billion parameters fully on the graphics card, fast enough for coding helpers and document search.',
+    big: 'Large Mixture-of-Experts models such as gpt-oss-120b, close to what the cloud gave a year or two ago.',
+  };
+  const BUY: Record<string, string> = {
+    '0': 'laptop8', '1000': 'gpu16', '3000': 'gpu24', more: 'big',
+  };
+  const START: Record<string, string> = {
+    privacy: 'Start with Modules 1 to 3, then go straight to Module 9 (install) and Module 12 (private document search). Read 17.6 on what local does and does not protect.',
+    money: 'Start with Modules 1 to 3, then Module 16 (cost against subscriptions) before you buy anything, then Modules 5 and 9.',
+    offline: 'Start with Modules 1 to 3, then Module 9 and lesson 9.6, where you pull the cable and test that everything still works.',
+    code: 'Start with Modules 1 to 3, then Modules 9 and 11 (calling the model from Python), then 13.3, the local coding assistant.',
+    skill: 'Take the course in order. Modules 11, 12 and 15 are the ones that show up in job ads; 18.11 lists them.',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pick-track]')) {
+    const form = fig.querySelector('form')!;
+    const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+    const show = () => {
+      const f = new FormData(form);
+      const hw = String(f.get('hw')), who = String(f.get('who')), budget = String(f.get('budget')), goal = String(f.get('goal'));
+      const team = who === 'team' || (who === 'few' && (budget === '3000' || budget === 'more'));
+      const desktop = ['gpu16', 'gpu24', 'big'].includes(hw) || (budget !== '0' && (hw === 'none' || hw === 'laptop8'));
+      const track = team ? 'Team server track' : desktop ? 'Desktop track' : 'Laptop track';
+      const useHw = hw === 'none' || (hw === 'laptop8' && budget !== '0') ? BUY[budget] : hw;
+      out('track').textContent = `Your track: ${track}`;
+      out('model').textContent = (hw === 'none' && budget === '0')
+        ? 'Without a computer to use, start by reading Parts A and B; you can try small models on any laptop with 8 GB of memory.'
+        : `What fits: ${MODEL[useHw]}${useHw !== hw ? ' (on what your budget can buy)' : ''}`;
+      out('start').textContent = `Where to start: ${START[goal]}${team ? ' Then Module 15 shows how to share one machine with everyone.' : ''}`;
+    };
+    form.addEventListener('change', show);
+    show();
+  }
+</script>

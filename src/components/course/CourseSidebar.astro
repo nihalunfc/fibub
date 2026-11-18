@@ -1,0 +1,27 @@
+---
+// The lesson list down the side of every lesson (w3schools style). On phones it folds into "All lessons".
+// Ticks come from the learner's progress (src/scripts/course.ts), kept only in their browser.
+import type { CourseSyllabus } from '../../courses/types';
+interface Props { course: CourseSyllabus; live: Set<string>; current?: string }
+const { course, live, current } = Astro.props;
+const curModule = course.parts.flatMap((p) => p.modules).find((m) => m.lessons.some((l) => l[1] === current))?.n;
+---
+<details class="cs-side">
+  <summary>All lessons</summary>
+  <nav aria-label={`${course.name} lessons`}>
+    <a class="cs-home" href={`/learn/courses/${course.id}/`}>{course.name}: course home</a>
+    {course.parts.map((p) => <>
+      <p class="cs-part">{p.name}</p>
+      {p.modules.map((m) => (
+        <details class="cs-mod" open={m.n === curModule}>
+          <summary><span class="cs-n">{m.n}</span> {m.name}</summary>
+          <ol>
+            {m.lessons.map(([n, slug, title]) => live.has(slug)
+              ? <li><a href={`/learn/courses/${course.id}/${slug}/`} data-lesson={slug} aria-current={slug === current ? 'page' : undefined}><span class="cs-n">{n}</span> {title}</a></li>
+              : <li class="cs-soon"><span class="cs-n">{n}</span> {title}</li>)}
+          </ol>
+        </details>
+      ))}
+    </>)}
+  </nav>
+</details>

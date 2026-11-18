@@ -1,0 +1,26 @@
+---
+// DIA for 1.1: the five parts of the course as a route, ending in the four things the learner builds.
+const stops = [
+  ['A', 'Foundations', 'What a model is, tokens, and why run AI yourself.'],
+  ['B', 'Hardware', 'Memory, speed, power, and what to buy in your country.'],
+  ['C', 'Software and setup', 'Download a model, shrink it to fit, install and tune it.'],
+  ['D', 'Offline pipelines', 'Connect it to Python, your documents, speech and agents.'],
+  ['E', 'Scale, money, limits', 'Serve a team, compare costs, know the limits, find your sector.'],
+];
+const builds = ['A private assistant', 'Search your own documents', 'Your own workflows in Python', 'A cost sheet against subscriptions'];
+---
+<figure class="cs-fig cm">
+  <span class="cs-figtag">Course map</span>
+  <ol class="cm-route">{stops.map(([k, n, t]) => <li><span class="cm-k">{k}</span><div><strong>{n}</strong><br /><span>{t}</span></div></li>)}</ol>
+  <div class="cm-builds"><strong>You leave with:</strong><ul>{builds.map((b) => <li>{b}</li>)}</ul></div>
+  <figcaption>Each part builds on the one before. The hands-on laptop path (install a model, then call it from Python) comes early, so you can start using local AI after Part C.</figcaption>
+</figure>
+<style>
+  .cm-route { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .cm-route li { display: flex; gap: 12px; align-items: flex-start; padding: 0 0 14px; position: relative; }
+  .cm-route li:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: var(--line); }
+  .cm-k { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .cm-route span:not(.cm-k) { color: var(--muted); font-size: 15px; }
+  .cm-builds { border-top: 1px solid var(--line); padding-top: 10px; }
+  .cm-builds ul { margin: 6px 0 0; padding-left: 20px; }
+</style>

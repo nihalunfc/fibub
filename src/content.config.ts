@@ -75,4 +75,18 @@ const blog = defineCollection({
   }),
 });
 
-export const collections = { tools, blog };
+// Long text courses (src/courses/<course>/<slug>.md, listed in order in src/courses/<course>/syllabus.ts):
+// one page per lesson at /learn/courses/<course>/<slug>/. `quiz` is the "Check yourself" box at the end.
+const lessons = defineCollection({
+  loader: glob({ pattern: '*/*.md', base: './src/courses' }),
+  schema: z.object({
+    title: z.string(),
+    summary: z.string(),          // one or two sentences for the lesson list and the meta description
+    minutes: z.number().int().positive(),
+    updated: z.coerce.date(),
+    quiz: z.array(z.object({ q: z.string(), choices: z.array(z.string()).min(2), ans: z.number().int().min(0), why: z.string() })).default([]),
+    sources: z.array(z.string()).default([]),
+  }),
+});
+
+export const collections = { tools, blog, lessons };

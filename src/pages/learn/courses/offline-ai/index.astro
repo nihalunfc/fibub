@@ -1,0 +1,15 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { OFFLINE_AI } from '../../../../courses/offline-ai/syllabus';
+---
+<CourseHome course={OFFLINE_AI}>
+  <section class="cs-builds">
+    <h2>What you will have at the end</h2>
+    <ul>
+      <li><strong>A private assistant</strong> that runs on your own laptop or desktop with the internet switched off.</li>
+      <li><strong>Search across your own documents</strong>: ask questions of your PDFs and notes and get answers with the page they came from.</li>
+      <li><strong>Your own workflows</strong>: small Python programs that send work to the model on your machine, such as summarising a folder of files every night.</li>
+      <li><strong>A cost sheet</strong> comparing your setup with Claude, ChatGPT and Google plans, in rupees, Canadian dollars, US dollars or pounds.</li>
+    </ul>
+  </section>
+</CourseHome>
