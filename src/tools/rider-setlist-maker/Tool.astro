@@ -1,0 +1,177 @@
+---
+// #T1040 Rider maker. Setlist maths in src/lib/music/gig.ts; downloads via src/lib/report.ts.
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui rm">
+  <section class="panel">
+    <h2>About the gig</h2>
+    <div class="rm-grid">
+      <label>Your name or act <input data-k="act" type="text" maxlength="80" /></label>
+      <label>Contact (email or phone) <input data-k="contact" type="text" maxlength="100" /></label>
+      <label>Event and venue <input data-k="event" type="text" maxlength="100" /></label>
+      <label>Date <input data-k="date" type="date" /></label>
+      <label>Set time <input data-k="settime" type="text" placeholder="e.g. 23:00 to 01:00" maxlength="40" /></label>
+      <label>Sound check time <input data-k="check" type="text" placeholder="e.g. 21:30" maxlength="40" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Gear needed in the booth</h2>
+    <p class="rm-fine">Tick what you need the venue to provide. Edit the words if you like.</p>
+    <div class="rm-gear"></div>
+    <label>Anything else <textarea data-k="gearx" rows="2" maxlength="400"></textarea></label>
+  </section>
+  <section class="panel">
+    <h2>Power, hospitality, travel and payment</h2>
+    <label>Power <textarea data-k="power" rows="2" maxlength="400">Two mains sockets in the booth, on a surge-protected strip.</textarea></label>
+    <label>Hospitality <textarea data-k="hosp" rows="2" maxlength="400">Water in the booth, and a meal or a food voucher if the set runs late.</textarea></label>
+    <label>Travel and accommodation <textarea data-k="travel" rows="2" maxlength="400"></textarea></label>
+    <label>Payment terms <textarea data-k="pay" rows="2" maxlength="400"></textarea></label>
+  </section>
+  <section class="panel">
+    <h2>Setlist</h2>
+    <p class="rm-out" aria-live="polite"></p>
+    <div class="rm-rows"></div>
+    <div class="rm-actions"><button type="button" class="btn secondary rm-add">+ Add a track</button></div>
+    <p class="rm-fine">Length is m:ss, or a number of minutes. Use the arrows to reorder.</p>
+  </section>
+  <section class="panel">
+    <h2>Your rider</h2>
+    <div class="rm-prev rm-printable"></div>
+    <Downloads label="Download" class="rm-dl" />
+    <div class="rm-actions"><button type="button" class="btn secondary rm-print">Print</button></div>
+  </section>
+  <section class="panel">
+    <label class="rm-chk"><input data-k="save" type="checkbox" /> Remember my rider on this device (off by default)</label>
+    <p class="rm-fine">When ticked, what you typed is kept in this browser only and never sent anywhere. Clear removes it.</p>
+    <div class="rm-actions"><button type="button" class="btn secondary rm-clear">Clear saved rider</button></div>
+  </section>
+</div>
+
+<style is:inline>
+  .rm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rm .panel { display: grid; gap: 12px; padding: 16px; }
+  .rm h2 { font-size: 17px; margin: 0; }
+  .rm-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .rm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .rm input[type=text], .rm input[type=date], .rm textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; box-sizing: border-box; width: 100%; }
+  .rm-chk, .rm-g { display: flex !important; gap: 8px; align-items: center; }
+  .rm-g input[type=checkbox] { width: 22px; height: 22px; flex: none; }
+  .rm-g input[type=text] { flex: 1; }
+  .rm-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .rm-out { font-size: 18px; margin: 0; }
+  .rm-gear { display: grid; gap: 6px; }
+  .rm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rm-row { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; padding: 8px 0; border-top: 1px solid var(--line); }
+  .rm-row .rm-wide { grid-column: 1 / -1; }
+  .rm-row .rm-btns { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; }
+  .rm-row .btn { padding: 4px 10px; font-size: 14px; }
+  .rm-n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+  .rm-prev { border: 1px solid var(--line); border-radius: 10px; padding: 16px; font-size: 15px; background: #fff; color: #0a0a0a; }
+  .rm-prev h3 { margin: 0 0 4px; font-size: 20px; color: #0a0a0a; }
+  .rm-prev h4 { margin: 14px 0 4px; font-size: 15px; border-bottom: 1px solid #cfcfcf; color: #0a0a0a; }
+  .rm-prev p, .rm-prev li { margin: 2px 0; color: #0a0a0a; }
+  .rm-prev ul { margin: 2px 0; padding-left: 20px; }
+  .rm-prev table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rm-prev th, .rm-prev td { text-align: left; padding: 3px 6px 3px 0; border-bottom: 1px solid #cfcfcf; color: #0a0a0a; }
+  @media print {
+    html.rm-printing body * { visibility: hidden; }
+    html.rm-printing .rm-printable, html.rm-printing .rm-printable * { visibility: visible; }
+    html.rm-printing .rm-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+  }
+</style>
+
+<script>
+  import { parseLen, fmtLen, setTotal, moveRow, setStarts, type SetRow } from '../../lib/music/gig.ts';
+  import { wireDownloads, type Section } from '../../lib/report';
+  const root = document.querySelector('.rm') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-rider-v1';
+  const GEAR = ['2 media players (USB-capable)', '4-channel DJ mixer', 'Booth monitor, on a stand at ear height', 'Headphone output and a spare cable', 'Table or stand for the booth, firm and level', 'Sound person on site for the sound check'];
+  let gear = GEAR.map((text) => ({ text, on: true }));
+  let rows: SetRow[] = [{ title: '', artist: '', bpm: '', key: '', notes: '', len: '' }];
+  const emptyRow = (): SetRow => ({ title: '', artist: '', bpm: '', key: '', notes: '', len: '' });
+  const FIELDS = ['act', 'contact', 'event', 'date', 'settime', 'check', 'gearx', 'power', 'hosp', 'travel', 'pay'];
+
+  const buildGear = () => {
+    const w = $('.rm-gear'); w.innerHTML = '';
+    gear.forEach((g, i) => {
+      const r = document.createElement('div'); r.className = 'rm-g';
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = g.on; c.setAttribute('aria-label', 'Needed');
+      c.addEventListener('change', () => { g.on = c.checked; update(); });
+      const t = document.createElement('input'); t.type = 'text'; t.value = g.text; t.maxLength = 120; t.setAttribute('aria-label', 'Gear');
+      t.addEventListener('input', () => { g.text = t.value; update(); });
+      r.append(c, t); w.appendChild(r);
+    });
+  };
+  const buildRows = () => {
+    const w = $('.rm-rows'); w.innerHTML = '';
+    rows.forEach((r, i) => {
+      const d = document.createElement('div'); d.className = 'rm-row';
+      const mk = (key: keyof SetRow, label: string, cls = '') => {
+        const l = document.createElement('label'); if (cls) l.className = cls; l.append(label);
+        const inp = document.createElement('input'); inp.type = 'text'; inp.value = r[key]; inp.maxLength = 80;
+        inp.addEventListener('input', () => { r[key] = inp.value; update(false); }); l.appendChild(inp); d.appendChild(l);
+      };
+      mk('title', `${i + 1}. Title`); mk('artist', 'Artist'); mk('bpm', 'BPM'); mk('key', 'Key'); mk('len', 'Length'); mk('notes', 'Notes', 'rm-wide');
+      const b = document.createElement('div'); b.className = 'rm-btns';
+      const btn = (t: string, label: string, fn: () => void, dis = false) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'btn secondary'; x.textContent = t; x.setAttribute('aria-label', label); x.disabled = dis; x.addEventListener('click', fn); b.appendChild(x); };
+      btn('Up', `Move track ${i + 1} up`, () => { rows = moveRow(rows, i, i - 1); buildRows(); update(); }, i === 0);
+      btn('Down', `Move track ${i + 1} down`, () => { rows = moveRow(rows, i, i + 1); buildRows(); update(); }, i === rows.length - 1);
+      btn('Remove', `Remove track ${i + 1}`, () => { rows.splice(i, 1); if (!rows.length) rows.push(emptyRow()); buildRows(); update(); });
+      d.appendChild(b); w.appendChild(d);
+    });
+  };
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const filled = () => rows.filter((r) => r.title.trim() || r.artist.trim());
+  const sections = (): Section[] => {
+    const S: Section[] = [];
+    const facts: [string, string][] = ([['Act', k('act').value], ['Contact', k('contact').value], ['Event and venue', k('event').value], ['Date', k('date').value], ['Set time', k('settime').value], ['Sound check', k('check').value]] as [string, string][]).filter((f) => f[1].trim());
+    if (facts.length) S.push({ title: 'The gig', facts });
+    const g = gear.filter((x) => x.on && x.text.trim()).map((x) => '• ' + x.text.trim()); if (k('gearx').value.trim()) g.push(k('gearx').value.trim());
+    if (g.length) S.push({ title: 'Technical needs', text: g });
+    for (const [t, key] of [['Power', 'power'], ['Hospitality', 'hosp'], ['Travel and accommodation', 'travel'], ['Payment terms', 'pay']] as const) if (k(key).value.trim()) S.push({ title: t, text: [k(key).value.trim()] });
+    const f = filled();
+    if (f.length) { const st = setStarts(f); S.push({ title: 'Setlist', table: { head: ['#', 'Starts', 'Title', 'Artist', 'BPM', 'Key', 'Notes'], rows: f.map((r, i) => [String(i + 1), fmtLen(st[i]), r.title, r.artist, r.bpm, r.key, r.notes]) }, note: `Running time ${fmtLen(setTotal(f))}` }); }
+    return S;
+  };
+  const preview = () => {
+    const S = sections(), p = $('.rm-prev');
+    if (!S.length) { p.innerHTML = '<p>Fill in the form and your rider appears here.</p>'; return; }
+    let h = `<h3>${esc(k('act').value.trim() || 'Rider')}</h3>`;
+    for (const s of S) {
+      h += `<h4>${esc(s.title)}</h4>`;
+      if (s.facts) h += s.facts.map(([a, b]) => `<p><b>${esc(a)}:</b> ${esc(b)}</p>`).join('');
+      if (s.text) h += s.title === 'Technical needs' ? '<ul>' + s.text.map((t) => `<li>${esc(t.replace(/^• /, ''))}</li>`).join('') + '</ul>' : s.text.map((t) => `<p>${esc(t).replace(/\n/g, '<br>')}</p>`).join('');
+      if (s.table) h += '<table><thead><tr>' + s.table.head.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr></thead><tbody>' + s.table.rows.map((r) => '<tr>' + r.map((c) => `<td>${esc(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
+      if (s.note) h += `<p>${esc(s.note)}</p>`;
+    }
+    p.innerHTML = h;
+  };
+  const save = () => {
+    if (!k('save').checked) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ gear, rows, f: Object.fromEntries(FIELDS.map((n) => [n, k(n).value])) })); } catch { /* blocked */ }
+  };
+  const update = (_rebuild = true) => {
+    const f = filled(), n = f.length;
+    $('.rm-out').textContent = n ? `${n} track${n === 1 ? '' : 's'}, running time ${fmtLen(setTotal(f))}` : 'No tracks yet.';
+    preview(); save();
+  };
+
+  root.addEventListener('input', (e) => { const d = (e.target as HTMLElement).dataset.k; if (d && d !== 'save') update(); });
+  $('.rm-add').addEventListener('click', () => { rows.push(emptyRow()); buildRows(); update(); });
+  k('save').addEventListener('change', () => { if (k('save').checked) save(); else try { localStorage.removeItem(KEY); } catch { /* blocked */ } });
+  $('.rm-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch { /* blocked */ } k('save').checked = false; });
+  $('.rm-print').addEventListener('click', () => {
+    document.documentElement.classList.add('rm-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('rm-printing'), { once: true });
+    window.print();
+  });
+  wireDownloads($('.rm-dl'), () => ({ title: `${k('act').value.trim() || 'Rider'}: rider and setlist`, subtitle: [k('event').value.trim(), k('date').value].filter(Boolean).join(', '), file: 'rider', sections: sections() }));
+  try {
+    const old = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (old?.rows) { gear = old.gear || gear; rows = old.rows; FIELDS.forEach((n) => { if (old.f?.[n] != null) k(n).value = old.f[n]; }); k('save').checked = true; }
+  } catch { /* blocked */ }
+  buildGear(); buildRows(); update();
+</script>

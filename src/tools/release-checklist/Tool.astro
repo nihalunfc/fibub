@@ -1,0 +1,125 @@
+---
+// #T1047 Release checklist. Dates and files in src/lib/music/gig.ts.
+---
+<div class="tool-ui rc">
+  <section class="panel rc-printable">
+    <div class="rc-row">
+      <label>Release date <input data-k="rel" type="date" /></label>
+      <label>Release name <input data-k="name" type="text" maxlength="80" placeholder="Title of the release" /></label>
+    </div>
+    <p class="rc-out" aria-live="polite">Pick a release date to see your dated list.</p>
+    <div class="rc-bar" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+    <div class="rc-list"></div>
+  </section>
+  <section class="panel">
+    <div class="rc-row">
+      <button type="button" class="btn secondary rc-ics">Download calendar (.ics)</button>
+      <button type="button" class="btn secondary rc-csv">Download CSV</button>
+      <button type="button" class="btn secondary rc-print">Print</button>
+      <button type="button" class="btn secondary rc-reset">Reset list</button>
+    </div>
+    <p class="rc-fine">The dates are suggestions that work back from your release day. Change any date or wording to suit your distributor. Calendar entries are all-day.</p>
+    <label class="rc-chk"><input data-k="save" type="checkbox" /> Remember my checklist on this device (off by default)</label>
+    <p class="rc-fine">When ticked, your dates and ticks are kept in this browser only and never sent anywhere. Clear removes them.</p>
+    <button type="button" class="btn secondary rc-clear">Clear saved checklist</button>
+  </section>
+  <details class="panel"><summary>Notes on the steps</summary>
+    <ul class="rc-notes">
+      <li>Distributors and streaming services each set their own file, artwork and lead-time rules. Read your distributor's help pages and use their numbers where they differ from this list.</li>
+      <li>Spotify for Artists asks that you pitch a track to its editors at least 7 days before release (Spotify for Artists help, checked 2026-11-18; check the official source).</li>
+      <li>An ISRC identifies one recording and a UPC or EAN identifies the whole release. Your distributor can usually assign both.</li>
+    </ul>
+  </details>
+</div>
+
+<style is:inline>
+  .rc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rc .panel { display: grid; gap: 12px; padding: 16px; }
+  .rc-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .rc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .rc input[type=text], .rc input[type=date] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; box-sizing: border-box; }
+  .rc-chk { display: flex !important; gap: 8px; align-items: center; }
+  .rc-out { font-size: 20px; margin: 0; }
+  .rc-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .rc-bar { height: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .rc-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .rc-g h3 { font-size: 16px; margin: 10px 0 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .rc-it { display: grid; grid-template-columns: 24px 1fr; gap: 4px 8px; align-items: start; padding: 4px 0; }
+  .rc-it input[type=checkbox] { width: 22px; height: 22px; }
+  .rc-it .rc-t { font-size: 15px; }
+  .rc-it.done .rc-t { text-decoration: line-through; color: var(--muted); }
+  .rc-it .rc-d { grid-column: 2; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .rc-it .rc-d input { padding: 4px 8px; }
+  .rc-dn { font-size: 14px; color: var(--muted); }
+  .rc-notes { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  @media print {
+    html.rc-printing body * { visibility: hidden; }
+    html.rc-printing .rc-printable, html.rc-printing .rc-printable * { visibility: visible; }
+    html.rc-printing .rc-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+  }
+</style>
+
+<script>
+  import { REL_ITEMS, addDays, dayName, toIcs, toCsv } from '../../lib/music/gig.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.rc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-release-v1';
+  type It = { id: string; text: string; days: number; group: string; done: boolean; date: string };
+  const fresh = (): It[] => REL_ITEMS.map((i) => ({ ...i, done: false, date: '' }));
+  let items = fresh();
+  const dateOf = (i: It) => i.date || addDays(k('rel').value, i.days);
+
+  const stats = () => {
+    const done = items.filter((i) => i.done).length, total = items.length, pct = total ? Math.round((done / total) * 100) : 0;
+    $('.rc-out').textContent = k('rel').value ? `${done} of ${total} done (${pct}%). Release day is ${dayName(k('rel').value)} ${k('rel').value}.` : 'Pick a release date to see your dated list.';
+    ($('.rc-bar span') as HTMLElement).style.width = pct + '%'; $('.rc-bar').setAttribute('aria-valuenow', String(pct));
+  };
+  const build = () => {
+    const w = $('.rc-list'); w.innerHTML = '';
+    let lastG = '', cur: HTMLElement | null = null;
+    [...items].sort((a, b) => a.days - b.days).forEach((it) => {
+      if (it.group !== lastG) { cur = document.createElement('div'); cur.className = 'rc-g'; const h = document.createElement('h3'); h.textContent = it.group; cur.appendChild(h); w.appendChild(cur); lastG = it.group; }
+      const r = document.createElement('div'); r.className = 'rc-it' + (it.done ? ' done' : '');
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = it.done; c.setAttribute('aria-label', it.text);
+      c.addEventListener('change', () => { it.done = c.checked; r.classList.toggle('done', it.done); stats(); save(); });
+      const t = document.createElement('span'); t.className = 'rc-t'; t.textContent = it.text;
+      const d = document.createElement('div'); d.className = 'rc-d';
+      const di = document.createElement('input'); di.type = 'date'; di.value = dateOf(it); di.setAttribute('aria-label', 'Date for ' + it.text);
+      di.addEventListener('change', () => { it.date = di.value; dn.textContent = dayName(di.value); save(); });
+      const dn = document.createElement('span'); dn.className = 'rc-dn'; dn.textContent = dayName(di.value);
+      d.append(di, dn); r.append(c, t, d); cur!.appendChild(r);
+    });
+    stats();
+  };
+  const save = () => {
+    if (!k('save').checked) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ items, rel: k('rel').value, name: k('name').value })); } catch { /* blocked */ }
+  };
+  const sorted = () => [...items].sort((a, b) => (dateOf(a) || '').localeCompare(dateOf(b) || '') || a.days - b.days).filter((i) => dateOf(i));
+  k('rel').addEventListener('input', () => { items.forEach((i) => (i.date = '')); build(); save(); });
+  k('name').addEventListener('input', save);
+  k('save').addEventListener('change', () => { if (k('save').checked) save(); else try { localStorage.removeItem(KEY); } catch { /* blocked */ } });
+  $('.rc-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch { /* blocked */ } k('save').checked = false; });
+  $('.rc-reset').addEventListener('click', () => { items = fresh(); build(); save(); });
+  const label = (i: It) => (k('name').value.trim() ? k('name').value.trim() + ': ' : '') + i.text;
+  $('.rc-ics').addEventListener('click', () => {
+    if (!k('rel').value) { $('.rc-out').textContent = 'Pick a release date first.'; return; }
+    saveBytes(new Blob([toIcs(sorted().map((i) => ({ id: i.id, date: dateOf(i), text: label(i) })))], { type: 'text/calendar' }), 'release-checklist.ics', 'text/calendar');
+  });
+  $('.rc-csv').addEventListener('click', () => {
+    if (!k('rel').value) { $('.rc-out').textContent = 'Pick a release date first.'; return; }
+    saveBytes(new Blob([toCsv([['Date', 'Day', 'Group', 'Task', 'Done'], ...sorted().map((i) => [dateOf(i), dayName(dateOf(i)), i.group, i.text, i.done ? 'yes' : 'no'])])], { type: 'text/csv' }), 'release-checklist.csv', 'text/csv');
+  });
+  $('.rc-print').addEventListener('click', () => {
+    document.documentElement.classList.add('rc-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('rc-printing'), { once: true });
+    window.print();
+  });
+  try {
+    const old = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (old?.items) { items = old.items; k('rel').value = old.rel || ''; k('name').value = old.name || ''; k('save').checked = true; }
+  } catch { /* blocked */ }
+  build();
+</script>

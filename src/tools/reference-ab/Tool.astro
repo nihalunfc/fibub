@@ -1,0 +1,207 @@
+---
+// #T1044 A/B compare: your mix against up to 3 reference tracks, loudness-matched (BS.1770), switched in sync,
+// with a loop, a blind test, an averaged spectrum overlay and stats. Maths in loudness.ts and stereo.ts.
+---
+<div class="tool-ui ra">
+  <section class="panel">
+    <div class="ra-drop">
+      <button type="button" class="btn ra-openmix">Open your mix</button>
+      <button type="button" class="btn secondary ra-openref">Add reference tracks</button>
+      <input class="ra-mixfile" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden />
+      <input class="ra-reffile" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" multiple hidden />
+      <span class="ra-name">Your mix plus 1 to 3 references. Files stay on this device.</span>
+    </div>
+    <p class="note bad ra-err" hidden></p>
+    <p class="ra-status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel ra-res" hidden>
+    <div class="ra-row ra-pick" role="group" aria-label="Choose what you hear (keys 1 to 4)"></div>
+    <div class="ra-row">
+      <button type="button" class="btn ra-play">Play</button>
+      <button type="button" class="btn secondary ra-blind">Blind test</button>
+      <button type="button" class="btn secondary ra-reveal" hidden>Reveal</button>
+    </div>
+    <input class="ra-seek" data-k="seek" type="range" min="0" max="1000" value="0" aria-label="Position" />
+    <p class="ra-pos ra-fine">0:00.0</p>
+    <label class="ra-check"><input type="checkbox" class="ra-match" data-k="match" checked /> Match loudness (everything plays at the quietest track's level)</label>
+    <div class="ra-two">
+      <label>Loop from (s) <input class="ra-la" data-k="loopFrom" type="number" min="0" step="0.5" value="0" inputmode="decimal" /></label>
+      <label>Loop to (s) <input class="ra-lb" data-k="loopTo" type="number" min="0" step="0.5" value="0" inputmode="decimal" /></label>
+      <label class="ra-check"><input type="checkbox" class="ra-loop" data-k="loop" /> Loop this part</label>
+    </div>
+    <p class="ra-blindnote ra-fine" hidden></p>
+
+    <h2 class="ra-h">Numbers</h2>
+    <div class="ra-tablewrap">
+      <table class="ra-table">
+        <thead><tr><th>Track</th><th>Loudness</th><th>Played at</th><th>Range</th><th>True peak</th><th>Correlation</th><th>Crest</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h2 class="ra-h">Average spectrum</h2>
+    <canvas class="ra-spec" width="720" height="260" aria-label="Average spectrum of each track, 20 Hz to 20 kHz"></canvas>
+    <p class="ra-legend ra-fine"></p>
+    <p class="ra-fine">Each line is the track's average over its whole length, shifted by its loudness match so you compare tone, not level. Lines that sit higher in the bass or treble than the references show where your mix differs.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ra { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ra .panel { display: grid; gap: 12px; padding: 16px; }
+  .ra [hidden] { display: none !important; }
+  .ra-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .ra-drop.over { border-color: var(--accent); }
+  .ra-name, .ra-fine, .ra-status { color: var(--muted); font-size: 14px; margin: 0; }
+  .ra-h { font-size: 18px; margin: 4px 0 0; }
+  .ra-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ra-pick button { min-width: 64px; }
+  .ra-pick [aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .ra-seek { width: 100%; }
+  .ra-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; align-items: end; }
+  .ra label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ra label.ra-check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .ra input[type=number] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ra-tablewrap { overflow-x: auto; }
+  .ra-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .ra-table th, .ra-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 14px; white-space: nowrap; }
+  .ra-table thead th { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .ra-table td:first-child { white-space: normal; overflow-wrap: anywhere; max-width: 14em; }
+  .ra-spec { width: 100%; height: 260px; border: 1px solid var(--line); border-radius: 10px; }
+  .ra-legend span { display: inline-block; width: 18px; height: 0; border-top-width: 2px; vertical-align: middle; margin: 0 4px 0 10px; }
+</style>
+
+<script>
+  import { measure, type Loudness } from '../../lib/audio/loudness.ts';
+  import { correlation, averageSpectrum, crestDb } from '../../lib/audio/stereo.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, baseName } from '../../lib/audio/browser.ts';
+  import { abPlayer } from '../../lib/audio/abplayer.ts';
+
+  type Item = { name: string; snd: Sound; L: Loudness; corr: number; crest: number; spec: { f: number[]; db: number[] } };
+  const root = document.querySelector('.ra') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const f1 = (v: number) => (isFinite(v) ? (Math.round(v * 10) / 10).toFixed(1).replace('-', '−') : '—');
+  const sg = (v: number) => (Math.abs(v) < 0.05 ? '0.0' : (v > 0 ? '+' : '−') + Math.abs(v).toFixed(1));
+  const clock = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+  const err = $('.ra-err'), status = $('.ra-status');
+  let mix: Item | null = null, refs: Item[] = [], order: number[] = [], blind = false, revealed = false;
+  const pl = abPlayer();
+  const items = () => (mix ? [mix, ...refs] : refs);
+  const STYLES = [{ c: '--ink', d: [] as number[] }, { c: '--accent', d: [] }, { c: '--muted', d: [6, 4] }, { c: '--warn', d: [2, 3] }];
+
+  const analyse = async (f: File): Promise<Item | null> => {
+    if (f.size > 500e6) { err.textContent = `${f.name} is too big: files up to 500 MB.`; err.hidden = false; return null; }
+    let snd: Sound;
+    try { snd = await decodeFile(f); } catch { err.textContent = `This browser cannot read ${f.name}. Try MP3 or WAV.`; err.hidden = false; return null; }
+    if (snd.chans.length > 2) snd = { rate: snd.rate, chans: snd.chans.slice(0, 2) };
+    await new Promise((r) => setTimeout(r, 0));
+    const L = measure(snd.chans, snd.rate);
+    await new Promise((r) => setTimeout(r, 0));
+    const corr = snd.chans.length === 2 ? correlation(snd.chans[0], snd.chans[1]) : 1;
+    return { name: baseName(f.name), snd, L, corr, crest: crestDb(snd.chans), spec: averageSpectrum(snd.chans, snd.rate) };
+  };
+  const add = async (files: File[], isMix: boolean) => {
+    err.hidden = true;
+    for (const [k, f] of files.entries()) {
+      if (!isMix && refs.length >= 3) { err.textContent = 'Up to 3 references. Reload the page to start again.'; err.hidden = false; break; }
+      status.textContent = `Measuring ${f.name}${files.length > 1 ? ` (${k + 1} of ${files.length})` : ''}…`;
+      await new Promise((r) => setTimeout(r, 30));
+      const it = await analyse(f); if (!it) continue;
+      if (isMix) mix = it; else refs.push(it);
+    }
+    status.textContent = !mix ? 'Now open your mix.' : !refs.length ? 'Now add 1 to 3 reference tracks.' : '';
+    blind = false; revealed = false; order = items().map((_, i) => i);
+    build();
+  };
+
+  const gains = () => {
+    const its = items(), on = $<HTMLInputElement>('.ra-match').checked, ok = its.filter((t) => isFinite(t.L.integrated));
+    const lo = Math.min(...ok.map((t) => t.L.integrated));
+    return its.map((t) => (on && isFinite(t.L.integrated) && ok.length ? lo - t.L.integrated : 0));
+  };
+  const label = (slot: number) => (blind && !revealed ? `${slot + 1}` : `${slot + 1}: ${slot === 0 && !blind && mix ? 'Mix' : items()[order[slot]].name}`);
+  const build = () => {
+    const its = items(); if (!its.length) return;
+    const g = gains();
+    pl.load(order.map((i) => ({ chans: its[i].snd.chans, rate: its[i].snd.rate, gainDb: g[i] })));
+    const pick = $('.ra-pick'); pick.textContent = '';
+    order.forEach((_, slot) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary'; b.textContent = label(slot);
+      b.setAttribute('aria-pressed', String(slot === pl.active)); b.addEventListener('click', () => select(slot)); pick.append(b);
+    });
+    $('.ra-blind').textContent = blind ? 'Show names' : 'Blind test';
+    $('.ra-reveal').hidden = !blind || revealed;
+    const bn = $('.ra-blindnote'); bn.hidden = !blind;
+    bn.textContent = !blind ? '' : revealed ? 'Revealed: ' + order.map((i, s) => `${s + 1} was ${i === 0 && mix ? 'your mix' : its[i].name}`).join(', ') + '.' : 'Shuffled. Listen, decide which you prefer (and which is your mix), then press Reveal.';
+    table(); spectrum(); $('.ra-res').hidden = false;
+  };
+  const select = (slot: number) => { if (slot >= order.length) return; pl.select(slot); root.querySelectorAll('.ra-pick button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === slot))); };
+
+  const table = () => {
+    const its = items(), g = gains(), tb = $('.ra-table tbody'); tb.textContent = '';
+    // In slot order, so a blind test gives nothing away.
+    order.forEach((i, slot) => {
+      const t = its[i], tr = document.createElement('tr'), name = blind && !revealed ? `Track ${slot + 1}` : (i === 0 && mix ? 'Your mix: ' : '') + t.name;
+      for (const v of [name, `${f1(t.L.integrated)} LUFS`, `${sg(g[i])} dB`, `${f1(t.L.range)} LU`, `${f1(t.L.truePeak)} dBTP`, t.snd.chans.length === 2 ? (t.corr >= 0 ? '+' : '−') + Math.abs(t.corr).toFixed(2) : 'mono', `${f1(t.crest)} dB`]) {
+        const td = document.createElement('td'); td.textContent = v; tr.append(td);
+      }
+      tb.append(tr);
+    });
+  };
+
+  const spectrum = () => {
+    const its = items(), g = gains(), cv = $<HTMLCanvasElement>('.ra-spec'), dpr = devicePixelRatio || 1;
+    const w = (cv.width = Math.round((cv.clientWidth || 720) * dpr)), h = (cv.height = Math.round(260 * dpr)), c = cv.getContext('2d')!, css = getComputedStyle(root);
+    const all = its.flatMap((t, i) => t.spec.db.map((v) => v + g[i])).filter((v) => v > -119), top = Math.ceil((Math.max(...all, -60) + 3) / 10) * 10, bot = top - 70;
+    const x = (f: number) => (Math.log(f / 20) / Math.log(1000)) * w, y = (v: number) => ((top - v) / (top - bot)) * (h - 16 * dpr);
+    c.clearRect(0, 0, w, h); c.font = `${11 * dpr}px system-ui`; c.fillStyle = css.getPropertyValue('--muted');
+    for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) { c.globalAlpha = 0.25; c.fillRect(x(f), 0, 1, h - 16 * dpr); c.globalAlpha = 1; c.fillText(f >= 1000 ? f / 1000 + 'k' : String(f), x(f) + 2, h - 3); }
+    for (let v = top - 10; v > bot; v -= 20) { c.fillText(`${v} dB`.replace('-', '−'), 4, y(v) - 2); }
+    const leg = $('.ra-legend'); leg.textContent = '';
+    order.forEach((i, slot) => {
+      const t = its[i], st = STYLES[slot % 4], col = css.getPropertyValue(st.c) || '#000';
+      c.strokeStyle = col; c.lineWidth = (slot === 0 ? 2.2 : 1.6) * dpr; c.setLineDash(st.d.map((d) => d * dpr)); c.beginPath();
+      t.spec.f.forEach((f, k) => { const px = x(f), py = y(Math.max(bot, t.spec.db[k] + g[i])); if (k) c.lineTo(px, py); else c.moveTo(px, py); });
+      c.stroke();
+      const sw = document.createElement('span'); sw.style.borderTop = `2px ${st.d.length ? (st.d[0] > 3 ? 'dashed' : 'dotted') : 'solid'} ${col}`;
+      leg.append(sw, blind && !revealed ? `Track ${slot + 1}` : i === 0 && mix ? 'Your mix' : t.name);
+    });
+    c.setLineDash([]);
+  };
+
+  // Playback
+  const playB = $<HTMLButtonElement>('.ra-play'), seek = $<HTMLInputElement>('.ra-seek');
+  playB.addEventListener('click', async () => { if (pl.playing) { pl.pause(); playB.textContent = 'Play'; } else { await pl.play(); playB.textContent = 'Pause'; tick(); } });
+  pl.onEnded(() => (playB.textContent = 'Play'));
+  const tick = () => { const t = pl.position(); $('.ra-pos').textContent = clock(t); if (document.activeElement !== seek && pl.duration) seek.value = String(Math.round((t / pl.duration) * 1000)); if (pl.playing) requestAnimationFrame(tick); };
+  seek.addEventListener('input', () => { pl.seek((+seek.value / 1000) * pl.duration); tick(); });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(SELECT|TEXTAREA)$/.test(t.tagName) || (t.tagName === 'INPUT' && !/^(checkbox|range|radio|button)$/.test((t as HTMLInputElement).type)) || t.isContentEditable || $('.ra-res').hidden) return;
+    const k = +e.key; if (k >= 1 && k <= 4 && k <= order.length) { select(k - 1); e.preventDefault(); }
+  });
+  $<HTMLInputElement>('.ra-match').addEventListener('change', () => { const g = gains(); pl.setLevels(order.map((i) => g[i])); table(); spectrum(); });
+  const setLoop = () => { const a = +$<HTMLInputElement>('.ra-la').value, b = +$<HTMLInputElement>('.ra-lb').value; pl.setLoop($<HTMLInputElement>('.ra-loop').checked && b > a ? [a, b] : null); };
+  root.querySelectorAll('.ra-la, .ra-lb, .ra-loop').forEach((el) => el.addEventListener('change', setLoop));
+  $('.ra-blind').addEventListener('click', () => {
+    blind = !blind; revealed = false; order = items().map((_, i) => i);
+    if (blind) for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    build(); select(0);
+  });
+  $('.ra-reveal').addEventListener('click', () => { revealed = true; const a = pl.active; build(); select(a); });
+
+  const mixIn = $<HTMLInputElement>('.ra-mixfile'), refIn = $<HTMLInputElement>('.ra-reffile');
+  $('.ra-openmix').addEventListener('click', () => mixIn.click());
+  $('.ra-openref').addEventListener('click', () => refIn.click());
+  mixIn.addEventListener('change', () => { const f = [...(mixIn.files || [])]; mixIn.value = ''; if (f[0]) add([f[0]], true); });
+  refIn.addEventListener('change', () => { const f = [...(refIn.files || [])]; refIn.value = ''; if (f.length) add(f, false); });
+  const drop = $('.ra-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); drop.classList.remove('over');
+    const fs = [...(e.dataTransfer?.files || [])]; if (!fs.length) return;
+    if (!mix) { add([fs[0]], true).then(() => fs.length > 1 && add(fs.slice(1), false)); } else add(fs, false);
+  });
+</script>

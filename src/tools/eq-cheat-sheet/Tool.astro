@@ -1,0 +1,118 @@
+---
+// #T1037 EQ guide: log frequency chart with bands, instrument ranges, common moves, note names and a quiet test tone.
+// Data and maths in src/lib/music/produce.ts.
+---
+<div class="tool-ui ecs">
+  <section class="panel">
+    <canvas class="ecs-cv" width="720" height="360" role="img" aria-label="Frequency chart from 20 Hz to 20 kHz showing EQ bands and instrument ranges. Tap a band for advice."></canvas>
+    <p class="ecs-fine">Tap or click the chart to pick a frequency. Solid bars are fundamentals; lighter extensions are harmonics.</p>
+  </section>
+  <section class="panel ecs-pick" aria-live="polite">
+    <div class="ecs-hz"></div>
+    <div class="ecs-note"></div>
+    <div class="ecs-band"></div>
+    <ul class="ecs-moves"></ul>
+    <p class="ecs-fine">These are starting points, trust your ears. Small moves of 1 to 3 dB are usually enough.</p>
+  </section>
+  <section class="panel">
+    <div class="ecs-tone">
+      <label>Frequency (Hz) <input class="ecs-f" data-k="hz" type="number" min="20" max="20000" step="any" value="1000" inputmode="decimal" /></label>
+      <button type="button" class="btn ecs-play">Play tone</button>
+    </div>
+    <label class="ecs-vol">Volume <input class="ecs-v" type="range" min="0" max="100" value="15" /></label>
+    <p class="ecs-fine">Starts quiet. Turn your volume down before you press play; low and high tones can be hard to judge by ear and small speakers cannot play the lowest ones.</p>
+  </section>
+  <section class="panel">
+    <h3>Where instruments sit</h3>
+    <div class="ecs-legend"></div>
+    <details><summary>More options: sources for the ranges</summary><ul class="ecs-src"></ul></details>
+  </section>
+</div>
+
+<style is:inline>
+  .ecs { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ecs .panel { display: grid; gap: 10px; padding: 16px; }
+  .ecs h3 { margin: 0; font-size: 18px; }
+  .ecs-cv { width: 100%; height: auto; touch-action: manipulation; cursor: crosshair; }
+  .ecs-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .ecs-hz { font-size: 34px; font-variant-numeric: tabular-nums; }
+  .ecs-note, .ecs-band { font-size: 16px; }
+  .ecs-band strong { color: var(--accent); }
+  .ecs-moves { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .ecs-tone { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .ecs label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ecs input[type=number] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 140px; }
+  .ecs-legend { display: grid; gap: 6px; font-size: 14px; }
+  .ecs-legend div { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .ecs-src { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
+</style>
+
+<script>
+  import { BANDS, INSTRUMENTS, MIN_HZ, MAX_HZ, logPos, fromLogPos, hzToNote, bandOf, midiToHz } from '../../lib/music/produce.ts';
+  import { pagePalette } from '../../lib/report.ts';
+  const root = document.querySelector('.ecs') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.ecs-cv'), fIn = $<HTMLInputElement>('.ecs-f'), play = $<HTMLButtonElement>('.ecs-play'), vol = $<HTMLInputElement>('.ecs-v');
+  const W = cv.width, H = cv.height, L = 8, R = 8, T = 22, B = 24, pw = W - L - R;
+  const x = (hz: number) => L + logPos(Math.max(MIN_HZ, Math.min(MAX_HZ, hz))) * pw;
+  let hz = 1000;
+  const fmt = (v: number) => (v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, '') + ' kHz' : Math.round(v) + ' Hz');
+
+  function draw() {
+    const pal = pagePalette(), c = cv.getContext('2d')!;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H); c.font = '12px system-ui, sans-serif'; c.textBaseline = 'middle';
+    const bandTop = T, bandH = 70, rowsTop = T + bandH + 14, rowH = (H - B - rowsTop) / INSTRUMENTS.length;
+    const sel = bandOf(hz);
+    BANDS.forEach((b, i) => {
+      c.fillStyle = b.id === sel.id ? pal.accent : i % 2 ? pal.grid : pal.line; c.globalAlpha = b.id === sel.id ? 0.35 : 0.5;
+      c.fillRect(x(b.lo), bandTop, x(b.hi) - x(b.lo), H - B - bandTop); c.globalAlpha = 1;
+      c.fillStyle = pal.ink; c.textAlign = 'center';
+      const mid = (x(b.lo) + x(b.hi)) / 2, w = x(b.hi) - x(b.lo);
+      c.fillText(w > 60 ? b.name : b.name.split(' ')[0].slice(0, 4), mid, bandTop + 12);
+    });
+    [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].forEach((f) => {
+      c.strokeStyle = pal.line; c.beginPath(); c.moveTo(x(f), T); c.lineTo(x(f), H - B); c.stroke();
+      c.fillStyle = pal.muted; c.textAlign = f === 20 ? 'left' : f === 20000 ? 'right' : 'center'; c.fillText(f >= 1000 ? f / 1000 + 'k' : String(f), x(f), H - 10);
+    });
+    INSTRUMENTS.forEach((ins, i) => {
+      const y = rowsTop + i * rowH + rowH / 2;
+      c.globalAlpha = 0.35; c.fillStyle = pal.accent2; c.fillRect(x(ins.hi), y - 5, Math.max(0, x(ins.harmTo) - x(ins.hi)), 10);
+      c.globalAlpha = 1; c.fillStyle = pal.accent; c.fillRect(x(ins.lo), y - 5, Math.max(3, x(ins.hi) - x(ins.lo)), 10);
+      c.fillStyle = pal.ink; c.textAlign = 'left'; c.fillText(ins.name, Math.min(x(ins.lo), W - 90) + 0, y - 13);
+    });
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(x(hz), T); c.lineTo(x(hz), H - B); c.stroke(); c.lineWidth = 1;
+  }
+  function show() {
+    const n = hzToNote(hz), b = bandOf(hz);
+    $('.ecs-hz').textContent = fmt(hz) + (hz < 1000 ? '' : ` (${Math.round(hz)} Hz)`);
+    $('.ecs-note').textContent = `Nearest note ${n.name} (${n.cents >= 0 ? '+' : ''}${n.cents} cents). A4 = 440 Hz, f = 440 x 2^((n-69)/12).`;
+    $('.ecs-band').innerHTML = `Band: <strong>${b.name}</strong>, ${fmt(b.lo)} to ${fmt(b.hi)}. ${b.feel}`;
+    const ul = $('.ecs-moves'); ul.replaceChildren(...b.moves.map((m) => { const li = document.createElement('li'); li.textContent = m; return li; }));
+    const here = INSTRUMENTS.filter((i) => hz >= i.lo && hz <= i.harmTo).map((i) => i.name);
+    if (here.length) { const li = document.createElement('li'); li.textContent = 'Also lives here: ' + here.join(', ') + '.'; ul.append(li); }
+    draw();
+  }
+  const setHz = (v: number, fromInput = false) => { hz = Math.max(MIN_HZ, Math.min(MAX_HZ, v || 1000)); if (!fromInput) fIn.value = String(Math.round(hz * 10) / 10); if (osc) osc.frequency.value = hz; show(); };
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); setHz(fromLogPos(Math.max(0, Math.min(1, ((e.clientX - r.left) / r.width * W - L) / pw)))); });
+  fIn.addEventListener('input', () => setHz(+fIn.value, true));
+
+  let ac: AudioContext | null = null, osc: OscillatorNode | null = null, g: GainNode | null = null;
+  const level = () => (+vol.value / 100) ** 2 * 0.5;
+  vol.addEventListener('input', () => { if (g) g.gain.value = level(); });
+  const stop = () => { try { osc?.stop(); } catch {} osc = null; play.textContent = 'Play tone'; };
+  play.addEventListener('click', async () => {
+    if (osc) return stop();
+    ac ??= new AudioContext(); await ac.resume();
+    g = ac.createGain(); g.gain.setValueAtTime(0, ac.currentTime); g.gain.linearRampToValueAtTime(level(), ac.currentTime + 0.05);
+    osc = ac.createOscillator(); osc.frequency.value = hz; osc.connect(g).connect(ac.destination); osc.start(); play.textContent = 'Stop tone';
+  });
+  window.addEventListener('pagehide', stop);
+
+  const leg = $('.ecs-legend');
+  INSTRUMENTS.forEach((i) => { const d = document.createElement('div'); d.innerHTML = `<strong>${i.name}</strong> ${fmt(i.lo)} to ${fmt(i.hi)} <span class="ecs-fine">${i.kind === 'notes' ? 'note range' : 'rough typical'}</span>`; leg.append(d); });
+  const src = $('.ecs-src');
+  INSTRUMENTS.forEach((i) => { const li = document.createElement('li'); li.textContent = `${i.name}: ${i.source}`; src.append(li); });
+  void midiToHz;
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  setHz(1000);
+</script>

@@ -1,0 +1,190 @@
+---
+// #T1015 Library converter: move a DJ library (tracks, cues, loops, beat grids, playlists) between Rekordbox XML,
+// Traktor NML, VirtualDJ database.xml, M3U8 and Serato crates. Engine: src/lib/music/djlib.ts (checks in tests/djlib.mjs).
+// Files are read in this tab only; nothing is uploaded.
+import { FORMATS } from '../../lib/music/djlib.ts';
+---
+<div class="tool-ui dl">
+  <section class="panel">
+    <div class="dl-drop">
+      <button type="button" class="btn dl-open">Open library files</button>
+      <input class="dl-file" type="file" accept=".xml,.nml,.m3u,.m3u8,.crate" multiple hidden data-k="files" />
+      <span class="dl-name">Or drop them here: a Rekordbox XML, Traktor NML or VirtualDJ database.xml export, or several M3U/M3U8 or Serato .crate files. They stay on this device.</span>
+    </div>
+    <details class="dl-more">
+      <summary>More options</summary>
+      <label>Name of the Mac system disk <input class="dl-disk" type="text" value="Macintosh HD" data-k="disk" /></label>
+      <span class="dl-fine">Traktor names the disk each file is on; files on this disk get paths starting /Users/…, files on other disks /Volumes/&lt;name&gt;/….</span>
+      <label>Drive the crates are on <input class="dl-root" type="text" value="/" data-k="crateRoot" /></label>
+      <span class="dl-fine">Serato stores paths without the drive. Use / for the Mac system disk, C:/ for a Windows drive, or /Volumes/USB/ for a USB stick.</span>
+    </details>
+    <p class="note bad dl-err" hidden></p>
+  </section>
+
+  <section class="panel dl-res" hidden>
+    <dl class="dl-grid" aria-live="polite">
+      <div><dt>Tracks</dt><dd class="dl-ct"></dd></div>
+      <div><dt>Playlists</dt><dd class="dl-cp"></dd></div>
+      <div><dt>Cue points</dt><dd class="dl-cc"></dd></div>
+      <div><dt>Loops</dt><dd class="dl-cl"></dd></div>
+    </dl>
+    <p class="dl-from"></p>
+    <div class="dl-wrap">
+      <table class="dl-table">
+        <thead><tr><th>Title</th><th>Artist</th><th>BPM</th><th>Key</th><th>Cues</th><th>File</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="dl-fine dl-more-rows"></p>
+
+    <fieldset class="dl-pls">
+      <legend>Playlists to take</legend>
+      <div class="dl-row"><button type="button" class="btn secondary dl-all">All</button><button type="button" class="btn secondary dl-none">None</button></div>
+      <div class="dl-list"></div>
+    </fieldset>
+    <label class="dl-check"><input class="dl-whole" type="checkbox" checked data-k="whole" /> Also take tracks that are in no chosen playlist (the whole collection)</label>
+
+    <div class="dl-two">
+      <label>Save as
+        <select class="dl-to" data-k="to">
+          {Object.entries(FORMATS).map(([k, f]) => <option value={k}>{f.label}</option>)}
+        </select>
+      </label>
+      <label>Change paths that start with <input class="dl-pfrom" type="text" data-k="from" placeholder="C:/Users/me/Music/" /></label>
+      <label>to <input class="dl-pto" type="text" data-k="to-path" placeholder="/Users/me/Music/" /></label>
+    </div>
+    <p class="dl-fine">Moving to another computer or a USB drive? Put the old start of the paths in the first box and the new one in the second, using / or \ as you like.</p>
+    <ul class="dl-lost"></ul>
+    <p class="dl-plan" aria-live="polite"></p>
+    <button type="button" class="btn dl-save">Download</button>
+  </section>
+</div>
+
+<style is:inline>
+  .dl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dl .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .dl [hidden] { display: none !important; }
+  .dl-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .dl-drop.over { border-color: var(--accent); }
+  .dl-name, .dl-fine, .dl-from { color: var(--muted); font-size: 14px; margin: 0; }
+  .dl-plan { margin: 0; }
+  .dl-more { display: grid; gap: 8px; }
+  .dl-more[open] { display: grid; }
+  .dl-more summary { cursor: pointer; }
+  .dl-more label { margin-top: 8px; }
+  .dl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dl input[type=text], .dl select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 10px; margin: 0; }
+  .dl-grid div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .dl-grid dt { color: var(--muted); font-size: 13px; }
+  .dl-grid dd { margin: 2px 0 0; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .dl-wrap { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+  .dl-table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  .dl-table th, .dl-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .dl-table td:nth-child(3), .dl-table td:nth-child(5) { font-variant-numeric: tabular-nums; }
+  .dl-pls { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+  .dl-pls legend { font-size: 14px; color: var(--muted); padding: 0 4px; }
+  .dl-list { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; }
+  .dl-list label, .dl-check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+  .dl-list input, .dl-check input { margin-top: 3px; flex: none; }
+  .dl-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dl-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .dl-lost { margin: 0; padding-left: 20px; color: var(--warn, #8a5a00); font-size: 14px; display: grid; gap: 4px; }
+  .dl-lost:empty { display: none; }
+</style>
+
+<script>
+  import { readAny, merge, counts, flatPlaylists, pick, swapPrefix, writeAs, lost, FORMATS, nativePath, type Library, type Format, type PlNode } from '../../lib/music/djlib.ts';
+  import { saveBytes, saveZip } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.dl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.dl-file'), err = $('.dl-err'), toSel = $<HTMLSelectElement>('.dl-to');
+  const pFrom = $<HTMLInputElement>('.dl-pfrom'), pTo = $<HTMLInputElement>('.dl-pto'), list = $('.dl-list'), plan = $('.dl-plan');
+  let files: { name: string; bytes: Uint8Array }[] = [], lib: Library | null = null, fromFmt: Format = 'rekordbox', pls: { path: string[]; node: PlNode }[] = [];
+
+  const commonDir = (ps: string[]) => {
+    if (!ps.length) return '';
+    let p = ps[0].slice(0, ps[0].lastIndexOf('/') + 1);
+    for (const x of ps) while (p && !x.startsWith(p)) p = p.slice(0, p.slice(0, -1).lastIndexOf('/') + 1);
+    return p;
+  };
+  const cell = (s: string | number | undefined) => { const td = document.createElement('td'); td.textContent = s === undefined ? '' : String(s); td.title = td.textContent; return td; };
+
+  function parse() {
+    err.hidden = true;
+    const libs: Library[] = [], fmts = new Set<Format>(), bad: string[] = [];
+    for (const f of files) {
+      try { const r = readAny(f.name, f.bytes, { macDisk: $<HTMLInputElement>('.dl-disk').value.trim() || 'Macintosh HD', crateRoot: $<HTMLInputElement>('.dl-root').value.trim() || '/' }); libs.push(r.lib); fmts.add(r.format); }
+      catch (e) { bad.push((e as Error).message); }
+    }
+    if (bad.length) { err.textContent = bad.join(' '); err.hidden = false; }
+    if (!libs.length) { $('.dl-res').hidden = true; lib = null; return; }
+    lib = merge(libs); fromFmt = [...fmts][0];
+    const c = counts(lib);
+    $('.dl-ct').textContent = c.tracks.toLocaleString('en-US'); $('.dl-cp').textContent = c.playlists.toLocaleString('en-US');
+    $('.dl-cc').textContent = c.cues.toLocaleString('en-US'); $('.dl-cl').textContent = c.loops.toLocaleString('en-US');
+    $('.dl-from').textContent = `Read as ${[...fmts].map((f) => FORMATS[f].label).join(' and ')}${c.folders ? `, with ${c.folders} folder${c.folders === 1 ? '' : 's'}` : ''}${c.grids ? `; ${c.grids} track${c.grids === 1 ? ' has' : 's have'} a beat grid` : ''}.`;
+    const tb = $('.dl-table tbody'); tb.replaceChildren();
+    for (const t of lib.tracks.slice(0, 50)) {
+      const tr = document.createElement('tr');
+      tr.append(cell(t.title || t.path.split('/').pop()), cell(t.artist), cell(t.bpm ? Math.round(t.bpm * 100) / 100 : ''), cell(t.key), cell(t.cues.length + t.loops.length || ''), cell(nativePath(t.path)));
+      tb.append(tr);
+    }
+    $('.dl-more-rows').textContent = lib.tracks.length > 50 ? `Showing the first 50 of ${lib.tracks.length.toLocaleString('en-US')} tracks.` : '';
+    pls = flatPlaylists(lib); list.replaceChildren();
+    pls.forEach((p, i) => {
+      const l = document.createElement('label'), cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = true; cb.value = String(i); cb.dataset.k = 'pl-' + i;
+      l.append(cb, ` ${p.path.join(' › ')} (${p.node.tracks.length})`); list.append(l);
+    });
+    if (!pls.length) list.textContent = 'No playlists in this file; the whole collection is taken.';
+    if (!pFrom.value) pFrom.value = nativePath(commonDir(lib.tracks.map((t) => t.path)));
+    if (fromFmt === toSel.value) toSel.value = fromFmt === 'traktor' ? 'rekordbox' : 'traktor';
+    $('.dl-res').hidden = false; update();
+  }
+
+  function build(): Library {
+    const keep = new Set(pls.filter((_, i) => (list.querySelector(`input[value="${i}"]`) as HTMLInputElement)?.checked).map((p) => p.node));
+    const whole = $<HTMLInputElement>('.dl-whole').checked || !pls.length;
+    const out = structuredClone(pick(lib!, keep, whole));
+    if (pFrom.value.trim()) swapPrefix(out, pFrom.value.trim(), pTo.value.trim());
+    return out;
+  }
+  function filesFor(out: Library, to: Format) {
+    const fs = writeAs(out, to, { macDisk: $<HTMLInputElement>('.dl-disk').value.trim() || 'Macintosh HD' });
+    if (to === 'virtualdj' && flatPlaylists(out).length) fs.push(...writeAs(out, 'm3u'));
+    return fs;
+  }
+  function update() {
+    if (!lib) return;
+    const to = toSel.value as Format, out = build(), fs = filesFor(out, to), c = counts(out);
+    const lostEl = $('.dl-lost'); lostEl.replaceChildren(...lost(fromFmt, to, out).map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    plan.textContent = !fs.length ? 'Nothing to save: choose at least one playlist.' : `${c.tracks.toLocaleString('en-US')} tracks and ${c.playlists} playlist${c.playlists === 1 ? '' : 's'} → ${fs.length === 1 ? fs[0].name : `${fs.length} files in a ZIP`}.`;
+    $<HTMLButtonElement>('.dl-save').disabled = !fs.length;
+  }
+
+  const open = async (list0: FileList | File[]) => {
+    const arr = [...list0]; if (!arr.length) return;
+    files = await Promise.all(arr.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
+    $('.dl-name').textContent = arr.length === 1 ? arr[0].name : `${arr.length} files`;
+    pFrom.value = '';
+    parse();
+  };
+  $('.dl-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.length) open(input.files); input.value = ''; });
+  const drop = $('.dl-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer?.files.length) open(e.dataTransfer.files); });
+  for (const el of [$('.dl-disk'), $('.dl-root')]) el.addEventListener('change', () => files.length && parse());
+  for (const el of [toSel, pFrom, pTo, $('.dl-whole')]) el.addEventListener('input', update);
+  list.addEventListener('change', update);
+  $('.dl-all').addEventListener('click', () => { list.querySelectorAll('input').forEach((i) => (i.checked = true)); update(); });
+  $('.dl-none').addEventListener('click', () => { list.querySelectorAll('input').forEach((i) => (i.checked = false)); update(); });
+  $('.dl-save').addEventListener('click', async () => {
+    if (!lib) return;
+    const to = toSel.value as Format, fs = filesFor(build(), to);
+    if (fs.length === 1) saveBytes(fs[0].bytes, fs[0].name, FORMATS[to].ext === 'crate' ? 'application/octet-stream' : 'text/plain');
+    else if (fs.length) await saveZip(fs, `library-${to}.zip`);
+  });
+</script>

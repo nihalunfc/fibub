@@ -1,0 +1,139 @@
+---
+// #T1029 Transition timer: phrase-length countdown drills, ratings, session stats, CSV. Maths in src/lib/music/sets.ts.
+---
+<div class="tool-ui tt">
+  <section class="panel">
+    <div class="tt-row">
+      <label>Drill <select data-k="drill" class="tt-drill"></select></label>
+      <label>BPM <input data-k="bpm" type="number" min="60" max="220" step="0.1" value="128" inputmode="decimal" /></label>
+    </div>
+    <p class="tt-info"></p>
+    <div class="tt-big" aria-live="polite"><span class="tt-time">1:00</span><span class="tt-seg"></span></div>
+    <div class="tt-bar"><i class="tt-fill"></i></div>
+    <button type="button" class="btn tt-go">Start</button>
+  </section>
+  <section class="panel">
+    <h2>How did it go?</h2>
+    <input data-k="note" type="text" placeholder="Note (optional)" maxlength="200" />
+    <div class="tt-row">
+      <button type="button" class="btn tt-r" data-r="clean">Clean</button>
+      <button type="button" class="btn secondary tt-r" data-r="ok">OK</button>
+      <button type="button" class="btn secondary tt-r" data-r="trainwreck">Trainwreck</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>This session</h2>
+    <p class="tt-stats" aria-live="polite"></p>
+    <svg class="tt-chart" viewBox="0 0 320 90" role="img" aria-label="Chart of attempts"></svg>
+    <ol class="tt-list"></ol>
+    <div class="tt-row">
+      <button type="button" class="btn secondary tt-csv">Download CSV</button>
+      <button type="button" class="btn secondary tt-clear">Clear</button>
+    </div>
+    <label class="tt-chk"><input data-k="save" type="checkbox" /> Remember this session on this device (off by default)</label>
+    <p class="tt-fine">When ticked, your attempts are kept in this browser only and never sent anywhere. Clear removes them.</p>
+  </section>
+  <details class="panel"><summary>More options</summary>
+    <div class="tt-row">
+      <label>Bars <input data-k="bars" type="number" min="1" max="128" step="1" value="32" inputmode="numeric" /></label>
+      <label>Step <select data-k="step"><option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option></select></label>
+    </div>
+    <p class="tt-fine">Bars sets the total length (change it to use a custom drill). Step is how long each part of the countdown is.</p>
+  </details>
+</div>
+
+<style is:inline>
+  .tt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tt .panel { display: grid; gap: 12px; padding: 16px; }
+  .tt h2 { font-size: 17px; margin: 0; }
+  .tt-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .tt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .tt input[type=number], .tt input[type=text], .tt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; }
+  .tt input[type=number] { width: 110px; }
+  .tt input[type=text] { width: 100%; box-sizing: border-box; }
+  .tt-chk { display: flex !important; gap: 8px; align-items: center; }
+  .tt-info, .tt-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .tt-big { display: grid; place-items: center; min-height: 130px; border: 2px solid var(--line); border-radius: 14px; }
+  .tt-big.run { border-color: var(--accent); }
+  .tt-time { font-size: 64px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .tt-seg { font-size: 16px; color: var(--muted); }
+  .tt-bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .tt-fill { display: block; height: 100%; width: 0; background: var(--accent); }
+  .tt-go { font-size: 22px; padding: 16px; }
+  .tt-list { margin: 0; padding-left: 22px; font-size: 14px; display: grid; gap: 2px; }
+  .tt-chart { width: 100%; height: auto; }
+  .tt-chart .ax { stroke: var(--line); }
+  .tt-chart .ln { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .tt-chart circle { fill: var(--accent); }
+</style>
+
+<script>
+  import { DRILLS, barSec, drillSegments, drillStats, fmtTime, toCsv, RATING_SCORE, type Rating } from '../../lib/music/sets.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.tt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-transition-timer-v1';
+  interface Att { drill: string; bpm: number; bars: number; rating: Rating; note: string }
+  let list: Att[] = [];
+  const store = (act: 'get' | 'set' | 'del') => {
+    try {
+      if (act === 'get') { const v = JSON.parse(localStorage.getItem(KEY) || 'null'); return v; }
+      if (act === 'set') localStorage.setItem(KEY, JSON.stringify(list)); else localStorage.removeItem(KEY);
+    } catch { /* storage blocked */ }
+    return null;
+  };
+  const sel = $<HTMLSelectElement>('.tt-drill');
+  sel.innerHTML = DRILLS.map((d) => `<option value="${d.id}">${d.label}</option>`).join('');
+  const bpm = () => Math.max(60, Math.min(220, +k('bpm').value || 128));
+  const bars = () => Math.max(1, Math.min(128, Math.round(+k('bars').value) || 16));
+  const total = () => barSec(bpm()) * bars();
+  let running = false, t0 = 0, raf = 0;
+  const idle = () => { $('.tt-time').textContent = fmtTime(total()); $('.tt-seg').textContent = `${bars()} bars at ${bpm()} BPM`; ($('.tt-fill') as HTMLElement).style.width = '0'; };
+  const drill = () => DRILLS.find((d) => d.id === sel.value)!;
+  sel.addEventListener('change', () => { if (sel.value !== 'custom') k('bars').value = String(drill().bars); $('.tt-info').textContent = drill().info; if (!running) idle(); });
+  root.addEventListener('input', (e) => { const d = (e.target as HTMLElement).dataset.k; if ((d === 'bpm' || d === 'bars' || d === 'step') && !running) idle(); });
+  const frame = () => {
+    const el = (performance.now() - t0) / 1000, tot = total();
+    if (el >= tot) { stop(true); return; }
+    const segs = drillSegments(bars(), +k('step').value, bpm()), i = segs.findIndex((s) => el < s.to);
+    const s = segs[i];
+    $('.tt-time').textContent = fmtTime(Math.ceil(tot - el));
+    $('.tt-seg').textContent = `Step ${i + 1} of ${segs.length} (bars ${s.startBar} to ${s.startBar + s.bars - 1}): ${fmtTime(Math.ceil(s.to - el))} left`;
+    ($('.tt-fill') as HTMLElement).style.width = (el / tot) * 100 + '%';
+    raf = requestAnimationFrame(frame);
+  };
+  const stop = (done: boolean) => {
+    cancelAnimationFrame(raf); running = false; $('.tt-go').textContent = 'Start'; $('.tt-big').classList.remove('run');
+    if (done) { $('.tt-time').textContent = 'Done'; $('.tt-seg').textContent = 'How did it go? Rate it below.'; ($('.tt-fill') as HTMLElement).style.width = '100%'; } else idle();
+  };
+  $('.tt-go').addEventListener('click', () => {
+    if (running) { stop(false); return; }
+    running = true; t0 = performance.now(); $('.tt-go').textContent = 'Stop'; $('.tt-big').classList.add('run'); frame();
+  });
+  const NAMES: Record<Rating, string> = { clean: 'Clean', ok: 'OK', trainwreck: 'Trainwreck' };
+  const render = () => {
+    const st = drillStats(list.map((a) => a.rating));
+    $('.tt-stats').textContent = st.n ? `${st.n} attempts: ${st.clean} clean, ${st.ok} ok, ${st.bad} trainwreck. Average ${st.avg}%. Best streak of clean runs: ${st.bestStreak}.` : 'No attempts yet.';
+    $('.tt-list').innerHTML = '';
+    list.forEach((a) => { const li = document.createElement('li'); li.textContent = `${a.drill} at ${a.bpm} BPM: ${NAMES[a.rating]}${a.note ? ' (' + a.note + ')' : ''}`; $('.tt-list').appendChild(li); });
+    const W = 320, H = 90, n = list.length;
+    const xs = (i: number) => 14 + (n > 1 ? (i * (W - 28)) / (n - 1) : (W - 28) / 2), ys = (r: Rating) => 75 - RATING_SCORE[r] * 30;
+    $('.tt-chart').innerHTML = `<line class="ax" x1="10" x2="310" y1="15" y2="15"/><line class="ax" x1="10" x2="310" y1="45" y2="45"/><line class="ax" x1="10" x2="310" y2="75" y1="75"/>` +
+      (n ? `<polyline class="ln" points="${list.map((a, i) => xs(i) + ',' + ys(a.rating)).join(' ')}"/>` + list.map((a, i) => `<circle cx="${xs(i)}" cy="${ys(a.rating)}" r="4"/>`).join('') : '');
+  };
+  const persist = () => { if (k('save').checked) store('set'); };
+  root.querySelectorAll('.tt-r').forEach((b) => b.addEventListener('click', () => {
+    list.push({ drill: drill().label, bpm: bpm(), bars: bars(), rating: (b as HTMLElement).dataset.r as Rating, note: k('note').value.trim() });
+    k('note').value = ''; render(); persist();
+  }));
+  k('save').addEventListener('change', () => { if (k('save').checked) store('set'); else store('del'); });
+  $('.tt-clear').addEventListener('click', () => { list = []; store('del'); render(); });
+  $('.tt-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['Attempt', 'Drill', 'BPM', 'Bars', 'Rating', 'Note'], ...list.map((a, i) => [i + 1, a.drill, a.bpm, a.bars, a.rating, a.note])];
+    saveBytes(new Blob([toCsv(rows)], { type: 'text/csv' }), 'transition-practice.csv', 'text/csv');
+  });
+  const old = store('get');
+  if (Array.isArray(old) && old.length) { list = old; k('save').checked = true; }
+  sel.value = 'eq32'; $('.tt-info').textContent = drill().info; k('bars').value = '32'; idle(); render();
+</script>
