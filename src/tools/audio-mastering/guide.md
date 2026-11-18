@@ -50,7 +50,7 @@ A 6-second loop of a kick drum and two quiet tones measures −19.5 LUFS with a 
 
 ## FAQs
 
-**Is it as good as a mastering engineer?** No. It is a careful, honest chain for demos, uploads and quick releases. An engineer hears problems a meter cannot.
+**Is it as good as a mastering engineer?** No. It suits demos, uploads and quick releases; an engineer hears problems a meter cannot.
 
 **Why does my club master sound quieter on Spotify?** Streaming services turn loud tracks down to about −14 LUFS, so the extra limiting only costs punch there.
 
