@@ -25,38 +25,35 @@ flow:
 
 ## What it does
 
-This tool cuts one sound into short pieces, the way producers chop a drum break or a vocal phrase. It finds the hits for you, lays a beat grid over the sound, or lets you place every cut by hand. Each slice goes on a pad you can tap, and you can save every slice as its own WAV file in one ZIP, glue chosen slices into a new WAV in any order, or save a MIDI file that plays the slices back from a sampler.
+This tool cuts one sound into short pieces, the way producers chop a drum break or a vocal phrase: at its hits, on a beat grid, or by hand. Each slice goes on a pad. Save every slice as a WAV in one ZIP, glue chosen slices into a new WAV in any order, or save a MIDI file that plays them from a sampler.
 
-To trim the sound first, use the [[audio-trimmer]]; to find its tempo and key before you chop, use the [[bpm-key-finder]]; to move a slice into another key, use the [[pitch-shifter]].
+To trim the sound first, use the [[audio-trimmer]]; to find its tempo before you chop, use the [[bpm-key-finder]]; to move a slice into another key, use the [[pitch-shifter]].
 
 ## How to use it
 
 1. Press **Open a sound** and choose a loop, break or phrase.
-2. Pick how to **Cut by**, and look at the markers on the waveform. Drag any marker to fine-tune it.
-3. Tap the pads (or press 1 2 3 4, Q W E R, A S D F, Z X C V) to hear the slices.
+2. Pick how to **Cut by** and check the markers. Drag any marker to fine-tune it.
+3. Tap the pads, or press 1 2 3 4, Q W E R, A S D F, Z X C V.
 4. Press **Save all slices (ZIP)**, or type an order and press **Save joined WAV**.
 
 ## What each setting does
 
-- **Hits (transients)**: a slice starts at each new hit. **Sensitivity** 1 to 10; higher finds quieter hits.
-- **Beat grid**: a slice every bar, beat, 1/8 or 1/16 at the **Tempo** (filled in from the sound). **Grid starts at** (More options) moves the grid.
-- **By hand**: tap the waveform to add a marker; **Delete marker** removes the selected one.
-- **Zoom** and **Scroll**: look closer at the waveform to place markers exactly.
-- **Fade in / Fade out**: a short fade at each end of the slice so it starts and stops without a click.
-- **Normalise**: raises the slice so its loudest point is −0.3 dB. **Reverse** plays it backwards.
-- **Slices to join**: pad numbers in the order you want, such as `1 2 1 3`; tick **Pads add to the order** to build it by tapping.
-- **MIDI: slice 1 on**: the note for slice 1; each next slice is a semitone higher.
-
-Sound before the first marker is left out of the slices.
+- **Hits**: a slice at each new hit. **Sensitivity** 1 to 10; higher finds quieter hits.
+- **Beat grid**: a slice every bar, beat, 1/8 or 1/16 at the **Tempo**, which is filled in from the sound.
+- **By hand**: tap the waveform to add a marker. Sound before the first marker is left out.
+- **Fade in / Fade out**: a short fade at each end so the slice starts and stops without a click.
+- **Normalise** raises the slice so its loudest point is −0.3 dB; **Reverse** plays it backwards.
+- **Slices to join**: pad numbers in order, such as `1 2 1 3`; **Pads add to the order** builds it by tapping.
+- **MIDI: slice 1 on** (More options): slice 1's note; each next slice is a semitone higher.
 
 ## Worked example
 
-A 3.5-second test sound with seven short hits at 0.10, 0.45, 0.80, 1.30, 1.55, 2.20 and 2.90 s gives **7 slices**, each starting within a millisecond of its hit. The ZIP holds `clicks_01.wav` to `clicks_07.wav`. On a beat grid at 120 BPM with one slice per beat, the same sound gives 7 slices half a second apart.
+A 3.5-second test sound with seven short hits at 0.10, 0.45, 0.80, 1.30, 1.55, 2.20 and 2.90 s gives **7 slices**, each within a millisecond of its hit; the ZIP holds `clicks_01.wav` to `clicks_07.wav`. On a 120 BPM grid with a slice per beat it gives 7 slices half a second apart.
 
 ## FAQs
 
-**Why does a slice click?** It starts or ends partway through a wave. Raise the fade in to 2 to 5 ms or the fade out to 10 to 20 ms.
+**Why does a slice click?** It stops partway through a wave. Raise the fade out to 10 to 20 ms.
 
-**Which note is C1?** This tool counts middle C (MIDI note 60) as C4, so C1 is note 24. Some samplers name notes an octave differently; pick C2 or C3 if your first pad is there.
+**Which note is C1?** Here middle C (MIDI note 60) is C4, so C1 is note 24. Some samplers name octaves differently; pick C2 or C3 if your first pad is there.
 
 **Is my sound uploaded?** No. It is opened, sliced and saved in this page.
