@@ -1,0 +1,127 @@
+---
+// #T1031 Soundcheck list. Maths in src/lib/music/gig.ts.
+---
+<div class="tool-ui sl">
+  <section class="panel sl-printable">
+    <div class="sl-row">
+      <label>Venue <input data-k="venue" type="text" placeholder="Venue name" maxlength="80" /></label>
+      <label>Date <input data-k="date" type="date" /></label>
+    </div>
+    <p class="sl-out" aria-live="polite"></p>
+    <div class="sl-bar" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+    <div class="sl-groups"></div>
+  </section>
+  <section class="panel">
+    <div class="sl-row">
+      <button type="button" class="btn secondary sl-copy">Copy as text</button>
+      <button type="button" class="btn secondary sl-print">Print</button>
+      <button type="button" class="btn secondary sl-uncheck">Untick all</button>
+      <button type="button" class="btn secondary sl-reset">Reset list</button>
+    </div>
+    <p class="sl-fine sl-msg" aria-live="polite"></p>
+    <label class="sl-chk"><input data-k="save" type="checkbox" /> Remember my list on this device (off by default)</label>
+    <p class="sl-fine">When ticked, your list and ticks are kept in this browser only and never sent anywhere. Clear removes them.</p>
+    <button type="button" class="btn secondary sl-clear">Clear saved list</button>
+  </section>
+  <details class="panel"><summary>Tips for the sound check</summary>
+    <ul class="sl-tips">
+      <li><b>Gain staging:</b> set each channel's gain so its loudest peaks stay out of the red. Then bring the channel fader and master up. Turning the gain up and the fader down is not a fix for a quiet file.</li>
+      <li><b>Booth monitor:</b> keep it only as loud as you need to hear the beat. A louder monitor tires your ears and can hide how the room sounds.</li>
+      <li><b>Walk the room:</b> listen from the dance floor, not just the booth. Bass can sound very different away from the speakers.</li>
+      <li><b>Ask first:</b> check with the venue's sound person before changing the PA settings.</li>
+    </ul>
+  </details>
+</div>
+
+<style is:inline>
+  .sl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sl .panel { display: grid; gap: 12px; padding: 16px; }
+  .sl-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .sl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sl input[type=text], .sl input[type=date] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; box-sizing: border-box; }
+  .sl-chk { display: flex !important; gap: 8px; align-items: center; }
+  .sl-out { font-size: 20px; margin: 0; }
+  .sl-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .sl-bar { height: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .sl-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .sl-g { border-top: 1px solid var(--line); padding-top: 8px; }
+  .sl-g h3 { font-size: 16px; margin: 0 0 6px; }
+  .sl-it { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+  .sl-it input[type=checkbox] { width: 22px; height: 22px; flex: none; }
+  .sl-it input[type=text] { flex: 1; min-width: 0; padding: 6px 8px; }
+  .sl-it.done input[type=text] { text-decoration: line-through; color: var(--muted); }
+  .sl-it .sl-x, .sl-add { padding: 4px 10px; font-size: 14px; }
+  .sl-tips { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .sl-pt { display: none; }
+  @media print {
+    html.sl-printing body * { visibility: hidden; }
+    html.sl-printing .sl-printable, html.sl-printing .sl-printable * { visibility: visible; }
+    html.sl-printing .sl-printable { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    html.sl-printing .sl-x, html.sl-printing .sl-add { display: none; }
+    html.sl-printing .sl-it input[type=text] { border: 0; padding: 0; }
+  }
+</style>
+
+<script>
+  import { defaultGroups, progress, listText, type CheckGroup } from '../../lib/music/gig.ts';
+  const root = document.querySelector('.sl') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  const KEY = 'fibub-soundcheck-v1';
+  let groups: CheckGroup[] = defaultGroups();
+  let uid = 1000;
+  const wrap = $('.sl-groups');
+
+  const stats = () => {
+    const p = progress(groups);
+    $('.sl-out').textContent = `${p.done} of ${p.total} done (${p.pct}%)`;
+    ($('.sl-bar span') as HTMLElement).style.width = p.pct + '%';
+    $('.sl-bar').setAttribute('aria-valuenow', String(p.pct));
+  };
+  const build = () => {
+    wrap.innerHTML = '';
+    groups.forEach((g, gi) => {
+      const d = document.createElement('div'); d.className = 'sl-g';
+      const h = document.createElement('h3'); h.textContent = g.title; d.appendChild(h);
+      g.items.forEach((it, ii) => {
+        const r = document.createElement('div'); r.className = 'sl-it' + (it.done ? ' done' : '');
+        const c = document.createElement('input'); c.type = 'checkbox'; c.checked = it.done; c.setAttribute('aria-label', 'Done');
+        c.addEventListener('change', () => { it.done = c.checked; r.classList.toggle('done', it.done); stats(); save(); });
+        const t = document.createElement('input'); t.type = 'text'; t.value = it.text; t.maxLength = 140; t.setAttribute('aria-label', 'Item');
+        t.addEventListener('input', () => { it.text = t.value; save(); });
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'btn secondary sl-x'; x.textContent = 'Remove'; x.setAttribute('aria-label', 'Remove ' + it.text);
+        x.addEventListener('click', () => { groups[gi].items.splice(ii, 1); build(); save(); });
+        r.append(c, t, x); d.appendChild(r);
+      });
+      const a = document.createElement('button'); a.type = 'button'; a.className = 'btn secondary sl-add'; a.textContent = '+ Add an item';
+      a.addEventListener('click', () => { g.items.push({ id: 'u' + uid++, text: 'My own item', done: false }); build(); save(); const ins = wrap.querySelectorAll('.sl-g')[gi].querySelectorAll('.sl-it input[type=text]'); (ins[ins.length - 1] as HTMLInputElement).select(); });
+      d.appendChild(a); wrap.appendChild(d);
+    });
+    stats();
+  };
+
+  const save = () => {
+    if (!k('save').checked) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ groups, venue: k('venue').value, date: k('date').value })); } catch { /* blocked */ }
+  };
+  const msg = (t: string) => { $('.sl-msg').textContent = t; };
+  root.addEventListener('input', (e) => { const d = (e.target as HTMLElement).dataset.k; if (d === 'venue' || d === 'date') save(); });
+  k('save').addEventListener('change', () => { if (k('save').checked) save(); else try { localStorage.removeItem(KEY); } catch { /* blocked */ } });
+  $('.sl-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch { /* blocked */ } k('save').checked = false; msg('Saved list removed from this device.'); });
+  $('.sl-reset').addEventListener('click', () => { groups = defaultGroups(); build(); save(); msg('List reset to the starting items.'); });
+  $('.sl-uncheck').addEventListener('click', () => { groups.forEach((g) => g.items.forEach((i) => (i.done = false))); build(); save(); });
+  $('.sl-copy').addEventListener('click', async () => {
+    const t = listText(groups, k('venue').value.trim(), k('date').value);
+    try { await navigator.clipboard.writeText(t); msg('Copied.'); } catch { msg('Could not copy here. Use Print instead.'); }
+  });
+  $('.sl-print').addEventListener('click', () => {
+    document.documentElement.classList.add('sl-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('sl-printing'), { once: true });
+    window.print();
+  });
+  try {
+    const old = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (old?.groups) { groups = old.groups; k('venue').value = old.venue || ''; k('date').value = old.date || ''; k('save').checked = true; }
+  } catch { /* blocked */ }
+  build();
+</script>

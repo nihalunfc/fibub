@@ -1,0 +1,100 @@
+---
+// #T1032 Hearing timer. Maths in src/lib/music/gig.ts.
+---
+<div class="tool-ui ht">
+  <section class="panel">
+    <div class="ht-row">
+      <label>Sound level (dB(A)) <input data-k="level" type="number" min="40" max="140" step="0.5" value="94" inputmode="decimal" /></label>
+      <label>Example <select data-k="ex"><option value="">Pick one</option><option value="60">Normal conversation, about 60</option><option value="85">Heavy city traffic, about 85</option><option value="95">Motorcycle, about 95</option></select></label>
+    </div>
+    <label>Rule <select data-k="rule"><option value="niosh" selected>NIOSH: 85 dB(A) for 8 hours, 3 dB exchange</option><option value="osha">OSHA: 90 dB(A) for 8 hours, 5 dB exchange</option></select></label>
+    <p class="ht-fine">The exchange rate is how many dB louder halves the time allowed. NIOSH is the stricter, health-based advice. OSHA is the US legal limit for work.</p>
+  </section>
+  <section class="panel">
+    <h2>Allowed time</h2>
+    <p class="ht-out" aria-live="polite"></p>
+    <p class="ht-sub"></p>
+  </section>
+  <section class="panel">
+    <h2>Countdown for your set</h2>
+    <div class="ht-row">
+      <label>Set length (minutes) <input data-k="setmin" type="number" min="1" max="720" step="1" value="120" inputmode="numeric" /></label>
+      <button type="button" class="btn ht-start">Start</button>
+      <button type="button" class="btn secondary ht-reset">Reset</button>
+    </div>
+    <p class="ht-clock" aria-live="polite"></p>
+    <div class="ht-bar" role="progressbar" aria-label="Dose used" aria-valuemin="0" aria-valuemax="100"><span></span></div>
+    <p class="ht-dose" aria-live="polite"></p>
+  </section>
+  <details class="panel"><summary>More options: earplugs</summary>
+    <label class="ht-chk"><input data-k="plugs" type="checkbox" /> I wear earplugs</label>
+    <label>Noise Reduction Rating (NRR) printed on the pack <input data-k="nrr" type="number" min="0" max="40" step="1" value="25" inputmode="numeric" /></label>
+    <p class="ht-fine ht-plug"></p>
+    <p class="ht-fine">Only the NRR is supported here. Packs sold in Europe show SNR instead, which this page does not convert.</p>
+  </details>
+  <section class="panel ht-note">
+    <p><b>Not medical advice.</b> These are workplace rules turned into a timer. Your ears, your sound system and the room may differ. If your ears ring or sounds seem muffled after a gig, rest them and see a doctor or audiologist.</p>
+    <p><b>Phone microphones are not sound level meters.</b> Use a real meter, or ask the venue what level the system is running at, and treat the number you type here as an estimate. Rules differ by country and job: check the official source.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ht { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ht .panel { display: grid; gap: 12px; padding: 16px; }
+  .ht h2 { font-size: 17px; margin: 0; }
+  .ht-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .ht label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .ht input[type=number], .ht select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-width: 100%; box-sizing: border-box; }
+  .ht input[type=number] { width: 120px; }
+  .ht-chk { display: flex !important; gap: 8px; align-items: center; }
+  .ht-out { font-size: 26px; margin: 0; font-variant-numeric: tabular-nums; }
+  .ht-clock { font-size: 24px; margin: 0; font-variant-numeric: tabular-nums; }
+  .ht-sub, .ht-fine, .ht-dose, .ht-note p { color: var(--muted); font-size: 14px; margin: 0; }
+  .ht-dose { color: var(--ink); font-size: 16px; }
+  .ht-bar { height: 14px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .ht-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .ht-bar.over span { background: #b3261e; }
+  html[data-theme=dark] .ht-bar.over span { background: #f28b82; }
+</style>
+
+<script>
+  import { allowedHours, dosePct, fmtHours, levelWithPlugs, plugReduction, type Rule } from '../../lib/music/gig.ts';
+  const root = document.querySelector('.ht') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const k = (n: string) => root.querySelector(`[data-k="${n}"]`) as HTMLInputElement;
+  let run = false, elapsed = 0, last = 0, timer = 0;
+
+  const eff = () => {
+    const L = +k('level').value;
+    return k('plugs').checked ? levelWithPlugs(L, Math.max(0, +k('nrr').value || 0)) : L;
+  };
+  const rule = () => k('rule').value as Rule;
+  const render = () => {
+    const L = +k('level').value;
+    if (!isFinite(L) || k('level').value === '') { $('.ht-out').textContent = 'Type a sound level.'; return; }
+    const e = eff(), h = allowedHours(e, rule());
+    $('.ht-out').textContent = `${fmtHours(h)} allowed at ${Math.round(e * 10) / 10} dB(A)`;
+    $('.ht-sub').textContent = k('plugs').checked
+      ? `Level at the ear with plugs: ${L} minus ${plugReduction(+k('nrr').value || 0)} dB. Without plugs: ${fmtHours(allowedHours(L, rule()))}.`
+      : 'This is the time for a full day of listening at this one level.';
+    $('.ht-plug').textContent = `Plugs take off (NRR − 7) × 0.5 = ${plugReduction(+k('nrr').value || 0)} dB here. This is a common rule of thumb for how much of the printed rating you really get. Fit matters a lot.`;
+    const setH = Math.max(1, +k('setmin').value || 0) / 60;
+    const total = dosePct(e, setH, rule());
+    const used = dosePct(e, elapsed / 3600, rule());
+    $('.ht-clock').textContent = `${fmtClock(elapsed)} of ${fmtClock(setH * 3600)}`;
+    $('.ht-dose').textContent = run || elapsed > 0 ? `Dose used so far: ${Math.round(used)}%. The whole set would be ${Math.round(total)}%.` : `The whole set would use ${Math.round(total)}% of a day's dose.`;
+    const bar = $('.ht-bar'); (bar.firstElementChild as HTMLElement).style.width = Math.min(100, used) + '%';
+    bar.classList.toggle('over', used >= 100); bar.setAttribute('aria-valuenow', String(Math.round(Math.min(100, used))));
+  };
+  const fmtClock = (s: number) => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+  const tick = () => { const now = performance.now(); elapsed += (now - last) / 1000; last = now; render(); };
+  const stop = () => { run = false; clearInterval(timer); $('.ht-start').textContent = elapsed > 0 ? 'Continue' : 'Start'; };
+  $('.ht-start').addEventListener('click', () => {
+    if (run) { tick(); stop(); return; }
+    run = true; last = performance.now(); timer = window.setInterval(tick, 500); $('.ht-start').textContent = 'Pause'; render();
+  });
+  $('.ht-reset').addEventListener('click', () => { stop(); elapsed = 0; $('.ht-start').textContent = 'Start'; render(); });
+  k('ex').addEventListener('change', () => { if (k('ex').value) { k('level').value = k('ex').value; render(); } });
+  root.addEventListener('input', render);
+  render();
+</script>
