@@ -1,0 +1,301 @@
+---
+// #T1021 Mix recorder: record a DJ mix from an audio input or a browser tab, stamp each new track, and save WAV,
+// a smaller compressed file and the tracklist (text, CUE sheet, CSV). Or make a tracklist for an existing recording.
+// Formats in src/lib/music/tracklist.ts (checks in tests/djlib.mjs). The sound stays in this tab; nothing is uploaded.
+---
+<div class="tool-ui mr">
+  <div class="mr-modes" role="radiogroup" aria-label="What to do">
+    <label><input type="radio" name="mr-mode" value="rec" checked data-k="mode" /> Record a mix</label>
+    <label><input type="radio" name="mr-mode" value="list" data-k="mode" /> Tracklist for a recording I have</label>
+  </div>
+
+  <section class="panel mr-rec">
+    <p class="note bad mr-none" hidden>This browser cannot record sound. Try a recent Chrome, Edge, Firefox or Safari on a computer.</p>
+    <div class="mr-two">
+      <label>Record from
+        <select class="mr-src" data-k="source">
+          <option value="input">An audio input (mixer, audio interface or microphone)</option>
+          <option value="tab">A browser tab's sound</option>
+        </select>
+      </label>
+      <label class="mr-devl">Input
+        <select class="mr-dev" data-k="device"><option value="">Default input</option></select>
+      </label>
+    </div>
+    <label class="mr-check"><input class="mr-wav" type="checkbox" checked data-k="keepWav" /> Keep a WAV copy too (16-bit stereo, about 11 MB a minute; untick on a phone for long sets)</label>
+    <div class="mr-meter" aria-hidden="true"><span class="mr-level"></span></div>
+    <p class="mr-clip" aria-live="assertive"></p>
+    <p class="mr-time" aria-live="off">00:00</p>
+    <div class="mr-row">
+      <button type="button" class="btn mr-start">Start recording</button>
+      <button type="button" class="btn secondary mr-stop" hidden>Stop</button>
+    </div>
+    <p class="note bad mr-err" hidden></p>
+    <p class="mr-fine">Echo cancelling, noise reduction and automatic level are switched off so the music is recorded as it is. The screen is kept awake while recording. Keep this tab open and save before you close it.</p>
+  </section>
+
+  <section class="panel mr-file" hidden>
+    <div class="mr-drop">
+      <button type="button" class="btn mr-open">Open the recording</button>
+      <input class="mr-in" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.opus,.webm" hidden data-k="file" />
+      <span class="mr-name">Or drop it here. It plays here and stays on this device.</span>
+    </div>
+    <audio class="mr-play" controls preload="metadata"></audio>
+  </section>
+
+  <section class="panel mr-marks">
+    <label>Next track (optional): Artist – Title <input class="mr-label" type="text" data-k="label" placeholder="Artist – Title" autocomplete="off" /></label>
+    <button type="button" class="btn mr-new" disabled>New track <kbd>N</kbd></button>
+    <details class="mr-more">
+      <summary>Type a time instead</summary>
+      <div class="mr-row">
+        <label>Time (m:ss or h:mm:ss) <input class="mr-at" type="text" inputmode="numeric" data-k="time" placeholder="12:34" /></label>
+        <button type="button" class="btn secondary mr-add">Add</button>
+      </div>
+    </details>
+    <ol class="mr-list" aria-live="polite"></ol>
+    <p class="mr-fine mr-empty">No tracks marked yet. Press <strong>New track</strong> (or N) as each track comes in.</p>
+  </section>
+
+  <section class="panel mr-done" hidden>
+    <audio class="mr-audio" controls preload="metadata"></audio>
+    <p class="mr-info" aria-live="polite"></p>
+    <div class="mr-row">
+      <button type="button" class="btn mr-dwav">Download WAV</button>
+      <button type="button" class="btn secondary mr-dsmall">Download smaller file</button>
+    </div>
+  </section>
+
+  <section class="panel mr-out" hidden>
+    <h2 class="mr-h">Tracklist</h2>
+    <pre class="mr-text"></pre>
+    <div class="mr-row">
+      <button type="button" class="btn mr-txt">Text (.txt)</button>
+      <button type="button" class="btn secondary mr-cue">CUE sheet</button>
+      <button type="button" class="btn secondary mr-csv">CSV</button>
+      <button type="button" class="btn secondary mr-copy">Copy</button>
+    </div>
+    <label>Your DJ name for the CUE sheet (optional) <input class="mr-dj" type="text" data-k="performer" autocomplete="off" /></label>
+  </section>
+</div>
+
+<style is:inline>
+  .mr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mr .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .mr [hidden] { display: none !important; }
+  .mr-modes { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .mr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mr .mr-modes label, .mr .mr-check { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; color: var(--ink); }
+  .mr .mr-check { font-size: 14px; }
+  .mr-check input, .mr-modes input { margin-top: 3px; flex: none; }
+  .mr input[type=text], .mr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .mr-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .mr-meter { height: 14px; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--bg); }
+  .mr-level { display: block; height: 100%; width: 0; background: var(--accent); transition: width 60ms linear; }
+  .mr-level.hot { background: var(--bad, #b00020); }
+  .mr-clip { color: var(--bad, #b00020); font-size: 14px; margin: 0; min-height: 1.2em; }
+  .mr-time { font-size: 36px; font-variant-numeric: tabular-nums; margin: 0; }
+  .mr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .mr-fine, .mr-info, .mr-name { color: var(--muted); font-size: 14px; margin: 0; }
+  .mr-new { font-size: 20px; padding: 18px; width: 100%; }
+  .mr-new kbd { font: inherit; font-size: 13px; opacity: .75; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+  .mr-more summary { cursor: pointer; }
+  .mr-more .mr-row { margin-top: 8px; }
+  .mr-list { margin: 0; padding-left: 28px; display: grid; gap: 6px; }
+  .mr-list li { display: grid; grid-template-columns: 96px 1fr auto; gap: 6px; align-items: center; }
+  .mr-list input { padding: 6px 8px !important; font-variant-numeric: tabular-nums; }
+  .mr-list button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  .mr-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .mr-drop.over { border-color: var(--accent); }
+  .mr-play, .mr-audio { width: 100%; }
+  .mr-h { font-size: 18px; margin: 0; }
+  .mr-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; max-height: 300px; overflow-y: auto; }
+</style>
+
+<script>
+  import { stamp, cueSheet, tracklistText, tracklistCsv, parseTime, splitLabel, wavHeader, toPcm16, WAV_MAX_BYTES, type Mark } from '../../lib/music/tracklist.ts';
+  import { saveBytes, sizeText, baseName } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.mr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const startB = $<HTMLButtonElement>('.mr-start'), stopB = $<HTMLButtonElement>('.mr-stop'), newB = $<HTMLButtonElement>('.mr-new');
+  const err = $('.mr-err'), time = $('.mr-time'), level = $('.mr-level'), clip = $('.mr-clip'), srcSel = $<HTMLSelectElement>('.mr-src'), devSel = $<HTMLSelectElement>('.mr-dev');
+  const labelIn = $<HTMLInputElement>('.mr-label'), list = $('.mr-list'), play = $<HTMLAudioElement>('.mr-play');
+  const canRec = !!(navigator.mediaDevices?.getUserMedia && 'MediaRecorder' in window);
+  const canTab = !!navigator.mediaDevices?.getDisplayMedia;
+  if (!canRec) { $('.mr-none').hidden = false; startB.disabled = true; }
+  if (!canTab) srcSel.querySelector('option[value=tab]')!.remove();
+
+  let mode: 'rec' | 'list' = 'rec', marks: Mark[] = [], total = 0, fileName = 'mix.wav';
+  let stream: MediaStream | null = null, ac: AudioContext | null = null, proc: ScriptProcessorNode | null = null, rec: MediaRecorder | null = null;
+  let t0 = 0, recording = false, raf = 0, frames = 0, keepWav = true, rate = 48000, pend: Int16Array[] = [], pendFrames = 0, wavParts: Blob[] = [], small: Blob[] = [];
+  let wavBlob: Blob | null = null, smallBlob: Blob | null = null, wake: { release(): Promise<void> } | null = null, clipUntil = 0, clips = 0, url = '';
+  const now = () => (mode === 'list' ? play.currentTime || 0 : recording && ac ? ac.currentTime - t0 : 0);
+  const ext = (t: string) => (t.includes('ogg') ? 'ogg' : t.includes('mp4') || t.includes('aac') ? 'm4a' : 'webm');
+  const dstamp = () => new Date().toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+
+  // ---------- marks ----------
+  function render() {
+    marks.sort((a, b) => a.t - b.t);
+    const long = Math.max(total, marks.at(-1)?.t ?? 0) >= 3600;
+    list.replaceChildren(...marks.map((m, i) => {
+      const li = document.createElement('li'), ti = document.createElement('input'), la = document.createElement('input'), del = document.createElement('button');
+      ti.type = la.type = 'text'; ti.value = stamp(m.t, long); ti.setAttribute('aria-label', `Start of track ${i + 1}`); ti.dataset.k = 'mark-time';
+      la.value = m.artist && m.title ? `${m.artist} – ${m.title}` : m.title; la.placeholder = 'Artist – Title'; la.setAttribute('aria-label', `Track ${i + 1}`); la.dataset.k = 'mark-label';
+      del.type = 'button'; del.textContent = '×'; del.setAttribute('aria-label', `Remove track ${i + 1}`);
+      ti.addEventListener('change', () => { const v = parseTime(ti.value); if (isFinite(v)) m.t = v; render(); });
+      la.addEventListener('input', () => { Object.assign(m, splitLabel(la.value)); out(); });
+      del.addEventListener('click', () => { marks.splice(marks.indexOf(m), 1); render(); });
+      li.append(ti, la, del); return li;
+    }));
+    $('.mr-empty').hidden = !!marks.length; out();
+  }
+  function out() {
+    $('.mr-out').hidden = !marks.length;
+    $('.mr-text').textContent = tracklistText(marks, total);
+  }
+  function addMark(t: number) {
+    marks.push({ t: Math.max(0, t), ...splitLabel(labelIn.value) }); labelIn.value = ''; render();
+  }
+  newB.addEventListener('click', () => addMark(now()));
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.altKey && !newB.disabled) {
+      const t = e.target as HTMLElement;
+      if (t.closest('input, textarea, select, [contenteditable]')) return;
+      e.preventDefault(); addMark(now());
+    }
+  });
+  $('.mr-add').addEventListener('click', () => {
+    const at = $<HTMLInputElement>('.mr-at'), v = parseTime(at.value);
+    if (!isFinite(v)) { at.setCustomValidity('Type a time like 12:34 or 1:02:03'); at.reportValidity(); return; }
+    at.setCustomValidity(''); addMark(v); at.value = '';
+  });
+  const save = (txt: string, name: string, type: string) => saveBytes(new TextEncoder().encode(txt), name, type);
+  const stem = () => baseName(fileName, 'mix');
+  $('.mr-txt').addEventListener('click', () => save(tracklistText(marks, total), `${stem()}-tracklist.txt`, 'text/plain'));
+  $('.mr-cue').addEventListener('click', () => save(cueSheet(marks, fileName, { performer: $<HTMLInputElement>('.mr-dj').value.trim() || undefined, title: stem() }), `${stem()}.cue`, 'application/x-cue'));
+  $('.mr-csv').addEventListener('click', () => save(tracklistCsv(marks, total), `${stem()}-tracklist.csv`, 'text/csv'));
+  $('.mr-copy').addEventListener('click', async () => { const b = $('.mr-copy'); try { await navigator.clipboard.writeText(tracklistText(marks, total)); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy above'; } setTimeout(() => (b.textContent = 'Copy'), 1500); });
+
+  // ---------- modes ----------
+  root.querySelectorAll<HTMLInputElement>('input[name=mr-mode]').forEach((r) => r.addEventListener('change', () => {
+    if (recording) { r.checked = r.value === 'rec'; return; }
+    mode = r.value as 'rec' | 'list';
+    $('.mr-rec').hidden = mode !== 'rec'; $('.mr-file').hidden = mode !== 'list';
+    $('.mr-done').hidden = mode !== 'rec' || !(wavBlob || smallBlob);
+    newB.disabled = mode === 'rec' ? !recording : !play.src;
+  }));
+  srcSel.addEventListener('change', () => { $('.mr-devl').hidden = srcSel.value !== 'input'; });
+  async function listDevices() {
+    try {
+      const ds = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput');
+      const keep = devSel.value; devSel.replaceChildren(new Option('Default input', ''));
+      ds.forEach((d, i) => { if (d.deviceId && d.deviceId !== 'default') devSel.add(new Option(d.label || `Input ${i + 1}`, d.deviceId)); });
+      devSel.value = keep;
+    } catch { /* keep the default */ }
+  }
+  if (canRec) { listDevices(); navigator.mediaDevices.addEventListener?.('devicechange', listDevices); }
+
+  // ---------- recording ----------
+  const raw = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+  async function getWake() { try { wake = await (navigator as any).wakeLock?.request('screen'); } catch { wake = null; } }
+  document.addEventListener('visibilitychange', () => { if (recording && document.visibilityState === 'visible') getWake(); });
+  const flush = () => { if (pend.length) { wavParts.push(new Blob(pend as BlobPart[], { type: 'application/octet-stream' })); pend = []; pendFrames = 0; } };
+  const tick = (an: AnalyserNode, buf: Float32Array) => {
+    an.getFloatTimeDomainData(buf as Float32Array<ArrayBuffer>);
+    let p = 0; for (let i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i]));
+    const db = 20 * Math.log10(p || 1e-6);
+    level.style.width = Math.max(0, Math.min(100, ((db + 60) / 60) * 100)) + '%';
+    if (p >= 0.99) { clipUntil = performance.now() + 2000; clips++; }
+    const hot = performance.now() < clipUntil; level.classList.toggle('hot', hot);
+    clip.textContent = hot ? 'Too loud: the signal is clipping. Turn the record level or master down a little.' : '';
+    time.textContent = stamp(now());
+    raf = requestAnimationFrame(() => tick(an, buf));
+  };
+
+  startB.addEventListener('click', async () => {
+    err.hidden = true;
+    try {
+      if (srcSel.value === 'tab') {
+        const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: raw } as DisplayMediaStreamOptions);
+        if (!s.getAudioTracks().length) { s.getTracks().forEach((t) => t.stop()); throw Object.assign(new Error(), { name: 'NoAudio' }); }
+        s.getVideoTracks().forEach((t) => t.stop());
+        stream = new MediaStream(s.getAudioTracks());
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { ...raw, channelCount: { ideal: 2 }, ...(devSel.value ? { deviceId: { exact: devSel.value } } : {}) } });
+        listDevices();
+      }
+    } catch (e) {
+      const n = (e as Error).name;
+      err.textContent = n === 'NoAudio' ? 'No sound came with that share. Choose a browser tab and tick "Share tab audio".' : n === 'NotAllowedError' ? 'Recording was blocked. Allow it in the address bar (the lock or microphone icon) and try again.' : 'No input was found, or another app is using it.';
+      err.hidden = false; return;
+    }
+    stream.getAudioTracks()[0].addEventListener('ended', () => recording && stop());
+    ac = new AudioContext(); rate = ac.sampleRate; await ac.resume();
+    const srcN = ac.createMediaStreamSource(stream), an = ac.createAnalyser(); an.fftSize = 2048; srcN.connect(an);
+    keepWav = $<HTMLInputElement>('.mr-wav').checked; frames = 0; pend = []; pendFrames = 0; wavParts = []; small = []; clips = 0;
+    if (keepWav) {
+      proc = ac.createScriptProcessor(4096, 2, 2);
+      const mute = ac.createGain(); mute.gain.value = 0;
+      srcN.connect(proc); proc.connect(mute); mute.connect(ac.destination);
+      proc.onaudioprocess = (e) => {
+        if (!recording) return;
+        const ib = e.inputBuffer, ch = [ib.getChannelData(0), ib.numberOfChannels > 1 ? ib.getChannelData(1) : ib.getChannelData(0)];
+        if ((frames + ib.length) * 4 > WAV_MAX_BYTES) return; // WAV files cannot be bigger than 4 GB
+        pend.push(toPcm16(ch)); pendFrames += ib.length; frames += ib.length;
+        if (pendFrames >= rate * 10) flush(); // every 10 s the sound moves into a Blob the browser can keep out of page memory
+      };
+    }
+    try {
+      rec = new MediaRecorder(stream);
+      rec.ondataavailable = (e) => { if (e.data.size) small.push(e.data); };
+      rec.onstop = finish; rec.start(10000);
+    } catch { rec = null; }
+    t0 = ac.currentTime; recording = true; marks = []; total = 0; render();
+    getWake(); tick(an, new Float32Array(an.fftSize));
+    startB.hidden = true; stopB.hidden = false; newB.disabled = false; srcSel.disabled = devSel.disabled = true;
+    root.querySelectorAll<HTMLInputElement>('input[name=mr-mode]').forEach((r) => (r.disabled = true));
+  });
+  function stop() {
+    if (!recording) return;
+    total = now(); recording = false; flush();
+    if (rec && rec.state !== 'inactive') rec.stop(); else finish();
+  }
+  stopB.addEventListener('click', stop);
+  function finish() {
+    cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); stream = null; proc?.disconnect(); proc = null; ac?.close(); ac = null;
+    wake?.release().catch(() => {}); wake = null; level.style.width = '0'; clip.textContent = '';
+    startB.hidden = false; startB.textContent = 'Record a new mix'; stopB.hidden = true; newB.disabled = true; srcSel.disabled = devSel.disabled = false;
+    root.querySelectorAll<HTMLInputElement>('input[name=mr-mode]').forEach((r) => (r.disabled = false));
+    wavBlob = keepWav && frames ? new Blob([wavHeader(frames, rate, 2) as BlobPart, ...wavParts], { type: 'audio/wav' }) : null;
+    smallBlob = small.length ? new Blob(small, { type: rec?.mimeType || small[0].type || 'audio/webm' }) : null;
+    fileName = `mix-${dstamp()}.wav`; if (!wavBlob && smallBlob) fileName = `mix-${dstamp()}.${ext(smallBlob.type)}`;
+    if (url) URL.revokeObjectURL(url);
+    const pb = smallBlob || wavBlob; url = pb ? URL.createObjectURL(pb) : ''; $<HTMLAudioElement>('.mr-audio').src = url;
+    $('.mr-done').hidden = false;
+    $('.mr-info').textContent = `${stamp(total)} recorded, ${marks.length} track${marks.length === 1 ? '' : 's'} marked.` +
+      (wavBlob ? ` WAV ${sizeText(wavBlob.size)} (16-bit stereo, ${rate.toLocaleString('en-US')} Hz).` : '') +
+      (smallBlob ? ` Smaller file ${sizeText(smallBlob.size)} (${ext(smallBlob.type).toUpperCase()}, compressed by the browser).` : '') +
+      (clips ? ' The level clipped at times; the loud moments may sound harsh.' : '');
+    $<HTMLButtonElement>('.mr-dwav').disabled = !wavBlob; $<HTMLButtonElement>('.mr-dsmall').disabled = !smallBlob;
+    render();
+  }
+  $('.mr-dwav').addEventListener('click', () => wavBlob && saveBytes(wavBlob, fileName.replace(/\.[^.]+$/, '.wav')));
+  $('.mr-dsmall').addEventListener('click', () => smallBlob && saveBytes(smallBlob, fileName.replace(/\.[^.]+$/, '.' + ext(smallBlob.type))));
+  window.addEventListener('beforeunload', (e) => { if (recording || ((wavBlob || smallBlob) && mode === 'rec')) e.preventDefault(); });
+
+  // ---------- tracklist for an existing recording ----------
+  let fileUrl = '';
+  const openFile = (f: File) => {
+    if (fileUrl) URL.revokeObjectURL(fileUrl);
+    fileUrl = URL.createObjectURL(f); play.src = fileUrl; fileName = f.name;
+    $('.mr-name').textContent = f.name; marks = []; total = 0; newB.disabled = false; render();
+  };
+  play.addEventListener('loadedmetadata', () => { if (isFinite(play.duration)) { total = play.duration; render(); } });
+  const fin = $<HTMLInputElement>('.mr-in');
+  $('.mr-open').addEventListener('click', () => fin.click());
+  fin.addEventListener('change', () => { if (fin.files?.[0]) openFile(fin.files[0]); fin.value = ''; });
+  const drop = $('.mr-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) openFile(f); });
+</script>
