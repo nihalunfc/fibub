@@ -1,0 +1,198 @@
+---
+// #T1014 Stem splitter: vocals/instrumental (centre + harmonic mask), drums/melodic (median-filter HPSS, FitzGerald 2010),
+// bass/rest (harmonic below a cutoff). Classic signal maths, no AI model. Maths in src/lib/audio/separate.ts and stft.ts,
+// run in a Web Worker (src/lib/audio/dsp-worker.ts); checks in tests/audio-dsp.mjs. Nothing is uploaded.
+---
+<div class="tool-ui ss">
+  <section class="panel">
+    <div class="ss-drop">
+      <button type="button" class="btn ss-open">Open a song</button>
+      <input class="ss-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden data-k="file" />
+      <span class="ss-name">Or drop it here. MP3, WAV, M4A, FLAC, OGG, up to 20 minutes. It stays on this device.</span>
+    </div>
+    <p class="note bad ss-err" hidden></p>
+    <fieldset class="ss-modes">
+      <legend>Split into</legend>
+      <label><input type="radio" name="ss-mode" value="vocals" checked data-k="mode" /> Vocals and instrumental</label>
+      <label><input type="radio" name="ss-mode" value="drums" data-k="mode" /> Drums and melodic parts</label>
+      <label><input type="radio" name="ss-mode" value="bass" data-k="mode" /> Bass and everything else</label>
+    </fieldset>
+    <details class="ss-more">
+      <summary>More options</summary>
+      <div class="ss-two">
+        <label>Separation strength
+          <select class="ss-strength" data-k="strength">
+            <option value="1">Gentle (fewer artefacts, more bleed)</option>
+            <option value="2" selected>Normal</option>
+            <option value="3">Strong (cleaner, more watery)</option>
+          </select>
+        </label>
+        <label class="ss-cut-l">Bass cutoff (Hz) <input class="ss-cut" type="number" min="60" max="400" step="10" value="150" inputmode="numeric" data-k="cutoff" /></label>
+        <label class="ss-lo-l">Voice band from (Hz) <input class="ss-lo" type="number" min="50" max="1000" step="10" value="100" inputmode="numeric" data-k="low" /></label>
+        <label class="ss-hi-l">Voice band to (Hz) <input class="ss-hi" type="number" min="2000" max="16000" step="100" value="8000" inputmode="numeric" data-k="high" /></label>
+      </div>
+      <p class="ss-fine">Strength sets how hard each sound is pushed to one side. The cutoff is the highest note counted as bass. The voice band is where the vocals stem may take sound from.</p>
+    </details>
+    <div class="ss-row">
+      <button type="button" class="btn ss-go" disabled>Split</button>
+      <button type="button" class="btn secondary ss-cancel" hidden>Cancel</button>
+    </div>
+    <div class="ss-prog" hidden><progress class="ss-bar" max="1" value="0"></progress> <span class="ss-pct">0 %</span></div>
+  </section>
+
+  <section class="panel ss-res" hidden>
+    <p class="ss-sum" aria-live="polite"></p>
+    <div class="ss-stems"></div>
+    <div class="ss-row">
+      <button type="button" class="btn ss-play">Play</button>
+      <label class="ss-fmt-l">Save as
+        <select class="ss-fmt" data-k="format">
+          <option value="wav16">WAV 16-bit</option>
+          <option value="wav24">WAV 24-bit</option>
+          <option value="mp3-320">MP3 320 kbps</option>
+        </select>
+      </label>
+      <button type="button" class="btn secondary ss-zip">Save both as ZIP</button>
+    </div>
+    <p class="ss-fine">Solo plays only that stem; Mute leaves it out. Played together, the two stems are exactly the original song.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ss { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ss .panel { display: grid; gap: 12px; padding: 16px; }
+  .ss [hidden] { display: none !important; }
+  .ss-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .ss-drop.over { border-color: var(--accent); }
+  .ss-name, .ss-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .ss-sum { margin: 0; font-size: 16px; }
+  .ss-modes { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+  .ss-modes legend { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  .ss-modes label { display: flex; gap: 8px; align-items: center; font-size: 16px; }
+  .ss-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin: 10px 0; }
+  .ss .ss-two label, .ss-fmt-l { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ss input[type=number], .ss select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ss-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .ss-prog { display: flex; gap: 8px; align-items: center; }
+  .ss-bar { flex: 1; min-width: 0; height: 10px; }
+  .ss-stems { display: grid; gap: 8px; }
+  .ss-stem { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .ss-stem b { flex: 1 1 140px; }
+  .ss-stem small { color: var(--muted); font-size: 13px; font-weight: normal; display: block; }
+  .ss-stem button[aria-pressed=true] { background: var(--ink); color: var(--bg); }
+</style>
+
+<script>
+  import { decodeFile, baseName, saveBytes, saveZip } from '../../lib/audio/browser.ts';
+  import { STEM_NAMES, remainder, type StemMode } from '../../lib/audio/separate.ts';
+  import { encodeAs, OUT_FORMATS, type OutFormat } from '../../lib/audio/encode.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+  const root = document.querySelector('.ss') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLInputElement>('.ss-file'), err = $('.ss-err'), go = $<HTMLButtonElement>('.ss-go'), cancel = $<HTMLButtonElement>('.ss-cancel');
+  const prog = $('.ss-prog'), bar = $<HTMLProgressElement>('.ss-bar'), pct = $('.ss-pct'), sum = $('.ss-sum'), stemsBox = $('.ss-stems');
+  let snd: Sound | null = null, name = 'song', worker: Worker | null = null;
+  let stems: { name: string; chans: Float32Array[] }[] = [];
+  const solo = [false, false], mute = [false, false];
+
+  const mode = () => (root.querySelector('input[name=ss-mode]:checked') as HTMLInputElement).value as StemMode;
+  const showOpts = () => {
+    const m = mode();
+    $('.ss-cut-l').hidden = m !== 'bass'; $('.ss-lo-l').hidden = m !== 'vocals'; $('.ss-hi-l').hidden = m !== 'vocals';
+  };
+  const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+
+  // ---- Live preview: both stems play together; Solo and Mute change their levels without restarting.
+  let ac: AudioContext | null = null, nodes: { src: AudioBufferSourceNode; g: GainNode }[] = [];
+  const audible = (i: number) => (solo.some(Boolean) ? solo[i] : !mute[i]);
+  const setGains = () => nodes.forEach((n, i) => n.g.gain.setTargetAtTime(audible(i) ? 1 : 0, ac!.currentTime, 0.01));
+  const stopPlay = () => { for (const n of nodes) { n.src.onended = null; try { n.src.stop(); } catch {} } nodes = []; $('.ss-play').textContent = 'Play'; };
+  const startPlay = async () => {
+    stopPlay(); ac ??= new AudioContext(); await ac.resume();
+    const t = ac.currentTime + 0.05;
+    nodes = stems.map((s, i) => {
+      const b = ac!.createBuffer(s.chans.length, s.chans[0].length, snd!.rate);
+      s.chans.forEach((c, k) => b.copyToChannel(c, k));
+      const src = ac!.createBufferSource(), g = ac!.createGain();
+      src.buffer = b; g.gain.value = audible(i) ? 1 : 0; src.connect(g).connect(ac!.destination); src.start(t);
+      return { src, g };
+    });
+    nodes[0].src.onended = stopPlay;
+    $('.ss-play').textContent = 'Stop';
+  };
+
+  const energy = (ch: Float32Array[]) => { let e = 0; for (const c of ch) for (let i = 0; i < c.length; i++) e += c[i] * c[i]; return e; };
+  const fileName = (i: number) => `${name}-${stems[i].name.toLowerCase().replace(/[^a-z]+/g, '-')}.${OUT_FORMATS[$<HTMLSelectElement>('.ss-fmt').value as OutFormat].ext}`;
+  const encode = (i: number) => encodeAs({ rate: snd!.rate, chans: stems[i].chans }, $<HTMLSelectElement>('.ss-fmt').value as OutFormat);
+
+  const showStems = (secs: number) => {
+    const e = stems.map((s) => energy(s.chans)), tot = e[0] + e[1] || 1;
+    const share = e.map((v) => Math.round((100 * v) / tot));
+    sum.textContent = `Split in ${secs.toFixed(1)} s. ${stems[0].name}: ${share[0]} % of the sound energy; ${stems[1].name}: ${share[1]} %.`;
+    stemsBox.replaceChildren(...stems.map((s, i) => {
+      const row = document.createElement('div'); row.className = 'ss-stem';
+      const label = document.createElement('b'); label.textContent = s.name;
+      const sm = document.createElement('small'); sm.textContent = `${share[i]} % of the energy`; label.append(sm);
+      const mk = (txt: string, cls: string) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary ' + cls; b.textContent = txt; return b; };
+      const bs = mk('Solo', 'ss-solo'), bm = mk('Mute', 'ss-mute'), bd = mk('Save', 'ss-save');
+      bs.setAttribute('aria-pressed', String(solo[i])); bm.setAttribute('aria-pressed', String(mute[i]));
+      bs.addEventListener('click', () => { solo[i] = !solo[i]; bs.setAttribute('aria-pressed', String(solo[i])); setGains(); });
+      bm.addEventListener('click', () => { mute[i] = !mute[i]; bm.setAttribute('aria-pressed', String(mute[i])); setGains(); });
+      bd.addEventListener('click', async () => { bd.disabled = true; try { saveBytes(await encode(i), fileName(i), OUT_FORMATS[$<HTMLSelectElement>('.ss-fmt').value as OutFormat].mime); } finally { bd.disabled = false; } });
+      row.append(label, bs, bm, bd);
+      return row;
+    }));
+    $('.ss-res').hidden = false;
+  };
+
+  const busy = (on: boolean) => { go.disabled = on || !snd; cancel.hidden = !on; prog.hidden = !on; if (on) { bar.value = 0; pct.textContent = '0 %'; } };
+  const split = () => {
+    if (!snd) return;
+    stopPlay(); err.hidden = true; $('.ss-res').hidden = true; busy(true);
+    const m = mode(), t0 = performance.now();
+    worker?.terminate();
+    worker = new Worker(new URL('../../lib/audio/dsp-worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (e) => {
+      const d = e.data;
+      if (d.progress !== undefined) { bar.value = d.progress; pct.textContent = Math.round(d.progress * 100) + ' %'; return; }
+      worker?.terminate(); worker = null; busy(false);
+      if (d.error) { fail('Something went wrong while splitting: ' + d.error); return; }
+      const [a, b] = STEM_NAMES[m];
+      stems = [{ name: a, chans: d.chans }, { name: b, chans: remainder(snd!.chans, d.chans) }];
+      solo.fill(false); mute.fill(false);
+      showStems((performance.now() - t0) / 1000);
+    };
+    worker.onerror = () => { worker?.terminate(); worker = null; busy(false); fail('This browser could not run the splitter. Try a recent Chrome, Edge, Firefox or Safari.'); };
+    const opts = { strength: +$<HTMLSelectElement>('.ss-strength').value, cutoff: +$<HTMLInputElement>('.ss-cut').value || 150, lowHz: +$<HTMLInputElement>('.ss-lo').value || 100, highHz: +$<HTMLInputElement>('.ss-hi').value || 8000 };
+    worker.postMessage({ job: 'separate', chans: snd.chans.map((c) => c.slice()), rate: snd.rate, mode: m, opts });
+  };
+
+  const open = async (f: File) => {
+    err.hidden = true; stopPlay(); $('.ss-res').hidden = true;
+    if (f.size > 500e6) { fail('Too big: files up to 500 MB.'); return; }
+    $('.ss-name').textContent = `${f.name}: opening…`;
+    try { snd = await decodeFile(f); } catch { snd = null; go.disabled = true; $('.ss-name').textContent = f.name; fail('This browser cannot read that file. Try MP3 or WAV.'); return; }
+    if (snd.chans.length > 2) snd = { rate: snd.rate, chans: snd.chans.slice(0, 2) };
+    name = baseName(f.name, 'song');
+    const s = snd.chans[0].length / snd.rate;
+    if (s > 1200) { snd = null; go.disabled = true; fail('That is longer than 20 minutes. Cut it shorter first, then split it.'); $('.ss-name').textContent = f.name; return; }
+    $('.ss-name').textContent = `${f.name}: ${s >= 60 ? Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s' : s.toFixed(1) + ' s'}, ${snd.chans.length === 1 ? 'mono (vocals cannot be found by position in a mono file, so that split is rough)' : 'stereo'}.`;
+    go.disabled = false;
+  };
+
+  go.addEventListener('click', split);
+  cancel.addEventListener('click', () => { worker?.terminate(); worker = null; busy(false); sum.textContent = ''; err.textContent = 'Cancelled.'; err.hidden = false; });
+  $('.ss-play').addEventListener('click', () => (nodes.length ? stopPlay() : startPlay()));
+  $('.ss-zip').addEventListener('click', async () => {
+    const b = $<HTMLButtonElement>('.ss-zip'); b.disabled = true;
+    try { await saveZip(await Promise.all(stems.map(async (_, i) => ({ name: fileName(i), bytes: await encode(i) }))), `${name}-stems.zip`); } finally { b.disabled = false; }
+  });
+  for (const r of root.querySelectorAll('input[name=ss-mode]')) r.addEventListener('change', showOpts);
+  showOpts();
+  $('.ss-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.ss-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>
