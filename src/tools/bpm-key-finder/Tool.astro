@@ -1,21 +1,250 @@
 ---
-// #T1023 Key finder
+// #T1023 Key finder: BPM with a beat grid, key with runner-up and confidence, compatible keys, tap tempo,
+// and a microphone "listen" mode that estimates the key of what is playing. Maths in src/lib/music/ (tests/music.mjs).
 ---
-<div class="tool-ui bkf">
-  <label>TODO input <input class="bkf-in" type="number" value="1" step="any" /></label>
-  <p class="bkf-out" aria-live="polite"></p>
+<div class="tool-ui kf">
+  <section class="panel">
+    <div class="kf-drop">
+      <button type="button" class="btn kf-open">Open a track</button>
+      <button type="button" class="btn secondary kf-listen">Listen with the microphone</button>
+      <input class="kf-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.opus,.m4a,.aac,.flac,.webm,.mp4,.aif,.aiff" hidden />
+      <span class="kf-name">Or drop a file here. It stays on this device.</span>
+    </div>
+    <progress class="kf-bar" max="1" value="0" hidden></progress>
+    <p class="kf-msg" aria-live="polite"></p>
+  </section>
+
+  <section class="panel kf-res" hidden>
+    <dl class="kf-grid">
+      <div><dt>Tempo</dt><dd><span class="kf-bpm"></span> <small>BPM</small></dd>
+        <div class="kf-row"><button type="button" class="btn secondary kf-half">½ half</button><button type="button" class="btn secondary kf-dbl">×2 double</button></div>
+      </div>
+      <div><dt>Key</dt><dd class="kf-key"></dd><p class="kf-sub kf-keyinfo"></p></div>
+    </dl>
+    <div class="kf-wave-box">
+      <canvas class="kf-wave" height="120" aria-label="Waveform with beat grid. Tap a point to play from there."></canvas>
+    </div>
+    <div class="kf-row">
+      <button type="button" class="btn kf-play">Play</button>
+      <span class="kf-sub">Tap the waveform to play from that point. Lines mark the beats; darker lines every 4 beats.</span>
+    </div>
+    <label class="kf-lab">Key notation
+      <select class="kf-not" data-k="notation">
+        <option value="camelot">Camelot wheel (8A)</option>
+        <option value="openkey">Open Key (1m)</option>
+        <option value="musical">Musical (Am)</option>
+      </select>
+    </label>
+    <h2 class="kf-h">Keys that mix well after it</h2>
+    <ul class="kf-compat"></ul>
+  </section>
+
+  <section class="panel kf-tapbox" hidden>
+    <h2 class="kf-h">Check the tempo by tapping</h2>
+    <div class="kf-row">
+      <button type="button" class="btn kf-tap" data-k="tap">Tap on each beat</button>
+      <span class="kf-tapout" aria-live="polite">Tap 4 or more times in time with the music.</span>
+    </div>
+  </section>
+
+  <section class="panel kf-live" hidden>
+    <h2 class="kf-h">Listening</h2>
+    <progress class="kf-lbar" max="1" value="0"></progress>
+    <p class="kf-lkey" aria-live="polite">Play some music near the microphone…</p>
+    <div class="kf-row"><button type="button" class="btn secondary kf-lstop">Stop listening</button></div>
+    <details class="kf-more">
+      <summary>More options</summary>
+      <label class="kf-lab">Listen for (seconds) <input class="kf-secs" data-k="secs" type="number" min="5" max="60" step="1" value="15" inputmode="numeric" /></label>
+      <label class="kf-lab">Tuning of A4 (Hz) <input class="kf-a4" data-k="a4" type="number" min="400" max="480" step="1" value="440" inputmode="decimal" /></label>
+    </details>
+    <p class="kf-sub">The sound is analysed in this page as it arrives and is never recorded or sent anywhere.</p>
+  </section>
 </div>
 
 <style is:inline>
-  .bkf { display: grid; gap: .75rem; }
+  .kf { display: grid; gap: 14px; margin-bottom: 32px; }
+  .kf .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .kf [hidden] { display: none !important; }
+  .kf-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .kf-drop.over { border-color: var(--accent); }
+  .kf-name, .kf-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .kf-msg, .kf-lkey { margin: 0; }
+  .kf-bar, .kf-lbar { width: 100%; }
+  .kf-h { font-size: 18px; margin: 0; }
+  .kf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 10px; margin: 0; }
+  .kf-grid > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+  .kf-grid dt { color: var(--muted); font-size: 13px; }
+  .kf-grid dd { margin: 0; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .kf-grid small { font-size: 14px; color: var(--muted); }
+  .kf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .kf-wave-box { width: 100%; min-width: 0; }
+  .kf-wave { width: 100%; height: 120px; display: block; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; touch-action: manipulation; }
+  .kf-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); max-width: 320px; }
+  .kf input, .kf select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .kf-compat { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 6px; }
+  .kf-compat li { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 14px; }
+  .kf-compat b { font-variant-numeric: tabular-nums; margin-right: 6px; }
+  .kf-compat .ok { color: var(--muted); }
+  .kf-more summary { cursor: pointer; }
 </style>
 
 <script>
-  // Keep the maths in src/lib/ (or src/lib/sci/ for science) as plain TypeScript; import heavy libraries with import().
-  const root = document.querySelector('.bkf') as HTMLElement;
-  const input = root.querySelector('.bkf-in') as HTMLInputElement;
-  const out = root.querySelector('.bkf-out') as HTMLElement;
-  const update = () => { out.textContent = 'TODO result for ' + input.value; };
-  input.addEventListener('input', update);
-  update();
+  import type { Analysis } from '../../lib/music/analyse.ts';
+  import { keyIn, keyName, compatibleKeys, type Key, type KeyNotation } from '../../lib/music/theory.ts';
+  import { decodeFile, player } from '../../lib/audio/browser.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+
+  const root = document.querySelector('.kf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const msg = $('.kf-msg'), bar = $<HTMLProgressElement>('.kf-bar'), cv = $<HTMLCanvasElement>('.kf-wave'), notSel = $<HTMLSelectElement>('.kf-not');
+  const play = player();
+  let snd: Sound | null = null, A: Analysis | null = null, bpm = 0, worker: Worker | null = null, startAt = 0, startClock = 0, raf = 0;
+  const f1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
+  const notation = () => notSel.value as KeyNotation;
+  const both = (k: Key) => (notation() === 'musical' ? keyName(k) : `${keyIn(k, notation())} · ${keyName(k)}`);
+
+  // ---------- Waveform with beat grid ----------
+  let peaks: Float32Array | null = null;
+  const draw = (pos = -1) => {
+    if (!snd || !A) return;
+    const dpr = window.devicePixelRatio || 1, W = Math.max(100, Math.round(cv.clientWidth * dpr)), H = Math.round(120 * dpr);
+    if (cv.width !== W) { cv.width = W; peaks = null; }
+    cv.height = H;
+    const g = cv.getContext('2d')!, css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#ccc', acc = css.getPropertyValue('--accent') || '#00f';
+    const x0 = snd.chans[0], n = x0.length, dur = n / snd.rate;
+    if (!peaks) {
+      peaks = new Float32Array(W);
+      const per = n / W;
+      for (let i = 0; i < W; i++) { let m = 0; const a = Math.floor(i * per), b = Math.min(n, Math.floor((i + 1) * per)); for (let j = a; j < b; j += 4) { const v = Math.abs(x0[j]); if (v > m) m = v; } peaks[i] = m; }
+    }
+    g.clearRect(0, 0, W, H);
+    // Beats
+    const period = 60 / bpm; let k = 0, count = 0;
+    for (let t = A.firstBeat; t < dur; t += period, k++) {
+      const x = Math.round((t / dur) * W) + 0.5;
+      g.strokeStyle = k % 4 === 0 ? acc : line; g.lineWidth = k % 4 === 0 ? 1.5 * dpr : dpr;
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); count++;
+    }
+    cv.dataset.beats = String(count);
+    g.fillStyle = ink;
+    for (let i = 0; i < W; i++) { const h = Math.max(dpr, peaks[i] * (H / 2 - 4 * dpr)); g.fillRect(i, H / 2 - h, 1, 2 * h); }
+    if (pos >= 0) { g.fillStyle = acc; g.fillRect(Math.round((pos / dur) * W), 0, 2 * dpr, H); }
+  };
+  const tick = () => {
+    if (!play.playing || !snd) { draw(); raf = 0; return; }
+    draw(startAt + (performance.now() - startClock) / 1000); raf = requestAnimationFrame(tick);
+  };
+  const playFrom = (t: number) => {
+    if (!snd) return;
+    const r = snd.rate, a = Math.max(0, Math.floor(t * r));
+    startAt = a / r; startClock = performance.now();
+    $('.kf-play').textContent = 'Stop';
+    play.play(snd.chans.map((c) => c.subarray(a)), r, () => { $('.kf-play').textContent = 'Play'; });
+    if (!raf) raf = requestAnimationFrame(tick);
+  };
+
+  // ---------- Results ----------
+  const showBpm = () => { $('.kf-bpm').textContent = f1(bpm); draw(); };
+  const showKey = () => {
+    if (!A) return;
+    const k = A.key;
+    if (!k) { $('.kf-key').textContent = 'Not found'; $('.kf-keyinfo').textContent = 'No clear notes (drums only, or silence).'; $('.kf-compat').replaceChildren(); return; }
+    $('.kf-key').textContent = both(k.key);
+    $('.kf-keyinfo').textContent = `Confidence ${Math.round(k.confidence * 100)}%. Runner-up: ${both(k.runnerUp.key)}.`;
+    $('.kf-compat').replaceChildren(...compatibleKeys(k.key).map((c) => {
+      const li = document.createElement('li'), b = document.createElement('b');
+      b.textContent = keyIn(c.key, notation() === 'musical' ? 'camelot' : notation()); li.append(b, `${keyName(c.key)}: ${c.label}`);
+      li.dataset.code = keyIn(c.key, 'camelot'); if (c.tier === 'ok') li.className = 'ok';
+      return li;
+    }));
+  };
+  const show = () => {
+    if (!A) return;
+    bpm = A.bpm;
+    $('.kf-res').hidden = false; $('.kf-tapbox').hidden = false;
+    showBpm(); showKey();
+    msg.textContent = A.bpm
+      ? `${f1(A.bpm)} BPM (confidence ${Math.round(A.bpmConfidence * 100)}%, or ${f1(A.altBpm)}), ${A.key ? keyName(A.key.key) : 'key not found'}.`
+      : 'No steady beat found.';
+  };
+  const open = async (f: File) => {
+    play.stop(); stopListening();
+    $('.kf-name').textContent = `${f.name}: reading…`; msg.textContent = ''; bar.hidden = false; bar.value = 0;
+    try { snd = await decodeFile(f); } catch { $('.kf-name').textContent = f.name; msg.textContent = 'This browser cannot read that file. Try MP3 or WAV.'; bar.hidden = true; return; }
+    $('.kf-name').textContent = `${f.name}: analysing…`;
+    worker ??= new Worker(new URL('../../lib/music/analyse-worker.ts', import.meta.url), { type: 'module' });
+    const copies = snd.chans.map((c) => c.slice());
+    A = await new Promise<Analysis | null>((res) => {
+      worker!.onmessage = (e) => { const m = e.data; if (m.result) res(m.result); else if (m.error) res(null); else bar.value = m.progress; };
+      worker!.postMessage({ id: 1, chans: copies, rate: snd!.rate }, copies.map((c) => c.buffer));
+    });
+    bar.hidden = true; peaks = null;
+    const s = snd.chans[0].length / snd.rate;
+    $('.kf-name').textContent = `${f.name}: ${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    if (!A) { msg.textContent = 'Could not analyse this file.'; return; }
+    show();
+  };
+
+  $('.kf-half').addEventListener('click', () => { if (bpm / 2 >= 30) { bpm /= 2; showBpm(); } });
+  $('.kf-dbl').addEventListener('click', () => { if (bpm * 2 <= 400) { bpm *= 2; showBpm(); } });
+  notSel.addEventListener('change', () => { showKey(); if (lastLive) showLive(lastLive); });
+  $('.kf-play').addEventListener('click', () => { if (play.playing) { play.stop(); $('.kf-play').textContent = 'Play'; } else playFrom(0); });
+  cv.addEventListener('click', (e) => { if (!snd) return; const r = cv.getBoundingClientRect(); playFrom(((e.clientX - r.left) / r.width) * (snd.chans[0].length / snd.rate)); });
+  window.addEventListener('resize', () => { peaks = null; draw(); });
+
+  // ---------- Tap tempo ----------
+  let taps: number[] = [];
+  $('.kf-tap').addEventListener('click', () => {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now); taps = taps.slice(-12);
+    const out = $('.kf-tapout');
+    if (taps.length < 4) { out.textContent = `${taps.length} tap${taps.length === 1 ? '' : 's'}… keep going.`; return; }
+    const t = (60000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0]);
+    const near = bpm ? [bpm, bpm / 2, bpm * 2].reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a)) : 0;
+    out.textContent = `You tapped ${f1(t)} BPM.` + (near ? (Math.abs(near - t) / near < 0.04 ? ` That agrees with ${f1(near)}.` : ` The analysis says ${f1(bpm)}; trust your ears if they differ.`) : '');
+  });
+
+  // ---------- Listen mode (microphone) ----------
+  let stream: MediaStream | null = null, ac: AudioContext | null = null, timer = 0, lastLive: { k: Key; conf: number; runner: Key } | null = null;
+  const sum = new Float64Array(12);
+  const showLive = (v: { k: Key; conf: number; runner: Key }) => { $('.kf-lkey').textContent = `${both(v.k)} (confidence ${Math.round(v.conf * 100)}%; runner-up ${both(v.runner)})`; };
+  function stopListening() {
+    if (timer) clearInterval(timer); timer = 0;
+    stream?.getTracks().forEach((t) => t.stop()); stream = null; ac?.close(); ac = null;
+    $('.kf-listen').textContent = 'Listen with the microphone';
+  }
+  const listen = async () => {
+    if (timer) { stopListening(); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { msg.textContent = 'This browser cannot use a microphone here.'; return; }
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+    catch { msg.textContent = 'The microphone was not allowed. Allow it in the browser to use listen mode.'; return; }
+    play.stop();
+    const { chromagram, keyFromChroma } = await import('../../lib/music/analyse.ts');
+    ac = new AudioContext(); const src = ac.createMediaStreamSource(stream), an = ac.createAnalyser(); an.fftSize = 16384; src.connect(an);
+    const buf = new Float32Array(an.fftSize), secs = Math.max(5, Math.min(60, +$<HTMLInputElement>('.kf-secs').value || 15)), t0 = performance.now();
+    const a4 = Math.max(400, Math.min(480, +$<HTMLInputElement>('.kf-a4').value || 440));
+    sum.fill(0); lastLive = null;
+    $('.kf-live').hidden = false; $('.kf-lkey').textContent = 'Play some music near the microphone…'; $('.kf-listen').textContent = 'Stop listening';
+    timer = window.setInterval(() => {
+      if (!ac) return;
+      an.getFloatTimeDomainData(buf);
+      for (const c of chromagram(buf, ac.sampleRate, a4)) for (let i = 0; i < 12; i++) sum[i] += c[i];
+      const el = (performance.now() - t0) / 1000;
+      $<HTMLProgressElement>('.kf-lbar').value = Math.min(1, el / secs);
+      const r = keyFromChroma(sum);
+      if (r) { lastLive = { k: r.key, conf: r.confidence, runner: r.runnerUp.key }; showLive(lastLive); }
+      if (el >= secs) { stopListening(); if (lastLive) $('.kf-lkey').textContent = `Done: ${$('.kf-lkey').textContent}`; else $('.kf-lkey').textContent = 'Heard no clear notes. Try closer to the speaker.'; }
+    }, 300);
+  };
+  $('.kf-listen').addEventListener('click', listen);
+  $('.kf-lstop').addEventListener('click', stopListening);
+
+  const input = $<HTMLInputElement>('.kf-file');
+  $('.kf-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.kf-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
 </script>
