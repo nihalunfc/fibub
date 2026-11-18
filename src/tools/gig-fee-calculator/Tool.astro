@@ -1,0 +1,91 @@
+---
+// #T1039 Gig fee: a fair fee from your time, costs, agent cut, tax set-aside and target hourly rate. Maths in src/lib/music/calc.ts.
+---
+<div class="tool-ui gf">
+  <section class="panel">
+    <div class="gf-grid">
+      <label>Currency symbol <select class="gf-cur" data-k="cur"><option>$</option><option>£</option><option>€</option><option>₹</option><option>AED</option><option>SAR</option><option>QAR</option><option>C$</option></select></label>
+      <label>Set length (hours) <input class="gf-in" data-k="setH" type="number" min="0" step="any" value="2" inputmode="decimal" /></label>
+      <label>Prep time (hours) <input class="gf-in" data-k="prepH" type="number" min="0" step="any" value="3" inputmode="decimal" /></label>
+      <label>Travel time (hours, both ways) <input class="gf-in" data-k="travelH" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Your hourly rate to keep <input class="gf-in" data-k="rate" type="number" min="0" step="any" value="30" inputmode="decimal" /></label>
+    </div>
+    <p class="gf-fine"><b>How to pick your rate:</b> work out what you would need to keep for an hour of your time after costs and tax, then think about how much practice, skill and demand sit behind it. Ask other people in your scene what they charge, look at what local venues pay, and write down the lowest figure you would say yes to. Type it above. This tool never guesses a rate for you.</p>
+  </section>
+  <section class="panel">
+    <h2>Result</h2>
+    <p class="gf-big" aria-live="polite" role="status"><span class="gf-quote"></span></p>
+    <div class="gf-scroll"><table class="gf-table"><tbody class="gf-body"></tbody></table></div>
+    <p class="gf-warn" aria-live="polite"></p>
+  </section>
+  <details class="panel">
+    <summary>More options</summary>
+    <div class="gf-grid">
+      <label>Distance there and back <input class="gf-in" data-k="distance" type="number" min="0" step="any" value="50" inputmode="decimal" /></label>
+      <label>Distance unit <select class="gf-unit" data-k="unit"><option value="km">kilometres</option><option value="mi">miles</option></select></label>
+      <label>Cost per <span class="gf-u">km</span> <input class="gf-in" data-k="perDist" type="number" min="0" step="any" value="0.5" inputmode="decimal" /></label>
+      <label>Equipment hire <input class="gf-in" data-k="hire" type="number" min="0" step="any" value="20" inputmode="decimal" /></label>
+      <label>Gear wear and tear <input class="gf-in" data-k="wear" type="number" min="0" step="any" value="5" inputmode="decimal" /></label>
+      <label>Agent or booking cut (%) <input class="gf-in" data-k="agentPct" type="number" min="0" max="99" step="any" value="10" inputmode="decimal" /></label>
+      <label>Tax set-aside (%) <input class="gf-in" data-k="taxPct" type="number" min="0" max="99" step="any" value="20" inputmode="decimal" /></label>
+      <label>Margin on top (%) <input class="gf-in" data-k="marginPct" type="number" min="0" step="any" value="10" inputmode="decimal" /></label>
+      <label>Deposit (%) <input class="gf-in" data-k="depositPct" type="number" min="0" max="100" step="any" value="30" inputmode="decimal" /></label>
+    </div>
+    <p class="gf-fine">The tax set-aside is only money to put away, taken from what is left after the agent and your costs. Your real tax depends on where you live: check the official source or ask an accountant. The numbers shown start as examples; replace them with your own.</p>
+  </details>
+</div>
+
+<style is:inline>
+  .gf { display: grid; gap: 14px; margin-bottom: 32px; }
+  .gf .panel { display: grid; gap: 12px; padding: 16px; }
+  .gf h2 { margin: 0; font-size: 18px; }
+  .gf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .gf label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .gf input, .gf select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .gf-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .gf-big { font-size: 26px; margin: 0; font-variant-numeric: tabular-nums; }
+  .gf-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .gf-table th, .gf-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  .gf-table td { text-align: right; white-space: nowrap; }
+  .gf-table tr.k th, .gf-table tr.k td { font-weight: 700; }
+  .gf-warn { color: var(--bad, #b00020); margin: 0; font-size: 14px; }
+  .gf-scroll { overflow-x: auto; }
+</style>
+
+<script>
+  import { gigFee, type GigIn } from '../../lib/music/calc.ts';
+  const root = document.querySelector('.gf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const val = (k: string) => { const v = parseFloat((root.querySelector(`[data-k=${k}]`) as HTMLInputElement).value); return Number.isFinite(v) && v >= 0 ? v : 0; };
+  const update = () => {
+    const cur = $<HTMLSelectElement>('.gf-cur').value, unit = $<HTMLSelectElement>('.gf-unit').value;
+    $('.gf-u').textContent = unit;
+    const g: GigIn = { setH: val('setH'), prepH: val('prepH'), travelH: val('travelH'), distance: val('distance'), perDist: val('perDist'), hire: val('hire'), wear: val('wear'), agentPct: val('agentPct'), taxPct: val('taxPct'), rate: val('rate'), marginPct: val('marginPct'), depositPct: Math.min(100, val('depositPct')) };
+    const o = gigFee(g);
+    const m = (x: number) => cur + (cur.length > 1 && !cur.endsWith('$') ? ' ' : '') + x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (!o.ok || g.setH <= 0) {
+      $('.gf-quote').textContent = '';
+      $('.gf-body').innerHTML = '';
+      $('.gf-warn').textContent = !o.ok ? 'The agent cut and the tax set-aside must each be under 100%.' : 'Enter how long the set is.';
+      return;
+    }
+    $('.gf-warn').textContent = g.rate === 0 ? 'Your hourly rate is 0, so the fee only covers costs. Type the rate you want to keep.' : '';
+    $('.gf-quote').textContent = `Quote ${m(o.quote)}`;
+    const row = (a: string, b: string, k = false) => `<tr${k ? ' class="k"' : ''}><th scope="row">${a}</th><td>${b}</td></tr>`;
+    $('.gf-body').innerHTML =
+      row('Hours counted (set, prep, travel)', String(Math.round(o.hours * 100) / 100)) +
+      row('Travel cost', m(o.travelCost)) +
+      row('Costs in total (travel, hire, wear)', m(o.costs)) +
+      row('Minimum fee', m(o.minFee), true) +
+      row(`Quote with ${g.marginPct}% margin`, m(o.quote), true) +
+      row(`Deposit (${g.depositPct}%)`, m(o.deposit)) +
+      row('Balance after the deposit', m(o.balance)) +
+      row('Agent or booking cut', m(o.agent)) +
+      row('Tax to set aside', m(o.tax)) +
+      row('What you keep', m(o.keep), true) +
+      row('Effective hourly rate (kept)', m(o.effective) + ' per hour');
+  };
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

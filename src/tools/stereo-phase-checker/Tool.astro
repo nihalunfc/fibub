@@ -1,0 +1,193 @@
+---
+// #T1043 Phase checker: stereo correlation over time, goniometer, per-band correlation, mono-compatibility loss,
+// L/R balance and flagged out-of-phase moments; listen in stereo, mono or side only.
+// Maths in src/lib/audio/stereo.ts (checks in tests/audio-master.mjs).
+---
+<div class="tool-ui sp">
+  <section class="panel">
+    <div class="sp-drop">
+      <button type="button" class="btn sp-open">Open a mix</button>
+      <input class="sp-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden />
+      <span class="sp-name">Or drop it here. WAV, FLAC, MP3, M4A, OGG, up to 500 MB. It stays on this device.</span>
+    </div>
+    <p class="note bad sp-err" hidden></p>
+  </section>
+
+  <section class="panel sp-res" hidden>
+    <p class="sp-out" aria-live="polite"></p>
+    <dl class="sp-grid">
+      <div><dt>Correlation (whole track)</dt><dd class="sp-c"></dd></div>
+      <div><dt>Mono loss</dt><dd class="sp-ml"></dd></div>
+      <div><dt>Balance</dt><dd class="sp-bal"></dd></div>
+      <div><dt>Side vs mid</dt><dd class="sp-sm"></dd></div>
+    </dl>
+    <h2 class="sp-h">Correlation over time</h2>
+    <canvas class="sp-track" width="720" height="140" aria-label="Correlation over time from minus 1 to plus 1; tap to jump there"></canvas>
+    <p class="sp-fine">+1 at the top (the same in both speakers), 0 in the middle, −1 at the bottom (one side flipped). Below 0 is shaded. Tap to jump there.</p>
+    <div class="sp-cols">
+      <div>
+        <h2 class="sp-h">Goniometer</h2>
+        <canvas class="sp-gonio" width="260" height="260" aria-label="Goniometer: mid up, side across"></canvas>
+        <p class="sp-fine">Mid up, side across. A tall upright shape is safe; a flat or wide one cancels in mono.</p>
+      </div>
+      <div>
+        <h2 class="sp-h">By band</h2>
+        <table class="sp-bands"><tbody></tbody></table>
+        <h2 class="sp-h">Flagged moments</h2>
+        <ul class="sp-flags"></ul>
+      </div>
+    </div>
+    <h2 class="sp-h">Listen</h2>
+    <div class="sp-row" role="group" aria-label="Listen as">
+      <button type="button" class="btn sp-play">Play</button>
+      <button type="button" class="btn secondary sp-mode" data-mode="stereo" aria-pressed="true">Stereo</button>
+      <button type="button" class="btn secondary sp-mode" data-mode="mono" aria-pressed="false">Mono</button>
+      <button type="button" class="btn secondary sp-mode" data-mode="side" aria-pressed="false">Side only</button>
+    </div>
+    <p class="sp-pos sp-fine">0:00.0</p>
+    <p class="sp-fine">Mono is what a phone speaker, a club's mono sub or a radio may play. Side only is what disappears in mono: listen for bass or vocals there.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .sp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sp .panel { display: grid; gap: 12px; padding: 16px; }
+  .sp [hidden] { display: none !important; }
+  .sp-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .sp-drop.over { border-color: var(--accent); }
+  .sp-name, .sp-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .sp-out { font-size: 16px; margin: 0; }
+  .sp-h { font-size: 18px; margin: 4px 0 0; }
+  .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; margin: 0; }
+  .sp-grid div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .sp-grid dt { color: var(--muted); font-size: 13px; }
+  .sp-grid dd { margin: 2px 0 0; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .sp-track { width: 100%; height: 140px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+  .sp-gonio { width: 100%; max-width: 260px; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 10px; }
+  .sp-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+  .sp-cols > div { display: grid; gap: 8px; align-content: start; }
+  .sp-bands { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .sp-bands th, .sp-bands td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 400; }
+  .sp-flags { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 15px; }
+  .sp-flags button { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+  .sp-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sp-row [aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sp .warn { color: var(--warn, #8a5a00); }
+  .sp .bad { color: var(--bad, #b00020); }
+</style>
+
+<script>
+  import { analyse, BANDS } from '../../lib/audio/stereo.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile } from '../../lib/audio/browser.ts';
+  import { abPlayer, type Mode } from '../../lib/audio/abplayer.ts';
+
+  const root = document.querySelector('.sp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const err = $('.sp-err'), out = $('.sp-out');
+  const sgn = (v: number, d = 2) => (isFinite(v) ? (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d) : '—');
+  const f1 = (v: number) => (isFinite(v) ? (Math.round(v * 10) / 10).toFixed(1).replace('-', '−') : '—');
+  const clock = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+  let snd: Sound | null = null, A: ReturnType<typeof analyse> | null = null;
+  const pl = abPlayer();
+  const css = () => { const c = getComputedStyle(root); return { ink: c.getPropertyValue('--ink') || '#000', muted: c.getPropertyValue('--muted') || '#666', acc: c.getPropertyValue('--accent') || '#2457c5', bad: c.getPropertyValue('--bad') || '#b00020' }; };
+
+  const open = async (f: File) => {
+    err.hidden = true; pl.stop(); setPlay(false);
+    if (f.size > 500e6) { err.textContent = 'Too big: files up to 500 MB.'; err.hidden = false; return; }
+    $('.sp-name').textContent = `${f.name}: measuring…`;
+    try { snd = await decodeFile(f); } catch { err.textContent = 'This browser cannot read that file. Try WAV or MP3.'; err.hidden = false; $('.sp-name').textContent = f.name; return; }
+    await new Promise((r) => setTimeout(r, 0));
+    const s = snd.chans[0].length / snd.rate;
+    $('.sp-name').textContent = `${f.name}: ${clock(s)}, ${snd.chans.length === 1 ? 'mono' : 'stereo'}, ${snd.rate.toLocaleString('en-US')} Hz.`;
+    if (snd.chans.length < 2) { $('.sp-res').hidden = true; err.textContent = 'This file is mono: both speakers get the same sound, so there is nothing to cancel. Open a stereo file.'; err.hidden = false; return; }
+    const [L, R] = snd.chans;
+    A = analyse(L, R, snd.rate, 100);
+    show(); pl.load([{ chans: [L, R], rate: snd.rate, gainDb: 0 }]); pl.select(0);
+  };
+
+  const show = () => {
+    const a = A!, ml = a.mono.lossDb;
+    $('.sp-c').textContent = sgn(a.overall);
+    $('.sp-ml').textContent = !isFinite(ml) ? 'silent in mono' : `${f1(ml)} dB`;
+    $('.sp-bal').textContent = Math.abs(a.balanceDb) < 0.05 ? 'centred (0.0 dB)' : `${a.balanceDb > 0 ? 'left' : 'right'} +${f1(Math.abs(a.balanceDb))} dB`;
+    $('.sp-sm').textContent = !isFinite(a.ms.sideToMidDb) ? (a.ms.sideToMidDb > 0 ? 'all side' : 'no side (mono)') : `${f1(a.ms.sideToMidDb)} dB`;
+    const worst = Math.min(a.bands.low, a.bands.mid, a.bands.high);
+    out.className = 'sp-out' + (a.overall < 0 || !isFinite(ml) ? ' bad' : a.flagged.length || ml > 3 || worst < 0 ? ' warn' : '');
+    out.textContent = a.overall < 0 || !isFinite(ml) ? 'Out of phase: one side looks flipped. In mono much of this mix will cancel. Check the polarity of one channel.'
+      : a.flagged.length ? `Mostly fine, but ${a.flagged.length} ${a.flagged.length === 1 ? 'stretch goes' : 'stretches go'} below 0. Play them in Mono to hear what drops out.`
+      : ml > 3 ? `No moments below 0, but the mix gets ${f1(ml)} dB quieter in mono: it is very wide.`
+      : worst < 0 ? 'Fine overall, but one band is out of phase; see By band.'
+      : `Mono-safe: correlation ${sgn(a.overall)}, and the mix is ${f1(ml)} dB quieter in mono.`;
+    const tb = $('.sp-bands tbody'); tb.textContent = '';
+    for (const b of BANDS) { const v = a.bands[b.id]; const tr = document.createElement('tr'); tr.innerHTML = `<th scope="row"></th><td></td>`; tr.children[0].textContent = b.name; tr.children[1].textContent = sgn(v) + (v < 0 ? ' (cancels in mono)' : v < 0.3 ? ' (wide)' : ''); tb.append(tr); }
+    const ul = $('.sp-flags'); ul.textContent = '';
+    if (!a.flagged.length) { const li = document.createElement('li'); li.textContent = 'None: correlation stays at or above 0.'; ul.append(li); }
+    for (const fl of a.flagged.slice(0, 30)) {
+      const li = document.createElement('li'), b = document.createElement('button');
+      b.type = 'button'; b.textContent = `${clock(fl.start)} to ${clock(fl.end)}`; b.addEventListener('click', () => { pl.seek(Math.max(0, fl.start - 1)); if (!pl.playing) togglePlay(); });
+      li.append(b, ` (lowest ${sgn(fl.min)})`); ul.append(li);
+    }
+    $('.sp-res').hidden = false;
+    drawTrack(); drawGonio(null);
+  };
+
+  const drawTrack = () => {
+    if (!A) return;
+    const cv = $<HTMLCanvasElement>('.sp-track'), dpr = devicePixelRatio || 1, w = (cv.width = Math.round((cv.clientWidth || 720) * dpr)), h = (cv.height = Math.round(140 * dpr)), g = cv.getContext('2d')!, c = css();
+    const tr = A.track, y = (v: number) => ((1 - v) / 2) * h;
+    g.clearRect(0, 0, w, h); g.fillStyle = c.bad; g.globalAlpha = 0.12; g.fillRect(0, h / 2, w, h / 2); g.globalAlpha = 1;
+    g.fillStyle = c.muted; g.fillRect(0, h / 2, w, 1);
+    g.strokeStyle = c.acc; g.lineWidth = 1.5 * dpr; g.beginPath(); let on = false;
+    for (let x = 0; x < w; x++) {
+      const a = Math.floor((x / w) * tr.length), z = Math.max(a + 1, Math.floor(((x + 1) / w) * tr.length)); let s = 0, n = 0;
+      for (let i = a; i < z; i++) if (isFinite(tr[i])) { s += tr[i]; n++; }
+      if (!n) { on = false; continue; }
+      if (on) g.lineTo(x, y(s / n)); else { g.moveTo(x, y(s / n)); on = true; }
+    }
+    g.stroke();
+    if (pl.duration) { const px = (pl.position() / pl.duration) * w; g.fillStyle = c.ink; g.fillRect(px, 0, dpr, h); }
+    g.fillStyle = c.muted; g.font = `${11 * dpr}px system-ui`; g.fillText('+1', 4, 12 * dpr); g.fillText('0', 4, h / 2 - 3); g.fillText('−1', 4, h - 4);
+  };
+
+  // Goniometer: x = side (L−R)/√2, y = mid (L+R)/√2, auto-scaled. While playing, the last 50 ms; otherwise points spread over the track.
+  const drawGonio = (at: number | null) => {
+    if (!snd || !A) return;
+    const cv = $<HTMLCanvasElement>('.sp-gonio'), dpr = devicePixelRatio || 1, s = Math.round((cv.clientWidth || 260) * dpr);
+    cv.width = s; cv.height = s;
+    const g = cv.getContext('2d')!, c = css(), [L, R] = snd.chans, n = L.length, half = s / 2;
+    g.clearRect(0, 0, s, s); g.strokeStyle = c.muted; g.globalAlpha = 0.4; g.lineWidth = dpr;
+    g.beginPath(); g.moveTo(half, 0); g.lineTo(half, s); g.moveTo(0, half); g.lineTo(s, half); g.moveTo(0, 0); g.lineTo(s, s); g.moveTo(s, 0); g.lineTo(0, s); g.stroke(); g.globalAlpha = 1;
+    const idx: number[] = [];
+    if (at !== null) { const a = Math.max(0, Math.floor(at * snd.rate) - Math.round(0.05 * snd.rate)); for (let i = a; i < Math.min(n, a + Math.round(0.05 * snd.rate)); i++) idx.push(i); }
+    else { const step = Math.max(1, Math.floor(n / 12000)); for (let i = 0; i < n; i += step) idx.push(i); }
+    let pk = 1e-6; for (const i of idx) pk = Math.max(pk, Math.abs(L[i]), Math.abs(R[i]));
+    const k = (half * 0.9) / (pk * Math.SQRT2);
+    g.fillStyle = c.acc; g.globalAlpha = at === null ? 0.35 : 0.6;
+    for (const i of idx) { const m = (L[i] + R[i]) / Math.SQRT2, sd = (L[i] - R[i]) / Math.SQRT2; g.fillRect(half - sd * k, half - m * k, dpr * 1.5, dpr * 1.5); }
+    g.globalAlpha = 1; g.fillStyle = c.muted; g.font = `${11 * dpr}px system-ui`; g.fillText('M', half + 4, 12 * dpr); g.fillText('L', 6, 12 * dpr); g.fillText('R', s - 14 * dpr, 12 * dpr); g.fillText('S', s - 12 * dpr, half - 4);
+  };
+
+  const playB = $<HTMLButtonElement>('.sp-play');
+  const setPlay = (on: boolean) => (playB.textContent = on ? 'Pause' : 'Play');
+  const tick = () => { if (!pl.playing) { drawGonio(null); return; } const t = pl.position(); $('.sp-pos').textContent = clock(t); drawTrack(); drawGonio(t); requestAnimationFrame(tick); };
+  const togglePlay = async () => { if (pl.playing) { pl.pause(); setPlay(false); drawGonio(null); } else { await pl.play(); setPlay(true); tick(); } };
+  playB.addEventListener('click', togglePlay);
+  pl.onEnded(() => { setPlay(false); drawTrack(); });
+  root.querySelectorAll<HTMLButtonElement>('.sp-mode').forEach((b) => b.addEventListener('click', () => {
+    pl.setMode(b.dataset.mode as Mode);
+    root.querySelectorAll('.sp-mode').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  }));
+  $('.sp-track').addEventListener('click', (e) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); pl.seek(((e.clientX - r.left) / r.width) * pl.duration);
+    $('.sp-pos').textContent = clock(pl.position()); drawTrack();
+  });
+
+  $('.sp-open').addEventListener('click', () => $<HTMLInputElement>('.sp-file').click());
+  const input = $<HTMLInputElement>('.sp-file');
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.sp-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>

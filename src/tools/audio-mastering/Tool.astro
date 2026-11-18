@@ -1,0 +1,268 @@
+---
+// #T1017 Track mastering: tone EQ, glue compression, width and a true-peak limiter that lands on a loudness target.
+// DSP in src/lib/audio/master.ts (checks: node --experimental-strip-types tests/audio-master.mjs), run in master-worker.ts.
+---
+<div class="tool-ui am">
+  <section class="panel">
+    <div class="am-drop">
+      <button type="button" class="btn am-open">Open a track</button>
+      <input class="am-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm,.mp4" hidden />
+      <span class="am-name">Or drop it here. WAV, FLAC, MP3, M4A, OGG, up to 500 MB. It stays on this device.</span>
+    </div>
+    <p class="note bad am-err" hidden></p>
+  </section>
+
+  <section class="panel am-set">
+    <label>Where it is going
+      <select class="am-preset" data-k="preset">
+        <option value="stream" selected>Streaming: −14 LUFS, −1 dBTP</option>
+        <option value="club">Club and DJ (loud): −9 LUFS, −1 dBTP</option>
+        <option value="podcast">Podcast: −16 LUFS, −1 dBTP</option>
+        <option value="broadcast">Broadcast, EBU R 128: −23 LUFS, −1 dBTP</option>
+        <option value="custom">My own target</option>
+      </select>
+    </label>
+    <p class="am-hint"></p>
+    <div class="am-two">
+      <label>Target loudness (LUFS) <input class="am-target" data-k="target" type="number" min="-30" max="-5" step="0.5" value="-14" inputmode="decimal" /></label>
+      <label>Limiter ceiling (dBTP) <input class="am-ceil" data-k="ceiling" type="number" min="-6" max="0" step="0.1" value="-1" inputmode="decimal" /></label>
+    </div>
+    <div class="am-two">
+      <label>Bass (low shelf, dB) <input class="am-low" data-k="low" type="number" min="-6" max="6" step="0.5" value="0" inputmode="decimal" /></label>
+      <label>Middle (bell, dB) <input class="am-mid" data-k="mid" type="number" min="-6" max="6" step="0.5" value="0" inputmode="decimal" /></label>
+      <label>Treble (high shelf, dB) <input class="am-high" data-k="high" type="number" min="-6" max="6" step="0.5" value="0" inputmode="decimal" /></label>
+      <label>Stereo width (%) <input class="am-width" data-k="width" type="number" min="0" max="150" step="5" value="100" inputmode="numeric" /></label>
+    </div>
+    <label class="am-check"><input type="checkbox" class="am-comp" data-k="comp" checked /> Glue compression (gentle, 2:1, holds the mix together)</label>
+    <details class="am-more">
+      <summary>More options</summary>
+      <div class="am-two">
+        <label>Bass corner (Hz) <input class="am-lowf" data-k="lowHz" type="number" min="30" max="300" step="10" value="100" inputmode="numeric" /></label>
+        <label>Middle centre (Hz) <input class="am-midf" data-k="midHz" type="number" min="200" max="6000" step="50" value="1000" inputmode="numeric" /></label>
+        <label>Treble corner (Hz) <input class="am-highf" data-k="highHz" type="number" min="2000" max="16000" step="500" value="8000" inputmode="numeric" /></label>
+        <label>Compressor threshold (dBFS) <input class="am-thr" data-k="thr" type="number" min="-40" max="0" step="1" value="-18" inputmode="decimal" /></label>
+        <label>Compressor ratio (:1) <input class="am-ratio" data-k="ratio" type="number" min="1.1" max="10" step="0.1" value="2" inputmode="decimal" /></label>
+        <label>Compressor attack (ms) <input class="am-att" data-k="attack" type="number" min="0.1" max="200" step="1" value="30" inputmode="decimal" /></label>
+        <label>Compressor release (ms) <input class="am-rel" data-k="release" type="number" min="10" max="2000" step="10" value="200" inputmode="decimal" /></label>
+        <label>Limiter release (ms) <input class="am-lrel" data-k="limRelease" type="number" min="5" max="500" step="5" value="60" inputmode="decimal" /></label>
+      </div>
+      <p class="am-fine">The compressor's make-up gain is left at 0 dB: the target step sets the final level, so make-up gain would change nothing.</p>
+    </details>
+    <button type="button" class="btn am-go" disabled>Master it</button>
+    <div class="am-prog" hidden><progress class="am-bar" max="4" value="0"></progress> <span class="am-stage"></span></div>
+  </section>
+
+  <section class="panel am-res" hidden>
+    <h2 class="am-h">Before and after</h2>
+    <p class="am-out" aria-live="polite"></p>
+    <div class="am-tablewrap">
+      <table class="am-table">
+        <thead><tr><th></th><th>Original</th><th>Master</th></tr></thead>
+        <tbody>
+          <tr><th>Integrated</th><td class="b-i"></td><td class="a-i"></td></tr>
+          <tr><th>Loudest 3 s</th><td class="b-st"></td><td class="a-st"></td></tr>
+          <tr><th>Loudness range</th><td class="b-lra"></td><td class="a-lra"></td></tr>
+          <tr><th>True peak</th><td class="b-tp"></td><td class="a-tp"></td></tr>
+          <tr><th>Gain reduction</th><td>—</td><td class="a-gr"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <canvas class="am-gr" width="720" height="110" aria-label="Limiter gain reduction over the track"></canvas>
+    <p class="am-fine">The graph shows how hard the limiter pressed (down = more gain reduction) along the track.</p>
+
+    <h2 class="am-h">Listen</h2>
+    <div class="am-ab" role="group" aria-label="Choose what you hear">
+      <button type="button" class="btn secondary am-a" aria-pressed="false">Original</button>
+      <button type="button" class="btn secondary am-b" aria-pressed="true">Master</button>
+      <button type="button" class="btn am-play">Play</button>
+    </div>
+    <input class="am-seek" data-k="seek" type="range" min="0" max="1000" value="0" aria-label="Position" />
+    <label class="am-check"><input type="checkbox" class="am-match" data-k="match" checked /> Match loudness while comparing</label>
+    <p class="am-matchnote"></p>
+
+    <h2 class="am-h">Save</h2>
+    <div class="am-two">
+      <label>Format
+        <select class="am-fmt" data-k="format">
+          <option value="wav24">WAV 24-bit (keep for more work)</option>
+          <option value="wav16" selected>WAV 16-bit with TPDF dither (CD, upload)</option>
+          <option value="mp3">MP3 320 kbps</option>
+        </select>
+      </label>
+    </div>
+    <button type="button" class="btn am-save">Download the master</button>
+    <p class="am-fine am-savenote"></p>
+  </section>
+</div>
+
+<style is:inline>
+  .am { display: grid; gap: 14px; margin-bottom: 32px; }
+  .am .panel { display: grid; gap: 12px; padding: 16px; }
+  .am [hidden] { display: none !important; }
+  .am-drop { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; border: 2px dashed var(--line); border-radius: 12px; padding: 14px; }
+  .am-drop.over { border-color: var(--accent); }
+  .am-name, .am-fine, .am-hint, .am-matchnote, .am-stage { color: var(--muted); font-size: 14px; margin: 0; }
+  .am-out { font-size: 16px; margin: 0; }
+  .am-h { font-size: 18px; margin: 4px 0 0; }
+  .am-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .am label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .am label.am-check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .am input[type=number], .am select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .am-more summary { cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+  .am-prog { display: flex; gap: 10px; align-items: center; }
+  .am-bar { flex: 1; min-width: 0; }
+  .am-tablewrap { overflow-x: auto; }
+  .am-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .am-table th, .am-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .am-table thead th { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .am-gr { width: 100%; height: 110px; border: 1px solid var(--line); border-radius: 10px; }
+  .am-ab { display: flex; flex-wrap: wrap; gap: 8px; }
+  .am-ab [aria-pressed=true] { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .am-seek { width: 100%; }
+  .am .warn { color: var(--warn, #8a5a00); }
+</style>
+
+<script>
+  import type { Loudness } from '../../lib/audio/loudness.ts';
+  import type { MasterSettings } from '../../lib/audio/master.ts';
+  import type { Sound } from '../../lib/audio/pcm.ts';
+  import { decodeFile, baseName, saveBytes } from '../../lib/audio/browser.ts';
+  import { abPlayer } from '../../lib/audio/abplayer.ts';
+
+  const root = document.querySelector('.am') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => +$<HTMLInputElement>(s).value;
+  const PRESETS: Record<string, { target: number; ceil: number; hint: string }> = {
+    stream: { target: -14, ceil: -1, hint: 'Spotify and YouTube play music at about −14 LUFS and turn louder tracks down; −1 dBTP leaves room for their encoders.' },
+    club: { target: -9, ceil: -1, hint: 'Club and DJ masters are often made around −9 to −8 LUFS. That is common practice, not a standard; streaming services will turn it down.' },
+    podcast: { target: -16, ceil: -1, hint: 'Podcast apps and Apple Music aim for about −16 LUFS (AES TD1004 for podcasts).' },
+    broadcast: { target: -23, ceil: -1, hint: 'European TV and radio: −23 LUFS, true peak at most −1 dBTP (EBU R 128).' },
+  };
+  const f1 = (v: number) => (isFinite(v) ? (Math.round(v * 10) / 10).toFixed(1).replace('-', '−') : '—');
+  const err = $('.am-err'), go = $<HTMLButtonElement>('.am-go'), out = $('.am-out'), preset = $<HTMLSelectElement>('.am-preset');
+  let snd: Sound | null = null, name = 'track', mastered: Float32Array[] | null = null, before: Loudness | null = null, after: Loudness | null = null;
+  let worker: Worker | null = null, jobId = 0, dirty = false;
+  const ab = abPlayer();
+
+  const settings = (): MasterSettings => ({
+    eq: { lowDb: num('.am-low'), lowHz: num('.am-lowf'), midDb: num('.am-mid'), midHz: num('.am-midf'), midQ: 0.7, highDb: num('.am-high'), highHz: num('.am-highf') },
+    comp: $<HTMLInputElement>('.am-comp').checked ? { thresholdDb: num('.am-thr'), ratio: Math.max(1, num('.am-ratio')), attackMs: num('.am-att'), releaseMs: num('.am-rel'), makeupDb: 0 } : null,
+    width: Math.max(0, Math.min(1.5, num('.am-width') / 100)), target: num('.am-target'), ceilingDb: Math.min(0, num('.am-ceil')), releaseMs: num('.am-lrel'),
+  });
+  const showHint = () => { const p = PRESETS[preset.value]; $('.am-hint').textContent = p ? p.hint : 'Your own loudness target and ceiling.'; };
+  preset.addEventListener('change', () => { const p = PRESETS[preset.value]; if (p) { $<HTMLInputElement>('.am-target').value = String(p.target); $<HTMLInputElement>('.am-ceil').value = String(p.ceil); } showHint(); changed(); });
+  const changed = () => {
+    if (!PRESETS[preset.value] || PRESETS[preset.value].target !== num('.am-target') || PRESETS[preset.value].ceil !== num('.am-ceil')) {
+      const hit = Object.entries(PRESETS).find(([, p]) => p.target === num('.am-target') && p.ceil === num('.am-ceil'));
+      preset.value = hit ? hit[0] : 'custom'; showHint();
+    }
+    if (mastered) { dirty = true; out.textContent = 'Settings changed. Press Master it to hear them.'; out.className = 'am-out warn'; }
+  };
+  root.querySelectorAll('.am-set input').forEach((el) => el.addEventListener('input', changed));
+  showHint();
+
+  const open = async (f: File) => {
+    err.hidden = true; ab.stop();
+    if (f.size > 500e6) { err.textContent = 'Too big: files up to 500 MB.'; err.hidden = false; return; }
+    $('.am-name').textContent = `${f.name}: opening…`;
+    try { snd = await decodeFile(f); } catch { err.textContent = 'This browser cannot read that file. Try WAV, FLAC or MP3.'; err.hidden = false; $('.am-name').textContent = f.name; return; }
+    name = baseName(f.name, 'track'); mastered = null; before = null; $('.am-res').hidden = true;
+    const s = snd.chans[0].length / snd.rate;
+    $('.am-name').textContent = `${f.name}: ${s >= 60 ? Math.floor(s / 60) + ' min ' + Math.round(s % 60) + ' s' : s.toFixed(1) + ' s'}, ${snd.chans.length === 1 ? 'mono' : snd.chans.length === 2 ? 'stereo' : snd.chans.length + ' channels'}, ${snd.rate.toLocaleString('en-US')} Hz.`;
+    if (snd.chans.length > 2) snd = { rate: snd.rate, chans: snd.chans.slice(0, 2) };
+    go.disabled = false;
+  };
+
+  const STAGES = ['Measuring the original', 'Tone', 'Glue compression', 'Limiting to the target', 'Measuring the master'];
+  go.addEventListener('click', () => {
+    if (!snd) return;
+    worker ??= new Worker(new URL('../../lib/audio/master-worker.ts', import.meta.url), { type: 'module' });
+    const id = ++jobId, chans = snd.chans.map((c) => c.slice());
+    go.disabled = true; $('.am-prog').hidden = false; $<HTMLProgressElement>('.am-bar').value = 0; $('.am-stage').textContent = 'Starting…';
+    worker.onmessage = (e) => {
+      const m = e.data; if (m.id !== jobId) return;
+      if (m.progress) { $<HTMLProgressElement>('.am-bar').value = Math.max(0, STAGES.indexOf(m.progress)); $('.am-stage').textContent = m.progress + '…'; return; }
+      go.disabled = false; $('.am-prog').hidden = true;
+      if (m.error) { err.textContent = 'Something went wrong while mastering: ' + m.error; err.hidden = false; return; }
+      if (m.before) before = m.before;
+      after = m.after; mastered = m.chans; dirty = false;
+      show(m);
+    };
+    worker.postMessage({ id, chans, rate: snd.rate, settings: settings(), measureIn: !before }, chans.map((c) => c.buffer));
+  });
+
+  const show = (m: { gainDb: number; reached: boolean; maxGrDb: number; compGrDb: number; gr: Float32Array }) => {
+    const b = before!, a = after!, t = num('.am-target');
+    $('.b-i').textContent = `${f1(b.integrated)} LUFS`; $('.a-i').textContent = `${f1(a.integrated)} LUFS`;
+    $('.b-st').textContent = `${f1(b.maxShortTerm)} LUFS`; $('.a-st').textContent = `${f1(a.maxShortTerm)} LUFS`;
+    $('.b-lra').textContent = `${f1(b.range)} LU`; $('.a-lra').textContent = `${f1(a.range)} LU`;
+    $('.b-tp').textContent = `${f1(b.truePeak)} dBTP`; $('.a-tp').textContent = `${f1(a.truePeak)} dBTP`;
+    $('.a-gr').textContent = `limiter ${f1(m.maxGrDb)} dB` + (m.compGrDb > 0 ? `, compressor ${f1(m.compGrDb)} dB` : '') + ' (most)';
+    out.className = 'am-out' + (m.reached ? '' : ' warn');
+    out.textContent = !isFinite(b.integrated) ? 'This file is silent, so there is nothing to master.'
+      : m.reached ? `Done: ${f1(a.integrated)} LUFS with the true peak at ${f1(a.truePeak)} dBTP. The limiter pressed up to ${f1(m.maxGrDb)} dB.`
+      : `It reached ${f1(a.integrated)} LUFS, not ${f1(t)}: the push was capped at +24 dB. Check the file is not mostly silence.`;
+    if (m.maxGrDb > 6 && m.reached) out.textContent += ' That is a lot of limiting: listen for pumping or dull drums, and try a quieter target.';
+    drawGr(m.gr, m.maxGrDb);
+    $('.am-res').hidden = false;
+    loadAb();
+  };
+
+  const drawGr = (gr: Float32Array, mx: number) => {
+    const cv = $<HTMLCanvasElement>('.am-gr'), w = (cv.width = Math.max(300, Math.round(cv.clientWidth * devicePixelRatio) || 720)), h = (cv.height = Math.round(110 * devicePixelRatio));
+    const g = cv.getContext('2d')!, css = getComputedStyle(root), range = Math.max(3, Math.ceil(mx));
+    g.clearRect(0, 0, w, h); g.fillStyle = css.getPropertyValue('--accent') || '#2457c5';
+    for (let x = 0; x < w; x++) {
+      const a = Math.floor((x / w) * gr.length), z = Math.max(a + 1, Math.floor(((x + 1) / w) * gr.length)); let v = 0;
+      for (let i = a; i < z; i++) if (gr[i] > v) v = gr[i];
+      g.fillRect(x, 0, 1, (v / range) * (h - 14));
+    }
+    g.fillStyle = css.getPropertyValue('--muted') || '#666'; g.font = `${12 * devicePixelRatio}px system-ui`; g.fillText(`0 dB at the top, ${range} dB at the bottom`, 6, h - 3);
+  };
+
+  // A/B: both versions play together; the matched levels put both at the quieter one's loudness.
+  const levels = () => {
+    if (!$<HTMLInputElement>('.am-match').checked || !before || !after || !isFinite(before.integrated) || !isFinite(after.integrated)) { $('.am-matchnote').textContent = 'Not matched: the master will sound louder, and louder often seems better.'; return [0, 0]; }
+    const at = Math.min(before.integrated, after.integrated);
+    $('.am-matchnote').textContent = `Both play at ${f1(at)} LUFS (original ${f1(at - before.integrated)} dB, master ${f1(at - after.integrated)} dB), so you hear the changes, not the extra level.`;
+    return [at - before.integrated, at - after.integrated];
+  };
+  const loadAb = () => { const [la, lb] = levels(); ab.load([{ chans: snd!.chans, rate: snd!.rate, gainDb: la }, { chans: mastered!, rate: snd!.rate, gainDb: lb }]); ab.select(1); pick(1); };
+  const pick = (i: number) => { ab.select(i); $('.am-a').setAttribute('aria-pressed', String(i === 0)); $('.am-b').setAttribute('aria-pressed', String(i === 1)); };
+  $('.am-a').addEventListener('click', () => pick(0));
+  $('.am-b').addEventListener('click', () => pick(1));
+  $<HTMLInputElement>('.am-match').addEventListener('change', () => ab.setLevels(levels()));
+  const playB = $<HTMLButtonElement>('.am-play'), seek = $<HTMLInputElement>('.am-seek');
+  playB.addEventListener('click', async () => { if (ab.playing) { ab.pause(); playB.textContent = 'Play'; } else { await ab.play(); playB.textContent = 'Pause'; tick(); } });
+  ab.onEnded(() => (playB.textContent = 'Play'));
+  seek.addEventListener('input', () => ab.seek((+seek.value / 1000) * ab.duration));
+  const tick = () => { if (!ab.playing) return; if (document.activeElement !== seek) seek.value = String(Math.round((ab.position() / ab.duration) * 1000)); requestAnimationFrame(tick); };
+
+  $('.am-save').addEventListener('click', async () => {
+    if (!mastered || !snd) return;
+    const fmt = $<HTMLSelectElement>('.am-fmt').value, btn = $<HTMLButtonElement>('.am-save'), note = $('.am-savenote');
+    btn.disabled = true; note.textContent = 'Preparing…';
+    try {
+      const tag = String(num('.am-target')).replace('-', 'minus') + 'lufs';
+      if (fmt === 'mp3') {
+        const { encodeMp3 } = await import('../../lib/audio/encode.ts');
+        saveBytes(await encodeMp3({ rate: snd.rate, chans: mastered }, 320), `${name}-master-${tag}.mp3`, 'audio/mpeg');
+        note.textContent = 'MP3 encoding can push the true peak up a little; for an upload, a WAV is safer.';
+      } else {
+        const { writeWav } = await import('../../lib/audio/pcm.ts'), { tpdf } = await import('../../lib/audio/master.ts');
+        const bits = fmt === 'wav16' ? 16 : 24;
+        saveBytes(writeWav(bits === 16 ? tpdf(mastered, 16) : mastered, snd.rate, 1, bits), `${name}-master-${tag}.wav`, 'audio/wav');
+        note.textContent = bits === 16 ? 'Saved with TPDF dither (a whisper of noise that stops quiet fades turning gritty at 16-bit).' : 'Saved as 24-bit WAV.';
+      }
+    } catch (e) { note.textContent = 'Could not save: ' + String(e); }
+    btn.disabled = false;
+  });
+
+  $('.am-open').addEventListener('click', () => $<HTMLInputElement>('.am-file').click());
+  const input = $<HTMLInputElement>('.am-file');
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  const drop = $('.am-drop');
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer?.files[0]; if (f) open(f); });
+</script>

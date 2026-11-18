@@ -1,0 +1,117 @@
+---
+// #T1049 Split sheet: song split agreement form with writing and master shares, totals check, CSV and PDF/Word/image downloads.
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui ssm">
+  <p class="ssm-note">This is a template to help people agree who owns what. It is not legal advice, and it is not a contract until everyone signs. Ask a music lawyer if money is at stake.</p>
+  <section class="panel ssm-meta">
+    <label>Song title <input class="ssm-title" data-k="title" type="text" autocomplete="off" /></label>
+    <label>Date <input class="ssm-date" data-k="date" type="date" /></label>
+    <label>ISRC (optional) <input class="ssm-isrc" data-k="isrc" type="text" placeholder="e.g. CC-XXX-YY-NNNNN" autocomplete="off" /></label>
+  </section>
+  <section class="panel">
+    <div class="ssm-rows" role="group" aria-label="People on this song"></div>
+    <div class="ssm-actions">
+      <button type="button" class="btn secondary ssm-add">Add person</button>
+      <button type="button" class="btn secondary ssm-equal">Split equally</button>
+    </div>
+    <p class="ssm-result" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h3>Signatures</h3>
+    <div class="ssm-sigs"></div>
+    <p class="ssm-fine">Print the PDF, or use Image or Word, and sign each line. One copy each.</p>
+    <Downloads label="Download the sheet" />
+    <div class="ssm-actions"><button type="button" class="btn secondary ssm-csv">Download CSV</button></div>
+  </section>
+  <details class="panel">
+    <summary>More options: remember this sheet</summary>
+    <label class="ssm-check"><input type="checkbox" class="ssm-keep" /> Remember this sheet on this device</label>
+    <p class="ssm-fine">Off by default. When ticked, the names and numbers you type are kept in this browser only and never leave your device.</p>
+    <button type="button" class="btn secondary ssm-clear">Clear saved sheet</button>
+  </details>
+</div>
+
+<style is:inline>
+  .ssm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ssm .panel { display: grid; gap: 12px; padding: 16px; }
+  .ssm-note, .ssm-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .ssm-meta { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .ssm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ssm input[type=text], .ssm input[type=number], .ssm input[type=date], .ssm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ssm-person { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+  .ssm-person .wide { grid-column: 1 / -1; }
+  .ssm-person .rm { justify-self: start; }
+  .ssm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ssm-result { font-weight: 600; margin: 0; }
+  .ssm-result.bad { color: var(--bad, #b3261e); }
+  .ssm-result.good { color: var(--good, #146c34); }
+  .ssm h3 { margin: 0; font-size: 18px; }
+  .ssm-sig { border-bottom: 1px solid var(--ink); padding: 18px 0 4px; font-size: 14px; }
+  .ssm-check { display: flex !important; flex-direction: row; gap: 8px; align-items: center; }
+  .ssm-check input { width: auto; }
+</style>
+
+<script>
+  import { ROLES, equalShares, checkSplit, splitCsv, sum, type Writer } from '../../lib/music/produce.ts';
+  import { wireDownloads, save, fileSafe } from '../../lib/report.ts';
+  const root = document.querySelector('.ssm') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rowsEl = $('.ssm-rows'), result = $('.ssm-result'), sigs = $('.ssm-sigs'), keep = $<HTMLInputElement>('.ssm-keep');
+  const title = $<HTMLInputElement>('.ssm-title'), date = $<HTMLInputElement>('.ssm-date'), isrc = $<HTMLInputElement>('.ssm-isrc');
+  const KEY = 'fibub-split-sheet-v1';
+  let people: Writer[] = [];
+  const blank = (): Writer => ({ name: '', role: 'Songwriter', society: '', ipi: '', writing: 0, master: 0 });
+  const num = (v: string) => Math.max(0, Math.min(100, Math.round((parseFloat(v) || 0) * 100) / 100));
+
+  function draw() {
+    rowsEl.replaceChildren(...people.map((p, i) => {
+      const d = document.createElement('div'); d.className = 'ssm-person';
+      d.innerHTML = `<label class="wide">Name<input type="text" data-k="name" autocomplete="off"></label>
+        <label>Role<select data-k="role">${ROLES.map((r) => `<option>${r}</option>`).join('')}</select></label>
+        <label>PRO or society<input type="text" data-k="society" placeholder="e.g. your collecting society" autocomplete="off"></label>
+        <label>IPI (optional)<input type="text" data-k="ipi" inputmode="numeric" autocomplete="off"></label>
+        <span></span>
+        <label>Writing %<input type="number" data-k="writing" min="0" max="100" step="0.01" inputmode="decimal"></label>
+        <label>Master %<input type="number" data-k="master" min="0" max="100" step="0.01" inputmode="decimal"></label>
+        <button type="button" class="btn secondary rm">Remove</button>`;
+      d.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-k]').forEach((el) => {
+        el.value = String(p[el.dataset.k as keyof Writer] ?? '');
+        el.addEventListener('input', () => { const k = el.dataset.k as keyof Writer; (p as any)[k] = k === 'writing' || k === 'master' ? num(el.value) : el.value; update(); });
+      });
+      d.querySelector('.rm')!.addEventListener('click', () => { people.splice(i, 1); if (!people.length) people.push(blank()); draw(); update(); });
+      return d;
+    }));
+  }
+  function update() {
+    const c = checkSplit(people);
+    result.textContent = `Writing total ${c.writing}%, master total ${c.master}%. ${c.message}`;
+    result.className = 'ssm-result ' + (c.ok ? 'good' : 'bad');
+    sigs.replaceChildren(...people.map((p) => { const s = document.createElement('div'); s.className = 'ssm-sig'; s.textContent = `${p.name || 'Name'} (${p.role}) signature and date`; return s; }));
+    persist();
+  }
+  const meta = () => ({ title: title.value.trim(), date: date.value, isrc: isrc.value.trim() });
+  function persist() { try { if (keep.checked) localStorage.setItem(KEY, JSON.stringify({ meta: meta(), people })); } catch {} }
+  $('.ssm-add').addEventListener('click', () => { people.push(blank()); draw(); update(); });
+  $('.ssm-equal').addEventListener('click', () => { const e = equalShares(people.length); people.forEach((p, i) => { p.writing = e[i]; p.master = e[i]; }); draw(); update(); });
+  [title, date, isrc].forEach((el) => el.addEventListener('input', persist));
+  keep.addEventListener('change', () => { if (keep.checked) persist(); else try { localStorage.removeItem(KEY); } catch {} });
+  $('.ssm-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} keep.checked = false; people = [blank(), blank()]; title.value = isrc.value = ''; date.value = new Date().toISOString().slice(0, 10); draw(); update(); });
+  $('.ssm-csv').addEventListener('click', () => save(new Blob([splitCsv(meta(), people)], { type: 'text/csv' }), `split-sheet-${fileSafe(title.value || 'song')}.csv`, 'text/csv'));
+  wireDownloads(root, () => {
+    const m = meta(), c = checkSplit(people);
+    return {
+      title: 'Song split sheet', subtitle: (m.title || 'Untitled song') + (m.date ? ' - ' + m.date : ''), file: 'split-sheet-' + fileSafe(m.title || 'song'),
+      sections: [
+        { title: 'Song', facts: [['Title', m.title || '(untitled)'], ['Date', m.date || '-'], ['ISRC', m.isrc || '-']] as [string, string][] },
+        { title: 'Shares', table: { head: ['Name', 'Role', 'PRO or society', 'IPI', 'Writing %', 'Master %'], rows: [...people.map((p) => [p.name, p.role, p.society, p.ipi, String(p.writing), String(p.master)]), ['Total', '', '', '', String(sum(people.map((p) => p.writing))), String(sum(people.map((p) => p.master)))]], align: ['l', 'l', 'l', 'l', 'r', 'r'] as ('l' | 'r')[] }, note: c.ok ? '' : c.message },
+        { title: 'Signatures', text: people.map((p) => `${p.name || 'Name'} (${p.role}): ______________________________   Date: ____________`) },
+        { title: 'About this sheet', text: ['This is a template made with fibub.com to record what the people on a song agree. It is not legal advice. Check the details with a music lawyer if money is at stake.'] },
+      ],
+    };
+  });
+  let saved: any = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (saved?.people?.length) { people = saved.people; title.value = saved.meta?.title ?? ''; date.value = saved.meta?.date ?? ''; isrc.value = saved.meta?.isrc ?? ''; keep.checked = true; }
+  else { people = [blank(), blank()]; date.value = new Date().toISOString().slice(0, 10); }
+  draw(); update();
+</script>

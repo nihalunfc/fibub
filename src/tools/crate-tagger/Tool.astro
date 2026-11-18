@@ -1,0 +1,240 @@
+---
+// #T1028 Crate tagger: personal tags, stars, energy and notes for a DJ library, kept apart from the audio files.
+// Reading and writing lists in src/lib/music/crates.ts. Audio files are never read, only their names. Nothing is uploaded.
+---
+<div class="tool-ui ct">
+  <section class="panel">
+    <h2 class="ct-h">1. Add tracks</h2>
+    <div class="ct-row">
+      <button type="button" class="btn ct-imp">Open a list (CSV, M3U, M3U8)</button>
+      <button type="button" class="btn secondary ct-aud">Open audio files (names only)</button>
+      <input class="ct-file" type="file" accept=".csv,.tsv,.txt,.m3u,.m3u8,text/csv,text/plain,audio/x-mpegurl" multiple hidden />
+      <input class="ct-afile" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.aif,.aiff" multiple hidden />
+    </div>
+    <div class="ct-row">
+      <input class="ct-name" data-k="name" type="text" placeholder="Or type a track name" autocomplete="off" aria-label="Track name to add" />
+      <button type="button" class="btn secondary ct-add">Add</button>
+    </div>
+    <p class="ct-sub">The Track analyser's CSV works as it is (BPM and key come along). Audio files are not read or uploaded: only their names are used.</p>
+    <p class="ct-status" aria-live="polite">No tracks yet.</p>
+  </section>
+
+  <section class="panel ct-work" hidden>
+    <h2 class="ct-h">2. Find and filter</h2>
+    <div class="ct-row">
+      <input class="ct-q" data-k="search" type="search" placeholder="Search names, tags and notes" aria-label="Search" />
+    </div>
+    <div class="ct-chips ct-fchips" role="group" aria-label="Filter by tag"></div>
+    <div class="ct-two">
+      <label class="ct-lab">Tags must match
+        <select class="ct-mode" data-k="mode"><option value="and">All chosen tags (AND)</option><option value="or">Any chosen tag (OR)</option></select>
+      </label>
+      <label class="ct-lab">Stars at least
+        <select class="ct-min" data-k="minStars"><option value="0">Any</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+      </label>
+    </div>
+    <p class="ct-count" aria-live="polite"></p>
+    <ul class="ct-list"></ul>
+  </section>
+
+  <section class="panel ct-edit" hidden>
+    <h2 class="ct-h">3. Tag the selected track</h2>
+    <p class="ct-sel"></p>
+    <div class="ct-groups"></div>
+    <div class="ct-row">
+      <input class="ct-custom" data-k="custom" type="text" placeholder="Your own tag, e.g. sing-along" maxlength="30" autocomplete="off" aria-label="Custom tag" />
+      <button type="button" class="btn secondary ct-addtag">Add tag</button>
+    </div>
+    <div class="ct-chips ct-mine" role="group" aria-label="Tags on this track"></div>
+    <div class="ct-two">
+      <label class="ct-lab">Stars
+        <select class="ct-rate" data-k="rating"><option value="0">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+      </label>
+      <label class="ct-lab">Energy (1 to 10)
+        <select class="ct-en" data-k="energy"><option value="0">Not set</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select>
+      </label>
+    </div>
+    <label class="ct-lab">Notes <textarea class="ct-notes" data-k="notes" rows="3" maxlength="2000"></textarea></label>
+    <p class="ct-sub">Shortcuts when no box is active: up and down arrows (or J and K) change track; 1 to 9 and 0 switch the ten ready-made tags in the order shown on the buttons; [ and ] change the stars.</p>
+  </section>
+
+  <section class="panel ct-out" hidden>
+    <h2 class="ct-h">4. Export what is shown</h2>
+    <div class="ct-row">
+      <button type="button" class="btn ct-m3u">Playlist (M3U8)</button>
+      <button type="button" class="btn secondary ct-csv">Table (CSV)</button>
+    </div>
+    <label class="ct-lab">Comment-field text: one line per tagged track, to paste into a tag editor
+      <textarea class="ct-comm" rows="4" readonly></textarea>
+    </label>
+    <div class="ct-row">
+      <button type="button" class="btn secondary ct-copy">Copy lines</button>
+      <button type="button" class="btn secondary ct-txt">Download lines (.txt)</button>
+    </div>
+  </section>
+
+  <section class="panel ct-keep">
+    <h2 class="ct-h">Keep your tags</h2>
+    <p class="ct-sub">Your tags live only in this page until you close it. Save a backup file, or tick the box to also keep them in this browser on this device. They never leave the device.</p>
+    <div class="ct-row">
+      <button type="button" class="btn secondary ct-jsave">Save tag database (JSON)</button>
+      <button type="button" class="btn secondary ct-jload">Load a tag database</button>
+      <input class="ct-jfile" type="file" accept=".json,application/json" hidden />
+    </div>
+    <label class="ct-chk"><input class="ct-remember" data-k="remember" type="checkbox" /> Remember my tags in this browser (off by default)</label>
+    <div class="ct-row">
+      <button type="button" class="btn secondary ct-clear">Clear the copy in this browser</button>
+      <button type="button" class="btn secondary ct-wipe">Remove all tracks from this page</button>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .ct { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ct .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .ct [hidden] { display: none !important; }
+  .ct-h { font-size: 17px; margin: 0; }
+  .ct-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ct-chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+  .ct-chk input { width: auto; margin-top: 3px; }
+  .ct input:not([type=checkbox]), .ct select, .ct textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ct-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ct-row input:not([type=file]) { flex: 1 1 200px; width: auto; }
+  .ct-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ct-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .ct-status, .ct-count, .ct-sel { margin: 0; overflow-wrap: anywhere; }
+  .ct-sel { font-weight: 600; }
+  .ct-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ct-chip { font: inherit; font-size: 14px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; min-height: 34px; }
+  .ct-chip[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .ct-chip kbd { font: inherit; font-size: 11px; opacity: .7; margin-right: 4px; }
+  .ct-gl { font-size: 13px; color: var(--muted); margin: 6px 0 4px; }
+  .ct-list { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .ct-list button { display: block; width: 100%; text-align: left; font: inherit; padding: 8px 11px; border: 0; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+  .ct-list button[aria-current=true] { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .ct-list .m { display: block; font-size: 13px; color: var(--muted); }
+  .ct textarea.ct-comm { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+</style>
+
+<script>
+  import { GROUPS, PRESETS, blank, slug, parseList, mergeRows, filterRows, commentLines, toM3U8, toCsv, toJson, fromJson, type Row } from '../../lib/music/crates.ts';
+  import { saveBytes } from '../../lib/audio/browser.ts';
+  const root = document.querySelector('.ct') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-crate-tagger-v1';
+  let rows: Row[] = [], sel = '';
+  const fchips = new Set<string>();
+  const status = (t: string) => { $('.ct-status').textContent = t; };
+  const remember = $<HTMLInputElement>('.ct-remember');
+  const store = (fn: () => void) => { try { fn(); } catch { /* storage blocked: the page still works */ } };
+  const save = () => store(() => { if (remember.checked) localStorage.setItem(KEY, toJson(rows)); });
+  const get = (id = sel) => rows.find((r) => r.id === id);
+  const stars = (n: number) => (n ? '★'.repeat(n) : '');
+  const chip = (label: string, on: boolean, fn: () => void, kbd = '') => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-chip'; b.setAttribute('aria-pressed', String(on));
+    if (kbd) { const k = document.createElement('kbd'); k.textContent = kbd; b.append(k); }
+    b.append(label); b.addEventListener('click', fn); return b;
+  };
+  const allTags = () => [...PRESETS, ...[...new Set(rows.flatMap((r) => r.tags))].filter((t) => !PRESETS.includes(t)).sort()];
+  const shown = () => filterRows(rows, { tags: [...fchips], mode: $<HTMLSelectElement>('.ct-mode').value as 'and', q: $<HTMLInputElement>('.ct-q').value, minRating: +$<HTMLSelectElement>('.ct-min').value });
+
+  const drawList = () => {
+    const list = shown();
+    $('.ct-count').textContent = `${list.length} of ${rows.length} track${rows.length === 1 ? '' : 's'} shown.`;
+    $('.ct-list').replaceChildren(...list.map((r) => {
+      const li = document.createElement('li'), b = document.createElement('button'), m = document.createElement('span');
+      b.type = 'button'; b.textContent = r.name; m.className = 'm';
+      m.textContent = [r.bpm && r.bpm + ' BPM', r.key, stars(r.rating), r.energy && 'energy ' + r.energy, r.tags.map((t) => '#' + t).join(' ')].filter(Boolean).join(' · ');
+      b.append(m); if (r.id === sel) b.setAttribute('aria-current', 'true');
+      b.addEventListener('click', () => { sel = r.id; draw(); }); li.append(b); return li;
+    }));
+    const comm = commentLines(list);
+    $<HTMLTextAreaElement>('.ct-comm').value = comm;
+  };
+  const drawFilter = () => {
+    $('.ct-fchips').replaceChildren(...allTags().filter((t) => PRESETS.includes(t) || rows.some((r) => r.tags.includes(t))).map((t) => chip('#' + t, fchips.has(t), () => { fchips.has(t) ? fchips.delete(t) : fchips.add(t); drawFilter(); drawList(); })));
+  };
+  const drawEdit = () => {
+    const r = get(), box = $('.ct-edit');
+    box.hidden = !r; if (!r) return;
+    $('.ct-sel').textContent = r.name + (r.bpm || r.key ? ` (${[r.bpm && r.bpm + ' BPM', r.key].filter(Boolean).join(', ')})` : '');
+    $('.ct-groups').replaceChildren(...GROUPS.flatMap((g) => {
+      const h = document.createElement('p'), c = document.createElement('div'); h.className = 'ct-gl'; h.textContent = g.name; c.className = 'ct-chips';
+      c.append(...g.tags.map((t) => { const n = PRESETS.indexOf(t); return chip(t, r.tags.includes(t), () => toggle(t), String((n + 1) % 10)); }));
+      return [h, c];
+    }));
+    const mine = r.tags.filter((t) => !PRESETS.includes(t));
+    $('.ct-mine').replaceChildren(...mine.map((t) => chip('#' + t + ' ×', true, () => toggle(t))));
+    $<HTMLSelectElement>('.ct-rate').value = String(r.rating); $<HTMLSelectElement>('.ct-en').value = String(r.energy);
+    const n = $<HTMLTextAreaElement>('.ct-notes'); if (document.activeElement !== n) n.value = r.notes;
+  };
+  const draw = () => {
+    const has = rows.length > 0;
+    $('.ct-work').hidden = !has; $('.ct-out').hidden = !has;
+    if (!get()) sel = '';
+    drawFilter(); drawList(); drawEdit();
+  };
+  const changed = () => { save(); draw(); };
+  const toggle = (t: string) => { const r = get(); if (!r) return; r.tags = r.tags.includes(t) ? r.tags.filter((x) => x !== t) : [...r.tags, t]; changed(); };
+
+  const addRows = (add: Row[], what: string) => {
+    const m = mergeRows(rows, add); rows = m.rows;
+    if (!sel && rows.length) sel = rows[0].id;
+    status(`${what}: ${m.added} new track${m.added === 1 ? '' : 's'}${add.length - m.added ? `, ${add.length - m.added} already in the list (tags kept)` : ''}. ${rows.length} in all.`);
+    changed();
+  };
+  const file = $<HTMLInputElement>('.ct-file'), afile = $<HTMLInputElement>('.ct-afile'), jfile = $<HTMLInputElement>('.ct-jfile');
+  $('.ct-imp').addEventListener('click', () => file.click());
+  $('.ct-aud').addEventListener('click', () => afile.click());
+  file.addEventListener('change', async () => { const all: Row[] = []; for (const f of Array.from(file.files ?? [])) all.push(...parseList(await f.text())); if (all.length) addRows(all, 'List read'); else status('No tracks found in that file.'); file.value = ''; });
+  afile.addEventListener('change', () => { const all = Array.from(afile.files ?? []).map((f) => blank(f.name.replace(/\.[^.]+$/, ''), f.name)); if (all.length) addRows(all, 'Names read'); afile.value = ''; });
+  const addName = () => { const i = $<HTMLInputElement>('.ct-name'), v = i.value.trim(); if (v) { addRows([blank(v)], 'Added'); i.value = ''; sel = blank(v).id; draw(); } };
+  $('.ct-add').addEventListener('click', addName);
+  $('.ct-name').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') addName(); });
+
+  const addTag = () => { const i = $<HTMLInputElement>('.ct-custom'), t = slug(i.value); if (t && get() && !get()!.tags.includes(t)) { get()!.tags.push(t); changed(); } i.value = ''; };
+  $('.ct-addtag').addEventListener('click', addTag);
+  $('.ct-custom').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); addTag(); } });
+  $('.ct-rate').addEventListener('change', () => { const r = get(); if (r) { r.rating = +$<HTMLSelectElement>('.ct-rate').value; changed(); } });
+  $('.ct-en').addEventListener('change', () => { const r = get(); if (r) { r.energy = +$<HTMLSelectElement>('.ct-en').value; changed(); } });
+  $('.ct-notes').addEventListener('input', () => { const r = get(); if (r) { r.notes = $<HTMLTextAreaElement>('.ct-notes').value; save(); drawList(); } });
+  for (const s of ['.ct-mode', '.ct-min']) $(s).addEventListener('change', drawList);
+  $('.ct-q').addEventListener('input', drawList);
+
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || !rows.length || !root.offsetParent) return;
+    const list = shown(), i = list.findIndex((r) => r.id === sel), r = get();
+    if (e.key === 'ArrowDown' || e.key === 'j') { if (list.length) { sel = list[Math.min(list.length - 1, i + 1)].id; draw(); } }
+    else if (e.key === 'ArrowUp' || e.key === 'k') { if (list.length) { sel = list[Math.max(0, i - 1)].id; draw(); } }
+    else if (/^[0-9]$/.test(e.key) && r) toggle(PRESETS[(+e.key + 9) % 10]);
+    else if (e.key === ']' && r) { r.rating = Math.min(5, r.rating + 1); changed(); }
+    else if (e.key === '[' && r) { r.rating = Math.max(0, r.rating - 1); changed(); }
+    else return;
+    e.preventDefault();
+  });
+
+  const out = (text: string, name: string, type: string) => saveBytes(new Blob([text], { type }), name);
+  $('.ct-m3u').addEventListener('click', () => out(toM3U8(shown()), 'crate.m3u8', 'audio/x-mpegurl'));
+  $('.ct-csv').addEventListener('click', () => out(toCsv(shown()), 'crate-tags.csv', 'text/csv'));
+  $('.ct-txt').addEventListener('click', () => out($<HTMLTextAreaElement>('.ct-comm').value + '\n', 'comment-tags.txt', 'text/plain'));
+  $('.ct-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($<HTMLTextAreaElement>('.ct-comm').value); status('Lines copied.'); } catch { $<HTMLTextAreaElement>('.ct-comm').select(); status('Select the text and copy it with Ctrl or Cmd + C.'); } });
+
+  $('.ct-jsave').addEventListener('click', () => out(toJson(rows), 'crate-tagger-database.json', 'application/json'));
+  $('.ct-jload').addEventListener('click', () => jfile.click());
+  jfile.addEventListener('change', async () => {
+    const f = jfile.files?.[0]; jfile.value = '';
+    if (!f) return;
+    const got = fromJson(await f.text());
+    if (!got) { status('That file is not a Crate tagger database.'); return; }
+    const m = new Map(rows.map((r) => [r.id, r])); for (const r of got) m.set(r.id, r);
+    rows = [...m.values()]; if (!sel && rows.length) sel = rows[0].id;
+    status(`Database loaded: ${got.length} track${got.length === 1 ? '' : 's'} (tags from the file replace tags on the same tracks). ${rows.length} in all.`); changed();
+  });
+  remember.addEventListener('change', () => { if (remember.checked) save(); else store(() => localStorage.removeItem(KEY)); });
+  $('.ct-clear').addEventListener('click', () => { store(() => localStorage.removeItem(KEY)); remember.checked = false; status('The copy in this browser is cleared. Tracks on this page are untouched.'); });
+  $('.ct-wipe').addEventListener('click', () => { rows = []; sel = ''; fchips.clear(); save(); status('All tracks removed from this page.' + (remember.checked ? ' The saved copy is now empty too.' : '')); draw(); });
+
+  store(() => { const s = localStorage.getItem(KEY), got = s ? fromJson(s) : null; if (got?.length) { rows = got; sel = rows[0].id; remember.checked = true; status(`${rows.length} tracks loaded from this browser.`); } });
+  draw();
+</script>

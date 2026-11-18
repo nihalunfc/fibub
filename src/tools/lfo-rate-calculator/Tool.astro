@@ -1,0 +1,123 @@
+---
+// #T1041 LFO rates: BPM to LFO frequency for note values, Hz back to the nearest note, sidechain release and an LFO shape drawing. Maths in src/lib/music/calc.ts.
+---
+<div class="tool-ui lf">
+  <section class="panel">
+    <div class="lf-row">
+      <label class="lf-num">BPM <input class="lf-bpm" data-k="bpm" type="number" min="20" max="400" step="any" value="120" inputmode="decimal" /></label>
+      <button type="button" class="btn secondary lf-tap">Tap tempo</button>
+    </div>
+    <p class="lf-fine">Tap at least twice in time with the music, or type the speed.</p>
+  </section>
+  <section class="panel">
+    <h2>LFO rate for each note value</h2>
+    <p class="lf-fine" aria-live="polite" role="status"><span class="lf-sum"></span></p>
+    <div class="lf-scroll"><table class="lf-table"><thead><tr><th>One cycle lasts</th><th>Rate</th><th>Period</th></tr></thead><tbody class="lf-body"></tbody></table></div>
+    <div class="lf-row"><button type="button" class="btn secondary lf-copy">Copy table</button><span class="lf-fine lf-msg" aria-live="polite"></span></div>
+  </section>
+  <section class="panel">
+    <h2>Hz to the nearest note</h2>
+    <div class="lf-row">
+      <label class="lf-num">Rate in Hz <input class="lf-hz" data-k="hz" type="number" min="0.001" step="any" value="2.1" inputmode="decimal" /></label>
+    </div>
+    <p class="lf-out lf-near" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>Sidechain release for a pump on quarter notes</h2>
+    <p class="lf-out lf-side" aria-live="polite"></p>
+    <p class="lf-fine">The release is how long the level takes to come back after each kick. These are starting points: shorter feels tight, longer feels pumping. Your ears decide.</p>
+  </section>
+  <section class="panel">
+    <h2>Shape over one bar</h2>
+    <div class="lf-row">
+      <label class="lf-sel">Shape <select class="lf-shape" data-k="shape"><option value="sine">Sine</option><option value="triangle">Triangle</option><option value="saw">Saw</option><option value="square">Square</option></select></label>
+      <label class="lf-sel">Rate <select class="lf-rate" data-k="rate"></select></label>
+    </div>
+    <canvas class="lf-cv" width="640" height="200" role="img" aria-label="The LFO shape over one bar"></canvas>
+    <p class="lf-fine lf-cap" aria-live="polite"></p>
+  </section>
+</div>
+
+<style is:inline>
+  .lf { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lf .panel { display: grid; gap: 10px; padding: 16px; }
+  .lf h2 { margin: 0; font-size: 18px; }
+  .lf-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .lf-num { display: grid; gap: 4px; font-size: 14px; color: var(--muted); width: 130px; }
+  .lf-sel { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .lf input, .lf select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lf-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .lf-out { margin: 0; font-size: 17px; }
+  .lf-scroll { overflow-x: auto; }
+  .lf-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 15px; }
+  .lf-table th, .lf-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .lf-cv { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+</style>
+
+<script>
+  import { lfoTable, nearestNote, sidechainRelease, lfoValue, barMs, type Shape } from '../../lib/music/calc.ts';
+  const root = document.querySelector('.lf') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const bpmIn = $<HTMLInputElement>('.lf-bpm'), hzIn = $<HTMLInputElement>('.lf-hz'), rateSel = $<HTMLSelectElement>('.lf-rate'), shapeSel = $<HTMLSelectElement>('.lf-shape');
+  const cv = $<HTMLCanvasElement>('.lf-cv');
+  const n = (x: number, d = 3) => (Math.round(x * 10 ** d) / 10 ** d).toLocaleString('en', { maximumFractionDigits: d });
+  let text = '';
+  const css = (v: string) => getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888';
+  const draw = (hz: number, bpm: number) => {
+    const g = cv.getContext('2d')!, W = cv.width, H = cv.height, shape = shapeSel.value as Shape;
+    g.clearRect(0, 0, W, H);
+    g.strokeStyle = css('--line'); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2);
+    for (let b = 0; b <= 4; b++) { g.moveTo((W * b) / 4, 0); g.lineTo((W * b) / 4, H); }
+    g.stroke();
+    const cycles = (hz * barMs(bpm)) / 1000;
+    g.strokeStyle = css('--accent'); g.lineWidth = 3; g.beginPath();
+    const steps = 1600;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps, v = lfoValue(shape, t * cycles);
+      const x = t * W, y = H / 2 - v * (H / 2 - 14);
+      if (i === 0) g.moveTo(x, y); else if (shape === "square" && lfoValue(shape, ((i - 1) / steps) * cycles) !== v) { g.lineTo(x, H / 2 - lfoValue(shape, ((i - 1) / steps) * cycles) * (H / 2 - 14)); g.lineTo(x, y); } else g.lineTo(x, y);
+    }
+    g.stroke();
+    $('.lf-cap').textContent = `${shape[0].toUpperCase() + shape.slice(1)} at ${n(hz)} Hz: ${n(cycles, 2)} cycle${cycles === 1 ? '' : 's'} in one 4/4 bar (the vertical lines are the beats).`;
+  };
+  const update = () => {
+    const bpm = parseFloat(bpmIn.value);
+    if (!(bpm >= 20 && bpm <= 400)) { $('.lf-sum').textContent = 'Type a speed from 20 to 400 BPM.'; return; }
+    const rows = lfoTable(bpm);
+    $('.lf-sum').textContent = `At ${n(bpm, 2)} BPM a quarter-note LFO runs at ${n(rows.find((r) => r.label === '1/4')!.hz)} Hz.`;
+    $('.lf-body').innerHTML = rows.map((r) => `<tr><th scope="row">${r.label}</th><td>${n(r.hz)} Hz</td><td>${n(r.ms, 2)} ms</td></tr>`).join('');
+    text = 'Note\tHz\tms\n' + rows.map((r) => `${r.label}\t${n(r.hz)}\t${n(r.ms, 2)}`).join('\n');
+    const keep = rateSel.value;
+    rateSel.innerHTML = rows.map((r) => `<option value="${r.label}">${r.label}</option>`).join('');
+    rateSel.value = keep && rows.some((r) => r.label === keep) ? keep : '1/1 (1 bar)';
+    near(); side(bpm);
+    draw(rows.find((r) => r.label === rateSel.value)!.hz, bpm);
+  };
+  const near = () => {
+    const bpm = parseFloat(bpmIn.value), hz = parseFloat(hzIn.value);
+    const out = $('.lf-near');
+    if (!(bpm >= 20) || !(hz > 0)) { out.textContent = 'Type a rate above 0 Hz.'; return; }
+    const { row, ratio } = nearestNote(bpm, hz);
+    const off = (ratio - 1) * 100;
+    out.textContent = Math.abs(off) < 0.05 ? `${n(hz)} Hz is exactly ${row.label} at ${n(bpm, 2)} BPM.` : `${n(hz)} Hz is closest to ${row.label} (${n(row.hz)} Hz), ${n(Math.abs(off), 1)}% ${off > 0 ? 'faster' : 'slower'}.`;
+  };
+  const side = (bpm: number) => {
+    const s = sidechainRelease(bpm);
+    $('.lf-side').innerHTML = `Quarter notes at ${n(bpm, 2)} BPM are ${n(60000 / bpm, 1)} ms apart. Try a release of <b>${n(s.usual, 0)} ms</b> (half a beat) for a clear pump, <b>${n(s.fast, 0)} ms</b> (a 1/16 note) for a tight one, or up to <b>${n(s.full, 0)} ms</b> so the level is back just before the next kick.`;
+  };
+  const msg = (t: string) => { $('.lf-msg').textContent = t; };
+  $('.lf-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); msg('Table copied.'); } catch { msg('Could not copy here: select the text and copy it.'); } });
+  let taps: number[] = [];
+  $('.lf-tap').addEventListener('click', () => {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now); taps = taps.slice(-8);
+    if (taps.length >= 2) { bpmIn.value = String(Math.round((600000 * (taps.length - 1)) / (taps[taps.length - 1] - taps[0])) / 10); update(); }
+  });
+  bpmIn.addEventListener('input', update);
+  hzIn.addEventListener('input', near);
+  rateSel.addEventListener('change', update);
+  shapeSel.addEventListener('change', update);
+  update();
+</script>

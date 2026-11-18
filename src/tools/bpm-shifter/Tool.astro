@@ -1,0 +1,145 @@
+---
+// #T1025 Tempo matcher: pitch fader % to match one track's BPM to another, with key after the change and half/double time.
+// Maths in src/lib/music/tempo.ts and theory.ts. Nothing is uploaded or stored.
+---
+<div class="tool-ui bs">
+  <section class="panel">
+    <h2 class="bs-h">Tap the beat</h2>
+    <div class="bs-row">
+      <button type="button" class="btn bs-tap">Tap</button>
+      <span class="bs-tapout" aria-live="polite">Tap along to a song: at least 2 taps.</span>
+    </div>
+    <div class="bs-row">
+      <button type="button" class="btn secondary bs-toA">Use as track A</button>
+      <button type="button" class="btn secondary bs-toB">Use as track B</button>
+      <button type="button" class="btn secondary bs-clear">Reset taps</button>
+    </div>
+    <p class="bs-sub">The average of your last 8 taps. A pause of more than 2 seconds starts again. Stability shows how even your taps were; under 2% is steady.</p>
+  </section>
+
+  <section class="panel">
+    <h2 class="bs-h">Match A to B</h2>
+    <div class="bs-two">
+      <label class="bs-lab">Track A BPM (the one you change) <input class="bs-a" data-k="a" type="number" min="20" max="400" step="any" value="124" inputmode="decimal" /></label>
+      <label class="bs-lab">Track B BPM (the one playing) <input class="bs-b" data-k="b" type="number" min="20" max="400" step="any" value="128" inputmode="decimal" /></label>
+      <label class="bs-lab">Track A key (optional) <input class="bs-ka" data-k="keyA" type="text" placeholder="8A, 1m, Am, A minor" autocomplete="off" /></label>
+      <label class="bs-lab">Track B key (optional) <input class="bs-kb" data-k="keyB" type="text" placeholder="8A, 1m, Am, A minor" autocomplete="off" /></label>
+    </div>
+    <div class="bs-res" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="bs-h">Half time and double time</h2>
+    <div class="bs-opts" aria-live="polite"></div>
+    <p class="bs-sub">A track at 87 BPM can be mixed with one at 174 by treating it as double time. The row with the smallest change is marked Best.</p>
+  </section>
+
+  <details class="panel bs-more">
+    <summary>More options: BPM at each fader step</summary>
+    <div class="bs-two">
+      <label class="bs-lab">Track BPM <input class="bs-tb" data-k="tableBpm" type="number" min="20" max="400" step="any" value="124" inputmode="decimal" /></label>
+      <label class="bs-lab">Fader range
+        <select class="bs-tr" data-k="range"><option>6</option><option selected>8</option><option>10</option><option>16</option><option>50</option></select>
+      </label>
+      <label class="bs-lab">Step
+        <select class="bs-ts" data-k="step"><option value="0.5">0.5%</option><option value="1" selected>1%</option><option value="2">2%</option></select>
+      </label>
+    </div>
+    <div class="bs-tablewrap"><table class="bs-table"><thead><tr><th>Fader</th><th>BPM</th><th>Semitones</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</div>
+
+<style is:inline>
+  .bs { display: grid; gap: 14px; margin-bottom: 32px; }
+  .bs .panel { display: grid; gap: 12px; padding: 16px; min-width: 0; }
+  .bs-h { font-size: 17px; margin: 0; }
+  .bs-lab { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .bs input, .bs select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .bs-two { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .bs-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bs-tap { min-width: 140px; min-height: 64px; font-size: 20px; }
+  .bs-tapout { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .bs-sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .bs-big { font-size: 22px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+  .bs-res p, .bs-opts p { margin: 4px 0; overflow-wrap: anywhere; }
+  .bs-opt { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .bs-opt .t { font-weight: 600; }
+  .bs-tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); margin-left: 6px; }
+  .bs-tag.good { color: var(--good, #1a7f37); border-color: currentColor; }
+  .bs-tag.bad { color: var(--bad, #b42318); border-color: currentColor; }
+  .bs-tablewrap { overflow-x: auto; }
+  .bs-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .bs-table th, .bs-table td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  .bs-table tr.zero td { font-weight: 700; }
+  .bs-more summary { cursor: pointer; }
+  .bs-more[open] summary { margin-bottom: 10px; }
+</style>
+
+<script>
+  import { addTap, tapTempo, matchOptions, bestOption, faderTable, FADER_RANGES } from '../../lib/music/tempo.ts';
+  import { parseKey, keyAfterTempo, keyIn, compatibility, shiftKey, keyName } from '../../lib/music/theory.ts';
+  const root = document.querySelector('.bs') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => parseFloat($<HTMLInputElement>(s).value);
+  const f = (v: number, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+  const sg = (v: number, d = 2) => (v > 0 ? '+' : v < 0 ? '−' : '') + f(Math.abs(v), d);
+  const p = (text: string, cls = '') => { const e = document.createElement('p'); if (cls) e.className = cls; e.textContent = text; return e; };
+  const kn = (k: ReturnType<typeof parseKey>) => (k ? `${keyIn(k, 'camelot')} (${keyName(k, 'short')})` : '');
+
+  // Tap tempo
+  let taps: number[] = [], last: number | null = null;
+  $('.bs-tap').addEventListener('click', () => {
+    taps = addTap(taps, performance.now());
+    const t = tapTempo(taps);
+    last = t.bpm;
+    $('.bs-tapout').textContent = t.bpm === null ? 'Tap along to a song: at least 2 taps.' : `${f(t.bpm, 1)} BPM from ${t.taps} taps` + (t.stability === null ? '' : `, stability ${f(t.stability, 1)}% (${t.stability < 2 ? 'steady' : 'uneven'})`);
+  });
+  $('.bs-clear').addEventListener('click', () => { taps = []; last = null; $('.bs-tapout').textContent = 'Tap along to a song: at least 2 taps.'; });
+  const use = (sel: string) => () => { if (last) { $<HTMLInputElement>(sel).value = f(last, 1); if (sel === '.bs-a') $<HTMLInputElement>('.bs-tb').value = f(last, 1); run(); table(); } };
+  $('.bs-toA').addEventListener('click', use('.bs-a'));
+  $('.bs-toB').addEventListener('click', use('.bs-b'));
+
+  const run = () => {
+    const a = num('.bs-a'), b = num('.bs-b'), res = $('.bs-res'), opts = $('.bs-opts');
+    if (!(a > 0) || !(b > 0)) { res.replaceChildren(p('Enter both BPM values.')); opts.replaceChildren(); return; }
+    const ms = matchOptions(a, b), m = ms[0];
+    const kA = parseKey($<HTMLInputElement>('.bs-ka').value), kB = parseKey($<HTMLInputElement>('.bs-kb').value);
+    const lines: HTMLElement[] = [
+      p(`Move the pitch fader ${sg(m.pct)}%`, 'bs-big'),
+      p(`Track A goes from ${f(a, 1)} to ${f(b, 1)} BPM.`),
+      p(`Fader ranges that hold it: ${m.fits.length ? m.fits.map((r) => '±' + r + '%').join(', ') : 'none (over ±50%)'}. ` + FADER_RANGES.filter((r) => !m.fits.includes(r)).map((r) => `±${r}% too small`).join(', ')),
+      p(`Without key lock the pitch moves ${sg(m.semitones)} semitones (${sg(m.semitones * 100, 0)} cents).`),
+    ];
+    if (kA) {
+      const after = keyAfterTempo(kA, a, b), off = (m.semitones - Math.round(m.semitones)) * 100;
+      lines.push(p(`Track A key ${kn(kA)} is heard as about ${kn(after.key)}` + (Math.abs(off) >= 1 ? `, ${sg(off, 0)} cents off that note.` : '.')));
+      if (kB) {
+        const c = compatibility(after.key, kB), tag = document.createElement('span');
+        tag.className = 'bs-tag ' + (c.tier === 'perfect' || c.tier === 'good' ? 'good' : c.tier === 'risky' ? 'bad' : ''); tag.textContent = c.tier === 'risky' ? 'Not compatible' : 'Still compatible';
+        const q = p(`Against track B (${kn(kB)}): ${c.label}. `); q.append(tag); lines.push(q);
+      } else lines.push(p('Add track B\'s key to see if the two still blend.', 'bs-sub'));
+    } else lines.push(p('Add track A\'s key to see the key you will hear after the change.', 'bs-sub'));
+    res.replaceChildren(...lines);
+    const best = bestOption(ms);
+    opts.replaceChildren(...ms.map((o, i) => {
+      const d = document.createElement('div'), t = document.createElement('p'), tag = document.createElement('span');
+      d.className = 'bs-opt'; t.className = 't'; t.textContent = `${o.label}: ${f(o.from, 1)} BPM`;
+      if (i === best) { tag.className = 'bs-tag good'; tag.textContent = 'Best'; t.append(tag); }
+      const keyTxt = kA ? `, heard as ${kn(shiftKey(kA, o.semitones))}` : '';
+      d.append(t, p(`Fader ${sg(o.pct)}%, ${sg(o.semitones)} semitones${keyTxt}. Fits ${o.fits.length ? '±' + o.fits[0] + '% and wider' : 'no fader range'}.`));
+      return d;
+    }));
+  };
+  const table = () => {
+    const bpm = num('.bs-tb'), body = $('.bs-table tbody');
+    if (!(bpm > 0)) { body.replaceChildren(); return; }
+    body.replaceChildren(...faderTable(bpm, +$<HTMLSelectElement>('.bs-tr').value, +$<HTMLSelectElement>('.bs-ts').value).map((r) => {
+      const tr = document.createElement('tr'); if (r.pct === 0) tr.className = 'zero';
+      for (const v of [sg(r.pct, 1) + '%', f(r.bpm, 2), sg(r.semitones)]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); }
+      return tr;
+    }));
+  };
+  for (const s of ['.bs-a', '.bs-b', '.bs-ka', '.bs-kb']) $(s).addEventListener('input', run);
+  for (const s of ['.bs-tb', '.bs-tr', '.bs-ts']) $(s).addEventListener('input', table);
+  run(); table();
+</script>
