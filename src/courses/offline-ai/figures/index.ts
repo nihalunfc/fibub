@@ -12,6 +12,7 @@ import TokenBudget from './TokenBudget.astro';
 import SpeedLimit from './SpeedLimit.astro';
 import BuildRig from './BuildRig.astro';
 import PowerBill from './PowerBill.astro';
+import KvCache from './KvCache.astro';
 
 export const FIGURES: Record<string, any> = {
   'course-map': CourseMap,
@@ -27,4 +28,5 @@ export const FIGURES: Record<string, any> = {
   'speed-limit': SpeedLimit,
   'build-rig': BuildRig,
   'power-bill': PowerBill,
+  'kv-cache': KvCache,
 };
