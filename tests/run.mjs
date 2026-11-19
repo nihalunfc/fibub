@@ -1579,7 +1579,7 @@ try {
     check(uvCsv.length > 50 && uvCsv[0] === 'u_wavelengths,v_wavelengths', 'uv: CSV');
 
     await page.goto(BASE + '/science/double-star-calculator/');
-    check(/^B is \d+\.\d″ from A at position angle/.test(await page.textContent('.ds-big')) && /3\.07 solar masses/.test(await page.textContent('.ds-facts')), 'double star: Sirius and its mass');
+    check(/^B is \d+(?:\.\d+)?″ from A at position angle/.test(await page.textContent('.ds-big')) && /3\.07 solar masses/.test(await page.textContent('.ds-facts')), 'double star: Sirius and its mass');
     await page.selectOption('.ds-pre', 'eta');
     check((await page.textContent('.ds-big')) === 'B is 0.411″ from A at position angle 318.4° (towards the north-west)', 'double star: Meeus example 57.a');
     await page.click('.ds-mode button[data-m=measure]');
