@@ -1,0 +1,138 @@
+---
+// #T1056 Touch Test: every touch point with its id, max touches at once, pressure and size, and a dead-zone grid.
+// Shared kit: src/lib/device/ (core.ts maths, checked in tests/device.mjs).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv tt">
+  <section class="panel">
+    <div class="dv-row">
+      <button type="button" class="dv-chip tt-mode" data-mode="draw" aria-pressed="true">Draw and count</button>
+      <button type="button" class="dv-chip tt-mode" data-mode="grid" aria-pressed="false">Dead zones</button>
+      <button type="button" class="btn secondary tt-clear">Clear</button>
+      <button type="button" class="btn secondary tt-full">Full screen</button>
+    </div>
+    <p class="dv-fine"><b>Draw and count</b> shows each finger with its number. <b>Dead zones</b> splits the screen into squares that fill as you swipe over them; any square that stays empty may be a dead spot.</p>
+    <div class="tt-wrap">
+      <canvas class="dv-canvas tt-cv" aria-label="Touch area. Touch or draw here."></canvas>
+      <div class="tt-fsbar"><button type="button" class="btn secondary tt-clear">Clear</button><button type="button" class="btn secondary tt-exit">Exit full screen</button></div>
+    </div>
+    <p class="dv-status tt-status" aria-live="polite">Touch the area above with one or more fingers or a stylus. The page cannot scroll while your finger is on it. Nothing is stored or sent.</p>
+    <dl class="dv-stats">
+      <div><dt>Touching now</dt><dd class="tt-now">0</dd></div>
+      <div><dt>Most at once</dt><dd class="tt-max">0</dd></div>
+      <div><dt>Device says it supports</dt><dd class="tt-mtp">–</dd></div>
+      <div><dt>Input type</dt><dd class="tt-type">–</dd></div>
+      <div><dt>Pressure</dt><dd class="tt-pr">–</dd></div>
+      <div><dt>Contact size</dt><dd class="tt-size">–</dd></div>
+      <div><dt>Pen tilt</dt><dd class="tt-tilt">–</dd></div>
+      <div><dt>Grid</dt><dd class="tt-grid">–</dd></div>
+      <div><dt>Screen covered</dt><dd class="tt-cov">–</dd></div>
+    </dl>
+    <p class="dv-fine">Pressure: many screens report a fixed 0.5 while touched, or 0, because they cannot sense force. Only some styluses and phones give real values. Contact size is often 1 or the same every time; it is up to the device.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .tt .tt-wrap { position: relative; background: var(--bg); }
+  .tt .tt-cv { height: clamp(300px, 60vh, 560px); touch-action: none; user-select: none; -webkit-user-select: none; }
+  .tt .tt-wrap:fullscreen { display: grid; padding: 0; }
+  .tt .tt-wrap:fullscreen .tt-cv { height: 100%; border: 0; border-radius: 0; }
+  .tt .tt-fsbar { display: none; position: absolute; right: 8px; top: 8px; gap: 8px; }
+  .tt .tt-wrap:fullscreen .tt-fsbar { display: flex; }
+</style>
+
+<script>
+  import { gridCoverage } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.tt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.tt-cv'), wrap = $('.tt-wrap'), status = $('.tt-status'), ctx = cv.getContext('2d')!;
+  type P = { x: number; y: number; type: string };
+  const active = new Map<number, P>(), ids = new Map<number, number>();
+  let mode: 'draw' | 'grid' = 'draw', maxNow = 0, cols = 8, rows = 12, points: { x: number; y: number }[] = [], layer = document.createElement('canvas'), dirty = true;
+  const css = () => getComputedStyle(root);
+  const color = (n: string, d: string) => css().getPropertyValue(n).trim() || d;
+  const num = (pid: number) => { if (!ids.has(pid)) ids.set(pid, ids.size + 1); return ids.get(pid)!; };
+
+  const setGrid = () => { const w = cv.clientWidth, h = cv.clientHeight; [cols, rows] = w >= h ? [12, 8] : [8, 12]; $('.tt-grid').textContent = `${cols} × ${rows}`; };
+  const size = () => {
+    const k = devicePixelRatio || 1; cv.width = layer.width = Math.max(1, Math.round(cv.clientWidth * k)); cv.height = layer.height = Math.max(1, Math.round(cv.clientHeight * k));
+    setGrid(); dirty = true; cover();
+  };
+  const cover = () => {
+    if (mode !== 'grid') { $('.tt-cov').textContent = '–'; return; }
+    const g = gridCoverage(points, cols, rows); $('.tt-cov').textContent = `${Math.round(g.share * 1000) / 10}%`;
+  };
+  const paint = () => {
+    requestAnimationFrame(paint); if (!dirty) return; dirty = false;
+    const k = devicePixelRatio || 1, W = cv.width, H = cv.height, ink = color('--ink', '#000'), line = color('--line', '#ccc'), acc = color('--accent', '#06c'), soft = color('--good-soft', '#cfc');
+    ctx.clearRect(0, 0, W, H);
+    if (mode === 'grid') {
+      const g = gridCoverage(points, cols, rows);
+      ctx.fillStyle = soft; g.hit.forEach((h, i) => { if (h) ctx.fillRect(((i % cols) * W) / cols, (Math.floor(i / cols) * H) / rows, W / cols, H / rows); });
+      ctx.strokeStyle = line; ctx.lineWidth = k; ctx.beginPath();
+      for (let c = 1; c < cols; c++) { ctx.moveTo((c * W) / cols, 0); ctx.lineTo((c * W) / cols, H); }
+      for (let r = 1; r < rows; r++) { ctx.moveTo(0, (r * H) / rows); ctx.lineTo(W, (r * H) / rows); }
+      ctx.stroke();
+    } else ctx.drawImage(layer, 0, 0);
+    ctx.font = `${13 * k}px system-ui, sans-serif`; ctx.textAlign = 'center';
+    active.forEach((p, pid) => {
+      const x = p.x * k, y = p.y * k;
+      ctx.strokeStyle = acc; ctx.lineWidth = 3 * k; ctx.beginPath(); ctx.arc(x, y, 28 * k, 0, 7); ctx.stroke();
+      ctx.fillStyle = ink; ctx.fillText(String(num(pid)), x, y - 36 * k);
+    });
+    ctx.fillStyle = color('--muted', '#666'); ctx.textAlign = 'left'; ctx.fillText(`Touching: ${active.size}   Most at once: ${maxNow}`, 8 * k, 18 * k);
+  };
+
+  const info = (e: PointerEvent) => {
+    $('.tt-type').textContent = e.pointerType === 'pen' ? 'stylus' : e.pointerType;
+    $('.tt-pr').textContent = e.pressure ? e.pressure.toFixed(2) : '0 (not reported)';
+    $('.tt-size').textContent = `${Math.round(e.width)} × ${Math.round(e.height)} px`;
+    $('.tt-tilt').textContent = e.pointerType === 'pen' ? `${e.tiltX}°, ${e.tiltY}°` : 'stylus only';
+  };
+  const at = (e: PointerEvent) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const mark = (p: { x: number; y: number }) => {
+    const nx = p.x / cv.clientWidth, ny = p.y / cv.clientHeight, c = Math.min(cols - 1, Math.max(0, Math.floor(nx * cols))), r = Math.min(rows - 1, Math.max(0, Math.floor(ny * rows)));
+    if (!points.some((q) => Math.min(cols - 1, Math.floor(q.x * cols)) === c && Math.min(rows - 1, Math.floor(q.y * rows)) === r)) points.push({ x: nx, y: ny });
+  };
+  const stroke = (a: P, b: { x: number; y: number }, e: PointerEvent) => {
+    const k = devicePixelRatio || 1, l = layer.getContext('2d')!;
+    l.strokeStyle = color('--ink', '#000'); l.lineCap = 'round'; l.lineWidth = (e.pointerType === 'pen' && e.pressure ? 1 + 8 * e.pressure : 3) * k;
+    l.beginPath(); l.moveTo(a.x * k, a.y * k); l.lineTo(b.x * k, b.y * k); l.stroke();
+  };
+
+  cv.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    try { cv.setPointerCapture(e.pointerId); } catch {}
+    const p = at(e); active.set(e.pointerId, { ...p, type: e.pointerType }); mark(p);
+    maxNow = Math.max(maxNow, active.size); $('.tt-now').textContent = String(active.size); $('.tt-max').textContent = String(maxNow);
+    info(e); cover(); dirty = true;
+    say(status, `${active.size} touching now, ${maxNow} at most so far. Try adding more fingers.`, 'good');
+  });
+  cv.addEventListener('pointermove', (e) => {
+    const a = active.get(e.pointerId); if (!a) return;
+    const list = e.getCoalescedEvents?.().length ? e.getCoalescedEvents() : [e]; let prev: P = a;
+    for (const ev of list) { const p = at(ev); if (mode === 'draw') stroke(prev, p, ev); mark(p); prev = { ...p, type: a.type }; }
+    active.set(e.pointerId, prev); info(e); cover(); dirty = true;
+  });
+  const up = (e: PointerEvent) => { if (active.delete(e.pointerId)) { $('.tt-now').textContent = String(active.size); dirty = true; } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const clear = () => { layer.getContext('2d')!.clearRect(0, 0, layer.width, layer.height); points = []; maxNow = active.size; ids.clear(); $('.tt-max').textContent = String(maxNow); cover(); dirty = true; say(status, 'Cleared.'); };
+  root.querySelectorAll('.tt-clear').forEach((b) => b.addEventListener('click', clear));
+  root.querySelectorAll<HTMLElement>('.tt-mode').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.mode as 'draw' | 'grid'; root.querySelectorAll('.tt-mode').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    say(status, mode === 'grid' ? 'Swipe slowly over the whole screen. Squares that stay white may be dead spots.' : 'Touch the area with one or more fingers.'); cover(); dirty = true;
+  }));
+  const fsEl = wrap as any, fsOn = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen), fullB = $('.tt-full');
+  if (!fsOn) { fullB.hidden = true; }
+  const isFs = () => (document.fullscreenElement || (document as any).webkitFullscreenElement) === wrap;
+  fullB.addEventListener('click', () => { try { (fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl); } catch { say(status, 'This browser would not go full screen.', 'warn'); } });
+  $('.tt-exit').addEventListener('click', () => { try { (document.exitFullscreen || (document as any).webkitExitFullscreen).call(document); } catch {} });
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { void isFs(); setTimeout(size, 50); });
+  addEventListener('resize', size);
+
+  let mtp = '–'; try { mtp = typeof navigator.maxTouchPoints === 'number' ? (navigator.maxTouchPoints ? `${navigator.maxTouchPoints} touches` : '0 (no touch screen)') : 'not reported'; } catch {}
+  $('.tt-mtp').textContent = mtp;
+  size(); paint();
+</script>

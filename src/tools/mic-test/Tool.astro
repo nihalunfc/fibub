@@ -1,0 +1,154 @@
+---
+// #T1051 Mic Test: live level meter, spectrum, settings the browser reports, and a short record-and-play-back.
+// Shared kit: src/lib/device/ (core.ts maths, checked in tests/device.mjs; browser.ts permissions and device lists).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv mt">
+  <section class="panel">
+    <div class="dv-grid">
+      <label>Microphone <select class="mt-dev"><option value="">Default microphone</option></select></label>
+      <label class="dv-check"><input type="checkbox" class="mt-proc" /> Call clean-up (echo, noise, auto volume)</label>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn mt-start">Start microphone</button>
+      <button type="button" class="btn secondary mt-stop" hidden>Stop</button>
+    </div>
+    <p class="dv-status mt-status" aria-live="polite">Press Start microphone. Your browser will ask for permission. Nothing is recorded or sent anywhere.</p>
+    <div class="dv-meter mt-meter" aria-hidden="true"><i></i><b></b></div>
+    <dl class="dv-stats">
+      <div><dt>Level now</dt><dd class="mt-now">–</dd></div>
+      <div><dt>Peak (last 2 s)</dt><dd class="mt-peak">–</dd></div>
+      <div><dt>Sample rate</dt><dd class="mt-rate">–</dd></div>
+      <div><dt>Channels</dt><dd class="mt-ch">–</dd></div>
+    </dl>
+    <canvas class="dv-canvas mt-cv" height="140" aria-label="Live sound spectrum, low notes on the left, high on the right"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Record and play back</h2>
+    <p class="dv-fine">Hear how you sound to others. The clip stays in this tab and is gone when you leave.</p>
+    <div class="dv-row">
+      <label>Length <select class="mt-len"><option value="3">3 seconds</option><option value="5" selected>5 seconds</option><option value="10">10 seconds</option></select></label>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn mt-rec" disabled>Record</button>
+      <button type="button" class="btn secondary mt-mon" disabled aria-pressed="false">Listen live (headphones)</button>
+    </div>
+    <audio class="mt-audio" controls hidden></audio>
+    <p class="dv-fine mt-recinfo" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>What the browser reports</h2>
+    <table class="dv-table mt-facts"><tbody><tr><th>Status</th><td>Not started</td></tr></tbody></table>
+  </section>
+</div>
+
+<style is:inline>
+  .mt .mt-cv { height: 140px; }
+  .mt .mt-audio { width: 100%; }
+</style>
+
+<script>
+  import { rms, peak, dbfs, meterPos, micVerdict } from '../../lib/device/core';
+  import { openMic, stopStream, fillDeviceSelect, onDeviceChange, mediaError, canAskMedia, say } from '../../lib/device/browser';
+  const root = document.querySelector('.mt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const dev = $<HTMLSelectElement>('.mt-dev'), proc = $<HTMLInputElement>('.mt-proc');
+  const startB = $<HTMLButtonElement>('.mt-start'), stopB = $<HTMLButtonElement>('.mt-stop'), recB = $<HTMLButtonElement>('.mt-rec'), monB = $<HTMLButtonElement>('.mt-mon');
+  const status = $('.mt-status'), meter = $('.mt-meter'), bar = meter.querySelector('i') as HTMLElement, hold = meter.querySelector('b') as HTMLElement;
+  const cv = $<HTMLCanvasElement>('.mt-cv'), audio = $<HTMLAudioElement>('.mt-audio');
+  let stream: MediaStream | null = null, ac: AudioContext | null = null, an: AnalyserNode | null = null, src: MediaStreamAudioSourceNode | null = null, raf = 0;
+  const peaks: { db: number; t: number }[] = [];
+  let clipUrl = '';
+
+  const fmt = (db: number) => (db <= -100 ? 'silent' : `${db.toFixed(1)} dB`);
+  const facts = (rows: [string, string][]) => {
+    $('.mt-facts').innerHTML = '<tbody>' + rows.map(([k, v]) => `<tr><th>${k}</th><td></td></tr>`).join('') + '</tbody>';
+    $('.mt-facts').querySelectorAll('td').forEach((td, i) => (td.textContent = rows[i][1]));
+  };
+
+  const stop = () => {
+    cancelAnimationFrame(raf); stopStream(stream); stream = null; src?.disconnect(); src = null;
+    ac?.close().catch(() => {}); ac = null; an = null;
+    startB.hidden = false; stopB.hidden = true; recB.disabled = monB.disabled = true;
+    monB.setAttribute('aria-pressed', 'false'); bar.style.width = '0'; hold.style.left = '0';
+  };
+
+  const draw = () => {
+    if (!an) return;
+    const buf = new Float32Array(an.fftSize); an.getFloatTimeDomainData(buf);
+    const now = dbfs(rms(buf)), pk = dbfs(peak(buf)), t = performance.now();
+    peaks.push({ db: pk, t }); while (peaks.length && t - peaks[0].t > 2000) peaks.shift();
+    const hi = Math.max(...peaks.map((p) => p.db)), v = micVerdict(hi);
+    bar.style.width = (meterPos(now) * 100).toFixed(1) + '%'; hold.style.left = `calc(${(meterPos(hi) * 100).toFixed(1)}% - 2px)`;
+    meter.dataset.tone = v.level === 'clip' ? 'bad' : v.level === 'loud' ? 'warn' : '';
+    $('.mt-now').textContent = fmt(now); $('.mt-peak').textContent = fmt(hi);
+    say(status, v.text, v.level === 'good' ? 'good' : v.level === 'clip' || v.level === 'none' ? 'bad' : 'warn');
+    // Spectrum on a log frequency scale, 50 Hz to 16 kHz.
+    const W = (cv.width = cv.clientWidth * devicePixelRatio), H = (cv.height = 140 * devicePixelRatio), ctx = cv.getContext('2d')!;
+    const fd = new Float32Array(an.frequencyBinCount); an.getFloatFrequencyData(fd);
+    const css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', muted = css.getPropertyValue('--muted') || '#666';
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = ink; const ny = ac!.sampleRate / 2, cols = Math.max(32, Math.floor(W / (4 * devicePixelRatio)));
+    for (let c = 0; c < cols; c++) {
+      const f0 = 50 * Math.pow(16000 / 50, c / cols), f1 = 50 * Math.pow(16000 / 50, (c + 1) / cols);
+      let m = -140; for (let k = Math.floor((f0 / ny) * fd.length); k <= Math.min(fd.length - 1, Math.ceil((f1 / ny) * fd.length)); k++) m = Math.max(m, fd[k]);
+      const h = Math.max(0, Math.min(1, (m + 100) / 80)) * (H - 16 * devicePixelRatio);
+      ctx.fillRect((c * W) / cols + 1, H - 16 * devicePixelRatio - h, W / cols - 2, h);
+    }
+    ctx.fillStyle = muted; ctx.font = `${11 * devicePixelRatio}px system-ui, sans-serif`;
+    for (const [f, l] of [[100, '100 Hz'], [1000, '1 kHz'], [10000, '10 kHz']] as [number, string][]) ctx.fillText(l, (Math.log(f / 50) / Math.log(16000 / 50)) * W, H - 3 * devicePixelRatio);
+    raf = requestAnimationFrame(draw);
+  };
+
+  const start = async () => {
+    if (!canAskMedia()) { say(status, window.isSecureContext ? 'This browser cannot use a microphone.' : 'The microphone only works on a secure (https) page.', 'bad'); return; }
+    stop(); say(status, 'Waiting for permission…');
+    try { stream = await openMic(dev.value, proc.checked); }
+    catch (e) { say(status, mediaError(e, 'microphone'), 'bad'); return; }
+    await fillDeviceSelect(dev, 'audioinput', 'Microphone');
+    const tr = stream.getAudioTracks()[0], s = tr.getSettings();
+    if (s.deviceId) dev.value = s.deviceId;
+    ac = new AudioContext(); await ac.resume();
+    src = ac.createMediaStreamSource(stream); an = ac.createAnalyser(); an.fftSize = 4096; an.smoothingTimeConstant = 0.6; src.connect(an);
+    $('.mt-rate').textContent = `${((s.sampleRate || ac.sampleRate) / 1000).toLocaleString('en-US')} kHz`;
+    $('.mt-ch').textContent = String(s.channelCount || 1);
+    const yn = (b?: boolean) => (b === undefined ? 'not reported' : b ? 'on' : 'off');
+    facts([['Microphone', tr.label || 'Default microphone'], ['Sample rate', `${(s.sampleRate || ac.sampleRate).toLocaleString('en-US')} Hz`], ['Channels', String(s.channelCount || 1)],
+      ['Echo cancellation', yn(s.echoCancellation)], ['Noise suppression', yn(s.noiseSuppression)], ['Auto volume (gain)', yn(s.autoGainControl)],
+      ['Latency', s.latency ? `${Math.round(s.latency * 1000)} ms` : 'not reported'], ['Microphones found', String(dev.options.length)]]);
+    tr.addEventListener('ended', () => { say(status, 'The microphone was unplugged or switched off.', 'bad'); stop(); });
+    startB.hidden = true; stopB.hidden = false; recB.disabled = !('MediaRecorder' in window); monB.disabled = false;
+    peaks.length = 0; draw();
+  };
+
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Microphone off.'); });
+  dev.addEventListener('change', () => { if (stream) start(); });
+  proc.addEventListener('change', () => { if (stream) start(); });
+  onDeviceChange(() => { fillDeviceSelect(dev, 'audioinput', 'Microphone'); });
+
+  monB.addEventListener('click', () => {
+    if (!ac || !src) return;
+    const on = monB.getAttribute('aria-pressed') !== 'true';
+    monB.setAttribute('aria-pressed', String(on));
+    if (on) src.connect(ac.destination); else { try { src.disconnect(ac.destination); } catch {} }
+  });
+
+  recB.addEventListener('click', () => {
+    if (!stream) return;
+    const secs = +$<HTMLSelectElement>('.mt-len').value, chunks: Blob[] = [], rec = new MediaRecorder(stream);
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      if (clipUrl) URL.revokeObjectURL(clipUrl);
+      clipUrl = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
+      audio.src = clipUrl; audio.hidden = false; audio.play().catch(() => {});
+      recB.disabled = false; recB.textContent = 'Record again';
+      $('.mt-recinfo').textContent = `Playing back your ${secs}-second clip. It is kept only in this tab.`;
+    };
+    recB.disabled = true; let left = secs;
+    $('.mt-recinfo').textContent = `Recording… ${left} s`;
+    const tick = setInterval(() => { left--; if (left > 0) $('.mt-recinfo').textContent = `Recording… ${left} s`; }, 1000);
+    rec.start(); setTimeout(() => { clearInterval(tick); if (rec.state !== 'inactive') rec.stop(); }, secs * 1000);
+  });
+
+  addEventListener('pagehide', stop);
+</script>

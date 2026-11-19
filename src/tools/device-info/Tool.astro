@@ -1,0 +1,90 @@
+---
+// #T1063 Device Info: what the browser reports about the device, all read locally, with a copyable plain-text report.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv di">
+  <p class="dv-status di-note" data-tone="good">Everything here is read on your device and shown only to you. Nothing is sent or stored.</p>
+  <section class="panel">
+    <h2>What this device reports</h2>
+    <table class="dv-table di-facts"><tbody></tbody></table>
+    <div class="dv-row"><button type="button" class="btn di-copy">Copy report</button></div>
+    <p class="dv-status di-copied" aria-live="polite"></p>
+    <textarea class="di-box" rows="6" readonly hidden aria-label="Report text"></textarea>
+  </section>
+  <section class="panel">
+    <h2>Hardware tests this browser can run</h2>
+    <p class="dv-fine">Yes means the browser offers that feature. It does not prove the hardware is there.</p>
+    <table class="dv-table di-sup"><tbody></tbody></table>
+  </section>
+</div>
+
+<style is:inline>
+  .di .di-box { font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  .di a { color: var(--accent); }
+</style>
+
+<script>
+  import { support, browserName, say } from '../../lib/device/browser';
+  const root = document.querySelector('.di') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const mm = (q: string) => { try { return window.matchMedia(q).matches; } catch { return false; } };
+  const safe = (f: () => string) => { try { return f() || 'not reported'; } catch { return 'not reported'; } };
+  const n = navigator as Navigator & { deviceMemory?: number; connection?: { effectiveType?: string; saveData?: boolean } };
+
+  const gpu = () => {
+    const c = document.createElement('canvas'), gl = (c.getContext('webgl') || c.getContext('experimental-webgl')) as WebGLRenderingContext | null;
+    if (!gl) return 'WebGL is not available';
+    const e = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = e ? String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)) : '';
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return name || 'hidden by this browser';
+  };
+  const storage = () => {
+    const ls = (() => { try { localStorage.getItem('x'); return true; } catch { return false; } })();
+    return `cookies ${navigator.cookieEnabled ? 'on' : 'off'}, local storage ${ls ? 'available' : 'blocked'}`;
+  };
+  const dpr = window.devicePixelRatio || 1, { browser, os } = browserName();
+  const rows: [string, string][] = [
+    ['Operating system', os], ['Browser', browser],
+    ['Screen (physical pixels)', safe(() => `${Math.round(screen.width * dpr)} × ${Math.round(screen.height * dpr)} at ${dpr}× scaling, ${screen.colorDepth}-bit colour`)],
+    ['Processor threads', safe(() => String(n.hardwareConcurrency || ''))],
+    ['Memory', n.deviceMemory ? `about ${n.deviceMemory} GB (the browser rounds this and may cap it, so the real figure can be higher)` : 'not reported (Chrome, Edge and Opera only)'],
+    ['Graphics', safe(gpu)],
+    ['Touch points', safe(() => String(n.maxTouchPoints ?? 0))],
+    ['Main pointer', `${mm('(pointer: fine)') ? 'fine (mouse or pen)' : mm('(pointer: coarse)') ? 'coarse (finger)' : 'not reported'}, ${mm('(hover: hover)') ? 'can hover' : 'cannot hover'}`],
+    ['Language', safe(() => n.language)],
+    ['Time zone', safe(() => Intl.DateTimeFormat().resolvedOptions().timeZone)],
+    ['Online', n.onLine ? 'yes' : 'no'],
+    ['Connection type', n.connection?.effectiveType ? `${n.connection.effectiveType}${n.connection.saveData ? ', data saver on' : ''}` : 'not reported (Chrome and Edge only)'],
+    ['Cookies and storage', safe(storage)],
+    ['Secure (https) page', window.isSecureContext ? 'yes' : 'no'],
+  ];
+  const fill = (sel: string, data: [string, string | Node][]) => {
+    const tb = $(sel).querySelector('tbody')!; tb.innerHTML = '';
+    for (const [k, v] of data) { const r = tb.insertRow(), h = document.createElement('th'); h.textContent = k; r.append(h); const d = r.insertCell(); d.append(v); }
+  };
+  fill('.di-facts', rows);
+
+  const s = support();
+  const tests: [string, string, boolean | null][] = [
+    ['mic-test', 'Microphone', s.mic], ['speaker-test', 'Speakers (choose output)', s.speakerChoice || null], ['webcam-test', 'Camera', s.camera],
+    ['keyboard-test', 'Keyboard layout map', s.keyboardMap || null], ['mouse-test', 'Pointer events', s.pointer], ['touch-test', 'Touch screen', s.touch],
+    ['screen-test', 'Full screen', s.fullscreen], ['gamepad-test', 'Gamepad', s.gamepad], ['vibration-test', 'Vibration', s.vibrate],
+    ['sensor-test', 'Motion and orientation', s.motion && s.orientation], ['battery-test', 'Battery status', s.battery], ['midi-test', 'MIDI instruments', s.midi],
+  ];
+  const sup: [string, Node][] = tests.map(([id, label, ok]) => {
+    const f = document.createDocumentFragment(), st = document.createElement('span');
+    st.className = ok ? 'dv-ok' : 'dv-no'; st.textContent = ok ? 'Yes' : ok === null ? 'Limited' : 'No'; f.append(st, ' · ');
+    const a = document.createElement('a'); a.href = `/everyday/${id}/`; a.textContent = 'Open test'; f.append(a);
+    return [label, f];
+  });
+  fill('.di-sup', sup);
+
+  const report = () => ['fibub device report', ...rows.map(([k, v]) => `${k}: ${v}`), 'Hardware features: ' + tests.map(([, l, ok]) => `${l} ${ok ? 'yes' : 'no'}`).join(', ')].join('\n');
+  const copy = $<HTMLButtonElement>('.di-copy'), box = $<HTMLTextAreaElement>('.di-box'), out = $('.di-copied');
+  copy.addEventListener('click', async () => {
+    const text = report();
+    try { await navigator.clipboard.writeText(text); say(out, 'Report copied. It only went to your clipboard.', 'good'); }
+    catch { box.value = text; box.hidden = false; box.select(); say(out, 'Your browser blocked copying. Select the text below and copy it by hand.', 'warn'); }
+  });
+</script>

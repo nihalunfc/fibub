@@ -1,0 +1,127 @@
+---
+// #T1062 MIDI Test: lists MIDI devices, logs incoming messages, lights a 2-octave piano, monitors controllers and sends test notes.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv mi">
+  <section class="panel">
+    <div class="dv-row"><button type="button" class="btn mi-start">Connect MIDI</button></div>
+    <p class="dv-status mi-status" aria-live="polite">Plug in a MIDI keyboard or controller, then press Connect MIDI. Your browser will ask for permission. Nothing is sent anywhere.</p>
+    <p class="dv-fine">Works in Chrome, Edge, Opera and Firefox on computers and Android. Safari and every iPhone and iPad browser have no Web MIDI.</p>
+    <table class="dv-table mi-devs"><tbody><tr><th>Devices</th><td>Not connected yet</td></tr></tbody></table>
+  </section>
+  <section class="panel">
+    <h2>Keys</h2>
+    <div class="mi-piano" aria-label="Two-octave piano that lights the notes you play"></div>
+    <p class="dv-fine mi-last" aria-live="polite">Play a note on your keyboard. Keys outside C3 to B4 show here as text only.</p>
+    <h2>Controllers (knobs, sliders, pedals)</h2>
+    <div class="mi-cc"><p class="dv-fine">Move a knob or slider to see its latest value, 0 to 127.</p></div>
+  </section>
+  <section class="panel">
+    <h2>Messages</h2>
+    <label class="dv-check"><input type="checkbox" class="mi-hide" checked /> Hide clock messages (a steady tick that fills the list)</label>
+    <pre class="dv-log mi-log" aria-live="off">Nothing yet.</pre>
+  </section>
+  <section class="panel">
+    <h2>Send a test</h2>
+    <label>Output device <select class="mi-out"><option value="">No outputs found</option></select></label>
+    <div class="dv-row">
+      <button type="button" class="btn mi-note" disabled>Play middle C</button>
+      <button type="button" class="btn secondary mi-off" disabled>All notes off</button>
+    </div>
+    <p class="dv-fine">Middle C sends a note-on at velocity 100, then a note-off half a second later. All notes off silences stuck notes (controller 123). System-exclusive messages are never used.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .mi .mi-piano { position: relative; display: flex; height: 110px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .mi .mi-piano .w { flex: 1; border-right: 1px solid var(--line); background: var(--bg); }
+  .mi .mi-piano .w:last-child { border-right: 0; }
+  .mi .mi-piano .b { position: absolute; top: 0; height: 62%; width: 4.2%; background: var(--ink); border-radius: 0 0 4px 4px; transform: translateX(-50%); }
+  .mi .mi-piano .on { background: var(--accent); }
+  .mi .mi-cc { display: grid; gap: 6px; }
+  .mi .mi-cc .cc { display: grid; grid-template-columns: 6.5em 1fr 3em; gap: 8px; align-items: center; font-size: 14px; }
+  .mi .mi-cc .cc i { display: block; height: 10px; background: var(--accent-soft); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .mi .mi-cc .cc i b { display: block; height: 100%; background: var(--accent); }
+</style>
+
+<script>
+  import { midiMessage, noteName } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  type Port = { id: string; name?: string | null; manufacturer?: string | null; state: string; connection?: string; onmidimessage?: ((e: { data: Uint8Array }) => void) | null; send?: (d: number[]) => void };
+  type Access = { inputs: Map<string, Port>; outputs: Map<string, Port>; onstatechange: ((e: unknown) => void) | null };
+  const root = document.querySelector('.mi') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.mi-status'), piano = $('.mi-piano'), log = $('.mi-log'), hide = $<HTMLInputElement>('.mi-hide'), outSel = $<HTMLSelectElement>('.mi-out');
+  const noteB = $<HTMLButtonElement>('.mi-note'), offB = $<HTMLButtonElement>('.mi-off');
+  let access: Access | null = null;
+  const lines: string[] = [], cc = new Map<string, number>();
+  const FIRST = 48; // C3; two octaves C3 to B4
+  const BLACK = [1, 3, 6, 8, 10];
+
+  // Build the piano: 14 white keys, black keys placed between them.
+  let wi = 0;
+  for (let n = FIRST; n < FIRST + 24; n++) {
+    const k = document.createElement('div'); k.dataset.n = String(n);
+    if (BLACK.includes(n % 12)) { k.className = 'b'; k.style.left = `${(wi / 14) * 100}%`; } else { k.className = 'w'; wi++; }
+    piano.appendChild(k);
+  }
+  const light = (n: number, on: boolean) => piano.querySelector(`[data-n="${n}"]`)?.classList.toggle('on', on);
+
+  const facts = () => {
+    const tb = $('.mi-devs').querySelector('tbody') as HTMLElement; tb.textContent = '';
+    const add = (k: string, p: Port) => {
+      const tr = document.createElement('tr'), th = document.createElement('th'), td = document.createElement('td');
+      th.textContent = k; td.textContent = `${p.name || 'Unnamed'}${p.manufacturer ? ' (' + p.manufacturer + ')' : ''}: ${p.state}${p.connection ? ', ' + p.connection : ''}`;
+      tr.append(th, td); tb.appendChild(tr);
+    };
+    access?.inputs.forEach((p) => add('Input', p)); access?.outputs.forEach((p) => add('Output', p));
+    if (!tb.children.length) tb.innerHTML = '<tr><th>Devices</th><td>None found. Plug one in and it appears here.</td></tr>';
+    const keep = outSel.value; outSel.textContent = '';
+    access?.outputs.forEach((p) => outSel.add(new Option(p.name || 'Unnamed output', p.id)));
+    if (!outSel.options.length) outSel.add(new Option('No outputs found', ''));
+    if ([...outSel.options].some((o) => o.value === keep)) outSel.value = keep;
+    noteB.disabled = offB.disabled = !outSel.value;
+  };
+
+  const incoming = (name: string, d: Uint8Array) => {
+    const m = midiMessage(d);
+    if (m.kind === 'clock' && hide.checked) return;
+    lines.unshift(`${new Date().toLocaleTimeString()}  ${name || 'input'}  ${m.ch ? 'Ch ' + m.ch + '  ' : ''}${m.text}`);
+    if (lines.length > 200) lines.length = 200;
+    log.textContent = lines.join('\n');
+    if (m.kind === 'note-on') { light(d[1], true); $('.mi-last').textContent = `${noteName(d[1])} pressed, velocity ${d[2]} of 127`; }
+    else if (m.kind === 'note-off') { light(d[1], false); $('.mi-last').textContent = `${noteName(d[1])} released`; }
+    else if (m.kind === 'cc') {
+      cc.set(`${m.ch}:${d[1]}`, d[2]);
+      const box = $('.mi-cc'); box.textContent = '';
+      [...cc.entries()].sort().forEach(([k, v]) => {
+        const [ch, n] = k.split(':'), row = document.createElement('div'); row.className = 'cc';
+        const a = document.createElement('span'), c = document.createElement('i'), val = document.createElement('span');
+        a.textContent = `Ch ${ch} CC ${n}`; c.innerHTML = `<b style="width:${(v / 127) * 100}%"></b>`; val.textContent = String(v);
+        row.append(a, c, val); box.appendChild(row);
+      });
+    }
+  };
+
+  const attach = () => {
+    access?.inputs.forEach((p) => { p.onmidimessage = (e) => incoming(p.name || '', e.data); });
+    facts();
+  };
+
+  const start = async () => {
+    const nav = navigator as Navigator & { requestMIDIAccess?: (o?: { sysex: boolean }) => Promise<Access> };
+    if (typeof nav.requestMIDIAccess !== 'function') { say(status, 'This browser does not support Web MIDI. Use Chrome, Edge, Opera or Firefox on a computer or Android phone. Safari and iPhones cannot do it.', 'bad'); return; }
+    say(status, 'Waiting for permission…');
+    try { access = await nav.requestMIDIAccess({ sysex: false }); }
+    catch { say(status, 'MIDI access was blocked. Allow it in the permission box or the lock icon by the address bar, then try again.', 'bad'); return; }
+    access.onstatechange = () => { attach(); say(status, `A device was plugged in or unplugged. ${access!.inputs.size} input(s), ${access!.outputs.size} output(s) now.`, 'good'); };
+    attach();
+    say(status, access.inputs.size || access.outputs.size ? `Connected: ${access.inputs.size} input(s), ${access.outputs.size} output(s). Play something.` : 'MIDI is on but no devices were found. Plug one in and it will appear.', access.inputs.size || access.outputs.size ? 'good' : 'warn');
+  };
+
+  const send = (d: number[]) => { const p = access?.outputs.get(outSel.value); try { p?.send?.(d); } catch { say(status, 'That output did not accept the message.', 'warn'); } };
+  $('.mi-start').addEventListener('click', start);
+  noteB.addEventListener('click', () => { send([0x90, 60, 100]); setTimeout(() => send([0x80, 60, 0]), 500); });
+  offB.addEventListener('click', () => { send([0xb0, 123, 0]); piano.querySelectorAll('.on').forEach((k) => k.classList.remove('on')); });
+  addEventListener('pagehide', () => { access?.inputs.forEach((p) => { p.onmidimessage = null; }); });
+</script>

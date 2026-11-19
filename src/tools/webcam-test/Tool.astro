@@ -1,0 +1,142 @@
+---
+// #T1053 Webcam Test: live camera, real resolution, measured frame rate, brightness, capabilities and a local snapshot.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv wc">
+  <section class="panel">
+    <div class="dv-grid">
+      <label>Camera <select class="wc-dev"><option value="">Default camera</option></select></label>
+      <label>Which side (phones) <select class="wc-face"><option value="">Any</option><option value="user">Front</option><option value="environment">Back</option></select></label>
+    </div>
+    <div class="dv-row">
+      <button type="button" class="btn wc-start">Start camera</button>
+      <button type="button" class="btn secondary wc-stop" hidden>Stop</button>
+      <label class="dv-check"><input type="checkbox" class="wc-mirror" checked /> Mirror the preview</label>
+    </div>
+    <p class="dv-status wc-status" aria-live="polite">Press Start camera. Your browser will ask for permission. Nothing is recorded or sent anywhere.</p>
+    <video class="wc-video" playsinline muted hidden></video>
+    <dl class="dv-stats">
+      <div><dt>Resolution</dt><dd class="wc-res">–</dd></div>
+      <div><dt>Shape</dt><dd class="wc-asp">–</dd></div>
+      <div><dt>Frame rate</dt><dd class="wc-fps">–</dd></div>
+      <div><dt>Brightness</dt><dd class="wc-lum">–</dd></div>
+    </dl>
+    <p class="dv-fine wc-lumnote" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>Most the camera can do</h2>
+    <p class="dv-fine">What the browser says this camera supports. Some browsers (Safari, Firefox) report less.</p>
+    <table class="dv-table wc-caps"><tbody><tr><th>Status</th><td>Start the camera to see this</td></tr></tbody></table>
+  </section>
+  <section class="panel">
+    <h2>Snapshot</h2>
+    <div class="dv-row">
+      <button type="button" class="btn wc-snap" disabled>Take snapshot</button>
+      <a class="btn secondary wc-save" download="webcam-snapshot.png" hidden>Save image</a>
+    </div>
+    <img class="wc-img" alt="Your snapshot" hidden />
+    <p class="dv-fine">The still stays in this page. It goes nowhere unless you press Save image.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .wc .wc-video { width: 100%; max-height: 70vh; background: #000; border-radius: 10px; display: block; }
+  .wc .wc-video.flip { transform: scaleX(-1); }
+  .wc .wc-img { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+</style>
+
+<script>
+  import { rateFromTimes, resolutionName, aspect } from '../../lib/device/core';
+  import { openCam, stopStream, fillDeviceSelect, onDeviceChange, mediaError, canAskMedia, say } from '../../lib/device/browser';
+  const root = document.querySelector('.wc') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const dev = $<HTMLSelectElement>('.wc-dev'), face = $<HTMLSelectElement>('.wc-face'), video = $<HTMLVideoElement>('.wc-video');
+  const startB = $<HTMLButtonElement>('.wc-start'), stopB = $<HTMLButtonElement>('.wc-stop'), snapB = $<HTMLButtonElement>('.wc-snap');
+  const status = $('.wc-status'), mirror = $<HTMLInputElement>('.wc-mirror'), img = $<HTMLImageElement>('.wc-img'), save = $<HTMLAnchorElement>('.wc-save');
+  let stream: MediaStream | null = null, times: number[] = [], timer = 0, rvfc = 0, raf = 0;
+  const small = document.createElement('canvas'); small.width = 32; small.height = 18;
+
+  const setMirror = () => video.classList.toggle('flip', mirror.checked);
+  const caps = (rows: [string, string][]) => {
+    const t = $('.wc-caps'); t.innerHTML = '<tbody>' + rows.map(() => '<tr><th></th><td></td></tr>').join('') + '</tbody>';
+    t.querySelectorAll('tr').forEach((r, i) => { r.children[0].textContent = rows[i][0]; r.children[1].textContent = rows[i][1]; });
+  };
+
+  // Frame times: requestVideoFrameCallback where there is one, else watch the video clock on every animation frame.
+  const trackFrames = () => {
+    const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: (now: number) => void) => number };
+    if (v.requestVideoFrameCallback) {
+      const loop = (now: number) => { times.push(now); if (times.length > 60) times.shift(); rvfc = v.requestVideoFrameCallback!(loop); };
+      rvfc = v.requestVideoFrameCallback(loop);
+    } else {
+      let last = -1;
+      const loop = () => { if (video.currentTime !== last) { last = video.currentTime; times.push(performance.now()); if (times.length > 60) times.shift(); } raf = requestAnimationFrame(loop); };
+      loop();
+    }
+  };
+
+  const measure = () => {
+    if (!stream) return;
+    const fps = rateFromTimes(times.slice(-30));
+    $('.wc-fps').textContent = fps ? `${fps.toFixed(0)} fps` : '–';
+    if (video.videoWidth) {
+      const ctx = small.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(video, 0, 0, 32, 18);
+      const d = ctx.getImageData(0, 0, 32, 18).data; let s = 0;
+      for (let i = 0; i < d.length; i += 4) s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      const pct = (s / (d.length / 4) / 255) * 100;
+      $('.wc-lum').textContent = `${pct.toFixed(0)}%`;
+      $('.wc-lumnote').textContent = pct < 20 ? 'Too dark: turn on a light or face a window.' : pct > 85 ? 'Very bright: the picture may be washed out. Turn down the light behind or on you.' : 'Light looks fine.';
+    }
+  };
+
+  const stop = () => {
+    clearInterval(timer); cancelAnimationFrame(raf);
+    try { (video as any).cancelVideoFrameCallback?.(rvfc); } catch {}
+    stopStream(stream); stream = null; video.srcObject = null; video.hidden = true; times = [];
+    startB.hidden = false; stopB.hidden = true; snapB.disabled = true;
+  };
+
+  const start = async () => {
+    if (!canAskMedia()) { say(status, window.isSecureContext ? 'This browser cannot use a camera.' : 'The camera only works on a secure (https) page.', 'bad'); return; }
+    stop(); say(status, 'Waiting for permission…');
+    try { stream = await openCam(dev.value, face.value as '' | 'user' | 'environment'); }
+    catch (e) { say(status, mediaError(e, 'camera'), 'bad'); return; }
+    await fillDeviceSelect(dev, 'videoinput', 'Camera');
+    const tr = stream.getVideoTracks()[0], s = tr.getSettings();
+    if (s.deviceId) dev.value = s.deviceId;
+    video.srcObject = stream; video.hidden = false; setMirror();
+    await video.play().catch(() => {});
+    const w = s.width || video.videoWidth, h = s.height || video.videoHeight;
+    if (w && h) { $('.wc-res').textContent = `${w} × ${h}`; $('.wc-asp').textContent = aspect(w, h); }
+    const rows: [string, string][] = [['Camera', tr.label || 'Default camera'], ['Picture now', w ? `${w} × ${h}, ${resolutionName(w, h)}` : 'not reported']];
+    const c = (tr.getCapabilities ? tr.getCapabilities() : {}) as any;
+    if (c.width?.max && c.height?.max) rows.push(['Largest picture', `${c.width.max} × ${c.height.max}, ${resolutionName(c.width.max, c.height.max)}`]);
+    if (c.frameRate?.max) rows.push(['Highest frame rate', `${Math.round(c.frameRate.max)} fps`]);
+    if (c.facingMode?.length) rows.push(['Faces', c.facingMode.join(', ')]);
+    if (c.zoom) rows.push(['Zoom', `${c.zoom.min} to ${c.zoom.max}`]);
+    if (rows.length === 2) rows.push(['More details', 'This browser does not report what the camera can do.']);
+    caps(rows);
+    tr.addEventListener('ended', () => { say(status, 'The camera was unplugged or switched off.', 'bad'); stop(); });
+    startB.hidden = true; stopB.hidden = false; snapB.disabled = false;
+    say(status, `Camera on${tr.label ? ': ' + tr.label : ''}. Nothing is recorded or sent.`, 'good');
+    times = []; trackFrames(); timer = window.setInterval(measure, 500);
+  };
+
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Camera off.'); });
+  dev.addEventListener('change', () => { if (stream) start(); });
+  face.addEventListener('change', () => { if (stream) { dev.value = ''; start(); } });
+  mirror.addEventListener('change', setMirror);
+  onDeviceChange(() => { fillDeviceSelect(dev, 'videoinput', 'Camera'); });
+
+  snapB.addEventListener('click', () => {
+    if (!video.videoWidth) return;
+    const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+    const x = c.getContext('2d')!;
+    if (mirror.checked) { x.translate(c.width, 0); x.scale(-1, 1); }
+    x.drawImage(video, 0, 0);
+    const url = c.toDataURL('image/png'); img.src = url; img.hidden = false; save.href = url; save.hidden = false;
+  });
+  addEventListener('pagehide', stop);
+</script>

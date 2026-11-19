@@ -1,0 +1,134 @@
+---
+// #T1060 Sensor Test: live motion and orientation sensors, bubble level, compass, shake graph, light sensor.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv se">
+  <section class="panel">
+    <div class="dv-row">
+      <button type="button" class="btn se-start">Start sensors</button>
+      <button type="button" class="btn secondary se-stop" hidden>Stop</button>
+    </div>
+    <p class="dv-status se-status" aria-live="polite">Press Start sensors. On an iPhone or iPad the browser asks for motion permission first. Nothing is recorded or sent anywhere.</p>
+    <dl class="dv-stats">
+      <div><dt>Tilt left-right</dt><dd class="se-tx">–</dd></div>
+      <div><dt>Tilt front-back</dt><dd class="se-ty">–</dd></div>
+      <div><dt>Compass</dt><dd class="se-head">–</dd></div>
+      <div><dt>Sample rate</dt><dd class="se-rate">–</dd></div>
+    </dl>
+    <canvas class="dv-canvas se-level" height="220" aria-label="Bubble level: the circle moves as you tilt the device"></canvas>
+    <p class="dv-fine">The bubble level uses gravity. Lay the device flat: the bubble sits in the middle at 0°.</p>
+  </section>
+  <section class="panel">
+    <h2>Shake graph</h2>
+    <p class="dv-fine">Total acceleration over the last few seconds. At rest it is about 9.8 m/s² (gravity); shaking makes it spike.</p>
+    <canvas class="dv-canvas se-graph" height="120" aria-label="Rolling graph of total acceleration"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Live readings</h2>
+    <table class="dv-table"><tbody>
+      <tr><th>Acceleration with gravity (m/s²)</th><td class="se-g">–</td></tr>
+      <tr><th>Acceleration without gravity (m/s²)</th><td class="se-a">–</td></tr>
+      <tr><th>Turning speed (°/s)</th><td class="se-r">–</td></tr>
+      <tr><th>Orientation alpha, beta, gamma (°)</th><td class="se-o">–</td></tr>
+      <tr><th>Ambient light</th><td class="se-l">–</td></tr>
+    </tbody></table>
+    <p class="dv-fine">Acceleration without gravity is zero when the device is still; turning speed is how fast it rotates. Alpha is the compass direction, beta the front-back tilt and gamma the left-right tilt. The light sensor is rare: it needs a flag in Chrome on Android and is missing in most browsers.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .se .se-level { height: 220px; }
+  .se .se-graph { height: 120px; }
+</style>
+
+<script>
+  import { rateFromTimes, tiltFromGravity, headingFromAlpha, compassPoint } from '../../lib/device/core';
+  import { askMotion, say } from '../../lib/device/browser';
+  const root = document.querySelector('.se') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.se-status'), startB = $<HTMLButtonElement>('.se-start'), stopB = $<HTMLButtonElement>('.se-stop');
+  const lv = $<HTMLCanvasElement>('.se-level'), gr = $<HTMLCanvasElement>('.se-graph');
+  type Acc = { x: number | null; y: number | null; z: number | null } | null | undefined;
+  let on = false, got = false, raf = 0, timer = 0, light: { stop(): void } | null = null;
+  let g = { x: 0, y: 0, z: 0 }, haveG = false, heading: number | null = null;
+  const times: number[] = [], mags: number[] = [];
+  const f = (v: number | null | undefined, d = 2) => (typeof v === 'number' && isFinite(v) ? v.toFixed(d) : '–');
+  const xyz = (a: Acc) => (a ? `${f(a.x)}, ${f(a.y)}, ${f(a.z)}` : 'not reported');
+
+  const onMotion = (e: DeviceMotionEvent) => {
+    const a = e.accelerationIncludingGravity, r0 = e.rotationRate;
+    // Desktop Chrome sends one event with every value null when there is no sensor: that is not data.
+    if (!(a && a.x != null) && !(e.acceleration && e.acceleration.x != null) && !(r0 && r0.alpha != null)) return;
+    if (!got) { got = true; say(status, 'Sensors are working. Tilt, turn and shake the device.', 'good'); }
+    times.push(performance.now()); if (times.length > 60) times.shift();
+    if (a && a.x != null && a.y != null && a.z != null) { g = { x: a.x, y: a.y, z: a.z }; haveG = true; mags.push(Math.hypot(a.x, a.y, a.z)); if (mags.length > 150) mags.shift(); }
+    $('.se-g').textContent = xyz(a); $('.se-a').textContent = xyz(e.acceleration);
+    const r = e.rotationRate; $('.se-r').textContent = r ? `${f(r.alpha, 1)}, ${f(r.beta, 1)}, ${f(r.gamma, 1)}` : 'not reported';
+  };
+  const onOrient = (e: DeviceOrientationEvent) => {
+    const w = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
+    if (e.alpha == null && e.beta == null && e.gamma == null && typeof w !== 'number') return;
+    if (typeof w === 'number') heading = w;
+    else if (e.alpha != null && (e.absolute || e.type === 'deviceorientationabsolute')) heading = headingFromAlpha(e.alpha);
+    $('.se-o').textContent = `${f(e.alpha, 1)}, ${f(e.beta, 1)}, ${f(e.gamma, 1)}`;
+    if (!got) { got = true; say(status, 'Sensors are working. Tilt, turn and shake the device.', 'good'); }
+  };
+
+  const draw = () => {
+    if (!on) return;
+    const css = getComputedStyle(root), ink = css.getPropertyValue('--ink') || '#000', line = css.getPropertyValue('--line') || '#999', bad = css.getPropertyValue('--bad') || '#c00';
+    const dpr = devicePixelRatio || 1;
+    // Bubble level
+    let W = (lv.width = lv.clientWidth * dpr), H = (lv.height = 220 * dpr), c = lv.getContext('2d')!;
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 8 * dpr;
+    c.strokeStyle = line; c.lineWidth = 2 * dpr; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+    c.beginPath(); c.arc(cx, cy, R / 3, 0, 7); c.stroke();
+    c.beginPath(); c.moveTo(cx - R, cy); c.lineTo(cx + R, cy); c.moveTo(cx, cy - R); c.lineTo(cx, cy + R); c.stroke();
+    if (haveG) {
+      const t = tiltFromGravity(g.x, g.y, g.z), lim = 45;
+      const bx = Math.max(-1, Math.min(1, -t.x / lim)), by = Math.max(-1, Math.min(1, t.y / lim));
+      c.fillStyle = Math.hypot(t.x, t.y) < 1 ? 'rgba(0,150,70,.8)' : ink; c.beginPath(); c.arc(cx + bx * (R - 14 * dpr), cy + by * (R - 14 * dpr), 14 * dpr, 0, 7); c.fill();
+      $('.se-tx').textContent = `${t.x.toFixed(1)}°`; $('.se-ty').textContent = `${t.y.toFixed(1)}°`;
+    }
+    if (heading != null) $('.se-head').textContent = `${Math.round(heading)}° ${compassPoint(heading)}`;
+    const rt = rateFromTimes(times); if (rt) $('.se-rate').textContent = `${Math.round(rt)} Hz`;
+    // Shake graph
+    W = gr.width = gr.clientWidth * dpr; H = gr.height = 120 * dpr; c = gr.getContext('2d')!;
+    const y = (m: number) => H - Math.min(1, m / 30) * H;
+    c.strokeStyle = line; c.lineWidth = dpr; c.beginPath(); c.moveTo(0, y(9.81)); c.lineTo(W, y(9.81)); c.stroke();
+    c.strokeStyle = ink; c.lineWidth = 2 * dpr; c.beginPath();
+    mags.forEach((m, i) => (i ? c.lineTo((i / 149) * W, y(m)) : c.moveTo(0, y(m))));
+    c.stroke();
+    const last = mags[mags.length - 1];
+    if (last != null && Math.abs(last - 9.81) > 6) { c.fillStyle = bad; c.font = `${13 * dpr}px system-ui, sans-serif`; c.fillText('Shake!', 8 * dpr, 16 * dpr); }
+    raf = requestAnimationFrame(draw);
+  };
+
+  const stop = () => {
+    on = false; cancelAnimationFrame(raf); clearTimeout(timer); light?.stop(); light = null;
+    removeEventListener('devicemotion', onMotion); removeEventListener('deviceorientation', onOrient); removeEventListener('deviceorientationabsolute', onOrient as EventListener);
+    startB.hidden = false; stopB.hidden = true;
+  };
+
+  const start = async () => {
+    stop(); got = false; haveG = false; heading = null; times.length = 0; mags.length = 0;
+    if (!('DeviceMotionEvent' in window) && !('DeviceOrientationEvent' in window)) { say(status, 'This browser has no motion or orientation sensors.', 'bad'); return; }
+    if (!window.isSecureContext) { say(status, 'Motion sensors only work on a secure (https) page.', 'bad'); return; }
+    const p = await askMotion();
+    if (p === 'denied') { say(status, 'Motion access was refused. On iPhone, quit Safari fully, reopen this page and tap Allow. Or check Settings > Safari > Motion & Orientation Access.', 'bad'); return; }
+    on = true; say(status, 'Listening for sensors…');
+    addEventListener('devicemotion', onMotion); addEventListener('deviceorientation', onOrient); addEventListener('deviceorientationabsolute', onOrient as EventListener);
+    startB.hidden = true; stopB.hidden = false;
+    timer = window.setTimeout(() => { if (!got) say(status, 'No sensor data arrived. Most laptops and desktops have no motion sensors, so this is normal there. Try a phone or tablet.', 'warn'); }, 1500);
+    try {
+      const S = (window as unknown as { AmbientLightSensor?: new () => { illuminance: number; start(): void; stop(): void; addEventListener(t: string, f: () => void): void } }).AmbientLightSensor;
+      if (S) { const s = new S(); s.addEventListener('reading', () => { $('.se-l').textContent = `${Math.round(s.illuminance)} lux`; }); s.addEventListener('error', () => { $('.se-l').textContent = 'blocked or not available'; }); s.start(); light = s; }
+      else $('.se-l').textContent = 'not available in this browser';
+    } catch { $('.se-l').textContent = 'not available in this browser'; }
+    draw();
+  };
+
+  startB.addEventListener('click', start);
+  stopB.addEventListener('click', () => { stop(); say(status, 'Sensors off.'); });
+  addEventListener('pagehide', stop);
+</script>

@@ -1,0 +1,119 @@
+---
+// #T1058 Gamepad Test: buttons, analogue triggers, sticks with dead zone and drift check, axes and rumble, for each connected pad.
+// Shared kit: src/lib/device/ (core.ts maths, checked in tests/device.mjs).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv gp">
+  <section class="panel">
+    <p class="dv-status gp-status" aria-live="polite">Press any button on your controller. Browsers only show a controller after a button press, so websites cannot spot it silently.</p>
+    <div class="dv-grid">
+      <label>Dead zone <select class="gp-dz"><option value="0.05">5%</option><option value="0.1" selected>10%</option><option value="0.15">15%</option><option value="0.2">20%</option></select></label>
+    </div>
+    <p class="dv-fine">The dead zone is the small area around the stick's centre that games ignore. The ring on each stick shows it. A stick that rests outside the ring has drift.</p>
+    <div class="dv-row"><button type="button" class="btn gp-drift" disabled>Check drift (let go of the sticks)</button></div>
+    <p class="dv-fine">Support: Chrome, Edge and Firefox on computers and Android; Safari on Mac and iPhone with Xbox, PlayStation or MFi pads. Wired or Bluetooth both work. Nothing is stored or sent.</p>
+  </section>
+  <div class="gp-pads"></div>
+</div>
+
+<style is:inline>
+  .gp .gp-pads { display: grid; gap: 14px; }
+  .gp .gp-card { display: grid; gap: 12px; }
+  .gp .gp-id { font-weight: 650; overflow-wrap: anywhere; margin: 0; }
+  .gp .gp-btns { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+  .gp .gp-bt { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 13px; min-width: 0; }
+  .gp .gp-bt i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent-soft); }
+  .gp .gp-bt span, .gp .gp-bt b { position: relative; display: block; }
+  .gp .gp-bt b { font-weight: 500; font-size: 12px; color: var(--muted); min-height: 1.2em; }
+  .gp .gp-bt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .gp .gp-bt.on b { color: inherit; }
+  .gp .gp-sticks { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .gp .gp-stick { display: grid; gap: 4px; justify-items: center; font-size: 13px; text-align: center; }
+  .gp .gp-st { width: 120px; height: 120px; touch-action: none; }
+  .gp .gp-d { color: var(--muted); }
+  .gp .gp-d[data-tone=bad] { color: var(--bad); font-weight: 650; }
+  .gp .gp-d[data-tone=good] { color: var(--good); font-weight: 650; }
+</style>
+
+<script>
+  import { stickDrift } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.gp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.gp-status'), holder = $('.gp-pads'), driftB = $<HTMLButtonElement>('.gp-drift'), dzSel = $<HTMLSelectElement>('.gp-dz');
+  const NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Back', 'Start', 'L3', 'R3', 'Up', 'Down', 'Left', 'Right', 'Home'];
+  type Card = { key: string; el: HTMLElement; bt: HTMLElement[]; ax: HTMLElement[]; st: HTMLCanvasElement[]; };
+  const cards = new Map<number, Card>();
+  let driftEnd = 0; const samples = new Map<number, { x: number; y: number }[][]>();
+  const tell = (t: string, tone: '' | 'good' | 'warn' | 'bad' = '') => { if (status.textContent !== t) say(status, t, tone); };
+  const dz = () => +dzSel.value || 0.1;
+  const read = (): Gamepad[] => { try { return Array.from(navigator.getGamepads?.() ?? []).filter((p): p is Gamepad => !!p && p.connected !== false); } catch { return []; } };
+
+  const build = (pad: Gamepad): Card => {
+    const std = pad.mapping === 'standard', el = document.createElement('section'); el.className = 'panel gp-card';
+    const nb = pad.buttons.length, na = pad.axes.length;
+    el.innerHTML = `<h2 class="gp-id"></h2><p class="dv-fine gp-meta"></p><div class="gp-btns">${pad.buttons.map((_, i) => `<div class="gp-bt"><i></i><span></span><b></b></div>`).join('')}</div>
+      <div class="gp-sticks">${na >= 2 ? [0, 1].filter((s) => na >= s * 2 + 2).map((s) => `<div class="gp-stick"><canvas class="gp-st" width="240" height="240" aria-label="${s ? 'Right' : 'Left'} stick position"></canvas><span class="gp-v">${s ? 'Right' : 'Left'} stick</span><span class="gp-d" aria-live="polite">Not checked yet</span></div>`).join('') : ''}</div>
+      <table class="dv-table"><tbody>${pad.axes.map((_, i) => `<tr><th>Axis ${i}</th><td></td></tr>`).join('')}</tbody></table>
+      <div class="dv-row"><button type="button" class="btn secondary gp-rum">Test rumble</button></div><p class="dv-fine gp-rumnote" aria-live="polite"></p>`;
+    (el.querySelector('.gp-id') as HTMLElement).textContent = pad.id;
+    (el.querySelector('.gp-meta') as HTMLElement).textContent = `Controller ${pad.index + 1}. Layout: ${std ? 'standard (buttons named)' : 'not standard (buttons are numbered; sticks assumed on axes 0-1 and 2-3)'}. ${nb} buttons, ${na} axes.`;
+    const bt = [...el.querySelectorAll<HTMLElement>('.gp-bt')]; bt.forEach((b, i) => ((b.querySelector('span') as HTMLElement).textContent = std && NAMES[i] ? NAMES[i] : `B${i}`));
+    (el.querySelector('.gp-rum') as HTMLElement).addEventListener('click', () => {
+      const cur = read().find((p) => p.index === pad.index), act: any = (cur as any)?.vibrationActuator, note = el.querySelector('.gp-rumnote') as HTMLElement;
+      if (!act?.playEffect) { note.textContent = 'Rumble cannot be tested here: this browser or controller does not offer it. Chrome and Edge on a wired or Bluetooth Xbox or PlayStation pad usually do; Firefox and Safari do not.'; return; }
+      note.textContent = 'Rumbling for about half a second. If you felt nothing, the pad may be in a mode without rumble or running low on battery.';
+      act.playEffect('dual-rumble', { startDelay: 0, duration: 600, weakMagnitude: 0.5, strongMagnitude: 1 }).catch?.(() => { note.textContent = 'The controller refused the rumble request.'; });
+    });
+    holder.append(el);
+    return { key: pad.id + '|' + nb + '|' + na, el, bt, ax: [...el.querySelectorAll<HTMLElement>('tbody td')], st: [...el.querySelectorAll<HTMLCanvasElement>('.gp-st')] };
+  };
+
+  const drawStick = (cv: HTMLCanvasElement, x: number, y: number) => {
+    const c = cv.getContext('2d')!, W = cv.width, R = W / 2 - 6, ink = getComputedStyle(root).getPropertyValue('--ink').trim() || '#000', line = getComputedStyle(root).getPropertyValue('--line').trim() || '#bbb', acc = getComputedStyle(root).getPropertyValue('--accent').trim() || '#06c';
+    c.clearRect(0, 0, W, W); c.lineWidth = 2; c.strokeStyle = line; c.beginPath(); c.arc(W / 2, W / 2, R, 0, 7); c.moveTo(6, W / 2); c.lineTo(W - 6, W / 2); c.moveTo(W / 2, 6); c.lineTo(W / 2, W - 6); c.stroke();
+    c.strokeStyle = ink; c.setLineDash([5, 4]); c.beginPath(); c.arc(W / 2, W / 2, dz() * R, 0, 7); c.stroke(); c.setLineDash([]);
+    c.fillStyle = acc; c.beginPath(); c.arc(W / 2 + x * R, W / 2 + y * R, 11, 0, 7); c.fill();
+  };
+
+  const frame = () => {
+    requestAnimationFrame(frame);
+    if (typeof navigator.getGamepads !== 'function') { tell( 'This browser does not support the Gamepad API, so controllers cannot be tested here. Try Chrome, Edge, Firefox or Safari.', 'bad'); return; }
+    const pads = read(), now = performance.now(), seen = new Set(pads.map((p) => p.index));
+    for (const [i, c] of cards) { const p = pads.find((q) => q.index === i); if (!p || c.key !== p.id + '|' + p.buttons.length + '|' + p.axes.length) { c.el.remove(); cards.delete(i); } }
+    driftB.disabled = !pads.length;
+    if (!pads.length) { tell( 'Press any button on your controller. Browsers only show a controller after a button press, so websites cannot spot it silently.'); return; }
+    tell( `${pads.length} controller${pads.length === 1 ? '' : 's'} connected. Press buttons and move the sticks.`, 'good');
+    for (const pad of pads) {
+      if (!seen.has(pad.index)) continue;
+      let c = cards.get(pad.index); if (!c) { c = build(pad); cards.set(pad.index, c); }
+      pad.buttons.forEach((b, i) => {
+        const el = c!.bt[i]; if (!el) return; const v = b.value ?? (b.pressed ? 1 : 0);
+        el.classList.toggle('on', b.pressed); (el.querySelector('i') as HTMLElement).style.width = `${Math.round(v * 100)}%`;
+        (el.querySelector('b') as HTMLElement).textContent = v > 0 && v < 1 ? v.toFixed(2) : b.pressed ? '1.00' : '';
+      });
+      pad.axes.forEach((a, i) => { if (c!.ax[i]) c!.ax[i].textContent = a.toFixed(3); });
+      c.st.forEach((cv, s) => {
+        const x = pad.axes[s * 2], y = pad.axes[s * 2 + 1]; drawStick(cv, x, y);
+        const v = cv.parentElement!.querySelector('.gp-v') as HTMLElement; v.textContent = `${s ? 'Right' : 'Left'} stick  x ${x.toFixed(2)}  y ${y.toFixed(2)}`;
+        if (now < driftEnd) { const m = samples.get(pad.index) ?? [[], []]; m[s].push({ x, y }); samples.set(pad.index, m); }
+      });
+    }
+    if (driftEnd && now >= driftEnd) {
+      driftEnd = 0; driftB.textContent = 'Check drift (let go of the sticks)';
+      for (const [i, c] of cards) c.st.forEach((cv, s) => {
+        const d = cv.parentElement!.querySelector('.gp-d') as HTMLElement, list = samples.get(i)?.[s] ?? [];
+        if (!list.length) { d.textContent = 'No readings'; return; }
+        const xs = list.map((p) => p.x), ys = list.map((p) => p.y), mean = (a: number[]) => a.reduce((u, v) => u + v, 0) / a.length;
+        if (Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) > 0.1) { d.textContent = 'The stick was moving. Let go and check again.'; d.dataset.tone = 'warn'; return; }
+        const r = stickDrift(mean(xs), mean(ys), dz());
+        d.textContent = r.drifting ? `Drift: rests ${(r.r * 100).toFixed(0)}% from centre, outside the ${(dz() * 100).toFixed(0)}% dead zone` : `Fine: rests ${(r.r * 100).toFixed(0)}% from centre`; d.dataset.tone = r.drifting ? 'bad' : 'good';
+      });
+      samples.clear();
+    }
+  };
+
+  driftB.addEventListener('click', () => { samples.clear(); driftEnd = performance.now() + 1000; driftB.textContent = 'Checking… keep the sticks still'; });
+  addEventListener('gamepadconnected', () => {}); // the poll above picks pads up; the event only confirms the browser has shown one
+  requestAnimationFrame(frame);
+</script>

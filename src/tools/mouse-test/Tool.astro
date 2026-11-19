@@ -1,0 +1,159 @@
+---
+// #T1055 Mouse Test: buttons, double-click and chatter check, wheel, movement trail and report (polling) rate.
+// Shared kit: src/lib/device/ (core.ts maths, checked in tests/device.mjs).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv ms">
+  <section class="panel">
+    <div class="ms-btns" aria-label="Mouse buttons">
+      <div class="ms-b" data-b="0"><span>Left</span><b>0</b></div>
+      <div class="ms-b" data-b="1"><span>Middle</span><b>0</b></div>
+      <div class="ms-b" data-b="2"><span>Right</span><b>0</b></div>
+      <div class="ms-b" data-b="3"><span>Back</span><b>0</b></div>
+      <div class="ms-b" data-b="4"><span>Forward</span><b>0</b></div>
+    </div>
+    <div class="ms-pad" tabindex="0" aria-label="Test pad: move, click and scroll here">
+      <canvas class="ms-cv"></canvas>
+      <p class="ms-hint">Move, click and scroll the wheel here</p>
+    </div>
+    <div class="dv-row"><button type="button" class="btn secondary ms-clear">Clear and reset</button></div>
+    <p class="dv-status ms-status" aria-live="polite">Click and move on the pad. Works with a trackpad too; a pinch shows up as Ctrl + wheel. Nothing is stored or sent.</p>
+    <p class="dv-status ms-chatter" data-tone="bad" aria-live="polite" hidden>Double-click problem: two clicks arrived less than 80 ms apart from one press. This is a classic sign of a worn mouse switch (chatter).</p>
+  </section>
+  <section class="panel">
+    <h2>Clicks</h2>
+    <dl class="dv-stats">
+      <div><dt>Clicks</dt><dd class="ms-clicks">0</dd></div>
+      <div><dt>Double-clicks</dt><dd class="ms-dbl">0</dd></div>
+      <div><dt>Time since last click</dt><dd class="ms-gap">–</dd></div>
+      <div><dt>Shortest gap</dt><dd class="ms-min">–</dd></div>
+      <div><dt>Chatter events</dt><dd class="ms-chat">0</dd></div>
+    </dl>
+    <p class="dv-fine">A normal double-click gap is 100 to 400 ms. Two clicks under 80 ms from a single press are flagged, because a hand cannot click that fast.</p>
+  </section>
+  <section class="panel">
+    <h2>Wheel</h2>
+    <dl class="dv-stats">
+      <div><dt>Scroll up</dt><dd class="ms-up">0</dd></div>
+      <div><dt>Scroll down</dt><dd class="ms-down">0</dd></div>
+      <div><dt>Scroll left</dt><dd class="ms-left">0</dd></div>
+      <div><dt>Scroll right</dt><dd class="ms-right">0</dd></div>
+      <div><dt>deltaY / deltaX</dt><dd class="ms-delta">–</dd></div>
+      <div><dt>Unit</dt><dd class="ms-mode">–</dd></div>
+    </dl>
+    <p class="dv-fine ms-pinch"></p>
+  </section>
+  <section class="panel">
+    <h2>Movement and report rate</h2>
+    <dl class="dv-stats">
+      <div><dt>Report rate now</dt><dd class="ms-poll">–</dd></div>
+      <div><dt>Highest seen</dt><dd class="ms-pmax">–</dd></div>
+      <div><dt>Device</dt><dd class="ms-dev">–</dd></div>
+    </dl>
+    <p class="dv-fine ms-pnote">Move the mouse fast in circles over the pad. The report (polling) rate is how many times per second the mouse tells the computer where it is: 125 Hz is basic, 1000 Hz is gaming. Browsers limit what they show, so a high-end mouse may read lower here; Chrome and Edge are the most accurate.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ms .ms-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .ms .ms-b { border: 1px solid var(--line); border-radius: 10px; padding: 8px 2px; text-align: center; display: grid; gap: 2px; font-size: 13px; min-width: 0; }
+  .ms .ms-b b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .ms .ms-b.done { background: var(--good-soft); border-color: var(--good); }
+  .ms .ms-b.down { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .ms .ms-pad { position: relative; height: 260px; border: 2px dashed var(--line); border-radius: 12px; overflow: hidden; touch-action: none; cursor: crosshair; outline: none; user-select: none; }
+  .ms .ms-pad:focus-visible { border-color: var(--accent); }
+  .ms .ms-cv { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ms .ms-hint { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; text-align: center; padding: 8px; }
+</style>
+
+<script>
+  import { pollingRate } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.ms') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const pad = $('.ms-pad'), cv = $<HTMLCanvasElement>('.ms-cv'), status = $('.ms-status');
+  const chips = [...root.querySelectorAll<HTMLElement>('.ms-b')];
+  const NAMES = ['Left', 'Middle', 'Right', 'Back', 'Forward'];
+  let counts = [0, 0, 0, 0, 0], clicks = 0, dbl = 0, chat = 0, minGap = Infinity;
+  const lastDown: Record<number, number> = {};
+  const counter = { up: 0, down: 0, left: 0, right: 0 };
+  let stamps: number[] = [], pmax = 0, last: { x: number; y: number } | null = null;
+
+  const size = () => { cv.width = pad.clientWidth * devicePixelRatio; cv.height = pad.clientHeight * devicePixelRatio; };
+  const hide = () => ($('.ms-hint').hidden = true);
+  const chipOf = (b: number) => chips[b];
+  const setCount = (b: number) => { const c = chipOf(b); if (!c) return; (c.querySelector('b') as HTMLElement).textContent = String(counts[b]); };
+
+  pad.addEventListener('pointerdown', (e) => {
+    hide(); const b = e.button, now = performance.now();
+    try { pad.setPointerCapture(e.pointerId); } catch {}
+    pad.focus({ preventScroll: true });
+    const c = chipOf(b);
+    if (c) { c.classList.add('down', 'done'); counts[b]++; setCount(b); }
+    clicks++; $('.ms-clicks').textContent = String(clicks);
+    if (b in lastDown) {
+      const gap = now - lastDown[b];
+      $('.ms-gap').textContent = `${Math.round(gap)} ms`;
+      if (gap < 2000) { minGap = Math.min(minGap, gap); $('.ms-min').textContent = `${Math.round(minGap)} ms`; }
+      if (gap < 80) { chat++; $('.ms-chat').textContent = String(chat); ($('.ms-chatter') as HTMLElement).hidden = false; }
+    }
+    lastDown[b] = now;
+    say(status, `${NAMES[b] ?? 'Button ' + b} button pressed. ${counts.filter((n) => n > 0).length} of 5 buttons tested.`, 'good');
+  });
+  const release = (b: number) => chipOf(b)?.classList.remove('down');
+  pad.addEventListener('pointerup', (e) => release(e.button));
+  pad.addEventListener('pointercancel', () => chips.forEach((c) => c.classList.remove('down')));
+  pad.addEventListener('dblclick', () => { dbl++; $('.ms-dbl').textContent = String(dbl); });
+  // Stop the menu, middle-click auto-scroll and back/forward navigation while testing on the pad.
+  for (const t of ['contextmenu', 'mousedown', 'mouseup', 'auxclick']) pad.addEventListener(t, (e) => e.preventDefault());
+
+  pad.addEventListener('wheel', (e) => {
+    e.preventDefault(); hide();
+    if (e.deltaY < 0) counter.up++; else if (e.deltaY > 0) counter.down++;
+    if (e.deltaX < 0) counter.left++; else if (e.deltaX > 0) counter.right++;
+    for (const k of ['up', 'down', 'left', 'right'] as const) $('.ms-' + k).textContent = String(counter[k]);
+    $('.ms-delta').textContent = `${+e.deltaY.toFixed(1)} / ${+e.deltaX.toFixed(1)}`;
+    $('.ms-mode').textContent = ['pixels', 'lines', 'pages'][e.deltaMode] ?? String(e.deltaMode);
+    $('.ms-pinch').textContent = e.ctrlKey ? 'Ctrl + wheel seen: on a trackpad this is a pinch, and browsers send it as zoom.' : '';
+  }, { passive: false });
+
+  const draw = (pts: { x: number; y: number }[]) => {
+    const ctx = cv.getContext('2d')!, r = pad.getBoundingClientRect(), k = devicePixelRatio;
+    ctx.strokeStyle = getComputedStyle(root).getPropertyValue('--ink') || '#000'; ctx.lineWidth = 2 * k; ctx.lineCap = 'round';
+    for (const p of pts) {
+      const x = (p.x - r.left) * k, y = (p.y - r.top) * k;
+      if (last) { ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(x, y); ctx.stroke(); }
+      last = { x, y };
+    }
+  };
+  const sample = (t: number) => {
+    if (stamps.length && t - stamps[stamps.length - 1] > 100) stamps = []; // a pause: start a new run
+    stamps.push(t); if (stamps.length > 200) stamps.shift();
+  };
+  const rate = () => {
+    const r = pollingRate(stamps); if (!r.hz) return;
+    $('.ms-poll').textContent = r.likely ? `${r.hz} Hz (about ${r.likely})` : `${r.hz} Hz`;
+    if (r.hz > pmax && r.hz < 9000) { pmax = r.hz; $('.ms-pmax').textContent = `${r.hz} Hz`; }
+  };
+  const hasRaw = 'onpointerrawupdate' in window;
+  pad.addEventListener('pointermove', (e) => {
+    hide(); $('.ms-dev').textContent = e.pointerType === 'mouse' ? 'mouse or trackpad' : e.pointerType;
+    const pts = (e.getCoalescedEvents?.() ?? []).length ? e.getCoalescedEvents() : [e];
+    draw(pts);
+    if (!hasRaw) { for (const p of pts) sample(p.timeStamp); rate(); }
+  });
+  if (hasRaw) pad.addEventListener('pointerrawupdate', (e: Event) => { const p = e as PointerEvent; sample(p.timeStamp); if (stamps.length % 8 === 0) rate(); });
+  pad.addEventListener('pointerleave', () => { last = null; stamps = []; });
+
+  $('.ms-clear').addEventListener('click', () => {
+    size(); counts = [0, 0, 0, 0, 0]; clicks = dbl = chat = 0; minGap = Infinity; pmax = 0; stamps = []; last = null;
+    for (const k of Object.keys(lastDown)) delete lastDown[+k];
+    for (const k of ['up', 'down', 'left', 'right'] as const) { counter[k] = 0; $('.ms-' + k).textContent = '0'; }
+    chips.forEach((c, i) => { c.classList.remove('down', 'done'); setCount(i); });
+    for (const [k, v] of [['clicks', '0'], ['dbl', '0'], ['chat', '0'], ['gap', '–'], ['min', '–'], ['delta', '–'], ['mode', '–'], ['poll', '–'], ['pmax', '–']]) $('.ms-' + k).textContent = v;
+    ($('.ms-chatter') as HTMLElement).hidden = true; $('.ms-pinch').textContent = ''; $('.ms-hint').hidden = false;
+    say(status, 'Cleared.');
+  });
+  addEventListener('resize', size);
+  size();
+</script>

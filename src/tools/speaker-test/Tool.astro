@@ -1,0 +1,144 @@
+---
+// #T1052 Speaker Test: left/right/both bursts, 20 Hz to 20 kHz sweep with a live readout, phase check, output picker and 5.1 check.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv sp">
+  <section class="panel">
+    <label>Volume <span class="sp-voltxt">-18 dB</span> <input type="range" class="sp-vol" min="-40" max="0" step="1" value="-18" /></label>
+    <p class="dv-fine">Starts quiet on purpose. Your device volume still applies on top.</p>
+    <h2>Left and right</h2>
+    <div class="dv-row">
+      <button type="button" class="btn sp-lr" data-pan="-1">Left</button>
+      <button type="button" class="btn sp-lr" data-pan="1">Right</button>
+      <button type="button" class="btn sp-lr" data-pan="0">Both</button>
+    </div>
+    <p class="dv-status sp-status" aria-live="polite">Press a button. You should hear a short burst of noise from that side only.</p>
+  </section>
+  <section class="panel">
+    <h2>Frequency sweep, 20 Hz to 20 kHz</h2>
+    <p class="dv-fine">Press Start, then press the other button the moment the sound disappears. Laptop speakers rarely go below about 150 Hz, and the top end you hear drops with age.</p>
+    <div class="dv-row">
+      <button type="button" class="btn sp-sw">Start sweep</button>
+      <button type="button" class="btn secondary sp-heard" disabled>I stopped hearing it</button>
+    </div>
+    <dl class="dv-stats"><div><dt>Pitch now</dt><dd class="sp-hz">–</dd></div><div><dt>You stopped at</dt><dd class="sp-marks">–</dd></div></dl>
+  </section>
+  <section class="panel">
+    <h2>Phase check</h2>
+    <p class="dv-fine">Same noise from both speakers, in step and then flipped. Flipped sounds thin and spread out; if "in phase" sounds thin, one speaker is wired backwards.</p>
+    <div class="dv-row">
+      <button type="button" class="btn sp-ph" data-flip="0">In phase</button>
+      <button type="button" class="btn sp-ph" data-flip="1">Out of phase</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Output and channels</h2>
+    <label>Play through <select class="sp-dev"><option value="">Default output</option></select></label>
+    <p class="dv-fine sp-devnote"></p>
+    <dl class="dv-stats"><div><dt>Output channels</dt><dd class="sp-ch">–</dd></div><div><dt>Sample rate</dt><dd class="sp-rate">–</dd></div></dl>
+    <div class="sp-surround" hidden>
+      <p class="dv-fine">Your device reports 6 or more channels. Press each to hear a burst from that speaker.</p>
+      <div class="dv-row">
+        <button type="button" class="dv-chip sp-s" data-ch="0">Front left</button><button type="button" class="dv-chip sp-s" data-ch="2">Centre</button>
+        <button type="button" class="dv-chip sp-s" data-ch="1">Front right</button><button type="button" class="dv-chip sp-s" data-ch="3">Bass (LFE)</button>
+        <button type="button" class="dv-chip sp-s" data-ch="4">Rear left</button><button type="button" class="dv-chip sp-s" data-ch="5">Rear right</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style is:inline>
+  .sp input[type=range] { padding: 0; border: 0; }
+  .sp .sp-voltxt { color: var(--ink); font-weight: 650; }
+</style>
+
+<script>
+  import { say, fillDeviceSelect, onDeviceChange } from '../../lib/device/browser';
+  import { noise, dbToAmp } from '../../lib/audio/synth';
+  const root = document.querySelector('.sp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.sp-status'), vol = $<HTMLInputElement>('.sp-vol'), dev = $<HTMLSelectElement>('.sp-dev');
+  const swB = $<HTMLButtonElement>('.sp-sw'), heardB = $<HTMLButtonElement>('.sp-heard');
+  type Ctx = AudioContext & { setSinkId?: (id: string) => Promise<void> };
+  let ac: Ctx | null = null, gain: GainNode | null = null, cur: AudioScheduledSourceNode | null = null, raf = 0, sweepStart = 0;
+  const marks: number[] = [], F1 = 20, F2 = 20000, DUR = 20;
+
+  const ctx = () => {
+    if (!ac) {
+      ac = new (window.AudioContext || (window as any).webkitAudioContext)() as Ctx;
+      gain = ac.createGain(); gain.gain.value = dbToAmp(+vol.value); gain.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
+    return ac;
+  };
+  const stopSound = () => {
+    cancelAnimationFrame(raf); try { cur?.stop(); } catch {} cur = null;
+    swB.textContent = 'Start sweep'; heardB.disabled = true; $('.sp-hz').textContent = '–';
+  };
+  const play = (node: AudioScheduledSourceNode, secs: number) => { stopSound(); cur = node; node.start(); if (secs) node.stop(ac!.currentTime + secs); };
+  const burst = (chans: number, pick: (c: number, x: Float32Array) => Float32Array | null) => {
+    const a = ctx(), n = noise('pink', 1.5, a.sampleRate, 0.9), b = a.createBuffer(chans, n.length, a.sampleRate);
+    for (let c = 0; c < chans; c++) { const d = pick(c, n); if (d) b.copyToChannel(d as Float32Array<ArrayBuffer>, c); }
+    const s = a.createBufferSource(); s.buffer = b; return s;
+  };
+
+  vol.addEventListener('input', () => { $('.sp-voltxt').textContent = `${vol.value} dB`; if (gain) gain.gain.value = dbToAmp(+vol.value); });
+
+  root.querySelectorAll<HTMLButtonElement>('.sp-lr').forEach((b) => b.addEventListener('click', () => {
+    const pan = +b.dataset.pan!, a = ctx(), s = burst(1, (_, x) => x), p = a.createStereoPanner();
+    p.pan.value = pan; s.connect(p).connect(gain!); gain!.channelCount = 2; play(s, 0);
+    say(status, pan < 0 ? 'Playing on the LEFT. You should hear it from the left speaker or earpiece only.' : pan > 0 ? 'Playing on the RIGHT. You should hear it from the right speaker or earpiece only.' : 'Playing on BOTH. You should hear it from both sides, centred.', 'good');
+  }));
+
+  root.querySelectorAll<HTMLButtonElement>('.sp-ph').forEach((b) => b.addEventListener('click', () => {
+    const flip = b.dataset.flip === '1', s = burst(2, (c, x) => { if (c === 0 || !flip) return x; const y = new Float32Array(x.length); for (let i = 0; i < x.length; i++) y[i] = -x[i]; return y; });
+    ctx(); s.connect(gain!); play(s, 0);
+    say(status, flip ? 'Out of phase: should sound thin and spread out, with weak bass in the middle.' : 'In phase: should sound solid and centred between the speakers.', '');
+  }));
+
+  const hzNow = () => F1 * Math.pow(F2 / F1, Math.min(1, (performance.now() - sweepStart) / 1000 / DUR));
+  const fmtHz = (f: number) => (f >= 1000 ? `${(f / 1000).toFixed(f >= 10000 ? 1 : 2)} kHz` : `${Math.round(f)} Hz`);
+  const tick = () => {
+    const f = hzNow(); $('.sp-hz').textContent = fmtHz(f);
+    if ((performance.now() - sweepStart) / 1000 >= DUR) { stopSound(); say(status, 'Sweep finished.', ''); return; }
+    raf = requestAnimationFrame(tick);
+  };
+  swB.addEventListener('click', () => {
+    if (cur && swB.textContent === 'Stop') { stopSound(); say(status, 'Sweep stopped.', ''); return; }
+    const a = ctx(), o = a.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(F1, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(F2, a.currentTime + DUR);
+    const g = a.createGain(); g.gain.value = 0.7; o.connect(g).connect(gain!);
+    play(o, DUR); swB.textContent = 'Stop'; heardB.disabled = false; sweepStart = performance.now(); marks.length = 0; $('.sp-marks').textContent = '–';
+    say(status, 'Sweep playing. Press "I stopped hearing it" when the sound fades away.', ''); tick();
+  });
+  heardB.addEventListener('click', () => {
+    const f = hzNow(); marks.push(f); $('.sp-marks').textContent = marks.map(fmtHz).join(', ');
+    stopSound();
+    say(status, f < 150 ? `You noted ${fmtHz(f)}. Low notes below about 150 Hz are often missing on small speakers; that is normal.` : `You noted ${fmtHz(f)}. Hearing at the top end falls with age, and speakers roll off too, so compare with headphones.`, 'good');
+  });
+
+  // Output device (Chromium only) and channel count.
+  const fillOut = () => fillDeviceSelect(dev, 'audiooutput', 'output');
+  const note = $('.sp-devnote');
+  const canSink = typeof (window.AudioContext as any)?.prototype?.setSinkId === 'function';
+  dev.disabled = !canSink;
+  note.textContent = canSink ? 'Names show once you have allowed audio or camera access on this site; otherwise they may be generic.' : 'Choosing an output from a web page works in Chrome and Edge only. In Safari or Firefox, change it in your system sound settings.';
+  if (canSink) { fillOut(); onDeviceChange(fillOut); }
+  dev.addEventListener('change', async () => {
+    try { await ctx().setSinkId!(dev.value); say(status, 'Output changed. Press a test button to hear it there.', 'good'); }
+    catch { say(status, 'The browser could not switch to that output.', 'bad'); }
+  });
+  try {
+    const a = ctx(), max = a.destination.maxChannelCount;
+    $('.sp-ch').textContent = String(max); $('.sp-rate').textContent = `${a.sampleRate.toLocaleString('en-US')} Hz`;
+    if (max >= 6) {
+      $('.sp-surround').hidden = false;
+      root.querySelectorAll<HTMLButtonElement>('.sp-s').forEach((b) => b.addEventListener('click', () => {
+        const ch = +b.dataset.ch!, a2 = ctx(); a2.destination.channelCount = 6; a2.destination.channelInterpretation = 'discrete';
+        const s = burst(6, (c, x) => (c === ch ? x : null)); s.connect(a2.destination); play(s, 0);
+        say(status, `Playing on ${b.textContent}. Only that speaker should sound.`, '');
+      }));
+    }
+  } catch { say(status, 'This browser cannot play sound from a web page.', 'bad'); }
+  addEventListener('pagehide', () => { stopSound(); ac?.close().catch(() => {}); ac = null; });
+</script>
