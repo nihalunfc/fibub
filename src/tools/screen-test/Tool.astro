@@ -1,0 +1,110 @@
+---
+// #T1057 Screen Test: full-screen colour cycler, gradient view, measured refresh rate, screen facts and PPI.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv st">
+  <section class="panel">
+    <h2>Dead and stuck pixels</h2>
+    <p class="dv-fine">The screen turns one colour at a time. Tap, click or use the arrow keys to step; Esc leaves. Look for dots that do not match, and on black for bright patches near the edges (backlight bleed).</p>
+    <div class="dv-row"><button type="button" class="btn st-go">Start full-screen test</button></div>
+  </section>
+  <section class="panel">
+    <h2>Gradients and banding</h2>
+    <p class="dv-fine">These ramps should look smooth. Visible stripes mean banding.</p>
+    <div class="st-ramps" aria-hidden="true"><i style="background:linear-gradient(90deg,#000,#fff)"></i><i style="background:linear-gradient(90deg,#000,#f00)"></i><i style="background:linear-gradient(90deg,#000,#0f0)"></i><i style="background:linear-gradient(90deg,#000,#00f)"></i></div>
+  </section>
+  <section class="panel">
+    <h2>Refresh rate</h2>
+    <p class="dv-fine">Measures how fast your browser draws, for about 2 seconds. Keep this tab in front. Browsers may cap it to 60 Hz in power-saving mode.</p>
+    <div class="dv-row"><button type="button" class="btn st-hz">Measure refresh rate</button></div>
+    <p class="dv-status st-hzout" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>Screen facts</h2>
+    <table class="dv-table st-facts"><tbody></tbody></table>
+  </section>
+  <section class="panel">
+    <h2>Pixels per inch</h2>
+    <label>Screen diagonal in inches (the size you buy it by) <input class="st-in" type="number" inputmode="decimal" min="1" max="120" step="any" placeholder="e.g. 15.6" /></label>
+    <p class="dv-status st-ppi" aria-live="polite"></p>
+  </section>
+  <div class="st-over" hidden role="dialog" aria-label="Full-screen colour test"><p class="st-hint"></p></div>
+</div>
+
+<style is:inline>
+  .st .st-ramps { display: grid; gap: 6px; }
+  .st .st-ramps i { display: block; height: 44px; border: 1px solid var(--line); }
+  .st .st-over { position: fixed; inset: 0; z-index: 9999; cursor: pointer; }
+  .st .st-over[hidden] { display: none; }
+  .st .st-hint { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(128,128,128,.55); color: #fff; font-size: 14px; transition: opacity .6s; }
+  .st .st-hint.off { opacity: 0; }
+</style>
+
+<script>
+  import { rateFromTimes, nearestHz, ppi } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.st') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const over = $('.st-over'), hint = $('.st-hint');
+  const COLS: [string, string][] = [['Black', '#000'], ['White', '#fff'], ['Red', '#f00'], ['Green', '#0f0'], ['Blue', '#00f'], ['Grey', '#808080']];
+  let i = 0, hintTimer = 0;
+
+  const show = () => {
+    over.style.background = COLS[i][1];
+    hint.textContent = `${COLS[i][0]} (${i + 1} of ${COLS.length}). Tap or arrow keys to step, Esc to exit.`;
+    hint.classList.remove('off'); clearTimeout(hintTimer); hintTimer = window.setTimeout(() => hint.classList.add('off'), 2500);
+  };
+  const close = () => {
+    if (over.hidden) return;
+    over.hidden = true; if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  };
+  const step = (d: number) => { i = (i + d + COLS.length) % COLS.length; show(); };
+  $('.st-go').addEventListener('click', () => {
+    i = 0; over.hidden = false; show();
+    try { over.requestFullscreen?.()?.catch(() => {}); } catch {}
+  });
+  over.addEventListener('click', () => step(1));
+  document.addEventListener('keydown', (e) => {
+    if (over.hidden) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
+  });
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) over.hidden = true; });
+
+  // Refresh rate from requestAnimationFrame timestamps.
+  const hzB = $<HTMLButtonElement>('.st-hz'), hzOut = $('.st-hzout');
+  hzB.addEventListener('click', () => {
+    const times: number[] = [], t0 = performance.now(); hzB.disabled = true; say(hzOut, 'Measuring…');
+    const loop = (t: number) => {
+      times.push(t);
+      if (t - t0 < 2000) { requestAnimationFrame(loop); return; }
+      hzB.disabled = false;
+      const hz = rateFromTimes(times), n = nearestHz(hz);
+      if (!hz || times.length < 20) say(hzOut, 'Not enough frames were drawn. Keep this tab in front and try again.', 'warn');
+      else say(hzOut, `About ${n} Hz (measured ${hz.toFixed(1)} frames per second). If your screen should be faster, check its rate in system settings and turn off battery saver; browsers can cap drawing to 60 Hz.`, 'good');
+    };
+    requestAnimationFrame(loop);
+  });
+
+  // Facts: all read locally.
+  const dpr = window.devicePixelRatio || 1, sw = screen.width, sh = screen.height, pw = Math.round(sw * dpr), ph = Math.round(sh * dpr);
+  const mm = (q: string) => { try { return window.matchMedia(q).matches; } catch { return false; } };
+  const gamut = mm('(color-gamut: rec2020)') ? 'Rec. 2020 (very wide)' : mm('(color-gamut: p3)') ? 'Display P3 (wide)' : mm('(color-gamut: srgb)') ? 'sRGB (standard)' : 'not reported';
+  const orient = (screen.orientation && screen.orientation.type) || (sw >= sh ? 'landscape' : 'portrait');
+  const rows: [string, string][] = [
+    ['Physical pixels', `${pw} × ${ph}`], ['Screen size in CSS pixels', `${sw} × ${sh}`], ['Page window now', `${innerWidth} × ${innerHeight}`],
+    ['Display scaling', `${dpr}×`], ['Colour depth', `${screen.colorDepth || '?'} bits`], ['HDR', mm('(dynamic-range: high)') ? 'Yes, the screen and system report HDR' : 'Not reported'],
+    ['Colour range', gamut], ['Orientation', orient],
+  ];
+  const tb = $('.st-facts').querySelector('tbody')!;
+  rows.forEach(([k, v]) => { const r = tb.insertRow(); r.insertCell().textContent = k; r.insertCell().textContent = v; (r.cells[0] as HTMLElement).outerHTML = `<th>${k}</th>`; });
+
+  const inp = $<HTMLInputElement>('.st-in'), ppiOut = $('.st-ppi');
+  const calc = () => {
+    const d = parseFloat(inp.value), p = ppi(pw, ph, d);
+    if (!(d > 0)) { say(ppiOut, ''); return; }
+    say(ppiOut, `${Math.round(p)} pixels per inch (${pw} × ${ph} pixels on a ${d}-inch diagonal). ${p >= 300 ? 'Very sharp: single pixels are hard to see.' : p >= 160 ? 'Sharp for normal viewing.' : 'Pixels may be visible up close.'}`, 'good');
+  };
+  inp.addEventListener('input', calc);
+</script>

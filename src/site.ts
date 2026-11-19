@@ -87,6 +87,7 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'security', name: 'Passwords and security', blurb: 'Strong passwords made and checked on your device.' },
     { id: 'planning', name: 'Time and sharing', blurb: 'Planners, time zones, shifts, links and QR codes.' },
     { id: 'internet', name: 'Internet and phone signal', blurb: 'Test your internet speed, find the best Wi-Fi spot at home and compare mobile networks. For Canada, India, the UK and the USA.' },
+    { id: 'devices', name: 'Device checks', blurb: 'Test your microphone, speakers, camera, keyboard, mouse, touch screen, display, controller and sensors in the browser. Nothing is recorded or sent.' },
   ],
 };
 
@@ -348,6 +349,9 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'plan-time', subject: 'planning', name: 'Plans and time zones' },
     { id: 'sharing', subject: 'planning', name: 'Links and sharing' },
     { id: 'connection', subject: 'internet', name: 'Speed and signal' },
+    { id: 'sound-camera', subject: 'devices', name: 'Microphone, speakers and camera' },
+    { id: 'controls', subject: 'devices', name: 'Keyboard, mouse, touch and controllers' },
+    { id: 'screen-sensors', subject: 'devices', name: 'Screen, sensors and battery' },
   ],
   // Collecting: sections only, no subjects.
   collecting: [

@@ -1,0 +1,82 @@
+---
+// #T1059 Vibration Test: buzz patterns through the browser's Vibration API, plus a custom pattern box.
+import '../../styles/device.css';
+---
+<div class="tool-ui dv vb">
+  <section class="panel">
+    <p class="dv-status vb-status" aria-live="polite">Checking this browser…</p>
+    <div class="dv-row">
+      <button type="button" class="btn vb-p" data-p="200">Short buzz</button>
+      <button type="button" class="btn vb-p" data-p="1000">Long (1 s)</button>
+      <button type="button" class="btn vb-p" data-p="100,50,100,50,100,50,300">Pulse</button>
+      <button type="button" class="btn vb-p" data-p="100,100,100,100,100,300,300,100,300,100,300,300,100,100,100,100,100">SOS</button>
+      <button type="button" class="btn vb-p" data-p="80,100,80,500,80,100,80,500,80,100,80">Heartbeat</button>
+      <button type="button" class="btn secondary vb-stop">Stop</button>
+    </div>
+    <p class="dv-fine">Each button sends a pattern of buzz and pause times. Hold the phone in your hand. Battery saver and silent modes can switch vibration off.</p>
+  </section>
+  <section class="panel">
+    <h2>Your own pattern</h2>
+    <label>Times in milliseconds: buzz, pause, buzz, pause … <input class="vb-in" type="text" inputmode="numeric" value="200, 100, 200" autocomplete="off" /></label>
+    <div class="dv-row"><button type="button" class="btn vb-go">Play my pattern</button></div>
+    <p class="dv-fine vb-info" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h2>If nothing buzzes</h2>
+    <ul class="dv-fine">
+      <li>Works on Android phones in Chrome, Firefox and Samsung Internet.</li>
+      <li>iPhone and iPad (Safari and every other browser there) have no Vibration API. To test the motor, open Settings, Sounds &amp; Haptics and try a haptic there.</li>
+      <li>Laptops and desktops have no vibration motor.</li>
+      <li>Silent or Do Not Disturb mode, battery saver, or a system setting for touch vibration can switch it off. The page must also have been tapped first.</li>
+    </ul>
+    <p class="dv-fine">To test controller rumble instead, use the <a href="/everyday/gamepad-test/">Gamepad Test</a>.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .vb .vb-in { font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
+
+<script>
+  import { parsePattern, patternLength } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.vb') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const status = $('.vb-status'), info = $('.vb-info'), input = $<HTMLInputElement>('.vb-in');
+  const has = () => typeof (navigator as Navigator & { vibrate?: unknown }).vibrate === 'function';
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+
+  const missing = () => ios
+    ? 'iPhones and iPads do not allow websites to vibrate, in any browser. Use Settings > Sounds & Haptics to test the motor instead.'
+    : 'This browser has no Vibration API. Try Chrome, Firefox or Samsung Internet on an Android phone. Laptops and desktops have no vibration motor.';
+
+  const play = (p: number[]) => {
+    if (!has()) { say(status, missing(), 'bad'); return; }
+    let ok = false;
+    try { ok = navigator.vibrate(p); } catch { ok = false; }
+    if (ok) say(status, `Sent a ${patternLength(p).toLocaleString('en-US')} ms pattern. If you felt nothing, check silent mode, battery saver and the system touch-vibration setting.`, 'good');
+    else say(status, 'The browser refused to vibrate. Tap the page first, and check silent mode and battery saver.', 'warn');
+  };
+
+  const showStart = () => {
+    if (has()) say(status, 'This browser has the Vibration API. Press a button and feel for the buzz.', 'good');
+    else say(status, missing(), 'bad');
+  };
+  showStart();
+
+  root.querySelectorAll<HTMLButtonElement>('.vb-p').forEach((b) => b.addEventListener('click', () => play((b.dataset.p || '').split(',').map(Number))));
+  $('.vb-stop').addEventListener('click', () => {
+    if (!has()) { say(status, missing(), 'bad'); return; }
+    try { navigator.vibrate(0); } catch {}
+    say(status, 'Stopped.');
+  });
+  const preview = () => {
+    const p = parsePattern(input.value);
+    info.textContent = p.length ? `${p.length} step${p.length === 1 ? '' : 's'}, ${patternLength(p).toLocaleString('en-US')} ms in total.` : 'Type numbers separated by commas, for example 200, 100, 200.';
+    return p;
+  };
+  input.addEventListener('input', preview); preview();
+  $('.vb-go').addEventListener('click', () => { const p = preview(); if (p.length) play(p); });
+  addEventListener('pagehide', () => { try { if (has()) navigator.vibrate(0); } catch {} });
+</script>

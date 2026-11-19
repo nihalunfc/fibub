@@ -1,0 +1,150 @@
+---
+// #T1054 Keyboard Test: on-screen keyboard that lights keys as you press them, with rollover and last-key details.
+// Shared kit: src/lib/device/ (core.ts maths, checked in tests/device.mjs).
+import '../../styles/device.css';
+---
+<div class="tool-ui dv kb">
+  <section class="panel">
+    <div class="dv-row">
+      <span class="dv-fine">Layout:</span>
+      <button type="button" class="dv-chip kb-lay" data-lay="laptop" aria-pressed="false">Laptop</button>
+      <button type="button" class="dv-chip kb-lay" data-lay="full" aria-pressed="true">Full (numpad)</button>
+      <button type="button" class="btn secondary kb-reset">Reset</button>
+    </div>
+    <p class="dv-fine">Laptop hides the number pad and the Insert/Home block. Use it on a narrow screen to get bigger keys.</p>
+    <div class="kb-box" tabindex="0" role="group" aria-label="Keyboard test area. Click here, then press keys.">
+      <div class="kb-board" aria-hidden="true"></div>
+      <div class="kb-start">Click here to start</div>
+    </div>
+    <p class="dv-status kb-status" aria-live="polite">Click the keyboard above, then press any key. Tab, Space and the arrows will not scroll the page while you test.</p>
+    <dl class="dv-stats">
+      <div><dt>Keys tested</dt><dd class="kb-count">0 of 0</dd></div>
+      <div><dt>Held now</dt><dd class="kb-held">0</dd></div>
+      <div><dt>Most at once</dt><dd class="kb-max">0</dd></div>
+      <div><dt>Last key</dt><dd class="kb-key">–</dd></div>
+      <div><dt>Code</dt><dd class="kb-code">–</dd></div>
+      <div><dt>Location</dt><dd class="kb-loc">–</dd></div>
+      <div><dt>Auto-repeat</dt><dd class="kb-rep">–</dd></div>
+    </dl>
+    <p class="dv-fine"><b>Rollover</b> is how many keys the keyboard can report at the same moment. Cheap keyboards "ghost": press three keys together and a fourth shows up that you did not press, or one goes missing. Gaming keyboards report 6 keys or many more (N-key rollover).</p>
+    <p class="dv-fine kb-other"></p>
+    <p class="dv-fine">Some keys never reach a web page: Fn, media and brightness keys, Windows/Cmd combinations, and Print Screen on some systems. If a key stays dark here, try it in another app before blaming the key.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .kb .kb-box { position: relative; container-type: inline-size; padding: 8px; border: 2px dashed var(--line); border-radius: 12px; outline: none; cursor: pointer; }
+  .kb .kb-box:focus { border: 2px solid var(--accent); cursor: default; }
+  .kb .kb-box:focus .kb-start { display: none; }
+  .kb .kb-start { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 650; background: color-mix(in srgb, var(--bg) 72%, transparent); border-radius: 10px; text-align: center; padding: 8px; }
+  .kb .kb-board { display: grid; width: 100%; overflow: hidden; }
+  .kb .kb-k { margin: 1px; min-width: 0; overflow: hidden; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); line-height: 1; text-align: center; user-select: none; }
+  .kb .kb-k.done { background: var(--good-soft); border-color: var(--good); }
+  .kb .kb-k.down { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+</style>
+
+<script>
+  import { rollover } from '../../lib/device/core';
+  import { say } from '../../lib/device/browser';
+  const root = document.querySelector('.kb') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const box = $('.kb-box'), board = $('.kb-board'), status = $('.kb-status');
+  type K = [string | null, number, number?]; // code, width in key units, label override
+  const L = (s: string): K[] => s.split(' ').map((c) => [c, 1]);
+  const SHORT: Record<string, string> = { Escape: 'Esc', Backspace: '⌫', Tab: 'Tab', CapsLock: 'Caps', Enter: 'Enter', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt', MetaLeft: 'Win', MetaRight: 'Win', ContextMenu: 'Menu', Space: 'Space', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', PrintScreen: 'PrtSc', ScrollLock: 'ScrLk', Pause: 'Pause', Insert: 'Ins', Delete: 'Del', Home: 'Home', End: 'End', PageUp: 'PgUp', PageDown: 'PgDn', NumLock: 'Num', NumpadDivide: '/', NumpadMultiply: '*', NumpadSubtract: '-', NumpadAdd: '+', NumpadEnter: 'Ent', NumpadDecimal: '.', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/' };
+  const PRINT = /^(Key|Digit|Backquote|Minus|Equal|Bracket|Backslash|Semicolon|Quote|Comma|Period|Slash|IntlBackslash)/;
+  const MAIN: K[][] = [
+    [['Escape', 1], [null, 1], ...L('F1 F2 F3 F4'), [null, 0.5], ...L('F5 F6 F7 F8'), [null, 0.5], ...L('F9 F10 F11 F12')],
+    [...L('Backquote Digit1 Digit2 Digit3 Digit4 Digit5 Digit6 Digit7 Digit8 Digit9 Digit0 Minus Equal'), ['Backspace', 2]],
+    [['Tab', 1.5], ...L('KeyQ KeyW KeyE KeyR KeyT KeyY KeyU KeyI KeyO KeyP BracketLeft BracketRight'), ['Backslash', 1.5]],
+    [['CapsLock', 1.75], ...L('KeyA KeyS KeyD KeyF KeyG KeyH KeyJ KeyK KeyL Semicolon Quote'), ['Enter', 2.25]],
+    [['ShiftLeft', 2.25], ...L('KeyZ KeyX KeyC KeyV KeyB KeyN KeyM Comma Period Slash'), ['ShiftRight', 2.75]],
+    [['ControlLeft', 1.25], ['MetaLeft', 1.25], ['AltLeft', 1.25], ['Space', 6.25], ['AltRight', 1.25], ['MetaRight', 1.25], ['ContextMenu', 1.25], ['ControlRight', 1.25]],
+  ];
+  let layout: 'laptop' | 'full' = 'full', layoutMap: { get(c: string): string | undefined } | null = null;
+  const tested = new Set<string>(), held = new Set<string>(), extra = new Set<string>();
+  let events: { code: string; down: boolean }[] = [], maxRoll = 0, shown = new Set<string>();
+  const els = new Map<string, HTMLElement>();
+
+  const label = (code: string) => {
+    const m = PRINT.test(code) ? layoutMap?.get(code) : '';
+    if (m) return m.toUpperCase();
+    return SHORT[code] ?? code.replace(/^Key|^Digit/, '').replace(/^Numpad/, '');
+  };
+  const render = () => {
+    board.textContent = ''; els.clear(); shown = new Set();
+    const full = layout === 'full', total = full ? 23 : 18.5;
+    board.style.gridTemplateColumns = `repeat(${total * 4}, 1fr)`;
+    board.style.gridAutoRows = `calc(100cqw / ${total})`;
+    board.style.fontSize = `max(6px, calc(100cqw / ${total} * .34))`;
+    const put = (code: string, col: number, row: number, w: number, h = 1) => {
+      const k = document.createElement('div'); k.className = 'kb-k'; k.textContent = label(code);
+      k.style.gridColumn = `${Math.round(col * 4) + 1} / span ${Math.round(w * 4)}`; k.style.gridRow = `${row + 1} / span ${h}`;
+      if (tested.has(code)) k.classList.add('done'); if (held.has(code)) k.classList.add('down');
+      board.append(k); els.set(code, k); shown.add(code);
+    };
+    MAIN.forEach((row, r) => { let c = 0; for (const [code, w] of row) { if (code) put(code, c, r, w); c += w; } });
+    const nx = 15.5; // second block: arrows (laptop) or the Insert/Home cluster plus arrows (full)
+    if (full) {
+      [['PrintScreen', 'ScrollLock', 'Pause'], ['Insert', 'Home', 'PageUp'], ['Delete', 'End', 'PageDown']].forEach((row, r) => row.forEach((c, i) => put(c, nx + i, r, 1)));
+    }
+    put('ArrowUp', nx + 1, 4, 1); ['ArrowLeft', 'ArrowDown', 'ArrowRight'].forEach((c, i) => put(c, nx + i, 5, 1));
+    if (full) {
+      const px = 19.5;
+      ['NumLock', 'NumpadDivide', 'NumpadMultiply', 'NumpadSubtract'].forEach((c, i) => put(c, px + i, 1, 1));
+      ['Numpad7', 'Numpad8', 'Numpad9'].forEach((c, i) => put(c, px + i, 2, 1)); put('NumpadAdd', px + 3, 2, 1, 2);
+      ['Numpad4', 'Numpad5', 'Numpad6'].forEach((c, i) => put(c, px + i, 3, 1));
+      ['Numpad1', 'Numpad2', 'Numpad3'].forEach((c, i) => put(c, px + i, 4, 1)); put('NumpadEnter', px + 3, 4, 1, 2);
+      put('Numpad0', px, 5, 2); put('NumpadDecimal', px + 2, 5, 1);
+    }
+    update();
+  };
+  const update = () => {
+    let n = 0; tested.forEach((c) => { if (shown.has(c)) n++; });
+    $('.kb-count').textContent = `${n} of ${shown.size}`;
+    $('.kb-held').textContent = String(held.size);
+    $('.kb-max').textContent = String(maxRoll);
+    $('.kb-other').textContent = extra.size ? `Other keys seen that this picture does not show: ${[...extra].join(', ')}.` : '';
+  };
+  const mark = (code: string, down: boolean) => {
+    const el = els.get(code);
+    if (!(code in SHORT) && !/^(Key[A-Z]|Digit\d|F\d{1,2}|Numpad\d)$/.test(code)) extra.add(code);
+    if (down) { tested.add(code); held.add(code); } else held.delete(code);
+    el?.classList.toggle('down', down); if (down) el?.classList.add('done');
+    events.push({ code, down }); maxRoll = Math.max(maxRoll, rollover(events));
+    if (events.length > 300) events = [...held].map((c) => ({ code: c, down: true }));
+    update();
+  };
+  const releaseAll = () => { held.forEach((c) => els.get(c)?.classList.remove('down')); held.clear(); events = []; update(); };
+
+  box.addEventListener('keydown', (e) => {
+    e.preventDefault();
+    if (!e.repeat) mark(e.code, true);
+    $('.kb-key').textContent = e.key === ' ' ? 'Space' : e.key; $('.kb-code').textContent = e.code || '(none)';
+    $('.kb-loc').textContent = ['Standard', 'Left', 'Right', 'Numpad'][e.location] ?? String(e.location);
+    $('.kb-rep').textContent = e.repeat ? 'yes (held down)' : 'no';
+    say(status, `${held.size} key${held.size === 1 ? '' : 's'} down. Keep going until every key is green.`, 'good');
+  });
+  box.addEventListener('keyup', (e) => {
+    e.preventDefault();
+    if (e.code === 'PrintScreen' && !held.has(e.code)) mark(e.code, true); // some systems send only the key-up
+    if (e.key === 'Meta') releaseAll(); // the system swallows other key-ups while Cmd or Win is down
+    mark(e.code, false);
+  });
+  box.addEventListener('focus', () => say(status, 'Listening. Press any key.', 'good'));
+  box.addEventListener('blur', () => { releaseAll(); say(status, 'Paused: click the keyboard to start again.', 'warn'); });
+  $('.kb-reset').addEventListener('click', () => { tested.clear(); extra.clear(); maxRoll = 0; releaseAll(); events = []; render(); say(status, 'Cleared. Click the keyboard and press keys again.'); $('.kb-key').textContent = $('.kb-code').textContent = $('.kb-loc').textContent = $('.kb-rep').textContent = '–'; box.focus(); });
+  root.querySelectorAll<HTMLElement>('.kb-lay').forEach((b) => b.addEventListener('click', () => {
+    layout = b.dataset.lay as 'laptop' | 'full';
+    root.querySelectorAll('.kb-lay').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    render();
+  }));
+  addEventListener('pagehide', releaseAll);
+
+  // Narrow screens start with the laptop layout so keys are big enough to read.
+  try { if (innerWidth < 520) { layout = 'laptop'; root.querySelectorAll('.kb-lay').forEach((o) => o.setAttribute('aria-pressed', String((o as HTMLElement).dataset.lay === 'laptop'))); } } catch {}
+  render();
+  try {
+    (navigator as any).keyboard?.getLayoutMap?.().then((m: Map<string, string>) => { layoutMap = m; render(); }).catch(() => {});
+  } catch {}
+</script>
