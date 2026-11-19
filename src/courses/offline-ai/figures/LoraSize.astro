@@ -1,0 +1,65 @@
+---
+// CALC for 14.2 and 14.3: LoRA trainable numbers = r × (d_in + d_out) per adapted matrix × layers.
+// Presets use published config.json sizes: Llama 3.1 8B (hidden 4096, MLP 14336, 32 layers, 8 KV heads × 128)
+// and Llama 3.2 3B (hidden 3072, MLP 8192, 28 layers, 8 KV heads × 128). QLoRA memory is a rough planning figure:
+// 4-bit base (≈ 4.5 bits a weight with scales) + 16 bytes per trainable number (weights, gradients, Adam state) + activations.
+const PRESETS = [
+  ['4096,14336,32,1024,8.03', 'Llama 3.1 8B'],
+  ['3072,8192,28,1024,3.21', 'Llama 3.2 3B'],
+];
+---
+<figure class="cs-fig lr" data-lora-size>
+  <span class="cs-figtag">Calculator: LoRA adapter size</span>
+  <div class="lr-grid">
+    <label>Model design<select name="pre">{PRESETS.map(([v, t]) => <option value={v}>{t}</option>)}<option value="own">Your own numbers (from config.json)</option></select></label>
+    <label>Hidden size<input type="number" name="h" value="4096" min="1" /></label>
+    <label>MLP size<input type="number" name="m" value="14336" min="1" /></label>
+    <label>Layers<input type="number" name="l" value="32" min="1" /></label>
+    <label>KV size (KV heads × head size)<input type="number" name="kv" value="1024" min="1" /></label>
+    <label>Model size (billions)<input type="number" name="p" value="8.03" min="0.1" step="0.01" /></label>
+    <label>Rank r<select name="r"><option>4</option><option>8</option><option selected>16</option><option>32</option><option>64</option></select></label>
+    <label>Adapters on<select name="t"><option value="all" selected>Attention and MLP (all 7 grids)</option><option value="att">Attention only (q, k, v, o)</option></select></label>
+  </div>
+  <p class="lr-out" aria-live="polite" data-out></p>
+  <figcaption>Trainable numbers = r × (inputs + outputs) for each adapted grid, times the number of layers. Adapter size assumes 16-bit storage. The QLoRA memory line is a rough planning range for training with short texts (about 1,000 to 2,000 tokens) and a batch of 1 or 2; longer texts need more. Tools such as Unsloth report the exact figure when training starts.</figcaption>
+</figure>
+<style>
+  .lr-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
+  .lr-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; align-content: end; }
+  .lr-grid label:first-child { grid-column: 1 / -1; }
+  .lr-grid select, .lr-grid input { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .lr-out { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lora-size]')) {
+    const inp = (n: string) => fig.querySelector<HTMLInputElement | HTMLSelectElement>(`[name=${n}]`)!;
+    const pre = inp('pre') as HTMLSelectElement;
+    const fill = () => {
+      if (pre.value === 'own') return;
+      const [h, m, l, kv, p] = pre.value.split(',');
+      inp('h').value = h; inp('m').value = m; inp('l').value = l; inp('kv').value = kv; inp('p').value = p;
+    };
+    const show = () => {
+      const n = (k: string) => Math.max(0, Number(inp(k).value) || 0);
+      const h = n('h'), m = n('m'), kv = n('kv'), r = n('r');
+      const att = (h + h) + (h + kv) + (h + kv) + (h + h);
+      const mlp = 3 * (h + m);
+      const train = r * (inp('t').value === 'all' ? att + mlp : att) * n('l');
+      const params = n('p') * 1e9;
+      const mb = (train * 2) / 1e6;
+      const base = (params * 4.5) / 8 / 1e9;
+      const opt = (train * 16) / 1e9;
+      const lo = base + opt + 1, hi = base + opt + 4;
+      const f = (x: number, d = 1) => x.toLocaleString('en', { maximumFractionDigits: d });
+      fig.querySelector<HTMLElement>('[data-out]')!.textContent =
+        `${f(train / 1e6)} million trainable numbers, ${f((100 * train) / params, 2)}% of the model. Adapter file about ${f(mb, 0)} MB. ` +
+        `QLoRA training memory roughly ${f(lo)} to ${f(hi)} GB (4-bit base ${f(base)} GB + adapter training ${f(opt, 2)} GB + working memory).`;
+    };
+    pre.addEventListener('change', fill);
+    for (const k of ['h', 'm', 'l', 'kv', 'p']) inp(k).addEventListener('input', () => (pre.value = 'own'));
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    fill();
+    show();
+  }
+</script>

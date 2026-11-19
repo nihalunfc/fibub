@@ -13,6 +13,11 @@ import SpeedLimit from './SpeedLimit.astro';
 import BuildRig from './BuildRig.astro';
 import PowerBill from './PowerBill.astro';
 import KvCache from './KvCache.astro';
+import EmbeddingMap from './EmbeddingMap.astro';
+import ChunkSize from './ChunkSize.astro';
+import AgentLoop from './AgentLoop.astro';
+import AgentSandbox from './AgentSandbox.astro';
+import LoraSize from './LoraSize.astro';
 
 export const FIGURES: Record<string, any> = {
   'course-map': CourseMap,
@@ -29,4 +34,9 @@ export const FIGURES: Record<string, any> = {
   'build-rig': BuildRig,
   'power-bill': PowerBill,
   'kv-cache': KvCache,
+  'embedding-map': EmbeddingMap,
+  'chunk-size': ChunkSize,
+  'agent-loop': AgentLoop,
+  'agent-sandbox': AgentSandbox,
+  'lora-size': LoraSize,
 };

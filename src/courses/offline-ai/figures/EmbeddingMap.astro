@@ -1,0 +1,93 @@
+---
+// SIM for 12.2: a hand-drawn 2-D toy "meaning map". Real embeddings have hundreds of dimensions; here each sentence is a
+// point placed by hand so similar topics sit in the same direction from the centre. Picking a question ranks every
+// sentence by cosine similarity (angle from the centre) and lights up the top 3, as a RAG search would.
+const DOCS: [string, number, number][] = [
+  ['Staff get 20 days of paid vacation.', 20, 39],
+  ['Unused leave carries over to March.', 32, 32],
+  ['Sick days need a note after 3 days.', 38, 16],
+  ['In a fire, use the stairs, not the lift.', 61, 20],
+  ['Meet at the north gate car park.', 68, 32],
+  ['Fire drills happen every April.', 84, 38],
+  ['The printer on floor 2 is out of toner.', 39, 80],
+  ['Reset your password every 90 days.', 32, 68],
+  ['The Wi-Fi password is in the kitchen.', 16, 62],
+  ['Expenses over CA$100 need a receipt.', 80, 61],
+  ['Claims are paid on the 15th.', 68, 68],
+  ['Mileage is paid per kilometre.', 62, 84],
+];
+const QS: [string, number, number][] = [
+  ['How much holiday do I get?', 32, 26],
+  ['What do I do when the alarm rings?', 65, 24],
+  ['When do I get my taxi money back?', 77, 63],
+  ['My laptop cannot get online.', 28, 70],
+];
+const sx = (x: number) => 20 + x * 3.2;
+const sy = (y: number) => 10 + y * 2.2;
+---
+<figure class="cs-fig em" data-embed-map data-docs={JSON.stringify(DOCS)} data-qs={JSON.stringify(QS)}>
+  <span class="cs-figtag">Try it: a meaning map</span>
+  <label class="em-pick">Your question<select name="q">{QS.map(([t], i) => <option value={i}>{t}</option>)}</select></label>
+  <svg viewBox="0 0 360 240" role="img" aria-labelledby="em-t">
+    <title id="em-t">A map of 12 sentences in four topic groups: leave, fire safety, computers and expenses. The chosen question is joined to its three closest sentences.</title>
+    <line x1="180" y1="10" x2="180" y2="230" class="em-axis" /><line x1="20" y1="120" x2="340" y2="120" class="em-axis" />
+    <text x="24" y="22" class="em-lab">leave</text><text x="336" y="22" class="em-lab em-r">fire safety</text>
+    <text x="24" y="232" class="em-lab">computers</text><text x="336" y="232" class="em-lab em-r">expenses</text>
+    <g data-lines></g>
+    {DOCS.map(([t, x, y], i) => <g class="em-doc" data-i={i}><circle cx={sx(x)} cy={sy(y)} r="5"><title>{t}</title></circle></g>)}
+    <g class="em-q" data-qdot><rect width="12" height="12" rx="2" /></g>
+  </svg>
+  <ol class="em-out" aria-live="polite" data-out></ol>
+  <figcaption>A toy map drawn by hand in 2 dimensions; a real embedding model uses hundreds. Each dot is a sentence and the square is your question. Closeness is measured as the angle from the centre (cosine similarity), the same sum a real search does in 768 dimensions. Hover or tap a dot to read it.</figcaption>
+</figure>
+<style>
+  .em svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 8px auto; }
+  .em-pick { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .em-pick select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .em-lab { font-size: 12px; fill: var(--muted); }
+  .em-r { text-anchor: end; }
+  .em-axis { stroke: var(--line); stroke-dasharray: 3 4; }
+  .em-doc circle { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; transition: fill .3s; }
+  .em-doc.on circle { fill: var(--good); stroke: var(--good); }
+  .em-q rect { fill: var(--accent); }
+  .em-out { margin: 6px 0 0; padding: 10px 12px 10px 32px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15px; line-height: 1.55; }
+  .em :global(.em-line) { stroke: var(--good); stroke-width: 1.5; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-embed-map]')) {
+    const docs: [string, number, number][] = JSON.parse(fig.dataset.docs!);
+    const qs: [string, number, number][] = JSON.parse(fig.dataset.qs!);
+    const sel = fig.querySelector<HTMLSelectElement>('select')!;
+    const sx = (x: number) => 20 + x * 3.2, sy = (y: number) => 10 + y * 2.2;
+    const NS = 'http://www.w3.org/2000/svg';
+    const show = () => {
+      const [, qx, qy] = qs[Number(sel.value)];
+      const [ax, ay] = [qx - 50, qy - 50];
+      const ranked = docs.map(([t, x, y], i) => {
+        const [bx, by] = [x - 50, y - 50];
+        return { t, x, y, i, c: (ax * bx + ay * by) / (Math.hypot(ax, ay) * Math.hypot(bx, by)) };
+      }).sort((a, b) => b.c - a.c).slice(0, 3);
+      const q = fig.querySelector<SVGGElement>('[data-qdot]')!;
+      q.setAttribute('transform', `translate(${sx(qx) - 6} ${sy(qy) - 6})`);
+      const lines = fig.querySelector<SVGGElement>('[data-lines]')!;
+      lines.replaceChildren();
+      fig.querySelectorAll('.em-doc').forEach((g) => g.classList.remove('on'));
+      for (const r of ranked) {
+        fig.querySelector(`.em-doc[data-i="${r.i}"]`)!.classList.add('on');
+        const l = document.createElementNS(NS, 'line');
+        l.setAttribute('x1', String(sx(qx))); l.setAttribute('y1', String(sy(qy)));
+        l.setAttribute('x2', String(sx(r.x))); l.setAttribute('y2', String(sy(r.y)));
+        l.setAttribute('class', 'em-line');
+        lines.append(l);
+      }
+      const out = fig.querySelector<HTMLElement>('[data-out]')!;
+      out.replaceChildren(...ranked.map((r) => {
+        const li = document.createElement('li');
+        li.textContent = `${r.t} (similarity ${r.c.toFixed(2)})`;
+        return li;
+      }));
+    };
+    sel.addEventListener('change', show);
+    show();
+  }
+</script>

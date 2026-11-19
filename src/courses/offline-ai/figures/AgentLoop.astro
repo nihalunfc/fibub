@@ -1,0 +1,30 @@
+---
+// ANI for 13.1: the agent loop. A dot travels think → act (tool) → observe → back to think, then exits to "answer".
+// CSS motion only; a still frame when the visitor prefers less motion.
+---
+<figure class="cs-fig al">
+  <span class="cs-figtag">Animation: the agent loop</span>
+  <svg viewBox="0 0 360 200" role="img" aria-labelledby="al-t">
+    <title id="al-t">The agent loop: the model thinks, asks for a tool, your code runs it, the result is observed, and the loop repeats until the model writes a final answer.</title>
+    <path class="al-ring" d="M180 40 A 70 70 0 1 1 179.9 40" />
+    <circle class="al-dot" r="7" />
+    <g class="al-box"><rect x="135" y="22" width="90" height="34" rx="8" /><text x="180" y="44">1. Think</text></g>
+    <g class="al-box"><rect x="232" y="118" width="96" height="34" rx="8" /><text x="280" y="140">2. Use a tool</text></g>
+    <g class="al-box"><rect x="32" y="118" width="96" height="34" rx="8" /><text x="80" y="140">3. Observe</text></g>
+    <text x="180" y="112" class="al-s">your model</text><text x="180" y="128" class="al-s">+ your code</text>
+    <path class="al-exit" d="M225 39 L 290 39" /><g class="al-ans"><rect x="290" y="24" width="66" height="30" rx="8" /><text x="323" y="44">Answer</text></g>
+  </svg>
+  <figcaption>The dot is the job going round. Each lap the model either asks for a tool (your code runs it and hands back the result) or decides it is finished and writes the answer. The step limit stops the dot going round forever.</figcaption>
+</figure>
+<style>
+  .al svg { width: 100%; max-width: 480px; height: auto; display: block; margin: 0 auto; }
+  .al-ring { fill: none; stroke: var(--line); stroke-width: 3; }
+  .al-box rect { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .al-box text, .al-ans text { font-size: 13px; font-weight: 700; text-anchor: middle; fill: var(--ink); }
+  .al-s { font-size: 12px; text-anchor: middle; fill: var(--muted); }
+  .al-exit { stroke: var(--good); stroke-width: 2.5; stroke-dasharray: 4 4; }
+  .al-ans rect { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .al-dot { fill: var(--accent); offset-path: path("M180 40 A 70 70 0 1 1 179.9 40"); animation: al-go 4.5s linear infinite; }
+  @keyframes al-go { to { offset-distance: 100%; } }
+  @media (prefers-reduced-motion: reduce) { .al-dot { animation: none; offset-distance: 30%; } }
+</style>

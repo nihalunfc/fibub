@@ -13,7 +13,7 @@ export const OFFLINE_AI: CourseSyllabus = {
   title: 'Offline AI: run AI models on your own computer',
   text: 'Download AI models and run them on your own laptop, desktop or office server, with no internet and no monthly limit. From what a token is to building private document search, with prices in India, Canada, the USA and the UK.',
   audience: 'For adults, students and working professionals. No coding needed to start; later modules use a little Python.',
-  updated: '2026-11-18',
+  updated: '2026-11-19',
   parts: [
     { name: 'Part A: Foundations', modules: [
       { n: 1, name: 'Welcome, and why run AI yourself', lessons: [
