@@ -1,0 +1,34 @@
+---
+// CHART for 16.1: cloud AI plans side by side, in the chosen country's own currency where a local price is published.
+// Data and sources live in ../prices.ts (PLANS); refresh that file, not this one.
+import { COUNTRIES, PLANS, PLANS_CHECKED, money, type Country } from '../prices';
+const frac = (v: number | [number, number]) => [v].flat().some((x) => x % 1 !== 0);
+const cell = (c: Country, p: (typeof PLANS)[number]) => (p.price[c] !== undefined ? money(c, p.price[c]!, frac(p.price[c]!)) : `${money('US', p.price.US!, frac(p.price.US!))}, charged in US$`);
+---
+<figure class="cs-fig pp" data-plan-prices>
+  <span class="cs-figtag">Chart: cloud AI plans, per month</span>
+  <label class="pp-c">Country<select name="c">{COUNTRIES.map((c) => <option value={c.id} selected={c.id === 'US'}>{c.name}</option>)}</select></label>
+  {COUNTRIES.map((c) => (
+    <div class="pp-tab" data-c={c.id} hidden={c.id !== 'US'}>
+      <table>
+        <thead><tr><th>Plan</th><th>Per month</th><th>What it gives</th></tr></thead>
+        <tbody>{PLANS.map((p) => <tr><td><b>{p.name}</b></td><td>{cell(c.id, p)}</td><td>{p.gives}</td></tr>)}</tbody>
+      </table>
+    </div>
+  ))}
+  <figcaption>Checked {PLANS_CHECKED}. India prices include GST. "Charged in US$" means no local price was published: your bank converts it and adds its fee, and sales tax or VAT is added at checkout. Sources: {PLANS.map((p) => `${p.name}: ${p.src}`).join('; ')}. Prices and limits change often: check the official pricing page before you pay.</figcaption>
+</figure>
+<style>
+  .pp-c { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; max-width: 240px; margin-bottom: 10px; }
+  .pp-c select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .pp-tab { overflow-x: auto; }
+  .pp table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .pp th, .pp td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .pp td:nth-child(2) { white-space: nowrap; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-plan-prices]')) {
+    const sel = fig.querySelector<HTMLSelectElement>('select[name=c]')!;
+    sel.addEventListener('change', () => fig.querySelectorAll<HTMLElement>('.pp-tab').forEach((t) => (t.hidden = t.dataset.c !== sel.value)));
+  }
+</script>

@@ -18,6 +18,10 @@ import ChunkSize from './ChunkSize.astro';
 import AgentLoop from './AgentLoop.astro';
 import AgentSandbox from './AgentSandbox.astro';
 import LoraSize from './LoraSize.astro';
+import QueueCounter from './QueueCounter.astro';
+import PlanPrices from './PlanPrices.astro';
+import BreakEven from './BreakEven.astro';
+import ApiBill from './ApiBill.astro';
 
 export const FIGURES: Record<string, any> = {
   'course-map': CourseMap,
@@ -39,4 +43,8 @@ export const FIGURES: Record<string, any> = {
   'agent-loop': AgentLoop,
   'agent-sandbox': AgentSandbox,
   'lora-size': LoraSize,
+  'queue-counter': QueueCounter,
+  'plan-prices': PlanPrices,
+  'break-even': BreakEven,
+  'api-bill': ApiBill,
 };

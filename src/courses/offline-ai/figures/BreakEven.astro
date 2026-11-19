@@ -1,0 +1,95 @@
+---
+// CALC for 16.4: months until owning hardware costs less than a cloud plan. Local = hardware (less what you can sell it for)
+// + electricity each month; cloud = plan price each month. Prices come from ../prices.ts and are all editable.
+import { COUNTRIES, TIERS, PLANS, MID, CHECKED, PLANS_CHECKED } from '../prices';
+const hw = TIERS.flatMap((t) => t.options).filter((o) => Object.keys(o.price).length).map((o) => ({ n: o.name, p: o.price }));
+const data = JSON.stringify({ hw, plans: PLANS.map((p) => ({ n: p.name, p: p.price })), mid: MID });
+---
+<figure class="cs-fig be" data-break-even data-d={data}>
+  <span class="cs-figtag">Calculator: break-even</span>
+  <div class="be-grid">
+    <label>Country<select name="c">{COUNTRIES.map((c) => <option value={c.id} selected={c.id === 'US'}>{c.name}</option>)}</select></label>
+    <label>Cloud plan you would drop<select name="plan"></select></label>
+    <label>Plan price per month<input type="number" name="pp" min="0" step="0.01" /></label>
+    <label>Hardware you would buy<select name="hw"></select></label>
+    <label>Hardware price<input type="number" name="hp" min="0" step="1" /></label>
+    <label>Resale value after 3 years (%)<input type="number" name="rs" value="30" min="0" max="100" /></label>
+    <label>Watts while working<input type="number" name="w" value="250" min="0" /></label>
+    <label>Hours of work a day<input type="number" name="h" value="3" min="0" max="24" step="0.5" /></label>
+    <label>Price per kWh<input type="number" name="k" min="0" step="0.001" /></label>
+  </div>
+  <p class="be-out" aria-live="polite" data-out></p>
+  <svg viewBox="0 0 320 170" role="img" aria-label="Running total of both costs over 36 months" data-chart></svg>
+  <p class="be-key"><span class="be-l"></span> Local (hardware, then electricity) <span class="be-cl"></span> Cloud plan</p>
+  <figcaption>Hardware prices checked {CHECKED}, plan prices {PLANS_CHECKED} (sources in Lessons 5.1 to 5.4 and 16.1). A price shown in US$ means no local price was found: type your own. Electricity counts 30 days a month. Leave out the hardware price if you would buy the computer anyway, and count only the extra (for example the larger memory). This ignores your time, repairs and the fact that a local model may not match the cloud model's quality (Lesson 17.1).</figcaption>
+</figure>
+<style>
+  .be-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .be-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .be-grid select, .be-grid input { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; width: 100%; box-sizing: border-box; }
+  .be-out { margin: 12px 0 8px; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+  .be svg { width: 100%; height: auto; display: block; }
+  .be-key { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; }
+  .be-l, .be-cl { display: inline-block; width: 18px; height: 3px; vertical-align: middle; background: var(--accent); margin: 0 4px 0 8px; }
+  .be-cl { background: var(--ink); }
+</style>
+<script>
+  import { money, type Country } from '../prices';
+  type P = Record<string, number | [number, number]>;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-break-even]')) {
+    const d = JSON.parse(fig.dataset.d!) as { hw: { n: string; p: P }[]; plans: { n: string; p: P }[]; mid: Record<string, number> };
+    const q = <T extends Element>(s: string) => fig.querySelector<T>(s)!;
+    const sel = (n: string) => q<HTMLSelectElement>(`select[name=${n}]`), inp = (n: string) => q<HTMLInputElement>(`input[name=${n}]`);
+    const mid = (v: number | [number, number]) => (Array.isArray(v) ? v[0] : v);
+    const pick = (p: P, c: string) => (p[c] !== undefined ? { v: mid(p[c]), c } : p.US !== undefined ? { v: mid(p.US), c: 'US' } : null);
+    const fill = (s: HTMLSelectElement, list: { n: string; p: P }[], c: string, first: number) => {
+      s.innerHTML = '';
+      list.forEach((x, i) => {
+        const v = pick(x.p, c);
+        if (!v) return;
+        const o = new Option(`${x.n} (${money(v.c as Country, v.v, v.v % 1 !== 0)})`, String(v.v));
+        o.selected = i === first;
+        s.add(o);
+      });
+    };
+    const setCountry = () => {
+      const c = sel('c').value;
+      fill(sel('plan'), d.plans, c, 0);
+      fill(sel('hw'), d.hw, c, 1);
+      inp('pp').value = sel('plan').value;
+      inp('hp').value = sel('hw').value;
+      inp('k').value = String(d.mid[c]);
+    };
+    const show = () => {
+      const c = sel('c').value as Country;
+      const n = (k: string) => Math.max(0, Number(inp(k).value) || 0);
+      const net = n('hp') * (1 - Math.min(100, n('rs')) / 100);
+      const power = (n('w') * n('h') * 30 * n('k')) / 1000;
+      const plan = n('pp');
+      const f = (x: number) => money(c, x, x < 100);
+      let msg = `Local costs ${f(net)} for the hardware after resale, then about ${f(power)} a month in electricity. The plan costs ${f(plan)} a month. `;
+      if (plan <= power) msg += 'Electricity alone costs as much as the plan, so local never becomes cheaper on money alone.';
+      else {
+        const m = net / (plan - power);
+        msg += m <= 0.5 ? 'Local is cheaper from the first month.' : `Local becomes cheaper after about ${m < 10 ? m.toFixed(1) : Math.round(m)} months${m > 36 ? ', longer than most people keep a machine before it feels slow' : ''}.`;
+      }
+      q('[data-out]').textContent = msg;
+      const M = 36, W = 320, H = 170, L = 8, B = 150;
+      const top = Math.max(net + power * M, plan * M, 1);
+      const xy = (m: number, v: number) => `${(L + (m / M) * (W - 2 * L)).toFixed(1)},${(B - (v / top) * (B - 10)).toFixed(1)}`;
+      const line = (fn: (m: number) => number) => Array.from({ length: M + 1 }, (_, m) => xy(m, fn(m))).join(' ');
+      q('[data-chart]').innerHTML =
+        `<line x1="${L}" y1="${B}" x2="${W - L}" y2="${B}" stroke="currentColor" opacity=".35"/>` +
+        `<polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${line((m) => net + power * m)}"/>` +
+        `<polyline fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 3" points="${line((m) => plan * m)}"/>` +
+        `<text x="${L}" y="${H - 4}" font-size="11" fill="var(--muted)">0</text><text x="${W / 2 - 22}" y="${H - 4}" font-size="11" fill="var(--muted)">18 months</text><text x="${W - L - 44}" y="${H - 4}" font-size="11" fill="var(--muted)">36 months</text>`;
+    };
+    sel('c').addEventListener('change', setCountry);
+    sel('plan').addEventListener('change', () => (inp('pp').value = sel('plan').value));
+    sel('hw').addEventListener('change', () => (inp('hp').value = sel('hw').value));
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    setCountry();
+    show();
+  }
+</script>

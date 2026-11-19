@@ -1,0 +1,82 @@
+---
+// SIM for 15.1: a queue at the counter. People send requests at random; each machine answers up to "batch" requests at
+// once. Batching shares one read of the weights between several answers, so total speed rises, but not in a straight line:
+// here total speed = single speed × k ÷ (1 + 0.06 × (k − 1)) for k answers at once (a rough fit; real engines differ).
+// The same random seed is used each time, so changing one slider shows only that slider's effect.
+---
+<figure class="cs-fig qc" data-queue>
+  <span class="cs-figtag">Try it: the queue at the counter</span>
+  <div class="qc-grid">
+    <label>People sharing the machine <output data-v="u"></output><input type="range" name="u" min="1" max="200" value="20" /></label>
+    <label>Questions per person per hour <output data-v="r"></output><input type="range" name="r" min="1" max="60" value="6" /></label>
+    <label>Answer length (tokens) <output data-v="len"></output><input type="range" name="len" min="100" max="2000" step="50" value="500" /></label>
+    <label>Speed for one person (tokens/s) <output data-v="s"></output><input type="range" name="s" min="5" max="120" value="40" /></label>
+    <label>Answers at once (batch size)<select name="b"><option value="1">1 (no batching)</option><option value="4" selected>4</option><option value="8">8</option><option value="16">16</option><option value="32">32 (serving engine)</option></select></label>
+    <label>Machines<select name="g"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+  </div>
+  <p class="qc-out" aria-live="polite" data-out></p>
+  <svg viewBox="0 0 320 110" role="img" aria-label="People waiting in the queue during a simulated two hours" data-chart></svg>
+  <figcaption>Each line height is the number of people waiting for their answer to start, second by second, over a simulated two hours. Everyone waits for their own answer before asking again. The batching gain is a rough fit, not a measurement: test your own machine with Lesson 15.5.</figcaption>
+</figure>
+<style>
+  .qc-grid { display: grid; gap: 10px 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .qc-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .qc-grid output { font-weight: 400; color: var(--muted); }
+  .qc-grid input[type=range] { width: 100%; }
+  .qc-grid select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .qc-out { margin: 12px 0 8px; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+  .qc svg { width: 100%; height: auto; display: block; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-queue]')) {
+    const v = (n: string) => Number(fig.querySelector<HTMLInputElement | HTMLSelectElement>(`[name=${n}]`)!.value);
+    const run = () => {
+      for (const n of ['u', 'r', 'len', 's']) fig.querySelector(`[data-v=${n}]`)!.textContent = `: ${v(n)}`;
+      const U = v('u'), p = v('r') / 3600, len = v('len'), s = v('s'), B = v('b'), G = v('g'), T = 7200;
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const queue: number[] = []; // start times of waiting requests
+      const slots: number[][] = Array.from({ length: G }, () => []); // tokens left per running answer
+      let idle = U, waitSum = 0, done = 0, busy = 0, maxQ = 0;
+      const qline: number[] = [];
+      for (let t = 0; t < T; t++) {
+        let asks = 0;
+        for (let i = 0; i < idle; i++) if (rnd() < p) asks++;
+        idle -= asks;
+        for (let i = 0; i < asks; i++) queue.push(t);
+        for (const g of slots) while (g.length < B && queue.length) { waitSum += t - queue.shift()!; g.push(len); }
+        let anyBusy = false;
+        for (const g of slots) {
+          const k = g.length;
+          if (!k) continue;
+          anyBusy = true;
+          const each = (s * k) / (1 + 0.06 * (k - 1)) / k;
+          for (let i = k - 1; i >= 0; i--) if ((g[i] -= each) <= 0) { g.splice(i, 1); idle++; done++; }
+        }
+        if (anyBusy) busy++;
+        maxQ = Math.max(maxQ, queue.length);
+        qline.push(queue.length);
+      }
+      const started = done + slots.reduce((a, g) => a + g.length, 0);
+      const avgWait = started ? waitSum / started : 0;
+      const k = Math.min(B, Math.max(1, U));
+      const perAnswer = len / ((s * 1) / (1 + 0.06 * (k - 1)));
+      const fmt = (x: number) => (x < 60 ? `${Math.round(x)} s` : `${(x / 60).toFixed(1)} min`);
+      fig.querySelector('[data-out]')!.textContent =
+        `${done.toLocaleString('en')} answers in two hours. Average wait before an answer starts: ${fmt(avgWait)}; longest queue: ${maxQ} ${maxQ === 1 ? 'person' : 'people'}. ` +
+        `The machine was busy ${Math.round((busy / T) * 100)}% of the time. One answer takes ${fmt(len / s)} alone${k > 1 ? `, up to about ${fmt(perAnswer)} when ${k} share a machine` : ''}. ` +
+        (queue.length > U / 3 ? 'The queue keeps growing: add batching, a machine, or a smaller model.' : avgWait < 5 ? 'Feels instant to most people.' : 'Usable, but people will notice the wait at busy times.');
+      const top = Math.max(4, maxQ);
+      const pts: string[] = [];
+      for (let i = 0; i < T; i += 30) pts.push(`${((i / T) * 320).toFixed(1)},${(100 - (Math.max(...qline.slice(i, i + 30)) / top) * 90).toFixed(1)}`);
+      fig.querySelector('[data-chart]')!.innerHTML =
+        `<line x1="0" y1="100" x2="320" y2="100" stroke="currentColor" opacity=".35"/>` +
+        `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${pts.join(' ')}"/>` +
+        `<text x="2" y="10" font-size="10" fill="var(--muted)">${top} waiting</text><text x="270" y="108" font-size="10" fill="var(--muted)">2 hours</text>`;
+    };
+    let timer = 0;
+    fig.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 60); });
+    fig.addEventListener('change', run);
+    run();
+  }
+</script>
