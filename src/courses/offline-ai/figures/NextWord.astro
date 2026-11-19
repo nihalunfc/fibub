@@ -1,0 +1,71 @@
+---
+// SIM for 2.1 (and 10.1): a toy next-word predictor. Each prompt has made-up scores (logits) for a few next words;
+// temperature turns them into probabilities, and "Pick a word" samples one. Shows how the same model gives
+// safe or varied text. The scores are invented for teaching, not taken from a real model.
+---
+<figure class="cs-fig nw" data-next-word>
+  <span class="cs-figtag">Try it: predict the next word</span>
+  <label class="nw-l">Start of the sentence
+    <select name="prompt">
+      <option value="0">The capital of France is</option>
+      <option value="1">I opened the fridge and found some</option>
+      <option value="2">Running a model on my laptop is</option>
+    </select>
+  </label>
+  <label class="nw-l">Temperature: <strong data-tval>0.8</strong>
+    <input type="range" name="t" min="0" max="2" step="0.1" value="0.8" />
+  </label>
+  <div class="nw-bars" data-bars></div>
+  <div class="nw-row"><button type="button" class="btn" data-pick>Pick a word</button> <span class="nw-pick" aria-live="polite" data-out></span></div>
+  <figcaption>The model gives every possible next word a score. Temperature 0 always takes the top word; higher temperatures spread the chances out, so less likely words appear more often. The words and scores here are made up to show the idea.</figcaption>
+</figure>
+<style>
+  .nw-l { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; margin-bottom: 10px; }
+  .nw-l select, .nw-l input { font: inherit; font-weight: 400; max-width: 100%; }
+  .nw-l select { padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .nw-bars { display: grid; gap: 6px; margin: 6px 0 12px; }
+  .nw-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .nw-pick { font-weight: 700; font-size: 17px; }
+</style>
+<script>
+  const DATA: [string, number][][] = [
+    [['Paris', 9], ['a', 4.5], ['the', 4], ['located', 3.5], ['beautiful', 3], ['Lyon', 1.5]],
+    [['milk', 5], ['cheese', 4.6], ['leftovers', 4.2], ['eggs', 4], ['nothing', 3.2], ['treasure', 1]],
+    [['easy', 4.2], ['fun', 4], ['slow', 3.6], ['private', 3.5], ['surprisingly', 3.3], ['magic', 1.5]],
+  ];
+  function probs(rows: [string, number][], t: number) {
+    if (t === 0) return rows.map((_, i) => (i === 0 ? 1 : 0));
+    const m = Math.max(...rows.map((r) => r[1]));
+    const e = rows.map((r) => Math.exp((r[1] - m) / t));
+    const s = e.reduce((a, b) => a + b, 0);
+    return e.map((x) => x / s);
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-next-word]')) {
+    const sel = fig.querySelector('select')!, rng = fig.querySelector<HTMLInputElement>('input[type=range]')!;
+    const bars = fig.querySelector<HTMLElement>('[data-bars]')!, out = fig.querySelector<HTMLElement>('[data-out]')!;
+    let p: number[] = [];
+    const show = () => {
+      const rows = DATA[Number(sel.value)], t = Number(rng.value);
+      fig.querySelector('[data-tval]')!.textContent = t.toFixed(1);
+      p = probs(rows, t);
+      bars.replaceChildren(...rows.map(([w], i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid;grid-template-columns:96px 1fr 48px;gap:8px;align-items:center;font-size:15px';
+        const name = document.createElement('span'); name.textContent = w;
+        const track = document.createElement('span'); track.style.cssText = 'height:14px;background:var(--accent-soft);border-radius:4px;overflow:hidden';
+        const fill = document.createElement('span'); fill.style.cssText = `display:block;height:100%;width:${(100 * p[i]).toFixed(1)}%;background:var(--accent)`;
+        track.append(fill);
+        const pct = document.createElement('span'); pct.textContent = `${Math.round(100 * p[i])}%`; pct.style.textAlign = 'right';
+        row.append(name, track, pct); return row;
+      }));
+      out.textContent = '';
+    };
+    fig.querySelector('[data-pick]')!.addEventListener('click', () => {
+      const rows = DATA[Number(sel.value)]; let r = Math.random(), i = 0;
+      while (i < p.length - 1 && r > p[i]) { r -= p[i]; i++; }
+      out.textContent = `${sel.selectedOptions[0].text} ${rows[i][0]}…`;
+    });
+    sel.addEventListener('change', show); rng.addEventListener('input', show);
+    show();
+  }
+</script>

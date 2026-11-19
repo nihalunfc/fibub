@@ -5,6 +5,10 @@ import WhatTravels from './WhatTravels.astro';
 import PickTrack from './PickTrack.astro';
 import WillItFit from './WillItFit.astro';
 import ToyTokenizer from './ToyTokenizer.astro';
+import NextWord from './NextWord.astro';
+import Experts from './Experts.astro';
+import ContextBucket from './ContextBucket.astro';
+import TokenBudget from './TokenBudget.astro';
 
 export const FIGURES: Record<string, any> = {
   'course-map': CourseMap,
@@ -13,4 +17,8 @@ export const FIGURES: Record<string, any> = {
   'pick-track': PickTrack,
   'will-it-fit': WillItFit,
   'toy-tokenizer': ToyTokenizer,
+  'next-word': NextWord,
+  'experts': Experts,
+  'context-bucket': ContextBucket,
+  'token-budget': TokenBudget,
 };
