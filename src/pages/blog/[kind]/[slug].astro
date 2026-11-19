@@ -27,7 +27,7 @@ const { Content } = await render(a);
 const covered = a.data.tools.map((id: string) => live.get(id));
 const main = kind.id === 'guides' ? covered[0] : null;
 // How-to articles also open with a button to the tool that does the job (their first tool).
-const opener = main ?? (kind.id === 'howto' ? covered[0] : null);
+const opener = main ?? (kind.id === 'howto' || kind.id === 'life' ? covered[0] : null);
 const url = articleUrl(a);
 const day = a.data.updated.toISOString().slice(0, 10);
 // More reading: other articles that share a tool with this one, then the newest of the same kind.
@@ -40,9 +40,15 @@ const p = a.data.paper;
   <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / <a href={`/blog/${kind.id}/`}>{kind.name}</a></div>
   <article class="prose post">
     <h1>{a.data.title}</h1>
-    <p class="post-meta">{kind.one} · Updated <time datetime={day}>{day}</time>{a.data.level && <> · For {a.data.level}</>}</p>
+    <p class="post-meta">{kind.one} · Updated <time datetime={day}>{day}</time>{a.data.level && <> · For {a.data.level}</>}{a.data.country && <> · {a.data.country}</>}</p>
     <p class="lead">{a.data.summary}</p>
     {opener && <p class="post-open"><a class="btn" href={toolUrl(opener)}>Open the {opener.data.name}</a> <span>Free, in your browser, nothing uploaded.</span></p>}
+    {kind.id === 'life' && (
+      <aside class="paper panel">
+        <b>General information, not advice</b>
+        <span>Rules and amounts change. We checked every fact on the official pages listed under <a href="#sources">Sources</a> on the date shown there. Always check the official source before you act, and ask the government office if your case is unusual.</span>
+      </aside>
+    )}
     {p && (
       <aside class="paper panel">
         <b>The research</b>

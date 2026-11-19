@@ -48,10 +48,12 @@ const tools = defineCollection({
 // The Blog (/blog/): one Markdown file per article in src/blog/<kind>/<slug>.md, shown at
 // /blog/<kind>/<slug>/. Kinds: guides (one per tool: what it is, how to use it, real uses, worked
 // example), howto (a task people search for, done with fibub tools), together (several tools in one job), kids (for school students, per chapter or subject)
-// and discoveries (new research, in our own words, and how to check it with fibub tools).
+// discoveries (new research, in our own words, and how to check it with fibub tools) and life (evergreen,
+// step-by-step guides for students and workers in one country, such as applying for EI in Canada, checked
+// against official sources and linked to the tools that help).
 // Links: tool names link themselves on first mention, [[tool-id]] links a tool, and
 // [[blog:<kind>/<slug>]] (or [[blog:<kind>/<slug>|words]]) links another article (src/lib/autolink.mjs).
-export const BLOG_KINDS = ['guides', 'howto', 'together', 'kids', 'discoveries'] as const;
+export const BLOG_KINDS = ['guides', 'howto', 'life', 'together', 'kids', 'discoveries'] as const;
 const blog = defineCollection({
   loader: glob({ pattern: '*/*.md', base: './src/blog' }),
   schema: z.object({
@@ -65,6 +67,8 @@ const blog = defineCollection({
     updated: z.coerce.date(),
     // For students: the class or level it is written for, e.g. "Class 8" or "Age 12 and up".
     level: z.string().optional(),
+    // Life guides: the country the rules are for, e.g. "Canada" (shown under the title).
+    country: z.string().optional(),
     // Discoveries: the paper, credited in full. Our own words only: no copied tables or figures.
     paper: z.object({
       title: z.string(), authors: z.string(), journal: z.string(), year: z.number().int(),

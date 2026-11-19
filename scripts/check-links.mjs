@@ -20,7 +20,7 @@ for (const id of readdirSync(root)) {
 // Blog articles (src/blog/<kind>/<slug>.md): their [[tool-id]] and [[blog:<kind>/<slug>]] links, the
 // `tools:` list, and the frontmatter every article needs. `node scripts/check-links.mjs <files>` checks
 // just those articles (quick checks while writing).
-const KINDS = ['guides', 'howto', 'together', 'kids', 'discoveries'];
+const KINDS = ['guides', 'howto', 'life', 'together', 'kids', 'discoveries'];
 const blogRoot = new URL('../src/blog/', import.meta.url).pathname;
 const articles = blogIds();
 const only = process.argv.slice(2).map((f) => f.replace(/^.*src\/blog\//, '').replace(/\.md$/, ''));
@@ -36,6 +36,7 @@ for (const id of only.length ? only : articles) {
   const tools = (fm.match(/^tools:\s*\[([^\]]*)\]/m)?.[1] ?? '').match(/[a-z0-9-]+/g) ?? [];
   if (kind === 'guides' && !tools.length) bad.push(`src/blog/${id}.md: a guide needs tools: [<the tool it explains>, ...]`);
   if (kind === 'discoveries' && !/^paper:/m.test(fm)) bad.push(`src/blog/${id}.md: a discovery needs paper: (title, authors, journal, year, url, licence, reviewed)`);
+  if (kind === 'life' && (!/^country:\s*\S/m.test(fm) || !/^sources:/m.test(fm))) bad.push(`src/blog/${id}.md: a life guide needs country: and sources: (official pages with the date checked)`);
   for (const t of tools) if (!live.has(t)) bad.push(`src/blog/${id}.md: tools lists "${t}", which is not a live tool`);
   // Every plot carries the fibub.com mark (nihal, 2026-11-16); chart() in scripts/blog-figures/svg.mjs adds it.
   for (const m of body.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)) if (!/data-no-mark/.test(m[0].slice(0, m[0].indexOf('>'))) && !m[0].includes('class="fibub-mark"')) bad.push(`src/blog/${id}.md: a figure has no fibub.com mark; draw it with chart() from scripts/blog-figures/svg.mjs, or add watermark(W, H) (data-no-mark only for diagrams that are not plots)`);
