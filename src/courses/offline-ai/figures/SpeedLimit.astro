@@ -1,0 +1,45 @@
+---
+// SIM for 4.2: each new token means reading every active weight from memory once. A dot runs from memory to chip once
+// per token; the top speed is bandwidth ÷ bytes read per token. Rough ceiling, real speeds are 50 to 80% of it.
+const DEV = [['60', 'Laptop, dual-channel memory (about 60 GB/s)'], ['120', 'Mac mini M6 class (about 120 GB/s)'], ['273', '128 GB AI box (273 GB/s)'], ['448', 'RTX 5060 Ti (448 GB/s)'], ['936', 'Used RTX 3090 (936 GB/s)'], ['1792', 'RTX 5090 (1,792 GB/s)']];
+---
+<figure class="cs-fig sl" data-speed-limit>
+  <span class="cs-figtag">Try it: the speed limit</span>
+  <div class="sl-grid">
+    <label>Memory speed<select name="bw">{DEV.map(([v, t]) => <option value={v} selected={v === '448'}>{t}</option>)}</select></label>
+    <label>Weights read per token<select name="gb">
+      <option value="1.6">Gemma 4 E2B, 4-bit (about 1.6 GB)</option>
+      <option value="7.7" selected>Gemma 4 12B, 4-bit (about 7.7 GB)</option>
+      <option value="16">27B, 4-bit (about 16 GB)</option>
+      <option value="3.1">gpt-oss-120b, MoE: 5.1B active, 4-bit (about 3.1 GB)</option>
+    </select></label>
+  </div>
+  <div class="sl-track" aria-hidden="true"><span>memory</span><i class="sl-dot"></i><span>chip</span></div>
+  <p class="sl-out" aria-live="polite" data-out></p>
+  <figcaption>Each crossing of the dot stands for one token: the chip must read every weight it uses once per word piece. Top speed ≈ memory speed ÷ GB read per token. Real engines reach about half to four fifths of this ceiling. Memory speeds are makers' figures (Lesson 4.1 sources); the Mac mini figure is rounded, check Apple's spec page.</figcaption>
+</figure>
+<style>
+  .sl-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .sl-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .sl-grid select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .sl-track { position: relative; display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .sl-dot { position: absolute; left: 70px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--accent); animation: sl-run var(--t, 1s) ease-in-out infinite alternate; }
+  @keyframes sl-run { from { left: 70px; } to { left: calc(100% - 64px); } }
+  @media (prefers-reduced-motion: reduce) { .sl-dot { animation: none; } }
+  .sl-out { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.5; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-speed-limit]')) {
+    const v = (n: string) => Number(fig.querySelector<HTMLSelectElement>(`select[name=${n}]`)!.value);
+    const show = () => {
+      const top = v('bw') / v('gb');
+      // Show the pace: one sweep per token, slowed 20 times so it can be seen, kept between 0.15 and 3 seconds.
+      fig.querySelector<HTMLElement>('.sl-dot')!.style.setProperty('--t', `${Math.min(3, Math.max(0.15, 20 / top))}s`);
+      const r = (x: number) => Math.round(x);
+      fig.querySelector<HTMLElement>('[data-out]')!.textContent =
+        `Ceiling about ${r(top)} tokens per second; expect roughly ${r(top * 0.5)} to ${r(top * 0.8)} in practice${top * 0.5 < 8 ? ': slower than comfortable reading' : top * 0.5 > 40 ? ': faster than you can read' : ''}. (The dot is slowed 20 times so you can see it.)`;
+    };
+    fig.addEventListener('change', show);
+    show();
+  }
+</script>

@@ -1,0 +1,55 @@
+---
+// CALC for 6.1 and 6.2: watts × hours × price per kWh, in the chosen country's currency, with that country's typical
+// home price filled in (from ../prices.ts) and editable.
+import { COUNTRIES, POWER, MID, CHECKED } from '../prices';
+---
+<figure class="cs-fig pb" data-power-bill>
+  <span class="cs-figtag">Calculator: your AI power bill</span>
+  <div class="pb-grid">
+    <label>Country<select name="c">{COUNTRIES.map((c) => <option value={c.id} data-mid={MID[c.id]} data-unit={POWER[c.id].unit} data-src={POWER[c.id].src}>{c.name}</option>)}</select></label>
+    <label>Machine<select name="m">
+      <option value="25">Laptop or Mac mini working (about 25 W)</option>
+      <option value="60">Mac mini Pro or Mac Studio working (about 60 W)</option>
+      <option value="250" selected>PC with RTX 5060 Ti working (about 250 W)</option>
+      <option value="450">PC with RTX 3090 working (about 450 W)</option>
+      <option value="750">PC with RTX 5090 working (about 750 W)</option>
+      <option value="200">128 GB AI box working (about 200 W)</option>
+    </select></label>
+    <label>Hours of real work per day<input type="number" name="h" value="2" min="0" max="24" step="0.5" /></label>
+    <label>Days per month<input type="number" name="d" value="22" min="1" max="31" /></label>
+    <label><span data-unit>Price per kWh</span><input type="number" name="p" value="6.5" min="0" step="0.01" /></label>
+  </div>
+  <p class="pb-out" aria-live="polite" data-out></p>
+  <figcaption><span data-src></span> Prices checked {CHECKED}; check your own bill, which is the official source for you. Watts are whole-machine estimates at the wall while the model is writing; idle machines draw far less (Lesson 6.1). Measure yours with a plug-in power meter.</figcaption>
+</figure>
+<style>
+  .pb-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .pb-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .pb-grid select, .pb-grid input { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; width: 100%; box-sizing: border-box; }
+  .pb-out { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+</style>
+<script>
+  import { money, type Country } from '../prices';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-power-bill]')) {
+    const el = <T extends Element>(q: string) => fig.querySelector<T>(q)!;
+    const country = () => el<HTMLSelectElement>('select[name=c]').selectedOptions[0];
+    const setCountry = () => {
+      const o = country();
+      el<HTMLInputElement>('input[name=p]').value = o.dataset.mid!;
+      el('[data-unit]').textContent = `Price: ${o.dataset.unit}`;
+      el('[data-src]').textContent = o.dataset.src!;
+    };
+    const show = () => {
+      const c = country().value as Country;
+      const n = (q: string) => Math.max(0, Number(el<HTMLInputElement | HTMLSelectElement>(q).value) || 0);
+      const w = n('select[name=m]'), kwh = (w * n('input[name=h]') * n('input[name=d]')) / 1000, cost = kwh * n('input[name=p]');
+      const exact = (x: number) => x.toLocaleString('en', { maximumFractionDigits: 2 });
+      el('[data-out]').textContent = `${w} W × ${n('input[name=h]')} h × ${n('input[name=d]')} days = ${exact(kwh)} kWh a month, about ${money(c, cost, cost < 100)} a month, or ${money(c, cost * 12, cost * 12 < 100)} a year.`;
+    };
+    el('select[name=c]').addEventListener('change', setCountry);
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    setCountry();
+    show();
+  }
+</script>

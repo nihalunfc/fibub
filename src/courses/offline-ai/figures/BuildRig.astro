@@ -1,0 +1,56 @@
+---
+// CALC for Module 5: pick a country and a tier; lists the machines that fit it with prices in that country's currency,
+// from ../prices.ts (each with its source date). Missing prices say "check the official store".
+import { COUNTRIES, TIERS, CHECKED } from '../prices';
+---
+<figure class="cs-fig br" data-build-rig>
+  <span class="cs-figtag">Calculator: build my rig</span>
+  <div class="br-grid">
+    <label>Country<select name="c">{COUNTRIES.map((c) => <option value={c.id} selected={c.id === 'IN'}>{c.name}</option>)}</select></label>
+    <label>Tier<select name="t">{TIERS.map((t) => <option value={t.id} selected={t.id === 'starter'}>{t.name}</option>)}</select></label>
+  </div>
+  <div class="br-out" aria-live="polite" data-out></div>
+  <figcaption>Prices read on or before {CHECKED} from the sources in Lessons 5.2 to 5.4: shop prices change weekly, and much faster during the 2026 memory shortage (Lesson 5.7). Ranges are lowest to typical shop prices. Graphics cards are the card only. Always check the official store before you buy.</figcaption>
+</figure>
+<style>
+  .br-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .br-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .br-grid select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .br-out { margin-top: 12px; display: grid; gap: 10px; }
+  .br-out :global(.br-card) { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .br-out :global(.br-card b) { display: block; }
+  .br-out :global(.br-mem) { font-size: 14px; color: var(--muted); }
+  .br-out :global(.br-price) { font-size: 18px; font-weight: 700; margin: 4px 0; }
+  .br-out :global(.br-price.none) { font-size: 15px; font-weight: 600; color: var(--muted); }
+  .br-out :global(.br-note) { margin: 0; font-size: 14.5px; }
+</style>
+<script>
+  import { TIERS, money, type Country } from '../prices';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-build-rig]')) {
+    const sel = (n: string) => fig.querySelector<HTMLSelectElement>(`select[name="${n}"]`)!;
+    const show = () => {
+      const c = sel('c').value as Country;
+      const tier = TIERS.find((t) => t.id === sel('t').value)!;
+      const out = fig.querySelector<HTMLElement>('[data-out]')!;
+      out.replaceChildren();
+      for (const o of tier.options) {
+        const card = document.createElement('div');
+        card.className = 'br-card';
+        const name = document.createElement('b'); name.textContent = o.name;
+        const mem = document.createElement('span'); mem.className = 'br-mem'; mem.textContent = `Fast memory: ${o.memory}`;
+        const p = o.price[c];
+        const price = document.createElement('p');
+        price.className = p === undefined ? 'br-price none' : 'br-price';
+        price.textContent = p === undefined ? 'No checked price here yet: check the official store' : p === 0 ? 'Free: you own it' : money(c, p);
+        const note = document.createElement('p'); note.className = 'br-note'; note.textContent = o.note;
+        card.append(name, mem, price, note);
+        out.append(card);
+      }
+    };
+    // Open on the tier of the lesson it sits in.
+    const here = TIERS.find((t) => location.pathname.includes(`/${t.slug}/`));
+    if (here) sel('t').value = here.id;
+    fig.addEventListener('change', show);
+    show();
+  }
+</script>
