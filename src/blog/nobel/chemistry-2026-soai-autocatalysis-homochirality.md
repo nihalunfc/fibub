@@ -1,6 +1,6 @@
 ---
 title: "The Soai reaction: how a tiny excess becomes one hand, and why life is homochiral"
-seoTitle: "The Soai reaction and homochirality: Chemistry Nobel 2026, part 3"
+seoTitle: "The Soai reaction: Chemistry Nobel 2026, part 3"
 summary: "Kenso Soai found a reaction whose product copies its own handedness, turning a millionth of a percent excess into almost pure single-handed molecules. How it works, the triggers that tip it, and what it says about the origin of life's one-handedness."
 tools: [chiral-amplification, normal-distribution-lab, population-growth-models]
 updated: 2026-11-19

@@ -40,7 +40,6 @@ export const SERIES: Series[] = [
     parts: [
       { slug: 'medicine-2026-neurons-algae-light', short: 'Nerve signals and an alga that sees' },
       { slug: 'medicine-2026-channelrhodopsin', short: 'Channelrhodopsin, a channel opened by light' },
-      { slug: 'medicine-2026-optogenetics', short: 'Optogenetics: switching brain cells with light' },
     ],
   },
 ];

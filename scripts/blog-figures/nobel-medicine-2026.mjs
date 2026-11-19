@@ -88,37 +88,3 @@ const figTau = figure(chart({
 }), 'Our simulation (τ = 10 ms, about ChR2\'s closing time, plus noise) fitted by Levenberg-Marquardt least squares (the method the Curve fitter uses), with its standard error.');
 put('medicine-2026-channelrhodopsin', { 'photon-energy': figPh, 'reversal-ph': figRev, 'tau-off': figTau });
 
-// ---------- Part 3: optogenetics ----------
-// (a) Spikes per flash against flash rate for a slow (τoff 10 ms, ChR2-like) and a fast (τoff 4 ms) channel.
-function optoRun(hz, tauOff, gmax = 0.25, width = 2, flashes = 20) {
-  const f = phi(DEFAULTS.tempC), g0 = steady(-65); let s = [-65, g0.m, g0.h, g0.n], O = 0, spikes = 0, last = -65;
-  const per = 1000 / hz, tEnd = per * flashes + 30, dt = 0.01;
-  for (let t = 0; t < tEnd; t += dt) {
-    const on = t < per * flashes && t % per < width;
-    O += dt * ((on ? (1 - O) / 1 : 0) - O / tauOff);
-    const I = -gmax * O * (s[0] - 0);
-    const k1 = deriv(s, I, DEFAULTS, f), k2 = deriv(s.map((v, i) => v + (dt / 2) * k1[i]), I, DEFAULTS, f), k3 = deriv(s.map((v, i) => v + (dt / 2) * k2[i]), I, DEFAULTS, f), k4 = deriv(s.map((v, i) => v + dt * k3[i]), I, DEFAULTS, f);
-    s = s.map((v, i) => v + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
-    if (last < 0 && s[0] >= 0) spikes++; last = s[0];
-  }
-  return spikes / flashes;
-}
-const rates = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125];
-const dim = rates.map((h) => optoRun(h, 10, 0.12)), bright = rates.map((h) => optoRun(h, 10, 1)), fastDim = rates.map((h) => optoRun(h, 4, 0.12));
-log(`Fidelity dim: ${dim.map((v) => v.toFixed(2)).join(' ')}; bright: ${bright.map((v) => v.toFixed(2)).join(' ')}; fast dim: ${fastDim.map((v) => v.toFixed(2)).join(' ')}`);
-const figFid = figure(chart({
-  title: 'Can the neuron keep up with the flashes?', xLabel: 'Flash rate (per second)', yLabel: 'Spikes per flash',
-  series: [{ name: 'Dim flashes, ChR2-like channel', x: rates, y: dim.map((v) => +v.toFixed(3)), kind: 'line' }, { name: 'Bright flashes', x: rates, y: bright.map((v) => +v.toFixed(3)), kind: 'line', dash: '5 4' }, { name: 'Dim, faster-closing channel', x: rates, y: fastDim.map((v) => +v.toFixed(3)), kind: 'line', dash: '2 3' }],
-  hlines: [{ y: 1, text: 'one spike per flash' }], yDomain: [0, 1.2],
-  desc: 'Every flash gives one spike up to about 60 to 70 flashes a second; beyond that the model neuron answers only every other flash. Brighter flashes push the limit to about 100 a second; a faster-closing channel changes little here.',
-}), 'Action potential tool engine (Hodgkin–Huxley) plus a light-gated conductance reversing at 0 mV (opens in about 1 ms during each 2 ms flash, closes with τ = 10 ms, or 4 ms for the faster channel); 20 flashes per point. In this model the cell\'s own recovery time (refractory period) sets the limit. The squid-axon model is not a mammalian neuron, so read the trend, not the exact rates.');
-// (b) Light left at each depth: I/I₀ = 10^(−A) with A = d/(L ln 10) (Beer–Lambert calculator's tFromAbs).
-const dmm = Array.from({ length: 61 }, (_, i) => i * 0.05);
-const Ls = [[0.35, 'Blue 473 nm (L ≈ 0.35 mm)'], [0.6, 'Yellow 593 nm (L ≈ 0.6 mm)'], [1.0, 'Red 635 nm (L ≈ 1 mm)']];
-const figDepth = figure(chart({
-  title: 'How much light is left at each depth in brain tissue', xLabel: 'Depth below the fibre tip (mm)', yLabel: 'Light left (%)',
-  series: Ls.map(([L, n], i) => ({ name: n, x: dmm, y: dmm.map((d) => +(100 * tFromAbs(d / (L * Math.LN10))).toFixed(3)), kind: 'line', ...(i === 1 ? { dash: '5 4' } : i === 2 ? { dash: '2 3' } : {}) })),
-  hlines: [{ y: 10, text: '10 %' }], yDomain: [0, 100],
-  desc: 'Blue light falls to 10 percent within about 0.8 millimetres, yellow by about 1.4 and red by about 2.3 millimetres.',
-}), 'Beer–Lambert calculator maths (transmittance = 10^−A) with A = d/(L ln 10) for an effective fade length L. The L values are rounded and illustrative; measured values in brain tissue vary with the tissue, the beam and the method, and spreading of the beam adds to the loss.');
-put('medicine-2026-optogenetics', { fidelity: figFid, depth: figDepth });

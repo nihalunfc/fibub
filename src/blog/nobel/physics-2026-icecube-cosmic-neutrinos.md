@@ -1,6 +1,6 @@
 ---
 title: "How IceCube was built and found neutrinos from deep space"
-seoTitle: "How IceCube found cosmic neutrinos: Physics Nobel 2026, part 2"
+seoTitle: "How IceCube found cosmic neutrinos: Nobel 2026, part 2"
 summary: "5,160 light sensors frozen into the South Pole ice, a flood of background a million times larger than the signal, and the 2013 discovery of neutrinos from beyond the solar system. Play with an event display and check the statistics yourself."
 tools: [counting-statistics, curve-fitter, scatter-best-fit]
 updated: 2026-11-19
