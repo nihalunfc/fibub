@@ -1,0 +1,51 @@
+---
+// CALC for 12.3: chunk count, prompt size and index size from document length, chunk size, overlap and top-k.
+// Words to tokens uses about 1.33 tokens per English word (Lesson 3.1); vectors are stored as 32-bit floats.
+---
+<figure class="cs-fig ck" data-chunk-size>
+  <span class="cs-figtag">Calculator: chunk size</span>
+  <div class="ck-grid">
+    <label>Pages in your library<input type="number" name="pages" value="1000" min="1" /></label>
+    <label>Chunk size (words) <output data-v="size"></output><input type="range" name="size" min="25" max="1500" step="25" value="300" /></label>
+    <label>Overlap (words) <output data-v="ov"></output><input type="range" name="ov" min="0" max="300" step="10" value="50" /></label>
+    <label>Chunks sent per question (top-k)<select name="k"><option>3</option><option selected>5</option><option>8</option><option>10</option></select></label>
+    <label>Numbers per vector<select name="dim"><option value="384">384 (small models)</option><option value="768" selected>768 (EmbeddingGemma)</option><option value="1024">1,024</option></select></label>
+  </div>
+  <p class="ck-out" aria-live="polite" data-out></p>
+  <figcaption>Assumes about 500 words a page and 1.33 tokens per English word; other languages and code use more tokens (Lesson 3.2). Index size counts the vectors only; the stored text adds about as much again. The right size for your files comes from testing (Lesson 12.7), not from this rule of thumb.</figcaption>
+</figure>
+<style>
+  .ck-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .ck-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .ck-grid select, .ck-grid input[type=number] { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .ck-grid input[type=range] { width: 100%; accent-color: var(--accent); }
+  .ck-out { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+  .ck-out.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-chunk-size]')) {
+    const v = (n: string) => Number(fig.querySelector<HTMLInputElement>(`[name=${n}]`)!.value) || 0;
+    const out = fig.querySelector<HTMLElement>('[data-out]')!;
+    const f = (x: number) => Math.round(x).toLocaleString('en');
+    const show = () => {
+      const size = v('size'), k = v('k'), dim = v('dim');
+      const ov = Math.min(v('ov'), size - 25);
+      fig.querySelector<HTMLElement>('[data-v=size]')!.textContent = String(size);
+      fig.querySelector<HTMLElement>('[data-v=ov]')!.textContent = ov < v('ov') ? `${ov} (kept below chunk size)` : String(ov);
+      const words = Math.max(1, v('pages')) * 500;
+      const chunks = Math.max(1, Math.ceil((words - ov) / (size - ov)));
+      const promptTok = k * size * 1.33;
+      const mb = (chunks * dim * 4) / 1e6;
+      let note = 'A common middle ground: each chunk holds an idea with its context.';
+      let warn = false;
+      if (size < 100) { note = 'Very small chunks: precise, but a sentence like "it must be signed in 30 days" loses what "it" is.'; warn = true; }
+      else if (size > 700) { note = 'Large chunks: each vector blurs several topics, and the prompt gets long.'; warn = true; }
+      if (promptTok > 6000) { note += ` ${f(promptTok)} tokens of sources may not fit an 8K context with room for the answer.`; warn = true; }
+      out.classList.toggle('warn', warn);
+      out.textContent = `${f(chunks)} chunks · about ${f(promptTok)} tokens of sources per question · vectors take about ${mb < 10 ? mb.toFixed(1) : f(mb)} MB. ${note}`;
+    };
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    show();
+  }
+</script>
