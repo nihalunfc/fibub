@@ -42,6 +42,8 @@ export type Course = { id: string; name: string; text: string; status: 'live' | 
 export const COURSES: Course[] = [
   // Home skills (nihal, 2026-11-16): src/data/skill-courses.ts, pages at /learn/courses/<id>/.
   ...SKILL_COURSES.map((c) => ({ id: c.id, name: c.name, text: c.text, status: 'live' as const, href: `/learn/courses/${c.id}/` })),
+  // Long text courses (src/courses/<id>/), pages at /learn/courses/<id>/.
+  { id: 'offline-ai', name: 'Offline AI', text: 'Run AI models on your own laptop or desktop with no internet and no monthly limit: tokens, hardware, setup, Python workflows and costs.', status: 'live', href: '/learn/courses/offline-ai/' },
   { id: 'coding-data', name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.', status: 'planned' },
   { id: 'how-ai-works', name: 'How AI works', text: 'What a model is, how it learns from examples, and where it goes wrong, with small things to try.', status: 'planned' },
   { id: 'space-sky', name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.', status: 'planned' },

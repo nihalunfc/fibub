@@ -1,0 +1,16 @@
+---
+// The learner's progress: nothing leaves their device. Ticks last for this tab only, unless they tick
+// "Remember my progress on this device" (localStorage). They can download it as a file and load it back.
+interface Props { total: number }
+---
+<section class="cs-prog" id="progress" aria-label="Your progress">
+  <p class="cs-prog-line"><strong data-prog-count>0</strong> of {Astro.props.total} lessons done <span class="cs-bar"><span data-prog-bar></span></span></p>
+  <label class="cs-check"><input type="checkbox" data-prog-remember /> Remember my progress on this device</label>
+  <p class="cs-small">Without the tick, your progress lasts until you close this tab. Either way it stays in this browser: there is no sign-up and nothing is sent to us.</p>
+  <div class="cs-btns">
+    <button type="button" class="btn secondary" data-prog-download>Download progress file</button>
+    <label class="btn secondary cs-upload">Load progress file<input type="file" accept=".json,application/json" data-prog-upload hidden /></label>
+    <button type="button" class="btn secondary" data-prog-clear>Clear my progress</button>
+  </div>
+  <p class="cs-small" data-prog-msg role="status"></p>
+</section>

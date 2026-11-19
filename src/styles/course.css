@@ -1,0 +1,85 @@
+/* Long text courses (src/courses/): lesson list at the side on computers, folded at the top on phones. */
+.cs-layout { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 960px) { .cs-layout { grid-template-columns: 270px minmax(0, 1fr); gap: 36px; } }
+.cs-main { min-width: 0; max-width: 760px; }
+.cs-side { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 14.5px; align-self: start; }
+.cs-side > summary { padding: 10px 14px; font-weight: 700; cursor: pointer; }
+.cs-side nav { padding: 0 10px 12px; }
+@media (min-width: 960px) {
+  .cs-side { position: sticky; top: 72px; max-height: calc(100vh - 150px); overflow-y: auto; overscroll-behavior: contain; }
+  .cs-side > summary { pointer-events: none; list-style: none; }
+  .cs-side > summary::-webkit-details-marker { display: none; }
+}
+.cs-home { display: block; font-weight: 700; padding: 4px 6px 8px; color: var(--accent); text-decoration: none; }
+.cs-part { margin: 12px 6px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.cs-mod > summary { padding: 6px; cursor: pointer; font-weight: 600; border-radius: 8px; line-height: 1.35; }
+.cs-mod > summary:hover { background: var(--accent-soft); }
+.cs-mod ol { list-style: none; margin: 0 0 6px; padding: 0 0 0 10px; }
+.cs-mod li { margin: 0; }
+.cs-mod li a, .cs-mod li.cs-soon { display: block; padding: 5px 6px; border-radius: 8px; line-height: 1.35; color: var(--ink); text-decoration: none; }
+.cs-mod li a:hover { background: var(--accent-soft); }
+.cs-mod li a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); }
+.cs-soon { color: var(--muted) !important; }
+.cs-n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9em; margin-right: 2px; }
+a[aria-current="page"] .cs-n { color: inherit; }
+a.done::after { content: " ✓"; color: var(--good); font-weight: 700; }
+a[aria-current="page"].done::after { color: inherit; }
+
+.cs-kicker { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+.cs-meta { font-size: 14.5px; color: var(--muted); }
+.cs-body { font-size: 17px; line-height: 1.65; }
+.cs-body h2 { margin: 34px 0 10px; font-size: 22px; }
+.cs-body h3 { margin: 24px 0 8px; font-size: 18px; }
+.cs-body table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 12px 0 18px; display: block; overflow-x: auto; }
+.cs-body th, .cs-body td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+.cs-body th { background: var(--accent-soft); }
+.cs-body code { font-size: .9em; background: var(--accent-soft); padding: 1px 5px; border-radius: 5px; }
+.cs-body pre { background: var(--accent-soft); padding: 12px 14px; border-radius: 10px; overflow-x: auto; font-size: 14.5px; line-height: 1.5; }
+.cs-body pre code { background: none; padding: 0; }
+.cs-body blockquote { margin: 16px 0; padding: 10px 16px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; }
+.cs-body details { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 16px 0; background: var(--surface); }
+.cs-body details > summary { font-weight: 700; cursor: pointer; }
+.cs-body details.maths { border-left: 4px solid var(--accent); }
+.cs-body details.maths > summary::before { content: "∑ "; }
+.cs-body details p:last-child { margin-bottom: 0; }
+.cs-body img, .cs-body svg { max-width: 100%; height: auto; }
+
+.cs-fig { margin: 22px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.cs-fig figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+.cs-fig .cs-figtag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+
+.cs-quiz { margin: 36px 0 0; }
+.cs-q { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0 0 12px; }
+.cs-q legend { font-weight: 600; padding: 0 4px; line-height: 1.45; }
+.cs-choices { display: grid; gap: 8px; margin-top: 8px; }
+.cs-choices button { text-align: left; font: inherit; font-size: 15.5px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.cs-choices button:hover { border-color: var(--accent); }
+.cs-choices button.right { border-color: var(--good); background: var(--good-soft); }
+.cs-choices button.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.cs-choices button[aria-disabled="true"] { cursor: default; }
+.cs-why { margin: 10px 0 0; font-size: 15px; line-height: 1.5; }
+.cs-score { font-weight: 700; }
+
+.cs-end { margin: 30px 0 10px; }
+.btn.is-done { background: var(--good); border-color: var(--good); }
+.cs-pn { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.cs-pn a { text-decoration: none; font-weight: 600; max-width: 100%; }
+.cs-next { margin-left: auto; text-align: right; }
+.cs-sources { font-size: 14px; color: var(--muted); margin-top: 24px; }
+.cs-sources h2 { font-size: 16px; }
+.cs-sources a { word-break: break-all; }
+.cs-small { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+.cs-prog { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 20px 0; }
+.cs-prog-line { margin: 0 0 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cs-bar { flex: 1; min-width: 120px; height: 8px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
+.cs-bar span { display: block; height: 100%; width: 0; background: var(--good); }
+.cs-check { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.cs-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.cs-upload { cursor: pointer; }
+.cs-builds ul { padding-left: 20px; line-height: 1.6; }
+.cs-parth { margin: 26px 0 10px; }
+.cs-modcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 10px; }
+.cs-modcard h4 { margin: 0 0 6px; font-size: 16.5px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.cs-modcard ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 15px; }
+.cs-modcard a { text-decoration: none; }

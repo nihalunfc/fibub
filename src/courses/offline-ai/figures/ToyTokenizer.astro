@@ -1,0 +1,73 @@
+---
+// SIM for 3.1 and 3.2: a toy tokenizer. Greedy longest match against a small vocabulary of common English
+// words and word parts; anything else falls back to single characters (as real tokenizers fall back to bytes).
+// Real tokenizers learn 100,000 to 250,000 pieces from data; this one shows the idea, not exact counts.
+---
+<figure class="cs-fig tk" data-toy-tok>
+  <span class="cs-figtag">Try it: a toy tokenizer</span>
+  <label class="tk-l" for="tk-in">Type or paste some text</label>
+  <textarea id="tk-in" rows="3">Tokenization is unbelievably important for understanding local models.</textarea>
+  <div class="tk-btns">
+    <button type="button" class="btn secondary" data-ex="Tokenization is unbelievably important for understanding local models.">English</button>
+    <button type="button" class="btn secondary" data-ex="def add(a, b):\n    return a + b">Code</button>
+    <button type="button" class="btn secondary" data-ex="मैं अपने लैपटॉप पर मॉडल चलाता हूँ।">Hindi</button>
+    <button type="button" class="btn secondary" data-ex="ഞാൻ എന്റെ ലാപ്‌ടോപ്പിൽ മോഡൽ ഓടിക്കുന്നു.">Malayalam</button>
+  </div>
+  <p class="tk-out" data-pieces></p>
+  <p class="tk-stats" aria-live="polite" data-stats></p>
+  <figcaption>Each coloured box is one token. Common words are one piece; rarer words are split into known parts; anything the vocabulary does not know falls back to single characters, which is why some languages and unusual words cost more tokens. This toy has only a few hundred pieces, so its counts are higher than a real tokenizer's.</figcaption>
+</figure>
+<style>
+  .tk textarea { width: 100%; font: inherit; font-size: 15.5px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); box-sizing: border-box; }
+  .tk-l { font-weight: 600; display: block; margin-bottom: 4px; }
+  .tk-btns { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .tk-btns .btn { padding: 6px 12px; font-size: 14px; }
+  .tk-out { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; }
+  .tk-out :global(span) { padding: 2px 4px; border-radius: 4px; white-space: pre; border: 1px solid var(--line); }
+  .tk-out :global(span):nth-child(4n+1) { background: var(--good-soft); }
+  .tk-out :global(span):nth-child(4n+2) { background: var(--warn-soft); }
+  .tk-out :global(span):nth-child(4n+3) { background: var(--accent-soft); }
+  .tk-out :global(span):nth-child(4n) { background: var(--bad-soft); }
+  .tk-stats { font-weight: 600; margin: 0; }
+</style>
+<script>
+  const WORDS = `the a an and or of to in on for with is are was be it this that as at by from you your we our they he she i me my not no yes can will do does have has had but if so all any more most less very also just about into over than then there their what when where which who how why model models token tokens local ai computer laptop memory data file files run use using text word words write read new time day make get one two three four five ten hundred thousand people work email report important under stand standing know learn able good best fast slow small large big long short open free price cost plan return def class import print add`.split(' ');
+  const PARTS = `un re in dis pre over under ing ed er est ly tion ation ization ize ise able ible ment ness less ful ity ous ive al s es token iz believ abl ly loc mod el els stand ing under port ant im`.split(' ');
+  const VOCAB = new Set([...WORDS, ...PARTS]);
+  const MAXLEN = Math.max(...[...VOCAB].map((w) => w.length));
+  function tokenize(text: string): string[] {
+    const out: string[] = [];
+    // Split into runs of letters, single spaces + word, digits, punctuation, other whitespace.
+    const re = / ?[A-Za-z]+| ?\d{1,3}| ?[^\sA-Za-z\d]|\s+/gu;
+    for (const m of text.matchAll(re)) {
+      let chunk = m[0];
+      if (/^\s+$/.test(chunk)) { out.push(chunk); continue; }
+      let lead = '';
+      if (chunk.startsWith(' ')) { lead = ' '; chunk = chunk.slice(1); }
+      if (!/^[A-Za-z]+$/.test(chunk)) { out.push(lead + chunk); continue; }
+      let i = 0, first = true;
+      const low = chunk.toLowerCase();
+      while (i < chunk.length) {
+        let n = Math.min(MAXLEN, chunk.length - i);
+        while (n > 1 && !VOCAB.has(low.slice(i, i + n))) n--;
+        out.push((first ? lead : '') + chunk.slice(i, i + n));
+        i += n; first = false;
+      }
+    }
+    // Non-Latin scripts: the regex gives one piece per character, like a byte fallback.
+    return out;
+  }
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-toy-tok]')) {
+    const ta = fig.querySelector('textarea')!;
+    const show = () => {
+      const toks = tokenize(ta.value);
+      const box = fig.querySelector('[data-pieces]')!;
+      box.replaceChildren(...toks.map((t) => { const s = document.createElement('span'); s.textContent = t.replace(/\n/g, '↵'); return s; }));
+      const words = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+      fig.querySelector('[data-stats]')!.textContent = `${toks.length} tokens for ${words} words and ${[...ta.value].length} characters${words ? ` (${(toks.length / words).toFixed(1)} tokens per word)` : ''}.`;
+    };
+    ta.addEventListener('input', show);
+    fig.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => { ta.value = b.dataset.ex!.replace(/\\n/g, '\n'); show(); }));
+    show();
+  }
+</script>

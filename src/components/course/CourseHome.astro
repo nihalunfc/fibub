@@ -1,0 +1,45 @@
+---
+// A long text course's home page: what it is, progress, then every module and lesson (written ones linked).
+import Base from '../../layouts/Base.astro';
+import CourseSidebar from './CourseSidebar.astro';
+import ProgressBox from './ProgressBox.astro';
+import { courseLessons } from '../../lib/course';
+import { flatLessons, type CourseSyllabus } from '../../courses/types';
+import { SITE } from '../../site';
+import '../../styles/course.css';
+interface Props { course: CourseSyllabus }
+const { course } = Astro.props;
+const written = await courseLessons(course);
+const live = new Set(written.keys());
+const all = flatLessons(course);
+const minutes = [...written.values()].reduce((s, e) => s + e.data.minutes, 0);
+const ld = [{ '@type': 'Course', name: course.title, description: course.text, url: new URL(`/learn/courses/${course.id}/`, SITE.url).href,
+  isAccessibleForFree: true, inLanguage: 'en', provider: { '@type': 'Organization', name: SITE.name, url: SITE.url } }];
+---
+<Base title={`${course.name}: free course`} description={course.text} ld={ld}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / {course.name}</div>
+  <div class="cs-layout" data-course={course.id} data-total={all.length}>
+    <CourseSidebar course={course} live={live} />
+    <div class="cs-main">
+      <h1>{course.title}</h1>
+      <p class="lead">{course.text}</p>
+      <p class="cs-meta">{course.audience} Free, no sign-up. {live.size} of {all.length} lessons written so far (about {Math.round(minutes / 6) / 10} hours); new modules are added in order.</p>
+      <slot />
+      <ProgressBox total={all.length} />
+      <h2>All modules</h2>
+      {course.parts.map((p) => <>
+        <h3 class="cs-parth">{p.name}</h3>
+        {p.modules.map((m) => {
+          const n = m.lessons.filter((l) => live.has(l[1])).length;
+          return (
+            <section class="cs-modcard">
+              <h4><span class="cs-n">{m.n}</span> {m.name} <span class:list={['ar-tag', { live: n > 0 }]}>{n === 0 ? 'Coming soon' : n === m.lessons.length ? `${n} lessons` : `${n} of ${m.lessons.length} written`}</span></h4>
+              <ol>{m.lessons.map(([num, slug, title]) => <li>{live.has(slug) ? <a href={`/learn/courses/${course.id}/${slug}/`} data-lesson={slug}><span class="cs-n">{num}</span> {title}</a> : <span class="cs-soon"><span class="cs-n">{num}</span> {title}</span>}</li>)}</ol>
+            </section>
+          );
+        })}
+      </>)}
+    </div>
+  </div>
+</Base>
+<script>import '../../scripts/course';</script>
