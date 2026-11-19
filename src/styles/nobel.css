@@ -1,0 +1,46 @@
+/* Nobel Prize series (src/components/NobelSeries.astro) and their animated explainers (src/scripts/nobel/). */
+.nb-top { margin: 0 0 10px; }
+.nb-eyebrow { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.nb-eyebrow a { color: var(--ink); font-weight: 600; }
+.nb-count { display: inline-block; padding: 1px 9px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 13px; }
+.nb-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.nb-dots { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.nb-dots a, .nb-dots span { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); font-size: 13px; text-decoration: none; color: var(--ink); }
+.nb-dots a:hover { border-color: var(--accent); color: var(--accent); }
+.nb-dots span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.nb-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: 13px; }
+.nb-tabs a, .nb-tabs span { padding: 4px 10px; text-decoration: none; color: var(--ink); }
+.nb-tabs span.on { background: var(--accent-soft); font-weight: 700; }
+.nb-tabs a:hover { color: var(--accent); }
+.nb-bottom { margin: 28px 0 8px; display: grid; gap: 10px; }
+.nb-pn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nb-pn a { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--ink); font-weight: 600; min-width: 0; }
+.nb-pn a:hover { border-color: var(--accent); }
+.nb-pn small { color: var(--muted); font-weight: 400; }
+.nb-next { text-align: right; }
+.nb-all > summary { cursor: pointer; font-weight: 600; }
+.nb-all ol { margin: 8px 0 0; padding-left: 22px; }
+.nb-cite { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+.nb-more { margin: 0; font-size: 14px; }
+
+/* Explainers: a framed figure with a canvas stage, a row of controls and a live readout. */
+.nx { margin: 22px 0; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface); }
+.nx-tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.nx-title { font-weight: 700; margin: 0 0 8px; }
+.nx canvas { display: block; width: 100%; height: auto; border-radius: 8px; background: var(--bg); touch-action: pan-y; }
+.nx-ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; font-size: 14px; }
+.nx-ctl label { display: grid; gap: 2px; flex: 1 1 180px; min-width: 0; }
+.nx-ctl label span { display: flex; justify-content: space-between; gap: 6px; font-weight: 600; }
+.nx-ctl label output { font-weight: 400; color: var(--muted); }
+.nx-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+.nx-ctl button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.nx-ctl button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.nx-ctl button:hover { border-color: var(--accent); }
+.nx-out { margin: 10px 0 0; padding: 8px 10px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; font-size: 15px; line-height: 1.5; }
+.nx-cap { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; }
+.nx-noscript { color: var(--muted); font-size: 14px; }
+.prose details.deeper { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin: 16px 0; }
+.prose details.deeper > summary { font-weight: 700; cursor: pointer; }
+.prose details.deeper > summary::before { content: "For the curious: "; color: var(--muted); font-weight: 400; }
+.prose .nb-short { padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); margin: 14px 0; }
+@media (max-width: 420px) { .nb-tabs { width: 100%; justify-content: space-between; } .nb-tabs a, .nb-tabs span { flex: 1; text-align: center; padding: 4px 6px; } }

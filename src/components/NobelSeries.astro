@@ -1,0 +1,48 @@
+---
+// The series navigator for Nobel Prize articles (src/blog/nobel/, series in src/data/nobel.ts).
+// at="top": "Part 3 of 5 · Nobel Prize in Physics 2026", numbered dots for every part and tabs for the
+// other fields of the same year. at="bottom": previous/next, the full list of parts and the other series.
+// It also starts the animated explainers (<div data-nx="name"></div> in the article; src/scripts/nobel/).
+import { placeOf, partUrl } from '../data/nobel';
+import '../styles/nobel.css';
+interface Props { slug: string; at: 'top' | 'bottom' }
+const { slug, at } = Astro.props;
+const p = placeOf(slug)!;
+const first = (s: { parts: { slug: string }[] }) => partUrl(s.parts[0].slug);
+---
+{at === 'top' ? (
+  <nav class="nb-top" aria-label={`${p.series.name} series`}>
+    <p class="nb-eyebrow"><span class="nb-count">{p.part} of {p.total}</span> · <a href={first(p.series)}>{p.series.name}</a> series</p>
+    <div class="nb-row">
+      <ol class="nb-dots">
+        {p.series.parts.map((x, i) => (
+          <li>{x.slug === slug
+            ? <span aria-current="page" title={x.short}>{i + 1}</span>
+            : <a href={partUrl(x.slug)} title={`${i + 1}. ${x.short}`}>{i + 1}</a>}</li>
+        ))}
+      </ol>
+      <span class="nb-tabs">
+        {[p.series, ...p.others].sort((a, b) => a.field.localeCompare(b.field)).map((s) => s === p.series
+          ? <span class="on">{s.field === 'Physiology or Medicine' ? 'Medicine' : s.field}</span>
+          : <a href={first(s)}>{s.field === 'Physiology or Medicine' ? 'Medicine' : s.field}</a>)}
+      </span>
+    </div>
+  </nav>
+) : (
+  <nav class="nb-bottom panel" aria-label={`More from the ${p.series.name} series`}>
+    <div class="nb-pn">
+      {p.prev ? <a class="nb-prev" href={partUrl(p.prev.slug)} rel="prev"><small>← Part {p.part - 1}</small>{p.prev.short}</a> : <span />}
+      {p.next ? <a class="nb-next" href={partUrl(p.next.slug)} rel="next"><small>Part {p.part + 1} →</small>{p.next.short}</a> : <a class="nb-next" href={first(p.others[0] ?? p.series)}><small>Next series →</small>{(p.others[0] ?? p.series).name}</a>}
+    </div>
+    <details class="nb-all">
+      <summary>All {p.total} parts of the {p.series.name} series</summary>
+      <p class="nb-cite"><b>{p.series.laureates}</b>, “{p.series.citation}”.</p>
+      <ol>{p.series.parts.map((x) => <li>{x.slug === slug ? <b aria-current="page">{x.short} (you are here)</b> : <a href={partUrl(x.slug)}>{x.short}</a>}</li>)}</ol>
+    </details>
+    <p class="nb-more">Other {p.series.year} series: {p.others.map((s, i) => <>{i > 0 && ' · '}<a href={first(s)}>{s.name}</a></>)} · <a href="/blog/nobel/">All Nobel series</a></p>
+  </nav>
+)}
+<script>
+  import { start } from '../scripts/nobel/start';
+  start();
+</script>

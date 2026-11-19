@@ -1,0 +1,154 @@
+---
+// #T1050 Chiral amplification lab: Kagan's non-linear effect (ML2 model, with a fit to your own data) and
+// Soai-type asymmetric autocatalysis (dimer model, batch after batch). Maths: src/lib/sci/chiralamp.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = 'ligand ee %\tproduct ee %\n0\t0\n10\t25\n20\t44\n40\t71\n60\t86\n80\t94\n100\t98';
+---
+<div class="ax ca">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <div class="ax-seg ca-mode" role="group" aria-label="Model"><button type="button" data-m="nle" aria-pressed="true">Non-linear effect (Kagan)</button><button type="button" data-m="auto" aria-pressed="false">Autocatalysis (Soai)</button></div>
+    <div class="ca-nle" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Mixed-pair constant K <input class="ca-K" inputmode="decimal" value="100" /></label>
+        <label>Mixed-pair reactivity g <input class="ca-g" inputmode="decimal" value="0" /></label>
+        <label>ee with a pure catalyst, ee<sub>max</sub> (%) <input class="ca-max" inputmode="decimal" value="98" /></label>
+        <label>Ligand ee to read off (%) <input class="ca-e" inputmode="decimal" value="20" /></label>
+      </div>
+      <p class="ax-help">K = z²/(x·y) for the catalyst's RR (x), SS (y) and mixed RS (z) forms: 4 is pure chance, larger means mixed pairs are favoured. g is how fast a mixed pair reacts compared with a homochiral one (0 = not at all). g below 1 with K above 4 gives a positive effect (product purer than the ligand); g above 1 gives a negative one.</p>
+      <label style="margin-top:10px;display:grid;gap:4px">Your own results (optional): ligand ee and product ee, one pair per line, in %. With 4 or more pairs the lab fits K and g.
+        <textarea class="ca-data" rows="7" spellcheck="false" wrap="off">{example}</textarea></label>
+    </div>
+    <div class="ca-auto" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label>Starting ee (%) <input class="ca-e0" inputmode="decimal" value="0.00005" /></label>
+        <label>Seed share of each batch (%) <input class="ca-seed" inputmode="decimal" value="5" /></label>
+        <label>Mixed-pair constant K <input class="ca-Ka" inputmode="decimal" value="50" /></label>
+        <label>Batches <input class="ca-n" inputmode="numeric" value="4" /></label>
+      </div>
+      <p class="ax-help">Each batch adds fresh starting material to the previous batch's product (the seed) and runs to completion. The product is its own catalyst: RR pairs make R, SS pairs make S and mixed RS pairs are idle. Even at K = 4 (pairs formed by chance) the excess grows slowly, because each hand copies itself in pairs; the larger K, the more of the minor hand is locked away in idle pairs and the faster it grows.</p>
+    </div>
+    <p class="ax-err ca-err" hidden></p>
+  </div>
+
+  <div class="ax-card ca-out">
+    <h2>Result</h2>
+    <p class="ax-big ca-big"></p>
+    <dl class="ax-facts ca-facts"></dl>
+    <canvas class="ax-fig ca-fig"></canvas>
+    <canvas class="ax-fig ca-fig2" hidden></canvas>
+    <h3>Values</h3>
+    <div class="ax-scroll"><table class="ca-vals"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ca-csv">Download values (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ml2, soaiBatch } from '../../lib/sci/chiralamp';
+  import { levenbergMarquardt } from '../../lib/sci/fit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ca')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(document.createElement('br'), e); } return d; };
+  const pc = (x: number) => { const p = 100 * x, a = Math.abs(p); return `${a >= 1 ? sig(p, 4) : a >= 1e-3 ? sig(p, 3) : p.toExponential(2)} %`; };
+  let mode = 'nle', figs: Figure[] = [], sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.ca-vals'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+  const factPairs = () => [...q('.ca-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const draw = () => { paint(q<HTMLCanvasElement>('.ca-fig'), figs[0]); q('.ca-fig2').hidden = !figs[1]; if (figs[1]) paint(q<HTMLCanvasElement>('.ca-fig2'), figs[1]); };
+
+  function calc() {
+    const fail = (m: string) => { q('.ca-err').textContent = m; q('.ca-err').hidden = false; q('.ca-out').hidden = true; sections = []; csvRows = []; figs = []; };
+    q('.ca-err').hidden = true;
+    if (mode === 'nle') {
+      let K = v('.ca-K'), g = v('.ca-g');
+      const max = v('.ca-max') / 100, e = v('.ca-e') / 100;
+      if (!(K > 0 && K <= 1e8)) return fail('K must be above zero (4 means the pairs form by chance).');
+      if (!(g >= 0 && g <= 100)) return fail('g must be between 0 and 100.');
+      if (!(max > 0 && max <= 1)) return fail('ee with a pure catalyst must be between 0 and 100 %.');
+      if (!(e >= 0 && e <= 1)) return fail('Ligand ee must be between 0 and 100 %.');
+      const pts = parseTable(q<HTMLTextAreaElement>('.ca-data').value).filter((r) => r.length >= 2 && Number.isFinite(num(r[0])) && Number.isFinite(num(r[1]))).map((r) => [num(r[0]) / 100, num(r[1]) / 100]);
+      if (pts.some(([a, b]) => a < 0 || a > 1 || b < -1 || b > 1)) return fail('Each pair must be a ligand ee from 0 to 100 % and a product ee from −100 to 100 %.');
+      let fitNote = '';
+      if (pts.length >= 4) {
+        try {
+          const f = levenbergMarquardt((x, p) => ml2(x, 10 ** p[0], Math.max(0, p[1]), max).ee, pts.map((p) => p[0]), pts.map((p) => p[1]), [Math.log10(Math.max(K, 4.1)), Math.min(g, 3)]);
+          if (Number.isFinite(f.p[0]) && Number.isFinite(f.p[1])) { K = 10 ** f.p[0]; g = Math.max(0, f.p[1]); fitNote = `fitted to your ${pts.length} pairs, R² = ${sig(f.r2, 3)}`; }
+        } catch { fitNote = 'could not fit these pairs; showing the values you typed'; }
+      }
+      q('.ca-out').hidden = false;
+      const m = ml2(e, K, g, max), lin = max * e;
+      const kind = Math.abs(m.ee - lin) < 0.005 ? 'about linear' : m.ee > lin ? 'a positive non-linear effect, (+)-NLE' : 'a negative non-linear effect, (−)-NLE';
+      q('.ca-big').textContent = `Ligand ${pc(e)} → product ${pc(m.ee)} ee: ${kind}`;
+      q('.ca-facts').replaceChildren(
+        fact('K', sig(K, 4), fitNote || 'mixed-pair constant'),
+        fact('g', sig(g, 3), fitNote ? 'fitted' : 'mixed-pair reactivity'),
+        fact('Linear expectation', pc(lin), 'ee_max × ligand ee'),
+        fact('Pairs RR : SS : RS', `${sig(100 * m.x, 3)} : ${sig(100 * m.y, 3)} : ${sig(100 * m.z, 3)} %`, `β = z/(x+y) = ${sig(m.beta, 3)}`),
+        fact('Relative rate', `${sig(100 * m.rate, 3)} %`, 'of a pure catalyst of the same amount'),
+      );
+      const xs = Array.from({ length: 101 }, (_, i) => i / 100);
+      figs = [chartFigure({ w: 560, h: 360, xLabel: 'Ligand (catalyst) ee, %', yLabel: 'Product ee, %', xMin: 0, xMax: 100, yMin: Math.min(0, ...xs.map((x) => 100 * ml2(x, K, g, max).ee)), yMax: 100, legend: 'below', series: [
+        { name: 'ML2 model', x: xs.map((x) => 100 * x), y: xs.map((x) => 100 * ml2(x, K, g, max).ee), mode: 'line', width: 2.5 },
+        { name: 'Linear (no effect)', x: [0, 100], y: [0, 100 * max], mode: 'line', dash: [5, 4] },
+        ...(pts.length ? [{ name: 'Your results', x: pts.map((p) => 100 * p[0]), y: pts.map((p) => 100 * p[1]), mode: 'points' as const }] : []),
+      ] }, 'Product ee against ligand ee for the ML2 model, with the straight line expected with no non-linear effect')];
+      const head = ['Ligand ee %', 'Product ee %', 'Linear %', 'RS share %', 'Relative rate %'];
+      const rows = Array.from({ length: 11 }, (_, i) => { const r = ml2(i / 10, K, g, max); return [String(i * 10), sig(100 * r.ee, 4), sig(100 * max * i / 10, 4), sig(100 * r.z, 3), sig(100 * r.rate, 3)]; });
+      table(head, rows);
+      csvRows = [head, ...Array.from({ length: 101 }, (_, i) => { const r = ml2(i / 100, K, g, max); return [String(i), sig(100 * r.ee, 6), sig(100 * max * i / 100, 6), sig(100 * r.z, 6), sig(100 * r.rate, 6)]; })];
+      sections = [{ title: q('.ca-big').textContent!, text: [`Kagan's ML2 model: ee_prod = ee_max · ee_aux · (1 + β)/(1 + gβ), β = z/(x + y), K = z²/(xy). K = ${sig(K, 4)}, g = ${sig(g, 3)}, ee_max = ${sig(100 * max, 4)} %.`], facts: factPairs(), figure: figs[0], table: { head, rows, align: ['r', 'r', 'r', 'r', 'r'] } }];
+      draw();
+      return;
+    }
+    const e0 = v('.ca-e0') / 100, seed = v('.ca-seed') / 100, K = v('.ca-Ka'), n = v('.ca-n');
+    if (!(Math.abs(e0) > 0 && Math.abs(e0) < 1)) return fail('Starting ee must be above 0 and below 100 % (it can be tiny, like 0.00005).');
+    if (!(seed > 0 && seed <= 1)) return fail('The seed share must be between 0 and 100 %.');
+    if (!(K >= 0.01 && K <= 1e8)) return fail('K must be between 0.01 and 100,000,000.');
+    if (!(Number.isInteger(n) && n >= 1 && n <= 12)) return fail('Run 1 to 12 batches.');
+    q('.ca-out').hidden = false;
+    const ees = [e0]; const hist: { conv: number; ee: number }[][] = [];
+    for (let i = 0; i < n; i++) { const b = soaiBatch(ees[i], seed, 1, K); ees.push(b.ee); hist.push(b.hist); }
+    const k99 = ees.findIndex((x) => Math.abs(x) >= 0.99);
+    q('.ca-big').textContent = `${pc(e0)} → ${pc(ees[n])} ee after ${n} batch${n > 1 ? 'es' : ''}`;
+    q('.ca-facts').replaceChildren(
+      fact('Amplification', ees[n] / e0 >= 1e3 ? `× ${(ees[n] / e0).toExponential(1)}` : `× ${sig(ees[n] / e0, 3)}`, 'final ee ÷ starting ee'),
+      fact('Batches to reach 99 %', k99 > 0 ? String(k99) : 'not within these batches'),
+      fact('Seed and K', `${sig(100 * seed, 3)} %, K = ${sig(K, 4)}`, K <= 4 ? 'pairs form by chance or less' : 'mixed pairs favoured'),
+    );
+    const xs = ees.map((_, i) => i);
+    figs = [
+      chartFigure({ w: 560, h: 340, xLabel: 'Batch', yLabel: 'ee, % (log scale)', yLog: true, legend: 'none', series: [{ name: 'ee', x: xs, y: ees.map((x) => Math.max(1e-10, 100 * Math.abs(x))), mode: 'both' }] }, 'Enantiomeric excess after each batch on a log scale'),
+      chartFigure({ w: 560, h: 300, xLabel: 'Conversion within batch 1, %', yLabel: 'ee, % (log scale)', yLog: true, legend: 'none', series: [{ name: 'Batch 1', x: hist[0].map((p) => 100 * p.conv), y: hist[0].map((p) => Math.max(1e-10, 100 * Math.abs(p.ee))), mode: 'line' }] }, 'Enantiomeric excess during the first batch as the starting material is used up'),
+    ];
+    const head = ['Batch', 'ee after batch', 'R share'];
+    const rows = ees.map((x, i) => [String(i), pc(x), pc((1 + x) / 2)]);
+    table(head, rows);
+    csvRows = [['batch', 'ee', 'R_share'], ...ees.map((x, i) => [String(i), String(x), String((1 + x) / 2)])];
+    sections = [{ title: q('.ca-big').textContent!, text: ['Dimer model of asymmetric autocatalysis: product molecules pair into RR, SS and RS (equilibrium K = [RS]²/([RR][SS])); RR makes R, SS makes S, RS is idle. Each batch is seeded with the last batch\'s product.'], facts: factPairs(), figure: figs[0], table: { head, rows, align: ['r', 'r', 'r'] } }];
+    draw();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ca-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!; q('.ca-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ca-nle').hidden = mode !== 'nle'; q('.ca-auto').hidden = mode === 'nle'; calc();
+  });
+  q('.ca-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), mode === 'nle' ? 'non-linear-effect.csv' : 'autocatalysis-batches.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) draw(); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'nle' ? 'Non-linear effect (ML2 model)' : 'Asymmetric autocatalysis', subtitle: q('.ca-big').textContent ?? '', file: 'chiral-amplification', sections }));
+</script>

@@ -1,0 +1,40 @@
+---
+// /blog/nobel/: every Nobel Prize series, grouped by year, each part numbered in reading order.
+import Base from '../layouts/Base.astro';
+import { collectionLd } from '../lib/seo';
+import { SERIES, partUrl } from '../data/nobel';
+import type { Article } from '../lib/blog';
+import '../styles/area.css';
+import '../styles/nobel.css';
+interface Props { kind: { id: string; name: string; blurb: string }; list: Article[] }
+const { kind, list } = Astro.props;
+const byId = new Map(list.map((a) => [a.id.split('/')[1], a]));
+const years = [...new Set(SERIES.map((s) => s.year))].sort((a, b) => b - a);
+---
+<Base title={`${kind.name} | Blog`} description={kind.blurb} ld={collectionLd(kind.name, kind.blurb, '/blog/nobel/', [{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: kind.name, url: '/blog/nobel/' }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / {kind.name}</div>
+  <div class="ar-head">
+    <h1>{kind.name}</h1>
+    <p class="lead">{kind.blurb} Every part shows you how to check the science yourself with free fibub tools.</p>
+  </div>
+  {years.map((y) => (
+    <section>
+      <h2>{y}</h2>
+      <div class="nbh">
+        {SERIES.filter((s) => s.year === y).map((s) => (
+          <article class="panel nbh-s">
+            <h3><a href={partUrl(s.parts[0].slug)}>{s.name}</a></h3>
+            <p class="nb-cite"><b>{s.laureates}</b>, “{s.citation}”.</p>
+            <ol>{s.parts.map((p, i) => { const a = byId.get(p.slug); return <li><a href={partUrl(p.slug)}>{a?.data.title ?? p.short}</a> <span class="nbh-n">{i + 1} of {s.parts.length}</span></li>; })}</ol>
+          </article>
+        ))}
+      </div>
+    </section>
+  ))}
+</Base>
+<style>
+  .nbh { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .nbh-s h3 { margin: 0 0 4px; font-size: 18px; }
+  .nbh-s ol { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+  .nbh-n { color: var(--muted); font-size: 13px; white-space: nowrap; }
+</style>

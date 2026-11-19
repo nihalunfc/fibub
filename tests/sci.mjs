@@ -169,6 +169,7 @@ import * as PP from '../src/lib/sci/protparam.ts';
 import * as PE from '../src/lib/sci/peptide.ts';
 import * as DN from '../src/lib/sci/densitometry.ts';
 import { unzipSync, strFromU8 } from 'fflate';
+import * as CA from '../src/lib/sci/chiralamp.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3710,6 +3711,24 @@ ORIGIN
   check('ukstats: B(20,0.5) P(X<=7) = 0.1316', Math.abs(binomCdf(20, 0.5, 7) - 0.1316) < 1e-4);
   check('ukstats: B(20,0.5) P(X>=15) = 0.0207', Math.abs(binomUpper(20, 0.5, 15) - 0.0207) < 1e-4);
   check('ukstats: critical values for B(20,0.5) at 5%', criticalUpper(20, 0.5, 0.05) === 15 && criticalLower(20, 0.5, 0.05) === 5);
+}
+
+// Chiral amplification (#T1050): Kagan's ML2 model and the autocatalysis batches.
+{
+  // K = 4 is pure chance: x = y = (1 − e²)/4-ish shares and, with g = 1, no effect at all.
+  const s0 = CA.complexShares(0, 4);
+  check('chiralamp: racemic ligand at K = 4 gives RR:SS:RS = 1:1:2', Math.abs(s0.x - 0.25) < 1e-12 && Math.abs(s0.z - 0.5) < 1e-12);
+  check('chiralamp: g = 1 is linear for any K', [4, 30, 1000].every((K) => Math.abs(CA.ml2(0.37, K, 1).ee - 0.37) < 1e-12));
+  // Hand-worked: e = 0.5, K = 4 → z = 0.375, β = 0.6; g = 0 → ee = 0.5 × 1.6 = 0.8 (Kagan's reservoir effect).
+  check('chiralamp: e = 0.5, K = 4, g = 0 gives 80 % ee', Math.abs(CA.ml2(0.5, 4, 0).ee - 0.8) < 1e-12);
+  check('chiralamp: K = z²/(xy) holds', (() => { const t = CA.complexShares(0.3, 57); return Math.abs((t.z * t.z) / (t.x * t.y) - 57) < 1e-9; })());
+  check('chiralamp: g > 1 gives a negative effect', CA.ml2(0.5, 100, 3).ee < 0.5);
+  // Autocatalysis through pairs amplifies even at K = 4 (R is made at a rate ∝ R², S ∝ S²), but idle mixed pairs
+  // (K = 50) amplify far faster: with a 5 % seed, 0.00005 % passes 99 % in three batches.
+  const a4 = CA.soaiBatch(0.01, 0.05, 1, 4).ee, a50 = CA.soaiBatch(0.01, 0.05, 1, 50).ee;
+  check('chiralamp: K = 50 amplifies more than K = 4', a4 > 0.01 && a50 > a4);
+  const r = CA.soaiRounds(5e-7, 3, 0.05, 50);
+  check('chiralamp: three batches reach about 99.5 %', r[3] > 0.994 && r[2] > 0.8 && r[1] < 0.05);
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
