@@ -1,0 +1,114 @@
+---
+// Offline AI cheat sheet: the commands used across the course on one page, grouped by tool, each with the lesson that
+// explains it. Plain HTML; commands are examples, so model names and paths need changing to your own.
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { OFFLINE_AI } from '../../../../courses/offline-ai/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(OFFLINE_AI)).keys());
+const L = (slug: string, text: string) => `/learn/courses/offline-ai/${slug}/|${text}`;
+const SECTIONS: { h: string; lesson: string; rows: [string, string][] }[] = [
+  { h: 'Ollama', lesson: L('ollama', 'Lesson 9.2'), rows: [
+    ['ollama pull gemma4:12b', 'Download a model'],
+    ['ollama run gemma4:12b', 'Chat in the terminal (type /bye to leave)'],
+    ['ollama list', 'Models on disk'],
+    ['ollama ps', 'Models loaded now, their size, and GPU or CPU'],
+    ['ollama stop gemma4:12b', 'Unload a model from memory'],
+    ['ollama rm gemma4:12b', 'Delete a model from disk'],
+    ['ollama show gemma4:12b', 'Context length, quantisation and licence'],
+    ['ollama create mybot -f Modelfile', 'Save a model with your own system prompt and settings'],
+  ] },
+  { h: 'Ollama settings (environment variables)', lesson: L('local-ai-server', 'Lessons 11.1 and 15.2'), rows: [
+    ['OLLAMA_HOST=0.0.0.0', 'Listen on the network, not only this computer (inside a trusted network only)'],
+    ['OLLAMA_NUM_PARALLEL=4', 'Answer up to 4 requests at once'],
+    ['OLLAMA_CONTEXT_LENGTH=8192', 'Default context length'],
+    ['OLLAMA_KV_CACHE_TYPE=q8_0', '8-bit KV cache to save memory (needs flash attention on)'],
+    ['OLLAMA_KEEP_ALIVE=30m', 'How long a model stays loaded after use'],
+    ['OLLAMA_MODELS=D:\\models', 'Where model files are stored'],
+  ] },
+  { h: 'LM Studio command line', lesson: L('lm-studio', 'Lesson 9.1'), rows: [
+    ['lms ls', 'Models on disk'],
+    ['lms load <model>', 'Load a model'],
+    ['lms server start', 'Start the local API server (port 1234)'],
+    ['lms ps', 'Models loaded now'],
+  ] },
+  { h: 'llama.cpp', lesson: L('llama-cpp', 'Lesson 9.3'), rows: [
+    ['llama-cli -m model.gguf -p "Hello"', 'One prompt in the terminal'],
+    ['llama-server -m model.gguf -c 8192 -ngl 99 --port 8080', 'API server: 8,192-token context, all layers on the GPU'],
+    ['llama-server -m model.gguf -c 32768 -np 4', '4 parallel slots sharing the context'],
+    ['--cache-type-k q8_0 --cache-type-v q8_0', '8-bit KV cache'],
+    ['--split-mode layer --tensor-split 3,2', 'Split a model across two cards'],
+    ['llama-bench -m model.gguf', 'Measure prefill and writing speed'],
+  ] },
+  { h: 'MLX on a Mac', lesson: L('mlx-on-mac', 'Lesson 9.4'), rows: [
+    ['pip install mlx-lm', 'Install'],
+    ['mlx_lm.generate --model <model> --prompt "Hello"', 'One prompt'],
+    ['mlx_lm.server --model <model>', 'API server (port 8080)'],
+    ['mlx_lm.lora --model <model> --train --data ./data', 'Train a LoRA adapter'],
+  ] },
+  { h: 'Serving many users', lesson: L('serving-engines', 'Lesson 15.2'), rows: [
+    ['vllm serve <model> --max-model-len 16384', 'vLLM API server (Linux, NVIDIA)'],
+    ['vllm serve <model> --tensor-parallel-size 2', 'Split across 2 cards'],
+    ['python -m sglang.launch_server --model-path <model>', 'SGLang API server'],
+  ] },
+  { h: 'Test the API', lesson: L('local-ai-server', 'Lesson 11.1'), rows: [
+    ['curl http://localhost:11434/api/tags', 'Is Ollama running? Lists models'],
+    ['curl http://localhost:11434/v1/models', 'The same, OpenAI-style'],
+    ['curl http://localhost:8080/health', 'Is llama-server ready?'],
+  ] },
+  { h: 'Watch the machine', lesson: L('monitoring', 'Lesson 15.5'), rows: [
+    ['nvidia-smi -l 2', 'NVIDIA memory, load, heat and power every 2 seconds'],
+    ['curl http://localhost:8080/metrics', 'llama-server counters (start it with --metrics)'],
+    ['Activity Monitor > Memory', 'Mac memory pressure (keep it green)'],
+    ['Task Manager > Performance > GPU', 'Windows graphics memory and load'],
+  ] },
+  { h: 'Check a download', lesson: L('safe-downloads', 'Lesson 7.6'), rows: [
+    ['sha256sum model.gguf', 'Linux'],
+    ['shasum -a 256 model.gguf', 'Mac'],
+    ['certutil -hashfile model.gguf SHA256', 'Windows'],
+  ] },
+];
+const PY = `from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="local")
+reply = client.chat.completions.create(
+    model="gemma4:12b",
+    messages=[{"role": "user", "content": "Say hello in five words."}],
+)
+print(reply.choices[0].message.content)`;
+---
+<Base title="Offline AI cheat sheet: local AI commands" description="Every command from the free Offline AI course on one page: Ollama, LM Studio, llama.cpp, MLX, vLLM, testing the API, watching the machine and checking downloads.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/offline-ai/">Offline AI</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={OFFLINE_AI} live={live} />
+    <div class="cs-main ch">
+      <h1>Offline AI cheat sheet</h1>
+      <p class="lead">The commands from the course on one page. Model names and paths are examples: use your own. On Windows PowerShell, set a variable with <code>$env:OLLAMA_HOST="0.0.0.0"</code>; on Mac and Linux, <code>export OLLAMA_HOST=0.0.0.0</code>.</p>
+      {SECTIONS.map((s) => { const [href, text] = s.lesson.split('|'); return (
+        <section>
+          <h2>{s.h} <a class="ch-l" href={href}>{text}</a></h2>
+          <table><tbody>{s.rows.map(([c, w]) => <tr><td><code>{c}</code></td><td>{w}</td></tr>)}</tbody></table>
+        </section>
+      ); })}
+      <section>
+        <h2>Python: ask a local model <a class="ch-l" href="/learn/courses/offline-ai/call-from-python/">Lesson 11.2</a></h2>
+        <pre><code>{PY}</code></pre>
+        <p>Install the library once with <code>pip install openai</code>. To use another engine, change the address: LM Studio <code>http://localhost:1234/v1</code>, llama-server and MLX <code>http://localhost:8080/v1</code>, vLLM <code>http://localhost:8000/v1</code>.</p>
+      </section>
+      <section>
+        <h2>The offline test <a class="ch-l" href="/learn/courses/offline-ai/going-offline/">Lesson 9.6</a></h2>
+        <ol><li>Load your model and front end.</li><li>Turn off Wi-Fi and unplug the cable.</li><li>Ask a question and upload a document.</li><li>Everything still works: you are offline.</li></ol>
+      </section>
+      <p class="cs-meta">See also the <a href="/learn/courses/offline-ai/glossary/">glossary</a>. Commands checked against each tool's documentation in November 2026; flags change between versions, so run a tool with <code>--help</code> if one is refused.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch h2 { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch table { width: 100%; border-collapse: collapse; font-size: 14.5px; table-layout: fixed; }
+  .ch td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+  .ch td:first-child { width: 55%; }
+  .ch pre { overflow-x: auto; }
+</style>

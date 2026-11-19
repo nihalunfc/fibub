@@ -1,0 +1,44 @@
+---
+// CALC for 16.2: monthly API bill = jobs × (input tokens × input price + output tokens × output price) ÷ 1,000,000,
+// for each model in ../prices.ts (API_PRICES), with optional prompt caching and batch discounts.
+import { API_PRICES, API_CHECKED } from '../prices';
+---
+<figure class="cs-fig ab" data-api-bill data-p={JSON.stringify(API_PRICES)}>
+  <span class="cs-figtag">Calculator: your API bill</span>
+  <div class="ab-grid">
+    <label>Jobs per month<input type="number" name="j" value="2000" min="0" /></label>
+    <label>Input tokens per job<input type="number" name="i" value="3000" min="0" /></label>
+    <label>Output tokens per job (include thinking)<input type="number" name="o" value="800" min="0" /></label>
+    <label>Share of input read from cache (%)<input type="number" name="c" value="0" min="0" max="100" /></label>
+    <label class="ab-chk"><input type="checkbox" name="b" /> Batch jobs (half price, answers within 24 hours)</label>
+  </div>
+  <div class="ab-tab"><table><thead><tr><th>Model</th><th>Price in / out per million</th><th>Per month</th></tr></thead><tbody data-rows></tbody></table></div>
+  <figcaption>Anthropic list prices in US$, checked {API_CHECKED} (platform.claude.com pricing page); the Haiku price is for prompts up to 100,000 tokens. Cached input is billed at about a tenth of the input price; writing to the cache costs a little extra and is left out here. Batch discount and caching rules: see the official pricing page. Other providers price the same way with their own numbers. Tax is added in some countries.</figcaption>
+</figure>
+<style>
+  .ab-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+  .ab-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .ab-grid .ab-chk { display: flex; gap: 8px; align-items: center; font-weight: 400; grid-column: 1 / -1; }
+  .ab-grid input[type=number] { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .ab-tab { overflow-x: auto; margin-top: 12px; }
+  .ab table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .ab th, .ab td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-api-bill]')) {
+    const P = JSON.parse(fig.dataset.p!) as { model: string; input: number; output: number }[];
+    const n = (k: string) => Math.max(0, Number(fig.querySelector<HTMLInputElement>(`[name=${k}]`)!.value) || 0);
+    const show = () => {
+      const cache = Math.min(100, n('c')) / 100, batch = fig.querySelector<HTMLInputElement>('[name=b]')!.checked ? 0.5 : 1;
+      const usd = (x: number) => 'US$' + x.toLocaleString('en', { minimumFractionDigits: x < 100 ? 2 : 0, maximumFractionDigits: x < 100 ? 2 : 0 });
+      fig.querySelector('[data-rows]')!.innerHTML = P.map((p) => {
+        const inCost = n('i') * ((1 - cache) * p.input + cache * p.input * 0.1);
+        const month = (n('j') * (inCost + n('o') * p.output) * batch) / 1e6;
+        return `<tr><td>${p.model}</td><td>${usd(p.input)} / ${usd(p.output)}</td><td><b>${usd(month)}</b></td></tr>`;
+      }).join('');
+    };
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    show();
+  }
+</script>

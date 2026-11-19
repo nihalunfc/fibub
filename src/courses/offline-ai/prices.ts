@@ -56,3 +56,29 @@ export function money(c: Country, p: Price, cents = false): string {
   const one = (n: number) => meta.sym + n.toLocaleString(meta.locale, { maximumFractionDigits: cents ? 2 : 0, minimumFractionDigits: cents ? 2 : 0 });
   return Array.isArray(p) ? `${one(p[0])} to ${one(p[1])}` : one(p);
 }
+
+// Cloud plans for Module 16, per month in each country's own currency, read on 19 November 2026. A missing country means
+// no local price was published there: the plan is charged in US$ (your card converts it) plus local sales tax or VAT.
+// India prices include GST. Limits change often; each plan links its official page.
+export const PLANS_CHECKED = '19 November 2026';
+export interface Plan { maker: 'Anthropic' | 'OpenAI' | 'Google'; name: string; gives: string; price: Partial<Record<Country, Price>>; src: string }
+export const PLANS: Plan[] = [
+  { maker: 'Anthropic', name: 'Claude Pro', gives: 'Claude chat, Projects, Claude Code; usage resets every 5 hours with a weekly cap.', price: { US: 20, IN: 2000 }, src: 'claude.com/pricing; India: TechCrunch and Business Today, 13 to 14 July 2026' },
+  { maker: 'Anthropic', name: 'Claude Max 5x', gives: 'About 5 times Pro usage.', price: { US: 100, IN: 11999 }, src: 'claude.com/pricing; India: Business Today, 14 July 2026' },
+  { maker: 'Anthropic', name: 'Claude Max 20x', gives: 'About 20 times Pro usage.', price: { US: 200 }, src: 'claude.com/pricing' },
+  { maker: 'OpenAI', name: 'ChatGPT Go', gives: 'Lower-cost tier with fewer messages and smaller models.', price: { US: 8, IN: 399 }, src: 'OpenAI Codex and ChatGPT pricing page; India: OpenAI, 2025 launch' },
+  { maker: 'OpenAI', name: 'ChatGPT Plus', gives: 'Full chat plus Codex; Codex messages are capped per 5-hour window (from about 5 to 3,000, by model).', price: { US: 20, IN: 1999, UK: 20 }, src: 'learn.chatgpt.com/docs/pricing; UK: AI Tools Review, 2026' },
+  { maker: 'OpenAI', name: 'ChatGPT Pro', gives: 'Tiers of US$100, US$200 and US$500; no 5-hour Codex limit.', price: { US: [100, 500], IN: 10699 }, src: 'learn.chatgpt.com/docs/pricing; India: NewsBytes, 11 April 2026' },
+  { maker: 'Google', name: 'Google AI Plus', gives: 'Gemini Pro model with daily caps, 400 GB storage, family sharing.', price: { US: 4.99, IN: 399 }, src: 'The Tech Outlook, 9 June 2026 (price cut from US$7.99)' },
+  { maker: 'Google', name: 'Google AI Pro', gives: 'Gemini Pro with 1M-token context, daily caps, 5 TB storage.', price: { US: 19.99, IN: 1950 }, src: 'Google blog, 19 May 2026; India: The Tech Outlook, 9 June 2026' },
+  { maker: 'Google', name: 'Google AI Ultra', gives: 'Two tiers: about 5 times and 20 times Pro usage, Deep Think.', price: { US: [100, 200], IN: [6500, 19500] }, src: 'Google blog, 19 May 2026; India: The Tech Outlook, 9 June 2026' },
+];
+
+// Pay-per-token: Anthropic's own API list prices in US$ per million tokens (platform.claude.com pricing, read 19 November 2026).
+export const API_CHECKED = '19 November 2026';
+export const API_PRICES: { model: string; input: number; output: number }[] = [
+  { model: 'Claude Haiku 5.5', input: 0.1, output: 0.5 },
+  { model: 'Claude Sonnet 5.5', input: 2, output: 10 },
+  { model: 'Claude Opus 5.5', input: 4, output: 20 },
+  { model: 'Claude Fable 5.2', input: 8, output: 40 },
+];
