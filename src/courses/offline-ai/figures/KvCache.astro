@@ -1,0 +1,54 @@
+---
+// CALC for 8.4 and 10.3: KV cache memory = 2 (keys and values) × layers × KV heads × head size × bytes per number × tokens.
+// Presets are published architectures (config.json on each model page); "your own" lets the learner type a model's numbers.
+const PRESETS = [
+  ['32,8,128', 'Llama 3.1 8B (32 layers, 8 KV heads, size 128)'],
+  ['64,8,128', 'Qwen2.5-32B (64 layers, 8 KV heads, size 128)'],
+  ['32,32,128', 'Llama 2 7B, older design without grouped heads (32, 32, 128)'],
+];
+---
+<figure class="cs-fig kv" data-kv-cache>
+  <span class="cs-figtag">Calculator: the KV cache</span>
+  <div class="kv-grid">
+    <label>Model design<select name="pre">{PRESETS.map(([v, t]) => <option value={v}>{t}</option>)}<option value="own">Your own numbers (from config.json)</option></select></label>
+    <label>Layers<input type="number" name="l" value="32" min="1" /></label>
+    <label>KV heads<input type="number" name="h" value="8" min="1" /></label>
+    <label>Head size<input type="number" name="d" value="128" min="1" /></label>
+    <label>Context (tokens)<select name="ctx"><option value="4096">4,096</option><option value="8192" selected>8,192</option><option value="32768">32,768</option><option value="131072">131,072</option></select></label>
+    <label>Cache numbers<select name="b"><option value="2" selected>16-bit (normal)</option><option value="1.0625">8-bit (q8_0)</option><option value="0.5625">4-bit (q4_0)</option></select></label>
+  </div>
+  <p class="kv-out" aria-live="polite" data-out></p>
+  <figcaption>Formula: 2 × layers × KV heads × head size × bytes × tokens. In config.json these are num_hidden_layers, num_key_value_heads and head_dim (or hidden size ÷ attention heads). Some models (Gemma, gpt-oss) look only at a recent window on some layers and need less: the engine's log shows the real figure. 8-bit and 4-bit include the small scale overhead of llama.cpp's q8_0 and q4_0.</figcaption>
+</figure>
+<style>
+  .kv-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
+  .kv-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .kv-grid label:first-child { grid-column: 1 / -1; }
+  .kv-grid select, .kv-grid input { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; width: 100%; box-sizing: border-box; }
+  .kv-out { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.55; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kv-cache]')) {
+    const inp = (n: string) => fig.querySelector<HTMLInputElement>(`[name=${n}]`)!;
+    const pre = fig.querySelector<HTMLSelectElement>('[name=pre]')!;
+    const fill = () => {
+      if (pre.value === 'own') return;
+      const [l, h, d] = pre.value.split(',');
+      inp('l').value = l; inp('h').value = h; inp('d').value = d;
+    };
+    const show = () => {
+      const n = (k: string) => Math.max(0, Number(inp(k).value) || 0);
+      const perTok = 2 * n('l') * n('h') * n('d') * n('b');
+      const gb = (perTok * n('ctx')) / 1024 ** 3;
+      const f = (x: number) => x.toLocaleString('en', { maximumFractionDigits: x < 10 ? 2 : 1 });
+      fig.querySelector<HTMLElement>('[data-out]')!.textContent =
+        `${f(perTok / 1024)} KB per token × ${n('ctx').toLocaleString('en')} tokens ≈ ${f(gb)} GB of extra memory, on top of the model's weights.`;
+    };
+    pre.addEventListener('change', fill);
+    for (const k of ['l', 'h', 'd']) inp(k).addEventListener('input', () => (pre.value = 'own'));
+    fig.addEventListener('input', show);
+    fig.addEventListener('change', show);
+    fill();
+    show();
+  }
+</script>
