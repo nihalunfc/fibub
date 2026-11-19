@@ -12,6 +12,7 @@ export const KINDS: { id: Kind; name: string; one: string; blurb: string }[] = [
   { id: 'together', name: 'Using tools together', one: 'Together', blurb: 'Real jobs that take more than one tool, step by step, and how one tool helps in many fields.' },
   { id: 'kids', name: 'For students', one: 'For students', blurb: 'Short, friendly guides for school students on using the Learn activities and tools properly.' },
   { id: 'discoveries', name: 'Discoveries', one: 'Discovery', blurb: 'New research from open-access papers, in plain words, and how to check the numbers with fibub tools.' },
+  { id: 'nobel', name: 'Nobel Prize series', one: 'Nobel series', blurb: 'The research behind each year\'s science Nobel Prizes, told as short numbered series with animated, hands-on explainers: plain enough for school, deep enough for experts.' },
 ];
 export const kindOf = (a: Article) => a.id.split('/')[0] as Kind;
 export const slugOf = (a: Article) => a.id.split('/').slice(1).join('/');

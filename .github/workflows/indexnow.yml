@@ -1,10 +1,10 @@
-# After a deploy that adds or changes tools, tell IndexNow search engines (Bing and others) which
+# After a deploy that adds or changes tools or Blog articles, tell IndexNow search engines (Bing and others) which
 # fibub pages changed, so they are crawled in hours. Sends only fibub's own page addresses.
 name: IndexNow
 on:
   push:
     branches: [main]
-    paths: ['src/tools/**']
+    paths: ['src/tools/**', 'src/blog/**']
   workflow_dispatch: # run by hand to send every live tool and hub page
 permissions:
   contents: read

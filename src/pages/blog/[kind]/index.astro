@@ -1,9 +1,10 @@
 ---
 // One kind of Blog article (guides, howto, together, kids, discoveries): page 1 of its list.
 import KindPage from '../../../components/KindPage.astro';
+import NobelHub from '../../../components/NobelHub.astro';
 import { allArticles, KINDS, kindOf } from '../../../lib/blog';
 export async function getStaticPaths() { return KINDS.map((k) => ({ params: { kind: k.id }, props: { kind: k } })); }
 const { kind } = Astro.props;
 const list = (await allArticles()).filter((a) => kindOf(a) === kind.id);
 ---
-<KindPage kind={kind} list={list} page={1} />
+{kind.id === 'nobel' ? <NobelHub kind={kind} list={list} /> : <KindPage kind={kind} list={list} page={1} />}
