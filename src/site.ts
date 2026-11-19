@@ -427,11 +427,12 @@ export const AREAS: Area[] = [
   },
   {
     id: 'blog', name: 'Blog', href: '/blog/', match: ['/blog/', '/changes/', '/stats/'],
-    blurb: 'Guides to every tool, how tools work together, guides for students, science news, the change log and usage stats.',
+    blurb: 'Guides to every tool, how tools work together, life guides for students and workers, guides for students, science news, the change log and usage stats.',
     tabs: [
       { name: 'Latest', href: '/blog/' },
       { name: 'Guides', href: '/blog/guides/', match: ['/blog/guides/'] },
       { name: 'How to', href: '/blog/howto/', match: ['/blog/howto/'] },
+      { name: 'Life guides', href: '/blog/life/', match: ['/blog/life/'] },
       { name: 'Together', href: '/blog/together/', match: ['/blog/together/'] },
       { name: 'For students', href: '/blog/kids/', match: ['/blog/kids/'] },
       { name: 'Discoveries', href: '/blog/discoveries/', match: ['/blog/discoveries/'] },

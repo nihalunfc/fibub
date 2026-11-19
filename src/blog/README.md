@@ -6,6 +6,7 @@ Check your files with `node scripts/check-links.mjs src/blog/<kind>/<slug>.md` (
 ## Kinds
 - `guides/<tool-id>.md`: one per tool. The slug is the tool id. Explains the tool completely.
 - `howto/<slug>.md`: one task people search for ("how to calculate molarity"), answered step by step with fibub tools. Title in the searcher's words. Sections: opening (the answer in one or two sentences), ## What you need, ## Step by step, ## A worked example, ## Check your answer, ## Questions people ask.
+- `life/<slug>.md`: an evergreen, step-by-step guide for students and workers in one country (benefits, work, money, paperwork), such as how to apply for EI in Canada. Not research. Needs `country:` and `sources:` that name the official page, its "date modified" and the date you checked it (`npm run build` and `check-links` fail without them). Use only figures stated on official government pages; never guess an amount or a deadline. Sections: opening (the answer in two or three sentences), ## Who can get it, ## What you need, ## Step by step, ## After you apply (or what happens next), ## Checked with the tools, ## Common mistakes, ## Questions people ask. Link the fibub tools that help at the step where they help. The page adds a "General information, not advice" box by itself. Refresh the article when the official page changes, and bump `updated:`.
 - `together/<slug>.md`: one real job that takes 2 to 5 tools, step by step.
 - `kids/<slug>.md`: for school students (Class 8 to 12), usually one per NCERT chapter. Set `level:`.
 - `discoveries/<slug>.md`: one new open-access paper in plain words, and above all how fibub tools let anyone check or extend its numbers. Needs `paper:`. Title: the paper's key finding in the words a researcher would search (topic, object, method), not a pun. Pick papers a fibub tool can genuinely help with. No tool fits? Add `## A tool we could build` and append one line (subject, tool idea, paper DOI) to /mnt/project-files/fibub/blog/tool-ideas-from-papers.md.
@@ -18,6 +19,7 @@ summary: "One or two sentences for cards and search results (160 characters or l
 tools: [sequence-alignment, primer-checker]   # live tool ids, the main one first (a guide: the tool it explains)
 updated: 2026-11-10
 level: "Class 9"            # kids only
+country: "Canada"           # life guides only
 sources:                    # where any reference values or facts beyond the textbook come from
   - "Needleman and Wunsch (1970), J. Mol. Biol. 48: 443-453 (the original method)."
 paper:                      # discoveries only
