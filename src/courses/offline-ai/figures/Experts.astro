@@ -1,0 +1,43 @@
+---
+// ANI for 2.5: Mixture-of-Experts. Each token goes through a router that sends it to 2 of 8 experts; the rest stay idle.
+// CSS only; still frame when the visitor prefers less motion.
+const PICKS = [[1, 5], [0, 3], [2, 6], [4, 7]];
+---
+<figure class="cs-fig moe">
+  <span class="cs-figtag">Animation</span>
+  <svg viewBox="0 0 340 230" role="img" aria-labelledby="moe-t">
+    <title id="moe-t">A router sends each token to two of eight experts; the other six do no work for that token</title>
+    <text x="40" y="22" class="moe-s">token</text>
+    {PICKS.map((_, k) => <rect class={`moe-tok moe-t${k}`} x="20" y="34" width="40" height="22" rx="5" />)}
+    <rect class="moe-router" x="110" y="28" width="120" height="34" rx="8" /><text x="170" y="50" class="moe-s moe-strong">router</text>
+    {Array.from({ length: 8 }, (_, i) => {
+      const x = 14 + i * 40;
+      const on = PICKS.map((p, k) => (p.includes(i) ? k : -1)).filter((k) => k >= 0);
+      return <g class={['moe-ex', ...on.map((k) => `on${k}`)].join(' ')}><rect x={x} y="120" width="32" height="60" rx="6" /><text x={x + 16} y="155" class="moe-s">E{i + 1}</text></g>;
+    })}
+    <path d="M170 62 V 100" class="moe-line" />
+    <text x="170" y="210" class="moe-s">Only 2 of 8 experts work on each token</text>
+  </svg>
+  <figcaption>Each word piece (token) visits the router, which picks the two experts best suited to it. The model has all eight in memory, but reads only two per token, so it writes about as fast as a model a quarter of its size.</figcaption>
+</figure>
+<style>
+  .moe svg { width: 100%; height: auto; display: block; }
+  .moe-s { font-size: 12px; text-anchor: middle; fill: var(--muted); }
+  .moe-strong { fill: var(--ink); font-weight: 700; }
+  .moe-router { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .moe-line { stroke: var(--line); stroke-width: 3; }
+  .moe-tok { fill: var(--accent); opacity: 0; animation: moe-tok 8s infinite; }
+  .moe-t1 { animation-delay: 2s; } .moe-t2 { animation-delay: 4s; } .moe-t3 { animation-delay: 6s; }
+  .moe-ex rect { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+  .moe-ex.on0 rect { animation: moe-on 8s infinite 0s; }
+  .moe-ex.on1 rect { animation: moe-on 8s infinite 2s; }
+  .moe-ex.on2 rect { animation: moe-on 8s infinite 4s; }
+  .moe-ex.on3 rect { animation: moe-on 8s infinite 6s; }
+  @keyframes moe-tok { 0% { opacity: 1; transform: translate(0, 0); } 12% { opacity: 1; transform: translate(130px, 0); } 22%, 100% { opacity: 0; transform: translate(130px, 0); } }
+  @keyframes moe-on { 0%, 12% { fill: var(--bg); stroke: var(--line); } 15%, 24% { fill: var(--good-soft); stroke: var(--good); } 27%, 100% { fill: var(--bg); stroke: var(--line); } }
+  @media (prefers-reduced-motion: reduce) {
+    .moe-tok { animation: none; } .moe-t0 { opacity: 1; }
+    .moe-ex rect { animation: none !important; }
+    .moe-ex.on0 rect { fill: var(--good-soft); stroke: var(--good); }
+  }
+</style>

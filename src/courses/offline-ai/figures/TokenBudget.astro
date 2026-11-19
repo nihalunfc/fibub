@@ -1,0 +1,48 @@
+---
+// CALC for 3.9 (and 16.4): how many tokens a month you use, what that would cost at a pay-per-token price you enter,
+// and what the same work costs in electricity on your own machine. No prices are built in: enter your own.
+---
+<figure class="cs-fig tb" data-token-budget>
+  <span class="cs-figtag">Calculator: your token budget</span>
+  <div class="tb-grid">
+    <label>Words you send per day<input type="number" name="win" value="6000" min="0" step="500" /></label>
+    <label>Words you get back per day<input type="number" name="wout" value="3000" min="0" step="500" /></label>
+    <label>Days per month<input type="number" name="days" value="22" min="1" max="31" /></label>
+    <label>Cloud price per million input tokens<input type="number" name="pin" value="1" min="0" step="0.1" /></label>
+    <label>Cloud price per million output tokens<input type="number" name="pout" value="5" min="0" step="0.1" /></label>
+    <label>Your machine's power while working (watts)<input type="number" name="watts" value="150" min="1" step="10" /></label>
+    <label>Its writing speed (tokens per second)<input type="number" name="tps" value="20" min="1" step="1" /></label>
+    <label>Electricity price per kWh<input type="number" name="kwh" value="0.2" min="0" step="0.01" /></label>
+  </div>
+  <div class="tb-out" aria-live="polite" data-out></div>
+  <figcaption>Prices are in whatever currency you type; the example numbers are made up. Find real ones on the provider's pricing page and your electricity bill. Words become tokens at the English rule of thumb (words ÷ 0.75). Local time counts only writing time, the bigger part (Lesson 3.4); the computer itself is not counted here (Module 16 adds it).</figcaption>
+</figure>
+<style>
+  .tb-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+  .tb-grid label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+  .tb-grid input { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+  .tb-out { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--good-soft); border-left: 4px solid var(--good); font-size: 15.5px; line-height: 1.6; }
+  .tb-out p { margin: 0; }
+</style>
+<script>
+  const f = (x: number, d = 2) => x.toLocaleString('en', { maximumFractionDigits: d, minimumFractionDigits: x < 10 && d ? Math.min(2, d) : 0 });
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-token-budget]')) {
+    const v = (n: string) => Math.max(0, Number(fig.querySelector<HTMLInputElement>(`input[name=${n}]`)!.value) || 0);
+    const show = () => {
+      const tin = (v('win') / 0.75) * v('days'), tout = (v('wout') / 0.75) * v('days');
+      const cloud = (tin / 1e6) * v('pin') + (tout / 1e6) * v('pout');
+      const hours = tout / Math.max(1, v('tps')) / 3600;
+      const kwh = (hours * v('watts')) / 1000, local = kwh * v('kwh');
+      const out = fig.querySelector<HTMLElement>('[data-out]')!;
+      out.innerHTML = '';
+      for (const line of [
+        `About ${f(tin, 0)} input and ${f(tout, 0)} output tokens a month.`,
+        `At the cloud prices above: about ${f(cloud)} a month.`,
+        `On your machine: about ${f(hours, 1)} hours of writing, ${f(kwh, 1)} kWh, so about ${f(local)} of electricity a month.`,
+        local < cloud ? `Local is cheaper to run by about ${f(cloud - local)} a month, before the cost of the machine.` : `The cloud is cheaper at this volume; local wins on privacy and limits, not running cost.`,
+      ]) { const p = document.createElement('p'); p.textContent = line; out.append(p); }
+    };
+    fig.addEventListener('input', show);
+    show();
+  }
+</script>

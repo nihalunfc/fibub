@@ -1,0 +1,65 @@
+---
+// SIM for 3.3 and 3.7: a chat fills the context window. Add messages; when the window is full the oldest drop
+// out (the model forgets them). Tick "Summarise old messages" to fold them into one short summary instead.
+---
+<figure class="cs-fig cb" data-context-bucket>
+  <span class="cs-figtag">Try it: fill the context window</span>
+  <div class="cb-ctrl">
+    <label>Window size <select name="win"><option value="2000">2,000 tokens</option><option value="4000" selected>4,000 tokens</option><option value="8000">8,000 tokens</option></select></label>
+    <label class="cb-chk"><input type="checkbox" name="sum" /> Summarise old messages</label>
+  </div>
+  <div class="cb-btns">
+    <button type="button" class="btn secondary" data-add="150">+ short message (150)</button>
+    <button type="button" class="btn secondary" data-add="600">+ long reply (600)</button>
+    <button type="button" class="btn secondary" data-add="1500">+ pasted document (1,500)</button>
+    <button type="button" class="btn secondary" data-reset>Start again</button>
+  </div>
+  <div class="cb-box" data-box aria-hidden="true"></div>
+  <p class="cb-out" aria-live="polite" data-out></p>
+  <figcaption>The bar is the window. The system prompt (S) always stays. When new text arrives and there is no room, the oldest messages fall out and the model cannot see them any more. A summary keeps the gist of old messages in far fewer tokens.</figcaption>
+</figure>
+<style>
+  .cb-ctrl { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-weight: 600; font-size: 14.5px; }
+  .cb-ctrl select { font: inherit; font-weight: 400; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .cb-chk { display: flex; gap: 6px; align-items: center; }
+  .cb-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cb-btns .btn { padding: 6px 10px; font-size: 14px; }
+  .cb-box { display: flex; height: 40px; margin: 12px 0 8px; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--accent-soft); }
+  .cb-out { margin: 0; font-size: 15px; line-height: 1.5; }
+</style>
+<script>
+  type Msg = { kind: 'S' | 'U' | 'D' | 'Σ'; t: number; n: number };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-context-bucket]')) {
+    const box = fig.querySelector<HTMLElement>('[data-box]')!, out = fig.querySelector<HTMLElement>('[data-out]')!;
+    const win = fig.querySelector<HTMLSelectElement>('select[name=win]')!, sum = fig.querySelector<HTMLInputElement>('input[name=sum]')!;
+    let msgs: Msg[] = [], lost = 0, count = 0;
+    const reset = () => { msgs = [{ kind: 'S', t: 300, n: 0 }]; lost = 0; count = 0; draw(''); };
+    const used = () => msgs.reduce((s, m) => s + m.t, 0);
+    function add(t: number) {
+      count++; msgs.push({ kind: t >= 1500 ? 'D' : 'U', t, n: count });
+      const W = Number(win.value);
+      let note = '';
+      if (used() > W && sum.checked && msgs.length > 3) {
+        const old = msgs.slice(1, -1), total = old.reduce((x, m) => x + m.t, 0);
+        msgs = [msgs[0], { kind: 'Σ', t: Math.min(250, Math.max(100, Math.round(total * 0.1))), n: 0 }, msgs[msgs.length - 1]];
+        note = `Older messages (${total.toLocaleString('en')} tokens) were folded into a short summary (Σ).`;
+      }
+      while (used() > W && msgs.length > 2) { msgs.splice(1, 1); lost++; note = 'The oldest message fell out of the window: the model can no longer see it.'; }
+      draw(note);
+    }
+    function draw(note: string) {
+      const W = Number(win.value);
+      box.replaceChildren(...msgs.map((m) => {
+        const s = document.createElement('span');
+        const bg = m.kind === 'S' ? 'var(--ink)' : m.kind === 'D' ? 'var(--warn)' : m.kind === 'Σ' ? 'var(--good)' : 'var(--accent)';
+        s.style.cssText = `width:${(100 * m.t) / W}%;background:${bg};border-right:2px solid var(--bg);color:var(--bg);font-size:12px;font-weight:700;display:grid;place-items:center;overflow:hidden`;
+        s.textContent = m.kind === 'U' || m.kind === 'D' ? String(m.n) : m.kind; return s;
+      }));
+      out.textContent = `${used().toLocaleString('en')} of ${W.toLocaleString('en')} tokens used. ${lost ? `${lost} message${lost > 1 ? 's' : ''} lost so far. ` : ''}${note}`;
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-add]').forEach((b) => b.addEventListener('click', () => add(Number(b.dataset.add))));
+    fig.querySelector('[data-reset]')!.addEventListener('click', reset);
+    win.addEventListener('change', reset);
+    reset();
+  }
+</script>
