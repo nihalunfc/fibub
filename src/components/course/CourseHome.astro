@@ -23,7 +23,7 @@ const ld = [{ '@type': 'Course', name: course.title, description: course.text, u
     <div class="cs-main">
       <h1>{course.title}</h1>
       <p class="lead">{course.text}</p>
-      <p class="cs-meta">{course.audience} Free, no sign-up. {live.size} of {all.length} lessons written so far (about {Math.round(minutes / 6) / 10} hours); new modules are added in order.</p>
+      <p class="cs-meta">{course.audience} Free, no sign-up. {live.size === all.length ? `All ${all.length} lessons, about ${Math.round(minutes / 6) / 10} hours.` : `${live.size} of ${all.length} lessons written so far (about ${Math.round(minutes / 6) / 10} hours); new modules are added in order.`}</p>
       <slot />
       <ProgressBox total={all.length} />
       <h2>All modules</h2>
