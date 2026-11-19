@@ -9,6 +9,9 @@ import NextWord from './NextWord.astro';
 import Experts from './Experts.astro';
 import ContextBucket from './ContextBucket.astro';
 import TokenBudget from './TokenBudget.astro';
+import SpeedLimit from './SpeedLimit.astro';
+import BuildRig from './BuildRig.astro';
+import PowerBill from './PowerBill.astro';
 
 export const FIGURES: Record<string, any> = {
   'course-map': CourseMap,
@@ -21,4 +24,7 @@ export const FIGURES: Record<string, any> = {
   'experts': Experts,
   'context-bucket': ContextBucket,
   'token-budget': TokenBudget,
+  'speed-limit': SpeedLimit,
+  'build-rig': BuildRig,
+  'power-bill': PowerBill,
 };
