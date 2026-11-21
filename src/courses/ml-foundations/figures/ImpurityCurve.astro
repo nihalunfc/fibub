@@ -1,0 +1,35 @@
+---
+// SIM for 5.2: Gini impurity and entropy of a box of 10 items as the mix changes from all one class to all
+// the other. Both are zero when the box is pure and largest at a 50/50 mix.
+---
+<figure class="cs-fig mlf" data-impur>
+  <span class="cs-figtag">Try it: mix the box</span>
+  <canvas aria-label="Two curves against the share of squares in a box: entropy, peaking at 1 bit, and Gini impurity, peaking at 0.5, both zero at the ends"></canvas>
+  <div class="mlf-ctl"><label>Squares in a box of 10: <output data-v="k"></output><input type="range" name="k" min="0" max="10" step="1" value="3" /></label></div>
+  <div class="mlf-read"><div><span>share of squares p</span><b data-p></b></div><div><span>Gini 1 − p² − (1 − p)²</span><b data-g></b></div><div><span>entropy (bits)</span><b data-e></b></div></div>
+  <figcaption>Both measures say how mixed a box is. A pure box (all squares or all circles) scores 0; a half-and-half box scores the most: 0.5 for Gini, 1 bit for entropy. The shapes are so alike that trees built with either usually end up almost the same. Gini is a little quicker to compute (no logarithms), so it is the usual default.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { gini, entropy } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-impur]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 1], y: [0, 1.35], h: 260, xLabel: 'share of squares p', yLabel: 'impurity' });
+    const k = slider(fig, 'k', () => go(), (v) => `${v} of 10`);
+    const draw = () => {
+      const s = k() / 10;
+      p.begin();
+      p.fn(entropy, { color: p.pal.accent, width: 2.5 });
+      p.fn(gini, { color: p.pal.accent2, width: 2.5, dash: [6, 4] });
+      p.line(s, 0, s, 1.15, { color: p.pal.muted, dash: [3, 3] });
+      p.dot(s, entropy(s), { r: 5, color: p.pal.accent }); p.dot(s, gini(s), { r: 5, shape: 'square', color: p.pal.accent2 });
+      p.text(0.5, 0.9, 'entropy', { color: p.pal.accent, align: 'center', bold: true });
+      p.text(0.5, 0.4, 'Gini', { color: p.pal.accent2, align: 'center', bold: true });
+      // The box itself: 10 shapes along the top.
+      for (let i = 0; i < 10; i++) p.dot(0.05 + i * 0.1, 1.26, { r: 6, shape: i < k() ? 'square' : 'circle', color: i < k() ? p.pal.accent2 : p.pal.accent });
+      p.end();
+      q('[data-p]').textContent = fmt(s, 1); q('[data-g]').textContent = fmt(gini(s), 3); q('[data-e]').textContent = fmt(entropy(s), 3);
+    };
+    const go = live(cv, draw);
+  }
+</script>

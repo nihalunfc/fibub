@@ -16,6 +16,8 @@ export type PlotOpts = {
   equal?: boolean;
   /** Hide the numbers on the x-axis (for bar charts of categories). */
   noXTicks?: boolean;
+  /** Hide the numbers and grid on the y-axis (for points along a single line). */
+  noYTicks?: boolean;
 };
 type Style = { color?: string; width?: number; dash?: number[]; alpha?: number; fill?: string };
 
@@ -69,7 +71,7 @@ export class Plot {
     c.fillStyle = this.pal.bg; c.fillRect(0, 0, W, H);
     c.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
     if (this.o.bare) return this;
-    const xt = ticks(this.x0, this.x1, W < 400 ? 4 : 6), yt = ticks(this.y0, this.y1, 5);
+    const xt = ticks(this.x0, this.x1, W < 400 ? 4 : 6), yt = this.o.noYTicks ? [] : ticks(this.y0, this.y1, 5);
     // Room on the left for the widest y tick label (and the y-axis title).
     this.L = Math.ceil(Math.max(30, ...yt.map((t) => c.measureText(fmt(t)).width)) + 10 + (this.o.yLabel ? 16 : 0));
     c.lineWidth = 1; c.strokeStyle = this.pal.grid;
@@ -114,6 +116,12 @@ export class Plot {
       if (pen) c.lineTo(this.px(x), Y); else { c.moveTo(this.px(x), Y); pen = true; }
     }
     c.stroke(); c.restore(); c.setLineDash([]); c.globalAlpha = 1; return this;
+  }
+  /** A line through points in data units (not closed, not filled). */
+  path(pts: [number, number][], s: Style = {}) {
+    const c = this.ctx; this.st(s, this.pal.accent); c.beginPath();
+    pts.forEach(([x, y], i) => (i ? c.lineTo(this.px(x), this.py(y)) : c.moveTo(this.px(x), this.py(y))));
+    c.stroke(); c.setLineDash([]); c.globalAlpha = 1; return this;
   }
   /** A filled polygon in data units. */
   poly(pts: [number, number][], s: Style = {}) {

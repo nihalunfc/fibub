@@ -1,0 +1,55 @@
+---
+// SIM for 6.4: impurity-based feature importance from a random forest on made-up house prices. A pure-noise
+// column still gets a little importance, and a near-copy of a column splits that column's importance in two.
+---
+<figure class="cs-fig mlf" data-imp>
+  <span class="cs-figtag">Try it: what does the forest lean on?</span>
+  <canvas aria-label="Horizontal bars of feature importance for floor area, distance to centre, age, and the optional extra columns"></canvas>
+  <div class="mlf-ctl">
+    <label>Extra column: <select name="x">
+      <option value="none">none</option>
+      <option value="noise">house number (pure noise)</option>
+      <option value="copy">area in square feet (a copy of area)</option>
+    </select></label>
+  </div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Made-up data: price depends on floor area most, then distance to the centre, a little on age. The forest's importance is each column's share of all the impurity it removed. Add the house number: pure noise, yet it gets a sliver, because a deep tree can always find some split that helps on training data. Add area in square feet, which says the same thing as area: the two share the credit, and area suddenly looks half as important.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { forest } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-imp]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const R = rng(31), rows: number[][] = [], price: number[] = [];
+    for (let i = 0; i < 220; i++) {
+      const area = R.uniform(50, 200), dist = R.uniform(1, 30), age = R.uniform(0, 60), num = R.int(1, 300);
+      rows.push([area, dist, age, num, area * 10.764 + R.normal(0, 25)]);
+      price.push(2.2 * area - 6 * dist - 1.2 * age + R.normal(0, 30));
+    }
+    const NAMES = ['floor area', 'distance', 'age', 'house no.', 'area (sq ft)'];
+    const cache: Record<string, number[]> = {};
+    const imps = (x: string) => {
+      if (cache[x]) return cache[x];
+      const cols = x === 'noise' ? [0, 1, 2, 3] : x === 'copy' ? [0, 1, 2, 4] : [0, 1, 2];
+      const F = forest(rows.map((r) => cols.map((c) => r[c])), price, { kind: 'reg', trees: 25, mtry: Math.max(1, Math.round(cols.length / 2)), minLeaf: 3, R: rng(4) });
+      const out = new Array(5).fill(NaN); cols.forEach((c, j) => (out[c] = F.importance[j]));
+      return (cache[x] = out);
+    };
+    const draw = () => {
+      const v = imps(sel.value), show = v.map((s, i) => [i, s] as const).filter(([, s]) => Number.isFinite(s));
+      const p = new Plot(cv, { x: [0, 1], y: [0, show.length], h: 48 + 40 * show.length, xLabel: 'share of importance', noYTicks: true });
+      p.begin();
+      show.forEach(([i, s], k) => {
+        const yy = show.length - k - 0.8;
+        p.rect(0, yy, s, 0.6, { fill: i >= 3 ? p.pal.accent2 : p.pal.accent, alpha: 0.85 });
+        p.text(s, yy + 0.3, `${NAMES[i]} ${fmt(100 * s, 0)} %`, { dx: 6, base: 'middle', color: p.pal.ink, align: s > 0.6 ? 'right' : 'left', ...(s > 0.6 ? { dx: -6, color: p.pal.bg } : {}) });
+      });
+      p.end();
+      const say = sel.value === 'noise' ? `The house number is pure noise, yet it gets ${fmt(100 * v[3], 0)} %.` : sel.value === 'copy' ? `Area and its copy split the credit: ${fmt(100 * v[0], 0)} % and ${fmt(100 * v[4], 0)} %. Together they are still the biggest.` : 'Area matters most, as it should: it moves the price the most.';
+      q('[data-say]').textContent = say;
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

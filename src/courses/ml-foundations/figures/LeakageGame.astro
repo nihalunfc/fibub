@@ -1,0 +1,46 @@
+---
+// GAME for 7.4: spot the leak. Six short stories of model building; for each, say whether information from the
+// answer (or the future, or the test set) leaked into training. Each answer explains why.
+const CASES: [string, boolean, string][] = [
+  ['Predicting hospital readmission. One input is "number of follow-up appointments booked in the 30 days after discharge".', true, 'Leak. Those appointments happen after the moment of prediction, and readmitted patients book more of them. At discharge, when the model is used, this column does not exist yet.'],
+  ['Before splitting into train and test, the whole dataset is scaled with its own mean and standard deviation.', true, 'Leak (a small one). The test rows helped set the mean and spread. Split first, then fit the scaler on the training rows only and apply it to the test rows.'],
+  ['Predicting next month\'s sales. Rows from all three years are shuffled at random into train and test.', true, 'Leak. The model trains on days after the ones it is tested on, and learns the future. With time series, train on the past and test on a later period.'],
+  ['Predicting loan default from income, debt and years at the current job, all taken from the application form.', false, 'Fine. Everything is known on the day the application arrives, which is when the model will be used.'],
+  ['Detecting pneumonia from X-rays. The same patients appear in both training and test images.', true, 'Leak. The model can recognise the patient (or their hospital\'s scanner) instead of the disease. Split by patient, so each person is only on one side.'],
+  ['Choosing the tree depth by cross-validation on the training set, then scoring once on a test set kept aside.', false, 'Fine. This is the right way: the test set is touched once, after every choice is made.'],
+];
+---
+<figure class="cs-fig mlf" data-leakgame>
+  <span class="cs-figtag">Game: spot the leak</span>
+  <div class="mlf-game">
+    {CASES.map(([story, leak, why], i) => (
+      <div class="lk-case" data-i={i} data-leak={leak ? '1' : '0'}>
+        <p><strong>{i + 1}.</strong> {story}</p>
+        <div class="mlf-btns"><button type="button" class="btn secondary small" data-a="1">Leak</button><button type="button" class="btn secondary small" data-a="0">Fine</button></div>
+        <p class="mlf-say" data-why hidden>{why}</p>
+      </div>
+    ))}
+  </div>
+  <p class="mlf-say" data-score></p>
+  <figcaption>Leakage means the model sees, during training, something it will not have when it is really used: the answer in disguise, information from the future, or the test rows themselves. The tell-tale sign is a score that looks too good to be true.</figcaption>
+</figure>
+<style is:inline>
+  .lk-case { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .lk-case p { margin: 4px 0; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>("[data-leakgame]")) {
+    let right = 0, done = 0;
+    for (const c of fig.querySelectorAll<HTMLElement>('.lk-case')) {
+      c.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => {
+        if (c.dataset.done) return;
+        c.dataset.done = '1'; done++;
+        const ok = b.dataset.a === c.dataset.leak; if (ok) right++;
+        b.setAttribute('aria-pressed', 'true');
+        const why = c.querySelector<HTMLElement>('[data-why]')!; why.hidden = false;
+        why.textContent = `${ok ? 'Right. ' : 'Not quite. '}${why.textContent}`;
+        fig.querySelector<HTMLElement>('[data-score]')!.textContent = `${right} of ${done} right so far.`;
+      }));
+    }
+  }
+</script>

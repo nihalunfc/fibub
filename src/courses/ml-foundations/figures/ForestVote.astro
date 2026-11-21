@@ -1,0 +1,33 @@
+---
+// SIM for 6.3: a random forest on the noisy two-moons data. Each tree is grown deep on its own bootstrap sample,
+// looking at one random column per split; the slider adds trees to the vote and the jagged boxes smooth out.
+---
+<figure class="cs-fig mlf" data-forest>
+  <span class="cs-figtag">Try it: add trees to the forest</span>
+  <canvas aria-label="Two crescent-shaped groups of points, the plane shaded by the share of trees voting for squares"></canvas>
+  <div class="mlf-ctl"><label>Trees in the forest: <output data-v="t"></output><input type="range" name="t" min="1" max="60" step="1" value="1" /></label></div>
+  <div class="mlf-read"><div><span>one deep tree: test accuracy</span><b data-one></b></div><div><span>this forest: test accuracy</span><b data-all></b></div></div>
+  <figcaption>With 1 tree you see one deep, overfitted tree: hard-edged boxes round noisy points. Each new tree saw a slightly different sample and different columns, so it makes different mistakes; averaging their votes cancels much of the noise. The shading becomes a smooth probability, and test accuracy climbs, then levels off. More trees never cause overfitting; they only cost time.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, shade, toy, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { forest, accuracy } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-forest]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const T = toy('moons', 160, rng(5), 0.2), V = toy('moons', 400, rng(6), 0.2);
+    const F = forest(T.X, T.y, { trees: 60, mtry: 1, R: rng(9) });
+    const accs: number[] = [];
+    const accAt = (m: number) => (accs[m] ??= accuracy(V.y, V.X.map((x) => F.predict(x, m))));
+    const p = new Plot(cv, { x: [-1.4, 1.4], y: [-1.2, 1.2], h: 270 });
+    const t = slider(fig, 't', () => go(), String);
+    const draw = () => {
+      const m = t();
+      p.begin(); shade(p, (a, b) => F.predict([a, b], m), 50, 0.5);
+      T.X.forEach((a, i) => p.dot(a[0], a[1], { r: 4, shape: T.y[i] ? 'square' : 'circle', color: T.y[i] ? p.pal.accent2 : p.pal.accent }));
+      p.end();
+      q('[data-one]').textContent = `${fmt(100 * accAt(1), 0)} %`; q('[data-all]').textContent = `${fmt(100 * accAt(m), 0)} %`;
+    };
+    const go = live(cv, draw);
+  }
+</script>

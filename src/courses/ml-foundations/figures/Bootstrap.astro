@@ -1,0 +1,36 @@
+---
+// SIM for 6.2: a bootstrap sample draws n rows from n with replacement. Some rows come up twice or more, about
+// a third never come up (the "out-of-bag" rows), and the share of different rows settles near 63 %.
+---
+<figure class="cs-fig mlf" data-boot>
+  <span class="cs-figtag">Try it: draw bootstrap samples</span>
+  <div class="mlf-tiles" data-tiles aria-live="polite"></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-one>Draw a sample of 12</button><button type="button" class="btn secondary" data-many>Draw 100 more</button></div>
+  <div class="mlf-read"><div><span>this sample: different rows</span><b data-u></b></div><div><span>left out (out-of-bag)</span><b data-o></b></div><div><span>average share of different rows</span><b data-avg></b></div></div>
+  <figcaption>Each tile is one of 12 training rows; the number under it is how many times this sample picked it. Picks are made with replacement, so a row can be picked again. Dashed tiles were not picked at all: they make a free test set for the model built on this sample. For large data the share of different rows tends to 1 − 1/e ≈ 63.2 %.</figcaption>
+</figure>
+<script>
+  import { fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { bootstrap } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-boot]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!, R = rng(8), N = 12;
+    let total = 0, draws = 0;
+    const show = (rows: number[]) => {
+      const cnt = new Array(N).fill(0); rows.forEach((r) => cnt[r]++);
+      q('[data-tiles]').replaceChildren(...cnt.map((c, i) => {
+        const s = document.createElement('span'); s.className = c ? 'on' : 'off';
+        s.innerHTML = `row ${i + 1}<br>${c ? '×' + c : 'out'}`; return s;
+      }));
+      const u = cnt.filter((c) => c).length;
+      q('[data-u]').textContent = `${u} of ${N}`; q('[data-o]').textContent = `${N - u} rows`;
+      q('[data-avg]').textContent = draws ? `${fmt((100 * total) / draws, 1)} % (${draws} samples)` : '–';
+    };
+    const one = () => { const r = bootstrap(N, R); total += new Set(r).size / N; draws++; return r; };
+    q('[data-one]').addEventListener('click', () => show(one()));
+    q('[data-many]').addEventListener('click', () => { let r: number[] = []; for (let k = 0; k < 100; k++) r = one(); show(r); });
+    show(Array.from({ length: N }, (_, i) => i));
+    q('[data-u]').textContent = '–'; q('[data-o]').textContent = '–';
+    fig.querySelectorAll('[data-tiles] span').forEach((s) => { s.className = ''; s.innerHTML = s.innerHTML.replace('×1', ''); });
+  }
+</script>

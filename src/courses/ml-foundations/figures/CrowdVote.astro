@@ -1,0 +1,37 @@
+---
+// SIM for 6.1: wisdom of crowds. n voters, each right with probability p, vote by majority. With independent
+// mistakes the crowd is far better than any one voter; when they copy each other the gain shrinks.
+---
+<figure class="cs-fig mlf" data-crowd>
+  <span class="cs-figtag">Try it: how good is the crowd?</span>
+  <canvas aria-label="Chance the majority vote is right against the number of voters, rising towards 100 percent when mistakes are independent"></canvas>
+  <div class="mlf-ctl">
+    <label>Voters: <output data-v="n"></output><input type="range" name="n" min="1" max="101" step="2" value="11" /></label>
+    <label>Each voter is right: <output data-v="p"></output><input type="range" name="p" min="0.45" max="0.9" step="0.01" value="0.6" /></label>
+    <label>Copying (shared mistakes): <output data-v="c"></output><input type="range" name="c" min="0" max="1" step="0.05" value="0" /></label>
+  </div>
+  <div class="mlf-read"><div><span>one voter right</span><b data-one></b></div><div><span>majority right</span><b data-maj></b></div></div>
+  <figcaption>Each voter is only a little better than a coin (60 %), yet 101 independent voters are right 98 % of the time, because their mistakes cancel out. Turn up copying: with that chance, everyone just follows one shared vote, so their mistakes no longer cancel. Below 50 % the crowd makes things worse. Ensembles need models that are better than guessing and different from each other.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { majorityRight } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-crowd]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 102], y: [0, 1.02], h: 250, xLabel: 'number of voters', yLabel: 'majority right' });
+    const pct = (v: number) => `${fmt(100 * v, 0)} %`;
+    const n = slider(fig, 'n', () => go(), String), pr = slider(fig, 'p', () => go(), pct), c = slider(fig, 'c', () => go(), pct);
+    const crowd = (k: number) => c() * pr() + (1 - c()) * majorityRight(k, pr());
+    const draw = () => {
+      p.begin();
+      p.line(0, pr(), 102, pr(), { color: p.pal.muted, dash: [5, 4] });
+      p.text(101, pr(), 'one voter', { align: 'right', dy: 10, color: p.pal.muted });
+      const pts: [number, number][] = []; for (let k = 1; k <= 101; k += 2) pts.push([k, crowd(k)]);
+      p.path(pts, { color: p.pal.accent, width: 2.5 });
+      p.dot(n(), crowd(n()), { r: 6, color: p.pal.accent });
+      p.end();
+      q('[data-one]').textContent = pct(pr()); q('[data-maj]').textContent = pct(crowd(n()));
+    };
+    const go = live(cv, draw);
+  }
+</script>

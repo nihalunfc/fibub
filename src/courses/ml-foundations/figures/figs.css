@@ -28,3 +28,11 @@
 @media (min-width: 620px) { .bw-two { grid-template-columns: 1fr 1fr; } }
 .cs-math { overflow-x: auto; margin: 10px 0; }
 html.red-mode .mlf canvas { filter: none; }
+.mlf-tree, .mlf-tree ul { list-style: none; margin: 0; padding-left: 14px; font-size: 14px; }
+.mlf-tree { padding-left: 0; margin-top: 8px; }
+.mlf-tree li { border-left: 2px solid var(--line); padding: 2px 0 2px 8px; margin: 2px 0; }
+.mlf-tree strong { color: var(--accent); }
+.mlf-tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 8px 0; }
+.mlf-tiles span { border: 1.5px solid var(--line); border-radius: 8px; text-align: center; padding: 6px 0; font-variant-numeric: tabular-nums; font-size: 14px; }
+.mlf-tiles span.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.mlf-tiles span.off { opacity: .45; border-style: dashed; }

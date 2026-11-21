@@ -1,0 +1,55 @@
+---
+// SIM for 7.2: k-fold cross-validation. The rows are shuffled and cut into k folds; each round one fold is the test
+// set and the rest train a model (a depth-4 tree on the two-moons data). The k scores give an average and a spread.
+---
+<figure class="cs-fig mlf" data-kfold>
+  <span class="cs-figtag">Try it: cross-validation, fold by fold</span>
+  <canvas aria-label="A grid with one row per round; in each row one block of the data is the test fold and the rest is training, with the round's accuracy at the end"></canvas>
+  <div class="mlf-ctl"><label>Folds k: <output data-v="k"></output><input type="range" name="k" min="2" max="10" step="1" value="5" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-next>Next round</button><button type="button" class="btn secondary" data-all>All rounds</button><button type="button" class="btn secondary" data-shuf>Reshuffle</button></div>
+  <div class="mlf-read"><div><span>rounds done</span><b data-n></b></div><div><span>mean accuracy</span><b data-m></b></div><div><span>spread (sd)</span><b data-s></b></div></div>
+  <figcaption>Every row is used for testing exactly once and for training k − 1 times. One train/test split gives one score that depends on luck; k folds give k scores, so you see the average and how much it moves. Reshuffle and the single scores change a lot, the average much less. Five or ten folds are the usual choice.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, toy, fmt } from './kit';
+  import { rng, mean, sd } from '../../../lib/ml/core';
+  import { growTree, predictTree, accuracy, kfold } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kfold]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const D = toy('moons', 100, rng(14), 0.25);
+    let seed = 1, done = 0;
+    const k = slider(fig, 'k', () => { done = 0; go(); }, String);
+    const scores = () => {
+      const folds = kfold(D.X.length, k(), rng(seed));
+      return folds.map((test) => {
+        const tset = new Set(test), train = D.X.map((_, i) => i).filter((i) => !tset.has(i));
+        const g = growTree(D.X, D.y, { maxDepth: 4 }, train);
+        return { test, acc: accuracy(test.map((i) => D.y[i]), test.map((i) => predictTree(g.root, D.X[i]))) };
+      });
+    };
+    const draw = () => {
+      const S = scores(), K = k(), p = new Plot(cv, { x: [0, 1], y: [0, K], h: 26 * K + 30, bare: true });
+      p.begin();
+      const W = 0.74, cell = W / 100;
+      S.forEach((s, r) => {
+        const y = K - r - 0.85, tset = new Set(s.test);
+        // Rows in shuffled order: show each fold as one block so the pattern is easy to see.
+        const start = S.slice(0, r).reduce((a, b) => a + b.test.length, 0);
+        p.rect(0, y, W, 0.7, { fill: p.pal.grid, alpha: 1 });
+        if (r < done) p.rect(start * cell, y, s.test.length * cell, 0.7, { fill: p.pal.accent2, alpha: 0.9 });
+        else p.rect(start * cell, y, s.test.length * cell, 0.7, { color: p.pal.accent2, dash: [3, 3] });
+        p.text(W + 0.02, y + 0.35, r < done ? `round ${r + 1}: ${fmt(100 * s.acc, 0)} %` : `round ${r + 1}`, { base: 'middle', size: 12, color: r < done ? p.pal.ink : p.pal.muted });
+        void tset;
+      });
+      p.end();
+      const got = S.slice(0, done).map((s) => s.acc);
+      q('[data-n]').textContent = `${done} of ${K}`;
+      q('[data-m]').textContent = got.length ? `${fmt(100 * mean(got), 1)} %` : '–';
+      q('[data-s]').textContent = got.length > 1 ? `${fmt(100 * sd(got, true), 1)} points` : '–';
+    };
+    q('[data-next]').addEventListener('click', () => { done = Math.min(k(), done + 1); go(); });
+    q('[data-all]').addEventListener('click', () => { done = k(); go(); });
+    q('[data-shuf]').addEventListener('click', () => { seed++; done = 0; go(); });
+    const go = live(cv, draw);
+  }
+</script>

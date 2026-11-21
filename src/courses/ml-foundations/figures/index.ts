@@ -34,6 +34,24 @@ import Threshold from './Threshold.astro';
 import RocCurve from './RocCurve.astro';
 import KnnRegions from './KnnRegions.astro';
 import SpamBayes from './SpamBayes.astro';
+// Modules 5-7
+import TreeGrow from './TreeGrow.astro';
+import ImpurityCurve from './ImpurityCurve.astro';
+import SplitSearch from './SplitSearch.astro';
+import RegTree from './RegTree.astro';
+import TreeDepth from './TreeDepth.astro';
+import CrowdVote from './CrowdVote.astro';
+import Bootstrap from './Bootstrap.astro';
+import ForestVote from './ForestVote.astro';
+import Importance from './Importance.astro';
+import BagVsBoost from './BagVsBoost.astro';
+import BoostSteps from './BoostSteps.astro';
+import Dartboard from './Dartboard.astro';
+import BiasVariance from './BiasVariance.astro';
+import KFold from './KFold.astro';
+import Tuning from './Tuning.astro';
+import LeakageGame from './LeakageGame.astro';
+import Fairness from './Fairness.astro';
 
 export const FIGURES: Record<string, any> = {
   'rules-vs-learning': RulesVsLearning,
@@ -69,4 +87,21 @@ export const FIGURES: Record<string, any> = {
   'roc-curve': RocCurve,
   'knn-regions': KnnRegions,
   'spam-bayes': SpamBayes,
+  'tree-grow': TreeGrow,
+  'impurity-curve': ImpurityCurve,
+  'split-search': SplitSearch,
+  'reg-tree': RegTree,
+  'tree-depth': TreeDepth,
+  'crowd-vote': CrowdVote,
+  'bootstrap': Bootstrap,
+  'forest-vote': ForestVote,
+  'importance': Importance,
+  'bag-vs-boost': BagVsBoost,
+  'boost-steps': BoostSteps,
+  'dartboard': Dartboard,
+  'bias-variance': BiasVariance,
+  'kfold': KFold,
+  'tuning': Tuning,
+  'leakage-game': LeakageGame,
+  'fairness': Fairness,
 };

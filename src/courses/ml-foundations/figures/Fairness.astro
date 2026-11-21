@@ -1,0 +1,51 @@
+---
+// SIM for 7.5: one score, two groups. A loan model's scores separate repayers from defaulters less well in group B
+// (less or noisier data about them). With one shared threshold the two groups get different error rates.
+---
+<figure class="cs-fig mlf" data-fair>
+  <span class="cs-figtag">Try it: one threshold, two groups</span>
+  <canvas data-c="a" aria-label="Group A: score curves for people who would repay and who would default, well separated, with the approval threshold"></canvas>
+  <canvas data-c="b" aria-label="Group B: the same curves overlapping more, with group B's threshold"></canvas>
+  <div class="mlf-ctl">
+    <label>Threshold for group A: <output data-v="ta"></output><input type="range" name="ta" min="0.2" max="0.8" step="0.01" value="0.5" /></label>
+    <label>Threshold for group B: <output data-v="tb"></output><input type="range" name="tb" min="0.2" max="0.8" step="0.01" value="0.5" /></label>
+  </div>
+  <div class="cs-tablewrap"><table class="fr-t"><thead><tr><th>group</th><th>repayers approved</th><th>defaulters approved</th><th>all approved</th></tr></thead><tbody data-rows></tbody></table></div>
+  <figcaption>Made-up scores. Solid curve: people who would repay; dashed: people who would default; approve everyone right of the line. Group B's curves overlap more because the model knows less about them. With the same threshold, B's good applicants are turned down more often. Moving B's threshold can equalise one rate but then another drifts apart. When groups differ, the usual fairness measures cannot all be equal at once: someone has to choose, and say so openly.</figcaption>
+</figure>
+<style is:inline>
+  .fr-t { border-collapse: collapse; font-size: 14px; width: 100%; margin-top: 10px; }
+  .fr-t th, .fr-t td { border: 1px solid var(--line); padding: 5px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+  .fr-t th:first-child, .fr-t td:first-child { text-align: left; }
+</style>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { normalPdf, normalCdf } from '../../../lib/ml/core';
+  const G = { A: { pos: [0.62, 0.1], neg: [0.38, 0.1], share: 0.6 }, B: { pos: [0.56, 0.14], neg: [0.44, 0.14], share: 0.6 } } as const;
+  const above = ([m, s]: readonly number[], t: number) => 1 - normalCdf((t - m) / s);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fair]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const pa = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=a]')!, { x: [0, 1], y: [0, 4.2], h: 140, yLabel: 'group A', noYTicks: true });
+    const pb = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=b]')!, { x: [0, 1], y: [0, 4.2], h: 160, xLabel: 'model score', yLabel: 'group B', noYTicks: true });
+    const pct = (v: number) => `${fmt(100 * v, 0)} %`;
+    const ta = slider(fig, 'ta', () => go(), (v) => fmt(v, 2)), tb = slider(fig, 'tb', () => go(), (v) => fmt(v, 2));
+    const one = (p: Plot, g: (typeof G)['A'], t: number) => {
+      p.begin();
+      p.rect(t, 0, 1 - t, 4.2, { fill: p.pal.accent, alpha: 0.08 });
+      const d = ([m, s]: readonly number[]) => (x: number) => normalPdf((x - m) / s) / s;
+      p.fn(d(g.pos), { color: p.pal.accent, width: 2.5 }); p.fn(d(g.neg), { color: p.pal.accent2, width: 2.5, dash: [6, 4] });
+      p.line(t, 0, t, 4.2, { color: p.pal.ink, width: 2 }); p.text(t, 3.9, ' approve →', { align: 'left' });
+      p.end();
+    };
+    const draw = () => {
+      one(pa, G.A, ta()); one(pb, G.B, tb());
+      q('[data-rows]').replaceChildren(...(['A', 'B'] as const).map((k) => {
+        const g = G[k], t = k === 'A' ? ta() : tb(), tpr = above(g.pos, t), fpr = above(g.neg, t);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${k}</td><td>${pct(tpr)}</td><td>${pct(fpr)}</td><td>${pct(g.share * tpr + (1 - g.share) * fpr)}</td>`;
+        return tr;
+      }));
+    };
+    const go = live(fig.querySelector('canvas')!, draw);
+  }
+</script>

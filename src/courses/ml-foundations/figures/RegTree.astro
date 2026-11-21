@@ -1,0 +1,40 @@
+---
+// SIM for 5.4: a regression tree predicts a number as the average of the training points in each leaf, so its
+// prediction is a staircase. A depth slider shows the steps getting finer.
+---
+<figure class="cs-fig mlf" data-regtree>
+  <span class="cs-figtag">Try it: a staircase prediction</span>
+  <canvas aria-label="Ice-cream sales against temperature, with the regression tree's prediction drawn as flat steps"></canvas>
+  <div class="mlf-ctl"><label>Tree depth: <output data-v="d"></output><input type="range" name="d" min="0" max="8" step="1" value="2" /></label></div>
+  <div class="mlf-read"><div><span>leaves (steps)</span><b data-n></b></div><div><span>training error (RMSE)</span><b data-tr></b></div><div><span>test error (RMSE)</span><b data-te></b></div></div>
+  <figcaption>Made-up data: daily ice-cream sales (in hundreds) against the day's temperature. Each leaf predicts the average sales of the training days that land in it, so the prediction is flat inside each box and jumps between boxes. A split is chosen to lower the spread (variance) of sales on each side the most. Deeper trees make finer steps; past depth 2 or 3 they start chasing single noisy days and the test error rises again.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, rmse } from '../../../lib/ml/core';
+  import { growTree, predictTree } from '../../../lib/ml/trees';
+  const truth = (t: number) => 4 + 14 / (1 + Math.exp(-(t - 22) / 3));
+  const make = (n: number, seed: number) => { const R = rng(seed), X: number[][] = [], y: number[] = []; for (let i = 0; i < n; i++) { const t = R.uniform(8, 36); X.push([t]); y.push(truth(t) + R.normal(0, 1.8)); } return { X, y }; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-regtree]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const T = make(50, 21), V = make(300, 22);
+    const p = new Plot(cv, { x: [6, 38], y: [0, 24], h: 260, xLabel: 'temperature (°C)', yLabel: 'sales (hundreds)' });
+    const d = slider(fig, 'd', () => go(), (v) => String(v));
+    const draw = () => {
+      const g = growTree(T.X, T.y, { kind: 'reg', maxDepth: d() });
+      p.begin();
+      T.X.forEach((x, i) => p.dot(x[0], T.y[i], { r: 4, color: p.pal.accent, alpha: 0.8 }));
+      let prev = predictTree(g.root, [6]), x0 = 6;
+      for (let x = 6; x <= 38.001; x += 0.05) {
+        const v = predictTree(g.root, [x]);
+        if (Math.abs(v - prev) > 1e-9 || x > 38) { p.line(x0, prev, x, prev, { color: p.pal.accent2, width: 3 }); p.line(x, prev, x, v, { color: p.pal.accent2, width: 1, alpha: 0.6 }); x0 = x; prev = v; }
+      }
+      p.line(x0, prev, 38, prev, { color: p.pal.accent2, width: 3 });
+      p.end();
+      q('[data-n]').textContent = String(g.leaves.length);
+      q('[data-tr]').textContent = fmt(rmse(T.y, T.X.map((x) => predictTree(g.root, x))), 2);
+      q('[data-te]').textContent = fmt(rmse(V.y, V.X.map((x) => predictTree(g.root, x))), 2);
+    };
+    const go = live(cv, draw);
+  }
+</script>

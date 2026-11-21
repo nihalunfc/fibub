@@ -1,0 +1,27 @@
+---
+// DIA for 7.1: the dartboard picture of bias and variance. Each dart is one model trained on a different sample;
+// the bullseye is the truth. Bias is how far the cluster's centre is from the bullseye; variance is how spread it is.
+const R = (s: number) => () => ((s = (s * 16807) % 2147483647) / 2147483647) * 2 - 1;
+const darts = (cx: number, cy: number, spread: number, seed: number) => { const r = R(seed); return Array.from({ length: 8 }, () => [cx + spread * r(), cy + spread * r()]); };
+const B = [
+  { x: 92, y: 96, t: 'low bias, low variance', d: darts(0, 0, 7, 3), note: 'the goal' },
+  { x: 268, y: 96, t: 'low bias, high variance', d: darts(0, 0, 26, 5), note: 'overfitting' },
+  { x: 92, y: 250, t: 'high bias, low variance', d: darts(20, -18, 7, 7), note: 'underfitting' },
+  { x: 268, y: 250, t: 'high bias, high variance', d: darts(18, -16, 26, 9), note: 'the worst' },
+];
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: the dartboard</span>
+  <svg viewBox="0 0 360 340" role="img" aria-labelledby="db-t" style="max-width:520px">
+    <title id="db-t">Four dartboards. Low bias and low variance: darts tight on the bullseye. Low bias, high variance: darts scattered all round the bullseye. High bias, low variance: a tight cluster off to one side. High bias, high variance: a wide cluster off to one side.</title>
+    {B.map((b) => <g>
+      <circle cx={b.x} cy={b.y} r="54" class="box" /><circle cx={b.x} cy={b.y} r="36" class="box" /><circle cx={b.x} cy={b.y} r="18" class="box" />
+      <circle cx={b.x} cy={b.y} r="5" class="fa" />
+      {b.d.map(([dx, dy]) => <path d={`M${b.x + dx - 4} ${b.y + dy - 4}l8 8m0 -8l-8 8`} style="stroke:var(--ink);stroke-width:2.2" />)}
+      <text x={b.x} y={b.y + 70} text-anchor="middle" class="b">{b.t}</text>
+      <text x={b.x} y={b.y + 85} text-anchor="middle" class="mu">{b.note}</text>
+    </g>)}
+    <text x="356" y="336" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>Each cross is one model, trained on a different sample of data; the bullseye is the true answer. Bias: the crosses' centre misses the bullseye, the same way every time. Variance: the crosses scatter, because each model depends heavily on its own sample.</figcaption>
+</figure>
