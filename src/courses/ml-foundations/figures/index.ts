@@ -64,6 +64,16 @@ import BackpropChain from './BackpropChain.astro';
 import TrainingCurves from './TrainingCurves.astro';
 import ConvFilter from './ConvFilter.astro';
 import RnnMemory from './RnnMemory.astro';
+import TfidfTable from './TfidfTable.astro';
+import EmbeddingMap from './EmbeddingMap.astro';
+import NextWord from './NextWord.astro';
+import AttentionMap from './AttentionMap.astro';
+import TransformerBlock from './TransformerBlock.astro';
+import LlmStages from './LlmStages.astro';
+import LlmGuess from './LlmGuess.astro';
+import Capstone from './Capstone.astro';
+import ModelChooser from './ModelChooser.astro';
+import CourseMap from './CourseMap.astro';
 
 export const FIGURES: Record<string, any> = {
   'rules-vs-learning': RulesVsLearning,
@@ -128,4 +138,14 @@ export const FIGURES: Record<string, any> = {
   'training-curves': TrainingCurves,
   'conv-filter': ConvFilter,
   'rnn-memory': RnnMemory,
+  'tfidf-table': TfidfTable,
+  'embedding-map': EmbeddingMap,
+  'next-word': NextWord,
+  'attention-map': AttentionMap,
+  'transformer-block': TransformerBlock,
+  'llm-stages': LlmStages,
+  'llm-guess': LlmGuess,
+  'capstone': Capstone,
+  'model-chooser': ModelChooser,
+  'course-map': CourseMap,
 };

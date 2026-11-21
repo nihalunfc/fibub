@@ -75,4 +75,6 @@ A **transformer** stacks this, layer upon layer (often 30 to 90 layers). After e
 3. The cache stores keys and values for every token, so twice the tokens means twice the storage.
 </details>
 
+**Go deeper:** the maths of attention, with a live attention map you can change, is in [Attention: each word looks at the others](/learn/courses/ml-foundations/attention/), part of the free course From a straight line to an LLM.
+
 **New words:** *transformer*, *attention*, *query, key, value*, *layer*, *feed-forward*, *KV cache*.

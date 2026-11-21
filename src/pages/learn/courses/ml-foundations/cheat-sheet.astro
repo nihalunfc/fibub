@@ -1,0 +1,107 @@
+---
+// ML foundations cheat sheet: the key formulas of the course on one page, grouped by part, each with a one-line
+// meaning and the lesson that explains it. Maths is rendered to MathML at build time by temml (no script or font sent).
+import temml from 'temml';
+import Base from '../../../../layouts/Base.astro';
+import CourseSidebar from '../../../../components/course/CourseSidebar.astro';
+import { ML_FOUNDATIONS } from '../../../../courses/ml-foundations/syllabus';
+import { courseLessons } from '../../../../lib/course';
+import { flatLessons } from '../../../../courses/types';
+import '../../../../styles/course.css';
+const live = new Set((await courseLessons(ML_FOUNDATIONS)).keys());
+const num = new Map(flatLessons(ML_FOUNDATIONS).map((l) => [l.slug, l.n]));
+const tex = (t: string) => temml.renderToString(t, { displayMode: true, throwOnError: true, annotate: false });
+type F = [name: string, formula: string, meaning: string, lesson: string];
+const SECTIONS: { h: string; rows: F[] }[] = [
+  { h: 'Foundations', rows: [
+    ['Straight line', 'y = wx + b', 'w is the slope (change in y per unit of x), b the value at x = 0.', 'functions-and-slopes'],
+    ['Dot product', '\\mathbf{a}\\cdot\\mathbf{b} = \\sum_i a_i b_i', 'A weighted sum. Large when the vectors point the same way.', 'vectors-dot-product'],
+    ['Cosine similarity', '\\cos\\theta = \\frac{\\mathbf{a}\\cdot\\mathbf{b}}{\\lVert\\mathbf{a}\\rVert\\,\\lVert\\mathbf{b}\\rVert}', '1 same direction, 0 unrelated, −1 opposite.', 'vectors-dot-product'],
+    ['Gradient descent step', 'w \\leftarrow w - \\eta \\, \\frac{\\partial L}{\\partial w}', 'Step every weight a little downhill; η is the learning rate.', 'gradient-descent'],
+    ['Chain rule', '\\frac{dL}{dw} = \\frac{dL}{dz}\\cdot\\frac{dz}{dw}', 'The slope through a chain of steps is the product of the steps\' slopes.', 'derivatives-gradient'],
+    ['Mean and variance', '\\bar x = \\frac{1}{n}\\sum_i x_i, \\quad s^2 = \\frac{1}{n}\\sum_i (x_i - \\bar x)^2', 'The centre, and the average squared distance from it.', 'probability-basics'],
+    ['z-score', 'z = \\frac{x - \\bar x}{s}', 'How many standard deviations from the mean. Also how columns are scaled.', 'cleaning-data'],
+    ['Correlation', 'r = \\frac{\\sum_i (x_i - \\bar x)(y_i - \\bar y)}{n \\, s_x s_y}', 'From −1 to 1: how closely two columns follow a straight line.', 'correlation-causation'],
+  ] },
+  { h: 'Regression', rows: [
+    ['Linear model', '\\hat y = w_1 x_1 + \\dots + w_d x_d + b = \\mathbf{w}\\cdot\\mathbf{x} + b', 'A weighted sum of the inputs plus a bias.', 'linear-model'],
+    ['Mean squared error', '\\text{MSE} = \\frac{1}{n}\\sum_i (y_i - \\hat y_i)^2', 'The loss least squares makes as small as possible.', 'least-squares'],
+    ['Least-squares line', 'w = \\frac{\\sum_i (x_i - \\bar x)(y_i - \\bar y)}{\\sum_i (x_i - \\bar x)^2}, \\quad b = \\bar y - w \\bar x', 'The best straight line, in one step. It passes through the point of means.', 'least-squares'],
+    ['Normal equation', '\\mathbf{w} = (\\mathbf{X}^\\top\\mathbf{X})^{-1}\\mathbf{X}^\\top\\mathbf{y}', 'Least squares with many inputs at once.', 'multiple-regression'],
+    ['MAE and RMSE', '\\text{MAE} = \\frac{1}{n}\\sum_i \\lvert y_i - \\hat y_i \\rvert, \\quad \\text{RMSE} = \\sqrt{\\text{MSE}}', 'Typical miss, in the answer\'s units. RMSE punishes big misses more.', 'measuring-fit'],
+    ['R²', 'R^2 = 1 - \\frac{\\text{SSE}}{\\text{SST}}', 'Share of the variance explained: 1 perfect, 0 no better than the mean.', 'measuring-fit'],
+    ['Ridge and lasso', 'L = \\text{MSE} + \\lambda \\sum_j w_j^2 \\quad \\text{or} \\quad \\text{MSE} + \\lambda \\sum_j \\lvert w_j \\rvert', 'A penalty on large weights; lasso can set some to exactly 0.', 'regularisation'],
+  ] },
+  { h: 'Classification', rows: [
+    ['Sigmoid', '\\sigma(z) = \\frac{1}{1 + e^{-z}}', 'Squashes any number into a probability between 0 and 1.', 'sigmoid-odds'],
+    ['Log-odds', '\\ln\\frac{p}{1 - p} = \\mathbf{w}\\cdot\\mathbf{x} + b', 'Logistic regression is a linear model of the log-odds.', 'sigmoid-odds'],
+    ['Log-loss', 'L = -\\frac{1}{n}\\sum_i \\big[y_i \\ln p_i + (1 - y_i)\\ln(1 - p_i)\\big]', 'Punishes confident wrong answers hardest.', 'log-loss'],
+    ['Precision and recall', '\\text{precision} = \\frac{TP}{TP + FP}, \\quad \\text{recall} = \\frac{TP}{TP + FN}', 'Of the flagged, how many were right; of the real cases, how many were caught.', 'confusion-matrix'],
+    ['F1', 'F_1 = \\frac{2 \\cdot \\text{precision} \\cdot \\text{recall}}{\\text{precision} + \\text{recall}}', 'High only when both are high.', 'confusion-matrix'],
+    ['Bayes\' rule', 'P(A \\mid B) = \\frac{P(B \\mid A)\\,P(A)}{P(B)}', 'Turns the chance of the evidence into the chance of the cause.', 'naive-bayes'],
+    ['Euclidean distance', 'd(\\mathbf{a}, \\mathbf{b}) = \\sqrt{\\textstyle\\sum_j (a_j - b_j)^2}', 'Straight-line distance, used by k-NN and k-means. Scale the columns first.', 'k-nearest-neighbours'],
+  ] },
+  { h: 'Trees, forests and judging models', rows: [
+    ['Gini impurity', 'G = 1 - \\sum_k p_k^2', '0 for a pure group; 0.5 for a 50/50 split of two classes.', 'gini-entropy'],
+    ['Entropy', 'H = -\\sum_k p_k \\log_2 p_k', 'Mixture in bits: 0 pure, 1 for a 50/50 split.', 'gini-entropy'],
+    ['Information gain', '\\text{gain} = I(\\text{parent}) - \\tfrac{n_L}{n} I(L) - \\tfrac{n_R}{n} I(R)', 'How much a split cuts impurity, weighted by size.', 'information-gain'],
+    ['Bootstrap coverage', '1 - \\left(1 - \\tfrac{1}{n}\\right)^n \\approx 1 - e^{-1} \\approx 0.632', 'Share of rows that appear in a bootstrap sample.', 'bagging-bootstrap'],
+    ['Gradient boosting', 'F_m(\\mathbf{x}) = F_{m-1}(\\mathbf{x}) + \\eta \\, h_m(\\mathbf{x})', 'Each new tree h fits the residuals of the model so far.', 'gradient-boosting'],
+    ['Bias-variance', '\\mathbb{E}\\big[(y - \\hat y)^2\\big] = \\text{bias}^2 + \\text{variance} + \\sigma^2', 'Too simple, too jumpy, and the noise no model can remove.', 'bias-variance'],
+    ['Standard error', '\\text{SE} = \\frac{s}{\\sqrt{n}}', 'How much a mean (such as a cross-validated score) would vary.', 'probability-basics'],
+  ] },
+  { h: 'Patterns without labels', rows: [
+    ['k-means objective', '\\text{inertia} = \\sum_i \\lVert \\mathbf{x}_i - \\boldsymbol{\\mu}_{c(i)} \\rVert^2', 'Total squared distance to each point\'s own centre.', 'k-means'],
+    ['Silhouette', 's = \\frac{b - a}{\\max(a, b)}', 'a: mean distance within the cluster; b: to the nearest other cluster.', 'choosing-k'],
+    ['PCA', '\\mathbf{C}\\mathbf{v} = \\lambda \\mathbf{v}, \\quad \\text{share} = \\frac{\\lambda_1}{\\sum_j \\lambda_j}', 'Components are eigenvectors of the covariance matrix; eigenvalues give the variance kept.', 'pca'],
+  ] },
+  { h: 'Neural networks', rows: [
+    ['A layer', '\\mathbf{a}^{(l)} = g\\big(\\mathbf{W}^{(l)}\\mathbf{a}^{(l-1)} + \\mathbf{b}^{(l)}\\big)', 'A linear map, then a bend. Stack them to make a network.', 'layers'],
+    ['ReLU', '\\operatorname{ReLU}(z) = \\max(0, z)', 'The default activation: slope 1 for positive inputs, so gradients do not fade.', 'activation-functions'],
+    ['Softmax', 'p_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}', 'Scores to probabilities that add up to 1.', 'layers'],
+    ['Backpropagation', '\\boldsymbol{\\delta}^{(l)} = \\big(\\mathbf{W}^{(l+1)\\top}\\boldsymbol{\\delta}^{(l+1)}\\big) \\odot g\'\\big(\\mathbf{z}^{(l)}\\big)', 'Each layer\'s error from the next layer\'s; a weight\'s gradient is error × input.', 'backpropagation'],
+    ['Convolution output size', '(n - k + 1) \\times (n - k + 1)', 'An n × n image with a k × k filter, no padding, stride 1.', 'convolution'],
+    ['Recurrent cell', '\\mathbf{h}_t = \\tanh(\\mathbf{W}\\mathbf{x}_t + \\mathbf{U}\\mathbf{h}_{t-1} + \\mathbf{b})', 'A running memory updated with each new input.', 'sequences'],
+  ] },
+  { h: 'From words to an LLM', rows: [
+    ['TF-IDF', '\\text{tfidf}(w, d) = \\text{count}(w, d) \\times \\ln\\frac{N}{\\text{df}(w)}', 'Frequent here, rare elsewhere: the words that matter.', 'text-as-numbers'],
+    ['Next-word probability', 'P(w_1, \\dots, w_n) = \\prod_t P(w_t \\mid w_1, \\dots, w_{t-1})', 'A sentence\'s probability is the product of each word\'s.', 'next-word'],
+    ['Temperature', 'p_i = \\frac{e^{z_i / T}}{\\sum_j e^{z_j / T}}', 'Below 1 sharpens the odds; above 1 flattens them.', 'next-word'],
+    ['Cross-entropy and perplexity', 'L = -\\frac{1}{n}\\sum_t \\ln p(w_t), \\quad \\text{PPL} = e^{L}', 'The loss LLMs are trained on, and how many words it is choosing between.', 'next-word'],
+    ['Attention', '\\operatorname{softmax}\\!\\left(\\frac{\\mathbf{Q}\\mathbf{K}^\\top}{\\sqrt{d}}\\right)\\mathbf{V}', 'Each token mixes in the values of the tokens whose keys match its query.', 'attention'],
+    ['Transformer block', '\\mathbf{X}\' = \\operatorname{LN}(\\mathbf{X} + \\operatorname{Attn}(\\mathbf{X})), \\quad \\mathbf{Y} = \\operatorname{LN}(\\mathbf{X}\' + \\operatorname{FFN}(\\mathbf{X}\'))', 'Attention and a feed-forward network, each with a shortcut and normalisation.', 'transformer-block'],
+    ['Block size', '\\approx 12 d^2 \\text{ weights}', 'With d numbers per token: 4d² in attention, 8d² in the feed-forward part.', 'transformer-block'],
+    ['Training compute', 'C \\approx 6 N D', 'Arithmetic for N parameters trained on D tokens.', 'training-an-llm'],
+  ] },
+];
+---
+<Base title="Machine learning cheat sheet: every key formula" description="The key formulas of machine learning on one free page, from the straight line and least squares to Gini impurity, backpropagation, softmax and attention, each with a one-line meaning and the lesson that explains it.">
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/courses/">Courses</a> / <a href="/learn/courses/ml-foundations/">From a straight line to an LLM</a> / Cheat sheet</div>
+  <div class="cs-layout">
+    <CourseSidebar course={ML_FOUNDATIONS} live={live} />
+    <div class="cs-main ch">
+      <h1>Machine learning cheat sheet</h1>
+      <p class="lead">The key formulas of the course on one page, each with what it means in one line and the lesson that explains it. Print it or keep it open while you work.</p>
+      {SECTIONS.map((s) => (
+        <section>
+          <h2>{s.h}</h2>
+          {s.rows.map(([name, f, meaning, slug]) => (
+            <div class="ch-f">
+              <h3>{name} <a class="ch-l" href={`/learn/courses/ml-foundations/${slug}/`}>Lesson {num.get(slug)}</a></h3>
+              <div class="ch-m" set:html={tex(f)} />
+              <p>{meaning}</p>
+            </div>
+          ))}
+        </section>
+      ))}
+      <p class="cs-meta">See also the <a href="/learn/courses/ml-foundations/glossary/">glossary of terms</a>.</p>
+    </div>
+  </div>
+</Base>
+<style>
+  .ch-f { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ch-f h3 { margin: 0; font-size: 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .ch-l { font-size: 14px; font-weight: 600; }
+  .ch-m { overflow-x: auto; padding: 4px 0; font-size: 1.05em; }
+  .ch-f p { margin: 2px 0 0; }
+</style>

@@ -1,0 +1,62 @@
+---
+// SIM for 10.3: a bigram language model trained on 14 short made-up sentences. It counts which word follows
+// which, turns the counts into probabilities and writes a sentence one word at a time, either always taking the
+// most likely word or drawing at random with a temperature.
+const TEXT = `the cat sat on the mat. the cat ate the fish. the dog sat on the rug. the dog ate the bone.
+a cat likes fish. a dog likes bones. the cat likes the sun. the dog likes the park.
+the sun is warm. the park is big. the mat is warm. the fish is fresh.
+the cat sleeps on the mat. the dog sleeps in the park.`;
+---
+<figure class="cs-fig mlf nw" data-next data-text={TEXT}>
+  <span class="cs-figtag">Try it: write like a language model</span>
+  <p class="nw-out" data-out aria-live="polite"></p>
+  <div class="nw-bars" data-bars></div>
+  <div class="mlf-ctl">
+    <label>Temperature: <output data-v="t"></output><input type="range" name="t" min="0.2" max="3" step="0.1" value="1" /></label>
+  </div>
+  <div class="mlf-btns">
+    <button type="button" class="btn" data-pick="top">Add the most likely word</button>
+    <button type="button" class="btn secondary" data-pick="draw">Draw a word at random</button>
+    <button type="button" class="btn secondary" data-reset>Start again</button>
+  </div>
+  <details class="nw-train"><summary>The 14 training sentences</summary><p>{TEXT}</p></details>
+  <figcaption>The model only knows which word followed which in its training text: after "the", it saw "cat" 4 times out of 20, so it gives "cat" a probability of 4/20 = 0.2. Adding the most likely word every time soon loops ("the cat likes the cat likes ..."). Drawing at random by the probabilities gives more varied sentences. Temperature reshapes the odds before drawing: below 1 the likely words get likelier; above 1 the odds flatten. A large language model does the same thing, but its probabilities come from a network that reads the whole text so far, not just the last word.</figcaption>
+</figure>
+<style is:inline>
+  .nw-out { font-size: 18px; min-height: 2.6em; margin: 4px 0 10px; line-height: 1.4; }
+  .nw-out em { color: var(--muted); font-style: normal; }
+  .nw-bars { display: grid; gap: 4px; margin-bottom: 8px; }
+  .nw-bars div { display: grid; grid-template-columns: 70px 1fr 48px; gap: 8px; align-items: center; font-size: 13.5px; }
+  .nw-bars i { display: block; height: 12px; background: var(--accent); border-radius: 3px; min-width: 2px; }
+  .nw-bars span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .nw-train { font-size: 14px; margin-top: 10px; }
+  .nw-train p { margin: 6px 0 0; white-space: pre-line; }
+</style>
+<script>
+  import { slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { bigrams, nextWords, softmax, sample } from '../../../lib/ml/text';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-next]')) {
+    const M = bigrams(fig.dataset.text!), R = rng(11), q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    let words: string[] = [];
+    const t = slider(fig, 't', () => show(), (v) => fmt(v, 1));
+    const options = () => {
+      const nw = nextWords(M, words.length ? words[words.length - 1] : '<s>');
+      // Temperature: p^(1/T), renormalised (the same as softmax of log p divided by T).
+      const p = softmax(nw.map(([, pr]) => Math.log(pr)), t());
+      return nw.map(([w], i) => [w, p[i]] as [string, number]);
+    };
+    const show = () => {
+      const o = options();
+      q('[data-out]').innerHTML = words.length ? words.join(' ') + (o.length ? ' …' : '.') : '<em>Press a button to start the sentence.</em>';
+      q('[data-bars]').innerHTML = o.length ? o.slice(0, 6).map(([w, p]) => `<div><span>${w}</span><i style="width:${Math.max(1, Math.round(p * 100))}%"></i><span>${fmt(p, 2)}</span></div>`).join('') : '<div><span>end</span><span>No word ever followed this one: the sentence ends.</span></div>';
+      fig.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach((b) => (b.disabled = !o.length || words.length >= 14));
+    };
+    fig.querySelectorAll<HTMLButtonElement>('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+      const o = options(); if (!o.length) return;
+      words.push(b.dataset.pick === 'top' ? o[0][0] : o[sample(o.map(([, p]) => p), R.next())][0]); show();
+    }));
+    q('[data-reset]').addEventListener('click', () => { words = []; show(); });
+    show();
+  }
+</script>

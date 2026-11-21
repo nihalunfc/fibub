@@ -1,0 +1,44 @@
+---
+// SIM for 10.7: an LLM's answer is a draw from next-token probabilities. With made-up probabilities for the word
+// after "The capital of Australia is", ask the "model" 20 times and count the answers: usually right, sometimes
+// fluently wrong, more often so at a high temperature.
+const P: [string, number][] = [['Canberra', 0.55], ['Sydney', 0.3], ['Melbourne', 0.08], ['a', 0.04], ['the', 0.03]];
+---
+<figure class="cs-fig mlf nw" data-guess data-p={JSON.stringify(P)}>
+  <span class="cs-figtag">Try it: ask the same question 20 times</span>
+  <p class="ls-prompt"><strong>Prompt:</strong> The capital of Australia is …</p>
+  <div class="nw-bars" data-bars></div>
+  <div class="mlf-ctl"><label>Temperature: <output data-v="t"></output><input type="range" name="t" min="0.1" max="2.5" step="0.1" value="1" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-ask>Ask 20 times</button></div>
+  <div class="mlf-read"><div><span>Canberra (right)</span><b data-right>–</b></div><div><span>Sydney or Melbourne (wrong, but sounds right)</span><b data-wrong>–</b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Made-up probabilities for teaching. The model has no list of facts to look up: it has probabilities for the next token, shaped by how often things were written together. "Sydney" appears next to "Australia" far more often than "Canberra" does, so a wrong answer gets real probability, and when drawn it comes out just as fluently as the right one. Low temperature almost always gives the top answer; high temperature spreads the draws. Checking facts against a source (a search, a database, your own documents) is how real systems reduce such errors.</figcaption>
+</figure>
+<style is:inline>
+  .ls-prompt { margin: 6px 0 8px; }
+  .nw-bars { display: grid; gap: 4px; margin-bottom: 8px; }
+  .nw-bars div { display: grid; grid-template-columns: 82px 1fr 48px; gap: 8px; align-items: center; font-size: 13.5px; }
+  .nw-bars i { display: block; height: 12px; background: var(--accent); border-radius: 3px; min-width: 2px; }
+  .nw-bars span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+<script>
+  import { slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { softmax, sample } from '../../../lib/ml/text';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-guess]')) {
+    const P: [string, number][] = JSON.parse(fig.dataset.p!), R = rng(21), q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const t = slider(fig, 't', () => show(), (v) => fmt(v, 1));
+    const probs = () => softmax(P.map(([, p]) => Math.log(p)), t());
+    const show = () => {
+      const p = probs();
+      q('[data-bars]').innerHTML = P.map(([w], i) => `<div><span>${w}</span><i style="width:${Math.max(1, Math.round(p[i] * 100))}%"></i><span>${fmt(p[i], 2)}</span></div>`).join('');
+    };
+    q('[data-ask]').addEventListener('click', () => {
+      const p = probs(), got = Array.from({ length: 20 }, () => P[sample(p, R.next())][0]);
+      const right = got.filter((w) => w === 'Canberra').length, wrong = got.filter((w) => w === 'Sydney' || w === 'Melbourne').length;
+      q('[data-right]').textContent = `${right} of 20`; q('[data-wrong]').textContent = `${wrong} of 20`;
+      q('[data-say]').textContent = `Answers: ${got.join(', ')}.`;
+    });
+    show();
+  }
+</script>

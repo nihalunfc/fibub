@@ -1,0 +1,39 @@
+---
+// Figure for 11.3: where to go after this course. Three paths, each a short chain of free courses and tools.
+const PATHS: { h: string; who: string; steps: [string, string, string][] }[] = [
+  { h: 'Run AI yourself', who: 'For anyone who wants LLMs on their own computer, private and offline.', steps: [
+    ['Offline AI', '/learn/courses/offline-ai/', 'Choose hardware, run a model like Gemma on a laptop, chat with your own documents, build a small assistant.'],
+  ] },
+  { h: 'Data analyst', who: 'For people who want a job turning business data into decisions.', steps: [
+    ['Pipeline to Dashboard', 'https://nihalsulaiman.com/learn/etl-course/', 'Seven weeks of ETL and BI: pull data from email, files and APIs into a warehouse, model it in SQL and dbt, and build dashboards people trust.'],
+    ['Data at Scale', 'https://nihalsulaiman.com/learn/big-data-cloud/', 'Spark, BigQuery, Kafka and data platforms for AI and ML: the tools for data too big for one computer.'],
+  ] },
+  { h: 'Practise on real data', who: 'For everyone: free tools on this site that run in your browser, nothing uploaded.', steps: [
+    ['CSV profiler', '/science/csv-profiler/', 'Look before you model: every column, missing values, outliers, correlations.'],
+    ['Small model trainer', '/science/small-model-trainer/', 'Trees, logistic regression, k-NN and k-means on your own table.'],
+  ] },
+];
+---
+<figure class="cs-fig mlf cm">
+  <span class="cs-figtag">Picture: three ways to continue</span>
+  <div class="cm-paths">
+    {PATHS.map((p) => (
+      <section>
+        <h3>{p.h}</h3>
+        <p class="cm-who">{p.who}</p>
+        <ol>{p.steps.map(([name, href, what]) => <li><a href={href} rel={href.startsWith('http') ? 'noopener' : undefined}>{name}</a><span>{what}</span></li>)}</ol>
+      </section>
+    ))}
+  </div>
+  <figcaption>All free, with no sign-up. Pick the path that matches your goal; the data analyst path takes this course's ideas into real pipelines and dashboards.</figcaption>
+</figure>
+<style is:inline>
+  .cm-paths { display: grid; gap: 10px; }
+  @media (min-width: 720px) { .cm-paths { grid-template-columns: repeat(3, 1fr); } }
+  .cm-paths section { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .cm-paths h3 { margin: 0 0 4px; font-size: 16px; }
+  .cm-who { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .cm-paths ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .cm-paths li a { font-weight: 600; }
+  .cm-paths li span { display: block; font-size: 14px; }
+</style>

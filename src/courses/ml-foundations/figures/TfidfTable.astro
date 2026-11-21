@@ -1,0 +1,45 @@
+---
+// SIM for 10.1: four short product reviews turned into numbers. Pick a review; its words are listed with their
+// count, how many reviews use them, the IDF weight and the TF-IDF score, highest first. Cosine similarity finds
+// the closest other review.
+const DOCS = [
+  'the battery is great and the screen is great',
+  'the battery died fast and the charger is slow',
+  'the screen is bright and the camera is sharp',
+  'the charger is slow and the battery died',
+];
+---
+<figure class="cs-fig mlf tf" data-tfidf data-docs={JSON.stringify(DOCS)}>
+  <span class="cs-figtag">Try it: which words matter?</span>
+  <label class="tf-pick">Review: <select name="d">{DOCS.map((d, i) => <option value={i}>{i + 1}. {d}</option>)}</select></label>
+  <div class="tf-wrap"><table class="tf-t"><thead><tr><th>word</th><th>count</th><th>in reviews</th><th>IDF</th><th>TF-IDF</th></tr></thead><tbody data-rows></tbody></table></div>
+  <div class="mlf-read"><div><span>most similar review (cosine of TF-IDF)</span><b data-sim></b></div><div><span>same, with plain counts</span><b data-raw></b></div></div>
+  <figcaption>IDF = ln(4 ÷ number of reviews with the word). "the", "is" and "and" appear in all four reviews, so their IDF is ln 1 = 0 and they drop out, however often they occur. Words found in only one review get the biggest weight. Each review becomes a row of numbers, one per word in the vocabulary, and two reviews are similar when their rows point the same way (cosine similarity). Word order is lost: "the battery died" and "died the battery" get the same numbers.</figcaption>
+</figure>
+<style is:inline>
+  .tf-pick { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .tf-pick select { font: inherit; font-weight: 400; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .tf-wrap { overflow-x: auto; margin-top: 8px; }
+  .tf-t { border-collapse: collapse; font-size: 13px; width: 100%; }
+  .tf-t th, .tf-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums; }
+  .tf-t th:first-child, .tf-t td:first-child { text-align: left; }
+  .tf-t tr.zero td { color: var(--muted); }
+  .tf-t td .bar { display: inline-block; height: 8px; background: var(--accent); border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+</style>
+<script>
+  import { fmt } from './kit';
+  import { tfidf, counts, cosine } from '../../../lib/ml/text';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tfidf]')) {
+    const docs: string[] = JSON.parse(fig.dataset.docs!), T = tfidf(docs), C = counts(docs);
+    const sel = fig.querySelector('select')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const top = Math.max(...T.w.flat());
+    const show = () => {
+      const d = Number(sel.value);
+      const rows = T.vocab.map((w, j) => ({ w, c: T.tf[d][j], df: T.df[j], idf: T.idf[j], s: T.w[d][j] })).filter((r) => r.c > 0).sort((a, b) => b.s - a.s || a.w.localeCompare(b.w));
+      q('[data-rows]').innerHTML = rows.map((r) => `<tr class="${r.s ? '' : 'zero'}"><td>${r.w}</td><td>${r.c}</td><td>${r.df} of 4</td><td>${fmt(r.idf, 2)}</td><td><span class="bar" style="width:${Math.round((40 * r.s) / top)}px"></span>${fmt(r.s, 2)}</td></tr>`).join('');
+      const best = (rowsOf: number[][]) => { let b = -1, bs = -2; rowsOf.forEach((r, i) => { if (i !== d) { const s = cosine(rowsOf[d], r); if (s > bs) { bs = s; b = i; } } }); return `review ${b + 1} (${fmt(bs, 2)})`; };
+      q('[data-sim]').textContent = best(T.w); q('[data-raw]').textContent = best(C.tf);
+    };
+    sel.addEventListener('change', show); show();
+  }
+</script>

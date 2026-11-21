@@ -1,0 +1,62 @@
+---
+// SIM for 11.1: the whole course in one run. 400 made-up days of shop sales; the last 100 are held out. Four models
+// are trained on the first N days and scored on the held-out days by mean absolute error, and the forest's
+// feature importance explains what drives sales.
+---
+<figure class="cs-fig mlf cap" data-cap>
+  <span class="cs-figtag">Try it: four models, one fair test</span>
+  <div class="tf-wrap"><table class="tf-t" data-head></table></div>
+  <canvas aria-label="Bars of test error for four models, shortest is best, and below them bars of how much each column matters to the forest"></canvas>
+  <div class="mlf-ctl">
+    <label>Training days: <output data-v="n"></output><input type="range" name="n" min="20" max="300" step="10" value="150" /></label>
+    <label>Noise in daily sales (±): <output data-v="s"></output><input type="range" name="s" min="5" max="80" step="5" value="30" /></label>
+  </div>
+  <div class="mlf-read"><div><span>best model</span><b data-best></b></div><div><span>linear regression says a promotion adds</span><b data-promo></b></div></div>
+  <figcaption>Made-up data: 400 days, of which the last 100 are never used for training. Error is the mean absolute error in sales on those 100 days: the typical miss, in the same units as sales. No model can beat the noise, so even a perfect one misses by about 0.8 × the noise. The average of the training days is the baseline every model must beat. Linear regression cannot bend, so it misses the drop in sales on very hot days and the extra boost of a promotion at a weekend; trees can, and a forest of them is steadier than one tree. "day of month" does nothing, and its importance stays near zero.</figcaption>
+</figure>
+<style is:inline>
+  .tf-wrap { overflow-x: auto; margin-bottom: 8px; }
+  .tf-t { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  .tf-t th, .tf-t td { border: 1px solid var(--line); padding: 4px 5px; text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { shopSales, compareModels, SHOP_COLS } from '../../../lib/ml/capstone';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-cap]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 1], y: [0, 10], h: 340, bare: true });
+    let res: ReturnType<typeof compareModels> | undefined;
+    const run = () => {
+      const D = shopSales(400, rng(8), s()), test = Array.from({ length: 100 }, (_, i) => 300 + i), train = Array.from({ length: n() }, (_, i) => i);
+      res = compareModels(D.X, D.y, train, test, rng(2));
+      q('[data-head]').innerHTML = `<thead><tr><th>temp °C</th><th>weekend</th><th>promo</th><th>day</th><th>sales</th></tr></thead><tbody>${[0, 1, 2].map((i) => `<tr>${D.X[i].map((v) => `<td>${v}</td>`).join('')}<td>${D.y[i]}</td></tr>`).join('')}<tr><td colspan="5" style="text-align:left">… 397 more days</td></tr></tbody>`;
+      go();
+    };
+    const n = slider(fig, 'n', run, (v) => String(v)), s = slider(fig, 's', run, (v) => String(v));
+    const draw = () => {
+      if (!res) return;
+      const M = res.models, top = Math.max(...M.map((m) => m.mae)), best = M.reduce((a, b) => (b.mae < a.mae ? b : a));
+      p.begin();
+      p.text(0, 9.7, 'Test error (lower is better)', { bold: true, size: 13 });
+      M.forEach((m, i) => {
+        const y = 8.7 - i * 0.95;
+        p.text(0, y + 0.22, m.name, { size: 12, color: p.pal.muted });
+        p.rect(0, y - 0.62, (0.8 * m.mae) / top, 0.38, { fill: m === best ? p.pal.accent : p.pal.muted, alpha: m === best ? 1 : 0.5 });
+        p.text((0.8 * m.mae) / top + 0.02, y - 0.43, fmt(m.mae, 1), { size: 12, bold: m === best });
+      });
+      p.text(0, 4.6, 'What drives sales (forest importance)', { bold: true, size: 13 });
+      res.importance.forEach((v, j) => {
+        const y = 3.75 - j * 0.95;
+        p.text(0, y + 0.22, SHOP_COLS[j], { size: 12, color: p.pal.muted });
+        p.rect(0, y - 0.62, 0.8 * v, 0.38, { fill: p.pal.accent2 });
+        p.text(0.8 * v + 0.02, y - 0.43, `${fmt(v * 100, 0)} %`, { size: 12 });
+      });
+      p.end();
+      q('[data-best]').textContent = `${best.name.split(' (')[0]}, off by ${fmt(best.mae, 0)} a day`;
+      q('[data-promo]').textContent = `${fmt(res.weights[3], 0)} sales a day`;
+    };
+    const go = live(cv, draw);
+    run();
+  }
+</script>

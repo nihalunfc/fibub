@@ -1,0 +1,37 @@
+---
+// SIM for 10.6: the same prompt answered by a model after each training stage. Pick a stage to see what it learns
+// from, how much data, and how its answer changes. Answers are written to illustrate typical behaviour.
+const STAGES: { name: string; data: string; goal: string; answer: string }[] = [
+  { name: '1. Pretraining', data: 'Trillions of tokens of public web pages, books, code and papers. Weeks on thousands of graphics cards.', goal: 'Predict the next token, over and over. No one labels anything: the next word in the text is the answer.', answer: 'How do I boil an egg? How do I poach an egg? How long do you boil an egg for a soft yolk? These are the questions we hear most often in our kitchen …' },
+  { name: '2. Instruction tuning', data: 'Tens of thousands to millions of example conversations: a request and a good answer, many written by people.', goal: 'The same next-token loss, but only on the answers. The model learns the shape of a helpful reply.', answer: 'Put the egg in a pan, cover it with cold water and bring it to the boil. Then simmer: about 6 minutes for a soft yolk, 9 to 10 for hard. Cool it in cold water before peeling.' },
+  { name: '3. Feedback tuning', data: 'People (or a judging model) compare two answers to the same prompt and pick the better one; hundreds of thousands of comparisons.', goal: 'Shift the model towards answers people prefer: clear, correct, safe, honest about doubt (RLHF, DPO and similar methods).', answer: 'Here is a simple way:\n1. Cover the egg with cold water and bring it to the boil.\n2. Simmer 6 minutes (soft) or 9 to 10 minutes (hard).\n3. Move it to cold water for a minute, then peel.\nTimes are for a large egg straight from the fridge.' },
+];
+---
+<figure class="cs-fig mlf ls" data-stages data-s={JSON.stringify(STAGES)}>
+  <span class="cs-figtag">Try it: same question, three stages</span>
+  <div class="mlf-btns ls-tabs" role="group" aria-label="Training stage">{STAGES.map((s, i) => <button type="button" class="btn secondary" aria-pressed={i === 0 ? 'true' : 'false'} data-i={i}>{s.name}</button>)}</div>
+  <p class="ls-prompt"><strong>Prompt:</strong> How do I boil an egg?</p>
+  <p class="ls-ans" data-ans aria-live="polite"></p>
+  <dl class="ls-facts"><div><dt>Learns from</dt><dd data-data></dd></div><div><dt>Goal</dt><dd data-goal></dd></div></dl>
+  <figcaption>After pretraining, the model continues text: asked a question, it may write more questions, because that is what often follows a question on the web. Instruction tuning teaches it to answer; feedback tuning polishes how. All three stages train the same network with gradient descent (Lesson 3.3); only the data and the target change. The answers are written to show typical behaviour, not output from a particular model.</figcaption>
+</figure>
+<style is:inline>
+  .ls-tabs .btn[aria-pressed=true] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .ls-prompt { margin: 10px 0 4px; }
+  .ls-ans { white-space: pre-line; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin: 0 0 10px; line-height: 1.5; }
+  .ls-facts { margin: 0; display: grid; gap: 8px; }
+  .ls-facts dt { font-weight: 700; font-size: 14px; }
+  .ls-facts dd { margin: 2px 0 0; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-stages]')) {
+    const S: { name: string; data: string; goal: string; answer: string }[] = JSON.parse(fig.dataset.s!), q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const btns = [...fig.querySelectorAll<HTMLButtonElement>('[data-i]')];
+    const show = (i: number) => {
+      btns.forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+      q('[data-ans]').textContent = S[i].answer; q('[data-data]').textContent = S[i].data; q('[data-goal]').textContent = S[i].goal;
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => show(i)));
+    show(0);
+  }
+</script>
