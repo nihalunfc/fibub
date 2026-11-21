@@ -1,0 +1,30 @@
+/* Shared look for the ML foundations figures and simulations (one cached file for every lesson). */
+.mlf canvas { display: block; width: 100%; border-radius: 8px; }
+.mlf-ctl { display: grid; gap: 10px 16px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 10px 0 4px; }
+.mlf-ctl label { display: grid; gap: 3px; font-size: 14.5px; font-weight: 600; }
+.mlf-ctl label strong, .mlf-ctl label output { font-variant-numeric: tabular-nums; }
+.mlf-ctl input[type=range] { width: 100%; }
+.mlf-ctl select { font: inherit; font-weight: 400; padding: 7px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+.mlf-btns { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; }
+.mlf-read { display: grid; gap: 6px 14px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin: 10px 0 0; font-size: 14.5px; }
+.mlf-read div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--bg); }
+.mlf-read b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.mlf-read span { color: var(--muted); font-size: 13px; }
+.mlf-say { font-size: 15px; margin: 10px 0 0; min-height: 1.5em; }
+.mlf-hint { font-size: 13.5px; color: var(--muted); margin: 6px 0 0; }
+.mlf svg { display: block; width: 100%; height: auto; margin: 6px auto; }
+.mlf svg text { font: 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: var(--ink); }
+.mlf svg .mu { fill: var(--muted); font-size: 12px; }
+.mlf svg .b { font-weight: 700; }
+.mlf svg .box { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+.mlf svg .acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.mlf svg .ln { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.mlf svg .lna { stroke: var(--accent); stroke-width: 2; fill: none; }
+.mlf svg .fa { fill: var(--accent); }
+.mlf svg .wm { fill: var(--muted); opacity: .5; font-size: 11px; }
+.mlf-game { display: grid; gap: 8px; }
+.mlf-game .mlf-btns button[aria-pressed=true] { outline: 2px solid var(--accent); }
+.bw-two { display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 620px) { .bw-two { grid-template-columns: 1fr 1fr; } }
+.cs-math { overflow-x: auto; margin: 10px 0; }
+html.red-mode .mlf canvas { filter: none; }

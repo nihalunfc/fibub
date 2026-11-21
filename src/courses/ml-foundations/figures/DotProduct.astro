@@ -1,0 +1,47 @@
+---
+// SIM for 1.4: drag the tips of two arrows a and b. Shows their parts, the dot product both ways
+// (a₁b₁ + a₂b₂ and |a||b|cos θ), the angle, and the shadow (projection) of a on b.
+---
+<figure class="cs-fig mlf" data-dot>
+  <span class="cs-figtag">Try it: drag the arrow tips</span>
+  <canvas aria-label="Two arrows from the origin, a and b, with the shadow of a falling on b"></canvas>
+  <div class="mlf-read">
+    <div><span>a</span><b data-a></b></div>
+    <div><span>b</span><b data-b></b></div>
+    <div><span>a · b = a₁b₁ + a₂b₂</span><b data-d></b></div>
+    <div><span>angle θ between them</span><b data-t></b></div>
+  </div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>The dot product multiplies matching parts and adds them up. It is large and positive when the arrows point the same way, zero when they are at right angles, and negative when they point apart. The dashed line is the shadow of a on b: the dot product equals that shadow's length times the length of b.</figcaption>
+</figure>
+<script>
+  import { Plot, live, drag, fmt } from './kit';
+  import { dot, norm, angleDeg } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dot]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const V: [number, number][] = [[3, 2], [1, 3]];
+    const p = new Plot(cv, { x: [-4.5, 4.5], y: [-3, 4], h: 280, equal: true });
+    const draw = () => {
+      const [a, b] = V, d = dot(a, b), nb = norm(b), th = angleDeg(a, b);
+      p.begin();
+      p.line(p.x0, 0, p.x1, 0, { color: p.pal.line, width: 1 }).line(0, p.y0, 0, p.y1, { color: p.pal.line, width: 1 });
+      if (nb > 0) {
+        const k = d / (nb * nb), sx = k * b[0], sy = k * b[1];
+        p.line(-b[0] * 10, -b[1] * 10, b[0] * 10, b[1] * 10, { color: p.pal.grid, width: 1 });
+        p.line(a[0], a[1], sx, sy, { color: p.pal.muted, width: 1.5, dash: [4, 4] });
+        p.line(0, 0, sx, sy, { color: d >= 0 ? p.pal.good : p.pal.bad, width: 6, alpha: 0.5 });
+      }
+      p.arrow(0, 0, b[0], b[1], { color: p.pal.accent2, width: 3 }).text(b[0], b[1], ' b', { color: p.pal.accent2, bold: true, size: 15, dx: 6 });
+      p.arrow(0, 0, a[0], a[1], { color: p.pal.accent, width: 3 }).text(a[0], a[1], ' a', { color: p.pal.accent, bold: true, size: 15, dx: 6 });
+      V.forEach(([x, y], i) => p.dot(x, y, { r: 8, color: i ? p.pal.accent2 : p.pal.accent, alpha: 0.35 }));
+      p.end();
+      q('[data-a]').textContent = `(${fmt(a[0], 1)}, ${fmt(a[1], 1)})`;
+      q('[data-b]').textContent = `(${fmt(b[0], 1)}, ${fmt(b[1], 1)})`;
+      q('[data-d]').textContent = `${fmt(a[0], 1)}×${fmt(b[0], 1)} + ${fmt(a[1], 1)}×${fmt(b[1], 1)} = ${fmt(d)}`;
+      q('[data-t]').textContent = Number.isFinite(th) ? `${fmt(th, 0)}°` : '–';
+      q('[data-say]').textContent = Math.abs(d) < 0.05 ? 'At right angles: the dot product is 0. The arrows share nothing.' : d > 0 ? `Same general direction: positive. Check: |a| × |b| × cos θ = ${fmt(norm(a))} × ${fmt(nb)} × ${fmt(Math.cos((th * Math.PI) / 180))} = ${fmt(norm(a) * nb * Math.cos((th * Math.PI) / 180))}.` : 'Pointing apart: negative.';
+    };
+    const go = live(cv, draw);
+    drag(p, () => V, (i, x, y) => { V[i] = [Math.round(Math.max(-4, Math.min(4, x)) * 2) / 2, Math.round(Math.max(p.y0 + 0.3, Math.min(p.y1 - 0.3, y)) * 2) / 2]; go(); });
+  }
+</script>

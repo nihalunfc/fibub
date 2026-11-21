@@ -1,0 +1,42 @@
+---
+// SIM for 2.4: customers by age and yearly income. Pick a customer; the 5 "closest" others are found by
+// straight-line distance, first on the raw numbers (income in dollars swamps age) and then after scaling.
+---
+<figure class="cs-fig mlf" data-scaling>
+  <span class="cs-figtag">Try it: who are the nearest neighbours?</span>
+  <canvas aria-label="Customers plotted by age and income; one chosen customer and its five nearest neighbours are joined by lines"></canvas>
+  <div class="mlf-ctl"><label>Measure distance on<select name="s"><option value="raw">raw numbers (years and dollars)</option><option value="z">standardised numbers (z-scores)</option><option value="mm">min-max scaled (0 to 1)</option></select></label></div>
+  <p class="mlf-hint">Tap a customer to choose them.</p>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Distance adds up the differences in every column. On raw numbers a gap of $5,000 counts as 5,000 while a gap of 30 years counts as 30, so age is ignored and "nearest" just means "similar income" (the lines run sideways). After scaling, both columns have a similar range and both count. Models that use distance or gradient descent need scaled inputs. Made-up customers.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { rng, standardise, minMax } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-scaling]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector('select')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const R = rng(21);
+    const age = Array.from({ length: 40 }, () => Math.round(R.uniform(20, 70)));
+    const inc = age.map((a) => Math.round((25 + 1.2 * (a - 20) + R.normal(0, 18)) * 1000));
+    let pick = 0;
+    const p = new Plot(cv, { x: [15, 75], y: [0, 140000], h: 280, xLabel: 'age (years)', yLabel: 'income ($)' });
+    const scaled = () => sel.value === 'z' ? [standardise(age), standardise(inc)] : sel.value === 'mm' ? [minMax(age), minMax(inc)] : [age, inc];
+    const draw = () => {
+      const [A, I] = scaled();
+      const d = age.map((_, i) => ({ i, d: Math.hypot(A[i] - A[pick], I[i] - I[pick]) })).filter((o) => o.i !== pick).sort((a, b) => a.d - b.d).slice(0, 5);
+      p.begin();
+      d.forEach(({ i }) => p.line(age[pick], inc[pick], age[i], inc[i], { color: p.pal.accent2, width: 2 }));
+      age.forEach((a, i) => p.dot(a, inc[i], { r: i === pick ? 9 : 5, color: i === pick ? p.pal.accent2 : p.pal.accent, alpha: i === pick || d.some((o) => o.i === i) ? 1 : 0.5 }));
+      p.end();
+      const span = Math.max(...d.map(({ i }) => Math.abs(age[i] - age[pick])));
+      say.textContent = `Chosen: age ${age[pick]}, income $${fmt(inc[pick], 0)}. Its 5 neighbours differ in age by up to ${span} years.`;
+    };
+    sel.addEventListener('change', () => go());
+    cv.addEventListener('click', (e) => {
+      const b = cv.getBoundingClientRect(), X = e.clientX - b.left, Y = e.clientY - b.top;
+      let best = pick, bd = 900; age.forEach((a, i) => { const dd = (p.px(a) - X) ** 2 + (p.py(inc[i]) - Y) ** 2; if (dd < bd) { bd = dd; best = i; } });
+      pick = best; go();
+    });
+    const go = live(cv, draw);
+  }
+</script>

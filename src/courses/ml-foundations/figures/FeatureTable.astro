@@ -1,0 +1,53 @@
+---
+// SIM for 1.2: a small table of homes for sale. Tapping a column makes it the label (what we want to predict);
+// the rest become features, and the box names the kind of problem: regression, classification or none.
+const COLS = [
+  { k: 'Floor area (m²)', t: 'num' }, { k: 'Bedrooms', t: 'num' }, { k: 'Area', t: 'cat' },
+  { k: 'Age (years)', t: 'num' }, { k: 'Sale price ($000)', t: 'num' }, { k: 'Sold in 30 days?', t: 'cat' },
+];
+const ROWS = [
+  [72, 2, 'Centre', 35, 410, 'yes'], [120, 3, 'Suburb', 12, 520, 'yes'], [95, 3, 'Suburb', 40, 430, 'no'],
+  [60, 1, 'Centre', 8, 380, 'yes'], [180, 4, 'Edge', 22, 560, 'no'], [140, 4, 'Edge', 5, 590, 'no'],
+];
+---
+<figure class="cs-fig mlf ft" data-feature-table>
+  <span class="cs-figtag">Try it: pick what to predict</span>
+  <p class="mlf-hint">Tap a column heading to make it the <strong>label</strong>. Tap it again for no label. On a phone, slide the table sideways to see every column.</p>
+  <div class="ft-wrap"><table>
+    <thead><tr><th scope="col" class="ft-row">Row</th>{COLS.map((c, i) => <th scope="col"><button type="button" data-col={i} data-t={c.t} aria-pressed="false">{c.k}</button></th>)}</tr></thead>
+    <tbody>{ROWS.map((r, j) => <tr><th scope="row" class="ft-row">{j + 1}</th>{r.map((v, i) => <td data-col={i}>{v}</td>)}</tr>)}</tbody>
+  </table></div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Each <strong>row</strong> is one example (one home). Each <strong>column</strong> is a feature, except the one you want to predict, which is the label. Whether the label is a number or a category decides the kind of model you need. Made-up homes.</figcaption>
+</figure>
+<style is:inline>
+  .ft-wrap { overflow-x: auto; }
+  .ft table { border-collapse: collapse; font-size: 14px; min-width: 520px; width: 100%; }
+  .ft th, .ft td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; }
+  .ft thead button { font: inherit; font-weight: 700; background: none; border: 0; color: var(--accent); cursor: pointer; text-align: left; padding: 2px; text-decoration: underline dotted; }
+  .ft .ft-row { color: var(--muted); font-weight: 400; width: 2.5em; }
+  .ft .is-label { background: var(--accent); color: var(--accent-ink); }
+  .ft .is-label button { color: var(--accent-ink); }
+  .ft .is-feat { background: var(--accent-soft); }
+</style>
+<script>
+  const SAY: Record<string, (n: string) => string> = {
+    num: (n) => `Label: "${n}", a number. Predicting a number is called regression (Module 3). The other columns are the features the model may use.`,
+    cat: (n) => `Label: "${n}", a category. Predicting a category is called classification (Module 4). The other columns are the features.`,
+    none: () => 'No label: there is nothing to predict, so the model can only look for groups or patterns in the rows. That is called unsupervised learning (Module 8).',
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-feature-table]')) {
+    const btns = [...fig.querySelectorAll<HTMLButtonElement>('thead button')], say = fig.querySelector<HTMLElement>('[data-say]')!;
+    let on = 4;
+    const show = () => {
+      btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i === on)));
+      fig.querySelectorAll<HTMLElement>('[data-col]').forEach((el) => {
+        const i = Number(el.dataset.col), cell = el.tagName === 'BUTTON' ? el.parentElement! : el;
+        cell.classList.toggle('is-label', i === on); cell.classList.toggle('is-feat', on >= 0 && i !== on);
+      });
+      say.textContent = on < 0 ? SAY.none('') : SAY[btns[on].dataset.t!](btns[on].textContent!);
+    };
+    btns.forEach((b, i) => b.addEventListener('click', () => { on = on === i ? -1 : i; show(); }));
+    show();
+  }
+</script>

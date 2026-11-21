@@ -1,0 +1,35 @@
+---
+// SIM for 2.3: ice cream sales and swimming accidents rise together. Colouring the days by temperature, or
+// comparing only days of similar temperature, shows the hidden cause.
+---
+<figure class="cs-fig mlf" data-hidden>
+  <span class="cs-figtag">Try it: reveal the hidden cause</span>
+  <canvas aria-label="Ice cream sales against swimming accidents for 60 days; optionally coloured by temperature"></canvas>
+  <div class="mlf-ctl"><label>Show<select name="v"><option value="0">All days, one colour</option><option value="1">Colour by temperature</option><option value="2">Only days between 24 and 27 °C</option></select></label></div>
+  <div class="mlf-read"><div><span>correlation r of the dots shown</span><b data-r></b></div><div><span>days shown</span><b data-n></b></div></div>
+  <figcaption>Over a summer, days with more ice cream sold also have more swimming accidents (r is high). Ice cream does not cause drowning: hot weather drives both. Colour by temperature and the pattern lines up with heat; keep only days of similar temperature and the link almost disappears. A hidden cause like this is called a <strong>confounder</strong>. Made-up data.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { rng, correlation } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-hidden]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector('select')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(5);
+    const D = Array.from({ length: 60 }, () => { const t = R.uniform(14, 34); return { t, ice: Math.max(5, 12 * t - 120 + R.normal(0, 25)), acc: Math.max(0, 0.35 * t - 4 + R.normal(0, 1.2)) }; });
+    const p = new Plot(cv, { x: [0, 360], y: [0, 12], h: 280, xLabel: 'ice creams sold', yLabel: 'accidents' });
+    const draw = () => {
+      const v = Number(sel.value), shown = v === 2 ? D.filter((d) => d.t >= 24 && d.t <= 27) : D;
+      p.begin();
+      shown.forEach((d) => {
+        const k = (d.t - 14) / 20;
+        p.dot(d.ice, d.acc, v === 1 ? { color: k > 0.5 ? p.pal.accent2 : p.pal.accent, alpha: 0.35 + 0.65 * Math.abs(k - 0.5) * 2, r: 6, shape: k > 0.5 ? 'square' : 'circle' } : { r: 5, alpha: 0.8 });
+      });
+      if (v === 1) { p.text(p.x1, p.y1, 'hot days ■', { align: 'right', base: 'top', color: p.pal.accent2, dy: 2 }); p.text(p.x1, p.y1, 'cool days ●', { align: 'right', base: 'top', color: p.pal.accent, dy: 18 }); }
+      p.end();
+      q('[data-r]').textContent = fmt(correlation(shown.map((d) => d.ice), shown.map((d) => d.acc)));
+      q('[data-n]').textContent = String(shown.length);
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

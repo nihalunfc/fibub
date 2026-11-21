@@ -1,0 +1,41 @@
+---
+// SIM for 1.3: drag two points; the line through them, its slope (rise over run) and intercept update.
+---
+<figure class="cs-fig mlf" data-slope>
+  <span class="cs-figtag">Try it: drag the two points</span>
+  <canvas aria-label="A straight line through two draggable points with its rise and run drawn as a right-angled triangle"></canvas>
+  <div class="mlf-read">
+    <div><span>slope m = rise ÷ run</span><b data-m></b></div>
+    <div><span>intercept c (where x = 0)</span><b data-c></b></div>
+    <div><span>the line</span><b data-eq></b></div>
+  </div>
+  <figcaption>Drag either point. The <strong>slope</strong> is how much y goes up for each step of 1 in x: the rise of the triangle divided by its run. The <strong>intercept</strong> is where the line crosses the y-axis. A flat line has slope 0; a line going down has a negative slope.</figcaption>
+</figure>
+<script>
+  import { Plot, live, drag, fmt } from './kit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-slope]')) {
+    const cv = fig.querySelector('canvas')!;
+    const P: [number, number][] = [[1, 2], [6, 5]];
+    const p = new Plot(cv, { x: [-1, 10], y: [-2, 10], h: 280, xLabel: 'x', yLabel: 'y' });
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const draw = () => {
+      const [[x1, y1], [x2, y2]] = P, run = x2 - x1, rise = y2 - y1, m = Math.abs(run) < 1e-9 ? NaN : rise / run, c = y1 - m * x1;
+      p.begin();
+      p.line(p.x0, 0, p.x1, 0, { color: p.pal.line, width: 1 }).line(0, p.y0, 0, p.y1, { color: p.pal.line, width: 1 });
+      if (Number.isFinite(m)) {
+        p.fn((x) => m * x + c, { color: p.pal.accent, width: 2.5 });
+        p.line(x1, y1, x2, y1, { color: p.pal.accent2, width: 2, dash: [5, 4] }).line(x2, y1, x2, y2, { color: p.pal.accent2, width: 2, dash: [5, 4] });
+        p.text((x1 + x2) / 2, y1, `run ${fmt(run, 1)}`, { color: p.pal.accent2, align: 'center', dy: rise >= 0 ? 12 : -12 });
+        p.text(x2, (y1 + y2) / 2, ` rise ${fmt(rise, 1)}`, { color: p.pal.accent2, align: run >= 0 ? 'left' : 'right', dx: run >= 0 ? 4 : -4 });
+        if (c > p.y0 && c < p.y1) p.dot(0, c, { shape: 'ring', color: p.pal.ink, r: 6 });
+      }
+      P.forEach(([x, y]) => p.dot(x, y, { r: 9, color: p.pal.accent }));
+      p.end();
+      q('[data-m]').textContent = Number.isFinite(m) ? `${fmt(rise, 1)} ÷ ${fmt(run, 1)} = ${fmt(m)}` : 'undefined (upright line)';
+      q('[data-c]').textContent = Number.isFinite(m) ? fmt(c) : '–';
+      q('[data-eq]').textContent = Number.isFinite(m) ? `y = ${fmt(m)}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c))}` : `x = ${fmt(x1)}`;
+    };
+    const go = live(cv, draw);
+    drag(p, () => P, (i, x, y) => { P[i] = [Math.round(Math.max(-0.5, Math.min(9.5, x)) * 2) / 2, Math.round(Math.max(-1.5, Math.min(9.5, y)) * 2) / 2]; go(); });
+  }
+</script>

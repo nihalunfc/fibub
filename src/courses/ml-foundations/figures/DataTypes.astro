@@ -1,0 +1,43 @@
+---
+// GAME for 2.1: a value from a real table is shown; the reader says what type of data it is. Explains
+// the answer each time, including the traps (postal codes and phone numbers are categories, not numbers).
+const ITEMS: [string, number, string][] = [
+  ['Temperature at noon: 23.4 °C', 0, 'A measured amount that can take any value in a range: a continuous number. You can average it.'],
+  ['Number of children in a family: 2', 1, 'Counted in whole steps (nobody has 2.5 children): a discrete number.'],
+  ['Postal code: M5V 2T6', 2, 'It has digits in it, but it is a label for a place. Adding two postal codes means nothing, so it is a category with no order.'],
+  ['T-shirt size: S, M, L, XL', 3, 'A category, but the categories have an order (S is smaller than M). That is ordinal data.'],
+  ['Customer review: "Arrived late but works well"', 4, 'Free text. Models need it turned into numbers first (Lesson 10.1).'],
+  ['Order time: 2026-11-21 09:15', 5, 'A date and time. Models usually use parts of it: hour, day of the week, month, or time since something.'],
+  ['Phone number: 905 555 0142', 2, 'Digits, but a label. Its average is meaningless, so treat it as a category, or better, drop it: it identifies a person.'],
+  ['Blood group: A, B, AB or O', 2, 'A category with no natural order: nominal data.'],
+  ['Exam grade: A, B, C, D', 3, 'Ordered categories: ordinal. A is above B, but the gap between grades is not a fixed number.'],
+  ['House price: $455,000', 0, 'An amount of money: a continuous number (even though it is rounded to whole dollars).'],
+  ['Satisfaction from 1 (bad) to 5 (great)', 3, 'Ordinal. People often treat it as a number, but the step from 1 to 2 may not mean the same as the step from 4 to 5.'],
+  ['Daily rainfall for a year, 365 values in order', 5, 'A time series: the order matters, and yesterday helps predict today.'],
+];
+const TYPES = ['Continuous number', 'Discrete number', 'Category (no order)', 'Category (ordered)', 'Text', 'Date, time or sequence'];
+---
+<figure class="cs-fig mlf mlf-game" data-types data-items={JSON.stringify(ITEMS)}>
+  <span class="cs-figtag">Try it: what type of data is this?</span>
+  <p class="dt-item" aria-live="polite" data-item></p>
+  <div class="mlf-btns">{TYPES.map((t, i) => <button type="button" class="btn secondary small" data-t={i}>{t}</button>)}</div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <div class="mlf-btns"><button type="button" class="btn small" data-next>Next value</button> <span class="mlf-hint" data-score></span></div>
+  <figcaption>The type decides what you may do with a column: average it, sort it, count it, or turn it into numbers first.</figcaption>
+</figure>
+<style is:inline>.dt-item { font-size: 18px; font-weight: 600; margin: 6px 0; }</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-types]')) {
+    const I = JSON.parse(fig.dataset.items!) as [string, number, string][], q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    let k = 0, right = 0, tried = 0, done = false;
+    const show = () => { q('[data-item]').textContent = I[k][0]; q('[data-say]').textContent = ''; done = false; };
+    fig.querySelectorAll<HTMLButtonElement>('[data-t]').forEach((b) => b.addEventListener('click', () => {
+      if (done) return;
+      const ok = Number(b.dataset.t) === I[k][1]; done = true; tried++; if (ok) right++;
+      q('[data-say]').textContent = `${ok ? 'Right.' : 'Not quite.'} ${I[k][2]}`;
+      q('[data-score]').textContent = `${right} of ${tried} right`;
+    }));
+    q('[data-next]').addEventListener('click', () => { k = (k + 1) % I.length; show(); });
+    show();
+  }
+</script>

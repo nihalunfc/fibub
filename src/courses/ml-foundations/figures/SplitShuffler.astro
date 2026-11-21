@@ -1,0 +1,38 @@
+---
+// SIM for 2.5: 40 (size, price) points. Shuffle them into train and test; a straight line is fitted to the
+// train points only and scored on both. Reshuffle to see the test score move: one split is one opinion.
+---
+<figure class="cs-fig mlf" data-split>
+  <span class="cs-figtag">Try it: split, fit and test</span>
+  <canvas aria-label="Points coloured as training or test data, with a line fitted to the training points"></canvas>
+  <div class="mlf-ctl"><label>Share kept for testing: <output data-v="t"></output><input type="range" name="t" min="0.1" max="0.5" step="0.05" value="0.25" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-shuffle>Shuffle again</button></div>
+  <div class="mlf-read"><div><span>error on training rows (RMSE)</span><b data-tr></b></div><div><span>error on test rows (RMSE)</span><b data-te></b></div><div><span>test errors so far (lowest to highest)</span><b data-hist></b></div></div>
+  <figcaption><strong>Circles</strong> are training rows: the line is fitted to them only. <strong>Squares</strong> are test rows, hidden from the fit and used to score it. The test error is the honest one. Shuffle a few times: the test error changes with the luck of the split, which is why Lesson 7.2 averages over several splits. Made-up flats: size in m² and price in $000.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, fitLine, rmse, splitIndexes } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-split]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(8);
+    const X = Array.from({ length: 40 }, () => R.uniform(35, 140)), Y = X.map((x) => 90 + 3.1 * x + R.normal(0, 45));
+    let seed = 1; const seen: number[] = [];
+    const p = new Plot(cv, { x: [30, 145], y: [100, 600], h: 280, xLabel: 'size (m²)', yLabel: 'price ($000)' });
+    const t = slider(fig, 't', () => { seen.length = 0; go(); }, (v) => `${Math.round(v * 100)} %`);
+    const draw = (record = false) => {
+      const s = splitIndexes(40, t(), 0, rng(seed)), f = fitLine(s.train.map((i) => X[i]), s.train.map((i) => Y[i]));
+      const pr = (i: number) => f.m * X[i] + f.c;
+      const tr = rmse(s.train.map((i) => Y[i]), s.train.map(pr)), te = rmse(s.test.map((i) => Y[i]), s.test.map(pr));
+      if (record) seen.push(te);
+      p.begin(); p.fn((x) => f.m * x + f.c, { color: p.pal.ink, width: 2 });
+      s.train.forEach((i) => p.dot(X[i], Y[i], { r: 5, color: p.pal.accent, alpha: 0.8 }));
+      s.test.forEach((i) => { p.line(X[i], Y[i], X[i], pr(i), { color: p.pal.accent2, width: 1.5, dash: [3, 3] }); p.dot(X[i], Y[i], { r: 6, shape: 'square', color: p.pal.accent2 }); });
+      p.end();
+      q('[data-tr]').textContent = fmt(tr, 1); q('[data-te]').textContent = fmt(te, 1);
+      q('[data-hist]').textContent = seen.length ? seen.slice().sort((a, b) => a - b).map((v) => fmt(v, 0)).join(', ') : 'shuffle to collect';
+    };
+    q('[data-shuffle]').addEventListener('click', () => { seed++; draw(true); });
+    const go = live(cv, () => draw());
+  }
+</script>

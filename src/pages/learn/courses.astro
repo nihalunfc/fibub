@@ -3,7 +3,7 @@ import LearnPage from '../../components/LearnPage.astro';
 import { COURSES } from '../../data/curricula';
 const cards = COURSES.map((c) => ({ name: c.name, text: c.text, href: c.status === 'live' ? c.href : undefined, live: c.status === 'live' }));
 ---
-<LearnPage title="Learn: Courses" description="Free courses: Offline AI (run AI models on your own computer), home skills such as changing a tyre, fixing a puncture, hand tools, light carpentry and wall fixings, plus coding, AI, space and science."
-  lead="Free courses with no sign-up. New: Offline AI, a long course on running AI models on your own computer. Plus home skills: tyres and punctures, hand tools, light carpentry, wall fixings and how machines work. More topics are on the way."
+<LearnPage title="Learn: Courses" description="Free courses: machine learning from a straight line to an LLM, Offline AI (run AI models on your own computer), home skills such as changing a tyre, fixing a puncture, hand tools, light carpentry and wall fixings, plus coding, AI, space and science."
+  lead="Free courses with no sign-up. New: From a straight line to an LLM, how machines learn from data, with simulations and the maths worked by hand. Then Offline AI, a long course on running AI models on your own computer. Plus home skills: tyres and punctures, hand tools, light carpentry, wall fixings and how machines work. More topics are on the way."
   cardsTitle="Courses" cards={cards}
-  toolsTitle="Tools the courses will use" tools={['sky-tonight', 'plot-maker', 'sql-playground', 'budget-calculator', 'tree-carbon', 'sample-size']} />
+  toolsTitle="Tools the courses will use" tools={['small-model-trainer', 'regression-workbench', 'sky-tonight', 'plot-maker', 'sql-playground', 'budget-calculator', 'tree-carbon', 'sample-size']} />

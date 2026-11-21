@@ -9,6 +9,7 @@ export type CourseSyllabus = {
   text: string;      // one or two sentences for cards and the page lead
   audience: string;
   updated: string;
+  footnote?: string; // the small print under every lesson (default: the Offline AI price note)
   parts: { name: string; modules: CourseModule[] }[];
 };
 
