@@ -1,0 +1,60 @@
+---
+// SIM for 10.4: scaled dot-product attention on one sentence. Each word gets a query (what it looks for) and a
+// key (what it offers); a word's attention to another is the softmax of query · key / √d. The vectors here are
+// hand-made with 6 meaningful numbers so the pattern is readable; real models learn hundreds of numbers.
+const WORDS = ['the', 'cat', 'sat', 'on', 'the', 'mat', 'because', 'it', 'was', 'tired'];
+---
+<figure class="cs-fig mlf" data-attn data-words={JSON.stringify(WORDS)}>
+  <span class="cs-figtag">Try it: what does each word look at?</span>
+  <canvas aria-label="A 10 by 10 grid: each row is a word, each column a word it can look at, darker cells mean more attention; the row for it is darkest under cat"></canvas>
+  <div class="mlf-ctl">
+    <label>Word (row): <select name="w">{WORDS.map((w, i) => <option value={i} selected={i === 7}>{i + 1}. {w}</option>)}</select></label>
+    <label>Temperature: <output data-v="t"></output><input type="range" name="t" min="0.2" max="4" step="0.1" value="1" /></label>
+    <label class="mlf-check"><input type="checkbox" name="causal" /> Only look back (as when writing the next word)</label>
+  </div>
+  <div class="mlf-read"><div><span>looks most at</span><b data-top></b></div><div><span>its weights add up to</span><b data-sum></b></div></div>
+  <figcaption>Each row is one word's attention: the softmax of its scores, so the row adds up to 1. "it" looks mostly at "cat", because its query asks for an animal and "cat"'s key offers one. The word's new meaning is the weighted mix of the words' values, so after attention "it" carries mostly "cat". Higher temperature flattens every row; lower sharpens it. With "only look back", a word cannot see the words after it, which is how a model writes text one word at a time. Hand-made vectors for teaching.</figcaption>
+</figure>
+<style is:inline>
+  .mlf-check { flex-direction: row !important; display: flex !important; align-items: center; gap: 8px; font-weight: 400 !important; }
+</style>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { attention } from '../../../lib/ml/text';
+  // Six features: animal, thing or place, verb, pronoun, describing word, small function word.
+  const F: Record<string, number[]> = {
+    the: [0, 0, 0, 0, 0, 1], on: [0, 0, 0, 0, 0, 1], because: [0, 0, 0, 0, 0, 1], cat: [1, 0, 0, 0, 0, 0], mat: [0, 1, 0, 0, 0, 0],
+    sat: [0, 0, 1, 0, 0, 0], was: [0, 0, 1, 0, 0, 0], it: [0, 0, 0, 1, 0, 0], tired: [0, 0, 0, 0, 1, 0],
+  };
+  // Queries: a pronoun, a describing word and a verb look for an animal; a verb also looks for a thing or place;
+  // nouns look for verbs; function words look at each other. Keys and values are the features themselves.
+  const Wq = [[0, 0, 6, 9, 6, 0], [0, 0, 4.5, 0, 0, 1.5], [6, 3, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 3, 0, 0], [0, 0, 0, 0, 0, 3]];
+  const I = [0, 1, 2, 3, 4, 5].map((i) => [0, 1, 2, 3, 4, 5].map((j) => (i === j ? 1 : 0)));
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-attn]')) {
+    const W: string[] = JSON.parse(fig.dataset.words!), X = W.map((w) => F[w]), n = W.length;
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector('select')!, cb = fig.querySelector<HTMLInputElement>('input[name=causal]')!;
+    const t = slider(fig, 't', () => go(), (v) => fmt(v, 1));
+    const p = new Plot(cv, { x: [-2.3, n], y: [0, n + 1.1], h: 330, bare: true });
+    const short = (w: string) => (w.length > 4 ? w.slice(0, 3) + '.' : w);
+    const draw = () => {
+      const A = attention(X, Wq, I, I, { causal: cb.checked, T: t() }).weights, r = Number(sel.value);
+      p.begin();
+      for (let i = 0; i < n; i++) {
+        const y = n - 1 - i;
+        p.text(-0.15, y + 0.5, W[i], { align: 'right', size: 12, bold: i === r, color: i === r ? p.pal.ink : p.pal.muted });
+        for (let j = 0; j < n; j++) {
+          p.rect(j + 0.04, y + 0.04, 0.92, 0.92, { fill: p.pal.accent, alpha: Math.max(0.04, A[i][j]) });
+          if (i === r) p.text(j + 0.5, y + 0.5, A[i][j] < 0.005 ? '0' : fmt(A[i][j], 2).replace(/^0\./, '.'), { align: 'center', size: 10, bold: true, color: A[i][j] > 0.45 ? p.pal.bg : p.pal.ink });
+        }
+      }
+      p.rect(0, n - 1 - r, n, 1, { color: p.pal.ink, width: 2 });
+      for (let j = 0; j < n; j++) p.text(j + 0.5, n + 0.45, short(W[j]), { align: 'center', size: 10, color: p.pal.muted });
+      p.end();
+      const row = A[r], top = row.indexOf(Math.max(...row));
+      fig.querySelector<HTMLElement>('[data-top]')!.textContent = `"${W[top]}" (${fmt(row[top] * 100, 0)} %)`;
+      fig.querySelector<HTMLElement>('[data-sum]')!.textContent = fmt(row.reduce((a, b) => a + b, 0), 2);
+    };
+    sel.addEventListener('change', () => go()); cb.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,54 @@
+---
+// SIM for 10.2: a made-up 2-number embedding for 18 words. Similar words sit close together, and the same
+// relation (young, female, capital of) is the same arrow everywhere, so word arithmetic like
+// king − man + woman lands near queen. Real embeddings have hundreds of numbers and are learned, not placed.
+const E: [string, number, number][] = [
+  ['man', 1, 1.4], ['woman', 2.2, 1.4], ['king', 1, 2.8], ['queen', 2.2, 2.8], ['boy', 0.6, 0.6], ['girl', 1.8, 0.6],
+  ['dog', -2.2, 1.6], ['puppy', -2.6, 0.8], ['cat', -1, 1.6], ['kitten', -1.4, 0.8],
+  ['France', 1.6, -1.2], ['Paris', 2.2, -2.2], ['Italy', 3.4, -1.2], ['Rome', 4, -2.2], ['Japan', 5.2, -1.2], ['Tokyo', 5.8, -2.2],
+  ['apple', -2.2, -1.6], ['banana', -1.2, -2.2],
+];
+const OPT = E.map(([w]) => w);
+---
+<figure class="cs-fig mlf" data-emb data-e={JSON.stringify(E)}>
+  <span class="cs-figtag">Try it: word arithmetic</span>
+  <canvas aria-label="A map of words as points: people at the top right, animals at the top left, countries and capitals at the bottom, fruit at the bottom left, with an arrow showing the word sum"></canvas>
+  <div class="mlf-ctl">
+    <label>Start from: <select name="a">{OPT.map((w) => <option selected={w === 'king'}>{w}</option>)}</select></label>
+    <label>take away: <select name="b">{OPT.map((w) => <option selected={w === 'man'}>{w}</option>)}</select></label>
+    <label>add: <select name="c">{OPT.map((w) => <option selected={w === 'woman'}>{w}</option>)}</select></label>
+  </div>
+  <div class="mlf-read"><div><span>nearest word to the result</span><b data-near></b></div><div><span>distance</span><b data-d></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Each word is a point (here 2 numbers; in real models several hundred). The arrow from "man" to "woman" is the same as from "king" to "queen", so "king − man + woman" lands on "queen". Try "Paris − France + Italy", "puppy − dog + cat" or "girl − woman + man". The three words you start from are left out of the answer, as in the original word2vec tests. Made-up positions for teaching.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-emb]')) {
+    const E: [string, number, number][] = JSON.parse(fig.dataset.e!), cv = fig.querySelector('canvas')!;
+    const pos = new Map(E.map(([w, x, y]) => [w, [x, y] as [number, number]]));
+    const sel = (n: string) => fig.querySelector<HTMLSelectElement>(`select[name=${n}]`)!;
+    const p = new Plot(cv, { x: [-3.4, 6.8], y: [-2.9, 3.4], h: 300, bare: true });
+    const draw = () => {
+      const a = sel('a').value, b = sel('b').value, c = sel('c').value, A = pos.get(a)!, B = pos.get(b)!, C = pos.get(c)!;
+      const r: [number, number] = [A[0] - B[0] + C[0], A[1] - B[1] + C[1]];
+      let near = '', nd = Infinity;
+      for (const [w, x, y] of E) { if (w === a || w === b || w === c) continue; const d = Math.hypot(x - r[0], y - r[1]); if (d < nd) { nd = d; near = w; } }
+      p.begin();
+      for (const [w, x, y] of E) {
+        const on = w === a || w === b || w === c, hit = w === near;
+        p.dot(x, y, { r: hit ? 7 : 5, color: hit ? p.pal.accent2 : on ? p.pal.accent : p.pal.muted, shape: hit ? 'square' : 'circle' });
+        p.text(x, y, w, { dy: -13, align: 'center', size: 12, bold: on || hit, color: on || hit ? p.pal.ink : p.pal.muted });
+      }
+      p.arrow(B[0], B[1], C[0], C[1], { color: p.pal.accent, dash: [5, 4], width: 1.6 });
+      p.arrow(A[0], A[1], r[0], r[1], { color: p.pal.accent, width: 2.4 });
+      p.dot(r[0], r[1], { r: 6, shape: 'ring', color: p.pal.accent });
+      p.end();
+      fig.querySelector<HTMLElement>('[data-near]')!.textContent = near;
+      fig.querySelector<HTMLElement>('[data-d]')!.textContent = fmt(nd, 2);
+      fig.querySelector<HTMLElement>('[data-say]')!.textContent = `${a} − ${b} + ${c} lands at the ring (${fmt(r[0], 1)}, ${fmt(r[1], 1)}): the dashed arrow from ${b} to ${c}, moved to start at ${a}. ${nd < 0.2 ? `It lands right on "${near}".` : `Nothing is right there; the nearest word is "${near}".`}`;
+    };
+    fig.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => go()));
+    const go = live(cv, draw);
+  }
+</script>

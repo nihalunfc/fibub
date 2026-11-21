@@ -1,0 +1,47 @@
+---
+// SIM for 10.5: step through a transformer, from words to the next-word probabilities. Each step lights up its
+// box and says what happens to the numbers there, with their shapes for a small model.
+const STEPS: [string, string, string][] = [
+  ['Tokens', 'text → 5 token ids', 'The text "the cat sat on the" is cut into tokens (words or pieces of words) and each becomes an id number from a fixed vocabulary, say 50,000 entries.'],
+  ['Embedding + position', '5 × 512 numbers', 'Each id picks its row from a learned table: 512 numbers per token (Lesson 10.2). A position signal is added so the model knows which token came first: attention on its own ignores order.'],
+  ['Attention', 'still 5 × 512', 'Each token makes a query, a key and a value, and mixes in the values of the tokens it attends to (Lesson 10.4). Several heads do this side by side, each free to track something different, such as grammar or who "it" is. Only earlier tokens are visible.'],
+  ['Add and normalise', 'still 5 × 512', 'The attention output is added to what came in (a residual connection, so information and gradients can skip the layer), then each token\'s numbers are rescaled to mean 0 and spread 1 (layer normalisation) to keep training stable.'],
+  ['Feed-forward', '5 × 2,048 → 5 × 512', 'A small two-layer network (Lesson 9.3) is applied to each token on its own: widen to 2,048 numbers, ReLU-like bend, shrink back to 512. This is where much of the stored knowledge seems to live.'],
+  ['Add and normalise', 'still 5 × 512', 'Again: add the input back, then normalise. That is one transformer block. Its output has exactly the shape of its input, so blocks stack.'],
+  ['× N blocks', 'still 5 × 512', 'The same kind of block is repeated: 12 times in a small model, around 100 in a very large one, each with its own weights. Early blocks track word forms and grammar; later ones, meaning and the task.'],
+  ['Next-word scores', '512 → 50,000 scores', 'Only the last token\'s numbers are used to predict what comes next: one score (logit) for every token in the vocabulary.'],
+  ['Softmax', '50,000 probabilities', 'Softmax turns the scores into probabilities that add up to 1: "mat" 0.31, "rug" 0.12, "floor" 0.09, ... One is chosen (Lesson 10.3), added to the text, and the whole thing runs again for the next token.'],
+];
+---
+<figure class="cs-fig mlf tfb" data-tblock data-steps={JSON.stringify(STEPS)}>
+  <span class="cs-figtag">Try it: step through a transformer</span>
+  <ol class="tb-stack">{STEPS.map(([h, shape], i) => <li data-i={i} class={i >= 2 && i <= 5 ? 'blk' : ''}><strong>{h}</strong><span>{shape}</span></li>)}</ol>
+  <p class="mlf-say" data-say aria-live="polite"></p>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-back>Back</button><button type="button" class="btn" data-fwd>Next step</button></div>
+  <figcaption>The four boxes with a side line form one transformer block. Shapes are for a small made-up model: 5 tokens, 512 numbers per token, a 50,000-token vocabulary. A model's "size" (for example 8 billion parameters) counts every weight in the embedding table, the attention and feed-forward layers of every block, and the final scoring layer.</figcaption>
+</figure>
+<style is:inline>
+  .tb-stack { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+  .tb-stack li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .tb-stack li.blk { border-left: 4px solid var(--muted); }
+  .tb-stack li span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tb-stack li.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .tb-stack li.on strong { color: var(--accent); }
+  .tb-stack li.done { opacity: 0.6; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tblock]')) {
+    const S: [string, string, string][] = JSON.parse(fig.dataset.steps!), items = [...fig.querySelectorAll<HTMLElement>('.tb-stack li')];
+    const back = fig.querySelector<HTMLButtonElement>('[data-back]')!, fwd = fig.querySelector<HTMLButtonElement>('[data-fwd]')!;
+    let k = 0;
+    const show = () => {
+      items.forEach((li, i) => { li.classList.toggle('on', i === k); li.classList.toggle('done', i < k); });
+      fig.querySelector<HTMLElement>('[data-say]')!.textContent = `Step ${k + 1} of ${S.length}. ${S[k][2]}`;
+      back.disabled = k === 0; fwd.textContent = k === S.length - 1 ? 'Start again' : 'Next step';
+    };
+    fwd.addEventListener('click', () => { k = k === S.length - 1 ? 0 : k + 1; show(); });
+    back.addEventListener('click', () => { if (k) { k--; show(); } });
+    items.forEach((li, i) => li.addEventListener('click', () => { k = i; show(); }));
+    show();
+  }
+</script>

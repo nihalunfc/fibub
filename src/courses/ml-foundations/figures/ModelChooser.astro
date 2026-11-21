@@ -1,0 +1,61 @@
+---
+// SIM for 11.2: a short chooser. Answer four questions about the data and the job; it suggests a first model to
+// try, a stronger one to compare against, and the lesson that explains each. A starting point, not a rule.
+---
+<figure class="cs-fig mlf mc" data-chooser>
+  <span class="cs-figtag">Try it: which model should I start with?</span>
+  <div class="mlf-ctl">
+    <label>What do you want?
+      <select name="goal">
+        <option value="number">Predict a number (sales, price, time)</option>
+        <option value="class" selected>Predict a yes/no or a category</option>
+        <option value="groups">Find groups, with no answer column</option>
+        <option value="odd">Find unusual rows</option>
+        <option value="text">Work with text, images or sound</option>
+      </select>
+    </label>
+    <label>Rows of data:
+      <select name="rows"><option value="small">Fewer than 1,000</option><option value="mid" selected>1,000 to 100,000</option><option value="big">More than 100,000</option></select>
+    </label>
+    <label>Must you explain each prediction (to a customer, a regulator)?
+      <select name="explain"><option value="yes">Yes, clearly</option><option value="no" selected>Not in detail</option></select>
+    </label>
+    <label>Is the data a table of columns?
+      <select name="table"><option value="yes" selected>Yes, rows and columns</option><option value="no">No: free text, pictures, sound or sequences</option></select>
+    </label>
+  </div>
+  <div class="mc-out" data-out aria-live="polite"></div>
+  <figcaption>Whatever the suggestion: split off test data first (Lesson 2.5), beat a simple baseline (the average, or the most common class), compare models with cross-validation (Lesson 7.2), and watch for leakage (Lesson 7.4). On tables of columns, gradient-boosted trees win most competitions; on text, pictures and sound, neural networks do. Simple models are often close enough, and far easier to explain.</figcaption>
+</figure>
+<style is:inline>
+  .mc-out { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+  .mc-out p { margin: 0 0 6px; }
+  .mc-out p:last-child { margin-bottom: 0; }
+</style>
+<script>
+  type Pick = [string, string, string];
+  const L = (slug: string, n: string) => `<a href="/learn/courses/ml-foundations/${slug}/">Lesson ${n}</a>`;
+  const choose = (goal: string, rows: string, explain: boolean, table: boolean): { first: Pick; then: Pick; note: string } => {
+    if (!table || goal === 'text') return {
+      first: ['A ready-made pretrained model', 'Use an existing model (an embedding model or an LLM for text, an image model for pictures) and train only a small model on its output.', L('embeddings', '10.2')],
+      then: ['Fine-tune a neural network', rows === 'big' ? 'With this much data, fine-tuning a pretrained network on your own examples usually pays off.' : 'Only if the ready-made route is not good enough; it needs care with small data.', L('training-networks', '9.5')],
+      note: 'Turn text into numbers first: counts and TF-IDF are a strong, explainable baseline (' + L('text-as-numbers', '10.1') + ').',
+    };
+    if (goal === 'groups') return { first: ['k-means', 'Scale the columns, try k from 2 to 8, choose with the elbow and the silhouette.', L('k-means', '8.1')], then: ['Hierarchical clustering', 'Shows groups at every level; good for a few thousand rows or fewer.', L('hierarchical-clustering', '8.3')], note: 'PCA first helps when there are many columns (' + L('pca', '8.4') + '). Check that the groups mean something to the business.' };
+    if (goal === 'odd') return { first: ['z-scores per column', 'Fast and easy to explain; catches extreme values.', L('anomaly-detection', '8.5')], then: ['Distance to nearest neighbours', 'Catches rows that are odd only in combination.', L('anomaly-detection', '8.5')], note: 'Decide first what kind of odd you care about; then describe it with the right columns.' };
+    if (goal === 'number') return explain
+      ? { first: ['Linear regression', 'Each weight says how much the answer moves per unit of a column.', L('linear-model', '3.1')], then: ['A shallow regression tree', 'A few readable rules; captures bends and thresholds.', L('regression-trees', '5.4')], note: 'Ridge or lasso help when columns are many or related (' + L('regularisation', '3.8') + ').' }
+      : { first: ['Linear regression as the baseline', 'Quick, and shows whether a straight-line story explains most of it.', L('linear-model', '3.1')], then: [rows === 'small' ? 'Random forest' : 'Gradient-boosted trees', rows === 'small' ? 'Needs little tuning and rarely overfits badly on small data.' : 'Usually the most accurate on tables; tune the learning rate and number of trees.', rows === 'small' ? L('random-forests', '6.3') : L('gradient-boosting', '6.6')], note: 'Explain a forest or boosted model with permutation importance (' + L('feature-importance', '6.4') + ').' };
+    return explain
+      ? { first: ['Logistic regression', 'Gives a probability, and each weight has a plain meaning (odds up or down).', L('sigmoid-odds', '4.2')], then: ['A shallow decision tree', 'A few if-then rules anyone can follow.', L('how-trees-decide', '5.1')], note: 'Pick the threshold for the cost of each mistake (' + L('roc-auc', '4.6') + ').' }
+      : { first: ['Logistic regression as the baseline', 'Fast, gives probabilities, hard to beat on simple problems.', L('sigmoid-odds', '4.2')], then: [rows === 'small' ? 'Random forest' : 'Gradient-boosted trees', rows === 'small' ? 'Strong with little tuning.' : 'Usually the most accurate on tables of columns.', rows === 'small' ? L('random-forests', '6.3') : L('gradient-boosting', '6.6')], note: 'Judge it with precision and recall, not only accuracy, when one class is rare (' + L('confusion-matrix', '4.5') + ').' };
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-chooser]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`select[name=${n}]`)!.value;
+    const show = () => {
+      const r = choose(v('goal'), v('rows'), v('explain') === 'yes', v('table') === 'yes');
+      fig.querySelector<HTMLElement>('[data-out]')!.innerHTML = `<p><strong>Start with: ${r.first[0]}.</strong> ${r.first[1]} ${r.first[2]}</p><p><strong>Then compare: ${r.then[0]}.</strong> ${r.then[1]} ${r.then[2]}</p><p>${r.note}</p>`;
+    };
+    fig.querySelectorAll('select').forEach((s) => s.addEventListener('change', show)); show();
+  }
+</script>

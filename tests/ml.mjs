@@ -5,6 +5,8 @@ import * as M2 from '../src/lib/ml/models.ts';
 import * as T from '../src/lib/ml/trees.ts';
 import * as U from '../src/lib/ml/unsup.ts';
 import * as N from '../src/lib/ml/nn.ts';
+import * as X from '../src/lib/ml/text.ts';
+import * as C from '../src/lib/ml/capstone.ts';
 
 let fails = 0, n = 0;
 const near = (got, want, tol, what) => { n++; if (!(Math.abs(got - want) <= tol)) { fails++; console.error(`✗ ${what}: got ${got}, want ${want}`); } };
@@ -141,6 +143,45 @@ ok(N.conv2d([[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 0], [0, -1]]).flat().every((
 ok(N.conv2d(Array.from({ length: 12 }, () => new Array(12).fill(0)), [[1, 1, 1], [1, 1, 1], [1, 1, 1]]).length === 10, 'output 10 × 10');
 // 9.7 worked example: w 1, u 0.7 on 0, 1, 0, 0, 0 → 0.762, 0.488, 0.329, 0.226.
 { const h = N.rnn([0, 1, 0, 0, 0], 1, 0.7); ok(h.slice(1).map((v) => v.toFixed(3)).join() === '0.762,0.488,0.329,0.226', 'rnn echo ' + h.map((v) => v.toFixed(3))); }
+
+// Module 10 (src/lib/ml/text.ts).
+// 10.1 worked example: "great" 2.77, "screen" 0.69, "battery" 0.29, "the" 0; cosine 0.72 with counts, 0.07 with TF-IDF.
+{ const D = ['the battery is great and the screen is great', 'the battery died fast and the charger is slow', 'the screen is bright and the camera is sharp', 'the charger is slow and the battery died'];
+  const T = X.tfidf(D), w = (word) => T.w[0][T.vocab.indexOf(word)];
+  near(w('great'), 2 * Math.log(4), 1e-12, 'tf-idf great'); near(w('screen'), Math.log(2), 1e-12, 'tf-idf screen'); near(w('battery'), Math.log(4 / 3), 1e-12, 'tf-idf battery'); near(w('the'), 0, 1e-12, 'tf-idf the');
+  near(X.cosine(X.counts(D).tf[0], X.counts(D).tf[2]), 0.72, 0.005, 'cosine counts'); near(X.cosine(T.w[0], T.w[2]), 0.07, 0.005, 'cosine tf-idf');
+  ok(X.cosine(T.w[1], T.w[3]) > X.cosine(T.w[1], T.w[0]), 'review 2 closest to review 4'); }
+near(3 * Math.log(10 / 2), 4.83, 0.005, '10.1 try it'); near(X.cosine([1, 2, 2], [2, 1, 2]), 8 / 9, 1e-12, '10.2 cosine try it');
+// 10.3: bigram counts and P(the cat sat) = 12/14 × 4/20 × 1/5.
+{ const M = X.bigrams(`the cat sat on the mat. the cat ate the fish. the dog sat on the rug. the dog ate the bone.
+a cat likes fish. a dog likes bones. the cat likes the sun. the dog likes the park.
+the sun is warm. the park is big. the mat is warm. the fish is fresh.
+the cat sleeps on the mat. the dog sleeps in the park.`);
+  const P = (a, b) => (X.nextWords(M, a).find(([w]) => w === b) ?? [0, 0])[1];
+  near(P('the', 'cat'), 0.2, 1e-12, 'P(cat | the)'); near(P('<s>', 'the') * P('the', 'cat') * P('cat', 'sat'), (12 / 14) * 0.2 * 0.2, 1e-12, 'P(the cat sat)');
+  ok(X.nextWords(M, 'the')[0][0] === 'cat', 'most likely after the'); }
+near(X.perplexity((X.crossEntropy([0.5], 0) + X.crossEntropy([0.125], 0)) / 2), 4, 1e-9, 'perplexity 4');
+// Temperature: 0.5 squares the probabilities (10.7 worked example).
+{ const p = X.softmax([0.55, 0.3, 0.08, 0.04, 0.03].map(Math.log), 0.5); near(p[0], 0.754, 1e-3, 'T 0.5 Canberra'); near(p[1], 0.224, 1e-3, 'T 0.5 Sydney'); }
+{ const p = X.softmax([2, 0, 0]); near(p[0], 0.787, 1e-3, '10.4 try it softmax'); }
+// 10.4 worked example: weights 0.576, 0.140, 0.284 and output (0.860, 0.424).
+{ const I = [[1, 0], [0, 1]], A = X.attention([[1, 0]], I, I, I), q = [1, 0], K = [[2, 0], [0, 2], [1, 1]], V = [[1, 0], [0, 1], [1, 1]];
+  const s = K.map((k) => X.dot(q, k) / Math.SQRT2), w = X.softmax(s), out = [0, 1].map((c) => w.reduce((t, wi, j) => t + wi * V[j][c], 0));
+  near(w[0], 0.576, 1e-3, 'attention weight 1'); near(w[2], 0.284, 1e-3, 'attention weight 3'); near(out[0], 0.860, 1e-3, 'attention out x'); near(out[1], 0.424, 1e-3, 'attention out y');
+  near(A.weights[0][0], 1, 1e-12, 'attention to self only');
+  const Xs = [[1, 0], [0, 1], [1, 1]], C2 = X.attention(Xs, I, I, I, { causal: true }); ok(C2.weights[0][1] === 0 && C2.weights[1][2] === 0, 'causal mask');
+  ok(C2.weights.every((r) => Math.abs(r.reduce((a, b) => a + b, 0) - 1) < 1e-12), 'attention rows add to 1'); }
+// 10.5: layer norm of (1, 2, 3, 6).
+{ const l = X.layerNorm([1, 2, 3, 6]); near(l[0], -1.069, 1e-3, 'layer norm 1'); near(l[3], 1.604, 1e-3, 'layer norm 6'); }
+near(12 * 512 ** 2, 3145728, 0, 'block size');
+// 10.6: losses 0.5, 0.25, 0.1, 0.8 → perplexity 3.16.
+near(X.perplexity([0.5, 0.25, 0.1, 0.8].reduce((s, p) => s + X.crossEntropy([p], 0), 0) / 4), Math.sqrt(10), 1e-9, 'perplexity 3.16');
+// Module 11 (src/lib/ml/capstone.ts): the forest wins with 300 days, linear wins with 20; day of month barely matters.
+{ const D = C.shopSales(400, M.rng(8), 30), test = Array.from({ length: 100 }, (_, i) => 300 + i), tr = (n) => Array.from({ length: n }, (_, i) => i);
+  const big = C.compareModels(D.X, D.y, tr(300), test, M.rng(2)).models.map((m) => m.mae), small = C.compareModels(D.X, D.y, tr(20), test, M.rng(2)).models.map((m) => m.mae);
+  const r150 = C.compareModels(D.X, D.y, tr(150), test, M.rng(2));
+  ok(big[3] < big[1] && big[1] < big[0], 'forest beats linear beats baseline (300 days)'); ok(small[1] < small[3] && small[2] > small[0], 'linear wins with 20 days, tree worse than baseline');
+  near(r150.models[3].mae, 28.3, 0.05, 'capstone forest MAE'); near(r150.models[1].mae, 34.2, 0.05, 'capstone linear MAE'); ok(r150.importance[3] < 0.08, 'day of month unimportant'); }
 
 if (fails) { console.error(`ml: ${fails} of ${n} checks failed`); process.exit(1); }
 console.log(`ml: ${n} checks passed`);
