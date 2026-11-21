@@ -1,0 +1,51 @@
+---
+// SIM for 3.8: a degree-10 polynomial on 14 points, tamed by a penalty. Ridge shrinks every weight a little;
+// lasso pushes many to exactly zero. Bars show the weights; the test error shows the benefit.
+---
+<figure class="cs-fig mlf" data-ridge>
+  <span class="cs-figtag">Try it: turn up the penalty</span>
+  <div class="bw-two">
+    <canvas data-c="fit" aria-label="Training points with a degree-10 polynomial fitted with a penalty"></canvas>
+    <canvas data-c="w" aria-label="Bar chart of the ten weights"></canvas>
+  </div>
+  <div class="mlf-ctl">
+    <label>Penalty<select name="k"><option value="ridge">Ridge (L2: sum of squared weights)</option><option value="lasso">Lasso (L1: sum of absolute weights)</option></select></label>
+    <label>Strength λ: <output data-v="l"></output><input type="range" name="l" min="-6" max="1" step="0.25" value="-6" /></label>
+  </div>
+  <div class="mlf-read"><div><span>training error (RMSE)</span><b data-tr></b></div><div><span>test error (RMSE)</span><b data-te></b></div><div><span>weights exactly zero</span><b data-z></b></div></div>
+  <figcaption>With almost no penalty the degree-10 curve overfits: huge weights pulling against each other. Raise λ and the weights shrink, the curve calms down and the test error drops, until too much penalty flattens the curve and it underfits. Lasso sets some weights to exactly zero, which also picks the inputs that matter. Same data as Lesson 3.7.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, rmse, mean, sd } from '../../../lib/ml/core';
+  import { leastSquares, lasso, polyRow } from '../../../lib/ml/models';
+  const truth = (x: number) => 3 + 2 * Math.sin(x * 0.75) + 0.15 * x;
+  const R = rng(17);
+  const TX = Array.from({ length: 14 }, (_, i) => 0.3 + (i * 9.4) / 13 + R.uniform(-0.25, 0.25)), TY = TX.map((x) => truth(x) + R.normal(0, 0.45));
+  const VX = Array.from({ length: 60 }, () => R.uniform(0.3, 9.7)), VY = VX.map((x) => truth(x) + R.normal(0, 0.45));
+  const D = 10, u = (x: number) => (x - 5) / 5;
+  // Standardise the power columns (not the constant) so one λ treats every weight alike.
+  const raw = TX.map((x) => polyRow(u(x), D).slice(1));
+  const mu = Array.from({ length: D }, (_, j) => mean(raw.map((r) => r[j]))), sg = Array.from({ length: D }, (_, j) => sd(raw.map((r) => r[j])) || 1);
+  const row = (x: number) => [1, ...polyRow(u(x), D).slice(1).map((v, j) => (v - mu[j]) / sg[j])];
+  const X = TX.map(row);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ridge]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const pf = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=fit]')!, { x: [0, 10], y: [-1, 8], h: 250, xLabel: 'x', yLabel: 'y' });
+    const pw = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=w]')!, { x: [0.4, 10.6], y: [-6, 6], h: 250, xLabel: 'weight of x¹ … x¹⁰' });
+    const l = slider(fig, 'l', () => go(), (v) => (10 ** v < 0.001 ? (10 ** v).toExponential(0) : fmt(10 ** v, 3)));
+    const draw = () => {
+      const lam = 10 ** l(), w = sel.value === 'lasso' ? lasso(X, TY, lam / 10, 800) : leastSquares(X, TY, lam * TX.length, 0);
+      const f = (x: number) => row(x).reduce((s, v, j) => s + v * w[j], 0);
+      pf.begin(); pf.fn(f, { color: pf.pal.ink, width: 2.5 }); TX.forEach((x, i) => pf.dot(x, TY[i], { r: 6 })); pf.end();
+      const top = Math.max(1, ...w.slice(1).map(Math.abs)); pw.o.y = [-top * 1.1, top * 1.1];
+      pw.begin(); pw.line(pw.x0, 0, pw.x1, 0, { color: pw.pal.ink, width: 1 });
+      w.slice(1).forEach((v, j) => pw.rect(j + 1 - 0.35, Math.min(0, v), 0.7, Math.abs(v), { fill: v >= 0 ? pw.pal.accent : pw.pal.accent2, alpha: 0.85 }));
+      pw.end();
+      q('[data-tr]').textContent = fmt(rmse(TY, TX.map(f)), 3); q('[data-te]').textContent = fmt(rmse(VY, VX.map(f)), 3);
+      q('[data-z]').textContent = `${w.slice(1).filter((v) => Math.abs(v) < 1e-9).length} of ${D}`;
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(fig, draw);
+  }
+</script>

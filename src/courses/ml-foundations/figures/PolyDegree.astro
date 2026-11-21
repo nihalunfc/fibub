@@ -1,0 +1,64 @@
+---
+// SIM for 3.6 and 3.7: fit polynomials of degree 0 to 12 to 14 noisy points from a smooth curve.
+// mode="curve" (3.7) adds the chart of training and test error against degree: the U-shaped test error.
+interface Props { mode?: 'fit' | 'curve' }
+const { mode = 'fit' } = Astro.props;
+---
+<figure class="cs-fig mlf" data-poly={mode}>
+  <span class="cs-figtag">{mode === 'curve' ? 'Try it: find the sweet spot' : 'Try it: bend the line'}</span>
+  <div class:list={[{ 'bw-two': mode === 'curve' }]}>
+    <canvas data-c="fit" aria-label="Training points, hidden test points and a polynomial fitted to the training points"></canvas>
+    {mode === 'curve' && <canvas data-c="err" aria-label="Training error and test error for each polynomial degree"></canvas>}
+  </div>
+  <div class="mlf-ctl"><label>Degree of the polynomial: <output data-v="d"></output><input type="range" name="d" min="0" max="12" step="1" value={mode === 'curve' ? '3' : '1'} /></label>
+    {mode === 'fit' && <label>Show<select name="show"><option value="0">training points only</option><option value="1">also the true curve</option></select></label>}
+  </div>
+  <div class="mlf-read"><div><span>training error (RMSE)</span><b data-tr></b></div><div><span>test error (RMSE)</span><b data-te></b></div><div><span>parameters learned</span><b data-k></b></div></div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>{mode === 'curve'
+    ? 'Left: circles are the 14 training points; small squares are 60 test points the fit never sees. Right: error against degree. The training error only ever falls as the model gets more flexible, but the test error falls and then climbs again: the model has started to fit the noise. The best degree sits at the bottom of the test curve.'
+    : 'The model is ŷ = w₀ + w₁x + w₂x² + … with one weight per power of x. It is still a linear model, because it is a weighted sum; only the inputs are new (x², x³, …). Degree 1 is a straight line. Raise the degree and the curve can bend more. Made-up data from a smooth curve plus noise.'}</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, rmse } from '../../../lib/ml/core';
+  import { polyFit } from '../../../lib/ml/models';
+  const truth = (x: number) => 3 + 2 * Math.sin(x * 0.75) + 0.15 * x;
+  const R = rng(17);
+  const TX = Array.from({ length: 14 }, (_, i) => 0.3 + (i * 9.4) / 13 + R.uniform(-0.25, 0.25)), TY = TX.map((x) => truth(x) + R.normal(0, 0.45));
+  const VX = Array.from({ length: 60 }, () => R.uniform(0.3, 9.7)), VY = VX.map((x) => truth(x) + R.normal(0, 0.45));
+  const u = (x: number) => (x - 5) / 5;
+  const fitDeg = (d: number) => { const f = polyFit(TX.map(u), TY, d, 1e-9); return (x: number) => f.f(u(x)); };
+  const ERR = Array.from({ length: 13 }, (_, d) => { const f = fitDeg(d); return [rmse(TY, TX.map(f)), rmse(VY, VX.map(f))]; });
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-poly]')) {
+    const curve = fig.dataset.poly === 'curve', q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const pf = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=fit]')!, { x: [0, 10], y: [-1, 8], h: 260, xLabel: 'x', yLabel: 'y' });
+    const ce = fig.querySelector<HTMLCanvasElement>('[data-c=err]');
+    const pe = ce ? new Plot(ce, { x: [0, 12], y: [0, 2], h: 260, xLabel: 'degree', yLabel: 'RMSE' }) : null;
+    const show = fig.querySelector<HTMLSelectElement>('select[name=show]');
+    const d = slider(fig, 'd', () => go());
+    const draw = () => {
+      const k = d(), f = fitDeg(k), [tr, te] = ERR[k];
+      pf.begin();
+      if (curve) VX.forEach((x, i) => pf.dot(x, VY[i], { r: 3, shape: 'square', color: pf.pal.accent2, alpha: 0.6 }));
+      if (show?.value === '1') pf.fn(truth, { color: pf.pal.good, width: 2, dash: [7, 5] });
+      pf.fn(f, { color: pf.pal.ink, width: 2.5 });
+      TX.forEach((x, i) => pf.dot(x, TY[i], { r: 6 }));
+      pf.end();
+      if (pe) {
+        pe.begin();
+        pe.fn((x) => { const i = Math.min(12, Math.max(0, x)); const a = Math.floor(i), b = Math.min(12, a + 1), t = i - a; return Math.min(2, ERR[a][0] * (1 - t) + ERR[b][0] * t); }, { color: pe.pal.accent, width: 2.5 });
+        pe.fn((x) => { const i = Math.min(12, Math.max(0, x)); const a = Math.floor(i), b = Math.min(12, a + 1), t = i - a; return Math.min(2, ERR[a][1] * (1 - t) + ERR[b][1] * t); }, { color: pe.pal.accent2, width: 2.5 });
+        pe.line(k, 0, k, 2, { color: pe.pal.ink, width: 1.5, dash: [4, 4] });
+        pe.dot(k, Math.min(2, tr), { r: 6 }).dot(k, Math.min(2, te), { r: 6, shape: 'square', color: pe.pal.accent2 });
+        pe.text(12, 1.9, 'test ■', { align: 'right', color: pe.pal.accent2, bold: true }).text(12, 1.72, 'training ●', { align: 'right', color: pe.pal.accent, bold: true });
+        pe.end();
+      }
+      q('[data-tr]').textContent = fmt(tr, 3); q('[data-te]').textContent = fmt(te, 3); q('[data-k]').textContent = String(k + 1);
+      const best = ERR.reduce((bi, e, i) => (e[1] < ERR[bi][1] ? i : bi), 0);
+      q('[data-say]').textContent = k <= 1 ? 'Underfitting: too stiff to follow the curve. Both errors are high.' : k === best ? 'The sweet spot: the lowest test error.' : k >= 9 ? 'Overfitting: the curve wiggles through the training points, and between them it is wild. Test error is high.' : te > ERR[best][1] * 1.15 ? 'Getting too flexible: training error keeps falling, test error is rising.' : 'A good fit: flexible enough for the curve, not so flexible it chases the noise.';
+    };
+    show?.addEventListener('change', () => go());
+    const go = live(fig, draw);
+  }
+</script>

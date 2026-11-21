@@ -1,0 +1,41 @@
+---
+// SIM for 4.2: the sigmoid turns a straight-line score z = w·x + b into a probability. Sliders move w and b
+// over the hours-studied data from Lesson 1.1; readouts give p, odds and log-odds at a chosen x.
+---
+<figure class="cs-fig mlf" data-sigmoid>
+  <span class="cs-figtag">Try it: shape the S-curve</span>
+  <canvas aria-label="Students by hours studied, passes at the top and fails at the bottom, with an S-shaped probability curve"></canvas>
+  <div class="mlf-ctl">
+    <label>Weight w (steepness): <output data-v="w"></output><input type="range" name="w" min="-1" max="4" step="0.05" value="1" /></label>
+    <label>Bias b (shift): <output data-v="b"></output><input type="range" name="b" min="-20" max="5" step="0.25" value="-5" /></label>
+    <label>Look at hours x: <output data-v="x"></output><input type="range" name="x" min="0" max="12" step="0.5" value="6" /></label>
+  </div>
+  <div class="mlf-read"><div><span>score z = wx + b</span><b data-z></b></div><div><span>probability p = σ(z)</span><b data-p></b></div><div><span>odds p ÷ (1 − p)</span><b data-o></b></div><div><span>log-loss on all students</span><b data-l></b></div></div>
+  <figcaption>Passes sit at p = 1 and fails at p = 0. The S-curve is the model's probability of passing. w sets how steep it is (how quickly study time changes the chance), b slides it left or right, and the point where p = 0.5 is at x = −b ÷ w. Try to make the log-loss small: the curve should be high over the passes and low over the fails.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { sigmoid, logLoss } from '../../../lib/ml/models';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sigmoid]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(7);
+    const S = Array.from({ length: 24 }, () => { const h = R.uniform(0.5, 11.5); return { h, y: R.next() < 1 / (1 + Math.exp(-(h - 5.5) * 1.1)) ? 1 : 0 }; });
+    const p = new Plot(cv, { x: [0, 12], y: [-0.1, 1.1], h: 260, xLabel: 'hours studied', yLabel: 'P(pass)' });
+    const w = slider(fig, 'w', () => go()), b = slider(fig, 'b', () => go()), xx = slider(fig, 'x', () => go());
+    const draw = () => {
+      const f = (h: number) => sigmoid(w() * h + b()), x = xx();
+      p.begin();
+      p.line(0, 0.5, 12, 0.5, { color: p.pal.line, width: 1, dash: [4, 4] });
+      p.fn(f, { color: p.pal.accent, width: 2.5 });
+      S.forEach((s, i) => p.dot(s.h, s.y + ((i % 3) - 1) * 0.025, { r: 5.5, shape: s.y ? 'circle' : 'square', color: s.y ? p.pal.accent : p.pal.accent2 }));
+      p.line(x, 0, x, f(x), { color: p.pal.ink, width: 1.5, dash: [3, 3] }).dot(x, f(x), { r: 6, shape: 'ring', color: p.pal.ink });
+      p.end();
+      const z = w() * x + b(), pr = sigmoid(z);
+      q('[data-z]').textContent = fmt(z); q('[data-p]').textContent = fmt(pr, 3);
+      q('[data-o]').textContent = pr > 0.9999 ? 'huge' : `${fmt(pr / (1 - pr), 2)} (ln = ${fmt(z)})`;
+      q('[data-l]').textContent = fmt(logLoss(S.map((s) => s.y), S.map((s) => f(s.h))), 3);
+    };
+    const go = live(cv, draw);
+  }
+</script>

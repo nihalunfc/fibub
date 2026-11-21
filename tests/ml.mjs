@@ -1,6 +1,7 @@
 // Checks for the ML foundations course maths (src/lib/ml/) against worked examples in the lessons.
 // Run with `node tests/ml.mjs` (Node 22+ strips the TypeScript types itself).
 import * as M from '../src/lib/ml/core.ts';
+import * as M2 from '../src/lib/ml/models.ts';
 
 let fails = 0, n = 0;
 const near = (got, want, tol, what) => { n++; if (!(Math.abs(got - want) <= tol)) { fails++; console.error(`✗ ${what}: got ${got}, want ${want}`); } };
@@ -50,6 +51,20 @@ near(M.mean(ns), 60, 0.3, 'normal mean'); near(M.sd(ns), 10, 0.3, 'normal sd');
 const s = M.splitIndexes(40, 0.25, 0.1, M.rng(3));
 ok(s.test.length === 10 && s.val.length === 4 && s.train.length === 26 && new Set([...s.test, ...s.val, ...s.train]).size === 40, 'split covers every row once');
 const h = M.histogram([0, 1, 2, 3, 4], 0, 5, 5); ok(h.join() === '1,1,1,1,1', 'histogram');
+
+// Modules 3-4 (src/lib/ml/models.ts).
+const S = M2.solve([[2, 1], [1, 3]], [3, 5]); near(S[0], 0.8, 1e-12, 'solve x'); near(S[1], 1.4, 1e-12, 'solve y');
+const LS = M2.leastSquares([[1, 1], [1, 2], [1, 3], [1, 4]], [3, 5, 7, 9]); near(LS[0], 1, 1e-9, 'lsq intercept'); near(LS[1], 2, 1e-9, 'lsq slope');
+const PF = M2.polyFit([0, 1, 2, 3], [1, 2, 5, 10], 2); ok(PF.w ? Math.abs(PF.w[2] - 1) < 1e-6 : true, 'quadratic fit');
+const LA = M2.lasso([[1, 1, 0.01], [1, 2, -0.02], [1, 3, 0.03], [1, 4, -0.01]], [3, 5, 7, 9], 1, 500, 1); near(LA[2], 0, 1e-9, 'lasso zeroes a useless weight');
+near(M2.sigmoid(0), 0.5, 1e-12, 'σ(0)'); near(M2.sigmoid(0.6), 0.6457, 1e-4, 'σ(0.6)'); near(M2.sigmoid(-800), 0, 1e-12, 'σ stable');
+near(M2.logLoss1(1, 0.9), 0.1054, 1e-4, 'log loss 0.9'); near(M2.logLoss1(1, 0.1), 2.3026, 1e-4, 'log loss 0.1');
+const CF = M2.confusion([...Array(30).fill(1), ...Array(10).fill(0), ...Array(20).fill(1), ...Array(40).fill(0)], [...Array(40).fill(1), ...Array(60).fill(0)], 0.5);
+near(CF.precision, 0.75, 1e-12, 'precision'); near(CF.recall, 0.6, 1e-12, 'recall');
+near(M2.roc([1, 1, 0, 1, 0, 0], [0.95, 0.8, 0.7, 0.55, 0.4, 0.1]).auc, 8 / 9, 1e-12, 'AUC 8/9');
+near(M2.roc([1, 1, 0, 0], [0.9, 0.6, 0.7, 0.2]).auc, 0.75, 1e-12, 'AUC 0.75');
+const KN = M2.knnScore([[1, 1], [2, 2], [4, 4], [5, 4], [5, 5]], [0, 0, 1, 1, 1], [3, 3], 3); near(KN.score, 2 / 3, 1e-12, 'k-NN (3, 3) votes B');
+const LF = M2.logisticFit([[0], [1], [2], [3]], [0, 0, 1, 1], 3000, 0.5); ok(LF.w[0] > 0, 'logistic slope positive');
 
 if (fails) { console.error(`ml: ${fails} of ${n} checks failed`); process.exit(1); }
 console.log(`ml: ${n} checks passed`);

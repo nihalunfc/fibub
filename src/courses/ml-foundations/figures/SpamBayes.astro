@@ -1,0 +1,53 @@
+---
+// SIM for 4.8: a naive Bayes spam filter trained on 12 tiny made-up messages. Type a message; each known word
+// shows how often it appears in spam and in normal mail, and the probabilities are multiplied out.
+const TRAIN: [string, number][] = [
+  ['win a free prize now', 1], ['claim your free cash prize', 1], ['cheap meds free delivery now', 1],
+  ['you won cash click now', 1], ['free entry win big today', 1], ['limited offer click to claim', 1],
+  ['are we still meeting today', 0], ['here are the notes from class', 0], ['can you send the report now', 0],
+  ['lunch today at noon', 0], ['your delivery arrives tomorrow', 0], ['thanks for the notes see you in class', 0],
+];
+---
+<figure class="cs-fig mlf nb" data-bayes data-train={JSON.stringify(TRAIN)}>
+  <span class="cs-figtag">Try it: be the spam filter</span>
+  <label class="nb-in">Type a short message<input type="text" name="msg" value="claim your free prize today" maxlength="120" autocomplete="off" spellcheck="false" /></label>
+  <p class="mlf-hint">Nothing you type leaves this page. The filter learned only from the 12 example messages below.</p>
+  <div class="nb-wrap"><table class="nb-t"><thead><tr><th>word</th><th>times in spam</th><th>times in normal</th><th>leans</th></tr></thead><tbody data-rows></tbody></table></div>
+  <div class="mlf-read"><div><span>P(spam | message)</span><b data-p></b></div><div><span>verdict</span><b data-v></b></div></div>
+  <details class="nb-train"><summary>The 12 training messages</summary><ul>{TRAIN.map(([m, s]) => <li><strong>{s ? 'spam' : 'normal'}:</strong> {m}</li>)}</ul></details>
+  <figcaption>Each word's chance in spam and in normal mail is counted from the examples, with 1 added to every count so an unseen word never makes a probability zero. "Leans spam ×3" means the word is 3 times as likely in spam as in normal mail. The filter multiplies the chances of all the words together, as if each word appeared independently of the others (the "naive" part, clearly untrue, yet it works well). Words it never saw are skipped.</figcaption>
+</figure>
+<style is:inline>
+  .nb-in { display: grid; gap: 4px; font-weight: 600; font-size: 14.5px; }
+  .nb-in input { font: inherit; font-weight: 400; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .nb-wrap { overflow-x: auto; margin-top: 8px; }
+  .nb-t { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  .nb-t th, .nb-t td { border: 1px solid var(--line); padding: 4px 4px; text-align: right; font-variant-numeric: tabular-nums; }
+  .nb-t th:first-child, .nb-t td:first-child { text-align: left; }
+  .nb-train { font-size: 14px; margin-top: 10px; }
+  .nb-train ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+<script>
+  import { fmt } from './kit';
+  import { naiveBayes } from '../../../lib/ml/models';
+  const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean);
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bayes]')) {
+    const T = JSON.parse(fig.dataset.train!) as [string, number][], q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const docs = T.map(([m]) => words(m)), labels = T.map(([, s]) => s), nb = naiveBayes(docs, labels);
+    const cnt = (w: string, c: number) => docs.reduce((s, d, i) => s + (labels[i] === c ? d.filter((x) => x === w).length : 0), 0);
+    const inp = fig.querySelector<HTMLInputElement>('input[name=msg]')!;
+    const run = () => {
+      const ws = words(inp.value), r = nb.predict(ws);
+      q('[data-rows]').replaceChildren(...[...new Set(ws)].map((w) => {
+        const tr = document.createElement('tr'), known = nb.vocab.has(w);
+        const ps = nb.pWord(w, 1), pn = nb.pWord(w, 0);
+        const cells = known ? [w, String(cnt(w, 1)), String(cnt(w, 0)), Math.max(ps, pn) / Math.min(ps, pn) < 1.1 ? 'about even' : ps > pn ? `spam ×${fmt(ps / pn, 1)}` : ps < pn ? `normal ×${fmt(pn / ps, 1)}` : 'neither'] : [w, '–', '–', 'never seen'];
+        cells.forEach((c) => { const td = document.createElement('td'); td.textContent = c; tr.append(td); });
+        return tr;
+      }));
+      q('[data-p]').textContent = r.known.length ? `${fmt(100 * r.p, 1)} %` : '50 % (no known words)';
+      q('[data-v]').textContent = !r.known.length ? 'cannot tell' : r.p >= 0.5 ? 'spam' : 'normal';
+    };
+    inp.addEventListener('input', run); run();
+  }
+</script>

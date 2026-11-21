@@ -1,0 +1,78 @@
+---
+// SIM for 4.5 and 4.6: 200 patients scored by a test (made-up). Move the threshold: the confusion matrix,
+// precision, recall and F1 update. mode="roc" (4.6) adds the ROC curve with the current point and the AUC,
+// and a slider for how well the two groups separate.
+interface Props { mode?: 'matrix' | 'roc' }
+const { mode = 'matrix' } = Astro.props;
+---
+<figure class="cs-fig mlf th" data-threshold={mode}>
+  <span class="cs-figtag">{mode === 'roc' ? 'Try it: trace the ROC curve' : 'Try it: move the threshold'}</span>
+  <div class:list={[{ 'bw-two': mode === 'roc' }]}>
+    <canvas data-c="hist" aria-label="Two overlapping histograms of model scores, for people with and without the disease, and a threshold line"></canvas>
+    {mode === 'roc' && <canvas data-c="roc" aria-label="ROC curve: true positive rate against false positive rate"></canvas>}
+  </div>
+  <div class="mlf-ctl">
+    <label>Threshold: say "has it" when score ≥ <output data-v="t"></output><input type="range" name="t" min="0" max="1" step="0.01" value="0.5" /></label>
+    {mode === 'roc' && <label>How well the scores separate the groups: <output data-v="sep"></output><input type="range" name="sep" min="0" max="3" step="0.1" value="1.6" /></label>}
+  </div>
+  <table class="th-cm" aria-label="Confusion matrix">
+    <tr><th></th><th>Predicted: has it</th><th>Predicted: hasn't</th></tr>
+    <tr><th>Really has it</th><td class="good">TP <b data-tp></b></td><td class="bad">FN <b data-fn></b></td></tr>
+    <tr><th>Really hasn't</th><td class="bad">FP <b data-fp></b></td><td class="good">TN <b data-tn></b></td></tr>
+  </table>
+  <div class="mlf-read"><div><span>accuracy</span><b data-acc></b></div><div><span>precision</span><b data-pre></b></div><div><span>recall (sensitivity)</span><b data-rec></b></div><div><span>F1</span><b data-f1></b></div>{mode === 'roc' && <div><span>AUC</span><b data-auc></b></div>}</div>
+  <figcaption>{mode === 'roc'
+    ? 'Every threshold gives one point on the ROC curve: the share of real cases caught (true positive rate) against the share of healthy people wrongly flagged (false positive rate). Sliding the threshold walks along the curve. The area under it (AUC) sums up the model across all thresholds: 0.5 is a coin toss, 1 is perfect separation. Make the groups overlap more and the curve sinks towards the diagonal.'
+    : '200 people, 40 of whom really have the condition (squares). The model gives each a score. Lower the threshold and you catch more real cases (recall up) but flag more healthy people (precision down). No threshold is right for every job: a cancer screen wants high recall, a spam filter that might hide real email wants high precision.'}</figcaption>
+</figure>
+<style is:inline>
+  .th-cm { border-collapse: collapse; width: 100%; font-size: 14px; margin: 10px 0 0; }
+  .th-cm th, .th-cm td { border: 1px solid var(--line); padding: 6px 8px; text-align: center; }
+  .th-cm th { font-weight: 600; background: var(--surface); }
+  .th-cm td.good { background: var(--good-soft); }
+  .th-cm td.bad { background: var(--bad-soft); }
+  .th-cm b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+</style>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, histogram } from '../../../lib/ml/core';
+  import { confusion, roc, sigmoid } from '../../../lib/ml/models';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-threshold]')) {
+    const isRoc = fig.dataset.threshold === 'roc', q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const ph = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=hist]')!, { x: [0, 1], y: [0, 40], h: 220, xLabel: 'model score', yLabel: 'people' });
+    const cr = fig.querySelector<HTMLCanvasElement>('[data-c=roc]');
+    const pr = cr ? new Plot(cr, { x: [0, 1], y: [0, 1], h: 220, xLabel: 'false positive rate', yLabel: 'true positive rate' }) : null;
+    const t = slider(fig, 't', () => go());
+    const sepIn = fig.querySelector<HTMLInputElement>('input[name=sep]');
+    const sep = sepIn ? slider(fig, 'sep', () => go()) : () => 1.6;
+    const data = () => {
+      const R = rng(19), ys: number[] = [], sc: number[] = [];
+      for (let i = 0; i < 200; i++) { const y = i < 40 ? 1 : 0; ys.push(y); sc.push(sigmoid(R.normal(y ? sep() / 2 : -sep() / 2, 1))); }
+      return { ys, sc };
+    };
+    const draw = () => {
+      const { ys, sc } = data(), th = t(), c = confusion(ys, sc, th);
+      const h0 = histogram(sc.filter((_, i) => !ys[i]), 0, 1, 20), h1 = histogram(sc.filter((_, i) => ys[i]), 0, 1, 20);
+      ph.o.y = [0, Math.max(10, ...h0, ...h1) * 1.1];
+      ph.begin();
+      h0.forEach((v, i) => ph.rect(i / 20, 0, 1 / 20, v, { fill: ph.pal.accent, alpha: 0.45 }));
+      h1.forEach((v, i) => ph.rect(i / 20, 0, 1 / 20, v, { fill: ph.pal.accent2, alpha: 0.6 }));
+      ph.line(th, ph.y0, th, ph.y1, { color: ph.pal.ink, width: 2.5 });
+      ph.text(th, ph.y1, ' flag →', { base: 'top', dy: 4, bold: true });
+      ph.text(0.01, ph.y1 * 0.82, '● hasn\'t (160)', { color: ph.pal.accent, size: 11.5 }).text(0.01, ph.y1 * 0.7, '■ has it (40)', { color: ph.pal.accent2, size: 11.5 });
+      ph.end();
+      if (pr) {
+        const r = roc(ys, sc);
+        pr.begin(); pr.line(0, 0, 1, 1, { color: pr.pal.line, width: 1.5, dash: [5, 4] });
+        pr.poly([...r.pts, [1, 0]] as [number, number][], { fill: pr.pal.accent, alpha: 0.12 });
+        for (let k = 1; k < r.pts.length; k++) pr.line(r.pts[k - 1][0], r.pts[k - 1][1], r.pts[k][0], r.pts[k][1], { color: pr.pal.accent, width: 2.5 });
+        pr.dot(c.fpr, c.recall, { r: 7, color: pr.pal.accent2 }); pr.end();
+        q('[data-auc]').textContent = fmt(r.auc, 3);
+      }
+      q('[data-tp]').textContent = String(c.tp); q('[data-fn]').textContent = String(c.fn); q('[data-fp]').textContent = String(c.fp); q('[data-tn]').textContent = String(c.tn);
+      q('[data-acc]').textContent = `${fmt(100 * c.accuracy, 0)} %`; q('[data-pre]').textContent = Number.isFinite(c.precision) ? `${fmt(100 * c.precision, 0)} %` : '–';
+      q('[data-rec]').textContent = `${fmt(100 * c.recall, 0)} %`; q('[data-f1]').textContent = Number.isFinite(c.f1) ? fmt(c.f1, 2) : '–';
+    };
+    const go = live(fig, draw);
+  }
+</script>
