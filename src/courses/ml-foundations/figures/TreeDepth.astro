@@ -1,0 +1,48 @@
+---
+// SIM for 5.5: one decision tree on the noisy two-moons data. A depth slider runs from a stump to a tree that
+// memorises every point; the lower chart shows training and test accuracy for every depth.
+---
+<figure class="cs-fig mlf" data-tdepth>
+  <span class="cs-figtag">Try it: how deep should the tree grow?</span>
+  <canvas data-c="map" aria-label="Two crescent-shaped groups of points, the plane cut into boxes by a decision tree"></canvas>
+  <canvas data-c="acc" aria-label="Training and test accuracy against tree depth: training keeps rising to 100 percent, test peaks and then falls"></canvas>
+  <div class="mlf-ctl"><label>Maximum depth: <output data-v="d"></output><input type="range" name="d" min="1" max="14" step="1" value="3" /></label>
+    <label>Smallest leaf (rows): <output data-v="m"></output><input type="range" name="m" min="1" max="30" step="1" value="1" /></label></div>
+  <div class="mlf-read"><div><span>leaves</span><b data-n></b></div><div><span>training accuracy</span><b data-tr></b></div><div><span>test accuracy</span><b data-te></b></div></div>
+  <figcaption>A deep tree keeps splitting until every box is pure, drawing little boxes round single noisy points: 100 % on training data, worse on new data. Two dials stop it: a maximum depth, and a smallest number of rows allowed in a leaf. Raise the smallest leaf to 10 or so and even a deep tree stays sensible. Training accuracy (dashed) always rises with depth; test accuracy (solid) tells the truth.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, toy, fmt } from './kit';
+  import { regions } from './treekit';
+  import { rng } from '../../../lib/ml/core';
+  import { growTree, predictTree, accuracy } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tdepth]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const cm = fig.querySelector<HTMLCanvasElement>('[data-c=map]')!, ca = fig.querySelector<HTMLCanvasElement>('[data-c=acc]')!;
+    const T = toy('moons', 160, rng(5), 0.2), V = toy('moons', 400, rng(6), 0.2);
+    const pm = new Plot(cm, { x: [-1.4, 1.4], y: [-1.2, 1.2], h: 260 });
+    const pa = new Plot(ca, { x: [0.5, 14.5], y: [0.6, 1.02], h: 170, xLabel: 'maximum depth', yLabel: 'accuracy' });
+    const d = slider(fig, 'd', () => go(), String), m = slider(fig, 'm', () => go(), String);
+    let curveFor = -1, tr: number[] = [], te: number[] = [];
+    const fit = (depth: number, minLeaf: number) => growTree(T.X, T.y, { maxDepth: depth, minLeaf });
+    const draw = () => {
+      if (curveFor !== m()) {
+        curveFor = m(); tr = []; te = [];
+        for (let k = 1; k <= 14; k++) { const g = fit(k, curveFor); tr.push(accuracy(T.y, T.X.map((x) => predictTree(g.root, x)))); te.push(accuracy(V.y, V.X.map((x) => predictTree(g.root, x)))); }
+      }
+      const g = fit(d(), m());
+      pm.begin(); regions(pm, g.root, { strength: 0.45 });
+      T.X.forEach((a, i) => pm.dot(a[0], a[1], { r: 4, shape: T.y[i] ? 'square' : 'circle', color: T.y[i] ? pm.pal.accent2 : pm.pal.accent }));
+      pm.end();
+      pa.begin();
+      pa.path(tr.map((v, i) => [i + 1, v] as [number, number]), { color: pa.pal.accent2, width: 2, dash: [6, 4] });
+      pa.path(te.map((v, i) => [i + 1, v] as [number, number]), { color: pa.pal.accent, width: 2.5 });
+      pa.dot(d(), te[d() - 1], { r: 6, color: pa.pal.accent }); pa.dot(d(), tr[d() - 1], { r: 5, shape: 'square', color: pa.pal.accent2 });
+      pa.text(14, tr[13], 'training', { align: 'right', dy: -10, color: pa.pal.accent2 }); pa.text(14, te[13], 'test', { align: 'right', dy: 12, color: pa.pal.accent });
+      pa.end();
+      q('[data-n]').textContent = String(g.leaves.length);
+      q('[data-tr]').textContent = `${fmt(100 * tr[d() - 1], 0)} %`; q('[data-te]').textContent = `${fmt(100 * te[d() - 1], 0)} %`;
+    };
+    const go = live(cm, draw);
+  }
+</script>

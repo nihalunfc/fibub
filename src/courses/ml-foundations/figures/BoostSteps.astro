@@ -1,0 +1,53 @@
+---
+// SIM for 6.6: gradient boosting step by step on a wavy curve. Start from the average; each new small tree is fitted
+// to the residuals (what is still wrong), and a learning-rate-sized step of it is added to the model.
+---
+<figure class="cs-fig mlf" data-boost>
+  <span class="cs-figtag">Try it: boost one tree at a time</span>
+  <canvas data-c="fit" aria-label="Noisy points along a wavy curve and the boosted model's prediction, which starts flat and bends towards the points as trees are added"></canvas>
+  <canvas data-c="res" aria-label="The residuals still left to explain, with the newest tree's step-shaped fit to them"></canvas>
+  <div class="mlf-btns"><button type="button" class="btn" data-add>Add 1 tree</button><button type="button" class="btn secondary" data-add10>Add 10</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-ctl">
+    <label>Learning rate η: <output data-v="r"></output><input type="range" name="r" min="0.05" max="1" step="0.05" value="0.3" /></label>
+    <label>Depth of each tree: <output data-v="d"></output><input type="range" name="d" min="1" max="3" step="1" value="1" /></label>
+  </div>
+  <div class="mlf-read"><div><span>trees</span><b data-n></b></div><div><span>training error (RMSE)</span><b data-tr></b></div><div><span>test error (RMSE)</span><b data-te></b></div></div>
+  <figcaption>Top: the data and the model so far (it starts as a flat line at the average). Bottom: the residuals, y minus the model, which is all that is left to learn; the dashed steps are the newest tree, fitted to them. Each tree is a stump (one question) by default, too weak alone, but each fixes a little of what is left. A small learning rate needs more trees and usually generalises better; a large one learns fast and starts fitting noise sooner.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, rmse } from '../../../lib/ml/core';
+  import { boost, predictTree } from '../../../lib/ml/trees';
+  const f = (x: number) => Math.sin(x) + 0.3 * x;
+  const make = (n: number, seed: number) => { const R = rng(seed), X: number[][] = [], y: number[] = []; for (let i = 0; i < n; i++) { const x = R.uniform(0, 10); X.push([x]); y.push(f(x) + R.normal(0, 0.35)); } return { X, y }; };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-boost]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const T = make(60, 41), V = make(300, 42);
+    const pf = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=fit]')!, { x: [0, 10], y: [-1.5, 4.5], h: 220, xLabel: 'x', yLabel: 'y' });
+    const pr = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=res]')!, { x: [0, 10], y: [-2, 2], h: 160, xLabel: 'x', yLabel: 'residual' });
+    let m = 0;
+    const r = slider(fig, 'r', () => { m = 0; go(); }), d = slider(fig, 'd', () => { m = 0; go(); }, String);
+    const draw = () => {
+      const B = boost(T.X, T.y, { rounds: m + 1, rate: r(), depth: d() });
+      const pred = (x: number[]) => B.predict(x, m);
+      pf.begin();
+      T.X.forEach((x, i) => pf.dot(x[0], T.y[i], { r: 3.5, color: pf.pal.accent, alpha: 0.8 }));
+      pf.fn((x) => pred([x]), { color: pf.pal.accent2, width: 2.5 });
+      pf.end();
+      // Residuals after m trees, and the next tree (m + 1) that would be fitted to them.
+      const res = T.y.map((v, i) => v - pred(T.X[i]));
+      const next = B.trees[m];
+      pr.begin();
+      pr.line(0, 0, 10, 0, { color: pr.pal.muted });
+      T.X.forEach((x, i) => pr.dot(x[0], res[i], { r: 3.5, shape: 'square', color: pr.pal.accent2, alpha: 0.8 }));
+      pr.fn((x) => predictTree(next, [x]), { color: pr.pal.ink, width: 2, dash: [6, 4] });
+      pr.end();
+      q('[data-n]').textContent = String(m);
+      q('[data-tr]').textContent = fmt(rmse(T.y, T.X.map(pred)), 3); q('[data-te]').textContent = fmt(rmse(V.y, V.X.map(pred)), 3);
+    };
+    q('[data-add]').addEventListener('click', () => { m++; go(); });
+    q('[data-add10]').addEventListener('click', () => { m += 10; go(); });
+    q('[data-reset]').addEventListener('click', () => { m = 0; go(); });
+    const go = live(fig.querySelector('canvas')!, draw);
+  }
+</script>

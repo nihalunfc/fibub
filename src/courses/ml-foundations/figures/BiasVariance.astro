@@ -1,0 +1,46 @@
+---
+// SIM for 7.1: bias and variance made visible. Draw 20 small training sets from the same curve, fit a polynomial of
+// the chosen degree to each, and overlay the 20 fits. Their spread is variance; how far their average misses is bias.
+---
+<figure class="cs-fig mlf" data-bv>
+  <span class="cs-figtag">Try it: 20 training sets, 20 models</span>
+  <canvas aria-label="The true curve, dashed, with twenty faint fitted curves from twenty different training sets and their average in bold"></canvas>
+  <div class="mlf-ctl"><label>Polynomial degree: <output data-v="d"></output><input type="range" name="d" min="0" max="9" step="1" value="1" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-new>Draw 20 new training sets</button></div>
+  <div class="mlf-read"><div><span>bias² (average miss, squared)</span><b data-b></b></div><div><span>variance (spread of fits)</span><b data-var></b></div><div><span>bias² + variance + noise</span><b data-t></b></div></div>
+  <figcaption>Each faint curve is the same kind of model trained on a different random sample of 12 points from the dashed curve. Degree 0 or 1 is too stiff: every fit misses in the same way (high bias, low variance). Degree 8 or 9 is too wobbly: each fit chases its own sample (low bias, high variance). The expected test error is bias² plus variance plus the noise nobody can remove (here 0.09); it is lowest in between, around degree 3.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, mean } from '../../../lib/ml/core';
+  import { polyFit } from '../../../lib/ml/models';
+  const f = (x: number) => Math.sin(2.5 * x) + 0.5 * x;
+  const NOISE = 0.3;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bv]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-1.2, 1.2], y: [-2.5, 2.5], h: 270, xLabel: 'x', yLabel: 'y' });
+    const d = slider(fig, 'd', () => go(), String);
+    let seed = 1;
+    const grid = Array.from({ length: 41 }, (_, i) => -1 + i / 20);
+    const draw = () => {
+      const R = rng(seed), fits: ((x: number) => number)[] = [];
+      for (let s = 0; s < 20; s++) {
+        const xs = Array.from({ length: 12 }, () => R.uniform(-1, 1)), ys = xs.map((x) => f(x) + R.normal(0, NOISE));
+        fits.push(polyFit(xs, ys, d(), 1e-9).f);
+      }
+      const avg = (x: number) => mean(fits.map((g) => g(x)));
+      const bias2 = mean(grid.map((x) => (avg(x) - f(x)) ** 2));
+      const vari = mean(grid.map((x) => { const a = avg(x); return mean(fits.map((g) => (g(x) - a) ** 2)); }));
+      p.begin();
+      fits.forEach((g) => p.fn(g, { color: p.pal.accent, width: 1.2, alpha: 0.35, from: -1, to: 1 }));
+      p.fn(f, { color: p.pal.ink, width: 2, dash: [6, 4], from: -1, to: 1 });
+      p.fn(avg, { color: p.pal.accent2, width: 3, from: -1, to: 1 });
+      p.text(-1.15, 2.2, 'dashed: truth   bold: average fit', { color: p.pal.muted });
+      p.end();
+      q('[data-b]').textContent = fmt(bias2, 3); q('[data-var]').textContent = vari > 100 ? 'huge' : fmt(vari, 3);
+      q('[data-t]').textContent = vari > 100 ? 'huge' : fmt(bias2 + vari + NOISE * NOISE, 3);
+    };
+    q('[data-new]').addEventListener('click', () => { seed++; go(); });
+    const go = live(cv, draw);
+  }
+</script>

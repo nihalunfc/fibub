@@ -1,0 +1,53 @@
+---
+// SIM for 7.3: tuning two hyperparameters of a decision tree (maximum depth, smallest leaf) by 5-fold
+// cross-validation on the training rows only. The heat map shows the mean validation accuracy of every pair.
+---
+<figure class="cs-fig mlf" data-tune>
+  <span class="cs-figtag">Try it: search the grid</span>
+  <canvas aria-label="A heat map of cross-validated accuracy for each maximum depth and smallest leaf size, with the best cell outlined"></canvas>
+  <p class="mlf-hint">Tap a cell to pick those settings.</p>
+  <div class="mlf-read"><div><span>picked: depth, smallest leaf</span><b data-pick></b></div><div><span>cross-validated accuracy</span><b data-cv></b></div><div><span>final test accuracy</span><b data-te></b></div></div>
+  <figcaption>Each cell is one setting, scored by 5-fold cross-validation on the 200 training rows (Lesson 7.2): darker is better, and the outline marks the best. The test set, 400 rows the search never saw, is used once, at the end, for the setting you pick. Notice that the best region is broad: many settings are about as good, so there is no need to search to the last decimal.</figcaption>
+</figure>
+<script>
+  import { Plot, live, toy, fmt } from './kit';
+  import { rng, mean } from '../../../lib/ml/core';
+  import { growTree, predictTree, accuracy, kfold } from '../../../lib/ml/trees';
+  const DEPTHS = [1, 2, 3, 4, 5, 6, 8, 10], LEAVES = [1, 2, 5, 10, 20, 40];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tune]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const T = toy('moons', 200, rng(15), 0.25), V = toy('moons', 400, rng(16), 0.25);
+    const folds = kfold(200, 5, rng(2));
+    const score = (d: number, m: number) => mean(folds.map((test) => {
+      const ts = new Set(test), tr = T.X.map((_, i) => i).filter((i) => !ts.has(i));
+      const g = growTree(T.X, T.y, { maxDepth: d, minLeaf: m }, tr);
+      return accuracy(test.map((i) => T.y[i]), test.map((i) => predictTree(g.root, T.X[i])));
+    }));
+    const S = LEAVES.map((m) => DEPTHS.map((d) => score(d, m)));
+    let bi = 0, bj = 0; S.forEach((row, i) => row.forEach((v, j) => { if (v > S[bi][bj]) { bi = i; bj = j; } }));
+    let pi = bi, pj = bj;
+    const lo = Math.min(...S.flat()), hi = Math.max(...S.flat());
+    const p = new Plot(cv, { x: [0, DEPTHS.length], y: [0, LEAVES.length], h: 280, xLabel: 'maximum depth', yLabel: 'smallest leaf', noXTicks: true, noYTicks: true });
+    const draw = () => {
+      p.begin();
+      S.forEach((row, i) => row.forEach((v, j) => {
+        p.rect(j, i, 1, 1, { fill: p.pal.accent, alpha: 0.1 + 0.85 * ((v - lo) / (hi - lo || 1)) });
+        p.text(j + 0.5, i + 0.5, fmt(100 * v, 0), { align: 'center', base: 'middle', size: 11, color: (v - lo) / (hi - lo || 1) > 0.55 ? p.pal.bg : p.pal.ink });
+      }));
+      p.rect(bj, bi, 1, 1, { color: p.pal.accent2, width: 3 });
+      if (pi !== bi || pj !== bj) p.rect(pj, pi, 1, 1, { color: p.pal.ink, width: 2, dash: [4, 3] });
+      DEPTHS.forEach((d, j) => p.text(j + 0.5, 0, String(d), { align: 'center', base: 'top', dy: 4, color: p.pal.muted }));
+      LEAVES.forEach((m, i) => p.text(0, i + 0.5, String(m), { align: 'right', base: 'middle', dx: -5, color: p.pal.muted }));
+      p.end();
+      const g = growTree(T.X, T.y, { maxDepth: DEPTHS[pj], minLeaf: LEAVES[pi] });
+      q('[data-pick]').textContent = `${DEPTHS[pj]}, ${LEAVES[pi]}${pi === bi && pj === bj ? ' (best)' : ''}`;
+      q('[data-cv]').textContent = `${fmt(100 * S[pi][pj], 1)} %`;
+      q('[data-te]').textContent = `${fmt(100 * accuracy(V.y, V.X.map((x) => predictTree(g.root, x))), 1)} %`;
+    };
+    cv.addEventListener('click', (e) => {
+      const r = cv.getBoundingClientRect(), j = Math.floor(p.ix(e.clientX - r.left)), i = Math.floor(p.iy(e.clientY - r.top));
+      if (j >= 0 && j < DEPTHS.length && i >= 0 && i < LEAVES.length) { pi = i; pj = j; go(); }
+    });
+    const go = live(cv, draw);
+  }
+</script>

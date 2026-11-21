@@ -2,6 +2,7 @@
 // Run with `node tests/ml.mjs` (Node 22+ strips the TypeScript types itself).
 import * as M from '../src/lib/ml/core.ts';
 import * as M2 from '../src/lib/ml/models.ts';
+import * as T from '../src/lib/ml/trees.ts';
 
 let fails = 0, n = 0;
 const near = (got, want, tol, what) => { n++; if (!(Math.abs(got - want) <= tol)) { fails++; console.error(`✗ ${what}: got ${got}, want ${want}`); } };
@@ -65,6 +66,27 @@ near(M2.roc([1, 1, 0, 1, 0, 0], [0.95, 0.8, 0.7, 0.55, 0.4, 0.1]).auc, 8 / 9, 1e
 near(M2.roc([1, 1, 0, 0], [0.9, 0.6, 0.7, 0.2]).auc, 0.75, 1e-12, 'AUC 0.75');
 const KN = M2.knnScore([[1, 1], [2, 2], [4, 4], [5, 4], [5, 5]], [0, 0, 1, 1, 1], [3, 3], 3); near(KN.score, 2 / 3, 1e-12, 'k-NN (3, 3) votes B');
 const LF = M2.logisticFit([[0], [1], [2], [3]], [0, 0, 1, 1], 3000, 0.5); ok(LF.w[0] > 0, 'logistic slope positive');
+
+// Modules 5-7 (src/lib/ml/trees.ts).
+near(T.gini(0.6), 0.48, 1e-12, 'Gini 6 of 10'); near(T.entropy(0.6), 0.971, 1e-3, 'entropy 6 of 10'); near(T.entropy(0.2), 0.722, 1e-3, 'entropy 2 of 10');
+near(T.gini(0.5), 0.5, 1e-12, 'Gini 50/50'); near(T.entropy(0.5), 1, 1e-12, 'entropy 50/50');
+// 5.3: twelve customers, best cut at 6.5 with gain 0.222 (cut 3.5 gives 0.167).
+const VS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((v) => [v]), ST = [0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1];
+const B1 = T.bestSplit(VS, ST, VS.map((_, i) => i)); near(B1.t, 6.5, 1e-12, 'best cut'); near(B1.gain, 2 / 9, 1e-9, 'best gain');
+// 5.4: ice-cream split at 21 °C, gain 30.25.
+const IC = [12, 15, 18, 24, 27, 30].map((v) => [v]), IS = [4, 5, 6, 14, 16, 18];
+const B2 = T.bestSplit(IC, IS, IC.map((_, i) => i), { kind: 'reg' }); near(B2.t, 21, 1e-12, 'regression cut'); near(B2.gain, 30.25, 1e-9, 'variance gain');
+// 6.1: majority votes.
+near(T.majorityRight(3, 0.7), 0.784, 1e-12, 'majority of 3'); near(T.majorityRight(5, 0.6), 0.68256, 1e-9, 'majority of 5'); near(T.majorityRight(3, 0.8), 0.896, 1e-12, 'three filters');
+// 6.2: about 63.2 % of rows land in a large bootstrap sample.
+{ const R = M.rng(5); let u = 0; for (let r = 0; r < 40; r++) u += new Set(T.bootstrap(2000, R)).size / 2000; near(u / 40, 1 - Math.exp(-1), 0.01, '63.2 % rule'); }
+// Trees fit XOR, forests vote, boosting lowers training error.
+{ const R = M.rng(1), X = [], y = []; for (let i = 0; i < 200; i++) { const a = R.uniform(-1, 1), c = R.uniform(-1, 1); X.push([a, c]); y.push(a * c > 0 ? 1 : 0); }
+  const g = T.growTree(X, y); near(T.accuracy(y, X.map((x) => T.predictTree(g.root, x))), 1, 1e-12, 'deep tree fits training data');
+  const F = T.forest(X, y, { trees: 20, mtry: 1, R: M.rng(3), maxDepth: 6 }); ok(T.accuracy(y, X.map((x) => F.predict(x))) > 0.95, 'forest on XOR'); }
+{ const X = [[50], [60], [100], [110]], y = [100, 120, 200, 220], Bo = T.boost(X, y, { rounds: 2, rate: 0.5, depth: 1 });
+  near(Bo.predict([50], 1), 135, 1e-9, 'boost round 1'); near(Bo.predict([110], 2), 197.5, 1e-9, 'boost round 2'); }
+{ const f = T.kfold(23, 5, M.rng(1)); ok(f.length === 5 && new Set(f.flat()).size === 23, 'k folds cover every row once'); }
 
 if (fails) { console.error(`ml: ${fails} of ${n} checks failed`); process.exit(1); }
 console.log(`ml: ${n} checks passed`);

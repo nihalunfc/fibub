@@ -1,0 +1,32 @@
+---
+// DIA for 6.5: bagging grows its trees side by side on random samples and averages them; boosting grows them one
+// after another, each one trained on what the trees before it still get wrong, and adds them up.
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: bagging versus boosting</span>
+  <svg viewBox="0 0 360 300" role="img" aria-labelledby="bb-t" style="max-width:560px">
+    <title id="bb-t">Top, bagging: the data feeds three trees in parallel, each on its own random sample, and their predictions are averaged. Bottom, boosting: the data feeds tree 1; its leftover errors feed tree 2; those leftovers feed tree 3; the final prediction is the sum of small steps from every tree.</title>
+    <text x="8" y="18" class="b">Bagging (random forest): side by side</text>
+    <rect x="8" y="60" width="54" height="34" rx="8" class="box" /><text x="35" y="81" text-anchor="middle">data</text>
+    {[0, 1, 2].map((k) => <g>
+      <line x1="62" y1="77" x2="110" y2={42 + k * 35} class="ln" />
+      <rect x="110" y={28 + k * 35} width="96" height="28" rx="8" class="acc" />
+      <text x="158" y={46 + k * 35} text-anchor="middle">tree {k + 1}</text>
+      <line x1="206" y1={42 + k * 35} x2="256" y2="77" class="ln" />
+    </g>)}
+    <rect x="256" y="60" width="96" height="34" rx="8" class="box" /><text x="304" y="81" text-anchor="middle" class="b">average</text>
+    <text x="8" y="140" class="mu">Own random sample each; averaging cuts variance.</text>
+    <text x="8" y="174" class="b">Boosting: one after another</text>
+    <rect x="8" y="190" width="54" height="34" rx="8" class="box" /><text x="35" y="211" text-anchor="middle">data</text>
+    {[0, 1, 2].map((k) => <g>
+      <line x1={62 + k * 96} y1="207" x2={74 + k * 96} y2="207" class="lna" />
+      <rect x={74 + k * 96} y="190" width="84" height="34" rx="8" class="acc" />
+      <text x={116 + k * 96} y="205" text-anchor="middle">tree {k + 1}</text>
+      <text x={116 + k * 96} y="219" text-anchor="middle" class="mu">{k ? 'fits errors' : 'fits y'}</text>
+    </g>)}
+    <text x="8" y="252">prediction = start + η·tree 1 + η·tree 2 + …</text>
+    <text x="8" y="272" class="mu">Small trees in a chain; adding them cuts bias.</text>
+    <text x="356" y="296" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>Bagging trains many strong, deep trees independently (they can even run at the same time) and averages away their noise. Boosting trains many weak, shallow trees in a chain; each one learns from the mistakes left by all the trees before it, and their small steps add up to a strong model.</figcaption>
+</figure>

@@ -1,0 +1,50 @@
+---
+// SIM for 5.1: grow a decision tree one question at a time on made-up exam data (hours studied, hours slept).
+// Each press adds the split that cleans up the groups the most; the plot shows the boxes and the list the questions.
+---
+<figure class="cs-fig mlf" data-tgrow>
+  <span class="cs-figtag">Try it: grow a tree, one question at a time</span>
+  <canvas aria-label="Students plotted by hours studied and hours slept, passes as squares and fails as circles, split into shaded boxes by the tree's questions"></canvas>
+  <div class="mlf-btns"><button type="button" class="btn" data-add>Ask one more question</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>questions asked</span><b data-q></b></div><div><span>training accuracy</span><b data-a></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <div data-list></div>
+  <figcaption>Made-up data: 80 students, squares passed and circles failed. Each question splits one box in two along a single column, so the boxes always have straight, axis-parallel sides. The tree picks, of all possible questions, the one that leaves the two new boxes purest (Lesson 5.3 shows how it measures that).</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { regions, treeList } from './treekit';
+  import { rng } from '../../../lib/ml/core';
+  import { growTree, predictTree, accuracy } from '../../../lib/ml/trees';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tgrow]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(11), X: number[][] = [], y: number[] = [];
+    for (let i = 0; i < 80; i++) {
+      const s = R.uniform(0.3, 9.7), z = R.uniform(3.2, 9.6);
+      // Pass needs enough study and enough sleep; a few surprises either way.
+      let pass = s > 3.5 && z > 5.5 ? 1 : s > 7 && z > 4.2 ? 1 : 0;
+      if (R.next() < 0.08) pass = 1 - pass;
+      X.push([s, z]); y.push(pass);
+    }
+    const NAMES = ['Studied', 'Slept'], UNITS = [' h', ' h'];
+    const p = new Plot(cv, { x: [0, 10], y: [3, 10], h: 270, xLabel: 'hours studied', yLabel: 'hours slept' });
+    let k = 0;
+    const draw = () => {
+      const g = growTree(X, y, { maxSplits: k });
+      p.begin(); regions(p, g.root, { highlight: g.order[k - 1] ?? null });
+      X.forEach((a, i) => p.dot(a[0], a[1], { r: 4.5, shape: y[i] ? 'square' : 'circle', color: y[i] ? p.pal.accent2 : p.pal.accent }));
+      p.end();
+      q('[data-q]').textContent = String(g.order.length);
+      q('[data-a]').textContent = `${fmt(100 * accuracy(y, X.map((x) => predictTree(g.root, x))), 0)} %`;
+      const last = g.order[k - 1];
+      q('[data-say]').textContent = !k ? `No questions yet: the tree says "${g.root.value > 0.5 ? 'pass' : 'fail'}" to everyone, the bigger group.`
+        : g.order.length < k ? 'Every box is pure now: no question can clean them up further. This tree would score 100 % on its training data, which is a warning sign (Lesson 5.5).'
+        : `New question: ${NAMES[last.f!]} ≤ ${fmt(last.t!, 1)} h? It lowered the Gini impurity of that box by ${fmt(last.gain!, 3)}.`;
+      if (g.order.length < k) k = g.order.length;
+      q('[data-list]').replaceChildren(treeList(g.root, NAMES, (nd) => `${nd.value > 0.5 ? 'pass' : 'fail'} (${Math.round(nd.value * nd.n)} of ${nd.n} passed)`, UNITS));
+    };
+    q('[data-add]').addEventListener('click', () => { k++; go(); });
+    q('[data-reset]').addEventListener('click', () => { k = 0; go(); });
+    const go = live(cv, draw);
+  }
+</script>
