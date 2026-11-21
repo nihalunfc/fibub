@@ -1,0 +1,28 @@
+---
+// DIA for 4.1: regression fits a line through the points to predict a number; classification draws a
+// boundary between groups to predict a category, usually with a probability.
+const A: [number, number][] = [[30, 120], [48, 110], [60, 96], [78, 92], [92, 70], [110, 66], [126, 50], [142, 44]];
+const B: [number, number, number][] = [[24, 60, 0], [40, 96, 0], [52, 50, 0], [64, 120, 0], [70, 74, 0], [96, 128, 1], [112, 100, 1], [120, 136, 1], [136, 84, 1], [150, 118, 1], [84, 112, 1], [100, 64, 0]];
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: two kinds of supervised learning</span>
+  <svg viewBox="0 0 360 230" role="img" aria-labelledby="rc-t" style="max-width:560px">
+    <title id="rc-t">Left, regression: points with a line through them; the model reads off a number for any new x. Right, classification: two groups of points, circles and squares, split by a boundary line; a new point is given a class and a probability.</title>
+    <text x="90" y="16" text-anchor="middle" class="b">Regression</text>
+    <text x="270" y="16" text-anchor="middle" class="b">Classification</text>
+    <rect x="8" y="26" width="164" height="140" rx="8" class="box" />
+    <rect x="188" y="26" width="164" height="140" rx="8" class="box" />
+    <line x1="18" y1="132" x2="160" y2="38" class="lna" />
+    {A.map(([x, y]) => <circle cx={x} cy={y} r="4.5" class="fa" />)}
+    <line x1="104" y1="156" x2="104" y2="62" class="ln" stroke-dasharray="3 3" /><circle cx="104" cy="62" r="5" fill="none" class="lna" />
+    <text x="110" y="150" class="mu">new x</text>
+    <line x1="250" y1="160" x2="300" y2="32" class="lna" />
+    {B.map(([x, y, k]) => k ? <rect x={180 + x * 1.0 - 4} y={y - 4} width="8" height="8" style="fill:var(--accent-ink);stroke:var(--accent);stroke-width:1.5" /> : <circle cx={180 + x * 1.0} cy={y} r="4.5" class="fa" />)}
+    <text x="90" y="186" text-anchor="middle">predicts a <tspan class="b">number</tspan></text>
+    <text x="90" y="204" text-anchor="middle" class="mu">price, temperature, sales</text>
+    <text x="270" y="186" text-anchor="middle">predicts a <tspan class="b">category</tspan></text>
+    <text x="270" y="204" text-anchor="middle" class="mu">spam or not: 87 % spam</text>
+    <text x="356" y="226" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>Regression draws a line (or curve) <em>through</em> the points and reads off a number. Classification draws a boundary <em>between</em> groups and says which side a new point falls on, usually with a probability for each class.</figcaption>
+</figure>

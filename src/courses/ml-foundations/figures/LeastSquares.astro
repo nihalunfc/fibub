@@ -1,0 +1,38 @@
+---
+// SIM for 3.2: five points you can drag. Each error is drawn as a square whose area is the squared error;
+// the least-squares line makes the total area as small as possible. Toggle a line you set yourself.
+---
+<figure class="cs-fig mlf" data-lsq>
+  <span class="cs-figtag">Try it: drag the points and watch the squares</span>
+  <canvas aria-label="Five points with the least-squares line; each vertical error is drawn as a shaded square"></canvas>
+  <div class="mlf-ctl"><label>Line<select name="mode"><option value="best">Least-squares line (the best)</option><option value="flat">Flat line at the mean of y</option><option value="mine">A line through the first and last points</option></select></label></div>
+  <div class="mlf-read"><div><span>total squared error (area of the squares)</span><b data-sse></b></div><div><span>slope and intercept</span><b data-eq></b></div></div>
+  <figcaption>Each square's side is one error (the gap from the point up or down to the line), so its area is that error squared. The least-squares line makes the total shaded area as small as it can be. Switch to the other lines: their squares always add up to more. Notice how one point dragged far away grows a huge square and pulls the line towards itself.</figcaption>
+</figure>
+<script>
+  import { Plot, live, drag, fmt } from './kit';
+  import { fitLine, mean } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-lsq]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector('select')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const P: [number, number][] = [[1, 2], [2, 4.5], [4, 4], [5, 7], [7, 7.5]];
+    const p = new Plot(cv, { x: [0, 10], y: [0, 10], h: 300, xLabel: 'x', yLabel: 'y', equal: true });
+    const line = () => {
+      const xs = P.map((v) => v[0]), ys = P.map((v) => v[1]);
+      if (sel.value === 'flat') return { m: 0, c: mean(ys) };
+      if (sel.value === 'mine') { const [a, z] = [P[0], P[P.length - 1]]; const m = (z[1] - a[1]) / ((z[0] - a[0]) || 1e-9); return { m, c: a[1] - m * a[0] }; }
+      return fitLine(xs, ys);
+    };
+    const draw = () => {
+      const { m, c } = line(); p.begin();
+      let sse = 0;
+      P.forEach(([x, y]) => { const e = y - (m * x + c); sse += e * e; const s = Math.abs(e); p.rect(x, Math.min(y, m * x + c), s, s, { fill: p.pal.accent2, alpha: 0.22, color: p.pal.accent2, width: 1 }); });
+      p.fn((x) => m * x + c, { color: p.pal.ink, width: 2.5 });
+      P.forEach(([x, y]) => p.dot(x, y, { r: 8 }));
+      p.end();
+      q('[data-sse]').textContent = fmt(sse, 2); q('[data-eq]').textContent = `y = ${fmt(m)}x ${c < 0 ? '−' : '+'} ${fmt(Math.abs(c))}`;
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+    drag(p, () => P, (i, x, y) => { P[i] = [Math.max(0.2, Math.min(9.8, x)), Math.max(p.y0 + 0.2, Math.min(p.y1 - 0.2, y))]; go(); });
+  }
+</script>

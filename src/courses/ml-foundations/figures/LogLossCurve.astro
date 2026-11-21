@@ -1,0 +1,31 @@
+---
+// SIM for 4.3: log-loss for one example. Slide the predicted probability and see the penalty when the truth
+// is "yes" (−ln p) or "no" (−ln(1 − p)). Confident and wrong costs far more than unsure.
+---
+<figure class="cs-fig mlf" data-logloss>
+  <span class="cs-figtag">Try it: how much does a wrong guess cost?</span>
+  <canvas aria-label="Two curves of loss against predicted probability: one for a true yes, rising steeply as p goes to 0, and one for a true no, rising steeply as p goes to 1"></canvas>
+  <div class="mlf-ctl"><label>The model says P(yes) = <output data-v="p"></output><input type="range" name="p" min="0.01" max="0.99" step="0.01" value="0.8" /></label></div>
+  <div class="mlf-read"><div><span>loss if the truth is yes: −ln p</span><b data-y></b></div><div><span>loss if the truth is no: −ln(1 − p)</span><b data-n></b></div><div><span>squared error if yes: (1 − p)²</span><b data-s></b></div></div>
+  <figcaption>Log-loss charges almost nothing for a confident right answer and an ever-growing amount for a confident wrong one: at p = 0.01 for something that turns out true, the loss is 4.6, against 0.98 for squared error. That steep wall is what pushes logistic regression to get its probabilities right, not just its yes/no.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-logloss]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [0, 1], y: [0, 5], h: 250, xLabel: 'predicted P(yes)', yLabel: 'loss' });
+    const pp = slider(fig, 'p', () => go());
+    const draw = () => {
+      const v = pp(); p.begin();
+      p.fn((x) => -Math.log(x), { color: p.pal.accent, width: 2.5, from: 0.005 });
+      p.fn((x) => -Math.log(1 - x), { color: p.pal.accent2, width: 2.5, to: 0.995 });
+      p.fn((x) => (1 - x) ** 2, { color: p.pal.muted, width: 1.5, dash: [5, 4] });
+      p.line(v, 0, v, 5, { color: p.pal.ink, width: 1, dash: [3, 3] });
+      p.dot(v, -Math.log(v), { r: 6 }).dot(v, -Math.log(1 - v), { r: 6, shape: 'square', color: p.pal.accent2 });
+      p.text(0.03, 4.6, 'truth = yes', { color: p.pal.accent, bold: true }).text(0.97, 4.6, 'truth = no', { color: p.pal.accent2, bold: true, align: 'right' });
+      p.end();
+      q('[data-y]').textContent = fmt(-Math.log(v), 3); q('[data-n]').textContent = fmt(-Math.log(1 - v), 3); q('[data-s]').textContent = fmt((1 - v) ** 2, 3);
+    };
+    const go = live(cv, draw);
+  }
+</script>

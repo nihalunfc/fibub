@@ -1,0 +1,43 @@
+---
+// SIM for 4.7: k-nearest neighbours on the two-moons data. The shading is the share of class 1 among the k
+// nearest points. Tap anywhere to see which k points vote for that spot.
+---
+<figure class="cs-fig mlf" data-knn>
+  <span class="cs-figtag">Try it: change k</span>
+  <canvas aria-label="Two interlocking crescent-shaped groups of points, with the plane shaded by the k-nearest-neighbour vote"></canvas>
+  <div class="mlf-ctl"><label>k (neighbours that vote): <output data-v="k"></output><input type="range" name="k" min="1" max="61" step="2" value="5" /></label></div>
+  <div class="mlf-read"><div><span>training accuracy</span><b data-tr></b></div><div><span>test accuracy (new points)</span><b data-te></b></div><div><span>vote at the tapped spot</span><b data-v></b></div></div>
+  <p class="mlf-hint">Tap the plot to see the k neighbours of that spot.</p>
+  <figcaption>k-nearest neighbours does no training at all: it keeps every example and, for a new point, lets the k closest ones vote. With k = 1 the regions hug every point, including the noisy ones (overfitting: perfect on training, worse on test). With a very large k the vote is swamped by the bigger picture and the boundary goes too smooth (underfitting). Odd k avoids tied votes.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, shade, toy, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { knnScore } from '../../../lib/ml/models';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-knn]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const T = toy('moons', 120, rng(2), 0.17), V = toy('moons', 200, rng(3), 0.17);
+    const p = new Plot(cv, { x: [-1.3, 1.3], y: [-1.1, 1.1], h: 280, equal: true });
+    let tap: number[] | null = null;
+    const k = slider(fig, 'k', () => go());
+    const acc = (X: number[][], y: number[], self: boolean) => X.filter((x, i) => {
+      const s = self ? knnScore(T.X, T.y, x, k()).score : knnScore(T.X, T.y, x, k()).score;
+      return (s > 0.5 ? 1 : 0) === y[i];
+    }).length / X.length;
+    const draw = () => {
+      const kk = k(); p.begin();
+      shade(p, (a, b) => knnScore(T.X, T.y, [a, b], kk).score, 44, 0.45);
+      T.X.forEach((a, i) => p.dot(a[0], a[1], { r: 5, shape: T.y[i] ? 'square' : 'circle', color: T.y[i] ? p.pal.accent2 : p.pal.accent }));
+      if (tap) {
+        const r = knnScore(T.X, T.y, tap, kk);
+        r.near.forEach((i) => p.line(tap![0], tap![1], T.X[i][0], T.X[i][1], { color: p.pal.ink, width: 1 }));
+        p.dot(tap[0], tap[1], { r: 8, shape: 'ring', color: p.pal.ink });
+        q('[data-v]').textContent = `${Math.round(r.score * kk)} squares, ${kk - Math.round(r.score * kk)} circles`;
+      }
+      p.end();
+      q('[data-tr]').textContent = `${fmt(100 * acc(T.X, T.y, true), 0)} %`; q('[data-te]').textContent = `${fmt(100 * acc(V.X, V.y, false), 0)} %`;
+    };
+    cv.addEventListener('click', (e) => { const r = cv.getBoundingClientRect(); tap = [p.ix(e.clientX - r.left), p.iy(e.clientY - r.top)]; go(); });
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,35 @@
+---
+// DIA for 3.1: a linear model as a weighted sum. Three inputs, each multiplied by its weight, added with a
+// bias to give the prediction. Example numbers from the house-price model of Lesson 1.4.
+const IN: [string, string, string, string][] = [
+  ['Floor area', '95 m²', '× 3.1', '= 294.5'],
+  ['Bedrooms', '3', '× 12', '= 36'],
+  ['Age', '40 years', '× −0.9', '= −36'],
+];
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: a linear model is a weighted sum</span>
+  <svg viewBox="0 0 360 300" role="img" aria-labelledby="la-t" style="max-width:520px">
+    <title id="la-t">Three inputs, floor area 95, bedrooms 3 and age 40, are multiplied by weights 3.1, 12 and minus 0.9, giving 294.5, 36 and minus 36. These are added to a bias of 60 to give a predicted price of 354.5 thousand dollars.</title>
+    <text x="8" y="16" class="mu">inputs x</text><text x="150" y="16" class="mu">weights w</text><text x="268" y="16" class="mu">w × x</text>
+    {IN.map(([n, v, w, r], i) => <g>
+      <rect x="4" y={28 + i * 58} width="118" height="44" rx="8" class="box" />
+      <text x="63" y={46 + i * 58} text-anchor="middle" class="mu">{n}</text>
+      <text x="63" y={64 + i * 58} text-anchor="middle" class="b">{v}</text>
+      <path d={`M124 ${50 + i * 58} H 146`} class="ln" />
+      <rect x="148" y={36 + i * 58} width="70" height="28" rx="14" class="acc" />
+      <text x="183" y={55 + i * 58} text-anchor="middle" class="b">{w}</text>
+      <path d={`M220 ${50 + i * 58} H 252`} class="ln" />
+      <text x="256" y={55 + i * 58}>{r}</text>
+    </g>)}
+    <rect x="148" y="210" width="70" height="28" rx="14" class="box" /><text x="183" y="229" text-anchor="middle">bias 60</text>
+    <path d="M310 50 V 196 M 296 108 H 310 M 296 166 H 310" class="ln" />
+    <path d="M220 224 H 252" class="ln" /><text x="256" y="229">+ 60</text>
+    <path d="M310 196 l-6 -10 h12 z" class="fa" />
+    <rect x="232" y="246" width="124" height="44" rx="8" class="acc" />
+    <text x="294" y="264" text-anchor="middle" class="mu">add up: ŷ</text>
+    <text x="294" y="282" text-anchor="middle" class="b">354.5 ($000)</text>
+    <text x="8" y="290" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>Each input is multiplied by its own weight, and the results are added together with the bias. A positive weight pushes the prediction up as that input grows, a negative weight pulls it down, and a weight near zero means the input hardly matters. Training finds the weights.</figcaption>
+</figure>

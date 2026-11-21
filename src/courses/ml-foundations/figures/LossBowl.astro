@@ -1,0 +1,66 @@
+---
+// SIM for 3.3: gradient descent on the mean squared error of a straight line. Left: the error for every
+// (weight, bias) pair, dark where it is small, with the path taken. Right: the data and the current line.
+// A switch uses raw, unscaled x, which stretches the bowl into a long valley and makes descent zig-zag.
+---
+<figure class="cs-fig mlf" data-bowl>
+  <span class="cs-figtag">Try it: walk down the error bowl</span>
+  <div class="bw-two">
+    <canvas data-c="loss" aria-label="A map of the error for every weight and bias, with the path of gradient descent"></canvas>
+    <canvas data-c="data" aria-label="The data points and the current line"></canvas>
+  </div>
+  <div class="mlf-ctl">
+    <label>Learning rate η: <output data-v="rate"></output><input type="range" name="rate" min="-2.5" max="0.1" step="0.05" value="-1" /></label>
+    <label>The x values are<select name="mode"><option value="z">scaled (mean 0, spread 1)</option><option value="raw">raw (1 to 9, not scaled)</option></select></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-step>Step</button><button type="button" class="btn secondary" data-run>20 steps</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>weight w</span><b data-w></b></div><div><span>bias b</span><b data-b></b></div><div><span>mean squared error</span><b data-e></b></div><div><span>steps</span><b data-n></b></div></div>
+  <p class="mlf-hint">Tap the error map to start from somewhere else.</p>
+  <figcaption>Every point of the left map is one possible line; darker means a smaller error. The bottom of the bowl (ringed) is the least-squares line. Each step moves against the gradient. With scaled x the bowl is round and the path heads straight in. With raw x the bowl becomes a long, narrow valley: a rate small enough not to blow up crawls along the floor. That is why we scale inputs before gradient descent.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { rng, fitLine, mse } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-bowl]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const rateIn = fig.querySelector<HTMLInputElement>('input[name=rate]')!;
+    const cl = fig.querySelector<HTMLCanvasElement>('[data-c=loss]')!, cd = fig.querySelector<HTMLCanvasElement>('[data-c=data]')!;
+    const R = rng(4);
+    const DATA = {
+      z: (() => { const x = Array.from({ length: 25 }, () => R.normal()); return { x, y: x.map((v) => 2 + 1.5 * v + R.normal(0, 0.8)) }; })(),
+      raw: (() => { const x = Array.from({ length: 25 }, () => R.uniform(1, 9)); return { x, y: x.map((v) => 2 + 1.5 * v + R.normal(0, 0.8)) }; })(),
+    };
+    const pl = new Plot(cl, { x: [-1, 4], y: [-4, 8], h: 260, xLabel: 'weight w', yLabel: 'bias b' });
+    const pd = new Plot(cd, { x: [-3, 10], y: [-4, 18], h: 260, xLabel: 'x', yLabel: 'y' });
+    let w = -0.5, b = 7, path: [number, number][] = [[w, b]];
+    const D = () => DATA[sel.value as 'z' | 'raw'];
+    const rate = () => 10 ** Number(rateIn.value);
+    const grad = () => { const { x, y } = D(); let gw = 0, gb = 0; x.forEach((v, i) => { const e = w * v + b - y[i]; gw += (2 * e * v) / x.length; gb += (2 * e) / x.length; }); return [gw, gb]; };
+    const draw = () => {
+      const { x, y } = D(), best = fitLine(x, y);
+      pl.begin();
+      const n = 48, dw = (pl.x1 - pl.x0) / n, db = (pl.y1 - pl.y0) / n;
+      let lo = Infinity, hi = -Infinity; const E: number[] = [];
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const e = Math.log(mse(x, y, pl.x0 + (i + 0.5) * dw, pl.y0 + (j + 0.5) * db)); E.push(e); lo = Math.min(lo, e); hi = Math.max(hi, e); }
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) pl.rect(pl.x0 + i * dw, pl.y0 + j * db, dw * 1.02, db * 1.02, { fill: pl.pal.accent, alpha: 0.85 * (1 - (E[i * n + j] - lo) / (hi - lo)) ** 1.6 });
+      pl.dot(best.m, best.c, { shape: 'ring', r: 9, color: pl.pal.ink });
+      for (let k = 1; k < path.length; k++) pl.line(path[k - 1][0], path[k - 1][1], path[k][0], path[k][1], { color: pl.pal.accent2, width: 2 });
+      path.forEach(([a, c]) => pl.dot(a, c, { r: 3, color: pl.pal.accent2 }));
+      pl.dot(w, b, { r: 7, color: pl.pal.accent2 });
+      pl.end();
+      pd.begin(); pd.fn((v) => w * v + b, { color: pd.pal.accent2, width: 2.5 }); x.forEach((v, i) => pd.dot(v, y[i], { r: 4.5 })); pd.end();
+      q('[data-w]').textContent = fmt(w, 3); q('[data-b]').textContent = fmt(b, 3);
+      q('[data-e]').textContent = Number.isFinite(mse(x, y, w, b)) ? fmt(mse(x, y, w, b), 3) : 'blew up'; q('[data-n]').textContent = String(path.length - 1);
+      q('[data-v="rate"]').textContent = fmt(rate(), 3);
+    };
+    const step = () => { if (!Number.isFinite(w) || Math.abs(w) > 1e6) return; const [gw, gb] = grad(); w -= rate() * gw; b -= rate() * gb; path.push([w, b]); };
+    const reset = (a = -0.5, c = 7) => { w = a; b = c; path = [[w, b]]; };
+    q('[data-step]').addEventListener('click', () => { step(); go(); });
+    q('[data-run]').addEventListener('click', () => { for (let i = 0; i < 20; i++) step(); go(); });
+    q('[data-reset]').addEventListener('click', () => { reset(); go(); });
+    sel.addEventListener('change', () => { reset(); rateIn.value = sel.value === 'raw' ? '-1.6' : '-1'; go(); });
+    rateIn.addEventListener('input', () => go());
+    cl.addEventListener('click', (e) => { const r = cl.getBoundingClientRect(); reset(pl.ix(e.clientX - r.left), pl.iy(e.clientY - r.top)); go(); });
+    const go = live(fig, draw);
+  }
+</script>

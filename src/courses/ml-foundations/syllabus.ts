@@ -1,6 +1,6 @@
 // From a straight line to an LLM (nihal, 2026-11-21): the junior data analytics and machine learning course,
 // the first step before the data courses on nihalsulaiman.com. Plan: /mnt/project-files/ml-foundations-course/plan.md
-// (11 modules, 58 lessons, built over 5 PRs). It fills the "How AI works" slot on /learn/courses/.
+// (11 modules, 66 lessons, built over 5 PRs). It fills the "How AI works" slot on /learn/courses/.
 //
 // How it works: the same engine as Offline AI (src/courses/types.ts). A lesson goes live when
 // src/courses/ml-foundations/<slug>.md exists. Figures and simulations sit in the text as <!--fig:name-->

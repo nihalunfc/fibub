@@ -1,0 +1,46 @@
+---
+// SIM for 4.4: logistic regression learning a decision boundary live by gradient descent. Tap to add points
+// of the chosen class; switch on squared features to let a linear model draw a curved (circular) boundary.
+---
+<figure class="cs-fig mlf" data-boundary>
+  <span class="cs-figtag">Try it: watch a boundary learn</span>
+  <canvas aria-label="Two classes of points on a plane, shaded by the model's probability, with the decision boundary line"></canvas>
+  <div class="mlf-ctl">
+    <label>Data<select name="d"><option value="blobs">two groups</option><option value="ring">one group inside a ring</option><option value="xor">four corners (XOR)</option></select></label>
+    <label>Features<select name="f"><option value="lin">x₁ and x₂ (a straight boundary)</option><option value="sq">also x₁², x₂² and x₁x₂ (curves)</option></select></label>
+    <label>Tapping adds<select name="k"><option value="0">a circle (class 0)</option><option value="1">a square (class 1)</option></select></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Pause</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>training steps</span><b data-n></b></div><div><span>log-loss</span><b data-l></b></div><div><span>accuracy</span><b data-a></b></div></div>
+  <figcaption>The shading is the model's probability: deeper colour, surer answer. The boundary is where p = 0.5, which for logistic regression is where w·x + b = 0: a straight line. A ring or XOR pattern can't be split by a straight line, so the model stays unsure. Add squared features and the same linear model can draw an ellipse, because it is linear in the new features, not in x₁ and x₂.</figcaption>
+</figure>
+<script>
+  import { Plot, live, shade, toy, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { logisticStep, sigmoid, logLoss } from '../../../lib/ml/models';
+  import { loop } from '../../../lib/learn/sim';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-boundary]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const [dSel, fSel, kSel] = [...fig.querySelectorAll('select')];
+    const p = new Plot(cv, { x: [-1.2, 1.2], y: [-1.2, 1.2], h: 300, equal: true });
+    let X: number[][] = [], y: number[] = [], w: number[] = [], b = 0, n = 0;
+    const feat = (a: number[]) => fSel.value === 'sq' ? [a[0], a[1], a[0] * a[0], a[1] * a[1], a[0] * a[1]] : [a[0], a[1]];
+    const prob = (a: number[]) => sigmoid(feat(a).reduce((s, v, j) => s + v * w[j], b));
+    const reset = (data = true) => { if (data) ({ X, y } = toy(dSel.value as 'blobs', 60, rng(5), 0.1)); w = new Array(feat([0, 0]).length).fill(0); b = 0; n = 0; };
+    reset();
+    const draw = () => {
+      p.begin(); shade(p, (a, c) => prob([a, c]), 50, 0.45);
+      if (fSel.value === 'lin' && Math.abs(w[1]) > 1e-6) p.fn((a) => -(w[0] * a + b) / w[1], { color: p.pal.ink, width: 2 });
+      X.forEach((a, i) => p.dot(a[0], a[1], { r: 5.5, shape: y[i] ? 'square' : 'circle', color: y[i] ? p.pal.accent2 : p.pal.accent }));
+      p.end();
+      const ps = X.map(prob);
+      q('[data-n]').textContent = String(n); q('[data-l]').textContent = fmt(logLoss(y, ps), 3);
+      q('[data-a]').textContent = `${fmt((100 * ps.filter((v, i) => (v >= 0.5 ? 1 : 0) === y[i]).length) / y.length, 0)} %`;
+    };
+    dSel.addEventListener('change', () => { reset(); go(); }); fSel.addEventListener('change', () => { reset(false); go(); });
+    q('[data-reset]').addEventListener('click', () => { reset(); go(); });
+    cv.addEventListener('click', (e) => { const r = cv.getBoundingClientRect(); X.push([p.ix(e.clientX - r.left), p.iy(e.clientY - r.top)]); y.push(Number(kSel.value)); n = Math.min(n, 3000); go(); });
+    const go = live(cv, draw);
+    loop(() => { if (n >= 4000) return; const F = X.map(feat); for (let k = 0; k < 5; k++) { ({ w, b } = logisticStep(F, y, w, b, 1.5)); n++; } go(); }, q('[data-play]') as HTMLButtonElement);
+  }
+</script>

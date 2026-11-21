@@ -1,0 +1,41 @@
+---
+// SIM for 3.1: fit a line to 30 flats by hand with slope and intercept sliders; the mean squared error is
+// shown, and "Show the best line" reveals the least-squares answer to beat.
+---
+<figure class="cs-fig mlf" data-fit-hand>
+  <span class="cs-figtag">Try it: fit the line yourself</span>
+  <canvas aria-label="Flats plotted by size and price with a line you control and the gaps from each flat to the line"></canvas>
+  <div class="mlf-ctl">
+    <label>Weight w (slope, $000 per m²): <output data-v="w"></output><input type="range" name="w" min="0" max="6" step="0.05" value="1.5" /></label>
+    <label>Bias b (intercept, $000): <output data-v="b"></output><input type="range" name="b" min="-100" max="400" step="5" value="150" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-best aria-pressed="false">Show the best line</button></div>
+  <div class="mlf-read"><div><span>your mean squared error</span><b data-mse></b></div><div><span>best possible</span><b data-best-mse>?</b></div></div>
+  <figcaption>The line is the model: predicted price = w × size + b. The dashed gaps are the errors. Move the sliders to make the mean squared error as small as you can, then compare with the best line, which Lesson 3.2 finds with a formula. Made-up flats.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, fitLine, mse } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fit-hand]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(12);
+    const X = Array.from({ length: 30 }, () => R.uniform(35, 140)), Y = X.map((x) => 70 + 3.2 * x + R.normal(0, 40));
+    const best = fitLine(X, Y), bestE = mse(X, Y, best.m, best.c);
+    let show = false;
+    const p = new Plot(cv, { x: [30, 145], y: [0, 650], h: 280, xLabel: 'size (m²)', yLabel: 'price ($000)' });
+    const w = slider(fig, 'w', () => go()), b = slider(fig, 'b', () => go());
+    const draw = () => {
+      p.begin();
+      X.forEach((x, i) => p.line(x, Y[i], x, w() * x + b(), { color: p.pal.accent2, width: 1.2, dash: [3, 3] }));
+      if (show) p.fn((x) => best.m * x + best.c, { color: p.pal.good, width: 2, dash: [8, 5] });
+      p.fn((x) => w() * x + b(), { color: p.pal.ink, width: 2.5 });
+      X.forEach((x, i) => p.dot(x, Y[i], { r: 4.5 }));
+      p.end();
+      const e = mse(X, Y, w(), b());
+      q('[data-mse]').textContent = fmt(e, 0);
+      q('[data-best-mse]').textContent = show ? `${fmt(bestE, 0)} (w = ${fmt(best.m)}, b = ${fmt(best.c, 1)})` : '?';
+    };
+    q('[data-best]').addEventListener('click', (e) => { show = !show; (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(show)); go(); });
+    const go = live(cv, draw);
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+// SIM for 3.5: fit a straight line, then plot the residuals (actual − predicted) against the prediction.
+// Patternless scatter = the line is a fair model; a curve or a funnel in the residuals = something is missing.
+---
+<figure class="cs-fig mlf" data-resid>
+  <span class="cs-figtag">Try it: read the residuals</span>
+  <div class="bw-two">
+    <canvas data-c="fit" aria-label="Data with a fitted straight line"></canvas>
+    <canvas data-c="res" aria-label="Residuals plotted against predicted values"></canvas>
+  </div>
+  <div class="mlf-ctl"><label>The real pattern in the data is<select name="s"><option value="0">a straight line plus noise</option><option value="1">a curve</option><option value="2">a line whose noise grows</option><option value="3">a line plus one big outlier</option></select></label></div>
+  <div class="mlf-read"><div><span>RMSE (typical error)</span><b data-rmse></b></div><div><span>MAE (average absolute error)</span><b data-mae></b></div><div><span>R²</span><b data-r2></b></div></div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Left: the data and the least-squares line. Right: each point's residual, the actual value minus the prediction. Good residuals look like random noise around zero. A curve means the model is missing a bend (Lesson 3.6); a funnel means its errors grow with size; one far point is an outlier pulling the fit. Scores alone can hide all three.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { rng, fitLine, rmse, r2, mean } from '../../../lib/ml/core';
+  const SAY = ['No pattern: the residuals are random. A straight line is a fair model here.', 'A U shape: the line is too low at both ends and too high in the middle. The data curves, so add a squared term.', 'A funnel: the errors grow as the prediction grows. Predicting in percentages, or on a log scale, often fixes it.', 'One residual is far from the rest. Check that row: an error, or a real case the model cannot explain?'];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-resid]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const pf = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=fit]')!, { x: [0, 10], y: [-5, 35], h: 240, xLabel: 'x', yLabel: 'y' });
+    const pr = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=res]')!, { x: [0, 30], y: [-12, 12], h: 240, xLabel: 'predicted', yLabel: 'residual' });
+    const make = (k: number) => {
+      const R = rng(30 + k), x = Array.from({ length: 40 }, () => R.uniform(0.5, 9.5));
+      const y = x.map((v) => k === 1 ? 2 + 0.3 * (v - 1) ** 2 + R.normal(0, 1.2) : k === 2 ? 3 + 2 * v + R.normal(0, 0.35 * v) : 3 + 2 * v + R.normal(0, 1.6));
+      if (k === 3) { x[5] = 8; y[5] = 2; }
+      return { x, y };
+    };
+    const draw = () => {
+      const k = Number(sel.value), { x, y } = make(k), f = fitLine(x, y), pred = x.map((v) => f.m * v + f.c), res = y.map((v, i) => v - pred[i]);
+      pf.begin(); pf.fn((v) => f.m * v + f.c, { color: pf.pal.ink, width: 2 }); x.forEach((v, i) => pf.dot(v, y[i], { r: 4.5 })); pf.end();
+      pr.begin(); pr.line(pr.x0, 0, pr.x1, 0, { color: pr.pal.ink, width: 1.5, dash: [5, 4] }); pred.forEach((v, i) => pr.dot(v, res[i], { r: 4.5, color: pr.pal.accent2 })); pr.end();
+      q('[data-rmse]').textContent = fmt(rmse(y, pred)); q('[data-mae]').textContent = fmt(mean(res.map(Math.abs))); q('[data-r2]').textContent = fmt(r2(y, pred), 3);
+      q('[data-say]').textContent = SAY[k];
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(fig, draw);
+  }
+</script>
