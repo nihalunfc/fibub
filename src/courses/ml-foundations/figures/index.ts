@@ -52,6 +52,18 @@ import KFold from './KFold.astro';
 import Tuning from './Tuning.astro';
 import LeakageGame from './LeakageGame.astro';
 import Fairness from './Fairness.astro';
+import KMeansSteps from './KMeansSteps.astro';
+import ChooseK from './ChooseK.astro';
+import Dendrogram from './Dendrogram.astro';
+import PcaProject from './PcaProject.astro';
+import Anomaly from './Anomaly.astro';
+import Perceptron from './Perceptron.astro';
+import Activations from './Activations.astro';
+import NetPlayground from './NetPlayground.astro';
+import BackpropChain from './BackpropChain.astro';
+import TrainingCurves from './TrainingCurves.astro';
+import ConvFilter from './ConvFilter.astro';
+import RnnMemory from './RnnMemory.astro';
 
 export const FIGURES: Record<string, any> = {
   'rules-vs-learning': RulesVsLearning,
@@ -104,4 +116,16 @@ export const FIGURES: Record<string, any> = {
   'tuning': Tuning,
   'leakage-game': LeakageGame,
   'fairness': Fairness,
+  'kmeans-steps': KMeansSteps,
+  'choose-k': ChooseK,
+  'dendrogram': Dendrogram,
+  'pca-project': PcaProject,
+  'anomaly': Anomaly,
+  'perceptron': Perceptron,
+  'activations': Activations,
+  'net-playground': NetPlayground,
+  'backprop-chain': BackpropChain,
+  'training-curves': TrainingCurves,
+  'conv-filter': ConvFilter,
+  'rnn-memory': RnnMemory,
 };

@@ -1,0 +1,42 @@
+---
+// SIM for 9.1: the perceptron learning AND, OR and XOR. Each epoch it visits the four corners and nudges its line
+// whenever it is wrong. AND and OR settle in a few epochs; XOR never does.
+---
+<figure class="cs-fig mlf" data-perc>
+  <span class="cs-figtag">Try it: teach one neuron</span>
+  <canvas aria-label="Four corner points, filled for output 1 and hollow for 0, with the perceptron's current line"></canvas>
+  <div class="mlf-ctl"><label>Pattern: <select name="g"><option value="and">AND (1 only if both inputs are 1)</option><option value="or">OR (1 if either is 1)</option><option value="xor">XOR (1 if exactly one is 1)</option></select></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-ep>One epoch</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>weights w₁, w₂ and bias b</span><b data-w></b></div><div><span>epochs</span><b data-e></b></div><div><span>mistakes in the last epoch</span><b data-m></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>The perceptron outputs 1 when w₁x₁ + w₂x₂ + b ≥ 0: one straight line splits its answers. After each mistake it adds the input to its weights (if it should have said 1) or subtracts it (if it should have said 0). For AND and OR a line exists and it finds one within a few epochs. For XOR no line exists, so it keeps making mistakes for ever.</figcaption>
+</figure>
+<script>
+  import { Plot, live, fmt } from './kit';
+  import { perceptronEpoch } from '../../../lib/ml/nn';
+  const PTS = [[0, 0], [0, 1], [1, 0], [1, 1]];
+  const Y: Record<string, number[]> = { and: [0, 0, 0, 1], or: [0, 1, 1, 1], xor: [0, 1, 1, 0] };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-perc]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const p = new Plot(cv, { x: [-0.5, 1.5], y: [-0.5, 1.5], h: 260, equal: true, xLabel: 'x₁', yLabel: 'x₂' });
+    let w = [0, 0], b = { v: 0 }, epochs = 0, last = -1;
+    const reset = () => { w = [0, 0]; b = { v: 0 }; epochs = 0; last = -1; go(); };
+    const draw = () => {
+      const y = Y[sel.value];
+      p.begin();
+      // Shade the side the neuron calls 1.
+      if (w[0] || w[1] || b.v) { const n = 40, d = 2 / n; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const a = -0.5 + (i + 0.5) * d, c = -0.5 + (j + 0.5) * d; if (w[0] * a + w[1] * c + b.v >= 0) p.rect(-0.5 + i * d, -0.5 + j * d, d * 1.02, d * 1.02, { fill: p.pal.accent2, alpha: 0.16 }); } }
+      if (Math.abs(w[1]) > 1e-9) p.fn((x) => -(w[0] * x + b.v) / w[1], { color: p.pal.ink, width: 2 });
+      else if (Math.abs(w[0]) > 1e-9) p.line(-b.v / w[0], -0.5, -b.v / w[0], 1.5, { color: p.pal.ink, width: 2 });
+      PTS.forEach(([a, c], i) => p.dot(a, c, { r: 10, shape: y[i] ? 'square' : 'ring', color: y[i] ? p.pal.accent2 : p.pal.accent }));
+      p.end();
+      q('[data-w]').textContent = `${fmt(w[0])}, ${fmt(w[1])}, ${fmt(b.v)}`;
+      q('[data-e]').textContent = String(epochs); q('[data-m]').textContent = last < 0 ? '–' : String(last);
+      q('[data-say]').textContent = last === 0 ? 'No mistakes: the line separates the two outputs. Learning stops.' : sel.value === 'xor' && epochs >= 6 ? 'Still wrong, and it always will be: no straight line puts the two squares on one side and the two rings on the other.' : '';
+    };
+    q('[data-ep]').addEventListener('click', () => { if (last !== 0) { last = perceptronEpoch(PTS, Y[sel.value], w, b); epochs++; } go(); });
+    q('[data-reset]').addEventListener('click', reset);
+    sel.addEventListener('change', reset);
+    const go = live(cv, draw);
+  }
+</script>

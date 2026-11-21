@@ -1,0 +1,42 @@
+---
+// DIA for 9.4: backpropagation through a two-weight network, with the numbers of the lesson's worked example.
+// Forward pass left to right (values), backward pass right to left (gradients, by the chain rule).
+const x = 2, w1 = 0.5, w2 = 1.5, b = -0.5;
+const z1 = w1 * x, h = Math.max(0, z1), z2 = w2 * h + b, p = 1 / (1 + Math.exp(-z2)), L = -Math.log(p);
+const dz2 = p - 1, dw2 = dz2 * h, db = dz2, dh = dz2 * w2, dz1 = dh * (z1 > 0 ? 1 : 0), dw1 = dz1 * x;
+const f = (v: number) => (Math.round(v * 1000) / 1000).toString().replace('-', '−');
+const NODES = [
+  { x: 30, t: 'x', v: f(x), g: '' },
+  { x: 100, t: 'z₁ = w₁x', v: f(z1), g: f(dz1) },
+  { x: 170, t: 'h = ReLU', v: f(h), g: f(dh) },
+  { x: 240, t: 'z₂ = w₂h + b', v: f(z2), g: f(dz2) },
+  { x: 310, t: 'p = σ(z₂)', v: f(p), g: '' },
+];
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: forward, then backward</span>
+  <svg viewBox="0 0 360 290" role="img" aria-labelledby="bp-t" style="max-width:600px">
+    <title id="bp-t">A chain of five boxes: input x = 2, z1 = w1 x = 1, h = ReLU(z1) = 1, z2 = w2 h + b = 1, p = sigmoid(z2) = 0.731, loss 0.313. Below, the gradients flowing back: dL/dz2 = −0.269, dL/dh = −0.403, dL/dz1 = −0.403, and the weight gradients dL/dw2 = −0.269, dL/db = −0.269, dL/dw1 = −0.807.</title>
+    <text x="8" y="16" class="b">Forward: compute values, left to right</text>
+    {NODES.map((n) => <g>
+      <rect x={n.x - 31} y="28" width="62" height="44" rx="8" class="box" />
+      <text x={n.x} y="45" text-anchor="middle" class="mu" style="font-size:10.5px">{n.t}</text>
+      <text x={n.x} y="63" text-anchor="middle" class="b">{n.v}</text>
+    </g>)}
+    {NODES.slice(1).map((n, i) => <line x1={NODES[i].x + 31} y1="50" x2={n.x - 31} y2="50" class="lna" />)}
+    <text x="180" y="94" text-anchor="middle">loss L = −ln p = <tspan class="b">{f(L)}</tspan> (the true answer is y = 1)</text>
+    <text x="8" y="124" class="b">Backward: gradients, right to left</text>
+    {NODES.slice(1, 4).map((n) => <g>
+      <rect x={n.x - 31} y="134" width="62" height="34" rx="8" class="acc" />
+      <text x={n.x} y="156" text-anchor="middle" class="b">{n.g}</text>
+    </g>)}
+    <text x="100" y="182" text-anchor="middle" class="mu">∂L/∂z₁</text><text x="170" y="182" text-anchor="middle" class="mu">∂L/∂h</text><text x="240" y="182" text-anchor="middle" class="mu">∂L/∂z₂ = p − y</text>
+    <line x1="209" y1="151" x2="201" y2="151" class="lna" /><line x1="139" y1="151" x2="131" y2="151" class="lna" />
+    <text x="8" y="210" class="b">Weight gradients (gradient × input)</text>
+    <text x="8" y="232">∂L/∂w₂ = ∂L/∂z₂ × h = <tspan class="b">{f(dw2)}</tspan>   ∂L/∂b = <tspan class="b">{f(db)}</tspan></text>
+    <text x="8" y="252">∂L/∂w₁ = ∂L/∂z₁ × x = <tspan class="b">{f(dw1)}</tspan></text>
+    <text x="8" y="274" class="mu">All negative: raising each weight would lower the loss.</text>
+    <text x="356" y="287" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>The forward pass works out each value from the one before. The backward pass starts from the loss and multiplies by one local slope per step (the chain rule): from z₂ to h it multiplies by w₂ = 1.5; through the ReLU it multiplies by 1, because z₁ is positive. Each weight's gradient is the gradient arriving at its box times the input it multiplied. One forward and one backward pass give every gradient at once, however many weights there are.</figcaption>
+</figure>

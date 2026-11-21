@@ -1,0 +1,58 @@
+---
+// SIM for 9.3: a small neural network learning live in the browser. Choose the data, the number of hidden layers
+// and neurons, and watch the boundary bend. One hidden neuron can only draw a line; more neurons, more bends.
+---
+<figure class="cs-fig mlf" data-netpg>
+  <span class="cs-figtag">Try it: a network learning live</span>
+  <canvas aria-label="Points of two classes with the plane shaded by the network's predicted probability"></canvas>
+  <div class="mlf-ctl">
+    <label>Data: <select name="data"><option value="ring">one group inside a ring</option><option value="xor">four corners (XOR)</option><option value="moons">two moons</option><option value="blobs">two groups</option></select></label>
+    <label>Hidden layers: <select name="layers"><option value="1">1</option><option value="2">2</option></select></label>
+    <label>Neurons per hidden layer: <output data-v="h"></output><input type="range" name="h" min="1" max="8" step="1" value="4" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-play>Pause</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>training steps</span><b data-n></b></div><div><span>log-loss</span><b data-l></b></div><div><span>accuracy</span><b data-a></b></div></div>
+  <figcaption>A network with tanh hidden neurons and a sigmoid output, trained by gradient descent on log-loss (the same loss as logistic regression, Lesson 4.3). With 1 hidden neuron it is just logistic regression and draws a straight boundary. Each extra neuron adds a fold, so 3 or 4 can surround the ring and 2 can solve XOR. Nobody told it to use squared features (Lesson 4.4): the hidden layer learned its own.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, shade, toy, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { makeNet, forward, trainStep, type Net } from '../../../lib/ml/nn';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-netpg]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const sd = fig.querySelector<HTMLSelectElement>('select[name=data]')!, sl = fig.querySelector<HTMLSelectElement>('select[name=layers]')!;
+    const p = new Plot(cv, { x: [-1.3, 1.3], y: [-1.2, 1.2], h: 280, equal: true });
+    let D = toy('ring', 160, rng(1), 0.08), net: Net, steps = 0, loss = NaN, running = true, seed = 1;
+    const h = slider(fig, 'h', () => reset(), String);
+    const reset = () => {
+      D = toy(sd.value as 'ring', 160, rng(1), sd.value === 'moons' ? 0.12 : 0.08);
+      const sizes = [2, ...Array(Number(sl.value)).fill(h()), 1];
+      net = makeNet(sizes, 'tanh', rng(seed++)); steps = 0; loss = NaN; go();
+    };
+    const draw = () => {
+      p.begin();
+      shade(p, (a, b) => forward(net, [a, b]).p, 46, 0.55);
+      D.X.forEach((a, i) => p.dot(a[0], a[1], { r: 4, shape: D.y[i] ? 'square' : 'circle', color: D.y[i] ? p.pal.accent2 : p.pal.accent }));
+      p.end();
+      const acc = D.X.filter((x, i) => (forward(net, x).p > 0.5 ? 1 : 0) === D.y[i]).length / D.X.length;
+      q('[data-n]').textContent = String(steps); q('[data-l]').textContent = fmt(loss, 3); q('[data-a]').textContent = `${fmt(100 * acc, 0)} %`;
+    };
+    let last = 0;
+    const tick = (t: number) => {
+      if (running && document.contains(cv)) {
+        for (let k = 0; k < 10; k++) { loss = trainStep(net, D.X, D.y, 0.5); steps++; }
+        if (t - last > 120) { last = t; draw(); }
+        if (steps >= 4000) { running = false; q('[data-play]').textContent = 'Play'; draw(); }
+      }
+      requestAnimationFrame(tick);
+    };
+    q('[data-play]').addEventListener('click', (e) => { running = !running; if (running && steps >= 4000) steps = 0; (e.target as HTMLElement).textContent = running ? 'Pause' : 'Play'; });
+    q('[data-reset]').addEventListener('click', () => { reset(); running = true; q('[data-play]').textContent = 'Pause'; });
+    sd.addEventListener('change', () => reset()); sl.addEventListener('change', () => reset());
+    const go = live(cv, () => net && draw());
+    reset();
+    // Only train while the figure is on screen.
+    new IntersectionObserver((es) => es.forEach((en) => { if (!en.isIntersecting && running) { running = false; q('[data-play]').textContent = 'Play'; } })).observe(fig);
+    requestAnimationFrame(tick);
+  }
+</script>
