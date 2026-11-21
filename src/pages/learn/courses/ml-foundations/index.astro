@@ -1,0 +1,16 @@
+---
+import CourseHome from '../../../../components/course/CourseHome.astro';
+import { ML_FOUNDATIONS } from '../../../../courses/ml-foundations/syllabus';
+---
+<CourseHome course={ML_FOUNDATIONS}>
+  <section class="cs-builds">
+    <h2>What you will be able to do</h2>
+    <ul>
+      <li><strong>Explain every common model</strong> in plain words and with its formula: linear and logistic regression, k-nearest neighbours, naive Bayes, decision trees, random forests, gradient boosting, k-means, PCA and neural networks.</li>
+      <li><strong>Work the maths by hand</strong> on small numbers: least squares, gradient descent, Gini impurity, the chain rule in backpropagation and softmax in attention.</li>
+      <li><strong>Judge a model honestly</strong>: train and test sets, cross-validation, precision and recall, overfitting and data leakage.</li>
+      <li><strong>Say what an LLM really is</strong>: embeddings, attention and next-word training, and what that means for what it can and cannot do.</li>
+    </ul>
+    <p>Every lesson has a picture of the idea, a simulation to play with, a maths box with a worked example, practice questions and a short quiz. It is the first step before the <a href="https://nihalsulaiman.com/learn/etl-course/" rel="noopener">Pipeline to Dashboard</a> and <a href="https://nihalsulaiman.com/learn/big-data-cloud/" rel="noopener">Data at Scale</a> courses, and before <a href="/learn/courses/offline-ai/">Offline AI</a>, where you run a language model on your own computer.</p>
+  </section>
+</CourseHome>

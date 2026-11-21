@@ -1,0 +1,32 @@
+---
+// SIM for 2.2: monthly pay of 11 people in a small company. Drag the boss's pay to the right and watch the
+// mean run away while the median barely moves.
+---
+<figure class="cs-fig mlf" data-mean-median>
+  <span class="cs-figtag">Try it: drag the biggest pay to the right</span>
+  <canvas aria-label="Eleven pay values as dots on a line, with the mean and the median marked"></canvas>
+  <div class="mlf-read"><div><span>mean (average)</span><b data-mean></b></div><div><span>median (middle value)</span><b data-med></b></div><div><span>people earning less than the mean</span><b data-below></b></div></div>
+  <figcaption>The <strong>mean</strong> adds everything up and shares it out equally, so one huge value drags it along. The <strong>median</strong> is the middle person once everyone is lined up, so it ignores how extreme the ends are. For pay, house prices and anything with a long tail, the median describes a typical person better. Made-up pay.</figcaption>
+</figure>
+<script>
+  import { Plot, live, drag, fmt } from './kit';
+  import { mean, median } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-mean-median]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const pay = [3.1, 3.4, 3.6, 3.8, 4.0, 4.2, 4.5, 4.8, 5.2, 5.9, 15];
+    const p = new Plot(cv, { x: [0, 40], y: [0, 3], h: 200, xLabel: 'monthly pay ($000)' });
+    const yOf = (r: number) => 1 + (r % 2) * 0.45;
+    const draw = () => {
+      const m = mean(pay), md = median(pay); p.begin();
+      pay.forEach((v, i) => p.dot(v, yOf(i), { r: i === 10 ? 9 : 6, color: i === 10 ? p.pal.accent2 : p.pal.accent }));
+      p.line(md, 0, md, 2.6, { color: p.pal.good, width: 2.5 }).text(md, 2.75, 'median ', { color: p.pal.good, align: 'right', bold: true });
+      p.line(m, 0, m, 2.2, { color: p.pal.bad, width: 2.5, dash: [6, 4] }).text(m, 2.35, ' mean', { color: p.pal.bad, align: 'left', bold: true });
+      p.text(pay[10], yOf(10), 'boss', { color: p.pal.accent2, align: 'center', dy: 18 });
+      p.end();
+      q('[data-mean]').textContent = `$${fmt(m * 1000, 0)}`; q('[data-med]').textContent = `$${fmt(md * 1000, 0)}`;
+      q('[data-below]').textContent = `${pay.filter((v) => v < m).length} of ${pay.length}`;
+    };
+    const go = live(cv, draw);
+    drag(p, () => [[pay[10], yOf(10)]], (_, x) => { pay[10] = Math.round(Math.max(2, Math.min(39, x)) * 10) / 10; go(); }, 28);
+  }
+</script>

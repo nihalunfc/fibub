@@ -40,7 +40,7 @@ if (!docTitle) throw new Error(`lesson ${slug}: title is over 60 characters; add
         {prev ? <a href={`/learn/courses/${course.id}/${prev.slug}/`}>← {prev.n} {prev.title}</a> : <span />}
         {next ? <a class="cs-next" href={`/learn/courses/${course.id}/${next.slug}/`}>{next.n} {next.title} →</a> : <a class="cs-next" href={`/learn/courses/${course.id}/`}>Course home →</a>}
       </nav>
-      <p class="cs-small">Updated {d.updated.toISOString().slice(0, 10)}. Prices and model names change fast: check the official source before you buy.</p>
+      <p class="cs-small">Updated {d.updated.toISOString().slice(0, 10)}. {course.footnote ?? 'Prices and model names change fast: check the official source before you buy.'}</p>
     </article>
   </div>
 </Base>

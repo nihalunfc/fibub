@@ -1,0 +1,52 @@
+---
+// SIM for 1.1: the smallest possible "learning". 24 students: hours studied and pass or fail. The reader moves a
+// cut-off; "Let the machine learn" tries every cut-off and keeps the one with the fewest mistakes.
+---
+<figure class="cs-fig mlf" data-learn-rule>
+  <span class="cs-figtag">Try it: find the rule from examples</span>
+  <canvas height="200" aria-label="Students placed along a line by hours studied; circles passed, squares failed; a vertical cut-off line"></canvas>
+  <div class="mlf-ctl"><label>Your rule: pass if hours studied ≥ <output data-v="cut">5</output><input type="range" name="cut" min="0" max="12" step="0.25" value="3" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-go>Let the machine learn</button></div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Each mark is a student: <strong>circles passed</strong>, <strong>squares failed</strong>. A rule "pass if hours ≥ cut-off" gets some students wrong (shown with a cross). The machine does what you just did, but tries every possible cut-off and keeps the one with the fewest mistakes. That search is training, and the cut-off it keeps is the model. Made-up data.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, classColour, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-learn-rule]')) {
+    const R = rng(7);
+    const S = Array.from({ length: 24 }, () => { const h = R.uniform(0.5, 11.5); return { h, pass: R.next() < 1 / (1 + Math.exp(-(h - 5.5) * 1.1)) ? 1 : 0 }; });
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const inp = fig.querySelector<HTMLInputElement>('input[name=cut]')!;
+    const p = new Plot(cv, { x: [0, 12], y: [0, 3], h: 190, xLabel: 'hours studied' });
+    const wrong = (c: number) => S.filter((s) => (s.h >= c ? 1 : 0) !== s.pass).length;
+    let anim = 0;
+    const draw = () => {
+      const c = Number(inp.value); p.begin();
+      const ctx = p.ctx; ctx.fillStyle = p.pal.accent; ctx.globalAlpha = 0.08; ctx.fillRect(p.px(c), p.T, p.px(12) - p.px(c), p.H - p.T - p.B); ctx.globalAlpha = 1;
+      p.line(c, 0, c, 3, { color: p.pal.ink, width: 2, dash: [6, 4] }).text(c, 2.8, ' predict pass →', { color: p.pal.muted });
+      S.forEach((s, i) => {
+        const y = s.pass ? 2 : 1, j = ((i * 37) % 5) * 0.12 - 0.24;
+        p.dot(s.h, y + j, { color: classColour(p.pal, s.pass ? 0 : 1), shape: s.pass ? 'circle' : 'square', r: 6 });
+        if ((s.h >= c ? 1 : 0) !== s.pass) p.dot(s.h, y + j, { color: p.pal.bad, shape: 'cross', r: 9 });
+      });
+      p.text(0.1, 2, 'passed', { color: p.pal.muted, dy: -16 }).text(0.1, 1, 'failed', { color: p.pal.muted, dy: -16 });
+      p.end();
+      say.textContent = `Cut-off ${fmt(c)} hours: ${wrong(c)} of ${S.length} students predicted wrongly.`;
+    };
+    slider(fig, 'cut', draw, (v) => fmt(v));
+    live(cv, draw);
+    fig.querySelector('[data-go]')!.addEventListener('click', () => {
+      cancelAnimationFrame(anim);
+      const tries: number[] = []; for (let c = 0; c <= 12; c += 0.25) tries.push(c);
+      let best = tries[0]; for (const c of tries) if (wrong(c) < wrong(best)) best = c;
+      let k = 0; const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const step = () => {
+        inp.value = String(reduce ? best : tries[k]); inp.dispatchEvent(new Event('input'));
+        if (!reduce && ++k < tries.length) anim = requestAnimationFrame(() => setTimeout(step, 40));
+        else { inp.value = String(best); inp.dispatchEvent(new Event('input')); say.textContent = `Tried ${tries.length} cut-offs. Best: pass if hours ≥ ${fmt(best)}, with ${wrong(best)} mistakes. That rule is the learned model.`; }
+      };
+      step();
+    });
+  }
+</script>

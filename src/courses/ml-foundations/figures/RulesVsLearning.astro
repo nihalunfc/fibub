@@ -1,0 +1,26 @@
+---
+// DIA for 1.1: normal programming (rules + data → answers) next to machine learning (data + answers → rule).
+// Drawn 360 wide so the text stays readable on a phone.
+const col = (x: number, title: string, a: string, b: string, out: string, out2: string, ml: boolean) => ({ x, title, a, b, out, out2, ml });
+const C = [col(4, 'Normal programming', 'Rules you write', 'Data', 'Answers', 'pass / fail', false), col(184, 'Machine learning', 'Data', 'Right answers', 'A rule it found', '= the model', true)];
+---
+<figure class="cs-fig mlf">
+  <span class="cs-figtag">Picture: two ways to get answers from a computer</span>
+  <svg viewBox="0 0 360 290" role="img" aria-labelledby="rvl-t" style="max-width:520px">
+    <title id="rvl-t">Left, normal programming: a person writes the rules, the computer applies them to data and gives answers. Right, machine learning: the computer is given data and the right answers, and it finds the rule itself. That found rule, the model, then answers new data.</title>
+    {C.map((c) => <g>
+      <text x={c.x + 86} y="18" text-anchor="middle" class="b">{c.title}</text>
+      <rect x={c.x} y="30" width="84" height="40" rx="8" class="box" /><text x={c.x + 42} y="54" text-anchor="middle" style="font-size:12px">{c.a}</text>
+      <rect x={c.x + 88} y="30" width="84" height="40" rx="8" class="box" /><text x={c.x + 130} y="54" text-anchor="middle" style="font-size:12px">{c.b}</text>
+      <path d={`M${c.x + 42} 72 V 88 H ${c.x + 130} V 72 M ${c.x + 86} 88 V 104`} class="ln" /><path d={`M${c.x + 80} 102 l6 10 l6 -10 z`} class="fa" />
+      <rect x={c.x + 26} y="116" width="120" height="40" rx="8" class="acc" /><text x={c.x + 86} y="141" text-anchor="middle" class="b">Computer</text>
+      <path d={`M${c.x + 86} 158 V 176`} class={c.ml ? 'lna' : 'ln'} /><path d={`M${c.x + 80} 174 l6 10 l6 -10 z`} class="fa" />
+      <rect x={c.x + 16} y="188" width="140" height="48" rx="8" class={c.ml ? 'acc' : 'box'} /><text x={c.x + 86} y="208" text-anchor="middle" class={c.ml ? 'b' : ''}>{c.out}</text><text x={c.x + 86} y="226" text-anchor="middle" class="mu">{c.out2}</text>
+    </g>)}
+    <line x1="180" y1="6" x2="180" y2="240" class="ln" stroke-dasharray="4 5" />
+    <text x="90" y="262" text-anchor="middle" class="mu">a person knows the rule</text>
+    <text x="270" y="262" text-anchor="middle" class="mu">new data → model → answer</text>
+    <text x="356" y="286" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <figcaption>In normal programming a person writes the rule. In machine learning the computer is shown many examples with the right answers and finds a rule that fits them. That found rule is called the <strong>model</strong>, and it is then used on new data it has never seen.</figcaption>
+</figure>

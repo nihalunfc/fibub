@@ -1,0 +1,30 @@
+---
+// SIM for 2.3: 80 points made with a chosen correlation r. Also shows how one outlier can make or break r.
+---
+<figure class="cs-fig mlf" data-corr>
+  <span class="cs-figtag">Try it: set the correlation</span>
+  <canvas aria-label="A scatter plot of 80 points whose cloud tilts and tightens as the correlation changes"></canvas>
+  <div class="mlf-ctl"><label>Target correlation: <output data-v="r"></output><input type="range" name="r" min="-1" max="1" step="0.05" value="0.6" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-new>New sample</button><button type="button" class="btn secondary" data-out aria-pressed="false">Add one far-away point</button></div>
+  <div class="mlf-read"><div><span>measured r</span><b data-r></b></div><div><span>r² (share of spread shared)</span><b data-r2></b></div></div>
+  <figcaption><strong>r</strong> runs from −1 (a perfect downhill line) through 0 (no straight-line link) to +1 (a perfect uphill line). It measures only straight-line patterns, and a single far-away point can change it a lot. Always look at the scatter plot, not just the number.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, correlatedPairs, correlation } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-corr]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    let seed = 3, out = false;
+    const p = new Plot(cv, { x: [-3.5, 3.5], y: [-3.5, 3.5], h: 280, xLabel: 'x', yLabel: 'y' });
+    const r = slider(fig, 'r', () => go());
+    const draw = () => {
+      const { xs, ys } = correlatedPairs(80, r(), rng(seed));
+      if (out) { xs.push(3.2); ys.push(-3.2); }
+      p.begin(); xs.forEach((x, i) => p.dot(x, ys[i], { r: out && i === xs.length - 1 ? 8 : 4.5, color: out && i === xs.length - 1 ? p.pal.accent2 : p.pal.accent, alpha: 0.8 })); p.end();
+      const m = correlation(xs, ys); q('[data-r]').textContent = fmt(m); q('[data-r2]').textContent = `${fmt(100 * m * m, 0)} %`;
+    };
+    const go = live(cv, draw);
+    q('[data-new]').addEventListener('click', () => { seed++; go(); });
+    q('[data-out]').addEventListener('click', (e) => { out = !out; (e.currentTarget as HTMLElement).setAttribute('aria-pressed', String(out)); go(); });
+  }
+</script>

@@ -1,0 +1,42 @@
+---
+// SIM for 1.6: draw random values from a normal curve with the chosen mean and spread; the histogram fills
+// up, and the sample's mean and standard deviation settle towards the true ones. Shows the 68 % band.
+---
+<figure class="cs-fig mlf" data-sampling>
+  <span class="cs-figtag">Try it: draw samples from a bell curve</span>
+  <canvas aria-label="A histogram of sampled values with the normal curve drawn over it and the band of one standard deviation shaded"></canvas>
+  <div class="mlf-ctl">
+    <label>True mean μ: <output data-v="mu"></output><input type="range" name="mu" min="40" max="80" step="1" value="60" /></label>
+    <label>True standard deviation σ: <output data-v="sd"></output><input type="range" name="sd" min="3" max="15" step="0.5" value="10" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-add="1">Draw 1</button><button type="button" class="btn secondary" data-add="100">Draw 100</button><button type="button" class="btn secondary" data-add="1000">Draw 1,000</button><button type="button" class="btn secondary" data-clear>Clear</button></div>
+  <div class="mlf-read"><div><span>values drawn n</span><b data-n></b></div><div><span>sample mean x̄</span><b data-m></b></div><div><span>sample standard deviation s</span><b data-s></b></div><div><span>share within μ ± σ</span><b data-in></b></div></div>
+  <figcaption>Think of exam marks out of 100. Each draw is one student. With a few draws the bars are ragged and the sample mean wanders; with thousands, the bars take the shape of the bell curve, the mean and spread settle on μ and σ, and about 68 % of values land within one standard deviation of the mean (the shaded band).</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, mean, sd as sdev, histogram, normalPdf } from '../../../lib/ml/core';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sampling]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(11); let xs: number[] = [];
+    const p = new Plot(cv, { x: [0, 120], y: [0, 0.14], h: 260, xLabel: 'mark' });
+    const mu = slider(fig, 'mu', () => { xs = []; draw(); }), sd = slider(fig, 'sd', () => { xs = []; draw(); });
+    function draw() {
+      const m = mu(), s = sd(), bw = 4, lo = 0, bins = 30, top = Math.max(0.05, normalPdf(m, m, s) * 1.25);
+      p.o.y = [0, top]; p.begin();
+      p.rect(m - s, 0, 2 * s, top, { fill: p.pal.accent, alpha: 0.08 });
+      if (xs.length) histogram(xs, lo, 120, bins).forEach((c, i) => { const h = c / (xs.length * bw); if (h > 0) p.rect(lo + i * bw, 0, bw, h, { fill: p.pal.accent, alpha: 0.55, color: p.pal.bg, width: 1 }); });
+      p.fn((x) => normalPdf(x, m, s), { color: p.pal.ink, width: 2 });
+      p.line(m, 0, m, top, { color: p.pal.ink, width: 1, dash: [4, 4] }).text(m, top, ' μ', { base: 'top', dy: 4 });
+      if (xs.length) { const xm = mean(xs); p.line(xm, 0, xm, top * 0.85, { color: p.pal.accent2, width: 2.5 }).text(xm, top * 0.85, ' x̄', { color: p.pal.accent2, base: 'bottom', bold: true }); }
+      p.end();
+      q('[data-n]').textContent = xs.length.toLocaleString('en');
+      q('[data-m]').textContent = xs.length ? fmt(mean(xs), 1) : '–';
+      q('[data-s]').textContent = xs.length > 1 ? fmt(sdev(xs, true), 1) : '–';
+      q('[data-in]').textContent = xs.length ? `${fmt((100 * xs.filter((x) => Math.abs(x - m) <= s).length) / xs.length, 0)} %` : '–';
+    }
+    fig.querySelectorAll<HTMLButtonElement>('[data-add]').forEach((b) => b.addEventListener('click', () => { for (let i = 0; i < Number(b.dataset.add); i++) xs.push(R.normal(mu(), sd())); draw(); }));
+    q('[data-clear]').addEventListener('click', () => { xs = []; draw(); });
+    live(cv, draw);
+  }
+</script>

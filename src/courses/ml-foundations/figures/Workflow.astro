@@ -1,0 +1,49 @@
+---
+// DIA for 1.7 (and 11.1): the machine learning workflow as a loop of eight steps. Tapping a step shows
+// what happens in it and the lesson that teaches it.
+const STEPS: [string, string, string][] = [
+  ['Question', 'Say exactly what you want to predict or find, for whom, and how you will know it worked. "Which customers will cancel next month?" beats "use AI on our data".', '1.7'],
+  ['Collect data', 'Gather examples where you already know the answer: past customers and whether they cancelled. More rows help; the right columns help more.', '2.1'],
+  ['Explore and clean', 'Look before you model: charts, summaries, missing values, outliers, odd codes. Most of the time in real projects goes here.', '2.4'],
+  ['Split', 'Hide a test set the model never sees while learning, so the final check is honest.', '2.5'],
+  ['Train', 'Pick a model and let it learn from the training rows, usually by gradient descent or by growing trees.', '3.3'],
+  ['Evaluate', 'Score it on data it has not seen, with a measure that fits the question (RMSE, recall, AUC), and compare with a simple baseline.', '7.2'],
+  ['Use', 'Put it to work: a report, a dashboard, an app or a nightly job that scores new rows.', '11.1'],
+  ['Monitor', 'The world changes, so the data drifts. Check the scores over time and retrain when they slip. Then the loop starts again.', '11.1'],
+];
+const cx = 180, cy = 200, rx = 112, ry = 160;
+const pos = STEPS.map((_, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / STEPS.length; return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; });
+---
+<figure class="cs-fig mlf wf" data-workflow data-steps={JSON.stringify(STEPS)}>
+  <span class="cs-figtag">Picture: the machine learning loop (tap a step)</span>
+  <svg viewBox="0 0 360 400" role="img" aria-labelledby="wf-t" style="max-width:440px">
+    <title id="wf-t">Eight steps in a loop: question, collect data, explore and clean, split, train, evaluate, use, monitor, and back to question.</title>
+    <ellipse cx={cx} cy={cy} rx={rx} ry={ry} class="ln" stroke-dasharray="5 6" />
+    <text x={cx} y={cy - 14} text-anchor="middle" class="b">A model</text>
+    <text x={cx} y={cy + 4} text-anchor="middle" class="b">is never</text>
+    <text x={cx} y={cy + 22} text-anchor="middle" class="b">finished</text>
+    {pos.map(([x, y], i) => <g class="wf-step" data-i={i} tabindex="0" role="button" aria-label={`Step ${i + 1}: ${STEPS[i][0]}`}>
+      <rect x={x - 62} y={y - 17} width="124" height="34" rx="17" class="box" />
+      <text x={x} y={y + 5} text-anchor="middle">{i + 1}. {STEPS[i][0]}</text>
+    </g>)}
+    <text x="356" y="396" text-anchor="end" class="wm">fibub.com</text>
+  </svg>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Real projects go round this loop many times. Evaluation often sends you back to cleaning or to the question itself.</figcaption>
+</figure>
+<style is:inline>
+  .wf-step { cursor: pointer; }
+  .wf .wf-step text { font-size: 12px; }
+  .wf-step:focus { outline: none; }
+  .wf-step.on rect, .wf-step:focus-visible rect { fill: var(--accent); stroke: var(--accent); }
+  .wf-step.on text, .wf-step:focus-visible text { fill: var(--accent-ink); font-weight: 700; }
+</style>
+<script>
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-workflow]')) {
+    const S = JSON.parse(fig.dataset.steps!) as [string, string, string][], say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const gs = [...fig.querySelectorAll<SVGGElement>('.wf-step')];
+    const pick = (i: number) => { gs.forEach((g, k) => g.classList.toggle('on', k === i)); say.innerHTML = ''; const b = document.createElement('strong'); b.textContent = `${i + 1}. ${S[i][0]}: `; say.append(b, `${S[i][1]} (Lesson ${S[i][2]}.)`); };
+    gs.forEach((g, i) => { g.addEventListener('click', () => pick(i)); g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(i); } }); });
+    pick(0);
+  }
+</script>

@@ -1,0 +1,28 @@
+---
+// SIM for 2.2: the same two numbers as bars, with the y-axis starting at zero or cut off just below them.
+// A 4 % difference looks like a landslide when the axis is cut.
+---
+<figure class="cs-fig mlf" data-trunc>
+  <span class="cs-figtag">Try it: move where the axis starts</span>
+  <canvas aria-label="Two bars, store A and store B, whose heights look very different or almost equal depending on where the axis starts"></canvas>
+  <div class="mlf-ctl"><label>The y-axis starts at <output data-v="lo"></output><input type="range" name="lo" min="0" max="95" step="1" value="0" /></label></div>
+  <p class="mlf-say" aria-live="polite" data-say></p>
+  <figcaption>Store A sold 102 units and store B sold 98: a difference of about 4 %. Bars show size by their length, so a bar chart must start at zero. Cut the axis and B looks a fraction of A. (Line charts of things like temperature may start elsewhere, because there you read the position, not the length.)</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-trunc]')) {
+    const cv = fig.querySelector('canvas')!, say = fig.querySelector<HTMLElement>('[data-say]')!;
+    const V = [102, 98];
+    const p = new Plot(cv, { x: [0, 4.6], y: [0, 110], h: 240, yLabel: 'units sold', noXTicks: true });
+    const lo = slider(fig, 'lo', () => go());
+    const draw = () => {
+      const l = lo(); p.o.y = [l, 106]; p.begin();
+      V.forEach((v, i) => { p.rect(0.6 + i * 1.6, l, 1.1, v - l, { fill: i ? p.pal.accent2 : p.pal.accent, alpha: 0.85 }); p.text(1.15 + i * 1.6, v, `${['Store A', 'Store B'][i]}: ${v}`, { align: 'center', base: 'bottom', dy: -4, bold: true }); });
+      p.end();
+      const look = (V[0] - l) / (V[1] - l);
+      say.textContent = l === 0 ? 'Axis at zero: the bars are almost the same length, which is the truth (102 ÷ 98 ≈ 1.04).' : `Axis at ${l}: bar A looks ${fmt(look, 1)} times as long as bar B, though it is only 1.04 times as big.`;
+    };
+    const go = live(cv, draw);
+  }
+</script>

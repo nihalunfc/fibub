@@ -1,0 +1,45 @@
+---
+// SIM for 1.5: a ball on a curve. The tangent shows the slope (the derivative); each Step moves the ball
+// by − learning rate × slope. Too small: slow. Too big: it overshoots and can fly off.
+---
+<figure class="cs-fig mlf" data-downhill>
+  <span class="cs-figtag">Try it: roll downhill with the slope</span>
+  <canvas aria-label="A U-shaped curve with a ball, its tangent line, and the path of the steps taken"></canvas>
+  <div class="mlf-ctl">
+    <label>Curve<select name="f"><option value="0">Simple bowl: (x − 2)² + 1</option><option value="1">Bumpy: two valleys</option></select></label>
+    <label>Learning rate (step size): <output data-v="rate"></output><input type="range" name="rate" min="0.02" max="1.05" step="0.01" value="0.2" /></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn" data-step>Step</button><button type="button" class="btn secondary" data-run>10 steps</button><button type="button" class="btn secondary" data-reset>Start again</button></div>
+  <div class="mlf-read"><div><span>x</span><b data-x></b></div><div><span>slope f′(x)</span><b data-s></b></div><div><span>height f(x)</span><b data-y></b></div><div><span>steps</span><b data-n></b></div></div>
+  <p class="mlf-hint">Tap or click the curve to drop the ball somewhere else.</p>
+  <figcaption>The slope (derivative) says which way is uphill and how steep it is. Moving a small step <strong>against</strong> the slope always goes downhill: new x = x − rate × slope. This one rule, repeated, is how almost every model in this course learns. Try a rate of 1.0 on the bowl, and the bumpy curve from different starting points.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { slopeAt } from '../../../lib/ml/core';
+  const F = [(x: number) => (x - 2) ** 2 + 1, (x: number) => 0.05 * (x + 1) ** 2 * (x - 4) ** 2 + 0.4 * x + 1];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-downhill]')) {
+    const cv = fig.querySelector('canvas')!, sel = fig.querySelector('select')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const p = new Plot(cv, { x: [-3, 6], y: [-1, 12], h: 280, xLabel: 'x', yLabel: 'f(x)' });
+    let x = -1, path: number[] = [x];
+    const rate = slider(fig, 'rate', () => draw());
+    const f = () => F[Number(sel.value)];
+    function draw() {
+      const g = f(), s = slopeAt(g, x); p.begin();
+      p.fn(g, { color: p.pal.ink, width: 2 });
+      for (let i = 1; i < path.length; i++) p.arrow(path[i - 1], g(path[i - 1]), path[i], g(path[i]), { color: p.pal.accent2, width: 1.5, alpha: 0.8 });
+      p.line(x - 1.2, g(x) - 1.2 * s, x + 1.2, g(x) + 1.2 * s, { color: p.pal.accent, width: 2, dash: [6, 4] });
+      p.dot(x, g(x), { r: 9, color: p.pal.accent });
+      p.end();
+      q('[data-x]').textContent = fmt(x, 3); q('[data-s]').textContent = fmt(s, 3); q('[data-y]').textContent = fmt(g(x), 3); q('[data-n]').textContent = String(path.length - 1);
+    }
+    const step = () => { if (Math.abs(x) > 1e3) return; x = x - rate() * slopeAt(f(), x); path.push(x); draw(); };
+    const reset = (to = sel.value === '1' ? 5.5 : -1) => { x = to; path = [x]; draw(); };
+    q('[data-step]').addEventListener('click', step);
+    q('[data-run]').addEventListener('click', () => { for (let i = 0; i < 10; i++) step(); });
+    q('[data-reset]').addEventListener('click', () => reset());
+    sel.addEventListener('change', () => reset());
+    cv.addEventListener('click', (e) => { const b = cv.getBoundingClientRect(); reset(Math.max(-2.8, Math.min(5.8, p.ix(e.clientX - b.left)))); });
+    live(cv, draw);
+  }
+</script>

@@ -72,7 +72,9 @@ export default function autolinkTools() {
   return (tree, file) => {
     const path = file?.path || file?.history?.[0] || '';
     const isBlog = /[\\/]blog[\\/][^\\/]+[\\/][^\\/]+\.md$/.test(path);
-    if (!isBlog && !/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
+    // ML foundations lessons use hand-made [[tool-id]] links only (no automatic links inside a lesson).
+    const isCourse = /[\\/]courses[\\/]ml-foundations[\\/][^\\/]+\.md$/.test(path);
+    if (!isBlog && !isCourse && !/[\\/]tools[\\/][^\\/]+[\\/]guide\.md$/.test(path)) return;
     // A tool guide never links to itself; a Blog article may link to every tool, its own included.
     const self = isBlog ? '' : basename(dirname(path));
     const done = new Set([self]);
@@ -108,6 +110,7 @@ export default function autolinkTools() {
       });
     };
     manual(tree);
+    if (isCourse) return;
     const handMade = done.size > 1 || isBlog;
     // Tools the guide already links to with an ordinary Markdown link count as linked too.
     const seen = (node) => { if (node.type === 'element' && node.tagName === 'a') { const h = String(node.properties?.href ?? ''); for (const t of tools) if (h === t.url) done.add(t.id); } (node.children ?? []).forEach(seen); };
