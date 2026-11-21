@@ -1,0 +1,64 @@
+---
+// SIM for 9.6: a 3×3 filter sliding over a small black-and-white picture. Each output pixel is the sum of the nine
+// pixels under the filter times the filter's numbers. Tap the output to see one sum worked out.
+---
+<figure class="cs-fig mlf" data-conv>
+  <span class="cs-figtag">Try it: slide a filter over a picture</span>
+  <canvas aria-label="Left, a 12 by 12 pixel picture of a house; right, the filter's output, bright where the filter's pattern matches"></canvas>
+  <div class="mlf-ctl"><label>Filter: <select name="k">
+    <option value="v">vertical edges</option><option value="h">horizontal edges</option><option value="blur">blur (average)</option><option value="sharp">sharpen</option>
+  </select></label></div>
+  <div class="mlf-read"><div><span>filter</span><b data-k style="white-space:pre;font-family:ui-monospace,monospace;font-size:14px"></b></div><div><span>at the tapped spot</span><b data-s style="font-size:14px"></b></div></div>
+  <p class="mlf-hint">Tap the output (right) to see the sum for that pixel; its 3×3 window is outlined on the picture.</p>
+  <figcaption>The same nine numbers are used at every position, so the filter finds its pattern wherever it is in the picture. The vertical-edge filter scores high where the picture is bright on one side and dark on the other, and zero on flat areas. A convolutional network learns the numbers in its filters from data; early layers end up with edge and colour detectors like these, and later layers combine them into shapes and objects.</figcaption>
+</figure>
+<script>
+  import { live, fmt } from './kit';
+  import { pagePalette } from '../../../lib/report';
+  import { conv2d } from '../../../lib/ml/nn';
+  const PIC = [
+    '............', '.....##.....', '....####....', '...######...', '..########..', '.##########.',
+    '..#......#..', '..#.##...#..', '..#.##...#..', '..#.......#.', '..#########.', '............',
+  ].map((r) => [...r].map((c) => (c === '#' ? 1 : 0)));
+  const K: Record<string, number[][]> = {
+    v: [[1, 0, -1], [1, 0, -1], [1, 0, -1]], h: [[1, 1, 1], [0, 0, 0], [-1, -1, -1]],
+    blur: [[1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9], [1 / 9, 1 / 9, 1 / 9]], sharp: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]],
+  };
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-conv]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    let tap: [number, number] | null = [4, 2];
+    let geo = { cell: 10, ox: 0, oy: 0, gap: 0 };
+    const draw = () => {
+      const pal = pagePalette(), dpr = Math.min(3, devicePixelRatio || 1), W = Math.max(240, cv.clientWidth || 340);
+      const cell = Math.floor((W - 30) / 22), H = cell * 12 + 30;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+      const c = cv.getContext('2d')!; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+      const ker = K[sel.value], out = conv2d(PIC, ker), flat = out.flat(), m = Math.max(...flat.map(Math.abs)) || 1;
+      const ox = 4, oy = 18, gap = 14 + cell, ox2 = ox + 12 * cell + gap - cell;
+      geo = { cell, ox: ox2, oy: oy + cell, gap };
+      c.font = '12px system-ui, sans-serif'; c.fillStyle = pal.muted; c.fillText('picture', ox, 12); c.fillText('output', ox2, 12);
+      PIC.forEach((row, r) => row.forEach((v, j) => { c.fillStyle = v ? pal.ink : pal.bg; c.fillRect(ox + j * cell, oy + r * cell, cell - 1, cell - 1); c.strokeStyle = pal.grid; c.strokeRect(ox + j * cell, oy + r * cell, cell - 1, cell - 1); }));
+      out.forEach((row, r) => row.forEach((v, j) => {
+        c.globalAlpha = Math.abs(v) / m; c.fillStyle = v >= 0 ? pal.accent : pal.accent2;
+        c.fillRect(ox2 + j * cell, oy + cell + r * cell, cell - 1, cell - 1); c.globalAlpha = 1;
+        c.strokeStyle = pal.grid; c.strokeRect(ox2 + j * cell, oy + cell + r * cell, cell - 1, cell - 1);
+      }));
+      if (tap) {
+        const [r, j] = tap; c.strokeStyle = pal.bad; c.lineWidth = 2.5;
+        c.strokeRect(ox + j * cell - 1, oy + r * cell - 1, 3 * cell, 3 * cell); c.strokeRect(ox2 + j * cell - 1, oy + cell + r * cell - 1, cell, cell); c.lineWidth = 1;
+        const terms: string[] = []; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) if (PIC[r + a][j + b] && ker[a][b]) terms.push(fmt(ker[a][b], 2));
+        q('[data-s]').textContent = `${terms.length ? terms.join(' + ').replace(/\+ −/g, '− ') : '0 (no bright pixel meets a non-zero weight)'} = ${fmt(out[r][j], 2)}`;
+      }
+      c.globalAlpha = 0.5; c.fillStyle = pal.muted; c.textAlign = 'right'; c.fillText('fibub.com', W - 4, H - 4); c.globalAlpha = 1; c.textAlign = 'left';
+      q('[data-k]').textContent = ker.map((row) => row.map((v) => fmt(v, 2).padStart(5)).join(' ')).join('\n');
+    };
+    cv.addEventListener('click', (e) => {
+      const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+      const j = Math.floor((x - geo.ox) / geo.cell), r = Math.floor((y - geo.oy) / geo.cell);
+      if (j >= 0 && j < 10 && r >= 0 && r < 10) { tap = [r, j]; go(); }
+    });
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>

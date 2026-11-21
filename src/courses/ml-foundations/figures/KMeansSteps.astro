@@ -1,0 +1,49 @@
+---
+// SIM for 8.1: k-means one half-step at a time: assign every point to its nearest centre, then move each centre to
+// the middle of its points. Repeat until nothing changes.
+---
+<figure class="cs-fig mlf" data-kms>
+  <span class="cs-figtag">Try it: run k-means by hand</span>
+  <canvas aria-label="Unlabelled points coloured by their nearest centre, with the centres drawn as large crosses"></canvas>
+  <div class="mlf-ctl"><label>Clusters k: <output data-v="k"></output><input type="range" name="k" min="2" max="6" step="1" value="3" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn" data-step>Next step</button><button type="button" class="btn secondary" data-run>Run to the end</button><button type="button" class="btn secondary" data-new>New random start</button></div>
+  <div class="mlf-read"><div><span>steps</span><b data-n></b></div><div><span>inertia (sum of squared distances)</span><b data-i></b></div></div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Made-up data: 150 customers by yearly visits and average spend, both scaled, with no labels. Step 1 colours each point by its nearest centre (the crosses). Step 2 moves each centre to the average of its points. Each step can only lower the inertia, so it always settles, but where it settles depends on the start: try a few. With a bad start two centres can share one group.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { kmeansStep, dist2 } from '../../../lib/ml/unsup';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-kms]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(21), X: number[][] = [];
+    for (const [cx, cy, n] of [[-0.9, -0.6, 50], [0.7, -0.4, 45], [0, 0.85, 55]] as const) for (let i = 0; i < n; i++) X.push([cx + R.normal(0, 0.28), cy + R.normal(0, 0.28)]);
+    const p = new Plot(cv, { x: [-2, 2], y: [-1.6, 1.8], h: 280, xLabel: 'visits (scaled)', yLabel: 'spend (scaled)', equal: true });
+    const k = slider(fig, 'k', () => start(), String);
+    let seed = 1, C: number[][] = [], lab: number[] | null = null, steps = 0, phase: 'assign' | 'move' = 'assign', done = false;
+    const start = () => { const S = rng(seed); C = Array.from({ length: k() }, () => [S.uniform(-1.8, 1.8), S.uniform(-1.4, 1.6)]); lab = null; steps = 0; phase = 'assign'; done = false; go(); };
+    const colour = (i: number) => [p.pal.accent, p.pal.accent2, p.pal.good, p.pal.bad, p.pal.ink, p.pal.muted][i % 6];
+    const SHAPES = ['circle', 'square', 'ring', 'cross', 'circle', 'square'] as const;
+    const half = () => {
+      const s = kmeansStep(X, C);
+      if (phase === 'assign') { done = !!lab && s.lab.every((v, i) => v === lab![i]); lab = s.lab; phase = 'move'; }
+      else { C = s.C; phase = 'assign'; }
+      steps++;
+    };
+    const draw = () => {
+      p.begin();
+      X.forEach((x, i) => p.dot(x[0], x[1], { r: 4, shape: lab ? SHAPES[lab[i]] : 'circle', color: lab ? colour(lab[i]) : p.pal.muted, alpha: 0.85 }));
+      C.forEach((c, j) => { p.dot(c[0], c[1], { r: 11, shape: 'cross', color: p.pal.bg }); p.dot(c[0], c[1], { r: 9, shape: 'cross', color: colour(j) }); });
+      p.end();
+      q('[data-n]').textContent = String(steps);
+      q('[data-i]').textContent = lab ? fmt(X.reduce((s, x, i) => s + dist2(x, C[lab![i]]), 0), 1) : '–';
+      q('[data-say]').textContent = done ? 'Converged: no point changed cluster, so the centres stay put.' : !lab ? 'Random centres placed. Press Next step to assign each point.' : phase === 'move' ? 'Points assigned to their nearest centre. Next: move each centre to the middle of its points.' : 'Centres moved. Next: assign the points again.';
+    };
+    q('[data-step]').addEventListener('click', () => { if (!done) half(); go(); });
+    q('[data-run]').addEventListener('click', () => { let g = 0; while (!done && g++ < 200) half(); go(); });
+    q('[data-new]').addEventListener('click', () => { seed++; start(); });
+    const go = live(cv, draw);
+    start();
+  }
+</script>

@@ -1,0 +1,57 @@
+---
+// SIM for 9.5: training a small network with different learning rates and batch sizes. Training and validation
+// loss per epoch; the best epoch (lowest validation loss) is where early stopping would keep the weights.
+---
+<figure class="cs-fig mlf" data-tcurve>
+  <span class="cs-figtag">Try it: learning rate and batch size</span>
+  <canvas aria-label="Training loss and validation loss against epoch, with the epoch of lowest validation loss marked"></canvas>
+  <div class="mlf-ctl">
+    <label>Learning rate: <output data-v="lr"></output><input type="range" name="lr" min="-3" max="1" step="0.25" value="0" /></label>
+    <label>Batch size: <select name="bs"><option value="4">4</option><option value="16" selected>16</option><option value="60">60 (all rows)</option></select></label>
+  </div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-run>Train 100 epochs again</button></div>
+  <div class="mlf-read"><div><span>best epoch (early stopping)</span><b data-b></b></div><div><span>lowest validation loss</span><b data-vl></b></div><div><span>weight updates per epoch</span><b data-u></b></div></div>
+  <figcaption>A 2-12-12-1 network on noisy two-moons data: 60 training rows, 160 validation rows. An epoch is one pass over the training rows, in batches; every batch gives one gradient step. Too small a rate crawls; too big a rate makes the loss jump about or blow up. Small batches give more, noisier steps per epoch. Training loss keeps falling, while validation loss eventually turns up as the network starts to memorise: early stopping keeps the weights from the best epoch.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, toy, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { makeNet, forward, trainStep } from '../../../lib/ml/nn';
+  const EPOCHS = 100;
+  const logloss = (net: ReturnType<typeof makeNet>, X: number[][], y: number[]) => X.reduce((s, x, i) => { const p = Math.min(1 - 1e-9, Math.max(1e-9, forward(net, x).p)); return s - (y[i] * Math.log(p) + (1 - y[i]) * Math.log(1 - p)); }, 0) / X.length;
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-tcurve]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, bs = fig.querySelector('select')!;
+    const T = toy('moons', 60, rng(31), 0.15), V = toy('moons', 160, rng(32), 0.15);
+    const p = new Plot(cv, { x: [0, EPOCHS], y: [0, 1], h: 250, xLabel: 'epoch', yLabel: 'log-loss' });
+    const lr = slider(fig, 'lr', () => run(), (v) => fmt(10 ** v, 3));
+    let tr: number[] = [], va: number[] = [];
+    const run = () => {
+      const net = makeNet([2, 12, 12, 1], 'tanh', rng(5)), R = rng(6), B = Number(bs.value), rate = 10 ** lr();
+      tr = []; va = [];
+      for (let e = 0; e < EPOCHS; e++) {
+        const order = R.shuffle(T.X.map((_, i) => i));
+        for (let s = 0; s < order.length; s += B) trainStep(net, T.X, T.y, rate, order.slice(s, s + B));
+        const a = logloss(net, T.X, T.y), b = logloss(net, V.X, V.y);
+        tr.push(Number.isFinite(a) ? a : 5); va.push(Number.isFinite(b) ? b : 5);
+      }
+      go();
+    };
+    const draw = () => {
+      const best = va.indexOf(Math.min(...va)), clip = (v: number) => Math.min(v, 0.99);
+      p.begin();
+      p.path(tr.map((v, i) => [i + 1, clip(v)] as [number, number]), { color: p.pal.accent2, width: 2, dash: [6, 4] });
+      p.path(va.map((v, i) => [i + 1, clip(v)] as [number, number]), { color: p.pal.accent, width: 2.5 });
+      p.line(best + 1, 0, best + 1, 1, { color: p.pal.muted, dash: [3, 3] });
+      p.dot(best + 1, clip(va[best]), { r: 6, color: p.pal.accent });
+      p.text(EPOCHS - 1, clip(tr[EPOCHS - 1]), 'training', { align: 'right', dy: 12, color: p.pal.accent2 });
+      p.text(EPOCHS - 1, clip(va[EPOCHS - 1]), 'validation', { align: 'right', dy: -10, color: p.pal.accent });
+      p.end();
+      q('[data-b]').textContent = String(best + 1); q("[data-vl]").textContent = fmt(va[best], 3);
+      q('[data-u]').textContent = String(Math.ceil(60 / Number(bs.value)));
+    };
+    bs.addEventListener('change', () => run());
+    q('[data-run]').addEventListener('click', () => run());
+    const go = live(cv, () => tr.length && draw());
+    run();
+  }
+</script>

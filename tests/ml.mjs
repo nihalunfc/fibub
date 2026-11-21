@@ -3,6 +3,8 @@
 import * as M from '../src/lib/ml/core.ts';
 import * as M2 from '../src/lib/ml/models.ts';
 import * as T from '../src/lib/ml/trees.ts';
+import * as U from '../src/lib/ml/unsup.ts';
+import * as N from '../src/lib/ml/nn.ts';
 
 let fails = 0, n = 0;
 const near = (got, want, tol, what) => { n++; if (!(Math.abs(got - want) <= tol)) { fails++; console.error(`✗ ${what}: got ${got}, want ${want}`); } };
@@ -87,6 +89,58 @@ near(T.majorityRight(3, 0.7), 0.784, 1e-12, 'majority of 3'); near(T.majorityRig
 { const X = [[50], [60], [100], [110]], y = [100, 120, 200, 220], Bo = T.boost(X, y, { rounds: 2, rate: 0.5, depth: 1 });
   near(Bo.predict([50], 1), 135, 1e-9, 'boost round 1'); near(Bo.predict([110], 2), 197.5, 1e-9, 'boost round 2'); }
 { const f = T.kfold(23, 5, M.rng(1)); ok(f.length === 5 && new Set(f.flat()).size === 23, 'k folds cover every row once'); }
+
+// Module 8 (src/lib/ml/unsup.ts).
+// 8.1 worked example: centres A and D → (1.67, 9) and (9, 2), inertia 6.67.
+{ const X = [[1, 9], [2, 8], [2, 10], [8, 2], [9, 3], [10, 1]];
+  const s1 = U.kmeansStep(X, [[1, 9], [8, 2]]); ok(s1.lab.join() === '0,0,0,1,1,1', 'k-means assign');
+  near(s1.C[0][0], 5 / 3, 1e-12, 'k-means centre 1'); near(s1.C[1][0], 9, 1e-12, 'k-means centre 2');
+  const s2 = U.kmeansStep(X, s1.C); near(s2.inertia, 20 / 3, 1e-9, 'k-means inertia'); ok(s2.lab.join() === s1.lab.join(), 'k-means converged'); }
+// 8.1 try it: 1, 2, 3, 10, 11, 12 from centres 1 and 2 → 2 and 11.
+{ const X = [1, 2, 3, 10, 11, 12].map((v) => [v]); let C = [[1], [2]];
+  const a = U.kmeansStep(X, C); near(a.C[1][0], 7.6, 1e-12, 'k-means 1-D step 1');
+  const b = U.kmeansStep(X, a.C); near(b.C[0][0], 2, 1e-12, 'k-means 1-D centre'); near(b.C[1][0], 11, 1e-12, 'k-means 1-D centre 2'); }
+// 8.2: silhouette for two tight, far apart groups is close to 1; random labels near 0.
+{ const X = [[0, 0], [0, 1], [1, 0], [10, 10], [10, 11], [11, 10]]; ok(U.silhouette(X, [0, 0, 0, 1, 1, 1]) > 0.85, 'silhouette clear groups');
+  ok(U.silhouette(X, [0, 1, 0, 1, 0, 1]) < 0.1, 'silhouette mixed labels'); }
+// 8.3: average linkage on 10, 12, 30, 33, 60 merges at 2, 3, 20.5, 38.75; single linkage try-it at 1, 1, 4, 14.
+{ const h = U.agglomerate([10, 12, 30, 33, 60].map((v) => [v]), 'average').map((m) => m.h);
+  ok(h.map((v) => +v.toFixed(2)).join() === '2,3,20.5,38.75', 'average linkage heights ' + h.join());
+  const g = U.agglomerate([0, 1, 5, 6, 20].map((v) => [v]), 'single').map((m) => m.h); ok(g.join() === '1,1,4,14', 'single linkage heights');
+  const cut = U.cutTree(5, U.agglomerate([10, 12, 30, 33, 60].map((v) => [v])), 3); ok(new Set(cut).size === 3 && cut[0] === cut[1] && cut[2] === cut[3], 'cut into 3'); }
+// 8.4: correlation 0.8 → PC1 keeps 90 %.
+{ const R = M.rng(7), X = []; for (let i = 0; i < 4000; i++) { const a = R.normal(0, 1), e = R.normal(0, 1); X.push([a, 0.8 * a + 0.6 * e]); }
+  const P = U.pca(X, 2); near(P.share[0], 0.9, 0.01, 'PC1 share'); near(Math.abs(P.comps[0][0]), Math.SQRT1_2, 0.02, 'PC1 direction'); }
+// 8.5: z of 290 with mean 200, sd 25 is 3.6.
+{ const z = U.zScores([0, 10]); near(z[1], 1, 1e-12, 'z-scores'); near((290 - 200) / 25, 3.6, 1e-12, 'z 3.6'); }
+
+// Module 9 (src/lib/ml/nn.ts).
+// 9.1: the perceptron learns AND by epoch 6, ending at w (2, 1), b −3.
+{ const X = [[0, 0], [0, 1], [1, 0], [1, 1]], y = [0, 0, 0, 1], w = [0, 0], b = { v: 0 }; let ep = 0, wrong = 1;
+  while (wrong && ep < 20) { wrong = N.perceptronEpoch(X, y, w, b); ep++; }
+  ok(ep <= 7 && w.join() === '2,1' && b.v === -3, `perceptron AND (epochs ${ep}, w ${w}, b ${b.v})`); }
+// 9.2 worked example at z = 1.2.
+near(N.ACT.sigmoid.f(1.2), 0.769, 1e-3, 'sigmoid 1.2'); near(N.ACT.sigmoid.d(1.2), 0.178, 1e-3, 'sigmoid slope 1.2');
+near(N.ACT.tanh.f(1.2), 0.834, 1e-3, 'tanh 1.2'); near(N.ACT.tanh.d(1.2), 0.305, 1e-3, 'tanh slope 1.2');
+near(N.ACT.sigmoid.f(-2), 0.119, 1e-3, 'sigmoid −2'); near(N.ACT.tanh.d(-2), 0.071, 1e-3, 'tanh slope −2');
+// 9.4 worked example: x 2, w1 0.5, ReLU, w2 1.5, b −0.5 → p 0.731, ∂L/∂w1 −0.807, loss 0.073 after one step at η 0.5.
+{ const net = { sizes: [1, 1, 1], act: 'relu', W: [[[0.5]], [[1.5]]], B: [[0], [-0.5]] };
+  near(N.forward(net, [2]).p, 0.731, 1e-3, 'backprop forward p'); const g = N.backward(net, [2], 1);
+  near(g.loss, 0.313, 1e-3, 'backprop loss'); near(g.gW[1][0][0], -0.269, 1e-3, 'dL/dw2'); near(g.gW[0][0][0], -0.807, 1e-3, 'dL/dw1');
+  net.W[0][0][0] -= 0.5 * g.gW[0][0][0]; net.W[1][0][0] -= 0.5 * g.gW[1][0][0]; net.B[1][0] -= 0.5 * g.gB[1][0]; // the lesson's network has no hidden bias
+  near(net.W[0][0][0], 0.903, 1e-3, 'new w1'); near(N.backward(net, [2], 1).loss, 0.073, 1e-3, 'loss after one step'); }
+// Gradient check on a small tanh network.
+{ const net = N.makeNet([2, 3, 1], 'tanh', M.rng(2)), x = [0.3, -0.7], g = N.backward(net, x, 1), e = 1e-6;
+  net.W[0][1][0] += e; const up = N.backward(net, x, 1).loss; net.W[0][1][0] -= 2 * e; const dn = N.backward(net, x, 1).loss; net.W[0][1][0] += e;
+  near(g.gW[0][1][0], (up - dn) / (2 * e), 1e-6, 'gradient check'); }
+// 9.3: a 2-3-1 network learns XOR.
+{ const net = N.makeNet([2, 4, 1], 'tanh', M.rng(4)), X = [[0, 0], [0, 1], [1, 0], [1, 1]], y = [0, 1, 1, 0];
+  for (let t = 0; t < 3000; t++) N.trainStep(net, X, y, 0.5); ok(X.every((x, i) => (N.forward(net, x).p > 0.5 ? 1 : 0) === y[i]), 'network learns XOR'); }
+// 9.6 try it: [[1, 0], [0, −1]] on a 3 × 3 ramp gives −4 everywhere.
+ok(N.conv2d([[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 0], [0, -1]]).flat().every((v) => v === -4), 'convolution −4');
+ok(N.conv2d(Array.from({ length: 12 }, () => new Array(12).fill(0)), [[1, 1, 1], [1, 1, 1], [1, 1, 1]]).length === 10, 'output 10 × 10');
+// 9.7 worked example: w 1, u 0.7 on 0, 1, 0, 0, 0 → 0.762, 0.488, 0.329, 0.226.
+{ const h = N.rnn([0, 1, 0, 0, 0], 1, 0.7); ok(h.slice(1).map((v) => v.toFixed(3)).join() === '0.762,0.488,0.329,0.226', 'rnn echo ' + h.map((v) => v.toFixed(3))); }
 
 if (fails) { console.error(`ml: ${fails} of ${n} checks failed`); process.exit(1); }
 console.log(`ml: ${n} checks passed`);

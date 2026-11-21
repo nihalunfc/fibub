@@ -1,0 +1,50 @@
+---
+// SIM for 8.2: choosing k. For data with a chosen number of real groups, run k-means for k = 1 to 8 and plot the
+// inertia (look for the elbow) and the mean silhouette (look for the peak).
+---
+<figure class="cs-fig mlf" data-ck>
+  <span class="cs-figtag">Try it: find the elbow</span>
+  <canvas data-c="pts" aria-label="The data points, coloured by the clusters k-means finds for the chosen k"></canvas>
+  <canvas data-c="score" aria-label="Inertia falling as k grows, with an elbow, and the silhouette score peaking at the best k"></canvas>
+  <div class="mlf-ctl">
+    <label>Real groups in the data: <output data-v="g"></output><input type="range" name="g" min="2" max="5" step="1" value="4" /></label>
+    <label>Spread of each group: <output data-v="s"></output><input type="range" name="s" min="0.1" max="0.6" step="0.05" value="0.2" /></label>
+    <label>k to show: <output data-v="k"></output><input type="range" name="k" min="1" max="8" step="1" value="3" /></label>
+  </div>
+  <figcaption>Inertia (solid) always falls as k grows: more centres are always closer to the points. The elbow, where it stops falling steeply, suggests a k. The silhouette (dashed, right-hand scale from 0 to 1) asks how much closer each point is to its own cluster than to the next one, and peaks at the best k. Widen the groups until they overlap and both signals fade: then there may be no "right" k at all.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { kmeans, silhouette } from '../../../lib/ml/unsup';
+  const CENTRES = [[-1, -0.7], [1, -0.6], [0, 1], [-1.1, 0.9], [1.1, 0.8]];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ck]')) {
+    const q = (s: string) => fig.querySelector<HTMLCanvasElement>(s)!;
+    const pp = new Plot(q('[data-c=pts]'), { x: [-2, 2], y: [-1.6, 1.9], h: 230, equal: true });
+    const ps = new Plot(q('[data-c=score]'), { x: [0.5, 8.5], y: [0, 1.05], h: 190, xLabel: 'k', yLabel: 'score (scaled)' });
+    let key = '', X: number[][] = [], fits: ReturnType<typeof kmeans>[] = [], sil: number[] = [];
+    const g = slider(fig, 'g', () => go(), String), s = slider(fig, 's', () => go(), (v) => fmt(v, 2)), k = slider(fig, 'k', () => go(), String);
+    const colour = (i: number) => [pp.pal.accent, pp.pal.accent2, pp.pal.good, pp.pal.bad, pp.pal.ink, pp.pal.muted, pp.pal.accent, pp.pal.accent2][i];
+    const SH = ['circle', 'square', 'ring', 'cross', 'circle', 'square', 'ring', 'cross'] as const;
+    const draw = () => {
+      if (key !== `${g()}|${s()}`) {
+        key = `${g()}|${s()}`; const R = rng(7); X = [];
+        for (let c = 0; c < g(); c++) for (let i = 0; i < 40; i++) X.push([CENTRES[c][0] + R.normal(0, s()), CENTRES[c][1] + R.normal(0, s())]);
+        fits = []; sil = [];
+        for (let kk = 1; kk <= 8; kk++) { let best = kmeans(X, kk, rng(kk)); for (let t = 2; t <= 4; t++) { const r = kmeans(X, kk, rng(kk * 10 + t)); if (r.inertia < best.inertia) best = r; } fits.push(best); sil.push(kk > 1 ? silhouette(X, best.lab) : 0); }
+      }
+      const f = fits[k() - 1];
+      pp.begin(); X.forEach((x, i) => pp.dot(x[0], x[1], { r: 4, shape: SH[f.lab[i]], color: colour(f.lab[i]), alpha: 0.85 })); pp.end();
+      const top = fits[0].inertia;
+      ps.begin();
+      ps.path(fits.map((r, i) => [i + 1, r.inertia / top] as [number, number]), { color: ps.pal.accent, width: 2.5 });
+      ps.path(sil.slice(1).map((v, i) => [i + 2, v] as [number, number]), { color: ps.pal.accent2, width: 2.5, dash: [6, 4] });
+      fits.forEach((r, i) => ps.dot(i + 1, r.inertia / top, { r: i + 1 === k() ? 6 : 3.5, color: ps.pal.accent }));
+      sil.forEach((v, i) => i && ps.dot(i + 1, v, { r: i + 1 === k() ? 6 : 3.5, shape: 'square', color: ps.pal.accent2 }));
+      ps.text(8.4, fits[7].inertia / top, 'inertia', { align: 'right', dy: -10, color: ps.pal.accent });
+      ps.text(8.4, sil[7], 'silhouette', { align: 'right', dy: -10, color: ps.pal.accent2 });
+      ps.end();
+    };
+    const go = live(q('[data-c=pts]'), draw);
+  }
+</script>

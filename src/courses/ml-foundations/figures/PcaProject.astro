@@ -1,0 +1,50 @@
+---
+// SIM for 8.4: PCA in two dimensions. Turn a line through the cloud; each point drops onto it, and the spread of the
+// dropped points is the variance the line keeps. The first principal component is the angle that keeps the most.
+---
+<figure class="cs-fig mlf" data-pca>
+  <span class="cs-figtag">Try it: find the direction of most spread</span>
+  <canvas data-c="cloud" aria-label="A tilted cloud of points with a line through its centre; each point is joined to its shadow on the line"></canvas>
+  <canvas data-c="var" aria-label="Variance kept by the line for every angle, with a peak at the first principal component"></canvas>
+  <div class="mlf-ctl"><label>Angle of the line: <output data-v="a"></output><input type="range" name="a" min="0" max="180" step="1" value="90" /></label></div>
+  <div class="mlf-btns"><button type="button" class="btn secondary" data-snap>Snap to the first component</button></div>
+  <div class="mlf-read"><div><span>variance kept</span><b data-k></b></div><div><span>share of the total</span><b data-s></b></div></div>
+  <figcaption>Made-up data: two scaled measurements of 80 fish, length and weight, which rise together. Drop every point straight onto the line (the short grey lines). The shadows' spread is the information kept by describing each fish with one number, its position along the line. The best angle (PC1) keeps the most; the leftover direction at right angles to it is PC2. Lost variance is exactly the squared length of the grey lines, so the best line is also the one closest to the points.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng, mean } from '../../../lib/ml/core';
+  import { pca } from '../../../lib/ml/unsup';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-pca]')) {
+    const q = (s: string) => fig.querySelector<HTMLElement>(s)!;
+    const R = rng(12), X: number[][] = [];
+    for (let i = 0; i < 80; i++) { const t = R.normal(0, 1), u = R.normal(0, 0.38); X.push([0.8 * t - 0.6 * u, 0.6 * t + 0.8 * u]); }
+    const P = pca(X, 2), total = P.vars[0] + P.vars[1];
+    const best = ((Math.atan2(P.comps[0][1], P.comps[0][0]) * 180) / Math.PI + 180) % 180;
+    const pc = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=cloud]')!, { x: [-3, 3], y: [-2.5, 2.5], h: 260, equal: true, xLabel: 'length (scaled)', yLabel: 'weight (scaled)' });
+    const pv = new Plot(fig.querySelector<HTMLCanvasElement>('[data-c=var]')!, { x: [0, 180], y: [0, total * 1.05], h: 160, xLabel: 'angle (degrees)', yLabel: 'variance' });
+    const aIn = fig.querySelector<HTMLInputElement>('input[name=a]')!;
+    const a = slider(fig, 'a', () => go(), (v) => `${v}°`);
+    const kept = (deg: number) => { const r = (deg * Math.PI) / 180, u = [Math.cos(r), Math.sin(r)]; return mean(X.map((x) => ((x[0] - P.mu[0]) * u[0] + (x[1] - P.mu[1]) * u[1]) ** 2)); };
+    const draw = () => {
+      const r = (a() * Math.PI) / 180, u = [Math.cos(r), Math.sin(r)];
+      pc.begin();
+      pc.line(P.mu[0] - 4 * u[0], P.mu[1] - 4 * u[1], P.mu[0] + 4 * u[0], P.mu[1] + 4 * u[1], { color: pc.pal.accent2, width: 2.5 });
+      X.forEach((x) => {
+        const t = (x[0] - P.mu[0]) * u[0] + (x[1] - P.mu[1]) * u[1], sx = P.mu[0] + t * u[0], sy = P.mu[1] + t * u[1];
+        pc.line(x[0], x[1], sx, sy, { color: pc.pal.muted, width: 1, alpha: 0.6 });
+        pc.dot(sx, sy, { r: 2.5, shape: 'square', color: pc.pal.accent2 });
+        pc.dot(x[0], x[1], { r: 3.5, color: pc.pal.accent });
+      });
+      pc.end();
+      pv.begin();
+      pv.fn(kept, { color: pv.pal.accent, width: 2.5 });
+      pv.line(best, 0, best, total * 1.05, { color: pv.pal.muted, dash: [4, 4] }); pv.text(best, total * 0.98, 'PC1', { align: 'center', dy: -2 });
+      pv.dot(a(), kept(a()), { r: 6, shape: 'square', color: pv.pal.accent2 });
+      pv.end();
+      q('[data-k]').textContent = fmt(kept(a()), 2); q('[data-s]').textContent = `${fmt((100 * kept(a())) / total, 0)} %`;
+    };
+    q('[data-snap]').addEventListener('click', () => { aIn.value = String(Math.round(best)); aIn.dispatchEvent(new Event('input')); });
+    const go = live(fig.querySelector('canvas')!, draw);
+  }
+</script>

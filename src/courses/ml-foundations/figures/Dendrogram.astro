@@ -1,0 +1,57 @@
+---
+// SIM for 8.3: hierarchical (agglomerative) clustering of 14 cities on a made-up map. The dendrogram shows every
+// merge at the height (distance) it happened; a cut line at some height gives the clusters.
+---
+<figure class="cs-fig mlf" data-dendro>
+  <span class="cs-figtag">Try it: cut the tree</span>
+  <canvas data-c="map" aria-label="Fourteen points on a map, coloured by cluster"></canvas>
+  <canvas data-c="tree" aria-label="A dendrogram: points along the bottom joined by brackets at the distance where their clusters merged, with a horizontal cut line"></canvas>
+  <div class="mlf-ctl">
+    <label>Cut at distance: <output data-v="h"></output><input type="range" name="h" min="0.1" max="6" step="0.05" value="2" /></label>
+    <label>Linkage: <select name="link"><option value="average">average</option><option value="single">single (closest pair)</option><option value="complete">complete (farthest pair)</option></select></label>
+  </div>
+  <p class="mlf-say" data-say></p>
+  <figcaption>Every point starts as its own cluster; the two closest clusters merge, again and again, until one is left. The height of each bracket is the distance at which that merge happened. Cutting across the tree at one height gives the clusters: long vertical lines mean well-separated groups, so a cut in the middle of a long gap is a natural choice. Linkage decides what "distance between clusters" means: single linkage chains through close pairs; complete linkage keeps clusters compact.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { agglomerate, cutTree } from '../../../lib/ml/unsup';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-dendro]')) {
+    const qc = (s: string) => fig.querySelector<HTMLCanvasElement>(s)!;
+    const R = rng(4), X: number[][] = [];
+    for (const [cx, cy, n] of [[1, 1, 5], [5, 1.5, 4], [3, 5, 5]] as const) for (let i = 0; i < n; i++) X.push([cx + R.normal(0, 0.55), cy + R.normal(0, 0.55)]);
+    const n = X.length, pm = new Plot(qc('[data-c=map]'), { x: [-0.5, 6.5], y: [-0.3, 6.6], h: 220, equal: true });
+    const sel = fig.querySelector('select')!;
+    const h = slider(fig, 'h', () => go(), (v) => fmt(v, 2));
+    const colour = (i: number) => [pm.pal.accent, pm.pal.accent2, pm.pal.good, pm.pal.bad, pm.pal.ink, pm.pal.muted][i % 6];
+    const SH = ['circle', 'square', 'ring', 'cross'] as const;
+    const draw = () => {
+      pm.begin();
+      const M = agglomerate(X, sel.value as 'average'), top = M[M.length - 1].h;
+      const k = 1 + M.filter((m) => m.h > h()).length, lab = cutTree(n, M, k);
+      // Leaf order: walk the merge tree so brackets never cross.
+      const order: number[] = [], kids = new Map(M.map((m) => [m.id, m] as const));
+      const walk = (id: number) => { const m = kids.get(id); if (!m) order.push(id); else { walk(m.a); walk(m.b); } };
+      walk(M[M.length - 1].id);
+      const xOf = new Map<number, number>(), yOf = new Map<number, number>();
+      order.forEach((id, i) => { xOf.set(id, i); yOf.set(id, 0); });
+      const pt = new Plot(qc('[data-c=tree]'), { x: [-0.8, n - 0.2], y: [0, top * 1.08], h: 200, yLabel: 'merge distance', noXTicks: true });
+      pt.begin();
+      for (const m of M) {
+        const xa = xOf.get(m.a)!, xb = xOf.get(m.b)!, ya = yOf.get(m.a)!, yb = yOf.get(m.b)!;
+        const c = lab[m.members[0]], same = m.members.every((i) => lab[i] === c) && m.h <= h();
+        const st = { color: same ? colour(c) : pt.pal.muted, width: same ? 2.2 : 1.4 };
+        pt.line(xa, ya, xa, m.h, st); pt.line(xb, yb, xb, m.h, st); pt.line(xa, m.h, xb, m.h, st);
+        xOf.set(m.id, (xa + xb) / 2); yOf.set(m.id, m.h);
+      }
+      pt.line(-0.8, h(), n - 0.2, h(), { color: pt.pal.ink, width: 1.5, dash: [6, 4] });
+      order.forEach((id, i) => pt.dot(i, 0, { r: 4.5, shape: SH[lab[id] % 4], color: colour(lab[id]) }));
+      pt.end();
+      X.forEach((x, i) => pm.dot(x[0], x[1], { r: 6, shape: SH[lab[i] % 4], color: colour(lab[i]) })); pm.end();
+      fig.querySelector<HTMLElement>('[data-say]')!.textContent = `Cutting at ${fmt(h(), 2)} gives ${k} cluster${k === 1 ? '' : 's'}.`;
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(qc('[data-c=map]'), draw);
+  }
+</script>

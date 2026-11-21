@@ -1,0 +1,43 @@
+---
+// SIM for 8.5: two ways to flag odd points. z-scores look at one column at a time; the k-nearest-neighbour distance
+// looks at how lonely a point is. One planted point is normal on each column alone but odd in combination.
+---
+<figure class="cs-fig mlf" data-anom>
+  <span class="cs-figtag">Try it: flag the odd ones out</span>
+  <canvas aria-label="Card transactions by amount and hour, with flagged points ringed"></canvas>
+  <div class="mlf-ctl">
+    <label>Method: <select name="m"><option value="z">z-score on each column (|z| above the cut)</option><option value="knn">distance to 5 nearest neighbours</option></select></label>
+    <label>Cut (how strict): <output data-v="t"></output><input type="range" name="t" min="1" max="4" step="0.1" value="3" /></label>
+  </div>
+  <div class="mlf-read"><div><span>flagged</span><b data-f></b></div><div><span>planted oddities caught</span><b data-c></b></div></div>
+  <figcaption>Made-up data: 200 card payments by amount and hour, scaled. Four planted oddities are drawn as squares. Three are extreme on one column, which z-scores catch. The fourth, a small payment at an hour when this card only ever makes large ones, is ordinary on each column alone; only a method that looks at both columns together, such as nearest-neighbour distance, notices it. A lower cut catches more oddities and raises more false alarms.</figcaption>
+</figure>
+<script>
+  import { Plot, live, slider, fmt } from './kit';
+  import { rng } from '../../../lib/ml/core';
+  import { zScores, knnDistance } from '../../../lib/ml/unsup';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-anom]')) {
+    const cv = fig.querySelector('canvas')!, q = (s: string) => fig.querySelector<HTMLElement>(s)!, sel = fig.querySelector('select')!;
+    const R = rng(17), X: number[][] = [];
+    for (let i = 0; i < 200; i++) { const day = R.next() < 0.5; X.push(day ? [R.normal(-0.6, 0.35), R.normal(0.9, 0.4)] : [R.normal(0.6, 0.35), R.normal(-0.9, 0.4)]); }
+    const ODD = [[2.9, 0.4], [-0.2, 3.1], [0.1, -3.2], [-0.9, -0.9]]; ODD.forEach((o) => X.push(o));
+    const isOdd = (i: number) => i >= 200;
+    const zx = zScores(X.map((x) => x[0])), zy = zScores(X.map((x) => x[1]));
+    const kd = X.map((x, i) => knnDistance(X, x, 5, i)), kz = zScores(kd);
+    const p = new Plot(cv, { x: [-2.5, 3.5], y: [-3.6, 3.6], h: 290, xLabel: 'amount (scaled)', yLabel: 'hour (scaled)' });
+    const t = slider(fig, 't', () => go(), (v) => fmt(v, 1));
+    const draw = () => {
+      const flag = X.map((_, i) => (sel.value === 'z' ? Math.max(Math.abs(zx[i]), Math.abs(zy[i])) : kz[i]) > t());
+      p.begin();
+      X.forEach((x, i) => {
+        p.dot(x[0], x[1], { r: isOdd(i) ? 5.5 : 3.5, shape: isOdd(i) ? 'square' : 'circle', color: isOdd(i) ? p.pal.accent2 : p.pal.accent, alpha: 0.85 });
+        if (flag[i]) p.dot(x[0], x[1], { r: 10, shape: 'ring', color: p.pal.bad });
+      });
+      p.end();
+      q('[data-f]').textContent = `${flag.filter(Boolean).length} of ${X.length}`;
+      q('[data-c]').textContent = `${flag.filter((f, i) => f && isOdd(i)).length} of 4`;
+    };
+    sel.addEventListener('change', () => go());
+    const go = live(cv, draw);
+  }
+</script>
