@@ -135,33 +135,52 @@ export const luminosityMpc = (z, p) => (1 + z) * transverseMpc(z, p);
 export const angularMpc = (z, p) => transverseMpc(z, p) / (1 + z);
 
 /**
- * The scale factor through time for a model: [{ t (Gyr from the start), a }]. Integrates the Friedmann equation
- * forward from a tiny a, and backward-in-time is not needed because we start near a = 0. Stops at aMax,
- * tMax, or when a closed universe recollapses to a tiny size again.
+ * The scale factor through time for any model, found by stepping the acceleration equation
+ * ä = H0² (−Ωr/a³ − Ωm/(2a²) + ΩΛ a) forwards and backwards from today (a = 1, ȧ = H0). Works for models with a
+ * Big Bang, a Big Crunch, a turnaround or no beginning at all (pure Λ). Returns [{ t, a }] in time order, with
+ * t in Gyr measured from today (negative = past). Stops at tPast / tFuture, at aMax, or when a falls to aMin.
  */
-export function scaleHistory(p, { tMax = 60, aMax = 6, steps = 3000 } = {}) {
-  const tH = hubbleTimeGyr(p.H0), Ok = 1 - p.Om - (p.Or || 0) - p.OL;
-  const H2 = (a) => (p.Or || 0) / a ** 4 + p.Om / a ** 3 + Ok / a ** 2 + p.OL; // (H/H0)²
-  const out = [];
-  let a = 1e-4, t = ageGyr(1 / a - 1, p), sign = 1;
-  const dt = tMax / steps;
-  out.push({ t, a });
-  for (let i = 0; i < steps * 4 && t < tMax; i++) {
-    let h2 = H2(a);
-    if (h2 <= 0) { sign = -1; h2 = 0; }
-    // da/dt = ± a sqrt(H2) / tH; when it turns around, use the acceleration to get past the stopping point.
-    const rate = (sign * a * Math.sqrt(Math.max(0, h2))) / tH;
-    const acc = (a * (-(p.Or || 0) / a ** 4 - 0.5 * p.Om / a ** 3 + p.OL)) / (tH * tH);
-    const step = Math.min(dt, a / Math.max(1e-9, Math.abs(rate)) * 0.01 || dt);
-    a += rate * step + 0.5 * acc * step * step * (h2 === 0 ? 1 : 0);
-    t += step;
-    if (sign > 0 && H2(a) <= 0) sign = -1;
-    if (a <= 1e-3 && sign < 0) { out.push({ t, a: 0 }); break; }
-    if (a > aMax) { out.push({ t, a }); break; }
-    if (!out.length || t - out[out.length - 1].t >= tMax / 600) out.push({ t, a });
-  }
-  return out;
+export function scaleHistory(p, { tPast = 20, tFuture = 30, aMax = 6, aMin = 0.002 } = {}) {
+  const tH = hubbleTimeGyr(p.H0), Or = p.Or || 0, Om = p.Om, OL = p.OL;
+  const acc = (a) => -Or / a ** 3 - Om / (2 * a * a) + OL * a; // in units of H0², time in Hubble times
+  const run = (dir, tEnd) => {
+    let a = 1, v = 1, t = 0;
+    const out = [];
+    while (Math.abs(t) < tEnd / tH && a > aMin && a < aMax) {
+      const h = dir * Math.min(0.002, 0.002 * a / Math.max(1e-9, Math.abs(v)));
+      // RK4 on (a, v)
+      const k1a = v, k1v = acc(a);
+      const k2a = v + 0.5 * h * k1v, k2v = acc(a + 0.5 * h * k1a);
+      const k3a = v + 0.5 * h * k2v, k3v = acc(a + 0.5 * h * k2a);
+      const k4a = v + h * k3v, k4v = acc(a + h * k3a);
+      a += (h / 6) * (k1a + 2 * k2a + 2 * k3a + k4a);
+      v += (h / 6) * (k1v + 2 * k2v + 2 * k3v + k4v);
+      t += h;
+      if (!out.length || Math.abs(t * tH - out[out.length - 1].t) > (tEnd / 400) || a <= aMin) out.push({ t: t * tH, a: Math.max(a, 0) });
+    }
+    return out;
+  };
+  return [...run(-1, tPast).reverse(), { t: 0, a: 1 }, ...run(1, tFuture)];
 }
+
+/** Age (Gyr) of a flat universe of matter and Λ only, in closed form: (2 / 3H0√ΩΛ) asinh √(ΩΛ/Ωm). */
+export const flatAgeGyr = (H0, Om) => { const OL = 1 - Om; return OL <= 0 ? (2 / 3) * hubbleTimeGyr(H0) : (2 / (3 * Math.sqrt(OL))) * Math.asinh(Math.sqrt(OL / Om)) * hubbleTimeGyr(H0); };
+/** Deceleration parameter today, q0 = Ωr + Ωm/2 − ΩΛ (negative = speeding up). */
+export const q0 = (p) => (p.Or || 0) + p.Om / 2 - p.OL;
+/** Each ingredient's share of the total density at scale factor a: { r, m, L, k } (they add to 1). */
+export function omegasAt(a, p) {
+  const Or = p.Or || 0, Ok = 1 - p.Om - Or - p.OL;
+  const r = Or / a ** 4, m = p.Om / a ** 3, L = p.OL, k = Ok / a ** 2, H2 = r + m + L + k;
+  return { r: r / H2, m: m / H2, L: L / H2, k: k / H2 };
+}
+/** Redshift of matter-radiation equality, 1 + z = Ωm / Ωr. */
+export const zEquality = (p) => p.Om / p.Or - 1;
+/** Comoving distance (Mpc) light can have crossed since the start: the particle horizon (radius of the observable universe). */
+export const particleHorizonMpc = (p) => simpson((u) => { const a = u * u; return a === 0 ? 0 : (2 * u) / (a * a * E(1 / a - 1, p)); }, 0, 1, 20000) * hubbleDistMpc(p.H0);
+/** Comoving distance (Mpc) to the event horizon: the farthest place light we send today can ever reach. */
+export const eventHorizonMpc = (p) => simpson((x) => { const a = 1 / (1 - x) ; return 1 / ((1 - x) ** 2 * a * a * E(1 / a - 1, p)); }, 0, 0.9999, 20000) * hubbleDistMpc(p.H0);
+/** Angular size (arcsec) of an object of size D (Mpc) at redshift z. */
+export const angularSizeArcsec = (D, z, p) => (D / angularMpc(z, p)) / ARCSEC;
 
 /** Temperature of the CMB (K) at redshift z. */
 export const cmbTemp = (z) => T_CMB * (1 + z);
