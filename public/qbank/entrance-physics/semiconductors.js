@@ -565,4 +565,344 @@ const gens = [
     },
     verify: (p) => { const r = Math.pow(p.T2 / p.T1, 1.5) * Math.exp((p.Eg / (2 * KB)) * (1 / p.T1 - 1 / p.T2)); if (p.v === 0) return r; return p.n1 * r / 10 ** p.e; } },
 ];
-export default { topic: 'semiconductors', groups, items, gens };
+
+// ======== Expansion block (added 2026-11-22): more hard items and templates, ids sc-x001 onward ========
+import * as XH from '../_entrance.js';
+const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
+const xr = String.raw;
+const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xex = (level, type, neet) => { const e = [...XE[level]]; if (neet && level === 4) e.push('neet'); if (true && level <= 3 && type === 'mcq') e.push('cuet'); return e; };
+let xk = 0, xc = 0;
+const XPOS = [2, 0, 3, 1, 3, 1, 0, 2];
+const xb = (level, sub, o) => { const { neet, ...rest } = o; return { id: `sc-x${String(++xk).padStart(3, '0')}`, level, exams: xex(level, o.type, neet), sub, ...rest }; };
+const xq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xn = (level, sub, q, ans, tol, calc, sol, o = {}) => {
+  const v = calc();
+  if (!(Math.abs(v - ans) <= Math.max(tol, 1e-9) + 1e-9)) throw new Error(`sc item ${xk + 1}: calc ${v} vs answer ${ans}`);
+  return xb(level, sub, { type: 'nat', format: tol === 0 && Number.isInteger(ans) ? 'integer' : 'numeric', q, answer: ans, tol, calc, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAO, answer, sol, ...o });
+const XSO = ['Both Statement I and Statement II are true and II explains I', 'Both Statement I and Statement II are true but II does not explain I', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSO, answer, sol, ...o });
+const XSW = [['A', 'B'], ['C', 'D'], ['A', 'C'], ['B', 'D'], ['A', 'D'], ['B', 'C']];
+/** match item: map like {A:'q',B:'s',C:'p',D:'r'}; three wrong codes made by swapping two answers. */
+const xm = (level, sub, group, q, map, sol, o = {}) => {
+  const code = (m) => ['A', 'B', 'C', 'D'].map((l) => `${l}-${m[l]}`).join(', ');
+  const wrongs = [];
+  for (let i = 0; wrongs.length < 3; i++) { const [a, b] = XSW[(xc + i) % 6]; const m = { ...map }; [m[a], m[b]] = [m[b], m[a]]; wrongs.push(code(m)); }
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, code(map));
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const XMU = xr`\mathrm{m\,s^{-1}}`;
+
+const xgroups = {
+  xm1: { title: 'Kinds of crystal', list1: ['A. Silicon doped with phosphorus', 'B. Silicon doped with boron', 'C. Pure silicon at 0 K', 'D. Pure silicon at 300 K'],
+    list2: ['p. Holes are the majority carriers', 'q. Electrons are the majority carriers', 'r. There are no free carriers', 's. Electrons and holes are equal in number', 't. Behaves like a metal'] },
+  xm2: { title: 'Diode and resistor in series', list1: [xr`A. Source 5.7 V, resistor $1\ \mathrm{k\Omega}$`, xr`B. Source 10.7 V, resistor $1\ \mathrm{k\Omega}$`, xr`C. Source 2.7 V, resistor $500\ \Omega$`, xr`D. Source 6.7 V, resistor $3\ \mathrm{k\Omega}$`],
+    list2: ['p. 2 mA', 'q. 4 mA', 'r. 5 mA', 's. 10 mA', 't. 0'] },
+  xm3: { title: 'Gates joined in series', list1: ['A. NAND gate followed by a NOT gate', 'B. NOR gate followed by a NOT gate', 'C. AND gate followed by a NOT gate', 'D. OR gate followed by a NOT gate'],
+    list2: ['p. AND', 'q. OR', 'r. NAND', 's. NOR', 't. XOR'] },
+  xm4: { title: 'Simplifying Boolean expressions', list1: [xr`A. $A + AB$`, xr`B. $A + \overline A B$`, xr`C. $A(\overline A + B)$`, xr`D. $AB + \overline A B$`],
+    list2: ['p. $A$', 'q. $A + B$', 'r. $AB$', 's. $B$', xr`t. $\overline A\,\overline B$`] },
+  xm5: { title: 'A Zener regulator', list1: ['A. Current through the series resistor', 'B. Current through the load', 'C. Current through the Zener diode', 'D. Power dissipated in the Zener diode'],
+    list2: ['p. 50 mA', 'q. 20 mA', 'r. 30 mA', 's. 300 mW', 't. 200 mW'] },
+  xm6: { title: 'A transistor in the common-emitter mode', list1: ['A. Collector current', 'B. Emitter current', xr`C. Current gain $\alpha$`, xr`D. Current gain $\beta$`],
+    list2: ['p. 2 mA', 'q. 2.02 mA', 'r. 0.99', 's. 100', 't. 0.01'] },
+  xm7: { title: 'LED materials and the light they emit', list1: ['A. Band gap 1.9 eV', 'B. Band gap 2.5 eV', 'C. Band gap 1.1 eV', 'D. Band gap 3.1 eV'],
+    list2: ['p. 653 nm', 'q. 496 nm', 'r. 1127 nm', 's. 400 nm', 't. 310 nm'] },
+  xm8: { title: 'Gates built only from NAND gates', list1: ['A. NOT gate', 'B. AND gate', 'C. OR gate', 'D. XOR gate'],
+    list2: ['p. 1 NAND gate', 'q. 2 NAND gates', 'r. 3 NAND gates', 's. 4 NAND gates', 't. 5 NAND gates'] },
+  xp1: { title: 'A common-emitter amplifier',
+    passage: xr`<p>A transistor in the common-emitter circuit has $\beta = 100$. The supply is $V_{CC} = 12$ V, the collector resistor is $R_C = 3\ \mathrm{k\Omega}$, and the base current is $20\ \mu\mathrm{A}$. Ignore the saturation voltage of the transistor.</p>` },
+  xp2: { title: 'Doped silicon',
+    passage: xr`<p>Silicon ($n_i = 1.5\times10^{16}\ \mathrm{m^{-3}}$) is doped with $4\times10^{21}$ phosphorus atoms per $\mathrm{m^3}$, all ionised. Take the electron mobility as $0.12\ \mathrm{m^2\,V^{-1}s^{-1}}$ and $e = 1.6\times10^{-19}$ C.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xq(2, 'doping', xr`A crystal of silicon is doped with arsenic atoms. The crystal as a whole is`, 'electrically neutral', ['negatively charged', 'positively charged', 'charged, with the sign depending on the temperature'],
+    xr`Each arsenic atom brings one extra electron, but also one extra proton in its nucleus. The extra electron is free to move, yet the crystal still has equal total positive and negative charge. An n-type crystal is neutral.`,
+    { trap: '"n" stands for negative carriers, not a negatively charged crystal.' }),
+  xn(2, 'diode circuit', xr`A silicon diode (drop 0.7 V when conducting) is connected in series with a $1.66\ \mathrm{k\Omega}$ resistor to a 9 V battery in forward bias. Find the current in mA.`, 5, 0, () => (9 - 0.7) / 1660 * 1000,
+    xr`$I = (V - V_d)/R = (9 - 0.7)/1660 = 8.3/1660 = 5.0\times10^{-3}$ A $= 5$ mA.`),
+  xq(2, 'logic gates', xr`Which logic gate gives an output of 1 only when its two inputs are different?`, 'XOR', ['XNOR', 'NAND', 'NOR'],
+    xr`XOR: $Y = 1$ for $(0,1)$ and $(1,0)$ only. XNOR gives 1 when the inputs are the same; NAND gives 1 unless both are 1; NOR gives 1 only when both are 0.`),
+  xq(2, 'rectifier', xr`An ideal full-wave rectifier is fed a sinusoidal signal of peak value $V_0$. The average (d.c.) value of its output is`, xr`$2V_0/\pi$`, [xr`$V_0/\pi$`, xr`$V_0/\sqrt2$`, xr`$V_0/2$`],
+    xr`Over one half cycle the average of $V_0\sin\omega t$ is $2V_0/\pi$, and a full-wave rectifier makes every half cycle positive, so its average is $2V_0/\pi = 0.637V_0$. $V_0/\pi$ is the half-wave value.`),
+  xq(2, 'Zener diode', xr`A Zener diode with a breakdown voltage below about 5 V breaks down mainly because`, 'the strong electric field in the thin depletion layer pulls electrons out of covalent bonds', ['fast carriers knock out more carriers by collisions (avalanche)', 'the junction becomes very hot', 'light falls on the junction'],
+    xr`In a heavily doped junction the depletion layer is very thin, so a small reverse voltage gives a huge field ($\sim10^7\ \mathrm{V\,m^{-1}}$) that breaks covalent bonds directly: the Zener effect. Avalanche multiplication occurs in lightly doped junctions at higher voltages.`),
+  xn(2, 'doping', xr`A silicon crystal has $5\times10^{28}$ atoms per $\mathrm{m^3}$ and is doped with phosphorus at 1 part in $10^7$. Find the electron concentration due to doping, in units of $10^{21}\ \mathrm{m^{-3}}$.`, 5, 0, () => 5e28 / 1e7 / 1e21,
+    xr`Donors per $\mathrm{m^3}$ $= 5\times10^{28}/10^7 = 5\times10^{21}$. Each donor gives one free electron, so $n\approx5\times10^{21}\ \mathrm{m^{-3}}$ (answer 5).`),
+
+  // ---------- Level 3 ----------
+  xn(3, 'carrier concentrations', xr`Silicon ($n_i = 1.5\times10^{16}\ \mathrm{m^{-3}}$) is doped with $5\times10^{20}$ donor atoms per $\mathrm{m^3}$. Find the hole concentration in units of $10^{11}\ \mathrm{m^{-3}}$.`, 4.5, 0.01, () => (1.5e16) ** 2 / 5e20 / 1e11,
+    xr`$n \approx N_D = 5\times10^{20}$. Mass-action law: $np = n_i^2$, so $p = \dfrac{(1.5\times10^{16})^2}{5\times10^{20}} = 4.5\times10^{11}\ \mathrm{m^{-3}}$ (answer 4.5).`),
+  xn(3, 'dynamic resistance', xr`On the forward characteristic of a diode, raising the voltage from 0.70 V to 0.74 V raises the current from 10 mA to 18 mA. Find the dynamic resistance in $\Omega$.`, 5, 0, () => 0.04 / 0.008,
+    xr`Dynamic resistance $r = \Delta V/\Delta I = 0.04\ \mathrm{V}/0.008\ \mathrm{A} = 5\ \Omega$. It is the slope of the tangent, not $V/I$ (which would be $0.7/0.01 = 70\ \Omega$).`,
+    { trap: 'Dividing a single voltage by a single current gives the static (d.c.) resistance, not the dynamic one.' }),
+  xn(3, 'Zener diode', xr`A 10 V Zener diode is rated at 1 W. What is the largest current, in mA, it may carry in breakdown?`, 100, 0, () => 1 / 10 * 1000,
+    xr`$P = V_zI_z$, so $I_{max} = 1/10 = 0.1$ A $= 100$ mA.`),
+  xn(3, 'full-wave rectifier', xr`A centre-tapped full-wave rectifier uses a transformer whose each half of the secondary gives 12 V r.m.s. Find the peak inverse voltage across each (ideal) diode, in V (1 decimal).`, 33.9, 0.1, () => 2 * 12 * Math.SQRT2,
+    xr`Peak of each half $= 12\sqrt2 = 16.97$ V. When one diode conducts, the other sees the whole secondary: PIV $= 2\times16.97 = 33.9$ V.`,
+    { trap: 'Using 16.97 V, the peak of only one half. PIV of a centre-tapped rectifier is twice that.' }),
+  xn(3, 'transistor', xr`The current gain in common-base mode of a transistor is $\alpha = 0.98$. Find its current gain $\beta$ in common-emitter mode.`, 49, 0, () => 0.98 / (1 - 0.98),
+    xr`$\beta = \dfrac{\alpha}{1 - \alpha} = \dfrac{0.98}{0.02} = 49$.`),
+  xn(3, 'transistor', xr`A transistor in the common-emitter mode has $\beta = 50$ and a base current of $40\ \mu\mathrm{A}$. Find the collector current in mA.`, 2, 0, () => 50 * 40e-6 * 1000,
+    xr`$I_C = \beta I_B = 50\times40\ \mu\mathrm{A} = 2000\ \mu\mathrm{A} = 2$ mA. (The emitter current is $I_B + I_C = 2.04$ mA.)`),
+  xn(3, 'amplifier', xr`A common-emitter amplifier has $\beta = 100$, an input resistance of $1\ \mathrm{k\Omega}$ and a collector load of $2\ \mathrm{k\Omega}$. Find its voltage gain.`, 200, 0, () => 100 * 2000 / 1000,
+    xr`$A_v = \dfrac{\Delta V_{out}}{\Delta V_{in}} = \dfrac{\beta\,\Delta I_B R_L}{\Delta I_B R_{in}} = \beta\dfrac{R_L}{R_{in}} = 100\times\dfrac{2}{1} = 200$ (the output is inverted).`),
+  xq(3, 'Boolean algebra', xr`The expression $Y = (A + B)(A + \overline B)$ simplifies to`, '$A$', ['$B$', '$A + B$', '0'],
+    xr`$(A+B)(A+\overline B) = AA + A\overline B + AB + B\overline B = A + A(\overline B + B) + 0 = A + A = A$.`),
+  xn(3, 'logic circuits', xr`A circuit gives $Y = A\oplus B\oplus C$ (XOR of three inputs). For how many of the 8 input combinations is $Y = 1$?`, 4, 0, () => { let n = 0; for (let i = 0; i < 8; i++) { const a = i & 1, b = (i >> 1) & 1, c = (i >> 2) & 1; n += a ^ b ^ c; } return n; },
+    xr`The output is 1 when an odd number of inputs are 1: exactly one input high (3 ways) or all three high (1 way). Total $3 + 1 = 4$.`),
+  xn(3, 'LED circuit', xr`Two identical LEDs, each dropping 2.0 V at 20 mA, are connected in series with a resistor to a 12 V supply. What resistance, in $\Omega$, makes the current 20 mA?`, 400, 0, () => (12 - 2 * 2.0) / 0.02,
+    xr`The resistor drops $12 - 2\times2.0 = 8$ V at 20 mA: $R = 8/0.02 = 400\ \Omega$.`, { trap: 'Subtracting only one LED drop gives 500 Ω.' }),
+  xa(3, 'p-n junction', xr`A p-n junction diode has a much smaller resistance in forward bias than in reverse bias.`, xr`In forward bias the depletion layer narrows and the barrier is lowered, so majority carriers cross easily, while in reverse bias only a tiny minority-carrier current flows.`, 0,
+    xr`Both are true and R explains A. Forward: narrow depletion layer, large current. Reverse: wider depletion layer, current of the order of microamperes.`),
+  xt(3, 'doping', xr`Doping a pure semiconductor with a tiny amount of impurity raises its conductivity enormously.`, xr`At room temperature a pure semiconductor has very few free carriers compared with the number of dopant atoms added.`, 0,
+    xr`Both are true and II explains I. In silicon $n_i\approx10^{16}\ \mathrm{m^{-3}}$ whereas even one dopant atom per $10^8$ silicon atoms adds about $10^{21}\ \mathrm{m^{-3}}$ carriers.`),
+  xm(3, 'extrinsic semiconductors', 'xm1', xr`Match the crystal in List I with the description in List II.`, { A: 'q', B: 'p', C: 'r', D: 's' },
+    xr`A: phosphorus is a donor, so electrons are the majority carriers (q). B: boron is an acceptor, so holes are the majority carriers (p). C: at 0 K all electrons sit in the valence band, so there are no free carriers (r). D: thermal generation makes equal numbers of electrons and holes (s). Nothing here behaves like a metal.`),
+  xm(3, 'logic gates', 'xm3', xr`Match each combination of gates in List I with the single gate it behaves like.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`NAND then NOT $= \overline{\overline{AB}} = AB$ (AND, p). NOR then NOT gives OR (q). AND then NOT gives NAND (r). OR then NOT gives NOR (s).`),
+  xm(3, 'Boolean algebra', 'xm4', xr`Match each Boolean expression in List I with its simplified form in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`A: $A + AB = A(1+B) = A$. B: $A + \overline AB = A + B$ (absorption). C: $A(\overline A + B) = A\overline A + AB = AB$. D: $AB + \overline AB = B(A + \overline A) = B$.`),
+
+  // ---------- Level 4 ----------
+  xn(4, 'Zener regulator', xr`A 12 V Zener diode is connected across a $200\ \Omega$ load and is fed from an 18 V supply through a $120\ \Omega$ resistor. Find the voltage across the load in V.`, 11.25, 0.01, () => 18 * 200 / (120 + 200),
+    xr`Suppose the Zener conducts: current through $R_s$ would be $(18-12)/120 = 50$ mA but the load alone needs $12/200 = 60$ mA. The supply cannot give that, so the Zener is not in breakdown and acts as an open circuit. The load is then a divider: $V = 18\times\dfrac{200}{120+200} = 11.25$ V (below 12 V, so consistent).`,
+    { trap: 'Answering 12 V without checking that the Zener actually reaches breakdown.' }),
+  xn(4, 'transistor', xr`In a common-emitter circuit $V_{CC} = 12$ V, $R_C = 2\ \mathrm{k\Omega}$ and the collector current is 3 mA. Find the collector-emitter voltage, in V.`, 6, 0, () => 12 - 3e-3 * 2000,
+    xr`$V_{CE} = V_{CC} - I_CR_C = 12 - 3\times10^{-3}\times2000 = 12 - 6 = 6$ V.`),
+  xn(4, 'transistor as a switch', xr`A transistor with $\beta = 100$ is used as a switch with $V_{CC} = 10$ V and $R_C = 1\ \mathrm{k\Omega}$. Taking $V_{CE}\approx0$ when saturated, what is the least base current, in $\mu\mathrm{A}$, that saturates it?`, 100, 0, () => (10 / 1000) / 100 * 1e6,
+    xr`Saturation collector current $I_{C,sat} = V_{CC}/R_C = 10$ mA. The base current must supply at least $I_{C,sat}/\beta = 10\ \mathrm{mA}/100 = 0.1$ mA $= 100\ \mu\mathrm{A}$.`),
+  xn(4, 'logic circuits', xr`A function gives 1 when at least two of its three inputs are 1 (a "majority" circuit), $Y = (A+B)(B+C)(C+A)$. For how many of the 8 input combinations is $Y = 1$?`, 4, 0, () => { let n = 0; for (let i = 0; i < 8; i++) { const a = i & 1, b = (i >> 1) & 1, c = (i >> 2) & 1; n += ((a | b) & (b | c) & (c | a)); } return n; },
+    xr`$Y = 1$ only if at least two inputs are 1: $(0,1,1), (1,0,1), (1,1,0), (1,1,1)$. Four combinations. (Check: each bracket forces at least one of that pair to be 1, so no more than one input can be 0.)`),
+  xn(4, 'logic circuits', xr`A four-input XOR circuit $Y = A\oplus B\oplus C\oplus D$ is used. For how many of the 16 input combinations is $Y = 1$?`, 8, 0, () => { let n = 0; for (let i = 0; i < 16; i++) { let b = 0; for (let j = 0; j < 4; j++) b ^= (i >> j) & 1; n += b; } return n; },
+    xr`The output is 1 when an odd number of inputs are high: $\binom41 + \binom43 = 4 + 4 = 8$.`),
+  xn(4, 'solar cell', xr`A solar cell has short-circuit current 40 mA and open-circuit voltage 0.60 V. Its maximum output power is 18 mW. Find its fill factor.`, 0.75, 0.01, () => 18 / (40 * 0.6),
+    xr`Fill factor $= \dfrac{P_{max}}{V_{oc}I_{sc}} = \dfrac{18\ \mathrm{mW}}{0.60\times40\ \mathrm{mW}} = \dfrac{18}{24} = 0.75$.`),
+  xn(4, 'Zener regulator', xr`A regulator uses a 10 V Zener diode and a $100\ \Omega$ series resistor from a 20 V supply. The Zener needs at least 5 mA to stay in regulation. Find the smallest load resistance, in $\Omega$ (1 decimal), for which regulation is kept.`, 105.3, 0.1, () => 10 / (0.1 - 0.005),
+    xr`Total current $= (20 - 10)/100 = 100$ mA. At least 5 mA must go through the Zener, so the load may take at most 95 mA. $R_{L,min} = 10/0.095 = 105.3\ \Omega$.`),
+  xn(4, 'series diode and Zener', xr`A silicon diode (0.7 V) conducting forward is in series with a 5.1 V Zener diode connected in reverse breakdown, a $700\ \Omega$ resistor and a 12 V supply. Find the current in mA (2 decimals).`, 8.86, 0.01, () => (12 - 0.7 - 5.1) / 700 * 1000,
+    xr`The two diodes together drop $0.7 + 5.1 = 5.8$ V, so the resistor has $12 - 5.8 = 6.2$ V: $I = 6.2/700 = 8.86$ mA.`),
+  xq(4, 'clipper circuit', xr`A 10 V (peak) sine wave is fed through a resistor to an output node. A silicon diode (0.7 V) has its anode at the output node and its cathode joined to the positive terminal of a 3 V battery whose negative terminal is earthed. The output goes between`, '$-10$ V and $+3.7$ V', ['$-10$ V and $+2.3$ V', '$-3.7$ V and $+3.7$ V', '$-3.7$ V and $+10$ V'],
+    xr`The diode conducts when the node voltage exceeds $3 + 0.7 = 3.7$ V, and then holds the node at $3.7$ V (a positive clipper). When the node is negative the diode is reverse biased, nothing flows through the resistor, and the output follows the full input down to $-10$ V.`,
+    { trap: 'Subtracting the 0.7 V from the battery instead of adding it.' }),
+  xq(4, 'logic circuits', xr`In a circuit of four NAND gates, inputs $A$ and $B$ both go to NAND 1. The output of NAND 1 goes to NAND 2 (with $A$) and to NAND 3 (with $B$). The outputs of NAND 2 and NAND 3 feed NAND 4. The output of NAND 4 is the function`, 'XOR', ['XNOR', 'AND', 'OR'],
+    xr`Let $N_1 = \overline{AB}$. Then $N_2 = \overline{A N_1} = \overline A + AB = \overline A + B$ and $N_3 = \overline{BN_1} = A + \overline B$. Finally $Y = \overline{N_2N_3} = \overline{(\overline A + B)(A + \overline B)} = \overline{AB + \overline A\,\overline B}$, which is the XOR function. Check: $(0,1)$ gives 1 and $(1,1)$ gives 0.`),
+  xq(4, 'reverse bias', xr`Which one of these is NOT correct for a p-n junction diode in reverse bias?`, 'The diffusion current of majority carriers increases', ['The depletion layer widens', 'The barrier height increases', 'A small current flows due to minority carriers'],
+    xr`Reverse bias raises the barrier, which almost stops the diffusion of majority carriers (it decreases rather than increases). The depletion layer widens and the small reverse (drift) current of minority carriers remains.`),
+  xs(4, 'p-n junction', xr`A p-n junction with no bias is at equilibrium. Which are correct?`,
+    ['The net current across the junction is zero', 'The electric field in the depletion layer points from the n side to the p side', 'The conventional diffusion current from p to n is balanced by an equal drift current from n to p', 'The potential of the n side is lower than that of the p side', 'The depletion layer contains no ions'], [0, 1, 2],
+    xr`Uncompensated donor ions ($+$) on the n side and acceptor ions ($-$) on the p side make the field point n to p (true), and the n side is at the higher potential (so the fourth is false). At equilibrium the diffusion current (p to n) equals the drift current (n to p), so net current is zero (true, true). The layer is full of ions, only free carriers are missing (false).`),
+  xs(4, 'forward bias', xr`A p-n junction diode is forward biased. Which are correct?`,
+    ['The depletion layer becomes narrower', 'The barrier height is reduced', 'Minority carrier concentration near the edges of the depletion layer rises', 'The drift current increases greatly', 'The diffusion current decreases'], [0, 1, 2],
+    xr`Forward bias lowers the barrier $V_0 - V$ and thins the depletion layer (true, true). Majority carriers then flood across and become extra minority carriers on the other side (true). The large forward current is a diffusion current, which increases (so the last is false); the drift current stays about the same and is not what grows (false).`),
+  xs(4, 'Boolean algebra', xr`Which of the following identities are correct?`,
+    [xr`$\overline{A+B} = \overline A\,\overline B$`, xr`$\overline{AB} = \overline A + \overline B$`, xr`$A + AB = A$`, xr`$A(A + B) = A + B$`, xr`$A + \overline AB = A + B$`], [0, 1, 2, 4],
+    xr`The first two are De Morgan's laws. $A + AB = A(1+B) = A$. $A(A+B) = A + AB = A$, not $A + B$ (false). $A + \overline AB = (A + \overline A)(A + B) = A + B$ (true).`),
+  xs(4, 'Zener regulator', xr`A regulator has $V_{in} = 20$ V, $R_s = 200\ \Omega$, a 10 V Zener diode and a load of $500\ \Omega$. Which are correct?`,
+    ['The current through the series resistor is 50 mA', 'The Zener current is 30 mA', 'The power in the Zener diode is 0.3 W', 'If the load is removed, the Zener current becomes 50 mA', 'If the load is changed to $100\ \Omega$, the output stays at 10 V'], [0, 1, 2, 3],
+    xr`$I_s = (20 - 10)/200 = 50$ mA (true). $I_L = 10/500 = 20$ mA, so $I_z = 30$ mA (true) and $P_z = 10\times0.03 = 0.3$ W (true). Without the load all 50 mA flows through the Zener (true). With $100\ \Omega$ the load wants 100 mA but only 50 mA is available, so the Zener leaves breakdown and the output falls to $20\times100/300 = 6.7$ V (false).`),
+  xs(4, 'diode network', xr`A 12 V battery is connected in series with a $2\ \mathrm{k\Omega}$ resistor to a junction $P$. From $P$, an ideal diode $D_1$ (forward) in series with $2\ \mathrm{k\Omega}$ goes to earth, and in parallel an ideal diode $D_2$ (reverse, anode to earth) in series with $1\ \mathrm{k\Omega}$ also goes to earth. Which are correct?`,
+    ['The battery current is 3 mA', 'No current flows through the $1\\ \\mathrm{k\\Omega}$ resistor', 'The potential of $P$ is 6 V', 'The reverse voltage across $D_2$ is 6 V', 'The current in the $1\\ \\mathrm{k\\Omega}$ resistor is 6 mA'], [0, 1, 2, 3],
+    xr`$D_2$ has its cathode on the $P$ side, at a positive potential, and its anode at earth, so it is reverse biased and carries no current (second true, fifth false). The circuit is then $2 + 2 = 4\ \mathrm{k\Omega}$ in series: $I = 12/4 = 3$ mA (true). $V_P = 3\ \mathrm{mA}\times2\ \mathrm{k\Omega} = 6$ V (true), which is also the reverse voltage across $D_2$ (true).`),
+  xs(4, 'logic circuits', xr`A circuit has output $Y = \overline{A + B} + AB$. Which are correct?`,
+    ['$Y = 1$ whenever $A = B$', 'The circuit behaves as an XNOR gate', '$Y = 1$ for exactly two of the four input combinations', 'The circuit behaves as an XOR gate', '$Y = 1$ for $A = 1$, $B = 0$'], [0, 1, 2],
+    xr`$(0,0)$: $\overline{0} + 0 = 1$. $(0,1)$: $0 + 0 = 0$. $(1,0)$: 0. $(1,1)$: $0 + 1 = 1$. So $Y$ is 1 only when $A = B$: XNOR, with two combinations. It is not XOR, and it is 0 for $A = 1$, $B = 0$.`),
+  xs(4, 'energy bands', xr`Which of these statements about energy bands are correct?`,
+    ['At 0 K a pure semiconductor has a filled valence band and an empty conduction band', 'The donor level in an n-type semiconductor lies just below the conduction band', 'The acceptor level in a p-type semiconductor lies just above the valence band', 'The energy gap of diamond is about 5.4 eV, so it is an insulator', 'The acceptor level lies just below the conduction band'], [0, 1, 2, 3],
+    xr`All of the first four are standard facts. The acceptor level is a few hundredths of an eV above the valence band, where it can easily take an electron from the valence band and leave a hole (the fifth is false).`),
+  xm(4, 'diode circuits', 'xm2', xr`A silicon diode (drop 0.7 V when conducting) is in series with the resistor and source shown in List I. Match each with the current in List II.`, { A: 'r', B: 's', C: 'q', D: 'p' },
+    xr`$I = (V - 0.7)/R$. A: $5/1\ \mathrm{k\Omega} = 5$ mA (r). B: $10/1\ \mathrm{k\Omega} = 10$ mA (s). C: $2/500 = 4$ mA (q). D: $6/3\ \mathrm{k\Omega} = 2$ mA (p).`),
+  xm(4, 'Zener regulator', 'xm5', xr`A 10 V Zener diode, a $200\ \Omega$ series resistor, a $500\ \Omega$ load and a 20 V supply form a regulator. Match each quantity with its value.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`A: $(20-10)/200 = 50$ mA (p). B: $10/500 = 20$ mA (q). C: $50 - 20 = 30$ mA (r). D: $10\ \mathrm{V}\times30\ \mathrm{mA} = 300$ mW (s). The 200 mW is a distractor.`),
+  xm(4, 'transistor', 'xm6', xr`A transistor has $\beta = 100$ in the common-emitter mode and the base current is $20\ \mu\mathrm{A}$. Match the quantities.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$I_C = \beta I_B = 2$ mA (p). $I_E = I_B + I_C = 2.02$ mA (q). $\alpha = \beta/(1+\beta) = 100/101 = 0.99$ (r). $\beta = 100$ (s).`),
+  xm(4, 'LED', 'xm8', xr`Each gate in List I is built using only NAND gates. Match with the smallest number of NAND gates needed.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`NOT: one NAND with its inputs joined (p). AND: NAND then NOT, $1 + 1 = 2$ (q). OR: NOT on each input then NAND, $1 + 1 + 1 = 3$ (r). XOR: the 4-gate circuit with $N_1 = \overline{AB}$ (s). Five would be needed for a half adder, not for XOR alone.`),
+  xa(4, 'p-n junction', xr`The reverse saturation current of a p-n junction diode increases rapidly as the temperature rises.`, xr`The reverse current is due to minority carriers, whose concentration varies as $n_i^2/N$, and $n_i$ grows very fast with temperature.`, 0,
+    xr`Both are true and R explains A. In reverse bias only thermally generated minority carriers carry current; since $n_i$ rises exponentially with $T$, so does the reverse current (roughly doubling every $10^\circ$C in silicon).`),
+  xa(4, 'Zener diode', xr`A Zener diode connected in forward bias cannot be used as a voltage regulator.`, xr`A Zener diode regulates only through reverse breakdown, where the voltage stays almost constant over a large current range.`, 0,
+    xr`Both are true and R explains A. In forward bias a Zener behaves like an ordinary diode (about 0.7 V drop, no sharp constant-voltage plateau at the rated value).`),
+  xa(4, 'rectifier', xr`A silicon diode cannot rectify an a.c. signal of peak value 0.3 V.`, xr`A diode conducts significantly only when the forward voltage exceeds its barrier (knee) voltage of about 0.7 V for silicon.`, 0,
+    xr`Both are true and R explains A. A 0.3 V peak is well below the 0.7 V knee, so the current is negligible in both half cycles (a germanium diode, knee 0.3 V, would just begin to conduct).`),
+  xt(4, 'depletion layer', xr`The electric field in the depletion layer opposes the diffusion of majority carriers across the junction.`, xr`The electric field in the depletion layer is directed from the p side to the n side.`, 2,
+    xr`Statement I is true: the field pushes electrons back to the n side and holes back to the p side. Statement II is false: the n side carries positive donor ions and the p side negative acceptor ions, so the field points from n to p.`),
+  xt(4, 'LED', xr`The light from an LED has photon energy close to the energy gap of the semiconductor.`, xr`Light is emitted when electrons from the conduction band recombine with holes in the valence band, giving up the energy difference.`, 0,
+    xr`Both are true and II explains I. The energy released in a recombination is about $E_g$, so $\lambda\approx1240/E_g$ (nm, with $E_g$ in eV).`),
+  xt(4, 'doping', xr`In a p-n junction with the n side much more heavily doped than the p side, the depletion layer extends mostly into the p side.`, xr`The charge on the two sides of the depletion layer must be equal in magnitude.`, 0,
+    xr`Both are true and II explains I. $N_Dx_n = N_Ax_p$: the lightly doped side needs a wider region to hold the same charge.`),
+
+
+  // ---------- Level 5 and passages ----------
+  xn(5, 'half adder', xr`A half adder gives sum $S = A\oplus B$ and carry $C = A\cdot B$. What is the smallest number of 2-input NAND gates with which both outputs can be built?`, 5, 0, () => 4 + 1,
+    xr`The 4-gate NAND circuit for XOR has first gate output $N_1 = \overline{AB}$. The carry $AB = \overline{N_1}$ needs only one more NAND gate with both inputs tied to $N_1$. Total $4 + 1 = 5$.`,
+    { trap: 'Building AND separately from scratch (2 gates) gives 6. Re-use the first gate of the XOR circuit.' }),
+  xn(5, 'universal gates', xr`What is the smallest number of 2-input NOR gates needed to build an XOR gate?`, 5, 0, () => 4 + 1,
+    xr`With NOR gates: $N_1 = \overline{A+B}$, $N_2 = \overline{A + N_1} = \overline AB$, $N_3 = \overline{B + N_1} = A\overline B$, $N_4 = \overline{N_2 + N_3} = \overline{\overline AB + A\overline B}$, which is XNOR (4 gates). A fifth NOR gate with its inputs tied inverts this to XOR. Total 5.`),
+  xn(5, 'Zener regulator', xr`A 10 V Zener diode can carry at most 55 mA and needs at least 5 mA to regulate. It feeds a $100\ \Omega$ load (10 V, so 100 mA) through a $200\ \Omega$ series resistor from an input $V_{in}$ that varies. What is the largest $V_{in}$ in V that is safe?`, 41, 0, () => 10 + 200 * (0.055 + 0.1),
+    xr`The series resistor carries the Zener current plus the load current: $V_{in} = V_z + R_s(I_z + I_L)$. At the maximum $I_z = 55$ mA: $V_{in} = 10 + 200\times(0.055 + 0.100) = 10 + 31 = 41$ V. (The least is $10 + 200\times0.105 = 31$ V.)`),
+  xn(5, 'temperature dependence', xr`The resistance of an intrinsic semiconductor varies as $R\propto e^{E_g/2kT}$. Its resistance at 300 K is 6 times its resistance at 330 K. Find the band gap in eV (2 decimals). Take $k = 8.617\times10^{-5}\ \mathrm{eV\,K^{-1}}$.`, 1.02, 0.01,
+    () => 2 * 8.617e-5 * Math.log(6) / (1 / 300 - 1 / 330),
+    xr`$\dfrac{R_{300}}{R_{330}} = \exp\left[\dfrac{E_g}{2k}\left(\dfrac1{300} - \dfrac1{330}\right)\right] = 6$. So $E_g = \dfrac{2k\ln6}{1/300 - 1/330} = \dfrac{2\times8.617\times10^{-5}\times1.792}{3.03\times10^{-4}} = 1.02$ eV.`,
+    { trap: 'Forgetting the 2 in 2kT (the Fermi level sits mid-gap, so each carrier needs only E_g/2).' }),
+  xs(5, 'bridge rectifier', xr`A bridge rectifier made of four silicon diodes (0.7 V drop each when conducting) is fed from a 50 Hz transformer secondary of 24 V r.m.s. Which are correct?`,
+    ['The peak output voltage is about 32.5 V', 'The output ripple frequency is 100 Hz', 'The average output (no filter) is about 20.7 V', 'The output ripple frequency is 50 Hz', 'All four diodes conduct at the same time'], [0, 1, 2],
+    xr`Peak input $= 24\sqrt2 = 33.9$ V. Two diodes conduct in each half cycle, so the output peak is $33.9 - 1.4 = 32.5$ V (true). Both half cycles are used, so the ripple frequency is $2\times50 = 100$ Hz (true; 50 Hz is false). Average $= 2\times32.5/\pi = 20.7$ V (true). Only two diodes (opposite pairs) conduct at once (false).`),
+  xs(5, 'logic circuits', xr`Which of these expressions represent the XOR function of $A$ and $B$?`,
+    [xr`$A\overline B + \overline AB$`, xr`$(A + B)\,\overline{AB}$`, xr`$\overline{AB + \overline A\,\overline B}$`, xr`$\overline A\,\overline B + AB$`, xr`$(A + \overline B)(\overline A + B)$`], [0, 1, 2],
+    xr`(a) is the definition. (b) $= (A+B)(\overline A + \overline B) = A\overline B + \overline AB$ (true). (c) is NOT of XNOR, which is XOR (true). (d) $\overline A\,\overline B + AB$ is XNOR (false). (e) $(A + \overline B)(\overline A + B) = AB + \overline A\,\overline B$, again XNOR (false).`),
+  xs(5, 'compensated semiconductor', xr`Silicon with $n_i = 1.5\times10^{16}\ \mathrm{m^{-3}}$ is doped with $5\times10^{21}\ \mathrm{m^{-3}}$ donors and $2\times10^{21}\ \mathrm{m^{-3}}$ acceptors (all ionised). Which are correct?`,
+    ['The material is n-type', xr`The electron concentration is about $3\times10^{21}\ \mathrm{m^{-3}}$`, xr`The hole concentration is about $7.5\times10^{10}\ \mathrm{m^{-3}}$`, xr`The hole concentration is about $4.5\times10^{10}\ \mathrm{m^{-3}}$`, 'The material is p-type'], [0, 1, 2],
+    xr`Donors and acceptors compensate each other: net donors $= 5 - 2 = 3\times10^{21}\ \mathrm{m^{-3}}$, so $n\approx3\times10^{21}$ and the sample is n-type. $p = n_i^2/n = (2.25\times10^{32})/(3\times10^{21}) = 7.5\times10^{10}\ \mathrm{m^{-3}}$. The $4.5\times10^{10}$ would come from using the donor density alone.`),
+  xb(5, 'statements', { type: 'mcq', format: 'statements', q: xr`How many of these are correct?<br>(a) A NOR gate is a universal gate.<br>(b) Zener breakdown can occur in forward bias.<br>(c) The width of the depletion layer depends on the doping.<br>(d) At 300 K pure germanium has a higher carrier concentration than pure silicon.<br>(e) A p-type crystal is positively charged because holes are positive.`,
+    options: ['1', '2', '3', '4'], answer: 2,
+    sol: xr`(a) true: every gate can be made from NOR gates. (b) false: breakdown is a reverse-bias effect. (c) true: heavier doping gives a thinner layer. (d) true: Ge has the smaller gap (0.67 eV), so $n_i$ is larger. (e) false: the crystal is neutral. Three are correct.` }),
+  xa(5, 'doping', xr`At room temperature almost all donor atoms in an n-type silicon crystal are ionised.`, xr`The donor level lies only about 0.05 eV below the conduction band, which is comparable with the thermal energy $kT\approx0.026$ eV at 300 K.`, 0,
+    xr`Both are true and R explains A. Such a shallow level means thermal energy readily lifts the donor electron into the conduction band, so $n\approx N_D$.`),
+  xq(5, 'transistor', xr`In the passage's circuit the base current is increased to $50\ \mu\mathrm{A}$. What happens?`, xr`The transistor saturates: $V_{CE}$ falls to nearly 0 and $I_C$ stops near 4 mA`, [xr`$I_C = 5$ mA and $V_{CE} = -3$ V`, xr`$I_C = 5$ mA and $V_{CE} = 12$ V`, xr`The transistor enters cut-off with $I_C\approx0$`],
+    xr`The formula $I_C = \beta I_B$ would give 5 mA, and $I_CR_C = 15$ V, more than the 12 V supply, which is impossible. The collector current can rise only to about $V_{CC}/R_C = 12/3 = 4$ mA, at which $V_{CE}\approx0$: the transistor is saturated and the linear relation fails.`,
+    { format: 'passage', group: 'xp1', trap: 'Applying I_C = βI_B beyond saturation gives a negative V_CE.' }),
+  xn(3, 'transistor', xr`Find the collector current, in mA.`, 2, 0, () => 100 * 20e-6 * 1000,
+    xr`$I_C = \beta I_B = 100\times20\ \mu\mathrm{A} = 2$ mA.`, { format: 'passage', group: 'xp1' }),
+  xn(4, 'transistor', xr`Find the collector-emitter voltage, in V.`, 6, 0, () => 12 - 2e-3 * 3000,
+    xr`$V_{CE} = V_{CC} - I_CR_C = 12 - (2\times10^{-3})(3000) = 12 - 6 = 6$ V.`, { format: 'passage', group: 'xp1' }),
+  xn(3, 'carrier concentrations', xr`Find the hole concentration, in units of $10^{10}\ \mathrm{m^{-3}}$ (2 decimals).`, 5.63, 0.01, () => (1.5e16) ** 2 / 4e21 / 1e10,
+    xr`$n\approx4\times10^{21}$. $p = n_i^2/n = (2.25\times10^{32})/(4\times10^{21}) = 5.63\times10^{10}\ \mathrm{m^{-3}}$.`, { format: 'passage', group: 'xp2' }),
+  xn(4, 'conductivity', xr`Find the conductivity in $\mathrm{S\,m^{-1}}$ (1 decimal). The holes' contribution is negligible.`, 76.8, 0.1, () => 4e21 * 1.6e-19 * 0.12,
+    xr`$\sigma = ne\mu_e = 4\times10^{21}\times1.6\times10^{-19}\times0.12 = 76.8\ \mathrm{S\,m^{-1}}$ (the hole term $pe\mu_h\sim10^{-9}$ is negligible).`, { format: 'passage', group: 'xp2' }),
+  xn(5, 'compensation', xr`The sample is to be converted into p-type with a hole concentration of $4\times10^{21}\ \mathrm{m^{-3}}$ by adding acceptors. How many acceptors per $\mathrm{m^3}$, in units of $10^{21}$, must be added?`, 8, 0, () => (4e21 + 4e21) / 1e21,
+    xr`Acceptors must first cancel the donors ($4\times10^{21}$) and then supply the holes: $N_A = N_D + p = 4\times10^{21} + 4\times10^{21} = 8\times10^{21}\ \mathrm{m^{-3}}$ (answer 8).`, { format: 'passage', group: 'xp2', trap: 'Adding only 4×10²¹ makes the crystal intrinsic, not p-type.' }),
+  xm(5, 'LED', 'xm7', xr`LEDs are made from semiconductors with the band gaps in List I. Match each with the wavelength of the light emitted, $\lambda\approx1240/E_g$ nm with $E_g$ in eV.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`A: $1240/1.9 = 653$ nm (p). B: $1240/2.5 = 496$ nm (q). C: $1240/1.1 = 1127$ nm, infrared (r). D: $1240/3.1 = 400$ nm (s). The 310 nm would need a 4 eV gap.`),
+];
+
+const XB = (n) => (a, b) => (n ? a : b);
+const xgens = [
+  { id: 'sc-g20', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'Zener regulator',
+    make(rng) {
+      const vz = xchoose(rng, [6, 9, 12]), extra = xchoose(rng, [6, 9, 12]), rs = xchoose(rng, [100, 120, 150, 200]), rl = xchoose(rng, [100, 150, 200, 300, 500, 800]);
+      const vin = vz + extra; const itot = (vin - vz) / rs, il = vz / rl; const reg = il < itot - 1e-12; const vout = reg ? vz : vin * rl / (rs + rl);
+      if (Math.abs(il - itot) < 1e-9) return xgens[0].make(rng);
+      return { vz, vin, rs, rl, answer: +vout.toFixed(2), tol: 0.02, unit: 'V',
+        q: `A ${vz} V Zener diode is connected across a ${rl} Ω load and fed from a ${vin} V supply through a ${rs} Ω series resistor. Find the load voltage in V.`,
+        sol: `If the Zener conducts, the series resistor carries (${vin} − ${vz})/${rs} = ${xfmt(itot * 1000, 4)} mA and the load needs ${vz}/${rl} = ${xfmt(il * 1000, 4)} mA. ${reg ? `The supply can give more than the load needs, so the Zener is in breakdown and the output is ${vz} V.` : `The load needs more than the supply can give, so the Zener is not in breakdown (open) and the load is a divider: ${vin}×${rl}/(${rs}+${rl}) = ${xfmt(vout, 4)} V.`}` };
+    },
+    verify: (p) => { const vt = p.vin * p.rl / (p.rs + p.rl); return vt >= p.vz ? p.vz : vt; } },
+  { id: 'sc-g21', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'transistor currents',
+    make(rng) {
+      const beta = xchoose(rng, [50, 80, 100, 120]), ib = xchoose(rng, [20, 40, 50, 60]); const ie = (1 + beta) * ib / 1000;
+      return { beta, ib, answer: +ie.toFixed(3), tol: 0.002, unit: 'mA',
+        q: `A transistor in the common-emitter mode has β = ${beta} and a base current of ${ib} μA. Find the emitter current in mA.`,
+        sol: `I_C = βI_B = ${beta}×${ib} μA = ${xfmt(beta * ib / 1000, 4)} mA. I_E = I_B + I_C = ${xfmt(ib / 1000, 4)} + ${xfmt(beta * ib / 1000, 4)} = ${xfmt(ie, 5)} mA.` };
+    },
+    verify: (p) => { const alpha = p.beta / (1 + p.beta); return (p.beta * p.ib / 1000) / alpha; } },
+  { id: 'sc-g22', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'transistor circuit',
+    make(rng) {
+      const vcc = xchoose(rng, [9, 12, 15]), rc = xchoose(rng, [1, 2, 3]), ic = xchoose(rng, [1, 2, 3]); const vce = vcc - ic * rc;
+      if (vce < 0.5) return xgens[2].make(rng);
+      return { vcc, rc, ic, answer: vce, tol: 0.01, unit: 'V',
+        q: `In a common-emitter circuit V_CC = ${vcc} V and R_C = ${rc} kΩ. The collector current is ${ic} mA. Find V_CE in V.`,
+        sol: `V_CE = V_CC − I_CR_C = ${vcc} − ${ic} mA × ${rc} kΩ = ${vcc} − ${ic * rc} = ${vce} V.` };
+    },
+    verify: (p) => p.vcc - (p.ic / 1000) * (p.rc * 1000) },
+  { id: 'sc-g23', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'LED circuit',
+    make(rng) {
+      const n = xchoose(rng, [1, 2, 3]), vl = xchoose(rng, [1.8, 2.0, 2.2]), i = xchoose(rng, [10, 15, 20]), r = xchoose(rng, [100, 150, 200, 220, 330]);
+      const vs = +(n * vl + i * r / 1000).toFixed(2);
+      return { n, vl, i, r, vs, answer: r, tol: 0, unit: 'Ω',
+        q: `${n === 1 ? 'An LED' : n + ' identical LEDs in series'}, each dropping ${vl} V at ${i} mA, ${n === 1 ? 'is' : 'are'} connected with a resistor to a ${vs} V supply. What resistance, in Ω, makes the current ${i} mA?`,
+        sol: `The LEDs drop ${n}×${vl} = ${xfmt(n * vl, 4)} V, leaving ${vs} − ${xfmt(n * vl, 4)} = ${xfmt(vs - n * vl, 4)} V across the resistor. R = ${xfmt(vs - n * vl, 4)}/${i / 1000} = ${r} Ω.` };
+    },
+    verify: (p) => Math.round((p.vs - p.n * p.vl) / (p.i / 1000)) },
+  { id: 'sc-g24', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'Zener limits',
+    make(rng) {
+      const vz = xchoose(rng, [6, 9, 10, 12]), rs = xchoose(rng, [50, 100, 200]), il = xchoose(rng, [20, 40, 50, 100]), izm = xchoose(rng, [40, 50, 60]);
+      const answer = +(vz + rs * (izm + il) / 1000).toFixed(2);
+      return { vz, rs, il, izm, answer, tol: 0.02, unit: 'V',
+        q: `A ${vz} V Zener diode can carry at most ${izm} mA. It regulates a load that draws ${il} mA through a series resistor of ${rs} Ω. What is the largest input voltage, in V, that keeps the Zener within its rating?`,
+        sol: `The series resistor carries the Zener and load currents: V_in = V_z + R_s(I_z + I_L). With I_z = ${izm} mA: V_in = ${vz} + ${rs}×(${izm} + ${il})×10⁻³ = ${vz} + ${xfmt(rs * (izm + il) / 1000, 4)} = ${xfmt(answer, 4)} V.` };
+    },
+    verify: (p) => { const itotal = (p.izm + p.il) / 1000; return p.vz + itotal * p.rs; } },
+  { id: 'sc-g25', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'solar cell',
+    make(rng) {
+      const voc = xchoose(rng, [0.5, 0.6, 0.7]), isc = xchoose(rng, [20, 30, 40, 50]), a = xchoose(rng, [0.8, 0.85, 0.9]), b = xchoose(rng, [0.85, 0.9, 0.95]);
+      const vm = +(a * voc).toFixed(4), im = +(b * isc).toFixed(4); const answer = +(a * b).toFixed(4);
+      return { voc, isc, vm, im, answer, tol: 0.005,
+        q: `A solar cell has open-circuit voltage ${voc} V and short-circuit current ${isc} mA. At its maximum-power point the voltage is ${xfmt(vm, 4)} V and the current is ${xfmt(im, 4)} mA. Find its fill factor (3 decimals).`,
+        sol: `Fill factor = V_mI_m/(V_ocI_sc) = (${xfmt(vm, 4)}×${xfmt(im, 4)})/(${voc}×${isc}) = ${xfmt(vm * im, 5)}/${xfmt(voc * isc, 5)} = ${xfmt(answer, 4)}.` };
+    },
+    verify: (p) => (p.vm * p.im) / (p.voc * p.isc) },
+  { id: 'sc-g26', type: 'mcq', level: 4, exams: xex(4, 'mcq'), sub: 'gate networks',
+    make(rng) {
+      const NAND = (a, b) => 1 - (a & b), NOR = (a, b) => 1 - (a | b);
+      const nets = [
+        { d: 'The output of a NAND gate (inputs A and B) feeds both inputs of a second NAND gate.', f: (a, b) => NAND(NAND(a, b), NAND(a, b)) },
+        { d: 'The output of a NOR gate (inputs A and B) feeds both inputs of a second NOR gate.', f: (a, b) => NOR(NOR(a, b), NOR(a, b)) },
+        { d: 'A is fed to both inputs of NAND 1 and B to both inputs of NAND 2; the outputs of NAND 1 and NAND 2 go to NAND 3.', f: (a, b) => NAND(NAND(a, a), NAND(b, b)) },
+        { d: 'A is fed to both inputs of NOR 1 and B to both inputs of NOR 2; the outputs of NOR 1 and NOR 2 go to NOR 3.', f: (a, b) => NOR(NOR(a, a), NOR(b, b)) },
+        { d: 'The output of an AND gate (inputs A and B) goes to a NOT gate.', f: (a, b) => 1 - (a & b) },
+        { d: 'A OR gate (inputs A and B) is followed by a NOT gate.', f: (a, b) => 1 - (a | b) },
+      ];
+      const names = { AND: (a, b) => a & b, OR: (a, b) => a | b, NAND, NOR };
+      const vid = int(rng, 0, nets.length - 1); const net = nets[vid];
+      const nameOf = (f) => Object.keys(names).find((k) => [[0, 0], [0, 1], [1, 0], [1, 1]].every(([a, b]) => f(a, b) === names[k](a, b)));
+      const name = nameOf(net.f); const o = xsh(rng, name, ['AND', 'OR', 'NAND', 'NOR'].filter((x) => x !== name));
+      return { vid, options: o.options, answer: o.answer, q: `${net.d} The whole circuit behaves as a`,
+        sol: `Work out the truth table for (A,B) = (0,0), (0,1), (1,0), (1,1): ${[[0, 0], [0, 1], [1, 0], [1, 1]].map(([a, b]) => net.f(a, b)).join(', ')}. That is the table of the ${name} gate.` };
+    },
+    verify: (p) => { const nets = [(a, b) => 1 - (1 - (a & b)) & 1, (a, b) => 1 - (1 - (a | b)), (a, b) => a | b, (a, b) => a & b, (a, b) => 1 - (a & b), (a, b) => 1 - (a | b)]; const tt = [[0, 0], [0, 1], [1, 0], [1, 1]].map(([a, b]) => nets[p.vid](a, b)).join(''); const map = { '0001': 'AND', '0111': 'OR', '1110': 'NAND', '1000': 'NOR' }; return p.options.indexOf(map[tt]); } },
+  { id: 'sc-g27', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'counting input combinations',
+    make(rng) {
+      const n = xchoose(rng, [4, 5]), k = xchoose(rng, [2, 3]); let cnt = 0; const C = (a, b) => { let r = 1; for (let i = 0; i < b; i++) r = r * (a - i) / (i + 1); return Math.round(r); };
+      for (let j = k; j <= n; j++) cnt += C(n, j);
+      return { n, k, answer: cnt, tol: 0,
+        q: `A logic circuit has ${n} inputs and its output is 1 when at least ${k} of the inputs are 1. For how many of the ${2 ** n} input combinations is the output 1?`,
+        sol: `Count combinations with j high inputs for j = ${k} to ${n}: ${Array.from({ length: n - k + 1 }, (_, i) => `C(${n},${k + i}) = ${C(n, k + i)}`).join(', ')}. Total = ${cnt}.` };
+    },
+    verify: (p) => { let c = 0; for (let i = 0; i < 2 ** p.n; i++) { let s = 0; for (let j = 0; j < p.n; j++) s += (i >> j) & 1; if (s >= p.k) c++; } return c; } },
+  { id: 'sc-g28', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'peak inverse voltage',
+    make(rng) {
+      const v = xchoose(rng, [20, 30, 40, 60]); const answer = +(Math.SQRT2 * v).toFixed(2);
+      return { v, answer, tol: 0.05, unit: 'V',
+        q: `A centre-tapped full-wave rectifier uses a transformer whose whole secondary gives ${v} V r.m.s. Find the peak inverse voltage across each ideal diode, in V (1 decimal).`,
+        sol: `Each half of the secondary has ${v / 2} V r.m.s., peak ${xfmt(v / 2 * Math.SQRT2, 4)} V. The non-conducting diode sees the whole secondary's peak: PIV = 2 × ${xfmt(v / 2 * Math.SQRT2, 4)} = ${xfmt(answer, 4)} V.` };
+    },
+    verify: (p) => 2 * (p.v / 2) * Math.SQRT2 },
+  { id: 'sc-g29', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'dynamic resistance',
+    make(rng) {
+      const dv = xchoose(rng, [0.02, 0.04, 0.05, 0.06]), di = xchoose(rng, [2, 4, 5, 8, 10, 12]); const answer = +(dv / di * 1000).toFixed(3);
+      return { dv, di, answer, tol: 0.01, unit: 'Ω',
+        q: `On the forward characteristic of a diode, a rise of ${dv} V in the voltage produces a rise of ${di} mA in the current. Find the dynamic resistance in Ω.`,
+        sol: `r = ΔV/ΔI = ${dv} V/${di} × 10⁻³ A = ${xfmt(answer, 4)} Ω.` };
+    },
+    verify: (p) => p.dv / (p.di / 1000) },
+  { id: 'sc-g30', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'compensated semiconductor',
+    make(rng) {
+      const nd = xchoose(rng, [5, 6, 8]), na = xchoose(rng, [1, 2, 3]); const net = (nd - na) * 1e21; const p = (1.5e16) ** 2 / net; const answer = +(p / 1e10).toFixed(2);
+      return { nd, na, answer, tol: Math.max(0.02, answer * 0.01), unit: '10¹⁰ m⁻³',
+        q: `Silicon with n_i = 1.5×10¹⁶ m⁻³ is doped with ${nd}×10²¹ m⁻³ donors and ${na}×10²¹ m⁻³ acceptors, all ionised. Find the hole concentration in units of 10¹⁰ m⁻³.`,
+        sol: `Net donors = (${nd} − ${na})×10²¹ = ${nd - na}×10²¹ m⁻³, so n ≈ ${nd - na}×10²¹. Mass action: p = n_i²/n = 2.25×10³²/(${nd - na}×10²¹) = ${xfmt(p / 1e10, 4)}×10¹⁰ m⁻³.` };
+    },
+    verify: (p) => { const d = (p.nd - p.na) * 1e21; const n = (d + Math.sqrt(d * d + 4 * (1.5e16) ** 2)) / 2; return (1.5e16) ** 2 / n / 1e10; } },
+  { id: 'sc-g31', type: 'mcq', level: 2, exams: xex(2, 'mcq'), sub: 'doping',
+    make(rng) {
+      const n = ['phosphorus', 'arsenic', 'antimony'], p = ['boron', 'aluminium', 'gallium', 'indium'];
+      const host = xchoose(rng, ['silicon', 'germanium']); const isN = rng() < 0.5; const imp = xchoose(rng, isN ? n : p);
+      const correct = isN ? 'n-type, with electrons as the majority carriers' : 'p-type, with holes as the majority carriers';
+      const o = xsh(rng, correct, [isN ? 'p-type, with holes as the majority carriers' : 'n-type, with electrons as the majority carriers', isN ? 'n-type, with holes as the majority carriers' : 'p-type, with electrons as the majority carriers', 'intrinsic, with equal numbers of electrons and holes']);
+      return { host, imp, isN, options: o.options, answer: o.answer,
+        q: `A crystal of ${host} is doped with a small amount of ${imp}. It becomes`,
+        sol: `${imp[0].toUpperCase() + imp.slice(1)} is ${isN ? 'pentavalent (5 valence electrons), a donor: the extra electron is free to move' : 'trivalent (3 valence electrons), an acceptor: it leaves a hole in a bond'}. The ${host} becomes ${correct}.` };
+    },
+    verify: (p) => p.options.indexOf(p.isN ? 'n-type, with electrons as the majority carriers' : 'p-type, with holes as the majority carriers') },
+];
+
+export default { topic: 'semiconductors', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

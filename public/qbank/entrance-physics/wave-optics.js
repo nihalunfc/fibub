@@ -582,4 +582,316 @@ const gens = [
   }, (p) => { const k = Math.round(p.d / p.a * 1e6) / 1e6; return p.v === 0 ? 2 * Math.ceil(k) - 1 : 2 * p.d / p.a; }),
 ];
 
-export default { topic: 'wave-optics', groups, items, gens };
+// ======== Expansion block (added 2026-11-22): more hard items and templates, ids wo-x001 onward ========
+import * as XH from '../_entrance.js';
+const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
+const xr = String.raw;
+const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xex = (level, type, neet) => { const e = [...XE[level]]; if (neet && level === 4) e.push('neet'); if (true && level <= 3 && type === 'mcq') e.push('cuet'); return e; };
+let xk = 0, xc = 0;
+const XPOS = [2, 0, 3, 1, 3, 1, 0, 2];
+const xb = (level, sub, o) => { const { neet, ...rest } = o; return { id: `wo-x${String(++xk).padStart(3, '0')}`, level, exams: xex(level, o.type, neet), sub, ...rest }; };
+const xq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xn = (level, sub, q, ans, tol, calc, sol, o = {}) => {
+  const v = calc();
+  if (!(Math.abs(v - ans) <= Math.max(tol, 1e-9) + 1e-9)) throw new Error(`wo item ${xk + 1}: calc ${v} vs answer ${ans}`);
+  return xb(level, sub, { type: 'nat', format: tol === 0 && Number.isInteger(ans) ? 'integer' : 'numeric', q, answer: ans, tol, calc, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAO, answer, sol, ...o });
+const XSO = ['Both Statement I and Statement II are true and II explains I', 'Both Statement I and Statement II are true but II does not explain I', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSO, answer, sol, ...o });
+const XSW = [['A', 'B'], ['C', 'D'], ['A', 'C'], ['B', 'D'], ['A', 'D'], ['B', 'C']];
+/** match item: map like {A:'q',B:'s',C:'p',D:'r'}; three wrong codes made by swapping two answers. */
+const xm = (level, sub, group, q, map, sol, o = {}) => {
+  const code = (m) => ['A', 'B', 'C', 'D'].map((l) => `${l}-${m[l]}`).join(', ');
+  const wrongs = [];
+  for (let i = 0; wrongs.length < 3; i++) { const [a, b] = XSW[(xc + i) % 6]; const m = { ...map }; [m[a], m[b]] = [m[b], m[a]]; wrongs.push(code(m)); }
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, code(map));
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const XMU = xr`\mathrm{m\,s^{-1}}`;
+
+const xgroups = {
+  xm1: { title: 'Changing the double slit set-up', list1: ['A. The wavelength is doubled', 'B. The slit separation is doubled', 'C. The whole apparatus is put in water ($n = 4/3$)', 'D. The slit separation and the screen distance are both tripled'],
+    list2: [xr`p. Fringe width $\times2$`, xr`q. Fringe width $\times\tfrac12$`, xr`r. Fringe width $\times\tfrac34$`, xr`s. Fringe width unchanged`, xr`t. Fringe width $\times3$`] },
+  xm2: { title: 'Path difference and phase difference', list1: [xr`A. Path difference $\lambda/4$`, xr`B. Path difference $\lambda/2$`, xr`C. Path difference $\lambda$`, xr`D. Path difference $3\lambda/2$`],
+    list2: [xr`p. $\pi/2$`, xr`q. $\pi$`, xr`r. $2\pi$`, xr`s. $3\pi$`, xr`t. $\pi/4$`] },
+  xm3: { title: 'Brewster angles', list1: ['A. Glass with $n = \\sqrt3$', 'B. A medium of $n = 1$', 'C. Water ($n = 1.33$)', 'D. Glass with $n = 1.5$'],
+    list2: [xr`p. $60^\circ$`, xr`q. $45^\circ$`, xr`r. $53.1^\circ$`, xr`s. $56.3^\circ$`, xr`t. $30^\circ$`] },
+  xm4: { title: 'Unpolarised light of intensity $I_0$ through a polaroid and then an analyser', list1: ['A. Analyser parallel to the polaroid', xr`B. Analyser at $30^\circ$ to the polaroid`, xr`C. Analyser at $45^\circ$ to the polaroid`, xr`D. Analyser at $60^\circ$ to the polaroid`],
+    list2: [xr`p. $I_0/2$`, xr`q. $3I_0/8$`, xr`r. $I_0/4$`, xr`s. $I_0/8$`, xr`t. $0$`] },
+  xm5: { title: 'A single slit of width 0.2 mm, light of 500 nm and a lens of focal length 1 m', list1: ['A. Angle of the first minimum', 'B. Distance of the first minimum from the centre of the screen', 'C. Width of the central maximum', 'D. Distance of the third minimum from the centre'],
+    list2: [xr`p. $2.5\times10^{-3}$ rad`, 'q. 2.5 mm', 'r. 5 mm', 's. 7.5 mm', 't. 10 mm'] },
+  xm6: { title: 'Everyday polarisation', list1: ['A. The light from a clear blue sky is partly polarised', 'B. Polaroid sunglasses reduce glare from a road', 'C. A tourmaline crystal passes only one plane of vibration', 'D. A law relating the angle of full polarisation to the refractive index'],
+    list2: ['p. Scattering', 'q. Reflection', 'r. Selective absorption (dichroism)', 's. Brewster\'s law', 't. Interference'] },
+  xm7: { title: 'Limit of resolution $1.22\\lambda/D$ at $\\lambda = 550$ nm', list1: ['A. Aperture of 2 mm (human pupil)', 'B. Aperture of 0.1 m', 'C. Aperture of 1 m', 'D. Aperture of 10 m'],
+    list2: [xr`p. $3.4\times10^{-4}$ rad`, xr`q. $6.7\times10^{-6}$ rad`, xr`r. $6.7\times10^{-7}$ rad`, xr`s. $6.7\times10^{-8}$ rad`, xr`t. $1.2\times10^{-6}$ rad`] },
+  xm8: { title: 'Newton\'s rings in reflected light ($\\lambda = 500$ nm, lens of radius of curvature 2 m)', list1: ['A. Radius of the 1st dark ring', 'B. Radius of the 4th dark ring', 'C. Radius of the 9th dark ring', 'D. Radius of the 16th dark ring'],
+    list2: ['p. 1 mm', 'q. 2 mm', 'r. 3 mm', 's. 4 mm', 't. 5 mm'] },
+  xp1: { title: 'A double slit with a film',
+    passage: xr`<p>In a double slit experiment the slits are 0.5 mm apart, the screen is 1.5 m away and the light has $\lambda = 600$ nm. A transparent film of refractive index 1.5 and thickness $8\ \mu\mathrm{m}$ is placed over one of the slits.</p>` },
+  xp2: { title: 'A soap film',
+    passage: xr`<p>A soap film of refractive index 1.33 and thickness 400 nm in air is lit by white light at normal incidence. Take the visible range as 400 nm to 700 nm.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xn(2, 'YDSE', xr`In a double slit experiment $\lambda = 600$ nm and the slit separation is 0.3 mm. Find the angular fringe width $\lambda/d$ in units of $10^{-3}$ rad.`, 2, 0, () => 600e-9 / 0.3e-3 * 1e3,
+    xr`Angular fringe width $= \lambda/d = \dfrac{600\times10^{-9}}{0.3\times10^{-3}} = 2\times10^{-3}$ rad (answer 2).`),
+  xq(2, 'YDSE', xr`Which colour gives the widest fringes in a double slit experiment, with everything else unchanged?`, 'Red', ['Violet', 'Green', 'All colours give the same width'],
+    xr`$\beta = \lambda D/d\propto\lambda$, and red has the longest wavelength of the visible colours.`),
+  xn(2, 'intensity in interference', xr`Two waves of equal intensity $I_0$ from two sources have a constant phase difference of $90^\circ$ at a point. Find the resultant intensity in units of $I_0$.`, 2, 0, () => 1 + 1 + 2 * Math.cos(Math.PI / 2),
+    xr`$I = I_1 + I_2 + 2\sqrt{I_1I_2}\cos\phi = I_0 + I_0 + 2I_0\cos90^\circ = 2I_0$. With no cross term, intensities simply add.`),
+  xn(2, 'single slit diffraction', xr`A slit is two wavelengths wide. At what angle, in degrees, does the first minimum occur?`, 30, 0, () => Math.asin(1 / 2) * 180 / Math.PI,
+    xr`First minimum: $a\sin\theta = \lambda$, so $\sin\theta = \lambda/a = \tfrac12$ and $\theta = 30^\circ$.`),
+  xq(2, 'polaroids', xr`Unpolarised light passes through two ideal polaroids whose axes are at $90^\circ$ to each other. The transmitted intensity is`, 'zero', [xr`one half of the incident intensity`, xr`one quarter of the incident intensity`, xr`one eighth of the incident intensity`],
+    xr`The first polaroid gives plane polarised light along its axis. For the second, $I = I_1\cos^2 90^\circ = 0$.`),
+  xn(2, 'YDSE', xr`In a double slit experiment with $\lambda = 400$ nm, what is the path difference in nm at the 3rd dark fringe on one side of the centre?`, 1000, 0, () => (2 * 3 - 1) * 400 / 2,
+    xr`Dark fringes: $\Delta x = (2m - 1)\lambda/2$. For $m = 3$: $\Delta x = 5\lambda/2 = 5\times400/2 = 1000$ nm.`),
+
+  // ---------- Level 3 ----------
+  xn(3, 'intensity in interference', xr`In a double slit experiment with identical slits, the phase difference at a point is $60^\circ$. Find $I/I_{max}$ (2 decimals).`, 0.75, 0.01, () => Math.cos(30 * Math.PI / 180) ** 2,
+    xr`$I = I_{max}\cos^2(\phi/2) = I_{max}\cos^2 30^\circ = 0.75\,I_{max}$.`,
+    { trap: 'Using cos 60° = 0.5; the angle in the formula is half the phase difference.' }),
+  xn(3, 'YDSE', xr`In a double slit pattern, how many bright fringes lie between the 3rd dark fringe on one side of the centre and the 3rd dark fringe on the other side? (Count the central fringe.)`, 5, 0, () => 5,
+    xr`The 3rd dark fringes are at $\pm2.5\beta$. Bright fringes in between are at $0, \pm\beta, \pm2\beta$: 5 fringes.`),
+  xn(3, 'Newton rings', xr`In Newton's rings (reflected light), find the ratio (diameter of the 16th dark ring) / (diameter of the 4th dark ring).`, 2, 0, () => Math.sqrt(16 / 4),
+    xr`$r_n = \sqrt{n\lambda R}$, so $r_{16}/r_4 = \sqrt{16/4} = 2$. Ring radii grow as the square root of the ring number, so the rings crowd together outwards.`),
+  xq(3, 'Newton rings', xr`When the space between the lens and the plate in a Newton's rings experiment is filled with a liquid of refractive index $n$, the rings`, xr`shrink, with radii reduced by a factor $\sqrt n$`, [xr`expand, with radii increased by a factor $\sqrt n$`, 'stay the same', xr`shrink by a factor $n$`],
+    xr`The wavelength in the liquid is $\lambda/n$, and $r_m = \sqrt{m\lambda R/n}$ (optical path $= 2nt$). The radii fall by $\sqrt n$, not $n$.`),
+  xn(3, 'polaroids', xr`A polaroid rotates at 50 revolutions per second in the path of a beam of plane polarised light. At what frequency, in Hz, does the transmitted intensity vary?`, 100, 0, () => 2 * 50,
+    xr`$I = I_0\cos^2\omega t = \tfrac12I_0(1 + \cos2\omega t)$, which repeats twice per revolution. Frequency $= 2\times50 = 100$ Hz.`,
+    { trap: 'Giving 50 Hz: cos² peaks twice in each rotation (every 180°).' }),
+  xn(3, 'polaroids', xr`Unpolarised light of intensity $I_0$ passes through a polaroid and then through two more, each with its axis turned $30^\circ$ from the previous one. Find the final intensity in units of $I_0$ (3 decimals).`, 0.281, 0.002, () => 0.5 * Math.cos(30 * Math.PI / 180) ** 4,
+    xr`After the first: $I_0/2$. Each further polaroid multiplies by $\cos^2 30^\circ = 0.75$: $I = \tfrac12\times0.75^2 = 0.281\,I_0$.`),
+  xn(3, 'intensity in interference', xr`The two slits of a double slit set-up give waves of intensities $I$ and $4I$. At a point where the phase difference is $60^\circ$, find the resultant intensity in units of $I$.`, 7, 0, () => 1 + 4 + 2 * Math.sqrt(4) * Math.cos(Math.PI / 3),
+    xr`$I_R = I + 4I + 2\sqrt{I\cdot4I}\cos60^\circ = 5I + 4I\times0.5 = 7I$.`),
+  xn(3, 'missing orders', xr`The slit separation in a double slit experiment is four times the width of each slit. The first order that is missing from the interference pattern (because it falls on a diffraction minimum) is the $N$th. Find $N$.`, 4, 0, () => 4,
+    xr`A missing order satisfies $d\sin\theta = m\lambda$ together with $a\sin\theta = \lambda$ (first minimum of the single slit). So $m = d/a = 4$: the 4th bright fringe is missing.`),
+  xn(3, 'thin films', xr`An oil film ($n = 1.2$) floats on water ($n = 1.33$), in air, and is lit at normal incidence by light of $\lambda = 600$ nm. Find the smallest non-zero thickness in nm for strong reflection.`, 250, 0, () => 600 / (2 * 1.2),
+    xr`Reflection at air-oil (low to high index) gives a $\pi$ shift, and reflection at oil-water (also low to high) gives another $\pi$ shift. The two cancel, so reflection is strong when $2nt = m\lambda$. Smallest $t = \lambda/2n = 600/2.4 = 250$ nm.`,
+    { trap: 'Using λ/4n: that applies when only one of the reflections changes phase.' }),
+  xq(3, 'Huygens principle', xr`A plane wave of light goes from air into glass. Which quantity is the same on both sides of the boundary?`, 'Frequency', ['Wavelength', 'Speed', 'Amplitude'],
+    xr`The frequency is set by the source and stays constant. The speed and wavelength both fall by the factor $n$; the amplitude changes by reflection.`),
+  xq(3, 'single slit diffraction', xr`The width of a slit in a single slit experiment is halved. The width of the central maximum on a distant screen`, 'doubles', ['halves', 'stays the same', 'becomes four times larger'],
+    xr`Half-width of central max $\propto\lambda D/a$. With half the slit width the central maximum is twice as wide (and dimmer).`),
+  xa(3, 'intensity', xr`The intensity at the central maximum of a double-slit pattern from identical slits is four times that from one slit alone.`, xr`At the central maximum the amplitudes of the two waves add to $2A$, and intensity is proportional to the square of amplitude.`, 0,
+    xr`Both are true and R explains A. $I = (2A)^2 = 4A^2$, while one slit gives $A^2$. (The average over the pattern is only twice the single-slit value, as energy is conserved.)`),
+  xa(3, 'polarisation', xr`Polaroid sunglasses reduce the glare from a wet road.`, xr`Light reflected from a surface is partly polarised, mostly in the plane parallel to the surface.`, 0,
+    xr`Both are true and R explains A. Sunglasses with a vertical axis block the horizontally polarised glare while passing most of the other light.`),
+  xt(3, 'polaroids', xr`Two crossed polaroids transmit no light, but a third polaroid between them at $45^\circ$ lets light through.`, xr`The middle polaroid turns the plane of polarisation of the light that passes through it to its own axis.`, 0,
+    xr`Both are true and II explains I. Unpolarised $I_0\to I_0/2\to(I_0/2)\cos^245^\circ = I_0/4\to(I_0/4)\cos^245^\circ = I_0/8$.`),
+  xm(3, 'YDSE', 'xm1', xr`Match each change in List I with the effect on the fringe width in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\beta = \lambda D/d$. A: $\times2$ (p). B: $\times\tfrac12$ (q). C: $\lambda\to\lambda/n$, so $\times\tfrac34$ (r). D: $\times\dfrac{3}{3} = 1$ (s).`),
+  xm(3, 'phase difference', 'xm2', xr`Match each path difference in List I with its phase difference in List II, using $\phi = 2\pi\Delta x/\lambda$.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\Delta x = \lambda/4$: $\pi/2$ (p). $\lambda/2$: $\pi$ (q). $\lambda$: $2\pi$ (r). $3\lambda/2$: $3\pi$ (s).`),
+  xm(3, 'Brewster angle', 'xm3', xr`Match each medium in List I with its Brewster (polarising) angle in List II when light falls on it from air.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\tan\theta_B = n$. A: $\tan^{-1}\sqrt3 = 60^\circ$ (p). B: $\tan^{-1}1 = 45^\circ$ (q). C: $\tan^{-1}1.33 = 53.1^\circ$ (r). D: $\tan^{-1}1.5 = 56.3^\circ$ (s).`),
+  xm(3, 'polarisation', 'xm6', xr`Match each observation in List I with its cause in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`Blue-sky polarisation is due to scattering by air molecules (p). Glare is partly polarised by reflection (q). A tourmaline crystal absorbs one polarisation more than the other (r). The relation $\tan\theta_B = n$ is Brewster's law (s).`),
+
+  // ---------- Level 4 ----------
+  xn(4, 'diffraction and interference', xr`In a double slit experiment the slit separation is 0.4 mm and each slit is 0.1 mm wide. How many bright interference fringes lie within the central maximum of the single-slit diffraction pattern?`, 7, 0, () => { let n = 0; for (let m = -10; m <= 10; m++) if (Math.abs(m * 1 / 0.4) < 1 / 0.1) n++; return n; },
+    xr`Diffraction minima: $a\sin\theta = \lambda$. Interference maxima: $d\sin\theta = m\lambda$. The central diffraction maximum extends to $\sin\theta = \lambda/a$, so $m < d/a = 4$. The orders $m = -3,\dots,0,\dots,+3$ are inside: 7 fringes. The 4th order falls on the diffraction minimum and is missing.`,
+    { trap: 'Counting the 4th order, which is exactly at the edge and is missing.' }),
+  xn(4, 'YDSE with a slab', xr`A thin film placed over one slit of a double slit experiment ($\lambda = 600$ nm) shifts the pattern by exactly 5 fringes. The experiment is repeated with $\lambda = 500$ nm with the same film. By how many fringes does the pattern shift now?`, 6, 0, () => 5 * 600 / 500,
+    xr`The shift in fringes is $(n - 1)t/\lambda$, so it is inversely proportional to $\lambda$. $5\times\dfrac{600}{500} = 6$ fringes. (The shift in distance is $(n-1)tD/d$ and does not depend on $\lambda$, but the fringes are narrower.)`,
+    { trap: 'Saying 5: the shift in distance is the same but in units of fringe width it is not.' }),
+  xn(4, 'single slit diffraction', xr`A slit 0.1 mm wide is lit by light of 500 nm and a lens of focal length 0.5 m focuses the pattern on a screen. Find the width of the central maximum in mm.`, 5, 0, () => 2 * 500e-9 * 0.5 / 0.1e-3 * 1e3,
+    xr`Half-width $= \lambda f/a = \dfrac{500\times10^{-9}\times0.5}{10^{-4}} = 2.5$ mm. Full width $= 2\times2.5 = 5$ mm.`),
+  xn(4, 'polarisation', xr`A beam of partially polarised light is viewed through a rotating analyser. The largest transmitted intensity is 3 times the smallest. Find the percentage of the beam intensity that is plane polarised.`, 50, 0, () => (3 - 1) / (3 + 1) * 100,
+    xr`Treat the beam as unpolarised light $I_u$ plus plane polarised $I_p$. The analyser transmits $I_u/2$ at the minimum and $I_u/2 + I_p$ at the maximum. Given $I_{max} = 3I_{min}$: $I_u/2 + I_p = 3I_u/2$, so $I_p = I_u$. Polarised fraction $= I_p/(I_p + I_u) = 50\,\%$. (Degree of polarisation $= (I_{max} - I_{min})/(I_{max} + I_{min}) = 2/4$.)`),
+  xn(4, 'Newton rings', xr`The 10th dark ring in a Newton's rings arrangement has a radius of 2.00 mm in air. When a liquid of $n = 1.33$ fills the gap, what is the radius of the 10th dark ring in mm (2 decimals)?`, 1.73, 0.01, () => 2 / Math.sqrt(1.33),
+    xr`$r_m = \sqrt{m\lambda R/n}$, so $r' = r/\sqrt n = 2.00/\sqrt{1.33} = 1.73$ mm.`),
+  xn(4, 'wedge', xr`Two glass plates 10 cm long touch at one end, and a thin wire of diameter 0.06 mm separates them at the other end. Using light of 600 nm at normal incidence, find the spacing between adjacent dark fringes in mm (1 decimal).`, 0.5, 0.01, () => 600e-9 * 0.1 / (2 * 0.06e-3) * 1e3,
+    xr`Wedge angle $\theta = t/L = 0.06\times10^{-3}/0.1 = 6\times10^{-4}$ rad. Fringe spacing $= \lambda/(2\theta) = \dfrac{600\times10^{-9}}{1.2\times10^{-3}} = 0.5$ mm.`),
+  xn(4, 'resolving power', xr`The 2.4 m mirror of a space telescope observes the Moon (distance $3.84\times10^8$ m) in light of 550 nm. Find the smallest separation of two features it can just resolve, in m (nearest whole number).`, 107, 1, () => 1.22 * 550e-9 / 2.4 * 3.84e8,
+    xr`$\theta_{min} = 1.22\lambda/D = \dfrac{1.22\times550\times10^{-9}}{2.4} = 2.80\times10^{-7}$ rad. Separation $= \theta L = 2.80\times10^{-7}\times3.84\times10^8 = 107$ m.`),
+  xn(4, 'Brewster angle', xr`Sunlight is reflected from a calm lake ($n = 1.33$). For what elevation of the Sun above the horizon, in degrees (1 decimal), is the reflected light completely plane polarised?`, 36.9, 0.1, () => 90 - Math.atan(1.33) * 180 / Math.PI,
+    xr`Full polarisation occurs at the Brewster angle of incidence $\theta_B = \tan^{-1}1.33 = 53.1^\circ$ (measured from the normal). The elevation above the horizontal surface is $90^\circ - 53.1^\circ = 36.9^\circ$.`,
+    { trap: 'Giving 53.1°, which is measured from the normal, not from the surface.' }),
+  xn(4, 'Michelson interferometer', xr`In a Michelson interferometer one mirror is moved by 0.10 mm. Light of 500 nm is used. How many bright fringes cross the field of view?`, 400, 0, () => 2 * 0.1e-3 / 500e-9,
+    xr`Moving a mirror by $d$ changes the path by $2d$, so the number of fringes is $N = 2d/\lambda = \dfrac{2\times10^{-4}}{5\times10^{-7}} = 400$.`),
+  xn(5, 'polaroids', xr`Unpolarised light of intensity $I_0$ passes through a polaroid, then through a polaroid rotating uniformly about the beam, and then through a third polaroid whose axis is perpendicular to that of the first. Find the time-averaged transmitted intensity in units of $I_0$ (4 decimals).`, 0.0625, 0.0005,
+    () => { let s = 0; const n = 100000; for (let i = 0; i < n; i++) { const t = (i + 0.5) / n * Math.PI; s += Math.cos(t) ** 2 * Math.sin(t) ** 2; } return 0.5 * s / n * 1; },
+    xr`After the first polaroid: $I_0/2$. For the rotating polaroid at angle $\theta$ from the first, and the third at $90^\circ$ from the first: $I = \tfrac{I_0}{2}\cos^2\theta\,\sin^2\theta = \tfrac{I_0}{8}\sin^22\theta$. The average of $\sin^22\theta$ is $\tfrac12$, so $\langle I\rangle = \tfrac{I_0}{16} = 0.0625\,I_0$.`),
+  xq(4, 'thin films', xr`Why does a thick glass window not show coloured interference fringes in sunlight, whereas a thin soap film does?`, 'The path difference is far larger than the coherence length of sunlight', ['Glass absorbs the colours', 'Sunlight is not coherent at all', 'Interference needs a refractive index below 1'],
+    xr`Sunlight has a coherence length of only a few micrometres. Reflections from the two faces of a thick window differ in path by many wavelengths, beyond the coherence length, so they do not interfere; in a soap film the two paths differ by only a wavelength or so.`),
+  xq(4, 'resolving power', xr`The resolution of a microscope can be improved by`, 'using light of shorter wavelength', ['using light of longer wavelength', 'using a smaller aperture', 'increasing the magnification only'],
+    xr`The limit is $\sim\lambda/(2\,\mathrm{NA})$. A shorter wavelength or a larger numerical aperture (for example oil immersion) improves it. Magnification alone only enlarges the blur.`),
+  xs(4, 'YDSE in water', xr`A double slit experiment is moved from air into water ($n = 4/3$) without changing the geometry. Which are correct?`,
+    ['The fringe width decreases to $3/4$ of its value', 'The wavelength of light decreases', 'The frequency of the light does not change', 'The central bright fringe stays at the centre of the screen', 'The number of fringes in a given region of the screen decreases'], [0, 1, 2, 3],
+    xr`$\lambda_w = \lambda/n$, so $\beta = \lambda_wD/d$ is reduced to $3/4$ (true, true). The frequency is fixed by the source (true). The central fringe has zero path difference and stays at the centre (true). Narrower fringes mean more fringes in a given region (the last is false).`),
+  xs(4, 'polaroids', xr`Unpolarised light of intensity $I_0$ passes through polaroids $P_1$ (axis $0^\circ$), $P_2$ (axis $45^\circ$) and $P_3$ (axis $90^\circ$) in turn. Which are correct?`,
+    [xr`The intensity after $P_2$ is $I_0/4$`, xr`If $P_2$ is removed, no light emerges`, xr`The final intensity is $I_0/8$`, xr`If $P_2$ is turned to $90^\circ$, no light emerges`, 'The light emerging from $P_3$ is unpolarised'], [0, 1, 2, 3],
+    xr`$I_1 = I_0/2$, $I_2 = (I_0/2)\cos^245^\circ = I_0/4$ (true), $I_3 = (I_0/4)\cos^245^\circ = I_0/8$ (true). Without $P_2$, $P_1$ and $P_3$ are crossed (true). With $P_2$ at $90^\circ$, $P_2$ is crossed with $P_1$ so nothing gets through (true). Light from any polaroid is plane polarised (false).`),
+  xs(4, 'single slit diffraction', xr`In single slit diffraction (slit width $a$, wavelength $\lambda$), which are correct?`,
+    [xr`The central maximum has a width $2\lambda f/a$ on a screen at the focus of a lens of focal length $f$`, xr`The first minimum is at $\sin\theta = \lambda/a$`, xr`If $a < \lambda$ there is no minimum`, 'The secondary maxima are much less intense than the central one', 'All the maxima have the same width'], [0, 1, 2, 3],
+    xr`Half-width $= \lambda f/a$ (true), first minimum $a\sin\theta = \lambda$ (true). For $a < \lambda$, $\sin\theta = \lambda/a$ would exceed 1 (true). The central maximum is far brighter than the secondaries (true), and twice as wide as each secondary (last false).`),
+  xs(4, 'Newton rings', xr`In a Newton's rings arrangement (plano-convex lens on a flat glass plate), which are correct in reflected light?`,
+    ['The central spot is dark', 'The rings get closer together as their radius increases', 'The radius of the $m$th dark ring is proportional to $\\sqrt m$', 'In transmitted light the central spot is bright', 'The ring diameters increase if the gap is filled with a liquid'], [0, 1, 2, 3],
+    xr`The air film has zero thickness at the centre and the two reflections differ by a $\pi$ shift, so the centre is dark (true). $r_m\propto\sqrt m$ (true) so successive rings are closer (true). Transmitted light is complementary, so the centre is bright (true). In a liquid the wavelength shortens, so the rings shrink (false).`),
+  xs(4, 'Brewster angle', xr`Unpolarised light falls on glass ($n = \sqrt3$) at the polarising angle. Which are correct?`,
+    [xr`The angle of incidence is $60^\circ$`, xr`The reflected and refracted rays are at $90^\circ$ to each other`, xr`The angle of refraction is $30^\circ$`, 'The reflected light is polarised perpendicular to the plane of incidence', 'The transmitted light is completely polarised'], [0, 1, 2, 3],
+    xr`$\tan\theta_B = \sqrt3$, so $\theta_B = 60^\circ$ (true). At this angle $\theta_B + r = 90^\circ$ (true), so $r = 30^\circ$ (true). The reflected light vibrates perpendicular to the plane of incidence (true). The refracted light is only partly polarised (false).`),
+  xs(4, 'YDSE with a slab', xr`A thin transparent sheet of thickness $t$ and index $n$ covers one slit of a double slit experiment (slit separation $d$, screen distance $D$). Which are correct?`,
+    ['The fringe width is unchanged', 'The central bright fringe shifts towards the covered slit', xr`The shift of the pattern is $(n - 1)tD/d$`, 'The shift of the pattern, in distance, does not depend on the wavelength', 'The number of fringes by which the pattern shifts does not depend on the wavelength'], [0, 1, 2, 3],
+    xr`The sheet adds an optical path $(n - 1)t$ on one side, so the zero-path-difference point moves towards that side by $(n-1)tD/d$ (true, true, true). Fringe width $\lambda D/d$ is unchanged (true). The shift in distance has no $\lambda$ (true), but in fringes it is $(n-1)t/\lambda$ (false).`),
+  xs(4, 'coherence', xr`Which statements about coherent sources are correct?`,
+    ['Two independent sodium lamps give no steady interference pattern', 'Two coherent sources can be obtained from one source by dividing the wavefront', 'Thin films give coherent beams by dividing the amplitude', 'Laser light is highly coherent', 'Two coherent sources must have equal intensities'], [0, 1, 2, 3],
+    xr`Independent sources emit with random, rapidly changing phases (true). Young's slits divide the wavefront, thin films divide the amplitude (true, true). Lasers have long coherence length (true). Coherent sources need a constant phase difference, not equal intensities; unequal ones just give lower contrast (false).`),
+  xm(4, 'polaroids', 'xm4', xr`Unpolarised light of intensity $I_0$ falls on a polaroid and then on an analyser. Match the analyser angles in List I with the final intensities in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$I = \tfrac{I_0}{2}\cos^2\theta$. $0^\circ$: $I_0/2$ (p). $30^\circ$: $\tfrac12\times\tfrac34 = 3I_0/8$ (q). $45^\circ$: $\tfrac12\times\tfrac12 = I_0/4$ (r). $60^\circ$: $\tfrac12\times\tfrac14 = I_0/8$ (s).`),
+  xm(4, 'single slit diffraction', 'xm5', xr`A slit of width 0.2 mm is lit by light of 500 nm, and the pattern is focused by a lens of focal length 1 m. Match the quantities.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`First minimum: $\sin\theta = \lambda/a = 2.5\times10^{-3}$ (p). Distance $y_1 = f\theta = 2.5$ mm (q). Central maximum width $= 2y_1 = 5$ mm (r). Third minimum: $y_3 = 3y_1 = 7.5$ mm (s).`),
+  xm(4, 'resolving power', 'xm7', xr`Use the limit of resolution $\theta = 1.22\lambda/D$ with $\lambda = 550$ nm. Match each aperture with its limit.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$1.22\times550\times10^{-9} = 6.71\times10^{-7}$ m, divided by $D$: 2 mm gives $3.4\times10^{-4}$ rad (p); 0.1 m gives $6.7\times10^{-6}$ (q); 1 m gives $6.7\times10^{-7}$ (r); 10 m gives $6.7\times10^{-8}$ (s).`),
+  xm(4, 'Newton rings', 'xm8', xr`In Newton's rings in reflected light ($\lambda = 500$ nm, $R = 2$ m), $r_m = \sqrt{m\lambda R}$ for the $m$th dark ring. Match the rings with their radii.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\lambda R = 10^{-6}\ \mathrm{m^2}$, so $r_m = \sqrt m$ mm. $m = 1$: 1 mm (p); 4: 2 mm (q); 9: 3 mm (r); 16: 4 mm (s).`),
+  xa(4, 'Newton rings', xr`The centre of a Newton's rings pattern is dark in reflected light.`, xr`The reflection at the air-glass surface of the plate gives a phase change of $\pi$, while the reflection at the glass-air surface of the lens gives none.`, 0,
+    xr`Both are true and R explains A. At the centre the air film has zero thickness, so the only path difference is the relative $\pi$ shift: destructive interference.`),
+  xa(4, 'YDSE with a slab', xr`Placing a thin transparent sheet over one slit of a double slit set-up leaves the fringe width unchanged.`, xr`The fringe width depends only on $\lambda$, $D$ and $d$.`, 0,
+    xr`Both are true and R explains A. The sheet only shifts the pattern by $(n-1)tD/d$.`),
+  xa(4, 'interference', xr`Two coherent sources of equal intensity cannot produce complete darkness anywhere.`, xr`The minimum intensity of two interfering waves is $(\sqrt{I_1} - \sqrt{I_2})^2$.`, 3,
+    xr`A is false: with $I_1 = I_2$ the minimum is $(\sqrt{I_1} - \sqrt{I_1})^2 = 0$. R is true, and it shows why equal sources give complete darkness.`),
+  xt(4, 'Newton rings', xr`The fringes of a Newton's rings pattern are not equally spaced.`, xr`The radii of the dark rings increase as the square root of the ring number.`, 0,
+    xr`Both are true and II explains I. $r_m\propto\sqrt m$ means $r_{m+1} - r_m$ decreases as $m$ grows.`),
+  xt(4, 'diffraction', xr`In single slit diffraction the secondary maxima are half as wide as the central maximum.`, xr`The central maximum extends from $-\lambda/a$ to $+\lambda/a$ whereas each secondary spans $\lambda/a$ (between successive minima).`, 0,
+    xr`Both are true and II explains I. Angular width of central $= 2\lambda/a$; of a secondary $= \lambda/a$.`),
+  xt(4, 'polarisation', xr`Sound waves in air cannot be polarised.`, xr`Sound waves in air are longitudinal.`, 0,
+    xr`Both are true and II explains I. Longitudinal vibrations are along the direction of travel, so there is no transverse direction to select.`),
+
+
+  // ---------- Level 5 and more multi-correct ----------
+  xn(5, 'YDSE with a slab', xr`In a double slit experiment ($d = 1$ mm, $D = 1$ m) the whole apparatus is in water ($n = 4/3$). A glass sheet ($n = 1.5$, thickness $10\ \mu\mathrm{m}$) covers one slit. Find the shift of the central fringe in mm (2 decimals).`, 1.67, 0.01, () => (1.5 - 4 / 3) * 10e-6 * 1 / 1e-3 * 1e3,
+    xr`The extra optical path is $(n_g - n_w)t = (1.5 - 1.333)\times10\times10^{-6} = 1.667\times10^{-6}$ m. Shift $= \dfrac{D}{d}\times\text{path} = \dfrac{1}{10^{-3}}\times1.667\times10^{-6} = 1.67\times10^{-3}$ m $= 1.67$ mm.`,
+    { trap: 'Using (n − 1) as if the sheet were in air.' }),
+  xn(5, 'multiple sources', xr`Three equally spaced coherent sources each give waves of intensity $I_0$ at a point $P$, with a phase difference of $60^\circ$ between neighbouring sources. Find the resultant intensity in units of $I_0$.`, 4, 0,
+    () => { const re = 1 + Math.cos(Math.PI / 3) + Math.cos(2 * Math.PI / 3), im = Math.sin(Math.PI / 3) + Math.sin(2 * Math.PI / 3); return re * re + im * im; },
+    xr`Add the three amplitudes as phasors $1$, $e^{i60^\circ}$, $e^{i120^\circ}$: real part $1 + 0.5 - 0.5 = 1$, imaginary part $0.866 + 0.866 = 1.732$. Resultant amplitude $= \sqrt{1 + 3} = 2$, so $I = 4I_0$ (not $3I_0$: intensities do not just add).`),
+  xs(5, 'visibility', xr`Two coherent beams have intensities in the ratio $4:1$. Which are correct?`,
+    [xr`The visibility $(I_{max} - I_{min})/(I_{max} + I_{min})$ is 0.8`, xr`$I_{max}/I_{min} = 9$`, 'The visibility is 1 if the intensities are made equal', 'The minimum intensity is zero even though the intensities are unequal', 'The visibility is 0.6'], [0, 1, 2],
+    xr`$\sqrt{I_1} = 2$, $\sqrt{I_2} = 1$ (in some unit): $I_{max} = (2 + 1)^2 = 9$ and $I_{min} = (2 - 1)^2 = 1$ (so $I_{max}/I_{min} = 9$, true). Visibility $= (9 - 1)/(9 + 1) = 0.8$ (true, and 0.6 is false). With equal intensities $I_{min} = 0$ and the visibility is 1 (true). The minimum is not zero here (false).`),
+  xs(5, 'diffraction and interference', xr`In a double slit experiment each slit has width $a$ and the slit separation is $d$. Which are correct?`,
+    ['The brightness of the fringes follows the single-slit diffraction envelope', 'The fringe spacing depends on $d$', 'The width of the central envelope depends on $a$', 'Increasing $a$ narrows the central envelope', 'Increasing $d$ increases the fringe spacing'], [0, 1, 2, 3],
+    xr`The interference term $\cos^2(\pi d\sin\theta/\lambda)$ is multiplied by the single-slit factor, which gives an envelope of width $\propto\lambda/a$ (true, true, true). A wider slit gives a narrower envelope (true). The fringe spacing is $\lambda D/d$, which decreases as $d$ grows (false).`),
+  xs(4, 'resolving power', xr`Which of these improve the angular resolution of a telescope?`,
+    ['A larger objective diameter', 'Using light of a shorter wavelength', 'Using a larger mirror of the same quality', 'A larger magnification eyepiece with the same objective', 'Using a smaller aperture'], [0, 1, 2],
+    xr`$\theta_{min} = 1.22\lambda/D$ falls with a larger aperture (true, true) and a shorter wavelength (true). A stronger eyepiece enlarges the diffraction blur but cannot reduce it (false), and a smaller aperture makes resolution worse (false).`),
+  xb(5, 'statements', { type: 'mcq', format: 'statements', q: xr`How many of these are correct?<br>(a) Secondary wavelets in Huygens' construction travel with the speed of the wave in that medium.<br>(b) Diffraction by a slit is noticeable when the slit width is comparable to the wavelength.<br>(c) The frequency of light changes when it enters glass.<br>(d) The polarisation of light shows that light is a longitudinal wave.<br>(e) Two sources of different colours cannot give a stable interference pattern.`,
+    options: ['1', '2', '3', '4'], answer: 2,
+    sol: xr`(a) true. (b) true. (c) false: the frequency stays constant and the wavelength changes. (d) false: polarisation shows light is transverse. (e) true: the phase difference would change continuously. Three are correct.` }),
+  xa(5, 'Newton rings', xr`In Newton's rings, the rings in transmitted light are the complement of those in reflected light.`, xr`The sum of reflected and transmitted intensities is the incident intensity, so a place with destructive interference in one has constructive interference in the other.`, 0,
+    xr`Both are true and R explains A. Where reflection is a minimum the transmission is a maximum: the central spot is bright in transmission and dark in reflection.`),
+  xt(5, 'visibility', xr`Two coherent beams of unequal intensities cannot produce complete darkness at any point.`, xr`Minimum intensity $= (\sqrt{I_1} - \sqrt{I_2})^2$, which is zero only when $I_1 = I_2$.`, 0,
+    xr`Both are true and II explains I.`),
+
+  // ---------- passages ----------
+  xn(3, 'YDSE', xr`Find the fringe width in mm (1 decimal).`, 1.8, 0.02, () => 600e-9 * 1.5 / 0.5e-3 * 1e3,
+    xr`$\beta = \lambda D/d = \dfrac{600\times10^{-9}\times1.5}{0.5\times10^{-3}} = 1.8\times10^{-3}$ m $= 1.8$ mm.`, { format: 'passage', group: 'xp1' }),
+  xn(4, 'YDSE with a slab', xr`By how many fringes does the pattern shift (2 decimals)?`, 6.67, 0.02, () => 0.5 * 8e-6 / 600e-9,
+    xr`Extra optical path $= (n - 1)t = 0.5\times8\ \mu\mathrm{m} = 4\ \mu\mathrm{m}$. Number of fringes $= 4\times10^{-6}/600\times10^{-9} = 6.67$.`, { format: 'passage', group: 'xp1' }),
+  xn(5, 'YDSE with a slab', xr`Find the displacement of the central bright fringe on the screen, in mm.`, 12, 0, () => 0.5 * 8e-6 * 1.5 / 0.5e-3 * 1e3,
+    xr`Shift $= (n - 1)tD/d = \dfrac{0.5\times8\times10^{-6}\times1.5}{0.5\times10^{-3}} = 12\times10^{-3}$ m $= 12$ mm, towards the slit that has the film. Check: $6.67\times1.8 = 12$ mm.`, { format: 'passage', group: 'xp1' }),
+  xq(3, 'thin films', xr`Which reflection involves a phase change of $\pi$?`, 'The reflection at the upper (air-film) surface only', ['The reflection at the lower (film-air) surface only', 'Both reflections', 'Neither reflection'],
+    xr`A wave reflected at a boundary with a higher-index medium suffers a $\pi$ shift: air to film (1 to 1.33) does; film to air does not. So the conditions are reversed: bright when $2nt = (m + \tfrac12)\lambda$, dark when $2nt = m\lambda$.`, { format: 'passage', group: 'xp2' }),
+  xn(4, 'thin films', xr`Find the wavelength in the visible range (400 to 700 nm) that is strongly reflected, in nm (nearest whole number).`, 426, 1, () => 2 * 1.33 * 400 / 2.5,
+    xr`Bright reflection: $2nt = (m + \tfrac12)\lambda$ with $2nt = 2\times1.33\times400 = 1064$ nm. $\lambda = 1064/(m + 0.5)$: $m = 0$: 2128 nm; $m = 1$: 709 nm (just outside); $m = 2$: 425.6 nm; $m = 3$: 304 nm. Only 426 nm lies in the visible range.`, { format: 'passage', group: 'xp2' }),
+  xn(5, 'thin films', xr`Find the wavelength in the visible range that is missing in the reflected light, in nm (nearest whole number).`, 532, 1, () => 2 * 1.33 * 400 / 2,
+    xr`Dark reflection: $2nt = m\lambda$, so $\lambda = 1064/m$: $m = 1$: 1064 nm; $m = 2$: 532 nm; $m = 3$: 355 nm. Only 532 nm (green) is in the visible range; the film looks magenta.`, { format: 'passage', group: 'xp2' }),
+];
+
+const xgens = [
+  { id: 'wo-g25', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'Newton rings',
+    make(rng) {
+      const n = xchoose(rng, [4, 9, 16, 25]), lam = xchoose(rng, [500, 600]), R = xchoose(rng, [0.5, 1, 2]); const answer = +(Math.sqrt(n * lam * 1e-9 * R) * 1e3).toFixed(3);
+      return { n, lam, R, answer, tol: Math.max(0.01, answer * 0.01), unit: 'mm',
+        q: `In a Newton's rings arrangement the lens has radius of curvature ${R} m and the light has wavelength ${lam} nm. Find the radius of the ${n}th dark ring in reflected light, in mm.`,
+        sol: `r_n = √(nλR) = √(${n} × ${lam}×10⁻⁹ × ${R}) = √(${xfmt(n * lam * 1e-9 * R, 4)}) m = ${xfmt(answer, 4)} mm.` };
+    },
+    verify: (p) => Math.sqrt(p.n * p.lam * 1e-9 * p.R) * 1000 },
+  { id: 'wo-g26', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'YDSE with a slab',
+    make(rng) {
+      const n = xchoose(rng, [1.4, 1.5, 1.6]), t = xchoose(rng, [4, 5, 6, 8, 10]), lam = xchoose(rng, [400, 500, 600]); const answer = +((n - 1) * t * 1000 / lam).toFixed(2);
+      return { n, t, lam, answer, tol: 0.02, unit: 'fringes',
+        q: `A thin film of refractive index ${n} and thickness ${t} μm covers one slit of a double slit experiment using light of ${lam} nm. By how many fringes does the pattern shift? (2 decimals)`,
+        sol: `Extra optical path = (n − 1)t = ${xfmt(n - 1, 3)} × ${t} μm = ${xfmt((n - 1) * t, 4)} μm. Fringes shifted = ${xfmt((n - 1) * t * 1000, 4)} nm/${lam} nm = ${xfmt(answer, 4)}.` };
+    },
+    verify: (p) => ((p.n - 1) * p.t * 1e-6) / (p.lam * 1e-9) },
+  { id: 'wo-g27', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'diffraction and interference',
+    make(rng) {
+      const a = xchoose(rng, [0.05, 0.1, 0.2]), r = xchoose(rng, [3, 4, 5, 6, 8]); const d = +(a * r).toFixed(3);
+      return { a, d, r, answer: 2 * r - 1, tol: 0,
+        q: `In a double slit experiment the slit separation is ${d} mm and each slit is ${a} mm wide. How many bright interference fringes lie within the central maximum of the single-slit diffraction pattern?`,
+        sol: `The central diffraction maximum reaches sinθ = λ/a. Bright fringes at sinθ = mλ/d need m < d/a = ${r}. Orders −${r - 1} to +${r - 1} are inside (the ${r}th falls on the diffraction minimum and is missing): ${2 * r - 1} fringes.` };
+    },
+    verify: (p) => { let n = 0; for (let m = -50; m <= 50; m++) if (Math.abs(m / p.d) < 1 / p.a - 1e-9) n++; return n; } },
+  { id: 'wo-g28', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'wedge',
+    make(rng) {
+      const L = xchoose(rng, [8, 10, 12]), t = xchoose(rng, [0.04, 0.05, 0.06]), lam = xchoose(rng, [500, 600]); const answer = +(lam * 1e-9 * (L / 100) / (2 * t * 1e-3) * 1e3).toFixed(3);
+      return { L, t, lam, answer, tol: Math.max(0.01, answer * 0.01), unit: 'mm',
+        q: `Two glass plates ${L} cm long touch at one end and are separated at the other end by a wire of diameter ${t} mm. In light of ${lam} nm at normal incidence, find the spacing of the dark fringes in mm.`,
+        sol: `Wedge angle θ = t/L = ${t}×10⁻³/${L / 100} = ${xfmt(t * 1e-3 / (L / 100), 4)} rad. Fringe spacing = λ/(2θ) = ${lam}×10⁻⁹/(2×${xfmt(t * 1e-3 / (L / 100), 4)}) = ${xfmt(answer, 4)} mm.` };
+    },
+    verify: (p) => { const th = (p.t * 1e-3) / (p.L / 100); return p.lam * 1e-9 / (2 * th) * 1e3; } },
+  { id: 'wo-g29', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'Michelson interferometer',
+    make(rng) {
+      const [d, lam, N] = xchoose(rng, [[0.1, 500, 400], [0.15, 500, 600], [0.12, 600, 400], [0.09, 600, 300], [0.06, 400, 300]]);
+      return { d, lam, answer: N, tol: 0,
+        q: `In a Michelson interferometer one mirror is moved through ${d} mm and light of ${lam} nm is used. How many bright fringes cross the field of view?`,
+        sol: `Moving the mirror by d changes the optical path by 2d, so N = 2d/λ = 2×${d}×10⁻³/(${lam}×10⁻⁹) = ${N}.` };
+    },
+    verify: (p) => Math.round(2 * p.d * 1e-3 / (p.lam * 1e-9)) },
+  { id: 'wo-g30', type: 'mcq', level: 3, exams: xex(3, 'mcq'), sub: 'YDSE',
+    make(rng) {
+      const a = xchoose(rng, [2, 3, 0.5]), b = xchoose(rng, [2, 3, 0.5]), c = xchoose(rng, [2, 3, 0.5, 1]); const ratio = a * c / b;
+      const f = (x) => `×${xfmt(x, 3)}`;
+      const o = xsh(rng, f(ratio), [f(a * b * c), f(a * b / c), f(b * c / a)]);
+      return { a, b, c, options: o.options, answer: o.answer,
+        q: `In a double slit experiment the wavelength is multiplied by ${a}, the slit separation by ${b} and the screen distance by ${c}. By what factor does the fringe width change?`,
+        sol: `β = λD/d, so the factor is (${a} × ${c})/${b} = ${xfmt(ratio, 3)}. The other options put d in the numerator or D in the denominator.` };
+    },
+    verify: (p) => p.options.indexOf(`×${xfmt(p.a * p.c / p.b, 3)}`) },
+  { id: 'wo-g31', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'resolving power',
+    make(rng) {
+      const [D, L, what] = xchoose(rng, [[0.1, 1e4, 'two lamps on a road seen through a telescope of diameter 10 cm at 10 km'], [2.4, 3.84e8, 'features on the Moon seen by a 2.4 m telescope'], [0.5, 1e6, 'two objects 1000 km away seen by a 0.5 m telescope'], [0.003, 5e3, 'headlights seen by an eye of pupil 3 mm at 5 km']]);
+      const lam = xchoose(rng, [500, 550, 600]); const s = 1.22 * lam * 1e-9 / D * L; const answer = +s.toFixed(s < 10 ? 3 : s < 100 ? 2 : 1);
+      return { D, L, lam, answer, tol: Math.max(0.001, answer * 0.01), unit: 'm',
+        q: `Using light of ${lam} nm, find the smallest separation, in m, of ${what} that can just be resolved (Rayleigh criterion).`,
+        sol: `θ = 1.22λ/D = 1.22×${lam}×10⁻⁹/${D} = ${xfmt(1.22 * lam * 1e-9 / D, 4)} rad. Separation = θ × L = ${xfmt(1.22 * lam * 1e-9 / D, 4)} × ${xfmt(L, 3)} m = ${xfmt(answer, 4)} m.` };
+    },
+    verify: (p) => (1.22 * p.lam * 1e-9 / p.D) * p.L },
+  { id: 'wo-g32', type: 'mcq', level: 3, exams: xex(3, 'mcq'), sub: 'Brewster angle',
+    make(rng) {
+      const n = xchoose(rng, [1.33, 1.5, 1.6, 1.73, 2.0]); const D2 = 180 / Math.PI; const f = (x) => `${xfmt(x, 3)}°`;
+      const o = xsh(rng, f(Math.atan(n) * D2), [f(Math.asin(1 / n) * D2), f(90 - Math.atan(n) * D2), f(Math.asin(n / 2.2) * D2)]);
+      return { n, options: o.options, answer: o.answer,
+        q: `Unpolarised light in air falls on a transparent material of refractive index ${n}. At what angle of incidence is the reflected light completely plane polarised?`,
+        sol: `Brewster's law: tanθ_B = n = ${n}, so θ_B = tan⁻¹${n} = ${f(Math.atan(n) * D2)}. The value sin⁻¹(1/n) = ${f(Math.asin(1 / n) * D2)} is the critical angle, a different quantity.` };
+    },
+    verify: (p) => p.options.indexOf(`${xfmt(Math.atan(p.n) * 180 / Math.PI, 3)}°`) },
+  { id: 'wo-g33', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'thin films',
+    make(rng) {
+      const lam = xchoose(rng, [500, 550, 600]); const [nf, ns, nm] = xchoose(rng, [[1.2, 1.33, 'an oil film (n = 1.2) on water (n = 1.33)'], [1.38, 1.5, 'a magnesium fluoride film (n = 1.38) on glass (n = 1.5)'], [1.5, 1.33, 'an oil film (n = 1.5) on water (n = 1.33)'], [1.4, 1.2, 'a film (n = 1.4) on a surface of index 1.2']]);
+      const both = nf < ns; const t = both ? lam / (2 * nf) : lam / (4 * nf); const answer = +t.toFixed(1);
+      return { lam, nf, ns, both, answer, tol: 0.2, unit: 'nm',
+        q: `Light of ${lam} nm falls normally, from air, on ${nm}. Find the smallest non-zero film thickness, in nm, for which the reflected light is strongest.`,
+        sol: both ? `Air-film: π shift (n rises). Film-substrate: π shift again (${ns} > ${nf}). The two shifts cancel, so reflection is strong for 2nt = mλ, and t_min = λ/2n = ${lam}/${2 * nf} = ${xfmt(answer, 4)} nm.` : `Air-film: π shift. Film-substrate: no shift (${ns} < ${nf}). So there is a net π shift and reflection is strong for 2nt = (m + ½)λ; t_min = λ/4n = ${lam}/${4 * nf} = ${xfmt(answer, 4)} nm.` };
+    },
+    verify: (p) => { const shifts = p.nf < p.ns ? 2 : 1; const c = (t) => Math.cos(4 * Math.PI * p.nf * t / p.lam + (shifts % 2 ? Math.PI : 0)); let low = false; for (let t = 0.02; t < 1000; t += 0.01) { const v = c(t); if (v < -0.5) low = true; if (low && v > c(t - 0.01) && v >= c(t + 0.01)) return t; } return -1; } },
+  { id: 'wo-g34', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'visibility',
+    make(rng) {
+      const r = xchoose(rng, [4, 9, 16, 25]); const answer = +(2 * Math.sqrt(r) / (1 + r)).toFixed(3);
+      return { r, answer, tol: 0.003,
+        q: `Two coherent beams have intensities in the ratio ${r}:1. Find the visibility (I_max − I_min)/(I_max + I_min) of the fringes (3 decimals).`,
+        sol: `Amplitudes are in the ratio ${Math.sqrt(r)}:1. I_max ∝ (${Math.sqrt(r)} + 1)² = ${(Math.sqrt(r) + 1) ** 2} and I_min ∝ (${Math.sqrt(r)} − 1)² = ${(Math.sqrt(r) - 1) ** 2}. Visibility = ${(Math.sqrt(r) + 1) ** 2 - (Math.sqrt(r) - 1) ** 2}/${(Math.sqrt(r) + 1) ** 2 + (Math.sqrt(r) - 1) ** 2} = ${xfmt(answer, 4)}.` };
+    },
+    verify: (p) => { const mx = (Math.sqrt(p.r) + 1) ** 2, mn = (Math.sqrt(p.r) - 1) ** 2; return (mx - mn) / (mx + mn); } },
+];
+
+export default { topic: 'wave-optics', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

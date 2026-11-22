@@ -668,4 +668,312 @@ const groups = {
   p3: { title: 'A copper-target X-ray tube', passage: r`<p>An X-ray tube has a copper target ($Z = 29$) and runs at 60 kV with a tube current of 25 mA. Use $hc = 1240$ eV nm and $e = 1.602\times10^{-19}$ C.</p>` },
   p4: { title: 'A Rydberg atom', passage: r`<p>In a "Rydberg atom" a hydrogen electron is excited to a very high level, here $n = 50$. Treat it with the Bohr model. Take $a_0 = 0.529$ Å, $E_1 = -13.6$ eV and $v_1 = 2.19\times10^6\ \mathrm{m\,s^{-1}}$.</p>` },
 };
-export default { topic: 'atoms', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = true;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `ab-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XHC = 1240; const XE1 = 13.6; const XA0 = 0.529; const XR = 1.097e7; const XPI = Math.PI;
+
+const xgroups = {
+  ma1: { title: 'Series limits of hydrogen ($1/\\lambda = R/n^2$ at the limit)',
+    list1: ['A. Lyman series limit', 'B. Balmer series limit', 'C. Paschen series limit', 'D. Brackett series limit'],
+    list2: ['p. 91 nm', 'q. 365 nm', 'r. 820 nm', 's. 1458 nm', 't. 656 nm'] },
+  ma2: { title: 'Energy needed to take hydrogen from its ground state',
+    list1: ['A. To the level $n = 2$', 'B. To the level $n = 3$', 'C. To the level $n = 4$', 'D. To remove the electron completely'],
+    list2: ['p. 10.2 eV', 'q. 12.1 eV', 'r. 12.75 eV', 's. 13.6 eV', 't. 3.4 eV'] },
+  ma3: { title: 'Rutherford scattering counts, $N(\\theta)\\propto1/\\sin^4(\\theta/2)$',
+    list1: ['A. $N(60^\\circ)/N(180^\\circ)$', 'B. $N(90^\\circ)/N(180^\\circ)$', 'C. $N(120^\\circ)/N(180^\\circ)$', 'D. $N(180^\\circ)/N(180^\\circ)$'],
+    list2: ['p. 16', 'q. 4', r`r. $\dfrac{16}{9}$`, 's. 1'] },
+  ma4: { title: 'Photon energy for $n = 2\\to1$ in hydrogen-like ions',
+    list1: ['A. $\\mathrm{H}$', 'B. $\\mathrm{He^+}$', 'C. $\\mathrm{Li^{2+}}$', 'D. $\\mathrm{Be^{3+}}$'],
+    list2: ['p. 10.2 eV', 'q. 40.8 eV', 'r. 91.8 eV', 's. 163.2 eV', 't. 13.6 eV'] },
+  ma5: { title: 'Dependence on $Z$ for the same level $n$ (Bohr model)',
+    list1: ['A. Radius of the orbit', 'B. Speed of the electron', 'C. Magnitude of the total energy', 'D. Orbital magnetic moment'],
+    list2: [r`p. $\propto1/Z$`, r`q. $\propto Z$`, r`r. $\propto Z^2$`, 's. independent of $Z$'] },
+  ma6: { title: 'Wavelengths in the hydrogen spectrum ($R = 1.097\\times10^{7}\\ \\mathrm{m^{-1}}$)',
+    list1: ['A. $n = 2\\to1$', 'B. $n = 3\\to2$', 'C. $n = 4\\to2$', 'D. $n = 5\\to3$'],
+    list2: ['p. 121.6 nm', 'q. 656.3 nm', 'r. 486.1 nm', 's. 1282 nm', 't. 1875 nm'] },
+  ma7: { title: 'Same wavelength as the hydrogen line $2\\to1$',
+    list1: ['A. $\\mathrm{He^+}$ ($Z = 2$)', 'B. $\\mathrm{Li^{2+}}$ ($Z = 3$)', 'C. $\\mathrm{Be^{3+}}$ ($Z = 4$)', 'D. $\\mathrm{B^{4+}}$ ($Z = 5$)'],
+    list2: ['p. $4\\to2$', 'q. $6\\to3$', 'r. $8\\to4$', 's. $10\\to5$'] },
+  ma8: { title: 'Atomic models and their difficulties',
+    list1: ['A. Thomson model', 'B. Rutherford model', 'C. Bohr model', 'D. de Broglie picture of the orbit'],
+    list2: ['p. cannot explain large-angle scattering of alpha particles', 'q. cannot explain the stability of the atom or its line spectra', 'r. cannot explain the spectra of atoms with many electrons', 's. explains the quantisation by a standing wave round the orbit'] },
+  pa1: { title: 'Electrons colliding with hydrogen',
+    passage: r`<p>A beam of electrons, each of kinetic energy 12.2 eV, passes through hydrogen gas whose atoms are all in the ground state. Assume that the electron can give any energy that raises the atom to an allowed level, and ignore the recoil of the atoms. Take $E_n = -13.6/n^2$ eV and $hc = 1240\ \mathrm{eV\,nm}$.</p>` },
+  pa2: { title: 'Alpha particles on a gold foil',
+    passage: r`<p>Alpha particles of kinetic energy 6.0 MeV are fired at a thin gold foil ($Z = 79$). Treat the nuclei as fixed point charges. Use $\dfrac{e^2}{4\pi\varepsilon_0} = 1.44\ \mathrm{MeV\,fm}$.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'spectral series', r`Find the energy of the photon emitted when a hydrogen electron falls from $n = 3$ to $n = 2$ (in eV, 2 decimals).`, XE1 * (1 / 4 - 1 / 9), 0.01, 2,
+    r`$\Delta E = 13.6\left(\dfrac1{2^2} - \dfrac1{3^2}\right) = 13.6\times\dfrac{5}{36} = 1.89$ eV. This is the red $\mathrm{H}_\alpha$ line.`, { unit: 'eV' }),
+  xmcq(2, 'spectral series', r`Which series of hydrogen has lines in the visible region?`, 'Balmer series', ['Lyman series', 'Paschen series', 'Brackett series'],
+    r`Balmer lines end on $n = 2$ and have wavelengths from 656 nm to 365 nm (visible). Lyman is ultraviolet; Paschen and Brackett are infrared.`),
+  xnat(2, 'Bohr radius', r`Find the radius of the third Bohr orbit of hydrogen (in Å, 2 decimals; $a_0 = 0.529$ Å).`, 9 * XA0, 0.01, 2,
+    r`$r_n = n^2a_0 = 9\times0.529 = 4.76$ Å.`, { unit: 'Å' }),
+  xmcq(2, 'alpha scattering', r`In the alpha-scattering experiment most of the alpha particles went almost straight through the gold foil. This showed that`, 'most of the atom is empty space', ['the nucleus is as big as the atom', 'electrons are heavier than alpha particles', 'the positive charge is spread uniformly through the atom'],
+    r`Only a very small fraction were deflected through large angles, which means the positive charge and almost all the mass are packed into a tiny nucleus, with empty space around it.`),
+  xnat(2, 'number of lines', r`Hydrogen atoms are excited to the level $n = 5$. How many different spectral lines can they emit while returning to the ground state?`, 5 * 4 / 2, 0, 0,
+    r`$\dfrac{n(n - 1)}{2} = \dfrac{5\times4}{2} = 10$ lines.`),
+  xmcq(2, 'Bohr postulates', r`In the Bohr model the angular momentum of the electron in the $n$-th orbit is`, r`$\dfrac{nh}{2\pi}$`, [r`$\dfrac{h}{2\pi n}$`, r`$nh$`, r`$\dfrac{n^2h}{2\pi}$`],
+    r`Bohr's quantum condition: $mv_nr_n = \dfrac{nh}{2\pi}$.`),
+
+  // ---------- Level 3 ----------
+  xnat(3, 'series limit', r`Find the ratio (wavelength of the Balmer series limit)/(longest wavelength of the Lyman series).`, 3, 0, 0,
+    r`Balmer limit: $\dfrac1\lambda = \dfrac R4$, $\lambda = \dfrac4R$. Lyman longest ($2\to1$): $\dfrac1\lambda = \dfrac{3R}{4}$, $\lambda = \dfrac{4}{3R}$. Ratio $= \dfrac{4/R}{4/3R} = 3$.`),
+  xnat(3, 'spectral series', r`Find the wavelength of the photon emitted in the transition $n = 4\to2$ in hydrogen (in nm, nearest integer; $hc = 1240\ \mathrm{eV\,nm}$).`, XHC / (XE1 * (1 / 4 - 1 / 16)), 1, 0,
+    r`$E = 13.6\times\dfrac{3}{16} = 2.55$ eV. $\lambda = \dfrac{1240}{2.55} = 486$ nm ($\mathrm{H}_\beta$, blue-green).`, { unit: 'nm' }),
+  xnat(3, 'hydrogen-like ions', r`Find the energy of the photon emitted when a $\mathrm{He^+}$ ion falls from $n = 2$ to $n = 1$ (in eV, 1 decimal).`, 4 * XE1 * 0.75, 0.1, 1,
+    r`$E = 13.6Z^2\left(1 - \dfrac14\right) = 13.6\times4\times0.75 = 40.8$ eV.`, { unit: 'eV' }),
+  xnat(3, 'orbital speed', r`The speed of the electron in the first Bohr orbit of hydrogen is $2.19\times10^{6}\ \mathrm{m\,s^{-1}}$. Find its speed in the second orbit (in units of $10^{6}\ \mathrm{m\,s^{-1}}$, 2 decimals).`, 2.19 / 2, 0.01, 2,
+    r`$v_n = \dfrac{v_1}{n}$. For $n = 2$: $2.19/2 = 1.10\times10^{6}\ \mathrm{m\,s^{-1}}$ (1.095 exactly).`, { unit: '×10⁶ m/s' }),
+  xnat(3, 'ionisation', r`Find the energy needed to remove the electron from the $n = 3$ level of hydrogen (in eV, 2 decimals).`, XE1 / 9, 0.01, 2,
+    r`$E_3 = -\dfrac{13.6}{9} = -1.51$ eV. The ionisation energy from this level is $+1.51$ eV.`, { unit: 'eV' }),
+  xnat(3, 'excitation by electrons', r`Electrons of kinetic energy 12.5 eV are passed through hydrogen gas in its ground state. How many different spectral lines can be emitted?`, 3, 0, 0,
+    r`The levels reachable by giving up at most 12.5 eV: $n = 2$ (10.2 eV) and $n = 3$ (12.09 eV); $n = 4$ needs 12.75 eV, too much. So atoms reach up to $n = 3$, which gives $3\to2$, $3\to1$ and $2\to1$: 3 lines.`, { trap: 'An electron can give part of its energy; a photon must give exactly the difference.' }),
+  xnat(3, 'orbital magnetic moment', r`Find the magnetic moment of the electron in the $n = 2$ orbit of hydrogen (in units of $10^{-23}\ \mathrm{A\,m^2}$, 2 decimals). The Bohr magneton is $9.27\times10^{-24}\ \mathrm{A\,m^2}$.`, 2 * 9.27e-24 / 1e-23, 0.01, 2,
+    r`$\mu = \dfrac{e}{2m}L = n\dfrac{e\hbar}{2m} = n\mu_B = 2\times9.27\times10^{-24} = 1.85\times10^{-23}\ \mathrm{A\,m^2}$.`, { unit: '×10⁻²³ A m²' }),
+  xnat(3, 'time period', r`Find the period of revolution of the electron in the first Bohr orbit (in units of $10^{-16}$ s, 2 decimals). $r_1 = 0.529$ Å, $v_1 = 2.19\times10^{6}\ \mathrm{m\,s^{-1}}$.`, 2 * XPI * 0.529e-10 / 2.19e6 * 1e16, 0.01, 2,
+    r`$T = \dfrac{2\pi r}{v} = \dfrac{2\pi\times0.529\times10^{-10}}{2.19\times10^{6}} = 1.52\times10^{-16}$ s.`, { unit: '×10⁻¹⁶ s' }),
+  xnat(3, 'current due to orbiting electron', r`Find the equivalent current of the electron in the first Bohr orbit (in mA, 2 decimals; $T = 1.52\times10^{-16}$ s, $e = 1.6\times10^{-19}$ C).`, 1.6e-19 / 1.52e-16 * 1e3, 0.01, 2,
+    r`$I = \dfrac eT = \dfrac{1.6\times10^{-19}}{1.52\times10^{-16}} = 1.05\times10^{-3}$ A $= 1.05$ mA.`, { unit: 'mA' }),
+  xnat(3, 'de Broglie and Bohr', r`Find the de Broglie wavelength of the electron in the $n = 3$ orbit of hydrogen (in Å, 2 decimals; $a_0 = 0.529$ Å).`, 2 * XPI * 3 * XA0, 0.02, 2,
+    r`$n\lambda = 2\pi r_n$, so $\lambda = \dfrac{2\pi n^2a_0}{n} = 2\pi na_0 = 2\pi\times3\times0.529 = 9.97$ Å, three times the circumference of the first orbit.`, { unit: 'Å' }),
+  xnat(3, 'hydrogen-like ions', r`Find the ionisation energy of $\mathrm{Li^{2+}}$ in its ground state (in eV, 1 decimal).`, 9 * XE1, 0.1, 1,
+    r`$E = 13.6Z^2 = 13.6\times9 = 122.4$ eV.`, { unit: 'eV' }),
+  xnat(3, 'series limit', r`Find the wavelength of the Balmer series limit (in nm, 1 decimal; $R = 1.097\times10^{7}\ \mathrm{m^{-1}}$).`, 4 / XR * 1e9, 0.3, 1,
+    r`$\dfrac1\lambda = R\left(\dfrac1{2^2} - \dfrac1{\infty}\right) = \dfrac R4$. $\lambda = \dfrac{4}{1.097\times10^{7}} = 3.646\times10^{-7}$ m $= 364.6$ nm.`, { unit: 'nm' }),
+  xnat(3, 'potential energy', r`Find the potential energy of the electron in the second orbit of hydrogen (in eV, 1 decimal).`, -2 * XE1 / 4, 0.05, 1,
+    r`$E_2 = -3.4$ eV, $K = +3.4$ eV, and $U = -2K = -6.8$ eV (the total is $U/2$).`, { unit: 'eV', trap: 'The potential energy is twice the total energy, and negative.' }),
+  xnat(3, 'spectral series', r`Find the ratio (wavelength of the $\mathrm{H}_\alpha$ line, $3\to2$)/(wavelength of the $\mathrm{H}_\beta$ line, $4\to2$) (2 decimals).`, (1 / 4 - 1 / 16) / (1 / 4 - 1 / 9), 0.01, 2,
+    r`$\lambda\propto\dfrac{1}{1/4 - 1/n^2}$. $\dfrac{\lambda_\alpha}{\lambda_\beta} = \dfrac{3/16}{5/36} = \dfrac{108}{80} = 1.35$.`),
+  xnat(3, 'spectral series', r`Find the ratio (shortest wavelength of the Lyman series)/(longest wavelength of the Lyman series) (2 decimals).`, 0.75, 0.01, 2,
+    r`Shortest ($\infty\to1$): $\dfrac1R$. Longest ($2\to1$): $\dfrac{4}{3R}$. Ratio $= \dfrac{3}{4} = 0.75$.`),
+  xnat(3, 'ionisation', r`Hydrogen atoms in their ground state are hit by ultraviolet light of wavelength 90 nm. Find the kinetic energy of the freed electrons (in eV, 2 decimals; $hc = 1240\ \mathrm{eV\,nm}$).`, XHC / 90 - XE1, 0.01, 2,
+    r`Photon energy $= \dfrac{1240}{90} = 13.78$ eV. $K = 13.78 - 13.6 = 0.18$ eV.`, { unit: 'eV' }),
+  xnat(3, 'Rutherford scattering law', r`The number of alpha particles scattered per second at $60^\circ$ is $N_1$ and at $120^\circ$ is $N_2$. Find $N_1/N_2$.`, Math.sin(Math.PI / 3) ** 4 / Math.sin(Math.PI / 6) ** 4, 0, 0,
+    r`$N\propto\dfrac{1}{\sin^4(\theta/2)}$. $\dfrac{N_1}{N_2} = \dfrac{\sin^4(60^\circ)}{\sin^4(30^\circ)} = \dfrac{(\sqrt3/2)^4}{(1/2)^4} = 9$.`, { trap: 'The half angle: θ/2 = 30° and 60°.' }),
+  xnat(3, 'number of lines', r`Hydrogen atoms in the level $n = 6$ emit all possible lines. How many of these lines lie in the Balmer series (ending on $n = 2$)?`, 4, 0, 0,
+    r`Balmer lines end on $n = 2$: $6\to2$, $5\to2$, $4\to2$, $3\to2$. That is 4 lines.`),
+  xnat(3, 'energy levels', r`The smallest photon energy that hydrogen atoms in the level $n = 4$ can emit (in eV, 2 decimals).`, XE1 * (1 / 9 - 1 / 16), 0.01, 2,
+    r`The smallest energy gap from $n = 4$ is to the next level, $n = 3$: $13.6\left(\dfrac19 - \dfrac1{16}\right) = 0.66$ eV (infrared).`, { unit: 'eV' }),
+  xmt(3, 'series limits', 'ma1', r`Match each series limit of hydrogen with its wavelength.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-t, B-q, C-r, D-s'],
+    r`$\lambda_{limit} = \dfrac{n^2}{R}$ with $n = 1, 2, 3, 4$: $91.2$ nm (p), $364.6$ nm (q), $820$ nm (r), $1458$ nm (s). 656 nm is the $\mathrm{H}_\alpha$ line, not a limit.`),
+  xmt(3, 'excitation', 'ma2', r`Match each change of a hydrogen atom (from the ground state) with the energy needed.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$13.6\left(1 - \dfrac1{n^2}\right)$: $n = 2$: 10.2 eV (p). $n = 3$: 12.09 eV (q). $n = 4$: 12.75 eV (r). $n = \infty$: 13.6 eV (s).`),
+  xmt(3, 'spectral lines', 'ma6', r`Match each transition of hydrogen with its wavelength.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$\dfrac1\lambda = R\left(\dfrac1{n_1^2} - \dfrac1{n_2^2}\right)$. $2\to1$: $\dfrac{4}{3R} = 121.6$ nm (p). $3\to2$: $\dfrac{36}{5R} = 656.3$ nm (q). $4\to2$: $\dfrac1\lambda = \dfrac{3R}{16}$, $\lambda = 486.1$ nm (r). $5\to3$: $\dfrac1\lambda = R\times0.0711$, 1282 nm (s). The 1875 nm (t) line is $4\to3$.`),
+  xasrt(3, 'Bohr model', r`The speed of the electron in a Bohr orbit decreases as $n$ increases.`, r`The electron in a higher orbit is farther from the nucleus, where the electric force is weaker, and $v_n\propto1/n$.`, 0,
+    r`$v_n = \dfrac{e^2}{2\varepsilon_0nh}\propto\dfrac1n$. R gives the physical reason and the formula. Both are true and R explains A.`),
+  xstm(3, 'spectral series', r`The wavelengths of the Lyman series lie in the ultraviolet.`, r`The Lyman series ends on the level $n = 1$, so its lines carry at least 10.2 eV.`, 0,
+    r`10.2 eV corresponds to $\dfrac{1240}{10.2} = 121.6$ nm: ultraviolet. Both are true and II explains I.`),
+  xmcq(3, 'limits of Rutherford model', r`Which of these is a difficulty of Rutherford's nuclear model that Bohr's model removed?`, 'The orbiting electron should radiate energy and spiral into the nucleus', ['Alpha particles are scattered through large angles', 'The nucleus is much smaller than the atom', 'Most alpha particles pass straight through'],
+    r`The other three are observations that the nuclear model explains. The first is a prediction that fails: an accelerating charge radiates, so the atom could not be stable. Bohr's stationary orbits avoid it.`),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'excitation by collision', r`A neutron (mass nearly equal to that of a hydrogen atom) strikes a hydrogen atom at rest in its ground state and excites it to $n = 2$ in an inelastic collision. Find the smallest kinetic energy of the neutron for this to be possible (in eV, 1 decimal).`, 2 * 10.2, 0.05, 1,
+    r`In a head-on collision with equal masses, only the kinetic energy in the centre-of-mass frame can be used, which is half of the neutron's. So $\tfrac12K = 10.2$ eV and $K = 20.4$ eV. An electron, being much lighter, needs only about 10.2 eV.`, { unit: 'eV', trap: 'A heavy projectile wastes energy in the motion of the pair.' }),
+  xnat(4, 'hydrogen-like ions', r`A $\mathrm{He^+}$ ion falls from $n = 4$ to $n = 2$. Find the wavelength of the photon (in nm, 1 decimal; $hc = 1240\ \mathrm{eV\,nm}$).`, XHC / (4 * XE1 * (1 / 4 - 1 / 16)), 0.3, 1,
+    r`$E = 13.6\times4\times\dfrac{3}{16} = 10.2$ eV, the same as the $\mathrm{H}$ Lyman-alpha line. $\lambda = \dfrac{1240}{10.2} = 121.6$ nm.`, { unit: 'nm', trap: 'Every second line of He+ coincides with a hydrogen line.' }),
+  xnat(4, 'hydrogen-like ions', r`A $\mathrm{Li^{2+}}$ ion emits a photon of the same wavelength as the $\mathrm{H}_\alpha$ line ($3\to2$) of hydrogen, in a transition from an upper level $n_2$ to a lower level $n_1 = 6$. Find $n_2$.`, 9, 0, 0,
+    r`$\mathrm{H}_\alpha$: $R\left(\dfrac14 - \dfrac19\right) = \dfrac{5R}{36}$. For $Z = 3$: $9R\left(\dfrac1{36} - \dfrac1{n_2^2}\right) = \dfrac{5R}{36}$, so $\dfrac1{n_2^2} = \dfrac1{36} - \dfrac{5}{324} = \dfrac{4}{324}$ and $n_2 = 9$. (The transition is $9\to6$: every line of $\mathrm{Li^{2+}}$ from $3m\to3k$ matches a hydrogen line $m\to k$.)`),
+  xnat(4, 'hydrogen-like ions', r`The first line of the Lyman series of a hydrogen-like ion has wavelength 13.5 nm. Find the atomic number $Z$ of the ion.`, Math.sqrt(121.57 / 13.5), 0, 0,
+    r`$\lambda\propto\dfrac{1}{Z^2}$. For hydrogen $\lambda = 121.6$ nm. $Z^2 = \dfrac{121.6}{13.5} = 9$, so $Z = 3$ ($\mathrm{Li^{2+}}$).`),
+  xnat(4, 'excitation', r`An electron of kinetic energy 12.9 eV collides inelastically with a hydrogen atom in its ground state. Find the smallest kinetic energy the electron can have afterwards (in eV, 2 decimals; ignore the recoil of the atom).`, 12.9 - 13.6 * (1 - 1 / 16), 0.01, 2,
+    r`The atom may take 10.2, 12.09 or 12.75 eV (levels $n = 2, 3, 4$); $n = 5$ needs 13.06 eV, more than 12.9 eV. The largest transfer is 12.75 eV, leaving $12.9 - 12.75 = 0.15$ eV.`, { unit: 'eV' }),
+  xnat(4, 'impact parameter', r`A 5.0 MeV alpha particle approaches a gold nucleus ($Z = 79$) and is scattered through $90^\circ$. Find its impact parameter (in fm, 1 decimal). $\dfrac{e^2}{4\pi\varepsilon_0} = 1.44\ \mathrm{MeV\,fm}$.`, 1.44 * 2 * 79 / 5 / 2 / Math.tan(Math.PI / 4), 0.3, 1,
+    r`$b = \dfrac{kq_1q_2}{2K}\cot\dfrac\theta2$. Here $kq_1q_2 = 1.44\times2\times79 = 227.8$ MeV fm. $b = \dfrac{227.8}{2\times5}\cot45^\circ = 22.8$ fm, half of the head-on distance of closest approach (45.6 fm).`, { unit: 'fm' }),
+  xnat(4, 'orbital frequency', r`Find the ratio (frequency of revolution in the $n = 2$ orbit)/(frequency of revolution in the $n = 3$ orbit) for hydrogen (3 decimals).`, 27 / 8, 0.002, 3,
+    r`$f_n = \dfrac{v_n}{2\pi r_n}\propto\dfrac{1/n}{n^2} = \dfrac1{n^3}$. $\dfrac{f_2}{f_3} = \dfrac{27}{8} = 3.375$.`),
+  xnat(4, 'number of lines', r`A hydrogen atom is in the level $n = 5$. In returning to the ground state it can emit several photons one after the other. What is the largest number of photons that a single atom can emit?`, 4, 0, 0,
+    r`The most photons come from dropping one level at a time: $5\to4\to3\to2\to1$, four photons. (A whole sample can emit 10 different lines, but one atom emits only one sequence.)`, { trap: 'One atom does not make all 10 lines.' }),
+  xnat(4, 'series limit', r`Find the ratio (highest frequency of the Paschen series)/(lowest frequency of the Lyman series) (3 decimals).`, (1 / 9) / (3 / 4), 0.001, 3,
+    r`Paschen limit: $\dfrac R9$ (per unit $c$). Lyman lowest: $\dfrac{3R}{4}$. Ratio $= \dfrac{1/9}{3/4} = \dfrac{4}{27} = 0.148$.`),
+  xnat(4, 'Moseley law', r`The $K_\alpha$ line of copper ($Z = 29$) has wavelength 0.154 nm. Using Moseley's law, find the $K_\alpha$ wavelength of iron ($Z = 26$) (in nm, 3 decimals).`, 0.154 * (28 / 25) ** 2, 0.002, 3,
+    r`$\sqrt\nu\propto(Z - 1)$, so $\lambda\propto\dfrac1{(Z - 1)^2}$. $\lambda_{Fe} = 0.154\times\left(\dfrac{28}{25}\right)^2 = 0.154\times1.254 = 0.193$ nm.`, { unit: 'nm' }),
+  xnat(4, 'excitation by photon', r`A hydrogen atom in its ground state absorbs a photon and then emits photons of three different wavelengths on returning to the ground state. Find the energy of the photon it absorbed (in eV, 2 decimals).`, XE1 * (1 - 1 / 9), 0.01, 2,
+    r`Three lines means $\dfrac{n(n - 1)}{2} = 3$, so $n = 3$. Absorption must supply exactly $E_3 - E_1 = 13.6\left(1 - \dfrac19\right) = 12.09$ eV.`, { unit: 'eV' }),
+  xnat(4, 'ionisation', r`Hydrogen atoms in the $n = 2$ level are ionised by light. Find the longest wavelength that will do it (in nm, 1 decimal; $hc = 1240\ \mathrm{eV\,nm}$).`, XHC / 3.4, 0.5, 1,
+    r`Ionisation energy from $n = 2$ is 3.4 eV. $\lambda_{max} = \dfrac{1240}{3.4} = 364.7$ nm, the Balmer limit.`, { unit: 'nm' }),
+  xnat(4, 'mixed: Doppler shift', r`The $\mathrm{H}_\alpha$ line (656.3 nm in the laboratory) is seen at a longer wavelength in the light of a galaxy moving away at 1.0 % of the speed of light. Find the shift in wavelength (in nm, 2 decimals; use $\Delta\lambda/\lambda = v/c$).`, 656.3 * 0.01, 0.05, 2,
+    r`$\Delta\lambda = \lambda\dfrac vc = 656.3\times0.01 = 6.56$ nm, so the line appears at 662.9 nm.`, { unit: 'nm' }),
+  xnat(4, 'hydrogen-like ions', r`Find the ratio (radius of the $n = 2$ orbit of $\mathrm{He^+}$)/(radius of the first orbit of hydrogen).`, 4 / 2, 0, 0,
+    r`$r = \dfrac{n^2a_0}{Z}$. $\dfrac{r}{a_0} = \dfrac{4}{2} = 2$.`),
+  xnat(4, 'photoelectric effect on hydrogen', r`An atom of hydrogen in the level $n = 2$ absorbs a photon of energy 5.0 eV and is ionised. Find the kinetic energy of the free electron (in eV, 1 decimal).`, 5.0 - 3.4, 0.05, 1,
+    r`The electron needs 3.4 eV to leave. $K = 5.0 - 3.4 = 1.6$ eV.`, { unit: 'eV' }),
+  xmsq(4, 'Bohr postulates', r`According to the Bohr model of the hydrogen atom, which are correct?`, [r`The electron does not radiate while it remains in a stationary orbit.`, r`The angular momentum of the electron is an integral multiple of $h/2\pi$.`, r`Radiation is emitted when the electron jumps between orbits.`, r`The electron may have any angular momentum, but only certain energies are allowed.`], [0, 1, 2],
+    r`The three postulates: stationary orbits without radiation (A), quantised angular momentum (B), and photon $h\nu = E_i - E_f$ in a jump (C). Energies are quantised because the angular momentum is, so D is false.`),
+  xmsq(4, 'Bohr model', r`For the $n$-th orbit of hydrogen in the Bohr model, which are correct?`, [r`The radius is proportional to $n^2$.`, r`The speed is proportional to $1/n$.`, r`The kinetic energy is proportional to $1/n^2$.`, r`The time period is proportional to $n^2$.`], [0, 1, 2],
+    r`$r\propto n^2$, $v\propto1/n$, $K\propto1/n^2$. The period $T = \dfrac{2\pi r}{v}\propto\dfrac{n^2}{1/n} = n^3$, not $n^2$ (D false).`),
+  xmsq(4, 'alpha scattering', r`In Rutherford's alpha-particle scattering, which are correct?`, [r`The number of alpha particles scattered at a given angle is proportional to $1/\sin^4(\theta/2)$.`, r`The distance of closest approach in a head-on collision increases if the energy of the alpha particle increases.`, r`A smaller impact parameter gives a larger deflection.`, r`The scattering is mostly due to the electrons of the atoms.`], [0, 2],
+    r`Rutherford's law (A). Higher energy lets the alpha particle get closer, so $d$ decreases with energy (B false). Smaller $b$ means stronger repulsion, greater deflection (C). An alpha particle is about 7300 times heavier than an electron, so electrons deflect it very little (D false); the nucleus does it.`),
+  xmsq(4, 'hydrogen-like ions', r`Compare the $\mathrm{He^+}$ ion with the hydrogen atom, each in the same level $n$. Which are correct?`, [r`The orbit radius of $\mathrm{He^+}$ is half.`, r`The speed of the electron in $\mathrm{He^+}$ is twice.`, r`The total energy of $\mathrm{He^+}$ is four times as negative.`, r`The magnetic moment of the orbit in $\mathrm{He^+}$ is twice.`], [0, 1, 2],
+    r`$r\propto1/Z$ (A), $v\propto Z$ (B), $E\propto Z^2$ (C). $\mu = \tfrac12evr\propto Z\times\dfrac1Z$: unchanged (D false).`),
+  xmsq(4, 'atomic models', r`Which of these are correct?`, [r`Thomson's model could not explain the large-angle scattering of alpha particles.`, r`Rutherford's model could not explain why atoms are stable.`, r`Bohr's model works well for hydrogen-like ions.`, r`Bohr's model gives the correct spectrum of helium atoms.`], [0, 1, 2],
+    r`A, B and C are standard. With two electrons interacting, Bohr's model fails (D false).`),
+  xasrt(4, 'hydrogen-like ions', r`Some lines of the $\mathrm{He^+}$ spectrum have the same wavelengths as lines of hydrogen.`, r`For $\mathrm{He^+}$, $\dfrac1\lambda = 4R\left(\dfrac1{n_1^2} - \dfrac1{n_2^2}\right)$, which equals $R\left(\dfrac1{(n_1/2)^2} - \dfrac1{(n_2/2)^2}\right)$.`, 0,
+    r`When $n_1$ and $n_2$ are both even, $\dfrac{n}{2}$ are integers, and the $\mathrm{He^+}$ line equals a hydrogen line. R is the algebra behind it. Both true; R explains A.`),
+  xasrt(4, 'excitation', r`An electron of kinetic energy 11 eV can excite a hydrogen atom from its ground state, but a photon of energy 11 eV cannot.`, r`An electron can give part of its energy to an atom, while a photon is absorbed only if its whole energy matches a transition.`, 0,
+    r`The atom can take 10.2 eV from the electron (leaving it 0.8 eV). A photon of 11 eV matches no gap (10.2, 12.09, ...). R explains A.`),
+  xstm(4, 'Bohr model', r`In the Bohr model the potential energy of the electron in an orbit is $-2$ times its kinetic energy.`, r`The total energy of the electron in a bound orbit is half of its potential energy.`, 0,
+    r`$K = +\dfrac{ke^2}{2r}$, $U = -\dfrac{ke^2}{r} = -2K$ (I). $E = K + U = -K = \dfrac U2$ (II). Both true.`),
+  xcnt(4, 'spectral series', r`How many of these statements about the hydrogen spectrum are correct?`, [r`The series limit of the Lyman series is at 91.2 nm.`, r`The Balmer lines have wavelengths between 365 nm and 656 nm.`, r`The Paschen series lies in the infrared.`, r`Each series has a longest and a shortest wavelength, with the lines crowding towards the shortest.`], 4,
+    r`(1) $1/R = 91.2$ nm. (2) From $\mathrm{H}_\alpha$ to the limit. (3) Paschen: 820 to 1875 nm. (4) Lines bunch up towards the limit. All four.`),
+  xmt(4, 'Rutherford scattering', 'ma3', r`Match each ratio of numbers of scattered alpha particles per unit solid angle, $N\propto1/\sin^4(\theta/2)$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$\dfrac{N(\theta)}{N(180^\circ)} = \dfrac{1}{\sin^4(\theta/2)}$. $60^\circ$: $\dfrac{1}{(1/2)^4} = 16$ (p). $90^\circ$: $\dfrac{1}{(1/\sqrt2)^4} = 4$ (q). $120^\circ$: $\dfrac{1}{(\sqrt3/2)^4} = \dfrac{16}{9}$ (r). $180^\circ$: 1 (s).`),
+  xmt(4, 'hydrogen-like ions', 'ma4', r`Match each ion (one electron) with the energy of its $n = 2\to1$ photon.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$E = 10.2\,Z^2$ eV: $Z = 1$: 10.2 (p). $Z = 2$: 40.8 (q). $Z = 3$: 91.8 (r). $Z = 4$: 163.2 (s). 13.6 is the ionisation energy of hydrogen, not used.`),
+  xmt(4, 'scaling with Z', 'ma5', r`In the Bohr model, match each quantity (same $n$) with its dependence on $Z$.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$r_n = \dfrac{n^2a_0}{Z}$ (p). $v_n = \dfrac{Zv_1}{n}$ (q). $|E_n| = \dfrac{13.6Z^2}{n^2}$ (r). $\mu = \dfrac{e}{2}vr$ does not depend on $Z$ because $v$ rises by $Z$ and $r$ falls by $Z$ (s).`),
+  xmt(4, 'atomic models', 'ma8', r`Match each model or idea with the point it explains or fails to explain.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`Thomson's plum pudding gave only small deflections, not large angles (p). Rutherford's orbiting electron should radiate and fall in, and cannot give line spectra (q). Bohr's model fails for many-electron atoms (r). The de Broglie picture gives $2\pi r = n\lambda$, a standing wave (s).`),
+  xpas(3, 'highest level', 'pa1', r`What is the highest level $n$ an atom can reach in a collision with one of these electrons?`, 3, 0, 0,
+    r`Energy needed: $n = 3$: 12.09 eV (allowed). $n = 4$: 12.75 eV (more than 12.2 eV). So the highest level is $n = 3$.`),
+  xpas(4, 'wavelength', 'pa1', r`Find the longest wavelength in the light emitted by the excited gas (in nm, 1 decimal).`, XHC / (XE1 * (1 / 4 - 1 / 9)), 0.5, 1,
+    r`The lines present are $2\to1$, $3\to1$, $3\to2$. The longest wavelength comes from the smallest energy gap, $3\to2$: $13.6\times\dfrac{5}{36} = 1.889$ eV. $\lambda = \dfrac{1240}{1.889} = 656.5$ nm.`, { unit: 'nm' }),
+  xpas(4, 'energy of the electron', 'pa1', r`An electron excites an atom to the highest possible level. Find its kinetic energy afterwards (in eV, 2 decimals).`, 12.2 - XE1 * (1 - 1 / 9), 0.01, 2,
+    r`It loses 12.09 eV, so $12.2 - 12.09 = 0.11$ eV remain.`, { unit: 'eV' }),
+  xpas(3, 'closest approach', 'pa2', r`Find the distance of closest approach in a head-on collision (in fm, 1 decimal).`, 1.44 * 2 * 79 / 6, 0.2, 1,
+    r`$d = \dfrac{k(2e)(79e)}{K} = \dfrac{1.44\times158}{6.0} = 37.9$ fm.`, { unit: 'fm' }),
+  xpas(4, 'impact parameter', 'pa2', r`Find the impact parameter for scattering through $90^\circ$ (in fm, 1 decimal).`, 1.44 * 158 / 6 / 2, 0.2, 1,
+    r`$b = \dfrac{d}{2}\cot\dfrac\theta2 = \dfrac{37.9}{2}\times1 = 19.0$ fm.`, { unit: 'fm' }),
+  xpas(5, 'impact parameter', 'pa2', r`Find the impact parameter that gives a scattering angle of $60^\circ$ (in fm, 1 decimal).`, 1.44 * 158 / 6 / 2 / Math.tan(Math.PI / 6), 0.3, 1,
+    r`$b = \dfrac d2\cot30^\circ = 18.95\times1.732 = 32.8$ fm. A larger impact parameter gives a smaller deflection.`, { unit: 'fm', trap: 'Large angle needs small b; 60° is milder than 90°, so b is larger.' }),
+  xmt(5, 'coincident lines', 'ma7', r`Each ion has one electron. Match it with the transition that has the same wavelength as the $2\to1$ line of hydrogen.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$\dfrac{1}{\lambda} = RZ^2\left(\dfrac1{n_1^2} - \dfrac1{n_2^2}\right)$. For $n_1 = Zk$ and $n_2 = Zm$ the factor $Z^2$ cancels, giving the hydrogen line $m\to k$. Hydrogen's $2\to1$ means the ion line $2Z\to Z$: He+ $4\to2$ (p), Li2+ $6\to3$ (q), Be3+ $8\to4$ (r), B4+ $10\to5$ (s).`),
+];
+
+xitems.push(
+  xnat(5, 'Thomson model', r`In Thomson's model an electron sits inside a uniformly charged positive sphere of radius $R = 0.50$ Å and total charge $+e$. Treat it as a particle that oscillates about the centre. Find the wavelength of the light it would radiate (in nm, 1 decimal). $\dfrac{e^2}{4\pi\varepsilon_0} = 2.31\times10^{-28}\ \mathrm{J\,m}$, $m = 9.11\times10^{-31}$ kg, $c = 3.00\times10^{8}\ \mathrm{m\,s^{-1}}$.`, 2 * XPI * 3e8 / Math.sqrt(2.31e-28 / (9.11e-31 * (0.5e-10) ** 3)) * 1e9, 0.5, 1,
+    r`Inside the sphere the field is $E = \dfrac{er}{4\pi\varepsilon_0R^3}$, so the force on the electron is $-\dfrac{ke^2}{R^3}r$: simple harmonic with $\omega^2 = \dfrac{ke^2}{mR^3} = \dfrac{2.31\times10^{-28}}{9.11\times10^{-31}\times(0.5\times10^{-10})^3} = 2.03\times10^{33}$. $\omega = 4.5\times10^{16}\ \mathrm{s^{-1}}$ and $\lambda = \dfrac{2\pi c}{\omega} = 41.9$ nm, in the ultraviolet. The model predicts one line at a wrong place, not the observed visible series.`, { unit: 'nm', trap: 'The restoring force is linear only inside the sphere.' }),
+  xnat(5, 'reduced mass', r`The $\mathrm{H}_\alpha$ line of hydrogen has wavelength 656.28 nm. In deuterium the nucleus is twice as heavy, so the line shifts slightly. Find the difference in wavelength between the two (in nm, 3 decimals). Take $m_e/m_p = 1/1836.15$ and $m_e/m_d = 1/3670.48$.`, 656.28 / (1 + 1 / 1836.15) * (1 / 1836.15 - 1 / 3670.48), 0.003, 3,
+    r`The Rydberg constant is $R_M = \dfrac{R_\infty}{1 + m_e/M}$, so $\lambda\propto1 + \dfrac{m_e}{M}$. $\lambda_H - \lambda_D = \lambda_\infty\left(\dfrac{m_e}{m_p} - \dfrac{m_e}{m_d}\right)$ with $\lambda_\infty = \dfrac{656.28}{1.000545} = 655.92$ nm. $\Delta\lambda = 655.92\times(5.446 - 2.724)\times10^{-4} = 0.179$ nm. The deuterium line is the shorter one.`, { unit: 'nm', trap: 'A heavier nucleus means a larger reduced mass, so a shorter wavelength.' }),
+  xnat(5, 'scattering probability', r`A gold foil of thickness $0.50\ \mu$m has $5.9\times10^{28}$ nuclei per $\mathrm{m^3}$. Alpha particles of 6.0 MeV strike it. A particle is scattered through more than $90^\circ$ if its impact parameter is less than $b_{90} = d/2$, where $d$ is the head-on distance of closest approach ($d = 37.9$ fm). Find the fraction scattered through more than $90^\circ$ (in units of $10^{-5}$, 2 decimals).`, XPI * (37.9e-15 / 2) ** 2 * 5.9e28 * 0.5e-6 * 1e5, 0.03, 2,
+    r`Each nucleus presents a target area $\pi b_{90}^2 = \pi\times(18.95\times10^{-15})^2 = 1.128\times10^{-27}\ \mathrm{m^2}$. Nuclei per unit area of foil $= nt = 5.9\times10^{28}\times0.5\times10^{-6} = 2.95\times10^{22}\ \mathrm{m^{-2}}$. Fraction $= \pi b^2nt = 3.33\times10^{-5}$.`, { trap: 'Count nuclei per unit area, not per unit volume.' }),
+  xnat(5, 'absorption spectrum', r`White light passes through hydrogen gas whose atoms are all in the $n = 2$ level. Find the third longest wavelength of the dark absorption lines (in nm, 1 decimal; $R = 1.097\times10^{7}\ \mathrm{m^{-1}}$).`, 1 / (XR * (1 / 4 - 1 / 25)) * 1e9, 0.5, 1,
+    r`From $n = 2$ the atom can absorb $2\to3$ (656 nm), $2\to4$ (486 nm), $2\to5$ (434 nm), ... The third longest wavelength is $2\to5$: $\dfrac1\lambda = R\left(\dfrac14 - \dfrac1{25}\right) = 0.21R$. $\lambda = \dfrac{1}{0.21\times1.097\times10^{7}} = 434.1$ nm.`, { unit: 'nm' }),
+  xnat(5, 'gravity and electricity', r`Find the ratio of the electric attraction to the gravitational attraction between the electron and the proton in a hydrogen atom, as $\log_{10}$ of the ratio (2 decimals). $k = 9.0\times10^{9}$, $e = 1.6\times10^{-19}$ C, $G = 6.67\times10^{-11}$ SI, $m_e = 9.11\times10^{-31}$ kg, $m_p = 1.67\times10^{-27}$ kg.`, Math.log10(9e9 * (1.6e-19) ** 2 / (6.67e-11 * 9.11e-31 * 1.67e-27)), 0.03, 2,
+    r`Both forces go as $1/r^2$, so the distance cancels: $\dfrac{F_e}{F_g} = \dfrac{ke^2}{Gm_em_p} = \dfrac{9\times10^{9}\times2.56\times10^{-38}}{6.67\times10^{-11}\times9.11\times10^{-31}\times1.67\times10^{-27}} = 2.3\times10^{39}$. The log is $39.36$. Gravity plays no part in atoms.`),
+  xnat(4, 'hydrogen-like ions', r`Find the ratio (wavelength of the first Lyman line of hydrogen)/(wavelength of the first Lyman line of $\mathrm{He^+}$).`, 4, 0, 0,
+    r`First Lyman line is $2\to1$: $\dfrac1\lambda = \dfrac34RZ^2$, so $\lambda\propto\dfrac1{Z^2}$. $\dfrac{\lambda_H}{\lambda_{He^+}} = \dfrac{4}{1} = 4$ (121.6 nm against 30.4 nm).`),
+  xnat(4, 'number of lines', r`Electrons of kinetic energy 12.8 eV are fired through hydrogen gas in its ground state. How many different spectral lines can the gas emit?`, 6, 0, 0,
+    r`12.75 eV (for $n = 4$) is less than 12.8 eV, but $n = 5$ needs 13.06 eV. So atoms can reach up to $n = 4$, and the number of lines is $\dfrac{4\times3}{2} = 6$.`),
+  xnat(4, 'excitation', r`In the Franck-Hertz experiment, electrons accelerated through 4.9 V excite mercury atoms. The excited atoms emit light on returning to the ground state. Find its wavelength (in nm, 1 decimal; $hc = 1240\ \mathrm{eV\,nm}$).`, 1240 / 4.9, 0.5, 1,
+    r`The excitation energy is 4.9 eV. $\lambda = \dfrac{hc}{E} = \dfrac{1240}{4.9} = 253.1$ nm, an ultraviolet line.`, { unit: 'nm' }),
+  xmsq(5, 'excitation', r`Hydrogen atoms in the ground state are bombarded in two ways: by electrons of kinetic energy 11 eV, and by photons of energy 11 eV. Which are correct?`, [r`The electrons can excite the atoms to $n = 2$.`, r`The photons can excite the atoms to $n = 2$.`, r`The photons can ionise the atoms.`, r`After exciting, an electron keeps 0.8 eV of kinetic energy (ignoring recoil).`], [0, 3],
+    r`Electrons can give up the 10.2 eV needed for $n = 2$ and keep 0.8 eV (A, D). The 11 eV photon matches no gap: it is neither 10.2 nor 12.09 eV, and it is less than the 13.6 eV needed to ionise (B, C false).`),
+  xmsq(5, 'spectral series', r`Which are correct for the spectrum of atomic hydrogen?`, [r`The Lyman series lies in the ultraviolet.`, r`The Paschen series lies in the infrared.`, r`The Balmer series has lines in the visible region.`, r`The longest-wavelength line of the Balmer series has wavelength 365 nm.`], [0, 1, 2],
+    r`Lyman: 91 to 122 nm. Paschen: 820 to 1875 nm. Balmer: 365 to 656 nm. The longest Balmer line is 656 nm; 365 nm is the series limit (shortest), so D is false.`),
+  xmsq(5, 'de Broglie and Bohr', r`The de Broglie wave of the electron fits round the $n$-th Bohr orbit as a standing wave. Which are correct?`, [r`$2\pi r_n = n\lambda_n$.`, r`The de Broglie wavelength in the $n$-th orbit is proportional to $n$.`, r`The wavelength in the ground state equals the circumference of the orbit.`, r`The wavelength in the ground state is larger than the circumference.`], [0, 1, 2],
+    r`$\lambda_n = \dfrac{2\pi r_n}{n} = 2\pi na_0\propto n$ (A, B). For $n = 1$ the wavelength is exactly the circumference (C). It is not larger (D false).`),
+  xmsq(5, 'X-rays and spectra', r`An atom emits $K_\alpha$ X-rays. Which are correct?`, [r`The wavelength is shorter for an element of higher $Z$.`, r`$\sqrt\nu$ is proportional to $(Z - 1)$.`, r`The line is produced when an electron falls from the $L$ shell to a vacancy in the $K$ shell.`, r`The wavelength depends on the voltage of the X-ray tube.`], [0, 1, 2],
+    r`Moseley's law: $\sqrt\nu\propto(Z - 1)$, so $\lambda\propto(Z - 1)^{-2}$ decreases with $Z$ (A, B). $K_\alpha$ is $L\to K$ (C). Characteristic lines do not depend on the tube voltage (once it is high enough to create the vacancy); only the continuous cut-off does (D false).`),
+  xmsq(5, 'hydrogen-like ions', r`An ion $X^{(Z-1)+}$ has a single electron. Which are correct in the Bohr model?`, [r`Its ionisation energy from the ground state is $13.6Z^2$ eV.`, r`The ground-state orbital speed is $Z$ times that in hydrogen.`, r`The ground-state orbit radius is $a_0/Z$.`, r`The orbital period in the ground state is $1/Z$ times that in hydrogen.`], [0, 1, 2],
+    r`$E\propto Z^2$ (A), $v\propto Z$ (B), $r\propto1/Z$ (C). $T = 2\pi r/v\propto\dfrac1{Z^2}$, not $\dfrac1Z$ (D false).`),
+  xasrt(5, 'Rutherford scattering', r`The distance of closest approach for a head-on collision is inversely proportional to the kinetic energy of the alpha particle.`, r`At closest approach the entire kinetic energy has been converted into electrostatic potential energy, which is inversely proportional to the separation.`, 0,
+    r`$K = \dfrac{kq_1q_2}{d}$, so $d\propto\dfrac1K$. R states exactly this energy argument. Both true and R explains A.`),
+  xasrt(5, 'Bohr model', r`The energy levels of hydrogen get closer together as $n$ increases.`, r`The energy of the $n$-th level is proportional to $-1/n^2$.`, 0,
+    r`$E_{n+1} - E_n = 13.6\left(\dfrac1{n^2} - \dfrac1{(n+1)^2}\right)\approx\dfrac{27.2}{n^3}$ decreases with $n$. R is the formula that produces the crowding. Both true; R explains A.`),
+  xstm(5, 'excitation by electrons', r`An electron of kinetic energy 10.5 eV colliding with a ground-state hydrogen atom can excite it to $n = 2$ and be left with 0.3 eV.`, r`A 10.5 eV photon would be absorbed by a ground-state hydrogen atom, taking it to $n = 2$ with 0.3 eV left over.`, 2,
+    r`I is true: the atom takes 10.2 eV and the electron keeps 0.3 eV. II is false: a photon is absorbed only if its energy matches the gap exactly (10.2 eV); it cannot leave the surplus as kinetic energy of anything.`),
+);
+
+const xgens = [
+  xg('ab-g27', 3, 'nat', 'spectral series', function make(rng) {
+    const Z = choose(rng, [1, 1, 2, 3]); const n1 = int(rng, 1, 3); const n2 = n1 + int(rng, 1, 3);
+    const E = 13.6 * Z * Z * (1 / (n1 * n1) - 1 / (n2 * n2)); const lam = 1240 / E;
+    const nm = Z === 1 ? 'hydrogen' : Z === 2 ? '$\\mathrm{He^+}$' : '$\\mathrm{Li^{2+}}$';
+    return { Z, n1, n2, q: `Find the wavelength of the photon emitted when an electron in ${nm} falls from $n = ${n2}$ to $n = ${n1}$ (in nm, 1 decimal; $hc = 1240\\ \\mathrm{eV\\,nm}$).`, answer: +lam.toFixed(1), tol: Math.max(0.3, lam * 0.003), unit: 'nm',
+      sol: `$E = 13.6\\times${Z * Z}\\times\\left(\\dfrac1{${n1 * n1}} - \\dfrac1{${n2 * n2}}\\right) = ${xs(E, 4)}$ eV. $\\lambda = \\dfrac{1240}{${xs(E, 4)}} = ${xs(lam, 4)}$ nm.`, trap: 'For an ion, the energy carries Z².' };
+  }, (p) => 1 / (1.097e7 * p.Z * p.Z * (1 / (p.n1 * p.n1) - 1 / (p.n2 * p.n2))) * 1e9),
+  xg('ab-g28', 3, 'mcq', 'number of lines', function make(rng) {
+    const n = int(rng, 3, 7); const m = int(rng, 1, 2); const lo = m + 1;
+    const cnt = (n - m) * (n - m + 1) / 2 - 0; const tot = (n - m + 1) * (n - m) / 2;
+    const o = shuffleOpts(rng, String(tot), [String(n - m), String(tot + (n - m)), String((n - m) * (n - m))]);
+    return { n, m, lo, q: `Hydrogen atoms are excited to the level $n = ${n}$. They then emit only the lines that end on levels $n = ${m}$ or higher (the atoms stop falling at $n = ${m}$). How many different lines can they emit?`, options: o.options, answer: o.answer,
+      sol: `The levels from ${m} to ${n} number ${n - m + 1}, and every pair of them can give a line: $\\dfrac{${n - m + 1}\\times${n - m}}{2} = ${tot}$. The count ${n - m} would be for one atom dropping level by level.` };
+  }, (p) => p.options.findIndex((o) => o === String(((p.n - p.m + 1) * (p.n - p.m)) / 2))),
+  xg('ab-g29', 4, 'nat', 'excitation by collision', function make(rng) {
+    const a = choose(rng, [1, 2, 4]); const nn = choose(rng, [2, 3, 4]); const dE = 13.6 * (1 - 1 / (nn * nn));
+    const K = dE * (1 + a / 1);
+    return { a, nn, dE, q: `A particle of mass ${a} u strikes a hydrogen atom (mass 1 u) at rest in its ground state and excites it to $n = ${nn}$ in an inelastic collision. Find the smallest kinetic energy of the particle that makes this possible (in eV, 1 decimal; use mass ratios as the mass numbers).`, answer: +K.toFixed(1), tol: 0.1, unit: 'eV',
+      sol: `Only the kinetic energy in the centre-of-mass frame can be used: $K\\dfrac{M}{m + M} = \\Delta E$. $\\Delta E = 13.6\\left(1 - \\dfrac1{${nn * nn}}\\right) = ${xs(dE, 4)}$ eV. $K = \\Delta E\\times\\dfrac{${a} + 1}{1} = ${xs(K)}$ eV.`, trap: 'A heavy particle needs more than the excitation energy.' };
+  }, (p) => { const m = p.a; const M = 1; const v = 1; const Kc = 0.5 * m * v * v * M / (m + M); const Kt = 0.5 * m * v * v; return p.dE * Kt / Kc; }),
+  xg('ab-g30', 4, 'nat', 'impact parameter', function make(rng) {
+    const Z = choose(rng, [29, 47, 79]); const E = choose(rng, [4, 5, 6, 8]); const th = choose(rng, [60, 90, 120]);
+    const b = 1.44 * 2 * Z / E / 2 / Math.tan(th / 2 * Math.PI / 180);
+    return { Z, E, th, q: `An alpha particle of ${E} MeV is scattered through $${th}^\\circ$ by a nucleus of atomic number ${Z}. Find its impact parameter (in fm, 1 decimal; $\\dfrac{e^2}{4\\pi\\varepsilon_0} = 1.44\\ \\mathrm{MeV\\,fm}$).`, answer: +b.toFixed(1), tol: Math.max(0.2, b * 0.01), unit: 'fm',
+      sol: `$b = \\dfrac{kq_1q_2}{2K}\\cot\\dfrac\\theta2 = \\dfrac{1.44\\times2\\times${Z}}{2\\times${E}}\\cot${th / 2}^\\circ = ${xs(b)}$ fm.`, trap: 'The half angle is used.' };
+  }, (p) => { const d0 = 1.44 * 2 * p.Z / p.E; return (d0 / 2) / Math.tan(p.th * Math.PI / 360); }),
+  xg('ab-g31', 4, 'nat', 'Rutherford scattering law', function make(rng) {
+    const t1 = choose(rng, [30, 45, 60, 90]); const t2 = choose(rng, [120, 150, 180]);
+    const r1 = Math.sin(t2 / 2 * Math.PI / 180) ** 4 / Math.sin(t1 / 2 * Math.PI / 180) ** 4;
+    return { t1, t2, q: `In a Rutherford scattering experiment the number of alpha particles counted per unit solid angle is $N_1$ at $${t1}^\\circ$ and $N_2$ at $${t2}^\\circ$. Find $N_1/N_2$ (2 decimals).`, answer: +r1.toFixed(2), tol: Math.max(0.02, r1 * 0.005),
+      sol: `$N\\propto\\dfrac{1}{\\sin^4(\\theta/2)}$. $\\dfrac{N_1}{N_2} = \\dfrac{\\sin^4(${t2 / 2}^\\circ)}{\\sin^4(${t1 / 2}^\\circ)} = ${xs(r1, 4)}$.`, trap: 'Use the half angle, and the larger angle goes in the numerator.' };
+  }, (p) => 1 / (Math.sin(p.t1 * Math.PI / 360) ** 4 / Math.sin(p.t2 * Math.PI / 360) ** 4)),
+  xg('ab-g32', 5, 'nat', 'hydrogen-like ions', function make(rng) {
+    const Z = choose(rng, [2, 3, 4, 5]); const nl = int(rng, 1, 3); const nu = nl + int(rng, 1, 3);
+    return { Z, nl, nu, q: `A hydrogen-like ion with $Z = ${Z}$ emits a photon of exactly the same wavelength as the hydrogen line $n = ${nu}\\to${nl}$, in a transition from level $n_2$ down to level $n_1 = ${Z * nl}$. Find $n_2$.`, answer: Z * nu, tol: 0,
+      sol: `$Z^2\\left(\\dfrac1{${Z * nl}^2} - \\dfrac1{n_2^2}\\right) = \\dfrac1{${nl}^2} - \\dfrac1{${nu}^2}$. Since $Z^2/(${Z * nl})^2 = 1/${nl}^2$, we need $\\dfrac{Z^2}{n_2^2} = \\dfrac1{${nu}^2}$, so $n_2 = ${Z}\\times${nu} = ${Z * nu}$.` };
+  }, (p) => { const t = 1 / (p.nl * p.nl) - 1 / (p.nu * p.nu); const inv = 1 / (p.Z * p.nl) ** 2 - t / (p.Z * p.Z); return Math.round(1 / Math.sqrt(inv)); }),
+  xg('ab-g33', 3, 'nat', 'current due to orbiting electron', function make(rng) {
+    const n = int(rng, 2, 4);
+    const T1 = 1.52e-16; const I = 1.6e-19 / (T1 * n ** 3) * 1e6;
+    return { n, q: `The electron in the first Bohr orbit of hydrogen has a period of $1.52\\times10^{-16}$ s. Find the equivalent current of the electron in the $n = ${n}$ orbit (in $\\mu$A, 2 decimals; $e = 1.6\\times10^{-19}$ C).`, answer: +I.toFixed(2), tol: Math.max(0.02, I * 0.01), unit: 'µA',
+      sol: `$T\\propto n^3$, so $T_${n} = ${n ** 3}\\times1.52\\times10^{-16}$ s. $I = \\dfrac eT = \\dfrac{1.6\\times10^{-19}}{${n ** 3}\\times1.52\\times10^{-16}} = ${xs(I)}\\ \\mu$A.`, trap: 'T goes as n cubed.' };
+  }, (p) => 1.6e-19 / (1.52e-16 * 8 * (p.n / 2) ** 3) * 1e6),
+  xg('ab-g34', 4, 'nat', 'Moseley law', function make(rng) {
+    const refs = [[29, 0.154], [42, 0.0711], [27, 0.179]]; const r0 = choose(rng, refs); const Z2 = choose(rng, [24, 26, 28, 30, 47]);
+    const lam = r0[1] * ((r0[0] - 1) / (Z2 - 1)) ** 2;
+    return { r0, Z2, q: `The $K_\\alpha$ line of the element with $Z = ${r0[0]}$ has wavelength ${r0[1]} nm. Find the $K_\\alpha$ wavelength of the element with $Z = ${Z2}$ (in nm, 4 decimals).`, answer: +lam.toFixed(4), tol: Math.max(0.0005, lam * 0.005), unit: 'nm',
+      sol: `$\\sqrt\\nu\\propto(Z - 1)$, so $\\lambda\\propto(Z - 1)^{-2}$. $\\lambda = ${r0[1]}\\times\\left(\\dfrac{${r0[0] - 1}}{${Z2 - 1}}\\right)^2 = ${xs(lam)}$ nm.`, trap: 'Use Z − 1 for Kα.' };
+  }, (p) => { const nu0 = 3e8 / (p.r0[1] * 1e-9); const k = nu0 / (p.r0[0] - 1) ** 2; return 3e8 / (k * (p.Z2 - 1) ** 2) * 1e9; }),
+  xg('ab-g35', 3, 'mcq', 'hydrogen-like ions', function make(rng) {
+    const Z = int(rng, 2, 4); const n = int(rng, 1, 3); const E = 13.6 * Z * Z / (n * n);
+    const o = numOpts(rng, -E, [-E / Z, -13.6 * Z / n, -13.6 * Z * Z / n], 'eV', 3);
+    return { Z, n, q: `The total energy of the electron in the $n = ${n}$ level of a hydrogen-like ion with $Z = ${Z}$ is`, options: o.options, answer: o.answer,
+      sol: `$E_n = -\\dfrac{13.6Z^2}{n^2} = -\\dfrac{13.6\\times${Z * Z}}{${n * n}} = ${xs(-E)}$ eV. Using $Z$ in place of $Z^2$, or $n$ in place of $n^2$, gives the other options.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(-13.6 * p.Z * p.Z / (p.n * p.n), 3)} eV`)),
+];
+
+export default { topic: 'atoms', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

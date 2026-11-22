@@ -589,4 +589,289 @@ const gens = [
     verify: (p) => p.m },
 ];
 
-export default { topic: 'potential-capacitance', groups, items, gens };
+
+// ---------- Expansion (2026-11-22): more hard items, matches, passages and templates ----------
+const xs = (x, sig = 3) => String(+Number(x).toPrecision(sig));
+const XCUET = true;
+const xex = (l, t) => (l <= 2 ? ['keam', 'cusat', 'comedk', 'jee-main', 'neet'] : l === 3 ? ['jee-main', 'neet', 'keam', 'comedk'] : l === 4 ? ['jee-main', 'jee-adv'] : ['jee-adv']).concat(XCUET && t === 'mcq' && l <= 3 ? ['cuet'] : []);
+let xk = 0; let xc = 0;
+const xid = () => `ep-x${String(++xk).padStart(3, '0')}`;
+const xb = (level, sub, o) => ({ id: xid(), level, exams: xex(level, o.type), sub, ...o });
+const xpos = () => [2, 0, 3, 1][xc++ % 4];
+const xmcq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('options not distinct: ' + q.slice(0, 60));
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xnat = (level, sub, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return xb(level, sub, { type: 'nat', format: tol === 0 ? 'integer' : 'numeric', q, answer, tol, calc: () => answer, sol: typeof sol === 'function' ? sol(answer) : sol, ...o });
+};
+const xmsq = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAOPT = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xasrt = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAOPT, answer, sol, ...o });
+const XSOPT = ['Both Statement I and Statement II are true', 'Both Statement I and Statement II are false', 'Statement I is true but Statement II is false', 'Statement I is false but Statement II is true'];
+const xstm = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSOPT, answer, sol, ...o });
+const xcnt = (level, sub, q, list, n, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `${q}<br>${list.map((s, i) => `(${i + 1}) ${s}`).join('<br>')}`, options: ['Only one', 'Only two', 'Only three', 'All four'], answer: n - 1, sol, ...o });
+// match: correct code and three wrong codes
+const xmt = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  if (new Set([correct, ...wrongs]).size !== 4) throw new Error('match options not distinct: ' + group);
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const xpas = (level, sub, group, q, value, tol, dp, sol, o = {}) => {
+  const answer = +value.toFixed(dp);
+  if (tol === 0 && !Number.isInteger(answer)) throw new Error('integer expected: ' + q.slice(0, 60) + ' ' + answer);
+  return { id: xid(), type: 'nat', level, format: 'passage', exams: xex(level, 'nat'), sub, group, q, answer, tol, calc: () => answer, sol, ...o };
+};
+const xpasm = (level, sub, group, q, correct, wrongs, sol, o = {}) => {
+  const pos = xpos(); const options = [...wrongs]; options.splice(pos, 0, correct);
+  return { id: xid(), type: 'mcq', level, format: 'passage', exams: xex(level, 'mcq'), sub, group, q, options, answer: pos, sol, ...o };
+};
+// template: exams from level and type
+const xg = (id, level, type, sub, make, verify) => ({ id, type, level, exams: xex(level, type), sub, make, verify });
+const XK = 9e9; const XE0 = 8.85e-12; const XQE = 1.6e-19; const XME = 9.1e-31;
+const XKC = r`$\dfrac{1}{4\pi\varepsilon_0} = 9\times10^{9}$ SI`;
+const XCONST = r`Take $\varepsilon_0 = 8.85\times10^{-12}\ \mathrm{F\,m^{-1}}$.`;
+
+const xgroups = {
+  mx1: { title: 'Three equal capacitors',
+    list1: ['A. All three in series', 'B. All three in parallel', 'C. Two in series, and that pair in parallel with the third', 'D. Two in parallel, and that pair in series with the third'],
+    list2: [r`p. $\dfrac{C}{3}$`, r`q. $3C$`, r`r. $\dfrac{3C}{2}$`, r`s. $\dfrac{2C}{3}$`, r`t. $\dfrac{C}{2}$`] },
+  mx2: { title: 'A slab in a parallel plate capacitor',
+    list1: ['A. A thin metal slab of thickness $d/2$ is inserted (gap $d$)', 'B. A slab of $K = 2$ and thickness $d/2$ is inserted', 'C. A slab of $K = 3$ fills the whole gap', 'D. The plate area is doubled and the gap is doubled'],
+    list2: [r`p. $C/C_0 = 1$`, r`q. $C/C_0 = \dfrac43$`, r`r. $C/C_0 = 2$`, r`s. $C/C_0 = 3$`, r`t. $C/C_0 = \dfrac32$`] },
+  mx3: { title: 'Dipole in a uniform field',
+    list1: ['A. Dipole along the field ($\\theta = 0^\\circ$)', 'B. Dipole at $\\theta = 60^\\circ$ to the field', 'C. Dipole at $\\theta = 90^\\circ$ to the field', 'D. Dipole opposite to the field ($\\theta = 180^\\circ$)'],
+    list2: [r`p. $U = -pE$`, r`q. $U = -\dfrac{pE}{2}$`, r`r. $U = 0$`, r`s. $U = +pE$`, r`t. $U = +\dfrac{pE}{2}$`] },
+  mx4: { title: 'Potential at the centre',
+    list1: ['A. A conducting sphere of radius $R$ with charge $Q$, at its surface', 'B. A uniformly charged solid insulating sphere (radius $R$, charge $Q$), at its centre', 'C. A thin ring (radius $R$, charge $Q$), at the point of its axis at distance $R$ from the centre', 'D. A shell of radius $R$ with $+Q$ inside a shell of radius $2R$ with $-Q$, at their common centre'],
+    list2: [r`p. $\dfrac{kQ}{R}$`, r`q. $\dfrac{3kQ}{2R}$`, r`r. $\dfrac{kQ}{\sqrt2\,R}$`, r`s. $\dfrac{kQ}{2R}$`] },
+  mx5: { title: 'Charging through a resistor',
+    list1: ['A. Time at which the charge is half its final value', 'B. Time at which the current is a quarter of its initial value', 'C. Time at which the stored energy is half its final value', 'D. Time at which the capacitor voltage is 90 % of the battery voltage'],
+    list2: [r`p. $0.69\,RC$`, r`q. $1.39\,RC$`, r`r. $1.23\,RC$`, r`s. $2.30\,RC$`, r`t. $1.00\,RC$`] },
+  mx6: { title: 'A sphere inside a shell',
+    list1: ['A. Inner sphere of radius $a$ carries $+Q$; the thin shell of radius $2a$ is uncharged', 'B. Inner sphere $+Q$; the shell carries $-Q$', 'C. Inner sphere $+Q$; the shell carries $+Q$', 'D. Inner sphere $+Q$; the shell carries $+2Q$'],
+    list2: [r`p. $V_{\text{inner}} = \dfrac{kQ}{a}$`, r`q. $V_{\text{inner}} = \dfrac{kQ}{2a}$`, r`r. $V_{\text{inner}} = \dfrac{3kQ}{2a}$`, r`s. $V_{\text{inner}} = \dfrac{2kQ}{a}$`, r`t. $V_{\text{inner}} = 0$`] },
+  mx7: { title: 'Force between the plates',
+    list1: ['A. Isolated capacitor, gap $d\\to2d$: the force between the plates', 'B. Battery connected, gap $d\\to2d$: the force between the plates', 'C. Isolated capacitor, area $A\\to2A$ (same gap): the force', 'D. Battery connected, area $A\\to2A$ (same gap): the force'],
+    list2: ['p. becomes $1$ times', 'q. becomes $\\tfrac14$ times', 'r. becomes $2$ times', 's. becomes $\\tfrac12$ times'] },
+  mx8: { title: 'Field on the axis of a ring',
+    list1: ['A. At the centre of the ring ($x = 0$)', 'B. At $x = R/\\sqrt2$', 'C. At $x = R$', 'D. At $x = 2R$'],
+    list2: [r`p. $0$`, r`q. $\dfrac{2}{3\sqrt3}\,\dfrac{kQ}{R^2}$`, r`r. $\dfrac{1}{2\sqrt2}\,\dfrac{kQ}{R^2}$`, r`s. $\dfrac{2}{5\sqrt5}\,\dfrac{kQ}{R^2}$`] },
+  px1: { title: 'An electron between deflecting plates',
+    passage: r`<p>Two long horizontal plates of length 5.0 cm are 2.0 cm apart with 200 V between them (upper plate positive). An electron enters midway between them, moving parallel to the plates at $3.0\times10^{7}\ \mathrm{m\,s^{-1}}$. Take $e = 1.6\times10^{-19}$ C and $m = 9.1\times10^{-31}$ kg; ignore gravity and edge effects.</p>` },
+  px2: { title: 'Sharing charge, then a slab',
+    passage: r`<p>A $6\ \mu$F capacitor is charged to 50 V and then joined, with like plates together, to an uncharged $3\ \mu$F capacitor. After they settle, a dielectric slab of $K = 2$ is pushed completely into the $6\ \mu$F capacitor while the two stay connected to each other and to nothing else.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xnat(2, 'series combination', r`A $3\ \mu$F and a $6\ \mu$F capacitor are in series across an 18 V battery. Find the charge on each capacitor (in $\mu$C).`, 36, 0, 0,
+    r`Equivalent: $\dfrac{3\times6}{9} = 2\ \mu$F. $Q = CV = 2\times18 = 36\ \mu$C, the same on both in series.`, { unit: 'µC' }),
+  xmcq(2, 'units', r`The SI unit of the permittivity of free space, $\varepsilon_0$, can be written as`, r`$\mathrm{F\,m^{-1}}$`, [r`$\mathrm{F\,m}$`, r`$\mathrm{N\,m^{2}\,C^{-2}}$`, r`$\mathrm{C\,V\,m^{-1}}$`],
+    r`$C = \varepsilon_0A/d$ gives $\varepsilon_0 = Cd/A$: farad $\times$ metre / metre$^2$ = F/m. The unit $\mathrm{N\,m^2\,C^{-2}}$ belongs to $1/4\pi\varepsilon_0$, not to $\varepsilon_0$.`, { trap: 'k and ε0 have inverse units.' }),
+  xnat(2, 'force on a charge', r`The plates of a capacitor are 3.0 cm apart with 120 V across them. Find the force on an electron between them (in units of $10^{-16}$ N, 1 decimal; $e = 1.6\times10^{-19}$ C).`, XQE * (120 / 0.03) * 1e16, 0.05, 1,
+    r`$E = V/d = 120/0.03 = 4000\ \mathrm{V\,m^{-1}}$. $F = eE = 1.6\times10^{-19}\times4000 = 6.4\times10^{-16}$ N.`, { unit: '×10⁻¹⁶ N' }),
+  xmcq(2, 'equipotential surfaces', r`In a uniform electric field the equipotential surfaces are`, 'planes perpendicular to the field, equally spaced for equal potential steps', ['spheres centred on a point', 'planes parallel to the field', 'planes perpendicular to the field, closer together where the field is weaker'],
+    r`$E = -dV/dx$ is constant, so equal steps of $V$ need equal steps of distance along the field, and each surface is normal to the field. Spheres belong to a point charge.`),
+  xnat(2, 'combination of capacitors', r`Three $6\ \mu$F capacitors: two are in parallel and this pair is in series with the third. Find the equivalent capacitance (in $\mu$F).`, 12 * 6 / 18, 0, 0,
+    r`Pair: $12\ \mu$F. In series with $6\ \mu$F: $\dfrac{12\times6}{18} = 4\ \mu$F.`, { unit: 'µF' }),
+  xmcq(2, 'work and potential', r`A $5\ \mu$C charge moves from a point at 30 V to a point at 10 V. The work done by the electric field is`, r`$+100\ \mu\mathrm{J}$`, [r`$-100\ \mu\mathrm{J}$`, r`$+250\ \mu\mathrm{J}$`, r`$+25\ \mu\mathrm{J}$`],
+    r`$W_{\text{field}} = q(V_i - V_f) = 5\times(30 - 10) = +100\ \mu$J. A positive charge going to lower potential is helped by the field. The sign would flip if it went the other way.`),
+
+  // ---------- Level 3 ----------
+  xnat(3, 'two dielectrics', r`The gap of a parallel plate capacitor is filled by two slabs, one behind the other, each covering the full area: $K_1 = 2$ takes the first half of the gap and $K_2 = 4$ the second half. Find $C/C_0$ (2 decimals).`, 1 / (0.5 / 2 + 0.5 / 4), 0.01, 2,
+    r`The slabs are two capacitors in series: $\dfrac{d}{C} \to \dfrac{d/2}{K_1} + \dfrac{d/2}{K_2} = d\left(\dfrac14 + \dfrac18\right) = \dfrac{3d}{8}$. So $C/C_0 = \dfrac{d}{3d/8} = \dfrac83 = 2.67$. (Equal to $\dfrac{2K_1K_2}{K_1+K_2}$.)`, { trap: 'One behind the other: series, not the average of K.' }),
+  xnat(3, 'two dielectrics', r`One quarter of the plate area is covered by a dielectric of $K = 2$ and the other three quarters by one of $K = 4$; both fill the full gap, side by side. Find $C/C_0$ (1 decimal).`, 0.25 * 2 + 0.75 * 4, 0.01, 1,
+    r`Side by side is parallel, so each part contributes in proportion to its area: $\dfrac{C}{C_0} = \tfrac14\times2 + \tfrac34\times4 = 0.5 + 3 = 3.5$.`),
+  xnat(3, 'reversing the battery', r`A $10\ \mu$F capacitor is charged to 100 V by a battery. The battery is then reconnected with its polarity reversed. Find the charge that flows through the battery (in $\mu$C).`, 2 * 10 * 100, 0, 0,
+    r`The plate that held $+1000\ \mu$C must now hold $-1000\ \mu$C: the charge that moves is $1000 - (-1000) = 2000\ \mu$C.`, { unit: 'µC', trap: 'The change is 2CV, not CV.' }),
+  xnat(3, 'ring on the axis', r`A ring has radius 10 cm. At what distance from its centre, on the axis, is the potential half its value at the centre (in cm, 2 decimals)?`, 10 * Math.sqrt(3), 0.02, 2,
+    r`$V(x) = \dfrac{kQ}{\sqrt{R^2+x^2}}$ is half of $\dfrac{kQ}{R}$ when $\sqrt{R^2+x^2} = 2R$, so $x = \sqrt3R = 17.32$ cm.`, { unit: 'cm' }),
+  xnat(3, 'deflection', r`An electron enters, parallel to the plates, a region of uniform vertical field $2000\ \mathrm{V\,m^{-1}}$ with speed $1.0\times10^{7}\ \mathrm{m\,s^{-1}}$. The region is 5.0 cm long. Find the sideways deflection on leaving it (in mm, 2 decimals; $e = 1.6\times10^{-19}$ C, $m = 9.1\times10^{-31}$ kg).`, 0.5 * (XQE * 2000 / XME) * (0.05 / 1e7) ** 2 * 1e3, 0.05, 2,
+    r`$a = \dfrac{eE}{m} = \dfrac{1.6\times10^{-19}\times2000}{9.1\times10^{-31}} = 3.52\times10^{14}\ \mathrm{m\,s^{-2}}$. Time $t = \dfrac{0.05}{10^{7}} = 5\times10^{-9}$ s. $y = \tfrac12at^2 = 0.5\times3.52\times10^{14}\times25\times10^{-18} = 4.40\times10^{-3}$ m $= 4.40$ mm.`, { unit: 'mm' }),
+  xnat(3, 'dipole in a field', r`A dipole of moment $3\times10^{-9}$ C m is lying along a uniform field of $5\times10^{4}\ \mathrm{N\,C^{-1}}$. Find the work needed to turn it through $90^\circ$ (in $\mu$J).`, 3e-9 * 5e4 * 1e6, 0, 0,
+    r`$W = U_{90} - U_0 = 0 - (-pE) = pE = 3\times10^{-9}\times5\times10^{4} = 1.5\times10^{-4}$ J $= 150\ \mu$J.`, { unit: 'µJ' }),
+  xnat(3, 'working voltage', r`A $2\ \mu$F capacitor (safe up to 400 V) and a $4\ \mu$F capacitor (safe up to 600 V) are joined in series. Find the largest total voltage that can be applied safely (in V).`, 800 / 2 + 800 / 4, 0, 0,
+    r`The same charge is on both. The $2\ \mu$F can hold at most $2\times400 = 800\ \mu$C; the $4\ \mu$F could hold $4\times600 = 2400\ \mu$C. So $Q_{max} = 800\ \mu$C. Then $V = \dfrac{800}{2} + \dfrac{800}{4} = 400 + 200 = 600$ V.`, { unit: 'V', trap: 'The voltages add, but the charge is the common limit.' }),
+  xnat(3, 'merging drops', r`Sixty-four identical small spherical drops, each at a potential of 3 V, merge into one large drop. Find the potential of the large drop (in V).`, 3 * 16, 0, 0,
+    r`Volume is conserved: $R = 4r$. Charge: $Q = 64q$. $V = \dfrac{kQ}{R} = \dfrac{k\,64q}{4r} = 16\dfrac{kq}{r} = 16\times3 = 48$ V.`, { unit: 'V' }),
+  xnat(3, 'potential zero on a line', r`Charges $+4\ \mu$C and $-1\ \mu$C are 30 cm apart. On the line through them, outside the segment and near the smaller charge, there is a point where the potential is zero. Find its distance from the $-1\ \mu$C charge (in cm).`, 10, 0, 0,
+    r`Let the point be $y$ beyond the $-1\ \mu$C charge. $\dfrac{4}{0.3 + y} = \dfrac{1}{y}$ gives $4y = 0.3 + y$, $y = 0.1$ m $= 10$ cm. (The other zero is 24 cm from the $+4\ \mu$C charge, between them.)`, { unit: 'cm' }),
+  xnat(3, 'field from potential', r`In a region $V = 4x^2y$ volts ($x$, $y$ in metres). Find the magnitude of the field at $(1, 2)$ (in $\mathrm{V\,m^{-1}}$, 1 decimal).`, Math.hypot(8 * 1 * 2, 4), 0.05, 1,
+    r`$E_x = -\dfrac{\partial V}{\partial x} = -8xy = -16$, $E_y = -\dfrac{\partial V}{\partial y} = -4x^2 = -4$. $|E| = \sqrt{256 + 16} = 16.5\ \mathrm{V\,m^{-1}}$.`, { unit: 'V/m' }),
+  xnat(3, 'power in an RC circuit', r`A $2\ \mu$F capacitor charges from a 10 V battery through $50\ \mathrm{k\Omega}$. Find the power dissipated in the resistor at $t = RC$ (in mW, 3 decimals).`, (100 / 50e3) * Math.exp(-2) * 1e3, 0.003, 3,
+    r`$I = \dfrac{V}{R}e^{-t/\tau}$, so $P = I^2R = \dfrac{V^2}{R}e^{-2t/\tau}$. At $t = \tau$: $\dfrac{100}{50000}\times e^{-2} = 2\ \mathrm{mW}\times0.1353 = 0.271$ mW.`, { unit: 'mW', trap: 'The power falls as e to the minus 2t/τ, not e to the minus t/τ.' }),
+  xmt(3, 'capacitor networks', 'mx1', r`Match each arrangement of three equal capacitors $C$ with its equivalent capacitance.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`(A) series: $C/3$ (p). (B) parallel: $3C$ (q). (C) two in series give $C/2$; parallel with $C$: $\tfrac32C$ (r). (D) two in parallel give $2C$; in series with $C$: $\dfrac{2C\times C}{3C} = \dfrac{2C}{3}$ (s). Option t is not used.`),
+  xmt(3, 'slab in a capacitor', 'mx2', r`Match each change with the new capacitance compared with the original air capacitor $C_0$.`, 'A-r, B-q, C-s, D-p', ['A-q, B-r, C-s, D-p', 'A-r, B-q, C-p, D-s', 'A-s, B-q, C-r, D-p'],
+    r`(A) A metal slab of thickness $d/2$ leaves an air gap $d/2$: $C = 2C_0$ (r). (B) Effective gap $\dfrac d2 + \dfrac{d/2}{2} = \dfrac{3d}{4}$: $C = \dfrac43C_0$ (q). (C) $C = 3C_0$ (s). (D) $C\propto A/d$, so doubling both leaves $C_0$ (p).`),
+  xmt(3, 'dipole energy', 'mx3', r`A dipole of moment $p$ is in a uniform field $E$ at angle $\theta$ to it. Match each orientation with its potential energy $U = -pE\cos\theta$.`, 'A-p, B-q, C-r, D-s', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-s, B-q, C-r, D-p'],
+    r`$\cos0^\circ = 1$ gives $-pE$ (p); $\cos60^\circ = \tfrac12$ gives $-\tfrac{pE}{2}$ (q); $\cos90^\circ = 0$ gives 0 (r); $\cos180^\circ = -1$ gives $+pE$ (s).`),
+  xasrt(3, 'capacitance', r`The capacitance of a capacitor does not change when the charge on it is doubled.`, r`The potential difference across a capacitor is directly proportional to the charge on it.`, 0,
+    r`$C = Q/V$ is a ratio. If $Q$ doubles, $V$ doubles in the same proportion, so $C$ stays the same (it depends only on shape and medium). R is true and is exactly why A holds.`),
+  xstm(3, 'potential and field', r`The potential at a point on the equatorial line of an electric dipole is zero, so the field there is also zero.`, r`The electric field is the negative gradient of the potential.`, 3,
+    r`Statement I is false: on the equatorial line the field is $\dfrac{kp}{r^3}$, directed opposite to $\vec p$. The potential is zero only along that line, and the field depends on how $V$ changes in the direction away from it, which is not zero. Statement II is true, which is exactly why a zero value of $V$ at a point does not mean $E = 0$.`),
+  xmcq(3, 'conductors', r`Which of these is NOT correct for a charged conductor in electrostatic equilibrium?`, 'The charge on a cavity wall is zero if the cavity has a charge inside it', ['The potential is the same at all points of the conductor', 'The field just outside the surface is perpendicular to it', 'Any excess charge lies on the outer surface if the cavity is empty'],
+    r`If a charge $+q$ sits inside a cavity, the cavity wall carries $-q$ to cancel its field in the metal, so the first option is the false one. The other three statements are standard properties.`, { trap: 'Read the NOT: three true statements and one false.' }),
+
+  // ---------- Level 4 ----------
+  xnat(4, 'earthed shell', r`A thin shell of radius 0.2 m carries $+8$ nC. Inside it, concentric, is a small conducting sphere of radius 0.1 m which is earthed. Find the charge induced on the small sphere (in nC, with sign).`, -8 * 0.1 / 0.2, 0, 0,
+    r`Earthed, so its potential is zero: $k\left(\dfrac{q}{0.1} + \dfrac{8}{0.2}\right) = 0$, $q = -8\times\dfrac{0.1}{0.2} = -4$ nC.`, { unit: 'nC' }),
+  xnat(4, 'escape of a charge', r`A conducting sphere of radius 0.1 m carries $+10\ \mu$C. A particle of mass 2 g and charge $+1\ \mu$C is released at its surface. Find its speed very far away (in $\mathrm{m\,s^{-1}}$). ${XKC}.`, Math.sqrt(2 * XK * 1e-5 * 1e-6 / 0.1 / 2e-3), 0, 0,
+    r`Energy: $\tfrac12mv^2 = \dfrac{kQq}{R} = \dfrac{9\times10^{9}\times10^{-5}\times10^{-6}}{0.1} = 0.9$ J. $v = \sqrt{\dfrac{2\times0.9}{0.002}} = \sqrt{900} = 30\ \mathrm{m\,s^{-1}}$.`, { unit: 'm/s' }),
+  xnat(4, 'closest approach', r`An alpha particle (charge $+2e$) of kinetic energy 5.0 MeV is fired straight at a gold nucleus ($Z = 79$), which is fixed. Find the distance of closest approach (in fm, 1 decimal). ${XKC}, $e = 1.6\times10^{-19}$ C, 1 MeV $= 1.6\times10^{-13}$ J.`, XK * 2 * 79 * XQE ** 2 / (5 * 1.6e-13) * 1e15, 0.5, 1,
+    r`At closest approach all the kinetic energy has become electrostatic energy: $\dfrac{k(2e)(79e)}{d} = 5$ MeV. $d = \dfrac{9\times10^{9}\times158\times(1.6\times10^{-19})^2}{8\times10^{-13}} = 4.55\times10^{-14}$ m $= 45.5$ fm.`, { unit: 'fm' }),
+  xnat(4, 'zero field, non-zero potential', r`Charges $+9\ \mu$C and $+4\ \mu$C are 0.5 m apart. At the point on the line between them where the field is zero, find the potential (in kV). ${XKC}.`, XK * (9e-6 / 0.3 + 4e-6 / 0.2) / 1e3, 0, 0,
+    r`Zero field: $\dfrac{9}{x^2} = \dfrac{4}{(0.5-x)^2}$ gives $3(0.5 - x) = 2x$, $x = 0.3$ m from the $9\ \mu$C charge (0.2 m from the other). $V = 9\times10^{9}\left(\dfrac{9\times10^{-6}}{0.3} + \dfrac{4\times10^{-6}}{0.2}\right) = 9\times10^{9}\times5\times10^{-5} = 4.5\times10^{5}$ V $= 450$ kV.`, { unit: 'kV', trap: 'Zero field does not mean zero potential.' }),
+  xnat(4, 'potential energy of charges', r`Charges $+q, -q, +q, -q$ are placed in order at the corners of a square of side 0.2 m, $q = 2\ \mu$C. Find the electric potential energy of the system (in J, 2 decimals). ${XKC}.`, XK * 4e-12 / 0.2 * (-4 + 2 / Math.SQRT2), 0.005, 2,
+    r`Four adjacent (unlike) pairs at $a$: $-4\dfrac{kq^2}{a}$. Two diagonal (like) pairs at $a\sqrt2$: $+\dfrac{2kq^2}{a\sqrt2} = +\sqrt2\dfrac{kq^2}{a}$. $\dfrac{kq^2}{a} = \dfrac{9\times10^{9}\times4\times10^{-12}}{0.2} = 0.18$ J. $U = 0.18\times(-4 + 1.414) = -0.47$ J.`, { unit: 'J' }),
+  xnat(4, 'infinite ladder', r`An infinite ladder repeats one section: a $4\ \mu$F capacitor in the upper rail, then a shunt capacitor of $8\ \mu$F across the two rails. Find the equivalent capacitance of the whole ladder (in $\mu$F, 2 decimals).`, 4 * (Math.sqrt(3) - 1), 0.02, 2,
+    r`With $C = 4$ and shunt $2C$: the ladder $x$ equals $C$ in series with ($2C$ in parallel with $x$). $x = \dfrac{C(2C + x)}{3C + x}$, so $x^2 + 2Cx - 2C^2 = 0$ and $x = C(\sqrt3 - 1) = 4\times0.732 = 2.93\ \mu$F.`, { unit: 'µF' }),
+  xnat(4, 'ring axis', r`A ring of radius 10 cm carries a uniform charge. At what distance from the centre, on the axis, is the field largest (in cm, 2 decimals)?`, 10 / Math.SQRT2, 0.02, 2,
+    r`$E = \dfrac{kQx}{(R^2 + x^2)^{3/2}}$. Setting $\dfrac{dE}{dx} = 0$: $(R^2 + x^2) - 3x^2 = 0$, so $x = \dfrac{R}{\sqrt2} = 7.07$ cm.`, { unit: 'cm' }),
+  xnat(4, 'potential inside a cavity', r`A point charge $+2$ nC sits at the centre of an uncharged thick metal shell of inner radius 0.10 m and outer radius 0.20 m. Find the potential at 0.05 m from the charge (in V). ${XKC}.`, XK * 2e-9 * (1 / 0.05 - 1 / 0.10 + 1 / 0.20), 0, 0,
+    r`Charges: $+2$ nC at the centre, $-2$ nC on the inner face (0.10 m), $+2$ nC on the outer face (0.20 m). $V = kq\left(\dfrac1{0.05} - \dfrac1{0.10} + \dfrac1{0.20}\right) = 18\times(20 - 10 + 5) = 270$ V.`, { unit: 'V' }),
+  xnat(4, 'work in a changing potential', r`In a region $V = 3x^2 - 2x$ volts ($x$ in m). Find the work done by the field in moving $+5\ \mu$C from $x = 1$ m to $x = 3$ m (in $\mu$J, with sign).`, 5 * ((3 - 2) - (27 - 6)), 0, 0,
+    r`$V(1) = 1$ V, $V(3) = 27 - 6 = 21$ V. $W_{\text{field}} = q(V_i - V_f) = 5\times(1 - 21) = -100\ \mu$J. The charge moves to higher potential, against the field.`, { unit: 'µJ' }),
+  xnat(4, 'repeated sharing', r`A $2\ \mu$F capacitor charged to 60 V is connected across an uncharged $4\ \mu$F capacitor. The $4\ \mu$F is then fully discharged and the $2\ \mu$F is connected across it again, and this is done once more (three connections in all). Find the charge left on the $2\ \mu$F capacitor (in $\mu$C, 2 decimals).`, 120 / 27, 0.02, 2,
+    r`Each connection shares the charge in the ratio $C_1:(C_1+C_2) = 2:6$, so the $2\ \mu$F keeps $\tfrac13$ of its charge each time. After three: $120\times\left(\tfrac13\right)^3 = 4.44\ \mu$C.`, { unit: 'µC' }),
+  xnat(4, 'RC power balance', r`A capacitor charges through a resistor with time constant 3.0 s. At what time is the power dissipated in the resistor equal to the rate at which energy is being stored in the capacitor (in s, 2 decimals)?`, 3 * Math.LN2, 0.02, 2,
+    r`Resistor: $I^2R$. Capacitor: $\dfrac{d}{dt}\dfrac{q^2}{2C} = \dfrac{qI}{C}$. Equal when $IR = \dfrac qC$, i.e. $V_R = V_C = \dfrac V2$, so $q = \tfrac12CV$ and $t = \tau\ln2 = 2.08$ s.`, { unit: 's' }),
+  xnat(4, 'common potential', r`Two conducting spheres of radii 5 cm and 10 cm carry $+6$ nC and $-3$ nC and are far apart. They are joined by a thin wire. Find the final charge on the smaller sphere (in nC). `, (6 - 3) * 5 / 15, 0, 0,
+    r`Total charge $+3$ nC is shared in the ratio of radii, $5:10$. The small sphere gets $3\times\dfrac{5}{15} = 1$ nC (and the large one 2 nC).`, { unit: 'nC' }),
+  xnat(4, 'charged sphere in a medium', r`A conducting sphere of radius 0.2 m carries $+2\ \mu$C and sits in a liquid of dielectric constant 4. Find the energy of its electric field (in J, 3 decimals). ${XKC} for vacuum.`, XK * 4e-12 / (2 * 0.2 * 4), 0.0005, 4,
+    r`In a medium of constant $K$ all fields fall by $K$ for the same free charge, so $U = \dfrac{Q^2}{8\pi\varepsilon_0KR} = \dfrac{kQ^2}{2KR} = \dfrac{9\times10^{9}\times4\times10^{-12}}{2\times0.2\times4} = 0.0225$ J. (The vacuum value is 0.09 J.)`, { unit: 'J' }),
+  xnat(4, 'slab pulled into an isolated capacitor', r`An isolated capacitor with air has $C = 20$ pF and charge 100 nC. A slab of $K = 5$ fills it. Find the energy released as the slab is pulled in (in $\mu$J).`, (1e-14 / (2 * 20e-12)) * (1 - 1 / 5) * 1e6, 0, 0,
+    r`$Q = 100$ nC. Before: $U_0 = \dfrac{Q^2}{2C} = \dfrac{10^{-14}}{2\times20\times10^{-12}} = 2.5\times10^{-4}$ J $= 250\ \mu$J. After: $U_0/K = 50\ \mu$J. Released: $200\ \mu$J.`, { unit: 'µJ' }),
+  xmt(4, 'potential at the centre', 'mx4', r`Match each situation with the potential at the stated point (zero at infinity).`, 'A-p, B-q, C-r, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r'],
+    r`(A) $\dfrac{kQ}{R}$ (p). (B) Solid insulating sphere, centre: $\dfrac{3kQ}{2R}$ (q). (C) Ring, $x = R$: $\dfrac{kQ}{\sqrt{R^2+R^2}} = \dfrac{kQ}{\sqrt2R}$ (r). (D) $\dfrac{kQ}{R} - \dfrac{kQ}{2R} = \dfrac{kQ}{2R}$ (s).`),
+  xmt(4, 'RC circuit', 'mx5', r`An uncharged capacitor is charged from a battery through a resistor. Match each event with the time at which it happens.`, 'A-p, B-q, C-r, D-s', ['A-p, B-q, C-s, D-r', 'A-q, B-p, C-r, D-s', 'A-p, B-r, C-q, D-s'],
+    r`(A) $1 - e^{-t/\tau} = 0.5$: $t = \ln2\,\tau = 0.69\tau$ (p). (B) $e^{-t/\tau} = \tfrac14$: $t = \ln4\,\tau = 1.39\tau$ (q). (C) Energy $\propto q^2$: $1 - e^{-t/\tau} = \tfrac1{\sqrt2}$ gives $e^{-t/\tau} = 0.293$, $t = 1.23\tau$ (r). (D) $e^{-t/\tau} = 0.1$: $t = \ln10\,\tau = 2.30\tau$ (s). Option t ($1.00\tau$) is the 63 % charge point, not used here.`),
+  xmt(4, 'sphere inside a shell', 'mx6', r`A conducting sphere of radius $a$ with $+Q$ is at the centre of a thin shell of radius $2a$. Match each shell charge with the potential of the inner sphere.`, 'A-p, B-q, C-r, D-s', ['A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r', 'A-p, B-r, C-q, D-s'],
+    r`$V_{\text{in}} = \dfrac{kQ}{a} + \dfrac{kQ_{\text{shell}}}{2a}$. (A) $Q_{sh} = 0$: $\dfrac{kQ}{a}$ (p). (B) $-Q$: $\dfrac{kQ}{a} - \dfrac{kQ}{2a} = \dfrac{kQ}{2a}$ (q). (C) $+Q$: $\dfrac{3kQ}{2a}$ (r). (D) $+2Q$: $\dfrac{kQ}{a} + \dfrac{kQ}{a} = \dfrac{2kQ}{a}$ (s).`),
+  xmsq(4, 'electric dipole', r`A dipole is placed in a uniform electric field at some angle to it. Which statements are correct?`, [r`The net force on the dipole is zero.`, r`The torque is greatest when the dipole is perpendicular to the field.`, r`The orientation opposite to the field is a position of stable equilibrium.`, r`The potential energy is greatest when the dipole is opposite to the field.`], [0, 1, 3],
+    r`Equal and opposite forces: net force zero (A). $\tau = pE\sin\theta$ is greatest at $90^\circ$ (B). At $180^\circ$ the torque is zero but the equilibrium is unstable: a small turn is pushed further (C is wrong). $U = -pE\cos\theta$ is maximum, $+pE$, at $180^\circ$ (D).`),
+  xmsq(4, 'series combination', r`Two capacitors, $C_1 = 2\ \mu$F and $C_2 = 6\ \mu$F, are in series across a battery of 16 V. Which are correct?`, [r`Each has charge $24\ \mu$C.`, r`The voltage across $C_1$ is 12 V.`, r`The energy in $C_2$ is three times that in $C_1$.`, r`The equivalent capacitance is $8\ \mu$F.`], [0, 1],
+    r`$C_{eq} = \dfrac{12}{8} = 1.5\ \mu$F (D is wrong), $Q = 1.5\times16 = 24\ \mu$C (A). $V_1 = 24/2 = 12$ V (B), $V_2 = 4$ V. Energy $\dfrac{Q^2}{2C}$ with the same $Q$ is larger for the smaller $C$: $C_1$ stores three times as much as $C_2$, so C is wrong.`),
+  xmsq(4, 'capacitor with a battery', r`A battery stays connected to a parallel plate capacitor while a dielectric slab ($K > 1$) is slowly pushed in to fill the gap. Which are correct?`, [r`The charge on the plates increases.`, r`The electric field between the plates in the filled region decreases.`, r`The energy stored increases.`, r`The potential difference across the capacitor stays the same.`], [0, 2, 3],
+    r`$V$ fixed (D). $C\to KC$, so $Q = CV$ rises (A) and $U = \tfrac12CV^2$ rises (C). The field in the slab: $E = V/d$ is unchanged (it is $E_0$ in the dielectric too, since $V$ and $d$ do not change), so B is false. (The free-charge density rises to $K\sigma$, but the polarisation charge cancels the extra field.)`),
+  xmsq(4, 'equipotential surfaces', r`For the electrostatic field of a single positive point charge, which are correct?`, [r`Equipotential surfaces are spheres centred on the charge.`, r`Work done in moving a test charge along an equipotential is zero.`, r`The potential difference between two equipotentials is the same however the test charge is moved between them.`, r`Equipotential surfaces are equally spaced for equal steps of potential.`], [0, 1, 2],
+    r`$V = kq/r$ is constant on spheres (A); no force component along the surface (B); the field is conservative (C). Equal steps in $V$ need $\Delta r = kq\left(\dfrac1{V_1} - \dfrac1{V_2}\right)$, which is not equal spacing (D is false); they crowd together near the charge.`),
+  xmsq(4, 'parallel combination', r`Three capacitors of $1\ \mu$F, $2\ \mu$F and $3\ \mu$F are in parallel across a 6 V battery. Which are correct?`, [r`The equivalent capacitance is $6\ \mu$F.`, r`The $3\ \mu$F capacitor holds the largest charge.`, r`Each has the same charge.`, r`The total energy stored is $108\ \mu$J.`], [0, 1, 3],
+    r`Parallel: $C = 6\ \mu$F (A). The same $V$, so $Q = CV$ is largest for $3\ \mu$F (B); charges are $6, 12, 18\ \mu$C, not equal (C false). $U = \tfrac12\times6\times10^{-6}\times36 = 108\ \mu$J (D).`),
+  xmsq(5, 'potential and field', r`The potential in a region is $V = ax^2$ with $a > 0$ (SI units), $x$ along the $x$-axis. Which are correct?`, [r`The field is $E_x = -2ax$.`, r`For $x > 0$ the field points away from the origin.`, r`Work done by the field in moving a positive charge from $x = 1$ to $x = 2$ is negative.`, r`The potential difference between $x = 1$ and $x = 3$ is $8a$.`], [0, 2, 3],
+    r`$E_x = -dV/dx = -2ax$ (A): at $x > 0$ it points along $-x$ (towards the origin), so B, which says it points away, is false. Moving from $x = 1$ to $2$ means going to higher potential ($a$ to $4a$), so the field does negative work (C). $V(3) - V(1) = 9a - a = 8a$ (D).`),
+  xasrt(4, 'conducting slab', r`Inserting a thick metal slab, parallel to the plates and not touching them, in an isolated charged parallel plate capacitor decreases the potential difference.`, r`The field inside the metal is zero, so the slab removes a length equal to its thickness from the region where the field exists.`, 0,
+    r`With the charge fixed, the field in the air gaps stays $\sigma/\varepsilon_0$, and no potential drop occurs inside the metal. $V = E(d - t)$ is smaller than $Ed$. R is true and explains A.`),
+  xasrt(4, 'charge sharing', r`When a charged capacitor is joined to an identical uncharged one, the total energy falls by half.`, r`The charge is conserved while the capacitance doubles, so the potential difference halves.`, 0,
+    r`$Q$ spreads over $2C$: $V\to V/2$, $U_f = \tfrac12(2C)\left(\dfrac V2\right)^2 = \tfrac14CV^2$, half of $U_i = \tfrac12CV^2$. The lost half becomes heat and radiation in the connection. R is true and explains the halving.`),
+  xstm(4, 'energy stored', r`A capacitor connected to a battery stores energy $\tfrac12CV^2$ and the battery supplies $CV^2$ in charging it.`, r`Half of the energy supplied by the battery is dissipated as heat in the resistance of the circuit, whatever its value.`, 0,
+    r`Both are true, and II explains the missing half in I: the battery moves charge $Q = CV$ through potential $V$, giving $CV^2$; $\tfrac12CV^2$ is stored, the other $\tfrac12CV^2$ is heat for any $R$.`),
+  xcnt(4, 'conductors and shells', r`How many of the following are correct for a thin conducting shell carrying charge $Q$ (radius $R$)?`, [r`The potential at the centre is $kQ/R$.`, r`The field at distance $2R$ is $\dfrac{kQ}{4R^2}$.`, r`The field just outside the surface is $\dfrac{kQ}{R^2}$.`, r`The potential at distance $2R$ is $\dfrac{kQ}{R}$.`], 3,
+    r`(1) true: inside, $V = $ surface value. (2) true: outside it acts as a point charge, $\dfrac{kQ}{(2R)^2}$. (3) true. (4) false: $V = \dfrac{kQ}{2R}$. Three are correct.`),
+  xpas(3, 'field between plates', 'px1', r`Find the field between the plates (in $\mathrm{kV\,m^{-1}}$).`, 200 / 0.02 / 1e3, 0, 0,
+    r`$E = V/d = \dfrac{200}{0.02} = 10^{4}\ \mathrm{V\,m^{-1}} = 10$ kV/m.`, { unit: 'kV/m' }),
+  xpas(4, 'deflection', 'px1', r`Find the sideways deflection of the electron on leaving the plates (in mm, 2 decimals).`, 0.5 * (XQE * 1e4 / XME) * (0.05 / 3e7) ** 2 * 1e3, 0.03, 2,
+    r`$a = \dfrac{eE}{m} = \dfrac{1.6\times10^{-19}\times10^{4}}{9.1\times10^{-31}} = 1.76\times10^{15}\ \mathrm{m\,s^{-2}}$. $t = \dfrac{0.05}{3\times10^{7}} = 1.67\times10^{-9}$ s. $y = \tfrac12at^2 = 2.44\times10^{-3}$ m $= 2.44$ mm. (It deflects towards the positive plate; the electron does not hit it, since the half-gap is 10 mm.)`, { unit: 'mm' }),
+  xpas(5, 'direction of motion', 'px1', r`Find the angle that the velocity of the electron makes with its original direction as it leaves the plates (in degrees, 1 decimal).`, Math.atan((XQE * 1e4 / XME) * (0.05 / 3e7) / 3e7) * 180 / Math.PI, 0.2, 1,
+    r`$v_y = at = 1.76\times10^{15}\times1.67\times10^{-9} = 2.93\times10^{6}\ \mathrm{m\,s^{-1}}$. $\tan\theta = \dfrac{v_y}{v_x} = \dfrac{2.93\times10^{6}}{3\times10^{7}} = 0.0977$, so $\theta = 5.6^\circ$.`, { unit: '°' }),
+  xpas(3, 'charge sharing', 'px2', r`Find the common potential difference after the two capacitors are joined (in V, 1 decimal).`, 300 / 9, 0.1, 1,
+    r`$Q = 6\times50 = 300\ \mu$C is shared over $9\ \mu$F: $V = 33.3$ V.`, { unit: 'V' }),
+  xpas(4, 'energy loss', 'px2', r`Find the energy lost when they are joined (in mJ, 2 decimals).`, (0.5 * 6e-6 * 2500 - 0.5 * 9e-6 * (300 / 9) ** 2) * 1e3, 0.02, 2,
+    r`$U_i = \tfrac12\times6\times50^2 = 7500\ \mu$J. $U_f = \tfrac12\times9\times33.3^2 = 5000\ \mu$J. Loss $= 2500\ \mu$J $= 2.50$ mJ. (Check: $\tfrac12\dfrac{6\times3}{9}\times50^2 = 2500$.)`, { unit: 'mJ' }),
+  xpas(5, 'slab pulled in', 'px2', r`Find the work done by the electric field on the slab as it enters (in mJ, 2 decimals).`, (0.5 * 9e-6 * (300 / 9) ** 2 - 0.5 * 15e-6 * 20 ** 2) * 1e3, 0.02, 2,
+    r`The pair is isolated, so the total charge stays $300\ \mu$C. Before the slab: $9\ \mu$F, $U = 5.0$ mJ. After: $6\to12\ \mu$F, total $15\ \mu$F, $V = 300/15 = 20$ V, $U = \tfrac12\times15\times20^2 = 3000\ \mu$J $= 3.0$ mJ. The stored energy drops by $2.0$ mJ, which is the work done by the field on the slab.`, { unit: 'mJ', trap: 'Charge, not voltage, is conserved in the isolated pair.' }),
+
+  // ---------- Level 5 ----------
+  xnat(5, 'earthed shell', r`A charge $+3$ nC is at the centre of a thin conducting spherical shell of radius 0.15 m, and the shell is earthed. Find the potential at a point 0.075 m from the centre (in V). ${XKC}.`, XK * 3e-9 * (1 / 0.075 - 1 / 0.15), 0, 0,
+    r`Earthing holds the shell at 0 V, and the induced charge is $-3$ nC on its inner face and none outside. Inside, the potential is that of the point charge plus the constant due to the shell: $V = kq\left(\dfrac1r - \dfrac1R\right) = 27\times(13.33 - 6.67) = 180$ V. Outside the shell the potential and the field are both zero.`, { unit: 'V', trap: 'The shell contributes a constant -kq/R inside, not zero.' }),
+  xnat(5, 'wedge capacitor', r`The plates of a capacitor are 10 cm $\times$ 10 cm, and the gap increases linearly from 1 mm at one edge to 3 mm at the opposite edge (plates inclined to each other, air between). Find its capacitance (in pF, 1 decimal). ${XCONST}`, XE0 * 0.1 * 0.1 / 0.002 * Math.log(3) * 1e12, 0.3, 1,
+    r`Cut the plate into strips of width $dx$ parallel to the edge where the gap is constant; each strip is a small capacitor $dC = \dfrac{\varepsilon_0\,w\,dx}{d(x)}$ with $d(x) = d_1 + \dfrac{(d_2-d_1)}{L}x$, all in parallel. $C = \dfrac{\varepsilon_0wL}{d_2 - d_1}\ln\dfrac{d_2}{d_1} = \dfrac{8.85\times10^{-12}\times0.01}{0.002}\ln3 = 4.425\times10^{-11}\times1.0986 = 48.6$ pF.`, { unit: 'pF' }),
+  xnat(5, 'graded dielectric', r`The gap $d$ of a parallel plate capacitor is filled with a dielectric whose constant varies with the distance $x$ from one plate as $K = 2\left(1 + \dfrac xd\right)$. Find $C/C_0$ (where $C_0$ is the capacitance with air) (3 decimals).`, 2 / Math.LN2, 0.01, 3,
+    r`Layers perpendicular to the field are in series: $\dfrac1C = \int_0^d\dfrac{dx}{\varepsilon_0AK} = \dfrac{d}{2\varepsilon_0A}\int_0^1\dfrac{du}{1+u} = \dfrac{d\ln2}{2\varepsilon_0A}$. So $C = \dfrac{2\varepsilon_0A}{d\ln2}$ and $\dfrac{C}{C_0} = \dfrac{2}{\ln2} = 2.885$.`),
+  xnat(5, 'non-uniform charge', r`A solid insulating sphere of radius 0.3 m has a charge density $\rho = \rho_0\dfrac{r}{R}$ with $\rho_0 = 2\ \mu\mathrm{C\,m^{-3}}$. Find the potential at its centre (in V, nearest 10). ${XCONST}`, 2e-6 * 0.09 / (3 * XE0), 10, 0,
+    r`Charge inside radius $r$: $q(r) = \int_0^r4\pi r'^2\rho_0\dfrac{r'}{R}dr' = \dfrac{\pi\rho_0r^4}{R}$, so $Q = \pi\rho_0R^3$. Inside, $E = \dfrac{q(r)}{4\pi\varepsilon_0r^2} = \dfrac{\rho_0r^2}{4\varepsilon_0R}$; outside $E = \dfrac{kQ}{r^2}$. $V(0) = \int_0^RE\,dr + \dfrac{kQ}{R} = \dfrac{\rho_0R^2}{12\varepsilon_0} + \dfrac{\rho_0R^2}{4\varepsilon_0} = \dfrac{\rho_0R^2}{3\varepsilon_0} = \dfrac{2\times10^{-6}\times0.09}{3\times8.85\times10^{-12}} = 6780$ V.`, { unit: 'V' }),
+  xnat(5, 'dipole oscillations', r`A dipole is made of two small masses of 1.0 g each, carrying $+1\ \mu$C and $-1\ \mu$C, joined by a light rod 2.0 cm long. It is placed in a uniform field of $1000\ \mathrm{V\,m^{-1}}$ and displaced slightly from its equilibrium. Find the period of the small oscillations (in s, 2 decimals).`, 2 * Math.PI * Math.sqrt((2 * 1e-3 * 0.01 ** 2) / (1e-6 * 0.02 * 1000)), 0.01, 2,
+    r`$p = ql = 10^{-6}\times0.02 = 2\times10^{-8}$ C m. For small $\theta$ the torque is $-pE\theta$. The moment of inertia about the centre is $I = 2m\left(\dfrac l2\right)^2 = 2\times10^{-3}\times10^{-4} = 2\times10^{-7}\ \mathrm{kg\,m^2}$. $\omega^2 = \dfrac{pE}{I} = \dfrac{2\times10^{-5}}{2\times10^{-7}} = 100$, $\omega = 10\ \mathrm{s^{-1}}$, $T = \dfrac{2\pi}{10} = 0.63$ s.`, { unit: 's' }),
+  xnat(5, 'heat while charging', r`A $4\ \mu$F capacitor is charged by a 100 V battery through a resistor. Find the heat produced in the resistor by the time the capacitor holds 80 % of its final charge (in mJ, 1 decimal).`, 0.8 * 4e-6 * 100 * 100 * 1e3 - (0.8 * 4e-6 * 100) ** 2 / (2 * 4e-6) * 1e3, 0.05, 1,
+    r`Charge moved $q = 0.8\times4\times100 = 320\ \mu$C. Battery energy $= qV = 320\times10^{-6}\times100 = 32.0$ mJ. Stored: $\dfrac{q^2}{2C} = \dfrac{(320\times10^{-6})^2}{8\times10^{-6}} = 12.8$ mJ. Heat $= 32.0 - 12.8 = 19.2$ mJ. (At full charge the heat would be 20 mJ, equal to the stored 20 mJ.)`, { unit: 'mJ', trap: 'The battery gives qV, not the stored energy.' }),
+  xnat(5, 'moving the plates with a battery', r`A parallel plate capacitor of area $0.02\ \mathrm{m^2}$ is connected to a 500 V battery with a gap of 2 mm. The gap is slowly doubled with the battery still connected. Find the work done by the external agent (in $\mu$J, 2 decimals). ${XCONST}`, XE0 * 0.02 * 250000 / (4 * 0.002) * 1e6, 0.05, 2,
+    r`At gap $x$ the attraction is $F = \dfrac{\varepsilon_0AV^2}{2x^2}$, and the agent must balance it. $W = \int_{d}^{2d}\dfrac{\varepsilon_0AV^2}{2x^2}dx = \dfrac{\varepsilon_0AV^2}{2}\left(\dfrac1d - \dfrac1{2d}\right) = \dfrac{\varepsilon_0AV^2}{4d} = \dfrac{8.85\times10^{-12}\times0.02\times250000}{4\times0.002} = 5.53\times10^{-6}$ J. Check by energy: stored energy falls by $5.53\ \mu$J, the battery takes in $\Delta Q\,V = -11.06\ \mu$J, so the agent supplies $-5.53 + 11.06 = 5.53\ \mu$J.`, { unit: 'µJ', trap: 'With a battery, the agent does more work than the change in stored energy suggests.' }),
+  xmt(5, 'force between the plates', 'mx7', r`A parallel plate capacitor (area $A$, gap $d$) is either isolated or kept connected to a battery of voltage $V$. Match each operation with the change of the attractive force between the plates.`, 'A-p, B-q, C-s, D-r', ['A-q, B-p, C-s, D-r', 'A-p, B-q, C-r, D-s', 'A-p, B-s, C-q, D-r'],
+    r`Force $F = \dfrac{Q^2}{2\varepsilon_0A} = \dfrac{\varepsilon_0AV^2}{2d^2}$. (A) isolated, $d$ changes: $Q$, $A$ fixed, so unchanged (p). (B) battery, $d\to2d$: $F\propto1/d^2$, so $\tfrac14$ (q). (C) isolated, $A\to2A$: $F\propto1/A$, so $\tfrac12$ (s). (D) battery, $A\to2A$: $F\propto A$, so 2 (r).`, { trap: 'Isolated: use Q-form. Connected: use V-form.' }),
+  xmt(5, 'field on a ring axis', 'mx8', r`A ring of radius $R$ and charge $Q$ has its centre at the origin. Match each point on the axis with the field there.`, 'A-p, B-q, C-r, D-s', ['A-p, B-r, C-q, D-s', 'A-q, B-p, C-r, D-s', 'A-p, B-q, C-s, D-r'],
+    r`$E = \dfrac{kQx}{(R^2 + x^2)^{3/2}}$. $x = 0$: 0 (p). $x = R/\sqrt2$: $\dfrac{0.7071}{1.5^{1.5}} = \dfrac{2}{3\sqrt3}$ (q), the maximum. $x = R$: $\dfrac{1}{2^{1.5}} = \dfrac1{2\sqrt2}$ (r). $x = 2R$: $\dfrac{2}{5^{1.5}} = \dfrac{2}{5\sqrt5}$ (s).`),
+  xmsq(5, 'two connected spheres', r`Two conducting spheres of radii $R_1 < R_2$ are connected by a long thin wire and given a total charge. Which are correct?`, [r`The two spheres are at the same potential.`, r`The surface charge density is larger on the smaller sphere.`, r`The larger sphere carries more charge.`, r`The field just outside the larger sphere is greater.`], [0, 1, 2],
+    r`Same potential: $\dfrac{kQ_1}{R_1} = \dfrac{kQ_2}{R_2}$, so $Q\propto R$ (C true). $\sigma = \dfrac{Q}{4\pi R^2}\propto\dfrac1R$, larger on the smaller sphere (B true). Surface field $\sigma/\varepsilon_0\propto1/R$ is larger for the smaller sphere (D false).`),
+  xmsq(5, 'RC circuit', r`A capacitor $C$ charges through a resistor $R$ from a battery of emf $\mathcal{E}$. Which are correct?`, [r`At $t = RC\ln2$ the voltage across the resistor equals that across the capacitor.`, r`The total heat produced is $\tfrac12C\mathcal{E}^2$, whatever the value of $R$.`, r`The current falls to $1/e$ of its initial value after $t = RC$.`, r`The energy stored in the capacitor reaches half of its final value at $t = RC\ln2$.`], [0, 1, 2],
+    r`$V_R = \mathcal{E}e^{-t/\tau}$ and $V_C = \mathcal{E}(1 - e^{-t/\tau})$ are equal when $e^{-t/\tau} = \tfrac12$ (A). Heat $= \mathcal{E}Q - \tfrac12C\mathcal{E}^2 = \tfrac12C\mathcal{E}^2$ (B). $I = I_0e^{-1}$ at $t = \tau$ (C). Energy $\propto q^2$: half of the final value needs $q = Q/\sqrt2$, which is at $1.23\tau$, not $0.69\tau$ (D false).`),
+  xmsq(5, 'concentric shells', r`A thin shell A (radius $a$, charge $+Q$) is surrounded by a concentric thin shell B (radius $b>a$, charge $-2Q$). Which are correct?`, [r`The potential of A is $kQ\left(\dfrac1a - \dfrac2b\right)$.`, r`The field outside both shells is zero.`, r`The potential difference $V_A - V_B$ is $kQ\left(\dfrac1a - \dfrac1b\right)$.`, r`If B is earthed, the charge on B's outer surface becomes zero.`], [0, 2, 3],
+    r`$V_A = \dfrac{kQ}{a} + \dfrac{k(-2Q)}{b}$ (A true). Outside, the net charge is $-Q$, so the field is $kQ/r^2$ inwards, not zero (B false). $V_A - V_B = kQ\left(\dfrac1a - \dfrac1b\right)$, independent of B's charge (C true). Earthing B sets its potential to zero, which needs zero net charge outside it: the outer surface charge is zero (D true).`),
+  xmsq(5, 'dielectric slab', r`A parallel plate capacitor with air has plates of length $L$ and is connected to a battery $V$. A dielectric slab ($K>1$), filling the gap, is inserted a distance $x$ between the plates. Which are correct?`, [r`$C$ increases linearly with $x$.`, r`The force on the slab is independent of $x$ (edge effects ignored).`, r`The charge drawn from the battery increases linearly with $x$.`, r`The force on the slab is directed so as to push it out.`], [0, 1, 2],
+    r`$C(x) = C_0\left[1 + (K-1)\dfrac xL\right]$ (A). $F = \tfrac12V^2\dfrac{dC}{dx} = \text{constant}$ (B). $Q = CV$ grows linearly (C). The force is positive: it pulls the slab in (D false).`),
+  xmsq(5, 'potential energy of charges', r`Four identical positive charges are at the corners of a square. Which are correct?`, [r`The potential at the centre is not zero.`, r`The field at the centre is zero.`, r`Removing one charge makes the field at the centre zero.`, r`The potential energy of the system is positive.`], [0, 1, 3],
+    r`Potentials add and are positive (A). Opposite pairs cancel the field (B). With one removed, the other three leave the field of the opposite charge uncancelled (C false). All pair energies are positive (D).`),
+  xasrt(5, 'electrostatic pressure', r`A charged soap bubble tends to expand.`, r`The outward electrostatic pressure on a charged conducting surface is $\dfrac{\sigma^2}{2\varepsilon_0}$.`, 0,
+    r`Each element of surface charge feels the field of all the other charges, which is half the field just outside, $\dfrac{\sigma}{2\varepsilon_0}$, directed outwards. The force per unit area is $\sigma\times\dfrac{\sigma}{2\varepsilon_0}$. This outward pressure is what makes a charged bubble expand. R explains A.`),
+  xstm(5, 'charged shell', r`The electric field just outside a charged conducting surface is twice the average of the fields just outside and just inside.`, r`The field inside the conductor is zero, and the force on a surface charge element is calculated using the average field.`, 0,
+    r`Just outside $E = \sigma/\varepsilon_0$ and just inside 0, average $\sigma/2\varepsilon_0$; so I is true. II is true and explains why the force per area is $\sigma\times\dfrac{\sigma}{2\varepsilon_0}$: the element does not push on itself, the average field is the field of the rest of the charge.`),
+  xcnt(5, 'capacitor operations', r`A parallel plate capacitor is charged by a battery and then the battery is disconnected. The plates are then moved slowly apart. How many of these are correct?`, [r`The charge on the plates stays the same.`, r`The electric field between the plates stays the same.`, r`The potential difference increases.`, r`The energy stored increases.`], 4,
+    r`Isolated: $Q$ fixed (1). $E = \sigma/\varepsilon_0$ is fixed (2). $V = Ed$ grows with $d$ (3). $U = \tfrac12QV$ grows; the work done by the agent is stored (4). All four are correct.`),
+];
+
+const xgens = [
+  xg('__P__-g25', 3, 'nat', 'two dielectrics in series', function make(rng) {
+    const K1 = choose(rng, [2, 3, 4]); const K2 = choose(rng, [5, 6, 8]); const f = choose(rng, [0.25, 0.4, 0.5, 0.6]);
+    const ratio = 1 / (f / K1 + (1 - f) / K2);
+    return { K1, K2, f, q: `The gap of a parallel plate capacitor is filled by two full-area slabs one behind the other: $K_1 = ${K1}$ takes a fraction ${f} of the gap and $K_2 = ${K2}$ the rest. Find $C/C_0$ (2 decimals).`, answer: +ratio.toFixed(2), tol: 0.02,
+      sol: `Two capacitors in series: the effective gap is $d\\left(\\dfrac{${f}}{${K1}} + \\dfrac{${+(1 - f).toFixed(2)}}{${K2}}\\right) = ${xs(1 / ratio, 4)}\\,d$, so $C/C_0 = ${xs(ratio, 4)}$.`, trap: 'One behind the other is series: add d/K, not K.' };
+  }, (p) => 1 / (p.f / p.K1 + (1 - p.f) / p.K2)),
+  xg('__P__-g26', 3, 'mcq', 'charge sharing between spheres', function make(rng) {
+    const R1 = choose(rng, [2, 3, 4, 5]); const R2 = choose(rng, [6, 8, 9, 10]); const Q = choose(rng, [8, 12, 16, 20]);
+    const q2 = Q * R2 / (R1 + R2); const o = numOpts(rng, q2, [Q * R1 / (R1 + R2), Q / 2, Q * R2 / R1], 'nC', 3);
+    return { R1, R2, Q, q: `A conducting sphere of radius ${R1} cm carries ${Q} nC. It is joined by a thin wire to a far-away uncharged sphere of radius ${R2} cm. The charge on the larger sphere becomes`, options: o.options, answer: o.answer,
+      sol: `Equal potentials: $Q\\propto R$. The larger sphere gets $\\dfrac{${R2}}{${R1 + R2}}\\times${Q} = ${xs(q2)}$ nC. ${xs(Q * R1 / (R1 + R2))} nC is the smaller sphere's share; equal sharing would need equal radii.` };
+  }, (p) => p.options.findIndex((o) => o === `${fmt(p.Q * p.R2 / (p.R1 + p.R2), 3)} nC`)),
+  xg('__P__-g27', 4, 'nat', 'energy lost in sharing', function make(rng) {
+    const C1 = pick(rng, 2, 10, 2); const C2 = pick(rng, 2, 10, 2); const V = pick(rng, 40, 200, 20);
+    const loss = 0.5 * C1 * C2 / (C1 + C2) * V * V * 1e-3;
+    return { C1, C2, V, q: `A $${C1}\\ \\mu$F capacitor charged to ${V} V is joined, like plates together, to an uncharged $${C2}\\ \\mu$F capacitor. Find the energy lost (in mJ, 2 decimals).`, answer: +loss.toFixed(2), tol: 0.02, unit: 'mJ',
+      sol: `$V' = \\dfrac{${C1}\\times${V}}{${C1 + C2}} = ${xs(C1 * V / (C1 + C2))}$ V. $U_i = \\tfrac12\\times${C1}\\times${V}^2\\times10^{-3} = ${xs(0.5 * C1 * V * V * 1e-3)}$ mJ, $U_f = \\tfrac12\\times${C1 + C2}\\times(${xs(C1 * V / (C1 + C2))})^2\\times10^{-3} = ${xs(0.5 * (C1 + C2) * (C1 * V / (C1 + C2)) ** 2 * 1e-3)}$ mJ. Loss $= ${xs(loss)}$ mJ.`, trap: 'Energy is not conserved: charge is.' };
+  }, (p) => { const Vf = p.C1 * p.V / (p.C1 + p.C2); return (0.5 * p.C1 * p.V ** 2 - 0.5 * (p.C1 + p.C2) * Vf ** 2) * 1e-3; }),
+  xg('__P__-g28', 4, 'nat', 'charge moving to a ring', function make(rng) {
+    const Q = pick(rng, 2, 8, 2); const R = choose(rng, [0.1, 0.2, 0.3]); const x = choose(rng, [0.1, 0.2, 0.3, 0.4]); const qq = pick(rng, 1, 4, 1); const m = choose(rng, [1, 2, 5]);
+    const D = Math.hypot(R, x); const v = Math.sqrt(2 * 9e9 * Q * 1e-6 * qq * 1e-6 * (1 / R - 1 / D) / (m * 1e-3));
+    return { Q, R, x, qq, m, q: `A thin ring of radius ${R} m carries $+${Q}\\ \\mu$C. A particle of mass ${m} g and charge $-${qq}\\ \\mu$C is released from rest on the axis ${x} m from the centre. Find its speed at the centre of the ring (in $\\mathrm{m\\,s^{-1}}$, 2 decimals; $\\dfrac{1}{4\\pi\\varepsilon_0} = 9\\times10^{9}$ SI).`, answer: +v.toFixed(2), tol: 0.03, unit: 'm/s',
+      sol: `Distance from the start to every part of the ring: $\\sqrt{${R}^2 + ${x}^2} = ${xs(D, 4)}$ m. Gain in energy: $kQq\\left(\\dfrac1{${R}} - \\dfrac1{${xs(D, 4)}}\\right) = ${xs(0.5 * m * 1e-3 * v * v, 4)}$ J. $v = \\sqrt{2K/m} = ${xs(v)}\\ \\mathrm{m\\,s^{-1}}$.`, trap: 'Use the slant distance to the ring, not x.' };
+  }, (p) => { const D = Math.sqrt(p.R ** 2 + p.x ** 2); return Math.sqrt(2 * 9e9 * p.Q * p.qq * 1e-12 * (1 / p.R - 1 / D) / (p.m * 1e-3)); }),
+  xg('__P__-g29', 4, 'nat', 'infinite ladder', function make(rng) {
+    const C = choose(rng, [2, 3, 4, 5, 6]); const m = choose(rng, [1, 2, 3]);
+    const x = C * (-m + Math.sqrt(m * m + 4 * m)) / 2;
+    return { C, m, q: `An infinite ladder repeats this section: a $${C}\\ \\mu$F capacitor in the upper rail, then a shunt capacitor of $${m * C}\\ \\mu$F across the two rails, then the rest of the ladder. Find the equivalent capacitance between the input terminals (in $\\mu$F, 2 decimals).`, answer: +x.toFixed(2), tol: 0.02, unit: 'µF',
+      sol: `The rest of the ladder is again $x$. The shunt is in parallel with it: $${m}C + x$. In series with the first $C$: $x = \\dfrac{C(${m}C + x)}{C + ${m}C + x}$, so $x^2 + ${m}Cx - ${m}C^2 = 0$ and $x = \\dfrac{C(-${m} + \\sqrt{${m * m + 4 * m}})}{2} = ${xs(x)}\\ \\mu$F.` };
+  }, (p) => { let x = p.C; for (let i = 0; i < 200; i++) { const par = p.m * p.C + x; x = p.C * par / (p.C + par); } return x; }),
+  xg('__P__-g30', 5, 'nat', 'energy in charging', function make(rng) {
+    const f = choose(rng, [0.25, 0.5, 0.75]); const tau = pick(rng, 1, 6, 1);
+    const t = -tau * Math.log(1 - Math.sqrt(f));
+    return { f, tau, q: `A capacitor charges through a resistor from a battery with time constant ${tau} s. After how many seconds does the stored energy reach ${f} of its final value (2 decimals)?`, answer: +t.toFixed(2), tol: 0.03, unit: 's',
+      sol: `$U\\propto q^2$, so $q/q_{max} = \\sqrt{${f}} = ${xs(Math.sqrt(f), 4)}$. $1 - e^{-t/\\tau} = ${xs(Math.sqrt(f), 4)}$ gives $t = ${tau}\\ln\\dfrac{1}{${xs(1 - Math.sqrt(f), 4)}} = ${xs(t)}$ s.`, trap: 'Energy goes as charge squared, so the charge fraction is the square root of the energy fraction.' };
+  }, (p) => { let lo = 0; let hi = 100 * p.tau; for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; const qf = 1 - Math.exp(-mid / p.tau); if (qf * qf < p.f) lo = mid; else hi = mid; } return lo; }),
+  xg('__P__-g31', 4, 'mcq', 'conducting or dielectric slab', function make(rng) {
+    const d = choose(rng, [4, 6, 8]); const t = choose(rng, [1, 2, 3]); const cond = rng() < 0.5; const Kk = choose(rng, [2, 4]);
+    const ratio = cond ? d / (d - t) : d / (d - t + t / Kk);
+    const o = numOpts(rng, ratio, [cond ? d / (d - t + t / Kk) : d / (d - t), d / (d + t), (d - t) / d], '', 3);
+    return { d, t, cond, Kk, q: `A parallel plate capacitor has a gap of ${d} mm. A ${cond ? 'metal' : `dielectric ($K = ${Kk}$)`} slab ${t} mm thick is placed parallel to the plates, not touching them. The ratio $C/C_0$ is`, options: o.options, answer: o.answer,
+      sol: cond ? `Inside the metal the field is zero: effective gap $d - t = ${d - t}$ mm, ratio $\\dfrac{${d}}{${d - t}} = ${xs(ratio)}$.` : `Effective gap $d - t + t/K = ${d} - ${t} + ${xs(t / Kk)} = ${xs(d - t + t / Kk)}$ mm, ratio $${xs(ratio)}$. Treating it as a conductor ($d - t$) overstates the effect.` };
+  }, (p) => p.options.findIndex((o) => o === fmt(p.cond ? p.d / (p.d - p.t) : p.d / (p.d - p.t + p.t / p.Kk), 3))),
+  xg('__P__-g32', 5, 'nat', 'wedge capacitor', function make(rng) {
+    const w = choose(rng, [5, 10, 20]); const L = choose(rng, [5, 10, 20]); const d1 = choose(rng, [1, 2]); const d2 = d1 + choose(rng, [1, 2, 3]);
+    const C = 8.85e-12 * (w / 100) * (L / 100) / ((d2 - d1) * 1e-3) * Math.log(d2 / d1) * 1e12;
+    return { w, L, d1, d2, q: `A capacitor has rectangular plates ${w} cm wide and ${L} cm long, inclined so the gap grows linearly from ${d1} mm at one edge to ${d2} mm at the other (the gap is constant along the width). Find the capacitance (in pF, 2 decimals; $\\varepsilon_0 = 8.85\\times10^{-12}$ F/m).`, answer: +C.toFixed(2), tol: Math.max(0.02, C * 0.005), unit: 'pF',
+      sol: `Thin strips across the length are capacitors in parallel: $C = \\dfrac{\\varepsilon_0wL}{d_2 - d_1}\\ln\\dfrac{d_2}{d_1} = \\dfrac{8.85\\times10^{-12}\\times${w / 100}\\times${L / 100}}{${(d2 - d1) * 1e-3}}\\ln${xs(d2 / d1, 4)} = ${xs(C)}$ pF.`, trap: 'The mean gap gives a slightly wrong answer; integrate.' };
+  }, (p) => { let s = 0; const n = 20000; for (let i = 0; i < n; i++) { const d = (p.d1 + (p.d2 - p.d1) * (i + 0.5) / n) * 1e-3; s += 8.85e-12 * (p.w / 100) * (p.L / 100 / n) / d; } return s * 1e12; }),
+];
+
+export default { topic: 'potential-capacitance', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };

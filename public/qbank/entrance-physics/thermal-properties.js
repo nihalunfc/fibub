@@ -619,4 +619,312 @@ gens.push(
   }, (p) => (p.v === 0 ? p.vv * p.vv / (2 * p.c) : p.v === 1 ? 9.8 * p.h / 4200 : p.v === 2 ? 9.8 * p.h * p.times / 4200 : p.eta * p.P * p.t / (p.mm * 4200))),
 );
 
-export default { topic: 'thermal-properties', groups, items, gens };
+// ======== Expansion block (added 2026-11-22): more hard items and templates, ids tp-x001 onward ========
+import * as XH from '../_entrance.js';
+const { pick: xpick, int: xint, choose: xchoose, fmt: xfmt, shuffleOpts: xsh, numOpts: xno } = XH;
+const xr = String.raw;
+const XE = { 1: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 2: ['keam', 'cusat', 'comedk', 'jee-main', 'neet'], 3: ['jee-main', 'neet', 'keam', 'comedk'], 4: ['jee-main', 'jee-adv'], 5: ['jee-adv'] };
+const xex = (level, type, neet) => { const e = [...XE[level]]; if (neet && level === 4) e.push('neet'); if (false && level <= 3 && type === 'mcq') e.push('cuet'); return e; };
+let xk = 0, xc = 0;
+const XPOS = [2, 0, 3, 1, 3, 1, 0, 2];
+const xb = (level, sub, o) => { const { neet, ...rest } = o; return { id: `tp-x${String(++xk).padStart(3, '0')}`, level, exams: xex(level, o.type, neet), sub, ...rest }; };
+const xq = (level, sub, q, correct, wrongs, sol, o = {}) => {
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, correct);
+  return xb(level, sub, { type: 'mcq', format: 'single', q, options, answer: pos, sol, ...o });
+};
+const xn = (level, sub, q, ans, tol, calc, sol, o = {}) => {
+  const v = calc();
+  if (!(Math.abs(v - ans) <= Math.max(tol, 1e-9) + 1e-9)) throw new Error(`tp item ${xk + 1}: calc ${v} vs answer ${ans}`);
+  return xb(level, sub, { type: 'nat', format: tol === 0 && Number.isInteger(ans) ? 'integer' : 'numeric', q, answer: ans, tol, calc, sol, ...o });
+};
+const xs = (level, sub, q, options, answer, sol, o = {}) => xb(level, sub, { type: 'msq', format: 'multi', q, options, answer, sol, ...o });
+const XAO = ['Both A and R are true and R is the correct explanation of A', 'Both A and R are true but R is not the correct explanation of A', 'A is true but R is false', 'A is false but R is true'];
+const xa = (level, sub, A, R, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'assertion', q: `<b>Assertion (A):</b> ${A}<br><b>Reason (R):</b> ${R}`, options: XAO, answer, sol, ...o });
+const XSO = ['Both Statement I and Statement II are true and II explains I', 'Both Statement I and Statement II are true but II does not explain I', 'Statement I is true and Statement II is false', 'Statement I is false and Statement II is true'];
+const xt = (level, sub, I, II, answer, sol, o = {}) => xb(level, sub, { type: 'mcq', format: 'statements', q: `<b>Statement I:</b> ${I}<br><b>Statement II:</b> ${II}`, options: XSO, answer, sol, ...o });
+const XSW = [['A', 'B'], ['C', 'D'], ['A', 'C'], ['B', 'D'], ['A', 'D'], ['B', 'C']];
+/** match item: map like {A:'q',B:'s',C:'p',D:'r'}; three wrong codes made by swapping two answers. */
+const xm = (level, sub, group, q, map, sol, o = {}) => {
+  const code = (m) => ['A', 'B', 'C', 'D'].map((l) => `${l}-${m[l]}`).join(', ');
+  const wrongs = [];
+  for (let i = 0; wrongs.length < 3; i++) { const [a, b] = XSW[(xc + i) % 6]; const m = { ...map }; [m[a], m[b]] = [m[b], m[a]]; wrongs.push(code(m)); }
+  const pos = XPOS[xc++ % 8]; const options = [...wrongs]; options.splice(pos, 0, code(map));
+  return xb(level, sub, { type: 'mcq', format: 'match', group, q, options, answer: pos, sol, ...o });
+};
+const XMU = xr`\mathrm{m\,s^{-1}}`;
+
+const xSIG = 5.67e-8;
+const xgroups = {
+  xm1: { title: 'Heat constants', list1: ['A. Latent heat of fusion of ice', 'B. Latent heat of vaporisation of water at $100\\,^\\circ$C', 'C. Specific heat of water', 'D. Specific heat of ice'],
+    list2: [xr`p. $3.36\times10^5\ \mathrm{J\,kg^{-1}}$`, xr`q. $2.26\times10^6\ \mathrm{J\,kg^{-1}}$`, xr`r. $4200\ \mathrm{J\,kg^{-1}K^{-1}}$`, xr`s. $2100\ \mathrm{J\,kg^{-1}K^{-1}}$`, xr`t. $900\ \mathrm{J\,kg^{-1}K^{-1}}$`] },
+  xm2: { title: 'Heating an isotropic rod', list1: [xr`A. Fractional change in length`, 'B. Fractional change in area of a cross-section', 'C. Fractional change in volume', 'D. Fractional change in density (small changes)'],
+    list2: [xr`p. $+1\times10^{-3}$`, xr`q. $+2\times10^{-3}$`, xr`r. $+3\times10^{-3}$`, xr`s. $-3\times10^{-3}$`, xr`t. $-1\times10^{-3}$`] },
+  xm3: { title: 'Power radiated by a black body', list1: ['A. Absolute temperature doubled (same size)', 'B. Absolute temperature tripled (same size)', 'C. Radius doubled (same temperature)', 'D. Temperature halved and radius doubled'],
+    list2: [xr`p. $\tfrac14$ times`, 'q. 4 times', 'r. 16 times', 's. 81 times', 't. 8 times'] },
+  xm4: { title: 'Mixing and the final state (no heat loss; L_f = 80 cal/g, c_w = 1 cal/g °C)', list1: ['A. 100 g of ice at $0\\,^\\circ$C and 200 g of water at $20\\,^\\circ$C', 'B. 100 g of ice at $0\\,^\\circ$C and 100 g of water at $80\\,^\\circ$C', 'C. 100 g of ice at $0\\,^\\circ$C and 100 g of water at $100\\,^\\circ$C', 'D. 200 g of water at $20\\,^\\circ$C and 100 g of water at $80\\,^\\circ$C'],
+    list2: ['p. All water at $0\\,^\\circ$C, no ice left', 'q. Water and ice at $0\\,^\\circ$C, with 50 g of ice left', 'r. All water at $10\\,^\\circ$C', 's. All water at $40\\,^\\circ$C', 't. All ice at $0\\,^\\circ$C'] },
+  xm5: { title: 'Two rods in series and in parallel', list1: [xr`A. Interface temperature when rod A ($2k$) is at 100 °C and rod B ($k$) at 0 °C, in series`, xr`B. Interface temperature when rod B ($k$) is at 100 °C and rod A ($2k$) at 0 °C, in series`, xr`C. Effective conductivity of the two rods in series (same length and area)`, xr`D. Effective conductivity of the two rods in parallel (same length and area)`],
+    list2: ['p. 66.7 °C', 'q. 33.3 °C', xr`r. $4k/3$`, xr`s. $3k/2$`, xr`t. $3k$`] },
+  xm6: { title: 'Equilibrium temperature of a planet (no atmosphere)', list1: ['A. Earth: $S = 1361\\ \\mathrm{W\\,m^{-2}}$, albedo 0.30', 'B. Mars: $S = 590\\ \\mathrm{W\\,m^{-2}}$, albedo 0.25', 'C. Venus: $S = 2600\\ \\mathrm{W\\,m^{-2}}$, albedo 0.77', 'D. Mercury: $S = 9100\\ \\mathrm{W\\,m^{-2}}$, albedo 0.10'],
+    list2: ['p. 210 K', 'q. 227 K', 'r. 255 K', 's. 436 K', 't. 270 K'] },
+  xm7: { title: 'Wien\'s displacement law (peak wavelength times temperature = 2.9e-3 m K)', list1: ['A. Wavelength of peak emission of the Sun (5800 K)', 'B. Wavelength of peak emission of a human body (310 K)', 'C. Temperature of a star whose spectrum peaks at 290 nm', 'D. Wavelength of peak emission of a filament at 2900 K'],
+    list2: ['p. 500 nm', xr`q. $9.35\ \mu$m`, 'r. 10 000 K', 's. 1000 nm', 't. 5800 K'] },
+  xm8: { title: 'A steel rod clamped between rigid walls (alpha = 1.2e-5 per K, Y = 2e11 Pa)', list1: ['A. Strain when heated by 50 K', 'B. Stress when heated by 50 K', xr`C. Force for a cross-section of $1\ \mathrm{cm^2}$`, 'D. Stress if there had been a gap equal to half of the free expansion'],
+    list2: [xr`p. $6\times10^{-4}$`, xr`q. $1.2\times10^8$ Pa`, xr`r. $1.2\times10^4$ N`, xr`s. $6\times10^7$ Pa`, xr`t. $3\times10^{-4}$`] },
+  xp1: { title: 'An immersion heater',
+    passage: xr`<p>A 300 W immersion heater, 80 % efficient (80 % of the electrical energy reaches the liquid), heats 0.5 kg of water from $20\,^\circ$C. Take $c_w = 4200\ \mathrm{J\,kg^{-1}K^{-1}}$ and $L_v = 2.26\times10^6\ \mathrm{J\,kg^{-1}}$. Ignore the heat capacity of the container.</p>` },
+  xp2: { title: 'Conduction through a tapered rod',
+    passage: xr`<p>A round copper rod ($k = 400\ \mathrm{W\,m^{-1}K^{-1}}$) is 0.50 m long. Its radius changes uniformly from 1.0 cm at the hot end ($100\,^\circ$C) to 2.0 cm at the cold end ($0\,^\circ$C). The curved surface is insulated and the flow is steady.</p>` },
+};
+
+const xitems = [
+  // ---------- Level 2 ----------
+  xq(2, 'heat capacity', xr`The SI unit of heat capacity (thermal capacity) of a body is`, xr`$\mathrm{J\,K^{-1}}$`, [xr`$\mathrm{J\,kg^{-1}K^{-1}}$`, xr`$\mathrm{J\,kg^{-1}}$`, xr`$\mathrm{W\,m^{-1}K^{-1}}$`],
+    xr`Heat capacity $C = Q/\Delta T$ is in $\mathrm{J\,K^{-1}}$. Specific heat is per kilogram ($\mathrm{J\,kg^{-1}K^{-1}}$), latent heat is per kilogram ($\mathrm{J\,kg^{-1}}$) and conductivity is in $\mathrm{W\,m^{-1}K^{-1}}$.`),
+  xn(2, 'calorimetry', xr`An aluminium calorimeter of mass 100 g has specific heat $0.2\ \mathrm{cal\,g^{-1}\,^\circ C^{-1}}$. Find its water equivalent in g.`, 20, 0, () => 100 * 0.2 / 1,
+    xr`Water equivalent $= mc/c_w = 100\times0.2/1 = 20$ g: the calorimeter absorbs as much heat as 20 g of water would.`),
+  xn(2, 'specific heat', xr`How much heat, in kJ, raises the temperature of 2 kg of copper ($c = 400\ \mathrm{J\,kg^{-1}K^{-1}}$) from $20\,^\circ$C to $70\,^\circ$C?`, 40, 0, () => 2 * 400 * 50 / 1000,
+    xr`$Q = mc\Delta T = 2\times400\times50 = 40\,000$ J $= 40$ kJ.`),
+  xn(2, 'latent heat', xr`How much heat, in kcal, is needed to melt 200 g of ice at $0\,^\circ$C? ($L_f = 80\ \mathrm{cal\,g^{-1}}$)`, 16, 0, () => 200 * 80 / 1000,
+    xr`$Q = mL = 200\times80 = 16\,000$ cal $= 16$ kcal.`),
+  xq(2, 'Wien displacement law', xr`As the temperature of a hot body rises, the wavelength at which it emits most strongly`, 'decreases', ['increases', 'stays the same', 'first increases and then decreases'],
+    xr`Wien's law: $\lambda_mT = $ constant. A hotter body has its peak at a shorter wavelength, which is why a heated metal goes from red to white.`),
+  xq(2, 'radiation', xr`A surface that is a good absorber of radiation is also`, 'a good emitter', ['a poor emitter', 'a good reflector', 'a good insulator'],
+    xr`Kirchhoff's law: at a given wavelength and temperature, good absorbers are good emitters, and good reflectors are poor absorbers and poor emitters.`),
+
+  // ---------- Level 3 ----------
+  xn(3, 'specific heat', xr`A 500 W heater, with no heat loss, raises the temperature of 2 kg of a liquid by 25 K in 5 minutes. Find the specific heat of the liquid in $\mathrm{J\,kg^{-1}K^{-1}}$.`, 3000, 0, () => 500 * 300 / (2 * 25),
+    xr`Energy supplied $= 500\times300 = 150\,000$ J. $c = Q/(m\Delta T) = 150\,000/(2\times25) = 3000\ \mathrm{J\,kg^{-1}K^{-1}}$.`),
+  xn(3, 'calorimetry', xr`A 200 g piece of aluminium ($c = 900\ \mathrm{J\,kg^{-1}K^{-1}}$) at $100\,^\circ$C is dropped into 500 g of water at $20\,^\circ$C ($c_w = 4200$). Find the final temperature in $^\circ$C (2 decimals), ignoring losses.`, 26.32, 0.02,
+    () => (0.5 * 4200 * 20 + 0.2 * 900 * 100) / (0.5 * 4200 + 0.2 * 900),
+    xr`Heat lost by Al = heat gained by water: $0.2\times900(100 - T) = 0.5\times4200(T - 20)$, so $180(100 - T) = 2100(T - 20)$. $18000 + 42000 = 2280T$ gives $T = 26.32\,^\circ$C.`),
+  xn(3, 'expansion of cavities', xr`A metal block ($\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$) has an internal cavity of $10\ \mathrm{cm^3}$ at $20\,^\circ$C. By how much does the volume of the cavity increase, in $\mathrm{cm^3}$ (3 decimals), when the block is heated by 100 K?`, 0.036, 0.001, () => 10 * 3 * 1.2e-5 * 100,
+    xr`A cavity expands as if it were solid material of the same kind: $\Delta V = \gamma V\Delta T = 3\alpha V\Delta T = 3\times1.2\times10^{-5}\times10\times100 = 0.036\ \mathrm{cm^3}$. It does not shrink.`,
+    { trap: 'Thinking the walls expand inward so that the cavity gets smaller.' }),
+  xn(3, 'Wien displacement law', xr`The radiation from a star peaks at 725 nm. Using $\lambda_mT = 2.9\times10^{-3}$ m K, find its surface temperature in K.`, 4000, 0, () => 2.9e-3 / 725e-9,
+    xr`$T = \dfrac{2.9\times10^{-3}}{725\times10^{-9}} = 4000$ K.`),
+  xn(3, 'specific heat of solids', xr`Dulong and Petit's law says the molar heat capacity of a solid is about $3R$. Estimate the specific heat of copper ($M = 63.5\ \mathrm{g\,mol^{-1}}$) in $\mathrm{J\,kg^{-1}K^{-1}}$ (nearest whole number). $R = 8.31$.`, 393, 2, () => 3 * 8.31 / 0.0635,
+    xr`$c = 3R/M = \dfrac{24.93}{0.0635\ \mathrm{kg}} = 393\ \mathrm{J\,kg^{-1}K^{-1}}$ (the measured value is 385).`),
+  xq(3, 'calorimetry', xr`Equal masses of aluminium ($c = 900$) and lead ($c = 130$ $\mathrm{J\,kg^{-1}K^{-1}}$), both at $100\,^\circ$C, are placed on separate blocks of ice at $0\,^\circ$C. Which melts more ice?`, 'Aluminium, because it stores more heat per kilogram', ['Lead, because it is denser', 'Both melt the same, because they start at the same temperature', 'Lead, because its atoms are heavier'],
+    xr`Heat released $= mc\Delta T$. Equal $m$ and $\Delta T$, so the larger $c$ gives more heat and more melting: aluminium.`,
+    { trap: 'Equal temperatures do not mean equal heat content.' }),
+  xq(3, 'conduction', xr`A uniform rod, thermally insulated along its side, has its ends at $100\,^\circ$C and $0\,^\circ$C. In the steady state the temperature along the rod`, 'varies linearly with distance', ['varies exponentially with distance', 'is the same everywhere', 'varies as the square of the distance'],
+    xr`Steady state: the heat current $kA\,dT/dx$ is the same at every cross-section. For uniform $k$ and $A$, $dT/dx$ is constant, so $T$ falls linearly.`),
+  xa(3, 'boiling', xr`The temperature of a boiling liquid stays constant while heat is continuously supplied.`, xr`The heat supplied is used as latent heat to change the liquid into vapour, not to raise its temperature.`, 0,
+    xr`Both are true and R explains A. At the boiling point the energy goes into overcoming the attraction between molecules (changing the phase) while the average kinetic energy stays fixed.`),
+  xa(3, 'anomalous expansion of water', xr`A sealed glass bottle full of water may break when the water freezes.`, xr`Ice has a larger volume than the same mass of water.`, 0,
+    xr`Both are true and R explains A. Water expands by about 9 % on freezing, and a rigid sealed container cannot accommodate it.`),
+  xt(3, 'evaporation', xr`Evaporation of a liquid causes cooling.`, xr`The molecules with the highest speeds escape from the surface, so the average kinetic energy of those left behind decreases.`, 0,
+    xr`Both are true and II explains I. The remaining liquid has a lower mean kinetic energy, so its temperature falls unless heat flows in.`),
+  xm(3, 'heat constants', 'xm1', xr`Match each quantity in List I with its value in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`Fusion of ice: $3.36\times10^5\ \mathrm{J\,kg^{-1}}$ (p). Vaporisation of water: $2.26\times10^6$ (q). Water: 4200 (r). Ice: 2100 (s), about half that of water. The 900 belongs to aluminium.`),
+  xm(3, 'thermal expansion', 'xm2', xr`A rod with $\alpha = 1.0\times10^{-5}\ \mathrm{K^{-1}}$ is heated through 100 K. Match the quantities in List I with the changes in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`$\alpha\Delta T = 10^{-3}$ (p); area coefficient $2\alpha$: $2\times10^{-3}$ (q); volume coefficient $3\alpha$: $3\times10^{-3}$ (r); density falls by about the same fraction as volume rises: $-3\times10^{-3}$ (s).`),
+  xm(3, 'Stefan-Boltzmann law', 'xm3', xr`A black body radiates power $P = \sigma AT^4$. Match each change in List I with the factor by which $P$ changes.`, { A: 'r', B: 's', C: 'q', D: 'p' },
+    xr`A: $2^4 = 16$ (r). B: $3^4 = 81$ (s). C: area $\propto r^2$, so $2^2 = 4$ (q). D: $(\tfrac12)^4\times2^2 = \tfrac1{16}\times4 = \tfrac14$ (p).`),
+  xm(3, 'Wien displacement law', 'xm7', xr`Use Wien's law $\lambda_mT = 2.9\times10^{-3}$ m K to match each item.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`A: $2.9\times10^{-3}/5800 = 500$ nm (p). B: $2.9\times10^{-3}/310 = 9.35\ \mu$m, infrared (q). C: $T = 2.9\times10^{-3}/290\times10^{-9} = 10\,000$ K (r). D: $2.9\times10^{-3}/2900 = 1000$ nm (s).`),
+
+  // ---------- Level 4 ----------
+  xn(4, 'mixing and final state', xr`50 g of steam at $100\,^\circ$C is passed into 400 g of ice at $-10\,^\circ$C in an insulated vessel. How many grams of ice are left when equilibrium is reached? ($L_v = 540$, $L_f = 80\ \mathrm{cal\,g^{-1}}$, $c_{ice} = 0.5$, $c_w = 1\ \mathrm{cal\,g^{-1}\,^\circ C^{-1}}$)`, 25, 0, () => 400 - (50 * 540 + 50 * 100 - 400 * 0.5 * 10) / 80,
+    xr`Heat available if the steam condenses and cools to $0\,^\circ$C: $50\times540 + 50\times100 = 27000 + 5000 = 32000$ cal. Heat to warm the ice to $0\,^\circ$C: $400\times0.5\times10 = 2000$ cal. Heat to melt all of it: $400\times80 = 32000$ cal. Available after warming: $30000$ cal, which melts $30000/80 = 375$ g. So $400 - 375 = 25$ g of ice remain, at $0\,^\circ$C.`,
+    { trap: 'Assuming all the ice melts and computing a final temperature above 0 °C.' }),
+  xn(4, 'mixing and final state', xr`100 g of ice at $-20\,^\circ$C is mixed with 50 g of water at $80\,^\circ$C in an insulated vessel. How many grams of ice remain? ($c_{ice} = 0.5$, $L_f = 80\ \mathrm{cal\,g^{-1}}$, $c_w = 1\ \mathrm{cal\,g^{-1}\,^\circ C^{-1}}$.) Give the answer to 1 decimal.`, 62.5, 0.1, () => 100 - (50 * 80 - 100 * 0.5 * 20) / 80,
+    xr`The water can give $50\times80 = 4000$ cal when cooled to $0\,^\circ$C. Warming the ice to $0\,^\circ$C needs $100\times0.5\times20 = 1000$ cal. That leaves $3000$ cal, which melts $3000/80 = 37.5$ g. So $100 - 37.5 = 62.5$ g of ice remain, and the temperature is $0\,^\circ$C.`),
+  xn(4, 'cooling curves', xr`Equal masses of water and an oil are cooled from $60\,^\circ$C to $40\,^\circ$C in identical containers under the same conditions. Water takes 100 s and the oil takes 60 s. Find the specific heat of the oil in $\mathrm{J\,kg^{-1}K^{-1}}$ (water: 4200).`, 2520, 0, () => 4200 * 60 / 100,
+    xr`Under the same conditions the rate of heat loss is the same at the same temperatures, so $mc_w\Delta T/t_w = mc_o\Delta T/t_o$. $c_o = c_w\,t_o/t_w = 4200\times\dfrac{60}{100} = 2520\ \mathrm{J\,kg^{-1}K^{-1}}$ (the container's own heat capacity is neglected).`),
+  xn(4, 'thermal stress', xr`A steel rod ($\alpha = 1.2\times10^{-5}\ \mathrm{K^{-1}}$, $Y = 2\times10^{11}$ Pa) is 1.000 m long and fits between two rigid walls with a gap of 0.3 mm in total. It is heated by 60 K. Find the stress in the rod in MPa.`, 84, 0.5, () => 2e11 * (1.2e-5 * 60 - 0.3e-3) / 1e6,
+    xr`Free expansion $= \alpha L\Delta T = 1.2\times10^{-5}\times1\times60 = 0.72$ mm. The walls allow only 0.3 mm, so $0.42$ mm is suppressed. Strain $= 0.42\times10^{-3}/1 = 4.2\times10^{-4}$. Stress $= Y\times\text{strain} = 2\times10^{11}\times4.2\times10^{-4} = 8.4\times10^7$ Pa $= 84$ MPa.`,
+    { trap: 'Using the full free expansion (0.72 mm), which ignores the gap.' }),
+  xn(4, 'conduction at a junction', xr`Three identical rods (same material and cross-section) of lengths 1 m, 2 m and 4 m meet at a point $O$. Their other ends are held at $100\,^\circ$C, $60\,^\circ$C and $20\,^\circ$C respectively. Find the steady temperature of $O$ in $^\circ$C (1 decimal).`, 77.1, 0.1, () => (100 / 1 + 60 / 2 + 20 / 4) / (1 + 1 / 2 + 1 / 4),
+    xr`In steady state the net heat flow into $O$ is zero. For equal $kA$, flow $\propto(T_i - T_O)/L_i$: $\dfrac{100 - T}{1} + \dfrac{60 - T}{2} + \dfrac{20 - T}{4} = 0$. Multiply by 4: $400 - 4T + 120 - 2T + 20 - T = 0$, so $7T = 540$ and $T = 77.1\,^\circ$C.`),
+  xn(4, 'radiation', xr`A copper sphere of radius 1 cm (density $8900\ \mathrm{kg\,m^{-3}}$, $c = 390\ \mathrm{J\,kg^{-1}K^{-1}}$) at 500 K is a perfect black body in a vacuum chamber at 0 K. Find its initial rate of cooling in $\mathrm{K\,s^{-1}}$ (3 decimals). $\sigma = 5.67\times10^{-8}$.`, 0.306, 0.004,
+    () => 5.67e-8 * 4 * Math.PI * 1e-4 * 500 ** 4 / (8900 * (4 / 3) * Math.PI * 1e-6 * 390),
+    xr`Power radiated $= \sigma AT^4 = 5.67\times10^{-8}\times1.257\times10^{-3}\times500^4 = 4.45$ W. Mass $= 8900\times\tfrac43\pi(0.01)^3 = 0.0373$ kg; $mc = 14.5\ \mathrm{J\,K^{-1}}$. Rate $= 4.45/14.5 = 0.306\ \mathrm{K\,s^{-1}}$.`),
+  xn(4, 'planetary temperature', xr`Mars receives $590\ \mathrm{W\,m^{-2}}$ from the Sun and reflects 25 % of it. Treating it as a black-body radiator with no atmosphere, find its equilibrium temperature in K (nearest whole number). $\sigma = 5.67\times10^{-8}$.`, 210, 1, () => Math.pow(590 * 0.75 / (4 * 5.67e-8), 0.25),
+    xr`Absorbed power $= \pi R^2S(1 - A)$; radiated $= 4\pi R^2\sigma T^4$. $T^4 = \dfrac{S(1-A)}{4\sigma} = \dfrac{590\times0.75}{4\times5.67\times10^{-8}} = 1.95\times10^9$, so $T = 210$ K.`,
+    { trap: 'Leaving out the 4: the planet absorbs over its cross-section πR² but radiates from its whole surface 4πR².' }),
+  xn(4, 'thermometer', xr`A mercury thermometer has a bulb of volume $0.5\ \mathrm{cm^3}$ and a stem of cross-section $1\ \mathrm{mm^2}$. Mercury has $\gamma = 1.8\times10^{-4}\ \mathrm{K^{-1}}$ and the glass bulb $\gamma = 2.7\times10^{-5}\ \mathrm{K^{-1}}$. By how many mm does the mercury thread rise when the temperature rises by 100 K? (Ignore the expansion of the stem.)`, 7.65, 0.05, () => 500 * (1.8e-4 - 2.7e-5) * 100 / 1,
+    xr`The bulb itself expands, so the apparent expansion of mercury is $\gamma_{app} = 1.8\times10^{-4} - 2.7\times10^{-5} = 1.53\times10^{-4}\ \mathrm{K^{-1}}$. $\Delta V = 0.5\times1.53\times10^{-4}\times100 = 7.65\times10^{-3}\ \mathrm{cm^3} = 7.65\ \mathrm{mm^3}$. The stem area is $1\ \mathrm{mm^2}$, so the thread rises $7.65$ mm.`),
+  xq(4, 'Stefan-Boltzmann law', xr`Star A has twice the surface temperature of star B and half its radius. The ratio of the luminosities $L_A/L_B$ is`, '4', ['8', '16', '64'],
+    xr`$L = 4\pi R^2\sigma T^4$. $L_A/L_B = (R_A/R_B)^2(T_A/T_B)^4 = (\tfrac12)^2\times2^4 = \tfrac14\times16 = 4$.`,
+    { trap: '16 from the temperature alone; or 64 from using the cube of the radius ratio.' }),
+  xs(4, 'heating curve', xr`Ice at $-20\,^\circ$C is heated by a steady source until it becomes steam. On the temperature-time graph, which are correct?`,
+    [xr`The temperature rises faster per second in the ice stage than in the water stage`, 'There are flat portions at $0\\,^\\circ$C and $100\\,^\\circ$C', 'The flat portion at $100\\,^\\circ$C is longer than at $0\\,^\\circ$C', 'The temperature rises slowly during the melting', 'The steam stage is steeper than the water stage'], [0, 1, 2, 4],
+    xr`Rate of rise $= P/(mc)$: ice ($c = 2100$) rises faster than water (4200), and steam ($c\approx2000$) rises faster than water (true, true). The plateaus are where latent heat is absorbed at constant temperature; $L_v = 2.26\times10^6 > L_f = 3.36\times10^5$, so the 100 °C plateau is about seven times longer (true, true). During melting the temperature is constant, not slowly rising (false).`),
+  xs(4, 'conduction', xr`Heat flows steadily along a rod of non-uniform cross-section whose curved side is insulated. Which are correct?`,
+    ['The heat current is the same at every cross-section', 'For a uniform rod, the temperature gradient is the same everywhere', xr`The thermal resistance of a uniform rod is $L/(kA)$`, 'In a non-uniform rod the temperature gradient is larger where the cross-section is smaller', 'The temperature at each point keeps rising with time'], [0, 1, 2, 3],
+    xr`Steady state means no storage, so $H = kA\,|dT/dx|$ is constant (true). Uniform $A$ gives constant gradient (true), and $R = L/kA$ (true). If $A$ is smaller the gradient must be larger to carry the same $H$ (true). In steady state temperatures do not change with time (false).`),
+  xs(4, 'cooling', xr`A body cools in a room at $20\,^\circ$C according to Newton's law, from $80\,^\circ$C to $60\,^\circ$C in 10 minutes. Which are correct?`,
+    ['The rate of cooling is proportional to the difference from room temperature', 'The temperature approaches $20\\,^\\circ$C exponentially', 'The fall from $60\\,^\\circ$C to $40\\,^\\circ$C takes less than 10 minutes', 'Equal fractional decreases of $(T - 20)$ take equal times', 'The law holds well for large temperature differences'], [0, 1, 3],
+    xr`The first, second and fourth are the content of Newton's law. $\ln\dfrac{60}{40} = 0.405$ takes 10 min, and $\ln\dfrac{40}{20} = 0.693$ takes $17.1$ min: the second interval is longer (third false). The law is accurate only for small differences (last false).`),
+  xs(4, 'thermal stress', xr`A straight steel rod is clamped between rigid walls and heated by $\Delta T$. Which are correct?`,
+    [xr`The stress is $Y\alpha\Delta T$`, xr`The force on each wall is $YA\alpha\Delta T$`, 'The length of the rod does not change', xr`The strain is $-\alpha\Delta T$ (compressive)`, 'The stress is larger for a longer rod'], [0, 1, 2, 3],
+    xr`Clamped, the rod cannot expand, so the compressive strain needed to cancel the free expansion is $\alpha\Delta T$, giving stress $Y\alpha\Delta T$, force $YA\alpha\Delta T$ and unchanged length. The length does not appear in the stress (last false).`),
+  xm(4, 'mixing and final state', 'xm4', xr`Each mixture in List I is isolated and has reached equilibrium. Match it with the outcome in List II.`, { A: 'q', B: 'p', C: 'r', D: 's' },
+    xr`A: the water gives $200\times20 = 4000$ cal, enough to melt 50 g; 50 g of ice is left (q). B: the water gives $8000$ cal, exactly enough to melt all 100 g, giving water at $0\,^\circ$C (p). C: the water gives $10000$ cal; 8000 melts the ice and 2000 raises 200 g by $10\,^\circ$C (r). D: simple mixing: $(200\times20 + 100\times80)/300 = 40\,^\circ$C (s).`),
+  xm(4, 'conduction', 'xm5', xr`Rod A has conductivity $2k$ and rod B has $k$, with equal length and cross-section. Match the items in List I with those in List II.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`Series: $2k(100 - T) = k(T - 0)$ gives $T = 200/3 = 66.7\,^\circ$C (p). With B at the hot end: $k(100 - T) = 2kT$ gives $T = 33.3\,^\circ$C (q). Effective $k$ in series $= \dfrac{2L}{L/2k + L/k} = \dfrac{4k}{3}$ (r). In parallel $= (2k + k)/2 = 3k/2$ (s). The $3k$ would be the sum, not the effective conductivity for double the area.`),
+  xm(4, 'thermal stress', 'xm8', xr`A steel rod is heated by 50 K. Match the quantities.`, { A: 'p', B: 'q', C: 'r', D: 's' },
+    xr`Strain $= \alpha\Delta T = 1.2\times10^{-5}\times50 = 6\times10^{-4}$ (p). Stress $= Y\alpha\Delta T = 1.2\times10^8$ Pa (q). Force $= 1.2\times10^8\times10^{-4} = 1.2\times10^4$ N (r). With a gap of half the free expansion the suppressed strain is $3\times10^{-4}$, so the stress is $6\times10^7$ Pa (s).`),
+  xa(4, 'radiation', xr`A body at the same temperature as its surroundings still emits radiation.`, xr`A body at any temperature above absolute zero radiates, and it absorbs exactly as much from the surroundings when in thermal equilibrium (Prevost's theory of exchanges).`, 0,
+    xr`Both are true and R explains A. The net energy flow is zero, but each of emission and absorption continues.`),
+  xa(4, 'expansion', xr`Two metal spheres of the same material and outer radius, one solid and one hollow, expand by the same fractional volume when heated through the same temperature.`, xr`A cavity in a body expands as if it were made of the same material as the body.`, 0,
+    xr`Both are true and R explains A. The outer volume of the hollow sphere expands by $\gamma V_{outer}\Delta T$ just like the solid, because the cavity grows with the material.`),
+  xa(4, 'Newton\'s law of cooling', xr`A graph of $\ln(T - T_0)$ against time for a cooling body (small excess temperature) is a straight line.`, xr`The excess temperature $T - T_0$ decays exponentially with time.`, 0,
+    xr`Both are true and R explains A. $T - T_0 = (T_i - T_0)e^{-kt}$ gives $\ln(T - T_0) = \ln(T_i - T_0) - kt$, a straight line of slope $-k$.`),
+  xt(4, 'heat and temperature', xr`A body with more internal energy is always at a higher temperature.`, xr`Heat flows spontaneously from a hotter body to a colder body.`, 3,
+    xr`II is true. I is false: internal energy depends on mass and material too; a lake at $10\,^\circ$C has far more internal energy than a cup of tea at $80\,^\circ$C, yet heat flows from the tea to the lake.`),
+  xt(4, 'steady conduction', xr`In steady-state conduction through a uniform rod with insulated sides, the temperature falls linearly along the rod.`, xr`The heat current is the same at every cross-section.`, 0,
+    xr`Both are true and II explains I. $H = kA\,dT/dx$ is constant and $k$, $A$ are uniform, so $dT/dx$ is constant.`),
+
+
+  // ---------- Level 4-5 more ----------
+  xn(4, 'heating with loss', xr`A 100 W heater is immersed in a large tank. The tank loses heat to the room at $20\,^\circ$C at a rate $2\ \mathrm{W\,K^{-1}}$ times the excess temperature. What steady temperature, in $^\circ$C, does the tank reach?`, 70, 0, () => 20 + 100 / 2,
+    xr`In steady state, power in = power lost: $100 = 2(T - 20)$, so $T - 20 = 50$ and $T = 70\,^\circ$C.`),
+  xn(5, 'radiation shield', xr`Two large parallel black plates in vacuum are at 600 K and 300 K. A thin black shield is placed between them and reaches steady state. Find the shield's temperature in K (nearest whole number). $\sigma = 5.67\times10^{-8}$.`, 512, 1, () => Math.pow((600 ** 4 + 300 ** 4) / 2, 0.25),
+    xr`Steady state: power received equals power given, per unit area: $\sigma(T_1^4 - T_s^4) = \sigma(T_s^4 - T_2^4)$, so $T_s^4 = \dfrac{T_1^4 + T_2^4}{2} = \dfrac{1.296\times10^{11} + 8.1\times10^{9}}{2} = 6.885\times10^{10}$. $T_s = 512$ K.`,
+    { trap: 'The shield temperature is not the arithmetic mean (450 K): the fourth powers average, not the temperatures.' }),
+  xn(5, 'radiation shield', xr`Two large parallel black plates in vacuum exchange radiation at a net rate $F$. Three thin black shields are placed in between, all parallel, and the system reaches steady state. The new net rate is $F/N$. Find $N$.`, 4, 0, () => 3 + 1,
+    xr`Each shield must pass on exactly what it receives, so the temperature drop in $T^4$ is shared equally among the $n + 1$ gaps. The net flux is $\sigma(T_1^4 - T_2^4)/(n + 1)$. With 3 shields: $F/4$, so $N = 4$.`),
+  xn(5, 'stellar radius', xr`A star has a luminosity of $3.8\times10^{28}$ W and its spectrum peaks at 500 nm ($\lambda_mT = 2.9\times10^{-3}$ m K). Treating it as a black body, find its radius in units of $10^9$ m (2 decimals). $\sigma = 5.67\times10^{-8}$.`, 6.87, 0.05,
+    () => Math.sqrt(3.8e28 / (4 * Math.PI * 5.67e-8 * (2.9e-3 / 500e-9) ** 4)) / 1e9,
+    xr`Wien: $T = 2.9\times10^{-3}/500\times10^{-9} = 5800$ K. $L = 4\pi R^2\sigma T^4$, so $R = \sqrt{\dfrac{L}{4\pi\sigma T^4}} = \sqrt{\dfrac{3.8\times10^{28}}{4\pi\times5.67\times10^{-8}\times1.13\times10^{15}}} = 6.87\times10^9$ m (about 10 solar radii).`),
+  xs(5, 'radiation shield', xr`Two large parallel black plates at 600 K and 300 K are separated by a vacuum. A thin black shield is placed between them and reaches steady state. Which are correct?`,
+    ['The shield settles at about 512 K', 'The net radiant flux from the hot plate to the cold plate is halved', 'With two such shields the net flux would be one third of the original', 'The shield temperature is 450 K, the mean of 600 K and 300 K', 'The flux from the hot plate to the shield is larger than the flux from the shield to the cold plate'], [0, 1, 2],
+    xr`$\sigma(T_1^4 - T_s^4) = \sigma(T_s^4 - T_2^4)$ gives $T_s^4 = (T_1^4 + T_2^4)/2$, so $T_s = 512$ K (true, and 450 K is false). Each gap now carries half of the old $T^4$ difference, so the net flux is halved (true), and with $n$ shields it is $1/(n+1)$ (true for $n = 2$: one third). In steady state the two fluxes are equal (false).`),
+  xs(5, 'radiative cooling', xr`A black body at temperature $T$ is in surroundings at $T_0$, with net radiative loss $P = \sigma A(T^4 - T_0^4)$. Which are correct?`,
+    [xr`$P = 0$ when $T = T_0$`, xr`For small excess $\Delta T = T - T_0$, $P\approx4\sigma AT_0^3\,\Delta T$ (Newton's law)`, xr`A body at 600 K in surroundings at 300 K loses heat at $\tfrac{15}{16}$ of the rate at which it would lose it into a 0 K vacuum`, xr`A body at 600 K radiates 16 times as much power as an identical body at 300 K`, xr`$P\propto(T - T_0)^4$`], [0, 1, 2, 3],
+    xr`At equal temperatures emission and absorption balance (true). Expanding $T^4 - T_0^4 = (T - T_0)(T + T_0)(T^2 + T_0^2)\approx4T_0^3\Delta T$ for small $\Delta T$ (true). $1 - (300/600)^4 = 15/16$ (true). $(600/300)^4 = 16$ (true). The fourth power belongs to $T$ and $T_0$ separately, not to their difference (false).`),
+  xs(5, 'conduction through a cylinder', xr`Heat flows steadily and radially outward through a long hollow cylinder (inner radius $r_1$, outer radius $r_2$, conductivity $k$, length $L$). Which are correct?`,
+    ['The heat current through every cylindrical shell is the same', 'The temperature falls logarithmically with the radius', 'The temperature gradient is larger at smaller radius', xr`The thermal resistance is $\dfrac{\ln(r_2/r_1)}{2\pi kL}$`, 'The temperature falls linearly with the radius'], [0, 1, 2, 3],
+    xr`Steady state means the same $H$ through every shell: $H = -k\,(2\pi rL)\,\dfrac{dT}{dr}$, so $dT/dr\propto1/r$ (larger at small $r$) and $T$ varies as $\ln r$. Integrating gives $R = \dfrac{\ln(r_2/r_1)}{2\pi kL}$. It is not linear in $r$ (last false).`),
+  xs(5, 'changes of state', xr`Which of these are correct?`,
+    ['The latent heat of vaporisation of water at $100\\,^\\circ$C is larger than its latent heat of fusion', 'At the triple point ice, water and water vapour exist together in equilibrium', 'The boiling point of water rises when the pressure rises', 'The melting point of ice falls when the pressure rises', 'A pressure cooker works by lowering the boiling point of water'], [0, 1, 2, 3],
+    xr`$L_v = 2.26\times10^6 > L_f = 3.36\times10^5$ (true). The triple point of water is at 273.16 K and 611 Pa (true). Raising the pressure raises the boiling point (true) and, because ice is less dense than water, lowers the melting point (true). A pressure cooker raises the boiling point and so cooks faster (the last is false).`),
+  xs(4, 'stars', xr`Star A has surface temperature 6000 K and radius $R$. Star B has surface temperature 3000 K and radius $2R$. Which are correct?`,
+    [xr`The wavelength of peak emission of A is half that of B`, xr`The luminosity of A is 4 times that of B`, 'B emits more total power than A', xr`The power radiated per unit area of A is 16 times that of B`, 'A looks bluer than B'], [0, 1, 3, 4],
+    xr`Wien: $\lambda_m\propto1/T$, so A's peak is at half the wavelength (true, and bluer: true). $L\propto R^2T^4$: $L_A/L_B = (1/2)^2\times2^4 = 4$ (true). A emits 4 times more, so the third is false. Per unit area, $P\propto T^4 = 16$ (true).`),
+  xs(4, 'specific heat', xr`Which statements about heat capacity and specific heat are correct?`,
+    [xr`The heat capacity of a body equals $mc$`, 'The high specific heat of water moderates the climate near the sea', 'The heat capacity of a body depends on its mass', 'All materials have the same specific heat per kilogram', 'The specific heat of a gas depends on whether the volume or the pressure is kept constant'], [0, 1, 2, 4],
+    xr`$C = mc$ (true) and so depends on mass (true). Water's large $c$ means large energy changes cause small temperature changes (true). Different materials have different $c$ (false). For gases $C_p\ne C_v$ (true).`),
+  xm(5, 'planetary temperature', 'xm6', xr`Treat each planet as a black body with no atmosphere, using $T = \left[\dfrac{S(1 - A)}{4\sigma}\right]^{1/4}$. Match each planet with its equilibrium temperature.`, { A: 'r', B: 'p', C: 'q', D: 's' },
+    xr`Earth: $T^4 = 1361\times0.7/(4\times5.67\times10^{-8}) = 4.2\times10^9$, $T = 255$ K (r). Mars: 210 K (p). Venus (albedo 0.77): $T = 227$ K (q), colder than Earth even though closer to the Sun. Mercury: 436 K (s). The 270 K would be that of the Moon.`),
+  xt(5, 'pendulum clock', xr`When the temperature of a pendulum clock rises by $\Delta T$, it loses a fraction $\tfrac12\alpha\Delta T$ of time.`, xr`The period is $T = 2\pi\sqrt{L/g}$ and the length changes by $\alpha L\,\Delta T$.`, 0,
+    xr`Both are true and II explains I. $\Delta T_{period}/T = \tfrac12\Delta L/L = \tfrac12\alpha\Delta T$, so the clock runs slow by that fraction.`),
+  xb(5, 'statements', { type: 'mcq', format: 'statements', q: xr`How many of these are correct?<br>(a) Water has its maximum density at $4\,^\circ$C.<br>(b) The specific heat of water is larger than that of ice.<br>(c) The latent heat of vaporisation of water is the same at all temperatures.<br>(d) For a black body $\lambda_mT$ is a constant.<br>(e) Doubling the length of a rod doubles the rate of heat conduction through it.`,
+    options: ['1', '2', '3', '4'], answer: 2,
+    sol: xr`(a) true. (b) true: 4200 against 2100. (c) false: $L_v$ varies with the temperature (it is smaller at higher temperature). (d) true (Wien). (e) false: $H\propto1/L$, so it halves. Three are correct.` }),
+
+  xn(3, 'steam calorimetry', xr`How much heat, in kcal, is given out when 100 g of steam at $100\,^\circ$C condenses and the water cools to $60\,^\circ$C? ($L_v = 540\ \mathrm{cal\,g^{-1}}$, $c_w = 1\ \mathrm{cal\,g^{-1}\,^\circ C^{-1}}$)`, 58, 0, () => (100 * 540 + 100 * 40) / 1000,
+    xr`Condensing: $100\times540 = 54\,000$ cal. Cooling the water by $40\,^\circ$C: $100\times1\times40 = 4000$ cal. Total $= 58\,000$ cal $= 58$ kcal.`),
+
+  // ---------- passages ----------
+  xn(3, 'electric heating', xr`How long, in s, does the heater take to bring the water to $100\,^\circ$C?`, 700, 0.5, () => 0.5 * 4200 * 80 / (300 * 0.8),
+    xr`Heat needed $= 0.5\times4200\times80 = 168\,000$ J. Useful power $= 0.8\times300 = 240$ W. Time $= 168000/240 = 700$ s.`, { format: 'passage', group: 'xp1' }),
+  xn(4, 'electric heating', xr`The heater then keeps running until 100 g of water has boiled away. How long, in s (nearest whole number), does that take?`, 942, 1, () => 0.1 * 2.26e6 / 240,
+    xr`Latent heat needed $= 0.1\times2.26\times10^6 = 226\,000$ J. At 240 W: $226000/240 = 941.7\approx942$ s.`, { format: 'passage', group: 'xp1' }),
+  xn(4, 'electric heating', xr`How much electrical energy, in kWh (3 decimals), is used from the start until 100 g has boiled away?`, 0.137, 0.001, () => (168000 + 226000) / 0.8 / 3.6e6,
+    xr`Useful energy $= 168\,000 + 226\,000 = 394\,000$ J. Electrical energy $= 394000/0.8 = 492\,500$ J $= 492500/3.6\times10^6 = 0.137$ kWh.`, { format: 'passage', group: 'xp1', trap: 'Using the useful energy instead of the electrical energy.' }),
+  xn(4, 'conduction through a tapered rod', xr`Find the thermal resistance of the rod in $\mathrm{K\,W^{-1}}$ (2 decimals). (For a rod of radius $r(x)$, $R = \int dx/(k\pi r^2)$.)`, 1.99, 0.01, () => 0.5 / (Math.PI * 400 * 0.01 * 0.02),
+    xr`With $r = r_1 + (r_2 - r_1)x/L$, $\int_0^L\dfrac{dx}{\pi kr^2} = \dfrac{1}{\pi k}\cdot\dfrac{L}{(r_2 - r_1)}\left(\dfrac1{r_1} - \dfrac1{r_2}\right) = \dfrac{L}{\pi kr_1r_2}$. $R = \dfrac{0.5}{\pi\times400\times0.01\times0.02} = 1.99\ \mathrm{K\,W^{-1}}$.`, { format: 'passage', group: 'xp2' }),
+  xn(4, 'conduction through a tapered rod', xr`Find the rate of heat flow along the rod in W (1 decimal).`, 50.3, 0.2, () => 100 / (0.5 / (Math.PI * 400 * 0.01 * 0.02)),
+    xr`$H = \Delta T/R = 100/1.989 = 50.3$ W.`, { format: 'passage', group: 'xp2' }),
+  xn(5, 'conduction through a tapered rod', xr`Find the temperature, in $^\circ$C (1 decimal), at the midpoint of the rod (0.25 m from the hot end).`, 33.3, 0.2,
+    () => { const R = (x) => x / (Math.PI * 400 * 0.01 * (0.01 + 0.01 * x / 0.5)); return 100 - (100 / R(0.5)) * R(0.25); },
+    xr`At $x = 0.25$ m the radius is 1.5 cm. Resistance of the first half $= \dfrac{x}{\pi kr_1r(x)} = \dfrac{0.25}{\pi\times400\times0.01\times0.015} = 1.326\ \mathrm{K\,W^{-1}}$. Temperature drop $= H\times R = 50.27\times1.326 = 66.7$ K. So $T = 100 - 66.7 = 33.3\,^\circ$C, not 50 °C: the thin hot half has most of the resistance.`, { format: 'passage', group: 'xp2', trap: 'Saying 50 °C because the point is at the middle of the rod.' }),
+];
+
+const xgens = [
+  { id: 'tp-g21', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'conduction through a tapered rod',
+    make(rng) {
+      const r1 = xchoose(rng, [1, 1.5, 2]), m = xchoose(rng, [2, 3]), L = xchoose(rng, [0.5, 1]), k = xchoose(rng, [200, 400]), dT = xchoose(rng, [50, 80, 100]);
+      const r2 = r1 * m; const H = dT * Math.PI * k * (r1 / 100) * (r2 / 100) / L; const answer = +H.toFixed(2);
+      return { r1, r2, L, k, dT, answer, tol: Math.max(0.05, answer * 0.01), unit: 'W',
+        q: `A round rod (k = ${k} W m⁻¹ K⁻¹) is ${L} m long, with radius ${r1} cm at one end and ${r2} cm at the other. The ends are kept ${dT} K apart and the curved surface is insulated. Find the steady rate of heat flow in W.`,
+        sol: `For a linearly tapering rod, R = L/(πk r₁r₂) = ${L}/(π×${k}×${r1 / 100}×${r2 / 100}) = ${xfmt(L / (Math.PI * k * r1 / 100 * r2 / 100), 4)} K/W. H = ΔT/R = ${dT}/${xfmt(L / (Math.PI * k * r1 / 100 * r2 / 100), 4)} = ${xfmt(answer, 4)} W.` };
+    },
+    verify: (p) => { let R = 0; const n = 20000; for (let i = 0; i < n; i++) { const x = (i + 0.5) / n * p.L, r = (p.r1 + (p.r2 - p.r1) * x / p.L) / 100; R += (p.L / n) / (p.k * Math.PI * r * r); } return p.dT / R; } },
+  { id: 'tp-g22', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'mixing and final state',
+    make(rng) {
+      const mi = xchoose(rng, [100, 150, 200, 300]), mw = xchoose(rng, [50, 100, 150, 200]), tw = xchoose(rng, [20, 30, 40, 50]);
+      if (mw * tw / 80 >= mi) return xgens[1].make(rng);
+      const left = mi - mw * tw / 80; const answer = +left.toFixed(2);
+      return { mi, mw, tw, answer, tol: 0.05, unit: 'g',
+        q: `${mi} g of ice at 0 °C is mixed with ${mw} g of water at ${tw} °C in an insulated vessel. How many grams of ice remain at equilibrium? (L_f = 80 cal/g, c_w = 1 cal/g °C)`,
+        sol: `The water can give ${mw}×${tw} = ${mw * tw} cal on cooling to 0 °C. This melts ${mw * tw}/80 = ${xfmt(mw * tw / 80, 4)} g of ice, less than ${mi} g, so the final temperature is 0 °C and ${mi} − ${xfmt(mw * tw / 80, 4)} = ${xfmt(answer, 4)} g of ice remain.` };
+    },
+    verify: (p) => p.mi - (p.mw * 1 * p.tw) / 80 },
+  { id: 'tp-g23', type: 'nat', level: 5, exams: xex(5, 'nat'), sub: 'radiation shield',
+    make(rng) {
+      const t1 = xchoose(rng, [500, 600, 800]), t2 = xchoose(rng, [200, 300, 400]); const answer = +Math.pow((t1 ** 4 + t2 ** 4) / 2, 0.25).toFixed(1);
+      return { t1, t2, answer, tol: 0.5, unit: 'K',
+        q: `Two large parallel black plates in vacuum are at ${t1} K and ${t2} K. A thin black shield between them reaches steady state. Find the shield's temperature in K.`,
+        sol: `In steady state σ(T₁⁴ − T_s⁴) = σ(T_s⁴ − T₂⁴), so T_s⁴ = (T₁⁴ + T₂⁴)/2 = (${xfmt(t1 ** 4, 4)} + ${xfmt(t2 ** 4, 4)})/2 = ${xfmt((t1 ** 4 + t2 ** 4) / 2, 4)}. T_s = ${xfmt(answer, 4)} K.` };
+    },
+    verify: (p) => { let lo = 0, hi = 2000; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if ((p.t1 ** 4 - mid ** 4) > (mid ** 4 - p.t2 ** 4)) lo = mid; else hi = mid; } return lo; } },
+  { id: 'tp-g24', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'radiative cooling',
+    make(rng) {
+      const r = xchoose(rng, [0.5, 1, 2]), T = xchoose(rng, [400, 500, 600]); const answer = +(3 * 5.67e-8 * T ** 4 / (8900 * 390 * r / 100)).toFixed(3);
+      return { r, T, answer, tol: Math.max(0.003, answer * 0.01), unit: 'K/s',
+        q: `A copper sphere of radius ${r} cm (ρ = 8900 kg/m³, c = 390 J/kg K) at ${T} K is a perfect black body in a vacuum chamber at 0 K. Find its initial rate of cooling in K/s. σ = 5.67×10⁻⁸.`,
+        sol: `Power radiated = σ·4πr²·T⁴. Heat capacity = (4/3)πr³ρc. Rate = 3σT⁴/(ρ c r) = 3×5.67×10⁻⁸×${xfmt(T ** 4, 4)}/(8900×390×${r / 100}) = ${xfmt(answer, 4)} K/s.` };
+    },
+    verify: (p) => { const rr = p.r / 100; const A = 4 * Math.PI * rr * rr, m = 8900 * (4 / 3) * Math.PI * rr ** 3; return 5.67e-8 * A * p.T ** 4 / (m * 390); } },
+  { id: 'tp-g25', type: 'nat', level: 3, exams: xex(3, 'nat'), sub: 'specific heat of solids',
+    make(rng) {
+      const [nm, M] = xchoose(rng, [['copper', 63.5], ['aluminium', 27], ['lead', 207], ['iron', 55.8], ['silver', 108]]); const answer = +(3 * 8.31 / (M / 1000)).toFixed(1);
+      return { M, answer, tol: Math.max(1, answer * 0.01), unit: 'J/kg K',
+        q: `Use Dulong and Petit's law (molar heat capacity ≈ 3R, R = 8.31) to estimate the specific heat of ${nm} (M = ${M} g/mol), in J kg⁻¹ K⁻¹.`,
+        sol: `c = 3R/M = 3×8.31/${M / 1000} kg = ${xfmt(answer, 4)} J kg⁻¹ K⁻¹.` };
+    },
+    verify: (p) => 24.93 / (p.M / 1000) },
+  { id: 'tp-g26', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'thermometer',
+    make(rng) {
+      const v = xchoose(rng, [0.4, 0.5, 0.8]), A = xchoose(rng, [0.5, 1, 2]); const dT = xchoose(rng, [50, 100]); const answer = +(v * 1e3 * (1.8e-4 - 2.7e-5) * dT / A).toFixed(3);
+      return { v, A, dT, answer, tol: Math.max(0.03, answer * 0.01), unit: 'mm',
+        q: `A mercury thermometer has a bulb of volume ${v} cm³ and a stem of cross-section ${A} mm². Mercury has γ = 1.8×10⁻⁴ K⁻¹ and the glass γ = 2.7×10⁻⁵ K⁻¹. By how many mm does the thread rise for a ${dT} K rise? (Ignore the stem's expansion.)`,
+        sol: `Apparent expansion coefficient = 1.8×10⁻⁴ − 2.7×10⁻⁵ = 1.53×10⁻⁴ K⁻¹. ΔV = ${v * 1000} mm³ × 1.53×10⁻⁴ × ${dT} = ${xfmt(v * 1000 * 1.53e-4 * dT, 4)} mm³. Rise = ΔV/A = ${xfmt(answer, 4)} mm.` };
+    },
+    verify: (p) => (p.v * 1000 * 1.8e-4 * p.dT - p.v * 1000 * 2.7e-5 * p.dT) / p.A },
+  { id: 'tp-g27', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'thermal stress',
+    make(rng) {
+      const gap = xchoose(rng, [0.2, 0.3, 0.4, 0.5]), dT = xchoose(rng, [40, 50, 60, 80]); const L = 1; const free = 1.2e-5 * L * dT * 1000; // mm
+      const answer = +(2e11 * ((free - gap) * 1e-3) / L / 1e6).toFixed(1);
+      return { gap, dT, free, answer, tol: Math.max(0.5, answer * 0.01), unit: 'MPa',
+        q: `A steel rod (α = 1.2×10⁻⁵ K⁻¹, Y = 2×10¹¹ Pa) 1.000 m long fits between two rigid walls with a total gap of ${gap} mm. It is heated by ${dT} K. Find the stress in the rod in MPa.`,
+        sol: `Free expansion = αLΔT = 1.2×10⁻⁵×1×${dT} = ${xfmt(free, 4)} mm. Suppressed: ${xfmt(free, 4)} − ${gap} = ${xfmt(free - gap, 4)} mm, a strain of ${xfmt((free - gap) / 1000, 4)}. Stress = Yε = ${xfmt(answer, 4)} MPa.` };
+    },
+    verify: (p) => 2e11 * (1.2e-5 * p.dT - p.gap * 1e-3) / 1e6 },
+  { id: 'tp-g28', type: 'mcq', level: 4, exams: xex(4, 'mcq'), sub: 'Stefan-Boltzmann law',
+    make(rng) {
+      const a = xchoose(rng, [2, 3, 0.5]), b = xchoose(rng, [2, 3, 0.5, 4]); const ratio = a ** 4 * b ** 2;
+      const f = (x) => xfmt(x, 3);
+      const o = xsh(rng, f(ratio), [f(a ** 4 * b), f(a ** 2 * b ** 2), f(a ** 4 * b ** 3)]);
+      return { a, b, options: o.options, answer: o.answer,
+        q: `Star A has ${a === 0.5 ? 'half' : a + ' times'} the surface temperature of star B and ${b === 0.5 ? 'half' : b + ' times'} its radius. Find the ratio of luminosities L_A/L_B.`,
+        sol: `L = 4πR²σT⁴, so L_A/L_B = (R_A/R_B)²(T_A/T_B)⁴ = ${b}² × ${a}⁴ = ${f(b ** 2)} × ${f(a ** 4)} = ${f(ratio)}. The other options use the radius or temperature to the wrong power.` };
+    },
+    verify: (p) => p.options.indexOf(xfmt((4 * Math.PI * (p.b) ** 2 * 5.67e-8 * p.a ** 4) / (4 * Math.PI * 5.67e-8), 3)) },
+  { id: 'tp-g29', type: 'mcq', level: 3, exams: xex(3, 'mcq'), sub: 'conduction',
+    make(rng) {
+      const fa = xchoose(rng, [0.5, 2, 3]), fl = xchoose(rng, [0.5, 2, 4]), ft = xchoose(rng, [1, 2, 3]); const ratio = fa * ft / fl;
+      const f = (x) => `×${xfmt(x, 3)}`;
+      const o = xsh(rng, f(ratio), [f(fa * ft * fl), f(fa * fl / ft), f(fa / (fl * ft))].filter((v) => true));
+      return { fa, fl, ft, options: o.options, answer: o.answer,
+        q: `A rod conducts heat steadily. Its cross-sectional area is multiplied by ${fa}, its length by ${fl} and the temperature difference across it by ${ft}. By what factor does the rate of heat flow change?`,
+        sol: `H = kAΔT/L, so H changes by (${fa} × ${ft})/${fl} = ${xfmt(ratio, 3)}.` };
+    },
+    verify: (p) => p.options.indexOf(`×${xfmt(p.fa * p.ft / p.fl, 3)}`) },
+  { id: 'tp-g30', type: 'nat', level: 4, exams: xex(4, 'nat'), sub: 'conduction at a junction',
+    make(rng) {
+      const Ls = xchoose(rng, [[1, 2, 4], [0.5, 1, 2], [1, 1, 2], [2, 4, 4]]); const Ts = [xchoose(rng, [100, 90, 80]), xchoose(rng, [50, 60, 40]), xchoose(rng, [0, 10, 20])];
+      const answer = +(Ts.reduce((s, t, i) => s + t / Ls[i], 0) / Ls.reduce((s, l) => s + 1 / l, 0)).toFixed(2);
+      return { Ls, Ts, answer, tol: 0.1, unit: '°C',
+        q: `Three identical rods (same material and cross-section) of lengths ${Ls.join(' m, ')} m meet at a point O. Their far ends are held at ${Ts.join(' °C, ')} °C respectively. Find the steady temperature of O in °C.`,
+        sol: `Net heat flow into O is zero: Σ(T_i − T)/L_i = 0, so T = Σ(T_i/L_i)/Σ(1/L_i) = ${xfmt(Ts.reduce((s, t, i) => s + t / Ls[i], 0), 5)}/${xfmt(Ls.reduce((s, l) => s + 1 / l, 0), 5)} = ${xfmt(answer, 4)} °C.` };
+    },
+    verify: (p) => { let lo = Math.min(...p.Ts), hi = Math.max(...p.Ts); for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; const net = p.Ts.reduce((s, t, k) => s + (t - mid) / p.Ls[k], 0); if (net > 0) lo = mid; else hi = mid; } return lo; } },
+];
+
+export default { topic: 'thermal-properties', groups: { ...groups, ...xgroups }, items: [...items, ...xitems], gens: [...gens, ...xgens] };
