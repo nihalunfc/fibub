@@ -1,0 +1,30 @@
+---
+// 6.5: how a SAFE (or iSAFE / convertible note) turns into shares at the next priced round: cap versus discount.
+---
+<figure class="cs-fig su-fig" data-sv>
+  <span class="cs-figtag">Calculator: what does my SAFE convert into?</span>
+  <div class="su-row">
+    <label>SAFE investment<input type="number" name="inv" min="0" step="any" value="500000" /></label>
+    <label>Valuation cap (post-money)<input type="number" name="cap" min="1" step="any" value="5000000" /></label>
+    <label>Discount, %<input type="number" name="disc" min="0" max="50" step="1" value="20" /></label>
+    <label>Next round: price per share<input type="number" name="pps" min="0.0001" step="any" value="2" /></label>
+    <label>Company shares before the round (fully diluted)<input type="number" name="fd" min="1" step="1" value="4000000" /></label>
+  </div>
+  <div class="su-out"><div><span>Cap price</span><b data-capp></b></div><div><span>Discount price</span><b data-discp></b></div><div><span>Converts at</span><b data-conv></b></div><div><span>Shares received</span><b data-sh></b></div><div><span>Ownership after conversion</span><b data-own></b></div></div>
+  <p class="su-say" data-say></p>
+  <figcaption>A SAFE investor gets the better (lower) of two prices: the cap price (cap ÷ the company's fully diluted shares) or the round price minus the discount. Simplified: a real post-money SAFE also counts other SAFEs and the new option pool, and the new round's investors dilute everyone afterwards.</figcaption>
+</figure>
+<script>
+  import { num, put } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-sv]')) {
+    function draw() {
+      const inv = num(fig, 'inv'), cap = num(fig, 'cap'), d = num(fig, 'disc') / 100, pps = num(fig, 'pps'), fd = num(fig, 'fd');
+      const capP = cap / fd, discP = pps * (1 - d), p = Math.min(capP, discP), sh = inv / p;
+      const f2 = (x: number) => x.toLocaleString('en', { maximumFractionDigits: 4 });
+      put(fig, 'capp', f2(capP)); put(fig, 'discp', f2(discP)); put(fig, 'conv', `${f2(p)} (${p === capP ? 'cap' : 'discount'})`);
+      put(fig, 'sh', Math.round(sh).toLocaleString('en')); put(fig, 'own', `${((sh / (fd + sh)) * 100).toFixed(1)} %`);
+      put(fig, 'say', p === capP ? 'The cap wins: the company is now worth much more than the cap, so the investor converts as if at the cap. That reward for early risk is the point of a cap.' : 'The discount wins: the round price is close to (or below) the cap, so the investor simply gets a discount on the new price.');
+    }
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>

@@ -1,0 +1,42 @@
+---
+// 5.2: which food licence tier: FSSAI (India) by turnover and activity; Canada SFC licence and local health; US cottage, health permit, FDA registration.
+---
+<figure class="cs-fig su-fig" data-fl>
+  <span class="cs-figtag">Try it: which food licence?</span>
+  <div class="su-row">
+    <label>Country<select name="cc"><option value="in">India</option><option value="ca">Canada</option><option value="us">USA</option></select></label>
+    <label>What you do<select name="act"><option value="serve">Cook and serve (café, restaurant, cloud kitchen)</option><option value="home">Make food at home to sell</option><option value="pack">Make packaged food in a unit</option><option value="import">Import or export food</option></select></label>
+    <label data-only="in">Yearly turnover (₹ lakh)<input type="number" name="to" min="0" step="1" value="10" /></label>
+    <label>Sell across states or provinces?<select name="inter"><option value="0">No, locally</option><option value="1">Yes</option></select></label>
+  </div>
+  <div class="su-card good"><strong data-t></strong><span data-d></span></div>
+  <figcaption>India: FSSAI basic registration up to ₹12 lakh turnover, state licence above that, central licence above ₹20 crore or for importers, exporters and some activities. Canada: local public health approves premises; the CFIA's Safe Food for Canadians licence is needed to import, export or sell across provinces. USA: food safety is mostly county and state; FDA facility registration applies to places that make, pack or hold food for wider sale, not to restaurants or most cottage producers.</figcaption>
+</figure>
+<script>
+  import { followCountry, num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-fl]')) {
+    const v = (n: string) => fig.querySelector<HTMLSelectElement>(`[name=${n}]`)!.value;
+    const cc = followCountry(fig, () => draw());
+    function draw() {
+      const c = cc(), a = v('act'), inter = v('inter') === '1', to = num(fig, 'to');
+      fig.querySelector<HTMLElement>('[data-only=in]')!.style.display = c === 'in' ? '' : 'none';
+      let t = '', d = '';
+      if (c === 'in') {
+        if (a === 'import' || to > 2000) { t = 'FSSAI central licence'; d = 'Issued by FSSAI centrally: needed for importers, exporters, turnover above ₹20 crore and some activities.'; }
+        else if (to > 12) { t = 'FSSAI state licence'; d = 'From your state food safety department through FoSCoS (foscos.fssai.gov.in); valid 1 to 5 years.'; }
+        else { t = 'FSSAI basic registration'; d = 'For small food businesses with turnover up to ₹12 lakh, through FoSCoS. Display the 14-digit number on your shop and packs.'; }
+        if (a === 'pack') d += ' Packaged food also follows FSSAI labelling and Legal Metrology rules.';
+      } else if (c === 'ca') {
+        if (a === 'import' || inter) { t = 'Safe Food for Canadians (SFC) licence'; d = 'From the CFIA through My CFIA, plus a written preventive control plan. Local health rules still apply to your premises.'; }
+        else if (a === 'home') { t = 'Local public health rules for home food'; d = 'Many provinces allow low-risk home foods (baked goods, jams) with notice to the health unit; high-risk foods need an inspected kitchen.'; }
+        else { t = 'Public health inspection and municipal licence'; d = 'Your local public health unit inspects before opening; the city issues the business licence; food handler training is required.'; }
+      } else {
+        if (a === 'home' && !inter) { t = 'State cottage food rules'; d = 'Most states let you sell low-risk home foods directly to customers, often with a sales cap and set label wording. No health permit in many states.'; }
+        else if (a === 'serve') { t = 'County or city health permit'; d = 'Plan review and inspection by the local health department; a certified food protection manager in many states.'; }
+        else { t = 'State food manufacturer licence + FDA registration'; d = 'Register the facility with the FDA (free, renew every two years in even years) and follow FDA food safety rules; imports also need prior notice for each shipment.'; }
+      }
+      fig.querySelector('[data-t]')!.textContent = t; fig.querySelector('[data-d]')!.textContent = d;
+    }
+    fig.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', draw));
+  }
+</script>

@@ -1,0 +1,39 @@
+---
+// 5.4: tick what your online shop shows; see what the rules in each country expect that is missing.
+---
+<figure class="cs-fig su-fig" data-wc>
+  <span class="cs-figtag">Try it: does my online shop show what the law expects?</span>
+  <div data-qs></div>
+  <div class="su-bars"><div><span>Covered</span><span class="t"><i data-bar></i></span><b data-n></b></div></div>
+  <div class="su-cards" data-miss></div>
+  <figcaption>A plain-language summary of common requirements: India's Consumer Protection (E-Commerce) Rules, 2020 and Legal Metrology rules; Canadian provincial internet agreement rules and CASL; and US FTC rules plus state auto-renewal laws. Your products may add more (food, health, children's products).</figcaption>
+</figure>
+<script>
+  import { getCountry } from './su';
+  const ITEMS: [string, string, string][] = [
+    ['Legal business name, address and contact details', 'in ca us', 'All three expect a seller you can identify and contact.'],
+    ['Total price with taxes, shipping and fees before checkout', 'in ca us', 'No surprise fees at the end; the US FTC rule on unfair fees and Canadian drip-pricing rules target this.'],
+    ['Refund, return, exchange and cancellation policy', 'in ca us', 'India requires it; Canada requires disclosure before the contract; US states require posted policies in many cases.'],
+    ['Delivery time and shipping terms', 'in ca us', 'Needed for the FTC mail order rule and provincial internet agreement rules.'],
+    ['Country of origin of each product', 'in', 'India’s e-commerce and Legal Metrology rules require country of origin on listings.'],
+    ['A grievance officer or complaint contact with a response time', 'in', 'India: sellers and marketplaces must name a grievance officer and acknowledge complaints within 48 hours.'],
+    ['A copy of the agreement emailed after purchase', 'ca', 'Ontario and other provinces require a copy of internet agreements within 15 days.'],
+    ['Clear consent and unsubscribe for marketing emails', 'ca us', 'CASL (Canada) needs consent first; CAN-SPAM (USA) needs a working opt-out and your postal address.'],
+    ['Easy online cancellation for subscriptions', 'us ca', 'US federal law (ROSCA) and many states require clear terms and simple cancellation for auto-renewals.'],
+    ['Privacy policy', 'in ca us', 'Needed wherever you collect personal data (Lesson 11.4).'],
+  ];
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-wc]')) {
+    const box = fig.querySelector('[data-qs]')!;
+    box.innerHTML = ITEMS.map(([t], i) => `<label style="display:flex;gap:8px;align-items:flex-start;font-weight:500;font-size:14.5px;margin:5px 0"><input type="checkbox" data-i="${i}" style="margin-top:3px"> <span>${t}</span></label>`).join('');
+    function draw() {
+      const cc = getCountry(), rel = ITEMS.map((x, i) => [x, i] as const).filter(([x]) => cc === 'all' || x[1].includes(cc));
+      const have = new Set([...box.querySelectorAll<HTMLInputElement>('input:checked')].map((el) => Number(el.dataset.i)));
+      const done = rel.filter(([, i]) => have.has(i)).length;
+      (fig.querySelector('[data-bar]') as HTMLElement).style.width = `${(done / rel.length) * 100}%`;
+      fig.querySelector('[data-n]')!.textContent = `${done} of ${rel.length}`;
+      const miss = fig.querySelector('[data-miss]')!; miss.innerHTML = '';
+      rel.filter(([, i]) => !have.has(i)).slice(0, 4).forEach(([x]) => { const e = document.createElement('div'); e.className = 'su-card bad'; e.innerHTML = '<strong></strong><span></span>'; e.querySelector('strong')!.textContent = `Missing: ${x[0]}`; e.querySelector('span')!.textContent = x[2]; miss.append(e); });
+    }
+    box.addEventListener('change', draw); document.addEventListener('su-country', draw); draw();
+  }
+</script>

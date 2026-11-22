@@ -1,0 +1,33 @@
+---
+// 6.6: founders, an option pool and two rounds: watch each group's percentage shrink while the value of their stake can grow.
+---
+<figure class="cs-fig su-fig" data-ct>
+  <span class="cs-figtag">Simulation: dilution through two rounds</span>
+  <div class="su-row">
+    <label>Founders' shares<input type="number" name="f" min="1" step="1" value="8000000" /></label>
+    <label>Option pool, % after seed<input type="number" name="pool" min="0" max="30" step="1" value="10" /></label>
+    <label>Seed raise<input type="number" name="s1" min="0" step="any" value="1000000" /></label>
+    <label>Seed pre-money valuation<input type="number" name="v1" min="1" step="any" value="4000000" /></label>
+    <label>Series A raise<input type="number" name="s2" min="0" step="any" value="5000000" /></label>
+    <label>Series A pre-money valuation<input type="number" name="v2" min="1" step="any" value="20000000" /></label>
+  </div>
+  <div data-stages></div>
+  <p class="su-fine">Same units of money for any currency. Simplified: the option pool is created just before the seed (inside the pre-money, as investors usually ask) and not topped up at Series A.</p>
+  <figcaption>Each round sells new shares, so everyone's percentage falls, but if the price per share rises, the founders' stake is worth more. Watch the value line, not only the percentage.</figcaption>
+</figure>
+<script>
+  import { num } from './fmt';
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-ct]')) {
+    function draw() {
+      const F = num(fig, 'f'), pool = num(fig, 'pool') / 100, s1 = num(fig, 's1'), v1 = num(fig, 'v1'), s2 = num(fig, 's2'), v2 = num(fig, 'v2');
+      // Seed: pool inside pre-money. Post-seed shares T1: pool = pool*T1, seed = s1/(v1+s1)*T1, founders = F.
+      const seedPct = s1 / (v1 + s1), T1 = F / Math.max(0.0001, 1 - pool - seedPct), P = pool * T1, S1 = seedPct * T1, price1 = v1 / (F + P);
+      const price2 = v2 / T1, S2 = s2 / price2, T2 = T1 + S2;
+      const rows: [string, number[], number][] = [['Start', [F, 0, 0, 0], F], ['After seed', [F, P, S1, 0], T1], ['After Series A', [F, P, S1, S2], T2]];
+      const cols = ['var(--accent)', 'var(--muted)', 'var(--warn)', 'var(--good)'], names = ['Founders', 'Option pool', 'Seed investors', 'Series A'];
+      const priceAt = [0, price1, price2];
+      fig.querySelector('[data-stages]')!.innerHTML = rows.map(([n, v, T], k) => `<p class="su-q">${n}${k ? ` · price per share ${priceAt[k].toFixed(3)}` : ''}</p><div style="display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--line)">${v.map((x, i) => x > 0 ? `<i title="${names[i]}" style="display:block;width:${(x / T) * 100}%;background:${cols[i]};transition:width .5s"></i>` : '').join('')}</div><div class="su-fine" style="margin:3px 0 0">${v.map((x, i) => x > 0 ? `${names[i]} ${((x / T) * 100).toFixed(1)} %` : '').filter(Boolean).join(' · ')}${k ? ` · founders' stake worth ${Math.round(F * priceAt[k]).toLocaleString('en')}` : ''}</div>`).join('');
+    }
+    fig.querySelectorAll('input').forEach((el) => el.addEventListener('input', draw)); draw();
+  }
+</script>
