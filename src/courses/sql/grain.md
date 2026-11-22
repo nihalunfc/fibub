@@ -56,6 +56,11 @@ WHERE order_id BETWEEN 1006 AND 1008
 
 Three orders, but five rows: order 1006 has two products, 1007 has two, 1008 has one. Same sales, two grains: orders would show 3 rows, order_items shows 5.
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. Counting at the wrong grain
 
 "How many orders included a Bakery product?" Bakery is products 9 to 14.

@@ -46,6 +46,11 @@ Change the numbers to your own test. Try making B's visitors 10,300 while A stay
 
 Relative lifts sound bigger and are what most dashboards show. Absolute lifts turn straight into money: 0.70 points × 50,000 monthly visitors ≈ 350 extra orders a month. Report both, and label them.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. The test and the interval
 
 For conversion rates the standard tool is the **two-proportion z-test** (Lesson 6.3 did the same for means). It answers: if A and B truly converted at the same rate, how often would a gap this big appear by chance?

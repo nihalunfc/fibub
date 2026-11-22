@@ -55,6 +55,11 @@ Reading a normal Q-Q plot:
 - **Flattened S:** light tails, values bounded on both sides.
 - **Steps:** the data is rounded or discrete.
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. Check with numbers
 
 - **Counts:** compare the variance with the mean (Poisson expects them equal).

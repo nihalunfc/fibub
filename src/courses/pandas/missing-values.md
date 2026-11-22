@@ -50,6 +50,11 @@ Before touching anything, ask **why** it's missing:
 | Qty | not recorded | drop the line (can't compute revenue), or ask the source |
 | Customer ID | guest checkout | fill with `'GUEST'`, keep the sale |
 
+Try each way of handling the three missing values and watch the mean line.
+
+<figure class="fig" data-fig="@data-missing-fill"><figcaption>Notice that every fill changes the picture a little, and zero is the worst because it invents data.</figcaption></figure>
+
+
 ## 3. Drop or fill
 
 ```python data=orders_messy.csv

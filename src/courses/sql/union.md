@@ -46,6 +46,11 @@ SELECT name, city FROM mini_customers WHERE city = 'Ottawa'
 
 Press **Show how it runs**: the Toronto rows, then the Ottawa rows stacked under them.
 
+Switch between the four operations and add ids to either list to see how duplicates are handled.
+
+<figure class="fig" data-fig="@data-set-ops"><figcaption>Notice that UNION removes duplicates, UNION ALL keeps them, and EXCEPT depends on which list comes first.</figcaption></figure>
+
+
 ## 3. UNION ALL vs UNION
 
 `UNION ALL` keeps every row. `UNION` also removes duplicate rows from the combined result. Compare:

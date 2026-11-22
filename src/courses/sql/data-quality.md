@@ -49,6 +49,11 @@ FROM orders
 
 4,064 rows, 4,064 distinct ids (the key is unique), from 2024-01-01 to 2025-12-31. Write down these numbers; next week, compare. A sudden drop in rows is often the first sign that a load failed.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Missing values
 
 `COUNT(column)` skips NULLs, so `COUNT(*) - COUNT(column)` is the number of missing values. One query covers every column you care about:

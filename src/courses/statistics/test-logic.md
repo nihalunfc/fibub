@@ -56,6 +56,11 @@ With 5,000 simulated no-preference worlds, a split as lopsided as 62–38 (in ei
 
 "Not guilty" doesn't mean the defendant didn't do it; it means the evidence wasn't strong enough. Likewise, p = 0.30 doesn't show the pages are equal; it shows the data can't tell them apart.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. The steps every test follows
 
 1. State `$H_0$` and `$H_1$`, and pick α (usually 0.05), **before** looking at results.

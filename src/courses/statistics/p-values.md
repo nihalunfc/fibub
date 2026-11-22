@@ -47,6 +47,11 @@ In practice: compute the test statistic (Lesson 6.1), then the area beyond it in
 4. **Not proof of no effect when large.** p = 0.4 means "can't tell", often because the sample was too small.
 5. **Not a cliff at 0.05.** 0.049 and 0.051 carry the same evidence. The American Statistical Association's 2016 statement on p-values makes these same points.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. P-values dance
 
 <!--fig:p-value-dance-->

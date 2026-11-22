@@ -65,6 +65,11 @@ commit;
 
 <div class="problem" data-problem="loading-patterns-merge-count"></div>
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Pattern 2: delete-insert a partition
 
 Use it when the source gives you the **complete** set for a slice: a whole business day of till lines, a full day of ad stats.

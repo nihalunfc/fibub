@@ -48,6 +48,11 @@ Two things run **across** all six stages:
 - **Observability:** logs, row counts, freshness checks and lineage (which file fed which number). It is how you know the pipeline is healthy.
 - **Governance:** who may see what, where passwords live, and how changes are reviewed.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. ETL and ELT
 
 **ETL** means Extract, Transform, Load: you clean the data in Python first, then write finished tables to the warehouse. **ELT** means Extract, Load, Transform: you load the raw data first, then clean and shape it inside the warehouse with SQL.

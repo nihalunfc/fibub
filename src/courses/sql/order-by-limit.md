@@ -56,6 +56,19 @@ ORDER BY joined_on DESC
 LIMIT 10
 ```
 
+Step through the clauses in the order SQL really runs them and move the three sliders.
+
+<div class="steps" data-fig="@data-query-order">
+<div class="step">FROM: the whole table is the starting point.</div>
+<div class="step">WHERE: rows are dropped before any grouping.</div>
+<div class="step">GROUP BY: the surviving rows become one row per region.</div>
+<div class="step">HAVING: whole groups are dropped by their aggregate.</div>
+<div class="step">SELECT: columns are computed here, so the alias total exists only from now on.</div>
+<div class="step">ORDER BY: now the alias can be used to sort.</div>
+<div class="step">LIMIT: finally only the first rows are kept.</div>
+</div>
+
+
 ## 3. No ORDER BY, no order
 
 A table is a set of rows, not a list, so without ORDER BY the database may hand rows back in any order. Today it might look like the order they were added; after an update or on a bigger server, it may not. If order matters, say so with ORDER BY.

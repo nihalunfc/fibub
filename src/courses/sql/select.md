@@ -47,6 +47,11 @@ Press **Show how it runs**. FROM brings in every column of `products`; at the SE
 
 Change the order to `unit_price, product_name` and run again: the columns swap. You can also list a column twice, though there is rarely a reason to.
 
+Press Play to watch each row being tested, then move the slider and switch between AND, OR and NOT.
+
+<figure class="fig" data-fig="@data-where-flow"><figcaption>Notice that every row is judged on its own, and that a row exactly on the boundary is dropped by a strict greater-than.</figcaption></figure>
+
+
 ## 3. SELECT * and when not to use it
 
 `*` means every column. It is perfect for a quick look, but in saved queries list the columns: the query is easier to read, faster on wide tables, and doesn't change shape when someone adds a column to the table.

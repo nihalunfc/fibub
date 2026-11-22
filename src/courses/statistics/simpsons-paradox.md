@@ -42,6 +42,11 @@ This is **Simpson's paradox**: a trend in every group reverses (or vanishes) whe
 - **Before/after reports:** the average order value "fell" because many new, smaller customers joined, while every existing segment spent more.
 - **Broken A/B tests:** when a mismatch in the mix between groups appears, check for SRM (Lesson 7.6).
 
+Switch between the pooled line and the by-group lines.
+
+<figure class="fig" data-fig="@data-simpson-scatter"><figcaption>Notice that every group trends up while the pooled trend goes down: the hidden group variable flips the story.</figcaption></figure>
+
+
 ## 3. Which number to trust
 
 There's no purely statistical answer; it depends on what causes what.

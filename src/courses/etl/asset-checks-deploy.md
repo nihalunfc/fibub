@@ -64,6 +64,11 @@ def rate_in_range() -> dg.AssetCheckResult:
 
 **Freshness checks** fail when an asset has not been updated within a window, for example "hotel staging must be updated by 07:30 every day". Dagster provides helpers such as `build_last_update_freshness_checks`, and newer freshness policies; the exact API depends on your version, so check the docs.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Testing in layers
 
 | Layer | What you test | Tool |

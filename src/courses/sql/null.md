@@ -48,6 +48,11 @@ WHERE store_id IS NULL
 
 Three people work at head office. Press **Show how it runs**: at the WHERE step only the rows with an empty store_id survive.
 
+Pick A and B in the truth table, then test each WHERE condition on the rows with NULL.
+
+<figure class="fig" data-fig="@data-null-logic"><figcaption>Notice that UNKNOWN is neither true nor false, and that WHERE keeps only TRUE, so NULL rows vanish silently.</figcaption></figure>
+
+
 ## 3. = NULL finds nothing
 
 The natural thing to type is wrong:

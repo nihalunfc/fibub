@@ -73,6 +73,11 @@ units[units > 500].sort_values(ascending=False)
 
 The big difference: Excel formulas run cell by cell; pandas runs a whole column at once, and every step is written down, so it can be rerun next month.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. DAX to pandas
 
 | DAX | pandas |

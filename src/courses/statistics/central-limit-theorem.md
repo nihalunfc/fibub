@@ -51,6 +51,11 @@ Three parts:
 
 The same holds for **totals** (sum = n × mean): daily revenue as the total of many orders is close to normal even though orders are not.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. How large is "large enough"?
 
 - Roughly symmetric data: n of 10–20 is plenty.

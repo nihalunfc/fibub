@@ -108,6 +108,11 @@ because a set ignores repeats.
 
 <div class="problem" data-problem="landing-files-manifest"></div>
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Same name, new content
 
 Vendors often fix a file and drop it again under the same name. Decide the rule out loud and write it in the README:

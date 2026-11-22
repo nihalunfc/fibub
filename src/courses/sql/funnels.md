@@ -53,6 +53,16 @@ ORDER BY step
 
 4,064 orders were placed, 3,945 completed and 3,744 kept. Step 3 uses an anti-join ([Lesson 4.4](/learn/courses/sql/anti-join/)): "completed and no matching return".
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Step and overall conversion
 
 Two rates matter:

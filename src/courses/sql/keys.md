@@ -57,6 +57,11 @@ FROM customers
 
 Both are 603, so `customer_id` is unique. A name is not: try swapping `customer_id` for `first_name` and watch the second number drop.
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. Foreign key: a pointer to another table
 
 A **foreign key** is a column that holds another table's primary key. `mini_orders.customer_id` says which customer placed each order. Order 101 has `customer_id` 1, so it belongs to Asha.

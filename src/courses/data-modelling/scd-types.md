@@ -74,6 +74,11 @@ SELECT * FROM asha_orders;
 
 $265 in all: $50 while she lived in Toronto, $215 after she moved. Keep those numbers in mind; each type below reports them differently.
 
+Switch between Type 1, 2 and 3 and read the sales-by-city report each time.
+
+<figure class="fig" data-fig="@data-scd-types"><figcaption>Notice which method keeps last year's sales in Pune and which rewrites history.</figcaption></figure>
+
+
 ## 3. Type 0: never change
 
 **Type 0** keeps the original value forever and ignores changes. It suits attributes that are true by definition at one moment: date of birth, `joined_on`, "city at sign-up", the original credit score. If Asha's row has `signup_city`, it says Toronto for ever, and that is correct, because it answers "where did she sign up?", not "where does she live?".

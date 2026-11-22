@@ -59,6 +59,11 @@ LIMIT 3
 
 These are guest orders, so `customer_id` is NULL and its type is `null`. SQLite is relaxed about types: a column declared INTEGER can hold text if someone puts text in it. SQL Server and PostgreSQL are strict, and refuse to store or compare mismatched types without a CAST.
 
+Pick A and B in the truth table, then test each WHERE condition on the rows with NULL.
+
+<figure class="fig" data-fig="@data-null-logic"><figcaption>Notice that UNKNOWN is neither true nor false, and that WHERE keeps only TRUE, so NULL rows vanish silently.</figcaption></figure>
+
+
 ## 3. Whole-number division
 
 When both sides of `/` are integers, the answer is an integer and the fraction is dropped:

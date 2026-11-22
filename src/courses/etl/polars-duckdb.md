@@ -53,6 +53,16 @@ df = daily.collect()          # only now is anything read
 
 An **expression** (`pl.col("qty") * pl.col("price")`) describes a calculation on whole columns. **Lazy** means `scan_csv` reads nothing yet: Polars collects the steps into a plan, improves it, and runs it on `collect()`. It reads only the columns you use (**projection pushdown**), applies filters while reading (**predicate pushdown**), and uses every core. Polars renames things between versions, so pin its version and check its docs if a name is refused.
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. DuckDB: SQL on files
 
 ```python

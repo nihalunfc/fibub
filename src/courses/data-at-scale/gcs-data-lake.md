@@ -36,6 +36,11 @@ Every engine in this course, Spark, BigQuery, Trino, Druid, reads from or writes
 
 Think of a self-storage facility. A **bucket** is your unit. **Objects** are boxes with labels. You get no shelves or rooms, only labels, so a good labelling scheme (`dt=2026-11-04`) is how you find things fast. **Storage classes** are units nearer or further from the entrance: the far ones are cheaper to rent but cost more each time you fetch something.
 
+Press Next day, then Load changes, then Re-run same load with each write mode.
+
+<figure class="fig" data-fig="@data-watermark-load"><figcaption>Notice that the watermark limits what is copied, and that MERGE is safe to repeat while a blind APPEND makes duplicates.</figcaption></figure>
+
+
 ## 3. Hands on with the command line
 
 ```bash

@@ -54,6 +54,11 @@ with `$z$` = 1.96 for 95 %. Round up.
 - `$p$`: use 0.5 if you have no idea; it gives the largest n, so you're safe. If past data says about 10 %, use 0.1 (much smaller n).
 - `$\sigma$`: from past data, a pilot, or range ÷ 4 as a rough guess (about 95 % of normal data lies within ±2σ).
 
+Raise the sample size, then shrink the effect size, and watch the two bells and the shaded areas.
+
+<figure class="fig" data-fig="@data-power-overlap"><figcaption>Notice that alpha comes from the null bell, beta from the real-effect bell, and power is what is left of the real bell beyond the cut-off.</figcaption></figure>
+
+
 ## 3. Adjustments
 
 - **Response rate:** invite n ÷ (expected response rate).

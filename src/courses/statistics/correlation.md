@@ -41,6 +41,11 @@ Add the far-away point and watch one dot move r a long way. That's Pearson's wea
 
 Replace each value by its **rank** (1st, 2nd, ...) and compute Pearson's r on the ranks. **Spearman's ρ** measures any steadily rising or falling relationship, straight or curved, and one extreme value can only be "the largest", so it can't dominate. Use it for skewed data (revenue, house prices), ranks and ratings, or when outliers are present.
 
+Drag any dot, add the outlier, and switch on the residual gaps.
+
+<figure class="fig" data-fig="@data-corr-drag"><figcaption>Notice how r and the slope react, especially to a single far-away point.</figcaption></figure>
+
+
 ## 3. Is r real? Test and interval
 
 The test of "true correlation is zero" uses a t-statistic with `$n - 2$` degrees of freedom. For an interval, use **Fisher's z** transform.

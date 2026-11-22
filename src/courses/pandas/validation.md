@@ -69,6 +69,11 @@ print('all checks passed')
 
 The last rule fails on purpose: it shows what a failed check looks like. Change `50` to `100` and run again.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Outliers: flag, don't delete
 
 ```python data=orders.csv

@@ -47,6 +47,11 @@ From the two posteriors you can read:
 
 Teams typically agree in advance to ship when the expected loss is below a tiny threshold (say 0.01 percentage points), which they can turn into money.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Priors
 
 - A **flat prior** lets the data speak; with thousands of visitors its effect is negligible.

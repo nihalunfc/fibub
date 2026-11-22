@@ -67,6 +67,16 @@ table.round(2)
 
 The **All stores** row is computed from all the rows again. Its customer count is smaller than the sum of the stores (people shop in more than one store), and its AOV is not the average of the store AOVs.
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. This year against last year
 
 ```python data=orders.csv

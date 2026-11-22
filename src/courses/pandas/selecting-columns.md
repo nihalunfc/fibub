@@ -61,6 +61,11 @@ df.columns = df.columns.str.strip().str.lower().str.replace(r'[^a-z0-9]+', '_', 
 list(df.columns)
 ```
 
+Choose two conditions and a combiner and read the True/False columns row by row.
+
+<figure class="fig" data-fig="@data-mask-filter"><figcaption>Notice that the filter keeps rows where the final mask is True, and that the original index stays attached.</figcaption></figure>
+
+
 ## 3. By type or by pattern
 
 ```python data=orders.csv
