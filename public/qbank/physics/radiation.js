@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './radiation.more.gen.js';
 import more2 from './radiation.more2.gen.js';
+import r4 from './radiation.r4.gen.js';
 
 const c = C.c;
 const ETA0 = Math.sqrt(C.mu0 / C.eps0);
@@ -248,6 +249,7 @@ export default {
       sol: 'It is two perpendicular dipoles, $90^\\circ$ out of phase. Along $z$ both are fully transverse, equal and in quadrature: circular polarisation, at maximum intensity. Looking along $x$, only the $y$ dipole is transverse: linear polarisation. The cross terms average to zero, so the powers add: $2\\times\\frac{\\mu_0p_0^2\\omega^4}{12\\pi c}$.',
       trap: 'The $z$ axis is perpendicular to both dipoles, so it is the brightest direction, not dark.' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -370,5 +372,6 @@ export default {
       },
       verify: (p) => { const g = (p.K + MEV) / MEV; return (p.ask === 'linear' ? Math.pow(g, 6) : Math.pow(g, 4)) / 10 ** p.ex; } },
     ...more,
+    ...r4.gens,
   ],
 };

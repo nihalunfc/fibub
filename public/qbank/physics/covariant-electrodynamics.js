@@ -6,6 +6,7 @@
 import { int, choose, mcqOptions, round, fmt, C } from '../_util.js';
 import more from './covariant-electrodynamics.more.gen.js';
 import more2 from './covariant-electrodynamics.more2.gen.js';
+import r4 from './covariant-electrodynamics.r4.gen.js';
 
 const c = C.c;
 const K = 1 / (4 * Math.PI * C.eps0);
@@ -246,6 +247,7 @@ export default {
       sol: '$E^2 - c^2B^2 = 0$ and $\\vec E\\cdot\\vec B = 0$: a null field, like a plane wave. $E\'_y = \\gamma(E - vE/c) = \\gamma(1 - \\beta)E$ and $cB\'_z = \\gamma(1 - \\beta)E$: both shrink together for $\\beta > 0$ and grow for $\\beta < 0$. Removing one would make the first invariant non-zero; a static capacitor seen from a moving frame always has $E > cB$.',
       trap: 'Crossed fields with $E = cB$ exactly sit on the boundary: no drift frame exists ($v = c$).' },
     ...more2,
+    ...r4.items,
   ],
 
   gens: [
@@ -382,5 +384,6 @@ export default {
       },
       verify: (p) => Math.pow((p.T + p.m) / p.m, 3) / 10 ** p.ex },
     ...more,
+    ...r4.gens,
   ],
 };
