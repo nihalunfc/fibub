@@ -16,5 +16,13 @@ export default {
       ['will be played', 'being played', 'to be played', 'having been played'], '<p>Strip out the descriptive phrases: "The violin ______ at the concert hall on Friday." The sentence needs a main verb, and "Friday" points to the future: <b>will be played</b>. The other choices are not main verbs.</p>', 'Long descriptive phrases can hide that the sentence still has no main verb.'),
     it('sat-vf-005', 4, 'parallel verbs', 'Each morning the baker weighs the flour, ______ the dough by hand, and shapes the loaves before sunrise.',
       ['kneads', 'kneading', 'to knead', 'kneaded'], '<p>The three actions are a list and must match: "weighs", "<b>kneads</b>", "shapes", all present tense to fit "Each morning".</p>'),
+    it('sat-vf-101', 2, 'tense', 'Last winter, the town ______ a new bridge across the river after the old one was damaged in a flood.',
+      ['built', 'builds', 'will build', 'is building'], '<p>"Last winter" places the action in the past: <b>built</b>.</p>'),
+    it('sat-vf-102', 3, 'tense sequence', 'By the time the rescue team reached the hikers, the storm ______ for nearly six hours.',
+      ['had been raging', 'rages', 'will rage', 'has been raging'], '<p>The storm was raging before a past moment (when the team arrived), so the past perfect fits: <b>had been raging</b>. "Has been" ties to the present, not to a past moment.</p>'),
+    it('sat-vf-103', 3, 'parallel form', 'Volunteers at the park spend their weekends planting trees, clearing trails and ______ litter from the lake shore.',
+      ['picking up', 'to pick up', 'they pick up', 'picked up'], '<p>The list uses "-ing" forms: planting, clearing, so the third item must match: <b>picking up</b>.</p>'),
+    it('sat-vf-104', 4, 'finite verb', 'The documents, which were discovered in a sealed box beneath the floor of the old courthouse, ______ details of trials held more than two centuries ago.',
+      ['record', 'recording', 'to record', 'having recorded'], '<p>The subject "The documents" needs a main verb. The "which" clause is extra information, so the blank must supply a finite verb that agrees with the plural subject: <b>record</b>.</p>', 'Being misled by the long interrupting clause.'),
   ],
 };

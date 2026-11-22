@@ -17,5 +17,13 @@ export default {
       ['Next,', 'In contrast,', 'For example,', 'Still,'], '<p>The text describes steps in order, and the second sentence is the following step: <b>Next</b>.</p>'),
     it('sat-tr-006', 5, 'addition versus contrast', 'Urban trees cool city streets by shading pavement. ______ they cool the air through their leaves, releasing water vapour that absorbs heat as it evaporates.',
       ['Moreover,', 'Conversely,', 'Nonetheless,', 'Instead,'], '<p>The second sentence adds a second way trees cool the city, in the same direction as the first: <b>Moreover</b>. The other words signal contrast.</p>', 'Contrast words feel "sophisticated" but are wrong when the ideas agree.'),
+    it('sat-tr-101', 2, 'contrast', 'Most cacti store water in thick stems to survive long droughts. ______ some cacti that grow in tropical rainforests have thin, flat stems and live on tree branches, where rain falls almost every day.',
+      ['However,', 'Similarly,', 'For example,', 'Therefore,'], '<p>Desert cacti store water; rainforest cacti are thin and live in wet places. That is a contrast: <b>However</b>.</p>'),
+    it('sat-tr-102', 3, 'cause and effect', 'The bridge was built with a steel that weakens when exposed to salt. ______ engineers now inspect it every year, since salt from winter roads collects on its beams.',
+      ['As a result,', 'In contrast,', 'For instance,', 'Nevertheless,'], '<p>The steel’s weakness causes the yearly inspections: <b>As a result</b>. "Nevertheless" would suggest the inspections happen despite the weakness.</p>'),
+    it('sat-tr-103', 3, 'example', 'Many animals use the Earth’s magnetic field to find their way. ______ sea turtles that hatch on a beach can return to the same stretch of coast years later to lay their own eggs.',
+      ['For example,', 'However,', 'Instead,', 'Meanwhile,'], '<p>Sea turtles returning to their beach illustrate the general claim about animals using the magnetic field: <b>For example</b>.</p>'),
+    it('sat-tr-104', 4, 'concession', 'The new vaccine requires two doses given a month apart, which makes it harder to deliver in remote areas. ______ it protects against the disease for up to ten years, far longer than the older single-dose vaccine.',
+      ['Even so,', 'Consequently,', 'Likewise,', 'In other words,'], '<p>The first sentence gives a drawback; the second gives an advantage despite it: <b>Even so</b>. "Consequently" would make the long protection a result of the two doses being hard to deliver.</p>', 'Choosing a cause-and-effect word for a contrast.'),
   ],
 };
