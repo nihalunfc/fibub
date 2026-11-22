@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
   if (req.mode === 'navigate') return event.respondWith(page(event));
   // A page fetched ahead of a click (prefetch on hover) is kept only once it is really opened.
   if (url.pathname.endsWith('/') && url.pathname !== '/nav/') return;
-  if (url.pathname.startsWith('/_astro/') || url.pathname.startsWith('/ocr/')) return event.respondWith(cacheFirst(req));
+  if (url.pathname.startsWith('/_astro/') || url.pathname.startsWith('/ocr/') || url.pathname.startsWith('/py/')) return event.respondWith(cacheFirst(req));
   event.respondWith(fresh(req));
 });
 
@@ -73,7 +73,7 @@ async function matchPage(key) {
   return (await (await caches.open(PAGES)).match(key, ANY)) || (await caches.match(key, { ...ANY, cacheName: CORE }));
 }
 
-// Files whose names change whenever they change (/_astro/) or that are pinned to a version (/ocr/).
+// Files whose names change whenever they change (/_astro/) or that are pinned to a version (/ocr/, /py/ = Pyodide for the pandas course).
 async function cacheFirst(req) {
   const hit = await caches.match(req, ANY);
   if (hit) return hit;

@@ -1,0 +1,33 @@
+product_id,product,category,price,cost
+P101,Coffee beans 1 kg,Grocery,18.99,13.67
+P102,Olive oil 1 L,Grocery,12.49,8.99
+P103,Pasta 500 g,Grocery,2.29,1.65
+P104,Granola 750 g,Grocery,6.99,5.03
+P105,Tea 100 bags,Grocery,7.49,5.39
+P106,Rice 2 kg,Grocery,5.99,4.31
+P107,Maple syrup 500 ml,Grocery,11.99,8.63
+P108,Dark chocolate,Grocery,3.49,2.51
+P109,Laundry pods 40,Household,16.99,11.38
+P110,Paper towels 6,Household,9.99,6.69
+P111,Dish soap,Household,3.99,2.67
+P112,Trash bags 50,Household,8.49,5.69
+P113,Sponges 6,Household,4.29,2.87
+P114,All-purpose cleaner,Household,4.99,3.34
+P115,USB-C cable,Electronics,14.99,9.29
+P116,Wireless earbuds,Electronics,59.99,37.19
+P117,Phone charger,Electronics,24.99,15.49
+P118,Bluetooth speaker,Electronics,49.99,30.99
+P119,Power bank,Electronics,34.99,21.69
+P120,Smart bulb,Electronics,19.99,12.39
+P121,Bath towel,Home,17.99,8.64
+P122,Throw blanket,Home,29.99,14.4
+P123,Mug set 4,Home,24.99,12.0
+P124,Candle,Home,12.99,6.24
+P125,Cushion,Home,19.99,9.6
+P126,Storage box,Home,14.99,7.2
+P127,Shampoo,Personal care,7.99,4.39
+P128,Toothpaste,Personal care,3.49,1.92
+P129,Body wash,Personal care,6.49,3.57
+P130,Sunscreen,Personal care,13.99,7.69
+P131,Hand cream,Personal care,5.99,3.29
+P132,Razor pack,Personal care,15.99,8.79
