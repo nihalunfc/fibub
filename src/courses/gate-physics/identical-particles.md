@@ -157,4 +157,4 @@ They start easy and climb to top-rank level. More on the [identical particles pr
 
 <div class="qbank" data-bank="physics" data-topics="identical-particles" data-exam="gate" data-n="10"></div>
 
-**Next:** this ends module 4, quantum mechanics. Module 5 turns to statistical physics, where the Bose and Fermi rules of this lesson decide how gases of many particles behave. Back to the [GATE Physics course](/learn/courses/gate-physics/).
+**Next:** this ends module 4, quantum mechanics. [Module 5](/learn/courses/gate-physics/ensembles/) turns to statistical physics, where the Bose and Fermi rules of this lesson decide how gases of many particles behave. Back to the [GATE Physics course](/learn/courses/gate-physics/).
