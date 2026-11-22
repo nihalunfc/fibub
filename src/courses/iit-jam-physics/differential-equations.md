@@ -49,6 +49,15 @@ Linearity matters because of **superposition**: for a linear equation with zero 
 
 **Why the integrating factor works.** If `$\mu' = P\mu$`, then by the product rule `$(\mu y)' = \mu y' + P\mu y = \mu(y' + Py)$`. So multiplying the equation by `$\mu$` turns its left side into one exact derivative.
 
+Step through the zig-zag, then shrink the step size h.
+
+<div class="steps" data-fig="@math-euler-method">
+<div class="step"><p><b>Start.</b> The curve must pass through the starting point; the slope there is f(x₀, y₀).</p></div>
+<div class="step"><p><b>One step.</b> Walk along that slope for a width h to the point (x₁, y₁).</p></div>
+<div class="step"><p><b>Next step.</b> Read the new slope at (x₁, y₁) and walk again.</p></div>
+<div class="step"><p><b>The whole path.</b> A chain of short straight pieces that follows the exact curve; smaller h gives a closer fit.</p></div>
+</div>
+
 **Worked example.** Solve `$y' + y/x = x^2$` for `$x > 0$` with `$y(1) = 1$`, and find `$y(2)$`.
 
 1. `$P = 1/x$`, so `$\mu = e^{\ln x} = x$`.

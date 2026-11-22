@@ -63,6 +63,11 @@ Every statement starts with a noun phrase that names a type of information. Lear
 
 "A reference to" is the hardest, because the information may be just a few words inside a sentence about something else.
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 3. The method
 
 <div class="steps">

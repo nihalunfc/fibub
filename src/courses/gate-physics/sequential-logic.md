@@ -31,6 +31,15 @@ sources:
 
 **SR latch.** Two cross-coupled NOR gates. S = 1 sets Q = 1, R = 1 resets it, S = R = 0 holds, and S = R = 1 forces both outputs to 0 and leaves the next state undecided when both inputs drop together, so it is forbidden. (With NAND gates the inputs are active-low.) Gating it with an enable and feeding `$S = D$`, `$R = D'$` gives the **D latch**, which is transparent while the enable is high.
 
+Clock a flip-flop by hand and read the timing diagram.
+
+<div class="steps" data-fig="@sx-flipflop">
+<div class="step"><b>Reset.</b> Q = 0. Choose the flip-flop type and set its inputs.</div>
+<div class="step"><b>Clock edge.</b> At the rising edge, Q takes the value the inputs ask for. Press the next step again to see another edge.</div>
+<div class="step"><b>Another edge.</b> Change the inputs between edges: Q does not move until the next rising edge.</div>
+<div class="step"><b>Toggle.</b> With T = 1 or J = K = 1 every edge flips Q: divide by 2.</div>
+</div>
+
 **Edge-triggered flip-flops** change only at a clock edge. Their behaviour is summarised by a characteristic equation for the next state `$Q^+$`:
 
 | Flip-flop | Characteristic equation | Excitation (inputs needed for Q → Q⁺) |

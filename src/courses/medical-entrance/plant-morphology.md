@@ -52,6 +52,10 @@ Parts: **leaf base** (swollen as a **pulvinus** in legumes; sheathing in monocot
 
 **Modifications:** tendrils (pea), spines (cacti), fleshy storage leaves (onion, garlic), **phyllode** (flat petiole doing the leaf's job in Australian *Acacia*), and traps in insect-eating plants (pitcher plant, Venus flytrap).
 
+Pick each arrangement and slide the number of nodes to see how the leaves spread out when viewed from above.
+
+<figure class="fig" data-fig="@bio-phyllotaxy"><figcaption>Notice that in the alternate pattern no leaf sits directly above another, so each one catches light.</figcaption></figure>
+
 ## 4. Inflorescence and flower
 
 **Racemose:** the main axis keeps growing and flowers open from the base upward (acropetal). **Cymose:** the main axis ends in a flower, so growth is limited and flowers open from the top downward (basipetal).
@@ -64,6 +68,10 @@ Parts: **leaf base** (swollen as a **pulvinus** in legumes; sheathing in monocot
 <div class="step"><b>Gynoecium.</b> Apocarpous: carpels free (lotus, rose). Syncarpous: carpels joined (mustard, tomato).</div>
 <div class="step"><b>Placentation.</b> Marginal (along one side of a one-chambered ovary: pea), axile (central axis of a many-chambered ovary: china rose, tomato, lemon), parietal (on the wall: mustard, <i>Argemone</i>), free central (central axis with no septa: <i>Dianthus</i>, <i>Primrose</i>), basal (one ovule at the base: sunflower, marigold).</div>
 </div>
+
+Click each type of placentation to see where the ovules (orange) attach inside the ovary cross-section.
+
+<figure class="fig" data-fig="@bio-placentation"><figcaption>Match the picture to its example: axile has chambers meeting at a central axis, parietal has ovules on the wall, free central has a column without walls.</figcaption></figure>
 
 ## 5. Fruit and seed
 

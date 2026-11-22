@@ -32,6 +32,16 @@ sources:
 
 Picture n-type silicon (many electrons) touching p-type silicon (many holes). Electrons diffuse into the p side and holes into the n side, where each recombines. They leave behind the ions they came from: positive donor ions on the n side, negative acceptor ions on the p side. This layer, emptied of free carriers, is the **depletion region**. Its ions make an electric field pointing from n to p, which pushes carriers back. Equilibrium comes when this **drift** exactly balances the **diffusion**, for electrons and holes separately, and the Fermi level is flat across the whole device.
 
+Step through the formation of the junction, then move the bias slider in the last stage.
+
+<div class="steps" data-fig="@sx-pn-junction">
+<div class="step"><b>Before contact.</b> p-type with holes, n-type with electrons.</div>
+<div class="step"><b>Diffusion.</b> Carriers spread across the boundary from high to low concentration.</div>
+<div class="step"><b>Depletion region.</b> Uncovered donor and acceptor ions are left behind.</div>
+<div class="step"><b>Equilibrium.</b> Field and drift balance diffusion; the built-in voltage is V<sub>bi</sub> = (kT/q) ln(N<sub>a</sub>N<sub>d</sub>/n<sub>i</sub>²).</div>
+<div class="step"><b>Applying a bias.</b> The barrier is V<sub>bi</sub> − V and the width follows √(V<sub>bi</sub> − V).</div>
+</div>
+
 The field corresponds to a potential step, the **built-in potential**:
 
 ```math
@@ -124,6 +134,10 @@ In breakdown the voltage hardly changes over a wide current range, which is what
 
 </div>
 
+Now use the breakdown: a Zener diode across the load holds the output at V<sub>Z</sub>. Change the input, the ripple and the load.
+
+<figure class="fig" data-fig="@sx-zener-regulator"><figcaption>The output stays near V<sub>Z</sub> = 6.8 V while the input swings. When the load takes so much current that the Zener drops out of breakdown, regulation is lost. The I-V curve shows the operating point sliding up the breakdown knee.</figcaption></figure>
+
 ## 6. Rectifiers and filters
 
 Diodes turn ac into dc. For a sine input of peak `$V_m$` and ideal diodes:
@@ -153,6 +167,10 @@ Diodes also shape signals: a **clipper** cuts off part of a waveform (a diode an
 ## 7. Diodes and light
 
 The same junction talks to light in three ways:
+
+Pick an LED colour or drag the band gap and watch the photons come out.
+
+<figure class="fig" data-fig="@sx-led-gap"><figcaption>λ = 1240/E<sub>g</sub> nm. A wider gap gives a shorter wavelength; the gap also sets the turn-on voltage (about E<sub>g</sub>/q).</figcaption></figure>
 
 - **LED (forward bias).** Injected electrons and holes recombine in the junction and emit photons of energy near `$E_g$`: `$\lambda \approx hc/E_g$`. Efficient LEDs need direct-gap materials (GaAs, GaN, InGaN).
 - **Photodiode (reverse bias).** A photon makes a pair in or near the depletion region; the field sweeps it out as a current proportional to the light intensity (third quadrant of the I-V graph).

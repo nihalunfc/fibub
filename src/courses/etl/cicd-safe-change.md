@@ -59,6 +59,11 @@ Line by line: get the code, install the exact locked packages, check style, gene
 
 CI uses **DuckDB and generated data**: fast, free, and it needs no secrets. A separate job, run by hand or on merge, can test against an Azure SQL test database. For that, use a GitHub **environment** and, better than a stored password, **OIDC federation**: Azure trusts GitHub to vouch for this repo and hands out a token that expires in minutes.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Environments: same code, different settings
 
 | | dev (your laptop) | ci | prod |

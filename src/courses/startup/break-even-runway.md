@@ -38,6 +38,10 @@ sources:
 
 Below break-even you lose money each month; above it, each extra sale adds its full contribution to profit.
 
+Try it: slide the price up and the cost to make one down, and watch the break-even point move.
+
+<figure class="fig" data-fig="@biz-breakeven"><figcaption>Notice that break-even moves right when fixed costs rise and left when each sale leaves more money over.</figcaption></figure>
+
 ## 2. Runway
 
 **Burn** is how much cash you lose each month. **Runway** is how long until the bank is empty:
@@ -49,6 +53,10 @@ Below break-even you lose money each month; above it, each extra sale adds its f
 <!--fig:runway-sim-->
 
 > **Key idea:** Raising money or a loan takes 3 to 6 months. Start when you still have at least 6 to 9 months of runway, not when you have 2.
+
+Press Play and watch the cash balance run down month by month.
+
+<figure class="fig" data-fig="@biz-runway-burn"><figcaption>Notice that growing sales bend the line up, and that runway is the month it crosses zero.</figcaption></figure>
 
 ## 3. Cash is not profit
 

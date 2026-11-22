@@ -40,6 +40,10 @@ Walk through cleaning up a line chart. Watch what each step removes, and how the
 5. **Label the bars directly** and drop the axis when there are few bars.
 6. **Thick bars, thin gaps:** gaps about half a bar wide.
 
+Try it: pick a question, then try every chart on the same data.
+
+<figure class="fig" data-fig="@biz-five-charts"><figcaption>Notice that the best chart is the one where the answer is the easiest thing to see.</figcaption></figure>
+
 ## 4. Rules for line charts
 
 1. **Use lines for time** (or another continuous scale). Lines between unrelated categories (stores) imply an order that doesn't exist.
@@ -54,6 +58,10 @@ Walk through cleaning up a line chart. Watch what each step removes, and how the
 
 **Physical meaning:** with a line, your eye follows the direction like a road on a hill: up, down, steep, flat. That's why lines show trends better than columns, which make you compare heights one by one.
 </details>
+
+Try it: move the right-hand axis until the two lines seem to move together.
+
+<figure class="fig" data-fig="@biz-dual-axis"><figcaption>Notice that a second axis lets the chart maker decide how related two series look.</figcaption></figure>
 
 ## 5. Worked example
 

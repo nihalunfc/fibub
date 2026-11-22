@@ -70,6 +70,10 @@ M\vec a_{cm} = \vec F_{external}
 - **Man on a boat:** a man of mass m walks a distance L along a boat of mass M on still water. The boat moves back `$mL/(m + M)$`, so that the centre of mass stays put.
 - A shell that explodes in flight: its centre of mass keeps following the original parabola.
 
+Change when the shell explodes, the split of mass and the kick, and press Play. Watch the red diamond.
+
+<figure class="fig" data-fig="@mech-com-explode"><figcaption>The centre of mass keeps following the original parabola while both pieces are in the air, because the explosion forces are internal.</figcaption></figure>
+
 ## 3. Momentum and impulse
 
 Momentum `$\vec p = m\vec v$`. Impulse `$\vec J = \int\vec F\,dt = \Delta\vec p$`, the area under the F-t graph. With no outside impulse, the **total momentum is conserved**. During a short collision or explosion, outside forces like gravity are tiny compared with the internal forces, so momentum is conserved "just before to just after" even then.
@@ -127,6 +131,10 @@ Equal masses swap velocities. A heavy ball hitting a light one at rest sends it 
 **"In an inelastic collision, momentum is lost too."** Momentum is never lost in a collision with no outside impulse, however crumpled the bodies get. Only kinetic energy is lost.
 
 </div>
+
+Run the collision in the lab frame, then switch to the centre-of-mass frame. Slide e from 1 to 0.
+
+<figure class="fig" data-fig="@mech-collision-frames"><figcaption>In the centre-of-mass frame the total momentum is zero and each block just reverses with its speed times e. The diamond (centre of mass) moves at a steady speed in the lab and is why momentum is conserved.</figcaption></figure>
 
 ## 6. Collisions in two dimensions (JEE Advanced)
 

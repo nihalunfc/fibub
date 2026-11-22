@@ -59,6 +59,11 @@ Press **Show how it runs** and step to **OVER**. What to watch: for each row, th
 
 (The CTE builds a label like `2024-Q3` from the month: months 7, 8 and 9 give (7+2)/3 = 3 with whole-number division. [Lesson 7.1](/learn/courses/sql/dates/) covers dates properly.)
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Change and percentage change
 
 Once the previous value sits on the same row, change is plain arithmetic:

@@ -45,6 +45,10 @@ Things to notice:
 - Near the zenith, a small move of the target changes the azimuth a lot. At the zenith itself the azimuth means nothing (every direction is "up").
 - An object at 10° altitude is one fist above the horizon: often behind trees or buildings, and dimmed by thick air (Lesson 2.6).
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. The catch: alt-az belongs to you
 
 The sky turns 15° an hour (Lesson 1.2), so a star's altitude and azimuth change constantly. They also depend on where you are: the same star can be overhead in Quito and on the horizon in Oslo at the same instant. That is why catalogues use **right ascension and declination** instead (Lesson 2.2), which stay fixed to the stars. Converting from one to the other needs your latitude and the time, through the **hour angle**.
@@ -96,6 +100,10 @@ where `$h$` is altitude and `$A$` azimuth from north (take the quadrant from the
 **"A star's altitude and azimuth can go in a star catalogue."** They change every minute and from every place. Catalogues use right ascension and declination, which stay fixed to the stars (Lesson 2.2).
 
 </div>
+
+Pick a sky object and a hand measure, then change your arm length.
+
+<figure class="fig" data-fig="@astro-angular-size"><figcaption>Compare the object's angular size with the hand ruler: a pinky is about 1°, three fingers 5°, a fist 10°, an open hand 20°. The ruler depends on your arm, so calibrate it once on stars with known separation.</figcaption></figure>
 
 ## 4. Worked example
 

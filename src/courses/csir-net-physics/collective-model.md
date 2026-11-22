@@ -49,6 +49,10 @@ R(\theta) = R_0\left[1 + \beta\,Y_{20}(\theta)\right], \qquad Q_0 = \frac{3}{\sq
 
 **Worked example.** Take `$Z = 68$`, `$A = 170$`, `$\beta = 0.30$`. `$R_0 = 1.2\times170^{1/3} = 6.65$` fm, `$R_0^2 = 44.2$` fm². `$Q_0 = 0.757\times68\times44.2\times0.30\times1.048 = 715$` fm² = 7.2 b. One proton in an orbit of radius `$R_0$` gives at most about `$R_0^2 = 0.44$` b, so 7 b is a clear sign of many nucleons moving together.
 
+Slide β negative and positive, then try the triaxial and pear shapes and press Play on the vibrating drop.
+
+<figure class="fig" data-fig="@qm-nuclear-shapes"><figcaption>The shape is R₀[1 + βY]: Y₂₀ gives a rugby ball or a pancake, Y₃₀ a pear. A spherical nucleus has no quadrupole moment, and only deformed ones have rotational bands.</figcaption></figure>
+
 ### What the lab measures
 
 The lab sees the intrinsic shape averaged over the rotation. For a state of spin `$I$` in a band with projection `$K$` on the symmetry axis:

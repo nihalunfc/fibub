@@ -60,6 +60,10 @@ Here is the whole idea with five small numbers. At one point the true value is 5
 
 <div class="problem" data-problem="bias-variance-error"></div>
 
+Try it: pick the line, then degree 9, and slide the number of examples. Watch training and test error meet or stay apart.
+
+<figure class="fig" data-fig="@ai-learning-curves"><figcaption>A line is too simple (both errors stay high: more data will not help). A flexible model has a big gap that shrinks as data grows (more data helps). No model gets below the noise floor.</figcaption></figure>
+
 ## 3. The trade-off and the cures
 
 More flexibility lowers bias and raises variance. Less flexibility does the opposite. Test error is lowest somewhere in between: the U-shaped curve of Lesson 3.7.

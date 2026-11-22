@@ -53,6 +53,10 @@ For large `$n$`, about **63.2 %** of the rows appear at least once and 36.8 % ar
 
 <div class="problem" data-problem="bagging-bootstrap-oob"></div>
 
+Try it: press Play to see a new random set of neurons switched off at every step, raise the drop chance, then flip to Predicting.
+
+<figure class="fig" data-fig="@ai-dropout"><figcaption>Dropout trains many thinned networks that share weights. No neuron can be relied on, so none can memorise one training example alone. At prediction time all neurons are on, which acts like averaging the thinned networks.</figcaption></figure>
+
 ## 3. Bagging
 
 **Bagging** (bootstrap aggregating, Leo Breiman, 1996):

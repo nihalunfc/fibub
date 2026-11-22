@@ -61,6 +61,11 @@ latest.sort_values('customer_id')
 
 Sort first, so the copy you want (the latest, the largest) is in the position `keep` picks.
 
+Switch between the four operations and add ids to either list to see how duplicates are handled.
+
+<figure class="fig" data-fig="@data-set-ops"><figcaption>Notice that UNION removes duplicates, UNION ALL keeps them, and EXCEPT depends on which list comes first.</figcaption></figure>
+
+
 ## 3. Is the key unique?
 
 ```python data=customers.csv,orders.csv

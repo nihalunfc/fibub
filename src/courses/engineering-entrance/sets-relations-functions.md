@@ -30,6 +30,10 @@ sources:
 
 A **set** is a well-defined collection. Write it as a list `{1, 2, 3}` or by a rule `{x : x is a prime less than 10}`. The **empty set** ∅ has no elements; a set with n elements has **2ⁿ subsets** (its power set) and 2ⁿ − 1 proper subsets.
 
+Click regions of the Venn diagram, or choose an operation, and watch which part is shaded and how many items it holds.
+
+<figure class="fig" data-fig="@math-venn"><figcaption>Notice that A ∪ B counts the overlap once, so n(A ∪ B) = n(A) + n(B) − n(A ∩ B), and that A′ and A − B are different shaded areas.</figcaption></figure>
+
 Operations: union A ∪ B, intersection A ∩ B, difference A − B (in A, not in B), complement A′ (in the universal set, not in A). **De Morgan's laws:** (A ∪ B)′ = A′ ∩ B′ and (A ∩ B)′ = A′ ∪ B′.
 
 **Counting (inclusion and exclusion):**
@@ -90,6 +94,10 @@ Play with arrow diagrams. The counts under the picture are the formulas you need
 
 `$(g \circ f)(x) = g(f(x))$`: first f, then g. It is usually **not** commutative. f has an **inverse** only if it is one-one and onto (a bijection); then `$f^{-1}(f(x)) = x$`, and the graph of f⁻¹ is the mirror image of f in the line y = x.
 
+Pick a function, drag the point along it and fold the paper with the slider to see its inverse appear.
+
+<figure class="fig" data-fig="@math-inverse-mirror"><figcaption>Notice that every point (a, f(a)) lands on (f(a), a), a mirror image in y = x, and that x² on all of R has no inverse until you restrict it.</figcaption></figure>
+
 <div class="steps">
 <div class="step"><b>Find an inverse.</b> f(x) = (2x + 3)/(x − 1), x ≠ 1. Write y = (2x + 3)/(x − 1).</div>
 <div class="step"><b>Solve for x.</b> y(x − 1) = 2x + 3 ⇒ x(y − 2) = y + 3 ⇒ x = (y + 3)/(y − 2).</div>
@@ -106,6 +114,10 @@ Play with arrow diagrams. The counts under the picture are the formulas you need
 | Signum sgn x | 1, 0 or −1 as x is positive, zero or negative | three pieces; range {−1, 0, 1} |
 
 Useful facts: `$[x + n] = [x] + n$` for integer n; `$[x] + [-x] = 0$` if x is an integer, −1 otherwise; `$\{x\}$` has period 1. **Even** functions satisfy f(−x) = f(x) (graph symmetric about the y-axis), **odd** ones f(−x) = −f(x) (symmetric about the origin). Every function is the sum of an even and an odd part.
+
+Slide a, b, h and k to move, stretch and flip the graph of y = a·f(b(x − h)) + k, and try the |f(x)| and f(|x|) modes.
+
+<figure class="fig" data-fig="@math-fn-transform"><figcaption>Notice that changes inside the brackets (b and h) act sideways and 'backwards', changes outside (a and k) act vertically and as you would expect.</figcaption></figure>
 
 <div class="keypoints">
 

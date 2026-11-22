@@ -65,6 +65,14 @@ Meristems are zones of cells that keep dividing. **Apical meristems** at the roo
 
 </div>
 
+Switch to night, make the soil dry and slide the humidity to see how the pull on the water column changes.
+
+<figure class="fig" data-fig="@bio-transpiration"><figcaption>The red gauge is the tension at the leaf. It is highest in dry air with open stomata, and almost zero at night when the stomata close.</figcaption></figure>
+
+Slide the outside solution from pure water to a strong salt solution and watch the cell take in or lose water.
+
+<figure class="fig" data-fig="@bio-plasmolysis"><figcaption>Read the three numbers: Ψw = Ψs + Ψp. Water always moves toward the lower (more negative) water potential. Past about 1.1 MPa outside the membrane pulls away from the wall: plasmolysis.</figcaption></figure>
+
 ## 5. Secondary growth
 
 In dicot stems, the cambium inside each bundle (**intrafascicular**) joins cambium that forms from medullary ray cells between bundles (**interfascicular**), making a complete ring. This **vascular cambium** cuts off secondary xylem inward and secondary phloem outward, more xylem than phloem. Primary and old secondary phloem get crushed, so wood piles up but the phloem stays thin. Move the slider to age the stem.

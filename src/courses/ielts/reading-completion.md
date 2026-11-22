@@ -49,6 +49,11 @@ There are two kinds of summary:
 <div class="step"><p><b>5. Copy the word exactly</b>, with the same spelling, then read the completed sentence. It must be grammatical and say what the passage says.</p></div>
 </div>
 
+
+Tap a phrase from the question, then the passage phrase that means the same.
+
+<figure class="fig" data-fig="@lang-paraphrase-match"><figcaption>Notice that the answer is almost never in the question's own words; you are matching meaning.</figcaption></figure>
+
 ## 3. Worked example: words from the passage
 
 Passage (from "Bees on the rooftops"): *"Companies that want to help can plant native wildflowers, leave patches of bare earth for ground-nesting bees and stop mowing grass verges so often."*

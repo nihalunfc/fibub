@@ -64,6 +64,10 @@ Lengths on the x-axis: the **subtangent** is |y₁/m| and the **subnormal** is |
 
 f is increasing on an interval where f′(x) > 0 and decreasing where f′(x) < 0. (f′ ≥ 0 with equality only at isolated points still gives increasing: x³ is increasing everywhere though f′(0) = 0.) To find the intervals, solve f′(x) = 0, mark the points on a number line, and read the sign of f′ between them.
 
+Slide the vertical line along f, f′ and f″ and read what each graph says about the one above it.
+
+<figure class="fig" data-fig="@math-fdd-stack"><figcaption>Notice that f′ = 0 at the flat points of f, that f″ tells cup from cap there, and that an inflection is where f″ changes sign.</figcaption></figure>
+
 **With a parameter.** "f(x) = x³ + kx² + 3x + 1 is increasing for all x" means f′ = 3x² + 2kx + 3 ≥ 0 for all x, so its discriminant ≤ 0: 4k² − 36 ≤ 0, giving −3 ≤ k ≤ 3.
 
 ## 4. Maxima and minima
@@ -99,6 +103,15 @@ Results worth knowing: of all rectangles with a fixed perimeter, the square has 
 ## 6. Approximation and small changes
 
 Near x, `$f(x + \Delta x) \approx f(x) + f'(x)\,\Delta x$`. Example: √25.3 ≈ 5 + (1/(2 × 5)) × 0.3 = 5.03. For errors, the relative error in y = xⁿ is n times the relative error in x: a 1% error in the radius gives about a 3% error in a sphere's volume.
+
+Step through, then drag the start x₀ and try a different equation.
+
+<div class="steps" data-fig="@math-newton-steps">
+<div class="step"><p><b>A first guess.</b> Pick x₀ and draw the tangent to the curve at that x.</p></div>
+<div class="step"><p><b>The next guess.</b> The tangent meets the x-axis at x₁, which is usually closer to the root.</p></div>
+<div class="step"><p><b>Repeat.</b> Draw the tangent at x₁; it meets the axis at x₂, closer still.</p></div>
+<div class="step"><p><b>Fast.</b> After a few rounds the guesses agree to many digits: the error roughly squares each time.</p></div>
+</div>
 
 ## 7. Mean value theorems
 

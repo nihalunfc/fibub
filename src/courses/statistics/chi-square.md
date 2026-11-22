@@ -49,6 +49,11 @@ One categorical column, compared with expected shares. Degrees of freedom = cate
 
 Example: complaints by region were 50, 30, 20 (n = 100), and sales shares are 40 %, 40 %, 20%. Expected counts: 40, 40, 20. χ² = 100/40 + 100/40 + 0 = 5.0 with 2 df: p ≈ 0.082. The complaint mix doesn't differ clearly from the sales mix.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. Independence (contingency tables)
 
 Two categorical columns cross-tabulated. Under independence, each cell's expected count is

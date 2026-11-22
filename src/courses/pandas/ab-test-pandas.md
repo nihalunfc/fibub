@@ -67,6 +67,11 @@ print(f'lift {lift * 100:+.2f} points, 95% CI {(lift - 1.96 * se) * 100:+.2f} to
 
 These match the Statistics capstone: about +0.75 points, CI from about +0.23 to +1.28, p ≈ 0.005. Everything came from one `groupby`; the rest is arithmetic on two rows.
 
+Set equal rates and press Run 300 tests, then give B a real lift and run again.
+
+<figure class="fig" data-fig="@data-ab-sim"><figcaption>Notice the share of significant results: about 5% when nothing is going on, and the power when a real lift exists.</figcaption></figure>
+
+
 ## 3. Guardrails and segments
 
 ```python data=statistics/checkout-test.csv

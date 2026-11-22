@@ -85,6 +85,11 @@ Measured: argon Pr = 0.67, nitrogen 0.72.
 
 <div class="problem" data-problem="gas-viscosity"></div>
 
+Heat a rod and watch how heat moves by conduction, then look at the cooling curve.
+
+<figure class="fig" data-fig="@wt-heat-flow"><figcaption>Fourier's law J = −k dT/dx gives a diffusion equation with D = k/ρc. Notice that a poor conductor takes much longer to reach the steady straight-line profile, and that Newton cooling is the same law applied to a body with one temperature.</figcaption></figure>
+
+
 ## 3. The Knudsen regime
 
 When `$\lambda$` exceeds the size `$L$` of the container (Knudsen number `$\text{Kn} = \lambda/L \gg 1$`), molecules fly wall to wall and the picture changes.

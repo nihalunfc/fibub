@@ -35,6 +35,10 @@ sources:
 
 These sections are **not adaptive** and use fibub's own questions. Each real GRE section mixes every question type; here the first section of each subject practises the GRE's own formats (Quantitative Comparison, numeric entry, select-all, geometry and data; Text Completion and Sentence Equivalence) and the second practises the shared topics (arithmetic, algebra, word problems and statistics; reading passages and arguments). Every paper is new, so you can take the test again.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="greq"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## Analytical Writing: one Issue essay (30 minutes)
 
 Set a 30-minute timer and write on this original prompt in a plain text editor with spelling checks turned off:

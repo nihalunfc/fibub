@@ -80,6 +80,10 @@ The wavelength of a line from n₂ to n₁ follows the **Rydberg formula**:
 
 Number of lines when electrons drop from level n to the ground state in many atoms: **n(n − 1)/2**; in a single atom, at most n − 1.
 
+**Try it:** drag Z from 1 to 36 and watch each new electron find its box. Stop at N (Z = 7) to see Hund's rule, then jump to Cr (24) and Cu (29) to see the exceptions.
+
+<figure class="fig" data-fig="@chem-aufbau-steps"><figcaption>Up arrows spread across the boxes of a subshell before any pair up (Hund). At Cr and Cu a 4s electron moves into 3d to give a half-full or full d subshell: the unpaired count jumps to 6 for Cr.</figcaption></figure>
+
 <div class="myth">
 
 **"The Bohr model is how atoms really are."** It gets hydrogen-like energies right, but fails for atoms with two or more electrons, cannot explain the splitting of lines in magnetic fields properly, and breaks the uncertainty principle (it gives an exact radius and an exact speed together). Use it for one-electron numbers only.
@@ -102,6 +106,10 @@ Number of lines when electrons drop from level n to the ground state in many ato
 | Spin m_s | +½ or −½ | the electron's spin |
 
 A shell holds 2n² electrons and n² orbitals. **Nodes** (places where the chance of finding the electron is zero): radial nodes = n − l − 1, angular nodes = l, total = n − 1. So 1s has none, 2s one radial, 2p one angular (a plane through the nucleus).
+
+**Try it:** pick each orbital in turn, drag to turn it, and switch on the nodes. Count the radial and angular nodes and check them against n − l − 1 and l.
+
+<figure class="fig" data-fig="@chem-orbital-3d"><figcaption>Each dot is a place the electron may be found. Notice that 2s and 3p have a spherical node where the dots vanish, that p orbitals have a flat node through the nucleus, and that the blue and orange lobes are opposite in sign.</figcaption></figure>
 
 ## 6. Filling the orbitals
 

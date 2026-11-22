@@ -81,6 +81,10 @@ which depends on the angle between the spins and the line joining the nucleons. 
 
 **Worked example.** `$0.8798 - 0.8574 = 0.0224 = 1.5\times(0.8798 - 0.5)P_D$`, so `$P_D \approx 3.9\%$`. The quadrupole moment points the same way (a few percent D state gives `$Q \approx 0.29$` fm²). The admixture is model-dependent (meson-exchange corrections shift `$\mu$`), but it is small and it is there.
 
+Slide β negative and positive, then try the triaxial and pear shapes and press Play on the vibrating drop.
+
+<figure class="fig" data-fig="@qm-nuclear-shapes"><figcaption>The shape is R₀[1 + βY]: Y₂₀ gives a rugby ball or a pancake, Y₃₀ a pear. A spherical nucleus has no quadrupole moment, and only deformed ones have rotational bands.</figcaption></figure>
+
 ## 4. Low-energy np scattering
 
 At low energy only the S wave scatters: `$\sigma = (4\pi/k^2)\sin^2\delta_0$`. The behaviour as `$k \to 0$` defines the scattering length `$a$` and the effective range `$r_0$`:
@@ -114,6 +118,10 @@ Scattering of slow neutrons from ortho-hydrogen (proton spins parallel) and para
 </div>
 
 Isospin explains why there is no bound diproton or dineutron. Two nucleons in `$L = 0$` with `$S = 1$` have a symmetric space and spin part, so the overall antisymmetry demands an antisymmetric isospin part, `$T = 0$`: only np can do that. The `$T = 1$` triplet (pp, nn, and np in `$S = 0$`) is the unbound singlet channel. More on isospin in [lesson 10.4](/learn/courses/csir-net-physics/quark-model/).
+
+Drag the exchanged mass up to the pion value (140 MeV) and move the nucleon separation across the range R.
+
+<figure class="fig" data-fig="@qm-yukawa"><figcaption>A heavier exchanged particle lives for a shorter time, so the force reaches less far: Yukawa's e^(−r/R)/r collapses where Coulomb's 1/r only fades.</figcaption></figure>
 
 <div class="myth">
 

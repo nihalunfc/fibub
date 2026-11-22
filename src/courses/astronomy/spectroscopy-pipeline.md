@@ -71,6 +71,10 @@ Real pipelines fit a polynomial of order 3 to 5 to many lamp lines by least squa
 **Velocity error from a wavelength error**: `$\sigma_v = c\,\sigma_\lambda/\lambda$`.
 </details>
 
+Use the steps (or the Frame buttons) to clean the raw frame, and watch the single row of pixels below.
+
+<figure class="fig" data-fig="@astro-ccd-steps"><figcaption>Subtracting bias and dark removes the offset and hot pixels. Dividing by the flat removes vignetting and dust shadows. After both, equal stars read equal counts anywhere on the chip, and the real signal stands above a flat sky.</figcaption></figure>
+
 ## 3. What it means physically
 
 The grating in a spectrograph spreads light into its colours like a prism, but each instrument spreads it a little differently, and the setup flexes with temperature. The lamp, taken right before or after the star, is a ruler laid alongside your spectrum, made of atoms whose line positions are known exactly. Everything you later claim, such as a planet's tug of a few m/s, depends on how well that ruler is held still.
@@ -92,6 +96,10 @@ The grating in a spectrograph spreads light into its colours like a prism, but e
 **"A spectrograph shows the true colours of a star."** Raw spectra are tilted by the instrument and the atmosphere: some wavelengths are recorded more efficiently than others. Only after dividing by the response does the shape mean anything physical.
 
 </div>
+
+Slide the radial velocity, or press a preset (a star, a spinning galaxy, a quasar), and watch the lines in the lower spectrum move.
+
+<figure class="fig" data-fig="@astro-redshift-lines"><figcaption>Every line moves by the same fraction, z = Δλ/λ. A star at 30 km/s moves Hα by only 0.07 nm; a distant galaxy at 100,000 km/s pushes it into the infrared. Negative velocities (moving towards us) shift lines to the blue.</figcaption></figure>
 
 ## 4. Worked example
 

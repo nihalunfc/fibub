@@ -121,6 +121,10 @@ Mirrors of reflectance `$R_1$`, `$R_2$` at the ends of a gain medium of length `
 
 Above threshold the gain clamps at `$\gamma_{\text{th}}$`: extra pumping goes into more output power, not more inversion.
 
+Press Play, then raise the pump power and lower the output-mirror reflectivity.
+
+<figure class="fig" data-fig="@qm-laser-cavity"><figcaption>Below threshold only a few photons survive; above it stimulated emission avalanches and a beam leaves through the partial mirror. A leakier mirror needs a stronger pump.</figcaption></figure>
+
 **Worked example.** A He-Ne tube has `$L = 0.30$` m, `$R_1 = 0.999$`, `$R_2 = 0.98$`, internal loss `$0.01$` m⁻¹.
 
 1. `$\ln(1/(0.999\times0.98)) = \ln(1.0214) = 0.0212$`.

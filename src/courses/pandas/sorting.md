@@ -60,6 +60,18 @@ products = pd.read_csv('products.csv')
 products.sort_values('price', ascending=False).groupby('category').head(1)
 ```
 
+Step through the chain one link at a time and watch the shape change.
+
+<div class="steps" data-fig="@data-chain-pipeline">
+<div class="step">Start: the raw DataFrame.</div>
+<div class="step">query: fewer rows, same columns.</div>
+<div class="step">assign: one new column, same rows.</div>
+<div class="step">groupby and sum: many rows collapse to one per region.</div>
+<div class="step">sort_values: same rows, new order.</div>
+<div class="step">head: only the top rows are kept.</div>
+</div>
+
+
 ## 3. Ranks and a clean index
 
 ```python data=products.csv

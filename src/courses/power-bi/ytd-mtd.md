@@ -31,6 +31,10 @@ quiz:
 
 Trace March 2025: the visual's filter is the 31 days of March; CALCULATE replaces it with the dates from 1 January to 31 March, and the sum runs over those.
 
+Try it: pick a time function and move the month, and see which months are selected.
+
+<figure class="fig" data-fig="@biz-time-intel"><figcaption>Notice that YTD restarts every January and that last year's version is blank in the first year.</figcaption></figure>
+
 ## 3. The functions
 
 | Measure | Code |

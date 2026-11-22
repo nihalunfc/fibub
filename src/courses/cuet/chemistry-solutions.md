@@ -75,6 +75,14 @@ Raoult: in an ideal solution each volatile component's vapour pressure is p = pÂ
 
 </div>
 
+**Try it:** Change the two strengths and the litres, press Pour, then try Hit a target.
+
+<figure class="fig" data-fig="@tp-mixture-vessel"><figcaption>The mixture always lands between the two strengths, nearer the one you used more of.</figcaption></figure>
+
+**Try it:** Change the concentration and watch the solvent move.
+
+<figure class="fig" data-fig="@chem-osmosis"><figcaption>Solvent moves to the more concentrated side; the pressure needed to stop it is Ï€ = CRT.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-chemistry" data-topics="solutions" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

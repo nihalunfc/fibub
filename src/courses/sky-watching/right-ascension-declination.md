@@ -46,6 +46,10 @@ Things to notice:
 - The ecliptic (dashed) crosses the equator at RA 0 h (March equinox) and 12 h (September equinox), and reaches +23.4° at 6 h (June) and −23.4° at 18 h (December).
 - Stars near the Sun's RA are up in daylight. That is why Orion (RA about 5.5 h) is a winter evening sight: in June the Sun is at RA about 6 h, right next to it.
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. Writing coordinates
 
 A typical catalogue line: Betelgeuse, RA 05h 55m 10.3s, Dec +07° 24′ 25″.

@@ -49,6 +49,10 @@ Bound charge always totals zero for a neutral body, and bound current never carr
 
 **A spinning shell is a magnet.** A shell with surface charge `$\sigma$` spinning at `$\omega$` carries `$\vec K = \sigma\omega R\sin\theta\,\hat\phi$`, exactly the bound current of a sphere with uniform `$M = \sigma\omega R$`. So its interior field is `$\tfrac23\mu_0\sigma\omega R$`, uniform.
 
+Slide κ and switch between stretched (non-polar) and turned (polar) molecules. See how the bound charge on the faces weakens the field inside.
+
+<figure class="fig" data-fig="@em-dielectric-polarise"><figcaption>The bound surface charge cancels part of E₀, so E = E₀/κ inside while the plates' free charge stays the same.</figcaption></figure>
+
 ## 2. D and H: what they are for
 
 Splitting charge into free and bound, Gauss's law becomes `$\nabla\cdot\vec D = \rho_f$` with `$\vec D = \epsilon_0\vec E + \vec P$`; splitting current, Ampère-Maxwell becomes `$\nabla\times\vec H = \vec J_f + \partial\vec D/\partial t$` with `$\vec H = \vec B/\mu_0 - \vec M$`. In linear media `$\vec D = \epsilon\vec E$` and `$\vec B = \mu\vec H$`.

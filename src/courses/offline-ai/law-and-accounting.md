@@ -38,12 +38,20 @@ Contracts, case files, tax records and audit papers are confidential. Profession
 3. **Search across the firm's files:** "which leases have a break clause after year 3?" with citations (Module 12).
 4. **Extraction:** pull figures from invoices, bank statements and returns into a spreadsheet (Lesson 11.3).
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Duties to respect
 
 - **Confidentiality and competence:** bar and law society guidance (for example ABA Formal Opinion 512 in the USA, the Law Society of England and Wales, the Law Society of Ontario) says lawyers must protect client data and understand the tools' limits. Accounting bodies say the same about client records.
 - **Supervision:** AI output is like a junior's draft: a qualified person reviews it.
 - **Made-up citations:** courts in several countries have sanctioned lawyers for filing AI-invented cases. Check every authority.
 - **Client consent:** some firms tell clients how AI is used; some clients' contracts require it.
+
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
 
 ## 4. A sensible setup
 

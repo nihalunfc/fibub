@@ -76,6 +76,11 @@ K and U each oscillate at **twice** the frequency of x, and each averages E/2 ov
 
 </div>
 
+Drag the sliders and follow x, v and a together as the block moves; watch the energy bar swap between kinetic and potential.
+
+<figure class="fig" data-fig="@wt-shm-graphs"><figcaption>v is a quarter of a cycle ahead of x, and a is always opposite to x (a = −ω²x). Notice that the period depends on k and m but not on the amplitude, and that kinetic plus potential energy stays constant.</figcaption></figure>
+
+
 ## 3. Springs
 
 A mass m on a spring of constant k: `$T = 2\pi\sqrt{m/k}$`, horizontal or vertical (hanging only shifts the centre by mg/k).
@@ -126,6 +131,10 @@ A **forced** oscillator driven at frequency ω_d settles into motion at ω_d (no
 </div>
 
 **Worked example (level 4).** A block on a spring (k = 400 N/m, m = 1 kg) oscillates with amplitude 5 cm. A 3 kg lump of clay is dropped on it and sticks just as it passes the centre. New amplitude? Speed at the centre before: Aω = 0.05 × 20 = 1 m/s. Momentum: 1 × 1 = 4V, so V = 0.25 m/s. New ω = √(400/4) = 10 rad/s, so **A' = V/ω' = 2.5 cm**. (Dropped at an end instead, the speed there is zero and A stays 5 cm.)
+
+Drive the oscillator from rest at different frequencies. Find the frequency that makes the biggest swing, and change the damping to see how the peak changes.
+
+<figure class="fig" data-fig="@wt-driven-oscillator"><figcaption>At resonance the drive pushes in step with the velocity, so the amplitude grows until damping balances it. Notice the phase lag moving from 0° (slow drive) to 90° (resonance) to 180° (fast drive), and that less damping gives a taller, narrower peak.</figcaption></figure>
 
 <div class="keypoints">
 

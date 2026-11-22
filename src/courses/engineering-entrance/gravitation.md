@@ -55,6 +55,10 @@ g is greatest at the surface; it falls going up (as 1/r²) and going down (in a 
 
 </div>
 
+Compare the three modes: a uniform planet, a thin shell, and a ball dropped through a tunnel. Slide the probe radius.
+
+<figure class="fig" data-fig="@mech-shell-g"><figcaption>Inside a uniform sphere g grows linearly with r, inside a shell it is zero, outside both fall as 1/r². The tunnel ball moves in simple harmonic motion.</figcaption></figure>
+
 ## 3. Field and potential
 
 The **gravitational field** E is the force on 1 kg, `$\vec E = \vec F/m$`; near the Earth it is just g. The **gravitational potential** V is the potential energy of 1 kg, the work needed to bring it from very far away (where V = 0), so it is negative: `$V = -GM/r$` outside a sphere. Field and potential are linked by `$E = -dV/dr$`.
@@ -127,6 +131,10 @@ For an ellipse, the total energy is `$E = -\dfrac{GMm}{2a}$`, with `$a = (r_p + 
 **Binary stars** (masses m₁, m₂, separation d) circle their common centre of mass with the same period: `$T = 2\pi\sqrt{\dfrac{d^3}{G(m_1 + m_2)}}$`.
 
 **Worked example (level 4).** A satellite moves in a circular orbit of radius 2R around the Earth. How much faster must it go to escape from there? Orbital speed `$\sqrt{GM/2R}$`, escape speed at that radius `$\sqrt{2GM/2R} = \sqrt{GM/R}$`. The ratio is √2, so it must speed up by a factor of 1.414, an increase of **41.4%**.
+
+Move the launch speed from slow to fast (try Circle and Escape) and look at the two shaded wedges.
+
+<figure class="fig" data-fig="@mech-kepler"><figcaption>Both wedges are swept in the same time and have the same area. Speed 1 gives a circle, between 1 and √2 an ellipse, and √2 or more an escape.</figcaption></figure>
 
 <div class="keypoints">
 

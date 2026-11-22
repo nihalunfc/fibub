@@ -39,6 +39,10 @@ Always test retrieval first: if the right page never reaches the model, nothing 
 
 It is like a delivery service. First check the parcel reached the right house (retrieval). Only then ask whether the person who opened it understood it (generation).
 
+Try it: drag the star, change k, then switch to Approximate and search only 1 cell.
+
+<figure class="fig" data-fig="@ai-vector-search"><figcaption>A vector database finds the nearest points to the question. Approximate search compares far fewer points but can miss a neighbour across a cell edge; searching more cells trades speed for recall.</figcaption></figure>
+
 ## 3. Write a test set
 
 Make `tests.csv` with 20 or more real questions and where the answer lives. Leave `page` empty when any page of the file is fine.
@@ -51,6 +55,10 @@ What is the printer budget for March?,budget-march.eml,
 ```
 
 Mix easy and hard questions: different wording from the document, exact codes, questions whose answer is in a table.
+
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
 
 ## 4. Score retrieval
 
@@ -86,6 +94,10 @@ print(f"Found in top 5: {found}/{total} ({found / total:.0%})   MRR: {rr / total
 </div>
 
 It prints every miss, then two scores. **Hit rate at 5**: the share of questions where the right page was anywhere in the top 5. **MRR** (mean reciprocal rank): 1 if the right page is always first, 0.5 if always second, and so on. Change one setting, rebuild the index, run again, keep the change only if the score goes up.
+
+Try it: set a 3-point gap, then slide the number of questions from 20 to 5000 and press Run 100 tests.
+
+<figure class="fig" data-fig="@ai-bench-noise"><figcaption>A benchmark score is a measurement with error. With few questions a small lead is often just luck; with thousands the better model reliably ranks first. Always ask how many questions.</figcaption></figure>
 
 ## 5. Check the answers too
 
@@ -130,9 +142,17 @@ counting 0 for a miss.
 
 </div>
 
+Try it: slide the style from honest to over-confident and watch the bars drop below the diagonal.
+
+<figure class="fig" data-fig="@ai-calibration"><figcaption>A calibrated model's confidence can be trusted. An over-confident model sounds sure when it should not, which is how confident wrong answers, called hallucinations, appear.</figcaption></figure>
+
 ## 6. Worked example
 
 *Made-up numbers.* A teacher builds a question set of 30 from the school's policy folder. Start: 21/30 (70%), MRR 0.52. Adding paragraph-aware chunking: 24/30. Adding hybrid search: 27/30, MRR 0.71. The three misses are all in one scanned PDF that had no OCR; after OCRmyPDF: 30/30. Reading the answers, 28 of 30 are correct and cited; the two wrong ones go away when switching from Gemma 4 E4B to 12B.
+
+Try it: slide the share of positives down to 1% while watching the two curves and the counts.
+
+<figure class="fig" data-fig="@ai-pr-curve"><figcaption>The ROC curve does not move when positives become rare, but the precision-recall curve collapses: a small false-positive rate applied to a huge pile of negatives swamps the few true positives. For rare events, read precision.</figcaption></figure>
 
 ## 7. Mini project 2: Ask my documents
 

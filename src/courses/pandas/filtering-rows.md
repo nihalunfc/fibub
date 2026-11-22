@@ -60,6 +60,11 @@ web_big.head(3)
 
 Long filters read better as named masks: `is_web = ...`, `is_big = ...`, then `orders[is_web & is_big]`.
 
+Choose two conditions and a combiner and read the True/False columns row by row.
+
+<figure class="fig" data-fig="@data-mask-filter"><figcaption>Notice that the filter keeps rows where the final mask is True, and that the original index stays attached.</figcaption></figure>
+
+
 ## 3. Text and dates
 
 ```python data=orders.csv

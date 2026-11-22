@@ -60,6 +60,12 @@ The pollen tube grows through the style and enters a synergid. One male gamete +
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-double-fert-steps"><figcaption>Six-step pollination to double fertilisation: pollen tube, syngamy, triple fusion, seed and fruit.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="plant-reproduction" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

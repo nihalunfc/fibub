@@ -49,6 +49,11 @@ ORDER BY order_date
 
 Eight days. By eye, the islands are 1–2 March, 5 March, 9–11 March and 13–14 March. The query below finds them without looking.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. The trick: date minus row number
 
 Number the days in order with `ROW_NUMBER()`. Inside an island, the date goes up by one day per row, and so does the row number. So **date minus row number** stays the same for the whole island, and jumps when a gap starts. That difference becomes a group label.

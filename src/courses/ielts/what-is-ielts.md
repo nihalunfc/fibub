@@ -46,6 +46,11 @@ Every IELTS test has the same four parts. Step through them:
 
 <figure class="fig" data-fig="test-clock"><figcaption>The written papers run back to back with no breaks. Speaking is on the same day or within about a week, depending on the centre.</figcaption></figure>
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 3. Academic or General Training?
 
 This is the most important choice, and the only real difference is in Reading and Writing.

@@ -30,6 +30,11 @@ sources:
 
 IELTS recordings use speakers with a range of accents: British (several regions), Australian, New Zealand, North American (US and Canadian) and others. Speakers are clear and speak at a natural pace; you won't hear a very strong regional accent, but you will hear real differences.
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 2. Differences that change answers
 
 | Feature | British / Australian / NZ (common) | North American (common) | Answer it can affect |

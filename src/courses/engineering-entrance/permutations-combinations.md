@@ -53,6 +53,10 @@ sources:
 
 Useful facts: `$\binom nr = \binom n{n-r}$`, `$\binom nr + \binom n{r-1} = \binom{n+1}r$` (Pascal's rule), and `$\binom nr$` is largest at the middle value of r.
 
+Tap cards to choose some, then press 'List all' to see the real list of selections.
+
+<figure class="fig" data-fig="@math-pc-cards"><figcaption>Notice that each group of r cards can be lined up in r! orders, which is exactly why ⁿPᵣ = ⁿCᵣ × r!.</figcaption></figure>
+
 ## 3. Arrangements with restrictions
 
 - **Fixed places.** Fill the restricted places first, then the rest.

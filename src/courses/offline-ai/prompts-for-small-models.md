@@ -95,6 +95,10 @@ At 95% per step, 3 steps: 0.95³ ≈ 86%; 10 steps: about 60%. With one checked 
 
 <div class="problem" data-problem="prompts-for-small-models-retry"></div>
 
+Try it: set temperature to 0.3, then 1.8, then cut the list with top-k and top-p, and press Draw 200 each time.
+
+<figure class="fig" data-fig="@ai-sampling-topp"><figcaption>Temperature reshapes the odds; top-k and top-p remove the unlikely tail before choosing. Low settings give safe, repeatable text; high settings give variety and more risk of nonsense.</figcaption></figure>
+
 ## 3. Worked example
 
 *Made-up numbers.* Hollybrook Clinic asks Gemma 4 E4B: "Read these notes and tell me everything important and also draft a letter." Results are patchy. They split it: call 1 extracts symptoms, medicines and next steps as JSON with a schema; call 2 drafts the letter from that JSON with an example letter. Both become reliable.

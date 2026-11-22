@@ -50,6 +50,11 @@ hotel-dagster/
 
 `core/` is your kitchen prep area: knives and boards, no restaurant rules. `defs/` is the order system that says which dish to prepare when. Dagster's scaffolding tool and recommended layout change between releases (recent versions use `create-dagster` and the `dg` command). Follow the current quickstart at docs.dagster.io for the scaffold; the asset code below works either way.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Your first assets
 
 An **asset** is a Python function decorated with `@dg.asset`. Its name is the name of the table or file it produces. **Materialising** an asset means running the function once and storing what it makes.

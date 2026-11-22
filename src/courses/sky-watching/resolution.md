@@ -77,6 +77,10 @@ where `$J_1$` is a Bessel function (a wave-like function that the figure compute
 **Try it:** a 150 mm telescope: Rayleigh `$138/150 = 0.92''$`, Dawson `$116/150 = 0.77''$`.
 </details>
 
+Pick a sky object and a hand measure, then change your arm length.
+
+<figure class="fig" data-fig="@astro-angular-size"><figcaption>Compare the object's angular size with the hand ruler: a pinky is about 1°, three fingers 5°, a fist 10°, an open hand 20°. The ruler depends on your arm, so calibrate it once on stars with known separation.</figcaption></figure>
+
 ## 3. Telescope or atmosphere?
 
 Seeing (Lesson 3.3) blurs every star by typically 1″ to 3″. Compare with the Dawson limit:

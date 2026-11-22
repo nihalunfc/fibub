@@ -46,6 +46,10 @@ The length of the arrow is the **modulus**, and its angle from the positive real
 |z| = r = \sqrt{x^2 + y^2}, \qquad \arg z = \theta, \quad x = r\cos\theta,\ y = r\sin\theta
 ```
 
+Drag z₁ and z₂ on the Argand plane and press Animate to watch multiplication turn and stretch.
+
+<figure class="fig" data-fig="@math-complex-mult"><figcaption>Notice that |z₁z₂| = |z₁||z₂| and arg(z₁z₂) = arg z₁ + arg z₂: multiplying by z₂ rotates by its argument and scales by its modulus.</figcaption></figure>
+
 **The quadrant trap.** A calculator's `$\tan^{-1}(y/x)$` cannot tell `$1 + i$` from `$-1 - i$`: both have `$y/x = 1$`. Always find the reference angle `$\tan^{-1}|y/x|$` and then place it using the signs of `$x$` and `$y$`. The **principal argument** `$\operatorname{Arg}z$` is the value in `$(-\pi, \pi]$`.
 
 | Point | Quadrant | Principal argument |
@@ -130,6 +134,10 @@ An equation `$z^n = w$` has exactly `$n$` solutions. Write `$w = Re^{i\phi}$`, r
 ```math
 z_k = R^{1/n}\,e^{i(\phi + 2\pi k)/n}, \qquad k = 0, 1, \dots, n - 1
 ```
+
+Change n and the angle of z. Then press 'Add them up' to lay the roots head to tail.
+
+<figure class="fig" data-fig="@math-roots-unity"><figcaption>Notice that the n roots form a regular polygon on a circle of radius |z|^(1/n), and that the arrows always close into a loop, so the roots add up to zero.</figcaption></figure>
 
 They sit at the corners of a regular `$n$`-gon of radius `$R^{1/n}$`. The **`$n$`th roots of unity** `$\omega^k$` with `$\omega = e^{2\pi i/n}$` solve `$z^n = 1$`, and:
 

@@ -45,6 +45,11 @@ Draw 100 samples a few times. Around 5 of every 100 intervals miss (the highligh
 | "The result is 4.2 % ± 0.8, so it's definitely positive." | It's *probably* positive; 5 % of such intervals miss. And bias isn't covered at all. |
 | "A wider interval means a worse analysis." | It means less information. Saying so honestly is good analysis. |
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. Saying it plainly
 
 For a manager: "Our best estimate is 32 minutes, and we're fairly sure the true average is between 28 and 36. With more orders we could narrow that down."

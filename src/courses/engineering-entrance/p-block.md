@@ -85,6 +85,10 @@ Carbon's allotropes: **diamond** (sp³, hard, insulator), **graphite** (sp², la
 
 **Sulphuric acid** by the **contact process**: S → SO₂; 2SO₂ + O₂ ⇌ 2SO₃ (V₂O₅ catalyst, about 720 K, 2 bar); SO₃ is absorbed in concentrated H₂SO₄ to give **oleum** H₂S₂O₇, then diluted. Concentrated H₂SO₄ is a strong dehydrating agent (chars sugar) and an oxidising agent when hot. **SO₂** is a reducing agent: it decolourises acidified KMnO₄ and turns dichromate paper green.
 
+**Try it:** for both processes, slide the temperature and pressure and watch yield (solid) and rate (dashed). Find the compromise the plant uses.
+
+<figure class="fig" data-fig="@chem-haber-conditions"><figcaption>Both reactions are exothermic and lose gas moles, so low T and high P favour yield, but low T is far too slow. Haber settles near 700 K and 200 atm; the contact process needs only about 1 to 2 atm because its K is large.</figcaption></figure>
+
 ## 6. Group 17: the halogens
 
 All are oxidising agents; F₂ is the strongest (high hydration enthalpy of F⁻ and a weak F-F bond). Each halogen displaces the ones below it from their salts: Cl₂ + 2KBr → 2KCl + Br₂.

@@ -60,6 +60,10 @@ Here is the sum for a typical phone:
 
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. How to try it
 
 - **Android:** Google AI Edge Gallery (open source) downloads Gemma models and runs them offline.

@@ -49,6 +49,11 @@ Part 5 tests whether you can follow a **group conversation** where ideas build o
 
 **Everyday analogy.** Think of three friends choosing a restaurant. Ali wants pizza, Bea says pizza is too heavy, Carl suggests sushi, Ali complains it is expensive, Bea finds a sushi deal, and Ali agrees. If someone later asks "Who was against pizza?" or "What changed Ali’s mind?", you need to remember the people, not just the food. That is Part 5.
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 3. The method for Part 5: the three-column grid
 
 <div class="steps">

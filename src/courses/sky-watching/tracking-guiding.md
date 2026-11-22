@@ -71,6 +71,10 @@ t_\text{max} \approx \frac{35N + 30p}{F\cos\delta}\ \text{seconds}
 **Try it:** `$N = 2.8$`, `$p = 4$`, `$F = 24$`, `$\delta = 0$`: `$t = (98 + 120)/24 = 9.1$` s.
 </details>
 
+This is the sky as a real 3D sphere around you. Drag to turn the view, slide your latitude, and press Play to let the sky turn.
+
+<figure class="fig" data-fig="@astro-celestial-sphere"><figcaption>The north (or south) celestial pole stands as many degrees above the horizon as your latitude. Green stars are circumpolar and never set, orange ones never rise, and the rest rise and set. Switch the grid to see altitude and azimuth lines instead of RA and Dec.</figcaption></figure>
+
 ## 3. Tracking mounts
 
 A motor turns an equatorial mount's RA axis once per sidereal day (Lesson 4.6). No gear is perfect: the worm gear's small imperfections make the star wobble back and forth over a few minutes: **periodic error**, typically 5″ to 30″ peak to peak on amateur mounts. Small "star tracker" mounts carry a camera and lens, which is forgiving at short focal lengths.

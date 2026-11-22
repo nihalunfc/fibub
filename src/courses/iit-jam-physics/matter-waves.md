@@ -38,6 +38,10 @@ sources:
 
 For everyday objects the wavelength is absurdly small (a 0.1 kg ball at 10 m/s: `$6.6\times10^{-34}$` m), so nothing can diffract them. For an electron it is about the size of an atom, which is exactly where we see quantum behaviour.
 
+Pick n = 1 to 6 and count the wavelengths round the orbit, then switch to 'Any wavelength' and drag to a fraction.
+
+<figure class="fig" data-fig="@qm-bohr-standing"><figcaption>Only a whole number of wavelengths closes up on itself, which is the same as L = nħ. Between the whole numbers the wave cancels itself and no orbit survives.</figcaption></figure>
+
 How you get `$p$` depends on what you are told:
 
 | You know | Momentum | Handy form |
@@ -76,6 +80,10 @@ How you get `$p$` depends on what you are told:
 - **Two slits, one electron at a time.** With a very weak beam each electron lands as one dot; after thousands of dots, interference fringes appear with spacing `$\lambda D/d$`, as for light. Even large molecules such as C₆₀ show fringes.
 
 Bragg's law `$2d\sin\theta = n\lambda$` and the grating rule `$d\sin\theta = n\lambda$` work for matter waves unchanged; only the wavelength is worked out differently.
+
+Press Play and watch electrons arrive one at a time, then change the slit gap and wavelength and switch on 'Watch which slit'.
+
+<figure class="fig" data-fig="@qm-double-slit"><figcaption>Each electron makes one dot, yet the pile of dots draws fringes of spacing λL/d. Looking at which slit it used washes the fringes out.</figcaption></figure>
 
 **Worked example.** Electrons accelerated through 150 V hit a crystal surface with rows 0.25 nm apart. At what angle is the first-order beam? `$\lambda = 1.23/\sqrt{150} = 0.100$` nm, `$\sin\varphi = 0.100/0.25 = 0.40$`, `$\varphi = 23.6^\circ$`.
 
@@ -121,6 +129,10 @@ A state that lasts only a time `$\tau$` cannot have a perfectly sharp energy:
 ```
 
 This is why spectral lines have a **natural width**. An atomic level living 10 ns has `$\Delta E \sim \hbar/\tau \approx 7\times10^{-8}$` eV, a frequency width `$\Delta\nu = \Delta E/h$` of roughly 10 MHz. Short-lived particles in nuclear physics have widths of MeV for the same reason. (Time is not an operator, so this relation means "lifetime times energy spread", not a measurement of time.)
+
+Drag the time slider (or press Play) for the electron, then choose the dust grain and compare the time unit τ.
+
+<figure class="fig" data-fig="@qm-wavepacket-spread"><figcaption>The packet widens but its momentum spread stays fixed, so Δx·Δp starts at its minimum ħ/2 and only grows. A heavy grain spreads so slowly we never notice.</figcaption></figure>
 
 ## 6. Estimating with the uncertainty principle
 

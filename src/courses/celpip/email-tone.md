@@ -50,6 +50,11 @@ Tone is made of small choices:
 
 **Everyday analogy.** Tone is like clothes. You wear a suit to a job interview, neat casual clothes to the office, and jeans to a friend’s barbecue. None of them is "better"; the mistake is wearing a suit to the barbecue or jeans to the interview, or changing halfway through the day.
 
+
+Pick a situation and slide Formality from very casual to very formal.
+
+<figure class="fig" data-fig="@lang-email-tone"><figcaption>Notice how the greeting, the verbs and the closing change together at each level.</figcaption></figure>
+
 ## 3. The method: choose, set, keep
 
 <div class="steps">

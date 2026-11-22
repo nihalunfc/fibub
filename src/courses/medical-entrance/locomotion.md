@@ -73,6 +73,17 @@ Drag the slider to contract the sarcomere and watch which bands change.
 
 </div>
 
+Step through one cross-bridge cycle of a myosin head on actin.
+
+<div class="steps" data-fig="@bio-crossbridge-steps">
+<div class="step"><b>Resting.</b> Low Ca²⁺: tropomyosin covers the binding sites on actin.</div>
+<div class="step"><b>Ca²⁺ arrives.</b> Calcium binds troponin and the sites are uncovered.</div>
+<div class="step"><b>Cross-bridge.</b> The cocked head (ADP + Pi) binds actin.</div>
+<div class="step"><b>Power stroke.</b> The head swivels and pulls the actin filament toward the centre.</div>
+<div class="step"><b>ATP binds.</b> The head lets go of actin.</div>
+<div class="step"><b>Re-cocking.</b> ATP is split and the head returns to its cocked shape, ready to bind again.</div>
+</div>
+
 ## 4. The skeleton: 206 bones
 
 **Axial skeleton (80 bones).**
@@ -87,6 +98,10 @@ Drag the slider to contract the sarcomere and watch which bands change.
 - **Pelvic girdle:** two **coxal** bones, each formed by the fused ilium, ischium and pubis; the **acetabulum** holds the head of the femur; the two pubic bones meet at the **pubic symphysis**.
 
 <div class="problem" data-problem="loco-bone-count"></div>
+
+Pick each class of lever and slide the load and the effort position to see the force the muscle must make.
+
+<figure class="fig" data-fig="@bio-lever-body"><figcaption>Most limb levers are third class: the muscle pulls close to the joint, so it must make a force larger than the load, but the hand moves a long way fast.</figcaption></figure>
 
 ## 5. Joints and disorders
 

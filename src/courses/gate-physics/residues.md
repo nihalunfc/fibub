@@ -37,6 +37,10 @@ The **residue** of `$f$` at an isolated singularity `$a$` is the coefficient `$c
 \oint_C f(z)\,dz = 2\pi i\sum_{\text{poles inside } C}\text{Res}\,f
 ```
 
+Move and resize the loop in the z-plane, and press Play to follow a point round both pictures.
+
+<figure class="fig" data-fig="@math-winding"><figcaption>Notice that the image curve winds round the origin once for each zero inside the loop and backwards once for each pole inside: winding = Z − P.</figcaption></figure>
+
 Fast ways to get residues:
 
 - **Simple pole:** `$\text{Res}_af = \lim_{z\to a}(z - a)f(z)$`. If `$f = p/q$` with `$q(a) = 0 \ne q'(a)$`: `$\text{Res} = p(a)/q'(a)$`. So `$\cot z$` has residue 1 at every `$n\pi$`, and at a root of `$z^4 = -1$`, `$\frac{1}{4z^3} = -\frac z4$`.

@@ -37,6 +37,10 @@ sources:
 \int_{-\infty}^{\infty}f(x)\,\delta(x - a)\,dx = f(a)
 ```
 
+Slide the width ε down towards zero and move the position a.
+
+<figure class="fig" data-fig="@math-delta-limit"><figcaption>Notice that the spike always has area 1 but grows taller and thinner, and that the integral of spike times f closes in on f(a), whatever the spike's shape.</figcaption></figure>
+
 It is not an ordinary function but a limit of narrow, tall functions of unit area: a Gaussian `$\frac{1}{\varepsilon\sqrt\pi}e^{-x^2/\varepsilon^2}$`, a Lorentzian `$\frac{\varepsilon/\pi}{x^2 + \varepsilon^2}$`, a box of width `$2\varepsilon$` and height `$\frac{1}{2\varepsilon}$`, or `$\frac{\sin(x/\varepsilon)}{\pi x}$`. Check the area of any proposed sequence first: `$\frac1\varepsilon e^{-|x|/\varepsilon}$` tends to `$2\delta(x)$`, not `$\delta(x)$`. Because its integral over `$x$` is a pure number, **`$\delta(x)$` has the units of `$1/x$`**.
 
 The rules, each from a substitution or an integration by parts:
@@ -116,6 +120,10 @@ which blows up when `$kL = n\pi$`. Then `$\sin kx$` solves the homogeneous probl
 ## 4. Causal Green's functions
 
 In time, we want the response to a kick at `$t'$` to vanish before `$t'$`. For a first-order system `$\dot y + ay = f$`: `$G(t) = \theta(t)e^{-at}$`, so a step input gives `$y = \frac{1 - e^{-at}}{a}$`.
+
+Press Play to slide the flipped copy of g across f, or choose other shapes.
+
+<figure class="fig" data-fig="@math-conv-slide"><figcaption>Notice that the output at each t is the area of the overlap, so two boxes give a triangle and a decaying g smears f forward in time.</figcaption></figure>
 
 For the damped oscillator `$m\ddot x + m\gamma\dot x + m\omega_0^2x = F(t)$`, the kick changes the velocity by `$1/m$` and leaves the position alone, so for `$t > 0$` it is a free oscillation from `$x = 0$`, `$\dot x = 1/m$`:
 

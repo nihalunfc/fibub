@@ -41,6 +41,11 @@ From Lesson 3.2, `$\hat p$` has SE `$\sqrt{p(1-p)/n}$`. Plug in `$\hat p$` and u
 
 Fine when `$n\hat p$` and `$n(1-\hat p)$` are both at least 10. It fails for small samples or rates near 0 % and 100 %: it can include impossible values below 0, or shrink to nothing when `$\hat p$` is 0.
 
+Press Draw 1 a few times to see what resampling does, then Draw 500.
+
+<figure class="fig" data-fig="@data-bootstrap-resample"><figcaption>Notice that some original values are picked twice and others not at all, and that the middle 95% of the resampled means forms the interval.</figcaption></figure>
+
+
 ## 3. The Wilson interval
 
 Edwin Wilson's 1927 interval fixes this by pulling the centre slightly towards 50 % and never leaving 0–100 %. With `$z = 1.96$`:

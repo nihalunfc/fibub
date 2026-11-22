@@ -40,6 +40,11 @@ sources:
 | 9 | Writing two answers in one gap ("bus/coach") | Choose one |
 | 10 | Copying answers to the wrong number on the answer sheet | On paper, check numbers every five answers; on computer, check before the 2 minutes end |
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 2. The order of a perfect Listening routine
 
 <div class="steps">

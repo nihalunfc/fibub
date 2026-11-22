@@ -34,6 +34,11 @@ sources:
 <div class="step"><p><b>Minute 5: map.</b> Write I, B1, B2, C on your paper with two or three words beside each. Done.</p></div>
 </div>
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 2. Finding ideas fast
 
 If your mind goes blank, run through these angles. One or two usually give you a strong idea:

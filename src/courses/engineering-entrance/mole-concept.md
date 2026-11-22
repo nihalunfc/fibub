@@ -88,6 +88,10 @@ The **limiting reagent** is the one that runs out first. Divide each reactant's 
 
 </div>
 
+**Try it:** set the moles of N₂ and H₂ with the sliders, press React and watch which molecules run out first. Then try 3 mol N₂ with 3 mol H₂, and 1 mol N₂ with 9 mol H₂.
+
+<figure class="fig" data-fig="@chem-limiting-reagent"><figcaption>The reagent that runs out first sets how much product forms; the other is left over. Compare the limiting reagent and the mass of NH₃ in the readout with your own working from the mole ratio 1 : 3.</figcaption></figure>
+
 ## 5. Concentration units
 
 | Unit | Definition | Changes with temperature? |

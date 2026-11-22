@@ -52,6 +52,10 @@ Follow one question from a laptop to the model and back, in the firm from sectio
 <div class="step"><p><b>Back, and kept.</b> The answer returns the same way. The chat is saved in Open WebUI's data folder, which a nightly script copies to the office NAS. A colleague at home takes the same path, after first joining through the WireGuard VPN.</p></div>
 </div>
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Step by step
 
 1. **Fixed address.** Give the server a fixed IP address in your router's settings (a "DHCP reservation"), for example 192.168.1.50, and a friendly name if your router allows it.

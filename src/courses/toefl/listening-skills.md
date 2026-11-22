@@ -43,6 +43,11 @@ ETS does not publish exactly how many items of each type you will get, so do not
 
 Two things matter for strategy. First, **each recording plays once**. Second, plan as if you **will not see the questions until after the audio** (the test screen shows exactly how each task works). So do not wait to "hear the answer". Listen for the things questions are usually about.
 
+
+Play a clip and watch the sentence appear, then choose the answer you would write.
+
+<figure class="fig" data-fig="@lang-self-correction"><figcaption>Notice that the first answer is often crossed out by "sorry", "I mean" or "actually". The last version wins.</figcaption></figure>
+
 ## 2. The five skills every task tests
 
 Whatever the task, the questions come from a short list. Learn the list and you know what to listen for.

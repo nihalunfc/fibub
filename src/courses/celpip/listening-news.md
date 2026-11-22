@@ -35,6 +35,11 @@ Part 4, **Listening to a News Item**, plays a short news report of about one and
 - Heard **once**; questions after the audio.
 - Topics are local and everyday: a bridge closing, a community project, a new service at the city, a local hero, an event.
 
+
+Pick a lecture sentence and slide Compress from the full sentence to short notes.
+
+<figure class="fig" data-fig="@lang-note-compress"><figcaption>Notice that the notes keep nouns, numbers and links like arrows, and drop the small words.</figcaption></figure>
+
 ## 2. What it really tests
 
 Part 4 tests whether you can follow **connected information from one speaker**, with more formal language than the conversations in Parts 1 to 3. You need to:

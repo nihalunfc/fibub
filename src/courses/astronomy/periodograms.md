@@ -69,6 +69,10 @@ Find the period of a variable star from 40 scattered nights:
 **Try it:** a true period of 0.5 day (`$f = 2$`/day) has aliases at `$f = 1$` and 3/day: periods of 1 day and 0.333 days.
 </details>
 
+Slide the planet's radius, impact parameter and period, or press a preset (Jupiter, Neptune, Earth).
+
+<figure class="fig" data-fig="@astro-transit-curve"><figcaption>The dip depth is about (Rp/Rs)²: Jupiter gives about 1%, Earth only 0.008%. The curve is rounded because the star's edge is dimmer (limb darkening), and a path near the edge gives a shorter, shallower dip. A longer period makes a longer transit.</figcaption></figure>
+
 ## 3. What it means physically
 
 A periodogram is like tuning a radio: you sweep through frequencies and listen for where the signal comes through loud. The gaps in your data (daytime, cloudy nights, the Moon) act like a comb laid over the signal, and the comb's own rhythm adds ghost stations. The cure is more varied sampling: observers in other countries (Lesson 5.9) or data from space.

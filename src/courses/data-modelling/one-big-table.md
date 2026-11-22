@@ -110,6 +110,11 @@ SELECT COUNT(*) AS obt_rows FROM obt_sales
 
 Still 7,112 rows: the joins are all many-to-one, so no row is lost or doubled. Always check that count; if it moves, a dimension had a duplicate key ([fan-out](/learn/courses/sql/fan-out/)).
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. What you gain: no joins
 
 The same question, two ways. On the star:

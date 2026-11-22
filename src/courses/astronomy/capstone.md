@@ -85,6 +85,10 @@ Run a transit-timing project from start to finish:
 
 </div>
 
+Click through the seven steps of a small project, from question to result.
+
+<figure class="fig" data-fig="@astro-research-steps"><figcaption>Each box shows what you hold at that stage (the values are invented). Skipping the cleaning or the uncertainty step is the most common way to get a wrong answer.</figcaption></figure>
+
 ## 4. Worked example: a transit project in outline
 
 1. **Question**: when exactly does the next transit of a known hot Jupiter happen, and how deep is it?
@@ -94,6 +98,10 @@ Run a transit-timing project from start to finish:
 5. **Fit**: the transit fitter gives a depth of `$1.10 \pm 0.06\%$` and a mid-time 2.1 ± 0.8 minutes later than predicted.
 6. **Check**: the catalogue depth is 1.07%: agreement within the error bar. The timing shift is under 3σ, so report it but don't claim a discovery.
 7. **Share**: send the light curve to a transit-timing network (Lesson 5.9).
+
+Slide the planet's radius, impact parameter and period, or press a preset (Jupiter, Neptune, Earth).
+
+<figure class="fig" data-fig="@astro-transit-curve"><figcaption>The dip depth is about (Rp/Rs)²: Jupiter gives about 1%, Earth only 0.008%. The curve is rounded because the star's edge is dimmer (limb darkening), and a path near the edge gives a shorter, shallower dip. A longer period makes a longer transit.</figcaption></figure>
 
 ## 5. Practice
 

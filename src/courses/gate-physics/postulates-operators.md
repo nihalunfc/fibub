@@ -116,6 +116,10 @@ Functions of an operator act on its eigenvalues. If `$\hat A = \sum_a a|a\rangle
 
 Every GATE quantum question rests on five rules.
 
+Measurement is easiest to see with spin. Press Play with silver atoms, then try classical magnets, an l = 1 atom and j = 3/2.
+
+<figure class="fig" data-fig="@qm-stern-gerlach"><figcaption>Real atoms land only in 2j + 1 spots where classical magnets would smear into a band; the spots move apart as the field gradient grows.</figcaption></figure>
+
 1. **States.** The state of an isolated system is a normalised ket `$|\psi\rangle$`, defined up to a global phase.
 2. **Observables.** Each measurable quantity is a Hermitian operator. (Classical `$x$` and `$p$` become `$\hat x$`, `$\hat p$` with `$[\hat x, \hat p] = i\hbar$`, the subject of [lesson 4.2](/learn/courses/gate-physics/commutators-uncertainty/).)
 3. **Results.** A measurement of `$\hat A$` gives one of its eigenvalues `$a$`, never anything else.
@@ -142,6 +146,10 @@ The average of many measurements on identically prepared systems is the **expect
 
 For an unnormalised ket divide by `$\langle\psi|\psi\rangle$`. In position space, `$\langle A\rangle = \int\psi^*\hat A\psi\,dx$`; for momentum it is safest to use `$\langle p^2\rangle = \hbar^2\int|\psi'|^2dx$`, which never misses the delta functions hidden in `$\psi''$` at a cusp.
 
+Drag the time slider (or press Play) for the electron, then choose the dust grain and compare the time unit τ.
+
+<figure class="fig" data-fig="@qm-wavepacket-spread"><figcaption>The packet widens but its momentum spread stays fixed, so Δx·Δp starts at its minimum ħ/2 and only grows. A heavy grain spreads so slowly we never notice.</figcaption></figure>
+
 **Worked example.** Energy levels `$E_1 = 1$`, `$E_2 = 3$`, `$E_3 = 5$` eV and `$|\psi\rangle = \tfrac13(2|1\rangle - |2\rangle + 2i|3\rangle)$`.
 
 1. Probabilities `$\tfrac49, \tfrac19, \tfrac49$` (phases and signs drop out).
@@ -159,6 +167,10 @@ For a time-independent `$\hat H$`, the Schrödinger equation is solved by the un
 ```
 
 So `$|c_n|^2$`, the energy probabilities, never change, while other observables oscillate at the **Bohr frequencies** `$(E_m - E_n)/\hbar$`. A single energy eigenstate is stationary: nothing measurable moves.
+
+Start at 50% with the pair 1 + 2 and press Play, then set the share to 0% or 100% and try other pairs.
+
+<figure class="fig" data-fig="@qm-sloshing"><figcaption>A single energy state never changes, but two states beat at (Eₙ − Eₘ)/ħ and the probability sloshes. The lower graph follows ⟨x⟩ against time.</figcaption></figure>
 
 **Worked example (two-level oscillation).** `$\hat H = \begin{pmatrix}3&1\\1&3\end{pmatrix}$` eV, starting in `$|1\rangle = (1,0)^T$`.
 

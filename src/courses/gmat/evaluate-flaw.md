@@ -62,6 +62,10 @@ A flaw question describes the reasoning in abstract words ("treats a necessary c
 
 </div>
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="1"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="cr-evaluate-flaw" data-mode="practice" data-n="5" data-exam="gmat"></div>

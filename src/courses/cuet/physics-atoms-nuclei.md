@@ -69,6 +69,20 @@ N = N₀e^(−λt), half-life T½ = 0.693/λ, mean life τ = 1/λ. Alpha decay d
 
 </div>
 
+**Try it:** Switch the target and watch the scattering.
+
+<figure class="fig" data-fig="@mech-rutherford"><figcaption>Most pass straight; a few bounce back from a small dense centre.</figcaption></figure>
+
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@qm-bohr-standing"><figcaption>A de Broglie standing wave round a Bohr orbit (n = 1 to 6) and why fractional wavelength counts cancel; step player over n.</figcaption></figure>
+
+<figure class="fig" data-fig="@qm-decay-atoms"><figcaption>A grid of nuclei decaying at random against N(t), with an optional parent-daughter chain and equilibrium.</figcaption></figure>
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>Α trajectories past a nucleus (target, energy, impact parameter) and the 1/sin⁴(θ/2) counts.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="atoms,nuclei" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

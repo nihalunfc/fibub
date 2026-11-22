@@ -74,6 +74,11 @@ At a **fixed end** (or a denser medium) a wave reflects upside down: a phase cha
 - **Destructive:** path difference = (n + ½)λ, `$A = |A_1 - A_2|$`.
 - Intensities: `$I_{max}/I_{min} = \left(\dfrac{\sqrt{I_1} + \sqrt{I_2}}{\sqrt{I_1} - \sqrt{I_2}}\right)^2$`.
 
+Send a pulse down a string and watch what the end does to it, then change the end.
+
+<figure class="fig" data-fig="@wt-wave-reflection"><figcaption>At a fixed end the string cannot move, so the reflected pulse is inverted; at a free end it returns the same way up. Notice that a pulse going into a heavier string partly reflects inverted and partly goes on, slower.</figcaption></figure>
+
+
 ## 5. Standing waves: strings and pipes
 
 Two equal waves travelling opposite ways make a **standing wave**, `$y = 2A\sin kx\cos\omega t$`. **Nodes** never move; **antinodes** swing the most. Neighbouring nodes are λ/2 apart, and a node and the next antinode λ/4. No energy flows along a standing wave.
@@ -100,9 +105,24 @@ The ends fix the pattern. Choose a system and a mode below.
 
 </div>
 
+Choose a pipe and a harmonic and watch the air itself move, then change the length.
+
+<figure class="fig" data-fig="@wt-pipe-resonance"><figcaption>Nodes are where the air does not move and antinodes where it moves most; the pressure pattern is the other way round. Notice that the open pipe fits every harmonic but the closed pipe only odd multiples, and that a longer pipe gives a lower note.</figcaption></figure>
+
+A string can be plucked in any shape. See how it is built from the harmonics you just met.
+
+<figure class="fig" data-fig="@wt-string-modes"><figcaption>A plucked string is a sum of its harmonics, each at n times the fundamental frequency. Notice that adding more harmonics sharpens the corner of the pluck, and that plucking at the middle removes the even harmonics.</figcaption></figure>
+
+
+
 ## 6. Beats
 
 Two sounds of nearly equal frequencies f₁ and f₂ drift in and out of step. The loudness rises and falls `$f_{beat} = |f_1 - f_2|$` times per second. To find an unknown frequency: load a tuning fork with wax (its frequency falls) or file it (it rises) and see whether the beat rate goes up or down.
+
+Bring the two frequencies close together and listen with your eyes: the loudness throbs at the difference frequency.
+
+<figure class="fig" data-fig="@wt-beats"><figcaption>Two nearly equal frequencies drift in and out of step: the sum swells and fades |f₁ − f₂| times a second. Notice that equal frequencies give no beats and that the dashed envelope is what you hear as loudness.</figcaption></figure>
+
 
 ## 7. The Doppler effect
 
@@ -126,6 +146,10 @@ with v_o positive when the listener moves towards the source, and v_s positive w
 **"The pitch of an approaching train keeps rising as it gets closer."** At constant speed, the pitch heard is steady and high while it approaches, then drops suddenly as it passes, and stays steady and low as it goes away. It is the loudness that keeps rising.
 
 </div>
+
+Move the source and the observer separately and see the two different formulas at work.
+
+<figure class="fig" data-fig="@wt-doppler-observer"><figcaption>The wavefronts travel at the speed of sound relative to the air. Notice that a moving source squeezes the wavelength, while a moving observer only meets the fronts more often, so the two cases are not symmetric.</figcaption></figure>
 
 <div class="keypoints">
 

@@ -52,6 +52,11 @@ Done well, AI-assisted cleaning turns a day of parsing work into an hour. Done b
 
 When you repeat a task (profiling a new source, say), turn it into a short written procedure the assistant can follow every time: the Lesson 2.1 checklist, the severity table and the test-first loop. Keep such procedures short and step by step.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Models for unstructured data
 
 Some sources are not tables: supplier invoices as PDFs, guest reviews, free-text delivery notes. A language model can turn them into rows when you give it a **schema** (the exact fields and types you want) and **validate the output**.

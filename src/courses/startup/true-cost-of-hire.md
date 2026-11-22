@@ -83,6 +83,10 @@ A contractor's day rate looks high because they cover their own taxes, benefits,
 
 <div class="problem" data-problem="true-cost-of-hire-total"></div>
 
+Try it: raise the fixed costs and see how many more sales you need before the business stops losing money.
+
+<figure class="fig" data-fig="@biz-breakeven"><figcaption>Notice the margin of safety: the gap between the units you expect and the break-even point.</figcaption></figure>
+
 ## 4. Worked example
 
 *Made-up founder.* Diego plans a $70,000 analyst in Toronto. Vacation pay, CPP and EI add about $8,500; benefits $3,000; laptop and software $3,000; a co-working desk $4,800; a $6,000 job ad and agency fee spread over two years, $3,000. True cost: about **$92,300 a year**, 1.32 times the salary: $7,700 a month of runway. A contractor at $450 a day for 220 days would cost $99,000, so for a permanent role the hire is cheaper.

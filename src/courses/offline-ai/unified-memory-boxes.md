@@ -43,6 +43,10 @@ Models such as gpt-oss-120b (65 GB) and other large mixture-of-experts models ar
 
 Prices in India, Canada and the UK change often and partner models vary: **check the official store or an authorised seller.** The Mac Studio's base model starts at ₹2,79,900, CA$3,499 and £2,499 with 36 GB, and 128 GB costs much more.
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Why big MoE models suit these boxes
 
 A Mixture-of-Experts model is like a hospital full of specialists. Every patient needs a bed in the building, but each one sees only one or two doctors. The box must hold every expert (the whole file), but each token only reads the few experts a small "router" picks for it.

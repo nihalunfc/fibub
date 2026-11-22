@@ -38,6 +38,10 @@ In supervised learning (Modules 3 to 7) every row had an answer to copy. In **un
 
 Think of tipping a box of mixed buttons onto a table. Nobody tells you the categories, but you soon push them into piles of similar ones. k-means does that with numbers.
 
+Try it: press New start a few times with random starts, then with k-means++, then Run 30 starts for each.
+
+<figure class="fig" data-fig="@ai-kmeans-init"><figcaption>k-means only finds a nearby good answer, so a bad start can strand two centres in one blob. Spreading the starting centres out (k-means++) and trying several starts both help.</figcaption></figure>
+
 ## 3. The algorithm
 
 k-means needs one choice from you: `$k$`, the number of clusters (groups). Then:

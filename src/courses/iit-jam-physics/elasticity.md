@@ -47,6 +47,11 @@ A long, thin wire is a soft spring; a short, thick one a stiff spring; but both 
 
 <div class="problem" data-problem="wire-extension"></div>
 
+See the atoms behind the formula: stretch the lattice at several stresses and compare materials.
+
+<figure class="fig" data-fig="@wt-hooke-lattice"><figcaption>Hooke's law is the sum of many tiny atomic springs: strain = σ/E, with E set by the atomic spring constant (k ≈ E·a). Notice the straight line ending at the elastic limit.</figcaption></figure>
+
+
 ## 2. Three ways to deform, three moduli
 
 | Deformation | Stress | Strain | Modulus |

@@ -51,6 +51,11 @@ Picture a library arranged by meaning. A normal library shelves books by title, 
 
 Where vectors live: **pgvector** (in PostgreSQL, AlloyDB and Cloud SQL), **BigQuery** vector search, **Vertex AI Vector Search**, **Elasticsearch** and **OpenSearch**, and dedicated stores such as Pinecone, Weaviate, Milvus and Qdrant. Start with the database you already run.
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. A RAG pipeline is a data pipeline
 
 **Retrieval-augmented generation (RAG)** means: retrieve relevant pieces of your data, then let the model generate an answer from them. The full flow:

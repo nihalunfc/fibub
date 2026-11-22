@@ -65,6 +65,10 @@ The solid line is local: it starts at the hardware price (after resale) and clim
 
 <div class="problem" data-problem="break-even-months"></div>
 
+Try it: pick the gaming GPU, then slide the users from 1 to 128 and find where the curves bend.
+
+<figure class="fig" data-fig="@ai-batch-throughput"><figcaption>One token costs one read of the whole model, shared by every user in the batch, so total speed climbs almost for free while each person's speed barely drops. Once arithmetic is the limit, extra users slow everybody.</figcaption></figure>
+
 ## 3. Three typical users
 
 *Made-up usage, US list prices.*

@@ -83,6 +83,10 @@ Use the usual notation: angles A, B, C opposite sides a, b, c; R the circumradiu
 \frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R \qquad \text{(sine rule)}
 ```
 
+Drag the three corners of the triangle and watch the sides, angles and both rules update.
+
+<figure class="fig" data-fig="@math-triangle-solver"><figcaption>Notice that a/sin A, b/sin B and c/sin C always agree (they equal 2R, the circumdiameter), and that when C is a right angle the cosine rule becomes Pythagoras.</figcaption></figure>
+
 ```math
 a^2 = b^2 + c^2 - 2bc\cos A \qquad \text{(cosine rule)}, \qquad a = b\cos C + c\cos B \qquad \text{(projection rule)}
 ```

@@ -95,6 +95,10 @@ For `$x$` and `$p$` this gives `$\sigma_x\sigma_p \ge \hbar/2$` in every state. 
 <div class="steps">
 <div class="step">
 
+Drag the time slider (or press Play) for the electron, then choose the dust grain and compare the time unit τ.
+
+<figure class="fig" data-fig="@qm-wavepacket-spread"><figcaption>The packet widens but its momentum spread stays fixed, so Δx·Δp starts at its minimum ħ/2 and only grows. A heavy grain spreads so slowly we never notice.</figcaption></figure>
+
 **Shifted vectors.** Let `$|f\rangle = (\hat A - \langle A\rangle)|\psi\rangle$` and `$|g\rangle = (\hat B - \langle B\rangle)|\psi\rangle$`. Then `$\sigma_A^2 = \langle f|f\rangle$` and `$\sigma_B^2 = \langle g|g\rangle$`.
 
 </div>
@@ -156,6 +160,10 @@ There is no time operator: a Hermitian `$\hat T$` with `$[\hat T, \hat H] = i\hb
 ## 6. Estimates from uncertainty
 
 For a quick ground-state energy, take a minimum-uncertainty Gaussian of width `$\sigma$`, so `$\langle p^2\rangle = \hbar^2/4\sigma^2$`, and minimise `$\langle H\rangle$` over `$\sigma$`. Any trial state gives an upper bound to the true ground energy (this is the variational method, [lesson 4.9](/learn/courses/gate-physics/variational-wkb/)).
+
+Press Play and watch electrons arrive one at a time, then change the slit gap and wavelength and switch on 'Watch which slit'.
+
+<figure class="fig" data-fig="@qm-double-slit"><figcaption>Each electron makes one dot, yet the pile of dots draws fringes of spacing λL/d. Looking at which slit it used washes the fringes out.</figcaption></figure>
 
 - Oscillator: `$\langle H\rangle = \dfrac{\hbar^2}{8m\sigma^2} + \tfrac12m\omega^2\sigma^2 \ge \tfrac12\hbar\omega$`, exact because the ground state is this Gaussian.
 - Quartic `$\lambda x^4$` (with `$\langle x^4\rangle = 3\sigma^4$`): minimum `$0.681(\hbar^4\lambda/m^2)^{1/3}$`, against the exact `$0.668$`.

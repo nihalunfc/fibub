@@ -46,6 +46,11 @@ WHERE customer_id IN (1, 3)
 
 `IN (1, 3)` is short for `customer_id = 1 OR customer_id = 3`.
 
+Pick a join type and press Play (or drag Rows built) to watch the result table being made one row at a time. Compare INNER with LEFT, then with FULL.
+
+<figure class="fig" data-fig="@data-join-types"><figcaption>Notice which rows only some joins keep, and where NULL appears: always on the side that had no partner.</figcaption></figure>
+
+
 ## 3. IN with a subquery
 
 Instead of typing the list, let a query make it. The subquery must return **one column**; it can return any number of rows.

@@ -1,6 +1,7 @@
 // Lesson kit runtime: loaded on the lessons of courses with `kit: true` in their syllabus (src/courses/<id>/syllabus.ts).
 // What it turns on, from plain HTML in a lesson's Markdown:
 //   <div class="fig" data-fig="name"></div>           an interactive figure: /learn-kit/<course>/figs/<name>.js (default export mount(el, api))
+//   <div class="fig" data-fig="@name"></div>          a shared figure any course can use: /learn-kit/viz/<name>.js (catalogue in viz/README.md)
 //   <div class="steps" data-fig="name"> <div class="step">...</div> ... </div>
 //                                                       "Watch it happen": one step at a time with Back, Play and Next;
 //                                                       the figure is told the step (controller.step(i))
@@ -23,7 +24,8 @@ const onView = (el, fn, margin = '200px') => {
 
 const mods = new Map();
 const load = (name) => {
-  if (!mods.has(name)) mods.set(name, import(`${base}figs/${name}.js${ver}`));
+  const url = name.startsWith('@') ? new URL(`viz/${name.slice(1)}.js${ver}`, import.meta.url).href : `${base}figs/${name}.js${ver}`;
+  if (!mods.has(name)) mods.set(name, import(url));
   return mods.get(name);
 };
 
@@ -55,7 +57,7 @@ function addDownload(host, name) {
     const cv = host.querySelector('canvas');
     cv.toBlob((b) => {
       const u = URL.createObjectURL(b), l = document.createElement('a');
-      l.href = u; l.download = `fibub-${course}-${name}.png`;
+      l.href = u; l.download = `fibub-${course}-${name.replace('@', '')}.png`;
       document.body.appendChild(l); l.click(); l.remove();
       setTimeout(() => URL.revokeObjectURL(u), 2000);
     });

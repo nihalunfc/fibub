@@ -49,6 +49,10 @@ Avoid: gauges, 3D, icons that carry no information, cards with five comparisons,
 **Analogy:** a weather forecast tile: "Toronto, Friday · 4 °C · ▼ 6° colder than today", with a small icon. Everything you need, nothing else.
 </details>
 
+Try it: change the sales figure, then switch what it is compared with.
+
+<figure class="fig" data-fig="@biz-baseline-toggle"><figcaption>Notice that the number never changes while the verdict does.</figcaption></figure>
+
 ## 4. Worked example
 
 *The February card.* With no comparison, "$13.4k" looks fine. With target: "▼ 7.8 % below target ($14.5k)". With last year too: "▼ 1.8 % below last year ($13.6k)". The trend line shows February as the dip between a good January and a strong March, so it reads as a blip worth checking, not a crisis.

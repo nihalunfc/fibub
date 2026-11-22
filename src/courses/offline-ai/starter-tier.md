@@ -40,6 +40,10 @@ For most people who outgrow their laptop, the choice is between a 16 GB graphics
 
 **Mac mini M6 with 24 or 32 GB:** fits 27B to 31B models at 4-bit, quiet, about 25 to 40 W under load. Writes more slowly on the same model, and is slower to read long prompts.
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. Prices today
 
 <!--fig:build-rig-->

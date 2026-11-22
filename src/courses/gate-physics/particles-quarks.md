@@ -46,6 +46,10 @@ R \approx \frac{\hbar}{mc} = \frac{\hbar c}{mc^2}
 
 For the nuclear force, `$R \approx 1.4$` fm gave Yukawa (1935) a predicted mass near 140 MeV: the pion, found in 1947. The photon is massless, so electromagnetism has infinite range; the W (80.4 GeV) gives the weak force a range of `$2.5\times10^{-3}$` fm, which is why it looks weak at low energy. (Gluons are massless too, but confinement cuts the strong force off at about 1 fm in a different way.)
 
+Drag the exchanged mass up to the pion value (140 MeV) and move the nucleon separation across the range R.
+
+<figure class="fig" data-fig="@qm-yukawa"><figcaption>A heavier exchanged particle lives for a shorter time, so the force reaches less far: Yukawa's e^(−r/R)/r collapses where Coulomb's 1/r only fades.</figcaption></figure>
+
 ## 2. Quarks and their quantum numbers
 
 | Quark | Charge | Flavour number | Mass (approx.) |
@@ -77,6 +81,10 @@ Plotting light hadrons of the same `$J^P$` by strangeness against `$I_3$` gives 
 - **Meson nonets**: pseudoscalar `$0^-$` (`$\pi$`, K, `$\bar K$`, `$\eta$`, `$\eta'$`) and vector `$1^-$` (`$\rho$`, `$K^*$`, `$\omega$`, `$\phi$`); `$q\bar q$` from three flavours gives `$3\times3 = 8 + 1$`.
 
 **Worked example: the `$\Omega^-$` prediction.** Decuplet masses rise by nearly equal steps per unit of strangeness: `$\Delta$` 1232, `$\Sigma^*$` 1385, `$\Xi^*$` 1533 MeV (steps of about 150 MeV, the extra mass of an `$s$` quark). In 1962 Gell-Mann predicted the missing corner at about 1680 MeV, with `$S = -3$`, charge `$-1$` and a weak decay (nothing lighter with `$S = -3$` exists for it to decay into strongly). It was found at Brookhaven in 1964 at 1672 MeV, via `$K^-p \to \Omega^-K^+K^0$`.
+
+Switch between octet, decuplet and mesons and click a particle for its quarks.
+
+<figure class="fig" data-fig="@qm-eightfold-way"><figcaption>Each pattern comes from combining u, d and s quarks. Lines of equal charge run diagonally (Q = I₃ + Y/2), and the decuplet's equal mass steps predicted the Ω⁻.</figcaption></figure>
 
 ## 4. Colour
 

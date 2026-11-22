@@ -162,6 +162,10 @@ A function with no two neighbouring 1s, like `$A\oplus B\oplus C$` (a checkerboa
 
 **Worked example.** Make `$S_1\oplus S_0$` from a 4-to-1 MUX.
 
+Build arithmetic from gates: choose an adder, switch its inputs, and follow the carry.
+
+<figure class="fig" data-fig="@sx-adders"><figcaption>Half adder: sum = A ⊕ B, carry = AB. Full adder: sum = A ⊕ B ⊕ C<sub>in</sub>. The 4-bit ripple adder passes the carry from stage to stage, so its delay grows with the number of bits.</figcaption></figure>
+
 1. XOR is 1 for select values 01 and 10.
 2. So set `$I_0 = 0$`, `$I_1 = 1$`, `$I_2 = 1$`, `$I_3 = 0$`.
 3. The MUX copies the truth table column straight to its output.
@@ -169,6 +173,10 @@ A function with no two neighbouring 1s, like `$A\oplus B\oplus C$` (a checkerboa
 ## 7. Circuits that remember
 
 Feed a gate's output back to its input and the circuit can store a bit.
+
+Press the clock and see when a flip-flop changes its mind.
+
+<figure class="fig" data-fig="@sx-flipflop"><figcaption>Q changes only on the rising edge of the clock, using the inputs at that moment. T = 1 or J = K = 1 makes Q toggle, so Q switches at half the clock rate: a divide-by-2.</figcaption></figure>
 
 - **SR latch** (two cross-coupled NOR gates): S = 1 sets Q = 1, R = 1 resets Q = 0, S = R = 0 holds. S = R = 1 forces both outputs to 0 and leaves the next state unpredictable: forbidden. (With NAND gates the inputs are active-low and the forbidden state forces both outputs to 1.)
 - **D flip-flop**: at the clock edge Q copies D. The basic memory cell of registers.

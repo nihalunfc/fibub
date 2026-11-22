@@ -64,6 +64,16 @@ The more dimensions you keep, and the finer the time, the less rollup saves. A d
 | **Ingestion tasks** (Middle Managers or Indexers) | Read from Kafka or files and serve the newest data before it is handed off |
 | **Coordinator / Overlord** | Balance segments across servers and manage ingestion |
 
+Step through the four stages, then change the aggregate and raise the HAVING bar.
+
+<div class="steps" data-fig="@data-groupby-buckets">
+<div class="step">Start with the plain table: ten rows, each with a region and an amount.</div>
+<div class="step">Split: every row slides into the bucket for its region.</div>
+<div class="step">Apply: the aggregate is worked out inside each bucket on its own.</div>
+<div class="step">Combine: each bucket collapses to one result row. HAVING now removes whole groups.</div>
+</div>
+
+
 ## 3. Streaming ingestion from Kafka
 
 A Kafka **supervisor** reads an ad-events topic continuously. New events are **queryable within seconds**, while they are still being indexed. Every hour (or whatever segment size you set), that data is published as segments to deep storage and served by historicals. This is why Kafka and Druid appear together in so many job postings; Module 5 covers Kafka itself.

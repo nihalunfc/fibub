@@ -51,6 +51,11 @@ orders.info()
 
 Check: is each column the type you expect (dates as `datetime64`, amounts as numbers)? Does any column have fewer non-null values than there are rows?
 
+Drag the number of bins from 3 to 40, then switch to equal-count edges.
+
+<figure class="fig" data-fig="@data-hist-bins"><figcaption>Notice that the same data can look like one hump or two depending on the bins you choose.</figcaption></figure>
+
+
 ## 3. Numbers: describe
 
 ```python data=orders.csv

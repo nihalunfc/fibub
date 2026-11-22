@@ -72,6 +72,16 @@ Succession builds communities over time: on bare rock it starts with lichens (pi
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-lotka-volterra"><figcaption>Predator-prey cycles over time and as a phase loop; birth, predation and death sliders.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-nitrogen-cycle"><figcaption>Seven-step nitrogen cycle ring with the microbe for each step and a moving marker.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-age-pyramid"><figcaption>Age pyramid from children per woman and life expectancy, coloured by reproductive age class.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="organisms-populations,ecosystem" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

@@ -35,6 +35,10 @@ sources:
 
 From August 2027, sections get longer (LR 45 minutes for 32 questions, RC 52 minutes for 6 passages), but the time per question stays about the same.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="lsat"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Two passes in Logical Reasoning
 
 <div class="steps">

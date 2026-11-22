@@ -59,6 +59,11 @@ Inside the lake and warehouse, most teams use the **medallion** layering you may
 <div class="step"><b>Trust.</b> A test checks gold impressions match silver within 0.1%; lineage records which bronze files fed which invoice line. Fast and exact paths coexist on purpose, and the portal labels which is which.</div>
 </div>
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. The layers around the core
 
 - **Catalogue and lineage:** what data exists, who owns it, where it came from and what depends on it. On Google Cloud: **Dataplex**; elsewhere: Unity Catalog, DataHub, OpenMetadata.

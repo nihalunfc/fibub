@@ -79,6 +79,16 @@ Alcohols are weaker acids than water; they react with sodium (2R-OH + 2Na → 2R
 
 </div>
 
+**Watch it happen:** acid-catalysed dehydration of tert-butyl alcohol, with curved arrows for each electron pair.
+
+<div class="steps" data-fig="@chem-alcohol-dehydration" data-title="E1 dehydration of an alcohol" data-ms="6500">
+<div class="step"><b>Start.</b> The alcohol and a strong acid.</div>
+<div class="step"><b>Protonation.</b> O takes H⁺ and OH becomes a good leaving group, water.</div>
+<div class="step"><b>Loss of water.</b> The slow step leaves a tertiary carbocation.</div>
+<div class="step"><b>Deprotonation.</b> A base removes H⁺ from the next carbon.</div>
+<div class="step"><b>Product.</b> 2-methylpropene.</div>
+</div>
+
 ## 5. Reactions of phenol
 
 The OH donates electrons into the ring, so phenol undergoes electrophilic substitution far more easily than benzene, at **ortho and para**.

@@ -48,6 +48,11 @@ hotel_schedule = dg.build_schedule_from_partitioned_job(hotel_job, hour_of_day=6
 
 `build_schedule_from_partitioned_job` targets the **last complete** partition. The 06:15 run on 15 September processes 14 September. That is the two-clocks idea from [Lesson 3.1](/learn/courses/etl/what-orchestrators-do/), built in.
 
+Set the failure chance and the retries, then run the pipeline several times.
+
+<figure class="fig" data-fig="@data-dag-retry"><figcaption>Notice that a failed task blocks everything after it, and that retries rescue short faults.</figcaption></figure>
+
+
 ## 3. Sensors
 
 A **sensor** is a small function Dagster's daemon (its background worker) calls every 30 seconds or so. It looks at the world and returns run requests. Like a doorbell: nothing happens until someone presses it.

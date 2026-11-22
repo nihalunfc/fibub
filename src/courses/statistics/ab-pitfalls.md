@@ -43,6 +43,11 @@ If a test has low power, it only reaches significance when noise pushes the esti
 
 **Checks:** plan for power (Lesson 7.3); treat a surprising win as a hypothesis and replicate it; shrink estimates towards zero (a Bayesian prior, Lesson 7.7, does this).
 
+Switch between the pooled line and the by-group lines.
+
+<figure class="fig" data-fig="@data-simpson-scatter"><figcaption>Notice that every group trends up while the pooled trend goes down: the hidden group variable flips the story.</figcaption></figure>
+
+
 ## 3. Too many metrics and segments
 
 Twenty metrics or twenty segments ("it worked for Android users in Ontario on weekends!") give about one false win at 5 % each (Lesson 6.8).

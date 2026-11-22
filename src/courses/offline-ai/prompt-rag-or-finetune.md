@@ -43,6 +43,10 @@ Think of a new employee. **Prompting** is a sticky note with today's instruction
 
 A good rule: **facts go in RAG, habits go in fine-tuning.** Fine-tuning can teach facts, but the model then states them from memory, without a source, and may blend them with what it knew before.
 
+Step through the pipeline from a pile of text to a cited answer.
+
+<figure class="fig" data-fig="@ai-rag-pipeline"><figcaption>Retrieval-augmented generation does not teach the model anything new: it finds the few relevant chunks, pastes them into the prompt, and asks the model to answer from them.</figcaption></figure>
+
 ## 3. Try them in order
 
 1. **Prompt first.** Write a clear system prompt with two or three examples. If that fixes it, stop.
@@ -92,6 +96,10 @@ Here is the order in action, for one team (the full story is in section 4):
 **"Fine-tune it on our documents and it will know our facts."** It may pick some up, but it then states them from memory with no source, can blend them with older knowledge, and has to be retrained whenever they change. For facts, RAG is cheaper, easier to update and can cite the page.
 
 </div>
+
+Try it: slide the rank from 1 up to 12 and watch the rebuilt grid catch up with the original.
+
+<figure class="fig" data-fig="@ai-lowrank"><figcaption>A big table of numbers can often be rebuilt from a few stripes, each a column times a row. That is exactly why a small LoRA adapter can change a big model: it stores r times (rows + columns) numbers instead of rows times columns.</figcaption></figure>
 
 ## 4. Worked example
 

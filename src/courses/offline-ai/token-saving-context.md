@@ -52,6 +52,10 @@ You keep the substance in a few hundred tokens instead of thousands. Try it in t
 
 <!--fig:context-bucket-->
 
+Try it: press Play and watch the oldest messages fall out of the window; compare the three ways of handling a full window.
+
+<figure class="fig" data-fig="@ai-context-slide"><figcaption>The model only sees what fits in the window. Dropping the oldest messages loses early facts like the user's name; pinning the system prompt or summarising keeps what matters at a small cost.</figcaption></figure>
+
 ## 3. Long documents: send only what matters
 
 - **Cut by hand** when you know where the answer is: send the section, not the file.

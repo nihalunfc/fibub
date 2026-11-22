@@ -75,6 +75,10 @@ For the 6-week plan, do about 1.7 weeks of the table each week. For 14 weeks, gi
 
 </div>
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="greq"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## Diagnostic: where are you now?
 
 Ten mixed questions: Quantitative Comparison, formats and geometry. Note which ones you miss: that is where your plan should start.

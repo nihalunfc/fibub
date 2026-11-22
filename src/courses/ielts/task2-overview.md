@@ -52,6 +52,17 @@ Like Task 1, four areas count equally. These are our own plain explanations, not
 
 A beautiful essay on a slightly different question loses heavily on task response. A brilliant argument full of grammar mistakes loses on accuracy. You need all four.
 
+Step through a body paragraph and watch each move (Point, Explain, Example, Link) add one sentence.
+
+<div class="steps" data-fig="@lang-peel-steps">
+<div class="step"><p><strong>Point.</strong> Open with one sentence that states the idea of the paragraph.</p></div>
+<div class="step"><p><strong>Explain.</strong> Say why it is true or how it works, in one or two sentences.</p></div>
+<div class="step"><p><strong>Example.</strong> Give one specific example that proves the point.</p></div>
+<div class="step"><p><strong>Link.</strong> Close by tying the paragraph back to the question.</p></div>
+</div>
+
+Notice that the Point and the Link say nearly the same thing; the Explain and Example in between do the proving.
+
 ## 3. A 40-minute plan
 
 <div class="steps">

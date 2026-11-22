@@ -40,6 +40,10 @@ AC voltage `$v = V_0\sin\omega t$`, with ω = 2πf. Indian mains: f = 50 Hz.
 
 </div>
 
+Change N, B and the turning rate. Watch flux (cosine) and EMF (sine) as the coil turns; drag the picture to look from other angles.
+
+<figure class="fig" data-fig="@em-generator"><figcaption>The EMF is largest when the coil is edge-on to B and zero when face-on, a quarter-turn out of step with the flux.</figcaption></figure>
+
 ## 2. R, L and C on AC
 
 | Element | Opposition | Phase of current |
@@ -49,6 +53,10 @@ AC voltage `$v = V_0\sin\omega t$`, with ω = 2πf. Indian mains: f = 50 Hz.
 | Capacitor | `$X_C = \dfrac{1}{\omega C}$` | **leads** V by 90° |
 
 X_L grows with frequency (an inductor blocks high frequencies); X_C falls with frequency (a capacitor blocks DC completely and passes high frequencies). A handy memory: **ELI the ICE man**: in L, E (voltage) comes before I; in C, I comes before E.
+
+Choose R, L, C or the series circuit and slide the frequency across 1. Compare the turning arrows with the two waves.
+
+<figure class="fig" data-fig="@em-phasor-rlc"><figcaption>For L the voltage leads the current by 90°, for C it lags by 90°; in the series circuit the phase flips from lagging to leading as ω crosses ω₀.</figcaption></figure>
 
 ## 3. Series LCR: impedance and phase
 
@@ -107,6 +115,10 @@ q = Q_0\cos\omega t, \qquad \omega = \frac{1}{\sqrt{LC}}, \qquad I_{\max} = \ome
 
 L plays the part of mass, 1/C of the spring constant, q of displacement and I of velocity. Energy is all magnetic at a quarter period. A resistor in the circuit makes the oscillation die away (damping).
 
+Change L and C and press play; then add resistance. Follow the energy as it passes between the capacitor and the coil.
+
+<figure class="fig" data-fig="@em-lc-swing"><figcaption>Electric and magnetic energy trade places while the total stays fixed. Resistance makes the swings die away.</figcaption></figure>
+
 ## 7. Transformers
 
 Two coils on one iron core. For an ideal transformer, `$\dfrac{V_s}{V_p} = \dfrac{N_s}{N_p} = \dfrac{I_p}{I_s}$`. Step-up raises voltage and lowers current; power in = power out. Real losses: copper (I²R in windings), eddy currents (reduced by laminated cores), hysteresis (soft iron), and flux leakage. Efficiency η = P_out/P_in.
@@ -116,6 +128,10 @@ Two coils on one iron core. For an ideal transformer, `$\dfrac{V_s}{V_p} = \dfra
 **Why high-voltage transmission?** For the same power P, line current is P/V, so the line loss I²R falls as 1/V². Stepping 11 kV up to 220 kV cuts the loss 400 times.
 
 **Worked example (level 4).** R = 30 Ω, X_L = 80 Ω, X_C = 40 Ω on 200 V rms. Z = √(900 + 1600) = 50 Ω. I = 4 A. cos φ = 30/50 = 0.6, current lags by 53°. Power = 200 × 4 × 0.6 = 480 W = I²R = 16 × 30 ✓. Voltmeters read V_R = 120 V, V_L = 320 V, V_C = 160 V: V_L alone is more than the supply.
+
+Change the number of turns, the load and the efficiency. Compare the two voltages and currents.
+
+<figure class="fig" data-fig="@em-transformer"><figcaption>The voltage ratio equals the turns ratio; the current ratio is the opposite, so power in is power out (less any losses).</figcaption></figure>
 
 <div class="keypoints">
 

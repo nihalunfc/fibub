@@ -65,6 +65,10 @@ For each constraint, draw the line (replace ≤ by =, find the two intercepts) a
 
 **Why corners?** Moving along any edge, Z = ax + by changes at a steady rate (it is linear), so on each edge the best point is an end of the edge. Since the best point of the whole polygon is on its boundary, it is at a corner.
 
+Press Play to slide the dashed profit line outwards, then change the profit weights a and b.
+
+<figure class="fig" data-fig="@math-lp-iso"><figcaption>Notice that the line leaves the region at a corner (the best point), and that changing a and b changes which corner it is, or makes a whole edge optimal.</figcaption></figure>
+
 <div class="problem" data-problem="lp-max"></div>
 
 ## 5. Unbounded regions

@@ -49,6 +49,11 @@ For any normal distribution:
 
 So with daily orders N(500, 40²): two days in three see 460 to 540 orders; one day in 20 falls outside 420 to 580; a day below 380 should happen about once in 2 years.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. Any normal → the standard normal
 
 Convert a value to a z-score (Lesson 1.5):

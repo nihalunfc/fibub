@@ -85,6 +85,10 @@ Diamagnets are pushed out of strong fields, paramagnets pulled in. **Curie's law
 
 **Ferromagnets.** Weiss's idea: each moment feels an extra field `$\lambda M$` from its neighbours. Then `$M = (C/T)(H + \lambda M)$` gives the **Curie-Weiss law** `$\chi = \dfrac{C}{T - T_c}$` with `$T_c = \lambda C$`; below `$T_c$` the material magnetises spontaneously in domains. Iron fully aligned has `$M_s = N\cdot2.2\mu_B \approx 1.7\times10^6$` A/m, so `$\mu_0M_s \approx 2.2$` T.
 
+Choose each material, then raise B and lower T. Watch the atomic arrows line up (or not) and read M.
+
+<figure class="fig" data-fig="@em-mag-types"><figcaption>Diamagnets oppose the field weakly; paramagnets line up a little more when cold; ferromagnets below T_c have domains that grow when B is applied.</figcaption></figure>
+
 ## 4. Hysteresis
 
 Drive a ferromagnet with a coil and sweep `$H$` up and down. Domains grow and shrink with friction, so `$B$` does not retrace its path:

@@ -56,6 +56,10 @@ Today an Earth-centred universe sounds silly, but the Greeks had good reasons:
 
 </div>
 
+Move the date through the year and set your latitude. Watch the bright part of your latitude circle, the part in daylight, grow and shrink.
+
+<figure class="fig" data-fig="@astro-seasons-orbit"><figcaption>The axis keeps pointing the same way while Earth moves round the Sun. When the northern axis leans towards the Sun, more than half of every northern circle is lit: longer days and a higher noon Sun. Try 70° N in June and December.</figcaption></figure>
+
 ## 3. What each culture got right
 
 | Culture | Best idea | Still used? |

@@ -50,6 +50,11 @@ FROM mini_orders
 
 Press **Show how it runs**: the OVER step draws `total`, a window that covers all 6 rows for every row.
 
+Press Play so the current row moves along, then change the function and the frame size. Open the RANK types view for ties.
+
+<figure class="fig" data-fig="@data-window-frame"><figcaption>Notice that the frame (shaded) decides what each row may see, and that every input row keeps its own result line.</figcaption></figure>
+
+
 ## 3. Share within a group
 
 Change `OVER ()` to `OVER (PARTITION BY ...)` and the share is of the group, not of everything. Here is the online share of each year's sales:

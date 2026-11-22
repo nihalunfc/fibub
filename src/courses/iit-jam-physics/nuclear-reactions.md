@@ -115,6 +115,10 @@ Each target nucleus presents an effective area `$\sigma$` to the beam, its **cro
 
 Slow projectiles that are captured make a **compound nucleus** that lives long enough to share the energy among all its nucleons and "forget" how it was formed (Bohr's independence hypothesis); its decay depends only on energy and angular momentum. Fast projectiles can instead knock out or pick up a single nucleon in a **direct reaction**, over in the time it takes to cross the nucleus.
 
+Move the impact parameter, then switch on the whole beam and change the target and the energy.
+
+<figure class="fig" data-fig="@qm-rutherford"><figcaption>A small impact parameter means a large deflection, and only an almost head-on α comes straight back. The counts fall as 1/sin⁴(θ/2).</figcaption></figure>
+
 ## 5. Fission and chain reactions
 
 A uranium-235 nucleus that captures a slow neutron becomes uranium-236, which wobbles and splits into two medium-mass fragments plus 2 or 3 neutrons, for example
@@ -140,6 +144,10 @@ n + {}^{235}\text{U} \to {}^{141}\text{Ba} + {}^{92}\text{Kr} + 3n
 - About 0.65% of the neutrons are **delayed**, emitted seconds later by fission products. They stretch the effective generation time from about `$10^{-4}$` s to about 0.1 s. A reactor is run so that it can only exceed `$k = 1$` with the help of the delayed neutrons, giving the control system minutes, not milliseconds.
 
 **Worked example.** With `$k = 1.001$` and a generation time of 0.1 s, the power doubles after `$\ln2/\ln1.001 = 693$` generations, or 69 s. Try it in the figure, and play with the [fission chain reaction](/learn/fission-chain/) simulator.
+
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-fission-steps"><div class="step">A slow neutron approaches U-235 and is absorbed.</div><div class="step">U-236 forms in an excited state and starts to wobble like a charged liquid drop.</div><div class="step">The drop stretches into a peanut: surface tension pulls back, Coulomb repulsion pushes out.</div><div class="step">Past the fission barrier the neck thins out.</div><div class="step">Scission: the neck snaps and two fragments form.</div><div class="step">The fragments fly apart and 2 to 3 prompt neutrons escape to carry on the chain.</div><div class="step">Energy tally: about 200 MeV per fission, mostly fragment motion.</div></div>
 
 ## 6. Fusion
 
@@ -169,6 +177,10 @@ Light nuclei release energy by fusing, because binding energy per nucleon climbs
 </div>
 
 <div class="keypoints">
+
+Pick D + T, then C + C, and slide the temperature from 1 to 100 keV.
+
+<figure class="fig" data-fig="@qm-fusion-barrier"><figcaption>Thermal energies are far below the barrier. The few fusions that happen come from the Gamow peak, where the thinning Maxwell tail meets the rising tunnelling chance; heavier nuclei need much hotter plasma.</figcaption></figure>
 
 - Conserved: `$Z$`, `$A$`, energy, momentum, angular momentum, parity. Not conserved: total rest mass.
 - `$Q = (\sum m_{\rm before} - \sum m_{\rm after})\times931.5$` MeV/u (atomic masses), or `$Q = \sum B_{\rm after} - \sum B_{\rm before}$`.

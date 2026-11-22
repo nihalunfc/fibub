@@ -64,6 +64,11 @@ WHERE o.status = 'completed';
 SELECT * FROM fact_sales WHERE order_id = 1038;
 ```
 
+Tap a value in one or two dimensions and watch the fact rows light up.
+
+<figure class="fig" data-fig="@data-star-slice"><figcaption>Notice that the filter is on the dimension but the numbers come from the fact table.</figcaption></figure>
+
+
 ## 3. How sparse is it?
 
 There are 61 products and 731 days: 44,591 possible (product, day) pairs. How many actually have a sale?

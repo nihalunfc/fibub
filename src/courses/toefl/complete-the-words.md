@@ -40,6 +40,11 @@ Here is an original example in the same style:
 
 In our practice, a cut word looks like **fir__** or **incr____**: the letters you can see, then one underscore for each missing letter. You can type the whole word or only the missing letters; both are accepted.
 
+
+For each gap choose the word that fits the letters shown and the sentence.
+
+<figure class="fig" data-fig="@lang-fill-half"><figcaption>Notice that the letters alone do not decide the answer; the context does.</figcaption></figure>
+
 ## 2. What it really tests
 
 Complete the Words looks like a spelling game, but it tests three things at once:

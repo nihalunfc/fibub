@@ -68,6 +68,10 @@ Strengtheners **close the gap**: rule out other causes, show the side effect is 
 - **Shifting the measure:** the conclusion is about profit and the choice talks about sales.
 - **Trend before:** "crashes had been rising for years" does not give another cause of the drop.
 
+**Try it:** Tap each sentence to label it as background, premise or conclusion, then press Check.
+
+<figure class="fig" data-fig="@tp-argument-build" data-set="2"><figcaption>The dashed gap between reasons and conclusion is the assumption.</figcaption></figure>
+
 ## 5. Practice
 
 <div class="qbank" data-bank="grad-verbal" data-topics="cr-strengthen-weaken" data-mode="practice" data-n="6" data-exam="gmat"></div>

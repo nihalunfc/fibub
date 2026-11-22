@@ -40,6 +40,10 @@ The SAT is taken on a laptop or tablet in the College Board's **Bluebook** app, 
 
 A few questions in each section are being tried out for future tests and do not count, but you cannot tell which ones, so treat every question as real.
 
+**Try it:** Press Play to run the clock and set your own seconds per question.
+
+<figure class="fig" data-fig="@tp-pacing-clock" data-test="satm"><figcaption>Compare the green even-pace ring with your inner ring: are you ahead or behind at each checkpoint?</figcaption></figure>
+
 ## 2. Adaptive by module: what that means
 
 Older tests gave everyone the same questions. The digital SAT is **multistage adaptive**: the first module of each section has a mix of easy, medium and hard questions. When it ends, the app checks how you did and picks your second module:

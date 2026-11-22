@@ -53,6 +53,11 @@ Watch both stores answer "average order value for the West region" on a tiny tab
 
 <div class="problem" data-problem="database-zoo-scan"></div>
 
+Drag the table size up to 100 million rows, then press Look up a new id.
+
+<figure class="fig" data-fig="@data-index-lookup"><figcaption>Notice that the scan grows with the table while the index needs only a few page reads.</figcaption></figure>
+
+
 ## 3. The NoSQL families
 
 "NoSQL" means "not only relational". Each family gives up something (joins, flexible queries, strict consistency) to get something (scale, speed, flexibility).

@@ -91,6 +91,10 @@ The intensity of `$J \to J+1$` follows the population of the lower level, which 
 
 At room temperature `$kT/hc = 208.5$` cm⁻¹, far larger than `$B$`, so many levels are filled: the spectrum rises, peaks, and falls off.
 
+Step the lower J, switch between R and P, raise the temperature, and turn on 'B(v=1) < B(v=0)'.
+
+<figure class="fig" data-fig="@qm-rovib-spectrum"><figcaption>R lines sit above the band centre, P lines below, and nothing sits at the centre. Heights follow the populations; unequal rotational constants squeeze one branch together.</figcaption></figure>
+
 **Worked example.** Find the most populated level of HCl at 300 K.
 
 1. `$\sqrt{208.5/(2\times10.59)} - \tfrac12 = 3.14 - 0.5 = 2.64$`.

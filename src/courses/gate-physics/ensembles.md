@@ -89,6 +89,11 @@ so `$P_i \propto e^{-E_i/kT}$`. Let particles cross as well and the same expansi
 
 **Worked example (a tiny reservoir).** A two-level unit (levels `$0$`, `$\varepsilon$`) shares `$4\varepsilon$` with an Einstein solid of 3 oscillators. Excited: the solid holds 3 quanta, `$\binom{5}{3} = 10$` states. Ground: 4 quanta, `$\binom{6}{4} = 15$`. So `$P_1 = 10/25 = 0.4$`. With a huge reservoir the ratio `$\Omega_R(E - \varepsilon)/\Omega_R(E)$` would become exactly `$e^{-\varepsilon/kT}$`.
 
+Fill an energy ladder at a chosen temperature: with N particles the occupation numbers show what the canonical weight does.
+
+<figure class="fig" data-fig="@wt-boltzmann-levels"><figcaption>The Boltzmann weight e^(−E/kT) sets the average occupation of each level. Notice that the Log scale makes the classical occupation a straight line with slope −1/kT, and that fermions and bosons agree with it at high T.</figcaption></figure>
+
+
 ## 4. Fluctuations and why ensembles agree
 
 In the canonical ensemble the energy is not fixed. Differentiating `$Z = \sum e^{-\beta E_i}$`:

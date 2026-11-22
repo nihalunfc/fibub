@@ -51,6 +51,11 @@ F = \frac{MS_\text{between}}{MS_\text{within}} = \frac{SS_\text{between}/(k-1)}{
 
 with `$k$` groups and `$N$` values in total. If the null (all means equal) is true, F is around 1. Large F → small p.
 
+Drag the test statistic and switch between one- and two-sided, normal and t.
+
+<figure class="fig" data-fig="@data-pvalue-tail"><figcaption>Notice that the p-value is the shaded tail area, and that a t curve with few degrees of freedom has fatter tails.</figcaption></figure>
+
+
 ## 3. The ANOVA table
 
 | Source | SS | df | MS | F | p |

@@ -59,6 +59,11 @@ messy[['order date', 'date']].sample(6, random_state=3)
 
 Each `errors='coerce'` turns values in other formats into NaT; `fillna` takes the first that worked. This is safer than letting pandas guess, which can swap day and month on dates like `04/07/2025`.
 
+Switch the rule between daily, weekly and monthly and change the aggregate.
+
+<figure class="fig" data-fig="@data-resample"><figcaption>Notice how the bars change count and height, and what happens in the last, shorter period.</figcaption></figure>
+
+
 ## 3. Taking dates apart
 
 ```python data=orders.csv

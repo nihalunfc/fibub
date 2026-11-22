@@ -69,6 +69,15 @@ That is the definition of the **parsec** ("parallax of one arcsecond"):
 **Try it:** Proxima Centauri, `$p = 0.768''$`: `$d = 1/0.768 = 1.30$` pc = 4.24 light-years.
 </details>
 
+Use the steps to build the picture, then slide the star's distance (or press Proxima, Sirius, Vega, Betelgeuse).
+
+<div class="steps" data-fig="@astro-parallax-steps">
+<div class="step">Look at a nearby star in January. The line from Earth through the star meets the far background at one spot.</div>
+<div class="step">Six months later Earth is on the other side of its orbit, 2 AU away. The line of sight now meets the background at a different spot.</div>
+<div class="step">The star appears to shift against the background by 2p. Half of that shift is the parallax angle p.</div>
+<div class="step">With p in arcseconds, the distance is d = 1/p parsecs. Slide the distance: farther stars shift less.</div>
+</div>
+
 ## 3. What it means physically
 
 Parallax is a triangle with a very short base (Earth's orbit) and very long sides. The further the star, the thinner the triangle, until the angle is too small to measure. That is the limit of the method: ground telescopes, blurred by the air ([Sky watching 3.3](/learn/courses/sky-watching/seeing-transparency/)), reached about 0.01″ (100 pc); space telescopes go much further, because they don't look through air. Gaia reaches tens of microarcseconds for bright stars, enough for distances across much of the Galaxy.
@@ -90,6 +99,10 @@ Parallax is a triangle with a very short base (Earth's orbit) and very long side
 **"A parsec is a unit of time."** A parsec is a distance, about 3.26 light-years. Its name comes from "parallax of one arcsecond".
 
 </div>
+
+Choose a star and slide its distance. Watch where the black curve crosses the naked-eye, binocular and telescope lines.
+
+<figure class="fig" data-fig="@astro-magnitude-reach"><figcaption>Every 5 magnitudes is a factor 100 in brightness and the apparent magnitude gets 5 larger for every ten times the distance. A star's absolute magnitude (its brightness at 10 pc) tells you how far away it can still be seen.</figcaption></figure>
 
 ## 4. Worked example
 

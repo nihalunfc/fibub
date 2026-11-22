@@ -65,6 +65,11 @@ The convention: **a test returns the rows that break a rule.** No rows means the
 | **Accepted values** | a column holds only the expected values | typos, new codes, stray spaces |
 | **Reconciliation** | counts and totals match the source | rows lost or doubled anywhere in the pipeline |
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Build a star with four planted bugs
 
 This build looks fine at a glance. It has four bugs, each a real mistake people make. Run it, then we test.

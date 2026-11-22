@@ -45,6 +45,10 @@ On a PC, the graphics card has its own memory (often 8 to 16 GB) separate from t
 <div class="step"><p><b>Smaller is faster.</b> A 7.7 GB model on the same Mac: 170 ÷ 7.7 ≈ 22 tokens per second. Half the size, about twice the speed.</p></div>
 </div>
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Install and run
 
 You need Python 3 (macOS offers to install it the first time you type `python3`). A **virtual environment** is a private folder of Python packages for one project, so nothing clashes with the rest of your Mac. Then:

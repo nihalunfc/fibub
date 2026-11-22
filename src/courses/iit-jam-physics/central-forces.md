@@ -105,6 +105,10 @@ For a circle it takes one line: `$GMm/r^2 = m(2\pi/T)^2r$`. For an ellipse, the 
 
 <div class="problem" data-problem="orbit-period"></div>
 
+Move the launch speed from slow to fast (try Circle and Escape) and look at the two shaded wedges.
+
+<figure class="fig" data-fig="@mech-kepler"><figcaption>Both wedges are swept in the same time and have the same area. Speed 1 gives a circle, between 1 and √2 an ellipse, and √2 or more an escape.</figcaption></figure>
+
 ## 5. Satellites, vis-viva and escape
 
 Energy conservation with `$E = -GMm/2a$` gives the **vis-viva equation**, which tells you the speed anywhere on any orbit:
@@ -132,6 +136,10 @@ Newton's shell theorems (or Gauss's law for gravity):
 - inside a uniform solid sphere only the mass within radius `$r$` pulls, so `$g(r) = g\,r/R$`.
 
 A ball dropped down a frictionless tunnel through a uniform Earth therefore moves in simple harmonic motion with `$\omega = \sqrt{g/R}$`, reaching the far side after `$\pi\sqrt{R/g} \approx 42$` minutes.
+
+Compare the three modes: a uniform planet, a thin shell, and a ball dropped through a tunnel. Slide the probe radius.
+
+<figure class="fig" data-fig="@mech-shell-g"><figcaption>Inside a uniform sphere g grows linearly with r, inside a shell it is zero, outside both fall as 1/r². The tunnel ball moves in simple harmonic motion.</figcaption></figure>
 
 ## 7. When is a circular orbit stable?
 

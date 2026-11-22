@@ -30,6 +30,11 @@ sources:
 
 Whichever you choose, the **questions, the timing, the marking and the bands** are the same, and the **Speaking test is always a live conversation** with a trained examiner. Organisations that accept IELTS accept both.
 
+
+Pick a paper and press Play: the clock runs one minute per second.
+
+<figure class="fig" data-fig="@lang-reading-pacer"><figcaption>Notice which part you should be on at each minute. If you are behind at a checkpoint, skip and come back.</figcaption></figure>
+
 ## 2. What is different
 
 | | Paper | Computer (at a test centre) |

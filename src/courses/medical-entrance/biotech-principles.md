@@ -54,6 +54,10 @@ EcoRI cuts between G and A on each strand, a little away from the centre, leavin
 
 Cut DNA is separated by **agarose gel electrophoresis**. Agarose is a natural polymer from sea weeds. DNA is negatively charged, so in an electric field it moves towards the **anode**; the gel acts as a sieve, so **smaller fragments move farther**. The DNA is invisible until stained with **ethidium bromide** and lit with **UV light**, when bands glow bright orange. The wanted band is cut out of the gel and extracted (**elution**), then used to make recombinant DNA.
 
+Press play, then change the agarose percentage.
+
+<figure class="fig" data-fig="@bio-gel-electrophoresis"><figcaption>DNA is negative so it moves toward the positive electrode; small fragments move farthest. Higher agarose gives tighter pores, better for small pieces.</figcaption></figure>
+
 ## 4. Cloning vectors
 
 Plasmids and bacteriophages copy themselves inside bacteria independently of the chromosome, so a gene joined to them is copied with them. A good vector needs:
@@ -90,6 +94,17 @@ DNA is charged and cannot easily pass through cell membranes, so hosts must be m
 <div class="step"><b>3. Amplify the gene by PCR</b> (polymerase chain reaction). Two short <b>primers</b> (chemically made oligonucleotides) bind on either side of the target; a heat-stable DNA polymerase extends them. Repeated cycles copy the gene about a billion times.</div>
 <div class="step"><b>4. Ligate and insert.</b> Join the gene to the vector with DNA ligase and transform a competent host. Select transformants on an antibiotic plate.</div>
 <div class="step"><b>5. Get the product.</b> A protein coded by a foreign gene and made in a host is a <b>recombinant protein</b>. The cells are grown in large volumes in a bioreactor, and the product is collected and purified.</div>
+</div>
+
+Step through making and selecting a recombinant plasmid.
+
+<div class="steps" data-fig="@bio-rdna-steps">
+<div class="step"><b>Cut</b> the vector and the source DNA with the same restriction enzyme.</div>
+<div class="step"><b>Anneal.</b> The matching sticky ends pair up.</div>
+<div class="step"><b>Ligate.</b> DNA ligase seals the joints: a recombinant plasmid.</div>
+<div class="step"><b>Transform.</b> Competent bacteria take up the plasmid.</div>
+<div class="step"><b>Select.</b> Only cells that carry the plasmid (and its resistance gene) survive on the antibiotic.</div>
+<div class="step"><b>Grow.</b> The clones copy the plasmid and make the protein.</div>
 </div>
 
 ## 7. PCR in detail

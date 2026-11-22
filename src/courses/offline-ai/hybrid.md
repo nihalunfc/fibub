@@ -40,6 +40,10 @@ A good hybrid policy fits on one page:
 4. **Cleaning before sending:** remove names and numbers when a job needs the cloud but the text has details it does not need.
 5. **Money limit:** a monthly cloud budget, with a spending cap set in the provider's dashboard.
 
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
+
 ## 3. A router in a few lines
 
 This builds on the three settings from Lesson 11.4: one set for local, one for the cloud.

@@ -53,6 +53,10 @@ Watch least squares judge three lines through the same three points:
 <div class="step"><b>A built-in check.</b> The best line passes through the point of means (2, 3.67), and its misses add to exactly zero.</div>
 </div>
 
+Try it: press Play on the long valley, then raise the learning rate until it zig-zags and finally flies off; add momentum to calm the zig-zag. Click the picture to choose another start.
+
+<figure class="fig" data-fig="@ai-sgd-landscape"><figcaption>A small learning rate crawls, a big one overshoots and diverges, and momentum smooths the zig-zag in a narrow valley. On the two-valley surface the start point decides which minimum you reach: gradient descent finds a nearby low point, not necessarily the lowest.</figcaption></figure>
+
 ## 3. Deriving the best line
 
 We want the `$m$` and `$c$` that make the sum of squared errors smallest:

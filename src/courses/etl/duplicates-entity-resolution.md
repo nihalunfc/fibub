@@ -87,6 +87,11 @@ the number of distinct keys.
 
 <div class="problem" data-problem="duplicates-entity-resolution-nights"></div>
 
+Press Run the checks, then switch checks off and lower the stop threshold.
+
+<figure class="fig" data-fig="@data-dq-gate"><figcaption>Notice which bad rows slip through when a check is off, and when the gate stops the whole load.</figcaption></figure>
+
+
 ## 3. Keys you create
 
 - **Natural key:** comes from the business (`booking_id`, `store_code`, `sku`). It can change, clash between systems, or be reused.

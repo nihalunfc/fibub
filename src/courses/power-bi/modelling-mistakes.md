@@ -37,6 +37,10 @@ When a number is wrong, the cause is usually in the model, not the DAX. Spotting
 | Year-to-date or last year wrong | No proper date table, or using Sales[Date] on visuals | Build and mark a date table (Lesson 3.3); use its columns everywhere |
 | Huge file, slow refresh | Unused columns, high-cardinality text (IDs, timestamps), many calculated columns, auto date/time | Remove columns, split date and time, move columns to Power Query, turn off auto date/time |
 
+Try it: make the big store bigger and see the two ways of combining margins drift apart.
+
+<figure class="fig" data-fig="@biz-ratio-of-sums"><figcaption>Notice that the real margin is a ratio of totals, not an average of percentages.</figcaption></figure>
+
 ## 3. See the blank-category problem
 
 `(Blank)` appearing in a visual is the engine telling you some fact rows have no matching dimension row. It adds a blank row to the dimension so the totals still add up. Never ignore it: it's a data quality issue to report.

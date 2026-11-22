@@ -57,6 +57,11 @@ q[q['store_id'].isin(['S01', 'S06'])]
 
 `groupby(...).pct_change()` restarts at each store, so each store is only compared with itself.
 
+Slide the window size and switch between trailing and centred.
+
+<figure class="fig" data-fig="@data-rolling-window"><figcaption>Notice that a bigger window is smoother but later, and where the NaN values appear.</figcaption></figure>
+
+
 ## 3. Traps
 
 - **Missing periods:** `shift(12)` means "12 rows back". If a month is missing, it compares with the wrong month. Make the series regular first (Lesson 7.1).

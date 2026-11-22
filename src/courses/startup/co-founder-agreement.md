@@ -57,6 +57,10 @@ Most startup failures that are not about the market are about the team: a founde
 8. **Leaving:** good and bad leaver terms, buy-back price (Lesson 10.5).
 9. **Confidentiality and non-solicitation** after leaving.
 
+Try it: move the cliff and the months worked, or press Play, and see how many shares are vested if someone leaves then.
+
+<figure class="fig" data-fig="@biz-vesting"><figcaption>Notice that before the cliff the vested amount is zero, then a block arrives at once.</figcaption></figure>
+
 ## 3. Where it lives
 
 <div class="cc" data-cc="in">

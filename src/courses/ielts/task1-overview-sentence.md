@@ -29,6 +29,11 @@ sources:
 
 A report without a clear overview has not really summarised the information, which limits the task achievement score however good the rest is. It is the one sentence most candidates at band 5 and 6 forget, and the easiest one to fix.
 
+
+Tap a stretch of the line (or its button) and pick the words that describe it.
+
+<figure class="fig" data-fig="@lang-writing-trend"><figcaption>Notice that the size of the change picks the word: "sharply" for big and fast, "slightly" for small, "levelled off" for flat.</figcaption></figure>
+
 ## 2. Five questions that find the main features
 
 Ask these about any chart. You need only two or three answers.

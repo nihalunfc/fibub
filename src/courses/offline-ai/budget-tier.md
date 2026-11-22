@@ -38,6 +38,10 @@ The cheapest machine is the one you already have. Many people never need more th
 - **16 GB laptop or older Mac:** Gemma 4 E4B (6.6 GB) or 12B (7.7 GB): a good everyday assistant, a few to 15 tokens per second.
 - **Old gaming PC with an 8 GB card:** 8B to 12B at 4-bit, partly on the card (Lesson 4.3), often faster than a laptop.
 
+Try it: lower the bits to 3 or 2, then compare one scale for everything against one per block of 32.
+
+<figure class="fig" data-fig="@ai-quant-grid"><figcaption>Fewer bits means fewer levels, so every weight is rounded more. One outlier stretches a shared scale and crushes the small weights, which is why formats give each small block its own scale.</figcaption></figure>
+
 ## 3. Five free speed-ups
 
 1. Close memory-hungry apps (browsers, video calls).
@@ -51,6 +55,10 @@ The cheapest machine is the one you already have. Many people never need more th
 **"A newer laptop will run bigger models."** Not if it has the same memory. A brand-new 16 GB laptop holds the same models as an old 16 GB one; it may write a little faster, but the size wall stays where it was. If your wall is "the model will not fit", only more fast memory moves it.
 
 </div>
+
+Try it: choose a 32B model at 4-bit, then slide the GPU memory from none up to 24 GB.
+
+<figure class="fig" data-fig="@ai-gpu-offload"><figcaption>Every generated token reads every layer, so the slow part (layers left on the CPU) sets the speed. Each extra layer moved to the GPU helps a little, and the last ones help most.</figcaption></figure>
 
 ## 4. When to upgrade
 

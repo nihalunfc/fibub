@@ -68,6 +68,10 @@ P = \frac{2\pi r}{v}
 **Try it:** the Sun, `$r = 8.2$` kpc `$= 2.5\times10^{20}$` m, `$v = 230$` km/s: `$P = 2\pi\times2.5\times10^{20}/2.3\times10^5 = 6.9\times10^{15}$` s = 220 million years.
 </details>
 
+Slide the galactic longitude and watch the velocity along the line of sight.
+
+<figure class="fig" data-fig="@astro-galactic-los"><figcaption>Gas speeds along a line of sight depend on distance, and the largest value is at the tangent point, where the line gets closest to the centre. Reading that peak at each longitude gives the rotation speed at each radius: a flat rotation curve.</figcaption></figure>
+
 ## 3. What it means physically
 
 The disc is flat for the same reason a spinning pizza dough flattens: the gas that formed it was turning, and collisions smoothed out up-and-down motion while the spin stayed. The spiral arms are not solid things; they are traffic jams where stars and gas crowd together for a while as they orbit, and the crowding squeezes gas into new stars. That is why arms glow with young blue stars and pink hydrogen clouds.

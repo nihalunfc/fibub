@@ -64,6 +64,16 @@ The genetic code is a triplet, nearly universal, degenerate (most amino acids ha
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@bio-replication-fork"><figcaption>Animated replication fork: continuous leading strand, Okazaki fragments, primers, helicase, ligase on/off, fork speed.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-central-dogma"><figcaption>Step player: template DNA, transcription to mRNA, ribosome reading codons, peptide growing, stop codon.</figcaption></figure>
+
+<figure class="fig" data-fig="@bio-codon-table"><figcaption>Clickable genetic code table; choose a codon, mutate one letter, read silent, missense or nonsense.</figcaption></figure>
+
 ## 4. Practice
 
 <div class="qbank" data-bank="entrance-biology" data-topics="molecular-inheritance" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

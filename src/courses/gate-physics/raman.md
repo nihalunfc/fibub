@@ -45,6 +45,10 @@ Shine light of frequency `$\nu_0$` on a molecule. The field `$E = E_0\cos2\pi\nu
 
 So a vibration is **Raman active** only if `$\partial\alpha/\partial Q \ne 0$`. Rotation works the same way, provided the polarisability is anisotropic: as a rod-shaped molecule turns, the field sees a large and a small `$\alpha$` twice per turn, so the shift is at twice the rotation frequency.
 
+Step through it with the buttons below, or press Play, and use the controls on the picture to try your own values.
+
+<div class="steps" data-fig="@qm-raman-stokes"><div class="step">Rayleigh: the molecule returns to where it started and the photon keeps its energy (the strongest line by far).</div><div class="step">Stokes: the molecule is left in v = 1, so the scattered photon has lost one vibrational quantum.</div><div class="step">Anti-Stokes: the molecule starts in v = 1 and ends in v = 0, so the photon gains a quantum; this needs thermally excited molecules.</div></div>
+
 **The quantum picture.** The photon is absorbed into a short-lived virtual state and re-emitted at once. If the molecule ends one vibrational quantum higher, the photon has lost that energy (Stokes); if it started in an excited level and ends lower, the photon has gained it (anti-Stokes). Raman spectra are reported as shifts in cm⁻¹ from the laser line, so the same molecule gives the same shifts with any laser.
 
 ```math

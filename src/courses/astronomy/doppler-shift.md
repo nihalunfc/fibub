@@ -71,6 +71,10 @@ For fast sources there is an exact (relativistic) formula, `$1 + z = \sqrt{(1 + 
 **Try it:** a star moving away at 30 km/s: `$\Delta\lambda = 656.3\times30/299{,}792 = 0.066$` nm for H-alpha.
 </details>
 
+Slide the radial velocity, or press a preset (a star, a spinning galaxy, a quasar), and watch the lines in the lower spectrum move.
+
+<figure class="fig" data-fig="@astro-redshift-lines"><figcaption>Every line moves by the same fraction, z = Δλ/λ. A star at 30 km/s moves Hα by only 0.07 nm; a distant galaxy at 100,000 km/s pushes it into the infrared. Negative velocities (moving towards us) shift lines to the blue.</figcaption></figure>
+
 ## 3. What it means physically
 
 Each crest of the wave leaves the star a little further away than the one before, if the star is receding, so the crests arrive spread out. The light doesn't lose its colour on the way; it was stretched at the moment it was sent. The method only feels motion along the line between us and the star. A star moving straight across the sky shows no shift at all (apart from a tiny relativistic effect).
@@ -92,6 +96,10 @@ Each crest of the wave leaves the star a little further away than the one before
 **"A redshifted star looks red."** Usually the shift is tiny (a fraction of a nanometre) and the colour does not change at all to the eye. We only see it by measuring sharp spectral lines very precisely.
 
 </div>
+
+Change the planet's mass, period and orbit shape, then watch the star and its velocity curve.
+
+<figure class="fig" data-fig="@astro-rv-wobble"><figcaption>The star orbits the common centre of mass and its light is blue-shifted when it comes towards us and red-shifted when it moves away. Heavier planets and shorter periods give bigger wobbles; an elliptical orbit makes a lopsided curve. Jupiter makes the Sun wobble only 12.5 m/s.</figcaption></figure>
 
 ## 4. Worked example
 

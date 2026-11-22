@@ -53,6 +53,16 @@ People often describe it with **the three Vs**:
 
 Think of a home cook. Dinner for four on one stove is easy. Asked to feed 4,000 people by 7 pm, the cook can't just cook faster. You need a kitchen: many cooks each doing part of the work, a head chef handing out tasks, a pantry everyone can reach, and an order rail so nothing gets lost. Big-data tools are that kitchen. In this course, Spark is the team of cooks, cloud storage is the pantry, Kafka is the order rail and Airflow is the head chef's schedule.
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Scale up or scale out
 
 When a job gets too big there are two ways to grow:

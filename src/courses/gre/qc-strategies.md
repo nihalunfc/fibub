@@ -72,6 +72,10 @@ The line above the quantities often settles the question by itself. "x + y = 10 
 
 </div>
 
+**Try it:** Choose a form, set the numbers and slide the test value along the line.
+
+<figure class="fig" data-fig="@tp-ineq-line"><figcaption>Open circles leave the end out, closed circles keep it; for |x − c| < d the solution is a single interval around c.</figcaption></figure>
+
 ## Practise: comparisons with unknowns
 
 <div class="qbank" data-bank="gre-quant" data-topics="qc" data-exam="gre" data-mode="practice" data-n="10" data-level="3"></div>

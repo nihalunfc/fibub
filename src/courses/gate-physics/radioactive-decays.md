@@ -38,6 +38,10 @@ T_\alpha = Q_\alpha\frac{A-4}{A}, \qquad T_Y = Q_\alpha\frac{4}{A}
 
 Alpha lines are sharp (two-body decay); several lines from one emitter reveal excited states of the daughter.
 
+Watch the packet hit the barrier, then lower the energy, thicken the barrier, and raise E above the top.
+
+<figure class="fig" data-fig="@qm-packet-barrier"><figcaption>When E < V₀ part of the wave still gets through (tunnelling), and part reflects even when E > V₀. A thicker barrier cuts the transmission sharply.</figcaption></figure>
+
 **Gamow's theory (1928).** Inside the nucleus the alpha particle rattles back and forth; outside, it feels the Coulomb potential `$V(r) = 2Z_de^2/(4\pi\varepsilon_0r)$`, which at the nuclear surface is about 28 MeV, far above `$T_\alpha \approx 4$`–`$9$` MeV. Classically it can never escape; quantum mechanically it [tunnels](/learn/courses/gate-physics/one-dimensional-potentials/). The WKB transmission through the barrier from `$R$` to the turning point `$b = 2Z_de^2/(4\pi\varepsilon_0T_\alpha)$` is
 
 ```math
@@ -97,6 +101,10 @@ N(p)\,dp \propto |M_{fi}|^2\,F(Z, E_e)\,p^2(Q - T_e)^2\,dp, \qquad K(T_e) = \sqr
 | second forbidden | ±2, ±3 | no | 10 to 13 |
 
 **Allowed decays** carry no orbital angular momentum. If the electron and neutrino spins are antiparallel (S = 0), it is a **Fermi** transition: `$\Delta J = 0$`. If parallel (S = 1), **Gamow-Teller**: `$\Delta J = 0, \pm1$`, but not `$0 \to 0$`. Each unit of orbital angular momentum the leptons must carry suppresses the rate by about `$(pR/\hbar)^2 \sim 10^{-3}$`, because the lepton waves are much longer than the nucleus. The free neutron (`$\tfrac12^+ \to \tfrac12^+$`, mixed Fermi and Gamow-Teller) has `$\log ft \approx 3.0$`.
+
+Press Play with 'One kind', then try 'Parent → daughter' and change the half-lives.
+
+<figure class="fig" data-fig="@qm-decay-atoms"><figcaption>Every square decays at random, yet the counts trace the exponential. In a chain the daughter first rises and then follows the parent when the parent lives longer.</figcaption></figure>
 
 **Parity violation.** In 1957 Wu's group polarised `$^{60}$`Co nuclei in a magnetic field and found electrons emitted mostly opposite to the nuclear spin: the mirror image of the experiment would give the opposite result, so the weak interaction is not mirror symmetric. Neutrinos are left-handed ([lesson 8.7](/learn/courses/gate-physics/conservation-laws/)).
 

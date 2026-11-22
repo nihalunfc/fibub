@@ -43,6 +43,16 @@ An *ER diagram* (entity-relationship diagram) has three ingredients:
 
 The *cardinality* of a relationship says how many rows on one side can match one row on the other. The three basic kinds are one-to-one, one-to-many and many-to-many.
 
+Step from the messy sheet to clean tables.
+
+<div class="steps" data-fig="@data-normalize-steps">
+<div class="step">One messy sheet: a list in one cell and repeated customer details.</div>
+<div class="step">1NF: every cell holds one value; each row is one order line.</div>
+<div class="step">2NF: details that depend on only part of the key move to their own table.</div>
+<div class="step">3NF: details that depend on a non-key column (city via customer) move out too.</div>
+</div>
+
+
 ## 3. Crow's-foot notation
 
 The most common way to draw cardinality is *crow's-foot notation*. Each end of a line carries two marks. The mark next to the box is the most (a bar for one, a three-pronged crow's foot for many); the mark further out is the least (a bar for one, a circle for zero).

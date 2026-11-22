@@ -43,6 +43,16 @@ In the cloud you pay for machine time. A job that runs 40 minutes on 20 machines
 
 Think of a filing cabinet. A CSV is a pile of whole forms: to total one box on every form you read every form. Parquet cuts each form into strips by field and files all the "amount" strips together, so totalling amounts means opening one drawer. Iceberg and Delta add an index card at the front listing exactly which strips belong to the current version, so you can add, fix or roll back forms safely.
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. The four common slowdowns
 
 ### Slowdown 1: too many small files, or a few giant ones

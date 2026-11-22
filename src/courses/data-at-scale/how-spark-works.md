@@ -44,6 +44,16 @@ Put together: a **job** (started by one action) is cut into **stages** (a new st
 
 <div class="problem" data-problem="how-spark-works-waves"></div>
 
+Step through map, shuffle and reduce for a word count.
+
+<div class="steps" data-fig="@data-mapreduce">
+<div class="step">The text is split across three workers.</div>
+<div class="step">Map: every word becomes a (word, 1) pair, each worker on its own.</div>
+<div class="step">Shuffle: pairs for the same word travel to the same worker. This is the costly network step.</div>
+<div class="step">Reduce: each worker adds up the 1s for its words.</div>
+</div>
+
+
 ## 3. Lazy evaluation: Spark plans before it runs
 
 Spark operations come in two kinds:

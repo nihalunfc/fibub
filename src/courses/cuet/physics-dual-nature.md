@@ -70,6 +70,14 @@ The Davisson-Germer experiment saw electrons diffract off a nickel crystal exact
 
 </div>
 
+## See it move
+
+Play with these before you practise. Each one runs in your browser; move the sliders and press the buttons.
+
+<figure class="fig" data-fig="@qm-photo-gun"><figcaption>A photocell: electrons leave a chosen metal with K = hf − φ; metal, colour, brightness and collector voltage, with the I-V graph; 5-step player.</figcaption></figure>
+
+<figure class="fig" data-fig="@qm-double-slit"><figcaption>Electrons arriving one at a time through two slits build up the fringe pattern; change slit gap and wavelength, or watch which slit.</figcaption></figure>
+
 ## 3. Practice
 
 <div class="qbank" data-bank="entrance-physics" data-topics="dual-nature" data-exam="cuet" data-n="10" data-mode="practice" data-type="mcq"></div>

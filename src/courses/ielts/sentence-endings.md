@@ -45,6 +45,11 @@ There are more endings than beginnings. Unlike the matching types in the last tw
 
 In the example: beginning 1 ends in "by", so only B, C, E and F (all -ing) survive the grammar filter. Beginning 2 ends in "in", so A, D and G survive. Now meaning decides.
 
+
+Tap the chunks in order to build a correct sentence. The coloured picture shows each chunk's job.
+
+<figure class="fig" data-fig="@lang-order-sentence"><figcaption>Notice that after a question word the subject comes before the verb: "where the library is".</figcaption></figure>
+
 ## 3. Worked example
 
 Passage extract:

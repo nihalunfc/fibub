@@ -46,6 +46,11 @@ Fix a 50-cent difference and slide the sample size. The p-value falls through 0.
 - **For categories:** risk ratio, odds ratio or Cramér's V (Lesson 6.5). **For relationships:** r or R² (Module 8).
 - **Number needed to treat:** 1 ÷ (difference in rates). A retention email lifting renewal from 70 % to 72 % needs 50 emails per extra renewal.
 
+Raise the sample size, then shrink the effect size, and watch the two bells and the shaded areas.
+
+<figure class="fig" data-fig="@data-power-overlap"><figcaption>Notice that alpha comes from the null bell, beta from the real-effect bell, and power is what is left of the real bell beyond the cut-off.</figcaption></figure>
+
+
 ## 3. Practical significance
 
 Before the test, agree on the **smallest effect worth acting on** (from cost, risk and value). Then read the interval against it:

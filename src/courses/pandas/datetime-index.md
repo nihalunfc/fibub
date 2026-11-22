@@ -55,6 +55,11 @@ daily.loc['2025-12-20':'2025-12-27']
 
 Partial strings (`'2026'`, `'2026-03'`) select whole periods, and date slices include both ends.
 
+Switch the rule between daily, weekly and monthly and change the aggregate.
+
+<figure class="fig" data-fig="@data-resample"><figcaption>Notice how the bars change count and height, and what happens in the last, shorter period.</figcaption></figure>
+
+
 ## 3. Every day present
 
 A store with no sales on a day simply has no rows that day. Before rolling windows or growth rates, put the missing days back as zeros:

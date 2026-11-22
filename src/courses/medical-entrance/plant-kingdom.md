@@ -68,6 +68,10 @@ Every plant alternates between a haploid (n) **gametophyte** that makes gametes 
 - **Diplontic:** the plant is 2n; the gametophyte is tiny (gymnosperms, angiosperms, and the alga *Fucus*).
 - **Haplo-diplontic:** both phases are multicellular. Bryophytes have a dominant n gametophyte; pteridophytes a dominant 2n sporophyte. Among algae, *Ectocarpus*, *Polysiphonia* and kelps are haplo-diplontic.
 
+Click through the five plant groups and compare how much of the plant you see is the haploid gametophyte (n) and how much is the diploid sporophyte (2n).
+
+<figure class="fig" data-fig="@bio-gametophyte-dominance"><figcaption>Notice the blue (2n) share growing from bryophytes to ferns to seed plants: the gametophyte shrinks until, in a flower, it is a pollen grain and an embryo sac.</figcaption></figure>
+
 ## 4. Bryophytes: amphibians of the plant kingdom
 
 They live on land but need water for the sperm to swim. The plant (gametophyte) is a thallus or has leaf-like parts, fixed by **rhizoids**, with no true roots or vascular tissue. The **antheridium** makes biflagellate antherozoids; the flask-shaped **archegonium** holds one egg. The zygote grows into a sporophyte of **foot, seta and capsule**, attached to the gametophyte. Meiosis in the capsule makes spores.

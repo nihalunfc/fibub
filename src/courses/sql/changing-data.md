@@ -50,6 +50,17 @@ SELECT * FROM price_list
 
 Six rows, from Wireless earbuds at $79.99 down to a USB-C cable at $12.99. Everything below changes `price_list` only. (If you ever want a clean start, press **Reset database** under any editor.)
 
+Step through the transfer, then switch the crash and the reader settings.
+
+<div class="steps" data-fig="@data-transaction">
+<div class="step">Both accounts start with 500 and 200: the total is 700.</div>
+<div class="step">BEGIN: the transaction opens. Nothing is visible to others yet.</div>
+<div class="step">UPDATE A: 100 leaves account A, but the transfer is half done.</div>
+<div class="step">UPDATE B: 100 arrives in account B.</div>
+<div class="step">COMMIT: both changes become permanent and visible together.</div>
+</div>
+
+
 ## 3. INSERT: adding rows
 
 `INSERT INTO table (columns) VALUES (...)` adds rows. Always list the columns: then the statement still works if someone adds a column to the table later.

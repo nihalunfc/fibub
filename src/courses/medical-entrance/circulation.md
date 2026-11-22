@@ -57,6 +57,10 @@ sources:
 
 </div>
 
+Choose the genotype of each parent and read the chance of each blood group in a child.
+
+<figure class="fig" data-fig="@bio-blood-groups"><figcaption>Try IAi × IBi (all four groups are possible) and IAIB × ii (only A or B). IA and IB are codominant; i is recessive.</figcaption></figure>
+
 ## 3. Clotting and lymph
 
 **Coagulation:** at an injury, platelets and damaged tissue release factors that start a cascade forming the **thrombokinase** complex. It converts inactive **prothrombin** into **thrombin**, and thrombin converts soluble **fibrinogen** into insoluble **fibrin** threads that trap cells into a clot. **Calcium ions** are needed throughout.
@@ -70,6 +74,10 @@ sources:
 **The human heart** develops from mesoderm, lies between the lungs tilted slightly left, is about the size of a clenched fist and sits in a double **pericardium** with pericardial fluid. Two thin-walled **atria** receive blood; two thick-walled **ventricles** pump it. The **tricuspid** valve guards the right atrioventricular opening, the **bicuspid (mitral)** valve the left one, and **semilunar** valves the openings of the pulmonary artery and aorta. Valves let blood go one way only.
 
 **Nodal tissue** makes the heart **auto-excitable**. The **SA node** (upper right corner of the right atrium) fires 70 to 75 times a minute and is the **pacemaker**. The signal spreads over the atria to the **AV node** (lower left corner of the right atrium, near the AV septum), then through the **AV bundle (bundle of His)** at the top of the interventricular septum, its right and left branches, and the **Purkinje fibres** in the ventricle walls.
+
+Press play and move the heart rate slider: watch which valves are open or shut in each phase and how diastole shortens at high rates.
+
+<figure class="fig" data-fig="@bio-heart-pump"><figcaption>The AV valves close at the start of ventricular systole ("lub"); the semilunar valves close at its end ("dub"). Ventricular systole stays near 0.3 s, so a fast heart loses mostly resting time.</figcaption></figure>
 
 ## 5. Cardiac cycle and ECG
 
@@ -92,6 +100,10 @@ Each ventricle pumps about **70 mL** per beat (**stroke volume**). **Cardiac out
 
 <div class="problem" data-problem="circ-ecg-rate"></div>
 
+Slide the heart rate and switch on the dropped beat to see how the ECG waves line up with the chambers lit in the small heart.
+
+<figure class="fig" data-fig="@bio-ecg-trace"><figcaption>P is the atria depolarising, QRS the ventricles, T the ventricles resetting. In block a P wave is not followed by a QRS.</figcaption></figure>
+
 ## 6. Double circulation, regulation and disorders
 
 **Pulmonary circulation:** right ventricle → pulmonary artery → lungs → pulmonary veins → left atrium. **Systemic circulation:** left ventricle → aorta → body → venae cavae → right atrium. The **hepatic portal vein** carries blood from the intestine to the liver before it returns to the systemic veins. The **coronary** vessels supply the heart muscle itself.
@@ -112,6 +124,19 @@ Each ventricle pumps about **70 mL** per beat (**stroke volume**). **Cardiac out
 <dt>Lub, dub</dt><dd>closing of AV valves, closing of semilunar valves</dd>
 <dt>Physical meaning</dt><dd>Valves shut when pressure behind them falls below the pressure ahead; every heart sound is a valve slamming at the moment that happens.</dd>
 </dl>
+</div>
+
+Follow one red blood cell around the double circulation.
+
+<div class="steps" data-fig="@bio-double-circulation">
+<div class="step"><b>Right atrium.</b> Deoxygenated blood arrives from the vena cavae.</div>
+<div class="step"><b>Right ventricle.</b> It pumps the blood out at low pressure.</div>
+<div class="step"><b>Pulmonary artery.</b> The blood goes to the lungs; this is the only artery with deoxygenated blood.</div>
+<div class="step"><b>Lungs.</b> The blood picks up O₂ and loses CO₂.</div>
+<div class="step"><b>Pulmonary veins.</b> Oxygenated blood returns to the left atrium.</div>
+<div class="step"><b>Left ventricle.</b> The thick wall pushes blood out at high pressure.</div>
+<div class="step"><b>Aorta.</b> Branches carry the blood to all the organs.</div>
+<div class="step"><b>Tissues and back.</b> The blood gives up O₂ and returns by the vena cavae to the right atrium: one lap done.</div>
 </div>
 
 <div class="keypoints">

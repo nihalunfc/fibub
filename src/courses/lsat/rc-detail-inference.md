@@ -61,6 +61,10 @@ No. The same paragraph says "The underground network is real". You can infer onl
 
 </div>
 
+**Try it:** Tap each paragraph to label its job, then press Check.
+
+<figure class="fig" data-fig="@tp-passage-map"><figcaption>The shape of the passage matters more than any single sentence.</figcaption></figure>
+
 ## Practice set
 
 <div class="qbank" data-bank="lsat" data-topics="rc-detail-inference" data-exam="lsat" data-n="5"></div>

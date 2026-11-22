@@ -49,6 +49,11 @@ Part 1 checks whether you can follow a conversation as it **develops**: what the
 
 **Everyday analogy.** Part 1 is like watching two friends try to fix a flat tire. First you learn the problem (the tire is flat and they have a wedding in an hour). Then they try things (the spare is also flat, the garage is closed), and finally they find a fix (a neighbour lends them a pump). If someone asks you later what happened, you remember the story, not every sentence. That story is what Part 1 asks about.
 
+
+Pick a phrase and slide Speed from careful to natural.
+
+<figure class="fig" data-fig="@lang-linking-sounds"><figcaption>Notice that the chunks you hear are not the words you see: sounds slide across word boundaries.</figcaption></figure>
+
 ## 3. The method for Part 1
 
 <div class="steps">
