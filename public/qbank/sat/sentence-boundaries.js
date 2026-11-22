@@ -19,5 +19,13 @@ export default {
       ['jars, protecting', 'jars. Protecting', 'jars; protecting', 'jars, they protected'], '<p>"Protecting them from moisture during the long voyage home" is not a complete sentence, so it cannot stand after a period or semicolon. Attached with a comma it describes the sealing: <b>jars, protecting</b>. "Jars, they protected" would be a comma splice.</p>'),
     it('sat-sb-006', 4, 'question boundary', 'Historians still debate one question about the lost colony ______ did its settlers leave willingly, or were they forced out?',
       ['colony:', 'colony,', 'colony', 'colony;'], '<p>The first part is complete and introduces the question that follows. A <b>colon</b> is the mark that introduces an explanation or example after a complete sentence.</p>'),
+    it('sat-sb-101', 2, 'comma splice', 'The library extended its opening hours during exam ______ students could study there until midnight.',
+      ['season, so', 'season,', 'season', 'season so,'], '<p>Two complete sentences need a comma plus a joining word: <b>season, so</b>. A comma alone makes a comma splice; nothing at all makes a run-on.</p>'),
+    it('sat-sb-102', 3, 'semicolon', 'Glass looks solid and ______ its atoms are arranged in a disordered pattern more like a liquid’s than a crystal’s.',
+      ['still; in fact,', 'still, in fact,', 'still in fact,', 'still, in fact;'], '<p>"Glass looks solid and still" and "its atoms are arranged..." are both complete. A semicolon joins them, and "in fact" introduces the second: <b>still; in fact,</b>. A comma alone would be a comma splice.</p>'),
+    it('sat-sb-103', 3, 'fragment', 'Because the river had flooded the only road into the ______ supplies were delivered by boat for two weeks.',
+      ['village,', 'village.', 'village;', 'village, and'], '<p>"Because the river had flooded ... village" is a dependent clause, so it must attach to the main clause with a comma: <b>village,</b>. A period or semicolon leaves a fragment.</p>'),
+    it('sat-sb-104', 4, 'colon', 'The chef’s new menu is built around a single ______ every dish uses ingredients grown within fifty kilometres of the restaurant.',
+      ['idea:', 'idea', 'idea, that', 'idea, which'], '<p>A complete sentence followed by an explanation of "a single idea" takes a colon: <b>idea:</b>. No punctuation makes a run-on; "which" would wrongly make the second part a description of "idea" with a full sentence after it.</p>'),
   ],
 };

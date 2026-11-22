@@ -164,6 +164,15 @@ export function buildPaper(pattern, pool, gens, r = Math.random) {
     for (const it of shuffle(pool.filter(fits), r)) { if (!byTopic.has(it.topic)) byTopic.set(it.topic, []); byTopic.get(it.topic).push(it); }
     const gfits = shuffle(gens.filter((g) => g.type === sec.type && mk(g)), r);
     for (const g of gfits) { if (!byTopic.has(g.topic)) byTopic.set(g.topic, []); byTopic.get(g.topic).push({ __gen: g }); }
+    // passages: N draws N whole shared-passage sets (every question of each passage, in its own order) instead of
+    // single questions, as on the LSAT Reading Comprehension section. The count is then whatever those passages hold.
+    if (sec.passages) {
+      const sets = new Map();
+      for (const it of pool) if (it.group && fits(it)) { const key = `${it.topic}/${it.group}`; if (!sets.has(key)) sets.set(key, []); sets.get(key).push(it); }
+      const out = shuffle([...sets.values()], r).slice(0, sec.passages).flat();
+      for (const it of out) used.add(it.id);
+      return { name: sec.name, type: sec.type, marks: sec.marks, items: out, short: 0 };
+    }
     const lists = shuffle([...byTopic.values()], r);
     const out = [];
     let k = 0, empty = 0;
@@ -217,8 +226,8 @@ export const PATTERNS = {
   'lsat-lr': { name: 'LSAT Logical Reasoning practice section', minutes: 35, scheme: 'lsat', only: { section: 'lr' }, sections: [
     { name: 'Logical Reasoning', type: 'mcq', marks: 1, count: 25, anyLevel: true },
   ] },
-  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (5 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
-    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 22, anyLevel: true },
+  'lsat-rc': { name: 'LSAT Reading Comprehension practice section (4 passages)', minutes: 35, scheme: 'lsat', only: { section: 'rc' }, sections: [
+    { name: 'Reading Comprehension', type: 'mcq', marks: 1, count: 27, passages: 4, anyLevel: true },
   ] },
   // CUET (UG): every test is 50 compulsory MCQs in 60 minutes, +5/−1 (NTA bulletin, checked 2026-11-22). The two
   // sections only mix easier and harder questions; every question is worth 5 marks (marksMap).
